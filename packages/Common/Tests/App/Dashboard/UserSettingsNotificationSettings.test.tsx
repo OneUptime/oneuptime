@@ -32,6 +32,7 @@ import {
   testPriorityId,
 } from "../../Helpers/SecurityCaseValues";
 import { stubDashboardSecurityCaseValues } from "./SecurityCaseValuesStub";
+import { stubDashboardCustomNotificationChannels } from "./CustomNotificationChannelsStub";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
 /*
@@ -89,6 +90,11 @@ describe("user settings > notification settings", () => {
     jest.spyOn(User, "getUserId").mockReturnValue(USER_ID);
     // The project's case priorities, which New security case picks from.
     stubDashboardSecurityCaseValues();
+    /*
+     * The server's custom channels: none, so there is no Custom Channels
+     * column (NotificationSettingsCustomChannels.test.tsx has the column).
+     */
+    stubDashboardCustomNotificationChannels();
     jest
       .spyOn(ModelAPI, "getCommonHeaders")
       .mockReturnValue({ tenantid: PROJECT_ID.toString() });

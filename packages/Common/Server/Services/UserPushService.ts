@@ -2,6 +2,8 @@ import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
 import DatabaseService from "./DatabaseService";
+import GlobalConfigService from "./GlobalConfigService";
+import { PUSH_NOTIFICATIONS_TURNED_OFF_MESSAGE } from "../../Types/PushNotification/PushNotificationsTurnedOff";
 import UserNotificationRuleService, {
   NotificationDeletionImpact,
   NotificationMethodChannel,
@@ -39,6 +41,15 @@ export class Service extends DatabaseService<UserPush> {
   protected override async onBeforeCreate(
     createBy: CreateBy<UserPush>,
   ): Promise<OnCreate<UserPush>> {
+    /*
+     * No device is added while the server has push turned off
+     * (PushNotificationsTurnedOff) - through the registration route or the
+     * generic API alike: nothing would reach it.
+     */
+    if (await GlobalConfigService.getPushNotificationsTurnedOff()) {
+      throw new BadDataException(PUSH_NOTIFICATIONS_TURNED_OFF_MESSAGE);
+    }
+
     if (!createBy.data.deviceToken) {
       throw new BadDataException("Device token is required");
     }

@@ -7,6 +7,7 @@ OneUptime alerte les personnes sur leur téléphone via l'application mobile **O
 - [Ouvrir le pare-feu](#accès-réseau): Les adresses que joignent votre serveur et les appareils de vos équipes.
 - [Sonner malgré le mode silencieux](#alertes-dastreinte-critiques-outrepasser-le-mode-silencieux): Faire sonner les alertes d'astreinte sur un téléphone en sourdine.
 - [Réparer les push qui n'arrivent jamais](#dépannage): Ce que signifie chaque erreur d'Expo.
+- [Désactiver le push](#désactiver-le-push-sur-tout-le-serveur): Ne rien envoyer via Expo, le relais ou les navigateurs.
 :::
 
 ## Fonctionnement
@@ -118,6 +119,19 @@ La connectivité des appareils est une exigence distincte. Les appareils iOS ont
 :::
 
 Pour les push mobiles, OneUptime lit aussi l'accusé de livraison d'Expo environ 15 minutes après chaque push : un push qui n'a jamais atteint l'appareil apparaît alors comme non livré dans le journal des push et, pour une alerte d'astreinte, sur la chronologie d'astreinte.
+
+## Désactiver le push sur tout le serveur
+
+Si rien ne doit quitter votre réseau via Expo, le relais push ou le service push d'un navigateur, un administrateur principal peut désactiver le push dans **Admin Dashboard > Paramètres > Push Notifications** : désactivez **Send push notifications** et confirmez.
+
+Tant que le push est désactivé :
+
+- Rien n'est envoyé par push aux téléphones ni aux navigateurs, dans aucun projet.
+- Aucun appareil ne peut être enregistré. L'onglet **Push Notifications** de chaque personne, sous **Paramètres utilisateur > Méthodes de notification**, indique que le push est désactivé, et les règles d'astreinte ne proposent aucun appareil push.
+- Une alerte passant par une règle push n'est pas envoyée. Le journal d'astreinte de la personne indique `Push notification not sent: Push notifications are turned off on this server.`
+- La disponibilité d'astreinte compte les appareils push comme inutilisables, et le repli les ignore. Une personne dont la seule méthode vérifiée est un appareil push apparaît comme injoignable.
+
+Pour continuer à joindre les personnes sur leur téléphone, ajoutez un [canal personnalisé](/docs/self-hosted/custom-notification-channels) pour votre propre application ou passerelle. Chaque serveur OneUptime relit l'interrupteur dans les 10 secondes qui suivent un changement. Quand le push est réactivé, les appareils sont de nouveau enregistrés depuis l'application mobile à son prochain démarrage, ou depuis le navigateur.
 
 ## Alertes d'astreinte critiques (outrepasser le mode silencieux)
 

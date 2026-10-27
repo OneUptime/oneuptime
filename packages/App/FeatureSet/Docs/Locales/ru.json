@@ -298,6 +298,8 @@
     "Twilio Integration": "Интеграция с Twilio",
     "GitHub Integration": "Интеграция с GitHub",
     "Push Notifications": "Push-уведомления",
+    "Custom Notification Channels": "Пользовательские каналы уведомлений",
+    "SMS and Call Gateway": "Шлюз SMS и звонков",
     "SendGrid Inbound Email": "Входящие письма SendGrid",
     "Private Network Access": "Доступ к частной сети",
     "Behind a VPN or Firewall": "За VPN или брандмауэром",

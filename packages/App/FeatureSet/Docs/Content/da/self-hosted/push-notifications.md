@@ -7,6 +7,7 @@ OneUptime alarmerer folk på telefonen via mobilappen **OneUptime On-Call** og i
 - [Åbn firewallen](#netværksadgang): De adresser, din server og dine folks enheder når frem til.
 - [Ring igennem lydløs tilstand](#kritiske-vagtalarmer-tilsidesætter-lydløs-tilstand): Lad vagtalarmer lyde på en telefon, der er sat på lydløs.
 - [Ret pushes, der aldrig kommer frem](#fejlfinding): Hvad hver af Expos fejl betyder.
+- [Slå push fra](#deaktivering-af-push-for-hele-serveren): Send intet gennem Expo, relayet eller browsere.
 :::
 
 ## Sådan fungerer det
@@ -118,6 +119,19 @@ Enhedernes forbindelse er et særskilt krav. iOS-enheder har brug for adgang til
 :::
 
 For mobile pushes læser OneUptime også Expos leveringskvittering omkring 15 minutter efter hvert push: Et push, der aldrig nåede enheden, vises så som ikke leveret i push-loggen og, for en vagtalarm, på vagttidslinjen.
+
+## Deaktivering af push for hele serveren
+
+Hvis intet må forlade dit netværk via Expo, push-relayet eller en browsers push-tjeneste, kan en masteradministrator slå push fra under **Admin Dashboard > Indstillinger > Push Notifications**: Slå **Send push notifications** fra, og bekræft.
+
+Mens push er slået fra:
+
+- Intet pushes til telefoner eller browsere, i noget projekt.
+- Ingen enhed kan registreres. Fanen **Push Notifications** under **Brugerindstillinger > Notifikationsmetoder** viser hver person, at push er slået fra, og vagtregler tilbyder ingen push-enheder.
+- En alarm via en push-regel sendes ikke. Personens vagtlog siger `Push notification not sent: Push notifications are turned off on this server.`
+- Parathed tæller push-enheder som ubrugelige, og reserven springer dem over. En person, hvis eneste bekræftede metode er en push-enhed, vises som utilgængelig.
+
+For fortsat at nå folk på deres telefoner kan du tilføje en [brugerdefineret kanal](/docs/self-hosted/custom-notification-channels) til din egen app eller gateway. Hver OneUptime-server læser kontakten igen inden for 10 sekunder efter en ændring. Når push slås til igen, registreres enhederne igen fra mobilappen, næste gang den starter, eller fra browseren.
 
 ## Kritiske vagtalarmer (tilsidesætter lydløs tilstand)
 

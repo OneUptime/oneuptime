@@ -92,6 +92,29 @@ export const CLUSTER_KEY_ROUTE_CALLERS: Array<ClusterKeyRouteCaller> = [
   },
   {
     route: {
+      file: `${NOTIFICATION_API}/CallAndSmsGateway.ts`,
+      method: "POST",
+      path: '"/test"',
+    },
+    caller: "packages/Common/Server/Utils/CallAndSmsGatewayTest.ts",
+    calls: '"/api/notification/call-and-sms-gateway/test"',
+  },
+  /*
+   * The Enterprise Edition's custom channels: core hands each request to
+   * the route ee/ serves, under "/api".
+   */
+  {
+    route: {
+      file: "ee/Server/CustomNotificationChannels/API/CustomChannelSendAPI.ts",
+      method: "POST",
+      path: "CUSTOM_CHANNEL_SEND_PATH",
+    },
+    caller:
+      "packages/Common/Server/Services/CustomNotificationChannelDeliveryService.ts",
+    calls: '"/api/notification/custom-channel/send"',
+  },
+  {
+    route: {
       file: `${NOTIFICATION_API}/Mail.ts`,
       method: "POST",
       path: '"/send"',

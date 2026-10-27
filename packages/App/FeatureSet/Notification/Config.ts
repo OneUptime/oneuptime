@@ -17,6 +17,8 @@ import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import { GLOBAL_TWILIO_CONFIG_SELECT } from "Common/Server/Utils/TwilioConfigSelect";
 import { toServerTwilioConfig } from "Common/Server/Utils/ServerTwilioConfig";
 import { TwilioMessageKind } from "Common/Utils/Project/TwilioAccount";
+import { CallAndSmsGateway } from "Common/Types/CallAndSMS/CallAndSmsProvider";
+import CallAndSmsGatewayConfig from "Common/Server/Utils/CallAndSmsGatewayConfig";
 
 type GetGlobalSMTPConfig = () => Promise<EmailServer | null>;
 
@@ -294,6 +296,21 @@ export const getTwilioConfig: GetTwilioConfigFunction = async (
 
   return twilioConfig;
 };
+
+type GetCallAndSmsGatewayFunction = () => Promise<CallAndSmsGateway | null>;
+
+/*
+ * The installation's own gateway, when the server sends its SMS and calls
+ * through one (Types/CallAndSMS/CallAndSmsProvider) - or null when it sends
+ * them through Twilio. Asked wherever the server's own Twilio account would
+ * be, and first: a server that sends through its gateway sends nothing
+ * through Twilio. A read that fails throws, as getTwilioConfig's does, so
+ * the message fails rather than going out through Twilio after all.
+ */
+export const getCallAndSmsGateway: GetCallAndSmsGatewayFunction =
+  async (): Promise<CallAndSmsGateway | null> => {
+    return await CallAndSmsGatewayConfig.getGateway();
+  };
 
 export const SMSDefaultCostInCents: number = process.env[
   "SMS_DEFAULT_COST_IN_CENTS"

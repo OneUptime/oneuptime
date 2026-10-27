@@ -55,6 +55,7 @@ const ALL_OFF: Record<Channel, boolean> = {
   alertBySlack: false,
   alertByMicrosoftTeams: false,
   alertByWebhook: false,
+  alertByCustomChannel: false,
 };
 
 interface StoredSetting {

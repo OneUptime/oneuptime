@@ -177,6 +177,7 @@ Un numéro vérifié pour les SMS l'est aussi pour les appels, sans second code.
 :::cards
 - [Politique d'appels entrants](/docs/on-call/incoming-call-policy): Permettre aux appelants de joindre vos ingénieurs d'astreinte via un numéro Twilio.
 - [Règles d'escalade](/docs/on-call/escalation-rules): Décider qui est alerté à chaque niveau, par SMS, appel ou toute autre méthode.
+- [Passerelle SMS et appels](/docs/self-hosted/sms-and-call-gateway): Envoyer les SMS et les appels par votre propre fournisseur au lieu de Twilio.
 - [SMTP](/docs/emails/smtp): Envoyer aussi les e-mails par votre propre serveur de messagerie.
 - [Accès aux réseaux privés](/docs/self-hosted/private-network-access): Permettre aux workflows et aux webhooks de joindre des outils internes.
 :::

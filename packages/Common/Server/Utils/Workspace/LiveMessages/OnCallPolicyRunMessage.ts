@@ -99,6 +99,7 @@ const METHOD_LABELS: Array<{
   { field: "userSlackId", label: "Slack" },
   { field: "userMicrosoftTeamsId", label: "Microsoft Teams" },
   { field: "userWebhookId", label: "webhook" },
+  { field: "customNotificationChannelId", label: "custom channel" },
 ];
 
 /*
@@ -878,6 +879,7 @@ export default class OnCallPolicyRunMessage {
           userSlackId: true,
           userMicrosoftTeamsId: true,
           userWebhookId: true,
+          customNotificationChannelId: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,

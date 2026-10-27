@@ -910,11 +910,24 @@ describe("Administrative notification rule edit guards", () => {
       // If the derivation itself ever breaks, fail rather than pass vacuously.
       expect(columnsOnModel).toHaveLength(9);
 
+      /*
+       * The one method column that belongs to nobody - a custom channel, the
+       * installation's - is guarded as well, for existing and being on rather
+       * than for its owner (CustomChannelRuleGuards).
+       */
+      const sharedMethodColumns: Array<string> = [
+        "customNotificationChannelId",
+      ];
+
+      expect(Object.keys(new UserNotificationRule())).toEqual(
+        expect.arrayContaining(sharedMethodColumns),
+      );
+
       expect(
         [
           ...UserNotificationRuleAdminService.getNotificationMethodIdColumns(),
         ].sort(),
-      ).toEqual([...columnsOnModel].sort());
+      ).toEqual([...columnsOnModel, ...sharedMethodColumns].sort());
       expect(
         [
           ...CHANNELS.map((c: ChannelFixture): string => {
@@ -1818,7 +1831,7 @@ describe("Administrative notification rule edit guards", () => {
           }),
         ),
       ).rejects.toThrow(
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel, Email, or Push notification is required",
       );
     });
 
@@ -2072,7 +2085,7 @@ describe("Administrative notification rule edit guards", () => {
           updatePayload({ patch: { userEmailId: null } }),
         ),
       ).rejects.toThrow(
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel, Email, or Push notification is required",
       );
     });
 
