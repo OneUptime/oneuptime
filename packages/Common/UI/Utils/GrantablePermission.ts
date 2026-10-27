@@ -2,6 +2,7 @@ import PermissionScope from "../../Types/Database/AccessControl/PermissionScope"
 import HeldPermissionsUtil from "../../Types/HeldPermissions";
 import { isRolePermissionGivenToApiKeys } from "../../Types/Team/CustomRoleCopyPlan";
 import Permission, {
+  PermissionHelper,
   UserGlobalAccessPermission,
   UserPermission,
   UserTenantAccessPermission,
@@ -52,26 +53,29 @@ export interface PermissionRows {
 type IsUnrestrictedFunction = (permission: UserPermission) => boolean;
 
 /*
- * A row that reaches the whole project: scope All, or (Labels, or a legacy
- * row with no scope) with no labels on it. Owned never does: an owned-only
+ * A row that reaches the whole project: one its labels do not narrow, at
+ * scope All, or Labels, or a legacy row with no scope. Labels narrow a row
+ * whatever scope it is stored with, All included, as the server reads it
+ * (PermissionHelper.isLimitedToLabels). Owned never does: an owned-only
  * grant cannot be handed on as a project-wide one.
  */
 export const isUnrestrictedPermission: IsUnrestrictedFunction = (
   permission: UserPermission,
 ): boolean => {
-  if (permission.scope === PermissionScope.All) {
-    return true;
-  }
-
   /*
    * Owned never does, and neither does a scope this copy does not know: the
-   * server counts only All, and Labels or no scope without labels.
+   * server counts only All, and Labels or no scope, without labels that
+   * narrow them.
    */
-  if (permission.scope && permission.scope !== PermissionScope.Labels) {
+  if (
+    permission.scope &&
+    permission.scope !== PermissionScope.All &&
+    permission.scope !== PermissionScope.Labels
+  ) {
     return false;
   }
 
-  return (permission.labelIds || []).length === 0;
+  return !PermissionHelper.isLimitedToLabels(permission);
 };
 
 type HoldsUnblockedFunction = (data: {
@@ -182,15 +186,14 @@ const callerRowCovers: CallerRowCoversFunction = (data: {
 
 type IsLabelScopedGrantFunction = (grant: TeamPermissionGrant) => boolean;
 
-// A grant limited to some labels: it carries labels, at a scope that uses them.
+/*
+ * A grant limited to some labels: it carries labels its scope does not
+ * leave aside - any scope but Owned (PermissionHelper.isLimitedToLabels).
+ */
 const isLabelScopedGrant: IsLabelScopedGrantFunction = (
   grant: TeamPermissionGrant,
 ): boolean => {
-  return (
-    (grant.labelIds || []).length > 0 &&
-    grant.scope !== PermissionScope.All &&
-    grant.scope !== PermissionScope.Owned
-  );
+  return PermissionHelper.isLimitedToLabels(grant);
 };
 
 type CanGrantTeamPermissionFunction = (data: {

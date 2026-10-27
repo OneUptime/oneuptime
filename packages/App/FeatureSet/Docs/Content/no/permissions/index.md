@@ -195,10 +195,12 @@ Hver tillatt rettighet gis med et omfang: når du legger den til, ligger **Omfan
 | Omfang | Betydning |
 | --- | --- |
 | Alle ressurser i prosjektet | Standarden, og det de fleste team trenger. Tillatelsen gjelder for alle ressurser som passer. |
-| Bare ressurser de eier | Tillatelsen gjelder bare ressurser som personen som handler, eller et av teamene deres, eier. |
+| Bare ressurser de eier | Tillatelsen gjelder bare ressurser som personen som handler, eller teamet den er gitt til, eier – ikke ressurser som bare et annet av teamene deres eier. |
 | Bare ressurser med bestemte etiketter | Tillatelsen gjelder bare ressurser som bærer minst én av de valgte etikettene. |
 
 **Eide** er den enkleste måten å bygge en modell der «dere passer på deres egne tjenester»: gi et team `MonitorAdmin` med omfanget Eide, og gjør så teamet til eier av overvåkerne det har ansvaret for. Det snevrer inn alle ressurser som kan ha eiere — overvåkere, hendelser, dashbord, tjenester, monitorgrupper, vaktplaner og lignende — og det som hører til dem, som lagene i en vaktplan. Sonder, Runnere, AI-agenter, vaktplaner og hendelses- og vedlikeholdsmaler er det andre ressurser settes opp med, så en tillatelse med omfanget Eide leser fortsatt alle sammen, og du kan velge hvilken som helst av dem; den endrer og sletter bare dem du eller teamene dine eier. En Runners nøkkel, som lar den som har den, opptre som Runneren, vises bare på Runnerne du eller teamene dine eier. Prosjektkonfigurasjon (hendelsestilstander, etiketter, selve teamene) har ingen eier, så en rolle med omfanget Eide oppfører seg normalt der.
+
+Et teams tillatelse med omfanget Eide rekker til det teamet eier, ikke til det personens andre team eier. Den som er med i to team, det ene med `IncidentMember` med omfanget Eide og det andre med `Viewer` med omfanget Eide, endrer hendelsene det første teamet eier og de vedkommende eier selv, og ser bare hendelsene det andre teamet eier. En tillatelse med omfanget Eide legger også bare til eiere på ressurser som personen eller teamet den er gitt til, eier, så det første teamet kan ikke gjøres til eier av det andre teamets hendelser for å komme rundt dette. En egendefinert rolles tillatelse med omfanget Eide rekker til det hvert team som har fått rollen, eier.
 
 **Etiketter** er den mer manuelle varianten av samme idé: merk ressurser, og gi så tillatelser begrenset til de merkene.
 

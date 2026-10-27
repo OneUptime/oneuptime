@@ -30567,7 +30567,7 @@
   "Private User": "私人用户",
   "Projects that require SSO accept a sign-in with this provider.": "要求 SSO 的项目接受通过此提供商的登录。",
   "Resources that carry one of the labels you pick.": "带有你所选标签之一的资源。",
-  "Resources the person, or one of their teams, owns.": "此人或其所在的某个团队拥有的资源。",
+  "Resources the person, or the team given this permission, owns.": "此人或被授予此权限的团队拥有的资源。",
   "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.": "通过你自己的邮件服务器发送此项目的邮件。状态页面在订阅者设置中选择使用哪一个。",
   "Serves the badge at a link with a secret token, made the first time you turn it on.": "通过带有秘密令牌的链接提供徽章，令牌在您首次开启时生成。",
   "Start {{runbooks}}": "启动 {{runbooks}}",

@@ -885,6 +885,8 @@ describe("one Slack workspace connected to two OneUptime projects", () => {
           : null;
       }) as never);
     jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+    // Nor a blocked person (WorkspaceActionAuthorization asks that too).
+    jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
     jest.spyOn(ProjectService, "getCurrentPlan").mockResolvedValue({
       plan: PlanType.Growth,
       isSubscriptionUnpaid: false,

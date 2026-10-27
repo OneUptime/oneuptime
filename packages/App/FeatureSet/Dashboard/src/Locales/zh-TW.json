@@ -30567,7 +30567,7 @@
   "Private User": "私人使用者",
   "Projects that require SSO accept a sign-in with this provider.": "要求 SSO 的專案接受透過此提供者的登入。",
   "Resources that carry one of the labels you pick.": "帶有你所選標籤之一的資源。",
-  "Resources the person, or one of their teams, owns.": "此人或其所在的某個團隊擁有的資源。",
+  "Resources the person, or the team given this permission, owns.": "此人或被授予此權限的團隊擁有的資源。",
   "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.": "透過你自己的郵件伺服器傳送此專案的郵件。狀態頁面在訂閱者設定中選擇使用哪一個。",
   "Serves the badge at a link with a secret token, made the first time you turn it on.": "透過帶有秘密權杖的連結提供徽章，權杖會在您首次開啟時產生。",
   "Start {{runbooks}}": "啟動 {{runbooks}}",
