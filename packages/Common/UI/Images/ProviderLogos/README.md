@@ -77,7 +77,6 @@ is registered and listed below, and no file reaches outside itself.
 | `slack.svg` | Slack | SVG Logos, `slack-icon` (the Slack mark) | [Slack media kit](https://slack.com/media-kit) |
 | `discord.svg` | Discord | SVG Logos, `discord-icon` | [Discord branding](https://discord.com/branding) |
 | `telegram.svg` | Telegram | SVG Logos, `telegram` | [telegram.org](https://telegram.org) |
-| `whatsapp.svg` | WhatsApp | SVG Logos, `whatsapp-icon` | [WhatsApp brand](https://about.meta.com/brand/resources/whatsapp/whatsapp-brand) |
 | `mattermost.svg`, `mattermost-dark.svg` | Mattermost | SVG Logos, `mattermost-icon`; dark: in white | [Mattermost brand guidelines](https://www.mattermost.org/brand-guidelines/) |
 | `opsgenie.svg` | Opsgenie | Atlassian's own icon, from its design system's `@atlaskit/logo` (Apache-2.0) | [Atlassian press kit](https://www.atlassian.com/company/news/press-kit) |
 | `atlassian-statuspage.svg` | Statuspage | Atlassian's own icon, from its design system's `@atlaskit/logo` (Apache-2.0) | as above |

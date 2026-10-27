@@ -67,7 +67,6 @@ enum ProviderLogo {
   Slack = "slack",
   Discord = "discord",
   Telegram = "telegram",
-  WhatsApp = "whatsapp",
   Mattermost = "mattermost",
 
   // On-call, incident, uptime and status page tools
@@ -146,7 +145,6 @@ export const PROVIDER_LOGO_NAMES: Readonly<Record<ProviderLogo, string>> = {
   [ProviderLogo.Slack]: "Slack",
   [ProviderLogo.Discord]: "Discord",
   [ProviderLogo.Telegram]: "Telegram",
-  [ProviderLogo.WhatsApp]: "WhatsApp",
   [ProviderLogo.Mattermost]: "Mattermost",
   [ProviderLogo.Opsgenie]: "Opsgenie",
   [ProviderLogo.PagerDuty]: "PagerDuty",

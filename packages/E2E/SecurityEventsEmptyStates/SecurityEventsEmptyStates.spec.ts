@@ -866,17 +866,29 @@ function tileCategory(page: Page, item: Provider): Locator {
   return page.locator(`#${CONNECTIONS_ID}-provider-${item.value}-category`);
 }
 
-// The badge's icon (the tile's first <svg>) and the plus at its end.
-function tileIcon(page: Page, item: Provider): Locator {
-  return tile(page, item).locator("svg").first();
+/*
+ * The badge: the product's official logo (Common's ProviderLogoImage, a tile
+ * holding the logo's image), the tile's first child. Then the name block
+ * and, where the member can connect, the plus at the end.
+ */
+function tileBadge(page: Page, item: Provider): Locator {
+  return tile(page, item).locator(":scope > [data-provider-logo]");
 }
 
-function tileBadge(page: Page, item: Provider): Locator {
-  return tile(page, item).locator(":scope > div").first();
+function tileLogoImage(page: Page, item: Provider): Locator {
+  return tileBadge(page, item).locator("img");
 }
 
 function tilePlus(page: Page, item: Provider): Locator {
-  return tile(page, item).locator(":scope > div").nth(2).locator("svg");
+  return tile(page, item).locator(":scope > div").nth(1).locator("svg");
+}
+
+// Whether an image has loaded and has a picture: a logo that did not arrive draws nothing.
+async function isDrawn(image: Locator): Promise<boolean> {
+  return image.evaluate((element: Element): boolean => {
+    const picture: HTMLImageElement = element as HTMLImageElement;
+    return picture.complete && picture.naturalWidth > 0;
+  });
 }
 
 function addConnectionDialog(page: Page): Locator {
@@ -1428,34 +1440,38 @@ test.describe("connections empty state", () => {
     }
   });
 
-  test("every tile is built the same way, and no two share an icon", async ({
+  test("every tile is built the same way, and each shows its own product's logo", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openConnections(page);
 
-    // Same classes and children on every tile: badge, name block, plus.
+    // Same children on every tile: the logo, the name block, the plus.
     const shapes: Array<string> = await tileShapes(page);
     expect(shapes).toHaveLength(PROVIDERS.length);
     expect(new Set(shapes).size, shapes.join("\n")).toBe(1);
     expect(shapes[0]).toContain("[1svg] + DIV");
-    expect(await tile(page, SENTINEL).locator(":scope > div").count()).toBe(3);
+    expect(await tile(page, SENTINEL).locator(":scope > div").count()).toBe(2);
+    await expect(tileBadge(page, SENTINEL)).toHaveCount(1);
 
     /*
-     * Three providers used to share a shield. Each badge draws its own
-     * icon now; compared by the SVG's markup, so a same-named icon with a
-     * different size still counts as the same picture.
+     * Three providers used to share a shield, then a generic icon each
+     * (official logos audit): each badge is its product's own logo now, a
+     * local file of the installation that arrives and is drawn.
      */
-    const icons: Array<string> = [];
+    const logos: Array<string> = [];
     for (const item of PROVIDERS) {
-      icons.push(
-        await tileIcon(page, item).evaluate((svg: Element): string => {
-          return svg.innerHTML;
-        }),
-      );
+      logos.push((await tileBadge(page, item).getAttribute("data-provider-logo")) || "");
+      await expect(tileLogoImage(page, item)).toHaveCount(1);
+      await expect
+        .poll(async (): Promise<boolean> => {
+          return isDrawn(tileLogoImage(page, item));
+        }, { message: `${item.title} logo is drawn` })
+        .toBe(true);
     }
-    expect(new Set(icons).size, "distinct tile icons").toBe(PROVIDERS.length);
+    expect(new Set(logos).size, "distinct tile logos").toBe(PROVIDERS.length);
+    expect(logos).not.toContain("");
   });
 
   test("the old grey requirements box and the Setup guides list are gone", async ({
@@ -1884,7 +1900,7 @@ test.describe("connections empty state accessibility", () => {
         "true",
       );
       await expect(
-        tile(page, item).locator(":scope > div").nth(2),
+        tile(page, item).locator(":scope > div").nth(1),
       ).toHaveAttribute("aria-hidden", "true");
 
       // The two controls are siblings, never one inside the other.
@@ -2057,7 +2073,7 @@ test.describe("connections empty state actions", () => {
     expect((await fixture(page)).creates).toEqual([]);
   });
 
-  test("the picker shows the same eight products, each with its tile's icon", async ({
+  test("the picker shows the same eight products, each with its tile's logo", async ({
     page,
   }: {
     page: Page;
@@ -2068,25 +2084,21 @@ test.describe("connections empty state actions", () => {
     });
     await expectProviderStep(page, CROWDSTRIKE);
 
-    const pickerIcons: Array<string> = [];
+    const pickerLogos: Array<string> = [];
     for (const item of PROVIDERS) {
       const option: Locator = providerOption(page, item);
       await expect(option).toContainText(item.title);
-      const pickerIcon: string = await option
-        .locator("svg")
-        .first()
-        .evaluate((svg: Element): string => {
-          return svg.innerHTML;
-        });
-      const tileIconMarkup: string = await tileIcon(page, item).evaluate(
-        (svg: Element): string => {
-          return svg.innerHTML;
-        },
-      );
-      expect(pickerIcon, `${item.title} icon`).toBe(tileIconMarkup);
-      pickerIcons.push(pickerIcon);
+      const pickerLogo: string =
+        (await option
+          .locator("[data-provider-logo]")
+          .first()
+          .getAttribute("data-provider-logo")) || "";
+      const tileLogo: string =
+        (await tileBadge(page, item).getAttribute("data-provider-logo")) || "";
+      expect(pickerLogo, `${item.title} logo`).toBe(tileLogo);
+      pickerLogos.push(pickerLogo);
     }
-    expect(new Set(pickerIcons).size, "distinct picker icons").toBe(
+    expect(new Set(pickerLogos).size, "distinct picker logos").toBe(
       PROVIDERS.length,
     );
 
@@ -2173,15 +2185,16 @@ test.describe("connections empty state actions", () => {
     expect((await fixture(page)).creates).toEqual([]);
   });
 
-  test("hovering a tile turns its border, badge and plus indigo", async ({
+  test("hovering a tile turns its border and plus indigo; the logo keeps its own colours", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openConnections(page);
     expect(await borderColor(tile(page, CROWDSTRIKE))).toBe(GRAY_200_RGB);
-    const restingIcon: string = await textColor(tileIcon(page, CROWDSTRIKE));
-    expect(restingIcon).not.toBe(INDIGO_600_RGB);
+    const restingBadge: string = await backgroundColor(
+      tileBadge(page, CROWDSTRIKE),
+    );
 
     await tile(page, CROWDSTRIKE).hover({
       position: await tileSpot(page, CROWDSTRIKE, "blank"),
@@ -2193,19 +2206,13 @@ test.describe("connections empty state actions", () => {
       .toBe(INDIGO_300_RGB);
     await expect
       .poll(async (): Promise<string> => {
-        return textColor(tileIcon(page, CROWDSTRIKE));
-      })
-      .toBe(INDIGO_600_RGB);
-    await expect
-      .poll(async (): Promise<string> => {
         return textColor(tilePlus(page, CROWDSTRIKE));
       })
       .toBe(INDIGO_600_RGB);
-    await expect
-      .poll(async (): Promise<string> => {
-        return backgroundColor(tileBadge(page, CROWDSTRIKE));
-      })
-      .toBe(INDIGO_50_RGB);
+    // A brand's logo is never re-coloured: its tile stays as it was.
+    expect(await backgroundColor(tileBadge(page, CROWDSTRIKE))).toBe(
+      restingBadge,
+    );
     // The name keeps its colour, and the cursor says it is clickable.
     expect(await textColor(tileButton(page, CROWDSTRIKE))).toBe(GRAY_900_RGB);
     expect(
@@ -2232,9 +2239,9 @@ test.describe("connections empty state actions", () => {
       .toBe(GRAY_200_RGB);
     await expect
       .poll(async (): Promise<string> => {
-        return textColor(tileIcon(page, CROWDSTRIKE));
+        return textColor(tilePlus(page, CROWDSTRIKE));
       })
-      .toBe(restingIcon);
+      .not.toBe(INDIGO_600_RGB);
   });
 });
 
@@ -2515,9 +2522,11 @@ test.describe("connections empty state for a viewer", () => {
     const shapes: Array<string> = await tileShapes(page);
     expect(new Set(shapes).size, shapes.join("\n")).toBe(1);
     for (const item of PROVIDERS) {
-      await expect(tile(page, item).locator(":scope > div")).toHaveCount(2);
-      // The badge's icon and the guide's external-link icon: no plus.
-      await expect(tile(page, item).locator("svg")).toHaveCount(2);
+      // The logo and the name block: no plus.
+      await expect(tile(page, item).locator(":scope > div")).toHaveCount(1);
+      await expect(tileBadge(page, item)).toHaveCount(1);
+      // The guide's external-link icon is the tile's only icon.
+      await expect(tile(page, item).locator("svg")).toHaveCount(1);
       await expect(tile(page, item).locator("p").first()).toHaveText(
         item.title,
       );
@@ -2634,7 +2643,19 @@ test.describe("connections empty state in the dark theme", () => {
       "heading is light",
     ).toBeGreaterThan(0.5);
 
-    // Hover: indigo border, badge tint and icon, still on the dark surface.
+    /*
+     * Hover: indigo border and plus, still on the dark surface. The logo
+     * keeps its tile - the dark theme's surface - and its own colours, in
+     * the mark CrowdStrike draws on dark backgrounds.
+     */
+    const restingBadge: string = await backgroundColor(
+      tileBadge(page, CROWDSTRIKE),
+    );
+    expect(restingBadge).not.toMatch(DARK_INDIGO_TINT);
+    await expect(tileLogoImage(page, CROWDSTRIKE)).toHaveAttribute(
+      "data-provider-logo-file",
+      "crowdstrike-dark.svg",
+    );
     await tile(page, CROWDSTRIKE).hover({
       position: await tileSpot(page, CROWDSTRIKE, "blank"),
     });
@@ -2643,16 +2664,9 @@ test.describe("connections empty state in the dark theme", () => {
         return borderColor(tile(page, CROWDSTRIKE));
       })
       .toBe(INDIGO_400_RGB);
-    await expect
-      .poll(async (): Promise<string> => {
-        return backgroundColor(tileBadge(page, CROWDSTRIKE));
-      })
-      .toMatch(DARK_INDIGO_TINT);
-    await expect
-      .poll(async (): Promise<string> => {
-        return textColor(tileIcon(page, CROWDSTRIKE));
-      })
-      .toBe(INDIGO_300_RGB);
+    expect(await backgroundColor(tileBadge(page, CROWDSTRIKE))).toBe(
+      restingBadge,
+    );
     await expect
       .poll(async (): Promise<string> => {
         return textColor(tilePlus(page, CROWDSTRIKE));
