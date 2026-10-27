@@ -81,7 +81,7 @@ Sidans sidomeny samlar det du gör med ett undantag:
 
 ## Lös, öppna igen och arkivera
 
-Knapparna högst upp på undantagets sida, och dess sida **Inställningar**, ändrar dess status:
+Knapparna högst upp på undantagets sida, dess sida **Inställningar** och menyn ⋯ på dess rad i listan ändrar dess status:
 
 | Åtgärd | När du använder den | Vad som händer sedan |
 | --- | --- | --- |
@@ -91,6 +91,8 @@ Knapparna högst upp på undantagets sida, och dess sida **Inställningar**, än
 | **Avarkivera** | Du vill höra om det igen. | Det är tillbaka i den lista där det hör hemma. |
 
 **Inställningar** visar vem som senast löste eller arkiverade undantaget, och när. Knapparna där heter **Markera som löst** eller **Markera som olöst**, och **Arkivera** eller **Avarkivera**.
+
+Om du vill ändra flera på en gång markerar du deras rader i listan, eller rutan ovanför raderna för alla undantag på sidan, och använder samma åtgärder under **Massåtgärder**. Resultatet visar vilka undantag som ändrades, vilka som lämnades som de var och varför.
 
 ## Felklasser
 

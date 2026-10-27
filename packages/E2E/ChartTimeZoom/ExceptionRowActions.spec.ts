@@ -115,6 +115,14 @@ async function updates(page: Page): Promise<Array<RecordedRequest>> {
   });
 }
 
+// The box beside an exception's row, that ticks it for Bulk Actions.
+function rowBox(page: Page, type: string): Locator {
+  return page
+    .locator("li")
+    .filter({ has: exceptionRow(page, type) })
+    .getByTestId("telemetry-viewer-select-row");
+}
+
 async function scrollsSideways(page: Page): Promise<boolean> {
   return await page.evaluate((): boolean => {
     return (
@@ -267,6 +275,186 @@ test.describe("an exception's ⋯ menu on the exceptions list", () => {
         path: path.join(SCREENSHOTS, `exception-row-390-${theme}.png`),
         animations: "disabled",
       });
+    });
+  }
+});
+
+/*
+ * Bulk Actions on the exceptions list: the rows had a ⋯ each and no
+ * selection (#5248's follow-up). A box beside each row and one for the
+ * page tick exceptions, and the bar over the list resolves, reopens,
+ * archives or unarchives them in one go, one request each, as each row's
+ * own action would.
+ */
+test.describe("Bulk Actions on the exceptions list", () => {
+  test("two ticked exceptions are resolved in one go, and both leave the Unresolved list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, 1440);
+
+    // Nothing ticked: no bar.
+    await expect(page.getByText("Clear Selection")).toHaveCount(0);
+
+    await rowBox(page, "DeadlineExceededError").check();
+    await rowBox(page, "TypeError").check();
+
+    await expect(page.getByText("2 Exceptions Selected")).toBeVisible();
+    await expect(
+      page.locator("li").filter({
+        has: exceptionRow(page, "DeadlineExceededError"),
+      }),
+    ).toHaveAttribute("data-selected", "true");
+
+    // The page's box reads part-ticked.
+    expect(
+      await page
+        .getByTestId("telemetry-viewer-select-page")
+        .evaluate((element: Element): boolean => {
+          return (element as HTMLInputElement).indeterminate;
+        }),
+    ).toBe(true);
+
+    await page.getByRole("button", { name: "Bulk Actions" }).click();
+    const menu: Locator = page.getByRole("menu");
+    // Both are unresolved and live: what they can take, and nothing else.
+    await expect(menu.getByRole("menuitem")).toHaveText(["Resolve", "Archive"]);
+
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(SCREENSHOTS, "exceptions-bulk-menu-1440.png"),
+      animations: "disabled",
+    });
+
+    await menu.getByRole("menuitem", { name: "Resolve", exact: true }).click();
+
+    // One request each, the one switch, as the row's own Resolve sends it.
+    await expect
+      .poll(async (): Promise<Array<Record<string, unknown>>> => {
+        return (await updates(page)).map(
+          (request: RecordedRequest): Record<string, unknown> => {
+            return {
+              modelName: request.modelName,
+              body: request.body,
+            };
+          },
+        );
+      })
+      .toEqual([
+        { modelName: "TelemetryException", body: { isResolved: true } },
+        { modelName: "TelemetryException", body: { isResolved: true } },
+      ]);
+
+    const result: Locator = page.getByRole("dialog");
+    // In the words of what was done, as an incident list's Resolve says it.
+    await expect(result.getByText("2 Exceptions resolved")).toBeVisible();
+    await page.screenshot({
+      path: path.join(SCREENSHOTS, "exceptions-bulk-result-1440.png"),
+      animations: "disabled",
+    });
+    await result.getByRole("button", { name: "Close" }).click();
+
+    // Read again: both have left the Unresolved list, and nothing is ticked.
+    await expect(exceptionRow(page, "DeadlineExceededError")).toHaveCount(0);
+    await expect(exceptionRow(page, "TypeError")).toHaveCount(0);
+    await expect(page.getByText("Clear Selection")).toHaveCount(0);
+  });
+
+  test("the page's box, or the words beside it, ticks every exception on the page; Clear Selection clears them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, 1440);
+
+    const rows: number = await page
+      .getByTestId("telemetry-viewer-select-row")
+      .count();
+    expect(rows).toBeGreaterThan(1);
+
+    // The words say what the box does, and a press on them ticks it.
+    await page.getByText("Select all exceptions on this page").click();
+    await expect(
+      page.getByTestId("telemetry-viewer-select-page"),
+    ).toBeChecked();
+    await expect(page.getByText(`${rows} Exceptions Selected`)).toBeVisible();
+    for (const box of await page
+      .getByTestId("telemetry-viewer-select-row")
+      .all()) {
+      await expect(box).toBeChecked();
+    }
+
+    await page.getByRole("button", { name: "Clear Selection" }).click();
+    await expect(page.getByText("Clear Selection")).toHaveCount(0);
+    for (const box of await page
+      .getByTestId("telemetry-viewer-select-row")
+      .all()) {
+      await expect(box).not.toBeChecked();
+    }
+
+    // The box itself does the same.
+    await page.getByTestId("telemetry-viewer-select-page").check();
+    await expect(page.getByText(`${rows} Exceptions Selected`)).toBeVisible();
+  });
+
+  for (const theme of ["light", "dark"]) {
+    test(`on a phone each row's box sits at its start, level with its first line, and nothing scrolls sideways (${theme})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 1000 });
+      await page.goto(
+        `${UNRESOLVED_PATH}${theme === "dark" ? "&theme=dark" : ""}`,
+      );
+      await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+        timeout: 60000,
+      });
+
+      const deadline: Locator = exceptionRow(page, "DeadlineExceededError");
+      await expect(deadline).toBeVisible();
+
+      const box: Locator = rowBox(page, "DeadlineExceededError");
+      const boxRect: { x: number; y: number; height: number } | null =
+        await box.boundingBox();
+      const rowRect: { x: number; y: number } | null =
+        await deadline.boundingBox();
+      // The row's first line: the exception's type.
+      const typeRect: { y: number; height: number } | null = await deadline
+        .getByText("DeadlineExceededError", { exact: true })
+        .boundingBox();
+
+      // Before the row, and level with its first line.
+      expect(boxRect!.x).toBeLessThan(rowRect!.x);
+      expect(
+        Math.abs(
+          boxRect!.y +
+            boxRect!.height / 2 -
+            (typeRect!.y + typeRect!.height / 2),
+        ),
+      ).toBeLessThanOrEqual(3);
+
+      await box.check();
+      await expect(page.getByText("1 Exception Selected")).toBeVisible();
+      expect(await scrollsSideways(page)).toBe(false);
+
+      await deadline.scrollIntoViewIfNeeded();
+      await page.screenshot({
+        path: path.join(SCREENSHOTS, `exceptions-bulk-390-${theme}.png`),
+        animations: "disabled",
+      });
+
+      await page
+        .locator("li")
+        .filter({ has: deadline })
+        .screenshot({
+          path: path.join(
+            SCREENSHOTS,
+            `exception-row-selected-390-${theme}.png`,
+          ),
+          animations: "disabled",
+        });
     });
   }
 });

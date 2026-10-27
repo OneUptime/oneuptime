@@ -1,5 +1,25 @@
-import React, { ReactElement, ReactNode, useId, useState } from "react";
+import React, {
+  ReactElement,
+  ReactNode,
+  useEffect,
+  useId,
+  useState,
+} from "react";
 import useTranslateValue from "../../Utils/Translation";
+import { translatableTerm } from "../../Utils/TranslateTemplate";
+import GenericObject from "../../../Types/GenericObject";
+import BulkUpdateForm, {
+  BulkActionButtonSchema,
+} from "../BulkUpdate/BulkUpdateForm";
+import CheckboxElement from "../Checkbox/Checkbox";
+import { TABLE_SELECTED_ROW_CLASS_NAME } from "../Table/TableLayout";
+import {
+  PageSelectionState,
+  getPageSelectionState,
+  isRowSelected,
+  keepSelectedOnPage,
+  setRowSelected,
+} from "./TelemetryViewerSelection";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import {
   FacetData,
@@ -35,6 +55,42 @@ import useViewerTimeRangeZoom, {
   ViewerTimeRangeZoom,
 } from "./useViewerTimeRangeZoom";
 import { TimeRangeZoomProvider } from "../Charts/TimeRangeZoom/TimeRangeZoomContext";
+
+/*
+ * Bulk Actions on a telemetry list's rows (an exception's Resolve, Reopen,
+ * Archive, Unarchive): a box at the start of each row, one over the rows
+ * for every row on the page, and the bar a table shows over its rows while
+ * some are ticked (BulkUpdateForm), with its menu of actions and its
+ * progress and result dialog. A list pages, so a selection is the page's
+ * rows a person ticked (TelemetryViewerSelection).
+ */
+export interface TelemetryViewerBulk<T> {
+  buttons: Array<BulkActionButtonSchema<T & GenericObject>>;
+  // The rows' kind, in English: "Exception", "Exceptions".
+  singularLabel: string;
+  pluralLabel: string;
+  // What makes a row the same row on the next read.
+  getItemId: (item: T) => string;
+  // How a row is named: its box's label, and the result dialog's lists.
+  itemToString: (item: T) => string;
+  // Told once an action ran: the list reads its rows again.
+  onActionEnd?: (() => void) | undefined;
+}
+
+export const TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID: string =
+  "telemetry-viewer-select-page";
+export const TELEMETRY_VIEWER_SELECT_ROW_TEST_ID: string =
+  "telemetry-viewer-select-row";
+export const TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID: string =
+  "telemetry-viewer-select-page-words";
+
+/*
+ * Where a row's box sits: at the row's start, level with the row's first
+ * line. The row's own py-3 puts that 24px line 12px down, and the box
+ * centres itself on a 24px line of its own, as a table's box does.
+ */
+export const TELEMETRY_VIEWER_ROW_BOX_CLASS_NAME: string =
+  "flex-none pl-4 pt-3";
 
 export interface TelemetryViewerProps<T> {
   // -- Data --
@@ -218,6 +274,9 @@ export interface TelemetryViewerProps<T> {
 
   // -- Detail panel overlay (rendered by caller above everything) --
   detailPanel?: ReactNode;
+
+  // -- Bulk Actions on the page's rows; left out, the rows have no boxes --
+  bulk?: TelemetryViewerBulk<T> | undefined;
 }
 
 const DEFAULT_PAGE_SIZE_OPTIONS: Array<number> = [25, 50, 100, 200];
@@ -231,7 +290,46 @@ export const TELEMETRY_VIEWER_MAIN_AREA_TEST_ID: string =
 export const TELEMETRY_VIEWER_LIST_TEST_ID: string = "telemetry-viewer-list";
 
 function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
-  const { translateString } = useTranslateValue();
+  const { translateString, translateTemplate } = useTranslateValue();
+
+  /*
+   * The rows ticked for Bulk Actions, kept to the page as it is read again
+   * (TelemetryViewerSelection): a row read again carries its new state - so
+   * the menu offers what it can take now - and one that left the page
+   * leaves the selection, on the read that took it away. While an action
+   * runs the selection stands still: the run and its dialog hold the rows
+   * it started with, whatever is read meanwhile.
+   */
+  const [selectedItems, setSelectedItems] = useState<Array<T>>([]);
+  const [isBulkActionRunning, setIsBulkActionRunning] =
+    useState<boolean>(false);
+  const bulk: TelemetryViewerBulk<T> | undefined = props.bulk;
+
+  const shownSelection: Array<T> =
+    bulk && !isBulkActionRunning
+      ? keepSelectedOnPage(selectedItems, props.items, bulk.getItemId)
+      : selectedItems;
+
+  useEffect(() => {
+    if (!bulk || isBulkActionRunning) {
+      return;
+    }
+
+    setSelectedItems((selected: Array<T>): Array<T> => {
+      return keepSelectedOnPage(selected, props.items, bulk.getItemId);
+    });
+  }, [props.items, isBulkActionRunning]);
+
+  const pageSelection: PageSelectionState = bulk
+    ? getPageSelectionState(shownSelection, props.items, bulk.getItemId)
+    : PageSelectionState.None;
+
+  // The page's box: "Select all exceptions on this page".
+  const pageBoxWords: string = bulk
+    ? translateTemplate("Select all {{itemsName}} on this page", {
+        itemsName: translatableTerm(bulk.pluralLabel, { inSentence: true }),
+      })
+    : "";
   const showFacets: boolean =
     (props.showFacetSidebar ?? true) &&
     props.facetConfigs !== undefined &&
@@ -507,6 +605,70 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             />
           )}
 
+          {/*
+           * Bulk Actions: the page's box over the rows, level with theirs,
+           * and while rows are ticked the bar under it - how many, Clear
+           * Selection and the actions' menu, as a table has it. A list
+           * pages, so the page is all a selection holds: the page's box is
+           * the bar's Select All, which is not offered again.
+           */}
+          {bulk && !listError && props.items.length > 0 ? (
+            <div
+              className="border-b border-gray-100 px-4"
+              data-testid="telemetry-viewer-bulk"
+            >
+              <div className="flex items-center py-2">
+                {/*
+                 * The box's words are its label, in the quiet type of the
+                 * list's own small print: a press on them ticks it too.
+                 */}
+                <CheckboxElement
+                  dataTestId={TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID}
+                  value={pageSelection === PageSelectionState.All}
+                  isIndeterminate={pageSelection === PageSelectionState.Some}
+                  ariaLabel={pageBoxWords}
+                  title={
+                    <span
+                      className="cursor-pointer select-none text-xs font-normal text-gray-500"
+                      data-testid={TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID}
+                    >
+                      {pageBoxWords}
+                    </span>
+                  }
+                  onChange={(value: boolean) => {
+                    setSelectedItems(value ? [...props.items] : []);
+                  }}
+                />
+              </div>
+              <BulkUpdateForm<T & GenericObject>
+                buttons={bulk.buttons}
+                selectedItems={shownSelection as Array<T & GenericObject>}
+                isAllItemsSelected={true}
+                onSelectAllClick={() => {
+                  setSelectedItems([...props.items]);
+                }}
+                singularLabel={bulk.singularLabel}
+                pluralLabel={bulk.pluralLabel}
+                onClearSelectionClick={() => {
+                  setSelectedItems([]);
+                }}
+                onActionStart={() => {
+                  setIsBulkActionRunning(true);
+                }}
+                onActionEnd={() => {
+                  setIsBulkActionRunning(false);
+                  setSelectedItems([]);
+                  bulk.onActionEnd?.();
+                }}
+                itemToString={(item: T & GenericObject): string => {
+                  return bulk.itemToString(item);
+                }}
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+
           {!listError && (
             <div className="min-h-0 flex-1 overflow-y-auto">
               {props.isLoading && props.items.length === 0 ? (
@@ -533,9 +695,58 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
               ) : (
                 <ul className="divide-y divide-gray-100">
                   {props.items.map((item: T, index: number) => {
+                    if (!bulk) {
+                      return (
+                        <li key={props.getRowKey(item, index)}>
+                          {props.renderRow(item, index)}
+                        </li>
+                      );
+                    }
+
+                    /*
+                     * The row's box at its start, level with its first
+                     * line; the row itself, as the list draws it, beside.
+                     * A ticked row keeps a table's ticked row's wash.
+                     */
+                    const isSelected: boolean = isRowSelected(
+                      shownSelection,
+                      item,
+                      bulk.getItemId,
+                    );
+
                     return (
-                      <li key={props.getRowKey(item, index)}>
-                        {props.renderRow(item, index)}
+                      <li
+                        key={props.getRowKey(item, index)}
+                        className={`flex items-start${
+                          isSelected ? ` ${TABLE_SELECTED_ROW_CLASS_NAME}` : ""
+                        }`}
+                        data-selected={isSelected ? "true" : "false"}
+                      >
+                        <div className={TELEMETRY_VIEWER_ROW_BOX_CLASS_NAME}>
+                          <CheckboxElement
+                            dataTestId={TELEMETRY_VIEWER_SELECT_ROW_TEST_ID}
+                            value={isSelected}
+                            ariaLabel={translateTemplate("Select {{name}}", {
+                              name: bulk.itemToString(item),
+                            })}
+                            outerDivClassName="[&>div:last-child]:ml-0"
+                            onChange={(value: boolean) => {
+                              setSelectedItems(
+                                (selected: Array<T>): Array<T> => {
+                                  return setRowSelected(
+                                    selected,
+                                    item,
+                                    value,
+                                    bulk.getItemId,
+                                  );
+                                },
+                              );
+                            }}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          {props.renderRow(item, index)}
+                        </div>
                       </li>
                     );
                   })}

@@ -81,7 +81,7 @@ Le menu latéral de la page regroupe ce que vous faites d'une exception :
 
 ## Résoudre, rouvrir et archiver
 
-Les boutons en haut de la page de l'exception, et sa page **Paramètres**, changent son statut :
+Les boutons en haut de la page de l'exception, sa page **Paramètres** et le menu ⋯ de sa ligne dans la liste changent son statut :
 
 | Action | Quand l'utiliser | Ce qui se passe ensuite |
 | --- | --- | --- |
@@ -91,6 +91,8 @@ Les boutons en haut de la page de l'exception, et sa page **Paramètres**, chang
 | **Désarchiver** | Vous voulez de nouveau en entendre parler. | Elle revient dans la liste qui lui correspond. |
 
 **Paramètres** indique qui a résolu ou archivé l'exception en dernier, et quand. Ses boutons s'intitulent **Marquer comme résolu** ou **Marquer comme non résolu**, et **Archiver** ou **Désarchiver**.
+
+Pour en changer plusieurs à la fois, cochez leurs lignes dans la liste, ou la case au-dessus des lignes pour toutes les exceptions de la page, et utilisez les mêmes actions sous **Actions groupées**. Le résultat indique quelles exceptions ont été modifiées, lesquelles sont restées telles quelles, et pourquoi.
 
 ## Classes d'erreur
 

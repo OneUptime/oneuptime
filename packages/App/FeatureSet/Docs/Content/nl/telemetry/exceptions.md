@@ -81,7 +81,7 @@ Het zijmenu van de pagina groepeert wat u met een uitzondering doet:
 
 ## Oplossen, heropenen en archiveren
 
-De knoppen bovenaan de pagina van de uitzondering, en haar pagina **Instellingen**, wijzigen de status:
+De knoppen bovenaan de pagina van de uitzondering, haar pagina **Instellingen** en het menu ⋯ op haar rij in de lijst wijzigen de status:
 
 | Actie | Wanneer u die gebruikt | Wat er daarna gebeurt |
 | --- | --- | --- |
@@ -91,6 +91,8 @@ De knoppen bovenaan de pagina van de uitzondering, en haar pagina **Instellingen
 | **Uit archief halen** | U wilt er weer van horen. | Ze staat weer in de lijst waar ze thuishoort. |
 
 **Instellingen** toont wie de uitzondering het laatst heeft opgelost of gearchiveerd, en wanneer. De knoppen daar heten **Markeren als opgelost** of **Markeren als onopgelost**, en **Archiveren** of **Uit archief halen**.
+
+Om er meerdere tegelijk te wijzigen, vinkt u hun rijen in de lijst aan, of het vakje boven de rijen voor alle uitzonderingen op de pagina, en gebruikt u dezelfde acties onder **Bulkacties**. Het resultaat toont welke uitzonderingen zijn gewijzigd, welke zijn gelaten zoals ze waren, en waarom.
 
 ## Foutklassen
 

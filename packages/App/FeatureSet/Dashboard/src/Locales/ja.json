@@ -36257,5 +36257,22 @@
   "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.": "{{pod}} がこのスパンの {{padding}} 前から {{padding}} 後までに記録した例外。",
   "No exceptions carry this span's ID.": "このスパンの ID が付いた例外はありません。",
   "Only the first {{count}} exceptions of this window are shown.": "この時間帯の最初の {{count}} 件の例外のみ表示しています。",
-  "The pod recorded no exceptions in this window.": "この時間帯に Pod は例外を記録しませんでした。"
+  "The pod recorded no exceptions in this window.": "この時間帯に Pod は例外を記録しませんでした。",
+  "Select all {{itemsName}} on this page": "このページの{{itemsName}}をすべて選択",
+  "Not resolved.": "未解決です。",
+  "Already archived.": "すでにアーカイブ済みです。",
+  "Not archived.": "アーカイブされていません。",
+  "You do not have permission to update these exceptions.": "選択した例外を更新する権限がありません。",
+  "{{count}} {{itemsName}} reopened": "{{itemsName}}: {{count}} 件再オープン",
+  "{{count}} {{itemsName}} reopened_one": "{{itemName}}: {{count}} 件再オープン",
+  "{{count}} {{itemsName}} not reopened": "{{itemsName}}: {{count}} 件再オープンできず",
+  "{{count}} {{itemsName}} not reopened_one": "{{itemName}}: {{count}} 件再オープンできず",
+  "{{count}} {{itemsName}} archived": "{{itemsName}}: {{count}} 件アーカイブ",
+  "{{count}} {{itemsName}} archived_one": "{{itemName}}: {{count}} 件アーカイブ",
+  "{{count}} {{itemsName}} not archived": "{{itemsName}}: {{count}} 件アーカイブできず",
+  "{{count}} {{itemsName}} not archived_one": "{{itemName}}: {{count}} 件アーカイブできず",
+  "{{count}} {{itemsName}} unarchived": "{{itemsName}}: {{count}} 件アーカイブ解除",
+  "{{count}} {{itemsName}} unarchived_one": "{{itemName}}: {{count}} 件アーカイブ解除",
+  "{{count}} {{itemsName}} not unarchived": "{{itemsName}}: {{count}} 件アーカイブ解除できず",
+  "{{count}} {{itemsName}} not unarchived_one": "{{itemName}}: {{count}} 件アーカイブ解除できず"
 }

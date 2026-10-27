@@ -36257,5 +36257,22 @@
   "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.": "Exceptions {{pod}} recorded from {{padding}} before this span to {{padding}} after it.",
   "No exceptions carry this span's ID.": "No exceptions carry this span's ID.",
   "Only the first {{count}} exceptions of this window are shown.": "Only the first {{count}} exceptions of this window are shown.",
-  "The pod recorded no exceptions in this window.": "The pod recorded no exceptions in this window."
+  "The pod recorded no exceptions in this window.": "The pod recorded no exceptions in this window.",
+  "Select all {{itemsName}} on this page": "Select all {{itemsName}} on this page",
+  "Not resolved.": "Not resolved.",
+  "Already archived.": "Already archived.",
+  "Not archived.": "Not archived.",
+  "You do not have permission to update these exceptions.": "You do not have permission to update these exceptions.",
+  "{{count}} {{itemsName}} reopened": "{{count}} {{itemsName}} reopened",
+  "{{count}} {{itemsName}} reopened_one": "{{count}} {{itemName}} reopened",
+  "{{count}} {{itemsName}} not reopened": "{{count}} {{itemsName}} not reopened",
+  "{{count}} {{itemsName}} not reopened_one": "{{count}} {{itemName}} not reopened",
+  "{{count}} {{itemsName}} archived": "{{count}} {{itemsName}} archived",
+  "{{count}} {{itemsName}} archived_one": "{{count}} {{itemName}} archived",
+  "{{count}} {{itemsName}} not archived": "{{count}} {{itemsName}} not archived",
+  "{{count}} {{itemsName}} not archived_one": "{{count}} {{itemName}} not archived",
+  "{{count}} {{itemsName}} unarchived": "{{count}} {{itemsName}} unarchived",
+  "{{count}} {{itemsName}} unarchived_one": "{{count}} {{itemName}} unarchived",
+  "{{count}} {{itemsName}} not unarchived": "{{count}} {{itemsName}} not unarchived",
+  "{{count}} {{itemsName}} not unarchived_one": "{{count}} {{itemName}} not unarchived"
 }
