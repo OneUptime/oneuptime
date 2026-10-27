@@ -36407,5 +36407,7 @@
   "{{from}} to {{until}}": "{{from}} bis {{until}}",
   "{{count}} active exceptions": "{{count}} aktive Ausnahmen",
   "{{count}} active exceptions_one": "{{count}} aktive Ausnahme",
-  "Event Field": "Ereignisfeld"
+  "Event Field": "Ereignisfeld",
+  "Added by {{name}} {{time}}": "Hinzugefügt von {{name}} {{time}}",
+  "Added through the API {{time}}": "Hinzugefügt über die API {{time}}"
 }

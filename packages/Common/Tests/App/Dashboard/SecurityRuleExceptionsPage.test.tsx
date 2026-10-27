@@ -25,6 +25,9 @@ type Column = {
   type?: unknown;
   hideOnMobile?: boolean | undefined;
   disableSort?: boolean | undefined;
+  wrapContent?: boolean | undefined;
+  wrapMaxWidthClassName?: string | undefined;
+  contentClassName?: string | undefined;
   getElement?: ((item: unknown) => React.ReactElement) | undefined;
 };
 
@@ -100,6 +103,7 @@ import Project from "../../../Models/DatabaseModels/Project";
 import Reseller from "../../../Models/DatabaseModels/Reseller";
 import User from "../../../Models/DatabaseModels/User";
 import Route from "../../../Types/API/Route";
+import Email from "../../../Types/Email";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
@@ -217,9 +221,11 @@ describe("Security Events > Rule Exceptions", () => {
 
     expect(table().formSteps).toBe(RULE_EXCEPTION_FORM_STEPS);
     expect(
-      (table().formFields || []).map((field: { field: Record<string, unknown> }) => {
-        return Object.keys(field.field)[0];
-      }),
+      (table().formFields || []).map(
+        (field: { field: Record<string, unknown> }) => {
+          return Object.keys(field.field)[0];
+        },
+      ),
     ).toEqual([
       "detectionRule",
       "kind",
@@ -261,7 +267,9 @@ describe("Security Events > Rule Exceptions", () => {
       const field:
         | {
             field: Record<string, unknown>;
-            customValidation?: (values: Record<string, unknown>) => string | null;
+            customValidation?: (
+              values: Record<string, unknown>,
+            ) => string | null;
           }
         | undefined = (table().formFields || []).find(
         (candidate: { field: Record<string, unknown> }) => {
@@ -318,20 +326,37 @@ describe("Security Events > Rule Exceptions", () => {
     expect(table().searchableFields).toEqual(["value", "fieldName", "reason"]);
   });
 
-  test("the columns: what it skips, the rule, why, where it stands and who added it", () => {
+  test("four columns: what it skips, the rule, why with who added it, and where it stands", () => {
     renderPage();
 
     expect(
       table().columns.map((column: Column): string => {
         return column.title;
       }),
-    ).toEqual(["Skips", "Rule", "Reason", "Status", "Added By"]);
+    ).toEqual(["Skips", "Rule", "Reason", "Status"]);
 
-    // On a phone: what it skips, the rule and where it stands.
-    expect(columnTitled("Reason").hideOnMobile).toBe(true);
-    expect(columnTitled("Added By").hideOnMobile).toBe(true);
-    expect(columnTitled("Skips").hideOnMobile).toBeFalsy();
-    expect(columnTitled("Status").hideOnMobile).toBeFalsy();
+    // A phone's card has every one: why it is safe to skip is the point of a row.
+    for (const title of ["Skips", "Rule", "Reason", "Status"]) {
+      expect(columnTitled(title).hideOnMobile).toBeFalsy();
+    }
+
+    /*
+     * Every column wraps inside a cap, so a long value, rule name, reason or
+     * a language's longer "Ended {{time}}" never pushes the list wider than
+     * its card beside the side menu.
+     */
+    for (const [title, cap] of [
+      ["Skips", "max-w-[15rem]"],
+      ["Rule", "max-w-[12rem]"],
+      ["Reason", "max-w-[18rem]"],
+      ["Status", "max-w-[11rem]"],
+    ]) {
+      expect(columnTitled(title!).wrapContent).toBe(true);
+      expect(columnTitled(title!).wrapMaxWidthClassName).toBe(cap);
+    }
+
+    // The status column's floor is its pill's, below a wrapping column's 10rem.
+    expect(columnTitled("Status").contentClassName).toBe("min-w-[7rem]");
 
     // Every column a cell reads is selected.
     expect(table().selectMoreFields).toMatchObject({
@@ -346,7 +371,9 @@ describe("Security Events > Rule Exceptions", () => {
     expect(columnTitled("Rule").field).toEqual({
       detectionRule: { name: true },
     });
-    expect(columnTitled("Added By").field).toEqual({
+    // Who added it is read with why, for the line under the reason.
+    expect(columnTitled("Reason").field).toEqual({
+      reason: true,
       createdByUser: { name: true, email: true, profilePictureId: true },
     });
   });
@@ -429,7 +456,9 @@ describe("Security Events > Rule Exceptions", () => {
 
     expect(expired).toHaveTextContent("Expired");
     expect(
-      expired.querySelector(`[data-testid="${RULE_EXCEPTIONS_TEST_IDS.statusCell}"] span[title]`),
+      expired.querySelector(
+        `[data-testid="${RULE_EXCEPTIONS_TEST_IDS.statusCell}"] span[title]`,
+      ),
     ).not.toBeNull();
 
     const upcoming: HTMLElement = draw(
@@ -457,26 +486,72 @@ describe("Security Events > Rule Exceptions", () => {
     expect(draw("Rule", exception({}))).toHaveTextContent("Rule not found");
   });
 
-  test("a row says who added it and when, or that the API did", () => {
+  test("a row says why, and under it who added it and when, or that the API did", () => {
     renderPage();
 
     const person: User = new User();
     person.name = "Jane Doe" as never;
 
     const added: HTMLElement = draw(
-      "Added By",
+      "Reason",
       exception({
+        reason: "The nightly backup job.",
         createdByUser: person,
         createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
       }),
     );
 
-    expect(added).toHaveTextContent("Jane Doe");
-    expect(added).toHaveTextContent("Added 3 days ago");
-
-    expect(draw("Added By", exception({}))).toHaveTextContent(
-      "Added through the API",
+    expect(added).toHaveTextContent("The nightly backup job.");
+    const line: HTMLElement | null = added.querySelector(
+      `[data-testid="${RULE_EXCEPTIONS_TEST_IDS.addedByCell}"]`,
     );
+    expect(line).toHaveTextContent(/^Added by Jane Doe 3 days ago$/);
+    // The exact time, on hover.
+    expect(line!.getAttribute("title")).toBeTruthy();
+
+    // A person with no name yet: their email.
+    const emailOnly: User = new User();
+    emailOnly.email = new Email("jane@acme-commerce.example");
+    expect(
+      draw(
+        "Reason",
+        exception({
+          reason: "Why.",
+          createdByUser: emailOnly,
+          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        }),
+      ),
+    ).toHaveTextContent("Added by jane@acme-commerce.example 3 days ago");
+
+    // An API key or a workflow added it: no person to name.
+    expect(
+      draw(
+        "Reason",
+        exception({
+          reason: "Lab hosts.",
+          createdAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000),
+        }),
+      ),
+    ).toHaveTextContent("Added through the API a month ago");
+    expect(
+      draw("Reason", exception({ reason: "Lab hosts." })),
+    ).toHaveTextContent(/Added through the API$/);
+  });
+
+  test("a reason someone wrote keeps its line breaks and reads the way it is written", () => {
+    renderPage();
+
+    const cell: HTMLElement = draw(
+      "Reason",
+      exception({ reason: "First line.\nSecond line." }),
+    );
+    const reason: HTMLElement | null = cell.querySelector(
+      "span.whitespace-pre-line",
+    );
+
+    expect(reason).not.toBeNull();
+    expect(reason!.textContent).toBe("First line.\nSecond line.");
+    expect(reason!.querySelector("bdi, [dir='auto']")).not.toBeNull();
   });
 
   test("a reseller plan without telemetry sees no list", () => {

@@ -17972,7 +17972,7 @@
   "Up + Out": "Up + Out",
   "Up next": "Næste",
   "Up to date": "Opdateret",
-  "Upcoming": "Upcoming",
+  "Upcoming": "Kommende",
   "Upcoming hand-offs": "Kommende overdragelser",
   "Upcoming shifts": "Kommende vagter",
   "Upcoming windows": "Upcoming windows",
@@ -36407,5 +36407,7 @@
   "{{from}} to {{until}}": "{{from}} til {{until}}",
   "{{count}} active exceptions": "{{count}} aktive undtagelser",
   "{{count}} active exceptions_one": "{{count}} aktiv undtagelse",
-  "Event Field": "Hændelsesfelt"
+  "Event Field": "Hændelsesfelt",
+  "Added by {{name}} {{time}}": "Tilføjet af {{name}} {{time}}",
+  "Added through the API {{time}}": "Tilføjet via API'et {{time}}"
 }

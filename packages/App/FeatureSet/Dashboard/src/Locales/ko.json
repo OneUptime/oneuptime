@@ -17972,7 +17972,7 @@
   "Up + Out": "Up + Out",
   "Up next": "다음 순서",
   "Up to date": "최신",
-  "Upcoming": "Upcoming",
+  "Upcoming": "예정",
   "Upcoming hand-offs": "예정된 인계",
   "Upcoming shifts": "예정된 근무",
   "Upcoming windows": "Upcoming windows",
@@ -36407,5 +36407,7 @@
   "{{from}} to {{until}}": "{{from}}부터 {{until}}까지",
   "{{count}} active exceptions": "활성 예외 {{count}}개",
   "{{count}} active exceptions_one": "활성 예외 {{count}}개",
-  "Event Field": "이벤트 필드"
+  "Event Field": "이벤트 필드",
+  "Added by {{name}} {{time}}": "{{name}} 님이 추가함, {{time}}",
+  "Added through the API {{time}}": "API로 추가됨, {{time}}"
 }

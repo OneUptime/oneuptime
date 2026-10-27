@@ -17972,7 +17972,7 @@
   "Up + Out": "Up + Out",
   "Up next": "अगला",
   "Up to date": "अप टू डेट",
-  "Upcoming": "Upcoming",
+  "Upcoming": "आगामी",
   "Upcoming hand-offs": "आने वाले हैंड-ऑफ़",
   "Upcoming shifts": "आगामी शिफ्ट",
   "Upcoming windows": "Upcoming windows",
@@ -36407,5 +36407,7 @@
   "{{from}} to {{until}}": "{{from}} से {{until}} तक",
   "{{count}} active exceptions": "{{count}} सक्रिय अपवाद",
   "{{count}} active exceptions_one": "{{count}} सक्रिय अपवाद",
-  "Event Field": "इवेंट फ़ील्ड"
+  "Event Field": "इवेंट फ़ील्ड",
+  "Added by {{name}} {{time}}": "जोड़ा गया: {{name}}, {{time}}",
+  "Added through the API {{time}}": "API से जोड़ा गया, {{time}}"
 }

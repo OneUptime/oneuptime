@@ -17972,7 +17972,7 @@
   "Up + Out": "Up + Out",
   "Up next": "下一位",
   "Up to date": "已是最新",
-  "Upcoming": "Upcoming",
+  "Upcoming": "即將開始",
   "Upcoming hand-offs": "即將進行的交接",
   "Upcoming shifts": "即將到來的班次",
   "Upcoming windows": "Upcoming windows",
@@ -36407,5 +36407,7 @@
   "{{from}} to {{until}}": "{{from}} 至 {{until}}",
   "{{count}} active exceptions": "{{count}} 個生效的例外",
   "{{count}} active exceptions_one": "{{count}} 個生效的例外",
-  "Event Field": "事件欄位"
+  "Event Field": "事件欄位",
+  "Added by {{name}} {{time}}": "{{time}}由 {{name}} 新增",
+  "Added through the API {{time}}": "{{time}}透過 API 新增"
 }

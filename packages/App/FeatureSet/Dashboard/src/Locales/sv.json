@@ -17972,7 +17972,7 @@
   "Up + Out": "Up + Out",
   "Up next": "Nästa",
   "Up to date": "Uppdaterad",
-  "Upcoming": "Upcoming",
+  "Upcoming": "Kommande",
   "Upcoming hand-offs": "Kommande överlämningar",
   "Upcoming shifts": "Kommande pass",
   "Upcoming windows": "Upcoming windows",
@@ -36407,5 +36407,7 @@
   "{{from}} to {{until}}": "{{from}} till {{until}}",
   "{{count}} active exceptions": "{{count}} aktiva undantag",
   "{{count}} active exceptions_one": "{{count}} aktivt undantag",
-  "Event Field": "Händelsefält"
+  "Event Field": "Händelsefält",
+  "Added by {{name}} {{time}}": "Tillagt av {{name}} {{time}}",
+  "Added through the API {{time}}": "Tillagt via API:et {{time}}"
 }

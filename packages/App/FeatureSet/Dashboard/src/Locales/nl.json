@@ -17972,7 +17972,7 @@
   "Up + Out": "Up + Out",
   "Up next": "Hierna",
   "Up to date": "Actueel",
-  "Upcoming": "Upcoming",
+  "Upcoming": "Aankomend",
   "Upcoming hand-offs": "Komende overdrachten",
   "Upcoming shifts": "Komende diensten",
   "Upcoming windows": "Upcoming windows",
@@ -36407,5 +36407,7 @@
   "{{from}} to {{until}}": "{{from}} tot {{until}}",
   "{{count}} active exceptions": "{{count}} actieve uitzonderingen",
   "{{count}} active exceptions_one": "{{count}} actieve uitzondering",
-  "Event Field": "Gebeurtenisveld"
+  "Event Field": "Gebeurtenisveld",
+  "Added by {{name}} {{time}}": "Toegevoegd door {{name}} {{time}}",
+  "Added through the API {{time}}": "Toegevoegd via de API {{time}}"
 }

@@ -17972,7 +17972,7 @@
   "Up + Out": "Up + Out",
   "Up next": "Neste",
   "Up to date": "Oppdatert",
-  "Upcoming": "Upcoming",
+  "Upcoming": "Kommende",
   "Upcoming hand-offs": "Kommende overleveringer",
   "Upcoming shifts": "Kommende vakter",
   "Upcoming windows": "Upcoming windows",
@@ -36407,5 +36407,7 @@
   "{{from}} to {{until}}": "{{from}} til {{until}}",
   "{{count}} active exceptions": "{{count}} aktive unntak",
   "{{count}} active exceptions_one": "{{count}} aktivt unntak",
-  "Event Field": "Hendelsesfelt"
+  "Event Field": "Hendelsesfelt",
+  "Added by {{name}} {{time}}": "Lagt til av {{name}} {{time}}",
+  "Added through the API {{time}}": "Lagt til via API-et {{time}}"
 }

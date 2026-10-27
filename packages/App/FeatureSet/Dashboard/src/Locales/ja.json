@@ -36407,5 +36407,7 @@
   "{{from}} to {{until}}": "{{from}} から {{until}}",
   "{{count}} active exceptions": "有効な例外 {{count}} 件",
   "{{count}} active exceptions_one": "有効な例外 {{count}} 件",
-  "Event Field": "イベントのフィールド"
+  "Event Field": "イベントのフィールド",
+  "Added by {{name}} {{time}}": "{{name}} が追加、{{time}}",
+  "Added through the API {{time}}": "API で追加、{{time}}"
 }

@@ -17,6 +17,7 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | Entity Risk          | `SECURITY_EVENTS_ENTITY_RISK` `.../security-events/entity-risk` (and the old `entities`)  | `Pages/SecurityEvents/EntityRisk`, `EntityRisk/*`, `EntityLookupCard` under the list         |
 | Protected Entities   | `SECURITY_PROTECTED_ENTITIES` `.../security-events/protected-entities`                    | `Pages/SecurityEvents/ProtectedEntities`                                                     |
 | Detection Rules      | `SECURITY_EVENTS_DETECTION_RULES` `.../security-events/detection-rules`                   | `Pages/SecurityEvents/DetectionRules`, `DetectionRuleSummary`                                |
+| Rule Exceptions      | `SECURITY_EVENTS_RULE_EXCEPTIONS` `.../security-events/rule-exceptions`                   | `Pages/SecurityEvents/RuleExceptions`, `SecurityEvents/RuleExceptions/*`                     |
 | Rule Library         | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`                         | `Pages/SecurityEvents/RuleLibrary`                                                           |
 | Threat Intel         | `SECURITY_EVENTS_THREAT_INTEL` `.../security-events/threat-intel`                         | `Pages/SecurityEvents/ThreatIntel`, `ThreatIntelRecommendedLists`                            |
 | ATT&CK Coverage      | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`                   | `Pages/SecurityEvents/AttackCoverage`, `AttackCoverageTactics`, `AttackCoverageMatrix`       |
@@ -374,6 +375,40 @@ their labels beside them from 32rem of a record's width and above them below it,
 matches under their own heading, in both themes and in Persian; German; Persian at 1280 and 390,
 right to left; and an entity's page. Its screenshots are named `case-connected-signals-*` and
 `entity-connected-signals-*`.
+
+## Rule exceptions and Run on Past Events
+
+What a detection rule skips, and what it would have found over past events, with their own spec,
+`RuleExceptions.spec.ts`. `Fixture/RuleExceptionsFixture.js` lays out an exception in every state
+a row can be in: on Brute force from one IP address, the vulnerability scanners' range
+`10.20.0.0/16` (no expiry), the backup job's account `svc-backup` (until in 30 days) and the red
+team exercise's window tomorrow (upcoming); on Password spraying, the process `backup.exe`
+(expired); on Repeated failed sign-ins, last week's penetration test (ended); and on MFA push
+fatigue, `*.lab.acme-commerce.example`, added through the API. A new exception is saved on its
+rule's id, as the server stores the relation the form's dropdown sends. `POST
+/detection-rule/retrohunt` answers what the server's statement would: by default, for the week
+(fewer firings over a day, more over a month), 42 firings for three addresses, with what the
+rule's active exceptions kept out; a correlation's YAML as a correlation, each group with what
+happened.
+
+| Parameter     | Values                                                                                                                                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `?retrohunt=` | `quiet`: it would not have fired, 12 matching events none of whose runs reached the threshold; `noisy`: 1,680 firings for 64 addresses, the 50 that fired most listed; `fail`: the YAML is refused (a 400) |
+
+`RuleExceptions.spec.ts` covers: the list under Detections, its entry lit and its trail, four
+columns that fit beside the menu at 1280 (what it skips and its kind, the rule, why with who added
+it and when, the status and until or since when); one card each on a phone; Persian, right to
+left, with every status in Persian and the status line wrapping rather than running under the
+row's actions; a Security Viewer, Add locked and Run on Past Events still open; a rule's count of
+active exceptions under its name; the row's run of tuning actions before Create Monitor; View
+Exceptions landing on the list filtered to the rule; Add Exception from a rule's row, saved with
+its kind's fields only, and the count reading it at once; a value of only `*` refused under its
+field; a time window's fields; Run on Past Events from a row (the firings, a day's rate, who for,
+what the exceptions kept out, the request, another period), a noisy rule's advice and Show all, a
+quiet rule's near miss, a refused run, a correlation's groups, and the run under the form's YAML
+with "The rule changed after this run."; Add Exception on a case's detection, started with the
+rule and the address it grouped by, and none on a threat intel match. Its screenshots are named
+`rule-exceptions-*`, `rule-retrohunt-desktop` and `rule-exception-from-detection`.
 
 ## Run it
 

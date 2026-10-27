@@ -1,6 +1,7 @@
 import {
-  ADDED_AT,
   ADDED_BY_NOBODY,
+  ADDED_BY_PERSON,
+  ADDED_THROUGH_API,
   RULE_EXCEPTIONS_TEST_IDS,
   TIME_WINDOW_RANGE,
 } from "./RuleExceptionsCopy";
@@ -122,7 +123,7 @@ export const RuleExceptionStatusCell: FunctionComponent<StatusCellProps> = (
 
   return (
     <div
-      className="flex flex-col items-start gap-1"
+      className="flex min-w-[7rem] flex-col items-start gap-1"
       data-testid={RULE_EXCEPTIONS_TEST_IDS.statusCell}
     >
       <Pill
@@ -131,7 +132,7 @@ export const RuleExceptionStatusCell: FunctionComponent<StatusCellProps> = (
         isMinimal={true}
       />
       <span
-        className="whitespace-nowrap text-xs text-gray-500"
+        className="text-xs text-gray-500"
         title={
           lineTime
             ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(lineTime)
@@ -144,46 +145,63 @@ export const RuleExceptionStatusCell: FunctionComponent<StatusCellProps> = (
   );
 };
 
-export interface AddedByCellProps {
-  name?: string | undefined;
+export interface ReasonCellProps {
+  reason: string;
+  // The person who added it; none when an API key or a workflow did.
+  addedBy?: string | undefined;
   createdAt?: Date | undefined;
 }
 
+// Who added it and when, as the line under the reason says it.
+export function writeRuleExceptionAddedLine(
+  translator: Translator,
+  data: { addedBy?: string | undefined; createdAt?: Date | undefined },
+): string {
+  if (!data.createdAt) {
+    return data.addedBy
+      ? data.addedBy
+      : translator.translateText(ADDED_BY_NOBODY) || ADDED_BY_NOBODY;
+  }
+
+  const time: string = OneUptimeDate.fromNow(data.createdAt);
+
+  return data.addedBy
+    ? translator.translateTemplate(ADDED_BY_PERSON, {
+        name: data.addedBy,
+        time,
+      })
+    : translator.translateTemplate(ADDED_THROUGH_API, { time });
+}
+
 /*
- * Who added it and when: the person's name over "Added 3 days ago", or
- * "Added through the API" when no person did (an API key, a workflow).
+ * Why it is safe to skip, with who added it and when under it: "Added by
+ * Maya Chen 3 days ago", or "Added through the API 40 days ago" when no
+ * person did (an API key, a workflow). A reason someone wrote reads the way
+ * it is written (IsolatedText).
  */
-export const RuleExceptionAddedByCell: FunctionComponent<AddedByCellProps> = (
-  props: AddedByCellProps,
+export const RuleExceptionReasonCell: FunctionComponent<ReasonCellProps> = (
+  props: ReasonCellProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (
-    <div
-      className="min-w-[8rem]"
-      data-testid={RULE_EXCEPTIONS_TEST_IDS.addedByCell}
-    >
-      <span className="block text-sm text-gray-900">
-        {props.name ? (
-          <IsolatedText text={props.name} />
-        ) : (
-          translator.translateText(ADDED_BY_NOBODY)
-        )}
+    <div className="min-w-[10rem]">
+      <span className="block whitespace-pre-line break-words text-sm text-gray-900">
+        <IsolatedText text={props.reason} />
       </span>
-      {props.createdAt ? (
-        <span
-          className="block text-xs text-gray-500"
-          title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            props.createdAt,
-          )}
-        >
-          {translator.translateTemplate(ADDED_AT, {
-            time: OneUptimeDate.fromNow(props.createdAt),
-          })}
-        </span>
-      ) : (
-        <></>
-      )}
+      <span
+        className="mt-0.5 block text-xs text-gray-500"
+        data-testid={RULE_EXCEPTIONS_TEST_IDS.addedByCell}
+        title={
+          props.createdAt
+            ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                props.createdAt,
+              )
+            : undefined
+        }
+      >
+        {writeRuleExceptionAddedLine(translator, props)}
+      </span>
     </div>
   );
 };

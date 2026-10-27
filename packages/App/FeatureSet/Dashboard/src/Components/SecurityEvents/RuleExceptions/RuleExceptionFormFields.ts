@@ -179,7 +179,9 @@ export function getRuleExceptionFormFields(
         { now: getNow(), isExpiryNew: options.isCreate },
       );
 
-      return problem ? options.translator.translateText(problem) || problem : null;
+      return problem
+        ? options.translator.translateText(problem) || problem
+        : null;
     };
   };
 
@@ -210,6 +212,8 @@ export function getRuleExceptionFormFields(
       stepId: stepWhat,
       fieldType: FormFieldSchemaType.RadioButton,
       radioButtonOptions: getRuleExceptionKindChoices(),
+      // Each choice says what it is; the API reader's column help would repeat them.
+      hideColumnDescription: true,
       required: true,
       defaultValue: DetectionRuleExceptionKind.Entity,
       dataTestId: RULE_EXCEPTIONS_TEST_IDS.kindChoice,
@@ -220,6 +224,7 @@ export function getRuleExceptionFormFields(
       stepId: stepWhat,
       fieldType: FormFieldSchemaType.Dropdown,
       dropdownOptions: getRuleExceptionEntityTypeOptions(),
+      hideColumnDescription: true,
       showIf: isKind(DetectionRuleExceptionKind.Entity),
       required: isKind(DetectionRuleExceptionKind.Entity),
       customValidation: problemWith("entityType"),
@@ -256,6 +261,7 @@ export function getRuleExceptionFormFields(
       title: STARTS_AT_FIELD_TITLE,
       stepId: stepWhat,
       fieldType: FormFieldSchemaType.DateTime,
+      hideColumnDescription: true,
       showIf: isKind(DetectionRuleExceptionKind.TimeWindow),
       required: isKind(DetectionRuleExceptionKind.TimeWindow),
       customValidation: problemWith("startsAt"),

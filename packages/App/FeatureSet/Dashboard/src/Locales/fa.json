@@ -17972,7 +17972,7 @@
   "Up + Out": "Up + Out",
   "Up next": "نفر بعدی",
   "Up to date": "به‌روز",
-  "Upcoming": "Upcoming",
+  "Upcoming": "پیش‌رو",
   "Upcoming hand-offs": "تحویل نوبت‌های پیش رو",
   "Upcoming shifts": "نوبت‌های پیش‌رو",
   "Upcoming windows": "Upcoming windows",
@@ -36407,5 +36407,7 @@
   "{{from}} to {{until}}": "از {{from}} تا {{until}}",
   "{{count}} active exceptions": "{{count}} استثنای فعال",
   "{{count}} active exceptions_one": "{{count}} استثنای فعال",
-  "Event Field": "فیلد رویداد"
+  "Event Field": "فیلد رویداد",
+  "Added by {{name}} {{time}}": "افزوده‌شده: {{name}}، {{time}}",
+  "Added through the API {{time}}": "افزوده‌شده از طریق API، {{time}}"
 }

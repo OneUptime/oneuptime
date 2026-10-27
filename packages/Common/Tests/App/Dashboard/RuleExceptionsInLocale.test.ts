@@ -9,6 +9,7 @@ import {
   DetectionRuleExceptionKind,
   DetectionRuleExceptionProblem,
   DetectionRuleExceptionShape,
+  DetectionRuleExceptionStatus,
   getDetectionRuleExceptionProblems,
 } from "../../../Types/SecurityEvent/DetectionRuleException";
 import { PluralTemplate } from "../../../UI/Utils/TranslateTemplate";
@@ -92,10 +93,14 @@ function wordsOf(module: Record<string, unknown>): {
   return { sentences, plurals };
 }
 
-const EXCEPTION_WORDS: { sentences: Array<string>; plurals: Array<PluralTemplate> } =
-  wordsOf(RuleExceptionsCopy as unknown as Record<string, unknown>);
-const RETROHUNT_WORDS: { sentences: Array<string>; plurals: Array<PluralTemplate> } =
-  wordsOf(RetrohuntCopy as unknown as Record<string, unknown>);
+const EXCEPTION_WORDS: {
+  sentences: Array<string>;
+  plurals: Array<PluralTemplate>;
+} = wordsOf(RuleExceptionsCopy as unknown as Record<string, unknown>);
+const RETROHUNT_WORDS: {
+  sentences: Array<string>;
+  plurals: Array<PluralTemplate>;
+} = wordsOf(RetrohuntCopy as unknown as Record<string, unknown>);
 
 /*
  * Every problem the shared rules can answer with, found by asking about
@@ -156,11 +161,18 @@ const PROBLEMS: Array<string> = Array.from(
 
 const MODEL: DetectionRuleException = new DetectionRuleException();
 
+/*
+ * A row's status pill: the status itself, looked up as a key (Upcoming was
+ * still English in thirteen languages, a time window's pill said so).
+ */
+const STATUSES: Array<string> = Object.values(DetectionRuleExceptionStatus);
+
 const SENTENCES: Array<string> = Array.from(
   new Set([
     ...EXCEPTION_WORDS.sentences,
     ...RETROHUNT_WORDS.sentences,
     ...PROBLEMS,
+    ...STATUSES,
     MODEL.singularName!,
     MODEL.pluralName!,
     MODEL.tableDescription!,
@@ -214,6 +226,10 @@ describe("the words there are", () => {
         "The window must end after it starts.",
       ].sort(),
     );
+  });
+
+  test("a row's status is one of four", () => {
+    expect(STATUSES).toEqual(["Active", "Expired", "Upcoming", "Ended"]);
   });
 
   test("the list's, the form's and the run's words, and their plurals", () => {

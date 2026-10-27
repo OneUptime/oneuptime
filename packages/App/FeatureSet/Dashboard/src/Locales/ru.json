@@ -17972,7 +17972,7 @@
   "Up + Out": "Up + Out",
   "Up next": "Далее",
   "Up to date": "Актуально",
-  "Upcoming": "Upcoming",
+  "Upcoming": "Запланировано",
   "Upcoming hand-offs": "Предстоящие передачи дежурства",
   "Upcoming shifts": "Ближайшие смены",
   "Upcoming windows": "Upcoming windows",
@@ -36407,5 +36407,7 @@
   "{{from}} to {{until}}": "с {{from}} до {{until}}",
   "{{count}} active exceptions": "Активных исключений: {{count}}",
   "{{count}} active exceptions_one": "{{count}} активное исключение",
-  "Event Field": "Поле события"
+  "Event Field": "Поле события",
+  "Added by {{name}} {{time}}": "Добавлено: {{name}}, {{time}}",
+  "Added through the API {{time}}": "Добавлено через API, {{time}}"
 }

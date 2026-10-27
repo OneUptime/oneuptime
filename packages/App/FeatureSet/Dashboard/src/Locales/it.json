@@ -17972,7 +17972,7 @@
   "Up + Out": "Up + Out",
   "Up next": "Prossimo turno",
   "Up to date": "Aggiornato",
-  "Upcoming": "Upcoming",
+  "Upcoming": "In arrivo",
   "Upcoming hand-offs": "Prossimi passaggi di consegne",
   "Upcoming shifts": "Prossimi turni",
   "Upcoming windows": "Upcoming windows",
@@ -36407,5 +36407,7 @@
   "{{from}} to {{until}}": "dal {{from}} al {{until}}",
   "{{count}} active exceptions": "{{count}} eccezioni attive",
   "{{count}} active exceptions_one": "{{count}} eccezione attiva",
-  "Event Field": "Campo dell'evento"
+  "Event Field": "Campo dell'evento",
+  "Added by {{name}} {{time}}": "Aggiunta da {{name}} {{time}}",
+  "Added through the API {{time}}": "Aggiunta tramite API {{time}}"
 }

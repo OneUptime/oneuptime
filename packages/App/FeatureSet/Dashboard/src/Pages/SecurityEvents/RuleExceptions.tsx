@@ -1,6 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import {
-  RuleExceptionAddedByCell,
+  RuleExceptionReasonCell,
   RuleExceptionSkipsCell,
   RuleExceptionStatusCell,
 } from "../../Components/SecurityEvents/RuleExceptions/RuleExceptionCells";
@@ -10,7 +10,6 @@ import {
   getRuleExceptionWindowDefaults,
 } from "../../Components/SecurityEvents/RuleExceptions/RuleExceptionFormFields";
 import {
-  ADDED_BY_COLUMN_TITLE,
   REASON_COLUMN_TITLE,
   RULE_COLUMN_TITLE,
   RULE_EXCEPTIONS_EMPTY_DESCRIPTION,
@@ -161,12 +160,19 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
         createdAt: true,
         detectionRuleId: true,
       }}
+      /*
+       * Four columns that wrap inside their caps, so the list fits its card
+       * beside the side menu at a laptop's width: what it skips, the rule,
+       * why - with who added it and when under it - and where it stands.
+       */
       columns={[
         {
           field: { value: true },
           title: SKIPS_COLUMN_TITLE,
           type: FieldType.Element,
           disableSort: true,
+          wrapContent: true,
+          wrapMaxWidthClassName: "max-w-[15rem]",
           getElement: (item: DetectionRuleException): ReactElement => {
             return <RuleExceptionSkipsCell exception={item} />;
           },
@@ -176,11 +182,13 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
           title: RULE_COLUMN_TITLE,
           type: FieldType.Element,
           disableSort: true,
+          wrapContent: true,
+          wrapMaxWidthClassName: "max-w-[12rem]",
           getElement: (item: DetectionRuleException): ReactElement => {
             const name: string = item.detectionRule?.name || "";
 
             return name ? (
-              <span className="block min-w-[8rem] text-sm text-gray-900">
+              <span className="block min-w-[7rem] text-sm text-gray-900">
                 <IsolatedText text={name} />
               </span>
             ) : (
@@ -191,43 +199,49 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
           },
         },
         {
-          field: { reason: true },
+          field: {
+            reason: true,
+            createdByUser: { name: true, email: true, profilePictureId: true },
+          },
           title: REASON_COLUMN_TITLE,
-          type: FieldType.LongText,
+          type: FieldType.Element,
+          disableSort: true,
           wrapContent: true,
-          hideOnMobile: true,
+          wrapMaxWidthClassName: "max-w-[18rem]",
+          getElement: (item: DetectionRuleException): ReactElement => {
+            return (
+              <RuleExceptionReasonCell
+                reason={item.reason || ""}
+                addedBy={
+                  item.createdByUser?.name?.toString() ||
+                  item.createdByUser?.email?.toString() ||
+                  undefined
+                }
+                createdAt={item.createdAt}
+              />
+            );
+          },
         },
         {
           field: { expiresAt: true },
           title: STATUS_COLUMN_TITLE,
           type: FieldType.Element,
           disableSort: true,
+          /*
+           * Until when, or since when, wraps under its pill: "Ended Oct 6,
+           * 4:00 PM" is longer in Persian or German, and a line that does
+           * not wrap is cut short under the row's actions. Its floor is the
+           * pill's, not a wrapping column's 10rem, so the list still fits
+           * its card at a laptop's width.
+           */
+          wrapContent: true,
+          wrapMaxWidthClassName: "max-w-[11rem]",
+          contentClassName: "min-w-[7rem]",
           getElement: (item: DetectionRuleException): ReactElement => {
             return (
               <RuleExceptionStatusCell
                 exception={item}
                 now={OneUptimeDate.getCurrentDate()}
-              />
-            );
-          },
-        },
-        {
-          field: {
-            createdByUser: { name: true, email: true, profilePictureId: true },
-          },
-          title: ADDED_BY_COLUMN_TITLE,
-          type: FieldType.Element,
-          disableSort: true,
-          hideOnMobile: true,
-          getElement: (item: DetectionRuleException): ReactElement => {
-            return (
-              <RuleExceptionAddedByCell
-                name={
-                  item.createdByUser?.name?.toString() ||
-                  item.createdByUser?.email?.toString() ||
-                  undefined
-                }
-                createdAt={item.createdAt}
               />
             );
           },

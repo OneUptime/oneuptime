@@ -45,13 +45,14 @@ export const SKIPS_COLUMN_TITLE: string = translationKey("Skips");
 export const RULE_COLUMN_TITLE: string = translationKey("Rule");
 export const REASON_COLUMN_TITLE: string = translationKey("Reason");
 export const STATUS_COLUMN_TITLE: string = translationKey("Status");
-export const ADDED_BY_COLUMN_TITLE: string = translationKey("Added By");
 
 // What each row says under the thing it skips.
 export const ADDRESS_RANGE_LABEL: string = translationKey("IP address range");
 export const VALUE_IN_FIELD: string = translationKey("Value of {{field}}");
 export const TIME_WINDOW_LABEL: string = translationKey("Time window");
-export const TIME_WINDOW_RANGE: string = translationKey("{{from}} to {{until}}");
+export const TIME_WINDOW_RANGE: string = translationKey(
+  "{{from}} to {{until}}",
+);
 
 // Under the status pill: until when, or since when.
 export const STATUS_UNTIL: string = translationKey("Until {{time}}");
@@ -61,9 +62,17 @@ export const STATUS_STARTS_AT: string = translationKey("Starts {{time}}");
 export const STATUS_ENDS_AT: string = translationKey("Ends {{time}}");
 export const STATUS_ENDED_AT: string = translationKey("Ended {{time}}");
 
-// Who added it, and when; nobody when an API key or a workflow did.
+/*
+ * Who added it, and when ({{time}}: "3 days ago"), under its reason; when no
+ * person did, an API key or a workflow did.
+ */
+export const ADDED_BY_PERSON: string = translationKey(
+  "Added by {{name}} {{time}}",
+);
+export const ADDED_THROUGH_API: string = translationKey(
+  "Added through the API {{time}}",
+);
 export const ADDED_BY_NOBODY: string = translationKey("Added through the API");
-export const ADDED_AT: string = translationKey("Added {{time}}");
 
 // The rule a row belongs to, when it was deleted under it (a stale read).
 export const RULE_NOT_FOUND: string = translationKey("Rule not found");
