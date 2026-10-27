@@ -1070,13 +1070,83 @@ describe("EntryLoadFailure: its stylesheet", () => {
 
   const partialCss: () => string = (): string => {
     const rendered: string = renderPartial();
-    const start: number = rendered.indexOf("<style>");
+    const start: number = rendered.indexOf("<style");
     const end: number = rendered.indexOf("</style>");
 
     expect(start).toBeGreaterThan(-1);
 
-    return rendered.slice(start + "<style>".length, end);
+    return rendered.slice(rendered.indexOf(">", start) + 1, end);
   };
+
+  /*
+   * The app draws its own error screens with ErrorScreenStyle, and this
+   * copy comes later in the page: switched on while the app runs, its
+   * rules won over the ones it leaves out - an updating page's accent
+   * badge drew in the alarm's red, a widget's small buttons and the error
+   * screen's secondary button lost their padding and border. It is off
+   * until its own card is drawn.
+   */
+  const style: (page: OpenedPage) => HTMLStyleElement = (
+    page: OpenedPage,
+  ): HTMLStyleElement => {
+    return page.document.getElementById(
+      "oneuptime-entry-load-failure-style",
+    ) as HTMLStyleElement;
+  };
+
+  test("is off while the app runs: a page whose entry loads never switches it on", async () => {
+    const page: OpenedPage = open();
+
+    expect(style(page)).not.toBeNull();
+    expect(style(page).media).toBe("not all");
+
+    await page.settle(60000);
+
+    expect(card(page)).toBeNull();
+    expect(style(page).media).toBe("not all");
+  });
+
+  test.each<[string, Visit]>([
+    ["offline", { isOnline: false }],
+    ["unreachable", { serverAnswer: null }],
+    ["failed", { session: { [RELOAD_KEY]: String(Date.now()) } }],
+  ])(
+    "is switched on with its card (%s)",
+    async (step: string, visit: Visit) => {
+      const page: OpenedPage = open(visit);
+
+      expect(style(page).media).toBe("not all");
+
+      page.failEntry();
+      await page.settle();
+
+      expect(card(page)!.getAttribute("data-step")).toBe(step);
+      expect(style(page).media).toBe("all");
+    },
+  );
+
+  test("leaves out of the page's cascade what ErrorScreenStyle says after it: the rules it does not copy", () => {
+    const own: Set<string> = new Set<string>(
+      declarationsOf(partialCss()).map((declaration: Declaration): string => {
+        return declaration.key.split("|")[1] as string;
+      }),
+    );
+
+    // The badge and the buttons it does not draw, which its copies would beat.
+    for (const selector of [
+      ".oueb-badge-info",
+      ".oueb-button-small",
+      ".oueb-button-secondary",
+      ".oueb-button-ghost",
+    ]) {
+      expect([selector, own.has(selector)]).toEqual([selector, false]);
+    }
+
+    // Which is why it must stay off while the app draws them.
+    expect(PARTIAL_SOURCE).toContain(
+      '<style id="oneuptime-entry-load-failure-style" media="not all">',
+    );
+  });
 
   test("says what ErrorScreenStyle says, rule for rule", () => {
     const appValues: Map<string, string> = new Map<string, string>();

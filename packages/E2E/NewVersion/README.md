@@ -38,11 +38,14 @@ ask first and keeping the next page inside the tab, and a query typed into a sea
 updating and reloading into the same address (and, for a status page's visitor, never
 naming OneUptime); offline; a server answering 503 or dropping the connection; a part gone
 for good after its one reload, never a loop; one widget's code gone, in its place only,
-drawn in the middle of the widget as the widget draws its own states; the browser going
-offline under a page in the `MasterPage` (the "You're offline" card in the page's place
-under the header and the product bar, Try again, the notice waiting, the page coming back
-as it was); and an app that cannot start (the server down, offline, the entry gone for
-good after one reload - never a loop), in the same card.
+drawn in the middle of the widget as the widget draws its own states, its small button
+small and bordered; the browser going offline under a page in the `MasterPage` (the
+"You're offline" card in the page's place under the header and the product bar, Try
+again, the notice waiting, the page coming back as it was - what was typed, where it was
+scrolled, the field that had focus and its caret); and an app that cannot start (the
+server down, offline, the entry gone for good after one reload - never a loop), in the
+same card, whose stylesheet stays off while the app runs (an updating page's badge keeps
+its accent).
 Screenshots of each state, light and dark, in German and in Persian (right to left), are
 under `output/playwright/new-version-ui`.
 

@@ -49,7 +49,15 @@
     usesPageLanguage: typeof usesPageLanguage !== 'undefined' && usesPageLanguage === true
   };
 -%>
-<style>
+<%#
+  Off (media "not all") until the card is drawn. The app draws its own
+  error screens with ErrorScreenStyle, and these rules - a copy of the ones
+  this card uses - come later in the page, so switched on they would win
+  over the ones they leave out: an updating page's accent badge drew red,
+  a widget's small buttons and the error screen's secondary button lost
+  their own padding and border.
+-%>
+<style id="oneuptime-entry-load-failure-style" media="not all">
 .oneuptime-error-boundary { --oueb-surface: var(--ou-surface-primary, #ffffff); --oueb-surface-muted: var(--ou-surface-secondary, #f9fafb); --oueb-border: var(--ou-border-default, #e5e7eb); --oueb-text: var(--ou-text-primary, #111827); --oueb-text-secondary: var(--ou-text-secondary, #4b5563); --oueb-text-muted: var(--ou-text-muted, #6b7280); --oueb-accent: #4f46e5; --oueb-accent-hover: #4338ca; --oueb-accent-ring: rgb(79 70 229 / 45%); --oueb-danger-surface: #fef2f2; --oueb-danger-border: #fee2e2; --oueb-danger-icon: #dc2626; --oueb-shadow: var(--ou-card-shadow, 0 1px 3px rgb(15 23 42 / 8%)); color: var(--oueb-text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
 .oneuptime-error-boundary { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 60vh; padding: 3rem 1.5rem; background-color: transparent; }
 html.dark .oneuptime-error-boundary { --oueb-surface: var(--ou-surface-primary, #172033); --oueb-surface-muted: var(--ou-surface-secondary, #1e293b); --oueb-border: var(--ou-border-default, #475569); --oueb-text: var(--ou-text-primary, #f8fafc); --oueb-text-secondary: var(--ou-text-secondary, #e2e8f0); --oueb-text-muted: var(--ou-text-muted, #cbd5e1); --oueb-shadow: var(--ou-card-shadow, 0 10px 28px rgb(0 0 0 / 42%), 0 0 0 1px rgb(148 163 184 / 10%)); --oueb-accent: #6366f1; --oueb-accent-hover: #818cf8; --oueb-accent-ring: rgb(129 140 248 / 55%); --oueb-danger-surface: rgb(153 27 27 / 22%); --oueb-danger-border: rgb(248 113 113 / 24%); --oueb-danger-icon: #fca5a5; }
@@ -121,6 +129,7 @@ html.dark .oneuptime-error-boundary { --oueb-surface: var(--ou-surface-primary, 
   remembers across its reloads: sessionStorage, else window.name.
 -%>
   var RELOAD_KEY = "oneuptime-entry-load-reload-at";
+  var STYLE_ID = "oneuptime-entry-load-failure-style";
   var TAB_MEMORY_PREFIX = "oneuptime-tab-memory:";
   var RELOAD_COOLDOWN_IN_MS = 30000;
   var RETRY_INTERVAL_IN_MS = 10000;
@@ -359,6 +368,10 @@ html.dark .oneuptime-error-boundary { --oueb-surface: var(--ou-surface-primary, 
     screen.appendChild(card);
     while (root.firstChild) {
       root.removeChild(root.firstChild);
+    }
+    var style = shellDocument.getElementById(STYLE_ID);
+    if (style) {
+      style.media = "all";
     }
     root.appendChild(screen);
     if (nextStep !== "unreachable") {

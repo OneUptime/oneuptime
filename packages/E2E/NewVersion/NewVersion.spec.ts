@@ -1006,6 +1006,24 @@ test.describe("one part of a page whose code is gone after a deploy", () => {
     await expect(page.getByTestId("chunk-load-recovery-reload")).toHaveText(
       "Reload page",
     );
+
+    /*
+     * The part's small button, drawn as the part draws its own states: small
+     * (its rules once lost to .oueb-button, which comes later in the
+     * sheet), with its border (the page's entry-failure stylesheet, on while
+     * the app ran, once took it away).
+     */
+    const reload: Locator = page.getByTestId("chunk-load-recovery-reload");
+
+    await expect(reload).toHaveCSS("font-size", "13px");
+    await expect(reload).toHaveCSS("padding", "6px 12px");
+    await expect(reload).toHaveCSS("border-top-style", "solid");
+    expect(
+      await reload.evaluate((element: Element): string => {
+        return getComputedStyle(element).borderTopColor;
+      }),
+    ).not.toBe("rgba(0, 0, 0, 0)");
+
     await page.waitForTimeout(1000);
     expect(await boots(page)).toBe(1);
     await expect(page.getByTestId("widgets-note")).toHaveValue(
@@ -1484,6 +1502,17 @@ test.describe("as it looks", () => {
       await page.getByTestId("nav-incidents").click();
       await expect(recovery(page)).toHaveAttribute("data-step", "updating");
       await expect(notice(page)).toHaveCount(0);
+      /*
+       * The accent of a new version, never the alarm's red: the page's own
+       * EntryLoadFailure stylesheet stays off while the app runs, so its
+       * copy of the badge's rules never beats the app's.
+       */
+      await expect(recovery(page).locator(".oueb-badge")).toHaveCSS(
+        "background-color",
+        variant.name.endsWith("dark")
+          ? "rgb(30, 27, 75)"
+          : "rgb(238, 242, 255)",
+      );
       await fitsTheScreen(page);
       await shoot(page, testInfo, `updating-${variant.name}`);
 

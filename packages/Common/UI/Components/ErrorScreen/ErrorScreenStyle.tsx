@@ -233,14 +233,19 @@ html.dark .oueb-part {
   margin-top: 0.25rem;
 }
 
-.oueb-button-small {
+/*
+ * Two classes, so the small button stays small: .oueb-button comes later in
+ * this sheet and would win over one class.
+ */
+.oueb-button.oueb-button-small {
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
   font-size: 0.8125rem;
   line-height: 1.125rem;
 }
 
-.oueb-button-small svg {
+.oueb-button.oueb-button-small svg,
+.oueb-button.oueb-button-small .oueb-spinner {
   width: 0.875rem;
   height: 0.875rem;
 }
