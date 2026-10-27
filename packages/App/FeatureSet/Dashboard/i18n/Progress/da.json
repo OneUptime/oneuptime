@@ -229,6 +229,8 @@
     "{{count}} alarm",
     "{{count}} appliance",
     "{{count}} appliances",
+    "{{count}} dashboard",
+    "{{count}} dashboards",
     "{{count}} datacenter",
     "{{count}} datastore",
     "{{count}} datastores",

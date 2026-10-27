@@ -295,6 +295,8 @@
     "{{count}} appliances",
     "{{count}} cluster",
     "{{count}} clusters",
+    "{{count}} dashboard",
+    "{{count}} dashboards",
     "{{count}} datacenter",
     "{{count}} datacenters",
     "{{count}} datastore",

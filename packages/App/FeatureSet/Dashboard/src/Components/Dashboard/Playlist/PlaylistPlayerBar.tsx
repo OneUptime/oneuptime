@@ -120,15 +120,17 @@ const PlaylistPlayerBar: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
+  // A dashboard on screen. Without one - nothing to show, a failed read - the bar names the playlist alone.
+  const isPlaying: boolean = Boolean(props.current) && props.position > 0;
   const hasRotation: boolean = props.count > 1;
   const upcoming: PlaylistEntry | null =
     props.upcoming && props.current && props.upcoming.key !== props.current.key
       ? props.upcoming
       : null;
 
-  const dashboardName: string = props.current
+  const title: string = props.current
     ? props.current.name || translator.translateText("Untitled dashboard") || ""
-    : props.playlistName;
+    : props.playlistName || translator.translateText("Playlist") || "";
 
   return (
     <header
@@ -156,7 +158,7 @@ const PlaylistPlayerBar: FunctionComponent<ComponentProps> = (
                   className="truncate text-sm font-semibold text-gray-800"
                   data-testid="playlist-player-dashboard-name"
                 >
-                  <IsolatedText text={dashboardName} />
+                  <IsolatedText text={title} />
                 </h1>
                 {props.isPaused ? (
                   <span
@@ -169,60 +171,64 @@ const PlaylistPlayerBar: FunctionComponent<ComponentProps> = (
                   <></>
                 )}
               </div>
-              <p
-                className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-gray-500"
-                data-testid="playlist-player-position"
-              >
-                <span className="min-w-0 truncate">
-                  <IsolatedText text={props.playlistName} />
-                </span>
-                {props.position > 0 ? (
-                  <>
-                    <span aria-hidden="true">·</span>
-                    <span className="flex-none whitespace-nowrap">
-                      {translator.translateTemplate(
-                        "{{position}} of {{count}}",
-                        {
-                          position: translator.formatNumber(props.position),
-                          count: translator.formatNumber(props.count),
-                        },
-                      )}
-                    </span>
-                  </>
-                ) : (
-                  <></>
-                )}
-                {upcoming ? (
-                  <>
-                    <span aria-hidden="true" className="max-sm:hidden">
-                      ·
-                    </span>
-                    <span
-                      className="min-w-0 truncate max-sm:hidden"
-                      data-testid="playlist-player-up-next"
-                    >
-                      <TranslatedSentence
-                        template="Next: {{name}}"
-                        slots={{
-                          name: (
-                            <IsolatedText
-                              text={
-                                upcoming.name ||
-                                translator.translateText(
-                                  "Untitled dashboard",
-                                ) ||
-                                ""
-                              }
-                            />
-                          ),
-                        }}
-                      />
-                    </span>
-                  </>
-                ) : (
-                  <></>
-                )}
-              </p>
+              {isPlaying ? (
+                <p
+                  className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-gray-500"
+                  data-testid="playlist-player-position"
+                >
+                  <span className="min-w-0 truncate">
+                    <IsolatedText text={props.playlistName} />
+                  </span>
+                  {props.position > 0 ? (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <span className="flex-none whitespace-nowrap">
+                        {translator.translateTemplate(
+                          "{{position}} of {{count}}",
+                          {
+                            position: translator.formatNumber(props.position),
+                            count: translator.formatNumber(props.count),
+                          },
+                        )}
+                      </span>
+                    </>
+                  ) : (
+                    <></>
+                  )}
+                  {upcoming ? (
+                    <>
+                      <span aria-hidden="true" className="max-sm:hidden">
+                        ·
+                      </span>
+                      <span
+                        className="min-w-0 truncate max-sm:hidden"
+                        data-testid="playlist-player-up-next"
+                      >
+                        <TranslatedSentence
+                          template="Next: {{name}}"
+                          slots={{
+                            name: (
+                              <IsolatedText
+                                text={
+                                  upcoming.name ||
+                                  translator.translateText(
+                                    "Untitled dashboard",
+                                  ) ||
+                                  ""
+                                }
+                              />
+                            ),
+                          }}
+                        />
+                      </span>
+                    </>
+                  ) : (
+                    <></>
+                  )}
+                </p>
+              ) : (
+                <></>
+              )}
             </div>
           </div>
 
@@ -231,40 +237,45 @@ const PlaylistPlayerBar: FunctionComponent<ComponentProps> = (
             role="toolbar"
             aria-label={translator.translateText("Playlist controls")}
           >
-            <PlayerButton
-              icon={IconProp.ChevronLeft}
-              label={translator.translateText("Previous dashboard") || ""}
-              onClick={props.onPrevious}
-              isDisabled={!hasRotation}
-              testId="playlist-player-previous"
-            />
-            <PlayerButton
-              icon={props.isPaused ? IconProp.Play : IconProp.Pause}
-              label={
-                (props.isPaused
-                  ? translator.translateText("Play")
-                  : translator.translateText("Pause")) || ""
-              }
-              onClick={props.onTogglePause}
-              isDisabled={props.position === 0}
-              isProminent={props.isPaused}
-              testId="playlist-player-pause"
-            />
-            <PlayerButton
-              icon={IconProp.ChevronRight}
-              label={translator.translateText("Next dashboard") || ""}
-              onClick={props.onNext}
-              isDisabled={!hasRotation}
-              testId="playlist-player-next"
-            />
-            <div className="mx-1 h-5 w-px bg-gray-200" aria-hidden="true" />
-            <PlayerButton
-              icon={IconProp.Keyboard}
-              label={translator.translateText("Keyboard shortcuts") || ""}
-              onClick={props.onShowShortcuts}
-              testId="playlist-player-shortcuts"
-              className="max-sm:hidden"
-            />
+            {isPlaying ? (
+              <>
+                <PlayerButton
+                  icon={IconProp.ChevronLeft}
+                  label={translator.translateText("Previous dashboard") || ""}
+                  onClick={props.onPrevious}
+                  isDisabled={!hasRotation}
+                  testId="playlist-player-previous"
+                />
+                <PlayerButton
+                  icon={props.isPaused ? IconProp.Play : IconProp.Pause}
+                  label={
+                    (props.isPaused
+                      ? translator.translateText("Play")
+                      : translator.translateText("Pause")) || ""
+                  }
+                  onClick={props.onTogglePause}
+                  isProminent={props.isPaused}
+                  testId="playlist-player-pause"
+                />
+                <PlayerButton
+                  icon={IconProp.ChevronRight}
+                  label={translator.translateText("Next dashboard") || ""}
+                  onClick={props.onNext}
+                  isDisabled={!hasRotation}
+                  testId="playlist-player-next"
+                />
+                <div className="mx-1 h-5 w-px bg-gray-200" aria-hidden="true" />
+                <PlayerButton
+                  icon={IconProp.Keyboard}
+                  label={translator.translateText("Keyboard shortcuts") || ""}
+                  onClick={props.onShowShortcuts}
+                  testId="playlist-player-shortcuts"
+                  className="max-sm:hidden"
+                />
+              </>
+            ) : (
+              <></>
+            )}
             {props.canGoFullScreen ? (
               <PlayerButton
                 icon={props.isFullScreen ? IconProp.Collapse : IconProp.Expand}
@@ -288,17 +299,21 @@ const PlaylistPlayerBar: FunctionComponent<ComponentProps> = (
           </div>
         </div>
 
-        <div className="h-1 w-full bg-gray-100" aria-hidden="true">
-          {props.turn ? (
-            <TurnLine
-              key={props.turn.key}
-              turn={props.turn}
-              isPaused={props.isPaused}
-            />
-          ) : (
-            <></>
-          )}
-        </div>
+        {isPlaying ? (
+          <div className="h-1 w-full bg-gray-100" aria-hidden="true">
+            {props.turn ? (
+              <TurnLine
+                key={props.turn.key}
+                turn={props.turn}
+                isPaused={props.isPaused}
+              />
+            ) : (
+              <></>
+            )}
+          </div>
+        ) : (
+          <></>
+        )}
       </div>
     </header>
   );

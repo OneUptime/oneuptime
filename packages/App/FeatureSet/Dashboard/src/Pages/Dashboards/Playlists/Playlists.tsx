@@ -53,7 +53,7 @@ const Playlists: FunctionComponent<PageComponentProps> = (): ReactElement => {
       cardProps={{
         title: "Playlists",
         description:
-          "Dashboards shown one after another on a screen, such as a NOC wall. Pick them and how long each is shown, then press Play.",
+          "Dashboards shown one after another on a screen, such as a NOC wall, each for the time you choose.",
       }}
       noItemsMessage="No playlists yet. Create one to show your dashboards one after another on a screen."
       viewPageRoute={Navigation.getCurrentRoute()}

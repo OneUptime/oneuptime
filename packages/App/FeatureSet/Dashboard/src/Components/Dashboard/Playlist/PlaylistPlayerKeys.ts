@@ -143,43 +143,63 @@ export interface PlaylistPlayerShortcut {
   description: string;
 }
 
+export interface PlaylistPlayerShortcutGroup {
+  id: string;
+  // English; the sheet translates it.
+  title: string;
+  shortcuts: Array<PlaylistPlayerShortcut>;
+}
+
 /*
- * The keys the "?" sheet lists, in the order a viewer reaches for them. On
- * a page read right to left the arrows are listed the way they work there.
+ * The keys the "?" sheet lists, in the order a viewer reaches for them: the
+ * rotation's, then the screen's. On a page read right to left the arrows
+ * are listed the way they work there.
  */
-export function getPlaylistPlayerShortcuts(data: {
+export function getPlaylistPlayerShortcutGroups(data: {
   isRightToLeft: boolean;
-}): Array<PlaylistPlayerShortcut> {
+}): Array<PlaylistPlayerShortcutGroup> {
   return [
     {
-      id: "toggle-pause",
-      keys: ["Space"],
-      description: "Pause or play",
+      id: "playback",
+      title: "Playback",
+      shortcuts: [
+        {
+          id: "toggle-pause",
+          keys: ["Space"],
+          description: "Pause or play",
+        },
+        {
+          id: "next",
+          keys: [data.isRightToLeft ? "ArrowLeft" : "ArrowRight"],
+          description: "Next dashboard",
+        },
+        {
+          id: "previous",
+          keys: [data.isRightToLeft ? "ArrowRight" : "ArrowLeft"],
+          description: "Previous dashboard",
+        },
+      ],
     },
     {
-      id: "next",
-      keys: [data.isRightToLeft ? "ArrowLeft" : "ArrowRight"],
-      description: "Next dashboard",
-    },
-    {
-      id: "previous",
-      keys: [data.isRightToLeft ? "ArrowRight" : "ArrowLeft"],
-      description: "Previous dashboard",
-    },
-    {
-      id: "full-screen",
-      keys: ["F"],
-      description: "Full screen",
-    },
-    {
-      id: "exit",
-      keys: ["Escape"],
-      description: "Exit the player",
-    },
-    {
-      id: "shortcuts",
-      keys: ["?"],
-      description: "Show keyboard shortcuts",
+      id: "screen",
+      title: "Screen",
+      shortcuts: [
+        {
+          id: "full-screen",
+          keys: ["F"],
+          description: "Full screen",
+        },
+        {
+          id: "exit",
+          keys: ["Escape"],
+          description: "Exit the player",
+        },
+        {
+          id: "shortcuts",
+          keys: ["?"],
+          description: "Show keyboard shortcuts",
+        },
+      ],
     },
   ];
 }

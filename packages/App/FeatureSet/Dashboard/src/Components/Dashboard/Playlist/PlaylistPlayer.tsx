@@ -25,8 +25,9 @@ import PlaylistPlayerBar, { PlaylistPlayerBarTurn } from "./PlaylistPlayerBar";
 import {
   PlaylistPlayerKeyAction,
   PlaylistPlayerShortcut,
+  PlaylistPlayerShortcutGroup,
   getPlaylistPlayerKeyAction,
-  getPlaylistPlayerShortcuts,
+  getPlaylistPlayerShortcutGroups,
 } from "./PlaylistPlayerKeys";
 import { PlaylistPlayerStatus, PlaylistRound } from "./PlaylistPlayerState";
 import { readPlaylistRound } from "./PlaylistRead";
@@ -320,7 +321,7 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
           title="Could not load this playlist"
           description={
             player.state.errorMessage ||
-            "Something went wrong. It is tried again in a minute."
+            "Something went wrong. The player tries again in a minute."
           }
           paddingClassName="py-24"
           footer={
@@ -338,9 +339,8 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
     return null;
   };
 
-  const shortcuts: Array<PlaylistPlayerShortcut> = getPlaylistPlayerShortcuts({
-    isRightToLeft: isPageRightToLeft(),
-  });
+  const shortcutGroups: Array<PlaylistPlayerShortcutGroup> =
+    getPlaylistPlayerShortcutGroups({ isRightToLeft: isPageRightToLeft() });
 
   return (
     <div
@@ -416,20 +416,24 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
         <KeyboardShortcutsModal
           title="Keyboard shortcuts"
           description="These keys work while a playlist plays."
-          groups={[
-            {
-              id: "playlist",
-              title: translator.translateText("Playlist") || "",
-              shortcuts: shortcuts.map((shortcut: PlaylistPlayerShortcut) => {
-                return {
-                  id: shortcut.id,
-                  keySequence: [shortcut.keys],
-                  description:
-                    translator.translateText(shortcut.description) || "",
-                };
-              }),
+          groups={shortcutGroups.map(
+            (group: PlaylistPlayerShortcutGroup) => {
+              return {
+                id: group.id,
+                title: translator.translateText(group.title) || "",
+                shortcuts: group.shortcuts.map(
+                  (shortcut: PlaylistPlayerShortcut) => {
+                    return {
+                      id: shortcut.id,
+                      keySequence: [shortcut.keys],
+                      description:
+                        translator.translateText(shortcut.description) || "",
+                    };
+                  },
+                ),
+              };
             },
-          ]}
+          )}
           thenLabel={translator.translateText("then") || ""}
           closeButtonText="Close"
           onClose={() => {

@@ -112,6 +112,8 @@ export function getPlaylistFormFields(data: {
       },
       title: "Show each dashboard for",
       fieldType: FormFieldSchemaType.Dropdown,
+      // The column's words are for the API (seconds, its range); the label says it.
+      hideColumnDescription: true,
       required: true,
       defaultValue: DASHBOARD_PLAYLIST_DEFAULT_INTERVAL_IN_SECONDS,
       dropdownOptions: getPlaylistIntervalOptions({
