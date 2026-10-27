@@ -66,6 +66,8 @@ import AIRunService from "../Services/AIRunService";
 import AlertService from "../Services/AlertService";
 import AutoRemediationSuggestionService from "../Services/AutoRemediationSuggestionService";
 import CephClusterService from "../Services/CephClusterService";
+import CloudAccountService from "../Services/CloudAccountService";
+import { getCloudCatalogProvider } from "../../Utils/AiRemediation/Resource/CloudOperationCatalog";
 import DatabaseServerService from "../Services/DatabaseServerService";
 import DatabaseService from "../Services/DatabaseService";
 import DockerHostService from "../Services/DockerHostService";
@@ -172,6 +174,24 @@ interface ResourceAiAccessKind {
   service: DatabaseService<any>;
   subjectRelation: string;
   scopeLabelKeys: ReadonlyArray<string>;
+  // Conditions every read of the type's rows adds (a cloud account's cloud).
+  query?: Record<string, unknown> | undefined;
+}
+
+/*
+ * A cloud account: one table for the three clouds, told apart by its
+ * provider. Incidents and alerts link the account's resources, not the
+ * account, so the relation finds no subject of its own here: the account's
+ * AI Logs are the operations AI ran or proposed in it, and the runs and
+ * fixes they belong to.
+ */
+function cloudAccountKind(resourceType: AiResourceType): ResourceAiAccessKind {
+  return {
+    service: CloudAccountService,
+    subjectRelation: "cloudResources",
+    scopeLabelKeys: [],
+    query: { provider: getCloudCatalogProvider(resourceType) || "" },
+  };
 }
 
 export const RESOURCE_AI_ACCESS_KINDS: Readonly<
@@ -222,6 +242,13 @@ export const RESOURCE_AI_ACCESS_KINDS: Readonly<
     subjectRelation: "hosts",
     scopeLabelKeys: [...HostIdLabelKeys, ...HostNameLabelKeys],
   },
+  [AiResourceType.AwsAccount]: cloudAccountKind(AiResourceType.AwsAccount),
+  [AiResourceType.AzureSubscription]: cloudAccountKind(
+    AiResourceType.AzureSubscription,
+  ),
+  [AiResourceType.GoogleCloudProject]: cloudAccountKind(
+    AiResourceType.GoogleCloudProject,
+  ),
 };
 
 // The resource a route acts on, once the caller may read it.
@@ -296,6 +323,7 @@ async function findAccessibleResource(data: {
     resourceType
   ].service.findOneBy({
     query: {
+      ...(RESOURCE_AI_ACCESS_KINDS[resourceType].query || {}),
       _id: resourceIdString,
       projectId: data.tenantId,
     },

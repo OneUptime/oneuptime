@@ -183,6 +183,14 @@ export interface AiRemediationCommand {
   resourceId?: string | undefined;
   resourceNameSnapshot?: string | undefined;
   resourceCommandTier?: ResourceCommandTier | undefined;
+  /*
+   * ResourceCommand on a cloud account only: the code that declares the
+   * resource the change names ('CloudFormation stack "web"', "Terraform"),
+   * read from its tags when the change was composed. Such a change is only
+   * ever proposed — a person approves it — and the card says the next
+   * apply may put the old value back. Absent when no code declares it.
+   */
+  managedAsCode?: string | undefined;
   command: string;
   timeoutInMs: number;
   // Why the AI wants to run this — shown verbatim on the approval card.
@@ -518,6 +526,7 @@ export class AiRemediationCommandPlanUtil {
         | "resourceId"
         | "resourceNameSnapshot"
         | "resourceCommandTier"
+        | "managedAsCode"
       > | null = null;
 
       if (stepType === RunbookStepType.ResourceCommand) {
@@ -663,6 +672,7 @@ export class AiRemediationCommandPlanUtil {
     | "resourceId"
     | "resourceNameSnapshot"
     | "resourceCommandTier"
+    | "managedAsCode"
   > | null {
     const resourceType: unknown = obj["resourceType"];
 
@@ -704,6 +714,8 @@ export class AiRemediationCommandPlanUtil {
       resourceCommandTier = tierRaw as ResourceCommandTier;
     }
 
+    const managedAsCode: unknown = obj["managedAsCode"];
+
     return {
       resourceType,
       resourceId,
@@ -712,6 +724,9 @@ export class AiRemediationCommandPlanUtil {
           ? obj["resourceNameSnapshot"]
           : undefined,
       resourceCommandTier,
+      ...(typeof managedAsCode === "string" && managedAsCode.trim()
+        ? { managedAsCode: managedAsCode.trim().slice(0, 256) }
+        : {}),
     };
   }
 

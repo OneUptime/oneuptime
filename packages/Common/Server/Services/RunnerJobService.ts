@@ -56,7 +56,11 @@ import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   AiResourceTypeInfo,
   isAiResourceType,
+  isCloudAiResourceType,
 } from "../../Types/ResourceAiAgent/AiResourceType";
+import CloudAiTargets, {
+  CloudChangeTargetCheck,
+} from "../Utils/AI/ResourceAccess/CloudAiTargets";
 import {
   ResourceAiAgentPosture,
   ResourceAiRemediationMode,
@@ -148,6 +152,8 @@ export const MAX_AI_RESOURCE_COMMAND_JOBS_PER_PROJECT_PER_HOUR: number = 30;
  * credential_refused: the command named a credential (agents never get one).
  * agent_posture_mismatch: the agent has not reported serving this resource.
  * write_scope:      the agent's own posture rules the write out.
+ * target_not_in_inventory: a cloud change names a resource the account's
+ *                   inventory does not list.
  */
 export type ResourceCommandEnqueueRefusalCode =
   | "invalid_request"
@@ -160,7 +166,8 @@ export type ResourceCommandEnqueueRefusalCode =
   | "switch_off"
   | "credential_refused"
   | "agent_posture_mismatch"
-  | "write_scope";
+  | "write_scope"
+  | "target_not_in_inventory";
 
 /*
  * A refusal of the resource command chokepoint. A BadDataException, so
@@ -1641,6 +1648,28 @@ export class Service extends DatabaseService<Model> {
         throw new ResourceCommandEnqueueRefusedException(
           "write_scope",
           `${scopeRefusal} It was not enqueued.`,
+        );
+      }
+    }
+
+    // 9. A cloud change names a resource of the account's own inventory.
+    if (
+      isCloudAiResourceType(data.resourceType) &&
+      policy.tier !== ResourceCommandTier.Read
+    ) {
+      const inventory: CloudChangeTargetCheck =
+        await CloudAiTargets.checkChange({
+          projectId: data.projectId,
+          resourceType: data.resourceType,
+          cloudAccountId: loaded.resource.id,
+          tier: policy.tier,
+          command: policy.displayCommand,
+        });
+
+      if (inventory.refusal) {
+        throw new ResourceCommandEnqueueRefusedException(
+          "target_not_in_inventory",
+          `${inventory.refusal} It was not enqueued.`,
         );
       }
     }

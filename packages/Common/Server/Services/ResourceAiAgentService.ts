@@ -1,5 +1,6 @@
 import CephClusterFeedService from "./CephClusterFeedService";
 import CephClusterService from "./CephClusterService";
+import CloudAccountService from "./CloudAccountService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import DatabaseServerService from "./DatabaseServerService";
 import DatabaseService from "./DatabaseService";
@@ -19,6 +20,7 @@ import VMwareVCenterService from "./VMwareVCenterService";
 import { CephClusterFeedEventType } from "../../Models/DatabaseModels/CephClusterFeed";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
+import CloudAccount from "../../Models/DatabaseModels/CloudAccount";
 import { DatabaseServerFeedEventType } from "../../Models/DatabaseModels/DatabaseServerFeed";
 import { DockerHostFeedEventType } from "../../Models/DatabaseModels/DockerHostFeed";
 import { DockerSwarmClusterFeedEventType } from "../../Models/DatabaseModels/DockerSwarmClusterFeed";
@@ -55,8 +57,14 @@ import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
   AiResourceTypeInfo,
   isAiResourceType,
+  isCloudAiResourceType,
   parseAiResourceType,
 } from "../../Types/ResourceAiAgent/AiResourceType";
+import {
+  CloudCatalogProvider,
+  getCloudCatalogProvider,
+} from "../../Utils/AiRemediation/Resource/CloudOperationCatalog";
+import { CloudProvider } from "../../Types/Cloud/CloudPlatform";
 import {
   MAX_POSTURE_STRING_LENGTH,
   RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
@@ -614,8 +622,51 @@ export function getResourceAiAgentResourceBinding(
           });
         },
       };
+    /*
+     * A cloud account is resolved by the account its agent's cloud names
+     * (resolveCloudAccount), never created: it is the cloud connection's.
+     * It has no feed of its own; AI → Logs shows what AI did in it.
+     */
+    case AiResourceType.AwsAccount:
+    case AiResourceType.AzureSubscription:
+    case AiResourceType.GoogleCloudProject:
+      return {
+        resourceType,
+        getService: (): DatabaseService<DatabaseBaseModel> => {
+          return asService(CloudAccountService);
+        },
+        findOrCreateByIdentity: null,
+        writeFeedItem: async (): Promise<void> => {
+          return;
+        },
+      };
   }
 }
+
+/*
+ * The start of the message a cloud account keeps (aiAccessLastError) when
+ * an agent set up for it could not connect, so a later successful
+ * registration clears exactly that message and no command's failure.
+ */
+export const CLOUD_AGENT_REGISTRATION_ERROR_PREFIX: string =
+  "The Cloud AI agent could not connect: ";
+
+// The id shape of each cloud's account, as an agent reports it.
+const CLOUD_ACCOUNT_ID_PATTERNS: Readonly<
+  Record<CloudCatalogProvider, RegExp>
+> = {
+  aws: /^[0-9]{12}$/,
+  azure:
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
+  gcp: /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/,
+};
+
+// How each cloud's account is named in sentences.
+const CLOUD_ACCOUNT_NOUNS: Readonly<Record<CloudCatalogProvider, string>> = {
+  aws: "AWS account",
+  azure: "Azure subscription",
+  gcp: "Google Cloud project",
+};
 
 /*
  * How the resource is named mid-sentence: "Docker host", "Ceph cluster",
@@ -1750,6 +1801,25 @@ export class Service extends DatabaseService<Model> {
   }): Promise<ResourceAiAgentResource> {
     const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[data.resourceType];
 
+    if (isCloudAiResourceType(data.resourceType)) {
+      const cloudAccountId: ObjectID = await this.resolveCloudAccountId(data);
+
+      const cloudAccount: ResourceAiAgentResource | null =
+        await this.findResource({
+          projectId: data.projectId,
+          resourceType: data.resourceType,
+          resourceId: cloudAccountId,
+        });
+
+      if (!cloudAccount) {
+        throw new BadDataException(
+          `The ${info.displayName} could not be resolved.`,
+        );
+      }
+
+      return cloudAccount;
+    }
+
     if (data.resourceType === AiResourceType.DatabaseServer) {
       const databaseServerId: ObjectID =
         await this.resolveDatabaseServerId(data);
@@ -1954,6 +2024,158 @@ export class Service extends DatabaseService<Model> {
     }
 
     return row.id;
+  }
+
+  /*
+   * The cloud account a Cloud AI agent serves: the account of this project
+   * whose cloud and id are the ones the agent's own cloud reported (its
+   * identity). Never created — an account is its cloud connection's — so
+   * an agent in an account no connection reads is refused, and says so.
+   *
+   * The setup command also pins the account it was written for
+   * (ONEUPTIME_AI_CLOUD_ACCOUNT_ID, sent as resourceId). The cloud still
+   * decides: an agent whose cloud names another account is refused, and
+   * the account it was meant for keeps the reason (aiAccessLastError), so
+   * its page says why its agent never connected.
+   */
+  private async resolveCloudAccountId(data: {
+    projectId: ObjectID;
+    resourceType: AiResourceType;
+    identifier: string;
+    resourceId: unknown;
+  }): Promise<ObjectID> {
+    const provider: CloudCatalogProvider | null = getCloudCatalogProvider(
+      data.resourceType,
+    );
+
+    if (!provider) {
+      throw new ResourceAiAgentRegistrationRefusedException({
+        reason: "resource_type_invalid",
+        message: "This resource type is not a cloud account.",
+      });
+    }
+
+    const noun: string = CLOUD_ACCOUNT_NOUNS[provider];
+    const identifier: string =
+      provider === "azure"
+        ? data.identifier.trim().toLowerCase()
+        : data.identifier.trim();
+
+    if (!CLOUD_ACCOUNT_ID_PATTERNS[provider].test(identifier)) {
+      throw new ResourceAiAgentRegistrationRefusedException({
+        reason: "resource_identifier_invalid",
+        message: `"${identifier.substring(0, 64)}" is not an ${noun} id. The Cloud AI agent reads its account from its cloud; unset ${AI_RESOURCE_TYPE_INFO[data.resourceType].identityEnvVars.join(" / ")} and ${RESOURCE_AI_AGENT_RESOURCE_NAME_ENV} on the agent, or set one to the ${noun} id.`,
+      });
+    }
+
+    const account: CloudAccount | null = await CloudAccountService.findAccount({
+      projectId: data.projectId,
+      provider: provider as CloudProvider,
+      accountId: identifier,
+    });
+
+    const pinned: string | null =
+      typeof data.resourceId === "string" &&
+      UUID_PATTERN.test(data.resourceId.trim())
+        ? data.resourceId.trim().toLowerCase()
+        : null;
+
+    if (pinned && (!account || account.id?.toString() !== pinned)) {
+      const meantFor: CloudAccount | null = await CloudAccountService.findOneBy(
+        {
+          query: { _id: pinned, projectId: data.projectId },
+          select: { _id: true, provider: true, accountId: true, name: true },
+          props: { isRoot: true },
+        },
+      );
+
+      if (!meantFor || !meantFor.id) {
+        throw new ResourceAiAgentRegistrationRefusedException({
+          reason: "resource_not_found",
+          message: `The cloud account this Cloud AI agent was set up for is no longer in this OneUptime project. Open the ${noun}'s page under Cloud → Accounts and run the command its "Let AI fix problems" shows.`,
+        });
+      }
+
+      const intended: string = `${
+        CLOUD_ACCOUNT_NOUNS[
+          (meantFor.provider as unknown as CloudCatalogProvider) || provider
+        ] || noun
+      } ${meantFor.accountId || ""}`;
+      const message: string = `This Cloud AI agent runs in ${noun} ${identifier}, but its command was written for ${intended}${
+        meantFor.name && meantFor.name !== meantFor.accountId
+          ? ` ("${meantFor.name}")`
+          : ""
+      }. Deploy it in ${intended}, or run the command shown on ${noun} ${identifier}'s own page.`;
+
+      await this.recordCloudAccountRegistrationError({
+        cloudAccountId: meantFor.id,
+        message,
+      });
+
+      throw new ResourceAiAgentRegistrationRefusedException({
+        reason: "resource_not_found",
+        message,
+      });
+    }
+
+    if (!account || !account.id) {
+      throw new ResourceAiAgentRegistrationRefusedException({
+        reason: "resource_not_found",
+        message: `${noun} ${identifier} is not connected to this OneUptime project, and a Cloud AI agent never adds one. Connect it under Cloud → Connect, then restart the agent.`,
+      });
+    }
+
+    await this.clearCloudAccountRegistrationError(account.id);
+
+    return account.id;
+  }
+
+  // Keeps why an agent set up for this account could not connect.
+  private async recordCloudAccountRegistrationError(data: {
+    cloudAccountId: ObjectID;
+    message: string;
+  }): Promise<void> {
+    try {
+      await CloudAccountService.updateOneById({
+        id: data.cloudAccountId,
+        data: {
+          aiAccessLastError:
+            `${CLOUD_AGENT_REGISTRATION_ERROR_PREFIX}${data.message}`.substring(
+              0,
+              ColumnLength.LongText,
+            ),
+        } as never,
+        props: { isRoot: true },
+      });
+    } catch (error) {
+      logger.error(
+        `ResourceAiAgent: could not record why a Cloud AI agent could not connect to cloud account ${data.cloudAccountId.toString()}: ${error}`,
+      );
+    }
+  }
+
+  // Clears that reason once an agent of the account connects.
+  private async clearCloudAccountRegistrationError(
+    cloudAccountId: ObjectID,
+  ): Promise<void> {
+    try {
+      await CloudAccountService.updateBy({
+        query: {
+          _id: cloudAccountId.toString(),
+          aiAccessLastError: QueryHelper.startsWith(
+            CLOUD_AGENT_REGISTRATION_ERROR_PREFIX,
+          ),
+        },
+        data: { aiAccessLastError: null } as never,
+        limit: 1,
+        skip: 0,
+        props: { isRoot: true },
+      });
+    } catch (error) {
+      logger.error(
+        `ResourceAiAgent: could not clear the connection error of cloud account ${cloudAccountId.toString()}: ${error}`,
+      );
+    }
   }
 
   /*

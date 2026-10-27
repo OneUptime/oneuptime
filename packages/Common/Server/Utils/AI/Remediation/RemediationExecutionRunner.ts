@@ -622,6 +622,14 @@ const UNATTENDED_RESOURCE_RUN_BECOMES_PROPOSAL_RULE: string = `In every unattend
 const RESOURCE_RESULT_UNKNOWN_RULE: string = `A change whose result comes back UNKNOWN (the resource's AI agent took it and no result came back) may still have changed the resource: check with ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} whether it took effect before you reissue it or build on it — never resend it blindly.`;
 
 /*
+ * A cloud change is undone with the catalog's inverse and the value the
+ * Cloud AI agent reports it replaced, which OneUptime writes itself once
+ * the change ran — so the model writes none.
+ */
+const CLOUD_UNDO_EXAMPLE: string =
+  "OneUptime writes the undo of a cloud change itself, from the value the Cloud AI agent reports the change replaced (a scale-out is undone by a scale-in to the recorded count), so leave rollbackCommand out";
+
+/*
  * The undo each kind of resource offers for its common fixes, for the
  * rollbackCommand the personas ask for. Every example is a safe change on
  * one named object (a test pins them against the policy), because a
@@ -643,6 +651,9 @@ const RESOURCE_UNDO_EXAMPLES: Readonly<Record<AiResourceType, string>> = {
   [AiResourceType.DatabaseServer]:
     "a cancelled query or a terminated session cannot be undone, so such a change has no rollbackCommand — omit it",
   [AiResourceType.Host]: "systemctl start <unit> undoes systemctl stop <unit>",
+  [AiResourceType.AwsAccount]: CLOUD_UNDO_EXAMPLE,
+  [AiResourceType.AzureSubscription]: CLOUD_UNDO_EXAMPLE,
+  [AiResourceType.GoogleCloudProject]: CLOUD_UNDO_EXAMPLE,
 };
 
 export function getResourceUndoExamples(resourceType: AiResourceType): string {
