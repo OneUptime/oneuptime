@@ -369,7 +369,7 @@ Hvis de ikke matcher, er den bruger, der skriver til botten, logget ind i en and
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-To eller flere OneUptime-projekter er forbundet til den samme Microsoft 365-organisation, og intet i beskeden skilte dem ad. Et korts knap handler i projektet for den post, kortet handler om, og en besked i projektet for den kanal, den sendes i, ellers i det ene projekt, afsenderens Microsoft Teams-konto er forbundet i. Send den igen fra en kanal i det projekt, du mener, for eksempel en af dets hændelseskanaler. En afsender, hvis konto ikke er forbundet i nogen af projekterne, bliver først bedt om at forbinde den.
+To eller flere OneUptime-projekter er forbundet til den samme Microsoft 365-organisation, og intet i beskeden skilte dem ad. Et korts knap handler i det projekt, kortet blev sendt for, og en besked i projektet for den kanal, den sendes i, ellers i det ene projekt, afsenderens Microsoft Teams-konto er forbundet i. Når intet viser hvilket, spørger botten afsenderen, hvilket projekt personen mener, med en knap for hvert projekt, personen er med i. Den svarer kun med denne sætning, når den ikke kan spørge: afsenderen er med i mere end 25 af projekterne, et projekts navn kan ikke læses, eller Valkey, den cache, der gemmer forespørgslen i den halve time, knapperne virker, er utilgængelig. Send den igen fra en kanal i det projekt, du mener, for eksempel en af dets hændelseskanaler. En afsender, hvis konto ikke er forbundet i nogen af projekterne, bliver først bedt om at forbinde den.
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

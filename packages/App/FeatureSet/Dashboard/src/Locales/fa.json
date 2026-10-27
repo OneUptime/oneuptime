@@ -15742,7 +15742,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "تعمیر و نگهداری زمان‌بندی‌شده",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35846,5 +35846,8 @@
   "Created an alert": "هشدار ساخته شد",
   "Creating alert": "ساختن هشدار",
   "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI روی لاگ‌ها، ترِیس‌ها، متریک‌ها، حوادث، مانیتورها و پایش کاربر واقعی شما پرس‌وجوهای واقعی اجرا می‌کند — نمودارها و جدول‌ها را همان‌جا نشان می‌دهد — و می‌تواند حادثه و هشدار ایجاد کند یا آن‌ها را تأیید کند، همیشه با تأیید شما.",
+  "Maintenance markers are unavailable.": "نشانگرهای تعمیر و نگهداری در دسترس نیستند.",
+  "Maintenance markers need the uptime history, which did not load.": "نشانگرهای تعمیر و نگهداری به تاریخچه زمان کارکرد نیاز دارند که بارگذاری نشد.",
+  "You need permission to read scheduled maintenance.": "برای خواندن تعمیر و نگهداری زمان‌بندی‌شده به مجوز نیاز دارید.",
   "Sign in with {{name}}": "ورود با {{name}}"
 }

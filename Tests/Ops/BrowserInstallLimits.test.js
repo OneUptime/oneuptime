@@ -35,11 +35,16 @@ const SET_UP_MINUTES = 7;
 // nick-fields/retry's default wait between tries.
 const RETRY_WAIT_SECONDS = 10;
 
+/*
+ * `playwright install`, or a pinned `playwright@1.63.0 install`: the pinned
+ * form went unseen until 2026-10-27, and its job had no limits.
+ */
 function isBrowserInstall(step) {
   const command = String(step.run || "");
 
   return (
-    /\bplaywright install\b/.test(command) && command.includes("--with-deps")
+    /\bplaywright(@[^\s]+)?\s+install\b/.test(command) &&
+    command.includes("--with-deps")
   );
 }
 
@@ -113,6 +118,7 @@ describe("browser jobs and a slow Ubuntu mirror", () => {
       expect.arrayContaining([
         "test.app.yaml session-replay-ui",
         "test.app.yaml dashboard-offline-ui",
+        "test.browser-recorder.yaml test",
         "test.ee.yaml backups-ui",
         "test.mobile-app.yaml expo-web-export",
         "test.probe.yaml test",

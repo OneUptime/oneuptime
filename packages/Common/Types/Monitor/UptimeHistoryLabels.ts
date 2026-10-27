@@ -36,6 +36,24 @@ export default interface UptimeHistoryLabels {
   /* Prefixes an incident's declaration time: "Declared Mar 03 2026, 14:12". */
   declared: string;
   close: string;
+
+  /*
+   * Scheduled maintenance on a day (UptimeMaintenanceUtil): the heading of
+   * its list in the tooltip and the dialog.
+   */
+  scheduledMaintenance: string;
+  /*
+   * A day's accessible name when it had maintenance: {{label}} is the name
+   * the day has without it (dayLabel and the others above), {{maintenance}}
+   * one of the two counts below.
+   */
+  dayLabelWithMaintenance: string;
+  /* The day had exactly one maintenance event. */
+  oneMaintenanceEvent: string;
+  /* Two or more. {{total}}. */
+  maintenanceEvents: string;
+  /* Under the tooltip's first few events, for the rest. {{total}}. */
+  moreMaintenance: string;
 }
 
 export const DefaultUptimeHistoryLabels: UptimeHistoryLabels = {
@@ -53,4 +71,9 @@ export const DefaultUptimeHistoryLabels: UptimeHistoryLabels = {
   incidentsOnThisDay: "{{total}} incidents reported on this day",
   declared: "Declared",
   close: "Close",
+  scheduledMaintenance: "Scheduled maintenance",
+  dayLabelWithMaintenance: "{{label}}, {{maintenance}}",
+  oneMaintenanceEvent: "1 scheduled maintenance event",
+  maintenanceEvents: "{{total}} scheduled maintenance events",
+  moreMaintenance: "+{{total}} more",
 };

@@ -80,6 +80,17 @@ import MicrosoftTeamsAuthAction from "../../../../Server/Utils/Workspace/Microso
 import MicrosoftTeamsCommands, {
   MicrosoftTeamsListCommand,
 } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
+import MicrosoftTeamsCreateCommands from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCreateCommands";
+import { MicrosoftTeamsHomeActionType } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsHome";
+import MicrosoftTeamsProjectChoice from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsProjectChoice";
+import { DRAWN_FOR_PROJECT_ID_FIELD } from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCardProject";
+import WorkspaceProjectChoiceStore, {
+  WorkspaceProjectChoicePress,
+} from "../../../../Server/Utils/Workspace/WorkspaceProjectChoiceStore";
+import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
+import MicrosoftTeamsIncidentActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/Incident";
+import WorkspaceOpenRecords from "../../../../Server/Utils/Workspace/WorkspaceOpenRecords";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import WorkspaceProjectAuthTokenService from "../../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../../Server/Services/WorkspaceUserAuthTokenService";
 import IncidentService from "../../../../Server/Services/IncidentService";
@@ -1162,12 +1173,21 @@ describe("MicrosoftTeamsUtil.handleBotMessageActivity - the resolved project sco
     });
 
     expect(answerSpy).toHaveBeenCalledTimes(1);
-    const answerArgs: { projectId: ObjectID; question: string } = answerSpy.mock
-      .calls[0]?.[0] as { projectId: ObjectID; question: string };
+    const answerArgs: {
+      projectId: ObjectID;
+      question: string;
+      chosenProjectName?: string;
+    } = answerSpy.mock.calls[0]?.[0] as {
+      projectId: ObjectID;
+      question: string;
+      chosenProjectName?: string;
+    };
     expect(answerArgs.projectId.toString()).toBe(
       projectAuth.projectId?.toString(),
     );
     expect(answerArgs.question).toBe(question);
+    // Nobody chose the project: the answer names none.
+    expect(answerArgs.chosenProjectName).toBeUndefined();
   });
 
   test("an AMBIGUOUS tenant reaches NONE of the readers", async () => {
@@ -1499,12 +1519,20 @@ describe("MicrosoftTeamsUtil - a tenant connected to several projects, told apar
     ).toBe(PRODUCTION.toString());
   });
 
-  test("a member of both, in a personal chat: told so, the projects named, and nothing is read in either", async () => {
+  /*
+   * Somebody in both is asked which, with a button for each (below); when
+   * that cannot be asked - here, the cache that keeps the request is down -
+   * they are answered as before.
+   */
+  test("a member of both, in a personal chat, when the question cannot be asked: told so, the projects named, and nothing is read in either", async () => {
     mockFindBy([
       buildProjectAuthRow({ projectId: PRODUCTION }),
       buildProjectAuthRow({ projectId: STAGING }),
     ]);
     linkSender([PRODUCTION, STAGING]);
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockRejectedValue(new Error("connection refused"));
     jest.spyOn(ProjectService, "findBy").mockImplementation((async () => {
       return [
         [PRODUCTION, "Production"],
@@ -1536,12 +1564,15 @@ describe("MicrosoftTeamsUtil - a tenant connected to several projects, told apar
     expect(listSpy).not.toHaveBeenCalled();
   });
 
-  test("a member of both asks a question in a personal chat: told to ask again in a channel of the project they mean - AI is not asked", async () => {
+  test("a member of both asks a question in a personal chat, when the question cannot be asked: told to ask again in a channel of the project they mean - AI is not asked", async () => {
     mockFindBy([
       buildProjectAuthRow({ projectId: PRODUCTION }),
       buildProjectAuthRow({ projectId: STAGING }),
     ]);
     linkSender([PRODUCTION, STAGING]);
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockRejectedValue(new Error("connection refused"));
     jest.spyOn(ProjectService, "findBy").mockImplementation((async () => {
       return [
         [PRODUCTION, "Production"],
@@ -1600,6 +1631,920 @@ describe("MicrosoftTeamsUtil - a tenant connected to several projects, told apar
     expect(
       message.startsWith(`${WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD}, `),
     ).toBe(true);
+  });
+});
+
+/*
+ * ASKED WHICH PROJECT, WITH A BUTTON FOR EACH, AND MADE AGAIN IN THE ONE
+ * CHOSEN.
+ *
+ * Somebody in two of an organization's projects, in their chat with the
+ * bot - where no channel tells which - was told to try again from a channel
+ * of the project they meant. Now they are asked which: a card that mentions
+ * them, with a button for each project they are in, and the request is made
+ * again in the one they press, as their member there, read in full again.
+ * These drive the bot's own entry point with Teams' shapes - a typed
+ * message, then the card's Action.Submit, which Teams sends as a message
+ * with a value - and pin what each reader is handed, every press that must
+ * make nothing, and the text answer that stays when the card cannot be
+ * offered. MicrosoftTeamsProjectChoiceEndToEnd.test.ts sends the same
+ * through the real botbuilder stack.
+ */
+describe("MicrosoftTeamsUtil - asked which project, with a button for each, and made again in the one chosen", () => {
+  const PRODUCTION: ObjectID = new ObjectID(
+    "f2000000-0000-4000-8000-000000000001",
+  );
+  const STAGING: ObjectID = new ObjectID(
+    "f2000000-0000-4000-8000-000000000002",
+  );
+  const SANDBOX: ObjectID = new ObjectID(
+    "f2000000-0000-4000-8000-000000000003",
+  );
+  const MEMBER: ObjectID = new ObjectID("f2000000-0000-4000-8000-0000000000a1");
+  const NITIN_AAD_OBJECT_ID: string = "aad-object-id-nitin";
+  const PERSONAL_CHAT_ID: string = "a:personal-chat-with-the-bot";
+  const CHANNEL_THREAD_ID: string = "19:general@thread.tacv2;messageid=1001";
+
+  const NAMES: Record<string, string> = {
+    [PRODUCTION.toString()]: "Production",
+    [STAGING.toString()]: "Staging",
+    [SANDBOX.toString()]: "Sandbox",
+  };
+
+  const QUESTION_FRAGMENT: string = "**Which project is this for?**";
+  const GONE: string =
+    "This choice has expired or was already made. Ask again to choose a project.";
+  const NOT_THEIRS: string =
+    "Only the person who asked can choose which project this is for.";
+  const DISCONNECTED: string =
+    "That project is no longer connected to this Microsoft 365 organization. Ask again to choose another.";
+
+  let connected: Array<ObjectID>;
+  let linkedIn: Array<ObjectID>;
+  let memberOf: Array<ObjectID>;
+  let kept: Map<string, string>;
+  let activityNumber: number = 0;
+
+  interface Turn {
+    turnContext: TurnContext;
+    sent: Array<JSONObject>;
+    updated: Array<JSONObject>;
+  }
+
+  function isSame(a: ObjectID | string, b: ObjectID | string): boolean {
+    return a.toString().toLowerCase() === b.toString().toLowerCase();
+  }
+
+  function nextId(label: string): string {
+    activityNumber++;
+    return `choice-${label}-${activityNumber}-${ObjectID.generate().toString().substring(0, 8)}`;
+  }
+
+  // Something Deane types: in his chat with the bot, or in a channel post.
+  function typed(
+    text: string,
+    where: "personal" | "channel" = "personal",
+  ): JSONObject {
+    const inChannel: boolean = where === "channel";
+
+    return {
+      type: "message",
+      id: nextId("typed"),
+      text: inChannel ? `<at>OneUptime</at> ${text}` : text,
+      from: { id: "29:deane", name: "Deane", aadObjectId: AAD_OBJECT_ID },
+      recipient: { id: BOT_RECIPIENT_ID, name: "OneUptime" },
+      conversation: inChannel
+        ? {
+            conversationType: "channel",
+            id: CHANNEL_THREAD_ID,
+            tenantId: TENANT_ID,
+          }
+        : {
+            conversationType: "personal",
+            id: PERSONAL_CHAT_ID,
+            tenantId: TENANT_ID,
+          },
+      channelData: inChannel
+        ? {
+            tenant: { id: TENANT_ID },
+            team: { id: "19:team@thread.tacv2" },
+            channel: { id: "19:general@thread.tacv2" },
+          }
+        : { tenant: { id: TENANT_ID } },
+      serviceUrl: TURN_CONTEXT_SERVICE_URL,
+      entities: inChannel
+        ? [
+            {
+              type: "mention",
+              text: "<at>OneUptime</at>",
+              mentioned: { id: BOT_RECIPIENT_ID, name: "OneUptime" },
+            },
+          ]
+        : [],
+    };
+  }
+
+  // A press of a card's button, as Teams sends it: a message with a value.
+  function pressed(
+    value: JSONObject,
+    options?: {
+      from?: JSONObject | undefined;
+      replyToId?: string | undefined;
+      conversationId?: string | undefined;
+    },
+  ): JSONObject {
+    return {
+      type: "message",
+      id: nextId("press"),
+      replyToId: options?.replyToId || "the-question-card",
+      value: value,
+      from: options?.from || {
+        id: "29:deane",
+        name: "Deane",
+        aadObjectId: AAD_OBJECT_ID,
+      },
+      recipient: { id: BOT_RECIPIENT_ID, name: "OneUptime" },
+      conversation: {
+        conversationType: "personal",
+        id: options?.conversationId || PERSONAL_CHAT_ID,
+        tenantId: TENANT_ID,
+      },
+      channelData: { tenant: { id: TENANT_ID } },
+      serviceUrl: TURN_CONTEXT_SERVICE_URL,
+      entities: [],
+    };
+  }
+
+  function turnFor(activity: JSONObject): Turn {
+    const sent: Array<JSONObject> = [];
+    const updated: Array<JSONObject> = [];
+
+    const turnContext: TurnContext = {
+      activity: activity,
+      sendActivity: jest.fn(async (reply: unknown): Promise<JSONObject> => {
+        sent.push(
+          typeof reply === "string" ? { text: reply } : (reply as JSONObject),
+        );
+        return { id: `sent-${sent.length}` };
+      }),
+      updateActivity: jest.fn(async (reply: unknown): Promise<void> => {
+        updated.push(reply as JSONObject);
+      }),
+    } as unknown as TurnContext;
+
+    return { turnContext, sent, updated };
+  }
+
+  async function deliver(activity: JSONObject): Promise<Turn> {
+    const turn: Turn = turnFor(activity);
+
+    await MicrosoftTeamsUtil.handleBotMessageActivity({
+      activity: activity,
+      turnContext: turn.turnContext,
+    });
+
+    return turn;
+  }
+
+  function cardOf(reply: JSONObject | undefined): JSONObject | null {
+    const attachments: Array<JSONObject> | undefined = reply?.[
+      "attachments"
+    ] as Array<JSONObject> | undefined;
+
+    return (attachments?.[0]?.["content"] as JSONObject | undefined) || null;
+  }
+
+  function textOf(reply: JSONObject | undefined): string {
+    const card: JSONObject | null = cardOf(reply);
+
+    if (!card) {
+      return String(reply?.["text"] || "");
+    }
+
+    return (card["body"] as Array<JSONObject>)
+      .filter((element: JSONObject): boolean => {
+        return element["type"] === "TextBlock";
+      })
+      .map((element: JSONObject): string => {
+        return String(element["text"]);
+      })
+      .join("\n");
+  }
+
+  // The buttons of the question Deane was asked, with what each carries.
+  function choicesOf(
+    reply: JSONObject | undefined,
+  ): Array<{ title: string; value: JSONObject }> {
+    const card: JSONObject | null = cardOf(reply);
+
+    expect(card).not.toBeNull();
+    expect(textOf(reply)).toContain(QUESTION_FRAGMENT);
+
+    return (card!["body"] as Array<JSONObject>)
+      .filter((element: JSONObject): boolean => {
+        return element["type"] === "ActionSet";
+      })
+      .map((set: JSONObject): { title: string; value: JSONObject } => {
+        const button: JSONObject = (set["actions"] as Array<JSONObject>)[0]!;
+
+        expect(button["type"]).toBe("Action.Submit");
+
+        return {
+          title: String(button["title"]),
+          value: button["data"] as JSONObject,
+        };
+      });
+  }
+
+  function buttonFor(reply: JSONObject | undefined, name: string): JSONObject {
+    const choice: { title: string; value: JSONObject } | undefined = choicesOf(
+      reply,
+    ).find((candidate: { title: string }): boolean => {
+      return candidate.title === name;
+    });
+
+    expect(choice).toBeDefined();
+
+    return choice!.value;
+  }
+
+  beforeEach(() => {
+    connected = [PRODUCTION, STAGING];
+    linkedIn = [PRODUCTION, STAGING];
+    memberOf = [PRODUCTION, STAGING];
+    kept = new Map<string, string>();
+
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockImplementation((async () => {
+        return connected.map(
+          (projectId: ObjectID): WorkspaceProjectAuthToken => {
+            return buildProjectAuthRow({ projectId: projectId });
+          },
+        );
+      }) as never);
+
+    // Deane's Microsoft Teams account is connected; Nitin's in none.
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findBy")
+      .mockImplementation((async (args: { query: JSONObject }) => {
+        if (args.query["workspaceUserId"] !== AAD_OBJECT_ID) {
+          return [];
+        }
+
+        return linkedIn.map((projectId: ObjectID): WorkspaceUserAuthToken => {
+          const link: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+          link.projectId = projectId;
+          link.userId = MEMBER;
+          return link;
+        });
+      }) as never);
+    jest
+      .spyOn(WorkspaceActionAuthorization, "isProjectMember")
+      .mockImplementation((async (data: { projectId: ObjectID }) => {
+        return memberOf.some((projectId: ObjectID): boolean => {
+          return isSame(projectId, data.projectId);
+        });
+      }) as never);
+    jest.spyOn(ProjectService, "findBy").mockImplementation((async () => {
+      return Object.entries(NAMES).map((entry: [string, string]): Project => {
+        const project: Project = new Project();
+        project.id = new ObjectID(entry[0]);
+        project.name = entry[1];
+        return project;
+      });
+    }) as never);
+
+    // Where the bot keeps what a question is for: Redis, here a map.
+    jest.spyOn(GlobalCache, "setString").mockImplementation((async (
+      namespace: string,
+      key: string,
+      value: string,
+    ) => {
+      kept.set(`${namespace}-${key}`, value);
+    }) as never);
+    jest.spyOn(GlobalCache, "getString").mockImplementation((async (
+      namespace: string,
+      key: string,
+    ) => {
+      return kept.get(`${namespace}-${key}`) ?? null;
+    }) as never);
+    jest.spyOn(GlobalCache, "getAndDeleteString").mockImplementation((async (
+      namespace: string,
+      key: string,
+    ) => {
+      const value: string | null = kept.get(`${namespace}-${key}`) ?? null;
+      kept.delete(`${namespace}-${key}`);
+      return value;
+    }) as never);
+
+    // The channel: one no project owns or posts to - it tells nothing.
+    jest
+      .spyOn(WorkspaceProjectResolver, "findProjectsOfChannel")
+      .mockResolvedValue([]);
+
+    // A press that reads a project does it as Deane's member there.
+    jest
+      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+      .mockResolvedValue(MEMBER);
+    jest
+      .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
+      .mockImplementation((async (data: { projectId: ObjectID }) => {
+        return { userId: MEMBER, tenantId: data.projectId };
+      }) as never);
+
+    stubChatCapture();
+  });
+
+  test("a command nothing ties to one project: one card that mentions Deane, a button for each project he is in, in the order they were connected - nothing read in either", async () => {
+    const listSpy: jest.SpyInstance = stubListCommand("a list");
+
+    const turn: Turn = await deliver(typed("show active incidents"));
+
+    expect(turn.sent).toHaveLength(1);
+    expect(
+      choicesOf(turn.sent[0]).map((choice: { title: string }): string => {
+        return choice.title;
+      }),
+    ).toEqual(["Production", "Staging"]);
+    // The question first, on its own line; why it asks, under it.
+    expect(textOf(turn.sent[0])).toBe(
+      "<at>Deane</at> **Which project is this for?**\nThis Microsoft 365 organization is connected to more than one OneUptime project.",
+    );
+    expect(turn.sent[0]!["summary"]).toBe(
+      "Which project is this for: Production or Staging?",
+    );
+    // The question, not the text answer: no names to type, no channel to find.
+    expect(textOf(turn.sent[0])).not.toContain("try it again");
+    expect(listSpy).not.toHaveBeenCalled();
+  });
+
+  test("Deane presses Staging: the question becomes what he chose, and the list is read there, as he typed it", async () => {
+    const listSpy: jest.SpyInstance = stubListCommand("staging's incidents");
+    const command: JSONObject = typed("show active incidents");
+    const asked: Turn = await deliver(command);
+
+    const chosen: Turn = await deliver(
+      pressed(buttonFor(asked.sent[0], "Staging"), {
+        replyToId: "the-question-card",
+      }),
+    );
+
+    // The card he pressed, edited in place.
+    expect(chosen.updated).toHaveLength(1);
+    expect(chosen.updated[0]!["id"]).toBe("the-question-card");
+    expect(textOf(chosen.updated[0])).toBe(
+      "<at>Deane</at> Going ahead in **Staging**.",
+    );
+
+    // The command, made again in the project he chose.
+    expect(listSpy).toHaveBeenCalledTimes(1);
+    expect(listCommandArgs(listSpy).projectId.toString()).toBe(
+      STAGING.toString(),
+    );
+    expect(listCommandArgs(listSpy).listCommand).toBe(
+      MicrosoftTeamsListCommand.ActiveIncidents,
+    );
+    expect(
+      (listSpy.mock.calls[0]?.[0] as { activity: JSONObject }).activity["text"],
+    ).toBe("show active incidents");
+    expect(
+      joinedSentText(chosen.turnContext.sendActivity as jest.Mock),
+    ).toContain("staging's incidents");
+  });
+
+  test("pressing Production instead: read there", async () => {
+    const listSpy: jest.SpyInstance = stubListCommand("a list");
+    const asked: Turn = await deliver(typed("show active incidents"));
+
+    await deliver(pressed(buttonFor(asked.sent[0], "Production")));
+
+    expect(listCommandArgs(listSpy).projectId.toString()).toBe(
+      PRODUCTION.toString(),
+    );
+  });
+
+  test("a second press - the other button, or the same again - makes nothing again: told the choice is gone", async () => {
+    const listSpy: jest.SpyInstance = stubListCommand("a list");
+    const asked: Turn = await deliver(typed("show active incidents"));
+
+    await deliver(pressed(buttonFor(asked.sent[0], "Staging")));
+
+    for (const name of ["Staging", "Production"]) {
+      const again: Turn = await deliver(
+        pressed(buttonFor(asked.sent[0], name)),
+      );
+
+      expect(again.updated).toEqual([]);
+      expect(again.sent).toHaveLength(1);
+      expect(textOf(again.sent[0])).toBe(`<at>Deane</at> ${GONE}`);
+    }
+
+    expect(listSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("somebody else pressing Deane's button makes nothing, and is told only Deane can choose - Deane still can", async () => {
+    const listSpy: jest.SpyInstance = stubListCommand("a list");
+    const asked: Turn = await deliver(
+      typed("show active incidents", "channel"),
+    );
+    const staging: JSONObject = buttonFor(asked.sent[0], "Staging");
+
+    const nitins: Turn = await deliver(
+      pressed(staging, {
+        from: {
+          id: "29:nitin",
+          name: "Nitin",
+          aadObjectId: NITIN_AAD_OBJECT_ID,
+        },
+        conversationId: CHANNEL_THREAD_ID,
+      }),
+    );
+
+    expect(nitins.updated).toEqual([]);
+    expect(nitins.sent).toHaveLength(1);
+    expect(textOf(nitins.sent[0])).toBe(`<at>Nitin</at> ${NOT_THEIRS}`);
+    expect(listSpy).not.toHaveBeenCalled();
+
+    await deliver(pressed(staging, { conversationId: CHANNEL_THREAD_ID }));
+
+    expect(listSpy).toHaveBeenCalledTimes(1);
+    expect(listCommandArgs(listSpy).projectId.toString()).toBe(
+      STAGING.toString(),
+    );
+  });
+
+  test("a press edited to name a project the card did not offer makes nothing - and Deane can still choose", async () => {
+    const listSpy: jest.SpyInstance = stubListCommand("a list");
+    connected = [PRODUCTION, STAGING, SANDBOX];
+    const asked: Turn = await deliver(typed("show active incidents"));
+    const staging: JSONObject = buttonFor(asked.sent[0], "Staging");
+    const token: string = WorkspaceProjectChoiceStore.readChoice(
+      staging["actionValue"],
+    )!.token;
+
+    const edited: Turn = await deliver(
+      pressed({
+        ...staging,
+        actionValue: WorkspaceProjectChoiceStore.getChoiceValue({
+          projectId: SANDBOX,
+          token: token,
+        }),
+      }),
+    );
+
+    expect(textOf(edited.sent[0])).toBe(`<at>Deane</at> ${GONE}`);
+    expect(edited.updated).toEqual([]);
+    expect(listSpy).not.toHaveBeenCalled();
+
+    await deliver(pressed(staging));
+
+    expect(listCommandArgs(listSpy).projectId.toString()).toBe(
+      STAGING.toString(),
+    );
+  });
+
+  test("a press after the half hour the question is kept, or of a question never asked, makes nothing", async () => {
+    const listSpy: jest.SpyInstance = stubListCommand("a list");
+    const asked: Turn = await deliver(typed("show active incidents"));
+    const staging: JSONObject = buttonFor(asked.sent[0], "Staging");
+
+    // Thirty minutes on: Redis has let it go.
+    kept.clear();
+
+    const late: Turn = await deliver(pressed(staging));
+    const forged: Turn = await deliver(
+      pressed({
+        action: "choose-project",
+        actionValue: `${STAGING.toString()}:${"A".repeat(43)}`,
+      }),
+    );
+
+    for (const turn of [late, forged]) {
+      expect(textOf(turn.sent[0])).toBe(`<at>Deane</at> ${GONE}`);
+      expect(turn.updated).toEqual([]);
+    }
+
+    expect(listSpy).not.toHaveBeenCalled();
+  });
+
+  test("a question for OneUptime AI: answered in the project Deane chooses - and its follow-ups in the chat there too, without asking again", async () => {
+    const answerSpy: jest.SpyInstance = stubDownstreamReader(
+      "answerObservabilityQuestion",
+    );
+    const asked: Turn = await deliver(typed("which monitors are down?"));
+
+    expect(answerSpy).not.toHaveBeenCalled();
+
+    await deliver(pressed(buttonFor(asked.sent[0], "Staging")));
+
+    expect(answerSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        answerSpy.mock.calls[0]?.[0] as { projectId: ObjectID }
+      ).projectId.toString(),
+    ).toBe(STAGING.toString());
+    expect(
+      (answerSpy.mock.calls[0]?.[0] as { question: string }).question,
+    ).toBe("which monitors are down?");
+    // The answer says which project it was answered in.
+    expect(
+      (answerSpy.mock.calls[0]?.[0] as { chosenProjectName?: string })
+        .chosenProjectName,
+    ).toBe("Staging");
+
+    const followUp: Turn = await deliver(typed("and why is checkout slow?"));
+
+    expect(followUp.sent).toEqual([]);
+    expect(answerSpy).toHaveBeenCalledTimes(2);
+    expect(
+      (
+        answerSpy.mock.calls[1]?.[0] as { projectId: ObjectID }
+      ).projectId.toString(),
+    ).toBe(STAGING.toString());
+    // So does a follow-up's, answered there without asking.
+    expect(
+      (answerSpy.mock.calls[1]?.[0] as { chosenProjectName?: string })
+        .chosenProjectName,
+    ).toBe("Staging");
+  });
+
+  test("a follow-up whose project's name cannot be read is still answered there - without the line that names it", async () => {
+    const answerSpy: jest.SpyInstance = stubDownstreamReader(
+      "answerObservabilityQuestion",
+    );
+    const asked: Turn = await deliver(typed("which monitors are down?"));
+
+    await deliver(pressed(buttonFor(asked.sent[0], "Staging")));
+
+    jest
+      .spyOn(WorkspaceProjectResolver, "getProjectChoices")
+      .mockResolvedValue(null);
+
+    await deliver(typed("and why is checkout slow?"));
+
+    expect(answerSpy).toHaveBeenCalledTimes(2);
+    expect(
+      (
+        answerSpy.mock.calls[1]?.[0] as { projectId: ObjectID }
+      ).projectId.toString(),
+    ).toBe(STAGING.toString());
+    expect(
+      (answerSpy.mock.calls[1]?.[0] as { chosenProjectName?: string })
+        .chosenProjectName,
+    ).toBeUndefined();
+  });
+
+  test("the choice is the conversation's: a question in another conversation is asked again, and so is a command in this one", async () => {
+    const answerSpy: jest.SpyInstance = stubDownstreamReader(
+      "answerObservabilityQuestion",
+    );
+    const listSpy: jest.SpyInstance = stubListCommand("a list");
+    const asked: Turn = await deliver(typed("which monitors are down?"));
+
+    await deliver(pressed(buttonFor(asked.sent[0], "Staging")));
+
+    const elsewhere: Turn = await deliver(
+      typed("and why is checkout slow?", "channel"),
+    );
+
+    expect(choicesOf(elsewhere.sent[0])).toHaveLength(2);
+
+    const command: Turn = await deliver(typed("show active incidents"));
+
+    expect(choicesOf(command.sent[0])).toHaveLength(2);
+    expect(answerSpy).toHaveBeenCalledTimes(1);
+    expect(listSpy).not.toHaveBeenCalled();
+  });
+
+  test("a follow-up after Deane was removed from the project he chose is asked again - never answered there", async () => {
+    const answerSpy: jest.SpyInstance = stubDownstreamReader(
+      "answerObservabilityQuestion",
+    );
+    connected = [PRODUCTION, STAGING, SANDBOX];
+    linkedIn = [PRODUCTION, STAGING, SANDBOX];
+    memberOf = [PRODUCTION, STAGING];
+    const asked: Turn = await deliver(typed("which monitors are down?"));
+
+    await deliver(pressed(buttonFor(asked.sent[0], "Staging")));
+
+    // Removed from Staging, a member of Sandbox since.
+    memberOf = [PRODUCTION, SANDBOX];
+
+    const followUp: Turn = await deliver(typed("and why?"));
+
+    expect(
+      choicesOf(followUp.sent[0]).map((choice: { title: string }): string => {
+        return choice.title;
+      }),
+    ).toEqual(["Production", "Sandbox"]);
+    expect(answerSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("a Home button that names no project - a Home sent before cards carried theirs - asks which, and declares the incident in the one chosen", async () => {
+    const declareSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsCreateCommands, "handleCreateIncidentCommand")
+      .mockResolvedValue(undefined);
+
+    const asked: Turn = await deliver(
+      pressed(
+        {
+          action: MicrosoftTeamsHomeActionType.DeclareIncident,
+          actionValue: "",
+        },
+        { replyToId: "deanes-home-card" },
+      ),
+    );
+
+    expect(declareSpy).not.toHaveBeenCalled();
+
+    await deliver(pressed(buttonFor(asked.sent[0], "Production")));
+
+    expect(declareSpy).toHaveBeenCalledTimes(1);
+
+    const declared: { projectId: ObjectID; activity: JSONObject } = declareSpy
+      .mock.calls[0]?.[0] as { projectId: ObjectID; activity: JSONObject };
+
+    expect(declared.projectId.toString()).toBe(PRODUCTION.toString());
+    // The Home press itself, made again: its card and its button.
+    expect(declared.activity["replyToId"]).toBe("deanes-home-card");
+    expect(declared.activity["value"]).toEqual({
+      action: MicrosoftTeamsHomeActionType.DeclareIncident,
+      actionValue: "",
+    });
+  });
+
+  test("a form's submission that names no project is not made again - its fields were filled in for one project: answered as before", async () => {
+    const incidentSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsIncidentActions, "handleBotIncidentAction")
+      .mockResolvedValue(undefined);
+
+    const turn: Turn = await deliver(
+      pressed({ action: "SubmitNewIncident", incidentTitle: "Checkout" }),
+    );
+
+    expect(turn.sent).toHaveLength(1);
+    expect(textOf(turn.sent[0])).not.toContain(QUESTION_FRAGMENT);
+    expect(textOf(turn.sent[0])).toContain(AMBIGUOUS_FRAGMENT);
+    expect(kept.size).toBe(0);
+    expect(incidentSpy).not.toHaveBeenCalled();
+  });
+
+  test("a form sent for a project carries it: its submission is read there, without asking", async () => {
+    const incidentSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsIncidentActions, "handleBotIncidentAction")
+      .mockResolvedValue(undefined);
+
+    const turn: Turn = await deliver(
+      pressed({
+        action: "SubmitNewIncident",
+        incidentTitle: "Checkout",
+        [DRAWN_FOR_PROJECT_ID_FIELD]: STAGING.toString(),
+      }),
+    );
+
+    expect(turn.sent).toEqual([]);
+    expect(incidentSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        incidentSpy.mock.calls[0]?.[0] as { projectId: ObjectID }
+      ).projectId.toString(),
+    ).toBe(STAGING.toString());
+  });
+
+  test("a card sent for a project the organization is no longer connected to tells nothing: asked again", async () => {
+    const incidentSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsIncidentActions, "handleBotIncidentAction")
+      .mockResolvedValue(undefined);
+
+    const turn: Turn = await deliver(
+      pressed({
+        action: "SubmitNewIncident",
+        [DRAWN_FOR_PROJECT_ID_FIELD]: SANDBOX.toString(),
+      }),
+    );
+
+    expect(textOf(turn.sent[0])).toContain(AMBIGUOUS_FRAGMENT);
+    expect(incidentSpy).not.toHaveBeenCalled();
+  });
+
+  test("the project Deane chose, disconnected from the organization before he pressed: nothing is made, in it or in another", async () => {
+    const listSpy: jest.SpyInstance = stubListCommand("a list");
+    connected = [PRODUCTION, STAGING, SANDBOX];
+    linkedIn = [PRODUCTION, STAGING, SANDBOX];
+    memberOf = [PRODUCTION, STAGING, SANDBOX];
+    const asked: Turn = await deliver(typed("show active incidents"));
+
+    connected = [PRODUCTION, SANDBOX];
+
+    const chosen: Turn = await deliver(
+      pressed(buttonFor(asked.sent[0], "Staging")),
+    );
+
+    // Told what happened - not that the choice expired, which it did not.
+    expect(textOf(chosen.sent[chosen.sent.length - 1])).toBe(
+      `<at>Deane</at> ${DISCONNECTED}`,
+    );
+    expect(listSpy).not.toHaveBeenCalled();
+  });
+
+  test("a Home button's project, disconnected before Deane chose it: told so too - nothing is declared, in it or in another", async () => {
+    const declareSpy: jest.SpyInstance = jest
+      .spyOn(MicrosoftTeamsCreateCommands, "handleCreateIncidentCommand")
+      .mockResolvedValue(undefined);
+    connected = [PRODUCTION, STAGING, SANDBOX];
+    linkedIn = [PRODUCTION, STAGING, SANDBOX];
+    memberOf = [PRODUCTION, STAGING, SANDBOX];
+
+    const asked: Turn = await deliver(
+      pressed(
+        {
+          action: MicrosoftTeamsHomeActionType.DeclareIncident,
+          actionValue: "",
+        },
+        { replyToId: "deanes-home-card" },
+      ),
+    );
+
+    connected = [PRODUCTION, SANDBOX];
+
+    const chosen: Turn = await deliver(
+      pressed(buttonFor(asked.sent[0], "Staging")),
+    );
+
+    expect(textOf(chosen.sent[chosen.sent.length - 1])).toBe(
+      `<at>Deane</at> ${DISCONNECTED}`,
+    );
+    expect(declareSpy).not.toHaveBeenCalled();
+  });
+
+  test("removed from the project he chose between the question and his press: told so, as any request is - nothing is read", async () => {
+    const listSpy: jest.SpyInstance = jest.spyOn(
+      MicrosoftTeamsCommands,
+      "handleListCommand",
+    );
+    const readAs: jest.SpyInstance = jest.spyOn(
+      WorkspaceOpenRecords,
+      "getListAnswer",
+    );
+    const asked: Turn = await deliver(typed("show active incidents"));
+
+    // Removed from Staging since: his membership is read again, there.
+    memberOf = [PRODUCTION];
+    jest
+      .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
+      .mockImplementation((async (data: { projectId: ObjectID }) => {
+        if (isSame(data.projectId, STAGING)) {
+          throw new NotAuthorizedException(
+            "You are not a member of this project.",
+          );
+        }
+
+        return { userId: MEMBER, tenantId: data.projectId };
+      }) as never);
+
+    const chosen: Turn = await deliver(
+      pressed(buttonFor(asked.sent[0], "Staging")),
+    );
+
+    // Made again there, as Deane: refused by his membership, read again.
+    expect(listSpy).toHaveBeenCalledTimes(1);
+    expect(listCommandArgs(listSpy).projectId.toString()).toBe(
+      STAGING.toString(),
+    );
+    expect(textOf(chosen.sent[chosen.sent.length - 1])).toContain(
+      "You are not a member of this project.",
+    );
+    expect(readAs).not.toHaveBeenCalled();
+  });
+
+  describe("when the card cannot be offered, the answer that names the projects stays", () => {
+    test("the projects cannot be named: no buttons without names", async () => {
+      jest
+        .spyOn(ProjectService, "findBy")
+        .mockRejectedValue(new Error("db is down") as never);
+      const listSpy: jest.SpyInstance = stubListCommand("a list");
+
+      const turn: Turn = await deliver(typed("show active incidents"));
+
+      expect(turn.sent).toHaveLength(1);
+      expect(textOf(turn.sent[0])).not.toContain(QUESTION_FRAGMENT);
+      expect(textOf(turn.sent[0])).toContain(
+        `${WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD}, so I can't tell which one you mean here.`,
+      );
+      expect(listSpy).not.toHaveBeenCalled();
+    });
+
+    test("the request cannot be kept - the cache is down: the projects named, and where to try again", async () => {
+      jest
+        .spyOn(GlobalCache, "setString")
+        .mockRejectedValue(new Error("connection refused") as never);
+
+      const turn: Turn = await deliver(typed("show active incidents"));
+
+      expect(turn.sent).toHaveLength(1);
+      expect(textOf(turn.sent[0])).toBe(
+        `<at>Deane</at> ${WorkspaceProjectResolver.TEAMS_AMBIGUOUS_LEAD}, so I can't tell which one you mean here. You're in **Production** and **Staging**: try it again in a channel of the project you mean, such as one of its incident channels.`,
+      );
+    });
+
+    test("more projects than a card lists", async () => {
+      const many: Array<ObjectID> = Array.from(
+        { length: WorkspaceProjectChoiceStore.MAX_CHOICES + 1 },
+        (): ObjectID => {
+          return ObjectID.generate();
+        },
+      );
+      connected = many;
+      linkedIn = many;
+      memberOf = many;
+      jest.spyOn(ProjectService, "findBy").mockImplementation((async () => {
+        return many.map((projectId: ObjectID, index: number): Project => {
+          const project: Project = new Project();
+          project.id = projectId;
+          project.name = `Project ${index + 1}`;
+          return project;
+        });
+      }) as never);
+
+      const turn: Turn = await deliver(typed("show active incidents"));
+
+      expect(textOf(turn.sent[0])).not.toContain(QUESTION_FRAGMENT);
+      expect(textOf(turn.sent[0])).toContain(AMBIGUOUS_FRAGMENT);
+      expect(kept.size).toBe(0);
+    });
+
+    test("somebody connected in none of the projects is told where to connect - not which project", async () => {
+      linkedIn = [];
+
+      const turn: Turn = await deliver(typed("show active incidents"));
+
+      expect(textOf(turn.sent[0])).not.toContain(QUESTION_FRAGMENT);
+      expect(textOf(turn.sent[0])).toContain(
+        "your Microsoft Teams account isn't connected in any of them yet",
+      );
+      expect(kept.size).toBe(0);
+    });
+
+    test("somebody in only one of the projects is never asked: answered there", async () => {
+      const listSpy: jest.SpyInstance = stubListCommand("a list");
+      memberOf = [PRODUCTION];
+
+      const turn: Turn = await deliver(typed("show active incidents"));
+
+      expect(textOf(turn.sent[0])).not.toContain(QUESTION_FRAGMENT);
+      expect(listCommandArgs(listSpy).projectId.toString()).toBe(
+        PRODUCTION.toString(),
+      );
+      expect(kept.size).toBe(0);
+    });
+
+    test("an organization connected to one project never asks", async () => {
+      const listSpy: jest.SpyInstance = stubListCommand("a list");
+      connected = [STAGING];
+
+      const turn: Turn = await deliver(typed("show active incidents"));
+
+      expect(textOf(turn.sent[0])).not.toContain(QUESTION_FRAGMENT);
+      expect(listCommandArgs(listSpy).projectId.toString()).toBe(
+        STAGING.toString(),
+      );
+    });
+
+    test("the help is answered at once, as before: it reads nothing in either project", async () => {
+      const turn: Turn = await deliver(typed("help"));
+
+      expect(turn.sent).toHaveLength(1);
+      expect(textOf(turn.sent[0])).toContain(HELP_FRAGMENT);
+      expect(textOf(turn.sent[0])).not.toContain(QUESTION_FRAGMENT);
+      expect(kept.size).toBe(0);
+    });
+  });
+
+  test("what is kept behind the buttons names no token, and lasts half an hour", async () => {
+    const asked: Turn = await deliver(typed("show active incidents"));
+    const press: WorkspaceProjectChoicePress =
+      WorkspaceProjectChoiceStore.readChoice(
+        buttonFor(asked.sent[0], "Staging")["actionValue"],
+      )!;
+
+    expect(Array.from(kept.keys())).toEqual([
+      `microsoft-teams-project-choice-${WorkspaceProjectChoiceStore.hash(press.token)}`,
+    ]);
+    expect(Array.from(kept.values())[0]).not.toContain(press.token);
+    expect(
+      (GlobalCache.setString as unknown as jest.Mock).mock.calls.find(
+        (call: Array<unknown>): boolean => {
+          return call[0] === "microsoft-teams-project-choice";
+        },
+      )?.[3],
+    ).toEqual({ expiresInSeconds: 30 * 60 });
+  });
+
+  test("the question's own answers are the project choice's", () => {
+    expect(GONE).toBe(MicrosoftTeamsProjectChoice.GONE_TEXT);
+    expect(NOT_THEIRS).toBe(MicrosoftTeamsProjectChoice.NOT_THEIRS_TEXT);
+    expect(DISCONNECTED).toBe(MicrosoftTeamsProjectChoice.DISCONNECTED_TEXT);
   });
 });
 

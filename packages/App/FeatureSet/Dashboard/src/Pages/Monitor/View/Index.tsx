@@ -358,6 +358,7 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
             <MonitorUptimeHistoryCard
               summary={uptime.summary}
               incidents={uptime.incidents}
+              maintenance={uptime.maintenance}
               monitorCreatedAt={monitor.createdAt}
               onRetry={uptime.retry}
             />

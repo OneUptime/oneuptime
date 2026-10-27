@@ -65,9 +65,10 @@ import WorkspaceActionAuthorization from "./WorkspaceActionAuthorization";
  *      a member of it.
  *
  * What none of these tells is not guessed: the request is ambiguous, and
- * the person is told why and how to say which (getAmbiguousAnswer) - in
- * Slack, asked which, with a button for each project they are in, and the
- * request made again in the one they choose (SlackProjectChoice). The
+ * the person is asked which, with a button for each project they are in,
+ * and the request made again in the one they choose (SlackProjectChoice,
+ * MicrosoftTeamsProjectChoice) - or, when that cannot be asked, told why
+ * and how to say which (getAmbiguousAnswer). The
  * project told apart decides only where the request is read: what it may
  * do there, it does as the member the chat account is connected to in that
  * project, held to their own permissions (WorkspaceActionAuthorization) -

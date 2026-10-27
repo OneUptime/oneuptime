@@ -35846,5 +35846,8 @@
   "Created an alert": "Created an alert",
   "Creating alert": "Creating alert",
   "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.",
+  "Maintenance markers are unavailable.": "Maintenance markers are unavailable.",
+  "Maintenance markers need the uptime history, which did not load.": "Maintenance markers need the uptime history, which did not load.",
+  "You need permission to read scheduled maintenance.": "You need permission to read scheduled maintenance.",
   "Sign in with {{name}}": "Sign in with {{name}}"
 }

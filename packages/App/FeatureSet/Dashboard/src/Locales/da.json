@@ -15742,7 +15742,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "Planlagt vedligeholdelse",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35846,5 +35846,8 @@
   "Created an alert": "Oprettede en advarsel",
   "Creating alert": "Opretter advarsel",
   "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI kører rigtige forespørgsler mod dine protokoller, spor, metrikker, hændelser, monitorer og overvågningen af reelle brugere — med diagrammer og tabeller direkte i samtalen — og kan oprette hændelser og advarsler eller kvittere for dem, altid med din godkendelse.",
+  "Maintenance markers are unavailable.": "Vedligeholdelsesmarkeringer er ikke tilgængelige.",
+  "Maintenance markers need the uptime history, which did not load.": "Vedligeholdelsesmarkeringer kræver oppetidshistorikken, som ikke blev indlæst.",
+  "You need permission to read scheduled maintenance.": "Du skal have tilladelse til at læse planlagt vedligeholdelse.",
   "Sign in with {{name}}": "Log ind med {{name}}"
 }

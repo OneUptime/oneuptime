@@ -15742,7 +15742,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "अनुसूचित रखरखाव",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35846,5 +35846,8 @@
   "Created an alert": "अलर्ट बनाया",
   "Creating alert": "अलर्ट बनाया जा रहा है",
   "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI आपके लॉग, ट्रेस, मेट्रिक्स, घटनाओं, मॉनिटर और वास्तविक उपयोगकर्ता मॉनिटरिंग पर असली क्वेरी चलाता है — चार्ट और टेबल सीधे बातचीत में दिखाता है — और घटनाएं और अलर्ट बना सकता है या उन्हें स्वीकार कर सकता है, हमेशा आपकी मंज़ूरी से।",
+  "Maintenance markers are unavailable.": "रखरखाव मार्कर उपलब्ध नहीं हैं।",
+  "Maintenance markers need the uptime history, which did not load.": "रखरखाव मार्करों को अपटाइम इतिहास चाहिए, जो लोड नहीं हुआ।",
+  "You need permission to read scheduled maintenance.": "निर्धारित रखरखाव पढ़ने के लिए आपको अनुमति चाहिए।",
   "Sign in with {{name}}": "{{name}} से साइन इन करें"
 }
