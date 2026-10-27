@@ -143,8 +143,11 @@ that list is not empty.
   1440 every column fits the card beside the side menu, each case's line saying when its last
   detection fired ("3 detections, the last 9 minutes ago") with no Last Detection column, and
   Closed Cases saying when each closed; at a 1280 laptop every list fits its card in German,
-  French, Dutch and Russian (`?lang=`), German's button reading "Sicherheitsfall eröffnen"; at
-  1024 and 390 nothing runs off the page and the header's search stays inside the card.
+  French, Dutch and Russian (`?lang=`), German's button reading "Sicherheitsfall eröffnen", each
+  case's line keeping its time whole ("vor 5 Stunden") and OneUptime AI's read on a line of its
+  own under it; a team with a long name (`?team=long`) cut short with "...", the lists still inside
+  their card; at 1024 and 390 nothing runs off the page and the header's search stays inside the
+  card.
 - **Working cases from the queue**: each row's ⋯ offers the moves its case takes - Assign to
   Me, Assign to Someone Else, Change Status and Change Priority beside View, Delete last; none
   of the assigning on a closed case, no Assign to Me on the reader's own. "Assign to Someone
@@ -168,8 +171,8 @@ that list is not empty.
   named for the case; the Overview has the header in full (status steps, who has it), the
   figures, the AI card and ATT&CK, and every other page the header compact, with every action,
   the case read once for them all; a link straight to any page opens it; the held run with
-  Approve and Reject, counted beside Playbooks until approving it runs the rest; Delete Case
-  asks first; a Security Viewer reads every page and is shown why it cannot change one; a case
+  Approve and Reject, counted beside Playbooks until approving it runs the rest; Edit Case asks
+  what Open Security Case asks, in the reader's words; Delete Case asks first; a Security Viewer reads every page and is shown why it cannot change one; a case
   that is not there says so; the header at a laptop's width (actions on the title's line) and on
   a phone (buttons filling their rows, the ⋯ in the corner); every page at 1280 and 390, both
   themes.
@@ -180,7 +183,8 @@ that list is not empty.
   no playbook (`?empty=1`) has the templates as its empty list, with Create a blank playbook; a
   template becomes a working playbook in one click, built as Turn on recommended builds Enrich New
   Cases, and one that cannot be added says why in the amber box; a playbook's page is named for it
-  in the trail and the tab, its settings read in full; its steps and latest runs, each run named by
+  in the trail and the tab, its settings read in full; a step's dialog named by its place and what
+  it does ("Schritt 4 bearbeiten: Notiz hinzufügen"); its steps and latest runs, each run named by
   its case and folded to a line but the one waiting for approval; a run's Approve and Reject (or
   Cancel Run) keep its title's line at 1280, at the card's right, and drop under its words on a
   phone; Approvals, at the runs page's old

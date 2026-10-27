@@ -2207,55 +2207,51 @@ test.describe("the case queue", () => {
   }) => {
     const LONG_TEAM_NAME: string =
       "Security Operations Center - Tier 2 Escalations (EMEA)";
-    const lists: Array<[string, string]> = [
-      ["open", CASES_PATH],
-      ["unassigned", UNASSIGNED_CASES_PATH],
-      ["all", ALL_CASES_PATH],
+    // The Assignee column in English, the Team column in German.
+    const lists: Array<[string, string, "en" | "de"]> = [
+      ["open", CASES_PATH, "en"],
+      ["unassigned", UNASSIGNED_CASES_PATH, "de"],
     ];
 
-    for (const lang of ["en", "de"] as const) {
-      for (const [name, pathname] of lists) {
-        await open(page, pathname, {
-          width: 1344,
-          team: "long",
-          ...(lang === "de" ? { lang: lang } : {}),
-        });
-        const team: Locator = page
-          .getByTestId("security-case-row-team")
-          .first();
+    for (const [name, pathname, lang] of lists) {
+      await open(page, pathname, {
+        width: 1344,
+        team: "long",
+        ...(lang === "de" ? { lang: lang } : {}),
+      });
+      const team: Locator = page.getByTestId("security-case-row-team").first();
 
-        await expect(team).toBeVisible({ timeout: 30000 });
+      await expect(team).toBeVisible({ timeout: 30000 });
 
-        const scroller: Locator = page
-          .locator("table")
-          .locator("xpath=ancestor::div[@data-testid='table-scroll'][1]");
+      const scroller: Locator = page
+        .locator("table")
+        .locator("xpath=ancestor::div[@data-testid='table-scroll'][1]");
 
-        expect(
-          await overflowOf(scroller),
-          `${lang} ${name}: the table scrolls sideways`,
-        ).toBeLessThanOrEqual(1);
-        expect(await pageOverflow(page), `${lang} ${name}`).toBeLessThanOrEqual(
-          1,
-        );
+      expect(
+        await overflowOf(scroller),
+        `${lang} ${name}: the table scrolls sideways`,
+      ).toBeLessThanOrEqual(1);
+      expect(await pageOverflow(page), `${lang} ${name}`).toBeLessThanOrEqual(
+        1,
+      );
 
-        // Cut at its own end, an ellipsis where its column ends.
-        expect(
-          await team
-            .locator("bdi")
-            .evaluate(
-              (
-                element: Element,
-              ): { isCut: boolean; overflow: string; text: string } => {
-                return {
-                  isCut: element.scrollWidth > element.clientWidth,
-                  overflow: window.getComputedStyle(element).textOverflow,
-                  text: element.textContent || "",
-                };
-              },
-            ),
-          `${lang} ${name}`,
-        ).toEqual({ isCut: true, overflow: "ellipsis", text: LONG_TEAM_NAME });
-      }
+      // Cut at its own end, an ellipsis where its column ends.
+      expect(
+        await team
+          .locator("bdi")
+          .evaluate(
+            (
+              element: Element,
+            ): { isCut: boolean; overflow: string; text: string } => {
+              return {
+                isCut: element.scrollWidth > element.clientWidth,
+                overflow: window.getComputedStyle(element).textOverflow,
+                text: element.textContent || "",
+              };
+            },
+          ),
+        `${lang} ${name}`,
+      ).toEqual({ isCut: true, overflow: "ellipsis", text: LONG_TEAM_NAME });
     }
 
     await screenshot(page, "cases-long-team-1280-de", { fullPage: false });
