@@ -209,7 +209,7 @@ describe("the case's entities", () => {
     expect(ENTITY_ACTIVITY_HOURS).toBe(24 * 7);
   });
 
-  test("is a table with the columns Security Events > Entities has where they mean the same", async () => {
+  test("is a table of each entity: its kind, its week of activity and its risk", async () => {
     draw();
 
     const table: HTMLElement = screen.getByTestId(
