@@ -656,20 +656,24 @@ export default class WebAttackLogParser {
     const payload: string = readPayload(text, kind);
 
     /*
-     * The target is the request target when it carries the attack, else the
-     * payload - so a rule that looks for the attack string in the target
-     * (the rule library's do) always finds it there. An access log whose
-     * attack is in a header keeps its request target, as it always did.
+     * The target is the request an access log line records, as it always
+     * was - a JNDI lookup in its user agent leaves it the path it asked for.
+     * A line with no request in it takes the URL its attributes name when
+     * that carries the attack, and else the payload: so a rule that looks
+     * for the attack string in the target (the rule library's do) finds it
+     * there whenever the line holds no request saying otherwise.
      */
-    const target: string =
-      [accessLog?.target || "", fromAttributes.target, payload].find(
-        (candidate: string): boolean => {
-          return holdsAttackMarker(candidate);
-        },
-      ) ||
+    const target: string = accessLog
+      ? accessLog.target
+      : holdsAttackMarker(fromAttributes.target)
+        ? fromAttributes.target
+        : payload || text;
+
+    // The address asked for, when the line names one.
+    const url: string =
       accessLog?.target ||
-      payload ||
-      text;
+      fromAttributes.target ||
+      (isUrlLike(target) ? target : "");
 
     const method: string = accessLog?.method || fromAttributes.method;
     const statusCode: number = accessLog?.status || fromAttributes.status;
@@ -683,7 +687,8 @@ export default class WebAttackLogParser {
       [WEB_ATTACK_KIND_ATTRIBUTE]: kind,
     };
 
-    if (payload && !holdsAttackMarker(target)) {
+    // The attack, when what the message names as the request does not hold it.
+    if (payload && !holdsAttackMarker(url || target)) {
       attributes[WEB_ATTACK_PAYLOAD_ATTRIBUTE] = cutText(payload, 1000);
     }
 
@@ -691,8 +696,8 @@ export default class WebAttackLogParser {
       attributes[SECURITY_REQUEST_ATTRIBUTES.method] = method;
     }
 
-    if (isUrlLike(target)) {
-      attributes[SECURITY_REQUEST_ATTRIBUTES.url] = cutText(target, 2000);
+    if (isUrlLike(url)) {
+      attributes[SECURITY_REQUEST_ATTRIBUTES.url] = cutText(url, 2000);
     }
 
     if (statusCode) {
@@ -722,7 +727,7 @@ export default class WebAttackLogParser {
       message: buildWebAttackMessage({
         kind,
         method,
-        target,
+        target: url || target,
         statusCode,
         payload,
       }),

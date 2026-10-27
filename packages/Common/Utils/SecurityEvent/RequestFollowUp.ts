@@ -213,7 +213,10 @@ function rejudgeWebAttack(
   event.message = buildWebAttackMessage({
     kind,
     method: String(event.attributes[SECURITY_REQUEST_ATTRIBUTES.method] || ""),
-    target: event.targetResource,
+    // The address asked for, as the parser chose it; the target otherwise.
+    target:
+      String(event.attributes[SECURITY_REQUEST_ATTRIBUTES.url] || "") ||
+      event.targetResource,
     statusCode,
     payload: String(event.attributes[WEB_ATTACK_PAYLOAD_ATTRIBUTE] || ""),
   });
