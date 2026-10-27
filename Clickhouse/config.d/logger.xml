@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+  Logger drop-in for the bundled single-node ClickHouse (docker compose).
+
+  The ClickHouse image logs at trace: every query, every merge and every step
+  of the embedded Keeper is written to /var/log/clickhouse-server (up to ten
+  1 GB files in the container's own writable layer, not the volume) and again
+  into system.text_log. On a compose install with a few dozen projects that
+  is about 250 MB of log text and over a million text_log rows an hour, and
+  roughly a sixth of the ClickHouse container's CPU at idle (measured for
+  perf-cpu-production, 2026-10-27).
+
+  Helm runs ClickHouse at warning already: values.yaml -> clickhouse.configuration
+  (<logger><level>) for the built-in ClickHouse, and clickhouse.settings
+  `logger/level` for the Altinity operator. This brings compose to the same
+  level. Tests/Ops/ClickhouseLoggerLevel.test.js holds the three to one level.
+
+  Warnings and errors are still logged, to the file and to system.text_log -
+  the Admin Health page reads text_log for Warning and above only. To debug
+  ClickHouse itself, raise the level in a drop-in of your own (trace, debug).
+
+  config.d is merged into the server config, so only <logger><level> is
+  replaced: the log files, their rotation and everything else stay as the
+  image configures them.
+-->
+<clickhouse>
+    <logger>
+        <level>warning</level>
+    </logger>
+</clickhouse>
