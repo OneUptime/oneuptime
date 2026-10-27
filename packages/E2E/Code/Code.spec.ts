@@ -8,6 +8,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * Code in a browser, against the offline fixture (Code/Fixture): its first
@@ -980,13 +981,13 @@ test.describe("Code's Repositories", () => {
           "false",
         );
 
-        const lastActivity: { x: number; width: number } | null = await list
-          .getByRole("columnheader", { name: "Last Activity" })
-          .boundingBox();
-        const listBox: { x: number; width: number } | null =
-          await list.boundingBox();
-        expect(lastActivity!.x + lastActivity!.width).toBeLessThanOrEqual(
-          listBox!.x + listBox!.width + 1,
+        // Read in one frame: the fold that holds the second list opens.
+        const [lastActivity, listBox] = (await boxesInOneFrame([
+          list.getByRole("columnheader", { name: "Last Activity" }),
+          list,
+        ])) as [FrameBox, FrameBox];
+        expect(lastActivity.x + lastActivity.width).toBeLessThanOrEqual(
+          listBox.x + listBox.width + 1,
         );
       }
 
@@ -1352,14 +1353,13 @@ test.describe("repositories beyond GitHub: GitLab, Forgejo or Gitea, any Git ser
     const notice: Locator = page.getByTestId("code-connected-notice");
     await expect(notice).toContainText("2 repositories connected");
     // The notice keeps its space above the list, as a page's notices do.
-    const noticeBox: { y: number; height: number } | null =
-      await notice.boundingBox();
-    const cardBox: { y: number } | null = await page
-      .getByTestId("code-repositories-card")
-      .boundingBox();
-    expect(
-      cardBox!.y - (noticeBox!.y + noticeBox!.height),
-    ).toBeGreaterThanOrEqual(16);
+    const [noticeBox, cardBox] = (await boxesInOneFrame([
+      notice,
+      page.getByTestId("code-repositories-card"),
+    ])) as [FrameBox, FrameBox];
+    expect(cardBox.y - (noticeBox.y + noticeBox.height)).toBeGreaterThanOrEqual(
+      16,
+    );
     // The list reads its repositories again: both are in it, with GitLab's mark.
     for (const name of ["ledger", "mobile-app"]) {
       await expect(
