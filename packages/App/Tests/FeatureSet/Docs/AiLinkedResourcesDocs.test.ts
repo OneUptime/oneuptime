@@ -15,8 +15,9 @@ import path from "path";
  *
  *   - Ask AI links an incident or alert to what it is about: one it creates
  *     on a resource's page is linked to that resource, and the approval card
- *     names what each action links (create_incident's prepareMutation, the
- *     card's description line, the add_*_affected_resources tools);
+ *     names what each action links (create_incident's and, since #5301,
+ *     create_alert's prepareMutation, the card's description line, the
+ *     add_*_affected_resources tools);
  *   - a cluster is linked when Ask AI declared the incident on its page;
  *   - an incident linked to nothing says what to do - add what it is about
  *     under Affected Resources - and OneUptime AI tries again while it is
@@ -65,31 +66,37 @@ const OTHER_LANGUAGES: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
 );
 
 describe("Ask AI links what an incident or alert is about", () => {
-  test("the page lists it among the actions, after creating an incident", () => {
+  test("the page lists it among the actions, after creating an incident or an alert", () => {
     expect(ASK_AI_BULLET_LINE).toBeGreaterThan(-1);
     expect(ASK_AI_LINES[ASK_AI_BULLET_LINE - 1]).toBe(
-      "- Create an incident, acknowledge or resolve incidents and alerts, and change an incident's severity.",
+      "- Create an incident or an alert, acknowledge or resolve incidents and alerts, and change an incident's severity.",
     );
     expect(ASK_AI_LINES[ASK_AI_BULLET_LINE]).toBe(
-      `${ASK_AI_BULLET_START} An incident it creates on a resource's page, such as a host's, is linked to that resource, and the approval card names what each action links. OneUptime AI investigates and fixes what an incident or alert is linked to.`,
+      `${ASK_AI_BULLET_START} An incident or an alert it creates on a resource's page, such as a host's, is linked to that resource, and the approval card names what each action links. OneUptime AI investigates and fixes what an incident or alert is linked to.`,
     );
   });
 
-  test("an incident created on a resource's page is linked to it: create_incident writes the page's resource out", () => {
-    const tools: string = readSource(
-      "Common/Server/Utils/AI/Toolbox/IncidentWriteTools.ts",
-    );
-    const vocabulary: string = readSource(
-      "Common/Types/AI/AiAffectedResources.ts",
-    );
+  test.each([
+    ["create_incident", "IncidentWriteTools.ts", "incident"],
+    ["create_alert", "AlertWriteTools.ts", "alert"],
+  ])(
+    "one created on a resource's page is linked to it: %s writes the page's resource out",
+    (_tool: string, file: string, record: string) => {
+      const tools: string = readSource(
+        `Common/Server/Utils/AI/Toolbox/${file}`,
+      );
+      const vocabulary: string = readSource(
+        "Common/Types/AI/AiAffectedResources.ts",
+      );
 
-    expect(tools).toContain(
-      "AffectedResourceLinks.withPageResourceWrittenOut({ args, ctx })",
-    );
-    expect(tools).toContain("AffectedResourceLinks.setOnRecord(incident");
-    // A host's page is a resource's page.
-    expect(vocabulary).toContain("AIChatPageContextType.Resource");
-  });
+      expect(tools).toContain(
+        "AffectedResourceLinks.withPageResourceWrittenOut({ args, ctx })",
+      );
+      expect(tools).toContain(`AffectedResourceLinks.setOnRecord(${record}`);
+      // A host's page is a resource's page.
+      expect(vocabulary).toContain("AIChatPageContextType.Resource");
+    },
+  );
 
   test("the approval card names what each action links", () => {
     const card: string = readSource(

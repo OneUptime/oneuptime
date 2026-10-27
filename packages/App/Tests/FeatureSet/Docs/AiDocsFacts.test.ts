@@ -271,6 +271,8 @@ describe("Ask AI", () => {
 
     for (const [tool, says] of [
       ["CreateIncidentTool", "Create an incident"],
+      // An alert, as an incident (#5301).
+      ["CreateAlertTool", "Create an incident or an alert"],
       [
         "AddIncidentAffectedResourcesTool",
         "Link an incident or an alert to the infrastructure and services it is about",

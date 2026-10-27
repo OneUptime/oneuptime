@@ -247,6 +247,8 @@ describe("AIToolbox contract", () => {
         "add_security_case_note",
         "change_incident_severity",
         "commit_code_to_branch",
+        // An alert raised from the conversation, as an incident is (#5301).
+        "create_alert",
         "create_alert_note",
         "create_incident",
         "create_incident_note",
@@ -290,9 +292,11 @@ describe("AIToolbox.getLlmToolDefinitions", () => {
     });
 
     expect(names).not.toContain("create_incident");
+    expect(names).not.toContain("create_alert");
     expect(names).not.toContain("page_on_call_policy");
     expect(names).not.toContain("commit_code_to_branch");
     expect(names).toContain("query_incidents");
+    expect(names).toContain("query_alerts");
   });
 
   test.each([
@@ -306,6 +310,7 @@ describe("AIToolbox.getLlmToolDefinitions", () => {
     );
 
     expect(names).toContain("create_incident");
+    expect(names).toContain("create_alert");
     expect(names).toContain("page_on_call_policy");
   });
 
