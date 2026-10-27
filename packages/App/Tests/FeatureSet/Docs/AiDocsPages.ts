@@ -331,6 +331,7 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Database servers:",
     "Hosts:",
     "Proxmox:",
+    "Cloud accounts:",
     "OneUptime AI's tools.",
     "When OneUptime queues it.",
     "On the agent, before anything runs.",

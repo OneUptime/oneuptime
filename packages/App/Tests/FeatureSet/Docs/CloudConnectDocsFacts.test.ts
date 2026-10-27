@@ -18,6 +18,21 @@ import {
   getCloudConnectionDefinition,
 } from "Common/Types/CloudConnection/CloudConnectionCatalog";
 import {
+  AZURE_CONTAINER_APPS_FREE_GIB_SECONDS,
+  AZURE_CONTAINER_APPS_FREE_VCPU_SECONDS,
+  CloudAiAgentCostEstimate,
+  GCP_CLOUD_RUN_FREE_GIB_SECONDS,
+  GCP_CLOUD_RUN_FREE_VCPU_SECONDS,
+  estimateCloudAiAgentMonthlyCost,
+} from "Common/Types/CloudConnection/CloudAiAgentCost";
+import {
+  CLOUD_AI_AGENT_DEFAULT_FIXES_MODE,
+  CLOUD_AI_AGENT_SIZES,
+  CLOUD_AI_AGENT_STARTED_MESSAGE,
+  CloudAiAgentSize,
+  getCloudAiAgentRolePermissions,
+} from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
+import {
   AWS_GET_METRIC_DATA_USD_PER_THOUSAND_METRICS,
   AZURE_FREE_METRIC_READS_PER_SUBSCRIPTION,
   AZURE_USD_PER_THOUSAND_METRIC_READS,
@@ -75,6 +90,9 @@ const SOURCES: Record<string, string> = {
   windows: `${SERVER}/Utils/CloudConnection/CloudMetricWindows.ts`,
   resources: `${SERVER}/Services/CloudResourceService.ts`,
   resourceSync: `${SERVER}/Utils/CloudConnection/CloudConnectionResourceSync.ts`,
+  aiAgentCard: `${DASHBOARD}/Components/Cloud/CloudAiAgentCard.tsx`,
+  aiAgentDialog: `${DASHBOARD}/Components/Cloud/CloudAiAgentSetupModal.tsx`,
+  aiAgentSetup: `${DASHBOARD}/Components/Cloud/CloudAiAgentSetup.ts`,
 };
 
 const BASH_FENCE: RegExp = /```bash\n([\s\S]*?)\n```/g;
@@ -406,5 +424,173 @@ describe("Connect a Cloud Account", () => {
     for (const cloud of CloudConnectionCatalog) {
       expect(PAGE).toContain(`pick **${cloud.title}**`);
     }
+  });
+});
+
+/*
+ * Let AI fix problems, the step after connecting: the Overview's AI agent
+ * card and its button, the dialog's one question and the command it writes
+ * (Components/Cloud and CloudAiAgentSetupCommands), and what the agent the
+ * command starts costs, as the dialog's estimate (CloudAiAgentCost) prices
+ * it.
+ */
+describe("Let AI fix problems", () => {
+  const fix: string = section("Let AI fix problems").replace(/\s+/g, " ");
+
+  it("is one of the page's opening cards", () => {
+    expect(PAGE).toContain(
+      "- [Let AI fix problems](#let-ai-fix-problems): One more command, and OneUptime AI can fix what it finds.",
+    );
+    expect(anchorsOf("en", CLOUD_ACCOUNTS).has("let-ai-fix-problems")).toBe(
+      true,
+    );
+  });
+
+  it("names the card, its button, the one question and its answers as the Dashboard draws them", () => {
+    const card: string = source("aiAgentCard");
+    const dialog: string = source("aiAgentDialog");
+    const setup: string = source("aiAgentSetup").replace(/\s+/g, " ");
+
+    expect(card).toContain('title="AI agent"');
+    expect(card).toContain('title="Let AI fix problems"');
+    expect(dialog).toContain('translationKey("How far may AI go?")');
+    expect(dialog).toContain('title="Advanced"');
+    expect(setup).toContain('translationKey("Ask me first")');
+    expect(setup).toContain(
+      'translationKey( "Fix safe problems on its own", )',
+    );
+    expect(setup).toContain(
+      '"OneUptime AI proposes each fix, and a person approves it with one click."',
+    );
+    expect(setup).toContain(
+      '"Safe changes, such as a rolling restart or scaling out, run on their own. Riskier ones still wait for approval."',
+    );
+    expect(CLOUD_AI_AGENT_DEFAULT_FIXES_MODE).toBe("RequireApproval");
+    expect(fix).toContain(
+      "select **Let AI fix problems** in the **AI agent** card of its **Overview**.",
+    );
+    expect(fix).toContain(
+      "The dialog asks one question, **How far may AI go?**: **Ask me first**, the default, where OneUptime AI proposes each fix and a person approves it with one click, or **Fix safe problems on its own**, where safe changes run on their own and riskier ones still wait for approval. Everything else has a safe default under **Advanced**.",
+    );
+  });
+
+  it("runs the command in the cloud's own shell, and has nothing pasted back", () => {
+    const setup: string = source("aiAgentSetup");
+    const dialog: string = source("aiAgentDialog").replace(/\s+/g, " ");
+
+    for (const shell of [
+      "AWS CloudShell",
+      "Azure Cloud Shell",
+      "Google Cloud Shell",
+    ]) {
+      expect(setup).toContain(`translationKey("${shell}")`);
+    }
+
+    expect(fix).toContain(
+      "run it in AWS CloudShell, Azure Cloud Shell or Google Cloud Shell",
+    );
+    expect(CLOUD_AI_AGENT_STARTED_MESSAGE).toContain(
+      "so there is nothing to paste back",
+    );
+    expect(dialog).toContain(
+      "It connects within a few minutes of the command finishing.",
+    );
+    expect(fix).toContain(
+      "The agent connects on its own within a few minutes, and the dialog says so: there is nothing to paste back.",
+    );
+  });
+
+  it("writes a role that may make only the changes turned on", () => {
+    const one: Array<string> = getCloudAiAgentRolePermissions(
+      CloudProvider.GCP,
+      ["start-instance"],
+    );
+
+    expect(one).toContain("compute.instances.start");
+    expect(one).not.toContain("run.services.update");
+    expect(getCloudAiAgentRolePermissions(CloudProvider.GCP)).toContain(
+      "run.services.update",
+    );
+    expect(fix).toContain(
+      "The command creates a role that may make only the changes turned on, and starts the Cloud AI agent with it in your account.",
+    );
+  });
+
+  it("states what the agent costs a month in each cloud, as the dialog's estimate prices it", () => {
+    const rows: Array<Array<string>> = (
+      tables(section("Let AI fix problems"))[0] as Array<Array<string>>
+    ).slice(1);
+    const rowOf: (cloud: string) => Array<string> = (
+      cloud: string,
+    ): Array<string> => {
+      return rows.find((row: Array<string>): boolean => {
+        return row[0] === cloud;
+      }) as Array<string>;
+    };
+    const units: Record<CloudProvider, string> = {
+      [CloudProvider.AWS]: "GB",
+      [CloudProvider.Azure]: "GiB",
+      [CloudProvider.GCP]: "GiB",
+    };
+
+    expect(
+      rows.map((row: Array<string>): string => {
+        return row[0] as string;
+      }),
+    ).toEqual(["AWS", "Azure", "Google Cloud"]);
+
+    for (const [cloud, provider] of [
+      ["AWS", CloudProvider.AWS],
+      ["Azure", CloudProvider.Azure],
+      ["Google Cloud", CloudProvider.GCP],
+    ] as Array<[string, CloudProvider]>) {
+      const estimate: CloudAiAgentCostEstimate =
+        estimateCloudAiAgentMonthlyCost(provider);
+      const size: CloudAiAgentSize = CLOUD_AI_AGENT_SIZES[provider];
+      const row: Array<string> = rowOf(cloud);
+
+      expect({ cloud, about: row[2] }).toEqual({
+        cloud,
+        about: `$${estimate.usd} a month`,
+      });
+      expect(row[1]).toContain(
+        `${size.vcpu} vCPU and ${size.memoryGiB} ${units[provider]}`,
+      );
+      expect(estimate.description).toContain(
+        `${size.vcpu} vCPU and ${size.memoryGiB} ${units[provider]}`,
+      );
+    }
+
+    expect(
+      estimateCloudAiAgentMonthlyCost(CloudProvider.AWS).description,
+    ).toContain("and its public IPv4 address, at us-east-1 list prices");
+    expect(rowOf("AWS")[1]).toContain(
+      "and its public IPv4 address, at `us-east-1` prices",
+    );
+    expect(rowOf("Azure")[1]).toContain(
+      `after the subscription's monthly free grant of ${written(AZURE_CONTAINER_APPS_FREE_VCPU_SECONDS)} vCPU-seconds and ${written(AZURE_CONTAINER_APPS_FREE_GIB_SECONDS)} GiB-seconds`,
+    );
+    expect(
+      estimateCloudAiAgentMonthlyCost(CloudProvider.GCP).description,
+    ).toContain("with CPU always allocated");
+    expect(rowOf("Google Cloud")[1]).toContain(
+      `with CPU always allocated, which takes a whole vCPU, after the monthly free tier of ${written(GCP_CLOUD_RUN_FREE_VCPU_SECONDS)} vCPU-seconds and ${written(GCP_CLOUD_RUN_FREE_GIB_SECONDS)} GiB-seconds`,
+    );
+    // The dialog says the same: one small always-on container, at list prices.
+    expect(source("aiAgentDialog")).toContain(
+      "It runs one small always-on container in your account: about ${{usd}} a month at list prices, billed by your cloud.",
+    );
+    expect(fix).toContain(
+      "The agent is one small container that runs all month in your account, billed by your cloud at its list prices:",
+    );
+  });
+
+  it("sends the reader to the Cloud AI agent's part of Infrastructure AI Agents", () => {
+    expect(fix).toContain(
+      "What the agent may change, how each change is tiered and undone, and how to read its logs: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#in-a-cloud-account).",
+    );
+    expect(
+      anchorsOf("en", "ai/infrastructure-ai-agents").has("in-a-cloud-account"),
+    ).toBe(true);
   });
 });

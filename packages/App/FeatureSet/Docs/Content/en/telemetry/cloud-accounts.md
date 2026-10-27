@@ -7,6 +7,7 @@ Connect an AWS account, an Azure subscription or a Google Cloud project from the
 - [Microsoft Azure](#microsoft-azure): An app with the Monitoring Reader role.
 - [Google Cloud](#google-cloud): A service account with four read-only roles.
 - [What OneUptime reads](#what-oneuptime-reads): Resources, metrics, changes and health events, how often, and what it costs.
+- [Let AI fix problems](#let-ai-fix-problems): One more command, and OneUptime AI can fix what it finds.
 :::
 
 ## How it works
@@ -207,6 +208,22 @@ The calls OneUptime makes are billed to your cloud account, at your cloud's pric
 - **An account's page.** Under **Cloud → Accounts**, an account's Overview counts its resources by type and Region and says when a connection last read it. Its **Resources** lists them, its **Changes** lists what changed in it, newest first, and its **Topology** draws its Regions, the networks in them and what runs in each, with the open incidents and alerts on the resources they are linked to.
 - **A resource's changes.** A change is kept as a change event tied to the resource it changed and to its account, and drawn as a marker on the resource's metric charts with its incidents and alerts. Charts filtered to no resource leave a cloud account's activity log out, so a busy account cannot crowd out your deploys; the provider's health events stay on them.
 - **Incidents and alerts.** Link a cloud resource to a monitor, an incident or an alert under its linked resources, and its incidents and alerts are listed on the resource's page. A website, API, SSL, ping or port monitor whose host leads to a resource's endpoint, directly or through its DNS, lists the resource under **Suggested Cloud Resources** on its **Linked Resources** card: select **Link resource** to link it.
+
+## Let AI fix problems
+
+OneUptime AI reads every connected account while it investigates, with the read-only access above. To let it fix problems too, such as restarting a service, scaling it out or rolling it back, open the account under **Cloud → Accounts** and select **Let AI fix problems** in the **AI agent** card of its **Overview**.
+
+The dialog asks one question, **How far may AI go?**: **Ask me first**, the default, where OneUptime AI proposes each fix and a person approves it with one click, or **Fix safe problems on its own**, where safe changes run on their own and riskier ones still wait for approval. Everything else has a safe default under **Advanced**. It then shows one command, written for this account: run it in AWS CloudShell, Azure Cloud Shell or Google Cloud Shell, signed in as someone who may create roles in the account. The command creates a role that may make only the changes turned on, and starts the Cloud AI agent with it in your account. The agent connects on its own within a few minutes, and the dialog says so: there is nothing to paste back.
+
+The agent is one small container that runs all month in your account, billed by your cloud at its list prices:
+
+| Cloud | What runs | About |
+| --- | --- | --- |
+| AWS | One ECS Fargate task of 0.25 vCPU and 0.5 GB, and its public IPv4 address, at `us-east-1` prices | $13 a month |
+| Azure | One Container Apps replica of 0.25 vCPU and 0.5 GiB, after the subscription's monthly free grant of 180,000 vCPU-seconds and 360,000 GiB-seconds | $14 a month |
+| Google Cloud | One Cloud Run instance of 1 vCPU and 0.5 GiB with CPU always allocated, which takes a whole vCPU, after the monthly free tier of 240,000 vCPU-seconds and 450,000 GiB-seconds | $45 a month |
+
+What the agent may change, how each change is tiered and undone, and how to read its logs: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#in-a-cloud-account).
 
 ## Troubleshooting
 
