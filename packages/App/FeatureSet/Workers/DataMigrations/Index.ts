@@ -874,6 +874,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    */
   new RewriteFeedAttachmentLinks(),
   /*
+   * Security events gain the request they happened in - the trace, span and
+   * session ids of the log line they were read from - and how far that
+   * request got, as its trace shows (SecurityEvent.traceId, spanId,
+   * sessionId, requestOutcome). Additive and idempotent; rows written before
+   * it read as "not part of a request OneUptime followed". No ordering
+   * requirement of its own, so above the runbook moves, which keep their
+   * places right before the last slot.
+   */
+  new AddRequestColumnsToSecurityEvent(),
+  /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step
    * N becomes an approval before step N+1, and one after the last step a
@@ -907,15 +917,6 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
-  /*
-   * Security events gain the request they happened in - the trace, span and
-   * session ids of the log line they were read from - and how far that
-   * request got, as its trace shows (SecurityEvent.traceId, spanId,
-   * sessionId, requestOutcome). Additive and idempotent; rows written before
-   * it read as "not part of a request OneUptime followed". It sits before the
-   * last slot AddAuditLogMcpClientColumns asserts for itself.
-   */
-  new AddRequestColumnsToSecurityEvent(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one

@@ -500,7 +500,7 @@ describe("AddRequestColumnsToSecurityEvent", () => {
     expect(securityEventService.dropColumnInDatabase).not.toHaveBeenCalled();
   });
 
-  test("is registered once, before the last slot AddAuditLogMcpClientColumns keeps", () => {
+  test("is registered once, above the runbook moves that keep their places before the last slot", () => {
     const index: string = fs
       .readFileSync(
         path.join(
@@ -538,6 +538,9 @@ describe("AddRequestColumnsToSecurityEvent", () => {
     );
     expect(registered.indexOf(MIGRATION_NAME)).toBeLessThan(
       registered.length - 1,
+    );
+    expect(registered.indexOf(MIGRATION_NAME)).toBeLessThan(
+      registered.indexOf("MoveRunbookApprovalsBeforeTheirSteps"),
     );
   });
 });
