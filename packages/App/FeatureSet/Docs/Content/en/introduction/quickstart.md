@@ -59,16 +59,16 @@ To try the check before you save, click **Test Monitor** on the second step. Eve
 
 ## Get paged when it goes down
 
-As it is, an incident with no owners is emailed to the project's owners, and that includes you. To be paged until someone responds, create an on-call policy and have every incident page it.
+As it is, an incident with no owners is emailed to the project's owners, and that includes you. To be paged until someone responds, create an on-call policy: the first one in a project pages for every new incident and alert.
 
 :::steps
 ### Create an on-call policy
 
-In the checklist, click **Set up an on-call policy**, or open **On-Call Duty** from the **Products** menu. Click **Create On-Call Policy** and enter a **Name**. Under **Who gets paged first?**, click **Add responder** and pick yourself. Click **Create On-Call Policy**.
+In the checklist, click **Set up an on-call policy**, or open **On-Call Duty** from the **Products** menu. Click **Create On-Call Policy** and enter a **Name**. Under **Who gets paged first?**, click **Add responder** and pick yourself. Leave **Page it for every new incident and alert** on, and click **Create On-Call Policy**.
 
-### Page it for every incident
+### See the rule that pages it
 
-Open **Incidents** from the **Products** menu, expand **Rules** in the side menu and choose **On-Call Rules**. Click **Create Incident On-Call Rule**, enter a **Name** and click **Next**. On **Match Criteria**, leave **All incidents** picked, so the rule matches every incident, and click **Next**. Pick your policy under **On-Call Duty Policies** and click **Create Incident On-Call Rule**.
+The switch added an on-call rule for incidents and one for alerts. To see yours, open **Incidents** from the **Products** menu, expand **Rules** in the side menu and choose **On-Call Rules**: it matches **All incidents**. To page the policy for only some incidents, such as critical ones, edit the rule there, or click **Create Incident On-Call Rule** to add one of your own.
 
 ### Choose how you are reached
 

@@ -20,6 +20,8 @@ Une politique d'astreinte décide qui est alerté pour un incident ou une alerte
 
 **Qui est alerté en premier ?** est facultatif, et n'est demandé qu'aux personnes autorisées à ajouter des règles d'escalade : laissé vide, la politique n'alerte personne tant qu'elle n'a pas de règle. **Description** et **Étiquettes** attendent sous **Plus de champs**. Pour ajouter les niveaux suivants, voir [Règles d'escalade](/docs/on-call/escalation-rules).
 
+Pour la première politique d'un projet, le formulaire demande aussi **La déclencher pour chaque nouvel incident et chaque nouvelle alerte**, activé au départ. Cela ajoute une règle sous **Incidents → Règles → Règles d'astreinte** et une autre sous **Alertes → Règles → Règles d'astreinte**, qui correspondent chacune à tout et exécutent cette politique. La question n'est posée qu'aux personnes autorisées à ajouter des règles d'astreinte, tant que le projet n'a ni politique d'astreinte ni règle d'astreinte.
+
 La liste **Politiques d'astreinte** affiche pour chaque politique **Nom**, **Description**, **Étiquettes** et **Propriétaires**. Sélectionnez des politiques pour **Ajouter des étiquettes**, **Retirer des étiquettes**, **Ajouter un propriétaire**, **Retirer un propriétaire**, **Archiver**, **Exporter en JSON** ou pour les supprimer. **Importer du JSON** crée des politiques à partir d'un export : un export contient les réglages propres à une politique, pas ses règles d'escalade ni ses propriétaires.
 
 ## Ce qui exécute une politique

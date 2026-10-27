@@ -20,6 +20,8 @@ Eine Bereitschaftsrichtlinie entscheidet, wer zu einem Vorfall oder einer Warnun
 
 **Wer wird zuerst alarmiert?** ist optional und wird nur gefragt, wer Eskalationsregeln hinzufügen darf: Bleibt die Frage leer, alarmiert die Richtlinie niemanden, bis sie eine Regel hat. **Beschreibung** und **Beschriftungen** liegen unter **Weitere Felder**. Wie Sie die nächsten Stufen hinzufügen, steht unter [Eskalationsregeln](/docs/on-call/escalation-rules).
 
+Für die erste Richtlinie eines Projekts fragt das Formular außerdem **Bei jedem neuen Vorfall und jeder neuen Warnung auslösen**, anfangs eingeschaltet. Es legt eine Regel unter **Vorfälle → Regeln → Bereitschaftsregeln** und eine unter **Warnungen → Regeln → Bereitschaftsregeln** an, die jeweils auf alles zutreffen und diese Richtlinie ausführen. Gefragt wird nur, wer Bereitschaftsregeln hinzufügen darf, solange das Projekt keine Bereitschaftsrichtlinie und keine Bereitschaftsregel hat.
+
 Die Liste **Bereitschaftsrichtlinien** zeigt für jede Richtlinie **Name**, **Beschreibung**, **Beschriftungen** und **Eigentümer**. Wählen Sie Richtlinien aus, um **Beschriftungen hinzufügen**, **Beschriftungen entfernen**, **Eigentümer hinzufügen**, **Eigentümer entfernen**, **Archivieren** oder **JSON exportieren** auszuführen oder sie zu löschen. **JSON importieren** legt Richtlinien aus einem Export an: Ein Export enthält die eigenen Einstellungen einer Richtlinie, nicht ihre Eskalationsregeln oder Eigentümer.
 
 ## Was eine Richtlinie ausführt

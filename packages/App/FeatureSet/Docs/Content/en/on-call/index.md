@@ -65,7 +65,7 @@ On the policy's **Escalation Rules** page, click **Add Escalation Rule** for eac
 
 ### Run the policy automatically
 
-Go to **Incidents → Rules → On-Call Rules** or **Alerts → Rules → On-Call Rules**, and add a rule that runs the policy for the incidents or alerts it matches, such as every critical one. See [What runs a policy](/docs/on-call/policies#what-runs-a-policy).
+A project's first policy can do this as it is created: leave **Page it for every new incident and alert** on. For any other policy, go to **Incidents → Rules → On-Call Rules** or **Alerts → Rules → On-Call Rules**, and add a rule that runs it for the incidents or alerts it matches, such as every critical one. See [What runs a policy](/docs/on-call/policies#what-runs-a-policy).
 
 ### Check that everyone can be reached
 

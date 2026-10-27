@@ -65,7 +65,7 @@ Na página **Regras de escalonamento** da política, clique em **Adicionar regra
 
 ### Executar a política automaticamente
 
-Vá para **Incidentes → Regras → Regras de Plantão** ou **Alertas → Regras → Regras de Plantão** e adicione uma regra que execute a política para os incidentes ou alertas que corresponderem, por exemplo cada incidente crítico. Veja [O que executa uma política](/docs/on-call/policies#o-que-executa-uma-política).
+A primeira política de um projeto pode fazer isso já ao ser criada: deixe **Dispará-la a cada novo incidente e a cada novo alerta** ativado. Para qualquer outra política, vá para **Incidentes → Regras → Regras de Plantão** ou **Alertas → Regras → Regras de Plantão** e adicione uma regra que a execute para os incidentes ou alertas que corresponderem, por exemplo cada incidente crítico. Veja [O que executa uma política](/docs/on-call/policies#o-que-executa-uma-política).
 
 ### Conferir se todos podem ser contatados
 

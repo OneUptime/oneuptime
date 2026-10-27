@@ -59,16 +59,16 @@ For å prøve sjekken før du lagrer, klikker du på **Test monitor** i det andr
 
 ## Bli varslet når det går ned
 
-Slik det er nå, sendes en hendelse uten eiere på e-post til prosjektets eiere, og det inkluderer deg. For å bli varslet til noen svarer, oppretter du en vaktpolicy og lar hver hendelse utløse den.
+Slik det er nå, sendes en hendelse uten eiere på e-post til prosjektets eiere, og det inkluderer deg. For å bli varslet til noen svarer, oppretter du en vaktpolicy: den første i et prosjekt utløses ved hver nye hendelse og hvert nye varsel.
 
 :::steps
 ### Opprett en vaktpolicy
 
-Klikk på **Sett opp en vaktpolicy** i sjekklisten, eller åpne **Vakttjeneste** fra menyen **Produkter**. Klikk på **Opprett Vaktpolicy**, og skriv inn et **Navn**. Under **Hvem varsles først?** klikker du på **Legg til mottaker** og velger deg selv. Klikk på **Opprett Vaktpolicy**.
+Klikk på **Sett opp en vaktpolicy** i sjekklisten, eller åpne **Vakttjeneste** fra menyen **Produkter**. Klikk på **Opprett Vaktpolicy**, og skriv inn et **Navn**. Under **Hvem varsles først?** klikker du på **Legg til mottaker** og velger deg selv. La **Utløs den ved hver nye hendelse og hvert nye varsel** være slått på, og klikk på **Opprett Vaktpolicy**.
 
-### Utløs den for hver hendelse
+### Se regelen som utløser den
 
-Åpne **Hendelser** fra menyen **Produkter**, utvid **Regler** i sidemenyen, og velg **Vaktregler**. Klikk på **Opprett Incident On-Call Rule**, skriv inn et **Navn**, og klikk på **Neste**. La **Alle hendelser** være valgt under **Treffkriterier**, så regelen gjelder alle hendelser, og klikk på **Neste**. Velg policyen din under **Vaktpolicyer**, og klikk på **Opprett Incident On-Call Rule**.
+Bryteren la til en vaktregel for hendelser og en for varsler. For å se din åpner du **Hendelser** fra menyen **Produkter**, utvider **Regler** i sidemenyen og velger **Vaktregler**: den treffer **Alle hendelser**. Vil du bare utløse policyen for noen hendelser, for eksempel kritiske, redigerer du regelen der, eller klikker på **Opprett Incident On-Call Rule** for å legge til en egen.
 
 ### Velg hvordan du nås
 

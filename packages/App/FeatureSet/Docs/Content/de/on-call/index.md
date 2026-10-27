@@ -65,7 +65,7 @@ Klicken Sie auf der Seite **Eskalationsregeln** der Richtlinie für jede weitere
 
 ### Die Richtlinie automatisch ausführen
 
-Gehen Sie zu **Vorfälle → Regeln → Bereitschaftsregeln** oder **Warnungen → Regeln → Bereitschaftsregeln** und fügen Sie eine Regel hinzu, die die Richtlinie für die passenden Vorfälle oder Warnungen ausführt, etwa für jede kritische. Siehe [Was eine Richtlinie ausführt](/docs/on-call/policies#was-eine-richtlinie-ausführt).
+Die erste Richtlinie eines Projekts kann das schon beim Anlegen: Lassen Sie **Bei jedem neuen Vorfall und jeder neuen Warnung auslösen** eingeschaltet. Für jede andere Richtlinie gehen Sie zu **Vorfälle → Regeln → Bereitschaftsregeln** oder **Warnungen → Regeln → Bereitschaftsregeln** und fügen eine Regel hinzu, die sie für die passenden Vorfälle oder Warnungen ausführt, etwa für jede kritische. Siehe [Was eine Richtlinie ausführt](/docs/on-call/policies#was-eine-richtlinie-ausführt).
 
 ### Prüfen, ob alle erreichbar sind
 

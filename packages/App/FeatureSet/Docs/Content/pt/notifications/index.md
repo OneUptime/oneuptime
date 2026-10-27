@@ -75,6 +75,8 @@ Cada método que você verificar depois recebe as mesmas regras: uma regra para 
 | **Staying informed** | Você fica sabendo quando um turno começa, e cada canal que você ativou em **Configurações de notificação** tem um método verificado por trás |
 | **Nice to have** | Um número para chamadas recebidas, as suas contas do Slack e do Microsoft Teams, um link de calendário e os seus campos de perfil |
 
+O push fica de fora de **Staying informed**: ele só precisa do aplicativo móvel, e cada atualização que um novo membro recebe por push chega também por e-mail.
+
 **Nice to have** não conta na barra de progresso, nem um passo que só outra pessoa pode resolver. A linha do topo resume tudo:
 
 | Título | O que significa |

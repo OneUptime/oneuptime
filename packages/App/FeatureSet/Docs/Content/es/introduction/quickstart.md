@@ -59,16 +59,16 @@ Para probar la comprobación antes de guardar, haz clic en **Probar monitor** en
 
 ## Recibir un aviso cuando caiga
 
-Tal como está, un incidente sin propietarios se envía por correo a los propietarios del proyecto, y eso te incluye a ti. Para que te avisen hasta que alguien responda, crea una política de guardia y haz que cada incidente la active.
+Tal como está, un incidente sin propietarios se envía por correo a los propietarios del proyecto, y eso te incluye a ti. Para que te avisen hasta que alguien responda, crea una política de guardia: la primera de un proyecto se activa con cada nuevo incidente y cada nueva alerta.
 
 :::steps
 ### Crear una política de guardia
 
-En la lista, haz clic en **Configura una política de guardia**, o abre **Guardia** desde el menú **Productos**. Haz clic en **Crear Política de guardia** y escribe un **Nombre**. En **¿A quién se avisa primero?**, haz clic en **Añadir destinatario** y elígete a ti. Haz clic en **Crear Política de guardia**.
+En la lista, haz clic en **Configura una política de guardia**, o abre **Guardia** desde el menú **Productos**. Haz clic en **Crear Política de guardia** y escribe un **Nombre**. En **¿A quién se avisa primero?**, haz clic en **Añadir destinatario** y elígete a ti. Deja activado **Activarla con cada nuevo incidente y cada nueva alerta**, y haz clic en **Crear Política de guardia**.
 
-### Activarla con cada incidente
+### Ver la regla que la activa
 
-Abre **Incidentes** desde el menú **Productos**, despliega **Reglas** en el menú lateral y elige **Reglas de guardia**. Haz clic en **Crear Regla de guardia de incidentes**, escribe un **Nombre** y haz clic en **Siguiente**. En **Criterios de coincidencia**, deja marcado **Todos los incidentes**, para que la regla coincida con todos los incidentes, y haz clic en **Siguiente**. Elige tu política en **Políticas de guardia** y haz clic en **Crear Regla de guardia de incidentes**.
+El interruptor añadió una regla de guardia para los incidentes y otra para las alertas. Para ver la tuya, abre **Incidentes** desde el menú **Productos**, despliega **Reglas** en el menú lateral y elige **Reglas de guardia**: coincide con **Todos los incidentes**. Para activar la política solo con algunos incidentes, como los críticos, edita ahí la regla, o haz clic en **Crear Regla de guardia de incidentes** para añadir una propia.
 
 ### Elegir cómo te localizan
 

@@ -20,6 +20,8 @@ Een bereikbaarheidsbeleid bepaalt wie wordt opgeroepen voor een incident of waar
 
 **Wie wordt als eerste opgeroepen?** is optioneel en wordt alleen gevraagd aan wie escalatieregels mag toevoegen: blijft het leeg, dan roept het beleid niemand op tot het een regel heeft. **Beschrijving** en **Labels** staan onder **Meer velden**. Hoe je de volgende niveaus toevoegt, lees je bij [Escalatieregels](/docs/on-call/escalation-rules).
 
+Bij het eerste beleid van een project vraagt het formulier ook **Activeren bij elk nieuw incident en elke nieuwe waarschuwing**, dat in het begin aan staat. Het voegt een regel toe onder **Incidenten → Regels → Bereikbaarheidsregels** en een onder **Waarschuwingen → Regels → Bereikbaarheidsregels**, die elk bij alles passen en dit beleid uitvoeren. Het wordt alleen gevraagd aan wie bereikbaarheidsregels mag toevoegen, zolang het project geen bereikbaarheidsbeleid en geen bereikbaarheidsregel heeft.
+
 De lijst **Bereikbaarheidsbeleid** toont van elk beleid **Naam**, **Beschrijving**, **Labels** en **Eigenaren**. Selecteer beleid om **Labels toevoegen**, **Labels verwijderen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Archiveren** of **JSON exporteren** uit te voeren, of om het te verwijderen. **JSON importeren** maakt beleid aan uit een export: een export bevat de eigen instellingen van een beleid, niet de escalatieregels of eigenaren ervan.
 
 ## Wat een beleid uitvoert

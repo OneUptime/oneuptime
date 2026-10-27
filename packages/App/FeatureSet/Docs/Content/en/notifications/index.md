@@ -75,6 +75,8 @@ Every method you verify later gets the same rules: a rule for every severity, se
 | **Staying informed** | You hear when a shift starts, and every channel you switched on in **Notification Settings** has a verified method behind it |
 | **Nice to have** | A number for incoming calls, your Slack and Microsoft Teams accounts, a calendar link and your profile fields |
 
+Push is left out of **Staying informed**: it needs only the mobile app, and every update a new member gets by push goes by email as well.
+
 **Nice to have** is not counted in the progress bar, and neither is a step only someone else can fix. The line at the top sums it up:
 
 | Headline | What it means |

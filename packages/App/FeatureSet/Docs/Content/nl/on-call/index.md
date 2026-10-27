@@ -65,7 +65,7 @@ Klik op de pagina **Escalatieregels** van het beleid op **Escalatieregel toevoeg
 
 ### Het beleid automatisch uitvoeren
 
-Ga naar **Incidenten → Regels → Bereikbaarheidsregels** of **Waarschuwingen → Regels → Bereikbaarheidsregels** en voeg een regel toe die het beleid uitvoert voor de incidenten of waarschuwingen die erbij passen, bijvoorbeeld elk kritiek incident. Zie [Wat een beleid uitvoert](/docs/on-call/policies#wat-een-beleid-uitvoert).
+Het eerste beleid van een project kan dit al bij het aanmaken: laat **Activeren bij elk nieuw incident en elke nieuwe waarschuwing** aan staan. Voor elk ander beleid gaat u naar **Incidenten → Regels → Bereikbaarheidsregels** of **Waarschuwingen → Regels → Bereikbaarheidsregels** en voegt u een regel toe die het uitvoert voor de incidenten of waarschuwingen die erbij passen, bijvoorbeeld elk kritiek incident. Zie [Wat een beleid uitvoert](/docs/on-call/policies#wat-een-beleid-uitvoert).
 
 ### Controleren of iedereen bereikbaar is
 

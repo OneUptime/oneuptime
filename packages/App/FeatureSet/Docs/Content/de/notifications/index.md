@@ -75,6 +75,8 @@ Jede Methode, die Sie später verifizieren, erhält dieselben Regeln: eine Regel
 | **Auf dem Laufenden bleiben** | Sie erfahren, wann eine Schicht beginnt, und hinter jedem Kanal, den Sie in den **Benachrichtigungseinstellungen** eingeschaltet haben, steht eine verifizierte Methode |
 | **Wünschenswert** | Eine Nummer für eingehende Anrufe, Ihre Slack- und Microsoft Teams-Konten, ein Kalender-Link und Ihre Profilfelder |
 
+Push zählt bei **Auf dem Laufenden bleiben** nicht mit: Dafür braucht es nur die mobile App, und jedes Update, das ein neues Mitglied per Push erhält, kommt auch per E-Mail.
+
 **Wünschenswert** zählt nicht für den Fortschrittsbalken, ebenso wenig ein Schritt, den nur jemand anderes erledigen kann. Die Zeile oben fasst alles zusammen:
 
 | Überschrift | Was sie bedeutet |
