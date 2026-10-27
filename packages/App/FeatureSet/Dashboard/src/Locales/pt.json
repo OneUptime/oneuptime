@@ -36259,7 +36259,7 @@
   "{{count}} spans missing a parent so far": "{{count}} spans sem o span pai até agora",
   "{{count}} spans missing a parent so far_one": "{{count}} span sem o span pai até agora",
   "{{count}} spans missing a parent_one": "{{count}} span sem o span pai",
-  "The users, hosts and addresses with the highest risk, as Entity Risk ranks them: what was found about each in the last 7 days. Open one to see why.": "Os usuários, hosts e endereços de maior risco, na ordem de Risco de entidades: o que foi encontrado sobre cada um nos últimos 7 dias. Abra um para ver por quê.",
+  "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "Os usuários, hosts e endereços com as maiores pontuações de risco dos últimos 7 dias, na ordem de Risco de entidades.",
   "View all {{count}} entities": "Ver todas as {{count}} entidades",
   "View all {{count}} entities_one": "Ver {{count}} entidade",
   "We could not load the riskiest entities.": "Não foi possível carregar as entidades de maior risco."

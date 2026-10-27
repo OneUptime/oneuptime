@@ -192,6 +192,10 @@ import {
   RISK_CASES_OFF_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityRiskCopy";
 import {
+  ENTITY_LOOKUP_RESULT_CLASS_NAME,
+  isEntityActivitySeen,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityLookupCard";
+import {
   ENTITY_RISK_HISTORY_DAYS,
   getEntityRiskBreakdown,
   getEntityRiskHistoryDays,
@@ -840,6 +844,21 @@ describe("Security Events > Entity Risk", () => {
     expect(
       cell("Found By", riskRow({ contributions: [SPRAY_SOURCES[0]!] })),
     ).toHaveTextContent(/^1 sourceCorporate MISP$/);
+    /*
+     * A source's name alone is someone's words: an isolate that reads the
+     * way it is written and is cut at its own end on a Persian page too -
+     * the value, like the chip's, never "...do Tracker botnet C2 servers".
+     */
+    const oneSource: HTMLElement = within(
+      cell("Found By", riskRow({ contributions: [SPRAY_SOURCES[0]!] })),
+    ).getByText("Corporate MISP");
+    expect(oneSource.tagName).toBe("BDI");
+    expect(oneSource).toHaveAttribute("dir", "ltr");
+    expect(oneSource).toHaveClass("block", "truncate");
+    expect(oneSource).toHaveAttribute("title", "Corporate MISP");
+    // The chip's value is one too.
+    expect(chip.tagName).toBe("BDI");
+    expect(chip).toHaveAttribute("dir", "ltr");
     expect(cell("Found By", riskRow({ contributions: [] }))).toHaveTextContent(
       "-",
     );
@@ -1065,6 +1084,89 @@ describe("Security Events > Entity Risk", () => {
     expect(new URLSearchParams(route.split("?")[1]).get("observable")).toBe(
       "update-sync.bad-cdn.example",
     );
+    /*
+     * Over the 30 days the lookup read: Correlate's own day showed nothing
+     * for a value last seen a week ago that the lookup had just counted.
+     */
+    expect(new URLSearchParams(route.split("?")[1]).get("hours")).toBe(
+      String(ENTITY_LOOKUP_HOURS),
+    );
+  });
+
+  /*
+   * The value, with what was found about it on the line under it, and Open
+   * in Correlate at the result's end from sm - placed by the room the page
+   * has, never by where a wrap falls: it wrapped under the counts, a
+   * dialog footer's margin (md:ml-3) setting it in from the value. The
+   * value is not a second way to Correlate (its chip opened Correlate's
+   * own day); the button is the one.
+   */
+  test("a lookup's result: the value, its counts on the line under it, and Open in Correlate at the line's end", async () => {
+    getEntityActivityMock.mockImplementation(async () => {
+      return [
+        {
+          value: "fin-ws-112",
+          eventCount: 1,
+          findingCount: 1,
+          maxSeverityId: 4,
+          firstSeen: new Date(minutesAgo(3 * 60)),
+          lastSeen: new Date(Date.now() - 5 * 60 * 1000),
+        },
+      ];
+    });
+    drawList();
+
+    fireEvent.change(await screen.findByTestId(ENTITY_LOOKUP_TEST_IDS.input), {
+      target: { value: "fin-ws-112" },
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Look Up" }));
+    });
+
+    const result: HTMLElement = screen.getByTestId(
+      ENTITY_LOOKUP_TEST_IDS.result,
+    );
+
+    expect(result.className).toBe(ENTITY_LOOKUP_RESULT_CLASS_NAME);
+    expect(ENTITY_LOOKUP_RESULT_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining([
+        "flex-col",
+        "sm:flex-row",
+        "sm:items-center",
+        "sm:justify-between",
+      ]),
+    );
+    expect(ENTITY_LOOKUP_RESULT_CLASS_NAME).not.toContain("flex-wrap");
+
+    // One of each, in the reader's words, each a whole on its line.
+    expect(
+      Array.from(
+        within(result).getByTestId(ENTITY_LOOKUP_TEST_IDS.facts).children,
+      ).map((fact: Element): string => {
+        return fact.textContent || "";
+      }),
+    ).toEqual(["1 event", "1 finding", "Last seen 5 minutes ago"]);
+
+    // The value is no link: Open in Correlate is the one way on.
+    expect(within(result).getByText("fin-ws-112").closest("a")).toBeNull();
+    const button: HTMLElement = within(result).getByRole("button", {
+      name: "Open in Correlate",
+    });
+    expect(button.className.split(" ")).toEqual(
+      expect.arrayContaining(["!ml-0", "sm:!w-auto"]),
+    );
+    // At the result's end: after what was found, the last of it.
+    expect(result.lastElementChild).toBe(button);
+    expect(
+      within(result)
+        .getByTestId(ENTITY_LOOKUP_TEST_IDS.facts)
+        .compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Look Up keeps no dialog footer's margin either.
+    expect(
+      screen.getByRole("button", { name: "Look Up" }).className.split(" "),
+    ).toEqual(expect.arrayContaining(["!ml-0", "sm:!w-auto"]));
   });
 
   test("Enter looks up too, and a value no event names says it was not seen", async () => {
@@ -1086,9 +1188,39 @@ describe("Security Events > Entity Risk", () => {
       ENTITY_LOOKUP_TEST_IDS.result,
     );
     expect(result).toHaveTextContent("never-seen-01");
-    expect(result).toHaveTextContent("0 events");
-    expect(result).toHaveTextContent("0 findings");
-    expect(result).toHaveTextContent("Not seen in the last 30 days.");
+    expect(
+      within(result).getByTestId(ENTITY_LOOKUP_TEST_IDS.facts),
+    ).toHaveTextContent(/^Not seen in the last 30 days\.$/);
+    // No counts of nothing, and nothing to correlate.
+    expect(result).not.toHaveTextContent("0 events");
+    expect(result).not.toHaveTextContent("0 findings");
+    expect(
+      within(result).queryByRole("button", { name: "Open in Correlate" }),
+    ).toBeNull();
+  });
+
+  test("a value is seen when an event named it in the days read: by a count, or by when it was last seen", () => {
+    const nothing: {
+      value: string;
+      eventCount: number;
+      findingCount: number;
+      maxSeverityId: number;
+      firstSeen: Date | null;
+      lastSeen: Date | null;
+    } = {
+      value: "web-01",
+      eventCount: 0,
+      findingCount: 0,
+      maxSeverityId: 0,
+      firstSeen: null,
+      lastSeen: null,
+    };
+
+    expect(isEntityActivitySeen(nothing)).toBe(false);
+    expect(isEntityActivitySeen({ ...nothing, eventCount: 1 })).toBe(true);
+    expect(
+      isEntityActivitySeen({ ...nothing, lastSeen: new Date(minutesAgo(5)) }),
+    ).toBe(true);
   });
 
   test.each([

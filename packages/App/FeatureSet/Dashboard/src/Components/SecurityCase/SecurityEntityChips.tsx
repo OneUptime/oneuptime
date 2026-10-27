@@ -9,6 +9,7 @@ import {
 } from "Common/Types/SecurityCase/SecurityEntity";
 
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -16,14 +17,24 @@ import React, { FunctionComponent, ReactElement } from "react";
 // Read where the chips are drawn: Common/Types/SecurityCase/SecurityEntity.
 export { readSecurityEntities };
 
-// Where an entity is investigated: the correlation graph, seeded with it.
-export function getCorrelateRouteForEntity(value: string): Route {
+/*
+ * Where an entity is investigated: the correlation graph, seeded with it -
+ * over the hours a page that read its activity read (Look Up an Entity's 30
+ * days), or Correlate's own window when it read none.
+ */
+export function getCorrelateRouteForEntity(
+  value: string,
+  hours?: number | undefined,
+): Route {
   return (
     RouteUtil.populateRouteParams(
       RouteMap[PageMap.SECURITY_EVENTS_CORRELATE] as Route,
     ) as Route
   ).addQueryParams({
     observable: encodeURIComponent(value),
+    ...(hours !== undefined && Number.isInteger(hours) && hours > 0
+      ? { hours: String(hours) }
+      : {}),
   });
 }
 
@@ -40,7 +51,12 @@ export interface SecurityEntityChipProps {
   isValueWrapped?: boolean | undefined;
 }
 
-// A value cut short to its line, or, wrapped, broken where it must be.
+/*
+ * A value cut short to its line, or, wrapped, broken where it must be. The
+ * value is someone's data, in an isolate that reads the way it is written
+ * (IsolatedText): on a Persian page an account or a host is cut at its own
+ * end - "k.morgan@acme-comm..." - not at its start.
+ */
 export const SECURITY_ENTITY_CHIP_VALUE_CLASS_NAME: string =
   "truncate font-mono";
 export const SECURITY_ENTITY_CHIP_WRAPPED_VALUE_CLASS_NAME: string =
@@ -68,16 +84,15 @@ export const SecurityEntityChip: FunctionComponent<SecurityEntityChipProps> = (
         icon={getSecurityEntityIcon(props.entity.type)}
         className="h-3.5 w-3.5 flex-shrink-0 text-gray-400 group-hover:text-indigo-500"
       />
-      <span
+      <IsolatedText
+        text={props.entity.value}
         className={
           props.isValueWrapped
             ? SECURITY_ENTITY_CHIP_WRAPPED_VALUE_CLASS_NAME
             : SECURITY_ENTITY_CHIP_VALUE_CLASS_NAME
         }
         title={title}
-      >
-        {props.entity.value}
-      </span>
+      />
       {props.trailing !== undefined ? (
         <span className="ml-0.5 flex-shrink-0 rounded bg-gray-100 px-1 text-[10px] font-semibold text-gray-600">
           {props.trailing}

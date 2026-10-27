@@ -53,7 +53,8 @@ Stubbed:
   pages send (`Includes`, `IsNull`, equality) and sorted. `AnalyticsModelAPI` answers Threat Intel's
   Indicators table, and only it. `POST /security-case/entity-activity` (Look Up an Entity, a
   case's Entities, an entity's page) and `/security-playbook-run/:id/approve|reject` answer as the
-  server would; the overview's answer carries the riskiest entities as the server reads them
+  server would - a value starting `never-seen` is one no event names, left out of the answer as
+  the server leaves it out; the overview's answer carries the riskiest entities as the server reads them
   (`SecurityRiskiestEntities`: the risk rows with a score, by the score, ties in id order, with the
   project's threshold and how many have risk); approving the held step runs the rest of its
   playbook at once. The Overview's set-up routes answer as `SecuritySetup` does, on the fixture's own tables: `/security-case/setup/status`
@@ -93,7 +94,7 @@ history is laid out from it with a seeded generator, so every run draws the same
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `?theme=`   | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                              |
 | `?empty=`   | `1`: a project that has set nothing up - no cases, detections, playbooks or rules                                                                                                                                                                                                                                                                                                                                                  |
-| `?quiet=`   | `1`: a project that has set Security up (a connection, its logs, rules, playbooks) and that nothing has happened to: no cases, detections or runs                                                                                                                                                                                                                                                                                  |
+| `?quiet=`   | `1`: a project that has set Security up (a connection, its logs, rules, playbooks) and that nothing has happened to: no cases, detections or runs; `risk`: the same, but its rules' alerts scored its entities, so the Overview shows Riskiest Entities alone                                                                                                                                                                      |
 | `?role=`    | `owner` (default) or `viewer`: Security Viewer only, so it reads but cannot decide a held step                                                                                                                                                                                                                                                                                                                                     |
 | `?lists=`   | `all`: the project reads every free list already, so Threat Intel shows no Free Lists card                                                                                                                                                                                                                                                                                                                                         |
 | `?ai=`      | `off`: the project's Enable AI is off, so no AI card, AI Verdict, Draft with AI or AI trigger is drawn, and AI Settings says AI is off                                                                                                                                                                                                                                                                                             |
@@ -212,12 +213,17 @@ that list is not empty.
   Italian, Portuguese, Dutch, Japanese and Persian (`?lang=`), and at 1440 in English, German and
   French; the old Entities address opens Entity Risk, the one ranking of who is riskiest, with Look
   Up an Entity under its list - its box and Look Up one height on one line, any value (a domain
-  too) over 30 days, opening it in Correlate - and nothing sideways on a phone; the Overview's
-  Riskiest Entities is the top of Entity Risk's list, in its order, by its scores and levels (at
-  the project's threshold too), each entity opening its own page with Entity Risk lit, the rest
-  of the list a click away, and risk that could not be read (`?riskiest=fail`) said so with Try
-  again, in both themes and on a phone; in Persian (`?lang=fa`) each value reads as written, in
-  an isolate that starts where its line does and cuts a long value at its own end.
+  too) over 30 days, its counts on a line under it and Open in Correlate at the result's end,
+  opening Correlate over the same 30 days, and a value no event names (`never-seen...`) said to be
+  not seen, with nothing to correlate - and nothing sideways on a phone; the Overview's Riskiest
+  Entities is the top of Entity Risk's list, in its order, by its scores and levels (at the
+  project's threshold too), each row its value with its kind under it and its level's pill
+  beside its score, the whole row opening the entity's own page with Entity Risk lit, the rest of
+  the list a click away (Open Entity Risk when the card shows them all), a month whose only news
+  is risk (`?quiet=risk`) showing Riskiest Entities alone, and risk that could not be read
+  (`?riskiest=fail`) said so with Try again, in both themes and on a phone; in Persian
+  (`?lang=fa`) each value reads as written, in an isolate that starts where its line does and
+  cuts a long value at its own end, as Entity Risk's own list cuts its values.
 - **Case priorities and statuses** (`?values=custom`): Settings → Case Statuses lists the
   project's statuses in order, what a case in each counts as, the four built-in ones tagged and the
   retired one folded under the table; Case Priorities lists Emergency above the five a detection

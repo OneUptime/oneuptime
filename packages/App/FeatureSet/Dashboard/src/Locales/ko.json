@@ -36259,7 +36259,7 @@
   "{{count}} spans missing a parent so far": "지금까지 상위 스팬이 누락된 스팬 {{count}}개",
   "{{count}} spans missing a parent so far_one": "지금까지 상위 스팬이 누락된 스팬 {{count}}개",
   "{{count}} spans missing a parent_one": "상위 스팬이 누락된 스팬 {{count}}개",
-  "The users, hosts and addresses with the highest risk, as Entity Risk ranks them: what was found about each in the last 7 days. Open one to see why.": "엔티티 위험과 같은 순서로 정렬한, 위험도가 가장 높은 사용자, 호스트, 주소입니다. 최근 7일 동안 각각에 대해 발견된 내용을 기준으로 합니다. 하나를 열면 그 이유를 볼 수 있습니다.",
+  "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "엔티티 위험과 같은 순서로 정렬한, 최근 7일 동안 위험 점수가 가장 높은 사용자, 호스트, 주소입니다.",
   "View all {{count}} entities": "엔티티 {{count}}개 모두 보기",
   "View all {{count}} entities_one": "엔티티 {{count}}개 보기",
   "We could not load the riskiest entities.": "위험도가 가장 높은 엔티티를 불러오지 못했습니다."

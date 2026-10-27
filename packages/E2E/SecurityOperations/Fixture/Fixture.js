@@ -1,6 +1,6 @@
 /*
  * Offline fixture for the Security Events SOC pages: the overview, the case
- * queue, a case, entities, the detection rules, the rule library, threat
+ * queue, a case, the detection rules, the rule library, threat
  * intel, ATT&CK coverage, playbooks, a playbook, the playbook runs, entity
  * risk and an entity's page, and the project's case priorities, statuses and
  * risk scoring (Settings) - the production layout
@@ -9,8 +9,8 @@
  *
  * Only the data boundary is replaced: ModelAPI, AnalyticsModelAPI (the
  * threat-intel indicators) and API answer from the in-memory tables below,
- * and the Security product's own routes (overview,
- * top entities, entity activity) answer what the server would work out from
+ * and the Security product's own routes (the overview, with its riskiest
+ * entities, and entity activity) answer what the server would work out from
  * the same rows - the overview's numbers come from
  * computeSecurityOverviewMetrics, the function the server calls. Realtime is
  * stubbed: nothing here pushes changes.
@@ -243,8 +243,13 @@ const isEmpty = params.get("empty") === "1";
  * ?quiet=1: a project that has set Security up - a connection, its logs,
  * rules and playbooks - and that nothing has happened to yet: no cases, no
  * detections, no runs. What "All quiet" is for.
+ *
+ * ?quiet=risk: the same month, but its rules raise alerts rather than
+ * cases, which still adds risk: Entity Risk lists its entities, and the
+ * Overview's only news is its Riskiest Entities.
  */
-const isQuiet = !isEmpty && params.get("quiet") === "1";
+const isRiskOnlyMonth = !isEmpty && params.get("quiet") === "risk";
+const isQuiet = !isEmpty && (params.get("quiet") === "1" || isRiskOnlyMonth);
 const hasHistory = !isEmpty && !isQuiet;
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
 /*
@@ -2606,8 +2611,19 @@ const TOP_ENTITIES = [
   ["deploy-bot@acme-commerce.example", 1, 1, 3, 5 * 60],
 ];
 
+/*
+ * A value no event names - one starting "never-seen" - is left out of the
+ * answer, as the server leaves out a value it found nothing for: Look Up an
+ * Entity then says it was not seen.
+ */
+const UNSEEN_VALUE_PREFIX = "never-seen";
+
 function entityActivity(body) {
-  const values = Array.isArray(body?.values) ? body.values : [];
+  const values = (Array.isArray(body?.values) ? body.values : []).filter(
+    (value) => {
+      return !String(value).startsWith(UNSEEN_VALUE_PREFIX);
+    },
+  );
   return {
     activity: values.map((value, index) => {
       const known =
@@ -2640,7 +2656,8 @@ seedEntityRisk({
   uuid,
   ids: ID,
   isEmpty,
-  hasHistory,
+  // A risk-only month scores its entities all the same.
+  hasHistory: hasHistory || isRiskOnlyMonth,
   hasRiskCase: riskScenario.hasRiskCase,
 });
 

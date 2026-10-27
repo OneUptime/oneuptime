@@ -36259,7 +36259,7 @@
   "{{count}} spans missing a parent so far": "目前有 {{count}} 个跨度缺少父跨度",
   "{{count}} spans missing a parent so far_one": "目前有 {{count}} 个跨度缺少父跨度",
   "{{count}} spans missing a parent_one": "{{count}} 个跨度缺少父跨度",
-  "The users, hosts and addresses with the highest risk, as Entity Risk ranks them: what was found about each in the last 7 days. Open one to see why.": "风险最高的用户、主机和地址，排序与实体风险一致：依据过去 7 天内对每一个的发现。打开其中一个即可查看原因。",
+  "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "过去 7 天内风险分数最高的用户、主机和地址，排序与实体风险一致。",
   "View all {{count}} entities": "查看全部 {{count}} 个实体",
   "View all {{count}} entities_one": "查看 {{count}} 个实体",
   "We could not load the riskiest entities.": "无法加载风险最高的实体。"

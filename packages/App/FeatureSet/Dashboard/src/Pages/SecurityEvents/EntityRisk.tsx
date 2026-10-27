@@ -59,6 +59,7 @@ import { readRiskContributions } from "Common/Utils/SecurityCase/SecurityEntityR
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { useIsTableCard } from "Common/UI/Components/Table/TableCellContext";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -169,6 +170,11 @@ const SourcesCell: FunctionComponent<{ item: SecurityEntityRisk }> = (props: {
   }
 
   const first: SecurityEntityRiskContribution = sources[0]!;
+  const allSources: string = sources
+    .map((source: SecurityEntityRiskContribution): string => {
+      return source.sourceName;
+    })
+    .join("\n");
 
   // Cut short to the column rather than widening it (a grid track gives up its width).
   return (
@@ -176,20 +182,24 @@ const SourcesCell: FunctionComponent<{ item: SecurityEntityRisk }> = (props: {
       <div className="font-medium text-gray-900">
         {translator.translatePlural(SOURCE_COUNT, sources.length)}
       </div>
-      <div
-        className="truncate text-xs text-gray-500"
-        title={sources
-          .map((source: SecurityEntityRiskContribution): string => {
-            return source.sourceName;
-          })
-          .join("\n")}
-      >
-        {sources.length > 1
-          ? translator.translatePlural(SOURCES_AND_MORE, sources.length - 1, {
-              name: first.sourceName,
-            })
-          : first.sourceName}
-      </div>
+      {sources.length > 1 ? (
+        <div className="truncate text-xs text-gray-500" title={allSources}>
+          {translator.translatePlural(SOURCES_AND_MORE, sources.length - 1, {
+            name: first.sourceName,
+          })}
+        </div>
+      ) : (
+        /*
+         * A rule's or a feed's name alone is someone's words: read the way
+         * it is written and cut short at its own end on a Persian page too
+         * ("Feodo Tracker botnet C2 ser...", never "...do Tracker botnet").
+         */
+        <IsolatedText
+          text={first.sourceName}
+          className="block truncate text-xs text-gray-500"
+          title={allSources}
+        />
+      )}
     </div>
   );
 };

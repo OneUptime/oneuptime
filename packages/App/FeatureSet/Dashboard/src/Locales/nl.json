@@ -36259,7 +36259,7 @@
   "{{count}} spans missing a parent so far": "{{count}} spans waarvan de bovenliggende span tot nu toe ontbreekt",
   "{{count}} spans missing a parent so far_one": "{{count}} span waarvan de bovenliggende span tot nu toe ontbreekt",
   "{{count}} spans missing a parent_one": "{{count}} span waarvan de bovenliggende span ontbreekt",
-  "The users, hosts and addresses with the highest risk, as Entity Risk ranks them: what was found about each in the last 7 days. Open one to see why.": "De gebruikers, hosts en adressen met het hoogste risico, zoals Entiteitrisico ze rangschikt: wat er de afgelopen 7 dagen over elk is gevonden. Open er een om te zien waarom.",
+  "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "De gebruikers, hosts en adressen met de hoogste risicoscores van de afgelopen 7 dagen, zoals Entiteitrisico ze rangschikt.",
   "View all {{count}} entities": "Alle {{count}} entiteiten bekijken",
   "View all {{count}} entities_one": "{{count}} entiteit bekijken",
   "We could not load the riskiest entities.": "We konden de riskantste entiteiten niet laden."

@@ -36259,7 +36259,7 @@
   "{{count}} spans missing a parent so far": "تاکنون {{count}} اسپن با اسپن والد گم‌شده",
   "{{count}} spans missing a parent so far_one": "تاکنون {{count}} اسپن با اسپن والد گم‌شده",
   "{{count}} spans missing a parent_one": "{{count}} اسپن با اسپن والد گم‌شده",
-  "The users, hosts and addresses with the highest risk, as Entity Risk ranks them: what was found about each in the last 7 days. Open one to see why.": "کاربران، میزبان‌ها و نشانی‌هایی با بیشترین ریسک، به همان ترتیبی که ریسک موجودیت رتبه‌بندی می‌کند: آنچه در ۷ روز گذشته درباره هر یک یافته شده است. یکی را باز کنید تا ببینید چرا.",
+  "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.": "کاربران، میزبان‌ها و نشانی‌هایی با بالاترین امتیاز ریسک در ۷ روز گذشته، به همان ترتیبی که ریسک موجودیت رتبه‌بندی می‌کند.",
   "View all {{count}} entities": "دیدن همه {{count}} موجودیت",
   "View all {{count}} entities_one": "دیدن {{count}} موجودیت",
   "We could not load the riskiest entities.": "نتوانستیم پرخطرترین موجودیت‌ها را بارگذاری کنیم."

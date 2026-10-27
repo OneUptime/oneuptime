@@ -7,6 +7,11 @@ import React, { FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   text: string;
   className?: string | undefined;
+  /*
+   * Under the pointer: the value whole, for one cut short to its line, or
+   * what it opens (a security entity's chip).
+   */
+  title?: string | undefined;
 }
 
 /*
@@ -29,7 +34,11 @@ const IsolatedText: FunctionComponent<ComponentProps> = (
     getTextReadingDirectionByMostLetters(props.text);
 
   return (
-    <bdi dir={direction || undefined} className={props.className}>
+    <bdi
+      dir={direction || undefined}
+      className={props.className}
+      title={props.title}
+    >
       {props.text}
     </bdi>
   );

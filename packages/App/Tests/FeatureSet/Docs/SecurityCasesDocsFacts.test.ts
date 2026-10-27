@@ -1378,7 +1378,10 @@ describe("Security Cases and Playbooks docs", () => {
     expect(titles).toContain("Correlate");
     expect(titles).not.toContain("Entities");
 
-    // The lookup is under Entity Risk's list, and opens a value in Correlate.
+    /*
+     * The lookup is under Entity Risk's list, and opens a value in Correlate
+     * - over the 30 days it read, so Correlate shows what it counted.
+     */
     const entityRisk: string = flat(
       source(`${DASHBOARD}/Pages/SecurityEvents/EntityRisk.tsx`),
     );
@@ -1392,7 +1395,7 @@ describe("Security Cases and Playbooks docs", () => {
         ),
       ),
     ).toContain(
-      "Navigation.navigate(getCorrelateRouteForEntity(lookup.value));",
+      "Navigation.navigate( getCorrelateRouteForEntity( lookup.value, ENTITY_LOOKUP_HOURS, ), );",
     );
 
     // The Overview's card is the overview's own answer: Entity Risk's rows.

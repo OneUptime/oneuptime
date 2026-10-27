@@ -105,7 +105,9 @@ export const SECURITY_OVERVIEW_LATELY_ID: string = "security-overview-lately";
  * open. The figures and charts below (how fast cases are acknowledged,
  * contained and closed, the trend of cases and detections, the rules and
  * tactics behind them, and the riskiest entities - the top of Entity Risk,
- * by the same scores) show once there is something to chart.
+ * by the same scores) show once there is something to chart. A month whose
+ * only news is risk - rules that raise alerts rather than cases still add
+ * it - shows the riskiest entities alone: every other card would be empty.
  */
 const SecurityOverviewPage: FunctionComponent<
   PageComponentProps
@@ -237,16 +239,24 @@ const SecurityOverviewPage: FunctionComponent<
   }
 
   const metrics: SecurityOverview["metrics"] = overview.metrics;
-  /*
-   * Nothing to chart yet: no case open, opened or detected in the windows,
-   * and nobody on Entity Risk's list - a rule that opens no case of its own
-   * still adds risk, and Riskiest Entities is the top of that list.
-   */
-  const isEmpty: boolean =
+  // No case open, opened or detected in the windows.
+  const hasNoCaseActivity: boolean =
     metrics.openCases === 0 &&
     metrics.casesOpenedInWindow === 0 &&
-    metrics.detectionsInWindow === 0 &&
-    !hasRiskyEntities(overview.riskiestEntities);
+    metrics.detectionsInWindow === 0;
+  /*
+   * Nothing to chart yet: no case activity, and nobody on Entity Risk's
+   * list - a rule that opens no case of its own still adds risk, and
+   * Riskiest Entities is the top of that list.
+   */
+  const isEmpty: boolean =
+    hasNoCaseActivity && !hasRiskyEntities(overview.riskiestEntities);
+  /*
+   * Risk is the month's only news: Riskiest Entities is drawn alone, under
+   * the card - the figures, the charts and the other lists would each say
+   * they have nothing, seven cards around the one that has something.
+   */
+  const isRiskOnly: boolean = hasNoCaseActivity && !isEmpty;
   /*
    * The queue as the card's band and its cases cell read it. Critical and
    * high are counted by the project's priorities: at or above its critical
@@ -438,120 +448,129 @@ const SecurityOverviewPage: FunctionComponent<
         <></>
       ) : (
         <>
-          {/*
-           * How fast cases move. The open cases are the pipeline's cases
-           * stage, so the bar counts them only when there is no pipeline.
-           */}
-          <EventStatBar
-            columns={isPipelineShown ? 3 : 4}
-            ariaLabel={translator.translateText("Security operations figures")}
-          >
-            {[
-              ...(isPipelineShown
-                ? []
-                : [
-                    <EventStatTile
-                      key="open-cases"
-                      variant="segment"
-                      icon={IconProp.ShieldExclamation}
-                      label={
-                        translator.translateText("Open Cases") || "Open Cases"
-                      }
-                      value={translator.formatNumber(metrics.openCases)}
-                      description={openCasesDetail}
-                    />,
-                  ]),
-              <EventStatTile
-                key="acknowledge"
-                variant="segment"
-                icon={IconProp.User}
-                label={
-                  translator.translateText("Mean Time to Acknowledge") ||
-                  "Mean Time to Acknowledge"
-                }
-                value={formatCompactDurationInMinutes(
-                  metrics.meanTimeToAcknowledgeInMinutes,
-                  translator.language,
+          {isRiskOnly ? (
+            <></>
+          ) : (
+            <>
+              {/*
+               * How fast cases move. The open cases are the pipeline's cases
+               * stage, so the bar counts them only when there is no pipeline.
+               */}
+              <EventStatBar
+                columns={isPipelineShown ? 3 : 4}
+                ariaLabel={translator.translateText(
+                  "Security operations figures",
                 )}
-                description={translator.translateTemplate(
-                  "Last {{days}} days",
-                  {
-                    days: caseWindowInDays,
-                  },
-                )}
-              />,
-              <EventStatTile
-                key="contain"
-                variant="segment"
-                icon={IconProp.ShieldCheck}
-                label={
-                  translator.translateText("Mean Time to Contain") ||
-                  "Mean Time to Contain"
-                }
-                value={formatCompactDurationInMinutes(
-                  metrics.meanTimeToContainInMinutes,
-                  translator.language,
-                )}
-                description={translator.translateTemplate(
-                  "Last {{days}} days",
-                  {
-                    days: caseWindowInDays,
-                  },
-                )}
-              />,
-              <EventStatTile
-                key="close"
-                variant="segment"
-                icon={IconProp.CheckCircle}
-                label={
-                  translator.translateText("Mean Time to Close") ||
-                  "Mean Time to Close"
-                }
-                value={formatCompactDurationInMinutes(
-                  metrics.meanTimeToCloseInMinutes,
-                  translator.language,
-                )}
-                description={translator.translatePlural(
-                  {
-                    one: "{{count}} case closed in {{days}} days",
-                    other: "{{count}} cases closed in {{days}} days",
-                  },
-                  metrics.casesClosedInWindow,
-                  { days: caseWindowInDays },
-                )}
-              />,
-            ]}
-          </EventStatBar>
+              >
+                {[
+                  ...(isPipelineShown
+                    ? []
+                    : [
+                        <EventStatTile
+                          key="open-cases"
+                          variant="segment"
+                          icon={IconProp.ShieldExclamation}
+                          label={
+                            translator.translateText("Open Cases") ||
+                            "Open Cases"
+                          }
+                          value={translator.formatNumber(metrics.openCases)}
+                          description={openCasesDetail}
+                        />,
+                      ]),
+                  <EventStatTile
+                    key="acknowledge"
+                    variant="segment"
+                    icon={IconProp.User}
+                    label={
+                      translator.translateText("Mean Time to Acknowledge") ||
+                      "Mean Time to Acknowledge"
+                    }
+                    value={formatCompactDurationInMinutes(
+                      metrics.meanTimeToAcknowledgeInMinutes,
+                      translator.language,
+                    )}
+                    description={translator.translateTemplate(
+                      "Last {{days}} days",
+                      {
+                        days: caseWindowInDays,
+                      },
+                    )}
+                  />,
+                  <EventStatTile
+                    key="contain"
+                    variant="segment"
+                    icon={IconProp.ShieldCheck}
+                    label={
+                      translator.translateText("Mean Time to Contain") ||
+                      "Mean Time to Contain"
+                    }
+                    value={formatCompactDurationInMinutes(
+                      metrics.meanTimeToContainInMinutes,
+                      translator.language,
+                    )}
+                    description={translator.translateTemplate(
+                      "Last {{days}} days",
+                      {
+                        days: caseWindowInDays,
+                      },
+                    )}
+                  />,
+                  <EventStatTile
+                    key="close"
+                    variant="segment"
+                    icon={IconProp.CheckCircle}
+                    label={
+                      translator.translateText("Mean Time to Close") ||
+                      "Mean Time to Close"
+                    }
+                    value={formatCompactDurationInMinutes(
+                      metrics.meanTimeToCloseInMinutes,
+                      translator.language,
+                    )}
+                    description={translator.translatePlural(
+                      {
+                        one: "{{count}} case closed in {{days}} days",
+                        other: "{{count}} cases closed in {{days}} days",
+                      },
+                      metrics.casesClosedInWindow,
+                      { days: caseWindowInDays },
+                    )}
+                  />,
+                ]}
+              </EventStatBar>
 
-          {/*
-           * Rows of cards (CardGrid): every card fills its cell, so each row
-           * ends on one line rather than a short card leaving the page
-           * showing under it beside a tall one; and how many share a row
-           * follows the room the page has beside the side menu. The two
-           * day-by-day charts are as tall as each other.
-           */}
-          <CardGrid columns={2} dataTestId={SECURITY_OVERVIEW_CHARTS_ID}>
-            <Card
-              title="Cases Opened"
-              description="New cases each day over the last 30 days, by priority."
-            >
-              <StackedDayBars
-                days={metrics.casesOpenedPerDay}
-                series={prioritySeries}
-                ariaLabel="Cases opened per day, by priority"
-              />
-            </Card>
-            <Card
-              title="Detections"
-              description="New detections each day over the last 14 days, by what raised them."
-            >
-              <StackedDayBars
-                days={metrics.detectionsPerDay}
-                series={sourceSeries}
-                ariaLabel="Detections per day, by source"
-              />
-            </Card>
-          </CardGrid>
+              {/*
+               * Rows of cards (CardGrid): every card fills its cell, so each row
+               * ends on one line rather than a short card leaving the page
+               * showing under it beside a tall one; and how many share a row
+               * follows the room the page has beside the side menu. The two
+               * day-by-day charts are as tall as each other.
+               */}
+              <CardGrid columns={2} dataTestId={SECURITY_OVERVIEW_CHARTS_ID}>
+                <Card
+                  title="Cases Opened"
+                  description="New cases each day over the last 30 days, by priority."
+                >
+                  <StackedDayBars
+                    days={metrics.casesOpenedPerDay}
+                    series={prioritySeries}
+                    ariaLabel="Cases opened per day, by priority"
+                  />
+                </Card>
+                <Card
+                  title="Detections"
+                  description="New detections each day over the last 14 days, by what raised them."
+                >
+                  <StackedDayBars
+                    days={metrics.detectionsPerDay}
+                    series={sourceSeries}
+                    ariaLabel="Detections per day, by source"
+                  />
+                </Card>
+              </CardGrid>
+            </>
+          )}
 
           {/*
            * Then the ranked lists, the most urgent first: what is open now
@@ -567,25 +586,33 @@ const SecurityOverviewPage: FunctionComponent<
            * entities.
            */}
           <CardGrid columns={2} dataTestId={SECURITY_OVERVIEW_NOW_ID}>
-            <Card
-              title="Open Cases"
-              description="The queue right now, by priority and by where each case stands."
-            >
-              <div className="space-y-5">
-                <RankedBars
-                  items={openByPriority}
-                  total={Math.max(1, metrics.openCases)}
-                  emptyText="No open cases."
-                />
-                <div className="border-t border-gray-100 pt-4">
+            {/*
+             * No case is open in a month whose only news is risk: the
+             * riskiest entities take the row alone (CardGrid leaves no hole).
+             */}
+            {isRiskOnly ? (
+              <></>
+            ) : (
+              <Card
+                title="Open Cases"
+                description="The queue right now, by priority and by where each case stands."
+              >
+                <div className="space-y-5">
                   <RankedBars
-                    items={openByStatus}
+                    items={openByPriority}
                     total={Math.max(1, metrics.openCases)}
                     emptyText="No open cases."
                   />
+                  <div className="border-t border-gray-100 pt-4">
+                    <RankedBars
+                      items={openByStatus}
+                      total={Math.max(1, metrics.openCases)}
+                      emptyText="No open cases."
+                    />
+                  </div>
                 </div>
-              </div>
-            </Card>
+              </Card>
+            )}
             {/*
              * The top of Entity Risk's list, by the same scores: one
              * riskiest list, wherever the product says "riskiest".
@@ -602,55 +629,61 @@ const SecurityOverviewPage: FunctionComponent<
             </Card>
           </CardGrid>
 
-          {/*
-           * Short lists of short names: three across where the page has the
-           * room for a tactic's name in each, two across beside the side menu
-           * of a smaller screen - the third then takes its row - and one
-           * above the other on a phone.
-           */}
-          <CardGrid
-            columns={3}
-            cardWidth="narrow"
-            dataTestId={SECURITY_OVERVIEW_LATELY_ID}
-          >
-            <Card
-              title="Top Detections"
-              description="The rules and sources that raised the most detections in the last 14 days."
-            >
-              <RankedBars
-                items={topRules}
-                emptyText="Nothing was detected in the last 14 days."
-              />
-            </Card>
-            <Card
-              title="MITRE ATT&CK Tactics"
-              description="The attacker goals behind the cases of the last 30 days."
-            >
-              <RankedBars
-                items={topTactics}
-                emptyText="No case in the last 30 days is mapped to an ATT&CK tactic."
-              />
-            </Card>
-            <Card
-              title="Verdicts"
-              description="What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune."
-            >
-              <RankedBars
-                items={verdicts}
-                total={Math.max(1, metrics.casesClosedInWindow)}
-                emptyText="No case was closed in the last 30 days."
-              />
-            </Card>
-          </CardGrid>
-
-          {overview.isTruncated ? (
-            <p className="text-xs text-gray-500">
-              {translator.translateText(
-                "This project has more cases and detections than the overview reads at once; its figures are for the most recent of them.",
-              )}
-            </p>
-          ) : (
+          {isRiskOnly ? (
             <></>
+          ) : (
+            <>
+              {/*
+               * Short lists of short names: three across where the page has the
+               * room for a tactic's name in each, two across beside the side menu
+               * of a smaller screen - the third then takes its row - and one
+               * above the other on a phone.
+               */}
+              <CardGrid
+                columns={3}
+                cardWidth="narrow"
+                dataTestId={SECURITY_OVERVIEW_LATELY_ID}
+              >
+                <Card
+                  title="Top Detections"
+                  description="The rules and sources that raised the most detections in the last 14 days."
+                >
+                  <RankedBars
+                    items={topRules}
+                    emptyText="Nothing was detected in the last 14 days."
+                  />
+                </Card>
+                <Card
+                  title="MITRE ATT&CK Tactics"
+                  description="The attacker goals behind the cases of the last 30 days."
+                >
+                  <RankedBars
+                    items={topTactics}
+                    emptyText="No case in the last 30 days is mapped to an ATT&CK tactic."
+                  />
+                </Card>
+                <Card
+                  title="Verdicts"
+                  description="What the cases closed in the last 30 days turned out to be. Many false positives point at a rule to tune."
+                >
+                  <RankedBars
+                    items={verdicts}
+                    total={Math.max(1, metrics.casesClosedInWindow)}
+                    emptyText="No case was closed in the last 30 days."
+                  />
+                </Card>
+              </CardGrid>
+
+              {overview.isTruncated ? (
+                <p className="text-xs text-gray-500">
+                  {translator.translateText(
+                    "This project has more cases and detections than the overview reads at once; its figures are for the most recent of them.",
+                  )}
+                </p>
+              ) : (
+                <></>
+              )}
+            </>
           )}
         </>
       )}

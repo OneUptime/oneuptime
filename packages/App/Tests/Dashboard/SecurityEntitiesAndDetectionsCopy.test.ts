@@ -13,6 +13,7 @@ import {
   ENTITY_RISK_TABLE_DESCRIPTION,
   OPEN_IN_CORRELATE,
   RISKIEST_ENTITIES_DESCRIPTION,
+  RISKIEST_ENTITIES_OPEN_ENTITY_RISK,
   RISKIEST_ENTITIES_READ_FAILED,
   RISKIEST_ENTITIES_TEST_IDS,
   RISKIEST_ENTITIES_TITLE,
@@ -47,25 +48,44 @@ function source(relativePath: string): string {
 }
 
 describe("the Overview's Riskiest Entities", () => {
-  test("say they are Entity Risk's ranking, over Entity Risk's week, and what a reader does next", () => {
+  /*
+   * One sentence, as the Overview's other cards have: what the rows are
+   * (the number on each is the risk score), over which days, and whose
+   * ranking it is. Its rows are links, as every ranked list's are, so it
+   * does not say "open one" - the words a three-line description spent.
+   */
+  test("say they are Entity Risk's ranking by risk score, over Entity Risk's week, in one sentence", () => {
     expect(RISKIEST_ENTITIES_TITLE).toBe("Riskiest Entities");
+    expect(RISKIEST_ENTITIES_DESCRIPTION).toBe(
+      "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.",
+    );
+    expect(RISKIEST_ENTITIES_DESCRIPTION).toContain("highest risk scores");
     expect(RISKIEST_ENTITIES_DESCRIPTION).toContain(
       "as Entity Risk ranks them",
     );
     expect(RISKIEST_ENTITIES_DESCRIPTION).toContain("in the last 7 days");
     // The week is Entity Risk's own.
     expect(ENTITY_RISK_TABLE_DESCRIPTION).toContain("in the last 7 days");
-    expect(RISKIEST_ENTITIES_DESCRIPTION).toContain("Open one to see why.");
+    // One sentence: a full stop at its end alone.
+    expect(RISKIEST_ENTITIES_DESCRIPTION.split(". ")).toHaveLength(1);
+    expect(RISKIEST_ENTITIES_DESCRIPTION).not.toContain("Open one");
     // Never the old count of findings.
     expect(RISKIEST_ENTITIES_DESCRIPTION).not.toContain("most findings");
     expect(RISKIEST_ENTITIES_DESCRIPTION).not.toContain("findings name");
   });
 
-  test("offer the whole list in the count Entity Risk lists, in both plural forms", () => {
+  test("offer the whole list in the count Entity Risk lists, in both plural forms, and Entity Risk itself when the card shows them all", () => {
     expect(RISKIEST_ENTITIES_VIEW_ALL).toEqual({
       one: "View {{count}} entity",
       other: "View all {{count}} entities",
     });
+    // The words an entity's page offers for the same way, one key.
+    expect(RISKIEST_ENTITIES_OPEN_ENTITY_RISK).toBe("Open Entity Risk");
+    const card: string = source(
+      "Components/SecurityOverview/RiskiestEntities.tsx",
+    );
+    expect(card).toContain("RISKIEST_ENTITIES_OPEN_ENTITY_RISK");
+    expect(card).toContain("moreCount > 0");
   });
 
   test("an empty list says what Entity Risk's empty list says", () => {
@@ -111,6 +131,7 @@ describe("Look Up an Entity, under Entity Risk's list", () => {
       card: "security-entity-lookup",
       input: "security-entity-lookup-input",
       result: "security-entity-lookup-result",
+      facts: "security-entity-lookup-facts",
     });
   });
 
@@ -165,6 +186,7 @@ describe("the words", () => {
       for (const sentence of [
         ...SENTENCES,
         RISKIEST_ENTITIES_DESCRIPTION,
+        RISKIEST_ENTITIES_OPEN_ENTITY_RISK,
         RISKIEST_ENTITIES_READ_FAILED,
         RISKIEST_ENTITIES_VIEW_ALL.other,
         `${RISKIEST_ENTITIES_VIEW_ALL.other}_one`,
@@ -179,6 +201,7 @@ describe("the words", () => {
       // The Overview's new sentences, said in the language.
       for (const sentence of [
         RISKIEST_ENTITIES_DESCRIPTION,
+        RISKIEST_ENTITIES_OPEN_ENTITY_RISK,
         RISKIEST_ENTITIES_READ_FAILED,
         RISKIEST_ENTITIES_VIEW_ALL.other,
       ]) {

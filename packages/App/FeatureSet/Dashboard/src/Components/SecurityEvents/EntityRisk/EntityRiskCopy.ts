@@ -287,8 +287,13 @@ export const CRITICALITY_WEIGHT_LABELS: {
 export const RISKIEST_ENTITIES_TITLE: string =
   translationKey("Riskiest Entities");
 
+/*
+ * One sentence, as the Overview's other cards have: what the rows are, over
+ * which days, and whose ranking it is. The number on each row is that risk
+ * score; the rows themselves are links, as every ranked list's are.
+ */
 export const RISKIEST_ENTITIES_DESCRIPTION: string = translationKey(
-  "The users, hosts and addresses with the highest risk, as Entity Risk ranks them: what was found about each in the last 7 days. Open one to see why.",
+  "The users, hosts and addresses with the highest risk scores in the last 7 days, as Entity Risk ranks them.",
 );
 
 // Under the list, when Entity Risk lists more than the card shows.
@@ -296,6 +301,14 @@ export const RISKIEST_ENTITIES_VIEW_ALL: PluralTemplate = {
   one: "View {{count}} entity",
   other: "View all {{count}} entities",
 };
+
+/*
+ * Under the list when the card shows every entity Entity Risk lists: the
+ * page itself, with who found each and when, its filters and the lookup.
+ * The words an entity's page offers when it names no entity.
+ */
+export const RISKIEST_ENTITIES_OPEN_ENTITY_RISK: string =
+  translationKey("Open Entity Risk");
 
 // Said in the list's place when the risk could not be read, with Try again.
 export const RISKIEST_ENTITIES_READ_FAILED: string = translationKey(
@@ -343,10 +356,13 @@ export const ENTITY_LOOKUP_TEST_IDS: {
   card: string;
   input: string;
   result: string;
+  // What was found about the value, or that nothing was.
+  facts: string;
 } = {
   card: "security-entity-lookup",
   input: "security-entity-lookup-input",
   result: "security-entity-lookup-result",
+  facts: "security-entity-lookup-facts",
 };
 
 // ---------- A detection rule's Risk Points ----------
