@@ -38,7 +38,7 @@ import { DataSourceOptions } from "typeorm";
  *   - jit=off. Postgres compiles a statement to machine code when its
  *     estimated cost passes jit_above_cost, and the reads behind incident
  *     and alert rules (a rule with its seven to-many relations, LIMIT 10000)
- *     pass it even on empty tables: on Postgres 15 each spent 170-210 ms
+ *     pass it even on empty tables: on Postgres 15 each spent 170-270 ms
  *     compiling and 4 ms planning and running, seven of them for every
  *     incident or alert created (2026-10-27). OneUptime's statements read a
  *     page of rows, never enough for compiled code to pay that back.

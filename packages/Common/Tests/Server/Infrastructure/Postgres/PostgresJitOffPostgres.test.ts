@@ -12,7 +12,7 @@ import { PostgresConnectionOptions } from "typeorm/driver/postgres/PostgresConne
  * runbook, auto-remediation and privacy rules) take a page of rules with
  * their seven to-many relations: fifteen tables joined, LIMIT 10000. Postgres
  * costs that above jit_above_cost even on empty tables, so with JIT on it
- * compiled the statement to machine code each time: 170-210 ms, against 4 ms
+ * compiled the statement to machine code each time: 170-270 ms, against 4 ms
  * to plan and run it (2026-10-27). Here an empty copy of that shape is
  * explained on a connection opened with the production options, with JIT's
  * cost threshold at 0 (still nothing compiled: JIT is off), and again after

@@ -413,7 +413,7 @@ connection every 10 minutes.
 
 Postgres compiles a statement to machine code once its estimated cost passes
 `jit_above_cost`, and the reads behind incident and alert rules pass it even on
-empty tables: on Postgres 15 each spent 170-210 ms compiling, against 4 ms to
+empty tables: on Postgres 15 each spent 170-270 ms compiling, against 4 ms to
 plan and run it, and seven run for every incident or alert created. Creating
 incidents and alerts kept 3.7 to 4.8 cores of Postgres busy with JIT on, and
 0.7 to 0.8 with it off. So the app turns JIT off on its own connections, with

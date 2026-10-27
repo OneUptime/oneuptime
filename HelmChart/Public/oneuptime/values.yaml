@@ -382,7 +382,7 @@ postgresql:
       lock_timeout = '3s'
       # No JIT compiling. Postgres compiles a statement to machine code once
       # its estimated cost passes jit_above_cost, and the reads behind
-      # incident and alert rules pass it on empty tables: 170-210 ms of
+      # incident and alert rules pass it on empty tables: 170-270 ms of
       # compiling each, against 4 ms to plan and run them, seven for every
       # incident or alert created. The app turns JIT off on its own
       # connections too, but pgbouncer drops that startup parameter, so behind

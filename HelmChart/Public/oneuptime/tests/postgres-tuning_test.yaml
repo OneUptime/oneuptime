@@ -166,7 +166,7 @@ tests:
           path: spec.postgresql.parameters.lock_timeout
           value: "3s"
 
-  # JIT compiling cost 170-210 ms for each of the reads behind incident and
+  # JIT compiling cost 170-270 ms for each of the reads behind incident and
   # alert rules, which plan and run in 4 ms. The app sends jit=off as a
   # startup parameter, but pgbouncer drops it, so the server has it too - in
   # both paths, as a string for CloudNativePG (YAML would read a bare off as

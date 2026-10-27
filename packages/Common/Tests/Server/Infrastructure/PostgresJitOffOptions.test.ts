@@ -6,7 +6,7 @@ import { postgresStartupOptions } from "../../../Server/Infrastructure/Postgres/
  *
  * Postgres compiles a statement to machine code once its estimated cost
  * passes jit_above_cost, and the reads behind incident and alert rules pass
- * it on empty tables: 170-210 ms compiling each, against 4 ms planning and
+ * it on empty tables: 170-270 ms compiling each, against 4 ms planning and
  * running it, seven of them for every incident or alert created. Creating
  * incidents and alerts through the API took Postgres 3.7 to 4.8 cores with
  * JIT on and 0.7 to 0.8 with it off (Scripts/Perf, 2026-10-27).
