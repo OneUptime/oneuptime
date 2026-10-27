@@ -751,8 +751,15 @@ describe("the package npm publishes", () => {
   it("builds the bundle whenever npm packs or publishes it", () => {
     expect(MANIFEST.scripts["prepack"]).toBe("npm run build");
     expect(MANIFEST.scripts["build"]).toBe("node esbuild.config.js");
-    // A type-check only: tsc output never lands where the bundle goes.
-    expect(MANIFEST.scripts["compile"]).toBe("tsc --noEmit");
+    /*
+     * A type-check only: tsc output never lands where the bundle goes. It
+     * checks the tests too, with the sources' strict options: jest compiles
+     * them with strict off, so 29 type errors once sat in two old suites
+     * that no command ever reported.
+     */
+    expect(MANIFEST.scripts["compile"]).toBe(
+      "tsc --noEmit && tsc --noEmit -p Tests/tsconfig.json",
+    );
     expect(MANIFEST.scripts["smoke-test"]).toBe(
       "node Scripts/SmokeTestPackage.js",
     );
