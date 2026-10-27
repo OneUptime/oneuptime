@@ -9191,6 +9191,99 @@ test.describe("the header, by its own width", () => {
     await screenshotElement(hero(page), "event-header-maintenance-overdue");
   });
 
+  /*
+   * An event kept to the team until its publish time (#5249) says so in the
+   * header's quiet band: not on its status pages yet, from when, and that
+   * its subscribers are told then - with Publish Now, which asks first and
+   * clears the time. Its Maintenance Details card lists the time and says
+   * the 'scheduled' notification waits for it.
+   */
+  test("a maintenance event not published yet says so in its header, and Publish Now publishes it after asking (?publish=later)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    // Nobody has been told about it yet: no feed item says so.
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "publish=later", [
+      "Acme Internal Status",
+      "4 resources",
+      "Mark as Ongoing",
+      "Maintenance duration",
+    ]);
+    await loadProductionFont(page);
+
+    const band: Locator = hero(page).getByTestId("event-header-notice");
+    await expect(band).toHaveAttribute("data-tone", "neutral");
+    const notice: Locator = band.getByTestId(
+      "scheduled-maintenance-publishing-notice",
+    );
+    await expect(notice).toContainText("Not on status pages yet");
+    await expect(notice).toContainText(
+      "It shows on its status pages from Sep 14 2026, 07:30 PM GMT, when their subscribers are told it is scheduled.",
+    );
+    // The state actions stay where they were; the band holds its own.
+    await expect(
+      heroActions(page).getByRole("button", { name: "Mark as Ongoing" }),
+    ).toBeVisible();
+
+    const details: Locator = card(page, "Maintenance Details");
+    await expect(
+      details.getByTestId("scheduled-maintenance-publish-on-status-pages"),
+    ).toHaveText("Sep 14 2026, 07:30 PM GMT");
+    await expect(details).toContainText("Sent when it is published");
+
+    expect((await headerColours(page)).unreadable).toEqual([]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      hero(page),
+      "event-header-maintenance-not-published-yet",
+    );
+
+    await notice.getByRole("button", { name: "Publish Now" }).click();
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Publish this event now?",
+    });
+    await expect(confirm).toContainText(
+      "It shows on its status pages at once, and their subscribers are told it is scheduled.",
+    );
+    // Nothing is written until it is confirmed.
+    expect((await fixture(page)).updates).toEqual([]);
+
+    await confirm.getByRole("button", { name: "Publish Now" }).click();
+    await expect(confirm).toHaveCount(0);
+
+    expect((await fixture(page)).updates).toEqual([
+      {
+        modelName: "ScheduledMaintenance",
+        id: SCHEDULED_MAINTENANCE_ID,
+        data: { publishOnStatusPageAt: null },
+      },
+    ]);
+    // Read again: published from now, so the band is gone.
+    await expect(
+      hero(page).getByTestId("scheduled-maintenance-publishing-notice"),
+    ).toHaveCount(0);
+    await expect(
+      details.getByTestId("scheduled-maintenance-publish-on-status-pages"),
+    ).toHaveCount(0);
+  });
+
+  test("a maintenance event whose publish time has come shows no band, and its details list the time (?publish=past)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "publish=past");
+
+    await expect(hero(page).getByTestId("event-header-notice")).toHaveCount(0);
+    await expect(
+      card(page, "Maintenance Details").getByTestId(
+        "scheduled-maintenance-publish-on-status-pages",
+      ),
+    ).toHaveText("Sep 14 2026, 12:00 PM GMT");
+  });
+
   test("someone who may not change an incident's state sees its state actions locked, each saying which permission (?role=alert-member)", async ({
     page,
   }: {

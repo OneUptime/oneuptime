@@ -21,6 +21,7 @@ import DE from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import JA from "../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import ScheduledMaintenanceCalendarFeed from "Common/Models/DatabaseModels/ScheduledMaintenanceCalendarFeed";
 import ScheduledMaintenanceExternalCalendar from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendar";
 import ScheduledMaintenanceExternalCalendarEvent from "Common/Models/DatabaseModels/ScheduledMaintenanceExternalCalendarEvent";
@@ -66,6 +67,9 @@ import UserUtil from "Common/UI/Utils/User";
  *              restricted (the reader may see only some events) | warnings
  *   ?role=     owner (default) | viewer (may read events and copy the link,
  *              may not create events or change the link)
+ *   ?publish=  later: "Database upgrade" shows on the Acme Status page, and
+ *              only from 18 October, 09:00 UTC - its Publish on Status Page
+ *              At (#5249) - so All Events says from when under its pages
  *   ?theme=dark   ?lang=de|ja
  *
  * The specs fix the browser's clock at 2026-10-15 10:20 UTC (Thursday), so
@@ -89,6 +93,7 @@ const pageScenario = ["list", "settings"].includes(params.get("page"))
   : "calendar";
 const externalScenario = params.get("external") || "none";
 const readNowScenario = params.get("readNow") || "ok";
+const publishScenario = params.get("publish") === "later" ? "later" : "now";
 
 window.localStorage.removeItem(PREVIOUS_VIEW_STORAGE_KEY);
 
@@ -190,6 +195,18 @@ function monthEvents() {
       startsAt: "2026-10-20T22:00:00.000Z",
       endsAt: "2026-10-21T01:00:00.000Z",
       state: "Scheduled",
+      // ?publish=later: kept off its status page until 18 October.
+      ...(publishScenario === "later"
+        ? {
+            statusPages: [
+              {
+                _id: "60000000-0000-4000-8000-000000000001",
+                name: "Acme Status",
+              },
+            ],
+            publishOnStatusPageAt: "2026-10-18T09:00:00.000Z",
+          }
+        : {}),
     },
     {
       title: "Storage migration",
@@ -239,6 +256,8 @@ function monthEvents() {
       scheduledMaintenanceNumber: index + 1,
       scheduledMaintenanceNumberWithPrefix: `SM-${index + 1}`,
       state: stateNamed(event.state),
+      statusPages: event.statusPages || [],
+      publishOnStatusPageAt: event.publishOnStatusPageAt || null,
     };
   });
 }
@@ -582,8 +601,17 @@ function toModel(event) {
   currentState.color = new Color(event.state.color);
   model.currentScheduledMaintenanceState = currentState;
   model.monitors = [];
-  model.statusPages = [];
+  model.statusPages = (event.statusPages || []).map((item) => {
+    const statusPage = new StatusPage();
+    statusPage._id = item._id;
+    statusPage.name = item.name;
+    return statusPage;
+  });
   model.labels = [];
+  model.isVisibleOnStatusPage = true;
+  if (event.publishOnStatusPageAt) {
+    model.publishOnStatusPageAt = new Date(event.publishOnStatusPageAt);
+  }
   return model;
 }
 

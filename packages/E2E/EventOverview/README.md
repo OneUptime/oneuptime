@@ -68,6 +68,12 @@ says so ("Preview workspace · Synthetic data"). The clock is pinned: all dates 
   with `?alertIds=<alert #311>`.
 - **Scheduled maintenance #58** "Primary database failover drill" with two status pages,
   affected monitors and services, reminders and a feed.
+- **When #58 is published** (`?publish=`, issue #5249): by default right away, as every event
+  before it. `later` keeps it to the team until 19:30 today (it starts at 20:20): its header
+  says it is not on its status pages yet, its 'scheduled' notification waits (Pending) and no
+  feed item says subscribers were told. **Publish Now** writes `publishOnStatusPageAt: null`
+  through `ModelAPI.updateById`, which the fixture records and applies. `past` gives it a
+  publish time that has come (12:00), which its Maintenance Details card lists.
 - **Affected resources** (`?resources=`): by default #1042 has two monitors and two services.
   `many` gives it six monitors (one named "Checkout web journey (synthetic) from eu-west-1 and
   us-east-1", too long for the sidebar), two hosts, a Kubernetes cluster, three services and an
