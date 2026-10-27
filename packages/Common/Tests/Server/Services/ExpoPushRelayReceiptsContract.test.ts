@@ -19,6 +19,7 @@ import PushNotificationService, {
   MAX_EXPO_PUSH_RECEIPT_IDS_PER_REQUEST,
   RelayPushReceiptsResult,
 } from "../../../Server/Services/PushNotificationService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import PushNotificationLogService from "../../../Server/Services/PushNotificationLogService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import PushNotificationLog from "../../../Models/DatabaseModels/PushNotificationLog";
@@ -718,6 +719,11 @@ describe("a send through a relay that answers Expo's other refusals (sendViaRela
   beforeEach(() => {
     logs = [];
     relayAnswer = new HTTPResponse<JSONObject>(200, { success: true }, {});
+
+    // Push is on for the whole server (GlobalConfig.disablePushNotifications).
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(false);
 
     jest
       .spyOn(PushNotificationService, "hasExpoAccessToken")

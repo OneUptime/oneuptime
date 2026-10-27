@@ -14,7 +14,7 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import type { Mock } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 import React, { ReactElement } from "react";
 
 /*
@@ -96,12 +96,27 @@ import ConnectedWorkspaces, {
   ConnectedWorkspacesFetcher,
   REMEMBERED_CONNECTIONS_STORAGE_KEY_PREFIX,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Workspace/ConnectedWorkspaces";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
+import { JSONObject } from "../../../Types/JSON";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import { Tab } from "../../../UI/Components/Tabs/Tab";
+import API from "../../../UI/Utils/API/API";
+import GlobalConfigUtil from "../../../UI/Utils/GlobalConfig";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
 
 let fetcher: Mock<ConnectedWorkspacesFetcher>;
+
+/*
+ * The tabs also wait for the custom channels that are on and for whether the
+ * server has push turned off. Both are answered at once - no channels, push
+ * on - so a read still on the wire when a test looks never leaves the page
+ * on its loader (PushNotificationsTurnedOff.test.tsx has the push answers).
+ */
+let customChannelsRead: SpyInstance<
+  (...args: Parameters<typeof API.post>) => ReturnType<typeof API.post>
+>;
+let fetchVars: SpyInstance<typeof GlobalConfigUtil.fetchVars>;
 
 function connect(...types: Array<WorkspaceType>): void {
   ConnectedWorkspaces.setConnected(PROJECT_ID, types);
@@ -133,11 +148,22 @@ beforeEach(() => {
     return new Promise<Array<WorkspaceType>>((): void => {});
   });
   ConnectedWorkspaces.setFetcher(fetcher);
+  customChannelsRead = jest
+    .spyOn(API, "post")
+    .mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, { channels: [] }, {}) as never,
+    );
+  fetchVars = jest.spyOn(GlobalConfigUtil, "fetchVars").mockResolvedValue({
+    disableUserProjectCreation: false,
+    disablePushNotifications: false,
+  });
   goTo(`/dashboard/${PROJECT_ID}/user-settings/notification-methods`);
 });
 
 afterEach(() => {
   cleanup();
+  customChannelsRead.mockRestore();
+  fetchVars.mockRestore();
   ConnectedWorkspaces.setFetcher(null);
   ConnectedWorkspaces.reset();
 });

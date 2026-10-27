@@ -651,7 +651,12 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
     const selectedMethod: NotificationMethodChoice | undefined = (
       props.notificationMethods || []
     ).find((method: NotificationMethodChoice): boolean => {
-      return method.methodId === selectedId && isSelectableMethod(method);
+      return (
+        method.methodId === selectedId &&
+        isSelectableMethod(method) &&
+        // What the dropdown does not offer, it does not take.
+        (!isPushTurnedOff || method.methodType !== "Push")
+      );
     });
 
     if (!selectedMethod) {

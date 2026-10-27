@@ -177,6 +177,12 @@ export class Service extends DatabaseService<Model> {
    */
   private pushNotificationsTurnedOffCache: InMemoryTTLCache<boolean> =
     new InMemoryTTLCache(1);
+  /*
+   * Moves on each time the copy is dropped, so a read that was on the wire
+   * when the switch was written answers its own caller but never puts the
+   * old value back for the next 10 seconds.
+   */
+  private pushNotificationsTurnedOffGeneration: number = 0;
 
   public constructor() {
     super(Model);
@@ -198,6 +204,8 @@ export class Service extends DatabaseService<Model> {
       return cached;
     }
 
+    const generation: number = this.pushNotificationsTurnedOffGeneration;
+
     const config: Model | null = await this.findOneBy({
       query: {},
       select: { disablePushNotifications: true },
@@ -206,17 +214,21 @@ export class Service extends DatabaseService<Model> {
 
     const value: boolean = Boolean(config?.disablePushNotifications);
 
-    this.pushNotificationsTurnedOffCache.set(
-      key,
-      value,
-      PUSH_NOTIFICATIONS_TURNED_OFF_CACHE_TTL_MS,
-    );
+    // Kept only while no write dropped the copy during the read.
+    if (generation === this.pushNotificationsTurnedOffGeneration) {
+      this.pushNotificationsTurnedOffCache.set(
+        key,
+        value,
+        PUSH_NOTIFICATIONS_TURNED_OFF_CACHE_TTL_MS,
+      );
+    }
 
     return value;
   }
 
   // Drops this server's copy of the push switch, so the next push reads it.
   public forgetPushNotificationsTurnedOff(): void {
+    this.pushNotificationsTurnedOffGeneration++;
     this.pushNotificationsTurnedOffCache.clear();
   }
 

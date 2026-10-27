@@ -1,4 +1,5 @@
 import UserPushAPI from "../../../Server/API/UserPushAPI";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import {
@@ -121,6 +122,10 @@ describe("push devices are for members of the project", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Push is on for the whole server (GlobalConfig.disablePushNotifications).
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(false);
     members = new Set<string>([USER_ID.toString()]);
     membershipReads = [];
 

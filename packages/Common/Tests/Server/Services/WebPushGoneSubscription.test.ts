@@ -1,4 +1,5 @@
 import PushNotificationService from "../../../Server/Services/PushNotificationService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import PushNotificationLogService from "../../../Server/Services/PushNotificationLogService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import PushNotificationLog from "../../../Models/DatabaseModels/PushNotificationLog";
@@ -67,6 +68,10 @@ describe("a web push subscription the push service says is gone", () => {
   let answers: Map<string, Error>;
 
   beforeEach(() => {
+    // Push is on for the whole server (GlobalConfig.disablePushNotifications).
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(false);
     answers = new Map<string, Error>();
     logs = [];
 
