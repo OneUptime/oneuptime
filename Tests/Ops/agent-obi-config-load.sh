@@ -569,8 +569,9 @@ for (const protocol of ["postgres", "mysql", "mssql"]) {
 }
 check(`trace_printer = ${expected.tracePrinter}`, effective.trace_printer === expected.tracePrinter, effective.trace_printer);
 const kube = get(effective, "attributes.kubernetes") || {};
-// ebpf.serviceNameLabels replaces OBI's service.name label list and nothing
-// else: OBI decodes resource_labels onto its defaults key by key.
+// ebpf.serviceNameLabels replaces the service.name label list of OBI and
+// nothing else: OBI decodes resource_labels onto its defaults key by key.
+// (No apostrophes in here: this script is inside single quotes.)
 const OBI_SERVICE_NAME_LABELS = ["app.kubernetes.io/instance", "app.kubernetes.io/name"];
 const resourceLabels = kube.resource_labels || {};
 check(
@@ -579,7 +580,7 @@ check(
   resourceLabels["service.name"],
 );
 check(
-  "attributes.kubernetes.resource_labels service.namespace is still OBI's app.kubernetes.io/part-of",
+  "attributes.kubernetes.resource_labels service.namespace is still the OBI default, app.kubernetes.io/part-of",
   same(resourceLabels["service.namespace"], ["app.kubernetes.io/part-of"]),
   resourceLabels["service.namespace"],
 );
