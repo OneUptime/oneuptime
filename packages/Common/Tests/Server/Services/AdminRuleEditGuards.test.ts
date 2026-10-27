@@ -1818,7 +1818,7 @@ describe("Administrative notification rule edit guards", () => {
           }),
         ),
       ).rejects.toThrow(
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel, Email, or Push notification is required",
       );
     });
 
@@ -2072,7 +2072,7 @@ describe("Administrative notification rule edit guards", () => {
           updatePayload({ patch: { userEmailId: null } }),
         ),
       ).rejects.toThrow(
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel, Email, or Push notification is required",
       );
     });
 

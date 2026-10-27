@@ -1,4 +1,5 @@
 import UserCall from "./Call";
+import UserCustomChannels from "./CustomChannels";
 import UserEmail from "./Email";
 import UserMicrosoftTeams from "./MicrosoftTeams";
 import UserPush from "./Push";
@@ -11,6 +12,11 @@ import {
   getOfferedWorkspaces,
   useWorkspaceConnections,
 } from "../../Utils/Workspace/ConnectedWorkspaces";
+import {
+  CustomNotificationChannelsState,
+  useCustomNotificationChannels,
+} from "../../Utils/CustomNotificationChannels";
+import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
@@ -55,16 +61,40 @@ export function getWorkspaceAppsTab(
   };
 }
 
+/*
+ * The server's custom channels, when any is on: ways to reach the person that
+ * the admin set up for everyone (CustomChannels). With none, there is no tab.
+ */
+export function getCustomChannelsTab(
+  channels: ReadonlyArray<CustomNotificationChannel>,
+): Tab | null {
+  if (channels.length === 0) {
+    return null;
+  }
+
+  return {
+    name: translationKey("Custom Channels"),
+    children: <UserCustomChannels channels={[...channels]} />,
+  };
+}
+
 const NotificationMethodTabs: FunctionComponent = (): ReactElement => {
   const offered: ReadonlyArray<WorkspaceType> | null = getOfferedWorkspaces(
     useWorkspaceConnections(),
   );
 
-  if (!offered) {
+  // Waited for like the workspaces, so no tab appears under the reader.
+  const customChannels: CustomNotificationChannelsState =
+    useCustomNotificationChannels();
+
+  if (!offered || !customChannels.channels) {
     return <PageLoader isVisible={true} />;
   }
 
   const workspaceAppsTab: Tab | null = getWorkspaceAppsTab(offered);
+  const customChannelsTab: Tab | null = getCustomChannelsTab(
+    customChannels.channels,
+  );
 
   const tabs: Array<Tab> = [
     {
@@ -80,6 +110,7 @@ const NotificationMethodTabs: FunctionComponent = (): ReactElement => {
       ),
     },
     ...(workspaceAppsTab ? [workspaceAppsTab] : []),
+    ...(customChannelsTab ? [customChannelsTab] : []),
     {
       name: translationKey("Push Notifications"),
       children: <UserPush />,

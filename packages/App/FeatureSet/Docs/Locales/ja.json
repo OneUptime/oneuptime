@@ -297,6 +297,7 @@
     "Twilio Integration": "Twilio 統合",
     "GitHub Integration": "GitHub 統合",
     "Push Notifications": "プッシュ通知",
+    "Custom Notification Channels": "カスタム通知チャネル",
     "SendGrid Inbound Email": "SendGrid 受信メール",
     "Private Network Access": "プライベートネットワークへのアクセス",
     "Behind a VPN or Firewall": "VPN またはファイアウォールの内側",

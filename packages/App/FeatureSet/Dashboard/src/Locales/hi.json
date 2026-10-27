@@ -35848,5 +35848,19 @@
   "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI आपके लॉग, ट्रेस, मेट्रिक्स, घटनाओं, मॉनिटर और वास्तविक उपयोगकर्ता मॉनिटरिंग पर असली क्वेरी चलाता है — चार्ट और टेबल सीधे बातचीत में दिखाता है — और घटनाएं और अलर्ट बना सकता है या उन्हें स्वीकार कर सकता है, हमेशा आपकी मंज़ूरी से।",
   "Maintenance markers are unavailable.": "रखरखाव मार्कर उपलब्ध नहीं हैं।",
   "Maintenance markers need the uptime history, which did not load.": "रखरखाव मार्करों को अपटाइम इतिहास चाहिए, जो लोड नहीं हुआ।",
-  "You need permission to read scheduled maintenance.": "निर्धारित रखरखाव पढ़ने के लिए आपको अनुमति चाहिए।"
+  "You need permission to read scheduled maintenance.": "निर्धारित रखरखाव पढ़ने के लिए आपको अनुमति चाहिए।",
+  "Add it to your on-call rules to be paged through it.": "Add it to your on-call rules to be paged through it.",
+  "Added To Everyone's Rules At": "Added To Everyone's Rules At",
+  "Already in your on-call rules: your administrator pages everyone through it.": "Already in your on-call rules: your administrator pages everyone through it.",
+  "Custom Channel": "Custom Channel",
+  "Custom Channel ID": "Custom Channel ID",
+  "Custom Channels": "Custom Channels",
+  "Page Everyone": "Page Everyone",
+  "Send test": "Send test",
+  "Send test: {{name}}": "Send test: {{name}}",
+  "Sending a test request to the channel.": "Sending a test request to the channel.",
+  "Sending a test request…": "Sending a test request…",
+  "Ways to reach people that the server's admin adds: each page goes to the channel's URL as a signed JSON request.": "Ways to reach people that the server's admin adds: each page goes to the channel's URL as a signed JSON request.",
+  "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as you.": "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as you.",
+  "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as {{email}}.": "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as {{email}}."
 }

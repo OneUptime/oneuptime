@@ -87,10 +87,13 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * Nobody's rules have it yet. The worker job adds it to them once the
-     * channel is on and pages everyone (AddCustomChannelToEveryonesRules).
+     * Nobody's rules have it yet, whatever the request says: the worker job
+     * adds it to them once the channel is on and pages everyone
+     * (AddCustomChannelToEveryonesRules), and records when it did.
      */
-    createBy.data.addedToEveryonesRulesAt = undefined;
+    delete (createBy.data as unknown as Record<string, unknown>)[
+      "addedToEveryonesRulesAt"
+    ];
 
     return {
       createBy,

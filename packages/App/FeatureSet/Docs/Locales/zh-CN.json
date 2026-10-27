@@ -297,6 +297,7 @@
     "Twilio Integration": "Twilio 集成",
     "GitHub Integration": "GitHub 集成",
     "Push Notifications": "推送通知",
+    "Custom Notification Channels": "自定义通知渠道",
     "SendGrid Inbound Email": "SendGrid 入站邮件",
     "Private Network Access": "私有网络访问",
     "Behind a VPN or Firewall": "位于 VPN 或防火墙之后",

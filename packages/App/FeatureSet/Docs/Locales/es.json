@@ -296,6 +296,7 @@
     "Microsoft Teams Integration": "Integración con Microsoft Teams",
     "GitHub Integration": "Integración con GitHub",
     "Push Notifications": "Notificaciones push",
+    "Custom Notification Channels": "Canales de notificación personalizados",
     "SendGrid Inbound Email": "Correo entrante de SendGrid",
     "Private Network Access": "Acceso a red privada",
     "Behind a VPN or Firewall": "Detrás de una VPN o un cortafuegos",

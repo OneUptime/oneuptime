@@ -1543,6 +1543,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/self-hosted/push-notifications",
       },
       {
+        title: "Custom Notification Channels",
+        url: "/docs/self-hosted/custom-notification-channels",
+      },
+      {
         title: "SendGrid Inbound Email",
         url: "/docs/self-hosted/sendgrid-inbound-email",
       },

@@ -21,6 +21,8 @@ import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import UserSlack from "Common/Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "Common/Models/DatabaseModels/UserMicrosoftTeams";
 import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
+import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
+import { loadCustomNotificationChannels } from "../../Utils/CustomNotificationChannels";
 import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
@@ -82,7 +84,7 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
  * submits nothing and is refused.
  */
 export interface NotificationMethodChoice {
-  /* One of the nine channel names: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook. */
+  /* One of the ten channel names: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel. */
   methodType: string;
   /* The method row's own id — UserSMS._id and so on — as a plain uuid string. */
   methodId: string;
@@ -119,7 +121,8 @@ type MethodForeignKeyColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
-  | "userWebhookId";
+  | "userWebhookId"
+  | "customNotificationChannelId";
 
 interface MethodChannel {
   /* One of the nine channel names OnCallReadinessService puts on the wire. */
@@ -137,6 +140,11 @@ const METHOD_CHANNELS: Array<MethodChannel> = [
   { methodType: "Slack", foreignKeyColumn: "userSlackId" },
   { methodType: "Microsoft Teams", foreignKeyColumn: "userMicrosoftTeamsId" },
   { methodType: "Webhook", foreignKeyColumn: "userWebhookId" },
+  // A channel readiness lists for the person: everybody's, never owned.
+  {
+    methodType: "Custom Channel",
+    foreignKeyColumn: "customNotificationChannelId",
+  },
 ];
 
 type GetForeignKeyColumn = (
@@ -532,6 +540,9 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   const [userWebhooks, setUserWebhooks] = useState<Array<UserWebhook>>([]);
   const [userCalls, setUserCalls] = useState<Array<UserCall>>([]);
   const [userPush, setUserPush] = useState<Array<UserPush>>([]);
+  const [customNotificationChannels, setCustomNotificationChannels] = useState<
+    Array<CustomNotificationChannel>
+  >([]);
 
   const isEditable: boolean = props.isEditable ?? true;
 
@@ -576,6 +587,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           userSlacks: userSlacks,
           userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
           userWebhooks: userWebhooks,
+          customNotificationChannels: customNotificationChannels,
         })
       : getSuppliedDropdownOptions(props.notificationMethods || []);
 
@@ -609,6 +621,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         userSlacks: userSlacks,
         userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
         userWebhooks: userWebhooks,
+        customNotificationChannels: customNotificationChannels,
       });
 
       return;
@@ -1624,6 +1637,18 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
       setUserSlacks(userSlackList.data);
       setUserMicrosoftTeamsAccounts(userMicrosoftTeamsList.data);
       setUserWebhooks(userWebhookList.data);
+
+      /*
+       * The server's custom channels, which nobody owns. Read apart from the
+       * person's own methods so a channel list that could not be read leaves
+       * the rest of the dropdown as it is: it then offers no channel, and the
+       * server has the last word on any that is named.
+       */
+      try {
+        setCustomNotificationChannels(await loadCustomNotificationChannels());
+      } catch {
+        setCustomNotificationChannels([]);
+      }
     };
 
   const init: PromiseVoidFunction = async (): Promise<void> => {

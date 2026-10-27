@@ -25,6 +25,22 @@ import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import UserWebhookService from "./UserWebhookService";
+import CustomNotificationChannelService from "./CustomNotificationChannelService";
+import CustomNotificationChannelDeliveryService from "./CustomNotificationChannelDeliveryService";
+import TeamService from "./TeamService";
+import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
+import OnCallDutyPolicyEscalationRuleService from "./OnCallDutyPolicyEscalationRuleService";
+import UserService from "./UserService";
+import CustomChannelActionToken from "../Utils/OnCall/CustomChannelActionToken";
+import {
+  CUSTOM_CHANNEL_METHOD_LABEL,
+  CustomChannelPerson,
+  CustomChannelRecord,
+  CustomChannelReference,
+  buildCustomChannelPagePayload,
+  getCustomChannelEventFor,
+} from "../../Types/CustomNotificationChannel/CustomNotificationChannelPayload";
+import OneUptimeDate from "../../Types/Date";
 import UserWhatsAppService from "./UserWhatsAppService";
 import WorkspaceUserNotificationService from "./WorkspaceUserNotificationService";
 import WorkspaceNotificationText from "../Utils/Workspace/WorkspaceNotificationText";
@@ -100,6 +116,8 @@ import UserTelegram from "../../Models/DatabaseModels/UserTelegram";
 import UserSlack from "../../Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "../../Models/DatabaseModels/UserMicrosoftTeams";
 import UserWebhook from "../../Models/DatabaseModels/UserWebhook";
+import CustomNotificationChannel from "../../Models/DatabaseModels/CustomNotificationChannel";
+import User from "../../Models/DatabaseModels/User";
 import UserWhatsApp from "../../Models/DatabaseModels/UserWhatsApp";
 import Model from "../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLog from "../../Models/DatabaseModels/UserOnCallLog";
@@ -162,6 +180,14 @@ import EpisodeMemberEmailList, {
   INCIDENT_NUMBER_BADGE,
 } from "../Utils/Mail/EpisodeMemberEmailList";
 
+// The record a page to a custom channel is about, with the words its push would carry.
+interface CustomChannelPagedRecord {
+  title: string;
+  message: string;
+  project: CustomChannelReference;
+  record: CustomChannelRecord;
+}
+
 export interface NotificationMethodDescriptor {
   userEmailId?: ObjectID;
   userSmsId?: ObjectID;
@@ -172,6 +198,7 @@ export interface NotificationMethodDescriptor {
   userMicrosoftTeamsId?: ObjectID;
   userPushId?: ObjectID;
   userWebhookId?: ObjectID;
+  customNotificationChannelId?: ObjectID;
 }
 
 /*
@@ -573,12 +600,13 @@ type ChannelListFunction = () => Array<string>;
 
 /**
  * The channels no project setting can switch off. Push and Email are
- * zero-cost, Webhook is somebody else's endpoint, and Slack / Microsoft Teams
- * ride on the project's own workspace connection at no per-message cost, so
- * nothing gates them — which is what makes "a verified one of these survives"
+ * zero-cost, Webhook is somebody else's endpoint, a Custom Channel is the
+ * installation admin's own service, and Slack / Microsoft Teams ride on the
+ * project's own workspace connection at no per-message cost, so nothing gates
+ * them — which is what makes "a verified one of these survives"
  * a CERTAIN answer to "can this person still be paged" rather than a hopeful
  * one. Kept in step with OnCallReadinessService.isChannelEnabled, which
- * returns true for exactly these five unconditionally.
+ * returns true for exactly these six unconditionally.
  *
  * A FUNCTION rather than a module-level constant, and that is load-bearing
  * rather than stylistic: this module and OnCallReadinessService import each
@@ -597,6 +625,7 @@ const channelsWithNoProjectSwitch: ChannelListFunction = (): Array<string> => {
     ReadinessMethodType.Slack,
     ReadinessMethodType.MicrosoftTeams,
     ReadinessMethodType.Webhook,
+    ReadinessMethodType.CustomChannel,
   ];
 };
 
@@ -735,6 +764,15 @@ export class Service extends ProjectReferencesService<Model> {
           name: true,
           secret: true,
           userId: true,
+        },
+        /*
+         * Its name and whether it is on, and nothing else: a channel has no
+         * owner to check, and its URL and secret are read by the sender
+         * (CustomNotificationChannelDeliveryService) and nowhere else.
+         */
+        customNotificationChannel: {
+          name: true,
+          isEnabled: true,
         },
         userEmail: {
           email: true,
@@ -2700,6 +2738,47 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
+    // send to the custom channel.
+    if (notificationRuleItem.customNotificationChannel?.isEnabled) {
+      const attempted: boolean = await this.deliverCustomChannelPageForRule({
+        notificationRuleItem: notificationRuleItem,
+        options: options,
+        incident: incident,
+        alert: alert,
+        alertEpisode: alertEpisode,
+        incidentEpisode: incidentEpisode,
+        pageAgain: pageAgain,
+      });
+
+      deliveryAttempted = deliveryAttempted || attempted;
+    }
+
+    if (
+      notificationRuleItem.customNotificationChannel &&
+      !notificationRuleItem.customNotificationChannel.isEnabled
+    ) {
+      /*
+       * A channel turned off keeps its rules and sends nothing. Each page
+       * it would have carried says so where the responder and an admin
+       * read it, rather than vanishing.
+       */
+      const notSentRow: UserOnCallLogTimeline = this.buildLogTimelineItem(
+        notificationRuleItem,
+        options,
+      );
+      notSentRow.status = UserNotificationStatus.Error;
+      notSentRow.statusMessage = `Not sent: ${notificationRuleItem.customNotificationChannel.name || "the custom channel"} is turned off.`;
+      notSentRow.customNotificationChannelId =
+        notificationRuleItem.customNotificationChannelId!;
+
+      await UserOnCallLogTimelineService.create({
+        data: notSentRow,
+        props: {
+          isRoot: true,
+        },
+      });
+    }
+
     // send push notification.
     if (
       notificationRuleItem.userPush?.deviceToken &&
@@ -3358,6 +3437,414 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * The custom channel half of deliverNotificationForRule: one request to the
+   * channel's service, about the record the page is about, for the person
+   * the rule belongs to - with the links that service calls back to
+   * acknowledge, escalate or resolve (CustomNotificationChannelPayload).
+   *
+   * The title and message are the ones a push notification carries
+   * (PushNotificationUtil), since a channel most often stands in for push:
+   * the company's own app on the responder's phone.
+   *
+   * Returns whether a delivery was attempted. `false` means the event has no
+   * record to send, and the caller's fell-through guard turns that into a
+   * loud Error row rather than a silent nothing.
+   */
+  private async deliverCustomChannelPageForRule(data: {
+    notificationRuleItem: Model;
+    options: ExecuteNotificationRuleOptions;
+    incident: Incident | null;
+    alert: Alert | null;
+    alertEpisode: AlertEpisode | null;
+    incidentEpisode: IncidentEpisode | null;
+    pageAgain: OnCallPageAgainNotice | undefined;
+  }): Promise<boolean> {
+    const { notificationRuleItem, options } = data;
+
+    const channelId: ObjectID | undefined =
+      notificationRuleItem.customNotificationChannelId;
+    const channelName: string =
+      notificationRuleItem.customNotificationChannel?.name ||
+      "the custom channel";
+
+    if (!channelId) {
+      return false;
+    }
+
+    const page: CustomChannelPagedRecord | null =
+      await this.readCustomChannelPagedRecord(data);
+
+    if (!page) {
+      return false;
+    }
+
+    const logTimelineItem: UserOnCallLogTimeline = this.buildLogTimelineItem(
+      notificationRuleItem,
+      options,
+    );
+    logTimelineItem.status = UserNotificationStatus.Sending;
+    logTimelineItem.statusMessage = `Sending to ${channelName}.`;
+    logTimelineItem.customNotificationChannelId = channelId;
+
+    const updatedLog: UserOnCallLogTimeline =
+      await UserOnCallLogTimelineService.create({
+        data: logTimelineItem,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const { event, recordType } = getCustomChannelEventFor(
+      options.userNotificationEventType,
+    );
+
+    const references: {
+      team?: CustomChannelReference | undefined;
+      onCallPolicy?: CustomChannelReference | undefined;
+      escalationRule?: CustomChannelReference | undefined;
+    } = await this.readCustomChannelReferences(options);
+
+    const payload: JSONObject = buildCustomChannelPagePayload({
+      event: event,
+      notificationId: updatedLog.id!.toString(),
+      sentAt: OneUptimeDate.getCurrentDate(),
+      channel: {
+        id: channelId.toString(),
+        name: notificationRuleItem.customNotificationChannel?.name || "",
+      },
+      title: page.title,
+      message: page.message,
+      project: page.project,
+      team: references.team,
+      user: await this.readCustomChannelPerson(notificationRuleItem.userId!),
+      recordType: recordType,
+      record: page.record,
+      onCallPolicy: references.onCallPolicy,
+      escalationRule: references.escalationRule,
+      isPageAgain: Boolean(data.pageAgain),
+      actions: await CustomChannelActionToken.getActionLinks(updatedLog.id!),
+    });
+
+    CustomNotificationChannelDeliveryService.send({
+      customNotificationChannelId: channelId,
+      eventType: event,
+      payload: payload,
+      projectId: options.projectId,
+      userOnCallLogTimelineId: updatedLog.id!,
+    }).catch(async (err: Error) => {
+      await UserOnCallLogTimelineService.updateOneById({
+        id: updatedLog.id!,
+        data: {
+          status: UserNotificationStatus.Error,
+          statusMessage: err.message || `Error sending to ${channelName}.`,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    });
+
+    return true;
+  }
+
+  // The record a page to a custom channel is about, with its push wording.
+  private async readCustomChannelPagedRecord(data: {
+    options: ExecuteNotificationRuleOptions;
+    incident: Incident | null;
+    alert: Alert | null;
+    alertEpisode: AlertEpisode | null;
+    incidentEpisode: IncidentEpisode | null;
+    pageAgain: OnCallPageAgainNotice | undefined;
+  }): Promise<CustomChannelPagedRecord | null> {
+    const eventType: UserNotificationEventType =
+      data.options.userNotificationEventType;
+
+    if (
+      eventType === UserNotificationEventType.IncidentCreated &&
+      data.incident
+    ) {
+      const incident: Incident = data.incident;
+      const url: string = (
+        await IncidentService.getIncidentLinkInDashboard(
+          incident.projectId!,
+          incident.id!,
+        )
+      ).toString();
+      const projectName: string =
+        incident.project?.name || ProductBrandingText.getProductName();
+      const push: PushNotificationMessage =
+        PushNotificationUtil.createIncidentCreatedNotification({
+          incidentTitle: incident.title || "",
+          projectName: projectName,
+          incidentViewLink: url,
+          ...(incident.incidentNumber !== undefined && {
+            incidentNumber: incident.incidentNumber,
+          }),
+          ...(incident.incidentNumberWithPrefix && {
+            incidentNumberWithPrefix: incident.incidentNumberWithPrefix,
+          }),
+          incidentId: incident.id!.toString(),
+          projectId: incident.projectId!.toString(),
+          pageAgain: data.pageAgain,
+        });
+
+      return {
+        title: push.title || "",
+        message: push.body || "",
+        project: { id: incident.projectId!.toString(), name: projectName },
+        record: {
+          id: incident.id!.toString(),
+          number:
+            incident.incidentNumberWithPrefix ||
+            (incident.incidentNumber ? `#${incident.incidentNumber}` : ""),
+          title: incident.title || "",
+          description: incident.description || "",
+          severity: incident.incidentSeverity?.name || "",
+          state: incident.currentIncidentState?.name || "",
+          url: url,
+        },
+      };
+    }
+
+    if (eventType === UserNotificationEventType.AlertCreated && data.alert) {
+      const alert: Alert = data.alert;
+      const url: string = (
+        await AlertService.getAlertLinkInDashboard(alert.projectId!, alert.id!)
+      ).toString();
+      const projectName: string =
+        alert.project?.name || ProductBrandingText.getProductName();
+      const push: PushNotificationMessage =
+        PushNotificationUtil.createAlertCreatedNotification({
+          alertTitle: alert.title || "",
+          projectName: projectName,
+          alertViewLink: url,
+          ...(alert.alertNumber !== undefined && {
+            alertNumber: alert.alertNumber,
+          }),
+          ...(alert.alertNumberWithPrefix && {
+            alertNumberWithPrefix: alert.alertNumberWithPrefix,
+          }),
+          alertId: alert.id!.toString(),
+          projectId: alert.projectId!.toString(),
+          pageAgain: data.pageAgain,
+        });
+
+      return {
+        title: push.title || "",
+        message: push.body || "",
+        project: { id: alert.projectId!.toString(), name: projectName },
+        record: {
+          id: alert.id!.toString(),
+          number:
+            alert.alertNumberWithPrefix ||
+            (alert.alertNumber ? `#${alert.alertNumber}` : ""),
+          title: alert.title || "",
+          description: alert.description || "",
+          severity: alert.alertSeverity?.name || "",
+          state: alert.currentAlertState?.name || "",
+          url: url,
+        },
+      };
+    }
+
+    if (
+      eventType === UserNotificationEventType.AlertEpisodeCreated &&
+      data.alertEpisode
+    ) {
+      const alertEpisode: AlertEpisode = data.alertEpisode;
+      const url: string = (
+        await AlertEpisodeService.getEpisodeLinkInDashboard(
+          alertEpisode.projectId!,
+          alertEpisode.id!,
+        )
+      ).toString();
+      const projectName: string =
+        alertEpisode.project?.name || ProductBrandingText.getProductName();
+      const push: PushNotificationMessage =
+        PushNotificationUtil.createAlertEpisodeCreatedNotification({
+          alertEpisodeTitle: alertEpisode.title || "",
+          projectName: projectName,
+          alertEpisodeViewLink: url,
+          ...(alertEpisode.episodeNumber !== undefined && {
+            episodeNumber: alertEpisode.episodeNumber,
+          }),
+          ...(alertEpisode.episodeNumberWithPrefix && {
+            episodeNumberWithPrefix: alertEpisode.episodeNumberWithPrefix,
+          }),
+          alertEpisodeId: alertEpisode.id!.toString(),
+          projectId: alertEpisode.projectId!.toString(),
+          pageAgain: data.pageAgain,
+        });
+
+      return {
+        title: push.title || "",
+        message: push.body || "",
+        project: { id: alertEpisode.projectId!.toString(), name: projectName },
+        record: {
+          id: alertEpisode.id!.toString(),
+          number:
+            alertEpisode.episodeNumberWithPrefix ||
+            (alertEpisode.episodeNumber
+              ? `#${alertEpisode.episodeNumber}`
+              : ""),
+          title: alertEpisode.title || "",
+          description: alertEpisode.description || "",
+          severity: alertEpisode.alertSeverity?.name || "",
+          state: alertEpisode.currentAlertState?.name || "",
+          url: url,
+        },
+      };
+    }
+
+    if (
+      eventType === UserNotificationEventType.IncidentEpisodeCreated &&
+      data.incidentEpisode
+    ) {
+      const incidentEpisode: IncidentEpisode = data.incidentEpisode;
+      const url: string = (
+        await IncidentEpisodeService.getEpisodeLinkInDashboard(
+          incidentEpisode.projectId!,
+          incidentEpisode.id!,
+        )
+      ).toString();
+      const projectName: string =
+        incidentEpisode.project?.name || ProductBrandingText.getProductName();
+      const push: PushNotificationMessage =
+        PushNotificationUtil.createIncidentEpisodeCreatedNotification({
+          incidentEpisodeTitle: incidentEpisode.title || "",
+          projectName: projectName,
+          incidentEpisodeViewLink: url,
+          ...(incidentEpisode.episodeNumber !== undefined && {
+            episodeNumber: incidentEpisode.episodeNumber,
+          }),
+          ...(incidentEpisode.episodeNumberWithPrefix && {
+            episodeNumberWithPrefix: incidentEpisode.episodeNumberWithPrefix,
+          }),
+          incidentEpisodeId: incidentEpisode.id!.toString(),
+          projectId: incidentEpisode.projectId!.toString(),
+          pageAgain: data.pageAgain,
+        });
+
+      return {
+        title: push.title || "",
+        message: push.body || "",
+        project: {
+          id: incidentEpisode.projectId!.toString(),
+          name: projectName,
+        },
+        record: {
+          id: incidentEpisode.id!.toString(),
+          number:
+            incidentEpisode.episodeNumberWithPrefix ||
+            (incidentEpisode.episodeNumber
+              ? `#${incidentEpisode.episodeNumber}`
+              : ""),
+          title: incidentEpisode.title || "",
+          description: incidentEpisode.description || "",
+          severity: incidentEpisode.incidentSeverity?.name || "",
+          state: incidentEpisode.currentIncidentState?.name || "",
+          url: url,
+        },
+      };
+    }
+
+    return null;
+  }
+
+  // The person a page to a custom channel is for, as its service is told.
+  private async readCustomChannelPerson(
+    userId: ObjectID,
+  ): Promise<CustomChannelPerson> {
+    const user: User | null = await UserService.findOneById({
+      id: userId,
+      select: {
+        _id: true,
+        name: true,
+        email: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return {
+      id: userId.toString(),
+      name: user?.name?.toString() || "",
+      email: user?.email?.toString() || "",
+    };
+  }
+
+  /*
+   * The team, policy and escalation rule a page came through, by id and
+   * name. Best effort: a name that cannot be read is left empty rather than
+   * failing the page.
+   */
+  private async readCustomChannelReferences(
+    options: ExecuteNotificationRuleOptions,
+  ): Promise<{
+    team?: CustomChannelReference | undefined;
+    onCallPolicy?: CustomChannelReference | undefined;
+    escalationRule?: CustomChannelReference | undefined;
+  }> {
+    const toReference: (
+      id: ObjectID | undefined,
+      name: string | undefined,
+    ) => CustomChannelReference | undefined = (
+      id: ObjectID | undefined,
+      name: string | undefined,
+    ): CustomChannelReference | undefined => {
+      return id ? { id: id.toString(), name: name || "" } : undefined;
+    };
+
+    let teamName: string | undefined = undefined;
+    let policyName: string | undefined = undefined;
+    let escalationRuleName: string | undefined = undefined;
+
+    try {
+      if (options.userBelongsToTeamId) {
+        teamName = (
+          await TeamService.findOneById({
+            id: options.userBelongsToTeamId,
+            select: { _id: true, name: true },
+            props: { isRoot: true },
+          })
+        )?.name;
+      }
+
+      if (options.onCallPolicyId) {
+        policyName = (
+          await OnCallDutyPolicyService.findOneById({
+            id: options.onCallPolicyId,
+            select: { _id: true, name: true },
+            props: { isRoot: true },
+          })
+        )?.name;
+      }
+
+      if (options.onCallPolicyEscalationRuleId) {
+        escalationRuleName = (
+          await OnCallDutyPolicyEscalationRuleService.findOneById({
+            id: options.onCallPolicyEscalationRuleId,
+            select: { _id: true, name: true },
+            props: { isRoot: true },
+          })
+        )?.name;
+      }
+    } catch (err) {
+      logger.error(err);
+    }
+
+    return {
+      team: toReference(options.userBelongsToTeamId, teamName),
+      onCallPolicy: toReference(options.onCallPolicyId, policyName),
+      escalationRule: toReference(
+        options.onCallPolicyEscalationRuleId,
+        escalationRuleName,
+      ),
+    };
+  }
+
+  /*
    * The channels this rule could actually reach the user on, by display name.
    *
    * These are the same gates each channel block opens with, so an empty list
@@ -3415,6 +3902,11 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (notificationRuleItem.userWebhook?.webhookUrl) {
       channels.push("Webhook");
+    }
+
+    // A channel is nobody's to verify: on is the whole gate.
+    if (notificationRuleItem.customNotificationChannel?.isEnabled) {
+      channels.push(CUSTOM_CHANNEL_METHOD_LABEL);
     }
 
     if (
@@ -3703,6 +4195,23 @@ export class Service extends ProjectReferencesService<Model> {
       rule.userMicrosoftTeams = userMicrosoftTeams;
       rule.userMicrosoftTeamsId = userMicrosoftTeams.id!;
       chosen.push({ channelName: "Microsoft Teams", rule: rule });
+    }
+
+    /*
+     * A custom channel that pages everyone costs the project nothing, and its
+     * admin has said everybody is reached through it - which is exactly the
+     * responder with no rule of their own. One that does not page everyone
+     * is a method people choose, so it is used only through their rules.
+     */
+    const channelsPagingEveryone: Array<CustomNotificationChannel> =
+      await CustomNotificationChannelService.getChannelsPagingEveryone();
+
+    for (const channel of channelsPagingEveryone) {
+      const rule: Model = this.buildUnsavedFallbackRule(options);
+      channel.isEnabled = true;
+      rule.customNotificationChannel = channel;
+      rule.customNotificationChannelId = channel.id!;
+      chosen.push({ channelName: CUSTOM_CHANNEL_METHOD_LABEL, rule: rule });
     }
 
     if (chosen.length > 0) {
@@ -5937,7 +6446,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!data.isOptOut && !data.hasNotificationMethod) {
       throw new BadDataException(
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel, Email, or Push notification is required",
       );
     }
   }
@@ -6175,6 +6684,7 @@ export class Service extends ProjectReferencesService<Model> {
         userMicrosoftTeamsId: true,
         userPushId: true,
         userWebhookId: true,
+        customNotificationChannelId: true,
       },
     );
 
@@ -6444,6 +6954,7 @@ export class Service extends ProjectReferencesService<Model> {
         userMicrosoftTeamsId: true,
         userPushId: true,
         userWebhookId: true,
+        customNotificationChannelId: true,
       },
     );
 
@@ -6610,6 +7121,10 @@ export class Service extends ProjectReferencesService<Model> {
     if (descriptor.userWebhookId) {
       rule.userWebhookId = descriptor.userWebhookId;
     }
+
+    if (descriptor.customNotificationChannelId) {
+      rule.customNotificationChannelId = descriptor.customNotificationChannelId;
+    }
     if (descriptor.userPushId) {
       rule.userPushId = descriptor.userPushId;
     }
@@ -6642,6 +7157,11 @@ export class Service extends ProjectReferencesService<Model> {
     }
     if (descriptor.userWebhookId) {
       query["userWebhookId"] = descriptor.userWebhookId;
+    }
+
+    if (descriptor.customNotificationChannelId) {
+      query["customNotificationChannelId"] =
+        descriptor.customNotificationChannelId;
     }
     if (descriptor.userPushId) {
       query["userPushId"] = descriptor.userPushId;
@@ -6820,6 +7340,45 @@ export class Service extends ProjectReferencesService<Model> {
         userEmailId: userEmail.id!,
       },
     });
+
+    await this.addCustomChannelsPagingEveryoneForUser({ projectId, userId });
+  }
+
+  /*
+   * Somebody who joins a project gets every custom channel that pages
+   * everyone in their default rules, as they get their email - the channel
+   * was added to everybody else's when it started paging everyone
+   * (AddCustomChannelToEveryonesRules). Best effort: a channel that cannot
+   * be added must not stop the person joining.
+   */
+  @CaptureSpan()
+  public async addCustomChannelsPagingEveryoneForUser(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<void> {
+    let channels: Array<CustomNotificationChannel> = [];
+
+    try {
+      channels =
+        await CustomNotificationChannelService.getChannelsPagingEveryone();
+    } catch (err) {
+      logger.error(err);
+      return;
+    }
+
+    for (const channel of channels) {
+      try {
+        await this.addDefaultNotificationRulesForVerifiedMethod({
+          projectId: data.projectId,
+          userId: data.userId,
+          notificationMethod: {
+            customNotificationChannelId: channel.id!,
+          },
+        });
+      } catch (err) {
+        logger.error(err);
+      }
+    }
   }
 
   /**
@@ -7426,6 +7985,7 @@ export class Service extends ProjectReferencesService<Model> {
           userSlackId: true,
           userMicrosoftTeamsId: true,
           userWebhookId: true,
+          customNotificationChannelId: true,
         },
         sort: {
           _id: SortOrder.Ascending,

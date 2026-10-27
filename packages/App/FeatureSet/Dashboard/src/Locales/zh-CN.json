@@ -35848,5 +35848,19 @@
   "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI 会对你的日志、追踪、指标、事件、监视器和真实用户监控运行真实查询，并直接显示图表和表格，还可以创建事件和警报或确认它们，始终需经你批准。",
   "Maintenance markers are unavailable.": "维护标记不可用。",
   "Maintenance markers need the uptime history, which did not load.": "维护标记需要可用性历史，但未能加载。",
-  "You need permission to read scheduled maintenance.": "您需要读取计划维护的权限。"
+  "You need permission to read scheduled maintenance.": "您需要读取计划维护的权限。",
+  "Add it to your on-call rules to be paged through it.": "Add it to your on-call rules to be paged through it.",
+  "Added To Everyone's Rules At": "Added To Everyone's Rules At",
+  "Already in your on-call rules: your administrator pages everyone through it.": "Already in your on-call rules: your administrator pages everyone through it.",
+  "Custom Channel": "Custom Channel",
+  "Custom Channel ID": "Custom Channel ID",
+  "Custom Channels": "Custom Channels",
+  "Page Everyone": "Page Everyone",
+  "Send test": "Send test",
+  "Send test: {{name}}": "Send test: {{name}}",
+  "Sending a test request to the channel.": "Sending a test request to the channel.",
+  "Sending a test request…": "Sending a test request…",
+  "Ways to reach people that the server's admin adds: each page goes to the channel's URL as a signed JSON request.": "Ways to reach people that the server's admin adds: each page goes to the channel's URL as a signed JSON request.",
+  "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as you.": "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as you.",
+  "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as {{email}}.": "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as {{email}}."
 }

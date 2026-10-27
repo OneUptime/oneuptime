@@ -617,7 +617,7 @@ describe("UserNotificationRuleService - repeating until acknowledged", () => {
         ruleService().onBeforeCreate(
           createPayload({ columns: { repeatEveryMinutes: 5 } }),
         ),
-        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Email, or Push notification is required",
+        "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel, Email, or Push notification is required",
       );
     });
 
@@ -957,7 +957,7 @@ describe("UserNotificationRuleService - repeating until acknowledged", () => {
           ruleService().onBeforeUpdate(
             updatePayload({ patch: { userPush: null } }),
           ),
-          "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Email, or Push notification is required",
+          "Call, SMS, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel, Email, or Push notification is required",
         );
       });
 

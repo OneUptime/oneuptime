@@ -297,6 +297,7 @@
     "Twilio Integration": "Twilio-integration",
     "GitHub Integration": "GitHub-integration",
     "Push Notifications": "Push-notifikationer",
+    "Custom Notification Channels": "Brugerdefinerede notifikationskanaler",
     "SendGrid Inbound Email": "SendGrid indgående e-mail",
     "Private Network Access": "Adgang til privat netværk",
     "Behind a VPN or Firewall": "Bag en VPN eller firewall",
