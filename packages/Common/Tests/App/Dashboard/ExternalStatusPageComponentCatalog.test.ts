@@ -58,7 +58,11 @@ function answer(status: number, body: string): CatalogAnswer {
   return {
     ok: status >= 200 && status < 300,
     status: status,
-    headers: { get: (): string | null => null },
+    headers: {
+      get: (): string | null => {
+        return null;
+      },
+    },
     body: null,
     text: async (): Promise<string> => {
       return body;
@@ -234,9 +238,7 @@ describe("a page whose provider lists components", () => {
       }),
     ).toEqual([`${GITHUB}/api/v2/components.json`]);
     expect(
-      await problemOf(
-        read(GITHUB, ExternalStatusPageProviderType.IncidentIo),
-      ),
+      await problemOf(read(GITHUB, ExternalStatusPageProviderType.IncidentIo)),
     ).toBe(ExternalStatusPageCatalogProblem.NotRead);
   });
 
@@ -249,7 +251,12 @@ describe("a page whose provider lists components", () => {
 
     expect(
       await problemOf(
-        read(`${GITHUB}/history`, ExternalStatusPageProviderType.Auto, PAGES, asked),
+        read(
+          `${GITHUB}/history`,
+          ExternalStatusPageProviderType.Auto,
+          PAGES,
+          asked,
+        ),
       ),
     ).toBe(ExternalStatusPageCatalogProblem.NotRead);
     expect(
@@ -289,7 +296,13 @@ describe("a request carries nothing of OneUptime's", () => {
 
 describe("a page that cannot be read says why", () => {
   test("no address, or not an http(s) one", async () => {
-    for (const address of ["", "   ", "ftp://status.example.com", "status", "https://"]) {
+    for (const address of [
+      "",
+      "   ",
+      "ftp://status.example.com",
+      "status",
+      "https://",
+    ]) {
       expect({
         address,
         problem: await problemOf(read(address)),
@@ -333,9 +346,13 @@ describe("a page that cannot be read says why", () => {
   test("a page that answers, but in no format that lists components", async () => {
     expect(
       await problemOf(
-        read("https://status.plain.example", ExternalStatusPageProviderType.Auto, {
-          "https://status.plain.example": { answers: {} },
-        }),
+        read(
+          "https://status.plain.example",
+          ExternalStatusPageProviderType.Auto,
+          {
+            "https://status.plain.example": { answers: {} },
+          },
+        ),
       ),
     ).toBe(ExternalStatusPageCatalogProblem.NotRead);
   });
@@ -358,9 +375,14 @@ describe("a page that cannot be read says why", () => {
       init: RequestInit,
     ): Promise<CatalogAnswer> => {
       return new Promise<CatalogAnswer>(
-        (_resolve: (value: CatalogAnswer) => void, reject: (error: unknown) => void) => {
+        (
+          _resolve: (value: CatalogAnswer) => void,
+          reject: (error: unknown) => void,
+        ) => {
           init.signal?.addEventListener("abort", () => {
-            reject(new DOMException("The operation was aborted.", "AbortError"));
+            reject(
+              new DOMException("The operation was aborted.", "AbortError"),
+            );
           });
         },
       );
@@ -388,9 +410,14 @@ describe("a page that cannot be read says why", () => {
       signals.push(init.signal as AbortSignal);
 
       return new Promise<CatalogAnswer>(
-        (_resolve: (value: CatalogAnswer) => void, reject: (error: unknown) => void) => {
+        (
+          _resolve: (value: CatalogAnswer) => void,
+          reject: (error: unknown) => void,
+        ) => {
           init.signal?.addEventListener("abort", () => {
-            reject(new DOMException("The operation was aborted.", "AbortError"));
+            reject(
+              new DOMException("The operation was aborted.", "AbortError"),
+            );
           });
         },
       );
@@ -422,7 +449,11 @@ describe("an answer is read for at most so much", () => {
     return {
       ok: true,
       status: 200,
-      headers: { get: (): string | null => null },
+      headers: {
+        get: (): string | null => {
+          return null;
+        },
+      },
       body: {
         getReader: () => {
           return {
@@ -457,7 +488,9 @@ describe("an answer is read for at most so much", () => {
         status: 200,
         headers: {
           get: (name: string): string | null => {
-            return name === "content-length" ? String(MAX_ANSWER_BYTES + 1) : null;
+            return name === "content-length"
+              ? String(MAX_ANSWER_BYTES + 1)
+              : null;
           },
         },
         body: null,
@@ -499,7 +532,9 @@ describe("an answer is read for at most so much", () => {
         status: 200,
         headers: {
           get: (name: string): string | null => {
-            return name === "content-length" ? String(MAX_ANSWER_BYTES * 2) : null;
+            return name === "content-length"
+              ? String(MAX_ANSWER_BYTES * 2)
+              : null;
           },
         },
         body: null,
@@ -532,12 +567,14 @@ describe("the address a page is read at", () => {
     expect(ExternalStatusPageComponentCatalog.getAddress(url)?.host).toBe(host);
   });
 
-  test.each([[""], ["status"], ["mailto:someone@example.com"], ["javascript:alert(1)"]])(
-    "%p is no address to read",
-    (url: string) => {
-      expect(ExternalStatusPageComponentCatalog.getAddress(url)).toBeNull();
-    },
-  );
+  test.each([
+    [""],
+    ["status"],
+    ["mailto:someone@example.com"],
+    ["javascript:alert(1)"],
+  ])("%p is no address to read", (url: string) => {
+    expect(ExternalStatusPageComponentCatalog.getAddress(url)).toBeNull();
+  });
 
   test("Auto asks the providers in the probe's order; a feed provider, none", () => {
     expect(

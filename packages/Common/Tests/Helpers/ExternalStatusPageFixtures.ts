@@ -262,7 +262,10 @@ export function incidentIoProxyJSON(
         },
       ),
       scheduled_maintenances: [],
-      structure: { id: "01JMDKA0000000000000000000", items: [...ungrouped, ...grouped] },
+      structure: {
+        id: "01JMDKA0000000000000000000",
+        items: [...ungrouped, ...grouped],
+      },
     },
   };
 }

@@ -1,6 +1,9 @@
 import ExternalStatusPageMonitorCriteria from "../../../../../Server/Utils/Monitor/Criteria/ExternalStatusPageMonitorCriteria";
 import FilterCondition from "../../../../../Types/Filter/FilterCondition";
-import { CheckOn, FilterType } from "../../../../../Types/Monitor/CriteriaFilter";
+import {
+  CheckOn,
+  FilterType,
+} from "../../../../../Types/Monitor/CriteriaFilter";
 import ExternalStatusPageMonitorResponse from "../../../../../Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
 import ExternalStatusPageProviderType from "../../../../../Types/Monitor/ExternalStatusPageProviderType";
 import MonitorCriteria from "../../../../../Types/Monitor/MonitorCriteria";
@@ -245,27 +248,29 @@ describe("the incidents a criteria's message names", () => {
   async function message(
     response: Partial<ExternalStatusPageMonitorResponse>,
   ): Promise<string | null> {
-    return ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
-      dataToProcess: {
-        projectId: ObjectID.generate(),
-        monitorId: ObjectID.generate(),
-        monitorStepId: ObjectID.generate(),
-        probeId: ObjectID.generate(),
-        failureCause: "",
-        isOnline: true,
-        externalStatusPageResponse: {
-          isOnline: true,
-          overallStatus: "operational",
-          componentStatuses: [],
-          activeIncidentCount: 0,
-          responseTimeInMs: 100,
+    return ExternalStatusPageMonitorCriteria.isMonitorInstanceCriteriaFilterMet(
+      {
+        dataToProcess: {
+          projectId: ObjectID.generate(),
+          monitorId: ObjectID.generate(),
+          monitorStepId: ObjectID.generate(),
+          probeId: ObjectID.generate(),
           failureCause: "",
-          ...response,
+          isOnline: true,
+          externalStatusPageResponse: {
+            isOnline: true,
+            overallStatus: "operational",
+            componentStatuses: [],
+            activeIncidentCount: 0,
+            responseTimeInMs: 100,
+            failureCause: "",
+            ...response,
+          },
+          monitoredAt: new Date(),
         },
-        monitoredAt: new Date(),
+        criteriaFilter: ACTIVE_INCIDENTS_ABOVE_ZERO,
       },
-      criteriaFilter: ACTIVE_INCIDENTS_ABOVE_ZERO,
-    });
+    );
   }
 
   test.each([
@@ -279,8 +284,13 @@ describe("the incidents a criteria's message names", () => {
     "%p of %p: %p",
     async (names: Array<string>, count: number, expected: string) => {
       expect(
-        await message({ activeIncidentNames: names, activeIncidentCount: count }),
-      ).toBe(`External Status Page Active Incidents was ${count}, above the 0 threshold. ${expected}`);
+        await message({
+          activeIncidentNames: names,
+          activeIncidentCount: count,
+        }),
+      ).toBe(
+        `External Status Page Active Incidents was ${count}, above the 0 threshold. ${expected}`,
+      );
     },
   );
 
@@ -290,7 +300,9 @@ describe("the incidents a criteria's message names", () => {
     );
     expect(
       await message({ activeIncidentCount: 2, activeIncidentNames: [" ", ""] }),
-    ).toBe("External Status Page Active Incidents was 2, above the 0 threshold.");
+    ).toBe(
+      "External Status Page Active Incidents was 2, above the 0 threshold.",
+    );
   });
 
   test("a criteria not met names nothing", async () => {
@@ -328,6 +340,8 @@ describe("the incidents a criteria's message names", () => {
           },
         },
       ),
-    ).toBe("External Status Page Active Incidents was 0, equal to the 0 threshold.");
+    ).toBe(
+      "External Status Page Active Incidents was 0, equal to the 0 threshold.",
+    );
   });
 });

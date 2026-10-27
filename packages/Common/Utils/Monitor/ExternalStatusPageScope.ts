@@ -185,9 +185,8 @@ export default class ExternalStatusPageScope {
   public static apply(
     input: ExternalStatusPageScopeInput,
   ): ExternalStatusPageScopeResult {
-    const componentNames: Array<string> = ExternalStatusPageComponentNames.normalize(
-      input.componentNames,
-    );
+    const componentNames: Array<string> =
+      ExternalStatusPageComponentNames.normalize(input.componentNames);
     const isScoped: boolean =
       Boolean(input.componentGroupName) || componentNames.length > 0;
 
@@ -302,7 +301,8 @@ export default class ExternalStatusPageScope {
       .map((incident: { name: string }): string => {
         const name: string = incident.name.trim();
 
-        return name.length > EXTERNAL_STATUS_PAGE_MAX_REPORTED_INCIDENT_NAME_LENGTH
+        return name.length >
+          EXTERNAL_STATUS_PAGE_MAX_REPORTED_INCIDENT_NAME_LENGTH
           ? `${name.slice(0, EXTERNAL_STATUS_PAGE_MAX_REPORTED_INCIDENT_NAME_LENGTH - 1)}…`
           : name;
       })

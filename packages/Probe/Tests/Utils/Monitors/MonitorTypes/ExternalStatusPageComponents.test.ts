@@ -120,7 +120,10 @@ class FakeStatusHosts {
 
     if (path === `/proxy/${host}`) {
       return incidentIo
-        ? this.json(200, incidentIoProxyJSON(incidentIo.page, incidentIo.incidents))
+        ? this.json(
+            200,
+            incidentIoProxyJSON(incidentIo.page, incidentIo.incidents),
+          )
         : this.json(404, { error: "not found" });
     }
 
@@ -128,7 +131,10 @@ class FakeStatusHosts {
 
     if (path === "/api/v2/status.json") {
       if (atlassian) {
-        return this.json(200, atlassianStatusJSON(atlassian.page, atlassian.status));
+        return this.json(
+          200,
+          atlassianStatusJSON(atlassian.page, atlassian.status),
+        );
       }
 
       // incident.io's pages serve an Atlassian-shaped status of their own.
@@ -145,7 +151,10 @@ class FakeStatusHosts {
 
     if (path === "/api/v2/incidents/unresolved.json") {
       return atlassian
-        ? this.json(200, atlassianUnresolvedJSON(atlassian.page, atlassian.incidents))
+        ? this.json(
+            200,
+            atlassianUnresolvedJSON(atlassian.page, atlassian.incidents),
+          )
         : this.html(404);
     }
 
@@ -209,7 +218,10 @@ beforeEach(() => {
   jest
     .spyOn(axios, "get")
     .mockImplementation(
-      async (url: string, _options?: AxiosRequestConfig): Promise<AxiosResponse> => {
+      async (
+        url: string,
+        _options?: AxiosRequestConfig,
+      ): Promise<AxiosResponse> => {
         hosts.requests.push(url);
 
         const answer: FakeAnswer = hosts.answer(url);
@@ -302,10 +314,13 @@ describe("GitHub's page, watched for Git Operations, Pull Requests, Actions and 
   });
 
   test("an incident of Git Operations and Pull Requests: one incident, named, and their statuses", async () => {
-    serveGitHub([GITHUB_INCIDENTS.gitAndPullRequests, GITHUB_INCIDENTS.copilot], {
-      "Git Operations": "partial_outage",
-      "Pull Requests": "degraded_performance",
-    });
+    serveGitHub(
+      [GITHUB_INCIDENTS.gitAndPullRequests, GITHUB_INCIDENTS.copilot],
+      {
+        "Git Operations": "partial_outage",
+        "Pull Requests": "degraded_performance",
+      },
+    );
 
     const response: ExternalStatusPageMonitorResponse = await check({
       statusPageUrl: `https://${GITHUB_HOST}`,
@@ -617,7 +632,10 @@ function legacyScope(data: {
   componentGroupName: string | undefined;
   componentName: string | undefined;
 }): LegacyResult {
-  const contains: (value: string | undefined, filter: string | undefined) => boolean = (
+  const contains: (
+    value: string | undefined,
+    filter: string | undefined,
+  ) => boolean = (
     value: string | undefined,
     filter: string | undefined,
   ): boolean => {
@@ -625,7 +643,9 @@ function legacyScope(data: {
       return true;
     }
 
-    return Boolean(value) && value!.toLowerCase().includes(filter.toLowerCase());
+    return (
+      Boolean(value) && value!.toLowerCase().includes(filter.toLowerCase())
+    );
   };
 
   const groupOf: (component: FixtureComponent) => string | undefined = (
@@ -757,73 +777,79 @@ describe("a monitor saved with one Component Name Filter watches what it watched
     ],
   };
 
-  test.each(FILTERS)("GitHub's Statuspage, filter %p", async (filter: string | undefined) => {
-    hosts.atlassian.set(GITHUB_HOST, {
-      page: github.page,
-      incidents: github.incidents,
-      status: { indicator: "major", description: "Major System Outage" },
-    });
-
-    for (const group of [undefined, "Core"]) {
-      const response: ExternalStatusPageMonitorResponse = await check({
-        statusPageUrl: `https://${GITHUB_HOST}`,
-        provider: ExternalStatusPageProviderType.AtlassianStatuspage,
-        componentGroupName: group,
-        componentName: filter,
+  test.each(FILTERS)(
+    "GitHub's Statuspage, filter %p",
+    async (filter: string | undefined) => {
+      hosts.atlassian.set(GITHUB_HOST, {
+        page: github.page,
+        incidents: github.incidents,
+        status: { indicator: "major", description: "Major System Outage" },
       });
 
-      expect({
-        filter,
-        group,
-        components: watched(response),
-        activeIncidentCount: response.activeIncidentCount,
-        overallStatus: response.overallStatus,
-      }).toEqual({
-        filter,
-        group,
-        ...legacyScope({
-          page: github.page,
-          incidents: github.incidents,
-          pageOverallStatus: "Major System Outage",
+      for (const group of [undefined, "Core"]) {
+        const response: ExternalStatusPageMonitorResponse = await check({
+          statusPageUrl: `https://${GITHUB_HOST}`,
+          provider: ExternalStatusPageProviderType.AtlassianStatuspage,
           componentGroupName: group,
           componentName: filter,
-        }),
-      });
-      // It keeps its filter, and says it.
-      expect(response.componentName).toBe(filter);
-    }
-  });
+        });
 
-  test.each(GROUPS)("OpenAI's incident.io page, group %p, every filter", async (group: string | undefined) => {
-    hosts.incidentIo.set(OPENAI_HOST, openAi);
+        expect({
+          filter,
+          group,
+          components: watched(response),
+          activeIncidentCount: response.activeIncidentCount,
+          overallStatus: response.overallStatus,
+        }).toEqual({
+          filter,
+          group,
+          ...legacyScope({
+            page: github.page,
+            incidents: github.incidents,
+            pageOverallStatus: "Major System Outage",
+            componentGroupName: group,
+            componentName: filter,
+          }),
+        });
+        // It keeps its filter, and says it.
+        expect(response.componentName).toBe(filter);
+      }
+    },
+  );
 
-    for (const filter of FILTERS) {
-      const response: ExternalStatusPageMonitorResponse = await check({
-        statusPageUrl: `https://${OPENAI_HOST}`,
-        provider: ExternalStatusPageProviderType.IncidentIo,
-        componentGroupName: group,
-        componentName: filter,
-      });
+  test.each(GROUPS)(
+    "OpenAI's incident.io page, group %p, every filter",
+    async (group: string | undefined) => {
+      hosts.incidentIo.set(OPENAI_HOST, openAi);
 
-      expect({
-        filter,
-        group,
-        components: watched(response),
-        activeIncidentCount: response.activeIncidentCount,
-        overallStatus: response.overallStatus,
-      }).toEqual({
-        filter,
-        group,
-        ...legacyScope({
-          page: openAi.page,
-          incidents: openAi.incidents,
-          pageOverallStatus: undefined,
+      for (const filter of FILTERS) {
+        const response: ExternalStatusPageMonitorResponse = await check({
+          statusPageUrl: `https://${OPENAI_HOST}`,
+          provider: ExternalStatusPageProviderType.IncidentIo,
           componentGroupName: group,
           componentName: filter,
-        }),
-      });
-    }
-  });
+        });
+
+        expect({
+          filter,
+          group,
+          components: watched(response),
+          activeIncidentCount: response.activeIncidentCount,
+          overallStatus: response.overallStatus,
+        }).toEqual({
+          filter,
+          group,
+          ...legacyScope({
+            page: openAi.page,
+            incidents: openAi.incidents,
+            pageOverallStatus: undefined,
+            componentGroupName: group,
+            componentName: filter,
+          }),
+        });
+      }
+    },
+  );
 
   test("a stored step, read as the server hands it to the probe, scopes the same", async () => {
     hosts.atlassian.set(GITHUB_HOST, {
@@ -845,7 +871,10 @@ describe("a monitor saved with one Component Name Filter watches what it watched
         { isOnlineCheckRequest: true },
       );
 
-    expect(watched(response!)).toEqual(["Copilot", "Copilot AI Model Providers"]);
+    expect(watched(response!)).toEqual([
+      "Copilot",
+      "Copilot AI Model Providers",
+    ]);
     expect(response!.activeIncidentCount).toBe(2);
     expect(response!.componentNames).toEqual(["*Copilot*"]);
   });

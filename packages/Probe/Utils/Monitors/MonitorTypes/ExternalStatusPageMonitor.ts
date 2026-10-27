@@ -610,9 +610,10 @@ export default class ExternalStatusPageMonitorUtil {
       components: input.components,
       incidents: input.incidents,
       componentGroupName: input.config.componentGroupName,
-      componentNames: MonitorStepExternalStatusPageMonitorUtil.getComponentNames(
-        input.config,
-      ),
+      componentNames:
+        MonitorStepExternalStatusPageMonitorUtil.getComponentNames(
+          input.config,
+        ),
       pageOverallStatus: input.pageOverallStatus,
     });
 

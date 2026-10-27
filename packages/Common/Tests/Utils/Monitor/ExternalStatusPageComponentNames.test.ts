@@ -3,7 +3,10 @@ import ExternalStatusPageComponentNames, {
   EXTERNAL_STATUS_PAGE_MAX_COMPONENT_NAME_LENGTH,
   EXTERNAL_STATUS_PAGE_MAX_COMPONENT_NAMES,
 } from "../../../Utils/Monitor/ExternalStatusPageComponentNames";
-import { GITHUB_PAGE, FixtureComponent } from "../../Helpers/ExternalStatusPageFixtures";
+import {
+  GITHUB_PAGE,
+  FixtureComponent,
+} from "../../Helpers/ExternalStatusPageFixtures";
 import { fastestRun } from "../../Helpers/FastestRun";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { describe, expect, test } from "@jest/globals";
@@ -80,9 +83,12 @@ describe("a name picks the component of exactly that name", () => {
     ["Pull Requests", ["Pull Requests"]],
     ["Actions", ["Actions"]],
     ["Webhooks", ["Webhooks"]],
-  ])("%s picks %p on GitHub's page", (name: string, expected: Array<string>) => {
-    expect(picked(name)).toEqual(expected);
-  });
+  ])(
+    "%s picks %p on GitHub's page",
+    (name: string, expected: Array<string>) => {
+      expect(picked(name)).toEqual(expected);
+    },
+  );
 
   test("case and white space do not count", () => {
     for (const spelling of [
@@ -104,7 +110,10 @@ describe("a name picks the component of exactly that name", () => {
     // GitHub's page lists both; the customer depends on neither.
     expect(picked("Copilot")).toEqual(["Copilot"]);
     expect(
-      ExternalStatusPageComponentNames.matchesComponent("Workers", "Workers KV"),
+      ExternalStatusPageComponentNames.matchesComponent(
+        "Workers",
+        "Workers KV",
+      ),
     ).toBe(false);
     expect(
       ExternalStatusPageComponentNames.matchesComponent("API", "API Requests"),
@@ -133,9 +142,12 @@ describe("a * stands for any text", () => {
     ["P*s", ["Pull Requests", "Packages", "Pages"]],
     ["*", githubNames],
     ["*githubstatus*", ["Visit www.githubstatus.com for more information"]],
-  ])("%s picks %p on GitHub's page", (name: string, expected: Array<string>) => {
-    expect(picked(name)).toEqual(expected);
-  });
+  ])(
+    "%s picks %p on GitHub's page",
+    (name: string, expected: Array<string>) => {
+      expect(picked(name)).toEqual(expected);
+    },
+  );
 
   test("the pieces between stars must come in order", () => {
     expect(
@@ -151,20 +163,21 @@ describe("a * stands for any text", () => {
       ),
     ).toBe(false);
     // A piece found once cannot be both the start and the end.
-    expect(ExternalStatusPageComponentNames.matchesComponent("ab*ab", "ab")).toBe(
-      false,
-    );
+    expect(
+      ExternalStatusPageComponentNames.matchesComponent("ab*ab", "ab"),
+    ).toBe(false);
     expect(
       ExternalStatusPageComponentNames.matchesComponent("ab*ab", "abab"),
     ).toBe(true);
   });
 
   test("matches as a reference matcher does, on twenty thousand names and patterns", () => {
-    const patterns: Array<string> = generatedTexts(20000, 5156, [
-      "a",
-      "b",
-      "*",
-    ], 8);
+    const patterns: Array<string> = generatedTexts(
+      20000,
+      5156,
+      ["a", "b", "*"],
+      8,
+    );
     const texts: Array<string> = generatedTexts(20000, 5157, ["a", "b"], 10);
     const disagreements: Array<string> = [];
 
@@ -256,7 +269,8 @@ describe("the names a monitor keeps", () => {
       many.push(`Component ${index}`);
     }
 
-    const kept: Array<string> = ExternalStatusPageComponentNames.normalize(many);
+    const kept: Array<string> =
+      ExternalStatusPageComponentNames.normalize(many);
 
     expect(kept).toHaveLength(EXTERNAL_STATUS_PAGE_MAX_COMPONENT_NAMES);
     expect(kept[0]).toBe("Component 0");
@@ -265,7 +279,9 @@ describe("the names a monitor keeps", () => {
       "x".repeat(10000),
     ]);
 
-    expect(long[0]).toHaveLength(EXTERNAL_STATUS_PAGE_MAX_COMPONENT_NAME_LENGTH);
+    expect(long[0]).toHaveLength(
+      EXTERNAL_STATUS_PAGE_MAX_COMPONENT_NAME_LENGTH,
+    );
   });
 
   test("compare as their comparable form says", () => {
@@ -278,7 +294,9 @@ describe("the names a monitor keeps", () => {
   });
 
   test("a name with a star is a pattern; one without is a name", () => {
-    expect(ExternalStatusPageComponentNames.isPattern("*us-east-1*")).toBe(true);
+    expect(ExternalStatusPageComponentNames.isPattern("*us-east-1*")).toBe(
+      true,
+    );
     expect(ExternalStatusPageComponentNames.isPattern("Git Operations")).toBe(
       false,
     );
@@ -297,7 +315,9 @@ describe("a monitor saved with one Component Name Filter", () => {
 
   test("with no filter, or one of nothing, watches the whole page", () => {
     for (const value of [undefined, null, "", "   ", 7, "*"]) {
-      expect(ExternalStatusPageComponentNames.fromLegacyName(value)).toEqual([]);
+      expect(ExternalStatusPageComponentNames.fromLegacyName(value)).toEqual(
+        [],
+      );
     }
   });
 
@@ -383,9 +403,9 @@ describe("the one name a probe that has not been upgraded reads", () => {
     expect(ExternalStatusPageComponentNames.toLegacyName(["*us-east-1*"])).toBe(
       "us-east-1",
     );
-    expect(
-      ExternalStatusPageComponentNames.toLegacyName(["Workers*KV"]),
-    ).toBe("Workers");
+    expect(ExternalStatusPageComponentNames.toLegacyName(["Workers*KV"])).toBe(
+      "Workers",
+    );
   });
 
   test("is none for two names or more, nor for no names: such a probe watches the whole page", () => {

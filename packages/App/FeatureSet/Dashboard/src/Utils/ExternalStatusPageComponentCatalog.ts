@@ -123,7 +123,9 @@ const READERS: Record<string, Reader> = {
     ask: (url: string) => Promise<unknown>,
   ): Promise<Array<ExternalStatusPageComponent> | null> => {
     return ExternalStatusPageReading.readAtlassianComponents(
-      await ask(ExternalStatusPageReading.getAtlassianUrls(statusPageUrl).components),
+      await ask(
+        ExternalStatusPageReading.getAtlassianUrls(statusPageUrl).components,
+      ),
     );
   },
   [ExternalStatusPageProviderType.OneUptime]: async (
@@ -188,7 +190,10 @@ export default class ExternalStatusPageComponentCatalog {
     }
 
     // A host the person could mean: a name with a dot, or "localhost".
-    if (!url.hostname || (!url.hostname.includes(".") && url.hostname !== "localhost")) {
+    if (
+      !url.hostname ||
+      (!url.hostname.includes(".") && url.hostname !== "localhost")
+    ) {
       return null;
     }
 

@@ -223,10 +223,7 @@ describe("chosen names that pick no component", () => {
     });
 
     expect(watched(result)).toEqual(["Git Operations"]);
-    expect(result.unmatchedComponentNames).toEqual([
-      "Webhook",
-      "*Kubernetes*",
-    ]);
+    expect(result.unmatchedComponentNames).toEqual(["Webhook", "*Kubernetes*"]);
   });
 
   test("a page that lists no components picks none of them", () => {
@@ -340,7 +337,11 @@ describe("a pattern", () => {
 describe("one name in two groups", () => {
   const cloudflare: ExternalStatusPageContents = atlassian(CLOUDFLARE_PAGE, [
     // The Developer Platform's API, by its id.
-    { id: "i2", name: "Developer Platform API errors", componentIds: ["c8ksm3wq5t2n"] },
+    {
+      id: "i2",
+      name: "Developer Platform API errors",
+      componentIds: ["c8ksm3wq5t2n"],
+    },
   ]);
 
   test("an incident counts for the group's component it affects, told apart by its id", () => {
@@ -370,7 +371,9 @@ describe("one name in two groups", () => {
   test("a page whose components have no ids is read by names", () => {
     const components: Array<ExternalStatusPageComponent> =
       cloudflare.components.map(
-        (component: ExternalStatusPageComponent): ExternalStatusPageComponent => {
+        (
+          component: ExternalStatusPageComponent,
+        ): ExternalStatusPageComponent => {
           return { ...component, key: undefined };
         },
       );
@@ -392,9 +395,11 @@ describe("one name in two groups", () => {
 describe("the overall status of the components in scope", () => {
   function overall(statuses: Array<string>, incidents: number = 0): string {
     return ExternalStatusPageScope.deriveOverallStatus(
-      statuses.map((status: string, index: number): ExternalStatusPageComponent => {
-        return { name: `c${index}`, status: status };
-      }),
+      statuses.map(
+        (status: string, index: number): ExternalStatusPageComponent => {
+          return { name: `c${index}`, status: status };
+        },
+      ),
       incidents,
     );
   }

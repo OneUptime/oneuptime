@@ -91,7 +91,10 @@ describe("MonitorStepExternalStatusPageMonitorUtil", () => {
           ] as unknown as Array<string>,
         });
 
-      expect(parsed.componentNames).toEqual(["Git Operations", "Pull Requests"]);
+      expect(parsed.componentNames).toEqual([
+        "Git Operations",
+        "Pull Requests",
+      ]);
     });
   });
 
@@ -221,13 +224,19 @@ describe("MonitorStepExternalStatusPageMonitorUtil", () => {
           "git operations",
         ]);
 
-      expect(chosen.componentNames).toEqual(["Git Operations", "Pull Requests"]);
+      expect(chosen.componentNames).toEqual([
+        "Git Operations",
+        "Pull Requests",
+      ]);
       expect(chosen.componentName).toBeUndefined();
     });
 
     test("none: the whole page, the old filter gone too", () => {
       const none: MonitorStepExternalStatusPageMonitor =
-        MonitorStepExternalStatusPageMonitorUtil.withComponentNames(monitor, []);
+        MonitorStepExternalStatusPageMonitorUtil.withComponentNames(
+          monitor,
+          [],
+        );
 
       expect(none.componentNames).toEqual([]);
       expect(none.componentName).toBeUndefined();

@@ -87,9 +87,8 @@ export class MonitorStepExternalStatusPageMonitorUtil {
     return {
       ...monitor,
       componentNames: componentNames,
-      componentName: ExternalStatusPageComponentNames.toLegacyName(
-        componentNames,
-      ),
+      componentName:
+        ExternalStatusPageComponentNames.toLegacyName(componentNames),
     };
   }
 

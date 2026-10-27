@@ -75,9 +75,9 @@ describe("the addresses a page is read at", () => {
       ),
     ).toBe("https://status.openai.com:8443/proxy/status.openai.com");
     // An address given without a scheme is read as https.
-    expect(ExternalStatusPageReading.getIncidentIoUrl("status.openai.com")).toBe(
-      "https://status.openai.com/proxy/status.openai.com",
-    );
+    expect(
+      ExternalStatusPageReading.getIncidentIoUrl("status.openai.com"),
+    ).toBe("https://status.openai.com/proxy/status.openai.com");
     expect(ExternalStatusPageReading.getIncidentIoUrl("http://")).toBeNull();
   });
 });
@@ -103,7 +103,9 @@ describe("an Atlassian Statuspage", () => {
       null,
       [],
     ]) {
-      expect(ExternalStatusPageReading.readAtlassianPageStatus(answer)).toBeNull();
+      expect(
+        ExternalStatusPageReading.readAtlassianPageStatus(answer),
+      ).toBeNull();
     }
   });
 
@@ -515,7 +517,11 @@ describe("what a page may list", () => {
     const components: Array<JSONObject> = [];
     const incidents: Array<JSONObject> = [];
 
-    for (let index: number = 0; index < EXTERNAL_STATUS_PAGE_MAX_COMPONENTS + 50; index++) {
+    for (
+      let index: number = 0;
+      index < EXTERNAL_STATUS_PAGE_MAX_COMPONENTS + 50;
+      index++
+    ) {
       components.push({
         id: `c${index}`,
         name: `Component ${index}`,
@@ -523,7 +529,11 @@ describe("what a page may list", () => {
       });
     }
 
-    for (let index: number = 0; index < EXTERNAL_STATUS_PAGE_MAX_INCIDENTS + 50; index++) {
+    for (
+      let index: number = 0;
+      index < EXTERNAL_STATUS_PAGE_MAX_INCIDENTS + 50;
+      index++
+    ) {
       incidents.push({ name: `Incident ${index}`, components: [] });
     }
 

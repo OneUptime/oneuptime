@@ -168,7 +168,9 @@ export default class ExternalStatusPageComponentNames {
    * Whether any of the names picks a component of this name: each name read
    * once for every component a page lists, each component's name once.
    */
-  public static picker(names: Array<string>): (componentName: string) => boolean {
+  public static picker(
+    names: Array<string>,
+  ): (componentName: string) => boolean {
     // Names without a star are looked up; only patterns are matched.
     const exact: Set<string> = new Set();
     const patterns: Array<string> = [];
@@ -194,7 +196,10 @@ export default class ExternalStatusPageComponentNames {
       return (
         exact.has(text) ||
         patterns.some((pattern: string): boolean => {
-          return ExternalStatusPageComponentNames.wildcardMatches(pattern, text);
+          return ExternalStatusPageComponentNames.wildcardMatches(
+            pattern,
+            text,
+          );
         })
       );
     };

@@ -875,9 +875,7 @@ describe("MonitorStepViewModel.getRows — DNS, domain and database monitors", (
      * A monitor saved with one Component Name Filter watches every
      * component whose name contains it: that name between stars.
      */
-    expect(
-      getRow(MonitorType.ExternalStatusPage, "componentNames"),
-    ).toEqual(
+    expect(getRow(MonitorType.ExternalStatusPage, "componentNames")).toEqual(
       expect.objectContaining({
         title: "Components",
         valueType: MonitorStepViewValueType.ArrayOfText,
@@ -886,7 +884,9 @@ describe("MonitorStepViewModel.getRows — DNS, domain and database monitors", (
       }),
     );
     // The filter row it replaced is gone.
-    expect(getRow(MonitorType.ExternalStatusPage, "componentName")).toBeUndefined();
+    expect(
+      getRow(MonitorType.ExternalStatusPage, "componentName"),
+    ).toBeUndefined();
   });
 
   /*

@@ -276,7 +276,9 @@ export default class ExternalStatusPageReading {
    * nests everything under `summary`, and a flattened shape is read too.
    * Null when the answer does not look like an incident.io page.
    */
-  public static readIncidentIo(json: unknown): ExternalStatusPageContents | null {
+  public static readIncidentIo(
+    json: unknown,
+  ): ExternalStatusPageContents | null {
     if (!isRecord(json)) {
       return null;
     }
@@ -522,19 +524,21 @@ export default class ExternalStatusPageReading {
 
     const incidents: Array<ExternalStatusPageIncident> = summary.activeIncidents
       .slice(0, EXTERNAL_STATUS_PAGE_MAX_INCIDENTS)
-      .map((incident: StatusPageSummaryIncident): ExternalStatusPageIncident => {
-        return {
-          name: incident.title || EXTERNAL_STATUS_PAGE_UNNAMED_INCIDENT,
-          affectedComponentNames: incident.affectedResourceIds
-            .map((resourceId: string): string => {
-              return namesById.get(resourceId) || "";
-            })
-            .filter((name: string): boolean => {
-              return Boolean(name);
-            }),
-          affectedComponentKeys: [...incident.affectedResourceIds],
-        };
-      });
+      .map(
+        (incident: StatusPageSummaryIncident): ExternalStatusPageIncident => {
+          return {
+            name: incident.title || EXTERNAL_STATUS_PAGE_UNNAMED_INCIDENT,
+            affectedComponentNames: incident.affectedResourceIds
+              .map((resourceId: string): string => {
+                return namesById.get(resourceId) || "";
+              })
+              .filter((name: string): boolean => {
+                return Boolean(name);
+              }),
+            affectedComponentKeys: [...incident.affectedResourceIds],
+          };
+        },
+      );
 
     return { components: components, incidents: incidents };
   }

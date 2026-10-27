@@ -2504,10 +2504,7 @@ describe("External Status Page Monitor", () => {
         "A name you pick watches the component of exactly that name, ignoring case: `Copilot` on GitHub's page is not `Copilot AI Model Providers`.",
       );
       expect(
-        ExternalStatusPageComponentNames.matchesComponent(
-          "copilot",
-          "Copilot",
-        ),
+        ExternalStatusPageComponentNames.matchesComponent("copilot", "Copilot"),
       ).toBe(true);
       expect(
         ExternalStatusPageComponentNames.matchesComponent(

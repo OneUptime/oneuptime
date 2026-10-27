@@ -83,7 +83,9 @@ function renderForm(
   );
 }
 
-function lastChange(onChange: Mock<OnChange>): MonitorStepExternalStatusPageMonitor {
+function lastChange(
+  onChange: Mock<OnChange>,
+): MonitorStepExternalStatusPageMonitor {
   return onChange.mock.calls[
     onChange.mock.calls.length - 1
   ]![0] as MonitorStepExternalStatusPageMonitor;

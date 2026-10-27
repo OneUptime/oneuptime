@@ -1,8 +1,8 @@
-import { DropdownOption, DropdownOptionGroup } from "Common/UI/Components/Dropdown/Dropdown";
 import {
-  translationKey,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+  DropdownOption,
+  DropdownOptionGroup,
+} from "Common/UI/Components/Dropdown/Dropdown";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import ExternalStatusPageComponentNames from "Common/Utils/Monitor/ExternalStatusPageComponentNames";
 import { ExternalStatusPageComponent } from "Common/Utils/Monitor/ExternalStatusPageReading";
 import { ExternalStatusPageComponentStatusValue } from "Common/Utils/Monitor/ExternalStatusPageComponentStatusUtil";
@@ -185,7 +185,9 @@ export default class ExternalStatusPageComponentsCopy {
   }
 
   // Whether reading the page again may help.
-  public static canTryAgain(problem: ExternalStatusPageCatalogProblem): boolean {
+  public static canTryAgain(
+    problem: ExternalStatusPageCatalogProblem,
+  ): boolean {
     return (
       problem === ExternalStatusPageCatalogProblem.NotRead ||
       problem === ExternalStatusPageCatalogProblem.TimedOut
