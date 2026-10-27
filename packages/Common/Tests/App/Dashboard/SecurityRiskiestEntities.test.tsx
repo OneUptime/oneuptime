@@ -539,7 +539,9 @@ describe("the ranked bars", () => {
   test("a row that opens something opens from anywhere on it; a row that opens nothing is no link", () => {
     for (const token of [
       "after:absolute",
-      "after:-inset-1.5",
+      // Half the 10px between two rows at most: no two rows share a point.
+      "after:-inset-y-1",
+      "after:-inset-x-2",
       "after:z-10",
       "after:content-['']",
       "focus:outline-none",
@@ -579,6 +581,10 @@ describe("the ranked bars", () => {
     ];
 
     expect(linked.className.split(" ")).toContain("relative");
+    // Rows 10px apart: each link's 4px above and below never meet.
+    expect(
+      (linked.parentElement as HTMLElement).className.split(" "),
+    ).toContain("space-y-2.5");
     expect(within(linked).getByRole("link").className).toBe(
       "cursor-pointer " + RANKED_BAR_ROW_LINK_CLASS_NAME,
     );

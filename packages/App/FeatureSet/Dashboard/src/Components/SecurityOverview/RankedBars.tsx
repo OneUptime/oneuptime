@@ -67,12 +67,13 @@ export function getRankedBarTitle(item: RankedBarItem): string | undefined {
  * A row that opens something opens it from anywhere on it - its label, its
  * hint, its count and its bar - not from its label's few letters alone: the
  * link's ::after is stretched over the row (the li is its box), above the
- * bar's track, which is placed too. Under the pointer the label is
- * underlined wherever the row is pointed at, and a keyboard's focus rings
- * the whole row.
+ * bar's track, which is placed too. It reaches 4px above and below the row,
+ * less than half the 10px between two rows, so no two rows ever share a
+ * point. Under the pointer the label is underlined wherever the row is
+ * pointed at, and a keyboard's focus rings the whole row.
  */
 export const RANKED_BAR_ROW_LINK_CLASS_NAME: string =
-  "group/ranked-row block rounded-sm hover:underline focus:outline-none after:absolute after:-inset-1.5 after:z-10 after:rounded-md after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-indigo-500";
+  "group/ranked-row block rounded-sm hover:underline focus:outline-none after:absolute after:-inset-x-2 after:-inset-y-1 after:z-10 after:rounded-md after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-indigo-500";
 
 /*
  * For a label drawn as a box of its own (an inline-block cut short at its
