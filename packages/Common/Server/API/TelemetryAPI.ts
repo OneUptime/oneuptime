@@ -54,6 +54,13 @@ import TraceAggregationService, {
   TraceAnalyticsTableSort,
   parseTraceAnalyticsTableSort,
 } from "../Services/TraceAggregationService";
+import TraceHealthService from "../Services/TraceHealthService";
+import {
+  TraceHealthWindow,
+  readTraceHealthServiceId,
+  resolveTraceHealthWindow,
+} from "../Utils/Telemetry/TraceHealth";
+import { TraceHealthReport } from "../../Types/Telemetry/TraceHealth";
 import ExceptionAggregationService, {
   HistogramBucket as ExceptionHistogramBucket,
   HistogramRequest as ExceptionHistogramRequest,
@@ -1352,6 +1359,99 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         buckets: buckets as unknown as JSONObject,
       });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Trace Health Endpoint ---
+
+/*
+ * The trace health read's log filter: the service, when the caller may read
+ * its logs, and null when they may not - the report then has no log number,
+ * and the card still shows the trace numbers. A caller refused logs outright
+ * (a block with no labels) is answered the same way.
+ */
+async function getTraceHealthLogFilter(
+  databaseProps: DatabaseCommonInteractionProps,
+  serviceId: ObjectID,
+): Promise<TelemetryServiceFilter | null> {
+  let logScope: TelemetryReadScope;
+
+  try {
+    logScope = await TelemetryReadAccess.getScope(Log, databaseProps);
+  } catch (err: unknown) {
+    if (err instanceof NotAuthorizedException) {
+      return null;
+    }
+
+    throw err;
+  }
+
+  if (!TelemetryReadScopeUtil.isReadable(logScope, serviceId)) {
+    return null;
+  }
+
+  return TelemetryReadScopeUtil.toServiceFilter(logScope, [serviceId]);
+}
+
+/*
+ * How complete one service's traces are: the "Trace health" card at the top
+ * of its Traces page (Types/Telemetry/TraceHealth). Guarded, scoped to the
+ * project and windowed as the histogram above is: the caller's span read
+ * scope narrows the service (one they may not read reads nothing), and the
+ * window is the last hour unless the body names one, at most 24 hours wide.
+ */
+router.post(
+  "/telemetry/traces/health",
+  ...requireTraceReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+
+      const serviceId: ObjectID = readTraceHealthServiceId(body["serviceId"]);
+
+      const healthWindow: TraceHealthWindow = resolveTraceHealthWindow({
+        startTime: body["startTime"],
+        endTime: body["endTime"],
+        now: OneUptimeDate.getCurrentDate(),
+      });
+
+      const spanFilter: TelemetryServiceFilter =
+        TelemetryReadScopeUtil.toServiceFilter(
+          await TelemetryReadAccess.getScope(Span, databaseProps),
+          [serviceId],
+        );
+
+      const report: TraceHealthReport = await TraceHealthService.getReport({
+        projectId: databaseProps.tenantId,
+        startTime: healthWindow.startTime,
+        endTime: healthWindow.endTime,
+        spanFilter: spanFilter,
+        logFilter: await getTraceHealthLogFilter(databaseProps, serviceId),
+      });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        report as unknown as JSONObject,
+      );
     } catch (err: unknown) {
       next(err);
     }

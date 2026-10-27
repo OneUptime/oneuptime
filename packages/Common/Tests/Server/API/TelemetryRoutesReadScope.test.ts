@@ -22,6 +22,9 @@ import { LLM_MONITOR_DEFAULT_WINDOW_SECONDS } from "../../../Types/Monitor/Monit
 import BadDataException from "../../../Types/Exception/BadDataException";
 import TelemetryReadAccess from "../../../Server/Utils/Telemetry/TelemetryReadAccess";
 import TelemetrySourceMapService from "../../../Server/Services/TelemetrySourceMapService";
+import TraceHealthService, {
+  TraceHealthRequest,
+} from "../../../Server/Services/TraceHealthService";
 import OwnerTableRegistry from "../../../Server/Types/Database/Permissions/OwnerTableRegistry";
 import ResourceFacetResolver, {
   ResourceFacetEntity,
@@ -1273,6 +1276,121 @@ describe("/telemetry/exceptions/resolve-stack-trace", () => {
 });
 
 /*
+ * The trace health card reads one service, named in the body: its spans
+ * under the caller's span scope, and its logs only when the caller may read
+ * them (null otherwise, and the report has no log number). A service the
+ * caller may not read reads nothing at all.
+ */
+describe("/telemetry/traces/health", () => {
+  interface ExpectedHealthRead {
+    spans: ExpectedFilter;
+    // null: the logs are not read.
+    logs: ExpectedFilter | null;
+  }
+
+  const READ_OF_A: Record<PrincipalName, ExpectedHealthRead> = {
+    "project-wide": {
+      spans: { serviceIds: sortedIds(SERVICE_A), excludedServiceIds: [] },
+      logs: { serviceIds: sortedIds(SERVICE_A), excludedServiceIds: [] },
+    },
+    "label A": {
+      spans: { serviceIds: sortedIds(SERVICE_A), excludedServiceIds: [] },
+      logs: { serviceIds: sortedIds(SERVICE_A), excludedServiceIds: [] },
+    },
+    owned: {
+      spans: { serviceIds: [NO_RESOURCE], excludedServiceIds: [] },
+      logs: null,
+    },
+    "project-wide, label C blocked": {
+      spans: {
+        serviceIds: sortedIds(SERVICE_A),
+        excludedServiceIds: sortedIds(SERVICE_C),
+      },
+      logs: {
+        serviceIds: sortedIds(SERVICE_A),
+        excludedServiceIds: sortedIds(SERVICE_C),
+      },
+    },
+  };
+
+  const READ_OF_C: Record<PrincipalName, ExpectedHealthRead> = {
+    "project-wide": {
+      spans: { serviceIds: sortedIds(SERVICE_C), excludedServiceIds: [] },
+      logs: { serviceIds: sortedIds(SERVICE_C), excludedServiceIds: [] },
+    },
+    "label A": {
+      spans: { serviceIds: [NO_RESOURCE], excludedServiceIds: [] },
+      logs: null,
+    },
+    owned: {
+      spans: { serviceIds: [NO_RESOURCE], excludedServiceIds: [] },
+      logs: null,
+    },
+    "project-wide, label C blocked": {
+      spans: {
+        serviceIds: [NO_RESOURCE],
+        excludedServiceIds: sortedIds(SERVICE_C),
+      },
+      logs: null,
+    },
+  };
+
+  test.each(
+    PRINCIPALS.flatMap(
+      (
+        principalName: PrincipalName,
+      ): Array<[PrincipalName, string, ObjectID, ExpectedHealthRead]> => {
+        return [
+          [principalName, "service A", SERVICE_A, READ_OF_A[principalName]],
+          [principalName, "service C", SERVICE_C, READ_OF_C[principalName]],
+        ];
+      },
+    ),
+  )(
+    "a %s reader asking about %s reads only what they may",
+    async (
+      principalName: PrincipalName,
+      _serviceName: string,
+      serviceId: ObjectID,
+      expected: ExpectedHealthRead,
+    ) => {
+      currentPrincipal = principalFor(principalName, Permission.ProjectMember);
+      const read: Spy = spyOn(TraceHealthService, "getReport");
+      read.mockResolvedValue({
+        startTime: "2026-10-27T10:00:00.000Z",
+        endTime: "2026-10-27T11:00:00.000Z",
+        samplePercent: 100,
+        spanCount: 0,
+        traceCount: 0,
+        orphanSpanShare: null,
+        singleSpanTraceShare: null,
+        logCount: 0,
+        logsLinkedShare: null,
+        hints: [],
+      });
+
+      const result: CallResult = await callRoute({
+        uri: "/telemetry/traces/health",
+        principal: currentPrincipal,
+        body: { serviceId: serviceId.toString() },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.errorResponse).toBeUndefined();
+      expect(read.mock.calls.length).toBe(1);
+
+      const request: TraceHealthRequest = read.mock
+        .calls[0]![0] as TraceHealthRequest;
+
+      expect(filterOf(request.spanFilter)).toEqual(expected.spans);
+      expect(
+        request.logFilter === null ? null : filterOf(request.logFilter),
+      ).toEqual(expected.logs);
+    },
+  );
+});
+
+/*
  * A new /telemetry/* route has to join one of the suites that pin its
  * scope, and has to read through the shared scope (TelemetryReadAccess, or
  * the session replay helpers built on it). Both are checked here, so a read
@@ -1598,6 +1716,8 @@ describe("every /telemetry/* route", () => {
       "this file: profiles have no attributes to scope",
     "/telemetry/exceptions/resolve-stack-trace":
       "this file: frames of a service the caller may not read",
+    "/telemetry/traces/health":
+      "this file: one service's spans, and its logs only when the caller may read them",
   };
 
   // Session replay routes: SessionReplayAPI.test.ts pins their scope.
