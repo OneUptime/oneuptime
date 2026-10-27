@@ -15,6 +15,7 @@ import TeamComplianceSetting from "../../../Models/DatabaseModels/TeamCompliance
 import AuditLogExport from "../../../Models/DatabaseModels/AuditLogExport";
 import BackupRun from "../../../Models/DatabaseModels/BackupRun";
 import BackupSetting from "../../../Models/DatabaseModels/BackupSetting";
+import CustomNotificationChannel from "../../../Models/DatabaseModels/CustomNotificationChannel";
 import CustomRole from "../../../Models/DatabaseModels/CustomRole";
 import CustomRolePermission from "../../../Models/DatabaseModels/CustomRolePermission";
 import TeamCustomRole from "../../../Models/DatabaseModels/TeamCustomRole";
@@ -47,6 +48,8 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     // The Admin Dashboard's Backups (#5241): its settings and its runs.
     [BackupSetting, EnterpriseFeature.Backups],
     [BackupRun, EnterpriseFeature.Backups],
+    // The server's custom notification channels (Settings > Custom Channels).
+    [CustomNotificationChannel, EnterpriseFeature.CustomNotificationChannels],
   ] as Array<[ModelType, EnterpriseFeature]>)(
     "%p is gated by the expected feature",
     (modelType: ModelType, feature: EnterpriseFeature) => {
@@ -83,7 +86,7 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     },
   );
 
-  test("the map holds exactly the SCIM, team compliance, custom role, audit log export and backup tables", () => {
+  test("the map holds exactly the SCIM, team compliance, custom role, audit log export, backup and custom channel tables", () => {
     expect([...EnterpriseEdition.getMappedTableNames()].sort()).toEqual(
       [
         "ProjectSCIM",
@@ -96,6 +99,7 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
         "AuditLogExport",
         "BackupSetting",
         "BackupRun",
+        "CustomNotificationChannel",
       ].sort(),
     );
   });
@@ -164,7 +168,7 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
     );
   });
 
-  test("the registered models marked requiresEnterprise are exactly SCIM, team compliance, custom roles, audit log export and backups", () => {
+  test("the registered models marked requiresEnterprise are exactly SCIM, team compliance, custom roles, audit log export, backups and custom channels", () => {
     const enterpriseTables: Array<string> = [];
 
     for (const modelType of AllModelTypes as Array<ModelType>) {
@@ -187,6 +191,7 @@ describe("EnterpriseEdition.getModelFeature against the real models", () => {
         "AuditLogExport",
         "BackupSetting",
         "BackupRun",
+        "CustomNotificationChannel",
       ].sort(),
     );
   });

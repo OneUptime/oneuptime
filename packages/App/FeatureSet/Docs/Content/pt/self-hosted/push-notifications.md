@@ -7,6 +7,7 @@ O OneUptime alerta as pessoas no celular pelo app **OneUptime On-Call**, e no na
 - [Abra o firewall](#acesso-de-rede): Os endereços que o seu servidor e os dispositivos da sua equipe alcançam.
 - [Toque mesmo no modo silencioso](#alertas-críticos-de-plantão-ignorando-o-modo-silencioso): Faça os alertas de plantão tocarem num celular silenciado.
 - [Corrija pushes que nunca chegam](#solução-de-problemas): O que significa cada erro do Expo.
+- [Desative o push](#desativando-o-push-para-o-servidor-inteiro): Não envie nada pelo Expo, pelo relay nem pelos navegadores.
 :::
 
 ## Como funciona
@@ -118,6 +119,19 @@ A conectividade dos dispositivos é um requisito à parte. Dispositivos iOS prec
 :::
 
 Para os pushes móveis, o OneUptime também lê o recibo de entrega do Expo cerca de 15 minutos depois de cada push: um push que nunca chegou ao dispositivo aparece então como não entregue no log de push e, para um alerta de plantão, na linha do tempo do plantão.
+
+## Desativando o push para o servidor inteiro
+
+Se nada pode sair da sua rede pelo Expo, pelo relay de push ou pelo serviço de push de um navegador, um administrador master pode desativar o push em **Admin Dashboard > Configurações > Push Notifications**: desative **Send push notifications** e confirme.
+
+Enquanto o push estiver desativado:
+
+- Nada é enviado por push a celulares ou navegadores, em nenhum projeto.
+- Nenhum dispositivo pode ser registrado. A aba **Push Notifications** de cada pessoa, em **Configurações do usuário > Métodos de notificação**, diz que o push está desativado, e as regras de plantão não oferecem dispositivos de push.
+- Um alerta por uma regra de push não é enviado. O registro de plantão da pessoa diz `Push notification not sent: Push notifications are turned off on this server.`
+- A prontidão do plantão conta os dispositivos de push como inutilizáveis, e a alternativa os ignora. Quem tem um dispositivo de push como único método verificado aparece como inacessível.
+
+Para continuar alcançando as pessoas no celular, adicione um [canal personalizado](/docs/self-hosted/custom-notification-channels) para o seu próprio app ou gateway. Cada servidor do OneUptime lê o interruptor de novo em até 10 segundos depois de uma mudança. Quando o push é ativado de novo, os dispositivos são registrados de novo pelo app móvel na próxima vez que ele abrir, ou pelo navegador.
 
 ## Alertas críticos de plantão (ignorando o modo silencioso)
 

@@ -244,6 +244,7 @@ import {
   PROJECT_FEED_PUBLISH_ROUTE,
   PROJECT_FEED_ROTATE_ROUTE,
   PROJECT_FEED_ROUTE,
+  READ_EVERY_SCHEDULE_MESSAGE,
   ROTATE_LOCK_NAMESPACE,
   ROTATE_LOCK_TIMEOUT_MS,
   SCHEDULE_FEED_CHANGE_REFUSAL,
@@ -779,6 +780,7 @@ let tryAcquireRenderSlot: jest.SpyInstance;
 let releaseRenderSlot: jest.SpyInstance;
 
 let scheduleModelFindOneBy: jest.SpyInstance;
+let readsEveryScheduleSpy: jest.SpyInstance;
 let semaphoreLock: jest.SpyInstance;
 let semaphoreRelease: jest.SpyInstance;
 
@@ -1002,6 +1004,15 @@ beforeEach(() => {
   scheduleModelFindOneBy = jest
     .spyOn(OnCallDutyPolicyScheduleService, "findOneBy")
     .mockResolvedValue({ id: ObjectID.generate() } as never);
+
+  /*
+   * Whether the caller reads every schedule of the project, which the
+   * project-wide link's routes ask first. The default is "they do";
+   * OnCallCalendarFeedPermissions.test.ts runs the rule itself.
+   */
+  readsEveryScheduleSpy = jest
+    .spyOn(OnCallDutyPolicyScheduleService, "readsEveryRecordInProject")
+    .mockResolvedValue(true);
 
   purgeForUser = jest
     .spyOn(OnCallCalendarFeedCache, "purgeForUser")
@@ -4519,6 +4530,81 @@ describe("project-feed session routes", () => {
 
     expect(result.status).toBe(404);
     expect(projectRotate).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The link shows every schedule of the project, while its row names no
+   * schedule: a reader held to some labels reaches the row, and must not
+   * reach the link.
+   */
+  test("GET /current for a reader who may not read every schedule: 200, the reason, and nothing of the link", async () => {
+    const token: string = CalendarFeedToken.mint();
+    const row: FeedRowFixture = projectRow({
+      projectId,
+      tokenHash: CalendarFeedToken.hash(token),
+    });
+
+    projectFindOneBy.mockImplementation(lookupFrom([row]) as never);
+    projectFindOneById.mockResolvedValue({
+      id: row.id,
+      token,
+      tokenHash: row.tokenHash,
+    } as never);
+    readsEveryScheduleSpy.mockResolvedValue(false);
+
+    const result: HttpResult = await request(
+      `${API_PREFIX}${PROJECT_FEED_CURRENT_ROUTE}`,
+    );
+
+    expect(result.status).toBe(200);
+
+    const status: Record<string, unknown> = json(result);
+
+    expect(status["refusedReason"]).toBe(READ_EVERY_SCHEDULE_MESSAGE);
+    expect(status["exists"]).toBe(false);
+    expect(status["feedId"]).toBeNull();
+    expect(status["urls"]).toBeNull();
+    expect(status["tokenHint"]).toBeNull();
+    expect(result.body).not.toContain(token);
+    expect(projectFindOneBy).not.toHaveBeenCalled();
+    expect(projectFindOneById).not.toHaveBeenCalled();
+  });
+
+  test("the rule is asked with the caller's own props", async () => {
+    await request(`${API_PREFIX}${PROJECT_FEED_CURRENT_ROUTE}`);
+
+    const asked: DatabaseCommonInteractionProps = readsEveryScheduleSpy.mock
+      .calls[0]![0] as DatabaseCommonInteractionProps;
+
+    expect(asked.isRoot).toBeUndefined();
+    expect(String(asked.userId)).toBe(userId.toString());
+  });
+
+  test("GET /current for a reader of every schedule says nothing of a refusal", async () => {
+    const status: Record<string, unknown> = json(
+      await request(`${API_PREFIX}${PROJECT_FEED_CURRENT_ROUTE}`),
+    );
+
+    expect(status["refusedReason"]).toBeUndefined();
+  });
+
+  test("POST /publish and /rotate refuse a reader who may not read every schedule, and write nothing", async () => {
+    const row: FeedRowFixture = projectRow({ projectId });
+
+    projectFindOneBy.mockImplementation(lookupFrom([row]) as never);
+    readsEveryScheduleSpy.mockResolvedValue(false);
+
+    for (const uri of [PROJECT_FEED_PUBLISH_ROUTE, PROJECT_FEED_ROTATE_ROUTE]) {
+      const result: HttpResult = await postJson(`${API_PREFIX}${uri}`);
+
+      expect(result.status).toBe(400);
+      expect(result.body).toContain(READ_EVERY_SCHEDULE_MESSAGE);
+    }
+
+    expect(projectCreate).not.toHaveBeenCalled();
+    expect(projectUpdateOneBy).not.toHaveBeenCalled();
+    expect(projectRotate).not.toHaveBeenCalled();
+    expect(purgeForProject).not.toHaveBeenCalled();
   });
 
   test("the three POST routes are 415 without JSON", async () => {

@@ -51,6 +51,7 @@ Deze pagina beschrijft wat elke editie bevat, hoe u de Enterprise Edition draait
 | **Query Console** van het beheer | Nee | Ja | Niet beschikbaar |
 | Health-alerts voor PostgreSQL en Valkey (Redis) | Nee | Ja | Niet van toepassing |
 | [Back-ups](/docs/installation/backups) van PostgreSQL en ClickHouse naar uw eigen opslag, volgens een schema, met terugzetten | Nee | Ja | Niet van toepassing |
+| [Aangepaste meldingskanalen](/docs/self-hosted/custom-notification-channels): mensen oproepen via uw eigen dienst, zoals de app van uw bedrijf | Nee | Ja | Niet van toepassing |
 | Capaciteitsweergave van ClickHouse, capaciteitsalerts en automatisch opschonen van de schijf | Ja | Ja | Niet van toepassing |
 | Migratiestatus, supportbundel en globale probes in het Admin-dashboard | Ja | Ja | Niet van toepassing |
 | Beheer van de Enterprise-licentie, de plaatsen en de instanties | Nee | Ja | Niet van toepassing |
@@ -194,6 +195,7 @@ Wat stopt als een licentie afloopt:
 - **Bewaar-overschrijvingen gelden niet meer.** Nieuwe telemetrie wordt bewaard volgens de standaardbewaartermijn van het project. Telemetrie die al is opgeslagen, houdt de bewaartermijn waarmee ze is geschreven. Via de API kunt u een overschrijving nog wel wissen, maar niet instellen.
 - **Statuspagina's tonen weer Powered by OneUptime.** Een pagina die de regel verbergt, toont hem tot er een licentie is geactiveerd. De instelling blijft bewaard.
 - **Geplande back-ups stoppen.** Er wordt geen nieuwe back-up gemaakt. Back-ups die al zijn gemaakt, blijven op hun bestemming, en u kunt ze nog steeds terugzetten en verwijderen.
+- **Aangepaste kanalen stoppen.** Er wordt geen oproep of melding naar een aangepast kanaal gestuurd, en in bereikbaarheidsregels wordt er geen aangeboden. De kanalen en de regels die ze gebruiken, blijven bewaard, en u kunt een kanaal nog steeds verwijderen.
 
 Wat **niet** stopt:
 

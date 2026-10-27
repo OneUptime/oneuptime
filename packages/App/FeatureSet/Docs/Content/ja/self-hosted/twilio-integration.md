@@ -177,6 +177,7 @@ SMS で確認した番号は、2 つ目のコードなしで通話用にも確�
 :::cards
 - [着信ポリシー](/docs/on-call/incoming-call-policy): Twilio の番号を通じて、発信者がオンコールのエンジニアにつながるようにします。
 - [エスカレーションルール](/docs/on-call/escalation-rules): 各レベルで誰に、SMS、通話などのどの方法で通知するかを決めます。
+- [SMS・通話ゲートウェイ](/docs/self-hosted/sms-and-call-gateway): Twilio の代わりに独自のプロバイダーを通じて SMS と通話を送信します。
 - [SMTP](/docs/emails/smtp): メールも自分のメールサーバーから送信します。
 - [プライベートネットワークアクセス](/docs/self-hosted/private-network-access): ワークフローと Webhook から社内ツールに到達できるようにします。
 :::

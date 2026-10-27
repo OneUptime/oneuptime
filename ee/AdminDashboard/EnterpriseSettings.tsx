@@ -6,6 +6,7 @@ import {
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import AuditLogExportPlugins from "./AuditLogExport/Plugins";
 import BackupsPlugins from "./Backups/Plugins";
+import CustomChannelsPlugins from "./CustomChannels/Plugins";
 import WhiteLabelPlugins from "./WhiteLabel/Plugins";
 
 /*
@@ -25,6 +26,7 @@ type SettingsArea = Pick<
 export const ENTERPRISE_SETTINGS_AREAS: ReadonlyArray<SettingsArea> = [
   AuditLogExportPlugins,
   BackupsPlugins,
+  CustomChannelsPlugins,
   WhiteLabelPlugins,
 ];
 

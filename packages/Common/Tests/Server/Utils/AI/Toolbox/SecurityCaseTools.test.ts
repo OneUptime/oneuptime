@@ -28,6 +28,9 @@ import {
   ToolExecutionResult,
 } from "../../../../../Server/Utils/AI/Toolbox/ToolTypes";
 import { securityCaseGroupingKey } from "../../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
+import TelemetryReadAccess from "../../../../../Server/Utils/Telemetry/TelemetryReadAccess";
+import { TelemetryServiceFilter } from "../../../../../Server/Utils/Telemetry/TelemetryReadScope";
+import SecurityEvent from "../../../../../Models/AnalyticsModels/SecurityEvent";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import SecurityCase from "../../../../../Models/DatabaseModels/SecurityCase";
 import SecurityCaseNote from "../../../../../Models/DatabaseModels/SecurityCaseNote";
@@ -449,6 +452,33 @@ describe("security_entity_activity", () => {
       (call["endTime"] as Date).getTime() -
         (call["startTime"] as Date).getTime(),
     ).toBe(DEFAULT_ACTIVITY_HOURS * 3600 * 1000);
+  });
+
+  /*
+   * The read builds its own SQL, so it is handed the sources whose events
+   * the person asking may read - their scope, worked out as a read of the
+   * events themselves would be (SecurityEventServiceEntityActivity pins the
+   * SQL it becomes).
+   */
+  test("reads only the sources the person asking may read", async () => {
+    const filter: TelemetryServiceFilter = {
+      serviceIds: [new ObjectID("12345678-1234-4234-8234-123456789abc")],
+    };
+    const scope: jest.SpyInstance = jest
+      .spyOn(TelemetryReadAccess, "getServiceFilter")
+      .mockResolvedValue(filter);
+    const activity: jest.SpyInstance = jest
+      .spyOn(SecurityEventService, "findObservableActivity")
+      .mockResolvedValue([]);
+    const ctx: ToolContext = context();
+
+    await SecurityEntityActivityTool.execute({ values: ["deploy"] }, ctx);
+
+    expect(scope).toHaveBeenCalledWith({
+      modelType: SecurityEvent,
+      props: ctx.props,
+    });
+    expect(callArg(activity)["serviceFilter"]).toBe(filter);
   });
 });
 

@@ -100,6 +100,13 @@ export const ENTERPRISE_OWNED_JOB_NAMES: ReadonlyArray<string> = [
    * repeatable definition in Redis.
    */
   "Backup:RunBackups",
+  /*
+   * Adds every custom channel that pages everyone to everybody's on-call
+   * rules. CustomNotificationChannelService enqueues it by this name, and an
+   * installation that moves back to the Community Edition keeps the
+   * repeatable definition in Redis.
+   */
+  "OnCallDutyPolicy:AddCustomChannelToEveryonesRules",
 ];
 
 export const DEFAULT_ENTERPRISE_INIT_TIMEOUT_IN_MS: number = 30 * 1000;

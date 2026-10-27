@@ -581,6 +581,36 @@ describe.each(GENERATE_ROUTES)(
 );
 
 /*
+ * The draft is written from what its caller may read: every route builds
+ * its context for the caller (readerProps), so the notes, the channel's
+ * discussion and an episode's incidents are read as they may read them
+ * (AiDraftContextReader.test.ts pins what that keeps out).
+ */
+describe.each(GENERATE_ROUTES)(
+  "POST $uri - written from what the caller may read",
+  (route: GenerateRoute) => {
+    test("builds the context for the caller, with their own props", async () => {
+      const caller: DatabaseCommonInteractionProps = adminProps(PROJECT_ID);
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue(caller);
+      const stubs: RouteStubs = route.stub(PROJECT_ID);
+
+      await callRoute(route);
+
+      expect(stubs.contextBuild).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          stubs.contextBuild.mock.calls[0]![0] as {
+            readerProps?: DatabaseCommonInteractionProps;
+          }
+        ).readerProps,
+      ).toBe(caller);
+    });
+  },
+);
+
+/*
  * A project API key holding Project Admin in `tenantId`: what
  * getDatabaseCommonInteractionProps returns for a key - no userId, userType
  * API, and the permissions ProjectMiddleware attached to the key itself.

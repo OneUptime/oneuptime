@@ -11,6 +11,8 @@ import OneUptimeDate from "../../../Types/Date";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { LLMMessage } from "../LLM/LLMService";
 import PromptText from "../../../Utils/AI/PromptText";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { ContextRows, readContextRows } from "./ContextRead";
 
 export interface AlertContextData {
   alert: Alert;
@@ -28,6 +30,12 @@ export default class AlertAIContextBuilder {
   @CaptureSpan()
   public static async buildAlertContext(data: {
     alertId: ObjectID;
+    /*
+     * The person the draft is for (Generate with AI): the alert's internal
+     * notes are read as they may read them (readContextRows). None:
+     * OneUptime's own read, of everything.
+     */
+    readerProps?: DatabaseCommonInteractionProps | undefined;
   }): Promise<AlertContextData> {
     const alert: Alert | null = await AlertService.findOneById({
       id: data.alertId,
@@ -102,38 +110,43 @@ export default class AlertAIContextBuilder {
         },
       });
 
-    // Fetch internal notes
-    const internalNotes: Array<AlertInternalNote> =
-      await AlertInternalNoteService.findBy({
-        query: {
-          alertId: data.alertId,
-        },
-        select: {
-          _id: true,
-          note: true,
-          createdAt: true,
-          postedAt: true,
-          savedFromChatMessage: true,
-          createdByUser: {
-            name: true,
-            email: true,
-          },
-        },
-        // In the order they belong in: a saved chat message when it was written.
-        sort: {
-          postedAt: SortOrder.Ascending,
-        },
-        limit: 100,
-        skip: 0,
-        props: {
-          isRoot: true,
+    // Fetch internal notes, as the reader may read them
+    const internalNotes: ContextRows<AlertInternalNote> =
+      await readContextRows<AlertInternalNote>({
+        readerProps: data.readerProps,
+        read: (
+          props: DatabaseCommonInteractionProps,
+        ): Promise<Array<AlertInternalNote>> => {
+          return AlertInternalNoteService.findBy({
+            query: {
+              alertId: data.alertId,
+            },
+            select: {
+              _id: true,
+              note: true,
+              createdAt: true,
+              postedAt: true,
+              savedFromChatMessage: true,
+              createdByUser: {
+                name: true,
+                email: true,
+              },
+            },
+            // In the order they belong in: a saved chat message when it was written.
+            sort: {
+              postedAt: SortOrder.Ascending,
+            },
+            limit: 100,
+            skip: 0,
+            props: props,
+          });
         },
       });
 
     return {
       alert,
       stateTimeline,
-      internalNotes,
+      internalNotes: internalNotes.rows,
     };
   }
 

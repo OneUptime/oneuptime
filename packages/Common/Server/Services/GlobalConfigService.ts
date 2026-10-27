@@ -25,6 +25,33 @@ import TwilioConfigWrite, {
   TwilioUseAndNumbers,
 } from "../../Types/CallAndSMS/TwilioConfigWrite";
 import { GLOBAL_TWILIO_CONFIG_USE_SELECT } from "../Utils/TwilioConfigSelect";
+import CallAndSmsProviders, {
+  CALL_AND_SMS_GATEWAY_URL_TITLE,
+  DEFAULT_CALL_AND_SMS_PROVIDER,
+} from "../../Types/CallAndSMS/CallAndSmsProvider";
+import SSRFProtection from "../Utils/SSRFProtection";
+import URL from "../../Types/API/URL";
+import crypto from "crypto";
+
+/*
+ * How long a server keeps whether push notifications are turned off before
+ * it reads the switch again: the push sender asks for every push. A write
+ * drops this server's copy at once; another server's runs out within this.
+ */
+export const PUSH_NOTIFICATIONS_TURNED_OFF_CACHE_TTL_MS: number = 10_000;
+
+/*
+ * A gateway's signing secret: 32 random bytes as 64 hex digits, as a custom
+ * channel's is (CustomNotificationChannelService.generateSecret).
+ */
+const CALL_AND_SMS_GATEWAY_SECRET_BYTES: number = 32;
+
+// The gateway's columns, stored or a write's.
+interface CallAndSmsGatewayColumns {
+  callAndSmsProvider?: unknown;
+  callAndSmsGatewayUrl?: unknown;
+  callAndSmsGatewaySecret?: unknown;
+}
 
 // The columns of the server's Twilio account - stored, or a write's - its numbers' check reads.
 interface TwilioAccountColumns {
@@ -144,9 +171,73 @@ export class Service extends DatabaseService<Model> {
   private telegramWebhookSecretTokenLoad:
     | TelegramWebhookSecretTokenLoad
     | undefined = undefined;
+  /*
+   * This server's copy of whether push notifications are turned off for the
+   * whole server (GlobalConfig.disablePushNotifications), for
+   * PUSH_NOTIFICATIONS_TURNED_OFF_CACHE_TTL_MS, dropped when it is written.
+   */
+  private pushNotificationsTurnedOffCache: InMemoryTTLCache<boolean> =
+    new InMemoryTTLCache(1);
+  /*
+   * Moves on each time the copy is dropped, so a read that was on the wire
+   * when the switch was written answers its own caller but never puts the
+   * old value back for the next 10 seconds.
+   */
+  private pushNotificationsTurnedOffGeneration: number = 0;
 
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Whether push notifications are turned off for the whole server. Throws
+   * when it cannot be read, and keeps nothing: the push sender refuses
+   * rather than take a failed read for "on", since the switch is there for
+   * installations whose rules let nothing out through the push services.
+   */
+  @CaptureSpan()
+  public async getPushNotificationsTurnedOff(): Promise<boolean> {
+    const key: string = "global";
+    const cached: boolean | undefined =
+      this.pushNotificationsTurnedOffCache.get(key);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const generation: number = this.pushNotificationsTurnedOffGeneration;
+
+    const config: Model | null = await this.findOneBy({
+      query: {},
+      select: { disablePushNotifications: true },
+      props: { isRoot: true },
+    });
+
+    const value: boolean = Boolean(config?.disablePushNotifications);
+
+    // Kept only while no write dropped the copy during the read.
+    if (generation === this.pushNotificationsTurnedOffGeneration) {
+      this.pushNotificationsTurnedOffCache.set(
+        key,
+        value,
+        PUSH_NOTIFICATIONS_TURNED_OFF_CACHE_TTL_MS,
+      );
+    }
+
+    return value;
+  }
+
+  // Drops this server's copy of the push switch, so the next push reads it.
+  public forgetPushNotificationsTurnedOff(): void {
+    this.pushNotificationsTurnedOffGeneration++;
+    this.pushNotificationsTurnedOffCache.clear();
+  }
+
+  // A new signing secret for the server's SMS and call gateway.
+  public static generateCallAndSmsGatewaySecret(): string {
+    return crypto
+      .randomBytes(CALL_AND_SMS_GATEWAY_SECRET_BYTES)
+      .toString("hex");
   }
 
   /*
@@ -519,6 +610,173 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * What the server sends its SMS and calls through (Twilio, or its own
+   * gateway - Types/CallAndSMS/CallAndSmsProvider) must be one of the two.
+   */
+  private assertCallAndSmsProviderIsValid(
+    data: CreateBy<Model>["data"] | UpdateBy<Model>["data"],
+  ): void {
+    const error: string | null = CallAndSmsProviders.getProviderError(
+      (data as CallAndSmsGatewayColumns).callAndSmsProvider,
+    );
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+  }
+
+  // Whether a write names any of the gateway's columns.
+  private static touchesCallAndSmsGateway(
+    data: CallAndSmsGatewayColumns,
+  ): boolean {
+    return (
+      data.callAndSmsProvider !== undefined ||
+      data.callAndSmsGatewayUrl !== undefined ||
+      data.callAndSmsGatewaySecret !== undefined
+    );
+  }
+
+  /*
+   * The gateway's columns as a write gives them, made what they are stored
+   * as. No provider (null) is the default, Twilio, as the NOT NULL column
+   * starts with. The URL is a web address OneUptime may post to - on the
+   * installation's private network too, where a gateway usually is, as a
+   * custom channel's may be (SSRFProtection) - trimmed, and empty is none.
+   * The secret is trimmed, and empty is none.
+   */
+  private async normalizeCallAndSmsGatewayColumns(
+    data: CallAndSmsGatewayColumns,
+  ): Promise<void> {
+    if (data.callAndSmsProvider === null) {
+      data.callAndSmsProvider = DEFAULT_CALL_AND_SMS_PROVIDER;
+    }
+
+    if (data.callAndSmsGatewayUrl !== undefined) {
+      // Text, or a URL as a request's body can carry one.
+      if (
+        data.callAndSmsGatewayUrl !== null &&
+        typeof data.callAndSmsGatewayUrl !== "string" &&
+        !(data.callAndSmsGatewayUrl instanceof URL)
+      ) {
+        throw new BadDataException(
+          `${CALL_AND_SMS_GATEWAY_URL_TITLE} must be a web address.`,
+        );
+      }
+
+      const url: string = (data.callAndSmsGatewayUrl || "").toString().trim();
+
+      if (url) {
+        await SSRFProtection.validateWebhookTargetIsSafe(url, {
+          allowPrivateNetworkTargets: true,
+        });
+      }
+
+      data.callAndSmsGatewayUrl = url || null;
+    }
+
+    if (data.callAndSmsGatewaySecret !== undefined) {
+      if (
+        data.callAndSmsGatewaySecret !== null &&
+        typeof data.callAndSmsGatewaySecret !== "string"
+      ) {
+        throw new BadDataException("Gateway Signing Secret must be text.");
+      }
+
+      data.callAndSmsGatewaySecret =
+        (data.callAndSmsGatewaySecret || "").trim() || null;
+    }
+  }
+
+  /*
+   * What a row will hold once written must be a gateway the server can send
+   * through: a URL whenever the server is set to send through the gateway,
+   * and a signing secret whenever there is a URL - made here when there is
+   * none, or when it is cleared, which is how an admin replaces it.
+   */
+  private static completeCallAndSmsGateway(
+    data: CallAndSmsGatewayColumns,
+    written: CallAndSmsGatewayColumns,
+  ): void {
+    if (
+      CallAndSmsProviders.isGateway(written.callAndSmsProvider) &&
+      !written.callAndSmsGatewayUrl
+    ) {
+      throw new BadDataException(
+        `To send SMS and calls through your own gateway, add its ${CALL_AND_SMS_GATEWAY_URL_TITLE}.`,
+      );
+    }
+
+    if (written.callAndSmsGatewayUrl && !written.callAndSmsGatewaySecret) {
+      data.callAndSmsGatewaySecret = Service.generateCallAndSmsGatewaySecret();
+    }
+  }
+
+  /*
+   * An update that touches the SMS and call gateway leaves one the server
+   * can send through, judged by what each row it writes will hold: the
+   * write's values, and the stored ones it leaves. An update that touches
+   * none of the three is let through as it always was.
+   */
+  private async prepareCallAndSmsGateway(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: CallAndSmsGatewayColumns =
+      updateBy.data as CallAndSmsGatewayColumns;
+
+    if (!Service.touchesCallAndSmsGateway(data)) {
+      return;
+    }
+
+    await this.normalizeCallAndSmsGatewayColumns(data);
+
+    const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        callAndSmsProvider: true,
+        callAndSmsGatewayUrl: true,
+        callAndSmsGatewaySecret: true,
+      },
+    );
+
+    for (const row of rows) {
+      Service.completeCallAndSmsGateway(data, {
+        callAndSmsProvider:
+          data.callAndSmsProvider !== undefined
+            ? data.callAndSmsProvider
+            : row.callAndSmsProvider,
+        callAndSmsGatewayUrl:
+          data.callAndSmsGatewayUrl !== undefined
+            ? data.callAndSmsGatewayUrl
+            : row.callAndSmsGatewayUrl,
+        callAndSmsGatewaySecret:
+          data.callAndSmsGatewaySecret !== undefined
+            ? data.callAndSmsGatewaySecret
+            : row.callAndSmsGatewaySecret,
+      });
+    }
+  }
+
+  /*
+   * The same for a create, which has nothing stored to leave: the server's
+   * row is made once, when the installation first starts, and one made
+   * naming the gateway is held to what an update to it would be.
+   */
+  private async prepareCallAndSmsGatewayForCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<void> {
+    const data: CallAndSmsGatewayColumns =
+      createBy.data as CallAndSmsGatewayColumns;
+
+    if (!Service.touchesCallAndSmsGateway(data)) {
+      return;
+    }
+
+    await this.normalizeCallAndSmsGatewayColumns(data);
+
+    Service.completeCallAndSmsGateway(data, data);
+  }
+
   @CaptureSpan()
   protected override async onBeforeFind(
     findBy: FindBy<Model>,
@@ -537,6 +795,8 @@ export class Service extends DatabaseService<Model> {
     this.assertBrandingColumnsWrittenByRootOnly(createBy.data, createBy.props);
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
+    this.assertCallAndSmsProviderIsValid(createBy.data);
+    await this.prepareCallAndSmsGatewayForCreate(createBy);
 
     return {
       createBy,
@@ -553,6 +813,8 @@ export class Service extends DatabaseService<Model> {
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);
+    this.assertCallAndSmsProviderIsValid(updateBy.data);
+    await this.prepareCallAndSmsGateway(updateBy);
 
     if (updateBy.data.telegramWebhookSecretToken !== undefined) {
       const secret: unknown = updateBy.data.telegramWebhookSecretToken;
@@ -776,6 +1038,14 @@ export class Service extends DatabaseService<Model> {
         .requireSsoForLogin !== undefined
     ) {
       this.forgetRequireSsoForLogin();
+    }
+
+    // Turned on or off: this server's next push reads the switch again.
+    if (
+      (onUpdate.updateBy.data as { disablePushNotifications?: unknown })
+        .disablePushNotifications !== undefined
+    ) {
+      this.forgetPushNotificationsTurnedOff();
     }
 
     /*

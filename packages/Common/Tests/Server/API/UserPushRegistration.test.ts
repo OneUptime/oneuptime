@@ -3,6 +3,7 @@ import UserPushAPI, {
   readProjectIdFromBody,
 } from "../../../Server/API/UserPushAPI";
 import ExpoPushReceiptQueue from "../../../Server/Infrastructure/ExpoPushReceiptQueue";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import {
@@ -214,6 +215,10 @@ describe("POST /user-push/register", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Push is on for the whole server (GlobalConfig.disablePushNotifications).
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(false);
     members = new Set<string>([USER_ID.toString()]);
     membershipReads = [];
 

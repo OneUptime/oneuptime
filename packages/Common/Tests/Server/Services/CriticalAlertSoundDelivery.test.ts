@@ -1,5 +1,6 @@
 import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
 import ExpoPushReceiptQueue from "../../../Server/Infrastructure/ExpoPushReceiptQueue";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import PushNotificationService, {
   ExpoDeliveryOptions,
   ExpoPushSound,
@@ -559,6 +560,11 @@ describe("the push that leaves the server carries the sound and volume", () => {
 
     // The receipt is read later from Redis; nothing here needs it.
     jest.spyOn(ExpoPushReceiptQueue, "add").mockResolvedValue(0 as never);
+
+    // Push is on for the whole server (GlobalConfig.disablePushNotifications).
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(false);
   });
 
   afterEach(() => {

@@ -113,6 +113,8 @@ const RAW_CLAIM_READERS: Record<string, string> = {
     "a phone call's keypad answer token",
   "packages/Common/Server/Utils/OnCall/OnCallPageLinkToken.ts":
     "an on-call page link, by its own purpose and notification",
+  "packages/Common/Server/Utils/OnCall/CustomChannelActionToken.ts":
+    "a custom channel's action link, by its own purpose and notification",
   "packages/Common/Server/Utils/Mcp/McpOAuthSso.ts":
     "the expiry and provider of an SSO sign-in UserMiddleware has already taken as one",
   "packages/Common/Server/Utils/Realtime/RealtimeJoinAccess.ts":

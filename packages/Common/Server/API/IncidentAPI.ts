@@ -403,6 +403,8 @@ export default class IncidentAPI extends BaseAPI<
         workspaceMessageLimit: 500,
         // What was said on the incident's calls, cause marked confirmed or not.
         includeCalls: true,
+        // Its notes as the caller may read them.
+        readerProps: props,
       });
 
     // Format context for postmortem generation, after the project's AI context.
@@ -537,6 +539,8 @@ export default class IncidentAPI extends BaseAPI<
         incidentId,
         includeWorkspaceMessages,
         workspaceMessageLimit: 300,
+        // Its notes as the caller may read them.
+        readerProps: props,
       });
 
     // Format context for note generation

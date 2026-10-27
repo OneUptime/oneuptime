@@ -61,6 +61,7 @@ export enum LicensedFeature {
   StatusPageBranding = "status-page-branding",
   StatusPageAccessControls = "status-page-access-controls",
   Backups = "backups",
+  CustomNotificationChannels = "custom-notification-channels",
 }
 
 // The features claim value that entitles every feature (ENTERPRISE_FEATURE_WILDCARD).

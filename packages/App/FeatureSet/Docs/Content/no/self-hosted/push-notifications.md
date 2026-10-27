@@ -7,6 +7,7 @@ OneUptime varsler folk på telefonen via mobilappen **OneUptime On-Call**, og i 
 - [Åpne brannmuren](#nettverkstilgang): Adressene serveren din og enhetene til folkene dine når.
 - [Ring gjennom lydløs modus](#kritiske-vaktvarsler-overstyre-lydløs-modus): La vaktvarsler høres på en telefon som er satt på lydløs.
 - [Fiks pusher som aldri kommer frem](#feilsøking): Hva hver av feilene fra Expo betyr.
+- [Slå av push](#slå-av-push-for-hele-serveren): Send ingenting gjennom Expo, reléet eller nettlesere.
 :::
 
 ## Slik fungerer det
@@ -118,6 +119,19 @@ Enhetenes tilkobling er et eget krav. iOS-enheter trenger tilgang til APNs, vanl
 :::
 
 For mobile pusher leser OneUptime også leveringskvitteringen fra Expo omtrent 15 minutter etter hver push: En push som aldri nådde enheten, vises da som ikke levert i push-loggen og, for et vaktvarsel, på vakttidslinjen.
+
+## Slå av push for hele serveren
+
+Hvis ingenting får forlate nettverket ditt gjennom Expo, push-reléet eller push-tjenesten til en nettleser, kan en hovedadministrator slå av push i **Admin Dashboard > Innstillinger > Push Notifications**: Slå av **Send push notifications**, og bekreft.
+
+Mens push er slått av:
+
+- Ingenting pushes til telefoner eller nettlesere, i noe prosjekt.
+- Ingen enhet kan registreres. Fanen **Push Notifications** til hver person under **Brukerinnstillinger > Varselmetoder** sier at push er slått av, og vaktregler tilbyr ingen push-enheter.
+- Et varsel gjennom en push-regel sendes ikke. Vaktloggen til personen sier `Push notification not sent: Push notifications are turned off on this server.`
+- Beredskapen teller push-enheter som ubrukelige, og reserveløsningen hopper over dem. Den som bare har en push-enhet som verifisert metode, vises som utilgjengelig.
+
+For fortsatt å nå folk på telefonen kan du legge til en [egendefinert kanal](/docs/self-hosted/custom-notification-channels) for din egen app eller gateway. Hver OneUptime-server leser bryteren på nytt innen 10 sekunder etter en endring. Når push slås på igjen, registreres enhetene på nytt fra mobilappen neste gang den starter, eller fra nettleseren.
 
 ## Kritiske vaktvarsler (overstyre lydløs modus)
 

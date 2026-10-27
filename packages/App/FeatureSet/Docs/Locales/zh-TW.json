@@ -298,6 +298,8 @@
     "Twilio Integration": "Twilio 整合",
     "GitHub Integration": "GitHub 整合",
     "Push Notifications": "推播通知",
+    "Custom Notification Channels": "自訂通知管道",
+    "SMS and Call Gateway": "簡訊與電話閘道",
     "SendGrid Inbound Email": "SendGrid 傳入郵件",
     "Private Network Access": "私有網路存取",
     "Behind a VPN or Firewall": "位於 VPN 或防火牆之後",

@@ -27,6 +27,7 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import User from "../../../UI/Utils/User";
+import { stubDashboardCustomNotificationChannels } from "./CustomNotificationChannelsStub";
 
 /*
  * THE MICROSOFT TEAMS COLUMN IS MICROSOFT TEAMS IN EVERY LANGUAGE.
@@ -103,6 +104,8 @@ beforeEach(() => {
 
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   jest.spyOn(User, "getUserId").mockReturnValue(USER_ID);
+  // No custom channel on: the columns stop at Webhook.
+  stubDashboardCustomNotificationChannels();
   jest
     .spyOn(ModelAPI, "getCommonHeaders")
     .mockReturnValue({ tenantid: PROJECT_ID.toString() });
