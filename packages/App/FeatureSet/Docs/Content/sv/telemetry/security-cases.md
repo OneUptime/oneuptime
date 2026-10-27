@@ -88,7 +88,7 @@ Ett ärende har en egen sidomeny, som en incident har, och varje del av ärendet
 | Avsnitt i sidomenyn | Sidor |
 | --- | --- |
 | **Översikt** | **Översikt**, **Tidslinje** |
-| **Utredning** | **Detektioner**, **Entiteter**, **Kopplade signaler**, **Playbooks** |
+| **Utredning** | **Förlopp**, **Detektioner**, **Entiteter**, **Kopplade signaler**, **Playbooks** |
 | **Anteckningar** | **Privata anteckningar** |
 | **Avancerad** | **Granskningsloggar**, **Ta bort ärende**, hopfällda tills du klickar på **Avancerad** |
 
@@ -96,8 +96,10 @@ Varje sida behåller ärendets sidhuvud överst: nummer, prioritet, status och t
 
 - **Översikt**: ärendets beskrivning, etiketter och statussteg, vem som har det och vad som öppnade det, och dess siffror: hur många detektioner det har, hur länge det har varit öppet, och hur lång tid det tog att kvittera och begränsa det.
 - **OneUptime AI**, på **Översikt**: vad OneUptime AI fick ut av ärendet, den prioritet och playbook som den föreslår, och bevisen bakom. Se [OneUptime AI i säkerhet](/docs/telemetry/security-ai).
+- **Påverkan**, på **Översikt**: vad ärendet sätter på spel: om OneUptime har sett dess poster nås från internet, vem som äger dem och vad som senast ändrades på dem. Fäll ut den för att se vad varje post anropar och vad som anropar den, de monitorer och statussidor som bevakar den, och de maskiner som ärendets adresser pratade med.
 - **MITRE ATT&CK**, på **Översikt**: taktikerna och teknikerna som dess detektioner mappas till, var och en länkad till sin sida på attack.mitre.org.
 - **Tidslinje**: allt som hände med ärendet, med vem som gjorde det.
+- **Förlopp**: vad som hände, i ordning, i hela OneUptime: varje detektion och säkerhetshändelserna bakom den, hur långt deras förfrågningar kom, de undantag de kastade, ändringarna på de poster som ärendet nämner, de incidenter och larm som uppstod på dem, och vad teamet gjorde. En skanners många försök är en rad, och varje rad öppnar det den nämner, till exempel förfrågans trace eller undantaget.
 - **Detektioner**: det som löste ut och öppnade ärendet eller lades till i det, hur ofta, och den senaste händelsen som träffade.
 - **Entiteter**: användarna, värdarna och adresserna som ärendet handlar om, med deras aktivitet i alla dina säkerhetshändelser under de senaste 7 dagarna. Var och en öppnas i **Korrelera**.
 - **Kopplade signaler**: de värdar, kluster, tjänster och medlemmar som ärendet nämner, som OneUptime känner dem, och vad som hände på var och en kring dess detekteringar: deras loggar, spår och mätvärden, vad som är öppet på dem och vad som ändrades. Se [Kopplade signaler](/docs/telemetry/security-connected-signals).

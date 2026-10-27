@@ -88,7 +88,7 @@ Ein Fall hat ein eigenes Seitenmenü, wie ein Vorfall, und jeder Teil des Falls 
 | Abschnitt im Seitenmenü | Seiten |
 | --- | --- |
 | **Übersicht** | **Übersicht**, **Zeitachse** |
-| **Untersuchung** | **Erkennungen**, **Entitäten**, **Verbundene Signale**, **Playbooks** |
+| **Untersuchung** | **Hergang**, **Erkennungen**, **Entitäten**, **Verbundene Signale**, **Playbooks** |
 | **Notizen** | **Private Notizen** |
 | **Erweitert** | **Audit-Protokolle**, **Fall löschen**, eingeklappt, bis Sie auf **Erweitert** klicken |
 
@@ -96,8 +96,10 @@ Jede Seite behält oben den Kopf des Falls: Nummer, Priorität, Status und Titel
 
 - **Übersicht**: die Beschreibung, Labels und Statusschritte des Falls, wer ihn hat und was ihn eröffnet hat, und seine Kennzahlen: wie viele Erkennungen er hat, wie lange er schon offen ist und wie lange es bis zur Bestätigung und bis zur Eindämmung gedauert hat.
 - **OneUptime AI**, auf der **Übersicht**: was OneUptime AI aus dem Fall gelesen hat, die Priorität und das Playbook, die es vorschlägt, und die Beweise dahinter. Siehe [OneUptime AI in der Sicherheit](/docs/telemetry/security-ai).
+- **Auswirkungen**, auf der **Übersicht**: was der Fall gefährdet: ob OneUptime gesehen hat, dass seine Einträge aus dem Internet erreicht wurden, wem sie gehören und was sich zuletzt an ihnen geändert hat. Klappen Sie sie auf, um zu sehen, was jeder Eintrag aufruft und wovon er aufgerufen wird, welche Monitore und Statusseiten ihn beobachten und mit welchen Rechnern die Adressen des Falls kommuniziert haben.
 - **MITRE ATT&CK**, auf der **Übersicht**: die Taktiken und Techniken, denen seine Erkennungen zugeordnet sind, jeweils verlinkt mit ihrer Seite auf attack.mitre.org.
 - **Zeitachse**: alles, was mit dem Fall geschehen ist, jeweils mit der Person, die es getan hat.
+- **Hergang**: was geschehen ist, der Reihe nach und über ganz OneUptime hinweg: jede Erkennung und die Sicherheitsereignisse dahinter, wie weit ihre Anfragen kamen, die Ausnahmen, die sie auslösten, die Änderungen an den Einträgen, die der Fall nennt, die dort ausgelösten Vorfälle und Alarme, und was das Team getan hat. Die vielen Proben eines Scanners sind eine Zeile, und jede Zeile öffnet, was sie nennt, etwa den Trace der Anfrage oder die Ausnahme.
 - **Erkennungen**: was ausgelöst hat, um den Fall zu eröffnen oder ihn zu ergänzen, wie oft, und das neueste passende Ereignis.
 - **Entitäten**: die Benutzer, Hosts und Adressen, um die es im Fall geht, mit ihrer Aktivität in allen Ihren Sicherheitsereignissen der letzten 7 Tage. Jede öffnet sich in **Korrelieren**.
 - **Verbundene Signale**: die Hosts, Cluster, Dienste und Mitglieder, die der Fall nennt, wie OneUptime sie kennt, und was auf jedem davon rund um seine Erkennungen geschah: ihre Protokolle, Traces und Metriken, was darauf offen ist und was sich geändert hat. Siehe [Verbundene Signale](/docs/telemetry/security-connected-signals).

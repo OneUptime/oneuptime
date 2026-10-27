@@ -88,7 +88,7 @@ Um caso tem um menu lateral próprio, como um incidente, e cada parte do caso é
 | Seção do menu lateral | Páginas |
 | --- | --- |
 | **Visão geral** | **Visão geral**, **Linha do tempo** |
-| **Investigação** | **Detecções**, **Entidades**, **Sinais conectados**, **Playbooks** |
+| **Investigação** | **Desenrolar**, **Detecções**, **Entidades**, **Sinais conectados**, **Playbooks** |
 | **Notas** | **Notas privadas** |
 | **Avançado** | **Registros de auditoria**, **Excluir caso**, recolhidos até você clicar em **Avançado** |
 
@@ -96,8 +96,10 @@ Cada página mantém no topo o cabeçalho do caso: número, prioridade, status e
 
 - **Visão geral**: a descrição, os rótulos e as etapas de status do caso, quem está com ele e o que o abriu, e os números dele: quantas detecções tem, há quanto tempo está aberto e quanto tempo levou para ser reconhecido e contido.
 - **OneUptime AI**, na **Visão geral**: o que o OneUptime AI concluiu do caso, a prioridade e o playbook que ele sugere, e as evidências por trás. Veja [OneUptime AI na segurança](/docs/telemetry/security-ai).
+- **Impacto**, na **Visão geral**: o que o caso coloca em risco: se o OneUptime viu os registros dele serem alcançados pela internet, quem é dono deles e o que mudou por último neles. Abra-o para ver o que cada registro chama e por quem é chamado, os monitores e páginas de status que o observam e as máquinas com que os endereços do caso conversaram.
 - **MITRE ATT&CK**, na **Visão geral**: as táticas e técnicas às quais as detecções dele correspondem, cada uma com um link para a própria página em attack.mitre.org.
 - **Linha do tempo**: tudo o que aconteceu com o caso, com quem fez.
+- **Desenrolar**: o que aconteceu, em ordem, em todo o OneUptime: cada detecção e os eventos de segurança por trás dela, até onde as solicitações chegaram, as exceções que lançaram, as mudanças nos registros que o caso cita, os incidentes e alertas abertos neles e o que a equipe fez. As muitas sondagens de um scanner são uma linha só, e cada linha abre o que cita, como o trace da solicitação ou a exceção.
 - **Detecções**: o que disparou para abrir o caso ou entrar nele, com que frequência, e o último evento correspondente.
 - **Entidades**: os usuários, hosts e endereços de que o caso trata, com a atividade deles em todos os seus eventos de segurança dos últimos 7 dias. Cada um abre em **Correlacionar**.
 - **Sinais conectados**: os hosts, clusters, serviços e membros que o caso nomeia, como o OneUptime os conhece, e o que acontecia em cada um em torno das detecções dele: os seus registros, traços e métricas, o que está aberto neles e o que mudou. Veja [Sinais conectados](/docs/telemetry/security-connected-signals).

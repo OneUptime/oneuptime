@@ -88,7 +88,7 @@ Un caso ha un proprio menu laterale, come un incidente, e ogni parte del caso è
 | Sezione del menu laterale | Pagine |
 | --- | --- |
 | **Panoramica** | **Panoramica**, **Cronologia** |
-| **Indagine** | **Rilevamenti**, **Entità**, **Segnali collegati**, **Playbook** |
+| **Indagine** | **Svolgimento**, **Rilevamenti**, **Entità**, **Segnali collegati**, **Playbook** |
 | **Note** | **Note private** |
 | **Avanzato** | **Registri di audit**, **Elimina caso**, chiuse finché non clicchi su **Avanzato** |
 
@@ -96,8 +96,10 @@ Ogni pagina tiene in alto l'intestazione del caso: numero, priorità, stato e ti
 
 - **Panoramica**: la descrizione, le etichette e i passaggi di stato del caso, chi lo ha in carico e cosa lo ha aperto, e i suoi numeri: quanti rilevamenti ha, da quanto tempo è aperto e quanto ci è voluto per prenderlo in carico e per contenerlo.
 - **OneUptime AI**, nella **Panoramica**: che cosa OneUptime AI ha ricavato dal caso, la priorità e il playbook che suggerisce, e le prove dietro. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
+- **Impatto**, nella **Panoramica**: ciò che il caso mette a rischio: se OneUptime ha visto i suoi record raggiunti da internet, chi ne è proprietario e cosa è cambiato per ultimo su di essi. Aprilo per vedere cosa chiama ogni record e da cosa è chiamato, i monitor e le pagine di stato che lo osservano e le macchine con cui hanno comunicato gli indirizzi del caso.
 - **MITRE ATT&CK**, nella **Panoramica**: le tattiche e le tecniche a cui corrispondono i suoi rilevamenti, ciascuna con un link alla propria pagina su attack.mitre.org.
 - **Cronologia**: tutto ciò che è successo al caso, con chi l'ha fatto.
+- **Svolgimento**: cosa è successo, in ordine, in tutto OneUptime: ogni rilevamento e gli eventi di sicurezza alla sua origine, fin dove sono arrivate le loro richieste, le eccezioni che hanno sollevato, le modifiche ai record che il caso nomina, gli incidenti e gli avvisi aperti su di essi e cosa ha fatto il team. Le tante sonde di uno scanner sono una sola riga, e ogni riga apre ciò che nomina, come la traccia della richiesta o l'eccezione.
 - **Rilevamenti**: cosa è scattato per aprire il caso o aggiungersi a esso, quante volte, e l'ultimo evento corrispondente.
 - **Entità**: gli utenti, gli host e gli indirizzi di cui tratta il caso, con la loro attività in tutti i tuoi eventi di sicurezza degli ultimi 7 giorni. Ognuno si apre in **Correla**.
 - **Segnali collegati**: gli host, i cluster, i servizi e i membri che il caso nomina, come OneUptime li conosce, e cosa succedeva su ciascuno attorno ai suoi rilevamenti: i loro registri, tracce e metriche, ciò che è aperto su di essi e cosa è cambiato. Vedi [Segnali collegati](/docs/telemetry/security-connected-signals).

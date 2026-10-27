@@ -35877,5 +35877,7 @@
   "Host key": "호스트 키",
   "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.": "머신이 이 키 중 하나를 제시할 때만 단계가 로그인합니다. SHA256 지문이나 ssh-keyscan이 출력하는 형식의 공개 키를 한 줄에 하나씩 입력합니다. 비워 두면 어떤 키든 허용되며, 단계 출력에 머신이 제시한 키가 표시됩니다.",
   "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "여기에 SHA256 지문도 공개 키도 아닌 줄이 있어, 단계가 실행될 때 실패합니다.",
-  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "머신이 가진 것보다 많은 키가 있어, 단계가 실행될 때 실패합니다. 머신에는 유형마다 키가 하나씩 있습니다. 그 키들을 입력하세요."
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "머신이 가진 것보다 많은 키가 있어, 단계가 실행될 때 실패합니다. 머신에는 유형마다 키가 하나씩 있습니다. 그 키들을 입력하세요.",
+  "Story": "경위",
+  "Impact": "영향"
 }

@@ -88,7 +88,7 @@ Un caso tiene su propio menú lateral, como un incidente, y cada parte del caso 
 | Sección del menú lateral | Páginas |
 | --- | --- |
 | **Vista general** | **Vista general**, **Cronología** |
-| **Investigación** | **Detecciones**, **Entidades**, **Señales conectadas**, **Playbooks** |
+| **Investigación** | **Desarrollo**, **Detecciones**, **Entidades**, **Señales conectadas**, **Playbooks** |
 | **Notas** | **Notas privadas** |
 | **Avanzado** | **Registros de auditoría**, **Eliminar caso**, plegados hasta que haces clic en **Avanzado** |
 
@@ -96,8 +96,10 @@ Cada página mantiene arriba la cabecera del caso: su número, prioridad, estado
 
 - **Vista general**: la descripción, las etiquetas y los pasos de estado del caso, quién lo tiene y qué lo abrió, y sus cifras: cuántas detecciones tiene, cuánto tiempo lleva abierto y cuánto se tardó en reconocerlo y en contenerlo.
 - **OneUptime AI**, en la **Vista general**: lo que OneUptime AI ha sacado del caso, la prioridad y el playbook que sugiere, y la evidencia que hay detrás. Consulta [OneUptime AI en la seguridad](/docs/telemetry/security-ai).
+- **Impacto**, en la **Vista general**: lo que el caso pone en riesgo: si OneUptime ha visto que sus registros se alcanzaron desde internet, quién es su propietario y qué cambió por última vez en ellos. Despliéguelo para ver a qué llama cada registro y quién lo llama, los monitores y páginas de estado que lo vigilan y las máquinas con las que hablaron las direcciones del caso.
 - **MITRE ATT&CK**, en la **Vista general**: las tácticas y técnicas a las que corresponden sus detecciones, cada una enlazada a su página en attack.mitre.org.
 - **Cronología**: todo lo que le pasó al caso, con quién lo hizo.
+- **Desarrollo**: lo que pasó, en orden, en todo OneUptime: cada detección y los eventos de seguridad que hay detrás, hasta dónde llegaron sus solicitudes, las excepciones que lanzaron, los cambios en los registros que nombra el caso, los incidentes y alertas que se abrieron en ellos y lo que hizo el equipo. Los muchos sondeos de un escáner son una sola línea, y cada línea abre lo que nombra, como la traza de la solicitud o la excepción.
 - **Detecciones**: lo que se disparó para abrir el caso o sumarse a él, cuántas veces y el último evento coincidente.
 - **Entidades**: los usuarios, hosts y direcciones de los que trata el caso, con su actividad en todos tus eventos de seguridad de los últimos 7 días. Cada una se abre en **Correlacionar**.
 - **Señales conectadas**: los hosts, clústeres, servicios y miembros que nombra el caso, tal como OneUptime los conoce, y lo que ocurría en cada uno en torno a sus detecciones: sus registros, trazas y métricas, lo que está abierto en ellos y lo que cambió. Consulta [Señales conectadas](/docs/telemetry/security-connected-signals).

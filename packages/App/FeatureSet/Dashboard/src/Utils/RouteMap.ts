@@ -808,6 +808,7 @@ export const SecurityEventsRoutePath: Dictionary<string> = {
    * to a case lands where it always did.
    */
   [PageMap.SECURITY_CASE_VIEW_TIMELINE]: `cases/${RouteParams.ModelID}/timeline`,
+  [PageMap.SECURITY_CASE_VIEW_STORY]: `cases/${RouteParams.ModelID}/story`,
   [PageMap.SECURITY_CASE_VIEW_DETECTIONS]: `cases/${RouteParams.ModelID}/detections`,
   [PageMap.SECURITY_CASE_VIEW_ENTITIES]: `cases/${RouteParams.ModelID}/entities`,
   [PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS]: `cases/${RouteParams.ModelID}/connected-signals`,
@@ -6970,6 +6971,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SECURITY_CASE_VIEW_TIMELINE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/security-events/${
       SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_TIMELINE]
+    }`,
+  ),
+
+  [PageMap.SECURITY_CASE_VIEW_STORY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/security-events/${
+      SecurityEventsRoutePath[PageMap.SECURITY_CASE_VIEW_STORY]
     }`,
   ),
 

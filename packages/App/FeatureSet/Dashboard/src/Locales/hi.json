@@ -35877,5 +35877,7 @@
   "Host key": "होस्ट कुंजी",
   "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.": "चरण तभी साइन इन करता है जब मशीन इनमें से कोई कुंजी दिखाए: उसका SHA256 फ़िंगरप्रिंट, या उसकी सार्वजनिक कुंजी जैसी ssh-keyscan छापता है, हर पंक्ति में एक। खाली छोड़ने पर कोई भी कुंजी स्वीकार होती है, और चरण के आउटपुट में वह कुंजी दिखती है जो मशीन ने दिखाई।",
   "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "यहाँ एक पंक्ति न तो SHA256 फ़िंगरप्रिंट है न ही सार्वजनिक कुंजी, इसलिए चरण चलने पर विफल होगा।",
-  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "यहाँ किसी मशीन के पास होने से ज़्यादा कुंजियाँ हैं, इसलिए चरण चलने पर विफल होगा। मशीन के पास हर प्रकार की एक कुंजी होती है: वही लिखें।"
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "यहाँ किसी मशीन के पास होने से ज़्यादा कुंजियाँ हैं, इसलिए चरण चलने पर विफल होगा। मशीन के पास हर प्रकार की एक कुंजी होती है: वही लिखें।",
+  "Story": "घटनाक्रम",
+  "Impact": "प्रभाव"
 }

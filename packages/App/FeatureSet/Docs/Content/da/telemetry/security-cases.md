@@ -88,7 +88,7 @@ En sag har sin egen sidemenu, ligesom en hændelse, og hver del af sagen er en s
 | Afsnit i sidemenuen | Sider |
 | --- | --- |
 | **Oversigt** | **Oversigt**, **Tidslinje** |
-| **Undersøgelse** | **Detektioner**, **Entiteter**, **Forbundne signaler**, **Playbooks** |
+| **Undersøgelse** | **Forløb**, **Detektioner**, **Entiteter**, **Forbundne signaler**, **Playbooks** |
 | **Noter** | **Private noter** |
 | **Avanceret** | **Auditlogs**, **Slet sag**, foldet sammen, indtil du klikker på **Avanceret** |
 
@@ -96,8 +96,10 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 
 - **Oversigt**: sagens beskrivelse, etiketter og statustrin, hvem der har den, og hvad der åbnede den, og dens tal: hvor mange detektioner den har, hvor længe den har været åben, og hvor lang tid det tog at kvittere for den og inddæmme den.
 - **OneUptime AI**, på **Oversigt**: hvad OneUptime AI fik ud af sagen, den prioritet og playbook, den foreslår, og beviserne bag. Se [OneUptime AI i sikkerhed](/docs/telemetry/security-ai).
+- **Påvirkning**, på **Oversigt**: hvad sagen sætter på spil: om OneUptime har set dens poster blive nået fra internettet, hvem der ejer dem, og hvad der sidst blev ændret på dem. Fold den ud for at se, hvad hver post kalder, og hvad der kalder den, de monitorer og statussider, der holder øje med den, og de maskiner, sagens adresser talte med.
 - **MITRE ATT&CK**, på **Oversigt**: de taktikker og teknikker, som sagens detektioner knyttes til, hver med et link til sin side på attack.mitre.org.
 - **Tidslinje**: alt, hvad der skete med sagen, med hvem der gjorde det.
+- **Forløb**: hvad der skete, i rækkefølge, på tværs af OneUptime: hver detektion og sikkerhedshændelserne bag den, hvor langt deres forespørgsler nåede, de undtagelser, de udløste, ændringerne på de poster, sagen nævner, de hændelser og alarmer, der opstod på dem, og hvad teamet gjorde. En scanners mange forsøg er én linje, og hver linje åbner det, den nævner, for eksempel forespørgslens trace eller undtagelsen.
 - **Detektioner**: det, der blev udløst og åbnede sagen eller blev føjet til den, hvor ofte, og den seneste matchende begivenhed.
 - **Entiteter**: de brugere, værter og adresser, sagen handler om, med deres aktivitet på tværs af alle dine sikkerhedsbegivenheder de seneste 7 dage. Hver af dem åbnes i **Korrelér**.
 - **Forbundne signaler**: de værter, klynger, tjenester og medlemmer, sagen nævner, som OneUptime kender dem, og hvad der skete på hver af dem omkring sagens detektioner: deres protokoller, spor og metrikker, hvad der er åbent på dem, og hvad der ændrede sig. Se [Forbundne signaler](/docs/telemetry/security-connected-signals).

@@ -35877,5 +35877,7 @@
   "Host key": "Chiave host",
   "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.": "Il passaggio accede solo se la macchina presenta una di queste chiavi: la sua impronta SHA256, o la sua chiave pubblica come la stampa ssh-keyscan, una per riga. Se lasciato vuoto, qualsiasi chiave è accettata, e l'output del passaggio mostra quella che la macchina ha presentato.",
   "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "Una riga qui non è né un'impronta SHA256 né una chiave pubblica, quindi il passaggio fallirà quando verrà eseguito.",
-  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Qui ci sono più chiavi di quante ne abbia una macchina, quindi il passaggio fallirà quando verrà eseguito. Una macchina ha una chiave per tipo: indica quelle."
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Qui ci sono più chiavi di quante ne abbia una macchina, quindi il passaggio fallirà quando verrà eseguito. Una macchina ha una chiave per tipo: indica quelle.",
+  "Story": "Svolgimento",
+  "Impact": "Impatto"
 }

@@ -35877,5 +35877,7 @@
   "Host key": "Vertsnøkkel",
   "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.": "Trinnet logger bare på når maskinen legger fram en av disse nøklene: SHA256-fingeravtrykket eller den offentlige nøkkelen slik ssh-keyscan skriver den ut, én per linje. Står feltet tomt, godtas enhver nøkkel, og trinnets utdata viser den maskinen la fram.",
   "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "En linje her er verken et SHA256-fingeravtrykk eller en offentlig nøkkel, så trinnet feiler når det kjører.",
-  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Her står det flere nøkler enn en maskin har, så trinnet feiler når det kjører. En maskin har én nøkkel av hver type: oppgi dem."
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Her står det flere nøkler enn en maskin har, så trinnet feiler når det kjører. En maskin har én nøkkel av hver type: oppgi dem.",
+  "Story": "Forløp",
+  "Impact": "Påvirkning"
 }

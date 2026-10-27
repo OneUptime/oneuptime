@@ -88,7 +88,7 @@ En sak har sin egen sidemeny, slik en hendelse har, og hver del av saken er en e
 | Seksjon i sidemenyen | Sider |
 | --- | --- |
 | **Oversikt** | **Oversikt**, **Tidslinje** |
-| **Undersøkelse** | **Deteksjoner**, **Entiteter**, **Tilkoblede signaler**, **Playbooks** |
+| **Undersøkelse** | **Forløp**, **Deteksjoner**, **Entiteter**, **Tilkoblede signaler**, **Playbooks** |
 | **Notater** | **Private notater** |
 | **Avansert** | **Revisjonslogger**, **Slett sak**, skjult til du klikker på **Avansert** |
 
@@ -96,8 +96,10 @@ Hver side beholder sakens topptekst øverst: nummer, prioritet, status og tittel
 
 - **Oversikt**: sakens beskrivelse, etiketter og statussteg, hvem som har den og hva som åpnet den, og tallene: hvor mange deteksjoner den har, hvor lenge den har vært åpen, og hvor lang tid det tok å bekrefte og inndemme den.
 - **OneUptime AI**, på **Oversikt**: hva OneUptime AI fikk ut av saken, prioriteten og playbooken den foreslår, og bevisene bak. Se [OneUptime AI i sikkerhet](/docs/telemetry/security-ai).
+- **Påvirkning**, på **Oversikt**: hva saken setter i fare: om OneUptime har sett postene dens bli nådd fra internett, hvem som eier dem, og hva som sist ble endret på dem. Fold den ut for å se hva hver post kaller og hva som kaller den, monitorene og statussidene som følger med på den, og maskinene sakens adresser snakket med.
 - **MITRE ATT&CK**, på **Oversikt**: taktikkene og teknikkene deteksjonene i saken er tilordnet, hver med en lenke til sin side på attack.mitre.org.
 - **Tidslinje**: alt som skjedde med saken, med hvem som gjorde det.
+- **Forløp**: hva som skjedde, i rekkefølge, på tvers av OneUptime: hver deteksjon og sikkerhetshendelsene bak den, hvor langt forespørslene kom, unntakene de utløste, endringene på postene saken nevner, hendelsene og varslene som oppsto på dem, og hva teamet gjorde. En skanners mange forsøk er én linje, og hver linje åpner det den nevner, for eksempel forespørselens trace eller unntaket.
 - **Deteksjoner**: det som slo til og åpnet saken eller ble lagt til i den, hvor ofte, og den siste hendelsen som traff.
 - **Entiteter**: brukerne, vertene og adressene saken gjelder, med aktiviteten deres på tvers av alle sikkerhetshendelsene dine de siste 7 dagene. Hver av dem åpnes i **Korreler**.
 - **Tilkoblede signaler**: vertene, klyngene, tjenestene og medlemmene saken nevner, slik OneUptime kjenner dem, og hva som skjedde på hver av dem rundt deteksjonene: loggene, sporene og målingene deres, hva som er åpent på dem, og hva som endret seg. Se [Tilkoblede signaler](/docs/telemetry/security-connected-signals).

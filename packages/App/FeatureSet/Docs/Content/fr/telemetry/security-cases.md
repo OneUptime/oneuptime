@@ -88,7 +88,7 @@ Un dossier a son propre menu latéral, comme un incident, et chaque partie du do
 | Section du menu latéral | Pages |
 | --- | --- |
 | **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie** |
-| **Investigation** | **Détections**, **Entités**, **Signaux connectés**, **Playbooks** |
+| **Investigation** | **Déroulé**, **Détections**, **Entités**, **Signaux connectés**, **Playbooks** |
 | **Notes** | **Notes privées** |
 | **Avancé** | **Journaux d'audit**, **Supprimer le dossier**, repliés jusqu'à ce que vous cliquiez sur **Avancé** |
 
@@ -96,8 +96,10 @@ Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son
 
 - **Vue d'ensemble** : la description, les libellés et les étapes de statut du dossier, qui l'a en charge et ce qui l'a ouvert, et ses chiffres : combien de détections il compte, depuis combien de temps il est ouvert, et le temps qu'il a fallu pour le prendre en compte et pour le contenir.
 - **OneUptime AI**, sur la **Vue d'ensemble** : ce que OneUptime AI a tiré du dossier, la priorité et le playbook qu'il propose, et les preuves derrière. Voir [OneUptime AI dans la sécurité](/docs/telemetry/security-ai).
+- **Impact**, sur la **Vue d'ensemble** : ce que le dossier met en danger : si OneUptime a vu ses ressources atteintes depuis Internet, à qui elles appartiennent et ce qui a changé en dernier sur elles. Dépliez-le pour voir ce que chaque ressource appelle et ce qui l'appelle, les moniteurs et pages de statut qui la surveillent, et les machines avec lesquelles les adresses du dossier ont communiqué.
 - **MITRE ATT&CK**, sur la **Vue d'ensemble** : les tactiques et techniques auxquelles se rattachent ses détections, chacune liée à sa page sur attack.mitre.org.
 - **Chronologie** : tout ce qui est arrivé au dossier, avec son auteur.
+- **Déroulé** : ce qui s'est passé, dans l'ordre, dans tout OneUptime : chaque détection et les événements de sécurité qui la sous-tendent, jusqu'où leurs requêtes sont allées, les exceptions qu'elles ont levées, les changements sur les ressources que le dossier nomme, les incidents et alertes déclenchés sur elles, et ce que l'équipe a fait. Les nombreuses sondes d'un scanner tiennent sur une ligne, et chaque ligne ouvre ce qu'elle nomme, comme la trace de la requête ou l'exception.
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
 - **Signaux connectés** : les hôtes, clusters, services et membres que le dossier nomme, tels que OneUptime les connaît, et ce qui se passait sur chacun autour de ses détections : leurs journaux, traces et métriques, ce qui est ouvert sur eux et ce qui a changé. Voir [Signaux connectés](/docs/telemetry/security-connected-signals).
