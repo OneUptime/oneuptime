@@ -12,6 +12,7 @@ import { DataSource, DataSourceOptions, QueryRunner } from "typeorm";
 import { createDatabase, dropDatabase } from "typeorm-extension";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import PostgresQuerySpans from "../Utils/Telemetry/PostgresQuerySpans";
+import EntityMetadataLookup from "./Postgres/EntityMetadataLookup";
 import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 
 export type DatabaseSourceOptions = DataSourceOptions;
@@ -57,6 +58,12 @@ export default class Database {
      * installed before the first data source below exists.
      */
     PostgresQuerySpans.install();
+
+    /*
+     * TypeORM finds an entity's metadata by name through an index, not by
+     * walking every entity on every query (EntityMetadataLookup).
+     */
+    EntityMetadataLookup.install();
 
     let retry: number = 0;
 

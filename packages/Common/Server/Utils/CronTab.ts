@@ -3,17 +3,92 @@ import CronParser, { CronExpression } from "cron-parser";
 import logger from "./Logger";
 import CaptureSpan from "./Telemetry/CaptureSpan";
 
+/*
+ * THE NEXT RUN OF A SCHEDULE, WORKED OUT ONCE A MINUTE.
+ *
+ * Every monitor check asks when the monitor is due next (the probe claim,
+ * the telemetry monitor sweep), and cron-parser takes 40 to 270
+ * microseconds to answer - it walks a calendar in luxon. Thousands of
+ * monitors share a handful of schedules ("* * * * *" most of all), and a
+ * schedule of five fields runs only at whole minutes, so its next run is the
+ * same from any instant of one minute: the first run after the minute
+ * starts (CronTabNextExecutionMemo.test.ts holds it to cron-parser at every
+ * offset of a minute, in zones with half and quarter hour offsets and
+ * across daylight saving changes). So the answer is kept for the rest of the
+ * minute, per schedule and time zone, and worked out again in the next.
+ *
+ * Kept only where a local minute starts with a UTC one - every zone today,
+ * not the local mean times of a century ago - and for at most
+ * MAX_MEMO_ENTRIES schedules; a schedule with seconds (six fields) or
+ * anything cron-parser refuses is never kept.
+ */
+const MAX_MEMO_ENTRIES: number = 1000;
+const MINUTE_IN_MS: number = 60 * 1000;
+
+interface NextExecutionMemo {
+  minute: number;
+  nextExecutionTimeInMs: number;
+}
+
+const nextExecutionMemo: Map<string, NextExecutionMemo> = new Map();
+
+const WHITESPACE: RegExp = /\s+/;
+
+function isWholeMinuteSchedule(crontab: string): boolean {
+  return crontab.trim().split(WHITESPACE).length === 5;
+}
+
 export default class CronTab {
   @CaptureSpan()
   public static getNextExecutionTime(crontab: string): Date {
+    const nowInMs: number = Date.now();
+    const minute: number = Math.floor(nowInMs / MINUTE_IN_MS);
+    const memoKey: string = `${process.env["TZ"] || ""}\n${crontab}`;
+    const memo: NextExecutionMemo | undefined =
+      nextExecutionMemo.get(memoKey);
+
+    if (memo && memo.minute === minute) {
+      return new Date(memo.nextExecutionTimeInMs);
+    }
+
+    let nextExecutionTime: Date;
+
     try {
-      const interval: CronExpression = CronParser.parseExpression(crontab);
-      const nextExecutionTime: Date = interval.next().toDate();
-      return nextExecutionTime;
+      const interval: CronExpression = CronParser.parseExpression(crontab, {
+        currentDate: new Date(nowInMs),
+      });
+      nextExecutionTime = interval.next().toDate();
     } catch (error) {
       logger.error(error);
       throw new BadDataException(`Invalid cron expression: ${crontab}`);
     }
+
+    if (
+      typeof crontab === "string" &&
+      isWholeMinuteSchedule(crontab) &&
+      new Date(minute * MINUTE_IN_MS).getSeconds() === 0
+    ) {
+      if (nextExecutionMemo.size >= MAX_MEMO_ENTRIES) {
+        nextExecutionMemo.clear();
+      }
+
+      nextExecutionMemo.set(memoKey, {
+        minute: minute,
+        nextExecutionTimeInMs: nextExecutionTime.getTime(),
+      });
+    }
+
+    return nextExecutionTime;
+  }
+
+  // Forget every kept answer (tests).
+  public static clearNextExecutionMemo(): void {
+    nextExecutionMemo.clear();
+  }
+
+  // How many schedules have an answer kept (tests).
+  public static getNextExecutionMemoSize(): number {
+    return nextExecutionMemo.size;
   }
 
   /**
