@@ -122,6 +122,15 @@ export enum MicrosoftTeamsPageActionType {
   SubmitPageSomeone = "SubmitPageSomeone",
 }
 
+/*
+ * Which project a request is for, in a Microsoft 365 organization connected
+ * to more than one: a button for each project the person is in, which
+ * makes the request again there (MicrosoftTeamsProjectChoice).
+ */
+export enum MicrosoftTeamsProjectChoiceActionType {
+  ChooseProject = "choose-project",
+}
+
 // General Actions
 export enum MicrosoftTeamsGeneralActionType {
   Help = "Help",
@@ -155,6 +164,7 @@ export type MicrosoftTeamsActionType =
   | MicrosoftTeamsScheduledMaintenanceActionType
   | MicrosoftTeamsOnCallDutyActionType
   | MicrosoftTeamsPageActionType
+  | MicrosoftTeamsProjectChoiceActionType
   | MicrosoftTeamsGeneralActionType;
 
 /*

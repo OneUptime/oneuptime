@@ -369,7 +369,7 @@ Se non corrispondono, l'utente che scrive al bot ha effettuato l'accesso a un al
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-Due o più progetti OneUptime sono collegati alla stessa organizzazione Microsoft 365, e niente nel messaggio li ha distinti. Il pulsante di una scheda agisce nel progetto del record a cui si riferisce, e un messaggio nel progetto del canale in cui viene inviato, altrimenti nell'unico progetto in cui è collegato l'account Microsoft Teams di chi lo invia. Invialo di nuovo da un canale del progetto che intendi, per esempio uno dei suoi canali degli incidenti. A chi non ha l'account collegato in nessuno dei progetti viene chiesto prima di collegarlo.
+Due o più progetti OneUptime sono collegati alla stessa organizzazione Microsoft 365, e niente nel messaggio li ha distinti. Il pulsante di una scheda agisce nel progetto per cui la scheda è stata inviata, e un messaggio nel progetto del canale in cui viene inviato, altrimenti nell'unico progetto in cui è collegato l'account Microsoft Teams di chi lo invia. Quando niente lo indica, il bot chiede a quella persona quale progetto intende, con un pulsante per ogni progetto di cui fa parte. Risponde con questa frase solo quando non può chiedere: la persona fa parte di più di 25 dei progetti, il nome di un progetto non si può leggere, oppure Valkey, la cache che conserva la richiesta per la mezz'ora in cui funzionano i suoi pulsanti, non è disponibile. Invialo di nuovo da un canale del progetto che intendi, per esempio uno dei suoi canali degli incidenti. A chi non ha l'account collegato in nessuno dei progetti viene chiesto prima di collegarlo.
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 
