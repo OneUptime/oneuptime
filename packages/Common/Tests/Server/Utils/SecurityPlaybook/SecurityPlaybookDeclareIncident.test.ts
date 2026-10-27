@@ -16,6 +16,8 @@ import logger from "../../../../Server/Utils/Logger";
 import { SecurityConnectedRecord } from "../../../../Server/Utils/SecurityEvent/Connections/SecurityConnectedRecords";
 import SecurityConnections from "../../../../Server/Utils/SecurityEvent/Connections/SecurityConnections";
 import SecurityPlaybookActions from "../../../../Server/Utils/SecurityPlaybook/SecurityPlaybookActions";
+import CreateScopeException from "../../../../Server/Types/Database/Permissions/CreateScopeException";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import URL from "../../../../Types/API/URL";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -185,5 +187,120 @@ describe("SecurityPlaybookActions.declareIncidentForCase", () => {
     expect(String(logged.mock.calls[0]![0])).toContain(
       "the incident is declared without them",
     );
+  });
+});
+
+/*
+ * The case's Declare Incident button declares as OneUptime, for the person
+ * who pressed it, so it first asks whether they could create that incident
+ * themselves (DatabaseService.checkCallerMayCreate) - their incident create
+ * permission with its labels, owners and blocks, and their read of every
+ * record the incident is linked to. What that check decides for which
+ * caller is pinned in SecurityCaseDeclareIncidentAPI.test.ts; here, that it
+ * is asked, about what, and that a refusal declares nothing.
+ */
+describe("SecurityPlaybookActions.declareIncidentForCase, for a person", () => {
+  const DECLARER_ID: ObjectID = new ObjectID(
+    "6ba7b817-9dad-41d1-80b4-00c04fd43401",
+  );
+  const DECLARER: DatabaseCommonInteractionProps = {
+    userId: DECLARER_ID,
+    tenantId: PROJECT_ID,
+  };
+
+  let asked: Array<{ data: Incident; props: DatabaseCommonInteractionProps }>;
+  let caseLinked: ReturnType<typeof jest.spyOn>;
+
+  beforeEach(() => {
+    asked = [];
+    caseLinked = jest.spyOn(SecurityCaseService, "updateColumnsByIdWithoutHooks");
+
+    jest
+      .spyOn(SecurityConnections, "readIncidentLinks")
+      .mockResolvedValue([
+        record(SecurityConnectionKind.Host, HOST_ID, "web-1"),
+      ]);
+    jest
+      .spyOn(IncidentService, "checkCallerMayCreate")
+      .mockImplementation(
+        async (args: {
+          data: Incident;
+          props: DatabaseCommonInteractionProps;
+        }) => {
+          asked.push(args);
+        },
+      );
+  });
+
+  test("asks whether they could create the incident themselves, on the incident as it will be written, before creating it", async () => {
+    await SecurityPlaybookActions.declareIncidentForCase({
+      projectId: PROJECT_ID,
+      securityCase: securityCase(),
+      incidentSeverityId: SEVERITY_ID,
+      userId: DECLARER_ID,
+      declaredBy: DECLARER,
+    });
+
+    expect(asked).toHaveLength(1);
+    expect(asked[0]!.props).toBe(DECLARER);
+
+    const checked: Incident = asked[0]!.data;
+    const written: Incident = created[0]!;
+
+    // Its own copy: the check changes the record it is handed.
+    expect(checked).not.toBe(written);
+    expect(checked.projectId?.toString()).toBe(PROJECT_ID.toString());
+    expect(checked.title).toBe(written.title);
+    expect(checked.description).toBe(written.description);
+    expect(checked.incidentSeverityId?.toString()).toBe(SEVERITY_ID.toString());
+    expect(
+      (checked.hosts || []).map((row: { id?: ObjectID | null }) => {
+        return row.id?.toString();
+      }),
+    ).toEqual([HOST_ID]);
+
+    // Who created it is stamped after the check, as on their own create.
+    expect(checked.createdByUserId).toBeUndefined();
+    expect(written.createdByUserId?.toString()).toBe(DECLARER_ID.toString());
+  });
+
+  test("a refusal declares nothing: no incident, no link on the case, no feed", async () => {
+    (IncidentService.checkCallerMayCreate as unknown as jest.Mock).mockImplementation(
+      async () => {
+        throw new CreateScopeException(
+          "Your access lets you create Incidents only with one of these labels: payments.",
+        );
+      },
+    );
+
+    await expect(
+      SecurityPlaybookActions.declareIncidentForCase({
+        projectId: PROJECT_ID,
+        securityCase: securityCase(),
+        incidentSeverityId: SEVERITY_ID,
+        userId: DECLARER_ID,
+        declaredBy: DECLARER,
+      }),
+    ).rejects.toThrow(
+      "Your access lets you create Incidents only with one of these labels: payments.",
+    );
+
+    expect(created).toHaveLength(0);
+    expect(caseLinked).not.toHaveBeenCalled();
+    expect(SecurityCaseFeedService.createSecurityCaseFeedItem).not.toHaveBeenCalled();
+    expect(incidentFeed).toHaveLength(0);
+  });
+
+  test("a playbook step declares as OneUptime: nothing is asked", async () => {
+    await SecurityPlaybookActions.declareIncidentForCase({
+      projectId: PROJECT_ID,
+      securityCase: securityCase(),
+      incidentSeverityId: SEVERITY_ID,
+      playbookName: "Contain",
+    });
+
+    expect(asked).toHaveLength(0);
+    expect(created).toHaveLength(1);
+    expect(created[0]!.isCreatedAutomatically).toBe(true);
   });
 });
