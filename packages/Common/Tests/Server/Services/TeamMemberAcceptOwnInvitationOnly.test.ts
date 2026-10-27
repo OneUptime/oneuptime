@@ -105,10 +105,7 @@ describe("accepting an invitation by an update", () => {
 
     // Nor by stamping the time it was accepted.
     await expect(
-      runUpdate(
-        { invitationAcceptedAt: new Date() },
-        { userId: INVITER_ID },
-      ),
+      runUpdate({ invitationAcceptedAt: new Date() }, { userId: INVITER_ID }),
     ).rejects.toThrow(
       "Only the person invited can accept an invitation to a team.",
     );
