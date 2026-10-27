@@ -1,3 +1,5 @@
+import { getReadingDirection, ReadingDirection } from "../ReadingDirection";
+
 export interface StatusPageLanguage {
   code: string;
   nativeName: string;
@@ -38,3 +40,29 @@ export const SUPPORTED_STATUS_PAGE_LANGUAGE_CODES: Array<string> =
   SUPPORTED_STATUS_PAGE_LANGUAGES.map((language: StatusPageLanguage) => {
     return language.code;
   });
+
+export interface StatusPageLanguageHead {
+  lang: string;
+  dir: ReadingDirection;
+}
+
+/*
+ * The language a status page's HTML is served in, before its app runs: the
+ * page's default language when it is one a status page can show, English
+ * otherwise - with the way it is read, so a page whose visitors read
+ * Persian is laid out right to left from its first paint. A visitor's own
+ * choice takes over once the app runs (Common/UI/Utils/PageLanguage).
+ */
+export const getStatusPageLanguageHead: (
+  defaultLanguage: string | null | undefined,
+) => StatusPageLanguageHead = (
+  defaultLanguage: string | null | undefined,
+): StatusPageLanguageHead => {
+  const lang: string =
+    defaultLanguage &&
+    SUPPORTED_STATUS_PAGE_LANGUAGE_CODES.includes(defaultLanguage)
+      ? defaultLanguage
+      : DEFAULT_STATUS_PAGE_LANGUAGE;
+
+  return { lang: lang, dir: getReadingDirection(lang) };
+};

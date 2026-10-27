@@ -26,6 +26,7 @@ import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Link from "../../Link/Link";
 import OneUptimeDate from "../../../../Types/Date";
+import { getTextReadingDirectionByMostLetters } from "../../../../Types/ReadingDirection";
 import SeverityBadge from "./SeverityBadge";
 import { JSONObject } from "../../../../Types/JSON";
 import API from "../../../Utils/API/API";
@@ -632,7 +633,17 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
             : "-"}
         </span>
         <SeverityBadge severity={ctxLog.severity} />
-        <span className="min-w-0 flex-1 truncate font-mono text-xs text-gray-700">
+        {/*
+         * Read the way it is written, and cut short at its own end
+         * (getTextReadingDirectionByMostLetters).
+         */}
+        <span
+          className="min-w-0 flex-1 truncate font-mono text-xs text-gray-700"
+          dir={
+            getTextReadingDirectionByMostLetters(ctxLog.body.slice(0, 200)) ||
+            undefined
+          }
+        >
           {ctxLog.body.slice(0, 200) || "-"}
         </span>
       </div>
@@ -747,7 +758,18 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
                   {bodyDetails.pretty}
                 </pre>
               ) : (
-                <p className="whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-gray-800">
+                /*
+                 * Laid out the way it is written: an English log reads left
+                 * to right on a Persian page, as a log does in every other
+                 * language.
+                 */
+                <p
+                  className="whitespace-pre-wrap break-words font-mono text-[13px] leading-6 text-gray-800"
+                  dir={
+                    getTextReadingDirectionByMostLetters(bodyDetails.pretty) ||
+                    undefined
+                  }
+                >
                   {bodyDetails.pretty || "-"}
                 </p>
               )}

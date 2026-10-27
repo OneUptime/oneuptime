@@ -1140,7 +1140,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                       style={{
                         width: `${percentage}%`,
                         backgroundColor: mutedColor,
-                        borderLeft: `3px solid ${color}`,
+                        borderInlineStart: `3px solid ${color}`,
                       }}
                     />
                   </div>
@@ -1249,7 +1249,7 @@ const LogsAnalyticsView: FunctionComponent<LogsAnalyticsViewProps> = (
                           style={{
                             width: `${barWidth}%`,
                             backgroundColor: mutedColor,
-                            borderLeft: `2px solid ${color}`,
+                            borderInlineStart: `2px solid ${color}`,
                           }}
                         />
                       </div>

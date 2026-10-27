@@ -296,7 +296,7 @@ describe("in every language", () => {
     ["es", "Cada año el 1 de enero a las 00:00 (UTC)"],
     ["fr", "Chaque année le 1 janvier à 00:00 (UTC)"],
     ["ja", "毎年 1月1日 00:00 (UTC)"],
-    ["fa", "هر سال 1 ژانویه ساعت 00:00 (UTC)"],
+    ["fa", "هر سال ۱ ژانویه ساعت ۰۰:۰۰ (UTC)"],
   ])(
     "%s: a yearly schedule's date as the language writes a date",
     (language: string, expected: string) => {
@@ -305,6 +305,44 @@ describe("in every language", () => {
       );
     },
   );
+
+  /*
+   * Persian writes its own digits - its counts, and the dates Intl writes in
+   * its sentences - so a time of day and a minute in a Persian sentence are
+   * written in them too, never "ساعت 09:30" beside "۱ ژانویه".
+   */
+  test.each<[string, string | null]>([
+    ["30 9 * * *", "هر روز ساعت ۰۹:۳۰ (UTC)"],
+    ["5 */6 * * *", "هر ۶ ساعت در دقیقهٔ ۰۵"],
+    ["15 * * * *", "هر ساعت در دقیقهٔ ۱۵"],
+    ["0 9 * * 1", "هر هفته دوشنبه ساعت ۰۹:۰۰ (UTC)"],
+    ["0 9 1,15 * *", "هر ماه روز ۱ و ۱۵ ساعت ۰۹:۰۰ (UTC)"],
+    ["0 0 1 1 *", null],
+    ["*/20 * * * *", "هر ۲۰ دقیقه"],
+  ])(
+    "fa: %s reads every figure in Persian digits",
+    (expression: string, expected: string | null) => {
+      const persian: string | null = describeCronSchedule(
+        expression,
+        translatorFor("fa"),
+      );
+
+      expect(persian).not.toBeNull();
+      expect(persian).not.toMatch(/[0-9]/);
+      expect(persian).toMatch(/[۰-۹]/u);
+
+      if (expected) {
+        expect(persian).toBe(expected);
+      }
+    },
+  );
+
+  test("the same schedules in English and German keep their Latin figures", () => {
+    for (const translator of [ENGLISH, translatorFor("de")]) {
+      expect(describeCronSchedule("30 9 * * *", translator)).toContain("09:30");
+      expect(describeCronSchedule("5 */6 * * *", translator)).toContain("05");
+    }
+  });
 
   /*
    * A language's "one" form covers more counts than 1: Russian reads 21

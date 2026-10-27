@@ -38,6 +38,15 @@ const tailwind = path.join(
   common,
   "Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
+/*
+ * What every index.ejs loads right after the runtime: left and right follow
+ * the page's reading direction, so a Persian page (dir="rtl") is laid out as
+ * production lays it out.
+ */
+const readingDirection = path.join(
+  common,
+  "UI/Styles/TailwindReadingDirection.js",
+);
 const inter = path.join(
   common,
   "Server/Static/Vendor/fonts/InterVariable.woff2",
@@ -90,7 +99,7 @@ const publicConfig = configFor({
  * (class-based dark mode). ?theme=dark adds the class on <html> that
  * Theme.css reads, as the Dashboard does in dark mode.
  */
-const appHtml = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dashboard time range preview</title><script>var q=new URLSearchParams(window.location.search);window.process={env:{HOST:"oneuptime.acme-commerce.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(q.get("theme")==="dark"){document.documentElement.classList.add("dark");}</script><script src="/tailwind.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background-color:#f9fafb}html.dark,html.dark body{background-color:#0f172a}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body class="h-full bg-gray-50"><div id="root"></div><script type="module" src="/app/AppFixture.js"></script></body></html>`;
+const appHtml = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dashboard time range preview</title><script>var q=new URLSearchParams(window.location.search);window.process={env:{HOST:"oneuptime.acme-commerce.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(q.get("theme")==="dark"){document.documentElement.classList.add("dark");}</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background-color:#f9fafb}html.dark,html.dark body{background-color:#0f172a}*{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body class="h-full bg-gray-50"><div id="root"></div><script type="module" src="/app/AppFixture.js"></script></body></html>`;
 
 /*
  * What the public dashboard's page server would put in env.js. HOST is this
@@ -179,6 +188,11 @@ async function main() {
 
     if (url.pathname === "/tailwind.js") {
       send(response, tailwind, "application/javascript");
+      return;
+    }
+
+    if (url.pathname === "/tailwind-reading-direction.js") {
+      send(response, readingDirection, "application/javascript");
       return;
     }
 

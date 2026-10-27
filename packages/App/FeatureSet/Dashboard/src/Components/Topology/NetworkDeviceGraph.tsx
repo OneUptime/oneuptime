@@ -1336,7 +1336,7 @@ const NetworkDeviceGraph: FunctionComponent<ComponentProps> = (
         {showLabels ? (
           <></>
         ) : (
-          <div className="pointer-events-none absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-gray-900/80 px-3 py-1 text-xs text-white">
+          <div className="pointer-events-none absolute inset-x-0 bottom-2 z-10 mx-auto w-fit rounded-full bg-gray-900/80 px-3 py-1 text-xs text-white">
             Zoom in to see device names
           </div>
         )}

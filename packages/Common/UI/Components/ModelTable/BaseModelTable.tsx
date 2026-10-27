@@ -4620,7 +4620,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
         {showPlan && (
           <span
             style={{
-              marginLeft: "5px",
+              marginInlineStart: "5px",
             }}
           >
             <Pill

@@ -47,6 +47,7 @@ import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export enum DetailStyle {
@@ -552,7 +553,14 @@ const Detail: DetailFunction = <T extends GenericObject>(
             isCopyable ? " flex items-start gap-2" : ""
           }`}
         >
-          <div className="min-w-0 break-words">{data}</div>
+          {/*
+           * A value written as text reads the way it is written: an English
+           * description on a Persian page keeps its full stop at its end
+           * (IsolatedText).
+           */}
+          <div className="min-w-0 break-words">
+            {typeof data === "string" ? <IsolatedText text={data} /> : data}
+          </div>
 
           {isCopyable ? (
             <div

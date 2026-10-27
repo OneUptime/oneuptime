@@ -456,12 +456,15 @@ describe("Toggle - how each state looks", () => {
       );
     }
 
-    // Everything but the side it is on is the same.
+    /*
+     * Everything but the side it is on is the same (left to right, and
+     * right to left: TOGGLE_KNOB_ON_RIGHT_TO_LEFT_CLASS).
+     */
     const withoutSide: (classes: Array<string>) => Array<string> = (
       classes: Array<string>,
     ): Array<string> => {
       return classes.filter((className: string): boolean => {
-        return !className.startsWith("translate-x-");
+        return !className.includes("translate-x-");
       });
     };
 

@@ -87,11 +87,14 @@ import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 
 /*
- * The toolbar's two buttons: spaced by their row's gap, not by the left
- * margin a button keeps from md up (md:ml-3), which would indent whichever
- * one starts a row once the toolbar wraps.
+ * The toolbar's two buttons: spaced by their row's gap, not by the start
+ * margin a button keeps from md up (md:ml-3, the start of the line in
+ * either reading direction), which would indent whichever one starts a row
+ * once the toolbar wraps.
  */
-const TOOLBAR_BUTTON_STYLE: React.CSSProperties = { marginLeft: 0 };
+const TOOLBAR_BUTTON_STYLE: React.CSSProperties = {
+  marginInlineStart: "0px",
+};
 
 const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [isLoading, setIsLoading] = useState<boolean>(true);

@@ -1783,8 +1783,18 @@ describe("MarkdownViewer inlineReferences wiring", () => {
     expect(Object.keys(props.components || {}).sort()).toEqual(
       EXISTING_COMPONENT_KEYS,
     );
-    expect(container.innerHTML).toBe(
-      '<div class="max-w-none"><div data-testid="react-markdown">Same as #6954 [C1]</div></div>',
+    /*
+     * The frame alone around what react-markdown draws: laid out the way the
+     * note is written (MarkdownReadingDirection), nothing else added.
+     */
+    expect(container.childElementCount).toBe(1);
+
+    const frame: Element = container.firstElementChild!;
+
+    expect(frame.getAttribute("class")).toBe("max-w-none");
+    expect(frame.getAttribute("dir")).toBe("ltr");
+    expect(frame.innerHTML).toBe(
+      '<div data-testid="react-markdown">Same as #6954 [C1]</div>',
     );
   });
 

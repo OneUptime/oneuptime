@@ -1,6 +1,7 @@
 import Icon from "../Icon/Icon";
 import IconProp from "../../../Types/Icon/IconProp";
 import joinAriaIds from "../../Utils/AriaIds";
+import { TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME } from "../../Utils/TypedTextDirection";
 import useTranslateValue from "../../Utils/Translation";
 import React, {
   FunctionComponent,
@@ -113,6 +114,9 @@ const TextArea: FunctionComponent<ComponentProps> = (
     className +=
       " border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
   }
+
+  // Each line reads the way it is written (TypedTextDirection).
+  className += ` ${TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME}`;
 
   useEffect(() => {
     if (props.value) {

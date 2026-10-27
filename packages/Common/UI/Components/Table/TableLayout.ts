@@ -72,10 +72,13 @@ export interface TableCellPosition {
 }
 
 /*
- * A cell's padding on the left and right: 24px at the row's two ends, so
- * the first value starts under the card's title and the last one ends as
- * far in from the card's edge; 12px everywhere else, 24px between two
- * columns.
+ * A cell's padding at the start and the end of its line: 24px at the row's
+ * two ends, so the first value starts under the card's title and the last
+ * one ends as far in from the card's edge; 12px everywhere else, 24px
+ * between two columns. pl- and pr- are the start and the end (Tailwind's
+ * left and right follow the reading direction:
+ * Common/UI/Styles/TailwindReadingDirection.js), so a right-to-left row
+ * keeps its 24px at both of its ends.
  */
 export const TABLE_CELL_EDGE_PADDING_LEFT_CLASS_NAME: string = "pl-6";
 export const TABLE_CELL_EDGE_PADDING_RIGHT_CLASS_NAME: string = "pr-6";
@@ -225,10 +228,12 @@ export const TABLE_HEADER_SELECT_CELL_CLASS_NAME: string =
  * colour; a row's cell takes its row's (bg-inherit), so it is as opaque as
  * the row - white, lit under the pointer, washed when ticked.
  *
- * It sticks at the table's right edge, and only matters when the rows
+ * It sticks at the table's end edge - the right, or the left on a page that
+ * reads right to left, where right-0 and border-l follow the reading
+ * direction (TailwindReadingDirection.js) - and only matters when the rows
  * scroll sideways: then the cells passing under it are cut off by a rule
- * and a soft shadow on its left (TABLE_STUCK_END_CELL_CLASS_NAME), so the
- * row's View and ⋯ are always in sight.
+ * and a soft shadow on its start side (TABLE_STUCK_END_CELL_CLASS_NAME), so
+ * the row's View and ⋯ are always in sight.
  */
 export const TABLE_STICKY_END_HEADER_CELL_CLASS_NAME: string =
   "sticky right-0 z-[3]";
@@ -236,8 +241,15 @@ export const TABLE_STICKY_END_HEADER_CELL_CLASS_NAME: string =
 export const TABLE_STICKY_END_BODY_CELL_CLASS_NAME: string =
   "sticky right-0 z-[1] bg-inherit";
 
-export const TABLE_STUCK_END_CELL_CLASS_NAME: string =
-  "border-l border-gray-200 shadow-[-8px_0_12px_-10px_rgba(15,23,42,0.18)]";
+/*
+ * A shadow does not follow the reading direction by itself: right to left
+ * it falls the other way, over the cells to the column's right (and its
+ * dark theme twin in Theme.css too).
+ */
+export const TABLE_STUCK_END_SHADOW_RIGHT_TO_LEFT_CLASS_NAME: string =
+  "[&:dir(rtl)]:shadow-[8px_0_12px_-10px_rgba(15,23,42,0.18)]";
+
+export const TABLE_STUCK_END_CELL_CLASS_NAME: string = `border-l border-gray-200 shadow-[-8px_0_12px_-10px_rgba(15,23,42,0.18)] ${TABLE_STUCK_END_SHADOW_RIGHT_TO_LEFT_CLASS_NAME}`;
 
 /*
  * The 30px row button and ⋯ sit centred on the row's 24px line: 3px above

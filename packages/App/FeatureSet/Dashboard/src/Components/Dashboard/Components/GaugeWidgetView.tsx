@@ -490,7 +490,7 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
                 className="text-gray-400 font-normal tracking-normal"
                 style={{
                   fontSize: `${unitFontPx}px`,
-                  marginLeft: displayUnit === "%" ? "0" : "0.15em",
+                  marginInlineStart: displayUnit === "%" ? "0" : "0.15em",
                 }}
               >
                 {displayUnit}

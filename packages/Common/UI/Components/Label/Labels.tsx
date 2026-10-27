@@ -171,7 +171,7 @@ const LabelsElement: FunctionComponent<ComponentProps> = (
             <LabelElement
               label={label}
               style={{
-                marginRight: "5px",
+                marginInlineEnd: "5px",
               }}
             />
           </div>

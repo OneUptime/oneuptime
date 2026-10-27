@@ -144,10 +144,7 @@ const SecurityPipeline: FunctionComponent<ComponentProps> = (
                   aria-hidden="true"
                   data-testid="security-pipeline-arrow"
                 >
-                  <Icon
-                    icon={IconProp.ChevronRight}
-                    className="h-3.5 w-3.5 rtl:rotate-180"
-                  />
+                  <Icon icon={IconProp.ChevronRight} className="h-3.5 w-3.5" />
                 </span>
               ) : (
                 <></>

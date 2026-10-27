@@ -1138,7 +1138,7 @@ const TraceDetail: FunctionComponent<{
               data-testid="rail-waterfall-span"
               data-depth={span.depth}
               className="flex items-center gap-2 rounded hover:bg-gray-50"
-              style={{ paddingLeft: `${span.depth * 10}px` }}
+              style={{ paddingInlineStart: `${span.depth * 10}px` }}
             >
               <button
                 type="button"
