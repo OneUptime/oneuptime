@@ -195,10 +195,12 @@ Toda permissão concedida tem um escopo: quando você a adiciona, **Escopo** fic
 | Escopo | Significado |
 | --- | --- |
 | Todos os recursos no projeto | O padrão, e o que a maioria das equipes precisa. A permissão se aplica a todos os recursos correspondentes. |
-| Apenas os recursos que pertencem a eles | A permissão só se aplica a recursos que pertencem à pessoa que age ou a uma das equipes dela. |
+| Apenas os recursos que pertencem a eles | A permissão só se aplica a recursos que pertencem à pessoa que age ou à equipe a que ela é dada, não a recursos que pertencem só a outra equipe dessa pessoa. |
 | Apenas os recursos com certos rótulos | A permissão só se aplica a recursos que carregam pelo menos um dos rótulos escolhidos. |
 
 **Próprios** é a forma mais simples de montar um modelo de «cada um cuida dos seus próprios serviços»: dê a uma equipe `MonitorAdmin` com escopo Próprios e depois torne essa equipe proprietária dos monitores pelos quais ela é responsável. Isso restringe todo recurso que pode ter proprietários — monitores, incidentes, painéis, serviços, grupos de monitores, agendamentos de plantão e afins — e o que pertence a eles, como as camadas de um agendamento. Sondas, Runners, agentes de IA, agendamentos de plantão e modelos de incidentes e de manutenção são aquilo com que outros recursos são configurados, então uma permissão com escopo Próprios continua lendo todos eles, e você pode escolher qualquer um; ela só altera e exclui aqueles dos quais você ou suas equipes são proprietários. A chave de um Runner, que permite a quem a tem agir como esse Runner, só aparece nos Runners dos quais você ou suas equipes são proprietários. A configuração do projeto (estados de incidentes, rótulos, as próprias equipes) não tem proprietário, então uma função com escopo Próprios se comporta normalmente ali.
+
+A permissão com escopo Próprios de cada equipe alcança o que pertence a essa equipe, não o que pertence às outras equipes da pessoa. Quem está em duas equipes, uma com `IncidentMember` com escopo Próprios e outra com `Viewer` com escopo Próprios, altera os incidentes que pertencem à primeira equipe e os seus próprios, e só vê os incidentes que pertencem à segunda. Uma permissão com escopo Próprios também só adiciona proprietários a recursos que pertencem à pessoa ou à equipe a que ela é dada, então a primeira equipe não pode virar proprietária dos incidentes da segunda para contornar isso. A permissão com escopo Próprios de uma função personalizada alcança o que pertence a cada equipe que recebeu a função.
 
 **Rótulos** é a versão mais manual da mesma ideia: marque os recursos e depois conceda permissões restritas a essas marcas.
 

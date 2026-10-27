@@ -26,6 +26,7 @@ import GlobalCache from "../Infrastructure/GlobalCache";
 import Model from "../../Models/DatabaseModels/Label";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger from "../Utils/Logger";
+import PermissionRowsOfDeletedLabels from "../Utils/Permission/PermissionRowsOfDeletedLabels";
 
 const AUTO_LABEL_ID_CACHE_NAMESPACE: string = "auto-label-id";
 const AUTO_LABEL_ID_CACHE_TTL_SECONDS: number = 24 * 60 * 60;
@@ -163,14 +164,29 @@ export class Service extends DatabaseService<Model> {
       },
     );
 
+    const deletedLabelIds: Array<ObjectID> = labels
+      .map((label: Model) => {
+        return label.id;
+      })
+      .filter((id: ObjectID | null): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    /*
+     * A permission limited to these labels alone would be left with none,
+     * and a permission with no labels reaches the whole project: it goes
+     * first, with the people and keys holding it refreshed. Not caught - a
+     * label is never deleted while such a permission stays behind. See
+     * PermissionRowsOfDeletedLabels.
+     */
+    if (deletedLabelIds.length > 0) {
+      await PermissionRowsOfDeletedLabels.removeRowsLimitedOnlyTo({
+        labelIds: deletedLabelIds,
+      });
+    }
+
     try {
-      const labelIds: Array<ObjectID> = labels
-        .map((label: Model) => {
-          return label.id;
-        })
-        .filter((id: ObjectID | null): id is ObjectID => {
-          return Boolean(id);
-        });
+      const labelIds: Array<ObjectID> = deletedLabelIds;
 
       if (labelIds.length > 0) {
         /*

@@ -119,6 +119,40 @@ describe("PropsHoldingOnly.build", () => {
     expect(rowsOf(props)).toEqual([allow, block]);
   });
 
+  /*
+   * A block only ever takes away. One on a permission besides the named
+   * ones - Workflow Viewer blocked on the records carrying a label - takes
+   * those records away from every read of the table, so a check of what
+   * Workflow Member reaches may not reach them either: a member could run a
+   * workflow the dashboard does not even show them.
+   */
+  test("keeps every block row, the ones on permissions not named too", () => {
+    const allow: UserPermission = row(Permission.WorkflowMember);
+    const blockOnViewer: UserPermission = row(Permission.WorkflowViewer, {
+      block: true,
+      labelIds: [LABEL_ID],
+    });
+    const blockOnAdmin: UserPermission = row(Permission.ProjectAdmin, {
+      block: true,
+    });
+
+    const props: DatabaseCommonInteractionProps = PropsHoldingOnly.build({
+      databaseProps: propsWithRows({
+        projectRows: [
+          allow,
+          row(Permission.WorkflowViewer),
+          blockOnViewer,
+          blockOnAdmin,
+        ],
+      }),
+      projectId: PROJECT_ID,
+      permissions: [Permission.WorkflowMember],
+    });
+
+    // The named allow rows, and every block row - none of the other allows.
+    expect(rowsOf(props)).toEqual([allow, blockOnViewer, blockOnAdmin]);
+  });
+
   test("keeps rows for every named permission", () => {
     const props: DatabaseCommonInteractionProps = PropsHoldingOnly.build({
       databaseProps: propsWithRows({

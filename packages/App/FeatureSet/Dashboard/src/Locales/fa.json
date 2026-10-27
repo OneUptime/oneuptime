@@ -30567,7 +30567,7 @@
   "Private User": "کاربر خصوصی",
   "Projects that require SSO accept a sign-in with this provider.": "پروژه‌هایی که SSO را الزامی می‌کنند، ورود با این ارائه‌دهنده را می‌پذیرند.",
   "Resources that carry one of the labels you pick.": "منابعی که یکی از برچسب‌های انتخابی شما را دارند.",
-  "Resources the person, or one of their teams, owns.": "منابعی که آن فرد یا یکی از تیم‌هایش مالک آن‌هاست.",
+  "Resources the person, or the team given this permission, owns.": "منابعی که آن فرد یا تیمی که این دسترسی به آن داده شده مالک آن‌هاست.",
   "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.": "ایمیل این پروژه را از راه سرور ایمیل خودتان بفرستید. صفحهٔ وضعیت یکی را در تنظیمات مشترکان انتخاب می‌کند.",
   "Serves the badge at a link with a secret token, made the first time you turn it on.": "نشان را در پیوندی با یک توکن مخفی ارائه می‌کند که نخستین بار که آن را روشن کنید ساخته می‌شود.",
   "Start {{runbooks}}": "شروع {{runbooks}}",

@@ -29,7 +29,15 @@ export function shouldBypassRecordPrivacy(
     return true;
   }
 
-  if (!props.tenantId) {
+  /*
+   * A read across projects (is-multi-tenant-query) is answered with a query
+   * per project of the caller's, while this is asked once, of the project
+   * the request names besides (tenantid), if any: an owner of a project of
+   * their own who sent both read the private incidents of every project
+   * they were in. Across projects, every private record is read by its
+   * owners alone.
+   */
+  if (!props.tenantId || props.isMultiTenantRequest) {
     return false;
   }
 

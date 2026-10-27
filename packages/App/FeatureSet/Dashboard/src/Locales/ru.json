@@ -30567,7 +30567,7 @@
   "Private User": "Приватный пользователь",
   "Projects that require SSO accept a sign-in with this provider.": "Проекты, требующие SSO, принимают вход через этого поставщика.",
   "Resources that carry one of the labels you pick.": "Ресурсы с одной из выбранных вами меток.",
-  "Resources the person, or one of their teams, owns.": "Ресурсы, которыми владеет этот человек или одна из его команд.",
+  "Resources the person, or the team given this permission, owns.": "Ресурсы, которыми владеет этот человек или команда, которой выдано это разрешение.",
   "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.": "Отправляйте почту этого проекта через собственный почтовый сервер. Страница состояния выбирает его в разделе Настройки подписчиков.",
   "Serves the badge at a link with a secret token, made the first time you turn it on.": "Отдаёт значок по ссылке с секретным токеном, который создаётся при первом включении.",
   "Start {{runbooks}}": "Запустить {{runbooks}}",

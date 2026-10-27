@@ -18,7 +18,10 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import Model from "../../Models/DatabaseModels/ApiKeyPermission";
 import Label from "../../Models/DatabaseModels/Label";
 import ObjectID from "../../Types/ObjectID";
-import Permission, { UserPermission } from "../../Types/Permission";
+import Permission, {
+  PermissionHelper,
+  UserPermission,
+} from "../../Types/Permission";
 import { getApiKeyRoleCopyChangeRefusedMessage } from "../../Types/Team/CustomRole";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -304,14 +307,18 @@ export class Service extends ProjectReferencesService<Model> {
     return labelIds;
   }
 
+  /*
+   * A row that reaches the whole project: neither its owners nor its labels
+   * narrow it - labels narrow a row whatever scope it is stored with, All
+   * included (PermissionHelper.isLimitedToLabels).
+   */
   private hasUnrestrictedPermission(
     permissions: Array<UserPermission>,
   ): boolean {
     return permissions.some((permission: UserPermission): boolean => {
       return (
-        permission.scope === PermissionScope.All ||
-        (permission.scope !== PermissionScope.Owned &&
-          permission.labelIds.length === 0)
+        permission.scope !== PermissionScope.Owned &&
+        !PermissionHelper.isLimitedToLabels(permission)
       );
     });
   }

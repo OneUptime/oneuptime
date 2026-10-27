@@ -30567,7 +30567,7 @@
   "Private User": "비공개 사용자",
   "Projects that require SSO accept a sign-in with this provider.": "SSO가 필수인 프로젝트는 이 제공업체로 한 로그인을 받아들입니다.",
   "Resources that carry one of the labels you pick.": "선택한 레이블 중 하나가 있는 리소스입니다.",
-  "Resources the person, or one of their teams, owns.": "그 사람 또는 그 사람의 팀 중 하나가 소유한 리소스입니다.",
+  "Resources the person, or the team given this permission, owns.": "그 사람 또는 이 권한을 받은 팀이 소유한 리소스입니다.",
   "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.": "이 프로젝트의 이메일을 자체 메일 서버로 보냅니다. 상태 페이지는 구독자 설정에서 하나를 고릅니다.",
   "Serves the badge at a link with a secret token, made the first time you turn it on.": "비밀 토큰이 들어간 링크로 배지를 제공합니다. 토큰은 처음 켤 때 만들어집니다.",
   "Start {{runbooks}}": "{{runbooks}} 시작",

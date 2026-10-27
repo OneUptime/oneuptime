@@ -287,6 +287,14 @@ describe("TeamMember acceptance transition safety", () => {
       propsWith([grant(Permission.CurrentUser)]),
     );
 
+    // The membership the update writes is the invitee's own.
+    const own: TeamMember = new TeamMember();
+    own.userId = USER_ID;
+    getJestSpyOn(
+      TeamMemberService as unknown as Record<string, unknown>,
+      "findRowsAndHoldUpdateToThem",
+    ).mockResolvedValue([own] as never);
+
     await expect(
       callHook(TeamMemberService, "onBeforeUpdate", updateBy),
     ).resolves.toEqual({ updateBy, carryForward: null });

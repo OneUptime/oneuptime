@@ -163,6 +163,8 @@ function grant(
     scope,
     labelIds,
     isBlockPermission,
+    // The member's team holds it: an Owned row reaches what that team owns.
+    teamId: TEAM_ID,
   };
 }
 

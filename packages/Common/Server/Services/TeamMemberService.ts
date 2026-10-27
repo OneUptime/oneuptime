@@ -821,6 +821,49 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       );
     }
 
+    /*
+     * And the invited person accepts for themselves, as a create already
+     * holds (onBeforeCreate): the inviter's permission to change memberships
+     * - and CurrentUser, which every signed-in person holds, on the column -
+     * let them mark anyone's pending invitation accepted, pulling that
+     * account into the project and whatever its teams grant without its
+     * owner ever agreeing.
+     */
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      (data["hasAcceptedInvitation"] === true ||
+        data["invitationAcceptedAt"] !== undefined) &&
+      !updateBy.props.isRoot &&
+      !updateBy.props.isMasterAdmin
+    ) {
+      const memberships: Array<TeamMember> =
+        await this.findRowsAndHoldUpdateToThem(updateBy, {
+          _id: true,
+          userId: true,
+        });
+
+      const callerId: string | undefined = updateBy.props.userId
+        ?.toString()
+        .toLowerCase();
+
+      if (
+        memberships.some((membership: TeamMember): boolean => {
+          return (
+            !callerId ||
+            membership.userId?.toString().toLowerCase() !== callerId
+          );
+        })
+      ) {
+        throw new NotAuthorizedException(
+          "Only the person invited can accept an invitation to a team.",
+        );
+      }
+    }
+
     return { updateBy, carryForward: null };
   }
 
