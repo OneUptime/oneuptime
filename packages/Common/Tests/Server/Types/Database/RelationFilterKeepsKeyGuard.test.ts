@@ -293,7 +293,18 @@ describe("the server writes a relation's key from the relation in one place", ()
     const helperStart: number = source.indexOf(
       "private static moveRelationFilterToKey",
     );
-    const helperEnd: number = source.indexOf("@CaptureSpan()", helperStart);
+    /*
+     * The helper ends where the class's next method begins. (It used to end
+     * at the next @CaptureSpan(), until 30b587b41a took the spans off
+     * QueryUtil's in-memory methods.)
+     */
+    const nextMethod: RegExpMatchArray | null = source
+      .slice(helperStart + 1)
+      .match(/\n {2}(?:public |private |protected )?static /);
+    const helperEnd: number =
+      helperStart > -1 && nextMethod
+        ? helperStart + 1 + (nextMethod.index as number)
+        : -1;
 
     expect(helperStart).toBeGreaterThan(-1);
     expect(helperEnd).toBeGreaterThan(helperStart);
