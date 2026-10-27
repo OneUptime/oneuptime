@@ -22,11 +22,11 @@ import FeedMarkdown, {
  *
  * An event's "updated" feed item - posted to its Slack and Microsoft Teams
  * channels as well - has a line for each of its title, its window (when it
- * starts and ends), its description, the reminders its subscribers get
- * before it starts, what it affects, the status pages it is shown on and
- * its labels that an update changes; a change of the labels or of its Send
- * reminders switch also matches its reminder rule again, which starts the
- * reminder interval over.
+ * starts and ends), when it is published on its status pages, its
+ * description, the reminders its subscribers get before it starts, what it
+ * affects, the status pages it is shown on and its labels that an update
+ * changes; a change of the labels or of its Send reminders switch also
+ * matches its reminder rule again, which starts the reminder interval over.
  *
  * The event's Maintenance Details card sends the title, the window, the
  * labels, the status pages and the reminders with every save, and an API
@@ -37,9 +37,10 @@ import FeedMarkdown, {
  * line follows a real change, compared here on EventFieldChange's rules:
  *
  * - the title and the description as text (EventFieldChange.normalizeText);
- * - the window as the instants it names: a time written back as a Date, an
- *   ISO string in any time zone or a number of milliseconds is the same
- *   time (EventFieldChange.isInstantChanged);
+ * - the window, and the publish time, as the instants they name: a time
+ *   written back as a Date, an ISO string in any time zone or a number of
+ *   milliseconds is the same time (EventFieldChange.isInstantChanged), and
+ *   no publish time written back as none is no change;
  * - the reminders before the event as a set: their order and a repeated
  *   one mean nothing, as the job that sends them reads only the earliest
  *   still to come (normalizeReminderList);
@@ -51,8 +52,14 @@ import FeedMarkdown, {
  * never missed.
  */
 
-// The two times of an event's window, in the order the feed lists them.
-export type ScheduledMaintenanceTimeColumn = "startsAt" | "endsAt";
+/*
+ * The times the feed compares, in the order it lists them: the event's
+ * window, then when it is published on its status pages.
+ */
+export type ScheduledMaintenanceTimeColumn =
+  | "startsAt"
+  | "endsAt"
+  | "publishOnStatusPageAt";
 
 // The column that holds the reminders subscribers get before the event.
 export const REMINDERS_BEFORE_THE_EVENT_COLUMN: string =
@@ -73,6 +80,7 @@ export interface ScheduledMaintenanceValuesBeforeUpdate
   // Each time as the instant it names (EventFieldChange.toInstant).
   startsAt?: number | null | undefined;
   endsAt?: number | null | undefined;
+  publishOnStatusPageAt?: number | null | undefined;
   // The reminders before the event, normalized (normalizeReminderList).
   remindersBeforeTheEvent?: Array<string> | undefined;
 }
@@ -95,9 +103,23 @@ const INTERVAL_ORDER: Array<EventInterval> = [
   EventInterval.Hour,
 ];
 
+// How the feed names each time it lists.
+const TIME_HEADINGS: Record<ScheduledMaintenanceTimeColumn, string> = {
+  startsAt: "Starts At",
+  endsAt: "Ends At",
+  publishOnStatusPageAt: "Publish on Status Page At",
+};
+
 export default class ScheduledMaintenanceFieldChange {
   public static readonly timeColumns: ReadonlyArray<ScheduledMaintenanceTimeColumn> =
-    ["startsAt", "endsAt"];
+    ["startsAt", "endsAt", "publishOnStatusPageAt"];
+
+  /*
+   * What the feed item says when an update clears the publish time: the
+   * event is published on its status pages as soon as it is saved.
+   */
+  public static readonly publishedRightAwayLine: string =
+    "Right away: shown on its status pages as soon as it was saved.";
 
   // What the feed item says when every reminder before the event was taken off.
   public static readonly noRemindersLine: string =
@@ -420,16 +442,19 @@ export default class ScheduledMaintenanceFieldChange {
     value: unknown;
   }): MarkdownText {
     const instant: number | null = EventFieldChange.toInstant(data.value);
-    const heading: string =
-      data.column === "startsAt" ? "Starts At" : "Ends At";
+    const heading: string = TIME_HEADINGS[data.column];
 
-    return mdText`\n\n**${heading}**: \n${
-      instant === null
-        ? "No time provided."
-        : OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-            new Date(instant),
-          )
-    }\n`;
+    if (instant === null) {
+      return mdText`\n\n**${heading}**: \n${
+        data.column === "publishOnStatusPageAt"
+          ? this.publishedRightAwayLine
+          : "No time provided."
+      }\n`;
+    }
+
+    return mdText`\n\n**${heading}**: \n${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+      new Date(instant),
+    )}\n`;
   }
 
   /*

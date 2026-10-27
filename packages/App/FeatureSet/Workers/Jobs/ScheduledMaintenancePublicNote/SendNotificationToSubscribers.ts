@@ -60,6 +60,10 @@ import FeedMarkdown, {
 } from "Common/Utils/Markdown/FeedMarkdown";
 import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
 import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
+import ScheduledMaintenancePublication, {
+  NOT_PUBLISHED_YET_SKIPPED_MESSAGE,
+  ScheduledMaintenancePublicationState,
+} from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new public
@@ -201,6 +205,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
             _id: true,
           },
           isVisibleOnStatusPage: true,
+          publishOnStatusPageAt: true,
           scheduledMaintenanceNumber: true,
         },
       });
@@ -229,19 +234,30 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
       `Public note ${publicNote.id} status set to InProgress for subscriber notifications.`,
     );
 
-    if (!event.isVisibleOnStatusPage) {
-      // Set status to Skipped for non-visible events
+    /*
+     * Only a note on an event shown on its status pages tells their
+     * subscribers: not one on an event hidden from them, nor on one kept to
+     * the team until its publish time - its subscribers hear of the event
+     * when it is published, and read its notes on the page from then on.
+     */
+    const publication: ScheduledMaintenancePublicationState =
+      ScheduledMaintenancePublication.getState(event);
+
+    if (publication !== ScheduledMaintenancePublicationState.Published) {
+      // Set status to Skipped for events not shown on status pages
       logger.debug(
-        `Scheduled maintenance ${event.id} is not visible on status page; marking public note ${publicNote.id} as Skipped.`,
+        `Scheduled maintenance ${event.id} is not shown on status page (${publication}); marking public note ${publicNote.id} as Skipped.`,
       );
       await setNotificationStatus({
         noteId: publicNote.id!,
         trigger: trigger,
         status: StatusPageSubscriberNotificationStatus.Skipped,
         message:
-          "Notifications skipped as scheduled maintenance is not visible on status page.",
+          publication === ScheduledMaintenancePublicationState.Hidden
+            ? "Notifications skipped as scheduled maintenance is not visible on status page."
+            : NOT_PUBLISHED_YET_SKIPPED_MESSAGE,
       });
-      return; // skip if not visible on status page.
+      return; // skip if not shown on status page.
     }
 
     /*

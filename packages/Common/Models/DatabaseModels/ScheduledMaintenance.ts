@@ -2079,6 +2079,55 @@ export default class ScheduledMaintenance extends BaseModel {
   })
   public isVisibleOnStatusPage?: boolean = undefined;
 
+  /*
+   * When the event first shows on its status pages, and their subscribers
+   * hear that it is scheduled: none (null) - as every event created before
+   * this column - is as soon as it is created. Until a time set here has
+   * come the event is shown nowhere public, whatever Visible on Status Page
+   * says (Types/ScheduledMaintenance/ScheduledMaintenancePublication).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Date,
+    required: false,
+    isDefaultValueColumn: false,
+    title: "Publish on Status Page At",
+    description:
+      "When this event first shows on its status pages and their subscribers hear about it. Left empty, it shows as soon as it is created.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public publishOnStatusPageAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
