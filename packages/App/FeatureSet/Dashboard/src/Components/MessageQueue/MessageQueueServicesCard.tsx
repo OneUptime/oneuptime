@@ -1,6 +1,8 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import AppLink from "../AppLink/AppLink";
+import ServiceCallsTable, {
+  ServiceCallsTableRow,
+} from "../ServiceCalls/ServiceCallsTable";
 import { MessageQueueServiceRow } from "./MessageQueueTelemetryQueries";
 import {
   formatMessageQueueCount,
@@ -168,77 +170,31 @@ const MessageQueueServicesCard: FunctionComponent<ComponentProps> = (
           )}
         </div>
       ) : (
-        <div
-          data-testid={`message-queue-${props.side}`}
-          className="-m-6 -mt-2 border-t border-gray-200"
-        >
-          <div className="grid grid-cols-12 gap-4 bg-gray-50 px-4 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">
-            <div className="col-span-5">
-              {translator.translateText("Service")}
-            </div>
-            <div className="col-span-3 text-right">
-              {translator.translateText(copy.countHeader)}
-            </div>
-            <div className="col-span-2 text-right">
-              {translator.translateText("Errors")}
-            </div>
-            <div className="col-span-2 text-right">
-              {translator.translateText(copy.durationHeader)}
-            </div>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {props.services.map(
-              (service: MessageQueueServiceRow): ReactElement => {
-                const name: string =
-                  props.serviceNames[service.serviceId] || service.serviceId;
-                const route: Route = RouteUtil.populateRouteParams(
+        <ServiceCallsTable
+          dataTestId={`message-queue-${props.side}`}
+          rowTestId={`message-queue-${props.side}-row`}
+          footerTestId={`message-queue-${props.side}-footer`}
+          countHeader={copy.countHeader}
+          durationHeader={copy.durationHeader}
+          footer={footer}
+          rows={props.services.map(
+            (service: MessageQueueServiceRow): ServiceCallsTableRow => {
+              return {
+                serviceId: service.serviceId,
+                name: props.serviceNames[service.serviceId] || null,
+                route: RouteUtil.populateRouteParams(
                   RouteMap[PageMap.SERVICE_VIEW] as Route,
                   { modelId: new ObjectID(service.serviceId) },
-                );
-                return (
-                  <div
-                    key={service.serviceId}
-                    data-testid={`message-queue-${props.side}-row`}
-                    data-service-id={service.serviceId}
-                    className="grid grid-cols-12 gap-4 px-4 py-3 text-sm"
-                  >
-                    <div className="col-span-5 min-w-0 truncate">
-                      {props.serviceNames[service.serviceId] ? (
-                        <AppLink
-                          to={route}
-                          className="font-medium text-gray-900 hover:underline"
-                        >
-                          {name}
-                        </AppLink>
-                      ) : (
-                        <span className="font-mono text-gray-500">{name}</span>
-                      )}
-                    </div>
-                    <div className="col-span-3 text-right text-gray-700">
-                      {formatMessageQueueCount(service.calls)}
-                    </div>
-                    <div className="col-span-2 text-right text-gray-700">
-                      {formatMessageQueueErrorRate(service.errorRatePercent)}
-                    </div>
-                    <div className="col-span-2 text-right text-gray-700">
-                      {formatMessageQueueDurationMs(service.p95DurationMs)}
-                    </div>
-                  </div>
-                );
-              },
-            )}
-          </div>
-          {footer ? (
-            <div
-              data-testid={`message-queue-${props.side}-footer`}
-              className="border-t border-gray-100 px-4 py-2 text-xs text-gray-500"
-            >
-              {footer}
-            </div>
-          ) : (
-            <></>
+                ),
+                calls: formatMessageQueueCount(service.calls),
+                errorRate: formatMessageQueueErrorRate(
+                  service.errorRatePercent,
+                ),
+                duration: formatMessageQueueDurationMs(service.p95DurationMs),
+              };
+            },
           )}
-        </div>
+        />
       )}
     </Card>
   );

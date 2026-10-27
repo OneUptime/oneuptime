@@ -1,6 +1,8 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import AppLink from "../AppLink/AppLink";
+import ServiceCallsTable, {
+  ServiceCallsTableRow,
+} from "../ServiceCalls/ServiceCallsTable";
 import { DatabaseCallingService } from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
 import { formatDatabaseCount } from "../../Pages/Database/Utils/DatabaseServerPresentation";
 import Route from "Common/Types/API/Route";
@@ -11,6 +13,7 @@ import React, { FunctionComponent, ReactElement } from "react";
 import {
   getGlobalTranslator,
   Translator,
+  translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -73,10 +76,23 @@ function formatErrorRate(value: number | null): string {
   return `${value.toFixed(1)}%`;
 }
 
+// The table's count and duration columns, as English keys.
+export const DATABASE_CALLING_SERVICES_COUNT_HEADER: string =
+  translationKey("Queries");
+
+export const DATABASE_CALLING_SERVICES_DURATION_HEADER: string =
+  translationKey("p95");
+
 const DatabaseCallingServicesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const footer: string = getCallingServicesFooter(
+    props.services.length,
+    props.totalServices,
+    translator,
+  );
+
   return (
     <Card
       title="Calling services"
@@ -94,81 +110,29 @@ const DatabaseCallingServicesCard: FunctionComponent<ComponentProps> = (
           )}
         </div>
       ) : (
-        <div className="-m-6 -mt-2 border-t border-gray-200">
-          <div className="grid grid-cols-12 gap-4 bg-gray-50 px-4 py-2 text-xs font-medium uppercase tracking-wider text-gray-500">
-            <div className="col-span-6">
-              {translator.translateText("Service")}
-            </div>
-            <div className="col-span-2 text-right">
-              {translator.translateText("Queries")}
-            </div>
-            <div className="col-span-2 text-right">
-              {translator.translateText("Errors")}
-            </div>
-            <div className="col-span-2 text-right">
-              {translator.translateText("p95")}
-            </div>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {props.services.map(
-              (service: DatabaseCallingService): ReactElement => {
-                const name: string =
-                  props.serviceNames[service.serviceId] || service.serviceId;
-                const route: Route = RouteUtil.populateRouteParams(
+        <ServiceCallsTable
+          dataTestId="database-calling-services"
+          rowTestId="database-calling-service-row"
+          footerTestId="database-calling-services-footer"
+          countHeader={DATABASE_CALLING_SERVICES_COUNT_HEADER}
+          durationHeader={DATABASE_CALLING_SERVICES_DURATION_HEADER}
+          footer={footer}
+          rows={props.services.map(
+            (service: DatabaseCallingService): ServiceCallsTableRow => {
+              return {
+                serviceId: service.serviceId,
+                name: props.serviceNames[service.serviceId] || null,
+                route: RouteUtil.populateRouteParams(
                   RouteMap[PageMap.SERVICE_VIEW] as Route,
                   { modelId: new ObjectID(service.serviceId) },
-                );
-                return (
-                  <div
-                    key={service.serviceId}
-                    data-testid="database-calling-service-row"
-                    className="grid grid-cols-12 gap-4 px-4 py-3 text-sm"
-                  >
-                    <div className="col-span-6 min-w-0 truncate">
-                      {props.serviceNames[service.serviceId] ? (
-                        <AppLink
-                          to={route}
-                          className="font-medium text-gray-900 hover:underline"
-                        >
-                          {name}
-                        </AppLink>
-                      ) : (
-                        <span className="font-mono text-gray-500">{name}</span>
-                      )}
-                    </div>
-                    <div className="col-span-2 text-right text-gray-700">
-                      {formatDatabaseCount(service.calls)}
-                    </div>
-                    <div className="col-span-2 text-right text-gray-700">
-                      {formatErrorRate(service.errorRatePercent)}
-                    </div>
-                    <div className="col-span-2 text-right text-gray-700">
-                      {formatMs(service.p95DurationMs)}
-                    </div>
-                  </div>
-                );
-              },
-            )}
-          </div>
-          {getCallingServicesFooter(
-            props.services.length,
-            props.totalServices,
-            translator,
-          ) ? (
-            <div
-              data-testid="database-calling-services-footer"
-              className="border-t border-gray-100 px-4 py-2 text-xs text-gray-500"
-            >
-              {getCallingServicesFooter(
-                props.services.length,
-                props.totalServices,
-                translator,
-              )}
-            </div>
-          ) : (
-            <></>
+                ),
+                calls: formatDatabaseCount(service.calls),
+                errorRate: formatErrorRate(service.errorRatePercent),
+                duration: formatMs(service.p95DurationMs),
+              };
+            },
           )}
-        </div>
+        />
       )}
     </Card>
   );

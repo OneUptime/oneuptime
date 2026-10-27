@@ -16,6 +16,12 @@
  *   ?lang=      de or fa reads the German or Persian locale file
  *   ?theme=     dark adds html.dark (handled by server.js)
  *   ?dir=       rtl lays the page out right to left
+ *   ?callers=   the services that query the database and publish to or
+ *               consume from the queue, in the cards that list them: none
+ *               by default; busy (named services and one only its id names,
+ *               more consumers than the table holds, so its footer counts
+ *               them) | long (long names and big figures, to measure the
+ *               table's columns with)
  *
  * Every read is recorded on window.__resourceOverviewsFixture: listRequests,
  * itemRequests, countRequests, aggregateRequests, apiRequests and unhandled
@@ -61,6 +67,10 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import Realtime from "Common/UI/Utils/Realtime";
 import UserUtil from "Common/UI/Utils/User";
 import { ARCHIVABLE_VALUE_TABLE_NAMES } from "Common/Utils/ArchivableValues";
+import {
+  MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE,
+  MESSAGE_QUEUE_RECEIVE_OPERATION,
+} from "../../../App/FeatureSet/Dashboard/src/Components/MessageQueue/MessageQueueTelemetryQueries";
 
 /*
  * ---------------------------------------------------------------------------
@@ -75,6 +85,9 @@ const RESOURCE = ["new", "long"].includes(params.get("resource"))
 const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
+const CALLERS = ["busy", "long"].includes(params.get("callers"))
+  ? params.get("callers")
+  : "none";
 
 if (params.get("dir") === "rtl") {
   document.documentElement.dir = "rtl";
@@ -257,6 +270,151 @@ const queue = {
 
 /*
  * ---------------------------------------------------------------------------
+ * The services that call the database and use the queue (?callers=)
+ * ---------------------------------------------------------------------------
+ *
+ * Each is a Service row the cards' name lookup finds - but for the one only
+ * its id names, as a service deleted since its spans were written - with
+ * its spans over the whole window: how many, how many failed, and their
+ * p95 in nanoseconds, as the grouped aggregates answer them.
+ */
+const MILLISECOND_IN_NANOSECONDS = 1000 * 1000;
+
+function caller(number, name, spans, failed, p95Ms) {
+  return {
+    id: uuid("76000000", number),
+    name,
+    spans,
+    failed,
+    p95: p95Ms * MILLISECOND_IN_NANOSECONDS,
+  };
+}
+
+const CALLER_SIDES = {
+  none: { producers: [], consumers: [], database: [] },
+  busy: {
+    producers: [
+      caller(1, "checkout-api", 1240, 12, 3.3),
+      caller(2, "orders-api", 312, 0, 1.8),
+    ],
+    // Twelve: the table holds the busiest ten and its footer counts all.
+    consumers: [
+      caller(3, "fulfillment-worker", 1180, 4, 42),
+      caller(4, "email-notifier", 960, 31, 118),
+      caller(5, "analytics-ingest", 3020, 0, 7.5),
+      caller(6, "loyalty-points", 410, 2, 64),
+      caller(7, "fraud-screening", 1240, 18, 260),
+      caller(8, "invoice-renderer", 210, 0, 1840),
+      caller(9, "search-indexer", 1900, 0, 12),
+      caller(10, "warehouse-sync", 640, 9, 95),
+      caller(11, "recommendations", 820, 0, 33),
+      caller(12, "audit-trail", 1240, 0, 2.1),
+      caller(13, "tax-reporting", 95, 0, 410),
+      // A service deleted since: only its id names it.
+      { ...caller(14, null, 120, 0, 18) },
+    ],
+    database: [
+      caller(1, "checkout-api", 18200, 41, 4.2),
+      caller(15, "inventory-reservations", 9400, 0, 11),
+      caller(2, "orders-api", 2600, 3, 2.7),
+    ],
+  },
+  long: {
+    producers: [
+      caller(
+        16,
+        "inventory-reservation-service-eu-west-2-canary-blue",
+        1234567,
+        23456,
+        1234.5,
+      ),
+      caller(1, "checkout-api", 98765, 0, 3.3),
+    ],
+    consumers: [
+      caller(
+        17,
+        "order-fulfillment-orchestrator-eu-west-2-canary-green",
+        2345678,
+        123456,
+        12480,
+      ),
+      caller(3, "fulfillment-worker", 1180, 4, 42),
+    ],
+    database: [
+      caller(
+        16,
+        "inventory-reservation-service-eu-west-2-canary-blue",
+        12345678,
+        345678,
+        1234.5,
+      ),
+      caller(1, "checkout-api", 18200, 41, 4.2),
+    ],
+  },
+};
+
+const callerServices = [];
+for (const side of Object.values(CALLER_SIDES[CALLERS])) {
+  for (const row of side) {
+    if (
+      row.name &&
+      !callerServices.some((service) => {
+        return service._id === row.id;
+      })
+    ) {
+      callerServices.push({
+        _id: row.id,
+        projectId: PROJECT_ID,
+        name: row.name,
+        isArchived: false,
+      });
+    }
+  }
+}
+
+/*
+ * Which cards a grouped span aggregate is for, by the spans it asks for
+ * (MessageQueueTelemetryQueries' populations, DatabaseServerTelemetryQueries'
+ * client spans): the queue's producer spans, its consumer spans (not the
+ * SQS receives), or the database's client spans. A queue's client sends
+ * and receives are none of the fixture's callers.
+ */
+function callerSideOf(query) {
+  const attributes = query.attributes || {};
+  if (query.kind === "SPAN_KIND_PRODUCER") {
+    return "producers";
+  }
+  if (query.kind === "SPAN_KIND_CONSUMER") {
+    return attributes[MESSAGE_QUEUE_OPERATION_TYPE_ATTRIBUTE] ===
+      MESSAGE_QUEUE_RECEIVE_OPERATION
+      ? null
+      : "consumers";
+  }
+  if (query.kind === "SPAN_KIND_CLIENT" && !query.attributes) {
+    return "database";
+  }
+  return null;
+}
+
+// The grouped rows the server answers: one per service, its value.
+function callerRows(query, aggregationType) {
+  const side = callerSideOf(query || {});
+  if (!side) {
+    return [];
+  }
+  return CALLER_SIDES[CALLERS][side].map((row) => {
+    let value = row.spans;
+    if (aggregationType === "P95") {
+      value = row.p95;
+    } else if (query.statusCode !== undefined) {
+      value = row.failed;
+    }
+    return { primaryEntityId: row.id, value };
+  });
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * The data boundary
  * ---------------------------------------------------------------------------
  */
@@ -325,7 +483,7 @@ function matches(record, query) {
 }
 
 const store = {
-  Service: [service],
+  Service: [service, ...callerServices],
   DatabaseServer: [database],
   DatabaseServerEndpoint: databaseEndpoints,
   MessageQueue: [queue],
@@ -524,6 +682,11 @@ AnalyticsModelAPI.aggregate = async (options) => {
     modelName,
     name: typeof query.name === "string" ? query.name : null,
   });
+
+  // The cards that list services: one row per service (?callers=).
+  if (aggregateBy.groupBy && aggregateBy.groupBy.primaryEntityId) {
+    return { data: callerRows(query, aggregateBy.aggregationType) };
+  }
 
   const data = [];
   for (let step = 30; step >= 0; step--) {
