@@ -99,12 +99,14 @@ export const readProjectDashboards: () => Promise<
 };
 
 /*
- * A row's Move up, Move down and Remove. One that can't be pressed (the
- * first row's Move up) has no hover colour at all, rather than a
- * disabled:hover: one the dark theme has no rule for.
+ * A row's Move up, Move down and Remove. Grey-500 at rest: an icon that is
+ * the only sign of a control needs 3:1 against the white row (WCAG 1.4.11),
+ * which grey-400 is not. One that can't be pressed (the first row's Move
+ * up) is faded and has no hover colour at all, rather than a disabled:hover:
+ * one the dark theme has no rule for.
  */
 function getIconButtonClassName(isDisabled: boolean): string {
-  return `rounded-md p-1.5 text-gray-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+  return `rounded-md p-1.5 text-gray-500 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
     isDisabled
       ? "cursor-not-allowed opacity-40"
       : "hover:bg-gray-100 hover:text-gray-700"
@@ -403,6 +405,11 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
         </ol>
       )}
 
+      {/*
+       * The picker is where a missing dashboard is put right, so it is the
+       * control the form's error marks, and it says the error under itself
+       * as every other field of the form does.
+       */}
       <Dropdown
         key={pickerKey}
         options={pickable}
@@ -410,6 +417,7 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
         ariaLabel={translator.translateText("Add a dashboard")}
         dataTestId="playlist-dashboards-picker"
         disabled={isLoading || isFull || pickable.length === 0}
+        error={props.error || undefined}
         isClearable={false}
         onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
           if (typeof value !== "string" || isFull) {
@@ -426,18 +434,6 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
       {loadError ? (
         <p className="text-sm text-red-600" role="alert">
           {loadError}
-        </p>
-      ) : (
-        <></>
-      )}
-
-      {props.error ? (
-        <p
-          data-testid="error-message"
-          className="text-sm text-red-600"
-          role="alert"
-        >
-          {props.error}
         </p>
       ) : (
         <></>

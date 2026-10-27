@@ -36002,5 +36002,8 @@
   "then": "फिर",
   "{{count}} dashboards": "{{count}} डैशबोर्ड",
   "{{count}} dashboards_one": "{{count}} डैशबोर्ड",
-  "{{position}} of {{count}}": "{{count}} में से {{position}}"
+  "{{position}} of {{count}}": "{{count}} में से {{position}}",
+  "No dashboards": "कोई डैशबोर्ड नहीं",
+  "The player tries again in a minute.": "प्लेयर एक मिनट में फिर से प्रयास करेगा।",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}, प्रत्येक {{interval}}"
 }

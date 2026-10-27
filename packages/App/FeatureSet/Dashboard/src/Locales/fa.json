@@ -36002,5 +36002,8 @@
   "then": "سپس",
   "{{count}} dashboards": "{{count}} داشبورد",
   "{{count}} dashboards_one": "{{count}} داشبورد",
-  "{{position}} of {{count}}": "{{position}} از {{count}}"
+  "{{position}} of {{count}}": "{{position}} از {{count}}",
+  "No dashboards": "بدون داشبورد",
+  "The player tries again in a minute.": "پخش‌کننده یک دقیقه دیگر دوباره تلاش می‌کند.",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}، هر کدام {{interval}}"
 }

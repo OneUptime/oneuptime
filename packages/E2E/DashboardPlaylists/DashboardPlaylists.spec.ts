@@ -349,6 +349,32 @@ test.describe("the player", () => {
     await expect(position(page)).toContainText("1 of 3");
   });
 
+  test("a dashboard on the wall is a display: its charts offer no zoom and nothing to open under the player", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+
+    await openPlayer(page, WALL);
+    await expectOnScreen(page, OVERVIEW);
+
+    const board: Locator = onScreen(page);
+
+    // The charts are drawn, with their titles...
+    await expect(board.getByText("Request Rate Over Time")).toBeVisible();
+    // ...and none of the dashboard page's handles on them.
+    await expect(board.getByText("Drag to zoom")).toHaveCount(0);
+    await expect(
+      board.getByRole("button", {
+        name: "Investigate this time window in a side panel",
+      }),
+    ).toHaveCount(0);
+    await expect(
+      board.getByRole("button", { name: "Open in Metric Explorer" }),
+    ).toHaveCount(0);
+  });
+
   test("draws the next dashboard out of sight ahead of its turn, and keeps it - never drawn again - when the turn comes", async ({
     page,
   }: {
@@ -751,6 +777,12 @@ test.describe("the player", () => {
     );
     await shoot(page, testInfo, "player-shortcuts");
 
+    // Six keys in a medium dialog, not two columns across the whole window.
+    const dialogBox: { width: number } | null = await page
+      .getByRole("dialog")
+      .boundingBox();
+    expect(dialogBox!.width).toBeLessThanOrEqual(768);
+
     // While the sheet is open, the arrows and Space are not the player's.
     await page.keyboard.press("ArrowRight");
     await expectOnScreen(page, OVERVIEW);
@@ -921,8 +953,23 @@ test.describe("when there is nothing to play", () => {
     await expect(player(page)).toHaveAttribute("data-status", "Error");
     await expect(page.getByText("Could not load this playlist")).toBeVisible();
     await expect(
-      page.getByText("The playlist could not be read. Try again in a moment."),
-    ).toBeVisible();
+      page.getByTestId("playlist-player-error-description"),
+    ).toHaveText(
+      "The playlist could not be read. Try again in a moment. The player tries again in a minute.",
+    );
+
+    // In the middle of the stage, where a wall is looked at.
+    const stage: { y: number; height: number } | null = await page
+      .getByTestId("playlist-player-stage")
+      .boundingBox();
+    const message: { y: number; height: number } | null = await page
+      .locator("#playlist-player-error")
+      .boundingBox();
+    expect(
+      Math.abs(
+        message!.y + message!.height / 2 - (stage!.y + stage!.height / 2),
+      ),
+    ).toBeLessThan(40);
     await shoot(page, testInfo, "player-error");
 
     const reads: () => Promise<number> = async (): Promise<number> => {
@@ -950,19 +997,25 @@ test.describe("Dashboards -> Playlists", () => {
 
     await page.goto(LIST_PATH);
 
+    // What each plays, in one phrase: how many dashboards, how long each.
     const wall: Locator = page.locator("tr").filter({ hasText: "NOC wall" });
-    await expect(wall).toContainText("3 dashboards");
-    await expect(wall).toContainText("1 minute");
+    await expect(wall.getByTestId("playlist-summary")).toHaveText(
+      "3 dashboards, 1 minute each",
+    );
 
     const lobby: Locator = page
       .locator("tr")
       .filter({ hasText: "Lobby screen" });
-    await expect(lobby).toContainText("1 dashboard");
-    await expect(lobby).toContainText("15 seconds");
-
-    await expect(page.locator("tr").filter({ hasText: "Draft" })).toContainText(
-      "0 dashboards",
+    await expect(lobby.getByTestId("playlist-summary")).toHaveText(
+      "1 dashboard, 15 seconds each",
     );
+
+    await expect(
+      page
+        .locator("tr")
+        .filter({ hasText: "Draft" })
+        .getByTestId("playlist-summary"),
+    ).toHaveText("No dashboards");
 
     // The side menu's Playlists is the page's own.
     await expect(sideMenuPlaylists(page)).toHaveAttribute(
@@ -974,6 +1027,60 @@ test.describe("Dashboards -> Playlists", () => {
     await wall.getByRole("button", { name: "Play", exact: true }).click();
     await expectPath(page, playPath(WALL));
     await expectOnScreen(page, OVERVIEW);
+  });
+
+  test("fits beside the side menu at a tablet's width, in German too, without scrolling sideways under its Play buttons", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+
+    for (const view of [
+      { width: 768, query: "" },
+      { width: 768, query: "?lang=de" },
+      { width: 1024, query: "?lang=de" },
+    ]) {
+      await page.setViewportSize({ width: view.width, height: 900 });
+      await page.goto(`${LIST_PATH}${view.query}`);
+
+      const wall: Locator = page.locator("tr").filter({ hasText: "NOC wall" });
+      await expect(wall.getByTestId("playlist-summary")).toBeVisible();
+
+      // The table fits its card: no sideways scroll box at all.
+      await expect(page.getByTestId("table-scroll")).toHaveAttribute(
+        "data-overflowing",
+        "false",
+      );
+
+      // Every row's phrase ends before its Play button starts.
+      const rows: Locator = page.locator("tbody tr");
+      const count: number = await rows.count();
+      expect(count).toBeGreaterThan(0);
+
+      for (let index: number = 0; index < count; index++) {
+        const row: Locator = rows.nth(index);
+        const phrase: { x: number; width: number } | null = await row
+          .getByTestId("playlist-summary")
+          .boundingBox();
+        const play: { x: number } | null = await row
+          .getByRole("button")
+          .filter({ hasText: view.query ? "Abspielen" : "Play" })
+          .boundingBox();
+
+        expect({
+          width: view.width,
+          query: view.query,
+          index,
+          ends: phrase!.x + phrase!.width <= play!.x,
+        }).toEqual({
+          width: view.width,
+          query: view.query,
+          index,
+          ends: true,
+        });
+      }
+    }
   });
 
   test("a playlist's page lists its dashboards in order, says which the player skips, and gives the player's link", async ({
@@ -1005,6 +1112,23 @@ test.describe("Dashboards -> Playlists", () => {
     await expect(page.getByTestId("playlist-player-link")).toHaveText(
       `http://127.0.0.1:${PORT}${playPath(NIGHT_SHIFT)}`,
     );
+    await expect(
+      page.getByRole("button", { name: "Copy link", exact: true }),
+    ).toBeVisible();
+
+    // The order and the link each have a row of the card to themselves.
+    const card: { width: number } | null = await page
+      .locator("#model-detail-dashboard-playlist")
+      .boundingBox();
+    const order: { width: number } | null = await page
+      .getByTestId("playlist-dashboard-list")
+      .boundingBox();
+    const linkRow: { width: number } | null = await page
+      .getByTestId("playlist-player-link")
+      .locator("..")
+      .boundingBox();
+    expect(order!.width).toBeGreaterThan(card!.width * 0.9);
+    expect(linkRow!.width).toBeGreaterThan(card!.width * 0.9);
 
     // A playlist's page keeps the side menu's Playlists lit.
     await expect(sideMenuPlaylists(page)).toHaveAttribute(
@@ -1362,11 +1486,38 @@ test.describe("at a phone's width", () => {
     // The list, its rows as cards: each with its dashboards and Play.
     await page.goto(LIST_PATH);
     await expect(page.getByText("NOC wall", { exact: true })).toBeVisible();
-    await expect(page.getByText("3 dashboards", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("3 dashboards, 1 minute each", { exact: true }),
+    ).toBeVisible();
     await shoot(page, testInfo, "playlists");
 
     await page.getByRole("button", { name: "Play", exact: true }).first().tap();
     await expectPath(page, playPath(WALL));
     await expectOnScreen(page, OVERVIEW);
+  });
+
+  test("with nothing to play, the bar keeps Full screen and Exit on the playlist's line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.skip(
+      test.info().project.name !== "mobile-chromium",
+      "the phone's own flow",
+    );
+
+    await openPlayer(page, DRAFT);
+    await expect(player(page)).toHaveAttribute("data-status", "Empty");
+
+    const title: { y: number; height: number } | null =
+      await barTitle(page).boundingBox();
+    const exit: { y: number; height: number } | null = await page
+      .getByRole("button", { name: "Exit the player" })
+      .boundingBox();
+
+    // One line: the button's middle is level with the name's.
+    expect(
+      Math.abs(exit!.y + exit!.height / 2 - (title!.y + title!.height / 2)),
+    ).toBeLessThan(6);
   });
 });

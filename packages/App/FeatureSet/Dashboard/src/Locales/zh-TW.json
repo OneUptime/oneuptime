@@ -36002,5 +36002,8 @@
   "then": "然後",
   "{{count}} dashboards": "{{count}} 個儀表板",
   "{{count}} dashboards_one": "{{count}} 個儀表板",
-  "{{position}} of {{count}}": "第 {{position}} 個，共 {{count}} 個"
+  "{{position}} of {{count}}": "第 {{position}} 個，共 {{count}} 個",
+  "No dashboards": "沒有儀表板",
+  "The player tries again in a minute.": "播放器會在一分鐘後重試。",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}，每個 {{interval}}"
 }

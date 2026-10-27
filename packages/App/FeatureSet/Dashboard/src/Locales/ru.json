@@ -36002,5 +36002,8 @@
   "then": "затем",
   "{{count}} dashboards": "Панелей: {{count}}",
   "{{count}} dashboards_one": "{{count}} панель",
-  "{{position}} of {{count}}": "{{position}} из {{count}}"
+  "{{position}} of {{count}}": "{{position}} из {{count}}",
+  "No dashboards": "Нет панелей",
+  "The player tries again in a minute.": "Плеер повторит попытку через минуту.",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}, каждая — {{interval}}"
 }

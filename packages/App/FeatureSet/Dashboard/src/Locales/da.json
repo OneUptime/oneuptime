@@ -36002,5 +36002,8 @@
   "then": "derefter",
   "{{count}} dashboards": "{{count}} dashboards",
   "{{count}} dashboards_one": "{{count}} dashboard",
-  "{{position}} of {{count}}": "{{position}} af {{count}}"
+  "{{position}} of {{count}}": "{{position}} af {{count}}",
+  "No dashboards": "Ingen dashboards",
+  "The player tries again in a minute.": "Afspilleren prøver igen om et minut.",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}, {{interval}} hver"
 }

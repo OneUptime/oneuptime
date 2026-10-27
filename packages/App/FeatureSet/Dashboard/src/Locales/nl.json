@@ -36002,5 +36002,8 @@
   "then": "dan",
   "{{count}} dashboards": "{{count}} dashboards",
   "{{count}} dashboards_one": "{{count}} dashboard",
-  "{{position}} of {{count}}": "{{position}} van {{count}}"
+  "{{position}} of {{count}}": "{{position}} van {{count}}",
+  "No dashboards": "Geen dashboards",
+  "The player tries again in a minute.": "De speler probeert het over een minuut opnieuw.",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}, elk {{interval}}"
 }

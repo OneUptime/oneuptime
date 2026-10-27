@@ -8,6 +8,12 @@ import {
   getDateLocale,
   isEnglishDateLanguage,
 } from "Common/Types/DateLanguage";
+import {
+  PluralTemplate,
+  Translator,
+  composedValue,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * What the playlist pages and the player make of a playlist's dashboards
@@ -243,4 +249,49 @@ export function formatPlaylistInterval(
       listStyle: "long",
     }) || english
   );
+}
+
+export const PLAYLIST_DASHBOARD_COUNT: PluralTemplate = {
+  one: "{{count}} dashboard",
+  other: "{{count}} dashboards",
+};
+
+export const PLAYLIST_SUMMARY: string = translationKey(
+  "{{dashboards}}, {{interval}} each",
+);
+
+export const PLAYLIST_WITHOUT_DASHBOARDS: string =
+  translationKey("No dashboards");
+
+/*
+ * A playlist's row in the Playlists list, in one phrase: how many dashboards
+ * it plays and how long each is shown - "3 dashboards, 1 minute each" - or
+ * "No dashboards" for one with none yet. One column instead of two, so the
+ * list fits beside the side menu, in German too, without scrolling sideways.
+ * The count and the time are written in the phrase's own language: English
+ * while a language has no wording of it, its own once it has.
+ */
+export function getPlaylistSummary(data: {
+  translator: Translator;
+  dashboardCount: number;
+  intervalInSeconds: number;
+}): string {
+  if (data.dashboardCount <= 0) {
+    return (
+      data.translator.translateText(PLAYLIST_WITHOUT_DASHBOARDS) ||
+      PLAYLIST_WITHOUT_DASHBOARDS
+    );
+  }
+
+  return data.translator.translateTemplate(PLAYLIST_SUMMARY, {
+    dashboards: composedValue((sentence: Translator): string => {
+      return sentence.translatePlural(
+        PLAYLIST_DASHBOARD_COUNT,
+        data.dashboardCount,
+      );
+    }),
+    interval: composedValue((sentence: Translator): string => {
+      return formatPlaylistInterval(data.intervalInSeconds, sentence.language);
+    }),
+  });
 }

@@ -36002,5 +36002,8 @@
   "then": "luego",
   "{{count}} dashboards": "{{count}} paneles",
   "{{count}} dashboards_one": "{{count}} panel",
-  "{{position}} of {{count}}": "{{position}} de {{count}}"
+  "{{position}} of {{count}}": "{{position}} de {{count}}",
+  "No dashboards": "Sin paneles",
+  "The player tries again in a minute.": "El reproductor vuelve a intentarlo en un minuto.",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}, {{interval}} cada uno"
 }

@@ -246,6 +246,30 @@ describe("telling the form", () => {
       "alert",
     );
   });
+
+  test("marks the picker - where a dashboard is added - invalid, and says the error once, as the form's other fields do", async () => {
+    await renderField("", {
+      error: "Add at least one dashboard to the playlist.",
+    });
+
+    expect(
+      screen.getByRole("combobox", { name: "Add a dashboard" }),
+    ).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getAllByTestId("error-message")).toHaveLength(1);
+    // The colour every field's error line has (Input, Dropdown, Color).
+    expect(screen.getByTestId("error-message").className).toContain(
+      "text-red-400",
+    );
+  });
+
+  test("without an error, the picker is not marked invalid", async () => {
+    await renderField(list(OVERVIEW));
+
+    expect(
+      screen.getByRole("combobox", { name: "Add a dashboard" }),
+    ).not.toHaveAttribute("aria-invalid", "true");
+    expect(screen.queryByTestId("error-message")).toBeNull();
+  });
 });
 
 describe("changing the order", () => {
@@ -268,6 +292,27 @@ describe("changing the order", () => {
       screen.getByRole("button", { name: "Move Production overview down" }),
     );
     expect(lastChange(rendered)).toEqual([DATABASES, OVERVIEW, CLUSTERS]);
+  });
+
+  test("a row's buttons are grey-500, the 3:1 an icon-only control needs on white; a button that can't be pressed is faded", async () => {
+    await renderField(list(OVERVIEW, CLUSTERS));
+
+    for (const name of [
+      "Move Production overview down",
+      "Remove Production overview",
+      "Move Kubernetes clusters up",
+    ]) {
+      const button: HTMLElement = screen.getByRole("button", { name });
+
+      expect(button.className).toContain("text-gray-500");
+      expect(button.className).not.toContain("text-gray-400");
+      expect(button.className).not.toContain("opacity-40");
+    }
+
+    expect(
+      screen.getByRole("button", { name: "Move Production overview up" })
+        .className,
+    ).toContain("opacity-40");
   });
 
   test("the first can't move up and the last can't move down", async () => {

@@ -1,6 +1,15 @@
 import { describe, expect, test } from "@jest/globals";
 import { DashboardPlaylistDashboard } from "Common/Types/Dashboard/DashboardPlaylist";
 import {
+  Translator,
+  createTranslator,
+} from "Common/UI/Utils/TranslateTemplate";
+import fs from "fs";
+import path from "path";
+import {
+  PLAYLIST_DASHBOARD_COUNT,
+  PLAYLIST_SUMMARY,
+  PLAYLIST_WITHOUT_DASHBOARDS,
   PlaylistEntry,
   PlaylistListedDashboard,
   PlaylistReadableDashboard,
@@ -10,6 +19,7 @@ import {
   getPlaylistEntries,
   getPlaylistIntervalParts,
   getPlaylistListedDashboards,
+  getPlaylistSummary,
   movePlaylistDashboard,
   removePlaylistDashboard,
 } from "../../FeatureSet/Dashboard/src/Components/Dashboard/Playlist/PlaylistDashboards";
@@ -273,5 +283,179 @@ describe("how long each dashboard is shown, in words", () => {
     expect(spaced(formatPlaylistInterval(120, "de"))).toBe("2 Minuten");
     expect(spaced(formatPlaylistInterval(30, "fr"))).toBe("30 secondes");
     expect(spaced(formatPlaylistInterval(3600, "es"))).toBe("1 hora");
+  });
+});
+
+/*
+ * A playlist's row in the Playlists list says what it plays in one phrase -
+ * how many dashboards, and how long each is shown - so the list is two
+ * columns and a Play button, and fits beside the side menu without
+ * scrolling sideways (the UI review of #5235).
+ */
+describe("a playlist's row in the list, in one phrase", () => {
+  const LOCALES_DIR: string = path.join(
+    __dirname,
+    "../../FeatureSet/Dashboard/src/Locales",
+  );
+
+  const readLocale: (language: string) => Record<string, string> = (
+    language: string,
+  ): Record<string, string> => {
+    return JSON.parse(
+      fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8"),
+    ) as Record<string, string>;
+  };
+
+  const translatorFor: (
+    language: string,
+    words?: Record<string, string>,
+  ) => Translator = (
+    language: string,
+    words?: Record<string, string>,
+  ): Translator => {
+    const locale: Record<string, string> = words || readLocale(language);
+
+    return createTranslator((key: string): string | undefined => {
+      return locale[key];
+    }, language);
+  };
+
+  // Intl puts a no-break space between a number and its unit in some languages.
+  const spaced: (text: string) => string = (text: string): string => {
+    return text.replace(ANY_SPACE, " ");
+  };
+
+  test("how many dashboards, and how long each is shown", () => {
+    const english: Translator = createTranslator(undefined, "en");
+
+    expect(
+      getPlaylistSummary({
+        translator: english,
+        dashboardCount: 3,
+        intervalInSeconds: 60,
+      }),
+    ).toBe("3 dashboards, 1 minute each");
+    expect(
+      getPlaylistSummary({
+        translator: english,
+        dashboardCount: 1,
+        intervalInSeconds: 15,
+      }),
+    ).toBe("1 dashboard, 15 seconds each");
+    expect(
+      getPlaylistSummary({
+        translator: english,
+        dashboardCount: 12,
+        intervalInSeconds: 90,
+      }),
+    ).toBe("12 dashboards, 1 minute, 30 seconds each");
+  });
+
+  test("a playlist with none yet says so, without a time nobody sees", () => {
+    for (const count of [0, -1]) {
+      expect(
+        getPlaylistSummary({
+          translator: createTranslator(undefined, "en"),
+          dashboardCount: count,
+          intervalInSeconds: 60,
+        }),
+      ).toBe("No dashboards");
+    }
+
+    expect(
+      getPlaylistSummary({
+        translator: translatorFor("de"),
+        dashboardCount: 0,
+        intervalInSeconds: 60,
+      }),
+    ).toBe("Keine Dashboards");
+  });
+
+  test("in the reader's language: the count, the time and the words around them", () => {
+    expect(
+      spaced(
+        getPlaylistSummary({
+          translator: translatorFor("de"),
+          dashboardCount: 3,
+          intervalInSeconds: 60,
+        }),
+      ),
+    ).toBe("3 Dashboards, je 1 Minute");
+    expect(
+      spaced(
+        getPlaylistSummary({
+          translator: translatorFor("de"),
+          dashboardCount: 1,
+          intervalInSeconds: 30,
+        }),
+      ),
+    ).toBe("1 Dashboard, je 30 Sekunden");
+    // Persian writes its own digits, in the count and in the time.
+    expect(
+      spaced(
+        getPlaylistSummary({
+          translator: translatorFor("fa"),
+          dashboardCount: 3,
+          intervalInSeconds: 60,
+        }),
+      ),
+    ).toBe("\u06F3 داشبورد، هر کدام \u06F1 دقیقه");
+  });
+
+  test("a language that has not worded the phrase reads it whole in English - its count and time too", () => {
+    const halfGerman: Translator = translatorFor("de", {
+      [PLAYLIST_DASHBOARD_COUNT.other]: "{{count}} Dashboards",
+    });
+
+    expect(
+      getPlaylistSummary({
+        translator: halfGerman,
+        dashboardCount: 3,
+        intervalInSeconds: 120,
+      }),
+    ).toBe("3 dashboards, 2 minutes each");
+  });
+
+  test("every language words the phrase, keeps both of its slots, and words a playlist with none", () => {
+    const english: Record<string, string> = readLocale("en");
+
+    expect(english[PLAYLIST_SUMMARY]).toBe(PLAYLIST_SUMMARY);
+    expect(english[PLAYLIST_WITHOUT_DASHBOARDS]).toBe(
+      PLAYLIST_WITHOUT_DASHBOARDS,
+    );
+
+    const languages: Array<string> = fs
+      .readdirSync(LOCALES_DIR)
+      .filter((file: string): boolean => {
+        return file.endsWith(".json") && file !== "en.json";
+      })
+      .map((file: string): string => {
+        return file.replace(".json", "");
+      });
+
+    expect(languages).toHaveLength(16);
+
+    for (const language of languages) {
+      const locale: Record<string, string> = readLocale(language);
+      const phrase: string = locale[PLAYLIST_SUMMARY] || "";
+
+      expect({ language, worded: phrase !== PLAYLIST_SUMMARY }).toEqual({
+        language,
+        worded: true,
+      });
+      expect({
+        language,
+        slots: [
+          phrase.includes("{{dashboards}}"),
+          phrase.includes("{{interval}}"),
+        ],
+      }).toEqual({ language, slots: [true, true] });
+      expect({
+        language,
+        worded:
+          (locale[PLAYLIST_WITHOUT_DASHBOARDS] ||
+            PLAYLIST_WITHOUT_DASHBOARDS) !== PLAYLIST_WITHOUT_DASHBOARDS,
+      }).toEqual({ language, worded: true });
+    }
   });
 });

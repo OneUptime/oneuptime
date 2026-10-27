@@ -44,6 +44,8 @@ import {
   getPlaylistPlayerKeyAction,
   getPlaylistPlayerShortcutGroups,
 } from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Playlist/PlaylistPlayerKeys";
+import { getPlaylistSummary } from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Playlist/PlaylistDashboards";
+import { createTranslator } from "Common/UI/Utils/TranslateTemplate";
 import { readPage, scanMarkdown } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import { boldSpans, escapeRegExp, inlineCode } from "./DocsTranslationChecks";
@@ -3454,9 +3456,19 @@ describe("Dashboard Playlists, against the playlist model and the player", () =>
     expect(list).toContain('singularName="Playlist"');
     expect(list).toContain("isCreateable={true}");
 
-    for (const title of ["Name", "Dashboards", "Show each dashboard for"]) {
+    for (const title of ["Name", "Dashboards"]) {
       expect(list).toContain(`title: "${title}",`);
     }
+
+    // One column says both: how many dashboards, and how long each is shown.
+    expect(list).toContain("getPlaylistSummary({");
+    expect(
+      getPlaylistSummary({
+        translator: createTranslator(undefined, "en"),
+        dashboardCount: 3,
+        intervalInSeconds: DASHBOARD_PLAYLIST_DEFAULT_INTERVAL_IN_SECONDS,
+      }),
+    ).toBe("3 dashboards, 1 minute each");
 
     expect(list).toContain('title: "Play",');
     expect(createSection).toContain(

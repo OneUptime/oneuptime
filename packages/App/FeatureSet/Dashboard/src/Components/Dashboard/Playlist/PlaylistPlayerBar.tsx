@@ -144,7 +144,18 @@ const PlaylistPlayerBar: FunctionComponent<ComponentProps> = (
             "var(--ou-card-shadow, 0 2px 8px -2px rgba(0, 0, 0, 0.08), 0 1px 4px -1px rgba(0, 0, 0, 0.04))",
         }}
       >
-        <div className="flex flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        {/*
+         * On a phone the transport goes under the names, so a long name is
+         * never squeezed to a few letters. With nothing playing there are
+         * only Full screen and Exit, and they keep the name's line.
+         */}
+        <div
+          className={`flex px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 ${
+            isPlaying
+              ? "flex-col gap-2"
+              : "flex-row items-center justify-between gap-4"
+          }`}
+        >
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 max-sm:hidden">
               <Icon
@@ -233,7 +244,9 @@ const PlaylistPlayerBar: FunctionComponent<ComponentProps> = (
           </div>
 
           <div
-            className="flex flex-none items-center gap-1 self-end sm:self-auto"
+            className={`flex flex-none items-center gap-1 sm:self-auto ${
+              isPlaying ? "self-end" : ""
+            }`}
             role="toolbar"
             aria-label={translator.translateText("Playlist controls")}
           >

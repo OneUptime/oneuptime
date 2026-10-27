@@ -36002,5 +36002,8 @@
   "then": "deretter",
   "{{count}} dashboards": "{{count}} dashbord",
   "{{count}} dashboards_one": "{{count}} dashbord",
-  "{{position}} of {{count}}": "{{position}} av {{count}}"
+  "{{position}} of {{count}}": "{{position}} av {{count}}",
+  "No dashboards": "Ingen dashbord",
+  "The player tries again in a minute.": "Spilleren prøver igjen om ett minutt.",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}, {{interval}} hver"
 }

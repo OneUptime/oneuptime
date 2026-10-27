@@ -303,13 +303,25 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   ]);
 
   /*
+   * A playlist's turn on a screen (isPlayback) is a display: no Investigate,
+   * no Open in Explorer, no series menus and no drag-to-zoom. The drawer
+   * Investigate opens would land under the player, which covers the whole
+   * window, and a screen nobody touches needs none of them.
+   */
+  const isPlayback: boolean = Boolean(props.isPlayback);
+
+  /*
    * "Open in Explorer" deep link for this widget's queries. Suppressed on
    * the unauthenticated public dashboard (no project session, so the
-   * explorer route would just bounce to login) and in edit mode (a
-   * navigation mid-edit would drop unsaved dashboard changes).
+   * explorer route would just bounce to login), in edit mode (a
+   * navigation mid-edit would drop unsaved dashboard changes) and in a
+   * playlist's turn.
    */
   const showOpenInExplorer: boolean =
-    !isPublicDashboard() && !props.isEditMode && queryConfigs.length > 0;
+    !isPublicDashboard() &&
+    !props.isEditMode &&
+    !isPlayback &&
+    queryConfigs.length > 0;
 
   const handleOpenInExplorer: (
     event: React.MouseEvent<HTMLButtonElement>,
@@ -357,7 +369,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
     setZoomWindow(null);
   }, [onDashboardTimeRangeReset]);
 
-  const enableChartZoom: boolean = !props.isEditMode;
+  const enableChartZoom: boolean = !props.isEditMode && !isPlayback;
 
   /*
    * Only offer double-click-to-reset while there is a zoom to undo. The
@@ -376,7 +388,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
    * they follow the same gating as the Open in Explorer button.
    */
   const enableSeriesActions: boolean =
-    !isPublicDashboard() && !props.isEditMode;
+    !isPublicDashboard() && !props.isEditMode && !isPlayback;
 
   /*
    * Incident/alert/change-event markers for this widget's window (the
@@ -597,6 +609,7 @@ function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
     prev.componentId.toString() !== next.componentId.toString() ||
     prev.refreshTick !== next.refreshTick ||
     prev.isEditMode !== next.isEditMode ||
+    Boolean(prev.isPlayback) !== Boolean(next.isPlayback) ||
     prev.isSelected !== next.isSelected ||
     Boolean(prev.isDashboardTimeRangeZoomed) !==
       Boolean(next.isDashboardTimeRangeZoomed) ||

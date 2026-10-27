@@ -36002,5 +36002,8 @@
   "then": "then",
   "{{count}} dashboards": "{{count}} dashboards",
   "{{count}} dashboards_one": "{{count}} dashboard",
-  "{{position}} of {{count}}": "{{position}} of {{count}}"
+  "{{position}} of {{count}}": "{{position}} of {{count}}",
+  "No dashboards": "No dashboards",
+  "The player tries again in a minute.": "The player tries again in a minute.",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}, {{interval}} each"
 }

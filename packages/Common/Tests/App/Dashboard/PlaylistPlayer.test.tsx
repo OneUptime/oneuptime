@@ -447,6 +447,28 @@ describe("the controls", () => {
     expect(rendered.onExit).toHaveBeenCalledTimes(1);
   });
 
+  test("the tab's title names the playlist and the dashboard on screen, and follows the rotation", async () => {
+    const rendered: Rendered = await renderPlayer(
+      round([OVERVIEW, CLUSTERS, DATABASES]),
+    );
+
+    expect(document.title).toBe("OneUptime | NOC wall - Production overview");
+
+    await advance(rendered.clock, MINUTE);
+
+    expect(document.title).toBe("OneUptime | NOC wall - Kubernetes clusters");
+  });
+
+  test("with nothing on screen, the tab is titled by the playlist alone", async () => {
+    await renderPlayer(round([]));
+    expect(document.title).toBe("OneUptime | NOC wall");
+
+    cleanup();
+
+    await renderPlayer(null);
+    expect(document.title).toBe("OneUptime | Playlist");
+  });
+
   test("the controls sit in a labelled toolbar", async () => {
     await renderPlayer(round([OVERVIEW, CLUSTERS]));
 
@@ -653,6 +675,17 @@ describe("the keys", () => {
     expect(screen.getByTestId("keyboard-shortcuts-modal")).toBeInTheDocument();
   });
 
+  test("the sheet of six keys is a medium dialog, not one spread across the window", async () => {
+    await renderPlayer(round([OVERVIEW, CLUSTERS]));
+
+    await key("?");
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+
+    expect(dialog.className).toContain("sm:max-w-3xl");
+    expect(dialog.className).not.toContain("sm:max-w-7xl");
+  });
+
   test("a key held down steps once", async () => {
     await renderPlayer(round([OVERVIEW, CLUSTERS, DATABASES]));
 
@@ -711,9 +744,12 @@ describe("nothing to play", () => {
     expect(
       screen.getByText("Could not load this playlist"),
     ).toBeInTheDocument();
+    // Why, and that the screen comes back by itself - read from across a room.
     expect(
-      screen.getByText("Friendly: The network is down."),
-    ).toBeInTheDocument();
+      screen.getByTestId("playlist-player-error-description"),
+    ).toHaveTextContent(
+      "Friendly: The network is down. The player tries again in a minute.",
+    );
 
     rendered.answer(round([OVERVIEW, CLUSTERS]));
 
@@ -732,5 +768,49 @@ describe("nothing to play", () => {
     await key("Escape");
 
     expect(rendered.onExit).toHaveBeenCalledTimes(1);
+  });
+
+  test("each message stands in the middle of the screen, not at its top", async () => {
+    for (const first of [round([]), null, new Error("The network is down.")]) {
+      await renderPlayer(first);
+
+      const message: HTMLElement = screen.getByTestId(
+        "playlist-player-message",
+      );
+
+      // Filling the stage and centring what it holds, both ways.
+      expect(message.className).toContain("min-h-full");
+      expect(message.className).toContain("items-center");
+      expect(message.className).toContain("justify-center");
+      expect(screen.getByTestId("playlist-player-stage")).toContainElement(
+        message,
+      );
+
+      cleanup();
+    }
+  });
+
+  test("with nothing playing, the bar keeps its two buttons on the name's line, on a phone too", async () => {
+    await renderPlayer(null);
+
+    const exit: HTMLElement = screen.getByRole("button", {
+      name: "Exit the player",
+    });
+    const row: HTMLElement = exit.closest("[role='toolbar']")!
+      .parentElement as HTMLElement;
+
+    expect(row.className).toContain("flex-row");
+    expect(row.className).not.toContain("flex-col");
+  });
+
+  test("while a playlist plays, a phone stacks the transport under the names", async () => {
+    await renderPlayer(round([OVERVIEW, CLUSTERS]));
+
+    const row: HTMLElement = screen.getByRole("toolbar", {
+      name: "Playlist controls",
+    }).parentElement as HTMLElement;
+
+    expect(row.className).toContain("flex-col");
+    expect(row.className).toContain("sm:flex-row");
   });
 });

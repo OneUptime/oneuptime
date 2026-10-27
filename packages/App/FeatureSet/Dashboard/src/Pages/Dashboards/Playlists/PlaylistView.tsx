@@ -69,6 +69,12 @@ const PlaylistView: FunctionComponent<
           title: "Playlist",
           description:
             "Its dashboards are shown one after another, each for the same time. Press Play on the screen that shows them.",
+          /*
+           * The description under the title and its two buttons, across
+           * the card: beside them it was squeezed to a narrow column of
+           * five lines in German at 1024px.
+           */
+          headerLayout: "stacked",
           buttons: [
             {
               title: "Play",
@@ -129,6 +135,8 @@ const PlaylistView: FunctionComponent<
               },
               title: "Dashboards",
               fieldType: FieldType.Element,
+              // The order is what the page is for: a row of its own.
+              colSpan: 2,
               getElement: (item: DashboardPlaylist): ReactElement => {
                 return (
                   <PlaylistDashboardList
@@ -146,20 +154,28 @@ const PlaylistView: FunctionComponent<
               title: "Player link",
               description: "Open it on the screen that shows the playlist.",
               fieldType: FieldType.Element,
+              // A row of its own, so the address is read, not cut short.
+              colSpan: 2,
               getElement: (): ReactElement => {
                 const link: string = getPlaylistPlayerLink(modelId);
 
                 return (
-                  <div className="flex min-w-0 items-center gap-2">
+                  <div className="flex w-full min-w-0 items-center gap-2">
                     <code
-                      className="min-w-0 truncate text-xs text-gray-600"
+                      className="min-w-0 truncate rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1.5 font-mono text-xs text-gray-700"
                       dir="ltr"
                       title={link}
                       data-testid="playlist-player-link"
                     >
                       {link}
                     </code>
-                    <CopyTextButton textToBeCopied={link} />
+                    <CopyTextButton
+                      textToBeCopied={link}
+                      label="Copy link"
+                      size="sm"
+                      variant="soft"
+                      className="flex-none"
+                    />
                   </div>
                 );
               },

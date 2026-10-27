@@ -36002,5 +36002,8 @@
   "then": "次に",
   "{{count}} dashboards": "{{count}} 件のダッシュボード",
   "{{count}} dashboards_one": "{{count}} 件のダッシュボード",
-  "{{position}} of {{count}}": "{{position}} / {{count}}"
+  "{{position}} of {{count}}": "{{position}} / {{count}}",
+  "No dashboards": "ダッシュボードなし",
+  "The player tries again in a minute.": "プレーヤーは 1 分後に再試行します。",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}、各 {{interval}}"
 }

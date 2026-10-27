@@ -36002,5 +36002,8 @@
   "then": "depois",
   "{{count}} dashboards": "{{count}} painéis",
   "{{count}} dashboards_one": "{{count}} painel",
-  "{{position}} of {{count}}": "{{position}} de {{count}}"
+  "{{position}} of {{count}}": "{{position}} de {{count}}",
+  "No dashboards": "Nenhum painel",
+  "The player tries again in a minute.": "O player tenta novamente em um minuto.",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}, {{interval}} cada"
 }

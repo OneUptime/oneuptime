@@ -36002,5 +36002,8 @@
   "then": "sedan",
   "{{count}} dashboards": "{{count}} instrumentpaneler",
   "{{count}} dashboards_one": "{{count}} instrumentpanel",
-  "{{position}} of {{count}}": "{{position}} av {{count}}"
+  "{{position}} of {{count}}": "{{position}} av {{count}}",
+  "No dashboards": "Inga instrumentpaneler",
+  "The player tries again in a minute.": "Spelaren försöker igen om en minut.",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}, {{interval}} vardera"
 }

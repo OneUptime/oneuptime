@@ -36002,5 +36002,8 @@
   "then": "然后",
   "{{count}} dashboards": "{{count}} 个仪表板",
   "{{count}} dashboards_one": "{{count}} 个仪表板",
-  "{{position}} of {{count}}": "第 {{position}} 个，共 {{count}} 个"
+  "{{position}} of {{count}}": "第 {{position}} 个，共 {{count}} 个",
+  "No dashboards": "没有仪表板",
+  "The player tries again in a minute.": "播放器会在一分钟后重试。",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}，每个 {{interval}}"
 }

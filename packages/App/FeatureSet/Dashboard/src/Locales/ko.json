@@ -36002,5 +36002,8 @@
   "then": "다음",
   "{{count}} dashboards": "대시보드 {{count}}개",
   "{{count}} dashboards_one": "대시보드 {{count}}개",
-  "{{position}} of {{count}}": "{{position}} / {{count}}"
+  "{{position}} of {{count}}": "{{position}} / {{count}}",
+  "No dashboards": "대시보드 없음",
+  "The player tries again in a minute.": "플레이어가 1분 후에 다시 시도합니다.",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}, 각 {{interval}}"
 }

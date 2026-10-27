@@ -36002,5 +36002,8 @@
   "then": "puis",
   "{{count}} dashboards": "{{count}} tableaux de bord",
   "{{count}} dashboards_one": "{{count}} tableau de bord",
-  "{{position}} of {{count}}": "{{position}} sur {{count}}"
+  "{{position}} of {{count}}": "{{position}} sur {{count}}",
+  "No dashboards": "Aucun tableau de bord",
+  "The player tries again in a minute.": "Le lecteur réessaie dans une minute.",
+  "{{dashboards}}, {{interval}} each": "{{dashboards}}, {{interval}} chacun"
 }

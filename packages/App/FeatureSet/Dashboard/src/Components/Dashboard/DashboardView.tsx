@@ -644,6 +644,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         isDashboardTimeRangeZoomed={timeRangeZoom.isZoomed}
         onAddWidgetClick={canEditDashboard ? startWithFirstWidget : undefined}
         onEditWidgetClick={canEditDashboard ? editWidget : undefined}
+        isPlayback={isPlayback}
       />
     </div>
   );

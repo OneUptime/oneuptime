@@ -1467,6 +1467,17 @@ html.dark .ou-select__control--is-focused {
   box-shadow: 0 0 0 1px #818cf8 !important;
 }
 
+/*
+ * A select a form marks invalid (Dropdown's error: !border-red-400 inside a
+ * !ring-red-100 ring) is framed red in the dark theme too. The light ring is
+ * near white, so the field had a white frame round it, and the rule above
+ * kept its border the theme's grey.
+ */
+html.dark .ou-select__control[class~="!ring-red-100"] {
+  border-color: rgb(248 113 113 / 70%) !important;
+  --tw-ring-color: rgb(248 113 113 / 30%) !important;
+}
+
 html.dark .ou-select__control--is-disabled {
   background-color: var(--ou-surface-secondary) !important;
   color: var(--ou-text-subtle) !important;

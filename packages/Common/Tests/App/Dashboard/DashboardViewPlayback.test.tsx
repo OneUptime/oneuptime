@@ -138,6 +138,7 @@ jest.mock(
         variables?: Array<DashboardVariable> | undefined;
         onAddWidgetClick?: (() => void) | undefined;
         onEditWidgetClick?: ((id: unknown) => void) | undefined;
+        isPlayback?: boolean | undefined;
       }) => {
         return reactModule.createElement("div", {
           "data-testid": "canvas-stub",
@@ -151,6 +152,7 @@ jest.mock(
           ),
           "data-can-add-widget": String(Boolean(props.onAddWidgetClick)),
           "data-can-edit-widget": String(Boolean(props.onEditWidgetClick)),
+          "data-playback": String(Boolean(props.isPlayback)),
         });
       },
     };
@@ -267,6 +269,8 @@ describe("a dashboard played in a playlist", () => {
     expect(canvas()).toHaveAttribute("data-edit-mode", "false");
     expect(canvas()).toHaveAttribute("data-can-add-widget", "false");
     expect(canvas()).toHaveAttribute("data-can-edit-widget", "false");
+    // Its widgets are told: no zoom, no Investigate, no Open in Explorer.
+    expect(canvas()).toHaveAttribute("data-playback", "true");
   });
 
   test("opens on the dashboard's own default time range, over a link's and the viewer's remembered pick", async () => {
@@ -363,6 +367,7 @@ describe("the same dashboard on its own page, for contrast", () => {
     expect(screen.getByLabelText("More dashboard options")).toBeInTheDocument();
     expect(canvas()).toHaveAttribute("data-range", TimeRange.PAST_TWO_DAYS);
     expect(canvas()).toHaveAttribute("data-can-add-widget", "true");
+    expect(canvas()).toHaveAttribute("data-playback", "false");
     expect(getTelemetryAttributesMock).toHaveBeenCalled();
     expect(new URLSearchParams(window.location.search).get("range")).toBe("2d");
   });

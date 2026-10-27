@@ -69,4 +69,44 @@ describe("dashboard playlists in the dark theme", () => {
 
     expect(scan.unmapped).toEqual([]);
   });
+
+  /*
+   * The Dashboards field marks its picker invalid when the playlist has no
+   * dashboard (Dropdown's error: !border-red-400 in a !ring-red-100 ring).
+   * The dark theme keeps every select's border its grey, and the light
+   * ring is near white: the field was framed white. Theme.css frames an
+   * invalid select red instead - for every form's dropdowns, not only this.
+   */
+  test("a picker the form marks invalid is framed red, not white", () => {
+    const dropdown: string = fs.readFileSync(
+      path.join(UI_DIR, "Components", "Dropdown", "Dropdown.tsx"),
+      "utf8",
+    );
+    const theme: string = fs.readFileSync(
+      path.join(UI_DIR, "Styles", "Theme.css"),
+      "utf8",
+    );
+
+    // What Dropdown draws for an error...
+    expect(dropdown).toContain(
+      'classes.push("!border-red-400 !ring-2 !ring-red-100");',
+    );
+
+    // ...and the dark rule for exactly that control, red, over the grey one.
+    const rule: string =
+      'html.dark .ou-select__control[class~="!ring-red-100"] {';
+    const start: number = theme.indexOf(rule);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(start).toBeGreaterThan(
+      theme.indexOf("html.dark :is(.ou-select__control, .ou-select__menu) {"),
+    );
+
+    const body: string = theme.slice(start, theme.indexOf("}", start));
+
+    expect(body).toContain("border-color: rgb(248 113 113 / 70%) !important;");
+    expect(body).toContain(
+      "--tw-ring-color: rgb(248 113 113 / 30%) !important;",
+    );
+  });
 });

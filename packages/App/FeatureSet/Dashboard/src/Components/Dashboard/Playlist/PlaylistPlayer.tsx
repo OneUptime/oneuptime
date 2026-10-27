@@ -3,13 +3,16 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import KeyboardShortcutsModal from "Common/UI/Components/KeyboardShortcut/KeyboardShortcutsModal";
+import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
 import { hasOpenModalDialog } from "Common/UI/Utils/GlobalKeyboardShortcut";
 import { isPageRightToLeft } from "Common/UI/Utils/PageLanguage";
+import { getProductName } from "Common/UI/Utils/ProductBranding";
 import { usePageScrollLock } from "Common/UI/Utils/PageScrollLock";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -62,6 +65,14 @@ import usePlaylistPlayer, {
  */
 
 export const PLAYLIST_PLAYER_TEST_ID: string = "playlist-player";
+
+// Said after a failed read's own reason: the player reads again by itself.
+export const PLAYLIST_PLAYER_TRIES_AGAIN: string = translationKey(
+  "The player tries again in a minute.",
+);
+
+// A message's room: the whole width, centred in the stage by its wrapper.
+const PLAYER_MESSAGE_PADDING: string = "w-full py-12";
 
 export interface ComponentProps {
   playlistId: ObjectID;
@@ -249,6 +260,24 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
   const renderDashboard: (entry: PlaylistEntry) => ReactElement =
     props.renderDashboard || renderPlaylistDashboard;
 
+  /*
+   * The tab's title says what is on screen, as every page's does (Page,
+   * WCAG 2.4.2): the playlist, then the dashboard having its turn - in a
+   * row of tabs, or a kiosk's window list, the wall is found by it.
+   */
+  const documentTitle: string = [
+    (round && round.name) || translator.translateText("Playlist") || "",
+    current ? current.name : "",
+  ]
+    .filter((part: string): boolean => {
+      return Boolean(part);
+    })
+    .join(" - ");
+
+  useEffect(() => {
+    document.title = `${getProductName()} | ${documentTitle}`;
+  }, [documentTitle]);
+
   const turn: PlaylistPlayerBarTurn | null = playback
     ? {
         key: `${player.state.roundNumber}-${playback.index}-${playback.turnStartedAt}`,
@@ -280,7 +309,7 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
           icon={IconProp.QueueList}
           title="Nothing to show yet"
           description="This playlist has no dashboards you can see. Add dashboards to it, and they show here."
-          paddingClassName="py-24"
+          paddingClassName={PLAYER_MESSAGE_PADDING}
           footer={
             <Button
               title="Open playlist"
@@ -300,7 +329,7 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
           icon={IconProp.QueueList}
           title="Playlist not found"
           description="This playlist was deleted, or you do not have access to it."
-          paddingClassName="py-24"
+          paddingClassName={PLAYER_MESSAGE_PADDING}
           footer={
             <Button
               title="All playlists"
@@ -319,11 +348,21 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
           id="playlist-player-error"
           icon={IconProp.Alert}
           title="Could not load this playlist"
+          /*
+           * What went wrong, and that the screen comes back by itself: a
+           * wall is often read from across the room, by someone who will
+           * not walk up to press Try again.
+           */
           description={
-            player.state.errorMessage ||
-            "Something went wrong. The player tries again in a minute."
+            player.state.errorMessage
+              ? joinSentences([
+                  player.state.errorMessage,
+                  translator.translateText(PLAYLIST_PLAYER_TRIES_AGAIN) ||
+                    PLAYLIST_PLAYER_TRIES_AGAIN,
+                ])
+              : "Something went wrong. The player tries again in a minute."
           }
-          paddingClassName="py-24"
+          paddingClassName={PLAYER_MESSAGE_PADDING}
           footer={
             <Button
               title="Try again"
@@ -338,6 +377,8 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
 
     return null;
   };
+
+  const message: ReactElement | null = getMessage();
 
   const shortcutGroups: Array<PlaylistPlayerShortcutGroup> =
     getPlaylistPlayerShortcutGroups({ isRightToLeft: isPageRightToLeft() });
@@ -405,7 +446,20 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
           );
         })}
 
-        {getMessage() || <></>}
+        {message ? (
+          /*
+           * In the middle of the screen, not near its top: on a wall the
+           * message is the whole picture.
+           */
+          <div
+            className="flex min-h-full items-center justify-center px-4"
+            data-testid="playlist-player-message"
+          >
+            {message}
+          </div>
+        ) : (
+          <></>
+        )}
       </main>
 
       <div className="sr-only" role="status" aria-live="polite">
@@ -434,6 +488,7 @@ const PlaylistPlayer: FunctionComponent<ComponentProps> = (
           })}
           thenLabel={translator.translateText("then") || ""}
           closeButtonText="Close"
+          modalWidth={ModalWidth.Medium}
           onClose={() => {
             setIsShortcutsSheetOpen(false);
             rootRef.current?.focus({ preventScroll: true });

@@ -274,6 +274,55 @@ describe("the player", () => {
     expect(view).toContain("savedDefaultsOnly: isPlayback,");
     expect(view).toContain("if (isPlayback) { return (");
   });
+
+  test("a playlist's turn tells every widget it is one, so none offers zoom or a drill-down under the player", () => {
+    const view: string = readCode(
+      `${DASHBOARD_SRC}/Components/Dashboard/DashboardView.tsx`,
+    );
+    const canvas: string = readCode(
+      `${DASHBOARD_SRC}/Components/Dashboard/Canvas/Index.tsx`,
+    );
+    const base: string = readCode(
+      `${DASHBOARD_SRC}/Components/Dashboard/Components/DashboardBaseComponent.tsx`,
+    );
+    const zoom: string = readCode(
+      `${DASHBOARD_SRC}/Components/Dashboard/Utils/DashboardWidgetTimeRangeZoom.ts`,
+    );
+    const chart: string = readCode(
+      `${DASHBOARD_SRC}/Components/Dashboard/Components/DashboardChartComponent.tsx`,
+    );
+
+    // The board hands it to the canvas, and the canvas to every widget.
+    expect(view).toContain("isPlayback={isPlayback} />");
+    expect(canvas).toContain("isPlayback?: boolean | undefined;");
+    expect(canvas).toContain("isPlayback={props.isPlayback}");
+    expect(base).toContain("isPlayback?: boolean | undefined;");
+    // Every widget spreads its props into the one it draws.
+    expect(base).toContain("<Widget {...props}");
+
+    // The time-series widgets' shared gate: no drag, no "Drag to zoom".
+    expect(zoom).toContain("if (props.isEditMode || props.isPlayback) {");
+    expect(zoom).toContain(
+      "Boolean(prev.isPlayback) === Boolean(next.isPlayback) &&",
+    );
+
+    // The metric chart's own: no zoom, no Investigate, no Explorer, no series menus.
+    expect(chart).toContain(
+      "const isPlayback: boolean = Boolean(props.isPlayback);",
+    );
+    expect(chart).toContain(
+      "const enableChartZoom: boolean = !props.isEditMode && !isPlayback;",
+    );
+    expect(chart).toContain(
+      "!isPublicDashboard() && !props.isEditMode && !isPlayback && queryConfigs.length > 0;",
+    );
+    expect(chart).toContain(
+      "!isPublicDashboard() && !props.isEditMode && !isPlayback;",
+    );
+    expect(chart).toContain(
+      "Boolean(prev.isPlayback) !== Boolean(next.isPlayback) ||",
+    );
+  });
 });
 
 describe("the pages", () => {
@@ -306,6 +355,42 @@ describe("the pages", () => {
     );
     expect(page).toContain(
       "formFields={getPlaylistFormFields({ language: translator.language, currentIntervalInSeconds: intervalInSeconds, })}",
+    );
+  });
+
+  test("the list says what each playlist plays in one column, and a playlist's page gives its order and link whole rows", () => {
+    const list: string = readCode(
+      `${DASHBOARD_SRC}/Pages/Dashboards/Playlists/Playlists.tsx`,
+    );
+    const page: string = readCode(
+      `${DASHBOARD_SRC}/Pages/Dashboards/Playlists/PlaylistView.tsx`,
+    );
+
+    // One column says what a playlist plays; below lg it goes under the name.
+    expect(list).toContain(
+      'field: { dashboards: true, intervalInSeconds: true, }, title: "Dashboards", type: FieldType.Element, disableSort: true, hideBelowLargeScreen: true,',
+    );
+    expect(list).toContain(
+      "getExportValue: (item: DashboardPlaylist): string => { return getSummary(item); },",
+    );
+    expect(list).toContain(
+      "const isSummaryFolded: boolean = useAreTableColumnsFolded();",
+    );
+    expect(list).toContain(
+      '<PlaylistNameCell name={item.name || ""} summary={getSummary(item)} hasDashboards={hasDashboards(item)} />',
+    );
+    expect(list).not.toContain('title: "Show each dashboard for"');
+
+    // The card's description runs under its title and buttons, not beside them.
+    expect(page).toContain('headerLayout: "stacked",');
+    expect(page).toContain(
+      'title: "Dashboards", fieldType: FieldType.Element, colSpan: 2,',
+    );
+    expect(page).toContain(
+      'description: "Open it on the screen that shows the playlist.", fieldType: FieldType.Element, colSpan: 2,',
+    );
+    expect(page).toContain(
+      '<CopyTextButton textToBeCopied={link} label="Copy link" size="sm" variant="soft" className="flex-none" />',
     );
   });
 
