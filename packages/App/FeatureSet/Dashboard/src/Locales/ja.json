@@ -21745,7 +21745,7 @@
   "{{number}} bugs": "{{number}} 件のバグ",
   "{{number}} bugs_one": "{{number}} bug",
   "{{number}} events": "{{number}} 件のイベント",
-  "{{number}} events_one": "{{number}} event",
+  "{{number}} events_one": "{{number}} 件のイベント",
   "{{number}} resources selected": "{{number}} 件のリソースを選択中",
   "{{number}} resources selected_one": "{{number}} resource selected",
   "{{occurrences}}, across {{sources}}. First seen {{first}}, last seen {{last}}.": "{{occurrences}}（{{sources}}）。初回確認 {{first}}、最終確認 {{last}}。",
