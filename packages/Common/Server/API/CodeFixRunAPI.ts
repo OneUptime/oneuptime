@@ -371,25 +371,37 @@ export default class CodeFixRunAPI {
   }
 
   /*
-   * Requires a logged-in session and a tenant, then verifies project access
-   * by reading the project under the USER's permissions (null when the user
-   * is not a member). Returns the props for further use.
+   * Requires a logged-in session and a tenant the caller is a member of,
+   * then verifies project access by reading the project under the USER's
+   * permissions (null when they may not read it). Returns the props for
+   * further use, pinned to that one project: the run below is read as
+   * root by the project they name, so a read across projects
+   * (is-multi-tenant-query) must never be what answers the check - it
+   * would read the project as any of the caller's projects.
    */
   private async getAccessCheckedProps(
     req: ExpressRequest,
   ): Promise<DatabaseCommonInteractionProps> {
-    const props: DatabaseCommonInteractionProps =
+    const requestProps: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
-    CommonAPI.assertAuthenticatedUser(props);
+    CommonAPI.assertAuthenticatedUser(requestProps);
 
-    if (!props.tenantId) {
+    if (!requestProps.tenantId) {
       throw new BadDataException("Project ID is required (tenantid header).");
     }
 
+    const projectId: ObjectID =
+      CommonAPI.assertAuthenticatedProjectMember(requestProps);
+
+    const props: DatabaseCommonInteractionProps = {
+      ...requestProps,
+      isMultiTenantRequest: false,
+    };
+
     // Access check under the USER's permissions (null when not allowed).
     const project: Project | null = await ProjectService.findOneById({
-      id: props.tenantId,
+      id: projectId,
       select: { _id: true },
       props: props,
     });

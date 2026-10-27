@@ -137,7 +137,8 @@ function expectAuthenticationRequired(thrown: unknown): void {
   );
 }
 
-async function callGetRoute(data: {
+async function callRoute(data: {
+  method: "GET" | "POST";
   uri: string;
   params: Dictionary<string>;
 }): Promise<RouteCallResult> {
@@ -157,7 +158,7 @@ async function callGetRoute(data: {
   const next: jest.Mock = jest.fn();
 
   await mockRouter
-    .match("GET", data.uri)
+    .match(data.method, data.uri)
     .handlerFunction(req, res, next as unknown as NextFunction);
 
   return {
@@ -228,7 +229,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
       );
       mockMonitorInProject(callerProjectId);
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "GET",
         uri: MONITOR_REFRESH_ROUTE,
         params: { monitorId: monitorId.toString() },
       });
@@ -254,7 +256,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
       );
       mockMonitorInProject(callerProjectId);
 
-      await callGetRoute({
+      await callRoute({
+        method: "GET",
         uri: MONITOR_REFRESH_ROUTE,
         params: { monitorId: monitorId.toString() },
       });
@@ -278,7 +281,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
     test("rejects an unauthenticated caller with NotAuthenticatedException (401) and never reads the monitor", async () => {
       mockProps({});
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "GET",
         uri: MONITOR_REFRESH_ROUTE,
         params: { monitorId: monitorId.toString() },
       });
@@ -291,7 +295,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
     test("rejects a logged-in caller with no tenant header with BadDataException (400) and never reads the monitor", async () => {
       mockProps({ userId: callerUserId, userType: UserType.User });
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "GET",
         uri: MONITOR_REFRESH_ROUTE,
         params: { monitorId: monitorId.toString() },
       });
@@ -312,7 +317,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
         userTenantAccessPermission: undefined,
       });
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "GET",
         uri: MONITOR_REFRESH_ROUTE,
         params: { monitorId: monitorId.toString() },
       });
@@ -330,7 +336,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
         userTenantAccessPermission: {},
       });
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "GET",
         uri: MONITOR_REFRESH_ROUTE,
         params: { monitorId: monitorId.toString() },
       });
@@ -352,7 +359,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
       );
       mockMonitorInProject(otherProjectId);
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "GET",
         uri: MONITOR_REFRESH_ROUTE,
         params: { monitorId: monitorId.toString() },
       });
@@ -370,7 +378,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
       );
       mockMonitorInProject(null);
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "GET",
         uri: MONITOR_REFRESH_ROUTE,
         params: { monitorId: monitorId.toString() },
       });
@@ -380,7 +389,7 @@ describe("Project-scoped custom routes require an authenticated member of the re
     });
   });
 
-  describe("GET /workspace-notification-rule/test/:workspaceNotifcationRuleId", () => {
+  describe("POST /workspace-notification-rule/test/:workspaceNotifcationRuleId", () => {
     let ruleId: ObjectID;
     let testRuleSpy: jest.SpyInstance;
     let findOneByIdSpy: jest.SpyInstance;
@@ -414,6 +423,23 @@ describe("Project-scoped custom routes require an authenticated member of the re
         .mockResolvedValue(undefined);
     });
 
+    /*
+     * It posts into the rule's channels. As a GET, a link on another site
+     * carried the session cookie (SameSite=Lax) and named the project in
+     * its query string, and sent the test as whoever followed it.
+     */
+    test("is a POST only: there is no GET of it to follow from a link", () => {
+      const methods: Array<string> = mockRouter.routes
+        .filter((route: { uri: string }) => {
+          return route.uri === TEST_RULE_ROUTE;
+        })
+        .map((route: { method: string }) => {
+          return route.method;
+        });
+
+      expect(methods).toEqual(["POST"]);
+    });
+
     test("tests the rule for a member of the rule's own project", async () => {
       mockProps(
         buildMemberProps({
@@ -423,7 +449,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
       );
       mockRuleInProject(callerProjectId);
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "POST",
         uri: TEST_RULE_ROUTE,
         params: { workspaceNotifcationRuleId: ruleId.toString() },
       });
@@ -464,7 +491,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
     test("rejects an unauthenticated caller with NotAuthenticatedException (401) and never reads the rule", async () => {
       mockProps({});
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "POST",
         uri: TEST_RULE_ROUTE,
         params: { workspaceNotifcationRuleId: ruleId.toString() },
       });
@@ -477,7 +505,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
     test("rejects a logged-in caller with no tenant header with BadDataException (400) and never reads the rule", async () => {
       mockProps({ userId: callerUserId, userType: UserType.User });
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "POST",
         uri: TEST_RULE_ROUTE,
         params: { workspaceNotifcationRuleId: ruleId.toString() },
       });
@@ -498,7 +527,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
         userTenantAccessPermission: undefined,
       });
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "POST",
         uri: TEST_RULE_ROUTE,
         params: { workspaceNotifcationRuleId: ruleId.toString() },
       });
@@ -523,7 +553,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
         userType: UserType.API,
       });
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "POST",
         uri: TEST_RULE_ROUTE,
         params: { workspaceNotifcationRuleId: ruleId.toString() },
       });
@@ -551,7 +582,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
       );
       mockRuleInProject(otherProjectId);
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "POST",
         uri: TEST_RULE_ROUTE,
         params: { workspaceNotifcationRuleId: ruleId.toString() },
       });
@@ -569,7 +601,8 @@ describe("Project-scoped custom routes require an authenticated member of the re
       );
       mockRuleInProject(null);
 
-      const result: RouteCallResult = await callGetRoute({
+      const result: RouteCallResult = await callRoute({
+        method: "POST",
         uri: TEST_RULE_ROUTE,
         params: { workspaceNotifcationRuleId: ruleId.toString() },
       });
