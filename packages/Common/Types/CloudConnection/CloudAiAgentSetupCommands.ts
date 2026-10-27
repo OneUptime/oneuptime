@@ -433,6 +433,35 @@ function readOperations(
   });
 }
 
+/*
+ * Whether the agent can read a protected-resource pattern: a resource's id,
+ * with * for any run of characters, short enough for its posture report.
+ */
+export function isReadableCloudAiAgentProtectedTarget(target: string): boolean {
+  return (
+    target.length > 0 &&
+    target.length <= MAX_POSTURE_STRING_LENGTH &&
+    holdsOnly(target, PATTERN_CHARACTERS)
+  );
+}
+
+/*
+ * How many protected resources the agent takes besides its own (its stack,
+ * service and roles), which it reports with them.
+ */
+export function getCloudAiAgentMaxProtectedTargets(
+  provider: CloudProvider,
+  accountId: string,
+): number {
+  return (
+    MAX_POSTURE_LIST_ENTRIES -
+    getCloudAiAgentOwnTargets({
+      provider: CATALOG_PROVIDERS[provider],
+      accountId,
+    }).length
+  );
+}
+
 function readProtectedTargets(
   provider: CloudProvider,
   accountId: string,
@@ -445,12 +474,7 @@ function readProtectedTargets(
    * and OneUptime reads a longer list as malformed: the agent would then
    * refuse every change.
    */
-  const most: number =
-    MAX_POSTURE_LIST_ENTRIES -
-    getCloudAiAgentOwnTargets({
-      provider: CATALOG_PROVIDERS[provider],
-      accountId,
-    }).length;
+  const most: number = getCloudAiAgentMaxProtectedTargets(provider, accountId);
 
   for (const entry of protectedTargets || []) {
     const target: string = typeof entry === "string" ? entry.trim() : "";
@@ -459,10 +483,7 @@ function readProtectedTargets(
       continue;
     }
 
-    if (
-      target.length > MAX_POSTURE_STRING_LENGTH ||
-      !holdsOnly(target, PATTERN_CHARACTERS)
-    ) {
+    if (!isReadableCloudAiAgentProtectedTarget(target)) {
       return `The protected resource ${JSON.stringify(target.slice(0, 64))} is not a pattern the agent can read: write a resource's id, with * for any run of characters, in at most ${MAX_POSTURE_STRING_LENGTH} characters and without spaces, commas or quotes.`;
     }
 
@@ -803,8 +824,39 @@ export function getCloudAiAgentRolePermissions(
     }
   }
 
+  /*
+   * On Google Cloud a change returns a long-running operation, which the
+   * agent follows to say how it ended: reading it is part of the change.
+   */
+  for (const [service, readOperation] of GCP_OPERATION_READS) {
+    if (
+      Array.from(permissions).some((permission: string): boolean => {
+        return permission.startsWith(`${service}.`);
+      })
+    ) {
+      readOperation.forEach((permission: string): void => {
+        permissions.add(permission);
+      });
+    }
+  }
+
   return Array.from(permissions).sort();
 }
+
+// The permissions that read a Google Cloud change's operation, per service.
+const GCP_OPERATION_READS: ReadonlyArray<[string, Array<string>]> = [
+  ["compute", ["compute.zoneOperations.get", "compute.regionOperations.get"]],
+  ["run", ["run.operations.get"]],
+];
+
+/*
+ * What the agent reads to check a required tag where the resource's own
+ * read does not return its tags (a Lambda function's, an SQS queue's).
+ */
+const AWS_TAG_READ_ACTIONS: Array<string> = [
+  "lambda:ListTags",
+  "sqs:ListQueueTags",
+];
 
 // ---- AWS ------------------------------------------------------------------------
 
@@ -843,7 +895,12 @@ function getAwsWritePolicy(setup: CloudAiAgentSetup): TemplateValue {
     CloudProvider.AWS,
     setup.operations,
   );
-  const reads: Array<string> = permissions.filter(isAwsReadAction);
+  const reads: Array<string> = Array.from(
+    new Set<string>([
+      ...permissions.filter(isAwsReadAction),
+      ...(setup.requiredTag ? AWS_TAG_READ_ACTIONS : []),
+    ]),
+  ).sort();
   const changes: Array<string> = permissions.filter(
     (action: string): boolean => {
       return !isAwsReadAction(action);

@@ -162,6 +162,24 @@ function catalogPermissions(
     }
   }
 
+  // A Google Cloud change's long-running operation is read by its service.
+  const named: Array<string> = Array.from(permissions);
+  if (
+    named.some((permission: string): boolean => {
+      return permission.startsWith("compute.");
+    })
+  ) {
+    permissions.add("compute.zoneOperations.get");
+    permissions.add("compute.regionOperations.get");
+  }
+  if (
+    named.some((permission: string): boolean => {
+      return permission.startsWith("run.");
+    })
+  ) {
+    permissions.add("run.operations.get");
+  }
+
   return Array.from(permissions).sort();
 }
 
@@ -609,9 +627,34 @@ describe("the role's permissions", () => {
       "Microsoft.Compute/virtualMachines/start/action",
       "Microsoft.Resources/subscriptions/read",
     ]);
+    // With the read of the operation the start returns, to see how it ended.
     expect(
       getCloudAiAgentRolePermissions(CloudProvider.GCP, ["start-instance"]),
-    ).toEqual(["compute.instances.get", "compute.instances.start"]);
+    ).toEqual([
+      "compute.instances.get",
+      "compute.instances.start",
+      "compute.regionOperations.get",
+      "compute.zoneOperations.get",
+    ]);
+  });
+
+  test("a required tag adds the reads of the tags a Lambda function's or an SQS queue's own read does not return", () => {
+    const policy: (requiredTag: string | null) => string = (
+      requiredTag: string | null,
+    ): string => {
+      return JSON.stringify(
+        JSON.parse(getAwsCloudAiAgentTemplate({ ...AWS, requiredTag }))[
+          "Resources"
+        ]["WriteRole"],
+      );
+    };
+
+    expect(policy(CLOUD_AI_DEFAULT_REQUIRED_TAG)).toContain("lambda:ListTags");
+    expect(policy(CLOUD_AI_DEFAULT_REQUIRED_TAG)).toContain(
+      "sqs:ListQueueTags",
+    );
+    expect(policy(null)).not.toContain("lambda:ListTags");
+    expect(policy(null)).not.toContain("sqs:ListQueueTags");
   });
 
   test("the order and repeats of the list do not matter", () => {
@@ -1942,7 +1985,7 @@ describe("Google Cloud: the command", () => {
       callsTo(again, "gcloud", "iam", "roles", "create")[0]!.slice(4),
     );
     expect(flag(update, "--permissions")).toBe(
-      "compute.instances.get,compute.instances.start",
+      "compute.instances.get,compute.instances.start,compute.regionOperations.get,compute.zoneOperations.get",
     );
     expect(callsTo(again, "gcloud", "run", "deploy")).toHaveLength(1);
     expect(again.output).toEqual([CLOUD_AI_AGENT_STARTED_MESSAGE]);

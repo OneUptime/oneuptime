@@ -34,6 +34,10 @@ import {
   readCloudReplacedValue,
 } from "../../../../Utils/AiRemediation/Resource/CloudOperationCatalog";
 import { tokenizeResourceCommand } from "../../../../Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
+import {
+  AWS_LOG_READ_ACTION_GROUP,
+  AWS_READ_ONLY_ACTIONS,
+} from "../../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { ResourceCommandTier } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { describe, expect, test } from "@jest/globals";
@@ -925,5 +929,77 @@ describe("the guides", () => {
       "App Service or Function App: riskier",
     );
     expect(getCloudWriteCommandGuide("gcp")).not.toContain("redrive-queue");
+  });
+});
+
+/*
+ * The live reads run on the server with the account's read-only
+ * connection, and a refused read names the permissions its kind lists
+ * here: so every AWS permission a read names is one the connection's
+ * setup grants. (Azure's Monitoring Reader holds every read, and Google
+ * Cloud's viewer roles the three permissions the reads name.)
+ */
+describe("the reads' permissions", () => {
+  test("every AWS permission a read names is granted to the read-only connection", () => {
+    const granted: Set<string> = new Set<string>([
+      ...AWS_READ_ONLY_ACTIONS,
+      ...AWS_LOG_READ_ACTION_GROUP.actions,
+    ]);
+
+    for (const operation of CLOUD_OPERATIONS) {
+      if (operation.runsOn !== "server") {
+        continue;
+      }
+
+      for (const kind of operation.kinds) {
+        if (kind.provider !== "aws") {
+          continue;
+        }
+
+        for (const permission of kind.permissions) {
+          expect([operation.name, kind.kind, granted.has(permission)]).toEqual([
+            operation.name,
+            kind.kind,
+            true,
+          ]);
+        }
+      }
+    }
+  });
+
+  test("the Google Cloud reads name only what the connection's viewer roles hold", () => {
+    const named: Set<string> = new Set<string>();
+
+    for (const operation of CLOUD_OPERATIONS) {
+      for (const kind of operation.kinds) {
+        if (operation.runsOn === "server" && kind.provider === "gcp") {
+          kind.permissions.forEach((permission: string): void => {
+            named.add(permission);
+          });
+        }
+      }
+    }
+
+    expect(Array.from(named).sort()).toEqual([
+      "cloudasset.assets.searchAllResources",
+      "logging.logEntries.list",
+      "monitoring.timeSeries.list",
+    ]);
+  });
+
+  test("an AWS kind with no Describe call of its own is read from the stored copy, which needs none", () => {
+    const describe: CloudOperationSpec = getCloudOperation("describe")!;
+    const fallback: CloudOperationKindSpec = getCloudOperationKind(
+      describe,
+      "aws",
+      null,
+    )!;
+
+    expect(fallback.kind).toBe("*");
+    expect(fallback.permissions).toEqual([]);
+    expect(fallback.apiCall).toContain("NOT LIVE");
+    expect(
+      getCloudOperationKind(describe, "aws", "ecs-service")!.permissions,
+    ).toEqual(["ecs:DescribeServices"]);
   });
 });
