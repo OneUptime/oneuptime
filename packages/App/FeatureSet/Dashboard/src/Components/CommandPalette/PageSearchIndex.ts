@@ -1934,7 +1934,25 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SECURITY_EVENTS_DETECTION_RULES,
             title: "Detection Rules",
             icon: IconProp.ShieldCheck,
-            keywords: ["sigma rules", "threat detection"],
+            keywords: [
+              "sigma rules",
+              "threat detection",
+              "retrohunt",
+              "run on past events",
+              "backtest",
+            ],
+          },
+          {
+            page: PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS,
+            title: "Rule Exceptions",
+            icon: IconProp.EyeSlash,
+            keywords: [
+              "detection exceptions",
+              "allow list",
+              "suppressions",
+              "false positives",
+              "tuning",
+            ],
           },
           {
             page: PageMap.SECURITY_EVENTS_RULE_LIBRARY,

@@ -71,12 +71,25 @@ export interface DetectionRetrohuntResult {
   isCorrelation: boolean;
   // How long each counting window is: the rule's interval (a single rule).
   windowInMinutes: number;
+  /*
+   * A single rule's Match Count Threshold: how many matches (or distinct
+   * values) a group needs in one window to fire. Null for a correlation,
+   * which says how it counts in its own YAML.
+   */
+  threshold: number | null;
   // Every firing: a window and a group (a single rule), or a group (a correlation).
   firedCount: number;
   // The groups that fired.
   groupCount: number;
   // The events behind every firing.
   eventCount: number;
+  /*
+   * A single rule's: every event it matched that its exceptions left,
+   * whether or not a group reached the threshold with it - so a rule that
+   * would not have fired can still say how close it came. Null for a
+   * correlation.
+   */
+  matchedEventCount: number | null;
   // The rule's exceptions the run read with.
   exceptionCount: number;
   /*
@@ -90,8 +103,12 @@ export interface DetectionRetrohuntResult {
   groups: Array<DetectionRetrohuntGroup>;
   // More groups fired than are listed.
   hasMoreGroups: boolean;
-  // What the read could not do, in a sentence (a correlation's candidate limit); null when nothing.
-  readNotice: string | null;
+  /*
+   * A correlation that had more groups to check than it may: the number of
+   * most recently active groups it checked (others may have matched too).
+   * Null when it checked every group, and for a single rule.
+   */
+  candidateLimit: number | null;
 }
 
 // Firings per day over the period, rounded to one decimal place.
@@ -151,14 +168,16 @@ export function detectionRetrohuntResultToJSON(
     periodInHours: result.periodInHours,
     isCorrelation: result.isCorrelation,
     windowInMinutes: result.windowInMinutes,
+    threshold: result.threshold,
     firedCount: result.firedCount,
     groupCount: result.groupCount,
     eventCount: result.eventCount,
+    matchedEventCount: result.matchedEventCount,
     exceptionCount: result.exceptionCount,
     skippedEventCount: result.skippedEventCount,
     preventedFiredCount: result.preventedFiredCount,
     hasMoreGroups: result.hasMoreGroups,
-    readNotice: result.readNotice,
+    candidateLimit: result.candidateLimit,
     groups: result.groups.map((group: DetectionRetrohuntGroup): JSONObject => {
       return {
         value: group.value,
@@ -188,17 +207,16 @@ export function parseDetectionRetrohuntResult(
     periodInHours: readNumber(json["periodInHours"]),
     isCorrelation: json["isCorrelation"] === true,
     windowInMinutes: readNumber(json["windowInMinutes"]),
+    threshold: readNullableNumber(json["threshold"]),
     firedCount: readNumber(json["firedCount"]),
     groupCount: readNumber(json["groupCount"]),
     eventCount: readNumber(json["eventCount"]),
+    matchedEventCount: readNullableNumber(json["matchedEventCount"]),
     exceptionCount: readNumber(json["exceptionCount"]),
     skippedEventCount: readNullableNumber(json["skippedEventCount"]),
     preventedFiredCount: readNullableNumber(json["preventedFiredCount"]),
     hasMoreGroups: json["hasMoreGroups"] === true,
-    readNotice:
-      typeof json["readNotice"] === "string" && json["readNotice"]
-        ? (json["readNotice"] as string)
-        : null,
+    candidateLimit: readNullableNumber(json["candidateLimit"]),
     groups: groups
       .filter((item: JSONValue): boolean => {
         return (

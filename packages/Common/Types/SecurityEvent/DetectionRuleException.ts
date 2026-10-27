@@ -283,137 +283,327 @@ export function doesDetectionRuleExceptionApply(
 }
 
 /*
- * What is wrong with an exception, in the words the form and the API answer
- * with; null when nothing is. `now` is when it is saved: an expiry is
- * checked against it only when `isExpiryNew` (a new exception, or a changed
- * expiry), so an exception that expired can still have its reason edited.
+ * WHAT IS WRONG WITH AN EXCEPTION, field by field: the form shows each
+ * problem under its own field, in the reader's language (each message is a
+ * Dashboard translation key, read from here by the string extractor), and
+ * the API answers a save with the first one, as a 400.
+ *
+ * `now` is when it is saved. An expiry is checked against it only when
+ * `isExpiryNew` (a new exception, or a changed expiry), so an exception that
+ * expired can still have its reason edited.
+ *
+ * The numbers in the messages are written out, so a translator reads a
+ * whole sentence; a test holds each one to its constant above.
  */
-export function getDetectionRuleExceptionProblem(
+
+// The form fields a problem can be about, in the order the form asks for them.
+export type DetectionRuleExceptionFormField =
+  | "kind"
+  | "entityType"
+  | "fieldName"
+  | "value"
+  | "startsAt"
+  | "endsAt"
+  | "expiresAt"
+  | "reason";
+
+export interface DetectionRuleExceptionProblem {
+  field: DetectionRuleExceptionFormField;
+  message: string;
+}
+
+export interface DetectionRuleExceptionCheckOptions {
+  now: Date;
+  isExpiryNew: boolean;
+}
+
+// A value's problems: missing, a lone * (which would skip everything), or too long.
+function getValueProblems(
+  value: unknown,
+  missing: DetectionRuleExceptionProblem,
+): Array<DetectionRuleExceptionProblem> {
+  const text: string = normalizeDetectionRuleExceptionValue(value);
+
+  if (text === DETECTION_RULE_EXCEPTION_WILDCARD) {
+    return [
+      {
+        field: "value",
+        message:
+          "A value of only * would skip everything. To stop the rule, turn it off.",
+      },
+    ];
+  }
+
+  if (!text) {
+    return [missing];
+  }
+
+  if (text.length > DETECTION_RULE_EXCEPTION_VALUE_MAX_LENGTH) {
+    return [
+      {
+        field: "value",
+        message: "A value is at most 500 characters.",
+      },
+    ];
+  }
+
+  return [];
+}
+
+function getEntityProblems(
   exception: DetectionRuleExceptionShape,
-  options: { now: Date; isExpiryNew: boolean },
-): string | null {
-  if (!isDetectionRuleExceptionKind(exception.kind)) {
-    return "Choose what the rule skips: an entity, a value or a time window.";
+): Array<DetectionRuleExceptionProblem> {
+  const problems: Array<DetectionRuleExceptionProblem> = [];
+
+  if (!isDetectionRuleExceptionEntityType(exception.entityType)) {
+    problems.push({
+      field: "entityType",
+      message: "Choose the kind of entity: a user, a host or an IP address.",
+    });
   }
 
-  if (exception.kind === DetectionRuleExceptionKind.Entity) {
-    if (!isDetectionRuleExceptionEntityType(exception.entityType)) {
-      return "Choose the kind of entity: a user, a host or an IP address.";
-    }
+  const valueProblems: Array<DetectionRuleExceptionProblem> =
+    getValueProblems(exception.value, {
+      field: "value",
+      message: "Enter the user, host or address the rule skips.",
+    });
 
-    const problem: string | null = getValueProblem(
-      exception.value,
-      "Enter the user, host or address the rule skips.",
-    );
-
-    if (problem) {
-      return problem;
-    }
-
-    const value: string = normalizeDetectionRuleExceptionValue(exception.value);
-
-    // An address with a slash is a range, and must be one.
-    if (
-      exception.entityType === SecurityEntityType.IpAddress &&
-      value.includes("/") &&
-      !isDetectionRuleExceptionCidr(value)
-    ) {
-      return "Enter an address, a range such as 10.20.0.0/16, or a pattern with *.";
-    }
+  if (valueProblems.length > 0) {
+    return [...problems, ...valueProblems];
   }
 
-  if (exception.kind === DetectionRuleExceptionKind.Value) {
-    const field: string = normalizeDetectionRuleExceptionField(
-      exception.fieldName,
-    );
+  const value: string = normalizeDetectionRuleExceptionValue(exception.value);
 
-    if (!field) {
-      return "Enter the event field to match, such as processName.";
-    }
-
-    if (field.length > DETECTION_RULE_EXCEPTION_FIELD_MAX_LENGTH) {
-      return `A field name is at most ${DETECTION_RULE_EXCEPTION_FIELD_MAX_LENGTH} characters.`;
-    }
-
-    if (WHITESPACE_REGEX.test(field)) {
-      return "A field name has no spaces: principalUser, processName or an attribute key such as user.name.";
-    }
-
-    const problem: string | null = getValueProblem(
-      exception.value,
-      "Enter the value the rule skips.",
-    );
-
-    if (problem) {
-      return problem;
-    }
+  // An address with a slash is a range, and must be one.
+  if (
+    exception.entityType === SecurityEntityType.IpAddress &&
+    value.includes("/") &&
+    !isDetectionRuleExceptionCidr(value)
+  ) {
+    problems.push({
+      field: "value",
+      message:
+        "Enter an address, a range such as 10.20.0.0/16, or a pattern with *.",
+    });
   }
 
-  if (exception.kind === DetectionRuleExceptionKind.TimeWindow) {
-    const startsAt: Date | null = readDetectionRuleExceptionDate(
-      exception.startsAt,
-    );
-    const endsAt: Date | null = readDetectionRuleExceptionDate(
-      exception.endsAt,
-    );
+  return problems;
+}
 
-    if (!startsAt || !endsAt) {
-      return "Enter when the window starts and when it ends.";
-    }
+function getValueKindProblems(
+  exception: DetectionRuleExceptionShape,
+): Array<DetectionRuleExceptionProblem> {
+  const problems: Array<DetectionRuleExceptionProblem> = [];
+  const field: string = normalizeDetectionRuleExceptionField(
+    exception.fieldName,
+  );
 
-    if (endsAt.getTime() <= startsAt.getTime()) {
-      return "The window must end after it starts.";
-    }
-
-    if (
-      endsAt.getTime() - startsAt.getTime() >
-      DETECTION_RULE_EXCEPTION_WINDOW_MAX_IN_DAYS * 24 * 60 * 60 * 1000
-    ) {
-      return `A window is at most ${DETECTION_RULE_EXCEPTION_WINDOW_MAX_IN_DAYS} days. To stop a rule for longer, turn it off.`;
-    }
-  } else if (options.isExpiryNew) {
-    const expiresAt: Date | null = readDetectionRuleExceptionDate(
-      exception.expiresAt,
-    );
-
-    if (exception.expiresAt && !expiresAt) {
-      return "Enter when the exception expires, or leave it empty.";
-    }
-
-    if (expiresAt && expiresAt.getTime() <= options.now.getTime()) {
-      return "An exception expires in the future. To stop one now, delete it.";
-    }
+  if (!field) {
+    problems.push({
+      field: "fieldName",
+      message: "Enter the event field to match, such as processName.",
+    });
+  } else if (field.length > DETECTION_RULE_EXCEPTION_FIELD_MAX_LENGTH) {
+    problems.push({
+      field: "fieldName",
+      message: "A field name is at most 100 characters.",
+    });
+  } else if (WHITESPACE_REGEX.test(field)) {
+    problems.push({
+      field: "fieldName",
+      message:
+        "A field name has no spaces: principalUser, processName or an attribute key such as user.name.",
+    });
   }
 
+  return [
+    ...problems,
+    ...getValueProblems(exception.value, {
+      field: "value",
+      message: "Enter the value the rule skips.",
+    }),
+  ];
+}
+
+function getWindowProblems(
+  exception: DetectionRuleExceptionShape,
+): Array<DetectionRuleExceptionProblem> {
+  const startsAt: Date | null = readDetectionRuleExceptionDate(
+    exception.startsAt,
+  );
+  const endsAt: Date | null = readDetectionRuleExceptionDate(exception.endsAt);
+  const problems: Array<DetectionRuleExceptionProblem> = [];
+
+  if (!startsAt) {
+    problems.push({
+      field: "startsAt",
+      message: "Enter when the window starts.",
+    });
+  }
+
+  if (!endsAt) {
+    problems.push({
+      field: "endsAt",
+      message: "Enter when the window ends.",
+    });
+  }
+
+  if (!startsAt || !endsAt) {
+    return problems;
+  }
+
+  if (endsAt.getTime() <= startsAt.getTime()) {
+    return [
+      {
+        field: "endsAt",
+        message: "The window must end after it starts.",
+      },
+    ];
+  }
+
+  if (
+    endsAt.getTime() - startsAt.getTime() >
+    DETECTION_RULE_EXCEPTION_WINDOW_MAX_IN_DAYS * 24 * 60 * 60 * 1000
+  ) {
+    return [
+      {
+        field: "endsAt",
+        message:
+          "A window is at most 30 days. To stop a rule for longer, turn it off.",
+      },
+    ];
+  }
+
+  return [];
+}
+
+function getExpiryProblems(
+  exception: DetectionRuleExceptionShape,
+  options: DetectionRuleExceptionCheckOptions,
+): Array<DetectionRuleExceptionProblem> {
+  if (!options.isExpiryNew) {
+    return [];
+  }
+
+  const expiresAt: Date | null = readDetectionRuleExceptionDate(
+    exception.expiresAt,
+  );
+
+  if (exception.expiresAt && !expiresAt) {
+    return [
+      {
+        field: "expiresAt",
+        message: "Enter when the exception expires, or leave it empty.",
+      },
+    ];
+  }
+
+  if (expiresAt && expiresAt.getTime() <= options.now.getTime()) {
+    return [
+      {
+        field: "expiresAt",
+        message:
+          "An exception expires in the future. To stop one now, delete it.",
+      },
+    ];
+  }
+
+  return [];
+}
+
+function getReasonProblems(
+  exception: DetectionRuleExceptionShape,
+): Array<DetectionRuleExceptionProblem> {
   const reason: string =
     typeof exception.reason === "string" ? exception.reason.trim() : "";
 
   if (!reason) {
-    return "Say why it is safe for the rule to skip this.";
+    return [
+      {
+        field: "reason",
+        message: "Say why it is safe for the rule to skip this.",
+      },
+    ];
   }
 
   if (reason.length > DETECTION_RULE_EXCEPTION_REASON_MAX_LENGTH) {
-    return `A reason is at most ${DETECTION_RULE_EXCEPTION_REASON_MAX_LENGTH} characters.`;
+    return [
+      {
+        field: "reason",
+        message: "A reason is at most 500 characters.",
+      },
+    ];
   }
 
-  return null;
+  return [];
 }
 
-function getValueProblem(value: unknown, emptyMessage: string): string | null {
-  const text: string = normalizeDetectionRuleExceptionValue(value);
-
-  if (!text || text === DETECTION_RULE_EXCEPTION_WILDCARD) {
-    // A lone * would skip everything: that is turning the rule off.
-    return text === DETECTION_RULE_EXCEPTION_WILDCARD
-      ? "A value of only * would skip everything. To stop the rule, turn it off."
-      : emptyMessage;
+/*
+ * Every problem with the exception, in the order the form asks for its
+ * fields; empty when it can be saved.
+ */
+export function getDetectionRuleExceptionProblems(
+  exception: DetectionRuleExceptionShape,
+  options: DetectionRuleExceptionCheckOptions,
+): Array<DetectionRuleExceptionProblem> {
+  if (!isDetectionRuleExceptionKind(exception.kind)) {
+    return [
+      {
+        field: "kind",
+        message:
+          "Choose what the rule skips: an entity, a value or a time window.",
+      },
+      ...getReasonProblems(exception),
+    ];
   }
 
-  if (text.length > DETECTION_RULE_EXCEPTION_VALUE_MAX_LENGTH) {
-    return `A value is at most ${DETECTION_RULE_EXCEPTION_VALUE_MAX_LENGTH} characters.`;
+  switch (exception.kind) {
+    case DetectionRuleExceptionKind.Entity:
+      return [
+        ...getEntityProblems(exception),
+        ...getExpiryProblems(exception, options),
+        ...getReasonProblems(exception),
+      ];
+    case DetectionRuleExceptionKind.Value:
+      return [
+        ...getValueKindProblems(exception),
+        ...getExpiryProblems(exception, options),
+        ...getReasonProblems(exception),
+      ];
+    default:
+      // A window ends by itself: it has no expiry to check.
+      return [
+        ...getWindowProblems(exception),
+        ...getReasonProblems(exception),
+      ];
   }
+}
 
-  return null;
+// The first problem with one form field, or null: what the form shows under it.
+export function getDetectionRuleExceptionFieldProblem(
+  exception: DetectionRuleExceptionShape,
+  field: DetectionRuleExceptionFormField,
+  options: DetectionRuleExceptionCheckOptions,
+): string | null {
+  const problem: DetectionRuleExceptionProblem | undefined =
+    getDetectionRuleExceptionProblems(exception, options).find(
+      (item: DetectionRuleExceptionProblem): boolean => {
+        return item.field === field;
+      },
+    );
+
+  return problem ? problem.message : null;
+}
+
+// The first problem, or null when the exception can be saved: what the API answers.
+export function getDetectionRuleExceptionProblem(
+  exception: DetectionRuleExceptionShape,
+  options: DetectionRuleExceptionCheckOptions,
+): string | null {
+  const problems: Array<DetectionRuleExceptionProblem> =
+    getDetectionRuleExceptionProblems(exception, options);
+
+  return problems.length > 0 ? problems[0]!.message : null;
 }
 
 /*
@@ -466,23 +656,4 @@ export function getDetectionRuleExceptionColumns(
     expiresAt: readDetectionRuleExceptionDate(exception.expiresAt),
     reason,
   };
-}
-
-// How long a window is, in whole minutes (at least one), for the list's "for 4 hours".
-export function getDetectionRuleExceptionWindowMinutes(
-  exception: DetectionRuleExceptionShape,
-): number | null {
-  const startsAt: Date | null = readDetectionRuleExceptionDate(
-    exception.startsAt,
-  );
-  const endsAt: Date | null = readDetectionRuleExceptionDate(exception.endsAt);
-
-  if (!startsAt || !endsAt || endsAt.getTime() <= startsAt.getTime()) {
-    return null;
-  }
-
-  return Math.max(
-    1,
-    Math.round((endsAt.getTime() - startsAt.getTime()) / (60 * 1000)),
-  );
 }

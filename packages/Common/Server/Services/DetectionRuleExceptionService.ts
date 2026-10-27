@@ -3,6 +3,7 @@ import Model from "../../Models/DatabaseModels/DetectionRuleException";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import RelationValueUtil from "../Utils/Database/RelationValueUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -11,6 +12,7 @@ import OneUptimeDate from "../../Types/Date";
 import PositiveNumber from "../../Types/PositiveNumber";
 import {
   DETECTION_RULE_EXCEPTIONS_PER_RULE_MAX,
+  DetectionRuleExceptionCheckOptions,
   DetectionRuleExceptionColumns,
   DetectionRuleExceptionKind,
   DetectionRuleExceptionShape,
@@ -24,10 +26,13 @@ import {
 
 /*
  * The columns an exception is made of: an update that names any of them is
- * checked as the exception it leaves behind.
+ * checked as the exception it leaves behind. The rule is named either way a
+ * write can name it: its id column, or the relation a form's dropdown sends
+ * ({ _id }).
  */
 const EXCEPTION_COLUMNS: ReadonlyArray<string> = [
   "detectionRuleId",
+  "detectionRule",
   "kind",
   "entityType",
   "fieldName",
@@ -56,6 +61,24 @@ const COLUMNS_OTHER_KINDS_CLEAR: Readonly<
 };
 
 /*
+ * The rule a write names, under either of its names: the id column, or the
+ * relation. Undefined when the write names none; null when it clears it.
+ */
+export function getWrittenDetectionRuleId(
+  data: JSONObject,
+): string | null | undefined {
+  if (data["detectionRuleId"] !== undefined) {
+    return RelationValueUtil.getRelationId(data["detectionRuleId"]);
+  }
+
+  if (data["detectionRule"] === undefined) {
+    return undefined;
+  }
+
+  return RelationValueUtil.getRelationId(data["detectionRule"]);
+}
+
+/*
  * A detection rule's exceptions (Types/SecurityEvent/DetectionRuleException):
  * each one checked as the form checks it, stored with only the columns of
  * its kind, and at most DETECTION_RULE_EXCEPTIONS_PER_RULE_MAX per rule. The
@@ -66,10 +89,10 @@ export class Service extends ProjectReferencesService<Model> {
     super(Model);
   }
 
-  // The words a problem is answered with: the shared rule's, as a 400.
+  // The words a problem is answered with: the shared rules' first, as a 400.
   public static assertValid(
     exception: DetectionRuleExceptionShape,
-    options: { now: Date; isExpiryNew: boolean },
+    options: DetectionRuleExceptionCheckOptions,
   ): void {
     const problem: string | null = getDetectionRuleExceptionProblem(
       exception,
@@ -105,7 +128,11 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
-    if (!createBy.data.detectionRuleId) {
+    const ruleId: string | null | undefined = getWrittenDetectionRuleId(
+      createBy.data as unknown as JSONObject,
+    );
+
+    if (!ruleId) {
       throw new BadDataException("Choose the detection rule that skips it.");
     }
 
@@ -119,6 +146,9 @@ export class Service extends ProjectReferencesService<Model> {
 
     // Only the columns of its kind, normalized; null clears the rest.
     Object.assign(createBy.data as unknown as JSONObject, columns);
+
+    // The rule by its id column, however the write named it.
+    createBy.data.detectionRuleId = new ObjectID(ruleId);
 
     await this.assertRuleHasRoom(createBy.data.detectionRuleId);
 
@@ -167,6 +197,14 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    const writtenRuleId: string | null | undefined =
+      getWrittenDetectionRuleId(data);
+
+    // An exception always belongs to a rule: it is moved, never set loose.
+    if (writtenRuleId === null) {
+      throw new BadDataException("Choose the detection rule that skips it.");
+    }
+
     const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
       updateBy,
       {
@@ -207,14 +245,12 @@ export class Service extends ProjectReferencesService<Model> {
       });
 
       const movesRule: boolean =
-        data["detectionRuleId"] !== undefined &&
-        data["detectionRuleId"] !== null &&
-        data["detectionRuleId"]!.toString() !== row.detectionRuleId?.toString();
+        typeof writtenRuleId === "string" &&
+        writtenRuleId.toLowerCase() !==
+          (row.detectionRuleId?.toString() || "").toLowerCase();
 
       if (movesRule) {
-        await this.assertRuleHasRoom(
-          new ObjectID(data["detectionRuleId"]!.toString()),
-        );
+        await this.assertRuleHasRoom(new ObjectID(writtenRuleId as string));
       }
     }
 

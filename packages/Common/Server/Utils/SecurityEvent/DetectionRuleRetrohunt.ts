@@ -74,8 +74,10 @@ import SigmaClickhouseCompiler, {
  *      in the window - with the exceptions, and without them;
  *   2. per group: the windows it fires in, the events behind them, the
  *      first and the last, the latest sample, the firings the exceptions
- *      prevented and the events they skipped;
- *   3. the groups that fired most, with the totals over all of them.
+ *      prevented, the events they skipped, and every event it matched;
+ *   3. the groups that fired most, with the totals over every group - one
+ *      that never fired included, so a rule that would not have fired
+ *      still says how many events it matched.
  *
  * A correlation is read once over the whole period by its own matcher,
  * with the exceptions in every read.
@@ -120,11 +122,13 @@ interface SingleRuleRow {
   sampleMessage: string;
   preventedCount: number;
   skippedCount: number;
+  matchedCount: number;
   totalFired: number;
   totalGroups: number;
   totalEvents: number;
   totalPrevented: number;
   totalSkipped: number;
+  totalMatched: number;
 }
 
 function readCount(value: unknown): number {
@@ -291,15 +295,19 @@ export function buildSingleRuleRetrohuntStatement(data: {
   windows.append(" GROUP BY __window, __group");
 
   // 2. Per group.
-  const groups: Statement = SQL`SELECT __group AS groupValue, countIf(__fired) AS firedCount, sumIf(__kept, __fired) AS eventCount, minIf(__window, __fired) AS firstFiredAt, maxIf(__window, __fired) AS lastFiredAt, argMaxIf(__sample, __window, __fired) AS sampleMessage, countIf(__firedWithout AND NOT __fired) AS preventedCount, sum(__all - __kept) AS skippedCount FROM (`;
+  const groups: Statement = SQL`SELECT __group AS groupValue, countIf(__fired) AS firedCount, sumIf(__kept, __fired) AS eventCount, minIf(__window, __fired) AS firstFiredAt, maxIf(__window, __fired) AS lastFiredAt, argMaxIf(__sample, __window, __fired) AS sampleMessage, countIf(__firedWithout AND NOT __fired) AS preventedCount, sum(__all - __kept) AS skippedCount, sum(__kept) AS matchedCount FROM (`;
   groups.append(windows);
   groups.append(") GROUP BY __group");
 
-  // 3. The groups that fired most, and the totals over every group.
-  const statement: Statement = SQL`SELECT groupValue, firedCount, eventCount, firstFiredAt, lastFiredAt, sampleMessage, preventedCount, skippedCount, sum(firedCount) OVER () AS totalFired, countIf(firedCount > 0) OVER () AS totalGroups, sum(eventCount) OVER () AS totalEvents, sum(preventedCount) OVER () AS totalPrevented, sum(skippedCount) OVER () AS totalSkipped FROM (`;
+  /*
+   * 3. The groups that fired most, and the totals over every group. Every
+   * group has an event (the read is of the rule's matches), so none is
+   * left out of the totals; the ones that fired sort first.
+   */
+  const statement: Statement = SQL`SELECT groupValue, firedCount, eventCount, firstFiredAt, lastFiredAt, sampleMessage, preventedCount, skippedCount, matchedCount, sum(firedCount) OVER () AS totalFired, countIf(firedCount > 0) OVER () AS totalGroups, sum(eventCount) OVER () AS totalEvents, sum(preventedCount) OVER () AS totalPrevented, sum(skippedCount) OVER () AS totalSkipped, sum(matchedCount) OVER () AS totalMatched FROM (`;
   statement.append(groups);
   statement.append(
-    SQL`) WHERE firedCount > 0 OR preventedCount > 0 OR skippedCount > 0 ORDER BY firedCount DESC, eventCount DESC, groupValue ASC LIMIT ${{
+    SQL`) ORDER BY firedCount DESC, eventCount DESC, groupValue ASC LIMIT ${{
       type: TableColumnType.Number,
       value: data.maxGroups,
     }}`,
@@ -323,11 +331,13 @@ export function readSingleRuleRetrohuntRows(
       sampleMessage: String(row["sampleMessage"] ?? ""),
       preventedCount: readCount(row["preventedCount"]),
       skippedCount: readCount(row["skippedCount"]),
+      matchedCount: readCount(row["matchedCount"]),
       totalFired: readCount(row["totalFired"]),
       totalGroups: readCount(row["totalGroups"]),
       totalEvents: readCount(row["totalEvents"]),
       totalPrevented: readCount(row["totalPrevented"]),
       totalSkipped: readCount(row["totalSkipped"]),
+      totalMatched: readCount(row["totalMatched"]),
     };
   });
 }
@@ -382,9 +392,11 @@ export function summarizeSingleRuleRetrohunt(data: {
     periodInHours: data.periodInHours,
     isCorrelation: false,
     windowInMinutes: data.counting.windowInMinutes,
+    threshold: data.counting.threshold,
     firedCount: first ? first.totalFired : 0,
     groupCount: totalGroups,
     eventCount: first ? first.totalEvents : 0,
+    matchedEventCount: first ? first.totalMatched : 0,
     exceptionCount: data.exceptionCount,
     skippedEventCount: first ? first.totalSkipped : 0,
     preventedFiredCount: first ? first.totalPrevented : 0,
@@ -406,7 +418,7 @@ export function summarizeSingleRuleRetrohunt(data: {
         };
       }),
     hasMoreGroups: totalGroups > Math.min(fired.length, data.maxGroups),
-    readNotice: null,
+    candidateLimit: null,
   };
 }
 
@@ -434,9 +446,11 @@ export function summarizeCorrelationRetrohunt(data: {
     periodInHours: data.periodInHours,
     isCorrelation: true,
     windowInMinutes: 0,
+    threshold: null,
     firedCount: Math.min(groups.length, data.maxGroups),
     groupCount: Math.min(groups.length, data.maxGroups),
     eventCount,
+    matchedEventCount: null,
     exceptionCount: data.exceptionCount,
     skippedEventCount: null,
     preventedFiredCount: null,
@@ -467,8 +481,8 @@ export function summarizeCorrelationRetrohunt(data: {
         };
       }),
     hasMoreGroups: groups.length > data.maxGroups,
-    readNotice: data.match.candidatesCapped
-      ? `It checked the ${CORRELATION_TEMPORAL_CANDIDATE_LIMIT} most recently active groups; others may have matched too.`
+    candidateLimit: data.match.candidatesCapped
+      ? CORRELATION_TEMPORAL_CANDIDATE_LIMIT
       : null,
   };
 }

@@ -4,6 +4,13 @@ import { getSecurityDetectionSourceIcon } from "./SecurityCasePills";
 import SecurityEntityChips, {
   readSecurityEntities,
 } from "./SecurityEntityChips";
+import AddRuleExceptionModal from "../SecurityEvents/RuleExceptions/AddRuleExceptionModal";
+import {
+  ADD_EXCEPTION_ACTION,
+  ADD_EXCEPTION_FROM_DETECTION_DESCRIPTION,
+} from "../SecurityEvents/RuleExceptions/RuleExceptionsCopy";
+import { getDetectionExceptionEntity } from "../SecurityEvents/RuleExceptions/RuleExceptionsModel";
+import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
@@ -16,7 +23,12 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import LazyMarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import PermissionGate, {
+  ModelAction,
+  PermissionGateResult,
+} from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -158,6 +170,20 @@ const SecurityCaseDetections: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [selected, setSelected] = useState<SecurityDetection | null>(null);
+  // The detection whose rule is getting an exception, from its row.
+  const [exceptionFor, setExceptionFor] = useState<SecurityDetection | null>(
+    null,
+  );
+
+  /*
+   * Add Exception opens the exception form over the case, which ModelTable
+   * never gates: a member who may not add exceptions gets a disabled item
+   * that says why.
+   */
+  const exceptionCreateGate: PermissionGateResult = PermissionGate.check(
+    new DetectionRuleException(),
+    ModelAction.Create,
+  );
 
   return (
     <>
@@ -190,6 +216,9 @@ const SecurityCaseDetections: FunctionComponent<ComponentProps> = (
           firstSeenAt: true,
           eventCount: true,
           ruleName: true,
+          // Add Exception starts with the rule that fired and what it grouped by.
+          detectionRuleId: true,
+          groupValue: true,
         }}
         actionButtons={[
           {
@@ -201,6 +230,33 @@ const SecurityCaseDetections: FunctionComponent<ComponentProps> = (
               onCompleteAction: VoidFunction,
             ) => {
               setSelected(item);
+              onCompleteAction();
+            },
+          },
+          /*
+           * A detection rule that fired on something expected - a scanner, a
+           * backup job, a planned test - is tuned from here: the exception
+           * form starts with the rule and the entity the detection is about.
+           * Only on detections a rule made.
+           */
+          {
+            title: ADD_EXCEPTION_ACTION,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            icon: IconProp.EyeSlash,
+            placement: ActionButtonPlacement.MoreMenu,
+            isVisible: (item: SecurityDetection): boolean => {
+              return Boolean(item.detectionRuleId);
+            },
+            disabled: !exceptionCreateGate.isAllowed,
+            tooltip: exceptionCreateGate.isAllowed
+              ? undefined
+              : exceptionCreateGate.disabledReason ||
+                "You do not have permission to add exceptions.",
+            onClick: (
+              item: SecurityDetection,
+              onCompleteAction: VoidFunction,
+            ) => {
+              setExceptionFor(item);
               onCompleteAction();
             },
           },
@@ -306,6 +362,25 @@ const SecurityCaseDetections: FunctionComponent<ComponentProps> = (
           detection={selected}
           onClose={() => {
             setSelected(null);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {exceptionFor ? (
+        <AddRuleExceptionModal
+          detectionRuleId={exceptionFor.detectionRuleId?.toString()}
+          entity={getDetectionExceptionEntity({
+            groupValue: exceptionFor.groupValue,
+            entities: readSecurityEntities(exceptionFor.entities),
+          })}
+          description={ADD_EXCEPTION_FROM_DETECTION_DESCRIPTION}
+          onClose={() => {
+            setExceptionFor(null);
+          }}
+          onSuccess={() => {
+            setExceptionFor(null);
           }}
         />
       ) : (
