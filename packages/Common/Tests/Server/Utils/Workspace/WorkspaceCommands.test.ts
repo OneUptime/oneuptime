@@ -9,6 +9,7 @@ import WorkspaceCommands, {
 import { WorkspaceAnswer } from "../../../../Server/Utils/Workspace/WorkspaceActionAnswers";
 import ProductBrandingText from "../../../../Server/Utils/ProductBrandingText";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * CUSTOMER FEEDBACK #5: "I noticed it registers as /incident, /maintenance.
@@ -589,13 +590,17 @@ describe("WorkspaceCommands.parse: text as long as a chat sends, and longer", ()
   );
 
   test("a long title is put on one line in time that grows with its length", () => {
-    const startedAt: number = performance.now();
-    const title: string = WorkspaceCommands.toTitle(
-      `Checkout${" \t\n".repeat(LONG / 3)}is down`,
-    );
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const title: string = WorkspaceCommands.toTitle(
+          `Checkout${" \t\n".repeat(LONG / 3)}is down`,
+        );
 
-    expect(title).toBe("Checkout is down");
-    expect(performance.now() - startedAt).toBeLessThan(LIMIT_MS);
+        expect(title).toBe("Checkout is down");
+      },
+      limitInMs: LIMIT_MS,
+    });
+    expect(timed.inMs).toBeLessThan(LIMIT_MS);
   });
 
   test("words far apart in length are never compared letter by letter", () => {

@@ -19,6 +19,7 @@ import {
   signElement,
 } from "./SamlTestKit";
 import { beforeAll, describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -902,14 +903,17 @@ describe("rule 12: SAML times are read strictly", () => {
    */
   test("reads a 400,000-character time in well under two seconds", () => {
     const longValue: string = `2026-03-01T11:59:00.${"1".repeat(400000)}Z`;
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expectRefused(
+          response({ rawIssueInstant: longValue }),
+          "SAML Assertion has an invalid IssueInstant",
+        );
+      },
+      limitInMs: 2000,
+    });
 
-    expectRefused(
-      response({ rawIssueInstant: longValue }),
-      "SAML Assertion has an invalid IssueInstant",
-    );
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

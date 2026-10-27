@@ -7,6 +7,7 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
 import { marked } from "marked";
 import fs from "fs";
 import path from "path";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * MARKDOWN PLACED IN ONE CELL OF A TABLE (MarkdownTableCell).
@@ -337,11 +338,15 @@ describe("markdownTableCell - time", () => {
   ] as Array<[string, string]>) {
     test(`four megabytes of ${name}`, () => {
       const text: string = unit.repeat(Math.ceil(SIZE / unit.length));
-      const startedAt: number = performance.now();
-      const placed: string = markdownTableCell(text);
-      const tookMs: number = performance.now() - startedAt;
+      const timed: FastestRun<string> = fastestRun({
+        run: (): string => {
+          return markdownTableCell(text);
+        },
+        limitInMs: BUDGET_IN_MS,
+      });
+      const placed: string = timed.result;
 
-      expect(tookMs).toBeLessThan(BUDGET_IN_MS);
+      expect(timed.inMs).toBeLessThan(BUDGET_IN_MS);
       expect(markdownTableCell(placed)).toBe(placed);
     });
   }

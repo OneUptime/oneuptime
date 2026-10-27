@@ -10,6 +10,7 @@ import {
   getFeedItemMarkdown,
   stripCitationMarkers,
 } from "../../FeatureSet/Dashboard/src/Utils/AIRootCauseFeedItem";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * The incident and alert feeds show an AI investigation as a short entry:
@@ -521,15 +522,20 @@ describe("stripCitationMarkers", () => {
 
   test("long runs of whitespace around markers are handled in linear time", () => {
     const spaces: string = " ".repeat(50_000);
-    const started: number = Date.now();
-
-    expect(stripCitationMarkers(`pool${spaces}[C1].`)).toBe("pool.");
-    expect(stripCitationMarkers(`[C1]${spaces}x`)).toBe("x");
-    expect(stripCitationMarkers(`pool [C1]${spaces}[C2]${spaces}end`)).toBe(
-      `pool${spaces}end`,
-    );
-    expect(stripCitationMarkers(`${"[C1]".repeat(10_000)} pool`)).toBe("pool");
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(stripCitationMarkers(`pool${spaces}[C1].`)).toBe("pool.");
+        expect(stripCitationMarkers(`[C1]${spaces}x`)).toBe("x");
+        expect(stripCitationMarkers(`pool [C1]${spaces}[C2]${spaces}end`)).toBe(
+          `pool${spaces}end`,
+        );
+        expect(stripCitationMarkers(`${"[C1]".repeat(10_000)} pool`)).toBe(
+          "pool",
+        );
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

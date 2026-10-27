@@ -1,4 +1,5 @@
 import { Locator, Page, expect, test } from "@playwright/test";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * The value picker every workflow setting has, in a real browser.
@@ -355,13 +356,13 @@ test.describe("{ }: the list of values", () => {
     await expect(picker).toBeVisible();
     await expect(page.getByTestId("value-picker-search")).toBeFocused();
 
-    const fieldBox: { y: number; height: number } | null = await page
-      .getByTestId("subject-field-box")
-      .boundingBox();
-    const pickerBox: { y: number; height: number } | null =
-      await picker.boundingBox();
+    // In one frame: the picker has only just opened.
+    const [fieldBox, pickerBox] = (await boxesInOneFrame([
+      page.getByTestId("subject-field-box"),
+      picker,
+    ])) as [FrameBox, FrameBox];
 
-    expect(pickerBox!.y).toBeGreaterThanOrEqual(fieldBox!.y + fieldBox!.height);
+    expect(pickerBox.y).toBeGreaterThanOrEqual(fieldBox.y + fieldBox.height);
   });
 
   test("search, the keys, and the value lands where the caret was", async ({
@@ -841,10 +842,12 @@ test.describe("what cannot be used here", () => {
       .getByTestId("value-picker")
       .getByRole("option")
       .last();
-    const optionBox: { y: number } | null = await lastOption.boundingBox();
-    const toggleBox: { y: number } | null = await toggle.boundingBox();
+    const [optionBox, toggleBox] = (await boxesInOneFrame([
+      lastOption,
+      toggle,
+    ])) as [FrameBox, FrameBox];
 
-    expect(toggleBox!.y).toBeGreaterThan(optionBox!.y);
+    expect(toggleBox.y).toBeGreaterThan(optionBox.y);
 
     await toggle.click();
 

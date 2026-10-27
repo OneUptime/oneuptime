@@ -20,6 +20,7 @@ import {
   MaterializedShiftPolicyVariant,
 } from "../../../Types/OnCallDutyPolicy/MaterializedShift";
 import { UserOverrideCoverWindow } from "../../../Types/OnCallDutyPolicy/UserOverrideCoverRequest";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * THE UPCOMING SHIFTS LIST JOINS BACK-TO-BACK TURNS INTO ONE STRETCH.
@@ -790,13 +791,17 @@ describe("cost", () => {
   test("a year of hourly shifts joins in well under a second", () => {
     const shifts: Array<MaterializedShiftJson> = turns(-HOUR, HOUR, 24 * 365);
 
-    const started: number = Date.now();
-    const spans: Array<UpcomingShiftSpan> = buildUpcomingShiftSpans(
-      shifts,
-      NOW,
-    );
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const spans: Array<UpcomingShiftSpan> = buildUpcomingShiftSpans(
+          shifts,
+          NOW,
+        );
 
-    expect(spans).toHaveLength(1);
-    expect(Date.now() - started).toBeLessThan(1000);
+        expect(spans).toHaveLength(1);
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });

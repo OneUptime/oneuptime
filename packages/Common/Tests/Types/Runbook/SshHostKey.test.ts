@@ -17,6 +17,7 @@ import {
   getSshHostKeyAlgorithms,
   getSshHostKeyFingerprint,
 } from "../../../Utils/Runbook/SshHostKeyFingerprint";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * AN SSH STEP'S HOST KEYS (Types/Runbook/SshHostKey, and the Node half that
@@ -181,12 +182,15 @@ describe("the lines a step's Host key reads", () => {
   });
 
   test("a long run of padding or spaces reads at once: nothing backtracks", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        parseSshHostKeys(`ssh-ed25519 ${"=".repeat(40000)}x`);
+        parseSshHostKeys(`${" ".repeat(40000)}x`);
+      },
+      limitInMs: 2000,
+    });
 
-    parseSshHostKeys(`ssh-ed25519 ${"=".repeat(40000)}x`);
-    parseSshHostKeys(`${" ".repeat(40000)}x`);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

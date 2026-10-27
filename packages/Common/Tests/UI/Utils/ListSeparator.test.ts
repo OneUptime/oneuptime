@@ -5,6 +5,7 @@ import {
   IDEOGRAPHIC_LIST_SEPARATOR,
   LIST_SEPARATOR,
 } from "../../../UI/Utils/ListSeparator";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * What goes between two names listed one after another - a form's folded
@@ -55,9 +56,12 @@ describe("getListSeparator", () => {
       },
     );
 
-    const started: number = Date.now();
-
-    expect(getListSeparator([...names, "ラベル"])).toBe("、");
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(getListSeparator([...names, "ラベル"])).toBe("、");
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

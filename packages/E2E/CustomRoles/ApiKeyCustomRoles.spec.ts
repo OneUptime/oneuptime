@@ -1,11 +1,14 @@
 import {
   APIRequestContext,
-  APIResponse,
   expect,
   Locator,
   Page,
   test,
 } from "@playwright/test";
+import {
+  readFixtureEdition,
+  skipUnlessEnterprise,
+} from "../SuiteHelpers/Edition";
 import fs from "fs/promises";
 import path from "path";
 
@@ -117,15 +120,14 @@ interface Box {
 let edition: string = "";
 
 test.beforeAll(async ({ request }: { request: APIRequestContext }) => {
-  const response: APIResponse = await request.get("/edition.json");
-  edition = ((await response.json()) as { edition: string }).edition;
+  edition = await readFixtureEdition(request);
 });
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
 test.beforeEach(async ({ page }: { page: Page }) => {
-  test.skip(
-    edition !== "enterprise",
+  skipUnlessEnterprise(
+    edition,
     "Custom roles are an Enterprise feature: ee/ is not checked out.",
   );
   const errors: Array<string> = [];

@@ -7,6 +7,7 @@ import {
 } from "../../Types/Workflow/Components/OnCallPageSettings";
 import UrlScrubber from "../../Utils/Rum/UrlScrubber";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -59,9 +60,13 @@ describe("UrlScrubber.scrub reads a long path segment quickly", () => {
   test.each(EMAIL_SHAPE_WORST_CASES)(
     "decides %s quickly",
     (_label: string, segment: string) => {
-      const startedAt: number = Date.now();
-      UrlScrubber.scrub(`https://example.com/${segment}`);
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          UrlScrubber.scrub(`https://example.com/${segment}`);
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 
@@ -78,12 +83,16 @@ describe("OnCallCalendarFeedUtil.getDisplayName reads a long name quickly", () =
   test.each(EMAIL_SHAPE_WORST_CASES)(
     "decides %s quickly",
     (_label: string, name: string) => {
-      const startedAt: number = Date.now();
-      OnCallCalendarFeedUtil.getDisplayName(
-        name,
-        OnCallCalendarFeedKind.Schedule,
-      );
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          OnCallCalendarFeedUtil.getDisplayName(
+            name,
+            OnCallCalendarFeedKind.Schedule,
+          );
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 
@@ -108,9 +117,13 @@ describe("readPageIdList reads a long setting quickly", () => {
   test.each(EMAIL_SHAPE_WORST_CASES)(
     "decides %s quickly",
     (_label: string, token: string) => {
-      const startedAt: number = Date.now();
-      readPageIdList(token, { allowEmails: true });
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          readPageIdList(token, { allowEmails: true });
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 

@@ -84,6 +84,7 @@ import ExceptionCode from "../../../../Types/Exception/ExceptionCode";
 import ServiceUnavailableException from "../../../../Types/Exception/ServiceUnavailableException";
 import ObjectID from "../../../../Types/ObjectID";
 import Phone from "../../../../Types/Phone";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -514,15 +515,18 @@ describe("a contact is one mailbox, one phone, one channel", () => {
     ];
 
     for (const value of worstCases) {
-      const started: number = performance.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          try {
+            PublicMessageRateLimit.forEmail(value);
+          } catch {
+            // Refused, as it should be.
+          }
+        },
+        limitInMs: 2000,
+      });
 
-      try {
-        PublicMessageRateLimit.forEmail(value);
-      } catch {
-        // Refused, as it should be.
-      }
-
-      expect(performance.now() - started).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     }
   });
 

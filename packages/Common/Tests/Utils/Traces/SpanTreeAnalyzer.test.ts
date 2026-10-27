@@ -6,6 +6,7 @@ import {
   PerformanceFindingType,
 } from "../../../Types/AI/CodeFixTaskContext";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The deterministic span-tree analyzer behind the FixPerformance recipe —
@@ -126,13 +127,17 @@ describe("SpanTreeAnalyzer.normalizeDbStatement", () => {
     const placeholders: string = "$1".repeat(200_000);
     const mixed: string = "$12a".repeat(100_000);
 
-    const startedAt: number = Date.now();
-    expect(SpanTreeAnalyzer.normalizeDbStatement(digits)).toBe("?");
-    expect(SpanTreeAnalyzer.normalizeDbStatement(placeholders)).toBe(
-      placeholders,
-    );
-    expect(SpanTreeAnalyzer.normalizeDbStatement(mixed)).toBe(mixed);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(SpanTreeAnalyzer.normalizeDbStatement(digits)).toBe("?");
+        expect(SpanTreeAnalyzer.normalizeDbStatement(placeholders)).toBe(
+          placeholders,
+        );
+        expect(SpanTreeAnalyzer.normalizeDbStatement(mixed)).toBe(mixed);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

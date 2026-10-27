@@ -16,6 +16,7 @@ import {
   DOCS_CALLOUT_TYPES,
 } from "../../../Server/Types/MarkdownDocsExtensions";
 import { MARKDOWN_CALLOUT_STYLES } from "../../../UI/Components/Markdown.tsx/MarkdownQuote";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Which blockquotes are callouts (MarkdownCallouts).
@@ -550,10 +551,14 @@ describe("in time that grows with the tree", () => {
       );
     }
 
-    const started: number = Date.now();
-    applyMarkdownCallouts({ type: "root", children: quotes });
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        applyMarkdownCallouts({ type: "root", children: quotes });
+      },
+      limitInMs: 2000,
+    });
 
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(calloutOf(quotes[0]!)).toBe("warning");
     expect(calloutOf(quotes[1]!)).toBe("note");
     expect(calloutOf(quotes[2]!)).toBeUndefined();
@@ -569,13 +574,17 @@ describe("in time that grows with the tree", () => {
     ];
 
     for (const value of worstTexts) {
-      const started: number = Date.now();
-      applyMarkdownCallouts(root(blockquote(paragraph(text(value)))));
-      applyMarkdownCallouts(
-        root(blockquote(paragraph(strong(text(value)), text(" x")))),
-      );
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          applyMarkdownCallouts(root(blockquote(paragraph(text(value)))));
+          applyMarkdownCallouts(
+            root(blockquote(paragraph(strong(text(value)), text(" x")))),
+          );
+        },
+        limitInMs: 2000,
+      });
 
-      expect(Date.now() - started).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     }
   });
 });

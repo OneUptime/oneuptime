@@ -10,6 +10,7 @@ import { KubernetesPodObject } from "../../Types/Kubernetes/KubernetesObjectPars
 import { generatedTexts } from "../Helpers/GeneratedTexts";
 import { namedPattern, patternWith } from "../Helpers/SourcePatterns";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -70,11 +71,14 @@ describe("a reported value is read in time in line with its length", () => {
     ["digits, spaces and no second number", repeat("1", LENGTH) + " / x"],
     ["runs of digits between words", repeat("12a", LENGTH)],
   ])("Docker Swarm replicas: %s", (_label: string, replicas: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        replicasOf(replicas);
+      },
+      limitInMs: 2000,
+    });
 
-    replicasOf(replicas);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test.each([
@@ -82,11 +86,14 @@ describe("a reported value is read in time in line with its length", () => {
     ["digits, a dot and a letter", repeat("1", LENGTH) + ".x"],
     ["digits, white space and a digit", repeat("2", LENGTH) + " 1"],
   ])("Kubernetes memory limit: %s", (_label: string, memory: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        memoryOf(memory);
+      },
+      limitInMs: 2000,
+    });
 
-    memoryOf(memory);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

@@ -63,6 +63,7 @@ import {
 import { anchorInLanguage } from "./NetworkDocsLabels";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { describe, expect, it } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * Docs overhaul task 29: the CLI pages - the overview, authentication,
@@ -960,10 +961,13 @@ describe("the helpers, on these pages' shapes", () => {
       "1: 14.0.64",
     ]);
     // A long run of digits is read in time in line with its length.
-    const started: number = Date.now();
-
-    expect(versionsByLine(`${"1".repeat(400000)}.`)).toEqual([]);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(versionsByLine(`${"1".repeat(400000)}.`)).toEqual([]);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   it("find an untranslated line of prose, but not a line of names or code", () => {

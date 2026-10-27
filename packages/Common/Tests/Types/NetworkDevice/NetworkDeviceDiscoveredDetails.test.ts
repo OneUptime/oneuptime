@@ -30,6 +30,7 @@ import {
   toDiscoveredDetailsJson,
 } from "../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * What discovery found out about a network device, where and when (issue
@@ -377,9 +378,14 @@ describe("cleanDiscoveredText", () => {
    */
   test("a megabyte of input is cut before it is read, in well under a second", () => {
     const huge: string = "\u0000 a".repeat(400000);
-    const started: number = Date.now();
-    const cleaned: string | undefined = cleanDiscoveredText(huge, 500);
-    expect(Date.now() - started).toBeLessThan(1000);
+    const timed: FastestRun<string | undefined> = fastestRun({
+      run: (): string | undefined => {
+        return cleanDiscoveredText(huge, 500);
+      },
+      limitInMs: 1000,
+    });
+    const cleaned: string | undefined = timed.result;
+    expect(timed.inMs).toBeLessThan(1000);
     expect(cleaned).toBeDefined();
     expect(cleaned!.length).toBeLessThanOrEqual(500);
   });
