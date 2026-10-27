@@ -6723,18 +6723,20 @@ export default class StatusPageAPI extends BaseAPI<
   /*
    * The scheduled maintenance a status page's uptime history shows: each
    * event the page shows (StatusPageVisibilityQuery - the one rule every
-   * read of a page's maintenance goes through) that holds one of the page's
-   * monitors, has started - in progress or over
-   * (ScheduledMaintenanceStartUtil.getStartedStateIds) - and whose planned
-   * window touches the history's: it starts by the window's end and ends
-   * after its start. An event still to come is no part of any day's history;
-   * the page lists it under Scheduled Maintenance.
+   * read of a page's maintenance goes through: an event reaches a page by
+   * naming it, never through its monitors) that has started - in progress
+   * or over (ScheduledMaintenanceStartUtil.getStartedStateIds) - and whose
+   * planned window touches the history's: it starts by the window's end and
+   * ends after its start. An event still to come is no part of any day's
+   * history; the page lists it under Scheduled Maintenance.
    *
-   * None when the page does not show scheduled maintenance, as it shows no
-   * event anywhere else then. Each event names only the page's own monitors:
-   * which other monitors an event holds is the project's business, and the
-   * page draws an event on the resources of the monitors it names. Newest
-   * first, so a window holding more than the limit keeps the recent days.
+   * Of those, the events that hold one of the page's monitors - the history
+   * draws an event on the resources of its monitors, and one that holds none
+   * is on no resource - each naming only the page's own monitors: which
+   * other monitors an event holds is the project's business. None when the
+   * page does not show scheduled maintenance, as it shows no event anywhere
+   * else then. Newest first, so a window holding more than the limit keeps
+   * the recent days.
    */
   @CaptureSpan()
   public async getTimelineScheduledMaintenanceEvents(data: {
@@ -6765,7 +6767,6 @@ export default class StatusPageAPI extends BaseAPI<
       await ScheduledMaintenanceService.findBy({
         query: StatusPageVisibilityQuery.shownScheduledMaintenance({
           statusPages: data.statusPageId as any,
-          monitors: data.monitorsOnStatusPage as any,
           currentScheduledMaintenanceStateId: QueryHelper.any(startedStateIds),
           startsAt: QueryHelper.lessThanEqualTo(data.endDate),
           endsAt: QueryHelper.greaterThanEqualTo(data.startDate),
@@ -6806,6 +6807,8 @@ export default class StatusPageAPI extends BaseAPI<
       }),
     );
 
+    const eventsOnThePagesMonitors: Array<ScheduledMaintenance> = [];
+
     for (const event of events) {
       event.monitors = (event.monitors || []).filter(
         (monitor: Monitor): boolean => {
@@ -6814,9 +6817,13 @@ export default class StatusPageAPI extends BaseAPI<
           );
         },
       );
+
+      if (event.monitors.length > 0) {
+        eventsOnThePagesMonitors.push(event);
+      }
     }
 
-    return events;
+    return eventsOnThePagesMonitors;
   }
 
   private async getStatusPageAnnouncementAttachment(

@@ -298,9 +298,7 @@ export const useMonitorUptimeSummary: (options: {
   > = useRef<OverviewSection<Array<UptimeBarTooltipIncident>>>(incidents);
   const maintenanceRef: MutableRefObject<
     OverviewSection<Array<UptimeBarTooltipMaintenance>>
-  > = useRef<OverviewSection<Array<UptimeBarTooltipMaintenance>>>(
-    maintenance,
-  );
+  > = useRef<OverviewSection<Array<UptimeBarTooltipMaintenance>>>(maintenance);
   /*
    * Only the newest load may write. A generation rather than an effect's
    * own flag, because the effect also re-runs when `isShown` flips, and

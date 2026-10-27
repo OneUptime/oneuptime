@@ -2384,7 +2384,9 @@ describe("Monitor overview page: scheduled maintenance on the uptime strip", () 
     await renderPage();
 
     expect(maintenanceListRequests()).toHaveLength(1);
-    expect(screen.queryByTestId("monitor-uptime-legend-maintenance")).toBeNull();
+    expect(
+      screen.queryByTestId("monitor-uptime-legend-maintenance"),
+    ).toBeNull();
     expect(
       screen.queryByTestId("monitor-uptime-maintenance-unavailable"),
     ).toBeNull();

@@ -378,9 +378,8 @@ describe("DayUptimeGraph - the day's maintenance, told", () => {
   });
 
   test("the tooltip lists the day's events, and opens one", async () => {
-    const onMaintenanceClick: ReturnType<
-      typeof jest.fn<(id: string) => void>
-    > = jest.fn<(id: string) => void>();
+    const onMaintenanceClick: ReturnType<typeof jest.fn<(id: string) => void>> =
+      jest.fn<(id: string) => void>();
 
     renderStrip({
       onMaintenanceClick: onMaintenanceClick,

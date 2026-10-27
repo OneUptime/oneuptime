@@ -965,11 +965,12 @@ describe("ScheduledMaintenanceStartUtil.getStartedStates", () => {
   });
 
   test("is the in progress states and the over states together", () => {
-    const started: Array<string> = ScheduledMaintenanceStartUtil.getStartedStates(
-      { states: FULL_MODELS },
-    ).map((state: ScheduledMaintenanceState): string => {
-      return state.name || "";
-    });
+    const started: Array<string> =
+      ScheduledMaintenanceStartUtil.getStartedStates({
+        states: FULL_MODELS,
+      }).map((state: ScheduledMaintenanceState): string => {
+        return state.name || "";
+      });
 
     const inProgress: Array<string> =
       ScheduledMaintenanceStartUtil.getInProgressStates({

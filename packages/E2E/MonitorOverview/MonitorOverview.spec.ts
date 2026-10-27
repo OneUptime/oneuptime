@@ -1929,10 +1929,7 @@ test.describe("scheduled maintenance on the uptime strip", () => {
     // Sep 19 (two days ago) and today, Sep 21, the last bar.
     await expect(bars.nth(87)).toHaveAttribute("data-has-maintenance", "true");
     await expect(bars.nth(89)).toHaveAttribute("data-has-maintenance", "true");
-    await expect(bars.nth(88)).toHaveAttribute(
-      "data-has-maintenance",
-      "false",
-    );
+    await expect(bars.nth(88)).toHaveAttribute("data-has-maintenance", "false");
     await expect(bars.nth(0)).toHaveAttribute("data-has-maintenance", "false");
 
     expect(await bandOf(bars.nth(87))).toEqual({
@@ -1957,9 +1954,9 @@ test.describe("scheduled maintenance on the uptime strip", () => {
     ).toHaveCount(0);
 
     // Read once, for the subject monitor, by the project's states.
-    expect(
-      await listRequestsFor(page, /^ScheduledMaintenance$/),
-    ).toHaveLength(1);
+    expect(await listRequestsFor(page, /^ScheduledMaintenance$/)).toHaveLength(
+      1,
+    );
     expect(
       (await listRequestsFor(page, /^ScheduledMaintenanceState$/)).length,
     ).toBeGreaterThan(0);
@@ -1994,11 +1991,13 @@ test.describe("scheduled maintenance on the uptime strip", () => {
     await expect(
       dialog.getByRole("heading", { name: "Scheduled maintenance" }),
     ).toBeVisible();
-    await expect(dialog).toContainText("No incidents were reported on this day.");
-    // On the reader's clock: the browser runs in UTC, which moment names GMT.
-    await expect(dialog.getByTestId("uptime-day-maintenance-window")).toHaveText(
-      MAINTENANCE_WINDOW_TEXT,
+    await expect(dialog).toContainText(
+      "No incidents were reported on this day.",
     );
+    // On the reader's clock: the browser runs in UTC, which moment names GMT.
+    await expect(
+      dialog.getByTestId("uptime-day-maintenance-window"),
+    ).toHaveText(MAINTENANCE_WINDOW_TEXT);
 
     await screenshot(page, "monitor-overview-uptime-maintenance-day");
 
@@ -2042,9 +2041,9 @@ test.describe("scheduled maintenance on the uptime strip", () => {
     await expect(
       page.getByTestId("monitor-uptime-maintenance-unavailable"),
     ).toBeVisible();
-    expect(
-      await listRequestsFor(page, /^ScheduledMaintenance$/),
-    ).toHaveLength(0);
+    expect(await listRequestsFor(page, /^ScheduledMaintenance$/)).toHaveLength(
+      0,
+    );
   });
 
   test("a monitor without maintenance has no band and no key", async ({

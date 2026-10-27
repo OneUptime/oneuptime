@@ -574,9 +574,9 @@ describe("DayUptimeGraphUtil.fillLabel", () => {
   });
 
   test("leaves a placeholder it has no value for as written", () => {
-    expect(DayUptimeGraphUtil.fillLabel("{{total}} of {{all}}", { total: "1" })).toBe(
-      "1 of {{all}}",
-    );
+    expect(
+      DayUptimeGraphUtil.fillLabel("{{total}} of {{all}}", { total: "1" }),
+    ).toBe("1 of {{all}}");
   });
 });
 

@@ -121,7 +121,9 @@ describe("UptimeBarDayModal - a day of maintenance and no incidents", () => {
       within(section).getByRole("heading", { name: "Scheduled maintenance" }),
     ).toBeInTheDocument();
     expect(within(section).getByText("1")).toBeInTheDocument();
-    expect(within(section).getByText("PHP security patches")).toBeInTheDocument();
+    expect(
+      within(section).getByText("PHP security patches"),
+    ).toBeInTheDocument();
   });
 
   test("gives each event's window on the reader's clock, and its state", () => {
@@ -130,17 +132,17 @@ describe("UptimeBarDayModal - a day of maintenance and no incidents", () => {
     expect(
       screen.getByTestId("uptime-day-maintenance-window"),
     ).toHaveTextContent("Oct 21, 18:00 – Oct 22, 02:00 CEST");
-    expect(screen.getByTestId("uptime-day-maintenance-state")).toHaveTextContent(
-      "Completed",
-    );
+    expect(
+      screen.getByTestId("uptime-day-maintenance-state"),
+    ).toHaveTextContent("Completed");
   });
 
   test("says there were no incidents in one quiet line, not the big all-clear", () => {
     renderDialog({ maintenanceEvents: [maintenance()] });
 
-    expect(screen.getByTestId("uptime-day-no-incidents-line")).toHaveTextContent(
-      "No incidents were reported on this day.",
-    );
+    expect(
+      screen.getByTestId("uptime-day-no-incidents-line"),
+    ).toHaveTextContent("No incidents were reported on this day.");
     // The big empty state's title.
     expect(screen.queryByText("No incidents")).not.toBeInTheDocument();
   });
@@ -211,9 +213,9 @@ describe("UptimeBarDayModal - a day of incidents and maintenance", () => {
       maintenanceEvents: [maintenance()],
     });
 
-    expect(
-      screen.getByRole("heading", { name: "Incidents" }).tagName,
-    ).toBe("H4");
+    expect(screen.getByRole("heading", { name: "Incidents" }).tagName).toBe(
+      "H4",
+    );
     expect(
       screen.getByRole("heading", { name: "Scheduled maintenance" }).tagName,
     ).toBe("H4");
@@ -237,9 +239,8 @@ describe("UptimeBarDayModal - a day of incidents and maintenance", () => {
 
 describe("UptimeBarDayModal - opening an event", () => {
   test("each event is a button that opens its page", () => {
-    const onMaintenanceClick: ReturnType<
-      typeof jest.fn<(id: string) => void>
-    > = jest.fn<(id: string) => void>();
+    const onMaintenanceClick: ReturnType<typeof jest.fn<(id: string) => void>> =
+      jest.fn<(id: string) => void>();
 
     renderDialog({
       maintenanceEvents: [
@@ -366,9 +367,9 @@ describe("UptimeBarDayModal - in the caller's language", () => {
     expect(
       screen.getByRole("heading", { name: "Geplante Wartung" }),
     ).toBeInTheDocument();
-    expect(screen.getByTestId("uptime-day-no-incidents-line")).toHaveTextContent(
-      "An diesem Tag wurden keine Vorfälle gemeldet.",
-    );
+    expect(
+      screen.getByTestId("uptime-day-no-incidents-line"),
+    ).toHaveTextContent("An diesem Tag wurden keine Vorfälle gemeldet.");
 
     cleanup();
 
@@ -378,6 +379,8 @@ describe("UptimeBarDayModal - in the caller's language", () => {
       maintenanceEvents: [maintenance()],
     });
 
-    expect(screen.getByRole("heading", { name: "Vorfälle" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Vorfälle" }),
+    ).toBeInTheDocument();
   });
 });

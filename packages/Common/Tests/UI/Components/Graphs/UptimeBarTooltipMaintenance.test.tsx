@@ -172,9 +172,7 @@ describe("UptimeBarTooltip - the day's scheduled maintenance", () => {
       maintenanceEvents: [maintenance()],
     });
 
-    const incidentTitle: HTMLElement = screen.getByText(
-      "Checkout API is down",
-    );
+    const incidentTitle: HTMLElement = screen.getByText("Checkout API is down");
     const section: HTMLElement = screen.getByTestId(
       "uptime-tooltip-maintenance",
     );
@@ -208,9 +206,9 @@ describe("UptimeBarTooltip - the day's scheduled maintenance", () => {
 
     renderTooltip({ maintenanceEvents: events });
 
-    expect(screen.getAllByTestId("uptime-tooltip-maintenance-item")).toHaveLength(
-      3,
-    );
+    expect(
+      screen.getAllByTestId("uptime-tooltip-maintenance-item"),
+    ).toHaveLength(3);
     expect(screen.getByText("Window 3")).toBeInTheDocument();
     expect(screen.queryByText("Window 4")).not.toBeInTheDocument();
     expect(screen.getByText("+2 more")).toBeInTheDocument();
@@ -221,9 +219,8 @@ describe("UptimeBarTooltip - the day's scheduled maintenance", () => {
   });
 
   test("opens the event's page when the caller can, as a button", () => {
-    const onMaintenanceClick: ReturnType<
-      typeof jest.fn<(id: string) => void>
-    > = jest.fn<(id: string) => void>();
+    const onMaintenanceClick: ReturnType<typeof jest.fn<(id: string) => void>> =
+      jest.fn<(id: string) => void>();
     const onParentClick: ReturnType<typeof jest.fn<() => void>> =
       jest.fn<() => void>();
 
@@ -259,9 +256,9 @@ describe("UptimeBarTooltip - the day's scheduled maintenance", () => {
     renderTooltip({ maintenanceEvents: [maintenance()] });
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    expect(
-      screen.getByTestId("uptime-tooltip-maintenance-item").tagName,
-    ).toBe("DIV");
+    expect(screen.getByTestId("uptime-tooltip-maintenance-item").tagName).toBe(
+      "DIV",
+    );
   });
 
   test("holds no block element inside its button", () => {

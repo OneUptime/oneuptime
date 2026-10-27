@@ -564,9 +564,7 @@ describe("how a window reads", () => {
         startsAt: at("2026-10-25T00:30:00.000Z"),
         endsAt: at("2026-10-25T02:30:00.000Z"),
       }),
-    ).toBe(
-      `Oct 25, 02:30 CEST${MAINTENANCE_WINDOW_SEPARATOR}03:30 CET`,
-    );
+    ).toBe(`Oct 25, 02:30 CEST${MAINTENANCE_WINDOW_SEPARATOR}03:30 CET`);
   });
 
   test("follows the reader's 12-hour clock", () => {

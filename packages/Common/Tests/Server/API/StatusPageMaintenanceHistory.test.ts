@@ -75,9 +75,10 @@ jest.mock("../../../Server/Utils/Response", () => {
  *   - Only events the page shows: through StatusPageVisibilityQuery
  *     (Visible on Status Page on) - the one filter every read of a page's
  *     maintenance goes through, which a publish time will extend - and
- *     on this page.
- *   - Only events that hold one of the page's monitors: an event is drawn on
- *     the resources of the monitors it holds.
+ *     on this page. An event reaches a page by naming it, never through
+ *     its monitors, so the read asks by the page alone.
+ *   - Of those, only events that hold one of the page's monitors: an event
+ *     is drawn on the resources of the monitors it holds.
  *   - Only events that have started - in progress or over. One still to
  *     come is no part of any day's history.
  *   - Only events whose planned window touches the history's window.
@@ -355,9 +356,7 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
 
   function historyRead(): Record<string, unknown> | undefined {
     return eventReads.find((read: Record<string, unknown>): boolean => {
-      return (
-        (read["query"] as Record<string, unknown>)["endsAt"] !== undefined
-      );
+      return (read["query"] as Record<string, unknown>)["endsAt"] !== undefined;
     });
   }
 
@@ -381,9 +380,10 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
       const payload: JSONObject =
         await api.buildOverviewResponse(STATUS_PAGE_ID);
 
-      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual(
-        ["Database upgrade", "PHP security patches"],
-      );
+      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual([
+        "Database upgrade",
+        "PHP security patches",
+      ]);
     });
 
     it.each([
@@ -408,9 +408,9 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
         const payload: JSONObject =
           await api.buildOverviewResponse(STATUS_PAGE_ID);
 
-        expect(
-          titlesOf(payload["timelineScheduledMaintenanceEvents"]),
-        ).toEqual([`In ${key}`]);
+        expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual(
+          [`In ${key}`],
+        );
       },
     );
 
@@ -454,9 +454,9 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
       const payload: JSONObject =
         await api.buildOverviewResponse(STATUS_PAGE_ID);
 
-      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual(
-        ["Shown"],
-      );
+      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual([
+        "Shown",
+      ]);
     });
 
     it("leaves out an event shown only on another status page", async () => {
@@ -480,9 +480,9 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
       const payload: JSONObject =
         await api.buildOverviewResponse(STATUS_PAGE_ID);
 
-      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual(
-        ["Both pages'"],
-      );
+      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual([
+        "Both pages'",
+      ]);
     });
 
     it("leaves out an event that holds none of the page's monitors", async () => {
@@ -506,9 +506,43 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
       const payload: JSONObject =
         await api.buildOverviewResponse(STATUS_PAGE_ID);
 
-      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual(
-        ["A monitor in one of the page's groups"],
-      );
+      /*
+       * Both name the page, so the read hands both back: the one on someone
+       * else's monitors is on none of the page's resources, so no day of
+       * the history holds it.
+       */
+      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual([
+        "A monitor in one of the page's groups",
+      ]);
+    });
+
+    it("leaves out an event that holds no monitor at all", async () => {
+      events = [
+        maintenance({
+          key: "completed",
+          title: "Office move",
+          startsAt: daysAgo(3),
+          endsAt: daysAgo(3, 14),
+          monitorIds: [],
+        }),
+        maintenance({
+          key: "completed",
+          title: "Database upgrade",
+          startsAt: daysAgo(3),
+          endsAt: daysAgo(3, 14),
+        }),
+      ];
+
+      const payload: JSONObject =
+        await api.buildOverviewResponse(STATUS_PAGE_ID);
+
+      /*
+       * An event with no monitors is on the page's Scheduled Maintenance
+       * list, but on no resource: no uptime strip draws it.
+       */
+      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual([
+        "Database upgrade",
+      ]);
     });
 
     it("keeps the events whose window touches the history's, and only those", async () => {
@@ -547,14 +581,15 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
        * the page as in progress (the overview's own list) but has no day of
        * the history yet that its window touches.
        */
-      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual(
-        ["Ran into the window", "Runs past now"],
-      );
+      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual([
+        "Ran into the window",
+        "Runs past now",
+      ]);
     });
   });
 
   describe("the read", () => {
-    it("goes through the one rule of what a page shows, on this page, for the page's monitors", async () => {
+    it("goes through the one rule of what a page shows, by this page and never by its monitors", async () => {
       await api.buildOverviewResponse(STATUS_PAGE_ID);
 
       const query: Record<string, unknown> | undefined = historyQuery();
@@ -564,9 +599,12 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
       expect(relationIds(query!["statusPages"])).toEqual([
         STATUS_PAGE_ID.toString(),
       ]);
-      expect(relationIds(query!["monitors"])!.sort()).toEqual(
-        [PAGE_MONITOR, GROUP_MONITOR].sort(),
-      );
+      /*
+       * An event reaches a page by naming it, as everywhere else on the
+       * page (StatusPageDocsFacts holds every such read to that). Which of
+       * its monitors are the page's is sorted out after the read.
+       */
+      expect(query!["monitors"]).toBeUndefined();
       expect(String(query!["projectId"])).toBe(PROGRESS_PROJECT_ID.toString());
     });
 
@@ -574,8 +612,9 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
       await api.buildOverviewResponse(STATUS_PAGE_ID);
 
       expect(
-        idsOfCondition(historyQuery()!["currentScheduledMaintenanceStateId"])!
-          .sort(),
+        idsOfCondition(
+          historyQuery()!["currentScheduledMaintenanceStateId"],
+        )!.sort(),
       ).toEqual(
         (
           [
@@ -592,7 +631,9 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
           })
           .sort(),
       );
-      expect(historyQuery()!["currentScheduledMaintenanceState"]).toBeUndefined();
+      expect(
+        historyQuery()!["currentScheduledMaintenanceState"],
+      ).toBeUndefined();
     });
 
     it("asks for the history's own window: started by its end, ending after its start", async () => {

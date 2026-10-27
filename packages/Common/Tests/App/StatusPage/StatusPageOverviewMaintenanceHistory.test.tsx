@@ -50,8 +50,6 @@ import StatusPageUtil from "../../../../App/FeatureSet/StatusPage/src/Utils/Stat
  *   - a server that sends no maintenance draws the page it always drew.
  */
 
-const DAY_MS: number = 24 * 60 * 60 * 1000;
-
 const NOW: Date = new Date("2026-10-26T15:30:00.000Z");
 
 const STATUS_PAGE_ID: string = "49000000-0000-4000-8000-000000000001";
@@ -505,10 +503,7 @@ describe("Status page overview - each resource carries its own monitors' mainten
     await renderOverview();
 
     // The patch ran from Oct 21 into midnight; the upgrade runs today.
-    expect(bandedDays(strips()[0]!)).toEqual([
-      "Oct 21, 2026",
-      "Oct 26, 2026",
-    ]);
+    expect(bandedDays(strips()[0]!)).toEqual(["Oct 21, 2026", "Oct 26, 2026"]);
   });
 
   test("a resource whose monitor no event holds has no band", async () => {
@@ -526,9 +521,9 @@ describe("Status page overview - each resource carries its own monitors' mainten
   test("a bar's name says how much maintenance its day had", async () => {
     await renderOverview();
 
-    expect(
-      barOn(strips()[0]!, "Oct 21, 2026").getAttribute("aria-label"),
-    ).toBe("Oct 21, 2026: no data, 1 scheduled maintenance event");
+    expect(barOn(strips()[0]!, "Oct 21, 2026").getAttribute("aria-label")).toBe(
+      "Oct 21, 2026: no data, 1 scheduled maintenance event",
+    );
   });
 
   test("a server that sends no maintenance draws the page it always drew", async () => {
@@ -606,9 +601,7 @@ describe("Status page overview - a day's maintenance, told and opened", () => {
 
     expect(tooltip).toHaveTextContent("Scheduled maintenance");
     expect(tooltip).toHaveTextContent("PHP security patches");
-    expect(tooltip).toHaveTextContent(
-      "Oct 21, 18:00 – Oct 22, 02:00 CEST",
-    );
+    expect(tooltip).toHaveTextContent("Oct 21, 18:00 – Oct 22, 02:00 CEST");
     expect(tooltip).toHaveTextContent("Completed");
   });
 

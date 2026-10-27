@@ -63,9 +63,7 @@ describe("MaintenanceWindow", () => {
     );
 
     const window: HTMLElement = screen.getByTestId("window");
-    const ends: Array<HTMLElement> = Array.from(
-      window.querySelectorAll("bdi"),
-    );
+    const ends: Array<HTMLElement> = Array.from(window.querySelectorAll("bdi"));
 
     expect(ends).toHaveLength(2);
     expect(ends[0]).toHaveTextContent("Oct 21, 18:00");

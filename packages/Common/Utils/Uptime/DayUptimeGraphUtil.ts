@@ -228,7 +228,10 @@ export default class DayUptimeGraphUtil {
    * A label of the history filled in: {{name}} with its value, as i18next
    * does. For the strings the history speaks beyond the bars' names.
    */
-  public static fillLabel(template: string, values: Record<string, string>): string {
+  public static fillLabel(
+    template: string,
+    values: Record<string, string>,
+  ): string {
     return this.interpolate(template, values);
   }
 

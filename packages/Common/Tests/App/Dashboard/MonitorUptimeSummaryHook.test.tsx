@@ -1176,7 +1176,10 @@ describe("useMonitorUptimeSummary - scheduled maintenance", () => {
   });
 
   test("someone who can read it, and not incidents, still gets the maintenance", async () => {
-    permissions = [Permission.MonitorViewer, Permission.ScheduledMaintenanceViewer];
+    permissions = [
+      Permission.MonitorViewer,
+      Permission.ScheduledMaintenanceViewer,
+    ];
 
     const { result } = renderSummary();
     await flush();
@@ -1196,7 +1199,9 @@ describe("useMonitorUptimeSummary - scheduled maintenance", () => {
     expect(result.current.summary.status).toBe("loaded");
     expect(result.current.incidents.status).toBe("loaded");
     expect(result.current.maintenance.status).toBe("error");
-    expect(result.current.maintenance.error).toBe("Maintenance is unavailable.");
+    expect(result.current.maintenance.error).toBe(
+      "Maintenance is unavailable.",
+    );
   });
 
   test("without the history there is no window, so no maintenance either", async () => {
