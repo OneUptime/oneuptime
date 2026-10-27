@@ -233,6 +233,15 @@ interface MoreSettingsPage {
   namesSectionsByTitle: boolean;
   // How many of its sections are tables.
   tableCount: number;
+  /*
+   * With a row in every table, where the fold then holds more: a card drawn
+   * only for a record that has something to show (the custom roles a team
+   * or key still has).
+   */
+  withRows?: {
+    sectionTitles: Array<string>;
+    tableCount: number;
+  };
 }
 
 type NamedSectionTitlesFunction = (page: MoreSettingsPage) => Array<string>;
@@ -311,6 +320,11 @@ const PAGES: Array<MoreSettingsPage> = [
     sectionTitles: ["Block Permissions"],
     namesSectionsByTitle: true,
     tableCount: 1,
+    // A key with a custom role: Custom Roles, an advanced feature, first.
+    withRows: {
+      sectionTitles: ["Custom Roles", "Block Permissions"],
+      tableCount: 2,
+    },
   },
   {
     name: "Teams -> a team -> Permissions",
@@ -322,6 +336,11 @@ const PAGES: Array<MoreSettingsPage> = [
     sectionTitles: ["Block Permissions"],
     namesSectionsByTitle: true,
     tableCount: 1,
+    // A team with a custom role: Custom Roles, an advanced feature, first.
+    withRows: {
+      sectionTitles: ["Custom Roles", "Block Permissions"],
+      tableCount: 2,
+    },
   },
   {
     name: "Status Pages -> a page -> Branding",
@@ -423,17 +442,35 @@ function titleOf(section: HTMLElement): string {
   ).trim();
 }
 
+// The sections the fold holds as the test has set the tables up.
+function expectedSectionTitles(page: MoreSettingsPage): Array<string> {
+  return rowsPerTable > 0 && page.withRows
+    ? page.withRows.sectionTitles
+    : page.sectionTitles;
+}
+
 async function openPageAndLoad(page: MoreSettingsPage): Promise<void> {
   openPage(page);
 
   await waitFor(
     () => {
-      expect(sectionsIn(page).length).toBe(page.sectionTitles.length);
+      expect(sectionsIn(page).length).toBe(expectedSectionTitles(page).length);
     },
     { timeout: 20000 },
   );
 
   await flush();
+}
+
+// The keys of the names a folded header lists, in order.
+function listedKeys(page: MoreSettingsPage): Array<string> {
+  return Array.from(
+    moreSettings(page).querySelectorAll<HTMLElement>(
+      "[data-testid='folded-section-item']",
+    ),
+  ).map((item: HTMLElement): string => {
+    return item.getAttribute("data-item-key") || "";
+  });
 }
 
 describe.each(PAGES)("$name: More settings", (page: MoreSettingsPage) => {
@@ -594,7 +631,9 @@ describe.each(PAGES)("$name: More settings", (page: MoreSettingsPage) => {
       moreSettings(page),
     ).queryAllByTestId("table-footer");
 
-    expect(footers).toHaveLength(page.tableCount);
+    expect(footers).toHaveLength(
+      page.withRows ? page.withRows.tableCount : page.tableCount,
+    );
 
     for (const footer of footers) {
       expect(footer).not.toHaveClass("rounded-b-xl");
@@ -602,6 +641,71 @@ describe.each(PAGES)("$name: More settings", (page: MoreSettingsPage) => {
     }
   });
 });
+
+/*
+ * Folding never loses anything: every name a page's folded More settings
+ * lists is the place of a card in it - so a link to that name (a search
+ * result, another page's "Pick a Runner") lands on the card - and opening
+ * the page at that name opens the fold there, with or without rows.
+ */
+describe.each(PAGES)(
+  "$name: what its folded header names can be reached",
+  (page: MoreSettingsPage) => {
+    for (const withRows of [false, true]) {
+      test(`${withRows ? "with" : "without"} rows, each name it lists is a card in it`, async () => {
+        rowsPerTable = withRows ? 1 : 0;
+
+        await openPageAndLoad(page);
+
+        const keys: Array<string> = listedKeys(page);
+
+        expect(keys.length).toBeGreaterThan(0);
+
+        for (const key of keys) {
+          const place: HTMLElement | null = document.getElementById(key);
+
+          expect({ key, isCardInFold: Boolean(place) }).toEqual({
+            key,
+            isCardInFold: true,
+          });
+          expect(moreSettings(page)).toContainElement(place);
+          expect(place).toHaveAttribute("data-testid", "card");
+        }
+      });
+
+      test(`${withRows ? "with" : "without"} rows, opened at each name it lists, it opens there`, async () => {
+        rowsPerTable = withRows ? 1 : 0;
+
+        await openPageAndLoad(page);
+
+        const keys: Array<string> = listedKeys(page);
+
+        cleanup();
+
+        for (const key of keys) {
+          goTo(`${page.path}#${key}`);
+          render(
+            <MemoryRouter initialEntries={[`${page.path}#${key}`]}>
+              {page.element()}
+            </MemoryRouter>,
+          );
+
+          await waitFor(
+            () => {
+              expect({
+                key,
+                expanded: header(page).getAttribute("aria-expanded"),
+              }).toEqual({ key, expanded: "true" });
+            },
+            { timeout: 20000 },
+          );
+
+          cleanup();
+        }
+      });
+    }
+  },
+);
 
 describe("the cards around More settings are cards, as they were", () => {
   test("the cards above a page's More settings keep their frame", async () => {

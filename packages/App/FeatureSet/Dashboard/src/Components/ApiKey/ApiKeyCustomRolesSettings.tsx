@@ -15,8 +15,10 @@ import { BILLING_ENABLED } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
 
 /*
- * The custom roles card on an API key's page, above what the key was given
- * directly - as TeamCustomRolesSettings is on a team's Permissions page.
+ * The custom roles card on an API key's page, in its More settings beside
+ * Block Permissions - as TeamCustomRolesSettings is on a team's Permissions
+ * page: an advanced feature most projects never use, so it waits folded,
+ * its folded header saying how many roles the key has (onRolesChange).
  *
  * Custom roles are an Enterprise feature (ee/Dashboard/CustomRoles): where
  * the project may use them and this build includes them, the Enterprise
@@ -38,7 +40,10 @@ const ApiKeyCustomRolesSettings: FunctionComponent<ComponentProps> = (
   if (Plugin && isEnterpriseFeatureEligible(CUSTOM_ROLES_REQUIRED_PLAN)) {
     return (
       <Suspense fallback={<ComponentLoader />}>
-        <Plugin apiKeyId={props.apiKeyId} />
+        <Plugin
+          apiKeyId={props.apiKeyId}
+          onRolesChange={props.onRolesChange}
+        />
       </Suspense>
     );
   }
@@ -52,6 +57,7 @@ const ApiKeyCustomRolesSettings: FunctionComponent<ComponentProps> = (
       <ApiKeyCustomRolesLeftover
         apiKeyId={props.apiKeyId}
         reason={EnterpriseSettingLeftoverReason.Plan}
+        onRolesChange={props.onRolesChange}
       />
     );
   }
@@ -60,6 +66,7 @@ const ApiKeyCustomRolesSettings: FunctionComponent<ComponentProps> = (
     <ApiKeyCustomRolesLeftover
       apiKeyId={props.apiKeyId}
       reason={EnterpriseSettingLeftoverReason.Edition}
+      onRolesChange={props.onRolesChange}
     />
   );
 };

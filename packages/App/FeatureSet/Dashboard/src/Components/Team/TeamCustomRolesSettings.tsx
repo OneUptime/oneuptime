@@ -15,8 +15,10 @@ import { BILLING_ENABLED } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
 
 /*
- * The custom roles card on a team's Permissions page, above what the team
- * was given directly.
+ * The custom roles card on a team's Permissions page, in its More settings
+ * beside Block Permissions (Pages/Teams/View/Permissions): an advanced
+ * feature most projects never use, so it waits folded, its folded header
+ * saying how many roles the team has (onRolesChange).
  *
  * Custom roles are an Enterprise feature (ee/Dashboard/CustomRoles): where
  * the project may use them and this build includes them, the Enterprise
@@ -38,7 +40,7 @@ const TeamCustomRolesSettings: FunctionComponent<ComponentProps> = (
   if (Plugin && isEnterpriseFeatureEligible(CUSTOM_ROLES_REQUIRED_PLAN)) {
     return (
       <Suspense fallback={<ComponentLoader />}>
-        <Plugin teamId={props.teamId} />
+        <Plugin teamId={props.teamId} onRolesChange={props.onRolesChange} />
       </Suspense>
     );
   }
@@ -52,6 +54,7 @@ const TeamCustomRolesSettings: FunctionComponent<ComponentProps> = (
       <TeamCustomRolesLeftover
         teamId={props.teamId}
         reason={EnterpriseSettingLeftoverReason.Plan}
+        onRolesChange={props.onRolesChange}
       />
     );
   }
@@ -60,6 +63,7 @@ const TeamCustomRolesSettings: FunctionComponent<ComponentProps> = (
     <TeamCustomRolesLeftover
       teamId={props.teamId}
       reason={EnterpriseSettingLeftoverReason.Edition}
+      onRolesChange={props.onRolesChange}
     />
   );
 };

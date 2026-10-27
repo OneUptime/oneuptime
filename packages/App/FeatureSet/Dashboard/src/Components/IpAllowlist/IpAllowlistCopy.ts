@@ -3,15 +3,17 @@ import {
   FoldedSectionItem,
   foldedSectionItem,
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import { getPageAnchorNameForTitle } from "Common/UI/Utils/PageAnchor";
 import {
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
- * An IP allowlist: the ipWhitelist column a status page and a dashboard
- * each have, one entry a line, edited under More settings on the page that
- * says who can see them (a status page's Access, a dashboard's Sharing).
+ * An IP allowlist: the ipWhitelist column a status page, a dashboard and a
+ * form each have, one entry a line, edited under More settings on the page
+ * that says who can see them (a status page's Access, a dashboard's
+ * Sharing, a form's Share).
  *
  * The server enforces it whenever the column holds anything at all
  * (StatusPageService.hasReadAccess, DashboardService.hasReadAccess, both
@@ -45,8 +47,17 @@ export const IpAllowlistCopy: {
   ),
 };
 
-// The column both models keep the list in.
+// The column the models keep the list in.
 export const IP_ALLOWLIST_COLUMN: string = "ipWhitelist";
+
+/*
+ * The card's place in More settings: its title's (#ip-allowlist), in
+ * either edition - the Enterprise card and the upsell are both titled IP
+ * Allowlist - so a link to it lands on it.
+ */
+export const IP_ALLOWLIST_CARD_PLACE: string = getPageAnchorNameForTitle(
+  IpAllowlistCopy.title,
+);
 
 // Whether the server enforces the list: the column holds anything at all.
 export const isIpAllowlistInForce: (
@@ -68,7 +79,7 @@ export const getIpAllowlistFoldedItem: (
   const entryCount: number = getIpAllowlistEntries(ipAllowlist).length;
 
   return foldedSectionItem(IpAllowlistCopy.title, {
-    key: IP_ALLOWLIST_COLUMN,
+    key: IP_ALLOWLIST_CARD_PLACE,
     isSet: isIpAllowlistInForce(ipAllowlist),
     value: entryCount > 0 ? String(entryCount) : undefined,
   });

@@ -1043,9 +1043,14 @@ describe("the custom role shells", () => {
     expect(
       screen.getByText(CustomRoleLeftoverCopy.teamEditionDescription),
     ).toBeInTheDocument();
+    /*
+     * No upsell: the card is titled Custom Roles, as the upsell's feature
+     * is named, so the upsell is told by its own words and its button.
+     */
     expect(
-      screen.queryByText(CUSTOM_ROLES_UPSELL.featureName),
+      screen.queryByText(CUSTOM_ROLES_UPSELL.featureDescription),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(COMMUNITY_EDITION_CTA)).not.toBeInTheDocument();
     expect(countMock).toHaveBeenCalledWith(
       expect.objectContaining({
         query: { teamId: TEAM_ID, projectId: PROJECT_ID },
@@ -1123,8 +1128,9 @@ describe("the custom role shells", () => {
       screen.getByText(CustomRoleLeftoverCopy.apiKeyEditionDescription),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(CUSTOM_ROLES_UPSELL.featureName),
+      screen.queryByText(CUSTOM_ROLES_UPSELL.featureDescription),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(COMMUNITY_EDITION_CTA)).not.toBeInTheDocument();
     expect(countMock).toHaveBeenCalledWith(
       expect.objectContaining({
         query: { apiKeyId: API_KEY_ID, projectId: PROJECT_ID },

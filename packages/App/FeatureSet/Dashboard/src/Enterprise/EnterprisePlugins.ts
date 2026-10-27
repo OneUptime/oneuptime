@@ -1,4 +1,8 @@
 import PageComponentProps from "../Pages/PageComponentProps";
+import {
+  CustomRolesCardState,
+  CustomRolesCardStateHandler,
+} from "../Components/CustomRole/CustomRolesFold";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
@@ -82,14 +86,23 @@ export interface TelemetryResourceRetentionSettingsProps {
   scopeNote?: string | undefined;
 }
 
+/*
+ * What a custom roles card holds, told to the page it is drawn on: declared
+ * with the More settings rules that read it, React-free
+ * (Components/CustomRole/CustomRolesFold).
+ */
+export type { CustomRolesCardState, CustomRolesCardStateHandler };
+
 // Props of a team's custom roles card, on the team's Permissions page.
 export interface TeamCustomRolesProps {
   teamId: ObjectID;
+  onRolesChange?: CustomRolesCardStateHandler | undefined;
 }
 
 // Props of an API key's custom roles card, on the key's page.
 export interface ApiKeyCustomRolesProps {
   apiKeyId: ObjectID;
+  onRolesChange?: CustomRolesCardStateHandler | undefined;
 }
 
 // Props of a status page card that edits one page's settings.

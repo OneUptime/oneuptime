@@ -2,6 +2,12 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import ApiKeyCustomRolesSettings from "../../Components/ApiKey/ApiKeyCustomRolesSettings";
+import {
+  CustomRolesCardState,
+  getApiKeyMoreSettingsDescription,
+  getCustomRoleCount,
+  getCustomRolesFoldedItem,
+} from "../../Components/CustomRole/CustomRolesFold";
 import ApiKeyPermissionTable, {
   ApiKeyPermissionType,
 } from "../../Components/ApiKey/ApiKeyPermissionTable";
@@ -10,7 +16,10 @@ import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
-import { foldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
+import {
+  FoldedSectionItem,
+  foldedSectionItem,
+} from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
@@ -22,15 +31,23 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 
 /*
  * An API key's page, in the order it is used: what the key is (and the key
- * itself, to copy), what it can do - the custom roles it is given (shown
- * once the project has a custom role), then its own roles and permissions -
- * resetting it, then - folded under More settings - what it can never do,
- * and deleting it.
+ * itself, to copy), what it can do - its own roles and permissions -
+ * resetting it, then - folded under More settings - the custom roles it is
+ * given and what it can never do, and deleting it.
  *
  * Block permissions are rarely needed and were always on screen, as large as
  * what the key can do; they now sit in the More settings section, whose
- * folded header shows how many the key has.
+ * folded header shows how many the key has. Custom roles - an Enterprise
+ * feature most projects never use - opened the key's permissions once the
+ * project had one; they sit in More settings too, before Block Permissions,
+ * named in the folded header while the card is drawn, with how many roles
+ * the key has (Components/CustomRole/CustomRolesFold). A link to
+ * #custom-roles - a role's page links each key it is given to that way -
+ * opens it there.
  */
+
+// The Block Permissions card's place: its title's, as in any More settings.
+export const API_KEY_BLOCK_PERMISSIONS_PLACE: string = "block-permissions";
 const APIKeyView: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
@@ -38,6 +55,12 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
   const [refresher, setRefresher] = React.useState<boolean>(false);
   const [blockPermissionCount, setBlockPermissionCount] =
     React.useState<number>(0);
+  // What the Custom Roles card holds, once it says: null until then.
+  const [customRoles, setCustomRoles] =
+    React.useState<CustomRolesCardState | null>(null);
+
+  const customRolesItem: FoldedSectionItem | null =
+    getCustomRolesFoldedItem(customRoles);
 
   return (
     <Fragment>
@@ -142,19 +165,12 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         }}
       />
 
-      {/*
-       * The custom roles it is given, once the project has any: what a
-       * change to a role changes for this key. Custom roles are an
-       * Enterprise feature: the shell draws the Enterprise card, or the
-       * roles the key still has, with Remove.
-       */}
-      <ApiKeyCustomRolesSettings apiKeyId={modelId} />
-
       {/* What the key can do: a role, or single permissions. */}
       <ApiKeyPermissionTable
         apiKeyId={modelId}
         permissionType={ApiKeyPermissionType.AllowPermissions}
         currentProject={props.currentProject}
+        customRoleCount={getCustomRoleCount(customRoles)}
       />
 
       <ResetObjectID<ApiKey>
@@ -168,18 +184,31 @@ const APIKeyView: FunctionComponent<PageComponentProps> = (
         }}
       />
 
-      {/* What the key can never do, folded away. */}
+      {/*
+       * The custom roles it is given - what a change to a role changes for
+       * this key - and what it can never do, folded away. Custom roles are
+       * an Enterprise feature: the shell draws the Enterprise card, or the
+       * roles the key still has, with Remove.
+       */}
       <AdvancedPageSection
-        description="Block permissions: what this key can never do, even when one of its roles or permissions allows it."
+        description={getApiKeyMoreSettingsDescription(customRoles)}
         items={[
+          ...(customRolesItem ? [customRolesItem] : []),
           foldedSectionItem("Block Permissions", {
-            key: "blockPermissions",
+            key: API_KEY_BLOCK_PERMISSIONS_PLACE,
             isSet: blockPermissionCount > 0,
             value: String(blockPermissionCount),
           }),
         ]}
         dataTestId="api-key-advanced-section"
       >
+        <ApiKeyCustomRolesSettings
+          apiKeyId={modelId}
+          onRolesChange={(state: CustomRolesCardState) => {
+            setCustomRoles(state);
+          }}
+        />
+
         <ApiKeyPermissionTable
           apiKeyId={modelId}
           permissionType={ApiKeyPermissionType.BlockPermissions}
