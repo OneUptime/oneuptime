@@ -407,18 +407,19 @@ export default class SecurityTelemetryScanner {
           serviceMetadata =
             serviceMetadata ||
             (await OTelIngestService.telemetryServiceFromName({
-              serviceName: getSecurityTelemetrySourceDefinition(kind)
-                .serviceName,
+              serviceName:
+                getSecurityTelemetrySourceDefinition(kind).serviceName,
               projectId,
             }));
 
-          const stored: Array<NormalizedSecurityEvent> =
-            await this.storeEvents({
+          const stored: Array<NormalizedSecurityEvent> = await this.storeEvents(
+            {
               projectId,
               kind,
               events: read.events,
               serviceMetadata,
-            });
+            },
+          );
 
           for (const event of stored) {
             const signal: string = String(

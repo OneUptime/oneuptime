@@ -185,9 +185,7 @@ describe("a large transfer out", () => {
     );
     expect(event.severityName).toBe(OcsfSeverity.Low);
     expect(event.attributes[FLOW_ATTRIBUTES.protocol]).toBe("tcp");
-    expect(signalOf(event)).toBe(
-      SecurityTelemetrySignal.LargeOutboundTransfer,
-    );
+    expect(signalOf(event)).toBe(SecurityTelemetrySignal.LargeOutboundTransfer);
   });
 
   test("is only the way data leaves a network", () => {
@@ -203,10 +201,7 @@ describe("a large transfer out", () => {
     ).toBeNull();
     // Between two private addresses: a backup to the next rack.
     expect(
-      buildLargeTransferEvent(
-        pair({ bytes, dstIp: "192.168.1.20" }),
-        WINDOW,
-      ),
+      buildLargeTransferEvent(pair({ bytes, dstIp: "192.168.1.20" }), WINDOW),
     ).toBeNull();
     expect(
       buildLargeTransferEvent(pair({ bytes: bytes - 1 }), WINDOW),
@@ -241,14 +236,10 @@ describe("traffic with a known-bad address", () => {
       "Traffic from a known-bad address: 203.0.113.50 → 10.0.0.5:22 (62.5 KB)",
     );
     expect(outbound.severityName).toBe(OcsfSeverity.High);
-    expect(outbound.attributes[FLOW_ATTRIBUTES.indicator]).toBe(
-      "203.0.113.50",
-    );
+    expect(outbound.attributes[FLOW_ATTRIBUTES.indicator]).toBe("203.0.113.50");
     // The enrichment every stored event goes through reads the observables.
     expect(outbound.observables).toContain("203.0.113.50");
-    expect(signalOf(outbound)).toBe(
-      SecurityTelemetrySignal.ThreatIntelTraffic,
-    );
+    expect(signalOf(outbound)).toBe(SecurityTelemetrySignal.ThreatIntelTraffic);
   });
 
   test("is no event when the known address is not in the pair", () => {

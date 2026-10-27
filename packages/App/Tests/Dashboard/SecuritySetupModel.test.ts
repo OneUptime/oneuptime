@@ -403,9 +403,9 @@ describe("what Turn on recommended could not do", () => {
     expect(didTurnOnAnything({ ...nothing, rulesAdded: 1 })).toBe(true);
     expect(didTurnOnAnything({ ...nothing, rulesTurnedOn: 1 })).toBe(true);
     expect(didTurnOnAnything({ ...nothing, logsTurnedOn: true })).toBe(true);
-    expect(
-      didTurnOnAnything({ ...nothing, telemetrySourcesTurnedOn: 2 }),
-    ).toBe(true);
+    expect(didTurnOnAnything({ ...nothing, telemetrySourcesTurnedOn: 2 })).toBe(
+      true,
+    );
     expect(didTurnOnAnything({ ...nothing, playbookAdded: true })).toBe(true);
     expect(didTurnOnAnything({ ...nothing, playbookTurnedOn: true })).toBe(
       true,

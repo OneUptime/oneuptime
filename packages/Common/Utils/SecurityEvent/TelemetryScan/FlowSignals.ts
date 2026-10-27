@@ -270,7 +270,10 @@ export function buildLargeTransferEvent(
   row: FlowPairRow,
   window: FlowWindow,
 ): NormalizedSecurityEvent | null {
-  if (row.bytes < LARGE_TRANSFER_MIN_BYTES || !isOutboundPair(row.srcIp, row.dstIp)) {
+  if (
+    row.bytes < LARGE_TRANSFER_MIN_BYTES ||
+    !isOutboundPair(row.srcIp, row.dstIp)
+  ) {
     return null;
   }
 
@@ -310,7 +313,10 @@ export function buildThreatIntelTrafficEvent(
   window: FlowWindow,
   knownAddress: string,
 ): NormalizedSecurityEvent | null {
-  if (!knownAddress || (row.srcIp !== knownAddress && row.dstIp !== knownAddress)) {
+  if (
+    !knownAddress ||
+    (row.srcIp !== knownAddress && row.dstIp !== knownAddress)
+  ) {
     return null;
   }
 

@@ -35,7 +35,8 @@ export const MAX_RUM_USERS_PER_WINDOW: number = 50;
 export const MAX_RUM_SESSIONS_PER_USER: number = 20;
 
 // How far before a window's end its sessions may have started.
-export const RUM_LOOKBACK_IN_MINUTES: number = RUM_COUNTRY_WINDOW_IN_MINUTES * 2;
+export const RUM_LOOKBACK_IN_MINUTES: number =
+  RUM_COUNTRY_WINDOW_IN_MINUTES * 2;
 
 function toRumScanSession(value: JSONValue): RumScanSession | null {
   // A tuple: sessionId, applicationId, country, sessionStart, browser, os.

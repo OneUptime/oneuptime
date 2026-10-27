@@ -415,16 +415,14 @@ describe("SecuritySetup.turnOnRecommended", () => {
         writes.logSourcesUpdated.push(data.data as JSONObject);
         return 1;
       });
-    jest
-      .spyOn(SecurityTelemetrySourceService, "findBy")
-      .mockResolvedValue(
-        (existing.telemetrySources ||
-          SECURITY_TELEMETRY_SOURCE_KINDS.map(
-            (kind: SecurityTelemetrySourceKind, index: number) => {
-              return telemetrySource(kind, true, index);
-            },
-          )) as never,
-      );
+    jest.spyOn(SecurityTelemetrySourceService, "findBy").mockResolvedValue(
+      (existing.telemetrySources ||
+        SECURITY_TELEMETRY_SOURCE_KINDS.map(
+          (kind: SecurityTelemetrySourceKind, index: number) => {
+            return telemetrySource(kind, true, index);
+          },
+        )) as never,
+    );
     jest
       .spyOn(SecurityTelemetrySourceService, "create")
       .mockImplementation(
@@ -1149,16 +1147,14 @@ describe("SecuritySetup.turnOnRecommended", () => {
       const writes: Writes = install({ telemetrySources: [] });
       jest
         .spyOn(SecurityTelemetrySourceService, "create")
-        .mockImplementation(
-          async (data: { data: SecurityTelemetrySource }) => {
-            if (data.data.kind === SecurityTelemetrySourceKind.NetworkFlows) {
-              throw new Error("connection reset by peer at 10.0.0.12");
-            }
+        .mockImplementation(async (data: { data: SecurityTelemetrySource }) => {
+          if (data.data.kind === SecurityTelemetrySourceKind.NetworkFlows) {
+            throw new Error("connection reset by peer at 10.0.0.12");
+          }
 
-            writes.telemetrySourcesCreated.push(data.data);
-            return data.data as never;
-          },
-        );
+          writes.telemetrySourcesCreated.push(data.data);
+          return data.data as never;
+        });
 
       const result: TurnOnRecommendedResult =
         await SecuritySetup.turnOnRecommended({

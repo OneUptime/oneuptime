@@ -53,13 +53,15 @@ import { DataSource, QueryRunner } from "typeorm";
  * The kinds of your OneUptime data the click turns on: every one, but the
  * audit log only where OneUptime Enterprise writes it.
  */
-const TELEMETRY_SOURCES_TURNED_ON: number = SECURITY_TELEMETRY_SOURCE_KINDS.filter(
-  (kind: SecurityTelemetrySourceKind): boolean => {
-    return (
-      kind !== SecurityTelemetrySourceKind.AuditLog || EnterpriseEdition.isLoaded()
-    );
-  },
-).length;
+const TELEMETRY_SOURCES_TURNED_ON: number =
+  SECURITY_TELEMETRY_SOURCE_KINDS.filter(
+    (kind: SecurityTelemetrySourceKind): boolean => {
+      return (
+        kind !== SecurityTelemetrySourceKind.AuditLog ||
+        EnterpriseEdition.isLoaded()
+      );
+    },
+  ).length;
 
 /*
  * TURN ON RECOMMENDED, ON A MIGRATED POSTGRES, THROUGH ITS ROUTE.

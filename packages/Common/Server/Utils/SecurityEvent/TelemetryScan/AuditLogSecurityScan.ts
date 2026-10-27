@@ -17,7 +17,12 @@ import {
   buildAuditRecordsStatement,
   buildMassDeleteStatement,
 } from "./TelemetryScanStatements";
-import { readRowDate, readRowNumber, readRowText, readRowTextArray } from "./TelemetryScanRows";
+import {
+  readRowDate,
+  readRowNumber,
+  readRowText,
+  readRowTextArray,
+} from "./TelemetryScanRows";
 import { TelemetryWindowRead } from "./TelemetryScanTypes";
 
 /*

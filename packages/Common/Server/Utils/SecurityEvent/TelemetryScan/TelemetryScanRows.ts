@@ -58,7 +58,9 @@ export function readRowNumberArray(
     });
 }
 
-export function readRowMap(value: JSONValue | undefined): Record<string, string> {
+export function readRowMap(
+  value: JSONValue | undefined,
+): Record<string, string> {
   const map: Record<string, string> = {};
 
   if (!value || typeof value !== "object" || Array.isArray(value)) {

@@ -271,7 +271,8 @@ export default class TraceSecurityScan {
     const forgeries: Array<NormalizedSecurityEvent> = data.events.filter(
       (event: NormalizedSecurityEvent): boolean => {
         return (
-          signalOf(event) === SecurityTelemetrySignal.ServerSideRequestForgery &&
+          signalOf(event) ===
+            SecurityTelemetrySignal.ServerSideRequestForgery &&
           Boolean(event.traceId)
         );
       },

@@ -149,11 +149,11 @@ function stand(data: {
     .spyOn(ThreatIntelEnricher, "enrichNormalizedEvents")
     .mockResolvedValue({ eventsMatched: 0, valuesLookedUp: 0 });
 
-  jest
-    .spyOn(SecurityEventService, "insertJsonRows")
-    .mockImplementation((async (rows: Array<JSONObject>) => {
-      harness.inserted.push(...rows);
-    }) as never);
+  jest.spyOn(SecurityEventService, "insertJsonRows").mockImplementation((async (
+    rows: Array<JSONObject>,
+  ) => {
+    harness.inserted.push(...rows);
+  }) as never);
 
   jest
     .spyOn(SecurityTelemetrySourceService, "updateOneById")
@@ -373,9 +373,7 @@ describe("what a scan stores", () => {
         return row["eventUid"];
       }),
     ).toEqual(["a", "b"]);
-    expect(harness.inserted[0]!["primaryEntityId"]).toBe(
-      SERVICE_ID.toString(),
-    );
+    expect(harness.inserted[0]!["primaryEntityId"]).toBe(SERVICE_ID.toString());
     expect(result.eventsFound).toBe(2);
     expect(result.bySignal).toEqual({ "port-scan": 2 });
     expect(harness.updates[0]!["lastEventFoundAt"]).toEqual(NOW);
@@ -402,7 +400,9 @@ describe("what a scan stores", () => {
       source(
         SecurityTelemetrySourceKind.RumSessions,
         new Date(
-          NOW.getTime() - plan.settleInSeconds * 1000 - plan.windowInSeconds * 1000,
+          NOW.getTime() -
+            plan.settleInSeconds * 1000 -
+            plan.windowInSeconds * 1000,
         ).toISOString(),
       ),
     );
@@ -511,7 +511,9 @@ describe("which reader reads a kind", () => {
       hasMore: false,
     };
     const spies: Record<string, ReturnType<typeof jest.spyOn>> = {
-      trace: jest.spyOn(TraceSecurityScan, "readWindow").mockResolvedValue(read),
+      trace: jest
+        .spyOn(TraceSecurityScan, "readWindow")
+        .mockResolvedValue(read),
       flow: jest.spyOn(FlowSecurityScan, "readWindow").mockResolvedValue(read),
       audit: jest
         .spyOn(AuditLogSecurityScan, "readWindow")

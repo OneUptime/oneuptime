@@ -94,9 +94,11 @@ describe("the telemetry sources", () => {
 
       for (const technique of SECURITY_TELEMETRY_SIGNAL_ATTACK[signal]
         .techniques) {
-        expect([signal, technique, Boolean(getMitreTechnique(technique))]).toEqual(
-          [signal, technique, true],
-        );
+        expect([
+          signal,
+          technique,
+          Boolean(getMitreTechnique(technique)),
+        ]).toEqual([signal, technique, true]);
       }
     }
   });

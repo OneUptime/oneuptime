@@ -124,9 +124,7 @@ describe("the trace read", () => {
   });
 
   test("returns only the attributes it reads, not a span's dozens", () => {
-    expect(statement.query).toContain(
-      "mapFilter((key, value) -> has({",
-    );
+    expect(statement.query).toContain("mapFilter((key, value) -> has({");
     expect(statement.query).toContain("attributes) AS attributes");
   });
 
@@ -152,7 +150,9 @@ describe("the flow reads", () => {
     expect(statement.query).toContain(
       `uniqExactIf(dstPort, dstPort > 0 AND dstPort < ${EPHEMERAL_PORT_START}) AS ports`,
     );
-    expect(statement.query).toContain("GROUP BY srcIp, dstIp HAVING ports >= {");
+    expect(statement.query).toContain(
+      "GROUP BY srcIp, dstIp HAVING ports >= {",
+    );
     expect(statement.query).toContain("AND ingestedAt > {");
     expect(statement.query).toContain("AND flowStartAt >= {");
     expect(bound(statement)).toContain(25);
@@ -247,7 +247,9 @@ describe("the audit log reads", () => {
     expectProjectFirst(statement);
     expect(statement.query).toContain("AND action = {");
     expect(bound(statement)).toContain("Delete");
-    expect(statement.query).toContain("GROUP BY userId, apiKeyId HAVING deletes >= {");
+    expect(statement.query).toContain(
+      "GROUP BY userId, apiKeyId HAVING deletes >= {",
+    );
     expect(statement.query).toContain("toString(userId) AS actorUserId");
     expect(statement.query).not.toMatch(/ AS userId\b/);
   });

@@ -172,15 +172,20 @@ export default class FlowSecurityScan {
     }
 
     for (const row of transfers) {
-      pushEvent(events, buildLargeTransferEvent(toFlowPairRow(row), flowWindow));
+      pushEvent(
+        events,
+        buildLargeTransferEvent(toFlowPairRow(row), flowWindow),
+      );
     }
 
-    const threatIntel: { events: Array<NormalizedSecurityEvent>; rows: number } =
-      await this.readThreatIntelTraffic({
-        projectId: window.projectId,
-        window,
-        flowWindow,
-      });
+    const threatIntel: {
+      events: Array<NormalizedSecurityEvent>;
+      rows: number;
+    } = await this.readThreatIntelTraffic({
+      projectId: window.projectId,
+      window,
+      flowWindow,
+    });
 
     events.push(...threatIntel.events);
 

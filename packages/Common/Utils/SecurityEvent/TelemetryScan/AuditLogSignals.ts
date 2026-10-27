@@ -162,7 +162,10 @@ export function classifyAuditRecord(
     case AuditResourceType.CustomRole:
     case AuditResourceType.ApiKeyCustomRole:
     case AuditResourceType.TeamCustomRole:
-      if (action === AuditLogAction.Create || action === AuditLogAction.Update) {
+      if (
+        action === AuditLogAction.Create ||
+        action === AuditLogAction.Update
+      ) {
         return {
           signal: SecurityTelemetrySignal.RoleChanged,
           severity: OcsfSeverity.Medium,

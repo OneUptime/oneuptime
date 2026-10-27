@@ -336,7 +336,10 @@ function readSpanRequest(span: TraceScanSpan): SpanRequest {
     span,
     TRACE_SCAN_ATTRIBUTE_KEYS.userId,
   );
-  const route: string = readTraceAttribute(span, TRACE_SCAN_ATTRIBUTE_KEYS.route);
+  const route: string = readTraceAttribute(
+    span,
+    TRACE_SCAN_ATTRIBUTE_KEYS.route,
+  );
 
   const attributes: JSONObject = {};
 

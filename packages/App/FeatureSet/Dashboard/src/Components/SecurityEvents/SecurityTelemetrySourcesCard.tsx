@@ -333,7 +333,8 @@ const SecurityTelemetrySourcesCard: FunctionComponent = (): ReactElement => {
                       <></>
                     )}
 
-                    {status.kind === SecurityTelemetrySourceStatusKind.Failed ? (
+                    {status.kind ===
+                    SecurityTelemetrySourceStatusKind.Failed ? (
                       <p
                         className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800"
                         data-testid={`security-telemetry-source-last-error-${row.kind}`}

@@ -14,6 +14,7 @@ import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedS
 import { SigmaRule } from "../../../../Types/SecurityEvent/SigmaRule";
 import {
   SECURITY_TELEMETRY_SOURCES,
+  SecurityTelemetrySourceDefinition,
   SecurityTelemetrySourceKind,
 } from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import SigmaRuleParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
@@ -149,7 +150,13 @@ const RULE_EVENTS: Array<[string, NormalizedSecurityEvent]> = [
   [
     "Large transfer out of your network",
     buildLargeTransferEvent(
-      { ...FLOW, srcIp: "10.0.0.5", dstIp: "203.0.113.5", dstPort: 443, protocol: 6 },
+      {
+        ...FLOW,
+        srcIp: "10.0.0.5",
+        dstIp: "203.0.113.5",
+        dstPort: 443,
+        protocol: 6,
+      },
       WINDOW,
     )!,
   ],
@@ -323,10 +330,10 @@ describe("the rule library's rules for your OneUptime data", () => {
     );
 
     for (const entry of entries) {
-      expect([entry.title, entry.sigmaRuleYaml.includes("oneuptime.signal")]).toEqual([
+      expect([
         entry.title,
-        true,
-      ]);
+        entry.sigmaRuleYaml.includes("oneuptime.signal"),
+      ]).toEqual([entry.title, true]);
     }
   });
 
@@ -334,22 +341,36 @@ describe("the rule library's rules for your OneUptime data", () => {
     const productOf: (kind: SecurityTelemetrySourceKind) => string = (
       kind: SecurityTelemetrySourceKind,
     ): string => {
-      return SECURITY_TELEMETRY_SOURCES.find((source) => {
-        return source.kind === kind;
-      })!.productName;
+      return SECURITY_TELEMETRY_SOURCES.find(
+        (source: SecurityTelemetrySourceDefinition): boolean => {
+          return source.kind === kind;
+        },
+      )!.productName;
     };
 
     const pairs: Array<[DetectionRuleDataKind, SecurityTelemetrySourceKind]> = [
-      [DetectionRuleDataKind.OneUptimeTraces, SecurityTelemetrySourceKind.Traces],
-      [DetectionRuleDataKind.NetworkFlows, SecurityTelemetrySourceKind.NetworkFlows],
-      [DetectionRuleDataKind.OneUptimeAuditLog, SecurityTelemetrySourceKind.AuditLog],
-      [DetectionRuleDataKind.SessionReplays, SecurityTelemetrySourceKind.RumSessions],
+      [
+        DetectionRuleDataKind.OneUptimeTraces,
+        SecurityTelemetrySourceKind.Traces,
+      ],
+      [
+        DetectionRuleDataKind.NetworkFlows,
+        SecurityTelemetrySourceKind.NetworkFlows,
+      ],
+      [
+        DetectionRuleDataKind.OneUptimeAuditLog,
+        SecurityTelemetrySourceKind.AuditLog,
+      ],
+      [
+        DetectionRuleDataKind.SessionReplays,
+        SecurityTelemetrySourceKind.RumSessions,
+      ],
     ];
 
     for (const [dataKind, sourceKind] of pairs) {
-      expect(getDetectionRuleDataKindDefinition(dataKind)?.productNames).toEqual([
-        productOf(sourceKind),
-      ]);
+      expect(
+        getDetectionRuleDataKindDefinition(dataKind)?.productNames,
+      ).toEqual([productOf(sourceKind)]);
       expect(
         isDetectionRuleDataKindSeen(dataKind, {
           classNames: [],

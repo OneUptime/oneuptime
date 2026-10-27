@@ -51,22 +51,102 @@ const ALL_ACTIONS: Array<AuditLogAction> = Object.values(AuditLogAction);
 
 describe("which audit records are security signals", () => {
   test.each([
-    [AuditResourceType.ApiKey, AuditLogAction.Create, SecurityTelemetrySignal.ApiKeyCreated, OcsfSeverity.Low],
-    [AuditResourceType.ApiKey, AuditLogAction.Delete, SecurityTelemetrySignal.ApiKeyDeleted, OcsfSeverity.Informational],
-    [AuditResourceType.CustomRole, AuditLogAction.Create, SecurityTelemetrySignal.RoleChanged, OcsfSeverity.Medium],
-    [AuditResourceType.CustomRole, AuditLogAction.Update, SecurityTelemetrySignal.RoleChanged, OcsfSeverity.Medium],
-    [AuditResourceType.CustomRole, AuditLogAction.Delete, SecurityTelemetrySignal.RoleChanged, OcsfSeverity.Low],
-    [AuditResourceType.ApiKeyCustomRole, AuditLogAction.Create, SecurityTelemetrySignal.RoleChanged, OcsfSeverity.Medium],
-    [AuditResourceType.TeamCustomRole, AuditLogAction.Create, SecurityTelemetrySignal.RoleChanged, OcsfSeverity.Medium],
-    [AuditResourceType.Team, AuditLogAction.Create, SecurityTelemetrySignal.TeamChanged, OcsfSeverity.Low],
-    [AuditResourceType.Team, AuditLogAction.Delete, SecurityTelemetrySignal.TeamChanged, OcsfSeverity.Low],
-    [AuditResourceType.McpClientAuthorization, AuditLogAction.Create, SecurityTelemetrySignal.McpClientAuthorized, OcsfSeverity.Low],
-    [AuditResourceType.PacketCapture, AuditLogAction.Download, SecurityTelemetrySignal.PacketCaptureDownloaded, OcsfSeverity.Low],
-    [AuditResourceType.ProtectedEntity, AuditLogAction.Delete, SecurityTelemetrySignal.SecurityControlChanged, OcsfSeverity.Medium],
-    [AuditResourceType.ProtectedEntity, AuditLogAction.Update, SecurityTelemetrySignal.SecurityControlChanged, OcsfSeverity.Medium],
-    [AuditResourceType.AuditLogExport, AuditLogAction.Create, SecurityTelemetrySignal.SecurityControlChanged, OcsfSeverity.Medium],
-    [AuditResourceType.AuditLogExport, AuditLogAction.Delete, SecurityTelemetrySignal.SecurityControlChanged, OcsfSeverity.Medium],
-    [AuditResourceType.SecurityPlaybook, AuditLogAction.Delete, SecurityTelemetrySignal.SecurityControlChanged, OcsfSeverity.Medium],
+    [
+      AuditResourceType.ApiKey,
+      AuditLogAction.Create,
+      SecurityTelemetrySignal.ApiKeyCreated,
+      OcsfSeverity.Low,
+    ],
+    [
+      AuditResourceType.ApiKey,
+      AuditLogAction.Delete,
+      SecurityTelemetrySignal.ApiKeyDeleted,
+      OcsfSeverity.Informational,
+    ],
+    [
+      AuditResourceType.CustomRole,
+      AuditLogAction.Create,
+      SecurityTelemetrySignal.RoleChanged,
+      OcsfSeverity.Medium,
+    ],
+    [
+      AuditResourceType.CustomRole,
+      AuditLogAction.Update,
+      SecurityTelemetrySignal.RoleChanged,
+      OcsfSeverity.Medium,
+    ],
+    [
+      AuditResourceType.CustomRole,
+      AuditLogAction.Delete,
+      SecurityTelemetrySignal.RoleChanged,
+      OcsfSeverity.Low,
+    ],
+    [
+      AuditResourceType.ApiKeyCustomRole,
+      AuditLogAction.Create,
+      SecurityTelemetrySignal.RoleChanged,
+      OcsfSeverity.Medium,
+    ],
+    [
+      AuditResourceType.TeamCustomRole,
+      AuditLogAction.Create,
+      SecurityTelemetrySignal.RoleChanged,
+      OcsfSeverity.Medium,
+    ],
+    [
+      AuditResourceType.Team,
+      AuditLogAction.Create,
+      SecurityTelemetrySignal.TeamChanged,
+      OcsfSeverity.Low,
+    ],
+    [
+      AuditResourceType.Team,
+      AuditLogAction.Delete,
+      SecurityTelemetrySignal.TeamChanged,
+      OcsfSeverity.Low,
+    ],
+    [
+      AuditResourceType.McpClientAuthorization,
+      AuditLogAction.Create,
+      SecurityTelemetrySignal.McpClientAuthorized,
+      OcsfSeverity.Low,
+    ],
+    [
+      AuditResourceType.PacketCapture,
+      AuditLogAction.Download,
+      SecurityTelemetrySignal.PacketCaptureDownloaded,
+      OcsfSeverity.Low,
+    ],
+    [
+      AuditResourceType.ProtectedEntity,
+      AuditLogAction.Delete,
+      SecurityTelemetrySignal.SecurityControlChanged,
+      OcsfSeverity.Medium,
+    ],
+    [
+      AuditResourceType.ProtectedEntity,
+      AuditLogAction.Update,
+      SecurityTelemetrySignal.SecurityControlChanged,
+      OcsfSeverity.Medium,
+    ],
+    [
+      AuditResourceType.AuditLogExport,
+      AuditLogAction.Create,
+      SecurityTelemetrySignal.SecurityControlChanged,
+      OcsfSeverity.Medium,
+    ],
+    [
+      AuditResourceType.AuditLogExport,
+      AuditLogAction.Delete,
+      SecurityTelemetrySignal.SecurityControlChanged,
+      OcsfSeverity.Medium,
+    ],
+    [
+      AuditResourceType.SecurityPlaybook,
+      AuditLogAction.Delete,
+      SecurityTelemetrySignal.SecurityControlChanged,
+      OcsfSeverity.Medium,
+    ],
   ])(
     "%s %s",
     (
@@ -136,27 +216,50 @@ describe("an audit record's event", () => {
 
   test.each([
     [
-      record({ resourceType: AuditResourceType.CustomRole, action: AuditLogAction.Update, resourceName: "Auditors" }),
+      record({
+        resourceType: AuditResourceType.CustomRole,
+        action: AuditLogAction.Update,
+        resourceName: "Auditors",
+      }),
       'alice@example.com changed the custom role "Auditors"',
     ],
     [
-      record({ resourceType: AuditResourceType.ApiKeyCustomRole, resourceName: "Admins" }),
+      record({
+        resourceType: AuditResourceType.ApiKeyCustomRole,
+        resourceName: "Admins",
+      }),
       'alice@example.com gave an API key a custom role "Admins"',
     ],
     [
-      record({ resourceType: AuditResourceType.TeamCustomRole, action: AuditLogAction.Delete, resourceName: "" }),
+      record({
+        resourceType: AuditResourceType.TeamCustomRole,
+        action: AuditLogAction.Delete,
+        resourceName: "",
+      }),
       "alice@example.com took a custom role away from a team",
     ],
     [
-      record({ resourceType: AuditResourceType.McpClientAuthorization, resourceName: "grant-1", mcpClientName: "Claude Desktop" }),
+      record({
+        resourceType: AuditResourceType.McpClientAuthorization,
+        resourceName: "grant-1",
+        mcpClientName: "Claude Desktop",
+      }),
       'alice@example.com authorized the MCP client "Claude Desktop"',
     ],
     [
-      record({ resourceType: AuditResourceType.PacketCapture, action: AuditLogAction.Download, resourceName: "edge-1 capture" }),
+      record({
+        resourceType: AuditResourceType.PacketCapture,
+        action: AuditLogAction.Download,
+        resourceName: "edge-1 capture",
+      }),
       'alice@example.com downloaded the packet capture "edge-1 capture"',
     ],
     [
-      record({ resourceType: AuditResourceType.AuditLogExport, action: AuditLogAction.Delete, resourceName: "S3 export" }),
+      record({
+        resourceType: AuditResourceType.AuditLogExport,
+        action: AuditLogAction.Delete,
+        resourceName: "S3 export",
+      }),
       'alice@example.com deleted the audit log export "S3 export"',
     ],
   ])("%#: %s", (input: AuditScanRecord, sentence: string) => {

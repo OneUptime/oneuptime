@@ -585,7 +585,8 @@ export default class SecuritySetup {
 
       try {
         if (!source) {
-          const created: SecurityTelemetrySource = new SecurityTelemetrySource();
+          const created: SecurityTelemetrySource =
+            new SecurityTelemetrySource();
           created.projectId = projectId;
           created.kind = kind;
           created.isEnabled = true;

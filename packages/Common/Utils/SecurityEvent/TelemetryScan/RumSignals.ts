@@ -93,8 +93,11 @@ export function findClosestCountryChange(
       return a.startTime.getTime() - b.startTime.getTime();
     });
 
-  let closest: { from: RumScanSession; to: RumScanSession; minutes: number } | null =
-    null;
+  let closest: {
+    from: RumScanSession;
+    to: RumScanSession;
+    minutes: number;
+  } | null = null;
 
   for (let index: number = 1; index < ordered.length; index++) {
     const previous: RumScanSession = ordered[index - 1]!;
