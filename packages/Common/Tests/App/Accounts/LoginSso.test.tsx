@@ -292,7 +292,7 @@ const submitEmail: (email: string) => Promise<void> = async (
   await user.type(await screen.findByTestId("email"), email);
 
   await act(async () => {
-    await user.click(screen.getByTestId("Login with SSO"));
+    await user.click(screen.getByTestId("Sign in with SSO"));
   });
 };
 
@@ -633,7 +633,7 @@ describe("Accounts single sign-on, in every edition", () => {
       });
 
       await act(async () => {
-        await user.click(screen.getByTestId("Login with SSO"));
+        await user.click(screen.getByTestId("Sign in with SSO"));
       });
 
       expect(

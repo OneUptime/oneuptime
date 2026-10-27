@@ -197,7 +197,7 @@ test.describe("Passkey account lifecycle", () => {
     async (): Promise<void> => {
       const passkeyOption: Locator = page.getByTestId("passkey-login");
       const email: Box = await boxOf(page.getByTestId("email"));
-      const signIn: Box = await boxOf(page.getByTestId("Login"));
+      const signIn: Box = await boxOf(page.getByTestId("Sign in"));
       const divider: Box = await boxOf(
         page.getByTestId("sign-in-options-divider"),
       );
@@ -223,7 +223,7 @@ test.describe("Passkey account lifecycle", () => {
       };
       expect(await lookOf(passkeyOption)).toEqual(outlined);
       expect(await lookOf(ssoOption())).toEqual(outlined);
-      expect((await lookOf(page.getByTestId("Login"))).background).not.toBe(
+      expect((await lookOf(page.getByTestId("Sign in"))).background).not.toBe(
         outlined.background,
       );
 
@@ -482,7 +482,7 @@ test.describe("Passkey account lifecycle", () => {
     await expectFormFirstThenOtherWaysIn();
     await saveScreenshot("passkey-login-desktop", test.info());
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByTestId("Login")).toBeInViewport();
+    await expect(page.getByTestId("Sign in")).toBeInViewport();
     await expect(page.getByTestId("passkey-login")).toBeInViewport();
     await expectFormFirstThenOtherWaysIn();
     await expectNoHorizontalScroll(page);
@@ -629,7 +629,7 @@ test.describe("Passkey account lifecycle", () => {
         .locator("fieldset")
         .filter({ has: page.getByTestId("email") });
       await expect(page.getByTestId("email")).toBeDisabled();
-      await expect(page.getByTestId("Login")).toBeDisabled();
+      await expect(page.getByTestId("Sign in")).toBeDisabled();
       await expect(passwordForm).toHaveCSS("opacity", "0.5");
       await expect(passwordForm).toHaveCSS("pointer-events", "none");
       // The "or" divider and single sign-on pause with the form.

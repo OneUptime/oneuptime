@@ -264,7 +264,7 @@ describe("The other ways to sign in", () => {
     test("under Login: an 'or' divider, then Sign in with SSO and Sign in with a passkey, in that order", async () => {
       await renderLogin();
 
-      const signIn: HTMLElement = screen.getByTestId("Login");
+      const signIn: HTMLElement = screen.getByTestId("Sign in");
       const divider: HTMLElement = screen.getByTestId(
         "sign-in-options-divider",
       );
@@ -308,7 +308,7 @@ describe("The other ways to sign in", () => {
         return FILLED_BUTTON_CLASS.test(control.className);
       });
 
-      expect(filled).toEqual([screen.getByTestId("Login")]);
+      expect(filled).toEqual([screen.getByTestId("Sign in")]);
       for (const option of otherWaysIn()) {
         expect(option).toHaveClass(...optionClasses("ready"));
         expect(option).toHaveClass("w-full", "border", "bg-white");
@@ -390,7 +390,7 @@ describe("The other ways to sign in", () => {
         }
       }
 
-      const login: number = reached.indexOf(screen.getByTestId("Login"));
+      const login: number = reached.indexOf(screen.getByTestId("Sign in"));
       const sso: number = reached.indexOf(ssoOption());
       const passkey: number = reached.indexOf(passkeyOption());
 
@@ -568,7 +568,7 @@ describe("The other ways to sign in", () => {
       await user.type(screen.getByTestId("email"), "ada@example.com");
       await user.type(screen.getByTestId("password"), "correct-password");
       await act(async () => {
-        await user.click(screen.getByTestId("Login"));
+        await user.click(screen.getByTestId("Sign in"));
       });
 
       expect(passkeyOption()).toBeDisabled();
@@ -693,7 +693,7 @@ describe("The other ways to sign in", () => {
       await user.type(screen.getByTestId("email"), "ada@example.com");
       await user.type(screen.getByTestId("password"), "correct-password");
       await act(async () => {
-        await user.click(screen.getByTestId("Login"));
+        await user.click(screen.getByTestId("Sign in"));
       });
 
       expect(await screen.findByText("Phone")).toBeInTheDocument();
@@ -706,10 +706,10 @@ describe("The other ways to sign in", () => {
   });
 
   describe("on the single sign-on page", () => {
-    test("under 'Login with SSO': 'or', then Sign in with password, a link back to the password form", async () => {
+    test("under 'Sign in with SSO': 'or', then Sign in with password, a link back to the password form", async () => {
       await renderSso();
 
-      const submit: HTMLElement = screen.getByTestId("Login with SSO");
+      const submit: HTMLElement = screen.getByTestId("Sign in with SSO");
       const divider: HTMLElement = screen.getByTestId(
         "sign-in-options-divider",
       );
@@ -741,7 +741,7 @@ describe("The other ways to sign in", () => {
         return FILLED_BUTTON_CLASS.test(control.className);
       });
 
-      expect(filled).toEqual([screen.getByTestId("Login with SSO")]);
+      expect(filled).toEqual([screen.getByTestId("Sign in with SSO")]);
       expect(screen.getByTestId("password-login")).toHaveClass(
         "w-full",
         "bg-white",

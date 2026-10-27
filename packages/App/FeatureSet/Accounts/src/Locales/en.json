@@ -34,7 +34,7 @@
   "login": {
     "title": "Sign in to your account",
     "subtitle": "Use your password, your organization’s SSO, or a passkey.",
-    "submitButton": "Login",
+    "submitButton": "Sign in",
     "passkey": {
       "signIn": "Sign in with a passkey",
       "inProgress": "Finish or cancel passkey sign-in before using your password.",
@@ -108,7 +108,7 @@
     "noCreditCard": "No credit card required.",
     "submitButton": "Sign Up",
     "haveAccountPrompt": "Already have an account?",
-    "loginLink": "Log in.",
+    "loginLink": "Sign in.",
     "notifySelfHosted": "Notify me about security patches and new releases",
     "checkEmailTitle": "Check your email",
     "checkEmailMessage": "If this email address has an account waiting to be set up, we've sent it a link to finish registering. Please do not forget to check spam.",
@@ -133,25 +133,25 @@
     "submitButton": "Send Password Reset Link",
     "returnToSignIn": "Return to Sign in.",
     "rememberPasswordPrompt": "Remember your password?",
-    "loginLink": "Login."
+    "loginLink": "Sign in."
   },
   "resetPassword": {
     "title": "Reset your password",
     "subtitle": "Please enter your new password and we will have it updated.",
-    "successMessage": "Your password has been updated. Please log in.",
+    "successMessage": "Your password has been updated. Please sign in.",
     "submitButton": "Reset Password",
     "knowPasswordPrompt": "Know your password?",
-    "loginLink": "Log in."
+    "loginLink": "Sign in."
   },
   "sso": {
-    "title": "Login with SSO",
-    "subtitle": "Login with your SSO provider to access your account.",
-    "submitButton": "Login with SSO",
+    "title": "Sign in with SSO",
+    "subtitle": "Sign in with your SSO provider to access your account.",
+    "submitButton": "Sign in with SSO",
     "signInWithPassword": "Sign in with password",
     "noAccountPrompt": "Don't have an account?",
     "registerLink": "Register.",
     "selectProjectTitle": "Select Project",
-    "selectProjectSubtitle": "Select the project you want to login to.",
+    "selectProjectSubtitle": "Select the project you want to sign in to.",
     "noConfigForEmail": "No SSO configuration found for the email: {{email}}",
     "emailRequired": "Email is required to perform this action",
     "defaultProjectName": "Project",
@@ -160,10 +160,10 @@
   },
   "verifyEmail": {
     "successTitle": "Your email is verified.",
-    "successDescription": "Thank you for verifying your email. You can now log in to OneUptime.",
+    "successDescription": "Thank you for verifying your email. You can now sign in to OneUptime.",
     "errorTitle": "Sorry, something went wrong!",
     "returnToSignIn": "Return to sign in?",
-    "loginLink": "Login.",
+    "loginLink": "Sign in.",
     "continueToSignIn": "Continue to sign in",
     "linkInvalidTitle": "This verification link is no longer valid",
     "requestNewLinkDescription": "If your link has expired or stopped working, we can email you a new one.",

@@ -14,14 +14,14 @@ Single sign-on (SSO) lets the people in your project sign in to OneUptime with y
 
 ## How SAML sign-in works
 
-A SAML provider connects one project to one application in your identity provider. Someone signing in picks the project on OneUptime's **Login with SSO** page, signs in at your IdP, and comes back signed in.
+A SAML provider connects one project to one application in your identity provider. Someone signing in picks the project on OneUptime's **Sign in with SSO** page, signs in at your IdP, and comes back signed in.
 
 ```mermaid title="SAML sign-in, step by step"
 sequenceDiagram
     actor U as Person
     participant O as OneUptime
     participant I as Identity provider
-    U->>O: Login with SSO,<br/>pick the project
+    U->>O: Sign in with SSO,<br/>pick the project
     O->>I: SAML request, to<br/>the Sign On URL
     I->>U: Sign-in page
     U->>I: Credentials and MFA
@@ -185,7 +185,7 @@ Microsoft Entra ID (formerly Azure AD / Active Directory) is Microsoft's cloud i
    In OneUptime, edit the provider and turn **Enabled** on, then open the link in the **Test Single Sign On (SSO)** card and pick the provider. You should be sent to the Microsoft sign-in page and back to OneUptime.
 :::
 @tab Okta
-Okta is a widely used identity platform with SAML SSO. You need an Okta organization with admin access, and admin access to OneUptime. On OneUptime Cloud, if the Okta Integration Network lists OneUptime, add it from there: it signs people in from OneUptime's **Login with SSO** page and from their Okta dashboard, gives them an account at their first sign-in, and asks for two IDs instead of OneUptime's URLs.
+Okta is a widely used identity platform with SAML SSO. You need an Okta organization with admin access, and admin access to OneUptime. On OneUptime Cloud, if the Okta Integration Network lists OneUptime, add it from there: it signs people in from OneUptime's **Sign in with SSO** page and from their Okta dashboard, gives them an account at their first sign-in, and asks for two IDs instead of OneUptime's URLs.
 
 :::steps
 1. **Add OneUptime to Okta**
