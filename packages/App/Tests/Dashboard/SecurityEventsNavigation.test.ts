@@ -167,7 +167,10 @@ describe("the Security Events menu", () => {
         ],
       ],
       // Who is riskiest, from everything found about each, beside who is named.
-      ["Events", ["Events", "Entities", "Entity Risk", "Correlate"]],
+      [
+        "Events",
+        ["Events", "Campaigns", "Entities", "Entity Risk", "Correlate"],
+      ],
       [
         "Detections",
         ["Detection Rules", "Rule Library", "Threat Intel", "ATT&CK Coverage"],
@@ -199,6 +202,7 @@ describe("the Security Events menu", () => {
       ["Closed Cases", "SECURITY_CASES_CLOSED"],
       ["All Cases", "SECURITY_CASES_ALL"],
       ["Events", "SECURITY_EVENTS"],
+      ["Campaigns", "SECURITY_EVENTS_CAMPAIGNS"],
       ["Entities", "SECURITY_EVENTS_ENTITIES"],
       ["Entity Risk", "SECURITY_EVENTS_ENTITY_RISK"],
       ["Correlate", "SECURITY_EVENTS_CORRELATE"],
@@ -572,6 +576,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Security Cases", "Closed Cases"],
       ["Security Events", "Security Cases", "All Cases"],
       ["Security Events", "Events"],
+      ["Security Events", "Events", "Campaigns"],
       ["Security Events", "Events", "Entities"],
       ["Security Events", "Events", "Entity Risk"],
       ["Security Events", "Events", "Correlate"],

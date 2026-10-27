@@ -3,6 +3,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SecurityEventConnectionsTable from "../../Components/SecurityEvents/SecurityEventConnectionsTable";
 import SecurityEventDestinationsTable from "../../Components/SecurityEvents/SecurityEventDestinationsTable";
 import SecurityLogsSourceCard from "../../Components/SecurityEvents/SecurityLogsSourceCard";
+import SecurityTelemetrySourcesCard from "../../Components/SecurityEvents/SecurityTelemetrySourcesCard";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -12,6 +13,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  *   Your logs             the logs the project already sends, read for
  *                         sign-ins, sudo, Kubernetes audit, CloudTrail and
  *                         web attacks - one switch
+ *   Your OneUptime data   the project's traces, network flows, audit log
+ *                         and session replays - one switch each
  *   Your security tools   the security products OneUptime imports from
  *   Send to your SIEM     the SIEMs OneUptime sends what it finds to
  *
@@ -38,6 +41,7 @@ const SecurityEventsConnectionsPage: FunctionComponent<PageComponentProps> = (
   return (
     <div className="space-y-6">
       <SecurityLogsSourceCard />
+      <SecurityTelemetrySourcesCard />
       <SecurityEventConnectionsTable />
       <SecurityEventDestinationsTable />
     </div>

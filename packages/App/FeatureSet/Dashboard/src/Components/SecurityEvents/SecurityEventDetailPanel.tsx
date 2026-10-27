@@ -38,6 +38,12 @@ import {
 } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import SecurityEventWhatHappenedNext from "./SecurityEventWhatHappenedNext";
+import SecurityEventSourceSection from "./SecurityEventSourceSection";
+import useSecurityEventRequestStory, {
+  SecurityEventRequestStory,
+} from "./useSecurityEventRequestStory";
+import { DETAILS_TITLE } from "./SecurityEventRequestCopy";
 
 export const SECURITY_EVENT_DETAIL_PANEL_TEST_ID: string =
   "security-event-detail-panel";
@@ -191,6 +197,13 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
   const [isJsonWrapped, setIsJsonWrapped] = useState<boolean>(true);
   const event: SecurityEvent = props.securityEvent;
 
+  /*
+   * What happened to the request the event happened in, and where it came
+   * from: the two questions a responder asks first, so they lead the tab.
+   */
+  const requestStory: SecurityEventRequestStory =
+    useSecurityEventRequestStory(event);
+
   const overviewFields: Array<SecurityEventDetailField> = useMemo(() => {
     return buildSecurityEventOverviewFields(event);
   }, [event]);
@@ -257,6 +270,18 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
       <div className="flex justify-end">
         <OpenCaseFromEventButton securityEvent={event} />
       </div>
+      <SecurityEventWhatHappenedNext
+        facts={requestStory.facts}
+        hasTrace={requestStory.hasTrace}
+        isReadingTrace={requestStory.isReadingTrace}
+      />
+      <SecurityEventSourceSection
+        securityEvent={event}
+        facts={requestStory.facts}
+      />
+      <h3 className="-mb-2 text-sm font-semibold text-gray-900">
+        {translator.translateText(DETAILS_TITLE)}
+      </h3>
       <dl className="divide-y divide-gray-100 rounded-md border border-gray-200">
         {time && (
           <FieldRow

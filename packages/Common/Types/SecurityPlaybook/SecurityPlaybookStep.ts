@@ -138,6 +138,23 @@ export interface RunWorkflowConfig {
   workflowId: string;
 }
 
+export interface RunRunbookConfig {
+  runbookId: string;
+}
+
+/*
+ * Posted as written: nothing of the case is put into it, so nothing about
+ * an investigation reaches a public page unless somebody wrote it there.
+ */
+export interface PostStatusPageAnnouncementConfig {
+  statusPageIds: Array<string>;
+  announcementTitle: string;
+  // Markdown.
+  announcementDescription: string;
+  // Email, SMS and the rest to the pages' subscribers; off unless asked for.
+  notifySubscribers?: boolean | undefined;
+}
+
 // Who may let a containment step run without approval: a Security Admin, or above.
 export const TURN_OFF_CONTAINMENT_APPROVAL_PERMISSIONS: ReadonlyArray<Permission> =
   [Permission.ProjectOwner, Permission.ProjectAdmin, Permission.SecurityAdmin];
@@ -147,6 +164,8 @@ export const SECURITY_PLAYBOOK_NOTE_MAX_LENGTH: number = 10000;
 export const ENTITY_ACTIVITY_LOOKBACK_MIN_HOURS: number = 1;
 export const ENTITY_ACTIVITY_LOOKBACK_MAX_HOURS: number = 720;
 export const ENTITY_ACTIVITY_LOOKBACK_DEFAULT_HOURS: number = 24;
+// A status page announcement's title is a short text column.
+export const ANNOUNCEMENT_TITLE_MAX_LENGTH: number = 100;
 
 // An http(s) URL with a host: what a webhook step can post to.
 const WEBHOOK_URL: RegExp = /^https?:\/\/[^\s/?#]+[^\s]*$/i;
@@ -458,6 +477,66 @@ export function normalizeSecurityPlaybookStepConfig(
           "the workflow to run",
         ),
       };
+
+    case SecurityPlaybookActionType.RunRunbook:
+      return {
+        runbookId: requireId(rawConfig, "runbookId", label, "the runbook to run"),
+      };
+
+    case SecurityPlaybookActionType.PostStatusPageAnnouncement: {
+      const statusPageIds: Array<string> = readIdList(
+        rawConfig,
+        "statusPageIds",
+      );
+      const announcementTitle: string = readText(
+        rawConfig,
+        "announcementTitle",
+      );
+      const announcementDescription: string = readText(
+        rawConfig,
+        "announcementDescription",
+      );
+
+      if (statusPageIds.length === 0) {
+        throw new BadDataException(
+          `${label}: choose the status pages to post on.`,
+        );
+      }
+
+      if (!announcementTitle) {
+        throw new BadDataException(`${label}: write the announcement's title.`);
+      }
+
+      if (announcementTitle.length > ANNOUNCEMENT_TITLE_MAX_LENGTH) {
+        throw new BadDataException(
+          `${label}: the title is longer than ${ANNOUNCEMENT_TITLE_MAX_LENGTH} characters.`,
+        );
+      }
+
+      if (!announcementDescription) {
+        throw new BadDataException(
+          `${label}: write what the announcement says.`,
+        );
+      }
+
+      if (announcementDescription.length > SECURITY_PLAYBOOK_NOTE_MAX_LENGTH) {
+        throw new BadDataException(
+          `${label}: the announcement is longer than ${SECURITY_PLAYBOOK_NOTE_MAX_LENGTH} characters.`,
+        );
+      }
+
+      return {
+        statusPageIds,
+        announcementTitle,
+        announcementDescription,
+        notifySubscribers: rawConfig["notifySubscribers"] === true,
+      };
+    }
+
+    // Nothing to set: each reads what it acts on from the case.
+    case SecurityPlaybookActionType.PreserveEvidence:
+    case SecurityPlaybookActionType.FixWithAi:
+      return {};
   }
 }
 

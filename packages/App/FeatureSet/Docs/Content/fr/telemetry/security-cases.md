@@ -88,7 +88,7 @@ Un dossier a son propre menu latéral, comme un incident, et chaque partie du do
 | Section du menu latéral | Pages |
 | --- | --- |
 | **Vue d'ensemble** | **Vue d'ensemble**, **Chronologie** |
-| **Investigation** | **Détections**, **Entités**, **Signaux connectés**, **Playbooks** |
+| **Investigation** | **Déroulé**, **Détections**, **Entités**, **Signaux connectés**, **Playbooks** |
 | **Notes** | **Notes privées** |
 | **Avancé** | **Journaux d'audit**, **Supprimer le dossier**, repliés jusqu'à ce que vous cliquiez sur **Avancé** |
 
@@ -96,8 +96,10 @@ Chaque page garde en haut l'en-tête du dossier : son numéro, sa priorité, son
 
 - **Vue d'ensemble** : la description, les libellés et les étapes de statut du dossier, qui l'a en charge et ce qui l'a ouvert, et ses chiffres : combien de détections il compte, depuis combien de temps il est ouvert, et le temps qu'il a fallu pour le prendre en compte et pour le contenir.
 - **OneUptime AI**, sur la **Vue d'ensemble** : ce que OneUptime AI a tiré du dossier, la priorité et le playbook qu'il propose, et les preuves derrière. Voir [OneUptime AI dans la sécurité](/docs/telemetry/security-ai).
+- **Impact**, sur la **Vue d'ensemble** : ce que le dossier met en danger : si OneUptime a vu ses ressources atteintes depuis Internet, à qui elles appartiennent et ce qui a changé en dernier sur elles. Dépliez-le pour voir ce que chaque ressource appelle et ce qui l'appelle, les moniteurs et pages de statut qui la surveillent, et les machines avec lesquelles les adresses du dossier ont communiqué.
 - **MITRE ATT&CK**, sur la **Vue d'ensemble** : les tactiques et techniques auxquelles se rattachent ses détections, chacune liée à sa page sur attack.mitre.org.
 - **Chronologie** : tout ce qui est arrivé au dossier, avec son auteur.
+- **Déroulé** : ce qui s'est passé, dans l'ordre, dans tout OneUptime : chaque détection et les événements de sécurité qui la sous-tendent, jusqu'où leurs requêtes sont allées, les exceptions qu'elles ont levées, les changements sur les ressources que le dossier nomme, les incidents et alertes déclenchés sur elles, et ce que l'équipe a fait. Les nombreuses sondes d'un scanner tiennent sur une ligne, et chaque ligne ouvre ce qu'elle nomme, comme la trace de la requête ou l'exception.
 - **Détections** : ce qui s'est déclenché pour ouvrir le dossier ou s'y ajouter, combien de fois, et le dernier événement correspondant.
 - **Entités** : les utilisateurs, hôtes et adresses sur lesquels porte le dossier, avec leur activité dans l'ensemble de vos événements de sécurité des 7 derniers jours. Chacun s'ouvre dans **Corréler**.
 - **Signaux connectés** : les hôtes, clusters, services et membres que le dossier nomme, tels que OneUptime les connaît, et ce qui se passait sur chacun autour de ses détections : leurs journaux, traces et métriques, ce qui est ouvert sur eux et ce qui a changé. Voir [Signaux connectés](/docs/telemetry/security-connected-signals).
@@ -231,9 +233,11 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Dossier | Add labels | Applique des étiquettes au dossier |
 | Investigation | Check entities against threat intel | Recherche chaque entité dans votre renseignement sur les menaces, et peut relever la priorité en cas de correspondance |
 | Investigation | Look up entity activity | Compte les événements de sécurité de chaque entité sur une fenêtre récente, et consigne le résultat sur le dossier |
+| Investigation | Preserve the evidence | Conserve les enregistrements de session des requêtes derrière le dossier, et consigne leurs traces et exceptions sur le dossier |
 | Notification | Email people | Envoie par e-mail à des utilisateurs et des équipes un résumé du dossier, avec un lien vers celui-ci |
 | Notification | Post to Slack | Publie un résumé du dossier dans un canal Slack |
 | Notification | Post to Microsoft Teams | Publie un résumé du dossier dans un canal Microsoft Teams |
+| Notification | Post a status page announcement | Publie une annonce que vous avez rédigée sur les pages de statut de votre choix |
 | Escalade | Page on-call | Exécute une politique d'astreinte |
 | Escalade | Déclarer un incident | Ouvre un incident OneUptime lié au dossier |
 | Confinement | Suspend the user in Okta | Suspend dans Okta l'utilisateur sur lequel porte le dossier |
@@ -245,12 +249,23 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Confinement | Release the device in Microsoft Defender | Libère de l'isolement dans Microsoft Defender for Endpoint l'hôte sur lequel porte le dossier |
 | Automatisation | Send a webhook | Envoie le dossier en JSON à une URL |
 | Automatisation | Run a workflow | Lance un flux de travail OneUptime avec le dossier en entrée |
+| Automatisation | Run a runbook | Lance l'un de vos runbooks OneUptime avec le dossier en entrée |
+| Automatisation | Fix the code with AI | Demande à OneUptime AI une pull request qui corrige les exceptions levées par les requêtes du dossier |
 
 Un playbook compte au plus 25 étapes. Elles s'exécutent dans l'ordre, chacune une fois la précédente terminée. Chaque étape peut aussi :
 
-- **Approbation requise** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les quatre étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Security Admin désactive ce réglage.
+- **Approbation requise** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les quatre étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Security Admin désactive ce réglage. **Run a runbook** et **Post a status page announcement** commencent avec ce réglage activé, car l'une exécute des commandes sur vos systèmes et l'autre s'adresse à vos clients ; la personne qui ajoute l'étape peut le désactiver.
 - **Seulement si le renseignement sur les menaces correspond** : sauter l'étape, sauf si une étape **Vérifier les entités dans le renseignement sur les menaces** antérieure de la même exécution a trouvé un indicateur connu.
 - **Continuer en cas d'échec** : exécuter l'étape suivante même si celle-ci échoue. Sans ce réglage, une étape en échec arrête l'exécution.
+
+### Répondre avec OneUptime
+
+Quatre étapes agissent par le reste de OneUptime plutôt que par un produit connecté :
+
+- **Run a runbook** lance l'un de vos [runbooks](/docs/runbooks/index) avec le dossier en entrée, qu'une étape Bash lit sous forme de variables d'environnement (voir [Appeler le webhook](/docs/runbooks/triggers#appeler-le-webhook)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` et `ONEUPTIME_INPUT_HOST` sont l'adresse, l'utilisateur et l'hôte sur lesquels porte le dossier, choisis selon la même règle qu'une étape de confinement, et vides lorsqu'il n'en concerne aucun. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` et `ONEUPTIME_INPUT_HOSTS` listent en JSON tous ceux que le dossier nomme, et `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` et `ONEUPTIME_INPUT_CASE_URL` indiquent de quel dossier il s'agit. Un utilisateur ou un hôte protégé n'en fait jamais partie. L'exécution du runbook indique qu'elle a été lancée par **Security playbook**, pour le dossier.
+- **Preserve the evidence** conserve les enregistrements de session des requêtes derrière le dossier au-delà de leur rétention, et écrit sur le dossier une note qui renvoie à la trace de chaque requête, à chaque enregistrement et à chaque exception. Les journaux et les traces ne peuvent pas être conservés plus longtemps que le projet ne garde la télémétrie : exportez donc avant ce dont vous avez besoin.
+- **Post a status page announcement** publie ce que vous avez écrit, tel que vous l'avez écrit, sur les pages de statut de votre choix. Rien du dossier n'y est ajouté. Leurs abonnés ne sont prévenus que si **Notifier les abonnés** est activé.
+- **Fix the code with AI** demande à OneUptime AI, pour chaque exception levée par les requêtes du dossier, jusqu'à trois, une pull request qui la corrige. L'étape nécessite OneUptime AI activé, un dépôt contenant le code connecté via la GitHub App, et un runner. Sans eux, l'étape est ignorée et indique ce qui manque.
 
 ### Confinement
 

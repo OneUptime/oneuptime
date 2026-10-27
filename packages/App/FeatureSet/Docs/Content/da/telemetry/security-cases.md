@@ -88,7 +88,7 @@ En sag har sin egen sidemenu, ligesom en hændelse, og hver del af sagen er en s
 | Afsnit i sidemenuen | Sider |
 | --- | --- |
 | **Oversigt** | **Oversigt**, **Tidslinje** |
-| **Undersøgelse** | **Detektioner**, **Entiteter**, **Forbundne signaler**, **Playbooks** |
+| **Undersøgelse** | **Forløb**, **Detektioner**, **Entiteter**, **Forbundne signaler**, **Playbooks** |
 | **Noter** | **Private noter** |
 | **Avanceret** | **Auditlogs**, **Slet sag**, foldet sammen, indtil du klikker på **Avanceret** |
 
@@ -96,8 +96,10 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 
 - **Oversigt**: sagens beskrivelse, etiketter og statustrin, hvem der har den, og hvad der åbnede den, og dens tal: hvor mange detektioner den har, hvor længe den har været åben, og hvor lang tid det tog at kvittere for den og inddæmme den.
 - **OneUptime AI**, på **Oversigt**: hvad OneUptime AI fik ud af sagen, den prioritet og playbook, den foreslår, og beviserne bag. Se [OneUptime AI i sikkerhed](/docs/telemetry/security-ai).
+- **Påvirkning**, på **Oversigt**: hvad sagen sætter på spil: om OneUptime har set dens poster blive nået fra internettet, hvem der ejer dem, og hvad der sidst blev ændret på dem. Fold den ud for at se, hvad hver post kalder, og hvad der kalder den, de monitorer og statussider, der holder øje med den, og de maskiner, sagens adresser talte med.
 - **MITRE ATT&CK**, på **Oversigt**: de taktikker og teknikker, som sagens detektioner knyttes til, hver med et link til sin side på attack.mitre.org.
 - **Tidslinje**: alt, hvad der skete med sagen, med hvem der gjorde det.
+- **Forløb**: hvad der skete, i rækkefølge, på tværs af OneUptime: hver detektion og sikkerhedshændelserne bag den, hvor langt deres forespørgsler nåede, de undtagelser, de udløste, ændringerne på de poster, sagen nævner, de hændelser og alarmer, der opstod på dem, og hvad teamet gjorde. En scanners mange forsøg er én linje, og hver linje åbner det, den nævner, for eksempel forespørgslens trace eller undtagelsen.
 - **Detektioner**: det, der blev udløst og åbnede sagen eller blev føjet til den, hvor ofte, og den seneste matchende begivenhed.
 - **Entiteter**: de brugere, værter og adresser, sagen handler om, med deres aktivitet på tværs af alle dine sikkerhedsbegivenheder de seneste 7 dage. Hver af dem åbnes i **Korrelér**.
 - **Forbundne signaler**: de værter, klynger, tjenester og medlemmer, sagen nævner, som OneUptime kender dem, og hvad der skete på hver af dem omkring sagens detektioner: deres protokoller, spor og metrikker, hvad der er åbent på dem, og hvad der ændrede sig. Se [Forbundne signaler](/docs/telemetry/security-connected-signals).
@@ -231,9 +233,11 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Case | Add labels | Mærker sagen med etiketter |
 | Investigate | Check entities against threat intel | Slår hver entitet op i din trusselsintelligens og kan hæve prioriteten ved et match |
 | Investigate | Look up entity activity | Tæller hver entitets sikkerhedsbegivenheder over et nyligt tidsvindue og noterer det på sagen |
+| Investigate | Preserve the evidence | Gemmer sessionsoptagelserne af anmodningerne bag sagen og noterer deres traces og undtagelser på sagen |
 | Notify | Email people | Sender brugere og teams en opsummering af sagen på e-mail med et link til den |
 | Notify | Post to Slack | Slår en opsummering af sagen op i en Slack-kanal |
 | Notify | Post to Microsoft Teams | Slår en opsummering af sagen op i en Microsoft Teams-kanal |
+| Notify | Post a status page announcement | Slår en meddelelse, du har skrevet, op på de statussider, du vælger |
 | Escalate | Page on-call | Kører en vagtpolitik |
 | Escalate | Declare an incident | Åbner en OneUptime-hændelse, der er knyttet til sagen |
 | Contain | Suspend the user in Okta | Suspenderer den bruger, sagen handler om, i Okta |
@@ -245,12 +249,23 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Contain | Release the device in Microsoft Defender | Frigiver den vært, sagen handler om, fra isoleringen i Microsoft Defender for Endpoint |
 | Automate | Send a webhook | Sender sagen som JSON til en URL |
 | Automate | Run a workflow | Starter et OneUptime-workflow med sagen som input |
+| Automate | Run a runbook | Starter en af dine OneUptime-runbooks med sagen som input |
+| Automate | Fix the code with AI | Beder OneUptime AI om en pull request, der retter de undtagelser, sagens anmodninger udløste |
 
 En playbook har højst 25 trin. De kører i rækkefølge, hvert trin, når det foregående er færdigt. Hvert trin kan også:
 
-- **Kræver godkendelse**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De fire trin, der lukker nogen ude, stopper altid kørslen, medmindre en Security Admin slår det fra.
+- **Kræver godkendelse**: stoppe kørslen før trinnet, indtil nogen godkender det på sagen. De fire trin, der lukker nogen ude, stopper altid kørslen, medmindre en Security Admin slår det fra. **Run a runbook** og **Post a status page announcement** starter med godkendelse slået til, fordi det ene kører kommandoer på jeres systemer og det andet taler til jeres kunder; den, der tilføjer trinnet, kan slå det fra.
 - **Kun ved træf i trusselsinformation**: springe trinnet over, medmindre et tidligere trin **Tjek entiteter mod trusselsinformation** i kørslen fandt en kendt indikator.
 - **Fortsæt, hvis det mislykkes**: køre det næste trin, selv om dette mislykkes. Er den slået fra, stopper et mislykket trin kørslen.
+
+### Reaktion gennem OneUptime
+
+Fire trin handler gennem resten af OneUptime i stedet for gennem et forbundet produkt:
+
+- **Run a runbook** starter en af dine [runbooks](/docs/runbooks/index) med sagen som input, som et Bash-trin læser som miljøvariabler (se [Kald webhooken](/docs/runbooks/triggers#kald-webhooken)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` og `ONEUPTIME_INPUT_HOST` er den adresse, bruger og vært, sagen handler om, valgt efter samme regel som for et Contain-trin, og tomme, når den ikke handler om nogen. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` og `ONEUPTIME_INPUT_HOSTS` oplister som JSON alle dem, sagen nævner, og `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` og `ONEUPTIME_INPUT_CASE_URL` fortæller, hvilken sag det er. En beskyttet bruger eller vært er aldrig blandt dem. Runbookens kørsel viser, at den blev startet af **Security playbook** for sagen.
+- **Preserve the evidence** gemmer sessionsoptagelserne af anmodningerne bag sagen ud over deres opbevaringstid og skriver en note på sagen, der linker til hver anmodnings trace, hver optagelse og hver undtagelse. Logs og traces kan ikke gemmes længere, end projektet gemmer telemetri, så eksportér det, du har brug for, inden da.
+- **Post a status page announcement** slår det, du skrev, op, som du skrev det, på de statussider, du vælger. Intet fra sagen tilføjes. Deres abonnenter får kun besked, når **Underret abonnenter** er slået til.
+- **Fix the code with AI** beder OneUptime AI om en pull request, der retter hver undtagelse, sagens anmodninger udløste, op til tre. Trinnet kræver, at OneUptime AI er slået til, et repository med koden forbundet via GitHub-appen og en runner. Uden dem springes trinnet over og siger, hvad der mangler.
 
 ### Inddæmning
 
