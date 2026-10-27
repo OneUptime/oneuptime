@@ -188,7 +188,7 @@ describe("the copy", () => {
     );
   });
 
-  test("More settings names its four cards, and shows each that holds something a new page does not", () => {
+  test("More settings names its five cards, and shows each that holds something a new page does not", () => {
     const titles: (items: Array<FoldedSectionItem>) => Array<string> = (
       items: Array<FoldedSectionItem>,
     ): Array<string> => {
@@ -199,7 +199,9 @@ describe("the copy", () => {
 
     const fresh: Array<FoldedSectionItem> = getSubscriberSettingsMoreItems({});
 
+    // Who Can Subscribe first: it folded in here from the page above.
     expect(titles(fresh)).toEqual([
+      "Who Can Subscribe",
       "Subscriber Timezones",
       "Email Footer",
       "Custom SMTP",
@@ -211,6 +213,10 @@ describe("the copy", () => {
 
     const configured: Array<FoldedSectionItem> = getSubscriberSettingsMoreItems(
       {
+        restrictions: {
+          limitSubscribersToPrivateUsers: true,
+          allowedEmailDomainCount: 0,
+        },
         timezoneCount: 2,
         isCustomFooter: true,
         smtpConfigName: "Acme mail",
@@ -223,6 +229,8 @@ describe("the copy", () => {
         return [item.title, item.isSet, item.value];
       }),
     ).toEqual([
+      // Named alone: its two settings have no one short value between them.
+      ["Who Can Subscribe", true, undefined],
       ["Subscriber Timezones", true, "2"],
       ["Email Footer", true, "Your own text"],
       ["Custom SMTP", true, "Acme mail"],
@@ -232,6 +240,10 @@ describe("the copy", () => {
     // Nothing loaded yet counts as what a new page starts with.
     expect(
       getSubscriberSettingsMoreItems({
+        restrictions: {
+          limitSubscribersToPrivateUsers: false,
+          allowedEmailDomainCount: 0,
+        },
         timezoneCount: 0,
         isCustomFooter: false,
         smtpConfigName: null,
@@ -239,12 +251,12 @@ describe("the copy", () => {
       }).map((item: FoldedSectionItem) => {
         return item.isSet;
       }),
-    ).toEqual([false, false, false, false]);
+    ).toEqual([false, false, false, false, false]);
   });
 
   test("the More settings line says what is folded", () => {
     expect(SubscriberChoicesCopy.moreDescription).toBe(
-      "Timezones, the email footer, and your own mail server or Twilio account.",
+      "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.",
     );
     expect(SubscriberChoicesCopy.timezonesPlaceholder).toBe(
       "None picked: times are shown in UTC, London, New York, Los Angeles, Kolkata and Sydney time.",

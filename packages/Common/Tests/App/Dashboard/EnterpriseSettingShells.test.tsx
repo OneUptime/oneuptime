@@ -1261,7 +1261,13 @@ describe("what the folded cards tell their page", () => {
       expect(reports).toEqual([12]);
     });
 
-    fireEvent.click(screen.getAllByText("Remove limit")[0] as HTMLElement);
+    /*
+     * The card tells its page what it read before it draws it: its button
+     * may come a render later.
+     */
+    fireEvent.click(
+      (await screen.findAllByText("Remove limit"))[0] as HTMLElement,
+    );
     await screen.findByText("Remove the reader session limit?");
 
     await act(async () => {
@@ -1342,7 +1348,7 @@ describe("what the folded cards tell their page", () => {
     });
 
     fireEvent.click(
-      screen.getAllByText("Remove restrictions")[0] as HTMLElement,
+      (await screen.findAllByText("Remove restrictions"))[0] as HTMLElement,
     );
     await screen.findByText("Remove the subscriber restrictions?");
 
@@ -1411,7 +1417,9 @@ describe("what the folded cards tell their page", () => {
     });
 
     fireEvent.click(
-      screen.getAllByText("Show Powered by OneUptime")[0] as HTMLElement,
+      (
+        await screen.findAllByText("Show Powered by OneUptime")
+      )[0] as HTMLElement,
     );
     await screen.findByText("Show Powered by OneUptime again?");
 
