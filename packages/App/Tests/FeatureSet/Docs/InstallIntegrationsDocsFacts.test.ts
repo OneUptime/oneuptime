@@ -836,11 +836,12 @@ describe("the commands the pages run", () => {
     }
   });
 
-  it("npm start and npm run start export config.env and recreate the containers, rather than restart them", () => {
+  it("npm start and npm run start give Compose config.env's settings and recreate the containers, rather than restart them", () => {
     const start: string = scriptsOf("rootPackage")["start"] as string;
 
-    expect(start).toContain("export $(grep -v '^#' config.env | xargs)");
-    expect(start).toContain("docker compose up --remove-orphans -d");
+    expect(start).toContain(
+      "sh ./Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d",
+    );
     expect(start).not.toContain("restart");
 
     for (const page of [SLACK, TEAMS, GITHUB]) {
@@ -1013,7 +1014,9 @@ describe("Local Development, against the scripts it runs", () => {
     const ports: string = sectionOf(page, "### Ports");
 
     // On this machine's loopback address only, which is what localhost reaches.
-    expect(dev["postgres"]?.["ports"]).toContain("127.0.0.1:5400:5432");
+    expect(dev["postgres"]?.["ports"]).toContain(
+      "127.0.0.1:${DATABASE_PUBLISHED_PORT:-5400}:5432",
+    );
     expect(dev["clickhouse"]?.["ports"]).toEqual(
       expect.arrayContaining(["127.0.0.1:8189:8123", "127.0.0.1:9034:9000"]),
     );
@@ -1383,13 +1386,15 @@ describe("Docker Compose, against the compose files and scripts", () => {
     for (const row of rows) {
       const settings: Array<string> = inlineCodes(row[2] as string);
 
-      if (settings[0] === "docker-compose.yml") {
-        // Published on the server's loopback address, as the row says.
+      if (unwrap(row[1] as string) === "postgres") {
+        /*
+         * Published on the server's loopback address, as the row says, at
+         * the setting's port: 5400 unless config.env moves it.
+         */
         expect(
           composeServices("compose")[unwrap(row[1] as string)]?.["ports"],
-        ).toContain(`127.0.0.1:${row[0]}:5432`);
+        ).toContain(`127.0.0.1:\${${settings[0]}:-${row[0]}}:5432`);
         expect(inlineCodes(row[3] as string)).toContain("127.0.0.1");
-        continue;
       }
 
       expect({
@@ -1409,7 +1414,8 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(base["global-runner"]?.["ports"]).toBeUndefined();
     expect(config.has("ONEUPTIME_RUNNER_PORT")).toBe(false);
     expect(config.get("DATABASE_BACKUP_HOST")).toBe("localhost");
-    expect(config.get("DATABASE_BACKUP_PORT")).toBe("5400");
+    // Empty: the scripts take the port PostgreSQL is published on.
+    expect(config.get("DATABASE_BACKUP_PORT")).toBe("");
   });
 
   it("the secrets the page names are every placeholder config.example.env ships, and npm start gives each a value before Compose starts", () => {
@@ -1557,15 +1563,17 @@ describe("Docker Compose, against the compose files and scripts", () => {
     const scripts: Record<string, string> = scriptsOf("rootPackage");
 
     expect(scripts["start"]).toContain(
-      "export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d",
+      "sh ./Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d",
     );
     expect(scripts["start"]).toMatch(/&& npm run status-check$/);
     expect(scripts["status-check"]).toBe(
       "bash ./Tests/Scripts/status-check.sh",
     );
+    // The same loader, without Node.js: a POSIX shell is all it needs.
     expect(page).toContain(
-      "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)",
+      "sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d",
     );
+    expect(page).not.toContain("config.env | xargs");
   });
 
   it("the status check checks the ingress config.env publishes unless it is given an address, and ends with the words the page quotes", () => {
@@ -1841,7 +1849,10 @@ describe("Docker Compose, against the compose files and scripts", () => {
     const config: Map<string, string> = configExample();
 
     expect(scriptsOf("rootPackage")["backup"]).toBe("bash backup.sh");
-    expect(backup).toContain("export $(grep -v '^#' config.env | xargs)");
+    // config.env read as text, value by value (Scripts/Install/WithConfig.sh).
+    expect(backup).toContain(
+      'exec sh ./Scripts/Install/WithConfig.sh bash "$0" "$@"',
+    );
     expect(backup).toContain("sudo docker run");
     expect(backup).toContain(
       "--file=/var/lib/postgresql/data/db-$(date +%d).backup",
@@ -1927,7 +1938,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
   it("only the page's own delete command removes the volumes", () => {
     expect(scriptsOf("rootPackage")["stop"]).not.toContain("--volumes");
     expect(page).toContain(
-      "(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)",
+      "sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans",
     );
   });
 

@@ -63,8 +63,8 @@ import path from "path";
  *   - the instance's page, in every language, by the Admin Dashboard's own
  *     words (drawnAdminPath);
  *   - and the Enterprise half: the screens' buttons and states, the
- *     exporter's timings and retries, the webhook's headers, the syslog line
- *     and the files' names.
+ *     exporter's timings and retries, who a failing export emails and when,
+ *     the webhook's headers, the syslog line and the files' names.
  *
  * The exporter, its destinations and its screens are the Enterprise
  * Edition's (ee/), read as text as the other docs facts read ee/. That half
@@ -656,6 +656,67 @@ describeWhenEnterprisePresent(
       expect(exporter).toContain("Math.pow(2, failures - 1),");
       expect(fails).toContain(
         "A batch is tried three times, a few seconds apart, then the export waits before trying again: one minute, then two, four and so on, up to an hour.",
+      );
+    });
+
+    it("says who is emailed about a failing export, and when, as the notifications send it", () => {
+      const notifications: string = readEe(
+        "Server/AuditLogExport/AuditLogExportNotifications.ts",
+      );
+      const exporter: string = readEe(
+        "Server/AuditLogExport/AuditLogExporter.ts",
+      );
+      const recorder: string = readEe("Server/AuditLog/AuditLogRecorder.ts");
+      const fails: string = section(english(), WHEN_FAILS_HEADING);
+
+      // A project's owners for a project's export, every master admin for the instance's.
+      expect(notifications).toContain(
+        "await ProjectService.getOwners(projectId);",
+      );
+      expect(notifications).toContain(
+        "await sendInstanceHealthNotificationToMasterAdmins({",
+      );
+      expect(fails).toContain(
+        "A failing export emails the people who can fix it: the project's owners for a project's export, and every master admin for the instance's.",
+      );
+
+      // After 30 minutes, then a day before the oldest unsent entry is deleted.
+      expect(
+        numberConstant(
+          notifications,
+          "AUDIT_LOG_EXPORT_FAILING_NOTICE_AFTER_IN_MINUTES",
+        ),
+      ).toBe(30);
+      expect(
+        numberConstant(
+          notifications,
+          "AUDIT_LOG_EXPORT_LOSING_NOTICE_LEAD_IN_HOURS",
+        ),
+      ).toBe(24);
+      expect(exporter).toContain(
+        "await this.recordFailure(item, result.failure, batch.firstCreatedAt);",
+      );
+      expect(fails).toContain(
+        "The first email goes after 30 minutes of failures, with what the destination answered. A second goes a day before the oldest entry the export has not sent is deleted, with when entries start to be lost.",
+      );
+
+      // Once each while the failures go on: a delivery that works clears failingSince.
+      expect(exporter).toContain(
+        "failingSince: null as unknown as Date,\n            consecutiveFailureCount: 0,",
+      );
+      expect(fails).toContain(
+        "Each is sent once while the failures go on, and a delivery that works resets both.",
+      );
+
+      /*
+       * An entry keeps the retention it was recorded with, so a longer one
+       * does not keep the entries already waiting.
+       */
+      expect(recorder).toContain(
+        "auditLog.retentionDate = this.computeRetentionDate(params.retentionInDays);",
+      );
+      expect(fails).toContain(
+        "Each entry is still deleted once it is older than the audit log retention it was recorded with, sent or not, so fix a failing export within that time. A longer retention keeps only the entries recorded after you change it.",
       );
     });
 

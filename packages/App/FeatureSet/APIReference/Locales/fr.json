@@ -33,6 +33,7 @@
     "pageNotFoundMetaTitle": "Page introuvable",
     "pageNotFoundMetaDescription": "La page que vous recherchez est introuvable.",
     "required": "Obligatoire",
+    "defaultValue": "Par défaut",
     "or": "ou",
     "copy": "Copier",
     "copied": "Copié !",

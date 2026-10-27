@@ -33,6 +33,7 @@
     "pageNotFoundMetaTitle": "페이지를 찾을 수 없음",
     "pageNotFoundMetaDescription": "찾고 있는 페이지가 존재하지 않습니다.",
     "required": "필수",
+    "defaultValue": "기본값",
     "or": "또는",
     "copy": "복사",
     "copied": "복사됨!",

@@ -6,7 +6,7 @@ Er liest auch Statusseiten, die mit OneUptime erstellt wurden, Ressource für Re
 
 :::cards
 - [Den Monitor erstellen](#einen-monitor-für-externe-statusseiten-erstellen): Eine Statusseiten-URL einfügen und wählen, was beobachtet wird.
-- [Den Umfang festlegen](#konfigurationsoptionen): Eine Komponentengruppe oder eine Komponente beobachten.
+- [Komponenten wählen](#komponenten): Nur die Komponenten beobachten, von denen Sie abhängen.
 - [Kriterien](#überwachungskriterien): Was von Anfang an als ausgefallen gilt.
 - [OneUptime-Statusseiten](#oneuptime-statusseiten): Die Ressourcen eines anderen Projekts und seine Wartung.
 - [Beliebte Statusseiten](#beliebte-statusseiten-urls): URLs der Dienste, von denen die meisten Teams abhängen.
@@ -14,13 +14,13 @@ Er liest auch Statusseiten, die mit OneUptime erstellt wurden, Ressource für Re
 
 ## So funktioniert es
 
-Bei jeder Prüfung ruft eine Sonde die Statusseite ab, ermittelt ihr Format und liest den Gesamtstatus, die Komponenten und die aktiven Vorfälle. Haben Sie den Monitor auf eine Komponentengruppe oder eine Komponente beschränkt, zählen nur diese. Die Kriterien entscheiden dann, ob der Monitor online oder offline ist.
+Bei jeder Prüfung ruft eine Sonde die Statusseite ab, ermittelt ihr Format und liest den Gesamtstatus, die Komponenten und die aktiven Vorfälle. Haben Sie Komponenten oder eine Komponentengruppe gewählt, zählen nur diese. Die Kriterien entscheiden dann, ob der Monitor online oder offline ist.
 
 ```mermaid title="Eine Prüfung einer externen Statusseite"
 flowchart TB
     fetch["Die Statusseite abrufen"] --> detect["Das Format erkennen"]
     detect --> parse["Status, Komponenten, Vorfälle lesen"]
-    parse --> scope["Die Gruppe oder Komponente behalten"]
+    parse --> scope["Die gewählten Komponenten behalten"]
     scope --> criteria{"Aktiver Vorfall oder Ausfall?"}
     criteria -->|Ja| down["Offline, Vorfall eröffnet"]
     criteria -->|Nein| up["Online"]
@@ -31,7 +31,7 @@ Sie können ihn verwenden, um:
 - die Verfügbarkeit von Drittanbieterdiensten zu überwachen, von denen Ihre Anwendung abhängt
 - alarmiert zu werden, wenn vorgelagerte Anbieter Ausfälle haben
 - den Status einzelner Komponenten zu verfolgen
-- die Überwachung auf eine einzelne Komponentengruppe zu beschränken (z. B. nur die "APIs" von OpenAI), damit Vorfälle anderswo auf der Seite Ihren Monitor nicht auslösen
+- nur die Komponenten zu beobachten, von denen Sie abhängen (z. B. Git Operations und Pull Requests von GitHub oder die Gruppe "APIs" von OpenAI), damit Vorfälle anderswo auf der Seite Ihren Monitor nicht auslösen
 - eingeschränkte Leistung zu erkennen, bevor sie Ihre Nutzer trifft
 - Ihre eigenen Vorfälle mit Problemen vorgelagerter Anbieter in Beziehung zu setzen
 
@@ -72,9 +72,9 @@ Gehen Sie zu **Monitore** und klicken Sie auf **Monitor erstellen**. Klicken Sie
 
 Geben Sie die **Statusseiten-URL** ein. Lassen Sie den **Anbieter** auf **Auto**, sofern Sie das Format nicht kennen.
 
-### Den Umfang festlegen, falls nötig
+### Komponenten wählen, falls nötig
 
-Öffnen Sie **Weitere Felder**, um einen **Komponentengruppenfilter** wie `APIs` einzugeben, und einen **Komponentenname-Filter**, um eine einzelne Komponente zu beobachten (innerhalb der Gruppe, falls eine Gruppe gesetzt ist).
+Öffnen Sie **Komponenten** und wählen Sie aus der Liste der Seite die Komponenten, von denen Sie abhängen, etwa `Git Operations` und `Pull Requests` bei GitHub; lassen Sie das Feld leer, um die ganze Seite zu beobachten. Um stattdessen eine Gruppe zu beobachten, öffnen Sie **Weitere Felder** und geben einen **Komponentengruppenfilter** wie `APIs` ein.
 
 ### Es testen
 
@@ -95,27 +95,33 @@ Wählen Sie die **Sonden** und ein **Überwachungsintervall** — es beginnt bei
 | --- | --- | --- |
 | **Statusseiten-URL** | Die URL der Statusseite. Bei Seiten auf Basis von Atlassian Statuspage und incident.io ist das meist die Stamm-URL (z. B. `https://status.example.com`). Bei RSS-/Atom-Feeds geben Sie direkt die Feed-URL ein. | — |
 | **Anbieter** | **Auto**, um das Format zu erkennen, oder **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** oder **Atom**, wenn Sie es kennen. | **Auto** |
+| **Komponenten** | Die Komponenten, die beobachtet werden, aus der Liste der Seite gewählt oder eingetippt. | Die ganze Seite |
 | **Komponentengruppenfilter** | Die Gruppe, auf die der Monitor beschränkt wird. Unter **Weitere Felder**. | Alle Gruppen |
-| **Komponentenname-Filter** | Die Komponente, die beobachtet wird. Unter **Weitere Felder**. | Alle Komponenten im Umfang |
 | **Zeitüberschreitung (ms)** | Die längste Wartezeit auf die Statusseite. Unter **Weitere Felder**. | `10000` (10 Sekunden) |
 | **Wiederholungen** | Wie oft, im Abstand von einer Sekunde, nach einem fehlgeschlagenen ersten Versuch erneut versucht wird; `0` bedeutet einen einzigen Versuch. Unter **Weitere Felder**. | `3` (bis zu 4 Versuche) |
+
+### Komponenten
+
+Wählen Sie die Komponenten, von denen Sie abhängen, und der Monitor beobachtet nur sie: **External Status Page Component Status** vergleicht nur ihre Status, der Gesamtstatus ist der schlechteste ihrer Status, und **External Status Page Active Incidents** zählt nur die Vorfälle, die mindestens eine von ihnen betreffen. Es bleibt eine einzige Prüfung der Seite, wie viele Sie auch wählen.
+
+Wenn Sie **Komponenten** öffnen, liest Ihr Browser die Liste der Seite von einer Atlassian Statuspage, einer incident.io-Seite oder einer OneUptime-Statusseite und zeigt sie in den Gruppen der Seite; jede Komponente, die nicht betriebsbereit ist, sagt, wie es ihr geht. Ein gewählter Name beobachtet die Komponente mit genau diesem Namen, ohne Beachtung der Groß- und Kleinschreibung: `Copilot` auf der Seite von GitHub ist nicht `Copilot AI Model Providers`.
+
+Lässt sich die Liste nicht lesen (eine interne Seite, eine Seite, die ihre Liste nicht mit Ihrem Browser teilt, ein RSS- oder Atom-Feed), tippen Sie einen Namen ein und drücken Sie die Eingabetaste. Ein `*` steht für beliebigen Text: `*us-east-1*` beobachtet jede Komponente mit `us-east-1` im Namen. Bei einem RSS- oder Atom-Feed zählt ein Eintrag, dessen Titel einen der Namen enthält.
+
+Ein Vorfall, der keine Komponente nennt, zählt nicht, solange Sie gewählte Komponenten beobachten: Nichts sagt, dass er sie betrifft. Ist nichts gewählt, beobachtet der Monitor die ganze Seite, und jeder Vorfall zählt.
+
+Ein Monitor, der mit dem früheren Komponentenname-Filter gespeichert wurde, beobachtet weiter, was er beobachtet hat: Der Filter erscheint in **Komponenten** als dieser Name zwischen Sternen, etwa `*API*`, was auf jede Komponente zutrifft, deren Name ihn enthält.
+
+> [!WARNING]
+> Ein Name, der auf nichts zutrifft, beobachtet nichts und sieht gesund aus. **Komponenten** und **Monitor testen** nennen beide die gewählten Komponenten, die die Seite nicht auflistet.
 
 ### Komponentengruppenfilter
 
 Ordnet die Statusseite ihre Komponenten in Gruppen, können Sie den Monitor auf eine einzelne Gruppe beschränken. Auf `https://status.openai.com` zum Beispiel beschränkt die Eingabe `APIs` den Monitor auf die API-Dienste von OpenAI.
 
-Ist eine Komponentengruppe gesetzt, werden die **Zahl der aktiven Vorfälle** und der **Gesamtstatus** nur aus den Komponenten dieser Gruppe berechnet — ein Vorfall in einer anderen Gruppe (zum Beispiel ChatGPT) löst einen auf die Gruppe "APIs" beschränkten Monitor nicht aus.
+Ist eine Komponentengruppe gesetzt, werden die **Zahl der aktiven Vorfälle** und der **Gesamtstatus** nur aus den Komponenten dieser Gruppe berechnet — ein Vorfall in einer anderen Gruppe (zum Beispiel ChatGPT) löst einen auf die Gruppe "APIs" beschränkten Monitor nicht aus. Sind auch Komponenten gewählt, zählen nur die gewählten Komponenten der Gruppe.
 
 Die Filterung nach Komponentengruppen wird für die Anbieter **Atlassian Statuspage**, **incident.io** und **OneUptime Status Page** unterstützt. RSS- und Atom-Feeds kennen keine Komponentengruppen.
-
-### Komponentenname-Filter
-
-Meldet die Statusseite mehrere Komponenten, können Sie einen Komponentennamen angeben, um nur diese Komponente zu überwachen. Der Filter trifft auf jede Komponente zu, deren Name die Eingabe enthält, ohne Beachtung der Groß- und Kleinschreibung — `actions` trifft auf eine Komponente namens "Actions" zu.
-
-Ist auch eine Komponentengruppe gesetzt, wird der Komponentenname-Filter **innerhalb** dieser Gruppe angewendet, sodass Sie eine einzelne Komponente in einer größeren Gruppe ansteuern können. Ist keiner der Filter gesetzt, werden alle Komponenten im Umfang überwacht. Bei einem RSS- oder Atom-Feed wird der Namensfilter mit den Titeln der Einträge des Feeds verglichen.
-
-> [!WARNING]
-> Ein Filter, der auf nichts zutrifft, sieht gesund aus: Ohne Komponenten im Umfang gibt es nichts, das einen Ausfall melden könnte. Prüfen Sie die Schreibweise anhand der Statusseite und sehen Sie mit **Monitor testen**, was der Filter behält.
 
 ## Überwachungskriterien
 
@@ -125,11 +131,11 @@ Sie können Kriterien festlegen, die entscheiden, wann der externe Dienst als on
 | --- | --- | --- |
 | **External Status Page Is Online** | Ob die Statusseite erreichbar ist und Statusdaten liefert | Wahr oder Falsch |
 | **External Status Page Overall Status** | Der Gesamtstatus, den die Seite meldet | Gleich, Ungleich, Enthält, Enthält nicht, Beginnt mit, Endet mit |
-| **External Status Page Component Status** | Der Status der Komponenten im Umfang (unter Beachtung der Filter für Komponentengruppe / Komponentenname): Betriebsbereit, In Wartung, Beeinträchtigte Leistung, Teilweiser Ausfall, Schwerer Ausfall oder Vollständiger Ausfall | Gleich, Ungleich, Enthält, Enthält nicht, Beginnt mit, Endet mit |
-| **External Status Page Active Incidents** | Die Zahl der aktuell aktiven Vorfälle auf der Statusseite (auf die Komponentengruppe / Komponente beschränkt, wenn ein Filter gesetzt ist) | Gleich, Ungleich und die numerischen Vergleiche |
+| **External Status Page Component Status** | Der Status jeder Komponente im Umfang (der gewählten Komponenten oder derer der Gruppe, falls gesetzt): Betriebsbereit, In Wartung, Beeinträchtigte Leistung, Teilweiser Ausfall, Schwerer Ausfall oder Vollständiger Ausfall | Gleich, Ungleich, Enthält, Enthält nicht, Beginnt mit, Endet mit |
+| **External Status Page Active Incidents** | Die Zahl der aktuell aktiven Vorfälle auf der Statusseite (nur die, die eine Komponente im Umfang betreffen, wenn Komponenten oder eine Gruppe gewählt sind) | Gleich, Ungleich und die numerischen Vergleiche |
 | **External Status Page Response Time (in ms)** | Wie lange das Abrufen der Daten der Statusseite dauert | Größer als, Kleiner als, Größer als oder gleich, Kleiner als oder gleich |
 
-Der Gesamtstatus ist das, was die Seite sagt, seine Werte hängen also vom Anbieter ab: Eine Atlassian Statuspage meldet ihre eigene Beschreibung, etwa `All Systems Operational`; eine OneUptime-Statusseite den schlechtesten Status ihrer Komponenten im Bereich, etwa `under_maintenance`; ein Feed meldet `operational` oder `degraded_performance`; die Erreichbarkeitsprüfung meldet `reachable` oder `unreachable`. Diese Vergleiche beachten die Groß- und Kleinschreibung. Um auf Ausfälle zu alarmieren, sind **External Status Page Active Incidents** und **External Status Page Component Status** meist zuverlässiger.
+Der Gesamtstatus ist das, was die Seite sagt, seine Werte hängen also vom Anbieter ab: Eine Atlassian Statuspage meldet ihre eigene Beschreibung, etwa `All Systems Operational`; eine OneUptime-Statusseite den schlechtesten Status ihrer Komponenten im Bereich, etwa `under_maintenance`; ein Feed meldet `operational` oder `degraded_performance`; die Erreichbarkeitsprüfung meldet `reachable` oder `unreachable`. Sind Komponenten oder eine Gruppe gewählt, ist er auf jeder Seite der schlechteste Status unter ihnen. Diese Vergleiche beachten die Groß- und Kleinschreibung. Um auf Ausfälle zu alarmieren, sind **External Status Page Active Incidents** und **External Status Page Component Status** meist zuverlässiger.
 
 Bei einem RSS- oder Atom-Feed zählen die Einträge der letzten 24 Stunden als aktive Vorfälle: ein RSS-Eintrag nach seinem Veröffentlichungsdatum, ein Atom-Eintrag nach seinem Aktualisierungsdatum. Ein Eintrag mit einem Datum in der Zukunft zählt erst ab diesem Datum.
 
@@ -142,13 +148,13 @@ Standardmäßig legt OneUptime Kriterien an, die sich nach dem richten, was für
 | Offline | **Beliebig** von: Die Seite ist nicht online; es gibt mindestens einen aktiven Vorfall im Umfang; eine Komponente im Umfang meldet Beeinträchtigte Leistung, Teilweiser Ausfall, Schwerer Ausfall oder Vollständiger Ausfall | Markiert den Monitor als offline und eröffnet einen Vorfall, der sich selbst behebt, wenn das Kriterium nicht mehr zutrifft |
 | Online | **Alle** von: Die Seite ist online; es gibt keine aktiven Vorfälle im Umfang | Markiert den Monitor als online |
 
-Weil die Zahl der aktiven Vorfälle und die Komponentenstatus die Filter für Komponentengruppe / Komponentenname beachten, zielen diese Standardkriterien automatisch nur auf die Komponenten, die Sie interessieren.
+Weil die Zahl der aktiven Vorfälle und die Komponentenstatus die gewählten Komponenten und die Gruppe beachten, zielen diese Standardkriterien automatisch nur auf die Komponenten, die Sie interessieren.
 
 ## OneUptime-Statusseiten
 
 Wählen Sie **OneUptime Status Page** als Anbieter oder lassen Sie **Auto** stehen, um eine mit OneUptime erstellte Statusseite zu beobachten: das Projekt eines anderen Teams oder die Seite eines Anbieters auf OneUptime Cloud oder einem selbst gehosteten OneUptime. Geben Sie unter **Statusseiten-URL** die eigene Adresse der Seite ein: ihre Domain, etwa `https://status.example.com`, oder `https://oneuptime.com/status-page/<status-page-id>` für eine Seite ohne eigene Domain.
 
-Der Monitor liest die Zusammenfassung der Seite, `/status-page-api/summary/<page>` (siehe [Die Zusammenfassung lesen](/docs/status-pages/public-api#die-zusammenfassung-lesen)): nur das, was die Seite ihren Besuchern zeigt, und sonst nichts vom anderen Projekt. Jede Ressource der Seite, ein Monitor oder eine Monitorgruppe, ist eine Komponente, unter dem Namen, den die Seite ihr gibt, in der Gruppe der Seite; eine Gruppe in einer anderen heißt `Core / Databases`. Beobachten Sie eine Ressource mit **Komponentenname-Filter** oder eine Gruppe mit **Komponentengruppenfilter**.
+Der Monitor liest die Zusammenfassung der Seite, `/status-page-api/summary/<page>` (siehe [Die Zusammenfassung lesen](/docs/status-pages/public-api#die-zusammenfassung-lesen)): nur das, was die Seite ihren Besuchern zeigt, und sonst nichts vom anderen Projekt. Jede Ressource der Seite, ein Monitor oder eine Monitorgruppe, ist eine Komponente, unter dem Namen, den die Seite ihr gibt, in der Gruppe der Seite; eine Gruppe in einer anderen heißt `Core / Databases`. Wählen Sie Ressourcen unter **Komponenten** oder beobachten Sie eine Gruppe mit **Komponentengruppenfilter**.
 
 Der Status einer Komponente ist der Wert, für den ihr Status auf der Seite steht, sodass die Kriterien zum Komponentenstatus wie bei jeder anderen Statusseite funktionieren:
 
@@ -197,11 +203,11 @@ Wenn Sie aus Monitoren für externe Statusseiten Vorfälle oder Warnungen erstel
 | `{{responseTimeInMs}}`    | Antwortzeit in Millisekunden |
 | `{{failureCause}}`        | Grund des Fehlschlags, falls vorhanden |
 | `{{overallStatus}}`       | Der Wert des Gesamtstatus |
-| `{{activeIncidentCount}}` | Zahl der aktiven Vorfälle (auf den Filter beschränkt, falls gesetzt) |
+| `{{activeIncidentCount}}` | Zahl der aktiven Vorfälle (der beobachteten Komponenten, falls welche gewählt sind) |
 | `{{componentStatuses}}`   | JSON-Array der Komponentenstatus (`name`, `status`, `description`, `groupName`) |
 | `{{provider}}`            | Erkannter Anbieter (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); leer nach einer Erreichbarkeitsprüfung |
 | `{{componentGroup}}`      | Komponentengruppe, auf die der Monitor beschränkt ist, falls vorhanden |
-| `{{componentName}}`       | Komponente, auf die der Monitor beschränkt ist, falls vorhanden |
+| `{{componentName}}`       | Die Komponenten, die der Monitor beobachtet, durch Kommas getrennt, falls welche gewählt sind |
 
 ## Beliebte Statusseiten-URLs
 
@@ -235,22 +241,26 @@ Hier eine Liste beliebter Statusseiten von Diensten. Viele davon verwenden Atlas
 ## Bewährte Vorgehensweisen
 
 - **Den Anbieter Auto verwenden**, sofern Sie das genaue Format nicht kennen — die automatische Erkennung funktioniert für die meisten Statusseiten gut.
-- **Auf eine Komponentengruppe beschränken**, wenn Sie nur von einem Teil eines Anbieters abhängen (z. B. nur von den "APIs" von OpenAI), damit Vorfälle, die Sie nicht betreffen, keinen Lärm machen.
-- **Bestimmte Komponenten überwachen**, wenn Sie nur von bestimmten Diensten abhängen.
+- **Die Komponenten wählen, von denen Sie abhängen** (z. B. Git Operations und Pull Requests von GitHub), damit Vorfälle, die Sie nicht betreffen, keinen Lärm machen.
+- **Eine ganze Gruppe beobachten**, wenn Sie von all ihren Komponenten abhängen (z. B. von den "APIs" von OpenAI), damit auch Komponenten beobachtet werden, die sie später hinzubekommt.
 - **Mit Ihren eigenen Monitoren kombinieren** — kombinieren Sie Monitore für externe Statusseiten mit Ihren eigenen API- und Website-Monitoren. Fallen beide gleichzeitig aus, führt Sie die vorgelagerte Statusseite schneller zur Ursache.
 
 ## Fehlerbehebung
 
 :::details Der Monitor ist offline, aber der Vorfall betrifft einen Teil des Dienstes, den ich nicht nutze
-Beschränken Sie den Monitor mit einem **Komponentengruppenfilter**, einem **Komponentenname-Filter** oder beiden. Die Zahl der aktiven Vorfälle und die Komponentenstatus zählen dann nur, was im Umfang liegt.
+Wählen Sie unter **Komponenten** die Komponenten, von denen Sie abhängen, oder eine Gruppe unter **Komponentengruppenfilter**. Die Zahl der aktiven Vorfälle und die Komponentenstatus zählen dann nur diese; ein Vorfall, der keine Komponente nennt, zählt nicht.
 :::
 
 :::details Der Monitor geht nie offline, auch nicht während eines Ausfalls
-Die Filter treffen vielleicht auf nichts zu, was gesund aussieht, oder die Seite erhält nur die Erreichbarkeitsprüfung. Führen Sie **Monitor testen** aus und prüfen Sie den gefundenen Anbieter und die Komponenten.
+Ein gewählter Name trifft vielleicht auf nichts auf der Seite zu, was gesund aussieht, oder die Seite erhält nur die Erreichbarkeitsprüfung. Führen Sie **Monitor testen** aus: Es zeigt den gefundenen Anbieter und die Komponenten und nennt jede gewählte Komponente, die die Seite nicht auflistet.
 :::
 
 :::details Auto wählt das falsche Format oder findet keine Komponenten
 Setzen Sie den **Anbieter** auf den, den die Seite nach Ihrem Wissen verwendet. Bei einem RSS- oder Atom-Feed geben Sie die eigene URL des Feeds ein statt der der Statusseite.
+:::
+
+:::details Die Liste unter Komponenten lädt nicht
+Ihr Browser liest die Liste direkt von der Statusseite. Eine interne Seite, die Ihr Browser nicht erreicht, eine Seite, die ihre Liste nicht mit anderen Websites teilt, und ein RSS- oder Atom-Feed bieten keine Liste zur Auswahl: Tippen Sie den Namen jeder Komponente so ein, wie die Seite ihn zeigt, und drücken Sie die Eingabetaste. Die Sonden lesen die Seite wie zuvor.
 :::
 
 :::details Eine OneUptime-Statusseite zeigt keine Komponenten

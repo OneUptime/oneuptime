@@ -25,6 +25,8 @@ valkey:
     repository: registry.example.com/valkey/valkey
 updateCheck:
   disabled: true
+instanceCheckIn:
+  disabled: true
 dnsConfig:
   nameservers: []
 probes:

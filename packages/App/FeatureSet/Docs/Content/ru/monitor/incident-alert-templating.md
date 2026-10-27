@@ -440,11 +440,11 @@ Alerts for payments:
 | Переменная | Что содержит | Тип |
 | --- | --- | --- |
 | `overallStatus` | Общий статус страницы статуса, например `major_outage`. | `string` |
-| `activeIncidentCount` | Количество инцидентов, открытых на странице статуса. | `number` |
+| `activeIncidentCount` | Количество инцидентов, открытых на странице статуса и затрагивающих то, за чем следит монитор. | `number` |
 | `componentStatuses` | Её компоненты, каждый в виде `{name, status, description, groupName}`. | `Array<Object>` |
 | `provider` | Вид страницы статуса: Atlassian Statuspage, incident.io, RSS или Atom. | `string` |
 | `componentGroup` | Группа компонентов, за которой следит монитор, если он за ней следит. | `string` |
-| `componentName` | Компонент, за которым следит монитор, если он за ним следит. | `string` |
+| `componentName` | Компоненты, за которыми следит монитор, через запятую, если он их выбрал. | `string` |
 | `isOnline` | Ответила ли страница статуса. | `boolean` |
 | `responseTimeInMs` | Сколько времени страница статуса отвечала, в миллисекундах. | `number` |
 | `failureCause` | Почему проверка провалилась, если это произошло. | `string` |

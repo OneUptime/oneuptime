@@ -26,6 +26,16 @@ import UUIDColumnFilter, {
 } from "Common/Server/Types/Database/UUIDColumnFilter";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import Label from "Common/Models/DatabaseModels/Label";
+import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import OwnedByFilter, {
+  OwnerTablesOfKind,
+} from "Common/Server/Types/Database/OwnedByFilter";
+import OwnedBy, {
+  MAX_OWNED_BY_IDS,
+  OWNED_BY_QUERY_KEY,
+  OwnedByMatch,
+} from "Common/Types/BaseDatabase/OwnedBy";
 import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -314,6 +324,110 @@ describe("OneUptime API Reference: a request and its answer", () => {
     expect(status).toBe(String(ExceptionCode.NotAuthorizedException));
     expect(sentence).toContain(
       "a filter on a field you may not read is refused with a `422` that names it.",
+    );
+  });
+
+  it("filters by who owns a record under owners, as the API reads OwnedBy", () => {
+    const sentence: string = lineStartingWith(
+      englishSection(API_REFERENCE, "### Filter, sort and page"),
+      "A resource with owners - a monitor, an incident, an on-call policy and every other one with user and team owners - is also filtered by who owns it",
+    );
+    const [key, example, matchKey, ...rest] = codeIn(sentence) as Array<string>;
+
+    // Under "owners", the one key every query puts it under.
+    expect(key).toBe(OWNED_BY_QUERY_KEY);
+    expect(matchKey).toBe("match");
+
+    // The page's example is a filter the API deserializes, once its ids are real.
+    const userId: string = ObjectID.generate().toString();
+    const teamId: string = ObjectID.generate().toString();
+    const exampleQuery: JSONObject = JSON.parse(
+      `{${(example as string)
+        .replace('"userIds": ["..."]', `"userIds": ["${userId}"]`)
+        .replace('"teamIds": ["..."]', `"teamIds": ["${teamId}"]`)}}`,
+    ) as JSONObject;
+    const filter: JSONObject = JSONFunctions.deserialize(exampleQuery);
+    const ownedBy: OwnedBy = filter[OWNED_BY_QUERY_KEY] as OwnedBy;
+
+    expect(ownedBy).toBeInstanceOf(OwnedBy);
+    expect(ownedBy.userIds).toEqual([userId]);
+    expect(ownedBy.teamIds).toEqual([teamId]);
+    // AnyOf unless a match is set.
+    expect(ownedBy.match).toBe(OwnedByMatch.AnyOf);
+    expect(sentence).toContain(
+      "finds the records owned by one or more of those people and teams. `match` is `AnyOf` unless you set it:",
+    );
+
+    // Every match there is, in the page's order, and the two that name no one.
+    expect(rest.slice(0, 4)).toEqual([
+      OwnedByMatch.AnyOf,
+      OwnedByMatch.NoneOf,
+      OwnedByMatch.AnyOwner,
+      OwnedByMatch.NoOwner,
+    ]);
+    expect(Object.values(OwnedByMatch).sort()).toEqual(
+      [...rest.slice(0, 4)].sort(),
+    );
+    expect(() => {
+      return new OwnedBy({ match: OwnedByMatch.NoOwner, userIds: [userId] });
+    }).toThrow(BadDataException);
+    expect(
+      new OwnedBy({ match: OwnedByMatch.AnyOwner }).toJSON()["match"],
+    ).toBe(OwnedByMatch.AnyOwner);
+
+    // At most 1,000 people and teams together.
+    expect(MAX_OWNED_BY_IDS).toBe(1000);
+    expect(sentence).toContain(
+      `One filter names at most ${(1000).toLocaleString("en-US")} people and teams together`,
+    );
+    expect(() => {
+      return new OwnedBy({
+        userIds: Array.from({ length: 600 }, (): string => {
+          return ObjectID.generate().toString();
+        }),
+        teamIds: Array.from({ length: 401 }, (): string => {
+          return ObjectID.generate().toString();
+        }),
+      });
+    }).toThrow(BadDataException);
+
+    /*
+     * The kinds the page names have owner tables of their own - a person's
+     * and a team's, so a team's members are not owners of what it owns - and
+     * a kind without owners refuses the filter with a 400.
+     */
+    for (const kind of [Monitor, Incident, OnCallDutyPolicy]) {
+      const tables: OwnerTablesOfKind | null =
+        OwnedByFilter.getOwnerTables(kind);
+
+      expect([kind.name, tables?.userTable.ownerColumnName]).toEqual([
+        kind.name,
+        "userId",
+      ]);
+      expect([kind.name, tables?.teamTable.ownerColumnName]).toEqual([
+        kind.name,
+        "teamId",
+      ]);
+    }
+
+    expect(OwnedByFilter.getOwnerTables(Label)).toBeNull();
+    expect(OwnedByFilter.getNoOwnersException(Label)).toBeInstanceOf(
+      BadDataException,
+    );
+    expect(rest[4]).toBe(String(ExceptionCode.BadDataException));
+    expect(sentence).toContain(
+      "a resource without owners refuses it with a `400`",
+    );
+
+    // Reading the owner tables is held to their read permission: a 422.
+    const queryPermission: string = readRepoFile(QUERY_PERMISSION);
+
+    expect(queryPermission).toContain(
+      "QueryPermission.checkOwnedByPermission({",
+    );
+    expect(rest[5]).toBe(String(ExceptionCode.NotAuthorizedException));
+    expect(sentence).toContain(
+      "filtering by owners without permission to read them is refused with a `422`.",
     );
   });
 

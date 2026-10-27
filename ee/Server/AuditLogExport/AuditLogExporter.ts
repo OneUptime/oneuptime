@@ -37,6 +37,13 @@ import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  AUDIT_LOG_EXPORT_FAILING_NOTICE_AFTER_IN_MINUTES,
+  AuditLogExportFailureNotice,
+  AuditLogExportNotifier,
+  auditLogExportEmailNotifier,
+  getAuditLogExportFailureNotice,
+} from "./AuditLogExportNotifications";
 import { redactAuditLogExportRecord } from "./AuditLogExportRedaction";
 import AuditLogExportDestinationRegistry from "./Destinations/DestinationRegistry";
 import {
@@ -89,7 +96,10 @@ import {
  * tries. Nothing queues up anywhere: the entries wait in the audit log
  * itself, and the next successful delivery catches up, oldest first. An
  * entry older than its project's audit log retention is deleted before it
- * can be sent, which is the only way one is lost - the page says so.
+ * can be sent, which is the only way one is lost - the page says so, and
+ * the people who can fix it are emailed (AuditLogExportNotifications): after
+ * 30 minutes of failures, and again a day before the first unsent entry
+ * would be deleted.
  *
  * WHEN IT STOPS. Without the Enterprise Edition (self-hosted: a license
  * that includes audit logs) nothing is exported, as nothing is recorded; on
@@ -220,6 +230,8 @@ export interface AuditLogExporterOptions {
   lock?: AuditLogExportLock | undefined;
   now?: (() => Date) | undefined;
   sleep?: SleepFunction | undefined;
+  // Who is told when an export keeps failing; email by default.
+  notifier?: AuditLogExportNotifier | undefined;
 }
 
 // The export's columns every run reads.
@@ -236,6 +248,7 @@ const EXPORT_SELECT: Record<string, boolean> = {
   cursorCreatedAt: true,
   cursorEntryId: true,
   exportedEntryCount: true,
+  lastAttemptAt: true,
   lastError: true,
   failingSince: true,
   consecutiveFailureCount: true,
@@ -247,6 +260,7 @@ export default class AuditLogExporter {
   private readonly lock: AuditLogExportLock;
   private readonly now: () => Date;
   private readonly sleep: SleepFunction;
+  private readonly notifier: AuditLogExportNotifier;
 
   public constructor(options: AuditLogExporterOptions = {}) {
     this.reader = options.reader || AuditLogService;
@@ -257,6 +271,7 @@ export default class AuditLogExporter {
         return OneUptimeDate.getCurrentDate();
       });
     this.sleep = options.sleep || defaultSleep;
+    this.notifier = options.notifier || auditLogExportEmailNotifier;
   }
 
   /*
@@ -556,7 +571,8 @@ export default class AuditLogExporter {
         });
       } catch (error) {
         result.failure = ConnectorErrorMessage.toMessage(error);
-        await this.recordFailure(item, result.failure);
+        // The batch's first entry is the oldest one the export has not sent.
+        await this.recordFailure(item, result.failure, batch.firstCreatedAt);
         return result;
       }
 
@@ -601,6 +617,15 @@ export default class AuditLogExporter {
 
       cursor = nextCursor;
       exportedEntryCount += records.length;
+
+      /*
+       * Healthy again, as the row now says: a failure later in this run
+       * starts a new run of failures (and its emails) rather than carry on
+       * the one this delivery ended.
+       */
+      item.consecutiveFailureCount = 0;
+      item.lastAttemptAt = deliveredAt;
+      delete item.failingSince;
 
       if (data.mutex && !(await this.lock.keep(data.mutex))) {
         // The lock ran out: another worker may have the export now.
@@ -681,24 +706,147 @@ export default class AuditLogExporter {
     });
   }
 
-  // A failure, the time it is tried again, and since when it fails: never throws.
+  /*
+   * A failure, the time it is tried again, and since when it fails: never
+   * throws. `oldestUnsentAt` is when the oldest entry the export has not
+   * sent was recorded, when the failed batch says it; left out, it is read
+   * if an email can be due.
+   */
   private async recordFailure(
     item: AuditLogExport,
     message: string,
+    oldestUnsentAt?: Date | undefined,
   ): Promise<void> {
     const now: Date = this.now();
     const failures: number = (item.consecutiveFailureCount || 0) + 1;
+    const failingSince: Date = item.failingSince
+      ? new Date(item.failingSince)
+      : now;
 
     await this.writeBookkeeping(item.id!, {
       lastAttemptAt: now,
       lastError: message,
-      failingSince: item.failingSince ? new Date(item.failingSince) : now,
+      failingSince: failingSince,
       consecutiveFailureCount: failures,
       nextAttemptAt: OneUptimeDate.addRemoveMinutes(
         now,
         getAuditLogExportBackoffInMinutes(failures),
       ),
     });
+
+    await this.notifyFailure({
+      item,
+      message,
+      failingSince,
+      now,
+      oldestUnsentAt,
+    });
+  }
+
+  /*
+   * The email a run of failures is due now, if any
+   * (AuditLogExportNotifications). The retention (and the oldest unsent
+   * entry, when no batch said it) is read only once the export has failed
+   * for long enough that an email can be due. Never throws: telling people
+   * must not stop the export.
+   */
+  private async notifyFailure(data: {
+    item: AuditLogExport;
+    message: string;
+    failingSince: Date;
+    now: Date;
+    oldestUnsentAt?: Date | undefined;
+  }): Promise<void> {
+    try {
+      const failingFor: number =
+        data.now.getTime() - data.failingSince.getTime();
+
+      if (
+        failingFor <
+        AUDIT_LOG_EXPORT_FAILING_NOTICE_AFTER_IN_MINUTES * 60 * 1000
+      ) {
+        return;
+      }
+
+      const retentionInDays: number = await this.notifier.getRetentionInDays(
+        data.item,
+      );
+      const oldestUnsentAt: Date | null =
+        data.oldestUnsentAt !== undefined
+          ? data.oldestUnsentAt
+          : await this.findOldestUnsentAt(data);
+      const notice: AuditLogExportFailureNotice | null =
+        getAuditLogExportFailureNotice({
+          failingSince: data.failingSince,
+          // The try before this one belongs to this run of failures only if it failed.
+          previousFailureAt: data.item.failingSince
+            ? data.item.lastAttemptAt
+            : null,
+          now: data.now,
+          oldestUnsentAt,
+          retentionInDays,
+        });
+
+      if (!notice) {
+        return;
+      }
+
+      await this.notifier.notifyFailure({
+        item: data.item,
+        notice,
+        failingSince: data.failingSince,
+        oldestUnsentAt,
+        error: data.message,
+        retentionInDays,
+      });
+    } catch (error) {
+      logger.error(
+        `AuditLogExport: could not tell anyone that export ${data.item.id?.toString()} is failing.`,
+      );
+      logger.error(error);
+    }
+  }
+
+  /*
+   * When the oldest entry the export has not sent was recorded - the first
+   * one after its cursor - for a failure that came before any batch was
+   * read (settings that cannot be read, a destination that is gone). Null
+   * when nothing waits; when the audit log cannot be read either, the time
+   * the failures began.
+   */
+  private async findOldestUnsentAt(data: {
+    item: AuditLogExport;
+    failingSince: Date;
+    now: Date;
+  }): Promise<Date | null> {
+    const item: AuditLogExport = data.item;
+
+    try {
+      const rows: Array<JSONObject> = await this.reader.findEntriesForExport({
+        projectId: item.projectId || null,
+        startsAt: new Date(item.startsAt || item.createdAt || data.now),
+        until: data.now,
+        after:
+          item.cursorCreatedAt && item.cursorEntryId
+            ? {
+                createdAt: new Date(item.cursorCreatedAt),
+                id: new ObjectID(item.cursorEntryId.toString()),
+              }
+            : null,
+        limit: 1,
+      });
+      const oldest: AuditLogExportRecord | null = rows[0]
+        ? toAuditLogExportRecord(rows[0])
+        : null;
+
+      return oldest ? new Date(oldest.createdAt) : null;
+    } catch (error) {
+      logger.warn(
+        `AuditLogExport: could not read the oldest entry export ${item.id?.toString()} has not sent.`,
+      );
+      logger.warn(error);
+      return data.failingSince;
+    }
   }
 
   private async writeBookkeeping(

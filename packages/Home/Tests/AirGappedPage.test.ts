@@ -584,6 +584,7 @@ describe("the air-gapped page", () => {
       ["helm verify"],
       [
         "updateCheck.disabled",
+        "instanceCheckIn.disabled",
         "dnsConfig.nameservers",
         "probes.one.allowPrivateNetworkMonitors",
         "webhooks.allowPrivateNetwork",
@@ -767,16 +768,16 @@ describe("the air-gapped page", () => {
       );
     }
 
-    // The first table is the three the section's first sentence names.
+    // The first table is the four the section's first sentence names.
     expect(
       all(
         page,
         '[data-testid="air-gapped-connections-on-by-default"] [data-testid="air-gapped-connection"]',
       ),
-    ).toHaveLength(3);
+    ).toHaveLength(4);
     expect(
       textOf(page.querySelector("#connections-out h2 + p")).startsWith(
-        "Three things reach out on their own unless you change a setting.",
+        "Four things reach out on their own unless you change a setting.",
       ),
     ).toBe(true);
   });

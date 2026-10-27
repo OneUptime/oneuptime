@@ -10,9 +10,18 @@ import React, {
 import DashboardTableComponent, {
   TableColumn,
   TableColumnKind,
+  TableColumnThresholds,
   TableGroupByAttribute,
   TableReduce,
+  TableThresholdStyle,
 } from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
+import {
+  TableColumnDisplay,
+  getTableColumnDisplay,
+  readTableColumnThresholds,
+  readTableThresholdStyle,
+} from "Common/Utils/Dashboard/TableThresholds";
+import DashboardTableValueCell from "./DashboardTableValueCell";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
@@ -57,7 +66,15 @@ interface ValueColumn {
   key: string;
   label: string;
   decimals: number | undefined;
+  // The unit written after each value (getTableColumnDisplay).
   unit: string | undefined;
+  /*
+   * What each stored value is multiplied by before it is shown: 100 for a
+   * usage metric sent as a fraction and shown as a percent, else 1.
+   */
+  factor: number;
+  // The column's thresholds (issue #5231); null when it has none in force.
+  thresholds: TableColumnThresholds | null;
   /*
    * When false, the column is fetched but not rendered (lets formulas
    * reference the underlying metric variable without showing a column).
@@ -259,6 +276,9 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
   const defaultDecimals: number =
     typeof args.decimals === "number" ? args.decimals : 2;
   const maxRows: number = args.maxRows || 25;
+  const thresholdStyle: TableThresholdStyle = readTableThresholdStyle(
+    args.thresholdStyle,
+  );
 
   const valueColumns: Array<ValueColumn> = resolved.valueColumns;
   const visibleValueColumns: Array<ValueColumn> = useMemo(() => {
@@ -844,20 +864,13 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                             row.tupleKey,
                           );
                           return (
-                            <td
+                            <DashboardTableValueCell
                               key={column.key}
-                              className="px-3 py-2 text-gray-900 text-right tabular-nums text-xs font-semibold"
-                            >
-                              {value === undefined || Number.isNaN(value) ? (
-                                <span className="text-gray-300">—</span>
-                              ) : (
-                                formatValue(
-                                  value,
-                                  column.decimals ?? defaultDecimals,
-                                  column.unit,
-                                )
-                              )}
-                            </td>
+                              value={value}
+                              column={column}
+                              defaultDecimals={defaultDecimals}
+                              thresholdStyle={thresholdStyle}
+                            />
                           );
                         },
                       )}
@@ -892,20 +905,13 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                           const value: number | undefined =
                             row.valuesByColumnKey.get(column.key);
                           return (
-                            <td
+                            <DashboardTableValueCell
                               key={column.key}
-                              className="px-3 py-2 text-gray-900 text-right tabular-nums text-xs font-semibold"
-                            >
-                              {value === undefined || Number.isNaN(value) ? (
-                                <span className="text-gray-300">—</span>
-                              ) : (
-                                formatValue(
-                                  value,
-                                  column.decimals ?? defaultDecimals,
-                                  column.unit,
-                                )
-                              )}
-                            </td>
+                              value={value}
+                              column={column}
+                              defaultDecimals={defaultDecimals}
+                              thresholdStyle={thresholdStyle}
+                            />
                           );
                         },
                       )}
@@ -973,6 +979,22 @@ function resolveQueries(
           : column.kind === TableColumnKind.Metric && column.metricName
             ? unitsByMetricName.get(column.metricName)
             : undefined;
+      /*
+       * How the cells show the column - a usage metric sent as a fraction
+       * shows as a percent - and the thresholds, compared in that scale.
+       */
+      const display: TableColumnDisplay =
+        column.kind === TableColumnKind.Metric
+          ? getTableColumnDisplay({
+              columnUnit: column.unit,
+              metricUnit: column.metricName
+                ? unitsByMetricName.get(column.metricName)
+                : undefined,
+              metricName: column.metricName,
+            })
+          : getTableColumnDisplay({ columnUnit: column.unit });
+      const thresholds: TableColumnThresholds | null =
+        readTableColumnThresholds(column.thresholds);
       if (column.kind === TableColumnKind.Metric) {
         queryConfigs.push({
           metricAliasData: {
@@ -1001,7 +1023,9 @@ function resolveQueries(
           key: `col:${column.id}`,
           label: column.header,
           decimals: column.decimals,
-          unit: resolvedUnit,
+          unit: display.unit,
+          factor: display.factor,
+          thresholds,
           visible,
         });
       } else {
@@ -1021,7 +1045,9 @@ function resolveQueries(
           key: `col:${column.id}`,
           label: column.header,
           decimals: column.decimals,
-          unit: resolvedUnit,
+          unit: display.unit,
+          factor: display.factor,
+          thresholds,
           visible,
         });
       }
@@ -1047,6 +1073,12 @@ function resolveQueries(
             : args.metricQueryConfig.metricQueryData?.groupByAttributeKeys,
       },
     });
+    const legacyDisplay: TableColumnDisplay = getTableColumnDisplay({
+      metricUnit: legacyMetricName
+        ? unitsByMetricName.get(legacyMetricName)
+        : undefined,
+      metricName: legacyMetricName,
+    });
     valueColumns.push({
       key: `legacy:primary`,
       label:
@@ -1055,9 +1087,9 @@ function resolveQueries(
         legacyMetricName ||
         "Value",
       decimals: undefined,
-      unit: legacyMetricName
-        ? unitsByMetricName.get(legacyMetricName)
-        : undefined,
+      unit: legacyDisplay.unit,
+      factor: legacyDisplay.factor,
+      thresholds: null,
       visible: true,
     });
   }
@@ -1075,6 +1107,12 @@ function resolveQueries(
               : config.metricQueryData?.groupByAttributeKeys,
         },
       });
+      const legacyDisplay: TableColumnDisplay = getTableColumnDisplay({
+        metricUnit: legacyMetricName
+          ? unitsByMetricName.get(legacyMetricName)
+          : undefined,
+        metricName: legacyMetricName,
+      });
       valueColumns.push({
         key: `legacy:q:${config.metricAliasData?.metricVariable || valueColumns.length}`,
         label:
@@ -1083,9 +1121,9 @@ function resolveQueries(
           legacyMetricName ||
           "Value",
         decimals: undefined,
-        unit: legacyMetricName
-          ? unitsByMetricName.get(legacyMetricName)
-          : undefined,
+        unit: legacyDisplay.unit,
+        factor: legacyDisplay.factor,
+        thresholds: null,
         visible: true,
       });
     }
@@ -1101,6 +1139,8 @@ function resolveQueries(
           "Formula",
         decimals: undefined,
         unit: undefined,
+        factor: 1,
+        thresholds: null,
         visible: true,
       });
     }
@@ -1244,29 +1284,6 @@ function reduceRows(rows: Array<AggregatedModel>, reduce: TableReduce): number {
       return sorted[0]?.value ?? Number.NaN;
     }
   }
-}
-
-function formatValue(
-  value: number,
-  decimals: number,
-  unit: string | undefined,
-): string {
-  const safeDecimals: number = Math.max(0, decimals);
-  const factor: number = Math.pow(10, safeDecimals);
-  const rounded: number = Math.round(value * factor) / factor;
-  const formatted: string = rounded.toLocaleString(undefined, {
-    minimumFractionDigits: safeDecimals,
-    maximumFractionDigits: safeDecimals,
-  });
-  if (!unit) {
-    return formatted;
-  }
-  /*
-   * Render "% / ° / ‰" with no space; everything else with a single
-   * space (so "12.3 MB" looks right but "12.3%" does too).
-   */
-  const noSpace: boolean = unit === "%" || unit === "°" || unit === "‰";
-  return noSpace ? `${formatted}${unit}` : `${formatted} ${unit}`;
 }
 
 function arePropsEqual(prev: ComponentProps, next: ComponentProps): boolean {
