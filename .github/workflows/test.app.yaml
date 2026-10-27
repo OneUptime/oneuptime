@@ -508,7 +508,13 @@ jobs:
           # Changes - at 1280 and 390 pixels, dark, German and Persian) joined
           # them on 2026-10-27, when this group's run step took 13.2 and 13.3
           # minutes on master's last two runs, the lightest of the twelve:
-          # about 16.5.
+          # about 16.5. Accounts Theme (about 2 minutes locally with its
+          # bundle, Chromium only: the sign-in pages in the person's theme -
+          # drawn before the first paint, following the device and another
+          # tab, the public form kept light, every page and its states in the
+          # dark theme with no light box and words at 4.5:1, at 1280 and 390
+          # pixels, light and dark, German and Persian) joined them the same
+          # day: about 18.5.
           - group: 7
             browsers: chromium
             suites: >-
@@ -518,6 +524,7 @@ jobs:
               test-custom-roles-ui
               test-public-dashboard-theme-ui
               test-dashboard-table-thresholds-ui
+              test-accounts-theme-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -963,6 +970,8 @@ jobs:
             output/playwright/dashboard-value-widget-ui/test-results
             output/playwright/dashboard-table-thresholds-ui/*.png
             output/playwright/dashboard-table-thresholds-ui/test-results
+            output/playwright/accounts-theme-ui/*.png
+            output/playwright/accounts-theme-ui/test-results
             output/playwright/cloud-connect-ui/*.png
             output/playwright/cloud-connect-ui/test-results
             output/playwright/host-collectors-ui/*.png
