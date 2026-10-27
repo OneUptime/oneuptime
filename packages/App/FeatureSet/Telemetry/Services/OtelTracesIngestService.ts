@@ -12,6 +12,10 @@ import {
   collectObiNodeInspectorRequestSpans,
   isObiNodeInspectorSpan,
 } from "../Utils/ObiNodeInspectorSpan";
+import {
+  ObiStoredSpan,
+  applyObiSpanSemantics,
+} from "../Utils/ObiSpanSemantics";
 import OneUptimeDate from "Common/Types/Date";
 import { readDeploymentEnvironment } from "Common/Utils/Telemetry/DeploymentEnvironment";
 import { resolveTelemetryRetentionInDays } from "Common/Types/Telemetry/TelemetryRetentionConfig";
@@ -85,6 +89,7 @@ import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import { isEntrySpan } from "Common/Utils/Telemetry/EntrySpan";
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
@@ -651,16 +656,6 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     prefixedScopeAttributes,
                   );
 
-                  /*
-                   * Stored as a ClickHouse Array column and only read
-                   * back as an unordered set. Skip the sort the shared
-                   * TelemetryUtil.getAttributeKeys helper does — it's
-                   * an O(N log N) cost per record that the downstream
-                   * consumers do not depend on.
-                   */
-                  const attributeKeys: Array<string> =
-                    Object.keys(spanAttributes);
-
                   const primaryEntityId: ObjectID =
                     serviceDictionary[serviceName]!.primaryEntityId!;
 
@@ -790,6 +785,33 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                     continue;
                   }
 
+                  /*
+                   * OBI records a ClickHouse statement sent over HTTP as a
+                   * bare `POST /` and a BullMQ queue operation as a bare
+                   * `evalsha`; each gets its protocol's attributes, name
+                   * and kind here (a BullMQ settle is stored as CONSUMER),
+                   * and OBI's span.metrics.skip note comes off its spans —
+                   * see ObiSpanSemantics. Decided before the evaluation
+                   * row and the attribute keys, so drop filters, scrub
+                   * rules, pipelines, discovery and the entity keys all
+                   * see the stored span.
+                   */
+                  const obiSpan: ObiStoredSpan = applyObiSpanSemantics({
+                    name: spanName,
+                    kind: spanKind,
+                    attributes: spanAttributes,
+                  });
+
+                  /*
+                   * Stored as a ClickHouse Array column and only read
+                   * back as an unordered set. Skip the sort the shared
+                   * TelemetryUtil.getAttributeKeys helper does — it's
+                   * an O(N log N) cost per record that the downstream
+                   * consumers do not depend on.
+                   */
+                  const attributeKeys: Array<string> =
+                    Object.keys(spanAttributes);
+
                   let spanEvents: Array<JSONObject> = [];
                   let hasException: boolean = false;
                   let rawSpanExceptions: Array<RawSpanExceptionEvent> = [];
@@ -849,8 +871,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       traceState: traceState,
                       statusCode: statusCode,
                       statusMessage: statusMessage,
-                      name: spanName,
-                      kind: spanKind,
+                      name: obiSpan.name,
+                      kind: obiSpan.kind,
                       startTime: startTime,
                       endTime: endTime,
                       durationUnixNano: durationUnixNano,
@@ -902,6 +924,17 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       spanRow,
                       pipelines,
                     );
+
+                    /*
+                     * A Span Kind Remapper can turn an INTERNAL span into a
+                     * SERVER one (or back): the span is an entry span by the
+                     * kind it is stored with, as the column's DEFAULT
+                     * expression would read it.
+                     */
+                    spanRow["isEntrySpan"] = isEntrySpan({
+                      isRootSpan: spanRow["isRootSpan"] === true,
+                      kind: spanRow["kind"],
+                    });
                   }
 
                   /*
@@ -973,7 +1006,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                          */
                         spanStatusCode:
                           (spanRow["statusCode"] as SpanStatus) ?? statusCode,
-                        spanName: (spanRow["name"] as string) || spanName,
+                        spanName: (spanRow["name"] as string) || obiSpan.name,
                         /*
                          * Read back off the POST-scrub, post-pipeline
                          * spanRow rather than recomputed from
@@ -1584,6 +1617,16 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       links: data.links,
       hasException: data.hasException,
       isRootSpan: data.isRootSpan,
+      /*
+       * Where work enters a service: the root, or a SERVER / CONSUMER span
+       * (Utils/Telemetry/EntrySpan). The traces explorer lists these by
+       * default. Worked out again after the pipelines, which can change
+       * the kind.
+       */
+      isEntrySpan: isEntrySpan({
+        isRootSpan: data.isRootSpan,
+        kind: data.kind,
+      }),
       isLlmSpan: data.llmFields.isLlmSpan,
       llmSystem: data.llmFields.llmSystem,
       llmOperation: data.llmFields.llmOperation,

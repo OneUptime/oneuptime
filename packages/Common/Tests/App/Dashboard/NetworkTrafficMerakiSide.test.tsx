@@ -804,6 +804,18 @@ describe("the network's page without any traffic", () => {
     expect(screen.getByTestId("traffic-setup-meraki")).toHaveTextContent(
       "Using Cisco Meraki?",
     );
+
+    /*
+     * Official logos audit: Meraki is Cisco's, and the row shows Cisco's
+     * logo where a cloud stood for it - decorative, beside the words that
+     * name it.
+     */
+    const logo: Element | null = screen
+      .getByTestId("traffic-setup-meraki")
+      .querySelector("[data-provider-logo]");
+    expect(logo).toHaveAttribute("data-provider-logo", "cisco");
+    expect(logo).toHaveAttribute("aria-hidden", "true");
+
     fireEvent.click(screen.getByTestId("traffic-setup-connect-meraki"));
     await flush();
 
@@ -851,6 +863,13 @@ describe("the network's page with flow records and no connection", () => {
     expect(screen.getByTestId("meraki-offer")).toHaveTextContent(
       "Using Cisco Meraki? Connect Meraki",
     );
+    // Cisco's logo, an icon's size, where a cloud stood for Meraki.
+    const logo: Element | null = screen
+      .getByTestId("meraki-offer")
+      .querySelector("[data-provider-logo]");
+    expect(logo).toHaveAttribute("data-provider-logo", "cisco");
+    expect(logo).toHaveAttribute("aria-hidden", "true");
+    expect(logo).not.toHaveClass("bg-white");
 
     fireEvent.click(screen.getByTestId("meraki-offer-connect"));
     await flush();

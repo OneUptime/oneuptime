@@ -5,7 +5,9 @@ import {
 } from "./ChecklistModel";
 import { RouteUtil } from "../../../Utils/RouteMap";
 import IconProp from "Common/Types/Icon/IconProp";
+import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
 import Icon from "Common/UI/Components/Icon/Icon";
+import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import Navigation from "Common/UI/Utils/Navigation";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -45,6 +47,8 @@ interface StepPresentation {
   iconBackgroundClassName: string;
   icon: IconProp;
   iconClassName: string;
+  // A product's logo in the icon's place: a step to do that connects Slack.
+  logo?: ProviderLogo | undefined;
   containerClassName: string;
   titleClassName: string;
   /** Right-hand label; null means render the chevron affordance instead. */
@@ -110,6 +114,7 @@ const getPresentation: GetPresentationFunction = (
     iconBackgroundClassName: step.iconBackgroundClassName,
     icon: step.icon,
     iconClassName: "text-white",
+    logo: step.logo,
     containerClassName:
       "cursor-pointer border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
     titleClassName: "text-gray-900",
@@ -165,14 +170,22 @@ const SetupChecklistTile: FunctionComponent<ComponentProps> = (
       data-status={step.status}
       className={`group flex items-start gap-4 rounded-lg border p-4 transition ${presentation.containerClassName}`}
     >
-      <div
-        className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${presentation.iconBackgroundClassName}`}
-      >
-        <Icon
-          icon={presentation.icon}
-          className={`h-5 w-5 ${presentation.iconClassName}`}
+      {presentation.logo ? (
+        <ProviderLogoImage
+          logo={presentation.logo}
+          size={40}
+          isDecorative={true}
         />
-      </div>
+      ) : (
+        <div
+          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${presentation.iconBackgroundClassName}`}
+        >
+          <Icon
+            icon={presentation.icon}
+            className={`h-5 w-5 ${presentation.iconClassName}`}
+          />
+        </div>
+      )}
       <div className="min-w-0 flex-1">
         <div
           className={`flex items-center gap-2 text-sm font-medium ${presentation.titleClassName}`}

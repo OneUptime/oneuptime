@@ -204,7 +204,7 @@ describe("every explorer mounting the control inherits clearing", () => {
 });
 
 describe("an empty view state lands each explorer on its defaults", () => {
-  test("traces: no search, no filter chips, the default hour, all spans, page one", () => {
+  test("traces: no search, no filter chips, the default hour, the default span type, page one", () => {
     expect(TRACES_CODE).toContain(
       'const nextSearch: string = state.search || ""',
     );
@@ -212,8 +212,14 @@ describe("an empty view state lands each explorer on its defaults", () => {
     expect(TRACES_CODE).toContain(
       "setTimeRange(deserializeSavedViewTimeRange(state.timeRange))",
     );
-    // Root-spans-only is a filter too: clearing has to let all spans back in.
-    expect(TRACES_CODE).toContain("setRootOnly(state.rootOnly ?? false)");
+    /*
+     * The span type is a filter too: clearing has to put the default back
+     * (an empty state names no span type; TraceSpanType.test pins what that
+     * reads as), not leave the view's Root or All spans behind.
+     */
+    expect(TRACES_CODE).toContain(
+      "setSpanType(readTraceSpanTypeFromSavedView(state, defaultSpanType))",
+    );
     expect(TRACES_CODE).toContain("setPage(1)");
     expect(TRACES_CODE).toContain(
       "setPageSize(state.pageSize || DEFAULT_PAGE_SIZE)",

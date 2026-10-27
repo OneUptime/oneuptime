@@ -7,9 +7,12 @@ import {
   FilterType,
 } from "../../../../Types/Monitor/CriteriaFilter";
 import Typeof from "../../../../Types/Typeof";
-import CaptureSpan from "../../Telemetry/CaptureSpan";
 import MetricValueFormatter from "../../../../Utils/Monitor/MetricValueFormatter";
 
+/*
+ * No @CaptureSpan here: each method compares values already in memory, in
+ * microseconds, several times per monitor check. A span each said nothing.
+ */
 export default class CompareCriteria {
   /*
    * Reduce an evaluation window to the value(s) a threshold is actually
@@ -112,7 +115,6 @@ export default class CompareCriteria {
     }).filter(data.predicate);
   }
 
-  @CaptureSpan()
   public static greaterThan(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -127,7 +129,6 @@ export default class CompareCriteria {
     });
   }
 
-  @CaptureSpan()
   public static isTrue(data: {
     value: boolean | Array<boolean>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -148,7 +149,6 @@ export default class CompareCriteria {
     return data.value === true;
   }
 
-  @CaptureSpan()
   public static isFalse(data: {
     value: boolean | Array<boolean>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -169,7 +169,6 @@ export default class CompareCriteria {
     return data.value === false;
   }
 
-  @CaptureSpan()
   public static lessThan(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -184,7 +183,6 @@ export default class CompareCriteria {
     });
   }
 
-  @CaptureSpan()
   public static greaterThanOrEqual(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -199,7 +197,6 @@ export default class CompareCriteria {
     });
   }
 
-  @CaptureSpan()
   public static lessThanOrEqual(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -214,7 +211,6 @@ export default class CompareCriteria {
     });
   }
 
-  @CaptureSpan()
   public static equalTo(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -229,7 +225,6 @@ export default class CompareCriteria {
     });
   }
 
-  @CaptureSpan()
   public static notEqualTo(data: {
     value: number | Array<number>;
     evaluationType?: EvaluateOverTimeType | undefined;
@@ -244,7 +239,6 @@ export default class CompareCriteria {
     });
   }
 
-  @CaptureSpan()
   public static convertToNumber(
     threshold: string | number | undefined,
   ): number | null {
@@ -293,7 +287,6 @@ export default class CompareCriteria {
    * Anything that does not parse to a finite number is treated as missing,
    * so the caller ignores the filter instead of comparing against NaN.
    */
-  @CaptureSpan()
   public static convertMetricThresholdToNumber(
     threshold: string | number | undefined,
   ): number | null {
@@ -313,7 +306,6 @@ export default class CompareCriteria {
     return parsed;
   }
 
-  @CaptureSpan()
   public static checkEqualToOrNotEqualTo(data: {
     value: string | number;
     threshold: string | number;
@@ -338,7 +330,6 @@ export default class CompareCriteria {
     return null;
   }
 
-  @CaptureSpan()
   public static compareEmptyAndNotEmpty(data: {
     value: any;
     criteriaFilter: CriteriaFilter;
@@ -365,7 +356,6 @@ export default class CompareCriteria {
     return null;
   }
 
-  @CaptureSpan()
   public static compareCriteriaStrings(data: {
     value: string;
     threshold: string;
@@ -450,7 +440,6 @@ export default class CompareCriteria {
     return null;
   }
 
-  @CaptureSpan()
   public static compareCriteriaBoolean(data: {
     value: Array<boolean> | boolean;
     criteriaFilter: CriteriaFilter;
@@ -502,7 +491,6 @@ export default class CompareCriteria {
     return null;
   }
 
-  @CaptureSpan()
   public static compareCriteriaNumbers(data: {
     value: Array<number> | number;
     threshold: number;
@@ -668,7 +656,6 @@ export default class CompareCriteria {
     return null;
   }
 
-  @CaptureSpan()
   public static getCompareMessage(data: {
     values: Array<number | boolean> | number | boolean | string;
     threshold: number | string | boolean;

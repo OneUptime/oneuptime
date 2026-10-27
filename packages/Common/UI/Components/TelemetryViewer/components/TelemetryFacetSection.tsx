@@ -48,6 +48,13 @@ export interface TelemetryFacetSectionProps {
   excludedValues?: Set<string> | undefined;
   // Values the page itself filters on: drawn set, not changeable here.
   lockedValues?: Set<string> | undefined;
+  /*
+   * The facet is a choice of one (FacetConfig.chosenValue): its rows are
+   * radio buttons, this one chosen.
+   */
+  chosenValue?: string | undefined;
+  // One line under the title saying what the values mean (English).
+  description?: string | undefined;
   defaultExpanded?: boolean;
   /*
    * When set, the search box also emits typed text to the parent (debounced)
@@ -165,6 +172,24 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
   // Checked and excluded values alike: every value this facet filters on.
   const activeCount: number = pinnedValues.size;
 
+  const isSingleChoice: boolean = props.chosenValue !== undefined;
+
+  const stateOf: (value: string) => FacetValueState = (
+    value: string,
+  ): FacetValueState => {
+    if (isSingleChoice) {
+      return value === props.chosenValue
+        ? FacetValueState.Included
+        : FacetValueState.None;
+    }
+
+    return props.activeValues?.has(value)
+      ? FacetValueState.Included
+      : props.excludedValues?.has(value)
+        ? FacetValueState.Excluded
+        : FacetValueState.None;
+  };
+
   return (
     <div className="border-b border-gray-100 py-2">
       <FacetSectionHeader
@@ -179,7 +204,25 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
       />
 
       {isExpanded && (
-        <div id={bodyId} className="mt-1 px-1">
+        <div
+          id={bodyId}
+          className="mt-1 px-1"
+          role={isSingleChoice ? "radiogroup" : undefined}
+          aria-label={
+            isSingleChoice
+              ? translator.translateText(props.title) || props.title
+              : undefined
+          }
+        >
+          {props.description && (
+            <p
+              className="px-1.5 pb-1.5 text-[11px] leading-snug text-gray-500"
+              data-testid="facet-section-description"
+            >
+              {translator.translateText(props.description) || props.description}
+            </p>
+          )}
+
           {/*
            * Two words, not a sentence: why it was not counted is said once,
            * by the note at the top of the sidebar or by the message where
@@ -216,14 +259,12 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
                 maxCount={maxCount}
                 isCountUnknown={props.isCountStopped}
                 color={props.valueColorMap?.[facet.value]}
-                state={
-                  props.activeValues?.has(facet.value)
-                    ? FacetValueState.Included
-                    : props.excludedValues?.has(facet.value)
-                      ? FacetValueState.Excluded
-                      : FacetValueState.None
+                state={stateOf(facet.value)}
+                isRadio={isSingleChoice}
+                isLocked={
+                  !isSingleChoice &&
+                  (props.lockedValues?.has(facet.value) || false)
                 }
-                isLocked={props.lockedValues?.has(facet.value) || false}
                 onInclude={(value: string) => {
                   props.onIncludeValue(props.facetKey, value);
                 }}

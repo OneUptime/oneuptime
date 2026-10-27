@@ -662,7 +662,8 @@ export function getMinuteOptions(current: number): Array<number> {
 
 /*
  * What started a run, by name: the Executions lists' "Triggered by" filter,
- * and the label over a scheduled or webhook run's details.
+ * and the label over a scheduled, webhook or security playbook run's
+ * details.
  */
 export const TRIGGER_NAMES: Readonly<Record<RunbookTriggerType, string>> = {
   [RunbookTriggerType.Manual]: translationKey("A person"),
@@ -671,6 +672,7 @@ export const TRIGGER_NAMES: Readonly<Record<RunbookTriggerType, string>> = {
   [RunbookTriggerType.AI]: translationKey("OneUptime AI"),
   [RunbookTriggerType.Schedule]: translationKey("Schedule"),
   [RunbookTriggerType.Webhook]: translationKey("Webhook"),
+  [RunbookTriggerType.SecurityPlaybook]: translationKey("Security playbook"),
 };
 
 export const TriggerDetailCopy: {
@@ -678,18 +680,27 @@ export const TriggerDetailCopy: {
   readonly catchUp: string;
   readonly waited: string;
   readonly fromAddress: string;
+  readonly forSecurityCase: string;
+  readonly byPlaybook: string;
   readonly inputsCardTitle: string;
   readonly inputsCardDescription: string;
+  readonly playbookInputsCardDescription: string;
   readonly copyInputsTitle: string;
 } = {
   scheduledFor: translationKey("Due at {{time}}"),
   catchUp: translationKey("Catch-up for times OneUptime missed"),
   waited: translationKey("Waited for the previous run to end"),
   fromAddress: translationKey("From {{address}}"),
+  forSecurityCase: translationKey("For security case {{caseNumber}}"),
+  byPlaybook: translationKey("Playbook {{playbookName}}"),
   inputsCardTitle: translationKey("Inputs"),
   // {{bash}} and {{javascript}} are drawn as code.
   inputsCardDescription: translationKey(
     "The values the webhook call sent. The steps read them as data: a Bash step as environment variables such as {{bash}}, a JavaScript step as {{javascript}}.",
+  ),
+  // {{bash}} and {{javascript}} are drawn as code.
+  playbookInputsCardDescription: translationKey(
+    "The security case the playbook ran it for. The steps read it as data: a Bash step as environment variables such as {{bash}}, a JavaScript step as {{javascript}}.",
   ),
   copyInputsTitle: translationKey("Copy the inputs"),
 };

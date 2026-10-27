@@ -452,6 +452,24 @@ describe("DashboardWidgetTimeRangeZoom", () => {
       }
     });
 
+    test("a playlist's turn on a screen offers neither, zoomed or not (issue #5235)", () => {
+      for (const isDashboardTimeRangeZoomed of [false, true]) {
+        const handlers: DashboardWidgetTimeRangeZoomHandlers =
+          DashboardWidgetTimeRangeZoom.getHandlers(
+            props({ isPlayback: true, isDashboardTimeRangeZoomed }),
+          );
+
+        expect(handlers.onTimeRangeSelect).toBeUndefined();
+        expect(handlers.onTimeRangeReset).toBeUndefined();
+      }
+
+      // Not a playlist's turn: the board's own drag, as before.
+      expect(
+        DashboardWidgetTimeRangeZoom.getHandlers(props({ isPlayback: false }))
+          .onTimeRangeSelect,
+      ).toBe(select);
+    });
+
     test("a host that owns no range offers nothing", () => {
       const handlers: DashboardWidgetTimeRangeZoomHandlers =
         DashboardWidgetTimeRangeZoom.getHandlers({
@@ -503,6 +521,21 @@ describe("DashboardWidgetTimeRangeZoom", () => {
           props({ onDashboardTimeRangeReset: undefined }),
         ),
       ).toBe(false);
+    });
+
+    test("a board becoming a playlist's turn is a different zoom; undefined and false are the same", () => {
+      expect(
+        DashboardWidgetTimeRangeZoom.isSameZoom(
+          props(),
+          props({ isPlayback: true }),
+        ),
+      ).toBe(false);
+      expect(
+        DashboardWidgetTimeRangeZoom.isSameZoom(
+          props({ isPlayback: undefined }),
+          props({ isPlayback: false }),
+        ),
+      ).toBe(true);
     });
 
     test("undefined and false zoom state are the same", () => {

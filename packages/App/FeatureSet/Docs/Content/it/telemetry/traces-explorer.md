@@ -22,7 +22,7 @@ flowchart TB
     pay --> call["Span: chiamare il<br/>fornitore di pagamenti"]
 ```
 
-Ogni riga dell'esploratore è uno span, quindi un servizio molto attivo riempie l'elenco con le sue query al database e le sue chiamate interne. Per elencare una riga per richiesta, scegliete **Root spans** sotto **Categoria di span** nella barra laterale.
+Ogni riga dell'esploratore è uno span. Per impostazione predefinita l'elenco mostra gli **Entry spans**, gli span in cui una richiesta o un messaggio entra in un servizio, quindi una richiesta compare una volta per ogni servizio che raggiunge, mentre le query al database e le chiamate interne restano fuori dall'elenco. Per elencare una riga per richiesta, scegliete **Root spans** sotto **Categoria di span** nella barra laterale; per elencare ogni operazione, scegliete **All spans**.
 
 L'esploratore ha cinque schede:
 
@@ -175,7 +175,7 @@ Indicano uno span padre che OneUptime non ha ricevuto, spesso perché il servizi
 :::
 
 :::details L'elenco mostra molte più righe che richieste
-Ogni riga è uno span, non una richiesta. Scegliete **Root spans** sotto **Categoria di span** nella barra laterale per elencare una riga per richiesta.
+Ogni riga è uno span, non una richiesta: con **Entry spans**, l'impostazione predefinita, una richiesta compare una volta per ogni servizio che raggiunge, e con **All spans** una volta per ogni operazione. Scegliete **Root spans** sotto **Categoria di span** nella barra laterale per elencare una riga per richiesta.
 :::
 
 ## Passaggi successivi

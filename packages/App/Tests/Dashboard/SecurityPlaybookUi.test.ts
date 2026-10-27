@@ -161,6 +161,15 @@ const FILLED: Record<SecurityPlaybookActionType, JSONObject> = {
     url: "https://example.com/hooks/security",
   },
   [SecurityPlaybookActionType.RunWorkflow]: { workflowId: ID_B },
+  [SecurityPlaybookActionType.RunRunbook]: { runbookId: ID_A },
+  [SecurityPlaybookActionType.PreserveEvidence]: {},
+  [SecurityPlaybookActionType.PostStatusPageAnnouncement]: {
+    statusPageIds: [ID_A, ID_B],
+    announcementTitle: "We are investigating a security issue",
+    announcementDescription: "Some sign-ins may be slower while we look.",
+    notifySubscribers: true,
+  },
+  [SecurityPlaybookActionType.FixWithAi]: {},
 };
 
 describe("the step dialog's values", () => {
@@ -195,6 +204,57 @@ describe("the step dialog's values", () => {
       }
     },
   );
+
+  test("an announcement's subscriber switch is kept as on or off, never as text", () => {
+    const off: SecurityPlaybookStep = formValuesToStep({
+      values: {
+        [STEP_ACTION_KEY]:
+          SecurityPlaybookActionType.PostStatusPageAnnouncement,
+        ...FILLED[SecurityPlaybookActionType.PostStatusPageAnnouncement],
+        notifySubscribers: undefined,
+      },
+      index: 0,
+    });
+
+    expect(off.config["notifySubscribers"]).toBe(false);
+
+    const picked: SecurityPlaybookStep = formValuesToStep({
+      values: {
+        [STEP_ACTION_KEY]:
+          SecurityPlaybookActionType.PostStatusPageAnnouncement,
+        ...FILLED[SecurityPlaybookActionType.PostStatusPageAnnouncement],
+        // A picker hands back options, not ids.
+        statusPageIds: [{ value: ID_C }],
+      },
+      index: 0,
+    });
+
+    expect(picked.config["statusPageIds"]).toEqual([ID_C]);
+    expect(picked.config["notifySubscribers"]).toBe(true);
+  });
+
+  test("a runbook or an announcement with nothing picked says what is missing, as the server would", () => {
+    expect(() => {
+      formValuesToStep({
+        values: { [STEP_ACTION_KEY]: SecurityPlaybookActionType.RunRunbook },
+        index: 0,
+      });
+    }).toThrow("Step 1 (Run a runbook): choose the runbook to run.");
+
+    expect(() => {
+      formValuesToStep({
+        values: {
+          [STEP_ACTION_KEY]:
+            SecurityPlaybookActionType.PostStatusPageAnnouncement,
+          announcementTitle: "Title",
+          announcementDescription: "Text",
+        },
+        index: 3,
+      });
+    }).toThrow(
+      "Step 4 (Post a status page announcement): choose the status pages to post on.",
+    );
+  });
 
   test("keeps the step's id when it is edited", () => {
     const step: SecurityPlaybookStep = formValuesToStep({
@@ -259,13 +319,32 @@ describe("the step dialog's values", () => {
     }
   });
 
-  test("a disruptive action starts needing approval, anything else does not", () => {
+  test("a disruptive action starts needing approval, and so does one that runs commands or speaks to customers; anything else does not", () => {
     for (const definition of SECURITY_PLAYBOOK_ACTIONS) {
       expect([
         definition.type,
         getNewStepFormValues(definition.type)["requiresApproval"],
-      ]).toEqual([definition.type, definition.isDisruptive]);
+      ]).toEqual([
+        definition.type,
+        definition.isDisruptive || Boolean(definition.needsApprovalByDefault),
+      ]);
     }
+
+    expect(
+      getNewStepFormValues(SecurityPlaybookActionType.RunRunbook)[
+        "requiresApproval"
+      ],
+    ).toBe(true);
+    expect(
+      getNewStepFormValues(
+        SecurityPlaybookActionType.PostStatusPageAnnouncement,
+      ),
+    ).toMatchObject({ requiresApproval: true, notifySubscribers: false });
+    expect(
+      getNewStepFormValues(SecurityPlaybookActionType.PreserveEvidence)[
+        "requiresApproval"
+      ],
+    ).toBe(false);
 
     expect(
       getNewStepFormValues(SecurityPlaybookActionType.LookUpEntityActivity)[
@@ -555,6 +634,62 @@ describe("a step's one-line summary", () => {
     expect(
       summary(SecurityPlaybookActionType.SetCaseStatus, { statusId: ID_B }),
     ).toContain("a removed status");
+  });
+
+  test("names the runbook and the status pages a response step uses, and says when one is gone", () => {
+    const named: StepNameLookup = emptyStepNameLookup();
+    named.runbooks.set(ID_A, "Block an address at the edge");
+    named.statusPages.set(ID_A, "Acme Status");
+
+    const responseSummary: (
+      action: SecurityPlaybookActionType,
+      config: JSONObject,
+    ) => string = (
+      action: SecurityPlaybookActionType,
+      config: JSONObject,
+    ): string => {
+      return summarizeSecurityPlaybookStep(
+        {
+          id: "s",
+          action,
+          config,
+          requiresApproval: true,
+          continueOnFailure: false,
+          onlyIfThreatIntelMatched: false,
+        },
+        named,
+        ENGLISH,
+      );
+    };
+
+    expect(
+      responseSummary(SecurityPlaybookActionType.RunRunbook, {
+        runbookId: ID_A,
+      }),
+    ).toBe("Block an address at the edge");
+    expect(
+      responseSummary(SecurityPlaybookActionType.RunRunbook, {
+        runbookId: ID_B,
+      }),
+    ).toBe("a removed runbook");
+    expect(
+      responseSummary(SecurityPlaybookActionType.PostStatusPageAnnouncement, {
+        statusPageIds: [ID_A, ID_B],
+        notifySubscribers: false,
+      }),
+    ).toBe("On Acme Status, a removed status page");
+    expect(
+      responseSummary(SecurityPlaybookActionType.PostStatusPageAnnouncement, {
+        statusPageIds: [ID_A],
+        notifySubscribers: true,
+      }),
+    ).toBe("On Acme Status, notifying subscribers");
+    expect(
+      responseSummary(SecurityPlaybookActionType.PreserveEvidence, {}),
+    ).toBe("Keeps session replays, notes traces and exceptions");
+    expect(responseSummary(SecurityPlaybookActionType.FixWithAi, {})).toBe(
+      "A pull request for each exception the case's requests threw",
+    );
   });
 
   test("shows only the start of a long note, on one line", () => {

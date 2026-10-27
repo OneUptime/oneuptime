@@ -22,7 +22,7 @@ flowchart TB
     pay --> call["Span : appeler le<br/>prestataire de paiement"]
 ```
 
-Chaque ligne de l'explorateur est un span : un service très sollicité remplit donc la liste de ses requêtes en base et de ses appels internes. Pour lister une ligne par requête, choisissez **Root spans** sous **Catégorie de span** dans la barre latérale.
+Chaque ligne de l'explorateur est un span. Par défaut, la liste affiche les **Entry spans**, les spans où une requête ou un message entre dans un service : une requête apparaît donc une fois pour chaque service qu'elle atteint, tandis que les requêtes en base et les appels internes restent hors de la liste. Pour lister une ligne par requête, choisissez **Root spans** sous **Catégorie de span** dans la barre latérale ; pour lister chaque opération, choisissez **All spans**.
 
 L'explorateur a cinq onglets :
 
@@ -175,7 +175,7 @@ Ils nomment un span parent que OneUptime n'a pas reçu, souvent parce que le ser
 :::
 
 :::details La liste montre bien plus de lignes que de requêtes
-Chaque ligne est un span, pas une requête. Choisissez **Root spans** sous **Catégorie de span** dans la barre latérale pour lister une ligne par requête.
+Chaque ligne est un span, pas une requête : avec **Entry spans**, la valeur par défaut, une requête apparaît une fois pour chaque service qu'elle atteint, et avec **All spans**, une fois pour chaque opération. Choisissez **Root spans** sous **Catégorie de span** dans la barre latérale pour lister une ligne par requête.
 :::
 
 ## Étapes suivantes

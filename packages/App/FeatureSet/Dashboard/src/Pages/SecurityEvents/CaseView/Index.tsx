@@ -3,6 +3,7 @@ import EventStatBar from "../../../Components/EventView/EventStatBar";
 import EventStatTile from "../../../Components/EventView/EventStatTile";
 import MitreAttackChips from "../../../Components/SecurityCase/MitreAttackChips";
 import SecurityCaseAiCard from "../../../Components/SecurityCase/SecurityCaseAiCard";
+import SecurityCaseImpactCard from "../../../Components/SecurityCase/Context/SecurityCaseImpactCard";
 import {
   SecurityCaseFigures,
   getSecurityCaseFigures,
@@ -28,10 +29,15 @@ import React, { FunctionComponent, ReactElement } from "react";
  * detections it holds and for how long it has been worked; what OneUptime
  * AI made of it, first, as the read an analyst starts from (not drawn at
  * all with the project's AI off); and the ATT&CK tactics and techniques its
- * detections map to - the kind of attack this is.
+ * detections map to - the kind of attack this is. Between the two, its
+ * Impact: what the case puts at risk, as the rest of OneUptime knows it -
+ * whether OneUptime has seen it reached from the internet, who owns what it
+ * names and what last changed there, with what each record calls and is
+ * watched by folded away until asked for.
  *
  * Its parts are pages of their own, in the case's side menu: the Timeline,
- * the Detections, the Entities, the Playbooks and the Private Notes.
+ * the Story, the Detections, the Entities, the Playbooks and the Private
+ * Notes.
  */
 const SecurityCaseOverviewPage: FunctionComponent<
   PageComponentProps
@@ -114,6 +120,11 @@ const SecurityCaseOverviewPage: FunctionComponent<
         onRunPlaybook={(playbookId: ObjectID) => {
           view.runPlaybook(playbookId);
         }}
+      />
+
+      <SecurityCaseImpactCard
+        caseId={view.caseId}
+        refreshToken={view.refreshToggle}
       />
 
       <Card

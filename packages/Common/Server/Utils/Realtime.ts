@@ -135,7 +135,6 @@ export default abstract class Realtime {
   // How many sockets a change of sign-in rules asks again at once.
   public static readonly RECHECK_CONCURRENCY: number = 20;
 
-  @CaptureSpan()
   public static isInitialized(): boolean {
     logger.debug("Checking if socket server is initialized");
     const isInitialized: boolean = this.socketServer !== null;

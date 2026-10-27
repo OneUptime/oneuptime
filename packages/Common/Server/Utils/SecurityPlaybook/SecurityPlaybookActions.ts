@@ -109,6 +109,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import WorkspaceUtil from "../Workspace/Workspace";
 import { WorkspaceSendMessageResponse } from "../Workspace/WorkspaceBase";
 import SecurityPlaybookContainment from "./SecurityPlaybookContainment";
+import SecurityPlaybookResponseSteps from "./SecurityPlaybookResponseSteps";
 import logger from "../Logger";
 import { loadSecurityConnections } from "../SecurityEvent/Connections/ConnectionsLoader";
 import type { SecurityConnectedRecord } from "../SecurityEvent/Connections/SecurityConnectedRecords";
@@ -241,6 +242,20 @@ export default class SecurityPlaybookActions {
         return await this.sendWebhook(context);
       case SecurityPlaybookActionType.RunWorkflow:
         return await this.runWorkflow(context);
+      // The steps that respond through the rest of OneUptime.
+      case SecurityPlaybookActionType.PreserveEvidence:
+        return await SecurityPlaybookResponseSteps.preserveEvidence(context);
+      case SecurityPlaybookActionType.PostStatusPageAnnouncement:
+        return await SecurityPlaybookResponseSteps.postStatusPageAnnouncement(
+          context,
+        );
+      case SecurityPlaybookActionType.RunRunbook:
+        return await SecurityPlaybookResponseSteps.runRunbook(
+          context,
+          await this.getTemplateValues(context),
+        );
+      case SecurityPlaybookActionType.FixWithAi:
+        return await SecurityPlaybookResponseSteps.fixWithAi(context);
       case SecurityPlaybookActionType.SuspendOktaUser:
       case SecurityPlaybookActionType.EndOktaSessions:
       case SecurityPlaybookActionType.ContainCrowdStrikeHost:

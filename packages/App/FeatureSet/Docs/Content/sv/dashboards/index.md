@@ -46,6 +46,7 @@ Listans sidomeny har sidorna som tar hand om alla dina instrumentpaneler:
 | Sida | Vad du gör där |
 | --- | --- |
 | **Instrumentpaneler** | Projektets instrumentpaneler. Skapa en, eller hämta in instrumentpaneler med **Import JSON**. |
+| **Instrumentpaneler → Spellistor** | [Visa instrumentpaneler efter varandra](/docs/dashboards/playlists) på en skärm, till exempel en NOC-vägg. |
 | **Inställningar → Ägarregler** | Lägg automatiskt till ägare på nya instrumentpaneler. |
 | **Inställningar → Etikettregler** | Lägg automatiskt till etiketter på nya instrumentpaneler. |
 | **Inställningar → Datakällor** | Anslut Prometheus, SQL-databaser, ClickHouse, Loki, Elasticsearch eller ett REST-API. |

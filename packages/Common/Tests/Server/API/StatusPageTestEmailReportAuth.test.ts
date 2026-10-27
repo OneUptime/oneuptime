@@ -640,14 +640,15 @@ describe("POST /status-page/test-email-report authorization", () => {
       );
     });
 
-    it("applies the same checks when the multi-tenant header is sent", async () => {
+    // One project or across projects, never both (MultiTenantQuery).
+    it("refuses the multi-tenant header beside the project, even from someone who may send", async () => {
       expectRejected(
         await send({
-          userId: OWNED_SCOPE_NOT_OWNER_IN_A,
+          userId: EDITOR_IN_A,
           tenantId: PROJECT_A,
           headers: { "is-multi-tenant-query": "true" },
         }),
-        422,
+        400,
       );
     });
   });

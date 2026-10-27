@@ -34,6 +34,12 @@ export interface ComponentProps {
   thenLabel: string;
   closeButtonText: string;
   onClose: () => void;
+  /*
+   * Large by default: the Dashboard's own sheet lists every page's keys. A
+   * sheet of a few keys (the playlist player's six) asks for Medium, rather
+   * than two short columns spread across the whole window.
+   */
+  modalWidth?: ModalWidth | undefined;
 }
 
 /**
@@ -60,7 +66,7 @@ const KeyboardShortcutsModal: FunctionComponent<ComponentProps> = (
     <Modal
       title={props.title}
       description={props.description}
-      modalWidth={ModalWidth.Large}
+      modalWidth={props.modalWidth ?? ModalWidth.Large}
       closeButtonText={props.closeButtonText}
       onClose={props.onClose}
     >

@@ -1,4 +1,5 @@
 import IconProp from "../Icon/IconProp";
+import ProviderLogo from "../ProviderLogo/ProviderLogo";
 import LlmConnectionProvider from "./LlmConnectionProvider";
 
 /*
@@ -62,6 +63,8 @@ export interface LlmConnectionDefinition {
   // Where the credential comes from, shown above the form's fields.
   hint: string;
   icon: IconProp;
+  // The product's official logo, on its tile, its form and its row of the list.
+  logo: ProviderLogo;
   /*
    * The OpenTelemetry GenAI value of gen_ai.provider.name for the calls
    * this connection describes (openai, anthropic, azure.ai.openai,
@@ -136,6 +139,7 @@ const AZURE_CLIENT_SECRET_FIELD: LlmConnectionField = {
 export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
   {
     provider: LlmConnectionProvider.OpenAI,
+    logo: ProviderLogo.OpenAI,
     kind: LlmConnectionKind.ProviderAccount,
     title: "OpenAI",
     description: "Usage and cost of your OpenAI organization.",
@@ -164,6 +168,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
   },
   {
     provider: LlmConnectionProvider.Anthropic,
+    logo: ProviderLogo.Anthropic,
     kind: LlmConnectionKind.ProviderAccount,
     title: "Anthropic",
     description: "Usage and cost of your Claude API organization.",
@@ -191,6 +196,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
   },
   {
     provider: LlmConnectionProvider.AzureOpenAI,
+    logo: ProviderLogo.AzureOpenAI,
     kind: LlmConnectionKind.ProviderAccount,
     title: "Azure OpenAI and Microsoft Foundry",
     description:
@@ -224,6 +230,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
   },
   {
     provider: LlmConnectionProvider.AwsBedrock,
+    logo: ProviderLogo.AmazonBedrock,
     kind: LlmConnectionKind.ProviderAccount,
     title: "Amazon Bedrock",
     description: "Usage of Amazon Bedrock models in your AWS account.",
@@ -270,6 +277,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
   },
   {
     provider: LlmConnectionProvider.GoogleVertexAI,
+    logo: ProviderLogo.GoogleVertexAI,
     kind: LlmConnectionKind.ProviderAccount,
     title: "Google Vertex AI",
     description: "Usage of Gemini, Claude and other models on Vertex AI.",
@@ -307,6 +315,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
   },
   {
     provider: LlmConnectionProvider.ClaudeEnterprise,
+    logo: ProviderLogo.Claude,
     kind: LlmConnectionKind.CompanyTool,
     title: "Claude Enterprise",
     description: "What your people ask Claude on claude.ai.",
@@ -335,6 +344,7 @@ export const LlmConnectionCatalog: Array<LlmConnectionDefinition> = [
   },
   {
     provider: LlmConnectionProvider.Microsoft365Copilot,
+    logo: ProviderLogo.MicrosoftCopilot,
     kind: LlmConnectionKind.CompanyTool,
     title: "Microsoft 365 Copilot",
     description:

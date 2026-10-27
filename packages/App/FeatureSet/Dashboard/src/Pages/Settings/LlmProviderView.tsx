@@ -16,6 +16,7 @@ import {
   getLlmProviderShownValue,
   getLlmProviderTypeCopy,
 } from "Common/UI/Components/AI/LlmProviderFormCopy";
+import LlmProviderTypeLabel from "Common/UI/Components/AI/LlmProviderTypeLabel";
 import ModelDelete from "Common/UI/Components/ModelDelete/ModelDelete";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -138,12 +139,7 @@ const LlmProviderView: FunctionComponent<PageComponentProps> = (
               title: "Provider",
               fieldType: FieldType.Element,
               getElement: (item: LlmProvider): ReactElement => {
-                return (
-                  <span>
-                    {getLlmProviderTypeCopy(item.llmType)?.title ||
-                      item.llmType}
-                  </span>
-                );
+                return <LlmProviderTypeLabel llmType={item.llmType} />;
               },
             },
             {

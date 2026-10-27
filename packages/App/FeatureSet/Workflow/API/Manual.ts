@@ -21,12 +21,13 @@ export default class ManualAPI {
   public constructor() {
     this.router = Express.getRouter();
 
-    this.router.get(
-      `/run/:workflowId`,
-      UserMiddleware.getUserMiddleware,
-      this.manuallyRunWorkflow,
-    );
-
+    /*
+     * POST only. A run executes the workflow as the person who asks, as a
+     * test run that goes ahead while the workflow is off. The session
+     * cookie is SameSite=Lax, which a link on another site still carries on
+     * a GET, and the project can be named in the query string - so as a
+     * GET, a link a member followed ran the workflow as them.
+     */
     this.router.post(
       `/run/:workflowId`,
       UserMiddleware.getUserMiddleware,

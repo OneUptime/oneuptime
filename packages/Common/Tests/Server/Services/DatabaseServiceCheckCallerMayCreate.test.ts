@@ -109,6 +109,8 @@ function propsWith(
           (hasLabels && !input.isBlockPermission
             ? PermissionScope.Labels
             : PermissionScope.All),
+        // The caller's team holds it: an Owned row reaches what that team owns.
+        teamId: TEAM_ID,
       };
     },
   );

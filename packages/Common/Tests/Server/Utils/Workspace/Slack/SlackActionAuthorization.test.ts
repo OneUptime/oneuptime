@@ -56,6 +56,7 @@ import Dictionary from "../../../../../Types/Dictionary";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
 import ProjectService from "../../../../../Server/Services/ProjectService";
+import UserService from "../../../../../Server/Services/UserService";
 import { PlanType } from "../../../../../Types/Billing/SubscriptionPlan";
 import Permission, {
   UserPermission,
@@ -213,6 +214,8 @@ beforeEach((): void => {
   });
   // Not a blocked project: that refusal is BlockedProjectBackgroundWork.test.ts.
   jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+  // Nor a blocked person (WorkspaceActionAuthorization asks that too).
+  jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
   jest.spyOn(Response, "sendJsonObjectResponse").mockImplementation(() => {});
   jest.spyOn(Response, "sendTextResponse").mockImplementation(() => {});
   jest.spyOn(Response, "sendErrorResponse").mockImplementation(() => {});

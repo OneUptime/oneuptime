@@ -725,11 +725,17 @@ export default class AccessControlPermission {
       return query;
     }
 
-    return this.addLabelIdsToQuery(
+    for (const labelIds of this.getAccessControlIdListsForQuery(
       modelType,
       query,
-      this.getAccessControlIdsForQuery(modelType, query, select, props, type),
-    );
+      select,
+      props,
+      type,
+    )) {
+      query = this.addLabelIdsToQuery(modelType, query, labelIds);
+    }
+
+    return query;
   }
 
   /*
@@ -885,6 +891,133 @@ export default class AccessControlPermission {
         columnPermissions: columnPermissions,
       }),
     });
+  }
+
+  /*
+   * THE LABEL LISTS A LABELLED MODEL'S RECORDS ARE NARROWED BY, ONE
+   * CONDITION EACH: the labels the operation's own grants are limited to,
+   * and, for each column the query names or selects whose permissions are
+   * granted limited to labels, those. A record must carry one label of each
+   * list (addLabelIdsToQuery, asked once per list): a column the caller may
+   * read only on some records reaches no other record. Read as one list -
+   * every label of every list (getAccessControlIdsForQuery) - a column's
+   * grant widened the read instead: a member who reads the monitors
+   * carrying one label, and may change the ones carrying another, read the
+   * second label's monitors whole by selecting a column only editors read.
+   * An empty list narrows nothing.
+   */
+  public static getAccessControlIdListsForQuery<TBaseModel extends BaseModel>(
+    modelType: DatabaseBaseModelType,
+    query: Query<TBaseModel>,
+    select: Select<TBaseModel> | null,
+    props: DatabaseCommonInteractionProps,
+    type: DatabaseRequestType,
+  ): Array<Array<ObjectID>> {
+    const model: BaseModel = new modelType();
+
+    let columns: Array<string> = Object.keys(query);
+
+    if (select) {
+      columns = [...columns, ...Object.keys(select)];
+    }
+
+    const context: AccessControlPermissionContext =
+      this.buildPermissionContext(props);
+
+    const lists: Array<Array<ObjectID>> = [
+      this.getAccessControlIdsForModel(modelType, props, type, context),
+    ];
+
+    const columnAccessControlDictionary: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+
+    for (const column of new Set<string>(columns)) {
+      const accessControl: ColumnAccessControl | null =
+        columnAccessControlDictionary[column] || null;
+
+      if (!accessControl) {
+        continue;
+      }
+
+      const columnPermissions: Array<Permission> | undefined =
+        type === DatabaseRequestType.Read
+          ? accessControl.read
+          : type === DatabaseRequestType.Create
+            ? accessControl.create
+            : type === DatabaseRequestType.Update
+              ? accessControl.update
+              : undefined;
+
+      if (!columnPermissions) {
+        continue;
+      }
+
+      lists.push(
+        this.getAccessControlIdsByPermissions(
+          this.getColumnGrantingPermissions(
+            modelType,
+            type,
+            columnPermissions,
+            context.held,
+          ),
+          context,
+        ),
+      );
+    }
+
+    return AccessControlPermission.getListsToNarrowBy(
+      lists.filter((labelIds: Array<ObjectID>): boolean => {
+        return labelIds.length > 0;
+      }),
+    );
+  }
+
+  /*
+   * Of label lists to narrow by, each a condition of its own, the ones that
+   * add something: a list holding every label of another adds nothing to
+   * that other's condition (a record carrying one of the fewer labels
+   * carries one of the more), so only the smaller is kept - of two lists of
+   * the same labels, the first.
+   */
+  private static getListsToNarrowBy(
+    lists: Array<Array<ObjectID>>,
+  ): Array<Array<ObjectID>> {
+    const keyed: Array<Set<string>> = lists.map(
+      (labelIds: Array<ObjectID>): Set<string> => {
+        return new Set<string>(
+          labelIds.map((labelId: ObjectID): string => {
+            return labelId.toString().toLowerCase();
+          }),
+        );
+      },
+    );
+
+    const isWithin: (labels: Set<string>, within: Set<string>) => boolean = (
+      labels: Set<string>,
+      within: Set<string>,
+    ): boolean => {
+      for (const label of labels) {
+        if (!within.has(label)) {
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    return lists.filter(
+      (_labelIds: Array<ObjectID>, index: number): boolean => {
+        return !keyed.some(
+          (other: Set<string>, otherIndex: number): boolean => {
+            if (otherIndex === index || !isWithin(other, keyed[index]!)) {
+              return false;
+            }
+
+            return !isWithin(keyed[index]!, other) || otherIndex < index;
+          },
+        );
+      },
+    );
   }
 
   @CaptureSpan()

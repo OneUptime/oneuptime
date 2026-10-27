@@ -1767,6 +1767,17 @@ describe("Code's Repositories", () => {
     openNotConnected();
     expect(screen.queryByTestId("code-not-connected-reconnect")).toBeNull();
 
+    /*
+     * Official logos audit: Connect GitHub carries GitHub's own mark, as the
+     * Connect GitHub button of Code's start does - not a link glyph.
+     */
+    const reconnect: HTMLElement = within(empty).getByTestId(
+      "code-github-reconnect",
+    );
+    expect(
+      reconnect.querySelector("path")?.getAttribute("d")?.startsWith("M12 0c"),
+    ).toBe(true);
+
     fireEvent.click(within(empty).getByTestId("code-github-reconnect"));
 
     await waitFor(() => {

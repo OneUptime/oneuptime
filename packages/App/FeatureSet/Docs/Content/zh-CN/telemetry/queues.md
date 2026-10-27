@@ -725,6 +725,8 @@ service:
 
 BullMQ 把作业保存在 Redis 中，没有可抓取的 broker；请在应用中把队列深度作为携带 `messaging.system` 和 `messaging.destination.name` 的指标报告，就像 OneUptime 自己的 worker 用 `queue.size` 所做的那样。
 
+借助 [Kubernetes 代理的 eBPF 追踪器](/docs/telemetry/kubernetes-agent#ebpf-追踪是什么样子)，OneUptime 还能从 BullMQ 发送的 Redis 命令中读取 BullMQ 队列（BullMQ 5 及更高版本），无需修改你的应用：添加作业会把该服务显示为其队列的生产者，完成作业则显示为消费者。代理默认会丢弃在请求之外发起的数据库调用（`ebpf.dropUnlinkedDatabaseCalls`），而处理作业的 worker 本身就在请求之外，因此以这种方式发现的队列在默认情况下主要显示其生产者；设置 `ebpf.dropUnlinkedDatabaseCalls=false` 可同时看到它的消费者。
+
 BullMQ 自己的遥测（它的 `telemetry` 选项，由 `bullmq-otel` 包实现）在 `bullmq.queue.name` 中指明队列，并且不设置 `messaging.system`，因此单靠它不会创建队列。在你的应用所发送到的 Collector 中，一个 `transform` 处理器会在添加和处理作业的 span 以及 BullMQ 自己的指标上添加 OneUptime 读取的两个键：
 
 ```yaml

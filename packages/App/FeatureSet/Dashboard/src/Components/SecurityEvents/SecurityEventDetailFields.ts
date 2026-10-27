@@ -141,6 +141,21 @@ export function buildSecurityEventOverviewFields(
       value: event.targetPort ? event.targetPort.toString() : "",
     },
     { label: "Target Resource", value: text(event.targetResource) },
+    /*
+     * The request the event happened in: how far it got, and the ids that
+     * find every other event of the same request or session.
+     */
+    {
+      label: "Request Outcome",
+      value: text(event.requestOutcome),
+      facetKey: "requestOutcome",
+    },
+    { label: "Trace ID", value: text(event.traceId), facetKey: "traceId" },
+    {
+      label: "Session ID",
+      value: text(event.sessionId),
+      facetKey: "sessionId",
+    },
     { label: "Event UID", value: text(event.eventUid) },
   ];
 
@@ -195,6 +210,10 @@ export function buildSecurityEventJson(event: SecurityEvent): JSONObject {
     targetPort: event.targetPort ?? null,
     targetResource: event.targetResource || "",
     observables: event.observables || [],
+    traceId: event.traceId || "",
+    spanId: event.spanId || "",
+    sessionId: event.sessionId || "",
+    requestOutcome: event.requestOutcome || "",
     attributes: (event.attributes || {}) as JSONObject,
   };
 }

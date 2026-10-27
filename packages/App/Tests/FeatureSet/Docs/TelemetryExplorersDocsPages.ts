@@ -85,7 +85,9 @@ export const FIRST_REFERENCE_PAGE: string = "Search Syntax";
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     [TRACES_EXPLORER]: [
+      "Entry spans",
       "Root spans",
+      "All spans",
       "See full trace",
       "Critical path",
       "Errors only",

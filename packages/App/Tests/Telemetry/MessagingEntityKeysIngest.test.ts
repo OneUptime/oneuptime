@@ -159,6 +159,7 @@ const EXPECTED_SPAN_ROW_KEY_ORDER: Array<string> = [
   "links",
   "hasException",
   "isRootSpan",
+  "isEntrySpan",
   "isLlmSpan",
   "llmSystem",
   "llmOperation",

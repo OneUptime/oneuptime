@@ -69,8 +69,6 @@
   },
   "userProfile": {
     "exitAdmin": "एडमिन से बाहर निकलें",
-    "darkTheme": "गहरे रंग वाली थीम",
-    "lightTheme": "हल्के रंग वाली थीम",
     "logOut": "लॉग आउट"
   },
   "footer": {
@@ -1511,6 +1509,10 @@
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "जो भी इस सर्वर को खोल सकता है, वह खाता बना सकता है। आपकी टीम के खाते बन जाने के बाद इसे बंद करें।",
   "Choose who can sign up": "चुनें कि कौन साइन अप कर सकता है",
   "Still to do": "अभी बाकी",
+  "Theme": "थीम",
+  "Light": "हल्की",
+  "Dark": "गहरी",
+  "System": "सिस्टम",
   "markdownCallouts": {
     "caution": "सावधानी",
     "danger": "खतरा",

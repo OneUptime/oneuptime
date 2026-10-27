@@ -16,6 +16,24 @@ export const MAX_SECURITY_EVENT_AGE_IN_DAYS: number = 366;
 export const MAX_SECURITY_EVENT_FUTURE_SKEW_IN_MINUTES: number = 60;
 
 /*
+ * A W3C trace id is 32 characters and a span id 16; other sources use
+ * UUIDs and the like. Anything longer than this is not an id, and is not
+ * kept.
+ */
+export const MAX_SECURITY_EVENT_TELEMETRY_ID_LENGTH: number = 128;
+
+// A trace, span or session id as the row keeps it: trimmed, '' when absent.
+export function readSecurityEventTelemetryId(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  const id: string = value.trim();
+
+  return id.length > MAX_SECURITY_EVENT_TELEMETRY_ID_LENGTH ? "" : id;
+}
+
+/*
  * NormalizedSecurityEvent -> SecurityEvent ClickHouse row. Shared by the
  * ingest pipeline and the detection engine (which writes Detection
  * Finding rows through the same shape), so the two can never drift.
@@ -100,6 +118,10 @@ export function buildSecurityEventDbRow(data: {
     targetPort: normalized.targetPort,
     targetResource: normalized.targetResource,
     observables: normalized.observables,
+    traceId: readSecurityEventTelemetryId(normalized.traceId),
+    spanId: readSecurityEventTelemetryId(normalized.spanId),
+    sessionId: readSecurityEventTelemetryId(normalized.sessionId),
+    requestOutcome: normalized.requestOutcome || "",
     attributes,
     attributeKeys: TelemetryUtil.getAttributeKeys(attributes),
     retentionDate: OneUptimeDate.toClickhouseDateTime(retentionDate),

@@ -378,6 +378,20 @@ describe("the Send to your SIEM table", () => {
         ),
       ).toEqual(["Google SecOps ·", detail.split(" · ")[1]]);
 
+      /*
+       * Official logos audit: the SIEM's official logo starts the row, on
+       * a 32 pixel tile, as the AI and cloud connections lists draw theirs;
+       * decorative, since the detail line names the product.
+       */
+      const logo: Element | null = document.querySelector(
+        "[data-provider-logo]",
+      );
+      expect(logo).toHaveAttribute(
+        "data-provider-logo",
+        "google-security-operations",
+      );
+      expect(logo).toHaveAttribute("aria-hidden", "true");
+      expect(logo).toHaveClass("bg-white", "h-8", "w-8");
       unmount();
     }
   });

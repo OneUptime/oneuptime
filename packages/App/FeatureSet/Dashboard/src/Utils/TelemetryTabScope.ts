@@ -8,6 +8,11 @@ import {
   isResourceEntityFacetKey,
   isServiceFacetKey,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
+import {
+  TRACE_SPAN_TYPE_URL_PARAM,
+  TraceSpanType,
+  parseTraceSpanType,
+} from "Common/Types/Telemetry/TraceSpanType";
 
 /*
  * Carrying "which slice of telemetry am I looking at" across the Viewer /
@@ -64,6 +69,11 @@ export const TELEMETRY_TAB_SCOPE_PARAM_NAMES: ReadonlyArray<string> = [
   "end",
   "savedView",
   "search",
+  /*
+   * The Traces Viewer's Span Type (entry / root / all spans), and the
+   * root-spans-only toggle links carried before it.
+   */
+  "spanType",
   "rootOnly",
 ];
 
@@ -369,6 +379,8 @@ const ATTRIBUTE_FACET_PREFIX: string = "attributes.";
 export interface UnappliedScopeExtras {
   search?: string | null | undefined;
   rootOnly?: boolean | null | undefined;
+  // The Traces Viewer's Span Type, as the link named it.
+  spanType?: TraceSpanType | null | undefined;
 }
 
 /**
@@ -399,10 +411,11 @@ export function describeUnappliedScopeFilters(
   }
 
   /*
-   * Only the narrowing value earns a mention. `rootOnly === false` is the
-   * explorer showing everything, which is not a filter to warn about.
+   * Only a narrowing the reader chose earns a mention. `rootOnly === false`
+   * and All spans are the explorer showing everything, and Entry spans is
+   * what it shows when nobody chose: neither is a filter to warn about.
    */
-  if (extras?.rootOnly === true) {
+  if (extras?.rootOnly === true || extras?.spanType === TraceSpanType.Root) {
     labels.push("root spans only");
   }
 
@@ -628,6 +641,13 @@ export interface ServiceScopedInsightsUrlScope {
   search: string | null;
   /** The Traces root-spans-only toggle. Null when the link named none. */
   rootOnly: boolean | null;
+  /**
+   * The Traces Viewer's Span Type (`spanType`), carried verbatim. Null when
+   * the link named none - the Viewer leaves its default out of the URL, so
+   * that is the usual case. A link from before it names `rootOnly` instead,
+   * carried above.
+   */
+  spanType: TraceSpanType | null;
 }
 
 export function readServiceScopedInsightsUrlScope(
@@ -660,6 +680,7 @@ export function readServiceScopedInsightsUrlScope(
     search: params["search"] ?? null,
     rootOnly:
       rawRootOnly === undefined ? null : rawRootOnly.toLowerCase() === "true",
+    spanType: parseTraceSpanType(params[TRACE_SPAN_TYPE_URL_PARAM]),
   };
 }
 
@@ -673,6 +694,7 @@ export interface ServiceScopedInsightsUrlScopeInput {
   /** Carried verbatim; null when the page holds none. */
   search?: string | null | undefined;
   rootOnly?: boolean | null | undefined;
+  spanType?: TraceSpanType | null | undefined;
 }
 
 export function buildServiceScopedInsightsUrlParams(
@@ -702,6 +724,8 @@ export function buildServiceScopedInsightsUrlParams(
      */
     search: input.search ? input.search : null,
     rootOnly: input.rootOnly === true ? "true" : null,
+    // Verbatim, as it came: the Viewer reads it back as it wrote it.
+    [TRACE_SPAN_TYPE_URL_PARAM]: input.spanType ? input.spanType : null,
   };
 }
 

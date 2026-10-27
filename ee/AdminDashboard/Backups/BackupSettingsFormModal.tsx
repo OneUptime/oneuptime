@@ -414,6 +414,7 @@ const BackupSettingsFormModal: FunctionComponent<ComponentProps> = (
             title: provider.title,
             description: provider.description,
             icon: provider.icon,
+            logo: provider.logo,
           };
         },
       ),

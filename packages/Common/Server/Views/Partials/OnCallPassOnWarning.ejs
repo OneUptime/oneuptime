@@ -6,8 +6,8 @@
 
     Locals: warning.
 -%>
-<div class="mt-4 flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="alert" data-testid="pass-on-warning">
-    <svg class="mt-0.5 h-5 w-5 flex-none text-amber-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+<div class="mt-4 flex items-start gap-3 rounded-md border border-amber-200 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/10 p-3 text-sm text-amber-900 dark:text-amber-100" role="alert" data-testid="pass-on-warning">
+    <svg class="mt-0.5 h-5 w-5 flex-none text-amber-600 dark:text-amber-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 10.5v3.75m-9.303 3.376C1.83 19.126 2.914 21 4.645 21h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 4.88c-.866-1.501-3.032-1.501-3.898 0L2.697 17.626zM12 17.25h.007v.008H12v-.008z" />
     </svg>
     <p><%= warning %></p>
