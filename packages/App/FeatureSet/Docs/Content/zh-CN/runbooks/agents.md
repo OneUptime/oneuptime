@@ -101,7 +101,7 @@ Runner 只保存自己的 ID 和密钥。其余一切都随它领取的任务一
 | **执行运行手册** | **更多字段** 下 | 默认开启。允许此 Runner 领取 Runbook 步骤。 |
 | **标签** | **更多字段** 下 | 可选。 |
 
-Runner 会在下一次心跳时获取功能的变更，无需重启。AI 不是一项功能。代码存储库会在代码的设置中选择 AI 在其中工作所用的 Runner，Runner 的页面会列出选择了它的存储库。AI 规则选择 OneUptime AI 运行其命令所用的 Runner：正是在那里选择 Runner，才让 OneUptime AI 的命令可以在其上运行。
+Runner 会在下一次心跳时获取功能的变更，无需重启。AI 不是一项功能。代码存储库会在代码的设置中选择 AI 在其中工作所用的 Runner，Runner 的页面会列出选择了它的存储库。AI 规则选择 OneUptime AI 运行其命令所用的 Runner：正是在那里选择 Runner，才让 OneUptime AI 的命令可以在其上运行。Runner 的页面也会列出选择了它的 AI 规则。
 
 ### 2. 复制安装命令
 

@@ -4,8 +4,8 @@ Una variable de runbook es un valor que tus pasos usan por su nombre en lugar de
 
 :::cards
 - [Crear una variable](#crear-una-variable): Un valor simple, o un secreto y los Runners que pueden usarlo.
-- [Usar una variable en un paso](#usar-una-variable-en-un-paso): En un script, o como inicio de sesión de un paso SSH y kubeconfig de un paso kubectl.
-- [Quién recibe un secreto](#quién-recibe-un-secreto): Tus Runners, y los Runners globales cuando se lo permites.
+- [Usar una variable en un paso](#usar-una-variable-en-un-paso): En un script o una solicitud HTTP, o como inicio de sesión de un paso SSH y kubeconfig de un paso kubectl.
+- [Quién recibe un secreto](#quién-recibe-un-secreto): Tus Runners, los Runners globales cuando se lo permites, y OneUptime para un paso de solicitud HTTP.
 :::
 
 ## Cómo llega una variable a un paso
@@ -19,7 +19,7 @@ flowchart TB
 
 Un paso contiene el nombre de la variable, nunca su valor. Cuando el Runner del paso lo toma, OneUptime inserta el valor - en el script, en la máquina y el inicio de sesión de un paso SSH, o en el kubeconfig de un paso kubectl - y se lo entrega solo a ese Runner. Un paso que nombra una variable que no puede tener falla con el motivo, en lugar de ejecutarse con el nombre donde debería ir el valor.
 
-Los pasos Bash, JavaScript, SSH y kubectl usan variables. Los pasos de solicitud HTTP y de IA no las insertan.
+Los pasos Bash, JavaScript, SSH, kubectl y de solicitud HTTP usan variables. Los pasos de IA no las insertan. OneUptime envía él mismo un paso de solicitud HTTP, sin Runner, así que el paso recibe cada variable que nombra, también los secretos, y los oculta en la respuesta que registra.
 
 ## Variables globales y variables de runbook
 
@@ -71,20 +71,27 @@ curl -s -X POST \
   -H "Authorization: Bearer {{global.variables.CDN_API_TOKEN}}" \
   "https://api.cdn.example.com/v1/purge"
 ```
+@tab En una solicitud HTTP
+Escribe la referencia en la URL, los encabezados o el cuerpo de un [paso de solicitud HTTP](/docs/runbooks/authoring#http-request):
+
+```json
+{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
+```
 @tab Inicio de sesión SSH
 Un [paso SSH](/docs/runbooks/authoring#ssh) elige en **Iniciar sesión con** la variable secreta que contiene su clave privada o su contraseña, y en **Más campos → Frase de contraseña de la clave** la frase de contraseña de su clave. El valor indica si es una clave o una contraseña.
 @tab Kubeconfig
 Un [paso kubectl](/docs/runbooks/authoring#kubectl) elige en **Kubeconfig** la variable secreta que contiene el kubeconfig del clúster, o **El acceso propio del Runner** para usar el del Runner.
 :::
 
-En la página **Pasos** de un runbook, cada script lista en **Variables: haz clic para copiar** las variables que su paso puede usar, y el editor avisa cuando un paso nombra una variable que no existe, o un secreto que su Runner no puede usar.
+En la página **Pasos** de un runbook, cada script y cada solicitud HTTP listan en **Variables: haz clic para copiar** las variables que su paso puede usar, y el editor avisa cuando un paso nombra una variable que no existe, o un secreto que su Runner no puede usar.
 
 ## Quién recibe un secreto
 
-| Runner | Una variable simple | Un secreto |
+| Quién ejecuta el paso | Una variable simple | Un secreto |
 | --- | --- | --- |
 | Uno de tus Runners | Siempre | Cuando el secreto lo incluye en **Tus Runners que pueden usarlo** |
 | Un Runner global | Siempre | Cuando **Los Runners globales pueden usarlo** está activado, para un paso del propio proyecto del secreto |
+| El propio OneUptime, para un paso de solicitud HTTP | Siempre | Siempre |
 
 Un paso que nombra un secreto que su Runner no puede usar falla, nombrando el secreto y lo que hay que cambiar, y no se entrega nada.
 

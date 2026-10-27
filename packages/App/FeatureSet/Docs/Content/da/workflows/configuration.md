@@ -167,7 +167,7 @@ Fejl i validering, konfiguration, adgang, grænser, kredit, samtidighed, udbyder
 Workflows respekterer dit projekts rollebaserede adgangskontrol. De tre workflow-roller:
 
 - **Arbejdsgangsadministrator** — bygger workflows: opretter, ændrer, kører og sletter dem og administrerer de variabler, de bruger.
-- **Arbejdsgangsmedlem** — bruger dem: åbner workflows og deres kørsler og kører et workflow manuelt med **Kør arbejdsgang**. Et medlem kan ikke oprette, ændre eller slette et workflow eller køre et af dets trin for sig selv.
+- **Arbejdsgangsmedlem** — bruger dem: åbner workflows og deres kørsler og kører et workflow manuelt med **Kør arbejdsgang**. Et medlem kan ikke oprette, ændre eller slette et workflow eller køre et af dets trin for sig selv. **Bygger** viser dem et workflow, som det er, markeret **Kun visning**: Et trin åbner, så det kan læses, og intet af det, de gør der, gemmes.
 - **Arbejdsgangsseer** — læser workflows og deres kørsler.
 
 **Projektejer** og **Projektadministrator** kan alt, hvad en Workflow Admin kan. **Projektmedlem** kan oprette og slette workflows, men ikke ændre eller køre dem.
@@ -214,7 +214,7 @@ I OneUptime Cloud kræver workflows Growth-planen eller højere, og hver plan ti
 | Scale      | 2.000                      |
 | Enterprise | Ingen praktisk grænse      |
 
-Vinduet glider: hver kørsel, projektet registrerer, manuelt eller fra en trigger, tæller med i 30 dage. På Growth- og Scale-planerne viser siden **Arbejdsgange** et kort, **Arbejdsgangskørsler**, med hvor mange projektet har brugt. Når grænsen er nået, registreres nye kørsler med status **Execution Exceeded Current Plan** og udføres ikke, og det samme sker, mens abonnementet er ubetalt. Selvhostede installationer uden fakturering har ingen grænse.
+Vinduet glider: hver kørsel, projektet registrerer, manuelt eller fra en trigger, tæller med i 30 dage. På Growth- og Scale-planerne viser siden **Arbejdsgange** et kort, **Arbejdsgangskørsler**, med hvor mange projektet har brugt. Når grænsen er nået, registreres nye kørsler med status **Execution Exceeded Current Plan** og udføres ikke, og det samme sker, mens abonnementet er ubetalt. Selvhostede installationer uden fakturering har ingen grænse. På en plan, der ikke kører workflows, siger **Bygger** og siden **Arbejdsgange** det, med et link til at opgradere.
 
 ## Hvor længe en kørsel må tage
 

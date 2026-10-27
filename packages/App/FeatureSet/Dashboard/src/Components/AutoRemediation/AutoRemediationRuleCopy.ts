@@ -121,6 +121,7 @@ export const AUTO_REMEDIATION_MORE_FIELDS_COPY: {
   runbooksTitle: string;
   runbooksDescription: string;
   runbooksPlaceholder: string;
+  runbooksEmptyList: string;
   everyTimeTitle: string;
   everyTimeDescription: string;
   runnerTitle: string;
@@ -135,6 +136,8 @@ export const AUTO_REMEDIATION_MORE_FIELDS_COPY: {
     "OneUptime AI may run any of your runbooks. Pick some to let it run only those.",
   ),
   runbooksPlaceholder: translationKey("Any runbook"),
+  // What the open list says while the project has no runbook.
+  runbooksEmptyList: translationKey("No runbooks yet."),
   everyTimeTitle: translationKey("Run them every time"),
   everyTimeDescription: translationKey(
     "Start every runbook above for every match, instead of OneUptime AI deciding.",

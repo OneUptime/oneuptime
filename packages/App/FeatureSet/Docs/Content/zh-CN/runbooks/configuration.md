@@ -93,11 +93,12 @@ Runbook 执行在 `Runbook` BullMQ 队列上运行。每个 Worker 进程最多�
 ## 加固说明
 
 - **JavaScript、Bash、SSH 和 kubectl** 在你掌控的 Runner 主机上运行，而不是在 OneUptime Worker 上。JavaScript 在独立的 `isolated-vm` 隔离环境中运行，拥有 128 MB 内存，无法访问 Runner 的文件系统或进程；它可以用 `axios` 发送 HTTP 请求，但发往私有网络、环回地址和链路本地地址的请求会被拒绝。Bash 通过 `bash -c` 运行，其超时在 Runner 上强制执行。 未选择 Runner 的 JavaScript 步骤会在项目默认 Runner 上运行；如果没有设置，则在全局 Runner 上运行。
+- **SSH 步骤** 只有在机器出示步骤填写的某个主机密钥时才会登录。未填写主机密钥的步骤接受任何密钥，并在输出中注明机器出示的密钥，以便填写到步骤中。
 - **HTTP 步骤** 使用宽松的状态校验，因此 4xx 或 5xx 响应会被记录为失败的步骤，而不是作为异常抛出，记录的输出反映的是上游实际返回的内容。不跟随重定向。Worker 从不调用环回地址或链路本地地址，例如云元数据端点；在 OneUptime Cloud 上，它还会拒绝私有网络地址，自托管的 OneUptime 在设置 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` 时也会拒绝。
 - **AI 步骤** 永远看不到事件的私有备注，也看不到 Slack 和 Microsoft Teams 的消息；前面步骤的输出会被扫描是否含有机密信息，并在到达模型之前被遮盖。嵌入的图片和很长的编码数据不会进入提示词。参见 [AI](/docs/runbooks/authoring#ai)。
 - **全局 Runner** 只运行 JavaScript 步骤，每个步骤都在为它创建、结束后丢弃的沙箱中运行，只能访问公共互联网地址，最长 5 分钟，并且同一项目同时最多运行三个步骤。它们只会获得步骤所属项目中已为全局 Runner 打开的机密变量；内置的全局 Runner 持有自己的密钥，不持有服务器的任何其他东西。参见 [全局 Runner](/docs/runbooks/agents#全局-runner)。
 - **Runner 认证** 使用 ID 和密钥，作为环境变量设置在 Runner 容器上。在服务器端，Runner 的权威身份来自与所提供的 ID 和密钥对应的数据库行：即使密钥泄露，客户端也无法冒充另一个 Runner。
-- **机密变量** 静态加密存储，API 从不返回，只在其列出的 Runner 领取引用它们的步骤时交给这些 Runner。当机密变量允许全局 Runner 使用时，它也会交给领取了该变量所属项目中步骤的全局 Runner。Runner 会把步骤收到的每个机密在步骤输出中替换为 `[REDACTED]`，OneUptime 在保存输出之前还会再替换一次。
+- **机密变量** 静态加密存储，API 从不返回，只在其列出的 Runner 领取引用它们的步骤时交给这些 Runner。当机密变量允许全局 Runner 使用时，它也会交给领取了该变量所属项目中步骤的全局 Runner。Runner 会把步骤收到的每个机密在步骤输出中替换为 `[REDACTED]`，OneUptime 在保存输出之前还会再替换一次。由 OneUptime 自己发送的 HTTP 请求步骤，会得到它引用的、属于自己项目的每个机密，并在它记录的响应中隐藏这些机密。
 
 ## 数据库表
 

@@ -233,6 +233,61 @@ test.describe("Workflow builder: the toolbar's add button says what the workflow
     ).toEqual(["log-1", "manual-1"]);
   });
 
+  /*
+   * Run Workflow on a workflow with no trigger: the panel says there is
+   * nothing to run from yet, and its one action - the footer's, where Run
+   * Workflow Manually would be - is Add Trigger, which opens the triggers in
+   * its place.
+   */
+  test("Run Workflow with no trigger says so, and its footer's Add Trigger opens the triggers in its place", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openBuilder(page, "no-trigger");
+    await page.getByTestId("run-workflow").click();
+
+    await expect(panel(page).getByTestId("side-over-title")).toHaveText(
+      "Run Workflow",
+    );
+    await expect(
+      panel(page).getByRole("heading", {
+        name: "This workflow has no trigger yet",
+      }),
+    ).toBeVisible();
+    await expect(
+      panel(page).getByText(
+        "A run starts from the workflow's trigger. Add one, then run the workflow from here.",
+      ),
+    ).toBeVisible();
+    // Said once: the panel's own "from the trigger" description is left out.
+    await expect(panel(page).getByTestId("side-over-description")).toHaveCount(
+      0,
+    );
+    await expect(
+      panel(page).getByRole("button", { name: "Run Workflow Manually" }),
+    ).toHaveCount(0);
+
+    const footer: Locator = panel(page).getByTestId("side-over-footer");
+    await expect(footer.getByRole("button")).toHaveText([
+      "Close",
+      "Add Trigger",
+    ]);
+
+    await footer
+      .getByRole("button", { name: "Add Trigger", exact: true })
+      .click();
+
+    await expect(panel(page)).toHaveCount(1);
+    await expect(panel(page).getByTestId("side-over-title")).toHaveText(
+      "Add Trigger",
+    );
+    await choose(page, "Manual");
+
+    await expect(dashedCard(page)).toHaveCount(0);
+    await expect(addButton(page)).toHaveText("Add Component");
+  });
+
   test("deleting the last trigger brings back the dashed card and Add Trigger", async ({
     page,
   }: {

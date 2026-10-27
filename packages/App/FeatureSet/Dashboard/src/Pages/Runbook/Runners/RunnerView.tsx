@@ -5,6 +5,11 @@ import RunnerCodeRepositoryList, {
   RunnerCodeRepositoryRow,
   loadRunnerCodeRepositories,
 } from "../../../Components/Runner/RunnerCodeRepositories";
+import RunnerAiRuleList, {
+  RunnerAiRuleRow,
+  RunnerAiRulesCopy,
+  loadRunnerAiRules,
+} from "../../../Components/Runner/RunnerAiRules";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import { isKubernetesAgentRunnerRow } from "../../Kubernetes/Utils/KubernetesAgentRunner";
@@ -91,6 +96,14 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
     Array<RunnerCodeRepositoryRow> | null | undefined
   >(undefined);
 
+  /*
+   * The AI rules that pick this Runner, for Runner Details: undefined while
+   * they load, null when they cannot be read (RunnerAiRules).
+   */
+  const [aiRules, setAiRules] = useState<
+    Array<RunnerAiRuleRow> | null | undefined
+  >(undefined);
+
   const translator: Translator = useTranslator();
 
   /*
@@ -129,6 +142,26 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
       isMounted = false;
     };
   }, [modelId.toString(), isProjectDefault]);
+
+  useEffect(() => {
+    let isMounted: boolean = true;
+
+    loadRunnerAiRules(modelId)
+      .then((rows: Array<RunnerAiRuleRow> | null) => {
+        if (isMounted) {
+          setAiRules(rows);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setAiRules(null);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [modelId.toString()]);
 
   const readProjectDefaultRunner: () => void = (): void => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -364,6 +397,25 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
                     repositories={codeRepositories || []}
                   />
                 );
+              },
+            },
+            /*
+             * The AI rules that pick this Runner, each linked to where its
+             * Runner is changed - or, with none, where a rule picks one.
+             * Not on an in-cluster Runner, which no rule may pick, nor for
+             * someone who cannot read AI rules.
+             */
+            {
+              field: { _id: true },
+              title: RunnerAiRulesCopy.title,
+              fieldType: FieldType.Element,
+              showIf: (item: Runner): boolean => {
+                return (
+                  Array.isArray(aiRules) && !isKubernetesAgentRunnerRow(item)
+                );
+              },
+              getElement: (): ReactElement => {
+                return <RunnerAiRuleList rules={aiRules || []} />;
               },
             },
             {

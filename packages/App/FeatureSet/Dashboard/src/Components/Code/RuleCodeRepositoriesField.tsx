@@ -221,6 +221,7 @@ export const RuleCodeRepositoriesPicker: FunctionComponent<
         value={selectedIds}
         isMultiSelect={true}
         placeholder={RULE_CODE_REPOSITORIES_FIELD_COPY.placeholder}
+        emptyListText={RULE_CODE_REPOSITORIES_FIELD_COPY.emptyList}
         dataTestId={`${dataTestId}-dropdown`}
         ariaLabel={translator.translateText(
           RULE_CODE_REPOSITORIES_FIELD_COPY.title,

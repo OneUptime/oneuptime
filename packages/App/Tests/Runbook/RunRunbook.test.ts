@@ -213,6 +213,33 @@ describe("RunRunbook state machine", () => {
     expect(first.startedAt).toBeInstanceOf(Date);
   });
 
+  /*
+   * An HTTP request step fills in the runbook variables it names: it is
+   * handed the run's context - the project, and the runbook its own
+   * variables are read from - as the steps a Runner runs are.
+   */
+  test("an HTTP request step is handed the run's context, for its variables", async () => {
+    runHttpStepMock.mockResolvedValue({ success: true, output: "ok" });
+
+    const step: RunbookStepExecutionState = pending(
+      makeStep(RunbookStepType.HttpRequest),
+    );
+
+    await run(makeExecution([step]));
+
+    expect(runHttpStepMock).toHaveBeenCalledTimes(1);
+
+    const call: Array<unknown> = runHttpStepMock.mock.calls[0]!;
+    const ctx: { projectId?: unknown; runbookId?: unknown } = call[1] as {
+      projectId?: unknown;
+      runbookId?: unknown;
+    };
+
+    expect(call[0]).toEqual(step.step);
+    expect(String(ctx.projectId)).toBe(new ObjectID("proj1").toString());
+    expect(String(ctx.runbookId)).toBe(new ObjectID("rb1").toString());
+  });
+
   test("a manual step pauses the run as WaitingForManualStep", async () => {
     const manual: RunbookStepExecutionState = pending(
       makeStep(RunbookStepType.Manual),

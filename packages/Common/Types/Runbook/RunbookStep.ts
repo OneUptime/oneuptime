@@ -125,6 +125,13 @@ export interface SSHStepConfig {
   signIn?: string;
   // The secret variable holding the key's passphrase, for a key that has one.
   passphrase?: string;
+  /*
+   * The machine's host keys, one a line: a SHA256 fingerprint, or a public
+   * key as ssh-keyscan prints it (Types/Runbook/SshHostKey). The Runner
+   * signs in only when the machine presents one of them. Empty: any key is
+   * accepted, and the step's output says which one it presented.
+   */
+  hostKey?: string;
   // The bash script to run on the machine.
   script?: string;
   /*

@@ -31,10 +31,12 @@ The suite drives the pages the way a person does:
 - a runbook's own Variables page lists its own (`{{local.variables.NAME}}`)
   and makes new ones the runbook's;
 - an SSH step asks for the machine as `user@host`, the secret variable it
-  signs in with and a bash script, with its port and key passphrase folded
-  under More fields; its sign-in picker offers secret variables only, by
-  keyboard or mouse, and says when the step's Runner may not use the one
-  picked; Save Steps sends references, never values;
+  signs in with and a bash script, with its port, key passphrase and host
+  key folded under More fields; its sign-in picker offers secret variables
+  only, by keyboard or mouse, and says when the step's Runner may not use
+  the one picked; a host key pasted as `ssh-keyscan` prints it is saved as
+  written, and a line that is not a key says the step will fail; Save Steps
+  sends references, never values;
 - a kubectl step takes a kubeconfig variable, or the Runner's own access, and
   a script of kubectl commands; a script naming a variable that is not there
   says so; a variable added in another tab

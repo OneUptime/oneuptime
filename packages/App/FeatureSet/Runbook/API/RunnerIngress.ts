@@ -40,8 +40,10 @@ import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import {
   RUNNER_FEATURE_KUBECTL_SCRIPT,
+  RUNNER_FEATURE_SSH_HOST_KEY,
   readRunnerFeatures,
 } from "Common/Types/Runbook/RunnerFeatures";
+import { hasSshHostKeys } from "Common/Types/Runbook/SshHostKey";
 import { REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE } from "Common/Types/Runbook/RunbookLegacySteps";
 import {
   RunbookVariableReference,
@@ -79,6 +81,15 @@ export default class RunnerIngressAPI {
    */
   public static readonly KUBECTL_SCRIPT_NEEDS_NEWER_RUNNER: string =
     "This kubectl step runs a script, and this Runner is too old to run one, so it was not run. Update the Runner to your server's version (pull its image again and restart it), then run the runbook again.";
+
+  /*
+   * Why an SSH step that names the machine's host keys was not run on a
+   * Runner that did not say it checks them (RunnerFeatures): an older
+   * Runner would sign in without checking - the very thing naming them
+   * prevents - so the step is never handed to it.
+   */
+  public static readonly SSH_HOST_KEY_NEEDS_NEWER_RUNNER: string =
+    "This SSH step checks the machine's host key, and this Runner is too old to check one, so it was not run. Update the Runner to your server's version (pull its image again and restart it), then run the runbook again.";
 
   /*
    * Why a runbook step's job that names a runbook credential is failed:
@@ -603,6 +614,28 @@ export default class RunnerIngressAPI {
             agentId: agent.id,
             success: false,
             errorMessage: RunnerIngressAPI.KUBECTL_SCRIPT_NEEDS_NEWER_RUNNER,
+          });
+
+          return Response.sendJsonObjectResponse(req, res, { job: null });
+        }
+
+        if (
+          job.stepType === RunbookStepType.SSH &&
+          hasSshHostKeys(
+            String(
+              ((job.payload as JSONObject | undefined) || {})["hostKey"] || "",
+            ),
+          ) &&
+          !readRunnerFeatures(body["features"]).includes(
+            RUNNER_FEATURE_SSH_HOST_KEY,
+          )
+        ) {
+          // A Runner older than host keys would sign in without checking one.
+          await RunnerJobService.submitResult({
+            jobId: job.id!,
+            agentId: agent.id,
+            success: false,
+            errorMessage: RunnerIngressAPI.SSH_HOST_KEY_NEEDS_NEWER_RUNNER,
           });
 
           return Response.sendJsonObjectResponse(req, res, { job: null });

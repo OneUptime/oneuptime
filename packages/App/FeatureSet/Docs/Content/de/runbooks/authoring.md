@@ -64,11 +64,11 @@ Jeder Schritt hat diese Felder. Ein automatisierter Schritt zeigt seinen **Titel
 | [kubectl](#kubectl) | Einem Runner | Einen Runner und eine kubeconfig-Variable oder den eigenen Zugriff des Runners |
 | [AI](#ai) | Dem OneUptime Worker | Einen LLM-Anbieter |
 
-In jedem der folgenden automatisierten Schritte stehen unter **Weitere Felder** des Schritts zuerst sein **Runner**, bei einem Schritt, der auf einem läuft, dann **Genehmigung erforderlich** und **Bei Fehler fortfahren**, dann die eigenen zusätzlichen Einstellungen des Schritts - die Header eines HTTP-Aufrufs, Port und Passphrase des Schlüssels eines SSH-Schritts, Anbieter und Kontextschalter eines KI-Schritts - und zuletzt die **Beschreibung** und die Timeouts. Eingeklappt nennt es den Runner des Schritts, sodass Sie sehen, wo ein Schritt läuft, ohne ihn zu öffnen.
+In jedem der folgenden automatisierten Schritte stehen unter **Weitere Felder** des Schritts zuerst sein **Runner**, bei einem Schritt, der auf einem läuft, dann **Genehmigung erforderlich** und **Bei Fehler fortfahren**, dann die eigenen zusätzlichen Einstellungen des Schritts - die Header eines HTTP-Aufrufs, Port, Passphrase des Schlüssels und Host-Schlüssel eines SSH-Schritts, Anbieter und Kontextschalter eines KI-Schritts - und zuletzt die **Beschreibung** und die Timeouts. Eingeklappt nennt es den Runner des Schritts, sodass Sie sehen, wo ein Schritt läuft, ohne ihn zu öffnen.
 
 ### Manual
 
-Ein Checklistenpunkt für eine Person: Seine **Anweisungen** sagen, was zu tun oder zu prüfen ist. Der Lauf pausiert, wenn er einen Manual-Schritt erreicht, und bleibt in `WaitingForManualStep` (**Wartet auf Sie**), bis jemand auf **Als abgeschlossen markieren** oder **Überspringen** klickt. Ein Lauf, der auf eine Person wartet, läuft nie in ein Timeout. Ein Manual-Schritt hat keinen Genehmigungsschalter: Er hält den Lauf ohnehin für eine Person an.
+Ein Checklistenpunkt für eine Person: Seine **Anweisungen** sagen, was zu tun oder zu prüfen ist. Der Lauf pausiert, wenn er einen Manual-Schritt erreicht, und bleibt in `WaitingForManualStep` (**Wartet auf Sie**), bis jemand auf **Als erledigt markieren** oder **Überspringen** klickt. Ein Lauf, der auf eine Person wartet, läuft nie in ein Timeout. Ein Manual-Schritt hat keinen Genehmigungsschalter: Er hält den Lauf ohnehin für eine Person an.
 
 Nutzen Sie ihn für das, was nur ein Mensch prüfen oder tun kann: „Bestätigen, dass der Verkehr im Dashboard des Load Balancers in die sekundäre Region verlagert wurde.“
 
@@ -111,6 +111,9 @@ Der Schritt gelingt bei einer `2xx`- oder `3xx`-Antwort und schlägt bei allem a
 
 Nützlich für: einen PagerDuty-Vorfall öffnen, an einen Slack-Webhook posten, die öffentliche API Ihres Cloud-Anbieters oder Ihre eigene aufrufen.
 
+> [!TIP]
+> Halten Sie Tokens aus dem Schritt heraus. Speichern Sie sie als geheime [Runbook-Variablen](/docs/runbooks/variables) und schreiben Sie `{{global.variables.NAME}}` dorthin, wo der Wert hingehört, in die URL, die Header oder den Body. OneUptime sendet die Anfrage selbst, setzt also auch Geheimnisse ein, und die Antwort, die der Schritt erfasst, zeigt an ihrer Stelle `[REDACTED]`. In JSON-Headern oder einem JSON-Body kommt ein Wert in seinen String, sodass ein Anführungszeichen oder ein Zeilenumbruch darin das JSON nicht zerbricht.
+
 ### Bash
 
 Ein Bash-Skript, ausgeführt mit `bash -c <script>` auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur. Bash läuft nie auf dem OneUptime Worker.
@@ -152,6 +155,7 @@ Sich per SSH an einem Rechner anmelden und dort ein Bash-Skript ausführen. Der 
 | **Bash-Skript** | Läuft mit `bash` auf dem Rechner, als der Benutzer, mit dem sich der Schritt anmeldet. Die Ausgabe wird bis zu 50 KB erfasst, und ein Exit-Code ungleich null lässt den Schritt fehlschlagen. |
 | **Port** | Unter **Weitere Felder**. 22, wenn leer gelassen. |
 | **Passphrase des Schlüssels** | Unter **Weitere Felder**. Die geheime Variable, die die Passphrase eines Schlüssels enthält, der eine hat. |
+| **Host-Schlüssel** | Unter **Weitere Felder**. Der SHA256-Fingerabdruck des Rechners oder sein öffentlicher Schlüssel, wie `ssh-keyscan` ihn ausgibt, einer pro Zeile. Der Schritt meldet sich nur an, wenn der Rechner einen davon vorlegt. Leer gelassen, wird jeder Schlüssel akzeptiert, und die Ausgabe des Schritts nennt den, den der Rechner vorgelegt hat. |
 | **Ausführungs-Timeout** | Umfasst Verbinden, Anmelden und Ausführen des Skripts zusammen, sodass ein hängendes Skript den Schritt nicht offen halten kann. Standard 30 Sekunden. |
 | **Übernahme-Timeout** | Wie lange der Worker darauf wartet, dass der Runner den Job übernimmt. Standard 2 Minuten. |
 
@@ -161,6 +165,8 @@ Zum Beispiel, um einen Dienst neu zu starten und zu zeigen, dass er wieder läuf
 sudo systemctl restart nginx
 systemctl status nginx --no-pager
 ```
+
+Nennen Sie den Host-Schlüssel des Rechners, damit sich der Schritt bei genau diesem Rechner anmeldet und bei keinem anderen: `ssh-keyscan 10.0.4.21` gibt seine öffentlichen Schlüssel aus, und `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` auf dem Rechner selbst seinen Fingerabdruck. Ein Schritt, der einen nennt, schlägt auf einem Runner fehl, der zu alt ist, um ihn zu prüfen, und sagt, dass der Runner aktualisiert werden muss.
 
 ### kubectl
 

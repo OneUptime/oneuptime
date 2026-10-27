@@ -4,8 +4,8 @@ Runbook 變數是步驟透過名稱使用、而不是自己保存的值：主機
 
 :::cards
 - [建立變數](#建立變數): 一般的值，或者機密以及可以使用它的 Runner。
-- [在步驟中使用變數](#在步驟中使用變數): 在指令碼中使用，或作為 SSH 步驟的登入憑據和 kubectl 步驟的 kubeconfig。
-- [誰會收到機密](#誰會收到機密): 您的 Runner，以及您允許時的全域 Runner。
+- [在步驟中使用變數](#在步驟中使用變數): 在指令碼或 HTTP 請求中使用，或作為 SSH 步驟的登入憑據和 kubectl 步驟的 kubeconfig。
+- [誰會收到機密](#誰會收到機密): 您的 Runner、您允許時的全域 Runner，以及 HTTP 請求步驟中的 OneUptime 本身。
 :::
 
 ## 變數如何到達步驟
@@ -19,7 +19,7 @@ flowchart TB
 
 步驟保存的是變數的名稱，而不是它的值。當步驟的 Runner 領取它時，OneUptime 會填入值（填入指令碼、SSH 步驟的目標機器和登入方式，或 kubectl 步驟的 kubeconfig），並只交給那個 Runner。引用了不能使用的變數的步驟會帶著原因失敗，而不會在本該是值的地方帶著名稱執行。
 
-Bash、JavaScript、SSH 和 kubectl 步驟會使用變數。HTTP 請求步驟和 AI 步驟不會填入變數。
+Bash、JavaScript、SSH、kubectl 和 HTTP 請求步驟會使用變數。AI 步驟不會填入變數。HTTP 請求步驟由 OneUptime 自己發送，不經過 Runner，因此該步驟會得到它引用的每個變數，包括機密，並在它記錄的回應中隱藏這些機密。
 
 ## 全域變數和 Runbook 變數
 
@@ -71,20 +71,27 @@ curl -s -X POST \
   -H "Authorization: Bearer {{global.variables.CDN_API_TOKEN}}" \
   "https://api.cdn.example.com/v1/purge"
 ```
+@tab 在 HTTP 請求中
+把引用寫在 [HTTP 請求步驟](/docs/runbooks/authoring#http-request)的 URL、標頭或本文中：
+
+```json
+{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
+```
 @tab SSH 登入
 [SSH 步驟](/docs/runbooks/authoring#ssh)在 **登入方式** 中選擇保存其私密金鑰或密碼的機密變數，並在 **更多欄位 → 金鑰複雜密碼** 中選擇其金鑰的複雜密碼。值本身表明它是金鑰還是密碼。
 @tab Kubeconfig
 [kubectl 步驟](/docs/runbooks/authoring#kubectl)在 **Kubeconfig** 中選擇保存叢集 kubeconfig 的機密變數，或選擇 **Runner 自身的存取權限** 來使用 Runner 自己的存取權限。
 :::
 
-在 Runbook 的 **步驟** 頁面上，每個指令碼下方的 **變數 — 點擊複製** 會列出其步驟可以使用的變數；當步驟引用了不存在的變數，或其 Runner 不能使用的機密時，編輯器會提示。
+在 Runbook 的 **步驟** 頁面上，每個指令碼和每個 HTTP 請求下方的 **變數 — 點擊複製** 會列出其步驟可以使用的變數；當步驟引用了不存在的變數，或其 Runner 不能使用的機密時，編輯器會提示。
 
 ## 誰會收到機密
 
-| Runner | 一般變數 | 機密 |
+| 誰執行步驟 | 一般變數 | 機密 |
 | --- | --- | --- |
 | 您的某個 Runner | 總是 | 當機密在 **可以使用它的 Runner** 中列出它時 |
 | 全域 Runner | 總是 | 當 **全域 Runner 可以使用** 開啟時，且步驟屬於機密自己的專案 |
+| OneUptime 本身（HTTP 請求步驟） | 總是 | 總是 |
 
 引用了其 Runner 不能使用的機密的步驟會失敗，並指出該機密以及需要修改什麼，不會交出任何東西。
 

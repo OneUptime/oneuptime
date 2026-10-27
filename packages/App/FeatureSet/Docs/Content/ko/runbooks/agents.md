@@ -101,7 +101,7 @@ OneUptime Cloud에서는 OneUptime이 글로벌 Runner를 실행합니다. 자�
 | **런북 실행** | **추가 필드** 아래 | 기본적으로 켜져 있습니다. 이 Runner가 Runbook 단계를 가져갈 수 있게 합니다. |
 | **레이블** | **추가 필드** 아래 | 선택 사항. |
 
-Runner는 기능 변경을 다음 하트비트 때 반영하므로 다시 시작할 필요가 없습니다. AI는 기능이 아닙니다. 코드 저장소가 코드의 설정에서 AI가 그 저장소에서 작업할 Runner를 선택하며, Runner 페이지에는 그 Runner를 선택한 저장소가 나열됩니다. AI 규칙은 OneUptime AI가 명령을 실행할 Runner를 선택합니다. 거기서 Runner를 선택해야 OneUptime AI의 명령이 그 Runner에서 실행됩니다.
+Runner는 기능 변경을 다음 하트비트 때 반영하므로 다시 시작할 필요가 없습니다. AI는 기능이 아닙니다. 코드 저장소가 코드의 설정에서 AI가 그 저장소에서 작업할 Runner를 선택하며, Runner 페이지에는 그 Runner를 선택한 저장소가 나열됩니다. AI 규칙은 OneUptime AI가 명령을 실행할 Runner를 선택합니다. 거기서 Runner를 선택해야 OneUptime AI의 명령이 그 Runner에서 실행됩니다. Runner 페이지에는 그 Runner를 선택한 AI 규칙도 나열됩니다.
 
 ### 2. 설치 명령 복사
 
