@@ -601,10 +601,12 @@ describe("a form's pages", () => {
       ).toBeInTheDocument();
 
       // An allowlist in force: a chip with how many entries it holds.
+      const drawn: Array<Record<string, unknown>> = recorded["ipAllowlist"]!;
+
       await act(async () => {
-        (
-          recorded["ipAllowlist"]!.at(-1)!["onLoaded"] as (list: string) => void
-        )("203.0.113.7\n10.0.0.0/8");
+        (drawn[drawn.length - 1]!["onLoaded"] as (list: string) => void)(
+          "203.0.113.7\n10.0.0.0/8",
+        );
       });
 
       expect(setChips(header)).toEqual([`${FormsCopy.ipAllowlistTitle}: 2`]);

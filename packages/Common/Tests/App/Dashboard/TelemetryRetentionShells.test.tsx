@@ -867,7 +867,11 @@ describe("Settings > Telemetry", () => {
     expect(
       screen.getByTestId("telemetry-retention-by-type-plugin"),
     ).toBeInTheDocument();
-    expect(capturedTelemetryPageProps[0]).toMatchObject(TELEMETRY_PAGE_PROPS);
+    expect(capturedTelemetryPageProps[0]).toMatchObject({
+      pageRoute: TELEMETRY_PAGE_PROPS.pageRoute,
+      currentProject: TELEMETRY_PAGE_PROPS.currentProject,
+      hasPaymentMethod: TELEMETRY_PAGE_PROPS.hasPaymentMethod,
+    });
     // And how to tell the page how many types it overrides.
     expect(typeof capturedTelemetryPageProps[0]!.onRetentionChange).toBe(
       "function",

@@ -1050,7 +1050,7 @@ describe("the custom role shells", () => {
      * is named, so the upsell is told by its own words and its button.
      */
     expect(
-      screen.queryByText(CUSTOM_ROLES_UPSELL.featureDescription),
+      screen.queryByText(CUSTOM_ROLES_UPSELL.featureDescription as string),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(COMMUNITY_EDITION_CTA)).not.toBeInTheDocument();
     expect(countMock).toHaveBeenCalledWith(
@@ -1130,7 +1130,7 @@ describe("the custom role shells", () => {
       screen.getByText(CustomRoleLeftoverCopy.apiKeyEditionDescription),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(CUSTOM_ROLES_UPSELL.featureDescription),
+      screen.queryByText(CUSTOM_ROLES_UPSELL.featureDescription as string),
     ).not.toBeInTheDocument();
     expect(screen.queryByText(COMMUNITY_EDITION_CTA)).not.toBeInTheDocument();
     expect(countMock).toHaveBeenCalledWith(

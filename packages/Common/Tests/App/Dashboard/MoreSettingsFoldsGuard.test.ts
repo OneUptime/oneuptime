@@ -357,7 +357,11 @@ describe.each(Object.entries(COVERED))(
       (suite: string) => {
         const suitePath: string = path.join(REPOSITORY_ROOT, SUITES_DIR, suite);
 
-        expect([suite, fs.existsSync(suitePath)]).toEqual([suite, true]);
+        expect([file, suite, fs.existsSync(suitePath)]).toEqual([
+          file,
+          suite,
+          true,
+        ]);
 
         // Read as one line: a long call is wrapped over several.
         const text: string = fs
