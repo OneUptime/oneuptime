@@ -93,7 +93,7 @@ Under **Del** kopierer du lenken og sender den til dem som skal bruke skjemaet. 
 | **Bygg** | Skjemaets navn og beskrivelse, **Merkevare** (logo og favikon, slått sammen) og byggeverktøyet: spørsmålene, spørsmålspaletten og **Forhåndsvisning**. |
 | **Maler** | Navngitte sett med svar man kan starte skjemaet fra, hvordan hver mal stiller spørsmålene, malen skjemaet åpner med, og hver mals egen lenke. |
 | **Ved innsending** | Hva hver innsending oppretter, og hvordan hvert felt fylles ut. **Rediger innstillinger** endrer standardverdiene og det som alltid gjelder. |
-| **Del** | **Tar imot innsendinger**, **Delingslenke**, meldingen som vises etter innsending, og **IP-tillatelsesliste**. |
+| **Del** | **Tar imot innsendinger**, **Delingslenke**, meldingen som vises etter innsending, og, under **Flere innstillinger**, **IP-tillatelsesliste**. |
 | **Innsendinger** | Hver innsending gjennom skjemaet, nyeste først, med svarene og det den opprettet. |
 | **Dupliser skjema** | Under **Avansert**: en kopi av skjemaet, navngitt for deg, med spørsmålene, malene, innstillingene under Ved innsending, merkevaren, takkemeldingen og IP-tillatelseslisten, og en egen lenke. Kopien starter avslått og åpner i byggeverktøyet. |
 | **Slett skjema** | Sletting av skjemaet, under **Avansert**. Innsendingene slettes sammen med det; hendelsene det opprettet, gjør ikke det. |

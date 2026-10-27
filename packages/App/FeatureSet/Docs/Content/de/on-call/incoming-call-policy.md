@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Ihr Twilio-Konto hinzufügen
 
-Öffnen Sie **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungseinstellungen**. Klicken Sie in der Karte **Twilio-Konfiguration** auf **Twilio-Konfiguration erstellen** und füllen Sie das Formular aus:
+Öffnen Sie **Projekteinstellungen** > **Benachrichtigungen** > **Benachrichtigungseinstellungen** und dort **Weitere Einstellungen**. Klicken Sie in der Karte **Twilio-Konfiguration** auf **Twilio-Konfiguration erstellen** und füllen Sie das Formular aus:
 
 - **Name** und **Beschreibung**: wofür das Konto da ist, etwa „Support-Hotline“.
 - **Twilio Account SID**: aus der Twilio-Konsole. Sie beginnt mit `AC`.

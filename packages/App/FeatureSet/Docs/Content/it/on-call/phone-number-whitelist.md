@@ -24,7 +24,7 @@ Su OneUptime Cloud, gli SMS e le chiamate di reperibilità arrivano dai numeri q
 
 I tuoi avvisi arrivano da numeri diversi da quelli sopra quando:
 
-- **Il tuo progetto usa un proprio account Twilio.** Quando un progetto ha una configurazione Twilio impostata come predefinita del progetto (**Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche** > **Configurazione Twilio**), gli SMS e le chiamate ai membri del progetto passano da quell'account, dai suoi numeri di telefono. Metti invece quei numeri nella lista bianca.
+- **Il tuo progetto usa un proprio account Twilio.** Quando un progetto ha una configurazione Twilio impostata come predefinita del progetto (**Impostazioni del progetto** > **Notifiche** > **Impostazioni notifiche** > **Altre impostazioni** > **Configurazione Twilio**), gli SMS e le chiamate ai membri del progetto passano da quell'account, dai suoi numeri di telefono. Metti invece quei numeri nella lista bianca.
 - **Usi un'installazione self-hosted.** Gli SMS e le chiamate arrivano dai numeri Twilio configurati dal tuo amministratore: la configurazione Twilio predefinita del progetto, o quella dell'intera installazione in **Admin Dashboard** > **Impostazioni** > **Chiamate e SMS**. Chiedi al tuo amministratore quali numeri mettere nella lista bianca.
 
 ## Passaggi successivi

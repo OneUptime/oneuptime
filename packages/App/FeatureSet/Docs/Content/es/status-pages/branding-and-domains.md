@@ -19,7 +19,7 @@ Abre una página de estado: la sección **Marca** de su menú lateral tiene tres
 | **Dominios personalizados** | Tu propio dominio, su registro DNS y su certificado SSL gratuito. |
 | **HTML, CSS y JavaScript** | HTML de la cabecera, HTML del pie de página, CSS personalizado y JavaScript personalizado. |
 
-Tres cosas que parecen de marca están en cambio en **Páginas de estado → tu página → Avanzado → Ajustes avanzados** (`{id}/settings`), porque deciden qué muestra la página y no su aspecto: el porcentaje de tiempo de actividad general, qué estados de monitor cuentan contra el tiempo de actividad y la línea «Powered by OneUptime». Las dos primeras son filas de la tarjeta **Lo que muestra tu página de estado** de esa pantalla, y la línea tiene su propia tarjeta, justo debajo.
+Tres cosas que parecen de marca están en cambio en **Páginas de estado → tu página → Avanzado → Ajustes avanzados** (`{id}/settings`), porque deciden qué muestra la página y no su aspecto: el porcentaje de tiempo de actividad general, qué estados de monitor cuentan contra el tiempo de actividad y la línea «Powered by OneUptime». Las dos primeras son filas de la tarjeta **Lo que muestra tu página de estado** de esa pantalla, y la línea tiene su propia tarjeta, justo debajo, plegada en **Más ajustes**.
 
 Antes, la marca estaba repartida en pantallas separadas: **Marca esencial**, **Cabecera**, **Pie de página**, **Página de vista general** e **Idiomas**. Sus antiguas direcciones (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` y `{id}/languages`) abren ahora la página **Marca**, así que los marcadores y enlaces antiguos siguen funcionando.
 

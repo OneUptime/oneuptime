@@ -19,7 +19,7 @@ Aprite una pagina di stato: la sezione **Branding** del suo menu laterale ha tre
 | **Domini personalizzati** | Il vostro dominio, il suo record DNS e il suo certificato SSL gratuito. |
 | **HTML, CSS e JavaScript** | HTML dell'intestazione, HTML del footer, CSS personalizzato, JavaScript personalizzato. |
 
-Tre cose che sembrano branding si trovano invece in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni avanzate** (`{id}/settings`), perché decidono cosa mostra la pagina e non il suo aspetto: la percentuale di uptime complessiva, quali stati dei monitor contano contro l'uptime e la riga «Powered by OneUptime». Le prime due sono righe della scheda **Cosa mostra la tua pagina di stato** di quella schermata, e la riga ha una scheda tutta sua, subito sotto.
+Tre cose che sembrano branding si trovano invece in **Pagine di stato → la vostra pagina → Avanzato → Impostazioni avanzate** (`{id}/settings`), perché decidono cosa mostra la pagina e non il suo aspetto: la percentuale di uptime complessiva, quali stati dei monitor contano contro l'uptime e la riga «Powered by OneUptime». Le prime due sono righe della scheda **Cosa mostra la tua pagina di stato** di quella schermata, e la riga ha una scheda tutta sua, subito sotto, chiusa in **Altre impostazioni**.
 
 Il branding era un tempo diviso tra schermate separate **Branding essenziale**, **Intestazione**, **Footer**, **Pagina panoramica** e **Lingue**. I loro vecchi indirizzi (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` e `{id}/languages`) ora aprono la pagina **Branding**, quindi i vecchi segnalibri e link continuano a funzionare.
 

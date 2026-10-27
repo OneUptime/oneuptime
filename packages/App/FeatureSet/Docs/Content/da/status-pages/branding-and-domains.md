@@ -19,7 +19,7 @@ Din statusside er den ene skærm i OneUptime, dine kunder kigger på, så den b�
 | **Brugerdefinerede domæner** | Dit eget domæne, dets DNS-post og dets gratis SSL-certifikat. |
 | **HTML, CSS og JavaScript** | Header-HTML, sidefods-HTML, brugerdefineret CSS, brugerdefineret JavaScript. |
 
-Tre ting, der ligner branding, ligger i stedet under **Statussider → din side → Avanceret → Avancerede indstillinger** (`{id}/settings`), fordi de afgør, hvad siden viser, og ikke hvordan den ser ud: den samlede oppetidsprocent, hvilke monitorstatusser der tæller mod oppetiden, og linjen "Powered by OneUptime". De to første er rækker på kortet **Hvad din statusside viser** der, og linjen har sit eget kort lige under.
+Tre ting, der ligner branding, ligger i stedet under **Statussider → din side → Avanceret → Avancerede indstillinger** (`{id}/settings`), fordi de afgør, hvad siden viser, og ikke hvordan den ser ud: den samlede oppetidsprocent, hvilke monitorstatusser der tæller mod oppetiden, og linjen "Powered by OneUptime". De to første er rækker på kortet **Hvad din statusside viser** der, og linjen har sit eget kort lige under, sammenklappet under **Yderligere indstillinger**.
 
 Branding var tidligere delt over separate skærme for **Grundlæggende branding**, **Header**, **Sidefod**, **Oversigtsside** og **Sprog**. Deres gamle adresser (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` og `{id}/languages`) åbner nu siden **Branding**, så gamle bogmærker og links virker stadig.
 

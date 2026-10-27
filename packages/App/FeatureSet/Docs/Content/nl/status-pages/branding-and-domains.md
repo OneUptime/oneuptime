@@ -19,7 +19,7 @@ Open een statuspagina: de sectie **Huisstijl** van het zijmenu heeft drie items:
 | **Aangepaste domeinen** | Uw eigen domein, het DNS-record ervan en het gratis SSL-certificaat ervan. |
 | **HTML, CSS & JavaScript** | Koptekst-HTML, footer-HTML, aangepaste CSS, aangepaste JavaScript. |
 
-Drie dingen die op huisstijl lijken, staan in plaats daarvan onder **Statuspagina's → uw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`), omdat ze bepalen wat de pagina toont en niet hoe die eruitziet: het totale uptimepercentage, welke monitorstatussen tegen de uptime tellen, en de regel "Powered by OneUptime". De eerste twee zijn rijen van de kaart **Wat uw statuspagina toont** daar, en de regel heeft een eigen kaart, er direct onder.
+Drie dingen die op huisstijl lijken, staan in plaats daarvan onder **Statuspagina's → uw pagina → Geavanceerd → Geavanceerde instellingen** (`{id}/settings`), omdat ze bepalen wat de pagina toont en niet hoe die eruitziet: het totale uptimepercentage, welke monitorstatussen tegen de uptime tellen, en de regel "Powered by OneUptime". De eerste twee zijn rijen van de kaart **Wat uw statuspagina toont** daar, en de regel heeft een eigen kaart, er direct onder, ingeklapt onder **Meer instellingen**.
 
 De huisstijl was vroeger verdeeld over aparte schermen **Basishuisstijl**, **Koptekst**, **Footer**, **Overzichtspagina** en **Talen**. Hun oude adressen (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` en `{id}/languages`) openen nu de pagina **Huisstijl**, dus oude bladwijzers en links blijven werken.
 

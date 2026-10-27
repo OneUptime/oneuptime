@@ -34,7 +34,7 @@ Gem legitimationsoplysningerne for ét projekt eller én gang for hele installat
 
 | | Projektkonfiguration | Konfiguration for hele installationen |
 | --- | --- | --- |
-| Hvor | Kortet **Twilio-konfiguration** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** | **Admin Dashboard > Indstillinger > Opkald og SMS** |
+| Hvor | Kortet **Twilio-konfiguration** under **Yderligere indstillinger** på **Projektindstillinger > Notifikationer > Notifikationsindstillinger** | **Admin Dashboard > Indstillinger > Opkald og SMS** |
 | Hvem kan sætte den | **Projektejer**, **Projektadministrator** eller **Create Call and SMS** i en brugerdefineret rolle | En master-admin |
 | Hvem kan læse dens Auth Token | **Projektejer**, **Projektadministrator** eller **Read Call and SMS** i en brugerdefineret rolle. Andre, der kan se konfigurationen, ser resten af den; tokenet gemmes krypteret | En master-admin |
 | Bruges til | SMS og opkald til projektets medlemmer, så længe den er projektstandarden, de statussider, den er tildelt, og de politikker for indgående opkald, der bruger den | SMS og opkald til medlemmerne af ethvert projekt, der ikke har en standardkonfiguration |
@@ -42,7 +42,7 @@ Gem legitimationsoplysningerne for ét projekt eller én gang for hele installat
 Sådan tilføjer du en projektkonfiguration:
 
 :::steps
-1. Gå til **Projektindstillinger > Notifikationer > Notifikationsindstillinger**.
+1. Gå til **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, og åbn **Yderligere indstillinger**.
 2. Vælg **Opret Twilio-konfiguration** i **Twilio-konfiguration**.
 3. Angiv et navn, og vælg under **Brug denne konto til**, hvad kontoen sender: **Opkald og SMS**, **Kun SMS** eller **Kun opkald**. Angiv derefter **Twilio-konto-SID**, **Twilio-godkendelsestoken** og det nummer, valget beder om: **Twilio primært telefonnummer** til opkald eller **Twilio SMS-telefonnumre** til **Kun SMS**. Under **Flere felter** kan du også angive kommaseparerede **Twilio sekundære telefonnumre** til andre lande og **Twilio SMS-telefonnumre**, hvis dine numre ikke kan sende SMS.
 4. **Indstil som projektstandard** er slået til for projektets første konfiguration, så SMS og opkald til projektets medlemmer, herunder vagtnotifikationer, går gennem den, så snart du gemmer. Slå den fra, hvis kontoen kun er til statussider eller indgående opkald. En senere konfiguration starter med kontakten slået fra: Slå den til, eller vælg **Indstil som projektstandard** i konfigurationens rækkemenu for at flytte de beskeder til den. En API-anmodning, der udelader `isProjectDefault`, behandles på samme måde.

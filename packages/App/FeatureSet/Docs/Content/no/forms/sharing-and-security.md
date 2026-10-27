@@ -16,7 +16,7 @@ Et skjema er åpent for alle som har lenken, og hver innsending kan tilkalle vak
 | **Status** | **Tar imot innsendinger** — om skjemaets lenke fungerer. |
 | **Delingslenke** | Lenken, med **Kopier lenke**, **Åpne skjema** og **Tilbakestill lenke**. |
 | **Etter innsending** | **Takkemelding** folk ser når de har sendt inn, under nummeret på det skjemaet opprettet. |
-| **Tilgang** | **IP-tillatelsesliste**. |
+| **Flere innstillinger** | **IP-tillatelsesliste**, sammenfoldet til du åpner den. |
 
 ## Del lenken
 
@@ -80,7 +80,7 @@ For å begrense et skjema til dine egne nettverk:
 
 :::steps
 1. Åpne skjemaets side **Del**.
-2. På kortet **Tilgang** klikker du på **Rediger IP-tillatelsesliste**.
+2. Åpne **Flere innstillinger**, og klikk på **Rediger IP-tillatelsesliste**.
 3. Angi ett nettverk per linje, og lagre. Kortet viser dem deretter under **IP-tillatelsesliste**.
 :::
 

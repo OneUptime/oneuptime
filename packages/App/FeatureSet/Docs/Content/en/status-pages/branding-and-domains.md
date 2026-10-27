@@ -19,7 +19,7 @@ Open a status page, and the side menu's **Branding** section has three items:
 | **Custom Domains** | Your own domain, its DNS record, and its free SSL certificate. |
 | **HTML, CSS & JavaScript** | Header HTML, footer HTML, custom CSS, custom JavaScript. |
 
-Three things that look like branding are on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`) instead, because they decide what the page shows rather than how it looks: the overall uptime percent, which monitor statuses count against uptime, and the "Powered by OneUptime" line. The first two are rows of the **What your status page shows** card there, and the line has a card of its own, just under it.
+Three things that look like branding are on **Status Pages → your page → Advanced → Advanced Settings** (`{id}/settings`) instead, because they decide what the page shows rather than how it looks: the overall uptime percent, which monitor statuses count against uptime, and the "Powered by OneUptime" line. The first two are rows of the **What your status page shows** card there, and the line has a card of its own, folded under **More settings** just under it.
 
 Branding used to be split across separate **Essential Branding**, **Header**, **Footer**, **Overview Page** and **Languages** screens. Their old addresses (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` and `{id}/languages`) now open the **Branding** page, so old bookmarks and links still work.
 

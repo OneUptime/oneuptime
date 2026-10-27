@@ -19,7 +19,7 @@ Din statussida är den enda skärmen i OneUptime som dina kunder tittar på, så
 | **Anpassade domäner** | Din egen domän, dess DNS-post och dess kostnadsfria SSL-certifikat. |
 | **HTML, CSS och JavaScript** | Sidhuvud-HTML, sidfots-HTML, anpassad CSS, anpassad JavaScript. |
 
-Tre saker som liknar varumärke finns i stället under **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`), eftersom de avgör vad sidan visar och inte hur den ser ut: den totala upptidsprocenten, vilka monitorstatusar som räknas mot upptiden och raden "Powered by OneUptime". De två första är rader på kortet **Vad din statussida visar** där, och raden har ett eget kort direkt under.
+Tre saker som liknar varumärke finns i stället under **Statussidor → din sida → Avancerad → Avancerade inställningar** (`{id}/settings`), eftersom de avgör vad sidan visar och inte hur den ser ut: den totala upptidsprocenten, vilka monitorstatusar som räknas mot upptiden och raden "Powered by OneUptime". De två första är rader på kortet **Vad din statussida visar** där, och raden har ett eget kort direkt under, hopfällt under **Fler inställningar**.
 
 Varumärket var tidigare uppdelat på separata skärmar för **Grundläggande varumärke**, **Sidhuvud**, **Sidfot**, **Översiktssida** och **Språk**. Deras gamla adresser (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` och `{id}/languages`) öppnar nu sidan **Varumärke**, så gamla bokmärken och länkar fungerar fortfarande.
 
