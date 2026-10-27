@@ -167,7 +167,7 @@ Fel i validering, konfiguration, åtkomst, gränser, krediter, samtidighet, leve
 Arbetsflöden följer projektets rollbaserade åtkomstkontroll. De tre arbetsflödesrollerna:
 
 - **Arbetsflödesadministratör** — bygger arbetsflöden: skapar, ändrar, kör och tar bort dem, och hanterar variablerna de använder.
-- **Arbetsflödesmedlem** — använder dem: öppnar arbetsflöden och deras körningar, och kör ett arbetsflöde manuellt med **Kör arbetsflöde**. En medlem kan inte skapa, ändra eller ta bort ett arbetsflöde, eller köra ett av dess steg för sig.
+- **Arbetsflödesmedlem** — använder dem: öppnar arbetsflöden och deras körningar, och kör ett arbetsflöde manuellt med **Kör arbetsflöde**. En medlem kan inte skapa, ändra eller ta bort ett arbetsflöde, eller köra ett av dess steg för sig. **Byggare** visar dem ett arbetsflöde som det är, märkt **Endast visning**: Ett steg öppnas för att läsas, och inget de gör där sparas.
 - **Arbetsflödestittare** — läser arbetsflöden och deras körningar.
 
 **Projektägare** och **Projektadministratör** kan göra allt som en Workflow Admin kan. **Projektmedlem** kan skapa och ta bort arbetsflöden, men inte ändra eller köra dem.
@@ -214,7 +214,7 @@ I OneUptime Cloud kräver arbetsflöden planen Growth eller högre, och varje pl
 | Scale      | 2 000                           |
 | Enterprise | Ingen praktisk gräns            |
 
-Fönstret är rullande: varje körning som projektet registrerar, manuellt eller från en utlösare, räknas i 30 dagar. På planerna Growth och Scale visar sidan **Arbetsflöden** ett kort, **Arbetsflödeskörningar**, med hur många projektet har använt. När gränsen är nådd registreras nya körningar med statusen **Execution Exceeded Current Plan** och utförs inte, och detsamma händer medan abonnemanget är obetalt. Självhostade installationer utan fakturering har ingen gräns.
+Fönstret är rullande: varje körning som projektet registrerar, manuellt eller från en utlösare, räknas i 30 dagar. På planerna Growth och Scale visar sidan **Arbetsflöden** ett kort, **Arbetsflödeskörningar**, med hur många projektet har använt. När gränsen är nådd registreras nya körningar med statusen **Execution Exceeded Current Plan** och utförs inte, och detsamma händer medan abonnemanget är obetalt. Självhostade installationer utan fakturering har ingen gräns. På en plan som inte kör arbetsflöden säger **Byggare** och sidan **Arbetsflöden** det, med en länk för att uppgradera.
 
 ## Hur länge en körning får ta
 

@@ -28,6 +28,7 @@ flowchart TB
 
 | | AWS | Microsoft | Google Cloud |
 | --- | --- | --- | --- |
+| लिस्टिंग | अभी सार्वजनिक नहीं: [हमसे संपर्क करें](https://oneuptime.com/enterprise/demo) | [OneUptime Enterprise](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-enterprise) | अभी सार्वजनिक नहीं: [हमसे संपर्क करें](https://oneuptime.com/enterprise/demo) |
 | किस पर चलता है | Amazon EKS | Azure Kubernetes Service (AKS) | Google Kubernetes Engine (GKE) |
 | आप इसे किससे इंस्टॉल करते हैं | Helm, लिस्टिंग की रजिस्ट्री से | Azure पोर्टल | Google Cloud कंसोल |
 | OneUptime किससे रिपोर्ट करता है | उसके Kubernetes सर्विस अकाउंट का IAM रोल | वह मैनेज्ड आइडेंटिटी जो Azure इंस्टॉलेशन को देता है | वह रिपोर्टिंग सीक्रेट जो Google Cloud Marketplace डिप्लॉयमेंट के लिए बनाता है |

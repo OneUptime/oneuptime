@@ -1,4 +1,5 @@
 import { SIGNUP_API_URL } from "../Utils/ApiPaths";
+import { fetchIsAwaitingFirstAccount } from "../Utils/FirstAccount";
 import PasswordRequirements from "../Components/PasswordRequirements/PasswordRequirements";
 import VerifyEmailPending from "../Components/VerifyEmailPending/VerifyEmailPending";
 import Route from "Common/Types/API/Route";
@@ -50,6 +51,9 @@ import React, { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { SSO_REQUIRED_SIGN_UP_MESSAGE } from "Common/Types/SSO/SignInMethods";
+import LoginWithSsoPage from "./LoginWithSSO";
+import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
 
 /*
  * BasicForm wraps password values for submission. Keep validation and retry
@@ -65,6 +69,14 @@ const RegisterPage: () => JSX.Element = () => {
   const { t } = useTranslation();
   const apiUrl: URL = SIGNUP_API_URL;
   const passwordRequirementsId: string = useId();
+
+  /*
+   * Whether the whole server requires single sign-on: an account is then
+   * made by signing in with SSO (or by an invitation), never with a
+   * password, and the server refuses a sign-up (SsoRequiredSignIn). The page
+   * offers SSO in its place - an invitation's sign-up link lands here too.
+   */
+  const signInMethodsRead: SignInMethodsRead = useSignInMethods();
 
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
 
@@ -96,6 +108,46 @@ const RegisterPage: () => JSX.Element = () => {
   const [reseller, setResller] = React.useState<Reseller | undefined>(
     undefined,
   );
+
+  /*
+   * A self-hosted server that has no account yet: the account this page
+   * creates becomes its admin, and the page says so. OneUptime Cloud never
+   * asks. Until the answer lands the page draws nothing of its own, as it
+   * does while it reads the sign-in methods: never a "Sign in." link, or a
+   * subtitle, that it then swaps for another. The helper answers within a
+   * few seconds whatever the server does, so the page always draws.
+   */
+  const [isAwaitingFirstAccount, setIsAwaitingFirstAccount] =
+    React.useState<boolean>(false);
+
+  const [isReadingFirstAccount, setIsReadingFirstAccount] =
+    React.useState<boolean>(!BILLING_ENABLED);
+
+  React.useEffect(() => {
+    if (BILLING_ENABLED) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    fetchIsAwaitingFirstAccount()
+      .then((awaiting: boolean) => {
+        if (isCurrent) {
+          setIsAwaitingFirstAccount(awaiting);
+          setIsReadingFirstAccount(false);
+        }
+      })
+      .catch(() => {
+        // The helper answers no rather than throwing; draw the page anyway.
+        if (isCurrent) {
+          setIsReadingFirstAccount(false);
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   /*
    * Set when the address already had an unclaimed invitation behind it and this
@@ -462,11 +514,20 @@ const RegisterPage: () => JSX.Element = () => {
     ]);
   }
 
+  if (signInMethodsRead.isReading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (signInMethodsRead.signInMethods?.isSsoRequired) {
+    return <LoginWithSsoPage signInMethods={signInMethodsRead.signInMethods} />;
+  }
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
 
-  if (isLoading) {
+  // The form's own header and links wait for the first-account answer too.
+  if (isLoading || isReadingFirstAccount) {
     return <PageLoader isVisible={true} />;
   }
 
@@ -491,7 +552,7 @@ const RegisterPage: () => JSX.Element = () => {
           <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
             {t("register.checkEmailTitle")}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+          <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
             {t("register.checkEmailMessage")}
           </p>
         </div>
@@ -506,9 +567,24 @@ const RegisterPage: () => JSX.Element = () => {
         <h1 className="mt-5 text-center text-2xl font-semibold tracking-tight text-gray-900 sm:mt-6 sm:text-3xl">
           {t("register.title")}
         </h1>
-        <p className="mx-auto mt-3 max-w-md text-center text-sm leading-6 text-gray-600">
-          {t("register.subtitle")}
-        </p>
+        {/*
+         * OneUptime Cloud's line asks people to join. A self-hosted server
+         * has a line only while it has no account yet: the account made here
+         * becomes its admin. Otherwise the title says it all - a line that
+         * repeated "create your account" under it was only clutter.
+         */}
+        {BILLING_ENABLED || isAwaitingFirstAccount ? (
+          <p
+            className="mx-auto mt-3 max-w-md text-balance text-center text-sm leading-6 text-gray-600"
+            data-testid="register-subtitle"
+          >
+            {BILLING_ENABLED
+              ? t("register.subtitle")
+              : t("register.firstAccountSubtitle")}
+          </p>
+        ) : (
+          <></>
+        )}
       </div>
 
       <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto lg:max-w-2xl">
@@ -639,6 +715,15 @@ const RegisterPage: () => JSX.Element = () => {
             }}
             formType={FormType.Create}
             submitButtonText={t("register.submitButton")}
+            onSubmitError={(message: string) => {
+              /*
+               * The server came to require SSO after this page read that it
+               * did not: read again, and the page offers SSO instead.
+               */
+              if (message === SSO_REQUIRED_SIGN_UP_MESSAGE) {
+                signInMethodsRead.readAgain();
+              }
+            }}
             onLoadingChange={(loading: boolean) => {
               if (!isCaptchaEnabled) {
                 return;
@@ -753,21 +838,37 @@ const RegisterPage: () => JSX.Element = () => {
           ) : (
             <></>
           )}
-          <p className="mt-4 text-center text-xs leading-5 text-gray-500">
-            {t("register.noCreditCard")}
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-5 text-center text-gray-500">
-          <p className="text-sm text-gray-600">
-            {t("register.haveAccountPrompt")}{" "}
-            <Link
-              to={new Route("/accounts/login")}
-              className="font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer"
+          {/* Only OneUptime Cloud takes payment: a self-hosted server never asks for a card. */}
+          {BILLING_ENABLED ? (
+            <p
+              className="mt-4 text-center text-xs leading-5 text-gray-500"
+              data-testid="register-no-credit-card"
             >
-              {t("register.loginLink")}
-            </Link>
-          </p>
+              {t("register.noCreditCard")}
+            </p>
+          ) : (
+            <></>
+          )}
         </div>
+        {/* A server with no account yet has nobody to sign in as. */}
+        {isAwaitingFirstAccount ? (
+          <></>
+        ) : (
+          <div
+            className="mt-4 sm:mt-5 text-center text-gray-500"
+            data-testid="register-have-account"
+          >
+            <p className="text-sm text-gray-600">
+              {t("register.haveAccountPrompt")}{" "}
+              <Link
+                to={new Route("/accounts/login")}
+                className="font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer"
+              >
+                {t("register.loginLink")}
+              </Link>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

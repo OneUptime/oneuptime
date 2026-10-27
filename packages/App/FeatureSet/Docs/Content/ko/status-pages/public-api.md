@@ -138,6 +138,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `timelineIncidents` | 가동률 막대 기간 안의 인시던트(해결된 것 포함). 막대의 툴팁에 쓰입니다. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | 인시던트 에피소드에 대한 같은 데이터. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | 앞으로 있거나 진행 중인 예정된 유지 보수 이벤트와 그 공개 메모, 상태 변경. |
+| `timelineScheduledMaintenanceEvents` | 가동률 막대 기간 안의, 이미 시작된 예정된 유지 보수 이벤트(진행 중이거나 지난 것). 막대의 툴팁과 각 날짜의 대화 상자에 쓰입니다. 페이지가 보여 주고 페이지의 모니터 중 하나를 포함하는 이벤트만이며, 각각 페이지의 모니터만 붙습니다. |
 | `activeAnnouncements` | 지금 표시 중인 공지: 시작되었고 아직 끝나지 않은 것. |
 
 ## 요약 읽기

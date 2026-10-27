@@ -177,14 +177,15 @@ describe("the README quick start", () => {
     const placeholders = stepIndex(
       "Scripts/Install/ReplacePlaceholderSecrets.js",
     );
-    const exportConfig = stepIndex("export $(grep -v '^#' config.env | xargs)");
-    const compose = stepIndex("docker compose up");
+    // Compose starts with config.env's settings, loaded by WithConfig.sh.
+    const compose = stepIndex(
+      "sh ./Scripts/Install/WithConfig.sh docker compose up",
+    );
 
     expect(preflight).toBe(0);
     expect(databasePassword).toBe(1);
     expect(placeholders).toBe(2);
-    expect(exportConfig).toBeGreaterThan(placeholders);
-    expect(compose).toBe(exportConfig + 1);
+    expect(compose).toBeGreaterThan(placeholders);
   });
 });
 

@@ -6,7 +6,7 @@ Ele também lê páginas de status criadas com o OneUptime, recurso por recurso,
 
 :::cards
 - [Criar o monitor](#criar-um-monitor-de-página-de-status-externa): Cole a URL de uma página de status e escolha o que acompanhar.
-- [Delimitar o escopo](#opções-de-configuração): Acompanhe um grupo de componentes ou um componente.
+- [Escolher componentes](#componentes): Acompanhe só os componentes de que você depende.
 - [Critérios](#critérios-de-monitoramento): O que conta como fora do ar, logo de saída.
 - [Páginas de status do OneUptime](#páginas-de-status-do-oneuptime): Os recursos de outro projeto, e a manutenção dele.
 - [Páginas de status populares](#urls-de-páginas-de-status-populares): URLs dos serviços dos quais a maioria das equipes depende.
@@ -14,13 +14,13 @@ Ele também lê páginas de status criadas com o OneUptime, recurso por recurso,
 
 ## Como funciona
 
-A cada verificação, uma sonda baixa a página de status, descobre o formato dela e lê o status geral, os componentes e os incidentes ativos. Se você limitou o monitor a um grupo de componentes ou a um componente, só eles contam. Depois, os critérios decidem se o monitor está online ou offline.
+A cada verificação, uma sonda baixa a página de status, descobre o formato dela e lê o status geral, os componentes e os incidentes ativos. Se você escolheu componentes, ou um grupo de componentes, só eles contam. Depois, os critérios decidem se o monitor está online ou offline.
 
 ```mermaid title="Uma verificação de uma página de status externa"
 flowchart TB
     fetch["Baixar a página de status"] --> detect["Detectar o formato"]
     detect --> parse["Ler status, componentes, incidentes"]
-    parse --> scope["Manter o grupo ou o componente"]
+    parse --> scope["Manter os componentes escolhidos"]
     scope --> criteria{"Incidente ativo ou interrupção?"}
     criteria -->|Sim| down["Offline, incidente declarado"]
     criteria -->|Não| up["Online"]
@@ -31,7 +31,7 @@ Você pode usá-lo para:
 - Monitorar a disponibilidade dos serviços de terceiros dos quais seu aplicativo depende
 - Ser alertado quando provedores externos sofrem interrupções
 - Acompanhar o status de cada componente
-- Limitar o monitoramento a um único grupo de componentes (por exemplo, só as "APIs" da OpenAI), para que incidentes sem relação em outras partes da página não disparem seu monitor
+- Acompanhar só os componentes de que você depende (por exemplo, Git Operations e Pull Requests do GitHub, ou o grupo "APIs" da OpenAI), para que incidentes sem relação em outras partes da página não disparem seu monitor
 - Detectar desempenho degradado antes que ele afete seus usuários
 - Relacionar seus próprios incidentes com problemas dos provedores externos
 
@@ -72,9 +72,9 @@ Vá para **Monitores** e clique em **Criar monitor**. Em **Tipo de monitor**, cl
 
 Informe a **URL da Página de Status**. Deixe o **Provedor** em **Auto**, a menos que você conheça o formato.
 
-### Delimitar o escopo, se precisar
+### Escolher componentes, se precisar
 
-Abra **Mais campos** para informar um **Component Group Filter**, como `APIs`, e um **Filtro de nome de componente** para acompanhar um único componente (dentro do grupo, se houver um grupo definido).
+Abra **Componentes** e escolha na lista da página os componentes de que você depende, como `Git Operations` e `Pull Requests` na do GitHub; deixe vazio para acompanhar a página inteira. Para acompanhar um grupo em vez disso, abra **Mais campos** e informe um **Component Group Filter**, como `APIs`.
 
 ### Testar
 
@@ -95,27 +95,33 @@ Selecione as **Sondas** e um **Intervalo de monitoramento** (começa em **A cada
 | --- | --- | --- |
 | **URL da Página de Status** | A URL da página de status. Em sites baseados no Atlassian Statuspage e no incident.io, costuma ser a URL raiz (por exemplo, `https://status.example.com`). Para feeds RSS/Atom, informe diretamente a URL do feed. | — |
 | **Provedor** | **Auto** para detectar o formato, ou **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** ou **Atom** se você souber. | **Auto** |
+| **Componentes** | Os componentes a acompanhar, escolhidos na lista da página ou digitados. | A página inteira |
 | **Component Group Filter** | O grupo ao qual limitar o monitor. Em **Mais campos**. | Todos os grupos |
-| **Filtro de nome de componente** | O componente a acompanhar. Em **Mais campos**. | Todos os componentes do escopo |
 | **Tempo limite (ms)** | O tempo máximo de espera pela página de status. Em **Mais campos**. | `10000` (10 segundos) |
 | **Tentativas** | Quantas vezes tentar de novo, com um segundo de intervalo, depois que a primeira tentativa falha; `0` significa uma única tentativa. Em **Mais campos**. | `3` (até 4 tentativas) |
+
+### Componentes
+
+Escolha os componentes de que você depende e o monitor acompanha só eles: **External Status Page Component Status** compara só os status deles, o status geral é o pior entre os deles e **External Status Page Active Incidents** conta só os incidentes que afetam pelo menos um deles. Continua sendo uma única verificação da página, quantos você escolher.
+
+Quando você abre **Componentes**, seu navegador lê a lista da página em uma Atlassian Statuspage, uma página do incident.io ou uma página de status do OneUptime, e a mostra nos grupos da página; cada componente que não está operacional diz como está. Um nome escolhido acompanha o componente com exatamente esse nome, sem diferenciar maiúsculas de minúsculas: `Copilot` na página do GitHub não é `Copilot AI Model Providers`.
+
+Quando a lista não pode ser lida (uma página interna, uma página que não compartilha a lista com seu navegador, um feed RSS ou Atom), digite um nome e pressione Enter. Um `*` representa qualquer texto: `*us-east-1*` acompanha cada componente com `us-east-1` no nome. Em um feed RSS ou Atom, um item conta quando o título contém um dos nomes.
+
+Um incidente que não nomeia nenhum componente não conta enquanto você acompanha componentes escolhidos: nada diz que ele os afeta. Sem nada escolhido, o monitor acompanha a página inteira e todo incidente conta.
+
+Um monitor salvo com o antigo Filtro de nome de componente continua acompanhando o que acompanhava: o filtro aparece em **Componentes** como esse nome entre asteriscos, como `*API*`, que corresponde a cada componente cujo nome o contém.
+
+> [!WARNING]
+> Um nome que não corresponde a nada não acompanha nada, e parece saudável. **Componentes** e **Testar monitor** nomeiam os componentes escolhidos que a página não lista.
 
 ### Component Group Filter
 
 Se a página de status organiza seus componentes em grupos, você pode limitar o monitor a um único grupo. Por exemplo, em `https://status.openai.com`, informar `APIs` limita o monitor aos serviços de API da OpenAI.
 
-Quando um grupo de componentes está definido, o **número de incidentes ativos** e o **status geral** são calculados só com os componentes desse grupo: um incidente que afeta um grupo sem relação (por exemplo, o ChatGPT) não vai disparar um monitor limitado ao grupo "APIs".
+Quando um grupo de componentes está definido, o **número de incidentes ativos** e o **status geral** são calculados só com os componentes desse grupo: um incidente que afeta um grupo sem relação (por exemplo, o ChatGPT) não vai disparar um monitor limitado ao grupo "APIs". Com componentes também escolhidos, só contam os componentes escolhidos do grupo.
 
 A filtragem por grupo de componentes é compatível com os provedores **Atlassian Statuspage**, **incident.io** e **OneUptime Status Page**. Feeds RSS e Atom não expõem grupos de componentes.
-
-### Filtro de nome de componente
-
-Se a página de status informa vários componentes, você pode indicar o nome de um componente para monitorar só ele. O filtro corresponde a qualquer componente cujo nome contenha o que você digitar, sem diferenciar maiúsculas de minúsculas: `actions` corresponde a um componente chamado "Actions".
-
-Quando um grupo de componentes também está definido, o filtro de nome de componente é aplicado **dentro** desse grupo, permitindo mirar em um único componente dentro de um grupo maior. Quando nenhum filtro é informado, todos os componentes do escopo são monitorados. Em um feed RSS ou Atom, o filtro de nome é comparado com os títulos dos itens do feed.
-
-> [!WARNING]
-> Um filtro que não corresponde a nada parece saudável: sem componentes no escopo, não há nada que possa informar uma interrupção. Confira a grafia na página de status, e use **Testar monitor** para ver o que o filtro mantém.
 
 ## Critérios de monitoramento
 
@@ -125,11 +131,11 @@ Você pode configurar critérios para decidir quando o serviço externo é consi
 | --- | --- | --- |
 | **External Status Page Is Online** | Se a página de status está acessível e retornando dados de status | Verdadeiro ou Falso |
 | **External Status Page Overall Status** | O status geral que a página informa | Igual a, Diferente de, Contém, Não contém, Começa com, Termina com |
-| **External Status Page Component Status** | O status dos componentes do escopo (respeitando os filtros de grupo e de nome de componente): Operacional, Under Maintenance, Degraded Performance, Partial Outage, Major Outage ou Full Outage | Igual a, Diferente de, Contém, Não contém, Começa com, Termina com |
-| **External Status Page Active Incidents** | O número de incidentes ativos no momento informados na página de status (limitado ao grupo ou componente quando há um filtro) | Igual a, Diferente de e as comparações numéricas |
+| **External Status Page Component Status** | O status de cada componente do escopo (os componentes escolhidos, ou os do grupo, quando definidos): Operacional, Under Maintenance, Degraded Performance, Partial Outage, Major Outage ou Full Outage | Igual a, Diferente de, Contém, Não contém, Começa com, Termina com |
+| **External Status Page Active Incidents** | O número de incidentes ativos no momento informados na página de status (só os que afetam um componente do escopo, quando há componentes ou um grupo escolhidos) | Igual a, Diferente de e as comparações numéricas |
 | **External Status Page Response Time (in ms)** | Quanto tempo leva para baixar os dados da página de status | Maior que, Menor que, Maior ou igual a, Menor ou igual a |
 
-O status geral é o que a página diz, então os valores dele variam conforme o provedor: uma Atlassian Statuspage informa a própria descrição, como `All Systems Operational`; uma página de status do OneUptime, o pior status entre os componentes no escopo, como `under_maintenance`; um feed informa `operational` ou `degraded_performance`; a verificação de acessibilidade informa `reachable` ou `unreachable`. Essas comparações diferenciam maiúsculas de minúsculas. Para alertar sobre interrupções, **External Status Page Active Incidents** e **External Status Page Component Status** costumam ser mais confiáveis.
+O status geral é o que a página diz, então os valores dele variam conforme o provedor: uma Atlassian Statuspage informa a própria descrição, como `All Systems Operational`; uma página de status do OneUptime, o pior status entre os componentes no escopo, como `under_maintenance`; um feed informa `operational` ou `degraded_performance`; a verificação de acessibilidade informa `reachable` ou `unreachable`. Com componentes ou um grupo escolhidos, é o pior status entre eles, em qualquer página. Essas comparações diferenciam maiúsculas de minúsculas. Para alertar sobre interrupções, **External Status Page Active Incidents** e **External Status Page Component Status** costumam ser mais confiáveis.
 
 Em um feed RSS ou Atom, os itens das últimas 24 horas contam como incidentes ativos: um item RSS pela data de publicação, uma entrada Atom pela data de atualização. Um item com data no futuro só conta a partir dessa data.
 
@@ -142,13 +148,13 @@ Por padrão, o OneUptime cria critérios baseados no que realmente importa em um
 | Offline | **Qualquer** um de: a página não está online; há pelo menos um incidente ativo no escopo; um componente do escopo informa Degraded Performance, Partial Outage, Major Outage ou Full Outage | Marca o monitor como offline e declara um incidente, que se resolve sozinho quando o critério deixa de corresponder |
 | Online | **Todos** de: a página está online; não há incidentes ativos no escopo | Marca o monitor como online |
 
-Como o número de incidentes ativos e os status dos componentes respeitam os filtros de grupo e de nome de componente, esses critérios padrão miram automaticamente só nos componentes que interessam a você.
+Como o número de incidentes ativos e os status dos componentes respeitam os componentes e o grupo escolhidos, esses critérios padrão miram automaticamente só nos componentes que interessam a você.
 
 ## Páginas de status do OneUptime
 
 Escolha **OneUptime Status Page** como provedor, ou deixe **Auto**, para acompanhar uma página de status criada com o OneUptime: o projeto de outra equipe, ou a página de um provedor no OneUptime Cloud ou num OneUptime auto-hospedado. Informe o endereço da própria página em **URL da Página de Status**: o domínio dela, como `https://status.example.com`, ou `https://oneuptime.com/status-page/<status-page-id>` para uma página sem domínio próprio.
 
-O monitor lê o resumo da página, `/status-page-api/summary/<page>` (veja [Ler o resumo](/docs/status-pages/public-api#ler-o-resumo)): só o que a página mostra aos visitantes, e nada mais do outro projeto. Cada recurso da página, um monitor ou um grupo de monitores, é um componente, com o nome que a página dá a ele, no grupo da página; um grupo dentro de outro fica `Core / Databases`. Acompanhe um recurso com **Filtro de nome de componente**, ou um grupo com **Component Group Filter**.
+O monitor lê o resumo da página, `/status-page-api/summary/<page>` (veja [Ler o resumo](/docs/status-pages/public-api#ler-o-resumo)): só o que a página mostra aos visitantes, e nada mais do outro projeto. Cada recurso da página, um monitor ou um grupo de monitores, é um componente, com o nome que a página dá a ele, no grupo da página; um grupo dentro de outro fica `Core / Databases`. Escolha recursos em **Componentes**, ou acompanhe um grupo com **Component Group Filter**.
 
 O status de um componente é o valor que o status dele na página representa, então os critérios de status de componente funcionam como em qualquer página de status:
 
@@ -197,11 +203,11 @@ Ao criar incidentes ou alertas a partir de monitores de página de status extern
 | `{{responseTimeInMs}}`    | Tempo de resposta em milissegundos |
 | `{{failureCause}}`        | Motivo da falha, se houver |
 | `{{overallStatus}}`       | O valor do indicador de status geral |
-| `{{activeIncidentCount}}` | Número de incidentes ativos (limitado pelo filtro, se houver) |
+| `{{activeIncidentCount}}` | Número de incidentes ativos (dos componentes que ele acompanha, se escolheu algum) |
 | `{{componentStatuses}}`   | Array JSON de status de componentes (`name`, `status`, `description`, `groupName`) |
 | `{{provider}}`            | Provedor detectado (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); vazio após uma verificação de acessibilidade |
 | `{{componentGroup}}`      | Grupo de componentes ao qual o monitor está limitado, se houver |
-| `{{componentName}}`       | Componente ao qual o monitor está limitado, se houver |
+| `{{componentName}}`       | Os componentes que o monitor acompanha, separados por vírgulas, se escolheu algum |
 
 ## URLs de páginas de status populares
 
@@ -235,22 +241,26 @@ Aqui está uma lista de páginas de status de serviços populares. Muitas usam o
 ## Boas práticas
 
 - **Use o provedor Auto**, a menos que você saiba o formato exato: a detecção automática funciona bem na maioria das páginas de status.
-- **Limite a um grupo de componentes** se você só depende de uma parte de um provedor (por exemplo, só das "APIs" da OpenAI), para que incidentes sem relação não façam barulho.
-- **Monitore componentes específicos** se você só depende de certos serviços.
+- **Escolha os componentes de que você depende** (por exemplo, Git Operations e Pull Requests do GitHub), para que incidentes sem relação não façam barulho.
+- **Acompanhe um grupo inteiro** quando você depende dele todo (por exemplo, as "APIs" da OpenAI), para que os componentes que ele ganhar depois também sejam acompanhados.
 - **Combine com seus próprios monitores**: junte os monitores de página de status externa aos seus monitores de API e de site. Quando os dois caem ao mesmo tempo, a página de status do provedor leva você mais rápido à causa raiz.
 
 ## Solução de problemas
 
 :::details O monitor está offline, mas o incidente é de uma parte do serviço que eu não uso
-Limite o monitor com um **Component Group Filter**, um **Filtro de nome de componente** ou os dois. Assim, o número de incidentes ativos e os status dos componentes só contam o que está no escopo.
+Escolha em **Componentes** os componentes de que você depende, ou um grupo em **Component Group Filter**. Assim, o número de incidentes ativos e os status dos componentes só contam esses; um incidente que não nomeia nenhum componente não conta.
 :::
 
 :::details O monitor nunca fica offline, nem durante uma interrupção
-Os filtros podem não corresponder a nada, o que parece saudável, ou a página pode estar recebendo só a verificação de acessibilidade. Execute **Testar monitor** e confira o provedor e os componentes encontrados.
+Um nome escolhido pode não corresponder a nada na página, o que parece saudável, ou a página pode estar recebendo só a verificação de acessibilidade. Execute **Testar monitor**: ele mostra o provedor e os componentes encontrados, e nomeia cada componente escolhido que a página não lista.
 :::
 
 :::details O Auto escolhe o formato errado, ou não encontra componentes
 Defina o **Provedor** que você sabe que a página usa. Para um feed RSS ou Atom, informe a URL do próprio feed em vez da URL da página de status.
+:::
+
+:::details A lista de Componentes não carrega
+Seu navegador lê a lista direto da página de status. Uma página interna que seu navegador não alcança, uma página que não compartilha a lista com outros sites e um feed RSS ou Atom não têm lista para escolher: digite o nome de cada componente como a página o mostra e pressione Enter. As sondas leem a página como antes.
 :::
 
 :::details Uma página de status do OneUptime não mostra componentes

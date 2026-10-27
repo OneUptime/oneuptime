@@ -43,6 +43,18 @@ import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
  * for /identity/login.
  */
 
+/*
+ * The server does not require single sign-on here, and says so at once: the
+ * sign-in pages ask before they draw (SignInMethodsStandIn).
+ */
+jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/SignInMethods", () => {
+  return (
+    jest.requireActual(
+      "./SignInMethodsStandIn",
+    ) as typeof import("./SignInMethodsStandIn")
+  ).signInMethodsNotRequired();
+});
+
 jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
   return {
     __esModule: true,
@@ -86,7 +98,7 @@ const submit: (user: UserEvent) => Promise<void> = async (
   user: UserEvent,
 ): Promise<void> => {
   await act(async () => {
-    await user.click(screen.getByTestId("Login"));
+    await user.click(screen.getByTestId("Sign in"));
   });
 };
 
@@ -245,7 +257,7 @@ describe("The sign-in form's Email field stays editable", () => {
     await user.click(screen.getByText("Authenticator App"));
     await user.type(await screen.findByTestId("code"), "123456");
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     const verify: { url: string; data: JSONObject } | undefined = posted.find(

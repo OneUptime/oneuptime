@@ -26,6 +26,7 @@ import {
 } from "../Utils/ResellerInquiry";
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import ejs from "ejs";
+import fs from "fs";
 import { JSDOM } from "jsdom";
 import path from "path";
 
@@ -1828,6 +1829,184 @@ describe("the form's script", () => {
     page.form.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(false);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A sent inquiry, measured (#4917's follow-ups): one reseller_inquiry_sent,
+ * to PostHog and to the dataLayer, which the GTM container forwards to GA4.
+ * ---------------------------------------------------------------------------
+ */
+
+interface AnalyticsOnPage {
+  dataLayer: Array<Record<string, unknown>>;
+  captured: Array<[string, Record<string, unknown>]>;
+}
+
+// The page's analytics, as the head would leave them: a dataLayer and PostHog.
+function withAnalytics(page: ScriptedPage): AnalyticsOnPage {
+  const analytics: AnalyticsOnPage = { dataLayer: [], captured: [] };
+  const window: Record<string, unknown> = page.window as unknown as Record<
+    string,
+    unknown
+  >;
+
+  window["dataLayer"] = analytics.dataLayer;
+  window["posthog"] = {
+    capture: (name: string, properties: Record<string, unknown>): void => {
+      analytics.captured.push([name, properties]);
+    },
+  };
+
+  return analytics;
+}
+
+describe("a sent inquiry, as a conversion", () => {
+  const PROPERTIES: Record<string, unknown> = {
+    event_schema_version: 1,
+    page_path: "/resellers",
+  };
+
+  test("is one reseller_inquiry_sent once the server has sent it, to PostHog and the dataLayer", async () => {
+    const page: ScriptedPage = await scriptedPage();
+    const analytics: AnalyticsOnPage = withAnalytics(page);
+
+    page.fill();
+    page.submit();
+
+    // Nothing is reported for a press: only for a message the server took.
+    expect(analytics.dataLayer).toEqual([]);
+    expect(analytics.captured).toEqual([]);
+
+    page.answer(jsonResponse(200, { sent: true, message: "Thanks." }));
+    await settle();
+
+    expect(analytics.dataLayer).toEqual([
+      { event: "reseller_inquiry_sent", ...PROPERTIES },
+    ]);
+    expect(analytics.captured).toEqual([["reseller_inquiry_sent", PROPERTIES]]);
+  });
+
+  test("carries nothing the visitor typed", async () => {
+    const page: ScriptedPage = await scriptedPage();
+    const analytics: AnalyticsOnPage = withAnalytics(page);
+
+    page.fill();
+    page.submit();
+    page.answer(jsonResponse(200, { sent: true, message: "Thanks." }));
+    await settle();
+
+    const reported: string = JSON.stringify(analytics).toLowerCase();
+
+    // Every answer, and the words in them a person would know them by.
+    for (const typed of [
+      ...Object.values(FILLED),
+      "jane",
+      "kim",
+      "acme",
+      "korea",
+      "japan",
+      "devops",
+    ]) {
+      expect([typed, reported.includes(typed.toLowerCase())]).toEqual([
+        typed,
+        false,
+      ]);
+    }
+
+    // What it does carry: the event, its version and the page.
+    expect(Object.keys(analytics.dataLayer[0]!).sort()).toEqual([
+      "event",
+      "event_schema_version",
+      "page_path",
+    ]);
+  });
+
+  test.each([
+    ["a refusal", jsonResponse(400, { sent: false, message: "Check it." })],
+    ["an answer without sent", jsonResponse(200, { message: "Hm." })],
+    ["a network failure", new Error("offline")],
+  ])(
+    "is nothing for %s",
+    async (_what: string, response: FakeResponse | Error) => {
+      const page: ScriptedPage = await scriptedPage();
+      const analytics: AnalyticsOnPage = withAnalytics(page);
+
+      page.fill();
+      page.submit();
+      page.answer(response);
+      await settle();
+
+      expect(analytics.dataLayer).toEqual([]);
+      expect(analytics.captured).toEqual([]);
+    },
+  );
+
+  test("never stands between a visitor and their thanks: no analytics, or analytics that throw", async () => {
+    const bare: ScriptedPage = await scriptedPage();
+
+    bare.fill();
+    bare.submit();
+    bare.answer(jsonResponse(200, { sent: true }));
+    await settle();
+
+    expect(bare.form.hidden).toBe(true);
+
+    const broken: ScriptedPage = await scriptedPage();
+
+    (broken.window as unknown as Record<string, unknown>)["posthog"] = {
+      capture: (): void => {
+        throw new Error("blocked");
+      },
+    };
+
+    broken.fill();
+    broken.submit();
+    broken.answer(jsonResponse(200, { sent: true }));
+    await settle();
+
+    expect(broken.form.hidden).toBe(true);
+    expect(
+      broken.document.getElementById("reseller-inquiry-success")?.hidden,
+    ).toBe(false);
+    // And no "could not send" for a message that was sent.
+    expect(
+      broken.document.getElementById("reseller-inquiry-error")?.hidden,
+    ).toBe(true);
+  });
+
+  test("is a key event the GTM container forwards: an event no trigger matches is dropped", () => {
+    const container: {
+      containerVersion: {
+        trigger: Array<{
+          customEventFilter: Array<{
+            parameter: Array<{ key: string; value: string }>;
+          }>;
+        }>;
+      };
+    } = JSON.parse(
+      fs.readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Docs",
+          "analytics",
+          "gtm-key-events.json",
+        ),
+        "utf-8",
+      ),
+    );
+    const pattern: string =
+      container.containerVersion.trigger[0]!.customEventFilter[0]!.parameter.find(
+        (parameter: { key: string }) => {
+          return parameter.key === "arg1";
+        },
+      )!.value;
+
+    expect(new RegExp(pattern).test("reseller_inquiry_sent")).toBe(true);
   });
 });
 

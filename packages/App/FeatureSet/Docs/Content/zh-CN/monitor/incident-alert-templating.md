@@ -440,11 +440,11 @@ Alerts for payments:
 | 变量 | 内容 | 类型 |
 | --- | --- | --- |
 | `overallStatus` | 状态页的总体状态，例如 `major_outage`。 | `string` |
-| `activeIncidentCount` | 状态页上处于打开状态的事件数量。 | `number` |
+| `activeIncidentCount` | 状态页上处于打开状态、且影响监视器所关注内容的事件数量。 | `number` |
 | `componentStatuses` | 它的组件，每个形如 `{name, status, description, groupName}`。 | `Array<Object>` |
 | `provider` | 状态页的类型：Atlassian Statuspage、incident.io、RSS 或 Atom。 | `string` |
 | `componentGroup` | 监视器关注的组件组(如果有)。 | `string` |
-| `componentName` | 监视器关注的组件(如果有)。 | `string` |
+| `componentName` | 监视器关注的组件，以逗号分隔(如果选择了组件)。 | `string` |
 | `isOnline` | 状态页是否作出了响应。 | `boolean` |
 | `responseTimeInMs` | 状态页响应所用的时间，以毫秒为单位。 | `number` |
 | `failureCause` | 检查失败时的原因。 | `string` |

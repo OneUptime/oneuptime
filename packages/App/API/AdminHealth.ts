@@ -546,6 +546,7 @@ export const SUPPORT_CONFIG_ALLOW_LIST: Array<string> = [
   "DISABLE_TELEMETRY",
   "DISABLE_TELEMETRY_INGESTION",
   "DISABLE_UPDATE_CHECK",
+  "DISABLE_INSTANCE_CHECK_IN",
   "DISABLE_QUEUE_WORKERS",
   /*
    * Whether this process records that OneUptime is receiving data. The first

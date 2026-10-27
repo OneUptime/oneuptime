@@ -9,6 +9,14 @@ export const LOGIN_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
   new Route("/login"),
 );
 
+/*
+ * Whether this self-hosted server is waiting for its first account, which
+ * becomes its admin: the register page says so then.
+ */
+export const FIRST_ACCOUNT_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
+  new Route("/first-account"),
+);
+
 export const PASSKEY_LOGIN_OPTIONS_API_URL: URL = URL.fromURL(
   IDENTITY_URL,
 ).addRoute(new Route("/passkey-login-options"));
@@ -72,6 +80,16 @@ export const SERVICE_PROVIDER_LOGIN_URL: URL = URL.fromURL(
 export const SERVICE_PROVIDER_LOGIN_OIDC_URL: URL = URL.fromURL(
   IDENTITY_URL,
 ).addRoute(new Route("/service-provider-login-oidc"));
+
+/*
+ * How this server signs people in: whether it requires single sign-on, its
+ * instance-wide providers, and - while SSO is required - whether a project
+ * has a provider of its own to find by email (Common/Types/SSO/SignInMethods).
+ * The sign-in, single sign-on and sign-up pages read it as they open.
+ */
+export const SIGN_IN_METHODS_API_URL: URL = URL.fromURL(IDENTITY_URL).addRoute(
+  new Route("/sign-in-methods"),
+);
 
 export const GLOBAL_SSO_SERVICE_PROVIDER_LOGIN_URL: URL = URL.fromURL(
   IDENTITY_URL,

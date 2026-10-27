@@ -54,7 +54,7 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  *     the English where that locale has no wording, which is most of the
  *     global provider screens (ADMIN_LABELS). Its side menu and top bar use
  *     keys of their own (ADMIN_KEYS).
- *   - The sign-in pages (Accounts): "Login with SSO" is the Accounts
+ *   - The sign-in pages (Accounts): "Sign in with SSO" is the Accounts
  *     locale's sso.title, and "Admin Settings" in the user menu is the
  *     Dashboard's userProfile.adminSettings.
  *   - The docs themselves: the permission tables' column names and values
@@ -411,18 +411,21 @@ const SOURCE_TEXT: ReadonlyArray<SourceText> = [
 
 /*
  * The Admin Dashboard's labels, by page: it shows a label as its locale
- * words the whole text, or in English. Settings and Authentication come
+ * words the whole text, or in English. Settings and Single Sign-On come
  * from its top bar's and side menu's own keys (ADMIN_KEYS).
  */
 const ADMIN_LABELS: Record<string, Array<string>> = {
-  [SSO]: ["Settings", "Authentication", "Require SSO for Login"],
+  [SSO]: ["Settings", "Single Sign-On", "Require SSO for Login"],
   [GLOBAL_SSO]: [
     "Settings",
-    "Authentication",
-    "Global SSO",
-    "Global OIDC",
-    "Create Global SSO",
-    "Create Global OIDC",
+    "Single Sign-On",
+    // The Require SSO card at the bottom of Single Sign-On, and its address.
+    "Require SSO",
+    "Master admin sign-in",
+    // The providers' tables: their Add buttons, and a row's Test Sign-in.
+    "Add SAML Provider",
+    "Add OIDC Provider",
+    "Test Sign-in",
     "Name",
     "Sign On URL",
     "Issuer",
@@ -458,7 +461,7 @@ const ADMIN_LABELS: Record<string, Array<string>> = {
 
 const ADMIN_KEYS: Record<string, string> = {
   Settings: "navbar.settings",
-  Authentication: "sideMenu.settingsAuthentication",
+  "Single Sign-On": "sideMenu.settingsSso",
 };
 
 /*
@@ -477,7 +480,7 @@ const USER_MENU_LABELS: Record<string, Record<string, string>> = {
 
 // The sign-in pages' labels, keys of the Accounts locale.
 const ACCOUNTS_LABELS: Record<string, Record<string, string>> = {
-  [SSO]: { "Login with SSO": "sso.title" },
+  [SSO]: { "Sign in with SSO": "sso.title" },
 };
 
 /*
@@ -632,6 +635,7 @@ const SERVER_MESSAGES: Record<string, Array<string>> = {
     '"SAML Destination does not match"',
     '"SAML response has expired"',
     '"Another change to who can sign in with SSO is being saved. Try again in a moment."',
+    ':::details "This server requires single sign-on (SSO). Sign in with SSO instead."',
     '"The server\'s SSO settings are being changed. Create the project again in a moment."',
   ],
 };
@@ -1086,6 +1090,11 @@ describe("the lists this test keeps", () => {
       "Enabled",
       "More fields",
       "Require SSO for Login",
+      "Require SSO",
+      "Master admin sign-in",
+      "Add SAML Provider",
+      "Add OIDC Provider",
+      "Test Sign-in",
       "People without an account",
       "Get one on their first sign-in",
       "Must be invited first",
@@ -1101,8 +1110,8 @@ describe("the lists this test keeps", () => {
 
     // Drawn in English there, in every language.
     for (const label of [
-      "Global SSO",
-      "Create Global SSO",
+      "Identity Provider URLs",
+      "Test this SSO provider",
       "Sign On URL",
       "Attached Projects",
       "Edit Configuration",
@@ -1444,9 +1453,9 @@ describe.each(LANGUAGES)("%s", (language: string) => {
     for (const page of [SSO, GLOBAL_SSO]) {
       const translated: string = readPage(language, page);
       const settings: string = adminLabel(language, "Settings");
-      const authentication: string = adminLabel(language, "Authentication");
+      const singleSignOn: string = adminLabel(language, "Single Sign-On");
       const path: RegExp = new RegExp(
-        `\\*\\*Admin\\*\\* > \\*\\*${escapeRegExp(settings)}\\*\\* > \\*\\*${escapeRegExp(authentication)}\\*\\*`,
+        `\\*\\*Admin\\*\\* > \\*\\*${escapeRegExp(settings)}\\*\\* > \\*\\*${escapeRegExp(singleSignOn)}\\*\\*`,
       );
 
       expect({ page, path: true }).toEqual({

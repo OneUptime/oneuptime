@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import fs from "fs";
 import type { SpyInstance } from "jest-mock";
@@ -26,7 +33,15 @@ import i18n from "../../../../App/FeatureSet/Accounts/src/Utils/i18n";
 import english from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
 import german from "../../../../App/FeatureSet/Accounts/src/Locales/de.json";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
-import LoginWithSSOPage from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
+import LoginWithSSOPage, {
+  SSO_PROJECTS_TEST_ID,
+  USE_DIFFERENT_EMAIL_TEST_ID,
+} from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
+import SsoProviderType from "../../../Types/SSO/SsoProviderType";
+import {
+  getSignInOptionClassName,
+  SIGN_IN_OPTION_PRIMARY_CLASS,
+} from "../../../UI/Components/SignInOption/SignInOptionStyle";
 
 /*
  * Single sign-on on the Accounts pages, in every edition.
@@ -34,12 +49,24 @@ import LoginWithSSOPage from "../../../../App/FeatureSet/Accounts/src/Pages/Logi
  * SAML and OIDC sign-in are part of every edition, so:
  *   - the password page always offers "Sign in with SSO", a button under
  *     "or" below Login (it was the link "Use single sign-on (SSO) instead");
- *   - the SSO page always shows the email form, with the instance-wide
- *     providers it discovers above it. A provider lookup that fails - a 404
- *     from a proxy that does not route /identity, a 402, a 500 - is treated
- *     like one that found nothing: global providers are optional, and an
- *     email with no provider gets the normal "No SSO configuration found"
- *     message. Neither page says anything about an edition or a license.
+ *   - the SSO page always shows the email form while the server does not
+ *     require SSO, with the instance-wide providers it reads as it opens
+ *     (GET /identity/sign-in-methods, one read for SAML and OIDC alike)
+ *     above it. A read that fails - a 404 from a proxy that does not route
+ *     /identity, a 402, a 500 - is treated like one that found nothing:
+ *     global providers are optional, and an email with no provider gets the
+ *     normal "No SSO configuration found" message. Neither page says
+ *     anything about an edition or a license. (While the server requires
+ *     SSO the pages offer nothing else: LoginSsoRequired.test.tsx.)
+ *   - the email form stays on screen while an address is looked up, its
+ *     button busy, and keeps the address whatever the answer - the page
+ *     gave way to a loader and came back empty, so "No SSO configuration
+ *     found for the email: <address>" stood above an empty field (the
+ *     screenshot in #5193). Each lookup answers for itself: an earlier
+ *     one's message never hides the projects a later one finds.
+ *   - an address's providers are listed by project as buttons, drawn as the
+ *     instance-wide providers are, with "Use a different email" to go back
+ *     to the form with the address still in it.
  *
  * Billing and the edition are pinned in every test: CI's config.env sets
  * BILLING_ENABLED=true. IDENTITY_URL is pinned to a fixed origin so the
@@ -168,6 +195,12 @@ const SSO_LOCALE_KEYS: Array<string> = [
   "sso.defaultProjectName",
   "sso.globalProvidersTitle",
   "sso.globalProvidersDivider",
+  "sso.signInWithProvider",
+  "sso.requiredSubtitle",
+  "sso.requiredNotSetUp",
+  "sso.useDifferentEmail",
+  "adminLogin.title",
+  "adminLogin.subtitle",
 ];
 
 const localeValue: (locale: JSONObject, key: string) => unknown = (
@@ -206,6 +239,8 @@ let globalSamlAnswer: LookupAnswer;
 let globalOidcAnswer: LookupAnswer;
 let emailSamlAnswer: LookupAnswer;
 let emailOidcAnswer: LookupAnswer;
+// While set, the email lookups wait for it before they answer.
+let emailLookupGate: Promise<void> | null;
 let requestedUrls: Array<string>;
 let navigateSpy: SpyInstance<typeof Navigation.navigate>;
 
@@ -219,6 +254,31 @@ const toResponse: (
   }
 
   return new HTTPResponse<JSONObject>(answer.status, answer.data, {});
+};
+
+// A provider listing's rows, as the sign-in methods read names them.
+const asProviders: (
+  answer: LookupAnswer,
+  type: SsoProviderType,
+) => Array<JSONObject> = (
+  answer: LookupAnswer,
+  type: SsoProviderType,
+): Array<JSONObject> => {
+  return (Array.isArray(answer.data) ? answer.data : []).map(
+    (row: JSONObject): JSONObject => {
+      return {
+        type: type,
+        id: row["_id"] as string,
+        name: row["name"] as string,
+        description: (row["description"] as string) || "",
+      };
+    },
+  );
+};
+
+// What a provider's button says when its admin wrote no description.
+const signInWith: (name: string) => string = (name: string): string => {
+  return english.sso.signInWithProvider.replace("{{name}}", name);
 };
 
 const NOT_ROUTED: LookupAnswer = {
@@ -292,7 +352,7 @@ const submitEmail: (email: string) => Promise<void> = async (
   await user.type(await screen.findByTestId("email"), email);
 
   await act(async () => {
-    await user.click(screen.getByTestId("Login with SSO"));
+    await user.click(screen.getByTestId("Sign in with SSO"));
   });
 };
 
@@ -315,6 +375,43 @@ const navigatedTo: () => Array<string> = (): Array<string> => {
       return call[0].toString();
     },
   );
+};
+
+// What the page says when an address finds no provider.
+const noConfigFor: (email: string) => string = (email: string): string => {
+  return english.sso.noConfigForEmail.replace("{{email}}", email);
+};
+
+// The providers of the projects an address belongs to, one group a project.
+const projectGroups: () => Array<HTMLElement> = (): Array<HTMLElement> => {
+  return within(screen.getByTestId(SSO_PROJECTS_TEST_ID)).getAllByTestId(
+    "sso-project",
+  );
+};
+
+// A project's provider as the email lookups list it.
+const projectProvider: (data: {
+  id: string;
+  name: string;
+  projectId: string;
+  projectName?: string | undefined;
+  description?: string | undefined;
+}) => JSONObject = (data: {
+  id: string;
+  name: string;
+  projectId: string;
+  projectName?: string | undefined;
+  description?: string | undefined;
+}): JSONObject => {
+  return {
+    _id: data.id,
+    name: data.name,
+    description: data.description || `Sign in with ${data.name}`,
+    projectId: data.projectId,
+    ...(data.projectName
+      ? { project: { _id: data.projectId, name: data.projectName } }
+      : {}),
+  };
 };
 
 // The SSO page as it is when nothing has been found yet: the email form.
@@ -342,6 +439,7 @@ describe("Accounts single sign-on, in every edition", () => {
     globalOidcAnswer = NO_PROVIDERS;
     emailSamlAnswer = NO_CONFIG_FOR_EMAIL;
     emailOidcAnswer = NO_CONFIG_FOR_EMAIL;
+    emailLookupGate = null;
 
     jest.spyOn(UserUtil, "isLoggedIn").mockReturnValue(false);
     navigateSpy = jest
@@ -361,12 +459,47 @@ describe("Accounts single sign-on, in every edition", () => {
           const url: string = options.url?.toString() || "";
           requestedUrls.push(url);
 
+          /*
+           * How the server signs people in: its instance-wide providers, as
+           * the two answers above hold them, in one read. Either failing
+           * fails the read.
+           */
+          if (url.includes("/sign-in-methods")) {
+            const failed: LookupAnswer | undefined = [
+              globalSamlAnswer,
+              globalOidcAnswer,
+            ].find((answer: LookupAnswer): boolean => {
+              return answer.status >= 400;
+            });
+
+            if (failed) {
+              return toResponse(failed);
+            }
+
+            return toResponse({
+              status: 200,
+              data: {
+                isSsoRequired: false,
+                ssoProviders: [
+                  ...asProviders(globalSamlAnswer, SsoProviderType.GlobalSSO),
+                  ...asProviders(globalOidcAnswer, SsoProviderType.GlobalOIDC),
+                ],
+                hasProjectSsoProviders: false,
+              },
+            });
+          }
+
+          // The page reads them all from /sign-in-methods now; never these.
           if (url.includes("/global-sso/service-provider-login")) {
             return toResponse(globalSamlAnswer);
           }
 
           if (url.includes("/global-oidc/service-provider-login")) {
             return toResponse(globalOidcAnswer);
+          }
+
+          if (url.includes("/service-provider-login") && emailLookupGate) {
+            await emailLookupGate;
           }
 
           if (url.includes("/service-provider-login-oidc")) {
@@ -430,15 +563,12 @@ describe("Accounts single sign-on, in every edition", () => {
         await renderSso();
 
         expectEmailForm();
-        // Instance-wide providers are looked up as the page opens.
-        expect(
-          requestedUrls.filter((url: string) => {
-            return (
-              url === `${IDENTITY_ORIGIN}/global-sso/service-provider-login` ||
-              url === `${IDENTITY_ORIGIN}/global-oidc/service-provider-login`
-            );
-          }),
-        ).toHaveLength(2);
+        /*
+         * How the server signs people in - its instance-wide providers with
+         * it - is read once as the page opens; the two listings it read
+         * before are not.
+         */
+        expect(requestedUrls).toEqual([`${IDENTITY_ORIGIN}/sign-in-methods`]);
       },
     );
 
@@ -503,8 +633,12 @@ describe("Accounts single sign-on, in every edition", () => {
       expect(
         await screen.findByText(english.sso.globalProvidersTitle),
       ).toBeInTheDocument();
-      expect(screen.getByText("Okta (company-wide)")).toBeInTheDocument();
-      expect(screen.getByText("Google Workspace")).toBeInTheDocument();
+      expect(
+        screen.getByText(signInWith("Okta (company-wide)")),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(signInWith("Google Workspace")),
+      ).toBeInTheDocument();
       expect(
         screen.getByText(english.sso.globalProvidersDivider),
       ).toBeInTheDocument();
@@ -519,7 +653,7 @@ describe("Accounts single sign-on, in every edition", () => {
       };
 
       await renderSso();
-      await clickProvider("Okta (company-wide)");
+      await clickProvider(signInWith("Okta (company-wide)"));
 
       expect(navigatedTo()).toEqual([
         `${IDENTITY_ORIGIN}/global-sso/${PROVIDER_1}`,
@@ -533,49 +667,301 @@ describe("Accounts single sign-on, in every edition", () => {
       };
 
       await renderSso();
-      await clickProvider("Google Workspace");
+      await clickProvider(signInWith("Google Workspace"));
 
       expect(navigatedTo()).toEqual([
         `${IDENTITY_ORIGIN}/global-oidc/${PROVIDER_2}`,
       ]);
     });
 
-    test("an email's providers are grouped by project", async () => {
+    test("an email's providers are grouped by project, one outlined button each", async () => {
       emailSamlAnswer = {
         status: 200,
         data: [
-          {
-            _id: PROVIDER_1,
+          projectProvider({
+            id: PROVIDER_1,
             name: "Okta",
             projectId: PROJECT_A,
-            project: { _id: PROJECT_A, name: "Acme" },
-          },
+            projectName: "Acme",
+          }),
         ],
       };
       emailOidcAnswer = {
         status: 200,
         data: [
-          {
-            _id: PROVIDER_2,
+          projectProvider({
+            id: PROVIDER_2,
             name: "Entra ID",
             projectId: PROJECT_B,
-            project: { _id: PROJECT_B, name: "Globex" },
-          },
+            projectName: "Globex",
+          }),
         ],
       };
 
       await renderSso();
       await submitEmail("ada@example.com");
 
+      const heading: HTMLElement = await screen.findByRole("heading", {
+        name: english.sso.selectProjectTitle,
+      });
+
+      /*
+       * The list took the form's place, and the focus with it: the keyboard
+       * and a screen reader go on from its heading.
+       */
+      expect(heading).toHaveFocus();
       expect(
-        await screen.findByText(english.sso.selectProjectTitle),
+        screen.getByText(english.sso.selectProjectSubtitle),
       ).toBeInTheDocument();
-      expect(screen.getByText("Acme")).toBeInTheDocument();
-      expect(screen.getByText("Globex")).toBeInTheDocument();
-      expect(screen.getByText("Okta")).toBeInTheDocument();
-      expect(screen.getByText("Entra ID")).toBeInTheDocument();
+
+      const groups: Array<HTMLElement> = projectGroups();
+
+      expect(groups).toHaveLength(2);
+      expect(
+        within(groups[0]!).getByRole("heading", { name: "Acme" }),
+      ).toBeInTheDocument();
+      expect(
+        within(groups[0]!).getByRole("button", { name: signInWith("Okta") }),
+      ).toBeInTheDocument();
+      expect(
+        within(groups[1]!).getByRole("heading", { name: "Globex" }),
+      ).toBeInTheDocument();
+      expect(
+        within(groups[1]!).getByRole("button", {
+          name: signInWith("Entra ID"),
+        }),
+      ).toBeInTheDocument();
+
+      // Several to choose from: every one outlined, none the page's own.
+      for (const button of screen.getAllByTestId("sso-project-provider")) {
+        expect(button.className).toBe(getSignInOptionClassName("ready"));
+      }
+
+      // The way back to the email form, and nothing else.
+      expect(screen.getByTestId(USE_DIFFERENT_EMAIL_TEST_ID)).toHaveTextContent(
+        english.sso.useDifferentEmail,
+      );
+      expect(screen.queryByTestId("email")).not.toBeInTheDocument();
       expect(document.body.textContent || "").not.toMatch(
         EDITION_OR_LICENSE_WORDING,
+      );
+    });
+
+    test("one provider in all: its button is the page's filled button", async () => {
+      emailSamlAnswer = {
+        status: 200,
+        data: [
+          projectProvider({
+            id: PROVIDER_1,
+            name: "Okta",
+            projectId: PROJECT_A,
+            projectName: "Acme",
+          }),
+        ],
+      };
+
+      await renderSso();
+      await submitEmail("ada@example.com");
+
+      await screen.findByTestId(SSO_PROJECTS_TEST_ID);
+
+      const buttons: Array<HTMLElement> = screen.getAllByTestId(
+        "sso-project-provider",
+      );
+
+      expect(buttons).toHaveLength(1);
+      expect(buttons[0]!.className).toBe(SIGN_IN_OPTION_PRIMARY_CLASS);
+    });
+
+    test("a project's provider described in its admin's words: its name on the button, the words under it", async () => {
+      emailSamlAnswer = {
+        status: 200,
+        data: [
+          projectProvider({
+            id: PROVIDER_1,
+            name: "Acme Entra ID",
+            projectId: PROJECT_A,
+            projectName: "Acme",
+            description: "Contractors only",
+          }),
+        ],
+      };
+
+      await renderSso();
+      await submitEmail("ada@example.com");
+
+      const button: HTMLElement = await screen.findByRole("button", {
+        name: "Acme Entra ID",
+      });
+
+      expect(button).toHaveAccessibleDescription("Contractors only");
+      expect(
+        screen.queryByText(signInWith("Acme Entra ID")),
+      ).not.toBeInTheDocument();
+    });
+
+    test("the form stays while an address is looked up: its button busy, the address in the field", async () => {
+      let answer: () => void = (): void => {};
+      emailLookupGate = new Promise<void>((resolve: () => void) => {
+        answer = resolve;
+      });
+
+      await renderSso();
+      await submitEmail("ada@example.com");
+
+      await waitFor(() => {
+        expect(requestedUrls).toContain(
+          `${IDENTITY_ORIGIN}/service-provider-login?email=ada@example.com`,
+        );
+      });
+
+      /*
+       * Still the form, never a page-wide loader that takes it away: the
+       * address read-only in its field, the button busy.
+       */
+      const field: HTMLElement = screen.getByTestId("email");
+
+      expect(field).toHaveValue("ada@example.com");
+      expect(field).toHaveAttribute("readonly");
+      expect(screen.getByTestId("Sign in with SSO")).toBeDisabled();
+      expect(screen.getByText(english.sso.subtitle)).toBeInTheDocument();
+
+      await act(async () => {
+        answer();
+      });
+
+      expect(
+        await screen.findByText(noConfigFor("ada@example.com")),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("email")).not.toHaveAttribute("readonly");
+      expect(screen.getByTestId("Sign in with SSO")).toBeEnabled();
+    });
+
+    test("an address that finds nothing stays in the field, under the message that names it", async () => {
+      await renderSso();
+      await submitEmail("ada@example.com");
+
+      expect(
+        await screen.findByText(noConfigFor("ada@example.com")),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("email")).toHaveValue("ada@example.com");
+    });
+
+    test("each lookup answers for itself: one that found nothing never hides what the next one finds", async () => {
+      await renderSso();
+      await submitEmail("ada@example.com");
+
+      expect(
+        await screen.findByText(noConfigFor("ada@example.com")),
+      ).toBeInTheDocument();
+
+      emailSamlAnswer = {
+        status: 200,
+        data: [
+          projectProvider({
+            id: PROVIDER_1,
+            name: "Okta",
+            projectId: PROJECT_A,
+            projectName: "Acme",
+          }),
+        ],
+      };
+
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+        delay: null,
+      });
+
+      await user.clear(screen.getByTestId("email"));
+      await user.type(screen.getByTestId("email"), "grace@example.com");
+      await act(async () => {
+        await user.click(screen.getByTestId("Sign in with SSO"));
+      });
+
+      expect(
+        await screen.findByTestId(SSO_PROJECTS_TEST_ID),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: signInWith("Okta") }),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/No SSO configuration found/),
+      ).not.toBeInTheDocument();
+    });
+
+    test("Use a different email: back to the form, with the address still in it", async () => {
+      emailSamlAnswer = {
+        status: 200,
+        data: [
+          projectProvider({
+            id: PROVIDER_1,
+            name: "Okta",
+            projectId: PROJECT_A,
+            projectName: "Acme",
+          }),
+        ],
+      };
+
+      await renderSso();
+      await submitEmail("ada@example.com");
+
+      await screen.findByTestId(SSO_PROJECTS_TEST_ID);
+
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+        delay: null,
+      });
+
+      await act(async () => {
+        await user.click(screen.getByTestId(USE_DIFFERENT_EMAIL_TEST_ID));
+      });
+
+      expect(
+        screen.queryByTestId(SSO_PROJECTS_TEST_ID),
+      ).not.toBeInTheDocument();
+      expect(await screen.findByTestId("email")).toHaveValue("ada@example.com");
+      expectEmailForm();
+      // Nothing was started on the way back.
+      expect(navigatedTo()).toEqual([]);
+    });
+
+    test("in German: the list's words and its way back", async () => {
+      emailSamlAnswer = {
+        status: 200,
+        data: [
+          projectProvider({
+            id: PROVIDER_1,
+            name: "Okta",
+            projectId: PROJECT_A,
+            projectName: "Acme",
+          }),
+        ],
+      };
+
+      await act(async () => {
+        await i18n.changeLanguage("de");
+      });
+      await renderSso();
+
+      const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+        delay: null,
+      });
+
+      await user.type(await screen.findByTestId("email"), "ada@example.com");
+      await act(async () => {
+        await user.click(screen.getByTestId(german.sso.submitButton));
+      });
+
+      expect(
+        await screen.findByRole("heading", {
+          name: german.sso.selectProjectTitle,
+        }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", {
+          name: german.sso.signInWithProvider.replace("{{name}}", "Okta"),
+        }),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId(USE_DIFFERENT_EMAIL_TEST_ID)).toHaveTextContent(
+        german.sso.useDifferentEmail,
       );
     });
 
@@ -587,7 +973,7 @@ describe("Accounts single sign-on, in every edition", () => {
 
       await renderSso();
       await submitEmail("ada@example.com");
-      await clickProvider("Okta");
+      await clickProvider(signInWith("Okta"));
 
       expect(navigatedTo()).toEqual([
         `${IDENTITY_ORIGIN}/sso/${PROJECT_A}/${PROVIDER_1}`,
@@ -602,7 +988,7 @@ describe("Accounts single sign-on, in every edition", () => {
 
       await renderSso();
       await submitEmail("ada@example.com");
-      await clickProvider("Entra ID");
+      await clickProvider(signInWith("Entra ID"));
 
       expect(navigatedTo()).toEqual([
         `${IDENTITY_ORIGIN}/oidc/${PROJECT_B}/${PROVIDER_2}`,
@@ -619,7 +1005,9 @@ describe("Accounts single sign-on, in every edition", () => {
       await renderSso();
       await submitEmail("ada@example.com");
 
-      expect(await screen.findByText("Entra ID")).toBeInTheDocument();
+      expect(
+        await screen.findByText(signInWith("Entra ID")),
+      ).toBeInTheDocument();
       expect(
         screen.queryByText(/No SSO configuration found/),
       ).not.toBeInTheDocument();
@@ -633,7 +1021,7 @@ describe("Accounts single sign-on, in every edition", () => {
       });
 
       await act(async () => {
-        await user.click(screen.getByTestId("Login with SSO"));
+        await user.click(screen.getByTestId("Sign in with SSO"));
       });
 
       expect(

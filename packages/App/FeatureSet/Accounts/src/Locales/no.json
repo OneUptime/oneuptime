@@ -105,6 +105,7 @@
   "register": {
     "title": "Opprett OneUptime-kontoen din",
     "subtitle": "Bli med tusenvis av bedrifter som bruker OneUptime for å holde dem online hele tiden.",
+    "firstAccountSubtitle": "Denne OneUptime-serveren har ingen kontoer ennå. Den første du oppretter, blir administratoren.",
     "noCreditCard": "Ingen kredittkort nødvendig.",
     "submitButton": "Registrer deg",
     "haveAccountPrompt": "Har du allerede en konto?",
@@ -131,7 +132,6 @@
     "subtitle": "Skriv inn e-postadressen din, så vil lenken til tilbakestilling av passord bli sendt til deg.",
     "successMessage": "Vi har sendt deg lenken til tilbakestilling av passord på e-post. Ikke glem å sjekke søppelpost.",
     "submitButton": "Send lenke til tilbakestilling",
-    "returnToSignIn": "Tilbake til pålogging.",
     "rememberPasswordPrompt": "Husker du passordet ditt?",
     "loginLink": "Logg inn."
   },
@@ -156,13 +156,21 @@
     "emailRequired": "E-post er nødvendig for å utføre denne handlingen",
     "defaultProjectName": "Prosjekt",
     "globalProvidersTitle": "Logg på med organisasjonen din",
-    "globalProvidersDivider": "Eller fortsett med e-post"
+    "globalProvidersDivider": "Eller fortsett med e-post",
+    "signInWithProvider": "Logg inn med {{name}}",
+    "requiredSubtitle": "Logg inn med organisasjonens enkel pålogging (SSO).",
+    "requiredNotSetUp": "Enkel pålogging er ikke satt opp på denne serveren ennå. Be serveradministratoren om å sette det opp.",
+    "useDifferentEmail": "Bruk en annen e-post"
+  },
+  "adminLogin": {
+    "title": "Logg inn som hovedadministrator",
+    "subtitle": "Denne serveren krever enkel pålogging (SSO). Hovedadministratorer kan fortsatt logge inn her med passordet sitt."
   },
   "verifyEmail": {
     "successTitle": "E-posten din er bekreftet.",
     "successDescription": "Takk for at du bekreftet e-posten din. Du kan nå logge inn på OneUptime.",
     "errorTitle": "Beklager, noe gikk galt!",
-    "returnToSignIn": "Tilbake til pålogging?",
+    "alreadyVerifiedPrompt": "Har du allerede bekreftet e-postadressen din?",
     "loginLink": "Logg inn.",
     "continueToSignIn": "Fortsett til innlogging",
     "linkInvalidTitle": "Denne bekreftelseslenken er ikke lenger gyldig",

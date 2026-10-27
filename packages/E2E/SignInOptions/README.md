@@ -17,6 +17,17 @@ What it checks, for every option in every language and at every width:
 
 It also checks each page's order and widths (the divider under the filled button, every option as wide as it), the paused form during a passkey attempt, and the unavailable look in a browser without passkeys.
 
+While the whole server requires single sign-on (`ssorequired=1`), it checks that:
+
+- the sign-in, single sign-on and sign-up pages are the instance-wide provider's button alone, filled like the page's own button, with no email, password, passkey, Microsoft or sign-up;
+- several providers (`providers=3`) with a project that has a provider of its own (`projectsso=1`) are outlined options above the email lookup, each as wide and as tall as its button, with "or" between them;
+- the master admins' page (`page=adminlogin`) is the password form, with only the way to single sign-on under "or";
+- the email lookup keeps the address it looked up, and an address's projects (`lookup=found`) are listed as their providers' buttons, held to the same checks, with the way back to the form.
+
+The instance-wide providers come from the fixture's answer to `GET /identity/sign-in-methods`, which every Accounts page reads first.
+
+The sign-up page also asks `POST /identity/first-account` before it draws its form. The fixture answers that this self-hosted server has accounts, unless `firstaccount=1`: then the page's line under its title says the account made there becomes the server's admin, and the spec checks that line in every language at every width, and that the page offers no way to sign in.
+
 Run it from `packages/E2E`:
 
 ```bash

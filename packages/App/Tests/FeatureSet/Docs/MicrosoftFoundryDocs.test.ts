@@ -817,7 +817,7 @@ describe("the self-hosted variables are the startup sync's", () => {
 
   test("the Docker Compose command is the one the install guide starts OneUptime with", () => {
     const command: string =
-      "(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)";
+      "sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d";
 
     expect(readPage("en", "installation/docker-compose.md")).toContain(command);
 

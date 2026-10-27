@@ -84,7 +84,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | ۸۰ | `ingress` | `ONEUPTIME_HTTP_PORT` | داشبورد، API، دریافت تله‌متری و اعتبارسنجی Let's Encrypt. |
 | ۴۴۳ | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS برای نمونهٔ شما وقتی OneUptime گواهی را مدیریت می‌کند، و برای صفحه‌های وضعیت و داشبوردهای روی دامنه‌های سفارشی. |
-| ۵۴۰۰ | `postgres` | تنظیم‌شده در `docker-compose.yml` | به `npm run backup` و `restore.sh` اجازه می‌دهد از خود سرور به PostgreSQL برسند. این درگاه فقط روی `127.0.0.1` منتشر شده است. |
+| ۵۴۰۰ | `postgres` | `DATABASE_PUBLISHED_PORT` | به `npm run backup` و `restore.sh` اجازه می‌دهد از خود سرور به PostgreSQL برسند. این درگاه فقط روی `127.0.0.1` منتشر شده است. |
 | ۳۸۷۴ | `probe-1` | `GLOBAL_PROBE_1_PORT` | سرور خود پراب. هیچ چیز بیرون از سرور به آن نیاز ندارد. |
 
 یک [ویدیوی گام‌به‌گام](https://youtu.be/j1SWmMW2oL4) از نصب هم وجود دارد.
@@ -132,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 پیش از نخستین اجرا، رازهای جای‌نگهدار را خودتان جایگزین کنید، همان‌طور که [رازهای تصادفی بسازید](#رازهای-تصادفی-بسازید) نشان می‌دهد: فقط `npm start` این کار را برایتان انجام می‌دهد.
 :::
@@ -386,7 +386,7 @@ PostgreSQL گذرواژه‌ای را که با آن ساخته شده نگه م
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -468,7 +468,7 @@ npm run down
 داده‌های شما در ولوم‌های `oneuptime_postgres` و `oneuptime_clickhouse` می‌مانند، و پوشهٔ `oneuptime`، `config.env` و پشتیبان‌های شما را نگه می‌دارد. برای حذف داده‌ها هم:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 سپس پوشهٔ `oneuptime` را حذف کنید.
@@ -534,7 +534,7 @@ OneUptime را با نشانی موجود در `HOST` باز کنید. ingress �
 وقتی سفارشی شکست بخورد، برنامه خطایی ثبت می‌کند که با `CoreSSL:EnsurePrimaryHostCertificate` شروع می‌شود و پس از آن دلیلش می‌آید:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 

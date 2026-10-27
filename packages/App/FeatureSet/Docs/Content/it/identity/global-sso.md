@@ -8,7 +8,7 @@ L'SSO globale permette a un **amministratore dell'istanza** OneUptime (master ad
 :::cards
 - [Configurare un provider](#configurare-lsso-globale): Crearlo, dare gli URL di OneUptime al tuo provider di identità e provarlo.
 - [Come accedono gli utenti](#come-accedono-gli-utenti): Solo i membri esistenti, o i nuovi arrivati aggiunti ai progetti che colleghi.
-- [Imporre l'SSO](#imporre-lsso): Richiedere l'SSO per un progetto o per l'intera istanza.
+- [Imporre l'SSO](#imporre-lsso): Richiedere l'SSO per un progetto, o per l'intera istanza e la sua pagina di accesso.
 - [Disattivare un provider](#disattivare-o-eliminare-un-provider): Che cosa termina e quali modifiche OneUptime rifiuta.
 :::
 
@@ -27,21 +27,16 @@ Per il provider proprio di un singolo progetto, vedi [SSO](/docs/identity/sso).
 :::steps
 ### Aprire l'elenco dei provider
 
-:::tabs
-@tab SAML
-Accedi come amministratore principale e apri l'Admin Dashboard con **Impostazioni admin** nel menu utente. Poi vai a **Impostazioni** > **Autenticazione** > **Global SSO**.
-@tab OpenID Connect
-Accedi come amministratore principale e apri l'Admin Dashboard con **Impostazioni admin** nel menu utente. Poi vai a **Impostazioni** > **Autenticazione** > **Global OIDC**.
-:::
+Accedi come amministratore principale e apri l'Admin Dashboard con **Impostazioni admin** nel menu utente. Poi vai a **Impostazioni** > **Single sign-on**. La pagina elenca i provider SAML dell'istanza, poi i suoi provider OpenID Connect, e termina con la scheda **Richiedi l'SSO**.
 
 ### Creare il provider
 
 :::tabs
 @tab SAML
-- Fai clic su **Create Global SSO**.
+- Fai clic su **Aggiungi provider SAML**.
 - Inserisci un **Nome**, la **Sign On URL** e l'**Issuer** del tuo provider di identità, e incolla il **Public Certificate**. Tutto il resto è già compilato sotto **Altri campi**: il **Signature Method** (`RSA-SHA256`), il **Digest Method** (`SHA256`) e una descrizione (`Sign in with` seguito dal nome). Modificali solo se il tuo IdP lo richiede. Il salvataggio apre la pagina del provider.
 @tab OpenID Connect
-- Fai clic su **Create Global OIDC**.
+- Fai clic su **Aggiungi provider OIDC**.
 - Inserisci un **Nome**, l'**Issuer URL**, il **Client ID** e il **Client Secret** dell'app che hai registrato nel tuo IdP. Funziona anche incollare l'URL di discovery dell'IdP in **Issuer URL**. Tutto il resto è già compilato sotto **Altri campi**: la **Discovery URL** (l'emittente seguito da `/.well-known/openid-configuration`), gli **Scopes** (`openid email profile`), i nomi delle attestazioni `email` e `name`, e una descrizione (`Sign in with` seguito dal nome). Modificali solo se il tuo IdP lo richiede. Il salvataggio apre la pagina del provider.
 :::
 
@@ -58,11 +53,11 @@ Nella pagina del provider, la scheda **Identity Provider URL** mostra la **Redir
 
 Un nuovo provider parte disattivato. Fai clic su **Edit Configuration** nella pagina del provider e attiva **Abilitato**.
 
-Attivare un provider globale aggiunge solo un'opzione "Sign in with SSO" alla pagina di accesso: non impone mai l'SSO né esclude qualcuno, quindi puoi attivarlo, provarlo e disattivarlo di nuovo senza rischi se serve.
+Attivare un provider globale lo aggiunge solo alle opzioni di single sign-on della pagina di accesso: non impone mai l'SSO né esclude qualcuno, quindi puoi attivarlo, provarlo e disattivarlo di nuovo senza rischi se serve. Finché l'intera istanza richiede l'SSO, però, la pagina di accesso offre solo i provider attivi: prova un provider prima di richiedere l'SSO.
 
 ### Provare il provider
 
-Usa il link della scheda **Test this SSO provider** (**Test this OIDC provider** per OpenID Connect) per eseguire un accesso completo tramite il tuo provider di identità. Non devi collegare prima alcun progetto: la prova ti fa accedere ai progetti di cui fai già parte. Perché il link funzioni, il provider deve essere attivo.
+Usa il link della scheda **Test this SSO provider** (**Test this OIDC provider** per OpenID Connect) per eseguire un accesso completo tramite il tuo provider di identità. **Prova accesso** nella riga del provider su **Single sign-on** avvia lo stesso accesso in una nuova scheda del browser. Non devi collegare prima alcun progetto: la prova ti fa accedere ai progetti di cui fai già parte. Perché il link funzioni, il provider deve essere attivo.
 :::
 
 ## Come accedono gli utenti
@@ -101,7 +96,14 @@ Con **Ogni progetto**, accedere con il provider soddisfa l'obbligo di SSO in ogn
 Configurare un provider globale non obbliga nessuno a usarlo; l'accesso con password continua a funzionare. Per richiedere l'SSO, attiva l'obbligo per un progetto o per l'intera istanza:
 
 - **Per progetto:** un progetto può richiedere l'SSO e, facoltativamente, un provider *specifico* (di progetto o globale). Vedi [Richiedere l'SSO per il progetto](/docs/identity/sso#richiedere-lsso-per-il-progetto).
-- **Per tutta l'istanza:** **Admin** > **Impostazioni** > **Autenticazione** ha un interruttore **Richiedi l'SSO per l'accesso** che impone l'SSO a ogni utente dell'istanza. Chiede conferma prima di attivarsi e salva non appena confermi. Gli amministratori principali restano esenti, così non possono rimanere esclusi.
+- **Per tutta l'istanza:** la scheda **Richiedi l'SSO** in fondo a **Admin** > **Impostazioni** > **Single sign-on** ha un interruttore **Richiedi l'SSO per l'accesso** che impone l'SSO a ogni utente dell'istanza. Chiede conferma prima di attivarsi e salva non appena confermi. Gli amministratori principali restano esenti, così non possono rimanere esclusi.
+
+Finché l'intera istanza richiede l'SSO:
+
+- La pagina di accesso offre solo l'SSO: un pulsante per ogni provider globale attivo, e nessuna password, passkey, accesso con Microsoft o registrazione. Mantiene la ricerca per email, che trova il provider proprio di un progetto, solo finché qualche progetto ne ha uno.
+- OneUptime rifiuta una password, una passkey, un accesso con Microsoft e una registrazione con "This server requires single sign-on (SSO). Sign in with SSO instead." Solo la password o la passkey di un amministratore principale lo fanno ancora accedere. Le persone ottengono l'account accedendo con l'SSO o tramite un invito.
+- Chi ha già effettuato l'accesso con una password accede con l'SSO per aprire un progetto. Arriva alla pagina di single sign-on del progetto, che offre i provider propri del progetto e i provider globali che vi fanno accedere.
+- Gli amministratori principali accedono con la loro password su `/accounts/admin-login`, un indirizzo a cui la pagina di accesso non rimanda. La scheda **Richiedi l'SSO** mostra l'indirizzo completo sotto l'interruttore, come **Accesso amministratori principali**: conservalo, per disattivare l'obbligo se il tuo provider di identità smette di funzionare.
 
 Attivare **Richiedi l'SSO per l'accesso** richiede un provider SSO che faccia accedere le persone, così nessuno resta escluso:
 
@@ -157,6 +159,10 @@ Per un provider SAML, la risposta è stata creata per un'altra applicazione: la 
 
 :::details "SAML response was already used"
 Ogni risposta del tuo provider di identità fa accedere una sola volta, e solo nei minuti successivi alla sua emissione: dopo viene rifiutata con "SAML response has expired". Accedi di nuovo. Se le risposte continuano a scadere, controlla gli orologi di questo server e del tuo provider di identità.
+:::
+
+:::details "This server requires single sign-on (SSO). Sign in with SSO instead."
+L'intera istanza richiede l'SSO, e questo era un accesso con password, passkey o Microsoft, oppure una registrazione. Accedi invece con uno dei pulsanti SSO della pagina di accesso. Un amministratore principale accede con la sua password su `/accounts/admin-login`; per permettere di nuovo a tutti l'accesso con password, disattiva **Richiedi l'SSO per l'accesso** su **Single sign-on**.
 :::
 
 ## Passaggi successivi

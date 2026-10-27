@@ -101,7 +101,7 @@ Ve a **Runbooks → Agentes de runbook** y crea un agente nuevo. Haz clic en **C
 | **Ejecuta runbooks** | En **Más campos** | Activado por defecto. Permite a este Runner tomar pasos de runbook. |
 | **Etiquetas** | En **Más campos** | Opcional. |
 
-Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace falta reiniciarlo. La IA no es una capacidad. Un repositorio de código elige, en sus ajustes en Código, el Runner en el que la IA trabaja en él, y la página del Runner lista los repositorios que lo eligen. Una regla de IA elige el Runner en el que OneUptime AI ejecuta sus comandos: elegir un Runner ahí es lo que permite que los comandos de OneUptime AI se ejecuten en él.
+Un Runner aplica un cambio de sus capacidades en su siguiente heartbeat; no hace falta reiniciarlo. La IA no es una capacidad. Un repositorio de código elige, en sus ajustes en Código, el Runner en el que la IA trabaja en él, y la página del Runner lista los repositorios que lo eligen. Una regla de IA elige el Runner en el que OneUptime AI ejecuta sus comandos: elegir un Runner ahí es lo que permite que los comandos de OneUptime AI se ejecuten en él. La página del Runner lista también las reglas de IA que lo eligen.
 
 ### 2. Copiar el comando de instalación
 

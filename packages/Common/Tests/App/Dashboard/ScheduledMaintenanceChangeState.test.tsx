@@ -1269,4 +1269,63 @@ describe("ChangeScheduledMaintenanceState", () => {
       expect(onActionComplete).toHaveBeenCalledTimes(1);
     });
   });
+  /*
+   * An event kept to the team until its publish time (#5249): the header's
+   * band at its foot says so, in the header's quiet tone
+   * (ScheduledMaintenancePublishingNotice, handed in by the overview page).
+   * An event that missed its start or end says that instead - the amber
+   * band - as it is what needs doing first.
+   */
+  describe("the band of an event waiting for its publish time", () => {
+    function publishingNotice(): React.ReactElement {
+      return (
+        <div data-testid="publishing-notice-under-test">
+          Not on status pages yet
+        </div>
+      );
+    }
+
+    test("is held in the header's quiet band at its foot", async () => {
+      jest.setSystemTime(at(-DAY));
+      serve({ timelines: [[makeTimeline(SCHEDULED_STATE_ID, at(-2 * DAY))]] });
+
+      renderHeader({ publishingNotice: publishingNotice() });
+      await flush();
+
+      const notice: HTMLElement = screen.getByTestId(
+        "publishing-notice-under-test",
+      );
+
+      expect(notice.parentElement).toBe(
+        screen.getByTestId("event-header-notice"),
+      );
+      expect(notice.parentElement).toHaveAttribute("data-tone", "neutral");
+      expect(overdueNotice()).toBe(null);
+    });
+
+    test("an event that missed its start says that instead", async () => {
+      jest.setSystemTime(at(3 * HOUR));
+      serve({ timelines: [[makeTimeline(SCHEDULED_STATE_ID, at(-DAY))]] });
+
+      renderHeader({ publishingNotice: publishingNotice() });
+      await flush();
+
+      expect(overdueNotice()).toHaveTextContent("Start overdue");
+      expect(screen.getByTestId("event-header-notice")).toHaveAttribute(
+        "data-tone",
+        "warning",
+      );
+      expect(screen.queryByTestId("publishing-notice-under-test")).toBe(null);
+    });
+
+    test("without one, the header has no band at all", async () => {
+      jest.setSystemTime(at(-DAY));
+      serve({ timelines: [[makeTimeline(SCHEDULED_STATE_ID, at(-2 * DAY))]] });
+
+      renderHeader();
+      await flush();
+
+      expect(screen.queryByTestId("event-header-notice")).toBe(null);
+    });
+  });
 });

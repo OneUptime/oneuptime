@@ -160,7 +160,9 @@ Nøkler, tokener og passord forlater aldri OneUptime: De registreres som `[REDAC
 
 En batch prøves tre ganger med noen sekunders mellomrom, og så venter eksporten før den prøver igjen: ett minutt, så to, fire og så videre, opptil en time. Raden sier **Feiler**, og **Vis feil** viser hva målet svarte og når neste forsøk kommer.
 
-Ingenting hoppes over: Oppføringene venter i revisjonsloggen, og den neste leveringen som lykkes, tar igjen fra den eldste. En oppføring som er eldre enn oppbevaringstiden for prosjektets revisjonslogg, slettes før den kan sendes, så rett en eksport som feiler innen den tiden.
+Ingenting hoppes over: Oppføringene venter i revisjonsloggen, og den neste leveringen som lykkes, tar igjen fra den eldste. Hver oppføring slettes likevel når den er eldre enn oppbevaringstiden den ble registrert med, sendt eller ikke, så rett en eksport som feiler innen den tiden. En lengre oppbevaringstid gjelder bare oppføringer som registreres etter at du endrer den.
+
+En eksport som feiler, sender e-post til dem som kan rette den: prosjektets eiere for et prosjekts eksport, og alle master-admins for instansens. Den første e-posten kommer etter 30 minutter med feil, med det målet svarte. Den andre kommer en dag før den eldste oppføringen eksporten ikke har sendt, slettes, med når oppføringer begynner å gå tapt. Hver sendes én gang mens feilene varer, og en levering som lykkes, nullstiller begge.
 
 Velg **Slå av** i menyen på raden for å pause en eksport: Den beholder plassen sin, og **Slå på** sender det som ble registrert i mellomtiden. I OneUptime Cloud slutter et prosjekt som forlater Enterprise-abonnementet å eksportere, og eksportene venter under oppgraderingskortet, der de kan slås av eller slettes. Når du selvhoster, stopper eksporten så lenge lisensen ikke inkluderer revisjonslogger, og fortsetter der den stoppet så snart en lisens gjør det.
 

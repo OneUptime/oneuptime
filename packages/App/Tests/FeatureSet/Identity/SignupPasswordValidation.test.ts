@@ -34,6 +34,19 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import "../../../FeatureSet/Identity/API/Authentication";
 
 /*
+ * The server does not require single sign-on here: every sign-in and sign-up
+ * asks SsoRequiredSignIn first, which reads GlobalConfig. Driven for real in
+ * SsoRequiredSignInRoutes.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
+  return (
+    jest.requireActual(
+      "./SsoNotRequiredStandIn",
+    ) as typeof import("./SsoNotRequiredStandIn")
+  ).ssoNotRequired();
+});
+
+/*
  * Keep the real model deserializer and password policy in this route test.
  * Only persistence and external effects are replaced.
  */

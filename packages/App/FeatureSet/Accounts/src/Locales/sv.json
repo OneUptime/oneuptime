@@ -105,6 +105,7 @@
   "register": {
     "title": "Skapa ditt OneUptime-konto",
     "subtitle": "Gå med i tusentals företag som använder OneUptime för att hålla dem online hela tiden.",
+    "firstAccountSubtitle": "Den här OneUptime-servern har inga konton ännu. Det första du skapar blir dess administratör.",
     "noCreditCard": "Inget kreditkort krävs.",
     "submitButton": "Registrera dig",
     "haveAccountPrompt": "Har du redan ett konto?",
@@ -131,7 +132,6 @@
     "subtitle": "Ange din e-post så skickas länken för återställning av lösenord till dig.",
     "successMessage": "Vi har skickat länken för återställning av lösenord till din e-post. Glöm inte att kontrollera skräpposten.",
     "submitButton": "Skicka länk för återställning",
-    "returnToSignIn": "Tillbaka till inloggning.",
     "rememberPasswordPrompt": "Kommer du ihåg ditt lösenord?",
     "loginLink": "Logga in."
   },
@@ -156,13 +156,21 @@
     "emailRequired": "E-post krävs för att utföra denna åtgärd",
     "defaultProjectName": "Projekt",
     "globalProvidersTitle": "Logga in med din organisation",
-    "globalProvidersDivider": "Eller fortsätt med e-post"
+    "globalProvidersDivider": "Eller fortsätt med e-post",
+    "signInWithProvider": "Logga in med {{name}}",
+    "requiredSubtitle": "Logga in med organisationens enkel inloggning (SSO).",
+    "requiredNotSetUp": "Enkel inloggning är inte konfigurerad på den här servern ännu. Be serveradministratören att konfigurera den.",
+    "useDifferentEmail": "Använd en annan e-postadress"
+  },
+  "adminLogin": {
+    "title": "Inloggning för huvudadministratörer",
+    "subtitle": "Den här servern kräver enkel inloggning (SSO). Huvudadministratörer kan fortfarande logga in här med sitt lösenord."
   },
   "verifyEmail": {
     "successTitle": "Din e-post är verifierad.",
     "successDescription": "Tack för att du verifierade din e-post. Du kan nu logga in på OneUptime.",
     "errorTitle": "Förlåt, något gick fel!",
-    "returnToSignIn": "Tillbaka till inloggning?",
+    "alreadyVerifiedPrompt": "Har du redan verifierat din e-postadress?",
     "loginLink": "Logga in.",
     "continueToSignIn": "Fortsätt till inloggning",
     "linkInvalidTitle": "Den här verifieringslänken är inte längre giltig",

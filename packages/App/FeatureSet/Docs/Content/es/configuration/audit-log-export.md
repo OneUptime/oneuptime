@@ -160,7 +160,9 @@ Las claves, los tokens y las contraseñas nunca salen: se registran como `[REDAC
 
 Un lote se intenta tres veces, con pocos segundos de diferencia, y luego la exportación espera antes de volver a intentarlo: un minuto, luego dos, cuatro y así sucesivamente, hasta una hora. Su fila dice **Fallando**, y **Ver error** muestra qué respondió el destino y cuándo se intentará de nuevo.
 
-Nada se omite: las entradas esperan en el registro de auditoría, y la siguiente entrega que funcione se pone al día desde la más antigua. Una entrada más antigua que la retención del registro de auditoría de su proyecto se elimina antes de poder enviarse, así que corrija una exportación que falla dentro de ese plazo.
+Nada se omite: las entradas esperan en el registro de auditoría, y la siguiente entrega que funcione se pone al día desde la más antigua. Aun así, cada entrada se elimina en cuanto es más antigua que la retención con la que se registró, se haya enviado o no, así que corrija una exportación que falla dentro de ese plazo. Una retención más larga solo conserva más tiempo las entradas registradas después de cambiarla.
+
+Una exportación que falla envía un correo a quienes pueden corregirla: a los propietarios del proyecto en la exportación de un proyecto, y a todos los administradores maestros en la de la instancia. El primer correo llega tras 30 minutos de fallos, con lo que respondió el destino. Un segundo llega un día antes de que se elimine la entrada más antigua que la exportación no ha enviado, con el momento en que empiezan a perderse entradas. Cada uno se envía una vez mientras duran los fallos, y una entrega que funciona reinicia ambos.
 
 Para pausar una exportación, elija **Desactivar** en el menú de su fila: conserva su posición, y **Activar** envía lo que se registró mientras tanto. En OneUptime Cloud, un proyecto que deja el plan Enterprise deja de exportar, y sus exportaciones esperan bajo la tarjeta de mejora, donde se pueden desactivar o eliminar. Si lo aloja usted mismo, la exportación se detiene mientras la licencia no incluya los registros de auditoría, y continúa desde donde se detuvo en cuanto una los incluya.
 

@@ -54,11 +54,14 @@ jest.mock("../../../../UI/Utils/Permission", () => {
 
 import {
   getLockedReason,
+  getWorkflowEditGate,
   getWorkflowRunGate,
   getWorkflowStepRunGate,
   WorkflowRunCopy,
 } from "../../../../UI/Components/Workflow/WorkflowRunGate";
-import PermissionGate from "../../../../UI/Utils/PermissionGate";
+import PermissionGate, {
+  ModelAction,
+} from "../../../../UI/Utils/PermissionGate";
 import Workflow from "../../../../Models/DatabaseModels/Workflow";
 import HeldPermissionsUtil from "../../../../Types/HeldPermissions";
 import Permission from "../../../../Types/Permission";
@@ -172,6 +175,7 @@ describe("the words", () => {
       for (const key of [
         WorkflowRunCopy.runRefused,
         WorkflowRunCopy.stepRunRefused,
+        WorkflowRunCopy.editRefused,
       ]) {
         const value: string | undefined = locale[key];
 
@@ -287,19 +291,127 @@ describe("getWorkflowStepRunGate", () => {
   });
 });
 
-describe("both gates", () => {
-  test("a master admin passes both", () => {
+/*
+ * Whether the Builder lets the reader change the workflow at all, or shows
+ * it as a view (WorkflowViewOnly). Every save of the graph is an update of
+ * the Workflow, which the server allows by the model's update list - so the
+ * Builder asks exactly that list. A Workflow Member, who may run the
+ * workflow, used to be able to add steps that then failed to save.
+ */
+describe("getWorkflowEditGate", () => {
+  test.each([...WORKFLOW_EDIT_PERMISSIONS])(
+    "lets %s change the workflow",
+    (permission: Permission) => {
+      permissionsForTest = [permission];
+
+      expect(getWorkflowEditGate()).toEqual({ isAllowed: true });
+    },
+  );
+
+  test("the wildcard that edits every operational resource changes it too", () => {
+    permissionsForTest = [Permission.EditAllOperationalResources];
+
+    expect(getWorkflowEditGate()).toEqual({ isAllowed: true });
+  });
+
+  test("tells a Workflow Member, who may run it, that changing it takes editing - in the Builder's words, with who may", () => {
+    permissionsForTest = [Permission.WorkflowMember];
+
+    expect(getWorkflowRunGate().isAllowed).toBe(true);
+    expect(getWorkflowEditGate()).toEqual({
+      isAllowed: false,
+      disabledReason:
+        "Changing this workflow takes permission to edit it. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.",
+    });
+  });
+
+  test.each([
+    Permission.Viewer,
+    Permission.WorkflowViewer,
+    Permission.ReadWorkflow,
+    Permission.ProjectMember,
+    Permission.CreateWorkflow,
+    Permission.DeleteWorkflow,
+  ])("refuses %s, saying why", (permission: Permission) => {
+    permissionsForTest = [permission];
+
+    const gate: { isAllowed: boolean; disabledReason?: string | undefined } =
+      getWorkflowEditGate();
+
+    expect(gate.isAllowed).toBe(false);
+    expect(gate.disabledReason).toMatch(
+      /^Changing this workflow takes permission to edit it\. /,
+    );
+  });
+
+  test("allows a change exactly when the server's update rule would", () => {
+    for (const permissions of PERMISSION_SETS) {
+      permissionsForTest = permissions;
+      PermissionGate.clearPermissionPropsCache();
+
+      expect({
+        permissions,
+        allowed: getWorkflowEditGate().isAllowed,
+      }).toEqual({
+        permissions,
+        allowed: PermissionGate.check(new Workflow(), ModelAction.Update, {
+          permissions,
+        }).isAllowed,
+      });
+    }
+  });
+
+  test("whoever may change a workflow may run one of its steps, and the whole workflow", () => {
+    for (const permissions of PERMISSION_SETS) {
+      permissionsForTest = permissions;
+      PermissionGate.clearPermissionPropsCache();
+
+      expect({
+        permissions,
+        step: getWorkflowStepRunGate().isAllowed,
+      }).toEqual({ permissions, step: getWorkflowEditGate().isAllowed });
+
+      if (getWorkflowEditGate().isAllowed) {
+        expect({ permissions, run: getWorkflowRunGate().isAllowed }).toEqual({
+          permissions,
+          run: true,
+        });
+      }
+    }
+  });
+
+  test("its sentence is the Builder's own, never the server's run refusal", () => {
+    expect(WorkflowRunCopy.editRefused).toBe(
+      "Changing this workflow takes permission to edit it.",
+    );
+    expect(WorkflowRunCopy.editRefused).not.toBe(WorkflowRunCopy.runRefused);
+    expect(WorkflowRunCopy.editRefused).not.toBe(
+      WorkflowRunCopy.stepRunRefused,
+    );
+  });
+});
+
+describe("every gate", () => {
+  test("a master admin passes them all", () => {
     isMasterAdminForTest = true;
 
     expect(getWorkflowRunGate()).toEqual({ isAllowed: true });
     expect(getWorkflowStepRunGate()).toEqual({ isAllowed: true });
+    expect(getWorkflowEditGate()).toEqual({ isAllowed: true });
   });
 
-  test("before the permission snapshot lands, both refuse with nothing to say", () => {
+  /*
+   * Refused with nothing to say: the Builder then locks nothing
+   * (getLockedReason) and the server decides - a page drawn before the
+   * snapshot never shows an editor a view.
+   */
+  test("before the permission snapshot lands, they all refuse with nothing to say", () => {
     permissionsForTest = [];
 
     expect(getWorkflowRunGate()).toEqual({ isAllowed: false });
     expect(getWorkflowStepRunGate()).toEqual({ isAllowed: false });
+    expect(getWorkflowEditGate()).toEqual({ isAllowed: false });
+    expect(getLockedReason(getWorkflowEditGate())).toBeUndefined();
   });
 });
 

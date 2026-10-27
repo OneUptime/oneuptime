@@ -61,11 +61,17 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 jest.mock("../../../FeatureSet/Identity/API/Authentication", () => {
   return { __esModule: true, default: { coreRouter: "authentication" } };
 });
+jest.mock("../../../FeatureSet/Identity/API/FirstAccount", () => {
+  return { __esModule: true, default: { coreRouter: "first-account" } };
+});
 jest.mock("../../../FeatureSet/Identity/API/Reseller", () => {
   return { __esModule: true, default: { coreRouter: "reseller" } };
 });
 jest.mock("../../../FeatureSet/Identity/API/MicrosoftSignIn", () => {
   return { __esModule: true, default: { coreRouter: "microsoft-sign-in" } };
+});
+jest.mock("../../../FeatureSet/Identity/API/SignInMethods", () => {
+  return { __esModule: true, default: { coreRouter: "sign-in-methods" } };
 });
 jest.mock("../../../FeatureSet/Identity/API/StatusPageAuthentication", () => {
   return { __esModule: true, default: { coreRouter: "status-page" } };
@@ -665,7 +671,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
       },
     ),
   )(
-    "at /api/identity and /, after authentication, reseller and Sign in with Microsoft, before ee's routers and status page authentication (%s)",
+    "at /api/identity and /, after authentication, the first-account check, reseller, Sign in with Microsoft and the sign-in methods, before ee's routers and status page authentication (%s)",
     async (_label: string, state: EditionStateCase) => {
       const fake: FakeEnterpriseModule | null = state.apply();
 
@@ -677,10 +683,15 @@ describe("the Identity feature set mounts the SSO routers", () => {
 
       expect(mounted).toEqual([
         { paths: IDENTITY_PREFIXES, router: { coreRouter: "authentication" } },
+        { paths: IDENTITY_PREFIXES, router: { coreRouter: "first-account" } },
         { paths: IDENTITY_PREFIXES, router: { coreRouter: "reseller" } },
         {
           paths: IDENTITY_PREFIXES,
           router: { coreRouter: "microsoft-sign-in" },
+        },
+        {
+          paths: IDENTITY_PREFIXES,
+          router: { coreRouter: "sign-in-methods" },
         },
         ...SSO_MOUNTS(),
         ...(state.isLoaded
@@ -694,7 +705,7 @@ describe("the Identity feature set mounts the SSO routers", () => {
 
       // The very same router instances, not copies.
       SSO_ROUTERS.forEach((entry: SsoRouterEntry, index: number): void => {
-        expect(mounted[3 + index]!.router).toBe(entry.router);
+        expect(mounted[5 + index]!.router).toBe(entry.router);
       });
     },
   );
@@ -708,8 +719,10 @@ describe("the Identity feature set mounts the SSO routers", () => {
       }),
     ).toEqual([
       { coreRouter: "authentication" },
+      { coreRouter: "first-account" },
       { coreRouter: "reseller" },
       { coreRouter: "microsoft-sign-in" },
+      { coreRouter: "sign-in-methods" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
         return entry.router;
       }),
@@ -739,10 +752,15 @@ describe("the Identity feature set mounts the SSO routers", () => {
 
     expect(mounted).toEqual([
       { paths: IDENTITY_PREFIXES, router: { coreRouter: "authentication" } },
+      { paths: IDENTITY_PREFIXES, router: { coreRouter: "first-account" } },
       { paths: IDENTITY_PREFIXES, router: { coreRouter: "reseller" } },
       {
         paths: IDENTITY_PREFIXES,
         router: { coreRouter: "microsoft-sign-in" },
+      },
+      {
+        paths: IDENTITY_PREFIXES,
+        router: { coreRouter: "sign-in-methods" },
       },
       ...SSO_MOUNTS(),
       { paths: IDENTITY_PREFIXES, router: EE_SCIM_ROUTER },

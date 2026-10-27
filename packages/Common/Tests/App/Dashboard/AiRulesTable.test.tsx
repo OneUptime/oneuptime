@@ -194,7 +194,7 @@ interface CapturedField {
   customElementDrawsOwnLabel?: boolean;
   placeholder?: string;
   dataTestId?: string;
-  dropdownModal?: { type?: unknown };
+  dropdownModal?: { type?: unknown; emptyListText?: string };
   cardSelectOptions?: Array<CardSelectOption>;
   cardSelectSingleColumn?: boolean;
   radioButtonOptions?: Array<{
@@ -1439,6 +1439,8 @@ describe.each([
       expect(runbooks.hideOptionalLabel).toBe(true);
       expect(runbooks.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
       expect(runbooks.dropdownModal?.type).toBe(Runbook);
+      // Its open list, with none yet, says so.
+      expect(runbooks.dropdownModal?.emptyListText).toBe("No runbooks yet.");
 
       expect(runbooks.showIf!(NEW_RULE)).toBe(true);
       expect(runbooks.showIf!(ONLY_FIXES)).toBe(true);
@@ -1627,6 +1629,8 @@ describe.each([
       );
       expect(servers.fieldType).toBe(FormFieldSchemaType.MultiSelectDropdown);
       expect(servers.dropdownModal?.type).toBe(ExternalMcpServer);
+      // Its open list, with none added, says so: the line under it says where.
+      expect(servers.dropdownModal?.emptyListText).toBe("No MCP servers yet.");
       expect(servers.required).toBe(false);
       expect(servers.hideOptionalLabel).toBe(true);
       expect(servers.hideColumnDescription).toBe(true);
@@ -2680,6 +2684,7 @@ describe("the choices", () => {
       runbooksDescription:
         "OneUptime AI may run any of your runbooks. Pick some to let it run only those.",
       runbooksPlaceholder: "Any runbook",
+      runbooksEmptyList: "No runbooks yet.",
       everyTimeTitle: "Run them every time",
       everyTimeDescription:
         "Start every runbook above for every match, instead of OneUptime AI deciding.",

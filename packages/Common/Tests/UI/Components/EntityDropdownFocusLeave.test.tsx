@@ -384,7 +384,7 @@ describe("a multi-select dropdown", () => {
     });
 
     await user.click(getCombobox());
-    await screen.findByText("No options.");
+    await screen.findByText("Nothing to pick yet.");
 
     await user.tab();
     expect(screen.getByRole("tab", { name: /Results/ })).toHaveFocus();

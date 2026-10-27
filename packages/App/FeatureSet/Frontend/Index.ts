@@ -57,6 +57,7 @@ import { getProductBrandingViewVariables } from "Common/Server/Utils/ProductBran
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import { ProductBranding } from "Common/Types/Branding/ProductBranding";
 import { getBrandedDashboardManifest } from "./BrandedManifest";
+import { sendToRegisterBeforeFirstAccount } from "../Identity/Utils/FirstAccount";
 import StatusPageMaintenanceCalendarFeed from "Common/Server/Utils/StatusPage/StatusPageMaintenanceCalendarFeed";
 import fsp from "fs/promises";
 
@@ -675,6 +676,11 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     publicPath: AccountsPublicPath,
     indexViewPath: AccountsViewPath,
     primaryHostOnly: true,
+    /*
+     * A self-hosted server with no account yet: its sign-in page sends the
+     * browser on to register (Identity/Utils/FirstAccount.ts).
+     */
+    getVariablesToRenderIndexPage: sendToRegisterBeforeFirstAccount,
   });
 
   registerFrontendApp(DashboardFrontendConfig);

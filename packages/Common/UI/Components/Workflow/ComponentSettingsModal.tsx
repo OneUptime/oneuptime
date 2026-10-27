@@ -15,6 +15,7 @@ import DocumentationViewer from "./DocumentationViewer";
 import { getPageStepRunWarning } from "./OnCall/PageStepRunWarning";
 import { OutputConnections } from "./Switch/SwitchModel";
 import { StepValueSources } from "./ValuePicker/StepGraph";
+import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
 import { WORKFLOW_URL } from "../../Config";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -37,6 +38,7 @@ import React, {
 import {
   translatableTerm,
   translateNamedAction,
+  translationKey,
   Translator,
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -109,12 +111,28 @@ export interface ComponentProps {
    * first. Absent for someone who may not run the workflow.
    */
   onRequestTestRun?: (() => void) | undefined;
+  /*
+   * Why the reader may not change the workflow (WorkflowRunGate's edit
+   * gate), or undefined when they may. Given one, the step opens to be read
+   * (WorkflowViewOnly): its settings and identifier are shown as they are
+   * and cannot be changed, the dialog has Close in place of Save, and
+   * neither Delete nor Run just this step - which takes the same
+   * permission - is offered. Its footer says why.
+   */
+  readOnlyReason?: string | undefined;
 }
+
+// The view-only dialog's footer: what it is, before the reason.
+export const WORKFLOW_STEP_VIEW_ONLY_TEXT: string = translationKey(
+  "You can look at this step but not change it.",
+);
 
 const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  // A view, for someone who may not change the workflow.
+  const isViewOnly: boolean = Boolean(props.readOnlyReason);
   const [component, setComponent] = useState<NodeDataProp>(props.component);
   const [hasFormValidationErrors, setHasFormValidationErrors] = useState<
     Dictionary<boolean>
@@ -236,94 +254,139 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
    */
   const isCondition: boolean = component.metadata.id === ComponentID.IfElse;
 
+  /*
+   * What a view shows of a form: the fields as they are, every one disabled.
+   * A disabled fieldset disables every control inside it - a screen reader
+   * still reads each one and its value - and the pointer goes through the
+   * rest (the pickers that open on a press), so nothing in it changes.
+   *
+   * A disabled fieldset does not reach a text box that is not a form
+   * control: the value boxes (ValuePicker/TemplateTextEditor) are editable
+   * elements, which took the focus and the keyboard's typing in a view.
+   * WorkflowViewOnlyContext tells them, and the value picker, that this
+   * is a view: they show their value to be read, and offer nothing to
+   * insert.
+   */
+  type ViewOnlyFormFunction = (
+    form: ReactElement,
+    testId: string,
+  ) => ReactElement;
+
+  const viewOnlyForm: ViewOnlyFormFunction = (
+    form: ReactElement,
+    testId: string,
+  ): ReactElement => {
+    if (!isViewOnly) {
+      return form;
+    }
+
+    return (
+      <WorkflowViewOnlyContext.Provider value={true}>
+        <fieldset
+          disabled={true}
+          className="pointer-events-none m-0 min-w-0 border-0 p-0"
+          data-testid={testId}
+        >
+          {form}
+        </fieldset>
+      </WorkflowViewOnlyContext.Provider>
+    );
+  };
+
   const settingsSection: ReactElement | null = hasSettings ? (
     <ComponentSettingsSection
       id="settings"
       icon={isCondition ? IconProp.Condition : IconProp.Settings}
       title={isCondition ? "Condition" : "Settings"}
     >
-      <ArgumentsForm
-        graphComponents={props.graphComponents}
-        valueSources={props.valueSources}
-        workflowId={props.workflowId}
-        webhookUrl={webhookUrl}
-        outputConnections={props.outputConnections}
-        isWorkflowOff={props.isWorkflowOff}
-        onTestRun={
-          props.onRequestTestRun && !hasErrors
-            ? () => {
-                // Saved first, so nothing typed here is lost to the run.
-                props.onSave(component);
-                props.onRequestTestRun?.();
-              }
-            : undefined
-        }
-        component={component}
-        onFormChange={(c: NodeDataProp) => {
-          setComponent({ ...c });
-        }}
-        onHasFormValidationErrors={(value: Dictionary<boolean>) => {
-          /*
-           * From the latest state, not this render's: the identifier's form
-           * reports in the same moment as the settings do when the dialog
-           * opens, and merging into a stale copy dropped the other's report.
-           * A new If / Else could then be saved with nothing set.
-           */
-          setHasFormValidationErrors((current: Dictionary<boolean>) => {
-            return {
-              ...current,
-              ...value,
-            };
-          });
-        }}
-      />
+      {viewOnlyForm(
+        <ArgumentsForm
+          graphComponents={props.graphComponents}
+          valueSources={props.valueSources}
+          workflowId={props.workflowId}
+          webhookUrl={webhookUrl}
+          outputConnections={props.outputConnections}
+          isWorkflowOff={props.isWorkflowOff}
+          onTestRun={
+            props.onRequestTestRun && !hasErrors
+              ? () => {
+                  // Saved first, so nothing typed here is lost to the run.
+                  props.onSave(component);
+                  props.onRequestTestRun?.();
+                }
+              : undefined
+          }
+          component={component}
+          onFormChange={(c: NodeDataProp) => {
+            setComponent({ ...c });
+          }}
+          onHasFormValidationErrors={(value: Dictionary<boolean>) => {
+            /*
+             * From the latest state, not this render's: the identifier's form
+             * reports in the same moment as the settings do when the dialog
+             * opens, and merging into a stale copy dropped the other's report.
+             * A new If / Else could then be saved with nothing set.
+             */
+            setHasFormValidationErrors((current: Dictionary<boolean>) => {
+              return {
+                ...current,
+                ...value,
+              };
+            });
+          }}
+        />,
+        "workflow-component-settings-view-only",
+      )}
     </ComponentSettingsSection>
   ) : null;
 
   const idSection: ReactElement = (
     <ComponentSettingsSection id="id" icon={IconProp.Label} title="ID">
-      <BasicForm
-        hideSubmitButton={true}
-        /*
-         * Save is off while a field fails, so no press would say what is
-         * wrong: a field says it as soon as it is left, changed or not.
-         */
-        showErrorsWhenLeftUnchanged={true}
-        /*
-         * BasicForm focuses its first field on mount. This form mounts after
-         * the settings, so it took the focus from the first setting, and on
-         * the Webhook trigger from the URL's copy button.
-         */
-        disableAutofocus={true}
-        initialValues={{ id: component?.id }}
-        onChange={(values: FormValues<JSONObject>) => {
-          setComponent({ ...component, ...values });
-        }}
-        onFormValidationErrorChanged={(hasError: boolean) => {
-          setHasFormValidationErrors((current: Dictionary<boolean>) => {
-            return {
-              ...current,
-              id: hasError,
-            };
-          });
-        }}
-        fields={[
-          {
-            title: "Identifier",
-            description: translator.translateTemplate(
-              "How other steps refer to this {{type}}. Renaming it breaks references that use the old name.",
-              {
-                type: translatableTerm(component.metadata.componentType, {
-                  inSentence: true,
-                }),
-              },
-            ),
-            field: { id: true },
-            required: true,
-            fieldType: FormFieldSchemaType.Text,
-          },
-        ]}
-      />
+      {viewOnlyForm(
+        <BasicForm
+          hideSubmitButton={true}
+          /*
+           * Save is off while a field fails, so no press would say what is
+           * wrong: a field says it as soon as it is left, changed or not.
+           */
+          showErrorsWhenLeftUnchanged={true}
+          /*
+           * BasicForm focuses its first field on mount. This form mounts after
+           * the settings, so it took the focus from the first setting, and on
+           * the Webhook trigger from the URL's copy button.
+           */
+          disableAutofocus={true}
+          initialValues={{ id: component?.id }}
+          onChange={(values: FormValues<JSONObject>) => {
+            setComponent({ ...component, ...values });
+          }}
+          onFormValidationErrorChanged={(hasError: boolean) => {
+            setHasFormValidationErrors((current: Dictionary<boolean>) => {
+              return {
+                ...current,
+                id: hasError,
+              };
+            });
+          }}
+          fields={[
+            {
+              title: "Identifier",
+              description: translator.translateTemplate(
+                "How other steps refer to this {{type}}. Renaming it breaks references that use the old name.",
+                {
+                  type: translatableTerm(component.metadata.componentType, {
+                    inSentence: true,
+                  }),
+                },
+              ),
+              field: { id: true },
+              required: true,
+              fieldType: FormFieldSchemaType.Text,
+            },
+          ]}
+        />,
+        "workflow-component-id-view-only",
+      )}
     </ComponentSettingsSection>
   );
 
@@ -452,15 +515,49 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     return section !== null;
   });
 
+  /*
+   * A view's footer: no Delete and no Run just this step, both of which take
+   * permission to edit the workflow - only what the dialog is, and why.
+   *
+   * Divs, not a p: the lock Icon draws a div of its own, which a paragraph
+   * may not hold (React warned on every view). The footer stacks a div it
+   * holds directly on a phone (ModalFooter's [&>div]:flex-col, for button
+   * groups), so the lock and the words sit in a div inside it, side by
+   * side at every width.
+   */
+  const viewOnlyFooter: ReactElement = (
+    <div className="min-w-0">
+      <div
+        className="flex min-w-0 items-start gap-2 text-sm text-gray-600"
+        title={props.readOnlyReason}
+        data-testid="workflow-component-view-only-note"
+      >
+        <Icon
+          icon={IconProp.Lock}
+          className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
+        />
+        <span className="min-w-0">
+          {translator.translateText(WORKFLOW_STEP_VIEW_ONLY_TEXT)}
+          <span className="sr-only"> {props.readOnlyReason}</span>
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <Modal
       title={props.title}
       description={props.description}
       onClose={props.onClose}
-      onSubmit={() => {
-        return component && props.onSave(component);
-      }}
+      onSubmit={
+        isViewOnly
+          ? undefined
+          : () => {
+              return component && props.onSave(component);
+            }
+      }
       submitButtonText="Save"
+      closeButtonText={isViewOnly ? "Close" : undefined}
       modalWidth={ModalWidth.Large}
       rightElement={documentationButton}
       disableSubmitButton={hasErrors}
@@ -471,7 +568,9 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
          * was already invalid — a stored JSON value that does not parse, say —
          * otherwise presents a dead button and no explanation anywhere.
          */
-        hasErrors ? (
+        isViewOnly ? (
+          viewOnlyFooter
+        ) : hasErrors ? (
           <div className="flex items-center gap-3">
             <Button
               title="Delete"

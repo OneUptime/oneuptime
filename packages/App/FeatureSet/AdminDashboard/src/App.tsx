@@ -16,9 +16,8 @@ import Logout from "./Pages/Logout/Logout";
 import Projects from "./Pages/Projects/Index";
 import SettingsAPIKey from "./Pages/Settings/APIKey/Index";
 import SettingsAuthentication from "./Pages/Settings/Authentication/Index";
-import SettingsGlobalSSO from "./Pages/Settings/GlobalSSO/Index";
+import SettingsSso from "./Pages/Settings/SSO/Index";
 import SettingsGlobalSSOView from "./Pages/Settings/GlobalSSO/View";
-import SettingsGlobalOIDC from "./Pages/Settings/GlobalOIDC/Index";
 import SettingsGlobalOIDCView from "./Pages/Settings/GlobalOIDC/View";
 import SettingsDataRetention from "./Pages/Settings/DataRetention/Index";
 import SettingsCallSMS from "./Pages/Settings/CallSMS/Index";
@@ -44,12 +43,15 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import EnterpriseLicenseView from "./Pages/EnterpriseLicenses/View/Index";
 import PageMap from "./Utils/PageMap";
 import RouteMap from "./Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import { MASTER_ADMIN_SIGN_IN_ROUTE } from "Common/Types/SSO/SignInMethods";
 import URL from "Common/Types/API/URL";
 import { ACCOUNTS_URL, DASHBOARD_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import User from "Common/UI/Utils/User";
 import React, { Suspense } from "react";
 import {
+  Navigate,
   Route as PageRoute,
   Routes,
   useLocation,
@@ -81,7 +83,18 @@ const App: () => JSX.Element = () => {
         URL.fromString(ACCOUNTS_URL.toString()).addQueryParam("sso", "true"),
       );
     } else {
-      Navigation.navigate(URL.fromString(ACCOUNTS_URL.toString()));
+      /*
+       * Whoever opens the Admin Dashboard signed out is meant to be a master
+       * admin: the master admins' sign-in, which is the password form even
+       * while the server requires single sign-on (the sign-in page then
+       * offers only SSO). While SSO is not required it is the sign-in page
+       * as everyone sees it.
+       */
+      Navigation.navigate(
+        URL.fromString(ACCOUNTS_URL.toString()).addRoute(
+          new Route(MASTER_ADMIN_SIGN_IN_ROUTE),
+        ),
+      );
     }
   }
 
@@ -298,8 +311,23 @@ const App: () => JSX.Element = () => {
         />
 
         <PageRoute
+          path={RouteMap[PageMap.SETTINGS_SSO]?.toString() || ""}
+          element={<SettingsSso />}
+        />
+
+        {/*
+         * The instance-wide SAML and OIDC providers were listed on pages of
+         * their own; both lists are on Single Sign-On now. A bookmark of
+         * either address opens it - replaced, so Back skips the old address.
+         */}
+        <PageRoute
           path={RouteMap[PageMap.SETTINGS_GLOBAL_SSO]?.toString() || ""}
-          element={<SettingsGlobalSSO />}
+          element={
+            <Navigate
+              replace={true}
+              to={RouteMap[PageMap.SETTINGS_SSO]?.toString() || ""}
+            />
+          }
         />
 
         <PageRoute
@@ -309,7 +337,12 @@ const App: () => JSX.Element = () => {
 
         <PageRoute
           path={RouteMap[PageMap.SETTINGS_GLOBAL_OIDC]?.toString() || ""}
-          element={<SettingsGlobalOIDC />}
+          element={
+            <Navigate
+              replace={true}
+              to={RouteMap[PageMap.SETTINGS_SSO]?.toString() || ""}
+            />
+          }
         />
 
         <PageRoute

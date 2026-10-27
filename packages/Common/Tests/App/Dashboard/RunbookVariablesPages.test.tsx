@@ -658,3 +658,133 @@ describe("a runbook's own Variables page", () => {
     expect(String(savedModels[0]!.runbookId)).toBe(RUNBOOK_ID);
   });
 });
+
+/*
+ * An empty list tells whoever may add a variable to add one, and whoever may
+ * not - a Runbook Admin, who reads variables to pick them in the steps it
+ * writes - who adds them. It used to tell both to add one.
+ */
+describe("an empty list", () => {
+  function signInAs(permissions: Array<Permission>): void {
+    jest
+      .spyOn(PermissionUtil, "getAllPermissions")
+      .mockReturnValue(permissions);
+    jest.spyOn(PermissionUtil, "getProjectPermissions").mockReturnValue({
+      projectId: new ObjectID(PROJECT_ID),
+      userId: ObjectID.generate(),
+      permissions: permissions.map((permission: Permission) => {
+        return {
+          permission: permission,
+          labelIds: [],
+          _type: "UserPermission",
+        };
+      }),
+      _type: "UserTenantAccessPermission",
+    } as unknown as ReturnType<typeof PermissionUtil.getProjectPermissions>);
+  }
+
+  beforeEach(() => {
+    variableRows = [];
+  });
+
+  test("Global Variables, to a project admin: add the hosts, keys, passwords and kubeconfigs", async () => {
+    openGlobalPage();
+
+    await waitFor(() => {
+      // The table heads its empty state with the first sentence.
+      expect(screen.getByText("No global variables yet")).toBeInTheDocument();
+      expect(document.body).toHaveTextContent(
+        "Add the hosts, keys, passwords and kubeconfigs your steps use.",
+      );
+    }, WAIT);
+  });
+
+  /*
+   * A Runbook Admin reads variables, to pick them in steps, but may not add
+   * one: it is told what they are for, never "Add the hosts...". The locked
+   * Create Variable under it already says whom to ask, so the empty state
+   * does not say it a second time.
+   */
+  test("Global Variables, to a Runbook Admin: what they hold, never to add one, and whom to ask said once", async () => {
+    signInAs([
+      Permission.Public,
+      Permission.User,
+      Permission.CurrentUser,
+      Permission.RunbookAdmin,
+    ]);
+
+    openGlobalPage();
+
+    await waitFor(() => {
+      // The table heads its empty state with the first sentence.
+      expect(screen.getByText("No global variables yet")).toBeInTheDocument();
+      expect(document.body).toHaveTextContent(
+        "They hold the hosts, keys, passwords and kubeconfigs your steps use.",
+      );
+    }, WAIT);
+    expect(document.body).not.toHaveTextContent(
+      "Add the hosts, keys, passwords and kubeconfigs your steps use.",
+    );
+    expect(document.body).not.toHaveTextContent("A project owner or admin");
+  });
+
+  test("a runbook's own Variables, to a project admin: global variables work here too", async () => {
+    openRunbookPage();
+
+    await waitFor(() => {
+      // The table heads its empty state with the first sentence.
+      expect(
+        screen.getByText("No variables of this runbook's own yet"),
+      ).toBeInTheDocument();
+      expect(document.body).toHaveTextContent(
+        "Global variables work here too.",
+      );
+    }, WAIT);
+  });
+
+  /*
+   * The runbook's own list asks nobody to add one, so a Runbook Admin reads
+   * what a project admin reads; the locked Create Variable says whom to ask.
+   */
+  test("a runbook's own Variables, to a Runbook Admin: global variables work here too, as to anyone", async () => {
+    signInAs([
+      Permission.Public,
+      Permission.User,
+      Permission.CurrentUser,
+      Permission.RunbookAdmin,
+    ]);
+
+    openRunbookPage();
+
+    await waitFor(() => {
+      // The table heads its empty state with the first sentence.
+      expect(
+        screen.getByText("No variables of this runbook's own yet"),
+      ).toBeInTheDocument();
+      expect(document.body).toHaveTextContent(
+        "Global variables work here too.",
+      );
+    }, WAIT);
+    expect(document.body).not.toHaveTextContent("A project owner or admin");
+  });
+
+  test("Create Runbook Variable alone may add one, so it is told to", async () => {
+    signInAs([
+      Permission.Public,
+      Permission.User,
+      Permission.CurrentUser,
+      Permission.CreateRunbookSecret,
+      Permission.ReadRunbookSecret,
+    ]);
+
+    openGlobalPage();
+
+    await waitFor(() => {
+      // The table heads its empty state with the first sentence.
+      expect(screen.getByText("No global variables yet")).toBeInTheDocument();
+      expect(document.body).toHaveTextContent(
+        "Add the hosts, keys, passwords and kubeconfigs your steps use.",
+      );
+    }, WAIT);
+  });
+});

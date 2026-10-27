@@ -112,6 +112,12 @@ export interface SsoRouteAnswer {
    * is pinned: what it lists depends on the stack.
    */
   isEntityArray?: boolean | undefined;
+  /*
+   * The body is how the server signs people in (GET /sign-in-methods):
+   * { isSsoRequired, ssoProviders: [...], hasProjectSsoProviders }. Only its
+   * shape is pinned: what it says depends on the stack.
+   */
+  isSignInMethods?: boolean | undefined;
   // A server-rendered page (an Identity view) whose HTML contains this text.
   pageContains?: string | undefined;
   /*
@@ -141,15 +147,33 @@ const badRequest: (message: string) => SsoRouteAnswer = (
 
 const PROVIDER_LISTING: SsoRouteAnswer = { status: 200, isEntityArray: true };
 
+const SIGN_IN_METHODS: SsoRouteAnswer = { status: 200, isSignInMethods: true };
+
 /*
  * At least one request for every one of the 20 (method, path) pairs the core
  * SSO routers declare (packages/App/Tests/FeatureSet/Identity/
  * SsoRoutePathsUnchanged.test.ts pins them): every path a customer pastes into
  * an identity provider (the three SAML ACS URLs and the three OIDC redirect
  * URIs), every discovery route a sign-in page asks, every start route a "Sign
- * in with SSO" button opens, and the confirmation page.
+ * in with SSO" button opens, and the confirmation page. And the two routes
+ * every sign-in page reads first, mounted beside them
+ * (API/SignInMethods.ts): how the server signs people in - whether it
+ * requires SSO, and with which providers - and one project's providers.
  */
 export const SSO_ROUTE_PROBES: ReadonlyArray<SsoRouteProbe> = [
+  // API/SignInMethods.ts - what the sign-in pages read before they draw.
+  {
+    label: "How the server signs people in (what every sign-in page reads)",
+    method: "GET",
+    path: "/sign-in-methods",
+    answer: SIGN_IN_METHODS,
+  },
+  {
+    label: "One project's sign-in providers, for an id that is not one",
+    method: "GET",
+    path: "/project-sign-in-methods/not-a-project-id",
+    answer: badRequest("Invalid project id."),
+  },
   // API/SSO.ts - project SAML.
   {
     label: "Project SAML discovery with no email",
@@ -531,6 +555,27 @@ export const expectSsoRouteAnswer: ExpectSsoRouteAnswerFunction = (data: {
       Array.isArray(parsed["data"]),
       `${response.request} must answer a JSON entity array ({ data: [...] }). ${found}`,
     ).toBe(true);
+  }
+
+  if (expected.isSignInMethods) {
+    const parsed: Record<string, unknown> = parseJsonObject({
+      body: response.body,
+      failure: `${response.request} must answer how the server signs people in. ${found}`,
+    });
+
+    // Whether SSO is required depends on the stack; that it is said does not.
+    expect(
+      {
+        isSsoRequired: typeof parsed["isSsoRequired"],
+        ssoProviders: Array.isArray(parsed["ssoProviders"]),
+        hasProjectSsoProviders: typeof parsed["hasProjectSsoProviders"],
+      },
+      `${response.request} must answer { isSsoRequired, ssoProviders, hasProjectSsoProviders }. ${found}`,
+    ).toEqual({
+      isSsoRequired: "boolean",
+      ssoProviders: true,
+      hasProjectSsoProviders: "boolean",
+    });
   }
 
   if (expected.pageContains !== undefined) {

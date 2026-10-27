@@ -177,7 +177,7 @@ GLOBAL_LLM_PROVIDER_API_KEY=<KEY 1 of contoso-ai>
 把变量添加到 `config.env`，然后按您当初启动的方式重新启动 OneUptime：
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 @tab Kubernetes
 把密钥保存在 Secret 中，并通过图表全局的 `extraEnv` 传入变量：

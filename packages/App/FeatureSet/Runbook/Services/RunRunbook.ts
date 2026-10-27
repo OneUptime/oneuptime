@@ -296,7 +296,7 @@ export default class RunRunbook {
       case RunbookStepType.JavaScript:
         return runJavaScriptStep(step, ctx);
       case RunbookStepType.HttpRequest:
-        return runHttpStep(step);
+        return runHttpStep(step, ctx);
       case RunbookStepType.Bash:
         return runBashStep(step, ctx);
       case RunbookStepType.SSH:

@@ -78,6 +78,8 @@ export const AIR_GAPPED_VALUES_YAML: string = [
   `    repository: ${AIR_GAPPED_REGISTRY}/valkey/valkey`,
   "updateCheck:",
   "  disabled: true",
+  "instanceCheckIn:",
+  "  disabled: true",
   "dnsConfig:",
   "  nameservers: []",
   "probes:",
@@ -344,9 +346,10 @@ export const AirGappedSteps: Array<AirGappedStep> = [
     key: "point-inward",
     title: "Point the install inward",
     description:
-      "In `values.yaml`, name your registry, turn the update check off, give the probes your own DNS alone, and let probes and webhooks reach private addresses. Then run `helm install`, as on any cluster.",
+      "In `values.yaml`, name your registry, turn the update check and the daily check-in off, give the probes your own DNS alone, and let probes and webhooks reach private addresses. Then run `helm install`, as on any cluster.",
     settings: [
       "updateCheck.disabled",
+      "instanceCheckIn.disabled",
       "dnsConfig.nameservers",
       "probes.one.allowPrivateNetworkMonitors",
       "webhooks.allowPrivateNetwork",
@@ -374,11 +377,11 @@ export const AirGappedUpgradeNote: string =
   "Upgrades work the same way: mirror the next release's images, bring in its chart, read its upgrade notes and run `helm upgrade`. The chart runs the database migrations in a Job of its own, inside your cluster.";
 
 export const AirGappedValuesCaption: string =
-  "A test renders the chart with exactly these values: every image comes from your registry, every pod gets the pull secret, the update check is off, no probe is given a public nameserver, and probes and webhooks may reach private addresses.";
+  "A test renders the chart with exactly these values: every image comes from your registry, every pod gets the pull secret, the update check and the daily check-in are off, no probe is given a public nameserver, and probes and webhooks may reach private addresses.";
 
 /*
  * Everything a self-hosted install reaches out to, by default or once set
- * up, as the page's table lists it. The first three happen unless a setting
+ * up, as the page's table lists it. The first four happen unless a setting
  * stops them (onByDefault); everything else only once someone sets it up.
  * Tests/AirGappedFacts.test.ts holds every row to the code that makes the
  * call, and the defaults to the code that makes them the defaults.
@@ -391,6 +394,15 @@ export const AirGappedConnections: Array<AirGappedConnection> = [
     when: "Once a day, to tell admins that a newer release is out.",
     inside:
       "Set `updateCheck.disabled: true`, or point `updateCheck.url` at a mirror. With no route out, the check fails quietly and shows nothing.",
+    onByDefault: true,
+  },
+  {
+    key: "instance-check-in",
+    name: "Daily check-in",
+    destination: "`oneuptime.com`",
+    when: "Once a day, to tell OneUptime which release the install runs: its address and version, and nothing about anyone.",
+    inside:
+      "Set `instanceCheckIn.disabled: true`. With no route out, the check-in fails quietly.",
     onByDefault: true,
   },
   {
@@ -520,7 +532,7 @@ export const AirGappedFaqs: Array<AirGappedFaq> = [
   {
     question: "Does OneUptime phone home?",
     answer:
-      "A Community Edition install makes one call on its own: a daily update check against GitHub's API, which `updateCheck.disabled` turns off. Signing up with release emails ticked also tells oneuptime.com, so untick that box. An Enterprise Edition install activated with a license key syncs its license with oneuptime.com once a day; one activated with an offline license token never does. Everything else, from SMS to Slack to a hosted AI model, reaches out only once you set it up.",
+      "A Community Edition install makes two calls on its own: a daily update check against GitHub's API, which `updateCheck.disabled` turns off, and a daily check-in that tells oneuptime.com the install's address and version, which `instanceCheckIn.disabled` turns off. Signing up with release emails ticked also tells oneuptime.com, so untick that box. An Enterprise Edition install activated with a license key syncs its license with oneuptime.com once a day; one activated with an offline license token never does. Everything else, from SMS to Slack to a hosted AI model, reaches out only once you set it up.",
   },
   {
     question: "How do we license the Enterprise Edition with no internet?",

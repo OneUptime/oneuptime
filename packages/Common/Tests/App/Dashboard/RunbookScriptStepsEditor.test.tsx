@@ -710,6 +710,128 @@ describe("an SSH step", () => {
   });
 });
 
+/*
+ * An SSH step's Host key, under More fields: the machine's keys, one a line,
+ * as a SHA256 fingerprint or as ssh-keyscan prints them. The Runner signs in
+ * only when the machine presents one of them; left empty, any key is
+ * accepted. A line that is not a key says the step will fail - the server
+ * refuses it rather than sign in unchecked.
+ */
+describe("an SSH step's host key", () => {
+  const FINGERPRINT: string =
+    "SHA256:gwsSZuUZNvG/8pOZ2G715I2GTVbDlhL4EKu6z7WLKNM";
+  const KEYSCAN_LINE: string =
+    "10.0.4.21 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFtux8m1u+wimvaBoFQoXsFnlH+H+VfhMAHNjDNrl2Q0";
+
+  function hostKeyBox(): HTMLTextAreaElement {
+    return screen.getByTestId(
+      "runbook-step-0-ssh-host-key",
+    ) as HTMLTextAreaElement;
+  }
+
+  test("is under More fields, after the key passphrase, saying what to put there and what an empty one does", async () => {
+    await renderSteps();
+    open("Restart nginx");
+
+    const moreFields: HTMLElement = screen.getByTestId(
+      "runbook-step-0-more-fields",
+    );
+    const toggle: HTMLElement = within(moreFields)
+      .getAllByRole("button")
+      .find((button: HTMLElement): boolean => {
+        return button.hasAttribute("aria-expanded");
+      })!;
+    const body: HTMLElement = document.getElementById(
+      toggle.getAttribute("aria-controls")!,
+    )!;
+    const field: HTMLElement = screen.getByTestId(
+      "runbook-step-0-ssh-host-key-field",
+    );
+
+    expect(body).toContainElement(field);
+    // After the key passphrase.
+    expect(
+      screen
+        .getByTestId("runbook-step-0-ssh-passphrase")
+        .compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    expect(
+      document.querySelector('label[for="runbook-step-0-ssh-host-key"]'),
+    ).toHaveTextContent("Host key");
+    expect(hostKeyBox()).toHaveValue("");
+    expect(hostKeyBox()).toHaveAttribute(
+      "aria-describedby",
+      "runbook-step-0-ssh-host-key-help",
+    );
+    expect(
+      document.getElementById("runbook-step-0-ssh-host-key-help"),
+    ).toHaveTextContent(
+      "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.",
+    );
+    expect(hostKeyBox()).not.toHaveAttribute("aria-invalid");
+  });
+
+  test("a fingerprint and an ssh-keyscan line are saved as written, and the fold names it", async () => {
+    await renderSteps();
+    open("Restart nginx");
+
+    fireEvent.change(hostKeyBox(), {
+      target: { value: `${KEYSCAN_LINE}\n${FINGERPRINT}` },
+    });
+
+    expect(hostKeyBox()).not.toHaveAttribute("aria-invalid");
+    expect(
+      within(
+        screen.getByTestId("runbook-step-0-ssh-host-key-field"),
+      ).queryByRole("alert"),
+    ).toBeNull();
+    expect(screen.getByTestId("runbook-step-0-more-fields")).toHaveTextContent(
+      "Host key",
+    );
+
+    const steps: Array<RunbookStep> = await save();
+
+    expect((steps[0]!.config as Record<string, unknown>)["hostKey"]).toBe(
+      `${KEYSCAN_LINE}\n${FINGERPRINT}`,
+    );
+  });
+
+  test("a line that is not a key says the step will fail, and the box says it is invalid", async () => {
+    await renderSteps();
+    open("Restart nginx");
+
+    fireEvent.change(hostKeyBox(), {
+      target: {
+        value: `${FINGERPRINT}\nMD5:6e:39:52:cc:29:3d:dd:a3:6b:4f:5c:0e:3a:6c:85:20`,
+      },
+    });
+
+    expect(hostKeyBox()).toHaveAttribute("aria-invalid", "true");
+    expect(
+      within(screen.getByTestId("runbook-step-0-ssh-host-key-field")).getByRole(
+        "alert",
+      ),
+    ).toHaveTextContent(
+      "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.",
+    );
+  });
+
+  test("cleared, the step is saved naming none", async () => {
+    await renderSteps();
+    open("Restart nginx");
+
+    fireEvent.change(hostKeyBox(), { target: { value: FINGERPRINT } });
+    fireEvent.change(hostKeyBox(), { target: { value: "  \n " } });
+
+    const steps: Array<RunbookStep> = await save();
+
+    expect(steps[0]!.config as Record<string, unknown>).not.toHaveProperty(
+      "hostKey",
+    );
+  });
+});
+
 describe("a kubectl step", () => {
   test("asks for the kubeconfig - or the Runner's own access - and the script", async () => {
     await renderSteps();

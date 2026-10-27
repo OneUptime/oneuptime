@@ -33,6 +33,21 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Lock}
         />
+        {/*
+         * Single sign-on, on one page: the SAML and OpenID Connect
+         * providers and Require SSO for Login. They were "Global SSO" and
+         * "Global OIDC" in a folded section also called Authentication, and
+         * the switch was on the Authentication page.
+         */}
+        <SideMenuItem
+          link={{
+            title: t("sideMenu.settingsSso"),
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_SSO] as Route,
+            ),
+          }}
+          icon={IconProp.ShieldCheck}
+        />
         {EnterpriseSettingsItems ? <EnterpriseSettingsItems /> : <></>}
       </SideMenuSection>
 
@@ -44,30 +59,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
        * by its English title (see SideMenuSectionState.ts); these titles are
        * already translated, so each one says it here.
        */}
-      <SideMenuSection
-        title={t("sideMenu.settingsAuthentication")}
-        defaultCollapsed={true}
-      >
-        <SideMenuItem
-          link={{
-            title: "Global SSO",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_GLOBAL_SSO] as Route,
-            ),
-          }}
-          icon={IconProp.Lock}
-        />
-        <SideMenuItem
-          link={{
-            title: "Global OIDC",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_GLOBAL_OIDC] as Route,
-            ),
-          }}
-          icon={IconProp.Lock}
-        />
-      </SideMenuSection>
-
       <SideMenuSection
         title={t("sideMenu.settingsNotifications")}
         defaultCollapsed={true}

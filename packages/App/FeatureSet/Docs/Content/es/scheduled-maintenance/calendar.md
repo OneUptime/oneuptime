@@ -113,7 +113,7 @@ El calendario contiene cada evento desde 90 días atrás hasta un año adelante,
 
 Las personas que siguen una página de estado pueden llevar su mantenimiento programado a su propio calendario. En la página de eventos programados de la página de estado, **Suscribirse al calendario** ofrece Google Calendar, la aplicación de calendario de su dispositivo o el enlace para copiar. El enlace es la dirección de la página seguida de `/maintenance.ics`, como `https://status.example.com/maintenance.ics`.
 
-- **Lo que contiene.** Exactamente lo que muestra la página: los eventos del periodo de historial de la página, cada evento que está por llegar y cada uno en curso, mientras **Visible en la página de estado** esté activado. Lo que afecta cada evento se nombra como la página nombra sus recursos, nunca con los nombres propios de tus monitores.
+- **Lo que contiene.** Exactamente lo que muestra la página: los eventos del periodo de historial de la página, cada evento que está por llegar y cada uno en curso, mientras **Visible en la página de estado** esté activado, y desde su **Publicar el** si elegiste uno. Lo que afecta cada evento se nombra como la página nombra sus recursos, nunca con los nombres propios de tus monitores.
 - **Una página privada.** Una aplicación de calendario no puede iniciar sesión, así que una página privada no ofrece **Suscribirse al calendario**, y su enlace sirve un calendario vacío que dice que la página es privada.
 - **Un evento.** **Añadir al calendario** en la página de un evento añade solo ese evento: Google Calendar se abre con él ya rellenado, o se descarga como un archivo que abre la aplicación de calendario del dispositivo. También funciona en una página privada, para un visitante que ha iniciado sesión, y deja de ofrecerse cuando el evento ha terminado.
 
@@ -147,7 +147,7 @@ Google Calendar lee el enlace desde los servidores de Google, así que el servid
 :::
 
 :::details Falta un evento en el calendario de una página de estado
-El calendario de la página contiene lo que muestra la página. Comprueba que el evento nombra la página, que **Visible en la página de estado** está activado en sus **Ajustes** y que empezó dentro del periodo de historial de la página.
+El calendario de la página contiene lo que muestra la página. Comprueba que el evento nombra la página, que **Visible en la página de estado** está activado en sus **Ajustes**, que ya llegó su **Publicar el**, si tiene uno, y que empezó dentro del periodo de historial de la página.
 :::
 
 :::details Un calendario externo dice No funciona

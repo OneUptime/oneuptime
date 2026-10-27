@@ -29,6 +29,37 @@ export default class Domain extends DatabaseProperty {
     });
   }
 
+  /*
+   * The names RFC 2606 reserves for testing and documentation: the .test,
+   * .example, .invalid and .localhost top-level domains, and example.com,
+   * example.net and example.org. Nobody can register them, so no mailbox or
+   * install on them, or on any name under them, belongs to anyone. A wider
+   * list than TEST_DOMAIN_SUFFIXES, which only says which domains may skip
+   * DNS verification.
+   */
+  public static readonly RESERVED_NAMES: Array<string> = [
+    "test",
+    "example",
+    "invalid",
+    "localhost",
+    "example.com",
+    "example.net",
+    "example.org",
+  ];
+
+  // Whether a name is one of RESERVED_NAMES or under one. Never throws.
+  public static isReservedName(name: string): boolean {
+    if (typeof name !== "string") {
+      return false;
+    }
+
+    const nameLower: string = name.trim().toLowerCase();
+
+    return Domain.RESERVED_NAMES.some((reserved: string): boolean => {
+      return nameLower === reserved || nameLower.endsWith(`.${reserved}`);
+    });
+  }
+
   private _domain: string = "";
   public get domain(): string {
     return this._domain;

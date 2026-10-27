@@ -25,7 +25,17 @@
 #
 # Set DATABASE_RESTORE_ASSUME_YES=1 to skip the prompt for unattended restores.
 
-export $(grep -v '^#' config.env | xargs)
+# config.env's settings, each value as written - a value with spaces, quotes or
+# a * in it included - read the way npm start reads them: the script runs
+# itself again through Scripts/Install/WithConfig.sh. It used to export
+# $(grep -v '^#' config.env | xargs), which split values at their spaces.
+if [ "${ONEUPTIME_WITH_CONFIG:-}" != "1" ]; then
+    ONEUPTIME_WITH_CONFIG=1 exec sh ./Scripts/Install/WithConfig.sh bash "$0" "$@"
+fi
+
+# PostgreSQL's port on this server: DATABASE_RESTORE_PORT, or else the port
+# docker-compose.yml publishes it on (DATABASE_PUBLISHED_PORT, 5400 by default).
+DATABASE_RESTORE_PORT="${DATABASE_RESTORE_PORT:-${DATABASE_PUBLISHED_PORT:-5400}}"
 
 echo "WARNING: this restore is DESTRUCTIVE."
 echo "  Target database : $DATABASE_RESTORE_NAME on $DATABASE_RESTORE_HOST:$DATABASE_RESTORE_PORT"
@@ -71,10 +81,13 @@ echo "Starting restore...."
 # network, and docker-compose.yml publishes PostgreSQL on 127.0.0.1 only. It
 # used to be Docker's host-gateway (the docker0 address), which reaches the
 # port only while it is published on every interface.
+#
+# The folder, the connection and the file are quoted, so a value with a space
+# or a * in it reaches pg_restore as one argument, as config.env holds it.
 sudo docker run --net=host --rm \
 --env-file config.env \
 --add-host=host.docker.internal:127.0.0.1 \
---volume=$(pwd)$DATABASE_RESTORE_DIRECTORY:/var/lib/postgresql/data \
-postgres:latest /usr/bin/pg_restore --clean --if-exists --dbname=postgresql://$DATABASE_RESTORE_USERNAME:$DATABASE_RESTORE_PASSWORD@$DATABASE_RESTORE_HOST:$DATABASE_RESTORE_PORT/$DATABASE_RESTORE_NAME /var/lib/postgresql/data/$DATABASE_RESTORE_FILENAME
+--volume="$(pwd)$DATABASE_RESTORE_DIRECTORY:/var/lib/postgresql/data" \
+postgres:latest /usr/bin/pg_restore --clean --if-exists --dbname="postgresql://$DATABASE_RESTORE_USERNAME:$DATABASE_RESTORE_PASSWORD@$DATABASE_RESTORE_HOST:$DATABASE_RESTORE_PORT/$DATABASE_RESTORE_NAME" "/var/lib/postgresql/data/$DATABASE_RESTORE_FILENAME"
 
 echo "Restore Completed"

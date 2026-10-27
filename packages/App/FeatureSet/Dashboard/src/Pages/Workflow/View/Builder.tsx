@@ -37,6 +37,7 @@ import WorkflowTurnedOffNotice from "Common/UI/Components/Workflow/WorkflowTurne
 import { getWorkflowRunStartedBy } from "Common/UI/Components/Workflow/WorkflowRunExport";
 import {
   getLockedReason,
+  getWorkflowEditGate,
   getWorkflowRunGate,
   getWorkflowStepRunGate,
 } from "Common/UI/Components/Workflow/WorkflowRunGate";
@@ -73,6 +74,9 @@ import Navigation from "Common/UI/Utils/Navigation";
 import WorkflowModel from "Common/Models/DatabaseModels/Workflow";
 import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
 import { subscribeToArchiveStateChanges } from "../../../Components/Archive/ArchiveStateEvents";
+import WorkflowPlanNotice, {
+  doesCurrentPlanRunWorkflows,
+} from "../../../Components/Workflow/WorkflowPlanNotice";
 import React, {
   Fragment,
   FunctionComponent,
@@ -289,6 +293,20 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const stepRunLockedReason: string | undefined = getLockedReason(
     getWorkflowStepRunGate(),
   );
+
+  /*
+   * Someone who may open the workflow but not change it - a Workflow Member,
+   * who runs workflows, or a viewer - gets the Builder as a view
+   * (Common/UI/Components/Workflow/WorkflowViewOnly): the add button locked,
+   * saying why, the save pill saying "View only", a canvas where nothing
+   * moves, and steps that open to be read. Nothing is saved: every save of
+   * the graph would be refused, and each refusal used to come back as an
+   * error dialog. Read on every render, like the run gates.
+   */
+  const editLockedReason: string | undefined = getLockedReason(
+    getWorkflowEditGate(),
+  );
+  const isViewOnly: boolean = Boolean(editLockedReason);
 
   type StartWatchingRunFunction = () => void;
 
@@ -681,6 +699,7 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
           */}
           <WorkflowStatusBar
             saveState={saveState}
+            readOnlyReason={editLockedReason}
             lintResult={lintResult}
             runStatusMessage={runWatch.message}
             runStatusFailed={runWatch.hasFailed}
@@ -727,9 +746,14 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
              * inside its button. Neither keeps the left margin a button has
              * of its own (md:ml-3): the row's gap spaces them, and a button
              * that starts a row (a tablet, a phone) lines up with the switch
-             * above it instead of starting indented.
+             * above it instead of starting indented. A locked button sits in
+             * the span that carries its reason (Button's tooltip wrapper),
+             * which is as wide as the button below md too, so a view's
+             * locked Add Trigger is no narrower than Run Workflow.
              */}
             <div
+              className="[&>span]:w-full md:[&>span]:w-auto"
+              data-testid="workflow-toolbar-buttons"
               style={{
                 display: "flex",
                 flexWrap: "wrap",
@@ -746,15 +770,26 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 <Button
                   title={addButton.title}
                   icon={IconProp.Add}
+                  /*
+                   * Primary while the workflow needs its trigger - unless
+                   * the reader may not add one: then it is locked, saying
+                   * why, and it is not the page's next step.
+                   */
                   buttonStyle={
-                    hasTrigger
+                    hasTrigger || isViewOnly
                       ? ButtonStyleType.NORMAL
                       : ButtonStyleType.PRIMARY
                   }
                   className="whitespace-nowrap"
                   style={TOOLBAR_BUTTON_STYLE}
+                  disabled={isViewOnly}
+                  tooltip={editLockedReason}
                   dataTestId="workflow-add-button"
                   onClick={() => {
+                    if (isViewOnly) {
+                      return;
+                    }
+
                     setShowComponentPickerModal(true);
                   }}
                 />
@@ -788,7 +823,15 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
          * once there is a trigger to pause: until then the workflow's first
          * step is Add Trigger (hasTrigger).
          */}
-        {workflowEnabled.isEnabled === false && !isArchived && hasTrigger ? (
+        {/*
+         * A project whose plan runs no workflows (the Free plan on OneUptime
+         * Cloud) is told so first: nothing starts this workflow, on or off,
+         * so the off notice and its Turn on workflow would promise what
+         * never happens. One notice at a time.
+         */}
+        {!doesCurrentPlanRunWorkflows() ? (
+          <WorkflowPlanNotice className="mb-3" />
+        ) : workflowEnabled.isEnabled === false && !isArchived && hasTrigger ? (
           <div style={{ marginBottom: "0.75rem" }}>
             <WorkflowTurnedOffNotice
               onTurnOn={
@@ -871,12 +914,24 @@ const Delete: FunctionComponent<PageComponentProps> = (): ReactElement => {
               setStepToOpenNodeId(null);
             }}
             initialEdges={edges}
+            // A view: nothing on the canvas changes, and nothing is saved.
+            editDisabledReason={editLockedReason}
             onWorkflowUpdated={async (
               nodes: Array<Node>,
               edges: Array<Edge>,
             ) => {
               setNodes(nodes);
               setEdges(edges);
+
+              /*
+               * The canvas reports its graph as it draws it, a step's
+               * selection included, even where nothing can change: saved,
+               * each report would be refused.
+               */
+              if (isViewOnly) {
+                return;
+              }
+
               await saveGraph(nodes, edges);
             }}
             runStepDisabledReason={stepRunLockedReason}

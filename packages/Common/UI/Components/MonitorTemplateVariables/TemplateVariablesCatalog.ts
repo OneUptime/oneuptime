@@ -891,7 +891,9 @@ export default class TemplateVariablesCatalog {
             },
             {
               key: "activeIncidentCount",
-              description: "Number of active incidents on the status page.",
+              description:
+                "Number of active incidents on the status page that affect what this monitor watches.",
+              example: "1",
             },
             {
               key: "componentStatuses",
@@ -908,7 +910,9 @@ export default class TemplateVariablesCatalog {
             },
             {
               key: "componentName",
-              description: "Component this monitor is scoped to, if any.",
+              description:
+                "Components this monitor watches, separated by commas, if any.",
+              example: "Git Operations, Pull Requests",
             },
             {
               key: "isOnline",

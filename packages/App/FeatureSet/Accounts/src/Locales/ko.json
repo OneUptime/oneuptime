@@ -105,6 +105,7 @@
   "register": {
     "title": "OneUptime 계정 만들기",
     "subtitle": "OneUptime을 사용하여 항상 온라인 상태를 유지하는 수천 개의 비즈니스에 참여하세요.",
+    "firstAccountSubtitle": "이 OneUptime 서버에는 아직 계정이 없습니다. 처음 만드는 계정이 이 서버의 관리자가 됩니다.",
     "noCreditCard": "신용카드가 필요하지 않습니다.",
     "submitButton": "가입하기",
     "haveAccountPrompt": "이미 계정이 있으신가요?",
@@ -131,7 +132,6 @@
     "subtitle": "이메일을 입력하시면 비밀번호 재설정 링크가 발송됩니다.",
     "successMessage": "비밀번호 재설정 링크를 이메일로 보냈습니다. 스팸 폴더도 확인해 주세요.",
     "submitButton": "비밀번호 재설정 링크 보내기",
-    "returnToSignIn": "로그인으로 돌아가기.",
     "rememberPasswordPrompt": "비밀번호를 기억하시나요?",
     "loginLink": "로그인."
   },
@@ -156,13 +156,21 @@
     "emailRequired": "이 작업을 수행하려면 이메일이 필요합니다",
     "defaultProjectName": "프로젝트",
     "globalProvidersTitle": "조직 계정으로 로그인",
-    "globalProvidersDivider": "또는 이메일로 계속"
+    "globalProvidersDivider": "또는 이메일로 계속",
+    "signInWithProvider": "{{name}} 계정으로 로그인",
+    "requiredSubtitle": "조직의 SSO(Single Sign-On)로 로그인하세요.",
+    "requiredNotSetUp": "이 서버에는 아직 SSO(Single Sign-On)가 설정되지 않았습니다. 서버 관리자에게 설정을 요청하세요.",
+    "useDifferentEmail": "다른 이메일 사용"
+  },
+  "adminLogin": {
+    "title": "마스터 관리자 로그인",
+    "subtitle": "이 서버는 SSO(Single Sign-On)가 필수입니다. 마스터 관리자는 여기에서 비밀번호로 로그인할 수 있습니다."
   },
   "verifyEmail": {
     "successTitle": "이메일이 확인되었습니다.",
     "successDescription": "이메일을 확인해 주셔서 감사합니다. 이제 OneUptime에 로그인할 수 있습니다.",
     "errorTitle": "죄송합니다. 문제가 발생했습니다!",
-    "returnToSignIn": "로그인으로 돌아가시겠습니까?",
+    "alreadyVerifiedPrompt": "이미 이메일을 인증하셨나요?",
     "loginLink": "로그인.",
     "continueToSignIn": "로그인으로 계속",
     "linkInvalidTitle": "이 인증 링크는 더 이상 유효하지 않습니다",

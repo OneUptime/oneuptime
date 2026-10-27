@@ -62,6 +62,10 @@ import {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import QRCodeElement from "Common/UI/Components/QR/QR";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "Common/Types/SSO/SignInMethods";
+import LoginWithSsoPage from "./LoginWithSSO";
+import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
 
 /*
  * The misc bag travels on the wire under `_miscData` — the key
@@ -131,9 +135,40 @@ interface PasskeyAttempt {
   canCancel: boolean;
 }
 
-const LoginPage: () => JSX.Element = () => {
+export interface ComponentProps {
+  /*
+   * The master admins' way in, /accounts/admin-login. While the whole server
+   * requires single sign-on the sign-in page offers only SSO, and the server
+   * signs nobody else in with a password (SsoRequiredSignIn); this page is
+   * then the password form alone, said to be theirs, so a master admin can
+   * always get in - to turn the requirement off when an identity provider
+   * stops working, say. The Admin Dashboard sends a signed-out visitor here,
+   * and its Require SSO card names the address. While SSO is not required
+   * it is the sign-in page as everyone sees it.
+   */
+  isMasterAdminSignIn?: boolean | undefined;
+}
+
+const LoginPage: (props: ComponentProps) => JSX.Element = (
+  props: ComponentProps,
+) => {
   const { t } = useTranslation();
   const apiUrl: URL = LOGIN_API_URL;
+
+  /*
+   * Whether the whole server requires single sign-on: the page then offers
+   * nothing but SSO (LoginWithSSO, drawn in its place), except at the master
+   * admins' address. Read before anything is drawn - the password form never
+   * shows only to be taken away.
+   */
+  const signInMethodsRead: SignInMethodsRead = useSignInMethods();
+  const isSsoRequired: boolean = Boolean(
+    signInMethodsRead.signInMethods?.isSsoRequired,
+  );
+
+  // The password form alone, for master admins, while SSO is required.
+  const isMasterAdminPasswordPage: boolean =
+    Boolean(props.isMasterAdminSignIn) && isSsoRequired;
 
   /*
    * A visitor who is already signed in is sent on to the Dashboard -- once,
@@ -856,6 +891,28 @@ const LoginPage: () => JSX.Element = () => {
     window.URL.revokeObjectURL(url);
   };
 
+  if (signInMethodsRead.isReading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  /*
+   * The whole server requires single sign-on: the page offers only SSO, as
+   * the single sign-on page does (issue #5193). Everyone but master admins
+   * is refused a password anyway (SsoRequiredSignIn).
+   */
+  if (
+    isSsoRequired &&
+    !props.isMasterAdminSignIn &&
+    signInMethodsRead.signInMethods
+  ) {
+    return (
+      <LoginWithSsoPage
+        signInMethods={signInMethodsRead.signInMethods}
+        showEditionLabel={true}
+      />
+    );
+  }
+
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto">
@@ -885,7 +942,7 @@ const LoginPage: () => JSX.Element = () => {
                 ? t("login.backupCodes.title")
                 : t("login.backupCodes.setUpTitle")}
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+            <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
               {codesToSave.length > 0
                 ? t("login.backupCodes.subtitle")
                 : t("login.backupCodes.setUpSubtitle")}
@@ -896,14 +953,18 @@ const LoginPage: () => JSX.Element = () => {
         {!pendingLogin && !showTwoFactorAuth && !totpEnrolment && (
           <>
             <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
-              {t("login.title")}
+              {isMasterAdminPasswordPage
+                ? t("adminLogin.title")
+                : t("login.title")}
             </h2>
             {/*
              * Balanced: on a phone the line breaks in the middle of the
              * list rather than leaving its last word, "passkey", alone.
              */}
             <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0 text-balance">
-              {t("login.subtitle")}
+              {isMasterAdminPasswordPage
+                ? t("adminLogin.subtitle")
+                : t("login.subtitle")}
             </p>
           </>
         )}
@@ -913,7 +974,7 @@ const LoginPage: () => JSX.Element = () => {
             <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
               {t("login.twoFactor.title")}
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+            <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
               {/*
                * "Select two factor authentication method" is true of exactly
                * one of the four screens this heading sits over, and it used to
@@ -939,7 +1000,7 @@ const LoginPage: () => JSX.Element = () => {
             <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
               {t("login.twoFactorEnrolment.title")}
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+            <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
               {t("login.twoFactorEnrolment.subtitle")}
             </p>
           </>
@@ -1158,6 +1219,19 @@ const LoginPage: () => JSX.Element = () => {
                     setInitialValues(User.toJSON(data, User));
                     return Promise.resolve(data);
                   }}
+                  onSubmitError={(message: string) => {
+                    /*
+                     * The server came to require SSO after this page read
+                     * that it did not (or could not read it): read again,
+                     * and the page offers SSO in place of this form.
+                     */
+                    if (
+                      message === SSO_REQUIRED_SIGN_IN_MESSAGE &&
+                      !props.isMasterAdminSignIn
+                    ) {
+                      signInMethodsRead.readAgain();
+                    }
+                  }}
                   onLoadingChange={(loading: boolean) => {
                     setIsPasswordLoading(loading);
                     if (!isCaptchaEnabled) {
@@ -1250,7 +1324,12 @@ const LoginPage: () => JSX.Element = () => {
                           icon={IconProp.ShieldCheck}
                           title={t("login.signInWithSso")}
                         />
-                        {MicrosoftSignInClientId ? (
+                        {/*
+                         * Not on the master admins' page: while the server
+                         * requires SSO, Microsoft signs nobody in.
+                         */}
+                        {MicrosoftSignInClientId &&
+                        !isMasterAdminPasswordPage ? (
                           <MicrosoftSignInButton
                             title={t("login.signInWithMicrosoft")}
                           />
@@ -1285,122 +1364,130 @@ const LoginPage: () => JSX.Element = () => {
                * else reads a sentence about it on every visit. Once it has
                * said so, it is drawn as unavailable (isPasskeyUnavailable).
                */}
-              <div
-                className="mt-3 text-center text-sm"
-                data-testid="passkey-option"
-              >
-                <button
-                  type="button"
-                  id="passkey-login"
-                  data-testid="passkey-login"
-                  disabled={isPasskeyLoading || isPasswordLoading}
-                  /*
-                   * Not `disabled`: the option keeps the focus it was given
-                   * when it explained itself.
-                   */
-                  aria-disabled={isPasskeyUnavailable || undefined}
-                  onClick={() => {
-                    if (!isPasskeyUnavailable) {
-                      void signInWithPasskey();
-                    }
-                  }}
-                  className={getSignInOptionClassName(passkeyOptionState)}
+              {/*
+               * Not on the master admins' page, which is the password form
+               * alone: a passkey is no SSO either, and the page is their way
+               * in when the rest are closed.
+               */}
+              {!isMasterAdminPasswordPage && (
+                <div
+                  className="mt-3 text-center text-sm"
+                  data-testid="passkey-option"
                 >
-                  <SignInOptionLabel
-                    icon={
-                      <Icon
-                        icon={
-                          isPasskeyLoading
-                            ? IconProp.Spinner
-                            : IconProp.Fingerprint
-                        }
-                        className={`${SIGN_IN_OPTION_ICON_CLASS}${
-                          isPasskeyLoading ? " animate-spin" : ""
-                        }`}
-                        data-testid={
-                          isPasskeyLoading
-                            ? "passkey-login-spinner"
-                            : "passkey-login-fingerprint"
-                        }
-                      />
-                    }
-                    title={t(
-                      passkeyStageText
-                        ? passkeyStageText.option
-                        : isPasskeySupported && (passkeyError || passkeyNotice)
-                          ? "login.passkey.tryAgain"
-                          : "login.passkey.signIn",
-                    )}
-                  />
-                </button>
-                <div role="status" aria-live="polite" aria-atomic="true">
-                  {passkeyStageText && (
-                    /*
-                     * Only the device prompt needs a line of its own; while
-                     * preparing and verifying, the button already says the
-                     * same words, so the line is there for screen readers.
-                     */
-                    <p
-                      className={
-                        passkeyStage === "prompt"
-                          ? "mt-2 text-balance text-gray-600"
-                          : "sr-only"
-                      }
-                    >
-                      {t(passkeyStageText.status)}
-                    </p>
-                  )}
-                  {passkeyNotice && (
-                    <p
-                      className="mt-2 text-balance text-gray-600"
-                      data-testid="passkey-notice"
-                    >
-                      {t(passkeyNotice)}
-                    </p>
-                  )}
-                </div>
-                {(passkeyStage === "preparing" ||
-                  passkeyStage === "prompt") && (
                   <button
                     type="button"
-                    data-testid="cancel-passkey-login"
-                    onClick={cancelPasskeySignIn}
-                    className={`mt-2 text-gray-500 hover:text-gray-700 hover:underline ${QUIET_CONTROL_FOCUS}`}
+                    id="passkey-login"
+                    data-testid="passkey-login"
+                    disabled={isPasskeyLoading || isPasswordLoading}
+                    /*
+                     * Not `disabled`: the option keeps the focus it was given
+                     * when it explained itself.
+                     */
+                    aria-disabled={isPasskeyUnavailable || undefined}
+                    onClick={() => {
+                      if (!isPasskeyUnavailable) {
+                        void signInWithPasskey();
+                      }
+                    }}
+                    className={getSignInOptionClassName(passkeyOptionState)}
                   >
-                    {t("common.cancel")}
+                    <SignInOptionLabel
+                      icon={
+                        <Icon
+                          icon={
+                            isPasskeyLoading
+                              ? IconProp.Spinner
+                              : IconProp.Fingerprint
+                          }
+                          className={`${SIGN_IN_OPTION_ICON_CLASS}${
+                            isPasskeyLoading ? " animate-spin" : ""
+                          }`}
+                          data-testid={
+                            isPasskeyLoading
+                              ? "passkey-login-spinner"
+                              : "passkey-login-fingerprint"
+                          }
+                        />
+                      }
+                      title={t(
+                        passkeyStageText
+                          ? passkeyStageText.option
+                          : isPasskeySupported &&
+                              (passkeyError || passkeyNotice)
+                            ? "login.passkey.tryAgain"
+                            : "login.passkey.signIn",
+                      )}
+                    />
                   </button>
-                )}
-                {passkeyError && (
-                  /*
-                   * The same alert the form shows at the top of the card for
-                   * a wrong password: one look for "that did not work",
-                   * wherever it happened.
-                   */
-                  <Alert
-                    type={AlertType.DANGER}
-                    title={passkeyError}
-                    className="mt-3 text-start"
-                    dataTestId="passkey-error"
-                  />
-                )}
-                {isPasskeySupported &&
-                  !isPasskeyLoading &&
-                  (passkeyNotice || passkeyError) && (
-                    <details
-                      className="mt-2 text-gray-600"
-                      data-testid="passkey-help"
-                    >
-                      <summary
-                        className={`mx-auto w-fit cursor-pointer text-indigo-500 hover:text-indigo-900 hover:underline ${QUIET_CONTROL_FOCUS}`}
+                  <div role="status" aria-live="polite" aria-atomic="true">
+                    {passkeyStageText && (
+                      /*
+                       * Only the device prompt needs a line of its own; while
+                       * preparing and verifying, the button already says the
+                       * same words, so the line is there for screen readers.
+                       */
+                      <p
+                        className={
+                          passkeyStage === "prompt"
+                            ? "mt-2 text-balance text-gray-600"
+                            : "sr-only"
+                        }
                       >
-                        {t("login.passkey.helpTitle")}
-                      </summary>
-                      <p className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-start leading-6">
-                        {t("login.passkey.help")}
+                        {t(passkeyStageText.status)}
                       </p>
-                    </details>
+                    )}
+                    {passkeyNotice && (
+                      <p
+                        className="mt-2 text-balance text-gray-600"
+                        data-testid="passkey-notice"
+                      >
+                        {t(passkeyNotice)}
+                      </p>
+                    )}
+                  </div>
+                  {(passkeyStage === "preparing" ||
+                    passkeyStage === "prompt") && (
+                    <button
+                      type="button"
+                      data-testid="cancel-passkey-login"
+                      onClick={cancelPasskeySignIn}
+                      className={`mt-2 text-gray-500 hover:text-gray-700 hover:underline ${QUIET_CONTROL_FOCUS}`}
+                    >
+                      {t("common.cancel")}
+                    </button>
                   )}
-              </div>
+                  {passkeyError && (
+                    /*
+                     * The same alert the form shows at the top of the card for
+                     * a wrong password: one look for "that did not work",
+                     * wherever it happened.
+                     */
+                    <Alert
+                      type={AlertType.DANGER}
+                      title={passkeyError}
+                      className="mt-3 text-start"
+                      dataTestId="passkey-error"
+                    />
+                  )}
+                  {isPasskeySupported &&
+                    !isPasskeyLoading &&
+                    (passkeyNotice || passkeyError) && (
+                      <details
+                        className="mt-2 text-gray-600"
+                        data-testid="passkey-help"
+                      >
+                        <summary
+                          className={`mx-auto w-fit cursor-pointer text-indigo-500 hover:text-indigo-900 hover:underline ${QUIET_CONTROL_FOCUS}`}
+                        >
+                          {t("login.passkey.helpTitle")}
+                        </summary>
+                        <p className="mt-2 rounded-lg bg-gray-50 px-3 py-2 text-start leading-6">
+                          {t("login.passkey.help")}
+                        </p>
+                      </details>
+                    )}
+                </div>
+              )}
             </>
           )}
 
@@ -1786,7 +1873,8 @@ const LoginPage: () => JSX.Element = () => {
             !selectedTotpAuth &&
             !selectedWebAuthn &&
             !totpEnrolment &&
-            !isUsingBackupCode && (
+            !isUsingBackupCode &&
+            !isMasterAdminPasswordPage && (
               <div className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
                 {t("login.noAccountPrompt")}{" "}
                 <Link

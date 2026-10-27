@@ -66,8 +66,10 @@ import WorkflowPlan from "../../../Types/Workflow/WorkflowPlan";
  * workflow refused: its owners are told once, by email, that it needs a
  * plan that does. Self-hosted installs have no plans.
  *
- * The legacy tables stay ("HuntressConnection", its join tables and
- * "HuntressIncidentReport"); nothing writes to them any more. Safe to run
+ * Nothing writes to the legacy tables ("HuntressConnection", its join
+ * tables and "HuntressIncidentReport") any more. They are dropped once
+ * every connection has its workflow (dropLegacyTables, run by the Workers'
+ * data migration DropLegacyHuntressTables after the move). Safe to run
  * twice: a connection whose workflow exists is not copied again (its
  * incidents are still given their report's number, which only fills in
  * what is missing). Never throws for one connection: its failure is
@@ -125,6 +127,32 @@ export const LEGACY_REPORTS_SQL: string = `SELECT "huntressIncidentReportId", "i
 export const PROJECT_WORKFLOW_NAMES_SQL: string = `SELECT "name" FROM "Workflow" WHERE "projectId" = $1 AND "deletedAt" IS NULL`;
 
 /*
+ * The connections in use whose workflow is not there - its move failed, or
+ * the workflow was deleted since: what they were set up to do is only in
+ * the legacy tables, so those are kept. A workflow of the connection's id
+ * is its own, whatever happened to it after.
+ */
+export const UNMOVED_CONNECTIONS_SQL: string = `SELECT COUNT(*)::int AS "unmoved" FROM "HuntressConnection" "connection" WHERE "connection"."deletedAt" IS NULL AND NOT EXISTS (SELECT 1 FROM "Workflow" "workflow" WHERE "workflow"."_id" = "connection"."_id")`;
+
+/*
+ * The legacy tables, in one statement, so they go together or not at all:
+ * the reports and the two join tables, which reference a connection, and
+ * the connections. No other table references them.
+ */
+export const LEGACY_TABLES: Array<string> = [
+  "HuntressIncidentReport",
+  "HuntressConnectionLabel",
+  "HuntressConnectionOnCallDutyPolicy",
+  "HuntressConnection",
+];
+
+export const DROP_LEGACY_TABLES_SQL: string = `DROP TABLE IF EXISTS ${LEGACY_TABLES.map(
+  (table: string): string => {
+    return `"${table}"`;
+  },
+).join(", ")}`;
+
+/*
  * Gives an incident its report's number, only when it has none yet: a
  * custom field of that name, set by hand or by an earlier run, is kept.
  */
@@ -151,6 +179,19 @@ function getProjectInSentence(projectName?: string | null): string {
 }
 
 export type ConnectionOutcome = "moved" | "already-moved" | "failed";
+
+/*
+ * What dropLegacyTables did: dropped them, found none (an install that
+ * never had Huntress connections, or one that dropped them already), or
+ * kept them for the connections that have no workflow.
+ */
+export type LegacyTablesOutcome = "dropped" | "no-tables" | "kept";
+
+export interface LegacyTablesDropSummary {
+  outcome: LegacyTablesOutcome;
+  // The connections in use that have no workflow; 0 unless kept.
+  unmoved: number;
+}
 
 export interface HuntressMoveSummary {
   moved: number;
@@ -459,6 +500,88 @@ export default class HuntressConnectionsToWorkflows {
     }
 
     return summary;
+  }
+
+  /*
+   * Drops the legacy tables once every connection in use has its workflow,
+   * so nothing a connection was set up to do is lost: a connection whose
+   * move failed, or whose workflow was deleted since, keeps them all, and
+   * the summary says how many such connections there are. The move is not
+   * run again here: it would make again a workflow someone deleted.
+   *
+   * Nothing writes to the legacy tables, so no connection can appear
+   * between the count and the drop. Two runners at once (the data
+   * migration runner is not serialized): the drop is IF EXISTS, and a count
+   * that finds the tables gone since is no failure. Any other failure to
+   * read or drop reaches the caller.
+   */
+  public static async dropLegacyTables(
+    query: LegacyQuery = HuntressConnectionsToWorkflows.defaultQuery(),
+  ): Promise<LegacyTablesDropSummary> {
+    const tables: { hasConnectionTable: boolean; hasReportTable: boolean } =
+      await HuntressConnectionsToWorkflows.readLegacyTables(query);
+
+    if (!tables.hasConnectionTable) {
+      /*
+       * No connections table: none to keep. A report table left without it
+       * goes too.
+       */
+      if (tables.hasReportTable) {
+        await query(DROP_LEGACY_TABLES_SQL);
+        return { outcome: "dropped", unmoved: 0 };
+      }
+
+      return { outcome: "no-tables", unmoved: 0 };
+    }
+
+    let counted: unknown;
+
+    try {
+      counted = await query(UNMOVED_CONNECTIONS_SQL);
+    } catch (err) {
+      // Another runner dropped them meanwhile: nothing is left to do.
+      if (
+        !(await HuntressConnectionsToWorkflows.readLegacyTables(query))
+          .hasConnectionTable
+      ) {
+        return { outcome: "no-tables", unmoved: 0 };
+      }
+
+      throw err;
+    }
+
+    const unmoved: number = Number(
+      Array.isArray(counted)
+        ? (counted[0] as Record<string, unknown> | undefined)?.["unmoved"]
+        : NaN,
+    );
+
+    // A count that cannot be read keeps the tables, as connections would.
+    if (!Number.isFinite(unmoved) || unmoved !== 0) {
+      return {
+        outcome: "kept",
+        unmoved: Number.isFinite(unmoved) ? unmoved : 0,
+      };
+    }
+
+    await query(DROP_LEGACY_TABLES_SQL);
+
+    return { outcome: "dropped", unmoved: 0 };
+  }
+
+  // Which of the legacy tables are there.
+  private static async readLegacyTables(
+    query: LegacyQuery,
+  ): Promise<{ hasConnectionTable: boolean; hasReportTable: boolean }> {
+    const tables: unknown = await query(LEGACY_TABLE_SQL);
+    const tableRow: Record<string, unknown> | undefined = Array.isArray(tables)
+      ? (tables[0] as Record<string, unknown> | undefined)
+      : undefined;
+
+    return {
+      hasConnectionTable: Boolean(tableRow?.["hasConnectionTable"]),
+      hasReportTable: Boolean(tableRow?.["hasReportTable"]),
+    };
   }
 
   /*
