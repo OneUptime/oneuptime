@@ -231,9 +231,11 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 | Caso | Add labels | Marca o caso com rótulos |
 | Investigação | Check entities against threat intel | Procura cada entidade na sua inteligência de ameaças, e pode aumentar a prioridade quando encontra uma correspondência |
 | Investigação | Look up entity activity | Conta os eventos de segurança de cada entidade em uma janela recente, e registra isso no caso |
+| Investigação | Preserve the evidence | Guarda as gravações de sessão das requisições por trás do caso, e registra no caso seus traces e exceções |
 | Notificação | Email people | Envia por e-mail a usuários e equipes um resumo do caso, com um link para ele |
 | Notificação | Post to Slack | Publica um resumo do caso em um canal do Slack |
 | Notificação | Post to Microsoft Teams | Publica um resumo do caso em um canal do Microsoft Teams |
+| Notificação | Post a status page announcement | Publica um aviso que você escreveu nas páginas de status que escolher |
 | Escalonamento | Page on-call | Executa uma política de plantão |
 | Escalonamento | Declare an incident | Abre um incidente do OneUptime vinculado ao caso |
 | Contenção | Suspend the user in Okta | Suspende no Okta o usuário de que o caso trata |
@@ -245,12 +247,21 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 | Contenção | Release the device in Microsoft Defender | Libera do isolamento no Microsoft Defender for Endpoint o host de que o caso trata |
 | Automação | Send a webhook | Envia o caso como JSON para uma URL |
 | Automação | Run a workflow | Inicia um fluxo de trabalho do OneUptime com o caso como entrada |
+| Automação | Run a runbook | Inicia um dos seus runbooks do OneUptime com o caso como entrada |
+| Automação | Fix the code with AI | Pede ao OneUptime AI um pull request que corrija as exceções lançadas pelas requisições do caso |
 
 Um playbook tem no máximo 25 etapas. Elas rodam em ordem, cada uma depois que a anterior termina. Cada etapa também pode:
 
-- **Requer aprovação**: parar a execução antes da etapa até que alguém a aprove no caso. As quatro etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção.
+- **Requer aprovação**: parar a execução antes da etapa até que alguém a aprove no caso. As quatro etapas que cortam o acesso de alguém sempre param a execução, a menos que um Security Admin desative essa opção. **Run a runbook** e **Post a status page announcement** começam com a aprovação ativada, porque um executa comandos nos seus sistemas e o outro fala com os seus clientes; quem adiciona a etapa pode desativá-la.
 - **Somente se houver correspondência de inteligência de ameaças**: pular a etapa, a menos que uma etapa **Verificar as entidades na inteligência de ameaças** anterior da mesma execução tenha encontrado um indicador conhecido.
 - **Continuar se falhar**: rodar a próxima etapa mesmo que esta falhe. Desativado, uma etapa com falha interrompe a execução.
+
+### Respondendo com o OneUptime
+
+- **Run a runbook**: o runbook recebe o caso como entrada. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` e `ONEUPTIME_INPUT_HOST` são o endereço, o usuário e o host de que o caso trata, vazios quando ele não trata de nenhum. Um usuário ou host protegido nunca é repassado.
+- **Preserve the evidence**: guarda as gravações de sessão além da retenção delas e registra traces e exceções no caso. Logs e traces não podem ser guardados por mais tempo do que o projeto guarda a telemetria.
+- **Post a status page announcement**: é publicado exatamente como você escreveu; nada do caso é adicionado. Os assinantes só são avisados quando **Notify Subscribers** está ativado.
+- **Fix the code with AI**: precisa do OneUptime AI ativado, de um repositório conectado pelo GitHub App e de um runner. Sem eles, a etapa é ignorada e diz o que falta.
 
 ### Contenção
 

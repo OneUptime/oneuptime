@@ -231,9 +231,11 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 | Case | Add labels | Merker saken med etiketter |
 | Investigate | Check entities against threat intel | Slår opp hver entitet i trusseletterretningen din, og kan heve prioriteten ved et treff |
 | Investigate | Look up entity activity | Teller sikkerhetshendelsene til hver entitet over et nylig tidsvindu, og noterer det på saken |
+| Investigate | Preserve the evidence | Tar vare på øktopptakene av forespørslene bak saken, og noterer sporene og unntakene deres på saken |
 | Notify | Email people | Sender brukere og team en oppsummering av saken på e-post, med en lenke til den |
 | Notify | Post to Slack | Legger ut en oppsummering av saken i en Slack-kanal |
 | Notify | Post to Microsoft Teams | Legger ut en oppsummering av saken i en Microsoft Teams-kanal |
+| Notify | Post a status page announcement | Legger ut en kunngjøring du har skrevet, på statussidene du velger |
 | Escalate | Page on-call | Kjører en vaktpolicy |
 | Escalate | Declare an incident | Åpner en OneUptime-hendelse (incident) som er koblet til saken |
 | Contain | Suspend the user in Okta | Suspenderer brukeren saken gjelder, i Okta |
@@ -245,12 +247,21 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 | Contain | Release the device in Microsoft Defender | Frigir verten saken gjelder, fra isoleringen i Microsoft Defender for Endpoint |
 | Automate | Send a webhook | Sender saken som JSON til en URL |
 | Automate | Run a workflow | Starter en OneUptime-arbeidsflyt med saken som input |
+| Automate | Run a runbook | Starter en av OneUptime-runbookene dine med saken som input |
+| Automate | Fix the code with AI | Ber OneUptime AI om en pull request som retter unntakene sakens forespørsler utløste |
 
 En playbook har høyst 25 steg. De kjører i rekkefølge, hvert steg når det forrige er ferdig. Hvert steg kan også:
 
-- **Krever godkjenning**: stoppe kjøringen før steget til noen godkjenner det på saken. De fire stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Security Admin slår det av.
+- **Krever godkjenning**: stoppe kjøringen før steget til noen godkjenner det på saken. De fire stegene som stenger noen ute, stopper alltid kjøringen, med mindre en Security Admin slår det av. **Run a runbook** og **Post a status page announcement** starter med godkjenning slått på, fordi det ene kjører kommandoer på systemene deres og det andre snakker til kundene deres; den som legger til steget, kan slå det av.
 - **Bare ved treff i trusselsinformasjon**: hoppe over steget med mindre et tidligere steg **Sjekk entiteter mot trusselsinformasjon** i kjøringen fant en kjent indikator.
 - **Fortsett hvis det mislykkes**: kjøre neste steg selv om dette feiler. Er det av, stopper et mislykket steg kjøringen.
+
+### Svar gjennom OneUptime
+
+- **Run a runbook**: runbooken får saken som input. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` og `ONEUPTIME_INPUT_HOST` er adressen, brukeren og verten saken handler om, og tomme når den ikke handler om noen. En beskyttet bruker eller vert sendes aldri med.
+- **Preserve the evidence**: tar vare på øktopptak utover oppbevaringstiden og noterer spor og unntak på saken. Logger og spor kan ikke oppbevares lenger enn prosjektet oppbevarer telemetri.
+- **Post a status page announcement**: legges ut slik du skrev den; ingenting fra saken legges til. Abonnenter varsles bare når **Notify Subscribers** er slått på.
+- **Fix the code with AI**: krever at OneUptime AI er slått på, et repository koblet til via GitHub-appen og en runner. Uten dem hoppes steget over og sier hva som mangler.
 
 ### Inndemming
 

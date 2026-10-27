@@ -231,9 +231,11 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | Fall | Add labels | Versieht den Fall mit Labels |
 | Untersuchen | Check entities against threat intel | Schlägt jede Entität in Ihrer Threat Intelligence nach und kann bei einem Treffer die Priorität anheben |
 | Untersuchen | Look up entity activity | Zählt die Sicherheitsereignisse jeder Entität in einem kürzlich zurückliegenden Zeitfenster und vermerkt das am Fall |
+| Untersuchen | Preserve the evidence | Behält die Session Replays der Anfragen hinter dem Fall und vermerkt deren Traces und Ausnahmen am Fall |
 | Benachrichtigen | Email people | Schickt Benutzern und Teams eine Zusammenfassung des Falls per E-Mail, mit einem Link darauf |
 | Benachrichtigen | Post to Slack | Postet eine Zusammenfassung des Falls in einen Slack-Kanal |
 | Benachrichtigen | Post to Microsoft Teams | Postet eine Zusammenfassung des Falls in einen Kanal von Microsoft Teams |
+| Benachrichtigen | Post a status page announcement | Veröffentlicht eine von Ihnen geschriebene Ankündigung auf den gewählten Statusseiten |
 | Eskalieren | Page on-call | Führt eine Bereitschaftsrichtlinie aus |
 | Eskalieren | Vorfall melden | Öffnet einen OneUptime-Vorfall, der mit dem Fall verknüpft ist |
 | Eindämmen | Suspend the user in Okta | Sperrt den Benutzer, um den es im Fall geht, in Okta |
@@ -245,12 +247,21 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | Eindämmen | Release the device in Microsoft Defender | Hebt die Isolierung des Hosts, um den es im Fall geht, in Microsoft Defender for Endpoint auf |
 | Automatisieren | Send a webhook | Sendet den Fall als JSON per POST an eine URL |
 | Automatisieren | Run a workflow | Startet einen OneUptime-Workflow mit dem Fall als Eingabe |
+| Automatisieren | Run a runbook | Startet eines Ihrer OneUptime-Runbooks mit dem Fall als Eingaben |
+| Automatisieren | Fix the code with AI | Bittet OneUptime AI um einen Pull Request, der die Ausnahmen behebt, die die Anfragen des Falls ausgelöst haben |
 
 Ein Playbook hat höchstens 25 Schritte. Sie laufen der Reihe nach, jeder, sobald der vorige fertig ist. Jeder Schritt kann außerdem:
 
-- **Genehmigung erforderlich**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Die vier Schritte, die jemanden aussperren, halten immer an, es sei denn, ein Security Admin schaltet das ab.
+- **Genehmigung erforderlich**: die Ausführung vor dem Schritt anhalten, bis jemand ihn am Fall genehmigt. Die vier Schritte, die jemanden aussperren, halten immer an, es sei denn, ein Security Admin schaltet das ab. **Run a runbook** und **Post a status page announcement** beginnen mit eingeschalteter Genehmigung, denn das eine führt Befehle auf Ihren Systemen aus und das andere spricht zu Ihren Kunden; wer den Schritt hinzufügt, kann sie abschalten.
 - **Nur bei Threat-Intel-Treffer**: den Schritt überspringen, sofern nicht ein früherer Schritt **Entitäten mit Threat Intel abgleichen** derselben Ausführung einen bekannten Indikator gefunden hat.
 - **Bei Fehler weitermachen**: den nächsten Schritt ausführen, auch wenn dieser fehlschlägt. Ist die Option aus, beendet ein fehlgeschlagener Schritt die Ausführung.
+
+### Reagieren mit OneUptime
+
+- **Run a runbook**: Das Runbook erhält den Fall als Eingaben. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` und `ONEUPTIME_INPUT_HOST` sind Adresse, Benutzer und Host, um die es im Fall geht, und leer, wenn es um keinen geht. Ein geschützter Benutzer oder Host wird nie übergeben.
+- **Preserve the evidence**: behält Session Replays über ihre Aufbewahrung hinaus und vermerkt Traces und Ausnahmen am Fall. Logs und Traces lassen sich nicht länger halten, als das Projekt Telemetrie aufbewahrt.
+- **Post a status page announcement**: wird so veröffentlicht, wie Sie es geschrieben haben; nichts aus dem Fall wird hinzugefügt. Abonnenten werden nur benachrichtigt, wenn **Notify Subscribers** an ist.
+- **Fix the code with AI**: braucht eingeschaltete OneUptime AI, ein über die GitHub App verbundenes Repository und einen Runner. Fehlt etwas davon, wird der Schritt übersprungen und nennt, was fehlt.
 
 ### Eindämmung
 

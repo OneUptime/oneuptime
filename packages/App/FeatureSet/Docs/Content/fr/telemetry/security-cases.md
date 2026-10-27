@@ -231,9 +231,11 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Dossier | Add labels | Applique des étiquettes au dossier |
 | Investigation | Check entities against threat intel | Recherche chaque entité dans votre renseignement sur les menaces, et peut relever la priorité en cas de correspondance |
 | Investigation | Look up entity activity | Compte les événements de sécurité de chaque entité sur une fenêtre récente, et consigne le résultat sur le dossier |
+| Investigation | Preserve the evidence | Conserve les enregistrements de session des requêtes derrière le dossier, et consigne leurs traces et exceptions sur le dossier |
 | Notification | Email people | Envoie par e-mail à des utilisateurs et des équipes un résumé du dossier, avec un lien vers celui-ci |
 | Notification | Post to Slack | Publie un résumé du dossier dans un canal Slack |
 | Notification | Post to Microsoft Teams | Publie un résumé du dossier dans un canal Microsoft Teams |
+| Notification | Post a status page announcement | Publie une annonce que vous avez rédigée sur les pages de statut de votre choix |
 | Escalade | Page on-call | Exécute une politique d'astreinte |
 | Escalade | Déclarer un incident | Ouvre un incident OneUptime lié au dossier |
 | Confinement | Suspend the user in Okta | Suspend dans Okta l'utilisateur sur lequel porte le dossier |
@@ -245,12 +247,21 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Confinement | Release the device in Microsoft Defender | Libère de l'isolement dans Microsoft Defender for Endpoint l'hôte sur lequel porte le dossier |
 | Automatisation | Send a webhook | Envoie le dossier en JSON à une URL |
 | Automatisation | Run a workflow | Lance un flux de travail OneUptime avec le dossier en entrée |
+| Automatisation | Run a runbook | Lance l'un de vos runbooks OneUptime avec le dossier en entrée |
+| Automatisation | Fix the code with AI | Demande à OneUptime AI une pull request qui corrige les exceptions levées par les requêtes du dossier |
 
 Un playbook compte au plus 25 étapes. Elles s'exécutent dans l'ordre, chacune une fois la précédente terminée. Chaque étape peut aussi :
 
-- **Approbation requise** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les quatre étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Security Admin désactive ce réglage.
+- **Approbation requise** : arrêter l'exécution avant l'étape jusqu'à ce que quelqu'un l'approuve sur le dossier. Les quatre étapes qui coupent l'accès à quelqu'un s'arrêtent toujours ainsi, sauf si un Security Admin désactive ce réglage. **Run a runbook** et **Post a status page announcement** commencent avec ce réglage activé, car l'une exécute des commandes sur vos systèmes et l'autre s'adresse à vos clients ; la personne qui ajoute l'étape peut le désactiver.
 - **Seulement si le renseignement sur les menaces correspond** : sauter l'étape, sauf si une étape **Vérifier les entités dans le renseignement sur les menaces** antérieure de la même exécution a trouvé un indicateur connu.
 - **Continuer en cas d'échec** : exécuter l'étape suivante même si celle-ci échoue. Sans ce réglage, une étape en échec arrête l'exécution.
+
+### Répondre avec OneUptime
+
+- **Run a runbook** : le runbook reçoit le dossier en entrée. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` et `ONEUPTIME_INPUT_HOST` sont l'adresse, l'utilisateur et l'hôte sur lesquels porte le dossier, vides lorsqu'il n'en concerne aucun. Un utilisateur ou un hôte protégé n'est jamais transmis.
+- **Preserve the evidence** : conserve les enregistrements de session au-delà de leur rétention et consigne les traces et les exceptions sur le dossier. Les journaux et les traces ne peuvent pas être conservés plus longtemps que le projet ne garde la télémétrie.
+- **Post a status page announcement** : publiée telle que vous l'avez écrite ; rien du dossier n'y est ajouté. Les abonnés ne sont prévenus que si **Notify Subscribers** est activé.
+- **Fix the code with AI** : nécessite OneUptime AI activé, un dépôt connecté via la GitHub App et un runner. Sans eux, l'étape est ignorée et indique ce qui manque.
 
 ### Confinement
 

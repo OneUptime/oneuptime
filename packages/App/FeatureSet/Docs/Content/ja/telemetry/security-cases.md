@@ -231,9 +231,11 @@ OneUptime は、ケースについて 3 つのことを人に知らせます。�
 | ケース | Add labels | ケースにラベルを付ける |
 | 調査 | Check entities against threat intel | 各エンティティを脅威インテリジェンスで調べ、一致したら優先度を上げることもできる |
 | 調査 | Look up entity activity | 各エンティティの直近の期間のセキュリティイベントを数え、ケースにメモとして残す |
+| 調査 | Preserve the evidence | ケースの背後にあるリクエストのセッションリプレイを保持し、そのトレースと例外をケースに記録する |
 | 通知 | Email people | ケースの概要を、ケースへのリンク付きでユーザーとチームにメールで送る |
 | 通知 | Post to Slack | ケースの概要を Slack チャンネルに投稿する |
 | 通知 | Post to Microsoft Teams | ケースの概要を Microsoft Teams のチャンネルに投稿する |
+| 通知 | Post a status page announcement | あなたが書いたお知らせを、選んだステータスページに掲載する |
 | エスカレーション | Page on-call | オンコールポリシーを実行する |
 | エスカレーション | インシデントを宣言 | ケースにリンクされた OneUptime のインシデントを開く |
 | 封じ込め | Suspend the user in Okta | ケースが対象とするユーザーを Okta で一時停止する |
@@ -245,12 +247,21 @@ OneUptime は、ケースについて 3 つのことを人に知らせます。�
 | 封じ込め | Release the device in Microsoft Defender | ケースが対象とするホストを Microsoft Defender for Endpoint の隔離から解放する |
 | 自動化 | Send a webhook | ケースを JSON として URL に POST する |
 | 自動化 | Run a workflow | ケースを入力として OneUptime のワークフローを開始する |
+| 自動化 | Run a runbook | ケースを入力として、OneUptime のランブックのひとつを開始する |
+| 自動化 | Fix the code with AI | ケースのリクエストが発生させた例外を修正するプルリクエストを OneUptime AI に依頼する |
 
 プレイブックのステップは最大 25 個です。ステップは順番に、前のステップが終わるたびにひとつずつ実行されます。どのステップにも、次の設定ができます。
 
-- **承認が必要**: 誰かがケース上で承認するまで、そのステップの前で実行を止めます。誰かを締め出す 4 つのステップでは、Security Admin がオフにしない限り、常にオンです。
+- **承認が必要**: 誰かがケース上で承認するまで、そのステップの前で実行を止めます。誰かを締め出す 4 つのステップでは、Security Admin がオフにしない限り、常にオンです。**Run a runbook** と **Post a status page announcement** は、承認がオンの状態で始まります。前者はシステム上でコマンドを実行し、後者はお客様に向けて発信するためです。ステップを追加した人がオフにできます。
 - **脅威インテリジェンスに一致した場合のみ**: 同じ実行の前の **エンティティを脅威インテリジェンスと照合** ステップが既知のインジケーターを見つけていない限り、そのステップをスキップします。
 - **失敗しても続行**: このステップが失敗しても次のステップを実行します。オフの場合、失敗したステップで実行が止まります。
+
+### OneUptime による対応
+
+- **Run a runbook**: ランブックはケースを入力として受け取ります。`ONEUPTIME_INPUT_IP`、`ONEUPTIME_INPUT_USER`、`ONEUPTIME_INPUT_HOST` は、ケースが対象とするアドレス、ユーザー、ホストで、対象がない場合は空です。保護されたユーザーやホストが渡されることはありません。
+- **Preserve the evidence**: セッションリプレイを保持期間を超えて保持し、トレースと例外をケースに記録します。ログとトレースは、プロジェクトがテレメトリを保持する期間より長くは保持できません。
+- **Post a status page announcement**: 書いたとおりに掲載され、ケースの内容は追加されません。購読者には **Notify Subscribers** がオンのときだけ通知されます。
+- **Fix the code with AI**: OneUptime AI がオンであること、GitHub App で接続されたリポジトリ、ランナーが必要です。これらがない場合、ステップはスキップされ、何が足りないかを示します。
 
 ### 封じ込め
 

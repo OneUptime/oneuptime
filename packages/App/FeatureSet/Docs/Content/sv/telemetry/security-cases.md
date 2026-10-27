@@ -231,9 +231,11 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 | Ärende | Add labels | Märker ärendet med etiketter |
 | Utredning | Check entities against threat intel | Slår upp varje entitet i dina hotunderrättelser och kan höja prioriteten vid en träff |
 | Utredning | Look up entity activity | Räknar varje entitets säkerhetshändelser under ett fönster bakåt i tiden och antecknar resultatet i ärendet |
+| Utredning | Preserve the evidence | Behåller sessionsinspelningarna av förfrågningarna bakom ärendet och antecknar deras spår och undantag i ärendet |
 | Avisering | Email people | Mejlar användare och team en sammanfattning av ärendet, med en länk till det |
 | Avisering | Post to Slack | Postar en sammanfattning av ärendet i en Slack-kanal |
 | Avisering | Post to Microsoft Teams | Postar en sammanfattning av ärendet i en Microsoft Teams-kanal |
+| Avisering | Post a status page announcement | Publicerar ett meddelande du har skrivit på de statussidor du väljer |
 | Eskalering | Page on-call | Kör en jourpolicy |
 | Eskalering | Declare an incident | Öppnar en OneUptime-incident som är länkad till ärendet |
 | Begränsning | Suspend the user in Okta | Stänger av användaren som ärendet handlar om i Okta |
@@ -245,12 +247,21 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 | Begränsning | Release the device in Microsoft Defender | Frigör värden som ärendet handlar om från isoleringen i Microsoft Defender for Endpoint |
 | Automatisering | Send a webhook | Postar ärendet som JSON till en URL |
 | Automatisering | Run a workflow | Startar ett OneUptime-arbetsflöde med ärendet som indata |
+| Automatisering | Run a runbook | Startar en av dina OneUptime-runbooks med ärendet som indata |
+| Automatisering | Fix the code with AI | Ber OneUptime AI om en pull request som åtgärdar undantagen som ärendets förfrågningar orsakade |
 
 En playbook har högst 25 steg. De körs i ordning, vart och ett när det föregående är klart. Varje steg har också de här inställningarna:
 
-- **Kräver godkännande**: stoppar körningen före steget tills någon godkänner det i ärendet. För de fyra stegen som stänger ute någon är den alltid påslagen, om inte en Security Admin slår av den.
+- **Kräver godkännande**: stoppar körningen före steget tills någon godkänner det i ärendet. För de fyra stegen som stänger ute någon är den alltid påslagen, om inte en Security Admin slår av den. **Run a runbook** och **Post a status page announcement** börjar med godkännande påslaget, eftersom det ena kör kommandon på era system och det andra vänder sig till era kunder; den som lägger till steget kan slå av det.
 - **Bara vid träff i hotinformation**: hoppar över steget om inte ett tidigare steg **Kontrollera entiteter mot hotinformation** i körningen hittade en känd indikator.
 - **Fortsätt om det misslyckas**: kör nästa steg även om det här misslyckas. Är den avstängd stoppar ett misslyckat steg körningen.
+
+### Agera genom OneUptime
+
+- **Run a runbook**: runbooken får ärendet som indata. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` och `ONEUPTIME_INPUT_HOST` är adressen, användaren och värden som ärendet gäller, och tomma när det inte gäller någon. En skyddad användare eller värd skickas aldrig med.
+- **Preserve the evidence**: behåller sessionsinspelningar längre än deras lagringstid och antecknar spår och undantag i ärendet. Loggar och spår kan inte sparas längre än projektet sparar telemetri.
+- **Post a status page announcement**: publiceras som du skrev det; inget från ärendet läggs till. Prenumeranter meddelas bara när **Notify Subscribers** är påslaget.
+- **Fix the code with AI**: kräver att OneUptime AI är påslaget, ett repository som är anslutet via GitHub-appen och en runner. Utan dem hoppas steget över och säger vad som saknas.
 
 ### Begränsning
 

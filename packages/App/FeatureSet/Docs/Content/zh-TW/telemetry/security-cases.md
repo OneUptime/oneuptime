@@ -231,9 +231,11 @@ OneUptime 會就案件上的三件事通知相關人員。不需要任何人做�
 | 案件 | Add labels | 為案件加上標籤 |
 | 調查 | Check entities against threat intel | 在你的威脅情資中查詢每個實體，符合時可以提高優先順序 |
 | 調查 | Look up entity activity | 統計每個實體在最近一段時間內的安全性事件，並記錄在案件上 |
+| 調查 | Preserve the evidence | 保留案件背後請求的工作階段重播，並把它們的追蹤與例外記錄在案件上 |
 | 通知 | Email people | 以電子郵件傳送案件摘要及其連結給使用者和團隊 |
 | 通知 | Post to Slack | 把案件摘要張貼到某個 Slack 頻道 |
 | 通知 | Post to Microsoft Teams | 把案件摘要張貼到某個 Microsoft Teams 頻道 |
+| 通知 | Post a status page announcement | 把你撰寫的公告發布到你選擇的狀態頁 |
 | 呈報 | Page on-call | 執行一個待命策略 |
 | 呈報 | Declare an incident | 開啟一個與案件連結的 OneUptime 事件 |
 | 圍堵 | Suspend the user in Okta | 在 Okta 中暫停案件涉及的使用者 |
@@ -245,12 +247,21 @@ OneUptime 會就案件上的三件事通知相關人員。不需要任何人做�
 | 圍堵 | Release the device in Microsoft Defender | 在 Microsoft Defender for Endpoint 中將案件涉及的主機解除隔離 |
 | 自動化 | Send a webhook | 把案件以 JSON 格式 POST 到某個 URL |
 | 自動化 | Run a workflow | 以案件作為輸入，啟動一個 OneUptime 工作流程 |
+| 自動化 | Run a runbook | 以案件作為輸入，啟動你的某個 OneUptime 執行手冊 |
+| 自動化 | Fix the code with AI | 請 OneUptime AI 提交一個提取要求，修正案件的請求所引發的例外 |
 
 一個劇本最多有 25 個步驟。它們會依序執行，每個步驟在前一個完成後才開始。每個步驟還可以設定：
 
-- **需要核准**：在執行到此步驟之前暫停，直到有人在案件上核准它。切斷某人存取的四個步驟一律如此，除非 Security Admin 將其關閉。
+- **需要核准**：在執行到此步驟之前暫停，直到有人在案件上核准它。切斷某人存取的四個步驟一律如此，除非 Security Admin 將其關閉。**Run a runbook** 與 **Post a status page announcement** 預設開啟核准，因為前者會在你的系統上執行命令，後者會向你的客戶發布內容；新增該步驟的人可以將其關閉。
 - **僅在威脅情報符合時**：除非本次執行中先前的 **用威脅情報檢查實體** 步驟找到了已知指標，否則略過此步驟。
 - **失敗時繼續**：即使此步驟失敗，也繼續執行下一個步驟。關閉此項時，失敗的步驟會停止本次執行。
+
+### 透過 OneUptime 回應
+
+- **Run a runbook**：執行手冊以案件作為輸入。`ONEUPTIME_INPUT_IP`、`ONEUPTIME_INPUT_USER` 與 `ONEUPTIME_INPUT_HOST` 是案件所涉及的位址、使用者與主機，案件不涉及其中任何一個時為空。受保護的使用者或主機絕不會被傳入。
+- **Preserve the evidence**：在工作階段重播的保留期之後繼續保留它們，並把追蹤與例外記錄在案件上。記錄與追蹤的保存時間不能超過專案保留遙測資料的時間。
+- **Post a status page announcement**：依你撰寫的原樣發布，不會加入案件中的任何內容。只有開啟 **Notify Subscribers** 時才會通知訂閱者。
+- **Fix the code with AI**：需要開啟 OneUptime AI、一個透過 GitHub App 連接的程式碼存放庫以及一個執行器。缺少這些時，該步驟會被略過並說明缺少什麼。
 
 ### 圍堵
 
