@@ -7,6 +7,7 @@ import ActionButtonSchema, {
 } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ActionMenuGroup } from "Common/UI/Components/ActionButton/ActionMenuGroup";
 import {
+  BULK_ACTION_CONCURRENCY,
   BULK_ITEM_CHANGED,
   BulkItemOutcome,
   bulkItemUnchanged,
@@ -259,6 +260,8 @@ export const getExceptionBulkActions: () => Array<
         ): Promise<void> => {
           await runBulkAction<TelemetryException>({
             actionProps: actionProps,
+            // Each exception's switch is its own: several at once.
+            concurrency: BULK_ACTION_CONCURRENCY,
             step: async (
               exception: TelemetryException,
             ): Promise<BulkItemOutcome> => {

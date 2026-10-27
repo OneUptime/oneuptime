@@ -149,6 +149,13 @@ const LEDGER: Record<string, Array<Choice>> = {
         why: "Change State: several incidents, alerts and episodes at once, one scheduled maintenance event at a time (EventStateKinds, pinned by EventStateBulkMoves).",
       },
     ],
+  "packages/App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionRowActions.ts":
+    [
+      {
+        expression: SEVERAL,
+        why: "Resolve, Reopen, Archive and Unarchive on exceptions: each turns one switch on its own exception, and nothing the exceptions share is checked or recomputed.",
+      },
+    ],
   "packages/App/FeatureSet/Dashboard/src/Components/Monitor/BulkMonitorProbeChange.ts":
     [
       {
