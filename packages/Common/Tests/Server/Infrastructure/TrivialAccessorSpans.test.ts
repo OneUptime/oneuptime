@@ -21,9 +21,18 @@ import Database from "../../../Server/Infrastructure/PostgresDatabase";
 import Queue, { QueueName } from "../../../Server/Infrastructure/Queue";
 import Redis from "../../../Server/Infrastructure/Redis";
 import IO from "../../../Server/Infrastructure/SocketIO";
+import AnalyticsQueryHelper from "../../../Server/Types/AnalyticsDatabase/QueryHelper";
+import PermissionUtil from "../../../Server/Types/Database/Permissions/PermissionsUtil";
+import Query from "../../../Server/Types/Database/Query";
+import QueryHelper from "../../../Server/Types/Database/QueryHelper";
+import QueryUtil from "../../../Server/Types/Database/QueryUtil";
+import Select from "../../../Server/Types/Database/Select";
+import SelectUtil from "../../../Server/Types/Database/SelectUtil";
 import GracefulShutdown from "../../../Server/Utils/GracefulShutdown";
+import CompareCriteria from "../../../Server/Utils/Monitor/Criteria/CompareCriteria";
 import Realtime from "../../../Server/Utils/Realtime";
 import Telemetry from "../../../Server/Utils/Telemetry";
+import Project from "../../../Models/DatabaseModels/Project";
 
 /*
  * ACCESSORS ARE NOT TRACED.
@@ -34,7 +43,11 @@ import Telemetry from "../../../Server/Utils/Telemetry";
  * command and every query, each wrapped in a span by @CaptureSpan. They cost
  * microseconds and said nothing, and they made up half of every trace's
  * volume. The datastore calls themselves now get CLIENT spans
- * (DatabaseClientSpan).
+ * (DatabaseClientSpan). The in-memory helpers every query runs (QueryHelper,
+ * SelectUtil, QueryUtil.serializeQuery,
+ * PermissionUtil.addTenantScopeToQueryAsRoot) and CompareCriteria's
+ * comparisons get no span either: across 3,669 telemetry job traces, 97-100%
+ * of their spans were under 50 µs.
  *
  * Each accessor is called here the way production calls it, with spans
  * exported, inside a request's span: the request's span is the only one.
@@ -155,6 +168,34 @@ describe("Accessors get no span of their own", () => {
         "/worker/inspect/queue/:dashboardSecret",
       );
     });
+
+    expect(spanNames()).toEqual(["request"]);
+  });
+
+  test("the in-memory helpers every query and every monitor check runs", async () => {
+    // From the same trace: a span each, 105 times per helper, all under 50 µs.
+    await trace
+      .getTracer("test")
+      .startActiveSpan("request", async (span: Span): Promise<void> => {
+        try {
+          QueryHelper.equalTo("value");
+          QueryHelper.any(["a", "b"]);
+          AnalyticsQueryHelper.any(["a"]);
+          SelectUtil.sanitizeSelect(Project, {
+            name: true,
+          } as Select<Project>);
+          QueryUtil.serializeQuery(Project, { name: "x" } as Query<Project>);
+          await PermissionUtil.addTenantScopeToQueryAsRoot(
+            Project,
+            {} as Query<Project>,
+            {},
+          );
+          expect(CompareCriteria.convertToNumber("42")).toBe(42);
+          expect(CompareCriteria.isTrue({ value: true })).toBe(true);
+        } finally {
+          span.end();
+        }
+      });
 
     expect(spanNames()).toEqual(["request"]);
   });

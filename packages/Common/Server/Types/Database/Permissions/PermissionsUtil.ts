@@ -1,10 +1,9 @@
 import Query from "../Query";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 
+// No @CaptureSpan: an in-memory rewrite run before every read, in microseconds.
 export default class PermissionUtil {
-  @CaptureSpan()
   public static async addTenantScopeToQueryAsRoot<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
     query: Query<TBaseModel>,
