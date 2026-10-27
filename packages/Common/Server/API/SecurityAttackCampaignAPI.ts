@@ -106,8 +106,10 @@ export default class SecurityAttackCampaignAPI {
             req.body && typeof req.body === "object"
               ? (req.body as JSONObject)
               : {};
-          const range: { startTime: Date; endTime: Date } =
-            readCampaignWindow(body, OneUptimeDate.getCurrentDate());
+          const range: { startTime: Date; endTime: Date } = readCampaignWindow(
+            body,
+            OneUptimeDate.getCurrentDate(),
+          );
 
           const campaigns: Array<SecurityAttackCampaign> =
             await SecurityEventService.findAttackCampaigns({

@@ -18,17 +18,16 @@ import {
 } from "../../Types/SecurityCase/SecurityConnection";
 import { SECURITY_FINDINGS_CATEGORY_UID } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import { SECURITY_EVENT_RECORD_COLUMNS } from "../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
-import SecurityEventRequestOutcome from "../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import SecurityEventRequestOutcome, {
+  SECURITY_REQUEST_ATTRIBUTES,
+} from "../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import {
   HTTP_ACTIVITY_CLASS_UID,
   SECURITY_ATTACK_CAMPAIGNS_MAX,
   SecurityAttackCampaign,
   readSecurityAttackCampaign,
 } from "../../Types/SecurityEvent/SecurityAttackCampaign";
-import {
-  WEB_ATTACK_KIND_ATTRIBUTE,
-} from "../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
-import { SECURITY_REQUEST_ATTRIBUTES } from "../../Types/SecurityEvent/SecurityEventRequestOutcome";
+import { WEB_ATTACK_KIND_ATTRIBUTE } from "../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 
 export interface DetectionMatchGroup {
   groupValue: string;

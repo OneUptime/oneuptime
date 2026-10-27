@@ -228,7 +228,9 @@ describe("What happened next", () => {
 describe("Where it came from", () => {
   test("shows the log line, the service that wrote it, and every way to the request", async () => {
     jest.spyOn(AnalyticsModelAPI, "getList").mockResolvedValue({
-      data: [Object.assign(new SecurityEvent(), { body: "GET /x?id=1' or 1=1" })],
+      data: [
+        Object.assign(new SecurityEvent(), { body: "GET /x?id=1' or 1=1" }),
+      ],
       count: 1,
       skip: 0,
       limit: 1,
@@ -264,15 +266,17 @@ describe("Where it came from", () => {
     const section: HTMLElement = screen.getByTestId(WHERE_IT_CAME_FROM_TEST_ID);
 
     await waitFor(() => {
-      expect(screen.getByTestId(SECURITY_EVENT_LOG_LINE_TEST_ID)).toHaveTextContent(
-        "GET /x?id=1' or 1=1",
-      );
+      expect(
+        screen.getByTestId(SECURITY_EVENT_LOG_LINE_TEST_ID),
+      ).toHaveTextContent("GET /x?id=1' or 1=1");
     });
     await waitFor(() => {
       expect(section).toHaveTextContent("From a log line written by api");
     });
     await waitFor(() => {
-      expect(screen.getByTestId("security-event-watch-session")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("security-event-watch-session"),
+      ).toBeInTheDocument();
     });
 
     expect(screen.getByTestId("security-event-view-trace")).toHaveTextContent(
@@ -285,7 +289,9 @@ describe("Where it came from", () => {
       "Logs of this request",
     );
     // The line names its trace, so there is nothing to explain.
-    expect(section).not.toHaveTextContent("wasn't written inside a traced request");
+    expect(section).not.toHaveTextContent(
+      "wasn't written inside a traced request",
+    );
   });
 
   test("a line written outside any request says why it cannot be followed", async () => {
@@ -323,7 +329,9 @@ describe("Where it came from", () => {
     jest
       .spyOn(AnalyticsModelAPI, "getList")
       .mockRejectedValue({ statusCode: 403 } as never);
-    jest.spyOn(ModelAPI, "getItem").mockRejectedValue(new Error("403") as never);
+    jest
+      .spyOn(ModelAPI, "getItem")
+      .mockRejectedValue(new Error("403") as never);
 
     const fromLog: SecurityEvent = logEvent({ traceId: TRACE_ID });
 
@@ -364,24 +372,24 @@ describe("the security events a request is part of", () => {
       AnalyticsModelAPI,
       "getList",
     ).mockResolvedValue({
-        data: [
-          event({
-            severityName: OcsfSeverity.Low,
-            severityId: 2,
-            message: "SQL injection attempt: GET /a → 404",
-            requestOutcome: SecurityEventRequestOutcome.Rejected,
-          }),
-          event({
-            severityName: OcsfSeverity.Critical,
-            severityId: 5,
-            message: "SQL injection attempt: GET /b → 200",
-            requestOutcome: SecurityEventRequestOutcome.ReachedDatabase,
-          }),
-        ],
-        count: 2,
-        skip: 0,
-        limit: 50,
-      } as never);
+      data: [
+        event({
+          severityName: OcsfSeverity.Low,
+          severityId: 2,
+          message: "SQL injection attempt: GET /a → 404",
+          requestOutcome: SecurityEventRequestOutcome.Rejected,
+        }),
+        event({
+          severityName: OcsfSeverity.Critical,
+          severityId: 5,
+          message: "SQL injection attempt: GET /b → 200",
+          requestOutcome: SecurityEventRequestOutcome.ReachedDatabase,
+        }),
+      ],
+      count: 2,
+      skip: 0,
+      limit: 50,
+    } as never);
 
     render(inRouter(<SecurityEventsInSignal scope={{ traceId: TRACE_ID }} />));
 

@@ -71,7 +71,9 @@ describe("SecurityEventService.findAttackCampaigns", () => {
     const statement: Statement = statementOf(spy);
     const query: string = statement.query.replace(/\s+/g, " ");
 
-    expect(query).toContain("SELECT principalIp AS sourceIp, count() AS requestCount");
+    expect(query).toContain(
+      "SELECT principalIp AS sourceIp, count() AS requestCount",
+    );
     expect(query).toContain("FROM oneuptime.SecurityEventItemV1");
     expect(query).toContain("GROUP BY sourceIp");
     expect(query).toContain(
