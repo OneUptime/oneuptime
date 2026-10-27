@@ -657,6 +657,15 @@ jobs:
           # group 12 on 2026-10-26, when this group ran past its run step's 28
           # minutes with every suite passing; Kubernetes Events and Topology
           # (2.8 minutes each) came from group 5: about 20.
+          # Dashboard Playlists (3.1 minutes locally with its bundle, Chromium
+          # only: Dashboards > Playlists, a playlist's page and the player that
+          # rotates its dashboards on a screen - each for its time on a clock
+          # the test holds, the next one drawn ahead, Pause, Next and Previous
+          # by button and key, skipped dashboards, Create, Edit and Delete, a
+          # Viewer - at 1280 and 390 pixels, dark, German, Japanese and
+          # Persian) joined them on 2026-10-27, when this group's run step took
+          # 12.0 and 12.8 minutes on the two last runs that finished, the
+          # lightest of the twelve: about 17.5.
           - group: 9
             browsers: chromium
             suites: >-
@@ -668,6 +677,7 @@ jobs:
               test-archivable-values-ui
               test-kubernetes-events-ui
               test-topology-ui
+              test-dashboard-playlists-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
@@ -963,6 +973,8 @@ jobs:
             output/playwright/dashboard-value-widget-ui/test-results
             output/playwright/dashboard-table-thresholds-ui/*.png
             output/playwright/dashboard-table-thresholds-ui/test-results
+            output/playwright/dashboard-playlists-ui/*.png
+            output/playwright/dashboard-playlists-ui/test-results
             output/playwright/cloud-connect-ui/*.png
             output/playwright/cloud-connect-ui/test-results
             output/playwright/host-collectors-ui/*.png

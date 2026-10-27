@@ -18,9 +18,11 @@
  * Everything the pages ask for is recorded on
  * window.__dashboardPlaylistsFixture: each read of a dashboard (its id and
  * when, to see the next one is read ahead of its turn), each read of a
- * playlist, what was created, edited and deleted, and every read the fixture
- * does not model (unexpected - the suite fails on any). setPlaylist(key,
- * dashboardKeys) changes a playlist the way someone else's edit would.
+ * playlist, each metric read with the time range it asked for (to see each
+ * board opens on its own saved range), what was created, edited and
+ * deleted, and every read the fixture does not model (unexpected - the
+ * suite fails on any). setPlaylist(key, dashboardKeys) changes a playlist
+ * the way someone else's edit would.
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -84,6 +86,7 @@ const record = {
   dashboardReads: [],
   playlistReads: [],
   dashboardLists: [],
+  aggregates: [],
   creates: [],
   edits: [],
   deletes: [],
@@ -522,6 +525,8 @@ AnalyticsModelAPI.aggregate = async (options) => {
   const end = timestampOf(aggregateBy.endTimestamp);
   const metricName =
     (aggregateBy.query && aggregateBy.query.name) || "unknown.metric";
+
+  record.aggregates.push({ metricName, start, end, at: Date.now() });
 
   return {
     data: seriesFor({
