@@ -14,30 +14,31 @@ import { useEffect, useState } from "react";
  * the server refuses to register a device while push is off (UserPushAPI),
  * so all that is lost is the notice that says why.
  */
-export const usePushNotificationsTurnedOff: () => boolean | null =
-  (): boolean | null => {
-    // Null while the answer is on its way.
-    const [isTurnedOff, setIsTurnedOff] = useState<boolean | null>(null);
+export const usePushNotificationsTurnedOff: () => boolean | null = ():
+  | boolean
+  | null => {
+  // Null while the answer is on its way.
+  const [isTurnedOff, setIsTurnedOff] = useState<boolean | null>(null);
 
-    useEffect(() => {
-      let isMounted: boolean = true;
+  useEffect(() => {
+    let isMounted: boolean = true;
 
-      GlobalConfigUtil.fetchVars()
-        .then((vars: GlobalConfigVars) => {
-          if (isMounted) {
-            setIsTurnedOff(vars.disablePushNotifications === true);
-          }
-        })
-        .catch(() => {
-          if (isMounted) {
-            setIsTurnedOff(false);
-          }
-        });
+    GlobalConfigUtil.fetchVars()
+      .then((vars: GlobalConfigVars) => {
+        if (isMounted) {
+          setIsTurnedOff(vars.disablePushNotifications === true);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setIsTurnedOff(false);
+        }
+      });
 
-      return () => {
-        isMounted = false;
-      };
-    }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
-    return isTurnedOff;
-  };
+  return isTurnedOff;
+};

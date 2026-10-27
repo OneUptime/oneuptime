@@ -123,6 +123,9 @@ function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
     : "No message content found";
 }
 
+// How a sentence ends: a full stop, a question mark or an exclamation mark.
+const SENTENCE_END: RegExp = new RegExp("[.!?]$");
+
 /*
  * What a call says, for a gateway that makes it (CallAndSmsGatewayPayload):
  * its spoken sentences in order. The "press 1" a call asks for is left out -
@@ -141,7 +144,7 @@ export function getCallGatewayMessage(callRequest: CallRequest): string {
 
     // Each a sentence of its own, ended as one.
     const sentence: string = sayMessage.trim();
-    sentences.push(/[.!?]$/.test(sentence) ? sentence : `${sentence}.`);
+    sentences.push(SENTENCE_END.test(sentence) ? sentence : `${sentence}.`);
   }
 
   return sentences.join(" ");

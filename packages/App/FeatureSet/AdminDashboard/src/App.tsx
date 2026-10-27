@@ -292,9 +292,7 @@ const App: () => JSX.Element = () => {
         />
 
         <PageRoute
-          path={
-            RouteMap[PageMap.SETTINGS_PUSH_NOTIFICATIONS]?.toString() || ""
-          }
+          path={RouteMap[PageMap.SETTINGS_PUSH_NOTIFICATIONS]?.toString() || ""}
           element={<SettingsPushNotifications />}
         />
 

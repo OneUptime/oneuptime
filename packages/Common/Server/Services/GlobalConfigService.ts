@@ -683,7 +683,8 @@ export class Service extends DatabaseService<Model> {
 
     for (const row of rows) {
       const provider: unknown =
-        data.callAndSmsProvider !== undefined && data.callAndSmsProvider !== null
+        data.callAndSmsProvider !== undefined &&
+        data.callAndSmsProvider !== null
           ? data.callAndSmsProvider
           : row.callAndSmsProvider;
 
@@ -704,7 +705,8 @@ export class Service extends DatabaseService<Model> {
       }
 
       if (url && !secret) {
-        data.callAndSmsGatewaySecret = Service.generateCallAndSmsGatewaySecret();
+        data.callAndSmsGatewaySecret =
+          Service.generateCallAndSmsGatewaySecret();
       }
     }
   }

@@ -4111,7 +4111,8 @@ export class Service extends ProjectReferencesService<Model> {
     let isPushTurnedOff: boolean = false;
 
     try {
-      isPushTurnedOff = await GlobalConfigService.getPushNotificationsTurnedOff();
+      isPushTurnedOff =
+        await GlobalConfigService.getPushNotificationsTurnedOff();
     } catch (err) {
       logger.error(err);
     }
