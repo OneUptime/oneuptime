@@ -64,7 +64,9 @@ export class Service extends DatabaseService<OpenSourceDeployment> {
    * record.
    */
   public async recordInstance(deployment: OpenSourceDeployment): Promise<void> {
-    deployment.lastSeenAt = OneUptimeDate.getCurrentDate();
+    const lastSeenAt: Date = OneUptimeDate.getCurrentDate();
+
+    deployment.lastSeenAt = lastSeenAt;
 
     const existing: OpenSourceDeployment | null = await this.findOneBy({
       query: {
@@ -93,7 +95,7 @@ export class Service extends DatabaseService<OpenSourceDeployment> {
 
     const data: PartialEntity<OpenSourceDeployment> = {
       oneuptimeVersion: deployment.oneuptimeVersion!,
-      lastSeenAt: deployment.lastSeenAt,
+      lastSeenAt: lastSeenAt,
     };
 
     if (deployment.email) {
