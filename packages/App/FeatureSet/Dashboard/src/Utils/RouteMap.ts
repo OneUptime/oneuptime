@@ -972,6 +972,9 @@ export const DashboardsRoutePath: Dictionary<string> = {
   [PageMap.DASHBOARDS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.DASHBOARDS_SETTINGS_DATA_SOURCES]: "settings/data-sources",
   [PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW]: `settings/data-sources/${RouteParams.ModelID}`,
+  [PageMap.DASHBOARD_PLAYLISTS]: "playlists",
+  [PageMap.DASHBOARD_PLAYLIST_VIEW]: `playlists/${RouteParams.ModelID}`,
+  [PageMap.DASHBOARD_PLAYLIST_PLAY]: `playlists/${RouteParams.ModelID}/play`,
 };
 
 export const StatusPagesRoutePath: Dictionary<string> = {
@@ -6168,6 +6171,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/dashboards/${
       DashboardsRoutePath[PageMap.DASHBOARDS_SETTINGS_DATA_SOURCE_VIEW]
+    }`,
+  ),
+
+  [PageMap.DASHBOARD_PLAYLISTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_PLAYLISTS]
+    }`,
+  ),
+
+  [PageMap.DASHBOARD_PLAYLIST_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_PLAYLIST_VIEW]
+    }`,
+  ),
+
+  [PageMap.DASHBOARD_PLAYLIST_PLAY]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/dashboards/${
+      DashboardsRoutePath[PageMap.DASHBOARD_PLAYLIST_PLAY]
     }`,
   ),
 

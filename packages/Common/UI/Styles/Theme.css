@@ -1867,6 +1867,34 @@ html.dark [data-page-anchor-focused]:focus-visible {
 }
 
 /*
+ * A dashboard playlist's turn (Dashboard: Components/Dashboard/Playlist):
+ * the line under the player's bar fills from the start side while a
+ * dashboard is on screen, and is full when the next one comes. The player
+ * sets how long it takes (animation-duration, the playlist's interval), how
+ * much of the turn had passed when the line was drawn (a negative
+ * animation-delay) and whether it moves (animation-play-state: paused while
+ * the playlist is). An animation, so it moves without the page drawing
+ * anything every second; it grows in width, so a page read right to left
+ * fills it from the right.
+ */
+@keyframes ou-playlist-turn {
+  from {
+    width: 0%;
+  }
+
+  to {
+    width: 100%;
+  }
+}
+
+.ou-playlist-turn-progress {
+  animation-name: ou-playlist-turn;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+  animation-iteration-count: 1;
+}
+
+/*
  * A spinner's arc, and any top border drawn in a colour of its own
  * (border-t-*), over a border colour the rules above re-colour: their
  * border-color paints all four sides, so the arc took the track's colour,
