@@ -94,6 +94,80 @@ describe("Email", () => {
     });
   });
 
+  describe("isOnReservedDomain", () => {
+    test("should return true on the names RFC 2606 reserves, and any name under them", () => {
+      const reserved: Array<string> = [
+        "user@example.com",
+        "user@example.net",
+        "user@example.org",
+        "user@mcp.example.com",
+        "user@example.test",
+        "user@acme.test",
+        "user@oneuptime-e2e.invalid",
+        "user@acme-commerce.example",
+        "user@app.localhost",
+        "user@test",
+        "user@invalid",
+      ];
+
+      for (const value of reserved) {
+        expect({ value, reserved: Email.isOnReservedDomain(value) }).toEqual({
+          value,
+          reserved: true,
+        });
+      }
+    });
+
+    test("should ignore case and surrounding spaces", () => {
+      expect(Email.isOnReservedDomain("  User@EXAMPLE.COM  ")).toBe(true);
+      expect(Email.isOnReservedDomain("user@Acme.Invalid")).toBe(true);
+    });
+
+    test("should read the domain after the last @", () => {
+      expect(Email.isOnReservedDomain('"a@acme.io"@example.com')).toBe(true);
+      expect(Email.isOnReservedDomain('"a@example.com"@acme.io')).toBe(false);
+    });
+
+    test("should return false for names that only look reserved", () => {
+      const notReserved: Array<string> = [
+        "user@acme.io",
+        "user@gmail.com",
+        "user@myexample.com",
+        "user@example.com.au",
+        "user@example.co",
+        "user@examples.org",
+        "user@latest.io",
+        "user@contest.dev",
+        "user@invalid.io",
+        "user@test.com",
+        "user@localhost.io",
+        "user@corp.local",
+        "user@company.internal",
+      ];
+
+      for (const value of notReserved) {
+        expect({ value, reserved: Email.isOnReservedDomain(value) }).toEqual({
+          value,
+          reserved: false,
+        });
+      }
+    });
+
+    test("should return false for a value that is not an address", () => {
+      expect(Email.isOnReservedDomain("")).toBe(false);
+      expect(Email.isOnReservedDomain("example.com")).toBe(false);
+      expect(Email.isOnReservedDomain("user@")).toBe(false);
+      expect(Email.isOnReservedDomain(undefined as unknown as string)).toBe(
+        false,
+      );
+      expect(
+        Email.isOnReservedDomain({
+          value: "user@example.com",
+        } as unknown as string),
+      ).toBe(false);
+    });
+  });
+
   describe("parseList", () => {
     test("should return an empty list for null, undefined and empty input", () => {
       expect(Email.parseList(null)).toEqual([]);

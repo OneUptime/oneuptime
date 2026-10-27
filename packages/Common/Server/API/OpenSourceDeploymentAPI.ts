@@ -1,4 +1,5 @@
 import OpenSourceDeployment from "../../Models/DatabaseModels/OpenSourceDeployment";
+import Email from "../../Types/Email";
 import { JSONObject } from "../../Types/JSON";
 import URL from "../../Types/API/URL";
 import API from "../../Utils/API";
@@ -44,6 +45,15 @@ export default class OpenSourceDeploymentAPI extends BaseAPI<
             deployment.instanceUrl === "http://localhost/" ||
             deployment.instanceUrl === "http://localhost"
           ) {
+            return Response.sendEmptySuccessResponse(req, res);
+          }
+
+          /*
+           * Skip sign-ups on names reserved for testing (example.com, .test,
+           * .invalid and the like): nobody has a mailbox there, so these are
+           * CI and end-to-end test runs, not installs.
+           */
+          if (Email.isOnReservedDomain(deployment.email)) {
             return Response.sendEmptySuccessResponse(req, res);
           }
 

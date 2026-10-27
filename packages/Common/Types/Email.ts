@@ -30,6 +30,22 @@ const nonBusinessEmailDomains: Array<string> = [
 ];
 
 /*
+ * The names RFC 2606 reserves for testing and documentation: the .test,
+ * .example, .invalid and .localhost top-level domains, and example.com,
+ * example.net and example.org. Nobody can register them, so no mailbox on
+ * them, or on any name under them, belongs to a person.
+ */
+const RESERVED_EMAIL_DOMAINS: Array<string> = [
+  "test",
+  "example",
+  "invalid",
+  "localhost",
+  "example.com",
+  "example.net",
+  "example.org",
+];
+
+/*
  * The longest address worth looking at. RFC 5321 fits a local part of up to
  * 64 characters and a domain of up to 253 into 254, so nothing longer is a
  * mailbox. The length is checked before any pattern runs, so the work of
@@ -257,6 +273,32 @@ export default class Email extends DatabaseProperty {
     }
 
     return true;
+  }
+
+  /*
+   * Whether a value is an address on one of the reserved names above: a
+   * test's or an example's address, never a person's. Reads any value, an
+   * address or not, and never throws.
+   */
+  public static isOnReservedDomain(value: string): boolean {
+    if (typeof value !== "string") {
+      return false;
+    }
+
+    const at: number = value.lastIndexOf("@");
+
+    if (at < 0) {
+      return false;
+    }
+
+    const domain: string = value
+      .slice(at + 1)
+      .trim()
+      .toLowerCase();
+
+    return RESERVED_EMAIL_DOMAINS.some((reserved: string): boolean => {
+      return domain === reserved || domain.endsWith(`.${reserved}`);
+    });
   }
 
   public static override toDatabase(
