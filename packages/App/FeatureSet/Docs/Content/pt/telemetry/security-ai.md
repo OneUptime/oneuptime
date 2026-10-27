@@ -104,7 +104,7 @@ Para escrever um rascunho, é preciso uma função que possa criar regras de det
 
 ## Ask AI nas páginas de segurança
 
-O **Ask AI** sabe em qual página de segurança você está. Em um caso, ele lê o caso primeiro e oferece perguntas como **É real?**. Nas outras páginas de eventos de segurança, uma pergunta em palavras simples pesquisa os seus eventos de segurança. Ele também pode verificar valores contra a sua inteligência de ameaças, ver o quanto um usuário, um host ou um endereço esteve ativo, e listar os playbooks adequados a um caso.
+O **Pergunte à IA** sabe em qual página de segurança você está. Em um caso, ele lê o caso primeiro e oferece perguntas como **É real?**. Nas outras páginas de eventos de segurança, uma pergunta em palavras simples pesquisa os seus eventos de segurança. Ele também pode verificar valores contra a sua inteligência de ameaças, ver o quanto um usuário, um host ou um endereço esteve ativo, e listar os playbooks adequados a um caso.
 
 O Ask AI pode adicionar uma nota a um caso e executar um playbook nele, em seu nome, e pergunta antes de cada ação. Um playbook que ele executa aguarda aprovação como qualquer outro.
 

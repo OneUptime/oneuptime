@@ -122,10 +122,10 @@ To linjer går over toppen av hver side.
 | Hvor | Hva som er der |
 | --- | --- |
 | Øverst til venstre | Prosjektvelgeren: bytt til et annet av prosjektene dine, eller opprett et nytt. |
-| Øverst til høyre | **Søk** og **Ask AI**, varselklokken med det som trenger deg nå (aktive hendelser og varsler, vaktpolicyene du har vakt i, ventende invitasjoner), **Hjelp**, og bildet ditt, som åpner menyen for [kontoen](/docs/introduction/your-account) din. |
+| Øverst til høyre | **Søk** og **Spør AI**, varselklokken med det som trenger deg nå (aktive hendelser og varsler, vaktpolicyene du har vakt i, ventende invitasjoner), **Hjelp**, og bildet ditt, som åpner menyen for [kontoen](/docs/introduction/your-account) din. |
 | Under dem | **Hjem** og **Produkter** til venstre, **Brukerinnstillinger** til høyre: hvordan OneUptime når deg i dette prosjektet. |
 
-**Hjelp** åpner denne dokumentasjonen (**Dokumentasjon**) og listen **Keyboard shortcuts**, og tilbyr støtte på e-post og på Slack. På en smal skjerm, som en telefon, er **Søk**, **Ask AI** og **Hjelp** utelatt for å spare plass; klokken og bildet ditt blir værende.
+**Hjelp** åpner denne dokumentasjonen (**Dokumentasjon**) og listen **Keyboard shortcuts**, og tilbyr støtte på e-post og på Slack. På en smal skjerm, som en telefon, er **Søk**, **Spør AI** og **Hjelp** utelatt for å spare plass; klokken og bildet ditt blir værende.
 
 ## Søk etter en side, en innstilling eller en handling
 

@@ -3,7 +3,7 @@
 Ask AI is OneUptime's chat over your project's data. Ask it about logs, traces, metrics, exceptions, incidents, alerts, monitors, on-call, status pages, SLOs, runbooks or workflows: it queries your project live, answers with a citation on every claim, and, when you allow it, acts for you.
 
 :::cards
-- [Open Ask AI](#open-ask-ai): From the header, the keyboard, a chart or its own page.
+- [Open Ask AI](#open-ask-ai): From the header, the keyboard, a chart or the products menu.
 - [What it can see](#what-it-can-see): The data it reads to answer you.
 - [Actions and permission modes](#actions-and-permission-modes): Choose whether it may act, and when it asks first.
 - [Actions are made as you](#actions-are-made-as-you): Your permissions, your name on every change.
@@ -33,7 +33,9 @@ In **Read-only** mode the actions are never offered to the model, so the convers
 | Any page | Click **Ask AI** in the header, or press `Ctrl` + `I` (`Cmd` + `I` on a Mac). While you type in a text box or an editor, the keys stay the editor's italics shortcut. |
 | The command palette | Press `Ctrl` + `K` (`Cmd` + `K` on a Mac) and choose **Ask AI**. |
 | A log error pattern, or a chart's findings | Click **Explain with AI**: Ask AI opens with the evidence as a question you can edit before you send it. |
-| Its own page | Open **Products → AI → Chat** for a full-page workspace. Each conversation there has its own address, so you can bookmark a thread or paste it into an incident channel. |
+| The products menu | Open **Products → AI → Chat**. Ask AI opens over the page you were on. Each conversation has its own address, so you can bookmark it and come back to it. |
+
+Ask AI opens in the middle of the screen, over the page you were on, and on a phone it fills the screen. Press `Esc`, or click beside it, to go back to the page. The conversation stays where you left it: open Ask AI again to carry on. If you close it while it is still answering, a reminder in the corner says when the answer is ready, and opens it.
 
 On an incident or an alert, the **AI Investigation** card has a conversation of its own, **Ask OneUptime AI**, shared with everyone who can see that incident or alert: see [Talk to OneUptime AI about the incident](/docs/ai/ai-sre#talk-to-oneuptime-ai-about-the-incident).
 
@@ -52,7 +54,7 @@ Ask AI reads your project with your own permissions, so it sees what you may see
 
 ## Page context
 
-Ask AI knows which page you opened it from. On an incident page, "why did this happen?" means that incident, and the composer shows a chip with the page's subject; remove it to ask about the whole project instead. If you move to another page while the panel is open, the context follows you. The conversation also remembers its first subject on the server, so a follow-up days later still resolves "this incident".
+Ask AI knows which page you opened it from. On an incident page, "why did this happen?" means that incident: the composer shows a chip with the page's subject, and the questions it suggests are that page's own. Remove the chip to ask about the whole project instead, and add it back the same way. Open Ask AI on another page and the context follows you. The conversation also remembers its first subject on the server, so a follow-up days later still resolves "this incident".
 
 Infrastructure lists and resource pages offer questions for the kind of resource you are looking at. Open a Kubernetes cluster and ask "Which metrics changed over the last 24 hours?", or open a Docker host and ask "Summarize log severity and trace errors over the last six hours." Evidence links go back to the resource's page. Reads respect your project, resource and telemetry permissions, ownership and label restrictions included.
 
@@ -99,10 +101,12 @@ Every action Ask AI takes is made as you: it makes the change the dashboard make
 ## Steering a conversation
 
 - **Stop it.** While Ask AI is working, the send button turns into a stop button. Stop a run at any time and ask something else straight away.
-- **Pick the model.** The composer's provider picker lists your project's LLM providers and the global ones, with the default marked. A new conversation uses the default.
+- **Follow its work.** While it answers, one line says what it is doing now, such as searching logs. Click the number of steps beside it to see each step.
+- **Pick the model.** When your project can use more than one LLM provider, the composer's provider picker lists your project's LLM providers and the global ones, with the default marked. A new conversation uses the default.
 - **Rate an answer.** **Good answer** and **Poor answer** are stored with the message, so the quality of the answers can be measured over time.
-- **See the cost.** The newest answer's footer shows its cost, its tokens and how many queries it ran, and every query is a citation chip that opens the data behind it.
+- **See the cost.** Under each answer, its sources open into the queries it ran, and the newest answer's also say how many queries it ran, its tokens and its cost. Each citation chip in an answer opens the data behind it.
 - **Keep a copy.** **Download conversation** saves the thread with **Download as Markdown**, to read or paste into a ticket, or **Download as PDF**, to hand to someone.
+- **Pick up where you left off.** **All conversations**, in Ask AI's header, lists your conversations, newest first, to open again or delete. A new conversation's start shows the last three.
 
 ## Requirements
 
@@ -115,7 +119,7 @@ Ask AI counts toward the project's own daily AI limits when the project sets the
 ## Troubleshooting
 
 :::details Ask AI says AI is not available
-The panel says why before you type: the project's plan does not include AI, **Enable AI** is off, or the project has no LLM provider. Each notice links to the page that changes it.
+Ask AI says why before you type: the project's plan does not include AI, **Enable AI** is off, or the project has no LLM provider. Each notice links to the page that changes it.
 :::
 
 :::details An action was refused

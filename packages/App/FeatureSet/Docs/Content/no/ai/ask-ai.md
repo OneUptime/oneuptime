@@ -3,7 +3,7 @@
 Spør AI er OneUptimes chat over dataene i prosjektet ditt. Spør om logger, spor, målinger, unntak, hendelser, varsler, monitorer, vakttjeneste, statussider, SLO-er, runbooks eller arbeidsflyter: chatten spør prosjektet ditt direkte, underbygger hver påstand med en kilde og handler for deg når du tillater det.
 
 :::cards
-- [Åpne Spør AI](#åpne-spør-ai): Fra toppfeltet, tastaturet, et diagram eller en egen side.
+- [Åpne Spør AI](#åpne-spør-ai): Fra toppfeltet, tastaturet, et diagram eller produktmenyen.
 - [Hva den kan se](#hva-den-kan-se): Dataene den leser for å svare deg.
 - [Handlinger og tillatelsesmoduser](#handlinger-og-tillatelsesmoduser): Velg om den får handle, og når den spør først.
 - [Handlinger gjøres som deg](#handlinger-gjøres-som-deg): Dine tillatelser, ditt navn på hver endring.
@@ -15,7 +15,7 @@ Spør AI svarer bare med det verktøyene returnerer: den kjører spørringer mot
 
 ```mermaid title="Fra et spørsmål til et underbygget svar"
 flowchart TB
-    Q["Spørsmålet ditt,<br/>med siden du<br/>står på"] --> A["Ask AI"]
+    Q["Spørsmålet ditt,<br/>med siden du<br/>står på"] --> A["Spør AI"]
     A -->|"leseverktøy"| D["Prosjektets data,<br/>spurt direkte"]
     D --> R["Et svar med en<br/>kilde for hver<br/>påstand"]
     A -->|"en handling"| M{"Tillatelses-<br/>modusen"}
@@ -30,10 +30,12 @@ I modusen **Skrivebeskyttet** tilbys modellen aldri handlingene, så samtalen ba
 
 | Hvor | Hvordan |
 | --- | --- |
-| Hvilken som helst side | Klikk **Ask AI** i toppfeltet, eller trykk `Ctrl` + `I` (`Cmd` + `I` på en Mac). Mens du skriver i et tekstfelt eller en redigerer, forblir tastene redigererens snarvei for kursiv. |
-| Kommandopaletten | Trykk `Ctrl` + `K` (`Cmd` + `K` på en Mac), og velg **Ask AI**. |
+| Hvilken som helst side | Klikk **Spør AI** i toppfeltet, eller trykk `Ctrl` + `I` (`Cmd` + `I` på en Mac). Mens du skriver i et tekstfelt eller en redigerer, forblir tastene redigererens snarvei for kursiv. |
+| Kommandopaletten | Trykk `Ctrl` + `K` (`Cmd` + `K` på en Mac), og velg **Spør AI**. |
 | Et feilmønster i loggene, eller funnene i et diagram | Klikk **Explain with AI**: Spør AI åpnes med bevisene som et spørsmål du kan redigere før du sender det. |
-| En egen side | Åpne **Produkter → AI → Chat** for et arbeidsområde på hele siden. Hver samtale der har sin egen adresse, så du kan bokmerke en tråd eller lime den inn i kanalen til en hendelse. |
+| Produktmenyen | Åpne **Produkter → AI → Chat**. Spør AI åpnes over siden du var på. Hver samtale har sin egen adresse, så du kan bokmerke den og komme tilbake til den. |
+
+Spør AI åpnes midt på skjermen, over siden du var på, og på en telefon fyller den hele skjermen. Trykk `Esc`, eller klikk ved siden av, for å gå tilbake til siden. Samtalen blir der du forlot den: åpne Spør AI igjen for å fortsette. Lukker du den mens den fortsatt svarer, sier en påminnelse i hjørnet når svaret er klart, og åpner det.
 
 På en hendelse eller et varsel har kortet **AI Investigation** sin egen samtale, **Ask OneUptime AI**, som deles av alle som kan se hendelsen eller varselet: se [Snakk med OneUptime AI om hendelsen](/docs/ai/ai-sre#snakk-med-oneuptime-ai-om-hendelsen).
 
@@ -52,7 +54,7 @@ Spør AI leser prosjektet ditt med dine egne tillatelser, så den ser det du kan
 
 ## Sidekontekst
 
-Spør AI vet hvilken side du åpnet den fra. På en hendelsesside betyr "hvorfor skjedde dette?" akkurat den hendelsen, og skrivefeltet viser en brikke med sidens emne; fjern den for å spørre om hele prosjektet. Går du til en annen side mens panelet er åpent, følger konteksten med. Samtalen husker også sitt første emne på serveren, så et oppfølgingsspørsmål dager senere fortsatt forstår "denne hendelsen".
+Spør AI vet hvilken side du åpnet den fra. På en hendelsesside betyr "hvorfor skjedde dette?" akkurat den hendelsen: skrivefeltet viser en brikke med sidens emne, og spørsmålene den foreslår, er sidens egne. Fjern brikken for å spørre om hele prosjektet, og legg den til igjen på samme måte. Åpne Spør AI på en annen side, så følger konteksten med. Samtalen husker også sitt første emne på serveren, så et oppfølgingsspørsmål dager senere fortsatt forstår "denne hendelsen".
 
 Infrastrukturlister og ressurssider foreslår spørsmål for den typen ressurs du ser på. Åpne en Kubernetes-klynge og spør "Hvilke målinger har endret seg de siste 24 timene?", eller åpne en Docker-vert og spør "Oppsummer alvorlighet i loggene og sporfeil de siste seks timene." Bevislenker fører tilbake til ressursens side. Lesing respekterer tillatelsene dine for prosjekt, ressurser og telemetri, inkludert begrensninger på eierskap og etiketter.
 
@@ -72,8 +74,8 @@ Hver samtale har en tillatelsesmodus, som du velger i skrivefeltet, ved siden av
 
 | Modus | Hva som skjer |
 | --- | --- |
-| **Ask to act** | Standard. Spør AI foreslår hver handling på et godkjenningskort, og ingenting kjører før du velger **Allow** eller **Hopp over** for den, eller **Deny all**. |
-| **Auto-run** | Handlinger kjører så snart modellen ber om dem, fortsatt begrenset til det rollen din har lov til. Bruk den med omtanke. |
+| **Spør før handling** | Standard. Spør AI foreslår hver handling på et godkjenningskort, og ingenting kjører før du velger **Tillat** eller **Hopp over** for den, eller **Avvis alle**. |
+| **Kjør automatisk** | Handlinger kjører så snart modellen ber om dem, fortsatt begrenset til det rollen din har lov til. Bruk den med omtanke. |
 | **Skrivebeskyttet** | Handlingene tilbys ikke modellen i det hele tatt: Spør AI kan bare lese. |
 
 Hva Spør AI kan gjøre når en modus tillater det:
@@ -99,10 +101,12 @@ Hver handling Spør AI utfører, gjøres som deg: den gjør den samme endringen 
 ## Styr en samtale
 
 - **Stopp den.** Mens Spør AI arbeider, blir sendeknappen en stoppknapp. Stopp en kjøring når som helst, og spør om noe annet med en gang.
-- **Velg modellen.** Leverandørvelgeren i skrivefeltet viser prosjektets LLM-leverandører og de globale, med standarden merket. En ny samtale bruker standarden.
-- **Vurder et svar.** **Good answer** og **Poor answer** lagres sammen med meldingen, så kvaliteten på svarene kan måles over tid.
-- **Se kostnaden.** Bunnteksten under det nyeste svaret viser kostnaden, tokenene og hvor mange spørringer det kjørte, og hver spørring er en kildebrikke som åpner dataene bak.
-- **Behold en kopi.** **Download conversation** lagrer tråden med **Download as Markdown**, for å lese eller lime inn i en sak, eller **Download as PDF**, for å gi til noen.
+- **Følg arbeidet.** Mens den svarer, sier én linje hva den gjør nå, for eksempel søker i logger. Klikk på antallet trinn ved siden av for å se hvert trinn.
+- **Velg modellen.** Når prosjektet kan bruke mer enn én LLM-leverandør, viser leverandørvelgeren i skrivefeltet prosjektets LLM-leverandører og de globale, med standarden merket. En ny samtale bruker standarden.
+- **Vurder et svar.** **Godt svar** og **Dårlig svar** lagres sammen med meldingen, så kvaliteten på svarene kan måles over tid.
+- **Se kostnaden.** Under hvert svar åpner kildene seg i spørringene det kjørte, og kildene til det nyeste svaret sier også hvor mange spørringer det kjørte, tokenene og kostnaden. Hver kildebrikke i et svar åpner dataene bak.
+- **Behold en kopi.** **Last ned samtale** lagrer tråden med **Last ned som Markdown**, for å lese eller lime inn i en sak, eller **Last ned som PDF**, for å gi til noen.
+- **Fortsett der du slapp.** **Alle samtaler**, i toppfeltet til Spør AI, viser samtalene dine, nyeste først, så du kan åpne dem igjen eller slette dem. Starten på en ny samtale viser de tre siste.
 
 ## Krav
 
@@ -115,7 +119,7 @@ Spør AI teller med i prosjektets egne daglige AI-grenser når prosjektet setter
 ## Feilsøking
 
 :::details Spør AI sier at AI ikke er tilgjengelig
-Panelet sier hvorfor før du skriver: prosjektets abonnement omfatter ikke AI, **Aktiver AI** er slått av, eller prosjektet har ingen LLM-leverandør. Hver melding lenker til siden der det endres.
+Spør AI sier hvorfor før du skriver: prosjektets abonnement omfatter ikke AI, **Aktiver AI** er slått av, eller prosjektet har ingen LLM-leverandør. Hver melding lenker til siden der det endres.
 :::
 
 :::details En handling ble avvist

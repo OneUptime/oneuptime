@@ -187,7 +187,7 @@ Ogni modello termina con un passaggio **Log** che dice cosa è successo, quindi 
 - `❌` — una chiamata è fallita. Per una chiamata a Jira, la riga include la risposta di Jira.
 - `⚠️` — un modello che crea un record da un ticket Jira lo ha creato, ma Jira non ha accettato le etichette di collegamento, quindi gli altri modelli non possono ancora trovarlo. Aggiungi le etichette a mano.
 
-Un'esecuzione saltata termina comunque come **Executed**. I salti sono normali: la maggior parte degli eventi Jira non sono di quelli su cui agisce un dato modello. Vedi [Esecuzioni del workflow](/docs/workflows/runs-and-logs).
+Un'esecuzione saltata termina comunque come **Eseguito**. I salti sono normali: la maggior parte degli eventi Jira non sono di quelli su cui agisce un dato modello. Vedi [Esecuzioni del workflow](/docs/workflows/runs-and-logs).
 
 ## Come funzionano i modelli
 
