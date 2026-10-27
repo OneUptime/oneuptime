@@ -1631,9 +1631,7 @@ describe("KubernetesClusterAiAccessAPI and the Kubernetes AI agent", () => {
         );
 
         expect(fixFor(partly, OWN_FIX).rationale).toBeUndefined();
-        expect(fixFor(partly, RULE_FIX).rationale).toBe(
-          "Scale the node pool.",
-        );
+        expect(fixFor(partly, RULE_FIX).rationale).toBe("Scale the node pool.");
       });
 
       test("titles, numbers and rationales are only ever read under the caller's props", async () => {

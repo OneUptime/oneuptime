@@ -85,7 +85,8 @@ const OPEN_INCIDENT_ID: ObjectID = new ObjectID(
   "9e1d3c50-2a4b-4c6d-8e0f-1a2b3c4d5e04",
 );
 
-const INTERNAL_NOTE: string = "Root cause: the payroll database password leaked";
+const INTERNAL_NOTE: string =
+  "Root cause: the payroll database password leaked";
 const PUBLIC_NOTE: string = "We are looking into slow checkouts.";
 const CHANNEL_MESSAGE: string = "rotating the leaked payroll credentials now";
 const PRIVATE_INCIDENT_TITLE: string = "Payroll data exposure";
@@ -398,13 +399,11 @@ describe("an incident episode's AI postmortem", () => {
     jest
       .spyOn(IncidentEpisodeStateTimelineService, "findBy")
       .mockResolvedValue([]);
-    jest
-      .spyOn(IncidentEpisodeInternalNoteService, "findBy")
-      .mockImplementation(
-        readAs(IncidentEpisodeInternalNote, () => {
-          return [note(IncidentEpisodeInternalNote, INTERNAL_NOTE)];
-        }) as never,
-      );
+    jest.spyOn(IncidentEpisodeInternalNoteService, "findBy").mockImplementation(
+      readAs(IncidentEpisodeInternalNote, () => {
+        return [note(IncidentEpisodeInternalNote, INTERNAL_NOTE)];
+      }) as never,
+    );
     jest.spyOn(IncidentEpisodeMemberService, "findBy").mockResolvedValue([
       {
         createdAt: new Date("2026-10-27T09:00:00.000Z"),

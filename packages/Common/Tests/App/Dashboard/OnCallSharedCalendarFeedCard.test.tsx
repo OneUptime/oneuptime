@@ -545,7 +545,9 @@ describe("SharedCalendarFeedCard - publishing", () => {
   test("a reader who may not read every schedule is told why, and offered nothing", async () => {
     const reason: string =
       "You can see only some of this project's on-call schedules, so its calendar link, which shows every schedule, is not yours to use.";
-    getMock.mockResolvedValue(ok({ ...UNPUBLISHED_JSON, refusedReason: reason }));
+    getMock.mockResolvedValue(
+      ok({ ...UNPUBLISHED_JSON, refusedReason: reason }),
+    );
 
     render(
       <SharedCalendarFeedCard

@@ -198,10 +198,7 @@ describe("the sources a reader may read", () => {
   }
 
   const READS: Array<
-    [
-      string,
-      (filter?: TelemetryServiceFilter | undefined) => Promise<unknown>,
-    ]
+    [string, (filter?: TelemetryServiceFilter | undefined) => Promise<unknown>]
   > = [
     [
       "findObservableActivity",

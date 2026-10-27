@@ -67,7 +67,6 @@ import {
 } from "../../../Server/Utils/Express";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
-import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
@@ -141,19 +140,21 @@ function stubScopeLookups(): void {
           : ([] as never),
       );
     jest.spyOn(entry.ownerTeamService, "findBy").mockResolvedValue([] as never);
-    jest.spyOn(entry.modelService, "findBy").mockImplementation((async (request: {
-      query: Record<string, unknown>;
-    }) => {
-      const labelIds: Array<string> = (
-        (request.query["labels"] as Array<ObjectID>) || []
-      ).map((id: ObjectID): string => {
-        return id.toString();
-      });
+    jest
+      .spyOn(entry.modelService, "findBy")
+      .mockImplementation((async (request: {
+        query: Record<string, unknown>;
+      }) => {
+        const labelIds: Array<string> = (
+          (request.query["labels"] as Array<ObjectID>) || []
+        ).map((id: ObjectID): string => {
+          return id.toString();
+        });
 
-      return isService && labelIds.includes(LABEL_A.toString())
-        ? [{ _id: LABELLED_SOURCE.toString() }]
-        : [];
-    }) as never);
+        return isService && labelIds.includes(LABEL_A.toString())
+          ? [{ _id: LABELLED_SOURCE.toString() }]
+          : [];
+      }) as never);
   }
 }
 
@@ -265,9 +266,7 @@ describe.each(ROUTES)("POST /security-case/%s", (route: Route) => {
     expect(statement.query.split(" GROUP BY ")[0]).toContain(
       " AND primaryEntityId IN (",
     );
-    expect(boundSourceIds(statement)).toEqual(
-      sorted(OWNED_SOURCE, PROJECT_ID),
-    );
+    expect(boundSourceIds(statement)).toEqual(sorted(OWNED_SOURCE, PROJECT_ID));
   });
 
   test("a Security Viewer limited to label A reads the source carrying it, no other", async () => {

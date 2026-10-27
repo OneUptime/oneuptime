@@ -600,9 +600,11 @@ describe.each(GENERATE_ROUTES)(
 
       expect(stubs.contextBuild).toHaveBeenCalledTimes(1);
       expect(
-        (stubs.contextBuild.mock.calls[0]![0] as {
-          readerProps?: DatabaseCommonInteractionProps;
-        }).readerProps,
+        (
+          stubs.contextBuild.mock.calls[0]![0] as {
+            readerProps?: DatabaseCommonInteractionProps;
+          }
+        ).readerProps,
       ).toBe(caller);
     });
   },
