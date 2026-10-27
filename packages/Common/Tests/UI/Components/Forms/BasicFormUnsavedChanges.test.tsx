@@ -1,4 +1,6 @@
-import BasicForm from "../../../../UI/Components/Forms/BasicForm";
+import BasicForm, {
+  BasicFormHandle,
+} from "../../../../UI/Components/Forms/BasicForm";
 import Fields from "../../../../UI/Components/Forms/Types/Fields";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
@@ -156,5 +158,60 @@ describe("BasicForm and unsaved changes", () => {
     await userEvent.click(screen.getByRole("button", { name: "Close form" }));
 
     expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+  });
+
+  /*
+   * A pick from a dropdown or a picker fires no input event: BasicForm notes
+   * every edit of its values itself, so the form counts from the pick - and
+   * a field handing back the value it already had changed nothing.
+   */
+  describe("a value set without typing (a pick)", () => {
+    const PickHost: FunctionComponent<{
+      formRef: React.RefObject<BasicFormHandle>;
+    }> = (props: {
+      formRef: React.RefObject<BasicFormHandle>;
+    }): ReactElement => {
+      return (
+        <BasicForm
+          ref={props.formRef}
+          id="pick-form"
+          fields={FIELDS}
+          initialValues={{ name: "Checkout API" }}
+          submitButtonText="Save"
+          disableAutofocus={true}
+          onSubmit={(): void => {}}
+        />
+      );
+    };
+
+    test("counts the form from the pick on", async () => {
+      const formRef: React.RefObject<BasicFormHandle> =
+        React.createRef<BasicFormHandle>();
+
+      render(<PickHost formRef={formRef} />);
+      await settle();
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+
+      act(() => {
+        formRef.current!.setFieldValue("name", "Payments API");
+      });
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(true);
+    });
+
+    test("handing back the value it already had is no change", async () => {
+      const formRef: React.RefObject<BasicFormHandle> =
+        React.createRef<BasicFormHandle>();
+
+      render(<PickHost formRef={formRef} />);
+      await settle();
+
+      act(() => {
+        formRef.current!.setFieldValue("name", "Checkout API");
+      });
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+    });
   });
 });

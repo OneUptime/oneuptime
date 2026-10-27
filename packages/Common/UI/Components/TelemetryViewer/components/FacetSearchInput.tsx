@@ -34,6 +34,7 @@ const FacetSearchInput: FunctionComponent<FacetSearchInputProps> = (
         />
       </div>
       <input
+        data-unsaved-changes-ignore
         ref={inputRef}
         type="text"
         /*

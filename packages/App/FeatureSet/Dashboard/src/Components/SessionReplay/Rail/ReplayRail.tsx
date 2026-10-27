@@ -1736,6 +1736,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
             className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
           />
           <input
+            data-unsaved-changes-ignore
             ref={searchRef}
             type="text"
             value={query}

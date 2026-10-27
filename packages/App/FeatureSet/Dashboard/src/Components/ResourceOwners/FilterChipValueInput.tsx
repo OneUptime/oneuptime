@@ -279,6 +279,7 @@ const FilterChipValueInput: FunctionComponent<ComponentProps> = (
                 }}
               >
                 <Input
+                  isSearchOrFilter={true}
                   /*
                    * Re-keyed on the operator for the same reason the date chip
                    * is: the shared Input keeps its display string in state, so

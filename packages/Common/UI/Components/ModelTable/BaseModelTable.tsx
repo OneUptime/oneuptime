@@ -4875,6 +4875,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                   );
                 })}
               <input
+                data-unsaved-changes-ignore
                 ref={searchInputRef}
                 type="text"
                 value={searchText}

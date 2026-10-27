@@ -186,6 +186,7 @@ const IconPicker: FunctionComponent<ComponentProps> = (
               {/* Search input */}
               <div className="mb-3 flex-shrink-0">
                 <Input
+                  isSearchOrFilter={true}
                   type={InputType.TEXT}
                   placeholder="Search icons..."
                   value={searchQuery}

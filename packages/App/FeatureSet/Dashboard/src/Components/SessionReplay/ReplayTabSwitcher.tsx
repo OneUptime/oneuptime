@@ -786,6 +786,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
                 >
                   <div className="p-1">
                     <input
+                      data-unsaved-changes-ignore
                       ref={searchRef}
                       type="text"
                       value={query}

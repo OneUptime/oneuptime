@@ -219,6 +219,7 @@ const RecommendationToolbar: FunctionComponent<ComponentProps> = (
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="sm:max-w-xs sm:flex-1">
           <Input
+            isSearchOrFilter={true}
             value={props.filterState.searchText}
             placeholder="Search recommendations..."
             disabled={props.isDisabled}
