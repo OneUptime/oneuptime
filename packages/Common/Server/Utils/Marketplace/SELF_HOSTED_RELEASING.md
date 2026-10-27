@@ -112,6 +112,7 @@ telemetry writers only get `ENTERPRISE_MARKETPLACE`, for the license.
 | `ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_ENTITLEMENT_ID`        | Key `entitlement-id` of that Secret                                                                                     |
 | `ENTERPRISE_MARKETPLACE_GOOGLE_CLOUD_REPORTING_KEY`         | Key `reporting-key` of that Secret                                                                                      |
 | `DISABLE_UPDATE_CHECK`                                      | `updateCheck.disabled`: `true` in every edition (build.py); upgrades come through the marketplace, not GitHub           |
+| `DISABLE_INSTANCE_CHECK_IN`                                 | `instanceCheckIn.disabled`: `true` in every edition (build.py); the marketplace knows its buyers and their release      |
 
 The AWS product code is compiled in (`AWS_SELF_HOSTED_PRODUCT_CODES` in
 [SelfHostedMarketplaceConfig.ts](../../../../../ee/Server/Marketplace/Reporters/SelfHostedMarketplaceConfig.ts)),
@@ -224,7 +225,9 @@ Every edition is the public chart with every image (OneUptime's, and the
 PostgreSQL, ClickHouse and Valkey it bundles) taken from the marketplace's
 registry, `enterpriseMarketplace.provider` set, the update check off (buyers
 upgrade through the marketplace, which has a release a week, not GitHub's
-several a day), no subcharts and no `helm test` pod. The chart tests'
+several a day), the daily check-in with oneuptime.com off (the marketplace
+knows its buyers and the release it ships them), no subcharts and no
+`helm test` pod. The chart tests'
 `marketplace` suite builds and checks all three:
 
 ```bash
@@ -1101,6 +1104,7 @@ rejection, go-live and price change.
 | 2026-10-19 | Microsoft   | The registry's purge keeps each repository's newest release, and any from the last 7 days           | Agent      |
 | 2026-10-19 | AWS         | AWS refused 14.0.72: MISSING_VALUES_IMAGE_REFERENCE; the chart takes registry, repository and tag   | Agent      |
 | 2026-10-21 | Microsoft   | Offer `oneuptime-enterprise` seen live (publisher `oneupitme`); the website links it                | Agent      |
+| 2026-10-27 | All three   | The editions turn off the daily check-in with oneuptime.com: the marketplace knows its buyers      | Agent      |
 
 ## Notes for agents driving the browser
 

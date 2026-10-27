@@ -20,6 +20,45 @@ export enum TableColumnKind {
   Formula = "Formula",
 }
 
+/*
+ * Which way a column's values go bad (issue #5231). Higher is worse - CPU,
+ * memory or disk in use, errors, latency - reaches a threshold at or above
+ * it; lower is worse - free space, availability, throughput - at or below
+ * it.
+ */
+export enum TableThresholdDirection {
+  HigherIsWorse = "HigherIsWorse",
+  LowerIsWorse = "LowerIsWorse",
+}
+
+/*
+ * How a value past a threshold is colored, for the whole table: the number
+ * itself (the default), or the whole cell behind it.
+ */
+export enum TableThresholdStyle {
+  Text = "Text",
+  Background = "Background",
+}
+
+// The level a value has reached, worst last.
+export enum TableThresholdLevel {
+  Warning = "Warning",
+  Critical = "Critical",
+}
+
+/*
+ * A column's thresholds, in the unit the column shows: a usage metric that
+ * OpenTelemetry sends as a fraction (unit "1", a name such as
+ * system.cpu.utilization) shows - and is compared - as a percent. Either
+ * threshold may be left out; with neither, the column is not colored.
+ */
+export interface TableColumnThresholds {
+  warning?: number | undefined;
+  critical?: number | undefined;
+  // HigherIsWorse when left out.
+  direction?: TableThresholdDirection | undefined;
+}
+
 export interface TableColumn {
   /*
    * Stable identifier so React keys survive reorder and the form can
@@ -50,6 +89,11 @@ export interface TableColumn {
    * type's native unit; for formula columns, no unit is rendered.
    */
   unit?: string | undefined;
+  /*
+   * Colors the column's values amber at the warning threshold and red at
+   * the critical one (issue #5231). Left out, the column is not colored.
+   */
+  thresholds?: TableColumnThresholds | undefined;
 }
 
 export interface TableGroupByAttribute {
@@ -78,6 +122,11 @@ export default interface DashboardTableComponent extends BaseComponent {
     maxRows?: number | undefined;
     reduce?: TableReduce | undefined;
     decimals?: number | undefined;
+    /*
+     * How every column's thresholds color a value past them: the number
+     * (Text, when left out) or the whole cell (Background).
+     */
+    thresholdStyle?: TableThresholdStyle | undefined;
     /*
      * Widget-level attribute filter applied to EVERY metric column's query
      * (e.g. deployment.environment = production, so the table only shows

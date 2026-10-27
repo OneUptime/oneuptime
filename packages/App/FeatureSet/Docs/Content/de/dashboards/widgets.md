@@ -68,6 +68,10 @@ Nutzen Sie es, wenn der Wert in einem bekannten Bereich liegt: CPU- oder Festpla
 
 Metrikwerte als Zeilen. **Nach Attributen gruppieren** ergibt eine Zeile pro Wert, etwa eine pro `host.name`; ohne Gruppierung ist jede Zeile ein Zeitintervall. **Metrics & Columns** legt die Spalten fest: Metriken und Formeln darüber, etwa die Verfügbarkeit in Prozent. Wenn Sie gruppieren, macht **Reduce across time** aus der Reihe jeder Zeile einen Wert: den letzten Wert, den Durchschnitt, die Summe, das Minimum oder das Maximum.
 
+Schalten Sie in einer Spalte **Nach Schwellenwerten einfärben** ein, um ihre Werte einzufärben: Ein Wert, der die **Warnschwelle** erreicht, wird bernsteinfarben, mit einem Dreieck, und einer, der den Wert unter **Kritischer Schwellenwert** erreicht, rot und fett, mit einem Kreis. Eine Prozentspalte beginnt bei 80 und 90. Für eine Spalte, bei der niedrige Werte das Problem sind, etwa freier Speicherplatz, wählen Sie unter **Richtung** die Option **Niedriger ist schlechter**.
+
+Schwellenwerte lesen die Zahl, die die Tabelle zeigt: Eine Auslastungsmetrik, die als Anteil von 1 gesendet wird, etwa `system.cpu.utilization`, wird als Prozentwert angezeigt und verglichen. Unter **Schwellenwertfarben** füllt **Farbiger Hintergrund** die ganze Zelle, statt die Zahl einzufärben.
+
 Nutzen Sie sie für eine Aufschlüsselung statt eines Trends: die lautesten Hosts, die Fehler pro Dienst, die Anfragen pro Endpunkt.
 
 ## Text, Uhr und HTML

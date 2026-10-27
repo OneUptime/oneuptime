@@ -8,6 +8,7 @@ import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
+import { MonitorStepExternalStatusPageMonitorUtil } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import { MonitorStepProbeStatusMonitorUtil } from "Common/Types/Monitor/MonitorStepProbeStatusMonitor";
 import MonitorStepLlmMonitor, {
@@ -1110,25 +1111,33 @@ export default class MonitorStepViewModel {
         value: toText(data.externalStatusPageMonitor?.provider) || "Auto",
         placeholder: "Auto",
       },
+      /*
+       * Unset, the group and the components read as their placeholders -
+       * All groups, All components - in the reader's language, the way
+       * every empty row of the card reads.
+       */
       {
         key: "componentGroupName",
         title: "Component Group Filter",
         description:
           "If set, only components in this group are monitored and incidents elsewhere are ignored.",
         valueType: MonitorStepViewValueType.Text,
-        value:
-          toText(data.externalStatusPageMonitor?.componentGroupName) ||
-          "All groups",
+        value: toText(data.externalStatusPageMonitor?.componentGroupName),
         placeholder: "All groups",
       },
       {
-        key: "componentName",
-        title: "Component Name Filter",
-        description: "If set, only this specific component will be monitored.",
-        valueType: MonitorStepViewValueType.Text,
-        value:
-          toText(data.externalStatusPageMonitor?.componentName) ||
-          "All components",
+        key: "componentNames",
+        title: "Components",
+        description:
+          "If set, only these components are monitored and incidents elsewhere are ignored.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        /*
+         * A monitor saved with one Component Name Filter reads as that
+         * name between stars: every component whose name contains it.
+         */
+        value: MonitorStepExternalStatusPageMonitorUtil.getComponentNames(
+          data.externalStatusPageMonitor,
+        ),
         placeholder: "All components",
       },
     ]);

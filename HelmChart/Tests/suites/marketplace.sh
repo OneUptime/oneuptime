@@ -85,6 +85,11 @@ check_common() {
     update_check_env="$(grep -A1 'name: DISABLE_UPDATE_CHECK$' "$rendered" | grep 'value:' | sort -u | tr -d ' ')"
     assert_eq "${marketplace}: the app makes no update check against GitHub" "value:'true'" "$update_check_env"
 
+    # The marketplace knows its buyers and the release it ships them.
+    local check_in_env
+    check_in_env="$(grep -A1 'name: DISABLE_INSTANCE_CHECK_IN$' "$rendered" | grep 'value:' | sort -u | tr -d ' ')"
+    assert_eq "${marketplace}: the app does not check in with oneuptime.com" "value:'true'" "$check_in_env"
+
     assert_absent "${marketplace}: no helm test hook" "$(cat "$rendered")" '"helm.sh/hook": test'
 
     if [ -d "${chart}/charts" ] || [ -n "$(find "$chart" -name '*.tgz' -print -quit)" ]; then
