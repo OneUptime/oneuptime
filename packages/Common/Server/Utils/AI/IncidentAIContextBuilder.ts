@@ -24,6 +24,8 @@ import CallSummaryContext, {
 } from "./CallSummary/CallSummaryContext";
 import { AiContextActivity } from "../../../Types/AI/AiContext";
 import { withAiContext } from "./AiContext/AiContextPrompt";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import { ContextRows, readContextRows } from "./ContextRead";
 
 export interface IncidentContextData {
   incident: Incident;
@@ -52,6 +54,14 @@ export default class IncidentAIContextBuilder {
     workspaceMessageLimit?: number;
     // The incident's call transcripts and what was read in them: for a postmortem.
     includeCalls?: boolean | undefined;
+    /*
+     * The person the draft is for (Generate with AI): the incident's notes
+     * are read as they may read them (readContextRows), and its channel's
+     * discussion - the responders' own, whose saved messages become
+     * internal notes - only for someone who may read its internal notes.
+     * None: OneUptime's own read, of everything.
+     */
+    readerProps?: DatabaseCommonInteractionProps | undefined;
   }): Promise<IncidentContextData> {
     const incident: Incident | null = await IncidentService.findOneById({
       id: data.incidentId,
@@ -128,57 +138,67 @@ export default class IncidentAIContextBuilder {
         },
       });
 
-    // Fetch internal notes
-    const internalNotes: Array<IncidentInternalNote> =
-      await IncidentInternalNoteService.findBy({
-        query: {
-          incidentId: data.incidentId,
-        },
-        select: {
-          _id: true,
-          note: true,
-          createdAt: true,
-          postedAt: true,
-          savedFromChatMessage: true,
-          createdByUser: {
-            name: true,
-            email: true,
-          },
-        },
-        // In the order they belong in: a saved chat message when it was written.
-        sort: {
-          postedAt: SortOrder.Ascending,
-        },
-        limit: 100,
-        skip: 0,
-        props: {
-          isRoot: true,
+    // Fetch internal notes, as the reader may read them
+    const internalNotes: ContextRows<IncidentInternalNote> =
+      await readContextRows<IncidentInternalNote>({
+        readerProps: data.readerProps,
+        read: (
+          props: DatabaseCommonInteractionProps,
+        ): Promise<Array<IncidentInternalNote>> => {
+          return IncidentInternalNoteService.findBy({
+            query: {
+              incidentId: data.incidentId,
+            },
+            select: {
+              _id: true,
+              note: true,
+              createdAt: true,
+              postedAt: true,
+              savedFromChatMessage: true,
+              createdByUser: {
+                name: true,
+                email: true,
+              },
+            },
+            // In the order they belong in: a saved chat message when it was written.
+            sort: {
+              postedAt: SortOrder.Ascending,
+            },
+            limit: 100,
+            skip: 0,
+            props: props,
+          });
         },
       });
 
-    // Fetch public notes
-    const publicNotes: Array<IncidentPublicNote> =
-      await IncidentPublicNoteService.findBy({
-        query: {
-          incidentId: data.incidentId,
-        },
-        select: {
-          _id: true,
-          note: true,
-          createdAt: true,
-          postedAt: true,
-          createdByUser: {
-            name: true,
-            email: true,
-          },
-        },
-        sort: {
-          createdAt: SortOrder.Ascending,
-        },
-        limit: 100,
-        skip: 0,
-        props: {
-          isRoot: true,
+    // Fetch public notes, as the reader may read them
+    const publicNotes: ContextRows<IncidentPublicNote> =
+      await readContextRows<IncidentPublicNote>({
+        readerProps: data.readerProps,
+        read: (
+          props: DatabaseCommonInteractionProps,
+        ): Promise<Array<IncidentPublicNote>> => {
+          return IncidentPublicNoteService.findBy({
+            query: {
+              incidentId: data.incidentId,
+            },
+            select: {
+              _id: true,
+              note: true,
+              createdAt: true,
+              postedAt: true,
+              createdByUser: {
+                name: true,
+                email: true,
+              },
+            },
+            sort: {
+              createdAt: SortOrder.Ascending,
+            },
+            limit: 100,
+            skip: 0,
+            props: props,
+          });
         },
       });
 
@@ -193,6 +213,7 @@ export default class IncidentAIContextBuilder {
 
     if (
       data.includeWorkspaceMessages &&
+      internalNotes.isPermitted &&
       workspaceChannels &&
       workspaceChannels.length > 0 &&
       incident.projectId
@@ -224,8 +245,8 @@ export default class IncidentAIContextBuilder {
     const contextData: IncidentContextData = {
       incident,
       stateTimeline,
-      internalNotes,
-      publicNotes,
+      internalNotes: internalNotes.rows,
+      publicNotes: publicNotes.rows,
       workspaceMessages,
     };
 

@@ -982,11 +982,15 @@ describe("the Status Pages Overview: choosing what shows on the page", () => {
   it("gives Powered by OneUptime a paragraph of its own: its card, its switch, its plan and its edition", () => {
     expect(planOf("hidePoweredByOneUptimeBranding")).toBe(PlanType.Scale);
     expect(card).not.toContain("- **Show Powered By OneUptime Branding**");
+    /*
+     * Folded under More settings: hiding the line is an Enterprise feature
+     * few pages use (Pages/StatusPages/View/StatusPageSettings).
+     */
     expect(card).toContain(
-      'The "Powered by OneUptime" line has a card of its own, just under it.',
+      'The "Powered by OneUptime" line has a card of its own, folded under **More settings** just under it.',
     );
     expect(card).toContain(
-      "**Powered by OneUptime**, the card under this one, has one switch: **Show Powered By OneUptime Branding**, on by default",
+      "**Powered by OneUptime**, folded under **More settings** below this card, has one switch: **Show Powered By OneUptime Branding**, on by default",
     );
     expect(card).toContain(
       "On OneUptime Cloud, hiding the line needs **Scale**; below it, the card says when a page still hides the line, with a button that shows it again.",
@@ -995,7 +999,7 @@ describe("the Status Pages Overview: choosing what shows on the page", () => {
       "Self-hosted, hiding the line is part of the Enterprise Edition: on the Community Edition every status page shows it.",
     );
     expect(card.indexOf("**A list that is off**")).toBeLessThan(
-      card.indexOf("**Powered by OneUptime**, the card under this one"),
+      card.indexOf("**Powered by OneUptime**, folded under **More settings**"),
     );
   });
 });

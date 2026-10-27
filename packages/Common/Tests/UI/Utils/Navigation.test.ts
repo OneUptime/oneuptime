@@ -319,6 +319,54 @@ describe("Navigation internal route safety", () => {
   });
 });
 
+/*
+ * A link to a card on a page carries the card's place as its fragment:
+ * ".../api-keys/<id>#custom-roles" opens the key's More settings at its
+ * Custom Roles card. The page still reads its record's id from the last
+ * part of the path - and the fragment is no part of it: read with it, the
+ * id matched no record, and the card opened at said the key had no role.
+ */
+describe("Navigation last parameter", () => {
+  const KEY_ID: string = "60000000-0000-4000-8000-000000000001";
+
+  afterEach(() => {
+    window.history.replaceState(null, "", "/");
+  });
+
+  test("a link to a card on the page leaves the record's id as it is", () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/p/settings/api-keys/${KEY_ID}#custom-roles`,
+    );
+
+    expect(Navigation.getLastParamAsString()).toBe(KEY_ID);
+    expect(Navigation.getLastParamAsObjectID().toString()).toBe(KEY_ID);
+    expect(Navigation.getLastParam()?.toString()).toBe(`/${KEY_ID}`);
+    // The fragment is still there, for the page to open the card.
+    expect(window.location.hash).toBe("#custom-roles");
+  });
+
+  test("reads further back the same way, with a query string too", () => {
+    window.history.replaceState(
+      null,
+      "",
+      `/dashboard/p/teams/${KEY_ID}/permissions?lang=de#custom-roles`,
+    );
+
+    expect(Navigation.getLastParamAsString()).toBe("permissions");
+    expect(Navigation.getLastParamAsString(1)).toBe(KEY_ID);
+    expect(Navigation.getLastParamAsObjectID(1).toString()).toBe(KEY_ID);
+  });
+
+  test("an address with no fragment reads as it always did", () => {
+    window.history.replaceState(null, "", `/dashboard/p/monitors/${KEY_ID}`);
+
+    expect(Navigation.getLastParamAsString()).toBe(KEY_ID);
+    expect(Navigation.getLastParam()?.toString()).toBe(`/${KEY_ID}`);
+  });
+});
+
 describe("Navigation current route", () => {
   const clearRouterLocation: () => void = (): void => {
     (Navigation as unknown as { location: unknown }).location = undefined;

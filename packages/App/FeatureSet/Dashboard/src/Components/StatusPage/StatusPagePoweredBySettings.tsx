@@ -8,7 +8,7 @@ import { STATUS_PAGE_BRANDING_REQUIRED_PLAN } from "../../Enterprise/EnterpriseE
 import EnterprisePluginPage, {
   EnterprisePluginUpsellProps,
 } from "../../Enterprise/EnterprisePluginPage";
-import { StatusPageSettingCardProps } from "../../Enterprise/EnterprisePlugins";
+import { StatusPagePoweredByCardProps } from "../../Enterprise/EnterprisePlugins";
 import { getDashboardPlugins } from "../../Enterprise/Plugins";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -26,9 +26,13 @@ import React, { FunctionComponent, ReactElement } from "react";
  * there; a OneUptime Cloud project below the plan still hides it until it
  * is shown again, so that one is drawn under the upsell, with a button that
  * shows it.
+ *
+ * It waits folded under the page's More settings - few pages hide the line
+ * - telling the page whether visitors see it (onPoweredByChange), so the
+ * folded header can say "Powered by OneUptime: Off" while it is hidden.
  */
 
-export type ComponentProps = StatusPageSettingCardProps;
+export type ComponentProps = StatusPagePoweredByCardProps;
 
 export const STATUS_PAGE_POWERED_BY_UPSELL: EnterprisePluginUpsellProps = {
   title: StatusPagePoweredByCopy.cardTitle,
@@ -65,7 +69,7 @@ const StatusPagePoweredBySettings: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <EnterprisePluginPage<StatusPageSettingCardProps>
+    <EnterprisePluginPage<StatusPagePoweredByCardProps>
       plugin={getDashboardPlugins().StatusPagePoweredBy}
       pluginProps={props}
       requiredPlan={STATUS_PAGE_BRANDING_REQUIRED_PLAN}
@@ -77,6 +81,14 @@ const StatusPagePoweredBySettings: FunctionComponent<ComponentProps> = (
           requiredPlan={STATUS_PAGE_BRANDING_REQUIRED_PLAN}
           modelType={StatusPage}
           modelId={props.statusPageId}
+          onLoaded={(item: StatusPage | null) => {
+            props.onPoweredByChange?.(
+              item?.hidePoweredByOneUptimeBranding !== true,
+            );
+          }}
+          onRemoved={() => {
+            props.onPoweredByChange?.(true);
+          }}
           renderValue={(): ReactElement => {
             return <></>;
           }}

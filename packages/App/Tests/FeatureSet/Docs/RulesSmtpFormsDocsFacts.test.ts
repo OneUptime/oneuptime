@@ -17,6 +17,7 @@ import { getTableColumn } from "Common/Types/Database/TableColumn";
 import MailTransportType from "Common/Types/Email/MailTransportType";
 import SMTPAuthenticationType from "Common/Types/Email/SMTPAuthenticationType";
 import { getRuleCriteriaSubjectForModel } from "Common/Types/Rules/RuleCriteriaSubject";
+import { MORE_SETTINGS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   getRuleCriteriaSubjectCopy,
@@ -934,17 +935,25 @@ describe("SMTP, against the settings, the Admin Dashboard and the mail service",
     expect(notifications.items).toEqual(
       expect.arrayContaining(["Notification Settings", "Notification Logs"]),
     );
-    expect(readSource("notificationSettingsPage")).toContain(
-      "<CustomSMTPTable",
+    /*
+     * Folded under the page's More settings: most projects never add a mail
+     * server of their own (Components/NotificationMethods/OwnSendersFold).
+     */
+    const settingsPage: string = readSource("notificationSettingsPage");
+    const moreSettings: string = settingsPage.slice(
+      settingsPage.indexOf("<AdvancedPageSection"),
+      settingsPage.indexOf("</AdvancedPageSection>"),
     );
+
+    expect(moreSettings).toContain("<CustomSMTPTable");
     expect(card).toBe("Custom SMTP Configs");
     expect(button).toBe("Create SMTP Config");
 
     expect(page).toContain(
-      `Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **${card}** card.`,
+      `Add a project's mail server on **Project Settings > Notifications > Notification Settings**, in the **${card}** card under **${MORE_SETTINGS_SECTION_TITLE}**.`,
     );
     expect(page).toContain(
-      `On **Project Settings > Notifications > Notification Settings**, click **${button}** in the **${card}** card.`,
+      `On **Project Settings > Notifications > Notification Settings**, open **${MORE_SETTINGS_SECTION_TITLE}** and click **${button}** in the **${card}** card.`,
     );
   });
 

@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Am Schwellen-<br/>wert"| case["Ein Fall wird eröffnet,<br/>oder der offene Fall<br/>nimmt es auf"]
 ```
 
-Öffnen Sie **Produkte → Sicherheitsereignisse → Entitätsrisiko**: jeder Benutzer, Host und jede IP-Adresse mit aktuellem Risiko, die riskantesten zuerst, mit Stufe, Wichtigkeit, was sie gefunden hat und wann. Jede Entität öffnet sich auf einer eigenen Seite.
+Öffnen Sie **Produkte → Sicherheitsereignisse → Entitätsrisiko**: jeder Benutzer, Host und jede IP-Adresse mit aktuellem Risiko, die riskantesten zuerst, mit Stufe, Wichtigkeit, was sie gefunden hat und wann. Jede Entität öffnet sich auf einer eigenen Seite. **Riskanteste Entitäten** auf der Übersicht zeigt den Anfang dieser Liste, und **Eine Entität nachschlagen** darunter schlägt jeden Wert in den Ereignissen von 30 Tagen nach, auch eine Domain oder einen Datei-Hash.
 
 ## Bevor Sie beginnen
 

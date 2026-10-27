@@ -401,6 +401,30 @@ class UserNotificationSetting extends BaseModel {
   public alertByWebhook?: boolean = undefined;
 
   /*
+   * Through the installation's custom channels (CustomNotificationChannel):
+   * every one that is on gets the notification, naming this person, as it
+   * gets their on-call pages. Off until they turn it on, as SMS and calls
+   * are: a channel is often the company's own app, and a person may not want
+   * every owner notification on their phone.
+   */
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public alertByCustomChannel?: boolean = undefined;
+
+  /*
    * For the New Security Case setting
    * (SEND_SECURITY_CASE_OPENED_NOTIFICATION) alone: the lowest of the
    * project's case priorities that notifies this person, by its place in

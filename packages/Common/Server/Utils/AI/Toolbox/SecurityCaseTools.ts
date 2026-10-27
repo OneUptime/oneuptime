@@ -38,6 +38,7 @@ import SecurityEventService, {
 } from "../../../Services/SecurityEventService";
 import SecurityPlaybookRunService from "../../../Services/SecurityPlaybookRunService";
 import SecurityPlaybookService from "../../../Services/SecurityPlaybookService";
+import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
 import ThreatIntelIndicatorService, {
   ActiveIndicator,
 } from "../../../Services/ThreatIntelIndicatorService";
@@ -671,12 +672,17 @@ export const SecurityEntityActivityTool: ObservabilityTool = {
     const endTime: Date = OneUptimeDate.getCurrentDate();
     const startTime: Date = OneUptimeDate.addRemoveHours(endTime, -hours);
 
+    // Only the events of the sources the person asking may read.
     const activity: Array<ObservableActivity> =
       await SecurityEventService.findObservableActivity({
         projectId: ctx.projectId,
         values,
         startTime,
         endTime,
+        serviceFilter: await TelemetryReadAccess.getServiceFilter({
+          modelType: SecurityEvent,
+          props: ctx.props,
+        }),
       });
 
     const byValue: Map<string, ObservableActivity> = new Map();

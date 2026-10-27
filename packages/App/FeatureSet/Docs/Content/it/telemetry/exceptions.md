@@ -81,7 +81,7 @@ Il menu laterale della pagina raggruppa ciò che fate con un'eccezione:
 
 ## Risolvere, riaprire e archiviare
 
-I pulsanti in cima alla pagina dell'eccezione, e la sua pagina **Impostazioni**, ne cambiano lo stato:
+I pulsanti in cima alla pagina dell'eccezione, la sua pagina **Impostazioni** e il menu ⋯ della sua riga nell'elenco ne cambiano lo stato:
 
 | Azione | Quando usarla | Che cosa succede dopo |
 | --- | --- | --- |
@@ -91,6 +91,8 @@ I pulsanti in cima alla pagina dell'eccezione, e la sua pagina **Impostazioni**,
 | **Annulla archiviazione** | Volete tornare a sentirne parlare. | Torna nell'elenco a cui appartiene. |
 
 **Impostazioni** mostra chi ha risolto o archiviato l'eccezione per ultimo, e quando. I suoi pulsanti dicono **Segna come risolto** o **Segna come non risolto**, e **Archivia** o **Annulla archiviazione**.
+
+Per cambiarne diverse insieme, spuntate le loro righe nell'elenco, o la casella sopra le righe per tutte le eccezioni della pagina, e usate le stesse azioni in **Azioni di massa**. Il risultato dice quali eccezioni sono cambiate, quali sono rimaste com'erano e perché.
 
 ## Classi di errore
 

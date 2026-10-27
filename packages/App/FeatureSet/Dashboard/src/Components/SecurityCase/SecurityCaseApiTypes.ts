@@ -1,4 +1,11 @@
 import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
+import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
+import {
+  SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT,
+  SecurityRiskiestEntities,
+  SecurityRiskiestEntity,
+} from "Common/Types/SecurityCase/SecurityEntityRisk";
+import { readRiskCaseThreshold } from "Common/Utils/SecurityCase/SecurityEntityRiskScore";
 import { SecurityOverviewMetrics } from "Common/Utils/SecurityCase/SecurityOverviewMetrics";
 
 /*
@@ -33,6 +40,12 @@ export interface SecurityOverview {
   runsWaitingForApproval: number;
   isTruncated: boolean;
   metrics: SecurityOverviewMetrics;
+  /*
+   * Riskiest Entities: the top of Entity Risk's list, by risk score, with
+   * the threshold their levels are read against. Null when the server could
+   * not read them - the card says so.
+   */
+  riskiestEntities: SecurityRiskiestEntities | null;
   // The project's case priorities and statuses, which the counts are by.
   priorities: Array<SecurityOverviewValue>;
   statuses: Array<SecurityOverviewValue>;
@@ -70,14 +83,6 @@ export interface EntityActivity {
   findingCount: number;
   maxSeverityId: number;
   firstSeen: Date | null;
-  lastSeen: Date | null;
-}
-
-export interface EntityFindingSummary {
-  value: string;
-  findingCount: number;
-  ruleCount: number;
-  maxSeverityId: number;
   lastSeen: Date | null;
 }
 
@@ -123,20 +128,49 @@ export function parseEntityActivity(body: JSONObject): Array<EntityActivity> {
   });
 }
 
-export function parseTopEntities(
-  body: JSONObject,
-): Array<EntityFindingSummary> {
-  return readArray(body["entities"]).map(
-    (item: JSONObject): EntityFindingSummary => {
+/*
+ * The riskiest entities as the overview sent them, read defensively: an
+ * entity without a value is left out, a kind the product does not know
+ * reads as none, a score is a whole number of at least 0, and the list is
+ * never longer than the card shows. Anything but an object - the server
+ * could not read them, or an older server sent none - reads as null.
+ */
+export function parseRiskiestEntities(
+  value: JSONValue | undefined,
+): SecurityRiskiestEntities | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const body: JSONObject = value as JSONObject;
+  const entities: Array<SecurityRiskiestEntity> = readArray(body["entities"])
+    .map((item: JSONObject): SecurityRiskiestEntity => {
+      const type: JSONValue | undefined = item["type"];
+
       return {
-        value: String(item["value"] || ""),
-        findingCount: readNumber(item["findingCount"]),
-        ruleCount: readNumber(item["ruleCount"]),
-        maxSeverityId: readNumber(item["maxSeverityId"]),
-        lastSeen: readDate(item["lastSeen"]),
+        value: typeof item["value"] === "string" ? item["value"].trim() : "",
+        type: (Object.values(SecurityEntityType) as Array<unknown>).includes(
+          type,
+        )
+          ? (type as SecurityEntityType)
+          : null,
+        score: Math.max(0, Math.round(readNumber(item["score"]))),
       };
-    },
-  );
+    })
+    .filter((entity: SecurityRiskiestEntity): boolean => {
+      return entity.value.length > 0;
+    })
+    .slice(0, SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT);
+
+  return {
+    threshold: readRiskCaseThreshold(body["threshold"]),
+    // Never fewer than the card lists.
+    total: Math.max(
+      entities.length,
+      Math.max(0, Math.trunc(readNumber(body["total"]))),
+    ),
+    entities,
+  };
 }
 
 export function parseOverview(body: JSONObject): SecurityOverview {
@@ -148,6 +182,7 @@ export function parseOverview(body: JSONObject): SecurityOverview {
     runsWaitingForApproval: readNumber(body["runsWaitingForApproval"]),
     isTruncated: body["isTruncated"] === true,
     metrics: body["metrics"] as unknown as SecurityOverviewMetrics,
+    riskiestEntities: parseRiskiestEntities(body["riskiestEntities"]),
     priorities: parseSecurityOverviewValues(body["priorities"]),
     statuses: parseSecurityOverviewValues(body["statuses"]),
   };

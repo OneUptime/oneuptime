@@ -73,8 +73,8 @@ Dit is de juiste zet als je een sjabloon (zoals "ons on-call-dashboard") wilt af
 
 Een dashboard reist als JSON:
 
-- **Dashboard exporteren**, op de pagina **Instellingen** van het dashboard, downloadt het als een JSON-bestand. Om er meerdere te exporteren, selecteer je ze in de lijst **Dashboards** en kies je **Export JSON**.
-- **Import JSON**, boven de lijst **Dashboards**, maakt dashboards uit zo'n bestand, in dit project of in een ander.
+- **Dashboard exporteren**, op de pagina **Instellingen** van het dashboard, downloadt het als een JSON-bestand. Om er meerdere te exporteren, selecteer je ze in de lijst **Dashboards** en kies je **JSON exporteren**.
+- **JSON importeren**, boven de lijst **Dashboards**, maakt dashboards uit zo'n bestand, in dit project of in een ander.
 
 Een export bevat de eigen instellingen van het dashboard, waaronder de widgets en variabelen. De eigenaren en labels blijven erbuiten, en bij widgets die naar resources van dit project wijzen, zoals een SLO of een gegevensbron, moet je die in een ander project misschien opnieuw kiezen.
 

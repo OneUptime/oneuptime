@@ -21,6 +21,7 @@ jest.mock("../../../Server/Infrastructure/Redis", () => {
 jest.mock("../../../Server/Utils/Logger");
 
 import Redis from "../../../Server/Infrastructure/Redis";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import PushNotificationService from "../../../Server/Services/PushNotificationService";
 import PushNotificationLogService from "../../../Server/Services/PushNotificationLogService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
@@ -127,6 +128,10 @@ async function send(
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Push is on for the whole server (GlobalConfig.disablePushNotifications).
+  jest
+    .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+    .mockResolvedValue(false);
 
   redis = new FakeSortedSetRedis();
   getClientMock.mockReturnValue(redis);

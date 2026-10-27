@@ -18,6 +18,9 @@ import {
 } from "../../Types/SecurityCase/SecurityConnection";
 import { SECURITY_FINDINGS_CATEGORY_UID } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import { SECURITY_EVENT_RECORD_COLUMNS } from "../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
+import TelemetryReadScopeUtil, {
+  TelemetryServiceFilter,
+} from "../Utils/Telemetry/TelemetryReadScope";
 import SecurityEventRequestOutcome, {
   SECURITY_REQUEST_ATTRIBUTES,
 } from "../../Types/SecurityEvent/SecurityEventRequestOutcome";
@@ -99,19 +102,6 @@ export interface ObservableActivity {
   findingCount: number;
   maxSeverityId: number;
   firstSeen: Date | null;
-  lastSeen: Date | null;
-}
-
-/*
- * An observable as the project's findings rank it: how many findings name
- * it, from how many different rules, the worst severity among them, and
- * when the latest was raised.
- */
-export interface EntityFindingSummary {
-  value: string;
-  findingCount: number;
-  ruleCount: number;
-  maxSeverityId: number;
   lastSeen: Date | null;
 }
 
@@ -398,6 +388,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     values: Array<string>;
     startTime: Date;
     endTime: Date;
+    /*
+     * The sources whose events the reader may read, for a read made for a
+     * person (TelemetryReadAccess.getServiceFilter): a Security role scoped
+     * to the sources it owns, or to some labels, reads those sources' events
+     * alone. None: every source of the project, for OneUptime's own reads
+     * (the Look Up Entity Activity step).
+     */
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Promise<Array<ObservableActivity>> {
     const values: Array<string> = Array.from(
       new Set(
@@ -440,7 +438,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       }}) AND has(${{
         type: TableColumnType.ArrayText,
         value: values,
-      }}, observable) GROUP BY value ORDER BY eventCount DESC LIMIT ${{
+      }}, observable)`,
+    );
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
+    statement.append(
+      SQL` GROUP BY value ORDER BY eventCount DESC LIMIT ${{
         type: TableColumnType.Number,
         value: OBSERVABLE_ACTIVITY_MAX_VALUES,
       }}`,
@@ -462,62 +467,6 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
         lastSeen: readDate(row["lastSeen"]),
       };
     });
-  }
-
-  /*
-   * The values the project's findings name most over a window, worst first:
-   * the entities to look at. Findings only - every detection rule, threat
-   * intel match and connected product's alert is one - so a busy but
-   * harmless host does not outrank a quiet one three rules flagged.
-   */
-  public async findEntitiesByFindings(data: {
-    projectId: ObjectID;
-    startTime: Date;
-    endTime: Date;
-    limit: number;
-  }): Promise<Array<EntityFindingSummary>> {
-    if (!this.database) {
-      this.useDefaultDatabase();
-    }
-
-    const databaseName: string =
-      this.database!.getDatasourceOptions().database!;
-
-    const statement: Statement = SQL`SELECT observable AS value, count() AS findingCount, uniqExact(ruleName) AS ruleCount, max(severityId) AS maxSeverityId, max(time) AS lastSeen FROM `;
-    statement.append(`${databaseName}.${this.model.tableName}`);
-    statement.append(
-      SQL` ARRAY JOIN observables AS observable WHERE projectId = ${{
-        type: TableColumnType.ObjectID,
-        value: data.projectId,
-      }} AND time >= ${{
-        type: TableColumnType.DateTime64,
-        value: data.startTime,
-      }} AND time <= ${{
-        type: TableColumnType.DateTime64,
-        value: data.endTime,
-      }} AND classUid IN (2004, 2005) AND observable != '' GROUP BY value ORDER BY maxSeverityId DESC, findingCount DESC LIMIT ${{
-        type: TableColumnType.Number,
-        value: Math.max(1, Math.min(100, Math.trunc(data.limit))),
-      }}`,
-    );
-    statement.append(getQuerySettings({ maxExecutionTimeInSeconds: 30 }));
-
-    const result: Results = await this.executeQuery(statement);
-    const response: DbJSONResponse = await result.json<{
-      data?: Array<JSONObject>;
-    }>();
-
-    return (response.data || []).map(
-      (row: JSONObject): EntityFindingSummary => {
-        return {
-          value: String(row["value"] ?? ""),
-          findingCount: Number(row["findingCount"] || 0),
-          ruleCount: Number(row["ruleCount"] || 0),
-          maxSeverityId: Number(row["maxSeverityId"] || 0),
-          lastSeen: readDate(row["lastSeen"]),
-        };
-      },
-    );
   }
 
   /*

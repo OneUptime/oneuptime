@@ -51,6 +51,7 @@ Esta página explica o que cada edição inclui, como executar a Enterprise Edit
 | **Query Console** da administração | Não | Sim | Não disponível |
 | Alertas de saúde do PostgreSQL e do Valkey (Redis) | Não | Sim | Não se aplica |
 | [Backups](/docs/installation/backups) do PostgreSQL e do ClickHouse em um armazenamento próprio, com agendamento e restauração | Não | Sim | Não se aplica |
+| [Canais de notificação personalizados](/docs/self-hosted/custom-notification-channels): acionar as pessoas pelo seu próprio serviço, como o app da sua empresa | Não | Sim | Não se aplica |
 | Visão de capacidade do ClickHouse, alertas de capacidade e limpeza automática de disco | Sim | Sim | Não se aplica |
 | Status das migrações, pacote de suporte e probes globais no painel do administrador | Sim | Sim | Não se aplica |
 | Gestão da licença Enterprise, de assentos e de instâncias | Não | Sim | Não se aplica |
@@ -194,6 +195,7 @@ O que para quando uma licença expira:
 - **As substituições de retenção deixam de valer.** A telemetria nova é mantida pela retenção padrão do projeto. A telemetria já armazenada mantém a retenção com que foi gravada. Você ainda pode apagar uma substituição pela API, mas não configurar uma.
 - **As páginas de status voltam a mostrar Powered by OneUptime.** Uma página que oculta a linha a mostra até que uma licença seja ativada. A configuração é mantida.
 - **Os backups agendados param.** Nenhum backup novo é feito. Os backups já feitos continuam no destino, e você ainda pode restaurá-los e excluí-los.
+- **Os canais personalizados param.** Nenhum alerta ou notificação é enviado a um canal personalizado, e nenhum é oferecido nas regras de plantão. Os canais e as regras que os usam são mantidos, e você ainda pode excluir um canal.
 
 O que **não** para:
 

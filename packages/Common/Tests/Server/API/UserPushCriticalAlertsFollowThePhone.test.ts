@@ -6,6 +6,7 @@ import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService"
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
 import ProjectCallSMSConfigService from "../../../Server/Services/ProjectCallSMSConfigService";
 import IncidentService from "../../../Server/Services/IncidentService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import PushNotificationService from "../../../Server/Services/PushNotificationService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import {
@@ -172,6 +173,10 @@ describe("the phone's report decides the page, the test and the list", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Push is on for the whole server (GlobalConfig.disablePushNotifications).
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(false);
 
     device = new UserPush();
     device._id = DEVICE_ID.toString();

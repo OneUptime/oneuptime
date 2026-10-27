@@ -57,6 +57,8 @@ import {
   TRUNCATED_TEXT_NOTE,
 } from "../../Utils/MessageFit";
 import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
+import GlobalConfigService from "./GlobalConfigService";
+import { PUSH_NOTIFICATION_NOT_SENT_TURNED_OFF_REASON } from "../../Types/PushNotification/PushNotificationsTurnedOff";
 
 // A text's size in a push notification: as JSON writes it, in UTF-8.
 const getPushTextSize: TextSizeFunction = (text: string): number => {
@@ -668,6 +670,11 @@ export default class PushNotificationService {
         userOnCallLogTimelineId: options.userOnCallLogTimelineId,
       })
     ) {
+      return;
+    }
+
+    // Nothing is pushed while the server has push turned off.
+    if (await this.isRefusedWhilePushIsTurnedOff(options)) {
       return;
     }
 
@@ -1834,12 +1841,48 @@ export default class PushNotificationService {
     return { kind: "receipts", receipts: receipts };
   }
 
+  /*
+   * PUSH TURNED OFF FOR THE WHOLE SERVER.
+   *
+   * A master admin can turn push notifications off for the server (Admin
+   * Dashboard > Settings > Push Notifications, GlobalConfig.
+   * disablePushNotifications): then nothing goes to Expo, the push relay or
+   * a browser's push service. A push asked for meanwhile is not sent, and
+   * the person's on-call log says why, as it says why a blocked project's
+   * is not (BlockedProjectNotifications) - instead of "Sending" for ever.
+   *
+   * A switch that cannot be read refuses too (GlobalConfigService.
+   * getPushNotificationsTurnedOff throws): the caller records the failure,
+   * as it records any push that failed.
+   */
+  public static async isRefusedWhilePushIsTurnedOff(
+    options: PushNotificationOptions = {},
+  ): Promise<boolean> {
+    if (!(await GlobalConfigService.getPushNotificationsTurnedOff())) {
+      return false;
+    }
+
+    logger.debug(PUSH_NOTIFICATION_NOT_SENT_TURNED_OFF_REASON);
+
+    await UserOnCallLogTimelineService.markNotSent({
+      userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+      reason: PUSH_NOTIFICATION_NOT_SENT_TURNED_OFF_REASON,
+    });
+
+    return true;
+  }
+
   public static async sendPushNotificationToUser(
     userId: ObjectID,
     projectId: ObjectID,
     message: PushNotificationMessage,
     options: PushNotificationOptions = {},
   ): Promise<void> {
+    // Not even the devices are read while the server has push turned off.
+    if (await this.isRefusedWhilePushIsTurnedOff(options)) {
+      return;
+    }
+
     // Get all verified push devices for the user
     const userPushDevices: UserPush[] = await UserPushService.findBy({
       query: {

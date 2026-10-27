@@ -16,7 +16,8 @@ somebody looks for it, with as few decisions as possible:
   names the card it holds; once the policy pages again, it says after how long
   ("30 min")
 - opened, it is one card with one row: "Don't page again", or "Page again if not
-  resolved within 30 minutes"
+  resolved within 30 minutes"; its header is then "More settings" alone, the title
+  level with the icon tile beside it
 - the dialog asks one question with two answers, and the minutes only once Page
   again is picked, 30 to start with
 - a save sends the one column, `acknowledgementTimeoutInMinutes`: the minutes, or

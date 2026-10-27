@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Add your Twilio account
 
-Go to **Project Settings** > **Notifications** > **Notification Settings**. In the **Twilio Config** card, click **Create Twilio Config** and fill in the form:
+Go to **Project Settings** > **Notifications** > **Notification Settings**, and open **More settings**. In the **Twilio Config** card, click **Create Twilio Config** and fill in the form:
 
 - **Name** and **Description**: what the account is for, such as "Support hotline".
 - **Twilio Account SID**: from the Twilio Console. It starts with `AC`.

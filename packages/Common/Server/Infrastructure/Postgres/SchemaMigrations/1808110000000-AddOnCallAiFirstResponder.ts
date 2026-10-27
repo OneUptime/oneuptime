@@ -14,10 +14,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * and both columns are nullable - empty is the default hold time on a rule,
  * and no hold on a run.
  */
-export class AddOnCallAiFirstResponder1808080000000
+export class AddOnCallAiFirstResponder1808110000000
   implements MigrationInterface
 {
-  public name: string = "AddOnCallAiFirstResponder1808080000000";
+  public name: string = "AddOnCallAiFirstResponder1808110000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

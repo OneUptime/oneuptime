@@ -1,6 +1,7 @@
 import ObjectID from "../../../Types/ObjectID";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
+import { getDropdownLabelDirection } from "./DropdownLabelDirection";
 import joinAriaIds from "../../Utils/AriaIds";
 import useTranslateValue from "../../Utils/Translation";
 import { createTranslator } from "../../Utils/TranslateTemplate";
@@ -63,11 +64,12 @@ export interface DropdownOption {
   isUserContent?: boolean | undefined;
   /*
    * The label is the product's own words, put together by the picker from
-   * translated parts ("Global Runner · Connected"): picked, it is laid out
-   * in the page's direction. Left out, a picked label reads its own
-   * direction (dir="auto"), which keeps a name's start in view - but turns
-   * a Persian label that starts with a Latin word ("Runner سراسری · متصل")
-   * left to right, its words out of order.
+   * translated parts ("Global Runner · Connected"): it reads the page's
+   * way, as a label the Dropdown translates itself does. Left out, a label
+   * nobody translated - a name - reads the way most of its letters do
+   * (DropdownLabelDirection), which would turn a Persian label made of
+   * parts that starts with a Latin word ("Runner سراسری · متصل") left to
+   * right, its words out of order.
    */
   isInPageDirection?: boolean | undefined;
   /*
@@ -279,6 +281,25 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     }
 
     return tx(option.label) ?? option.label;
+  };
+
+  /*
+   * Which way an option's label reads, picked or listed: the page's way
+   * for the product's own words in the reader's language, the way most of
+   * its letters do for a name (DropdownLabelDirection). Undefined: no
+   * `dir` of its own.
+   */
+  const getOptionLabelDirection: (
+    option: DropdownOption,
+  ) => "ltr" | "rtl" | undefined = (
+    option: DropdownOption,
+  ): "ltr" | "rtl" | undefined => {
+    return getDropdownLabelDirection({
+      label: option.label,
+      shownText: getOptionLabelText(option),
+      isUserContent: option.isUserContent,
+      isInPageDirection: option.isInPageDirection,
+    });
   };
 
   const isDropdownOptionGroup: (
@@ -696,10 +717,11 @@ const Dropdown: FunctionComponent<ComponentProps> = (
        * A picked name longer than the control - a template's name on a
        * phone - ends in an ellipsis, not cut off mid-letter: react-select's
        * own ellipsis does not reach text inside these rows, so the rows may
-       * shrink (min-w-0) and the name truncates itself. dir="auto" keeps a
-       * name's start in view whichever way the page reads: an English name
-       * on a Persian page is cut at its end, not its beginning. A label of
-       * the product's own words (isInPageDirection) reads the page's way.
+       * shrink (min-w-0) and the name truncates itself. A name reads the
+       * way most of its letters do, which keeps its start in view whichever
+       * way the page reads: an English name on a Persian page is cut at its
+       * end, not its beginning. A label of the product's own words reads the
+       * page's way (getOptionLabelDirection).
        */
       /*
        * A multi-select's chip shows the whole name, on two lines if it must:
@@ -717,7 +739,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
                   ? MULTI_SELECT_CHIP_LABEL_CLASS_NAME
                   : SINGLE_SELECT_VALUE_LABEL_CLASS_NAME
               }
-              dir={option.isInPageDirection ? undefined : "auto"}
+              dir={getOptionLabelDirection(option)}
               data-testid="dropdown-value-label"
             >
               {getOptionLabelText(option)}
@@ -755,6 +777,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             className={`text-sm font-medium ${
               option.isDisabled ? "text-gray-500" : "text-gray-900"
             }`}
+            dir={getOptionLabelDirection(option)}
+            data-testid="dropdown-option-label"
           >
             {getOptionLabelText(option)}
           </span>

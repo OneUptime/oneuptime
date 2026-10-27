@@ -12,11 +12,11 @@ import IconProp from "Common/Types/Icon/IconProp";
  *   Security Cases   what was found, grouped into things to look into:
  *                    Open Cases, Assigned to Me, Unassigned, Closed Cases
  *                    and All Cases
- *   Events           every security event, how they connect, and who or
- *                    what they name: Events, Campaigns (who is attacking,
- *                    and whether any of it got through), Entities, Entity
- *                    Risk (who is riskiest, from everything found about
- *                    each) and Correlate
+ *   Events           every security event, who is riskiest and how they
+ *                    connect: Events, Campaigns (who is attacking, and
+ *                    whether any of it got through), Entity Risk (every
+ *                    user, host and address scored by everything found
+ *                    about it, and a lookup for any value) and Correlate
  *   Detections       what finds threats in them: Detection Rules, the Rule
  *                    Library, Threat Intel and ATT&CK Coverage
  *   Playbooks        what responds when a case opens: Playbooks, the
@@ -144,15 +144,13 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         icon: IconProp.Flag,
       },
       {
-        page: PageMap.SECURITY_EVENTS_ENTITIES,
-        title: "Entities",
-        icon: IconProp.Fingerprint,
-      },
-      {
         /*
          * Who to look at first: every user, host and address scored by what
          * the rules, threat intel and connected products found about it this
-         * week (Types/SecurityCase/SecurityEntityRisk).
+         * week (Types/SecurityCase/SecurityEntityRisk), and Look Up an Entity
+         * for any value. The product's one riskiest list: the Overview's
+         * Riskiest Entities is its top. Entities, which ranked values by how
+         * many findings named them, folded into it.
          */
         page: PageMap.SECURITY_EVENTS_ENTITY_RISK,
         title: "Entity Risk",
@@ -377,9 +375,13 @@ export const SECURITY_EVENTS_DETAIL_PAGES: Array<PageMap> = [
  * Old addresses that now open somewhere else. Security Events monitors are
  * monitors like any other, listed (and filtered by type) under Monitors; a
  * detection rule already raises an alert, an incident or a case on its own.
+ * Entities ranked values by how many findings named them, beside Entity
+ * Risk's scores: Entity Risk is the one ranking now, with Entities' lookup,
+ * so the old address opens it.
  */
 export const SECURITY_EVENTS_REDIRECTED_PAGES: Array<PageMap> = [
   PageMap.SECURITY_EVENTS_MONITORS,
+  PageMap.SECURITY_EVENTS_ENTITIES,
 ];
 
 // Where the product opens: the overview, not the raw events.

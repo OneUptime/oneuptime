@@ -115,6 +115,9 @@ import { loadSecurityConnections } from "../SecurityEvent/Connections/Connection
 import type { SecurityConnectedRecord } from "../SecurityEvent/Connections/SecurityConnectedRecords";
 import SecurityPlaybookTargets from "./SecurityPlaybookTargets";
 import PartialEntity from "../../../Types/Database/PartialEntity";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import { UnreadableReferenceException } from "../Database/ProjectScopedReferenceRefusal";
 
 export interface PlaybookStepContext {
   projectId: ObjectID;
@@ -154,6 +157,14 @@ const ROOT: { isRoot: true } = { isRoot: true };
 
 // The most entities a containment or lookup step acts on in one run.
 export const PLAYBOOK_STEP_ENTITY_LIMIT: number = 10;
+
+/*
+ * Why a person may not declare a case's incident when it would be linked
+ * to a record they may not read: those links are what the case names, not
+ * anything they picked, so they are not asked to pick others.
+ */
+export const DECLARED_INCIDENT_LINKS_UNREADABLE_MESSAGE: string =
+  "This case names hosts, clusters or services you do not have access to, and the incident declared from it would be linked to them. Ask someone who can see them to declare it.";
 
 function readConfig<T>(step: SecurityPlaybookStep): T {
   return step.config as unknown as T;
@@ -875,6 +886,15 @@ export default class SecurityPlaybookActions {
     incidentSeverityId: ObjectID;
     playbookName?: string | undefined;
     userId?: ObjectID | undefined;
+    /*
+     * The person declaring it from the case's page. The incident is created
+     * as OneUptime, so whether they could create it themselves is asked
+     * first (DatabaseService.checkCallerMayCreate): their permission to
+     * create incidents - and the labels, owners and blocks it is limited
+     * by - on the incident as it will be written, and their read of every
+     * record it is linked to. A playbook step declares it as OneUptime.
+     */
+    declaredBy?: DatabaseCommonInteractionProps | undefined;
   }): Promise<{ incident: Incident; incidentNumber: string }> {
     const caseNumber: string =
       data.securityCase.caseNumberWithPrefix || "Security case";
@@ -882,13 +902,6 @@ export default class SecurityPlaybookActions {
       data.projectId,
       data.securityCase.id!,
     );
-
-    const incident: Incident = new Incident();
-    incident.projectId = data.projectId;
-    incident.title = `${caseNumber}: ${data.securityCase.title || "Security case"}`;
-    incident.incidentSeverityId = data.incidentSeverityId;
-    incident.description =
-      mdText`Declared from security case [${caseNumber}](${caseUrl.toString()}).${data.securityCase.description ? mdText`\n\n${FeedMarkdown.asMarkdown(data.securityCase.description)}` : FeedMarkdown.empty()}`.toString();
 
     /*
      * The incident is about what the case names: the hosts, container
@@ -915,7 +928,38 @@ export default class SecurityPlaybookActions {
       );
     }
 
-    connections.linkIncidentToConnectedRecords(incident, linked);
+    const buildIncident: () => Incident = (): Incident => {
+      const incident: Incident = new Incident();
+      incident.projectId = data.projectId;
+      incident.title = `${caseNumber}: ${data.securityCase.title || "Security case"}`;
+      incident.incidentSeverityId = data.incidentSeverityId;
+      incident.description =
+        mdText`Declared from security case [${caseNumber}](${caseUrl.toString()}).${data.securityCase.description ? mdText`\n\n${FeedMarkdown.asMarkdown(data.securityCase.description)}` : FeedMarkdown.empty()}`.toString();
+
+      connections.linkIncidentToConnectedRecords(incident, linked);
+
+      return incident;
+    };
+
+    // The check changes the record it is handed, so it is handed one of its own.
+    if (data.declaredBy) {
+      try {
+        await IncidentService.checkCallerMayCreate({
+          data: buildIncident(),
+          props: data.declaredBy,
+        });
+      } catch (error) {
+        if (error instanceof UnreadableReferenceException) {
+          throw new BadDataException(
+            DECLARED_INCIDENT_LINKS_UNREADABLE_MESSAGE,
+          );
+        }
+
+        throw error;
+      }
+    }
+
+    const incident: Incident = buildIncident();
 
     if (data.userId) {
       incident.createdByUserId = data.userId;

@@ -34,7 +34,7 @@ Enregistrez les identifiants pour un projet, ou une seule fois pour toute l'inst
 
 | | Configuration du projet | Configuration de l'installation |
 | --- | --- | --- |
-| Où | La carte **Configuration Twilio** dans **Paramètres du projet > Notifications > Paramètres de notification** | **Admin Dashboard > Paramètres > Appel et SMS** |
+| Où | La carte **Configuration Twilio**, sous **Plus de paramètres**, dans **Paramètres du projet > Notifications > Paramètres de notification** | **Admin Dashboard > Paramètres > Appel et SMS** |
 | Qui peut la définir | **Propriétaire du projet**, **Administrateur du projet**, ou **Create Call and SMS** dans un rôle personnalisé | Un administrateur principal |
 | Qui peut lire son Auth Token | **Propriétaire du projet**, **Administrateur du projet**, ou **Read Call and SMS** dans un rôle personnalisé. Les autres personnes qui voient la configuration en voient le reste ; le token est stocké chiffré | Un administrateur principal |
 | Utilisée pour | Les SMS et appels vers les membres du projet tant qu'elle est la configuration par défaut du projet, les pages de statut auxquelles elle est attribuée et les politiques d'appels entrants qui l'utilisent | Les SMS et appels vers les membres de tout projet qui n'a pas de configuration par défaut |
@@ -42,7 +42,7 @@ Enregistrez les identifiants pour un projet, ou une seule fois pour toute l'inst
 Pour ajouter une configuration de projet :
 
 :::steps
-1. Allez dans **Paramètres du projet > Notifications > Paramètres de notification**.
+1. Allez dans **Paramètres du projet > Notifications > Paramètres de notification**, puis ouvrez **Plus de paramètres**.
 2. Dans **Configuration Twilio**, sélectionnez **Créer une configuration Twilio**.
 3. Saisissez un nom, puis choisissez dans **Utiliser ce compte pour** ce que le compte envoie : **Appels et SMS**, **SMS uniquement** ou **Appels uniquement**. Saisissez ensuite **SID de compte Twilio**, **Jeton d'authentification Twilio** et le numéro que ce choix demande : **Numéro de téléphone principal Twilio** pour les appels, ou **Numéros de téléphone SMS Twilio** pour **SMS uniquement**. Sous **Plus de champs**, saisissez éventuellement des **Numéros de téléphone secondaires Twilio** séparés par des virgules pour d'autres pays, et des **Numéros de téléphone SMS Twilio** si vos numéros ne peuvent pas envoyer de SMS.
 4. **Définir par défaut pour le projet** est activé pour la première configuration du projet : les SMS et les appels vers les membres du projet, notifications d'astreinte comprises, passent par elle dès que vous enregistrez. Désactivez-le si ce compte ne sert qu'aux pages de statut ou aux appels entrants. Une configuration ajoutée ensuite commence avec l'interrupteur désactivé : activez-le, ou choisissez **Définir par défaut pour le projet** dans le menu de la ligne de la configuration, pour y faire passer ces messages. Une requête API qui omet `isProjectDefault` est traitée de la même manière.
@@ -177,6 +177,7 @@ Un numéro vérifié pour les SMS l'est aussi pour les appels, sans second code.
 :::cards
 - [Politique d'appels entrants](/docs/on-call/incoming-call-policy): Permettre aux appelants de joindre vos ingénieurs d'astreinte via un numéro Twilio.
 - [Règles d'escalade](/docs/on-call/escalation-rules): Décider qui est alerté à chaque niveau, par SMS, appel ou toute autre méthode.
+- [Passerelle SMS et appels](/docs/self-hosted/sms-and-call-gateway): Envoyer les SMS et les appels par votre propre fournisseur au lieu de Twilio.
 - [SMTP](/docs/emails/smtp): Envoyer aussi les e-mails par votre propre serveur de messagerie.
 - [Accès aux réseaux privés](/docs/self-hosted/private-network-access): Permettre aux workflows et aux webhooks de joindre des outils internes.
 :::

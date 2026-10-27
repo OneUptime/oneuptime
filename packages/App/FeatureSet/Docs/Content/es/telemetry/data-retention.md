@@ -28,10 +28,10 @@ En detalle, OneUptime lee estos ajustes en este orden, y decide el primero que e
 
 | Orden | Ajuste | Dónde se define |
 | --- | --- | --- |
-| 1 | Días para una gravedad de registro o un estado de span, para un servicio o recurso | **Retención por tipo de telemetría**, en su página **Ajustes** |
+| 1 | Días para una gravedad de registro o un estado de span, para un servicio o recurso | **Retención por tipo de telemetría**, en **Más ajustes** de su página **Ajustes** |
 | 2 | Días para un tipo de telemetría, para un servicio o recurso | La misma tarjeta |
-| 3 | Días para todo lo que viene de un servicio o recurso | **Retención de datos de telemetría**, en la misma página |
-| 4 | Días para una gravedad de registro o un estado de span, para el proyecto | **Retención por tipo de telemetría**, en **Retención de datos** |
+| 3 | Días para todo lo que viene de un servicio o recurso | **Retención de datos de telemetría**, en **Más ajustes** de la misma página |
+| 4 | Días para una gravedad de registro o un estado de span, para el proyecto | **Retención por tipo de telemetría**, en **Más ajustes** de **Retención de datos** |
 | 5 | Días para un tipo de telemetría, para el proyecto | La misma tarjeta |
 | 6 | Días para todo lo demás | **Retención predeterminada (días)**, en **Retención de datos** |
 
@@ -64,7 +64,7 @@ Las anulaciones conservan más tiempo lo que necesita y menos el resto: los regi
 
 ### Para todo el proyecto
 
-Debajo del valor predeterminado, la tarjeta **Retención por tipo de telemetría** fija días para cada tipo de telemetría. Haga clic en **Edit Overrides**, rellene los campos que necesite y deje vacíos los demás:
+Debajo del valor predeterminado, plegada en **Más ajustes**, la tarjeta **Retención por tipo de telemetría** fija días para cada tipo de telemetría. Haga clic en **Edit Overrides**, rellene los campos que necesite y deje vacíos los demás:
 
 | Tipo | Campos |
 | --- | --- |
@@ -77,7 +77,7 @@ Un campo vacío recurre al siguiente ajuste del orden de arriba, así que una gr
 
 ### Para un servicio o recurso
 
-Abra la página **Ajustes** del servicio o del recurso. Su tarjeta **Retención de datos de telemetría** contiene **Conservar datos de telemetría durante (días)**, un solo número para todo lo que envía, y su tarjeta **Retención por tipo de telemetría** tiene los mismos campos que la del proyecto. Deje un campo vacío para usar los ajustes del proyecto.
+Abra la página **Ajustes** del servicio o del recurso y luego **Más ajustes**. Su tarjeta **Retención de datos de telemetría** contiene **Conservar datos de telemetría durante (días)**, un solo número para todo lo que envía, y su tarjeta **Retención por tipo de telemetría** tiene los mismos campos que la del proyecto. Deje un campo vacío para usar los ajustes del proyecto.
 
 Los servicios, los hosts, los clústeres de Kubernetes, los hosts de Docker y Podman, los clústeres de Docker Swarm, Proxmox y Ceph, las cabinas de almacenamiento, los vCenter, las bases de datos, las funciones serverless, los recursos en la nube, las aplicaciones RUM y las flotas IoT tienen todos estas tarjetas. Consulte el [Catálogo de servicios](/docs/telemetry/services#cambiar-un-servicio) para la página **Ajustes** de un servicio.
 

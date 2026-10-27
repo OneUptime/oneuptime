@@ -1,4 +1,10 @@
 import PageComponentProps from "../Pages/PageComponentProps";
+import {
+  CustomRolesCardState,
+  CustomRolesCardStateHandler,
+} from "../Components/CustomRole/CustomRolesFold";
+import { SubscriberRestrictionsState } from "../Components/StatusPage/SubscriberRestrictionsCopy";
+import { TelemetryRetentionFoldStateHandler } from "../Components/TelemetryResource/TelemetryRetentionFold";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
@@ -80,21 +86,83 @@ export interface TelemetryResourceRetentionSettingsProps {
    * says it in its description, after its own first sentence.
    */
   scopeNote?: string | undefined;
+  /*
+   * The cards wait folded under the page's More settings: each tells the
+   * page what it holds - the resource's own retention, how many types it
+   * overrides - once read and after each save, so the folded header can
+   * say so (Components/TelemetryResource/TelemetryRetentionFold).
+   */
+  onRetentionChange?: TelemetryRetentionFoldStateHandler | undefined;
 }
+
+/*
+ * Props of the project's retention by telemetry type (Settings >
+ * Telemetry), which waits folded under the page's More settings: it tells
+ * the page how many types it overrides, once read and after each save.
+ */
+export interface ProjectTelemetryRetentionByTypeProps
+  extends PageComponentProps {
+  onRetentionChange?: TelemetryRetentionFoldStateHandler | undefined;
+}
+
+/*
+ * What a custom roles card holds, told to the page it is drawn on: declared
+ * with the More settings rules that read it, React-free
+ * (Components/CustomRole/CustomRolesFold).
+ */
+export type { CustomRolesCardState, CustomRolesCardStateHandler };
 
 // Props of a team's custom roles card, on the team's Permissions page.
 export interface TeamCustomRolesProps {
   teamId: ObjectID;
+  onRolesChange?: CustomRolesCardStateHandler | undefined;
 }
 
 // Props of an API key's custom roles card, on the key's page.
 export interface ApiKeyCustomRolesProps {
   apiKeyId: ObjectID;
+  onRolesChange?: CustomRolesCardStateHandler | undefined;
 }
 
 // Props of a status page card that edits one page's settings.
 export interface StatusPageSettingCardProps {
   statusPageId: ObjectID;
+}
+
+/*
+ * Props of a status page's Powered by OneUptime card (Advanced Settings),
+ * which waits folded under the page's More settings: it tells the page
+ * whether visitors see the line, once read and after each save, so the
+ * folded header can mark it while the line is hidden.
+ */
+export interface StatusPagePoweredByCardProps
+  extends StatusPageSettingCardProps {
+  onPoweredByChange?: ((isShown: boolean) => void) | undefined;
+}
+
+/*
+ * Props of a status page's Reader Sessions card (Security > Access), which
+ * waits folded under the page's More settings: it tells the page how long
+ * readers stay signed in - hours, or null for no limit - once read and
+ * after each save, so the folded header can say so.
+ */
+export interface StatusPageSessionLengthCardProps
+  extends StatusPageSettingCardProps {
+  onLengthChange?: ((lengthInHours: number | null) => void) | undefined;
+}
+
+/*
+ * Props of a status page's Who Can Subscribe card (Subscribers > Settings),
+ * which waits folded under the page's More settings: it tells the page
+ * what it restricts, once read and after each save, so the folded header
+ * can mark it while anything is (Components/StatusPage
+ * /SubscriberRestrictionsCopy).
+ */
+export interface StatusPageSubscriberRestrictionsCardProps
+  extends StatusPageSettingCardProps {
+  onRestrictionsChange?:
+    | ((restrictions: SubscriberRestrictionsState) => void)
+    | undefined;
 }
 
 // A status page, public dashboard or form: the records with an IP allow-list.
@@ -174,7 +242,7 @@ export interface DashboardEnterprisePlugins {
    * project's default retention stays in core, on the same page.
    */
   SettingsTelemetryRetentionByType?:
-    | EnterprisePluginComponent<PageComponentProps>
+    | EnterprisePluginComponent<ProjectTelemetryRetentionByTypeProps>
     | undefined;
 
   /*
@@ -211,12 +279,12 @@ export interface DashboardEnterprisePlugins {
 
   // A status page's Powered by OneUptime switch (Settings > Display).
   StatusPagePoweredBy?:
-    | EnterprisePluginComponent<StatusPageSettingCardProps>
+    | EnterprisePluginComponent<StatusPagePoweredByCardProps>
     | undefined;
 
   // A status page's Reader Sessions card (Security > Access).
   StatusPageSessionLength?:
-    | EnterprisePluginComponent<StatusPageSettingCardProps>
+    | EnterprisePluginComponent<StatusPageSessionLengthCardProps>
     | undefined;
 
   /*
@@ -224,7 +292,7 @@ export interface DashboardEnterprisePlugins {
    * private users can subscribe, and the email domains subscribers may use.
    */
   StatusPageSubscriberRestrictions?:
-    | EnterprisePluginComponent<StatusPageSettingCardProps>
+    | EnterprisePluginComponent<StatusPageSubscriberRestrictionsCardProps>
     | undefined;
 
   /*

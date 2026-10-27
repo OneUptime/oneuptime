@@ -1365,6 +1365,7 @@ export default class SecurityCaseNotifications {
           alertBySlack: true,
           alertByMicrosoftTeams: true,
           alertByWebhook: true,
+          alertByCustomChannel: true,
         },
         skip: 0,
         limit: LIMIT_MAX,
@@ -1392,7 +1393,8 @@ export default class SecurityCaseNotifications {
         setting.alertByTelegram ||
         setting.alertBySlack ||
         setting.alertByMicrosoftTeams ||
-        setting.alertByWebhook,
+        setting.alertByWebhook ||
+        setting.alertByCustomChannel,
     );
   }
 

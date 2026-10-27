@@ -6,8 +6,12 @@ import {
   CRITICALITY_SINGULAR,
   CRITICALITY_TABLE_TITLE,
   CRITICALITY_WEIGHT_LABELS,
+  ENTITY_LOOKUP_DESCRIPTION,
+  ENTITY_LOOKUP_HOURS,
+  ENTITY_LOOKUP_TITLE,
   HISTORY_CARD_TITLE,
   OPEN_IN_CORRELATE,
+  RISKIEST_ENTITIES_TITLE,
   RESET_RISK,
   RESET_RISK_CONFIRM_DESCRIPTION,
   RISK_BREAKDOWN,
@@ -325,6 +329,41 @@ describe("Entity Risk docs", () => {
     ).toContain("to={getEntityRiskRoute(props.entityValue, props.entityType)}");
     expect(page).toContain(
       `Click ${bold("View")} on a row of ${bold("Entity Risk")}, or the risk beside an entity on a case's ${bold("Entities")} page:`,
+    );
+  });
+
+  /*
+   * One riskiest list: the Overview's Riskiest Entities is the top of this
+   * one, read with the overview (SecurityRiskiestEntities), and Look Up an
+   * Entity - any value, of any kind, over 30 days - sits under it, since
+   * the Entities page folded into Entity Risk.
+   */
+  it("says the Overview's Riskiest Entities is the top of this list, and Look Up an Entity is under it", () => {
+    expect(page).toContain(
+      `Each one opens on a page of its own. The Overview's ${bold(RISKIEST_ENTITIES_TITLE)} shows the top of this list, and ${bold(ENTITY_LOOKUP_TITLE)}, under it, looks any value up across 30 days of events, a domain or a file hash too.`,
+    );
+
+    // 30 days, of any kind: what the lookup reads and says.
+    expect(ENTITY_LOOKUP_HOURS).toBe(30 * 24);
+    expect(ENTITY_LOOKUP_DESCRIPTION).toContain("domain or file hash");
+    expect(ENTITY_LOOKUP_DESCRIPTION).toContain("over the last 30 days");
+
+    // The Overview's card reads Entity Risk's own rows, the riskiest first.
+    const reader: string = flat(
+      source(
+        "Common/Server/Utils/SecurityEvent/EntityRisk/SecurityRiskiestEntities.ts",
+      ),
+    );
+    expect(reader).toContain("riskScore: QueryHelper.greaterThan(0)");
+    expect(reader).toContain("sort: { riskScore: SortOrder.Descending, }");
+    expect(reader).toContain("SecurityEntityRiskService.findBy(");
+
+    // The lookup is drawn under the list.
+    const list: string = flat(
+      source(`${DASHBOARD}/Pages/SecurityEvents/EntityRisk.tsx`),
+    );
+    expect(list.indexOf("<EntityLookupCard />")).toBeGreaterThan(
+      list.indexOf("<ModelTable<SecurityEntityRisk>"),
     );
   });
 

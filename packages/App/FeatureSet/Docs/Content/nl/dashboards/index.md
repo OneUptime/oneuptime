@@ -45,7 +45,7 @@ Het zijmenu van de lijst bevat de pagina's die al je dashboards beheren:
 
 | Pagina | Wat je er doet |
 | --- | --- |
-| **Dashboards** | De dashboards van het project. Maak er een, of haal dashboards binnen met **Import JSON**. |
+| **Dashboards** | De dashboards van het project. Maak er een, of haal dashboards binnen met **JSON importeren**. |
 | **Dashboards → Afspeellijsten** | [Dashboards na elkaar tonen](/docs/dashboards/playlists) op een scherm, zoals een NOC-wand. |
 | **Instellingen → Eigenaarsregels** | Automatisch eigenaren toevoegen aan nieuwe dashboards. |
 | **Instellingen → Labelregels** | Automatisch labels toevoegen aan nieuwe dashboards. |

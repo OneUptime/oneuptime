@@ -638,6 +638,14 @@ describe("UserNotificationRuleService.executeNotificationRuleItem", () => {
           secret: true,
           userId: true,
         },
+        /*
+         * A custom channel's name and switch, and never its URL or secret:
+         * those are read by the sender alone.
+         */
+        customNotificationChannel: {
+          name: true,
+          isEnabled: true,
+        },
         userEmail: {
           email: true,
           isVerified: true,

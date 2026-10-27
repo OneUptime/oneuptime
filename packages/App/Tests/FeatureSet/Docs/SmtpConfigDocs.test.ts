@@ -239,6 +239,8 @@ describe("the SMTP guide says where each setting of the two-step form is", () =>
       const section: string = addingSection(lang);
 
       expect(section).toContain(`**${words("Custom SMTP Configs")}**`);
+      // Which waits folded under the page's More settings.
+      expect(section).toContain(`**${words("More settings")}**`);
       expect(section).toContain("Admin Dashboard");
 
       const adminCard: string = adminText(

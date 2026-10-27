@@ -12,6 +12,10 @@ import {
   loadCustomRoles,
 } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleOptions";
 import {
+  CUSTOM_ROLES_CARD_PLACE,
+  CustomRolesCardStateHandler,
+} from "@oneuptime/dashboard/Components/CustomRole/CustomRolesFold";
+import {
   EVERY_ROLE_GIVEN_TO_API_KEY_TOOLTIP,
   getAddRoleToApiKeyDescription,
   getApiKeyOwnedScopeReason,
@@ -58,9 +62,13 @@ import React, {
 } from "react";
 
 /*
- * AN API KEY'S CUSTOM ROLES, on its page above what it was given directly:
- * "Incident Responder - 6 permissions", each a link to the role - as a
- * team's Permissions page lists the team's (TeamCustomRoleTable).
+ * AN API KEY'S CUSTOM ROLES, in its page's More settings, before Block
+ * Permissions: "Incident Responder - 6 permissions", each a link to the
+ * role - as a team's Permissions page lists the team's
+ * (TeamCustomRoleTable). An advanced feature most projects never use, so
+ * the page opens on what the key was given directly; the card tells the
+ * page what it holds, so the folded header names it, with how many roles
+ * the key has (onRolesChange, CustomRolesFold).
  *
  * Add Custom Role picks one of the project's roles from cards that say how
  * many of its permissions the key would hold; Remove takes it away. The key
@@ -91,6 +99,7 @@ import React, {
 
 export interface ComponentProps {
   apiKeyId: ObjectID;
+  onRolesChange?: CustomRolesCardStateHandler | undefined;
 }
 
 export const API_KEY_CUSTOM_ROLES_TEST_ID: string = "api-key-custom-roles";
@@ -164,6 +173,20 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
         setOwnedCounts(new Map<string, number>());
       });
   }, []);
+
+  /*
+   * Once the project's roles are read, whether the card is drawn: a project
+   * with no custom role has none. Its page names it in More settings only
+   * while it is; the table says how many it holds.
+   */
+  const isDecided: boolean = roles !== null;
+  const isShown: boolean = Boolean(roles && roles.length > 0);
+
+  useEffect(() => {
+    if (isDecided && !isShown) {
+      props.onRolesChange?.({ isShown: false, count: 0 });
+    }
+  }, [isDecided, isShown]);
 
   if (!roles || roles.length === 0) {
     return <></>;
@@ -256,11 +279,19 @@ const ApiKeyCustomRoleTable: FunctionComponent<ComponentProps> = (
           onItemDeleted={() => {
             setRefreshToggle(new Date().toISOString());
           }}
+          onFetchSuccess={(
+            _data: Array<ApiKeyCustomRole>,
+            totalCount: number,
+          ) => {
+            props.onRolesChange?.({ isShown: true, count: totalCount });
+          }}
           query={{
             apiKeyId: props.apiKeyId,
             projectId: ProjectUtil.getCurrentProjectId()!,
           }}
           cardProps={{
+            // Its place in More settings: what a link to it names.
+            id: CUSTOM_ROLES_CARD_PLACE,
             title: "Custom Roles",
             /*
              * Roles is a link: the page waits in the Teams menu's folded

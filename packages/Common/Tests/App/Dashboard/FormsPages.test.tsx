@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
@@ -213,7 +220,13 @@ import FormsSubmissions from "../../../../App/FeatureSet/Dashboard/src/Pages/For
 import FormBuild from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Build";
 import FormDelete from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Delete";
 import FormOnSubmit from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/OnSubmit";
-import FormShare from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Share";
+import FormShare, {
+  FORM_SHARE_MORE_SETTINGS_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Share";
+import {
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 import FormViewSubmissions from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Submissions";
 import FormTemplatesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Templates";
 import FormDuplicate, {
@@ -491,7 +504,7 @@ describe("a form's pages", () => {
   });
 
   describe("Share", () => {
-    test("has the status, the link, the thank-you message and the access, in that order", async () => {
+    test("has the status, the link, the thank-you message and, folded, the IP allowlist, in that order", async () => {
       await renderAt(<FormShare {...PAGE_PROPS} />);
 
       expect(String(recorded["status"]![0]!["formId"])).toBe(FORM_ID);
@@ -540,8 +553,6 @@ describe("a form's pages", () => {
         cardName: "Form > Access",
         modelDetailId: "model-detail-form-access",
         title: FormsCopy.ipAllowlistTitle,
-        // The card is Access, as the Share page always called it.
-        cardTitle: "Access",
         description: FormsCopy.accessDescription,
         editButtonText: FormsCopy.editIpAllowlist,
         fieldDescription: FormsCopy.ipAllowlistDescription,
@@ -549,6 +560,89 @@ describe("a form's pages", () => {
         noAddressText: FormsCopy.ipAllowlistNoAddress,
         entriesTestId: "form-ip-allowlist",
       });
+      /*
+       * Folded under More settings, the card is titled as its folded name,
+       * IP Allowlist, as on a dashboard's Sharing and a status page's
+       * Access - not "Access", which said nothing folded.
+       */
+      expect(shell["cardTitle"]).toBeUndefined();
+      expect(typeof shell["onLoaded"]).toBe("function");
+    });
+
+    /*
+     * The IP allowlist is an Enterprise feature few forms need: it waits
+     * under More settings, folded, the header naming it - and, while the
+     * server enforces one, how many entries it holds.
+     */
+    test("folds the IP allowlist under More settings, named while folded", async () => {
+      await renderAt(<FormShare {...PAGE_PROPS} />);
+
+      const more: HTMLElement = screen.getByTestId(
+        FORM_SHARE_MORE_SETTINGS_TEST_ID,
+      );
+      const header: HTMLElement = within(more).getByRole("button", {
+        name: "More settings",
+      });
+
+      expect(header).toHaveAttribute("aria-expanded", "false");
+      expect(listedNames(header)).toEqual([FormsCopy.ipAllowlistTitle]);
+      expect(setChips(header)).toEqual([]);
+      expect(more).toContainElement(screen.getByTestId("stub-ipAllowlist"));
+
+      // Read, and open to every network: the header says so.
+      await act(async () => {
+        (recorded["ipAllowlist"]![0]!["onLoaded"] as (list: string) => void)(
+          "",
+        );
+      });
+
+      expect(
+        within(header).getByText(FormsCopy.moreSettingsSummaryOpen),
+      ).toBeInTheDocument();
+
+      // An allowlist in force: a chip with how many entries it holds.
+      const drawn: Array<Record<string, unknown>> = recorded["ipAllowlist"]!;
+
+      await act(async () => {
+        (drawn[drawn.length - 1]!["onLoaded"] as (list: string) => void)(
+          "203.0.113.7\n10.0.0.0/8",
+        );
+      });
+
+      expect(setChips(header)).toEqual([`${FormsCopy.ipAllowlistTitle}: 2`]);
+      expect(
+        within(header).getByText(FormsCopy.moreSettingsSummaryConfigured),
+      ).toBeInTheDocument();
+      // Saying so does not open it.
+      expect(header).toHaveAttribute("aria-expanded", "false");
+
+      fireEvent.click(header);
+
+      /*
+       * Open, the header is its title alone: the IP Allowlist card right
+       * under it says what it is.
+       */
+      expect(header).toHaveAttribute("aria-expanded", "true");
+      expect(header).toHaveTextContent(/^More settings$/);
+      expect(
+        within(header).queryByTestId("folded-section-description"),
+      ).toBeNull();
+    });
+
+    test("opened at #ip-allowlist: More settings opens there", async () => {
+      window.history.replaceState(null, "", "#ip-allowlist");
+
+      try {
+        await renderAt(<FormShare {...PAGE_PROPS} />);
+
+        expect(
+          within(
+            screen.getByTestId(FORM_SHARE_MORE_SETTINGS_TEST_ID),
+          ).getByRole("button", { name: "More settings" }),
+        ).toHaveAttribute("aria-expanded", "true");
+      } finally {
+        window.history.replaceState(null, "", "#");
+      }
     });
   });
 

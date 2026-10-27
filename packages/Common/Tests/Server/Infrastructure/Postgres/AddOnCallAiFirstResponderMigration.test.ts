@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddOnCallAiFirstResponder1808080000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808080000000-AddOnCallAiFirstResponder";
+import { AddOnCallAiFirstResponder1808110000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1808110000000-AddOnCallAiFirstResponder";
 import AlertEpisodeOnCallRule from "../../../../Models/DatabaseModels/AlertEpisodeOnCallRule";
 import AlertOnCallRule from "../../../../Models/DatabaseModels/AlertOnCallRule";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -26,7 +26,7 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * statements to the models.
  */
 
-const MIGRATION_TIMESTAMP: string = "1808080000000";
+const MIGRATION_TIMESTAMP: string = "1808110000000";
 const MIGRATION_BASE_NAME: string = "AddOnCallAiFirstResponder";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -50,7 +50,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddOnCallAiFirstResponder1808080000000();
+    new AddOnCallAiFirstResponder1808110000000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -61,7 +61,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddOnCallAiFirstResponder1808080000000", () => {
+describe("AddOnCallAiFirstResponder1808110000000", () => {
   test("adds how long OneUptime AI may hold a page to each on-call rule", async () => {
     const up: Array<string> = await statementsOf("up");
 
@@ -109,7 +109,7 @@ describe("AddOnCallAiFirstResponder1808080000000", () => {
     });
 
     expect(registered).toContain(MIGRATION_CLASS_NAME);
-    expect(new AddOnCallAiFirstResponder1808080000000().name).toBe(
+    expect(new AddOnCallAiFirstResponder1808110000000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(

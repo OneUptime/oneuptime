@@ -34,7 +34,7 @@ Sla de inloggegevens op voor één project, of eenmalig voor de hele installatie
 
 | | Projectconfiguratie | Configuratie voor de hele installatie |
 | --- | --- | --- |
-| Waar | De kaart **Twilio-configuratie** onder **Projectinstellingen > Meldingen > Meldingsinstellingen** | **Admin Dashboard > Instellingen > Oproep en sms** |
+| Waar | De kaart **Twilio-configuratie** onder **Meer instellingen** op **Projectinstellingen > Meldingen > Meldingsinstellingen** | **Admin Dashboard > Instellingen > Oproep en sms** |
 | Wie kan het instellen | **Projecteigenaar**, **Projectbeheerder**, of **Create Call and SMS** in een aangepaste rol | Een master-admin |
 | Wie het Auth Token kan lezen | **Projecteigenaar**, **Projectbeheerder**, of **Read Call and SMS** in een aangepaste rol. Anderen die de configuratie zien, zien de rest ervan; het token wordt versleuteld opgeslagen | Een master-admin |
 | Gebruikt voor | Sms en oproepen naar de leden van het project zolang het de projectstandaard is, de statuspagina's waaraan het is toegewezen en het beleid voor inkomende oproepen dat het gebruikt | Sms en oproepen naar de leden van elk project dat geen standaardconfiguratie heeft |
@@ -42,7 +42,7 @@ Sla de inloggegevens op voor één project, of eenmalig voor de hele installatie
 Zo voegt u een projectconfiguratie toe:
 
 :::steps
-1. Ga naar **Projectinstellingen > Meldingen > Meldingsinstellingen**.
+1. Ga naar **Projectinstellingen > Meldingen > Meldingsinstellingen** en open **Meer instellingen**.
 2. Kies in **Twilio-configuratie** de knop **Twilio-configuratie maken**.
 3. Vul een naam in en kies bij **Dit account gebruiken voor** wat het account verstuurt: **Oproepen en sms**, **Alleen sms** of **Alleen oproepen**. Vul daarna **Twilio-account-SID**, **Twilio-authenticatietoken** en het nummer in waar die keuze om vraagt: **Twilio primair telefoonnummer** voor oproepen, of **Twilio sms-telefoonnummers** voor **Alleen sms**. Vul onder **Meer velden** eventueel door komma's gescheiden **Twilio secundaire telefoonnummers** in voor andere landen, en **Twilio sms-telefoonnummers** als uw nummers geen sms kunnen versturen.
 4. **Instellen als projectstandaard** staat aan voor de eerste configuratie van het project, zodat de sms en oproepen naar de leden van het project, inclusief on-call-meldingen, er meteen na het opslaan via lopen. Zet het uit als dit account alleen voor statuspagina's of inkomende oproepen is. Een latere configuratie begint met de schakelaar uit: zet hem aan, of kies **Instellen als projectstandaard** in het rijmenu van de configuratie, om die berichten ernaartoe te verplaatsen. Een API-verzoek dat `isProjectDefault` weglaat, wordt op dezelfde manier behandeld.
@@ -177,6 +177,7 @@ Een nummer dat voor sms is geverifieerd, is ook voor oproepen geverifieerd, zond
 :::cards
 - [Beleid voor inkomende oproepen](/docs/on-call/incoming-call-policy): Bellers via een Twilio-nummer uw on-call-engineers laten bereiken.
 - [Escalatieregels](/docs/on-call/escalation-rules): Bepalen wie op elk niveau wordt opgeroepen, per sms, oproep of een andere methode.
+- [Sms- en belgateway](/docs/self-hosted/sms-and-call-gateway): Sms-berichten en oproepen via uw eigen provider versturen in plaats van via Twilio.
 - [SMTP](/docs/emails/smtp): Ook e-mail via uw eigen mailserver versturen.
 - [Toegang tot privénetwerken](/docs/self-hosted/private-network-access): Workflows en webhooks interne tools laten bereiken.
 :::

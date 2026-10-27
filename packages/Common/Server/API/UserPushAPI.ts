@@ -4,6 +4,8 @@ import UserPushService, {
 } from "../Services/UserPushService";
 import UserNotificationRuleService from "../Services/UserNotificationRuleService";
 import PushNotificationService from "../Services/PushNotificationService";
+import GlobalConfigService from "../Services/GlobalConfigService";
+import { PUSH_NOTIFICATIONS_TURNED_OFF_MESSAGE } from "../../Types/PushNotification/PushNotificationsTurnedOff";
 import ExpoPushReceiptQueue from "../Infrastructure/ExpoPushReceiptQueue";
 import PushNotificationUtil from "../Utils/PushNotificationUtil";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
@@ -281,6 +283,20 @@ export default class UserPushAPI extends BaseAPI<
           req = req as OneUptimeRequest;
 
           const userId: ObjectID = getAuthenticatedUserId(req);
+
+          /*
+           * No device is registered while the server has push turned off
+           * (PushNotificationsTurnedOff): nothing would reach it. The
+           * mobile app takes the refusal as it takes any other, and asks
+           * again the next time it starts.
+           */
+          if (await GlobalConfigService.getPushNotificationsTurnedOff()) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(PUSH_NOTIFICATIONS_TURNED_OFF_MESSAGE),
+            );
+          }
 
           if (!req.body.deviceToken) {
             return Response.sendErrorResponse(
@@ -779,6 +795,15 @@ export default class UserPushAPI extends BaseAPI<
           const sender: TestSendToSelfCaller =
             await TestSendAccess.assertMaySendTestToSelf(req);
           const userId: ObjectID = sender.userId;
+
+          // Said outright, rather than sent nowhere, while push is off.
+          if (await GlobalConfigService.getPushNotificationsTurnedOff()) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(PUSH_NOTIFICATIONS_TURNED_OFF_MESSAGE),
+            );
+          }
 
           if (!req.params["deviceId"]) {
             return Response.sendErrorResponse(

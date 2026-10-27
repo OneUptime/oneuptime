@@ -402,7 +402,8 @@ export interface LicenseStateCase {
 
 /*
  * A license that entitles everything except the runtime features (SCIM, audit
- * logs, retention overrides, status pages without Powered by OneUptime).
+ * logs, retention overrides, status pages without Powered by OneUptime,
+ * custom notification channels).
  */
 export const FEATURES_WITHOUT_RUNTIME_FEATURES: Array<EnterpriseFeature> = [
   EnterpriseFeature.TeamCompliance,

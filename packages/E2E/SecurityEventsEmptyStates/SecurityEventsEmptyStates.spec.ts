@@ -283,6 +283,8 @@ interface OpenOptions {
   latest?: "none" | "pending" | "old" | undefined;
   // Three SIEMs in the Send to your SIEM table.
   siem?: "none" | "rows" | undefined;
+  // Three security tools in the Your security tools table.
+  tools?: "none" | "rows" | undefined;
   // One event in the window, so its drawer can be opened.
   events?: "none" | "one" | undefined;
   // Your logs on already (checked two minutes ago), or a read that fails.
@@ -453,6 +455,9 @@ async function open(
   }
   if (options.siem && options.siem !== "none") {
     params.set("siem", options.siem);
+  }
+  if (options.tools && options.tools !== "none") {
+    params.set("tools", options.tools);
   }
   if (options.events && options.events !== "none") {
     params.set("events", options.events);
@@ -1586,7 +1591,7 @@ test.describe("connections: your logs and your SIEM", () => {
     });
   }
 
-  test("reads top to bottom: your logs, your security tools, your SIEM", async ({
+  test("reads top to bottom: your logs, your OneUptime data, your security tools, your SIEM", async ({
     page,
   }: {
     page: Page;
@@ -1597,8 +1602,10 @@ test.describe("connections: your logs and your SIEM", () => {
       .getByTestId("card")
       .getByRole("heading", { level: 2 })
       .allInnerTexts();
+    // Your OneUptime data (#5336): the traces, flows, audit log and replays Security watches.
     expect(headings).toEqual([
       "Your logs",
+      "Your OneUptime data",
       "Your security tools",
       "Send to your SIEM",
     ]);
@@ -1869,6 +1876,122 @@ test.describe("connections: your logs and your SIEM", () => {
     await siemCard(page).scrollIntoViewIfNeeded();
     await screenshot(page, "connections-siem-rows-desktop", {
       clip: siemCard(page),
+    });
+  });
+
+  function toolsCard(page: Page): Locator {
+    return page.getByTestId("card").filter({
+      has: page.getByRole("heading", {
+        level: 2,
+        name: "Your security tools",
+        exact: true,
+      }),
+    });
+  }
+
+  /*
+   * Your security tools was twice its card's width at 1280 with all eight
+   * columns, its times out of sight under the row's buttons (#5246). Each
+   * tool's provider, and what it imports, sits under its name, as each
+   * SIEM's does; when it last polled and last brought an event in read as
+   * how long ago; Status (Health says Paused), the poll interval and the
+   * last successful poll wait in Customize Columns. The table fits.
+   */
+  test("each tool's row says what it is under its name, its times as how long ago, and the table fits its card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 1440]) {
+      await open(page, CONNECTIONS_PATH, { tools: "rows", width });
+      const card: Locator = toolsCard(page);
+      const rows: Locator = card.locator("tbody tr");
+      await expect(rows).toHaveCount(3, { timeout: 30000 });
+
+      const headers: Array<string> = (
+        await card.locator("thead th").allInnerTexts()
+      ).map((text: string): string => {
+        return text.replace(/\s+/g, " ").trim();
+      });
+      expect(headers).toEqual([
+        "Select all items",
+        "Name",
+        "Health",
+        "Last Polled",
+        "Last Event Imported",
+        "Actions",
+      ]);
+
+      // What each is, under its name, in the fixture's order.
+      await expect(
+        card.getByTestId("security-event-connection-provider"),
+      ).toHaveText([
+        "Okta System Log",
+        "Microsoft Defender XDR",
+        "Google SecOps · Alerts only",
+      ]);
+      const okta: Locator = rows.filter({ hasText: "Okta production" });
+      const name: Box = await documentBox(
+        okta.getByTestId("security-list-name"),
+      );
+      const provider: Box = await documentBox(
+        okta.getByTestId("security-event-connection-provider"),
+      );
+      expect(provider.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
+      expect(Math.abs(provider.x - name.x)).toBeLessThanOrEqual(1);
+
+      // Health, then how long ago it polled and an event came in.
+      await expect(okta).toContainText("2 minutes ago");
+      await expect(okta).toContainText("3 minutes ago");
+      await expect(
+        rows.filter({ hasText: "Google SecOps detections" }),
+      ).toContainText("Schedule paused");
+      await expect(
+        rows
+          .filter({ hasText: "Defender XDR - EU tenant" })
+          .getByRole("button", { name: "View Error" }),
+      ).toBeVisible();
+
+      // Nothing scrolls sideways under the sticky actions.
+      const overflow: number = await card
+        .getByTestId("table-scroll")
+        .evaluate((element: Element): number => {
+          return element.scrollWidth - element.clientWidth;
+        });
+      expect(
+        overflow,
+        `${width}: the table scrolls sideways`,
+      ).toBeLessThanOrEqual(1);
+      await expect(card.getByTestId("table-scroll")).toHaveAttribute(
+        "data-overflowing",
+        "false",
+      );
+      await expectNoHorizontalOverflow(page);
+    }
+
+    await toolsCard(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-tools-rows-desktop", {
+      clip: toolsCard(page),
+    });
+  });
+
+  test("a phone reads each tool as a card: its name over what it is, then its health and times", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CONNECTIONS_PATH, { tools: "rows", width: 390 });
+    const card: Locator = toolsCard(page);
+    await expect(
+      card.getByTestId("security-event-connection-provider"),
+    ).toHaveCount(3, { timeout: 30000 });
+    await expect(
+      card.getByTestId("security-event-connection-provider").nth(2),
+    ).toHaveText("Google SecOps · Alerts only");
+    await expectNoHorizontalOverflow(page);
+    await toolsCard(page).scrollIntoViewIfNeeded();
+    await screenshot(page, "connections-tools-rows-phone", {
+      clip: toolsCard(page),
     });
   });
 

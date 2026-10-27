@@ -53,6 +53,8 @@ const ENTERPRISE_FEATURE_BY_TABLE_NAME: ReadonlyMap<string, EnterpriseFeature> =
     // The instance's backups: where they go, and each backup and restore.
     ["BackupSetting", EnterpriseFeature.Backups],
     ["BackupRun", EnterpriseFeature.Backups],
+    // The server's custom notification channels.
+    ["CustomNotificationChannel", EnterpriseFeature.CustomNotificationChannels],
   ]);
 
 /*
@@ -113,6 +115,10 @@ export const IP_ALLOWLIST_TABLE_NAMES: ReadonlyArray<string> = [
  *     .privateUserSessionLengthInHours     private users stay signed in, only
  *     .limitSubscribersToPrivateUsers      private users can subscribe, and
  *     .allowedSubscriberEmailDomains       subscribers' email domains.
+ *   UserNotificationRule                   an on-call rule that pages
+ *     .customNotificationChannelId         through a custom channel.
+ *   UserNotificationSetting                a person's notifications through
+ *     .alertByCustomChannel                the custom channels.
  */
 const ENTERPRISE_FEATURE_BY_TABLE_COLUMN: ReadonlyMap<
   string,
@@ -149,6 +155,16 @@ const ENTERPRISE_FEATURE_BY_TABLE_COLUMN: ReadonlyMap<
   ],
   ["Dashboard", { ipWhitelist: EnterpriseFeature.IpAllowlists }],
   ["Form", { ipWhitelist: EnterpriseFeature.IpAllowlists }],
+  [
+    "UserNotificationRule",
+    {
+      customNotificationChannelId: EnterpriseFeature.CustomNotificationChannels,
+    },
+  ],
+  [
+    "UserNotificationSetting",
+    { alertByCustomChannel: EnterpriseFeature.CustomNotificationChannels },
+  ],
 ]);
 
 /*
@@ -160,6 +176,7 @@ export const RUNTIME_ENTERPRISE_FEATURES: ReadonlyArray<EnterpriseFeature> = [
   EnterpriseFeature.AuditLogs,
   EnterpriseFeature.TelemetryRetention,
   EnterpriseFeature.StatusPageBranding,
+  EnterpriseFeature.CustomNotificationChannels,
 ];
 
 // How the lapse log names each feature.
@@ -180,6 +197,10 @@ const FEATURE_NAMES: ReadonlyMap<EnterpriseFeature, string> = new Map<
   ],
   [EnterpriseFeature.StatusPageAccessControls, "status page access controls"],
   [EnterpriseFeature.Backups, "backups"],
+  [
+    EnterpriseFeature.CustomNotificationChannels,
+    "custom notification channels",
+  ],
 ]);
 
 /*
@@ -212,8 +233,9 @@ export type EnterpriseFeatureStateListener = (
  *   isFeatureActive()     the ee code is present AND the feature is licensed
  *                         right now. Governs RUNTIME behaviour: SCIM
  *                         provisioning and its team locks, audit-log
- *                         recording, retention overrides and status pages
- *                         without "Powered by OneUptime". When a self-hosted
+ *                         recording, retention overrides, status pages
+ *                         without "Powered by OneUptime" and what goes to
+ *                         custom notification channels. When a self-hosted
  *                         license lapses these
  *                         stop, exactly as on the Community Edition, and they
  *                         resume without a restart when a license is

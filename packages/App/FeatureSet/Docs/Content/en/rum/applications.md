@@ -108,7 +108,7 @@ An application's telemetry and its recordings are kept for different lengths of 
 
 ### Telemetry retention
 
-By default an application's telemetry is kept for the project's retention, which is set under **Project Settings → Telemetry & APM → Data Retention**. Two cards on the application's **Settings** page override it:
+By default an application's telemetry is kept for the project's retention, which is set under **Project Settings → Telemetry & APM → Data Retention**. Two cards on the application's **Settings** page, folded under **More settings**, override it:
 
 - **Telemetry Data Retention** holds **Retain Telemetry Data For (Days)**, one value for all of the application's telemetry. Leave it blank to use the project's retention.
 - **Retention by Telemetry Type** holds a default for logs, traces, metrics and profiles each, and for logs by severity and traces by status. A value left blank falls back to the application's value, then to the project's.
@@ -119,7 +119,7 @@ On a lower Cloud plan, an override left by a trial keeps applying to new telemet
 
 ### Session Replay retention
 
-Recordings have a retention of their own, set on the application's **Replay Policy** page with **Edit Policy → Limits**: 7 days by default, or 1, 14, 30 or 90 days. It is short on purpose, because a recording is far more sensitive, and far larger, than a span. The **Session Replay Retention** card on the **Settings** page shows it (_Session replays are kept for 7 days._), and its **Edit on Replay Policy** button opens the policy.
+Recordings have a retention of their own, set on the application's **Replay Policy** page with **Edit Policy → Limits**: 7 days by default, or 1, 14, 30 or 90 days. It is short on purpose, because a recording is far more sensitive, and far larger, than a span. The **Session Replay Retention** card, under **More settings** on the **Settings** page, shows it (_Session replays are kept for 7 days._), and its **Edit on Replay Policy** button opens the policy.
 
 A longer telemetry retention does not keep recordings longer. A session's counts, signals and device expire with its footage; only the session's logs, spans and exceptions follow the telemetry retention. See [Retention and deletion](/docs/telemetry/session-replay#retention-and-deletion).
 

@@ -7,6 +7,7 @@ OneUptime waarschuwt mensen op hun telefoon via de mobiele app **OneUptime On-Ca
 - [Open de firewall](#netwerktoegang): De adressen die uw server en de apparaten van uw mensen bereiken.
 - [Laat het klinken in de stille modus](#kritieke-dienstmeldingen-stille-modus-doorbreken): Laat dienstmeldingen klinken op een gedempte telefoon.
 - [Los pushes op die nooit aankomen](#problemen-oplossen): Wat elke fout van Expo betekent.
+- [Zet push uit](#push-uitzetten-voor-de-hele-server): Verstuur niets via Expo, de relay of browsers.
 :::
 
 ## Hoe het werkt
@@ -118,6 +119,19 @@ De connectiviteit van apparaten is een aparte vereiste. iOS-apparaten hebben toe
 :::
 
 Bij mobiele pushes leest OneUptime ook het afleverbewijs van Expo, ongeveer 15 minuten na elke push: een push die het apparaat nooit heeft bereikt, staat dan als niet afgeleverd in het pushlog en, bij een dienstmelding, op de tijdlijn van de dienst.
+
+## Push uitzetten voor de hele server
+
+Als er niets via Expo, de push-relay of de pushdienst van een browser uw netwerk mag verlaten, kan een hoofdbeheerder push uitzetten in **Admin Dashboard > Instellingen > Push Notifications**: zet **Send push notifications** uit en bevestig.
+
+Zolang push uit staat:
+
+- Er wordt niets naar telefoons of browsers gepusht, in geen enkel project.
+- Er kan geen apparaat worden geregistreerd. Het tabblad **Push Notifications** onder **Gebruikersinstellingen > Meldingsmethoden** meldt iedereen dat push uit staat, en bereikbaarheidsregels bieden geen pushapparaten aan.
+- Een melding via een pushregel wordt niet verstuurd. In het bereikbaarheidslogboek van de persoon staat `Push notification not sent: Push notifications are turned off on this server.`
+- Gereedheid telt pushapparaten als onbruikbaar, en de terugval slaat ze over. Wie als enige geverifieerde methode een pushapparaat heeft, wordt als onbereikbaar getoond.
+
+Om mensen op hun telefoon te blijven bereiken, voegt u een [aangepast kanaal](/docs/self-hosted/custom-notification-channels) toe voor uw eigen app of gateway. Elke OneUptime-server leest de schakelaar binnen 10 seconden na een wijziging opnieuw. Wanneer push weer aan gaat, worden apparaten opnieuw geregistreerd vanuit de mobiele app bij de volgende start, of vanuit de browser.
 
 ## Kritieke dienstmeldingen (stille modus doorbreken)
 

@@ -37,7 +37,6 @@ flowchart TB
 | **Alle saker** | Sikkerhetssaker | Hver sak, åpen eller lukket |
 | **Hendelser** | Hendelser | Søk i og filtrer alle hendelser, og åpne en for å se alle feltene |
 | **Campaigns** | Hendelser | Hver adresse som sendte angrepsforespørsler, og om noen av forespørslene kom gjennom |
-| **Entiteter** | Hendelser | Brukerne, vertene og adressene som funnene dine nevner oftest |
 | **Entitetsrisiko** | Hendelser | Hver bruker, vert og adresse, vurdert etter hva som er funnet om den denne uken, de mest risikable først |
 | **Korreler** | Hendelser | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
 | **Deteksjonsregler** | Detections | Sigma-regler som kjører etter en tidsplan og åpner saker |

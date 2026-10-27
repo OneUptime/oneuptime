@@ -6,6 +6,7 @@ import {
   TelemetryResourceRetentionSettingsProps,
   TelemetryRetentionModel as ContractTelemetryRetentionModel,
 } from "../../Enterprise/EnterprisePlugins";
+import { TelemetryRetentionFoldStateHandler } from "./TelemetryRetentionFold";
 import { getDashboardPlugins } from "../../Enterprise/Plugins";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -28,6 +29,12 @@ export interface ComponentProps<TModel extends TelemetryRetentionModel> {
    * retention card shows it in its description.
    */
   scopeNote?: string | undefined;
+  /*
+   * Told what the retention cards hold, once read and after each save, so
+   * the folded More settings around them can say so
+   * (TelemetryResourceMoreSettings).
+   */
+  onRetentionChange?: TelemetryRetentionFoldStateHandler | undefined;
 }
 
 /*
@@ -98,6 +105,7 @@ const TelemetryResourceRetentionSettings: <
     resourceName: props.resourceName,
     modelDetailIdPrefix: props.modelDetailIdPrefix,
     scopeNote: props.scopeNote,
+    onRetentionChange: props.onRetentionChange,
   };
 
   return (
@@ -113,6 +121,9 @@ const TelemetryResourceRetentionSettings: <
           modelType={props.modelType}
           modelId={props.modelId}
           kind={RetentionOverrideLeftoverKind.Resource}
+          onOverrideChange={(isSet: boolean) => {
+            props.onRetentionChange?.({ isLeftoverOverrideSet: isSet });
+          }}
         />
       }
     />

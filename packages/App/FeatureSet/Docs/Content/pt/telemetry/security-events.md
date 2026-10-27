@@ -37,7 +37,6 @@ Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem u
 | **Todos os casos** | Casos de segurança | Todo caso, aberto ou fechado |
 | **Eventos** | Eventos | Pesquisar e filtrar todos os eventos, e abrir um para ver todos os campos dele |
 | **Campaigns** | Eventos | Cada endereço que enviou requisições de ataque, e se alguma de suas requisições passou |
-| **Entidades** | Eventos | Os usuários, hosts e endereços que os seus achados mais citam |
 | **Risco de entidades** | Eventos | Cada usuário, host e endereço, pontuado pelo que foi encontrado sobre ele nesta semana, os de maior risco primeiro |
 | **Correlacionar** | Eventos | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
 | **Regras de detecção** | Detections | Regras Sigma que rodam em uma programação e abrem casos |

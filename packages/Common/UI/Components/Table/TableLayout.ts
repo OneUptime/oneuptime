@@ -492,6 +492,51 @@ export const TABLE_SCROLL_BOX_CLASS_NAME: string = "relative -mx-5 md:-mx-6";
 export const TABLE_FOOTER_BLEED_CLASS_NAME: string = "-mx-5 -mb-6 md:-mx-6";
 
 /*
+ * The footer's band: the pagination bar's light grey, flush on the card's
+ * bottom edge, clipped to the card's rounded corners - so its square
+ * corners do not paint over the card's - unless the table is a section of
+ * a card (CardSections), whose corners are square and whose divider runs
+ * straight under it.
+ */
+export const TABLE_FOOTER_BAND_CLASS_NAME: string = `bg-gray-50 text-right ${TABLE_FOOTER_BLEED_CLASS_NAME} overflow-hidden`;
+
+export const TABLE_FOOTER_ROUNDED_CLASS_NAME: string = "rounded-b-xl";
+
+/*
+ * Where the footer goes and what it looks like:
+ *
+ *   - with pagination, the band above, on the card's bottom edge;
+ *   - with nothing to page through under an empty state or a load error,
+ *     an empty band that still takes the card's bottom padding: the
+ *     state's own padding (TableEmptyState's py-12) ends the card, as far
+ *     below its words as above them;
+ *   - with nothing to page through under rows - a table that shows every
+ *     row on one page (disablePagination) - nothing at all: the footer
+ *     stays out of the card's padding, and the card keeps it under the
+ *     last row. Pulled into the padding, the empty footer left the last
+ *     row's square white corners on the card's bottom edge, over its
+ *     rounded corners and its bottom border (the Rule Library, #5246).
+ */
+export const getTableFooterClassName: (data: {
+  hasPagination: boolean;
+  // Rows (or the placeholders standing in for them) are the table's last line.
+  endsWithRows: boolean;
+  isCardSection: boolean;
+}) => string = (data: {
+  hasPagination: boolean;
+  endsWithRows: boolean;
+  isCardSection: boolean;
+}): string => {
+  if (!data.hasPagination && data.endsWithRows) {
+    return "";
+  }
+
+  return data.isCardSection
+    ? TABLE_FOOTER_BAND_CLASS_NAME
+    : `${TABLE_FOOTER_BAND_CLASS_NAME} ${TABLE_FOOTER_ROUNDED_CLASS_NAME}`;
+};
+
+/*
  * A field of a card: its name over its value. A field whose value is only
  * the quiet dash is left out - TableRow leaves out the empty values it can
  * tell before they are drawn, and this the ones a page's own element draws

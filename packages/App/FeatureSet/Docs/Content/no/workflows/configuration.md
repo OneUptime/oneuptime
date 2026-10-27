@@ -75,7 +75,7 @@ Du kan flytte en arbeidsflyt mellom prosjekter, eller mellom en selvhostet insta
 @tab Eksport
 Åpne arbeidsflyten, gå til **Innstillinger**, og klikk på **Eksporter Arbeidsflyt**. For å legge flere arbeidsflyter i én fil merker du dem i listen **Arbeidsflyter** og velger **Eksporter JSON**.
 @tab Import
-Klikk på **Import JSON** i listen **Arbeidsflyter**, og velg en fil som er eksportert fra et hvilket som helst OneUptime-prosjekt. En arbeidsflyt med et navn prosjektet allerede har, importeres med "(Imported)" etter navnet.
+Klikk på **Importer JSON** i listen **Arbeidsflyter**, og velg en fil som er eksportert fra et hvilket som helst OneUptime-prosjekt. En arbeidsflyt med et navn prosjektet allerede har, importeres med "(Imported)" etter navnet.
 :::
 
 Filen inneholder navnet, beskrivelsen, aktiveringstilstanden og grafen til arbeidsflyten. Den inneholder med vilje ikke:

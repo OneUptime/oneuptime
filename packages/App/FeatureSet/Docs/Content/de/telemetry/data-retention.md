@@ -28,10 +28,10 @@ Vollständig liest OneUptime diese Einstellungen in dieser Reihenfolge, und die 
 
 | Reihenfolge | Einstellung | Wo sie gesetzt wird |
 | --- | --- | --- |
-| 1 | Tage für einen Protokoll-Schweregrad oder Span-Status, für einen Dienst oder eine Ressource | **Aufbewahrung nach Telemetrietyp**, auf deren Seite **Einstellungen** |
+| 1 | Tage für einen Protokoll-Schweregrad oder Span-Status, für einen Dienst oder eine Ressource | **Aufbewahrung nach Telemetrietyp**, unter **Weitere Einstellungen** auf deren Seite **Einstellungen** |
 | 2 | Tage für einen Telemetrietyp, für einen Dienst oder eine Ressource | Dieselbe Karte |
-| 3 | Tage für alles von einem Dienst oder einer Ressource | **Aufbewahrung von Telemetriedaten**, auf derselben Seite |
-| 4 | Tage für einen Protokoll-Schweregrad oder Span-Status, für das Projekt | **Aufbewahrung nach Telemetrietyp**, auf **Datenaufbewahrung** |
+| 3 | Tage für alles von einem Dienst oder einer Ressource | **Aufbewahrung von Telemetriedaten**, unter **Weitere Einstellungen** auf derselben Seite |
+| 4 | Tage für einen Protokoll-Schweregrad oder Span-Status, für das Projekt | **Aufbewahrung nach Telemetrietyp**, unter **Weitere Einstellungen** auf **Datenaufbewahrung** |
 | 5 | Tage für einen Telemetrietyp, für das Projekt | Dieselbe Karte |
 | 6 | Tage für alles andere | **Standardaufbewahrung (Tage)**, auf **Datenaufbewahrung** |
 
@@ -64,7 +64,7 @@ Die neue Zahl gilt für jeden Datensatz, der ab dann ankommt und keine eigene Ü
 
 ### Für das ganze Projekt
 
-Unter dem Standard legt die Karte **Aufbewahrung nach Telemetrietyp** Tage für jeden Telemetrietyp fest. Klicken Sie auf **Edit Overrides**, füllen Sie die Felder aus, die Sie brauchen, und lassen Sie den Rest leer:
+Unter dem Standard, eingeklappt unter **Weitere Einstellungen**, legt die Karte **Aufbewahrung nach Telemetrietyp** Tage für jeden Telemetrietyp fest. Klicken Sie auf **Edit Overrides**, füllen Sie die Felder aus, die Sie brauchen, und lassen Sie den Rest leer:
 
 | Typ | Felder |
 | --- | --- |
@@ -77,7 +77,7 @@ Ein leeres Feld fällt auf die nächste Einstellung der obigen Reihenfolge zurü
 
 ### Für einen Dienst oder eine Ressource
 
-Öffnen Sie die Seite **Einstellungen** des Dienstes oder der Ressource. Ihre Karte **Aufbewahrung von Telemetriedaten** enthält **Telemetriedaten aufbewahren für (Tage)**, eine Zahl für alles, was sie sendet, und ihre Karte **Aufbewahrung nach Telemetrietyp** hat dieselben Felder wie die des Projekts. Lassen Sie ein Feld leer, um die Einstellungen des Projekts zu nutzen.
+Öffnen Sie die Seite **Einstellungen** des Dienstes oder der Ressource, dann **Weitere Einstellungen**. Ihre Karte **Aufbewahrung von Telemetriedaten** enthält **Telemetriedaten aufbewahren für (Tage)**, eine Zahl für alles, was sie sendet, und ihre Karte **Aufbewahrung nach Telemetrietyp** hat dieselben Felder wie die des Projekts. Lassen Sie ein Feld leer, um die Einstellungen des Projekts zu nutzen.
 
 Dienste, Hosts, Kubernetes-Cluster, Docker- und Podman-Hosts, Docker Swarm-, Proxmox- und Ceph-Cluster, Speicher-Arrays, vCenter, Datenbanken, Serverless-Funktionen, Cloud-Ressourcen, RUM-Anwendungen und IoT-Flotten haben alle diese Karten. Siehe den [Dienstkatalog](/docs/telemetry/services#einen-dienst-ändern) für die Seite **Einstellungen** eines Dienstes.
 

@@ -108,7 +108,7 @@ En applikations telemetri och dess inspelningar lagras olika länge:
 
 ### Lagring av telemetri
 
-Som standard lagras en applikations telemetri under projektets lagringstid, som ställs in under **Projektinställningar → Telemetri och APM → Datalagring**. Två kort på applikationens sida **Inställningar** åsidosätter den:
+Som standard lagras en applikations telemetri under projektets lagringstid, som ställs in under **Projektinställningar → Telemetri och APM → Datalagring**. Två kort på applikationens sida **Inställningar**, hopfällda under **Fler inställningar**, åsidosätter den:
 
 - **Datalagring för telemetri** innehåller **Behåll telemetridata i (dagar)**, ett värde för all telemetri i applikationen. Lämna det tomt för att använda projektets lagring.
 - **Lagring efter telemetrityp** innehåller ett standardvärde för loggar, spår, mätvärden och profiler, och för loggar efter allvarlighetsgrad och spår efter status. Ett värde som lämnas tomt faller tillbaka på applikationens värde och sedan på projektets.
@@ -119,7 +119,7 @@ På ett lägre Cloud-abonnemang fortsätter en åsidosättning som finns kvar fr
 
 ### Lagring av sessionsuppspelningar
 
-Inspelningar har sin egen lagring, som ställs in på applikationens sida **Replay Policy** med **Redigera policy → Gränser**: 7 dagar som standard, eller 1, 14, 30 eller 90 dagar. Den är kort med avsikt, eftersom en inspelning är mycket känsligare, och mycket större, än ett span. Kortet **Lagringstid för sessionsuppspelning** på sidan **Inställningar** visar den (_Session replays are kept for 7 days._), och dess knapp **Redigera i Replay Policy** öppnar policyn.
+Inspelningar har sin egen lagring, som ställs in på applikationens sida **Replay Policy** med **Redigera policy → Gränser**: 7 dagar som standard, eller 1, 14, 30 eller 90 dagar. Den är kort med avsikt, eftersom en inspelning är mycket känsligare, och mycket större, än ett span. Kortet **Lagringstid för sessionsuppspelning** under **Fler inställningar** på sidan **Inställningar** visar den (_Session replays are kept for 7 days._), och dess knapp **Redigera i Replay Policy** öppnar policyn.
 
 En längre lagring av telemetri behåller inte inspelningar längre. En sessions räkningar, signaler och enhet upphör tillsammans med dess inspelning; bara sessionens loggar, spans och undantag följer telemetrins lagring. Se [Lagring och radering](/docs/telemetry/session-replay#lagring-och-radering).
 

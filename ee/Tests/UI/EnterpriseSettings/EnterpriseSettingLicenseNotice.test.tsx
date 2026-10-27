@@ -4,15 +4,17 @@ import { cleanup, render, screen } from "@testing-library/react";
 import React from "react";
 
 /*
- * What the custom role, IP allowlist and status page cards show above
- * themselves when the Enterprise license has lapsed, leaves their feature
- * out, or is about to lapse (EnterpriseSettingLicenseNotice).
+ * What the custom role, IP allowlist and status page cards, and the Admin
+ * Dashboard's Custom Channels page, show above themselves when the
+ * Enterprise license has lapsed, leaves their feature out, or is about to
+ * lapse (EnterpriseSettingLicenseNotice).
  *
  * The rules: nothing with a valid license, on the Cloud or while the state is
  * unknown; a danger notice once the configuration is read-only, a warning
  * before; and each one says what keeps applying - custom roles, allowlists
- * and access controls keep applying and can be removed, while Powered by
- * OneUptime is shown again on every status page.
+ * and access controls keep applying and can be removed, Powered by OneUptime
+ * is shown again on every status page, and custom channels are kept but
+ * nothing is sent to them, and a channel can still be deleted.
  */
 
 import EnterpriseSettingLicenseNotice, {
@@ -35,6 +37,7 @@ const FEATURES: Array<EnterpriseSettingFeature> = [
   LicensedFeature.IpAllowlists,
   LicensedFeature.StatusPageAccessControls,
   LicensedFeature.StatusPageBranding,
+  LicensedFeature.CustomNotificationChannels,
 ];
 
 afterEach(() => {
@@ -130,6 +133,52 @@ describe("getEnterpriseSettingNoticeCopy", () => {
     },
   );
 
+  test.each([
+    EnterpriseLicenseMode.ReadOnly,
+    EnterpriseLicenseMode.NotIncluded,
+    EnterpriseLicenseMode.Grace,
+  ])(
+    "custom channels, %s: nothing is sent to them, what is kept, and that a channel can still be deleted",
+    (mode: EnterpriseLicenseMode) => {
+      const description: string =
+        getEnterpriseSettingNoticeCopy(
+          mode,
+          LicensedFeature.CustomNotificationChannels,
+        )?.description || "";
+
+      expect(description).toContain(
+        "Your channels and the on-call rules that use them are kept, but no page or notification is sent to them. You can still delete a channel.",
+      );
+    },
+  );
+
+  test("custom channels: the titles say they cannot be added or changed, and that nothing is sent to them", () => {
+    expect(
+      getEnterpriseSettingNoticeCopy(
+        EnterpriseLicenseMode.ReadOnly,
+        LicensedFeature.CustomNotificationChannels,
+      )?.title,
+    ).toBe(
+      "Enterprise license required: custom channels cannot be added or changed, and nothing is sent to them.",
+    );
+    expect(
+      getEnterpriseSettingNoticeCopy(
+        EnterpriseLicenseMode.NotIncluded,
+        LicensedFeature.CustomNotificationChannels,
+      )?.title,
+    ).toBe(
+      "Your Enterprise license does not include custom channels: they cannot be added or changed, and nothing is sent to them.",
+    );
+    expect(
+      getEnterpriseSettingNoticeCopy(
+        EnterpriseLicenseMode.Grace,
+        LicensedFeature.CustomNotificationChannels,
+      )?.title,
+    ).toBe(
+      "No valid Enterprise license: custom channels stop when the trial or grace period ends.",
+    );
+  });
+
   test("Powered by OneUptime says every status page shows it again, and that the switch is kept", () => {
     const copy: EnterpriseSettingNoticeCopy | null =
       getEnterpriseSettingNoticeCopy(
@@ -176,6 +225,23 @@ describe("EnterpriseSettingLicenseNotice", () => {
     );
     expect(notice).toHaveTextContent(
       "The custom roles you have keep giving teams their permissions",
+    );
+  });
+
+  test("draws the custom channels notice under its own test id", () => {
+    render(
+      <EnterpriseSettingLicenseNotice
+        mode={EnterpriseLicenseMode.NotIncluded}
+        feature={LicensedFeature.CustomNotificationChannels}
+      />,
+    );
+
+    expect(
+      screen.getByTestId(
+        "enterprise-setting-license-not-included-notice-custom-notification-channels",
+      ),
+    ).toHaveTextContent(
+      "Your Enterprise license does not include custom channels",
     );
   });
 

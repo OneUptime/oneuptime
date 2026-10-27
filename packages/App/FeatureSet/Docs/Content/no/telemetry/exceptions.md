@@ -81,7 +81,7 @@ Sidemenyen på siden samler det du gjør med et unntak:
 
 ## Løs, gjenåpne og arkiver
 
-Knappene øverst på siden til unntaket, og siden **Innstillinger**, endrer statusen:
+Knappene øverst på siden til unntaket, siden **Innstillinger** og menyen ⋯ på raden i listen endrer statusen:
 
 | Handling | Når du bruker den | Hva som skjer etterpå |
 | --- | --- | --- |
@@ -91,6 +91,8 @@ Knappene øverst på siden til unntaket, og siden **Innstillinger**, endrer stat
 | **Fjern fra arkiv** | Du vil høre om det igjen. | Det er tilbake i listen det hører hjemme i. |
 
 **Innstillinger** viser hvem som sist løste eller arkiverte unntaket, og når. Knappene der heter **Merk som løst** eller **Merk som uløst**, og **Arkiver** eller **Fjern fra arkiv**.
+
+For å endre flere samtidig krysser du av radene deres i listen, eller boksen over radene for alle unntak på siden, og bruker de samme handlingene under **Massehandlinger**. Resultatet viser hvilke unntak som ble endret, hvilke som ble latt være, og hvorfor.
 
 ## Feilklasser
 

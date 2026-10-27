@@ -326,6 +326,11 @@ describe("SCIM Push Groups team locks by edition", () => {
         TeamPermissionService,
         "assertCanGrantTeamPermissions",
       ).mockResolvedValue(undefined);
+      // Whether a removal may lift its team's blocks: TeamMemberRemovalLiftsBlocks.
+      getJestSpyOn(
+        TeamMemberService,
+        "assertRemoverMayLiftBlocks",
+      ).mockResolvedValue(undefined);
       // "Is this user already invited?" - no.
       getJestSpyOn(TeamMemberService, "findOneBy").mockResolvedValue(null);
       // "Are they in the project through another team?" - no.

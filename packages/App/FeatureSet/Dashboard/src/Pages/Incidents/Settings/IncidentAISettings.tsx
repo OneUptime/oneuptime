@@ -218,6 +218,11 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             description:
               "Investigations start right away and run until they are done unless you set a limit here.",
             buttons: limitsGate.lockedButtons,
+            /*
+             * Its place in More settings: the name the folded header lists
+             * it by, so a link to it lands here.
+             */
+            id: AiLaneAdvancedCard.InvestigationLimits,
           }}
           isEditable={limitsGate.isEditable}
           editButtonText="Edit"
@@ -287,6 +292,11 @@ const IncidentAISettings: FunctionComponent<ComponentProps> = (
             description:
               "How much incident AI work may run each day (UTC). Ask AI is never limited.",
             buttons: dailyGate.lockedButtons,
+            /*
+             * Its place in More settings: the name the folded header lists
+             * it by, so a link to it lands here.
+             */
+            id: AiLaneAdvancedCard.DailyLimits,
           }}
           isEditable={dailyGate.isEditable}
           editButtonText="Edit"

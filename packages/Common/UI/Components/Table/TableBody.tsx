@@ -8,6 +8,8 @@ import {
 import TableRow from "./TableRow";
 import Columns from "./Types/Columns";
 import GenericObject from "../../../Types/GenericObject";
+import useTranslator from "../../Utils/UseTranslator";
+import { Translator } from "../../Utils/TranslateTemplate";
 import React, { ReactElement } from "react";
 import { Droppable, DroppableProvided } from "react-beautiful-dnd";
 
@@ -64,6 +66,8 @@ type TableBodyFunction = <T extends GenericObject>(
 const TableBody: TableBodyFunction = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+
   type GetBodyFunction = (provided?: DroppableProvided) => ReactElement;
 
   /*
@@ -132,8 +136,12 @@ const TableBody: TableBodyFunction = <T extends GenericObject>(
       ? props.bulkItemToString(item)
       : undefined;
 
+    /*
+     * "Select Checkout API", in the reader's words: the same sentence a
+     * telemetry list's row box and a status page's resource box say.
+     */
     const label: string | undefined = itemLabel
-      ? `Select ${itemLabel}`
+      ? translator.translateTemplate("Select {{name}}", { name: itemLabel })
       : undefined;
 
     return {

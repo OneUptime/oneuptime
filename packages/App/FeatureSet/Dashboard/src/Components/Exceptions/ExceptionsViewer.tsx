@@ -130,8 +130,14 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import ExceptionRow from "./ExceptionRow";
-import { getExceptionRowActions } from "./ExceptionRowActions";
+import {
+  getExceptionBulkActions,
+  getExceptionId,
+  getExceptionName,
+  getExceptionRowActions,
+} from "./ExceptionRowActions";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
@@ -2348,6 +2354,14 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       },
     });
 
+  /*
+   * The same four on the rows a person ticks (Bulk Actions), the list and
+   * its chart read again once a run ends.
+   */
+  const exceptionBulkActions: Array<
+    BulkActionButtonSchema<TelemetryException>
+  > = getExceptionBulkActions();
+
   return (
     <TelemetryViewer<TelemetryException>
       items={exceptions}
@@ -2372,6 +2386,19 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         ) : undefined
       }
       itemLabel="exceptions"
+      bulk={{
+        buttons: exceptionBulkActions,
+        singularLabel: "Exception",
+        pluralLabel: "Exceptions",
+        getItemId: (exception: TelemetryException): string => {
+          return getExceptionId(exception) || exception.fingerprint || "";
+        },
+        itemToString: getExceptionName,
+        onActionEnd: (): void => {
+          void fetchExceptions();
+          void fetchHistogram();
+        },
+      }}
       renderRow={(exception: TelemetryException): ReactElement => {
         const service: Service | undefined = exception.primaryEntityId
           ? serviceById[exception.primaryEntityId.toString()]

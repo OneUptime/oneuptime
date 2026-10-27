@@ -24,7 +24,7 @@ På OneUptime Cloud kommer SMS och telefonsamtal för jour från numren nedan. L
 
 Dina larm kommer från andra nummer än de ovan när:
 
-- **Ditt projekt använder sitt eget Twilio-konto.** När ett projekt har en Twilio-konfiguration som är angiven som projektstandard (**Projektinställningar** > **Aviseringar** > **Aviseringsinställningar** > **Twilio-konfiguration**) går SMS och samtal till projektets medlemmar via det kontot, från dess telefonnummer. Vitlista de numren i stället.
+- **Ditt projekt använder sitt eget Twilio-konto.** När ett projekt har en Twilio-konfiguration som är angiven som projektstandard (**Projektinställningar** > **Aviseringar** > **Aviseringsinställningar** > **Fler inställningar** > **Twilio-konfiguration**) går SMS och samtal till projektets medlemmar via det kontot, från dess telefonnummer. Vitlista de numren i stället.
 - **Du använder en egen installation.** SMS och samtal kommer från de Twilio-nummer som din administratör har konfigurerat: projektets standard-Twilio-konfiguration, eller den för hela installationen under **Admin Dashboard** > **Inställningar** > **Call and SMS**. Fråga din administratör vilka nummer du ska vitlista.
 
 ## Nästa steg

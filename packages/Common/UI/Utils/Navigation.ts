@@ -161,8 +161,22 @@ abstract class Navigation {
     return null;
   }
 
+  /*
+   * The address bar without its fragment. A link to a card on a page
+   * (".../api-keys/<id>#custom-roles", which opens More settings at the
+   * card) names the same page as one without it, so the fragment is never
+   * part of the page's parameters. URL.fromString keeps a fragment on the
+   * end of the route, where it round-trips a link - and where it would ride
+   * on the last parameter, the record id a page reads, and match no record.
+   */
+  private static getAddressWithoutFragment(): string {
+    return `${window.location.origin}${window.location.pathname}${window.location.search}`;
+  }
+
   public static getLastParam(getFromLastRoute?: number): Route | null {
-    return URL.fromString(window.location.href).getLastRoute(getFromLastRoute);
+    return URL.fromString(this.getAddressWithoutFragment()).getLastRoute(
+      getFromLastRoute,
+    );
   }
 
   public static getFirstParam(getFromFirstRoute?: number): string | undefined {
@@ -173,7 +187,7 @@ abstract class Navigation {
 
   public static getLastParamAsString(getFromLastRoute?: number): string {
     const param: Route | null = URL.fromString(
-      window.location.href,
+      this.getAddressWithoutFragment(),
     ).getLastRoute(getFromLastRoute);
 
     return param?.toString().replace("/", "") || "";

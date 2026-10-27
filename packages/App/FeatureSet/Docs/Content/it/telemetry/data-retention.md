@@ -28,10 +28,10 @@ Nel dettaglio, OneUptime legge queste impostazioni in quest'ordine, e decide la 
 
 | Ordine | Impostazione | Dove si imposta |
 | --- | --- | --- |
-| 1 | Giorni per una gravità dei log o uno stato degli span, per un servizio o una risorsa | **Conservazione per tipo di telemetria**, nella sua pagina **Impostazioni** |
+| 1 | Giorni per una gravità dei log o uno stato degli span, per un servizio o una risorsa | **Conservazione per tipo di telemetria**, in **Altre impostazioni** nella sua pagina **Impostazioni** |
 | 2 | Giorni per un tipo di telemetria, per un servizio o una risorsa | La stessa scheda |
-| 3 | Giorni per tutto ciò che arriva da un servizio o da una risorsa | **Conservazione dei dati di telemetria**, nella stessa pagina |
-| 4 | Giorni per una gravità dei log o uno stato degli span, per il progetto | **Conservazione per tipo di telemetria**, in **Conservazione dei dati** |
+| 3 | Giorni per tutto ciò che arriva da un servizio o da una risorsa | **Conservazione dei dati di telemetria**, in **Altre impostazioni** nella stessa pagina |
+| 4 | Giorni per una gravità dei log o uno stato degli span, per il progetto | **Conservazione per tipo di telemetria**, in **Altre impostazioni** su **Conservazione dei dati** |
 | 5 | Giorni per un tipo di telemetria, per il progetto | La stessa scheda |
 | 6 | Giorni per tutto il resto | **Conservazione predefinita (giorni)**, in **Conservazione dei dati** |
 
@@ -64,7 +64,7 @@ Le sostituzioni conservano più a lungo ciò che vi serve e meno a lungo il rest
 
 ### Per l'intero progetto
 
-Sotto il predefinito, la scheda **Conservazione per tipo di telemetria** imposta i giorni per ogni tipo di telemetria. Fate clic su **Edit Overrides**, compilate i campi che vi servono e lasciate vuoti gli altri:
+Sotto il predefinito, chiusa in **Altre impostazioni**, la scheda **Conservazione per tipo di telemetria** imposta i giorni per ogni tipo di telemetria. Fate clic su **Edit Overrides**, compilate i campi che vi servono e lasciate vuoti gli altri:
 
 | Tipo | Campi |
 | --- | --- |
@@ -77,7 +77,7 @@ Un campo lasciato vuoto ricade sull'impostazione successiva nell'ordine sopra, q
 
 ### Per un servizio o una risorsa
 
-Aprite la pagina **Impostazioni** del servizio o della risorsa. La sua scheda **Conservazione dei dati di telemetria** contiene **Conserva i dati di telemetria per (giorni)**, un solo numero per tutto ciò che invia, e la sua scheda **Conservazione per tipo di telemetria** ha gli stessi campi di quella del progetto. Lasciate un campo vuoto per usare le impostazioni del progetto.
+Aprite la pagina **Impostazioni** del servizio o della risorsa, poi **Altre impostazioni**. La sua scheda **Conservazione dei dati di telemetria** contiene **Conserva i dati di telemetria per (giorni)**, un solo numero per tutto ciò che invia, e la sua scheda **Conservazione per tipo di telemetria** ha gli stessi campi di quella del progetto. Lasciate un campo vuoto per usare le impostazioni del progetto.
 
 Servizi, host, cluster Kubernetes, host Docker e Podman, cluster Docker Swarm, Proxmox e Ceph, storage array, vCenter, database, funzioni serverless, risorse cloud, applicazioni RUM e flotte IoT hanno tutti queste schede. Vedete il [Catalogo servizi](/docs/telemetry/services#modificare-un-servizio) per la pagina **Impostazioni** di un servizio.
 

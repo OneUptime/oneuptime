@@ -2,6 +2,7 @@ import UserMicrosoftTeamsAPI from "../../../Server/API/UserMicrosoftTeamsAPI";
 import UserPushAPI from "../../../Server/API/UserPushAPI";
 import UserSlackAPI from "../../../Server/API/UserSlackAPI";
 import UserWebhookAPI from "../../../Server/API/UserWebhookAPI";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import PushNotificationService from "../../../Server/Services/PushNotificationService";
 import UserMicrosoftTeamsService from "../../../Server/Services/UserMicrosoftTeamsService";
 import UserPushService from "../../../Server/Services/UserPushService";
@@ -284,6 +285,10 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Push is on for the whole server (GlobalConfig.disablePushNotifications).
+  jest
+    .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+    .mockResolvedValue(false);
 });
 
 afterEach(() => {

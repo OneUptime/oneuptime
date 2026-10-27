@@ -143,6 +143,8 @@ export default class IncidentEpisodeAPI extends BaseAPI<
         episodeId,
         includeWorkspaceMessages,
         workspaceMessageLimit: 500,
+        // Its notes and incidents as the caller may read them.
+        readerProps: props,
       });
 
     // Format context for postmortem generation, after the project's AI context.

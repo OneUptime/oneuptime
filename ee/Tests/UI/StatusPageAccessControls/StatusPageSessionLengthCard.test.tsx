@@ -443,3 +443,86 @@ describe("the Reader Sessions card's copy", () => {
     expect(StatusPageSessionLengthCopy.noLimitDescription).toContain("30 days");
   });
 });
+
+/*
+ * The card waits folded under the Access page's More settings, whose header
+ * says how long readers stay signed in while a limit is set ("Reader
+ * Sessions: 8 hours"): the card tells the page what it holds, once read and
+ * after each pick that saves.
+ */
+describe("what the Reader Sessions card tells its page", () => {
+  async function renderTelling(reports: Array<number | null>): Promise<void> {
+    await act(async (): Promise<void> => {
+      render(
+        <StatusPageSessionLengthCard
+          statusPageId={new ObjectID(STATUS_PAGE_ID)}
+          onLengthChange={(lengthInHours: number | null) => {
+            reports.push(lengthInHours);
+          }}
+        />,
+      );
+    });
+    await waitFor(() => {
+      expect(getItemMock).toHaveBeenCalled();
+    });
+    await flush();
+  }
+
+  test("no limit, once read: none", async () => {
+    const reports: Array<number | null> = [];
+
+    await renderTelling(reports);
+
+    expect(reports).toEqual([null]);
+  });
+
+  test("a limit, once read: its hours", async () => {
+    const reports: Array<number | null> = [];
+
+    stored = 12;
+    await renderTelling(reports);
+
+    expect(reports).toEqual([12]);
+  });
+
+  test("each pick that saves: the new length, and none for No limit", async () => {
+    const reports: Array<number | null> = [];
+
+    await renderTelling(reports);
+    await pick("8 hours");
+
+    await waitFor(() => {
+      expect(reports[reports.length - 1]).toBe(8);
+    });
+
+    await pick("No limit");
+
+    await waitFor(() => {
+      expect(reports[reports.length - 1]).toBeNull();
+    });
+  });
+
+  test("a pick the server refuses says nothing new: the page keeps what it had", async () => {
+    const reports: Array<number | null> = [];
+
+    stored = 24;
+    updateByIdMock.mockImplementation(async (): Promise<never> => {
+      throw new Error("Refused.");
+    });
+
+    await renderTelling(reports);
+    await pick("8 hours");
+    await flush();
+
+    expect(reports).toEqual([24]);
+  });
+
+  test("a failed read says nothing: the folded header keeps the card's name", async () => {
+    const reports: Array<number | null> = [];
+
+    stored = new Error("Unreachable.");
+    await renderTelling(reports);
+
+    expect(reports).toEqual([]);
+  });
+});

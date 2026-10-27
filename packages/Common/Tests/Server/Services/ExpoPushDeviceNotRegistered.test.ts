@@ -3,6 +3,7 @@ import PushNotificationService, {
   ExpoDeviceNotRegisteredError,
   ExpoPushRefusedError,
 } from "../../../Server/Services/PushNotificationService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import PushNotificationLogService from "../../../Server/Services/PushNotificationLogService";
 import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
 import UserPushService from "../../../Server/Services/UserPushService";
@@ -140,6 +141,10 @@ describe("an Expo push token Expo says is gone, sent with the deployment's own E
   let answers: Map<string, ExpoPushTicket | Error>;
 
   beforeEach(() => {
+    // Push is on for the whole server (GlobalConfig.disablePushNotifications).
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(false);
     answers = new Map<string, ExpoPushTicket | Error>();
     logs = [];
     timelineUpdates = [];
@@ -412,6 +417,10 @@ describe("an Expo push token Expo says is gone, sent through the push relay", ()
   let relayAnswer: HTTPResponse<JSONObject> | HTTPErrorResponse | Error;
 
   beforeEach(() => {
+    // Push is on for the whole server (GlobalConfig.disablePushNotifications).
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(false);
     posts = [];
     logs = [];
     relayAnswer = new HTTPResponse<JSONObject>(200, { success: true }, {});

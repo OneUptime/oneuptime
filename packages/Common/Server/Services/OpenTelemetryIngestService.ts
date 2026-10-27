@@ -401,19 +401,30 @@ export default class OTelIngestService {
     };
   }
 
-  @CaptureSpan()
+  /*
+   * No span for an L1 hit: 99.6% of these calls in telemetry job traces,
+   * each under 50 µs. A miss reads Valkey, then Postgres, in
+   * loadProjectRetentionContext, which keeps this method's span name.
+   */
   private static async getProjectRetentionContext(
+    projectId: ObjectID,
+  ): Promise<ProjectRetentionContext> {
+    // L1: in-process memo. Zero network cost.
+    const memoed: CachedRetentionContext | undefined =
+      projectRetentionInProcessCache.get(projectId.toString());
+    if (memoed && memoed.expiresAtMs > Date.now()) {
+      return memoed.context;
+    }
+
+    return await this.loadProjectRetentionContext(projectId);
+  }
+
+  @CaptureSpan({ name: "OTelIngestService.getProjectRetentionContext" })
+  private static async loadProjectRetentionContext(
     projectId: ObjectID,
   ): Promise<ProjectRetentionContext> {
     const projectIdStr: string = projectId.toString();
     const now: number = Date.now();
-
-    // L1: in-process memo. Zero network cost.
-    const memoed: CachedRetentionContext | undefined =
-      projectRetentionInProcessCache.get(projectIdStr);
-    if (memoed && memoed.expiresAtMs > now) {
-      return memoed.context;
-    }
 
     // L2: Redis. Single round-trip; shared across workers.
     try {
@@ -900,8 +911,10 @@ export default class OTelIngestService {
    * the resource owner can keep host telemetry longer/shorter than
    * the project default. Monitor / unknown resource types fall back
    * to the project retention.
+   *
+   * No span of its own: its only I/O is the two lookups', each traced when
+   * it misses its memo.
    */
-  @CaptureSpan()
   public static async buildResourceMetadataForNonService(data: {
     serviceName: string;
     resourceId: ObjectID;
@@ -948,20 +961,33 @@ export default class OTelIngestService {
    * back to "no override" for this call only, and the next resource block
    * retries — the same per-call fallback behaviour as before the memo.
    */
-  @CaptureSpan()
   private static async getResourceRetention(
     resourceId: ObjectID,
     primaryEntityType: ServiceType,
   ): Promise<ResourceRetention> {
     const memoKey: string = `${primaryEntityType}:${resourceId.toString()}`;
 
-    // L1: in-process memo. Zero network cost.
+    // L1: in-process memo. Zero network cost, and no span.
     const memoedRetention: ResourceRetention | undefined =
       resourceRetentionInProcessMemo.get(memoKey);
     if (memoedRetention) {
       return memoedRetention;
     }
 
+    return await this.loadResourceRetention(
+      resourceId,
+      primaryEntityType,
+      memoKey,
+    );
+  }
+
+  // A memo miss goes to Postgres, traced under getResourceRetention's name.
+  @CaptureSpan({ name: "OTelIngestService.getResourceRetention" })
+  private static async loadResourceRetention(
+    resourceId: ObjectID,
+    primaryEntityType: ServiceType,
+    memoKey: string,
+  ): Promise<ResourceRetention> {
     try {
       const retention: ResourceRetention = await this.findResourceRetention(
         resourceId,

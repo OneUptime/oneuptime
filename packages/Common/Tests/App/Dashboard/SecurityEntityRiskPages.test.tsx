@@ -186,9 +186,15 @@ import SecurityEntityRiskViewPage, {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRiskView";
 import SecurityRiskScoringPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/RiskScoring";
 import {
+  ENTITY_LOOKUP_HOURS,
+  ENTITY_LOOKUP_TEST_IDS,
   ENTITY_RISK_TEST_IDS,
   RISK_CASES_OFF_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityRiskCopy";
+import {
+  ENTITY_LOOKUP_RESULT_CLASS_NAME,
+  isEntityActivitySeen,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityLookupCard";
 import {
   ENTITY_RISK_HISTORY_DAYS,
   getEntityRiskBreakdown,
@@ -838,6 +844,21 @@ describe("Security Events > Entity Risk", () => {
     expect(
       cell("Found By", riskRow({ contributions: [SPRAY_SOURCES[0]!] })),
     ).toHaveTextContent(/^1 sourceCorporate MISP$/);
+    /*
+     * A source's name alone is someone's words: an isolate that reads the
+     * way it is written and is cut at its own end on a Persian page too -
+     * the value, like the chip's, never "...do Tracker botnet C2 servers".
+     */
+    const oneSource: HTMLElement = within(
+      cell("Found By", riskRow({ contributions: [SPRAY_SOURCES[0]!] })),
+    ).getByText("Corporate MISP");
+    expect(oneSource.tagName).toBe("BDI");
+    expect(oneSource).toHaveAttribute("dir", "ltr");
+    expect(oneSource).toHaveClass("block", "truncate");
+    expect(oneSource).toHaveAttribute("title", "Corporate MISP");
+    // The chip's value is one too.
+    expect(chip.tagName).toBe("BDI");
+    expect(chip).toHaveAttribute("dir", "ltr");
     expect(cell("Found By", riskRow({ contributions: [] }))).toHaveTextContent(
       "-",
     );
@@ -968,6 +989,369 @@ describe("Security Events > Entity Risk", () => {
     await listRead(0);
     expect(screen.getByText("100 to 199")).toBeInTheDocument();
     expect(screen.queryByTestId(RISK_CASES_OFF_TEST_ID)).toBeNull();
+  });
+
+  /*
+   * Look Up an Entity came from Security Events > Entities, which folded
+   * into Entity Risk: its ranking of values by how many findings named them
+   * was a second "riskiest" beside these scores. The lookup is the part of
+   * it that was its own - any value, of any kind, across 30 days of events.
+   */
+  test("Look Up an Entity sits under the list: any value, of any kind, across 30 days of events", async () => {
+    drawList();
+
+    const lookup: HTMLElement = await screen.findByTestId(
+      ENTITY_LOOKUP_TEST_IDS.card,
+    );
+    const list: HTMLElement = screen.getByTestId(
+      "model-table-security-entity-risk-table",
+    );
+
+    // After the list in the page's order: the riskiest lead, the lookup follows.
+    expect(
+      list.compareDocumentPosition(lookup) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByText("Look Up an Entity")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Any user, host, IP address, domain or file hash: how often it appears in your security events over the last 30 days, and in how many findings.",
+      ),
+    ).toBeInTheDocument();
+    // Named for a screen reader as its card is: a placeholder is no name.
+    expect(screen.getByRole("textbox", { name: "Look Up an Entity" })).toBe(
+      screen.getByTestId(ENTITY_LOOKUP_TEST_IDS.input),
+    );
+    expect(
+      screen
+        .getByTestId(ENTITY_LOOKUP_TEST_IDS.input)
+        .getAttribute("placeholder"),
+    ).toBe("e.g. alice@example.com, web-01 or 203.0.113.7");
+    // Nothing to look up yet: Look Up waits for a value.
+    expect(screen.getByRole("button", { name: "Look Up" })).toBeDisabled();
+    expect(getEntityActivityMock).not.toHaveBeenCalled();
+  });
+
+  test("a lookup says how busy the value has been, in 30 days of events, and opens it in Correlate", async () => {
+    const navigate: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+    getEntityActivityMock.mockImplementation(async () => {
+      return [
+        {
+          value: "update-sync.bad-cdn.example",
+          eventCount: 412,
+          findingCount: 3,
+          maxSeverityId: 4,
+          firstSeen: new Date(minutesAgo(3 * 60)),
+          // "5 minutes ago" reads off the real clock, not the suite's NOW.
+          lastSeen: new Date(Date.now() - 5 * 60 * 1000),
+        },
+      ];
+    });
+    drawList();
+
+    fireEvent.change(await screen.findByTestId(ENTITY_LOOKUP_TEST_IDS.input), {
+      target: { value: "  update-sync.bad-cdn.example " },
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Look Up" }));
+    });
+
+    // The value as typed, without its spaces, over 30 days.
+    expect(getEntityActivityMock).toHaveBeenCalledWith({
+      values: ["update-sync.bad-cdn.example"],
+      hours: ENTITY_LOOKUP_HOURS,
+    });
+    expect(ENTITY_LOOKUP_HOURS).toBe(720);
+
+    const result: HTMLElement = screen.getByTestId(
+      ENTITY_LOOKUP_TEST_IDS.result,
+    );
+    expect(result).toHaveTextContent("update-sync.bad-cdn.example");
+    expect(result).toHaveTextContent("412 events");
+    expect(result).toHaveTextContent("3 findings");
+    expect(result).toHaveTextContent("Last seen 5 minutes ago");
+
+    await act(async () => {
+      fireEvent.click(
+        within(result).getByRole("button", { name: "Open in Correlate" }),
+      );
+    });
+
+    const route: string = String(navigate.mock.calls[0]![0]);
+    expect(route.split("?")[0]).toBe(`${PRODUCT}/correlate`);
+    expect(new URLSearchParams(route.split("?")[1]).get("observable")).toBe(
+      "update-sync.bad-cdn.example",
+    );
+    /*
+     * Over the 30 days the lookup read: Correlate's own day showed nothing
+     * for a value last seen a week ago that the lookup had just counted.
+     */
+    expect(new URLSearchParams(route.split("?")[1]).get("hours")).toBe(
+      String(ENTITY_LOOKUP_HOURS),
+    );
+  });
+
+  /*
+   * The value, with what was found about it on the line under it, and Open
+   * in Correlate at the result's end from sm - placed by the room the page
+   * has, never by where a wrap falls: it wrapped under the counts, a
+   * dialog footer's margin (md:ml-3) setting it in from the value. The
+   * value is not a second way to Correlate (its chip opened Correlate's
+   * own day); the button is the one.
+   */
+  test("a lookup's result: the value, its counts on the line under it, and Open in Correlate at the line's end", async () => {
+    getEntityActivityMock.mockImplementation(async () => {
+      return [
+        {
+          value: "fin-ws-112",
+          eventCount: 1,
+          findingCount: 1,
+          maxSeverityId: 4,
+          firstSeen: new Date(minutesAgo(3 * 60)),
+          lastSeen: new Date(Date.now() - 5 * 60 * 1000),
+        },
+      ];
+    });
+    drawList();
+
+    fireEvent.change(await screen.findByTestId(ENTITY_LOOKUP_TEST_IDS.input), {
+      target: { value: "fin-ws-112" },
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Look Up" }));
+    });
+
+    const result: HTMLElement = screen.getByTestId(
+      ENTITY_LOOKUP_TEST_IDS.result,
+    );
+
+    expect(result.className).toBe(ENTITY_LOOKUP_RESULT_CLASS_NAME);
+    expect(ENTITY_LOOKUP_RESULT_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining([
+        "flex-col",
+        "sm:flex-row",
+        "sm:items-center",
+        "sm:justify-between",
+      ]),
+    );
+    expect(ENTITY_LOOKUP_RESULT_CLASS_NAME).not.toContain("flex-wrap");
+
+    // One of each, in the reader's words, each a whole on its line.
+    expect(
+      Array.from(
+        within(result).getByTestId(ENTITY_LOOKUP_TEST_IDS.facts).children,
+      ).map((fact: Element): string => {
+        return fact.textContent || "";
+      }),
+    ).toEqual(["1 event", "1 finding", "Last seen 5 minutes ago"]);
+
+    // The value is no link: Open in Correlate is the one way on.
+    expect(within(result).getByText("fin-ws-112").closest("a")).toBeNull();
+    const button: HTMLElement = within(result).getByRole("button", {
+      name: "Open in Correlate",
+    });
+    expect(button.className.split(" ")).toEqual(
+      expect.arrayContaining(["!ml-0", "sm:!w-auto"]),
+    );
+    // At the result's end: after what was found, the last of it.
+    expect(result.lastElementChild).toBe(button);
+    expect(
+      within(result)
+        .getByTestId(ENTITY_LOOKUP_TEST_IDS.facts)
+        .compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // Look Up keeps no dialog footer's margin either.
+    expect(
+      screen.getByRole("button", { name: "Look Up" }).className.split(" "),
+    ).toEqual(expect.arrayContaining(["!ml-0", "sm:!w-auto"]));
+  });
+
+  test("Enter looks up too, and a value no event names says it was not seen", async () => {
+    getEntityActivityMock.mockImplementation(async () => {
+      return [];
+    });
+    drawList();
+
+    const input: HTMLElement = await screen.findByTestId(
+      ENTITY_LOOKUP_TEST_IDS.input,
+    );
+    fireEvent.change(input, { target: { value: "never-seen-01" } });
+
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+    });
+
+    const result: HTMLElement = await screen.findByTestId(
+      ENTITY_LOOKUP_TEST_IDS.result,
+    );
+    expect(result).toHaveTextContent("never-seen-01");
+    expect(
+      within(result).getByTestId(ENTITY_LOOKUP_TEST_IDS.facts),
+    ).toHaveTextContent(/^Not seen in the last 30 days\.$/);
+    // No counts of nothing, and nothing to correlate.
+    expect(result).not.toHaveTextContent("0 events");
+    expect(result).not.toHaveTextContent("0 findings");
+    expect(
+      within(result).queryByRole("button", { name: "Open in Correlate" }),
+    ).toBeNull();
+  });
+
+  /*
+   * A lookup's answer - what it found, or why it could not look - is said
+   * to a screen reader as it arrives: the live region is on the page
+   * before anything is in it. And a new lookup's answer replaces the last
+   * one's: a failed lookup of one value left the last value's counts
+   * under its error.
+   */
+  test("a lookup's answer is said in a live region that is there before it, and a new lookup replaces the last answer", async () => {
+    getEntityActivityMock.mockImplementationOnce(async () => {
+      return [
+        {
+          value: "fin-ws-112",
+          eventCount: 3,
+          findingCount: 1,
+          maxSeverityId: 4,
+          firstSeen: new Date(minutesAgo(3 * 60)),
+          lastSeen: new Date(Date.now() - 5 * 60 * 1000),
+        },
+      ];
+    });
+    getEntityActivityMock.mockImplementationOnce(async () => {
+      throw Object.assign(
+        new Error(
+          "Reading security events takes a Security role, or Project Owner or Project Admin.",
+        ),
+        { statusCode: 403 },
+      );
+    });
+    drawList();
+
+    const answer: HTMLElement = await screen.findByTestId(
+      ENTITY_LOOKUP_TEST_IDS.answer,
+    );
+    expect(answer).toHaveAttribute("aria-live", "polite");
+    expect(answer).toBeEmptyDOMElement();
+
+    const input: HTMLElement = screen.getByTestId(ENTITY_LOOKUP_TEST_IDS.input);
+    fireEvent.change(input, { target: { value: "fin-ws-112" } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Look Up" }));
+    });
+
+    expect(
+      within(answer).getByTestId(ENTITY_LOOKUP_TEST_IDS.result),
+    ).toHaveTextContent("fin-ws-112");
+
+    fireEvent.change(input, { target: { value: "web-01" } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Look Up" }));
+    });
+
+    expect(answer).toHaveTextContent(
+      "Reading security events takes a Security role, or Project Owner or Project Admin.",
+    );
+    expect(screen.queryByTestId(ENTITY_LOOKUP_TEST_IDS.result)).toBeNull();
+    expect(answer).not.toHaveTextContent("fin-ws-112");
+  });
+
+  test("a value is seen when an event named it in the days read: by a count, or by when it was last seen", () => {
+    const nothing: {
+      value: string;
+      eventCount: number;
+      findingCount: number;
+      maxSeverityId: number;
+      firstSeen: Date | null;
+      lastSeen: Date | null;
+    } = {
+      value: "web-01",
+      eventCount: 0,
+      findingCount: 0,
+      maxSeverityId: 0,
+      firstSeen: null,
+      lastSeen: null,
+    };
+
+    expect(isEntityActivitySeen(nothing)).toBe(false);
+    expect(isEntityActivitySeen({ ...nothing, eventCount: 1 })).toBe(true);
+    expect(
+      isEntityActivitySeen({ ...nothing, lastSeen: new Date(minutesAgo(5)) }),
+    ).toBe(true);
+  });
+
+  test.each([
+    [
+      "a failure on OneUptime's side, in the product's words",
+      Object.assign(new Error("socket hang up"), { statusCode: 502 }),
+      "Something went wrong. Try again in a moment.",
+      "socket hang up",
+    ],
+    [
+      "a role that may not read events, as the server words it",
+      Object.assign(
+        new Error(
+          "Reading security events takes a Security role, or Project Owner or Project Admin.",
+        ),
+        { statusCode: 403 },
+      ),
+      "Reading security events takes a Security role, or Project Owner or Project Admin.",
+      null,
+    ],
+  ])(
+    "a lookup that fails says why: %s",
+    async (
+      _what: string,
+      failure: Error,
+      said: string,
+      neverSaid: string | null,
+    ) => {
+      getEntityActivityMock.mockImplementation(async () => {
+        throw failure;
+      });
+      drawList();
+
+      fireEvent.change(
+        await screen.findByTestId(ENTITY_LOOKUP_TEST_IDS.input),
+        { target: { value: "web-01" } },
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Look Up" }));
+      });
+
+      expect(screen.getByText(said)).toBeInTheDocument();
+      expect(screen.queryByTestId(ENTITY_LOOKUP_TEST_IDS.result)).toBeNull();
+
+      if (neverSaid) {
+        expect(document.body).not.toHaveTextContent(neverSaid);
+      }
+    },
+  );
+
+  /*
+   * The box's own margins (mt-2 mb-1) stretched Look Up 12px taller than
+   * the box beside it, the box sitting high. jsdom lays nothing out: the
+   * offline browser suite measures the two; this holds the classes.
+   */
+  test("the lookup's box keeps no margins of its own, and shares a line with Look Up", async () => {
+    drawList();
+
+    const box: HTMLElement = await screen.findByTestId(
+      ENTITY_LOOKUP_TEST_IDS.input,
+    );
+    const boxWrapper: HTMLElement = box.parentElement as HTMLElement;
+
+    expect(boxWrapper.className.split(" ")).not.toContain("mt-2");
+    expect(boxWrapper.className.split(" ")).not.toContain("mb-1");
+    expect(
+      (
+        screen
+          .getByRole("button", { name: "Look Up" })
+          .closest(".sm\\:flex-row") as HTMLElement
+      ).className.split(" "),
+    ).toEqual(expect.arrayContaining(["sm:flex-row", "sm:items-center"]));
   });
 });
 

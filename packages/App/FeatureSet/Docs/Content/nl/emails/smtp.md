@@ -25,14 +25,14 @@ Bij een zelf gehoste installatie is de eigen mailserver van OneUptime de server 
 
 ## Een SMTP-server toevoegen
 
-Voeg de mailserver van een project toe via **Projectinstellingen > Meldingen > Meldingsinstellingen**, in de kaart **Aangepaste SMTP-configuraties**. Bij een zelf gehoste installatie stelt u de server via welke OneUptime zelf verstuurt in via **Admin Dashboard > Instellingen > Meldingen > E-mails**, in de kaart **Aangepaste e-mail- en SMTP-instellingen**. Beide formulieren vragen hetzelfde, in twee stappen.
+Voeg de mailserver van een project toe via **Projectinstellingen > Meldingen > Meldingsinstellingen**, in de kaart **Aangepaste SMTP-configuraties**, onder **Meer instellingen**. Bij een zelf gehoste installatie stelt u de server via welke OneUptime zelf verstuurt in via **Admin Dashboard > Instellingen > Meldingen > E-mails**, in de kaart **Aangepaste e-mail- en SMTP-instellingen**. Beide formulieren vragen hetzelfde, in twee stappen.
 
 :::steps
 ### Het formulier openen
 
 :::tabs
 @tab Project
-Klik via **Projectinstellingen > Meldingen > Meldingsinstellingen** op **SMTP Configuratie aanmaken** in de kaart **Aangepaste SMTP-configuraties**.
+Open via **Projectinstellingen > Meldingen > Meldingsinstellingen** het onderdeel **Meer instellingen** en klik op **SMTP Configuratie aanmaken** in de kaart **Aangepaste SMTP-configuraties**.
 @tab Zelf gehoste instantie
 Open in het Admin Dashboard **Instellingen** en daarna **Meldingen > E-mails** in het zijmenu (**Meldingen** is eerst ingeklapt). Klik in de kaart **E-mailserverinstellingen** op **Server bewerken** en zet **Type e-mailserver** op `Custom SMTP`. Klik daarna op **SMTP-config bewerken** in de kaart **Aangepaste e-mail- en SMTP-instellingen**, die eronder verschijnt.
 :::

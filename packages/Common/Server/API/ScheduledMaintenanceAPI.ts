@@ -138,6 +138,8 @@ export default class ScheduledMaintenanceAPI extends BaseAPI<
       await ScheduledMaintenanceAIContextBuilder.buildScheduledMaintenanceContext(
         {
           scheduledMaintenanceId,
+          // Its notes as the caller may read them.
+          readerProps: props,
         },
       );
 

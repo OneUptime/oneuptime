@@ -4,7 +4,7 @@ import {
   LicensedFeature,
 } from "../Identity/License/EnterpriseLicenseMode";
 import useEnterpriseLicenseMode from "../Identity/License/UseEnterpriseLicenseMode";
-import { StatusPageSettingCardProps } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
+import { StatusPagePoweredByCardProps } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
 import StatusPagePoweredByCopy, {
   getPoweredByDescription,
   POWERED_BY_COLUMN,
@@ -38,9 +38,13 @@ import React, {
  * status page shows the line whatever the switch says (the server's
  * StatusPagePoweredBy), and a notice above the card says so. The switch is
  * kept: the line is hidden again as soon as a license is activated.
+ *
+ * It waits folded under the page's More settings, telling the page whether
+ * visitors see the line, once read and after each save
+ * (onPoweredByChange), so the folded header can say so.
  */
-const PoweredByCard: FunctionComponent<StatusPageSettingCardProps> = (
-  props: StatusPageSettingCardProps,
+const PoweredByCard: FunctionComponent<StatusPagePoweredByCardProps> = (
+  props: StatusPagePoweredByCardProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const ruledListClassName: string = useCardRuledListClassName();
@@ -72,6 +76,7 @@ const PoweredByCard: FunctionComponent<StatusPageSettingCardProps> = (
       }
 
       setIsHidden(item.hidePoweredByOneUptimeBranding === true);
+      props.onPoweredByChange?.(item.hidePoweredByOneUptimeBranding !== true);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -108,6 +113,9 @@ const PoweredByCard: FunctionComponent<StatusPageSettingCardProps> = (
             title={StatusPagePoweredByCopy.switchTitle}
             getDescription={(isShown: boolean): string => {
               return getPoweredByDescription(isShown);
+            }}
+            onSaved={(isShown: boolean) => {
+              props.onPoweredByChange?.(isShown);
             }}
             dataTestId={STATUS_PAGE_POWERED_BY_SWITCH_TEST_ID}
           />
