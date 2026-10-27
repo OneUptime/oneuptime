@@ -293,6 +293,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   "wasabi.svg": () => {
     return import("../../Images/ProviderLogos/wasabi.svg");
   },
+  "zoom-dark.svg": () => {
+    return import("../../Images/ProviderLogos/zoom-dark.svg");
+  },
   "zoom.svg": () => {
     return import("../../Images/ProviderLogos/zoom.svg");
   },

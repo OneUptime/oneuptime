@@ -147,6 +147,8 @@ describe("every logo has its file", () => {
       ProviderLogo.Rust,
       ProviderLogo.Mattermost,
       ProviderLogo.MicrosoftCopilot,
+      // Zoom's thin blue wordmark: white on dark, as Zoom shows it there.
+      ProviderLogo.Zoom,
     ]) {
       expect({ logo, hasDarkMark: hasDarkProviderLogoMark(logo) }).toEqual({
         logo,
