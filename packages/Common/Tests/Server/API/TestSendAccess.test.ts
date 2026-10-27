@@ -11,6 +11,7 @@ import WorkspaceNotificationSummaryService from "../../../Server/Services/Worksp
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import { OneUptimeRequest } from "../../../Server/Utils/Express";
+import MultiTenantQuery from "../../../Server/Utils/MultiTenantQuery";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import WorkspaceNotificationSummary from "../../../Models/DatabaseModels/WorkspaceNotificationSummary";
@@ -734,14 +735,23 @@ describe("which record: one the caller may read, in their own project", () => {
     expect(props.isMultiTenantRequest).toBe(false);
   });
 
-  test("a request that asks for a multi-tenant read is still read for the one project", async () => {
+  // One project or across projects, never both (MultiTenantQuery).
+  test("a request that names its project and asks for a multi-tenant read is refused, and nothing is read", async () => {
+    const readSummary: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      WorkspaceNotificationSummaryService,
+      "findOneById",
+    );
+
     const answer: TestSendCaller | Error = await askToSendSummaryTest(
       requestFrom(OWNER, { headers: { "is-multi-tenant-query": "true" } }),
       OTHER_PROJECT_SUMMARY_ID,
     );
 
-    expect(answer).toBeInstanceOf(NotAuthorizedException);
-    expect((answer as Error).message).toBe(NOT_THIS_PROJECTS);
+    expect(answer).toBeInstanceOf(BadDataException);
+    expect((answer as Error).message).toBe(
+      MultiTenantQuery.WITH_PROJECT_MESSAGE,
+    );
+    expect(readSummary).not.toHaveBeenCalled();
   });
 
   test("another project's record answers like one that does not exist", async () => {

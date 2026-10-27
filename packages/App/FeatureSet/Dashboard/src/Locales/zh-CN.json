@@ -36274,5 +36274,13 @@
   "{{count}} {{itemsName}} unarchived": "已取消归档 {{count}} 个{{itemsName}}",
   "{{count}} {{itemsName}} unarchived_one": "已取消归档 {{count}} 个{{itemName}}",
   "{{count}} {{itemsName}} not unarchived": "{{count}} 个{{itemsName}}未取消归档",
-  "{{count}} {{itemsName}} not unarchived_one": "{{count}} 个{{itemName}}未取消归档"
+  "{{count}} {{itemsName}} not unarchived_one": "{{count}} 个{{itemName}}未取消归档",
+  "Each of these spans names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.": "这些跨度各自引用的父跨度不在目前已加载的跨度中，因此显示在顶层。父跨度可能位于尚未加载的批次中，因此随着加载更多跨度，这里可能会变化。否则，发送方可能丢弃了该父跨度（例如其导出队列已满时），或者父跨度仍在到达途中：如果是最近的跟踪，请在几秒后刷新。",
+  "Each of these spans names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.": "这些跨度各自引用了一个未收到的父跨度，因此显示在顶层。发送方可能丢弃了该父跨度（例如其导出队列已满时），或者父跨度仍在到达途中：如果是最近的跟踪，请在几秒后刷新。",
+  "This span names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.": "此跨度引用的父跨度不在目前已加载的跨度中，因此显示在顶层。父跨度可能位于尚未加载的批次中，因此随着加载更多跨度，这里可能会变化。否则，发送方可能丢弃了该父跨度（例如其导出队列已满时），或者父跨度仍在到达途中：如果是最近的跟踪，请在几秒后刷新。",
+  "This span names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.": "此跨度引用了一个未收到的父跨度，因此显示在顶层。发送方可能丢弃了该父跨度（例如其导出队列已满时），或者父跨度仍在到达途中：如果是最近的跟踪，请在几秒后刷新。",
+  "{{count}} spans missing a parent": "{{count}} 个跨度缺少父跨度",
+  "{{count}} spans missing a parent so far": "目前有 {{count}} 个跨度缺少父跨度",
+  "{{count}} spans missing a parent so far_one": "目前有 {{count}} 个跨度缺少父跨度",
+  "{{count}} spans missing a parent_one": "{{count}} 个跨度缺少父跨度"
 }

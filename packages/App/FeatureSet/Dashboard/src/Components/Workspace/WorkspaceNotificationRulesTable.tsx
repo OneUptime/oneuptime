@@ -207,9 +207,9 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       setIsTestLoading(true);
       setTestError(undefined);
 
-      // test rule
+      // test rule: a POST, as it posts into the rule's channels
       const response: HTTPResponse<EmptyResponseData> | HTTPErrorResponse =
-        await API.get({
+        await API.post({
           url: URL.fromString(APP_API_URL.toString()).addRoute(
             `/workspace-notification-rule/test/${ruleId.toString()}`,
           ),

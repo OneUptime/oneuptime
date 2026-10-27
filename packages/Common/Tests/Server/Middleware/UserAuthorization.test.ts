@@ -9,8 +9,10 @@ import {
   ExpressRequest,
   ExpressResponse,
   NextFunction,
+  OneUptimeRequest,
 } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import MultiTenantQuery from "../../../Server/Utils/MultiTenantQuery";
 import logger from "../../../Server/Utils/Logger";
 import Response from "../../../Server/Utils/Response";
 import Dictionary from "../../../Types/Dictionary";
@@ -586,6 +588,8 @@ describe("UserMiddleware", () => {
         headers: { "is-multi-tenant-query": "yes" },
       };
 
+      // A request across projects names none (MultiTenantQuery).
+      getJestSpyOn(ProjectMiddleware, "getProjectId").mockReturnValueOnce(null);
       getJestSpyOn(
         AccessTokenService,
         "getUserGlobalAccessPermission",
@@ -593,10 +597,6 @@ describe("UserMiddleware", () => {
         ...mockedGlobalAccessPermission,
         projectIds: [],
       });
-      getJestSpyOn(
-        UserMiddleware,
-        "getUserTenantAccessPermissionWithTenantId",
-      ).mockResolvedValueOnce(null);
       const spyGetUserTenantAccessPermissionForMultiTenant: jest.SpyInstance =
         getJestSpyOn(
           UserMiddleware,
@@ -623,20 +623,18 @@ describe("UserMiddleware", () => {
       ).not.toHaveBeenCalled();
     });
 
-    test("should set project-permissions and project-permissions-hash in the response header, when is-multi-tenant-query is set in the request header and getUserTenantAccessPermissionForMultiTenant returned access permission", async () => {
+    test("should read the user's permissions in every project of theirs, when is-multi-tenant-query is set in the request header and the request names no project", async () => {
       const mockedRequest: Partial<ExpressRequest> = {
         headers: { "is-multi-tenant-query": "yes" },
       };
 
+      // A request across projects names none (MultiTenantQuery).
+      getJestSpyOn(ProjectMiddleware, "getProjectId").mockReturnValueOnce(null);
       getJestSpyOn(JSONFunctions, "serialize").mockReturnValue({});
       getJestSpyOn(
         AccessTokenService,
         "getUserGlobalAccessPermission",
       ).mockResolvedValueOnce(mockedGlobalAccessPermission);
-      getJestSpyOn(
-        UserMiddleware,
-        "getUserTenantAccessPermissionWithTenantId",
-      ).mockResolvedValueOnce(null);
       const spyGetUserTenantAccessPermissionForMultiTenant: jest.SpyInstance =
         getJestSpyOn(
           UserMiddleware,
@@ -651,13 +649,15 @@ describe("UserMiddleware", () => {
         next,
       );
 
-      expect(res.set).toHaveBeenCalledWith(
+      expect(
+        (mockedRequest as OneUptimeRequest).userTenantAccessPermission,
+      ).toEqual({
+        [projectId.toString()]: mockedTenantAccessPermission,
+      });
+      // No one project is named, so there are no one project's permissions to send.
+      expect(res.set).not.toHaveBeenCalledWith(
         "project-permissions",
-        JSON.stringify({}),
-      );
-      expect(res.set).toHaveBeenCalledWith(
-        "project-permissions-hash",
-        hashValue,
+        expect.anything(),
       );
       expect(next).toHaveBeenCalled();
       expect(
@@ -668,6 +668,47 @@ describe("UserMiddleware", () => {
         mockedGlobalAccessPermission.projectIds,
         mockedGlobalAccessPermission,
       );
+    });
+
+    test("should refuse a request that names a project and sets is-multi-tenant-query with a 400, before anything is read for it", async () => {
+      // getProjectId names projectId (beforeAll).
+      const mockedRequest: Partial<ExpressRequest> = {
+        headers: { "is-multi-tenant-query": "yes" },
+      };
+
+      const spyGetUserTenantAccessPermissionWithTenantId: jest.SpyInstance =
+        getJestSpyOn(
+          UserMiddleware,
+          "getUserTenantAccessPermissionWithTenantId",
+        );
+      const spyGetUserTenantAccessPermissionForMultiTenant: jest.SpyInstance =
+        getJestSpyOn(
+          UserMiddleware,
+          "getUserTenantAccessPermissionForMultiTenant",
+        );
+
+      await UserMiddleware.getUserMiddleware(
+        mockedRequest as ExpressRequest,
+        res,
+        next,
+      );
+
+      expect(Response.sendErrorResponse).toHaveBeenCalledWith(
+        mockedRequest,
+        res,
+        new BadDataException(MultiTenantQuery.WITH_PROJECT_MESSAGE),
+      );
+      expect(next).not.toHaveBeenCalled();
+      expect(
+        (mockedRequest as OneUptimeRequest).userTenantAccessPermission,
+      ).toBeUndefined();
+      expect(
+        spyGetUserTenantAccessPermissionWithTenantId,
+      ).not.toHaveBeenCalled();
+      expect(
+        spyGetUserTenantAccessPermissionForMultiTenant,
+      ).not.toHaveBeenCalled();
+      expect(ProjectService.updateLastActive).not.toHaveBeenCalled();
     });
 
     test("should not set project-permissions and project-permissions-hash in the response header, when the project-permissions-hash set in the request header equals the projectPermissionsHash computed from userTenantAccessPermission", async () => {

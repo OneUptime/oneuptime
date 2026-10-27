@@ -19,11 +19,11 @@ import path from "path";
  *
  * The note (installation/upgrading, "Other changes in 14") sits after the
  * note on code repositories following the default Runner
- * (CodeRepositoryDefaultRunnerUpgradeDocs) and before the endpoint pointer,
- * and every translation carries it in the English note's place, with the
- * master admins' address as code and a link to the Global SSO page's
- * Enforcing SSO section in the reader's language. What it claims is what the
- * change does:
+ * (CodeRepositoryDefaultRunnerUpgradeDocs) and before the note on an Owned
+ * permission reaching what its own team owns, and every translation carries
+ * it in the English note's place, with the master admins' address as code
+ * and a link to the Global SSO page's Enforcing SSO section in the reader's
+ * language. What it claims is what the change does:
  *
  *   - while the server requires SSO, the sign-in, single sign-on and sign-up
  *     pages offer only the global providers (they read GET
@@ -51,7 +51,9 @@ const NOTE_LEAD: string = `**${LEAD}**`;
 // The note before it (CodeRepositoryDefaultRunnerUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**A code repository that picks no Runner follows the project's default Runner.**";
-const POINTER_START: string = "- See [API and endpoint changes]";
+// The note after it: an Owned permission reaches what its own team owns.
+const NEXT_LEAD: string =
+  "**A permission scoped to Owned reaches what its own team owns.**";
 
 const GLOBAL_SSO_PAGE: string = "identity/global-sso";
 const SECTION_HEADING: string = "## Enforcing SSO";
@@ -96,7 +98,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on requiring SSO for the whole server", () => {
-  it("is a note of the 14 changes, once, after the note on the default Runner and before the endpoint pointer", () => {
+  it("is a note of the 14 changes, once, after the note on the default Runner and before the note on the per-team Owned scope", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -108,7 +110,9 @@ describe("the English upgrade note on requiring SSO for the whole server", () =>
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(POINTER_START)).toBe(true);
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says what the sign-in pages offer, what the server refuses, where master admins sign in, and where the settings went", () => {

@@ -36274,5 +36274,13 @@
   "{{count}} {{itemsName}} unarchived": "已取消封存 {{count}} 個{{itemsName}}",
   "{{count}} {{itemsName}} unarchived_one": "已取消封存 {{count}} 個{{itemName}}",
   "{{count}} {{itemsName}} not unarchived": "{{count}} 個{{itemsName}}未取消封存",
-  "{{count}} {{itemsName}} not unarchived_one": "{{count}} 個{{itemName}}未取消封存"
+  "{{count}} {{itemsName}} not unarchived_one": "{{count}} 個{{itemName}}未取消封存",
+  "Each of these spans names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.": "這些 span 各自參照的父 span 不在目前已載入的 span 中，因此顯示在最上層。父 span 可能位於尚未載入的批次中，因此隨著載入更多 span，這裡可能會改變。否則，傳送端可能捨棄了該父 span（例如其匯出佇列已滿時），或父 span 仍在送達途中：若是最近的追蹤，請在幾秒後重新整理。",
+  "Each of these spans names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.": "這些 span 各自參照了一個未收到的父 span，因此顯示在最上層。傳送端可能捨棄了該父 span（例如其匯出佇列已滿時），或父 span 仍在送達途中：若是最近的追蹤，請在幾秒後重新整理。",
+  "This span names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.": "此 span 參照的父 span 不在目前已載入的 span 中，因此顯示在最上層。父 span 可能位於尚未載入的批次中，因此隨著載入更多 span，這裡可能會改變。否則，傳送端可能捨棄了該父 span（例如其匯出佇列已滿時），或父 span 仍在送達途中：若是最近的追蹤，請在幾秒後重新整理。",
+  "This span names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.": "此 span 參照了一個未收到的父 span，因此顯示在最上層。傳送端可能捨棄了該父 span（例如其匯出佇列已滿時），或父 span 仍在送達途中：若是最近的追蹤，請在幾秒後重新整理。",
+  "{{count}} spans missing a parent": "{{count}} 個 span 缺少父 span",
+  "{{count}} spans missing a parent so far": "目前有 {{count}} 個 span 缺少父 span",
+  "{{count}} spans missing a parent so far_one": "目前有 {{count}} 個 span 缺少父 span",
+  "{{count}} spans missing a parent_one": "{{count}} 個 span 缺少父 span"
 }
