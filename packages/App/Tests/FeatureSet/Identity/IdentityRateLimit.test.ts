@@ -146,6 +146,19 @@ class FakePipeline {
 const redisClient: FakeRedisClient = new FakeRedisClient();
 let isRedisConnected: boolean = true;
 
+/*
+ * The server does not require single sign-on here: every sign-in and sign-up
+ * asks SsoRequiredSignIn first, which reads GlobalConfig. Driven for real in
+ * SsoRequiredSignInRoutes.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
+  return (
+    jest.requireActual(
+      "./SsoNotRequiredStandIn",
+    ) as typeof import("./SsoNotRequiredStandIn")
+  ).ssoNotRequired();
+});
+
 jest.mock("Common/Server/Infrastructure/Redis", () => {
   return {
     __esModule: true,

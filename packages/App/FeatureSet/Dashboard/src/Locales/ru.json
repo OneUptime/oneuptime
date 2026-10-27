@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "Отметки обслуживания недоступны.",
   "Maintenance markers need the uptime history, which did not load.": "Для отметок обслуживания нужна история доступности, но она не загрузилась.",
   "You need permission to read scheduled maintenance.": "Нужно разрешение на просмотр планового обслуживания.",
+  "Sign in with {{name}}": "Войти через {{name}}",
   "At a date and time": "В заданные дату и время",
   "It shows on its status pages as soon as it is saved.": "Оно показывается на своих страницах статуса сразу после сохранения.",
   "It shows on its status pages at once, and their subscribers are told it is scheduled.": "Оно сразу показывается на своих страницах статуса, а их подписчики узнают, что оно запланировано.",

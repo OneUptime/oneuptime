@@ -40,6 +40,14 @@
  *   - ../tsconfig.tests.server-utils.json (Tests/Server/Utils, 8,804 files):
  *     4.71 GB;
  *   - ../tsconfig.tests.rest.json (what was left, 9,613 files): 4.26 GB.
+ * Tests/App, at 8.84 GB the same way (13,990 files), was split the same day,
+ * by name, because nearly all of it is one directory (Tests/App/Dashboard,
+ * some 1,650 tests): ../tsconfig.tests.app-dashboard-a-m.json (Dashboard
+ * tests A to M, 12,069 files): 5.67 GB; ../tsconfig.tests.app-rest.json
+ * (every other App test, 12,053 files): 7.19 GB. The two share most of the
+ * Dashboard sources, which is why halving the tests did not halve the
+ * memory. tsconfig.tests.app.json stays the whole of Tests/App, the program
+ * editors and ESLint use for it.
  *
  * Nothing goes unchecked:
  *   - every part extends tsconfig.tests.json and changes only which files it
@@ -71,7 +79,8 @@ const ts = require("typescript");
 const COMMON_DIRECTORY = path.resolve(__dirname, "..");
 const WHOLE_PROGRAM = "tsconfig.tests.json";
 const PARTS = [
-  "tsconfig.tests.app.json",
+  "tsconfig.tests.app-dashboard-a-m.json",
+  "tsconfig.tests.app-rest.json",
   "tsconfig.tests.ui.json",
   "tsconfig.tests.server.json",
   "tsconfig.tests.server-utils.json",
@@ -79,8 +88,8 @@ const PARTS = [
 ];
 /*
  * Per part. Node's default heap (about 4 GB) is too small for the larger
- * parts. On 2026-10-27 the largest, Tests/App (13,990 files), used 7.64 GB
- * of these 8 GiB: it is the next to split.
+ * parts. On 2026-10-27 Tests/App as one part (13,990 files) used 7.64 GB of
+ * these 8 GiB, so it is two (see above).
  */
 const HEAP_MB = 8192;
 const TSC = path.join(

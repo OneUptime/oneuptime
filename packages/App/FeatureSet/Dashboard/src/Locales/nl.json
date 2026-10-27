@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "Onderhoudsmarkeringen zijn niet beschikbaar.",
   "Maintenance markers need the uptime history, which did not load.": "Onderhoudsmarkeringen hebben de beschikbaarheidsgeschiedenis nodig, die niet is geladen.",
   "You need permission to read scheduled maintenance.": "U hebt toestemming nodig om gepland onderhoud te lezen.",
+  "Sign in with {{name}}": "Inloggen met {{name}}",
   "At a date and time": "Op een datum en tijd",
   "It shows on its status pages as soon as it is saved.": "Ze wordt op haar statuspagina's getoond zodra ze is opgeslagen.",
   "It shows on its status pages at once, and their subscribers are told it is scheduled.": "Ze wordt meteen op haar statuspagina's getoond, en hun abonnees horen dat ze gepland is.",

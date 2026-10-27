@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "रखरखाव मार्कर उपलब्ध नहीं हैं।",
   "Maintenance markers need the uptime history, which did not load.": "रखरखाव मार्करों को अपटाइम इतिहास चाहिए, जो लोड नहीं हुआ।",
   "You need permission to read scheduled maintenance.": "निर्धारित रखरखाव पढ़ने के लिए आपको अनुमति चाहिए।",
+  "Sign in with {{name}}": "{{name}} से साइन इन करें",
   "At a date and time": "किसी दिनांक और समय पर",
   "It shows on its status pages as soon as it is saved.": "सहेजते ही यह अपने स्थिति पृष्ठों पर दिखने लगता है।",
   "It shows on its status pages at once, and their subscribers are told it is scheduled.": "यह तुरंत अपने स्थिति पृष्ठों पर दिखने लगता है, और उनके सब्सक्राइबर्स को बताया जाता है कि यह शेड्यूल है।",

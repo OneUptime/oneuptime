@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "نشانگرهای تعمیر و نگهداری در دسترس نیستند.",
   "Maintenance markers need the uptime history, which did not load.": "نشانگرهای تعمیر و نگهداری به تاریخچه زمان کارکرد نیاز دارند که بارگذاری نشد.",
   "You need permission to read scheduled maintenance.": "برای خواندن تعمیر و نگهداری زمان‌بندی‌شده به مجوز نیاز دارید.",
+  "Sign in with {{name}}": "ورود با {{name}}",
   "At a date and time": "در تاریخ و زمانی مشخص",
   "It shows on its status pages as soon as it is saved.": "به‌محض ذخیره‌شدن در صفحات وضعیت آن نمایش داده می‌شود.",
   "It shows on its status pages at once, and their subscribers are told it is scheduled.": "بی‌درنگ در صفحات وضعیت آن نمایش داده می‌شود و به مشترکان آن‌ها اطلاع داده می‌شود که زمان‌بندی شده است.",

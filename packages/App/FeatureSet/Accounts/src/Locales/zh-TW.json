@@ -156,7 +156,15 @@
     "emailRequired": "需要電子郵件才能執行此操作",
     "defaultProjectName": "專案",
     "globalProvidersTitle": "使用您的組織登入",
-    "globalProvidersDivider": "或使用電子郵件繼續"
+    "globalProvidersDivider": "或使用電子郵件繼續",
+    "signInWithProvider": "使用 {{name}} 登入",
+    "requiredSubtitle": "使用您組織的單一登入（SSO）登入。",
+    "requiredNotSetUp": "此伺服器尚未設定單一登入。請聯絡伺服器管理員進行設定。",
+    "useDifferentEmail": "使用其他電子郵件"
+  },
+  "adminLogin": {
+    "title": "主要管理員登入",
+    "subtitle": "此伺服器要求使用單一登入（SSO）。主要管理員仍可在此使用密碼登入。"
   },
   "verifyEmail": {
     "successTitle": "您的電子郵件已驗證。",

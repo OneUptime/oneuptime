@@ -14,6 +14,7 @@ import Email from "../../../Types/Email";
 import ObjectID from "../../../Types/ObjectID";
 import AuthenticationEmail from "../../../../App/FeatureSet/Identity/Utils/AuthenticationEmail";
 import MicrosoftSignInRouter from "../../../../App/FeatureSet/Identity/API/MicrosoftSignIn";
+import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "../../../Types/SSO/SignInMethods";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -25,7 +26,10 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   - an existing user only when their address is verified, they are not
  *     blocked, and they have no second factor and are not a master admin
  *     (this sign-in would skip what protects those accounts);
- *   - a new user only where sign-up is open.
+ *   - a new user only where sign-up is open;
+ *   - nobody while the whole server requires single sign-on: it is not SSO,
+ *     and no master admin signs in this way (SsoRequiredSignIn), so neither
+ *     endpoint signs anyone in then, nor when that cannot be read.
  */
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
@@ -97,6 +101,20 @@ jest.mock("../../../Server/Utils/Response", () => {
   return {
     __esModule: true,
     default: { render: jest.fn() },
+  };
+});
+
+// Whether the server requires single sign-on: what each test says.
+const mockIsSsoRequired: jest.Mock = jest.fn();
+
+jest.mock("../../../Server/Utils/SsoRequiredSignIn", () => {
+  return {
+    __esModule: true,
+    default: {
+      isSsoRequired: (...args: Array<unknown>): unknown => {
+        return mockIsSsoRequired(...args);
+      },
+    },
   };
 });
 
@@ -204,10 +222,15 @@ const renderedTitle: () => string | null = (): string | null => {
 };
 
 describe("GET /microsoft/sign-in", () => {
-  it("sends the browser to Microsoft, keeping what the callback must match in a signed cookie only the callback sees", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockIsSsoRequired.mockResolvedValue(false);
+  });
+
+  it("sends the browser to Microsoft, keeping what the callback must match in a signed cookie only the callback sees", async () => {
     const { res, redirect } = createResponse();
 
-    getHandler("/microsoft/sign-in")(
+    await getHandler("/microsoft/sign-in")(
       { query: {}, headers: {} } as unknown as ExpressRequest,
       res,
     );
@@ -237,6 +260,38 @@ describe("GET /microsoft/sign-in", () => {
     // Only the challenge goes to Microsoft; the verifier stays in the cookie.
     expect(authorizationUrl.toString()).not.toContain(stored["codeVerifier"]);
   });
+
+  it("starts no sign-in while the server requires SSO, and says to use SSO", async () => {
+    mockIsSsoRequired.mockResolvedValue(true);
+    const { res, redirect } = createResponse();
+
+    await getHandler("/microsoft/sign-in")(
+      { query: {}, headers: {} } as unknown as ExpressRequest,
+      res,
+    );
+
+    expect(redirect).not.toHaveBeenCalled();
+    expect(CookieUtil.setCookie).not.toHaveBeenCalled();
+    expect(renderedTitle()).toBe("Sign in with SSO instead.");
+    expect(
+      (mocked(Response.render).mock.calls[0]![3] as { message: string })
+        .message,
+    ).toBe(SSO_REQUIRED_SIGN_IN_MESSAGE);
+  });
+
+  it("starts no sign-in when the rule cannot be read", async () => {
+    mockIsSsoRequired.mockRejectedValue(new Error("connection terminated"));
+    const { res, redirect } = createResponse();
+
+    await getHandler("/microsoft/sign-in")(
+      { query: {}, headers: {} } as unknown as ExpressRequest,
+      res,
+    );
+
+    expect(redirect).not.toHaveBeenCalled();
+    expect(CookieUtil.setCookie).not.toHaveBeenCalled();
+    expect(renderedTitle()).toBe("We could not sign you in with Microsoft.");
+  });
 });
 
 describe("GET /microsoft/callback", () => {
@@ -258,6 +313,7 @@ describe("GET /microsoft/callback", () => {
       refreshTokenExpiresAt: new Date(),
     });
     mocked(DatabaseConfig.shouldDisableSignup).mockResolvedValue(false);
+    mockIsSsoRequired.mockResolvedValue(false);
   });
 
   afterEach(() => {
@@ -313,6 +369,42 @@ describe("GET /microsoft/callback", () => {
       expect.objectContaining({ path: "/identity/microsoft" }),
     );
     expect(Response.render).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Turned on while the person was at Microsoft: the sign-in finishes
+   * nowhere, not even for an account that exists - and Microsoft is not
+   * asked who it is.
+   */
+  it("signs nobody in, nor makes an account, while the server requires SSO", async () => {
+    mockIsSsoRequired.mockResolvedValue(true);
+    mocked(UserService.findOneBy).mockResolvedValue(existingUser());
+
+    const { redirect, clearCookie } = await runCallback();
+
+    expect(renderedTitle()).toBe("Sign in with SSO instead.");
+    expect(completeSignIn).not.toHaveBeenCalled();
+    expect(UserService.findOneBy).not.toHaveBeenCalled();
+    expect(UserService.createByEmail).not.toHaveBeenCalled();
+    expect(UserSessionService.createSession).not.toHaveBeenCalled();
+    expect(CookieUtil.setUserCookie).not.toHaveBeenCalled();
+    expect(redirect).not.toHaveBeenCalled();
+    // The state cookie is still spent.
+    expect(clearCookie).toHaveBeenCalledWith(
+      "oneuptime-microsoft-sign-in",
+      expect.objectContaining({ path: "/identity/microsoft" }),
+    );
+  });
+
+  it("signs nobody in when the rule cannot be read", async () => {
+    mockIsSsoRequired.mockRejectedValue(new Error("connection terminated"));
+    mocked(UserService.findOneBy).mockResolvedValue(existingUser());
+
+    await runCallback();
+
+    expect(renderedTitle()).toBe("We could not sign you in with Microsoft.");
+    expect(completeSignIn).not.toHaveBeenCalled();
+    expect(UserSessionService.createSession).not.toHaveBeenCalled();
   });
 
   it("refuses a callback whose state does not match the one it sent, without asking Microsoft", async () => {

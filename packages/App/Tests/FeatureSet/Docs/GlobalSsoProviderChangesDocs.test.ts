@@ -235,7 +235,7 @@ describe("the SSO guide", () => {
     );
 
     expect(section).toContain(
-      "While the whole server requires SSO (**Admin** > **Settings** > **Authentication** > **Require SSO for Login**), creating any project needs such a global provider too, or nobody, its creator included, could open the project.",
+      "While the whole server requires SSO (**Admin** > **Settings** > **Single Sign-On** > **Require SSO for Login**), creating any project needs such a global provider too, or nobody, its creator included, could open the project.",
     );
     expect(section).toContain(
       "Without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects.",

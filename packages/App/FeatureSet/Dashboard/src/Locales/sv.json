@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "Underhållsmarkeringar är inte tillgängliga.",
   "Maintenance markers need the uptime history, which did not load.": "Underhållsmarkeringar behöver drifttidshistoriken, som inte lästes in.",
   "You need permission to read scheduled maintenance.": "Du behöver behörighet att läsa schemalagt underhåll.",
+  "Sign in with {{name}}": "Logga in med {{name}}",
   "At a date and time": "Vid ett datum och en tid",
   "It shows on its status pages as soon as it is saved.": "Den visas på sina statussidor så snart den sparas.",
   "It shows on its status pages at once, and their subscribers are told it is scheduled.": "Den visas direkt på sina statussidor, och deras prenumeranter får veta att den är schemalagd.",

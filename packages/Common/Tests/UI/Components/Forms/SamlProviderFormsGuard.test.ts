@@ -16,7 +16,8 @@ import {
  * reduce decision paralysis." - the maintainer.
  *
  * Adding a SAML provider walked four steps on each of its three forms
- * (Settings > SSO, a status page's SSO, Admin > Global SSO): Basic Info,
+ * (Settings > SSO, a status page's SSO, Admin > Single Sign-On's SAML
+ * providers): Basic Info,
  * Sign On, Certificate and More. It asked for a description, required, and
  * for a signature method and a digest method - two required dropdowns with
  * nothing picked, whose help said to leave them at RSA-SHA256 and SHA256.
@@ -78,8 +79,9 @@ const SAML_FORMS: Array<SamlForm> = [
     builderCall: "formFields={getSamlProviderFormFields<StatusPageSSO>()}",
   },
   {
-    file: `${ADMIN_DASHBOARD}/Pages/Settings/GlobalSSO/Index.tsx`,
-    label: "ModelTable: Settings > Global SSO",
+    // Settings > Single Sign-On's SAML providers, above its OIDC ones.
+    file: `${ADMIN_DASHBOARD}/Pages/Settings/SSO/Index.tsx`,
+    label: "ModelTable: Settings > Single Sign-On > SAML",
     host: "ModelTable",
     builderCall:
       "formFields={getSamlProviderFormFields<GlobalSSO>({ withGlobalAccessSwitches: true, })}",

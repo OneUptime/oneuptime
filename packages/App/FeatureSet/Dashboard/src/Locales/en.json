@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "Maintenance markers are unavailable.",
   "Maintenance markers need the uptime history, which did not load.": "Maintenance markers need the uptime history, which did not load.",
   "You need permission to read scheduled maintenance.": "You need permission to read scheduled maintenance.",
+  "Sign in with {{name}}": "Sign in with {{name}}",
   "At a date and time": "At a date and time",
   "It shows on its status pages as soon as it is saved.": "It shows on its status pages as soon as it is saved.",
   "It shows on its status pages at once, and their subscribers are told it is scheduled.": "It shows on its status pages at once, and their subscribers are told it is scheduled.",

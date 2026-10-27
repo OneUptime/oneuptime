@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "Vedligeholdelsesmarkeringer er ikke tilgængelige.",
   "Maintenance markers need the uptime history, which did not load.": "Vedligeholdelsesmarkeringer kræver oppetidshistorikken, som ikke blev indlæst.",
   "You need permission to read scheduled maintenance.": "Du skal have tilladelse til at læse planlagt vedligeholdelse.",
+  "Sign in with {{name}}": "Log ind med {{name}}",
   "At a date and time": "På en dato og et klokkeslæt",
   "It shows on its status pages as soon as it is saved.": "Den vises på sine statussider, så snart den er gemt.",
   "It shows on its status pages at once, and their subscribers are told it is scheduled.": "Den vises straks på sine statussider, og deres abonnenter får besked om, at den er planlagt.",

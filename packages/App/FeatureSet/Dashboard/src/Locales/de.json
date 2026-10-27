@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "Wartungsmarkierungen sind nicht verfügbar.",
   "Maintenance markers need the uptime history, which did not load.": "Wartungsmarkierungen benötigen den Verfügbarkeitsverlauf, der nicht geladen wurde.",
   "You need permission to read scheduled maintenance.": "Sie benötigen die Berechtigung, geplante Wartungen zu lesen.",
+  "Sign in with {{name}}": "Mit {{name}} anmelden",
   "At a date and time": "Zu einem bestimmten Zeitpunkt",
   "It shows on its status pages as soon as it is saved.": "Es wird auf seinen Statusseiten angezeigt, sobald es gespeichert ist.",
   "It shows on its status pages at once, and their subscribers are told it is scheduled.": "Es wird sofort auf seinen Statusseiten angezeigt, und deren Abonnenten erfahren, dass es geplant ist.",

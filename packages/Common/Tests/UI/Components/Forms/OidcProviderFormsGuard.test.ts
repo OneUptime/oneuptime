@@ -15,7 +15,8 @@ import {
  * reduce decision paralysis." - the maintainer.
  *
  * Adding an OpenID Connect provider walked four steps on each of its three
- * forms (Settings > OIDC, a status page's OIDC, Admin > Global OIDC) and
+ * forms (Settings > OIDC, a status page's OIDC, Admin > Single Sign-On's
+ * OIDC providers) and
  * asked for eleven things: a description, both a discovery URL and an
  * issuer, the scopes and two claim names, which nearly everyone leaves at
  * their usual values. Now one builder makes all of them
@@ -75,8 +76,9 @@ const OIDC_FORMS: Array<OidcForm> = [
     builderCall: "formFields={getOidcProviderFormFields<StatusPageOIDC>()}",
   },
   {
-    file: `${ADMIN_DASHBOARD}/Pages/Settings/GlobalOIDC/Index.tsx`,
-    label: "ModelTable: Settings > Global OIDC",
+    // Settings > Single Sign-On's OpenID Connect providers, under its SAML ones.
+    file: `${ADMIN_DASHBOARD}/Pages/Settings/SSO/Index.tsx`,
+    label: "ModelTable: Settings > Single Sign-On > OpenID Connect",
     host: "ModelTable",
     builderCall:
       "formFields={getOidcProviderFormFields<GlobalOIDC>({ withGlobalAccessSwitches: true, })}",
