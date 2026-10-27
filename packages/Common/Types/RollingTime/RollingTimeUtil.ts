@@ -58,44 +58,54 @@ export default class RollingTimeUtil {
       startDate = OneUptimeDate.addRemoveHours(endDate, -12);
     }
 
+    /*
+     * Days are fixed lengths, 24 hours a day, not calendar days: in a zone
+     * whose clocks change inside the window, N calendar days back is an hour
+     * more or less than N days. Past 1, 3 and 7 Days and Past 180 Days sit
+     * exactly on the edge of a bucket width (AggregationIntervalUtil), so in
+     * London after the clocks went back on 2026-10-25 Past 3 Days was
+     * bucketed by the hour instead of every 30 minutes - in the browser, and
+     * on any server not in UTC - and getWindowInMs, which steps back from
+     * 1970-01-01, read Past 90 and 180 Days an hour long in New York.
+     */
     if (rollingTime === RollingTime.Past1Hours) {
-      startDate = OneUptimeDate.addRemoveDays(endDate, -1);
+      startDate = OneUptimeDate.addRemoveHours(endDate, -24);
     }
 
     if (rollingTime === RollingTime.Past2Days) {
-      startDate = OneUptimeDate.addRemoveDays(endDate, -2);
+      startDate = OneUptimeDate.addRemoveHours(endDate, -2 * 24);
     }
 
     if (rollingTime === RollingTime.Past3Days) {
-      startDate = OneUptimeDate.addRemoveDays(endDate, -3);
+      startDate = OneUptimeDate.addRemoveHours(endDate, -3 * 24);
     }
 
     if (rollingTime === RollingTime.Past7Days) {
-      startDate = OneUptimeDate.addRemoveDays(endDate, -7);
+      startDate = OneUptimeDate.addRemoveHours(endDate, -7 * 24);
     }
 
     if (rollingTime === RollingTime.Past14Days) {
-      startDate = OneUptimeDate.addRemoveDays(endDate, -14);
+      startDate = OneUptimeDate.addRemoveHours(endDate, -14 * 24);
     }
 
     if (rollingTime === RollingTime.Past30Days) {
-      startDate = OneUptimeDate.addRemoveDays(endDate, -30);
+      startDate = OneUptimeDate.addRemoveHours(endDate, -30 * 24);
     }
 
     if (rollingTime === RollingTime.Past60Days) {
-      startDate = OneUptimeDate.addRemoveDays(endDate, -60);
+      startDate = OneUptimeDate.addRemoveHours(endDate, -60 * 24);
     }
 
     if (rollingTime === RollingTime.Past90Days) {
-      startDate = OneUptimeDate.addRemoveDays(endDate, -90);
+      startDate = OneUptimeDate.addRemoveHours(endDate, -90 * 24);
     }
 
     if (rollingTime === RollingTime.Past180Days) {
-      startDate = OneUptimeDate.addRemoveDays(endDate, -180);
+      startDate = OneUptimeDate.addRemoveHours(endDate, -180 * 24);
     }
 
     if (rollingTime === RollingTime.Past365Days) {
-      startDate = OneUptimeDate.addRemoveDays(endDate, -365);
+      startDate = OneUptimeDate.addRemoveHours(endDate, -365 * 24);
     }
 
     return new InBetween(startDate, endDate);
