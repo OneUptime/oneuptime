@@ -59,6 +59,17 @@ import React, {
  * Enterprise card does.
  */
 
+/*
+ * What a team's or key's custom roles card shows where roles cannot be
+ * given: no upsell - the Roles page sells custom roles, and a page someone
+ * opens to give a team or key access is no place for one. What is left of
+ * the feature is drawn under it instead (TeamCustomRolesLeftover,
+ * ApiKeyCustomRolesLeftover), or nothing.
+ */
+export const drawNoCustomRolesUpsell: () => ReactElement = (): ReactElement => {
+  return <></>;
+};
+
 export interface ComponentProps {
   reason: EnterpriseSettingLeftoverReason;
 }

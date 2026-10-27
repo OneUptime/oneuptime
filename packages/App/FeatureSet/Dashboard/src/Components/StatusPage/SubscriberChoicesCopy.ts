@@ -4,6 +4,10 @@ import {
   foldedSectionItem,
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { SubscriberEmailFooterCopy } from "./SubscriberEmailFooterCopy";
+import {
+  getSubscriberRestrictionsFoldedItem,
+  SubscriberRestrictionsState,
+} from "./SubscriberRestrictionsCopy";
 
 /*
  * SUBSCRIBERS -> SUBSCRIBER SETTINGS: WHAT VISITORS PICK WHEN THEY
@@ -108,7 +112,7 @@ export const SubscriberChoicesCopy: {
     "Off: subscribers hear about every kind of event.",
   ),
   moreDescription: translationKey(
-    "Timezones, the email footer, and your own mail server or Twilio account.",
+    "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.",
   ),
   timezonesTitle: translationKey("Subscriber Timezones"),
   timezonesDescription: translationKey(
@@ -165,6 +169,7 @@ export const getSubscriberChoiceTitle: (
  * starts with.
  */
 export interface SubscriberSettingsMoreValues {
+  restrictions?: SubscriberRestrictionsState | undefined;
   timezoneCount?: number | undefined;
   isCustomFooter?: boolean | undefined;
   smtpConfigName?: string | null | undefined;
@@ -172,10 +177,10 @@ export interface SubscriberSettingsMoreValues {
 }
 
 /*
- * What the folded More settings header lists: its four cards, each a chip
- * once it holds something a new status page does not - how many timezones,
- * your own footer, which mail server, which Twilio account - so folding
- * never hides a setting in force.
+ * What the folded More settings header lists: its five cards, each a chip
+ * once it holds something a new status page does not - who may subscribe,
+ * how many timezones, your own footer, which mail server, which Twilio
+ * account - so folding never hides a setting in force.
  */
 export const getSubscriberSettingsMoreItems: (
   values: SubscriberSettingsMoreValues,
@@ -185,6 +190,7 @@ export const getSubscriberSettingsMoreItems: (
   const timezoneCount: number = values.timezoneCount || 0;
 
   return [
+    getSubscriberRestrictionsFoldedItem(values.restrictions),
     foldedSectionItem(SubscriberChoicesCopy.timezonesTitle, {
       isSet: timezoneCount > 0,
       value: String(timezoneCount),

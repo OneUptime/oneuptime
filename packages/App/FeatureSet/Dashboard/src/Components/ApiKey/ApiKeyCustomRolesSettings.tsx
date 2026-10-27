@@ -1,18 +1,13 @@
-import { ApiKeyCustomRolesLeftover } from "../CustomRole/CustomRoleLeftovers";
+import {
+  ApiKeyCustomRolesLeftover,
+  drawNoCustomRolesUpsell,
+} from "../CustomRole/CustomRoleLeftovers";
 import { EnterpriseSettingLeftoverReason } from "../EnterpriseEdition/EnterpriseSettingLeftoverCopy";
-import {
-  CUSTOM_ROLES_REQUIRED_PLAN,
-  isEnterpriseFeatureEligible,
-  isKnownToBeBelowPlan,
-} from "../../Enterprise/EnterpriseEligibility";
-import {
-  ApiKeyCustomRolesProps,
-  EnterprisePluginComponent,
-} from "../../Enterprise/EnterprisePlugins";
+import { CUSTOM_ROLES_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
+import EnterprisePluginPage from "../../Enterprise/EnterprisePluginPage";
+import { ApiKeyCustomRolesProps } from "../../Enterprise/EnterprisePlugins";
 import { getDashboardPlugins } from "../../Enterprise/Plugins";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import { BILLING_ENABLED } from "Common/UI/Config";
-import React, { FunctionComponent, ReactElement, Suspense } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The custom roles card on an API key's page, in its More settings beside
@@ -27,6 +22,9 @@ import React, { FunctionComponent, ReactElement, Suspense } from "react";
  * listed, with Remove (ApiKeyCustomRolesLeftover): on the Community
  * Edition, and for a OneUptime Cloud project known to be below the plan. A
  * project whose plan is still loading draws nothing yet.
+ *
+ * Drawn through the Enterprise door every shell uses (EnterprisePluginPage),
+ * so whatever it draws is one whole card, a section of More settings.
  */
 
 export type ComponentProps = ApiKeyCustomRolesProps;
@@ -34,39 +32,29 @@ export type ComponentProps = ApiKeyCustomRolesProps;
 const ApiKeyCustomRolesSettings: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const Plugin: EnterprisePluginComponent<ApiKeyCustomRolesProps> | undefined =
-    getDashboardPlugins().ApiKeyCustomRoles;
-
-  if (Plugin && isEnterpriseFeatureEligible(CUSTOM_ROLES_REQUIRED_PLAN)) {
-    return (
-      <Suspense fallback={<ComponentLoader />}>
-        <Plugin
+  return (
+    <EnterprisePluginPage<ApiKeyCustomRolesProps>
+      plugin={getDashboardPlugins().ApiKeyCustomRoles}
+      pluginProps={{
+        apiKeyId: props.apiKeyId,
+        onRolesChange: props.onRolesChange,
+      }}
+      requiredPlan={CUSTOM_ROLES_REQUIRED_PLAN}
+      renderUpsell={drawNoCustomRolesUpsell}
+      belowPlan={
+        <ApiKeyCustomRolesLeftover
           apiKeyId={props.apiKeyId}
+          reason={EnterpriseSettingLeftoverReason.Plan}
           onRolesChange={props.onRolesChange}
         />
-      </Suspense>
-    );
-  }
-
-  if (BILLING_ENABLED) {
-    if (!isKnownToBeBelowPlan(CUSTOM_ROLES_REQUIRED_PLAN)) {
-      return <></>;
-    }
-
-    return (
-      <ApiKeyCustomRolesLeftover
-        apiKeyId={props.apiKeyId}
-        reason={EnterpriseSettingLeftoverReason.Plan}
-        onRolesChange={props.onRolesChange}
-      />
-    );
-  }
-
-  return (
-    <ApiKeyCustomRolesLeftover
-      apiKeyId={props.apiKeyId}
-      reason={EnterpriseSettingLeftoverReason.Edition}
-      onRolesChange={props.onRolesChange}
+      }
+      communityLeftover={
+        <ApiKeyCustomRolesLeftover
+          apiKeyId={props.apiKeyId}
+          reason={EnterpriseSettingLeftoverReason.Edition}
+          onRolesChange={props.onRolesChange}
+        />
+      }
     />
   );
 };

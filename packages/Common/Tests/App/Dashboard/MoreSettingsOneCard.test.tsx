@@ -17,11 +17,18 @@ import {
   within,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
-import { MemoryRouter } from "react-router-dom";
+import {
+  MemoryRouter,
+  Route as RouterRoute,
+  Routes as RouterRoutes,
+} from "react-router-dom";
 import AIFeatures from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/AIFeatures";
 import APIKeyView from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/APIKeyView";
 import AlertAISettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Settings/AlertAISettings";
 import DashboardSharing from "../../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/Sharing";
+import FormShare, {
+  FORM_SHARE_MORE_SETTINGS_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Share";
 import IncidentAISettings from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/Settings/IncidentAISettings";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import StatusPageAccess from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/AuthenticationSettings";
@@ -368,7 +375,8 @@ const PAGES: Array<MoreSettingsPage> = [
       return <StatusPageAccess {...PAGE_PROPS} />;
     },
     sectionTestId: STATUS_PAGE_ACCESS_ADVANCED_SECTION_TEST_ID,
-    sectionTitles: ["IP Allowlist"],
+    // How long readers stay signed in, and the IP allowlist: both Enterprise.
+    sectionTitles: ["Reader Sessions", "IP Allowlist"],
     namesSectionsByTitle: true,
     tableCount: 0,
   },
@@ -379,6 +387,25 @@ const PAGES: Array<MoreSettingsPage> = [
       return <DashboardSharing {...PAGE_PROPS} />;
     },
     sectionTestId: DASHBOARD_SHARING_ADVANCED_SECTION_TEST_ID,
+    sectionTitles: ["IP Allowlist"],
+    namesSectionsByTitle: true,
+    tableCount: 0,
+  },
+  {
+    name: "Forms -> a form -> Share",
+    path: `/dashboard/${PROJECT_ID}/forms/${RECORD_ID}/share`,
+    element: (): ReactElement => {
+      // The page reads the form's id from the route, as its route gives it.
+      return (
+        <RouterRoutes>
+          <RouterRoute
+            path="/dashboard/:projectId/forms/:id/share"
+            element={<FormShare {...PAGE_PROPS} />}
+          />
+        </RouterRoutes>
+      );
+    },
+    sectionTestId: FORM_SHARE_MORE_SETTINGS_TEST_ID,
     sectionTitles: ["IP Allowlist"],
     namesSectionsByTitle: true,
     tableCount: 0,

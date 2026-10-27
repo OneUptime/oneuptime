@@ -3,6 +3,7 @@ import {
   CustomRolesCardState,
   CustomRolesCardStateHandler,
 } from "../Components/CustomRole/CustomRolesFold";
+import { SubscriberRestrictionsState } from "../Components/StatusPage/SubscriberRestrictionsCopy";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
@@ -108,6 +109,31 @@ export interface ApiKeyCustomRolesProps {
 // Props of a status page card that edits one page's settings.
 export interface StatusPageSettingCardProps {
   statusPageId: ObjectID;
+}
+
+/*
+ * Props of a status page's Reader Sessions card (Security > Access), which
+ * waits folded under the page's More settings: it tells the page how long
+ * readers stay signed in - hours, or null for no limit - once read and
+ * after each save, so the folded header can say so.
+ */
+export interface StatusPageSessionLengthCardProps
+  extends StatusPageSettingCardProps {
+  onLengthChange?: ((lengthInHours: number | null) => void) | undefined;
+}
+
+/*
+ * Props of a status page's Who Can Subscribe card (Subscribers > Settings),
+ * which waits folded under the page's More settings: it tells the page
+ * what it restricts, once read and after each save, so the folded header
+ * can mark it while anything is (Components/StatusPage
+ * /SubscriberRestrictionsCopy).
+ */
+export interface StatusPageSubscriberRestrictionsCardProps
+  extends StatusPageSettingCardProps {
+  onRestrictionsChange?:
+    | ((restrictions: SubscriberRestrictionsState) => void)
+    | undefined;
 }
 
 // A status page, public dashboard or form: the records with an IP allow-list.
@@ -229,7 +255,7 @@ export interface DashboardEnterprisePlugins {
 
   // A status page's Reader Sessions card (Security > Access).
   StatusPageSessionLength?:
-    | EnterprisePluginComponent<StatusPageSettingCardProps>
+    | EnterprisePluginComponent<StatusPageSessionLengthCardProps>
     | undefined;
 
   /*
@@ -237,7 +263,7 @@ export interface DashboardEnterprisePlugins {
    * private users can subscribe, and the email domains subscribers may use.
    */
   StatusPageSubscriberRestrictions?:
-    | EnterprisePluginComponent<StatusPageSettingCardProps>
+    | EnterprisePluginComponent<StatusPageSubscriberRestrictionsCardProps>
     | undefined;
 
   /*

@@ -58,9 +58,11 @@ import SubscriberRestrictionsCopy, {
   ALLOWED_EMAIL_DOMAINS_SETTING_TEST_ID,
   getAllowedEmailDomainsInputProblem,
   getPrivateUsersOnlyDescription,
+  getSubscriberRestrictionsState,
   isSameAllowedEmailDomains,
   PRIVATE_USERS_ONLY_SWITCH_TEST_ID,
   SUBSCRIBER_RESTRICTIONS_CARD_TEST_ID,
+  SubscriberRestrictionsState,
   toAllowedEmailDomainsText,
 } from "@oneuptime/dashboard/Components/StatusPage/SubscriberRestrictionsCopy";
 
@@ -87,12 +89,21 @@ export interface ComponentProps {
   statusPageId: ObjectID;
   // Told after a setting is saved, so the warnings above the lists can read it again.
   onSaved?: (() => void) | undefined;
+  /*
+   * Told what the card restricts, once read and after each save, so the
+   * page's folded More settings can mark it while anything is.
+   */
+  onRestrictionsChange?:
+    | ((restrictions: SubscriberRestrictionsState) => void)
+    | undefined;
 }
 
 interface AllowedEmailDomainsSettingProps {
   statusPageId: ObjectID;
   initialDomains: string;
   onSaved?: (() => void) | undefined;
+  // Told the domains as the server keeps them, once saved.
+  onDomainsSaved?: ((domains: string) => void) | undefined;
 }
 
 const AllowedEmailDomainsSetting: FunctionComponent<
@@ -121,6 +132,7 @@ const AllowedEmailDomainsSetting: FunctionComponent<
     onSaved: (domains: string): void => {
       // As the server keeps it: one domain a line.
       setDraft(toAllowedEmailDomainsText(domains));
+      props.onDomainsSaved?.(domains);
       props.onSaved?.();
     },
   });
@@ -291,6 +303,15 @@ const SubscriberRestrictionsCard: FunctionComponent<ComponentProps> = (
   const [settings, setSettings] = useState<Settings | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  // What it restricts, as last read or saved: told to the page.
+  const [restrictions, setRestrictions] =
+    useState<SubscriberRestrictionsState | null>(null);
+
+  useEffect(() => {
+    if (restrictions) {
+      props.onRestrictionsChange?.(restrictions);
+    }
+  }, [restrictions]);
 
   const fetchStatusPage: () => Promise<void> = async (): Promise<void> => {
     setIsLoading(true);
@@ -319,6 +340,14 @@ const SubscriberRestrictionsCard: FunctionComponent<ComponentProps> = (
             getStatusPageAccess(getStatusPageAccessState(item)) ===
             StatusPageAccess.SignIn,
         });
+        setRestrictions(
+          getSubscriberRestrictionsState({
+            limitSubscribersToPrivateUsers:
+              item[LIMIT_SUBSCRIBERS_TO_PRIVATE_USERS_COLUMN],
+            allowedSubscriberEmailDomains:
+              item[ALLOWED_SUBSCRIBER_EMAIL_DOMAINS_COLUMN],
+          }),
+        );
       } else {
         setError(
           translator.translateText("Status page not found.") ||
@@ -371,7 +400,18 @@ const SubscriberRestrictionsCard: FunctionComponent<ComponentProps> = (
                 ? undefined
                 : SubscriberRestrictionsCopy.privateUsersOnlyNoSignInNote
             }
-            onSaved={() => {
+            onSaved={(isOn: boolean) => {
+              setRestrictions(
+                (
+                  current: SubscriberRestrictionsState | null,
+                ): SubscriberRestrictionsState => {
+                  return {
+                    allowedEmailDomainCount:
+                      current?.allowedEmailDomainCount || 0,
+                    limitSubscribersToPrivateUsers: isOn,
+                  };
+                },
+              );
               props.onSaved?.();
             }}
             dataTestId={PRIVATE_USERS_ONLY_SWITCH_TEST_ID}
@@ -382,6 +422,19 @@ const SubscriberRestrictionsCard: FunctionComponent<ComponentProps> = (
             statusPageId={props.statusPageId}
             initialDomains={settings.allowedSubscriberEmailDomains}
             onSaved={props.onSaved}
+            onDomainsSaved={(domains: string) => {
+              setRestrictions(
+                (
+                  current: SubscriberRestrictionsState | null,
+                ): SubscriberRestrictionsState => {
+                  return getSubscriberRestrictionsState({
+                    limitSubscribersToPrivateUsers:
+                      current?.limitSubscribersToPrivateUsers,
+                    allowedSubscriberEmailDomains: domains,
+                  });
+                },
+              );
+            }}
           />
         </div>
       </div>

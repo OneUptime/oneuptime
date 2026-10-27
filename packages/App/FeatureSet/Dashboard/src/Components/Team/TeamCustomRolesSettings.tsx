@@ -1,18 +1,13 @@
-import { TeamCustomRolesLeftover } from "../CustomRole/CustomRoleLeftovers";
+import {
+  drawNoCustomRolesUpsell,
+  TeamCustomRolesLeftover,
+} from "../CustomRole/CustomRoleLeftovers";
 import { EnterpriseSettingLeftoverReason } from "../EnterpriseEdition/EnterpriseSettingLeftoverCopy";
-import {
-  CUSTOM_ROLES_REQUIRED_PLAN,
-  isEnterpriseFeatureEligible,
-  isKnownToBeBelowPlan,
-} from "../../Enterprise/EnterpriseEligibility";
-import {
-  EnterprisePluginComponent,
-  TeamCustomRolesProps,
-} from "../../Enterprise/EnterprisePlugins";
+import { CUSTOM_ROLES_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
+import EnterprisePluginPage from "../../Enterprise/EnterprisePluginPage";
+import { TeamCustomRolesProps } from "../../Enterprise/EnterprisePlugins";
 import { getDashboardPlugins } from "../../Enterprise/Plugins";
-import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
-import { BILLING_ENABLED } from "Common/UI/Config";
-import React, { FunctionComponent, ReactElement, Suspense } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The custom roles card on a team's Permissions page, in its More settings
@@ -27,6 +22,9 @@ import React, { FunctionComponent, ReactElement, Suspense } from "react";
  * listed, with Remove (TeamCustomRolesLeftover): on the Community Edition,
  * and for a OneUptime Cloud project known to be below the plan. A project
  * whose plan is still loading draws nothing yet.
+ *
+ * Drawn through the Enterprise door every shell uses (EnterprisePluginPage),
+ * so whatever it draws is one whole card, a section of More settings.
  */
 
 export type ComponentProps = TeamCustomRolesProps;
@@ -34,36 +32,29 @@ export type ComponentProps = TeamCustomRolesProps;
 const TeamCustomRolesSettings: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const Plugin: EnterprisePluginComponent<TeamCustomRolesProps> | undefined =
-    getDashboardPlugins().TeamCustomRoles;
-
-  if (Plugin && isEnterpriseFeatureEligible(CUSTOM_ROLES_REQUIRED_PLAN)) {
-    return (
-      <Suspense fallback={<ComponentLoader />}>
-        <Plugin teamId={props.teamId} onRolesChange={props.onRolesChange} />
-      </Suspense>
-    );
-  }
-
-  if (BILLING_ENABLED) {
-    if (!isKnownToBeBelowPlan(CUSTOM_ROLES_REQUIRED_PLAN)) {
-      return <></>;
-    }
-
-    return (
-      <TeamCustomRolesLeftover
-        teamId={props.teamId}
-        reason={EnterpriseSettingLeftoverReason.Plan}
-        onRolesChange={props.onRolesChange}
-      />
-    );
-  }
-
   return (
-    <TeamCustomRolesLeftover
-      teamId={props.teamId}
-      reason={EnterpriseSettingLeftoverReason.Edition}
-      onRolesChange={props.onRolesChange}
+    <EnterprisePluginPage<TeamCustomRolesProps>
+      plugin={getDashboardPlugins().TeamCustomRoles}
+      pluginProps={{
+        teamId: props.teamId,
+        onRolesChange: props.onRolesChange,
+      }}
+      requiredPlan={CUSTOM_ROLES_REQUIRED_PLAN}
+      renderUpsell={drawNoCustomRolesUpsell}
+      belowPlan={
+        <TeamCustomRolesLeftover
+          teamId={props.teamId}
+          reason={EnterpriseSettingLeftoverReason.Plan}
+          onRolesChange={props.onRolesChange}
+        />
+      }
+      communityLeftover={
+        <TeamCustomRolesLeftover
+          teamId={props.teamId}
+          reason={EnterpriseSettingLeftoverReason.Edition}
+          onRolesChange={props.onRolesChange}
+        />
+      }
     />
   );
 };

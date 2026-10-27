@@ -3,8 +3,8 @@ import { getIpAllowlistFoldedItem } from "../../../Components/IpAllowlist/IpAllo
 import IpAllowlistSettings from "../../../Components/IpAllowlist/IpAllowlistSettings";
 import StatusPageAccessCard from "../../../Components/StatusPage/StatusPageAccessCard";
 import StatusPageSessionLengthSettings from "../../../Components/StatusPage/StatusPageSessionLengthSettings";
+import { getSessionLengthFoldedItem } from "../../../Components/StatusPage/StatusPageSessionLengthCopy";
 import StatusPageAccessCopy, {
-  isIpAllowlistInForce,
   STATUS_PAGE_ACCESS_ADVANCED_SECTION_TEST_ID,
   STATUS_PAGE_IP_ALLOWLIST_ENTRIES_TEST_ID,
 } from "../../../Components/StatusPage/StatusPageAccessCopy";
@@ -25,13 +25,20 @@ import React, {
  * Status Pages -> a page -> Security -> Access (the old "Authentication
  * Settings", at the same address): who can see the page, as one choice -
  * anyone with the link, only people who sign in, or anyone with the
- * password (StatusPageAccessCard) - then how long readers stay signed in
- * (StatusPageSessionLengthSettings). The IP allowlist, which applies whoever
- * the page is open to and which few pages need, is folded under Advanced,
- * which says "Configured" while the server enforces it.
+ * password (StatusPageAccessCard) - then, folded under More settings, how
+ * long readers stay signed in (StatusPageSessionLengthSettings) and the IP
+ * allowlist, which applies whoever the page is open to.
  *
- * The reader session limit and the IP allowlist are Enterprise features:
- * their components render the Enterprise cards, or the upsell with what the
+ * Both are Enterprise access controls few pages need - a reader session
+ * limit means nothing on a page open to anyone - so the page opens on the
+ * one choice everyone makes, and the folded header names the two, each
+ * with what it is set to while it is set ("Reader Sessions: 8 hours", "IP
+ * Allowlist: 2"). Reader Sessions used to be a card of its own under the
+ * choice; the maintainer: "audit the entire project for advanced features
+ * just like these and move them to More as well". A link to
+ * #reader-sessions or #ip-allowlist opens it there.
+ *
+ * Their components render the Enterprise cards, or the upsell with what the
  * page still has of them.
  */
 const StatusPageAccess: FunctionComponent<
@@ -43,28 +50,30 @@ const StatusPageAccess: FunctionComponent<
   // What the allowlist holds, once read: null until then.
   const [ipAllowlist, setIpAllowlist] = useState<string | null>(null);
 
-  const isIpAllowlistSet: boolean = isIpAllowlistInForce(ipAllowlist);
+  // How long readers stay signed in, once read: undefined until then.
+  const [sessionLengthInHours, setSessionLengthInHours] = useState<
+    number | null | undefined
+  >(undefined);
 
   return (
     <Fragment>
       <StatusPageAccessCard statusPageId={modelId} />
 
-      <StatusPageSessionLengthSettings statusPageId={modelId} />
-
       <AdvancedPageSection
         description={StatusPageAccessCopy.advancedDescription}
-        summary={
-          ipAllowlist === null
-            ? undefined
-            : translator.translateText(
-                isIpAllowlistSet
-                  ? StatusPageAccessCopy.advancedSummaryConfigured
-                  : StatusPageAccessCopy.advancedSummaryOpen,
-              )
-        }
-        items={[getIpAllowlistFoldedItem(ipAllowlist)]}
+        items={[
+          getSessionLengthFoldedItem(sessionLengthInHours, translator),
+          getIpAllowlistFoldedItem(ipAllowlist),
+        ]}
         dataTestId={STATUS_PAGE_ACCESS_ADVANCED_SECTION_TEST_ID}
       >
+        <StatusPageSessionLengthSettings
+          statusPageId={modelId}
+          onLengthChange={(lengthInHours: number | null) => {
+            setSessionLengthInHours(lengthInHours);
+          }}
+        />
+
         <IpAllowlistSettings
           modelType={StatusPage}
           modelId={modelId}
