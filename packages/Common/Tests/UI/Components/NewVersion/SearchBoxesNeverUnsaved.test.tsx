@@ -1,6 +1,12 @@
 import "@testing-library/jest-dom";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Dropdown, {
@@ -94,10 +100,7 @@ describe("isSearchOrFilterField", () => {
       "a combobox that does not say so (a value written with suggestions)",
       `<input data-testid="box" role="combobox" />`,
     ],
-    [
-      "an editor",
-      `<div data-testid="box" contenteditable="true">Draft</div>`,
-    ],
+    ["an editor", `<div data-testid="box" contenteditable="true">Draft</div>`],
   ])("%s is not", (_label: string, html: string) => {
     expect(isSearchOrFilterField(make(html))).toBe(false);
   });

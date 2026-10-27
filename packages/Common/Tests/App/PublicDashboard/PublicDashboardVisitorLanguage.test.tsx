@@ -107,8 +107,9 @@ const loadPublicDashboardI18n: (
     const module: { PUBLIC_DASHBOARD_LANGUAGE: string } = require(
       path.join(PUBLIC_DASHBOARD, "src", "Utils", "i18n.ts"),
     );
-    const i18next: { default?: I18nInstance } & I18nInstance =
-      require("i18next");
+    const i18next: {
+      default?: I18nInstance;
+    } & I18nInstance = require("i18next");
     const i18n: I18nInstance = i18next.default || i18next;
     /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
@@ -164,9 +165,10 @@ describe("the Public Dashboard's words", () => {
     );
 
     for (const language of LANGUAGES) {
-      expect([language, source.includes(`../Locales/${language}.json"`)]).toEqual(
-        [language, true],
-      );
+      expect([
+        language,
+        source.includes(`../Locales/${language}.json"`),
+      ]).toEqual([language, true]);
     }
   });
 

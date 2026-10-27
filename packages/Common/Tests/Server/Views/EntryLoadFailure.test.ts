@@ -263,7 +263,10 @@ const open: (visit?: Visit) => OpenedPage = (visit?: Visit): OpenedPage => {
           }
         };
 
-        pageWindow.setTimeout = (callback: () => void, delay: number): number => {
+        pageWindow.setTimeout = (
+          callback: () => void,
+          delay: number,
+        ): number => {
           const timer: Timer = {
             id: nextTimer++,
             callback,
@@ -407,18 +410,24 @@ describe("EntryLoadFailure: an app that starts", () => {
   });
 
   test.each<[string, string]>([
-    ["a script that is not the entry", "/dashboard/assets/js/tailwind-3.4.5.js"],
+    [
+      "a script that is not the entry",
+      "/dashboard/assets/js/tailwind-3.4.5.js",
+    ],
     ["another module", "/dashboard/dist/Worker.js"],
     ["an entry of another name", "/dashboard/dist/Index.js.map"],
-  ])("%s failing is not the app failing", async (_label: string, src: string) => {
-    const page: OpenedPage = open({ entry: src });
+  ])(
+    "%s failing is not the app failing",
+    async (_label: string, src: string) => {
+      const page: OpenedPage = open({ entry: src });
 
-    page.failEntry();
-    await page.settle(1000);
+      page.failEntry();
+      await page.settle(1000);
 
-    expect(card(page)).toBeNull();
-    expect(page.requests).toEqual([]);
-  });
+      expect(card(page)).toBeNull();
+      expect(page.requests).toEqual([]);
+    },
+  );
 
   test("an image that fails is not the app failing either", async () => {
     const page: OpenedPage = open();
@@ -828,7 +837,10 @@ describe("EntryLoadFailure: in the reader's language", () => {
       });
 
       expect(card(page)!.getAttribute("lang")).toBe(
-        getVisitorLanguage([browserLanguage], SUPPORTED_DASHBOARD_LANGUAGE_CODES),
+        getVisitorLanguage(
+          [browserLanguage],
+          SUPPORTED_DASHBOARD_LANGUAGE_CODES,
+        ),
       );
     },
   );
@@ -876,9 +888,11 @@ describe("EntryLoadFailure: its words", () => {
       }
 
       for (let index: number = 0; index < KEYS.length; index++) {
-        expect([language, index, words[language]![index] !== KEYS[index]]).toEqual(
-          [language, index, true],
-        );
+        expect([
+          language,
+          index,
+          words[language]![index] !== KEYS[index],
+        ]).toEqual([language, index, true]);
       }
     }
   });
@@ -940,9 +954,7 @@ describe("EntryLoadFailure: the card", () => {
     );
 
     expect(skeleton(card(page)!)).toBe(
-      skeleton(
-        appCard.window.document.querySelector("[data-testid='app']")!,
-      ),
+      skeleton(appCard.window.document.querySelector("[data-testid='app']")!),
     );
   });
 
@@ -966,9 +978,9 @@ describe("EntryLoadFailure: the card", () => {
       expect(
         card(page)!.querySelector(".oueb-badge path")!.getAttribute("d"),
       ).toBe(iconPath);
-      expect(
-        action(page).querySelector("path")!.getAttribute("d"),
-      ).toBe(RELOAD_ICON_PATH);
+      expect(action(page).querySelector("path")!.getAttribute("d")).toBe(
+        RELOAD_ICON_PATH,
+      );
     },
   );
 });
@@ -1131,7 +1143,9 @@ describe("EntryLoadFailure: what the page carries", () => {
 
   test("none of the file's comments, and no inline event handlers (a status page's policy refuses them)", () => {
     expect(rendered).not.toContain("<%");
-    expect(rendered).not.toContain("What a page says when its app cannot start");
+    expect(rendered).not.toContain(
+      "What a page says when its app cannot start",
+    );
     expect(rendered).not.toMatch(/\son[a-z]+\s*=/i);
   });
 

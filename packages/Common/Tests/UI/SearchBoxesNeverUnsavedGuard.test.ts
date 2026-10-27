@@ -62,7 +62,11 @@ const LABEL_ATTRIBUTES: ReadonlyArray<string> = [
   "ariaLabel",
 ];
 
-const ID_ATTRIBUTES: ReadonlyArray<string> = ["data-testid", "dataTestId", "id"];
+const ID_ATTRIBUTES: ReadonlyArray<string> = [
+  "data-testid",
+  "dataTestId",
+  "id",
+];
 
 // Words a search or a filter box starts its label with.
 const SEARCH_LABEL_START_REGEX: RegExp = /^\s*(search|filter|find)\b/i;
@@ -119,7 +123,9 @@ const getAttributes: (
 };
 
 // Every piece of text written in an attribute's value: its strings and templates.
-const getWrittenTexts: (attribute: ts.JsxAttribute | undefined) => Array<string> = (
+const getWrittenTexts: (
+  attribute: ts.JsxAttribute | undefined,
+) => Array<string> = (
   attribute: ts.JsxAttribute | undefined,
 ): Array<string> => {
   const texts: Array<string> = [];
@@ -211,7 +217,9 @@ const describeBox: (
       source &&
       (SEARCH_WORD_REGEX.test(source) || FILTER_PLACEHOLDER_REGEX.test(source))
     ) {
-      signals.push(`${name} ${source.replace(WHITESPACE_REGEX, " ").slice(0, 80)}`);
+      signals.push(
+        `${name} ${source.replace(WHITESPACE_REGEX, " ").slice(0, 80)}`,
+      );
     }
   }
 
@@ -233,8 +241,8 @@ const describeBox: (
   return {
     file: file,
     line:
-      sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
-        .line + 1,
+      sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line +
+      1,
     tag: node.tagName.getText(sourceFile),
     signals: UNTYPED_INPUT_TYPES.has(type) ? [] : Array.from(new Set(signals)),
     isMarked: isMarked,
@@ -386,7 +394,10 @@ describe("SearchBoxesNeverUnsavedGuard", () => {
 
   test("Common's Input writes the attribute for isSearchOrFilter", () => {
     const source: string = fs.readFileSync(
-      path.join(REPOSITORY_ROOT, "packages/Common/UI/Components/Input/Input.tsx"),
+      path.join(
+        REPOSITORY_ROOT,
+        "packages/Common/UI/Components/Input/Input.tsx",
+      ),
       "utf8",
     );
 

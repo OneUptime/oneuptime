@@ -81,7 +81,9 @@ describe("PageScreenCard", () => {
       />,
     );
 
-    expect(screen.getByTestId("screen")).toHaveClass("oneuptime-error-boundary");
+    expect(screen.getByTestId("screen")).toHaveClass(
+      "oneuptime-error-boundary",
+    );
     expect(screen.getByTestId("screen-title").tagName).toBe("H1");
     expect(screen.getByTestId("screen-title")).toHaveTextContent(
       "You're offline",
@@ -271,7 +273,10 @@ describe("getScreenLanguage", () => {
   const translator: (
     language: string,
     translated: Array<string>,
-  ) => Translator = (language: string, translated: Array<string>): Translator => {
+  ) => Translator = (
+    language: string,
+    translated: Array<string>,
+  ): Translator => {
     return {
       language: language,
       hasTranslation: (text: string): boolean => {

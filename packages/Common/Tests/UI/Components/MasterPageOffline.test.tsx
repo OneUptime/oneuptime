@@ -153,9 +153,9 @@ describe("MasterPage while the browser is offline", () => {
     const card: HTMLElement = screen.getByTestId(OFFLINE_SCREEN_TEST_ID);
 
     expect(card).toBeVisible();
-    expect(screen.getByTestId(`${OFFLINE_SCREEN_TEST_ID}-title`)).toHaveTextContent(
-      OFFLINE_SCREEN_TITLE,
-    );
+    expect(
+      screen.getByTestId(`${OFFLINE_SCREEN_TEST_ID}-title`),
+    ).toHaveTextContent(OFFLINE_SCREEN_TITLE);
     expect(card).toHaveTextContent(OFFLINE_SCREEN_MESSAGE);
     expect(
       screen.getByTestId(`${OFFLINE_SCREEN_TEST_ID}-try-again`),
@@ -247,17 +247,20 @@ describe("MasterPage while the browser is offline", () => {
   test.each<[string, { isLoading?: boolean; error?: string }]>([
     ["a page still loading", { isLoading: true }],
     ["a page that could not load", { error: "Something failed" }],
-  ])("%s says it is offline too", (_label: string, props) => {
-    render(drawMasterPage(props));
+  ])(
+    "%s says it is offline too",
+    (_label: string, props: { isLoading?: boolean; error?: string }) => {
+      render(drawMasterPage(props));
 
-    goOffline();
+      goOffline();
 
-    expect(screen.getByTestId(OFFLINE_SCREEN_TEST_ID)).toBeVisible();
+      expect(screen.getByTestId(OFFLINE_SCREEN_TEST_ID)).toBeVisible();
 
-    goOnline();
+      goOnline();
 
-    expect(screen.queryByTestId(OFFLINE_SCREEN_TEST_ID)).toBeNull();
-  });
+      expect(screen.queryByTestId(OFFLINE_SCREEN_TEST_ID)).toBeNull();
+    },
+  );
 
   test("while it shows, the new version notice waits: a reload now would only reach the browser's own offline page", () => {
     render(drawMasterPage());
@@ -376,7 +379,11 @@ describe("MasterPage while the browser is offline", () => {
  * Status Page's own locale files (each frontend reads only its own).
  */
 describe("the offline card in the reader's language", () => {
-  const FRONTENDS: Array<string> = ["Dashboard", "AdminDashboard", "StatusPage"];
+  const FRONTENDS: Array<string> = [
+    "Dashboard",
+    "AdminDashboard",
+    "StatusPage",
+  ];
 
   const instances: Record<string, i18n> = {};
 
@@ -436,9 +443,9 @@ describe("the offline card in the reader's language", () => {
 
     const card: HTMLElement = screen.getByTestId(OFFLINE_SCREEN_TEST_ID);
 
-    expect(screen.getByTestId(`${OFFLINE_SCREEN_TEST_ID}-title`)).toHaveTextContent(
-      locale[OFFLINE_SCREEN_TITLE]!,
-    );
+    expect(
+      screen.getByTestId(`${OFFLINE_SCREEN_TEST_ID}-title`),
+    ).toHaveTextContent(locale[OFFLINE_SCREEN_TITLE]!);
     expect(card).toHaveTextContent(locale[OFFLINE_SCREEN_MESSAGE]!);
     expect(
       screen.getByTestId(`${OFFLINE_SCREEN_TEST_ID}-try-again`),

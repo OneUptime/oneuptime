@@ -111,8 +111,7 @@ export const startVisitorTranslation: (locales: VisitorLocales) => string = (
     supportedLanguages,
   );
 
-  const resources: Record<string, { translation: Record<string, string> }> =
-    {};
+  const resources: Record<string, { translation: Record<string, string> }> = {};
 
   for (const code of supportedLanguages) {
     resources[code] = { translation: locales[code] || {} };
