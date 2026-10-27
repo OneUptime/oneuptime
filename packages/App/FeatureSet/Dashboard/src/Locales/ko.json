@@ -35966,5 +35966,9 @@
   "Edit Step {{number}}: {{title}}": "{{number}}단계 편집: {{title}}",
   "Labels to filter and report on cases by.": "케이스를 필터링하고 보고하는 데 쓰는 레이블입니다.",
   "Markdown. Leave it empty to send a summary of the case. These fill in from the case:": "Markdown. 비워 두면 케이스 요약을 보냅니다. 다음 항목은 케이스 내용으로 채워집니다:",
-  "What the case is about, in a line.": "케이스가 무엇에 관한 것인지 한 줄로 적습니다."
+  "What the case is about, in a line.": "케이스가 무엇에 관한 것인지 한 줄로 적습니다.",
+  "The users, hosts and addresses with the highest risk, as Entity Risk ranks them: what was found about each in the last 7 days. Open one to see why.": "엔티티 위험과 같은 순서로 정렬한, 위험도가 가장 높은 사용자, 호스트, 주소입니다. 최근 7일 동안 각각에 대해 발견된 내용을 기준으로 합니다. 하나를 열면 그 이유를 볼 수 있습니다.",
+  "View all {{count}} entities": "엔티티 {{count}}개 모두 보기",
+  "View all {{count}} entities_one": "엔티티 {{count}}개 보기",
+  "We could not load the riskiest entities.": "위험도가 가장 높은 엔티티를 불러오지 못했습니다."
 }

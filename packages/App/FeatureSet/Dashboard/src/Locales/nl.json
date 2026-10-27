@@ -35966,5 +35966,9 @@
   "Edit Step {{number}}: {{title}}": "Stap {{number}} bewerken: {{title}}",
   "Labels to filter and report on cases by.": "Labels om zaken op te filteren en over te rapporteren.",
   "Markdown. Leave it empty to send a summary of the case. These fill in from the case:": "Markdown. Laat leeg om een samenvatting van de zaak te sturen. Deze worden ingevuld vanuit de zaak:",
-  "What the case is about, in a line.": "Waar de zaak over gaat, in één regel."
+  "What the case is about, in a line.": "Waar de zaak over gaat, in één regel.",
+  "The users, hosts and addresses with the highest risk, as Entity Risk ranks them: what was found about each in the last 7 days. Open one to see why.": "De gebruikers, hosts en adressen met het hoogste risico, zoals Entiteitrisico ze rangschikt: wat er de afgelopen 7 dagen over elk is gevonden. Open er een om te zien waarom.",
+  "View all {{count}} entities": "Alle {{count}} entiteiten bekijken",
+  "View all {{count}} entities_one": "{{count}} entiteit bekijken",
+  "We could not load the riskiest entities.": "We konden de riskantste entiteiten niet laden."
 }
