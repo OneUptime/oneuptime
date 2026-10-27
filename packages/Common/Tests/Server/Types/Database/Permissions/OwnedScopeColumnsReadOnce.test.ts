@@ -365,9 +365,7 @@ describe("OwnedScopePermission.getColumnsKeptToOwnersWithTeams", () => {
     OwnedScopePermission.getColumnsKeptToOwnersWithTeams(Monitor, props);
 
     // Monitor has dozens of columns; master asked for each.
-    expect(new Monitor().getTableColumns().columns.length).toBeGreaterThan(
-      50,
-    );
+    expect(new Monitor().getTableColumns().columns.length).toBeGreaterThan(50);
     expect(allColumns).toHaveBeenCalledTimes(1);
     expect(oneColumn).not.toHaveBeenCalled();
   });

@@ -24,10 +24,7 @@ interface CachedKey {
   keyObject: crypto.KeyObject | null;
 }
 
-function makeKey(
-  text: string,
-  asymmetric: KeyOf,
-): crypto.KeyObject | null {
+function makeKey(text: string, asymmetric: KeyOf): crypto.KeyObject | null {
   if (!text) {
     return null;
   }

@@ -108,7 +108,7 @@ describe("EntityMetadataLookup", () => {
       { name: "public.Incident" },
       { name: "NoSuchEntity" },
       class Monitor {},
-      function Incident(): void {},
+      (): void => {},
       42,
       null,
       undefined,
@@ -154,8 +154,18 @@ describe("EntityMetadataLookup", () => {
   });
 
   test.each([
-    ["without a schema", (): DataSource => dataSource],
-    ["with a schema", (): DataSource => schemaDataSource],
+    [
+      "without a schema",
+      (): DataSource => {
+        return dataSource;
+      },
+    ],
+    [
+      "with a schema",
+      (): DataSource => {
+        return schemaDataSource;
+      },
+    ],
   ])(
     "every target is answered as TypeORM's walk answers it, %s",
     (_label: string, source: () => DataSource) => {

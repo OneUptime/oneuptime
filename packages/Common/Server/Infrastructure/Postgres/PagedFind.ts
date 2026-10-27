@@ -80,9 +80,7 @@ export default class PagedFind {
    * Turns TypeORM's two-query page into one query for the reads described
    * above, and leaves every other read as it is.
    */
-  public static takePageInOneQueryWherePossible<
-    TEntity extends ObjectLiteral,
-  >(
+  public static takePageInOneQueryWherePossible<TEntity extends ObjectLiteral>(
     queryBuilder: SelectQueryBuilder<TEntity>,
     options: FindManyOptions<TEntity>,
   ): void {

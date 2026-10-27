@@ -48,7 +48,7 @@ export interface EntityMetadataStringIndex {
   byNameOrTableName: Map<string, EntityMetadata>;
 }
 
-const indexes: WeakMap<object, EntityMetadataStringIndex> = new WeakMap();
+const indexes: WeakMap<DataSource, EntityMetadataStringIndex> = new WeakMap();
 
 export default class EntityMetadataLookup {
   /*

@@ -13,6 +13,7 @@ import { createDatabase, dropDatabase } from "typeorm-extension";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import PostgresQuerySpans from "../Utils/Telemetry/PostgresQuerySpans";
 import EntityMetadataLookup from "./Postgres/EntityMetadataLookup";
+import QueryPropertyNames from "./Postgres/QueryPropertyNames";
 import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 
 export type DatabaseSourceOptions = DataSourceOptions;
@@ -64,6 +65,12 @@ export default class Database {
      * walking every entity on every query (EntityMetadataLookup).
      */
     EntityMetadataLookup.install();
+
+    /*
+     * And reads each entity's property names once, not on every query it
+     * builds (QueryPropertyNames).
+     */
+    QueryPropertyNames.install();
 
     let retry: number = 0;
 

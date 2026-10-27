@@ -44,8 +44,7 @@ export default class CronTab {
     const nowInMs: number = Date.now();
     const minute: number = Math.floor(nowInMs / MINUTE_IN_MS);
     const memoKey: string = `${process.env["TZ"] || ""}\n${crontab}`;
-    const memo: NextExecutionMemo | undefined =
-      nextExecutionMemo.get(memoKey);
+    const memo: NextExecutionMemo | undefined = nextExecutionMemo.get(memoKey);
 
     if (memo && memo.minute === minute) {
       return new Date(memo.nextExecutionTimeInMs);

@@ -72,9 +72,7 @@ interface Plan {
   sql: string;
 }
 
-function planOf<T extends ObjectLiteral>(
-  builder: SelectQueryBuilder<T>,
-): Plan {
+function planOf<T extends ObjectLiteral>(builder: SelectQueryBuilder<T>): Plan {
   return {
     take: builder.expressionMap.take,
     skip: builder.expressionMap.skip,
@@ -435,9 +433,7 @@ describe("what reads through PagedFind", () => {
       "utf8",
     );
 
-    expect(source).toContain(
-      "await PagedFind.find(this.getRepository(), {",
-    );
+    expect(source).toContain("await PagedFind.find(this.getRepository(), {");
     expect(source).not.toContain("this.getRepository().find(");
   });
 });

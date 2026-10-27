@@ -28,10 +28,7 @@ const CODE_FILE: RegExp = /\.(?:ts|tsx|js|jsx|mjs|cjs)$/;
 const ALLOWED: Array<string> = ["packages/Common/Server/Utils/Express.ts"];
 
 // Where, in this source, Express is asked for a router of its own.
-function expressRoutersMadeIn(
-  fileName: string,
-  source: string,
-): Array<string> {
+function expressRoutersMadeIn(fileName: string, source: string): Array<string> {
   const sourceFile: ts.SourceFile = ts.createSourceFile(
     fileName,
     source,
@@ -128,7 +125,9 @@ describe("every Express router is made by Express.getRouter()", () => {
       "utf8",
     );
 
-    expect(source).toContain("return ExpressRouterGate.gate(express.Router());");
+    expect(source).toContain(
+      "return ExpressRouterGate.gate(express.Router());",
+    );
     expect(expressRoutersMadeIn(ALLOWED[0]!, source)).toEqual([
       "calls express.Router()",
     ]);
@@ -143,7 +142,7 @@ describe("every Express router is made by Express.getRouter()", () => {
     ['import Express from "../Utils/Express";\nExpress.getRouter();', 0],
     ['import { BrowserRouter as Router } from "react-router-dom";', 0],
     ['import express from "express";\n// express.Router() in a comment', 0],
-    ['const express = { Router: () => 1 };\nexpress.Router();', 0],
+    ["const express = { Router: () => 1 };\nexpress.Router();", 0],
   ])("finds what it is for in %j", (source: string, count: number) => {
     expect(expressRoutersMadeIn("Example.ts", source)).toHaveLength(count);
   });

@@ -8903,15 +8903,18 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
        * repository.find, with a page of a joined read taken in one query
        * where one query gives the same page (PagedFind).
        */
-      const items: Array<TBaseModel> = await PagedFind.find(this.getRepository(), {
-        skip: onBeforeFind.skip.toNumber(),
-        take: onBeforeFind.limit.toNumber(),
-        where: onBeforeFind.query as any,
-        order: onBeforeFind.sort as any,
-        relations: result.relationSelect as any,
-        select: onBeforeFind.select as any,
-        withDeleted: withDeleted || false,
-      });
+      const items: Array<TBaseModel> = await PagedFind.find(
+        this.getRepository(),
+        {
+          skip: onBeforeFind.skip.toNumber(),
+          take: onBeforeFind.limit.toNumber(),
+          where: onBeforeFind.query as any,
+          order: onBeforeFind.sort as any,
+          relations: result.relationSelect as any,
+          select: onBeforeFind.select as any,
+          withDeleted: withDeleted || false,
+        },
+      );
 
       let decryptedItems: Array<TBaseModel> = [];
 

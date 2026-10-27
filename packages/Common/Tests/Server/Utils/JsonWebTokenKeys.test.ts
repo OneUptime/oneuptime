@@ -135,9 +135,9 @@ describe("JsonWebTokenKeys", () => {
       secret,
     ) as jwt.Secret;
 
-    expect(
-      jwt.verify(withText, verifyKey, { ignoreExpiration: true }),
-    ).toEqual(payload);
+    expect(jwt.verify(withText, verifyKey, { ignoreExpiration: true })).toEqual(
+      payload,
+    );
     expect(jwt.verify(withKey, secret, { ignoreExpiration: true })).toEqual(
       payload,
     );

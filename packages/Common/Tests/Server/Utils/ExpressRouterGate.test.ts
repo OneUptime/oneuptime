@@ -139,10 +139,16 @@ function buildApp(make: () => express.Router): express.Application {
 
   // A router with a middleware of its own: it sees every request.
   const withMiddleware: express.Router = make();
-  withMiddleware.use((req: express.Request, _res: express.Response, next) => {
-    (req as unknown as { sawMiddleware: boolean }).sawMiddleware = true;
-    next();
-  });
+  withMiddleware.use(
+    (
+      req: express.Request,
+      _res: express.Response,
+      next: express.NextFunction,
+    ) => {
+      (req as unknown as { sawMiddleware: boolean }).sawMiddleware = true;
+      next();
+    },
+  );
   withMiddleware.get("/middleware/seen", answer("middleware seen"));
   app.use("/api", withMiddleware);
 
@@ -162,13 +168,25 @@ function buildApp(make: () => express.Router): express.Application {
 
   // router.param callbacks, next("route"), next("router") and errors.
   const flow: express.Router = make();
-  flow.param("thing", (req: express.Request, _res, next, value: string) => {
-    (req as unknown as { thing: string }).thing = value.toUpperCase();
-    next();
-  });
+  flow.param(
+    "thing",
+    (
+      req: express.Request,
+      _res: express.Response,
+      next: express.NextFunction,
+      value: string,
+    ) => {
+      (req as unknown as { thing: string }).thing = value.toUpperCase();
+      next();
+    },
+  );
   flow.get(
     "/flow/:thing",
-    (req: express.Request, _res: express.Response, next) => {
+    (
+      req: express.Request,
+      _res: express.Response,
+      next: express.NextFunction,
+    ) => {
       if (req.params["thing"] === "skip") {
         return next("route");
       }
@@ -351,7 +369,7 @@ function requestsToCompare(): Array<{ method: string; path: string }> {
     "/api/monitor/get-list#fragment",
     "/api/nothing-here#fragment",
     "/api/monitor\t/get-list",
-    "/api/mon itor/get-list",
+    "/api/mon\u00a0itor/get-list",
   );
 
   const requests: Array<{ method: string; path: string }> = [];
@@ -379,51 +397,53 @@ function send(
   method: string,
   path: string,
 ): Promise<Answer> {
-  return new Promise((resolve: (answer: Answer) => void, reject) => {
-    let request: http.ClientRequest;
+  return new Promise(
+    (resolve: (answer: Answer) => void, reject: (error: Error) => void) => {
+      let request: http.ClientRequest;
 
-    try {
-      request = http.request(
-        {
-          host: "127.0.0.1",
-          port: port,
-          path: path,
-          method: method,
-          agent: agent,
-          insecureHTTPParser: true,
-        },
-        (response: http.IncomingMessage) => {
-          let body: string = "";
-          response.setEncoding("utf8");
-          response.on("data", (chunk: string) => {
-            body += chunk;
-          });
-          response.on("end", () => {
-            resolve({
-              status: response.statusCode || 0,
-              allow: response.headers["allow"] as string | undefined,
-              contentType: response.headers["content-type"] as
-                | string
-                | undefined,
-              body: body,
+      try {
+        request = http.request(
+          {
+            host: "127.0.0.1",
+            port: port,
+            path: path,
+            method: method,
+            agent: agent,
+            insecureHTTPParser: true,
+          },
+          (response: http.IncomingMessage) => {
+            let body: string = "";
+            response.setEncoding("utf8");
+            response.on("data", (chunk: string) => {
+              body += chunk;
             });
-          });
-        },
-      );
-    } catch (error) {
-      // A path Node itself refuses to send: the same for both apps.
-      resolve({
-        status: -1,
-        allow: undefined,
-        contentType: undefined,
-        body: (error as Error).message,
-      });
-      return;
-    }
+            response.on("end", () => {
+              resolve({
+                status: response.statusCode || 0,
+                allow: response.headers["allow"] as string | undefined,
+                contentType: response.headers["content-type"] as
+                  | string
+                  | undefined,
+                body: body,
+              });
+            });
+          },
+        );
+      } catch (error) {
+        // A path Node itself refuses to send: the same for both apps.
+        resolve({
+          status: -1,
+          allow: undefined,
+          contentType: undefined,
+          body: (error as Error).message,
+        });
+        return;
+      }
 
-    request.on("error", reject);
-    request.end();
-  });
+      request.on("error", reject);
+      request.end();
+    },
+  );
 }
 
 async function listen(app: express.Application): Promise<http.Server> {
@@ -498,8 +518,8 @@ describe("ExpressRouterGate", () => {
       ["/monitor get"],
       ["/monitor\tx"],
       ["/monitor#x"],
-      ["/mon itor"],
-      ["/mon﻿itor"],
+      ["/mon\u00a0itor"],
+      ["/mon\ufeffitor"],
     ])("%s is left to Express", (url: string) => {
       expect(ExpressRouterGate.getRequestFirstSegment(url)).toBe(null);
     });
@@ -507,11 +527,7 @@ describe("ExpressRouterGate", () => {
 
   describe("which routers know their first segments", () => {
     test("a router of plain routes knows each", () => {
-      const router: express.Router = modelRouter(
-        plainRouter,
-        "/monitor",
-        "m",
-      );
+      const router: express.Router = modelRouter(plainRouter, "/monitor", "m");
       router.get("/Other/x", answer("other"));
 
       expect(
@@ -607,49 +623,48 @@ describe("ExpressRouterGate", () => {
       const statuses: Set<number> = new Set();
       const handlers: Set<string> = new Set();
 
+      const compare: (request: {
+        method: string;
+        path: string;
+      }) => Promise<void> = async (request: {
+        method: string;
+        path: string;
+      }): Promise<void> => {
+        const fromPlain: Answer = await send(
+          plainPort,
+          agent,
+          request.method,
+          request.path,
+        );
+        const fromGated: Answer = await send(
+          gatedPort,
+          agent,
+          request.method,
+          request.path,
+        );
+
+        statuses.add(fromPlain.status);
+
+        try {
+          handlers.add(
+            String(
+              (JSON.parse(fromPlain.body) as { handler?: string }).handler,
+            ),
+          );
+        } catch {
+          // Not JSON: HEAD, an OPTIONS answer, Express's own errors.
+        }
+
+        if (JSON.stringify(fromGated) !== JSON.stringify(fromPlain)) {
+          differing.push(
+            `${request.method} ${request.path}: ${JSON.stringify(fromGated)} instead of ${JSON.stringify(fromPlain)}`,
+          );
+        }
+      };
+
+      // Thirty-two at a time.
       for (let start: number = 0; start < requests.length; start += 32) {
-        const batch: Array<{ method: string; path: string }> = requests.slice(
-          start,
-          start + 32,
-        );
-
-        await Promise.all(
-          batch.map(
-            async (request: { method: string; path: string }): Promise<void> => {
-              const fromPlain: Answer = await send(
-                plainPort,
-                agent,
-                request.method,
-                request.path,
-              );
-              const fromGated: Answer = await send(
-                gatedPort,
-                agent,
-                request.method,
-                request.path,
-              );
-
-              statuses.add(fromPlain.status);
-
-              try {
-                handlers.add(
-                  String(
-                    (JSON.parse(fromPlain.body) as { handler?: string })
-                      .handler,
-                  ),
-                );
-              } catch {
-                // Not JSON: HEAD, an OPTIONS answer, Express's own errors.
-              }
-
-              if (JSON.stringify(fromGated) !== JSON.stringify(fromPlain)) {
-                differing.push(
-                  `${request.method} ${request.path}: ${JSON.stringify(fromGated)} instead of ${JSON.stringify(fromPlain)}`,
-                );
-              }
-            },
-          ),
-        );
+        await Promise.all(requests.slice(start, start + 32).map(compare));
       }
 
       expect(differing.slice(0, 5)).toEqual([]);
@@ -747,10 +762,7 @@ describe("ExpressRouterGate", () => {
         const match: (path: string) => boolean = layerPrototype.match;
         let counted: number = 0;
 
-        layerPrototype.match = function (
-          this: unknown,
-          path: string,
-        ): boolean {
+        layerPrototype.match = function (this: unknown, path: string): boolean {
           counted++;
           return match.call(this, path);
         };

@@ -70,8 +70,7 @@ export function expectKeptAnswersToBeCronParsers(data: {
         jest.setSystemTime(instant);
 
         for (const schedule of schedules) {
-          const kept: number =
-            CronTab.getNextExecutionTime(schedule).getTime();
+          const kept: number = CronTab.getNextExecutionTime(schedule).getTime();
           const expected: number = cronParserNext(schedule, instant);
 
           compared++;

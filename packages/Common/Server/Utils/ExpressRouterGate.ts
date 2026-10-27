@@ -52,9 +52,9 @@ const GATED: unique symbol = Symbol("oneuptime.expressRouterGate");
 const PLAIN_SEGMENT: RegExp = /^[A-Za-z0-9_.~-]+$/;
 
 // Characters that send Express's URL parser (parseurl) off its fast path.
-const UNUSUAL_URL_CHARACTER: RegExp = /[\t\n\f\r # ﻿]/;
+const UNUSUAL_URL_CHARACTER: RegExp = /[\t\n\f\r #\u00a0\ufeff]/;
 
-const states: WeakMap<object, GateState> = new WeakMap();
+const states: WeakMap<GatableRouter, GateState> = new WeakMap();
 
 export default class ExpressRouterGate {
   /*

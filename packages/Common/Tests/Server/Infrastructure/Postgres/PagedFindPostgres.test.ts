@@ -5,7 +5,12 @@ import MonitorProbe from "../../../../Models/DatabaseModels/MonitorProbe";
 import PagedFind from "../../../../Server/Infrastructure/Postgres/PagedFind";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
-import { DataSource, FindManyOptions, ObjectLiteral, Repository } from "typeorm";
+import {
+  DataSource,
+  FindManyOptions,
+  ObjectLiteral,
+  Repository,
+} from "typeorm";
 
 /*
  * PagedFind's pages against TypeORM's own, on Postgres.
@@ -313,17 +318,19 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
       monitorIds.push(id);
 
       for (let label: number = 0; label < index % 4; label++) {
-        await link("MonitorLabel", ["monitorId", id], [
-          "labelId",
-          labels[(index + label) % labels.length]!,
-        ]);
+        await link(
+          "MonitorLabel",
+          ["monitorId", id],
+          ["labelId", labels[(index + label) % labels.length]!],
+        );
       }
 
       if (index > 0 && index % 3 === 0) {
-        await link("MonitorDependency", ["monitorId", id], [
-          "dependsOnMonitorId",
-          monitorIds[index - 1]!,
-        ]);
+        await link(
+          "MonitorDependency",
+          ["monitorId", id],
+          ["dependsOnMonitorId", monitorIds[index - 1]!],
+        );
       }
 
       for (let probe: number = 0; probe < index % 4; probe++) {
@@ -381,17 +388,19 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
       incidentIds.push(id);
 
       for (let label: number = 0; label < index % 3; label++) {
-        await link("IncidentLabel", ["incidentId", id], [
-          "labelId",
-          labels[(index + label) % labels.length]!,
-        ]);
+        await link(
+          "IncidentLabel",
+          ["incidentId", id],
+          ["labelId", labels[(index + label) % labels.length]!],
+        );
       }
 
       for (let monitor: number = 0; monitor < index % 3; monitor++) {
-        await link("IncidentMonitor", ["incidentId", id], [
-          "monitorId",
-          monitorIds[(index + monitor) % monitorIds.length]!,
-        ]);
+        await link(
+          "IncidentMonitor",
+          ["incidentId", id],
+          ["monitorId", monitorIds[(index + monitor) % monitorIds.length]!],
+        );
       }
     }
   }, 120000);
@@ -447,10 +456,7 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
   test("a monitor by its primary key, with everything it joins", async () => {
     let found: number = 0;
 
-    for (const monitorId of [
-      ...monitorIds,
-      ObjectID.generate().toString(),
-    ]) {
+    for (const monitorId of [...monitorIds, ObjectID.generate().toString()]) {
       found += await expectSamePages({
         target: Monitor,
         options: {
@@ -553,7 +559,10 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
           currentIncidentState: { _id: true, name: true, order: true },
           incidentSeverity: { _id: true, name: true },
         } as never,
-        relations: { currentIncidentState: true, incidentSeverity: true } as never,
+        relations: {
+          currentIncidentState: true,
+          incidentSeverity: true,
+        } as never,
         order: { declaredAt: "DESC", _id: "ASC" } as never,
       },
       pageSizes: [1, 4, 100],
