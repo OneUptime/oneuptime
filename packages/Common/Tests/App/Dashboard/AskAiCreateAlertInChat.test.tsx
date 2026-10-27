@@ -375,9 +375,11 @@ describe("the card under the answer, once the alert is raised", () => {
    */
   test("its Open goes to the alert", async () => {
     stubTheProject();
-    const navigate: jest.SpiedFunction<typeof Navigation.navigate> = jest
+    const navigate: ReturnType<typeof jest.spyOn> = jest
       .spyOn(Navigation, "navigate")
-      .mockImplementation((): void => {});
+      .mockImplementation((): void => {
+        return undefined;
+      });
 
     const result: ToolExecutionResult = await CreateAlertTool.execute(
       { ...CALL_ARGUMENTS },
@@ -394,9 +396,7 @@ describe("the card under the answer, once the alert is raised", () => {
     });
 
     expect(navigate).toHaveBeenCalledTimes(1);
-    expect(navigate.mock.calls[0]![0]!.toString()).toContain(
-      `/alerts/${ALERT_ID}`,
-    );
+    expect(String(navigate.mock.calls[0]![0])).toContain(`/alerts/${ALERT_ID}`);
   });
 
   /*
