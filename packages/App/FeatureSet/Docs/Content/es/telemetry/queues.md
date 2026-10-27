@@ -725,6 +725,8 @@ service:
 
 BullMQ guarda sus trabajos en Redis y no tiene un broker que recopilar; informa la profundidad de la cola desde la aplicación como una métrica que lleve `messaging.system` y `messaging.destination.name`, como hacen los propios workers de OneUptime con `queue.size`.
 
+Con el [trazador eBPF del agente de Kubernetes](/docs/telemetry/kubernetes-agent#cómo-son-las-trazas-de-ebpf), OneUptime también lee las colas de BullMQ (BullMQ 5 y posteriores) a partir de los comandos de Redis que envía BullMQ, sin cambiar tu aplicación: añadir un trabajo muestra el servicio como productor de su cola, y terminar un trabajo, como consumidor. El agente descarta por defecto las llamadas a bases de datos hechas fuera de una solicitud (`ebpf.dropUnlinkedDatabaseCalls`), y un worker que procesa un trabajo está fuera de una solicitud, así que, de fábrica, una cola descubierta así muestra sobre todo a sus productores; establece `ebpf.dropUnlinkedDatabaseCalls=false` para ver también a sus consumidores.
+
 La telemetría propia de BullMQ (su opción `telemetry`, que implementa el paquete `bullmq-otel`) nombra la cola en `bullmq.queue.name` y no establece ningún `messaging.system`, así que por sí sola no crea ninguna cola. Un procesador `transform` en el colector al que envían tus aplicaciones añade las dos claves que lee OneUptime, en los spans que añaden y procesan trabajos y en las métricas propias de BullMQ:
 
 ```yaml
