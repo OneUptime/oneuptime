@@ -1,25 +1,33 @@
 import {
-  GLOBAL_OIDC_SERVICE_PROVIDER_LOGIN_URL,
-  GLOBAL_SSO_SERVICE_PROVIDER_LOGIN_URL,
   SERVICE_PROVIDER_LOGIN_OIDC_URL,
   SERVICE_PROVIDER_LOGIN_URL,
 } from "../Utils/ApiPaths";
+import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import SignInMethodsUtil, {
+  SignInMethods,
+  SsoSignInProvider,
+} from "Common/Types/SSO/SignInMethods";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Link from "Common/UI/Components/Link/Link";
 import { DASHBOARD_URL, IDENTITY_URL } from "Common/UI/Config";
+import EditionLabel from "Common/UI/Components/EditionLabel/EditionLabel";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
+import { isProductRenamed } from "Common/UI/Utils/ProductBranding";
 import Navigation from "Common/UI/Utils/Navigation";
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
-import React, { ReactElement, useEffect, useState } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import ProjectOIDC from "Common/Models/DatabaseModels/ProjectOidc";
-import GlobalSSO from "Common/Models/DatabaseModels/GlobalSso";
-import GlobalOIDC from "Common/Models/DatabaseModels/GlobalOidc";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
@@ -29,10 +37,48 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import StaticModelList from "Common/UI/Components/ModelList/StaticModelList";
 import LabelledDivider from "Common/UI/Components/Divider/LabelledDivider";
 import SignInOptionLink from "Common/UI/Components/SignInOption/SignInOptionLink";
+import SsoProviderOptions, {
+  SsoProviderOption,
+} from "Common/UI/Components/SignInOption/SsoProviderOptions";
 import IconProp from "Common/Types/Icon/IconProp";
 
-const LoginPage: () => JSX.Element = () => {
+export interface ComponentProps {
+  /*
+   * How the server signs people in, when the page drawing this one has read
+   * it already: the sign-in and sign-up pages draw this page in their place
+   * while the server requires SSO. It is then not read again, and that page
+   * has sent a signed-in visitor on already.
+   */
+  signInMethods?: SignInMethods | undefined;
+  // The edition label over the heading, as the sign-in page draws it.
+  showEditionLabel?: boolean | undefined;
+}
+
+/*
+ * Signing in with single sign-on (/accounts/sso), and - while the whole
+ * server requires SSO - the sign-in and sign-up pages too.
+ *
+ * The instance-wide providers come first, one button each: they are not
+ * bound to an email address, so somebody with an organization-wide identity
+ * provider signs in without typing one. Under them, the email form finds the
+ * providers of the projects the address belongs to.
+ *
+ * While the server requires SSO (Admin Dashboard > Settings > Single Sign-On
+ * > Require SSO for Login), the page offers only SSO: no way back to a
+ * password, no sign-up, and the email form only when some project has a
+ * provider of its own to find - with only instance-wide providers, typing an
+ * address could only end in "No SSO configuration found" (issue #5193). A
+ * page whose one way in is one provider draws it as its filled button. The
+ * server refuses a password meanwhile anyway (SsoRequiredSignIn); master
+ * admins sign in with theirs at /accounts/admin-login.
+ */
+const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const { t } = useTranslation();
+
+  // Drawn in another page's place, which has sent a signed-in visitor on.
+  const isOwnPage: boolean = !props.signInMethods;
 
   /*
    * A visitor who is already signed in is sent on to the Dashboard -- once,
@@ -40,77 +86,20 @@ const LoginPage: () => JSX.Element = () => {
    * navigation and abort the one already under way.
    */
   useEffect(() => {
-    if (UserUtil.isLoggedIn()) {
+    if (isOwnPage && UserUtil.isLoggedIn()) {
       Navigation.navigate(DASHBOARD_URL);
     }
   }, []);
+
+  const signInMethodsRead: SignInMethodsRead = useSignInMethods(
+    props.signInMethods,
+  );
+  const signInMethods: SignInMethods | null = signInMethodsRead.signInMethods;
 
   const [error, setError] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [samlConfigs, setSamlConfigs] = useState<Array<ProjectSSO>>([]);
   const [oidcConfigs, setOidcConfigs] = useState<Array<ProjectOIDC>>([]);
-  const [globalSamlConfigs, setGlobalSamlConfigs] = useState<Array<GlobalSSO>>(
-    [],
-  );
-  const [globalOidcConfigs, setGlobalOidcConfigs] = useState<Array<GlobalOIDC>>(
-    [],
-  );
-
-  /*
-   * Global SSO / OIDC providers are NOT email-bound, so they are discovered up
-   * front (on mount) and shown directly on the email-entry screen. This lets a
-   * user with an organization-wide IdP sign in without having to type an email.
-   */
-  const fetchGlobalSsoConfigs: () => Promise<void> =
-    async (): Promise<void> => {
-      const [samlResult, oidcResult] = await Promise.all([
-        API.get({
-          url: URL.fromString(GLOBAL_SSO_SERVICE_PROVIDER_LOGIN_URL.toString()),
-        }).catch((e: HTTPErrorResponse): HTTPErrorResponse => {
-          return e;
-        }),
-        API.get({
-          url: URL.fromString(
-            GLOBAL_OIDC_SERVICE_PROVIDER_LOGIN_URL.toString(),
-          ),
-        }).catch((e: HTTPErrorResponse): HTTPErrorResponse => {
-          return e;
-        }),
-      ]);
-
-      if (
-        !(samlResult instanceof HTTPErrorResponse) &&
-        (samlResult as HTTPResponse<JSONArray>).data
-      ) {
-        setGlobalSamlConfigs(
-          GlobalSSO.fromJSONArray(
-            (samlResult as HTTPResponse<JSONArray>).data,
-            GlobalSSO,
-          ),
-        );
-      }
-
-      if (
-        !(oidcResult instanceof HTTPErrorResponse) &&
-        (oidcResult as HTTPResponse<JSONArray>).data
-      ) {
-        setGlobalOidcConfigs(
-          GlobalOIDC.fromJSONArray(
-            (oidcResult as HTTPResponse<JSONArray>).data,
-            GlobalOIDC,
-          ),
-        );
-      }
-    };
-
-  useEffect(() => {
-    fetchGlobalSsoConfigs().catch(() => {
-      /*
-       * Global providers are optional; silently ignore discovery failures so
-       * the email-based project SSO flow remains usable.
-       */
-    });
-  }, []);
 
   type FetchSSOConfigsFunction = (email: Email) => Promise<void>;
 
@@ -177,6 +166,12 @@ const LoginPage: () => JSX.Element = () => {
     setIsLoading(false);
   };
 
+  // Sends the browser to a provider's sign-in, on the identity server.
+  const startSignIn: (route: string) => void = (route: string): void => {
+    setIsLoading(true);
+    Navigation.navigate(URL.fromURL(IDENTITY_URL).addRoute(new Route(route)));
+  };
+
   const renderSamlList: (configs: Array<ProjectSSO>) => ReactElement = (
     configs: Array<ProjectSSO>,
   ): ReactElement => {
@@ -187,13 +182,8 @@ const LoginPage: () => JSX.Element = () => {
         selectedItems={[]}
         descriptionField="description"
         onClick={(item: ProjectSSO) => {
-          setIsLoading(true);
-          Navigation.navigate(
-            URL.fromURL(IDENTITY_URL).addRoute(
-              new Route(
-                `/sso/${item.projectId?.toString()}/${item.id?.toString()}`,
-              ),
-            ),
+          startSignIn(
+            `/sso/${item.projectId?.toString()}/${item.id?.toString()}`,
           );
         }}
       />
@@ -210,62 +200,19 @@ const LoginPage: () => JSX.Element = () => {
         selectedItems={[]}
         descriptionField="description"
         onClick={(item: ProjectOIDC) => {
-          setIsLoading(true);
-          Navigation.navigate(
-            URL.fromURL(IDENTITY_URL).addRoute(
-              new Route(
-                `/oidc/${item.projectId?.toString()}/${item.id?.toString()}`,
-              ),
-            ),
+          startSignIn(
+            `/oidc/${item.projectId?.toString()}/${item.id?.toString()}`,
           );
         }}
       />
     );
   };
 
-  const renderGlobalSamlList: (configs: Array<GlobalSSO>) => ReactElement = (
-    configs: Array<GlobalSSO>,
-  ): ReactElement => {
-    return (
-      <StaticModelList<GlobalSSO>
-        list={configs}
-        titleField="name"
-        selectedItems={[]}
-        descriptionField="description"
-        onClick={(item: GlobalSSO) => {
-          setIsLoading(true);
-          Navigation.navigate(
-            URL.fromURL(IDENTITY_URL).addRoute(
-              new Route(`/global-sso/${item.id?.toString()}`),
-            ),
-          );
-        }}
-      />
-    );
-  };
-
-  const renderGlobalOidcList: (configs: Array<GlobalOIDC>) => ReactElement = (
-    configs: Array<GlobalOIDC>,
-  ): ReactElement => {
-    return (
-      <StaticModelList<GlobalOIDC>
-        list={configs}
-        titleField="name"
-        selectedItems={[]}
-        descriptionField="description"
-        onClick={(item: GlobalOIDC) => {
-          setIsLoading(true);
-          Navigation.navigate(
-            URL.fromURL(IDENTITY_URL).addRoute(
-              new Route(`/global-oidc/${item.id?.toString()}`),
-            ),
-          );
-        }}
-      />
-    );
-  };
-
-  if (isLoading) {
+  /*
+   * Until the page knows whether the server requires SSO it draws nothing of
+   * its own: never a way back to a password it may then take away.
+   */
+  if (signInMethodsRead.isReading || isLoading) {
     return <PageLoader isVisible={true} />;
   }
 
@@ -294,7 +241,7 @@ const LoginPage: () => JSX.Element = () => {
     return t("sso.defaultProjectName");
   };
 
-  if (hasAnyConfigs && !error && !isLoading) {
+  if (hasAnyConfigs && !error) {
     const projectIdSet: Set<string> = new Set();
     for (const c of samlConfigs) {
       if (c.projectId) {
@@ -348,97 +295,177 @@ const LoginPage: () => JSX.Element = () => {
     );
   }
 
+  const isSsoRequired: boolean = Boolean(signInMethods?.isSsoRequired);
+
+  /*
+   * The email form finds the providers of a project the address belongs to:
+   * kept unless the server requires SSO and no project has one of its own.
+   */
+  const hasEmailForm: boolean =
+    !isSsoRequired || Boolean(signInMethods?.hasProjectSsoProviders);
+
+  const providerOptions: Array<SsoProviderOption> = (
+    signInMethods?.ssoProviders || []
+  ).map((provider: SsoSignInProvider): SsoProviderOption => {
+    /*
+     * "Sign in with Okta", in the visitor's language, unless the admin wrote
+     * a description of their own ("Use your Acme email"): the button then
+     * says the provider's name, and the description is under it.
+     */
+    const hasOwnDescription: boolean =
+      SignInMethodsUtil.hasOwnDescription(provider);
+
+    return {
+      key: `${provider.type}:${provider.id}`,
+      title: hasOwnDescription
+        ? provider.name
+        : t("sso.signInWithProvider", { name: provider.name }),
+      description: hasOwnDescription ? provider.description : undefined,
+      dataTestId: "sso-provider",
+      onClick: (): void => {
+        const route: string | null = SignInMethodsUtil.getSignInRoute({
+          provider: provider,
+        });
+
+        if (route) {
+          startSignIn(route);
+        }
+      },
+    };
+  });
+
   return (
     <div className="flex min-h-full flex-col justify-center py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md mx-auto">
         <ProductLogo />
+        {/*
+         * Which OneUptime edition this is, where the sign-in page shows it:
+         * not on an installation that goes by a name of its own.
+         */}
+        {props.showEditionLabel && !isProductRenamed() && (
+          <div className="mt-4 flex justify-center">
+            <EditionLabel />
+          </div>
+        )}
         <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
-          {t("sso.title")}
+          {isSsoRequired ? t("login.title") : t("sso.title")}
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
-          {t("sso.subtitle")}
+        <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0 text-balance">
+          {isSsoRequired ? t("sso.requiredSubtitle") : t("sso.subtitle")}
         </p>
       </div>
 
       <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
         <div className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10">
-          {(globalSamlConfigs.length > 0 || globalOidcConfigs.length > 0) && (
-            <div className="mb-6">
-              <h3 className="text-center text-sm font-medium tracking-tight text-gray-900">
-                {t("sso.globalProvidersTitle")}
-              </h3>
-              {globalSamlConfigs.length > 0 &&
-                renderGlobalSamlList(globalSamlConfigs)}
-              {globalOidcConfigs.length > 0 &&
-                renderGlobalOidcList(globalOidcConfigs)}
-              <LabelledDivider
-                label={t("sso.globalProvidersDivider")}
-                dataTestId="global-providers-divider"
+          {providerOptions.length > 0 && (
+            <div
+              className={hasEmailForm ? "mb-6" : ""}
+              data-testid="sso-providers"
+            >
+              {/*
+               * Named only beside the email form: on a page that offers
+               * nothing else, the heading above says it already.
+               */}
+              {hasEmailForm && (
+                <h3 className="mb-3 text-center text-sm font-medium tracking-tight text-gray-900">
+                  {t("sso.globalProvidersTitle")}
+                </h3>
+              )}
+              <SsoProviderOptions
+                options={providerOptions}
+                isOnlyWayIn={!hasEmailForm}
+                dataTestId="sso-provider-options"
               />
+              {hasEmailForm && (
+                <LabelledDivider
+                  label={t("sso.globalProvidersDivider")}
+                  dataTestId="global-providers-divider"
+                />
+              )}
             </div>
           )}
-          <BasicForm
-            modelType={User}
-            id="login-form"
-            error={error}
-            name="Login"
-            fields={[
-              {
-                field: {
-                  email: true,
+          {hasEmailForm && (
+            <BasicForm
+              modelType={User}
+              id="login-form"
+              error={error}
+              name="Login"
+              fields={[
+                {
+                  field: {
+                    email: true,
+                  },
+                  fieldType: FormFieldSchemaType.Email,
+                  placeholder: "jeff@example.com",
+                  required: true,
+                  title: t("common.email"),
+                  dataTestId: "email",
+                  disableSpellCheck: true,
                 },
-                fieldType: FormFieldSchemaType.Email,
-                placeholder: "jeff@example.com",
-                required: true,
-                title: t("common.email"),
-                dataTestId: "email",
-                disableSpellCheck: true,
-              },
-            ]}
-            maxPrimaryButtonWidth={true}
-            submitButtonText={t("sso.submitButton")}
-            onSubmit={async (data: JSONObject) => {
-              await fetchSsoConfigs(data["email"] as Email);
-            }}
-            footer={
-              /*
-               * The way back to the password form, drawn as the password
-               * page draws its other ways in: an outlined button under "or",
-               * as wide and as tall as this page's own button
-               * (SignInOptionStyle). It was a small text link, the mirror of
-               * the one that brought the visitor here.
-               */
-              <div data-testid="sign-in-options">
-                <LabelledDivider
-                  label={t("common.or")}
-                  className="my-5"
-                  dataTestId="sign-in-options-divider"
-                />
-                <SignInOptionLink
-                  to={new Route("/accounts/login")}
-                  id="password-login"
-                  dataTestId="password-login"
-                  icon={IconProp.Lock}
-                  title={t("sso.signInWithPassword")}
-                />
-              </div>
-            }
-          />
-        </div>
-        <div className="mt-6 sm:mt-10 text-center">
-          <div className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
-            {t("sso.noAccountPrompt")}{" "}
-            <Link
-              to={new Route("/accounts/register")}
-              className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
+              ]}
+              maxPrimaryButtonWidth={true}
+              submitButtonText={t("sso.submitButton")}
+              onSubmit={async (data: JSONObject) => {
+                await fetchSsoConfigs(data["email"] as Email);
+              }}
+              footer={
+                isSsoRequired ? undefined : (
+                  /*
+                   * The way back to the password form, drawn as the password
+                   * page draws its other ways in: an outlined button under
+                   * "or", as wide and as tall as this page's own button
+                   * (SignInOptionStyle). It was a small text link, the
+                   * mirror of the one that brought the visitor here. Not
+                   * while the server requires SSO: it would only refuse.
+                   */
+                  <div data-testid="sign-in-options">
+                    <LabelledDivider
+                      label={t("common.or")}
+                      className="my-5"
+                      dataTestId="sign-in-options-divider"
+                    />
+                    <SignInOptionLink
+                      to={new Route("/accounts/login")}
+                      id="password-login"
+                      dataTestId="password-login"
+                      icon={IconProp.Lock}
+                      title={t("sso.signInWithPassword")}
+                    />
+                  </div>
+                )
+              }
+            />
+          )}
+          {/*
+           * The server requires SSO and has nothing to sign in with yet: a
+           * master admin has turned the requirement on before any provider.
+           * Say so, rather than draw an empty card.
+           */}
+          {providerOptions.length === 0 && !hasEmailForm && (
+            <p
+              className="text-center text-sm text-gray-600 text-balance"
+              data-testid="sso-not-set-up"
             >
-              {t("sso.registerLink")}
-            </Link>
-          </div>
+              {t("sso.requiredNotSetUp")}
+            </p>
+          )}
         </div>
+        {!isSsoRequired && (
+          <div className="mt-6 sm:mt-10 text-center">
+            <div className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
+              {t("sso.noAccountPrompt")}{" "}
+              <Link
+                to={new Route("/accounts/register")}
+                className="text-indigo-500 hover:text-indigo-900 cursor-pointer"
+              >
+                {t("sso.registerLink")}
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default LoginPage;
+export default LoginWithSsoPage;

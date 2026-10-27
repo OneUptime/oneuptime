@@ -1,4 +1,6 @@
-import React, { ReactElement, lazy, Suspense } from "react";
+import React, { ComponentType, ReactElement, lazy, Suspense } from "react";
+import type { ComponentProps as LoginPageProps } from "./Pages/Login";
+import type { ComponentProps as LoginWithSsoPageProps } from "./Pages/LoginWithSSO";
 import {
   Navigate,
   Params,
@@ -21,15 +23,18 @@ const ForgotPasswordPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
     return import("./Pages/ForgotPassword");
   },
 );
-const LoginPage: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
-  return import("./Pages/Login");
-});
+const LoginPage: React.LazyExoticComponent<ComponentType<LoginPageProps>> =
+  lazy(() => {
+    return import("./Pages/Login");
+  });
 const MobilePasskeyPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
   () => {
     return import("./Pages/MobilePasskey");
   },
 );
-const LoginWithSSO: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
+const LoginWithSSO: React.LazyExoticComponent<
+  ComponentType<LoginWithSsoPageProps>
+> = lazy(() => {
   return import("./Pages/LoginWithSSO");
 });
 const NotFound: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
@@ -89,6 +94,16 @@ function App(): ReactElement {
           <Routes>
             <Route path="/accounts" element={<LoginPage />} />
             <Route path="/accounts/login" element={<LoginPage />} />
+            {/*
+             * The master admins' way in while the server requires single
+             * sign-on: the password form alone (Pages/Login). The sign-in
+             * page does not link to it; the Admin Dashboard sends a
+             * signed-out visitor here, and its Require SSO card names it.
+             */}
+            <Route
+              path="/accounts/admin-login"
+              element={<LoginPage isMasterAdminSignIn={true} />}
+            />
             <Route
               path="/accounts/mobile-passkey"
               element={<MobilePasskeyPage />}

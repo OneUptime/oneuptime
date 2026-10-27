@@ -156,7 +156,14 @@
     "emailRequired": "L'e-mail est requis pour effectuer cette action",
     "defaultProjectName": "Projet",
     "globalProvidersTitle": "Connectez-vous avec votre organisation",
-    "globalProvidersDivider": "Ou continuer avec votre e-mail"
+    "globalProvidersDivider": "Ou continuer avec votre e-mail",
+    "signInWithProvider": "Se connecter avec {{name}}",
+    "requiredSubtitle": "Connectez-vous avec l’authentification unique (SSO) de votre organisation.",
+    "requiredNotSetUp": "L’authentification unique n’est pas encore configurée sur ce serveur. Demandez à l’administrateur de votre serveur de la configurer."
+  },
+  "adminLogin": {
+    "title": "Connexion administrateur principal",
+    "subtitle": "Ce serveur exige l’authentification unique (SSO). Les administrateurs principaux peuvent toujours se connecter ici avec leur mot de passe."
   },
   "verifyEmail": {
     "successTitle": "Votre e-mail est vérifié.",

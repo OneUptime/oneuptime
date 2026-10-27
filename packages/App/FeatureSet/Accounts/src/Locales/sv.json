@@ -156,7 +156,14 @@
     "emailRequired": "E-post krävs för att utföra denna åtgärd",
     "defaultProjectName": "Projekt",
     "globalProvidersTitle": "Logga in med din organisation",
-    "globalProvidersDivider": "Eller fortsätt med e-post"
+    "globalProvidersDivider": "Eller fortsätt med e-post",
+    "signInWithProvider": "Logga in med {{name}}",
+    "requiredSubtitle": "Logga in med organisationens enkel inloggning (SSO).",
+    "requiredNotSetUp": "Enkel inloggning är inte konfigurerad på den här servern ännu. Be serveradministratören att konfigurera den."
+  },
+  "adminLogin": {
+    "title": "Inloggning för huvudadministratörer",
+    "subtitle": "Den här servern kräver enkel inloggning (SSO). Huvudadministratörer kan fortfarande logga in här med sitt lösenord."
   },
   "verifyEmail": {
     "successTitle": "Din e-post är verifierad.",

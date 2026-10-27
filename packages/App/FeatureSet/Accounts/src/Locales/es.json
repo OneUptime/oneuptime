@@ -156,7 +156,14 @@
     "emailRequired": "Se requiere correo electrónico para realizar esta acción",
     "defaultProjectName": "Proyecto",
     "globalProvidersTitle": "Inicie sesión con su organización",
-    "globalProvidersDivider": "O continúe con su correo electrónico"
+    "globalProvidersDivider": "O continúe con su correo electrónico",
+    "signInWithProvider": "Iniciar sesión con {{name}}",
+    "requiredSubtitle": "Inicia sesión con el inicio de sesión único (SSO) de tu organización.",
+    "requiredNotSetUp": "El inicio de sesión único aún no está configurado en este servidor. Pide a tu administrador del servidor que lo configure."
+  },
+  "adminLogin": {
+    "title": "Inicio de sesión de administrador maestro",
+    "subtitle": "Este servidor requiere el inicio de sesión único (SSO). Los administradores maestros pueden seguir iniciando sesión aquí con su contraseña."
   },
   "verifyEmail": {
     "successTitle": "Su correo electrónico está verificado.",
