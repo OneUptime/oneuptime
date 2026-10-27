@@ -7,6 +7,7 @@ Conecta una cuenta de AWS, una suscripción de Azure o un proyecto de Google Clo
 - [Microsoft Azure](#microsoft-azure): Una aplicación con el rol Monitoring Reader.
 - [Google Cloud](#google-cloud): Una cuenta de servicio con cuatro roles de solo lectura.
 - [Qué lee OneUptime](#qué-lee-oneuptime): Recursos, métricas, cambios y eventos de estado, con qué frecuencia y cuánto cuesta.
+- [Permitir que la IA corrija problemas](#permitir-que-la-ia-corrija-problemas): Un comando más, y OneUptime AI puede corregir lo que encuentra.
 :::
 
 ## Cómo funciona
@@ -207,6 +208,22 @@ Las llamadas que hace OneUptime se facturan a tu cuenta en la nube, a los precio
 - **La página de una cuenta.** En **Nube → Cuentas**, el resumen de una cuenta cuenta sus recursos por tipo y región y dice cuándo la leyó por última vez una conexión. Sus **Recursos** los enumeran, sus **Cambios** enumeran lo que cambió en ella, lo más reciente primero, y su **Topología** dibuja sus regiones, las redes que contienen y lo que se ejecuta en cada una, con los incidentes y alertas abiertos sobre los recursos a los que están vinculados.
 - **Los cambios de un recurso.** Un cambio se guarda como un evento de cambio vinculado al recurso que cambió y a su cuenta, y se dibuja como un marcador en los gráficos de métricas del recurso, junto con sus incidentes y alertas. Los gráficos filtrados a ningún recurso dejan fuera el registro de actividad de una cuenta en la nube, para que una cuenta muy activa no tape tus despliegues; los eventos de estado del proveedor siguen en ellos.
 - **Incidentes y alertas.** Vincula un recurso en la nube a un monitor, un incidente o una alerta en sus recursos vinculados, y sus incidentes y alertas se enumeran en la página del recurso. Un monitor de sitio web, API, SSL, ping o puerto cuyo host lleva a un endpoint de un recurso, directamente o a través de su DNS, muestra el recurso en **Recursos en la nube sugeridos** en su tarjeta **Recursos vinculados**: selecciona **Vincular recurso** para vincularlo.
+
+## Permitir que la IA corrija problemas
+
+OneUptime AI lee cada cuenta conectada mientras investiga, con el acceso de solo lectura de arriba. Para que también pueda corregir problemas, como reiniciar un servicio, aumentar su capacidad o revertirlo, abre la cuenta en **Nube → Cuentas** y selecciona **Permitir que la IA corrija problemas** en la tarjeta **Agente de IA** de su **Vista general**.
+
+El cuadro de diálogo hace una sola pregunta, **¿Hasta dónde puede llegar la IA?**: **Preguntarme primero**, la opción predeterminada, en la que OneUptime AI propone cada corrección y una persona la aprueba con un clic, o **Aplicar por su cuenta las correcciones seguras**, en la que los cambios seguros se ejecutan por sí solos y los más arriesgados siguen esperando aprobación. Todo lo demás tiene un valor predeterminado seguro en **Avanzado**. Después muestra un solo comando, escrito para esta cuenta: ejecútalo en AWS CloudShell, Azure Cloud Shell o Google Cloud Shell, con la sesión iniciada como alguien que pueda crear roles en la cuenta. El comando crea un rol que solo puede hacer los cambios activados e inicia con él el agente de IA de la nube en tu cuenta. El agente se conecta por sí solo en pocos minutos, y el cuadro de diálogo lo indica: no hay nada que volver a pegar.
+
+El agente es un pequeño contenedor que se ejecuta todo el mes en tu cuenta, facturado por tu nube a sus precios de lista:
+
+| Nube | Qué se ejecuta | Aproximadamente |
+| --- | --- | --- |
+| AWS | Una tarea de ECS Fargate de 0.25 vCPU y 0.5 GB, y su dirección IPv4 pública, a los precios de `us-east-1` | $13 al mes |
+| Azure | Una réplica de Container Apps de 0.25 vCPU y 0.5 GiB, tras la concesión gratuita mensual de la suscripción de 180,000 vCPU-segundos y 360,000 GiB-segundos | $14 al mes |
+| Google Cloud | Una instancia de Cloud Run de 1 vCPU y 0.5 GiB con la CPU siempre asignada, que ocupa una vCPU completa, tras el nivel gratuito mensual de 240,000 vCPU-segundos y 450,000 GiB-segundos | $45 al mes |
+
+Qué puede cambiar el agente, cómo se clasifica y se deshace cada cambio, y cómo leer sus registros: [Agentes de IA para la infraestructura](/docs/ai/infrastructure-ai-agents#en-una-cuenta-en-la-nube).
 
 ## Solución de problemas
 

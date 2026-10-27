@@ -7,6 +7,7 @@ Anslut ett AWS-konto, en Azure-prenumeration eller ett Google Cloud-projekt frå
 - [Microsoft Azure](#microsoft-azure): En app med rollen Monitoring Reader.
 - [Google Cloud](#google-cloud): Ett tjänstkonto med fyra skrivskyddade roller.
 - [Vad OneUptime läser](#vad-oneuptime-läser): Resurser, mätvärden, ändringar och hälsohändelser, hur ofta och vad det kostar.
+- [Låt AI åtgärda problem](#låt-ai-åtgärda-problem): Ett kommando till, så kan OneUptime AI åtgärda det den hittar.
 :::
 
 ## Så fungerar det
@@ -207,6 +208,22 @@ Anropen som OneUptime gör faktureras ditt molnkonto, till molnets priser. Att l
 - **Ett kontos sida.** Under **Moln → Konton** räknar ett kontos översikt dess resurser efter typ och region och säger när en anslutning senast läste det. Dess **Resurser** listar dem, dess **Ändringar** listar vad som ändrats i det, nyast först, och dess **Topologi** ritar dess regioner, nätverken i dem och vad som körs i vart och ett, med de öppna incidenterna och larmen på resurserna de är länkade till.
 - **En resurs ändringar.** En ändring sparas som en ändringshändelse knuten till resursen den ändrade och till dess konto, och ritas som en markör i resursens mätvärdesdiagram tillsammans med dess incidenter och larm. Diagram som inte är filtrerade till någon resurs utelämnar ett molnkontos aktivitetslogg, så att ett livligt konto inte tränger undan dina driftsättningar; leverantörens hälsohändelser finns kvar i dem.
 - **Incidenter och larm.** Länka en molnresurs till en övervakning, en incident eller ett larm under dess länkade resurser, så listas dess incidenter och larm på resursens sida. En övervakning av en webbplats, ett API, SSL, ping eller en port vars värd leder till en slutpunkt för en resurs, direkt eller via dess DNS, listar resursen under **Föreslagna molnresurser** på sitt kort **Länkade resurser**: välj **Länka resurs** för att länka den.
+
+## Låt AI åtgärda problem
+
+OneUptime AI läser varje anslutet konto medan den utreder, med den skrivskyddade åtkomsten ovan. För att låta den även åtgärda problem, som att starta om en tjänst, skala ut den eller rulla tillbaka den, öppnar du kontot under **Moln → Konton** och väljer **Låt AI åtgärda problem** på **AI-agent**-kortet i dess **Översikt**.
+
+Dialogrutan ställer en fråga, **Hur långt får AI gå?**: **Fråga mig först**, standardvalet, där OneUptime AI föreslår varje åtgärd och en människa godkänner den med ett klick, eller **Åtgärda problem på egen hand när det är säkert**, där säkra ändringar körs av sig själva och mer riskfyllda fortfarande väntar på godkännande. Allt annat har ett säkert standardvärde under **Avancerad**. Sedan visar den ett kommando, skrivet för det här kontot: kör det i AWS CloudShell, Azure Cloud Shell eller Google Cloud Shell, inloggad som någon som får skapa roller i kontot. Kommandot skapar en roll som bara får göra de påslagna ändringarna och startar Moln-AI-agenten med den i ditt konto. Agenten ansluter av sig själv inom några minuter, och dialogrutan säger det: det finns inget att klistra in tillbaka.
+
+Agenten är en liten container som körs hela månaden i ditt konto och faktureras av ditt moln till dess listpriser:
+
+| Moln | Vad som körs | Ungefär |
+| --- | --- | --- |
+| AWS | En ECS Fargate-uppgift med 0.25 vCPU och 0.5 GB, och dess publika IPv4-adress, till priserna i `us-east-1` | $13 i månaden |
+| Azure | En Container Apps-replik med 0.25 vCPU och 0.5 GiB, efter prenumerationens månatliga gratiskvot på 180 000 vCPU-sekunder och 360 000 GiB-sekunder | $14 i månaden |
+| Google Cloud | En Cloud Run-instans med 1 vCPU och 0.5 GiB med CPU alltid allokerad, vilket tar en hel vCPU, efter den månatliga gratisnivån på 240 000 vCPU-sekunder och 450 000 GiB-sekunder | $45 i månaden |
+
+Vad agenten får ändra, hur varje ändring placeras i en nivå och ångras, och hur du läser dess loggar: [AI-agenter för infrastrukturen](/docs/ai/infrastructure-ai-agents#i-ett-molnkonto).
 
 ## Felsökning
 

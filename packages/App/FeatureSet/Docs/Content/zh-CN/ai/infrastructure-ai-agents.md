@@ -2,6 +2,8 @@
 
 OneUptime AI 在调查事件或警报时，能看到的不只是您的遥测数据。安装在您某个资源旁边的小型代理——Docker 或 Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群、数据库服务器或 Linux 主机——会运行 OneUptime AI 请求的只读命令，例如 `docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30` 或 `journalctl -u nginx -n 200 --no-pager`，并把输出发回，因此根本原因分析会引用资源本身给出的信息。如果您允许，同一个代理还会应用修复——重启容器、启动虚拟机、把 OSD 重新标记为 in——每项修复都由命令策略划入某个级别，并且除非您另作选择，都要先由人批准。在资源页面上打开的询问 AI，也会在您提出请求时运行同样的只读命令（请参阅[询问 AI](/docs/ai/ask-ai)）。
 
+AWS 账户、Azure 订阅或 Google Cloud 项目无需代理即可接受调查：OneUptime 会通过连接它时所用的只读连接实时读取它。只有它的修复才需要代理，即云 AI 代理，它运行在该账户自身之中，只需在账户页面上运行一条命令即可完成设置（参见 [在云账户中](#在云账户中)）。
+
 这些代理就是 **资源 AI 代理**。每个资源的仪表板页面都有一个 **人工智能** 部分，包含三个页面：
 
 - **洞察** ——OneUptime AI 在过去 30 天里对该资源的了解：反复出现的问题及其原因（附带 AI 的发现和建议的步骤）、导致其中大部分问题的资源部分、没有起作用或正在等待批准的修复、AI 自行修复的内容，以及在任何人被呼叫之前发现的风险，并以脚注说明 AI 自己在那里做了什么。它的工作方式与集群的页面相同，参见 [AI 在集群上了解到的情况](/docs/ai/ai-sre#ai-在集群上了解到的情况)。
@@ -11,8 +13,8 @@ OneUptime AI 在调查事件或警报时，能看到的不只是您的遥测数�
 资源的 **概览** 末尾有一张 **AI 代理** 卡片，汇总 AI 代理页面的内容：代理是否已连接、调查是否开启、修复如何运行（**关闭**、**请求批准**、**自动** 或 **跳过批准**）以及需要关注的事项，并附有指向 AI 代理页面的链接，可在那里更改这些设置。
 
 :::cards
-- [支持的资源](#支持的资源): 八种资源，一个镜像。
-- [安装 AI 代理](#安装-ai-代理): 在您已经运行的采集器旁边，或在 Linux 主机上。
+- [支持的资源](#支持的资源): 十一种资源，一个镜像。
+- [安装 AI 代理](#安装-ai-代理): 在您已经运行的采集器旁边、在 Linux 主机上，或通过一条命令在云账户中。
 - [修复的工作方式](#修复的工作方式): 什么可以自行运行，什么需要等待人，什么永远不会运行。
 - [安全模型](#安全模型): 每条命令都有三重检查，且不会从 OneUptime 获得任何凭据。
 :::
@@ -42,7 +44,7 @@ Kubernetes 集群有自己的代理，即 Kubernetes AI 代理，由 Kubernetes 
 
 不同之处：
 
-- **所有资源共用一个镜像。** `oneuptime/resource-ai-agent` 服务全部八种资源，`ONEUPTIME_AI_AGENT_RESOURCE_TYPE` 指明代理服务的是哪一种。它作为资源采集器旁边的又一个容器运行，而不是来自 Helm chart。
+- **所有资源共用一个镜像。** `oneuptime/resource-ai-agent` 服务全部十一种资源，`ONEUPTIME_AI_AGENT_RESOURCE_TYPE` 指明代理服务的是哪一种。它作为资源采集器旁边的又一个容器运行，或运行在它所服务的云账户中，而不是来自 Helm chart。
 - **写入权限是一个环境变量。** 只有代理上设置了 `ONEUPTIME_AI_ALLOW_WRITES=true`，它才能应用修复，而 `ONEUPTIME_AI_WRITE_TARGETS` 限制修复可以触及哪些容器、服务、虚拟机、OSD、会话或单元。在集群上，这由 chart 的 RBAC 和 `aiAgent.remediation.namespaces` 负责。
 
 与 Kubernetes AI 代理一样，资源 AI 代理不是 Runner。它从不出现在 运行手册 → Runbook 代理 下，也从不被用作运行手册的 Bash 或 SSH 主机。
@@ -59,6 +61,9 @@ Kubernetes 集群有自己的代理，即 Kubernetes AI 代理，由 Kubernetes 
 | Ceph 集群 | `ceph` | Ceph AI 代理 | `CEPH_CLUSTER_NAME` | `ceph` | 监视器，使用 `ceph.conf` 和代理专用客户端的密钥环 |
 | 数据库服务器 | `database`（或 `db`） | 数据库 AI 代理 | `DATABASE_SERVER_ID`，或 `DATABASE_SYSTEM` + `DATABASE_SERVER_ADDRESS` + `DATABASE_SERVER_PORT` | `db`——固定诊断目录中的一项操作，从不执行 SQL | 数据库自己的驱动程序，使用数据库登录名 |
 | 主机 | `host` | 主机 AI 代理 | `HOST_NAME`（为空时使用主机自己的主机名） | `systemctl`、`journalctl`、`df`、`free`、`uptime`、`ps`、`ss`、`ip`、`dmesg`、`lsblk`、`cat`、`top`、`uname`、`hostnamectl`、`timedatectl`、`kill` | 从特权容器通过 `nsenter` 进入主机的命名空间 |
+| AWS 账户 | `aws` | 云 AI 代理 | `AWS_ACCOUNT_ID`（为空时使用它所运行的账户） | `cloud`——固定目录中的一项操作，从不执行 `aws` 命令 | AWS API，使用它自己的 IAM 角色 |
+| Azure 订阅 | `azure` | 云 AI 代理 | `AZURE_SUBSCRIPTION_ID`（由其设置命令设置） | `cloud`——固定目录中的一项操作，从不执行 `az` 命令 | Azure Resource Manager，以其 Container App 的托管标识访问 |
+| Google Cloud 项目 | `gcp`（或 `google-cloud`） | 云 AI 代理 | `GOOGLE_CLOUD_PROJECT`（为空时使用它所运行的项目） | `cloud`——固定目录中的一项操作，从不执行 `gcloud` 命令 | Google Cloud API，以它自己的服务账号访问 |
 
 数据库服务器：数据库 AI 代理提供针对 PostgreSQL、MySQL（以及 MariaDB 和 Percona Server）、Redis（以及 Valkey、KeyDB 和 Dragonfly）和 MongoDB 的诊断。对于任何其他引擎，它不运行任何内容，并在数据库的 AI 代理页面上说明这一点。
 
@@ -74,12 +79,17 @@ AI 代理页面上代理状态旁边 **⋯** 菜单中的 **测试连接** 会�
 | Ceph 集群 | `ceph health`、`ceph versions` |
 | 数据库服务器 | `db ping`、`db version` |
 | 主机 | `uptime`、`systemctl list-units --failed --no-pager` |
+| AWS 账户 | `cloud whoami` |
+| Azure 订阅 | `cloud whoami` |
+| Google Cloud 项目 | `cloud whoami` |
 
 在 Docker Swarm 的工作节点上，`docker node ls` 会失败：Docker Swarm AI 代理必须在管理节点上运行。在工作节点上启动的代理在其节点成为管理节点之前不会注册到集群，而 Docker Swarm 安装程序会在不是管理节点的节点上省略它。
 
+在云账户上，`cloud whoami` 会显示云 AI 代理所操作的账户和它登录所用的身份、它是否可以更改任何内容、它可以进行的更改，以及它要求的标签（如果有）。
+
 ## 安装 AI 代理
 
-所有资源 AI 代理都是同一个镜像 `oneuptime/resource-ai-agent:release`。它不需要在仪表板中做任何设置：一旦运行，它就会向 OneUptime 注册，并在一分钟内出现在资源的 AI 代理页面上。
+所有资源 AI 代理都是同一个镜像 `oneuptime/resource-ai-agent:release`。在采集器旁边或主机上运行时，它不需要在仪表板中做任何设置：一旦运行，它就会向 OneUptime 注册，并在一分钟内出现在资源的 AI 代理页面上。云账户的代理运行在该账户中，由账户页面为它写出的一条命令启动（参见 [在云账户中](#在云账户中)）。
 
 ### 在采集器旁边
 
@@ -128,6 +138,24 @@ sudo bash install.sh
 
 主机 AI 代理运行的是 **主机自己的** 程序：每条命令都以 `nsenter --target 1 --mount --uts --ipc --net --pid -- PROGRAM ARGS` 的形式运行，进入主机 init 进程的命名空间。这需要 `pid: host`、`privileged: true` 和 root，参见 [Docker 套接字和主机 AI 代理等同于主机上的 root](#docker-套接字和主机-ai-代理等同于主机上的-root)。将 `HOST_NAME` 留空即可使用机器的主机名，除非您更改过，否则这就是采集器上报的 `host.name`；否则请将其设置为 **主机** 下显示的名称。
 
+### 在云账户中
+
+AWS 账户、Azure 订阅或 Google Cloud 项目旁边没有可供代理依附的采集器，而 OneUptime 无需代理也能读取它（参见 [云账户](#云账户)）。负责修复的云 AI 代理运行在该账户自身之中，只需在账户页面上运行一条命令即可设置，无需 compose 文件，也无需 `.env`：
+
+1. 在“云 → 账户”下打开该账户，然后在其 **概览** 的 **AI 代理** 卡片中选择 **让 AI 修复问题**。
+2. 回答唯一的问题——**AI 可以做到哪一步？** 选择默认的 **先询问我** 会将 **修复** 设为 **请求批准**，选择 **自行修复低风险问题** 则会将其设为 **自动**。**高级** 中包含其余设置：AI 可以进行哪些更改、AI 绝不能更改的资源、仅更改带有 `oneuptime-ai=allow` 标签的资源、**跳过批准**、读取账户的日志，以及在其他地方运行代理所需的变量。
+3. 在云平台自带的 Shell 中登录该账户，然后运行它显示的命令。该命令会根据已开启的更改写出代理的角色并启动代理，代理会在几分钟内自行连接：无需粘贴任何内容。如果它没有连接，其日志会说明原因（参见 [日志和状态](#日志和状态)）。
+
+| 云 | 在何处运行 | 命令创建的内容 |
+| -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AWS 账户 | AWS CloudShell | 一个 CloudFormation 堆栈 `oneuptime-ai-agent`，它运行一个 ECS Fargate 任务。其任务角色只能代入写入角色 `OneUptimeAiAgentWrite`，该角色持有已开启更改的权限。 |
+| Azure 订阅 | Azure Cloud Shell | 资源组 `oneuptime-ai-agent` 中的一个 Container App `oneuptime-ai-agent`。其托管标识在订阅上持有一个自定义角色，具有已开启更改的权限。 |
+| Google Cloud 项目 | Google Cloud Shell | 一个始终分配 CPU 的 Cloud Run 服务 `oneuptime-ai-agent`，以服务账号 `oneuptime-ai-agent` 的身份运行，该服务账号在项目上持有一个自定义角色，具有已开启更改的权限。 |
+
+该命令只在为其编写的账户中有效：在 AWS 上，如果 Shell 登录的是另一个账户，它不会创建任何内容；Azure 和 Google Cloud 的命令则会在每次调用时指明其订阅或项目。它会设置 `ONEUPTIME_AI_INVESTIGATION=true`、根据您的回答设置 `ONEUPTIME_AI_FIXES`、设置 `ONEUPTIME_AI_ALLOW_WRITES=true`，并将 `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` 设为为其编写命令的账户。代理按其云所报告的所在账户注册，从不向 OneUptime 添加账户：如果在与其命令不同的账户中启动，它会被拒绝，为其编写命令的账户会在其页面上说明原因；如果在项目的任何连接都不读取的账户中启动，它同样会被拒绝，其日志会说明这一点。
+
+要更改任何内容，请再次运行该命令：再次打开 **让 AI 修复问题**，或在账户的 **AI 代理** 页面上选择 **更改**，然后运行它写出的命令。角色始终只持有已开启的更改。云账户的 **人工智能** 部分有两个页面：**AI 代理** 和 **日志**；代理的费用见 [连接云账户](/docs/telemetry/cloud-accounts#让-ai-修复问题)。
+
 ### 连接到 OneUptime
 
 代理使用 **与采集器上报的相同标识** 进行注册——`DOCKER_HOST_NAME`、`PROXMOX_CLUSTER_NAME`、`CEPH_CLUSTER_NAME`……（可用 `ONEUPTIME_AI_AGENT_RESOURCE_NAME` 覆盖）——因此它服务的正是采集器遥测数据所创建的资源。如果 OneUptime 中还没有该名称的资源，注册会创建它，所以与采集器不同的名称会让您得到第二个空资源，而不是一个错误。数据库在设置了 `DATABASE_SERVER_ID` 时按它注册，否则按其引擎、地址和端口注册；不是本项目数据库的 `DATABASE_SERVER_ID` 会被拒绝。
@@ -161,7 +189,7 @@ ONEUPTIME_AI_ALLOW_WRITES=true
 
 ## 调查可以运行什么
 
-调查只会运行 **Read** 命令：它们只查看资源，不做任何更改。OneUptime AI 会看到与事件或警报关联（通过其监视器和遥测，每个信号最多 10 个）、AI 代理已连接且 **调查** 开关已开启的资源，并运行调查所需的任意数量的命令（每次调查最多 200 条，以防失控循环），每条命令都像其他证据一样被引用。每条命令都是带参数的一个程序——从不通过 shell，因此管道、重定向、`;`、`&&`、`$(…)` 和 `sudo` 都会被拒绝，并附带说明原因的消息。一条命令默认有 30 秒，最多 2 分钟，其输出在代理上限制为 1024 KB。这些输出在交给 OneUptime AI 之前不会被截断：较长的输出会逐页显示——先显示前 40,000 个字符，其余的按需显示。如果代理没有领取某条命令，OneUptime AI 会在本次调查的剩余时间内停止向该资源发送命令。
+调查只会运行 **Read** 命令：它们只查看资源，不做任何更改。OneUptime AI 会看到与事件或警报关联（通过其监视器和遥测，每个信号最多 10 个）、AI 代理已连接（云账户不需要代理）且 **调查** 开关已开启的资源，并运行调查所需的任意数量的命令（每次调查最多 200 条，以防失控循环），每条命令都像其他证据一样被引用。每条命令都是带参数的一个程序——从不通过 shell，因此管道、重定向、`;`、`&&`、`$(…)` 和 `sudo` 都会被拒绝，并附带说明原因的消息。一条命令默认有 30 秒，最多 2 分钟，其输出在代理上限制为 1024 KB。这些输出在交给 OneUptime AI 之前不会被截断：较长的输出会逐页显示——先显示前 40,000 个字符，其余的按需显示。如果代理没有领取某条命令，OneUptime AI 会在本次调查的剩余时间内停止向该资源发送命令。
 
 每种资源可以读取的内容如下。这与 AI 自己获得的列表相同；不在列表上的一切都会被拒绝。
 
@@ -232,6 +260,19 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 - 内核计数器：`cat /proc/loadavg`、`cat /proc/meminfo`、`cat /proc/pressure/memory`、`cat /etc/os-release`——`cat` 只读取一小份 `/proc` 文件列表和 `/etc/os-release`，不读取其他任何内容。
 - 每条命令一个程序，按名称指定且不带路径：从不使用 shell、`sudo` 或任何其他程序。
 
+### 云账户
+
+OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure 订阅或 Google Cloud 项目（参见 [连接云账户](/docs/telemetry/cloud-accounts)）：这些读取在 OneUptime 上运行，不需要代理，因此无论关联的账户中是否运行着云 AI 代理，调查都会读取它。一条命令是 `cloud`，加上固定目录中的一项操作和一个资源的 ID，写法与账户清单中列出的完全一致：例如 ARN `arn:aws:ecs:us-east-1:123456789012:service/prod/web`、Azure 资源 ID `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web`，或 Google Cloud 完整资源名称 `//run.googleapis.com/projects/my-project/locations/us-central1/services/web`。从不会有 `aws`、`az` 或 `gcloud` 命令，并且标志只能使用长格式，每个只能给出一次。
+
+- `cloud describe RESOURCE`——资源的实时设置和状态。在 AWS 上，不属于 ECS 服务、EC2 实例、RDS 实例、Aurora 集群、Auto Scaling 组、Lambda 函数、Lambda 别名、SQS 队列、目标组或负载均衡器的资源，会从 OneUptime 保存的该账户最近一次读取的副本中读取，并标记为 NOT LIVE。
+- `cloud recent-events RESOURCE [--hours N] [--limit N]`——平台最近对该资源做了什么：部署和服务事件、RDS 事件、扩缩活动、资源运行状况和活动日志条目（`--hours` 默认为 6，最多 72）。
+- `cloud target-health RESOURCE`——仅限 AWS：目标组或负载均衡器将哪些后端视为健康，以及其他后端为何不健康。
+- `cloud quota-usage RESOURCE [--limit N]`——账户在资源所在区域中针对该资源所属服务的用量与其限额的对比。
+- `cloud read-logs RESOURCE [--filter TEXT] [--minutes N] [--limit N]`——资源的日志行，按从新到旧排列，给出 `--filter` 时只返回包含它的日志行（`--minutes` 默认为 60，最多 1440）。日志行可能包含客户数据，因此在有人开启 **让 AI 修复问题** 中 **高级** 下的 **允许 AI 在调查期间读取此账户的日志** 之前，这项读取一直是关闭的；该设置会立即保存，无需运行命令。
+- `cloud whoami`——唯一在云 AI 代理上运行的读取：它所操作的账户、它是否可以更改任何内容，以及可以进行哪些更改。代理状态旁边 **⋯** 菜单中的 **测试连接** 会运行它。
+
+`--limit` 默认为 50 行，最多 200 行。一次读取的结果会在 64 KB 处按行截断，每个账户每分钟最多进行 30 次实时读取。
+
 ## 修复的工作方式
 
 在您开启之前，修复一直是关闭的，开启需要代理上的两项设置：将 `ONEUPTIME_AI_FIXES` 设为 `off` 以外的模式（参见 [AI 可以做什么，由代理设置](#ai-可以做什么由代理设置)），以及 `ONEUPTIME_AI_ALLOW_WRITES=true`（参见 [代理上的写入权限](#代理上的写入权限)）。只有其中一项不会改变任何东西。早于 `ONEUPTIME_AI_FIXES` 的代理会改为从资源的 AI 代理页面获取 **修复**。修复还需要为项目启用 AI（项目设置 → 人工智能 → AI Features 下的 **启用 AI**），除非有人关闭了它，否则它是启用的。
@@ -247,7 +288,7 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 
 修复运行后，OneUptime 会观察事件或警报的监视器。如果它们没有恢复，计划的回滚就会运行，OneUptime AI 会参考失败的尝试再制定一个计划——每个事件或警报最多两轮。在 **自动** 模式下，第二轮会请求批准；在 **跳过批准** 模式下，它同样会自行运行。无人值守的修复设有每个资源每小时三次的熔断：超过这个次数，或者在 OneUptime AI 的另一轮无人值守修复仍在更改或验证同一资源时，本轮会提出其计划以供批准，而不是直接运行。
 
-一个事件或警报只会获得一条 AI 修复通道。当它关联到已开启修复的 Kubernetes 集群时，运行的是该集群的修复轮次，而不是任何资源的轮次。否则，第一个已开启修复且代理就绪的关联资源会获得该轮次，顺序为：Docker 主机、Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群、数据库服务器、主机。该轮次只会更改这一个资源。
+一个事件或警报只会获得一条 AI 修复通道。当它关联到已开启修复的 Kubernetes 集群时，运行的是该集群的修复轮次，而不是任何资源的轮次。否则，第一个已开启修复且代理就绪的关联资源会获得该轮次，顺序为：Docker 主机、Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群、数据库服务器、主机、AWS 账户、Azure 订阅、Google Cloud 项目。该轮次只会更改这一个资源。
 
 ### 安全、风险较高和从不允许
 
@@ -335,6 +376,27 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 | **始终需要人** | `systemctl restart sshd` 以及对受保护单元（ssh、`systemd-*`、udev、dbus、polkit、NetworkManager、networking、getty 和 autovt、docker、containerd、podman、kubelet、防火墙、`user@`，以及 `apt-daily-upgrade` 和 `unattended-upgrades` 等软件包升级单元）的任何其他更改、`systemctl restart docker`、`systemctl restart local-fs.target`（任何 `.target`、`.mount`、`.automount` 或 `.swap` 单元）、`kill -TERM 4242`（向进程发送信号） |
 | **从不允许** | `systemctl enable nginx`（以及 disable、mask、edit）、`systemctl daemon-reload`、`systemctl reboot`（以及 poweroff、halt、suspend、rescue 和 `reboot.target`、`runlevel6.target` 等相应单元）、`systemctl start debug-shell`（无需密码的 root shell）、`systemctl cat nginx`、`systemctl show nginx -p Environment`、`journalctl -f -u nginx`、`ip link set eth0 down`、`kill -9 1`、`cat /etc/shadow`、`bash -c uptime`、`sudo systemctl restart nginx`、`dmesg --clear`、`ss -K` |
 
+### 云账户上的修复
+
+一项更改与读取一样，按 ID 指定一个资源，并且只在账户清单列出的资源上运行，因此 OneUptime AI 从不会更改 OneUptime 不知道其存在的东西。在进行更改之前，代理会读取该更改将替换的值，例如扩缩前的数量或回滚前的版本，OneUptime 据此写出该更改的撤销操作，因此没有起作用的修复会被精确地恢复原状。如果资源的标签表明它由代码声明（CloudFormation 堆栈、Terraform、Pulumi 等），那么在任何模式下，它的修复都只会被提出以供批准，因为下次应用配置时会恢复旧值；计划会写明拥有它的代码。更改的级别取决于它所更改的资源类型：
+
+| 更改 | AWS | Azure | Google Cloud |
+| -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
+| `restart-service` | 安全：ECS 服务 | 风险较高：App Service 或 Function App、Container App | — |
+| `start-instance` | 安全：EC2 实例、RDS 实例 | 安全：虚拟机 | 安全：Compute Engine 虚拟机 |
+| `scale-out` | 安全：ECS 服务、Auto Scaling 组 | 安全：App Service 计划、虚拟机规模集 | 安全：Cloud Run 服务、托管实例组 |
+| `scale-in` | 风险较高：ECS 服务、Auto Scaling 组 | 风险较高：App Service 计划、虚拟机规模集 | 风险较高：Cloud Run 服务、托管实例组 |
+| `reboot-instance` | 风险较高：EC2 实例、RDS 实例 | 风险较高：虚拟机、PostgreSQL 灵活服务器、MySQL 灵活服务器 | 风险较高：Compute Engine 虚拟机、Cloud SQL 实例 |
+| `roll-back-service` | 风险较高：ECS 服务、Lambda 别名 | 风险较高：App Service 或 Function App、Container App | 风险较高：Cloud Run 服务 |
+| `set-concurrency` | 风险较高：Lambda 函数 | — | 风险较高：Cloud Run 服务 |
+| `fail-over-database` | 始终需要人：Aurora 集群、RDS 实例 | 始终需要人：SQL 故障转移组 | 始终需要人：Cloud SQL 实例 |
+| `stop-instance` | 始终需要人：EC2 实例 | 始终需要人：虚拟机 | 始终需要人：Compute Engine 虚拟机 |
+| `redrive-queue` | 始终需要人：SQS 队列 | — | — |
+
+`scale-out` 不会超出组的最大值，在平台未设置最大值时最多将数量翻倍；`scale-in` 从不会低于最小值，也不会降到零。`roll-back-service` 会回到之前运行的版本，或回到 `--to` 指定的版本；在 App Service 上，它会把部署槽位（`--slot`）交换回来。完整写出来，一项更改是这样的：`cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`。
+
+**从不允许**，即使有人批准也不行：删除或终止任何东西、IAM、安全组和防火墙规则、机密和密钥、存储和数据库内容、实例类型、快照和还原、清空队列、组的最小值或最大值，以及表中没有的任何内容。
+
 ### 命令允许列表
 
 在 **自动** 模式下，AI 代理页面上资源的 **命令允许列表** 可以让您指定的风险较高的命令无需批准即可运行。它按词与命令逐一匹配，而不是作为文本匹配：
@@ -346,7 +408,7 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 - Proxmox 路径是一个词，因此不能包含 `*`：请为每个客户机写一个条目，例如 `pvesh create /nodes/pve1/qemu/100/status/shutdown`。
 - 允许列表中的任何内容都不能凌驾于始终需要人的更改或策略拒绝的命令之上。
 
-每种资源的一个有效条目：`docker stop web`（Docker 和 Podman）、`docker service update --image nginx:1.27 web`（Docker Swarm）、`pvesh create /nodes/pve1/qemu/100/status/shutdown`（Proxmox）、`govc vm.power -off web-01`（VMware）、`ceph osd out 3`（Ceph）、`db terminate-session 12345`（数据库）、`systemctl stop nginx`（主机）。
+每种资源的一个有效条目：`docker stop web`（Docker 和 Podman）、`docker service update --image nginx:1.27 web`（Docker Swarm）、`pvesh create /nodes/pve1/qemu/100/status/shutdown`（Proxmox）、`govc vm.power -off web-01`（VMware）、`ceph osd out 3`（Ceph）、`db terminate-session 12345`（数据库）、`systemctl stop nginx`（主机）、`cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2`（AWS）、`cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web`（Azure）、`cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1`（Google Cloud）。
 
 ### 谁可以更改它
 
@@ -361,8 +423,10 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 | `ONEUPTIME_AI_ALLOW_WRITES` | `false` | 只有 `true` 才允许代理运行更改。其他任何值——未设置、`false`、拼写错误、`yes`——都会让它保持只读，对于既不是 `true` 也不是 `false` 的值，代理会记录一条警告。 |
 | `ONEUPTIME_AI_WRITE_TARGETS` | 空 | 以逗号分隔的 glob，表示更改可以触及的目标；`*` 匹配任意字符序列，匹配区分大小写。为空表示除受保护目标外的任何目标。设置后，未写明目标的更改会被拒绝。 |
 | `ONEUPTIME_AI_PROTECTED_TARGETS` | 空 | 以逗号分隔的 glob，表示 OneUptime AI 绝不能更改的目标，是对代理自行保护的目标的补充。比较时不区分大小写。 |
+| `ONEUPTIME_AI_CLOUD_OPERATIONS` | 空 | 仅限云 AI 代理：以逗号分隔的、它可以进行的更改，例如 `restart-service,scale-out`。为空表示目录中的每项更改，各自带有其级别。代理不认识的名称会被忽略，并在其日志中记录一条警告。 |
+| `ONEUPTIME_AI_CLOUD_REQUIRED_TAG` | 空 | 仅限云 AI 代理：以 `key=value` 形式写出的标签，例如 `oneuptime-ai=allow`。此后代理只更改带有该标签的资源（在 Google Cloud 上为 label），并且在 AWS 上，其写入角色只允许对这些资源进行更改。不是 `key=value` 形式的值会拒绝每一项更改。 |
 
-请在代理与采集器共享的 `.env` 中（或在其容器的环境中）设置它们，并用 `docker compose up -d` 重启代理。超过 64 个条目的列表，或含有超过 256 个字符的条目的列表，会让代理保持只读，直到问题被修正。
+请在代理与采集器共享的 `.env` 中（或在其容器的环境中）设置它们，并用 `docker compose up -d` 重启代理。超过 64 个条目的列表，或含有超过 256 个字符的条目的列表，会让代理保持只读，直到问题被修正。云 AI 代理的这些设置来自其设置命令，由 **让 AI 修复问题** 中 **高级** 下的 **AI 可以进行哪些更改（各项更改的风险等级仍然适用）**、**AI 绝不能更改的资源** 和标签设定：要更改它们，请再次运行该命令。
 
 代理会在每次心跳时向 OneUptime 上报这些设置，因此当 OneUptime AI 提出超出这些范围的修复时，OneUptime 就已拒绝它，有人批准时还会再拒绝一次——它永远不会以失败修复的形式到达代理。代理在运行任何内容之前也会拒绝它。
 
@@ -377,6 +441,7 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 | Ceph 集群 | `osd.3`（无论命令写的是 `3` 还是 `osd.3`）、池名称、PG ID、守护进程名称、服务名称、`mgr.NAME`、`crash/ID`，以及用于 `ceph osd set noout` 这类集群范围更改的 `cluster` | `osd.*,cluster` |
 | 数据库服务器 | `session:<id>` | `session:*` |
 | 主机 | 完整的单元名称（`nginx.service`）、表示进程的 `pid:<pid>`、表示日志清理的 `journal` | `nginx.service,app-*` |
+| 云账户 | 资源的 ID：ARN、小写的 Azure 资源 ID，或 Google Cloud 完整资源名称 | `arn:aws:ecs:*:123456789012:service/prod/*` |
 
 ### 代理自行保护的内容
 
@@ -387,6 +452,7 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 - **数据库服务器：** 代理自己的会话。
 - **主机：** 每个 OneUptime 单元（`oneuptime-*`，包括主机 AI 代理自己的单元）、OpenTelemetry 采集器（`otelcol-contrib.service`、`otelcol.service`）、代理运行所在的 Docker 引擎（`docker.service`、`docker.socket`、`containerd.service`），以及代理自己的进程和其上层进程。
 - **Proxmox：** 代理无法判断自己运行在哪个客户机中。如果它运行在同一集群的虚拟机或容器中，请把该 VMID 加入 `ONEUPTIME_AI_PROTECTED_TARGETS`；对 VMware 上代理所在的虚拟机也这样做。
+- **云账户：** 其设置命令创建的一切：在 AWS 上是 `oneuptime-ai-agent` 堆栈、其 ECS 集群和服务，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 资源组；在 Google Cloud 上是 `oneuptime-ai-agent` Cloud Run 服务和服务账号。
 
 ## 凭据与最小权限
 
@@ -400,8 +466,9 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 | Ceph 集群 | 其专用客户端 `client.oneuptime-ai` 的密钥环和一个最小的 `ceph.conf`，挂载在 `/etc/ceph`（`CEPH_CLIENT_ID`、`CEPH_CONF`、`CEPH_KEYRING`） | `mon 'allow r' mgr 'allow r' osd 'allow r'`——从不使用管理员密钥环 | 读取 caps 加上恰好对应所需修复的 `allow command` 条目（Ceph 代理的 README 中列出了它们） |
 | 数据库服务器 | `DATABASE_USERNAME` / `DATABASE_PASSWORD`（采集器的登录名），或设置时使用 `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD`；`DATABASE_ENDPOINT` 和 TLS 设置 | 采集器的监控登录名（在 PostgreSQL 上为 `pg_monitor`） | 代理专用、可以向其他会话发送信号的登录名：`pg_signal_backend`（PostgreSQL）、`CONNECTION_ADMIN`（MySQL 8）、`+client\|kill`（Redis ACL）、`killop` 操作（MongoDB） |
 | 主机 | 无：它在主机的命名空间中以 root 身份特权运行 | 不要设置 `ONEUPTIME_AI_ALLOW_WRITES` | 用 `ONEUPTIME_AI_WRITE_TARGETS` 指定 AI 可以更改的单元 |
+| 云账户 | 其运行所在位置的身份：在 AWS 上是其 ECS 任务的角色，该角色只能代入 `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 中的写入角色；在 Azure 上是其 Container App 的托管标识；在 Google Cloud 上是其 Cloud Run 服务的服务账号 | 无：OneUptime 通过账户的只读连接读取账户 | 其设置命令写出的角色：已开启更改的权限及其所需的读取权限，仅此而已。在 AWS 上，每项更改都会代入 `OneUptimeAiAgentWrite`，并附带只针对该资源上这一项更改的会话策略 |
 
-各采集器的 README 中有确切的命令：用于 Proxmox 修复令牌的 `pveum` 命令（[ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)）、vSphere 修复角色（[VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)）、Ceph 的读取和修复 caps（[CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)），以及各引擎的数据库授权（[DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)）。
+各采集器的 README 中有确切的命令：用于 Proxmox 修复令牌的 `pveum` 命令（[ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)）、vSphere 修复角色（[VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)）、Ceph 的读取和修复 caps（[CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)），以及各引擎的数据库授权（[DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)）。云 AI 代理的角色由其设置命令写出：关闭某项更改并再次运行该命令，其权限就会从角色中移除。
 
 ## 安全模型
 
@@ -420,6 +487,7 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 - 时间限制（最多 2 分钟），超时后程序会被终止；输出上限为 50 KB。
 - 输出中的机密——`docker inspect` 中的环境变量值、Proxmox cloud-init 密码，以及日志和命令行中的密钥、令牌和密码——会在输出离开代理之前在代理上遮盖，并在存储或展示给模型之前由 OneUptime 再次遮盖。
 - 容器以只读根文件系统运行。Proxmox、VMware、Ceph 和数据库 AI 代理以 UID 1000 运行，不具备任何 capability。
+- 云 AI 代理根本不启动任何程序：`cloud` 指定其目录中的一项操作，代理会以其运行所在位置的凭据，把它作为对应的那一个 API 调用来执行。读取在 OneUptime 上通过账户的只读连接运行。
 
 ### Docker 套接字和主机 AI 代理等同于主机上的 root
 
@@ -447,6 +515,8 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 
 请使用您资源的容器名称：`oneuptime-docker-ai-agent`、`oneuptime-podman-ai-agent`（用 `podman` 代替 `docker`）、`oneuptime-docker-swarm-ai-agent`、`oneuptime-proxmox-ai-agent`、`oneuptime-vmware-ai-agent`、`oneuptime-ceph-ai-agent`、`oneuptime-host-ai-agent`。数据库代理的服务没有固定的容器名称，因此请在 `/opt/oneuptime-database-agent` 中使用 `docker compose logs --tail=100 oneuptime-database-ai-agent` 和 `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status`。主机 AI 代理使用主机的网络，因此 `curl -s http://127.0.0.1:3877/status` 可以直接在主机上运行。
 
+云 AI 代理运行在其云中，没有可以 `exec` 进入的容器：请在云平台的 Shell 中用 `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`、`az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` 或 `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100` 读取其日志，并在账户的 **AI 代理** 页面上查看其状态，该页面也会显示同样的命令。
+
 缺少某项设置不会让代理崩溃：它会保持运行且状态健康，在日志和 `/status` 中说明缺少什么，并且不做其他任何事，因此容器永远不会循环重启。
 
 ### 常见错误
@@ -456,7 +526,7 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `ONEUPTIME_AI_AGENT_RESOURCE_TYPE is not set`（或其他必需设置） | 在代理与采集器共享的 `.env` 中设置它，然后运行 `docker compose up -d`。 |
 | `This OneUptime server does not have the resource AI agent API` | 升级 OneUptime，或运行与您的服务器匹配的代理镜像版本。代理每 5 分钟会再检查一次。 |
 | `OneUptime refused the agent's API key` | 使用项目中未固定的遥测摄取密钥。 |
-| `OneUptime refused the registration: …` | 阅读这一行的其余部分：未知的资源类型、为空或过长的标识、另一个项目的 `DATABASE_SERVER_ID`，或项目的代理数量上限。 |
+| `OneUptime refused the registration: …` | 阅读这一行的其余部分：未知的资源类型、为空或过长的标识、另一个项目的 `DATABASE_SERVER_ID`，或项目的代理数量上限。云 AI 代理在项目的任何连接都不读取的账户中，或在与其命令不同的账户中，也会被拒绝。 |
 | `Waiting for this …'s previous AI agent to go offline` | 旧容器没有注销（崩溃或被 kill），因此旧代理 40 秒内没有发送任何请求后，新代理就会接替它。如果持续更久：说明另一个代理正在使用这个标识。 |
 | 提示名称是采集器默认值的警告 | 在采集器和代理上为资源设置唯一的名称。 |
 | `The agent cannot reach this … right now` | 检查消息中指出的套接字挂载、地址、凭据或密钥环。AI 代理页面会显示同样的原因。 |
@@ -469,12 +539,15 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `pipes and redirects are not supported; run one command` | 这是预期行为：命令从不通过 shell 运行。该拒绝会告诉 OneUptime AI 一次运行一条命令。 |
 | `Killed (timeout …)` | 资源没有及时应答；如果完全没有输出，说明代理无法访问它——请检查两者之间的网络。 |
 | Proxmox、vCenter、Ceph 或数据库报出缺少某项权限、角色或 cap 的错误 | 凭据是不可逾越的上限：授予消息中指出的内容（参见 [凭据与最小权限](#凭据与最小权限)），或把该更改留给人处理。 |
+| `The Cloud AI agent could not check its cloud: …` | 它的角色、托管标识或服务账号已不存在或缺少某项权限，或者它无法访问其云的 API：请从账户页面再次运行设置命令。 |
+| `cloud … is not one of the changes this agent may make` | 在 **让 AI 修复问题** 的 **高级** 下开启该更改，然后再次运行命令：这也会为代理的角色授予该更改的权限。 |
+| `the agent only changes resources that carry the …` | 为资源加上 `oneuptime-ai=allow` 标签（在 Google Cloud 上为 label），或重新设置代理但不使用该标签。 |
 
 [Proxmox](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) 和 [数据库](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent) 代理的 README，以及 [主机 AI 代理](https://github.com/OneUptime/oneuptime/tree/master/agents/HostAIAgent) 的 README，都有针对其自身连接错误的故障排除表。
 
 ## 不涵盖的内容
 
-Kubernetes 集群使用 Kubernetes AI 代理。无服务器函数和其他云资源、IoT 设备群和网络设备没有 AI 代理：对它们执行操作需要云或设备凭据，而 OneUptime AI 只通过您运行的 Runner 使用这些凭据。
+Kubernetes 集群使用 Kubernetes AI 代理。一个云 AI 代理服务一个 AWS 账户、Azure 订阅或 Google Cloud 项目，并且没有面向整个 AWS Organization 的代理：读取组织或租户的连接，需要在 AI 应修复的每个账户、订阅或项目中各有一个代理。对以代码声明的资源的修复始终只是一个提议：OneUptime AI 不会针对该代码打开拉取请求。IoT 设备群和网络设备没有 AI 代理：对它们执行操作需要设备凭据，而 OneUptime AI 只通过您运行的 Runner 使用这些凭据。
 
 ## 后续步骤
 
@@ -482,4 +555,5 @@ Kubernetes 集群使用 Kubernetes AI 代理。无服务器函数和其他云资
 - [AI SRE](/docs/ai/ai-sre): OneUptime AI 如何处理事件，以及修复如何决定。
 - [Docker 代理](/docs/telemetry/docker-host): 安装 Docker AI 代理在其旁边运行的采集器。
 - [主机 OpenTelemetry Collector](/docs/telemetry/host-otel-collector): 让 Linux 主机上报数据，然后添加主机 AI 代理。
+- [连接云账户](/docs/telemetry/cloud-accounts): 连接云 AI 代理所服务的账户，然后让 AI 修复其中的问题。
 :::

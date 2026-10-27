@@ -7,6 +7,7 @@ Conecte uma conta da AWS, uma assinatura do Azure ou um projeto do Google Cloud 
 - [Microsoft Azure](#microsoft-azure): Um aplicativo com a função Monitoring Reader.
 - [Google Cloud](#google-cloud): Uma conta de serviço com quatro papéis somente leitura.
 - [O que o OneUptime lê](#o-que-o-oneuptime-lê): Recursos, métricas, alterações e eventos de integridade, com que frequência e quanto custa.
+- [Permitir que a IA corrija problemas](#permitir-que-a-ia-corrija-problemas): Mais um comando, e o OneUptime AI pode corrigir o que encontra.
 :::
 
 ## Como funciona
@@ -207,6 +208,22 @@ As chamadas que o OneUptime faz são cobradas da sua conta de nuvem, aos preços
 - **A página de uma conta.** Em **Nuvem → Contas**, a visão geral de uma conta conta os recursos dela por tipo e região e diz quando uma conexão a leu pela última vez. Os **Recursos** dela os listam, as **Alterações** listam o que mudou nela, os mais recentes primeiro, e a **Topologia** desenha as regiões, as redes nelas e o que roda em cada uma, com os incidentes e alertas abertos nos recursos aos quais estão vinculados.
 - **As alterações de um recurso.** Uma alteração é guardada como um evento de alteração vinculado ao recurso que ela alterou e à conta dele, e desenhada como um marcador nos gráficos de métricas do recurso, junto com os incidentes e alertas dele. Gráficos filtrados para nenhum recurso deixam de fora o log de atividades de uma conta de nuvem, para que uma conta movimentada não esconda os seus deploys; os eventos de integridade do provedor continuam neles.
 - **Incidentes e alertas.** Vincule um recurso de nuvem a um monitor, um incidente ou um alerta nos recursos vinculados dele, e os incidentes e alertas dele são listados na página do recurso. Um monitor de site, API, SSL, ping ou porta cujo host leva a um endpoint de um recurso, diretamente ou pelo DNS, lista o recurso em **Recursos de nuvem sugeridos** no cartão **Recursos Vinculados**: selecione **Vincular recurso** para vinculá-lo.
+
+## Permitir que a IA corrija problemas
+
+O OneUptime AI lê toda conta conectada enquanto investiga, com o acesso somente leitura descrito acima. Para que ele também corrija problemas, como reiniciar um serviço, aumentar a escala dele ou revertê-lo, abra a conta em **Nuvem → Contas** e selecione **Permitir que a IA corrija problemas** no cartão **Agente de IA** da **Visão geral** dela.
+
+A caixa de diálogo faz uma única pergunta, **Até onde a IA pode ir?**: **Perguntar antes**, o padrão, em que o OneUptime AI propõe cada correção e uma pessoa a aprova com um clique, ou **Corrigir problemas seguros por conta própria**, em que as alterações seguras são executadas sozinhas e as mais arriscadas continuam aguardando aprovação. Todo o resto tem um padrão seguro em **Avançado**. Depois ela mostra um comando, escrito para esta conta: execute-o no AWS CloudShell, no Azure Cloud Shell ou no Google Cloud Shell, conectado como alguém que pode criar funções na conta. O comando cria uma função que só pode fazer as alterações ativadas e inicia com ela o agente de IA de nuvem na sua conta. O agente se conecta sozinho em poucos minutos, e a caixa de diálogo avisa: não há nada para colar de volta.
+
+O agente é um pequeno contêiner que roda o mês inteiro na sua conta, cobrado pela sua nuvem aos preços de tabela dela:
+
+| Nuvem | O que roda | Cerca de |
+| --- | --- | --- |
+| AWS | Uma tarefa do ECS Fargate de 0.25 vCPU e 0.5 GB, e o endereço IPv4 público dela, aos preços de `us-east-1` | $13 por mês |
+| Azure | Uma réplica do Container Apps de 0.25 vCPU e 0.5 GiB, depois da cota gratuita mensal da assinatura, de 180.000 vCPU-segundos e 360.000 GiB-segundos | $14 por mês |
+| Google Cloud | Uma instância do Cloud Run de 1 vCPU e 0.5 GiB com CPU sempre alocada, que ocupa uma vCPU inteira, depois do nível gratuito mensal de 240.000 vCPU-segundos e 450.000 GiB-segundos | $45 por mês |
+
+O que o agente pode alterar, como cada alteração é classificada em níveis e desfeita, e como ler os registros dele: [Agentes de IA para a infraestrutura](/docs/ai/infrastructure-ai-agents#em-uma-conta-de-nuvem).
 
 ## Solução de problemas
 

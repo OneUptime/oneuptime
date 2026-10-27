@@ -274,7 +274,7 @@ chart 的 RBAC 是独立于策略的另一层，它限制的是 AI 代理可以 
 
 ## 基础设施访问——Docker、Podman、Swarm、Proxmox、VMware、Ceph、数据库和主机
 
-您的其他基础设施也有同样的访问方式。资源 AI 代理（镜像 `oneuptime/resource-ai-agent`）运行在 Docker 或 Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群或数据库服务器的采集器旁边——或单独运行在 Linux 主机上——让 OneUptime AI 在调查时于那里运行只读命令（`docker logs`、`pvesh get`、`govc vm.info`、`ceph health detail`、一组固定的数据库诊断、`systemctl status`、`journalctl` 等），并且只有在您使用 `ONEUPTIME_AI_ALLOW_WRITES=true` 和一个修复级别（`ONEUPTIME_AI_FIXES`）启动代理时，才会以与 Kubernetes 集群相同的四种模式和相同的三项检查应用修复。与集群一样，AI 在此类资源上可以做什么是在其代理运行的地方设置的（`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`），并在其 AI 代理页面上以只读方式显示。每个此类资源都有相同的 **AI 代理**、**洞察** 和 **日志** 页面。有关如何安装它们、每种代理可以运行什么以及其安全模型，请参见 [基础设施 AI 代理](/docs/ai/infrastructure-ai-agents)。
+您的其他基础设施也有同样的访问方式。资源 AI 代理（镜像 `oneuptime/resource-ai-agent`）运行在 Docker 或 Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群或数据库服务器的采集器旁边——或单独运行在 Linux 主机上——让 OneUptime AI 在调查时于那里运行只读命令（`docker logs`、`pvesh get`、`govc vm.info`、`ceph health detail`、一组固定的数据库诊断、`systemctl status`、`journalctl` 等），并且只有在您使用 `ONEUPTIME_AI_ALLOW_WRITES=true` 和一个修复级别（`ONEUPTIME_AI_FIXES`）启动代理时，才会以与 Kubernetes 集群相同的四种模式和相同的三项检查应用修复。与集群一样，AI 在此类资源上可以做什么是在其代理运行的地方设置的（`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`），并在其 AI 代理页面上以只读方式显示。每个此类资源都有相同的 **AI 代理**、**洞察** 和 **日志** 页面。云账户（AWS 账户、Azure 订阅或 Google Cloud 项目）无需代理即可接受调查，因为 OneUptime 会通过其只读连接实时读取它；它的修复则来自云 AI 代理，只需在账户页面上运行一条命令，即可在该账户中启动这个代理。有关如何安装它们、每种代理可以运行什么以及其安全模型，请参见 [基础设施 AI 代理](/docs/ai/infrastructure-ai-agents)。
 
 ## 静默模式
 

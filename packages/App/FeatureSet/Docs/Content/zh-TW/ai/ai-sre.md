@@ -274,7 +274,7 @@ chart 的 RBAC 是獨立於原則的另一層，它限制的是 AI 代理程式�
 
 ## 基礎設施存取——Docker、Podman、Swarm、Proxmox、VMware、Ceph、資料庫和主機
 
-您的其他基礎設施也有同樣的存取方式。資源 AI 代理程式（映像檔 `oneuptime/resource-ai-agent`）執行在 Docker 或 Podman 主機、Docker Swarm 叢集、Proxmox 叢集、VMware vCenter、Ceph 叢集或資料庫伺服器的收集器旁邊——或單獨執行在 Linux 主機上——讓 OneUptime AI 在調查時於那裡執行唯讀指令（`docker logs`、`pvesh get`、`govc vm.info`、`ceph health detail`、一組固定的資料庫診斷、`systemctl status`、`journalctl` 等），並且只有在您使用 `ONEUPTIME_AI_ALLOW_WRITES=true` 和一個修正層級（`ONEUPTIME_AI_FIXES`）啟動代理程式時，才會以與 Kubernetes 叢集相同的四種模式和相同的三項檢查套用修正。與叢集一樣，AI 在此類資源上可以做什麼是在其代理程式執行的地方設定的（`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`），並在其 AI 代理程式頁面上以唯讀方式顯示。每個此類資源都有相同的 **AI 代理程式**、**洞察** 和 **日誌** 頁面。有關如何安裝它們、每種代理程式可以執行什麼以及其安全性模型，請參閱 [基礎設施 AI 代理程式](/docs/ai/infrastructure-ai-agents)。
+您的其他基礎設施也有同樣的存取方式。資源 AI 代理程式（映像檔 `oneuptime/resource-ai-agent`）執行在 Docker 或 Podman 主機、Docker Swarm 叢集、Proxmox 叢集、VMware vCenter、Ceph 叢集或資料庫伺服器的收集器旁邊——或單獨執行在 Linux 主機上——讓 OneUptime AI 在調查時於那裡執行唯讀指令（`docker logs`、`pvesh get`、`govc vm.info`、`ceph health detail`、一組固定的資料庫診斷、`systemctl status`、`journalctl` 等），並且只有在您使用 `ONEUPTIME_AI_ALLOW_WRITES=true` 和一個修正層級（`ONEUPTIME_AI_FIXES`）啟動代理程式時，才會以與 Kubernetes 叢集相同的四種模式和相同的三項檢查套用修正。與叢集一樣，AI 在此類資源上可以做什麼是在其代理程式執行的地方設定的（`ONEUPTIME_AI_INVESTIGATION`、`ONEUPTIME_AI_FIXES`），並在其 AI 代理程式頁面上以唯讀方式顯示。每個此類資源都有相同的 **AI 代理程式**、**洞察** 和 **日誌** 頁面。雲端帳戶（AWS 帳戶、Azure 訂用帳戶或 Google Cloud 專案）不需要代理程式即可接受調查，因為 OneUptime 會透過其唯讀連線即時讀取它；它的修正則來自雲端 AI 代理程式，只需在帳戶頁面上執行一個指令，即可在該帳戶中啟動這個代理程式。有關如何安裝它們、每種代理程式可以執行什麼以及其安全性模型，請參閱 [基礎設施 AI 代理程式](/docs/ai/infrastructure-ai-agents)。
 
 ## 靜默模式
 

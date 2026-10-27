@@ -2,6 +2,8 @@
 
 A OneUptime AI pode olhar além da sua telemetria enquanto investiga um incidente ou alerta. Um pequeno agente instalado ao lado de um dos seus recursos (um host Docker ou Podman, um cluster Docker Swarm, um cluster Proxmox, um VMware vCenter, um cluster Ceph, um servidor de banco de dados ou um host Linux) executa os comandos somente leitura que a OneUptime AI pede, como `docker logs --tail 200 web`, `pvesh get /cluster/status`, `ceph health detail`, `db long-queries --min-seconds 30` ou `journalctl -u nginx -n 200 --no-pager`, e devolve a saída, de modo que a análise de causa raiz cita o que o próprio recurso diz. Se você permitir, o mesmo agente também aplica correções (reiniciar um contêiner, iniciar uma VM, marcar um OSD de volta como in), cada uma classificada em um nível por uma política de comandos e, a menos que você escolha outra coisa, aprovada antes por uma pessoa. O Pergunte à IA, aberto na página do recurso, executa os mesmos comandos somente leitura quando você pede (consulte [Pergunte à IA](/docs/ai/ask-ai)).
 
+Para investigar uma conta da AWS, uma assinatura do Azure ou um projeto do Google Cloud, não é preciso agente: a OneUptime os lê em tempo real, pela conexão somente leitura com que foram conectados. Só as correções precisam de um, o agente de IA de nuvem, que roda na própria conta e é configurado com um único comando na página da conta (consulte [Em uma conta de nuvem](#em-uma-conta-de-nuvem)).
+
 Esses agentes são os **agentes de IA de recursos**. A página de cada recurso no painel tem uma seção **IA** com três páginas:
 
 - **Insights**: o que a OneUptime AI descobriu sobre o recurso nos últimos 30 dias, ou seja, os problemas que voltam sempre e por quê, com o que a IA encontrou e o passo que ela sugere, as partes do recurso por trás da maioria deles, as correções que não ajudaram ou que aguardam aprovação, o que a IA corrigiu sozinha e os riscos detectados antes que alguém fosse acionado, com o que a própria IA fez ali como nota de rodapé. Funciona como a de um cluster; veja [O que a IA aprendeu em um cluster](/docs/ai/ai-sre#o-que-a-ia-aprendeu-em-um-cluster).
@@ -11,8 +13,8 @@ Esses agentes são os **agentes de IA de recursos**. A página de cada recurso n
 A **Visão geral** do recurso termina com um cartão **Agente de IA** que resume a página do agente de IA: se o agente está conectado, se a investigação está ativada, como as correções são executadas (**Desativado**, **Pedir aprovação**, **Automático** ou **Ignorar aprovação**) e o que precisa de atenção, com um link para a página do agente de IA, onde tudo isso é alterado.
 
 :::cards
-- [Recursos compatíveis](#recursos-compatíveis): Oito tipos de recurso, uma única imagem.
-- [Instalar um agente de IA](#instalar-um-agente-de-ia): Ao lado de um coletor que você já executa, ou em um host Linux.
+- [Recursos compatíveis](#recursos-compatíveis): Onze tipos de recurso, uma única imagem.
+- [Instalar um agente de IA](#instalar-um-agente-de-ia): Ao lado de um coletor que você já executa, em um host Linux ou em uma conta de nuvem com um único comando.
 - [Como as correções funcionam](#como-as-correções-funcionam): O que pode rodar sozinho, o que espera por uma pessoa e o que nunca roda.
 - [Modelo de segurança](#modelo-de-segurança): Três verificações em cada comando e nenhuma credencial vinda da OneUptime.
 :::
@@ -42,7 +44,7 @@ Os clusters Kubernetes têm um agente próprio, o agente de IA do Kubernetes, in
 
 O que muda:
 
-- **Uma única imagem para todo recurso.** `oneuptime/resource-ai-agent` atende aos oito tipos de recurso, e `ONEUPTIME_AI_AGENT_RESOURCE_TYPE` diz qual deles um agente atende. Ele roda ao lado do coletor do recurso como mais um contêiner, e não a partir de um chart Helm.
+- **Uma única imagem para todo recurso.** `oneuptime/resource-ai-agent` atende aos onze tipos de recurso, e `ONEUPTIME_AI_AGENT_RESOURCE_TYPE` diz qual deles um agente atende. Ele roda ao lado do coletor do recurso como mais um contêiner, ou na conta de nuvem que atende, e não a partir de um chart Helm.
 - **O acesso de escrita é uma variável de ambiente.** É `ONEUPTIME_AI_ALLOW_WRITES=true` no agente que permite que ele aplique correções, e `ONEUPTIME_AI_WRITE_TARGETS` limita quais contêineres, serviços, VMs, OSDs, sessões ou units elas podem tocar. Em um cluster, isso fica a cargo do RBAC do chart e de `aiAgent.remediation.namespaces`.
 
 Assim como o agente de IA do Kubernetes, um agente de IA de recursos não é um Runner. Ele nunca aparece em Runbooks → Agentes de runbook e nunca é usado como host Bash ou SSH para runbooks.
@@ -59,6 +61,9 @@ Assim como o agente de IA do Kubernetes, um agente de IA de recursos não é um 
 | Cluster Ceph | `ceph` | Agente de IA do Ceph | `CEPH_CLUSTER_NAME` | `ceph` | os monitores, com um `ceph.conf` e o keyring do cliente próprio do agente |
 | Servidor de banco de dados | `database` (ou `db`) | Agente de IA de banco de dados | `DATABASE_SERVER_ID`, ou `DATABASE_SYSTEM` + `DATABASE_SERVER_ADDRESS` + `DATABASE_SERVER_PORT` | `db`: uma operação de um catálogo fixo de diagnósticos, nunca SQL | o próprio driver do banco de dados, com um login do banco |
 | Host | `host` | Agente de IA do host | `HOST_NAME` (vazio: o próprio hostname do host) | `systemctl`, `journalctl`, `df`, `free`, `uptime`, `ps`, `ss`, `ip`, `dmesg`, `lsblk`, `cat`, `top`, `uname`, `hostnamectl`, `timedatectl`, `kill` | `nsenter` nos namespaces do host, a partir de um contêiner privilegiado |
+| Conta da AWS | `aws` | Agente de IA de nuvem | `AWS_ACCOUNT_ID` (vazio: a conta em que ele roda) | `cloud`: uma operação de um catálogo fixo, nunca um comando `aws` | as APIs da AWS, com funções do IAM próprias |
+| Assinatura do Azure | `azure` | Agente de IA de nuvem | `AZURE_SUBSCRIPTION_ID` (o comando de configuração o define) | `cloud`: uma operação de um catálogo fixo, nunca um comando `az` | o Azure Resource Manager, como a identidade gerenciada do seu Container App |
+| Projeto do Google Cloud | `gcp` (ou `google-cloud`) | Agente de IA de nuvem | `GOOGLE_CLOUD_PROJECT` (vazio: o projeto em que ele roda) | `cloud`: uma operação de um catálogo fixo, nunca um comando `gcloud` | as APIs do Google Cloud, como uma conta de serviço própria |
 
 Servidores de banco de dados: o agente de IA de banco de dados tem diagnósticos para PostgreSQL, MySQL (e MariaDB e Percona Server), Redis (e Valkey, KeyDB e Dragonfly) e MongoDB. Para qualquer outro mecanismo, ele não executa nada e informa isso na página do agente de IA do banco de dados.
 
@@ -74,12 +79,17 @@ Servidores de banco de dados: o agente de IA de banco de dados tem diagnósticos
 | Cluster Ceph | `ceph health`, `ceph versions` |
 | Servidor de banco de dados | `db ping`, `db version` |
 | Host | `uptime`, `systemctl list-units --failed --no-pager` |
+| Conta da AWS | `cloud whoami` |
+| Assinatura do Azure | `cloud whoami` |
+| Projeto do Google Cloud | `cloud whoami` |
 
 Em um worker do Docker Swarm, `docker node ls` falha: o agente de IA do Docker Swarm precisa rodar em um nó manager. Um agente iniciado em um worker não se registra no cluster até que o seu nó seja manager, e o instalador do Docker Swarm o deixa de fora em um nó que não é manager.
 
+Em uma conta de nuvem, `cloud whoami` mostra a conta em que o agente de IA de nuvem atua e com qual identidade ele está conectado, se ele pode alterar alguma coisa, as mudanças que pode fazer e a tag que exige, se houver.
+
 ## Instalar um agente de IA
 
-Todo agente de IA de recursos é a mesma imagem, `oneuptime/resource-ai-agent:release`. Ele não precisa de nada no painel: assim que roda, registra-se na OneUptime e aparece na página do agente de IA do recurso em até um minuto.
+Todo agente de IA de recursos é a mesma imagem, `oneuptime/resource-ai-agent:release`. Ao lado de um coletor ou em um host, ele não precisa de nada no painel: assim que roda, registra-se na OneUptime e aparece na página do agente de IA do recurso em até um minuto. O de uma conta de nuvem roda na própria conta, a partir de um único comando que a página da conta escreve para ele (consulte [Em uma conta de nuvem](#em-uma-conta-de-nuvem)).
 
 ### Ao lado de um coletor
 
@@ -128,6 +138,24 @@ Ele pede a URL da sua OneUptime, a chave de ingestão de telemetria do projeto e
 
 O agente de IA do host executa os **programas do próprio host**: todo comando roda como `nsenter --target 1 --mount --uts --ipc --net --pid -- PROGRAM ARGS`, que entra nos namespaces do init do host. Isso exige `pid: host`, `privileged: true` e root; veja [O socket do Docker e o agente de IA do host são root no host](#o-socket-do-docker-e-o-agente-de-ia-do-host-são-root-no-host). Deixe `HOST_NAME` vazio para usar o hostname da máquina, que é o que o coletor informa como `host.name`, a menos que você o tenha mudado; caso contrário, defina-o como o nome mostrado em **Hosts**.
 
+### Em uma conta de nuvem
+
+Uma conta da AWS, uma assinatura do Azure ou um projeto do Google Cloud não tem um coletor ao lado do qual um agente possa ficar, e a OneUptime a lê sem nenhum (consulte [Contas de nuvem](#contas-de-nuvem)). O agente de IA de nuvem dela, que faz as correções, roda na própria conta e é configurado na página da conta com um único comando, sem arquivo compose e sem `.env`:
+
+1. Em Nuvem → Contas, abra a conta e selecione **Permitir que a IA corrija problemas** no cartão **Agente de IA** da **Visão geral** dela.
+2. Responda à única pergunta, **Até onde a IA pode ir?**: **Perguntar antes**, o padrão, define **Correções** como **Pedir aprovação**, e **Corrigir problemas seguros por conta própria** as define como **Automático**. **Avançado** guarda o resto: quais mudanças a IA pode fazer, os recursos que ela nunca deve alterar, alterar apenas recursos com a tag `oneuptime-ai=allow`, **Ignorar aprovação**, a leitura dos logs da conta e as variáveis do agente para executá-lo em outro lugar.
+3. Execute o comando que ela mostra no shell da própria nuvem, conectado a essa conta. Ele escreve a função do agente a partir das mudanças ativadas e inicia o agente, que se conecta sozinho em poucos minutos: não há nada para colar de volta. Se o agente não se conectar, o log dele diz por quê (consulte [Logs e status](#logs-e-status)).
+
+| Nuvem | Executar em | O que o comando cria |
+| -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Conta da AWS | AWS CloudShell | Uma pilha do CloudFormation, `oneuptime-ai-agent`, que executa uma tarefa do ECS Fargate. A função da tarefa só pode assumir a função de escrita `OneUptimeAiAgentWrite`, que tem as permissões das mudanças ativadas. |
+| Assinatura do Azure | Azure Cloud Shell | Um Container App, `oneuptime-ai-agent`, no grupo de recursos `oneuptime-ai-agent`. A identidade gerenciada dele tem uma função personalizada na assinatura, com as permissões das mudanças ativadas. |
+| Projeto do Google Cloud | Google Cloud Shell | Um serviço do Cloud Run, `oneuptime-ai-agent`, com CPU sempre alocada, executado como a conta de serviço `oneuptime-ai-agent`, que tem um papel personalizado no projeto, com as permissões das mudanças ativadas. |
+
+O comando só funciona na conta para a qual foi escrito: na AWS ele não cria nada em um shell conectado a outra conta, e os comandos do Azure e do Google Cloud nomeiam a assinatura ou o projeto em cada chamada. Ele define `ONEUPTIME_AI_INVESTIGATION=true`, `ONEUPTIME_AI_FIXES` a partir da sua resposta, `ONEUPTIME_AI_ALLOW_WRITES=true` e `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` como a conta para a qual foi escrito. O agente se registra como a conta em que a nuvem dele diz que ele está e nunca adiciona uma conta à OneUptime: iniciado em uma conta diferente da do comando, ele é recusado, e a conta para a qual o comando foi escrito diz por quê na página dela; iniciado em uma conta que nenhuma conexão do projeto lê, ele também é recusado, e o log dele diz isso.
+
+Para alterar qualquer coisa, execute o comando de novo: abra **Permitir que a IA corrija problemas** outra vez, ou selecione **Alterar** na página **Agente de IA** da conta, e execute o comando que ela escreve. A função sempre tem apenas as mudanças ativadas. A seção **IA** de uma conta de nuvem tem duas páginas, **Agente de IA** e **Registros**, e o custo do agente está em [Conectar uma conta de nuvem](/docs/telemetry/cloud-accounts#permitir-que-a-ia-corrija-problemas).
+
 ### Conectar à OneUptime
 
 O agente se registra com a **mesma identidade que o coletor informa** (`DOCKER_HOST_NAME`, `PROXMOX_CLUSTER_NAME`, `CEPH_CLUSTER_NAME`, …; `ONEUPTIME_AI_AGENT_RESOURCE_NAME` a substitui), então atende exatamente ao recurso que a telemetria do coletor criou. Quando a OneUptime ainda não tem nenhum recurso com esse nome, o registro o cria, de modo que um nome diferente do do coletor gera um segundo recurso vazio em vez de um erro. Um banco de dados se registra por `DATABASE_SERVER_ID` quando ele está definido e, caso contrário, pelo seu mecanismo, endereço e porta; um `DATABASE_SERVER_ID` que não seja um banco de dados deste projeto é recusado.
@@ -161,7 +189,7 @@ Depois reinicie o agente (`docker compose up -d`, ou execute de novo o `install.
 
 ## O que uma investigação pode executar
 
-Uma investigação só executa comandos **Read**: eles olham o recurso e não alteram nada. A OneUptime AI vê os recursos vinculados ao incidente ou alerta (pelos monitores e pela telemetria deles, no máximo 10 por sinal) cujo agente de IA está conectado e cujo interruptor **Investigar** está ativado, e executa quantos comandos a investigação precisar (até 200 por investigação, uma proteção contra um loop descontrolado), cada um citado como qualquer outra evidência. Todo comando é um programa com os seus argumentos, nunca por um shell, então pipes, redirecionamentos, `;`, `&&`, `$(…)` e `sudo` são recusados com uma mensagem que diz isso. Um comando tem 30 segundos por padrão e no máximo 2 minutos, e a sua saída é limitada a 1024 KB no agente. Nada dessa saída é cortado antes de chegar à OneUptime AI: uma saída longa é mostrada uma página por vez (os primeiros 40.000 caracteres e depois o restante sob demanda). Se um agente não pegar um comando, a OneUptime AI para de enviar comandos a esse recurso pelo resto da investigação.
+Uma investigação só executa comandos **Read**: eles olham o recurso e não alteram nada. A OneUptime AI vê os recursos vinculados ao incidente ou alerta (pelos monitores e pela telemetria deles, no máximo 10 por sinal) cujo agente de IA está conectado (uma conta de nuvem não precisa de nenhum) e cujo interruptor **Investigar** está ativado, e executa quantos comandos a investigação precisar (até 200 por investigação, uma proteção contra um loop descontrolado), cada um citado como qualquer outra evidência. Todo comando é um programa com os seus argumentos, nunca por um shell, então pipes, redirecionamentos, `;`, `&&`, `$(…)` e `sudo` são recusados com uma mensagem que diz isso. Um comando tem 30 segundos por padrão e no máximo 2 minutos, e a sua saída é limitada a 1024 KB no agente. Nada dessa saída é cortado antes de chegar à OneUptime AI: uma saída longa é mostrada uma página por vez (os primeiros 40.000 caracteres e depois o restante sob demanda). Se um agente não pegar um comando, a OneUptime AI para de enviar comandos a esse recurso pelo resto da investigação.
 
 O que cada tipo de recurso pode ler está abaixo. É a mesma lista que a própria IA recebe; tudo o que não estiver nela é recusado.
 
@@ -232,6 +260,19 @@ O texto das consultas na saída é normalizado (todo literal de string e de núm
 - Contadores do kernel: `cat /proc/loadavg`, `cat /proc/meminfo`, `cat /proc/pressure/memory`, `cat /etc/os-release`; `cat` lê apenas uma lista curta de arquivos de `/proc` e `/etc/os-release`, nada mais.
 - Um programa por comando, nomeado sem caminho: nunca um shell, `sudo` ou qualquer outro programa.
 
+### Contas de nuvem
+
+A própria OneUptime lê uma conta da AWS, uma assinatura do Azure ou um projeto do Google Cloud, em tempo real, pela conexão somente leitura da conta (consulte [Conectar uma conta de nuvem](/docs/telemetry/cloud-accounts)): essas leituras rodam na OneUptime e não precisam de agente, então uma investigação lê uma conta vinculada quer um agente de IA de nuvem rode nela, quer não. Um comando é `cloud`, uma operação de um catálogo fixo e o id de um recurso, exatamente como o inventário da conta o lista: um ARN como `arn:aws:ecs:us-east-1:123456789012:service/prod/web`, um ID de recurso do Azure como `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` ou um nome completo de recurso do Google Cloud como `//run.googleapis.com/projects/my-project/locations/us-central1/services/web`. Nunca há um comando `aws`, `az` ou `gcloud`, e as flags são apenas longas, cada uma informada uma só vez.
+
+- `cloud describe RESOURCE`: as configurações e o status do recurso em tempo real. Na AWS, um recurso que não seja um serviço do ECS, uma instância do EC2, uma instância do RDS, um cluster do Aurora, um grupo do Auto Scaling, uma função do Lambda, um alias do Lambda, uma fila do SQS, um grupo de destino ou um balanceador de carga é lido da cópia que a OneUptime guarda da última leitura da conta, marcado como NOT LIVE.
+- `cloud recent-events RESOURCE [--hours N] [--limit N]`: o que a plataforma fez com o recurso recentemente, ou seja, implantações e eventos de serviço, eventos do RDS, atividades de escalonamento, integridade do recurso e entradas do log de atividades (`--hours` é 6 por padrão, até 72).
+- `cloud target-health RESOURCE`: só na AWS, quais backends um grupo de destino ou um balanceador de carga considera íntegros, e por que os outros não são.
+- `cloud quota-usage RESOURCE [--limit N]`: o uso da conta em relação aos limites dela para o serviço do recurso, na região do recurso.
+- `cloud read-logs RESOURCE [--filter TEXT] [--minutes N] [--limit N]`: as linhas de log do recurso, as mais recentes primeiro, só as que contêm `--filter` quando ele é informado (`--minutes` é 60 por padrão, até 1440). As linhas de log podem conter dados de clientes, então esta leitura fica desativada até que alguém ative **Permitir que a IA leia os registros desta conta durante as investigações**, em **Avançado** de **Permitir que a IA corrija problemas**, o que é salvo na hora, sem nenhum comando para executar.
+- `cloud whoami`: a única leitura que roda no agente de IA de nuvem, ou seja, a conta em que ele atua, se ele pode alterar alguma coisa e quais mudanças. **Testar conexão**, no menu **⋯** ao lado do status do agente, a executa.
+
+`--limit` é 50 linhas por padrão, no máximo 200. A resposta de uma leitura é cortada em 64 KB, no fim de uma linha, e uma conta aceita no máximo 30 leituras em tempo real por minuto.
+
 ## Como as correções funcionam
 
 As correções ficam desativadas até que você as ative, e isso exige duas configurações no agente: `ONEUPTIME_AI_FIXES` com um modo diferente de `off` (veja [O que a IA pode fazer, definido pelo agente](#o-que-a-ia-pode-fazer-definido-pelo-agente)) e `ONEUPTIME_AI_ALLOW_WRITES=true` (veja [Acesso de escrita no agente](#acesso-de-escrita-no-agente)). Qualquer uma delas sozinha não muda nada. Um agente anterior a `ONEUPTIME_AI_FIXES` usa em vez disso as **Correções** da página do agente de IA do recurso. As correções também precisam que a IA esteja habilitada para o projeto (**Habilitar IA** em Configurações do projeto → IA → AI Features), o que acontece a menos que alguém a tenha desativado.
@@ -247,7 +288,7 @@ As correções têm os mesmos quatro modos que em um cluster Kubernetes; `ONEUPT
 
 Depois que uma correção roda, a OneUptime observa os monitores do incidente ou alerta. Se eles não se recuperarem, o rollback do plano é executado e a OneUptime AI monta mais um plano, com a tentativa que falhou diante de si: no máximo duas rodadas por incidente ou alerta. No modo **Automático**, essa segunda rodada pede aprovação; em **Ignorar aprovação**, ela também roda sozinha. As correções sem supervisão têm um disjuntor de três por recurso por hora: acima disso, ou enquanto outra rodada sem supervisão da OneUptime AI ainda estiver alterando ou verificando o mesmo recurso, uma rodada propõe o seu plano para aprovação em vez de executá-lo.
 
-Um incidente ou alerta recebe uma única faixa de correção de IA. Quando ele está vinculado a um cluster Kubernetes com as correções ativadas, roda a rodada do cluster e nenhuma rodada de recurso. Caso contrário, a rodada fica com o primeiro recurso vinculado com as correções ativadas e um agente pronto, nesta ordem: host Docker, host Podman, cluster Docker Swarm, cluster Proxmox, VMware vCenter, cluster Ceph, servidor de banco de dados, host. A rodada só altera esse recurso.
+Um incidente ou alerta recebe uma única faixa de correção de IA. Quando ele está vinculado a um cluster Kubernetes com as correções ativadas, roda a rodada do cluster e nenhuma rodada de recurso. Caso contrário, a rodada fica com o primeiro recurso vinculado com as correções ativadas e um agente pronto, nesta ordem: host Docker, host Podman, cluster Docker Swarm, cluster Proxmox, VMware vCenter, cluster Ceph, servidor de banco de dados, host, conta da AWS, assinatura do Azure, projeto do Google Cloud. A rodada só altera esse recurso.
 
 ### Seguro, mais arriscado e nunca
 
@@ -335,6 +376,27 @@ As units são nomeadas pelo nome completo: `systemctl restart nginx` reinicia `n
 | **Sempre uma pessoa** | `systemctl restart sshd` e qualquer outra alteração em uma unit protegida (ssh, `systemd-*`, udev, dbus, polkit, NetworkManager, networking, getty e autovt, docker, containerd, podman, kubelet, o firewall, `user@` e as units de atualização de pacotes como `apt-daily-upgrade` e `unattended-upgrades`), `systemctl restart docker`, `systemctl restart local-fs.target` (qualquer unit `.target`, `.mount`, `.automount` ou `.swap`), `kill -TERM 4242` (enviar um sinal a um processo) |
 | **Nunca** | `systemctl enable nginx` (e disable, mask, edit), `systemctl daemon-reload`, `systemctl reboot` (e poweroff, halt, suspend, rescue e as units deles como `reboot.target` e `runlevel6.target`), `systemctl start debug-shell` (um shell de root sem senha), `systemctl cat nginx`, `systemctl show nginx -p Environment`, `journalctl -f -u nginx`, `ip link set eth0 down`, `kill -9 1`, `cat /etc/shadow`, `bash -c uptime`, `sudo systemctl restart nginx`, `dmesg --clear`, `ss -K` |
 
+### Correções em contas de nuvem
+
+Uma mudança nomeia um recurso pelo id dele, como faz uma leitura, e só roda em um recurso que o inventário da conta lista, de modo que a OneUptime AI nunca altera o que a OneUptime não sabe que existe. Antes de fazer uma mudança, o agente lê o valor que ela substitui, como a contagem antes de um escalonamento ou a versão antes de uma reversão, e a OneUptime escreve a reversão da mudança a partir desse valor, de modo que uma correção que não ajudou é desfeita com exatidão. Um recurso cujas tags dizem que ele é declarado por código (uma pilha do CloudFormation, Terraform, Pulumi e similares) só recebe a correção como proposta para aprovação, em qualquer modo, porque o próximo apply restauraria o valor antigo; o plano nomeia o código que o controla. O nível de uma mudança depende do tipo de recurso que ela altera:
+
+| Mudança | AWS | Azure | Google Cloud |
+| -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
+| `restart-service` | Seguro: serviço do ECS | Mais arriscado: App Service ou Function App, Container App | — |
+| `start-instance` | Seguro: instância do EC2, instância do RDS | Seguro: máquina virtual | Seguro: VM do Compute Engine |
+| `scale-out` | Seguro: serviço do ECS, grupo do Auto Scaling | Seguro: plano do App Service, conjunto de dimensionamento de VMs | Seguro: serviço do Cloud Run, grupo gerenciado de instâncias |
+| `scale-in` | Mais arriscado: serviço do ECS, grupo do Auto Scaling | Mais arriscado: plano do App Service, conjunto de dimensionamento de VMs | Mais arriscado: serviço do Cloud Run, grupo gerenciado de instâncias |
+| `reboot-instance` | Mais arriscado: instância do EC2, instância do RDS | Mais arriscado: máquina virtual, servidor flexível do PostgreSQL, servidor flexível do MySQL | Mais arriscado: VM do Compute Engine, instância do Cloud SQL |
+| `roll-back-service` | Mais arriscado: serviço do ECS, alias do Lambda | Mais arriscado: App Service ou Function App, Container App | Mais arriscado: serviço do Cloud Run |
+| `set-concurrency` | Mais arriscado: função do Lambda | — | Mais arriscado: serviço do Cloud Run |
+| `fail-over-database` | Sempre uma pessoa: cluster do Aurora, instância do RDS | Sempre uma pessoa: grupo de failover do SQL | Sempre uma pessoa: instância do Cloud SQL |
+| `stop-instance` | Sempre uma pessoa: instância do EC2 | Sempre uma pessoa: máquina virtual | Sempre uma pessoa: VM do Compute Engine |
+| `redrive-queue` | Sempre uma pessoa: fila do SQS | — | — |
+
+`scale-out` fica dentro do máximo do grupo e, onde a plataforma não define nenhum, no máximo dobra a contagem; `scale-in` nunca fica abaixo do mínimo nem chega a zero. `roll-back-service` passa para a versão que rodava antes, ou para a que `--to` nomeia; em um App Service, ele troca de volta um slot de implantação (`--slot`). Por extenso, uma mudança fica assim: `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`.
+
+**Nunca**, mesmo quando uma pessoa aprova: excluir ou encerrar qualquer coisa, IAM, grupos de segurança e regras de firewall, segredos e chaves, conteúdo de armazenamento e de banco de dados, tipos de instância, snapshots e restaurações, limpar uma fila, o mínimo ou o máximo de um grupo, e qualquer coisa que não esteja na tabela.
+
 ### A lista de comandos permitidos
 
 No modo **Automático**, a **Lista de comandos permitidos** do recurso, na página do agente de IA, deixa que os comandos mais arriscados que você nomear rodem sem aprovação. Ela é comparada palavra por palavra com o comando, não como texto:
@@ -346,7 +408,7 @@ No modo **Automático**, a **Lista de comandos permitidos** do recurso, na pági
 - Um caminho do Proxmox é uma única palavra, então não pode conter um `*`: escreva uma entrada por convidado, como `pvesh create /nodes/pve1/qemu/100/status/shutdown`.
 - Nada na lista de permitidos se sobrepõe a uma mudança que sempre precisa de uma pessoa nem a um comando que a política nega.
 
-Uma entrada válida por recurso: `docker stop web` (Docker e Podman), `docker service update --image nginx:1.27 web` (Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox), `govc vm.power -off web-01` (VMware), `ceph osd out 3` (Ceph), `db terminate-session 12345` (bancos de dados), `systemctl stop nginx` (hosts).
+Uma entrada válida por recurso: `docker stop web` (Docker e Podman), `docker service update --image nginx:1.27 web` (Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox), `govc vm.power -off web-01` (VMware), `ceph osd out 3` (Ceph), `db terminate-session 12345` (bancos de dados), `systemctl stop nginx` (hosts), `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2` (AWS), `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` (Azure), `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1` (Google Cloud).
 
 ### Quem pode alterá-la
 
@@ -361,8 +423,10 @@ Não importa o que diga a página do agente de IA, o próprio agente recusa toda
 | `ONEUPTIME_AI_ALLOW_WRITES` | `false` | É `true` que permite ao agente executar mudanças. Qualquer outro valor (não definido, `false`, um erro de digitação, `yes`) o mantém somente leitura, e o agente registra um aviso para um valor que não seja `true` nem `false`. |
 | `ONEUPTIME_AI_WRITE_TARGETS` | vazio | Globs separados por vírgula dos alvos que uma mudança pode tocar; `*` corresponde a qualquer sequência de caracteres, e a comparação diferencia maiúsculas de minúsculas. Vazio significa qualquer alvo, exceto os protegidos. Quando está definida, uma mudança que não nomeia os seus alvos é recusada. |
 | `ONEUPTIME_AI_PROTECTED_TARGETS` | vazio | Globs separados por vírgula dos alvos que a OneUptime AI nunca deve alterar, além dos que o agente protege por conta própria. A comparação não diferencia maiúsculas de minúsculas. |
+| `ONEUPTIME_AI_CLOUD_OPERATIONS` | vazio | Só para um agente de IA de nuvem: as mudanças que ele pode fazer, separadas por vírgula, como `restart-service,scale-out`. Vazio: todas as mudanças do catálogo, cada uma com o seu nível. Um nome que o agente não conhece fica de fora, com um aviso no log dele. |
+| `ONEUPTIME_AI_CLOUD_REQUIRED_TAG` | vazio | Só para um agente de IA de nuvem: uma tag no formato `key=value`, como `oneuptime-ai=allow`. O agente então só altera recursos que têm essa tag (como um rótulo no Google Cloud), e na AWS a função de escrita dele só permite as mudanças nesses recursos. Um valor que não esteja no formato `key=value` recusa toda mudança. |
 
-Defina-as no `.env` que o agente compartilha com o coletor (ou no ambiente do contêiner dele) e reinicie-o com `docker compose up -d`. Uma lista com mais de 64 entradas, ou com uma entrada de mais de 256 caracteres, mantém o agente somente leitura até ser corrigida.
+Defina-as no `.env` que o agente compartilha com o coletor (ou no ambiente do contêiner dele) e reinicie-o com `docker compose up -d`. Uma lista com mais de 64 entradas, ou com uma entrada de mais de 256 caracteres, mantém o agente somente leitura até ser corrigida. As de um agente de IA de nuvem vêm do comando de configuração dele, como **Quais alterações a IA pode fazer (os níveis de risco delas continuam valendo)**, **Recursos que a IA nunca deve alterar** e a tag em **Avançado** de **Permitir que a IA corrija problemas** as definem: execute o comando de novo para alterá-las.
 
 O agente informa essas configurações à OneUptime a cada heartbeat, então a OneUptime já recusa uma correção fora delas quando a OneUptime AI a propõe, e de novo quando alguém a aprova; ela nunca chega ao agente como uma correção que falhou. O agente também a recusa, antes de executar qualquer coisa.
 
@@ -377,6 +441,7 @@ O agente informa essas configurações à OneUptime a cada heartbeat, então a O
 | Clusters Ceph | `osd.3` (quer o comando tenha escrito `3` ou `osd.3`), um nome de pool, um id de PG, um nome de daemon, um nome de serviço, `mgr.NAME`, `crash/ID` e `cluster` para mudanças em todo o cluster, como `ceph osd set noout` | `osd.*,cluster` |
 | Servidores de banco de dados | `session:<id>` | `session:*` |
 | Hosts | nomes completos de units (`nginx.service`), `pid:<pid>` para um processo, `journal` para uma limpeza do journal | `nginx.service,app-*` |
+| Contas de nuvem | o id do recurso: um ARN, um ID de recurso do Azure em letras minúsculas ou um nome completo de recurso do Google Cloud | `arn:aws:ecs:*:123456789012:service/prod/*` |
 
 ### O que o agente protege por conta própria
 
@@ -387,6 +452,7 @@ A OneUptime AI nunca altera o próprio agente nem aquilo em que ele roda, diga o
 - **Servidores de banco de dados:** a sessão do próprio agente.
 - **Hosts:** toda unit da OneUptime (`oneuptime-*`, incluindo a do próprio agente de IA do host), o coletor do OpenTelemetry (`otelcol-contrib.service`, `otelcol.service`), o mecanismo Docker em que ele roda (`docker.service`, `docker.socket`, `containerd.service`) e o processo do próprio agente e os processos acima dele.
 - **Proxmox:** o agente não consegue saber em qual convidado roda. Se ele roda em uma VM ou contêiner do mesmo cluster, coloque esse VMID em `ONEUPTIME_AI_PROTECTED_TARGETS`; faça o mesmo com a VM do agente no VMware.
+- **Contas de nuvem:** tudo o que o comando de configuração dele criou: na AWS, a pilha `oneuptime-ai-agent`, o cluster e o serviço do ECS dela e as funções `OneUptimeAiAgentTask` e `OneUptimeAiAgentWrite`; no Azure, o grupo de recursos `oneuptime-ai-agent`; no Google Cloud, o serviço do Cloud Run e a conta de serviço `oneuptime-ai-agent`.
 
 ## Credenciais e privilégio mínimo
 
@@ -400,8 +466,9 @@ O agente usa apenas as credenciais do seu próprio ambiente e das suas montagens
 | Cluster Ceph | O keyring do seu próprio cliente, `client.oneuptime-ai`, e um `ceph.conf` mínimo, montados em `/etc/ceph` (`CEPH_CLIENT_ID`, `CEPH_CONF`, `CEPH_KEYRING`) | `mon 'allow r' mgr 'allow r' osd 'allow r'`, nunca o keyring de administrador | As caps de leitura mais entradas `allow command` exatamente para as correções (o README do agente Ceph as lista) |
 | Servidor de banco de dados | `DATABASE_USERNAME` / `DATABASE_PASSWORD` (o login do coletor), ou `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD` quando definidas; `DATABASE_ENDPOINT` e as configurações de TLS | O login de monitoramento do coletor (`pg_monitor` no PostgreSQL) | Um login próprio do agente que possa enviar sinais a outras sessões: `pg_signal_backend` (PostgreSQL), `CONNECTION_ADMIN` (MySQL 8), `+client\|kill` (ACL do Redis), a ação `killop` (MongoDB) |
 | Host | Nada: ele roda com privilégios como root nos namespaces do host | Deixe `ONEUPTIME_AI_ALLOW_WRITES` sem definir | `ONEUPTIME_AI_WRITE_TARGETS` com as units que a IA pode alterar |
+| Contas de nuvem | A identidade de onde ele roda: na AWS, a função da tarefa do ECS dele, que só pode assumir a função de escrita em `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN`; no Azure, a identidade gerenciada do Container App dele; no Google Cloud, a conta de serviço do serviço do Cloud Run dele | Nada: a OneUptime lê a conta pela conexão somente leitura dela | A função que o comando de configuração dele escreve: as permissões das mudanças ativadas e as leituras de que elas precisam, nada mais. Na AWS, cada mudança assume `OneUptimeAiAgentWrite` com uma política de sessão só para aquela mudança, no único recurso dela |
 
-Os READMEs dos coletores têm os comandos exatos: os comandos `pveum` para um token de correções do Proxmox ([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)), o papel de correções do vSphere ([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)), as caps de leitura e de correção do Ceph ([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)) e as permissões de banco de dados por mecanismo ([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)).
+Os READMEs dos coletores têm os comandos exatos: os comandos `pveum` para um token de correções do Proxmox ([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)), o papel de correções do vSphere ([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)), as caps de leitura e de correção do Ceph ([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)) e as permissões de banco de dados por mecanismo ([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)). A função de um agente de IA de nuvem é escrita pelo comando de configuração dele: desative uma mudança e execute o comando de novo, e as permissões dela saem da função.
 
 ## Modelo de segurança
 
@@ -420,6 +487,7 @@ Todo comando é uma lista de argumentos, nunca uma linha de shell, e a mesma pol
 - Um limite de tempo (no máximo 2 minutos), após o qual o programa é encerrado; saída limitada a 50 KB.
 - Os segredos na saída (valores de ambiente em `docker inspect`, senhas do cloud-init do Proxmox, chaves, tokens e senhas em logs e linhas de comando) são mascarados no agente antes de a saída sair dele, e de novo pela OneUptime antes de serem armazenados ou mostrados ao modelo.
 - Os contêineres rodam com um sistema de arquivos raiz somente leitura. Os agentes de IA do Proxmox, do VMware, do Ceph e de banco de dados rodam como UID 1000 sem nenhuma capability.
+- Um agente de IA de nuvem não inicia programa nenhum: `cloud` nomeia uma operação do catálogo dele, que o agente executa como a única chamada de API à qual ela corresponde, com as credenciais de onde ele roda. As leituras rodam na OneUptime, pela conexão somente leitura da conta.
 
 ### O socket do Docker e o agente de IA do host são root no host
 
@@ -447,6 +515,8 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 
 Use o nome do contêiner do seu recurso: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent` (com `podman` em vez de `docker`), `oneuptime-docker-swarm-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`. O serviço do agente de banco de dados não tem um nome de contêiner fixo, então use `docker compose logs --tail=100 oneuptime-database-ai-agent` e `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` em `/opt/oneuptime-database-agent`. O agente de IA do host usa a rede do host, então `curl -s http://127.0.0.1:3877/status` funciona no próprio host.
 
+Um agente de IA de nuvem roda na nuvem dele, sem contêiner em que entrar com `exec`: leia o log dele no shell da nuvem com `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`, `az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` ou `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`, e o status dele na página **Agente de IA** da conta, que mostra o mesmo comando.
+
 Uma configuração ausente não derruba o agente: ele continua ativo e saudável, diz o que falta no seu log e em `/status` e não faz mais nada, de modo que o contêiner nunca reinicia em loop.
 
 ### Erros comuns
@@ -456,7 +526,7 @@ Uma configuração ausente não derruba o agente: ele continua ativo e saudável
 | `ONEUPTIME_AI_AGENT_RESOURCE_TYPE is not set` (ou outra configuração obrigatória) | Defina-a no `.env` que o agente compartilha com o coletor e depois `docker compose up -d`. |
 | `This OneUptime server does not have the resource AI agent API` | Atualize a OneUptime, ou rode a versão da imagem do agente que corresponde ao seu servidor. O agente verifica de novo a cada 5 minutos. |
 | `OneUptime refused the agent's API key` | Use uma chave de ingestão de telemetria do projeto que não esteja fixada. |
-| `OneUptime refused the registration: …` | Leia o restante da linha: um tipo de recurso desconhecido, uma identidade vazia ou longa demais, um `DATABASE_SERVER_ID` de outro projeto ou o limite de agentes do projeto. |
+| `OneUptime refused the registration: …` | Leia o restante da linha: um tipo de recurso desconhecido, uma identidade vazia ou longa demais, um `DATABASE_SERVER_ID` de outro projeto ou o limite de agentes do projeto. Um agente de IA de nuvem também é recusado em uma conta que nenhuma conexão do projeto lê, ou em uma conta diferente da do comando dele. |
 | `Waiting for this …'s previous AI agent to go offline` | O contêiner antigo não se desconectou (uma falha ou um kill), então o novo assume assim que o antigo passa 40 segundos sem enviar nada. Se demorar mais, outro agente usa esta identidade. |
 | Um aviso de que o nome é o padrão do coletor | Dê ao recurso um nome único no coletor e no agente. |
 | `The agent cannot reach this … right now` | Verifique a montagem do socket, o endereço, as credenciais ou o keyring que a mensagem nomeia. A página do agente de IA mostra o mesmo motivo. |
@@ -469,12 +539,15 @@ Uma configuração ausente não derruba o agente: ele continua ativo e saudável
 | `pipes and redirects are not supported; run one command` | É o esperado: os comandos nunca passam por um shell. A recusa diz à OneUptime AI para executar um comando por vez. |
 | `Killed (timeout …)` | O recurso não respondeu a tempo; sem nenhuma saída, o agente não consegue alcançá-lo: verifique a rede entre os dois. |
 | Um erro do Proxmox, do vCenter, do Ceph ou do banco de dados dizendo que falta um privilégio, um papel ou uma cap | A credencial é o limite rígido: conceda o que a mensagem nomeia (veja [Credenciais e privilégio mínimo](#credenciais-e-privilégio-mínimo)) ou deixe essa mudança para uma pessoa. |
+| `The Cloud AI agent could not check its cloud: …` | A função, a identidade gerenciada ou a conta de serviço dele sumiu ou não tem uma permissão, ou ele não consegue alcançar as APIs da nuvem dele: execute o comando de configuração de novo pela página da conta. |
+| `cloud … is not one of the changes this agent may make` | Ative a mudança em **Avançado** de **Permitir que a IA corrija problemas** e execute o comando de novo: ele também dá à função do agente as permissões dessa mudança. |
+| `the agent only changes resources that carry the …` | Coloque a tag `oneuptime-ai=allow` no recurso (um rótulo no Google Cloud) ou configure o agente de novo sem a tag. |
 
 Os READMEs dos agentes de [Proxmox](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent), [VMware](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent), [Ceph](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) e [banco de dados](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent), e o do [agente de IA do host](https://github.com/OneUptime/oneuptime/tree/master/agents/HostAIAgent), têm uma tabela de solução de problemas para os seus próprios erros de conexão.
 
 ## O que não é coberto
 
-Os clusters Kubernetes usam o agente de IA do Kubernetes. Funções serverless e outros recursos de nuvem, frotas de IoT e dispositivos de rede não têm agente de IA: agir sobre eles exige credenciais de nuvem ou do dispositivo, que a OneUptime AI só usa por meio de um Runner que você executa.
+Os clusters Kubernetes usam o agente de IA do Kubernetes. Um agente de IA de nuvem atende a uma conta da AWS, uma assinatura do Azure ou um projeto do Google Cloud, e não há agente para uma AWS Organization inteira: uma conexão que lê uma organização ou um tenant precisa de um agente em cada conta, assinatura ou projeto que a IA deva corrigir. Uma correção em um recurso declarado como código continua sendo uma proposta: a OneUptime AI não abre nenhum pull request contra esse código. Frotas de IoT e dispositivos de rede não têm agente de IA: agir sobre eles exige credenciais do dispositivo, que a OneUptime AI só usa por meio de um Runner que você executa.
 
 ## Próximos passos
 
@@ -482,4 +555,5 @@ Os clusters Kubernetes usam o agente de IA do Kubernetes. Funções serverless e
 - [AI SRE](/docs/ai/ai-sre): O que a OneUptime AI faz com um incidente e como as correções são decididas.
 - [Agente Docker](/docs/telemetry/docker-host): Instale o coletor ao lado do qual o agente de IA do Docker roda.
 - [Coletor OpenTelemetry no host](/docs/telemetry/host-otel-collector): Faça um host Linux reportar e depois adicione o agente de IA do host.
+- [Conectar uma conta de nuvem](/docs/telemetry/cloud-accounts): Conecte a conta que um agente de IA de nuvem atende e depois deixe a IA corrigir problemas nela.
 :::

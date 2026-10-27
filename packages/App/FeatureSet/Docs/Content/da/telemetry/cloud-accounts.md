@@ -7,6 +7,7 @@ Forbind en AWS-konto, et Azure-abonnement eller et Google Cloud-projekt fra dash
 - [Microsoft Azure](#microsoft-azure): En app med rollen Monitoring Reader.
 - [Google Cloud](#google-cloud): En tjenestekonto med fire roller, der kun kan læse.
 - [Hvad OneUptime læser](#hvad-oneuptime-læser): Ressourcer, metrikker, ændringer og sundhedshændelser, hvor ofte, og hvad det koster.
+- [Lad AI rette problemer](#lad-ai-rette-problemer): Én kommando mere, så kan OneUptime AI rette det, den finder.
 :::
 
 ## Sådan virker det
@@ -207,6 +208,22 @@ De kald, OneUptime foretager, faktureres til din cloudkonto til din clouds prise
 - **En kontos side.** Under **Cloud → Konti** tæller en kontos oversigt dens ressourcer efter type og region og siger, hvornår en forbindelse sidst læste den. Dens **Ressourcer** viser dem, dens **Ændringer** viser, hvad der er ændret i den, nyeste først, og dens **Topologi** tegner dens regioner, netværkene i dem og hvad der kører i hvert, med de åbne hændelser og advarsler på de ressourcer, de er tilknyttet.
 - **En ressources ændringer.** En ændring gemmes som en ændringshændelse, der er knyttet til den ressource, den ændrede, og til dens konto, og tegnes som en markør i ressourcens metrikdiagrammer sammen med dens hændelser og advarsler. Diagrammer, der ikke er filtreret til nogen ressource, udelader en cloudkontos aktivitetslog, så en travl konto ikke fortrænger dine udrulninger; udbyderens sundhedshændelser bliver på dem.
 - **Hændelser og advarsler.** Tilknyt en cloud-ressource til en overvågning, en hændelse eller en advarsel under dens tilknyttede ressourcer, og dens hændelser og advarsler vises på ressourcens side. En overvågning af et websted, en API, SSL, ping eller en port, hvis vært fører til et endepunkt for en ressource, direkte eller gennem dens DNS, viser ressourcen under **Foreslåede cloud-ressourcer** på sit kort **Tilknyttede ressourcer**: Vælg **Tilknyt ressource** for at tilknytte den.
+
+## Lad AI rette problemer
+
+OneUptime AI læser alle forbundne konti, mens den undersøger, med den skrivebeskyttede adgang ovenfor. Hvis den også skal rette problemer, for eksempel genstarte en tjeneste, skalere den ud eller rulle den tilbage, så åbn kontoen under **Cloud → Konti**, og vælg **Lad AI rette problemer** på kortet **AI-agent** i dens **Oversigt**.
+
+Dialogen stiller ét spørgsmål, **Hvor langt må AI gå?**: **Spørg mig først**, standarden, hvor OneUptime AI foreslår hver rettelse, og en person godkender den med ét klik, eller **Ret sikre problemer på egen hånd**, hvor sikre ændringer kører automatisk, og mere risikable stadig venter på godkendelse. Alt andet har en sikker standard under **Avanceret**. Derefter viser den én kommando, skrevet til denne konto: kør den i AWS CloudShell, Azure Cloud Shell eller Google Cloud Shell, logget ind som en, der må oprette roller i kontoen. Kommandoen opretter en rolle, der kun må foretage de ændringer, der er slået til, og starter Cloud-AI-agenten med den i din konto. Agenten opretter selv forbindelse inden for få minutter, og dialogen siger det: der er intet at indsætte tilbage.
+
+Agenten er én lille container, der kører hele måneden i din konto, faktureret af din cloud til dens listepriser:
+
+| Cloud | Hvad der kører | Cirka |
+| --- | --- | --- |
+| AWS | Én ECS Fargate-opgave på 0.25 vCPU og 0.5 GB og dens offentlige IPv4-adresse til priserne i `us-east-1` | $13 om måneden |
+| Azure | Én Container Apps-replika på 0.25 vCPU og 0.5 GiB efter abonnementets månedlige gratis tildeling på 180.000 vCPU-sekunder og 360.000 GiB-sekunder | $14 om måneden |
+| Google Cloud | Én Cloud Run-instans på 1 vCPU og 0.5 GiB med CPU altid allokeret, som optager en hel vCPU, efter det månedlige gratis niveau på 240.000 vCPU-sekunder og 450.000 GiB-sekunder | $45 om måneden |
+
+Hvad agenten må ændre, hvordan hver ændring placeres i et niveau og fortrydes, og hvordan du læser dens logs: [AI-agenter til infrastruktur](/docs/ai/infrastructure-ai-agents#i-en-cloudkonto).
 
 ## Fejlfinding
 

@@ -7,6 +7,7 @@ Verbinden Sie ein AWS-Konto, ein Azure-Abonnement oder ein Google-Cloud-Projekt 
 - [Microsoft Azure](#microsoft-azure): Eine App mit der Rolle Monitoring Reader.
 - [Google Cloud](#google-cloud): Ein Dienstkonto mit vier Rollen, die nur lesen.
 - [Was OneUptime liest](#was-oneuptime-liest): Ressourcen, Metriken, Änderungen und Integritätsereignisse, wie oft, und was es kostet.
+- [KI Probleme beheben lassen](#ki-probleme-beheben-lassen): Ein weiterer Befehl, und OneUptime AI kann beheben, was es findet.
 :::
 
 ## So funktioniert es
@@ -207,6 +208,22 @@ Die Aufrufe von OneUptime werden Ihrem Cloud-Konto zu den Preisen Ihrer Cloud be
 - **Die Seite eines Kontos.** Unter **Cloud → Konten** zählt die Übersicht eines Kontos seine Ressourcen nach Typ und Region und sagt, wann eine Verbindung es zuletzt gelesen hat. Seine **Ressourcen** listet sie auf, seine **Änderungen** listet auf, was sich darin geändert hat, das Neueste zuerst, und seine **Topologie** zeichnet seine Regionen, die Netzwerke darin und was in jedem läuft, mit den offenen Vorfällen und Warnungen an den Ressourcen, mit denen sie verknüpft sind.
 - **Die Änderungen einer Ressource.** Eine Änderung wird als Änderungsereignis gespeichert, verknüpft mit der Ressource, die sie geändert hat, und mit ihrem Konto, und als Markierung in den Metrikdiagrammen der Ressource gezeichnet, zusammen mit ihren Vorfällen und Warnungen. Diagramme, die auf keine Ressource gefiltert sind, lassen das Aktivitätsprotokoll eines Cloud-Kontos weg, damit ein geschäftiges Konto Ihre Deploys nicht verdrängt; die Integritätsereignisse des Anbieters bleiben darauf.
 - **Vorfälle und Warnungen.** Verknüpfen Sie eine Cloud-Ressource unter den verknüpften Ressourcen einer Überwachung, eines Vorfalls oder einer Warnung, und ihre Vorfälle und Warnungen werden auf der Seite der Ressource aufgeführt. Eine Website-, API-, SSL-, Ping- oder Port-Überwachung, deren Host zu einem Endpunkt einer Ressource führt, direkt oder über ihr DNS, führt die Ressource unter **Vorgeschlagene Cloud-Ressourcen** auf ihrer Karte **Verknüpfte Ressourcen** auf: Wählen Sie **Ressource verknüpfen**, um sie zu verknüpfen.
+
+## KI Probleme beheben lassen
+
+OneUptime AI liest beim Untersuchen jedes verbundene Konto, mit dem oben beschriebenen Lesezugriff. Damit es Probleme auch beheben kann, etwa einen Dienst neu starten, hochskalieren oder zurückrollen, öffnen Sie das Konto unter **Cloud → Konten** und wählen Sie **KI Probleme beheben lassen** in der Karte **KI-Agent** seiner **Übersicht**.
+
+Der Dialog stellt eine einzige Frage, **Wie weit darf die KI gehen?**: **Mich zuerst fragen**, die Voreinstellung, bei der OneUptime AI jede Korrektur vorschlägt und eine Person sie mit einem Klick genehmigt, oder **Sichere Korrekturen selbstständig anwenden**, bei der sichere Änderungen selbstständig laufen und riskantere weiterhin auf eine Genehmigung warten. Alles andere hat unter **Erweitert** eine sichere Voreinstellung. Dann zeigt er einen einzigen Befehl, geschrieben für dieses Konto: Führen Sie ihn in AWS CloudShell, Azure Cloud Shell oder Google Cloud Shell aus, angemeldet als jemand, der Rollen im Konto erstellen darf. Der Befehl erstellt eine Rolle, die nur die eingeschalteten Änderungen vornehmen darf, und startet damit den Cloud-KI-Agenten in Ihrem Konto. Der Agent verbindet sich innerhalb weniger Minuten von selbst, und der Dialog meldet es: Es gibt nichts zurückzukopieren.
+
+Der Agent ist ein kleiner Container, der den ganzen Monat in Ihrem Konto läuft und von Ihrer Cloud zu deren Listenpreisen abgerechnet wird:
+
+| Cloud | Was läuft | Etwa |
+| --- | --- | --- |
+| AWS | Ein ECS-Fargate-Task mit 0.25 vCPU und 0.5 GB sowie seine öffentliche IPv4-Adresse, zu den Preisen von `us-east-1` | $13 pro Monat |
+| Azure | Ein Container-Apps-Replikat mit 0.25 vCPU und 0.5 GiB, nach dem monatlichen kostenlosen Kontingent des Abonnements von 180.000 vCPU-Sekunden und 360.000 GiB-Sekunden | $14 pro Monat |
+| Google Cloud | Eine Cloud-Run-Instanz mit 1 vCPU und 0.5 GiB mit dauerhaft zugewiesener CPU, die eine ganze vCPU belegt, nach dem monatlichen kostenlosen Kontingent von 240.000 vCPU-Sekunden und 450.000 GiB-Sekunden | $45 pro Monat |
+
+Was der Agent ändern darf, wie jede Änderung eingestuft und rückgängig gemacht wird und wie Sie seine Logs lesen: [KI-Agenten für die Infrastruktur](/docs/ai/infrastructure-ai-agents#in-einem-cloud-konto).
 
 ## Fehlerbehebung
 

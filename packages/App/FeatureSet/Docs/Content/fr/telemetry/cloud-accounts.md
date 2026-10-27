@@ -7,6 +7,7 @@ Connectez un compte AWS, un abonnement Azure ou un projet Google Cloud depuis le
 - [Microsoft Azure](#microsoft-azure): Une application avec le rôle Monitoring Reader.
 - [Google Cloud](#google-cloud): Un compte de service avec quatre rôles en lecture seule.
 - [Ce que lit OneUptime](#ce-que-lit-oneuptime): Ressources, métriques, modifications et événements de santé, à quelle fréquence, et ce que cela coûte.
+- [Laisser l'IA corriger les problèmes](#laisser-lia-corriger-les-problèmes): Une commande de plus, et OneUptime AI peut corriger ce qu'il trouve.
 :::
 
 ## Fonctionnement
@@ -207,6 +208,22 @@ Les appels de OneUptime sont facturés à votre compte cloud, aux tarifs de votr
 - **La page d'un compte.** Dans **Cloud → Comptes**, la vue d'ensemble d'un compte compte ses ressources par type et par région, et indique quand une connexion l'a lu pour la dernière fois. Ses **Ressources** les listent, ses **Modifications** listent ce qui y a changé, les plus récentes d'abord, et sa **Topologie** dessine ses régions, les réseaux qu'elles contiennent et ce qui s'exécute dans chacun, avec les incidents et alertes ouverts sur les ressources auxquelles ils sont liés.
 - **Les modifications d'une ressource.** Une modification est conservée comme un événement de changement lié à la ressource modifiée et à son compte, et dessinée comme un repère sur les graphiques de métriques de la ressource, avec ses incidents et ses alertes. Les graphiques filtrés sur aucune ressource laissent de côté le journal d'activité d'un compte cloud, pour qu'un compte très actif n'éclipse pas vos déploiements ; les événements de santé du fournisseur y restent.
 - **Incidents et alertes.** Liez une ressource cloud à un moniteur, un incident ou une alerte dans ses ressources liées, et ses incidents et alertes sont listés sur la page de la ressource. Un moniteur de site web, d'API, SSL, ping ou port dont l'hôte mène à un point de terminaison d'une ressource, directement ou via son DNS, affiche la ressource sous **Ressources cloud suggérées** sur sa carte **Ressources liées** : sélectionnez **Lier la ressource** pour la lier.
+
+## Laisser l'IA corriger les problèmes
+
+OneUptime AI lit chaque compte connecté pendant ses investigations, avec l'accès en lecture seule décrit ci-dessus. Pour qu'il puisse aussi corriger les problèmes, par exemple redémarrer un service, augmenter sa capacité ou le ramener à sa version précédente, ouvrez le compte dans **Cloud → Comptes** et sélectionnez **Laisser l'IA corriger les problèmes** dans la carte **Agent IA** de sa **Vue d'ensemble**.
+
+La boîte de dialogue pose une seule question, **Jusqu'où l'IA peut-elle aller ?** : **Me demander d'abord**, la valeur par défaut, où OneUptime AI propose chaque correctif et une personne l'approuve en un clic, ou **Appliquer d'elle-même les correctifs sûrs**, où les modifications sûres s'exécutent d'elles-mêmes et les plus risquées attendent toujours une approbation. Tout le reste a une valeur par défaut sûre sous **Avancé**. Elle affiche ensuite une seule commande, écrite pour ce compte : exécutez-la dans AWS CloudShell, Azure Cloud Shell ou Google Cloud Shell, connecté en tant que personne autorisée à créer des rôles dans le compte. La commande crée un rôle qui ne peut effectuer que les modifications activées, et démarre avec lui l'agent IA cloud dans votre compte. L'agent se connecte de lui-même en quelques minutes, et la boîte de dialogue l'indique : il n'y a rien à recoller.
+
+L'agent est un petit conteneur qui s'exécute tout le mois dans votre compte, facturé par votre cloud à ses prix catalogue :
+
+| Cloud | Ce qui s'exécute | Environ |
+| --- | --- | --- |
+| AWS | Une tâche ECS Fargate de 0.25 vCPU et 0.5 Go, et son adresse IPv4 publique, aux prix de `us-east-1` | $13 par mois |
+| Azure | Un réplica Container Apps de 0.25 vCPU et 0.5 Gio, après l'octroi gratuit mensuel de l'abonnement de 180 000 vCPU-secondes et 360 000 Gio-secondes | $14 par mois |
+| Google Cloud | Une instance Cloud Run de 1 vCPU et 0.5 Gio avec un CPU toujours alloué, qui occupe un vCPU entier, après le niveau gratuit mensuel de 240 000 vCPU-secondes et 450 000 Gio-secondes | $45 par mois |
+
+Ce que l'agent peut modifier, comment chaque modification est classée et annulée, et comment lire ses journaux : [Agents IA pour l'infrastructure](/docs/ai/infrastructure-ai-agents#dans-un-compte-cloud).
 
 ## Dépannage
 

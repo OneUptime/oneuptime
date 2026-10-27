@@ -2,6 +2,8 @@
 
 OneUptime AI kan verder kijken dan je telemetrie terwijl het een incident of waarschuwing onderzoekt. Een kleine agent die naast een van je resources is geïnstalleerd (een Docker- of Podman-host, een Docker Swarm-cluster, een Proxmox-cluster, een VMware vCenter, een Ceph-cluster, een databaseserver of een Linux-host) voert de alleen-lezen-opdrachten uit waar OneUptime AI om vraagt, zoals `docker logs --tail 200 web`, `pvesh get /cluster/status`, `ceph health detail`, `db long-queries --min-seconds 30` of `journalctl -u nginx -n 200 --no-pager`, en stuurt de uitvoer terug, zodat de oorzaakanalyse citeert wat de resource zelf zegt. Als je het toestaat, past dezelfde agent ook fixes toe (een container herstarten, een VM starten, een OSD weer als in markeren), elk door een opdrachtbeleid in een niveau ingedeeld en, tenzij je iets anders kiest, eerst door een mens goedgekeurd. AI vragen, geopend op de pagina van de resource, voert dezelfde alleen-lezen-opdrachten uit wanneer je erom vraagt (zie [AI vragen](/docs/ai/ask-ai)).
 
+Een AWS-account, een Azure-abonnement of een Google Cloud-project heeft geen agent nodig om te worden onderzocht: OneUptime leest het live, via de alleen-lezen-koppeling waarmee het is gekoppeld. Alleen de fixes ervan hebben er een nodig, de Cloud-AI-agent, die in het account zelf draait en met één opdracht vanaf de pagina van het account wordt ingesteld (zie [In een cloudaccount](#in-een-cloudaccount)).
+
 Deze agents zijn de **resource-AI-agents**. De dashboardpagina van elke resource heeft een sectie **AI** met drie pagina's:
 
 - **Inzichten**: wat OneUptime AI de afgelopen 30 dagen over de resource heeft ontdekt: de problemen die steeds terugkomen en waarom, met wat AI vond en de stap die het voorstelt, de delen van de resource achter de meeste ervan, fixes die niet hielpen of op goedkeuring wachten, wat AI zelf heeft hersteld en de risico's die werden opgemerkt voordat iemand werd opgeroepen, met wat AI daar zelf deed als voetnoot. Het werkt zoals die van een cluster; zie [Wat AI op een cluster heeft geleerd](/docs/ai/ai-sre#wat-ai-op-een-cluster-heeft-geleerd).
@@ -11,8 +13,8 @@ Deze agents zijn de **resource-AI-agents**. De dashboardpagina van elke resource
 Het **Overzicht** van de resource eindigt met een kaart **AI-agent** die de pagina van de AI-agent samenvat: of de agent verbonden is, of onderzoek aan staat, hoe fixes worden uitgevoerd (**Uit**, **Om goedkeuring vragen**, **Automatisch** of **Goedkeuring overslaan**) en wat aandacht nodig heeft, met een link naar de pagina van de AI-agent, waar je dit wijzigt.
 
 :::cards
-- [Ondersteunde resources](#ondersteunde-resources): Acht soorten resources, één image.
-- [Een AI-agent installeren](#een-ai-agent-installeren): Naast een collector die je al draait, of op een Linux-host.
+- [Ondersteunde resources](#ondersteunde-resources): Elf soorten resources, één image.
+- [Een AI-agent installeren](#een-ai-agent-installeren): Naast een collector die je al draait, op een Linux-host, of met één opdracht in een cloudaccount.
 - [Hoe fixes werken](#hoe-fixes-werken): Wat vanzelf mag draaien, wat op een mens wacht en wat nooit draait.
 - [Beveiligingsmodel](#beveiligingsmodel): Drie controles op elke opdracht, en geen inloggegevens van OneUptime.
 :::
@@ -42,7 +44,7 @@ Kubernetes-clusters hebben een eigen agent, de Kubernetes-AI-agent, die met de H
 
 Wat anders is:
 
-- **Eén image voor elke resource.** `oneuptime/resource-ai-agent` bedient alle acht soorten resources, en `ONEUPTIME_AI_AGENT_RESOURCE_TYPE` zegt welke een agent bedient. Hij draait naast de collector van de resource als één container extra, niet vanuit een Helm-chart.
+- **Eén image voor elke resource.** `oneuptime/resource-ai-agent` bedient alle elf soorten resources, en `ONEUPTIME_AI_AGENT_RESOURCE_TYPE` zegt welke een agent bedient. Hij draait naast de collector van de resource als één container extra, of in het cloudaccount dat hij bedient, niet vanuit een Helm-chart.
 - **Schrijftoegang is een omgevingsvariabele.** Pas `ONEUPTIME_AI_ALLOW_WRITES=true` op de agent laat hem überhaupt fixes toepassen, en `ONEUPTIME_AI_WRITE_TARGETS` beperkt welke containers, services, VM's, OSD's, sessies of units ze mogen aanraken. Op een cluster doen de RBAC van de chart en `aiAgent.remediation.namespaces` dit.
 
 Net als de Kubernetes-AI-agent is een resource-AI-agent geen Runner. Hij verschijnt nooit onder Runbooks → Runbook-agenten en wordt nooit gebruikt als Bash- of SSH-host voor runbooks.
@@ -59,6 +61,9 @@ Net als de Kubernetes-AI-agent is een resource-AI-agent geen Runner. Hij verschi
 | Ceph-cluster | `ceph` | Ceph-AI-agent | `CEPH_CLUSTER_NAME` | `ceph` | de monitors, met een `ceph.conf` en de keyring van de eigen client van de agent |
 | Databaseserver | `database` (of `db`) | Database-AI-agent | `DATABASE_SERVER_ID`, of `DATABASE_SYSTEM` + `DATABASE_SERVER_ADDRESS` + `DATABASE_SERVER_PORT` | `db`: één bewerking uit een vaste diagnostische catalogus, nooit SQL | de eigen driver van de database, met een databaselogin |
 | Host | `host` | Host-AI-agent | `HOST_NAME` (leeg: de eigen hostnaam van de host) | `systemctl`, `journalctl`, `df`, `free`, `uptime`, `ps`, `ss`, `ip`, `dmesg`, `lsblk`, `cat`, `top`, `uname`, `hostnamectl`, `timedatectl`, `kill` | `nsenter` in de namespaces van de host, vanuit een geprivilegieerde container |
+| AWS-account | `aws` | Cloud-AI-agent | `AWS_ACCOUNT_ID` (leeg: het account waarin hij draait) | `cloud`: één bewerking uit een vaste catalogus, nooit een `aws`-opdracht | de AWS-API's, met eigen IAM-rollen |
+| Azure-abonnement | `azure` | Cloud-AI-agent | `AZURE_SUBSCRIPTION_ID` (zijn installatieopdracht stelt het in) | `cloud`: één bewerking uit een vaste catalogus, nooit een `az`-opdracht | Azure Resource Manager, als de beheerde identiteit van zijn Container App |
+| Google Cloud-project | `gcp` (of `google-cloud`) | Cloud-AI-agent | `GOOGLE_CLOUD_PROJECT` (leeg: het project waarin hij draait) | `cloud`: één bewerking uit een vaste catalogus, nooit een `gcloud`-opdracht | de Google Cloud-API's, als een eigen serviceaccount |
 
 Databaseservers: de Database-AI-agent heeft diagnostiek voor PostgreSQL, MySQL (en MariaDB en Percona Server), Redis (en Valkey, KeyDB en Dragonfly) en MongoDB. Voor elke andere engine voert hij niets uit en zegt hij dat op de pagina van de AI-agent van de database.
 
@@ -74,12 +79,17 @@ Databaseservers: de Database-AI-agent heeft diagnostiek voor PostgreSQL, MySQL (
 | Ceph-cluster | `ceph health`, `ceph versions` |
 | Databaseserver | `db ping`, `db version` |
 | Host | `uptime`, `systemctl list-units --failed --no-pager` |
+| AWS-account | `cloud whoami` |
+| Azure-abonnement | `cloud whoami` |
+| Google Cloud-project | `cloud whoami` |
 
 Op een Docker Swarm-worker mislukt `docker node ls`: de Docker Swarm-AI-agent moet op een managernode draaien. Een agent die op een worker is gestart, registreert zich pas voor het cluster als zijn node een manager is, en het Docker Swarm-installatieprogramma laat hem weg op een node die geen manager is.
 
+Op een cloudaccount toont `cloud whoami` het account waarin de Cloud-AI-agent handelt en als wie hij is aangemeld, of hij iets mag wijzigen, welke wijzigingen hij mag doorvoeren en welke tag hij eist, als die er is.
+
 ## Een AI-agent installeren
 
-Elke resource-AI-agent is hetzelfde image, `oneuptime/resource-ai-agent:release`. Hij heeft niets in het dashboard nodig: zodra hij draait, registreert hij zich bij OneUptime en verschijnt hij binnen een minuut op de pagina van de AI-agent van de resource.
+Elke resource-AI-agent is hetzelfde image, `oneuptime/resource-ai-agent:release`. Naast een collector of op een host heeft hij niets in het dashboard nodig: zodra hij draait, registreert hij zich bij OneUptime en verschijnt hij binnen een minuut op de pagina van de AI-agent van de resource. Die van een cloudaccount draait in het account, vanuit één opdracht die de pagina van het account voor hem schrijft (zie [In een cloudaccount](#in-een-cloudaccount)).
 
 ### Naast een collector
 
@@ -128,6 +138,24 @@ Het vraagt om je OneUptime-URL, de telemetrie-ingestiesleutel van het project en
 
 De Host-AI-agent voert de **eigen programma's van de host** uit: elke opdracht draait als `nsenter --target 1 --mount --uts --ipc --net --pid -- PROGRAM ARGS`, dat de namespaces van het init-proces van de host binnengaat. Daarvoor zijn `pid: host`, `privileged: true` en root nodig; zie [De Docker-socket en de Host-AI-agent zijn root op de host](#de-docker-socket-en-de-host-ai-agent-zijn-root-op-de-host). Laat `HOST_NAME` leeg om de hostnaam van de machine te gebruiken, die de collector als `host.name` rapporteert tenzij je die hebt gewijzigd; stel hem anders in op de naam die onder **Hosts** wordt getoond.
 
+### In een cloudaccount
+
+Een AWS-account, een Azure-abonnement of een Google Cloud-project heeft geen collector waarnaast een agent kan draaien, en OneUptime leest het zonder agent (zie [Cloudaccounts](#cloudaccounts)). De Cloud-AI-agent ervan, die de fixes doorvoert, draait in het account zelf en wordt vanaf de pagina van het account met één opdracht ingesteld, zonder compose-bestand en zonder `.env`:
+
+1. Open onder Cloud → Accounts het account en kies **AI problemen laten oplossen** op de kaart **AI-agent** van het **Overzicht** ervan.
+2. Beantwoord de enige vraag, **Hoe ver mag AI gaan?**: **Eerst aan mij vragen**, de standaard, zet **Oplossingen** op **Om goedkeuring vragen**, en **Veilige problemen zelf oplossen** zet ze op **Automatisch**. **Geavanceerd** bevat de rest: welke wijzigingen AI mag doorvoeren, de resources die het nooit mag wijzigen, alleen resources met de tag `oneuptime-ai=allow` wijzigen, **Goedkeuring overslaan**, de logboeken van het account lezen, en de variabelen van de agent om hem ergens anders te draaien.
+3. Voer de getoonde opdracht uit in de eigen shell van de cloud, aangemeld bij dat account. Die schrijft de rol van de agent op basis van de ingeschakelde wijzigingen en start de agent, die binnen een paar minuten zelf verbinding maakt: je hoeft niets terug te plakken. Maakt hij geen verbinding, dan zegt zijn log waarom (zie [Logs en status](#logs-en-status)).
+
+| Cloud | Uitvoeren in | Wat de opdracht aanmaakt |
+| -------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| AWS-account | AWS CloudShell | Een CloudFormation-stack, `oneuptime-ai-agent`, die één ECS Fargate-taak draait. De taakrol mag alleen de schrijfrol `OneUptimeAiAgentWrite` aannemen, die de machtigingen van de ingeschakelde wijzigingen heeft. |
+| Azure-abonnement | Azure Cloud Shell | Een Container App, `oneuptime-ai-agent`, in de resourcegroep `oneuptime-ai-agent`. De beheerde identiteit ervan heeft een aangepaste rol op het abonnement met de machtigingen van de ingeschakelde wijzigingen. |
+| Google Cloud-project | Google Cloud Shell | Een Cloud Run-service, `oneuptime-ai-agent`, met altijd toegewezen CPU, die draait als het serviceaccount `oneuptime-ai-agent`, dat een aangepaste rol op het project heeft met de machtigingen van de ingeschakelde wijzigingen. |
+
+De opdracht werkt alleen in het account waarvoor ze is geschreven: op AWS maakt ze niets aan in een shell die bij een ander account is aangemeld, en de opdrachten voor Azure en Google Cloud noemen hun abonnement of project bij elke aanroep. Ze stelt `ONEUPTIME_AI_INVESTIGATION=true` in, `ONEUPTIME_AI_FIXES` volgens je antwoord, `ONEUPTIME_AI_ALLOW_WRITES=true`, en `ONEUPTIME_AI_CLOUD_ACCOUNT_ID` op het account waarvoor ze is geschreven. De agent registreert zich als het account waarin hij volgens zijn cloud draait en voegt er nooit een toe aan OneUptime: gestart in een ander account dan dat van zijn opdracht wordt hij geweigerd, en het account waarvoor de opdracht is geschreven zegt op zijn pagina waarom; gestart in een account dat geen koppeling van het project leest, wordt hij ook geweigerd, en zijn log zegt dat.
+
+Om iets te wijzigen voer je de opdracht opnieuw uit: open **AI problemen laten oplossen** nog een keer, of kies **Wijzigen** op de pagina **AI-agent** van het account, en voer de opdracht uit die daar wordt geschreven. De rol bevat altijd alleen de ingeschakelde wijzigingen. De sectie **AI** van een cloudaccount heeft twee pagina's, **AI-agent** en **Logboeken**, en wat de agent kost, staat op [Een cloudaccount koppelen](/docs/telemetry/cloud-accounts#ai-problemen-laten-oplossen).
+
 ### Verbinding maken met OneUptime
 
 De agent registreert zich met **dezelfde identiteit die de collector rapporteert** (`DOCKER_HOST_NAME`, `PROXMOX_CLUSTER_NAME`, `CEPH_CLUSTER_NAME`, …; `ONEUPTIME_AI_AGENT_RESOURCE_NAME` overschrijft die), zodat hij precies de resource bedient die de telemetrie van de collector heeft aangemaakt. Heeft OneUptime nog geen resource met die naam, dan maakt de registratie hem aan, dus een naam die afwijkt van die van de collector levert je een tweede, lege resource op in plaats van een fout. Een database registreert zich met `DATABASE_SERVER_ID` als die is ingesteld, anders met zijn engine, adres en poort; een `DATABASE_SERVER_ID` die geen database van dit project is, wordt geweigerd.
@@ -161,7 +189,7 @@ Herstart daarna de agent (`docker compose up -d`, of voer voor een Docker- of Po
 
 ## Wat een onderzoek mag uitvoeren
 
-Een onderzoek voert alleen ooit **Read**-opdrachten uit: die bekijken de resource en veranderen niets. OneUptime AI ziet de resources die aan het incident of de waarschuwing zijn gekoppeld (via hun monitors en telemetrie, hoogstens 10 per signaal) waarvan de AI-agent verbonden is en de schakelaar **Onderzoeken** aan staat, en voert zoveel opdrachten uit als het onderzoek nodig heeft (tot 200 per onderzoek, een beveiliging tegen een op hol geslagen lus), elk geciteerd zoals elk ander bewijs. Elke opdracht is één programma met zijn argumenten, nooit via een shell, dus pipes, omleidingen, `;`, `&&`, `$(…)` en `sudo` worden geweigerd met een melding die dat zegt. Een opdracht krijgt standaard 30 seconden en hoogstens 2 minuten, en zijn uitvoer is op de agent begrensd tot 1024 KB. Niets van die uitvoer wordt afgekapt voordat OneUptime AI hem ziet: een lange uitvoer wordt pagina voor pagina getoond (de eerste 40.000 tekens, daarna de rest op verzoek). Als een agent een opdracht niet ophaalt, stuurt OneUptime AI die resource voor de rest van het onderzoek geen opdrachten meer.
+Een onderzoek voert alleen ooit **Read**-opdrachten uit: die bekijken de resource en veranderen niets. OneUptime AI ziet de resources die aan het incident of de waarschuwing zijn gekoppeld (via hun monitors en telemetrie, hoogstens 10 per signaal) waarvan de AI-agent verbonden is (een cloudaccount heeft er geen nodig) en de schakelaar **Onderzoeken** aan staat, en voert zoveel opdrachten uit als het onderzoek nodig heeft (tot 200 per onderzoek, een beveiliging tegen een op hol geslagen lus), elk geciteerd zoals elk ander bewijs. Elke opdracht is één programma met zijn argumenten, nooit via een shell, dus pipes, omleidingen, `;`, `&&`, `$(…)` en `sudo` worden geweigerd met een melding die dat zegt. Een opdracht krijgt standaard 30 seconden en hoogstens 2 minuten, en zijn uitvoer is op de agent begrensd tot 1024 KB. Niets van die uitvoer wordt afgekapt voordat OneUptime AI hem ziet: een lange uitvoer wordt pagina voor pagina getoond (de eerste 40.000 tekens, daarna de rest op verzoek). Als een agent een opdracht niet ophaalt, stuurt OneUptime AI die resource voor de rest van het onderzoek geen opdrachten meer.
 
 Wat elke soort resource mag lezen, staat hieronder. Het is dezelfde lijst die AI zelf krijgt; alles wat er niet op staat, wordt geweigerd.
 
@@ -232,6 +260,19 @@ Querytekst in de uitvoer wordt genormaliseerd (elke string- en getalliteral word
 - Kerneltellers: `cat /proc/loadavg`, `cat /proc/meminfo`, `cat /proc/pressure/memory`, `cat /etc/os-release`; `cat` leest alleen een korte lijst `/proc`-bestanden en `/etc/os-release`, verder niets.
 - Eén programma per opdracht, zonder pad genoemd: nooit een shell, `sudo` of een ander programma.
 
+### Cloudaccounts
+
+OneUptime leest een AWS-account, een Azure-abonnement of een Google Cloud-project zelf, live, via de alleen-lezen-koppeling van het account (zie [Een cloudaccount koppelen](/docs/telemetry/cloud-accounts)): deze leesbewerkingen draaien op OneUptime en hebben geen agent nodig, dus een onderzoek leest een gekoppeld account, of er nu een Cloud-AI-agent in draait of niet. Een opdracht is `cloud`, één bewerking uit een vaste catalogus en de id van één resource, precies zoals de inventaris van het account die vermeldt: een ARN zoals `arn:aws:ecs:us-east-1:123456789012:service/prod/web`, een Azure-resource-ID zoals `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web`, of een volledige Google Cloud-resourcenaam zoals `//run.googleapis.com/projects/my-project/locations/us-central1/services/web`. Er is nooit een `aws`-, `az`- of `gcloud`-opdracht, en flags zijn alleen lang, elk één keer opgegeven.
+
+- `cloud describe RESOURCE`: de live instellingen en status van de resource. Op AWS wordt een resource die geen ECS-service, EC2-instantie, RDS-instantie, Aurora-cluster, Auto Scaling-groep, Lambda-functie, Lambda-alias, SQS-wachtrij, doelgroep of load balancer is, gelezen uit de kopie die OneUptime van de laatste leesbeurt van het account bewaart, gemarkeerd als NOT LIVE.
+- `cloud recent-events RESOURCE [--hours N] [--limit N]`: wat het platform onlangs met de resource heeft gedaan, zoals deployments en service-events, RDS-events, schaalactiviteiten, de status van de resource en vermeldingen in het activiteitenlogboek (`--hours` standaard 6, tot 72).
+- `cloud target-health RESOURCE`: alleen op AWS, welke backends een doelgroep of load balancer als gezond telt, en waarom de andere dat niet zijn.
+- `cloud quota-usage RESOURCE [--limit N]`: het gebruik van het account ten opzichte van de limieten voor de service van de resource, in de regio van de resource.
+- `cloud read-logs RESOURCE [--filter TEXT] [--minutes N] [--limit N]`: de logregels van de resource, de nieuwste eerst, alleen die met `--filter` erin als die is opgegeven (`--minutes` standaard 60, tot 1440). Logregels kunnen klantgegevens bevatten, dus deze leesbewerking staat uit tot iemand **AI de logboeken van dit account laten lezen tijdens onderzoeken** aanzet, onder **Geavanceerd** in **AI problemen laten oplossen**, wat meteen wordt opgeslagen, zonder dat er een opdracht hoeft te worden uitgevoerd.
+- `cloud whoami`: de enige leesbewerking die op de Cloud-AI-agent draait, met het account waarin hij handelt, of hij iets mag wijzigen en welke wijzigingen. **Verbinding testen**, in het menu **⋯** naast de status van de agent, voert hem uit.
+
+`--limit` is standaard 50 rijen, hoogstens 200. Het antwoord van een leesbewerking wordt bij 64 KB afgekapt, op een regelgrens, en een account krijgt hoogstens 30 live leesbewerkingen per minuut.
+
 ## Hoe fixes werken
 
 Fixes staan uit tot je ze aanzet, en daarvoor zijn twee instellingen op de agent nodig: `ONEUPTIME_AI_FIXES` op een andere modus dan `off` (zie [Wat AI mag doen, ingesteld door de agent](#wat-ai-mag-doen-ingesteld-door-de-agent)) en `ONEUPTIME_AI_ALLOW_WRITES=true` (zie [Schrijftoegang op de agent](#schrijftoegang-op-de-agent)). Eén van de twee alleen verandert niets. Een agent die ouder is dan `ONEUPTIME_AI_FIXES` neemt **Oplossingen** in plaats daarvan over van de pagina van de AI-agent van de resource. Fixes hebben ook nodig dat AI voor het project is ingeschakeld (**AI inschakelen** onder Projectinstellingen → AI → AI Features), wat zo is tenzij iemand het heeft uitgezet.
@@ -247,7 +288,7 @@ Fixes hebben dezelfde vier modi als op een Kubernetes-cluster; `ONEUPTIME_AI_FIX
 
 Nadat een fix is uitgevoerd, houdt OneUptime de monitors van het incident of de waarschuwing in de gaten. Herstellen ze niet, dan wordt de rollback van het plan uitgevoerd en stelt OneUptime AI nog een plan op, met de mislukte poging voor ogen: hoogstens twee rondes per incident of waarschuwing. In de modus **Automatisch** vraagt die tweede ronde om goedkeuring; bij **Goedkeuring overslaan** wordt ook die vanzelf uitgevoerd. Onbewaakte fixes hebben een stroomonderbreker van drie per resource per uur: daarboven, of zolang een andere onbewaakte ronde van OneUptime AI dezelfde resource nog wijzigt of controleert, stelt een ronde zijn plan ter goedkeuring voor in plaats van het uit te voeren.
 
-Een incident of waarschuwing krijgt één AI-fixbaan. Is het gekoppeld aan een Kubernetes-cluster waarvan de fixes aan staan, dan draait de ronde van het cluster en geen enkele resourceronde. Anders krijgt de eerste gekoppelde resource met fixes aan en een gereedstaande agent de ronde, in deze volgorde: Docker-host, Podman-host, Docker Swarm-cluster, Proxmox-cluster, VMware vCenter, Ceph-cluster, databaseserver, host. De ronde wijzigt alleen die resource.
+Een incident of waarschuwing krijgt één AI-fixbaan. Is het gekoppeld aan een Kubernetes-cluster waarvan de fixes aan staan, dan draait de ronde van het cluster en geen enkele resourceronde. Anders krijgt de eerste gekoppelde resource met fixes aan en een gereedstaande agent de ronde, in deze volgorde: Docker-host, Podman-host, Docker Swarm-cluster, Proxmox-cluster, VMware vCenter, Ceph-cluster, databaseserver, host, AWS-account, Azure-abonnement, Google Cloud-project. De ronde wijzigt alleen die resource.
 
 ### Veilig, riskanter en nooit
 
@@ -335,6 +376,27 @@ Units worden met hun volledige naam benoemd: `systemctl restart nginx` herstart 
 | **Altijd een mens** | `systemctl restart sshd` en elke andere wijziging aan een beschermde unit (ssh, `systemd-*`, udev, dbus, polkit, NetworkManager, networking, getty en autovt, docker, containerd, podman, kubelet, de firewall, `user@` en de units voor pakketupgrades zoals `apt-daily-upgrade` en `unattended-upgrades`), `systemctl restart docker`, `systemctl restart local-fs.target` (elke `.target`-, `.mount`-, `.automount`- of `.swap`-unit), `kill -TERM 4242` (een proces een signaal sturen) |
 | **Nooit** | `systemctl enable nginx` (en disable, mask, edit), `systemctl daemon-reload`, `systemctl reboot` (en poweroff, halt, suspend, rescue en hun units zoals `reboot.target` en `runlevel6.target`), `systemctl start debug-shell` (een root-shell zonder wachtwoord), `systemctl cat nginx`, `systemctl show nginx -p Environment`, `journalctl -f -u nginx`, `ip link set eth0 down`, `kill -9 1`, `cat /etc/shadow`, `bash -c uptime`, `sudo systemctl restart nginx`, `dmesg --clear`, `ss -K` |
 
+### Fixes op cloudaccounts
+
+Een wijziging noemt één resource bij zijn id, zoals een leesbewerking dat doet, en draait alleen op een resource die de inventaris van het account vermeldt, zodat OneUptime AI nooit iets wijzigt waarvan OneUptime niet weet dat het er is. Voordat de agent een wijziging doorvoert, leest hij de waarde die de wijziging vervangt, zoals het aantal vóór een schaling of de versie vóór een rollback, en OneUptime schrijft het ongedaan maken van de wijziging op basis van die waarde, zodat een fix die niet hielp precies wordt teruggezet. Een resource waarvan de tags zeggen dat code hem declareert (een CloudFormation-stack, Terraform, Pulumi en dergelijke), krijgt zijn fix in elke modus alleen ter goedkeuring voorgesteld, omdat de volgende apply de oude waarde zou terugzetten; het plan noemt de code die hem beheert. Het niveau van een wijziging hangt af van het soort resource dat ze wijzigt:
+
+| Wijziging | AWS | Azure | Google Cloud |
+| -------------------- | --------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------- |
+| `restart-service` | Veilig: ECS-service | Riskanter: App Service of Function App, Container App | — |
+| `start-instance` | Veilig: EC2-instantie, RDS-instantie | Veilig: virtuele machine | Veilig: Compute Engine-VM |
+| `scale-out` | Veilig: ECS-service, Auto Scaling-groep | Veilig: App Service-plan, VM-schaalset | Veilig: Cloud Run-service, beheerde instantiegroep |
+| `scale-in` | Riskanter: ECS-service, Auto Scaling-groep | Riskanter: App Service-plan, VM-schaalset | Riskanter: Cloud Run-service, beheerde instantiegroep |
+| `reboot-instance` | Riskanter: EC2-instantie, RDS-instantie | Riskanter: virtuele machine, flexibele PostgreSQL-server, flexibele MySQL-server | Riskanter: Compute Engine-VM, Cloud SQL-instantie |
+| `roll-back-service` | Riskanter: ECS-service, Lambda-alias | Riskanter: App Service of Function App, Container App | Riskanter: Cloud Run-service |
+| `set-concurrency` | Riskanter: Lambda-functie | — | Riskanter: Cloud Run-service |
+| `fail-over-database` | Altijd een mens: Aurora-cluster, RDS-instantie | Altijd een mens: SQL-failovergroep | Altijd een mens: Cloud SQL-instantie |
+| `stop-instance` | Altijd een mens: EC2-instantie | Altijd een mens: virtuele machine | Altijd een mens: Compute Engine-VM |
+| `redrive-queue` | Altijd een mens: SQS-wachtrij | — | — |
+
+`scale-out` blijft binnen het maximum van de groep, en verdubbelt het aantal hoogstens waar het platform geen maximum instelt; `scale-in` gaat nooit onder het minimum of naar nul. `roll-back-service` gaat naar de versie die daarvoor draaide, of naar de versie die `--to` noemt; op een App Service wisselt het een deploymentslot (`--slot`) terug. Uitgeschreven luidt een wijziging `cloud scale-out arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 4`.
+
+**Nooit**, zelfs niet als een mens het goedkeurt: iets verwijderen of beëindigen, IAM, beveiligingsgroepen en firewallregels, geheimen en sleutels, de inhoud van opslag en databases, instantietypen, snapshots en herstelacties, een wachtrij leegmaken, het minimum of maximum van een groep, en alles wat niet in de tabel staat.
+
 ### De lijst met toegestane opdrachten
 
 In de modus **Automatisch** laat de **Lijst met toegestane opdrachten** van de resource, op de pagina van de AI-agent, riskantere opdrachten die jij noemt zonder goedkeuring draaien. Hij wordt woord voor woord met de opdracht vergeleken, niet als tekst:
@@ -346,7 +408,7 @@ In de modus **Automatisch** laat de **Lijst met toegestane opdrachten** van de r
 - Een Proxmox-pad is één woord en kan dus geen `*` bevatten: schrijf één vermelding per gast, zoals `pvesh create /nodes/pve1/qemu/100/status/shutdown`.
 - Niets op de lijst met toegestane opdrachten gaat boven een wijziging die altijd een mens nodig heeft, of boven een opdracht die het beleid weigert.
 
-Eén geldige vermelding per resource: `docker stop web` (Docker en Podman), `docker service update --image nginx:1.27 web` (Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox), `govc vm.power -off web-01` (VMware), `ceph osd out 3` (Ceph), `db terminate-session 12345` (databases), `systemctl stop nginx` (hosts).
+Eén geldige vermelding per resource: `docker stop web` (Docker en Podman), `docker service update --image nginx:1.27 web` (Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown` (Proxmox), `govc vm.power -off web-01` (VMware), `ceph osd out 3` (Ceph), `db terminate-session 12345` (databases), `systemctl stop nginx` (hosts), `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2` (AWS), `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web` (Azure), `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1` (Google Cloud).
 
 ### Wie hem mag wijzigen
 
@@ -361,8 +423,10 @@ Wat de pagina van de AI-agent ook zegt, de agent zelf weigert elke wijziging ten
 | `ONEUPTIME_AI_ALLOW_WRITES` | `false` | Pas `true` laat de agent überhaupt wijzigingen uitvoeren. Al het andere (niet ingesteld, `false`, een typfout, `yes`) houdt hem alleen-lezen, en de agent logt een waarschuwing voor een waarde die `true` noch `false` is. |
 | `ONEUPTIME_AI_WRITE_TARGETS` | leeg | Kommagescheiden globs van de doelen die een wijziging mag aanraken; `*` komt overeen met elke reeks tekens, en de vergelijking is hoofdlettergevoelig. Leeg betekent elk doel behalve de beschermde. Als hij is ingesteld, wordt een wijziging die haar doelen niet noemt geweigerd. |
 | `ONEUPTIME_AI_PROTECTED_TARGETS` | leeg | Kommagescheiden globs van doelen die OneUptime AI nooit mag wijzigen, bovenop de doelen die de agent zelf beschermt. Niet-hoofdlettergevoelig vergeleken. |
+| `ONEUPTIME_AI_CLOUD_OPERATIONS` | leeg | Alleen voor een Cloud-AI-agent: de kommagescheiden wijzigingen die hij mag doorvoeren, zoals `restart-service,scale-out`. Leeg: elke wijziging uit de catalogus, elk met zijn niveau. Een naam die de agent niet kent, wordt weggelaten, met een waarschuwing in zijn log. |
+| `ONEUPTIME_AI_CLOUD_REQUIRED_TAG` | leeg | Alleen voor een Cloud-AI-agent: een tag als `key=value`, zoals `oneuptime-ai=allow`. De agent wijzigt dan alleen resources die die tag hebben (als label op Google Cloud), en op AWS staat zijn schrijfrol de wijzigingen alleen op die resources toe. Een waarde die geen `key=value` is, weigert elke wijziging. |
 
-Stel ze in de `.env` in die de agent met de collector deelt (of in de omgeving van zijn container) en herstart hem met `docker compose up -d`. Een lijst met meer dan 64 vermeldingen, of met een vermelding van meer dan 256 tekens, houdt de agent alleen-lezen tot hij is gecorrigeerd.
+Stel ze in de `.env` in die de agent met de collector deelt (of in de omgeving van zijn container) en herstart hem met `docker compose up -d`. Een lijst met meer dan 64 vermeldingen, of met een vermelding van meer dan 256 tekens, houdt de agent alleen-lezen tot hij is gecorrigeerd. Die van een Cloud-AI-agent komen uit zijn installatieopdracht, zoals **Welke wijzigingen AI mag doorvoeren (hun risiconiveaus blijven gelden)**, **Resources die AI nooit mag wijzigen** en de tag onder **Geavanceerd** in **AI problemen laten oplossen** ze instellen: voer de opdracht opnieuw uit om ze te wijzigen.
 
 De agent rapporteert deze instellingen bij elke heartbeat aan OneUptime, dus OneUptime weigert een fix daarbuiten al wanneer OneUptime AI hem voorstelt en opnieuw wanneer iemand hem goedkeurt; hij bereikt de agent nooit als mislukte fix. De agent weigert hem ook, voordat hij iets uitvoert.
 
@@ -377,6 +441,7 @@ De agent rapporteert deze instellingen bij elke heartbeat aan OneUptime, dus One
 | Ceph-clusters | `osd.3` (of de opdracht nu `3` of `osd.3` schreef), een poolnaam, een PG-id, een daemonnaam, een servicenaam, `mgr.NAME`, `crash/ID` en `cluster` voor clusterbrede wijzigingen zoals `ceph osd set noout` | `osd.*,cluster` |
 | Databaseservers | `session:<id>` | `session:*` |
 | Hosts | volledige unitnamen (`nginx.service`), `pid:<pid>` voor een proces, `journal` voor het opschonen van de journal | `nginx.service,app-*` |
+| Cloudaccounts | de id van de resource: een ARN, een Azure-resource-ID in kleine letters, of een volledige Google Cloud-resourcenaam | `arn:aws:ecs:*:123456789012:service/prod/*` |
 
 ### Wat de agent zelf beschermt
 
@@ -387,6 +452,7 @@ OneUptime AI wijzigt nooit de agent zelf of datgene waarin hij draait, wat `ONEU
 - **Databaseservers:** de eigen sessie van de agent.
 - **Hosts:** elke OneUptime-unit (`oneuptime-*`, die van de Host-AI-agent zelf inbegrepen), de OpenTelemetry-collector (`otelcol-contrib.service`, `otelcol.service`), de Docker-engine waarin hij draait (`docker.service`, `docker.socket`, `containerd.service`), en het eigen proces van de agent en de processen daarboven.
 - **Proxmox:** de agent kan niet zien in welke gast hij draait. Draait hij in een VM of container van hetzelfde cluster, zet die VMID dan in `ONEUPTIME_AI_PROTECTED_TARGETS`; doe hetzelfde met de VM van de agent op VMware.
+- **Cloudaccounts:** alles wat zijn installatieopdracht heeft aangemaakt: op AWS de stack `oneuptime-ai-agent`, het ECS-cluster en de ECS-service ervan, en de rollen `OneUptimeAiAgentTask` en `OneUptimeAiAgentWrite`; op Azure de resourcegroep `oneuptime-ai-agent`; op Google Cloud de Cloud Run-service en het serviceaccount `oneuptime-ai-agent`.
 
 ## Inloggegevens en minimale rechten
 
@@ -400,8 +466,9 @@ De agent gebruikt alleen de inloggegevens in zijn eigen omgeving en mounts, mees
 | Ceph-cluster | De keyring van zijn eigen client, `client.oneuptime-ai`, en een minimale `ceph.conf`, gemount op `/etc/ceph` (`CEPH_CLIENT_ID`, `CEPH_CONF`, `CEPH_KEYRING`) | `mon 'allow r' mgr 'allow r' osd 'allow r'`, nooit de admin-keyring | De leescaps plus `allow command`-vermeldingen voor precies de fixes (de README van de Ceph-agent somt ze op) |
 | Databaseserver | `DATABASE_USERNAME` / `DATABASE_PASSWORD` (de login van de collector), of `ONEUPTIME_AI_DATABASE_USERNAME` / `ONEUPTIME_AI_DATABASE_PASSWORD` als die zijn ingesteld; `DATABASE_ENDPOINT` en de TLS-instellingen | De monitoringlogin van de collector (`pg_monitor` op PostgreSQL) | Een eigen login van de agent die andere sessies signalen mag sturen: `pg_signal_backend` (PostgreSQL), `CONNECTION_ADMIN` (MySQL 8), `+client\|kill` (Redis-ACL), de actie `killop` (MongoDB) |
 | Host | Niets: hij draait geprivilegieerd als root in de namespaces van de host | Laat `ONEUPTIME_AI_ALLOW_WRITES` niet ingesteld | `ONEUPTIME_AI_WRITE_TARGETS` op de units die AI mag wijzigen |
+| Cloudaccounts | De identiteit van de plek waar hij draait: op AWS de rol van zijn ECS-taak, die alleen de schrijfrol in `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` mag aannemen; op Azure de beheerde identiteit van zijn Container App; op Google Cloud het serviceaccount van zijn Cloud Run-service | Niets: OneUptime leest het account via de alleen-lezen-koppeling ervan | De rol die zijn installatieopdracht schrijft: de machtigingen van de ingeschakelde wijzigingen en de leesbewerkingen die ze nodig hebben, verder niets. Op AWS neemt elke wijziging `OneUptimeAiAgentWrite` aan met een sessiebeleid voor alleen die ene wijziging op die ene resource |
 
-De README's van de collectors bevatten de precieze opdrachten: de `pveum`-opdrachten voor een Proxmox-token voor fixes ([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)), de vSphere-rol voor fixes ([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)), de Ceph-caps voor lezen en fixes ([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)) en de databaserechten per engine ([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)).
+De README's van de collectors bevatten de precieze opdrachten: de `pveum`-opdrachten voor een Proxmox-token voor fixes ([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent)), de vSphere-rol voor fixes ([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent)), de Ceph-caps voor lezen en fixes ([CephAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent)) en de databaserechten per engine ([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent)). De rol van een Cloud-AI-agent wordt door zijn installatieopdracht geschreven: zet een wijziging uit en voer de opdracht opnieuw uit, dan verdwijnen de machtigingen ervan uit de rol.
 
 ## Beveiligingsmodel
 
@@ -420,6 +487,7 @@ Elke opdracht is een argumentenlijst, nooit een shellregel, en hetzelfde opdrach
 - Een tijdslimiet (hoogstens 2 minuten), waarna het programma wordt beëindigd; uitvoer begrensd op 50 KB.
 - Geheimen in de uitvoer (omgevingswaarden in `docker inspect`, cloud-init-wachtwoorden van Proxmox, sleutels, tokens en wachtwoorden in logs en opdrachtregels) worden op de agent gemaskeerd voordat de uitvoer hem verlaat, en nogmaals door OneUptime voordat ze worden opgeslagen of aan het model worden getoond.
 - De containers draaien met een alleen-lezen-rootbestandssysteem. De AI-agents voor Proxmox, VMware, Ceph en databases draaien als UID 1000 zonder capabilities.
+- Een Cloud-AI-agent start helemaal geen programma: `cloud` noemt één bewerking uit zijn catalogus, die de agent uitvoert als de ene API-aanroep die erbij hoort, met de inloggegevens van de plek waar hij draait. De leesbewerkingen draaien op OneUptime, via de alleen-lezen-koppeling van het account.
 
 ### De Docker-socket en de Host-AI-agent zijn root op de host
 
@@ -447,6 +515,8 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 
 Gebruik de containernaam van je resource: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent` (met `podman` in plaats van `docker`), `oneuptime-docker-swarm-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`. De service van de database-agent heeft geen vaste containernaam, dus gebruik `docker compose logs --tail=100 oneuptime-database-ai-agent` en `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` in `/opt/oneuptime-database-agent`. De Host-AI-agent gebruikt het netwerk van de host, dus `curl -s http://127.0.0.1:3877/status` werkt op de host zelf.
 
+Een Cloud-AI-agent draait in zijn cloud, zonder container om met `exec` in te gaan: lees zijn log in de shell van de cloud met `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`, `az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` of `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`, en zijn status op de pagina **AI-agent** van het account, die dezelfde opdracht toont.
+
 Een ontbrekende instelling laat de agent niet crashen: hij blijft draaien en gezond, zegt in zijn log en `/status` wat er ontbreekt en doet verder niets, zodat de container nooit in een lus herstart.
 
 ### Veelvoorkomende fouten
@@ -456,7 +526,7 @@ Een ontbrekende instelling laat de agent niet crashen: hij blijft draaien en gez
 | `ONEUPTIME_AI_AGENT_RESOURCE_TYPE is not set` (of een andere verplichte instelling) | Stel hem in de `.env` in die de agent met de collector deelt, en daarna `docker compose up -d`. |
 | `This OneUptime server does not have the resource AI agent API` | Upgrade OneUptime, of draai de versie van het agentimage die bij je server past. De agent controleert het elke 5 minuten opnieuw. |
 | `OneUptime refused the agent's API key` | Gebruik een niet-vastgezette telemetrie-ingestiesleutel van het project. |
-| `OneUptime refused the registration: …` | Lees de rest van de regel: een onbekend resourcetype, een lege of te lange identiteit, een `DATABASE_SERVER_ID` van een ander project, of de agentlimiet van het project. |
+| `OneUptime refused the registration: …` | Lees de rest van de regel: een onbekend resourcetype, een lege of te lange identiteit, een `DATABASE_SERVER_ID` van een ander project, of de agentlimiet van het project. Een Cloud-AI-agent wordt ook geweigerd in een account dat geen koppeling van het project leest, of in een ander account dan dat van zijn opdracht. |
 | `Waiting for this …'s previous AI agent to go offline` | De oude container heeft zich niet afgemeld (een crash of een kill), dus de nieuwe neemt het over zodra de oude 40 seconden niets heeft gestuurd. Duurt het langer, dan gebruikt een andere agent deze identiteit. |
 | Een waarschuwing dat de naam de standaardnaam van de collector is | Geef de resource een unieke naam op de collector en de agent. |
 | `The agent cannot reach this … right now` | Controleer de socket-mount, het adres, de inloggegevens of de keyring die de melding noemt. De pagina van de AI-agent toont dezelfde reden. |
@@ -469,12 +539,15 @@ Een ontbrekende instelling laat de agent niet crashen: hij blijft draaien en gez
 | `pipes and redirects are not supported; run one command` | Verwacht: opdrachten draaien nooit via een shell. De weigering vertelt OneUptime AI om één opdracht tegelijk uit te voeren. |
 | `Killed (timeout …)` | De resource antwoordde niet op tijd; zonder enige uitvoer kan de agent hem niet bereiken: controleer het netwerk ertussen. |
 | Een fout van Proxmox, vCenter, Ceph of de database dat er een recht, rol of cap ontbreekt | De inloggegevens zijn de harde grens: verleen wat de melding noemt (zie [Inloggegevens en minimale rechten](#inloggegevens-en-minimale-rechten)), of laat die wijziging aan een mens over. |
+| `The Cloud AI agent could not check its cloud: …` | Zijn rol, beheerde identiteit of serviceaccount is weg of mist een machtiging, of hij kan de API's van zijn cloud niet bereiken: voer de installatieopdracht opnieuw uit vanaf de pagina van het account. |
+| `cloud … is not one of the changes this agent may make` | Zet de wijziging aan onder **Geavanceerd** in **AI problemen laten oplossen** en voer de opdracht opnieuw uit: die geeft de rol van de agent ook de machtigingen van die wijziging. |
+| `the agent only changes resources that carry the …` | Geef de resource de tag `oneuptime-ai=allow` (een label op Google Cloud), of stel de agent opnieuw in zonder de tag. |
 
 De README's van de agents voor [Proxmox](https://github.com/OneUptime/oneuptime/tree/master/agents/ProxmoxAgent), [VMware](https://github.com/OneUptime/oneuptime/tree/master/agents/VMwareAgent), [Ceph](https://github.com/OneUptime/oneuptime/tree/master/agents/CephAgent) en [databases](https://github.com/OneUptime/oneuptime/tree/master/agents/DatabaseAgent), en die van de [Host-AI-agent](https://github.com/OneUptime/oneuptime/tree/master/agents/HostAIAgent), hebben een tabel voor probleemoplossing voor hun eigen verbindingsfouten.
 
 ## Wat niet wordt gedekt
 
-Kubernetes-clusters gebruiken de Kubernetes-AI-agent. Serverless functies en andere cloudresources, IoT-vloten en netwerkapparaten hebben geen AI-agent: daarop ingrijpen vereist cloud- of apparaatinloggegevens, die OneUptime AI alleen gebruikt via een Runner die jij draait.
+Kubernetes-clusters gebruiken de Kubernetes-AI-agent. Eén Cloud-AI-agent bedient één AWS-account, Azure-abonnement of Google Cloud-project, en er is geen agent voor een hele AWS Organization: een koppeling die een organisatie of een tenant leest, heeft een agent nodig in elk account, abonnement of project dat AI moet repareren. Een fix voor een resource die als code is gedeclareerd, blijft een voorstel: OneUptime AI opent geen pull request tegen die code. IoT-vloten en netwerkapparaten hebben geen AI-agent: daarop ingrijpen vereist apparaatinloggegevens, die OneUptime AI alleen gebruikt via een Runner die jij draait.
 
 ## Volgende stappen
 
@@ -482,4 +555,5 @@ Kubernetes-clusters gebruiken de Kubernetes-AI-agent. Serverless functies en and
 - [AI SRE](/docs/ai/ai-sre): Wat OneUptime AI met een incident doet en hoe over fixes wordt beslist.
 - [Docker-agent](/docs/telemetry/docker-host): Installeer de collector waarnaast de Docker-AI-agent draait.
 - [OpenTelemetry-collector op de host](/docs/telemetry/host-otel-collector): Laat een Linux-host rapporteren en voeg daarna de Host-AI-agent toe.
+- [Een cloudaccount koppelen](/docs/telemetry/cloud-accounts): Koppel het account dat een Cloud-AI-agent bedient, en laat AI er daarna problemen in oplossen.
 :::

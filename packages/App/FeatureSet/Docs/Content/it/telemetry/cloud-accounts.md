@@ -7,6 +7,7 @@ Collega un account AWS, una sottoscrizione Azure o un progetto Google Cloud dall
 - [Microsoft Azure](#microsoft-azure): Un'app con il ruolo Monitoring Reader.
 - [Google Cloud](#google-cloud): Un account di servizio con quattro ruoli di sola lettura.
 - [Cosa legge OneUptime](#cosa-legge-oneuptime): Risorse, metriche, modifiche ed eventi di stato, con quale frequenza e quanto costa.
+- [Consenti all'IA di correggere i problemi](#consenti-allia-di-correggere-i-problemi): Un comando in più, e OneUptime AI può correggere ciò che trova.
 :::
 
 ## Come funziona
@@ -207,6 +208,22 @@ Le chiamate di OneUptime vengono addebitate al tuo account cloud, ai prezzi del 
 - **La pagina di un account.** In **Cloud → Account**, la panoramica di un account ne conta le risorse per tipo e regione e dice quando una connessione l'ha letto l'ultima volta. Le sue **Risorse** le elencano, le sue **Modifiche** elencano cosa vi è cambiato, prima le più recenti, e la sua **Topologia** disegna le sue regioni, le reti che contengono e cosa gira in ciascuna, con gli incidenti e gli avvisi aperti sulle risorse a cui sono collegati.
 - **Le modifiche di una risorsa.** Una modifica viene conservata come evento di modifica collegato alla risorsa che ha cambiato e al suo account, e disegnata come indicatore sui grafici delle metriche della risorsa, insieme ai suoi incidenti e avvisi. I grafici filtrati su nessuna risorsa lasciano fuori il log attività di un account cloud, così un account molto attivo non copre i tuoi deploy; gli eventi di stato del provider restano.
 - **Incidenti e avvisi.** Collega una risorsa cloud a un monitor, un incidente o un avviso nelle sue risorse collegate, e i suoi incidenti e avvisi vengono elencati nella pagina della risorsa. Un monitor di sito web, API, SSL, ping o porta il cui host porta a un endpoint di una risorsa, direttamente o tramite il suo DNS, mostra la risorsa in **Risorse cloud suggerite** sulla sua scheda **Risorse collegate**: seleziona **Collega risorsa** per collegarla.
+
+## Consenti all'IA di correggere i problemi
+
+OneUptime AI legge ogni account collegato mentre indaga, con l'accesso in sola lettura descritto sopra. Per consentirgli di correggere anche i problemi, ad esempio riavviare un servizio, aumentarne la capacità o eseguirne il rollback, apri l'account in **Cloud → Account** e seleziona **Consenti all'IA di correggere i problemi** nella scheda **Agente IA** della sua **Panoramica**.
+
+La finestra di dialogo pone una sola domanda, **Fin dove può spingersi l'IA?**: **Chiedimi prima**, l'impostazione predefinita, in cui OneUptime AI propone ogni correzione e una persona la approva con un clic, oppure **Applica in autonomia le correzioni sicure**, in cui le modifiche sicure vengono eseguite da sole e quelle più rischiose attendono comunque l'approvazione. Tutto il resto ha un valore predefinito sicuro in **Avanzato**. Poi mostra un solo comando, scritto per questo account: eseguilo in AWS CloudShell, Azure Cloud Shell o Google Cloud Shell, autenticato come qualcuno che può creare ruoli nell'account. Il comando crea un ruolo che può apportare solo le modifiche attivate e avvia con esso l'agente IA cloud nel tuo account. L'agente si connette da solo entro pochi minuti, e la finestra di dialogo lo segnala: non c'è nulla da reincollare.
+
+L'agente è un piccolo container che gira tutto il mese nel tuo account, fatturato dal tuo cloud ai suoi prezzi di listino:
+
+| Cloud | Cosa gira | Circa |
+| --- | --- | --- |
+| AWS | Un task ECS Fargate da 0.25 vCPU e 0.5 GB, più il suo indirizzo IPv4 pubblico, ai prezzi di `us-east-1` | $13 al mese |
+| Azure | Una replica Container Apps da 0.25 vCPU e 0.5 GiB, dopo la concessione gratuita mensile della sottoscrizione di 180.000 vCPU-secondi e 360.000 GiB-secondi | $14 al mese |
+| Google Cloud | Un'istanza Cloud Run da 1 vCPU e 0.5 GiB con la CPU sempre allocata, che occupa un'intera vCPU, dopo il livello gratuito mensile di 240.000 vCPU-secondi e 450.000 GiB-secondi | $45 al mese |
+
+Cosa può modificare l'agente, come viene classificata e annullata ogni modifica e come leggerne i log: [Agenti IA per l'infrastruttura](/docs/ai/infrastructure-ai-agents#in-un-account-cloud).
 
 ## Risoluzione dei problemi
 

@@ -7,6 +7,7 @@ Koble til en AWS-konto, et Azure-abonnement eller et Google Cloud-prosjekt fra d
 - [Microsoft Azure](#microsoft-azure): En app med rollen Monitoring Reader.
 - [Google Cloud](#google-cloud): En tjenestekonto med fire roller som bare kan lese.
 - [Hva OneUptime leser](#hva-oneuptime-leser): Ressurser, målinger, endringer og helsehendelser, hvor ofte, og hva det koster.
+- [La AI rette problemer](#la-ai-rette-problemer): Én kommando til, så kan OneUptime AI rette det den finner.
 :::
 
 ## Slik fungerer det
@@ -207,6 +208,22 @@ Kallene OneUptime gjør, faktureres skykontoen din, til skyens priser. Å liste 
 - **Kontoens side.** Under **Sky → Kontoer** teller oversikten for en konto ressursene etter type og region, og sier når en tilkobling sist leste den. **Ressurser** lister dem, **Endringer** lister hva som er endret i den, det nyeste først, og **Topologi** tegner regionene, nettverkene i dem og hva som kjører i hvert, med de åpne hendelsene og varslene på ressursene de er koblet til.
 - **En ressurs sine endringer.** En endring lagres som en endringshendelse koblet til ressursen den endret og til kontoen, og tegnes som en markør i ressursens målingsdiagrammer sammen med hendelsene og varslene. Diagrammer som ikke er filtrert til noen ressurs, utelater en skykontos aktivitetslogg, så en travel konto ikke fortrenger utrullingene dine; leverandørens helsehendelser blir værende.
 - **Hendelser og varsler.** Koble en skyressurs til en overvåking, en hendelse eller et varsel under de tilkoblede ressursene, så listes hendelsene og varslene på ressursens side. En overvåking av et nettsted, et API, SSL, ping eller en port der verten fører til et endepunkt for en ressurs, direkte eller via DNS, viser ressursen under **Foreslåtte skyressurser** på kortet **Tilkoblede ressurser**: Velg **Koble til ressurs** for å koble den til.
+
+## La AI rette problemer
+
+OneUptime AI leser alle tilkoblede kontoer mens den undersøker, med den skrivebeskyttede tilgangen ovenfor. Hvis den også skal rette problemer, for eksempel starte en tjeneste på nytt, skalere den ut eller rulle den tilbake, åpner du kontoen under **Sky → Kontoer** og velger **La AI rette problemer** på kortet **AI-agent** i **Oversikt** for kontoen.
+
+Dialogen stiller ett spørsmål, **Hvor langt kan AI gå?**: **Spør meg først**, standarden, der OneUptime AI foreslår hver rettelse og en person godkjenner den med ett klikk, eller **Rett trygge problemer på egen hånd**, der trygge endringer kjører automatisk og mer risikable fortsatt venter på godkjenning. Alt annet har en trygg standard under **Avansert**. Deretter viser den én kommando, skrevet for denne kontoen: kjør den i AWS CloudShell, Azure Cloud Shell eller Google Cloud Shell, logget på som noen som kan opprette roller i kontoen. Kommandoen oppretter en rolle som bare kan gjøre endringene som er slått på, og starter Sky-AI-agenten med den i kontoen din. Agenten kobler til av seg selv innen noen få minutter, og dialogen sier ifra: det er ingenting å lime inn tilbake.
+
+Agenten er én liten container som kjører hele måneden i kontoen din, fakturert av skyen din til listeprisene:
+
+| Sky | Hva som kjører | Omtrent |
+| --- | --- | --- |
+| AWS | Én ECS Fargate-oppgave på 0.25 vCPU og 0.5 GB, og den offentlige IPv4-adressen dens, til prisene i `us-east-1` | $13 i måneden |
+| Azure | Én Container Apps-replika på 0.25 vCPU og 0.5 GiB, etter abonnementets månedlige gratiskvote på 180 000 vCPU-sekunder og 360 000 GiB-sekunder | $14 i måneden |
+| Google Cloud | Én Cloud Run-instans på 1 vCPU og 0.5 GiB med CPU alltid tildelt, som tar en hel vCPU, etter det månedlige gratisnivået på 240 000 vCPU-sekunder og 450 000 GiB-sekunder | $45 i måneden |
+
+Hva agenten kan endre, hvordan hver endring plasseres i et nivå og angres, og hvordan du leser loggene: [AI-agenter for infrastrukturen](/docs/ai/infrastructure-ai-agents#i-en-skykonto).
 
 ## Feilsøking
 
