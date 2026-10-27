@@ -1,12 +1,5 @@
 import "@testing-library/jest-dom";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   cleanup,
   fireEvent,
@@ -49,7 +42,11 @@ jest.mock("../../../UI/Utils/Project", () => {
     __esModule: true,
     default: {
       getCurrentProjectId: () => {
-        return { toString: (): string => PROJECT_ID };
+        return {
+          toString: (): string => {
+            return PROJECT_ID;
+          },
+        };
       },
     },
   };
@@ -60,7 +57,11 @@ jest.mock("../../../UI/Utils/User", () => {
     __esModule: true,
     default: {
       getEmail: () => {
-        return { toString: (): string => "jane@example.com" };
+        return {
+          toString: (): string => {
+            return "jane@example.com";
+          },
+        };
       },
     },
   };
@@ -178,7 +179,8 @@ describe("loadCustomNotificationChannels", () => {
     expect(channels).toHaveLength(2);
     expect(postMock).toHaveBeenCalledTimes(1);
 
-    const request: Record<string, unknown> = postMock.mock.calls[0]![0] as never;
+    const request: Record<string, unknown> = postMock.mock
+      .calls[0]![0] as never;
     expect(String(request["url"])).toContain(
       "/custom-notification-channel/available",
     );
@@ -246,7 +248,9 @@ describe("the Custom Channels card", () => {
   test("lists each channel by name, with how it reaches the person", () => {
     renderCard();
 
-    expect(screen.getByTestId(CUSTOM_CHANNELS_CARD_TEST_ID)).toBeInTheDocument();
+    expect(
+      screen.getByTestId(CUSTOM_CHANNELS_CARD_TEST_ID),
+    ).toBeInTheDocument();
     expect(screen.getByText("CorpoApp")).toBeInTheDocument();
     expect(screen.getByText("Pager")).toBeInTheDocument();
     expect(
@@ -284,7 +288,8 @@ describe("the Custom Channels card", () => {
       ).toBeInTheDocument();
     });
 
-    const request: Record<string, unknown> = postMock.mock.calls[0]![0] as never;
+    const request: Record<string, unknown> = postMock.mock
+      .calls[0]![0] as never;
     expect(String(request["url"])).toContain(
       "/custom-notification-channel/test",
     );

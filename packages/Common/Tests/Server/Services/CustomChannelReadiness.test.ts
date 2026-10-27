@@ -15,14 +15,7 @@ import { CUSTOM_CHANNEL_METHOD_LABEL } from "../../../Types/CustomNotificationCh
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -136,7 +129,9 @@ beforeEach(() => {
     .mockImplementation(async (data: ReadEveryPageData): Promise<void> => {
       reads.push(data);
 
-      if (data.description === "on-call rules that page through a custom channel") {
+      if (
+        data.description === "on-call rules that page through a custom channel"
+      ) {
         data.consumePage(rulesNamingChannels);
         return;
       }
@@ -173,10 +168,15 @@ describe("a responder's methods", () => {
     const jane: ObjectID = ObjectID.generate();
     const ravi: ObjectID = ObjectID.generate();
 
-    const methods: Map<string, Array<ReadinessMethod>> =
-      await internals().loadMethods(PROJECT_ID, [jane, ravi], { isTruncated: false }, [
-        corpoApp,
-      ]);
+    const methods: Map<
+      string,
+      Array<ReadinessMethod>
+    > = await internals().loadMethods(
+      PROJECT_ID,
+      [jane, ravi],
+      { isTruncated: false },
+      [corpoApp],
+    );
 
     for (const userId of [jane, ravi]) {
       expect(methods.get(userId.toString())).toEqual([channelMethod(corpoApp)]);
@@ -185,7 +185,10 @@ describe("a responder's methods", () => {
     // Nothing to read for it: it reaches everyone.
     expect(
       reads.some((read: ReadEveryPageData): boolean => {
-        return read.description === "on-call rules that page through a custom channel";
+        return (
+          read.description ===
+          "on-call rules that page through a custom channel"
+        );
       }),
     ).toBe(false);
   });
@@ -200,10 +203,15 @@ describe("a responder's methods", () => {
     rule.customNotificationChannelId = pager.id;
     rulesNamingChannels = [rule, rule];
 
-    const methods: Map<string, Array<ReadinessMethod>> =
-      await internals().loadMethods(PROJECT_ID, [jane, ravi], { isTruncated: false }, [
-        pager,
-      ]);
+    const methods: Map<
+      string,
+      Array<ReadinessMethod>
+    > = await internals().loadMethods(
+      PROJECT_ID,
+      [jane, ravi],
+      { isTruncated: false },
+      [pager],
+    );
 
     // Once, however many rules name it.
     expect(methods.get(jane.toString())).toEqual([channelMethod(pager)]);
@@ -248,10 +256,15 @@ describe("a responder's methods", () => {
     rule.customNotificationChannelId = ObjectID.generate();
     rulesNamingChannels = [rule];
 
-    const methods: Map<string, Array<ReadinessMethod>> =
-      await internals().loadMethods(PROJECT_ID, [jane], { isTruncated: false }, [
-        pager,
-      ]);
+    const methods: Map<
+      string,
+      Array<ReadinessMethod>
+    > = await internals().loadMethods(
+      PROJECT_ID,
+      [jane],
+      { isTruncated: false },
+      [pager],
+    );
 
     expect(methods.get(jane.toString())).toBeUndefined();
   });
@@ -259,8 +272,15 @@ describe("a responder's methods", () => {
   test("with no channels on, nothing changes", async () => {
     const jane: ObjectID = ObjectID.generate();
 
-    const methods: Map<string, Array<ReadinessMethod>> =
-      await internals().loadMethods(PROJECT_ID, [jane], { isTruncated: false }, []);
+    const methods: Map<
+      string,
+      Array<ReadinessMethod>
+    > = await internals().loadMethods(
+      PROJECT_ID,
+      [jane],
+      { isTruncated: false },
+      [],
+    );
 
     expect(methods.get(jane.toString())).toBeUndefined();
   });
@@ -425,5 +445,4 @@ describe("the channels readiness reads", () => {
 
     expect(loaded.customChannels).toEqual([]);
   });
-
 });

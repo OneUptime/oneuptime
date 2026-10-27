@@ -4203,8 +4203,15 @@ export class Service extends ProjectReferencesService<Model> {
      * responder with no rule of their own. One that does not page everyone
      * is a method people choose, so it is used only through their rules.
      */
-    const channelsPagingEveryone: Array<CustomNotificationChannel> =
-      await CustomNotificationChannelService.getChannelsPagingEveryone();
+    let channelsPagingEveryone: Array<CustomNotificationChannel> = [];
+
+    try {
+      channelsPagingEveryone =
+        await CustomNotificationChannelService.getChannelsPagingEveryone();
+    } catch (err) {
+      // A channel list that cannot be read leaves the fallback as it was.
+      logger.error(err);
+    }
 
     for (const channel of channelsPagingEveryone) {
       const rule: Model = this.buildUnsavedFallbackRule(options);

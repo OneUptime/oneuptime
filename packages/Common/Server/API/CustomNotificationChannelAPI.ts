@@ -1,3 +1,4 @@
+import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CustomNotificationChannelService, {
   Service as CustomNotificationChannelServiceType,
@@ -46,9 +47,11 @@ import User from "../../Models/DatabaseModels/User";
  *     of a channel ever reaches them.
  *
  *   POST /custom-notification-channel/test
- *     Sends a test to a channel. A master admin may test any channel, on or
- *     off, as themselves; anybody else a channel that is on, as themselves,
- *     in a project they are a member of - to see a page reach them.
+ *     A test a person sends to themselves through a channel that is on, in a
+ *     project they are a member of - to see a page reach them.
+ *
+ *   POST /custom-notification-channel/instance/test
+ *     A master admin trying a channel they set up, whether it is on or not.
  *
  *   POST /custom-notification-channel/page/<notification id>/<action>?token=
  *     What the channel's service calls when the person acknowledges,
@@ -98,13 +101,116 @@ export default class CustomNotificationChannelAPI extends BaseAPI<
       UserMiddleware.requireUserAuthentication,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
-          const result: CustomChannelDeliveryResult = await this.sendTest(req);
+          // A test the caller sends to themselves (TestSendAccess).
+          const sender: TestSendToSelfCaller =
+            await TestSendAccess.assertMaySendTestToSelf(req);
 
-          return Response.sendJsonObjectResponse(req, res, {
-            ok: result.ok,
-            responseStatusCode: result.statusCode || null,
-            statusMessage: result.message,
+          const channel: CustomNotificationChannel | null =
+            await this.service.findOneById({
+              id: this.readTestChannelId(req),
+              select: {
+                _id: true,
+                name: true,
+                isEnabled: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!channel) {
+            throw new BadDataException("This custom channel no longer exists.");
+          }
+
+          if (!channel.isEnabled) {
+            throw new BadDataException(
+              `${channel.name || "This custom channel"} is turned off.`,
+            );
+          }
+
+          /*
+           * Sent in the caller's project, as a real page to them would be:
+           * only while they are a member there.
+           */
+          const projectId: ObjectID = this.readTestProjectId(req);
+
+          TestSendAccess.assertSenderIsMemberOf({
+            sender: sender,
+            projectId: projectId,
           });
+
+          const project: Project | null = await ProjectService.findOneById({
+            id: projectId,
+            select: {
+              _id: true,
+              name: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          });
+
+          const result: CustomChannelDeliveryResult =
+            await this.sendCustomChannelTest({
+              channel: channel,
+              userId: sender.userId,
+              project: {
+                id: projectId.toString(),
+                name: project?.name || "",
+              },
+            });
+
+          return this.sendTestAnswer(req, res, result);
+        } catch (err) {
+          return next(err);
+        }
+      },
+    );
+
+    this.router.post(
+      `${path}/instance/test`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          if (!props.userId) {
+            throw new NotAuthorizedException(
+              "Sign in as a master admin to test a custom channel.",
+            );
+          }
+
+          /*
+           * The admin trying the channel they set up, whether it is on or
+           * not, as themselves. It is the instance's setup being tried, so
+           * it names no project and nobody's project is billed for it.
+           */
+          const channel: CustomNotificationChannel | null =
+            await this.service.findOneById({
+              id: this.readTestChannelId(req),
+              select: {
+                _id: true,
+                name: true,
+                isEnabled: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          if (!channel) {
+            throw new BadDataException("This custom channel no longer exists.");
+          }
+
+          const result: CustomChannelDeliveryResult =
+            await this.sendCustomChannelTest({
+              channel: channel,
+              userId: props.userId,
+              project: undefined,
+            });
+
+          return this.sendTestAnswer(req, res, result);
         } catch (err) {
           return next(err);
         }
@@ -140,9 +246,20 @@ export default class CustomNotificationChannelAPI extends BaseAPI<
     );
   }
 
-  private async sendTest(
+  private sendTestAnswer(
     req: ExpressRequest,
-  ): Promise<CustomChannelDeliveryResult> {
+    res: ExpressResponse,
+    result: CustomChannelDeliveryResult,
+  ): void {
+    return Response.sendJsonObjectResponse(req, res, {
+      ok: result.ok,
+      responseStatusCode: result.statusCode || null,
+      statusMessage: result.message,
+    });
+  }
+
+  // The channel a test names.
+  private readTestChannelId(req: ExpressRequest): ObjectID {
     const channelId: string = String(
       (req.body as JSONObject)["customNotificationChannelId"] || "",
     );
@@ -151,82 +268,31 @@ export default class CustomNotificationChannelAPI extends BaseAPI<
       throw new BadDataException("Choose a custom channel to test.");
     }
 
-    const channel: CustomNotificationChannel | null =
-      await this.service.findOneById({
-        id: new ObjectID(channelId),
-        select: {
-          _id: true,
-          name: true,
-          isEnabled: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+    return new ObjectID(channelId);
+  }
 
-    if (!channel) {
-      throw new BadDataException("This custom channel no longer exists.");
-    }
+  // The project a person's own test is sent in.
+  private readTestProjectId(req: ExpressRequest): ObjectID {
+    const projectId: string = String(
+      (req.body as JSONObject)["projectId"] || "",
+    );
 
-    const props: DatabaseCommonInteractionProps =
-      await CommonAPI.getDatabaseCommonInteractionProps(req);
-
-    let userId: ObjectID;
-    let project: CustomChannelReference | undefined = undefined;
-
-    if (props.isMasterAdmin && props.userId) {
-      // The admin trying the channel they set up, whether it is on or not.
-      userId = props.userId;
-    } else {
-      // A test the caller sends to themselves (TestSendAccess).
-      const sender: TestSendToSelfCaller =
-        await TestSendAccess.assertMaySendTestToSelf(req);
-
-      if (!channel.isEnabled) {
-        throw new BadDataException(
-          `${channel.name || "This custom channel"} is turned off.`,
-        );
-      }
-
-      const projectIdText: string = String(
-        (req.body as JSONObject)["projectId"] || "",
+    if (!projectId || !ObjectID.isValidUUID(projectId)) {
+      throw new NotAuthorizedException(
+        "You are not authorized to access this project's data.",
       );
-
-      if (!projectIdText || !ObjectID.isValidUUID(projectIdText)) {
-        throw new NotAuthorizedException(
-          "You are not authorized to access this project's data.",
-        );
-      }
-
-      const projectId: ObjectID = new ObjectID(projectIdText);
-
-      // Sent in the caller's project: only while they are a member.
-      TestSendAccess.assertSenderIsMemberOf({
-        sender: sender,
-        projectId: projectId,
-      });
-
-      userId = sender.userId;
-
-      const projectRow: Project | null = await ProjectService.findOneById({
-        id: projectId,
-        select: {
-          _id: true,
-          name: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-      project = {
-        id: projectId.toString(),
-        name: projectRow?.name || "",
-      };
     }
 
+    return new ObjectID(projectId);
+  }
+
+  private async sendCustomChannelTest(data: {
+    channel: CustomNotificationChannel;
+    userId: ObjectID;
+    project: CustomChannelReference | undefined;
+  }): Promise<CustomChannelDeliveryResult> {
     const user: User | null = await UserService.findOneById({
-      id: userId,
+      id: data.userId,
       select: {
         _id: true,
         name: true,
@@ -238,23 +304,23 @@ export default class CustomNotificationChannelAPI extends BaseAPI<
     });
 
     return await CustomNotificationChannelDeliveryService.send({
-      customNotificationChannelId: channel.id!,
+      customNotificationChannelId: data.channel.id!,
       eventType: CustomChannelEvent.Test,
       isTest: true,
       // A member's test is sent in their project, which may be blocked.
-      projectId: project ? new ObjectID(project.id) : undefined,
+      projectId: data.project ? new ObjectID(data.project.id) : undefined,
       payload: buildCustomChannelTestPayload({
         sentAt: new Date(),
         channel: {
-          id: channel.id!.toString(),
-          name: channel.name || "",
+          id: data.channel.id!.toString(),
+          name: data.channel.name || "",
         },
         user: {
-          id: userId.toString(),
+          id: data.userId.toString(),
           name: user?.name?.toString() || "",
           email: user?.email?.toString() || "",
         },
-        project: project,
+        project: data.project,
       }),
     });
   }

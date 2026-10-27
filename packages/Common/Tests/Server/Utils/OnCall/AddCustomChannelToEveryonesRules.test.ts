@@ -5,14 +5,7 @@ import AddCustomChannelToEveryonesRules from "../../../../Server/Utils/OnCall/Ad
 import CustomNotificationChannel from "../../../../Models/DatabaseModels/CustomNotificationChannel";
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import ObjectID from "../../../../Types/ObjectID";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../../Server/Utils/Logger");
 
@@ -41,14 +34,10 @@ function channel(name: string): CustomNotificationChannel {
   return row;
 }
 
-let findMembers: jest.SpiedFunction<typeof TeamMemberService.findBy>;
-let addDefaults: jest.SpiedFunction<
-  typeof UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod
->;
-let markDone: jest.SpiedFunction<
-  typeof CustomNotificationChannelService.updateOneById
->;
-let findChannels: jest.SpiedFunction<typeof CustomNotificationChannelService.findBy>;
+let findMembers: jest.SpyInstance;
+let addDefaults: jest.SpyInstance;
+let markDone: jest.SpyInstance;
+let findChannels: jest.SpyInstance;
 
 beforeEach(() => {
   findMembers = jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([]);
@@ -89,7 +78,11 @@ describe("addToEveryonesRules", () => {
 
     expect(count).toBe(3);
     expect(addDefaults).toHaveBeenCalledTimes(3);
-    expect(addDefaults.mock.calls.map((call: Array<unknown>) => call[0])).toEqual([
+    expect(
+      addDefaults.mock.calls.map((call: Array<unknown>) => {
+        return call[0];
+      }),
+    ).toEqual([
       {
         projectId: projectA,
         userId: jane,
@@ -113,7 +106,8 @@ describe("addToEveryonesRules", () => {
       ObjectID.generate(),
     );
 
-    const call: Record<string, unknown> = findMembers.mock.calls[0]![0] as never;
+    const call: Record<string, unknown> = findMembers.mock
+      .calls[0]![0] as never;
     expect(call["query"]).toEqual({ hasAcceptedInvitation: true });
     expect(call["props"]).toEqual({ isRoot: true });
     expect(call["sort"]).toEqual({ _id: "ASC" });
@@ -170,7 +164,9 @@ describe("addToEveryonesRules", () => {
 
     expect(findMembers).toHaveBeenCalledTimes(2);
     expect(
-      (findMembers.mock.calls[1]![0] as Record<string, unknown>)["skip"],
+      (findMembers.mock.calls[1]![0] as unknown as Record<string, unknown>)[
+        "skip"
+      ],
     ).toBe(PAGE_SIZE);
     expect(count).toBe(PAGE_SIZE + 1);
   });
@@ -213,7 +209,8 @@ describe("run", () => {
   test("its work is the channels that are on, page everyone and are not done", async () => {
     await AddCustomChannelToEveryonesRules.run();
 
-    const call: Record<string, unknown> = findChannels.mock.calls[0]![0] as never;
+    const call: Record<string, unknown> = findChannels.mock
+      .calls[0]![0] as never;
     const query: Record<string, unknown> = call["query"] as Record<
       string,
       unknown
@@ -257,9 +254,11 @@ describe("run", () => {
     expect(finished).toBe(1);
     expect(markDone).toHaveBeenCalledTimes(1);
     expect(
-      ((markDone.mock.calls[0]![0] as Record<string, unknown>)[
-        "id"
-      ] as ObjectID).toString(),
+      (
+        (markDone.mock.calls[0]![0] as unknown as Record<string, unknown>)[
+          "id"
+        ] as ObjectID
+      ).toString(),
     ).toBe(working.id!.toString());
   });
 });

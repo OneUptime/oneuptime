@@ -82,7 +82,7 @@ const SettingsCustomChannels: FunctionComponent = (): ReactElement => {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
         await API.post({
           url: URL.fromString(APP_API_URL.toString()).addRoute(
-            "/custom-notification-channel/test",
+            "/custom-notification-channel/instance/test",
           ),
           data: {
             customNotificationChannelId: channel.id?.toString() || "",

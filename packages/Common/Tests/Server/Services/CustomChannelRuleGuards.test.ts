@@ -6,14 +6,7 @@ import UserWebhookService from "../../../Server/Services/UserWebhookService";
 import CustomNotificationChannel from "../../../Models/DatabaseModels/CustomNotificationChannel";
 import UserWebhook from "../../../Models/DatabaseModels/UserWebhook";
 import ObjectID from "../../../Types/ObjectID";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -36,9 +29,7 @@ function channel(isEnabled: boolean): CustomNotificationChannel {
   return row;
 }
 
-let findChannel: jest.SpiedFunction<
-  typeof CustomNotificationChannelService.findOneById
->;
+let findChannel: jest.SpyInstance;
 
 beforeEach(() => {
   findChannel = jest
@@ -52,9 +43,9 @@ afterEach(() => {
 
 describe("the method columns", () => {
   test("the custom channel is one of them", () => {
-    expect(UserNotificationRuleAdminService.getNotificationMethodIdColumns()).toContain(
-      "customNotificationChannelId",
-    );
+    expect(
+      UserNotificationRuleAdminService.getNotificationMethodIdColumns(),
+    ).toContain("customNotificationChannelId");
   });
 
   test("there are ten", () => {
@@ -132,7 +123,8 @@ describe("assertNotificationMethodsBelongToUser", () => {
       },
     );
 
-    const call: Record<string, unknown> = findChannel.mock.calls[0]![0] as never;
+    const call: Record<string, unknown> = findChannel.mock
+      .calls[0]![0] as never;
     expect((call["id"] as ObjectID).toString()).toBe(CHANNEL_ID.toString());
     expect(call["props"]).toEqual({ isRoot: true });
   });
@@ -254,8 +246,8 @@ describe("the other guards treat a channel like any method", () => {
     );
 
     expect(carrier["customNotificationChannel"]).toBeUndefined();
-    expect((carrier["customNotificationChannelId"] as ObjectID).toString()).toBe(
-      CHANNEL_ID.toString(),
-    );
+    expect(
+      (carrier["customNotificationChannelId"] as ObjectID).toString(),
+    ).toBe(CHANNEL_ID.toString());
   });
 });

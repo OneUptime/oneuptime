@@ -18,14 +18,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import API from "Common/Utils/API";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import crypto from "crypto";
 
 jest.mock("Common/Server/Utils/Logger", () => {
@@ -66,13 +59,11 @@ function channel(
   return row;
 }
 
-let find: jest.SpiedFunction<typeof CustomNotificationChannelService.findOneById>;
-let post: jest.SpiedFunction<typeof API.post>;
-let ssrf: jest.SpiedFunction<typeof SSRFProtection.validateWebhookTargetIsSafe>;
-let updateTimeline: jest.SpiedFunction<
-  typeof UserOnCallLogTimelineService.updateOneById
->;
-let sleep: jest.SpiedFunction<typeof CustomChannelService.sleep>;
+let find: jest.SpyInstance;
+let post: jest.SpyInstance;
+let ssrf: jest.SpyInstance;
+let updateTimeline: jest.SpyInstance;
+let sleep: jest.SpyInstance;
 
 function ok(status: number = 200): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(status, {}, {});
@@ -230,9 +221,11 @@ describe("tried again", () => {
       const result: CustomChannelDeliveryResult = await send();
 
       expect(post).toHaveBeenCalledTimes(CUSTOM_CHANNEL_MAX_ATTEMPTS);
-      expect(sleep.mock.calls.map((call: Array<unknown>) => call[0])).toEqual([
-        ...CUSTOM_CHANNEL_RETRY_DELAYS_MS,
-      ]);
+      expect(
+        sleep.mock.calls.map((call: Array<unknown>) => {
+          return call[0];
+        }),
+      ).toEqual([...CUSTOM_CHANNEL_RETRY_DELAYS_MS]);
       expect(result.ok).toBe(false);
       expect(result.statusCode).toBe(status);
       expect(result.message).toBe(

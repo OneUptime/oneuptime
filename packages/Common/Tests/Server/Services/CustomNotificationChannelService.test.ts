@@ -7,13 +7,17 @@ import CustomNotificationChannelService, {
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
-import { OnCreate, OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
+import {
+  OnCreate,
+  OnDelete,
+  OnUpdate,
+} from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import SSRFProtection from "../../../Server/Utils/SSRFProtection";
 import CustomNotificationChannel from "../../../Models/DatabaseModels/CustomNotificationChannel";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -81,9 +85,9 @@ function createBy(
   } as CreateBy<CustomNotificationChannel>;
 }
 
-let ssrf: jest.SpiedFunction<typeof SSRFProtection.validateWebhookTargetIsSafe>;
-let findBy: jest.SpiedFunction<typeof CustomNotificationChannelService.findBy>;
-let addJob: jest.SpiedFunction<typeof Queue.addJob>;
+let ssrf: jest.SpyInstance;
+let findBy: jest.SpyInstance;
+let addJob: jest.SpyInstance;
 
 beforeEach(() => {
   ssrf = jest
@@ -107,9 +111,12 @@ describe("isPagingEveryone", () => {
     [{ isEnabled: true, pageEveryoneByDefault: false }, false],
     [{ isEnabled: false, pageEveryoneByDefault: false }, false],
     [{ isEnabled: undefined, pageEveryoneByDefault: undefined }, true],
-  ])("%p pages everyone: %p", (value: object, expected: boolean) => {
-    expect(isPagingEveryone(value)).toBe(expected);
-  });
+  ])(
+    "%p pages everyone: %p",
+    (value: Record<string, unknown>, expected: boolean) => {
+      expect(isPagingEveryone(value)).toBe(expected);
+    },
+  );
 });
 
 describe("generateSecret", () => {
@@ -269,7 +276,7 @@ describe("creating a channel", () => {
   test.each([
     [{ isEnabled: false, pageEveryoneByDefault: true }],
     [{ isEnabled: true, pageEveryoneByDefault: false }],
-  ])("a channel %p does not", async (state: object) => {
+  ])("a channel %p does not", async (state: Record<string, unknown>) => {
     await hooks().onCreateSuccess(
       { createBy: createBy({}), carryForward: null },
       channel(state),
@@ -345,9 +352,9 @@ describe("changing a channel", () => {
   test("a blank name is refused", async () => {
     holdRows([channel({ id: CHANNEL_ID })]);
 
-    await expect(hooks().onBeforeUpdate(updateBy({ name: " " }))).rejects.toThrow(
-      BadDataException,
-    );
+    await expect(
+      hooks().onBeforeUpdate(updateBy({ name: " " })),
+    ).rejects.toThrow(BadDataException);
   });
 
   test("a new URL is checked, as it was when the channel was saved", async () => {
@@ -405,9 +412,7 @@ describe("changing a channel", () => {
   test("a channel that starts paging everyone is added to everybody's rules again", async () => {
     const id: ObjectID = ObjectID.generate();
     findBy.mockResolvedValue([channel({ id: id })]);
-    const update: jest.SpiedFunction<
-      typeof CustomNotificationChannelService.updateOneById
-    > = jest
+    const update: jest.SpyInstance = jest
       .spyOn(CustomNotificationChannelService, "updateOneById")
       .mockResolvedValue(undefined as never);
 
@@ -429,9 +434,10 @@ describe("changing a channel", () => {
 
   test("a channel that paged everyone before is left as it is", async () => {
     const id: ObjectID = ObjectID.generate();
-    const update: jest.SpiedFunction<
-      typeof CustomNotificationChannelService.updateOneById
-    > = jest.spyOn(CustomNotificationChannelService, "updateOneById");
+    const update: jest.SpyInstance = jest.spyOn(
+      CustomNotificationChannelService,
+      "updateOneById",
+    );
 
     await hooks().onUpdateSuccess(
       {
@@ -448,9 +454,10 @@ describe("changing a channel", () => {
   test("a channel still not paging everyone after the update is left as it is", async () => {
     const id: ObjectID = ObjectID.generate();
     findBy.mockResolvedValue([channel({ id: id, isEnabled: false })]);
-    const update: jest.SpiedFunction<
-      typeof CustomNotificationChannelService.updateOneById
-    > = jest.spyOn(CustomNotificationChannelService, "updateOneById");
+    const update: jest.SpyInstance = jest.spyOn(
+      CustomNotificationChannelService,
+      "updateOneById",
+    );
 
     await hooks().onUpdateSuccess(
       {
@@ -479,9 +486,7 @@ describe("deleting a channel", () => {
       )
       .mockResolvedValue([first, second]);
 
-    const deleteRules: jest.SpiedFunction<
-      typeof UserNotificationRuleService.deleteBy
-    > = jest
+    const deleteRules: jest.SpyInstance = jest
       .spyOn(UserNotificationRuleService, "deleteBy")
       .mockResolvedValue(0 as never);
 
@@ -534,7 +539,11 @@ describe("the channels people are offered", () => {
       isEnabled: true,
       pageEveryoneByDefault: true,
     });
-    expect(Object.keys(call["select"] as object)).not.toContain("webhookUrl");
-    expect(Object.keys(call["select"] as object)).not.toContain("secret");
+    expect(
+      Object.keys(call["select"] as Record<string, unknown>),
+    ).not.toContain("webhookUrl");
+    expect(
+      Object.keys(call["select"] as Record<string, unknown>),
+    ).not.toContain("secret");
   });
 });

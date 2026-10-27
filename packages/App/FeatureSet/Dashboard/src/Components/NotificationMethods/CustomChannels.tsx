@@ -150,11 +150,11 @@ const CustomChannels: FunctionComponent<ComponentProps> = (
           error={testError}
           description={
             isTesting
-              ? translator.translateText("Sending a test request…")
+              ? translator.translateTemplate("Sending a test request…")
               : testMessage ||
                 (testError
                   ? ""
-                  : translator.translateText(
+                  : translator.translateTemplate(
                       "Sending a test request to the channel.",
                     ))
           }

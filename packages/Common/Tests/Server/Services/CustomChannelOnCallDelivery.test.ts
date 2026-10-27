@@ -49,14 +49,7 @@ import NotificationRuleType from "../../../Types/NotificationRule/NotificationRu
 import ObjectID from "../../../Types/ObjectID";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -175,11 +168,9 @@ function alert(): Alert {
   return row;
 }
 
-let send: jest.SpiedFunction<typeof CustomNotificationChannelDeliveryService.send>;
-let createTimeline: jest.SpiedFunction<typeof UserOnCallLogTimelineService.create>;
-let updateTimeline: jest.SpiedFunction<
-  typeof UserOnCallLogTimelineService.updateOneById
->;
+let send: jest.SpyInstance;
+let createTimeline: jest.SpyInstance;
+let updateTimeline: jest.SpyInstance;
 
 beforeEach(() => {
   jest
@@ -189,7 +180,9 @@ beforeEach(() => {
   createTimeline = jest
     .spyOn(UserOnCallLogTimelineService, "create")
     .mockImplementation(
-      async (data: { data: UserOnCallLogTimeline }): Promise<UserOnCallLogTimeline> => {
+      async (data: {
+        data: UserOnCallLogTimeline;
+      }): Promise<UserOnCallLogTimeline> => {
         const row: UserOnCallLogTimeline = data.data;
         if (!row._id) {
           row._id = TIMELINE_ID.toString();
@@ -268,9 +261,9 @@ describe("a page through a custom channel", () => {
     expect(attempted).toBe(true);
 
     const request: Record<string, unknown> = send.mock.calls[0]![0] as never;
-    expect((request["customNotificationChannelId"] as ObjectID).toString()).toBe(
-      CHANNEL_ID.toString(),
-    );
+    expect(
+      (request["customNotificationChannelId"] as ObjectID).toString(),
+    ).toBe(CHANNEL_ID.toString());
     expect(request["eventType"]).toBe("on-call.incident.created");
     expect((request["projectId"] as ObjectID).toString()).toBe(
       PROJECT_ID.toString(),
@@ -553,11 +546,11 @@ describe("a repeat", () => {
     jest
       .spyOn(UserOnCallLogService, "claimNotificationRuleExecution")
       .mockResolvedValue(true);
-    jest.spyOn(UserNotificationRuleService, "findOneById").mockResolvedValue(rule);
+    jest
+      .spyOn(UserNotificationRuleService, "findOneById")
+      .mockResolvedValue(rule);
 
-    const deliver: jest.SpiedFunction<
-      ServiceInternals["deliverNotificationForRule"]
-    > = jest
+    const deliver: jest.SpyInstance = jest
       .spyOn(internals(), "deliverNotificationForRule")
       .mockResolvedValue(true);
 
@@ -582,9 +575,7 @@ describe("a repeat", () => {
     jest
       .spyOn(UserOnCallLogService, "claimNotificationRuleExecution")
       .mockResolvedValue(true);
-    const findRule: jest.SpiedFunction<
-      typeof UserNotificationRuleService.findOneById
-    > = jest
+    const findRule: jest.SpyInstance = jest
       .spyOn(UserNotificationRuleService, "findOneById")
       .mockResolvedValue(rule);
     jest
@@ -636,7 +627,8 @@ describe("the fallback", () => {
 
   test("reaches a responder with no rule through every channel that pages everyone", async () => {
     noPersonalMethods();
-    const corpoApp: CustomNotificationChannel = channelPagingEveryone("CorpoApp");
+    const corpoApp: CustomNotificationChannel =
+      channelPagingEveryone("CorpoApp");
     const pager: CustomNotificationChannel = channelPagingEveryone("Pager");
 
     jest
@@ -694,9 +686,7 @@ describe("a person joining a project", () => {
       .spyOn(CustomNotificationChannelService, "getChannelsPagingEveryone")
       .mockResolvedValue([corpoApp, pager]);
 
-    const addDefaults: jest.SpiedFunction<
-      typeof UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod
-    > = jest
+    const addDefaults: jest.SpyInstance = jest
       .spyOn(
         UserNotificationRuleService,
         "addDefaultNotificationRulesForVerifiedMethod",
@@ -731,9 +721,7 @@ describe("a person joining a project", () => {
       .spyOn(CustomNotificationChannelService, "getChannelsPagingEveryone")
       .mockResolvedValue([first, second]);
 
-    const addDefaults: jest.SpiedFunction<
-      typeof UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod
-    > = jest
+    const addDefaults: jest.SpyInstance = jest
       .spyOn(
         UserNotificationRuleService,
         "addDefaultNotificationRulesForVerifiedMethod",
@@ -782,17 +770,14 @@ describe("a person joining a project", () => {
       )
       .mockResolvedValue([]);
 
-    const existing: jest.SpiedFunction<
-      typeof UserNotificationRuleService.findOneBy
-    > = jest
+    const existing: jest.SpyInstance = jest
       .spyOn(UserNotificationRuleService, "findOneBy")
       .mockResolvedValue(null);
-    const create: jest.SpiedFunction<typeof UserNotificationRuleService.create> =
-      jest
-        .spyOn(UserNotificationRuleService, "create")
-        .mockImplementation(async (data: { data: UserNotificationRule }) => {
-          return data.data;
-        });
+    const create: jest.SpyInstance = jest
+      .spyOn(UserNotificationRuleService, "create")
+      .mockImplementation(async (data: { data: UserNotificationRule }) => {
+        return data.data;
+      });
 
     await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
       {
@@ -805,9 +790,11 @@ describe("a person joining a project", () => {
     expect(create.mock.calls.length).toBeGreaterThan(0);
 
     for (const call of create.mock.calls) {
-      const rule: UserNotificationRule = (call[0] as {
-        data: UserNotificationRule;
-      }).data;
+      const rule: UserNotificationRule = (
+        call[0] as {
+          data: UserNotificationRule;
+        }
+      ).data;
       expect(rule.customNotificationChannelId?.toString()).toBe(
         CHANNEL_ID.toString(),
       );
@@ -819,9 +806,9 @@ describe("a person joining a project", () => {
       const query: Record<string, unknown> = (
         call[0] as { query: Record<string, unknown> }
       ).query;
-      expect((query["customNotificationChannelId"] as ObjectID).toString()).toBe(
-        CHANNEL_ID.toString(),
-      );
+      expect(
+        (query["customNotificationChannelId"] as ObjectID).toString(),
+      ).toBe(CHANNEL_ID.toString());
     }
   });
 
@@ -846,8 +833,10 @@ describe("a person joining a project", () => {
     jest
       .spyOn(UserNotificationRuleService, "findOneBy")
       .mockResolvedValue(new UserNotificationRule());
-    const create: jest.SpiedFunction<typeof UserNotificationRuleService.create> =
-      jest.spyOn(UserNotificationRuleService, "create");
+    const create: jest.SpyInstance = jest.spyOn(
+      UserNotificationRuleService,
+      "create",
+    );
 
     await UserNotificationRuleService.addDefaultNotificationRulesForVerifiedMethod(
       {

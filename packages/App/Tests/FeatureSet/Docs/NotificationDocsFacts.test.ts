@@ -990,6 +990,8 @@ describe("notification methods", () => {
   it("has the tabs the page draws, in its order", () => {
     expect(captures(tabsSource, TAB_NAME)).toEqual([
       "Workspace Apps",
+      // A server's custom channels: drawn only while one is on.
+      "Custom Channels",
       "Direct Contact",
       "Push Notifications",
       "Webhooks",

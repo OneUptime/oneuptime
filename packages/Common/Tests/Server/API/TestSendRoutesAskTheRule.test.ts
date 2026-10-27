@@ -119,6 +119,18 @@ const ALL_KNOWN_TEST_ROUTES: ReadonlyArray<KnownTestRoute> = [
     why: "A request to the caller's own webhook.",
   },
   {
+    file: "packages/Common/Server/API/CustomNotificationChannelAPI.ts",
+    path: "/test",
+    rule: "self",
+    why: "A request about the caller, through a custom channel the server's admin set up for everyone.",
+  },
+  {
+    file: "packages/Common/Server/API/CustomNotificationChannelAPI.ts",
+    path: "/instance/test",
+    rule: "instance",
+    why: "A master admin trying a custom channel they set up, from the Admin Dashboard.",
+  },
+  {
     file: "packages/Common/Server/API/UserPushAPI.ts",
     path: "/user-push/:deviceId/test-notification",
     rule: "self",
@@ -263,6 +275,7 @@ const SELF_TEST_SENDS: ReadonlyArray<string> = [
   "sendDirectMessageToUser(",
   "deliverTestWebhook(",
   "sendPushNotification(",
+  "sendCustomChannelTest(",
 ];
 
 // The directories whose sources register API routes.

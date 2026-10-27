@@ -31,7 +31,7 @@ import {
   OnCallPassOnRefusal,
 } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../../Server/Utils/Logger");
 
@@ -97,7 +97,7 @@ function setUp(options: NotificationOptions = {}): {
   id: ObjectID;
   token: string;
   row: UserOnCallLogTimeline;
-  update: jest.SpiedFunction<typeof UserOnCallLogTimelineService.updateOneById>;
+  update: jest.SpyInstance;
 } {
   const id: ObjectID = ObjectID.generate();
   const row: UserOnCallLogTimeline = notification(id, options);
@@ -106,9 +106,7 @@ function setUp(options: NotificationOptions = {}): {
     .spyOn(UserOnCallLogTimelineService, "findOneById")
     .mockResolvedValue(row);
 
-  const update: jest.SpiedFunction<
-    typeof UserOnCallLogTimelineService.updateOneById
-  > = jest
+  const update: jest.SpyInstance = jest
     .spyOn(UserOnCallLogTimelineService, "updateOneById")
     .mockResolvedValue(undefined as never);
 
@@ -126,9 +124,10 @@ afterEach(() => {
 
 describe("CustomChannelActions: what is refused", () => {
   test("an unknown action is refused before anything is read", async () => {
-    const find: jest.SpiedFunction<
-      typeof UserOnCallLogTimelineService.findOneById
-    > = jest.spyOn(UserOnCallLogTimelineService, "findOneById");
+    const find: jest.SpyInstance = jest.spyOn(
+      UserOnCallLogTimelineService,
+      "findOneById",
+    );
 
     await expect(
       CustomChannelActions.act({
@@ -155,9 +154,10 @@ describe("CustomChannelActions: what is refused", () => {
   );
 
   test("a missing token is refused, and nothing is read", async () => {
-    const find: jest.SpiedFunction<
-      typeof UserOnCallLogTimelineService.findOneById
-    > = jest.spyOn(UserOnCallLogTimelineService, "findOneById");
+    const find: jest.SpyInstance = jest.spyOn(
+      UserOnCallLogTimelineService,
+      "findOneById",
+    );
 
     await expect(
       CustomChannelActions.act({
@@ -188,8 +188,10 @@ describe("CustomChannelActions: what is refused", () => {
 
   test("an on-call page link's token is refused: a forwarded text must not resolve", async () => {
     const { id } = setUp();
-    const resolve: jest.SpiedFunction<typeof WorkspaceMemberActions.resolve> =
-      jest.spyOn(WorkspaceMemberActions, "resolve");
+    const resolve: jest.SpyInstance = jest.spyOn(
+      WorkspaceMemberActions,
+      "resolve",
+    );
 
     await expect(
       CustomChannelActions.act({
@@ -309,7 +311,7 @@ describe("CustomChannelActions: escalate", () => {
   test("passes the page on, as the person, through this notification", async () => {
     const { id, token } = setUp();
 
-    const passOn: jest.SpiedFunction<typeof OnCallPagePassOn.passOn> = jest
+    const passOn: jest.SpyInstance = jest
       .spyOn(OnCallPagePassOn, "passOn")
       .mockResolvedValue({
         passedOn: true,
@@ -361,8 +363,7 @@ describe("CustomChannelActions: escalate", () => {
 
   test("a page from no on-call policy has nothing to escalate to", async () => {
     const { id, token } = setUp({ withExecutionLog: false });
-    const passOn: jest.SpiedFunction<typeof OnCallPagePassOn.passOn> =
-      jest.spyOn(OnCallPagePassOn, "passOn");
+    const passOn: jest.SpyInstance = jest.spyOn(OnCallPagePassOn, "passOn");
 
     const answer: CustomChannelActionAnswer = await CustomChannelActions.act({
       notificationId: id.toString(),
@@ -382,21 +383,15 @@ describe("CustomChannelActions: resolve", () => {
   };
 
   function spyOnWorkspace(isResolved: boolean): {
-    getProps: jest.SpiedFunction<
-      typeof WorkspaceActionAuthorization.getProjectMemberProps
-    >;
-    authorize: jest.SpiedFunction<typeof WorkspaceMemberActions.authorize>;
-    resolve: jest.SpiedFunction<typeof WorkspaceMemberActions.resolve>;
+    getProps: jest.SpyInstance;
+    authorize: jest.SpyInstance;
+    resolve: jest.SpyInstance;
   } {
-    const getProps: jest.SpiedFunction<
-      typeof WorkspaceActionAuthorization.getProjectMemberProps
-    > = jest
+    const getProps: jest.SpyInstance = jest
       .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
       .mockResolvedValue(PROPS);
 
-    const authorize: jest.SpiedFunction<
-      typeof WorkspaceMemberActions.authorize
-    > = jest
+    const authorize: jest.SpyInstance = jest
       .spyOn(WorkspaceMemberActions, "authorize")
       .mockImplementation(
         async (data: {
@@ -416,10 +411,9 @@ describe("CustomChannelActions: resolve", () => {
       hasStarted: true,
     } as never);
 
-    const resolve: jest.SpiedFunction<typeof WorkspaceMemberActions.resolve> =
-      jest
-        .spyOn(WorkspaceMemberActions, "resolve")
-        .mockResolvedValue(undefined);
+    const resolve: jest.SpyInstance = jest
+      .spyOn(WorkspaceMemberActions, "resolve")
+      .mockResolvedValue(undefined);
 
     return { getProps: getProps, authorize: authorize, resolve: resolve };
   }
@@ -432,7 +426,11 @@ describe("CustomChannelActions: resolve", () => {
       WorkspaceEventType.IncidentEpisode,
       IncidentEpisodeStateTimeline,
     ],
-    ["alertEpisode", WorkspaceEventType.AlertEpisode, AlertEpisodeStateTimeline],
+    [
+      "alertEpisode",
+      WorkspaceEventType.AlertEpisode,
+      AlertEpisodeStateTimeline,
+    ],
   ])(
     "resolves the %s the page is about, as the person, with their own permissions",
     async (
@@ -441,17 +439,15 @@ describe("CustomChannelActions: resolve", () => {
       stateTimeline: unknown,
     ) => {
       const { id, token } = setUp({
-        record: record as NotificationOptions["record"],
+        record: record as NonNullable<NotificationOptions["record"]>,
       });
       const { getProps, authorize, resolve } = spyOnWorkspace(false);
 
-      const answer: CustomChannelActionAnswer = await CustomChannelActions.act(
-        {
-          notificationId: id.toString(),
-          action: CustomChannelAction.Resolve,
-          token: token,
-        },
-      );
+      const answer: CustomChannelActionAnswer = await CustomChannelActions.act({
+        notificationId: id.toString(),
+        action: CustomChannelAction.Resolve,
+        token: token,
+      });
 
       expect(answer).toEqual({
         action: CustomChannelAction.Resolve,
@@ -477,9 +473,9 @@ describe("CustomChannelActions: resolve", () => {
       ).toBe(eventType);
 
       expect(resolve).toHaveBeenCalledTimes(1);
-      expect(
-        (resolve.mock.calls[0]![0] as { props: unknown }).props,
-      ).toBe(PROPS);
+      expect((resolve.mock.calls[0]![0] as { props: unknown }).props).toBe(
+        PROPS,
+      );
     },
   );
 
@@ -546,7 +542,7 @@ describe("CustomChannelActions.getPagedRecord", () => {
     "a page about an %s names it",
     (record: string, eventType: WorkspaceEventType, noun: string) => {
       const row: UserOnCallLogTimeline = notification(ObjectID.generate(), {
-        record: record as NotificationOptions["record"],
+        record: record as NonNullable<NotificationOptions["record"]>,
       });
 
       const paged: ReturnType<typeof CustomChannelActions.getPagedRecord> =

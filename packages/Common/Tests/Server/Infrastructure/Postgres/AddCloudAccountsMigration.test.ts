@@ -52,14 +52,17 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
 }
 
 describe("AddCloudAccounts1807900000000", () => {
-  test("is registered last, after every migration before it", () => {
+  test("is registered, after every migration before it", () => {
     const names: Array<string> = SchemaMigrations.map(
       (migration: { name: string }): string => {
         return migration.name;
       },
     );
 
-    expect(names[names.length - 1]).toBe("AddCloudAccounts1807900000000");
+    expect(names).toContain("AddCloudAccounts1807900000000");
+    expect(names.indexOf("AddCloudAccounts1807900000000")).toBeGreaterThan(
+      names.indexOf("AddStatusPageDarkThemeLogoKey1807840000000"),
+    );
     expect(new AddCloudAccounts1807900000000().name).toBe(
       "AddCloudAccounts1807900000000",
     );

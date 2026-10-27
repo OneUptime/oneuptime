@@ -14,14 +14,7 @@ import {
   CustomChannelActionLinks,
 } from "../../../../Types/CustomNotificationChannel/CustomNotificationChannelPayload";
 import ObjectID from "../../../../Types/ObjectID";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../../Server/Utils/Logger");
 

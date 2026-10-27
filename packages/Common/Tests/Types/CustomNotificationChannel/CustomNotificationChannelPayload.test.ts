@@ -125,9 +125,12 @@ describe("isCustomChannelAction", () => {
     expect(isCustomChannelAction(action)).toBe(false);
   });
 
-  test.each([undefined, null, 1, {}, [], true])("refuses %p", (value: unknown) => {
-    expect(isCustomChannelAction(value)).toBe(false);
-  });
+  test.each([undefined, null, 1, {}, [], true])(
+    "refuses %p",
+    (value: unknown) => {
+      expect(isCustomChannelAction(value)).toBe(false);
+    },
+  );
 
   test("there are exactly three actions", () => {
     expect([...CUSTOM_CHANNEL_ACTIONS]).toEqual([

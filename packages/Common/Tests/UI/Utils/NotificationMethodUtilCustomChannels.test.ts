@@ -205,11 +205,13 @@ describe("choosing a channel in the rule form", () => {
 
 describe("a rule's method cell", () => {
   test("selects the channel's name, and nothing else of it", () => {
-    const select: Record<string, Record<string, boolean>> =
-      NotificationMethodUtil.getSelectForNotificationMethods<UserNotificationRule>() as Record<
-        string,
-        Record<string, boolean>
-      >;
+    const select: Record<
+      string,
+      Record<string, boolean>
+    > = NotificationMethodUtil.getSelectForNotificationMethods<UserNotificationRule>() as Record<
+      string,
+      Record<string, boolean>
+    >;
 
     expect(select["customNotificationChannel"]).toEqual({ name: true });
   });

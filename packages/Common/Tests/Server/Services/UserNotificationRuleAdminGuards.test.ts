@@ -767,19 +767,24 @@ describe("UserNotificationRule administrative write guards", () => {
       },
     );
 
-    test("the guard covers exactly the nine notification method columns the model has", () => {
+    test("the guard covers exactly the nine per-person method columns the model has, and the custom channel", () => {
       /*
-       * The count is the assertion. A tenth channel added to the model
-       * without an entry in the guard's table is a channel with no ownership
-       * check at all, and the attacker only needs one.
+       * The count is the assertion. A tenth per-person channel added to the
+       * model without an entry in the guard's table is a channel with no
+       * ownership check at all, and the attacker only needs one. The custom
+       * channel is the one method that belongs to nobody, so it is guarded
+       * for existing and being on instead (CustomChannelRuleGuards).
        */
       const covered: Array<string> =
         UserNotificationRuleAdminService.getNotificationMethodIdColumns();
 
       expect(covered.sort()).toEqual(
-        CHANNELS.map((channel: ChannelFixture): string => {
-          return channel.idColumn;
-        }).sort(),
+        [
+          ...CHANNELS.map((channel: ChannelFixture): string => {
+            return channel.idColumn;
+          }),
+          "customNotificationChannelId",
+        ].sort(),
       );
     });
 

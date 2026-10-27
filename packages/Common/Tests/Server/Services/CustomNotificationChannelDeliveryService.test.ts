@@ -8,7 +8,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../../Utils/API";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -22,20 +22,22 @@ const CHANNEL_ID: ObjectID = ObjectID.generate();
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const TIMELINE_ID: ObjectID = ObjectID.generate();
 
-let post: jest.SpiedFunction<typeof API.post>;
-let refusal: jest.SpiedFunction<typeof BlockedProjectNotifications.getRefusal>;
+let post: jest.SpyInstance;
+let refusal: jest.SpyInstance;
 
 beforeEach(() => {
   refusal = jest
     .spyOn(BlockedProjectNotifications, "getRefusal")
     .mockResolvedValue(null);
-  post = jest.spyOn(API, "post").mockResolvedValue(
-    new HTTPResponse<JSONObject>(
-      200,
-      { ok: true, statusCode: 202, message: "Sent to CorpoApp (HTTP 202)." },
-      {},
-    ),
-  );
+  post = jest
+    .spyOn(API, "post")
+    .mockResolvedValue(
+      new HTTPResponse<JSONObject>(
+        200,
+        { ok: true, statusCode: 202, message: "Sent to CorpoApp (HTTP 202)." },
+        {},
+      ),
+    );
 });
 
 afterEach(() => {
@@ -84,7 +86,7 @@ describe("CustomNotificationChannelDeliveryService.send", () => {
     });
 
     const data: Record<string, unknown> = (
-      post.mock.calls[0]![0] as Record<string, unknown>
+      post.mock.calls[0]![0] as unknown as Record<string, unknown>
     )["data"] as Record<string, unknown>;
 
     expect(Object.keys(data)).not.toContain("url");
@@ -101,7 +103,7 @@ describe("CustomNotificationChannelDeliveryService.send", () => {
     });
 
     const data: Record<string, unknown> = (
-      post.mock.calls[0]![0] as Record<string, unknown>
+      post.mock.calls[0]![0] as unknown as Record<string, unknown>
     )["data"] as Record<string, unknown>;
 
     expect(data["projectId"]).toBeUndefined();
