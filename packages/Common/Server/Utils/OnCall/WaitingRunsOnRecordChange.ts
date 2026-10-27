@@ -17,6 +17,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import { getOnCallPolicyRunStartedEarlyReason } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { OnCallPolicyAiHoldOutcome } from "../../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import { EventFieldSet } from "../EventFieldChange";
 import logger, { LogAttributes } from "../Logger";
 
@@ -65,6 +66,7 @@ const WAITING_RUN_SELECT: {
   triggeredByAlertEpisodeId: true;
   triggeredByIncidentEpisodeId: true;
   onCallPolicyExecutionRepeatCount: true;
+  aiHoldOutcome: true;
   createdAt: true;
   onCallDutyPolicy: { isArchived: true };
 } = {
@@ -79,6 +81,7 @@ const WAITING_RUN_SELECT: {
   triggeredByAlertEpisodeId: true,
   triggeredByIncidentEpisodeId: true,
   onCallPolicyExecutionRepeatCount: true,
+  aiHoldOutcome: true,
   createdAt: true,
   onCallDutyPolicy: { isArchived: true },
 };
@@ -368,6 +371,11 @@ export default class WaitingRunsOnRecordChange {
               recordKind: access.kind,
               ruleNames: ruleNames,
             }),
+            // A page OneUptime AI held goes to people: its hold is handed off.
+            aiHoldOutcome:
+              run.aiHoldOutcome === OnCallPolicyAiHoldOutcome.Holding
+                ? OnCallPolicyAiHoldOutcome.HandedOff
+                : undefined,
           });
 
         if (isStarted) {

@@ -1,6 +1,10 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
+import {
+  AI_HOLD_TIME_MAX_IN_MINUTES,
+  AI_HOLD_TIME_MIN_IN_MINUTES,
+} from "../../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import OnCallRuleWhenToPage from "../../../Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
 import RestrictionTimes from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
 import WorkingHours from "../../../Types/OnCallDutyPolicy/WorkingHours";
@@ -22,6 +26,11 @@ import UpdateBy from "../../Types/Database/UpdateBy";
  * An update is judged as the rules it writes will be: what it writes over
  * each rule as stored, so switching a rule with hours to Working Hours, or
  * changing only its time zone, is judged with the hours it has.
+ *
+ * After OneUptime AI (OnCallPolicyAiHold) is for alert and incident rules:
+ * OneUptime AI investigates alerts and incidents, not episodes, so an
+ * episode rule's write that names it is refused. A hold time a write names
+ * is whole minutes within its bounds.
  */
 
 // What a rule says about when it pages, as a write may carry it.
@@ -37,12 +46,24 @@ const WHEN_TO_PAGE_COLUMNS: Array<keyof WhenToPageValues> = [
   "workingHoursTimezone",
 ];
 
+// What the rule's kind lets it say: After OneUptime AI, for alerts and incidents.
+export interface OnCallRuleWhenToPageOptions {
+  allowsOneUptimeAI: boolean;
+}
+
+export const ONEUPTIME_AI_NOT_FOR_EPISODES_MESSAGE: string =
+  "After OneUptime AI is for alert and incident on-call rules: OneUptime AI investigates alerts and incidents, not episodes.";
+
+export const AI_HOLD_TIME_OUT_OF_BOUNDS_MESSAGE: string = `OneUptime AI Hold Time In Minutes is a whole number from ${AI_HOLD_TIME_MIN_IN_MINUTES} to ${AI_HOLD_TIME_MAX_IN_MINUTES}.`;
+
 export default class OnCallRuleWhenToPageCheck {
   // A new rule, as its create writes it.
   public static checkCreate<TModel extends BaseModel>(
     createBy: CreateBy<TModel>,
+    options?: OnCallRuleWhenToPageOptions | undefined,
   ): void {
-    this.check(this.read(createBy.data));
+    this.checkAiHoldTime(createBy.data);
+    this.check(this.read(createBy.data), options);
   }
 
   /*
@@ -53,7 +74,10 @@ export default class OnCallRuleWhenToPageCheck {
   public static async checkUpdate<TModel extends BaseModel>(data: {
     service: DatabaseService<TModel>;
     updateBy: UpdateBy<TModel>;
+    options?: OnCallRuleWhenToPageOptions | undefined;
   }): Promise<void> {
+    this.checkAiHoldTime(data.updateBy.data);
+
     const written: WhenToPageValues = this.read(data.updateBy.data);
 
     const writes: Array<keyof WhenToPageValues> = WHEN_TO_PAGE_COLUMNS.filter(
@@ -72,12 +96,12 @@ export default class OnCallRuleWhenToPageCheck {
       written.whenToPage !== null &&
       written.whenToPage !== OnCallRuleWhenToPage.WorkingHours
     ) {
-      this.check(written);
+      this.check(written, data.options);
       return;
     }
 
     if (writes.length === WHEN_TO_PAGE_COLUMNS.length) {
-      this.check(written);
+      this.check(written, data.options);
       return;
     }
 
@@ -97,20 +121,55 @@ export default class OnCallRuleWhenToPageCheck {
     for (const rule of stored) {
       const current: WhenToPageValues = this.read(rule);
 
-      this.check({
-        whenToPage:
-          written.whenToPage !== undefined
-            ? written.whenToPage
-            : current.whenToPage,
-        workingHours:
-          written.workingHours !== undefined
-            ? written.workingHours
-            : current.workingHours,
-        workingHoursTimezone:
-          written.workingHoursTimezone !== undefined
-            ? written.workingHoursTimezone
-            : current.workingHoursTimezone,
-      });
+      this.check(
+        {
+          whenToPage:
+            written.whenToPage !== undefined
+              ? written.whenToPage
+              : current.whenToPage,
+          workingHours:
+            written.workingHours !== undefined
+              ? written.workingHours
+              : current.workingHours,
+          workingHoursTimezone:
+            written.workingHoursTimezone !== undefined
+              ? written.workingHoursTimezone
+              : current.workingHoursTimezone,
+        },
+        data.options,
+      );
+    }
+  }
+
+  /*
+   * A hold time a write names: whole minutes within the bounds, or empty for
+   * the default (getAiHoldTimeInMinutes reads any stored value within them).
+   */
+  private static checkAiHoldTime(model: unknown): void {
+    const value: unknown =
+      model && typeof model === "object"
+        ? (model as Record<string, unknown>)["aiHoldTimeInMinutes"]
+        : undefined;
+
+    if (
+      value === undefined ||
+      value === null ||
+      (typeof value === "string" && value.trim() === "")
+    ) {
+      return;
+    }
+
+    // A form's number field may send its digits as text: "10" is 10.
+    const minutes: unknown =
+      typeof value === "string" ? Number(value.trim()) : value;
+
+    if (
+      typeof minutes !== "number" ||
+      !Number.isInteger(minutes) ||
+      minutes < AI_HOLD_TIME_MIN_IN_MINUTES ||
+      minutes > AI_HOLD_TIME_MAX_IN_MINUTES
+    ) {
+      throw new BadDataException(AI_HOLD_TIME_OUT_OF_BOUNDS_MESSAGE);
     }
   }
 
@@ -129,7 +188,10 @@ export default class OnCallRuleWhenToPageCheck {
     };
   }
 
-  private static check(rule: WhenToPageValues): void {
+  private static check(
+    rule: WhenToPageValues,
+    options?: OnCallRuleWhenToPageOptions | undefined,
+  ): void {
     const whenToPage: string =
       rule.whenToPage || OnCallRuleWhenToPage.RightAway;
 
@@ -145,6 +207,13 @@ export default class OnCallRuleWhenToPageCheck {
           })
           .join(" or ")}.`,
       );
+    }
+
+    if (
+      whenToPage === OnCallRuleWhenToPage.AfterOneUptimeAI &&
+      !options?.allowsOneUptimeAI
+    ) {
+      throw new BadDataException(ONEUPTIME_AI_NOT_FOR_EPISODES_MESSAGE);
     }
 
     if (whenToPage !== OnCallRuleWhenToPage.WorkingHours) {

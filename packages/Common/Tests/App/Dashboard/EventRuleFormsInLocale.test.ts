@@ -226,6 +226,8 @@ const SHARED_WORDS: Set<string> = new Set([
   "Resolved",
   "Acknowledged",
   "30",
+  // OneUptime AI's default hold time, the placeholder of its field.
+  "10",
   // A loanword in several languages (German, French, Spanish ...).
   "Runbooks",
 ]);
