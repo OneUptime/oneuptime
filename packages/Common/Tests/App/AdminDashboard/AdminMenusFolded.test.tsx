@@ -203,6 +203,11 @@ describe("Admin Settings: only Basic starts open", () => {
 
   test.each([
     [PageMap.SETTINGS_SMTP, "Notifications", "Emails"],
+    [
+      PageMap.SETTINGS_PUSH_NOTIFICATIONS,
+      "Notifications",
+      "Push Notifications",
+    ],
     [PageMap.SETTINGS_LLM_PROVIDERS, "AI", "Global LLM Providers"],
     [PageMap.SETTINGS_GLOBAL_RUNNERS, "Runbooks", "Global Runners"],
     // Single sign-on, under Basic: no folded "Authentication" section of its own.
@@ -250,7 +255,23 @@ describe("Admin Settings: only Basic starts open", () => {
     fireEvent.click(sectionToggle("Notifications"));
 
     expect(isExpanded("Notifications")).toBe(true);
-    expect(linksIn("Notifications")).toHaveLength(4);
+    /*
+     * Every way the Community Edition reaches people, push among them.
+     * Custom channels are an Enterprise page (ee/AdminDashboard/
+     * CustomChannels): the Enterprise plugin draws their entry, and the
+     * Community menu has none.
+     */
+    expect(linksIn("Notifications")).toEqual([
+      { title: "Emails", href: "/admin/settings/smtp" },
+      { title: "Call and SMS", href: "/admin/settings/call-and-sms" },
+      { title: "WhatsApp", href: "/admin/settings/whatsapp" },
+      { title: "Telegram", href: "/admin/settings/telegram" },
+      {
+        title: "Push Notifications",
+        href: "/admin/settings/push-notifications",
+      },
+    ]);
+    expect(document.body.textContent).not.toContain("Custom Channels");
   });
 });
 

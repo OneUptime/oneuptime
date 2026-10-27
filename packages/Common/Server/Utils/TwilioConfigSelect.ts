@@ -61,3 +61,15 @@ export const GLOBAL_TWILIO_CONFIG_USE_SELECT: Select<GlobalConfig> = {
   twilioPrimaryPhoneNumber: true,
   twilioSmsPhoneNumbers: true,
 };
+
+/*
+ * What carries the server's SMS and calls, and the gateway's URL and secret
+ * for a server that sends through its own (Types/CallAndSMS/
+ * CallAndSmsProvider): read by everything that sends through the server's
+ * own account or asks whether it could (CallAndSmsGatewayConfig).
+ */
+export const GLOBAL_CALL_AND_SMS_GATEWAY_SELECT: Select<GlobalConfig> = {
+  callAndSmsProvider: true,
+  callAndSmsGatewayUrl: true,
+  callAndSmsGatewaySecret: true,
+};

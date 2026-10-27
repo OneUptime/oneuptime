@@ -108,6 +108,7 @@ import AlertLabelRuleEngineService from "./AlertLabelRuleEngineService";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
 import WaitingRunsOnRecordChange from "../Utils/OnCall/WaitingRunsOnRecordChange";
 import { OnCallRulePagingHold } from "../Utils/OnCall/OnCallRulePagingHold";
+import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
 import AlertOwnerRuleEngineService from "./AlertOwnerRuleEngineService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
 import AutoRemediationRuleEngineService, {
@@ -1318,6 +1319,17 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
         }
+
+        /*
+         * Many records opening at once look like an outage: people take
+         * every page OneUptime AI holds in the project (AiFirstResponder).
+         * One created resolved was over before it was recorded.
+         */
+        if (createdItem.projectId && isOngoing) {
+          await AiFirstResponder.onRecordCreated({
+            projectId: createdItem.projectId,
+          });
+        }
       })
       .then(async () => {
         // No runbook is started for an alert created resolved.
@@ -1781,6 +1793,7 @@ ${FeedMarkdown.asMarkdown(alert.remediationNotes || "No remediation notes provid
                 ? {
                     pagingStartsAt: hold.pagingStartsAt,
                     waitingStatusMessage: hold.waitingStatusMessage,
+                    isAiHold: hold.isAiHold,
                   }
                 : {}),
             });
@@ -2355,6 +2368,14 @@ ${alertSeverity.name}
         ) {
           try {
             await WaitingRunsOnRecordChange.startForAlert(alertId);
+
+            // Raised to the highest severity, a page AI holds goes to people.
+            if (isSeverityChanged && projectId) {
+              await AiFirstResponder.onRecordChanged({
+                projectId: projectId,
+                alertId: alertId,
+              });
+            }
           } catch (waitingRunsError) {
             logger.error(
               `Starting waiting on-call runs failed in AlertService.onUpdateSuccess: ${waitingRunsError}`,

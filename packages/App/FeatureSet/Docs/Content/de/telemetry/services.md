@@ -85,7 +85,7 @@ Klicken Sie bei **Dienstdetails** auf **Details bearbeiten**, um **Name**, **Bes
 Klicken Sie bei **Diensteinstellungen** auf **Einstellungen bearbeiten**. Die **Dienstfarbe** kennzeichnet den Dienst in Diagrammen und Listen; ein neuer Dienst bekommt eine eigene. **Technologie-Stack** ist optional: Lassen Sie ihn leer, um die aus seiner Telemetrie erkannte Sprache zu zeigen.
 :::
 
-Dieselbe Seite enthält die Aufbewahrung des Dienstes. Die Karten **Aufbewahrung von Telemetriedaten** und **Aufbewahrung nach Telemetrietyp** bewahren seine Telemetrie länger oder kürzer auf als die Standardaufbewahrung des Projekts. Sie gehören zur [Enterprise Edition](/docs/self-hosted/enterprise) und auf OneUptime Cloud zum Scale-Tarif; ohne sie zeigt die Seite, was sie hinzufügen, und der Dienst behält die Aufbewahrung des Projekts.
+Dieselbe Seite enthält die Aufbewahrung des Dienstes, eingeklappt unter **Weitere Einstellungen**. Die Karten **Aufbewahrung von Telemetriedaten** und **Aufbewahrung nach Telemetrietyp** bewahren seine Telemetrie länger oder kürzer auf als die Standardaufbewahrung des Projekts. Sie gehören zur [Enterprise Edition](/docs/self-hosted/enterprise) und auf OneUptime Cloud zum Scale-Tarif; ohne sie zeigt die Seite, was sie hinzufügen, und der Dienst behält die Aufbewahrung des Projekts.
 
 ## Beschriftungen und Eigentümer automatisch setzen
 

@@ -190,7 +190,7 @@ const PAGE_CHROME: Array<{ name: string; zIndex: number }> = [
     ),
   },
   {
-    name: "the AI chat panel",
+    name: "Ask AI",
     zIndex: Number(
       anchor(
         readSource(
@@ -200,10 +200,10 @@ const PAGE_CHROME: Array<{ name: string; zIndex: number }> = [
           "src",
           "Components",
           "AIChat",
-          "AIChatPanel.tsx",
+          "AskAiDialog.tsx",
         ),
-        /className="relative z-(\d+)" role="dialog"/,
-        "the AI chat panel's root",
+        /ref=\{rootRef\} className="relative z-(\d+)"/,
+        "the Ask AI dialog's root",
       ),
     ),
   },
@@ -251,7 +251,7 @@ describe("the dashboard canvas cannot paint over the page (issue #3660)", () => 
        * The tempting bigger version of this fix is to isolate the wrapper
        * above it. That also traps ComponentSettingsModal, which the canvas
        * renders OUTSIDE the positioner precisely so it can keep the Modal
-       * layer: trapped, its z-50 becomes canvas-local and the AI chat panel
+       * layer: trapped, its z-50 becomes canvas-local and the Ask AI dialog
        * paints over the open settings dialog.
        *
        * Isolate the box that holds the tiles, never the box that holds the

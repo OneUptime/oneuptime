@@ -44,25 +44,29 @@ export class AIChatPermissionModeHelper {
     return this.isValid(value) ? value : this.getDefault();
   }
 
+  /*
+   * The modes in the order the permission menu offers them, each with the
+   * name the menu, its button and the docs give it, and what it means. The
+   * Dashboard draws the same words from its own translated keys
+   * (Components/AIChat/PermissionModePicker and PermissionModeWords).
+   */
   public static getOptions(): Array<AIChatPermissionModeOption> {
     return [
       {
         value: AIChatPermissionMode.AskForApproval,
-        title: "Ask for approval",
-        description:
-          "The copilot pauses and asks before it changes anything (creating incidents, acknowledging alerts, etc).",
+        title: "Ask to act",
+        description: "Asks for approval before it changes anything.",
       },
       {
         value: AIChatPermissionMode.AutoRun,
-        title: "Auto-run (bypass approvals)",
+        title: "Auto-run",
         description:
-          "The copilot performs actions immediately, still limited to what your role can do.",
+          "Acts on clear requests right away, within your permissions.",
       },
       {
         value: AIChatPermissionMode.ReadOnly,
         title: "Read-only",
-        description:
-          "The copilot can investigate and answer questions but can never change anything.",
+        description: "Only reads and answers. It never changes anything.",
       },
     ];
   }

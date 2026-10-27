@@ -20,7 +20,7 @@ En vaktretningslinje avgjør hvem som tilkalles om en hendelse eller et varsel, 
 
 **Hvem varsles først?** er valgfritt og vises bare for folk som kan legge til eskaleringsregler: står det tomt, tilkaller retningslinjen ingen før den har en regel. **Beskrivelse** og **Etiketter** venter under **Flere felt**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) for å legge til de neste nivåene.
 
-Listen **Vaktpolicyer** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere** for hver retningslinje. Velg retningslinjer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Import JSON** oppretter retningslinjer fra en eksport: en eksport inneholder retningslinjens egne innstillinger, ikke eskaleringsreglene eller eierne.
+Listen **Vaktpolicyer** viser **Navn**, **Beskrivelse**, **Etiketter** og **Eiere** for hver retningslinje. Velg retningslinjer for å bruke **Legg til etiketter**, **Fjern etiketter**, **Legg til eier**, **Fjern eier**, **Arkiver** eller **Eksporter JSON**, eller for å slette dem. **Importer JSON** oppretter retningslinjer fra en eksport: en eksport inneholder retningslinjens egne innstillinger, ikke eskaleringsreglene eller eierne.
 
 ## Hva som kjører en retningslinje
 

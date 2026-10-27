@@ -108,7 +108,7 @@ A **manutenção programada** anuncia com antecedência um trabalho planejado. U
 
 - Os **Fluxos de trabalho** executam ações quando algo acontece, como publicar no Slack quando um incidente é declarado.
 - Os **Runbooks** transformam um procedimento de resposta em passos que sua equipe pode executar, manualmente ou automaticamente.
-- A **OneUptime AI** investiga novos incidentes e alertas e publica o que encontrou na linha do tempo deles, e **Ask AI** responde perguntas sobre o seu projeto. Um projeto novo começa com a IA ligada; o interruptor **Habilitar IA** em **Configurações do projeto → IA → AI Features** desliga tudo isso.
+- A **OneUptime AI** investiga novos incidentes e alertas e publica o que encontrou na linha do tempo deles, e **Pergunte à IA** responde perguntas sobre o seu projeto. Um projeto novo começa com a IA ligada; o interruptor **Habilitar IA** em **Configurações do projeto → IA → AI Features** desliga tudo isso.
 
 :::cards
 - [Visão geral dos workflows](/docs/workflows/index): Automatizar ações com gatilhos e componentes.

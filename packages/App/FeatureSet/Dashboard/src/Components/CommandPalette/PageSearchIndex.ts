@@ -70,6 +70,12 @@ export interface PageSearchAction {
   icon?: IconProp | undefined;
   // Offered only to people who may do it.
   permission?: PageSearchPermission | undefined;
+  /*
+   * The place on the page it is done at (its "#" name, a card's place): a
+   * card folded under the page's More settings opens there, so a result
+   * never lands on a page with what it was for hidden.
+   */
+  anchor?: string | undefined;
 }
 
 export interface PageSearchPage {
@@ -461,6 +467,39 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "twilio",
               "balance",
               "auto recharge",
+            ],
+            /*
+             * The project's own mail servers and Twilio accounts, folded
+             * under the page's More settings (OwnSendersFold): each result
+             * opens the fold at its table.
+             */
+            actions: [
+              {
+                id: "custom-smtp-configs",
+                title: "Custom SMTP Configs",
+                icon: IconProp.Email,
+                keywords: [
+                  "smtp",
+                  "custom smtp",
+                  "mail server",
+                  "email server",
+                  "own email server",
+                  "microsoft graph",
+                ],
+                anchor: "custom-smtp-configs",
+              },
+              {
+                id: "twilio-config",
+                title: "Twilio Config",
+                icon: IconProp.Call,
+                keywords: [
+                  "twilio",
+                  "own twilio account",
+                  "sms provider",
+                  "phone numbers",
+                ],
+                anchor: "twilio-config",
+              },
             ],
           },
           {
@@ -1902,21 +1941,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
-            page: PageMap.SECURITY_EVENTS_ENTITIES,
-            title: "Entities",
-            icon: IconProp.Fingerprint,
-            keywords: ["risky users", "risky hosts", "ueba", "entity lookup"],
-          },
-          {
             page: PageMap.SECURITY_EVENTS_ENTITY_RISK,
             title: "Entity Risk",
             icon: IconProp.Fire,
+            // Entities folded into it: its words find it too.
             keywords: [
               "risk score",
               "risk based alerting",
               "rba",
               "user risk",
               "host risk",
+              "riskiest entities",
+              "risky users",
+              "risky hosts",
+              "ueba",
+              "entities",
+              "entity lookup",
             ],
           },
           {

@@ -13,6 +13,7 @@ import {
   loadApiKeyIdsGivenCustomRole,
   loadCustomRoleGrants,
 } from "@oneuptime/dashboard/Components/CustomRole/CustomRoleOptions";
+import { CUSTOM_ROLES_CARD_PLACE } from "@oneuptime/dashboard/Components/CustomRole/CustomRolesFold";
 import AppLink from "@oneuptime/dashboard/Components/AppLink/AppLink";
 import PageMap from "@oneuptime/dashboard/Utils/PageMap";
 import RouteMap, { RouteUtil } from "@oneuptime/dashboard/Utils/RouteMap";
@@ -38,6 +39,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { TeamPermissionGrant } from "Common/UI/Utils/GrantablePermission";
+import { getRouteToPageAnchor } from "Common/UI/Utils/PageAnchor";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
@@ -252,12 +254,20 @@ const CustomRoleApiKeysTable: FunctionComponent<ComponentProps> = (
     : translator.translateText("Give this role to an API key") ||
       "Give this role to an API key";
 
+  /*
+   * A key's page, opened at its Custom Roles card: the card is in the key's
+   * More settings, which a link to it opens there - so a key named here
+   * lands on the role that names it, not on a folded section.
+   */
   const getApiKeyRoute: (apiKeyId: string) => Route = (
     apiKeyId: string,
   ): Route => {
-    return RouteUtil.populateRouteParams(
-      RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route,
-      { modelId: new ObjectID(apiKeyId) },
+    return getRouteToPageAnchor(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SETTINGS_APIKEY_VIEW] as Route,
+        { modelId: new ObjectID(apiKeyId) },
+      ),
+      CUSTOM_ROLES_CARD_PLACE,
     );
   };
 

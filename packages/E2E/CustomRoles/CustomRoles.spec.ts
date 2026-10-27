@@ -253,6 +253,37 @@ async function openTeamPermissions(
   ).toBeVisible();
 }
 
+/*
+ * A team's More settings, at the foot of its Permissions page. Custom roles
+ * are an advanced feature most projects never use - the maintainer: "Move
+ * custom roles to More settings because it is an advanced feature." - so
+ * their card waits folded there, before Block Permissions, and the folded
+ * header names it with how many roles the team has.
+ */
+function teamMoreSettings(page: Page): Locator {
+  return page.getByTestId("team-permissions-advanced-section");
+}
+
+// What the folded header names, in order: "Custom Roles: 2", then the rest.
+function foldedNames(page: Page): Locator {
+  return teamMoreSettings(page).getByTestId("folded-section-item");
+}
+
+// Opens More settings by its header, as a person does.
+async function openTeamMoreSettings(page: Page): Promise<void> {
+  const header: Locator = teamMoreSettings(page).getByTestId(
+    "folded-section-header",
+  );
+  await header.click();
+  await expect(header).toHaveAttribute("aria-expanded", "true");
+}
+
+async function topOf(locator: Locator): Promise<number> {
+  const box: { y: number } | null = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  return box!.y;
+}
+
 async function submitDialog(page: Page): Promise<void> {
   await dialog(page).getByTestId("modal-footer-submit-button").click();
 }
@@ -1199,14 +1230,24 @@ test.describe("a role's page", () => {
 });
 
 test.describe("a team's Permissions page", () => {
-  test("lists its custom roles above its own permissions, each linking to its role", async ({
+  test("folds its custom roles under More settings, named with how many, each linking to its role", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openTeamPermissions(page, TEAM_IDS["platform"]!);
 
+    /*
+     * The page opens on what the team can do itself. Its custom roles wait
+     * folded, and the folded header says they are there, and how many.
+     */
     const customRoles: Locator = page.getByTestId("team-custom-roles");
+    await expect(foldedNames(page).first()).toHaveText("Custom Roles: 2");
+    await expect(foldedNames(page).last()).toContainText("Block Permissions");
+    await expect(customRoles).toBeHidden();
+    await screenshot(page, "team-permissions-folded");
+
+    await openTeamMoreSettings(page);
     await expect(customRoles).toBeVisible();
     await expect(customRoles).toContainText(
       "Named sets of permissions, made on the Roles page. Changing a role changes this team too.",
@@ -1223,6 +1264,12 @@ test.describe("a team's Permissions page", () => {
     const own: Locator = card(page, "Permissions");
     await expect(own.locator("tbody tr")).toHaveCount(1);
     await expect(row(own, "Workflow Viewer")).toBeVisible();
+
+    // Below what the team can do itself, above what it can never do.
+    expect(await topOf(own)).toBeLessThan(await topOf(customRoles));
+    expect(await topOf(customRoles)).toBeLessThan(
+      await topOf(card(page, "Block Permissions")),
+    );
 
     const ownListRead: RecordedList | undefined = (
       await fixtureLog(page)
@@ -1249,6 +1296,7 @@ test.describe("a team's Permissions page", () => {
     page: Page;
   }) => {
     await openTeamPermissions(page, TEAM_IDS["platform"]!);
+    await openTeamMoreSettings(page);
 
     const description: Locator = page
       .getByTestId("team-custom-roles")
@@ -1283,6 +1331,7 @@ test.describe("a team's Permissions page", () => {
     page: Page;
   }) => {
     await openTeamPermissions(page, TEAM_IDS["support"]!);
+    await openTeamMoreSettings(page);
     await page
       .getByTestId("team-custom-roles")
       .getByRole("button", { name: "Add Custom Role" })
@@ -1346,6 +1395,30 @@ test.describe("a team's Permissions page", () => {
       row(card(page, "Permissions"), "Workflow Viewer"),
     ).toBeVisible();
     await expect(page.getByTestId("team-custom-roles")).toHaveCount(0);
+    // More settings holds Block Permissions alone, as it always did.
+    await expect(foldedNames(page)).toHaveCount(1);
+    await expect(foldedNames(page).first()).toContainText("Block Permissions");
+  });
+
+  /*
+   * A link to the card - the Teams with this Role list, the docs - opens
+   * More settings there, once the card says it is drawn.
+   */
+  test("a link to its Custom Roles card opens More settings at the card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.goto(
+      `${TEAMS_ROUTE}/${TEAM_IDS["platform"]}/permissions#custom-roles`,
+    );
+
+    await expect(
+      teamMoreSettings(page).getByTestId("folded-section-header"),
+    ).toHaveAttribute("aria-expanded", "true");
+    const customRoles: Locator = page.getByTestId("team-custom-roles");
+    await expect(row(customRoles, "Team Lead")).toBeVisible();
+    await expect(customRoles).toBeInViewport();
   });
 
   /*
@@ -1364,6 +1437,10 @@ test.describe("a team's Permissions page", () => {
         1,
       );
       await expect(page.getByTestId("team-custom-roles")).toHaveCount(0);
+      // Nor does its folded More settings name one.
+      await expect(
+        teamMoreSettings(page).getByTestId("folded-section-header"),
+      ).not.toContainText("Custom Roles");
       await expect(
         page.getByRole("button", { name: "Add Custom Role" }),
       ).toHaveCount(0);
@@ -1508,6 +1585,7 @@ test.describe("in another language", () => {
     await page.goto(
       `${TEAMS_ROUTE}/${TEAM_IDS["members"]}/permissions?lang=de`,
     );
+    await openTeamMoreSettings(page);
     await page
       .getByTestId("team-custom-roles")
       .getByRole("button", { name: "Benutzerdefinierte Rolle hinzufügen" })
@@ -1528,6 +1606,11 @@ test.describe("in another language", () => {
     await page.goto(
       `${TEAMS_ROUTE}/${TEAM_IDS["platform"]}/permissions?lang=de`,
     );
+    // Folded under Weitere Einstellungen, which names the card in German.
+    await expect(foldedNames(page).first()).toHaveText(
+      "Benutzerdefinierte Rollen: 2",
+    );
+    await openTeamMoreSettings(page);
 
     const description: Locator = page
       .getByTestId("team-custom-roles")
@@ -1560,6 +1643,9 @@ test.describe("on a phone and in dark mode", () => {
     await screenshot(page, "phone-role-page");
 
     await openTeamPermissions(page, TEAM_IDS["platform"]!);
+    expect(await horizontalOverflow(page)).toBe(0);
+    await openTeamMoreSettings(page);
+    await expect(page.getByTestId("team-custom-roles")).toBeVisible();
     expect(await horizontalOverflow(page)).toBe(0);
     await screenshot(page, "phone-team-permissions");
   });

@@ -6,6 +6,7 @@ import SmsAPI from "./API/SMS";
 import WhatsAppAPI from "./API/WhatsApp";
 import TelegramAPI from "./API/Telegram";
 import WebhookAPI from "./API/Webhook";
+import CallAndSmsGatewayAPI from "./API/CallAndSmsGateway";
 import PushRelayAPI from "./API/PushRelay";
 import SMTPConfigAPI from "./API/SMTPConfig";
 import PhoneNumberAPI from "./API/PhoneNumber";
@@ -27,6 +28,10 @@ const NotificationFeatureSet: FeatureSet = {
     app.use([`/${APP_NAME}/whatsapp`, "/whatsapp"], WhatsAppAPI);
     app.use([`/${APP_NAME}/telegram`, "/telegram"], TelegramAPI);
     app.use([`/${APP_NAME}/webhook`, "/webhook"], WebhookAPI);
+    app.use(
+      [`/${APP_NAME}/call-and-sms-gateway`, "/call-and-sms-gateway"],
+      CallAndSmsGatewayAPI,
+    );
     app.use([`/${APP_NAME}/push-relay`, "/push-relay"], PushRelayAPI);
     app.use([`/${APP_NAME}/call`, "/call"], CallAPI);
     app.use([`/${APP_NAME}/smtp-config`, "/smtp-config"], SMTPConfigAPI);

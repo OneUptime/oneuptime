@@ -187,7 +187,9 @@ describe("a new on-call rule", () => {
   test("that says when to page in some other way is refused", () => {
     expect(() => {
       create(rule({ whenToPage: "Whenever" }));
-    }).toThrow('When to Page is "Right Away" or "Working Hours".');
+    }).toThrow(
+      'When to Page is "Right Away" or "Working Hours" or "After OneUptime AI".',
+    );
   });
 
   test("whose hours came as JSON, as an API call sends them, is read the same", () => {

@@ -20,7 +20,7 @@ Una policy di reperibilità decide chi viene avvisato per un incidente o un avvi
 
 **Chi viene avvisato per primo?** è facoltativo, e viene chiesto solo a chi può aggiungere regole di escalation: se resta vuoto, la policy non avvisa nessuno finché non ha una regola. **Descrizione** ed **Etichette** si trovano in **Altri campi**. Per aggiungere i livelli successivi, vedi [Regole di escalation](/docs/on-call/escalation-rules).
 
-L'elenco **Policy di reperibilità** mostra per ogni policy **Nome**, **Descrizione**, **Etichette** e **Proprietari**. Selezionate delle policy per **Aggiungi etichette**, **Rimuovi etichette**, **Aggiungi proprietario**, **Rimuovi proprietario**, **Archivia**, **Esporta: JSON** o per eliminarle. **Import JSON** crea policy da un'esportazione: un'esportazione contiene le impostazioni proprie di una policy, non le sue regole di escalation né i suoi proprietari.
+L'elenco **Policy di reperibilità** mostra per ogni policy **Nome**, **Descrizione**, **Etichette** e **Proprietari**. Selezionate delle policy per **Aggiungi etichette**, **Rimuovi etichette**, **Aggiungi proprietario**, **Rimuovi proprietario**, **Archivia**, **Esporta JSON** o per eliminarle. **Importa JSON** crea policy da un'esportazione: un'esportazione contiene le impostazioni proprie di una policy, non le sue regole di escalation né i suoi proprietari.
 
 ## Che cosa esegue una policy
 

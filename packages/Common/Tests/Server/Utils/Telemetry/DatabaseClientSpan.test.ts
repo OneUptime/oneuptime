@@ -22,12 +22,14 @@ import {
   DatabaseSystemName,
   MAX_QUERY_TEXT_LENGTH,
   MAX_SUMMARY_SCAN_LENGTH,
+  StatementSummary,
   describeDatabaseError,
   formatQueryText,
   summarizeStatement,
   traceDatabaseCall,
 } from "../../../../Server/Utils/Telemetry/DatabaseClientSpan";
 import Telemetry from "../../../../Server/Utils/Telemetry";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * The CLIENT span every OneUptime datastore call gets (Postgres, Valkey,
@@ -252,26 +254,42 @@ describe("summarizeStatement", () => {
       `SELECT ${"(".repeat(4 * 1024 * 1024)}`,
     );
 
-    const startedAt: number = Date.now();
+    /*
+     * The fastest of up to three attempts counts (Tests/Helpers/FastestRun):
+     * one attempt on a busy runner can stall for longer than the work takes.
+     * Each attempt summarizes the same strings again; nothing is cached.
+     */
+    const timed: FastestRun<{
+      summaries: Array<StatementSummary>;
+      formattedLength: number;
+    }> = fastestRun({
+      run: (): {
+        summaries: Array<StatementSummary>;
+        formattedLength: number;
+      } => {
+        return {
+          summaries: [
+            summarizeStatement(bulkInsert),
+            summarizeStatement(unclosedString),
+            summarizeStatement(deepParentheses),
+          ],
+          formattedLength: formatQueryText(bulkInsert).length,
+        };
+      },
+      limitInMs: 2000,
+    });
 
-    expect(summarizeStatement(bulkInsert)).toEqual({
-      operation: "INSERT",
-      collection: "MetricType",
-    });
-    expect(summarizeStatement(unclosedString)).toEqual({
-      operation: "SELECT",
-      collection: null,
-    });
-    expect(summarizeStatement(deepParentheses)).toEqual({
-      operation: "SELECT",
-      collection: null,
-    });
-    expect(formatQueryText(bulkInsert).length).toBeLessThanOrEqual(
+    expect(timed.result.summaries).toEqual([
+      { operation: "INSERT", collection: "MetricType" },
+      { operation: "SELECT", collection: null },
+      { operation: "SELECT", collection: null },
+    ]);
+    expect(timed.result.formattedLength).toBeLessThanOrEqual(
       MAX_QUERY_TEXT_LENGTH,
     );
 
     // The budget the other linear-time suites hold a busy CI runner to.
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

@@ -1,8 +1,10 @@
 import UserPushService from "../../../Server/Services/UserPushService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import ObjectID from "../../../Types/ObjectID";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { PUSH_NOTIFICATIONS_TURNED_OFF_MESSAGE } from "../../../Types/PushNotification/PushNotificationsTurnedOff";
 import {
   afterEach,
   beforeEach,
@@ -54,6 +56,10 @@ beforeEach(() => {
   jest
     .spyOn(UserPushService, "countBy")
     .mockResolvedValue(new PositiveNumber(0) as never);
+  // Push on for the server: the hook refuses every device while it is off.
+  jest
+    .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+    .mockResolvedValue(false);
 });
 
 afterEach(() => {
@@ -157,5 +163,31 @@ describe("the checks that were there before still come first", () => {
     );
 
     expect((outcome as Error).message).toBe("Device token is required");
+  });
+});
+
+describe("creating a device while the server has push turned off", () => {
+  test("refuses every device, saying why, through the generic create API too", async () => {
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(true);
+
+    const answer: unknown = await settle(create({}));
+
+    expect(answer).toBeInstanceOf(BadDataException);
+    expect((answer as BadDataException).message).toBe(
+      PUSH_NOTIFICATIONS_TURNED_OFF_MESSAGE,
+    );
+  });
+
+  test("a switch that cannot be read refuses the device too", async () => {
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockRejectedValue(new Error("database is down"));
+
+    const answer: unknown = await settle(create({}));
+
+    expect(answer).toBeInstanceOf(Error);
+    expect((answer as Error).message).toBe("database is down");
   });
 });

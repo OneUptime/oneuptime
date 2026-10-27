@@ -11,7 +11,7 @@ import {
   isRecommendedDetectionRule,
 } from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedSecurityEvent";
-import { SigmaRule } from "../../../../Types/SecurityEvent/SigmaRule";
+import SigmaRule from "../../../../Types/SecurityEvent/SigmaRule";
 import {
   SECURITY_TELEMETRY_SOURCES,
   SecurityTelemetrySourceDefinition,

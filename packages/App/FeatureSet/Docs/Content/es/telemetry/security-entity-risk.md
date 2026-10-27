@@ -24,7 +24,7 @@ flowchart TB
     score -->|"En el<br/>umbral"| case["Se abre un caso,<br/>o el caso abierto<br/>asume el riesgo"]
 ```
 
-Abra **Productos → Eventos de seguridad → Riesgo de entidades**: cada usuario, host y dirección IP con riesgo ahora, primero los de mayor riesgo, con su nivel, cuánto importa, qué lo encontró y cuándo. Cada uno se abre en una página propia.
+Abra **Productos → Eventos de seguridad → Riesgo de entidades**: cada usuario, host y dirección IP con riesgo ahora, primero los de mayor riesgo, con su nivel, cuánto importa, qué lo encontró y cuándo. Cada uno se abre en una página propia. **Entidades de mayor riesgo**, en la vista general, muestra el principio de esta lista, y **Buscar una entidad**, debajo de ella, busca cualquier valor en 30 días de eventos, también un dominio o un hash de archivo.
 
 ## Antes de empezar
 

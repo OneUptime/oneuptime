@@ -85,7 +85,7 @@ Klik bij **Servicegegevens** op **Details bewerken** om de **Naam**, de **Beschr
 Klik bij **Service-instellingen** op **Instellingen bewerken**. De **Servicekleur** markeert de service in grafieken en lijsten; een nieuwe service krijgt een eigen kleur. **Technologiestack** is optioneel: laat het leeg om de taal te tonen die uit de telemetrie is herkend.
 :::
 
-Op dezelfde pagina staat de bewaartermijn van de service. De kaarten **Bewaartermijn telemetriegegevens** en **Bewaring per telemetrietype** bewaren de telemetrie korter of langer dan de standaardbewaartermijn van het project. Ze horen bij de [Enterprise Edition](/docs/self-hosted/enterprise), en bij het Scale-abonnement op OneUptime Cloud; zonder die kaarten toont de pagina wat ze toevoegen, en houdt de service de bewaartermijn van het project.
+Op dezelfde pagina staat de bewaartermijn van de service, ingeklapt onder **Meer instellingen**. De kaarten **Bewaartermijn telemetriegegevens** en **Bewaring per telemetrietype** bewaren de telemetrie korter of langer dan de standaardbewaartermijn van het project. Ze horen bij de [Enterprise Edition](/docs/self-hosted/enterprise), en bij het Scale-abonnement op OneUptime Cloud; zonder die kaarten toont de pagina wat ze toevoegen, en houdt de service de bewaartermijn van het project.
 
 ## Labels en eigenaren automatisch toekennen
 

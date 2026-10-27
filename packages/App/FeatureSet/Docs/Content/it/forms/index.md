@@ -93,7 +93,7 @@ In **Condividi**, copia il link e invialo alle persone che devono usare il modul
 | **Costruisci** | Il nome e la descrizione del modulo, il suo **Branding** (logo e favicon, ripiegati) e l'editor: le sue domande, la tavolozza delle domande e l'**Anteprima**. |
 | **Modelli** | Insiemi di risposte con un nome da cui si può iniziare il modulo, come ognuno pone le domande, quello con cui il modulo si apre e il link proprio di ciascuno. |
 | **All'invio** | Cosa crea ogni invio e come viene compilato ognuno dei suoi campi. **Modifica impostazioni** cambia i valori predefiniti e ciò che vale sempre. |
-| **Condividi** | **Accetta invii**, il **Link di condivisione**, il messaggio mostrato dopo l'invio e la **Lista IP consentiti**. |
+| **Condividi** | **Accetta invii**, il **Link di condivisione**, il messaggio mostrato dopo l'invio e, in **Altre impostazioni**, la **Lista IP consentiti**. |
 | **Invii** | Ogni invio fatto tramite il modulo, il più recente per primo, con le sue risposte e ciò che ha creato. |
 | **Duplica modulo** | In **Avanzato**: una copia del modulo, con un nome scelto per te, con le sue domande, i modelli, le impostazioni All'invio, il branding, il messaggio di ringraziamento e la lista degli IP consentiti, e un link proprio. La copia parte disattivata e si apre nel suo editor. |
 | **Elimina modulo** | L'eliminazione del modulo, in **Avanzato**. I suoi invii vengono eliminati con lui; gli incidenti e gli eventi che ha creato no. |

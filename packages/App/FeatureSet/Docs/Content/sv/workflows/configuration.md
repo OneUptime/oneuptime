@@ -75,7 +75,7 @@ Du kan flytta ett arbetsflöde mellan projekt, eller mellan en självhostad inst
 @tab Exportera
 Öppna arbetsflödet, gå till **Inställningar** och klicka på **Exportera Arbetsflöde**. För att lägga flera arbetsflöden i en fil markerar du dem i listan **Arbetsflöden** och väljer **Exportera JSON**.
 @tab Importera
-Klicka på **Import JSON** i listan **Arbetsflöden** och välj en fil som exporterats från valfritt OneUptime-projekt. Ett arbetsflöde vars namn projektet redan har importeras med "(Imported)" efter namnet.
+Klicka på **Importera JSON** i listan **Arbetsflöden** och välj en fil som exporterats från valfritt OneUptime-projekt. Ett arbetsflöde vars namn projektet redan har importeras med "(Imported)" efter namnet.
 :::
 
 Filen innehåller arbetsflödets namn, beskrivning, aktiveringsläge och graf. Den innehåller medvetet inte:

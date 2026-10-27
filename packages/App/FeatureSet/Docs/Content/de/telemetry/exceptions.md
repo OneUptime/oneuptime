@@ -81,7 +81,7 @@ Das Seitenmenü der Seite ordnet, was Sie mit einer Ausnahme tun:
 
 ## Beheben, wieder öffnen und archivieren
 
-Die Schaltflächen oben auf der Seite der Ausnahme und ihre Seite **Einstellungen** ändern ihren Status:
+Die Schaltflächen oben auf der Seite der Ausnahme, ihre Seite **Einstellungen** und das Menü ⋯ in ihrer Zeile in der Liste ändern ihren Status:
 
 | Aktion | Wann Sie sie nutzen | Was danach geschieht |
 | --- | --- | --- |
@@ -91,6 +91,8 @@ Die Schaltflächen oben auf der Seite der Ausnahme und ihre Seite **Einstellunge
 | **Aus Archiv entfernen** | Sie wollen wieder davon hören. | Sie steht wieder in der Liste, in die sie gehört. |
 
 **Einstellungen** zeigt, wer die Ausnahme zuletzt als behoben markiert oder archiviert hat, und wann. Ihre Schaltflächen lauten **Als gelöst markieren** oder **Als ungelöst markieren** und **Archivieren** oder **Aus Archiv entfernen**.
+
+Um mehrere auf einmal zu ändern, haken Sie ihre Zeilen in der Liste an, oder das Kästchen über den Zeilen für alle Ausnahmen auf der Seite, und nutzen Sie dieselben Aktionen unter **Massenaktionen**. Das Ergebnis zeigt, welche Ausnahmen geändert wurden, welche unverändert blieben und warum.
 
 ## Fehlerklassen
 

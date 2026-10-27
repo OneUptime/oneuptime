@@ -1156,7 +1156,8 @@ describe("what a Runner field shows, and its line", () => {
       renderField({ work, stepType, value: BASTION_ID });
 
       expect(valueLabel()).toHaveTextContent("prod-bastion · Connected");
-      expect(valueLabel()).toHaveAttribute("dir", "auto");
+      // Read the way most of its letters do: an English name, left to right.
+      expect(valueLabel()).toHaveAttribute("dir", "ltr");
     });
   }
 
@@ -1167,7 +1168,7 @@ describe("what a Runner field shows, and its line", () => {
     });
 
     expect(valueLabel()).toHaveTextContent("prod-default");
-    expect(valueLabel()).toHaveAttribute("dir", "auto");
+    expect(valueLabel()).toHaveAttribute("dir", "ltr");
   });
 
   for (const [label, work] of [

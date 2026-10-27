@@ -1195,3 +1195,34 @@ describe("the strings the choice adds", () => {
     );
   });
 });
+
+/*
+ * The table waits folded under Notification Settings' More settings, whose
+ * header says how many configs it lists: the table tells the page after
+ * each load (NotificationSettingsOwnSenders holds the page).
+ */
+describe("what the table tells its page", () => {
+  test.each([0, 1, 4])(
+    "it says how many configs it lists: %i",
+    async (listedCount: number) => {
+      const counts: Array<number> = [];
+
+      configCount = listedCount;
+
+      render(
+        <MemoryRouter>
+          <CustomCallSMSTable
+            onCountChange={(count: number) => {
+              counts.push(count);
+            }}
+          />
+        </MemoryRouter>,
+      );
+
+      await settle();
+
+      expect(counts.length).toBeGreaterThan(0);
+      expect(counts[counts.length - 1]).toBe(listedCount);
+    },
+  );
+});

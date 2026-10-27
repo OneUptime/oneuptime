@@ -1584,9 +1584,20 @@ describe("the Metrics monitor", () => {
 
     expect([...documented.keys()].sort()).toEqual([...order].sort());
 
+    /*
+     * Every window ends at one instant, not now, so the check is the same on
+     * whatever day it runs. Past 1, 3 and 7 Days and Past 180 Days each sit
+     * on a bucket's edge: a day range is 24 hours a day, not calendar days,
+     * or a window the clocks went back inside would be an hour longer and
+     * tip into the next bucket (RollingTimeUtilLondon).
+     */
+    const windowEnd: Date = new Date(Date.UTC(2026, 9, 16, 12, 0, 0));
+
     for (const rollingTime of Object.values(RollingTime)) {
-      const window: InBetween<Date> =
-        RollingTimeUtil.convertToStartAndEndDate(rollingTime);
+      const window: InBetween<Date> = RollingTimeUtil.convertToStartAndEndDate(
+        rollingTime,
+        windowEnd,
+      );
       const interval: AggregationInterval =
         AggregationIntervalUtil.getAggregationIntervalForWindow({
           startDate: window.startValue,
@@ -2707,8 +2718,9 @@ describe("status page branding", () => {
         ),
       ),
     ).toContain("if (!props.hidePoweredByOneUptimeBranding) {");
+    // Folded under More settings, below the card of what the page shows.
     expect(BRANDING).toContain(
-      `It has a card of its own, **${StatusPagePoweredByCopy.cardTitle}**, under the **${StatusPageDisplaySettingsCopy.cardTitle}** card on **Status Pages → your page → Advanced → Advanced Settings** (\`{id}/settings\`): **${StatusPagePoweredByCopy.switchTitle}**, on by default.`,
+      `It has a card of its own, **${StatusPagePoweredByCopy.cardTitle}**, folded under **More settings** below the **${StatusPageDisplaySettingsCopy.cardTitle}** card on **Status Pages → your page → Advanced → Advanced Settings** (\`{id}/settings\`): **${StatusPagePoweredByCopy.switchTitle}**, on by default.`,
     );
     expect(BRANDING).toContain(
       "Self-hosted, hiding it is part of the Enterprise Edition: on the Community Edition, every status page shows the line.",

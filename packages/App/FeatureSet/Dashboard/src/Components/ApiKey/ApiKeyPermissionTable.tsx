@@ -22,6 +22,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ApiKeyPermission from "Common/Models/DatabaseModels/ApiKeyPermission";
 import Label from "Common/Models/DatabaseModels/Label";
 import Project from "Common/Models/DatabaseModels/Project";
+import { getApiKeyPermissionsEmptyMessage } from "../CustomRole/CustomRolesFold";
 import { getRolePickerFormField } from "../Permission/RolePickerFormField";
 import PermissionScopeCell from "../Permission/PermissionScopeCell";
 import {
@@ -38,7 +39,7 @@ import React, {
 
 /*
  * An API key's permissions: what it may do, and - under the page's folded
- * Advanced section - what it may never do.
+ * More settings - what it may never do.
  *
  * What it may do is added the way a team's is (Components/Team/
  * TeamPermissionTable): Add Role picks a ready-made set of permissions - a
@@ -50,7 +51,7 @@ import React, {
  * Block permissions keep the one-permission form they always had.
  *
  * Only the key's own permissions are listed: what comes with a custom role
- * given to the key is the role's, listed by role above
+ * given to the key is the role's, listed by role under More settings
  * (ApiKeyCustomRoleTable) and changed on the role's page.
  */
 
@@ -70,6 +71,12 @@ export interface ComponentProps {
   currentProject: Project | null;
   // How many rows the table holds after each load.
   onPermissionCountChange?: ((count: number) => void) | undefined;
+  /*
+   * How many custom roles the key has (folded under More settings): with
+   * one, the empty allow card says the roles give the key its access
+   * rather than that it can do nothing.
+   */
+  customRoleCount?: number | undefined;
 }
 
 const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
@@ -285,7 +292,7 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
         apiKeyId: apiKeyId,
         projectId: ProjectUtil.getCurrentProjectId()!,
         isBlockPermission: isBlock,
-        // A custom role's copies are the role's, listed by role above.
+        // A custom role's copies are the role's, listed by role under More settings.
         apiKeyCustomRoleId: new IsNull(),
       }}
       onBeforeCreate={(item: ApiKeyPermission): Promise<ApiKeyPermission> => {
@@ -318,7 +325,7 @@ const ApiKeyPermissionTable: FunctionComponent<ComponentProps> = (
       noItemsMessage={
         isBlock
           ? "Nothing is blocked for this API key."
-          : "This key can do nothing yet. Add a role to give it access."
+          : getApiKeyPermissionsEmptyMessage(props.customRoleCount || 0)
       }
       formFields={
         !isBlock && createPermissionType === CreatePermissionType.RoleBased

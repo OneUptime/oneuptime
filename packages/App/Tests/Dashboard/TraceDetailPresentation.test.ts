@@ -2,6 +2,10 @@ import { describe, expect, test } from "@jest/globals";
 import { SpanEvent, SpanKind } from "Common/Models/AnalyticsModels/Span";
 import Service from "Common/Models/DatabaseModels/Service";
 import Color from "Common/Types/Color";
+import {
+  Translator,
+  createTranslator,
+} from "Common/UI/Utils/TranslateTemplate";
 import { SpanSelfTime } from "Common/Utils/Traces/CriticalPath";
 import {
   AttributeEntry,
@@ -278,19 +282,30 @@ describe("summarizeTrace", () => {
  * can also be on a page not loaded yet.
  */
 describe("getOrphanSpanNote", () => {
+  const english: Translator = createTranslator(undefined);
+
   test("no span missing a parent, no badge", () => {
-    expect(getOrphanSpanNote({ orphanCount: 0, hasMoreSpans: false })).toBe(
-      null,
-    );
-    expect(getOrphanSpanNote({ orphanCount: 0, hasMoreSpans: true })).toBe(
-      null,
-    );
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 0,
+        hasMoreSpans: false,
+        translator: english,
+      }),
+    ).toBe(null);
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 0,
+        hasMoreSpans: true,
+        translator: english,
+      }),
+    ).toBe(null);
   });
 
   test("a whole trace: the parent was not received, and why that happens", () => {
     const note: OrphanSpanNote = getOrphanSpanNote({
       orphanCount: 1,
       hasMoreSpans: false,
+      translator: english,
     })!;
 
     expect(note.label).toBe("1 span missing a parent");
@@ -298,20 +313,116 @@ describe("getOrphanSpanNote", () => {
       "This span names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
     );
     expect(
-      getOrphanSpanNote({ orphanCount: 3, hasMoreSpans: false })!.hint,
-    ).toMatch(/^Each of these spans names a parent span that was not received/);
+      getOrphanSpanNote({
+        orphanCount: 3,
+        hasMoreSpans: false,
+        translator: english,
+      })!,
+    ).toEqual({
+      label: "3 spans missing a parent",
+      hint: "Each of these spans names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+    });
   });
 
   test("while more spans remain to load, the count is only so far: a parent may be on a later page", () => {
     const note: OrphanSpanNote = getOrphanSpanNote({
       orphanCount: 3,
       hasMoreSpans: true,
+      translator: english,
     })!;
 
     expect(note.label).toBe("3 spans missing a parent so far");
     expect(note.hint).toBe(
       "Each of these spans names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
     );
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 1,
+        hasMoreSpans: true,
+        translator: english,
+      })!,
+    ).toEqual({
+      label: "1 span missing a parent so far",
+      hint: "This span names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+    });
+  });
+
+  /*
+   * Each sentence is looked up whole, so it reads wholly in the reader's
+   * language or wholly in English. The hint is chosen by the count: a
+   * language whose "one" form also covers 21 (Russian) must still say
+   * "each of these spans" for 21 of them.
+   */
+  test("each sentence is looked up whole, in the reader's language", () => {
+    const wording: Record<string, string> = {
+      "{{count}} spans missing a parent": "{{count}} Spans ohne Elternspan",
+      "{{count}} spans missing a parent_one": "{{count}} Span ohne Elternspan",
+      "This span names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.":
+        "Dieser Span nennt einen Elternspan, der nicht empfangen wurde.",
+      "Each of these spans names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.":
+        "Jeder dieser Spans nennt einen Elternspan, der nicht empfangen wurde.",
+    };
+    const german: Translator = createTranslator((text: string) => {
+      return wording[text];
+    }, "de");
+
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 1,
+        hasMoreSpans: false,
+        translator: german,
+      }),
+    ).toEqual({
+      label: "1 Span ohne Elternspan",
+      hint: "Dieser Span nennt einen Elternspan, der nicht empfangen wurde.",
+    });
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 1234,
+        hasMoreSpans: false,
+        translator: german,
+      }),
+    ).toEqual({
+      label: "1.234 Spans ohne Elternspan",
+      hint: "Jeder dieser Spans nennt einen Elternspan, der nicht empfangen wurde.",
+    });
+
+    // A sentence the locale has not worded yet stays wholly English.
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 2,
+        hasMoreSpans: true,
+        translator: german,
+      }),
+    ).toEqual({
+      label: "2 spans missing a parent so far",
+      hint: "Each of these spans names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+    });
+
+    // Russian puts 21 in its "one" form; the hint still speaks of several.
+    const russian: Translator = createTranslator((text: string) => {
+      return (
+        {
+          "{{count}} spans missing a parent_one": "{{count}} спан без родителя",
+          "{{count}} spans missing a parent": "Спанов без родителя: {{count}}",
+          "This span names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.":
+            "Этот спан ссылается на родительский спан, который не был получен.",
+          "Each of these spans names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.":
+            "Каждый из этих спанов ссылается на родительский спан, который не был получен.",
+        } as Record<string, string>
+      )[text];
+    }, "ru");
+
+    expect(
+      getOrphanSpanNote({
+        orphanCount: 21,
+        hasMoreSpans: false,
+        translator: russian,
+      }),
+    ).toEqual({
+      label: "21 спан без родителя",
+      hint: "Каждый из этих спанов ссылается на родительский спан, который не был получен.",
+    });
   });
 });
 

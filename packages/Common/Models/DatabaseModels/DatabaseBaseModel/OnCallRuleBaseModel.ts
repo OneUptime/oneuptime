@@ -18,8 +18,11 @@ import RuleBaseModel from "./RuleBaseModel";
  * (WorkingHours). A record that matches the rule outside its hours gets a
  * run that waits, and pages when they begin (OnCallDutyPolicyRunWait).
  *
- * The three columns are the same on the four rules, so they are declared
- * once, here. Like the criteria column, they take the concrete rule's table
+ * An alert or incident rule can instead let OneUptime AI respond first, for
+ * at most its hold time (OnCallPolicyAiHold).
+ *
+ * The columns are the same on the four rules, so they are declared once,
+ * here. Like the criteria column, they take the concrete rule's table
  * permissions: whoever may write the rule may say when it pages.
  */
 export default class OnCallRuleBaseModel extends RuleBaseModel {
@@ -28,7 +31,7 @@ export default class OnCallRuleBaseModel extends RuleBaseModel {
     type: TableColumnType.ShortText,
     title: "When to Page",
     description:
-      "When the on-call policies of this rule page: Right Away, as soon as a record matches it, or Working Hours, only during the working hours of this rule - a record that matches it outside them is paged about when they begin.",
+      "When the on-call policies of this rule page: Right Away, as soon as a record matches it; Working Hours, only during the working hours of this rule - a record that matches it outside them is paged about when they begin; or After OneUptime AI, for alert and incident rules - when OneUptime AI may fix what the record is about, it responds first, and the policies page only if it has not resolved the record within the hold time.",
     defaultValue: OnCallRuleWhenToPage.RightAway,
     isDefaultValueColumn: true,
     example: OnCallRuleWhenToPage.RightAway,
@@ -70,6 +73,25 @@ export default class OnCallRuleBaseModel extends RuleBaseModel {
   })
   public workingHoursTimezone?: Timezone = undefined;
 
+  /*
+   * How long OneUptime AI may hold a page, when When to Page is After
+   * OneUptime AI (OnCallPolicyAiHold). Empty is the default, 10 minutes;
+   * any value is read within 1 to 30 (getAiHoldTimeInMinutes).
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    title: "OneUptime AI Hold Time In Minutes",
+    description:
+      "When When to Page is After OneUptime AI: how many minutes OneUptime AI may hold the page while it investigates and fixes (1 to 30). Empty: 10. If OneUptime AI has not resolved the record by then, the policies page as usual.",
+    example: 10,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public aiHoldTimeInMinutes?: number = undefined;
+
   public override getColumnAccessControlForAllColumns(): Dictionary<ColumnAccessControl> {
     const dictionary: Dictionary<ColumnAccessControl> = {
       ...super.getColumnAccessControlForAllColumns(),
@@ -79,6 +101,7 @@ export default class OnCallRuleBaseModel extends RuleBaseModel {
       "whenToPage",
       "workingHours",
       "workingHoursTimezone",
+      "aiHoldTimeInMinutes",
     ]) {
       dictionary[column] = {
         create: this.createRecordPermissions,

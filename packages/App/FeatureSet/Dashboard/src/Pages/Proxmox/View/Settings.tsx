@@ -8,7 +8,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
-import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
+import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -99,7 +99,7 @@ const ProxmoxClusterSettings: FunctionComponent<
           ],
         }}
       />
-      <TelemetryResourceRetentionSettings<ProxmoxCluster>
+      <TelemetryResourceMoreSettings<ProxmoxCluster>
         modelType={ProxmoxCluster}
         modelId={modelId}
         resourceName="Proxmox cluster"

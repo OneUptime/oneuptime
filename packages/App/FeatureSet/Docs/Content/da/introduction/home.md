@@ -122,10 +122,10 @@ To bjælker løber hen over toppen af hver side.
 | Hvor | Hvad der er |
 | --- | --- |
 | Øverst til venstre | Projektvælgeren: skift til et andet af dine projekter, eller opret et nyt. |
-| Øverst til højre | **Søg** og **Ask AI**, notifikationsklokken med det, der kræver dig nu (aktive hændelser og advarsler, de vagtpolitikker, du har vagt i, ventende invitationer), **Hjælp**, og dit billede, som åbner menuen for din [konto](/docs/introduction/your-account). |
+| Øverst til højre | **Søg** og **Spørg AI**, notifikationsklokken med det, der kræver dig nu (aktive hændelser og advarsler, de vagtpolitikker, du har vagt i, ventende invitationer), **Hjælp**, og dit billede, som åbner menuen for din [konto](/docs/introduction/your-account). |
 | Under dem | **Hjem** og **Produkter** til venstre, **Brugerindstillinger** til højre: hvordan OneUptime kontakter dig i dette projekt. |
 
-**Hjælp** åbner denne dokumentation (**Dokumentation**) og listen **Keyboard shortcuts** og tilbyder support via e-mail og på Slack. På en smal skærm, som på en telefon, er **Søg**, **Ask AI** og **Hjælp** udeladt for at spare plads; klokken og dit billede bliver.
+**Hjælp** åbner denne dokumentation (**Dokumentation**) og listen **Keyboard shortcuts** og tilbyder support via e-mail og på Slack. På en smal skærm, som på en telefon, er **Søg**, **Spørg AI** og **Hjælp** udeladt for at spare plads; klokken og dit billede bliver.
 
 ## Søg efter en side, en indstilling eller en handling
 

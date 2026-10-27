@@ -24,6 +24,53 @@ function rows(count: number): Array<JSONObject> {
 }
 
 describe("ChatWidgetMarkdown", () => {
+  /*
+   * A card in an exported conversation says each fact once, as the card in
+   * the dialog does - a card saved before its facts were cut too.
+   */
+  describe("a resource card", () => {
+    test("is its heading, its subheading and the facts they do not already say", () => {
+      const markdown: string = widgetToMarkdown({
+        id: "W1",
+        type: AIChatWidgetType.ResourceCard,
+        title: "Alert created",
+        data: {
+          resourceType: "Alert",
+          heading: "ALT-12 · High memory usage on test01",
+          subheading: "Severity: High",
+          fields: [
+            { label: "Number", value: "ALT-12" },
+            { label: "Severity", value: "High" },
+            { label: "State", value: "Created" },
+          ],
+        },
+      });
+
+      expect(markdown).toContain("_ALERT_");
+      expect(markdown).toContain("**ALT-12 · High memory usage on test01**");
+      expect(markdown).toContain("Severity: High");
+      expect(markdown).toContain("- **State:** Created");
+      expect(markdown).not.toContain("**Number:**");
+      expect(markdown).not.toContain("**Severity:**");
+    });
+
+    test("with nothing left to say under them, it has no list at all", () => {
+      const markdown: string = widgetToMarkdown({
+        id: "W1",
+        type: AIChatWidgetType.ResourceCard,
+        title: "Incident created",
+        data: {
+          resourceType: "Incident",
+          heading: "#42 · Payment API down",
+          fields: [{ label: "Number", value: "#42" }],
+        },
+      });
+
+      expect(markdown).toContain("**#42 · Payment API down**");
+      expect(markdown).not.toContain("- **");
+    });
+  });
+
   describe("widgetToMarkdown", () => {
     test("renders the title and description", () => {
       const markdown: string = widgetToMarkdown({

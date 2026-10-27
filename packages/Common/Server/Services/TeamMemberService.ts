@@ -1315,6 +1315,12 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       acceptedRemovedByTeam.set(key, removedOfTeam);
     }
 
+    // A removal lifts the team's blocks from whoever stays. See the helper.
+    await this.assertRemoverMayLiftBlocks({
+      members: members,
+      props: deleteBy.props,
+    });
+
     for (const removedOfTeam of acceptedRemovedByTeam.values()) {
       const membersInTeam: PositiveNumber = await this.countBy({
         query: {
@@ -1347,6 +1353,132 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       deleteBy: deleteBy,
       carryForward: members,
     };
+  }
+
+  /*
+   * TAKING SOMEONE OUT OF A TEAM LIFTS ITS BLOCKS FROM THEM. A block on one
+   * team wins over an allow on another (HeldPermissions), so once a person
+   * is out of a team that blocks Incident Member for the Security label,
+   * the Incident Member another team of theirs grants reaches the Security
+   * incidents too. Lifting a block is granting what it blocks, as deleting
+   * the block row is: whoever removes an accepted membership - the person
+   * leaving included - could grant every block row of its team
+   * (TeamPermissionService.assertCanLiftTeamBlocks), or the removal is
+   * refused, before anything is removed.
+   *
+   * Asked only where a block is lifted from someone: of an accepted
+   * membership (a pending invitation holds no permissions) whose person
+   * keeps another accepted membership in the project once `members` are
+   * removed. Someone who leaves the project with it keeps no allow for the
+   * block to hold back. Root writes (SCIM, SSO, OneUptime's own) are not
+   * asked. `members` are the memberships a delete removes, each read with
+   * its id, person, project, team and whether it was accepted.
+   */
+  @CaptureSpan()
+  public async assertRemoverMayLiftBlocks(data: {
+    members: Array<TeamMember>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    // Nothing to read for someone who may hand on every permission.
+    if (TeamPermissionService.canGrantEveryPermission(data.props)) {
+      return;
+    }
+
+    // Every membership the delete removes, accepted or not, by person and project.
+    const removedIdsByPerson: Map<string, Array<ObjectID>> = new Map();
+
+    for (const member of data.members) {
+      if (!member.id || !member.userId || !member.projectId) {
+        continue;
+      }
+
+      const key: string = `${member.userId.toString()}:${member.projectId.toString()}`;
+      const removedIds: Array<ObjectID> = removedIdsByPerson.get(key) || [];
+
+      removedIds.push(member.id);
+      removedIdsByPerson.set(key, removedIds);
+    }
+
+    // Whether a person keeps an accepted membership, asked once each.
+    const keepsMembership: Map<string, boolean> = new Map<string, boolean>();
+
+    /*
+     * The teams whose blocks are lifted from someone, by project and by
+     * whether that someone is the remover, leaving.
+     */
+    const liftedByProject: Map<
+      string,
+      {
+        projectId: ObjectID;
+        teamIds: Map<string, ObjectID>;
+        leaves: boolean;
+      }
+    > = new Map();
+
+    for (const member of data.members) {
+      if (
+        !member.hasAcceptedInvitation ||
+        !member.userId ||
+        !member.projectId ||
+        !member.teamId
+      ) {
+        continue;
+      }
+
+      const personKey: string = `${member.userId.toString()}:${member.projectId.toString()}`;
+      let keeps: boolean | undefined = keepsMembership.get(personKey);
+
+      if (keeps === undefined) {
+        keeps =
+          (
+            await this.countBy({
+              query: {
+                userId: member.userId,
+                projectId: member.projectId,
+                hasAcceptedInvitation: true,
+                _id: QueryHelper.notIn(removedIdsByPerson.get(personKey) || []),
+              },
+              props: {
+                isRoot: true,
+              },
+            })
+          ).toNumber() > 0;
+
+        keepsMembership.set(personKey, keeps);
+      }
+
+      if (!keeps) {
+        continue;
+      }
+
+      const leaves: boolean = Boolean(
+        data.props.userId &&
+          data.props.userId.toString().toLowerCase() ===
+            member.userId.toString().toLowerCase(),
+      );
+      const liftKey: string = `${member.projectId.toString()}:${leaves}`;
+      const lifted: {
+        projectId: ObjectID;
+        teamIds: Map<string, ObjectID>;
+        leaves: boolean;
+      } = liftedByProject.get(liftKey) || {
+        projectId: member.projectId,
+        teamIds: new Map<string, ObjectID>(),
+        leaves: leaves,
+      };
+
+      lifted.teamIds.set(member.teamId.toString().toLowerCase(), member.teamId);
+      liftedByProject.set(liftKey, lifted);
+    }
+
+    for (const lifted of liftedByProject.values()) {
+      await TeamPermissionService.assertCanLiftTeamBlocks({
+        teamIds: Array.from(lifted.teamIds.values()),
+        projectId: lifted.projectId,
+        props: data.props,
+        leaves: lifted.leaves,
+      });
+    }
   }
 
   @CaptureSpan()

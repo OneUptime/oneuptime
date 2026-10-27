@@ -1,6 +1,6 @@
 /*
  * Offline fixture for the Security Events SOC pages: the overview, the case
- * queue, a case, entities, the detection rules, the rule library, threat
+ * queue, a case, the detection rules, the rule library, threat
  * intel, ATT&CK coverage, playbooks, a playbook, the playbook runs, entity
  * risk and an entity's page, and the project's case priorities, statuses and
  * risk scoring (Settings) - the production layout
@@ -9,8 +9,8 @@
  *
  * Only the data boundary is replaced: ModelAPI, AnalyticsModelAPI (the
  * threat-intel indicators) and API answer from the in-memory tables below,
- * and the Security product's own routes (overview,
- * top entities, entity activity) answer what the server would work out from
+ * and the Security product's own routes (the overview, with its riskiest
+ * entities, and entity activity) answer what the server would work out from
  * the same rows - the overview's numbers come from
  * computeSecurityOverviewMetrics, the function the server calls. Realtime is
  * stubbed: nothing here pushes changes.
@@ -74,6 +74,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import {
   BrowserRouter,
+  Navigate,
   Route,
   Routes,
   useLocation,
@@ -89,6 +90,7 @@ import SecurityCasesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Secur
 import SecurityCaseViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Layout";
 import SecurityCaseOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Index";
 import SecurityCaseTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Timeline";
+import SecurityCaseStoryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Story";
 import SecurityCaseDetectionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Detections";
 import SecurityCaseEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Entities";
 import SecurityCaseConnectedSignalsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/ConnectedSignals";
@@ -96,7 +98,6 @@ import SecurityCasePlaybookRunsPage from "../../../App/FeatureSet/Dashboard/src/
 import SecurityCaseNotesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Notes";
 import SecurityCaseAuditLogsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/AuditLogs";
 import SecurityCaseDeletePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Delete";
-import SecurityEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Entities";
 import RuleLibraryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/RuleLibrary";
 import DetectionRulesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
 import ThreatIntelPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/ThreatIntel";
@@ -111,6 +112,8 @@ import SecurityCaseStatusesPage from "../../../App/FeatureSet/Dashboard/src/Page
 import SecurityEntityRiskPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRisk";
 import SecurityEntityRiskViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRiskView";
 import SecurityRiskScoringPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Settings/RiskScoring";
+import SecurityEntityRisk from "Common/Models/DatabaseModels/SecurityEntityRisk";
+import { SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT } from "Common/Types/SecurityCase/SecurityEntityRisk";
 import {
   entityRiskCase,
   isEntityRiskTable,
@@ -122,10 +125,12 @@ import {
   CONNECTION_SCENARIOS,
   createConnectionsFixture,
 } from "./ConnectionsFixture";
+import { createCaseContextFixture } from "./CaseContextFixture";
 import { SECURITY_PLAYBOOK_TEMPLATES } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplates";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
 import RouteMap, {
+  RouteUtil,
   SecurityEventsRoutePath,
 } from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -136,6 +141,7 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseFeed, {
   SecurityCaseFeedEventType,
@@ -144,11 +150,13 @@ import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
 import SecurityDetection from "Common/Models/DatabaseModels/SecurityDetection";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
@@ -240,8 +248,13 @@ const isEmpty = params.get("empty") === "1";
  * ?quiet=1: a project that has set Security up - a connection, its logs,
  * rules and playbooks - and that nothing has happened to yet: no cases, no
  * detections, no runs. What "All quiet" is for.
+ *
+ * ?quiet=risk: the same month, but its rules raise alerts rather than
+ * cases, which still adds risk: Entity Risk lists its entities, and the
+ * Overview's only news is its Riskiest Entities.
  */
-const isQuiet = !isEmpty && params.get("quiet") === "1";
+const isRiskOnlyMonth = !isEmpty && params.get("quiet") === "risk";
+const isQuiet = !isEmpty && (params.get("quiet") === "1" || isRiskOnlyMonth);
 const hasHistory = !isEmpty && !isQuiet;
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
 /*
@@ -325,17 +338,23 @@ const readFailure = READ_FAILURES.includes(params.get("fail"))
   ? params.get("fail")
   : "";
 /*
+ * ?riskiest=fail: the overview could not read the riskiest entities, as the
+ * server answers when its read of them fails (riskiestEntities: null) - the
+ * card says so, with Try again, and the rest of the Overview is drawn.
+ */
+const isRiskiestUnreadable = params.get("riskiest") === "fail";
+/*
  * ?ranked=: how much the Overview's ranked lists hold, beside the queue of
  * open cases (always the project's priorities and open statuses) and the
  * four verdicts - for the rows of cards of different heights:
  *
- *   (none given)  the month as it is: six rules, eight tactics, eight
- *                 entities - every list long
+ *   (none given)  the month as it is: six rules, eight tactics, the eight
+ *                 riskiest entities of nine with risk - every list long
  *   short         a quieter month, as the maintainer's own Overview read:
  *                 two rules raised the detections, two tactics are behind
- *                 the cases, two entities were named
- *   none          nothing to rank: no rule, tactic or entity, so each of
- *                 those cards says so
+ *                 the cases, two entities have risk
+ *   none          nothing to rank: no rule, tactic or entity with risk, so
+ *                 each of those cards says so
  */
 const RANKED_SCENARIOS = { short: 2, none: 0 };
 const rankedLimit = Object.prototype.hasOwnProperty.call(
@@ -2134,7 +2153,11 @@ if (!isEmpty) {
   });
 }
 
-// What a playbook's steps can name: policies, severities, labels, workflows.
+/*
+ * What a playbook's steps can name: policies, severities, labels, workflows,
+ * runbooks (Run a runbook) and status pages (Post a status page
+ * announcement).
+ */
 insert(OnCallDutyPolicy, { name: "Security on-call" });
 insert(IncidentSeverity, { name: "SEV1", color: "#dc2626", order: 1 });
 insert(IncidentSeverity, { name: "SEV2", color: "#f97316", order: 2 });
@@ -2144,6 +2167,14 @@ insert(AlertSeverity, { name: "High", color: "#f97316", order: 2 });
 insert(AlertSeverity, { name: "Low", color: "#0ea5e9", order: 3 });
 insert(Label, { name: "credential-access", color: "#6366f1" });
 insert(Workflow, { name: "Open a ticket in the IT queue" });
+insert(Runbook, { name: "Isolate a host from the network" });
+insert(Runbook, { name: "Rotate a leaked credential" });
+/*
+ * The public page and the engineers' own. A case's Impact names the ones
+ * its records' monitors are shown on (CaseContextFixture.js).
+ */
+insert(StatusPage, { name: "Acme Commerce Status" });
+insert(StatusPage, { name: "Engineering Tools" });
 
 /*
  * The project's chat workspaces: Acme Commerce has connected Slack, so the
@@ -2164,6 +2195,8 @@ for (const modelType of [
   SecurityPlaybookRun,
   SecurityEventConnection,
   SecurityLogSource,
+  // The other signals Connections watches: none yet in this project.
+  SecurityTelemetrySource,
   DetectionRule,
   ThreatIntelFeed,
   SecurityProtectedEntity,
@@ -2255,6 +2288,25 @@ function overview() {
     metrics.topTactics = metrics.topTactics.slice(0, rankedLimit);
   }
 
+  /*
+   * Riskiest Entities: the top of Entity Risk's list, as the server reads it
+   * (SecurityRiskiestEntities) - every risk row with a score, by the score
+   * alone, a tie in the row's id order as every read breaks it - with the
+   * project's threshold and how many have risk.
+   */
+  const withRisk = table(SecurityEntityRisk)
+    .filter((item) => {
+      return Number(item.riskScore) > 0;
+    })
+    .sort((a, b) => {
+      return (
+        Number(b.riskScore) - Number(a.riskScore) ||
+        String(a._id).localeCompare(String(b._id))
+      );
+    })
+    // ?ranked=short|none: a quieter month has fewer entities with risk.
+    .slice(0, rankedLimit === null ? undefined : rankedLimit);
+
   return {
     generatedAt: NOW.toISOString(),
     caseWindowInDays: 30,
@@ -2267,6 +2319,21 @@ function overview() {
     }).length,
     isTruncated: false,
     metrics: serialize(metrics),
+    riskiestEntities: isRiskiestUnreadable
+      ? null
+      : {
+          threshold: riskScenario.threshold,
+          total: withRisk.length,
+          entities: withRisk
+            .slice(0, SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT)
+            .map((item) => {
+              return {
+                value: item.entityValue,
+                type: item.entityType || null,
+                score: Math.round(Number(item.riskScore)),
+              };
+            }),
+        },
     // The project's priorities and statuses, as the server hands them over.
     priorities: caseValues(SecurityCasePriority).map((priority) => {
       return valueJson(
@@ -2544,6 +2611,12 @@ function runSetupTest() {
   };
 }
 
+/*
+ * What the project's security events say about the values they name most -
+ * [value, findings, rules, worst severity id, minutes since last seen] -
+ * read by Look Up an Entity (the entity-activity route), and by a case's
+ * Entities and an entity's page for their activity.
+ */
 const TOP_ENTITIES = [
   [SPRAY_IP, 36, 2, 4, 9],
   ["k.morgan@acme-commerce.example", 33, 3, 5, 41],
@@ -2557,32 +2630,19 @@ const TOP_ENTITIES = [
   ["deploy-bot@acme-commerce.example", 1, 1, 3, 5 * 60],
 ];
 
-function topEntities(body) {
-  if (!hasHistory) {
-    return { entities: [] };
-  }
-  // ?ranked=short|none: fewer entities named, as the quieter month has.
-  const limit = Math.min(
-    Number(body?.limit || 10),
-    rankedLimit === null ? TOP_ENTITIES.length : rankedLimit,
-  );
-  return {
-    entities: TOP_ENTITIES.slice(0, limit).map(
-      ([value, findingCount, ruleCount, maxSeverityId, minutesAgo]) => {
-        return {
-          value,
-          findingCount,
-          ruleCount,
-          maxSeverityId,
-          lastSeen: ago(minutesAgo * MINUTE).toISOString(),
-        };
-      },
-    ),
-  };
-}
+/*
+ * A value no event names - one starting "never-seen" - is left out of the
+ * answer, as the server leaves out a value it found nothing for: Look Up an
+ * Entity then says it was not seen.
+ */
+const UNSEEN_VALUE_PREFIX = "never-seen";
 
 function entityActivity(body) {
-  const values = Array.isArray(body?.values) ? body.values : [];
+  const values = (Array.isArray(body?.values) ? body.values : []).filter(
+    (value) => {
+      return !String(value).startsWith(UNSEEN_VALUE_PREFIX);
+    },
+  );
   return {
     activity: values.map((value, index) => {
       const known =
@@ -2615,7 +2675,8 @@ seedEntityRisk({
   uuid,
   ids: ID,
   isEmpty,
-  hasHistory,
+  // A risk-only month scores its entities all the same.
+  hasHistory: hasHistory || isRiskOnlyMonth,
   hasRiskCase: riskScenario.hasRiskCase,
 });
 
@@ -3344,6 +3405,15 @@ const AI_PROVIDERS = {
   ],
 };
 
+// A case by its id, as the routes that start from one read it.
+function findCase(id) {
+  return (
+    table(SecurityCase).find((row) => {
+      return String(row._id) === String(id);
+    }) || null
+  );
+}
+
 /*
  * What a case, an event or an entity names in the rest of OneUptime - the
  * project's hosts and members ConnectionsFixture.js lays out - worked out
@@ -3354,13 +3424,20 @@ const connections = createConnectionsFixture({
   uuid,
   MINUTE,
   scenario: connectionsScenario,
-  findCase: (id) => {
-    return (
-      table(SecurityCase).find((row) => {
-        return String(row._id) === String(id);
-      }) || null
-    );
-  },
+  findCase,
+});
+
+/*
+ * A case's Story and Impact: what the rest of OneUptime says happened
+ * around it and what it puts at risk, from the same rows and records
+ * (CaseContextFixture.js lays out what it adds to them).
+ */
+const caseContext = createCaseContextFixture({
+  now: NOW,
+  ids: ID,
+  table,
+  connections,
+  findCase,
 });
 
 async function handleApi(method, options) {
@@ -3396,14 +3473,18 @@ async function handleApi(method, options) {
   if (method === "POST" && path.endsWith("/security-case/setup/test")) {
     return new HTTPResponse(200, runSetupTest(), {});
   }
-  if (method === "POST" && path.endsWith("/security-case/top-entities")) {
-    return new HTTPResponse(200, topEntities(options.data), {});
-  }
   if (method === "POST" && path.endsWith("/security-case/entity-activity")) {
     return new HTTPResponse(200, entityActivity(options.data), {});
   }
   if (method === "POST" && path.endsWith("/security-case/connections")) {
     const answer = connections.answer(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
+  const context = path.match(/\/security-case-context\/(story|impact)$/);
+  if (method === "POST" && context) {
+    const answer = caseContext[context[1]](options.data);
     return answer.status === 200
       ? new HTTPResponse(200, answer.body, {})
       : new HTTPErrorResponse(answer.status, answer.body, {});
@@ -3545,7 +3626,6 @@ const PAGES = [
   ...SECURITY_CASE_QUEUE_VIEWS.map((view) => {
     return [view.page, SecurityCasesPage, view.key];
   }),
-  [PageMap.SECURITY_EVENTS_ENTITIES, SecurityEntitiesPage],
   [PageMap.SECURITY_EVENTS_ENTITY_RISK, SecurityEntityRiskPage],
   [PageMap.SECURITY_EVENTS_ENTITY_RISK_VIEW, SecurityEntityRiskViewPage],
   [PageMap.SECURITY_EVENTS_DETECTION_RULES, DetectionRulesPage],
@@ -3584,6 +3664,7 @@ function FixtureCaseLayout() {
 
 const CASE_PAGES = [
   [PageMap.SECURITY_CASE_VIEW_TIMELINE, SecurityCaseTimelinePage],
+  [PageMap.SECURITY_CASE_VIEW_STORY, SecurityCaseStoryPage],
   [PageMap.SECURITY_CASE_VIEW_DETECTIONS, SecurityCaseDetectionsPage],
   [PageMap.SECURITY_CASE_VIEW_ENTITIES, SecurityCaseEntitiesPage],
   [
@@ -3679,6 +3760,21 @@ function FixtureApp() {
                 />
               );
             })}
+            {/*
+             * Entities folded into Entity Risk: the old address opens it,
+             * as Routes/SecurityEventsRoutes.tsx sends it.
+             */}
+            <Route
+              path={SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_ENTITIES]}
+              element={
+                <Navigate
+                  replace={true}
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.SECURITY_EVENTS_ENTITY_RISK],
+                  ).toString()}
+                />
+              }
+            />
           </Route>
           <Route
             path="*"

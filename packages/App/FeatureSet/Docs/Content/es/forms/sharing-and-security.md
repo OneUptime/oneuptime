@@ -16,7 +16,7 @@ Un formulario está abierto a cualquiera que tenga su enlace, y cada envío pued
 | **Estado** | **Acepta envíos** — si el enlace del formulario funciona. |
 | **Enlace para compartir** | El enlace, con **Copiar enlace**, **Abrir formulario** y **Restablecer enlace**. |
 | **Después de enviar** | El **Mensaje de agradecimiento** que ven las personas cuando envían, bajo el número de lo que creó el formulario. |
-| **Acceso** | La **Lista de IP permitidas**. |
+| **Más ajustes** | La **Lista de IP permitidas**, plegada hasta que la abras. |
 
 ## Compartir el enlace
 
@@ -80,7 +80,7 @@ Para limitar un formulario a tus propias redes:
 
 :::steps
 1. Abre la página **Compartir** del formulario.
-2. En la tarjeta **Acceso**, haz clic en **Editar lista de IP permitidas**.
+2. Abre **Más ajustes** y haz clic en **Editar lista de IP permitidas**.
 3. Escribe una red por línea y guarda. La tarjeta las lista entonces bajo **Lista de IP permitidas**.
 :::
 

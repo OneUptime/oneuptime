@@ -444,6 +444,7 @@ const RELATIONS_LEFT_APART: Array<RelationsLeftApart> = [
   {
     tableName: "UserNotificationRule",
     relations: [
+      "customNotificationChannel",
       "userCall",
       "userEmail",
       "userMicrosoftTeams",
@@ -455,7 +456,7 @@ const RELATIONS_LEFT_APART: Array<RelationsLeftApart> = [
       "userWhatsApp",
     ],
     reason:
-      "On purpose, as the model explains above userCall: an administrator re-points a rule's method through the ID column only, so the check that the method is the rule owner's own has one spelling to validate.",
+      "On purpose, as the model explains above userCall: an administrator re-points a rule's method through the ID column only, so the check that the method is the rule owner's own - or, for a custom channel, that it exists and is on - has one spelling to validate.",
   },
   {
     tableName: "Alert",

@@ -34,7 +34,7 @@ Speichern Sie die Zugangsdaten für ein Projekt oder einmal für die ganze Insta
 
 | | Projektkonfiguration | Installationsweite Konfiguration |
 | --- | --- | --- |
-| Wo | Die Karte **Twilio-Konfiguration** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** | **Admin Dashboard > Einstellungen > Anrufe und SMS** |
+| Wo | Die Karte **Twilio-Konfiguration** in **Weitere Einstellungen** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** | **Admin Dashboard > Einstellungen > Anrufe und SMS** |
 | Wer sie festlegen kann | **Projektinhaber**, **Projektadministrator** oder **Create Call and SMS** in einer benutzerdefinierten Rolle | Ein Master-Admin |
 | Wer ihr Auth Token lesen kann | **Projektinhaber**, **Projektadministrator** oder **Read Call and SMS** in einer benutzerdefinierten Rolle. Andere, die die Konfiguration sehen können, sehen den Rest davon; das Token wird verschlüsselt gespeichert | Ein Master-Admin |
 | Verwendet für | SMS und Anrufe an die Mitglieder des Projekts, solange sie der Projektstandard ist, die Statusseiten, denen sie zugewiesen ist, und die Richtlinien für eingehende Anrufe, die sie verwenden | SMS und Anrufe an die Mitglieder jedes Projekts, das keine Standardkonfiguration hat |
@@ -42,7 +42,7 @@ Speichern Sie die Zugangsdaten für ein Projekt oder einmal für die ganze Insta
 So fügen Sie eine Projektkonfiguration hinzu:
 
 :::steps
-1. Gehen Sie zu **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen**.
+1. Gehen Sie zu **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** und öffnen Sie **Weitere Einstellungen**.
 2. Wählen Sie in **Twilio-Konfiguration** die Schaltfläche **Twilio-Konfiguration erstellen**.
 3. Geben Sie einen Namen ein, und wählen Sie unter **Dieses Konto verwenden für**, was das Konto sendet: **Anrufe und SMS**, **Nur SMS** oder **Nur Anrufe**. Geben Sie dann **Twilio Account SID**, **Twilio Auth Token** und die Nummer ein, nach der die Auswahl fragt: **Twilio-Primärrufnummer** für Anrufe oder **Twilio-SMS-Rufnummern** für **Nur SMS**. Unter **Weitere Felder** geben Sie optional durch Kommas getrennte **Twilio-Sekundärrufnummern** für andere Länder ein, und **Twilio-SMS-Rufnummern**, wenn Ihre Nummern keine SMS senden können.
 4. **Als Projektstandard festlegen** ist bei der ersten Konfiguration des Projekts eingeschaltet, sodass die SMS und Anrufe an die Mitglieder des Projekts, einschließlich der Bereitschaftsbenachrichtigungen, gleich nach dem Speichern darüber laufen. Schalten Sie es aus, wenn dieses Konto nur für Statusseiten oder eingehende Anrufe gedacht ist. Eine spätere Konfiguration beginnt mit ausgeschaltetem Schalter: Schalten Sie ihn ein oder wählen Sie im Zeilenmenü der Konfiguration **Als Projektstandard festlegen**, um diese Nachrichten dorthin zu verlegen. Eine API-Anfrage, die `isProjectDefault` weglässt, wird genauso behandelt.
@@ -177,6 +177,7 @@ Eine für SMS verifizierte Nummer ist auch für Anrufe verifiziert, ohne zweiten
 :::cards
 - [Richtlinie für eingehende Anrufe](/docs/on-call/incoming-call-policy): Anrufende über eine Twilio-Nummer zu Ihren Bereitschaftsingenieuren durchstellen.
 - [Eskalationsregeln](/docs/on-call/escalation-rules): Festlegen, wer auf jeder Stufe benachrichtigt wird, per SMS, Anruf oder jede andere Methode.
+- [SMS- und Anruf-Gateway](/docs/self-hosted/sms-and-call-gateway): SMS und Anrufe über Ihren eigenen Anbieter statt über Twilio senden.
 - [SMTP](/docs/emails/smtp): E-Mails ebenfalls über Ihren eigenen Mailserver senden.
 - [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access): Workflows und Webhooks interne Werkzeuge erreichen lassen.
 :::

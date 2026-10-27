@@ -34,7 +34,8 @@ export type EnterpriseSettingFeature =
   | LicensedFeature.CustomRoles
   | LicensedFeature.IpAllowlists
   | LicensedFeature.StatusPageBranding
-  | LicensedFeature.StatusPageAccessControls;
+  | LicensedFeature.StatusPageAccessControls
+  | LicensedFeature.CustomNotificationChannels;
 
 interface FeatureSentences {
   readOnlyTitle: string;
@@ -74,6 +75,16 @@ const FEATURE_SENTENCES: Record<EnterpriseSettingFeature, FeatureSentences> = {
       "No valid Enterprise license: status page access controls become read-only when the trial or grace period ends.",
     afterTheLapse:
       "The access controls already set still apply, and you can still remove them.",
+  },
+  [LicensedFeature.CustomNotificationChannels]: {
+    readOnlyTitle:
+      "Enterprise license required: custom channels cannot be added or changed, and nothing is sent to them.",
+    notIncludedTitle:
+      "Your Enterprise license does not include custom channels: they cannot be added or changed, and nothing is sent to them.",
+    graceTitle:
+      "No valid Enterprise license: custom channels stop when the trial or grace period ends.",
+    afterTheLapse:
+      "Your channels and the on-call rules that use them are kept, but no page or notification is sent to them. You can still delete a channel.",
   },
   [LicensedFeature.StatusPageBranding]: {
     readOnlyTitle:

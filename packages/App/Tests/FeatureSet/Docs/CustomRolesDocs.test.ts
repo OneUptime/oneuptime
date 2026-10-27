@@ -16,7 +16,7 @@ import {
   PERMISSIONS_NEVER_IN_A_CUSTOM_ROLE,
 } from "Common/Types/Team/CustomRole";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import { drawnActionLabel } from "./DocsDashboardLabels";
+import { drawnActionLabel, drawnDashboardLabel } from "./DocsDashboardLabels";
 import {
   menuSections,
   MenuSection,
@@ -302,9 +302,10 @@ describe("the labels the steps name", () => {
    * page draws it through core's shell.
    */
   test("an API key's page has Add Custom Role, as a team's Permissions page does", () => {
-    expect(readSource("Pages/Settings/APIKeyView.tsx")).toContain(
-      "<ApiKeyCustomRolesSettings apiKeyId={modelId} />",
-    );
+    const apiKeyPage: string = readSource("Pages/Settings/APIKeyView.tsx");
+
+    expect(apiKeyPage).toContain("<ApiKeyCustomRolesSettings");
+    expect(apiKeyPage).toContain("apiKeyId={modelId}");
     expect(englishSection()).toContain(
       "A team's **Permissions** page and an API key's page have **Add Custom Role** too",
     );
@@ -387,6 +388,72 @@ describe("where the steps find Roles", () => {
       expect(step.indexOf(`**${roles}**`)).toBeLessThan(
         step.indexOf(createRole),
       );
+    },
+  );
+});
+
+/*
+ * "Move custom roles to More settings because it is an advanced feature." -
+ * the maintainer. A team's Permissions page and an API key's page draw
+ * their custom roles card folded under More settings, after what the team
+ * or key can do itself; the docs say where it is, in every language, by
+ * the fold's own name as that language's Dashboard draws it.
+ */
+describe("where a team's and a key's custom roles are", () => {
+  test("both pages fold the card under More settings, after their own permissions", () => {
+    const teamPage: string = readSource("Pages/Teams/View/Permissions.tsx");
+    const apiKeyPage: string = readSource("Pages/Settings/APIKeyView.tsx");
+
+    for (const [page, shell, permissions] of [
+      [teamPage, "<TeamCustomRolesSettings", "<TeamPermissionTable"],
+      [apiKeyPage, "<ApiKeyCustomRolesSettings", "<ApiKeyPermissionTable"],
+    ] as Array<[string, string, string]>) {
+      const fold: number = page.indexOf("<AdvancedPageSection");
+
+      expect(page.indexOf(permissions)).toBeLessThan(fold);
+      expect(fold).toBeLessThan(page.indexOf(shell));
+      expect(page.indexOf(shell)).toBeLessThan(
+        page.indexOf("</AdvancedPageSection>"),
+      );
+    }
+  });
+
+  test("the English section says so", () => {
+    expect(englishSection()).toContain(
+      "have **Add Custom Role** too, under **More settings**,",
+    );
+    expect(englishSection()).toContain(
+      "list their custom roles under **More settings**, after their own permissions",
+    );
+    expect(englishSection()).not.toContain("above their own permissions");
+    expect(readPage("en")).toContain(
+      "On a key's page, **Custom Roles**, under **More settings**, lists the key's custom roles",
+    );
+  });
+
+  test.each([...SUPPORTED_DOCS_LANGUAGE_CODES])(
+    "%s: the step, the bullet and the key's paragraph name More settings as its Dashboard draws it",
+    (language: string) => {
+      const lines: Array<string> = readPage(language).split("\n");
+      const english: Array<string> = readPage("en").split("\n");
+      const moreSettings: string = `**${drawnDashboardLabel(language, "More settings")}**`;
+
+      for (const englishLine of [
+        "have **Add Custom Role** too, under **More settings**,",
+        "list their custom roles under **More settings**, after their own permissions",
+        "On a key's page, **Custom Roles**, under **More settings**, lists",
+      ]) {
+        const index: number = english.findIndex((line: string): boolean => {
+          return line.includes(englishLine);
+        });
+
+        expect(index).toBeGreaterThan(0);
+        expect({
+          language,
+          englishLine,
+          says: (lines[index] || "").includes(moreSettings),
+        }).toEqual({ language, englishLine, says: true });
+      }
     },
   );
 });

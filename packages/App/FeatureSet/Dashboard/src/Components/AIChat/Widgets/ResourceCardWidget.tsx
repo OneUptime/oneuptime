@@ -2,6 +2,10 @@ import {
   AIChatCitationTarget,
   AIChatWidget,
 } from "Common/Types/AI/AIChatTypes";
+import {
+  getFactsNotInHeading,
+  ResourceCardFact,
+} from "Common/Types/AI/ResourceCardFacts";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -24,8 +28,16 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const fields: Array<{ label: string; value: string }> =
-    props.widget.data.fields || [];
+  /*
+   * Each fact once: a fact the heading or the line under it already says
+   * ("#42", "Severity: High") is left out - for a card saved in an older
+   * conversation too (Types/AI/ResourceCardFacts).
+   */
+  const fields: Array<ResourceCardFact> = getFactsNotInHeading({
+    heading: props.widget.data.heading,
+    subheading: props.widget.data.subheading,
+    fields: props.widget.data.fields,
+  });
   const link: AIChatCitationTarget | undefined = props.widget.data.link;
   /*
    * Open says what it opens to a screen reader and on hover: under an

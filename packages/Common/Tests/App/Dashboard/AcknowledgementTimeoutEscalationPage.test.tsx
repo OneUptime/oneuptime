@@ -404,3 +404,44 @@ describe("a policy's Escalation Rules page", () => {
     expect(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION).toBeDefined();
   });
 });
+
+/*
+ * A link to the timeout - the docs, a search result, another page - opens
+ * More settings at its card: the folded header names it at the card's own
+ * place (its title's, #acknowledgement-timeout), which the card holds.
+ */
+describe("a link to the Acknowledgement Timeout", () => {
+  afterEach(() => {
+    window.history.replaceState(null, "", "#");
+  });
+
+  test("names it at the card's place", async () => {
+    const fold: HTMLElement = await renderPage({});
+
+    expect(
+      within(fold)
+        .getByTestId("folded-section-item")
+        .getAttribute("data-item-key"),
+    ).toBe("acknowledgement-timeout");
+    // The card is in the fold, at that place.
+    expect(fold).toContainElement(
+      document.getElementById("acknowledgement-timeout"),
+    );
+  });
+
+  test("opened at #acknowledgement-timeout, More settings opens there", async () => {
+    window.history.replaceState(null, "", "#acknowledgement-timeout");
+
+    const fold: HTMLElement = await renderPage({});
+
+    expect(header(fold)).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("opened anywhere else, it stays folded", async () => {
+    window.history.replaceState(null, "", "#repeat-policy");
+
+    const fold: HTMLElement = await renderPage({});
+
+    expect(header(fold)).toHaveAttribute("aria-expanded", "false");
+  });
+});

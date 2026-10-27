@@ -135,7 +135,9 @@ export function readRequestedDelaySeconds(request: string): number {
     const start: number = waitfor + WAITFOR_DELAY.length;
     const close: number = text.indexOf("'", start);
     const parts: Array<string> =
-      close === -1 ? [] : text.slice(start, Math.min(close, start + 12)).split(":");
+      close === -1
+        ? []
+        : text.slice(start, Math.min(close, start + 12)).split(":");
 
     if (parts.length === 3) {
       seconds = Math.max(

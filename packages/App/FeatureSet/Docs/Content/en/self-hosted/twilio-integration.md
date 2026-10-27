@@ -34,7 +34,7 @@ Save the credentials for one project, or once for the whole installation:
 
 | | Project configuration | Installation-wide configuration |
 | --- | --- | --- |
-| Where | The **Twilio Config** card in **Project Settings > Notifications > Notification Settings** | **Admin Dashboard > Settings > Call and SMS** |
+| Where | The **Twilio Config** card under **More settings** in **Project Settings > Notifications > Notification Settings** | **Admin Dashboard > Settings > Call and SMS** |
 | Who can set it | **Project Owner**, **Project Admin**, or **Create Call and SMS** in a custom role | A master admin |
 | Who can read its Auth Token | **Project Owner**, **Project Admin**, or **Read Call and SMS** in a custom role. Others who can see the configuration see the rest of it; the token is stored encrypted | A master admin |
 | Used for | SMS and calls to the project's members while it is the project default, status pages it is assigned to, and incoming call policies that use it | SMS and calls to the members of any project that has no default configuration |
@@ -42,7 +42,7 @@ Save the credentials for one project, or once for the whole installation:
 To add a project configuration:
 
 :::steps
-1. Go to **Project Settings > Notifications > Notification Settings**.
+1. Go to **Project Settings > Notifications > Notification Settings**, and open **More settings**.
 2. In **Twilio Config**, select **Create Twilio Config**.
 3. Enter a name, and pick what the account sends in **Use This Account For**: **Calls and SMS**, **SMS only** or **Calls only**. Then enter **Twilio Account SID**, **Twilio Auth Token**, and the number the choice asks for: **Twilio Primary Phone Number** for calls, or **Twilio SMS Phone Numbers** for **SMS only**. Under **More fields**, optionally enter comma-separated **Twilio Secondary Phone Numbers** for other countries, and **Twilio SMS Phone Numbers** if your numbers cannot send SMS.
 4. **Set as Project Default** starts on for the project's first configuration, so the SMS and calls to the project's members, including on-call notifications, go through it as soon as you save. Turn it off if this account is only for status pages or incoming calls. A later configuration starts with the switch off: turn it on, or pick **Set as Project Default** from the configuration's row menu, to move those messages to it. An API request that leaves `isProjectDefault` out is treated the same way.
@@ -177,6 +177,7 @@ A number verified for SMS is also verified for calls, with no second code. Verif
 :::cards
 - [Incoming Call Policy](/docs/on-call/incoming-call-policy): Let callers reach your on-call engineers through a Twilio number.
 - [Escalation Rules](/docs/on-call/escalation-rules): Decide who is paged at each level, by SMS, call or any other method.
+- [SMS and Call Gateway](/docs/self-hosted/sms-and-call-gateway): Send SMS and calls through your own provider instead of Twilio.
 - [SMTP](/docs/emails/smtp): Send email through your own mail server too.
 - [Private Network Access](/docs/self-hosted/private-network-access): Let workflows and webhooks reach internal tools.
 :::

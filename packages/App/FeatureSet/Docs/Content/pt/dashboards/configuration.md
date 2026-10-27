@@ -73,8 +73,8 @@ Para copiar um painel, abra-o, vá à página **Configurações** dele e clique 
 
 Um painel viaja como JSON:
 
-- **Exportar: Painel**, na página **Configurações** do painel, baixa-o como um arquivo JSON. Para exportar vários, selecione-os na lista **Painéis** e escolha **Export JSON**.
-- **Import JSON**, acima da lista **Painéis**, cria painéis a partir de um arquivo assim, neste projeto ou em outro.
+- **Exportar: Painel**, na página **Configurações** do painel, baixa-o como um arquivo JSON. Para exportar vários, selecione-os na lista **Painéis** e escolha **Exportar JSON**.
+- **Importar JSON**, acima da lista **Painéis**, cria painéis a partir de um arquivo assim, neste projeto ou em outro.
 
 Uma exportação contém as configurações próprias do painel, entre elas os widgets e as variáveis. Os proprietários e os rótulos ficam de fora, e os widgets que apontam para recursos deste projeto, como um SLO ou uma fonte de dados, podem precisar que eles sejam escolhidos de novo em outro projeto.
 

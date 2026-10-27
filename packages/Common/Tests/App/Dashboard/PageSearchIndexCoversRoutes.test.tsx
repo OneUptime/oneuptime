@@ -71,6 +71,8 @@ const NOT_OFFERED: Readonly<Partial<Record<PageMap, string>>> = {
   [PageMap.INIT]: "the dashboard's entry: it opens a project",
   [PageMap.SECURITY_EVENTS_MONITORS]:
     "an old address of Security Events: it opens Monitors, which is offered",
+  [PageMap.SECURITY_EVENTS_ENTITIES]:
+    "an old address of Security Events: it opens Entity Risk, which is offered and found by Entities' words",
   [PageMap.INIT_PROJECT]: "a project's address: it opens Home",
   [PageMap.WELCOME]: "the first-run welcome, shown once",
   [PageMap.PROJECT_SSO]: "the sign-in step of a project that requires SSO",

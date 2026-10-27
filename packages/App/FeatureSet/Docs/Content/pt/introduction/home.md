@@ -122,10 +122,10 @@ Duas barras atravessam o topo de cada página.
 | Onde | O que há |
 | --- | --- |
 | Canto superior esquerdo | O seletor de projetos: trocar para outro dos seus projetos, ou criar um novo. |
-| Canto superior direito | **Pesquisar** e **Ask AI**, o sino de notificações com o que precisa de você agora (incidentes e alertas ativos, as políticas de plantão em que você está de turno, convites pendentes), **Ajuda**, e sua foto, que abre o menu da sua [conta](/docs/introduction/your-account). |
+| Canto superior direito | **Pesquisar** e **Pergunte à IA**, o sino de notificações com o que precisa de você agora (incidentes e alertas ativos, as políticas de plantão em que você está de turno, convites pendentes), **Ajuda**, e sua foto, que abre o menu da sua [conta](/docs/introduction/your-account). |
 | Abaixo delas | **Início** e **Produtos** à esquerda, **Configurações do usuário** à direita: como o OneUptime contata você neste projeto. |
 
-**Ajuda** abre esta documentação (**Documentação**) e a lista **Keyboard shortcuts**, e oferece suporte por e-mail e no Slack. Em uma tela estreita, como a de um celular, **Pesquisar**, **Ask AI** e **Ajuda** saem para ganhar espaço; o sino e sua foto ficam.
+**Ajuda** abre esta documentação (**Documentação**) e a lista **Keyboard shortcuts**, e oferece suporte por e-mail e no Slack. Em uma tela estreita, como a de um celular, **Pesquisar**, **Pergunte à IA** e **Ajuda** saem para ganhar espaço; o sino e sua foto ficam.
 
 ## Pesquisar uma página, uma configuração ou uma ação
 

@@ -119,7 +119,10 @@ const CONNECTIONS: SecurityConnectionsJson = {
   failedKinds: [],
 };
 
-function withId<T extends { _id?: string | undefined }>(model: T, id: string): T {
+function withId<T extends { _id?: string | undefined }>(
+  model: T,
+  id: string,
+): T {
   model._id = id;
   return model;
 }
@@ -388,7 +391,11 @@ describe("SecurityCaseStory.build", () => {
       title: "SQL injection attempt: GET /x → 500",
       requestOutcome: "Errored",
       outcomes: { Rejected: 1, Errored: 1 },
-      links: { eventUid: "log:2", traceId: "trace-1", observable: "203.0.113.7" },
+      links: {
+        eventUid: "log:2",
+        traceId: "trace-1",
+        observable: "203.0.113.7",
+      },
     });
   });
 
@@ -553,7 +560,9 @@ describe("SecurityCaseStory.build", () => {
       traceId: "trace-1",
       spanId: "span-1",
     });
-    expect(told.unreadableSources).toEqual([SecurityCaseStorySource.Exceptions]);
+    expect(told.unreadableSources).toEqual([
+      SecurityCaseStorySource.Exceptions,
+    ]);
   });
 
   test("says which sources could not be read this time", async () => {
@@ -643,9 +652,9 @@ describe("the pieces a story is told from", () => {
     });
 
     const once: SecurityDetection = detection();
-    once.lastSeenAt = once.firstSeenAt;
-    once.fireCount = undefined;
-    once.title = undefined;
+    once.lastSeenAt = once.firstSeenAt!;
+    delete once.fireCount;
+    delete once.title;
     once.ruleName = "Brute force";
 
     expect(toDetectionItem(once)).toMatchObject({
@@ -711,9 +720,7 @@ describe("the pieces a story is told from", () => {
       "SecurityEventItemV1",
     );
     expect(statement.query).toContain("classUid NOT IN (2004, 2005)");
-    expect(statement.query).toContain(
-      "mapFilter((key, value) -> has(",
-    );
+    expect(statement.query).toContain("mapFilter((key, value) -> has(");
     expect(statement.query).not.toContain("primaryEntityId IN (");
   });
 });

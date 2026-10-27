@@ -1,6 +1,7 @@
 import { DropdownOption } from "../Components/Dropdown/Dropdown";
 import Select from "../../Types/BaseDatabase/Select";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CustomNotificationChannel from "../../Models/DatabaseModels/CustomNotificationChannel";
 import UserCall from "../../Models/DatabaseModels/UserCall";
 import UserEmail from "../../Models/DatabaseModels/UserEmail";
 import UserNotificationRule from "../../Models/DatabaseModels/UserNotificationRule";
@@ -42,6 +43,12 @@ export interface NotificationMethodModels {
   userSlacks: Array<UserSlack>;
   userMicrosoftTeamsAccounts: Array<UserMicrosoftTeams>;
   userWebhooks: Array<UserWebhook>;
+  /*
+   * The custom channels that are on (CustomNotificationChannel): everybody's,
+   * read from CustomNotificationChannelAPI's list rather than owned. Absent
+   * where a surface does not offer them.
+   */
+  customNotificationChannels?: Array<CustomNotificationChannel> | undefined;
 }
 
 /* One rendered "Notification Method" line, e.g. `Email: jane@example.com`. */
@@ -94,6 +101,15 @@ const NOTIFICATION_METHOD_RELATIONS: Array<NotificationMethodRelation> = [
    * the browser or rendered. `name` is NOT NULL on UserWebhook.
    */
   { relationName: "userWebhook", title: "Webhook", columns: ["name"] },
+  /*
+   * A custom channel's name: the one column of a channel a relation may
+   * read. Its URL and secret never reach the browser.
+   */
+  {
+    relationName: "customNotificationChannel",
+    title: "Custom Channel",
+    columns: ["name"],
+  },
   { relationName: "userPush", title: "Push", columns: ["deviceName"] },
 ];
 
@@ -175,6 +191,13 @@ export default class NotificationMethodUtil {
    * the dropdown and any future surface stay in agreement.
    */
   public static getLabel(model: BaseModel): string {
+    if (model instanceof CustomNotificationChannel) {
+      return (
+        "Custom Channel: " +
+        (NotificationMethodUtil.readColumn(model, "name") || "Unknown Channel")
+      );
+    }
+
     if (model instanceof UserWebhook) {
       return (
         "Webhook: " +
@@ -239,7 +262,7 @@ export default class NotificationMethodUtil {
 
   /*
    * Maps the id chosen in the dropdown back onto the rule being created. The
-   * dropdown is single-select, so at most one of the nine foreign keys is set.
+   * dropdown is single-select, so at most one of the ten foreign keys is set.
    * An id that matches nothing leaves the rule untouched, and the server then
    * rejects the create as having no notification method.
    */
@@ -299,6 +322,9 @@ export default class NotificationMethodUtil {
     assignById(models.userWebhooks, (id: ObjectID) => {
       rule.userWebhookId = id;
     });
+    assignById(models.customNotificationChannels || [], (id: ObjectID) => {
+      rule.customNotificationChannelId = id;
+    });
 
     return rule;
   }
@@ -311,6 +337,7 @@ export default class NotificationMethodUtil {
     models: NotificationMethodModels,
   ): Array<BaseModel> {
     return [
+      ...(models.customNotificationChannels || []),
       ...models.userCalls,
       ...models.userEmails,
       ...models.userSMSs,

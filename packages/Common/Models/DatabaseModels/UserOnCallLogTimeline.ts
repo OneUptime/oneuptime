@@ -19,6 +19,7 @@ import UserTelegram from "./UserTelegram";
 import UserSlack from "./UserSlack";
 import UserMicrosoftTeams from "./UserMicrosoftTeams";
 import UserWebhook from "./UserWebhook";
+import CustomNotificationChannel from "./CustomNotificationChannel";
 import UserWhatsApp from "./UserWhatsApp";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -1227,6 +1228,57 @@ export default class UserOnCallLogTimeline extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userWebhookId?: ObjectID = undefined;
+
+  /*
+   * The custom channel a page went out on. Its name is the one column a
+   * relation reads (CustomNotificationChannel), which is what the on-call log
+   * shows; the history stays when the channel is deleted.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "customNotificationChannelId",
+    type: TableColumnType.Entity,
+    modelType: CustomNotificationChannel,
+    title: "Custom Channel",
+    description: "Relation to the Custom Channel this notification was sent on",
+  })
+  @ManyToOne(
+    () => {
+      return CustomNotificationChannel;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "customNotificationChannelId" })
+  public customNotificationChannel?: CustomNotificationChannel = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Custom Channel ID",
+    description: "ID of the Custom Channel this notification was sent on",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public customNotificationChannelId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

@@ -915,17 +915,56 @@ describe("Google SecOps integration docs", () => {
     expect(docsSource).not.toContain("**View Full Error**");
     expect(docsSource).not.toContain("The table shows a short preview");
 
-    const columnSentence: string = columnSummary.slice(
+    const columnSentences: string = columnSummary.slice(
       0,
       columnSummary.indexOf("When a connection has an error"),
     );
-    const promisedColumns: Array<string> = Array.from(
-      columnSentence.matchAll(DOC_BOLD_SPAN_PATTERN),
-    ).map((match: RegExpMatchArray): string => {
-      return match[1] as string;
-    });
+    const boldSpansOf: (text: string) => Array<string> = (
+      text: string,
+    ): Array<string> => {
+      return Array.from(text.matchAll(DOC_BOLD_SPAN_PATTERN)).map(
+        (match: RegExpMatchArray): string => {
+          return match[1] as string;
+        },
+      );
+    };
 
-    expect(promisedColumns).toEqual(columnEntries.map(titleOf));
+    /*
+     * The first sentence names the columns a reader sees, in the table's
+     * order; the second the ones that wait in Customize Columns
+     * (isHiddenByDefault), in the table's order too.
+     */
+    const waitMarker: string = " wait in **Customize Columns**.";
+    const shownSentence: string = columnSentences.slice(
+      0,
+      columnSentences.indexOf(". ") + 1,
+    );
+    const hiddenSentence: string = columnSentences.slice(shownSentence.length);
+
+    expect(hiddenSentence).toContain(waitMarker);
+
+    const isHidden: (entry: FieldEntry) => boolean = (
+      entry: FieldEntry,
+    ): boolean => {
+      return entry.body.includes("isHiddenByDefault: true");
+    };
+
+    expect(boldSpansOf(shownSentence)).toEqual(
+      columnEntries
+        .filter((entry: FieldEntry): boolean => {
+          return !isHidden(entry);
+        })
+        .map(titleOf),
+    );
+    expect(boldSpansOf(hiddenSentence)).toEqual([
+      ...columnEntries.filter(isHidden).map(titleOf),
+      "Customize Columns",
+    ]);
+
+    // The provider is said, where it is drawn: under the connection's name.
+    expect(shownSentence).toContain(
+      "**Name**, with the connection's provider and its Data to import selection underneath,",
+    );
   });
 
   /*

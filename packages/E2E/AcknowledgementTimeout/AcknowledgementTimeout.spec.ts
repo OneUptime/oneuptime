@@ -262,6 +262,31 @@ test("opens on a click: one card, one row, saying the policy does not page again
   // Open, the fold no longer lists what it holds: the card says it.
   await expect(foldedItems(page)).toHaveCount(0);
 
+  /*
+   * With nothing under it - no names once open, no description of its own -
+   * the header's title sits level with the icon tile beside it, not at the
+   * tile's top edge where a line under it would start.
+   */
+  const middleOf: (locator: Locator) => Promise<number> = async (
+    locator: Locator,
+  ): Promise<number> => {
+    const box: { y: number; height: number } | null =
+      await locator.boundingBox();
+
+    expect(box).not.toBeNull();
+
+    return box!.y + box!.height / 2;
+  };
+
+  const titleMiddle: number = await middleOf(
+    foldHeader(page).getByTestId("folded-section-title"),
+  );
+  const iconMiddle: number = await middleOf(
+    foldHeader(page).getByTestId("folded-section-icon"),
+  );
+
+  expect(Math.abs(titleMiddle - iconMiddle)).toBeLessThanOrEqual(2);
+
   await screenshot(page, "open-1280");
 });
 

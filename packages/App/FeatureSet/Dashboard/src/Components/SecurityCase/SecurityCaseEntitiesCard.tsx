@@ -156,8 +156,8 @@ const EntityRiskLink: FunctionComponent<{
  * Who and what the case is about, and how busy each has been across all the
  * project's security events this past week: a user with thousands of events
  * and findings from other rules is a different case from one seen twice.
- * A table, as the Riskiest Entities on Security Events > Entities is, with
- * the same columns where they mean the same; each entity opens in Correlate.
+ * A table, as every Security Events list is; each entity opens in
+ * Correlate, and a user's, host's or address's risk opens its page.
  */
 const SecurityCaseEntitiesCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

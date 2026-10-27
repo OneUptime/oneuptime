@@ -19,7 +19,7 @@ Ouvrez une page de statut : la section **Image de marque** de son menu latéral 
 | **Domaines personnalisés** | Votre propre domaine, son enregistrement DNS et son certificat SSL gratuit. |
 | **HTML, CSS et JavaScript** | HTML d'en-tête, HTML du pied de page, CSS personnalisé, JavaScript personnalisé. |
 
-Trois éléments qui ressemblent à de la personnalisation se trouvent plutôt dans **Pages de statut → votre page → Avancé → Paramètres avancés** (`{id}/settings`), parce qu'ils décident de ce que la page montre et non de son apparence : le pourcentage de disponibilité global, les statuts de moniteur qui comptent contre la disponibilité, et la mention « Powered by OneUptime ». Les deux premiers sont des lignes de la carte **Ce que montre votre page de statut**, et la mention a sa propre carte, juste en dessous.
+Trois éléments qui ressemblent à de la personnalisation se trouvent plutôt dans **Pages de statut → votre page → Avancé → Paramètres avancés** (`{id}/settings`), parce qu'ils décident de ce que la page montre et non de son apparence : le pourcentage de disponibilité global, les statuts de moniteur qui comptent contre la disponibilité, et la mention « Powered by OneUptime ». Les deux premiers sont des lignes de la carte **Ce que montre votre page de statut**, et la mention a sa propre carte, juste en dessous, repliée sous **Plus de paramètres**.
 
 La personnalisation était autrefois répartie sur des écrans séparés **Personnalisation essentielle**, **En-tête**, **Pied de page**, **Page de vue d'ensemble** et **Langues**. Leurs anciennes adresses (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` et `{id}/languages`) ouvrent désormais la page **Image de marque** : les anciens favoris et liens fonctionnent toujours.
 
@@ -300,7 +300,7 @@ Il en va de même pour les clés d'API. Une clé qui peut seulement lire les dom
 
 ## Powered by OneUptime
 
-La mention « Powered by OneUptime » n'est pas un réglage de personnalisation. Elle a sa propre carte, **Powered by OneUptime**, sous la carte **Ce que montre votre page de statut**, dans **Pages de statut → votre page → Avancé → Paramètres avancés** (`{id}/settings`) : **Afficher la mention « Propulsé par OneUptime »**, activé par défaut. Désactivez-le pour masquer la mention ; c'est enregistré aussitôt. Sur OneUptime Cloud, la masquer demande le forfait **Scale**. En auto-hébergement, la masquer fait partie de l'Enterprise Edition : sur la Community Edition, chaque page de statut affiche la mention.
+La mention « Powered by OneUptime » n'est pas un réglage de personnalisation. Elle a sa propre carte, **Powered by OneUptime**, repliée sous **Plus de paramètres** sous la carte **Ce que montre votre page de statut**, dans **Pages de statut → votre page → Avancé → Paramètres avancés** (`{id}/settings`) : **Afficher la mention « Propulsé par OneUptime »**, activé par défaut. Désactivez-le pour masquer la mention ; c'est enregistré aussitôt. Sur OneUptime Cloud, la masquer demande le forfait **Scale**. En auto-hébergement, la masquer fait partie de l'Enterprise Edition : sur la Community Edition, chaque page de statut affiche la mention.
 
 ## Étapes suivantes
 

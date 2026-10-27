@@ -112,13 +112,18 @@ function connections(
     windowStart: at(-30).toISOString(),
     windowEnd: at(90).toISOString(),
     resources: [
-      connectedResource(SecurityConnectionKind.Service, SERVICE_ID, "checkout", {
-        inventoryItemId: ITEM_ID,
-        monitors: {
-          count: 1,
-          items: [{ id: MONITOR_ID, title: "Checkout API" }],
+      connectedResource(
+        SecurityConnectionKind.Service,
+        SERVICE_ID,
+        "checkout",
+        {
+          inventoryItemId: ITEM_ID,
+          monitors: {
+            count: 1,
+            items: [{ id: MONITOR_ID, title: "Checkout API" }],
+          },
         },
-      }),
+      ),
       connectedResource(SecurityConnectionKind.Host, HOST_ID, "web-1"),
     ],
     hasMoreResources: false,
@@ -211,7 +216,10 @@ beforeEach(() => {
   } as unknown as TopologyEntityResponseJSON);
 
   jest.spyOn(ServiceOwnerTeamService, "findBy").mockResolvedValue([
-    { serviceId: new ObjectID(SERVICE_ID), team: { _id: TEAM_ID, name: "Payments" } },
+    {
+      serviceId: new ObjectID(SERVICE_ID),
+      team: { _id: TEAM_ID, name: "Payments" },
+    },
   ] as never);
   jest.spyOn(ServiceOwnerUserService, "findBy").mockResolvedValue([
     {
@@ -236,9 +244,7 @@ beforeEach(() => {
   jest
     .spyOn(MonitorService, "findBy")
     .mockImplementation(async (data: unknown): Promise<Array<Monitor>> => {
-      return (data as { query: JSONObject }).query["services"]
-        ? [monitor]
-        : [];
+      return (data as { query: JSONObject }).query["services"] ? [monitor] : [];
     });
 
   const shown: StatusPageResource = new StatusPageResource();
@@ -348,7 +354,9 @@ describe("SecurityCaseImpact.build", () => {
       }),
     );
     // A record with no inventory item has no place on the map: not known.
-    expect(recordOf(await impact(), SecurityConnectionKind.Host).calls).toBeNull();
+    expect(
+      recordOf(await impact(), SecurityConnectionKind.Host).calls,
+    ).toBeNull();
   });
 
   test("reads the service map over the last week, as the Topology pages allow", async () => {
@@ -559,7 +567,9 @@ describe("the reads an impact is made of", () => {
 
     expect(statement.query).not.toContain("DROP TABLE");
     expect(statement.query).toContain("networkDeviceId IN (");
-    expect(statement.query).toContain("GROUP BY caseAddress, peerAddress, direction");
+    expect(statement.query).toContain(
+      "GROUP BY caseAddress, peerAddress, direction",
+    );
   });
 
   test("the requests' SQL asks only for those that reached the app", () => {
@@ -574,7 +584,9 @@ describe("the reads an impact is made of", () => {
 
     expect(statement.query).toContain("requestOutcome IN (");
     expect(JSON.stringify(statement.query_params)).toContain("Reached App");
-    expect(JSON.stringify(statement.query_params)).toContain("Reached Database");
+    expect(JSON.stringify(statement.query_params)).toContain(
+      "Reached Database",
+    );
     expect(JSON.stringify(statement.query_params)).not.toContain("Rejected");
   });
 });

@@ -492,10 +492,7 @@ describe("what started a run", () => {
       ),
     ).toEqual({
       label: "Security playbook",
-      details: [
-        "For security case SEC-12",
-        "Playbook Contain web attacks",
-      ],
+      details: ["For security case SEC-12", "Playbook Contain web attacks"],
     });
 
     expect(
@@ -518,9 +515,7 @@ describe("what started a run", () => {
     );
     expect(
       getTemplatePlaceholders(TriggerDetailCopy.playbookInputsCardDescription),
-    ).toEqual(
-      getTemplatePlaceholders(TriggerDetailCopy.inputsCardDescription),
-    );
+    ).toEqual(getTemplatePlaceholders(TriggerDetailCopy.inputsCardDescription));
   });
 
   test("every other run says what started it through what it carries", () => {

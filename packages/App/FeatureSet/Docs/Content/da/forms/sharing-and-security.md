@@ -16,7 +16,7 @@ En formular er åben for alle, der har dens link, og hver indsendelse kan tilkal
 | **Status** | **Modtager indsendelser** — om formularens link virker. |
 | **Delingslink** | Linket, med **Kopiér link**, **Åbn formular** og **Nulstil link**. |
 | **Efter indsendelse** | Den **Takkebesked**, folk ser, når de har indsendt, under nummeret på det, formularen oprettede. |
-| **Adgang** | **IP-tilladelsesliste**. |
+| **Yderligere indstillinger** | **IP-tilladelsesliste**, sammenklappet, indtil du åbner den. |
 
 ## Del linket
 
@@ -80,7 +80,7 @@ For at begrænse en formular til dine egne netværk:
 
 :::steps
 1. Åbn formularens side **Del**.
-2. På kortet **Adgang** skal du klikke på **Rediger IP-tilladelsesliste**.
+2. Åbn **Yderligere indstillinger**, og klik på **Rediger IP-tilladelsesliste**.
 3. Angiv ét netværk pr. linje, og gem. Kortet viser dem derefter under **IP-tilladelsesliste**.
 :::
 

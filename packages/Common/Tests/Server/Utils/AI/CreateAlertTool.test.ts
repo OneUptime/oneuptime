@@ -271,7 +271,14 @@ describe("create_alert creates the alert as the person who asked", () => {
 
     expect(result.citationLabel).toBe("Created alert #7");
     expect(result.dataForLlm).toContain("Successfully created alert #7");
-    expect(widgetFields(result)[0]).toEqual({ label: "Number", value: "#7" });
+    // The card says it once, in its heading.
+    expect((result.widget?.data as JSONObject)["heading"]).toBe(
+      "#7 · High memory usage",
+    );
+    expect(widgetFields(result)).not.toContainEqual({
+      label: "Number",
+      value: "#7",
+    });
   });
 
   test("missing title is a loud BadData error, and nothing is read or written", async () => {
@@ -560,11 +567,12 @@ describe("create_alert links what the alert is about", () => {
 
     expect(createdAlert(create).hosts).toBeUndefined();
     expect(result.dataForLlm).toContain("add_alert_affected_resources");
+    // Its number and severity are its heading and subheading: no facts left.
     expect(
       widgetFields(result).map((field: { label: string }): string => {
         return field.label;
       }),
-    ).toEqual(["Number", "Severity"]);
+    ).toEqual([]);
   });
 
   test("what the person may not view is left out, the alert is still raised, and the model is told why", async () => {
@@ -882,9 +890,8 @@ describe("create_alert's card in the chat", () => {
       type: AIChatCitationTargetType.AlertView,
       params: { alertId: ALERT_ID },
     });
+    // Each fact once: its number is in the heading, its severity under it.
     expect(widgetFields(result)).toEqual([
-      { label: "Number", value: "ALT-12" },
-      { label: "Severity", value: "Low" },
       { label: "Affected resources", value: 'host "test01"' },
       { label: "Description", value: "Memory in use is at 78%." },
     ]);

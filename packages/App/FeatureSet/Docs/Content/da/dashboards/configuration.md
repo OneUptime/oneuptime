@@ -73,8 +73,8 @@ Det er det rette træk, når du vil forgrene en skabelon (som "vores vagtdashboa
 
 Et dashboard rejser som JSON:
 
-- **Eksportér Dashboard** på dashboardets side **Indstillinger** downloader det som en JSON-fil. For at eksportere flere vælger du dem i listen **Dashboards** og vælger **Export JSON**.
-- **Import JSON** over listen **Dashboards** opretter dashboards ud fra sådan en fil, i dette projekt eller i et andet.
+- **Eksportér Dashboard** på dashboardets side **Indstillinger** downloader det som en JSON-fil. For at eksportere flere vælger du dem i listen **Dashboards** og vælger **Eksportér JSON**.
+- **Importér JSON** over listen **Dashboards** opretter dashboards ud fra sådan en fil, i dette projekt eller i et andet.
 
 En eksport indeholder dashboardets egne indstillinger, herunder dets widgets og variabler. Dets ejere og etiketter udelades, og widgets, der peger på dette projekts ressourcer, for eksempel et SLO eller en datakilde, kan kræve, at de vælges igen i et andet projekt.
 

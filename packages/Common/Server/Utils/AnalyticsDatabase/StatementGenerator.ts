@@ -2234,7 +2234,9 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
    * one or one carrying a `;` (a second statement) is refused rather than
    * written into the DDL.
    */
-  public static toDefaultExpressionClause(column: AnalyticsTableColumn): string {
+  public static toDefaultExpressionClause(
+    column: AnalyticsTableColumn,
+  ): string {
     const expression: string | undefined = column.defaultExpression;
 
     if (expression === undefined) {

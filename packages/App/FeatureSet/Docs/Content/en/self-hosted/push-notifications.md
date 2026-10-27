@@ -7,6 +7,7 @@ OneUptime pages people on their phones through the **OneUptime On-Call** mobile 
 - [Open the firewall](#network-access): The addresses your server and your people's devices reach.
 - [Ring through silent mode](#critical-on-call-alerts-overriding-silent-mode): Let on-call pages sound on a muted phone.
 - [Fix pushes that never arrive](#troubleshooting): What each of Expo's errors means.
+- [Turn push off](#turning-push-off-for-the-whole-server): Send nothing through Expo, the relay or browsers.
 :::
 
 ## How It Works
@@ -118,6 +119,19 @@ Device connectivity is a separate requirement. iOS devices need APNs access, typ
 :::
 
 For mobile pushes, OneUptime also reads Expo's delivery receipt about 15 minutes after each push: a push that never reached the device then shows as not delivered in the push log and, for an on-call page, on the on-call timeline.
+
+## Turning Push Off for the Whole Server
+
+If nothing may leave your network through Expo, the push relay or a browser's push service, a master admin can turn push off in **Admin Dashboard > Settings > Push Notifications**: turn **Send push notifications** off and confirm.
+
+While push is off:
+
+- Nothing is pushed to phones or browsers, in any project.
+- No device can be registered. Each person's **Push Notifications** tab under **User Settings > Notification Methods** says that push is off, and on-call rules offer no push devices.
+- A page through a push rule is not sent. The person's on-call log says `Push notification not sent: Push notifications are turned off on this server.`
+- On-call readiness counts push devices as unusable, and the fallback skips them. Someone whose only verified method is a push device shows as not reachable.
+
+To keep reaching people on their phones, add a [custom channel](/docs/self-hosted/custom-notification-channels) for your own app or gateway. Each OneUptime server reads the switch again within 10 seconds of a change. When push is turned back on, devices are registered again from the mobile app the next time it starts, or from the browser.
 
 ## Critical On-Call Alerts (Overriding Silent Mode)
 

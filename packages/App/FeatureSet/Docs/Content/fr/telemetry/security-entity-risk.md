@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Au seuil"| case["Un dossier s'ouvre,<br/>ou le dossier ouvert<br/>reprend le risque"]
 ```
 
-Ouvrez **Produits → Événements de sécurité → Risque des entités** : chaque utilisateur, hôte et adresse IP à risque, les plus à risque d'abord, avec son niveau, son importance, ce qui l'a trouvé et quand. Chacun s'ouvre sur sa propre page.
+Ouvrez **Produits → Événements de sécurité → Risque des entités** : chaque utilisateur, hôte et adresse IP à risque, les plus à risque d'abord, avec son niveau, son importance, ce qui l'a trouvé et quand. Chacun s'ouvre sur sa propre page. **Entités les plus à risque**, sur la vue d'ensemble, montre le haut de cette liste, et **Rechercher une entité**, en dessous, recherche n'importe quelle valeur dans 30 jours d'événements, un domaine ou un hachage de fichier aussi.
 
 ## Avant de commencer
 

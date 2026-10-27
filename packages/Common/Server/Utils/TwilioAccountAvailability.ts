@@ -5,7 +5,11 @@ import TwilioPhoneNumbers from "../../Types/CallAndSMS/TwilioPhoneNumbers";
 import ObjectID from "../../Types/ObjectID";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import { TwilioMessageKind } from "../../Utils/Project/TwilioAccount";
-import { GLOBAL_TWILIO_CONFIG_SELECT } from "./TwilioConfigSelect";
+import {
+  GLOBAL_CALL_AND_SMS_GATEWAY_SELECT,
+  GLOBAL_TWILIO_CONFIG_SELECT,
+} from "./TwilioConfigSelect";
+import CallAndSmsProviders from "../../Types/CallAndSMS/CallAndSmsProvider";
 import { toServerTwilioConfig } from "./ServerTwilioConfig";
 
 /*
@@ -30,7 +34,9 @@ export default class TwilioAccountAvailability {
    * The server's own account counts once its account SID, its token and
    * the numbers what it is used for takes are filled in, exactly as the
    * Notification service reads them (ServerTwilioConfig) - and, given a
-   * kind of message, only when it is used for that kind.
+   * kind of message, only when it is used for that kind. A server that
+   * sends through its own gateway instead (CallAndSmsProvider) counts for
+   * both kinds.
    */
   public static async isServerAccountSetUp(
     kind?: TwilioMessageKind | undefined,
@@ -43,9 +49,24 @@ export default class TwilioAccountAvailability {
         props: {
           isRoot: true,
         },
-        // Read as the Notification service reads it (TwilioConfigSelect).
-        select: GLOBAL_TWILIO_CONFIG_SELECT,
+        /*
+         * Read as the Notification service reads it (TwilioConfigSelect),
+         * with what carries the server's SMS and calls beside it.
+         */
+        select: {
+          ...GLOBAL_TWILIO_CONFIG_SELECT,
+          ...GLOBAL_CALL_AND_SMS_GATEWAY_SELECT,
+        },
       });
+
+    /*
+     * A server that sends through its own gateway has somewhere to send
+     * every SMS and call, whatever its Twilio account holds: the gateway
+     * delivers both (CallAndSmsGatewayConfig).
+     */
+    if (globalConfig && CallAndSmsProviders.getGateway(globalConfig)) {
+      return true;
+    }
 
     let serverTwilioConfig: TwilioConfig | null = null;
 

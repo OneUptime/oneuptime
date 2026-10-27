@@ -5,7 +5,7 @@ import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import VMwareDataCollectionCard from "../../../Components/VMware/VMwareDataCollectionCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
-import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
+import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -35,7 +35,7 @@ const VMwareVCenterSettings: FunctionComponent<
         }}
       />
       <VMwareDataCollectionCard modelId={modelId} />
-      <TelemetryResourceRetentionSettings<VMwareVCenter>
+      <TelemetryResourceMoreSettings<VMwareVCenter>
         modelType={VMwareVCenter}
         modelId={modelId}
         resourceName="vCenter"

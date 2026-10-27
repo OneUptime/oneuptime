@@ -16,6 +16,7 @@ import StatusPageResourceService from "../../../Server/Services/StatusPageResour
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import StatusPageGroup from "../../../Models/DatabaseModels/StatusPageGroup";
+import PermissionRowsOfDeletedLabels from "../../../Server/Utils/Permission/PermissionRowsOfDeletedLabels";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import {
@@ -338,11 +339,25 @@ describe("MonitorService.onUpdateSuccess - keeping status page monitor rules hon
 describe("LabelService delete hooks - a deleted label must not strand resources", () => {
   let syncResourcesForRuleSpy: ReturnType<typeof jest.spyOn>;
   let ruleFindBySpy: ReturnType<typeof jest.spyOn>;
+  let permissionCleanupSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     syncResourcesForRuleSpy = jest
       .spyOn(StatusPageMonitorRuleEngineService, "syncResourcesForRule")
       .mockResolvedValue(emptySyncResult());
+
+    /*
+     * Before the rules, the hook removes the permissions limited to the
+     * deleted labels alone (PermissionRowsOfDeletedLabels, pinned in its own
+     * suite). None are limited to this one: the rules are what is asked here.
+     */
+    permissionCleanupSpy = jest
+      .spyOn(PermissionRowsOfDeletedLabels, "removeRowsLimitedOnlyTo")
+      .mockResolvedValue({
+        teamPermissions: [],
+        apiKeyPermissions: [],
+        customRolePermissions: [],
+      });
 
     jest
       .spyOn(
@@ -387,6 +402,11 @@ describe("LabelService delete hooks - a deleted label must not strand resources"
       }),
     ).toEqual([LABEL_ID.toString()]);
     expect(ruleFindBySpy).toHaveBeenCalledTimes(2);
+
+    // The permissions were asked about the same labels.
+    expect(permissionCleanupSpy).toHaveBeenCalledWith({
+      labelIds: [LABEL_ID],
+    });
   });
 
   it("also looks inside criteria filters that reference the deleted monitor label", async () => {
@@ -431,6 +451,7 @@ describe("LabelService delete hooks - a deleted label must not strand resources"
     });
 
     expect(ruleFindBySpy).not.toHaveBeenCalled();
+    expect(permissionCleanupSpy).not.toHaveBeenCalled();
   });
 
   it("tolerates a label delete that carried nothing forward", async () => {

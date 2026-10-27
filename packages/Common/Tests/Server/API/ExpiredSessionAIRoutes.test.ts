@@ -770,14 +770,17 @@ describe("the refusals end-users actually hit", () => {
     expect(Response.sendJsonObjectResponse).toHaveBeenCalledTimes(1);
   });
 
-  test("the code-fix-run access check reads the project under the user's own props", async () => {
+  test("the code-fix-run access check reads the project under the user's own props, in their project alone", async () => {
     const props: DatabaseCommonInteractionProps = memberProps();
     withProps(props);
 
     await callRoute(CODE_FIX_RUN_ROUTES[0] as HumanOnlyRoute);
 
     expect(sideEffects.projectRead).toHaveBeenCalledWith(
-      expect.objectContaining({ id: PROJECT_ID, props: props }),
+      expect.objectContaining({
+        id: PROJECT_ID,
+        props: { ...props, isMultiTenantRequest: false },
+      }),
     );
   });
 

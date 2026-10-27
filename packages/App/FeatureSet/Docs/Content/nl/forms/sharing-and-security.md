@@ -16,7 +16,7 @@ Een formulier staat open voor iedereen met de link, en elke inzending kan je ber
 | **Status** | **Accepteert inzendingen** — of de link van het formulier werkt. |
 | **Deellink** | De link, met **Link kopiëren**, **Formulier openen** en **Link opnieuw instellen**. |
 | **Na verzenden** | Het **Bedankbericht** dat mensen zien zodra ze verzenden, onder het nummer van wat het formulier aanmaakte. |
-| **Toegang** | De **IP-toelatingslijst**. |
+| **Meer instellingen** | De **IP-toelatingslijst**, ingeklapt tot u die opent. |
 
 ## De link delen
 
@@ -80,7 +80,7 @@ Om een formulier tot je eigen netwerken te beperken:
 
 :::steps
 1. Open de pagina **Delen** van het formulier.
-2. Klik op de kaart **Toegang** op **IP-toelatingslijst bewerken**.
+2. Open **Meer instellingen** en klik op **IP-toelatingslijst bewerken**.
 3. Vul één netwerk per regel in en sla op. De kaart toont ze dan onder **IP-toelatingslijst**.
 :::
 

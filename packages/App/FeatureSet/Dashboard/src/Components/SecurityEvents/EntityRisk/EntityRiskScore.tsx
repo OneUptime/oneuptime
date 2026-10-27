@@ -81,9 +81,12 @@ export const EntityRiskMeter: FunctionComponent<{
           backgroundColor: color.toString(),
         }}
       />
-      {/* The threshold, where a case opens. */}
+      {/*
+       * The threshold, where a case opens: the mark the Overview's Riskiest
+       * Entities draws too, in a grey the dark theme remaps.
+       */}
       <div
-        className="absolute inset-y-0 start-1/2 w-px bg-gray-400"
+        className="absolute inset-y-0 start-1/2 w-px bg-gray-300"
         aria-hidden="true"
       />
     </div>

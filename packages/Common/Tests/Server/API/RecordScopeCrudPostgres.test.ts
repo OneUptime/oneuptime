@@ -17,6 +17,7 @@ import {
   NextFunction,
 } from "../../../Server/Utils/Express";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
+import MultiTenantQuery from "../../../Server/Utils/MultiTenantQuery";
 import Response from "../../../Server/Utils/Response";
 import AIInsight from "../../../Models/DatabaseModels/AIInsight";
 import Alert from "../../../Models/DatabaseModels/Alert";
@@ -5480,21 +5481,24 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
       }
 
       /*
-       * Each project's own id takes the place of a plain id on the project
-       * key, as in a request made in one project: the caller's projects'
-       * rows, never the named one's.
+       * A plain id on the project key names that project, read as Postgres
+       * would read the filter (#5343): a project the caller is not in is
+       * refused - never answered with the caller's own projects' rows - and
+       * one of theirs keeps the read to that project.
        */
       const keyed: Outcome = await list("/alert", acrossProjects, {
         projectId: otherProjectId.toString(),
       });
 
-      expect(keyed.ids).toEqual(
-        sorted([
-          ...homeAlertIds,
-          secondProductionAlertId,
-          secondUnlabelledAlertId,
-        ]),
-      );
+      expectRefused(keyed);
+      expect(keyed.error).toBeInstanceOf(NotAuthorizedException);
+
+      const own: Outcome = await list("/alert", acrossProjects, {
+        projectId: homeProjectId.toString(),
+      });
+
+      expect(own.error).toBeUndefined();
+      expect(own.ids).toEqual(sorted(homeAlertIds));
     });
 
     test("a read is refused when every project's block refuses it", async () => {
@@ -5510,7 +5514,7 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
       expectRefused(await list("/alert", acrossProjects));
     });
 
-    test("a block in the project the request names leaves out that project's records only", async () => {
+    test("a block in one project leaves out that project's records only", async () => {
       await setTeamPermissions(homeTeamId, homeProjectId, [
         { permission: Permission.AlertMember },
         { permission: Permission.ReadAlert, isBlock: true },
@@ -5519,18 +5523,31 @@ describePostgres("the records the CRUD API reaches, on Postgres", () => {
         { permission: Permission.AlertMember },
       ]);
 
-      // The home page asks across projects with the project in view named.
-      const listed: Outcome = await list("/alert", {
-        kind: "user",
-        tenantId: homeProjectId,
-        isMultiTenant: true,
-      });
+      // The dashboard's lists across projects name no project (#5343).
+      const listed: Outcome = await list("/alert", acrossProjects);
 
       expect(listed.error).toBeUndefined();
       expect(listed.ids).toEqual(
         sorted([secondProductionAlertId, secondUnlabelledAlertId]),
       );
       expect(listed.count).toBe(2);
+
+      /*
+       * A request that names a project and asks across projects too is
+       * refused before anything is read: it is made in one project or across
+       * them, never both (MultiTenantQuery).
+       */
+      const both: Outcome = await list("/alert", {
+        kind: "user",
+        tenantId: homeProjectId,
+        isMultiTenant: true,
+      });
+
+      expectRefused(both);
+      expect(both.error).toBeInstanceOf(BadDataException);
+      expect((both.error as Exception).message).toBe(
+        MultiTenantQuery.WITH_PROJECT_MESSAGE,
+      );
     });
   });
 

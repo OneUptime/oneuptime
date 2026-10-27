@@ -20,7 +20,7 @@ Een bereikbaarheidsbeleid bepaalt wie wordt opgeroepen voor een incident of waar
 
 **Wie wordt als eerste opgeroepen?** is optioneel en wordt alleen gevraagd aan wie escalatieregels mag toevoegen: blijft het leeg, dan roept het beleid niemand op tot het een regel heeft. **Beschrijving** en **Labels** staan onder **Meer velden**. Hoe je de volgende niveaus toevoegt, lees je bij [Escalatieregels](/docs/on-call/escalation-rules).
 
-De lijst **Bereikbaarheidsbeleid** toont van elk beleid **Naam**, **Beschrijving**, **Labels** en **Eigenaren**. Selecteer beleid om **Labels toevoegen**, **Labels verwijderen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Archiveren** of **JSON exporteren** uit te voeren, of om het te verwijderen. **Import JSON** maakt beleid aan uit een export: een export bevat de eigen instellingen van een beleid, niet de escalatieregels of eigenaren ervan.
+De lijst **Bereikbaarheidsbeleid** toont van elk beleid **Naam**, **Beschrijving**, **Labels** en **Eigenaren**. Selecteer beleid om **Labels toevoegen**, **Labels verwijderen**, **Eigenaar toevoegen**, **Eigenaar verwijderen**, **Archiveren** of **JSON exporteren** uit te voeren, of om het te verwijderen. **JSON importeren** maakt beleid aan uit een export: een export bevat de eigen instellingen van een beleid, niet de escalatieregels of eigenaren ervan.
 
 ## Wat een beleid uitvoert
 

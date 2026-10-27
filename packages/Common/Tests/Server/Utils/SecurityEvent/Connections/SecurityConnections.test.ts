@@ -1,3 +1,4 @@
+import SecurityEvent from "../../../../../Models/AnalyticsModels/SecurityEvent";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import AlertService from "../../../../../Server/Services/AlertService";
 import AlertStateService from "../../../../../Server/Services/AlertStateService";
@@ -19,6 +20,8 @@ import SecurityConnections, {
   RECORD_RELATION_COLUMNS,
   linkIncidentToConnectedRecords,
 } from "../../../../../Server/Utils/SecurityEvent/Connections/SecurityConnections";
+import TelemetryReadAccess from "../../../../../Server/Utils/Telemetry/TelemetryReadAccess";
+import { TelemetryServiceFilter } from "../../../../../Server/Utils/Telemetry/TelemetryReadScope";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -615,6 +618,70 @@ describe("SecurityConnections.forEntities", () => {
   });
 });
 
+describe("the logs behind the events, of the sources the reader may read", () => {
+  test("a case's and an entity's are read from the events the caller's read of security events keeps to", async () => {
+    caseRead();
+    const sources: TelemetryServiceFilter = {
+      serviceIds: [new ObjectID(SERVICE_ID)],
+    };
+    const scope: jest.SpyInstance = jest
+      .spyOn(TelemetryReadAccess, "getServiceFilter")
+      .mockResolvedValue(sources);
+
+    await SecurityConnections.forCase({
+      projectId: PROJECT_ID,
+      securityCaseId: CASE_ID,
+      props: CALLER,
+      now: NOW,
+    });
+    await SecurityConnections.forEntities({
+      projectId: PROJECT_ID,
+      entities: [{ type: SecurityEntityType.User, value: "k@acme.example" }],
+      readLogResources: true,
+      props: CALLER,
+      now: NOW,
+    });
+
+    expect(scope).toHaveBeenCalledTimes(2);
+    expect(logResourcesSpy).toHaveBeenCalledTimes(2);
+
+    for (const call of scope.mock.calls) {
+      expect(call[0]).toEqual({ modelType: SecurityEvent, props: CALLER });
+    }
+
+    for (const call of logResourcesSpy.mock.calls) {
+      expect(call[0]).toMatchObject({ serviceFilter: sources });
+    }
+  });
+
+  test("a caller whose role may not read security events gets none of the logs behind them, and that is no failure to log", async () => {
+    caseRead();
+    logResourcesSpy.mockResolvedValue([
+      { type: "Host", id: HOST_ID, eventCount: 3 },
+    ]);
+    jest
+      .spyOn(TelemetryReadAccess, "getServiceFilter")
+      .mockRejectedValue(
+        new NotAuthorizedException(
+          "You are not authorized to read Security Event.",
+        ),
+      );
+
+    const json: SecurityConnectionsJson | null =
+      await SecurityConnections.forCase({
+        projectId: PROJECT_ID,
+        securityCaseId: CASE_ID,
+        props: CALLER,
+        now: NOW,
+      });
+
+    expect(logResourcesSpy).not.toHaveBeenCalled();
+    expect(resolveSpy.mock.calls[0]![0]).toMatchObject({ logResources: [] });
+    expect(json?.resources.length).toBe(4);
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+});
+
 describe("the incident a case declares", () => {
   test("is linked to the case's exact connections among what an incident names - read as OneUptime", async () => {
     caseRead();
@@ -651,6 +718,16 @@ describe("the incident a case declares", () => {
     expect(resolveSpy.mock.calls[0]![0]).toMatchObject({
       props: { isRoot: true },
     });
+
+    // The logs behind every source's events: OneUptime decides what the incident is about.
+    const sources: TelemetryServiceFilter | undefined = (
+      logResourcesSpy.mock.calls[0]![0] as {
+        serviceFilter?: TelemetryServiceFilter | undefined;
+      }
+    ).serviceFilter;
+
+    expect(sources?.serviceIds).toBeUndefined();
+    expect(sources?.excludedServiceIds).toBeUndefined();
   });
 
   test("linkIncidentToConnectedRecords: each relation of the incident, exact records only", () => {

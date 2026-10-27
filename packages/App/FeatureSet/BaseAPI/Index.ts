@@ -19,6 +19,7 @@ import TelemetryAiAPI from "Common/Server/API/TelemetryAiAPI";
 import AIInvestigationConversationAPI from "Common/Server/API/AIInvestigationConversationAPI";
 import AIInsightAPI from "Common/Server/API/AIInsightAPI";
 import AutoRemediationAPI from "Common/Server/API/AutoRemediationAPI";
+import AiFirstResponderAPI from "Common/Server/API/AiFirstResponderAPI";
 import AIConversation from "Common/Models/DatabaseModels/AIConversation";
 import AIConversationService, {
   Service as AIConversationServiceType,
@@ -129,6 +130,7 @@ import UserTelegramAPI from "Common/Server/API/UserTelegramAPI";
 import UserSlackAPI from "Common/Server/API/UserSlackAPI";
 import UserMicrosoftTeamsAPI from "Common/Server/API/UserMicrosoftTeamsAPI";
 import UserWebhookAPI from "Common/Server/API/UserWebhookAPI";
+import CustomNotificationChannelAPI from "Common/Server/API/CustomNotificationChannelAPI";
 import UserPushAPI from "Common/Server/API/UserPushAPI";
 import UserAPI from "Common/Server/API/UserAPI";
 import NetworkTrafficAPI from "./API/NetworkTraffic";
@@ -4333,6 +4335,7 @@ const BaseAPIFeatureSet: FeatureSet = {
      * win the match.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AutoRemediationAPI);
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, AiFirstResponderAPI);
 
     /*
      * Cluster AI access — readiness checklist + "test access" for a
@@ -5909,6 +5912,10 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new UserWebhookAPI().getRouter(),
+    );
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CustomNotificationChannelAPI().getRouter(),
     );
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new UserPushAPI().getRouter());
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, new ProbeAPI().getRouter());

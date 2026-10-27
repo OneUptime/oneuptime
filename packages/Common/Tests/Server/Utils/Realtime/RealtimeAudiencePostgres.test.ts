@@ -213,12 +213,18 @@ describePostgres("live updates against a migrated Postgres", () => {
   const MESSAGE_OF_AUTHOR: string = id();
   const MESSAGE_OF_OWNER: string = id();
 
+  /*
+   * One permission row, as AccessTokenService builds them. teamId is the
+   * team whose permission the row is: an Owned row reaches what that team
+   * owns, never what only the user's other teams own (#5337).
+   */
   function row(
     permission: Permission,
     options: {
       scope?: PermissionScope;
       labelIds?: Array<string>;
       isBlock?: boolean;
+      teamId?: string;
     } = {},
   ): UserPermission {
     return {
@@ -229,6 +235,7 @@ describePostgres("live updates against a migrated Postgres", () => {
       }),
       isBlockPermission: Boolean(options.isBlock),
       scope: options.scope,
+      ...(options.teamId ? { teamId: new ObjectID(options.teamId) } : {}),
     };
   }
 
@@ -273,7 +280,13 @@ describePostgres("live updates against a migrated Postgres", () => {
     [
       TEAM_READER,
       {
-        rows: [row(Permission.ProjectMember, { scope: PermissionScope.Owned })],
+        // TEAM's own Owned grant: it reaches what TEAM owns.
+        rows: [
+          row(Permission.ProjectMember, {
+            scope: PermissionScope.Owned,
+            teamId: TEAM,
+          }),
+        ],
         teamIds: [TEAM],
       },
     ],

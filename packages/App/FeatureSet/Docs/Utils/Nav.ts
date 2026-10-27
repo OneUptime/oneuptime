@@ -1539,12 +1539,20 @@ const DocsNav: NavGroup[] = [
         url: "/docs/self-hosted/twilio-integration",
       },
       {
+        title: "SMS and Call Gateway",
+        url: "/docs/self-hosted/sms-and-call-gateway",
+      },
+      {
         title: "GitHub Integration",
         url: "/docs/self-hosted/github-integration",
       },
       {
         title: "Push Notifications",
         url: "/docs/self-hosted/push-notifications",
+      },
+      {
+        title: "Custom Notification Channels",
+        url: "/docs/self-hosted/custom-notification-channels",
       },
       {
         title: "SendGrid Inbound Email",

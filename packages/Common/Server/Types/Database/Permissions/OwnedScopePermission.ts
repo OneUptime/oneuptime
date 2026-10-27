@@ -17,6 +17,7 @@ import BaseModel, {
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import MultiSearch from "../../../../Types/BaseDatabase/MultiSearch";
+import { FindWhereProperty } from "../../../../Types/BaseDatabase/Query";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
@@ -62,9 +63,12 @@ export interface ColumnKeptToOwners {
  * and of a team that may only view what it owns changes the first team's
  * incidents, and only views the second's (getOwningTeamIds).
  *
- * `All` and `Labels` scoped rows are evaluated elsewhere; if any non-Owned
- * row also grants the operation, that broader grant wins and this filter
- * is skipped.
+ * `All` and `Labels` scoped rows are evaluated elsewhere. A row over the
+ * whole project beside the Owned ones reaches every record, and this filter
+ * is skipped. Rows limited to labels beside them reach the records carrying
+ * their labels, and the Owned rows still reach what they own: the two are
+ * one condition (AccessControlPermission.addGrantToQuery, with
+ * getOwnedRecordsCondition), and this filter is skipped too.
  *
  * addOwnedScopeToQuery is the rule for one operation. The record rule
  * narrows a write by its read's scope as well, and so asks the two halves
@@ -235,7 +239,7 @@ export default class OwnedScopePermission {
    * Owned-scoped - the caller's grants reach only the records they or the
    * rows' teams own - or null when they are not limited to owned records:
    * a root caller, a create, a model with nothing to own, no row at all, a
-   * broader row among them, or a read the scope leaves alone.
+   * row of another scope among them, or a read the scope leaves alone.
    */
   private static getOwnedOnlyGrantRows<TBaseModel extends BaseModel>(
     modelType: { new (): TBaseModel },
@@ -254,21 +258,8 @@ export default class OwnedScopePermission {
       return null;
     }
 
-    /*
-     * Owned scope only restricts resources that can carry ownership:
-     * operational resources, explicitly registered ownership roots, or
-     * nested resources that inherit ownership via @OwnedThrough (hasOwners)
-     * - or, on a change or a delete, an owner table of a registered root
-     * (getOwnedThrough). For everything else (settings / config tables like
-     * IncidentState, Label, Team, etc.) the table-level permission check is
-     * the only gate — Owned has no resources to scope to, so it's a no-op.
-     * Registry membership only enables ownership filtering; operational
-     * wildcard grants still require the existing decorator.
-     */
-    if (
-      !OwnedScopePermission.hasOwners(modelType) &&
-      !OwnedScopePermission.isOwnerTableWrite(modelType, type)
-    ) {
+    // A model, or a read, the scope narrows nothing of. See narrowsRecords.
+    if (!OwnedScopePermission.narrowsRecords(modelType, type)) {
       return null;
     }
 
@@ -305,11 +296,14 @@ export default class OwnedScopePermission {
     }
 
     /*
-     * If any applicable row is non-Owned (All / Labels / undefined), it
-     * grants broader access than Owned and the Owned constraint is moot.
-     * Rows for scope-exempt permissions (e.g. ProjectOwner) are also
-     * treated as broader grants regardless of their stored scope, since
-     * scoping doesn't apply to them.
+     * If any applicable row is non-Owned (All / Labels / undefined), the
+     * Owned rows are not all there is: a row over the whole project grants
+     * broader access than Owned and the Owned constraint is moot, and rows
+     * limited to labels reach their records beside what the Owned rows own
+     * (AccessControlPermission.getLabelGrantForModel). Rows for
+     * scope-exempt permissions (e.g. ProjectOwner) are treated as broader
+     * grants regardless of their stored scope, since scoping doesn't apply
+     * to them.
      */
     const hasNonOwnedGrant: boolean = applicableRows.some(
       (p: UserPermission) => {
@@ -324,22 +318,163 @@ export default class OwnedScopePermission {
       return null;
     }
 
-    /*
-     * Every applicable row is Owned-scoped. A kind other records are set
-     * up with - the probe a monitor runs on, the template an incident is
-     * declared from, the on-call schedule an escalation rule pages - is
-     * read by every reader of it all the same, and so are the records that
-     * take their owners from it: picking one is reading it. Its changes and
-     * deletes keep to the scope. See leavesReadsAlone.
-     */
+    return applicableRows;
+  }
+
+  /*
+   * WHETHER THE OWNED SCOPE NARROWS `type` ON THIS MODEL'S RECORDS - or
+   * whether a grant scoped to Owned reaches every one of them, as a grant
+   * over the whole project does:
+   *
+   *   - a read, a change or a delete of a model whose records have owners:
+   *     an operational resource, an explicitly registered ownership root, or
+   *     a nested resource that inherits its owners via @OwnedThrough
+   *     (hasOwners) - or, on a change or a delete, an owner table of a
+   *     registered root (getOwnedThrough). For everything else (settings /
+   *     config tables like IncidentState, Label, Team, etc.) the table-level
+   *     permission check is the only gate: Owned has no resources to scope
+   *     to. Registry membership only enables ownership filtering;
+   *     operational wildcard grants still require the existing decorator.
+   *     A kind other records are set up with - the probe a monitor runs on,
+   *     the template an incident is declared from, the on-call schedule an
+   *     escalation rule pages - is read by every reader of it all the same,
+   *     and so are the records that take their owners from it: picking one
+   *     is reading it. Its changes and deletes keep to the scope
+   *     (leavesReadsAlone);
+   *   - a create of a record whose creator becomes one of its owners
+   *     (hasOwnerTables), or that names the parent it takes its owners from
+   *     (getOwnedThrough, an owner row's resource among them): what it may
+   *     create keeps to what its creator, or their teams, own
+   *     (CreateScopePermission).
+   */
+  public static narrowsRecords(
+    modelType: { new (): BaseModel },
+    type: DatabaseRequestType,
+  ): boolean {
+    if (type === DatabaseRequestType.Create) {
+      return (
+        OwnedScopePermission.hasOwnerTables(modelType) ||
+        OwnedScopePermission.getOwnedThrough(modelType) !== null
+      );
+    }
+
     if (
+      !OwnedScopePermission.hasOwners(modelType) &&
+      !OwnedScopePermission.isOwnerTableWrite(modelType, type)
+    ) {
+      return false;
+    }
+
+    return !(
       type === DatabaseRequestType.Read &&
       OwnedScopePermission.leavesReadsAlone(modelType)
+    );
+  }
+
+  /*
+   * THE RECORDS THE CALLER OR ONE OF `teamIds` OWNS, as a condition rather
+   * than a narrowed query: one on the record's id, or - for a model that
+   * takes its owners from a parent (getOwnedThrough) - on the key naming
+   * the parent (`columnName`), with the rows of no parent where they belong
+   * to the project (includeUnattributed). The records addOwnedRecordsToQuery
+   * keeps, for a grant scoped to Owned that stands beside grants limited to
+   * labels: the two reach their records together
+   * (AccessControlPermission.addGrantToQuery). Matches nothing for a caller
+   * who owns nothing.
+   */
+  public static async getOwnedRecordsCondition<TBaseModel extends BaseModel>(
+    modelType: { new (): TBaseModel },
+    props: DatabaseCommonInteractionProps,
+    teamIds: ReadonlyArray<ObjectID>,
+  ): Promise<{
+    columnName: string | null;
+    condition: FindWhereProperty<any>;
+  }> {
+    const ownedThrough: OwnedThroughMetadata | null =
+      OwnedScopePermission.getOwnedThrough(modelType);
+
+    const allowedIds: Array<ObjectID> =
+      await OwnedScopePermission.getAllowedResourceIds(
+        modelType,
+        props,
+        teamIds,
+      );
+
+    if (!ownedThrough) {
+      return { columnName: null, condition: QueryHelper.any(allowedIds) };
+    }
+
+    return {
+      columnName: ownedThrough.fkColumn,
+      condition: ownedThrough.includeUnattributed
+        ? QueryHelper.inOrNull(allowedIds)
+        : QueryHelper.any(allowedIds),
+    };
+  }
+
+  /*
+   * The records of a model read through another one (@CanAccessIfCanReadOn)
+   * whose parent the caller or one of `teamIds` owns, as a condition rather
+   * than a narrowed query: on the key naming the parent (`columnName`), or,
+   * for parents through a join table, on the record's id. The records
+   * addOwnedParentsToQuery keeps, for a read of the parent scoped to Owned
+   * that stands beside one limited to labels (BasePermission
+   * .addParentAccessToQuery). Null for a parent the rule cannot follow:
+   * it reaches no record.
+   */
+  public static async getOwnedParentsCondition<
+    TBaseModel extends BaseModel,
+  >(data: {
+    modelType: { new (): TBaseModel };
+    props: DatabaseCommonInteractionProps;
+    parentModelType: { new (): BaseModel };
+    relation: string;
+    relationColumn: TableColumnMetadata;
+    teamIds: ReadonlyArray<ObjectID>;
+  }): Promise<{
+    columnName: string | null;
+    condition: FindWhereProperty<any>;
+  } | null> {
+    // As addOwnedParentsToQuery: a parent owned through another has none here.
+    const ownedParentIds: Array<ObjectID> =
+      OwnedScopePermission.getOwnedThrough(data.parentModelType)
+        ? []
+        : await OwnedScopePermission.getAllowedResourceIds(
+            data.parentModelType,
+            data.props,
+            data.teamIds,
+          );
+
+    if (
+      data.relationColumn.type === TableColumnType.Entity &&
+      data.relationColumn.manyToOneRelationColumn
     ) {
+      return {
+        columnName: data.relationColumn.manyToOneRelationColumn,
+        condition: QueryHelper.any(ownedParentIds),
+      };
+    }
+
+    const parentLinks: ReturnType<
+      typeof QueryUtil.getManyToManyRelationMetadata
+    > =
+      data.relationColumn.type === TableColumnType.EntityArray
+        ? QueryUtil.getManyToManyRelationMetadata(data.modelType, data.relation)
+        : null;
+
+    if (!parentLinks) {
       return null;
     }
 
-    return applicableRows;
+    return {
+      columnName: null,
+      condition: QueryHelper.anyOfEntitiesInManyToMany({
+        values: ownedParentIds,
+        joinTableName: parentLinks.joinTableName,
+        ownerColumnName: parentLinks.ownerColumnName,
+        relationColumnName: parentLinks.relationColumnName,
+      }),
+    };
   }
 
   /*

@@ -93,7 +93,7 @@ Kopieer onder **Delen** de link en stuur hem naar de mensen die het formulier mo
 | **Bouwen** | Naam en beschrijving van het formulier, de **Huisstijl** (logo en favicon, ingeklapt) en de editor: de vragen, het vragenpalet en **Voorbeeld**. |
 | **Sjablonen** | Benoemde sets antwoorden waarmee men het formulier kan beginnen, hoe elk sjabloon de vragen stelt, het sjabloon waarmee het formulier opent en de eigen link van elk sjabloon. |
 | **Bij verzenden** | Wat elke inzending aanmaakt en hoe elk veld ervan wordt ingevuld. **Instellingen bewerken** wijzigt de standaardwaarden en wat altijd geldt. |
-| **Delen** | **Accepteert inzendingen**, de **Deellink**, het bericht na het verzenden en de **IP-toelatingslijst**. |
+| **Delen** | **Accepteert inzendingen**, de **Deellink**, het bericht na het verzenden en, onder **Meer instellingen**, de **IP-toelatingslijst**. |
 | **Inzendingen** | Elke inzending via het formulier, de nieuwste eerst, met de antwoorden en wat ze heeft aangemaakt. |
 | **Formulier dupliceren** | Onder **Geavanceerd**: een kopie van het formulier, voor u benoemd, met de vragen, sjablonen, instellingen onder Bij verzenden, huisstijl, bedankbericht en IP-toelatingslijst, en een eigen link. De kopie staat eerst uit en opent in haar editor. |
 | **Formulier verwijderen** | Het verwijderen van het formulier, onder **Geavanceerd**. De inzendingen worden mee verwijderd; de incidenten en gebeurtenissen die het heeft aangemaakt niet. |

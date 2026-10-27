@@ -1,5 +1,6 @@
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Dictionary from "../../../Types/Dictionary";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
@@ -734,6 +735,162 @@ export default class QueryHelper {
       },
       values.length > 0 ? { [valuesRid]: values } : {},
     );
+  }
+
+  /**
+   * Several conditions on a record, of which it meets at least one: applied
+   * to the record's primary id, each condition is written on the id itself
+   * or, with `columnName`, on another column of the same row (a note's
+   * incidentId), as the grant conditions above write the keys beside the id.
+   * For grants that each reach some records - the ones carrying a grant's
+   * labels, the ones a grant's holder owns - whose records together are what
+   * the caller reaches. Each condition is one this class builds (a Raw); an
+   * empty list matches nothing (fail closed).
+   */
+  public static anyOfConditions(
+    conditions: Array<{
+      columnName?: string | undefined;
+      condition: FindWhereProperty<any>;
+    }>,
+  ): FindWhereProperty<any> {
+    const parameters: Dictionary<unknown> = {};
+    const writers: Array<(alias: string) => string> = [];
+
+    for (const each of conditions) {
+      const getSql: (alias: string) => string = QueryHelper.getRawSql(
+        each.condition,
+      );
+
+      Object.assign(
+        parameters,
+        (each.condition as unknown as FindOperator<unknown>)
+          .objectLiteralParameters || {},
+      );
+
+      writers.push((alias: string): string => {
+        return getSql(
+          each.columnName
+            ? QueryHelper.getColumnBeside(alias, each.columnName)
+            : alias,
+        );
+      });
+    }
+
+    return Raw((alias: string) => {
+      return writers.length > 0
+        ? `(${writers
+            .map((writer: (alias: string) => string): string => {
+              return writer(alias);
+            })
+            .join(" OR ")})`
+        : "(FALSE)";
+    }, parameters);
+  }
+
+  /**
+   * Several conditions on a record, all of which it meets: anyOfConditions'
+   * counterpart, each condition written on the record's id or on another
+   * column of the same row (`columnName`). For a block with labels on a
+   * record with no labels of its own, which takes it away through any of
+   * the records it names (ReadPermission.getBlockedLabelsCondition). An
+   * empty list matches every record.
+   */
+  public static allOfConditions(
+    conditions: Array<{
+      columnName?: string | undefined;
+      condition: FindWhereProperty<any>;
+    }>,
+  ): FindWhereProperty<any> {
+    const parameters: Dictionary<unknown> = {};
+    const writers: Array<(alias: string) => string> = [];
+
+    for (const each of conditions) {
+      const getSql: (alias: string) => string = QueryHelper.getRawSql(
+        each.condition,
+      );
+
+      Object.assign(
+        parameters,
+        (each.condition as unknown as FindOperator<unknown>)
+          .objectLiteralParameters || {},
+      );
+
+      writers.push((alias: string): string => {
+        return getSql(
+          each.columnName
+            ? QueryHelper.getColumnBeside(alias, each.columnName)
+            : alias,
+        );
+      });
+    }
+
+    return Raw((alias: string) => {
+      return writers.length > 0
+        ? `(${writers
+            .map((writer: (alias: string) => string): string => {
+              return writer(alias);
+            })
+            .join(" AND ")})`
+        : "(TRUE)";
+    }, parameters);
+  }
+
+  /**
+   * Applied to a key naming a record of `tableName` (a security case note's
+   * securityCaseId), matches the keys that name a record meeting
+   * `condition` - one this class builds, written on that record's id, whose
+   * other columns it reads beside the id - or, with no condition, any record
+   * of the table. For the records a model is read through that are kept by
+   * their own table's rule. An empty key matches nothing.
+   */
+  public static inRecordsWhere(data: {
+    tableName: string;
+    condition?: FindWhereProperty<any> | undefined;
+  }): FindWhereProperty<any> {
+    const table: string = QueryHelper.escapeIdentifier(data.tableName);
+    // The record's own alias, so its columns are never read as the outer row's.
+    const recordAlias: string = `record${Text.generateRandomText(10)}`;
+    const getSql: ((alias: string) => string) | null = data.condition
+      ? QueryHelper.getRawSql(data.condition)
+      : null;
+
+    return Raw(
+      (alias: string) => {
+        const kept: string = getSql
+          ? ` WHERE ${getSql(`"${recordAlias}"."_id"`)}`
+          : "";
+
+        return `(${alias} IN (SELECT "${recordAlias}"."_id" FROM "${table}" "${recordAlias}"${kept}))`;
+      },
+      data.condition
+        ? (data.condition as unknown as FindOperator<unknown>)
+            .objectLiteralParameters || {}
+        : {},
+    );
+  }
+
+  /*
+   * The SQL a condition this class builds writes for a column (a Raw's
+   * generator). Any other condition cannot be written inside another one,
+   * and is refused rather than dropped.
+   */
+  private static getRawSql(
+    condition: FindWhereProperty<any>,
+  ): (alias: string) => string {
+    const operator: FindOperator<unknown> =
+      condition as unknown as FindOperator<unknown>;
+    const getSql: unknown =
+      operator instanceof FindOperator && operator.type === "raw"
+        ? operator.getSql
+        : undefined;
+
+    if (typeof getSql !== "function") {
+      throw new BadDataException(
+        "Only a condition QueryHelper writes as SQL can be held with others.",
+      );
+    }
+
+    return getSql as (alias: string) => string;
   }
 
   // An identifier's characters as they are written between double quotes.
