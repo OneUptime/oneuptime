@@ -113,7 +113,7 @@ O calendário contém cada evento de 90 dias atrás até um ano à frente, até 
 
 As pessoas que acompanham uma página de status podem colocar a manutenção programada dela no próprio calendário. Na página de eventos programados da página de status, **Subscrever o calendário** oferece o Google Agenda, o app de calendário do dispositivo delas ou o link para copiar. O link é o endereço da página seguido de `/maintenance.ics`, como `https://status.example.com/maintenance.ics`.
 
-- **O que ele contém.** Exatamente o que a página mostra: os eventos da janela de histórico da página, cada evento que ainda vai começar e cada um em andamento, enquanto **Visível na página de status** estiver ativado. O que cada evento afeta é nomeado como a página nomeia os seus recursos, nunca pelos nomes dos seus monitores.
+- **O que ele contém.** Exatamente o que a página mostra: os eventos da janela de histórico da página, cada evento que ainda vai começar e cada um em andamento, enquanto **Visível na página de status** estiver ativado, e a partir do seu **Publicar em**, se você escolheu um. O que cada evento afeta é nomeado como a página nomeia os seus recursos, nunca pelos nomes dos seus monitores.
 - **Uma página privada.** Um app de calendário não consegue entrar, então uma página privada não oferece **Subscrever o calendário**, e o link dela entrega um calendário vazio que diz que a página é privada.
 - **Um evento.** **Adicionar ao calendário** na página de um evento adiciona só esse evento: o Google Agenda abre com ele preenchido, ou ele é baixado como um arquivo que o app de calendário do dispositivo abre. Funciona também em uma página privada, para um visitante que entrou, e não é oferecido depois que o evento termina.
 
@@ -147,7 +147,7 @@ O Google Agenda lê o link a partir dos servidores do Google, então o servidor 
 :::
 
 :::details Um evento não aparece no calendário de uma página de status
-O calendário da página contém o que a página mostra. Verifique se o evento nomeia a página, se **Visível na página de status** está ativado nas **Configurações** dele e se ele começou dentro da janela de histórico da página.
+O calendário da página contém o que a página mostra. Verifique se o evento nomeia a página, se **Visível na página de status** está ativado nas **Configurações** dele, se o **Publicar em** dele, se houver, já chegou, e se ele começou dentro da janela de histórico da página.
 :::
 
 :::details Um calendário externo diz Não funciona

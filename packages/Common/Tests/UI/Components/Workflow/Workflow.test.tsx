@@ -49,6 +49,8 @@ import {
  * the builder's own props (onKeyDown among them).
  */
 let mockFlowProps: ReactFlowProps | null = null;
+// What the canvas's zoom controls were handed (react-flow's Controls).
+let mockControlsProps: { showInteractive?: boolean | undefined } | null = null;
 let mockSettingsProps: SettingsProps | null = null;
 // Every render of either picker, in order.
 let mockPickerProps: Array<PickerProps> = [];
@@ -61,6 +63,18 @@ jest.mock("reactflow", () => {
   const actual: typeof import("reactflow") = jest.requireActual(
     "reactflow",
   ) as typeof import("reactflow");
+
+  /*
+   * The zoom controls, drawn inside the canvas as react-flow draws them, so
+   * what they are handed is seen; the canvas's other children read
+   * react-flow's store, which this stand-in has none of.
+   */
+  const MockControls: (props: {
+    showInteractive?: boolean | undefined;
+  }) => null = (props: { showInteractive?: boolean | undefined }): null => {
+    mockControlsProps = { showInteractive: props.showInteractive };
+    return null;
+  };
 
   return {
     ...actual,
@@ -98,15 +112,18 @@ jest.mock("reactflow", () => {
               </div>
             );
           })}
+          {React.Children.toArray(props.children).filter(
+            (child: React.ReactNode): boolean => {
+              return React.isValidElement(child) && child.type === MockControls;
+            },
+          )}
         </div>
       );
     },
     Background: (): null => {
       return null;
     },
-    Controls: (): null => {
-      return null;
-    },
+    Controls: MockControls,
     MiniMap: (): null => {
       return null;
     },
@@ -238,6 +255,11 @@ jest.mock("../../../../UI/Components/Workflow/RunModal", () => {
           <button type="button" onClick={props.onClose}>
             Close run
           </button>
+          {props.onAddTrigger ? (
+            <button type="button" onClick={props.onAddTrigger}>
+              Add Trigger from the run panel
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => {
@@ -479,6 +501,7 @@ const pressKey: PressKeyFunction = (
 
 beforeEach(() => {
   mockFlowProps = null;
+  mockControlsProps = null;
   mockSettingsProps = null;
   mockPickerProps = [];
   mockSetCenter.mockReset();
@@ -1908,6 +1931,152 @@ describe("Workflow builder: rendering and persistence boundaries", () => {
   });
 });
 
+/*
+ * The Builder as a view, for someone who may open the workflow but not
+ * change it (WorkflowViewOnly): a Workflow Member, who runs workflows, or a
+ * viewer. Every change they made used to fail to save.
+ */
+describe("Workflow builder: a view, for someone who may not change the workflow", () => {
+  const VIEW_ONLY_REASON: string =
+    "Changing this workflow takes permission to edit it. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.";
+
+  test("nothing on the canvas moves, connects or is deleted", () => {
+    renderBuilder({
+      initialNodes: [makeNode(TRIGGER_METADATA), makeNode(ACTION_METADATA)],
+      editDisabledReason: VIEW_ONLY_REASON,
+    });
+
+    expect(mockFlowProps).toEqual(
+      expect.objectContaining({
+        nodesDraggable: false,
+        nodesConnectable: false,
+        edgesUpdatable: false,
+        deleteKeyCode: null,
+      }),
+    );
+  });
+
+  test("an editor's canvas moves, connects and deletes as it always did", () => {
+    renderBuilder({
+      initialNodes: [makeNode(TRIGGER_METADATA), makeNode(ACTION_METADATA)],
+    });
+
+    expect(mockFlowProps).toEqual(
+      expect.objectContaining({
+        nodesDraggable: true,
+        nodesConnectable: true,
+        edgesUpdatable: true,
+        deleteKeyCode: "Backspace",
+      }),
+    );
+    // The controls keep their lock, which an editor may press.
+    expect(mockControlsProps?.showInteractive).toBe(true);
+  });
+
+  /*
+   * react-flow's controls carry a lock that turns dragging and connecting
+   * on and off in its own store: pressed twice on a view, steps could be
+   * dragged again (nothing was saved, but the view was not one). A view's
+   * controls zoom and fit only.
+   */
+  test("the canvas's controls have no lock to turn editing back on", () => {
+    renderBuilder({
+      initialNodes: [makeNode(TRIGGER_METADATA), makeNode(ACTION_METADATA)],
+      editDisabledReason: VIEW_ONLY_REASON,
+    });
+
+    expect(mockControlsProps).not.toBeNull();
+    expect(mockControlsProps?.showInteractive).toBe(false);
+  });
+
+  test("the dashed card opens no panel, by a click or by Enter", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+
+    renderBuilder({
+      initialNodes: [placeholder, makeNode(ACTION_METADATA)],
+      editDisabledReason: VIEW_ONLY_REASON,
+    });
+
+    const card: HTMLElement = screen.getByTestId(
+      `workflow-node-${placeholder.id}`,
+    );
+
+    fireEvent.click(card);
+    card.focus();
+    pressKey(card, { key: "Enter" });
+
+    expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("picker-Component")).not.toBeInTheDocument();
+    expect(mockPickerProps).toHaveLength(0);
+  });
+
+  test("a request from the toolbar opens nothing either", () => {
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [makeNode(TRIGGER_METADATA)],
+      editDisabledReason: VIEW_ONLY_REASON,
+    });
+
+    openPicker(harness);
+
+    expect(screen.queryByTestId("picker-Component")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
+  });
+
+  test("a step still opens, to be read: its settings are told why they are a view", () => {
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+
+    renderBuilder({
+      initialNodes: [makeNode(TRIGGER_METADATA), action],
+      editDisabledReason: VIEW_ONLY_REASON,
+    });
+
+    fireEvent.click(screen.getByTestId(`workflow-node-${action.id}`));
+
+    expect(screen.getByTestId("step-settings")).toBeInTheDocument();
+    expect(getSettingsProps().readOnlyReason).toBe(VIEW_ONLY_REASON);
+  });
+
+  test("an editor's step settings are told nothing of the kind", () => {
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+
+    renderBuilder({
+      initialNodes: [makeNode(TRIGGER_METADATA), action],
+    });
+
+    fireEvent.click(screen.getByTestId(`workflow-node-${action.id}`));
+
+    expect(getSettingsProps().readOnlyReason).toBeUndefined();
+  });
+
+  test("the run panel of a workflow with no trigger offers no Add Trigger", () => {
+    renderBuilder({
+      initialNodes: [getPlaceholderTriggerNode()],
+      showRunModal: true,
+      editDisabledReason: VIEW_ONLY_REASON,
+    });
+
+    expect(screen.getByTestId("run-workflow-modal")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Add Trigger from the run panel" }),
+    ).not.toBeInTheDocument();
+  });
+
+  test("becoming a view while a page is open locks the canvas at once", () => {
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [makeNode(TRIGGER_METADATA)],
+    });
+
+    expect(mockFlowProps?.nodesDraggable).toBe(true);
+
+    harness.view.rerender(
+      <Workflow {...harness.props} editDisabledReason={VIEW_ONLY_REASON} />,
+    );
+
+    expect(mockFlowProps?.nodesDraggable).toBe(false);
+    expect(mockFlowProps?.deleteKeyCode).toBeNull();
+  });
+});
+
 describe("Workflow builder: running and modal state", () => {
   test.each([
     "component picker",
@@ -2132,6 +2301,41 @@ describe("Workflow builder: a test run asked for from a step's settings", () => 
         return node.id === action.id;
       })?.data.arguments,
     ).toEqual({ message: "Deploy finished" });
+  });
+
+  test("the run panel of a workflow with no trigger offers Add Trigger, which opens the trigger panel in its place", () => {
+    const placeholder: Node = getPlaceholderTriggerNode();
+    const action: Node<NodeDataProp> = makeNode(ACTION_METADATA);
+    const harness: BuilderHarness = renderBuilder({
+      initialNodes: [placeholder, action],
+      showRunModal: true,
+    });
+
+    expect(screen.getByTestId("run-workflow-modal")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add Trigger from the run panel" }),
+    );
+
+    expect(screen.queryByTestId("run-workflow-modal")).not.toBeInTheDocument();
+    expect(harness.onRunUpdate).toHaveBeenLastCalledWith(false);
+    // The panel the dashed card and the toolbar's Add Trigger open.
+    expect(screen.getByTestId("picker-Trigger")).toBeInTheDocument();
+    expect(screen.queryByTestId("picker-Component")).not.toBeInTheDocument();
+
+    // Choosing a trigger there takes the dashed card's place, as from either.
+    fireEvent.click(
+      screen.getByRole("button", { name: `Choose ${TRIGGER_METADATA.title}` }),
+    );
+
+    expect(screen.queryByTestId("picker-Trigger")).not.toBeInTheDocument();
+    expect(
+      getStoredNodes(harness).map((node: Node<WorkflowNodeRenderData>) => {
+        return node.data.nodeType === NodeType.PlaceholderNode
+          ? "placeholder"
+          : node.data.id;
+      }),
+    ).toEqual(["write-log-1", "manual-trigger-1"]);
   });
 
   test("someone who may not run the workflow is never offered one", () => {

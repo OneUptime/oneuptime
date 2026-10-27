@@ -4,8 +4,8 @@ Une variable de runbook est une valeur que vos étapes utilisent par son nom au 
 
 :::cards
 - [Créer une variable](#créer-une-variable): Une valeur simple, ou un secret et les agents Runbook qui peuvent l'utiliser.
-- [Utiliser une variable dans une étape](#utiliser-une-variable-dans-une-étape): Dans un script, ou comme connexion d'une étape SSH et kubeconfig d'une étape kubectl.
-- [Qui reçoit un secret](#qui-reçoit-un-secret): Vos agents Runbook, et les agents Runbook globaux si vous les y autorisez.
+- [Utiliser une variable dans une étape](#utiliser-une-variable-dans-une-étape): Dans un script ou une requête HTTP, ou comme connexion d'une étape SSH et kubeconfig d'une étape kubectl.
+- [Qui reçoit un secret](#qui-reçoit-un-secret): Vos agents Runbook, les agents Runbook globaux si vous les y autorisez, et OneUptime pour une étape de requête HTTP.
 :::
 
 ## Comment une variable atteint une étape
@@ -19,7 +19,7 @@ flowchart TB
 
 Une étape contient le nom de la variable, jamais sa valeur. Quand l'agent Runbook de l'étape la prend, OneUptime insère la valeur - dans le script, dans la machine et la connexion d'une étape SSH, ou dans le kubeconfig d'une étape kubectl - et ne la remet qu'à cet agent. Une étape qui nomme une variable qu'elle n'a pas le droit d'avoir échoue avec la raison, au lieu de s'exécuter avec le nom à la place de la valeur.
 
-Les étapes Bash, JavaScript, SSH et kubectl utilisent les variables. Les étapes de requête HTTP et d'IA ne les insèrent pas.
+Les étapes Bash, JavaScript, SSH, kubectl et de requête HTTP utilisent les variables. Les étapes d'IA ne les insèrent pas. OneUptime envoie lui-même une étape de requête HTTP, sans agent Runbook : l'étape reçoit donc chaque variable qu'elle nomme, secrets compris, et les masque dans la réponse qu'elle enregistre.
 
 ## Variables globales et variables de runbook
 
@@ -71,20 +71,27 @@ curl -s -X POST \
   -H "Authorization: Bearer {{global.variables.CDN_API_TOKEN}}" \
   "https://api.cdn.example.com/v1/purge"
 ```
+@tab Dans une requête HTTP
+Écrivez la référence dans l'URL, les en-têtes ou le corps d'une [étape de requête HTTP](/docs/runbooks/authoring#http-request) :
+
+```json
+{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
+```
 @tab Connexion SSH
 Une [étape SSH](/docs/runbooks/authoring#ssh) choisit sous **Se connecter avec** la variable secrète qui contient sa clé privée ou son mot de passe, et sous **Plus de champs → Phrase secrète de la clé** la phrase secrète de sa clé. La valeur indique s'il s'agit d'une clé ou d'un mot de passe.
 @tab Kubeconfig
 Une [étape kubectl](/docs/runbooks/authoring#kubectl) choisit sous **Kubeconfig** la variable secrète qui contient le kubeconfig du cluster, ou **L'accès propre de l'agent Runbook** pour utiliser celui de l'agent Runbook.
 :::
 
-Sur la page **Étapes** d'un runbook, chaque script liste sous **Variables — cliquez pour copier** les variables que son étape peut utiliser, et l'éditeur signale quand une étape nomme une variable qui n'existe pas, ou un secret que son agent Runbook n'a pas le droit d'utiliser.
+Sur la page **Étapes** d'un runbook, chaque script et chaque requête HTTP listent sous **Variables — cliquez pour copier** les variables que leur étape peut utiliser, et l'éditeur signale quand une étape nomme une variable qui n'existe pas, ou un secret que son agent Runbook n'a pas le droit d'utiliser.
 
 ## Qui reçoit un secret
 
-| Agent Runbook | Une variable simple | Un secret |
+| Qui exécute l'étape | Une variable simple | Un secret |
 | --- | --- | --- |
 | Un de vos agents Runbook | Toujours | Quand le secret le liste sous **Vos agents Runbook qui peuvent l'utiliser** |
 | Un agent Runbook global | Toujours | Quand **Les agents Runbook globaux peuvent l'utiliser** est activé, pour une étape du propre projet du secret |
+| OneUptime lui-même, pour une étape de requête HTTP | Toujours | Toujours |
 
 Une étape qui nomme un secret que son agent Runbook n'a pas le droit d'utiliser échoue, en nommant le secret et ce qu'il faut changer, et rien n'est remis.
 

@@ -5,6 +5,7 @@ Planlegg vedlikehold i to korte trinn: si hva som skjer og når, og deretter hva
 :::cards
 - [Opprett en hendelse](#opprett-en-hendelse): To trinn og en gjennomgang.
 - [Hva som skjer når du oppretter den](#hva-som-skjer-når-du-oppretter-den): Nummeret, reglene, eierne og de første meldingene.
+- [Publiser den senere](#publiser-den-senere): Hold den borte fra statussidene dine til en dato og et klokkeslett.
 - [Endre en hendelse senere](#endre-en-hendelse-senere): Vinduet, ressursene, statussidene og notatene.
 - [Opprett hendelser fra kode](#opprett-hendelser-fra-kode): API-et, Terraform, arbeidsflyter og chat.
 :::
@@ -42,7 +43,7 @@ Klikk på **Neste** for å komme til **Berørte ressurser**. Velg **Monitorer** 
 
 ### Velg hvem som får høre om det
 
-Velg statussidene under **Vis hendelse på disse statussidene**. **Varsler til abonnenter**, sammenslått, sier på én linje hvem som får beskjed og når; åpne den for å endre **Når hendelsen planlegges**, **Når hendelsen starter**, **Når hendelsen slutter** eller **Påminnelser før hendelsen**.
+Velg statussidene under **Vis hendelse på disse statussidene**. **Varsler til abonnenter**, sammenslått, sier på én linje når hendelsen vises på dem, og hvem som får beskjed og når; åpne den for å velge **På en dato og et klokkeslett** under **Publiser på statussider**, eller for å endre **Når hendelsen planlegges**, **Når hendelsen starter**, **Når hendelsen slutter** eller **Påminnelser før hendelsen**.
 
 ### Opprett den
 
@@ -65,7 +66,7 @@ Ingenting sendes før du velger en statusside: en hendelse som ikke vises på no
 | **Endre overvåkingsstatus til**      | **Berørte ressurser** | Ingen endring                | Statusen disse monitorene viser under hendelsen. Spørres om så snart en monitor er valgt. |
 | **Andre berørte ressurser**          | **Berørte ressurser** | Ingen                        | Verter, klynger, databaser, nettverkslokasjoner, tjenester og mer.               |
 | **Vis hendelse på disse statussidene** | **Berørte ressurser** | Ingen                      | Statussidene som viser hendelsen og gir abonnentene sine beskjed.                |
-| **Varsler til abonnenter**           | **Berørte ressurser** | Alle tre tidspunktene på, ingen påminnelser | Når abonnentene på disse sidene får beskjed.            |
+| **Varsler til abonnenter**           | **Berørte ressurser** | Publisert med en gang, alle tre tidspunktene på, ingen påminnelser | Når hendelsen vises på disse sidene, og når abonnentene deres får beskjed. |
 
 To ting fyller ut skjemaet for deg underveis:
 
@@ -89,7 +90,22 @@ I det øyeblikket du klikker på **Opprett planlagt vedlikeholdshendelse**, går
 5. **Runbook-regler starter** runbookene som matcher hendelsen.
 6. **Påminnelser planlegges**, når en påminnelsesregel matcher, for eierne.
 
-Innen et minutt får abonnentene på statussidene dens beskjed om at den er planlagt, med mindre du har slått av **Når hendelsen planlegges**. Arbeidsflytutløseren **On Create Scheduled Maintenance Event** starter enhver arbeidsflyt som er bygget på den, og eierne får høre om den hvis de har slått på det varselet: se [Varselinnstillinger](/docs/notifications/notification-settings).
+Innen et minutt etter at den publiseres, som skjer med en gang med mindre du har valgt et **Publiser den**, får abonnentene på statussidene dens beskjed om at den er planlagt, med mindre du har slått av **Når hendelsen planlegges**. Arbeidsflytutløseren **On Create Scheduled Maintenance Event** starter enhver arbeidsflyt som er bygget på den, og eierne får høre om den hvis de har slått på det varselet: se [Varselinnstillinger](/docs/notifications/notification-settings).
+
+## Publiser den senere
+
+Planlegg arbeidet så tidlig du vil, og hold det innenfor teamet til kundene dine skal høre om det. Velg **På en dato og et klokkeslett** under **Publiser på statussider**, i skjemaet eller i trinnet **Statussider** under **Rediger** for hendelsen, og et **Publiser den** før **Begynner den**. Inntil da er hendelsen ikke på noen av statussidene sine: ikke i listene deres, oppetidshistorikken deres, RSS- og Atom-feedene deres, vedlikeholdskalenderen deres eller API-et deres, og ikke på sin egen lenke. På det tidspunktet vises den som kommende, og abonnentene får én gang beskjed om at den er planlagt.
+
+| Når                      | Hva som skjer                                                         | På statussidene dine |
+| ------------------------ | --------------------------------------------------------------------- | -------------------- |
+| Når du oppretter den     | Du velger et **Publiser den** før **Begynner den** for den            | Vises ikke           |
+| **Publiser den** for den | Den publiseres, og abonnentene får beskjed om at den er planlagt      | Kommende             |
+| **Begynner den** for den | Den starter, som enhver hendelse                                      | Pågår                |
+| **Slutter den** for den  | Den slutter                                                           | Over                 |
+
+- **Inntil da hører abonnentene ingenting.** Påminnelser før hendelsen, statusendringer og offentlige notater sendes ikke til dem mens hendelsen venter.
+- **Siden dens sier det.** Toppen viser **Ikke på statussider ennå**, med tidspunktet den vises fra, og **Publiser nå** publiserer den med en gang, etter å ha spurt. **Innstillinger** for den sier det samme, og listen over hendelser viser tidspunktet under statussidene dens.
+- **Endre den, eller publiser med en gang.** Flytt **Publiser den** i trinnet **Statussider** under **Rediger**, eller velg **Med en gang**. Slå av **Synlig på statussiden** i **Innstillinger** for den for å holde den borte fra statussidene sine uansett tidspunkt.
 
 ## Endre en hendelse senere
 
@@ -98,7 +114,7 @@ Alt i skjemaet kan endres på hendelsens egne sider, unntatt de tre abonnenttids
 | For å endre                                 | Gå til                                                                         |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | Tittelen, vinduet eller etikettene          | **Rediger** på kortet **Maintenance Details** i **Oversikt**, trinnet **Hendelse** |
-| Statussidene eller påminnelsene             | Samme **Rediger**, trinnet **Statussider**                                      |
+| Statussidene, når den publiseres, eller påminnelsene | Samme **Rediger**, trinnet **Statussider**                             |
 | Monitorene, statusen deres eller andre ressurser | **Rediger** på kortet **Berørte ressurser**                               |
 | Beskrivelsen                                | **Beskrivelse** i sidemenyen                                                   |
 | Eierne                                      | **Eiere** i sidemenyen                                                         |
@@ -137,6 +153,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `changeMonitorStatusToId`                             | Overvåkingsstatusen monitorene går over til når den starter.                              |
 | `currentScheduledMaintenanceStateId`                  | Ignoreres: hver hendelse starter i den planlagte tilstanden din.                          |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Bryteren **Når hendelsen planlegges**. De to andre tidspunktene har egne felt.            |
+| `publishOnStatusPageAt`                               | Når hendelsen publiseres på statussidene sine og abonnentene får beskjed om at den er planlagt. Utelatt: med en gang. |
 
 Den samme hendelsen som kode er Terraform-ressursen `oneuptime_scheduled_maintenance_event`: se [Eksempler](/docs/terraform/examples#planlagt-vedlikehold). En arbeidsflyt oppretter en med trinnet **Create One Scheduled Maintenance Event**, og `/oneuptime maintenance` åpner skjemaet i Slack: se [Slack](/docs/workspace-connections/slack#opprett-hendelser-og-vedlikehold-fra-slack).
 
@@ -152,6 +169,10 @@ Det spørres bare om den når hendelsen har en monitor. Velg én under **Monitor
 
 :::details Endre overvåkingsstatus til kan ikke endres lenger
 Hendelsen har startet, og monitorene dens har allerede den statusen. Statusen gjelder fra det øyeblikket hendelsen starter, til den slutter.
+:::
+
+:::details Publiser den sier at den må være før Begynner den
+En hendelse publiseres slik at kundene dine hører om arbeidet før det begynner. Velg et **Publiser den** før **Begynner den**, eller **Med en gang**.
 :::
 
 ## Neste steg

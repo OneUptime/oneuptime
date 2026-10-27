@@ -4,8 +4,8 @@ Una variabile di runbook è un valore che i tuoi passaggi usano per nome invece 
 
 :::cards
 - [Creare una variabile](#creare-una-variabile): Un valore semplice, oppure un segreto e i Runner che possono usarlo.
-- [Usare una variabile in un passaggio](#usare-una-variabile-in-un-passaggio): In uno script, oppure come accesso di un passaggio SSH e kubeconfig di un passaggio kubectl.
-- [Chi riceve un segreto](#chi-riceve-un-segreto): I tuoi Runner, e i Runner globali quando lo consenti.
+- [Usare una variabile in un passaggio](#usare-una-variabile-in-un-passaggio): In uno script o in una richiesta HTTP, oppure come accesso di un passaggio SSH e kubeconfig di un passaggio kubectl.
+- [Chi riceve un segreto](#chi-riceve-un-segreto): I tuoi Runner, i Runner globali quando lo consenti, e OneUptime per un passaggio di richiesta HTTP.
 :::
 
 ## Come una variabile raggiunge un passaggio
@@ -19,7 +19,7 @@ flowchart TB
 
 Un passaggio contiene il nome della variabile, mai il suo valore. Quando il Runner del passaggio lo prende, OneUptime inserisce il valore - nello script, nella macchina e nell'accesso di un passaggio SSH, o nel kubeconfig di un passaggio kubectl - e lo consegna solo a quel Runner. Un passaggio che nomina una variabile che non può avere fallisce indicandone il motivo, invece di essere eseguito con il nome al posto del valore.
 
-I passaggi Bash, JavaScript, SSH e kubectl usano le variabili. I passaggi di richiesta HTTP e di IA non le inseriscono.
+I passaggi Bash, JavaScript, SSH, kubectl e di richiesta HTTP usano le variabili. I passaggi di IA non le inseriscono. OneUptime invia da sé un passaggio di richiesta HTTP, senza Runner, quindi il passaggio riceve ogni variabile che nomina, anche i segreti, e li nasconde nella risposta che registra.
 
 ## Variabili globali e variabili di runbook
 
@@ -71,20 +71,27 @@ curl -s -X POST \
   -H "Authorization: Bearer {{global.variables.CDN_API_TOKEN}}" \
   "https://api.cdn.example.com/v1/purge"
 ```
+@tab In una richiesta HTTP
+Scrivi il riferimento nell'URL, negli header o nel corpo di un [passaggio di richiesta HTTP](/docs/runbooks/authoring#http-request):
+
+```json
+{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
+```
 @tab Accesso SSH
 Un [passaggio SSH](/docs/runbooks/authoring#ssh) sceglie in **Accedi con** la variabile segreta che contiene la sua chiave privata o la sua password, e in **Altri campi → Passphrase della chiave** la passphrase della sua chiave. Il valore indica se si tratta di una chiave o di una password.
 @tab Kubeconfig
 Un [passaggio kubectl](/docs/runbooks/authoring#kubectl) sceglie in **Kubeconfig** la variabile segreta che contiene il kubeconfig del cluster, oppure **L'accesso proprio del Runner** per usare quello del Runner.
 :::
 
-Nella pagina **Passaggi** di un runbook, ogni script elenca in **Variabili — clicca per copiare** le variabili che il suo passaggio può usare, e l'editor segnala quando un passaggio nomina una variabile che non esiste, o un segreto che il suo Runner non può usare.
+Nella pagina **Passaggi** di un runbook, ogni script e ogni richiesta HTTP elencano in **Variabili — clicca per copiare** le variabili che il loro passaggio può usare, e l'editor segnala quando un passaggio nomina una variabile che non esiste, o un segreto che il suo Runner non può usare.
 
 ## Chi riceve un segreto
 
-| Runner | Una variabile semplice | Un segreto |
+| Chi esegue il passaggio | Una variabile semplice | Un segreto |
 | --- | --- | --- |
 | Uno dei tuoi Runner | Sempre | Quando il segreto lo elenca in **I tuoi Runner che possono usarlo** |
 | Un Runner globale | Sempre | Quando **I Runner globali possono usarlo** è attivo, per un passaggio del progetto del segreto |
+| OneUptime stesso, per un passaggio di richiesta HTTP | Sempre | Sempre |
 
 Un passaggio che nomina un segreto che il suo Runner non può usare fallisce, indicando il segreto e cosa cambiare, e non viene consegnato nulla.
 

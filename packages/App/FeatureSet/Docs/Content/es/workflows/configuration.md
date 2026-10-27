@@ -167,7 +167,7 @@ Los fallos de validación, configuración, acceso, límite, créditos, simultane
 Los flujos de trabajo respetan el control de acceso basado en roles de tu proyecto. Los tres roles de flujo de trabajo:
 
 - **Administrador de flujos de trabajo** — construye flujos de trabajo: los crea, cambia, ejecuta y elimina, y gestiona las variables que usan.
-- **Miembro de flujos de trabajo** — los usa: abre los flujos de trabajo y sus ejecuciones, y ejecuta un flujo de trabajo a mano con **Ejecutar flujo de trabajo**. Un miembro no puede crear, cambiar ni eliminar un flujo de trabajo, ni ejecutar uno de sus pasos por separado.
+- **Miembro de flujos de trabajo** — los usa: abre los flujos de trabajo y sus ejecuciones, y ejecuta un flujo de trabajo a mano con **Ejecutar flujo de trabajo**. Un miembro no puede crear, cambiar ni eliminar un flujo de trabajo, ni ejecutar uno de sus pasos por separado. El **Constructor** les muestra un flujo de trabajo tal como es, marcado como **Solo lectura**: un paso se abre para leerlo, y nada de lo que hagan ahí se guarda.
 - **Visor de flujos de trabajo** — lee los flujos de trabajo y sus ejecuciones.
 
 **Propietario del proyecto** y **Administrador del proyecto** pueden hacer todo lo que puede hacer un Workflow Admin. **Miembro del proyecto** puede crear y eliminar flujos de trabajo, pero no cambiarlos ni ejecutarlos.
@@ -214,7 +214,7 @@ En OneUptime Cloud, los flujos de trabajo necesitan el plan Growth o superior, y
 | Scale      | 2.000                              |
 | Enterprise | Sin límite práctico                |
 
-La ventana es móvil: cada ejecución que registra el proyecto, a mano o desde un disparador, cuenta durante 30 días. En los planes Growth y Scale, la página **Flujos de trabajo** muestra una tarjeta **Ejecuciones del flujo de trabajo** con cuántas ha usado el proyecto. Una vez alcanzado el límite, las ejecuciones nuevas se registran con el estado **Execution Exceeded Current Plan** y no se ejecutan, y lo mismo ocurre mientras la suscripción está impagada. Las instalaciones autoalojadas sin facturación no tienen límite.
+La ventana es móvil: cada ejecución que registra el proyecto, a mano o desde un disparador, cuenta durante 30 días. En los planes Growth y Scale, la página **Flujos de trabajo** muestra una tarjeta **Ejecuciones del flujo de trabajo** con cuántas ha usado el proyecto. Una vez alcanzado el límite, las ejecuciones nuevas se registran con el estado **Execution Exceeded Current Plan** y no se ejecutan, y lo mismo ocurre mientras la suscripción está impagada. Las instalaciones autoalojadas sin facturación no tienen límite. En un plan que no ejecuta flujos de trabajo, el **Constructor** y la página **Flujos de trabajo** lo dicen, con un enlace para mejorar el plan.
 
 ## Cuánto puede durar una ejecución
 

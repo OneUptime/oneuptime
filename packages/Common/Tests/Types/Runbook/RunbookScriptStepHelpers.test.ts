@@ -3,6 +3,7 @@ import {
   KUBECONFIG_CREDENTIAL_TYPE,
   RUNNER_FEATURES,
   RUNNER_FEATURE_KUBECTL_SCRIPT,
+  RUNNER_FEATURE_SSH_HOST_KEY,
   readRunnerFeatures,
 } from "../../../Types/Runbook/RunnerFeatures";
 import {
@@ -72,16 +73,26 @@ describe("shellQuote", () => {
 });
 
 describe("what a Runner says it can run", () => {
-  test("this build runs kubectl scripts", () => {
-    expect(RUNNER_FEATURES).toEqual([RUNNER_FEATURE_KUBECTL_SCRIPT]);
+  test("this build runs kubectl scripts, and checks an SSH machine's host key", () => {
+    expect(RUNNER_FEATURES).toEqual([
+      RUNNER_FEATURE_KUBECTL_SCRIPT,
+      RUNNER_FEATURE_SSH_HOST_KEY,
+    ]);
     expect(RUNNER_FEATURE_KUBECTL_SCRIPT).toBe("kubectl-script");
+    expect(RUNNER_FEATURE_SSH_HOST_KEY).toBe("ssh-host-key");
     expect(KUBECONFIG_CREDENTIAL_TYPE).toBe("Kubeconfig");
   });
 
   test("a claim's list is read for known features only, each once", () => {
     expect(
-      readRunnerFeatures(["kubectl-script", "kubectl-script", "teleport", 7]),
-    ).toEqual(["kubectl-script"]);
+      readRunnerFeatures([
+        "kubectl-script",
+        "kubectl-script",
+        "teleport",
+        7,
+        "ssh-host-key",
+      ]),
+    ).toEqual(["kubectl-script", "ssh-host-key"]);
   });
 
   test("a claim from a Runner older than features names none", () => {

@@ -77,8 +77,12 @@ The suite drives the pages the way a person does:
   shows no AI code fix capability; a Runner's own page (`?page=runner&custom=1`)
   lists the code repositories that pick it in its Runner Details, where the
   switch was, each linked to its settings in Code, or says none does and
-  where a repository picks its Runner (`&picks=0`); on a phone its Setup
-  Instructions show the command;
+  where a repository picks its Runner (`&picks=0`); after them, the AI rules
+  that pick it, each linked to its lane's AI settings at the AI Rules card
+  with its lane beside it, or where a rule picks its Runner (`&picks=0`),
+  and no row for a reader who may not read AI rules (`&airules=denied`); on
+  a phone the rules wrap inside the card, and its Setup Instructions show
+  the command;
 - a phone (nothing runs off the screen, the open picker fits), dark mode
   (`?theme=dark`) and German (`?lang=de`);
 - in a project with no Runner of its own, each step's Runner field at 1280px

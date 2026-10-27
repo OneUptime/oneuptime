@@ -46,8 +46,10 @@ import { createHash } from "crypto";
  * because it is read the same way (StatusPageAPI.
  * readShownScheduledMaintenanceEvents): the events of the page's history
  * window, every event still to come and every event in progress, each only
- * while Visible on Status Page is on; what each affects by the names the
- * page gives its resources, never a monitor's own name
+ * while Visible on Status Page is on and the event is published - one
+ * kept to the team until its publish time joins the calendar within the
+ * five minutes the calendar is KEPT for after it; what each affects by the
+ * names the page gives its resources, never a monitor's own name
  * (StatusPageAffectedResources); its labels only when the page shows labels;
  * each linked to the event on the page.
  *

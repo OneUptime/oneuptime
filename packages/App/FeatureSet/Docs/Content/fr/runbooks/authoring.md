@@ -64,7 +64,7 @@ Chaque étape comporte ces champs. Une étape automatisée affiche son **Titre**
 | [kubectl](#kubectl) | Un agent Runbook | Un agent Runbook, et une variable kubeconfig ou l'accès propre de l'agent Runbook |
 | [AI](#ai) | Le Worker OneUptime | Un fournisseur LLM |
 
-Dans chaque étape automatisée ci-dessous, **Plus de champs** de l'étape contient d'abord son **Agent Runbook**, pour une étape qui s'exécute sur un agent, puis **Exiger une approbation** et **Continuer en cas d'échec**, puis les réglages propres à l'étape - les en-têtes d'un appel HTTP, le port et la phrase secrète de la clé d'une étape SSH, le fournisseur et les interrupteurs de contexte d'une étape d'IA - et enfin la **Description** et les délais. Replié, il nomme l'agent de l'étape, pour que vous voyiez où une étape s'exécute sans l'ouvrir.
+Dans chaque étape automatisée ci-dessous, **Plus de champs** de l'étape contient d'abord son **Agent Runbook**, pour une étape qui s'exécute sur un agent, puis **Exiger une approbation** et **Continuer en cas d'échec**, puis les réglages propres à l'étape - les en-têtes d'un appel HTTP, le port, la phrase secrète de la clé et la clé d'hôte d'une étape SSH, le fournisseur et les interrupteurs de contexte d'une étape d'IA - et enfin la **Description** et les délais. Replié, il nomme l'agent de l'étape, pour que vous voyiez où une étape s'exécute sans l'ouvrir.
 
 ### Manual
 
@@ -111,6 +111,9 @@ L'étape réussit sur une réponse `2xx` ou `3xx` et échoue sur tout le reste, 
 
 Utile pour : ouvrir un incident PagerDuty, publier sur un webhook Slack, appeler l'API publique de votre fournisseur cloud ou la vôtre.
 
+> [!TIP]
+> Gardez les jetons hors de l'étape. Stockez-les comme [variables de runbook](/docs/runbooks/variables) secrètes et écrivez `{{global.variables.NAME}}` là où va la valeur, dans l'URL, les en-têtes ou le corps. OneUptime envoie la requête lui-même, il insère donc aussi les secrets, et la réponse que l'étape enregistre affiche `[REDACTED]` à leur place. Dans des en-têtes ou un corps JSON, une valeur va dans sa chaîne, si bien qu'un guillemet ou un saut de ligne qu'elle contient ne casse pas le JSON.
+
 ### Bash
 
 Un script bash, exécuté avec `bash -c <script>` sur un [agent Runbook](/docs/runbooks/agents) dans votre propre infrastructure. Bash ne s'exécute jamais sur le Worker OneUptime.
@@ -152,6 +155,7 @@ Se connecter à une machine en SSH et y exécuter un script bash. L'agent Runboo
 | **Script Bash** | S'exécute avec `bash` sur la machine, sous l'utilisateur avec lequel l'étape se connecte. La sortie est capturée jusqu'à 50 Ko, et un code de sortie non nul fait échouer l'étape. |
 | **Port** | Sous **Plus de champs**. 22 s'il est laissé vide. |
 | **Phrase secrète de la clé** | Sous **Plus de champs**. La variable secrète qui contient la phrase secrète d'une clé qui en a une. |
+| **Clé d'hôte** | Sous **Plus de champs**. L'empreinte SHA256 de la machine, ou sa clé publique telle que `ssh-keyscan` l'affiche, une par ligne. L'étape ne se connecte que si la machine présente l'une d'elles. Laissée vide, toute clé est acceptée, et la sortie de l'étape nomme celle que la machine a présentée. |
 | **Délai d'exécution** | Couvre ensemble la connexion, l'authentification et l'exécution du script, de sorte qu'un script bloqué ne peut pas maintenir l'étape ouverte. 30 secondes par défaut. |
 | **Délai de prise en charge** | Combien de temps le Worker attend que l'agent Runbook prenne la tâche en charge. 2 minutes par défaut. |
 
@@ -161,6 +165,8 @@ Par exemple, pour redémarrer un service et montrer qu'il est revenu :
 sudo systemctl restart nginx
 systemctl status nginx --no-pager
 ```
+
+Indiquez la clé d'hôte de la machine pour que l'étape se connecte à cette machine et à aucune autre : `ssh-keyscan 10.0.4.21` affiche ses clés publiques, et `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` sur la machine elle-même son empreinte. Une étape qui en indique une échoue sur un agent Runbook trop ancien pour la vérifier, en disant de mettre à jour l'agent.
 
 ### kubectl
 

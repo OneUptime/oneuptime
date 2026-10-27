@@ -1292,6 +1292,33 @@ describe("the configuration and safety page", () => {
     expect(tableRow(limits, "Enterprise")[1]).toBe("No practical limit");
   });
 
+  /*
+   * A plan that runs no workflows (Free) is said on the Builder and the
+   * Workflows page (WorkflowPlanNotice), and someone who may not change a
+   * workflow sees the Builder as a view (WorkflowViewOnly).
+   */
+  it("says a plan that runs no workflows is said in the product, and the Builder is a view for a Workflow Member", () => {
+    expect(WorkflowPlan.Free).toBe(0);
+    expect(readDashboard("Pages/Workflow/View/Builder.tsx")).toContain(
+      "<WorkflowPlanNotice",
+    );
+    expect(readDashboard("Pages/Workflow/Workflows.tsx")).toContain(
+      "<WorkflowPlanNotice",
+    );
+    expect(section(CONFIGURATION, "## Plan limits")).toContain(
+      "On a plan that runs no workflows, the **Builder** and the **Workflows** page say so, with a link to upgrade.",
+    );
+
+    expect(
+      readSource("Common/UI/Components/Workflow/WorkflowStatusBar.tsx"),
+    ).toContain(
+      'WORKFLOW_VIEW_ONLY_TEXT: string = translationKey("View only")',
+    );
+    expect(CONFIGURATION).toContain(
+      "The **Builder** shows them a workflow as it is, marked **View only**: a step opens to be read, and nothing they do there is saved.",
+    );
+  });
+
   it("gives a run's and a script's default time, and the settings that change them", () => {
     expect(ENVIRONMENT_CONFIG).toContain(
       'process.env["WORKFLOW_TIMEOUT_IN_MS"].toString())\n  : 120000;',

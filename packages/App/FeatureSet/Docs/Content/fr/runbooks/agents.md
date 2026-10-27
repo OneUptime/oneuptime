@@ -101,7 +101,7 @@ Allez dans **Runbooks → Agents de runbook** et créez un nouvel agent. Cliquez
 | **Exécute les runbooks** | Sous **Plus de champs** | Activé par défaut. Permet à cet agent de prendre des étapes de runbook. |
 | **Étiquettes** | Sous **Plus de champs** | Facultatif. |
 
-Un agent Runbook prend en compte un changement de ses capacités à son prochain heartbeat ; inutile de le redémarrer. L'IA n'est pas une capacité. Un dépôt de code choisit, dans ses paramètres dans Code, l'agent sur lequel l'IA y travaille, et la page de l'agent liste les dépôts qui le choisissent. Une règle IA choisit l'agent sur lequel OneUptime AI exécute ses commandes : c'est ce choix qui permet aux commandes de OneUptime AI de s'exécuter sur l'agent.
+Un agent Runbook prend en compte un changement de ses capacités à son prochain heartbeat ; inutile de le redémarrer. L'IA n'est pas une capacité. Un dépôt de code choisit, dans ses paramètres dans Code, l'agent sur lequel l'IA y travaille, et la page de l'agent liste les dépôts qui le choisissent. Une règle IA choisit l'agent sur lequel OneUptime AI exécute ses commandes : c'est ce choix qui permet aux commandes de OneUptime AI de s'exécuter sur l'agent. La page de l'agent liste aussi les règles IA qui le choisissent.
 
 ### 2. Copier la commande d'installation
 

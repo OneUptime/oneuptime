@@ -692,3 +692,154 @@ describe("ScheduledMaintenanceFieldChange.getStatusPagesMarkdown", () => {
     ).toBe("");
   });
 });
+
+/*
+ * When the event is published on its status pages (Publish on Status Page
+ * At, #5249) is compared as an instant, as its window is, and the
+ * "updated" feed item - posted to the event's Slack and Teams channels too -
+ * says when it is published now: the time, or that it is published right
+ * away when the time was cleared. The Maintenance Details card sends it back
+ * with every save of its Status Pages step, so writing it back as it was
+ * adds no line.
+ */
+describe("ScheduledMaintenanceFieldChange: the publish time on status pages", () => {
+  const PUBLISH_AT: Date = new Date(Date.UTC(2026, 10, 24, 9, 0, 0));
+
+  const before: ScheduledMaintenanceValuesBeforeUpdate = {
+    publishOnStatusPageAt: PUBLISH_AT.getTime(),
+  };
+
+  test("is one of the times the feed compares, after the window", () => {
+    expect([...ScheduledMaintenanceFieldChange.timeColumns]).toEqual([
+      "startsAt",
+      "endsAt",
+      "publishOnStatusPageAt",
+    ]);
+  });
+
+  test("a write of it is a write of a compared time, a null one too", () => {
+    for (const publishOnStatusPageAt of [PUBLISH_AT, null]) {
+      expect(
+        ScheduledMaintenanceFieldChange.getFieldsWritten({
+          publishOnStatusPageAt,
+        }),
+      ).toEqual({ ...NOTHING, timeColumns: ["publishOnStatusPageAt"] });
+    }
+
+    expect(
+      ScheduledMaintenanceFieldChange.getFieldsWritten({
+        publishOnStatusPageAt: undefined,
+      }),
+    ).toEqual(NOTHING);
+  });
+
+  test("the read before the write asks for it, and holds it as an instant", () => {
+    const fields: ScheduledMaintenanceFieldSet =
+      ScheduledMaintenanceFieldChange.getFieldsWritten({
+        publishOnStatusPageAt: PUBLISH_AT,
+      });
+
+    expect(ScheduledMaintenanceFieldChange.getSelect(fields)).toEqual({
+      publishOnStatusPageAt: true,
+    });
+
+    const event: ScheduledMaintenance = new ScheduledMaintenance();
+    event.publishOnStatusPageAt = PUBLISH_AT;
+
+    expect(
+      ScheduledMaintenanceFieldChange.getValuesBeforeUpdate({
+        record: event,
+        fields: fields,
+      }),
+    ).toEqual({ publishOnStatusPageAt: PUBLISH_AT.getTime() });
+
+    // An event with none holds none: null, never "not read".
+    expect(
+      ScheduledMaintenanceFieldChange.getValuesBeforeUpdate({
+        record: new ScheduledMaintenance(),
+        fields: fields,
+      }),
+    ).toEqual({ publishOnStatusPageAt: null });
+  });
+
+  test.each([
+    ["the same instant as a Date", new Date(PUBLISH_AT.getTime())],
+    ["the same instant as an ISO string", "2026-11-24T09:00:00.000Z"],
+    ["the same instant in another zone", "2026-11-24T14:30:00.000+05:30"],
+  ] as Array<[string, unknown]>)(
+    "%s written back changes nothing",
+    (_label: string, written: unknown) => {
+      expect(
+        ScheduledMaintenanceFieldChange.getChanges({
+          written: { publishOnStatusPageAt: written },
+          valuesBeforeUpdate: before,
+        }),
+      ).toEqual(NOTHING);
+    },
+  );
+
+  test("none written back as none changes nothing", () => {
+    expect(
+      ScheduledMaintenanceFieldChange.getChanges({
+        written: { publishOnStatusPageAt: null },
+        valuesBeforeUpdate: { publishOnStatusPageAt: null },
+      }),
+    ).toEqual(NOTHING);
+  });
+
+  test.each([
+    ["moved a day later", new Date(PUBLISH_AT.getTime() + 24 * 3_600_000)],
+    ["cleared: published right away", null],
+  ] as Array<[string, unknown]>)(
+    "%s is a change",
+    (_label: string, written: unknown) => {
+      expect(
+        ScheduledMaintenanceFieldChange.getChanges({
+          written: { publishOnStatusPageAt: written },
+          valuesBeforeUpdate: before,
+        }),
+      ).toEqual({ ...NOTHING, timeColumns: ["publishOnStatusPageAt"] });
+    },
+  );
+
+  test("set on an event published from the start is a change", () => {
+    expect(
+      ScheduledMaintenanceFieldChange.getChanges({
+        written: { publishOnStatusPageAt: PUBLISH_AT },
+        valuesBeforeUpdate: { publishOnStatusPageAt: null },
+      }),
+    ).toEqual({ ...NOTHING, timeColumns: ["publishOnStatusPageAt"] });
+  });
+
+  test("the feed says when it is published now, after the window", () => {
+    expect(
+      ScheduledMaintenanceFieldChange.getFeedMarkdown({
+        written: {
+          endsAt: new Date(Date.UTC(2026, 11, 1, 4, 0, 0)),
+          publishOnStatusPageAt: PUBLISH_AT,
+        },
+        changes: {
+          ...NOTHING,
+          timeColumns: ["endsAt", "publishOnStatusPageAt"],
+        },
+      }).toString(),
+    ).toBe(
+      `\n\n**Ends At**: \n${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(new Date(Date.UTC(2026, 11, 1, 4, 0, 0)))}\n` +
+        `\n\n**Publish on Status Page At**: \n${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(PUBLISH_AT)}\n`,
+    );
+  });
+
+  test("cleared, the feed says it is published right away, not that a time is missing", () => {
+    expect(
+      ScheduledMaintenanceFieldChange.getFeedMarkdown({
+        written: { publishOnStatusPageAt: null },
+        changes: { ...NOTHING, timeColumns: ["publishOnStatusPageAt"] },
+      }).toString(),
+    ).toBe(
+      `\n\n**Publish on Status Page At**: \n${ScheduledMaintenanceFieldChange.publishedRightAwayLine}\n`,
+    );
+    expect(ScheduledMaintenanceFieldChange.publishedRightAwayLine).toBe(
+      "Cleared, so it is published right away.",
+    );
+  });
+});

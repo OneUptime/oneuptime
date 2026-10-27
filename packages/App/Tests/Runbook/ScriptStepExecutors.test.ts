@@ -304,6 +304,51 @@ describe("an SSH step that takes a script", () => {
     expect(enqueueSpy).not.toHaveBeenCalled();
   });
 
+  /*
+   * The machine's host keys travel with the step as written - they are no
+   * secret, and the server works out their fingerprints when a Runner
+   * claims the step - and a line that is not one fails the step here,
+   * before anything is queued.
+   */
+  test("keeps the machine's host keys it names, as written", async () => {
+    const hostKey: string =
+      "10.0.4.21 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFtux8m1u+wimvaBoFQoXsFnlH+H+VfhMAHNjDNrl2Q0\nSHA256:RbcFlZhe2wka/JUlPW5q7w6NacLcWWpI8xpwc4rkGgw";
+
+    await runSshStep(
+      sshStep(sshConfig({ hostKey: `\n${hostKey}\n` })),
+      makeCtx(),
+    );
+
+    expect((enqueued()["payload"] as Record<string, unknown>)["hostKey"]).toBe(
+      hostKey,
+    );
+  });
+
+  test("a step that names none sends none", async () => {
+    await runSshStep(sshStep(sshConfig({ hostKey: "  \n " })), makeCtx());
+
+    expect(enqueued()["payload"]).not.toHaveProperty("hostKey");
+  });
+
+  test("a host key line that is not one fails the step before anything is dispatched", async () => {
+    const result: StepRunResult = await runSshStep(
+      sshStep(
+        sshConfig({
+          hostKey: "MD5:6e:39:52:cc:29:3d:dd:a3:6b:4f:5c:0e:3a:6c:85:20",
+        }),
+      ),
+      makeCtx(),
+    );
+
+    expect(result).toEqual({
+      success: false,
+      output: "",
+      errorMessage:
+        "This SSH step's Host key has a line that is neither a SHA256 fingerprint nor a public key, so it was not run. Open the step and put the machine's SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line.",
+    });
+    expect(enqueueSpy).not.toHaveBeenCalled();
+  });
+
   test("an SSH step needs a Runner of its own", async () => {
     const result: StepRunResult = await runSshStep(
       sshStep(sshConfig({ agentId: "" })),

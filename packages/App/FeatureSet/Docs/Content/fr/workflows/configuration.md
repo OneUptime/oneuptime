@@ -167,7 +167,7 @@ Les échecs de validation, de configuration, d'accès, de limite, de crédits, d
 Les workflows respectent le contrôle d'accès basé sur les rôles de votre projet. Les trois rôles de workflow :
 
 - **Administrateur des flux de travail** — construit les workflows : les crée, les modifie, les exécute et les supprime, et gère les variables qu'ils utilisent.
-- **Membre des flux de travail** — les utilise : ouvre les workflows et leurs exécutions, et exécute un workflow à la main avec **Exécuter le flux de travail**. Un membre ne peut pas créer, modifier ni supprimer un workflow, ni exécuter l'une de ses étapes seule.
+- **Membre des flux de travail** — les utilise : ouvre les workflows et leurs exécutions, et exécute un workflow à la main avec **Exécuter le flux de travail**. Un membre ne peut pas créer, modifier ni supprimer un workflow, ni exécuter l'une de ses étapes seule. Le **Constructeur** leur montre un workflow tel qu'il est, marqué **Lecture seule** : une étape s'ouvre pour être lue, et rien de ce qu'ils y font n'est enregistré.
 - **Lecteur des flux de travail** — lit les workflows et leurs exécutions.
 
 **Propriétaire du projet** et **Administrateur du projet** peuvent faire tout ce que peut faire un Workflow Admin. **Membre du projet** peut créer et supprimer des workflows, mais pas les modifier ni les exécuter.
@@ -214,7 +214,7 @@ Sur OneUptime Cloud, les workflows demandent le forfait Growth ou supérieur, et
 | Scale      | 2 000                                |
 | Enterprise | Pas de limite pratique               |
 
-La fenêtre est glissante : chaque exécution enregistrée par le projet, à la main ou depuis un déclencheur, compte pendant 30 jours. Sur les forfaits Growth et Scale, la page **Flux de travail** affiche une carte **Exécutions du flux de travail** avec le nombre d'exécutions utilisées par le projet. Une fois la limite atteinte, les nouvelles exécutions sont enregistrées avec le statut **Execution Exceeded Current Plan** et ne s'exécutent pas, et il en va de même tant que l'abonnement est impayé. Les installations auto-hébergées sans facturation n'ont pas de limite.
+La fenêtre est glissante : chaque exécution enregistrée par le projet, à la main ou depuis un déclencheur, compte pendant 30 jours. Sur les forfaits Growth et Scale, la page **Flux de travail** affiche une carte **Exécutions du flux de travail** avec le nombre d'exécutions utilisées par le projet. Une fois la limite atteinte, les nouvelles exécutions sont enregistrées avec le statut **Execution Exceeded Current Plan** et ne s'exécutent pas, et il en va de même tant que l'abonnement est impayé. Les installations auto-hébergées sans facturation n'ont pas de limite. Sur un forfait qui n'exécute aucun workflow, le **Constructeur** et la page **Flux de travail** le disent, avec un lien pour passer à un forfait supérieur.
 
 ## Combien de temps peut durer une exécution
 

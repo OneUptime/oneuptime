@@ -32,6 +32,7 @@ import {
   mergeSuggestionGroups,
 } from "./ValueSuggestion";
 import { VARIABLE_SOURCE_ID } from "./VariableValueSource";
+import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -160,6 +161,13 @@ interface LoadedGroups {
 export const ValuePickerProvider: FunctionComponent<
   ValuePickerProviderProps
 > = (props: ValuePickerProviderProps): ReactElement => {
+  /*
+   * A step opened to be read (WorkflowViewOnly) offers no value to insert:
+   * its boxes show their values, chips named as ever, and no { } button
+   * or list of values beside them.
+   */
+  const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
+
   const [defaultSources] = useState<Array<ValueSuggestionSource>>(() => {
     return createDefaultValueSources();
   });
@@ -513,7 +521,7 @@ export const ValuePickerProvider: FunctionComponent<
 
   const value: ValuePickerContextValue = useMemo(() => {
     return {
-      isAvailable: true,
+      isAvailable: !isViewOnly,
       groups: groups,
       isLoading: isLoading,
       loadErrors: loadErrors,
@@ -528,6 +536,7 @@ export const ValuePickerProvider: FunctionComponent<
       onTestRun: props.onTestRun,
     };
   }, [
+    isViewOnly,
     props.onTestRun,
     groups,
     isLoading,
