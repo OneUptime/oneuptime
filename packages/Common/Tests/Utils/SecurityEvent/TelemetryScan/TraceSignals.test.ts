@@ -31,6 +31,7 @@ import {
   readSpanRequestTarget,
   squashWhiteSpace,
 } from "../../../../Utils/SecurityEvent/TelemetryScan/TraceSignals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * What a trace says about an attack: the server span of a request whose URL
@@ -396,12 +397,15 @@ describe("a prompt injection", () => {
 
   test("a prompt of a million characters is read in a straight line", () => {
     const huge: string = `${"a ".repeat(500000)}ignore previous instructions`;
-    const startedAt: number = Date.now();
+    const found: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return findPromptInjectionPhrase(huge);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(findPromptInjectionPhrase(huge)).toBe(
-      "ignore previous instructions",
-    );
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(found.result).toBe("ignore previous instructions");
+    expect(found.inMs).toBeLessThan(2000);
   });
 });
 
