@@ -80,6 +80,8 @@ import NotFoundException from "../../Types/Exception/NotFoundException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import Exception from "../../Types/Exception/Exception";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
+import { TelemetryServiceFilter } from "../Utils/Telemetry/TelemetryReadScope";
 import {
   IncidentSecurityJson,
   ResourceSecurityJson,
@@ -315,6 +317,7 @@ export default class SecurityCaseAPI extends BaseAPI<
               values,
               startTime: OneUptimeDate.addRemoveHours(endTime, -hours),
               endTime,
+              serviceFilter: await this.getSecurityEventSourceFilter(props),
             });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -360,6 +363,7 @@ export default class SecurityCaseAPI extends BaseAPI<
               startTime: OneUptimeDate.addRemoveDays(endTime, -days),
               endTime,
               limit,
+              serviceFilter: await this.getSecurityEventSourceFilter(props),
             });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -1122,6 +1126,22 @@ export default class SecurityCaseAPI extends BaseAPI<
       allowedPermissions: new SecurityEvent().getReadPermissions(),
       errorMessage:
         "Reading security events takes a Security role, or Project Owner or Project Admin.",
+    });
+  }
+
+  /*
+   * The sources whose security events the caller may read, for the entity
+   * reads that build their own SQL: what a read of the events themselves
+   * keeps to (TelemetryReadAccess), so a Security role scoped to the
+   * sources it owns, or to some labels, ranks and counts those sources'
+   * events alone - not every source of the project.
+   */
+  private async getSecurityEventSourceFilter(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<TelemetryServiceFilter> {
+    return await TelemetryReadAccess.getServiceFilter({
+      modelType: SecurityEvent,
+      props,
     });
   }
 

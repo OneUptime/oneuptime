@@ -18,6 +18,9 @@ import {
 } from "../../Types/SecurityCase/SecurityConnection";
 import { SECURITY_FINDINGS_CATEGORY_UID } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import { SECURITY_EVENT_RECORD_COLUMNS } from "../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
+import TelemetryReadScopeUtil, {
+  TelemetryServiceFilter,
+} from "../Utils/Telemetry/TelemetryReadScope";
 
 export interface DetectionMatchGroup {
   groupValue: string;
@@ -388,6 +391,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     values: Array<string>;
     startTime: Date;
     endTime: Date;
+    /*
+     * The sources whose events the reader may read, for a read made for a
+     * person (TelemetryReadAccess.getServiceFilter): a Security role scoped
+     * to the sources it owns, or to some labels, reads those sources' events
+     * alone. None: every source of the project, for OneUptime's own reads
+     * (the Look Up Entity Activity step).
+     */
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Promise<Array<ObservableActivity>> {
     const values: Array<string> = Array.from(
       new Set(
@@ -430,7 +441,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       }}) AND has(${{
         type: TableColumnType.ArrayText,
         value: values,
-      }}, observable) GROUP BY value ORDER BY eventCount DESC LIMIT ${{
+      }}, observable)`,
+    );
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
+    statement.append(
+      SQL` GROUP BY value ORDER BY eventCount DESC LIMIT ${{
         type: TableColumnType.Number,
         value: OBSERVABLE_ACTIVITY_MAX_VALUES,
       }}`,
@@ -465,6 +483,8 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     startTime: Date;
     endTime: Date;
     limit: number;
+    // The sources the reader may read; none: every one (findObservableActivity).
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Promise<Array<EntityFindingSummary>> {
     if (!this.database) {
       this.useDefaultDatabase();
@@ -485,7 +505,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       }} AND time <= ${{
         type: TableColumnType.DateTime64,
         value: data.endTime,
-      }} AND classUid IN (2004, 2005) AND observable != '' GROUP BY value ORDER BY maxSeverityId DESC, findingCount DESC LIMIT ${{
+      }} AND classUid IN (2004, 2005) AND observable != ''`,
+    );
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
+    statement.append(
+      SQL` GROUP BY value ORDER BY maxSeverityId DESC, findingCount DESC LIMIT ${{
         type: TableColumnType.Number,
         value: Math.max(1, Math.min(100, Math.trunc(data.limit))),
       }}`,
