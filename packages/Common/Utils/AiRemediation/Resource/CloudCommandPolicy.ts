@@ -156,6 +156,50 @@ function evaluateCloudArgv(
   return result;
 }
 
+/*
+ * Resource ids an allowlist entry's `*` is tried as (two of each kind a
+ * change works on), so `cloud restart-service *` can be seen to be a valid
+ * entry — and a broad one, as it changes whichever service it names.
+ */
+const ALLOWLIST_STAND_INS: Readonly<
+  Record<CloudCatalogProvider, ReadonlyArray<string>>
+> = {
+  aws: [1, 2].flatMap((n: number): Array<string> => {
+    return [
+      `arn:aws:ecs:us-east-1:123456789012:service/stand-in/service-${n}`,
+      `arn:aws:ec2:us-east-1:123456789012:instance/i-0000000000000000${n}`,
+      `arn:aws:rds:us-east-1:123456789012:db:stand-in-${n}`,
+      `arn:aws:rds:us-east-1:123456789012:cluster:stand-in-${n}`,
+      `arn:aws:autoscaling:us-east-1:123456789012:autoScalingGroup:00000000-0000-0000-0000-00000000000${n}:autoScalingGroupName/stand-in-${n}`,
+      `arn:aws:lambda:us-east-1:123456789012:function:stand-in-${n}`,
+      `arn:aws:lambda:us-east-1:123456789012:function:stand-in:alias-${n}`,
+      `arn:aws:sqs:us-east-1:123456789012:stand-in-${n}`,
+    ];
+  }),
+  azure: [1, 2].flatMap((n: number): Array<string> => {
+    const group: string = `/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/stand-in/providers`;
+
+    return [
+      `${group}/Microsoft.Web/sites/site-${n}`,
+      `${group}/Microsoft.Web/serverfarms/plan-${n}`,
+      `${group}/Microsoft.App/containerApps/app-${n}`,
+      `${group}/Microsoft.Compute/virtualMachines/vm-${n}`,
+      `${group}/Microsoft.Compute/virtualMachineScaleSets/vmss-${n}`,
+      `${group}/Microsoft.DBforPostgreSQL/flexibleServers/pg-${n}`,
+      `${group}/Microsoft.DBforMySQL/flexibleServers/mysql-${n}`,
+      `${group}/Microsoft.Sql/servers/sql/failoverGroups/group-${n}`,
+    ];
+  }),
+  gcp: [1, 2].flatMap((n: number): Array<string> => {
+    return [
+      `//compute.googleapis.com/projects/stand-in/zones/us-central1-a/instances/vm-${n}`,
+      `//compute.googleapis.com/projects/stand-in/zones/us-central1-a/instanceGroupManagers/group-${n}`,
+      `//run.googleapis.com/projects/stand-in/locations/us-central1/services/service-${n}`,
+      `//cloudsql.googleapis.com/projects/stand-in/instances/sql-${n}`,
+    ];
+  }),
+};
+
 function buildCloudCommandPolicy(
   provider: CloudCatalogProvider,
 ): ResourceToolPolicy {
@@ -164,6 +208,7 @@ function buildCloudCommandPolicy(
     programs: [CLOUD_PROGRAM],
     readCommandGuide: getCloudReadCommandGuide(provider),
     writeCommandGuide: getCloudWriteCommandGuide(provider),
+    allowlistStandIns: ALLOWLIST_STAND_INS[provider],
     evaluateArgv(argv: Array<string>): ResourceCommandPolicyResult {
       try {
         return evaluateCloudArgv(provider, argv);

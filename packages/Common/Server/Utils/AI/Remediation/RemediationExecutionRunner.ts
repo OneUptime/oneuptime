@@ -627,7 +627,7 @@ const RESOURCE_RESULT_UNKNOWN_RULE: string = `A change whose result comes back U
  * the change ran — so the model writes none.
  */
 const CLOUD_UNDO_EXAMPLE: string =
-  "OneUptime writes the undo of a cloud change itself, from the value the Cloud AI agent reports the change replaced (a scale-out is undone by a scale-in to the recorded count), so leave rollbackCommand out";
+  "cloud start-instance <resource> undoes cloud stop-instance <resource>, but OneUptime writes the undo of every cloud change itself, from the value the Cloud AI agent reports the change replaced (a scale-out is undone by a scale-in to the recorded count), so leave rollbackCommand out";
 
 /*
  * The undo each kind of resource offers for its common fixes, for the

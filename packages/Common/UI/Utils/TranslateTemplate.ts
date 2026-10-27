@@ -176,9 +176,11 @@ const LANGUAGES_THAT_CAPITALIZE_NOUNS: Array<string> = ["de", "lb"];
  * "GitHub", "IoT") are kept without being listed.
  */
 const PROPER_NOUNS: Array<string> = [
+  "Azure",
   "Ceph",
   "Discord",
   "Docker",
+  "Google",
   "Grafana",
   "Huntress",
   "Jira",
@@ -197,6 +199,12 @@ const PROPER_NOUNS: Array<string> = [
   "Twilio",
   "Windows",
 ];
+
+/*
+ * Proper nouns of two words: the second keeps its capital after the first
+ * ("Google Cloud project", but "cloud resources").
+ */
+const PROPER_NOUN_PAIRS: Array<[string, string]> = [["Google", "Cloud"]];
 
 // "API", "SLOs": two capitals in a row.
 const ACRONYM_PATTERN: RegExp = /\p{Lu}{2,}/u;
@@ -229,7 +237,18 @@ export const toSentenceTerm: (text: string, language?: string) => string = (
   }
 
   return words
-    .map((word: string): string => {
+    .map((word: string, index: number): string => {
+      const previous: string | undefined = words[index - 1];
+
+      if (
+        previous !== undefined &&
+        PROPER_NOUN_PAIRS.some((pair: [string, string]): boolean => {
+          return pair[0] === previous && pair[1] === word;
+        })
+      ) {
+        return word;
+      }
+
       return word
         .split("-")
         .map((part: string): string => {

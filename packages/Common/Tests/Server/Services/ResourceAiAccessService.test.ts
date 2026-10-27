@@ -27,6 +27,7 @@ import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   ResourceAiAccessGap,
@@ -435,6 +436,14 @@ describe("ResourceAiAccessService helpers", () => {
       const step: string = getResourceAiAgentInstallNextStep({
         resourceType: type,
       });
+
+      if (isCloudAiResourceType(type)) {
+        // A cloud agent is set up from the account's page, with one command.
+        expect(step).toContain('"Let AI fix problems"');
+        expect(step).toContain("Cloud AI agent");
+        expect(step).not.toContain("collector");
+        continue;
+      }
 
       expect(step).toContain("oneuptime/resource-ai-agent");
       expect(step).toContain("ONEUPTIME_AI_AGENT_RESOURCE_TYPE=");
@@ -932,6 +941,7 @@ describe("ResourceAiAccessService.getResourcesForSubject", () => {
     expect(relations.sort()).toEqual(
       [
         "cephClusters",
+        "cloudResources",
         "databaseServers",
         "dockerHosts",
         "dockerSwarmClusters",

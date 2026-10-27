@@ -1483,7 +1483,8 @@ export class ResourceAiAccessServiceClass {
         !accounts.some(
           (account: { provider: string; accountId: string }): boolean => {
             return (
-              account.provider === provider && account.accountId === accountId
+              account.provider === provider &&
+              account.accountId.toLowerCase() === accountId.toLowerCase()
             );
           },
         )
@@ -1511,11 +1512,12 @@ export class ResourceAiAccessServiceClass {
         continue;
       }
 
+      // Compared without case, as the account's own counts are (Azure ids).
       const rows: Array<CloudAccount> = await CloudAccountService.findBy({
         query: {
           projectId: data.projectId,
           provider: provider as never,
-          accountId: QueryHelper.any(accountIds),
+          accountId: QueryHelper.findWithSameTextAnyOf(accountIds),
         },
         select: { _id: true, accountId: true },
         limit: accountIds.length,
@@ -1527,7 +1529,9 @@ export class ResourceAiAccessServiceClass {
         .map((accountId: string): string | undefined => {
           return rows
             .find((row: CloudAccount): boolean => {
-              return row.accountId === accountId;
+              return (
+                (row.accountId || "").toLowerCase() === accountId.toLowerCase()
+              );
             })
             ?.id?.toString();
         })

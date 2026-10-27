@@ -12,6 +12,8 @@ import DatabaseServerService from "../../../Server/Services/DatabaseServerServic
 import DockerHostService from "../../../Server/Services/DockerHostService";
 import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClusterService";
 import HostService from "../../../Server/Services/HostService";
+import CloudAccountService from "../../../Server/Services/CloudAccountService";
+import { getCloudCatalogProvider } from "../../../Utils/AiRemediation/Resource/CloudOperationCatalog";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
@@ -296,6 +298,31 @@ const KINDS: Array<Kind> = [
     editPermission: Permission.EditHost,
     subjectRelation: "hosts",
     sentenceName: "host",
+  },
+  // The three clouds read one table, each its own cloud's rows.
+  {
+    resourceType: AiResourceType.AwsAccount,
+    service: CloudAccountService,
+    readPermission: Permission.ReadCloudResource,
+    editPermission: Permission.EditCloudResource,
+    subjectRelation: "cloudResources",
+    sentenceName: "AWS account",
+  },
+  {
+    resourceType: AiResourceType.AzureSubscription,
+    service: CloudAccountService,
+    readPermission: Permission.ReadCloudResource,
+    editPermission: Permission.EditCloudResource,
+    subjectRelation: "cloudResources",
+    sentenceName: "Azure subscription",
+  },
+  {
+    resourceType: AiResourceType.GoogleCloudProject,
+    service: CloudAccountService,
+    readPermission: Permission.ReadCloudResource,
+    editPermission: Permission.EditCloudResource,
+    subjectRelation: "cloudResources",
+    sentenceName: "Google Cloud project",
   },
 ];
 
@@ -788,9 +815,16 @@ describe("ResourceAiAccessAPI", () => {
 
         // No other type's table was read.
         for (const other of KINDS) {
-          if (other.resourceType !== kind.resourceType) {
+          if (other.service !== kind.service) {
             expect(findSpies.get(other.resourceType)).not.toHaveBeenCalled();
           }
+        }
+
+        // A cloud's account is read among its own cloud's rows only.
+        if (kind.service === CloudAccountService) {
+          expect(args.query["provider"]).toBe(
+            getCloudCatalogProvider(kind.resourceType),
+          );
         }
 
         const statusCall: Record<string, unknown> = statusSpy.mock
@@ -939,7 +973,7 @@ describe("ResourceAiAccessAPI", () => {
       );
 
       expect((result.thrownToNext as Error).message).toBe(
-        "resourceType is required and must be one of DockerHost, PodmanHost, DockerSwarmCluster, ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer, Host.",
+        "resourceType is required and must be one of DockerHost, PodmanHost, DockerSwarmCluster, ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer, Host, AwsAccount, AzureSubscription, GoogleCloudProject.",
       );
     });
   });
@@ -3063,6 +3097,9 @@ describe("ResourceAiAccessAPI", () => {
       [AiResourceType.CephCluster]: "ceph.cluster.name",
       [AiResourceType.DatabaseServer]: "oneuptime.database.server.id",
       [AiResourceType.Host]: "host.name",
+      [AiResourceType.AwsAccount]: "cloud.account.id",
+      [AiResourceType.AzureSubscription]: "cloud.account.id",
+      [AiResourceType.GoogleCloudProject]: "cloud.account.id",
     };
 
     const INSIGHTS: AiActivityInsights = {
@@ -3176,7 +3213,7 @@ describe("ResourceAiAccessAPI", () => {
       expect(String(lookup.query["projectId"])).toBe(PROJECT_ID.toString());
       expect(lookup.props.isRoot).toBeFalsy();
       for (const other of KINDS) {
-        if (other.resourceType !== kind.resourceType) {
+        if (other.service !== kind.service) {
           expect(findSpies.get(other.resourceType)).not.toHaveBeenCalled();
         }
       }

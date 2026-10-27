@@ -189,7 +189,8 @@ function cloudAccountKind(resourceType: AiResourceType): ResourceAiAccessKind {
   return {
     service: CloudAccountService,
     subjectRelation: "cloudResources",
-    scopeLabelKeys: [],
+    // The account its resources' telemetry names.
+    scopeLabelKeys: ["cloud.account.id", "resource.cloud.account.id"],
     query: { provider: getCloudCatalogProvider(resourceType) || "" },
   };
 }

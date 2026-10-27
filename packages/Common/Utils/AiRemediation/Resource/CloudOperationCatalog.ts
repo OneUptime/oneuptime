@@ -2495,6 +2495,30 @@ export function getCloudUndoCommand(data: {
     };
   }
 
+  // An inverse that does not work on this kind (an RDS instance is started here, never stopped).
+  const inverse: CloudOperationSpec | null = getCloudOperation(undo.operation);
+
+  if (
+    !inverse ||
+    !getCloudOperationKind(
+      inverse,
+      data.command.provider,
+      data.command.resource.kind,
+    )
+  ) {
+    const known: CloudResourceKindSpec | null = getCloudResourceKind(
+      data.command.provider,
+      data.command.resource.kind,
+    );
+
+    return {
+      kind: "nothing",
+      reason: `cloud ${undo.operation} does not work on ${
+        known ? `a ${known.displayName}` : "this resource"
+      }, so cloud ${operation.name} has nothing to undo here: a person puts it back`,
+    };
+  }
+
   const argv: Array<string> = [
     CLOUD_PROGRAM,
     undo.operation,

@@ -1,5 +1,6 @@
 import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
 import CephClusterFeedService from "../../../Server/Services/CephClusterFeedService";
+import CloudAccountService from "../../../Server/Services/CloudAccountService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
@@ -32,6 +33,8 @@ import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  CLOUD_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   MAX_POSTURE_STRING_LENGTH,
@@ -803,11 +806,16 @@ describe("ResourceAiAgentService.findAgentsForResources", () => {
 
 describe("the per-type resource bindings", () => {
   test("every resource type has one, bound to its own type", () => {
+    // The cloud accounts have one table and no feed: see below.
     expect(
       TYPE_FIXTURES.map((f: TypeFixture) => {
         return f.resourceType;
       }),
-    ).toEqual([...ALL_AI_RESOURCE_TYPES]);
+    ).toEqual(
+      ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+        return !isCloudAiResourceType(type);
+      }),
+    );
 
     for (const type of ALL_AI_RESOURCE_TYPES) {
       const binding: ResourceAiAgentResourceBinding =
@@ -819,6 +827,28 @@ describe("the per-type resource bindings", () => {
       ).toBe(type);
     }
   });
+
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s reads its cloud's account, never creates one, and writes no feed",
+    async (type: AiResourceType) => {
+      const binding: ResourceAiAgentResourceBinding =
+        getResourceAiAgentResourceBinding(type);
+
+      expect(binding.getService()).toBe(
+        CloudAccountService as unknown as AnyObject,
+      );
+      // Resolved by the account its cloud names (resolveCloudAccountId).
+      expect(binding.findOrCreateByIdentity).toBeNull();
+      await expect(
+        binding.writeFeedItem({
+          resourceId: RESOURCE_A,
+          projectId: PROJECT_ID,
+          feedInfoInMarkdown: "x",
+          displayColor: undefined as never,
+        }),
+      ).resolves.toBeUndefined();
+    },
+  );
 
   test.each(TYPE_FIXTURES)(
     "$resourceType reads through its own model's service",

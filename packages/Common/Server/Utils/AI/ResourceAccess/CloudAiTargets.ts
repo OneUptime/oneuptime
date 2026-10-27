@@ -243,7 +243,8 @@ export default class CloudAiTargets {
         query: {
           projectId: data.projectId,
           cloudProvider: provider,
-          cloudAccountId: account.accountId,
+          // Compared without case, as the account's own counts are.
+          cloudAccountId: QueryHelper.findWithSameText(account.accountId),
           providerResourceId:
             provider === "azure"
               ? QueryHelper.findWithSameText(data.providerResourceId)
