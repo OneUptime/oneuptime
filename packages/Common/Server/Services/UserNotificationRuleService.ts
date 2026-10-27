@@ -26,6 +26,7 @@ import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import UserWebhookService from "./UserWebhookService";
 import CustomNotificationChannelService from "./CustomNotificationChannelService";
+import GlobalConfigService from "./GlobalConfigService";
 import CustomNotificationChannelDeliveryService from "./CustomNotificationChannelDeliveryService";
 import TeamService from "./TeamService";
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
@@ -4101,22 +4102,38 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<Array<{ channelName: string; rule: Model }>> {
     const chosen: Array<{ channelName: string; rule: Model }> = [];
 
-    const userPush: UserPush | null = await UserPushService.findOneBy({
-      query: {
-        projectId: options.projectId,
-        userId: options.userId,
-        isVerified: true,
-      },
-      select: {
-        _id: true,
-        deviceToken: true,
-        deviceType: true,
-        isVerified: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    /*
+     * No push while the server has push turned off (PushNotificationsTurnedOff):
+     * a device nothing is pushed to would stand in for the channels that
+     * could reach the responder. A switch that cannot be read leaves the
+     * fallback as it was; the push sender refuses on its own then.
+     */
+    let isPushTurnedOff: boolean = false;
+
+    try {
+      isPushTurnedOff = await GlobalConfigService.getPushNotificationsTurnedOff();
+    } catch (err) {
+      logger.error(err);
+    }
+
+    const userPush: UserPush | null = isPushTurnedOff
+      ? null
+      : await UserPushService.findOneBy({
+          query: {
+            projectId: options.projectId,
+            userId: options.userId,
+            isVerified: true,
+          },
+          select: {
+            _id: true,
+            deviceToken: true,
+            deviceType: true,
+            isVerified: true,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
 
     if (userPush) {
       const rule: Model = this.buildUnsavedFallbackRule(options);

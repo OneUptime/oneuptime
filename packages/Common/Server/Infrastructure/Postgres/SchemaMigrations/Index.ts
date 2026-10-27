@@ -209,6 +209,7 @@ import { AddScheduledMaintenancePublishOnStatusPageAt1807960000000 } from "./180
 import { AddOpenSourceDeploymentLastSeenAt1807970000000 } from "./1807970000000-AddOpenSourceDeploymentLastSeenAt";
 import { AddCustomNotificationChannels1808000000000 } from "./1808000000000-AddCustomNotificationChannels";
 import { AddCustomNotificationChannelIndexesAndKeys1808010000000 } from "./1808010000000-AddCustomNotificationChannelIndexesAndKeys";
+import { AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808020000000 } from "./1808020000000-AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1620,4 +1621,5 @@ export default [
   AddOpenSourceDeploymentLastSeenAt1807970000000,
   AddCustomNotificationChannels1808000000000,
   AddCustomNotificationChannelIndexesAndKeys1808010000000,
+  AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808020000000,
 ];

@@ -23,6 +23,7 @@ import UserMicrosoftTeams from "Common/Models/DatabaseModels/UserMicrosoftTeams"
 import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
 import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import { loadCustomNotificationChannels } from "../../Utils/CustomNotificationChannels";
+import { usePushNotificationsTurnedOff } from "../../Utils/PushNotificationsTurnedOff";
 import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
@@ -544,6 +545,14 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
     Array<CustomNotificationChannel>
   >([]);
 
+  /*
+   * No push device is offered for a rule while the server has push turned
+   * off (PushNotificationsTurnedOff): nothing would be pushed to it. The
+   * rules already pointed at one still show it, by its name.
+   */
+  const isPushTurnedOff: boolean = usePushNotificationsTurnedOff() === true;
+  const offeredUserPush: Array<UserPush> = isPushTurnedOff ? [] : userPush;
+
   const isEditable: boolean = props.isEditable ?? true;
 
   /*
@@ -581,7 +590,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           userCalls: userCalls,
           userEmails: userEmails,
           userSMSs: userSMSs,
-          userPush: userPush,
+          userPush: offeredUserPush,
           userWhatsApps: userWhatsApps,
           userTelegrams: userTelegrams,
           userSlacks: userSlacks,
@@ -589,7 +598,13 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           userWebhooks: userWebhooks,
           customNotificationChannels: customNotificationChannels,
         })
-      : getSuppliedDropdownOptions(props.notificationMethods || []);
+      : getSuppliedDropdownOptions(
+          (props.notificationMethods || []).filter(
+            (method: NotificationMethodChoice): boolean => {
+              return !isPushTurnedOff || method.methodType !== "Push";
+            },
+          ),
+        );
 
   /*
    * Maps the id the dropdown submitted back onto one of the rule's seven method
@@ -615,7 +630,7 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         userCalls: userCalls,
         userEmails: userEmails,
         userSMSs: userSMSs,
-        userPush: userPush,
+        userPush: offeredUserPush,
         userWhatsApps: userWhatsApps,
         userTelegrams: userTelegrams,
         userSlacks: userSlacks,

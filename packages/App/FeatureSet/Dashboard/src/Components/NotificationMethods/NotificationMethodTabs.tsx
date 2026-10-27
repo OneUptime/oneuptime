@@ -3,6 +3,7 @@ import UserCustomChannels from "./CustomChannels";
 import UserEmail from "./Email";
 import UserMicrosoftTeams from "./MicrosoftTeams";
 import UserPush from "./Push";
+import PushNotificationsTurnedOff from "./PushNotificationsTurnedOff";
 import UserSMS from "./SMS";
 import UserSlack from "./Slack";
 import UserTelegram from "./Telegram";
@@ -16,6 +17,7 @@ import {
   CustomNotificationChannelsState,
   useCustomNotificationChannels,
 } from "../../Utils/CustomNotificationChannels";
+import { usePushNotificationsTurnedOff } from "../../Utils/PushNotificationsTurnedOff";
 import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -78,6 +80,18 @@ export function getCustomChannelsTab(
   };
 }
 
+/*
+ * The push devices - or, while the server has push turned off, what it says
+ * in their place (PushNotificationsTurnedOff): no device can be registered
+ * then, and nothing is pushed to the ones there are.
+ */
+export function getPushNotificationsTab(isPushTurnedOff: boolean): Tab {
+  return {
+    name: translationKey("Push Notifications"),
+    children: isPushTurnedOff ? <PushNotificationsTurnedOff /> : <UserPush />,
+  };
+}
+
 const NotificationMethodTabs: FunctionComponent = (): ReactElement => {
   const offered: ReadonlyArray<WorkspaceType> | null = getOfferedWorkspaces(
     useWorkspaceConnections(),
@@ -87,7 +101,10 @@ const NotificationMethodTabs: FunctionComponent = (): ReactElement => {
   const customChannels: CustomNotificationChannelsState =
     useCustomNotificationChannels();
 
-  if (!offered || !customChannels.channels) {
+  // Waited for too, so the push tab never shows devices and then a notice.
+  const isPushTurnedOff: boolean | null = usePushNotificationsTurnedOff();
+
+  if (!offered || !customChannels.channels || isPushTurnedOff === null) {
     return <PageLoader isVisible={true} />;
   }
 
@@ -111,10 +128,7 @@ const NotificationMethodTabs: FunctionComponent = (): ReactElement => {
     },
     ...(workspaceAppsTab ? [workspaceAppsTab] : []),
     ...(customChannelsTab ? [customChannelsTab] : []),
-    {
-      name: translationKey("Push Notifications"),
-      children: <UserPush />,
-    },
+    getPushNotificationsTab(isPushTurnedOff),
     {
       name: translationKey("Webhooks"),
       children: <UserWebhook />,

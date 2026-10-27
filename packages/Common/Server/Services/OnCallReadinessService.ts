@@ -13,6 +13,8 @@ import UserCallService from "./UserCallService";
 import UserEmailService from "./UserEmailService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import CustomNotificationChannelService from "./CustomNotificationChannelService";
+import GlobalConfigService from "./GlobalConfigService";
+import { PUSH_TURNED_OFF_READINESS_CLAUSE } from "../../Types/PushNotification/PushNotificationsTurnedOff";
 import UserPushService from "./UserPushService";
 import UserService from "./UserService";
 import UserSmsService from "./UserSmsService";
@@ -599,6 +601,13 @@ interface ProjectNotificationSettings {
    * go out on here.
    */
   customChannels: Array<ReadinessCustomChannel>;
+  /*
+   * Push notifications turned off for the whole server (GlobalConfig.
+   * disablePushNotifications): then no push device reaches anybody, in any
+   * project. Read with the project's switches for the same reason the custom
+   * channels are.
+   */
+  isPushTurnedOffOnServer: boolean;
 }
 
 /** Everything the per-user pass needs, loaded once for the whole responder set. */
@@ -1982,7 +1991,23 @@ export default class OnCallReadinessService {
         project?.enableTelegramNotifications,
       ),
       customChannels: await this.loadCustomChannels(),
+      isPushTurnedOffOnServer: await this.loadIsPushTurnedOffOnServer(),
     };
+  }
+
+  /*
+   * Whether the server has push turned off. A switch that could not be read
+   * is reported as off, which errs towards a responder looking LESS
+   * reachable than they are - and is what the push sender does with it too
+   * (PushNotificationService.isRefusedWhilePushIsTurnedOff).
+   */
+  private static async loadIsPushTurnedOffOnServer(): Promise<boolean> {
+    try {
+      return await GlobalConfigService.getPushNotificationsTurnedOff();
+    } catch (err) {
+      logger.error(err);
+      return true;
+    }
   }
 
   /*
@@ -2868,8 +2893,9 @@ export default class OnCallReadinessService {
    * Whether this project can send on this channel at all.
    *
    * Push, Email and Webhook have no project switch: the first two are zero-cost and the
-   * third is somebody else's endpoint, so nothing gates them and they are always
-   * available. The four paid channels do, and the runtime honours them — SmsService and
+   * third is somebody else's endpoint, so no project gates them. Only the server can
+   * turn push off, for every project at once (PushNotificationsTurnedOff); otherwise
+   * they are always available. The four paid channels do, and the runtime honours them — SmsService and
    * CallService refuse at send time, and the fallback checks all four before it picks a
    * channel to spend money on. Treating all four alike here is the conservative reading:
    * a responder marked unreachable because their project switched their only channel off
@@ -2893,6 +2919,15 @@ export default class OnCallReadinessService {
 
     if (methodType === ReadinessMethodType.Telegram) {
       return settings.enableTelegramNotifications;
+    }
+
+    /*
+     * Push has no project switch, but the server can have it turned off for
+     * every project (PushNotificationsTurnedOff). Read as on unless that is
+     * known, as it was before there was a switch.
+     */
+    if (methodType === ReadinessMethodType.Push) {
+      return settings.isPushTurnedOffOnServer !== true;
     }
 
     return true;
@@ -2927,12 +2962,38 @@ export default class OnCallReadinessService {
        * wrong place, so the third names exactly who can, and where.
        */
       if (data.verifiedMethods.length > 0) {
-        const isOneChannel: boolean = data.disabledChannels.length === 1;
-
         reasons.push("No usable notification method - cannot be paged");
-        reasons.push(
-          `Every method they have verified is on ${data.disabledChannels.join(", ")}, and this project has ${isOneChannel ? "that channel" : "those channels"} switched off - ${getWhoCanTurnOnClause(isOneChannel ? "it" : "them")}`,
+
+        /*
+         * Push is turned off by the server rather than the project, and a
+         * server admin turns it back on, so it has a clause of its own; a
+         * sentence about the project's switches alone reads as it always did.
+         */
+        const isPushTurnedOff: boolean = data.disabledChannels.includes(
+          ReadinessMethodType.Push,
         );
+
+        const projectChannels: Array<string> = data.disabledChannels.filter(
+          (channel: string): boolean => {
+            return channel !== ReadinessMethodType.Push;
+          },
+        );
+
+        const isOneChannel: boolean = projectChannels.length === 1;
+
+        if (!isPushTurnedOff) {
+          reasons.push(
+            `Every method they have verified is on ${data.disabledChannels.join(", ")}, and this project has ${isOneChannel ? "that channel" : "those channels"} switched off - ${getWhoCanTurnOnClause(isOneChannel ? "it" : "them")}`,
+          );
+        } else if (projectChannels.length === 0) {
+          reasons.push(
+            `Every method they have verified is on ${ReadinessMethodType.Push}, and ${PUSH_TURNED_OFF_READINESS_CLAUSE}`,
+          );
+        } else {
+          reasons.push(
+            `Every method they have verified is on ${data.disabledChannels.join(", ")}. This project has ${projectChannels.join(", ")} switched off - ${getWhoCanTurnOnClause(isOneChannel ? "it" : "them")} - and ${PUSH_TURNED_OFF_READINESS_CLAUSE}`,
+          );
+        }
 
         return reasons;
       }

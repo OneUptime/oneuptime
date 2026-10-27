@@ -74,6 +74,9 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SETTINGS_CUSTOM_CHANNELS]: new Route(
     `/admin/settings/custom-channels`,
   ),
+  [PageMap.SETTINGS_PUSH_NOTIFICATIONS]: new Route(
+    `/admin/settings/push-notifications`,
+  ),
   [PageMap.SETTINGS_PROBES]: new Route(`/admin/settings/probes`),
   [PageMap.SETTINGS_GLOBAL_RUNNERS]: new Route(
     `/admin/settings/global-runners`,

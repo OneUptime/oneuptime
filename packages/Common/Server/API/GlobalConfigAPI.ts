@@ -85,6 +85,7 @@ export default class GlobalConfigAPI extends BaseAPI<
               id: ObjectID.getZeroObjectID(),
               select: {
                 disableUserProjectCreation: true,
+                disablePushNotifications: true,
               },
               props: {
                 isRoot: true,
@@ -94,6 +95,14 @@ export default class GlobalConfigAPI extends BaseAPI<
           return Response.sendJsonObjectResponse(req, res, {
             disableUserProjectCreation: Boolean(
               globalConfig?.disableUserProjectCreation,
+            ),
+            /*
+             * Whether push notifications are turned off for the whole
+             * server: the Dashboard says so in place of the push devices,
+             * and offers none in a notification rule.
+             */
+            disablePushNotifications: Boolean(
+              globalConfig?.disablePushNotifications,
             ),
           });
         } catch (err) {

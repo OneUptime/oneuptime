@@ -101,6 +101,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
         />
         <SideMenuItem
           link={{
+            title: "Push Notifications",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_PUSH_NOTIFICATIONS] as Route,
+            ),
+          }}
+          icon={IconProp.Notification}
+        />
+        <SideMenuItem
+          link={{
             title: "Custom Channels",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.SETTINGS_CUSTOM_CHANNELS] as Route,
