@@ -4,6 +4,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import OnCallDutyPolicyStatus from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { OnCallPolicyAiHoldOutcome } from "../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
 import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -1088,6 +1089,8 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       userNotificationEventType: UserNotificationEventType;
       pagingStartsAt?: Date | undefined;
       waitingStatusMessage?: string | undefined;
+      // Held while OneUptime AI works (OnCallPolicyAiHold).
+      isAiHold?: boolean | undefined;
     },
   ): Promise<void> {
     // execute this policy
@@ -1176,6 +1179,10 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       log.status = OnCallDutyPolicyStatus.Waiting;
       log.pagingStartsAt = options.pagingStartsAt;
       log.statusMessage = options.waitingStatusMessage || "";
+
+      if (options.isAiHold) {
+        log.aiHoldOutcome = OnCallPolicyAiHoldOutcome.Holding;
+      }
     }
 
     if (options.triggeredByIncidentId) {

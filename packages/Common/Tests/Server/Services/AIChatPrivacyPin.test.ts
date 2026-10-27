@@ -36,7 +36,7 @@ import { FindOperator } from "typeorm";
  * Regression cover for the "Ask AI Recent Conversations shows every user's
  * chat history" report (issue #3554).
  *
- * The Ask AI panel asks for conversations with an EMPTY query — see
+ * The Ask AI dialog asks for conversations with an EMPTY query — see
  * fetchConversations in
  * App/FeatureSet/Dashboard/src/Components/AIChat/useAiChat.ts, which sends
  * `query: {}` and no user filter at all. Nothing on the client scopes that
@@ -48,7 +48,7 @@ import { FindOperator } from "typeorm";
  * much test.
  *
  * The three tables are covered together because they are the three parts of
- * one leak: AIConversation carries the titles the panel lists,
+ * one leak: AIConversation carries the titles Ask AI lists,
  * AIConversationMessage carries the prompts and answers, and AIRunEvent
  * carries the glass-box trail of the tools a turn ran (and their arguments).
  * A pin lost on any one of them exposes the conversation.
@@ -302,9 +302,9 @@ describe("AI chat privacy pin — the personal-scope guarantee", () => {
       expect(model.hasColumn(table.column)).toBe(true);
     });
 
-    test("scopes the Ask AI panel's own unfiltered list request", async () => {
+    test("scopes the Ask AI dialog's own unfiltered list request", async () => {
       /*
-       * `query: {}` is verbatim what the panel sends. This is the report in
+       * `query: {}` is verbatim what the dialog sends. This is the report in
        * issue #3554: without the pin this read returns every row in the
        * project.
        */

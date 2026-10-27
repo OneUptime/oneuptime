@@ -108,7 +108,7 @@ En **statusside** viser kundene dine om tjenestene virker. Du velger hvilke moni
 
 - **Arbeidsflyter** utfører handlinger når noe skjer, for eksempel en melding i Slack når en hendelse erklæres.
 - **Runbooks** gjør en beredskapsprosedyre til trinn teamet ditt kan kjøre for hånd eller automatisk.
-- **OneUptime AI** undersøker nye hendelser og varsler og legger det den fant ut på tidslinjen deres, og **Ask AI** svarer på spørsmål om prosjektet ditt. Et nytt prosjekt starter med AI slått på; bryteren **Aktiver AI** under **Prosjektinnstillinger → KI → AI Features** slår alt sammen av.
+- **OneUptime AI** undersøker nye hendelser og varsler og legger det den fant ut på tidslinjen deres, og **Spør AI** svarer på spørsmål om prosjektet ditt. Et nytt prosjekt starter med AI slått på; bryteren **Aktiver AI** under **Prosjektinnstillinger → KI → AI Features** slår alt sammen av.
 
 :::cards
 - [Oversikt over arbeidsflyter](/docs/workflows/index): Automatiser handlinger med utløsere og komponenter.

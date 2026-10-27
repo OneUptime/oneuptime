@@ -108,7 +108,7 @@ En **statusside** viser dine kunder, om dine tjenester virker. Du vælger, hvilk
 
 - **Arbejdsgange** udfører handlinger, når der sker noget, for eksempel en besked i Slack, når en hændelse erklæres.
 - **Runbooks** gør en beredskabsprocedure til trin, dit team kan køre manuelt eller automatisk.
-- **OneUptime AI** undersøger nye hændelser og advarsler og poster det, den fandt, på deres tidslinje, og **Ask AI** besvarer spørgsmål om dit projekt. Et nyt projekt starter med AI slået til; kontakten **Aktivér AI** under **Projektindstillinger → AI → AI Features** slår det hele fra.
+- **OneUptime AI** undersøger nye hændelser og advarsler og poster det, den fandt, på deres tidslinje, og **Spørg AI** besvarer spørgsmål om dit projekt. Et nyt projekt starter med AI slået til; kontakten **Aktivér AI** under **Projektindstillinger → AI → AI Features** slår det hele fra.
 
 :::cards
 - [Workflows – Oversigt](/docs/workflows/index): Automatisér handlinger med triggere og komponenter.

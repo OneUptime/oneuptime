@@ -138,7 +138,7 @@ jest.mock(
   },
 );
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AIChatPanel",
+  "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog",
   () => {
     return mockEmpty();
   },

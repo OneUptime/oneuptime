@@ -172,7 +172,29 @@ describe("WidgetBuilder", () => {
     expect(data["resourceType"]).toBe("Incident");
     expect(data["heading"]).toBe("API is down");
     expect(data["subheading"]).toBe("SEV1");
-    expect(data["fields"]).toBe(fields);
+    expect(data["fields"]).toEqual(fields);
+  });
+
+  /*
+   * Every write tool's card at once: a fact its heading or subheading
+   * already says is not saved under them again (Types/AI/ResourceCardFacts).
+   */
+  test("resourceCard() leaves out the facts its heading and subheading already say", () => {
+    const widget: AIChatWidget = WidgetBuilder.resourceCard({
+      title: "Alert created",
+      resourceType: "Alert",
+      heading: "ALT-12 · High memory usage on test01",
+      subheading: "Severity: High",
+      fields: [
+        { label: "Number", value: "ALT-12" },
+        { label: "Severity", value: "High" },
+        { label: "State", value: "Created" },
+      ],
+    });
+
+    expect((widget.data as JSONObject)["fields"]).toEqual([
+      { label: "State", value: "Created" },
+    ]);
   });
 
   test("stats() builds StatCards", () => {

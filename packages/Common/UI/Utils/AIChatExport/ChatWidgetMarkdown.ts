@@ -7,6 +7,10 @@ import {
   AIChatWidgetStat,
   AIChatWidgetType,
 } from "../../../Types/AI/AIChatTypes";
+import {
+  getFactsNotInHeading,
+  ResourceCardFact,
+} from "../../../Types/AI/ResourceCardFacts";
 import { JSONObject } from "../../../Types/JSON";
 import { markdownTableCell } from "../../../Utils/Markdown/MarkdownTableCell";
 import {
@@ -228,6 +232,10 @@ function statCardsToMarkdown(widget: AIChatWidget): Array<string> {
   );
 }
 
+/*
+ * A card's facts, each once: what its heading or subheading already says is
+ * left out, as the card itself draws it (Types/AI/ResourceCardFacts).
+ */
 function resourceCardToMarkdown(widget: AIChatWidget): Array<string> {
   const lines: Array<string> = [];
 
@@ -241,8 +249,11 @@ function resourceCardToMarkdown(widget: AIChatWidget): Array<string> {
     lines.push(widget.data.subheading);
   }
 
-  const fields: Array<{ label: string; value: string }> =
-    widget.data.fields || [];
+  const fields: Array<ResourceCardFact> = getFactsNotInHeading({
+    heading: widget.data.heading,
+    subheading: widget.data.subheading,
+    fields: widget.data.fields,
+  });
 
   if (fields.length > 0) {
     lines.push("");

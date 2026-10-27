@@ -592,10 +592,8 @@ async function changeAlertStateTool(data: {
       resourceType: "Alert",
       heading: `#${alert.alertNumber} · ${alert.title}`,
       subheading: `Now ${newStateName}`,
-      fields: [
-        { label: "Number", value: `#${alert.alertNumber ?? ""}` },
-        { label: "State", value: newStateName },
-      ],
+      // The heading and the line under it say the number and the state.
+      fields: [],
       link: {
         type: AIChatCitationTargetType.AlertView,
         params: { alertId: alertIdString },

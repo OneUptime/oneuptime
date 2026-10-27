@@ -104,7 +104,7 @@ Et utkast krever en rolle som kan opprette deteksjonsregler.
 
 ## Ask AI på sikkerhetssidene
 
-**Ask AI** vet hvilken sikkerhetsside du er på. På en sak leser den saken først og tilbyr spørsmål som **Er det ekte?**. På de andre sidene under sikkerhetshendelser søker et spørsmål med vanlige ord i sikkerhetshendelsene dine. Den kan også sjekke verdier mot trusseletterretningen din, se hvor aktiv en bruker, en vert eller en adresse har vært, og vise playbookene en sak kan gå til.
+**Spør AI** vet hvilken sikkerhetsside du er på. På en sak leser den saken først og tilbyr spørsmål som **Er det ekte?**. På de andre sidene under sikkerhetshendelser søker et spørsmål med vanlige ord i sikkerhetshendelsene dine. Den kan også sjekke verdier mot trusseletterretningen din, se hvor aktiv en bruker, en vert eller en adresse har vært, og vise playbookene en sak kan gå til.
 
 Ask AI kan legge til et notat på en sak og kjøre en playbook på den, på dine vegne, og spør før hver handling. En playbook den kjører, venter på godkjenning som alle andre.
 

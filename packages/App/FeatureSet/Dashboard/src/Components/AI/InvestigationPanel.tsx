@@ -80,6 +80,7 @@ import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import AiHoldNotice from "./AiHoldNotice";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import useAiOffered from "../../Utils/UseAiOffered";
@@ -1484,13 +1485,14 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
         className="scroll-mt-32 space-y-6 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-4"
       >
         {/*
-          The region always holds the same four slots in the same order (a
-          failure notice, the body, the actions, the conversation), whatever
-          the state, and a slot with nothing to show renders nothing. React
-          therefore keeps the conversation mounted when the body changes (a
-          run appears, the report lands): a question someone is typing is
-          not thrown away by an investigation starting.
+          The region always holds the same slots in the same order (the page
+          OneUptime AI holds, a failure notice, the body, the actions, the
+          conversation), whatever the state, and a slot with nothing to show
+          renders nothing. React therefore keeps the conversation mounted
+          when the body changes (a run appears, the report lands): a question
+          someone is typing is not thrown away by an investigation starting.
         */}
+        <AiHoldNotice subjectType={subjectType} subjectId={props.subjectId} />
         {hasRun && isFailed && errorMessage ? (
           <InvestigationNotice
             testId="investigation-error"

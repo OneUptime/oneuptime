@@ -733,10 +733,8 @@ export const ChangeIncidentSeverityTool: ObservabilityTool = {
         resourceType: "Incident",
         heading: `#${incident.incidentNumber} · ${incident.title}`,
         subheading: `Severity: ${severity.name}`,
-        fields: [
-          { label: "Number", value: `#${incident.incidentNumber ?? ""}` },
-          { label: "New severity", value: severity.name || "—" },
-        ],
+        // The heading and the line under it say the number and the severity.
+        fields: [],
         link: {
           type: AIChatCitationTargetType.IncidentView,
           params: { incidentId: incidentIdString },

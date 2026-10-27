@@ -27,16 +27,17 @@ jest.mock(
 import AnswerSources, {
   describeSourceRows,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationConversation/AnswerSources";
+import { CITATION_CHIP_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationCitationChip";
 import {
   AIChatCitation,
   AIChatCitationTargetType,
 } from "../../../Types/AI/AIChatTypes";
 
 /*
- * What an answer in the AI Investigation card's conversation read: one line
- * per server-minted citation. The Ask AI panel draws its sources as bordered
- * pills; in a card that draws no boxes they are a quiet list, and a source
- * with nowhere to go is never a button that does nothing.
+ * What an answer read: one line per server-minted citation, in the AI
+ * Investigation card's conversation and under an Ask AI answer's sources
+ * alike. A quiet list - no bordered pills - and a source with nowhere to
+ * go is never a button that does nothing.
  */
 
 function citation(overrides: Partial<AIChatCitation>): AIChatCitation {
@@ -231,7 +232,7 @@ describe("AnswerSources", () => {
     );
 
     const marks: Array<Element> = rows().map((row: HTMLElement): Element => {
-      return row.querySelector("span")!;
+      return row.querySelector("[data-citation-mark]")!;
     });
 
     expect(
@@ -239,16 +240,36 @@ describe("AnswerSources", () => {
         return mark.textContent || "";
       }),
     ).toEqual(["C1", "C12"]);
+
+    /*
+     * The inline chip's look, token for token: its colours, its size and
+     * weight, and its round shape - a footnote's small round mark, with no
+     * frame, so it never reads as the framed monospace box of inline code.
+     */
+    const LOOK: RegExp = /^(bg-|text-|rounded|font-|ring|border)/;
+    const chipLook: Array<string> = CITATION_CHIP_CLASS_NAME.split(" ")
+      .filter((token: string): boolean => {
+        return LOOK.test(token);
+      })
+      .sort();
+
+    expect(chipLook).toEqual([
+      "bg-gray-100",
+      "font-semibold",
+      "rounded-full",
+      "text-[10px]",
+      "text-gray-600",
+    ]);
+
     for (const mark of marks) {
-      // The inline chip's look: gray-100 on a hairline ring, 11px semibold.
-      expect(mark).toHaveClass(
-        "bg-gray-100",
-        "text-gray-700",
-        "ring-1",
-        "ring-gray-200",
-        "text-[11px]",
-        "font-semibold",
-      );
+      expect(
+        mark.className
+          .split(" ")
+          .filter((token: string): boolean => {
+            return LOOK.test(token);
+          })
+          .sort(),
+      ).toEqual(chipLook);
     }
     // A linked and an unlinked source carry the identical mark.
     expect(marks[0]!.className).toBe(marks[1]!.className);
@@ -268,14 +289,29 @@ describe("AnswerSources", () => {
     );
 
     const PILL_CLASS: RegExp = /(^|\s)(border|rounded-full|shadow\S*)(\s|$)/;
+    const FRAME_CLASS: RegExp = /(^|\s)(border\S*|ring-1|shadow\S*)(\s|$)/;
+    const everything: Array<Element> = Array.from(
+      screen
+        .getByTestId("investigation-conversation-sources")
+        .querySelectorAll("*"),
+    );
 
+    // The only shape in the list is each source's small round C# mark...
     expect(
-      Array.from(
-        screen
-          .getByTestId("investigation-conversation-sources")
-          .querySelectorAll("*"),
-      ).filter((element: Element): boolean => {
-        return PILL_CLASS.test(element.getAttribute("class") || "");
+      everything.filter((element: Element): boolean => {
+        return (
+          !element.hasAttribute("data-citation-mark") &&
+          PILL_CLASS.test(element.getAttribute("class") || "")
+        );
+      }),
+    ).toEqual([]);
+    // ...which has no frame or shadow of its own.
+    expect(
+      everything.filter((element: Element): boolean => {
+        return (
+          element.hasAttribute("data-citation-mark") &&
+          FRAME_CLASS.test(element.getAttribute("class") || "")
+        );
       }),
     ).toEqual([]);
   });

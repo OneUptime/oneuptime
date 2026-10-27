@@ -12,9 +12,11 @@ import { describe, expect, test } from "@jest/globals";
  * A record created at or past the acknowledged state pages nobody, and one
  * created at or past the resolved state is also not grouped, not remediated,
  * not investigated and gets no workspace channel (and an alert has OneUptime
- * AI check no open incident again: IncidentFollowUpCheck). The behaviour is pinned
- * per kind in CreatedClosedNoAutomations.test.ts; this guard keeps it from
- * coming undone as steps are added or moved:
+ * AI check no open incident again: IncidentFollowUpCheck), nor does it set
+ * off the outage check that hands the pages OneUptime AI holds to people
+ * (AiFirstResponder.onRecordCreated). The behaviour is pinned per kind in
+ * CreatedClosedNoAutomations.test.ts; this guard keeps it from coming undone
+ * as steps are added or moved:
  *
  *   - each service's onCreateSuccess reads the stage its onBeforeCreate
  *     handed over (StartingStageUtil.fromCarryForward), and onBeforeCreate
@@ -98,6 +100,7 @@ const SERVICES: Array<ServiceSteps> = [
       "IncidentGroupingEngineService.processIncident",
       "IncidentSlaService.createSlaForIncident",
       "AutoRemediationRuleEngineService.onIncidentCreated",
+      "AiFirstResponder.onRecordCreated",
     ],
     handedIsOngoing: ["AIIncidentInvestigationRunner.investigateNewIncident"],
     grouping: "IncidentGroupingEngineService.processIncident",
@@ -126,6 +129,7 @@ const SERVICES: Array<ServiceSteps> = [
       "AlertGroupingEngineService.processAlert",
       "AutoRemediationRuleEngineService.onAlertCreated",
       "IncidentFollowUpCheck.onAlertOpened",
+      "AiFirstResponder.onRecordCreated",
     ],
     handedIsOngoing: ["AIAlertInvestigationRunner.investigateNewAlert"],
     grouping: "AlertGroupingEngineService.processAlert",

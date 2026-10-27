@@ -14,7 +14,10 @@ import path from "path";
 import * as React from "react";
 import { initReactI18next } from "react-i18next";
 import ChatActivityFeed from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
-import ChatHomeView from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatHomeView";
+import ChatHomeView, {
+  HOME_HEADING,
+  HOME_SENTENCE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatHomeView";
 import ToolApprovalCard from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ToolApprovalCard";
 import WidgetRenderer from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Widgets/WidgetRenderer";
 import { describeEvidenceTool } from "../../../../App/FeatureSet/Dashboard/src/Utils/InvestigationEvidenceFormat";
@@ -53,8 +56,10 @@ import Navigation from "../../../UI/Utils/Navigation";
  *   - the step in the chat's activity, in words in every Dashboard
  *     language ("Creating alert"), never the tool's own name;
  *   - the card under the answer once it ran: the alert by the number the
- *     person knows it by, its severity and what it is linked to, with an
- *     Open that goes to it;
+ *     person knows it by, its severity and what it is linked to, each said
+ *     once - its heading already says the number and the line under it the
+ *     severity, so its facts do not say them again - with an Open that goes
+ *     to it;
  *   - the line an evidence list gives a run that raised one;
  *   - and Ask AI's home, which says what it can do: create incidents and
  *     alerts, in the language the rest of the home reads in.
@@ -343,7 +348,7 @@ describe("the step in the chat's activity", () => {
 });
 
 describe("the card under the answer, once the alert is raised", () => {
-  test("names the alert by its number, its severity and what it is linked to", async () => {
+  test("names the alert by its number, its severity and what it is linked to, each once", async () => {
     stubTheProject();
 
     const result: ToolExecutionResult = await CreateAlertTool.execute(
@@ -362,9 +367,11 @@ describe("the card under the answer, once the alert is raised", () => {
     const facts: HTMLElement = screen.getByText("Affected resources")
       .parentElement as HTMLElement;
     expect(within(facts).getByText('host "test01"')).toBeInTheDocument();
-    expect(within(facts).getByText("Number")).toBeInTheDocument();
-    expect(within(facts).getByText("ALT-12")).toBeInTheDocument();
     expect(within(facts).getByText("Description")).toBeInTheDocument();
+    // The heading says the number and the line under it the severity.
+    expect(within(facts).queryByText("Number")).not.toBeInTheDocument();
+    expect(within(facts).queryByText("ALT-12")).not.toBeInTheDocument();
+    expect(within(facts).queryByText("Severity")).not.toBeInTheDocument();
     expect(facts).not.toHaveTextContent(HOST_ID);
   });
 
@@ -483,17 +490,18 @@ describe("an evidence list's line for a run that raised an alert", () => {
 });
 
 describe("Ask AI's home says it can create alerts too", () => {
-  const HOME_SENTENCE: string =
-    "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.";
-  const HOME_HEADING: string = "Ask AI about your data — or tell it to act";
-
+  /*
+   * The start of a conversation with no page behind it says, in one
+   * sentence under its question, where answers come from and that Ask AI
+   * acts - incidents and alerts alike - only with approval. The long
+   * sentence it replaces listed every kind of data and named the widgets.
+   */
   function renderHome(): void {
     render(
       <ChatHomeView
         conversations={[]}
         isSending={false}
         onOpenConversation={() => {}}
-        onDeleteConversation={() => {}}
         onAsk={() => {}}
       />,
     );
@@ -504,32 +512,38 @@ describe("Ask AI's home says it can create alerts too", () => {
 
     expect(screen.getByText(HOME_HEADING)).toBeInTheDocument();
     expect(screen.getByText(HOME_SENTENCE)).toBeInTheDocument();
+    expect(HOME_SENTENCE).toContain("incidents and alerts");
+    expect(HOME_SENTENCE).toContain("with your approval");
   });
 
-  test("the sentence it replaces, which named incidents alone, is gone from every Dashboard language", () => {
+  test("the sentences it replaces are gone from every Dashboard language", () => {
     for (const language of LANGUAGES) {
       expect(
         Object.keys(LOCALES[language]!).filter((key: string): boolean => {
-          return key.includes("can create incidents or acknowledge alerts");
+          return (
+            key.includes("can create incidents or acknowledge alerts") ||
+            key.includes("can create incidents and alerts or acknowledge them")
+          );
         }),
       ).toEqual([]);
     }
   });
 
   /*
-   * The hero - its heading and the sentence under it - reads in the
-   * reader's language as one: never one translated line under an English
-   * heading, nor the other way round.
+   * The question and the sentence under it read in the reader's language
+   * as one: never one translated line under an English one.
    */
   test.each(
     LANGUAGES.filter((language: string) => {
       return language !== "en";
     }),
-  )("in %s, heading and sentence both", async (language: string) => {
+  )("in %s, question and sentence both", async (language: string) => {
     const locale: Record<string, string> = LOCALES[language]!;
+    const heading: string | undefined = locale[HOME_HEADING];
     const sentence: string | undefined = locale[HOME_SENTENCE];
 
-    expect(locale[HOME_HEADING]).not.toBe(HOME_HEADING);
+    expect(heading).toBeDefined();
+    expect(heading).not.toBe(HOME_HEADING);
     expect(sentence).toBeDefined();
     expect(sentence).not.toBe(HOME_SENTENCE);
 
@@ -538,7 +552,7 @@ describe("Ask AI's home says it can create alerts too", () => {
     });
     renderHome();
 
-    expect(screen.getByText(locale[HOME_HEADING]!)).toBeInTheDocument();
+    expect(screen.getByText(heading!)).toBeInTheDocument();
     expect(screen.getByText(sentence!)).toBeInTheDocument();
   });
 });

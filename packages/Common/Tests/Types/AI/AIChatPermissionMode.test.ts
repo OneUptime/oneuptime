@@ -3,6 +3,8 @@ import AIChatPermissionMode, {
   AIChatPermissionModeOption,
 } from "../../../Types/AI/AIChatPermissionMode";
 
+const COPILOT_WORD: RegExp = /copilot/i;
+
 describe("AIChatPermissionModeHelper", () => {
   describe("getDefault", () => {
     test("defaults to AskForApproval", () => {
@@ -97,6 +99,31 @@ describe("AIChatPermissionModeHelper", () => {
       for (const option of AIChatPermissionModeHelper.getOptions()) {
         expect(option.title.length).toBeGreaterThan(0);
         expect(option.description.length).toBeGreaterThan(0);
+      }
+    });
+
+    /*
+     * One name per mode: the one the Dashboard's picker shows on its button
+     * and in its menu, and the docs tell people to pick. The options said
+     * "Ask for approval" and "Auto-run (bypass approvals)", and called Ask
+     * AI "the copilot".
+     */
+    test("names each mode as the picker and the docs do, in the product's words", () => {
+      expect(
+        AIChatPermissionModeHelper.getOptions().map(
+          (option: AIChatPermissionModeOption): [string, string] => {
+            return [option.value, option.title];
+          },
+        ),
+      ).toEqual([
+        [AIChatPermissionMode.AskForApproval, "Ask to act"],
+        [AIChatPermissionMode.AutoRun, "Auto-run"],
+        [AIChatPermissionMode.ReadOnly, "Read-only"],
+      ]);
+
+      for (const option of AIChatPermissionModeHelper.getOptions()) {
+        expect(option.description).not.toMatch(COPILOT_WORD);
+        expect(option.description.endsWith(".")).toBe(true);
       }
     });
 
