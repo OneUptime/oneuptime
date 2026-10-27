@@ -365,6 +365,7 @@ import UserTelegram from "./UserTelegram";
 import UserSlack from "./UserSlack";
 import UserMicrosoftTeams from "./UserMicrosoftTeams";
 import UserWebhook from "./UserWebhook";
+import CustomNotificationChannel from "./CustomNotificationChannel";
 // User Notification Rules
 import UserNotificationRule from "./UserNotificationRule";
 import UserNotificationSetting from "./UserNotificationSetting";
@@ -873,6 +874,7 @@ const AllModelTypes: Array<{
   UserSlack,
   UserMicrosoftTeams,
   UserWebhook,
+  CustomNotificationChannel,
   UserIncomingCallNumber,
 
   UserNotificationRule,
