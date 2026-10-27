@@ -723,12 +723,13 @@ describe("EnterpriseEdition runtime state (isFeatureActive)", () => {
     }
   });
 
-  test("the runtime features are SCIM, audit logging, retention overrides and status pages without Powered by OneUptime, in lapse-log order", () => {
+  test("the runtime features are SCIM, audit logging, retention overrides, status pages without Powered by OneUptime and custom notification channels, in lapse-log order", () => {
     expect([...RUNTIME_ENTERPRISE_FEATURES]).toEqual([
       EnterpriseFeature.SCIM,
       EnterpriseFeature.AuditLogs,
       EnterpriseFeature.TelemetryRetention,
       EnterpriseFeature.StatusPageBranding,
+      EnterpriseFeature.CustomNotificationChannels,
     ]);
     expect(RUNTIME_ENTERPRISE_FEATURES as ReadonlyArray<string>).not.toContain(
       "sso",
@@ -760,6 +761,10 @@ describe("EnterpriseEdition model to feature map", () => {
     ["ApiKeyCustomRole", EnterpriseFeature.CustomRoles],
     // Exporting the audit log is part of audit logging.
     ["AuditLogExport", EnterpriseFeature.AuditLogs],
+    ["BackupSetting", EnterpriseFeature.Backups],
+    ["BackupRun", EnterpriseFeature.Backups],
+    // The server's custom notification channels.
+    ["CustomNotificationChannel", EnterpriseFeature.CustomNotificationChannels],
   ] as Array<[string, EnterpriseFeature]>)(
     "table %s is gated by %s",
     (tableName: string, feature: EnterpriseFeature) => {
@@ -767,7 +772,7 @@ describe("EnterpriseEdition model to feature map", () => {
     },
   );
 
-  test("maps exactly the ten enterprise configuration tables", () => {
+  test("maps exactly the eleven enterprise configuration tables", () => {
     expect(EnterpriseEdition.getMappedTableNames().sort()).toEqual(
       [
         "AuditLogExport",
@@ -780,6 +785,7 @@ describe("EnterpriseEdition model to feature map", () => {
         "ApiKeyCustomRole",
         "BackupSetting",
         "BackupRun",
+        "CustomNotificationChannel",
       ].sort(),
     );
   });

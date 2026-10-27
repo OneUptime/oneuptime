@@ -177,6 +177,7 @@ Ett nummer som är verifierat för SMS är också verifierat för samtal, utan e
 :::cards
 - [Policy för inkommande samtal](/docs/on-call/incoming-call-policy): Låt den som ringer nå dina jourhavande ingenjörer via ett Twilio-nummer.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestäm vem som larmas på varje nivå, via SMS, samtal eller någon annan metod.
+- [SMS- och samtalsgateway](/docs/self-hosted/sms-and-call-gateway): Skicka SMS och samtal via din egen leverantör i stället för Twilio.
 - [SMTP](/docs/emails/smtp): Skicka även e-post via din egen e-postserver.
 - [Åtkomst till privata nätverk](/docs/self-hosted/private-network-access): Låt arbetsflöden och webhooks nå interna verktyg.
 :::

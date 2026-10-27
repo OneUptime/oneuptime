@@ -177,6 +177,7 @@ SMS के लिए सत्यापित नंबर बिना दू�
 :::cards
 - [आने वाली कॉल नीति](/docs/on-call/incoming-call-policy): कॉल करने वालों को किसी Twilio नंबर से आपके ऑन-कॉल इंजीनियरों तक पहुँचने दें।
 - [एस्केलेशन नियम](/docs/on-call/escalation-rules): तय करें कि हर स्तर पर किसे SMS, कॉल या किसी दूसरे तरीक़े से सूचित किया जाए।
+- [SMS और कॉल गेटवे](/docs/self-hosted/sms-and-call-gateway): Twilio के बजाय अपने खुद के प्रोवाइडर से SMS और कॉल भेजें।
 - [SMTP](/docs/emails/smtp): ईमेल भी अपने खुद के मेल सर्वर से भेजें।
 - [निजी नेटवर्क पहुँच](/docs/self-hosted/private-network-access): वर्कफ़्लो और वेबहुक को अंदरूनी टूल तक पहुँचने दें।
 :::

@@ -2,6 +2,7 @@ import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import ProjectCallSMSConfig from "../../../Models/DatabaseModels/ProjectCallSMSConfig";
 import { getTableColumns } from "../../../Types/Database/TableColumn";
 import {
+  GLOBAL_CALL_AND_SMS_GATEWAY_SELECT,
   GLOBAL_TWILIO_CONFIG_SELECT,
   GLOBAL_TWILIO_CONFIG_USE_SELECT,
   PROJECT_TWILIO_CONFIG_SELECT,
@@ -136,7 +137,11 @@ const ALL_LISTS: Array<Record<string, unknown>> = [
   GLOBAL_TWILIO_CONFIG_SELECT,
   PROJECT_TWILIO_CONFIG_USE_SELECT,
   GLOBAL_TWILIO_CONFIG_USE_SELECT,
+  GLOBAL_CALL_AND_SMS_GATEWAY_SELECT,
 ] as Array<Record<string, unknown>>;
+
+// The columns of what carries the server's SMS and calls, and its gateway.
+const GATEWAY_COLUMN_PREFIX: string = "callAndSms";
 
 function numberColumnsNamedBy(list: Record<string, unknown>): number {
   return NUMBER_COLUMNS.filter((column: string): boolean => {
@@ -307,6 +312,62 @@ describe("TwilioConfigSelect's lists", () => {
     ] as Array<Record<string, unknown>>) {
       expect(list["twilioAuthToken"]).toBeUndefined();
     }
+  });
+
+  /*
+   * The server's own SMS and call gateway (Types/CallAndSMS/
+   * CallAndSmsProvider) stands in for its Twilio account, so whatever reads
+   * the account to send through it, or to ask whether it could, reads the
+   * gateway's columns beside it - every one of them, from the one list.
+   */
+  test("the gateway's list names every gateway column of GlobalConfig, and no Twilio column", () => {
+    const columns: Array<string> = Object.keys(
+      getTableColumns(new GlobalConfig()),
+    )
+      .filter((column: string): boolean => {
+        return column.startsWith(GATEWAY_COLUMN_PREFIX);
+      })
+      .sort();
+
+    expect(columns).toEqual([
+      "callAndSmsGatewaySecret",
+      "callAndSmsGatewayUrl",
+      "callAndSmsProvider",
+    ]);
+    expect(Object.keys(GLOBAL_CALL_AND_SMS_GATEWAY_SELECT).sort()).toEqual(
+      columns,
+    );
+    expect(numberColumnsNamedBy(GLOBAL_CALL_AND_SMS_GATEWAY_SELECT)).toBe(0);
+    expect(
+      Object.keys(GLOBAL_CALL_AND_SMS_GATEWAY_SELECT).filter(
+        (column: string): boolean => {
+          return column.startsWith("twilio");
+        },
+      ),
+    ).toEqual([]);
+  });
+
+  test("the readers of the server's account read its gateway through that list", () => {
+    const sourceOf: (file: string) => string = (file: string): string => {
+      return SERVER_FILES.find((serverFile: ServerFile): boolean => {
+        return serverFile.file === file;
+      })!.source;
+    };
+
+    // The gateway the senders send through, read in one place.
+    expect(
+      sourceOf("Common/Server/Utils/CallAndSmsGatewayConfig.ts"),
+    ).toContain("select: GLOBAL_CALL_AND_SMS_GATEWAY_SELECT,");
+    expect(sourceOf("App/FeatureSet/Notification/Config.ts")).toContain(
+      "return await CallAndSmsGatewayConfig.getGateway();",
+    );
+
+    // Whether a verification code has somewhere to go: both lists, one read.
+    expect(
+      sourceOf("Common/Server/Utils/TwilioAccountAvailability.ts"),
+    ).toContain(
+      "...GLOBAL_TWILIO_CONFIG_SELECT,\n          ...GLOBAL_CALL_AND_SMS_GATEWAY_SELECT,",
+    );
   });
 
   test("the services read the rows a write changes through those lists", () => {

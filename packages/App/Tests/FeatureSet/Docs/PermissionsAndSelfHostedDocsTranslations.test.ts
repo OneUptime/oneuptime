@@ -55,7 +55,10 @@ import path from "path";
  *   - A bold Dashboard label is its value in that language's Dashboard
  *     locale, Persian included (drawnActionLabel); a table's create button
  *     as the table draws it (drawnCreateButton). A label of the Admin
- *     Dashboard is its value in the Admin Dashboard's locale (ADMIN_LABELS).
+ *     Dashboard is its value in the Admin Dashboard's locale (ADMIN_LABELS),
+ *     and so is each segment of an Admin Dashboard path (ADMIN_PATHS), but
+ *     for "Admin Dashboard" itself, the product's name, and a label the
+ *     Admin Dashboard has no locale key for: those stay as written.
  *   - A Dashboard label a page names in plain words, as a value a setting
  *     takes - the push notification levels a rule is set to - is its value
  *     in that language's Dashboard locale too, on the line of the English
@@ -117,6 +120,8 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
 
 // Bold names every language's Dashboard shows in English: no locale key.
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
+  // The Admin Dashboard's switch that turns push off, which has no locale key.
+  [PUSH_PAGE]: ["Send push notifications"],
   // The monitor type picker's title, which has no locale key.
   [PRIVATE_NETWORK_PAGE]: ["Custom JavaScript Code"],
   // The edition label's button, which has no locale key.
@@ -223,6 +228,28 @@ const ADMIN_LABELS: Record<string, Record<string, string>> = {
     "Global LLM Providers": "breadcrumbs.globalLlmProviders",
   },
 };
+
+/*
+ * Paths of the Admin Dashboard a page writes in one bold span, by the key of
+ * the Admin Dashboard's locale that draws each segment: a translation draws
+ * each segment as the Admin Dashboard does in its language. A segment with
+ * no key (null) stays as the English page writes it: "Admin Dashboard", the
+ * product's name, as every page names it, and a label the Admin Dashboard
+ * draws in English in every language - the Push Notifications settings page
+ * and its side menu entry.
+ */
+const ADMIN_PATHS: Record<string, Record<string, Array<string | null>>> = {
+  [PUSH_PAGE]: {
+    "Admin Dashboard > Settings > Push Notifications": [
+      null,
+      "breadcrumbs.settings",
+      null,
+    ],
+  },
+};
+
+// The product's name, which every page writes as it is.
+const ADMIN_DASHBOARD: string = "Admin Dashboard";
 
 /*
  * Bold words that are Dashboard labels by coincidence but are prose where
@@ -337,6 +364,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Retention overrides stop applying.",
     "Status pages show Powered by OneUptime again.",
     "Scheduled backups stop.",
+    "Custom channels stop.",
     "Single sign-on.",
     "Core monitoring is never affected",
     "Master admins can always sign in with their password.",
@@ -431,6 +459,10 @@ function listed(
 
 function adminKeys(page: string): Record<string, string> {
   return ADMIN_LABELS[page] || {};
+}
+
+function adminPaths(page: string): Record<string, Array<string | null>> {
+  return ADMIN_PATHS[page] || {};
 }
 
 function isParagraphText(line: string): boolean {
@@ -566,6 +598,28 @@ function adminLabel(language: string, key: string): string {
   );
 }
 
+// Every wording of the Admin Dashboard's locale in a language, at any depth.
+function adminValues(language: string): Array<string> {
+  const values: Array<string> = [];
+
+  const walk: (node: unknown) => void = (node: unknown): void => {
+    if (typeof node === "string") {
+      values.push(node);
+      return;
+    }
+
+    if (node && typeof node === "object") {
+      for (const child of Object.values(node as Record<string, unknown>)) {
+        walk(child);
+      }
+    }
+  };
+
+  walk(adminLocale(language));
+
+  return values;
+}
+
 // A menu path, as a page in a language writes it.
 export function drawnPath(language: string, found: MenuPath): string {
   const drawn: Array<string> = found.segments.map((segment: string): string => {
@@ -573,6 +627,35 @@ export function drawnPath(language: string, found: MenuPath): string {
   });
 
   if (found.segmented || language === "fa") {
+    return drawn
+      .map((segment: string): string => {
+        return `**${segment}**`;
+      })
+      .join(PATH_SEPARATOR);
+  }
+
+  return `**${drawn.join(PATH_SEPARATOR)}**`;
+}
+
+/*
+ * An Admin Dashboard path, as a page in a language writes it: each segment
+ * as the Admin Dashboard draws it, or as written where it has no key, in one
+ * bold span; Persian, as for a Dashboard path, a bold span per segment.
+ */
+function drawnAdminPath(
+  language: string,
+  english: string,
+  keys: Array<string | null>,
+): string {
+  const drawn: Array<string> = english
+    .split(PATH_SEPARATOR)
+    .map((segment: string, index: number): string => {
+      const key: string | null = keys[index] ?? null;
+
+      return key === null ? segment : adminLabel(language, key);
+    });
+
+  if (language === "fa") {
     return drawn
       .map((segment: string): string => {
         return `**${segment}**`;
@@ -885,6 +968,10 @@ describe("the lists this test keeps", () => {
     for (const page of Object.keys(ADMIN_LABELS)) {
       expect(PAGE_NAMES).toContain(page);
     }
+
+    for (const page of Object.keys(ADMIN_PATHS)) {
+      expect(PAGE_NAMES).toContain(page);
+    }
   });
 
   it("call prose only bold Dashboard labels the English page has", () => {
@@ -960,6 +1047,48 @@ describe("the lists this test keeps", () => {
     }
   });
 
+  /*
+   * A label the Admin Dashboard draws in English today and gets a locale key
+   * for tomorrow fails here: then the path names its key, and every
+   * translation draws it.
+   */
+  it("read every Admin Dashboard path from keys the Admin Dashboard has, keeping as written only the product's name and labels it has no key for", () => {
+    for (const page of Object.keys(ADMIN_PATHS)) {
+      const written: Array<string> = menuPaths(englishPage(page))
+        .filter((found: MenuPath): boolean => {
+          return !found.segmented;
+        })
+        .map(pathText);
+
+      for (const [english, keys] of Object.entries(adminPaths(page))) {
+        const segments: Array<string> = english.split(PATH_SEPARATOR);
+
+        expect({ page, english, written: true, keys: segments.length }).toEqual(
+          {
+            page,
+            english,
+            written: written.includes(english),
+            keys: keys.length,
+          },
+        );
+
+        segments.forEach((segment: string, index: number): void => {
+          const key: string | null = keys[index] ?? null;
+
+          expect({ english, segment, drawn: segment, keyed: false }).toEqual({
+            english,
+            segment,
+            drawn: key === null ? segment : adminLabel("en", key),
+            keyed:
+              key === null &&
+              segment !== ADMIN_DASHBOARD &&
+              adminValues("en").includes(segment),
+          });
+        });
+      }
+    }
+  });
+
   it("know every bold word on the English pages: a label, kept as written, the Admin Dashboard's, prose or a lead", () => {
     for (const page of PAGE_NAMES) {
       const unlisted: Array<string> = boldLabels(englishPage(page)).filter(
@@ -992,13 +1121,14 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("know every path on the English pages as a path of Dashboard labels, another console's, or one held elsewhere", () => {
+  it("know every path on the English pages as a path of Dashboard labels, the Admin Dashboard's, another console's, or one held elsewhere", () => {
     for (const page of PAGE_NAMES) {
       const unknown: Array<string> = menuPaths(englishPage(page))
         .filter((found: MenuPath): boolean => {
           return (
             !listed(OTHER_CONSOLES, page).includes(pathText(found)) &&
-            !listed(PATHS_HELD_ELSEWHERE, page).includes(pathText(found))
+            !listed(PATHS_HELD_ELSEWHERE, page).includes(pathText(found)) &&
+            adminPaths(page)[pathText(found)] === undefined
           );
         })
         .filter((found: MenuPath): boolean => {
@@ -1313,6 +1443,19 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       expect(missing).toEqual([]);
     });
 
+    it("gives every Admin Dashboard path as this language's Admin Dashboard draws it", () => {
+      const translated: string = readPage(language, entry.page);
+      const missing: Array<string> = Object.entries(adminPaths(entry.page))
+        .map(([english, keys]: [string, Array<string | null>]): string => {
+          return drawnAdminPath(language, english, keys);
+        })
+        .filter((drawn: string): boolean => {
+          return !translated.includes(drawn);
+        });
+
+      expect(missing).toEqual([]);
+    });
+
     it("keeps in English what every Dashboard, and other consoles, show in English, and names, as written", () => {
       const translated: string = readPage(language, entry.page);
       const missing: Array<string> = keptAsWritten(entry.page).filter(
@@ -1430,6 +1573,21 @@ describe("the helpers, on these pages' shapes", () => {
       "Add to Project",
     );
     expect(adminLabel("de", "breadcrumbs.globalLlmProviders")).not.toBe("");
+  });
+
+  it("draw an Admin Dashboard path from its keys, keeping the product's name and a label with no key as written", () => {
+    const english: string = "Admin Dashboard > Settings > Push Notifications";
+    const keys: Array<string | null> = [null, "breadcrumbs.settings", null];
+
+    expect(drawnAdminPath("en", english, keys)).toBe(`**${english}**`);
+    expect(drawnAdminPath("de", english, keys)).toBe(
+      `**Admin Dashboard > ${adminLabel("de", "breadcrumbs.settings")} > Push Notifications**`,
+    );
+    expect(drawnAdminPath("fa", english, keys)).toBe(
+      `**Admin Dashboard** > **${adminLabel("fa", "breadcrumbs.settings")}** > **Push Notifications**`,
+    );
+    expect(adminValues("en")).toContain(ADMIN_DASHBOARD);
+    expect(adminValues("en")).not.toContain("Push Notifications");
   });
 
   it("lay a translation beside its English page by what each line is", () => {

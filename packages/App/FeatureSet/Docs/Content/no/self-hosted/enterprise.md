@@ -51,6 +51,7 @@ Denne siden beskriver hva hver utgave inneholder, hvordan du kjører Enterprise 
 | Administrasjonens **Query Console** | Nei | Ja | Ikke tilgjengelig |
 | Helsevarsler for PostgreSQL og Valkey (Redis) | Nei | Ja | Ikke aktuelt |
 | [Sikkerhetskopier](/docs/installation/backups) av PostgreSQL og ClickHouse til din egen lagring, etter en tidsplan, med gjenoppretting | Nei | Ja | Ikke aktuelt |
+| [Egendefinerte varslingskanaler](/docs/self-hosted/custom-notification-channels): varsle folk gjennom din egen tjeneste, for eksempel bedriftens egen app | Nei | Ja | Ikke aktuelt |
 | Kapasitetsvisning for ClickHouse, kapasitetsvarsler og automatisk opprydding av disken | Ja | Ja | Ikke aktuelt |
 | Migreringsstatus, støttepakke og globale prober i Admin-dashbordet | Ja | Ja | Ikke aktuelt |
 | Administrasjon av Enterprise-lisens, plasser og instanser | Nei | Ja | Ikke aktuelt |
@@ -194,6 +195,7 @@ Hva som stopper når en lisens utløper:
 - **Overstyringer av oppbevaring slutter å gjelde.** Ny telemetri beholdes i prosjektets standardoppbevaring. Telemetri som allerede er lagret, beholder oppbevaringen den ble skrevet med. Du kan fortsatt fjerne en overstyring via API-et, men ikke angi en.
 - **Statussider viser Powered by OneUptime igjen.** En side som skjuler linjen, viser den til en lisens aktiveres. Innstillingen beholdes.
 - **Planlagte sikkerhetskopier stopper.** Ingen ny sikkerhetskopi lages. Sikkerhetskopier som allerede er laget, blir værende på målet sitt, og du kan fortsatt gjenopprette og slette dem.
+- **Egendefinerte kanaler stopper.** Ingen vaktvarsler eller andre varsler sendes til en egendefinert kanal, og ingen tilbys i vaktregler. Kanalene og reglene som bruker dem, beholdes, og du kan fortsatt slette en kanal.
 
 Hva som **ikke** stopper:
 

@@ -51,6 +51,7 @@ Esta página explica qué incluye cada edición, cómo ejecutar la Enterprise Ed
 | **Query Console** de la administración | No | Sí | No disponible |
 | Alertas de salud de PostgreSQL y Valkey (Redis) | No | Sí | No aplica |
 | [Copias de seguridad](/docs/installation/backups) de PostgreSQL y ClickHouse en un almacenamiento propio, según una programación, con restauración | No | Sí | No aplica |
+| [Canales de notificación personalizados](/docs/self-hosted/custom-notification-channels): avisar a las personas a través de su propio servicio, como la aplicación de su empresa | No | Sí | No aplica |
 | Vista de capacidad de ClickHouse, alertas de capacidad y depuración automática del disco | Sí | Sí | No aplica |
 | Estado de las migraciones, paquete de soporte y sondas globales en el panel de administración | Sí | Sí | No aplica |
 | Gestión de la licencia Enterprise, de los puestos y de las instancias | No | Sí | No aplica |
@@ -194,6 +195,7 @@ Qué se detiene cuando una licencia caduca:
 - **Las anulaciones de retención dejan de aplicarse.** La telemetría nueva se conserva durante la retención predeterminada del proyecto. La telemetría ya almacenada conserva la retención con la que se escribió. Todavía puede borrar una anulación por la API, pero no configurar una.
 - **Las páginas de estado vuelven a mostrar Powered by OneUptime.** Una página que oculta la línea la muestra hasta que se activa una licencia. El ajuste se conserva.
 - **Las copias de seguridad programadas se detienen.** No se hace ninguna copia nueva. Las copias ya hechas siguen en su destino, y todavía puede restaurarlas y eliminarlas.
+- **Los canales personalizados se detienen.** No se envía ningún aviso ni notificación a un canal personalizado, y no se ofrece ninguno en las reglas de guardia. Los canales y las reglas que los usan se conservan, y todavía puede eliminar un canal.
 
 Qué **no** se detiene:
 

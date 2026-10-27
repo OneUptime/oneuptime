@@ -119,6 +119,11 @@ jest.mock("../../FeatureSet/Notification/Config", () => {
     WhatsAppTextDefaultCostInCents: 5,
     TelegramTextDefaultCostInCents: 2,
     getTwilioConfig: jest.fn(),
+    /*
+     * A server that sends its SMS and calls through Twilio, not its own
+     * gateway (CallAndSmsGatewayConfig reads the settings row otherwise).
+     */
+    getCallAndSmsGateway: jest.fn().mockResolvedValue(null as never),
     getMetaWhatsAppConfig: jest.fn(),
     getTelegramConfig: jest.fn(),
   };

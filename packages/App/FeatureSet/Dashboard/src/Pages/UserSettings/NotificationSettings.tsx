@@ -33,6 +33,7 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   Blue500,
   Green500,
+  Indigo500,
   Orange500,
   Purple500,
   Sky500,
@@ -42,6 +43,10 @@ import {
   getOfferedWorkspaces,
   useWorkspaceConnections,
 } from "../../Utils/Workspace/ConnectedWorkspaces";
+import {
+  CustomNotificationChannelsState,
+  useCustomNotificationChannels,
+} from "../../Utils/CustomNotificationChannels";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   translatableTerm,
@@ -67,7 +72,8 @@ export type ChannelKey =
   | "alertByTelegram"
   | "alertBySlack"
   | "alertByMicrosoftTeams"
-  | "alertByWebhook";
+  | "alertByWebhook"
+  | "alertByCustomChannel";
 
 interface ChannelDef {
   key: ChannelKey;
@@ -80,6 +86,11 @@ interface ChannelDef {
    * through a workspace the project never connected.
    */
   workspaceType?: WorkspaceType | undefined;
+  /*
+   * Set on the custom channels' column: shown only while the server has a
+   * custom channel on, since nothing goes through one it does not have.
+   */
+  isCustomChannels?: boolean | undefined;
 }
 
 const CHANNELS: ReadonlyArray<ChannelDef> = [
@@ -131,6 +142,18 @@ const CHANNELS: ReadonlyArray<ChannelDef> = [
     icon: IconProp.Webhook,
     color: Sky500,
   },
+  /*
+   * Every custom channel the server's admin turned on, in one column: the
+   * company's own app, often, which may be how the person wants their
+   * notifications too. Off for everyone until they turn it on.
+   */
+  {
+    key: "alertByCustomChannel",
+    label: "Custom Channels",
+    icon: IconProp.Notification,
+    color: Indigo500,
+    isCustomChannels: true,
+  },
 ];
 
 /*
@@ -140,8 +163,13 @@ const CHANNELS: ReadonlyArray<ChannelDef> = [
  */
 export function getShownChannelKeys(
   offeredWorkspaces: ReadonlyArray<WorkspaceType>,
+  hasCustomChannels: boolean = false,
 ): Array<ChannelKey> {
   return CHANNELS.filter((channel: ChannelDef): boolean => {
+    if (channel.isCustomChannels) {
+      return hasCustomChannels;
+    }
+
     return (
       !channel.workspaceType ||
       offeredWorkspaces.includes(channel.workspaceType)
@@ -634,9 +662,16 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
    */
   const offeredWorkspaces: ReadonlyArray<WorkspaceType> | null =
     getOfferedWorkspaces(useWorkspaceConnections());
-  const shownChannelKeys: Array<ChannelKey> = offeredWorkspaces
-    ? getShownChannelKeys(offeredWorkspaces)
-    : [];
+  // Waited for like the workspaces: the server's custom channels that are on.
+  const customChannels: CustomNotificationChannelsState =
+    useCustomNotificationChannels();
+  const shownChannelKeys: Array<ChannelKey> =
+    offeredWorkspaces && customChannels.channels
+      ? getShownChannelKeys(
+          offeredWorkspaces,
+          customChannels.channels.length > 0,
+        )
+      : [];
   const shownChannels: Array<ChannelDef> = CHANNELS.filter(
     (channel: ChannelDef): boolean => {
       return shownChannelKeys.includes(channel.key);
@@ -675,6 +710,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
               alertBySlack: true,
               alertByMicrosoftTeams: true,
               alertByWebhook: true,
+              alertByCustomChannel: true,
               minimumSecurityCasePriorityId: true,
             },
             sort: {},
@@ -866,7 +902,7 @@ const NotificationMatrix: FunctionComponent<NotificationMatrixProps> = (
       description={props.section.description}
       bodyClassName="mt-5"
     >
-      {isLoading || !offeredWorkspaces ? (
+      {isLoading || !offeredWorkspaces || !customChannels.channels ? (
         <ComponentLoader />
       ) : (
         <Fragment>

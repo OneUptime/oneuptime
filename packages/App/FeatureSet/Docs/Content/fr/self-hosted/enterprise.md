@@ -51,6 +51,7 @@ Cette page décrit ce que comprend chaque édition, comment exécuter l'Enterpri
 | **Query Console** de l'administration | Non | Oui | Non disponible |
 | Alertes de santé PostgreSQL et Valkey (Redis) | Non | Oui | Sans objet |
 | [Sauvegardes](/docs/installation/backups) de PostgreSQL et ClickHouse vers un stockage qui vous appartient, selon un planning, avec restauration | Non | Oui | Sans objet |
+| [Canaux de notification personnalisés](/docs/self-hosted/custom-notification-channels) : alerter les personnes via votre propre service, comme l'application de votre entreprise | Non | Oui | Sans objet |
 | Vue de la capacité ClickHouse, alertes de capacité et purge automatique du disque | Oui | Oui | Sans objet |
 | État des migrations, bundle de support et sondes globales dans le tableau de bord admin | Oui | Oui | Sans objet |
 | Gestion de la licence Enterprise, des sièges et des instances | Non | Oui | Sans objet |
@@ -194,6 +195,7 @@ Ce qui s'arrête lorsqu'une licence expire :
 - **Les remplacements de rétention cessent de s'appliquer.** La nouvelle télémétrie est conservée pendant la rétention par défaut du projet. La télémétrie déjà stockée garde la rétention avec laquelle elle a été écrite. Vous pouvez toujours effacer un remplacement par l'API, mais pas en définir un.
 - **Les pages de statut affichent de nouveau Powered by OneUptime.** Une page qui masque la ligne l'affiche jusqu'à ce qu'une licence soit activée. Le paramètre est conservé.
 - **Les sauvegardes planifiées s'arrêtent.** Aucune nouvelle sauvegarde n'est effectuée. Les sauvegardes déjà effectuées restent à leur destination, et vous pouvez toujours les restaurer et les supprimer.
+- **Les canaux personnalisés s'arrêtent.** Aucune alerte ni notification n'est envoyée à un canal personnalisé, et aucun n'est proposé dans les règles d'astreinte. Les canaux et les règles qui les utilisent sont conservés, et vous pouvez toujours supprimer un canal.
 
 Ce qui ne s'arrête **pas** :
 

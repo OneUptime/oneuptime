@@ -51,6 +51,7 @@ This page covers what each edition includes, how to run the Enterprise Edition, 
 | Admin **Query Console** | No | Yes | Not available |
 | PostgreSQL and Valkey (Redis) health alerts | No | Yes | Not applicable |
 | [Backups](/docs/installation/backups) of PostgreSQL and ClickHouse to storage you own, on a schedule, with restore | No | Yes | Not applicable |
+| [Custom notification channels](/docs/self-hosted/custom-notification-channels): page people through your own service, such as your company's app | No | Yes | Not applicable |
 | ClickHouse capacity view, capacity alerts and automatic disk pruning | Yes | Yes | Not applicable |
 | Migration status, support bundle and global probes in the Admin Dashboard | Yes | Yes | Not applicable |
 | Enterprise license, seat and instance management | No | Yes | Not applicable |
@@ -194,6 +195,7 @@ What stops when a license lapses:
 - **Retention overrides stop applying.** New telemetry is kept for the project's default retention. Telemetry already stored keeps the retention it was written with. You can still clear an override through the API, but not set one.
 - **Status pages show Powered by OneUptime again.** A page that hides the line shows it until a license is activated. The setting is kept.
 - **Scheduled backups stop.** No new backup is made. Backups already made stay at their destination, and you can still restore and delete them.
+- **Custom channels stop.** No page or notification is sent to a custom channel, and none is offered in on-call rules. The channels and the rules that use them are kept, and you can still delete a channel.
 
 What does **not** stop:
 
