@@ -54,6 +54,17 @@ export interface MaintenanceSpan {
 // Between the two ends of a window: "Oct 21, 18:00 – 20:00 CEST".
 export const MAINTENANCE_WINDOW_SEPARATOR: string = " – ";
 
+/*
+ * A window's two ends as they read, each whole: "Oct 21, 18:00" and
+ * "20:00 CEST". Kept apart so a page can isolate each end for the bidi
+ * algorithm (<bdi>): in a right-to-left language the digits of one end
+ * would otherwise run into the other's, and "02:00 – 04:00" read backwards.
+ */
+export interface MaintenanceWindowText {
+  start: string;
+  end: string;
+}
+
 type TranslateStateName = (name: string) => string;
 
 export default class UptimeMaintenanceUtil {
@@ -213,10 +224,27 @@ export default class UptimeMaintenanceUtil {
    * wall, and the zone written after it says which clock that is.
    */
   public static formatWindow(data: { startsAt: Date; endsAt: Date }): string {
+    const text: MaintenanceWindowText | null = this.getWindowText(data);
+
+    if (!text) {
+      return "";
+    }
+
+    return `${text.start}${MAINTENANCE_WINDOW_SEPARATOR}${text.end}`;
+  }
+
+  /*
+   * The two ends of formatWindow's text, each whole (MaintenanceWindowText),
+   * or null for a window with no start.
+   */
+  public static getWindowText(data: {
+    startsAt: Date;
+    endsAt: Date;
+  }): MaintenanceWindowText | null {
     const start: Date | null = this.toDate(data.startsAt);
 
     if (!start) {
-      return "";
+      return null;
     }
 
     const plannedEnd: Date | null = this.toDate(data.endsAt);
@@ -241,11 +269,11 @@ export default class UptimeMaintenanceUtil {
     const startZone: string = OneUptimeDate.getLocalZoneAbbr(start);
     const endZone: string = OneUptimeDate.getLocalZoneAbbr(end);
 
-    if (startZone === endZone) {
-      return `${startText}${MAINTENANCE_WINDOW_SEPARATOR}${endText} ${endZone}`.trim();
-    }
-
-    return `${startText} ${startZone}${MAINTENANCE_WINDOW_SEPARATOR}${endText} ${endZone}`.trim();
+    return {
+      start:
+        startZone === endZone ? startText : `${startText} ${startZone}`.trim(),
+      end: `${endText} ${endZone}`.trim(),
+    };
   }
 
   /*

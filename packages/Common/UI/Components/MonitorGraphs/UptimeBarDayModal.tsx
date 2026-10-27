@@ -1,9 +1,9 @@
 import Modal, { ModalWidth } from "../Modal/Modal";
 import UptimeDaySummary, { StatusDuration } from "../Graphs/UptimeDaySummary";
 import MaintenanceIcon from "../Graphs/MaintenanceIcon";
+import MaintenanceWindow from "../Graphs/MaintenanceWindow";
 import OneUptimeDate from "../../../Types/Date";
 import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
-import UptimeMaintenanceUtil from "../../../Utils/Uptime/UptimeMaintenanceUtil";
 import { MAINTENANCE_MARK_COLOR } from "../../../Utils/StatusPage/HistoryChartBarColors";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
@@ -494,20 +494,17 @@ const MaintenanceCard: FunctionComponent<{
           >
             {event.title}
           </span>
-          <span
-            data-testid="uptime-day-maintenance-window"
+          <MaintenanceWindow
+            dataTestId="uptime-day-maintenance-window"
+            startsAt={event.startsAt}
+            endsAt={event.endsAt}
             style={{
               display: "block",
               fontSize: "12px",
               color: "var(--ou-text-muted, #6b7280)",
               fontVariantNumeric: "tabular-nums",
             }}
-          >
-            {UptimeMaintenanceUtil.formatWindow({
-              startsAt: event.startsAt,
-              endsAt: event.endsAt,
-            })}
-          </span>
+          />
         </span>
         {isClickable && (
           <svg
@@ -562,6 +559,11 @@ const MaintenanceCard: FunctionComponent<{
     <button
       type="button"
       data-testid="uptime-day-maintenance-item"
+      /*
+       * The dialog may open with the first event focused (Enter on a bar):
+       * the product's focus ring, not the browser's black outline.
+       */
+      className="focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       style={style}
       onClick={() => {
         props.onClick!(event.id);

@@ -2,10 +2,10 @@ import OneUptimeDate from "../../../Types/Date";
 import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
-import UptimeMaintenanceUtil from "../../../Utils/Uptime/UptimeMaintenanceUtil";
 import { MAINTENANCE_MARK_COLOR } from "../../../Utils/StatusPage/HistoryChartBarColors";
 import { getStatusTextProps } from "../../Utils/StatusColorStyle";
 import MaintenanceIcon from "./MaintenanceIcon";
+import MaintenanceWindow from "./MaintenanceWindow";
 import UptimeDaySummary, { StatusDuration } from "./UptimeDaySummary";
 import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
@@ -437,19 +437,16 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                         {event.currentState.name}
                       </span>
                     )}
-                    <span
-                      data-testid="uptime-tooltip-maintenance-window"
+                    <MaintenanceWindow
+                      dataTestId="uptime-tooltip-maintenance-window"
+                      startsAt={event.startsAt}
+                      endsAt={event.endsAt}
                       style={{
                         fontSize: "10px",
                         color: "var(--ou-text-muted, #6b7280)",
                         fontVariantNumeric: "tabular-nums",
                       }}
-                    >
-                      {UptimeMaintenanceUtil.formatWindow({
-                        startsAt: event.startsAt,
-                        endsAt: event.endsAt,
-                      })}
-                    </span>
+                    />
                   </span>
                 </>
               );
@@ -486,6 +483,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                   key={event.id}
                   type="button"
                   data-testid="uptime-tooltip-maintenance-item"
+                  className="focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   style={itemStyle}
                   onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();

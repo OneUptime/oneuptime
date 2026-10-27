@@ -638,6 +638,50 @@ describe("how a window reads", () => {
     expect(end.endsWith(" CEST")).toBe(true);
   });
 
+  test("hands its two ends over whole, the zone with the end, for a page to isolate each", () => {
+    expect(
+      UptimeMaintenanceUtil.getWindowText({
+        startsAt: at("2026-10-21T16:00:00.000Z"),
+        endsAt: at("2026-10-21T18:00:00.000Z"),
+      }),
+    ).toEqual({ start: "Oct 21, 18:00", end: "20:00 CEST" });
+
+    expect(
+      UptimeMaintenanceUtil.getWindowText({
+        startsAt: at("2026-10-25T00:30:00.000Z"),
+        endsAt: at("2026-10-25T02:30:00.000Z"),
+      }),
+    ).toEqual({ start: "Oct 25, 02:30 CEST", end: "03:30 CET" });
+
+    expect(
+      UptimeMaintenanceUtil.getWindowText({
+        startsAt: new Date("not a date"),
+        endsAt: at("2026-10-21T18:00:00.000Z"),
+      }),
+    ).toBeNull();
+  });
+
+  test("the text is its two ends joined, always", () => {
+    for (const [startsAt, endsAt] of [
+      ["2026-10-21T16:00:00.000Z", "2026-10-21T18:00:00.000Z"],
+      ["2026-10-21T16:00:00.000Z", "2026-10-23T09:15:00.000Z"],
+      ["2026-10-25T00:30:00.000Z", "2026-10-25T02:30:00.000Z"],
+    ] as Array<[string, string]>) {
+      const parts: { start: string; end: string } | null =
+        UptimeMaintenanceUtil.getWindowText({
+          startsAt: at(startsAt),
+          endsAt: at(endsAt),
+        });
+
+      expect(
+        UptimeMaintenanceUtil.formatWindow({
+          startsAt: at(startsAt),
+          endsAt: at(endsAt),
+        }),
+      ).toBe(`${parts!.start}${MAINTENANCE_WINDOW_SEPARATOR}${parts!.end}`);
+    }
+  });
+
   test("keeps English dates English", () => {
     expect(
       UptimeMaintenanceUtil.formatWindow({
