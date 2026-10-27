@@ -10,6 +10,7 @@ import MoreMenuDivider from "../MoreMenu/Divider";
 import { startsNewMenuGroup } from "../ActionButton/ActionMenuGroup";
 import ProgressBar, { ProgressBarSize } from "../ProgressBar/ProgressBar";
 import ShortcutKey from "../ShortcutKey/ShortcutKey";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import { Gray500, Green, Red } from "../../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import GenericObject from "../../../Types/GenericObject";
@@ -917,6 +918,13 @@ const BulkUpdateForm: <T extends GenericObject>(
                 ? translator.translateText(group.message) || group.message
                 : group.message;
 
+            /*
+             * A record's name, and a reason the server gave in English, read
+             * the way they are written (IsolatedText): on a Persian page an
+             * English refusal kept its full stop at its end, not its start
+             * (".Telemetry Exception not found"), and a name its order.
+             */
+
             return (
               <div
                 className="px-4 py-3 text-sm"
@@ -925,7 +933,7 @@ const BulkUpdateForm: <T extends GenericObject>(
               >
                 {group.names.length === 1 ? (
                   <div className="break-words font-medium text-gray-900">
-                    {group.names[0]}
+                    <IsolatedText text={group.names[0]!} />
                   </div>
                 ) : (
                   <></>
@@ -938,7 +946,7 @@ const BulkUpdateForm: <T extends GenericObject>(
                           key={j}
                           className="break-words font-medium text-gray-900"
                         >
-                          {name}
+                          <IsolatedText text={name} />
                         </li>
                       );
                     })}
@@ -946,7 +954,13 @@ const BulkUpdateForm: <T extends GenericObject>(
                 ) : (
                   <></>
                 )}
-                <div className="text-gray-500 mt-0.5">{message}</div>
+                <div className="text-gray-500 mt-0.5">
+                  {typeof message === "string" ? (
+                    <IsolatedText text={message} />
+                  ) : (
+                    message
+                  )}
+                </div>
               </div>
             );
           })}
