@@ -37061,5 +37061,5 @@
   "Keeps each event's updates in one thread there.": "在那裡將每個維護事件的更新集中在一個討論串中。",
   "Keeps each incident episode's updates in one thread there.": "在那裡將每個事件片段的更新集中在一個討論串中。",
   "Keeps each incident's updates in one thread there.": "在那裡將每個事件的更新集中在一個討論串中。",
-  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "第一則訊息會發布在頻道中並開啟一個討論串。之後的每則更新都是其中的回覆，狀態變更和待命警報也會顯示在頻道中。"
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "第一則訊息會開啟一個討論串。之後的更新都是其中的回覆，狀態變更和待命警報也會顯示在頻道中。"
 }

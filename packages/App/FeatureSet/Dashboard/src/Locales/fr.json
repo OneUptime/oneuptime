@@ -37061,5 +37061,5 @@
   "Keeps each event's updates in one thread there.": "Y regroupe les mises à jour de chaque événement dans un fil.",
   "Keeps each incident episode's updates in one thread there.": "Y regroupe les mises à jour de chaque épisode d'incident dans un fil.",
   "Keeps each incident's updates in one thread there.": "Y regroupe les mises à jour de chaque incident dans un fil.",
-  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "Le premier message est publié dans le canal et ouvre un fil. Chaque mise à jour suivante y est une réponse, et les changements d'état et les alarmes d'astreinte apparaissent aussi dans le canal."
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "Le premier message ouvre un fil. Les mises à jour suivantes y sont des réponses, et les changements d'état et les alarmes d'astreinte apparaissent aussi dans le canal."
 }

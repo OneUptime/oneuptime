@@ -37061,5 +37061,5 @@
   "Keeps each event's updates in one thread there.": "그곳에서 이벤트마다 업데이트를 하나의 스레드로 모읍니다.",
   "Keeps each incident episode's updates in one thread there.": "그곳에서 인시던트 에피소드마다 업데이트를 하나의 스레드로 모읍니다.",
   "Keeps each incident's updates in one thread there.": "그곳에서 인시던트마다 업데이트를 하나의 스레드로 모읍니다.",
-  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "첫 메시지는 채널에 게시되어 스레드를 시작합니다. 이후 업데이트는 모두 그 스레드의 답글이 되며, 상태 변경과 온콜 알람은 채널에도 표시됩니다."
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "첫 메시지가 스레드를 시작합니다. 이후 업데이트는 그 스레드의 답글이 되며, 상태 변경과 온콜 알람은 채널에도 표시됩니다."
 }

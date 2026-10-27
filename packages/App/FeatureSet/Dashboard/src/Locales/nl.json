@@ -37061,5 +37061,5 @@
   "Keeps each event's updates in one thread there.": "Bundelt daar de updates van elk evenement in één thread.",
   "Keeps each incident episode's updates in one thread there.": "Bundelt daar de updates van elke incidentepisode in één thread.",
   "Keeps each incident's updates in one thread there.": "Bundelt daar de updates van elk incident in één thread.",
-  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "Het eerste bericht wordt in het kanaal geplaatst en start een thread. Elke latere update is een antwoord daarin, en statuswijzigingen en bereikbaarheidsalarmen verschijnen ook in het kanaal."
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "Het eerste bericht start een thread. Latere updates zijn antwoorden daarin, en statuswijzigingen en bereikbaarheidsalarmen verschijnen ook in het kanaal."
 }

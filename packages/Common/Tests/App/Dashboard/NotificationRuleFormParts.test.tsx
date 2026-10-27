@@ -457,7 +457,7 @@ describe("keeping each record's updates in one thread", () => {
     expect(threadSwitch).toHaveAttribute("aria-checked", "false");
     expect(
       screen.getByText(
-        "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.",
+        "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.",
       ),
     ).toBeVisible();
     // Right after the channels it is about, before the channel of its own.

@@ -567,7 +567,7 @@ export const POST_UPDATES_IN_THREAD_TITLES: Readonly<
 };
 
 export const POST_UPDATES_IN_THREAD_DESCRIPTION: string = translationKey(
-  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.",
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.",
 );
 
 export const TEAM_TITLE: string = translationKey("Team");

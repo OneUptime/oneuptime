@@ -37061,5 +37061,5 @@
   "Keeps each event's updates in one thread there.": "वहाँ हर इवेंट के अपडेट एक थ्रेड में रखता है।",
   "Keeps each incident episode's updates in one thread there.": "वहाँ हर घटना एपिसोड के अपडेट एक थ्रेड में रखता है।",
   "Keeps each incident's updates in one thread there.": "वहाँ हर घटना के अपडेट एक थ्रेड में रखता है।",
-  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "पहला संदेश चैनल में पोस्ट होता है और एक थ्रेड शुरू करता है। हर बाद का अपडेट उसमें जवाब होता है, और स्थिति में बदलाव और ऑन-कॉल अलार्म चैनल में भी दिखते हैं।"
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "पहला संदेश एक थ्रेड शुरू करता है। बाद के अपडेट उसमें जवाब होते हैं, और स्थिति में बदलाव और ऑन-कॉल अलार्म चैनल में भी दिखते हैं।"
 }

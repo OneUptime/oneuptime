@@ -37061,5 +37061,5 @@
   "Keeps each event's updates in one thread there.": "Lì raggruppa gli aggiornamenti di ogni evento in un thread.",
   "Keeps each incident episode's updates in one thread there.": "Lì raggruppa gli aggiornamenti di ogni episodio di incidente in un thread.",
   "Keeps each incident's updates in one thread there.": "Lì raggruppa gli aggiornamenti di ogni incidente in un thread.",
-  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "Il primo messaggio viene pubblicato nel canale e avvia un thread. Ogni aggiornamento successivo è una risposta nel thread, e i cambi di stato e gli allarmi di reperibilità compaiono anche nel canale."
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "Il primo messaggio avvia un thread. Gli aggiornamenti successivi sono risposte nel thread, e i cambi di stato e gli allarmi di reperibilità compaiono anche nel canale."
 }

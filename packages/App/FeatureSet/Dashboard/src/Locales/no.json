@@ -37061,5 +37061,5 @@
   "Keeps each event's updates in one thread there.": "Samler der oppdateringene for hver vedlikeholdshendelse i én tråd.",
   "Keeps each incident episode's updates in one thread there.": "Samler der oppdateringene for hver hendelsesepisode i én tråd.",
   "Keeps each incident's updates in one thread there.": "Samler der oppdateringene for hver hendelse i én tråd.",
-  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "Den første meldingen publiseres i kanalen og starter en tråd. Hver senere oppdatering er et svar i den, og tilstandsendringer og vaktalarmer vises også i kanalen."
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "Den første meldingen starter en tråd. Senere oppdateringer er svar i den, og tilstandsendringer og vaktalarmer vises også i kanalen."
 }

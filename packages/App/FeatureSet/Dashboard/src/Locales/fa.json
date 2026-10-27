@@ -37061,5 +37061,5 @@
   "Keeps each event's updates in one thread there.": "آنجا به‌روزرسانی‌های هر رویداد را در یک رشته نگه می‌دارد.",
   "Keeps each incident episode's updates in one thread there.": "آنجا به‌روزرسانی‌های هر اپیزود حادثه را در یک رشته نگه می‌دارد.",
   "Keeps each incident's updates in one thread there.": "آنجا به‌روزرسانی‌های هر حادثه را در یک رشته نگه می‌دارد.",
-  "The first message is posted in the channel and starts a thread. Every later update is a reply in it, and state changes and on-call alarms show in the channel too.": "اولین پیام در کانال ارسال می‌شود و یک رشته را آغاز می‌کند. هر به‌روزرسانی بعدی پاسخی در آن است و تغییرات وضعیت و هشدارهای آنکال در کانال هم نمایش داده می‌شوند."
+  "The first message starts a thread. Later updates are replies in it, and state changes and on-call alarms show in the channel too.": "اولین پیام یک رشته را آغاز می‌کند. به‌روزرسانی‌های بعدی پاسخ‌هایی در آن هستند و تغییرات وضعیت و هشدارهای آنکال در کانال هم نمایش داده می‌شوند."
 }
