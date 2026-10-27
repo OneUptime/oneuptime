@@ -712,11 +712,9 @@ describe("what the scope leaves out", () => {
       "Not on this page, so not watched: Payments API, Webhook",
     );
     expect(
-      Array.from(onPage.querySelectorAll("bdi")).map(
-        (bdi: Element): string => {
-          return bdi.textContent || "";
-        },
-      ),
+      Array.from(onPage.querySelectorAll("bdi")).map((bdi: Element): string => {
+        return bdi.textContent || "";
+      }),
     ).toEqual(["Payments API, Webhook"]);
   });
 

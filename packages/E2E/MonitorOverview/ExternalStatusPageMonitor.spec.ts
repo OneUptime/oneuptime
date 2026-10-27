@@ -833,9 +833,9 @@ test.describe("Create Monitor: the components an External Status Page monitor wa
       .getAttribute("id");
     expect(unmatchedSentenceId).toBeTruthy();
     expect(
-      ((await componentsBox(form).getAttribute("aria-describedby")) || "").split(
-        " ",
-      ),
+      (
+        (await componentsBox(form).getAttribute("aria-describedby")) || ""
+      ).split(" "),
     ).toContain(unmatchedSentenceId);
 
     await form.getByRole("button", { name: "Remove Payments" }).click();

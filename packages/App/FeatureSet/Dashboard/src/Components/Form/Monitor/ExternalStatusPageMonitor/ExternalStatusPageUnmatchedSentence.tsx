@@ -19,9 +19,9 @@ export interface ComponentProps {
   componentGroupName?: string | undefined;
 }
 
-const ExternalStatusPageUnmatchedSentence: FunctionComponent<
-  ComponentProps
-> = (props: ComponentProps): ReactElement => {
+const ExternalStatusPageUnmatchedSentence: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const group: string = (props.componentGroupName || "").trim();
   const names: ReactElement = <bdi>{props.names.join(", ")}</bdi>;
 
