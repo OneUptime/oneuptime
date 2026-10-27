@@ -57,7 +57,7 @@ const AskAiHistory: FunctionComponent<ComponentProps> = (
             return (
               <li
                 key={conversationId}
-                className={`group flex items-center gap-1 rounded-lg transition-colors hover:bg-gray-50 focus-within:bg-gray-50 ${
+                className={`group flex items-center gap-1 rounded-lg transition-colors hover:bg-gray-50 ${
                   isActive ? "bg-gray-50" : ""
                 }`}
               >

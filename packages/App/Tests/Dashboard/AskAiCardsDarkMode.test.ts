@@ -3,12 +3,16 @@ import fs from "fs";
 import path from "path";
 
 /*
- * ASK AI'S ACTION CARDS IN THE DARK THEME (#5301's UI review).
+ * ASK AI IN THE DARK THEME: the dialog and the cards in it.
  *
  * The approval card a create_alert waits on and the card it leaves under
  * the answer ("ALT-12 · High memory usage on test01", with its Open) are
- * drawn by ToolApprovalCard and ResourceCardWidget, in the Ask AI panel,
- * the full-page chat and an incident's or alert's AI card alike.
+ * drawn by ToolApprovalCard and ResourceCardWidget, in the Ask AI dialog
+ * and an incident's or alert's AI card alike (#5301's UI review). The
+ * dialog itself - its header, its start, the composer, the conversation,
+ * its live line and footer, the history and the way back into it - is
+ * held to the same rule, file by file, so a colour added to any of them
+ * cannot keep its light shade on a dark dialog.
  *
  * The dark theme does not use Tailwind's dark: variants. Theme.css
  * re-colours the light utility classes under html.dark, one rule per class
@@ -33,11 +37,45 @@ const AI_CHAT_DIR: string = path.join(
 
 const COMMON_DIR: string = path.join(__dirname, "..", "..", "..", "Common");
 
+const AI_DIR: string = path.join(AI_CHAT_DIR, "..", "AI");
+
 const SOURCES: Array<[string, string]> = [
   ["ToolApprovalCard.tsx", path.join(AI_CHAT_DIR, "ToolApprovalCard.tsx")],
   [
     "Widgets/ResourceCardWidget.tsx",
     path.join(AI_CHAT_DIR, "Widgets", "ResourceCardWidget.tsx"),
+  ],
+  // The dialog: everything Ask AI draws around its cards.
+  ...[
+    "AskAiDialog.tsx",
+    "AskAiConversation.tsx",
+    "AskAiHistory.tsx",
+    "AskAiMark.tsx",
+    "AskAiResumeButton.tsx",
+    "ChatHomeView.tsx",
+    "ChatInput.tsx",
+    "ChatMessageList.tsx",
+    "ChatActivityFeed.tsx",
+    "ChatDownloadMenu.tsx",
+    "PageContextChip.tsx",
+    "PermissionModePicker.tsx",
+    "ProviderPicker.tsx",
+    "AIChatUnavailableView.tsx",
+  ].map((file: string): [string, string] => {
+    return [file, path.join(AI_CHAT_DIR, file)];
+  }),
+  // An answer's citation marks and its sources, shared with the AI card.
+  [
+    "AnswerCitationChip.tsx",
+    path.join(AI_DIR, "InvestigationConversation", "AnswerCitationChip.tsx"),
+  ],
+  [
+    "AnswerSources.tsx",
+    path.join(AI_DIR, "InvestigationConversation", "AnswerSources.tsx"),
+  ],
+  [
+    "InvestigationCitationChip.tsx",
+    path.join(AI_DIR, "InvestigationReport", "InvestigationCitationChip.tsx"),
   ],
 ];
 
@@ -84,12 +122,13 @@ const COLOR_TOKEN: RegExp =
   /(?<![\w:-])((?:[a-z0-9-]+:)*(?:bg|text|border|ring|divide|from|via|to)-(?:white|black|transparent|(?:gray|slate|red|amber|yellow|emerald|green|sky|blue|indigo|orange|rose|purple|pink|teal|cyan|lime|violet|fuchsia|zinc|neutral|stone)-\d{2,3})(?:\/\d+)?)(?![\w-])/g;
 
 /*
- * A saturated 500/600 mark (an icon's tile, a focus ring) reads the same
- * on a light and a dark card. Greys are not marks: their light shades are
- * exactly what must be remapped.
+ * A saturated 500/600 mark (an icon's tile, a focus ring, the stops of
+ * Ask AI's indigo-to-violet mark) reads the same on a light and a dark
+ * card. Greys are not marks: their light shades are exactly what must be
+ * remapped.
  */
 const SOLID_MARK: RegExp =
-  /^(?:bg|text|border|ring)-(?!gray|slate)[a-z]+-(?:500|600)$/;
+  /^(?:bg|text|border|ring|from|via|to)-(?!gray|slate)[a-z]+-(?:500|600)$/;
 
 const IDENTIFIER_CHAR: RegExp = /[\w-]/;
 
@@ -115,28 +154,53 @@ const SUBSTRING_VARIANTS: Array<string> = Array.from(
 });
 
 /*
- * Colour classes the approval card carried before this review, each with
- * why it may stay. The guard fails if one of them leaves the code, so the
- * list cannot outlive what it excuses.
+ * Theme.css colours every grey group-hover text by substring, not by name
+ * (so the status page guard's named one is not the only one remapped).
  */
-const KNOWN_EXCEPTIONS: Record<string, string> = {
+const GROUP_HOVER_GREY_TEXT_RULE: string =
+  '.group:hover [class*="group-hover"][class*="text-gray-"]';
+
+/*
+ * Colour classes these parts carried before, each with why it may stay,
+ * and the files it may stay in. The guard fails if one of them leaves the
+ * code, so the list cannot outlive what it excuses.
+ */
+const KNOWN_EXCEPTIONS: Record<string, Array<string>> = {
   /*
    * A chosen Skip: white words on a mid grey, which reads the same on a
-   * light and a dark card.
+   * light and a dark card. And the live dot of the activity feed's own
+   * frame (an AI insight's triage): a mid grey on either theme.
    */
-  "bg-gray-500": "ToolApprovalCard.tsx",
+  "bg-gray-500": ["ToolApprovalCard.tsx", "ChatActivityFeed.tsx"],
+  // The live dot's ping, round the dot above.
+  "bg-gray-400": ["ChatActivityFeed.tsx"],
   // The Run button's spinner while the decision is sent: on the dark button.
-  "border-white/40": "ToolApprovalCard.tsx",
+  "border-white/40": ["ToolApprovalCard.tsx"],
+  // The Stop button's spinner while it stops: on the dark button too.
+  "border-gray-500": ["ChatInput.tsx"],
+  // A citation chip's hover ring (the AI card's guard excuses it too).
+  "hover:ring-indigo-200": ["InvestigationCitationChip.tsx"],
 };
 
 function isRemapped(token: string): boolean {
   const utility: string = token.slice(token.lastIndexOf(":") + 1);
 
-  if (utility === "text-white" || SOLID_MARK.test(utility)) {
+  if (
+    utility === "text-white" ||
+    utility.endsWith("-transparent") ||
+    SOLID_MARK.test(utility)
+  ) {
     return true;
   }
 
   if (THEME_CSS.includes(`[class~="${token}"]`)) {
+    return true;
+  }
+
+  if (
+    token.startsWith("group-hover:text-gray-") &&
+    THEME_CSS.includes(GROUP_HOVER_GREY_TEXT_RULE)
+  ) {
     return true;
   }
 
@@ -180,8 +244,8 @@ function tokensIn(code: string): Array<string> {
   );
 }
 
-describe("Ask AI's action cards in the dark theme", () => {
-  test("neither card uses dark: variants or builds a colour class from a template", () => {
+describe("Ask AI in the dark theme", () => {
+  test("no part of it uses dark: variants or builds a colour class from a template", () => {
     for (const [moduleKey, code] of getModules()) {
       expect({ moduleKey, dark: code.includes("dark:") }).toEqual({
         moduleKey,
@@ -194,7 +258,7 @@ describe("Ask AI's action cards in the dark theme", () => {
     }
   });
 
-  test("every colour class the cards draw with is remapped for dark mode", () => {
+  test("every colour class the dialog and its cards draw with is remapped for dark mode", () => {
     const tokens: Set<string> = new Set();
     const unmapped: Array<string> = [];
 
@@ -202,7 +266,10 @@ describe("Ask AI's action cards in the dark theme", () => {
       for (const token of tokensIn(code)) {
         tokens.add(token);
 
-        if (!isRemapped(token) && KNOWN_EXCEPTIONS[token] !== moduleKey) {
+        if (
+          !isRemapped(token) &&
+          !(KNOWN_EXCEPTIONS[token] || []).includes(moduleKey)
+        ) {
           unmapped.push(`${moduleKey}: ${token}`);
         }
       }
@@ -228,6 +295,11 @@ describe("Ask AI's action cards in the dark theme", () => {
         "hover:text-emerald-800",
         // The keyboard's focus ring on Open.
         "focus-visible:ring-indigo-500",
+        // The dialog's backdrop, its mark, and the composer's box.
+        "bg-gray-950/40",
+        "from-indigo-500",
+        "to-violet-600",
+        "focus-within:border-gray-300",
       ]),
     );
     expect(unmapped).toEqual([]);
@@ -236,14 +308,18 @@ describe("Ask AI's action cards in the dark theme", () => {
   test("every known exception is still in the code it excuses", () => {
     const modules: Map<string, string> = getModules();
 
-    for (const [token, moduleKey] of Object.entries(KNOWN_EXCEPTIONS)) {
-      expect({
-        token,
-        present: tokensIn(modules.get(moduleKey) || "").includes(token),
-      }).toEqual({
-        token,
-        present: true,
-      });
+    for (const [token, moduleKeys] of Object.entries(KNOWN_EXCEPTIONS)) {
+      for (const moduleKey of moduleKeys) {
+        expect({
+          token,
+          moduleKey,
+          present: tokensIn(modules.get(moduleKey) || "").includes(token),
+        }).toEqual({
+          token,
+          moduleKey,
+          present: true,
+        });
+      }
       // And it really has no rule of its own, or it would not need excusing.
       expect({ token, remapped: isRemapped(token) }).toEqual({
         token,

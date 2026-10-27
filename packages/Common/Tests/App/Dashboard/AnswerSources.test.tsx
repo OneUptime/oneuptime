@@ -33,10 +33,10 @@ import {
 } from "../../../Types/AI/AIChatTypes";
 
 /*
- * What an answer in the AI Investigation card's conversation read: one line
- * per server-minted citation. The Ask AI panel draws its sources as bordered
- * pills; in a card that draws no boxes they are a quiet list, and a source
- * with nowhere to go is never a button that does nothing.
+ * What an answer read: one line per server-minted citation, in the AI
+ * Investigation card's conversation and under an Ask AI answer's sources
+ * alike. A quiet list - no bordered pills - and a source with nowhere to
+ * go is never a button that does nothing.
  */
 
 function citation(overrides: Partial<AIChatCitation>): AIChatCitation {

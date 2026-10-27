@@ -1814,8 +1814,8 @@ describe("InvestigationConversation — an answer's parts", () => {
       'C3kubectl top pods -A on cluster "prod" · 1 row',
     ]);
     /*
-     * A quiet list. The Ask AI panel draws each source as a bordered,
-     * rounded-full pill; the only shape here is the small C# mark.
+     * A quiet list: no bordered, rounded-full pills; the only shape here is
+     * the small C# mark.
      */
     const PILL_CLASS: RegExp = /(^|\s)(border|rounded-full|shadow\S*)(\s|$)/;
     expect(
@@ -2527,7 +2527,7 @@ describe("InvestigationConversation — the composer in the card", () => {
 
     fireEvent.change(composer(), { target: { value: "What happened?" } });
     expect(sendButton()).toBeEnabled();
-    // The page's own primary colour, not the Ask AI panel's black.
+    // The page's own primary colour, not the Ask AI dialog's black.
     expect(sendButton()).toHaveClass("bg-indigo-600", "text-white");
 
     fireEvent.click(sendButton());

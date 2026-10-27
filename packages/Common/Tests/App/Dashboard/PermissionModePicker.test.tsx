@@ -14,10 +14,9 @@ import AIChatPermissionMode from "../../../Types/AI/AIChatPermissionMode";
 
 /*
  * The control that says what the AI may do with a request: act at once, ask
- * first, or only read. The Ask AI panel has it at the right end of its
- * composer's controls; the AI Investigation card's composer has it at the
- * left end, where a menu lined up on the button's right edge opened past the
- * card's left edge. It is also a menu a keyboard and a screen reader can
+ * first, or only read. Ask AI's composer and the AI Investigation card's
+ * both have it at the left end of their controls, where a menu lined up on
+ * the button's right edge opened past the box's left edge. It is also a menu a keyboard and a screen reader can
  * use: it says it is one, whether it is open, and which mode is chosen.
  */
 
@@ -194,6 +193,37 @@ describe("PermissionModePicker — the menu", () => {
     expect(document.activeElement).toBe(trigger());
   });
 
+  /*
+   * Ask AI's dialog closes on an Escape nobody else used: the menu marks
+   * its Escape as spent, so it closes the menu and not the dialog too.
+   */
+  test("its Escape is spent on the menu, so the dialog around it stays open", () => {
+    renderPicker();
+
+    open();
+    const event: KeyboardEvent = new KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  test("a closed menu leaves Escape to the dialog", () => {
+    renderPicker();
+
+    const event: KeyboardEvent = new KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+  });
+
   test("other keys leave it open", () => {
     renderPicker();
 
@@ -277,7 +307,7 @@ describe("PermissionModePicker — the menu", () => {
 });
 
 describe("PermissionModePicker — where the menu opens", () => {
-  test("lines up on the button's right edge by default (the Ask AI panel)", () => {
+  test("lines up on the button's right edge by default", () => {
     renderPicker();
 
     const opened: HTMLElement = open();
@@ -291,7 +321,7 @@ describe("PermissionModePicker — where the menu opens", () => {
     expect(open()).toHaveClass("right-0");
   });
 
-  test("lines up on the button's left edge when asked (the AI Investigation card)", () => {
+  test("lines up on the button's left edge when asked (Ask AI and the AI Investigation card)", () => {
     renderPicker({ menuAlign: "left" });
 
     const opened: HTMLElement = open();
@@ -313,4 +343,22 @@ describe("PermissionModePicker — where the menu opens", () => {
       );
     },
   );
+
+  /*
+   * Ask AI's start draws the composer near the top of the dialog, where a
+   * menu opening upwards would be cut off by the dialog's edge.
+   */
+  test("opens downwards when asked (the composer at the top of Ask AI's start)", () => {
+    renderPicker({ menuAlign: "left", menuSide: "bottom" });
+
+    const opened: HTMLElement = open();
+    expect(opened).toHaveClass("top-full", "mt-2", "left-0");
+    expect(opened).not.toHaveClass("bottom-full");
+  });
+
+  test("an explicit top is the same as the default", () => {
+    renderPicker({ menuSide: "top" });
+
+    expect(open()).toHaveClass("bottom-full", "mb-2");
+  });
 });

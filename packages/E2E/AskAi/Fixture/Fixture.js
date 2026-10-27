@@ -38,6 +38,10 @@
  * (each question, with the page context it carried), `approvals`,
  * `feedback`, `cancelled`, `deleted` and `unhandled` (any request this
  * fixture does not model - the spec fails on one).
+ *
+ * window.__askAiFixture.navigate(path) moves the router as a link inside
+ * the app does (the chat's address in an incident's Slack message opened
+ * in this tab, say).
  */
 import "Common/UI/Styles/Theme.css";
 import React from "react";
@@ -53,6 +57,7 @@ import {
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import AskAiDialog from "../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog";
+import { openAskAi } from "../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiEvents";
 import AskAI from "../../../App/FeatureSet/Dashboard/src/Components/Header/AskAI";
 import AICopilot from "../../../App/FeatureSet/Dashboard/src/Pages/AICopilot/AICopilot";
 import EventName from "../../../App/FeatureSet/Dashboard/src/Utils/EventName";
@@ -118,7 +123,7 @@ const failKind = ["send", "conversations"].includes(params.get("fail"))
 UserUtil.isMasterAdmin = () => false;
 UserUtil.isLoggedIn = () => true;
 UserUtil.getUserId = () => new ObjectID(USER_ID);
-UserUtil.getName = () => "Nawaz Dhandala";
+UserUtil.getName = () => "Maya Chen";
 PermissionUtil.getAllPermissions = () => [Permission.ProjectOwner];
 ProjectUtil.getCurrentProjectId = () => new ObjectID(PROJECT_ID);
 ProjectUtil.getCurrentPlan = () => null;
@@ -794,9 +799,13 @@ fixture.paths = {
 
 // What App.tsx does for every page: Navigation follows the router.
 function NavigationShell(props) {
-  Navigation.setNavigateHook(useNavigate());
+  const navigate = useNavigate();
+  Navigation.setNavigateHook(navigate);
   Navigation.setLocation(useLocation());
   Navigation.setParams(useParams());
+  fixture.navigate = (path) => {
+    navigate(path);
+  };
   return props.children;
 }
 
@@ -980,19 +989,15 @@ createRoot(document.getElementById("root")).render(
   </BrowserRouter>,
 );
 
-// Opened as the page loads: on a thread, or at its start.
+/*
+ * Opened as the page loads: on a thread, or at its start. As the chat's own
+ * address asks, through openAskAi, whose request waits for the dialog if
+ * it is not listening yet.
+ */
 if (params.get("open") === "1" || threadKind) {
-  window.setTimeout(() => {
-    if (threadKind) {
-      GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE, {
-        open: true,
-        conversationId: fixture.conversationIds[threadKind],
-      });
-      return;
-    }
-
-    GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE);
-  }, 50);
+  openAskAi(
+    threadKind ? { conversationId: fixture.conversationIds[threadKind] } : {},
+  );
 }
 
 fixture.ready = true;

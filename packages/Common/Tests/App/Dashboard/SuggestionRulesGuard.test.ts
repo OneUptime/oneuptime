@@ -206,21 +206,27 @@ describe("the trace performance fix's rule", () => {
 
 /*
  * Ask AI's own entry points: the header button, the command palette's Ask
- * AI, and the panel itself. They stay with AI off - the panel says AI is off
- * and links to the switch.
+ * AI, the chat's own address, and the dialog itself with the events that
+ * open it. They stay with AI off - the dialog says AI is off and links to
+ * the switch.
  */
 const ASK_AI_ENTRY_POINTS: ReadonlyArray<string> = [
   "App/FeatureSet/Dashboard/src/Components/Header/AskAI.tsx",
   "App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPalette.tsx",
-  "App/FeatureSet/Dashboard/src/Components/AIChat/AIChatPanel.tsx",
+  "App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog.tsx",
+  "App/FeatureSet/Dashboard/src/Components/AIChat/AskAiEvents.ts",
+  "App/FeatureSet/Dashboard/src/Pages/AICopilot/AICopilot.tsx",
   "App/FeatureSet/Dashboard/src/Utils/EventName.ts",
 ];
+
+// Opens Ask AI: the event itself, or the helpers that send it.
+const OPENS_ASK_AI: RegExp = /AI_CHAT_TOGGLE|\b(?:openAskAi|toggleAskAi)\(/;
 
 describe("every Dashboard AI action asks the AI rule", () => {
   test("whatever opens Ask AI with a prompt (Explain with AI) is drawn only where AI can run", () => {
     const openers: Array<string> = DASHBOARD_FILES.filter(
       (file: string): boolean => {
-        return withoutComments(read(file)).includes("AI_CHAT_TOGGLE");
+        return OPENS_ASK_AI.test(withoutComments(read(file)));
       },
     )
       .map(relative)
@@ -235,6 +241,13 @@ describe("every Dashboard AI action asks the AI rule", () => {
         file,
         asks: read(path.join(PACKAGES, file)).includes("useAiOffered()"),
       }).toEqual({ file, asks: true });
+    }
+
+    // Each entry point is still there, so the list cannot excuse a gone file.
+    for (const file of ASK_AI_ENTRY_POINTS) {
+      expect({ file, exists: fs.existsSync(path.join(PACKAGES, file)) }).toEqual(
+        { file, exists: true },
+      );
     }
   });
 

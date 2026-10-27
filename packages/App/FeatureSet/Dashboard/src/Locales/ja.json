@@ -36231,5 +36231,6 @@
   "Ask anything…": "何でも質問できます…",
   "Delete conversation: {{title}}": "会話を削除: {{title}}",
   "It answers from your project's live data, and can create incidents and alerts with your approval.": "プロジェクトのライブデータをもとに回答し、承認があればインシデントやアラートも作成できます。",
-  "What would you like to know?": "何を知りたいですか？"
+  "What would you like to know?": "何を知りたいですか？",
+  "Recent conversations": "最近の会話"
 }

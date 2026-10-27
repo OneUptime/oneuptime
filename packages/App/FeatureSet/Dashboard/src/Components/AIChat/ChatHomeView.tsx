@@ -182,7 +182,7 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
               id={recentHeadingId}
               className="text-xs font-medium text-gray-500"
             >
-              {translator.translateText("Recent")}
+              {translator.translateText("Recent conversations")}
             </h4>
             {props.onShowAllConversations &&
             props.conversations.length > recentConversations.length ? (

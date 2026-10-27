@@ -15,9 +15,10 @@ export interface ComponentProps {
  * The way back into a conversation the person stepped out of while Ask AI
  * was still answering: closing the dialog to look at the page loses
  * nothing, and this says when the answer is ready. Shown only then - while
- * an answer is being written, and once it came in until it is read - in the
- * corner the page leaves free (the new version notice keeps the other
- * one), under side panels and dialogs.
+ * an answer is being written, and once it came in until it is read - under
+ * side panels and dialogs, where nothing else of the app floats: the
+ * bottom corner the new version notice leaves free, and on a phone, where
+ * that notice spans the whole foot of the screen, just under the header.
  */
 const AskAiResumeButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -30,7 +31,7 @@ const AskAiResumeButton: FunctionComponent<ComponentProps> = (
   return (
     <div
       data-testid="ask-ai-resume"
-      className="ou-ai-rise fixed bottom-[max(1rem,env(safe-area-inset-bottom))] end-4 z-[25] flex items-center gap-0.5 rounded-full bg-white p-1 shadow-lg ring-1 ring-black/5 print:hidden sm:bottom-6 sm:end-6"
+      className="ou-ai-rise fixed end-4 top-20 z-[25] flex items-center gap-0.5 rounded-full bg-white p-1 shadow-lg ring-1 ring-black/5 print:hidden sm:bottom-6 sm:end-6 sm:top-auto"
     >
       <button
         type="button"

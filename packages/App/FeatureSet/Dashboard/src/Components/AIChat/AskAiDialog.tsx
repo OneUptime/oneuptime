@@ -359,7 +359,7 @@ const AskAiDialogPanel: FunctionComponent<PanelProps> = (
     <div
       role="alert"
       data-testid="ask-ai-error"
-      className="mb-2 flex items-start gap-2 rounded-lg bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-700 ring-1 ring-inset ring-rose-100"
+      className="mb-2 flex items-start gap-2 rounded-lg bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-700 ring-1 ring-inset ring-rose-200"
     >
       <div className="flex h-5 flex-shrink-0 items-center">
         <Icon icon={IconProp.Error} className="h-3.5 w-3.5 text-rose-500" />

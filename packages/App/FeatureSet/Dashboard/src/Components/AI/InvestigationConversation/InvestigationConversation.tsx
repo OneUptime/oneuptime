@@ -570,7 +570,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
         {/*
           The one place the card raises its voice: OneUptime AI is about to
           change something and is waiting for a person to say yes. It keeps
-          the approval prompt of the Ask AI panel, as a group of controls.
+          the approval prompt of the Ask AI dialog, as a group of controls.
         */}
         {awaitingApproval.length > 0 ? (
           <div

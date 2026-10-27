@@ -248,7 +248,8 @@ describe("create_incident", () => {
     ).map((field: { label: string }) => {
       return field.label;
     });
-    expect(barelabels).toEqual(["Number", "Severity"]);
+    // Its number and severity are its heading and subheading: no facts left.
+    expect(barelabels).toEqual([]);
 
     const longDescription: string = "x".repeat(250);
     const withDescription: ToolExecutionResult =
@@ -459,10 +460,8 @@ describe.each(stateCases)(
         type: AIChatCitationTargetType.IncidentView,
         params: { incidentId: INCIDENT_ID.toString() },
       });
-      expect(widgetData["fields"]).toEqual([
-        { label: "Number", value: "#42" },
-        { label: "State", value: newStateName },
-      ]);
+      // The heading names it and the line under it says its new state.
+      expect(widgetData["fields"]).toEqual([]);
     });
 
     test("buildActionTitle names the incident, and stays tidy with no id", () => {

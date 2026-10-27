@@ -219,6 +219,14 @@ html.dark [class~="bg-gray-500/25"] {
   background-color: rgb(2 6 23 / 55%);
 }
 
+/*
+ * Ask AI's backdrop (AskAiDialog): a dark veil over a dark page has to be
+ * deeper than over a light one to still set the dialog apart.
+ */
+html.dark [class~="bg-gray-950/40"] {
+  background-color: rgb(2 6 23 / 62%);
+}
+
 /* State variants that otherwise flash back to literal light Tailwind colors. */
 html.dark :is(
     [class~="hover:bg-gray-50"],

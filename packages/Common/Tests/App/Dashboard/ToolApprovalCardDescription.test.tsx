@@ -263,8 +263,8 @@ describe("argsPreview", () => {
  * Allow and Skip beside the action where the card has room, and under it
  * where it has not (#5301's UI review): beside it on a phone, German's
  * "Zulassen" and "Überspringen" left the title 85 px and cut it at three
- * lines. The card measures its own width - it sits in the Ask AI panel,
- * the full-page chat and an incident's AI card, each as wide as it is -
+ * lines. The card measures its own width - it sits in the Ask AI dialog,
+ * a phone's full-screen sheet and an incident's AI card, each as wide as it is -
  * so the browser suite measures the layout; this holds the wiring.
  */
 describe("the approval card's layout and its choice", () => {

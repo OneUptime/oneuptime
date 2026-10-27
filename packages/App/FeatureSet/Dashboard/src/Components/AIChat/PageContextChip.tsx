@@ -80,7 +80,7 @@ const PageContextChip: FunctionComponent<ComponentProps> = (
         title={translator.translateText("Remove page context")}
         aria-label={translator.translateText("Remove page context")}
         onClick={props.onDetach}
-        className="flex-shrink-0 rounded-md p-0.5 text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        className="flex-shrink-0 rounded-md p-0.5 text-indigo-500 transition-colors hover:bg-indigo-100 hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       >
         <Icon icon={IconProp.Close} className="h-3 w-3" />
       </button>

@@ -144,7 +144,7 @@ const ChatInput: FunctionComponent<ComponentProps> = (
             onClick={() => {
               props.onStop?.();
             }}
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-900 text-white transition-colors hover:bg-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-900 text-white transition-colors hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
             {props.isStopping ? (
               <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-500 border-t-white motion-reduce:animate-none"></span>
@@ -164,7 +164,7 @@ const ChatInput: FunctionComponent<ComponentProps> = (
             }}
             className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
               isSendable
-                ? "bg-gray-900 text-white hover:bg-gray-700"
+                ? "bg-gray-900 text-white hover:bg-gray-800"
                 : "bg-gray-100 text-gray-400"
             }`}
           >
