@@ -224,15 +224,22 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                   </span>
                 )}
               </div>
-              <Button
-                title="Remove"
-                buttonSize={ButtonSize.Small}
-                buttonStyle={ButtonStyleType.DANGER_OUTLINE}
-                icon={IconProp.Trash}
-                onClick={(): void => {
-                  removeColumn(index);
-                }}
-              />
+              {/*
+               * The shared Button is the full width of a narrow screen (and
+               * steps 12px in from md up, for a dialog's footer): here it
+               * keeps its own width beside the column's name.
+               */}
+              <div className="flex-none [&_button]:ml-0 [&_button]:w-auto [&_button]:md:ml-0">
+                <Button
+                  title="Remove"
+                  buttonSize={ButtonSize.Small}
+                  buttonStyle={ButtonStyleType.DANGER_OUTLINE}
+                  icon={IconProp.Trash}
+                  onClick={(): void => {
+                    removeColumn(index);
+                  }}
+                />
+              </div>
             </div>
 
             <label className="flex items-center gap-2 mb-3 text-xs text-gray-700 select-none cursor-pointer">
