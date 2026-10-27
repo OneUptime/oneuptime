@@ -118,7 +118,6 @@ import "./Jobs/OnCallDutyPolicyExecutionLog/PageAgainAfterAcknowledgementTimeout
  * after a user joined stay uncovered.
  */
 import "./Jobs/OnCallDutyPolicy/BackfillNotificationRulesForNewSeverities";
-import "./Jobs/OnCallDutyPolicy/AddCustomChannelToEveryonesRules";
 
 /*
  * On-Call Duty Policy weekly readiness digest — the same load-bearing import as

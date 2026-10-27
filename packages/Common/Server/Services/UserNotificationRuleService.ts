@@ -768,8 +768,9 @@ export class Service extends ProjectReferencesService<Model> {
         },
         /*
          * Its name and whether it is on, and nothing else: a channel has no
-         * owner to check, and its URL and secret are read by the sender
-         * (CustomNotificationChannelDeliveryService) and nowhere else.
+         * owner to check, and its URL and secret are read by the Enterprise
+         * Edition's sender (ee/Server/CustomNotificationChannels) and
+         * nowhere else.
          */
         customNotificationChannel: {
           name: true,

@@ -34,17 +34,21 @@ import ObjectID from "../../Types/ObjectID";
 import CustomNotificationChannel from "../../Models/DatabaseModels/CustomNotificationChannel";
 import Project from "../../Models/DatabaseModels/Project";
 import User from "../../Models/DatabaseModels/User";
+import CustomChannelEdition from "../Utils/Notification/CustomChannelEdition";
 
 /*
  * Custom channels (CustomNotificationChannel).
  *
  * The CRUD routes are a master admin's alone: every access list on the model
- * is empty. Beside them:
+ * is empty. Custom channels are an Enterprise feature (CustomChannelEdition):
+ * adding or changing one needs it (EditionPermissions), and so do the tests
+ * below. Beside them:
  *
  *   POST /custom-notification-channel/available
  *     The channels that are on, by id and name, for any signed-in person:
  *     what their notification methods and on-call rules offer. Nothing else
- *     of a channel ever reaches them.
+ *     of a channel ever reaches them - and none while the feature is not
+ *     active.
  *
  *   POST /custom-notification-channel/test
  *     A test a person sends to themselves through a channel that is on, in a
@@ -104,6 +108,9 @@ export default class CustomNotificationChannelAPI extends BaseAPI<
           // A test the caller sends to themselves (TestSendAccess).
           const sender: TestSendToSelfCaller =
             await TestSendAccess.assertMaySendTestToSelf(req);
+
+          // An Enterprise feature: refused, saying so, without a license for it.
+          await CustomChannelEdition.assertAvailable();
 
           const channel: CustomNotificationChannel | null =
             await this.service.findOneById({
@@ -180,6 +187,9 @@ export default class CustomNotificationChannelAPI extends BaseAPI<
               "Sign in as a master admin to test a custom channel.",
             );
           }
+
+          // An Enterprise feature: refused, saying so, without a license for it.
+          await CustomChannelEdition.assertAvailable();
 
           /*
            * The admin trying the channel they set up, whether it is on or

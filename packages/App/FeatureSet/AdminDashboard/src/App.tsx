@@ -23,7 +23,6 @@ import SettingsDataRetention from "./Pages/Settings/DataRetention/Index";
 import SettingsCallSMS from "./Pages/Settings/CallSMS/Index";
 import SettingsWhatsApp from "./Pages/Settings/WhatsApp/Index";
 import SettingsTelegram from "./Pages/Settings/Telegram/Index";
-import SettingsCustomChannels from "./Pages/Settings/CustomChannels/Index";
 import SettingsPushNotifications from "./Pages/Settings/PushNotifications/Index";
 // Settings Pages.
 import SettingsEmail from "./Pages/Settings/Email/Index";
@@ -284,11 +283,6 @@ const App: () => JSX.Element = () => {
         <PageRoute
           path={RouteMap[PageMap.SETTINGS_TELEGRAM]?.toString() || ""}
           element={<SettingsTelegram />}
-        />
-
-        <PageRoute
-          path={RouteMap[PageMap.SETTINGS_CUSTOM_CHANNELS]?.toString() || ""}
-          element={<SettingsCustomChannels />}
         />
 
         <PageRoute

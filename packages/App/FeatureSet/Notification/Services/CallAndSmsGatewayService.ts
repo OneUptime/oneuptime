@@ -1,8 +1,8 @@
 import { getCallAndSmsGateway } from "../Config";
-import CustomChannelService, {
-  MAX_CUSTOM_CHANNEL_BODY_LENGTH,
+import SignedWebhookPost, {
+  MAX_SIGNED_WEBHOOK_BODY_LENGTH,
   SignedPostOutcome,
-} from "./CustomChannelService";
+} from "../Utils/SignedWebhookPost";
 import { CallAndSmsGateway } from "Common/Types/CallAndSMS/CallAndSmsProvider";
 import {
   buildCallAndSmsGatewayTestPayload,
@@ -20,9 +20,8 @@ import SSRFProtection from "Common/Server/Utils/SSRFProtection";
  * A server set to send its SMS and calls through its own gateway
  * (CallAndSmsProvider.Gateway) posts each one to the gateway's URL as one
  * JSON request (CallAndSmsGatewayPayload), signed with the gateway's secret
- * and tried again as a custom channel's request is
- * (CustomChannelService.postSigned): a gateway that is restarting does not
- * lose a page.
+ * and tried again as a custom channel's request is (SignedWebhookPost): a
+ * gateway that is restarting does not lose a page.
  *
  * What is recorded where people read it - the SMS or call log, the on-call
  * log row, a test's answer - names the gateway and the HTTP status, never
@@ -57,10 +56,10 @@ export default class CallAndSmsGatewayService {
   }): Promise<CallAndSmsGatewayResult> {
     const body: string = JSON.stringify(data.payload);
 
-    if (body.length > MAX_CUSTOM_CHANNEL_BODY_LENGTH) {
+    if (body.length > MAX_SIGNED_WEBHOOK_BODY_LENGTH) {
       return {
         ok: false,
-        message: `Not sent: the request for ${CALL_AND_SMS_GATEWAY_NAME} is larger than ${MAX_CUSTOM_CHANNEL_BODY_LENGTH} bytes.`,
+        message: `Not sent: the request for ${CALL_AND_SMS_GATEWAY_NAME} is larger than ${MAX_SIGNED_WEBHOOK_BODY_LENGTH} bytes.`,
       };
     }
 
@@ -86,7 +85,7 @@ export default class CallAndSmsGatewayService {
       };
     }
 
-    const outcome: SignedPostOutcome = await CustomChannelService.postSigned({
+    const outcome: SignedPostOutcome = await SignedWebhookPost.post({
       url: data.gateway.url,
       secret: data.gateway.secret,
       eventType: data.event,

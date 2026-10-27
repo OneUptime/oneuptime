@@ -11,6 +11,10 @@ import ObjectID from "../../Types/ObjectID";
 import API from "../../Utils/API";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
+import CustomChannelEdition, {
+  CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
+} from "../Utils/Notification/CustomChannelEdition";
+import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 
 // How a delivery to a custom channel went, in words fit for its sender.
 export interface CustomChannelDeliveryResult {
@@ -24,11 +28,14 @@ export interface CustomChannelDeliveryResult {
 export const CUSTOM_CHANNEL_DELIVERY_LABEL: string = "Custom Channel";
 
 /*
- * Hands a request for a custom channel to the Notification service, which
- * holds what is needed to send it - the channel's URL and secret, read there
- * by id - and records how it went on the notification's on-call log row.
- * The request names the channel, never its URL: nothing of a channel's
- * address travels further than it has to.
+ * Hands a request for a custom channel to the Enterprise Edition's sender
+ * (ee/Server/CustomNotificationChannels, at
+ * /api/notification/custom-channel/send), which reads what is needed to
+ * send it - the channel's URL and secret, by id - and records how it went on
+ * the notification's on-call log row. The request names the channel, never
+ * its URL: nothing of a channel's address travels further than it has to.
+ * While the feature is not active - always, on the Community Edition - it is
+ * refused here (CustomChannelEdition).
  */
 export class CustomNotificationChannelDeliveryService extends BaseService {
   public constructor() {
@@ -45,6 +52,23 @@ export class CustomNotificationChannelDeliveryService extends BaseService {
     // A test is sent to a channel that is off as well, for its admin to try.
     isTest?: boolean | undefined;
   }): Promise<CustomChannelDeliveryResult> {
+    /*
+     * An Enterprise feature: nothing reaches a channel while it is not
+     * active (CustomChannelEdition), and the on-call log says why rather
+     * than "Sending" for ever. The Enterprise Edition sends the request.
+     */
+    if (!CustomChannelEdition.isActive()) {
+      await UserOnCallLogTimelineService.markNotSent({
+        userOnCallLogTimelineId: data.userOnCallLogTimelineId,
+        reason: CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
+      });
+
+      return {
+        ok: false,
+        message: CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
+      };
+    }
+
     // A project a master admin blocked sends nothing (BlockedProjectNotifications).
     const blockedProjectRefusal: HTTPErrorResponse | null =
       await BlockedProjectNotifications.getRefusal({

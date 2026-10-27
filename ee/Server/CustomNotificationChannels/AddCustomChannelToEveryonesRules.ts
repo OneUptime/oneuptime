@@ -1,25 +1,27 @@
-import CustomNotificationChannelService from "../../Services/CustomNotificationChannelService";
-import TeamMemberService from "../../Services/TeamMemberService";
-import UserNotificationRuleService from "../../Services/UserNotificationRuleService";
-import QueryHelper from "../../Types/Database/QueryHelper";
-import logger from "../Logger";
-import CaptureSpan from "../Telemetry/CaptureSpan";
-import CustomNotificationChannel from "../../../Models/DatabaseModels/CustomNotificationChannel";
-import TeamMember from "../../../Models/DatabaseModels/TeamMember";
-import SortOrder from "../../../Types/BaseDatabase/SortOrder";
-import OneUptimeDate from "../../../Types/Date";
-import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
-import ObjectID from "../../../Types/ObjectID";
+import CustomNotificationChannelService from "Common/Server/Services/CustomNotificationChannelService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
+import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import logger from "Common/Server/Utils/Logger";
+import CustomChannelEdition from "Common/Server/Utils/Notification/CustomChannelEdition";
+import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
+import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
+import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import OneUptimeDate from "Common/Types/Date";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import ObjectID from "Common/Types/ObjectID";
 
 /*
- * ADDING A CUSTOM CHANNEL TO EVERYBODY'S ON-CALL RULES.
+ * ADDING A CUSTOM CHANNEL TO EVERYBODY'S ON-CALL RULES (Enterprise Edition).
  *
  * A channel that pages everyone (CustomNotificationChannel
  * .pageEveryoneByDefault) is in everybody's default rules, in every project:
  * the same rules a verified method gets, for every severity
  * (addDefaultNotificationRulesForVerifiedMethod). People who join a project
- * later get it as they join (addCustomChannelsPagingEveryoneForUser); this
- * adds it for everybody who was a member when it started paging everyone.
+ * later get it as they join (addCustomChannelsPagingEveryoneForUser, in core);
+ * this adds it for everybody who was a member when it started paging
+ * everyone.
  *
  * The worker job AddCustomChannelToEveryonesRules runs it, enqueued by
  * CustomNotificationChannelService the moment a channel starts paging
@@ -27,7 +29,9 @@ import ObjectID from "../../../Types/ObjectID";
  * on, pages everyone and has not been added yet (addedToEveryonesRulesAt
  * null), so a run stopped part way is taken up by the next, and a channel
  * done is never swept again: somebody who removed it from their rules
- * afterwards keeps it removed.
+ * afterwards keeps it removed. While the feature is not active
+ * (CustomChannelEdition) nothing is added; the first run once it is again
+ * catches up.
  *
  * Every write is guarded by what already exists - a rule for that person,
  * channel, type and severity is never written twice - so running over the
@@ -44,6 +48,10 @@ export default class AddCustomChannelToEveryonesRules {
    */
   @CaptureSpan()
   public static async run(): Promise<number> {
+    if (!CustomChannelEdition.isActive()) {
+      return 0;
+    }
+
     const channels: Array<CustomNotificationChannel> =
       await CustomNotificationChannelService.findBy({
         query: {

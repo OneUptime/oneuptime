@@ -2,12 +2,16 @@
 
 A custom channel sends on-call pages to a service you run: your company's own app, a pager system, or a gateway that checks what leaves your network. You add it once, for the whole server, and everyone can be paged through it with nothing to set up. In the Admin Dashboard they are called **Custom Channels**.
 
+> [!NOTE]
+> Custom channels are part of the [OneUptime Enterprise Edition](/docs/self-hosted/enterprise) and need an Enterprise license that includes them. The Community Edition has no **Custom Channels** page and sends nothing to a channel. See [Without a license](#without-a-license).
+
 :::cards
 - [Add a channel](#add-a-channel): A name, a URL and a signing secret.
 - [What your service receives](#what-your-service-receives): One signed JSON request per person per page.
 - [Act on a page](#act-on-a-page): Acknowledge, escalate or resolve from your own app.
 - [Delivery and retries](#delivery-and-retries): What happens when your service is down.
 - [Other notifications](#other-notifications): Owner notifications, notes and shifts, for people who want them.
+- [Without a license](#without-a-license): What stops, and what is kept.
 :::
 
 ## How It Works
@@ -27,7 +31,7 @@ When an on-call policy pages someone and their on-call rule uses the channel, On
 
 ## Add a Channel
 
-1. In the Admin Dashboard, open **Settings**, then **Custom Channels** under **Notifications**, and select **Add**.
+1. In the Admin Dashboard, open **Settings**, then **Custom Channels**, and select **Add**.
 2. Fill in:
    - **Name**: what people see in their notification methods and on-call rules, for example `CorpoApp`.
    - **Webhook URL**: where OneUptime sends each page. It can be on your private network.
@@ -183,3 +187,14 @@ Each attempt's outcome is in the person's on-call log, with the channel's name a
 ## Test Requests
 
 **Send test**, on the Admin Dashboard's page or a person's Notification Methods, sends a request with `event` set to `test`, the person who pressed it as `user`, and `notificationId`, `record` and `actions` set to `null`. Use it to try your service before a real page arrives.
+
+## Without a License
+
+Custom channels work during the Enterprise Edition's 14-day trial and the 30-day grace period after a license expires. After that, or with a license that does not include them:
+
+- **Nothing is sent to a custom channel.** A page that would have gone to one is recorded in the person's on-call log as not sent, and so is a test.
+- **Channels are no longer offered.** They leave people's notification methods, on-call rules and notification settings, and readiness and the fallback stop counting them.
+- **The page is read-only.** You can see and delete channels, but not add or change them, and no one can point a rule or a notification setting at one.
+- **Nothing is deleted.** The channels, and the on-call rules and settings that use them, are kept.
+
+Everything resumes as soon as a license is activated, without a restart. People who joined a project while custom channels were stopped do not get a channel that pages everyone in their rules: they can add it themselves.

@@ -1,7 +1,4 @@
-import CustomChannelService from "../Services/CustomChannelService";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
+import CustomChannelSender from "../CustomChannelSender";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 import { CustomChannelDeliveryResult } from "Common/Server/Services/CustomNotificationChannelDeliveryService";
 import Express, {
@@ -11,17 +8,30 @@ import Express, {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import Response from "Common/Server/Utils/Response";
+import BadDataException from "Common/Types/Exception/BadDataException";
+import { JSONObject } from "Common/Types/JSON";
+import ObjectID from "Common/Types/ObjectID";
 
 const router: ExpressRouter = Express.getRouter();
 
 /*
- * POST /custom-channel/send - a request for a custom channel, from inside the
- * cluster only (CustomNotificationChannelDeliveryService). It names the
- * channel by id; the URL and secret are read here. Answers how it went,
- * whether or not it was delivered, so a test can say so.
+ * The path the request is served at, under "/api": the one core posts to
+ * (CustomNotificationChannelDeliveryService), so it is part of the contract
+ * between the two editions.
+ */
+export const CUSTOM_CHANNEL_SEND_PATH: string =
+  "/notification/custom-channel/send";
+
+/*
+ * POST /api/notification/custom-channel/send - a request for a custom
+ * channel, from inside the cluster only (CustomNotificationChannelDeliveryService).
+ * It names the channel by id; the URL and secret are read by the sender.
+ * Answers how it went, whether or not it was delivered, so a test can say so.
+ * Routes only, no router.use(): ee routers are mounted at "/api", ahead of
+ * core's.
  */
 router.post(
-  "/send",
+  CUSTOM_CHANNEL_SEND_PATH,
   ClusterKeyAuthorization.isAuthorizedServiceMiddleware,
   async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
     try {
@@ -44,7 +54,7 @@ router.post(
       );
 
       const result: CustomChannelDeliveryResult =
-        await CustomChannelService.send({
+        await CustomChannelSender.send({
           customNotificationChannelId: new ObjectID(channelId),
           eventType: String(body["eventType"]),
           payload: (body["payload"] as JSONObject) || {},

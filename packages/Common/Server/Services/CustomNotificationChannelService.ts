@@ -14,13 +14,15 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/CustomNotificationChannel";
+import CustomChannelEdition from "../Utils/Notification/CustomChannelEdition";
 import crypto from "crypto";
 
 /*
  * The worker job that adds a channel to everybody's on-call rules, enqueued by
- * name: Common cannot import from App. It duplicates JOB_NAME in
- * App/FeatureSet/Workers/Jobs/OnCallDutyPolicy/AddCustomChannelToEveryonesRules.ts
- * verbatim - renaming one means renaming both.
+ * name: it is the Enterprise Edition's
+ * (ee/Server/CustomNotificationChannels/Jobs/AddCustomChannelToEveryonesRules.ts),
+ * and core never imports the Enterprise Edition. The job reads this name from
+ * here.
  */
 export const ADD_CUSTOM_CHANNEL_TO_EVERYONES_RULES_JOB_NAME: string =
   "OnCallDutyPolicy:AddCustomChannelToEveryonesRules";
@@ -291,12 +293,28 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * Whether anything may reach a custom channel right now: an Enterprise
+   * feature, active while the Enterprise Edition runs with a license that
+   * includes it - or during its trial and grace period (CustomChannelEdition).
+   * On the Community Edition it never is.
+   */
+  public static isFeatureActive(): boolean {
+    return CustomChannelEdition.isActive();
+  }
+
+  /*
    * The channels people may pick in their rules: the ones that are on, by
    * name. Their id and name only, so nothing else of a channel ever reaches a
-   * project member (CustomNotificationChannel).
+   * project member (CustomNotificationChannel). None while the feature is not
+   * active (isFeatureActive): no rule, readiness check, fallback or
+   * notification reaches a channel then, and no screen offers one.
    */
   @CaptureSpan()
   public async getChannelsThatAreOn(): Promise<Array<Model>> {
+    if (!Service.isFeatureActive()) {
+      return [];
+    }
+
     return await this.findBy({
       query: {
         isEnabled: true,
@@ -319,10 +337,14 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * The channels a person joining a project gets in their rules: on, and
-   * paging everyone.
+   * paging everyone. None while the feature is not active (isFeatureActive).
    */
   @CaptureSpan()
   public async getChannelsPagingEveryone(): Promise<Array<Model>> {
+    if (!Service.isFeatureActive()) {
+      return [];
+    }
+
     return await this.findBy({
       query: {
         isEnabled: true,

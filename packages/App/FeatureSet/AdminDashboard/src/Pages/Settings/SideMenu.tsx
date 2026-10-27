@@ -108,15 +108,6 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Notification}
         />
-        <SideMenuItem
-          link={{
-            title: "Custom Channels",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.SETTINGS_CUSTOM_CHANNELS] as Route,
-            ),
-          }}
-          icon={IconProp.Webhook}
-        />
       </SideMenuSection>
 
       <SideMenuSection

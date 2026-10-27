@@ -3,6 +3,7 @@ import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
 import TableAccessControl from "../../Types/Database/AccessControl/TableAccessControl";
+import TableEditionAccessControl from "../../Types/Database/AccessControl/TableEditionAccessControl";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
@@ -33,7 +34,16 @@ import { Column, Entity, JoinColumn, ManyToOne } from "typeorm";
  * through a rule that points at a channel (UserNotificationRule's relation is
  * read by nobody). Members see a channel's id and name alone, from
  * CustomNotificationChannelAPI's list of the channels that are on.
+ *
+ * An Enterprise feature (EnterpriseFeature.CustomNotificationChannels):
+ * adding or changing a channel needs it (EditionPermissions), and nothing is
+ * sent to one while it is not active. The table stays in core, as every
+ * enterprise table does, so switching editions needs no migration; deleting
+ * a channel needs no license.
  */
+@TableEditionAccessControl({
+  requiresEnterprise: true,
+})
 @TableAccessControl({
   create: [],
   read: [],
