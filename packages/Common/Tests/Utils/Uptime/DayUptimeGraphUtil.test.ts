@@ -447,6 +447,137 @@ describe("DayUptimeGraphUtil.getDayAriaLabel", () => {
       }),
     ).toBe("Mar 03 2026 - Mar 03 2026");
   });
+
+  /*
+   * The day's scheduled maintenance, said after everything else (#5236): a
+   * screen reader hears what the bar's maintenance band shows.
+   */
+  test("a day with one maintenance event says so, after the reading", () => {
+    expect(
+      DayUptimeGraphUtil.getDayAriaLabel({
+        dateLabel: "Oct 21 2026",
+        hasEvents: true,
+        uptimePercent: 66.67,
+        incidentCount: 0,
+        maintenanceCount: 1,
+      }),
+    ).toBe("Oct 21 2026: 66.67% uptime, 1 scheduled maintenance event");
+  });
+
+  test("a day with several says how many, after the incidents", () => {
+    expect(
+      DayUptimeGraphUtil.getDayAriaLabel({
+        dateLabel: "Oct 21 2026",
+        hasEvents: true,
+        uptimePercent: 99.5,
+        incidentCount: 2,
+        maintenanceCount: 3,
+      }),
+    ).toBe(
+      "Oct 21 2026: 99.5% uptime, 2 incidents, 3 scheduled maintenance events",
+    );
+  });
+
+  test("a day with no data still says what maintenance it had", () => {
+    expect(
+      DayUptimeGraphUtil.getDayAriaLabel({
+        dateLabel: "Oct 21 2026",
+        hasEvents: false,
+        uptimePercent: 0,
+        incidentCount: 1,
+        maintenanceCount: 1,
+      }),
+    ).toBe("Oct 21 2026: no data, 1 incidents, 1 scheduled maintenance event");
+  });
+
+  test.each([0, -2, undefined])(
+    "a maintenance count of %s adds nothing",
+    (maintenanceCount: number | undefined) => {
+      expect(
+        DayUptimeGraphUtil.getDayAriaLabel({
+          dateLabel: "Oct 21 2026",
+          hasEvents: true,
+          uptimePercent: 100,
+          incidentCount: 0,
+          maintenanceCount: maintenanceCount,
+        }),
+      ).toBe("Oct 21 2026: 100% uptime");
+    },
+  );
+
+  test("the caller's own wording joins and counts the maintenance", () => {
+    const labels: UptimeHistoryLabels = {
+      ...SPANISH_LABELS,
+      dayLabelWithMaintenance: "{{label}}; {{maintenance}}",
+      oneMaintenanceEvent: "1 mantenimiento programado",
+      maintenanceEvents: "{{total}} mantenimientos programados",
+    };
+
+    expect(
+      DayUptimeGraphUtil.getDayAriaLabel({
+        dateLabel: "21 oct 2026",
+        hasEvents: false,
+        uptimePercent: 0,
+        incidentCount: 0,
+        maintenanceCount: 2,
+        labels: labels,
+      }),
+    ).toBe("21 oct 2026: sin datos; 2 mantenimientos programados");
+  });
+});
+
+describe("DayUptimeGraphUtil.getMaintenanceCountLabel", () => {
+  test("one is said in words of its own", () => {
+    expect(DayUptimeGraphUtil.getMaintenanceCountLabel({ count: 1 })).toBe(
+      "1 scheduled maintenance event",
+    );
+  });
+
+  test("more are counted", () => {
+    expect(DayUptimeGraphUtil.getMaintenanceCountLabel({ count: 12 })).toBe(
+      "12 scheduled maintenance events",
+    );
+  });
+
+  test("a count that is not whole or not positive reads as what it can be", () => {
+    expect(DayUptimeGraphUtil.getMaintenanceCountLabel({ count: 2.7 })).toBe(
+      "2 scheduled maintenance events",
+    );
+    expect(DayUptimeGraphUtil.getMaintenanceCountLabel({ count: -1 })).toBe(
+      "0 scheduled maintenance events",
+    );
+  });
+
+  test("a locale's one-form is used for exactly one", () => {
+    const labels: UptimeHistoryLabels = {
+      ...DefaultUptimeHistoryLabels,
+      oneMaintenanceEvent: "1 geplante Wartung",
+      maintenanceEvents: "{{total}} geplante Wartungen",
+    };
+
+    expect(
+      DayUptimeGraphUtil.getMaintenanceCountLabel({ count: 1, labels }),
+    ).toBe("1 geplante Wartung");
+    expect(
+      DayUptimeGraphUtil.getMaintenanceCountLabel({ count: 4, labels }),
+    ).toBe("4 geplante Wartungen");
+  });
+});
+
+describe("DayUptimeGraphUtil.fillLabel", () => {
+  test("fills every placeholder, wherever and however often it stands", () => {
+    expect(
+      DayUptimeGraphUtil.fillLabel("+{{total}} more, {{total}} in all", {
+        total: "3",
+      }),
+    ).toBe("+3 more, 3 in all");
+  });
+
+  test("leaves a placeholder it has no value for as written", () => {
+    expect(DayUptimeGraphUtil.fillLabel("{{total}} of {{all}}", { total: "1" })).toBe(
+      "1 of {{all}}",
+    );
+  });
 });
 
 describe("DayUptimeGraphUtil.getGraphAriaLabel", () => {

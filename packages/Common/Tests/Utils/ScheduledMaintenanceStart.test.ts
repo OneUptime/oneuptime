@@ -927,6 +927,120 @@ describe("ScheduledMaintenanceStartUtil.getWaitingToStartStates", () => {
   });
 });
 
+/*
+ * What a status page's uptime history asks for: the states an event has
+ * started in - in progress or over - and nothing still waiting, whether for
+ * its Starts At (Scheduled, "Confirmed") or for a person ("Draft").
+ */
+describe("ScheduledMaintenanceStartUtil.getStartedStates", () => {
+  test("is Ongoing and every state after it, the project's own included, in the order given", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.getStartedStates({
+        states: FULL_MODELS,
+      }).map((state: ScheduledMaintenanceState): string => {
+        return state.name || "";
+      }),
+    ).toEqual([
+      "Ongoing",
+      "Verifying",
+      "Ended",
+      "Reviewing",
+      "Completed",
+      "Archived",
+    ]);
+  });
+
+  test("is every state hasStarted says, and none it does not", () => {
+    const started: Array<ScheduledMaintenanceState> =
+      ScheduledMaintenanceStartUtil.getStartedStates({ states: FULL_MODELS });
+
+    for (const state of FULL_MODELS) {
+      expect(started.includes(state)).toBe(
+        ScheduledMaintenanceStartUtil.hasStarted({
+          states: FULL_MODELS,
+          state: state,
+        }),
+      );
+    }
+  });
+
+  test("is the in progress states and the over states together", () => {
+    const started: Array<string> = ScheduledMaintenanceStartUtil.getStartedStates(
+      { states: FULL_MODELS },
+    ).map((state: ScheduledMaintenanceState): string => {
+      return state.name || "";
+    });
+
+    const inProgress: Array<string> =
+      ScheduledMaintenanceStartUtil.getInProgressStates({
+        states: FULL_MODELS,
+      }).map((state: ScheduledMaintenanceState): string => {
+        return state.name || "";
+      });
+
+    const over: Array<string> = FULL_MODELS.filter(
+      (state: ScheduledMaintenanceState): boolean => {
+        return ScheduledMaintenanceStartUtil.hasEnded({
+          states: FULL_MODELS,
+          state: state,
+        });
+      },
+    ).map((state: ScheduledMaintenanceState): string => {
+      return state.name || "";
+    });
+
+    expect([...started].sort()).toEqual([...inProgress, ...over].sort());
+  });
+
+  test("names them by id as ObjectIDs, for a query", () => {
+    const ids: Array<ObjectID> =
+      ScheduledMaintenanceStartUtil.getStartedStateIds({
+        states: FULL_LIST.map(json),
+      });
+
+    expect(
+      ids.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([
+      ONGOING.id,
+      VERIFYING.id,
+      ENDED.id,
+      REVIEWING.id,
+      COMPLETED.id,
+      ARCHIVED.id,
+    ]);
+
+    for (const id of ids) {
+      expect(id).toBeInstanceOf(ObjectID);
+    }
+  });
+
+  test("is the four built-in states but Scheduled, for a project with no states of its own", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.getStartedStateIds({
+        states: [SCHEDULED, ONGOING, ENDED, COMPLETED].map(json),
+      }).map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([ONGOING.id, ENDED.id, COMPLETED.id]);
+  });
+
+  test("is nothing for a project whose states were not read", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.getStartedStateIds({ states: [] }),
+    ).toEqual([]);
+  });
+
+  test("leaves out a state with no id", () => {
+    expect(
+      ScheduledMaintenanceStartUtil.getStartedStateIds({
+        states: [{ isOngoingState: true, order: 1 }],
+      }),
+    ).toEqual([]);
+  });
+});
+
 describe("ScheduledMaintenanceStartUtil.isCompleteByFlags", () => {
   test.each([
     ["Scheduled", SCHEDULED, false],
