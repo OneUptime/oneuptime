@@ -6,13 +6,20 @@
  * prompt, are answered here.
  *
  * Query string:
- *   page=login|sso|register|statuspage   which page (login by default)
+ *   page=login|sso|register|statuspage   which page (login by default);
+ *        |adminlogin                     adminlogin is the master admins'
+ *                                        sign-in page (/accounts/admin-login)
  *   lang=<code>                          its language (English by default)
  *   ms=1                                 the server offers Sign in with Microsoft
  *                                        (server.js puts it in window.process.env)
  *   passkey=pending|cancel               what the passkey prompt does
  *   webauthn=0                           a browser without passkeys
- *   globalsso=1                          the SSO page lists an instance-wide provider
+ *   globalsso=1                          the server has an instance-wide provider
+ *   ssorequired=1                        the whole server requires SSO (with one
+ *                                        instance-wide provider unless providers= says)
+ *   providers=<n>                        how many instance-wide providers (0 to 3)
+ *   projectsso=1                         while SSO is required, some project has a
+ *                                        provider of its own (the email lookup stays)
  *   sso=0                                the status page has no SSO provider
  *
  * window.__setLanguage(code) switches the page's language in place, and
@@ -48,18 +55,47 @@ ModelAPI.createOrUpdate = async () => {
   return never();
 };
 
+// The server's instance-wide providers, as GET /identity/sign-in-methods lists them.
+const PROVIDERS = [
+  {
+    type: "GlobalSSO",
+    id: "33333333-3333-4333-8333-333333333333",
+    name: "Okta",
+    description: "Everyone at Acme",
+  },
+  {
+    type: "GlobalOIDC",
+    id: "44444444-4444-4444-8444-444444444444",
+    name: "Google Workspace",
+    description: "",
+  },
+  {
+    type: "GlobalSSO",
+    id: "55555555-5555-4555-8555-555555555555",
+    name: "Microsoft Entra ID",
+    description: "Sign in with Microsoft Entra ID",
+  },
+];
+
+const isSsoRequired = params.get("ssorequired") === "1";
+const providerCount = params.has("providers")
+  ? Number(params.get("providers"))
+  : isSsoRequired || params.get("globalsso") === "1"
+    ? 1
+    : 0;
+
 API.get = async (options) => {
   const url = options.url.toString();
-  if (params.get("globalsso") === "1" && url.includes("/global-sso")) {
+  // How the server signs people in: what every Accounts page reads first.
+  if (url.endsWith("/sign-in-methods")) {
     return new HTTPResponse(
       200,
-      [
-        {
-          _id: "33333333-3333-4333-8333-333333333333",
-          name: "Okta",
-          description: "Everyone at Acme",
-        },
-      ],
+      {
+        isSsoRequired: isSsoRequired,
+        ssoProviders: PROVIDERS.slice(0, providerCount),
+        hasProjectSsoProviders:
+          isSsoRequired && params.get("projectsso") === "1",
+      },
       {},
     );
   }
@@ -174,6 +210,9 @@ const loadAccountsPage = async () => {
     login: () => {
       return import("../../../App/FeatureSet/Accounts/src/Pages/Login");
     },
+    adminlogin: () => {
+      return import("../../../App/FeatureSet/Accounts/src/Pages/Login");
+    },
     sso: () => {
       return import("../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO");
     },
@@ -192,7 +231,12 @@ const loadAccountsPage = async () => {
   ]);
   const Page = pageModule.default;
 
-  return { i18n: i18nModule.default, element: <Page /> };
+  // The master admins' address renders the sign-in page as App.tsx does there.
+  return {
+    i18n: i18nModule.default,
+    element:
+      page === "adminlogin" ? <Page isMasterAdminSignIn={true} /> : <Page />,
+  };
 };
 
 const start = async () => {
