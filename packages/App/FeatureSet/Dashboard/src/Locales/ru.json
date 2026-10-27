@@ -35877,5 +35877,7 @@
   "Host key": "Ключ хоста",
   "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.": "Шаг выполняет вход, только если машина предъявит один из этих ключей: её отпечаток SHA256 или открытый ключ в том виде, в каком его выводит ssh-keyscan, по одному на строку. Если оставить поле пустым, принимается любой ключ, а вывод шага показывает ключ, который предъявила машина.",
   "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "Одна из строк здесь не является ни отпечатком SHA256, ни открытым ключом, поэтому шаг завершится ошибкой при запуске.",
-  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Здесь больше ключей, чем бывает у машины, поэтому шаг завершится ошибкой при запуске. У машины по одному ключу каждого типа: укажите их."
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Здесь больше ключей, чем бывает у машины, поэтому шаг завершится ошибкой при запуске. У машины по одному ключу каждого типа: укажите их.",
+  "Story": "Ход событий",
+  "Impact": "Последствия"
 }

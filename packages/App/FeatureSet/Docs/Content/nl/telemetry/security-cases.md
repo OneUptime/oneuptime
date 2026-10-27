@@ -88,7 +88,7 @@ Een zaak heeft een eigen zijmenu, zoals een incident, en elk deel van de zaak is
 | Sectie van het zijmenu | Pagina's |
 | --- | --- |
 | **Overzicht** | **Overzicht**, **Tijdlijn** |
-| **Onderzoek** | **Detecties**, **Entiteiten**, **Verbonden signalen**, **Playbooks** |
+| **Onderzoek** | **Verloop**, **Detecties**, **Entiteiten**, **Verbonden signalen**, **Playbooks** |
 | **Notities** | **Privénotities** |
 | **Geavanceerd** | **Auditlogboeken**, **Zaak verwijderen**, ingeklapt tot je op **Geavanceerd** klikt |
 
@@ -96,8 +96,10 @@ Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en tit
 
 - **Overzicht**: de beschrijving, labels en statusstappen van de zaak, wie haar heeft en wat haar opende, en haar cijfers: hoeveel detecties ze heeft, hoe lang ze al open is, en hoe lang het duurde tot ze bevestigd en ingedamd was.
 - **OneUptime AI**, op het **Overzicht**: wat OneUptime AI van de zaak maakt, de prioriteit en het playbook die het voorstelt, en het bewijs erachter. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
+- **Impact**, op het **Overzicht**: wat de zaak in gevaar brengt: of OneUptime heeft gezien dat haar records vanaf het internet werden bereikt, wie de eigenaar is en wat er het laatst aan veranderde. Klap het open om te zien wat elk record aanroept en waardoor het wordt aangeroepen, welke monitors en statuspagina's het in de gaten houden en met welke machines de adressen van de zaak praatten.
 - **MITRE ATT&CK**, op het **Overzicht**: de tactieken en technieken waarop haar detecties zijn gemapt, elk gelinkt aan de bijbehorende pagina op attack.mitre.org.
 - **Tijdlijn**: alles wat er met de zaak gebeurde, met wie het deed.
+- **Verloop**: wat er gebeurde, op volgorde, in heel OneUptime: elke detectie en de beveiligingsgebeurtenissen erachter, hoe ver hun verzoeken kwamen, de uitzonderingen die ze opwierpen, de wijzigingen aan de records die de zaak noemt, de incidenten en meldingen die daarop ontstonden, en wat het team deed. De vele probes van een scanner zijn één regel, en elke regel opent wat hij noemt, zoals de trace van het verzoek of de uitzondering.
 - **Detecties**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
 - **Verbonden signalen**: de hosts, clusters, services en leden die de zaak noemt, zoals OneUptime ze kent, en wat er op elk ervan gebeurde rond de detecties: hun logboeken, traces en metrieken, wat erop openstaat en wat er is veranderd. Zie [Verbonden signalen](/docs/telemetry/security-connected-signals).

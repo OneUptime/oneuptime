@@ -35877,5 +35877,7 @@
   "Host key": "主机密钥",
   "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.": "只有当机器出示其中一个密钥时，步骤才会登录：其 SHA256 指纹，或 ssh-keyscan 输出的公钥，每行一个。留空时接受任何密钥，并在步骤输出中显示机器出示的密钥。",
   "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "此处有一行既不是 SHA256 指纹也不是公钥，因此步骤运行时会失败。",
-  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "这里的密钥多于一台机器拥有的数量，因此步骤运行时会失败。一台机器每种类型只有一个密钥：请填写这些。"
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "这里的密钥多于一台机器拥有的数量，因此步骤运行时会失败。一台机器每种类型只有一个密钥：请填写这些。",
+  "Story": "经过",
+  "Impact": "影响"
 }

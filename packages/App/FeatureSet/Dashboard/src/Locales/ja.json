@@ -35877,5 +35877,7 @@
   "Host key": "ホストキー",
   "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.": "マシンがこれらのキーのいずれかを提示したときだけ、ステップはサインインします。SHA256 フィンガープリント、または ssh-keyscan が出力する形式の公開鍵を 1 行に 1 つずつ入力します。空のままにすると任意のキーを受け入れ、ステップの出力にマシンが提示したキーが表示されます。",
   "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "ここに SHA256 フィンガープリントでも公開鍵でもない行があるため、ステップは実行時に失敗します。",
-  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "マシンが持つより多くのキーが指定されているため、ステップは実行時に失敗します。マシンは種類ごとに 1 つのキーを持ちます。それらを指定してください。"
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "マシンが持つより多くのキーが指定されているため、ステップは実行時に失敗します。マシンは種類ごとに 1 つのキーを持ちます。それらを指定してください。",
+  "Story": "経緯",
+  "Impact": "影響"
 }

@@ -610,6 +610,7 @@ import ThreatIntelFeedService, {
 } from "Common/Server/Services/ThreatIntelFeedService";
 import SecurityCaseAPI from "Common/Server/API/SecurityCaseAPI";
 import SecurityAttackCampaignAPI from "Common/Server/API/SecurityAttackCampaignAPI";
+import SecurityCaseContextAPI from "Common/Server/API/SecurityCaseContextAPI";
 import SecurityPlaybookRunAPI from "Common/Server/API/SecurityPlaybookRunAPI";
 import SecurityCaseFeedService, {
   Service as SecurityCaseFeedServiceType,
@@ -4048,6 +4049,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityAttackCampaignAPI().getRouter(),
+    );
+
+    // A case's Story and Impact: the case as the rest of OneUptime tells it.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityCaseContextAPI().getRouter(),
     );
 
     app.use(

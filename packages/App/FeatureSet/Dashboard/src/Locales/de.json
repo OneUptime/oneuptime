@@ -35877,5 +35877,7 @@
   "Host key": "Host-Schlüssel",
   "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.": "Der Schritt meldet sich nur an, wenn der Rechner einen dieser Schlüssel vorlegt: seinen SHA256-Fingerabdruck oder seinen öffentlichen Schlüssel, wie ssh-keyscan ihn ausgibt, einer pro Zeile. Leer gelassen, wird jeder Schlüssel akzeptiert, und die Ausgabe des Schritts zeigt den, den der Rechner vorgelegt hat.",
   "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "Eine Zeile hier ist weder ein SHA256-Fingerabdruck noch ein öffentlicher Schlüssel, daher schlägt der Schritt beim Ausführen fehl.",
-  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Hier stehen mehr Schlüssel, als ein Rechner hat, daher schlägt der Schritt beim Ausführen fehl. Ein Rechner hat einen Schlüssel je Typ: Nennen Sie diese."
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Hier stehen mehr Schlüssel, als ein Rechner hat, daher schlägt der Schritt beim Ausführen fehl. Ein Rechner hat einen Schlüssel je Typ: Nennen Sie diese.",
+  "Story": "Hergang",
+  "Impact": "Auswirkungen"
 }

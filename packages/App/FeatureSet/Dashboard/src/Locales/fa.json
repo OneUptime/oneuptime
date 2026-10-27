@@ -35877,5 +35877,7 @@
   "Host key": "کلید میزبان",
   "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.": "گام فقط وقتی وارد می‌شود که ماشین یکی از این کلیدها را ارائه کند: اثر انگشت SHA256 آن، یا کلید عمومی‌اش همان‌طور که ssh-keyscan چاپ می‌کند، هر خط یکی. اگر خالی بماند، هر کلیدی پذیرفته می‌شود و خروجی گام کلیدی را که ماشین ارائه کرد نشان می‌دهد.",
   "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "یک خط در اینجا نه اثر انگشت SHA256 است و نه کلید عمومی، پس گام هنگام اجرا شکست می‌خورد.",
-  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "اینجا کلیدهایی بیش از آنچه یک ماشین دارد آمده است، پس گام هنگام اجرا شکست می‌خورد. هر ماشین از هر نوع یک کلید دارد: همان‌ها را بنویسید."
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "اینجا کلیدهایی بیش از آنچه یک ماشین دارد آمده است، پس گام هنگام اجرا شکست می‌خورد. هر ماشین از هر نوع یک کلید دارد: همان‌ها را بنویسید.",
+  "Story": "روند رویدادها",
+  "Impact": "تأثیر"
 }

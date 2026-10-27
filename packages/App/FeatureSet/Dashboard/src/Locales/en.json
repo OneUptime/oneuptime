@@ -35877,5 +35877,7 @@
   "Host key": "Host key",
   "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.": "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.",
   "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.",
-  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those."
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.",
+  "Story": "Story",
+  "Impact": "Impact"
 }

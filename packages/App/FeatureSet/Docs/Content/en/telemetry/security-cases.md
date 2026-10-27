@@ -88,7 +88,7 @@ A case has a side menu of its own, as an incident has, and each part of the case
 | Side menu section | Pages |
 | --- | --- |
 | **Overview** | **Overview**, **Timeline** |
-| **Investigation** | **Detections**, **Entities**, **Connected Signals**, **Playbooks** |
+| **Investigation** | **Story**, **Detections**, **Entities**, **Connected Signals**, **Playbooks** |
 | **Notes** | **Private Notes** |
 | **Advanced** | **Audit Logs**, **Delete Case**, folded until you click **Advanced** |
 
@@ -96,8 +96,10 @@ Every page keeps the case's header on top: its number, priority, status and titl
 
 - **Overview**: the case's description, labels and status steps, who has it and what opened it, and its figures: how many detections it has, how long it has been open, and how long it took to acknowledge and to contain.
 - **OneUptime AI**, on the **Overview**: what OneUptime AI made of the case, the priority and playbook it suggests, and the evidence behind them. See [OneUptime AI in Security](/docs/telemetry/security-ai).
+- **Impact**, on the **Overview**: what the case puts at risk: whether OneUptime has seen its records reached from the internet, who owns them and what last changed on them. Open it to see what each record calls and is called by, the monitors and status pages watching it, and the machines the case's addresses talked to.
 - **MITRE ATT&CK**, on the **Overview**: the tactics and techniques its detections map to, each linked to its page on attack.mitre.org.
 - **Timeline**: everything that happened to the case, with who did it.
+- **Story**: what happened, in order, across OneUptime: each detection and the security events behind it, how far their requests got, the exceptions they threw, the changes on the records the case names, the incidents and alerts raised on them, and what the team did. A scanner's many probes are one line, and each line opens what it names, such as the request's trace or the exception.
 - **Detections**: what fired to open the case or join it, how often, and the latest matching event.
 - **Entities**: the users, hosts and addresses the case is about, with their activity across all your security events in the last 7 days. Each opens in **Correlate**.
 - **Connected Signals**: the hosts, clusters, services and members the case names, as OneUptime knows them, and what was happening on each around its detections: their logs, traces and metrics, what is open on them and what changed. See [Connected Signals](/docs/telemetry/security-connected-signals).

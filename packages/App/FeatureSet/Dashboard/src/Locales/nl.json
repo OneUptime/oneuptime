@@ -35877,5 +35877,7 @@
   "Host key": "Hostsleutel",
   "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.": "De stap meldt zich alleen aan als de machine een van deze sleutels laat zien: de SHA256-vingerafdruk, of de openbare sleutel zoals ssh-keyscan die toont, één per regel. Leeg gelaten wordt elke sleutel geaccepteerd, en de uitvoer van de stap toont de sleutel die de machine liet zien.",
   "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "Een regel hier is geen SHA256-vingerafdruk en geen openbare sleutel, dus de stap mislukt wanneer hij loopt.",
-  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Hier staan meer sleutels dan een machine heeft, dus de stap mislukt wanneer hij loopt. Een machine heeft één sleutel per type: noem die."
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Hier staan meer sleutels dan een machine heeft, dus de stap mislukt wanneer hij loopt. Een machine heeft één sleutel per type: noem die.",
+  "Story": "Verloop",
+  "Impact": "Impact"
 }
