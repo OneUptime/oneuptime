@@ -5,7 +5,7 @@ import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
-import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
+import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -67,7 +67,7 @@ const StorageArraySettings: FunctionComponent<
           },
         ]}
       />
-      <TelemetryResourceRetentionSettings<StorageArray>
+      <TelemetryResourceMoreSettings<StorageArray>
         modelType={StorageArray}
         modelId={modelId}
         resourceName="storage array"

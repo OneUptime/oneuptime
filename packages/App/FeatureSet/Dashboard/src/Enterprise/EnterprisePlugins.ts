@@ -4,6 +4,7 @@ import {
   CustomRolesCardStateHandler,
 } from "../Components/CustomRole/CustomRolesFold";
 import { SubscriberRestrictionsState } from "../Components/StatusPage/SubscriberRestrictionsCopy";
+import { TelemetryRetentionFoldStateHandler } from "../Components/TelemetryResource/TelemetryRetentionFold";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "Common/Types/ObjectID";
 import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
@@ -85,6 +86,23 @@ export interface TelemetryResourceRetentionSettingsProps {
    * says it in its description, after its own first sentence.
    */
   scopeNote?: string | undefined;
+  /*
+   * The cards wait folded under the page's More settings: each tells the
+   * page what it holds - the resource's own retention, how many types it
+   * overrides - once read and after each save, so the folded header can
+   * say so (Components/TelemetryResource/TelemetryRetentionFold).
+   */
+  onRetentionChange?: TelemetryRetentionFoldStateHandler | undefined;
+}
+
+/*
+ * Props of the project's retention by telemetry type (Settings >
+ * Telemetry), which waits folded under the page's More settings: it tells
+ * the page how many types it overrides, once read and after each save.
+ */
+export interface ProjectTelemetryRetentionByTypeProps
+  extends PageComponentProps {
+  onRetentionChange?: TelemetryRetentionFoldStateHandler | undefined;
 }
 
 /*
@@ -109,6 +127,17 @@ export interface ApiKeyCustomRolesProps {
 // Props of a status page card that edits one page's settings.
 export interface StatusPageSettingCardProps {
   statusPageId: ObjectID;
+}
+
+/*
+ * Props of a status page's Powered by OneUptime card (Advanced Settings),
+ * which waits folded under the page's More settings: it tells the page
+ * whether visitors see the line, once read and after each save, so the
+ * folded header can mark it while the line is hidden.
+ */
+export interface StatusPagePoweredByCardProps
+  extends StatusPageSettingCardProps {
+  onPoweredByChange?: ((isShown: boolean) => void) | undefined;
 }
 
 /*
@@ -213,7 +242,7 @@ export interface DashboardEnterprisePlugins {
    * project's default retention stays in core, on the same page.
    */
   SettingsTelemetryRetentionByType?:
-    | EnterprisePluginComponent<PageComponentProps>
+    | EnterprisePluginComponent<ProjectTelemetryRetentionByTypeProps>
     | undefined;
 
   /*
@@ -250,7 +279,7 @@ export interface DashboardEnterprisePlugins {
 
   // A status page's Powered by OneUptime switch (Settings > Display).
   StatusPagePoweredBy?:
-    | EnterprisePluginComponent<StatusPageSettingCardProps>
+    | EnterprisePluginComponent<StatusPagePoweredByCardProps>
     | undefined;
 
   // A status page's Reader Sessions card (Security > Access).

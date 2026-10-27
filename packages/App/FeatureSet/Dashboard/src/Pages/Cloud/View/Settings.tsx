@@ -1,7 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
-import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
+import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { useCloudResourceViewContext } from "./CloudResourceViewContext";
@@ -103,7 +103,7 @@ const CloudResourceSettings: FunctionComponent<
        * nothing. Only an environment gets the card.
        */}
       {isResource ? null : (
-        <TelemetryResourceRetentionSettings<CloudResource>
+        <TelemetryResourceMoreSettings<CloudResource>
           modelType={CloudResource}
           modelId={modelId}
           resourceName="cloud resource"

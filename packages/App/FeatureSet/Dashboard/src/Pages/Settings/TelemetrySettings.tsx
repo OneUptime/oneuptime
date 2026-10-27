@@ -3,9 +3,18 @@ import PageComponentProps from "../PageComponentProps";
 import { getTelemetryRetentionUpsell } from "../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import RetentionOverrideLeftover from "../../Components/TelemetryResource/RetentionOverrideLeftover";
 import { RetentionOverrideLeftoverKind } from "../../Components/TelemetryResource/RetentionOverrideLeftoverCopy";
-import { TELEMETRY_RETENTION_REQUIRED_PLAN } from "../../Enterprise/EnterpriseEligibility";
+import { PROJECT_RETENTION_MORE_DESCRIPTION } from "../../Components/TelemetryResource/TelemetryRetentionFold";
+import useRetentionFold, {
+  RetentionFold,
+} from "../../Components/TelemetryResource/UseRetentionFold";
+import {
+  isEnterpriseFeatureEligible,
+  TELEMETRY_RETENTION_REQUIRED_PLAN,
+} from "../../Enterprise/EnterpriseEligibility";
 import EnterprisePluginPage from "../../Enterprise/EnterprisePluginPage";
+import { ProjectTelemetryRetentionByTypeProps } from "../../Enterprise/EnterprisePlugins";
 import { getDashboardPlugins } from "../../Enterprise/Plugins";
+import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -20,10 +29,27 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * this build includes it, and as an upsell card otherwise - with, on
  * OneUptime Cloud below the plan, the retention by type a trial left set
  * under it, so it can be removed (RetentionOverrideLeftover).
+ *
+ * Retention by type is an advanced feature most projects never use, so it
+ * waits folded under More settings, below the default everyone sets; the
+ * folded header says how many types it overrides while it does
+ * (Components/TelemetryResource/TelemetryRetentionFold). A link to
+ * #retention-by-telemetry-type (or #retention-overrides, the upsell) opens
+ * it there.
  */
+export const PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID: string =
+  "project-telemetry-more-settings";
+
 const TelemetrySettings: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
+  const retentionFold: RetentionFold = useRetentionFold({
+    isEnterpriseCardDrawn:
+      isEnterpriseFeatureEligible(TELEMETRY_RETENTION_REQUIRED_PLAN) &&
+      Boolean(getDashboardPlugins().SettingsTelemetryRetentionByType),
+    hasOwnRetention: false,
+  });
+
   return (
     <Fragment>
       <CardModelDetail
@@ -66,19 +92,33 @@ const TelemetrySettings: FunctionComponent<PageComponentProps> = (
           modelId: ProjectUtil.getCurrentProjectId()!,
         }}
       />
-      <EnterprisePluginPage<PageComponentProps>
-        plugin={getDashboardPlugins().SettingsTelemetryRetentionByType}
-        pluginProps={props}
-        requiredPlan={TELEMETRY_RETENTION_REQUIRED_PLAN}
-        upsell={getTelemetryRetentionUpsell("of each type")}
-        belowPlan={
-          <RetentionOverrideLeftover<Project>
-            modelType={Project}
-            modelId={ProjectUtil.getCurrentProjectId()!}
-            kind={RetentionOverrideLeftoverKind.Project}
-          />
-        }
-      />
+      <AdvancedPageSection
+        description={PROJECT_RETENTION_MORE_DESCRIPTION}
+        items={retentionFold.items}
+        dataTestId={PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID}
+      >
+        <EnterprisePluginPage<ProjectTelemetryRetentionByTypeProps>
+          plugin={getDashboardPlugins().SettingsTelemetryRetentionByType}
+          pluginProps={{
+            ...props,
+            onRetentionChange: retentionFold.onRetentionChange,
+          }}
+          requiredPlan={TELEMETRY_RETENTION_REQUIRED_PLAN}
+          upsell={getTelemetryRetentionUpsell("of each type")}
+          belowPlan={
+            <RetentionOverrideLeftover<Project>
+              modelType={Project}
+              modelId={ProjectUtil.getCurrentProjectId()!}
+              kind={RetentionOverrideLeftoverKind.Project}
+              onOverrideChange={(isSet: boolean) => {
+                retentionFold.onRetentionChange({
+                  isLeftoverOverrideSet: isSet,
+                });
+              }}
+            />
+          }
+        />
+      </AdvancedPageSection>
     </Fragment>
   );
 };

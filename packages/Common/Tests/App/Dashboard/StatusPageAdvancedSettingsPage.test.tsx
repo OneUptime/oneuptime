@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import React, { ReactElement } from "react";
 
 /*
@@ -23,6 +30,13 @@ import React, { ReactElement } from "react";
  * The cards are recorded rather than drawn (each has a suite of its own);
  * what matters here is what the page hands them, in what order, and that
  * nothing else is on it.
+ *
+ * Hiding the Powered by OneUptime line - an Enterprise feature few pages
+ * use - waits folded under More settings, between what the page shows and
+ * the export: "Please audit the entire project for advanced features just
+ * like these and move them to More as well" - the maintainer. Folded, the
+ * header names it, and says "Off" while the line is hidden; a link to
+ * #powered-by-oneuptime opens it there.
  */
 
 type Recorded = { name: string; props: Record<string, unknown> };
@@ -63,8 +77,9 @@ jest.mock(
 );
 
 /*
- * The Powered by OneUptime line has a card of its own: hiding it is an
- * Enterprise feature, behind a core shell EnterpriseSettingShells holds.
+ * The Powered by OneUptime line has a card of its own, folded under More
+ * settings: hiding it is an Enterprise feature, behind a core shell
+ * EnterpriseSettingShells holds.
  */
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPagePoweredBySettings",
@@ -88,7 +103,17 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
   return { __esModule: true, default: mockRecorder("card-model-detail") };
 });
 
-import StatusPageSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/StatusPageSettings";
+import StatusPageSettings, {
+  STATUS_PAGE_SETTINGS_MORE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/StatusPageSettings";
+import StatusPagePoweredByCopy, {
+  STATUS_PAGE_POWERED_BY_PLACE,
+  STATUS_PAGE_SETTINGS_MORE_DESCRIPTION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPagePoweredByCopy";
+import {
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 import { STATUS_PAGE_ARCHIVE_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/Archive/ResourceArchiveCopy";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -230,5 +255,105 @@ describe("Advanced Settings", () => {
           return name === "display-settings";
         }),
     ).toHaveLength(1);
+  });
+});
+
+describe("the Powered by OneUptime line, under More settings", () => {
+  function fold(): HTMLElement {
+    return screen.getByTestId(STATUS_PAGE_SETTINGS_MORE_TEST_ID);
+  }
+
+  function header(): HTMLElement {
+    return within(fold()).getByRole("button", { name: "More settings" });
+  }
+
+  // What the Powered by shell reads, handed to the page as the shell would.
+  async function report(isShown: boolean): Promise<void> {
+    const onPoweredByChange: (isShown: boolean) => void = propsOf("powered-by")[
+      "onPoweredByChange"
+    ] as (isShown: boolean) => void;
+
+    await act(async () => {
+      onPoweredByChange(isShown);
+    });
+  }
+
+  function cardsIn(container: HTMLElement): Array<string | null> {
+    return within(container)
+      .getAllByTestId("recorded-card")
+      .map((element: HTMLElement): string | null => {
+        return element.getAttribute("data-card");
+      });
+  }
+
+  afterEach(() => {
+    window.history.replaceState(null, "", "#");
+  });
+
+  test("holds the Powered by card alone: what the page shows, the export and Archive stay outside", async () => {
+    await renderPage();
+
+    expect(cardsIn(fold())).toEqual(["powered-by"]);
+    expect(fold()).not.toHaveTextContent("display-settings");
+  });
+
+  test("is folded, names the card it holds, and says what it holds once open", async () => {
+    await renderPage();
+
+    expect(header()).toHaveAttribute("aria-expanded", "false");
+    expect(listedNames(header())).toEqual([StatusPagePoweredByCopy.cardTitle]);
+    expect(setChips(fold())).toEqual([]);
+
+    fireEvent.click(header());
+
+    expect(header()).toHaveAttribute("aria-expanded", "true");
+    expect(fold()).toHaveTextContent(STATUS_PAGE_SETTINGS_MORE_DESCRIPTION);
+  });
+
+  test("the shell is handed a way to say whether visitors see the line", async () => {
+    await renderPage();
+
+    expect(typeof propsOf("powered-by")["onPoweredByChange"]).toBe("function");
+  });
+
+  test("while the line is shown - where every page starts - nothing is marked", async () => {
+    await renderPage();
+    await report(true);
+
+    expect(setChips(fold())).toEqual([]);
+  });
+
+  test("while the line is hidden, folded, it says so: Powered by OneUptime: Off", async () => {
+    await renderPage();
+    await report(false);
+
+    expect(setChips(fold())).toEqual([
+      `${StatusPagePoweredByCopy.cardTitle}: Off`,
+    ]);
+    // Saying so does not open it.
+    expect(header()).toHaveAttribute("aria-expanded", "false");
+
+    // Shown again: no longer marked.
+    await report(true);
+
+    expect(setChips(fold())).toEqual([]);
+  });
+
+  test("opened at #powered-by-oneuptime, it opens there", async () => {
+    expect(STATUS_PAGE_POWERED_BY_PLACE).toBe("powered-by-oneuptime");
+
+    window.history.replaceState(null, "", `#${STATUS_PAGE_POWERED_BY_PLACE}`);
+
+    await renderPage();
+
+    expect(header()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  test("opened at any other place, it stays folded", async () => {
+    window.history.replaceState(null, "", "#what-your-status-page-shows");
+
+    await renderPage();
+
+    expect(header()).toHaveAttribute("aria-expanded", "false");
   });
 });

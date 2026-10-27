@@ -2,6 +2,10 @@ import {
   TelemetryResourceRetentionSettingsProps,
   TelemetryRetentionModel,
 } from "@oneuptime/dashboard/Enterprise/EnterprisePlugins";
+import {
+  countRetentionTypeOverrides,
+  readRetentionDays,
+} from "@oneuptime/dashboard/Components/TelemetryResource/TelemetryRetentionFold";
 import TelemetryRetentionConfig from "Common/Types/Telemetry/TelemetryRetentionConfig";
 import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -43,6 +47,12 @@ import TelemetryRetentionLicenseNotice from "./TelemetryRetentionLicenseNotice";
  * logs, not the traces of the queries sent to it). It is said in the first
  * card's description, after its own sentence: where the reader decides on a
  * retention, not in a banner above the cards.
+ *
+ * The cards wait folded under the page's More settings (core's
+ * TelemetryResourceMoreSettings): each tells the page what it holds, once
+ * read and after each save (onRetentionChange), so the folded header can
+ * say so - "Telemetry Data Retention: 30 days", "Retention by Telemetry
+ * Type: 2".
  */
 const TelemetryResourceRetentionSettings: FunctionComponent<
   TelemetryResourceRetentionSettingsProps
@@ -96,6 +106,13 @@ const TelemetryResourceRetentionSettings: FunctionComponent<
           modelType: props.modelType,
           id: `${props.modelDetailIdPrefix}-telemetry-retention`,
           modelId: props.modelId,
+          onItemLoaded: (item: TelemetryRetentionModel): void => {
+            props.onRetentionChange?.({
+              retainTelemetryDataForDays: readRetentionDays(
+                item.retainTelemetryDataForDays,
+              ),
+            });
+          },
           fields: [
             {
               field: {
@@ -161,6 +178,13 @@ const TelemetryResourceRetentionSettings: FunctionComponent<
             },
           ],
           modelId: props.modelId,
+          onItemLoaded: (item: TelemetryRetentionModel): void => {
+            props.onRetentionChange?.({
+              typeOverrideCount: countRetentionTypeOverrides(
+                item.telemetryRetentionConfig,
+              ),
+            });
+          },
         }}
       />
     </Fragment>

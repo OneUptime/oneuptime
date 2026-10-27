@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import React, { isValidElement, ReactElement, ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -43,6 +44,7 @@ const recordedDetailCards: Array<Record<string, unknown>> = [];
 const recordedChannelCards: Array<Record<string, unknown>> = [];
 const recordedOffPanels: Array<Record<string, unknown>> = [];
 const recordedBulkForms: Array<Record<string, unknown>> = [];
+const recordedRestrictions: Array<Record<string, unknown>> = [];
 
 (
   globalThis as unknown as {
@@ -54,6 +56,7 @@ const recordedBulkForms: Array<Record<string, unknown>> = [];
   channelCards: recordedChannelCards,
   offPanels: recordedOffPanels,
   bulkForms: recordedBulkForms,
+  restrictions: recordedRestrictions,
 };
 
 type Recorder = (
@@ -102,6 +105,21 @@ jest.mock(
     return {
       __esModule: true,
       default: mockRecorder("channelCards", "subscriber-channels-card"),
+    };
+  },
+);
+
+/*
+ * Who Can Subscribe - an Enterprise access control few pages use, behind a
+ * core shell EnterpriseSettingShells holds - waits folded under More
+ * settings: recorded, so what the page hands it can be read.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberRestrictionsSettings",
+  () => {
+    return {
+      __esModule: true,
+      default: mockRecorder("restrictions", "subscriber-restrictions-shell"),
     };
   },
 );
@@ -193,6 +211,17 @@ import {
 import { DISPLAY_SETTING_COLUMNS } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCopy";
 import { STATUS_PAGE_DISPLAY_SETTINGS_CARD_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPageDisplaySettingsCard";
 import SubscriberUnsubscribeCopy from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberUnsubscribeCopy";
+import SubscriberChoicesCopy, {
+  SUBSCRIBER_SETTINGS_MORE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberChoicesCopy";
+import SubscriberRestrictionsCopy, {
+  SUBSCRIBER_RESTRICTIONS_PLACE,
+  SubscriberRestrictionsState,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberRestrictionsCopy";
+import {
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import EmailSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/EmailSubscribers";
 import MicrosoftTeamsSubscribers from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/MicrosoftTeamsSubscribers";
@@ -216,6 +245,7 @@ let linkedMethods: Array<StatusPageSubscriberNotificationMethod> = [];
 
 beforeEach(() => {
   recordedTables.length = 0;
+  recordedRestrictions.length = 0;
   recordedDetailCards.length = 0;
   recordedChannelCards.length = 0;
   recordedOffPanels.length = 0;
@@ -1023,5 +1053,122 @@ describe("the email forms' shared-address advice", () => {
     // One sentence: a full stop only at the end.
     expect(advice.endsWith(".")).toBe(true);
     expect(advice.slice(0, -1)).not.toMatch(/[.!?]\s/);
+  });
+});
+
+/*
+ * "Move custom roles to More settings because it is an advanced feature.
+ * Please audit the entire project for advanced features just like these and
+ * move them to More as well" - the maintainer. Who may subscribe - only the
+ * page's private users, only addresses at its domains - is an Enterprise
+ * access control few status pages use. It was a card of its own between
+ * the channels and what visitors pick; it waits first in More settings now,
+ * named in the folded header and marked while it turns anyone away.
+ */
+describe("Who Can Subscribe, under More settings", () => {
+  function fold(): HTMLElement {
+    return screen.getByTestId(SUBSCRIBER_SETTINGS_MORE_TEST_ID);
+  }
+
+  function header(): HTMLElement {
+    return within(fold()).getByRole("button", { name: "More settings" });
+  }
+
+  // What the shell reads, handed to the page as the shell would.
+  async function report(
+    restrictions: SubscriberRestrictionsState,
+  ): Promise<void> {
+    const onRestrictionsChange: (
+      restrictions: SubscriberRestrictionsState,
+    ) => void = recordedRestrictions[recordedRestrictions.length - 1]![
+      "onRestrictionsChange"
+    ] as (restrictions: SubscriberRestrictionsState) => void;
+
+    await act(async () => {
+      onRestrictionsChange(restrictions);
+    });
+  }
+
+  afterEach(() => {
+    window.history.replaceState(null, "", "#");
+  });
+
+  test("is in the fold, for this status page, before the other cards in it", async () => {
+    await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
+
+    const shell: HTMLElement = screen.getByTestId(
+      "subscriber-restrictions-shell",
+    );
+
+    expect(fold()).toContainElement(shell);
+    expect(
+      (
+        recordedRestrictions[recordedRestrictions.length - 1]![
+          "statusPageId"
+        ] as ObjectID
+      ).toString(),
+    ).toBe(STATUS_PAGE_ID);
+
+    // First in the fold: before the timezones and the rest.
+    const firstDetail: HTMLElement =
+      within(fold()).getAllByTestId("card-model-detail")[0]!;
+
+    expect(
+      shell.compareDocumentPosition(firstDetail) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    // Not drawn anywhere else on the page.
+    expect(screen.getAllByTestId("subscriber-restrictions-shell")).toHaveLength(
+      1,
+    );
+  });
+
+  test("folded, the header names it first, and the fold says it holds it once open", async () => {
+    await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
+
+    expect(header()).toHaveAttribute("aria-expanded", "false");
+    expect(listedNames(header())[0]).toBe(SubscriberRestrictionsCopy.cardTitle);
+    expect(setChips(fold())).toEqual([]);
+
+    fireEvent.click(header());
+
+    expect(fold()).toHaveTextContent(SubscriberChoicesCopy.moreDescription);
+  });
+
+  test.each([
+    [{ limitSubscribersToPrivateUsers: true, allowedEmailDomainCount: 0 }],
+    [{ limitSubscribersToPrivateUsers: false, allowedEmailDomainCount: 2 }],
+    [{ limitSubscribersToPrivateUsers: true, allowedEmailDomainCount: 1 }],
+  ])(
+    "marked while it turns anyone away: %o",
+    async (restrictions: SubscriberRestrictionsState) => {
+      await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
+      await report(restrictions);
+
+      expect(setChips(fold())).toEqual([SubscriberRestrictionsCopy.cardTitle]);
+      // Saying so does not open it.
+      expect(header()).toHaveAttribute("aria-expanded", "false");
+    },
+  );
+
+  test("anyone may subscribe: not marked", async () => {
+    await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
+    await report({
+      limitSubscribersToPrivateUsers: false,
+      allowedEmailDomainCount: 0,
+    });
+
+    expect(setChips(fold())).toEqual([]);
+  });
+
+  test("opened at #who-can-subscribe, it opens there", async () => {
+    expect(SUBSCRIBER_RESTRICTIONS_PLACE).toBe("who-can-subscribe");
+
+    window.history.replaceState(null, "", `#${SUBSCRIBER_RESTRICTIONS_PLACE}`);
+
+    await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
+
+    expect(header()).toHaveAttribute("aria-expanded", "true");
   });
 });

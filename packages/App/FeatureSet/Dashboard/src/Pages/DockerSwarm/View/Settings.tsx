@@ -4,7 +4,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
-import TelemetryResourceRetentionSettings from "../../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
+import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -33,7 +33,7 @@ const DockerSwarmClusterSettings: FunctionComponent<
           placeholder: "Production Docker Swarm cluster running in US East",
         }}
       />
-      <TelemetryResourceRetentionSettings<DockerSwarmCluster>
+      <TelemetryResourceMoreSettings<DockerSwarmCluster>
         modelType={DockerSwarmCluster}
         modelId={modelId}
         resourceName="Docker Swarm cluster"

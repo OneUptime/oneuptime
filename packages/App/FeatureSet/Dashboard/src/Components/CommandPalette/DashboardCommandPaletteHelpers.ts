@@ -352,7 +352,13 @@ export function buildPageSearchCommandDescriptors(
             breadcrumbKeywords: [...breadcrumbKeywords, page.title],
             icon: action.icon || page.icon || area.icon,
             iconColor: area.iconColor,
-            routePath,
+            /*
+             * At its place on the page, when it has one: a card folded under
+             * More settings opens there.
+             */
+            routePath: action.anchor
+              ? `${routePath}#${action.anchor}`
+              : routePath,
             areaId: area.id,
             isAction: true,
           });
