@@ -18,6 +18,9 @@ Every edition is the public chart (HelmChart/Public/oneuptime) with:
   - updateCheck.disabled: an installation upgrades through its marketplace,
     which takes a release a week, so it is not compared with the releases on
     GitHub (several a day) and makes no call to GitHub;
+  - instanceCheckIn.disabled: the marketplace knows each buyer and which
+    release it ships them, so the installation does not check in with
+    oneuptime.com either;
   - no bundled subcharts (KEDA, CloudNativePG, the Altinity operator: off by
     default, and every marketplace refuses a chart that pulls images it does
     not host) and no helm test hook;
@@ -504,6 +507,8 @@ def common_values(editor: ValuesEditor, marketplace: str, version: str) -> None:
     # Upgrades come through the marketplace, a release a week: told of each GitHub release,
     # an admin would see an upgrade their marketplace does not have yet.
     editor.set(["updateCheck", "disabled"], True)
+    # The marketplace knows its buyers and the release it ships them: no daily check-in.
+    editor.set(["instanceCheckIn", "disabled"], True)
     editor.set(["testHook", "enabled"], False)
 
 

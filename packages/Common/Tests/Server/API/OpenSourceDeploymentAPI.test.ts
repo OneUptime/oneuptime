@@ -22,11 +22,13 @@ import {
 } from "@jest/globals";
 
 /*
- * A self-hosted install registers here when its first user signs up with
- * release emails ticked - and so does every CI and end-to-end run, whose
- * sign-ups use addresses on names reserved for testing (example.com,
- * .test, .invalid). Those are not installs, so they are neither recorded
- * nor passed on to the webhook.
+ * oneuptime.com hears from self-hosted installs twice over: a sign-up with
+ * release emails ticked registers the instance with its contact details,
+ * and every install checks in once a day with its URL and version. Both
+ * keep one record per instance URL (OpenSourceDeploymentService
+ * .recordInstance). Neither records what is no install: CI and end-to-end
+ * runs, which sign up on names reserved for testing (example.com, .test,
+ * .invalid), and instances nobody else can reach (localhost, loopback).
  */
 
 jest.mock("../../../Server/EnvironmentConfig", () => {
@@ -67,8 +69,19 @@ jest.mock("../../../Server/Utils/Response", () => {
 jest.mock("../../../Server/Utils/Logger");
 
 const REGISTER_ROUTE: string = "/open-source-deployment/register";
+const CHECK_IN_ROUTE: string = "/open-source-deployment/check-in";
 
-let create: ReturnType<typeof jest.spyOn>;
+// Instance URLs no install that someone else reaches is ever at.
+const UNREACHABLE_INSTANCE_URLS: Array<string> = [
+  "http://localhost/",
+  "http://localhost",
+  "http://localhost:8080/",
+  "http://127.0.0.1/",
+  "https://oneuptime.test/",
+  "",
+];
+
+let recordInstance: ReturnType<typeof jest.spyOn>;
 let post: ReturnType<typeof jest.spyOn>;
 
 function signUp(email: string): JSONObject {
@@ -82,10 +95,10 @@ function signUp(email: string): JSONObject {
   };
 }
 
-async function register(body: JSONObject): Promise<void> {
+async function call(route: string, body: JSONObject): Promise<NextFunction> {
   const next: NextFunction = jest.fn() as unknown as NextFunction;
 
-  await mockRouter.match("POST", REGISTER_ROUTE).handlerFunction(
+  await mockRouter.match("POST", route).handlerFunction(
     {
       body,
       headers: {},
@@ -96,54 +109,71 @@ async function register(body: JSONObject): Promise<void> {
     next,
   );
 
-  expect(next).not.toHaveBeenCalled();
+  return next;
 }
 
+async function register(body: JSONObject): Promise<void> {
+  expect(await call(REGISTER_ROUTE, body)).not.toHaveBeenCalled();
+}
+
+async function checkIn(body: JSONObject): Promise<void> {
+  expect(await call(CHECK_IN_ROUTE, body)).not.toHaveBeenCalled();
+}
+
+function recorded(): OpenSourceDeployment {
+  expect(recordInstance).toHaveBeenCalledTimes(1);
+
+  return recordInstance.mock.calls[0]![0] as OpenSourceDeployment;
+}
+
+function expectNothingRecorded(): void {
+  expect(recordInstance).not.toHaveBeenCalled();
+  expect(post).not.toHaveBeenCalled();
+
+  // The install is told all went well, so it has nothing to log.
+  expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+}
+
+beforeAll(() => {
+  mockRouter.routes.length = 0;
+  new OpenSourceDeploymentAPI();
+});
+
+beforeEach(() => {
+  jest.clearAllMocks();
+
+  recordInstance = jest
+    .spyOn(OpenSourceDeploymentService, "recordInstance")
+    .mockResolvedValue(undefined);
+
+  post = jest.spyOn(API, "post").mockResolvedValue({} as never);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 describe("POST /open-source-deployment/register", () => {
-  beforeAll(() => {
-    mockRouter.routes.length = 0;
-    new OpenSourceDeploymentAPI();
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-
-    create = jest
-      .spyOn(OpenSourceDeploymentService, "create")
-      .mockResolvedValue(new OpenSourceDeployment());
-
-    post = jest.spyOn(API, "post").mockResolvedValue({} as never);
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
   test("records an install signed up on a real address, and passes it to the webhook", async () => {
     await register(signUp("jane@acme.io"));
 
-    expect(create).toHaveBeenCalledTimes(1);
+    const deployment: OpenSourceDeployment = recorded();
 
-    const { data, props } = create.mock.calls[0]![0] as {
-      data: OpenSourceDeployment;
-      props: JSONObject;
-    };
-
-    expect(data.email).toBe("jane@acme.io");
-    expect(data.companyName).toBe("Acme");
-    expect(data.oneuptimeVersion).toBe("10.0.5");
-    expect(data.instanceUrl).toBe("https://oneuptime.acme.io/");
-    expect(props).toEqual({ isRoot: true });
+    expect(deployment.email).toBe("jane@acme.io");
+    expect(deployment.name).toBe("Jane Doe");
+    expect(deployment.companyName).toBe("Acme");
+    expect(deployment.oneuptimeVersion).toBe("10.0.5");
+    expect(deployment.instanceUrl).toBe("https://oneuptime.acme.io/");
 
     expect(post).toHaveBeenCalledTimes(1);
 
-    const { url, data: sent } = post.mock.calls[0]![0] as {
+    const { url, data } = post.mock.calls[0]![0] as {
       url: URL;
       data: JSONObject;
     };
 
     expect(url.toString()).toBe("https://hooks.acme.io/open-source-deployment");
-    expect(sent["email"]).toBe("jane@acme.io");
+    expect(data["email"]).toBe("jane@acme.io");
     expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
   });
 
@@ -158,28 +188,93 @@ describe("POST /open-source-deployment/register", () => {
   ])("skips a sign-up on %s, which only a test uses", async (email: string) => {
     await register(signUp(email));
 
-    expect(create).not.toHaveBeenCalled();
-    expect(post).not.toHaveBeenCalled();
-
-    // The install is told all went well, so it has nothing to log.
-    expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+    expectNothingRecorded();
   });
 
   test("still records a name that only looks reserved", async () => {
     await register(signUp("jane@example.com.au"));
 
-    expect(create).toHaveBeenCalledTimes(1);
+    expect(recorded().email).toBe("jane@example.com.au");
     expect(post).toHaveBeenCalledTimes(1);
   });
 
-  test("still skips an install left at http://localhost", async () => {
-    await register({
-      ...signUp("jane@acme.io"),
-      instanceUrl: "http://localhost/",
+  test.each(UNREACHABLE_INSTANCE_URLS)(
+    "skips an install at %p, which nobody else can reach",
+    async (instanceUrl: string) => {
+      await register({ ...signUp("jane@acme.io"), instanceUrl });
+
+      expectNothingRecorded();
+    },
+  );
+});
+
+describe("POST /open-source-deployment/check-in", () => {
+  test("records the instance's URL and version, and nothing about anyone", async () => {
+    await checkIn({
+      instanceUrl: "https://oneuptime.acme.io/",
+      oneuptimeVersion: "10.0.6",
     });
 
-    expect(create).not.toHaveBeenCalled();
-    expect(post).not.toHaveBeenCalled();
+    const deployment: OpenSourceDeployment = recorded();
+
+    expect(deployment.instanceUrl).toBe("https://oneuptime.acme.io/");
+    expect(deployment.oneuptimeVersion).toBe("10.0.6");
+    expect(deployment.email).toBeUndefined();
+    expect(deployment.name).toBeUndefined();
+    expect(deployment.companyName).toBeUndefined();
+    expect(deployment.companyPhoneNumber).toBeUndefined();
     expect(Response.sendEmptySuccessResponse).toHaveBeenCalledTimes(1);
+  });
+
+  test("ignores contact details a caller adds", async () => {
+    await checkIn({
+      ...signUp("jane@acme.io"),
+      oneuptimeVersion: "10.0.6",
+    });
+
+    expect(recorded().email).toBeUndefined();
+    expect(recorded().name).toBeUndefined();
+  });
+
+  test("does not pass a check-in to the webhook", async () => {
+    await checkIn({
+      instanceUrl: "https://oneuptime.acme.io/",
+      oneuptimeVersion: "10.0.6",
+    });
+
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  test("records a check-in that names no version as unknown", async () => {
+    await checkIn({ instanceUrl: "https://oneuptime.acme.io/" });
+
+    expect(recorded().oneuptimeVersion).toBe("unknown");
+  });
+
+  test.each([
+    ...UNREACHABLE_INSTANCE_URLS,
+    "not a url",
+    "ftp://files.acme.io/",
+  ])(
+    "skips a check-in from %p, which nobody else can reach",
+    async (instanceUrl: string) => {
+      await checkIn({ instanceUrl, oneuptimeVersion: "10.0.6" });
+
+      expectNothingRecorded();
+    },
+  );
+
+  test("hands a failure to record to Express", async () => {
+    const failure: Error = new Error("database unavailable");
+
+    recordInstance.mockRejectedValue(failure as never);
+
+    const next: NextFunction = await call(CHECK_IN_ROUTE, {
+      instanceUrl: "https://oneuptime.acme.io/",
+      oneuptimeVersion: "10.0.6",
+    });
+
+    expect(next).toHaveBeenCalledWith(failure);
+    expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
   });
 });

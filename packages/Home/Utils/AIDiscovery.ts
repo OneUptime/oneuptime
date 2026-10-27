@@ -615,7 +615,7 @@ export function generateAirGappedMarkdown(
   lines.push("## What reaches out, and what to use instead");
   lines.push("");
   lines.push(
-    "Three things reach out on their own unless you change a setting. Everything else reaches out only once you set it up.",
+    "Four things reach out on their own unless you change a setting. Everything else reaches out only once you set it up.",
   );
   lines.push("");
   lines.push("| Connection | Where it goes | When | Inside an air gap |");

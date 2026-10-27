@@ -23,8 +23,10 @@ export default class OpenSourceDeploymentAPI extends BaseAPI<
   public constructor() {
     super(OpenSourceDeployment, OpenSourceDeploymentService);
 
+    const path: string = `${new this.entityType().getCrudApiPath()?.toString()}`;
+
     this.router.post(
-      `${new this.entityType().getCrudApiPath()?.toString()}/register`,
+      `${path}/register`,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           const body: JSONObject = req.body;
@@ -40,11 +42,11 @@ export default class OpenSourceDeploymentAPI extends BaseAPI<
             (body["oneuptimeVersion"] as string) || "unknown";
           deployment.instanceUrl = (body["instanceUrl"] as string) || "";
 
-          // Skip localhost instances - these are default/unconfigured deployments.
-          if (
-            deployment.instanceUrl === "http://localhost/" ||
-            deployment.instanceUrl === "http://localhost"
-          ) {
+          /*
+           * Skip instances nobody else can reach: localhost, loopback and test
+           * hosts - default/unconfigured deployments and developer machines.
+           */
+          if (!OpenSourceDeploymentService.isInstallUrl(deployment.instanceUrl)) {
             return Response.sendEmptySuccessResponse(req, res);
           }
 
@@ -57,12 +59,7 @@ export default class OpenSourceDeploymentAPI extends BaseAPI<
             return Response.sendEmptySuccessResponse(req, res);
           }
 
-          await OpenSourceDeploymentService.create({
-            data: deployment,
-            props: {
-              isRoot: true,
-            },
-          });
+          await OpenSourceDeploymentService.recordInstance(deployment);
 
           if (OpenSourceDeploymentWebhookUrl) {
             API.post({
@@ -79,6 +76,36 @@ export default class OpenSourceDeploymentAPI extends BaseAPI<
             }).catch((err: Error) => {
               logger.error(err, getLogAttributesFromRequest(req as any));
             });
+          }
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          next(err);
+        }
+      },
+    );
+
+    /*
+     * Every self-hosted install's daily check-in: its URL and the version it
+     * runs, and nothing about anyone. It keeps the instance's record current,
+     * or starts one, so this table says which installs still run and on which
+     * release. Not passed to the webhook, which would hear from every install
+     * every day.
+     */
+    this.router.post(
+      `${path}/check-in`,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const body: JSONObject = req.body;
+
+          const deployment: OpenSourceDeployment = new OpenSourceDeployment();
+
+          deployment.oneuptimeVersion =
+            (body["oneuptimeVersion"] as string) || "unknown";
+          deployment.instanceUrl = (body["instanceUrl"] as string) || "";
+
+          if (OpenSourceDeploymentService.isInstallUrl(deployment.instanceUrl)) {
+            await OpenSourceDeploymentService.recordInstance(deployment);
           }
 
           return Response.sendEmptySuccessResponse(req, res);

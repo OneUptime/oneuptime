@@ -63,9 +63,10 @@ Todos los roles de la aplicación son la misma imagen: Docker Compose los ejecut
 
 ## Conexiones que salen de tu red
 
-Se hacen tres conexiones a menos que cambies un ajuste:
+Se hacen cuatro conexiones a menos que cambies un ajuste:
 
 - Una vez al día, la aplicación pregunta a la API de GitHub (`api.github.com`) si hay una versión más reciente. Para desactivarlo, establece `updateCheck.disabled: true` en el chart de Helm, o `DISABLE_UPDATE_CHECK=true` en `config.env` con Docker Compose.
+- Una vez al día, la aplicación comunica a `oneuptime.com` la dirección de tu instalación y la versión que ejecuta, para que OneUptime sepa qué instalaciones siguen ejecutando una versión con un problema de seguridad. No se envía nada sobre tus usuarios, proyectos o datos de monitorización. Para desactivarlo, establece `instanceCheckIn.disabled: true` en el chart de Helm, o `DISABLE_INSTANCE_CHECK_IN=true` en `config.env` con Docker Compose.
 - Registrarse con «Notificarme sobre parches de seguridad y nuevas versiones» marcado, como está al principio, envía a `oneuptime.com` el nombre y el correo de la persona, la empresa y el teléfono que haya indicado, y la dirección y la versión de tu instalación. Desmárcalo en una red sin acceso a internet.
 - En Kubernetes, las sondas recurren a los resolutores públicos `8.8.8.8` y `1.1.1.1` después del DNS de tu propio clúster. Establece `dnsConfig.nameservers` en `[]` para que todas las consultas se queden en tu propio DNS.
 

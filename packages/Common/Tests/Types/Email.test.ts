@@ -94,6 +94,7 @@ describe("Email", () => {
     });
   });
 
+  // The names themselves are Domain.isReservedName's (Domain.test.ts).
   describe("isOnReservedDomain", () => {
     test("should return true on the names RFC 2606 reserves, and any name under them", () => {
       const reserved: Array<string> = [

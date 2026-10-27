@@ -1,5 +1,6 @@
 import Hostname from "./API/Hostname";
 import DatabaseProperty from "./Database/DatabaseProperty";
+import Domain from "./Domain";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject, JSONValue, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
@@ -27,22 +28,6 @@ const nonBusinessEmailDomains: Array<string> = [
   "mail.com",
   "zoho",
   "yandex",
-];
-
-/*
- * The names RFC 2606 reserves for testing and documentation: the .test,
- * .example, .invalid and .localhost top-level domains, and example.com,
- * example.net and example.org. Nobody can register them, so no mailbox on
- * them, or on any name under them, belongs to a person.
- */
-const RESERVED_EMAIL_DOMAINS: Array<string> = [
-  "test",
-  "example",
-  "invalid",
-  "localhost",
-  "example.com",
-  "example.net",
-  "example.org",
 ];
 
 /*
@@ -276,9 +261,9 @@ export default class Email extends DatabaseProperty {
   }
 
   /*
-   * Whether a value is an address on one of the reserved names above: a
-   * test's or an example's address, never a person's. Reads any value, an
-   * address or not, and never throws.
+   * Whether a value is an address on a name RFC 2606 reserves for testing
+   * (Domain.isReservedName): a test's or an example's address, never a
+   * person's. Reads any value, an address or not, and never throws.
    */
   public static isOnReservedDomain(value: string): boolean {
     if (typeof value !== "string") {
@@ -291,14 +276,7 @@ export default class Email extends DatabaseProperty {
       return false;
     }
 
-    const domain: string = value
-      .slice(at + 1)
-      .trim()
-      .toLowerCase();
-
-    return RESERVED_EMAIL_DOMAINS.some((reserved: string): boolean => {
-      return domain === reserved || domain.endsWith(`.${reserved}`);
-    });
+    return Domain.isReservedName(value.slice(at + 1));
   }
 
   public static override toDatabase(
