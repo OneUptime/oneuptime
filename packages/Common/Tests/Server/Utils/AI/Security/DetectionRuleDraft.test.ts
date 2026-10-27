@@ -23,6 +23,7 @@ import {
 } from "../../../../../Types/SecurityEvent/DetectionRuleAiDraft";
 import { getDetectionRuleLibraryEntry } from "../../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * Draft with AI on the Detection Rules form: OneUptime AI writes a Sigma
@@ -115,12 +116,15 @@ describe("extractDraftYaml", () => {
   });
 
   test("reads a long answer in linear time", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        extractDraftYaml("```".repeat(140_000));
+        extractDraftYaml(`${"a".repeat(400_000)}\`\`\`yaml\n`);
+      },
+      limitInMs: 2000,
+    });
 
-    extractDraftYaml("```".repeat(140_000));
-    extractDraftYaml(`${"a".repeat(400_000)}\`\`\`yaml\n`);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

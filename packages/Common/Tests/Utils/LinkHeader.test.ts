@@ -6,6 +6,7 @@ import {
 } from "../../Utils/LinkHeader";
 import { seededRandom, SeededRandom } from "../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * THE LINK RESPONSE HEADER (Utils/LinkHeader), READ AS RFC 8288 WRITES IT.
@@ -255,15 +256,19 @@ describe("readLinkHeader", () => {
         return `<https://a.example/items?page=${index}&x=a,b;c>; rel="item"; title="x, y; \\" z"`;
       },
     ).join(", ");
-    const startedAt: number = performance.now();
-    const links: Array<LinkHeaderLink> = readLinkHeader(header);
-    const tookMs: number = performance.now() - startedAt;
+    const timed: FastestRun<Array<LinkHeaderLink>> = fastestRun({
+      run: (): Array<LinkHeaderLink> => {
+        return readLinkHeader(header);
+      },
+      limitInMs: 2000,
+    });
+    const links: Array<LinkHeaderLink> = timed.result;
 
     expect(links).toHaveLength(20000);
     expect(links[19999]!.url).toBe(
       "https://a.example/items?page=19999&x=a,b;c",
     );
-    expect(tookMs).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

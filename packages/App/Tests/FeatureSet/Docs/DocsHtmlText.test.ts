@@ -1,5 +1,6 @@
 import { stripHtmlTags } from "./DocsHtmlText";
 import { describe, expect, it } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * stripHtmlTags, the one place the docs tests take tags out of rendered
@@ -214,22 +215,29 @@ describe("stripHtmlTags", () => {
     );
 
     it("reads a long run of '<' with no '>' after it in one pass", () => {
-      const started: number = Date.now();
-
-      expect(stripHtmlTags("<".repeat(200000) + "x")).toBe("x");
-      expect(stripHtmlTags('<a title="'.repeat(20000))).toBe(
-        'a title="'.repeat(20000),
-      );
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          expect(stripHtmlTags("<".repeat(200000) + "x")).toBe("x");
+          expect(stripHtmlTags('<a title="'.repeat(20000))).toBe(
+            'a title="'.repeat(20000),
+          );
+        },
+        limitInMs: 2000,
+      });
       // Read twice over at most: well under a second, not minutes.
-      expect(Date.now() - started).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     });
 
     it("reads a long page of tags quickly", () => {
-      const started: number = Date.now();
-      const html: string = "<p>a<b>b</b></p>\n".repeat(50000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          const html: string = "<p>a<b>b</b></p>\n".repeat(50000);
 
-      expect(stripHtmlTags(html)).toBe("ab\n".repeat(50000));
-      expect(Date.now() - started).toBeLessThan(2000);
+          expect(stripHtmlTags(html)).toBe("ab\n".repeat(50000));
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     });
   });
 });

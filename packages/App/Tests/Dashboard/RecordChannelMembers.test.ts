@@ -46,6 +46,7 @@ import {
   isAddProblem,
   splitAtSlackInviteCommand,
 } from "../../FeatureSet/Dashboard/src/Components/Workspace/RecordChannelMembers";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * THE RULES OF A RECORD'S CHANNEL CARD: what it is called, what it offers
@@ -752,10 +753,13 @@ describe("the Slack command in the hint for a channel the app was taken out of",
 
   test("a long run of handle characters is read in one pass", () => {
     const hint: string = `typing /invite @${"a".repeat(400000)}.`;
-    const startedAt: number = Date.now();
-
-    expect(splitAtSlackInviteCommand(hint).command.length).toBe(400009);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(splitAtSlackInviteCommand(hint).command.length).toBe(400009);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

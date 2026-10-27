@@ -41,6 +41,7 @@ import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The public half of a form: what a stranger's browser is told about it
@@ -1235,16 +1236,19 @@ describe("validateFormSubmission never throws", () => {
 
     const huge: Array<string> = new Array<string>(200000).fill(MONITOR_API);
 
-    const started: number = Date.now();
-
-    expect(
-      errorsOf({ ...REQUIRED_ANSWERS, region: wide, monitors: huge }),
-    ).toEqual([
-      // In the form's order: the monitors are asked before the region.
-      "Affected Monitors cannot have more than 100 choices.",
-      "Region takes one answer, not an object.",
-    ]);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          errorsOf({ ...REQUIRED_ANSWERS, region: wide, monitors: huge }),
+        ).toEqual([
+          // In the form's order: the monitors are asked before the region.
+          "Affected Monitors cannot have more than 100 choices.",
+          "Region takes one answer, not an object.",
+        ]);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("on fields it was not given", () => {

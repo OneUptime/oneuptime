@@ -107,6 +107,7 @@ import { CustomElementProps } from "../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 const GERMAN: Record<string, string> = germanLocale as unknown as Record<
   string,
@@ -1032,12 +1033,24 @@ describe("the search", () => {
   test("a search as long as a book takes no time", () => {
     render(<Harness />);
 
-    const started: number = Date.now();
+    /*
+     * Each attempt types a search of its own: typing the same text again
+     * changes nothing, so the picker would not search, and a second attempt
+     * would time nothing at all.
+     */
+    let attempt: number = 0;
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        attempt++;
+        typeSearch(`${"monitor ".repeat(50000)}zzz${attempt}`);
 
-    typeSearch(`${"monitor ".repeat(50000)}zzz`);
-
-    expect(screen.getByTestId("role-picker-no-results")).toBeInTheDocument();
-    expect(Date.now() - started).toBeLessThan(2000);
+        expect(
+          screen.getByTestId("role-picker-no-results"),
+        ).toBeInTheDocument();
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

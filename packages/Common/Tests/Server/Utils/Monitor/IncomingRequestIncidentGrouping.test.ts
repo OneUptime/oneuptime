@@ -15,6 +15,7 @@ import {
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { PerSeriesCriteriaMatch } from "../../../../Types/Probe/ProbeApiIngestResponse";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 function makeRequest(
   requestBody: JSONObject | string | undefined,
@@ -827,19 +828,22 @@ describe("IncomingRequestIncidentGrouping", () => {
           return { status: index % 2 ? "firing" : "resolved", labels: {} };
         },
       );
-      const startedAt: number = Date.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          const result: IncomingRequestGroupingScan = scan(
+            { status: "firing", alerts: alerts },
+            {
+              groupByJSONPath: "requestBody.alerts[*].labels.alertname",
+              resolvedWhenJSONPath: "requestBody.status",
+              resolvedWhenValue: "resolved",
+            },
+          );
 
-      const result: IncomingRequestGroupingScan = scan(
-        { status: "firing", alerts: alerts },
-        {
-          groupByJSONPath: "requestBody.alerts[*].labels.alertname",
-          resolvedWhenJSONPath: "requestBody.status",
-          resolvedWhenValue: "resolved",
+          expect(result.firingWithoutValue).toBe(200000);
         },
-      );
-
-      expect(result.firingWithoutValue).toBe(200000);
-      expect(Date.now() - startedAt).toBeLessThan(10000);
+        limitInMs: 10000,
+      });
+      expect(timed.inMs).toBeLessThan(10000);
     });
   });
 

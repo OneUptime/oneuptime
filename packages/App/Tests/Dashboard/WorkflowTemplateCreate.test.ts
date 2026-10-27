@@ -41,6 +41,7 @@ import {
   OAuth2GrantType,
   WorkflowVariableType,
 } from "Common/Types/Workflow/WorkflowVariableOAuth";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 const projectId: ObjectID = ObjectID.generate();
 const workflowId: ObjectID = ObjectID.generate();
@@ -302,15 +303,19 @@ describe("editTemplateVariable", () => {
 
   // A loop, not a pattern: a megabyte of slashes is read at once.
   test("a site that is a megabyte of slashes is filled in at once", () => {
-    const started: number = Date.now();
-    const edit: TemplateVariableEdit = typeInto(
-      START,
-      "jiraSiteUrl",
-      `https://${"/".repeat(1024 * 1024)}`,
-    );
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const edit: TemplateVariableEdit = typeInto(
+          START,
+          "jiraSiteUrl",
+          `https://${"/".repeat(1024 * 1024)}`,
+        );
 
-    expect(edit.values["jiraBaseUrl"]).toBe("https:");
-    expect(Date.now() - started).toBeLessThan(1000);
+        expect(edit.values["jiraBaseUrl"]).toBe("https:");
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });
 

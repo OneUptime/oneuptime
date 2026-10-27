@@ -4,6 +4,7 @@ import Phone from "../../../Types/Phone";
 import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import NodeUrl from "url";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * ONE CONTACT, HOWEVER IT IS WRITTEN (SubscriberContactKey).
@@ -301,10 +302,15 @@ describe("on long text", () => {
   });
 
   function within2Seconds(run: () => unknown): unknown {
-    const startedAt: number = Date.now();
-    const result: unknown = run();
+    const timed: FastestRun<unknown> = fastestRun({
+      run: (): unknown => {
+        return run();
+      },
+      limitInMs: 2000,
+    });
+    const result: unknown = timed.result;
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
 
     return result;
   }

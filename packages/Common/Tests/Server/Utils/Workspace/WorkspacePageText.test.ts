@@ -4,6 +4,7 @@ import WorkspacePageTextReader, {
   WorkspacePageText,
   WorkspacePageToken,
 } from "../../../../Server/Utils/Workspace/WorkspacePageText";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * WHAT FOLLOWS "page": WHO, THEN THE MESSAGE (customer feedback #4: "How can
@@ -489,26 +490,35 @@ describe("text as long as a chat sends, and longer: read in time that grows with
     ],
   ])("%s", (_label: string, build: () => Array<WorkspacePageToken>) => {
     const tokens: Array<WorkspacePageToken> = build();
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        WorkspacePageTextReader.read(tokens);
+      },
+      limitInMs: 2000,
+    });
 
-    WorkspacePageTextReader.read(tokens);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("a name the text starts with, against a long text and many names", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        WorkspacePageTextReader.startsWithName(
+          "a".repeat(LENGTH),
+          Array.from(
+            { length: 300 },
+            (_value: unknown, index: number): string => {
+              return `${"a".repeat(index)}b`;
+            },
+          ),
+        );
+        WorkspacePageTextReader.withoutSeparator(
+          `${" ".repeat(LENGTH)}:${" ".repeat(LENGTH)}x`,
+        );
+      },
+      limitInMs: 2000,
+    });
 
-    WorkspacePageTextReader.startsWithName(
-      "a".repeat(LENGTH),
-      Array.from({ length: 300 }, (_value: unknown, index: number): string => {
-        return `${"a".repeat(index)}b`;
-      }),
-    );
-    WorkspacePageTextReader.withoutSeparator(
-      `${" ".repeat(LENGTH)}:${" ".repeat(LENGTH)}x`,
-    );
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

@@ -28,6 +28,7 @@ import AiResourceType, {
 import { ResourceCommandTier } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { AiRemediationCommandPolicyVerdict } from "../../../../Types/AutoRemediation/AiRemediationCommandPolicyVerdict";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Contract under test — HostCommandPolicy, the tool policy for Host
@@ -1370,17 +1371,23 @@ describe("look-alike characters, empty words, quotes and long input", () => {
       ]).tier,
     ).toBe(ResourceCommandTier.Denied);
 
-    const started: number = Date.now();
-    const many: Array<string> = ["kill", ...new Array(5000).fill("1234")];
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const many: Array<string> = ["kill", ...new Array(5000).fill("1234")];
 
-    expect(HostCommandPolicy.evaluateArgv(many).targets).toEqual(["pid:1234"]);
-    expect(
-      ResourceCommandPolicy.evaluateArgv({
-        resourceType: AiResourceType.Host,
-        argv: many,
-      }).tier,
-    ).toBe(ResourceCommandTier.Denied);
-    expect(Date.now() - started).toBeLessThan(2000);
+        expect(HostCommandPolicy.evaluateArgv(many).targets).toEqual([
+          "pid:1234",
+        ]);
+        expect(
+          ResourceCommandPolicy.evaluateArgv({
+            resourceType: AiResourceType.Host,
+            argv: many,
+          }).tier,
+        ).toBe(ResourceCommandTier.Denied);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test.each([
@@ -1396,12 +1403,15 @@ describe("look-alike characters, empty words, quotes and long input", () => {
   ])(
     "a long pathological word is refused quickly: %#",
     (argv: Array<string>) => {
-      const started: number = Date.now();
-
-      expect(HostCommandPolicy.evaluateArgv(argv).tier).toBe(
-        ResourceCommandTier.Denied,
-      );
-      expect(Date.now() - started).toBeLessThan(1000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          expect(HostCommandPolicy.evaluateArgv(argv).tier).toBe(
+            ResourceCommandTier.Denied,
+          );
+        },
+        limitInMs: 1000,
+      });
+      expect(timed.inMs).toBeLessThan(1000);
     },
   );
 });

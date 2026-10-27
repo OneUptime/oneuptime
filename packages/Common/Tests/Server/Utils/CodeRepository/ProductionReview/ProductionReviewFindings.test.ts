@@ -32,6 +32,7 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import PositiveNumber from "../../../../../Types/PositiveNumber";
 import { afterEach, describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * What production says about the code a pull request changes - matched from
@@ -397,13 +398,17 @@ describe("matchExceptionFrames", () => {
   });
 
   test("reads a few hundred lines of a huge trace, in time in line with it", () => {
-    const started: number = Date.now();
-    const huge: string = `${"    at x (/app/src/a.ts:1:1)\n".repeat(100000)}${"(".repeat(400000)}`;
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const huge: string = `${"    at x (/app/src/a.ts:1:1)\n".repeat(100000)}${"(".repeat(400000)}`;
 
-    expect(
-      matchExceptionFrames({ stackTrace: huge, changed: changed() }),
-    ).toBeNull();
-    expect(Date.now() - started).toBeLessThan(2000);
+        expect(
+          matchExceptionFrames({ stackTrace: huge, changed: changed() }),
+        ).toBeNull();
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

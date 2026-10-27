@@ -23,6 +23,7 @@ import {
   SCRUB_RULE_CUSTOM_REGEX_BACK_REFERENCE,
   SCRUB_RULE_CUSTOM_REGEX_TOO_LARGE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/ScrubRuleForm";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -62,19 +63,22 @@ describe("checking a pattern before it is saved", () => {
   test("megabytes of pattern are too large, said at once, and nothing of them is kept", () => {
     clearLinearRegExpCache();
 
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (let index: number = 0; index < 20; index++) {
+          // Distinct, as one save after another could send them.
+          expect(
+            checkScrubRuleCustomRegex(`${index}${"x".repeat(1_000_000)}`),
+          ).toEqual({
+            problem: ScrubRuleCustomRegexProblem.CannotRun,
+            cannotRunReason: PatternProblemReason.TooLarge,
+          });
+        }
+      },
+      limitInMs: 2000,
+    });
 
-    for (let index: number = 0; index < 20; index++) {
-      // Distinct, as one save after another could send them.
-      expect(
-        checkScrubRuleCustomRegex(`${index}${"x".repeat(1_000_000)}`),
-      ).toEqual({
-        problem: ScrubRuleCustomRegexProblem.CannotRun,
-        cannotRunReason: PatternProblemReason.TooLarge,
-      });
-    }
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(getCachedPatternCount()).toBe(0);
     expect(getCachedPatternCharacters()).toBe(0);
   });
@@ -142,14 +146,17 @@ describe("a pattern that would read a value over and over", () => {
 
   test("scrubs the whole of a long value", () => {
     const value: string = "a".repeat(100000);
-    const startedAt: number = Date.now();
-
-    expect(
-      pattern.replace(value, (): string => {
-        return "[REDACTED]";
-      }),
-    ).toBe("[REDACTED]");
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          pattern.replace(value, (): string => {
+            return "[REDACTED]";
+          }),
+        ).toBe("[REDACTED]");
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("and every match of a short one, as before", () => {

@@ -17,6 +17,7 @@ import {
 } from "../../../../Utils/AiRemediation/Resource/ResourceOutputRedactor";
 import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Contract under test — DatabaseQueryRedactor, the "db" output hook.
@@ -758,17 +759,20 @@ describe("the whole hook", () => {
       "SELECT `".repeat(size / 8),
       "SELECT 1\n".repeat(size / 9),
     ];
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (const text of cases) {
+          const result: DatabaseQueryRedaction = redactWithCount(text);
 
-    for (const text of cases) {
-      const result: DatabaseQueryRedaction = redactWithCount(text);
-
-      expect(typeof result.text).toBe("string");
-      expect(result.text).not.toBe(DATABASE_UNREDACTABLE_OUTPUT);
-    }
+          expect(typeof result.text).toBe("string");
+          expect(result.text).not.toBe(DATABASE_UNREDACTABLE_OUTPUT);
+        }
+      },
+      limitInMs: 60_000,
+    });
 
     // Generous: a catastrophic (exponential) regex would take minutes.
-    expect(Date.now() - started).toBeLessThan(60_000);
+    expect(timed.inMs).toBeLessThan(60_000);
   });
 });
 

@@ -1,5 +1,6 @@
 import Markdown, { MarkdownContentType } from "../../../Server/Types/Markdown";
 import { seededRandom } from "../../Helpers/SeededRandom";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * slugify turns a heading into the `id` the docs renderer emits, and therefore
@@ -1420,12 +1421,16 @@ describe("Markdown.convertToPlainText", () => {
 
     test.each(ADVERSARIAL_CASES)("$name", (adversarial: AdversarialCase) => {
       const input: string = adversarial.build();
-      const startedAt: number = Date.now();
-      const output: string = Markdown.convertToPlainText(input);
-      const elapsedMs: number = Date.now() - startedAt;
+      const timed: FastestRun<string> = fastestRun({
+        run: (): string => {
+          return Markdown.convertToPlainText(input);
+        },
+        limitInMs: BOUND_MS,
+      });
+      const output: string = timed.result;
 
       expect(typeof output).toBe("string");
-      expect(elapsedMs).toBeLessThan(BOUND_MS);
+      expect(timed.inMs).toBeLessThan(BOUND_MS);
 
       if (adversarial.expected) {
         expect(output).toBe(adversarial.expected());

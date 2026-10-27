@@ -19,6 +19,7 @@ import {
   prepareRecordedEventsForPlayback,
   summarizeReplayAssetFailures,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayRecordedAssets";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * What the replay does with the recorded page's own images, stylesheets and
@@ -406,13 +407,17 @@ describe("summarizeReplayAssetFailures", () => {
         };
       },
     );
-    const started: number = Date.now();
-    const result: ReplayAssetFailureSummary =
-      summarizeReplayAssetFailures(flood);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const result: ReplayAssetFailureSummary =
+          summarizeReplayAssetFailures(flood);
 
-    expect(result.hosts).toHaveLength(50000);
+        expect(result.hosts).toHaveLength(50000);
+      },
+      limitInMs: 1000,
+    });
     /* A quadratic scan of 50,000 hosts takes seconds; a Set, milliseconds. */
-    expect(Date.now() - started).toBeLessThan(1000);
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });
 

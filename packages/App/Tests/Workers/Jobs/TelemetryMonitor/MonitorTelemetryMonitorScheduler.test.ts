@@ -19,9 +19,12 @@ import ObjectID from "Common/Types/ObjectID";
  *      removes),
  *   2. the scheduling control flow is unchanged: a cron monitoringInterval
  *      drives nextMonitorAt through CronTab, an invalid interval falls back
- *      to now+1min (and the monitor is still stamped and enqueued), monitors
- *      without steps are stamped but not enqueued, and one failed enqueue
- *      neither rejects the sweep nor starves the other monitors.
+ *      to now+1min (and the monitor is still stamped and enqueued), and one
+ *      failed enqueue neither rejects the sweep nor starves the other
+ *      monitors;
+ *   3. the sweep reads no monitor's steps (their JSON, every due monitor,
+ *      every minute): every due monitor is queued, and the evaluation job
+ *      skips one without steps before it evaluates anything (2026-10-27).
  */
 
 // Keep the heavy worker module from touching Redis at import time.
@@ -66,6 +69,7 @@ jest.mock("Common/Server/Services/MonitorService", () => {
     __esModule: true,
     default: {
       findAllBy: jest.fn(),
+      findOneById: jest.fn(),
       updateColumnsByIdWithoutHooks: jest.fn(),
       updateOneById: jest.fn(),
       getEnabledMonitorQuery: jest.fn(),
@@ -86,11 +90,16 @@ jest.mock(
 import MonitorService from "Common/Server/Services/MonitorService";
 import CronTab from "Common/Server/Utils/CronTab";
 import logger from "Common/Server/Utils/Logger";
+import ReceivingCoverage from "Common/Server/Utils/Telemetry/ReceivingCoverage";
 import TelemetryQueueService from "../../../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
-import { enqueueDueTelemetryMonitorEvaluationJobs } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
+import {
+  enqueueDueTelemetryMonitorEvaluationJobs,
+  processTelemetryMonitorEvaluationFromQueue,
+} from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 
 interface MonitorServiceMock {
   findAllBy: jest.Mock;
+  findOneById: jest.Mock;
   updateColumnsByIdWithoutHooks: jest.Mock;
   updateOneById: jest.Mock;
   getEnabledMonitorQuery: jest.Mock;
@@ -287,7 +296,26 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
     expect(enqueueJobMock).toHaveBeenCalledTimes(1);
   });
 
-  test("monitors with steps are enqueued with monitorId + projectId; monitors without steps are stamped but not enqueued", async () => {
+  test("reads only what scheduling needs: never a monitor's steps", async () => {
+    await enqueueDueTelemetryMonitorEvaluationJobs();
+
+    const select: Record<string, unknown> = (
+      monitorService.findAllBy.mock.calls[0]![0] as {
+        select: Record<string, unknown>;
+      }
+    ).select;
+
+    expect(Object.keys(select).sort()).toEqual([
+      "_id",
+      "createdAt",
+      "monitorType",
+      "monitoringInterval",
+      "projectId",
+    ]);
+    expect(select).not.toHaveProperty("monitorSteps");
+  });
+
+  test("every due monitor is stamped and enqueued with monitorId + projectId, steps or not: the evaluation job reads the steps", async () => {
     monitorService.findAllBy.mockResolvedValue([
       makeMonitor({ id: MONITOR_A_ID, monitorSteps: NON_EMPTY_STEPS }),
       makeMonitor({ id: MONITOR_B_ID }),
@@ -295,19 +323,57 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
 
     await enqueueDueTelemetryMonitorEvaluationJobs();
 
-    // both were stamped...
     expect(stampCalls()).toHaveLength(2);
+    expect(enqueueJobMock).toHaveBeenCalledTimes(2);
 
-    // ...but only the one with steps was handed to the queue.
-    expect(enqueueJobMock).toHaveBeenCalledTimes(1);
+    const enqueued: Array<string> = enqueueJobMock.mock.calls.map(
+      (args: Array<unknown>): string => {
+        const job: { monitorId: ObjectID; projectId: ObjectID } = args[0] as {
+          monitorId: ObjectID;
+          projectId: ObjectID;
+        };
+        return `${job.monitorId.toString()}@${job.projectId.toString()}`;
+      },
+    );
+    expect(enqueued.sort()).toEqual(
+      [
+        `${MONITOR_A_ID.toString()}@${PROJECT_ID.toString()}`,
+        `${MONITOR_B_ID.toString()}@${PROJECT_ID.toString()}`,
+      ].sort(),
+    );
+  });
 
-    const enqueueArgs: { monitorId: ObjectID; projectId: ObjectID } =
-      enqueueJobMock.mock.calls[0]![0] as {
-        monitorId: ObjectID;
-        projectId: ObjectID;
-      };
-    expect(enqueueArgs.monitorId.toString()).toBe(MONITOR_A_ID.toString());
-    expect(enqueueArgs.projectId.toString()).toBe(PROJECT_ID.toString());
+  test("the evaluation job of a monitor without steps reads its steps and stops before it evaluates anything", async () => {
+    const plan: jest.SpiedFunction<
+      typeof ReceivingCoverage.planTelemetryEvaluation
+    > = jest.spyOn(ReceivingCoverage, "planTelemetryEvaluation");
+
+    for (const monitorSteps of [
+      undefined,
+      { data: { monitorStepsInstanceArray: [] } } as unknown as MonitorSteps,
+    ]) {
+      const monitor: Monitor = makeMonitor({ id: MONITOR_B_ID, monitorSteps });
+      monitorService.findOneById.mockResolvedValue(monitor);
+
+      await processTelemetryMonitorEvaluationFromQueue({
+        monitorId: MONITOR_B_ID.toString(),
+        projectId: PROJECT_ID.toString(),
+      } as Parameters<typeof processTelemetryMonitorEvaluationFromQueue>[0]);
+    }
+
+    // The job asked for the steps itself...
+    expect(monitorService.findOneById).toHaveBeenCalledTimes(2);
+    expect(
+      (
+        monitorService.findOneById.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select,
+    ).toHaveProperty("monitorSteps", true);
+    // ...and went no further: no window planned, nothing stamped or queued.
+    expect(plan).not.toHaveBeenCalled();
+    expect(monitorService.updateColumnsByIdWithoutHooks).not.toHaveBeenCalled();
+    expect(enqueueJobMock).not.toHaveBeenCalled();
   });
 
   test("one rejected enqueue is logged and neither rejects the sweep nor starves the other monitors", async () => {

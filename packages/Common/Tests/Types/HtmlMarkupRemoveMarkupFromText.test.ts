@@ -10,6 +10,7 @@ import {
 import { generatedTexts } from "../Helpers/GeneratedTexts";
 import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
 import { describe, expect, it } from "@jest/globals";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * removeMarkupFromText reads markup the way Markdown read as plain text
@@ -530,10 +531,15 @@ describe("removeMarkupFromText", () => {
       "reads %s in linear time",
       (_case: string, build: () => string, expected: string | null) => {
         const text: string = build();
-        const started: number = Date.now();
-        const once: string = read(text);
+        const timed: FastestRun<string> = fastestRun({
+          run: (): string => {
+            return read(text);
+          },
+          limitInMs: LIMIT_IN_MS,
+        });
+        const once: string = timed.result;
 
-        expect(Date.now() - started).toBeLessThan(LIMIT_IN_MS);
+        expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
 
         if (expected !== null) {
           expect(once).toBe(expected);

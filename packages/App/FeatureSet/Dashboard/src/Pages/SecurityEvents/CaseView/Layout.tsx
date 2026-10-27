@@ -5,9 +5,9 @@ import {
   RunSecurityPlaybookModal,
 } from "../../../Components/SecurityCase/SecurityCaseActionModals";
 import {
-  getSecurityCaseAssigneePickerConfig,
-  getSecurityCaseTeamPickerConfig,
-} from "../../../Components/SecurityCase/SecurityCaseAssigneePicker";
+  SECURITY_CASE_FORM_STEPS,
+  getSecurityCaseFormFields,
+} from "../../../Components/SecurityCase/SecurityCaseFormFields";
 import {
   SecurityCaseAssigneePick,
   SecurityCaseStatusPick,
@@ -34,7 +34,6 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import SecurityCaseSideMenu from "./SideMenu";
 import SecurityCaseViewContext from "./SecurityCaseViewContext";
-import Label from "Common/Models/DatabaseModels/Label";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
@@ -47,7 +46,6 @@ import SecurityCaseStage from "Common/Types/SecurityCase/SecurityCaseStage";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -609,54 +607,9 @@ const SecurityCaseViewLayout: FunctionComponent<
               modelType: SecurityCase,
               id: "security-case-edit",
               formType: FormType.Update,
-              steps: [
-                { title: "Case", id: "case" },
-                { title: "Assignment", id: "assignment" },
-              ],
-              fields: [
-                {
-                  field: { title: true },
-                  stepId: "case",
-                  title: "Title",
-                  fieldType: FormFieldSchemaType.Text,
-                  required: true,
-                },
-                {
-                  field: { description: true },
-                  stepId: "case",
-                  title: "Description",
-                  fieldType: FormFieldSchemaType.Markdown,
-                  required: false,
-                },
-                {
-                  field: { assignedToUserId: true },
-                  stepId: "assignment",
-                  title: "Assign To",
-                  fieldType: FormFieldSchemaType.PeoplePicker,
-                  required: false,
-                  peoplePicker: getSecurityCaseAssigneePickerConfig(),
-                },
-                {
-                  field: { assignedToTeamId: true },
-                  stepId: "assignment",
-                  title: "Team",
-                  fieldType: FormFieldSchemaType.PeoplePicker,
-                  required: false,
-                  peoplePicker: getSecurityCaseTeamPickerConfig(),
-                },
-                {
-                  field: { labels: true },
-                  stepId: "assignment",
-                  title: "Labels",
-                  fieldType: FormFieldSchemaType.MultiSelectDropdown,
-                  required: false,
-                  dropdownModal: {
-                    type: Label,
-                    labelField: "name",
-                    valueField: "_id",
-                  },
-                },
-              ],
+              // As Open Security Case asks it, but for the priority (Set priority).
+              steps: SECURITY_CASE_FORM_STEPS,
+              fields: getSecurityCaseFormFields(),
             }}
             modelIdToEdit={caseId}
           />

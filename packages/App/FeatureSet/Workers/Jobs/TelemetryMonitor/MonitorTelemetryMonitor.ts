@@ -206,9 +206,19 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
       props: {
         isRoot: true,
       },
+      /*
+       * What scheduling needs, and not the monitor's steps. The sweep used to
+       * read every due monitor's monitorSteps - its whole JSON from Postgres,
+       * and 25 to 35 microseconds to turn into a MonitorSteps each - every
+       * minute, only to leave a monitor without steps unqueued, and the
+       * evaluation job reads the same steps again and skips such a monitor
+       * itself (processTelemetryMonitorEvaluationFromQueue). So every due
+       * monitor is queued, and a monitor without steps (made through the API
+       * without any, as the Dashboard never makes one) costs one job a minute
+       * that ends at its first check.
+       */
       select: {
         _id: true,
-        monitorSteps: true,
         createdAt: true,
         monitoringInterval: true,
         monitorType: true,
@@ -278,39 +288,17 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
       run: () => Promise<void>;
     }> = [];
 
+    // The evaluation job skips a monitor without steps (see the select above).
     for (const monitor of telemetryMonitors) {
-      try {
-        if (
-          !monitor.monitorSteps ||
-          !monitor.monitorSteps.data?.monitorStepsInstanceArray?.length ||
-          monitor.monitorSteps.data.monitorStepsInstanceArray.length === 0
-        ) {
-          logger.debug("Monitor has no steps. Skipping...", {
-            service: "workers",
-            projectId: monitor.projectId?.toString(),
+      enqueueTasks.push({
+        monitor,
+        run: () => {
+          return TelemetryQueueService.addTelemetryMonitorEvaluationJob({
+            monitorId: monitor.id!,
+            projectId: monitor.projectId!,
           });
-          continue;
-        }
-
-        enqueueTasks.push({
-          monitor,
-          run: () => {
-            return TelemetryQueueService.addTelemetryMonitorEvaluationJob({
-              monitorId: monitor.id!,
-              projectId: monitor.projectId!,
-            });
-          },
-        });
-      } catch (error) {
-        const attrs: LogAttributes = {
-          projectId: monitor.projectId?.toString(),
-        };
-        logger.error(
-          `Error while processing incoming request monitor: ${monitor.id?.toString()}`,
-          attrs,
-        );
-        logger.error(error, attrs);
-      }
+        },
+      });
     }
 
     const settledEnqueues: Array<PromiseSettledResult<void>> =

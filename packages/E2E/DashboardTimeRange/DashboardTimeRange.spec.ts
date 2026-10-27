@@ -1,4 +1,5 @@
 import { expect, Locator, Page, Route, test, TestInfo } from "@playwright/test";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * A dashboard's default time range and auto-refresh, and each viewer's own
@@ -818,29 +819,21 @@ test.describe("the dashboard inside OneUptime", () => {
 
     expect(fields).toHaveLength(2);
 
-    const dialogBox: { x: number; width: number } | null =
-      await dialog.boundingBox();
-    const fromBox: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    } | null = await fields[0]!.boundingBox();
-    const toBox: {
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-    } | null = await fields[1]!.boundingBox();
+    // In one frame: the dialog grows in as it opens (Modal, from 95%).
+    const [dialogBox, fromBox, toBox] = (await boxesInOneFrame([
+      dialog,
+      fields[0]!,
+      fields[1]!,
+    ])) as [FrameBox, FrameBox, FrameBox];
 
     // Side by side, the second ran past the dialog's edge.
-    expect(fromBox!.x + fromBox!.width).toBeLessThanOrEqual(
-      dialogBox!.x + dialogBox!.width,
+    expect(fromBox.x + fromBox.width).toBeLessThanOrEqual(
+      dialogBox.x + dialogBox.width,
     );
-    expect(toBox!.x + toBox!.width).toBeLessThanOrEqual(
-      dialogBox!.x + dialogBox!.width,
+    expect(toBox.x + toBox.width).toBeLessThanOrEqual(
+      dialogBox.x + dialogBox.width,
     );
-    expect(toBox!.y).toBeGreaterThanOrEqual(fromBox!.y + fromBox!.height);
+    expect(toBox.y).toBeGreaterThanOrEqual(fromBox.y + fromBox.height);
 
     await shoot(page, testInfo, "app-time-range-custom");
   });
@@ -985,14 +978,15 @@ test.describe("the dashboard inside OneUptime", () => {
     await press(button);
 
     const menu: Locator = page.getByTestId(`${DEFAULT_TIME_RANGE_PICKER}-menu`);
-    const buttonBox: { x: number; width: number } | null =
-      await button.boundingBox();
-    const menuBox: { x: number; width: number } | null =
-      await menu.boundingBox();
+    // In one frame: the menu has only just opened.
+    const [buttonBox, menuBox] = (await boxesInOneFrame([button, menu])) as [
+      FrameBox,
+      FrameBox,
+    ];
 
     // Hung from the button's start - its right edge, right to left.
     expect(
-      Math.abs(menuBox!.x + menuBox!.width - (buttonBox!.x + buttonBox!.width)),
+      Math.abs(menuBox.x + menuBox.width - (buttonBox.x + buttonBox.width)),
     ).toBeLessThanOrEqual(1);
 
     await page.keyboard.press("Escape");
@@ -1002,16 +996,15 @@ test.describe("the dashboard inside OneUptime", () => {
     await openApp(page, "wall", "۱ روز گذشته", "?lang=fa");
 
     const rail: Locator = await openRangePicker(page, "۱ روز گذشته");
-    const railBox: { x: number; width: number } | null =
-      await rail.boundingBox();
     const preview: Locator = rail.locator("xpath=following-sibling::*[1]");
-    const previewBox: { x: number; width: number } | null =
-      await preview.boundingBox();
+    // In one frame: the picker has only just opened.
+    const [railBox, previewBox] = (await boxesInOneFrame([rail, preview])) as [
+      FrameBox,
+      FrameBox,
+    ];
 
     // Right to left: the rail on the right, the preview on its left...
-    expect(railBox!.x).toBeGreaterThanOrEqual(
-      previewBox!.x + previewBox!.width,
-    );
+    expect(railBox.x).toBeGreaterThanOrEqual(previewBox.x + previewBox.width);
     // ...and the rule between them, on the preview's right edge.
     expect(
       await preview.evaluate((element: HTMLElement): string => {

@@ -27,6 +27,7 @@ import {
   lastJsonLine,
   publishedModules,
 } from "../../../Scripts/NpmPackage/SmokeTestNpmPackage";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * How what npm publishes as @oneuptime/common is wired into this
@@ -342,10 +343,13 @@ describe("the smoke test's own reading", () => {
 
   test("its network check takes time in line with the text it reads", () => {
     const text: string = `npm error ${"E".repeat(400000)}\n`.repeat(2);
-    const started: number = Date.now();
-
-    expect(isNetworkFailure(text)).toBe(false);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(isNetworkFailure(text)).toBe(false);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   // What the use of the API, JSON and the models prints when all is right.

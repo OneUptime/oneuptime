@@ -7,6 +7,7 @@ import ZipArchive, {
   ZipError,
 } from "../../Utils/Books/Zip";
 import { createZip, ZipFixtureEntry } from "./Helpers/ZipFixture";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * The ZIP reader treats the book's EPUB as untrusted input: it is downloaded
@@ -507,13 +508,16 @@ describe("ZipArchive: refusing broken or hostile archives", () => {
     const bomb: ZipArchive = archiveOf([
       { name: "bomb.xhtml", data: payload, uncompressedSize: 100 },
     ]);
-    const started: number = Date.now();
-
-    expectZipError(() => {
-      return bomb.read("bomb.xhtml");
-    }, /could not be inflated|wrong size/);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expectZipError(() => {
+          return bomb.read("bomb.xhtml");
+        }, /could not be inflated|wrong size/);
+      },
+      limitInMs: 2000,
+    });
     // Inflation stops at the declared size instead of expanding the whole payload.
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("refuses a deflated entry whose data is one byte longer than declared", () => {

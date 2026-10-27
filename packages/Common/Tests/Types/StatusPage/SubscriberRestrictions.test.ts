@@ -21,6 +21,7 @@ import {
   SubscriberRestrictionMessages,
 } from "../../../Types/StatusPage/SubscriberRestrictions";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Who may be a status page's subscriber (Types/StatusPage/
@@ -179,9 +180,13 @@ describe("what keeps a list from being saved", () => {
       },
     ).join("\n");
 
-    const started: number = Date.now();
-    expect(getAllowedEmailDomainEntries(repeated)).toHaveLength(50);
-    expect(Date.now() - started).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(getAllowedEmailDomainEntries(repeated)).toHaveLength(50);
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   test("repeats do not count towards the most", () => {

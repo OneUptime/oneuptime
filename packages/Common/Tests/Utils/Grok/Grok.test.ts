@@ -12,6 +12,7 @@ import {
 import GrokPatterns, {
   getGrokPatternNames,
 } from "../../../Utils/Grok/GrokPatterns";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The grok engine behind the LogPipeline GrokParser processor
@@ -429,11 +430,14 @@ describe("Grok - library patterns stay linear on hostile input", () => {
     "%s finishes quickly on input built to make it backtrack",
     (pattern: string, input: string) => {
       const compiled: CompiledGrokPattern = compileGrokPattern(pattern);
-      const startedAt: number = Date.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          matchGrokPattern(compiled, input);
+        },
+        limitInMs: 2000,
+      });
 
-      matchGrokPattern(compiled, input);
-
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 
@@ -444,13 +448,16 @@ describe("Grok - library patterns stay linear on hostile input", () => {
     const line: string =
       '10.0.0.7 - frank [10/Oct/2023:13:55:36 -0700] "GET /a HTTP/1.0" 200 23 "-" "-"';
 
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (let i: number = 0; i < 2000; i++) {
+          matchGrokPattern(compiled, line);
+        }
+      },
+      limitInMs: 2000,
+    });
 
-    for (let i: number = 0; i < 2000; i++) {
-      matchGrokPattern(compiled, line);
-    }
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

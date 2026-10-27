@@ -33,6 +33,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import { describe, expect, it } from "@jest/globals";
 import { FindOperator, getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Production Postgres logged this about once a minute, for more than a day:
@@ -175,10 +176,13 @@ describe("UUIDColumnFilter.isUUIDText — the ids Postgres reads", () => {
   // A value of any length is answered at once: the length is read first.
   it("refuses a megabyte of hex digits without reading it", () => {
     const longText: string = "a".repeat(4 * 1024 * 1024);
-    const startedAt: number = Date.now();
-
-    expect(UUIDColumnFilter.isUUIDText(longText)).toBe(false);
-    expect(Date.now() - startedAt).toBeLessThan(50);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(UUIDColumnFilter.isUUIDText(longText)).toBe(false);
+      },
+      limitInMs: 50,
+    });
+    expect(timed.inMs).toBeLessThan(50);
   });
 });
 

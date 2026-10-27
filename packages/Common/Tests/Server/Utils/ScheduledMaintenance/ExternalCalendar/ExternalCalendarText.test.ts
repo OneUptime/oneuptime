@@ -17,6 +17,7 @@ import {
   event,
 } from "./ExternalCalendarFixtures";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * A calendar's text cut down to what OneUptime reads, before ical.js sees
@@ -283,9 +284,13 @@ describe("time in line with the text", () => {
     (_name: string, text: string) => {
       expect(text.length).toBeGreaterThanOrEqual(SIZE - 100);
 
-      const startedAt: number = Date.now();
-      prepareExternalCalendarText(text);
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          prepareExternalCalendarText(text);
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 

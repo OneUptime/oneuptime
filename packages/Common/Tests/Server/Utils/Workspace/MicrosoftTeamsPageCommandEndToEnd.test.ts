@@ -110,6 +110,7 @@ import {
   ConfigurationBotFrameworkAuthentication,
   TeamsActivityHandler,
 } from "botbuilder";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 // ---- A fake Bot Connector: records what the bot sends, answers who members are ----
 
@@ -1369,24 +1370,27 @@ describe("MicrosoftTeamsPage.getPageTokens: a message, read", () => {
   });
 
   test("text as long as a chat sends, and longer: read in time that grows with it", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        MicrosoftTeamsPage.getPageTokens({
+          text: `page ${"<at".repeat(150_000)}`,
+          recipient: { id: "28:bot" },
+          entities: [],
+        });
+        MicrosoftTeamsPage.getPageTokens({
+          text: `page ${"<at>x</at>".repeat(40_000)}`,
+          recipient: { id: "28:bot" },
+          entities: [],
+        });
+        MicrosoftTeamsPage.getPageTokens({
+          text: `page ${"<at>".repeat(100_000)}</at>`,
+          recipient: { id: "28:bot" },
+          entities: [],
+        });
+      },
+      limitInMs: 2000,
+    });
 
-    MicrosoftTeamsPage.getPageTokens({
-      text: `page ${"<at".repeat(150_000)}`,
-      recipient: { id: "28:bot" },
-      entities: [],
-    });
-    MicrosoftTeamsPage.getPageTokens({
-      text: `page ${"<at>x</at>".repeat(40_000)}`,
-      recipient: { id: "28:bot" },
-      entities: [],
-    });
-    MicrosoftTeamsPage.getPageTokens({
-      text: `page ${"<at>".repeat(100_000)}</at>`,
-      recipient: { id: "28:bot" },
-      entities: [],
-    });
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

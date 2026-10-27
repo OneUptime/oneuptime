@@ -59,6 +59,7 @@
     "test-calendar-feed-ui": "playwright test --config playwright.calendar-feed-ui.config.ts",
     "test-list-delete-ui": "playwright test --config playwright.list-delete-ui.config.ts",
     "test-bulk-actions-ui": "playwright test --config playwright.bulk-actions-ui.config.ts",
+    "test-enterprise-licenses-ui": "playwright test --config playwright.bulk-actions-ui.config.ts EnterpriseLicenses.spec.ts",
     "test-archivable-values-ui": "playwright test --config playwright.archivable-values-ui.config.ts",
     "test-custom-roles-ui": "playwright test --config playwright.custom-roles-ui.config.ts",
     "test-status-timeline-ui": "playwright test --config playwright.status-timeline-ui.config.ts",
