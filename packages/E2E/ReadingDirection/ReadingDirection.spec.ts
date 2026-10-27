@@ -231,6 +231,74 @@ test.describe("the switch", () => {
   });
 });
 
+/*
+ * "In Persian the product bar's home icon touches its label" - the
+ * maintainer, of the Dashboard's bar before left and right followed the
+ * reading direction. Every link and button of the bar starts with its icon
+ * and keeps it 6px from its words, at the words' side, in every language.
+ */
+test.describe("the product bar", () => {
+  const PARTS: Array<{ name: string; selector: string }> = [
+    {
+      name: "Home",
+      selector: "[data-testid=product-bar-home-only] #home-nav-bar-item",
+    },
+    {
+      name: "the products menu",
+      selector: "[data-testid=product-bar-home-only] button",
+    },
+    {
+      name: "the open product",
+      selector: "[data-testid=product-bar-product-open] button",
+    },
+  ];
+
+  for (const language of LANGUAGES) {
+    test(`${language.lang}: every part starts with its icon, 6px from its words`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await open(page, `lang=${language.lang}`);
+
+      for (const part of PARTS) {
+        const link: Locator = page.locator(part.selector);
+
+        await expect(link).toBeVisible();
+
+        const icon: Box = await boxOf(link.locator("svg").first());
+        const words: Box = await boxOf(link.locator("span").first());
+
+        const gap: number =
+          language.dir === "rtl"
+            ? icon.left - words.right
+            : words.left - icon.right;
+
+        expect({ part: part.name, gap: Math.round(gap) }).toEqual({
+          part: part.name,
+          gap: 6,
+        });
+
+        // On one line, the icon centred on the words.
+        expect(
+          Math.abs(icon.top + icon.height / 2 - (words.top + words.height / 2)),
+        ).toBeLessThanOrEqual(1.5);
+      }
+
+      // Home opens the bar, at the start of the line.
+      const home: Box = await boxOf(page.locator(PARTS[0]!.selector));
+      const products: Box = await boxOf(page.locator(PARTS[1]!.selector));
+
+      if (language.dir === "rtl") {
+        expect(home.left).toBeGreaterThan(products.right);
+      } else {
+        expect(home.right).toBeLessThan(products.left);
+      }
+    });
+  }
+});
+
 test.describe("the status dot", () => {
   for (const language of ["en", "fa"]) {
     test(`${language}: the dot starts the line and keeps 10px from the words`, async ({

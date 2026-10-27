@@ -195,6 +195,7 @@ const PermissionPicker: FunctionComponent<ComponentProps> = (
         {/* Search bar */}
         <div className="border-b border-gray-200 p-2">
           <input
+            data-unsaved-changes-ignore
             type="text"
             className="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
             placeholder={translator.translateText(

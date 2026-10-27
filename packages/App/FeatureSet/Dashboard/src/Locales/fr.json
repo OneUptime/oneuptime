@@ -36334,5 +36334,6 @@
   "Recovered on its own while OneUptime AI held the page.": "Rétabli de lui-même pendant la mise en attente par OneUptime AI.",
   "Resolved by OneUptime AI. Nobody was paged.": "Résolu par OneUptime AI. Personne n'a été alerté.",
   "Wait for OneUptime AI for up to (minutes)": "Attendre OneUptime AI au plus (minutes)",
-  "Wait from 1 to 30 whole minutes.": "Attendez de 1 à 30 minutes entières."
+  "Wait from 1 to 30 whole minutes.": "Attendez de 1 à 30 minutes entières.",
+  "This page will come back as soon as you're online again, just as you left it.": "Cette page reviendra dès que vous serez de nouveau en ligne, telle que vous l'avez laissée."
 }

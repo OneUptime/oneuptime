@@ -404,6 +404,7 @@
   "Loading the latest version": "Die neueste Version wird geladen",
   "A newer version of this page is available. It's loading now.": "Eine neuere Version dieser Seite ist verfügbar. Sie wird jetzt geladen.",
   "You're offline": "Sie sind offline",
+  "This page will come back as soon as you're online again, just as you left it.": "Sobald Sie wieder online sind, erscheint diese Seite genau so, wie Sie sie verlassen haben.",
   "This page needs an internet connection to load. It will load as soon as you're back online.": "Diese Seite braucht eine Internetverbindung, um zu laden. Sie wird geladen, sobald Sie wieder online sind.",
   "Can't reach the server": "Der Server ist nicht erreichbar",
   "It may be restarting after an update. This page will load as soon as the server is back.": "Er startet vielleicht nach einem Update neu. Diese Seite wird geladen, sobald der Server wieder erreichbar ist.",

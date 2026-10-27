@@ -1272,6 +1272,7 @@ const CorrelateGraph: FunctionComponent = (): ReactElement => {
                 />
               </span>
               <Input
+                isSearchOrFilter={true}
                 dataTestId="security-events-correlate-observable"
                 ariaLabel={t("Observable")}
                 placeholder="Search a host, user, or IP address"

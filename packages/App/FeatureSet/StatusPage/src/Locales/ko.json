@@ -404,6 +404,7 @@
   "Loading the latest version": "최신 버전을 로드하는 중",
   "A newer version of this page is available. It's loading now.": "이 페이지의 최신 버전이 있습니다. 지금 로드하는 중입니다.",
   "You're offline": "오프라인 상태입니다",
+  "This page will come back as soon as you're online again, just as you left it.": "다시 온라인 상태가 되는 즉시 이 페이지가 보던 그대로 다시 표시됩니다.",
   "This page needs an internet connection to load. It will load as soon as you're back online.": "이 페이지를 로드하려면 인터넷 연결이 필요합니다. 다시 온라인 상태가 되면 바로 로드됩니다.",
   "Can't reach the server": "서버에 연결할 수 없습니다",
   "It may be restarting after an update. This page will load as soon as the server is back.": "업데이트 후 다시 시작하는 중일 수 있습니다. 서버가 돌아오는 즉시 이 페이지가 로드됩니다.",

@@ -202,6 +202,21 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const formRootRef: MutableRefObject<HTMLDivElement | null> =
       useRef<HTMLDivElement | null>(null);
 
+    /*
+     * Whether the reader has done anything in the form since it opened or
+     * was last saved: pressed, clicked or typed in it - a dropdown's menu
+     * drawn elsewhere on the page included, as React's events go through
+     * the component tree. Until then a value the form is handed is its own
+     * doing - a field reporting what it holds as it is drawn (a monitor's
+     * criteria do), defaults filled in once something loads - and no
+     * change the reader would lose to a reload.
+     */
+    const hasReaderActed: MutableRefObject<boolean> = useRef<boolean>(false);
+
+    const noteReaderActed: () => void = (): void => {
+      hasReaderActed.current = true;
+    };
+
     const [didSomethingChange, setDidSomethingChange] =
       useState<boolean>(false);
 
@@ -783,6 +798,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       fieldName: string,
       value: JSONValue,
     ): void => {
+      const previousValue: unknown = (
+        refCurrentValue.current as Record<string, unknown>
+      )[fieldName];
+
       const updatedValue: FormValues<T> = {
         ...refCurrentValue.current,
         [fieldName]: value as any,
@@ -790,6 +809,18 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
       hasUserEdited.current = true;
       changedFieldNames.current.add(fieldName);
+
+      /*
+       * The form holds a change the reader has not saved, however it was
+       * made: a pick from a dropdown or a picker fires no input event for
+       * UnsavedChanges to hear, and the search typed to find it no longer
+       * counts by itself (a search box never does). A field handing back
+       * the value it already had changed nothing, and nothing the form is
+       * handed before the reader acts in it is theirs (hasReaderActed).
+       */
+      if (hasReaderActed.current && !Object.is(previousValue, value)) {
+        UnsavedChanges.noteChange(formRootRef.current);
+      }
 
       // What the server said of the field was said of what it held before.
       if (serverErrorFieldName && fieldName === serverErrorFieldName) {
@@ -964,6 +995,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       props.onSubmit(values, () => {
         setDidSomethingChange(false);
         UnsavedChanges.markSaved(formRootRef.current);
+        // Saved: what the form is handed next is not the reader's yet.
+        hasReaderActed.current = false;
       });
     };
 
@@ -1362,6 +1395,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         id={props.id}
         ref={formRootRef}
         data-unsaved-changes-scope="form"
+        onPointerDownCapture={noteReaderActed}
+        onKeyDownCapture={noteReaderActed}
+        onClickCapture={noteReaderActed}
       >
         <div className="col-lg-1">
           <div>

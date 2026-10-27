@@ -1198,6 +1198,7 @@ const ValuePickerMenu: React.ForwardRefExoticComponent<
                 />
               </div>
               <input
+                data-unsaved-changes-ignore
                 ref={searchRef}
                 type="text"
                 value={search}

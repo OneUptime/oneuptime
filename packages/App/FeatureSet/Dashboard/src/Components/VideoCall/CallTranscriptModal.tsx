@@ -181,6 +181,7 @@ const CallTranscriptModal: FunctionComponent<ComponentProps> = (
     body = (
       <div className="space-y-3">
         <Input
+          isSearchOrFilter={true}
           id="call-transcript-search"
           dataTestId="call-transcript-search"
           value={query}

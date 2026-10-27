@@ -455,6 +455,62 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
             />
           </div>
         }
+        {/*
+         * The page's header and its tabs sit outside MasterPage, so while
+         * the browser is offline they stay above the "You're offline" card
+         * that takes the page's place, as the Dashboard's header and
+         * product bar do: the visitor still sees whose page this is.
+         */}
+        {!canRenderCustomHtml || !headerHtml ? (
+          <Header
+            logo={logo}
+            darkLogo={darkLogo}
+            logoAltText={
+              statusPage?.logoAltText || statusPage?.pageTitle || "Status Page"
+            }
+            links={links}
+            onLogoClicked={() => {
+              // This page's overview, its id filled in on the preview.
+              Navigation.navigate(
+                RouteUtil.populateRouteParams(
+                  props.isPreview
+                    ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
+                    : RouteMap[PageMap.OVERVIEW]!,
+                ),
+              );
+            }}
+          />
+        ) : (
+          <div
+            dangerouslySetInnerHTML={{
+              __html: headerHtml as string,
+            }}
+          />
+        )}
+        <NavBar
+          isPrivateStatusPage={props.isPrivateStatusPage}
+          show={true}
+          isPreview={props.isPreview}
+          enableEmailSubscribers={props.enableEmailSubscribers}
+          enableSMSSubscribers={props.enableSMSSubscribers}
+          enableSlackSubscribers={props.enableSlackSubscribers || false}
+          enableMicrosoftTeamsSubscribers={
+            props.enableMicrosoftTeamsSubscribers || false
+          }
+          enableWebhookSubscribers={props.enableWebhookSubscribers || false}
+          showIncidentsOnStatusPage={
+            statusPage?.showIncidentsOnStatusPage || false
+          }
+          showAnnouncementsOnStatusPage={
+            statusPage?.showAnnouncementsOnStatusPage || false
+          }
+          showScheduledMaintenanceEventsOnStatusPage={
+            statusPage?.showScheduledMaintenanceEventsOnStatusPage || false
+          }
+          showSubscriberPageOnStatusPage={
+            statusPage?.showSubscriberPageOnStatusPage || false
+          }
+        />
         <MasterPage
           makeTopSectionUnstick={true}
           isLoading={props.isLoading || false}
@@ -463,58 +519,6 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
           className="flex grow flex-col"
         >
           <>
-            {!canRenderCustomHtml || !headerHtml ? (
-              <Header
-                logo={logo}
-                darkLogo={darkLogo}
-                logoAltText={
-                  statusPage?.logoAltText ||
-                  statusPage?.pageTitle ||
-                  "Status Page"
-                }
-                links={links}
-                onLogoClicked={() => {
-                  // This page's overview, its id filled in on the preview.
-                  Navigation.navigate(
-                    RouteUtil.populateRouteParams(
-                      props.isPreview
-                        ? RouteMap[PageMap.PREVIEW_OVERVIEW]!
-                        : RouteMap[PageMap.OVERVIEW]!,
-                    ),
-                  );
-                }}
-              />
-            ) : (
-              <div
-                dangerouslySetInnerHTML={{
-                  __html: headerHtml as string,
-                }}
-              />
-            )}
-            <NavBar
-              isPrivateStatusPage={props.isPrivateStatusPage}
-              show={true}
-              isPreview={props.isPreview}
-              enableEmailSubscribers={props.enableEmailSubscribers}
-              enableSMSSubscribers={props.enableSMSSubscribers}
-              enableSlackSubscribers={props.enableSlackSubscribers || false}
-              enableMicrosoftTeamsSubscribers={
-                props.enableMicrosoftTeamsSubscribers || false
-              }
-              enableWebhookSubscribers={props.enableWebhookSubscribers || false}
-              showIncidentsOnStatusPage={
-                statusPage?.showIncidentsOnStatusPage || false
-              }
-              showAnnouncementsOnStatusPage={
-                statusPage?.showAnnouncementsOnStatusPage || false
-              }
-              showScheduledMaintenanceEventsOnStatusPage={
-                statusPage?.showScheduledMaintenanceEventsOnStatusPage || false
-              }
-              showSubscriberPageOnStatusPage={
-                statusPage?.showSubscriberPageOnStatusPage || false
-              }
-            />
             <main
               id="main-content"
               tabIndex={-1}

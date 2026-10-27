@@ -130,6 +130,7 @@ const EntityLookupCard: FunctionComponent = (): ReactElement => {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">
             <Input
+              isSearchOrFilter={true}
               placeholder={ENTITY_LOOKUP_PLACEHOLDER}
               outerDivClassName="relative w-full rounded-md shadow-sm"
               // Named for a screen reader as the card is: a placeholder is no name.

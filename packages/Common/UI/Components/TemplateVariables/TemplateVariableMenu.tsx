@@ -243,6 +243,7 @@ const TemplateVariableMenu: React.ForwardRefExoticComponent<
                 <SearchIcon className="h-4 w-4" />
               </span>
               <input
+                data-unsaved-changes-ignore
                 type="text"
                 role="combobox"
                 autoFocus={true}

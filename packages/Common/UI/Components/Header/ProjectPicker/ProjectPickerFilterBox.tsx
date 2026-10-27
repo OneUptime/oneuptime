@@ -19,6 +19,7 @@ const ProjectPickerFilterBox: FunctionComponent<ComponentProps> = (
       </label>
       <div className="relative">
         <Input
+          isSearchOrFilter={true}
           onChange={(value: string) => {
             props.onChange(value);
           }}

@@ -164,6 +164,7 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
               />
             </span>
             <input
+              data-unsaved-changes-ignore
               type="text"
               placeholder={translator.translateText("Search runbooks...")}
               value={pickerSearch}
