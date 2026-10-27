@@ -1,5 +1,9 @@
 import CronTab, { CronScheduleShape } from "./CronTab";
-import { getDateLocale, isEnglishDateLanguage } from "../Types/DateLanguage";
+import {
+  getDateLocale,
+  isEnglishDateLanguage,
+  writeDigitsInLocale,
+} from "../Types/DateLanguage";
 import {
   composedValue,
   ComposedValue,
@@ -127,6 +131,28 @@ const namesInSentence: (data: {
     return names && names.length > 0
       ? joinInLocale(names, locale)
       : data.english;
+  });
+};
+
+/*
+ * A time of day or a minute as CronTab writes it ("09:00", "05"), in the
+ * digits of the sentence it is in: "۰۹:۰۰" in a Persian one, as the dates
+ * and counts beside it are written. English, or a language Intl does not
+ * know, keeps CronTab's own.
+ */
+const figuresInSentence: (english: string) => ComposedValue = (
+  english: string,
+): ComposedValue => {
+  return composedValue((sentence: Translator): string => {
+    if (isEnglishDateLanguage(sentence.language)) {
+      return english;
+    }
+
+    const locale: string = getDateLocale(sentence.language);
+
+    return locale.startsWith("en-")
+      ? english
+      : writeDigitsInLocale(english, locale);
   });
 };
 
@@ -315,8 +341,9 @@ const describeShape: (data: {
 
     case "everyHours": {
       // "at minute 05", as CronTab writes it.
-      const minute: string =
-        shape.minute < 10 ? `0${shape.minute}` : `${shape.minute}`;
+      const minute: ComposedValue = figuresInSentence(
+        shape.minute < 10 ? `0${shape.minute}` : `${shape.minute}`,
+      );
 
       if (shape.step === 1) {
         return shape.minute === 0
@@ -343,22 +370,28 @@ const describeShape: (data: {
 
     case "daily":
       return t.translateTemplate("Every day at {{time}} (UTC)", {
-        time: CronTab.describeTimeOfDay(shape.hour, shape.minute),
+        time: figuresInSentence(
+          CronTab.describeTimeOfDay(shape.hour, shape.minute),
+        ),
       });
 
     case "weekly":
       return t.translateTemplate("Every week on {{days}} at {{time}} (UTC)", {
         days: weekdaysInSentence(shape.weekdays),
-        time: CronTab.describeTimeOfDay(shape.hour, shape.minute),
+        time: figuresInSentence(
+          CronTab.describeTimeOfDay(shape.hour, shape.minute),
+        ),
       });
 
     case "monthly": {
       const values: {
         days: ComposedValue;
-        time: string;
+        time: ComposedValue;
       } = {
         days: daysOfMonthInSentence(shape.daysOfMonth),
-        time: CronTab.describeTimeOfDay(shape.hour, shape.minute),
+        time: figuresInSentence(
+          CronTab.describeTimeOfDay(shape.hour, shape.minute),
+        ),
       };
 
       return shape.monthStep === 1
@@ -404,7 +437,10 @@ const describeShape: (data: {
 
       return t.translateTemplate(EVERY_YEAR, {
         dates: joinInLocale(dates, locale),
-        time: CronTab.describeTimeOfDay(shape.hour, shape.minute),
+        time: writeDigitsInLocale(
+          CronTab.describeTimeOfDay(shape.hour, shape.minute),
+          locale,
+        ),
       });
     }
 

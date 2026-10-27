@@ -403,7 +403,8 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
         >
           {/*
            * Points at the line's end - the way it opens - and turns down
-           * once it is open; in a right-to-left page it points left.
+           * once it is open; in a right-to-left page it points left (Icon
+           * mirrors a chevron there).
            */}
           <span
             aria-hidden="true"
@@ -413,7 +414,7 @@ const FoldedSection: FunctionComponent<ComponentProps> = (
             <Icon
               icon={IconProp.ChevronRight}
               className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${
-                isCollapsed ? "rtl:rotate-180" : "rotate-90"
+                isCollapsed ? "" : "rotate-90"
               }`}
             />
           </span>

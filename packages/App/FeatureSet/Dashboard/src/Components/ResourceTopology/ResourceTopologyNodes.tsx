@@ -671,7 +671,7 @@ const FactRow: FunctionComponent<{
               <span
                 style={{
                   color: "var(--ou-text-muted, #6b7280)",
-                  marginRight: 3,
+                  marginInlineEnd: 3,
                 }}
               >
                 {tx(fact.label, translator)}
@@ -783,7 +783,7 @@ const PartSummary: FunctionComponent<{
         ) : null}
       </span>
       {!props.factsLine && facts.length > 0 ? (
-        <span style={{ flexShrink: 0, marginLeft: 8 }}>
+        <span style={{ flexShrink: 0, marginInlineStart: 8 }}>
           <FactRow facts={facts} />
         </span>
       ) : null}
@@ -849,7 +849,7 @@ export const ResourceTopologyCardNode: FunctionComponent<
         flexDirection: "column",
         borderRadius: 12,
         border: "1px solid var(--ou-border-default, #e5e7eb)",
-        borderLeft: `4px solid ${RESOURCE_TOPOLOGY_HEALTH_COLORS[node.effectiveHealth]}`,
+        borderInlineStart: `4px solid ${RESOURCE_TOPOLOGY_HEALTH_COLORS[node.effectiveHealth]}`,
         background: "var(--ou-surface-primary, #ffffff)",
         boxShadow: shadowFor(node),
         outline: outlineFor(data, Boolean(placed.card?.isMatch)),
@@ -975,7 +975,7 @@ export const ResourceTopologyChipNode: FunctionComponent<
           padding: "0 10px",
           borderRadius: 10,
           border: "1px solid var(--ou-border-default, #e5e7eb)",
-          borderLeft: `3px solid ${RESOURCE_TOPOLOGY_HEALTH_COLORS[node.effectiveHealth]}`,
+          borderInlineStart: `3px solid ${RESOURCE_TOPOLOGY_HEALTH_COLORS[node.effectiveHealth]}`,
           background: "var(--ou-surface-primary, #ffffff)",
           boxShadow: shadowFor(node),
           outline: outlineFor(data, Boolean(placed.chip?.isMatch)),
@@ -1003,7 +1003,7 @@ export const ResourceTopologyChipNode: FunctionComponent<
         <span
           style={{
             ...LINE,
-            paddingLeft: 14,
+            paddingInlineStart: 14,
             fontSize: 11,
             lineHeight: "14px",
             color: "var(--ou-text-muted, #6b7280)",
@@ -1160,7 +1160,7 @@ const CaptionBand: FunctionComponent<{
           }}
           style={{
             ...BUTTON_RESET,
-            marginLeft: "auto",
+            marginInlineStart: "auto",
             flexShrink: 0,
             fontSize: 11,
             fontWeight: 600,
@@ -1332,7 +1332,7 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
           padding: "0 10px",
           borderRadius: 10,
           border: "1px solid var(--ou-border-default, #e5e7eb)",
-          borderLeft: `3px solid ${RESOURCE_TOPOLOGY_HEALTH_COLORS[node.effectiveHealth]}`,
+          borderInlineStart: `3px solid ${RESOURCE_TOPOLOGY_HEALTH_COLORS[node.effectiveHealth]}`,
           background: "var(--ou-surface-primary, #ffffff)",
           boxShadow: shadowFor(node),
           outline: outlineFor(data, false),
@@ -1360,7 +1360,7 @@ export const ResourceTopologyRelatedNode: FunctionComponent<
         <span
           style={{
             ...LINE,
-            paddingLeft: 14,
+            paddingInlineStart: 14,
             fontSize: 11,
             lineHeight: "14px",
             color: "var(--ou-text-muted, #6b7280)",

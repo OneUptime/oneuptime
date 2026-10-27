@@ -1,7 +1,10 @@
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { SUPPORTED_STATUS_PAGE_LANGUAGES } from "Common/Types/StatusPage/StatusPageLanguage";
+import {
+  getStatusPageLanguageHead,
+  SUPPORTED_STATUS_PAGE_LANGUAGES,
+} from "Common/Types/StatusPage/StatusPageLanguage";
 import {
   ADD_RECOMMENDED_BAR_COLOR_RULES_MISC_DATA_KEY,
   HistoryChartBarColorRuleValues,
@@ -265,6 +268,32 @@ describe("Status Page Branding & Domains (English)", () => {
         language.englishName,
         sentence.includes(language.englishName),
       ]).toEqual([language.englishName, true]);
+    }
+  });
+
+  it("says a Persian page is laid out right to left, its uptime bars still from the left, as the servers and the page draw it", () => {
+    const sentence: string = page.split("\n").find((line: string): boolean => {
+      return line.startsWith("Seventeen languages ship with OneUptime:");
+    })!;
+
+    expect(sentence).toContain(
+      "Persian reads right to left, so a page shown in Persian is laid out from the right, from its first moment when Persian is its default language. Its uptime bars still run from the oldest day on the left.",
+    );
+
+    // Served right to left from the start when Persian is the default.
+    expect(getStatusPageLanguageHead("fa")).toEqual({
+      lang: "fa",
+      dir: "rtl",
+    });
+
+    // The bars and their time axis keep left to right.
+    for (const source of [
+      "../../../FeatureSet/StatusPage/src/Components/Monitor/MonitorOverview.tsx",
+      "../../../FeatureSet/StatusPage/src/Pages/Overview/Overview.tsx",
+    ]) {
+      expect(
+        fs.readFileSync(path.resolve(__dirname, source), "utf8"),
+      ).toContain('dir="ltr"');
     }
   });
 

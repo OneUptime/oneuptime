@@ -50,8 +50,8 @@ const EventHistoryDayList: FunctionComponent<ComponentProps> = (
         className="text-gray-400 mt-2 text-sm"
         style={{
           padding: "20px",
-          paddingLeft: "10px",
-          paddingRight: "0px",
+          paddingInlineStart: "10px",
+          paddingInlineEnd: "0px",
           width: isMobile ? "100%" : "15%",
         }}
       >

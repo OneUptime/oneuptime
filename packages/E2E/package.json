@@ -96,6 +96,7 @@
     "test-vmware-host-page-ui": "playwright test --config playwright.vmware-host-page-ui.config.ts",
     "test-acknowledgement-timeout-ui": "playwright test --config playwright.acknowledgement-timeout-ui.config.ts",
     "test-shared-ui-ui": "playwright test --config playwright.shared-ui-ui.config.ts",
+    "test-reading-direction-ui": "playwright test --config playwright.reading-direction-ui.config.ts",
     "test-owners-on-create-ui": "playwright test --config playwright.owners-on-create-ui.config.ts",
     "test-owner-filters-ui": "playwright test --config playwright.owner-filters-ui.config.ts",
     "test-kubernetes-events-ui": "playwright test --config playwright.kubernetes-events-ui.config.ts",

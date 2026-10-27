@@ -150,7 +150,7 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
           <Icon
             icon={IconProp.ChevronDown}
             className={`mt-px ml-2 h-3.5 w-3.5 flex-shrink-0 text-gray-300 transition-transform duration-200 ${
-              isCollapsed ? "-rotate-90" : "rotate-0"
+              isCollapsed ? "-rotate-90 [&:dir(rtl)]:rotate-90" : "rotate-0"
             }`}
           />
         </button>

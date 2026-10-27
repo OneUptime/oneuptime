@@ -1297,7 +1297,12 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const primaryButtonStyle: React.CSSProperties = {};
 
     if (props.maxPrimaryButtonWidth) {
-      primaryButtonStyle.marginLeft = "0px";
+      /*
+       * Clears the start margin Button keeps from md up (md:ml-3 - the
+       * start of the line, the right on a page that reads right to left:
+       * Common/UI/Styles/TailwindReadingDirection.js).
+       */
+      primaryButtonStyle.marginInlineStart = "0px";
       primaryButtonStyle.width = "100%";
     }
 

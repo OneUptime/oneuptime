@@ -590,9 +590,10 @@ describe("ReplayRailDetail trace waterfall", () => {
     expect(spans[0]).toHaveTextContent("POST /api/orders");
     expect(spans[1]).toHaveTextContent("SELECT orders");
     expect(spans[2]).toHaveTextContent("charge card");
-    expect(spans[0]).toHaveStyle({ paddingLeft: "0px" });
-    expect(spans[1]).toHaveStyle({ paddingLeft: "10px" });
-    expect(spans[2]).toHaveStyle({ paddingLeft: "20px" });
+    // Indented from the start of the line, in either reading direction.
+    expect(spans[0]).toHaveStyle({ paddingInlineStart: "0px" });
+    expect(spans[1]).toHaveStyle({ paddingInlineStart: "10px" });
+    expect(spans[2]).toHaveStyle({ paddingInlineStart: "20px" });
 
     fireEvent.click(within(spans[2] as HTMLElement).getByRole("button"));
 

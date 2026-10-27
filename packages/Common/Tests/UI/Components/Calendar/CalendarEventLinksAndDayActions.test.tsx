@@ -307,14 +307,26 @@ describe("Calendar: the dates and times in the reader's language", () => {
     ).toBe("19:26 – ");
   });
 
-  test("Persian names the Gregorian month the grid shows, in the grid's digits", () => {
+  test("Persian names the Gregorian month the grid shows, in Persian digits as every date on the page", () => {
     const persian: Formats = getCalendarFormats("fa");
     const month: string = format(persian, "monthHeaderFormat", THURSDAY);
 
     // October, not the Solar Hijri month (Mehr) a Persian date names by default.
-    expect(month).toContain("2026");
+    expect(month).toContain("۲۰۲۶");
+    expect(month).not.toContain("2026");
     expect(month).toContain("اکتبر");
     expect(month).not.toContain("مهر");
+
+    // The grid's day numbers and its hours, in the same digits.
+    expect(format(persian, "dateFormat", THURSDAY)).toBe("۱۵");
+    expect(format(persian, "dateFormat", new Date(2026, 9, 1))).toBe("۰۱");
+    expect(format(persian, "timeGutterFormat", THURSDAY)).toContain("۱۰:۲۰");
+  });
+
+  test("German writes the grid's day numbers as the English grid does, two digits", () => {
+    expect(
+      format(getCalendarFormats("de"), "dateFormat", new Date(2026, 9, 1)),
+    ).toBe("01");
   });
 
   test("a language Intl does not know falls back to English words", () => {

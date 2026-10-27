@@ -2,6 +2,7 @@
 import { Logger } from "../../Utils/Logger";
 import joinAriaIds from "../../Utils/AriaIds";
 import useTranslateValue from "../../Utils/Translation";
+import { TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME } from "../../Utils/TypedTextDirection";
 import Icon from "../Icon/Icon";
 import OneUptimeDate from "../../../Types/Date";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -171,6 +172,20 @@ const Input: FunctionComponent<ComponentProps> = (
 
   const isDateInput: boolean =
     props.type === InputType.DATE || props.type === InputType.DATETIME_LOCAL;
+
+  /*
+   * What is typed reads the way it is written (TypedTextDirection): an
+   * English name or address on a Persian page keeps its full stop and its
+   * slashes at its end. Not a date, a time or a number, which the browser
+   * lays out itself.
+   */
+  if (
+    !isDateInput &&
+    props.type !== InputType.TIME &&
+    props.type !== InputType.NUMBER
+  ) {
+    className += ` ${TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME}`;
+  }
 
   /*
    * A password field that is not the person's own holds a secret the product

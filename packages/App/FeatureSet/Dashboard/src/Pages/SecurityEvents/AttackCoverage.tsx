@@ -288,7 +288,7 @@ const AttackCoveragePage: FunctionComponent<
                 LIBRARY_GAP_ACTION}
               <Icon
                 icon={IconProp.ArrowRight}
-                className="h-4 w-4 flex-shrink-0 rtl:rotate-180"
+                className="h-4 w-4 flex-shrink-0"
               />
             </>
           </AppLink>

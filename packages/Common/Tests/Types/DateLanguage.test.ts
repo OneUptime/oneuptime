@@ -12,6 +12,7 @@ import {
   formatRelativeDate,
   getDateDisplayLanguage,
   getDateLocale,
+  getDigitsOf,
   getEnglishOf,
   getRelativeDistance,
   inEnglishDates,
@@ -19,6 +20,7 @@ import {
   rememberEnglishOf,
   setDateDisplayLanguage,
   withDateDisplayLanguage,
+  writeDigitsInLocale,
   writeInDateDisplayLanguage,
 } from "../../Types/DateLanguage";
 import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
@@ -91,17 +93,23 @@ describe("the display language", () => {
 
 describe("the Intl locale a language writes dates in", () => {
   test.each([
-    ["de", "de-u-ca-gregory-nu-latn"],
-    ["fa", "fa-u-ca-gregory-nu-latn"],
-    ["zh-CN", "zh-CN-u-ca-gregory-nu-latn"],
-    ["en", "en-u-ca-gregory-nu-latn"],
+    ["de", "de-u-ca-gregory"],
+    ["fa", "fa-u-ca-gregory"],
+    ["zh-CN", "zh-CN-u-ca-gregory"],
+    ["en", "en-u-ca-gregory"],
     // A language Intl does not know reads English, never the browser's own.
-    ["xx-notalanguage", "en-u-ca-gregory-nu-latn"],
+    ["xx-notalanguage", "en-u-ca-gregory"],
   ])("%s -> %s", (language: string, locale: string) => {
     expect(getDateLocale(language)).toBe(locale);
   });
 
-  test("Persian is written with the Gregorian calendar and Latin digits", () => {
+  /*
+   * Persian's counts and sentences are written in its own digits (the
+   * translator's formatNumber, and the translations themselves): its dates
+   * are too, so a Persian page no longer mixes "۲ حادثه" with "26 Oct".
+   * The calendar stays the Gregorian one every timestamp is written in.
+   */
+  test("Persian is written with the Gregorian calendar and its own digits", () => {
     const text: string = new Intl.DateTimeFormat(getDateLocale("fa"), {
       year: "numeric",
       month: "short",
@@ -109,9 +117,43 @@ describe("the Intl locale a language writes dates in", () => {
       timeZone: "UTC",
     }).format(NOW);
 
-    expect(text).toContain("2026");
-    expect(text).toContain("06");
+    expect(text).toContain("۲۰۲۶");
+    expect(text).toContain("۰۶");
     expect(text).toContain("اکتبر");
+    expect(text).not.toMatch(/[0-9]/);
+  });
+
+  test("every other language OneUptime is translated into keeps Latin digits", () => {
+    for (const language of [
+      "en",
+      "de",
+      "fr",
+      "es",
+      "it",
+      "pt",
+      "nl",
+      "da",
+      "no",
+      "sv",
+      "ru",
+      "ja",
+      "ko",
+      "zh-CN",
+      "zh-TW",
+      "hi",
+    ]) {
+      const text: string = new Intl.DateTimeFormat(getDateLocale(language), {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        timeZone: "UTC",
+      }).format(NOW);
+
+      expect({ language, hasLatinDigits: text.includes("2026") }).toEqual({
+        language,
+        hasLatinDigits: true,
+      });
+    }
   });
 });
 
@@ -140,7 +182,7 @@ describe("the English a date written in another language is remembered with", ()
       },
       (language: string, locale: string): string => {
         expect(language).toBe("de");
-        expect(locale).toBe("de-u-ca-gregory-nu-latn");
+        expect(locale).toBe("de-u-ca-gregory");
 
         return "vor 5 Stunden";
       },
@@ -328,7 +370,7 @@ describe("how far a date is from now, rounded as moment's fromNow rounds", () =>
     ["fr", -5 * 3600000, "il y a 5 heures"],
     ["ja", -5 * 3600000, "5 時間前"],
     ["ru", 3 * 86400000 + 1000, "через 3 дня"],
-    ["fa", -5 * 3600000, "5 ساعت پیش"],
+    ["fa", -5 * 3600000, "۵ ساعت پیش"],
   ])(
     "in %s, %i ms from now reads %s",
     (language: string, offset: number, text: string) => {
@@ -446,7 +488,7 @@ describe("durations and figures", () => {
     ["de", 1.72, "1,72"],
     ["fr", 1.72, "1,72"],
     ["ja", 1.72, "1.72"],
-    ["fa", 1.72, "1.72"],
+    ["fa", 1.72, "۱٫۷۲"],
     // No thousands separator: a duration's figure is read as one number.
     ["de", 1234.5, "1234,5"],
   ])("%s writes %p as %p", (language: string, value: number, text: string) => {
@@ -457,5 +499,75 @@ describe("durations and figures", () => {
         maximumFractionDigits: 2,
       }),
     ).toBe(text);
+  });
+});
+
+describe("the digits a language writes", () => {
+  test("Persian writes its own, 0 to 9", () => {
+    expect(getDigitsOf(getDateLocale("fa"))).toEqual([
+      "۰",
+      "۱",
+      "۲",
+      "۳",
+      "۴",
+      "۵",
+      "۶",
+      "۷",
+      "۸",
+      "۹",
+    ]);
+  });
+
+  test("every other language OneUptime is translated into writes Latin ones", () => {
+    for (const language of ["en", "de", "fr", "ja", "zh-CN", "hi", "ru"]) {
+      expect({
+        language,
+        digits: getDigitsOf(getDateLocale(language)),
+      }).toEqual({
+        language,
+        digits: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+      });
+    }
+  });
+
+  test("a locale Intl cannot read writes Latin ones", () => {
+    expect(getDigitsOf("not a locale!")).toEqual([
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+    ]);
+  });
+
+  test("a figure OneUptime wrote is written in the reader's digits", () => {
+    const persian: string = getDateLocale("fa");
+
+    expect(writeDigitsInLocale("09:00", persian)).toBe("۰۹:۰۰");
+    expect(writeDigitsInLocale("every 15 minutes", persian)).toBe(
+      "every ۱۵ minutes",
+    );
+    expect(writeDigitsInLocale("2026-10-26", persian)).toBe("۲۰۲۶-۱۰-۲۶");
+  });
+
+  test("a language that writes Latin digits gets the text back as it was", () => {
+    for (const language of ["en", "de", "ja"]) {
+      expect(writeDigitsInLocale("09:05", getDateLocale(language))).toBe(
+        "09:05",
+      );
+    }
+  });
+
+  test("text with no figures, or in Persian digits already, is unchanged", () => {
+    const persian: string = getDateLocale("fa");
+
+    expect(writeDigitsInLocale("", persian)).toBe("");
+    expect(writeDigitsInLocale("ساعت", persian)).toBe("ساعت");
+    expect(writeDigitsInLocale("۰۹:۰۰", persian)).toBe("۰۹:۰۰");
   });
 });

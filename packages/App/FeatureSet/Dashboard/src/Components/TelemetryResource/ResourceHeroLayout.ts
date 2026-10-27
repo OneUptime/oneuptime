@@ -94,10 +94,13 @@ export const RESOURCE_HERO_CONTROLS_TEST_ID: string = "resource-hero-controls";
  * description on a Persian page reads left to right, its full stop at its
  * end, at the right edge under the name - not ".and charges the card".
  * (text-align: match-parent says the same in one word, but Chromium
- * ignores it.)
+ * ignores it.) The sides are written as properties, not text-left and
+ * text-right: those are the start and the end of the paragraph's own
+ * line (Common/UI/Styles/TailwindReadingDirection.js), and a Persian
+ * description's start is the right, an English one's the left.
  */
 export const RESOURCE_HERO_DESCRIPTION_CLASS_NAME: string =
-  "mt-1 text-left text-sm text-gray-500 [overflow-wrap:anywhere] md:min-w-[20rem] rtl:text-right";
+  "mt-1 [text-align:left] text-sm text-gray-500 [overflow-wrap:anywhere] md:min-w-[20rem] rtl:[text-align:right]";
 
 /*
  * Two lines until the reader asks for the rest (RESOURCE_HERO_DESCRIPTION_

@@ -82,9 +82,15 @@ describe("the date tile", () => {
     expect(tiles["de"]!.month).toBe("Nov");
     expect(tiles["ja"]!.month).toBe("11月");
     expect(tiles["ru"]!.month).toBe("нояб.");
-    // Latin digits and the Gregorian calendar, Persian included.
-    for (const tile of Object.values(tiles)) {
-      expect(tile.day).toBe("3");
+    /*
+     * The Gregorian calendar in every one, in each language's digits:
+     * Persian's ۳, Latin elsewhere.
+     */
+    for (const [language, tile] of Object.entries(tiles)) {
+      expect({ language, day: tile.day }).toEqual({
+        language,
+        day: language === "fa" ? "۳" : "3",
+      });
     }
   });
 });
@@ -471,10 +477,10 @@ describe("a length as it is said", () => {
     expect(
       plain(formatShiftLength({ days: 0, hours: 8, minutes: 0 }, "ja")),
     ).toBe("8 時間");
-    // Persian in Latin digits, as every date on the page is.
+    // Persian in its own digits, as every date and count on the page is.
     expect(
       plain(formatShiftLength({ days: 30, hours: 0, minutes: 0 }, "fa")),
-    ).toBe("30 روز");
+    ).toBe("۳۰ روز");
   });
 
   test("a language Intl does not know reads in English", () => {

@@ -600,8 +600,15 @@ const StatusTimelineBand: FunctionComponent<ComponentProps> = (
 
   const isDimmingOthers: boolean = focusedEntryIds.length > 0;
 
+  /*
+   * Left to right in every language: time runs left to right along the
+   * band, as it does along every chart's axis, and its marks are placed by
+   * their share of the window from the left. On a right-to-left page the
+   * axis's "Now" and its first date would otherwise swap ends while the
+   * marks stayed put.
+   */
   return (
-    <div data-testid="status-timeline-band-area">
+    <div data-testid="status-timeline-band-area" dir="ltr">
       <div
         ref={bandRef}
         role="group"

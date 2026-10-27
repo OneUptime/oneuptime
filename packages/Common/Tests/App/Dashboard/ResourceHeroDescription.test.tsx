@@ -335,8 +335,14 @@ describe("the description's classes", () => {
   });
 
   test("aligned as the page is: left, right on a right-to-left page", () => {
-    expect(classes).toContain("text-left");
-    expect(classes).toContain("rtl:text-right");
+    /*
+     * The page's sides, as properties: text-left is the start of the
+     * paragraph's own line, which its dir="auto" sets by its words.
+     */
+    expect(classes).toContain("[text-align:left]");
+    expect(classes).toContain("rtl:[text-align:right]");
+    expect(classes).not.toContain("text-left");
+    expect(classes).not.toContain("rtl:text-right");
     // Chromium ignores text-align: match-parent.
     expect(RESOURCE_HERO_DESCRIPTION_CLASS_NAME).not.toContain("match-parent");
   });

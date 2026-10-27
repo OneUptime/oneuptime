@@ -112,10 +112,13 @@ const AttentionLink: FunctionComponent<{
             </span>{" "}
             {translator.translatePlural(props.item.label, props.item.count)}
           </span>
-          {/* Forward in the reading direction: left in a right-to-left page. */}
+          {/*
+           * Forward in the reading direction: left in a right-to-left page,
+           * where Icon mirrors a chevron.
+           */}
           <Icon
             icon={IconProp.ChevronRight}
-            className="mt-0.5 h-4 w-4 flex-none text-gray-400 rtl:rotate-180"
+            className="mt-0.5 h-4 w-4 flex-none text-gray-400"
           />
         </>
       </AppLink>
