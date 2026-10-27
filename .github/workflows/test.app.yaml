@@ -124,6 +124,12 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
       options: --user 1001 --ipc=host
+    # In a container a run step with no shell of its own gets sh, not the
+    # bash -e {0} a runner gives it; the steps here are written for the
+    # runner's (Tests/Ops/PlaywrightImage).
+    defaults:
+      run:
+        shell: bash -e {0}
     permissions:
       contents: read
     steps:
@@ -238,6 +244,12 @@ jobs:
       # namespace, as Playwright's image asks, so Chromium cannot run short of
       # shared memory.
       options: --user 1001 --ipc=host
+    # In a container a run step with no shell of its own gets sh, not the
+    # bash -e {0} a runner gives it; the steps here are written for the
+    # runner's (Tests/Ops/PlaywrightImage).
+    defaults:
+      run:
+        shell: bash -e {0}
     permissions:
       contents: read
     # Which half of Event Overview a group runs, "1/2" or "2/2"; empty in
