@@ -10,6 +10,7 @@ import { translatableTerm } from "../../Utils/TranslateTemplate";
 import GenericObject from "../../../Types/GenericObject";
 import BulkUpdateForm, {
   BulkActionButtonSchema,
+  BulkUpdateBarLayout,
 } from "../BulkUpdate/BulkUpdateForm";
 import CheckboxElement from "../Checkbox/Checkbox";
 import { TABLE_SELECTED_ROW_CLASS_NAME } from "../Table/TableLayout";
@@ -91,6 +92,17 @@ export const TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID: string =
  */
 export const TELEMETRY_VIEWER_ROW_BOX_CLASS_NAME: string =
   "flex-none pl-4 pt-3";
+
+/*
+ * The list's header line for Bulk Actions: the page's box at the start,
+ * level with the rows' boxes, then its words - or, once rows are ticked,
+ * how many and Bulk Actions (BulkUpdateForm's Row), whose end lines up with
+ * the rows' ⋯ menus (a row's actions sit pr-2, sm:pr-3 from its end, as
+ * the exceptions list draws them). One height either way, as tall as Bulk
+ * Actions needs, so ticking the first row moves nothing.
+ */
+export const TELEMETRY_VIEWER_BULK_ROW_CLASS_NAME: string =
+  "flex min-h-[2.75rem] items-center gap-3 border-b border-gray-100 py-1.5 pl-4 pr-2 sm:pr-3";
 
 export interface TelemetryViewerProps<T> {
   // -- Data --
@@ -606,41 +618,51 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
           )}
 
           {/*
-           * Bulk Actions: the page's box over the rows, level with theirs,
-           * and while rows are ticked the bar under it - how many, Clear
-           * Selection and the actions' menu, as a table has it. A list
-           * pages, so the page is all a selection holds: the page's box is
-           * the bar's Select All, which is not offered again.
+           * Bulk Actions: one line over the rows. The page's box at its
+           * start, level with the rows' boxes, and its words; once rows are
+           * ticked, the rest of the line says how many, with a × to let go
+           * of them, and offers Bulk Actions at its end (BulkUpdateForm's
+           * Row) - the same menu, progress and result as a table's bar. A
+           * list pages, so the page is all a selection holds: the page's
+           * box is its Select All.
            */}
           {bulk && !listError && props.items.length > 0 ? (
             <div
-              className="border-b border-gray-100 px-4"
+              className={TELEMETRY_VIEWER_BULK_ROW_CLASS_NAME}
               data-testid="telemetry-viewer-bulk"
             >
-              <div className="flex items-center py-2">
-                {/*
-                 * The box's words are its label, in the quiet type of the
-                 * list's own small print: a press on them ticks it too.
-                 */}
-                <CheckboxElement
-                  dataTestId={TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID}
-                  value={pageSelection === PageSelectionState.All}
-                  isIndeterminate={pageSelection === PageSelectionState.Some}
-                  ariaLabel={pageBoxWords}
-                  title={
+              {/*
+               * The box's words are its label, in the quiet type of the
+               * list's own small print: a press on them ticks it too. Once
+               * rows are ticked the count takes their place, and the box
+               * keeps its name for a screen reader.
+               */}
+              <CheckboxElement
+                dataTestId={TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID}
+                value={pageSelection === PageSelectionState.All}
+                isIndeterminate={pageSelection === PageSelectionState.Some}
+                ariaLabel={pageBoxWords}
+                title={
+                  shownSelection.length > 0 ? undefined : (
                     <span
                       className="cursor-pointer select-none text-xs font-normal text-gray-500"
                       data-testid={TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID}
                     >
                       {pageBoxWords}
                     </span>
-                  }
-                  onChange={(value: boolean) => {
-                    setSelectedItems(value ? [...props.items] : []);
-                  }}
-                />
-              </div>
+                  )
+                }
+                outerDivClassName={
+                  shownSelection.length > 0
+                    ? "[&>div:last-child]:ml-0"
+                    : undefined
+                }
+                onChange={(value: boolean) => {
+                  setSelectedItems(value ? [...props.items] : []);
+                }}
+              />
               <BulkUpdateForm<T & GenericObject>
+                layout={BulkUpdateBarLayout.Row}
                 buttons={bulk.buttons}
                 selectedItems={shownSelection as Array<T & GenericObject>}
                 isAllItemsSelected={true}

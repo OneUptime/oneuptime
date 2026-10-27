@@ -12,6 +12,7 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import TelemetryViewer, {
+  TELEMETRY_VIEWER_BULK_ROW_CLASS_NAME,
   TELEMETRY_VIEWER_LIST_TEST_ID,
   TELEMETRY_VIEWER_ROW_BOX_CLASS_NAME,
   TELEMETRY_VIEWER_SELECT_PAGE_TEST_ID,
@@ -21,6 +22,10 @@ import TelemetryViewer, {
 } from "../../../../UI/Components/TelemetryViewer/TelemetryViewer";
 import { TABLE_SELECTED_ROW_CLASS_NAME } from "../../../../UI/Components/Table/TableLayout";
 import {
+  BULK_ROW_ACTIONS_TEST_ID,
+  BULK_ROW_CLEAR_TEST_ID,
+  BULK_ROW_COUNT_TEST_ID,
+  BULK_ROW_TEST_ID,
   BulkActionButtonSchema,
   BulkActionOnClickProps,
 } from "../../../../UI/Components/BulkUpdate/BulkUpdateForm";
@@ -35,11 +40,12 @@ import TimeRange from "../../../../Types/Time/TimeRange";
  * The exceptions list gave each exception a ⋯ with Resolve, Reopen,
  * Archive and Unarchive, and no way to act on several at once (#5248's
  * follow-up). The shared telemetry list now takes Bulk Actions as a table
- * does: a box beside each row, one in the list's header for the page, and
- * the bar over the rows while some are ticked - how many, Clear Selection
- * and the actions' menu, with the same progress and result dialog. A list
- * pages, so a selection is the page's ticked rows. Left out, the list is
- * drawn exactly as before.
+ * does: a box beside each row, one in the list's header line for the page,
+ * and, while some are ticked, the rest of that line - how many, in a chip
+ * whose × clears them, and the actions' menu at its end - with a table's
+ * progress and result dialog. One line either way, so ticking the first row
+ * moves nothing. A list pages, so a selection is the page's ticked rows.
+ * Left out, the list is drawn exactly as before.
  */
 
 interface Row {
@@ -128,6 +134,17 @@ function pageBox(): HTMLInputElement {
   ) as HTMLInputElement;
 }
 
+// How many the header line says are selected, or null with none ticked.
+function selectedCount(): string | null {
+  const chip: HTMLElement | null = screen.queryByTestId(BULK_ROW_COUNT_TEST_ID);
+
+  return chip ? chip.textContent : null;
+}
+
+function clearSelectionButton(): HTMLElement | null {
+  return screen.queryByRole("button", { name: "Clear Selection" });
+}
+
 afterEach(() => {
   cleanup();
   resolved.length = 0;
@@ -167,16 +184,18 @@ describe("a telemetry list with Bulk Actions", () => {
     expect(row.closest("li")).toHaveAttribute("data-selected", "false");
   });
 
-  test("shows no bar until a row is ticked, then how many, Clear Selection and the actions", () => {
+  test("says nothing of a selection until a row is ticked, then how many, a × to clear them and the actions", () => {
     render(viewer({ items: ROWS, bulk: BULK }));
 
-    expect(screen.queryByText("Clear Selection")).toBeNull();
+    expect(selectedCount()).toBeNull();
+    expect(clearSelectionButton()).toBeNull();
 
     fireEvent.click(rowBoxes()[0]!);
     fireEvent.click(rowBoxes()[1]!);
 
-    expect(screen.getByText("2 Exceptions Selected")).toBeVisible();
-    expect(screen.getByText("Clear Selection")).toBeVisible();
+    expect(selectedCount()).toBe("2 selected");
+    expect(clearSelectionButton()).toBeVisible();
+    expect(screen.getByRole("button", { name: "Bulk Actions" })).toBeVisible();
     // A list pages: the page's box is its Select All, so the bar has none.
     expect(screen.queryByText("Select All Exceptions")).toBeNull();
 
@@ -192,12 +211,44 @@ describe("a telemetry list with Bulk Actions", () => {
     expect(pageBox().indeterminate).toBe(true);
     expect(pageBox().checked).toBe(false);
 
-    fireEvent.click(screen.getByText("Clear Selection"));
+    fireEvent.click(clearSelectionButton()!);
 
-    expect(screen.queryByText("Clear Selection")).toBeNull();
+    expect(clearSelectionButton()).toBeNull();
+    expect(selectedCount()).toBeNull();
     for (const box of rowBoxes()) {
       expect(box.checked).toBe(false);
     }
+  });
+
+  test("is one line of the list's header: the page's box, then the count and Bulk Actions - no bar of its own, and no height of its own", () => {
+    const { container } = render(viewer({ items: ROWS, bulk: BULK }));
+
+    const header: HTMLElement = screen.getByTestId("telemetry-viewer-bulk");
+
+    expect(header.className).toBe(TELEMETRY_VIEWER_BULK_ROW_CLASS_NAME);
+    // As tall as Bulk Actions needs, ticked or not: the rows never move.
+    expect(TELEMETRY_VIEWER_BULK_ROW_CLASS_NAME).toContain("min-h-[2.75rem]");
+    expect(TELEMETRY_VIEWER_BULK_ROW_CLASS_NAME).toContain("items-center");
+
+    fireEvent.click(rowBoxes()[0]!);
+
+    // The count, its × and the menu sit in the header line, after the box.
+    const line: HTMLElement = screen.getByTestId(BULK_ROW_TEST_ID);
+    expect(header).toContainElement(line);
+    expect(header).toContainElement(pageBox());
+    expect(
+      pageBox().compareDocumentPosition(line) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(line).toContainElement(screen.getByTestId(BULK_ROW_COUNT_TEST_ID));
+    expect(screen.getByTestId(BULK_ROW_COUNT_TEST_ID)).toContainElement(
+      screen.getByTestId(BULK_ROW_CLEAR_TEST_ID),
+    );
+    expect(line).toContainElement(screen.getByTestId(BULK_ROW_ACTIONS_TEST_ID));
+
+    // A table's bar is a grey card of its own over the rows: not here.
+    expect(container.querySelector(".rounded-xl.bg-gray-50")).toBeNull();
+    expect(screen.queryByText("1 Exception Selected")).toBeNull();
   });
 
   test("the page's box says what it does beside it, and a press on those words ticks it", () => {
@@ -221,13 +272,30 @@ describe("a telemetry list with Bulk Actions", () => {
     for (const box of rowBoxes()) {
       expect(box.checked).toBe(true);
     }
-    expect(screen.getByText("3 Exceptions Selected")).toBeVisible();
+    expect(selectedCount()).toBe("3 selected");
 
-    fireEvent.click(words);
+    /*
+     * Ticked, the count takes the words' place on the line, and the box
+     * keeps its name for a screen reader.
+     */
+    expect(
+      screen.queryByTestId(TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID),
+    ).toBeNull();
+    expect(
+      screen.getByRole("checkbox", {
+        name: "Select all exceptions on this page",
+      }),
+    ).toBe(pageBox());
+
+    // The box clears them again, and its words come back.
+    fireEvent.click(pageBox());
 
     for (const box of rowBoxes()) {
       expect(box.checked).toBe(false);
     }
+    expect(
+      screen.getByTestId(TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID),
+    ).toBeVisible();
   });
 
   test("the page's box ticks every row on the page, and clears them again", () => {
@@ -240,14 +308,14 @@ describe("a telemetry list with Bulk Actions", () => {
     }
     expect(pageBox().checked).toBe(true);
     expect(pageBox().indeterminate).toBe(false);
-    expect(screen.getByText("3 Exceptions Selected")).toBeVisible();
+    expect(selectedCount()).toBe("3 selected");
 
     fireEvent.click(pageBox());
 
     for (const box of rowBoxes()) {
       expect(box.checked).toBe(false);
     }
-    expect(screen.queryByText("Clear Selection")).toBeNull();
+    expect(clearSelectionButton()).toBeNull();
   });
 
   test("a row read again keeps its tick; a row that left the page leaves the selection", () => {
@@ -255,7 +323,7 @@ describe("a telemetry list with Bulk Actions", () => {
 
     fireEvent.click(rowBoxes()[0]!);
     fireEvent.click(rowBoxes()[2]!);
-    expect(screen.getByText("2 Exceptions Selected")).toBeVisible();
+    expect(selectedCount()).toBe("2 selected");
 
     // The list read again: row 1 resolved, row 3 gone from the page.
     view.rerender(
@@ -265,7 +333,7 @@ describe("a telemetry list with Bulk Actions", () => {
       }),
     );
 
-    expect(screen.getByText("1 Exception Selected")).toBeVisible();
+    expect(selectedCount()).toBe("1 selected");
     expect(rowBoxes()[0]!.checked).toBe(true);
     expect(rowBoxes()[1]!.checked).toBe(false);
   });
@@ -295,7 +363,7 @@ describe("a telemetry list with Bulk Actions", () => {
     await waitFor(() => {
       expect(actionEnds).toBe(1);
     });
-    expect(screen.queryByText("Clear Selection")).toBeNull();
+    expect(clearSelectionButton()).toBeNull();
     for (const box of rowBoxes()) {
       expect(box.checked).toBe(false);
     }
@@ -440,7 +508,7 @@ describe("a telemetry list with Bulk Actions", () => {
 
     // The run and its dialog keep the two rows they started with.
     expect(screen.getByRole("dialog")).toBe(dialog);
-    expect(screen.getByText("2 Exceptions Selected")).toBeVisible();
+    expect(selectedCount()).toBe("2 selected");
 
     await act(async () => {
       finish();
@@ -458,7 +526,7 @@ describe("a telemetry list with Bulk Actions", () => {
       expect(actionEnds).toBe(1);
     });
     // Closed, the selection clears, and the list as read now is all there is.
-    expect(screen.queryByText("Clear Selection")).toBeNull();
+    expect(clearSelectionButton()).toBeNull();
     expect(rowBoxes()).toHaveLength(1);
     expect(rowBoxes()[0]!.checked).toBe(false);
   });
@@ -477,8 +545,8 @@ describe("a telemetry list with Bulk Actions", () => {
       }),
     );
 
-    expect(screen.queryByText("Clear Selection")).toBeNull();
-    expect(screen.queryByText(/Selected/)).toBeNull();
+    expect(clearSelectionButton()).toBeNull();
+    expect(selectedCount()).toBeNull();
     expect(rowBoxes()[0]!.checked).toBe(false);
 
     // Back on page 1, the rows ticked before are no longer ticked.

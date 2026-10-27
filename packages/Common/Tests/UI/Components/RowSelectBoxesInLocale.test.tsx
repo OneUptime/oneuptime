@@ -30,6 +30,7 @@ import TelemetryViewer, {
   TelemetryViewerBulk,
 } from "../../../UI/Components/TelemetryViewer/TelemetryViewer";
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
+import { BULK_ROW_COUNT_TEST_ID } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import IconProp from "../../../Types/Icon/IconProp";
 import TimeRange from "../../../Types/Time/TimeRange";
 
@@ -167,6 +168,7 @@ beforeAll(async () => {
     resources: {
       de: { translation: readLocale("de") },
       fa: { translation: readLocale("fa") },
+      ru: { translation: readLocale("ru") },
       en: { translation: readLocale("en") },
     },
     interpolation: { escapeValue: false },
@@ -230,18 +232,51 @@ describe("a telemetry list's boxes", () => {
     ]);
   });
 
-  test("count a selection in the reader's words, as a table's bar does", () => {
+  test("count a selection in the reader's words, and name its × so", () => {
     renderList();
 
     fireEvent.click(
       screen.getAllByTestId(TELEMETRY_VIEWER_SELECT_ROW_TEST_ID)[0]!,
     );
 
-    expect(screen.getByText("1 Ausnahme ausgewählt")).toBeVisible();
+    expect(screen.getByTestId(BULK_ROW_COUNT_TEST_ID)).toHaveTextContent(
+      "1 ausgewählt",
+    );
     expect(
       screen.getByRole("button", { name: "Auswahl aufheben" }),
     ).toBeVisible();
-    expect(screen.queryByText(/Selected/)).toBeNull();
+    expect(screen.queryByText(/selected/i)).toBeNull();
+
+    fireEvent.click(
+      screen.getAllByTestId(TELEMETRY_VIEWER_SELECT_ROW_TEST_ID)[1]!,
+    );
+
+    expect(screen.getByTestId(BULK_ROW_COUNT_TEST_ID)).toHaveTextContent(
+      "2 ausgewählt",
+    );
+  });
+
+  test("count a selection in Russian in its one form for every count", async () => {
+    await act(async () => {
+      await i18next.changeLanguage("ru");
+    });
+    renderList();
+
+    fireEvent.click(
+      screen.getAllByTestId(TELEMETRY_VIEWER_SELECT_ROW_TEST_ID)[0]!,
+    );
+
+    expect(screen.getByTestId(BULK_ROW_COUNT_TEST_ID)).toHaveTextContent(
+      "Выбрано: 1",
+    );
+
+    fireEvent.click(
+      screen.getAllByTestId(TELEMETRY_VIEWER_SELECT_ROW_TEST_ID)[1]!,
+    );
+
+    expect(screen.getByTestId(BULK_ROW_COUNT_TEST_ID)).toHaveTextContent(
+      "Выбрано: 2",
+    );
   });
 
   test("read in Persian on a Persian page", async () => {
@@ -252,10 +287,22 @@ describe("a telemetry list's boxes", () => {
 
     expect(
       screen.getByTestId(TELEMETRY_VIEWER_SELECT_PAGE_WORDS_TEST_ID),
-    ).toHaveTextContent("انتخاب همهٔ استثناها این صفحه");
+    ).toHaveTextContent("انتخاب همهٔ استثناها در این صفحه");
     expect(rowBoxLabels()).toEqual([
       "انتخاب Checkout API",
       "انتخاب TypeError: x is undefined",
     ]);
+
+    fireEvent.click(
+      screen.getAllByTestId(TELEMETRY_VIEWER_SELECT_ROW_TEST_ID)[0]!,
+    );
+
+    expect(screen.getByTestId(BULK_ROW_COUNT_TEST_ID)).toHaveTextContent(
+      // In Persian digits, as the reader's language writes a count.
+      "۱ مورد انتخاب شد",
+    );
+    expect(
+      screen.getByRole("button", { name: "پاک کردن انتخاب" }),
+    ).toBeVisible();
   });
 });

@@ -145,6 +145,50 @@ export const getBulkTimeLeftText: (
   });
 };
 
+/*
+ * Where the bar is drawn (ComponentProps.layout).
+ *
+ *   - Card, a table's: a bar of its own over the rows, with the count,
+ *     Select All, Clear Selection and Bulk Actions.
+ *   - Row, a list's whose header line holds its page box (a telemetry
+ *     list's "Select all exceptions on this page"): the rest of that line -
+ *     the count in a chip whose × clears it, and Bulk Actions at the line's
+ *     end, in the list's own small type. The page box is its Select All.
+ *     Ticking the first row moves nothing on the page, and the bar keeps to
+ *     the one line on a phone, where the Card took three lines and some
+ *     170px over the rows.
+ */
+export enum BulkUpdateBarLayout {
+  Card = "card",
+  Row = "row",
+}
+
+/*
+ * The Row's count. The list it heads says what it holds, and its page box
+ * says it again ("Select all exceptions on this page"): "2 selected".
+ */
+export const BULK_SELECTED_SHORT_COUNT: PluralTemplate = {
+  one: "{{count}} selected",
+  other: "{{count}} selected",
+};
+
+// The Row's parts, for the tests that hold its shape.
+export const BULK_ROW_TEST_ID: string = "bulk-update-row";
+export const BULK_ROW_COUNT_TEST_ID: string = "bulk-update-selected-count";
+export const BULK_ROW_CLEAR_TEST_ID: string = "bulk-update-clear-selection";
+export const BULK_ROW_ACTIONS_TEST_ID: string = "bulk-update-actions";
+
+/*
+ * The Row's count chip: an active filter's chip (TelemetryActiveFilterChips)
+ * - what is picked, in indigo, with the × that lets go of it.
+ */
+export const BULK_ROW_COUNT_CHIP_CLASS_NAME: string =
+  "inline-flex flex-none items-center gap-1 rounded-md border border-indigo-200 bg-indigo-50 py-0.5 pl-2 pr-0.5 text-xs font-medium text-indigo-700";
+
+// The Row's Bulk Actions: a telemetry toolbar's button (its Refresh).
+export const BULK_ROW_ACTIONS_BUTTON_CLASS_NAME: string =
+  "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
+
 export const BULK_SELECTION_LIMIT: PluralTemplate = {
   one: "Selected {{selected}} of {{count}} matching {{itemName}}. You can only select {{limit}} {{itemsName}} at a time, for performance reasons, so bulk actions will apply to the selected {{selected}} only.",
   other:
@@ -337,6 +381,12 @@ export interface ComponentProps<T extends GenericObject> {
    */
   isSelectionTruncated?: boolean | undefined;
   totalMatchingItemsCount?: number | undefined;
+  /*
+   * Where the bar is drawn (BulkUpdateBarLayout): a bar of its own over a
+   * table's rows (Card, left out), or the rest of a list's header line,
+   * after its page box (Row).
+   */
+  layout?: BulkUpdateBarLayout | undefined;
 }
 
 const isDangerStyle: (style: ButtonStyleType) => boolean = (
@@ -965,6 +1015,168 @@ const BulkUpdateForm: <T extends GenericObject>(
   const totalMatchingItemsCount: number =
     props.totalMatchingItemsCount || props.selectedItems.length;
 
+  /*
+   * The confirmation, the progress and the result: the same dialogs
+   * whichever way the bar is drawn.
+   */
+  const dialogs: ReactElement = (
+    <>
+      {confirmModalProps && (
+        <ConfirmModal
+          {...confirmModalProps}
+          onSubmit={() => {
+            confirmModalProps.onSubmit();
+            setConfirmModalProps(null);
+          }}
+        />
+      )}
+
+      {showProgressInfoModal && progressInfo && (
+        <ConfirmModal
+          title={getProgressTitle()}
+          description={<div>{showProgressInfo()}</div>}
+          submitButtonType={ButtonStyleType.NORMAL}
+          /*
+           * While a run goes on, its one button is Stop - a run that cannot
+           * stop keeps Close, unavailable until it ends - and once it has
+           * ended, Close.
+           */
+          disableSubmitButton={actionInProgress && (!isStoppable || isStopping)}
+          submitButtonText={getProgressButtonText()}
+          /*
+           * The focus starts on the dialog, not on Stop: the Enter that
+           * confirmed the action, held a moment too long, or one pressed to
+           * get on, must not stop the run it just started.
+           */
+          isInitialFocusOnDialog={true}
+          onSubmit={() => {
+            if (actionInProgress) {
+              if (isStoppable && !isStopping) {
+                setIsStopping(true);
+                stopControllerRef.current?.abort();
+              }
+              return;
+            }
+
+            setShowProgressInfoModal(false);
+            if (props.onActionEnd) {
+              props.onActionEnd();
+            }
+          }}
+        />
+      )}
+    </>
+  );
+
+  /*
+   * A list's header line (BulkUpdateBarLayout.Row), after its page box: the
+   * count in a chip whose × clears it, and Bulk Actions at the line's end.
+   * Selecting everything is the page box's job, so there is no Select All.
+   */
+  if (props.layout === BulkUpdateBarLayout.Row) {
+    const clearSelectionWords: string = tx("Clear Selection");
+
+    return (
+      <div className="flex min-w-0 flex-1">
+        <div
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-2"
+          data-testid={BULK_ROW_TEST_ID}
+        >
+          <span
+            className={BULK_ROW_COUNT_CHIP_CLASS_NAME}
+            data-testid={BULK_ROW_COUNT_TEST_ID}
+          >
+            <span aria-live="polite">
+              {translator.translatePlural(
+                BULK_SELECTED_SHORT_COUNT,
+                props.selectedItems.length,
+                {
+                  count: translator.formatNumber(props.selectedItems.length),
+                },
+              )}
+            </span>
+            <button
+              type="button"
+              className="inline-flex h-5 w-5 items-center justify-center rounded text-indigo-400 transition-colors hover:bg-indigo-100 hover:text-indigo-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              aria-label={clearSelectionWords}
+              title={clearSelectionWords}
+              data-testid={BULK_ROW_CLEAR_TEST_ID}
+              onClick={() => {
+                props.onClearSelectionClick();
+              }}
+            >
+              <Icon icon={IconProp.Close} className="h-3 w-3" />
+            </button>
+          </span>
+
+          {/*
+           * At the line's end, where a ⋯ menu sits on a row: the menu opens
+           * back over the line from this button's end edge.
+           */}
+          {menuChildren.length > 0 ? (
+            <div
+              className="ml-auto flex flex-none items-center"
+              data-testid={BULK_ROW_ACTIONS_TEST_ID}
+            >
+              <MoreMenu
+                elementToBeShownInsteadOfButton={
+                  <button
+                    type="button"
+                    className={BULK_ROW_ACTIONS_BUTTON_CLASS_NAME}
+                    /*
+                     * Named by its words: MoreMenu calls a trigger with no
+                     * name of its own "More options".
+                     */
+                    aria-label={tx("Bulk Actions")}
+                  >
+                    {/*
+                     * The bolt and the chevron only where there is room for
+                     * them: on a phone the words alone keep the line to one
+                     * line in French or Russian too.
+                     */}
+                    <div className="max-sm:hidden">
+                      <Icon
+                        icon={IconProp.Bolt}
+                        className="h-3.5 w-3.5 text-gray-500"
+                      />
+                    </div>
+                    <span>{tx("Bulk Actions")}</span>
+                    <div className="max-sm:hidden">
+                      <Icon
+                        icon={IconProp.ChevronDown}
+                        className="h-3 w-3 text-gray-400"
+                      />
+                    </div>
+                  </button>
+                }
+              >
+                {menuChildren}
+              </MoreMenu>
+            </div>
+          ) : (
+            <></>
+          )}
+
+          {props.errorMessage && (
+            <div
+              role="alert"
+              className="basis-full rounded-lg bg-red-50 p-3 text-sm text-red-800"
+            >
+              {props.errorMessage}
+            </div>
+          )}
+        </div>
+
+        {/*
+         * Beside the line, not in it: a dialog's root takes no room, and the
+         * line's gap would set Bulk Actions back from the end while one is
+         * open.
+         */}
+        {dialogs}
+      </div>
+    );
+  }
+
   return (
     <div>
       <div>
@@ -1104,50 +1316,7 @@ const BulkUpdateForm: <T extends GenericObject>(
         </div>
       </div>
 
-      {confirmModalProps && (
-        <ConfirmModal
-          {...confirmModalProps}
-          onSubmit={() => {
-            confirmModalProps.onSubmit();
-            setConfirmModalProps(null);
-          }}
-        />
-      )}
-
-      {showProgressInfoModal && progressInfo && (
-        <ConfirmModal
-          title={getProgressTitle()}
-          description={<div>{showProgressInfo()}</div>}
-          submitButtonType={ButtonStyleType.NORMAL}
-          /*
-           * While a run goes on, its one button is Stop - a run that cannot
-           * stop keeps Close, unavailable until it ends - and once it has
-           * ended, Close.
-           */
-          disableSubmitButton={actionInProgress && (!isStoppable || isStopping)}
-          submitButtonText={getProgressButtonText()}
-          /*
-           * The focus starts on the dialog, not on Stop: the Enter that
-           * confirmed the action, held a moment too long, or one pressed to
-           * get on, must not stop the run it just started.
-           */
-          isInitialFocusOnDialog={true}
-          onSubmit={() => {
-            if (actionInProgress) {
-              if (isStoppable && !isStopping) {
-                setIsStopping(true);
-                stopControllerRef.current?.abort();
-              }
-              return;
-            }
-
-            setShowProgressInfoModal(false);
-            if (props.onActionEnd) {
-              props.onActionEnd();
-            }
-          }}
-        />
-      )}
+      {dialogs}
     </div>
   );
 };

@@ -21660,7 +21660,7 @@
   "{{count}} rules · Page {{page}} of {{pages}}": "{{count}} 件のルール · {{page}} / {{pages}} ページ",
   "{{count}} rules · Page {{page}} of {{pages}}_one": "{{count}} rule · Page {{page}} of {{pages}}",
   "{{count}} selected": "{{count}} 件選択",
-  "{{count}} selected_one": "{{count}} selected",
+  "{{count}} selected_one": "{{count}} 件選択",
   "{{count}} services have open bugs": "{{count}} 件のサービスに未解決のバグがあります",
   "{{count}} services have open bugs_one": "{{count}} service has open bugs",
   "{{count}} to choose from. Search by name, category, or what you want to watch.": "{{count}} 件から選べます。名前、カテゴリ、監視したい内容で検索してください。",
