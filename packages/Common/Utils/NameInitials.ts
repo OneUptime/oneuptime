@@ -40,7 +40,7 @@ export const NAME_INITIALS_FALLBACK: string = "?";
  * also holds, so a match takes time in line with the name.
  */
 const NAME_WORD_REGEX: RegExp =
-  /[\p{L}\p{N}][\p{L}\p{M}\p{N}\u{200C}\u{200D}'\u{2019}]*/gu;
+  /[\p{L}\p{N}][\p{L}\p{M}\p{N}'\u{2019}\u{200C}\u{200D}]*/gu;
 
 /*
  * What a name says in brackets - round, square or curly, in the Latin or
