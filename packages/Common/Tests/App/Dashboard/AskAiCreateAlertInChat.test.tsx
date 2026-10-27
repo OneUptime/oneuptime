@@ -388,7 +388,11 @@ describe("the card under the answer, once the alert is raised", () => {
 
     render(<WidgetRenderer widgets={[{ ...result.widget!, id: "W1" }]} />);
 
-    const open: HTMLElement = screen.getByRole("button", { name: "Open" });
+    // Named after what it opens: with two cards, two bare Opens were alike.
+    const open: HTMLElement = screen.getByRole("button", {
+      name: "Open ALT-12 · High memory usage on test01",
+    });
+    expect(open).toHaveTextContent("Open");
     expect(screen.getByTestId("ai-chat-resource-card")).toContainElement(open);
 
     act(() => {

@@ -27,6 +27,16 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
   const fields: Array<{ label: string; value: string }> =
     props.widget.data.fields || [];
   const link: AIChatCitationTarget | undefined = props.widget.data.link;
+  /*
+   * Open says what it opens to a screen reader and on hover: under an
+   * answer that created an incident and an alert, two bare "Open"s did not
+   * say which was which.
+   */
+  const openName: string = props.widget.data.heading
+    ? translator.translateTemplate("Open {{name}}", {
+        name: props.widget.data.heading,
+      })
+    : translator.translateText("Open") || "Open";
 
   return (
     <div
@@ -52,6 +62,8 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
                 <button
                   type="button"
                   data-testid="ai-chat-resource-card-open"
+                  aria-label={openName}
+                  title={openName}
                   onClick={() => {
                     navigateToCitationTarget(link);
                   }}
