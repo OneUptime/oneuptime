@@ -532,6 +532,11 @@ html.dark [class~="shadow-[-8px_0_12px_-10px_rgba(15,23,42,0.18)]"] {
   --tw-shadow: -8px 0 12px -10px rgb(0 0 0 / 70%);
 }
 
+/* Right to left, the column stands at the left and its shadow falls right. */
+html.dark [class~="shadow-[-8px_0_12px_-10px_rgba(15,23,42,0.18)]"]:dir(rtl) {
+  --tw-shadow: 8px 0 12px -10px rgb(0 0 0 / 70%);
+}
+
 /*
  * A ticked table row (TableLayout's TABLE_SELECTED_ROW_CLASS_NAME), its
  * indigo wash mixed over the card's own surface so it is opaque: the
@@ -1877,4 +1882,33 @@ html.dark .border-t-gray-400,
 html.dark .border-t-gray-500,
 html.dark .border-t-gray-600 {
   border-top-color: var(--ou-text-muted) !important;
+}
+
+/*
+ * Right to left. A Persian page sets <html dir="rtl"> (Common/UI/Utils/
+ * PageLanguage) and Tailwind's left and right follow it (Common/UI/Styles/
+ * TailwindReadingDirection.js). Code reads left to right on every page: a
+ * block of code starts at the left, and code inside a sentence is an island
+ * of its own, so a template variable keeps its braces where they belong.
+ * :dir() follows the nearest dir attribute; a left-to-right page is never
+ * touched.
+ */
+pre:dir(rtl) {
+  direction: ltr;
+  text-align: left;
+}
+
+/*
+ * Charts read left to right in every language too: time runs left to right
+ * along their axes, as along the status timeline and the uptime strips.
+ * recharts anchors its axis labels with text-anchor, which SVG reads in the
+ * text's direction, so a label anchored at its end grew into the plot.
+ */
+.recharts-surface:dir(rtl) {
+  direction: ltr;
+}
+
+:is(code, kbd, samp):dir(rtl) {
+  direction: ltr;
+  unicode-bidi: isolate;
 }

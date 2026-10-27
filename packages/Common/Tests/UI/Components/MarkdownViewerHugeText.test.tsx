@@ -66,6 +66,7 @@ import "@testing-library/jest-dom";
 import { cleanup, render, screen } from "@testing-library/react";
 import React from "react";
 import MarkdownViewer from "../../../UI/Components/Markdown.tsx/MarkdownViewer";
+import { rehypeBlocksReadTheirOwnWay } from "../../../UI/Components/Markdown.tsx/MarkdownReadingDirection";
 import {
   HeldTextTreeNode,
   MAX_HIGHLIGHTED_CODE_LENGTH,
@@ -104,18 +105,25 @@ afterEach(() => {
 
 const MIB: number = 1024 * 1024;
 
-// The markdown and the rehype plugins the viewer handed react-markdown.
+/*
+ * The markdown and the rehype plugins the viewer handed react-markdown: the
+ * plugin that puts held-back text back, when there is any, with its
+ * options - and always, last, the one that lays each block out the way its
+ * words read (rehypeBlocksReadTheirOwnWay), which must read the text put
+ * back.
+ */
 function handedToParser(): {
   markdown: string;
-  rehypePlugins: Array<[TreePlugin, PutBackOptions]> | undefined;
+  rehypePlugins: Array<[TreePlugin, PutBackOptions]>;
 } {
   const props: Record<string, unknown> = mockMarkdownState.props!;
+  const plugins: Array<unknown> = props["rehypePlugins"] as Array<unknown>;
+
+  expect(plugins[plugins.length - 1]).toBe(rehypeBlocksReadTheirOwnWay);
 
   return {
     markdown: props["children"] as string,
-    rehypePlugins: props["rehypePlugins"] as
-      | Array<[TreePlugin, PutBackOptions]>
-      | undefined,
+    rehypePlugins: plugins.slice(0, -1) as Array<[TreePlugin, PutBackOptions]>,
   };
 }
 
@@ -156,7 +164,7 @@ function codeFence(
 }
 
 describe("MarkdownViewer - text too long for its parser", () => {
-  test("a text of at most 64 KB goes to the parser as it is, with no plugin", () => {
+  test("a text of at most 64 KB goes to the parser as it is, with no plugin to put text back", () => {
     const text: string = `**Response:** ${"word ".repeat(13000)}`;
 
     expect(text.length).toBeLessThanOrEqual(OVER_LONG_LINE_LENGTH);
@@ -164,7 +172,7 @@ describe("MarkdownViewer - text too long for its parser", () => {
     render(<MarkdownViewer text={text} />);
 
     expect(handedToParser().markdown).toBe(text);
-    expect(handedToParser().rehypePlugins).toBeUndefined();
+    expect(handedToParser().rehypePlugins).toHaveLength(0);
   });
 
   test("a line of sixteen megabytes reaches the parser held back, and the plugin puts it back as text", () => {
@@ -301,6 +309,9 @@ describe("MarkdownViewer - text with too much left for its parser", () => {
     expect(shown.textContent === text).toBe(true);
     expect(shown.className.includes("whitespace-pre-wrap")).toBe(true);
     expect(shown.querySelector("*")).toBeNull();
+    // Each of its lines reads, and starts on the side of, its own first letter.
+    expect(shown.className.includes("[unicode-bidi:plaintext]")).toBe(true);
+    expect(shown.className.includes("text-start")).toBe(true);
   });
 
   test("a text with no more than that left still goes to the parser", () => {
@@ -312,7 +323,7 @@ describe("MarkdownViewer - text with too much left for its parser", () => {
 
     expect(screen.queryByTestId("markdown-viewer-text")).toBeNull();
     expect(handedToParser().markdown === text).toBe(true);
-    expect(handedToParser().rehypePlugins).toBeUndefined();
+    expect(handedToParser().rehypePlugins).toHaveLength(0);
   });
 
   test("a megabyte of lines that are not plain is held back whole, and put back in place as written", () => {

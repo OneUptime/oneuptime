@@ -1306,7 +1306,11 @@ describe("the pipeline", () => {
         "rtl:-translate-x-1/2",
       );
       expect(arrow.className).not.toMatch(/(^| )right-0( |$)/);
-      expect(arrow.querySelector("svg")).toHaveClass("rtl:rotate-180");
+      // Icon draws the chevron mirrored right to left; no second turn.
+      expect(arrow.querySelector("svg")).toHaveClass(
+        "[&:dir(rtl)]:[scale:-1_1]",
+      );
+      expect(arrow.querySelector("svg")).not.toHaveClass("rtl:rotate-180");
     }
     // Every cell is one link, the whole cell.
     for (const key of ["sources", "detections", "cases", "playbooks"]) {

@@ -561,7 +561,7 @@ describe("in Japanese", () => {
 });
 
 describe("in Persian", () => {
-  test("the words are Persian, and every digit on a row is Latin", async () => {
+  test("the words are Persian, and every digit on a row is Persian", async () => {
     const rows: Array<HTMLElement> = await renderIn(
       persian,
       Timezone.AsiaTehran,
@@ -572,10 +572,12 @@ describe("in Persian", () => {
     expect(screen.getByText("نوبت‌های پیش‌رو")).toBeInTheDocument();
     expect(text(rows[0]!, "upcoming-shift-day-label")).toBe("اکنون آنکال");
 
+    // No Latin digit beside the Persian ones anywhere on a row.
     for (const row of rows) {
-      expect(NON_LATIN_DIGIT.test(plain(row.textContent))).toBe(false);
+      expect(NON_LATIN_DIGIT.test(plain(row.textContent))).toBe(true);
+      expect(plain(row.textContent)).not.toMatch(/[0-9]/);
     }
 
-    expect(text(rows[1]!, "upcoming-shift-length")).toBe("8 ساعت");
+    expect(text(rows[1]!, "upcoming-shift-length")).toBe("۸ ساعت");
   });
 });

@@ -191,10 +191,17 @@ const MarkdownBlockquote: FunctionComponent<MarkdownBlockquoteProps> = (
     props[MARKDOWN_CALLOUT_ATTRIBUTE],
   );
 
+  /*
+   * The way the quote's words read (MarkdownReadingDirection), so its rule,
+   * or its callout's icon, stands where its lines start.
+   */
+  const dir: string | undefined =
+    typeof props["dir"] === "string" ? props["dir"] : undefined;
+
   if (!kind) {
     return (
       <MarkdownQuoteContext.Provider value={true}>
-        <blockquote className={MARKDOWN_QUOTE_CLASS_NAME}>
+        <blockquote className={MARKDOWN_QUOTE_CLASS_NAME} dir={dir}>
           {props.children}
         </blockquote>
       </MarkdownQuoteContext.Provider>
@@ -211,6 +218,7 @@ const MarkdownBlockquote: FunctionComponent<MarkdownBlockquoteProps> = (
     <MarkdownQuoteContext.Provider value={false}>
       <blockquote
         className={`${MARKDOWN_CALLOUT_CLASS_NAME} ${style.panel}`}
+        dir={dir}
         role="note"
         aria-label={getMarkdownCalloutName(t, kind)}
         data-callout={kind}

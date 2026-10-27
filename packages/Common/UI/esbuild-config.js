@@ -146,6 +146,10 @@ function createFileLoaderPlugin() {
 // unstyled page.
 const TAILWIND_FILENAME = "tailwind-3.4.5.js";
 
+// Left and right follow the reading direction (Styles/TailwindReadingDirection.js):
+// every index.ejs loads it right after the runtime and hands it its config.
+const TAILWIND_READING_DIRECTION_FILENAME = "tailwind-reading-direction.js";
+
 function copyTailwindAsset(outdir) {
   const source = path.resolve(
     __dirname,
@@ -165,6 +169,15 @@ function copyTailwindAsset(outdir) {
 
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   fs.copyFileSync(source, destination);
+
+  fs.copyFileSync(
+    path.resolve(__dirname, "Styles", "TailwindReadingDirection.js"),
+    path.resolve(
+      path.dirname(outdir),
+      "assets/js",
+      TAILWIND_READING_DIRECTION_FILENAME,
+    ),
+  );
 }
 
 // Which build a browser tab runs, and which one the server serves now.
@@ -540,6 +553,7 @@ module.exports = {
   // Exported so Common/Tests can run it, rather than assert on its source.
   copyTailwindAsset,
   TAILWIND_FILENAME,
+  TAILWIND_READING_DIRECTION_FILENAME,
   createBuildId,
   applyBuildIdentity,
   writeBuildManifest,

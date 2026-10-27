@@ -153,6 +153,37 @@ describe("who did it", () => {
     expect(screen.queryByTestId("feed-entry-body")).not.toBeInTheDocument();
   });
 
+  test("the name and its sentence are one line, read the way the sentence is written", () => {
+    // English on any page: the name first, at the left, as the sentence reads.
+    renderEntry({
+      item: item({
+        user: nitin(),
+        textInMarkdown: `🔴 Changed **[Incident INC-8](${LINK}) State** to **Identified**`,
+      }),
+    });
+    expect(screen.getByTestId("feed-entry-lead")).toHaveAttribute("dir", "ltr");
+    cleanup();
+
+    /*
+     * A name in Persian does not turn the English sentence round: its words
+     * decide, its link's address uncounted.
+     */
+    const sara: User = nitin();
+    sara.name = new Name("سارا احمدی");
+
+    renderEntry({
+      item: item({
+        user: sara,
+        textInMarkdown: `🔴 Changed **[Incident INC-8](${LINK}) State** to **Identified**`,
+      }),
+    });
+
+    const lead: HTMLElement = screen.getByTestId("feed-entry-lead");
+
+    expect(lead).toHaveAttribute("dir", "ltr");
+    expect(lead).toHaveTextContent("سارا احمدی changed");
+  });
+
   test("a sentence that already names them does not get the name twice", () => {
     renderEntry({
       item: item({

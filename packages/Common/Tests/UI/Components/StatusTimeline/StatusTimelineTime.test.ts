@@ -106,11 +106,18 @@ describe("times of day, in the reader's zone", () => {
     ).toBe("10月9日");
   });
 
-  test("in Latin digits even where the language writes others", () => {
+  test("in the language's own digits, as its dates and counts are", () => {
+    const persian: string = formatStatusTimelineTime(
+      new Date("2026-10-09T06:27:00.000Z"),
+      clock({ language: "fa" }),
+    );
+
+    expect(persian).toMatch(/^[۰-۹:]+/u);
+    expect(persian).not.toMatch(/[0-9]/);
     expect(
       formatStatusTimelineTime(
         new Date("2026-10-09T06:27:00.000Z"),
-        clock({ language: "fa" }),
+        clock({ language: "de" }),
       ),
     ).toMatch(/^[0-9:]+/);
   });

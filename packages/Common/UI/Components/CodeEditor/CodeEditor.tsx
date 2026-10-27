@@ -1149,11 +1149,18 @@ const CodeEditor: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
+      {/*
+       * Code reads left to right on every page, its line numbers at the
+       * left: on a Persian page a JSON body or a script would otherwise be
+       * laid out from the right, its brackets and quotes turned round. Its
+       * toolbar above follows the page.
+       */}
       <div
         ref={scrollerRef}
         data-testid="code-editor-scroller"
         className="ou-code-editor__scroller"
         style={scrollerStyle}
+        dir="ltr"
       >
         <div className="ou-code-editor__content">
           {showGutter && (

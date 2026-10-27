@@ -329,7 +329,15 @@ const dividerProblems: (geometry: PageGeometry) => Array<string> = (
   geometry: PageGeometry,
 ): Array<string> => {
   const words: Rect | null = geometry.dividerWords;
-  const [before, after]: Array<Rect | undefined> = geometry.hairlines;
+  /*
+   * Left to right on the screen, whichever way the page reads: a Persian
+   * page draws the divider's first hairline at the right (<html dir="rtl">).
+   */
+  const [before, after]: Array<Rect | undefined> = [...geometry.hairlines].sort(
+    (one: Rect, other: Rect): number => {
+      return one.left - other.left;
+    },
+  );
 
   if (!words || !before || !after || geometry.hairlines.length !== 2) {
     return ["it is not a word between two hairlines"];

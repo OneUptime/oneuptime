@@ -7,9 +7,11 @@
  * reads (setDateDisplayLanguage, from its i18n set-up), and OneUptimeDate
  * writes the words of a date in it: month and weekday names, "vor 5
  * Stunden", "2 Tage, 3 Stunden", a decimal comma. The words come from the
- * browser's Intl data, so no locale is shipped for them; the calendar is
- * always the Gregorian one and the digits Latin, so a Persian reader's dates
- * line up with every other number on the page.
+ * browser's Intl data, so no locale is shipped for them. The calendar is
+ * always the Gregorian one, the one every timestamp, log and export is
+ * written in; the digits are the language's own, so a Persian reader's
+ * dates, times and durations ("۲۶ اکتبر، ۱۵:۰۷") are written in the same
+ * digits as the counts and sentences around them.
  *
  * English is what nothing has set - the server, a worker, an email, a test -
  * and every function writes it exactly as it always has.
@@ -101,11 +103,12 @@ export function inEnglishDates<T>(work: () => T): T {
 const localeCache: Map<string, string> = new Map<string, string>();
 
 /*
- * The Intl locale a language writes dates in: its own words and order, the
- * Gregorian calendar and Latin digits ("fa" alone would give the Solar
- * Hijri calendar in Persian digits). A language Intl does not know reads
- * English, never the browser's own default, so a page never mixes two
- * languages.
+ * The Intl locale a language writes dates in: its own words, order and
+ * digits, on the Gregorian calendar ("fa" alone would give the Solar Hijri
+ * calendar). Persian writes its own digits - "۲۶ اکتبر، ۱۵:۰۷", as its counts
+ * are written (TranslateTemplate's formatNumber) - every other language of
+ * the product Latin ones. A language Intl does not know reads English,
+ * never the browser's own default, so a page never mixes two languages.
  */
 export const getDateLocale: (language: string | null | undefined) => string = (
   language: string | null | undefined,
@@ -117,7 +120,7 @@ export const getDateLocale: (language: string | null | undefined) => string = (
     return cached;
   }
 
-  let locale: string = `${ENGLISH_DATE_LANGUAGE}-u-ca-gregory-nu-latn`;
+  let locale: string = `${ENGLISH_DATE_LANGUAGE}-u-ca-gregory`;
 
   try {
     const supported: Array<string> = Intl.DateTimeFormat.supportedLocalesOf([
@@ -125,12 +128,12 @@ export const getDateLocale: (language: string | null | undefined) => string = (
     ]);
 
     if (supported.length > 0 && supported[0]) {
-      locale = `${supported[0]}-u-ca-gregory-nu-latn`;
+      locale = `${supported[0]}-u-ca-gregory`;
       // Throws on a tag Intl cannot take an extension on.
       new Intl.DateTimeFormat(locale);
     }
   } catch {
-    locale = `${ENGLISH_DATE_LANGUAGE}-u-ca-gregory-nu-latn`;
+    locale = `${ENGLISH_DATE_LANGUAGE}-u-ca-gregory`;
   }
 
   localeCache.set(requested, locale);
@@ -781,4 +784,73 @@ export const formatDecimal: (data: {
   const format: Intl.NumberFormat | null = numberFormatCache.get(key) || null;
 
   return format ? format.format(data.value) : null;
+};
+
+const ASCII_DIGIT_REGEX: RegExp = /[0-9]/g;
+
+const digitsCache: Map<string, Array<string>> = new Map<
+  string,
+  Array<string>
+>();
+
+// The ten digits `locale` writes, 0 to 9: Persian's ۰ to ۹, Latin elsewhere.
+export const getDigitsOf: (locale: string) => Array<string> = (
+  locale: string,
+): Array<string> => {
+  const cached: Array<string> | undefined = digitsCache.get(locale);
+
+  if (cached) {
+    return cached;
+  }
+
+  let digits: Array<string> = [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+  ];
+
+  try {
+    const format: Intl.NumberFormat = new Intl.NumberFormat(locale, {
+      useGrouping: false,
+    });
+
+    digits = digits.map((digit: string): string => {
+      return format.format(Number(digit));
+    });
+  } catch {
+    // Latin, as written.
+  }
+
+  digitsCache.set(locale, digits);
+
+  return digits;
+};
+
+/*
+ * A figure OneUptime wrote itself - a time of day "09:00", a minute "05" -
+ * in the digits `locale` writes: "۰۹:۰۰" in Persian, unchanged in every
+ * language that writes Latin digits. Only for text that is all figures and
+ * their marks; never for a name, an address or anything someone typed,
+ * whose digits are theirs.
+ */
+export const writeDigitsInLocale: (text: string, locale: string) => string = (
+  text: string,
+  locale: string,
+): string => {
+  const digits: Array<string> = getDigitsOf(locale);
+
+  if (digits[0] === "0") {
+    return text;
+  }
+
+  return text.replace(ASCII_DIGIT_REGEX, (digit: string): string => {
+    return digits[Number(digit)] || digit;
+  });
 };

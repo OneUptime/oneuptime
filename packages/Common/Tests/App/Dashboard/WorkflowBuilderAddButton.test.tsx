@@ -670,7 +670,7 @@ describe("the Builder's add button: the page's primary button until the workflow
       ]) {
         // The button's md:ml-3 is there, and the inline margin overrides it.
         expect(classesOf(button)).toContain("md:ml-3");
-        expect(button.style.marginLeft).toBe("0px");
+        expect(button.style.marginInlineStart).toBe("0px");
       }
 
       cleanup();
