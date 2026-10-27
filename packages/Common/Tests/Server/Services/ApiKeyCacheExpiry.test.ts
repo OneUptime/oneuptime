@@ -65,14 +65,15 @@ describe("a cached API key", () => {
       // Looked up again past its expiry: the query finds no live key.
       .mockResolvedValueOnce(null as never);
 
-    const first: ResolvedApiKey | null = await ApiKeyService.findApiKey(API_KEY);
+    const first: ResolvedApiKey | null =
+      await ApiKeyService.findApiKey(API_KEY);
     expect(first?.id.toString()).toBe(KEY_ID.toString());
 
     // Within its expiry: served from the cache.
     now += 10 * 1000;
-    expect(
-      (await ApiKeyService.findApiKey(API_KEY))?.id.toString(),
-    ).toBe(KEY_ID.toString());
+    expect((await ApiKeyService.findApiKey(API_KEY))?.id.toString()).toBe(
+      KEY_ID.toString(),
+    );
     expect(ApiKeyService.findOneBy).toHaveBeenCalledTimes(1);
 
     // Past it, though the cache would keep it for most of a minute more.

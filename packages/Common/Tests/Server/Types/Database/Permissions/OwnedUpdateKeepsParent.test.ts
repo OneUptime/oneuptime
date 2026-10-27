@@ -64,7 +64,9 @@ function row(
   };
 }
 
-function memberWith(rows: Array<UserPermission>): DatabaseCommonInteractionProps {
+function memberWith(
+  rows: Array<UserPermission>,
+): DatabaseCommonInteractionProps {
   return {
     userId: MEMBER_ID,
     userType: UserType.User,
@@ -152,7 +154,7 @@ async function mayUpdate(
 const RULE_EDITOR: Array<UserPermission> = [
   row(Permission.EditProjectMetricPipelineRule, PermissionScope.Owned, EDITORS),
   row(Permission.ReadProjectMetricPipelineRule, PermissionScope.All, VIEWERS),
-  row(Permission.ReadProjectService, PermissionScope.All, VIEWERS),
+  row(Permission.ReadService, PermissionScope.All, VIEWERS),
 ];
 
 describe("a metric pipeline rule, owned through its service", () => {
@@ -223,8 +225,16 @@ describe("a metric pipeline rule, owned through its service", () => {
 
   test("a permission to change rules over the whole project moves one anywhere", async () => {
     const props: DatabaseCommonInteractionProps = memberWith([
-      row(Permission.EditProjectMetricPipelineRule, PermissionScope.All, EDITORS),
-      row(Permission.ReadProjectMetricPipelineRule, PermissionScope.All, EDITORS),
+      row(
+        Permission.EditProjectMetricPipelineRule,
+        PermissionScope.All,
+        EDITORS,
+      ),
+      row(
+        Permission.ReadProjectMetricPipelineRule,
+        PermissionScope.All,
+        EDITORS,
+      ),
     ]);
 
     for (const serviceId of [VIEWERS_PARENT, null]) {

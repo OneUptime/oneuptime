@@ -80,7 +80,9 @@ describe("shouldBypassRecordPrivacy", () => {
       }),
     ).toBe(false);
 
-    expect(shouldBypassRecordPrivacy(propsWith([row(Permission.ProjectOwner)]))).toBe(true);
+    expect(
+      shouldBypassRecordPrivacy(propsWith([row(Permission.ProjectOwner)])),
+    ).toBe(true);
 
     // OneUptime itself still sees every record, across projects too.
     expect(

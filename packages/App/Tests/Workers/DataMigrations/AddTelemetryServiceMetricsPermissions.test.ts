@@ -132,19 +132,32 @@ describe("which grantees are given Read Telemetry Service Metrics", () => {
     });
   });
 
-  test.each([[PermissionScope.All], [PermissionScope.Owned]])(
-    "a %s Read Traces is copied without its labels, which that scope ignores",
-    (scope: PermissionScope) => {
-      expect(
-        planMetricPermissionCopies([
-          grant(TEAM_A, Permission.ReadTelemetryServiceTraces, {
-            scope: scope,
-            labelIds: [LABEL],
-          }),
-        ]).copies,
-      ).toEqual([metricRead(TEAM_A, scope, [])]);
-    },
-  );
+  test("an Owned Read Traces is copied without its labels, which that scope ignores", () => {
+    expect(
+      planMetricPermissionCopies([
+        grant(TEAM_A, Permission.ReadTelemetryServiceTraces, {
+          scope: PermissionScope.Owned,
+          labelIds: [LABEL],
+        }),
+      ]).copies,
+    ).toEqual([metricRead(TEAM_A, PermissionScope.Owned, [])]);
+  });
+
+  /*
+   * Labels narrow a row whatever scope it is stored with, All included
+   * (PermissionHelper.isLimitedToLabels): a copy without them would reach
+   * every service's metrics for a grant limited to some services' traces.
+   */
+  test("an All Read Traces is copied with its labels, which narrow it", () => {
+    expect(
+      planMetricPermissionCopies([
+        grant(TEAM_A, Permission.ReadTelemetryServiceTraces, {
+          scope: PermissionScope.All,
+          labelIds: [LABEL],
+        }),
+      ]).copies,
+    ).toEqual([metricRead(TEAM_A, PermissionScope.All, [LABEL])]);
+  });
 
   test("an API key's Read Traces has no scope, and keeps its labels, which decide", () => {
     expect(
@@ -232,12 +245,28 @@ describe("which grantees are given Read Telemetry Service Metrics", () => {
       ],
     });
 
-    // An All grant carries no labels, so nothing collides.
+    // An All grant with labels is limited to them, so it collides as well.
     expect(
       planMetricPermissionCopies([
         grant(TEAM_A, Permission.ReadTelemetryServiceTraces, {
           labelIds: [LABEL],
         }),
+        block,
+      ]),
+    ).toEqual({
+      ...NOTHING,
+      conflicts: [
+        {
+          existing: undefined,
+          to: metricRead(TEAM_A, PermissionScope.All, [LABEL]),
+        },
+      ],
+    });
+
+    // One with no labels carries none, so nothing collides.
+    expect(
+      planMetricPermissionCopies([
+        grant(TEAM_A, Permission.ReadTelemetryServiceTraces),
         block,
       ]).copies,
     ).toEqual([metricRead(TEAM_A, PermissionScope.All, [])]);
@@ -359,7 +388,7 @@ describe("which grantees are given Read Telemetry Service Metrics", () => {
     [
       "an API key's grant with no labels reaches every service",
       { scope: undefined, labelIds: [] },
-      { scope: PermissionScope.All, labelIds: [LABEL] },
+      { scope: PermissionScope.All, labelIds: [] },
     ],
   ])(
     "reach as the analytics read applies it: %s",

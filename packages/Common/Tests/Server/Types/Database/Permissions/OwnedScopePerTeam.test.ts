@@ -133,7 +133,9 @@ function everywhere(permission: Permission, teamId: ObjectID): UserPermission {
 }
 
 // The member, acting in the project with these rows from their teams.
-function memberWith(rows: Array<UserPermission>): DatabaseCommonInteractionProps {
+function memberWith(
+  rows: Array<UserPermission>,
+): DatabaseCommonInteractionProps {
   return {
     userId: MEMBER_ID,
     userType: UserType.User,
@@ -405,10 +407,16 @@ describe("which teams an operation's Owned grants reach", () => {
 describe("the lists of teams a query is narrowed by", () => {
   test("a list that holds every team of another adds nothing to it", () => {
     expect(
-      OwnedScopePermission.getTeamListsToNarrowBy([[EDITORS, VIEWERS], [EDITORS]]),
+      OwnedScopePermission.getTeamListsToNarrowBy([
+        [EDITORS, VIEWERS],
+        [EDITORS],
+      ]),
     ).toEqual([[EDITORS]]);
     expect(
-      OwnedScopePermission.getTeamListsToNarrowBy([[EDITORS], [EDITORS, VIEWERS]]),
+      OwnedScopePermission.getTeamListsToNarrowBy([
+        [EDITORS],
+        [EDITORS, VIEWERS],
+      ]),
     ).toEqual([[EDITORS]]);
   });
 
@@ -456,7 +464,12 @@ describe("the customer's report, on the record rule", () => {
         DatabaseRequestType.Read,
       ),
     ).toEqual(
-      [OWNED_BY_EDITORS, OWNED_BY_VIEWERS, OWNED_BY_BOTH, OWNED_BY_MEMBER].sort(),
+      [
+        OWNED_BY_EDITORS,
+        OWNED_BY_VIEWERS,
+        OWNED_BY_BOTH,
+        OWNED_BY_MEMBER,
+      ].sort(),
     );
   });
 
@@ -511,7 +524,9 @@ describe("every combination of grants on two teams", () => {
   const GRANTS: Array<TeamGrant> = ["none", "all", "owned"];
 
   const PERMISSIONS: Record<
-    DatabaseRequestType.Read | DatabaseRequestType.Update | DatabaseRequestType.Delete,
+    | DatabaseRequestType.Read
+    | DatabaseRequestType.Update
+    | DatabaseRequestType.Delete,
     Permission
   > = {
     [DatabaseRequestType.Read]: Permission.ReadProjectIncident,
@@ -714,7 +729,12 @@ describe("an incident's notes follow the incident's grants, team by team", () =>
     const props: DatabaseCommonInteractionProps = memberWith(CUSTOMER_ROWS);
 
     expect(await notesReached(props, DatabaseRequestType.Read)).toEqual(
-      [OWNED_BY_EDITORS, OWNED_BY_VIEWERS, OWNED_BY_BOTH, OWNED_BY_MEMBER].sort(),
+      [
+        OWNED_BY_EDITORS,
+        OWNED_BY_VIEWERS,
+        OWNED_BY_BOTH,
+        OWNED_BY_MEMBER,
+      ].sort(),
     );
 
     for (const type of [
@@ -776,10 +796,11 @@ describe("an incident's notes follow the incident's grants, team by team", () =>
 });
 
 describe("a create limited to owned records names what the granting team owns", () => {
-  const findRecordLabels: () => Promise<Dictionary<Array<string>>> =
-    async (): Promise<Dictionary<Array<string>>> => {
-      return {};
-    };
+  const findRecordLabels: () => Promise<
+    Dictionary<Array<string>>
+  > = async (): Promise<Dictionary<Array<string>>> => {
+    return {};
+  };
   const findLabelNames: () => Promise<Array<string>> = async (): Promise<
     Array<string>
   > => {
@@ -1011,7 +1032,11 @@ describe("the owner tables are asked about the granting teams only", () => {
   }
 
   test("a change asks about the editors, never the viewers", async () => {
-    await scopeOf(Incident, memberWith(CUSTOMER_ROWS), DatabaseRequestType.Update);
+    await scopeOf(
+      Incident,
+      memberWith(CUSTOMER_ROWS),
+      DatabaseRequestType.Update,
+    );
 
     expect(userQueries).toHaveLength(1);
     expect(String(userQueries[0]!["userId"])).toBe(MEMBER_ID.toString());
@@ -1019,7 +1044,11 @@ describe("the owner tables are asked about the granting teams only", () => {
   });
 
   test("a read asks about both teams", async () => {
-    await scopeOf(Incident, memberWith(CUSTOMER_ROWS), DatabaseRequestType.Read);
+    await scopeOf(
+      Incident,
+      memberWith(CUSTOMER_ROWS),
+      DatabaseRequestType.Read,
+    );
 
     expect(teamQueries.map(teamsAskedAbout)).toEqual([
       sortedIds([EDITORS, VIEWERS]),
@@ -1029,7 +1058,9 @@ describe("the owner tables are asked about the granting teams only", () => {
   test("rows no team grants ask about what the member owns alone", async () => {
     await scopeOf(
       Incident,
-      memberWith([row(Permission.ProjectMember, { scope: PermissionScope.Owned })]),
+      memberWith([
+        row(Permission.ProjectMember, { scope: PermissionScope.Owned }),
+      ]),
       DatabaseRequestType.Update,
     );
 

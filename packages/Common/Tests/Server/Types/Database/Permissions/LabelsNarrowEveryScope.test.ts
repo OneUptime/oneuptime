@@ -81,7 +81,9 @@ function row(
   };
 }
 
-function memberWith(rows: Array<UserPermission>): DatabaseCommonInteractionProps {
+function memberWith(
+  rows: Array<UserPermission>,
+): DatabaseCommonInteractionProps {
   return {
     userId: ObjectID.generate(),
     userType: UserType.User,
@@ -179,23 +181,26 @@ describe("whether a row's labels narrow it", () => {
     ],
   ];
 
-  test.each(CASES)("%s", (_name: string, given: UserPermission, limited: boolean) => {
-    expect(PermissionHelper.isLimitedToLabels(given)).toBe(limited);
+  test.each(CASES)(
+    "%s",
+    (_name: string, given: UserPermission, limited: boolean) => {
+      expect(PermissionHelper.isLimitedToLabels(given)).toBe(limited);
 
-    // A row its labels narrow is no grant over the whole project.
-    if (given.scope !== PermissionScope.Owned) {
-      expect(HeldPermissionsUtil.isProjectWideRow(given)).toBe(!limited);
-      expect(
-        PermissionHelper.getNonAccessControlPermissions([given]).includes(
-          given.permission,
-        ),
-      ).toBe(!limited);
-    }
+      // A row its labels narrow is no grant over the whole project.
+      if (given.scope !== PermissionScope.Owned) {
+        expect(HeldPermissionsUtil.isProjectWideRow(given)).toBe(!limited);
+        expect(
+          PermissionHelper.getNonAccessControlPermissions([given]).includes(
+            given.permission,
+          ),
+        ).toBe(!limited);
+      }
 
-    expect(PermissionHelper.getAccessControlPermissions([given])).toEqual(
-      limited ? [given] : [],
-    );
-  });
+      expect(PermissionHelper.getAccessControlPermissions([given])).toEqual(
+        limited ? [given] : [],
+      );
+    },
+  );
 
   test("what a member holds with an All row limited to labels is not held over the whole project", () => {
     const held: HeldPermissions = HeldPermissionsUtil.fromRows({
@@ -295,10 +300,13 @@ describe("the grant ceiling, on the server and in the dashboard", () => {
     mayGrant: boolean;
   }
 
-  const LIMITED_TO_A_AS_ALL: UserPermission = row(Permission.ReadProjectMonitor, {
-    scope: PermissionScope.All,
-    labelIds: [CUSTOMER_A],
-  });
+  const LIMITED_TO_A_AS_ALL: UserPermission = row(
+    Permission.ReadProjectMonitor,
+    {
+      scope: PermissionScope.All,
+      labelIds: [CUSTOMER_A],
+    },
+  );
   const LIMITED_TO_A: UserPermission = row(Permission.ReadProjectMonitor, {
     scope: PermissionScope.Labels,
     labelIds: [CUSTOMER_A],
@@ -343,7 +351,9 @@ describe("the grant ceiling, on the server and in the dashboard", () => {
     },
     {
       name: "a caller over the whole project hands on anything",
-      caller: row(Permission.ReadProjectMonitor, { scope: PermissionScope.All }),
+      caller: row(Permission.ReadProjectMonitor, {
+        scope: PermissionScope.All,
+      }),
       grant: { scope: PermissionScope.All, labelIds: [] },
       mayGrant: true,
     },

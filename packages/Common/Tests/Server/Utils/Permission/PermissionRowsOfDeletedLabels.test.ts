@@ -144,7 +144,10 @@ function stubService<TModel extends BaseModel>(
   return deletes;
 }
 
-function teamPermission(row: StoredRow, labelIds: Array<ObjectID>): TeamPermission {
+function teamPermission(
+  row: StoredRow,
+  labelIds: Array<ObjectID>,
+): TeamPermission {
   const model: TeamPermission = new TeamPermission();
   model.id = row.id;
   model.projectId = row.projectId;

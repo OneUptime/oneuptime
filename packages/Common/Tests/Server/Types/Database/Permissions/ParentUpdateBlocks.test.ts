@@ -52,7 +52,9 @@ function row(
   };
 }
 
-function memberWith(rows: Array<UserPermission>): DatabaseCommonInteractionProps {
+function memberWith(
+  rows: Array<UserPermission>,
+): DatabaseCommonInteractionProps {
   return {
     userId: ObjectID.generate(),
     userType: UserType.User,
@@ -132,9 +134,9 @@ describe("a status page's custom domain, under a block on editing Production sta
     };
 
   test("an update leaves out the domains of the Production status pages", async () => {
-    expect(
-      await valuesBoundBy(props(), DatabaseRequestType.Update),
-    ).toContain(PRODUCTION.toString());
+    expect(await valuesBoundBy(props(), DatabaseRequestType.Update)).toContain(
+      PRODUCTION.toString(),
+    );
   });
 
   test("a read is not narrowed by a block on editing", async () => {

@@ -190,7 +190,10 @@ describePostgres(
       new DatabaseService(IncidentInternalNote);
 
     new BaseAPI(Incident, incidentService as DatabaseService<BaseModel>);
-    new BaseAPI(IncidentInternalNote, noteService as DatabaseService<BaseModel>);
+    new BaseAPI(
+      IncidentInternalNote,
+      noteService as DatabaseService<BaseModel>,
+    );
     new BaseAPI(
       IncidentOwnerTeam,
       new DatabaseService(IncidentOwnerTeam) as DatabaseService<BaseModel>,
@@ -457,19 +460,22 @@ describePostgres(
       }
     };
 
-    const ownerTeamsOf: (incidentId: ObjectID) => Promise<Array<string>> =
-      async (incidentId: ObjectID): Promise<Array<string>> => {
-        const rows: Array<{ teamId: string }> = await database.query(
-          `SELECT "teamId" FROM "${schema}"."IncidentOwnerTeam" WHERE "incidentId" = $1 AND "deletedAt" IS NULL`,
-          [incidentId.toString()],
-        );
+    const ownerTeamsOf: (
+      incidentId: ObjectID,
+    ) => Promise<Array<string>> = async (
+      incidentId: ObjectID,
+    ): Promise<Array<string>> => {
+      const rows: Array<{ teamId: string }> = await database.query(
+        `SELECT "teamId" FROM "${schema}"."IncidentOwnerTeam" WHERE "incidentId" = $1 AND "deletedAt" IS NULL`,
+        [incidentId.toString()],
+      );
 
-        return sorted(
-          rows.map((row: { teamId: string }): string => {
-            return row.teamId;
-          }),
-        );
-      };
+      return sorted(
+        rows.map((row: { teamId: string }): string => {
+          return row.teamId;
+        }),
+      );
+    };
 
     // A team's permission rows, replaced.
     const setTeamPermissions: (
@@ -567,10 +573,8 @@ describePostgres(
           send: jest.fn(),
         } as unknown as ExpressResponse;
 
-        for (const middleware of mockRouter.match(
-          "post",
-          "/incident/get-list",
-        ).middlewares) {
+        for (const middleware of mockRouter.match("post", "/incident/get-list")
+          .middlewares) {
           let isPassed: boolean = false;
 
           await middleware(req, res, ((error?: unknown) => {
@@ -750,13 +754,15 @@ describePostgres(
       });
     };
 
-    const create: (path: string, data: JSONObject) => Promise<Outcome> =
-      async (path: string, data: JSONObject): Promise<Outcome> => {
-        return await send({
-          uri: `${path}`,
-          body: { data: JSONFunctions.serialize(data) },
-        });
-      };
+    const create: (path: string, data: JSONObject) => Promise<Outcome> = async (
+      path: string,
+      data: JSONObject,
+    ): Promise<Outcome> => {
+      return await send({
+        uri: `${path}`,
+        body: { data: JSONFunctions.serialize(data) },
+      });
+    };
 
     const expectRefused: (outcome: Outcome) => void = (
       outcome: Outcome,
@@ -1017,7 +1023,10 @@ describePostgres(
     const customerTeams: () => Promise<void> = async (): Promise<void> => {
       await grant({
         editors: [
-          { permission: Permission.ProjectMember, scope: PermissionScope.Owned },
+          {
+            permission: Permission.ProjectMember,
+            scope: PermissionScope.Owned,
+          },
         ],
         viewers: [
           { permission: Permission.Viewer, scope: PermissionScope.Owned },

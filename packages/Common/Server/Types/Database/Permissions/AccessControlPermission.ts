@@ -1005,15 +1005,19 @@ export default class AccessControlPermission {
       return true;
     };
 
-    return lists.filter((_labelIds: Array<ObjectID>, index: number): boolean => {
-      return !keyed.some((other: Set<string>, otherIndex: number): boolean => {
-        if (otherIndex === index || !isWithin(other, keyed[index]!)) {
-          return false;
-        }
+    return lists.filter(
+      (_labelIds: Array<ObjectID>, index: number): boolean => {
+        return !keyed.some(
+          (other: Set<string>, otherIndex: number): boolean => {
+            if (otherIndex === index || !isWithin(other, keyed[index]!)) {
+              return false;
+            }
 
-        return !isWithin(keyed[index]!, other) || otherIndex < index;
-      });
-    });
+            return !isWithin(keyed[index]!, other) || otherIndex < index;
+          },
+        );
+      },
+    );
   }
 
   @CaptureSpan()

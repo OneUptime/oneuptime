@@ -86,7 +86,9 @@ function row(
   };
 }
 
-function memberWith(rows: Array<UserPermission>): DatabaseCommonInteractionProps {
+function memberWith(
+  rows: Array<UserPermission>,
+): DatabaseCommonInteractionProps {
   return {
     userId: MEMBER_ID,
     userType: UserType.User,
@@ -192,7 +194,10 @@ describe("a monitor's secret keys, beside a Viewer over the whole project", () =
 
     expect(
       monitors.map((monitor: Monitor): [string, boolean] => {
-        return [monitor._id!.toString(), Boolean(monitor.serverMonitorSecretKey)];
+        return [
+          monitor._id!.toString(),
+          Boolean(monitor.serverMonitorSecretKey),
+        ];
       }),
     ).toEqual([
       [EDITORS_MONITOR, true],
@@ -204,26 +209,28 @@ describe("a monitor's secret keys, beside a Viewer over the whole project", () =
   });
 
   test("a filter on a key reaches only the team's own monitors", async () => {
-    const query: Dictionary<unknown> = (await BasePermission.addRecordScopeToQuery(
-      Monitor,
-      { serverMonitorSecretKey: "a guess" } as Query<Monitor>,
-      null,
-      memberWith(VIEWER_AND_OWNED_ADMIN),
-      DatabaseRequestType.Read,
-    )) as Dictionary<unknown>;
+    const query: Dictionary<unknown> =
+      (await BasePermission.addRecordScopeToQuery(
+        Monitor,
+        { serverMonitorSecretKey: "a guess" } as Query<Monitor>,
+        null,
+        memberWith(VIEWER_AND_OWNED_ADMIN),
+        DatabaseRequestType.Read,
+      )) as Dictionary<unknown>;
 
     expect(meetsCondition(query["_id"], EDITORS_MONITOR)).toBe(true);
     expect(meetsCondition(query["_id"], OTHERS_MONITOR)).toBe(false);
   });
 
   test("a read of monitors that names no key is left as it was", async () => {
-    const query: Dictionary<unknown> = (await BasePermission.addRecordScopeToQuery(
-      Monitor,
-      {},
-      null,
-      memberWith(VIEWER_AND_OWNED_ADMIN),
-      DatabaseRequestType.Read,
-    )) as Dictionary<unknown>;
+    const query: Dictionary<unknown> =
+      (await BasePermission.addRecordScopeToQuery(
+        Monitor,
+        {},
+        null,
+        memberWith(VIEWER_AND_OWNED_ADMIN),
+        DatabaseRequestType.Read,
+      )) as Dictionary<unknown>;
 
     expect(query["_id"]).toBeUndefined();
     expect(lookups).toEqual([]);
@@ -282,22 +289,23 @@ describe("a column's labels narrow a read, never widen it", () => {
   }
 
   test("a read limited to one label and a change limited to another read neither label's monitors alone", async () => {
-    const query: Dictionary<unknown> = (await BasePermission.addRecordScopeToQuery(
-      Monitor,
-      {},
-      { _id: true, serverMonitorSecretKey: true },
-      memberWith([
-        row(Permission.ReadProjectMonitor, {
-          scope: PermissionScope.Labels,
-          labelIds: [LABEL_READ],
-        }),
-        row(Permission.EditProjectMonitor, {
-          scope: PermissionScope.Labels,
-          labelIds: [LABEL_CHANGE],
-        }),
-      ]),
-      DatabaseRequestType.Read,
-    )) as Dictionary<unknown>;
+    const query: Dictionary<unknown> =
+      (await BasePermission.addRecordScopeToQuery(
+        Monitor,
+        {},
+        { _id: true, serverMonitorSecretKey: true },
+        memberWith([
+          row(Permission.ReadProjectMonitor, {
+            scope: PermissionScope.Labels,
+            labelIds: [LABEL_READ],
+          }),
+          row(Permission.EditProjectMonitor, {
+            scope: PermissionScope.Labels,
+            labelIds: [LABEL_CHANGE],
+          }),
+        ]),
+        DatabaseRequestType.Read,
+      )) as Dictionary<unknown>;
 
     // Two conditions, one per list: a monitor carries one label of each.
     expect(
@@ -313,22 +321,23 @@ describe("a column's labels narrow a read, never widen it", () => {
   });
 
   test("a read that selects no key keeps to the read's labels alone", async () => {
-    const query: Dictionary<unknown> = (await BasePermission.addRecordScopeToQuery(
-      Monitor,
-      {},
-      { _id: true, name: true },
-      memberWith([
-        row(Permission.ReadProjectMonitor, {
-          scope: PermissionScope.Labels,
-          labelIds: [LABEL_READ],
-        }),
-        row(Permission.EditProjectMonitor, {
-          scope: PermissionScope.Labels,
-          labelIds: [LABEL_CHANGE],
-        }),
-      ]),
-      DatabaseRequestType.Read,
-    )) as Dictionary<unknown>;
+    const query: Dictionary<unknown> =
+      (await BasePermission.addRecordScopeToQuery(
+        Monitor,
+        {},
+        { _id: true, name: true },
+        memberWith([
+          row(Permission.ReadProjectMonitor, {
+            scope: PermissionScope.Labels,
+            labelIds: [LABEL_READ],
+          }),
+          row(Permission.EditProjectMonitor, {
+            scope: PermissionScope.Labels,
+            labelIds: [LABEL_CHANGE],
+          }),
+        ]),
+        DatabaseRequestType.Read,
+      )) as Dictionary<unknown>;
 
     expect(labelsOf(query)).toEqual([LABEL_READ.toString()]);
   });

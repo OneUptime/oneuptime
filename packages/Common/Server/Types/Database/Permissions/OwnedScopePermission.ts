@@ -252,23 +252,19 @@ export default class OwnedScopePermission {
       return null;
     }
 
-    const model: BaseModel = new modelType();
-
     /*
      * Owned scope only restricts resources that can carry ownership:
      * operational resources, explicitly registered ownership roots, or
-     * nested resources that inherit ownership via @OwnedThrough - or, on a
-     * change or a delete, an owner table of a registered root (getOwnedThrough).
-     * For everything else (settings / config tables like IncidentState,
-     * Label, Team, etc.) the table-level permission check is the only
-     * gate — Owned has no resources to scope to, so it's a no-op.
+     * nested resources that inherit ownership via @OwnedThrough (hasOwners)
+     * - or, on a change or a delete, an owner table of a registered root
+     * (getOwnedThrough). For everything else (settings / config tables like
+     * IncidentState, Label, Team, etc.) the table-level permission check is
+     * the only gate — Owned has no resources to scope to, so it's a no-op.
      * Registry membership only enables ownership filtering; operational
      * wildcard grants still require the existing decorator.
      */
     if (
-      !model.isOperationalResource &&
-      !model.ownedThrough &&
-      !this.getOwnerTableRegistry().has(model.constructor.name) &&
+      !OwnedScopePermission.hasOwners(modelType) &&
       !OwnedScopePermission.isOwnerTableWrite(modelType, type)
     ) {
       return null;

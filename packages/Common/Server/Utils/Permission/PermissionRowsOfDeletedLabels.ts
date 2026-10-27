@@ -324,27 +324,25 @@ export default class PermissionRowsOfDeletedLabels {
       return [];
     }
 
-    const rows: Array<ApiKeyPermission> = await ApiKeyPermissionService.findBy(
-      {
-        query: {
-          _id: QueryHelper.any(
-            matched.map((row: ApiKeyPermission): ObjectID => {
-              return row.id!;
-            }),
-          ),
-        },
-        select: {
-          _id: true,
-          projectId: true,
-          apiKeyCustomRoleId: true,
-          customRolePermissionId: true,
-          labels: { _id: true },
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: { isRoot: true },
+    const rows: Array<ApiKeyPermission> = await ApiKeyPermissionService.findBy({
+      query: {
+        _id: QueryHelper.any(
+          matched.map((row: ApiKeyPermission): ObjectID => {
+            return row.id!;
+          }),
+        ),
       },
-    );
+      select: {
+        _id: true,
+        projectId: true,
+        apiKeyCustomRoleId: true,
+        customRolePermissionId: true,
+        labels: { _id: true },
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
 
     return rows.map((row: ApiKeyPermission): LabelledRow => {
       return {

@@ -1682,6 +1682,22 @@ API, SSO, or the Slack and Microsoft Teams apps.
   relied on another team's ownership needs their own team made an owner of
   those resources too, or a permission over the whole project. See
   [Scope](/docs/permissions/index#scope-how-far-an-allow-permission-reaches).
+- **A team's permission limited to labels is limited to them again,
+  whatever scope it is stored with.** The scope column arrived with the
+  default All, so every permission an older install had limited to labels
+  was stored as All, as is one an API or Terraform caller writes with labels
+  and no scope - and every check read such a row as reaching the whole
+  project, while the dashboard showed it as **Only resources with certain
+  labels**. It now reaches what the dashboard shows: the resources carrying
+  one of its labels. A team that should reach every resource needs the
+  permission with no labels. Project Owner, Project Admin and the Settings
+  and Billing roles reach the whole project as before.
+- **Deleting a label removes the permissions limited to it alone.** A team's,
+  an API key's or a custom role's permission whose every label is deleted
+  reaches nothing once they are gone, but with no labels left it read as a
+  permission over the whole project. It is now removed before the label is,
+  which leaves what everyone may do as it was before the delete. A
+  permission that keeps another of its labels stays.
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that
