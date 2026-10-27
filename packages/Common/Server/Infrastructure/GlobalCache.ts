@@ -5,14 +5,19 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import DatabaseNotConnectedException from "../../Types/Exception/DatabaseNotConnectedException";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
-import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 type CacheSetOptions = {
   expiresInSeconds: number;
 };
 
+/*
+ * No @CaptureSpan here. Each method is one round trip to Valkey, and that
+ * round trip is a CLIENT span of its own (RedisCommandSpans) covering the
+ * same time, so a span per method only doubled the spans of every cache
+ * call. A telemetry job makes one per metric name (the MetricType fence in
+ * TelemetryUtil), hundreds a batch.
+ */
 export default abstract class GlobalCache {
-  @CaptureSpan()
   public static async getJSONObject(
     namespace: string,
     key: string,
@@ -33,7 +38,6 @@ export default abstract class GlobalCache {
     return json;
   }
 
-  @CaptureSpan()
   public static async getStringArray(
     namespace: string,
     key: string,
@@ -55,7 +59,6 @@ export default abstract class GlobalCache {
     return stringArr;
   }
 
-  @CaptureSpan()
   public static async setStringArray(
     namespace: string,
     key: string,
@@ -65,7 +68,6 @@ export default abstract class GlobalCache {
     await this.setString(namespace, key, JSON.stringify(value), options);
   }
 
-  @CaptureSpan()
   public static async getJSONArray(
     namespace: string,
     key: string,
@@ -116,7 +118,6 @@ export default abstract class GlobalCache {
     }
   }
 
-  @CaptureSpan()
   public static async getString(
     namespace: string,
     key: string,
@@ -141,7 +142,6 @@ export default abstract class GlobalCache {
    * is positional: one entry per requested key, null where the key is
    * missing or empty.
    */
-  @CaptureSpan()
   public static async getStrings(
     namespace: string,
     keys: Array<string>,
@@ -168,7 +168,6 @@ export default abstract class GlobalCache {
     });
   }
 
-  @CaptureSpan()
   public static async setJSON(
     namespace: string,
     key: string,
@@ -183,7 +182,6 @@ export default abstract class GlobalCache {
     );
   }
 
-  @CaptureSpan()
   public static async setString(
     namespace: string,
     key: string,
@@ -227,7 +225,6 @@ export default abstract class GlobalCache {
    * Fence keys should carry the TTL jitter from `withJitter()` — see there for
    * why synchronized expiry re-creates the herd this is meant to prevent.
    */
-  @CaptureSpan()
   public static async setStringIfNotExists(
     namespace: string,
     key: string,
@@ -274,7 +271,6 @@ export default abstract class GlobalCache {
    * The key is passed as KEYS[1] rather than inlined into the script body so
    * the script stays correct on Redis Cluster, which routes by declared keys.
    */
-  @CaptureSpan()
   public static async setStringIfChanged(
     namespace: string,
     key: string,
@@ -314,7 +310,6 @@ export default abstract class GlobalCache {
    * The key is passed as KEYS[1] rather than inlined into the script body so
    * the script stays correct on Redis Cluster, which routes by declared keys.
    */
-  @CaptureSpan()
   public static async swapString(
     namespace: string,
     key: string,
@@ -357,7 +352,6 @@ export default abstract class GlobalCache {
    * The key is passed as KEYS[1] rather than inlined into the script body so
    * the script stays correct on Redis Cluster, which routes by declared keys.
    */
-  @CaptureSpan()
   public static async setStringIfNotExistsOrExtend(
     namespace: string,
     key: string,
@@ -387,7 +381,6 @@ export default abstract class GlobalCache {
   }
 
   // Extends a key's expiry. False when there is no such key.
-  @CaptureSpan()
   public static async extendExpiry(
     namespace: string,
     key: string,
@@ -443,7 +436,6 @@ export default abstract class GlobalCache {
    * The key is passed as KEYS[1] rather than inlined into the script body so
    * the script stays correct on Redis Cluster, which routes by declared keys.
    */
-  @CaptureSpan()
   public static async deleteKeyIfValue(
     namespace: string,
     key: string,
@@ -478,7 +470,6 @@ export default abstract class GlobalCache {
    * The key is passed as KEYS[1] rather than inlined into the script body so
    * the script stays correct on Redis Cluster, which routes by declared keys.
    */
-  @CaptureSpan()
   public static async getAndDeleteString(
     namespace: string,
     key: string,
@@ -509,7 +500,6 @@ export default abstract class GlobalCache {
    * The key is passed as KEYS[1] rather than inlined into the script body so
    * the script stays correct on Redis Cluster, which routes by declared keys.
    */
-  @CaptureSpan()
   public static async incrementWithExpiry(
     namespace: string,
     key: string,
@@ -551,7 +541,6 @@ export default abstract class GlobalCache {
    * the ones refused at the lower limit do not use up what the others still
    * may take.
    */
-  @CaptureSpan()
   public static async incrementIfBelow(
     namespace: string,
     key: string,
@@ -602,7 +591,6 @@ export default abstract class GlobalCache {
    * The key is passed as KEYS[1] rather than inlined into the script body so
    * the script stays correct on Redis Cluster, which routes by declared keys.
    */
-  @CaptureSpan()
   public static async setNumberIfGreater(
     namespace: string,
     key: string,
@@ -648,7 +636,6 @@ export default abstract class GlobalCache {
     return stored;
   }
 
-  @CaptureSpan()
   public static async deleteKey(namespace: string, key: string): Promise<void> {
     const client: ClientType | null = Redis.getClient();
 
