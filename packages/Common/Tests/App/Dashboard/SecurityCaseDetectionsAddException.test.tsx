@@ -136,7 +136,11 @@ describe("Add Exception on a case's detection", () => {
   test("only on a detection a rule made: threat intel and connected products have no rule to tune", () => {
     draw();
 
-    expect(action().isVisible!(detection({ detectionRuleId: new ObjectID(RULE_ID) }))).toBe(true);
+    expect(
+      action().isVisible!(
+        detection({ detectionRuleId: new ObjectID(RULE_ID) }),
+      ),
+    ).toBe(true);
     expect(action().isVisible!(detection({}))).toBe(false);
   });
 

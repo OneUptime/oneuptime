@@ -143,18 +143,18 @@ describe("what a row skips", () => {
 
 describe("where an exception stands, under its pill", () => {
   test("green while it skips, indigo before a window starts, grey once it skips nothing", () => {
-    expect(getRuleExceptionStatusColor(DetectionRuleExceptionStatus.Active)).toBe(
-      Green,
-    );
+    expect(
+      getRuleExceptionStatusColor(DetectionRuleExceptionStatus.Active),
+    ).toBe(Green);
     expect(
       getRuleExceptionStatusColor(DetectionRuleExceptionStatus.Upcoming),
     ).toBe(Indigo500);
     expect(
       getRuleExceptionStatusColor(DetectionRuleExceptionStatus.Expired),
     ).toBe(Gray500);
-    expect(getRuleExceptionStatusColor(DetectionRuleExceptionStatus.Ended)).toBe(
-      Gray500,
-    );
+    expect(
+      getRuleExceptionStatusColor(DetectionRuleExceptionStatus.Ended),
+    ).toBe(Gray500);
   });
 
   function line(exception: DetectionRuleExceptionShape): RuleExceptionLine {
@@ -249,7 +249,11 @@ describe("the count under a rule's name", () => {
     const counts: Map<string, number> = countActiveExceptionsByRule(
       [
         {
-          detectionRuleId: { toString: (): string => RULE_A },
+          detectionRuleId: {
+            toString: (): string => {
+              return RULE_A;
+            },
+          },
           kind: DetectionRuleExceptionKind.Entity,
           value: "alice",
         },

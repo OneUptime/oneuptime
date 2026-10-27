@@ -115,10 +115,14 @@ describe("how busy is too busy", () => {
   test("more than 20 a day is more than a person can look at", () => {
     expect(DETECTION_RETROHUNT_NOISY_FIRINGS_PER_DAY).toBe(20);
     expect(
-      isDetectionRetrohuntNoisy(result({ firedCount: 140, periodInHours: 168 })),
+      isDetectionRetrohuntNoisy(
+        result({ firedCount: 140, periodInHours: 168 }),
+      ),
     ).toBe(false);
     expect(
-      isDetectionRetrohuntNoisy(result({ firedCount: 141, periodInHours: 168 })),
+      isDetectionRetrohuntNoisy(
+        result({ firedCount: 141, periodInHours: 168 }),
+      ),
     ).toBe(true);
     expect(
       isDetectionRetrohuntNoisy(result({ firedCount: 21, periodInHours: 24 })),
@@ -167,9 +171,12 @@ describe("an answer through JSON", () => {
     expect(json["threshold"]).toBeNull();
     expect(json["matchedEventCount"]).toBeNull();
     expect(json["skippedEventCount"]).toBeNull();
-    expect((json["groups"] as Array<JSONObject>)[0]!["firstFiredAt"]).toBeNull();
+    expect(
+      (json["groups"] as Array<JSONObject>)[0]!["firstFiredAt"],
+    ).toBeNull();
 
-    const parsed: DetectionRetrohuntResult = parseDetectionRetrohuntResult(json);
+    const parsed: DetectionRetrohuntResult =
+      parseDetectionRetrohuntResult(json);
 
     expect(parsed.threshold).toBeNull();
     expect(parsed.matchedEventCount).toBeNull();

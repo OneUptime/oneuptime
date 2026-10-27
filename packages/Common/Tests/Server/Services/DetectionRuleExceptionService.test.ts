@@ -94,9 +94,10 @@ beforeEach(() => {
   getJestSpyOn(ProjectReferenceCheck, "validateUpdate").mockResolvedValue(
     undefined as never,
   );
-  count = getJestSpyOn(DetectionRuleExceptionService, "countBy").mockResolvedValue(
-    new PositiveNumber(3) as never,
-  );
+  count = getJestSpyOn(
+    DetectionRuleExceptionService,
+    "countBy",
+  ).mockResolvedValue(new PositiveNumber(3) as never);
 });
 
 afterEach(() => {
@@ -291,7 +292,9 @@ describe("an edit", () => {
     await expect(update({ value: "" })).rejects.toThrow(
       "Enter the user, host or address the rule skips.",
     );
-    await expect(update({ reason: "Still the backup job." })).resolves.toBeDefined();
+    await expect(
+      update({ reason: "Still the backup job." }),
+    ).resolves.toBeDefined();
   });
 
   test("an expired exception's reason can still be edited: an expiry is checked only when it changes", async () => {

@@ -207,9 +207,9 @@ describe("Run on Past Events", () => {
       expect(screen.getByTestId(RETROHUNT_TEST_IDS.group)).toHaveTextContent(
         "Every match",
       );
-      expect(screen.getByTestId(RETROHUNT_TEST_IDS.facts)).not.toHaveTextContent(
-        "group",
-      );
+      expect(
+        screen.getByTestId(RETROHUNT_TEST_IDS.facts),
+      ).not.toHaveTextContent("group");
     });
 
     test("more than 20 a day says how to make the rule quieter", async () => {
@@ -278,7 +278,8 @@ describe("Run on Past Events", () => {
             {
               ...group("203.0.113.7", 1),
               entityType: SecurityEntityType.IpAddress,
-              summary: "Failed sign-in, then Successful sign-in, 2 minutes apart",
+              summary:
+                "Failed sign-in, then Successful sign-in, 2 minutes apart",
             },
           ],
         }) as never,
@@ -330,9 +331,11 @@ describe("Run on Past Events", () => {
       fireEvent.click(screen.getByTestId(`${RETROHUNT_TEST_IDS.period}-24`));
       await settle();
 
-      expect(requests().map((request: JSONObject) => {
-        return request["periodInHours"];
-      })).toEqual([168, 24]);
+      expect(
+        requests().map((request: JSONObject) => {
+          return request["periodInHours"];
+        }),
+      ).toEqual([168, 24]);
       expect(
         screen.getByTestId(`${RETROHUNT_TEST_IDS.period}-24`),
       ).toHaveAttribute("aria-checked", "true");
@@ -399,7 +402,9 @@ describe("Run on Past Events", () => {
       });
 
       expect(screen.queryByTestId(RETROHUNT_TEST_IDS.running)).toBeNull();
-      expect(screen.getByTestId(RETROHUNT_TEST_IDS.summary)).toBeInTheDocument();
+      expect(
+        screen.getByTestId(RETROHUNT_TEST_IDS.summary),
+      ).toBeInTheDocument();
     });
 
     test("a run that cannot be made says why, and Run again tries again", async () => {
@@ -418,7 +423,9 @@ describe("Run on Past Events", () => {
       await settle();
 
       expect(screen.queryByTestId(RETROHUNT_TEST_IDS.error)).toBeNull();
-      expect(screen.getByTestId(RETROHUNT_TEST_IDS.summary)).toBeInTheDocument();
+      expect(
+        screen.getByTestId(RETROHUNT_TEST_IDS.summary),
+      ).toBeInTheDocument();
     });
 
     test("an older run that ends after a newer one is dropped", async () => {
@@ -507,9 +514,11 @@ describe("Run on Past Events", () => {
           evaluationIntervalInMinutes: 15,
         },
       ]);
-      expect(screen.getByText(
-        "What this rule would have found in your events, with its exceptions. Nothing is opened or sent.",
-      )).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "What this rule would have found in your events, with its exceptions. Nothing is opened or sent.",
+        ),
+      ).toBeInTheDocument();
     });
 
     test("says when the rule changed after its run", async () => {
@@ -563,8 +572,12 @@ describe("Run on Past Events", () => {
 
       const dialog: HTMLElement = screen.getByRole("dialog");
 
-      expect(within(dialog).getByText("Run on Past Events")).toBeInTheDocument();
-      expect(within(dialog).getByText("Failed logon burst")).toBeInTheDocument();
+      expect(
+        within(dialog).getByText("Run on Past Events"),
+      ).toBeInTheDocument();
+      expect(
+        within(dialog).getByText("Failed logon burst"),
+      ).toBeInTheDocument();
       expect(
         within(dialog).getByTestId(RETROHUNT_TEST_IDS.modal),
       ).toBeInTheDocument();

@@ -119,7 +119,9 @@ export function getRetrohuntGroupsNoun(
  * no Group By Field, whose every match is one group. Saying "for 1 group"
  * of it says nothing.
  */
-export function isRetrohuntUngrouped(result: DetectionRetrohuntResult): boolean {
+export function isRetrohuntUngrouped(
+  result: DetectionRetrohuntResult,
+): boolean {
   return (
     !result.isCorrelation &&
     result.groups.length === 1 &&

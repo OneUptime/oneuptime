@@ -27,7 +27,10 @@ import { DetectionRuleExceptionKind } from "../../../Types/SecurityEvent/Detecti
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
-import { Translator, createTranslator } from "../../../UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  createTranslator,
+} from "../../../UI/Utils/TranslateTemplate";
 
 /*
  * THE ADD EXCEPTION FORM, as every door opens it: two steps - what to skip,
@@ -82,7 +85,9 @@ function byColumn(name: string, list: Array<Field> = fields()): Field {
   return field!;
 }
 
-function values(data: Record<string, unknown>): FormValues<DetectionRuleException> {
+function values(
+  data: Record<string, unknown>,
+): FormValues<DetectionRuleException> {
   return data as FormValues<DetectionRuleException>;
 }
 

@@ -266,9 +266,8 @@ function exception(
 async function usersLeft(
   exceptions: Array<DetectionRuleExceptionShape>,
 ): Promise<Record<string, number>> {
-  const filter: Statement | null = buildDetectionRuleExceptionsFilter(
-    exceptions,
-  );
+  const filter: Statement | null =
+    buildDetectionRuleExceptionsFilter(exceptions);
   const statement: Statement = SQL`SELECT principalUser AS user, count() AS events FROM ${database}.${new SecurityEvent().tableName} WHERE projectId = ${{
     type: TableColumnType.ObjectID,
     value: projectId,
@@ -303,9 +302,7 @@ const EVERYONE: Record<string, number> = {
   "svc-deploy": 3,
 };
 
-function without(
-  ...users: Array<string>
-): Record<string, number> {
+function without(...users: Array<string>): Record<string, number> {
   const left: Record<string, number> = { ...EVERYONE };
 
   for (const user of users) {
@@ -326,380 +323,382 @@ function savedException(
   return row;
 }
 
-integration("Detection rule exceptions and retrohunt against ClickHouse", () => {
-  let clickhouse: ClickhouseDatabase;
-  let client: ClickhouseClient;
-  let original:
-    | {
-        database: ClickhouseDatabase;
-        databaseClient: ClickhouseClient | null;
-        ingestDatabase: ClickhouseDatabase;
-        ingestDatabaseClient: ClickhouseClient | null;
+integration(
+  "Detection rule exceptions and retrohunt against ClickHouse",
+  () => {
+    let clickhouse: ClickhouseDatabase;
+    let client: ClickhouseClient;
+    let original:
+      | {
+          database: ClickhouseDatabase;
+          databaseClient: ClickhouseClient | null;
+          ingestDatabase: ClickhouseDatabase;
+          ingestDatabaseClient: ClickhouseClient | null;
+        }
+      | undefined;
+
+    beforeAll(async (): Promise<void> => {
+      const url: URL = new URL(endpoint!);
+
+      if (!["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
+        throw new Error(
+          "TEST_CLICKHOUSE_URL must point at a local, disposable ClickHouse server.",
+        );
       }
-    | undefined;
 
-  beforeAll(async (): Promise<void> => {
-    const url: URL = new URL(endpoint!);
+      const options: ClickHouseClientConfigOptions = {
+        url: `${url.protocol}//${url.host}`,
+        username: decodeURIComponent(url.username) || "default",
+        password: decodeURIComponent(url.password),
+        database: database,
+        request_timeout: 60000,
+      };
 
-    if (!["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
-      throw new Error(
-        "TEST_CLICKHOUSE_URL must point at a local, disposable ClickHouse server.",
+      clickhouse = new ClickhouseDatabase(options);
+      client = await clickhouse.connect(options);
+
+      const model: SecurityEvent = new SecurityEvent();
+      const generator: StatementGenerator<SecurityEvent> =
+        new StatementGenerator<SecurityEvent>({
+          modelType: SecurityEvent,
+          database: clickhouse,
+        });
+      const columns: Statement = generator.toColumnsCreateStatement(
+        model.tableColumns,
       );
-    }
 
-    const options: ClickHouseClientConfigOptions = {
-      url: `${url.protocol}//${url.host}`,
-      username: decodeURIComponent(url.username) || "default",
-      password: decodeURIComponent(url.password),
-      database: database,
-      request_timeout: 60000,
-    };
-
-    clickhouse = new ClickhouseDatabase(options);
-    client = await clickhouse.connect(options);
-
-    const model: SecurityEvent = new SecurityEvent();
-    const generator: StatementGenerator<SecurityEvent> =
-      new StatementGenerator<SecurityEvent>({
-        modelType: SecurityEvent,
-        database: clickhouse,
+      await client.command({
+        query: `CREATE TABLE ${database}.${model.tableName} (${columns.query}) ENGINE = MergeTree PARTITION BY (${model.partitionKey}) ORDER BY (${model.sortKeys.join(", ")})`,
+        query_params: columns.query_params,
       });
-    const columns: Statement = generator.toColumnsCreateStatement(
-      model.tableColumns,
-    );
 
-    await client.command({
-      query: `CREATE TABLE ${database}.${model.tableName} (${columns.query}) ENGINE = MergeTree PARTITION BY (${model.partitionKey}) ORDER BY (${model.sortKeys.join(", ")})`,
-      query_params: columns.query_params,
+      original = {
+        database: SecurityEventService.database,
+        databaseClient: SecurityEventService.databaseClient,
+        ingestDatabase: SecurityEventService.ingestDatabase,
+        ingestDatabaseClient: SecurityEventService.ingestDatabaseClient,
+      };
+
+      SecurityEventService.database = clickhouse;
+      SecurityEventService.databaseClient = client;
+      SecurityEventService.ingestDatabase = clickhouse;
+      SecurityEventService.ingestDatabaseClient = client;
+
+      await SecurityEventService.insertJsonRows(FIXTURES.map(event), {
+        clickhouseSettings: { wait_for_async_insert: 1 },
+      });
     });
 
-    original = {
-      database: SecurityEventService.database,
-      databaseClient: SecurityEventService.databaseClient,
-      ingestDatabase: SecurityEventService.ingestDatabase,
-      ingestDatabaseClient: SecurityEventService.ingestDatabaseClient,
-    };
-
-    SecurityEventService.database = clickhouse;
-    SecurityEventService.databaseClient = client;
-    SecurityEventService.ingestDatabase = clickhouse;
-    SecurityEventService.ingestDatabaseClient = client;
-
-    await SecurityEventService.insertJsonRows(FIXTURES.map(event), {
-      clickhouseSettings: { wait_for_async_insert: 1 },
-    });
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
-  });
-
-  afterAll(async (): Promise<void> => {
-    if (original) {
-      Object.assign(SecurityEventService, original);
-    }
-
-    if (client) {
-      await client.command({ query: `DROP DATABASE IF EXISTS ${database}` });
-    }
-
-    if (clickhouse) {
-      await clickhouse.disconnect();
-    }
-  });
-
-  describe("each kind of exception skips exactly what it names", () => {
-    test("no exception: every failed sign-in is read", async () => {
-      expect(await usersLeft([])).toEqual(EVERYONE);
+    afterEach(() => {
+      jest.restoreAllMocks();
     });
 
-    test("a user, whatever the case, as who acted", async () => {
-      expect(await usersLeft([exception({ value: "CAROL" })])).toEqual(
-        without("Carol"),
-      );
+    afterAll(async (): Promise<void> => {
+      if (original) {
+        Object.assign(SecurityEventService, original);
+      }
+
+      if (client) {
+        await client.command({ query: `DROP DATABASE IF EXISTS ${database}` });
+      }
+
+      if (clickhouse) {
+        await clickhouse.disconnect();
+      }
     });
 
-    test("a user as who was acted on", async () => {
-      expect(await usersLeft([exception({ value: "root" })])).toEqual(
-        without("svc-deploy"),
-      );
-    });
+    describe("each kind of exception skips exactly what it names", () => {
+      test("no exception: every failed sign-in is read", async () => {
+        expect(await usersLeft([])).toEqual(EVERYONE);
+      });
 
-    test("a pattern of service accounts", async () => {
-      expect(await usersLeft([exception({ value: "svc-*" })])).toEqual(
-        without("svc-backup", "svc-deploy"),
-      );
-    });
+      test("a user, whatever the case, as who acted", async () => {
+        expect(await usersLeft([exception({ value: "CAROL" })])).toEqual(
+          without("Carol"),
+        );
+      });
 
-    test("a host pattern of a domain", async () => {
-      expect(
-        await usersLeft([
-          exception({
-            entityType: SecurityEntityType.Host,
-            value: "*.corp.example.com",
-          }),
-        ]),
-      ).toEqual(without("svc-backup"));
-    });
+      test("a user as who was acted on", async () => {
+        expect(await usersLeft([exception({ value: "root" })])).toEqual(
+          without("svc-deploy"),
+        );
+      });
 
-    test("an address range, over events whose address is empty without failing the read", async () => {
-      expect(
-        await usersLeft([
-          exception({
-            entityType: SecurityEntityType.IpAddress,
-            value: "10.20.0.0/16",
-          }),
-        ]),
-      ).toEqual({ ...EVERYONE, alice: 7 });
-    });
+      test("a pattern of service accounts", async () => {
+        expect(await usersLeft([exception({ value: "svc-*" })])).toEqual(
+          without("svc-backup", "svc-deploy"),
+        );
+      });
 
-    test("an IPv6 range reads IPv4 and empty addresses as outside it", async () => {
-      expect(
-        await usersLeft([
-          exception({
-            entityType: SecurityEntityType.IpAddress,
-            value: "fe80::/10",
-          }),
-        ]),
-      ).toEqual(EVERYONE);
-    });
+      test("a host pattern of a domain", async () => {
+        expect(
+          await usersLeft([
+            exception({
+              entityType: SecurityEntityType.Host,
+              value: "*.corp.example.com",
+            }),
+          ]),
+        ).toEqual(without("svc-backup"));
+      });
 
-    test("a typed field's value, whatever the case", async () => {
-      expect(
-        await usersLeft([
-          {
-            kind: DetectionRuleExceptionKind.Value,
-            fieldName: "processName",
-            value: "backup.EXE",
-          },
-        ]),
-      ).toEqual(without("Carol"));
-    });
+      test("an address range, over events whose address is empty without failing the read", async () => {
+        expect(
+          await usersLeft([
+            exception({
+              entityType: SecurityEntityType.IpAddress,
+              value: "10.20.0.0/16",
+            }),
+          ]),
+        ).toEqual({ ...EVERYONE, alice: 7 });
+      });
 
-    test("an attribute's value, by a pattern", async () => {
-      expect(
-        await usersLeft([
-          {
-            kind: DetectionRuleExceptionKind.Value,
-            fieldName: "http.user_agent",
-            value: "nessus/*",
-          },
-        ]),
-      ).toEqual(without(""));
-    });
+      test("an IPv6 range reads IPv4 and empty addresses as outside it", async () => {
+        expect(
+          await usersLeft([
+            exception({
+              entityType: SecurityEntityType.IpAddress,
+              value: "fe80::/10",
+            }),
+          ]),
+        ).toEqual(EVERYONE);
+      });
 
-    test("a value among the observables", async () => {
-      expect(
-        await usersLeft([
-          exception({
-            entityType: SecurityEntityType.Host,
-            value: "scanner-7",
-          }),
-        ]),
-      ).toEqual(without(""));
-    });
+      test("a typed field's value, whatever the case", async () => {
+        expect(
+          await usersLeft([
+            {
+              kind: DetectionRuleExceptionKind.Value,
+              fieldName: "processName",
+              value: "backup.EXE",
+            },
+          ]),
+        ).toEqual(without("Carol"));
+      });
 
-    test("a time window: every event from its start up to its end", async () => {
-      expect(
-        await usersLeft([
-          {
-            kind: DetectionRuleExceptionKind.TimeWindow,
-            startsAt: new Date(BASE.getTime() + 40 * MINUTE),
-            endsAt: new Date(BASE.getTime() + 60 * MINUTE),
-          },
-        ]),
-      ).toEqual(without("", "svc-backup", "svc-deploy"));
-    });
+      test("an attribute's value, by a pattern", async () => {
+        expect(
+          await usersLeft([
+            {
+              kind: DetectionRuleExceptionKind.Value,
+              fieldName: "http.user_agent",
+              value: "nessus/*",
+            },
+          ]),
+        ).toEqual(without(""));
+      });
 
-    test("several exceptions: an event any of them names is skipped", async () => {
-      const match: Statement | null = buildDetectionRuleExceptionsMatch([
-        exception({ value: "bob" }),
-        exception({ value: "svc-*" }),
-      ]);
+      test("a value among the observables", async () => {
+        expect(
+          await usersLeft([
+            exception({
+              entityType: SecurityEntityType.Host,
+              value: "scanner-7",
+            }),
+          ]),
+        ).toEqual(without(""));
+      });
 
-      expect(match).not.toBeNull();
-      expect(
-        await usersLeft([
+      test("a time window: every event from its start up to its end", async () => {
+        expect(
+          await usersLeft([
+            {
+              kind: DetectionRuleExceptionKind.TimeWindow,
+              startsAt: new Date(BASE.getTime() + 40 * MINUTE),
+              endsAt: new Date(BASE.getTime() + 60 * MINUTE),
+            },
+          ]),
+        ).toEqual(without("", "svc-backup", "svc-deploy"));
+      });
+
+      test("several exceptions: an event any of them names is skipped", async () => {
+        const match: Statement | null = buildDetectionRuleExceptionsMatch([
           exception({ value: "bob" }),
           exception({ value: "svc-*" }),
-        ]),
-      ).toEqual(without("bob", "svc-backup", "svc-deploy"));
-    });
-  });
+        ]);
 
-  test("a rule's cidr reads events with no address without failing", async () => {
-    const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
-      `title: Internal sign-in failures
+        expect(match).not.toBeNull();
+        expect(
+          await usersLeft([
+            exception({ value: "bob" }),
+            exception({ value: "svc-*" }),
+          ]),
+        ).toEqual(without("bob", "svc-backup", "svc-deploy"));
+      });
+    });
+
+    test("a rule's cidr reads events with no address without failing", async () => {
+      const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(
+        `title: Internal sign-in failures
 detection:
   selection:
     statusName: Failure
     principalIp|cidr: 10.20.0.0/16
   condition: selection`,
-    );
-
-    if (definition.kind !== "single") {
-      throw new Error("expected a single rule");
-    }
-
-    const groups: Array<DetectionMatchGroup> =
-      await SecurityEventService.findDetectionMatches({
-        projectId,
-        startTime: BASE,
-        endTime: NOW,
-        whereFragment: SigmaClickhouseCompiler.compile(definition.rule),
-        groupByExpression: SQL`principalUser`,
-        distinctCountExpression: null,
-        minMatchCount: 1,
-        maxGroups: 10,
-      });
-
-    expect(
-      groups.map((group: DetectionMatchGroup): string => {
-        return `${group.groupValue}:${group.matchCount}`;
-      }),
-    ).toEqual(["alice:4"]);
-  });
-
-  describe("a retrohunt", () => {
-    function stubExceptions(rows: Array<DetectionRuleException>): void {
-      jest
-        .spyOn(DetectionRuleExceptionService, "findAllBy")
-        .mockResolvedValue(rows as never);
-    }
-
-    async function retrohunt(
-      rule: Partial<{
-        groupByField: string;
-        distinctCountField: string;
-        matchCountThreshold: number;
-        evaluationIntervalInMinutes: number;
-        sigmaRuleYaml: string;
-      }> = {},
-    ): Promise<DetectionRetrohuntResult> {
-      return DetectionRuleRetrohunt.run({
-        projectId,
-        rule: {
-          id: RULE_ID,
-          sigmaRuleYaml: FAILED_SIGN_IN_YAML,
-          groupByField: "principalUser",
-          matchCountThreshold: 3,
-          evaluationIntervalInMinutes: 5,
-          ...rule,
-        },
-        periodInHours: 24,
-        serviceFilter: {},
-        now: NOW,
-      });
-    }
-
-    test("fires a group in each window its count reaches the threshold", async () => {
-      stubExceptions([]);
-
-      const result: DetectionRetrohuntResult = await retrohunt();
-
-      // alice twice, Carol, svc-backup, svc-deploy and the '' group once each.
-      expect(result.firedCount).toBe(6);
-      expect(result.groupCount).toBe(5);
-      // Every event behind a firing: alice 4 + 5, and 3 for each other.
-      expect(result.eventCount).toBe(21);
-      // Every match, firing or not: bob's 2 and alice's lone 2 too.
-      expect(result.matchedEventCount).toBe(25);
-      expect(result.skippedEventCount).toBe(0);
-      expect(result.preventedFiredCount).toBe(0);
-      expect(result.hasMoreGroups).toBe(false);
-
-      const alice: DetectionRetrohuntResult["groups"][number] =
-        result.groups[0]!;
-
-      expect(alice.value).toBe("alice");
-      expect(alice.entityType).toBe(SecurityEntityType.User);
-      expect(alice.firedCount).toBe(2);
-      expect(alice.eventCount).toBe(9);
-      expect(alice.firstFiredAt).toEqual(BASE);
-      expect(alice.lastFiredAt).toEqual(
-        new Date(BASE.getTime() + 20 * MINUTE),
       );
-      // The latest window's sample.
-      expect(alice.sampleMessage).toBe("alice again");
+
+      if (definition.kind !== "single") {
+        throw new Error("expected a single rule");
+      }
+
+      const groups: Array<DetectionMatchGroup> =
+        await SecurityEventService.findDetectionMatches({
+          projectId,
+          startTime: BASE,
+          endTime: NOW,
+          whereFragment: SigmaClickhouseCompiler.compile(definition.rule),
+          groupByExpression: SQL`principalUser`,
+          distinctCountExpression: null,
+          minMatchCount: 1,
+          maxGroups: 10,
+        });
 
       expect(
-        result.groups.map((group: { value: string }): string => {
-          return group.value;
+        groups.map((group: DetectionMatchGroup): string => {
+          return `${group.groupValue}:${group.matchCount}`;
         }),
-      ).not.toContain("bob");
+      ).toEqual(["alice:4"]);
     });
 
-    test("a threshold out of reach fires nothing, and still says how many events matched", async () => {
-      stubExceptions([]);
+    describe("a retrohunt", () => {
+      function stubExceptions(rows: Array<DetectionRuleException>): void {
+        jest
+          .spyOn(DetectionRuleExceptionService, "findAllBy")
+          .mockResolvedValue(rows as never);
+      }
 
-      const result: DetectionRetrohuntResult = await retrohunt({
-        matchCountThreshold: 50,
-      });
+      async function retrohunt(
+        rule: Partial<{
+          groupByField: string;
+          distinctCountField: string;
+          matchCountThreshold: number;
+          evaluationIntervalInMinutes: number;
+          sigmaRuleYaml: string;
+        }> = {},
+      ): Promise<DetectionRetrohuntResult> {
+        return DetectionRuleRetrohunt.run({
+          projectId,
+          rule: {
+            id: RULE_ID,
+            sigmaRuleYaml: FAILED_SIGN_IN_YAML,
+            groupByField: "principalUser",
+            matchCountThreshold: 3,
+            evaluationIntervalInMinutes: 5,
+            ...rule,
+          },
+          periodInHours: 24,
+          serviceFilter: {},
+          now: NOW,
+        });
+      }
 
-      expect(result.firedCount).toBe(0);
-      expect(result.groups).toEqual([]);
-      expect(result.matchedEventCount).toBe(25);
-      expect(result.threshold).toBe(50);
-    });
+      test("fires a group in each window its count reaches the threshold", async () => {
+        stubExceptions([]);
 
-    test("a longer interval counts across the bursts", async () => {
-      stubExceptions([]);
+        const result: DetectionRetrohuntResult = await retrohunt();
 
-      const result: DetectionRetrohuntResult = await retrohunt({
-        evaluationIntervalInMinutes: 60,
-        matchCountThreshold: 10,
-      });
+        // alice twice, Carol, svc-backup, svc-deploy and the '' group once each.
+        expect(result.firedCount).toBe(6);
+        expect(result.groupCount).toBe(5);
+        // Every event behind a firing: alice 4 + 5, and 3 for each other.
+        expect(result.eventCount).toBe(21);
+        // Every match, firing or not: bob's 2 and alice's lone 2 too.
+        expect(result.matchedEventCount).toBe(25);
+        expect(result.skippedEventCount).toBe(0);
+        expect(result.preventedFiredCount).toBe(0);
+        expect(result.hasMoreGroups).toBe(false);
 
-      // Only alice reaches 10 in one hour.
-      expect(result.firedCount).toBe(1);
-      expect(result.groups[0]!.value).toBe("alice");
-      expect(result.groups[0]!.eventCount).toBe(11);
-    });
+        const alice: DetectionRetrohuntResult["groups"][number] =
+          result.groups[0]!;
 
-    test("its exceptions skip events, and say which firings they prevented", async () => {
-      stubExceptions([
-        savedException({ value: "carol" }),
-        savedException({ value: "svc-*" }),
-      ]);
+        expect(alice.value).toBe("alice");
+        expect(alice.entityType).toBe(SecurityEntityType.User);
+        expect(alice.firedCount).toBe(2);
+        expect(alice.eventCount).toBe(9);
+        expect(alice.firstFiredAt).toEqual(BASE);
+        expect(alice.lastFiredAt).toEqual(
+          new Date(BASE.getTime() + 20 * MINUTE),
+        );
+        // The latest window's sample.
+        expect(alice.sampleMessage).toBe("alice again");
 
-      const result: DetectionRetrohuntResult = await retrohunt();
-
-      expect(result.exceptionCount).toBe(2);
-      expect(result.firedCount).toBe(3);
-      expect(result.skippedEventCount).toBe(9);
-      expect(result.preventedFiredCount).toBe(3);
-      expect(result.matchedEventCount).toBe(16);
-      expect(
-        result.groups
-          .map((group: { value: string }): string => {
+        expect(
+          result.groups.map((group: { value: string }): string => {
             return group.value;
-          })
-          .sort(),
-      ).toEqual(["", "alice"]);
-    });
-
-    test("a distinct count counts different values, empty ones left out", async () => {
-      stubExceptions([]);
-
-      const result: DetectionRetrohuntResult = await retrohunt({
-        groupByField: "",
-        distinctCountField: "principalUser",
-        matchCountThreshold: 2,
-        evaluationIntervalInMinutes: 60,
+          }),
+        ).not.toContain("bob");
       });
 
-      // One group, every match: 6 users in the hour ('' not counted).
-      expect(result.groups).toHaveLength(1);
-      expect(result.groups[0]!.value).toBe("");
-      expect(result.firedCount).toBe(1);
-      expect(result.eventCount).toBe(25);
-    });
+      test("a threshold out of reach fires nothing, and still says how many events matched", async () => {
+        stubExceptions([]);
 
-    test("a correlation is read with the exceptions in every read", async () => {
-      stubExceptions([savedException({ value: "alice" })]);
+        const result: DetectionRetrohuntResult = await retrohunt({
+          matchCountThreshold: 50,
+        });
 
-      const result: DetectionRetrohuntResult = await retrohunt({
-        sigmaRuleYaml: `title: Bursts
+        expect(result.firedCount).toBe(0);
+        expect(result.groups).toEqual([]);
+        expect(result.matchedEventCount).toBe(25);
+        expect(result.threshold).toBe(50);
+      });
+
+      test("a longer interval counts across the bursts", async () => {
+        stubExceptions([]);
+
+        const result: DetectionRetrohuntResult = await retrohunt({
+          evaluationIntervalInMinutes: 60,
+          matchCountThreshold: 10,
+        });
+
+        // Only alice reaches 10 in one hour.
+        expect(result.firedCount).toBe(1);
+        expect(result.groups[0]!.value).toBe("alice");
+        expect(result.groups[0]!.eventCount).toBe(11);
+      });
+
+      test("its exceptions skip events, and say which firings they prevented", async () => {
+        stubExceptions([
+          savedException({ value: "carol" }),
+          savedException({ value: "svc-*" }),
+        ]);
+
+        const result: DetectionRetrohuntResult = await retrohunt();
+
+        expect(result.exceptionCount).toBe(2);
+        expect(result.firedCount).toBe(3);
+        expect(result.skippedEventCount).toBe(9);
+        expect(result.preventedFiredCount).toBe(3);
+        expect(result.matchedEventCount).toBe(16);
+        expect(
+          result.groups
+            .map((group: { value: string }): string => {
+              return group.value;
+            })
+            .sort(),
+        ).toEqual(["", "alice"]);
+      });
+
+      test("a distinct count counts different values, empty ones left out", async () => {
+        stubExceptions([]);
+
+        const result: DetectionRetrohuntResult = await retrohunt({
+          groupByField: "",
+          distinctCountField: "principalUser",
+          matchCountThreshold: 2,
+          evaluationIntervalInMinutes: 60,
+        });
+
+        // One group, every match: 6 users in the hour ('' not counted).
+        expect(result.groups).toHaveLength(1);
+        expect(result.groups[0]!.value).toBe("");
+        expect(result.firedCount).toBe(1);
+        expect(result.eventCount).toBe(25);
+      });
+
+      test("a correlation is read with the exceptions in every read", async () => {
+        stubExceptions([savedException({ value: "alice" })]);
+
+        const result: DetectionRetrohuntResult = await retrohunt({
+          sigmaRuleYaml: `title: Bursts
 correlation:
   type: event_count
   rules: [failed_sign_in]
@@ -714,19 +713,20 @@ detection:
   selection:
     statusName: Failure
   condition: selection`,
-      });
+        });
 
-      expect(result.isCorrelation).toBe(true);
-      expect(
-        result.groups
-          .map((group: { value: string }): string => {
-            return group.value;
-          })
-          .sort(),
-      ).toEqual(["Carol", "svc-backup", "svc-deploy"]);
+        expect(result.isCorrelation).toBe(true);
+        expect(
+          result.groups
+            .map((group: { value: string }): string => {
+              return group.value;
+            })
+            .sort(),
+        ).toEqual(["Carol", "svc-backup", "svc-deploy"]);
+      });
     });
-  });
-});
+  },
+);
 
 describe("Detection rule exceptions ClickHouse suite wiring", () => {
   test("runs whenever the suite is under CI", () => {

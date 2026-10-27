@@ -173,8 +173,12 @@ describe("the single rule's statement", () => {
   test("a group fires in a window when its count there reaches the threshold - with the exceptions, and without them", () => {
     const query: string = statement().query;
 
-    expect(query).toContain("(__kept > 0 AND __keptDistinct >= {p1:Int32}) AS __fired");
-    expect(query).toContain("(__all > 0 AND __allDistinct >= {p2:Int32}) AS __firedWithout");
+    expect(query).toContain(
+      "(__kept > 0 AND __keptDistinct >= {p1:Int32}) AS __fired",
+    );
+    expect(query).toContain(
+      "(__all > 0 AND __allDistinct >= {p2:Int32}) AS __firedWithout",
+    );
     expect(query).toContain("__kept AS __keptDistinct, __all AS __allDistinct");
     expect(statement().query_params["p1"]).toBe(3);
     expect(statement().query_params["p2"]).toBe(3);
@@ -213,7 +217,9 @@ describe("the single rule's statement", () => {
   test("reads only the project's events in the period, matching the rule", () => {
     const built: Statement = statement();
 
-    expect(built.query).toContain("FROM oneuptime.SecurityEvent WHERE projectId = ");
+    expect(built.query).toContain(
+      "FROM oneuptime.SecurityEvent WHERE projectId = ",
+    );
     expect(built.query).toContain("AND time >= ");
     expect(built.query).toContain("AND time < ");
     expect(built.query).toContain("AND (statusName = ");
@@ -227,7 +233,9 @@ describe("the single rule's statement", () => {
     expect(query).toContain("sumIf(__kept, __fired) AS eventCount");
     expect(query).toContain("minIf(__window, __fired) AS firstFiredAt");
     expect(query).toContain("maxIf(__window, __fired) AS lastFiredAt");
-    expect(query).toContain("countIf(__firedWithout AND NOT __fired) AS preventedCount");
+    expect(query).toContain(
+      "countIf(__firedWithout AND NOT __fired) AS preventedCount",
+    );
     expect(query).toContain("sum(__all - __kept) AS skippedCount");
     expect(query).toContain("sum(__kept) AS matchedCount");
   });
@@ -236,7 +244,9 @@ describe("the single rule's statement", () => {
     const built: Statement = statement();
 
     expect(built.query).toContain("sum(firedCount) OVER () AS totalFired");
-    expect(built.query).toContain("countIf(firedCount > 0) OVER () AS totalGroups");
+    expect(built.query).toContain(
+      "countIf(firedCount > 0) OVER () AS totalGroups",
+    );
     expect(built.query).toContain("sum(matchedCount) OVER () AS totalMatched");
     expect(built.query).toContain(
       "ORDER BY firedCount DESC, eventCount DESC, groupValue ASC LIMIT ",
@@ -628,9 +638,9 @@ detection:
   });
 
   test("a correlation is read by its matcher, over the whole period, with the exceptions and the person's sources", async () => {
-    getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue(
-      [scannerException()] as never,
-    );
+    getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue([
+      scannerException(),
+    ] as never);
     const query: Spy = stubQuery([]);
     const findMatches: Spy = getJestSpyOn(
       CorrelationRuleMatcher,
@@ -646,7 +656,9 @@ detection:
       rule: { id: RULE_ID, sigmaRuleYaml: CORRELATION_YAML },
       periodInHours: 168,
       serviceFilter: {
-        excludedServiceIds: [new ObjectID("78787878-7878-4878-8878-787878787878")],
+        excludedServiceIds: [
+          new ObjectID("78787878-7878-4878-8878-787878787878"),
+        ],
       },
       now: NOW,
     });

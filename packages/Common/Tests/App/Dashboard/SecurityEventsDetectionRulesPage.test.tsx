@@ -98,7 +98,9 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   };
 });
 
-import DetectionRulesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
+import DetectionRulesPage, {
+  DETECTION_RULE_TUNING_MENU_GROUP,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -118,7 +120,6 @@ import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { isFormFieldValueSet } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import { guideToMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
-import { DETECTION_RULE_TUNING_MENU_GROUP } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
 import { RETROHUNT_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/RetrohuntCopy";
 import { RULE_EXCEPTIONS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleExceptions/RuleExceptionsCopy";
 import { getRuleExceptionsFilterParams } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleExceptions/RuleExceptionsRoute";

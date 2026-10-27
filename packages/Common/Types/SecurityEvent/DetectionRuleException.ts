@@ -362,11 +362,13 @@ function getEntityProblems(
     });
   }
 
-  const valueProblems: Array<DetectionRuleExceptionProblem> =
-    getValueProblems(exception.value, {
+  const valueProblems: Array<DetectionRuleExceptionProblem> = getValueProblems(
+    exception.value,
+    {
       field: "value",
       message: "Enter the user, host or address the rule skips.",
-    });
+    },
+  );
 
   if (valueProblems.length > 0) {
     return [...problems, ...valueProblems];
@@ -572,10 +574,7 @@ export function getDetectionRuleExceptionProblems(
       ];
     default:
       // A window ends by itself: it has no expiry to check.
-      return [
-        ...getWindowProblems(exception),
-        ...getReasonProblems(exception),
-      ];
+      return [...getWindowProblems(exception), ...getReasonProblems(exception)];
   }
 }
 

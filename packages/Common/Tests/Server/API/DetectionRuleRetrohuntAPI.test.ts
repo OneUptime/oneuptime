@@ -345,8 +345,14 @@ describe("POST /detection-rule/retrohunt", () => {
   });
 
   test.each([
-    [{ matchCountThreshold: "lots" }, "Match count threshold must be a number."],
-    [{ evaluationIntervalInMinutes: "soon" }, "Evaluation interval must be a number."],
+    [
+      { matchCountThreshold: "lots" },
+      "Match count threshold must be a number.",
+    ],
+    [
+      { evaluationIntervalInMinutes: "soon" },
+      "Evaluation interval must be a number.",
+    ],
     [{ periodInHours: "all of it" }, "The period must be a number."],
   ])(
     "a number that is not one is refused, never guessed: %o",

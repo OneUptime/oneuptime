@@ -354,8 +354,9 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
                   <DetectionRuleRetrohuntInForm
                     rule={{
                       detectionRuleId:
-                        (values as Record<string, unknown>)["_id"]?.toString() ||
-                        undefined,
+                        (values as Record<string, unknown>)[
+                          "_id"
+                        ]?.toString() || undefined,
                       sigmaRuleYaml:
                         typeof values.sigmaRuleYaml === "string"
                           ? values.sigmaRuleYaml
@@ -686,7 +687,8 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
             title: "Name",
             type: FieldType.Text,
             wrapContent: true,
-            wrapMaxWidthClassName: SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
+            wrapMaxWidthClassName:
+              SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
             getElement: (item: DetectionRule): ReactElement => {
               const count: number =
                 exceptionCounts.counts.get(item._id?.toString() || "") || 0;

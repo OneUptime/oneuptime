@@ -329,10 +329,7 @@ const RetrohuntAnswer: FunctionComponent<AnswerProps> = (
       )}
 
       {groups.length > 0 ? (
-        <RetrohuntGroups
-          groups={groups}
-          isCorrelation={result.isCorrelation}
-        />
+        <RetrohuntGroups groups={groups} isCorrelation={result.isCorrelation} />
       ) : (
         <></>
       )}

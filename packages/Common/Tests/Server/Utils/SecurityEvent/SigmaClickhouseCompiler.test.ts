@@ -343,7 +343,11 @@ detection:
       inRange + "isIPAddressInRange(".length,
     );
 
-    expect(argument.startsWith("if((isIPv4String(targetIp) OR isIPv6String(targetIp)), targetIp, '::')")).toBe(true);
+    expect(
+      argument.startsWith(
+        "if((isIPv4String(targetIp) OR isIPv6String(targetIp)), targetIp, '::')",
+      ),
+    ).toBe(true);
     // The address check guards the range check.
     expect(statement.query.indexOf("isIPv4String(targetIp)")).toBeLessThan(
       inRange,
@@ -357,7 +361,9 @@ detection:
     );
 
     expect(statement.query).toContain("isIPv4String(attributes[");
-    expect(statement.query).toContain("isIPAddressInRange(if((isIPv4String(attributes[");
+    expect(statement.query).toContain(
+      "isIPAddressInRange(if((isIPv4String(attributes[",
+    );
   });
 
   test("numeric comparison on a number column stays numeric", () => {

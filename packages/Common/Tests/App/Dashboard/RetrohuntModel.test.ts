@@ -131,9 +131,9 @@ describe("what the groups are called", () => {
         group("bob", SecurityEntityType.User),
       ]),
     ).toBe(FOR_USERS);
-    expect(getRetrohuntGroupsNoun([group("web-01", SecurityEntityType.Host)])).toBe(
-      FOR_HOSTS,
-    );
+    expect(
+      getRetrohuntGroupsNoun([group("web-01", SecurityEntityType.Host)]),
+    ).toBe(FOR_HOSTS);
     expect(
       getRetrohuntGroupsNoun([group("10.0.0.5", SecurityEntityType.IpAddress)]),
     ).toBe(FOR_ADDRESSES);
@@ -199,7 +199,12 @@ describe("the facts under the headline", () => {
   test("would not have fired, but matched: how close it came, with the threshold", () => {
     expect(
       getRetrohuntFacts(
-        result({ firedCount: 0, groupCount: 0, groups: [], matchedEventCount: 12 }),
+        result({
+          firedCount: 0,
+          groupCount: 0,
+          groups: [],
+          matchedEventCount: 12,
+        }),
       ),
     ).toEqual([{ template: NEAR_MISS, count: 12, values: { threshold: 3 } }]);
   });
@@ -207,7 +212,12 @@ describe("the facts under the headline", () => {
   test("would not have fired, and matched nothing", () => {
     expect(
       getRetrohuntFacts(
-        result({ firedCount: 0, groupCount: 0, groups: [], matchedEventCount: 0 }),
+        result({
+          firedCount: 0,
+          groupCount: 0,
+          groups: [],
+          matchedEventCount: 0,
+        }),
       ),
     ).toEqual([{ template: NO_MATCHES }]);
   });
@@ -288,9 +298,9 @@ describe("what the rule's exceptions did", () => {
 
 describe("the groups listed", () => {
   test("a group's value, or Every match for a rule that groups nothing", () => {
-    expect(getRetrohuntGroupLabel(group("alice", SecurityEntityType.User))).toEqual(
-      { text: "alice", isKey: false },
-    );
+    expect(
+      getRetrohuntGroupLabel(group("alice", SecurityEntityType.User)),
+    ).toEqual({ text: "alice", isKey: false });
     expect(getRetrohuntGroupLabel(group("", ""))).toEqual({
       text: EVERY_MATCH,
       isKey: true,

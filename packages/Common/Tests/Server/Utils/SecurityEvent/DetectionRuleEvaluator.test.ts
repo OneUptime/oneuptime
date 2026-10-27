@@ -2993,9 +2993,10 @@ describe("DetectionRuleEvaluator", () => {
         buildRule({ id: RULE_A }),
       ] as never);
 
-      getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockRejectedValue(
-        new Error("postgres is away") as never,
-      );
+      getJestSpyOn(
+        DetectionRuleExceptionService,
+        "findAllBy",
+      ).mockRejectedValue(new Error("postgres is away") as never);
 
       const evaluateRuleSpy: Spy = getJestSpyOn(
         DetectionRuleEvaluator,

@@ -98,7 +98,9 @@ function fieldsWithProblems(
   options: { now: Date; isExpiryNew: boolean } = CREATE,
 ): Array<DetectionRuleExceptionFormField> {
   return getDetectionRuleExceptionProblems(exception, options).map(
-    (problem: DetectionRuleExceptionProblem): DetectionRuleExceptionFormField => {
+    (
+      problem: DetectionRuleExceptionProblem,
+    ): DetectionRuleExceptionFormField => {
       return problem.field;
     },
   );
@@ -257,9 +259,9 @@ describe("where an exception stands", () => {
     expect(getDetectionRuleExceptionStatus(entity(), NOW)).toBe(
       DetectionRuleExceptionStatus.Active,
     );
-    expect(getDetectionRuleExceptionStatus(valueException(), at(400 * DAY))).toBe(
-      DetectionRuleExceptionStatus.Active,
-    );
+    expect(
+      getDetectionRuleExceptionStatus(valueException(), at(400 * DAY)),
+    ).toBe(DetectionRuleExceptionStatus.Active);
   });
 
   test("one with an expiry is active until it, and expired from it on", () => {
@@ -412,7 +414,10 @@ describe("what is wrong with an exception, field by field", () => {
     ).toEqual([]);
     expect(
       getDetectionRuleExceptionProblem(
-        entity({ entityType: SecurityEntityType.IpAddress, value: "10.0.0.0/8" }),
+        entity({
+          entityType: SecurityEntityType.IpAddress,
+          value: "10.0.0.0/8",
+        }),
         CREATE,
       ),
     ).toBeNull();
@@ -425,19 +430,19 @@ describe("what is wrong with an exception, field by field", () => {
   });
 
   test("no kind: choose one, and the reason is still asked for", () => {
-    expect(
-      getDetectionRuleExceptionProblems({ kind: "Nope" }, CREATE),
-    ).toEqual([
-      {
-        field: "kind",
-        message:
-          "Choose what the rule skips: an entity, a value or a time window.",
-      },
-      {
-        field: "reason",
-        message: "Say why it is safe for the rule to skip this.",
-      },
-    ]);
+    expect(getDetectionRuleExceptionProblems({ kind: "Nope" }, CREATE)).toEqual(
+      [
+        {
+          field: "kind",
+          message:
+            "Choose what the rule skips: an entity, a value or a time window.",
+        },
+        {
+          field: "reason",
+          message: "Say why it is safe for the rule to skip this.",
+        },
+      ],
+    );
   });
 
   test("an entity needs its type and its value", () => {
@@ -461,7 +466,11 @@ describe("what is wrong with an exception, field by field", () => {
   test("a lone * would skip everything: that is turning the rule off", () => {
     for (const value of ["*", " ** ", "***"]) {
       expect(
-        getDetectionRuleExceptionFieldProblem(entity({ value }), "value", CREATE),
+        getDetectionRuleExceptionFieldProblem(
+          entity({ value }),
+          "value",
+          CREATE,
+        ),
       ).toBe(
         "A value of only * would skip everything. To stop the rule, turn it off.",
       );
@@ -489,7 +498,9 @@ describe("what is wrong with an exception, field by field", () => {
   test("a value is at most 500 characters, and the message says the number it checks", () => {
     expect(
       getDetectionRuleExceptionFieldProblem(
-        entity({ value: "a".repeat(DETECTION_RULE_EXCEPTION_VALUE_MAX_LENGTH) }),
+        entity({
+          value: "a".repeat(DETECTION_RULE_EXCEPTION_VALUE_MAX_LENGTH),
+        }),
         "value",
         CREATE,
       ),
@@ -723,7 +734,9 @@ describe("what is wrong with an exception, field by field", () => {
       ),
     ).toBe("Enter the user, host or address the rule skips.");
     expect(
-      fieldsWithProblems(entity({ value: "", reason: "", expiresAt: at(-DAY) })),
+      fieldsWithProblems(
+        entity({ value: "", reason: "", expiresAt: at(-DAY) }),
+      ),
     ).toEqual(["value", "expiresAt", "reason"]);
   });
 

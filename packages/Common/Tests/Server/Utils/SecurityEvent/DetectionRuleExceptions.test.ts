@@ -110,7 +110,9 @@ describe("an entity", () => {
       entity(SecurityEntityType.User, "svc_back%up\\*"),
     );
 
-    expect(statement.query).toContain("lowerUTF8(principalUser) LIKE {p0:String}");
+    expect(statement.query).toContain(
+      "lowerUTF8(principalUser) LIKE {p0:String}",
+    );
     expect(statement.query).not.toContain(" = ");
     // svc\_back\%up\\ then %: the star alone is a wildcard.
     expect(params(statement)[0]).toBe("svc\\_back\\%up\\\\%");
@@ -185,9 +187,7 @@ describe("a value", () => {
   });
 
   test("an attribute key, bound as a parameter", () => {
-    const statement: Statement = match(
-      value("http.user_agent", "Nessus*"),
-    );
+    const statement: Statement = match(value("http.user_agent", "Nessus*"));
 
     expect(statement.query).toBe(
       "lowerUTF8(attributes[{p0:String}]) LIKE {p1:String}",
@@ -279,9 +279,7 @@ describe("a rule's exceptions together", () => {
       value("processName", "backup.exe"),
     ]);
 
-    expect(filter!.query).toBe(
-      "NOT ((lowerUTF8(processName) = {p0:String}))",
-    );
+    expect(filter!.query).toBe("NOT ((lowerUTF8(processName) = {p0:String}))");
   });
 
   test("two restrictions on a read are ANDed, and either may be missing", () => {
@@ -379,14 +377,16 @@ describe("reading a project's exceptions", () => {
   test("no rule named is no read", async () => {
     const findAll: Spy = stubRows([]);
 
-    const byRule: Map<string, Array<DetectionRuleException>> =
-      await DetectionRuleExceptions.loadForProject({
-        projectId: PROJECT_ID,
-        ruleIds: [],
-        from: NOW,
-        until: NOW,
-        now: NOW,
-      });
+    const byRule: Map<
+      string,
+      Array<DetectionRuleException>
+    > = await DetectionRuleExceptions.loadForProject({
+      projectId: PROJECT_ID,
+      ruleIds: [],
+      from: NOW,
+      until: NOW,
+      now: NOW,
+    });
 
     expect(byRule.size).toBe(0);
     expect(findAll).not.toHaveBeenCalled();
@@ -432,14 +432,16 @@ describe("reading a project's exceptions", () => {
       }),
     ]);
 
-    const byRule: Map<string, Array<DetectionRuleException>> =
-      await DetectionRuleExceptions.loadForProject({
-        projectId: PROJECT_ID,
-        ruleIds: [RULE_A, RULE_B],
-        from: new Date(NOW.getTime() - 3 * HOUR),
-        until: NOW,
-        now: NOW,
-      });
+    const byRule: Map<
+      string,
+      Array<DetectionRuleException>
+    > = await DetectionRuleExceptions.loadForProject({
+      projectId: PROJECT_ID,
+      ruleIds: [RULE_A, RULE_B],
+      from: new Date(NOW.getTime() - 3 * HOUR),
+      until: NOW,
+      now: NOW,
+    });
 
     expect(
       (byRule.get(RULE_A.toString()) || []).map(
