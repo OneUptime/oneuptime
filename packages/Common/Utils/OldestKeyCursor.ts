@@ -20,6 +20,16 @@
  *
  * The key it answers is meant to be deleted: asked twice without deleting it,
  * it answers the next one.
+ *
+ * Keep it only while it moves. V8 rebuilds a map's table as entries come and
+ * go, and an iterator keeps the table it was made on alive, with every entry
+ * that table held, chained to each table after it, until it next moves. A
+ * cursor kept across changes that do not move it - writes that evict nothing,
+ * deletes, a sweep - holds on to everything the map stored meanwhile: 300 MB
+ * after a million writes and deletes of half-kilobyte values (measured
+ * 2026-10-27, Node 26). So its owner calls reset() after every change to the
+ * map other than deleting the key it was just handed (InMemoryTTLCache does),
+ * and the cursor lives only from one eviction to the next.
  */
 export default class OldestKeyCursor<K> {
   private readonly map: Map<K, unknown>;
@@ -52,7 +62,11 @@ export default class OldestKeyCursor<K> {
     return undefined;
   }
 
-  // Starts again from the map's first entry (after the map was cleared).
+  /*
+   * Lets go of the iterator: the next takeOldest starts again from the
+   * map's first entry. Call it after any change to the map other than
+   * deleting the key just handed out (see above).
+   */
   public reset(): void {
     this.cursor = null;
   }
