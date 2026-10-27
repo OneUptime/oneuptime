@@ -18,6 +18,10 @@
  *              large:    6 services, 1,250 spans (loads in 500-span batches)
  *              orphans:  spans whose parents were never received
  *              empty:    the trace has no spans
+ *              ebpf:     an eBPF (OBI) request in a Kubernetes pod: no log
+ *                        carries its trace ID, and its pod's lines are read
+ *                        by pod and time (shaped on an oneuptime-app request
+ *                        measured on the test cluster)
  *   ?profile=  none (default) | samples
  *   ?profiler= off (default) | on - whether the trace's root service sent
  *              continuous profiles around the trace's time (POST
@@ -65,6 +69,7 @@ import { initReactI18next } from "react-i18next";
 import TracesViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Traces/View/Layout";
 import TraceViewPage from "../../../App/FeatureSet/Dashboard/src/Pages/Traces/View/Index";
 import Service from "Common/Models/DatabaseModels/Service";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
@@ -157,7 +162,12 @@ export const TRACE_IDS = {
   large: "9c1d2e3f4a5b6c7d8e9fa0b1c2d3e4f5",
   orphans: "0af7651916cd43dd8448eb211c80319c",
   empty: "00000000000000000000000000000001",
+  ebpf: "1e8f0c2a9b7d4e6f8a1b2c3d4e5f6a7b",
 };
+
+// The ebpf trace's pod (its k8sPodEntityKey) and its name.
+const APP_POD = "7a2872b83f046399";
+const APP_POD_NAME = "oneuptime-app-5b9df8b796-88bzt";
 
 const SERVICE_DEFINITIONS = {
   "api-gateway": {
@@ -187,6 +197,10 @@ const SERVICE_DEFINITIONS = {
   "search-service": {
     id: "60000000-0000-4000-8000-000000000007",
     color: "#14b8a6",
+  },
+  "oneuptime-app": {
+    id: "60000000-0000-4000-8000-000000000008",
+    color: "#f97316",
   },
 };
 
@@ -291,6 +305,7 @@ function buildTrace(traceId, root, options = {}) {
     });
     span.links = node.links || [];
     span.sessionId = "";
+    span.k8sPodEntityKey = node.podEntityKey || "";
     spans.push(span);
 
     for (const child of node.children || []) {
@@ -870,6 +885,141 @@ function orphanTrace() {
   });
 }
 
+/*
+ * An OTLP traces request served by oneuptime-app, as the eBPF agent records
+ * it: a 3.46 ms server span and its two Redis calls, all in one pod. OBI
+ * puts no trace context into the lines the pod writes, so no log carries
+ * this trace's ID.
+ */
+function ebpfTrace() {
+  const resource = {
+    "resource.k8s.pod.name": APP_POD_NAME,
+    "resource.k8s.namespace.name": "default",
+    "resource.k8s.cluster.name": "oneuptime-test",
+    "resource.k8s.deployment.name": "oneuptime-app",
+    "resource.telemetry.distro.name": "opentelemetry-ebpf-instrumentation",
+  };
+  return buildTrace(TRACE_IDS.ebpf, {
+    name: "POST /*/v1/traces",
+    service: "oneuptime-app",
+    kind: "server",
+    start: 0,
+    duration: 3.4627,
+    status: "ok",
+    podEntityKey: APP_POD,
+    attributes: {
+      ...resource,
+      "http.request.method": "POST",
+      "url.path": "/otlp/v1/traces",
+      "http.response.status_code": "200",
+    },
+    children: [
+      {
+        name: "evalsha",
+        service: "oneuptime-app",
+        kind: "client",
+        start: 0.9,
+        duration: 0.43,
+        status: "ok",
+        podEntityKey: APP_POD,
+        attributes: { ...resource, "db.system": "redis" },
+      },
+      {
+        name: "set",
+        service: "oneuptime-app",
+        kind: "client",
+        start: 1.6,
+        duration: 0.38,
+        status: "ok",
+        podEntityKey: APP_POD,
+        attributes: { ...resource, "db.system": "redis" },
+      },
+    ],
+  });
+}
+
+/*
+ * What the ebpf trace's pod wrote around it, in milliseconds from the trace's
+ * start: its own three lines inside the request, and its neighbours' - the
+ * pod ingests a batch every few tens of milliseconds.
+ */
+const APP_POD_LINES = [
+  { at: -232.59, body: "Product Type: Traces" },
+  { at: -232.56, body: "Is Protobuf: true" },
+  {
+    at: -230.94,
+    body: "Added traces ingestion job: traces-a8b2ddcf-1793088129000000000",
+  },
+  { at: -48.2, body: "Product Type: Logs" },
+  { at: -48.17, body: "Is Protobuf: false" },
+  { at: 1.27, body: "Product Type: Traces" },
+  { at: 1.28, body: "Is Protobuf: true" },
+  {
+    at: 3.24,
+    body: "Added traces ingestion job: traces-a8b2ddcf-1793088129234000000",
+  },
+  { at: 61.4, body: "Product Type: Metrics", severity: "Warning" },
+  { at: 221.49, body: "Product Type: Logs" },
+  { at: 250.75, body: "Product Type: Traces" },
+];
+
+function makeAppPodLogs() {
+  return APP_POD_LINES.map((line, index) => {
+    const nanos = Math.round((TRACE_START_MS + line.at) * 1000000);
+    const log = new Log();
+    log._id = `b0000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`;
+    log.projectId = new ObjectID(PROJECT_ID);
+    log.time = new Date(Math.floor(nanos / 1000000));
+    log.timeUnixNano = nanos;
+    log.severityText = line.severity || "Information";
+    log.body = line.body;
+    log.traceId = "";
+    log.spanId = "";
+    log.k8sPodEntityKey = APP_POD;
+    log.entityKeys = [APP_POD];
+    log.primaryEntityId = new ObjectID(SERVICE_DEFINITIONS["oneuptime-app"].id);
+    log.primaryEntityType = "OpenTelemetry";
+    log.attributes = { "resource.k8s.pod.name": APP_POD_NAME };
+    return log;
+  });
+}
+
+// Whether a read names the app pod, by its scalar key or by entity key.
+function readsAppPod(query) {
+  const scalar = query && query.k8sPodEntityKey;
+  const entityKeys = query && query.entityKeys;
+  if (scalar) {
+    return String(scalar) === APP_POD;
+  }
+  return Boolean(
+    entityKeys &&
+      Array.isArray(entityKeys.values) &&
+      entityKeys.values.includes(APP_POD),
+  );
+}
+
+// The pod's lines in the read's window (both ends in, to the nanosecond).
+function makePodLogs(query, sort) {
+  const window = query && query.time;
+  const lines = makeAppPodLogs().filter((log) => {
+    if (!readsAppPod(query)) {
+      return false;
+    }
+    if (!window || !window.startValue || !window.endValue) {
+      return true;
+    }
+    return (
+      log.timeUnixNano >= new Date(window.startValue).getTime() * 1000000 &&
+      log.timeUnixNano <= new Date(window.endValue).getTime() * 1000000
+    );
+  });
+  lines.sort((left, right) => left.timeUnixNano - right.timeUnixNano);
+  if (sort && String(sort.time) === "DESC") {
+    lines.reverse();
+  }
+  return lines;
+}
+
 const TRACE_BUILDERS = {
   checkout: checkoutTrace,
   report: reportTrace,
@@ -877,6 +1027,7 @@ const TRACE_BUILDERS = {
   large: largeTrace,
   orphans: orphanTrace,
   empty: () => [],
+  ebpf: ebpfTrace,
 };
 
 const traceId = TRACE_IDS[traceMode] || TRACE_IDS.checkout;
@@ -893,6 +1044,10 @@ fixture.spans = traceSpans.map((span) => {
 });
 
 function makeLogs(query) {
+  // eBPF spans put no trace context into their pod's lines.
+  if (traceMode === "ebpf") {
+    return [];
+  }
   const spanId = query && query.spanId ? String(query.spanId) : "";
   // The trace's logs are its first 18 spans; any one span has its own log.
   const source = spanId
@@ -969,6 +1124,21 @@ ModelAPI.getList = async (options) => {
     const services = makeServices();
     return { data: services, count: services.length, skip: 0, limit: 100 };
   }
+  // The ebpf trace's pod, as Inventory names it.
+  if (options.modelType === InventoryItem && traceMode === "ebpf") {
+    const item = Object.assign(new InventoryItem(), {
+      _id: "c0000000-0000-4000-8000-000000000001",
+      entityKey: APP_POD,
+      entityType: "k8s.pod",
+      displayName: APP_POD_NAME,
+      identifyingAttributes: {
+        "k8s.cluster.name": "oneuptime-test",
+        "k8s.namespace.name": "default",
+        "k8s.pod.name": APP_POD_NAME,
+      },
+    });
+    return { data: [item], count: 1, skip: 0, limit: 10 };
+  }
   return { data: [], count: 0, skip: 0, limit: 10 };
 };
 ModelAPI.getItem = async () => null;
@@ -1029,6 +1199,12 @@ AnalyticsModelAPI.getList = async (options) => {
       );
     }
     items = traceSpans.filter((span) => matchesSpanQuery(span, options.query));
+  } else if (
+    options.modelType === Log &&
+    options.query &&
+    (options.query.k8sPodEntityKey || options.query.entityKeys)
+  ) {
+    items = makePodLogs(options.query, options.sort);
   } else if (options.modelType === Log) {
     items = makeLogs(options.query);
   } else if (options.modelType === ExceptionInstance) {
