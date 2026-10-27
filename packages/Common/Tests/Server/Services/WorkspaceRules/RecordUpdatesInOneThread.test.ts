@@ -3,9 +3,11 @@ import AlertFeedService from "../../../../Server/Services/AlertFeedService";
 import IncidentEpisodeFeedService from "../../../../Server/Services/IncidentEpisodeFeedService";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
 import ScheduledMaintenanceFeedService from "../../../../Server/Services/ScheduledMaintenanceFeedService";
+import WorkspaceLiveMessageService from "../../../../Server/Services/WorkspaceLiveMessageService";
 import WorkspaceNotificationRuleService, {
   NotificationFor,
 } from "../../../../Server/Services/WorkspaceNotificationRuleService";
+import logger from "../../../../Server/Utils/Logger";
 import MicrosoftTeamsUtil from "../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
 import WorkspaceRecordThreads from "../../../../Server/Utils/Workspace/WorkspaceRecordThreads";
 import {
@@ -485,6 +487,64 @@ describe("a thread whose first message is gone", () => {
     expect(opsMessages()[opsMessages().length - 1]!.body["thread_ts"]).toBe(
       newRoot,
     );
+  });
+});
+
+describe("when waiting for the thread or keeping it fails", () => {
+  beforeEach(() => {
+    jest.mocked(logger.error).mockClear();
+  });
+
+  test("a wait that fails is logged: nothing is thrown at whoever posted, and nothing is posted", async () => {
+    opsRule(true);
+    waitSpy.mockImplementation((): Promise<boolean> => {
+      const failing: Promise<boolean> = Promise.reject(
+        new Error("The database went away"),
+      );
+      world.started.push(
+        failing.catch((): void => {
+          return undefined;
+        }),
+      );
+      return failing;
+    });
+
+    // "Owner added" comes before the created message, so it waits.
+    await feed(IncidentFeedEventType.OwnerUserAdded, OWNER_ADDED);
+    await world.settle();
+
+    expect(opsPosts()).toEqual([]);
+    expect(logger.error).toHaveBeenCalledWith(
+      "Could not post a message in the thread of a record in Slack.",
+      expect.anything(),
+    );
+  });
+
+  test("a thread that starts but cannot be kept is posted all the same, and logged: the next message starts another", async () => {
+    opsRule(true);
+    WorkspaceRecordThreads.WAIT_FOR_THREAD_IN_MS = 20;
+    jest
+      .spyOn(WorkspaceLiveMessageService, "create")
+      .mockRejectedValueOnce(new Error("The database went away"));
+
+    await feed(IncidentFeedEventType.IncidentCreated, CREATED);
+
+    expect(opsMessages()).toHaveLength(1);
+    expect(threads()).toEqual([]);
+    expect(logger.error).toHaveBeenCalledWith(
+      "A thread was started in a Slack channel, but OneUptime could not remember it: the next message starts another.",
+      expect.anything(),
+    );
+
+    // With no thread kept, the next message waits, then starts one.
+    await feed(IncidentFeedEventType.PrivateNote, NOTE);
+    await world.settle();
+
+    const note: SlackRequest = opsMessages()[1]!;
+    expect(says(note, "out of disk")).toBe(true);
+    expect(note.body).not.toHaveProperty("thread_ts");
+    expect(threads()).toHaveLength(1);
+    expect(threads()[0]!.messageId).toBe(tsOf(note));
   });
 });
 
