@@ -6,6 +6,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import SpanUtil from "../../../Utils/SpanUtil";
 import { formatRelativeTime } from "../../../Utils/ExceptionDetailPresentation";
@@ -59,6 +61,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { summary } = props;
+  const translator: Translator = useTranslator();
   const rootService: TraceServiceInfo | null = summary.rootSpan
     ? getServiceInfo(props.serviceInfoById, summary.rootSpan.serviceId)
     : null;
@@ -71,6 +74,7 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
   const orphanNote: OrphanSpanNote | null = getOrphanSpanNote({
     orphanCount: summary.orphanCount,
     hasMoreSpans: props.hasMoreSpans,
+    translator,
   });
 
   const stats: Array<Stat> = [

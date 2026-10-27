@@ -20,6 +20,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
 import {
   afterEach,
   beforeAll,
@@ -57,9 +58,24 @@ const REPOSITORY_ID: ObjectID = new ObjectID(
 );
 const RUN_ID: ObjectID = new ObjectID("5e1f4b3a-7c8d-4e9f-8a0b-2c3d4e5f6a7b");
 
+// A member of the project, as getUserMiddleware leaves them.
 const PROPS: DatabaseCommonInteractionProps = {
   userId: new ObjectID("7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d"),
   tenantId: PROJECT_ID,
+  userTenantAccessPermission: {
+    [PROJECT_ID.toString()]: {
+      projectId: PROJECT_ID,
+      permissions: [
+        {
+          permission: Permission.ProjectMember,
+          labelIds: [],
+          isBlockPermission: false,
+          _type: "UserPermission",
+        },
+      ],
+      _type: "UserTenantAccessPermission",
+    },
+  },
 };
 
 let repositoryReadable: boolean;
@@ -144,8 +160,8 @@ describe.each([["/code-fix-run/get/:runId"], ["/code-fix-run/logs/:runId"]])(
       } = (CodeRepositoryService.findOneBy as unknown as jest.Mock).mock
         .calls[0]![0] as never;
 
-      // The repository is read as the caller, in their project.
-      expect(call.props).toBe(PROPS);
+      // The repository is read as the caller, in their project alone.
+      expect(call.props).toEqual({ ...PROPS, isMultiTenantRequest: false });
       expect(call.query["_id"]).toBe(REPOSITORY_ID.toString());
       expect((call.query["projectId"] as ObjectID).toString()).toBe(
         PROJECT_ID.toString(),

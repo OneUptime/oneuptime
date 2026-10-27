@@ -19,6 +19,7 @@ import Permission, {
 import DatabaseCommonInteractionPropsUtil from "../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import HeldPermissionsUtil from "../../Types/HeldPermissions";
 import CallerPermission from "../Utils/Permission/CallerPermission";
+import MultiTenantQuery from "../Utils/MultiTenantQuery";
 
 export default class CommonAPI {
   /*
@@ -451,7 +452,12 @@ export default class CommonAPI {
       props.tenantId = (req as OneUptimeRequest).tenantId || undefined;
     }
 
-    if (req.headers["is-multi-tenant-query"]) {
+    if (MultiTenantQuery.isRequested(req)) {
+      // A request in one project, or across projects - never both.
+      if (props.tenantId) {
+        throw new BadDataException(MultiTenantQuery.WITH_PROJECT_MESSAGE);
+      }
+
       props.isMultiTenantRequest = true;
     }
 

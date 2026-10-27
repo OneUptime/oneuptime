@@ -9,11 +9,13 @@ import {
   OneUptimeRequest,
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
+import MultiTenantQuery from "../../../Server/Utils/MultiTenantQuery";
 import WorkspaceNotificationRule from "../../../Models/DatabaseModels/WorkspaceNotificationRule";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import ObjectID from "../../../Types/ObjectID";
@@ -245,7 +247,7 @@ const sendTest: (req: OneUptimeRequest) => Promise<"sent" | Error> = async (
   let failure: Error | undefined = undefined;
 
   await mockRouter
-    .match("GET", TEST_RULE_ROUTE)
+    .match("POST", TEST_RULE_ROUTE)
     .handlerFunction(req, response(), (err?: unknown): void => {
       failure = err as Error;
     });
@@ -596,21 +598,19 @@ describe("which rule: one the caller may read, in their own project", () => {
     expect(props.isMultiTenantRequest).toBe(false);
   });
 
-  test("a request that asks for a multi-tenant read is still read for the one project", async () => {
+  // One project or across projects, never both (MultiTenantQuery).
+  test("a request that names its project and asks for a multi-tenant read is refused, and nothing is read or sent", async () => {
     const answer: "sent" | Error = await sendTest(
       requestFrom(PROJECT_MEMBER, OTHER_PROJECT_RULE_ID, {
         "is-multi-tenant-query": "true",
       }),
     );
 
-    expect(answer).toBeInstanceOf(NotAuthorizedException);
-    expect((answer as Error).message).toBe(NOT_THIS_PROJECTS_RULE);
-
-    const props: DatabaseCommonInteractionProps = (
-      readRule.mock.calls[0]![0] as { props: DatabaseCommonInteractionProps }
-    ).props;
-
-    expect(props.isMultiTenantRequest).toBe(false);
+    expect(answer).toBeInstanceOf(BadDataException);
+    expect((answer as Error).message).toBe(
+      MultiTenantQuery.WITH_PROJECT_MESSAGE,
+    );
+    expect(readRule).not.toHaveBeenCalled();
     expect(testRule).not.toHaveBeenCalled();
   });
 

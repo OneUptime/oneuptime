@@ -3,6 +3,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import { buildSearchTokenValue } from "Common/Types/Telemetry/TelemetrySearchQuery";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { SpanSelfTime } from "Common/Utils/Traces/CriticalPath";
 import { SpanTree, WaterfallNode, WaterfallSpan } from "./TraceWaterfall";
 
@@ -203,30 +204,60 @@ export interface OrphanSpanNote {
  * later page. A missing parent's start time is unknown, so no later page
  * can be ruled out, and the count is only final once the whole trace is
  * loaded.
+ *
+ * Each sentence is looked up whole with the reader's translator. The hint
+ * is worded for one span or several by the count itself, not by the
+ * language's plural form: Russian's "one" form also covers 21 spans.
  */
 export function getOrphanSpanNote(data: {
   orphanCount: number;
   // Whether spans not loaded yet remain (SpanLoadState.hasMore).
   hasMoreSpans: boolean;
+  translator: Translator;
 }): OrphanSpanNote | null {
   if (data.orphanCount <= 0) {
     return null;
   }
 
-  const subject: string =
-    data.orphanCount === 1 ? "This span names" : "Each of these spans names";
-  const label: string = `${pluralize(data.orphanCount, "span")} missing a parent`;
+  const translator: Translator = data.translator;
+  const isOneSpan: boolean = data.orphanCount === 1;
 
   if (!data.hasMoreSpans) {
     return {
-      label,
-      hint: `${subject} a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.`,
+      label: translator.translatePlural(
+        {
+          one: "{{count}} span missing a parent",
+          other: "{{count}} spans missing a parent",
+        },
+        data.orphanCount,
+      ),
+      hint:
+        (isOneSpan
+          ? translator.translateText(
+              "This span names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+            )
+          : translator.translateText(
+              "Each of these spans names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+            )) || "",
     };
   }
 
   return {
-    label: `${label} so far`,
-    hint: `${subject} a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.`,
+    label: translator.translatePlural(
+      {
+        one: "{{count}} span missing a parent so far",
+        other: "{{count}} spans missing a parent so far",
+      },
+      data.orphanCount,
+    ),
+    hint:
+      (isOneSpan
+        ? translator.translateText(
+            "This span names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+          )
+        : translator.translateText(
+            "Each of these spans names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+          )) || "",
   };
 }
 
