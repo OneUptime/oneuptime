@@ -28,6 +28,7 @@ import {
   RiskiestEntityRow,
   getMoreRiskyEntityCount,
   getRiskiestEntityRows,
+  hasRiskyEntities,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/RiskiestEntitiesModel";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
@@ -158,6 +159,43 @@ describe("the rows, worked out from the overview's answer", () => {
     // A total the list outgrew (a read between two writes) is never below none.
     expect(getMoreRiskyEntityCount({ ...RISKIEST, total: 2 })).toBe(0);
     expect(SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT).toBe(8);
+  });
+
+  /*
+   * Whether the Overview has someone to rank: Entity Risk lists anyone now.
+   * A month with no case and no detection still shows the riskiest, since a
+   * rule that opens no case of its own adds risk all the same.
+   */
+  test("knows whether Entity Risk lists anyone: by its count, or by a row sent", () => {
+    expect(hasRiskyEntities(RISKIEST)).toBe(true);
+    expect(
+      hasRiskyEntities({
+        threshold: 100,
+        total: 1,
+        entities: [
+          { value: "web-03", type: SecurityEntityType.Host, score: 10 },
+        ],
+      }),
+    ).toBe(true);
+    // A count past the rows sent (the card's eight) still counts.
+    expect(hasRiskyEntities({ threshold: 100, total: 3, entities: [] })).toBe(
+      true,
+    );
+    // A row sent with a count read before it was written still counts.
+    expect(
+      hasRiskyEntities({
+        threshold: 100,
+        total: 0,
+        entities: [{ value: "fin-ws-112", type: null, score: 25 }],
+      }),
+    ).toBe(true);
+
+    expect(hasRiskyEntities({ threshold: 100, total: 0, entities: [] })).toBe(
+      false,
+    );
+    // Risk that could not be read is not risk: the card alone would say it failed.
+    expect(hasRiskyEntities(null)).toBe(false);
+    expect(hasRiskyEntities(undefined)).toBe(false);
   });
 });
 

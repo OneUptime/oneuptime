@@ -7,6 +7,7 @@ import SecurityCaseApi, {
 import { SecurityOverviewValue } from "../../Components/SecurityCase/SecurityCaseApiTypes";
 import { ATTACK_COVERAGE_QUERY_KEYS } from "../../Components/SecurityEvents/AttackCoverageCopy";
 import { RISKIEST_ENTITIES_DESCRIPTION } from "../../Components/SecurityEvents/EntityRisk/EntityRiskCopy";
+import { hasRiskyEntities } from "../../Components/SecurityEvents/EntityRisk/RiskiestEntitiesModel";
 import RankedBars, {
   RankedBarItem,
 } from "../../Components/SecurityOverview/RankedBars";
@@ -236,11 +237,16 @@ const SecurityOverviewPage: FunctionComponent<
   }
 
   const metrics: SecurityOverview["metrics"] = overview.metrics;
-  // Nothing to chart yet: no case open, opened or detected in the windows.
+  /*
+   * Nothing to chart yet: no case open, opened or detected in the windows,
+   * and nobody on Entity Risk's list - a rule that opens no case of its own
+   * still adds risk, and Riskiest Entities is the top of that list.
+   */
   const isEmpty: boolean =
     metrics.openCases === 0 &&
     metrics.casesOpenedInWindow === 0 &&
-    metrics.detectionsInWindow === 0;
+    metrics.detectionsInWindow === 0 &&
+    !hasRiskyEntities(overview.riskiestEntities);
   /*
    * The queue as the card's band and its cases cell read it. Critical and
    * high are counted by the project's priorities: at or above its critical

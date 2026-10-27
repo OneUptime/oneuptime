@@ -1838,6 +1838,85 @@ describe("the rows of cards under the figures", () => {
       expect(screen.queryByTestId(testId)).toBeNull();
     }
   });
+
+  /*
+   * A rule that opens no case of its own still adds risk: a month with no
+   * case and no detection can have entities on Entity Risk's list. The
+   * Overview's Riskiest Entities is the top of that list, so it shows them
+   * rather than hide who Entity Risk says is riskiest.
+   */
+  test("a month with no case and no detection, but entities with risk, draws the rows: Riskiest Entities ranks them", async () => {
+    answerStatus(status({ ...SET_UP }));
+    answerOverview(
+      overview(
+        {},
+        {
+          riskiestEntities: {
+            threshold: 100,
+            total: 2,
+            entities: [
+              {
+                value: "fin-ws-112",
+                type: SecurityEntityType.Host,
+                score: 75,
+              },
+              {
+                value: "j.wilson@acme-commerce.example",
+                type: SecurityEntityType.User,
+                score: 25,
+              },
+            ],
+          },
+        },
+      ),
+    );
+    await renderPage();
+
+    for (const [testId, , , titles] of ROWS) {
+      expect([testId, cardTitlesOf(screen.getByTestId(testId))]).toEqual([
+        testId,
+        titles,
+      ]);
+    }
+
+    const list: HTMLElement = screen.getByTestId(
+      RISKIEST_ENTITIES_TEST_IDS.list,
+    );
+
+    expect(
+      within(list)
+        .getAllByRole("link")
+        .map((link: HTMLElement): string => {
+          return link.getAttribute("href") || "";
+        }),
+    ).toEqual([
+      getEntityRiskRoute("fin-ws-112", SecurityEntityType.Host).toString(),
+      getEntityRiskRoute(
+        "j.wilson@acme-commerce.example",
+        SecurityEntityType.User,
+      ).toString(),
+    ]);
+    // The rest of the month says it had nothing, card by card.
+    expect(
+      screen.getByText("Nothing was detected in the last 14 days."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "No case in the last 30 days is mapped to an ATT&CK tactic.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("risk that could not be read in an otherwise empty month draws no rows: a card that only says it failed is not worth the room", async () => {
+    answerStatus(status({ ...SET_UP }));
+    answerOverview(overview({}, { riskiestEntities: null }));
+    await renderPage();
+
+    for (const [testId] of ROWS) {
+      expect(screen.queryByTestId(testId)).toBeNull();
+    }
+    expect(screen.queryByTestId(RISKIEST_ENTITIES_TEST_IDS.error)).toBeNull();
+  });
 });
 
 /*

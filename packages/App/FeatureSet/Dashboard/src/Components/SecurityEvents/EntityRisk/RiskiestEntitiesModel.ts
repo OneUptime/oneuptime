@@ -65,3 +65,19 @@ export function getMoreRiskyEntityCount(
 ): number {
   return Math.max(0, riskiest.total - riskiest.entities.length);
 }
+
+/*
+ * Whether Entity Risk lists anyone now: then the Overview has something to
+ * show, even in a month with no case and no detection - a rule that opens
+ * no case of its own still adds risk, and a list that names nobody while
+ * Entity Risk names someone would be a second riskiest list again. Risk
+ * that could not be read (null) is not risk: an otherwise empty Overview
+ * stays empty rather than show a card that only says it failed.
+ */
+export function hasRiskyEntities(
+  riskiest: SecurityRiskiestEntities | null | undefined,
+): boolean {
+  return Boolean(
+    riskiest && (riskiest.total > 0 || riskiest.entities.length > 0),
+  );
+}
