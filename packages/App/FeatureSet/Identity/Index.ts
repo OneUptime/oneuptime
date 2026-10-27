@@ -1,4 +1,5 @@
 import AuthenticationAPI from "./API/Authentication";
+import FirstAccountAPI from "./API/FirstAccount";
 import ResellerAPI from "./API/Reseller";
 import MicrosoftSignInAPI from "./API/MicrosoftSignIn";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
@@ -18,6 +19,9 @@ const IdentityFeatureSet: FeatureSet = {
     const APP_NAME: string = "api/identity";
 
     app.use([`/${APP_NAME}`, "/"], AuthenticationAPI);
+
+    // Whether a self-hosted server is waiting for its first account.
+    app.use([`/${APP_NAME}`, "/"], FirstAccountAPI);
 
     app.use([`/${APP_NAME}`, "/"], ResellerAPI);
 

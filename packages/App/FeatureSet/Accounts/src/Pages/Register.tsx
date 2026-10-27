@@ -1,4 +1,5 @@
 import { SIGNUP_API_URL } from "../Utils/ApiPaths";
+import { fetchIsAwaitingFirstAccount } from "../Utils/FirstAccount";
 import PasswordRequirements from "../Components/PasswordRequirements/PasswordRequirements";
 import VerifyEmailPending from "../Components/VerifyEmailPending/VerifyEmailPending";
 import Route from "Common/Types/API/Route";
@@ -96,6 +97,37 @@ const RegisterPage: () => JSX.Element = () => {
   const [reseller, setResller] = React.useState<Reseller | undefined>(
     undefined,
   );
+
+  /*
+   * A self-hosted server that has no account yet: the account this page
+   * creates becomes its admin, and the page says so. OneUptime Cloud never
+   * asks. Until the answer lands the page reads as a self-hosted server's
+   * usual register page, so nothing jumps for an answer of no.
+   */
+  const [isAwaitingFirstAccount, setIsAwaitingFirstAccount] =
+    React.useState<boolean>(false);
+
+  React.useEffect(() => {
+    if (BILLING_ENABLED) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    fetchIsAwaitingFirstAccount()
+      .then((awaiting: boolean) => {
+        if (isCurrent) {
+          setIsAwaitingFirstAccount(awaiting);
+        }
+      })
+      .catch(() => {
+        // The helper answers no rather than throwing; nothing to do here.
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   /*
    * Set when the address already had an unclaimed invitation behind it and this
@@ -506,8 +538,20 @@ const RegisterPage: () => JSX.Element = () => {
         <h1 className="mt-5 text-center text-2xl font-semibold tracking-tight text-gray-900 sm:mt-6 sm:text-3xl">
           {t("register.title")}
         </h1>
-        <p className="mx-auto mt-3 max-w-md text-center text-sm leading-6 text-gray-600">
-          {t("register.subtitle")}
+        {/*
+         * OneUptime Cloud's line asks people to join; a self-hosted server's
+         * says whose server it is, and - while it has no account yet - that
+         * the first one becomes its admin.
+         */}
+        <p
+          className="mx-auto mt-3 max-w-md text-balance text-center text-sm leading-6 text-gray-600"
+          data-testid="register-subtitle"
+        >
+          {BILLING_ENABLED
+            ? t("register.subtitle")
+            : isAwaitingFirstAccount
+              ? t("register.firstAccountSubtitle")
+              : t("register.selfHostedSubtitle")}
         </p>
       </div>
 
@@ -753,21 +797,37 @@ const RegisterPage: () => JSX.Element = () => {
           ) : (
             <></>
           )}
-          <p className="mt-4 text-center text-xs leading-5 text-gray-500">
-            {t("register.noCreditCard")}
-          </p>
-        </div>
-        <div className="mt-4 sm:mt-5 text-center text-gray-500">
-          <p className="text-sm text-gray-600">
-            {t("register.haveAccountPrompt")}{" "}
-            <Link
-              to={new Route("/accounts/login")}
-              className="font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer"
+          {/* Only OneUptime Cloud takes payment: a self-hosted server never asks for a card. */}
+          {BILLING_ENABLED ? (
+            <p
+              className="mt-4 text-center text-xs leading-5 text-gray-500"
+              data-testid="register-no-credit-card"
             >
-              {t("register.loginLink")}
-            </Link>
-          </p>
+              {t("register.noCreditCard")}
+            </p>
+          ) : (
+            <></>
+          )}
         </div>
+        {/* A server with no account yet has nobody to sign in as. */}
+        {isAwaitingFirstAccount ? (
+          <></>
+        ) : (
+          <div
+            className="mt-4 sm:mt-5 text-center text-gray-500"
+            data-testid="register-have-account"
+          >
+            <p className="text-sm text-gray-600">
+              {t("register.haveAccountPrompt")}{" "}
+              <Link
+                to={new Route("/accounts/login")}
+                className="font-medium text-indigo-600 hover:text-indigo-800 cursor-pointer"
+              >
+                {t("register.loginLink")}
+              </Link>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

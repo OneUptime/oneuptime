@@ -65,6 +65,9 @@ jest.mock("Common/Server/EnvironmentConfig", () => {
 jest.mock("../../../FeatureSet/Identity/API/Authentication", () => {
   return { __esModule: true, default: { coreRouter: "authentication" } };
 });
+jest.mock("../../../FeatureSet/Identity/API/FirstAccount", () => {
+  return { __esModule: true, default: { coreRouter: "first-account" } };
+});
 jest.mock("../../../FeatureSet/Identity/API/Reseller", () => {
   return { __esModule: true, default: { coreRouter: "reseller" } };
 });
@@ -363,6 +366,7 @@ describe("SSO enforcement and the SSO login routes: on together, in every state"
       }),
     ).toEqual([
       { coreRouter: "authentication" },
+      { coreRouter: "first-account" },
       { coreRouter: "reseller" },
       { coreRouter: "microsoft-sign-in" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {
@@ -389,6 +393,7 @@ describe("SSO enforcement and the SSO login routes: on together, in every state"
       }),
     ).toEqual([
       { coreRouter: "authentication" },
+      { coreRouter: "first-account" },
       { coreRouter: "reseller" },
       { coreRouter: "microsoft-sign-in" },
       ...SSO_ROUTERS.map((entry: SsoRouterEntry): ExpressRouter => {

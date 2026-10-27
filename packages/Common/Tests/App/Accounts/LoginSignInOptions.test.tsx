@@ -830,13 +830,19 @@ describe("The other ways to sign in", () => {
       expect(microsoftOption()).toHaveAccessibleName("Sign up with Microsoft");
       expect(microsoftOption()).toHaveAttribute("href", MICROSOFT_ROUTE);
       expect(microsoftOption()).toHaveClass(...optionClasses("ready"));
-      // "No credit card required." stays under it.
+      /*
+       * The way back to sign in stays under it. A self-hosted server (as
+       * here) never asks for a card, so "No credit card required." is gone.
+       */
       expect(
         comesAfter(
-          screen.getByText(english.register.noCreditCard),
+          screen.getByTestId("register-have-account"),
           microsoftOption(),
         ),
       ).toBe(true);
+      expect(
+        screen.queryByText(english.register.noCreditCard),
+      ).not.toBeInTheDocument();
     });
   });
 

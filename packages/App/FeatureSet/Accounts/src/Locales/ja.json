@@ -105,6 +105,8 @@
   "register": {
     "title": "OneUptimeアカウントを作成する",
     "subtitle": "OneUptimeを使って常時オンラインを維持している何千ものビジネスに参加しましょう。",
+    "selfHostedSubtitle": "このOneUptimeサーバーでアカウントを作成します。",
+    "firstAccountSubtitle": "このOneUptimeサーバーにはまだアカウントがありません。最初に作成したアカウントがこのサーバーの管理者になります。",
     "noCreditCard": "クレジットカードは不要です。",
     "submitButton": "サインアップ",
     "haveAccountPrompt": "すでにアカウントをお持ちですか？",

@@ -105,6 +105,8 @@
   "register": {
     "title": "创建您的 OneUptime 账户",
     "subtitle": "加入数千家使用 OneUptime 保持随时在线的企业。",
+    "selfHostedSubtitle": "在此 OneUptime 服务器上创建您的账户。",
+    "firstAccountSubtitle": "此 OneUptime 服务器还没有任何账户。您创建的第一个账户将成为它的管理员。",
     "noCreditCard": "无需信用卡。",
     "submitButton": "注册",
     "haveAccountPrompt": "已经有账户？",

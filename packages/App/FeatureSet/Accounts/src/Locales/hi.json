@@ -105,6 +105,8 @@
   "register": {
     "title": "अपना OneUptime खाता बनाएं",
     "subtitle": "हजारों व्यवसायों से जुड़ें जो हमेशा ऑनलाइन रहने के लिए OneUptime का उपयोग करते हैं।",
+    "selfHostedSubtitle": "इस OneUptime सर्वर पर अपना खाता बनाएँ।",
+    "firstAccountSubtitle": "इस OneUptime सर्वर पर अभी कोई खाता नहीं है। आप जो पहला खाता बनाएँगे, वही इसका एडमिन होगा।",
     "noCreditCard": "क्रेडिट कार्ड की आवश्यकता नहीं।",
     "submitButton": "साइन अप करें",
     "haveAccountPrompt": "क्या आपके पास पहले से ही खाता है?",

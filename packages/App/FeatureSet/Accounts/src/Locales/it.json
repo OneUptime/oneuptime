@@ -105,6 +105,8 @@
   "register": {
     "title": "Crea il tuo account OneUptime",
     "subtitle": "Unisciti a migliaia di aziende che usano OneUptime per rimanere sempre online.",
+    "selfHostedSubtitle": "Crea il tuo account su questo server OneUptime.",
+    "firstAccountSubtitle": "Questo server OneUptime non ha ancora account. Il primo che crei ne diventa l'amministratore.",
     "noCreditCard": "Nessuna carta di credito richiesta.",
     "submitButton": "Registrati",
     "haveAccountPrompt": "Hai già un account?",

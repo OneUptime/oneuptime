@@ -105,6 +105,8 @@
   "register": {
     "title": "OneUptime 계정 만들기",
     "subtitle": "OneUptime을 사용하여 항상 온라인 상태를 유지하는 수천 개의 비즈니스에 참여하세요.",
+    "selfHostedSubtitle": "이 OneUptime 서버에서 계정을 만드세요.",
+    "firstAccountSubtitle": "이 OneUptime 서버에는 아직 계정이 없습니다. 처음 만드는 계정이 이 서버의 관리자가 됩니다.",
     "noCreditCard": "신용카드가 필요하지 않습니다.",
     "submitButton": "가입하기",
     "haveAccountPrompt": "이미 계정이 있으신가요?",

@@ -105,6 +105,8 @@
   "register": {
     "title": "Skapa ditt OneUptime-konto",
     "subtitle": "Gå med i tusentals företag som använder OneUptime för att hålla dem online hela tiden.",
+    "selfHostedSubtitle": "Skapa ditt konto på den här OneUptime-servern.",
+    "firstAccountSubtitle": "Den här OneUptime-servern har inga konton ännu. Det första du skapar blir dess administratör.",
     "noCreditCard": "Inget kreditkort krävs.",
     "submitButton": "Registrera dig",
     "haveAccountPrompt": "Har du redan ett konto?",

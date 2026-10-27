@@ -105,6 +105,8 @@
   "register": {
     "title": "Erstellen Sie Ihr OneUptime-Konto",
     "subtitle": "Schließen Sie sich Tausenden von Unternehmen an, die OneUptime nutzen, um stets online zu bleiben.",
+    "selfHostedSubtitle": "Erstellen Sie Ihr Konto auf diesem OneUptime-Server.",
+    "firstAccountSubtitle": "Dieser OneUptime-Server hat noch keine Konten. Das erste Konto, das Sie erstellen, wird sein Administrator.",
     "noCreditCard": "Keine Kreditkarte erforderlich.",
     "submitButton": "Registrieren",
     "haveAccountPrompt": "Sie haben bereits ein Konto?",

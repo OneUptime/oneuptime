@@ -105,6 +105,8 @@
   "register": {
     "title": "Opprett OneUptime-kontoen din",
     "subtitle": "Bli med tusenvis av bedrifter som bruker OneUptime for å holde dem online hele tiden.",
+    "selfHostedSubtitle": "Opprett kontoen din på denne OneUptime-serveren.",
+    "firstAccountSubtitle": "Denne OneUptime-serveren har ingen kontoer ennå. Den første du oppretter, blir administratoren.",
     "noCreditCard": "Ingen kredittkort nødvendig.",
     "submitButton": "Registrer deg",
     "haveAccountPrompt": "Har du allerede en konto?",

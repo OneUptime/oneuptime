@@ -105,6 +105,8 @@
   "register": {
     "title": "Maak uw OneUptime-account aan",
     "subtitle": "Sluit u aan bij duizenden bedrijven die OneUptime gebruiken om de hele tijd online te blijven.",
+    "selfHostedSubtitle": "Maak uw account aan op deze OneUptime-server.",
+    "firstAccountSubtitle": "Deze OneUptime-server heeft nog geen accounts. Het eerste account dat u aanmaakt, wordt de beheerder.",
     "noCreditCard": "Geen creditcard vereist.",
     "submitButton": "Aanmelden",
     "haveAccountPrompt": "Hebt u al een account?",
