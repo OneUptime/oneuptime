@@ -12,6 +12,7 @@ import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import { OnDelete, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
+import PermissionRowsOfDeletedLabels from "../../../Server/Utils/Permission/PermissionRowsOfDeletedLabels";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import MonitorType from "../../../Types/Monitor/MonitorType";
@@ -271,8 +272,22 @@ describe("LabelService - a deleted label takes its SLO monitor rule references w
   let sloRuleFindBySpy: jest.SpyInstance;
   let statusPageRuleFindBySpy: jest.SpyInstance;
   let labelFindBySpy: jest.SpyInstance;
+  let permissionCleanupSpy: jest.SpyInstance;
 
   beforeEach(() => {
+    /*
+     * Before the rules, the hook removes the permissions limited to the
+     * deleted labels alone (PermissionRowsOfDeletedLabels, pinned in its own
+     * suite). None are limited to this one: the rules are what is asked here.
+     */
+    permissionCleanupSpy = jest
+      .spyOn(PermissionRowsOfDeletedLabels, "removeRowsLimitedOnlyTo")
+      .mockResolvedValue({
+        teamPermissions: [],
+        apiKeyPermissions: [],
+        customRolePermissions: [],
+      });
+
     syncMonitorsForSloSpy = jest
       .spyOn(
         ServiceLevelObjectiveMonitorRuleEngineService,
@@ -352,6 +367,11 @@ describe("LabelService - a deleted label takes its SLO monitor rule references w
         return id.toString();
       }),
     ).toEqual([SLO_ID.toString(), OTHER_SLO_ID.toString()]);
+
+    // The permissions were asked about the same labels.
+    expect(permissionCleanupSpy).toHaveBeenCalledWith({
+      labelIds: [LABEL_ID],
+    });
   });
 
   it("does not go looking for rules when the delete matched no labels", async () => {
@@ -360,6 +380,7 @@ describe("LabelService - a deleted label takes its SLO monitor rule references w
     await callHook(LabelService, "onBeforeDelete", deleteBy());
 
     expect(sloRuleFindBySpy).not.toHaveBeenCalled();
+    expect(permissionCleanupSpy).not.toHaveBeenCalled();
   });
 
   it("still collects the status page rules when the SLO rule lookup fails", async () => {
