@@ -21,8 +21,10 @@ import Icon from "../Icon/Icon";
 import ConfirmModal from "../Modal/ConfirmModal";
 import Modal from "../Modal/Modal";
 import Dropdown, { DropdownOption, DropdownValue } from "../Dropdown/Dropdown";
-import { ButtonStyleType } from "../Button/Button";
+import { BUTTON_DISABLED_CURSOR_CLASS_NAME, ButtonStyleType } from "../Button/Button";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
+import Tooltip from "../Tooltip/Tooltip";
+import { PermissionGateResult } from "../../Utils/PermissionGate";
 
 export interface MemberRole {
   id: ObjectID;
@@ -72,7 +74,114 @@ export interface ComponentProps {
   className?: string;
   // Handed to the Card; "stacked" suits a narrow column.
   headerLayout?: CardHeaderLayout | undefined;
+  /*
+   * Whether the reader may give a role and take one off: PermissionGate's
+   * answer for the record's member table - a create to give one, a delete
+   * to take one off (Reassign does both). Refused with a reason, the
+   * buttons that would do it are drawn locked, saying why ("You do not
+   * have permission to change this incident's roles.", then the
+   * permissions that would allow it), as a record's header draws its
+   * locked state buttons; refused before the permissions are read, they
+   * are left out, as the header's Assign is. Left out, every button is
+   * offered and the server decides.
+   */
+  assignGate?: PermissionGateResult | undefined;
+  unassignGate?: PermissionGateResult | undefined;
 }
+
+/*
+ * What a role button does for a reader who may or may not press it: offered
+ * as it is, locked with the reason, or left out while nothing honest can be
+ * said yet (the permissions not read).
+ */
+export enum MemberRoleButtonAccess {
+  Offered = "offered",
+  Locked = "locked",
+  Hidden = "hidden",
+}
+
+export interface MemberRoleButtonState {
+  access: MemberRoleButtonAccess;
+  reason?: string | undefined;
+}
+
+/*
+ * The state of a button that needs every one of `gates` - Reassign needs to
+ * take the role off one person and give it to another. The first refusal
+ * with a reason says why; any refusal without one leaves the button out.
+ */
+export const getMemberRoleButtonState: (
+  gates: Array<PermissionGateResult | undefined>,
+) => MemberRoleButtonState = (
+  gates: Array<PermissionGateResult | undefined>,
+): MemberRoleButtonState => {
+  const refused: Array<PermissionGateResult> = gates.filter(
+    (gate: PermissionGateResult | undefined): gate is PermissionGateResult => {
+      return Boolean(gate) && !gate!.isAllowed;
+    },
+  );
+
+  if (refused.length === 0) {
+    return { access: MemberRoleButtonAccess.Offered };
+  }
+
+  const withReason: PermissionGateResult | undefined = refused.find(
+    (gate: PermissionGateResult): boolean => {
+      return Boolean(gate.disabledReason);
+    },
+  );
+
+  if (
+    !withReason ||
+    refused.some((gate: PermissionGateResult): boolean => {
+      return !gate.disabledReason;
+    })
+  ) {
+    return { access: MemberRoleButtonAccess.Hidden };
+  }
+
+  return {
+    access: MemberRoleButtonAccess.Locked,
+    reason: withReason.disabledReason,
+  };
+};
+
+/*
+ * A locked role button: faded, the not-allowed cursor, never pressed, and
+ * its reason in a tooltip. A disabled <button> takes no pointer and no
+ * focus, so the tooltip hangs on a wrapper that does (the shared Button
+ * does the same), and the reason is the button's description for a screen
+ * reader too.
+ */
+export const MEMBER_ROLE_LOCKED_BUTTON_CLASS_NAME: string =
+  "pointer-events-none opacity-50";
+
+const LockedRoleButton: FunctionComponent<{
+  reason: string;
+  className?: string | undefined;
+  dataTestId: string;
+  children: ReactElement;
+}> = (props: {
+  reason: string;
+  className?: string | undefined;
+  dataTestId: string;
+  children: ReactElement;
+}): ReactElement => {
+  return (
+    <Tooltip text={props.reason}>
+      <span
+        className={`inline-flex flex-shrink-0 ${BUTTON_DISABLED_CURSOR_CLASS_NAME}${
+          props.className ? ` ${props.className}` : ""
+        }`}
+        tabIndex={0}
+        aria-label={props.reason}
+        data-testid={props.dataTestId}
+      >
+        {props.children}
+      </span>
+    </Tooltip>
+  );
+};
 
 interface ReassignState {
   member: AssignedMember;
@@ -238,15 +347,29 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
           .filter((user: AvailableUser) => {
             return !assignedUserIds.has(user.id.toString());
           })
-          .map((user: AvailableUser) => {
+          .map((user: AvailableUser): DropdownOption => {
             return {
               value: user.id.toString(),
               label: user.name || user.email,
+              // A person's name, drawn as written - never looked up.
+              isUserContent: true,
             };
           });
       },
       [props.availableUsers, getMembersForRole],
     );
+
+  // Giving a role, taking one off, and Reassign's both.
+  const assignButtonState: MemberRoleButtonState = getMemberRoleButtonState([
+    props.assignGate,
+  ]);
+  const unassignButtonState: MemberRoleButtonState = getMemberRoleButtonState([
+    props.unassignGate,
+  ]);
+  const reassignButtonState: MemberRoleButtonState = getMemberRoleButtonState([
+    props.unassignGate,
+    props.assignGate,
+  ]);
 
   const cardTitle: string = props.title || "Team Members";
   const cardDescription: string =
@@ -339,21 +462,69 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
           </div>
         </div>
         {isPrimaryRole ? (
-          <button
-            type="button"
-            onClick={() => {
-              setReassignState({ member, role });
-            }}
-            className="ml-9 inline-flex flex-shrink-0 items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md transition-colors"
-            title={translator.translateText("Reassign")}
-            aria-label={translator.translateTemplate(
-              "Reassign {{role}} from {{member}}",
-              { role: role.name, member: memberLabel },
-            )}
+          reassignButtonState.access ===
+          MemberRoleButtonAccess.Hidden ? null : reassignButtonState.access ===
+            MemberRoleButtonAccess.Locked ? (
+            <LockedRoleButton
+              reason={reassignButtonState.reason!}
+              className="ml-9"
+              dataTestId="member-role-reassign-locked"
+            >
+              <button
+                type="button"
+                disabled={true}
+                aria-disabled={true}
+                className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 rounded-md ${MEMBER_ROLE_LOCKED_BUTTON_CLASS_NAME}`}
+                aria-label={translator.translateTemplate(
+                  "Reassign {{role}} from {{member}}",
+                  { role: role.name, member: memberLabel },
+                )}
+              >
+                <Icon
+                  icon={IconProp.ArrowCircleRight}
+                  className="w-3.5 h-3.5"
+                />
+                {translator.translateText("Reassign")}
+              </button>
+            </LockedRoleButton>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setReassignState({ member, role });
+              }}
+              className="ml-9 inline-flex flex-shrink-0 items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-md transition-colors"
+              title={translator.translateText("Reassign")}
+              aria-label={translator.translateTemplate(
+                "Reassign {{role}} from {{member}}",
+                { role: role.name, member: memberLabel },
+              )}
+            >
+              <Icon icon={IconProp.ArrowCircleRight} className="w-3.5 h-3.5" />
+              {translator.translateText("Reassign")}
+            </button>
+          )
+        ) : unassignButtonState.access ===
+          MemberRoleButtonAccess.Hidden ? null : unassignButtonState.access ===
+          MemberRoleButtonAccess.Locked ? (
+          <LockedRoleButton
+            reason={unassignButtonState.reason!}
+            className="ml-auto"
+            dataTestId="member-role-remove-locked"
           >
-            <Icon icon={IconProp.ArrowCircleRight} className="w-3.5 h-3.5" />
-            {translator.translateText("Reassign")}
-          </button>
+            <button
+              type="button"
+              disabled={true}
+              aria-disabled={true}
+              className={`inline-flex items-center p-1.5 text-gray-400 rounded-md ${MEMBER_ROLE_LOCKED_BUTTON_CLASS_NAME}`}
+              aria-label={translator.translateTemplate(
+                "Remove {{member}} from {{role}}",
+                { member: memberLabel, role: role.name },
+              )}
+            >
+              <Icon icon={IconProp.Close} className="w-4 h-4" />
+            </button>
+          </LockedRoleButton>
         ) : (
           <button
             type="button"
@@ -507,21 +678,52 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                         </div>
                       </div>
 
-                      {/* Add Button */}
-                      {!isDropdownActive && canAddMore && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            openRolePicker(role.id);
-                          }}
-                          className="ml-12 inline-flex flex-shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shadow-sm text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400"
-                        >
-                          <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
-                          {translator.translateText(
-                            members.length === 0 ? "Assign" : "Add More",
-                          )}
-                        </button>
-                      )}
+                      {/*
+                       * Add Button: offered, locked with why, or left out
+                       * while the reader's permissions are not read yet.
+                       */}
+                      {!isDropdownActive &&
+                        canAddMore &&
+                        assignButtonState.access ===
+                          MemberRoleButtonAccess.Offered && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              openRolePicker(role.id);
+                            }}
+                            className="ml-12 inline-flex flex-shrink-0 items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all shadow-sm text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+                          >
+                            <Icon icon={IconProp.Add} className="w-3.5 h-3.5" />
+                            {translator.translateText(
+                              members.length === 0 ? "Assign" : "Add More",
+                            )}
+                          </button>
+                        )}
+                      {!isDropdownActive &&
+                        canAddMore &&
+                        assignButtonState.access ===
+                          MemberRoleButtonAccess.Locked && (
+                          <LockedRoleButton
+                            reason={assignButtonState.reason!}
+                            className="ml-12"
+                            dataTestId="member-role-assign-locked"
+                          >
+                            <button
+                              type="button"
+                              disabled={true}
+                              aria-disabled={true}
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md shadow-sm text-gray-700 bg-white border border-gray-300 ${MEMBER_ROLE_LOCKED_BUTTON_CLASS_NAME}`}
+                            >
+                              <Icon
+                                icon={IconProp.Add}
+                                className="w-3.5 h-3.5"
+                              />
+                              {translator.translateText(
+                                members.length === 0 ? "Assign" : "Add More",
+                              )}
+                            </button>
+                          </LockedRoleButton>
+                        )}
                     </div>
 
                     {/* Dropdown for adding member */}
@@ -709,20 +911,22 @@ const MemberRoleAssignment: FunctionComponent<ComponentProps> = (
                   user.id.toString() !== reassignState.member.userId.toString()
                 );
               })
-              .map((user: AvailableUser) => {
+              .map((user: AvailableUser): DropdownOption => {
                 return {
                   value: user.id.toString(),
                   label: user.name || user.email,
+                  isUserContent: true,
                 };
               })}
             placeholder="Select new user..."
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
               if (value && !Array.isArray(value)) {
                 const option: DropdownOption | undefined = props.availableUsers
-                  .map((user: AvailableUser) => {
+                  .map((user: AvailableUser): DropdownOption => {
                     return {
                       value: user.id.toString(),
                       label: user.name || user.email,
+                      isUserContent: true,
                     };
                   })
                   .find((opt: DropdownOption) => {

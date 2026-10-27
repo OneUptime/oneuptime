@@ -35966,5 +35966,12 @@
   "Edit Step {{number}}: {{title}}": "ステップ {{number}} を編集: {{title}}",
   "Labels to filter and report on cases by.": "ケースの絞り込みやレポートに使うラベル。",
   "Markdown. Leave it empty to send a summary of the case. These fill in from the case:": "Markdown。空のままにすると、ケースの概要を送ります。次の項目はケースの内容で埋まります:",
-  "What the case is about, in a line.": "ケースの内容を 1 行で。"
+  "What the case is about, in a line.": "ケースの内容を 1 行で。",
+  "You do not have permission to change the state of these alerts.": "選択したアラートの状態を変更する権限がありません。",
+  "You do not have permission to change the state of these episodes.": "選択したエピソードの状態を変更する権限がありません。",
+  "You do not have permission to change the state of these events.": "選択したイベントの状態を変更する権限がありません。",
+  "You do not have permission to change the state of these incidents.": "選択したインシデントの状態を変更する権限がありません。",
+  "You do not have permission to change this episode's roles.": "このエピソードのロールを変更する権限がありません。",
+  "You do not have permission to change this incident's roles.": "このインシデントのロールを変更する権限がありません。",
+  "You do not have permission to remove owners.": "所有者を削除する権限がありません。"
 }

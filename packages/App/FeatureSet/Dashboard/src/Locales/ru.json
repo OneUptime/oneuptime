@@ -35966,5 +35966,12 @@
   "Edit Step {{number}}: {{title}}": "Изменить шаг {{number}}: {{title}}",
   "Labels to filter and report on cases by.": "Метки для фильтрации кейсов и отчётов по ним.",
   "Markdown. Leave it empty to send a summary of the case. These fill in from the case:": "Markdown. Оставьте пустым, чтобы отправить сводку кейса. Эти значения подставляются из кейса:",
-  "What the case is about, in a line.": "О чём кейс, в одной строке."
+  "What the case is about, in a line.": "О чём кейс, в одной строке.",
+  "You do not have permission to change the state of these alerts.": "У вас нет прав на изменение состояния этих оповещений.",
+  "You do not have permission to change the state of these episodes.": "У вас нет прав на изменение состояния этих эпизодов.",
+  "You do not have permission to change the state of these events.": "У вас нет прав на изменение состояния этих событий.",
+  "You do not have permission to change the state of these incidents.": "У вас нет прав на изменение состояния этих инцидентов.",
+  "You do not have permission to change this episode's roles.": "У вас нет прав на изменение ролей этого эпизода.",
+  "You do not have permission to change this incident's roles.": "У вас нет прав на изменение ролей этого инцидента.",
+  "You do not have permission to remove owners.": "У вас нет прав на удаление владельцев."
 }

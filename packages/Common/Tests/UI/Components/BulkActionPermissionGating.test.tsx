@@ -267,7 +267,9 @@ describe("bulk action permission gating", () => {
 
     /*
      * Add and Remove are checked against different permissions on the junction
-     * table, so a grant that covers one need not cover the other.
+     * table, so a grant that covers one need not cover the other. Each says
+     * why in the words of what was pressed - not "create this Monitor User
+     * Owner" - then names the permissions that would allow it.
      */
     test("checks Add against create and Remove against delete", () => {
       permissionsForTest = [Permission.Viewer];
@@ -275,12 +277,59 @@ describe("bulk action permission gating", () => {
       const actions: Array<BulkActionButtonSchema<never>> = renderActions()
         .bulkActions as unknown as Array<BulkActionButtonSchema<never>>;
 
-      expect(findAction(actions, "Add Owner")?.tooltip).toContain(
-        "permission to create",
+      const addReason: string = findAction(actions, "Add Owner")?.tooltip || "";
+      const removeReason: string =
+        findAction(actions, "Remove Owner")?.tooltip || "";
+
+      expect(addReason).toContain("You do not have permission to add owners.");
+      expect(addReason).toContain("Create Monitor User Owner");
+      expect(addReason).not.toContain("Delete Monitor User Owner");
+      expect(removeReason).toContain(
+        "You do not have permission to remove owners.",
       );
-      expect(findAction(actions, "Remove Owner")?.tooltip).toContain(
-        "permission to delete",
+      expect(removeReason).toContain("Delete Monitor User Owner");
+      expect(removeReason).not.toContain("Create Monitor User Owner");
+
+      for (const reason of [addReason, removeReason]) {
+        expect(reason).not.toContain("this Monitor User Owner");
+      }
+    });
+
+    test("Assign to Me, in a row and in bulk, says the same as Add Owner", () => {
+      permissionsForTest = [Permission.Viewer];
+
+      const result: BulkOwnerActionsResult<Monitor> = renderHook(() => {
+        return useBulkOwnerActions<Monitor>({
+          ownerUserModelType: MonitorOwnerUser,
+          ownerTeamModelType: MonitorOwnerTeam,
+          resourceIdField: "monitorId",
+          offerAssignToMeInBulk: true,
+        });
+      }).result.current;
+
+      const bulkAssign: BulkActionButtonSchema<Monitor> | undefined =
+        result.bulkActions.find(
+          (action: BulkActionButtonSchema<Monitor>): boolean => {
+            return action.title === "Assign to Me";
+          },
+        );
+
+      expect(bulkAssign?.disabled).toBe(true);
+      expect(bulkAssign?.tooltip).toContain(
+        "You do not have permission to add owners.",
       );
+
+      for (const title of ["Assign to Me", "Add Owner"]) {
+        const rowAction: { disabled?: boolean; tooltip?: string } | undefined =
+          result.rowActions.find((action: { title: string }): boolean => {
+            return action.title === title;
+          });
+
+        expect([title, rowAction?.disabled]).toEqual([title, true]);
+        expect(rowAction?.tooltip).toContain(
+          "You do not have permission to add owners.",
+        );
+      }
     });
 
     test("leaves them working for someone who may manage owners", () => {

@@ -46,9 +46,12 @@ import MemberRoleAssignment, {
   AvailableUser,
   ComponentProps,
   MemberRole,
+  MemberRoleButtonAccess,
   canRoleTakeMorePeople,
+  getMemberRoleButtonState,
   getMemberRolePickerId,
 } from "../../../UI/Components/MemberRoleAssignment/MemberRoleAssignment";
+import { PermissionGateResult } from "../../../UI/Utils/PermissionGate";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -638,5 +641,292 @@ describe("canRoleTakeMorePeople", () => {
     expect(canRoleTakeMorePeople({ ...SCRIBE, isArchived: true }, 1)).toBe(
       false,
     );
+  });
+});
+
+/*
+ * WHO MAY GIVE A ROLE, OR TAKE ONE OFF.
+ *
+ * The header's Assign gives the commander only to a reader who may add a
+ * row of the record's members (#5262), but the roles card itself offered
+ * Assign, Add More, Reassign and Remove to everyone, and the server refused
+ * a reader without the permission (#5251's follow-up). The card now asks
+ * the gates it is handed: refused with a reason, a button is drawn locked,
+ * saying why; refused before the permissions are read, it is left out, as
+ * the header's Assign is; handed no gate, everything is offered as before.
+ */
+describe("who may give a role, or take one off", () => {
+  const ASSIGN_REFUSED: PermissionGateResult = {
+    isAllowed: false,
+    disabledReason:
+      "You do not have permission to change this incident's roles. You need one of these permissions: Create Incident Member.",
+  };
+
+  const UNASSIGN_REFUSED: PermissionGateResult = {
+    isAllowed: false,
+    disabledReason:
+      "You do not have permission to change this incident's roles. You need one of these permissions: Delete Incident Member.",
+  };
+
+  // Refused, with nothing honest to say yet: the permissions are not read.
+  const NOT_READ: PermissionGateResult = { isAllowed: false };
+
+  const ALLOWED: PermissionGateResult = { isAllowed: true };
+
+  test("handed no gates, every button is offered, as before", () => {
+    renderAssignment();
+
+    expect(
+      within(headerFor("Scribe")).getByRole("button", { name: "Assign" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Reassign Incident Commander from Maya Chen",
+      }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Remove Jordan Patel from Communications Lead",
+      }),
+    ).toBeEnabled();
+    expect(screen.queryByTestId("member-role-assign-locked")).toBeNull();
+  });
+
+  test("allowed both ways, every button is offered", () => {
+    renderAssignment({ assignGate: ALLOWED, unassignGate: ALLOWED });
+
+    expect(
+      within(headerFor("Scribe")).getByRole("button", { name: "Assign" }),
+    ).toBeEnabled();
+    expect(screen.queryByTestId("member-role-remove-locked")).toBeNull();
+    expect(screen.queryByTestId("member-role-reassign-locked")).toBeNull();
+  });
+
+  test("a reader who may not give a role finds Assign locked, saying why, and pressing it opens nothing", () => {
+    const onAssignMember: MockFunction = getJestMockFunction();
+
+    renderAssignment({
+      assignGate: ASSIGN_REFUSED,
+      unassignGate: ALLOWED,
+      onAssignMember: onAssignMember as unknown as (
+        userId: ObjectID,
+        roleId: ObjectID,
+      ) => Promise<void>,
+    });
+
+    const locked: HTMLElement = within(headerFor("Scribe")).getByTestId(
+      "member-role-assign-locked",
+    );
+    const button: HTMLElement = within(locked).getByRole("button", {
+      name: "Assign",
+    });
+
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    expect(button).toHaveClass("pointer-events-none", "opacity-50");
+    // The reason is what the wrapper says, to the pointer and to a screen reader.
+    expect(locked).toHaveAttribute(
+      "aria-label",
+      ASSIGN_REFUSED.disabledReason!,
+    );
+    expect(locked).toHaveAttribute("tabindex", "0");
+    expect(locked).toHaveClass("cursor-not-allowed", "ml-12");
+
+    fireEvent.click(button);
+    fireEvent.click(locked);
+
+    expect(screen.queryByRole("button", { name: "Save" })).toBeNull();
+    expect(onAssignMember).not.toHaveBeenCalled();
+  });
+
+  test("Add More is locked the same way on a role that takes several people", () => {
+    renderAssignment({
+      assignedMembers: [
+        MAYA,
+        JORDAN,
+        {
+          ...JORDAN,
+          id: new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3"),
+          memberId: new ObjectID("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb3"),
+          roleId: SCRIBE.id,
+          roleName: SCRIBE.name,
+          roleColor: SCRIBE.color,
+        },
+      ],
+      assignGate: ASSIGN_REFUSED,
+      unassignGate: ALLOWED,
+    });
+
+    const locked: HTMLElement = within(headerFor("Scribe")).getByTestId(
+      "member-role-assign-locked",
+    );
+
+    expect(
+      within(locked).getByRole("button", { name: "Add More" }),
+    ).toBeDisabled();
+  });
+
+  test("Reassign needs both: locked when the reader may not give the role", () => {
+    renderAssignment({ assignGate: ASSIGN_REFUSED, unassignGate: ALLOWED });
+
+    const locked: HTMLElement = screen.getByTestId(
+      "member-role-reassign-locked",
+    );
+
+    expect(
+      within(locked).getByRole("button", {
+        name: "Reassign Incident Commander from Maya Chen",
+      }),
+    ).toBeDisabled();
+    expect(locked).toHaveAttribute(
+      "aria-label",
+      ASSIGN_REFUSED.disabledReason!,
+    );
+
+    // Taking a role off is still open to them.
+    expect(
+      screen.getByRole("button", {
+        name: "Remove Jordan Patel from Communications Lead",
+      }),
+    ).toBeEnabled();
+  });
+
+  test("a reader who may not take a role off finds Remove and Reassign locked, saying why", () => {
+    const onUnassignMember: MockFunction = getJestMockFunction();
+
+    renderAssignment({
+      assignGate: ALLOWED,
+      unassignGate: UNASSIGN_REFUSED,
+      onUnassignMember: onUnassignMember as unknown as (
+        memberId: ObjectID,
+      ) => Promise<void>,
+    });
+
+    const remove: HTMLElement = within(rowFor("Jordan Patel")).getByTestId(
+      "member-role-remove-locked",
+    );
+    const removeButton: HTMLElement = within(remove).getByRole("button", {
+      name: "Remove Jordan Patel from Communications Lead",
+    });
+
+    expect(removeButton).toBeDisabled();
+    expect(remove).toHaveAttribute(
+      "aria-label",
+      UNASSIGN_REFUSED.disabledReason!,
+    );
+    expect(remove).toHaveClass("ml-auto");
+
+    fireEvent.click(removeButton);
+
+    expect(
+      screen.queryByText(
+        "Are you sure you want to remove Jordan Patel from the Communications Lead role?",
+      ),
+    ).toBeNull();
+    expect(onUnassignMember).not.toHaveBeenCalled();
+
+    expect(screen.getByTestId("member-role-reassign-locked")).toHaveAttribute(
+      "aria-label",
+      UNASSIGN_REFUSED.disabledReason!,
+    );
+
+    // Giving a role is still open to them.
+    expect(
+      within(headerFor("Scribe")).getByRole("button", { name: "Assign" }),
+    ).toBeEnabled();
+  });
+
+  test("before the permissions are read, the buttons that need them are left out, not locked", () => {
+    renderAssignment({ assignGate: NOT_READ, unassignGate: NOT_READ });
+
+    expect(within(headerFor("Scribe")).queryByRole("button")).toBeNull();
+    expect(screen.queryByTestId("member-role-assign-locked")).toBeNull();
+    expect(
+      screen.queryByRole("button", {
+        name: "Reassign Incident Commander from Maya Chen",
+      }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", {
+        name: "Remove Jordan Patel from Communications Lead",
+      }),
+    ).toBeNull();
+    // The people who hold the roles are still named.
+    expect(rowFor("Maya Chen")).toBeVisible();
+  });
+
+  test("a person's name in the picker is drawn as written, never looked up as a label", () => {
+    renderAssignment();
+
+    fireEvent.click(
+      within(headerFor("Scribe")).getByRole("button", { name: "Assign" }),
+    );
+
+    const picker: HTMLElement = document.getElementById(
+      getMemberRolePickerId(SCRIBE.id),
+    )!;
+
+    fireEvent.keyDown(within(picker).getByRole("combobox"), {
+      key: "ArrowDown",
+      code: "ArrowDown",
+    });
+
+    const names: Array<HTMLElement> = screen.getAllByTestId(
+      "dropdown-option-label",
+    );
+
+    expect(
+      names.map((name: HTMLElement): string => {
+        return name.textContent || "";
+      }),
+    ).toEqual(["Maya Chen", "Jordan Patel", "Sam Rivera"]);
+    // A name reads the way most of its letters do.
+    for (const name of names) {
+      expect(name).toHaveAttribute("dir", "ltr");
+    }
+  });
+});
+
+describe("getMemberRoleButtonState", () => {
+  test("no gate, or every gate open: offered", () => {
+    expect(getMemberRoleButtonState([])).toEqual({
+      access: MemberRoleButtonAccess.Offered,
+    });
+    expect(getMemberRoleButtonState([undefined])).toEqual({
+      access: MemberRoleButtonAccess.Offered,
+    });
+    expect(
+      getMemberRoleButtonState([{ isAllowed: true }, { isAllowed: true }]),
+    ).toEqual({ access: MemberRoleButtonAccess.Offered });
+  });
+
+  test("a gate refused with a reason: locked, with that reason", () => {
+    expect(
+      getMemberRoleButtonState([
+        { isAllowed: true },
+        { isAllowed: false, disabledReason: "Why." },
+      ]),
+    ).toEqual({ access: MemberRoleButtonAccess.Locked, reason: "Why." });
+  });
+
+  test("two refused with reasons: the first one says why", () => {
+    expect(
+      getMemberRoleButtonState([
+        { isAllowed: false, disabledReason: "First." },
+        { isAllowed: false, disabledReason: "Second." },
+      ]),
+    ).toEqual({ access: MemberRoleButtonAccess.Locked, reason: "First." });
+  });
+
+  test("any refusal with nothing to say yet: left out", () => {
+    expect(getMemberRoleButtonState([{ isAllowed: false }])).toEqual({
+      access: MemberRoleButtonAccess.Hidden,
+    });
+    expect(
+      getMemberRoleButtonState([
+        { isAllowed: false, disabledReason: "Why." },
+        { isAllowed: false },
+      ]),
+    ).toEqual({ access: MemberRoleButtonAccess.Hidden });
   });
 });
