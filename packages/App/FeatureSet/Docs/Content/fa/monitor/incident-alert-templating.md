@@ -440,11 +440,11 @@ Alerts for payments:
 | متغیر | چه نگه می‌دارد | نوع |
 | --- | --- | --- |
 | `overallStatus` | وضعیت کلی صفحه وضعیت، مانند `major_outage`. | `string` |
-| `activeIncidentCount` | شمار حادثه‌های باز در صفحه وضعیت. | `number` |
+| `activeIncidentCount` | شمار حادثه‌های باز در صفحه وضعیت که بر آنچه مانیتور زیر نظر دارد اثر می‌گذارند. | `number` |
 | `componentStatuses` | مؤلفه‌های آن، هر کدام به‌صورت `{name, status, description, groupName}`. | `Array<Object>` |
 | `provider` | نوع صفحه وضعیت: Atlassian Statuspage، incident.io، RSS یا Atom. | `string` |
 | `componentGroup` | گروه مؤلفه‌ای که مانیتور زیر نظر دارد، اگر یکی را زیر نظر داشته باشد. | `string` |
-| `componentName` | مؤلفه‌ای که مانیتور زیر نظر دارد، اگر یکی را زیر نظر داشته باشد. | `string` |
+| `componentName` | مؤلفه‌هایی که مانیتور زیر نظر دارد، جدا شده با ویرگول، اگر برخی را برگزیده باشد. | `string` |
 | `isOnline` | اینکه آیا صفحه وضعیت پاسخ داد. | `boolean` |
 | `responseTimeInMs` | مدتی که صفحه وضعیت برای پاسخ طول کشید، بر حسب میلی‌ثانیه. | `number` |
 | `failureCause` | چرا بررسی شکست خورد، اگر شکست خورد. | `string` |
