@@ -14,10 +14,6 @@ import SecurityEntityChips, {
   readSecurityEntities,
 } from "./SecurityEntityChips";
 import {
-  getSecurityCaseAssigneePickerConfig,
-  getSecurityCaseTeamPickerConfig,
-} from "./SecurityCaseAssigneePicker";
-import {
   SecurityCaseQueueColumn,
   SecurityCaseQueueFilter,
   SecurityCaseQueueView,
@@ -28,7 +24,12 @@ import {
   getSecurityCaseQueueStatusOptions,
   getSecurityCaseQueueView,
   getSecurityCaseRowMoment,
+  keepSecurityCaseTimeWhole,
 } from "./SecurityCaseQueueViews";
+import {
+  SECURITY_CASE_FORM_STEPS,
+  getSecurityCaseFormFields,
+} from "./SecurityCaseFormFields";
 import { SecurityCaseValueLists } from "./SecurityCaseValues";
 import {
   getSecurityCasePriorityOptions,
@@ -53,7 +54,6 @@ import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpda
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
@@ -164,6 +164,37 @@ const CaseMoment: FunctionComponent<{ value: Date | undefined }> = (props: {
       )}
     >
       {OneUptimeDate.fromNow(props.value)}
+    </span>
+  );
+};
+
+// The team a case is with, in the Assignee and Team columns.
+export const SECURITY_CASE_ROW_TEAM_TEST_ID: string = "security-case-row-team";
+
+/*
+ * A team's name ends in "..." where its column does, as a person's beside
+ * their picture does (UserElement), and the table shows the whole of it
+ * under the pointer: drawn whole, a team named "Security Operations Center
+ * - Tier 2 Escalations (EMEA)" ran every list past its card at 1280, its
+ * end under the sticky View and ⋯, in English as in German. The name is
+ * read the way it is written (IsolatedText's reading), so on a Persian page
+ * an English name is cut at its own end, not its start.
+ */
+const SecurityCaseTeamName: FunctionComponent<{ name: string }> = (props: {
+  name: string;
+}): ReactElement => {
+  return (
+    <span
+      className="flex min-w-0 max-w-full items-center gap-1.5 text-sm text-gray-700"
+      data-testid={SECURITY_CASE_ROW_TEAM_TEST_ID}
+      // A table that would run past its card may narrow it (TableLayout).
+      data-table-shrinks="true"
+    >
+      <Icon
+        icon={IconProp.UserGroup}
+        className="h-4 w-4 shrink-0 text-gray-400"
+      />
+      <IsolatedText text={props.name} className="min-w-0 truncate" />
     </span>
   );
 };
@@ -385,12 +416,11 @@ const SecurityCasesList: FunctionComponent<{
             </AppLink>
             {/*
               Where the case came from, how many detections it holds and
-              when the last fired (or when it closed), and OneUptime AI's
-              read of it: one line of text while it fits, which wraps
-              between its words when it does not - the read, a pill, on
-              the cell's edge. Laid out as text rather than as boxes, the
-              sentence never jumps to a line of its own and leaves the
-              "·" alone at the end of the one above.
+              when the last fired (or when it closed): one line of text
+              while it fits, which wraps between its words when it does
+              not, the time kept whole. Laid out as text rather than as
+              boxes, the sentence never jumps to a line of its own and
+              leaves the "·" alone at the end of the one above.
             */}
             <div
               className="mt-0.5 text-xs leading-5 text-gray-500"
@@ -425,24 +455,27 @@ const SecurityCasesList: FunctionComponent<{
                   moment.template,
                   detections,
                   moment.time
-                    ? { time: OneUptimeDate.fromNow(moment.time) }
+                    ? {
+                        time: keepSecurityCaseTimeWhole(
+                          OneUptimeDate.fromNow(moment.time),
+                        ),
+                      }
                     : {},
                 )}
               </span>
-              {/*
-                What OneUptime AI's triage read the case as, where the
-                queue is scanned: the likely malicious stand out. Not
-                drawn with the project's AI off.
-              */}
-              {/*
-                A space, not a margin, before the read: where the read
-                wraps to a line of its own it starts at the cell's edge,
-                with the lines above.
-              */}
-              {isAiOffered && item.aiVerdict ? " " : ""}
-              {isAiOffered && item.aiVerdict ? (
+            </div>
+            {/*
+              What OneUptime AI's triage read the case as, where the queue
+              is scanned: the likely malicious stand out. On a line of its
+              own, at the cell's edge, so it is in the same place on every
+              row and in every language - at the end of the line above, it
+              stood wherever that sentence happened to wrap. Not drawn with
+              the project's AI off.
+            */}
+            {isAiOffered && item.aiVerdict ? (
+              <div className="mt-1 flex">
                 <span
-                  className="inline-flex align-middle"
+                  className="inline-flex"
                   data-testid="security-case-row-ai-verdict"
                 >
                   <SecurityCaseAiVerdictPill
@@ -454,10 +487,10 @@ const SecurityCasesList: FunctionComponent<{
                     }
                   />
                 </span>
-              ) : (
-                <></>
-              )}
-            </div>
+              </div>
+            ) : (
+              <></>
+            )}
             {entities.length > 0 ? (
               <div className="mt-1.5">
                 <SecurityEntityChips entities={entities} limit={2} />
@@ -516,15 +549,7 @@ const SecurityCasesList: FunctionComponent<{
         }
 
         if (item.assignedToTeam?.name) {
-          return (
-            <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
-              <Icon
-                icon={IconProp.UserGroup}
-                className="h-4 w-4 text-gray-400"
-              />
-              {item.assignedToTeam.name}
-            </span>
-          );
+          return <SecurityCaseTeamName name={item.assignedToTeam.name} />;
         }
 
         return (
@@ -545,12 +570,7 @@ const SecurityCasesList: FunctionComponent<{
           return <span className="text-sm text-gray-400">-</span>;
         }
 
-        return (
-          <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
-            <Icon icon={IconProp.UserGroup} className="h-4 w-4 text-gray-400" />
-            {item.assignedToTeam.name}
-          </span>
-        );
+        return <SecurityCaseTeamName name={item.assignedToTeam.name} />;
       },
     },
     labels: {
@@ -682,67 +702,10 @@ const SecurityCasesList: FunctionComponent<{
             ? { securityCasePriorityId: defaultPriority.id.toString() }
             : {}) as unknown as FormValues<SecurityCase>
         }
-        formSteps={[
-          { title: "Case", id: "case" },
-          { title: "Assignment", id: "assignment" },
-        ]}
-        formFields={[
-          {
-            field: { title: true },
-            stepId: "case",
-            title: "Title",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "e.g. Suspicious sign-ins for alice@example.com",
-          },
-          {
-            field: { description: true },
-            stepId: "case",
-            title: "Description",
-            fieldType: FormFieldSchemaType.Markdown,
-            required: false,
-            description: "What prompted this case, and what to look at first.",
-          },
-          {
-            field: { securityCasePriorityId: true },
-            stepId: "case",
-            title: "Priority",
-            description: "How urgent the case is.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            dropdownOptions: getSecurityCasePriorityOptions(priorities),
-          },
-          {
-            field: { assignedToUserId: true },
-            stepId: "assignment",
-            title: "Assign To",
-            fieldType: FormFieldSchemaType.PeoplePicker,
-            required: false,
-            description: "The person working the case.",
-            peoplePicker: getSecurityCaseAssigneePickerConfig(),
-          },
-          {
-            field: { assignedToTeamId: true },
-            stepId: "assignment",
-            title: "Team",
-            fieldType: FormFieldSchemaType.PeoplePicker,
-            required: false,
-            description: "The team the case belongs to.",
-            peoplePicker: getSecurityCaseTeamPickerConfig(),
-          },
-          {
-            field: { labels: true },
-            stepId: "assignment",
-            title: "Labels",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            required: false,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-          },
-        ]}
+        formSteps={SECURITY_CASE_FORM_STEPS}
+        formFields={getSecurityCaseFormFields({
+          priorityOptions: getSecurityCasePriorityOptions(priorities),
+        })}
         showRefreshButton={true}
         searchableFields={["title", "caseNumberWithPrefix"]}
         /*

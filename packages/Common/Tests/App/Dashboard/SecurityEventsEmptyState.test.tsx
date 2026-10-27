@@ -753,6 +753,67 @@ describe("SecurityEventsEmptyState", () => {
       expect(
         within(card("logs")).getByRole("button", { name: "Open Your logs" }),
       ).toHaveAttribute("data-testid", EXPECTED_LOGS_WAY_IN.actionTestId);
+      // Its checks work: nothing failed to say.
+      expect(
+        screen.queryByTestId(
+          `${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-last-error`,
+        ),
+      ).not.toBeInTheDocument();
+    });
+
+    /*
+     * The scanner stamps a check that failed with when it ran and why
+     * (SecurityLogScanner): "Checked 2 minutes ago. No security event
+     * found yet." was all the card said while every check failed. It says
+     * what Your logs' own card says, under the status, Open Your logs
+     * after it.
+     */
+    test("on, and its last check failed: says why, above the way to it", async () => {
+      storedSource = logSource({
+        isEnabled: true,
+        lastScannedAt: new Date(NOW.getTime() - 2 * 60 * 1000),
+        lastError:
+          "Could not read this project's logs: the query took longer than 30 seconds.",
+      });
+      await renderEmptyState();
+
+      expect(card("logs")).toHaveAttribute("data-state", "on");
+
+      const failure: HTMLElement = screen.getByTestId(
+        `${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-last-error`,
+      );
+
+      expect(failure.textContent).toBe(
+        "The last check failed: Could not read this project's logs: the query took longer than 30 seconds.",
+      );
+      expect(failure).toHaveClass("bg-amber-50", "text-amber-800");
+      // After what Your logs says of itself, before its one action.
+      expect(
+        screen
+          .getByTestId(`${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-status`)
+          .compareDocumentPosition(failure) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      expect(
+        failure.compareDocumentPosition(
+          within(card("logs")).getByRole("button", { name: "Open Your logs" }),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    test("off, a failure from when it was on is not said", async () => {
+      storedSource = logSource({
+        isEnabled: false,
+        lastScannedAt: new Date(NOW.getTime() - 2 * 60 * 1000),
+        lastError: "Could not read this project's logs.",
+      });
+      await renderEmptyState();
+
+      expect(card("logs")).toHaveAttribute("data-state", "off");
+      expect(
+        screen.queryByTestId(
+          `${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-last-error`,
+        ),
+      ).not.toBeInTheDocument();
     });
 
     test("on and not checked yet: the first check is coming", async () => {

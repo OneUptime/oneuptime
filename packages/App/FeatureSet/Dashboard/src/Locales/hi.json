@@ -35943,7 +35943,6 @@
   "Events show up here as soon as a source starts sending.": "जैसे ही कोई स्रोत भेजना शुरू करता है, इवेंट यहाँ दिखने लगते हैं।",
   "How many detections the case holds": "केस में कितने डिटेक्शन हैं",
   "Markdown. These fill in from the case:": "Markdown. ये केस से भरे जाते हैं:",
-  "Markdown; a summary of the case when empty. These fill in from the case:": "Markdown; खाली छोड़ने पर केस का सारांश। ये केस से भरे जाते हैं:",
   "Open New Security Case": "नया सुरक्षा केस खोलें",
   "Open Security Case": "सुरक्षा केस खोलें",
   "Open Your logs": "अपने लॉग खोलें",
@@ -35963,5 +35962,9 @@
   "{{count}} detections, closed {{time}}": "{{count}} डिटेक्शन, {{time}} बंद हुआ",
   "{{count}} detections, closed {{time}}_one": "{{count}} डिटेक्शन, {{time}} बंद हुआ",
   "{{count}} detections, the last {{time}}": "{{count}} डिटेक्शन, आखिरी {{time}}",
-  "{{count}} detections, the last {{time}}_one": "{{count}} डिटेक्शन, {{time}}"
+  "{{count}} detections, the last {{time}}_one": "{{count}} डिटेक्शन, {{time}}",
+  "Edit Step {{number}}: {{title}}": "चरण {{number}} संपादित करें: {{title}}",
+  "Labels to filter and report on cases by.": "केस फ़िल्टर करने और उन पर रिपोर्ट बनाने के लिए लेबल।",
+  "Markdown. Leave it empty to send a summary of the case. These fill in from the case:": "Markdown. केस का सारांश भेजने के लिए इसे खाली छोड़ें। ये केस से भरे जाते हैं:",
+  "What the case is about, in a line.": "केस किस बारे में है, एक पंक्ति में।"
 }

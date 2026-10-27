@@ -79,6 +79,7 @@ describe("Security Events says what a field is for, not that it is optional", ()
     for (const name of [
       "SecurityPlaybookStepDialog.tsx",
       "SecurityCasesTable.tsx",
+      "SecurityCaseFormFields.ts",
       "SecurityPlaybookRunCard.tsx",
     ]) {
       expect(
@@ -114,12 +115,13 @@ describe("Security Events says what a field is for, not that it is optional", ()
         "SecurityPlaybookStepDialog.tsx",
       ),
     );
-    const table: string = codeOf(
+    // The case's form: Open Security Case and Edit Case ask it alike.
+    const caseForm: string = codeOf(
       path.join(
         DASHBOARD,
         "Components",
         "SecurityCase",
-        "SecurityCasesTable.tsx",
+        "SecurityCaseFormFields.ts",
       ),
     );
     const card: string = codeOf(
@@ -139,10 +141,10 @@ describe("Security Events says what a field is for, not that it is optional", ()
       `"When an entity is a known indicator, the case's priority rises to at least this."`,
     );
     expect(dialog).toContain(
-      '"Markdown; a summary of the case when empty. These fill in from the case:"',
+      '"Markdown. Leave it empty to send a summary of the case. These fill in from the case:"',
     );
-    expect(table).toContain('description: "The person working the case."');
-    expect(table).toContain('description: "The team the case belongs to."');
+    expect(caseForm).toContain('description: "The person working the case."');
+    expect(caseForm).toContain('description: "The team the case belongs to."');
     expect(card).toContain('placeholder: "Why you decided this way."');
   });
 
@@ -191,6 +193,8 @@ describe("Security Events says what a field is for, not that it is optional", ()
       "Optional. Only cases of this priority or higher.",
       "Optional. Only when the detection behind the case came from this source.",
       "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.",
+      // The message's lead before the UI review said what an empty one sends.
+      "Markdown; a summary of the case when empty. These fill in from the case:",
     ];
     const files: Array<string> = fs
       .readdirSync(LOCALES)

@@ -12,9 +12,11 @@ import {
   SECURITY_CASE_DETECTIONS,
   SECURITY_CASE_DETECTIONS_CLOSED,
   SECURITY_CASE_DETECTIONS_THE_LAST,
+  SECURITY_CASE_NO_BREAK_SPACE,
   SECURITY_CASE_QUEUE_VIEWS,
   SecurityCaseRowMoment,
   getSecurityCaseRowMoment,
+  keepSecurityCaseTimeWhole,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 
 /*
@@ -231,6 +233,60 @@ describe("a case's line under its title", () => {
   );
 });
 
+/*
+ * Beside the side menu the line broke inside its time - "vor 5 / Stunden"
+ * in German, "31 / минуту назад" in Russian, "9 minutes / ago" on a phone:
+ * a number at the end of one line, its unit at the start of the next. The
+ * time's words are joined by spaces no line breaks at, so the line wraps
+ * before the time or after it.
+ */
+describe("the time in a case's line", () => {
+  const NBSP: string = String.fromCharCode(0xa0);
+
+  test("is joined by no-break spaces, in any language", () => {
+    expect(SECURITY_CASE_NO_BREAK_SPACE).toBe(NBSP);
+    expect(keepSecurityCaseTimeWhole("9 minutes ago")).toBe(
+      `9${NBSP}minutes${NBSP}ago`,
+    );
+    expect(keepSecurityCaseTimeWhole("vor 5 Stunden")).toBe(
+      `vor${NBSP}5${NBSP}Stunden`,
+    );
+    expect(keepSecurityCaseTimeWhole("31 минуту назад")).toBe(
+      `31${NBSP}минуту${NBSP}назад`,
+    );
+    expect(keepSecurityCaseTimeWhole("۵ ساعت پیش")).toBe(
+      `۵${NBSP}ساعت${NBSP}پیش`,
+    );
+  });
+
+  test("keeps everything else as it is", () => {
+    for (const time of ["", "now", "9分前", "a day ago"]) {
+      const kept: string = keepSecurityCaseTimeWhole(time);
+
+      expect(kept.split(NBSP).join(" ")).toBe(time);
+      expect(kept).not.toContain(" ");
+    }
+  });
+
+  test("the sentence around it still wraps between its own words", () => {
+    const english: Translator = createTranslator(undefined, "en");
+    const line: string = english.translatePlural(
+      SECURITY_CASE_DETECTIONS_THE_LAST,
+      3,
+      { time: keepSecurityCaseTimeWhole("9 minutes ago") },
+    );
+
+    expect(line).toBe(`3 detections, the last 9${NBSP}minutes${NBSP}ago`);
+    expect(line.split(" ")).toEqual([
+      "3",
+      "detections,",
+      "the",
+      "last",
+      `9${NBSP}minutes${NBSP}ago`,
+    ]);
+  });
+});
+
 describe("Open Security Case, in every language", () => {
   const PHRASES: Array<string> = [
     "Open Security Case",
@@ -332,6 +388,10 @@ describe("the case list's wiring", () => {
     expect(table).toContain("view.sortBy,");
     expect(table).toContain("moment.template,");
     expect(table).toContain("OneUptimeDate.fromNow(moment.time)");
+    // ...kept whole where the line wraps.
+    expect(table).toContain(
+      "keepSecurityCaseTimeWhole(\n                          OneUptimeDate.fromNow(moment.time),",
+    );
   });
 
   test("the list asks for both times, whichever column is shown", () => {

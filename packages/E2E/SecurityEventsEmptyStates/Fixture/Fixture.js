@@ -30,10 +30,12 @@
  *            names in the rest of OneUptime (POST /security-case/connections),
  *            answered from Security Operations' records with the server's own
  *            matching rules (../../SecurityOperations/Fixture/ConnectionsFixture.js).
- *   ?logs=   off (default) | on | fail. on: the project's Your logs is on,
- *            last checked two minutes before the pinned clock, nothing found
- *            yet (LOGS_ON_SOURCE). fail: reading it fails (a 500), on the
- *            Events page and on Connections alike.
+ *   ?logs=   off (default) | on | check-failed | fail. on: the project's
+ *            Your logs is on, last checked two minutes before the pinned
+ *            clock, nothing found yet (LOGS_ON_SOURCE). check-failed: on,
+ *            and that last check failed (LOGS_CHECK_FAILED_ERROR). fail:
+ *            reading it fails (a 500), on the Events page and on
+ *            Connections alike.
  *
  * The side menu counts the open cases and the playbook runs waiting for
  * approval beside Cases and Playbook Runs; both answer 0.
@@ -107,8 +109,11 @@ const OLD_EVENT_TIME = "2026-09-01T09:30:00.000Z";
 const siem = params.get("siem") === "rows" ? "rows" : "none";
 // ?events=one: one event in the window, and its drawer's Connected tab.
 const events = params.get("events") === "one" ? "one" : "none";
-// ?logs=on: Your logs is on already; ?logs=fail: it cannot be read.
-const logs = ["on", "fail"].includes(params.get("logs"))
+/*
+ * ?logs=on: Your logs is on already; ?logs=check-failed: on, its last check
+ * failed; ?logs=fail: it cannot be read.
+ */
+const logs = ["on", "check-failed", "fail"].includes(params.get("logs"))
   ? params.get("logs")
   : "off";
 
@@ -341,7 +346,19 @@ const LOGS_ON_SOURCE = {
   isEnabled: true,
   lastScannedAt: new Date(NOW.getTime() - 2 * MINUTE),
 };
-const logSources = logs === "on" ? [LOGS_ON_SOURCE] : [];
+// What the last check said when it failed, as the scanner words it.
+const LOGS_CHECK_FAILED_ERROR =
+  "Could not read this project's logs: the query took longer than 30 seconds.";
+const logSources =
+  logs === "on"
+    ? [LOGS_ON_SOURCE]
+    : logs === "check-failed"
+      ? [
+          Object.assign({}, LOGS_ON_SOURCE, {
+            lastError: LOGS_CHECK_FAILED_ERROR,
+          }),
+        ]
+      : [];
 
 ModelAPI.getList = async (options) => {
   const modelName = tableName(options.modelType);

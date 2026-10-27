@@ -363,6 +363,21 @@ export function getSecurityCaseRowMoment(
   };
 }
 
+// A space a line never breaks at.
+export const SECURITY_CASE_NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
+
+/*
+ * The time in a case's line, kept whole where the line wraps: in a column
+ * beside the side menu the line broke inside it - "vor 5 / Stunden" in
+ * German, "31 / минуту назад" in Russian, "9 minutes / ago" on a phone -
+ * a number at the end of one line and its unit at the start of the next.
+ * Written with spaces no line breaks at, the line wraps before the time or
+ * after it, never inside it.
+ */
+export function keepSecurityCaseTimeWhole(time: string): string {
+  return time.split(" ").join(SECURITY_CASE_NO_BREAK_SPACE);
+}
+
 export const SECURITY_CASE_QUEUE_VIEW_KEYS: ReadonlyArray<SecurityCaseQueueViewKey> =
   SECURITY_CASE_QUEUE_VIEWS.map(
     (view: SecurityCaseQueueView): SecurityCaseQueueViewKey => {

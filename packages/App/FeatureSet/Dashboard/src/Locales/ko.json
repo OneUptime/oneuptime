@@ -35943,7 +35943,6 @@
   "Events show up here as soon as a source starts sending.": "소스가 전송을 시작하는 즉시 이벤트가 여기에 표시됩니다.",
   "How many detections the case holds": "케이스에 포함된 탐지 수",
   "Markdown. These fill in from the case:": "Markdown. 다음 항목은 케이스 내용으로 채워집니다:",
-  "Markdown; a summary of the case when empty. These fill in from the case:": "Markdown. 비워 두면 케이스 요약이 들어갑니다. 다음 항목은 케이스 내용으로 채워집니다:",
   "Open New Security Case": "새 보안 케이스 만들기",
   "Open Security Case": "보안 케이스 만들기",
   "Open Your logs": "내 로그 열기",
@@ -35963,5 +35962,9 @@
   "{{count}} detections, closed {{time}}": "탐지 {{count}}건, {{time}} 닫힘",
   "{{count}} detections, closed {{time}}_one": "{{count}} detection, closed {{time}}",
   "{{count}} detections, the last {{time}}": "탐지 {{count}}건, 마지막은 {{time}}",
-  "{{count}} detections, the last {{time}}_one": "{{count}} detection, {{time}}"
+  "{{count}} detections, the last {{time}}_one": "{{count}} detection, {{time}}",
+  "Edit Step {{number}}: {{title}}": "{{number}}단계 편집: {{title}}",
+  "Labels to filter and report on cases by.": "케이스를 필터링하고 보고하는 데 쓰는 레이블입니다.",
+  "Markdown. Leave it empty to send a summary of the case. These fill in from the case:": "Markdown. 비워 두면 케이스 요약을 보냅니다. 다음 항목은 케이스 내용으로 채워집니다:",
+  "What the case is about, in a line.": "케이스가 무엇에 관한 것인지 한 줄로 적습니다."
 }

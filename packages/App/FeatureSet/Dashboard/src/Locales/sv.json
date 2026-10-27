@@ -35943,7 +35943,6 @@
   "Events show up here as soon as a source starts sending.": "Händelser visas här så snart en källa börjar skicka.",
   "How many detections the case holds": "Hur många detektioner ärendet innehåller",
   "Markdown. These fill in from the case:": "Markdown. Dessa fylls i från ärendet:",
-  "Markdown; a summary of the case when empty. These fill in from the case:": "Markdown; en sammanfattning av ärendet om fältet lämnas tomt. Dessa fylls i från ärendet:",
   "Open New Security Case": "Öppna nytt säkerhetsärende",
   "Open Security Case": "Öppna säkerhetsärende",
   "Open Your logs": "Öppna dina loggar",
@@ -35963,5 +35962,9 @@
   "{{count}} detections, closed {{time}}": "{{count}} detektioner, stängt {{time}}",
   "{{count}} detections, closed {{time}}_one": "{{count}} detektion, stängt {{time}}",
   "{{count}} detections, the last {{time}}": "{{count}} detektioner, den senaste {{time}}",
-  "{{count}} detections, the last {{time}}_one": "{{count}} detektion, {{time}}"
+  "{{count}} detections, the last {{time}}_one": "{{count}} detektion, {{time}}",
+  "Edit Step {{number}}: {{title}}": "Redigera steg {{number}}: {{title}}",
+  "Labels to filter and report on cases by.": "Etiketter att filtrera och rapportera ärenden efter.",
+  "Markdown. Leave it empty to send a summary of the case. These fill in from the case:": "Markdown. Lämna tomt för att skicka en sammanfattning av ärendet. Dessa fylls i från ärendet:",
+  "What the case is about, in a line.": "Vad ärendet gäller, på en rad."
 }

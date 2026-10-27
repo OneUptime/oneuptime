@@ -42,6 +42,8 @@
  *   ?data=   none or fail: what the project's events say it sends, as the
  *            Rule Library reads them - nothing this week, or a read that
  *            fails. Otherwise Okta, Defender XDR and Kubernetes audit logs.
+ *   ?team=   long: the SOC team is "Security Operations Center - Tier 2
+ *            Escalations (EMEA)" (LONG_TEAM_NAME).
  *   ?lang=   de, es, fr, it, pt, nl, ru, ja or fa: the Dashboard's German,
  *            Spanish, French, Italian, Portuguese, Dutch, Russian, Japanese
  *            or Persian locale (Persian right to left).
@@ -675,7 +677,15 @@ const people = {
   sam: person(4, "Sam Okafor", "sam.okafor@acme-commerce.example"),
 };
 
-const socTeam = make(Team, { _id: ID.team(1), name: "SOC Tier 2" });
+/*
+ * ?team=long: the SOC team goes by the long name a project may give it, in
+ * every list and picker that names it.
+ */
+const LONG_TEAM_NAME = "Security Operations Center - Tier 2 Escalations (EMEA)";
+const socTeam = make(Team, {
+  _id: ID.team(1),
+  name: params.get("team") === "long" ? LONG_TEAM_NAME : "SOC Tier 2",
+});
 
 /*
  * The project, with OneUptime AI on (?ai=off turns Enable AI off) and its

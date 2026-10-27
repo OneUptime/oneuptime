@@ -35943,7 +35943,6 @@
   "Events show up here as soon as a source starts sending.": "Ereignisse erscheinen hier, sobald eine Quelle mit dem Senden beginnt.",
   "How many detections the case holds": "Wie viele Erkennungen der Fall enthält",
   "Markdown. These fill in from the case:": "Markdown. Diese Platzhalter werden aus dem Fall gefüllt:",
-  "Markdown; a summary of the case when empty. These fill in from the case:": "Markdown; leer gelassen eine Zusammenfassung des Falls. Diese Platzhalter werden aus dem Fall gefüllt:",
   "Open New Security Case": "Neuen Sicherheitsfall eröffnen",
   "Open Security Case": "Sicherheitsfall eröffnen",
   "Open Your logs": "Ihre Protokolle öffnen",
@@ -35963,5 +35962,9 @@
   "{{count}} detections, closed {{time}}": "{{count}} Erkennungen, geschlossen {{time}}",
   "{{count}} detections, closed {{time}}_one": "{{count}} Erkennung, geschlossen {{time}}",
   "{{count}} detections, the last {{time}}": "{{count}} Erkennungen, die letzte {{time}}",
-  "{{count}} detections, the last {{time}}_one": "{{count}} Erkennung, {{time}}"
+  "{{count}} detections, the last {{time}}_one": "{{count}} Erkennung, {{time}}",
+  "Edit Step {{number}}: {{title}}": "Schritt {{number}} bearbeiten: {{title}}",
+  "Labels to filter and report on cases by.": "Beschriftungen, nach denen Sie Fälle filtern und auswerten.",
+  "Markdown. Leave it empty to send a summary of the case. These fill in from the case:": "Markdown. Leer lassen, um eine Zusammenfassung des Falls zu senden. Diese Platzhalter werden aus dem Fall gefüllt:",
+  "What the case is about, in a line.": "Worum es im Fall geht, in einer Zeile."
 }

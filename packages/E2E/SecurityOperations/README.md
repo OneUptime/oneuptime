@@ -102,6 +102,7 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?refuse=`  | case numbers, comma separated (`138`): the server refuses every change to those cases, as a role scoped to labels the reader lacks does, so Bulk Actions names the cases it could not change and why                                                                                                                                                                                                                               |
 | `?triage=`  | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
 | `?lang=`    | `de`, `es`, `fr`, `it`, `pt`, `nl`, `ru`, `ja` or `fa` (right to left): the Dashboard's words and its times ("vor 9 Minuten") in that language; the case lists are measured in the widest of them |
+| `?team=`    | `long`: the SOC team is "Security Operations Center - Tier 2 Escalations (EMEA)", wherever a list or a picker names it |
 
 ## What the fixture records
 

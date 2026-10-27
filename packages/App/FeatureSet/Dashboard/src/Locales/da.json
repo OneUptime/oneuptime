@@ -35943,7 +35943,6 @@
   "Events show up here as soon as a source starts sending.": "Begivenheder vises her, så snart en kilde begynder at sende.",
   "How many detections the case holds": "Hvor mange detektioner sagen indeholder",
   "Markdown. These fill in from the case:": "Markdown. Disse udfyldes fra sagen:",
-  "Markdown; a summary of the case when empty. These fill in from the case:": "Markdown; et resumé af sagen, når feltet er tomt. Disse udfyldes fra sagen:",
   "Open New Security Case": "Åbn ny sikkerhedssag",
   "Open Security Case": "Åbn sikkerhedssag",
   "Open Your logs": "Åbn dine logs",
@@ -35963,5 +35962,9 @@
   "{{count}} detections, closed {{time}}": "{{count}} detektioner, lukket {{time}}",
   "{{count}} detections, closed {{time}}_one": "{{count}} detektion, lukket {{time}}",
   "{{count}} detections, the last {{time}}": "{{count}} detektioner, den seneste {{time}}",
-  "{{count}} detections, the last {{time}}_one": "{{count}} detektion, {{time}}"
+  "{{count}} detections, the last {{time}}_one": "{{count}} detektion, {{time}}",
+  "Edit Step {{number}}: {{title}}": "Rediger trin {{number}}: {{title}}",
+  "Labels to filter and report on cases by.": "Etiketter at filtrere og rapportere sager efter.",
+  "Markdown. Leave it empty to send a summary of the case. These fill in from the case:": "Markdown. Lad feltet stå tomt for at sende et resumé af sagen. Disse udfyldes fra sagen:",
+  "What the case is about, in a line.": "Hvad sagen handler om, på én linje."
 }

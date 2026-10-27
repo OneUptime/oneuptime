@@ -343,6 +343,24 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
         ) : (
           <></>
         )}
+        {/*
+         * Why nothing may have been found: the last check failed. Said as
+         * Your logs' own card says it, so "No security event found yet"
+         * is never all a project hears while its checks fail; Open Your
+         * logs, under it, is where to look.
+         */}
+        {isLogsOn && logSource?.lastError ? (
+          <p
+            data-testid={`${SECURITY_EVENTS_EMPTY_STATE_ID}-logs-last-error`}
+            className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800"
+          >
+            {translator.translateTemplate("The last check failed: {{error}}", {
+              error: logSource.lastError,
+            })}
+          </p>
+        ) : (
+          <></>
+        )}
         <div className="mt-auto pt-5">
           {actionTitle ? (
             <button

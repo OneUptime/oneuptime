@@ -35943,7 +35943,6 @@
   "Events show up here as soon as a source starts sending.": "一旦有来源开始发送，事件就会显示在这里。",
   "How many detections the case holds": "案例包含的检测次数",
   "Markdown. These fill in from the case:": "Markdown。以下内容会用案例的信息填入：",
-  "Markdown; a summary of the case when empty. These fill in from the case:": "Markdown；留空时为案例摘要。以下内容会用案例的信息填入：",
   "Open New Security Case": "新建安全案例",
   "Open Security Case": "新建安全案例",
   "Open Your logs": "打开你的日志",
@@ -35963,5 +35962,9 @@
   "{{count}} detections, closed {{time}}": "{{count}} 次检测，{{time}}关闭",
   "{{count}} detections, closed {{time}}_one": "{{count}} detection, closed {{time}}",
   "{{count}} detections, the last {{time}}": "{{count}} 次检测，最近一次在{{time}}",
-  "{{count}} detections, the last {{time}}_one": "{{count}} detection, {{time}}"
+  "{{count}} detections, the last {{time}}_one": "{{count}} detection, {{time}}",
+  "Edit Step {{number}}: {{title}}": "编辑第 {{number}} 步：{{title}}",
+  "Labels to filter and report on cases by.": "用于筛选案例和生成报告的标签。",
+  "Markdown. Leave it empty to send a summary of the case. These fill in from the case:": "Markdown。留空则发送案例摘要。以下内容会用案例的信息填入：",
+  "What the case is about, in a line.": "用一句话说明此案例是关于什么的。"
 }

@@ -35943,7 +35943,6 @@
   "Events show up here as soon as a source starts sending.": "一旦有來源開始傳送，事件就會顯示在這裡。",
   "How many detections the case holds": "案例包含的偵測次數",
   "Markdown. These fill in from the case:": "Markdown。以下內容會以案例的資訊填入：",
-  "Markdown; a summary of the case when empty. These fill in from the case:": "Markdown；留空時為案例摘要。以下內容會以案例的資訊填入：",
   "Open New Security Case": "新增安全案例",
   "Open Security Case": "新增安全案例",
   "Open Your logs": "開啟你的日誌",
@@ -35963,5 +35962,9 @@
   "{{count}} detections, closed {{time}}": "{{count}} 次偵測，{{time}}關閉",
   "{{count}} detections, closed {{time}}_one": "{{count}} detection, closed {{time}}",
   "{{count}} detections, the last {{time}}": "{{count}} 次偵測，最近一次在{{time}}",
-  "{{count}} detections, the last {{time}}_one": "{{count}} detection, {{time}}"
+  "{{count}} detections, the last {{time}}_one": "{{count}} detection, {{time}}",
+  "Edit Step {{number}}: {{title}}": "編輯第 {{number}} 步：{{title}}",
+  "Labels to filter and report on cases by.": "用於篩選案例和產生報告的標籤。",
+  "Markdown. Leave it empty to send a summary of the case. These fill in from the case:": "Markdown。留空則傳送案例摘要。以下內容會以案例的資訊填入：",
+  "What the case is about, in a line.": "用一句話說明此案例是關於什麼的。"
 }

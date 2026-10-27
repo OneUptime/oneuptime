@@ -35943,7 +35943,6 @@
   "Events show up here as soon as a source starts sending.": "ソースが送信を始めると、イベントはすぐにここに表示されます。",
   "How many detections the case holds": "ケースに含まれる検出の数",
   "Markdown. These fill in from the case:": "Markdown。次の項目はケースの内容で埋まります:",
-  "Markdown; a summary of the case when empty. These fill in from the case:": "Markdown。空のままにするとケースの概要になります。次の項目はケースの内容で埋まります:",
   "Open New Security Case": "新しいセキュリティケースを作成",
   "Open Security Case": "セキュリティケースを作成",
   "Open Your logs": "ログを開く",
@@ -35963,5 +35962,9 @@
   "{{count}} detections, closed {{time}}": "{{count}} 件の検出、{{time}}にクローズ",
   "{{count}} detections, closed {{time}}_one": "{{count}} detection, closed {{time}}",
   "{{count}} detections, the last {{time}}": "{{count}} 件の検出、最新は{{time}}",
-  "{{count}} detections, the last {{time}}_one": "{{count}} detection, {{time}}"
+  "{{count}} detections, the last {{time}}_one": "{{count}} detection, {{time}}",
+  "Edit Step {{number}}: {{title}}": "ステップ {{number}} を編集: {{title}}",
+  "Labels to filter and report on cases by.": "ケースの絞り込みやレポートに使うラベル。",
+  "Markdown. Leave it empty to send a summary of the case. These fill in from the case:": "Markdown。空のままにすると、ケースの概要を送ります。次の項目はケースの内容で埋まります:",
+  "What the case is about, in a line.": "ケースの内容を 1 行で。"
 }

@@ -286,7 +286,7 @@ interface OpenOptions {
   // One event in the window, so its drawer can be opened.
   events?: "none" | "one" | undefined;
   // Your logs on already (checked two minutes ago), or a read that fails.
-  logs?: "off" | "on" | "fail" | undefined;
+  logs?: "off" | "on" | "check-failed" | "fail" | undefined;
   width?: number | undefined;
   height?: number | undefined;
 }
@@ -3164,6 +3164,11 @@ test.describe("security events empty state", () => {
     ).toBeLessThanOrEqual(3);
     expect(pill.x).toBeGreaterThanOrEqual(title.x + title.width);
 
+    // Its checks work: nothing failed to say.
+    await expect(page.getByTestId(`${EVENTS_ID}-logs-last-error`)).toHaveCount(
+      0,
+    );
+
     await screenshot(page, "events-logs-on");
 
     await yourLogsButton(page).click();
@@ -3171,6 +3176,47 @@ test.describe("security events empty state", () => {
     await expect(
       page.getByRole("switch", { name: "Find security events in your logs" }),
     ).toHaveAttribute("aria-checked", "true", { timeout: 30000 });
+  });
+
+  /*
+   * A check that fails is stamped with when it ran and why
+   * (SecurityLogScanner): "Checked 2 minutes ago. No security event found
+   * yet." was all the card said while every check failed. It says what
+   * Your logs' own card says, Open Your logs under it.
+   */
+  test("Your logs on, its last check failed: says why, above the way to it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openEvents(page, { logs: "check-failed" });
+    const logs: Locator = wayInCard(page, "logs");
+
+    await expect(logs).toHaveAttribute("data-state", "on", { timeout: 30000 });
+    await expect(page.getByTestId(`${EVENTS_ID}-logs-status`)).toHaveText(
+      "Checked 2 minutes ago. No security event found yet.",
+    );
+    const failure: Locator = page.getByTestId(`${EVENTS_ID}-logs-last-error`);
+
+    await expect(failure).toHaveText(
+      "The last check failed: Could not read this project's logs: the query took longer than 30 seconds.",
+    );
+    await expect(yourLogsButton(page)).toHaveText(LOGS_OPEN_ACTION);
+
+    // Under the status, inside the card, above its one action.
+    const status: Box = await documentBox(
+      page.getByTestId(`${EVENTS_ID}-logs-status`),
+    );
+    const said: Box = await documentBox(failure);
+    const action: Box = await documentBox(yourLogsButton(page));
+    const card: Box = await documentBox(logs);
+
+    expect(said.y).toBeGreaterThanOrEqual(status.y + status.height);
+    expect(action.y).toBeGreaterThanOrEqual(said.y + said.height);
+    expect(said.x).toBeGreaterThanOrEqual(card.x);
+    expect(said.x + said.width).toBeLessThanOrEqual(card.x + card.width);
+
+    await screenshot(page, "events-logs-check-failed");
   });
 
   test("Your logs that cannot be read: the way to it, and nothing claimed", async ({

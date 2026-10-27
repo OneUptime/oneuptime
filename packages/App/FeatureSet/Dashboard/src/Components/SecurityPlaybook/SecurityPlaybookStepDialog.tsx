@@ -3,6 +3,7 @@ import {
   STEP_ACTION_KEY,
   formValuesToStep,
   getNewStepFormValues,
+  getStepDialogWords,
   isApprovalSwitchOffered,
   stepToFormValues,
 } from "./SecurityPlaybookStepForm";
@@ -113,8 +114,9 @@ export function getActionCardGroups(): Array<CardSelectOptionGroup> {
 export const NOTE_PLACEHOLDER_LEAD: string = translationKey(
   "Markdown. These fill in from the case:",
 );
+// An email or a post with no message of its own sends a summary of the case.
 export const MESSAGE_PLACEHOLDER_LEAD: string = translationKey(
-  "Markdown; a summary of the case when empty. These fill in from the case:",
+  "Markdown. Leave it empty to send a summary of the case. These fill in from the case:",
 );
 
 /*
@@ -715,6 +717,7 @@ export function getStepSettingsFields(
 const SecurityPlaybookStepDialog: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const pickedAction: MutableRefObject<string | undefined> = useRef<
@@ -724,6 +727,12 @@ const SecurityPlaybookStepDialog: FunctionComponent<ComponentProps> = (
   const definition: SecurityPlaybookActionDefinition | undefined = props.step
     ? getSecurityPlaybookAction(props.step.action)
     : undefined;
+  const { title, description } = getStepDialogWords({
+    definition: definition,
+    index: props.index,
+    isNew: isNew,
+    translator: translator,
+  });
 
   const actionField: Field<JSONObject> = {
     field: { [STEP_ACTION_KEY]: true },
@@ -738,12 +747,8 @@ const SecurityPlaybookStepDialog: FunctionComponent<ComponentProps> = (
 
   return (
     <BasicFormModal<JSONObject>
-      title={isNew ? "Add Step" : `Edit Step ${props.index + 1}`}
-      description={
-        definition
-          ? `${definition.title}: ${definition.description}`
-          : "Pick what the step does, then fill in its settings."
-      }
+      title={title}
+      description={description}
       modalWidth={ModalWidth.Large}
       submitButtonText={isNew ? "Add Step" : "Save Step"}
       isLoading={isLoading}
