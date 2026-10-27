@@ -75,6 +75,8 @@ Ogni metodo che verificate in seguito riceve le stesse regole: una regola per og
 | **Staying informed** | Venite a sapere quando inizia un turno, e dietro ogni canale attivato nelle **Impostazioni notifiche** c'è un metodo verificato |
 | **Nice to have** | Un numero per le chiamate in entrata, i vostri account Slack e Microsoft Teams, un link al calendario e i vostri campi del profilo |
 
+**Staying informed** segnala il push solo per un aggiornamento che non vi raggiunge in nessun altro modo: ogni aggiornamento che un nuovo membro riceve via push arriva anche via e-mail.
+
 **Nice to have** non conta nella barra di avanzamento, e nemmeno un passaggio che solo qualcun altro può risolvere. La riga in alto riassume tutto:
 
 | Titolo | Cosa significa |

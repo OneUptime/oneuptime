@@ -65,7 +65,7 @@ Klikk på **Legg til eskaleringsregel** på siden **Eskaleringsregler** for retn
 
 ### Kjør retningslinjen automatisk
 
-Gå til **Hendelser → Regler → Vaktregler** eller **Varsler → Regler → Vaktregler**, og legg til en regel som kjører retningslinjen for hendelsene eller varslene den passer på, for eksempel hver kritiske. Se [Hva som kjører en retningslinje](/docs/on-call/policies#hva-som-kjører-en-retningslinje).
+Den første retningslinjen i et prosjekt kan gjøre dette allerede når den opprettes: la **Utløs den ved hver nye hendelse og hvert nye varsel** være slått på. For alle andre retningslinjer går du til **Hendelser → Regler → Vaktregler** eller **Varsler → Regler → Vaktregler**, og legger til en regel som kjører den for hendelsene eller varslene den passer på, for eksempel hver kritiske. Se [Hva som kjører en retningslinje](/docs/on-call/policies#hva-som-kjører-en-retningslinje).
 
 ### Sjekk at alle kan nås
 

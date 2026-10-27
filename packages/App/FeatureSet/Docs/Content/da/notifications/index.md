@@ -75,6 +75,8 @@ Hver metode, du bekræfter senere, får de samme regler: en regel for hver alvor
 | **Staying informed** | Du får besked, når en vagt starter, og bag hver kanal, du har slået til i **Notifikationsindstillinger**, står en bekræftet metode |
 | **Nice to have** | Et nummer til indgående opkald, dine Slack- og Microsoft Teams-konti, et kalenderlink og dine profilfelter |
 
+**Staying informed** nævner kun push for en opdatering, der ikke når dig ad nogen anden vej: hver opdatering, et nyt medlem får via push, kommer også via e-mail.
+
 **Nice to have** tæller ikke med i statuslinjen, og det gør et trin, som kun en anden kan klare, heller ikke. Linjen øverst opsummerer det hele:
 
 | Overskrift | Hvad den betyder |

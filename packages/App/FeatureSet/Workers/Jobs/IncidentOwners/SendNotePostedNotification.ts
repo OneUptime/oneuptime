@@ -289,6 +289,8 @@ RunCron(
       );
 
       const incidentFeedText: string = OwnerNotificationFeedText.notePosted({
+        recordNoun: "incident",
+        isProjectOwners: !doesResourceHasOwners,
         isPrivateNote: isPrivateNote,
       });
 

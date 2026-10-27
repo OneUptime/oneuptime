@@ -71,8 +71,6 @@ RunCron(
       const episodeDisplayNumber: string =
         episode.episodeNumberWithPrefix || "#" + episode.episodeNumber;
 
-      const episodeFeedText: string =
-        OwnerNotificationFeedText.created("alert episode");
       let moreEpisodeFeedInformationInMarkdown: string = "";
 
       const episodeCreatedDate: Date = episode.createdAt!;
@@ -238,7 +236,9 @@ RunCron(
         alertEpisodeFeedEventType:
           AlertEpisodeFeedEventType.OwnerNotificationSent,
         displayColor: Yellow500,
-        feedInfoInMarkdown: episodeFeedText,
+        feedInfoInMarkdown: OwnerNotificationFeedText.created("alert episode", {
+          isProjectOwners: !doesResourceHasOwners,
+        }),
         moreInformationInMarkdown: moreEpisodeFeedInformationInMarkdown,
       });
     }

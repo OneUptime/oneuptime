@@ -122,7 +122,6 @@ RunCron(
         },
       });
 
-      const alertFeedText: string = OwnerNotificationFeedText.created("alert");
       let moreAlertFeedInformationInMarkdown: string = "";
 
       const alertIdentifiedDate: Date =
@@ -478,7 +477,9 @@ RunCron(
         projectId: alert.projectId!,
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
         displayColor: Yellow500,
-        feedInfoInMarkdown: alertFeedText,
+        feedInfoInMarkdown: OwnerNotificationFeedText.created("alert", {
+          isProjectOwners: !doesResourceHasOwners,
+        }),
         moreInformationInMarkdown: moreAlertFeedInformationInMarkdown,
         /*
          * The feed only. That the owners were told is a side effect of the
