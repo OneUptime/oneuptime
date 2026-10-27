@@ -51,7 +51,7 @@ En la página del proveedor, la tarjeta **Identity Provider URL** muestra la **R
 
 ### Activar el proveedor
 
-Un proveedor nuevo empieza desactivado. Haz clic en **Edit Configuration** en la página del proveedor y activa **Habilitado**. **Activar** en la fila del proveedor en **Inicio de sesión único** hace lo mismo.
+Un proveedor nuevo empieza desactivado. Haz clic en **Edit Configuration** en la página del proveedor y activa **Habilitado**.
 
 Activar un proveedor global solo lo añade a las opciones de inicio de sesión único de la página de inicio de sesión: nunca impone el SSO ni deja fuera a nadie, así que puedes activarlo, probarlo y volver a desactivarlo sin riesgo si hace falta. Eso sí, mientras toda la instancia exige SSO, la página de inicio de sesión solo ofrece los proveedores activados: prueba un proveedor antes de exigir SSO.
 

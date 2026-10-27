@@ -51,7 +51,7 @@ Auf der Seite des Anbieters zeigt die Karte **Identity Provider URL** die **Redi
 
 ### Den Anbieter einschalten
 
-Ein neuer Anbieter ist zunächst ausgeschaltet. Klicken Sie auf der Seite des Anbieters auf **Edit Configuration** und schalten Sie **Aktiviert** ein. **Aktivieren** in der Zeile des Anbieters auf **Single Sign-On** tut dasselbe.
+Ein neuer Anbieter ist zunächst ausgeschaltet. Klicken Sie auf der Seite des Anbieters auf **Edit Configuration** und schalten Sie **Aktiviert** ein.
 
 Einen globalen Anbieter einzuschalten nimmt ihn nur in die Single-Sign-On-Optionen der Anmeldeseite auf – es erzwingt nie SSO und sperrt niemanden aus. Sie können ihn also gefahrlos einschalten, testen und bei Bedarf wieder ausschalten. Solange die ganze Instanz SSO verlangt, bietet die Anmeldeseite allerdings nur die eingeschalteten Anbieter an: Testen Sie einen Anbieter, bevor Sie SSO verlangen.
 

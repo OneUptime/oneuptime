@@ -242,17 +242,15 @@ describe("the Global SSO / OIDC pages and Require SSO are core pages", () => {
     const ssoPage: string = readAdminSource(SSO_PAGE.path);
 
     /*
-     * Its SAML and its OIDC providers: each opened (and edited) on its own
-     * page, as always, and turned on and off in its row.
+     * Its SAML and its OIDC providers: each opened, edited and turned on and
+     * off on its own page, as always - turning one off ends every sign-in it
+     * gave, so no row offers it (RowActionsAudit).
      */
     expect(propValues(ssoPage, "isCreateable")).toEqual(["true", "true"]);
     expect(propValues(ssoPage, "isViewable")).toEqual(["true", "true"]);
     expect(propValues(ssoPage, "isEditable")).toEqual(["false", "false"]);
     expect(propValues(ssoPage, "isDeleteable")).toEqual(["false", "false"]);
-    expect(propValues(ssoPage, "rowSwitch")).toEqual([
-      '{ column: "isEnabled"',
-      '{ column: "isEnabled"',
-    ]);
+    expect(ssoPage).not.toContain("rowSwitch=");
   });
 
   test("the Enterprise shells' upsell cards are gone", () => {

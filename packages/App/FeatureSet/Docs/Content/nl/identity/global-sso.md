@@ -51,7 +51,7 @@ Op de pagina van de provider toont de kaart **Identity Provider URL** de **Redir
 
 ### De provider inschakelen
 
-Een nieuwe provider staat eerst uit. Klik op de pagina van de provider op **Edit Configuration** en zet **Ingeschakeld** aan. **Inschakelen** in de rij van de provider op **Single sign-on** doet hetzelfde.
+Een nieuwe provider staat eerst uit. Klik op de pagina van de provider op **Edit Configuration** en zet **Ingeschakeld** aan.
 
 Een globale provider inschakelen voegt hem alleen toe aan de single sign-on-opties van de aanmeldpagina — het dwingt nooit SSO af en sluit niemand buiten, dus u kunt hem veilig inschakelen, testen en zo nodig weer uitschakelen. Zolang de hele instantie SSO verplicht, biedt de aanmeldpagina wel alleen de ingeschakelde providers aan: test een provider voordat u SSO verplicht.
 

@@ -822,12 +822,11 @@ const expectEditable: (pageCase: PageCase) => void = (
     expect(table).toHaveAttribute("data-editable", "false");
     expect(table).toHaveAttribute("data-deleteable", "false");
     /*
-     * Each row turns its provider on and off (Enable or Disable in its ⋯
-     * menu) and starts a sign-in with it (Test Sign-in).
+     * Each row starts a sign-in with its provider (Test Sign-in), and
+     * nothing else: a provider is turned on and off on its own page, since
+     * turning one off ends every sign-in it gave (RowActionsAudit).
      */
-    expect(lastTable(pageCase.table)["rowSwitch"]).toEqual({
-      column: "isEnabled",
-    });
+    expect(lastTable(pageCase.table)["rowSwitch"]).toBeUndefined();
     expect(table).toHaveAttribute("data-action-count", "1");
   } else {
     // No row action on a provider's attachments.
@@ -1202,9 +1201,10 @@ describe("Settings > Single Sign-On", () => {
   test("asks before SSO is required, with a red button, and never before it is turned off", async () => {
     await renderPage(PAGES[0]!);
 
-    const confirm: (isTurningOn: boolean) => MockProps | undefined = requireSsoCard()[
-      "getConfirmation"
-    ] as (isTurningOn: boolean) => MockProps | undefined;
+    const confirm: (isTurningOn: boolean) => MockProps | undefined =
+      requireSsoCard()["getConfirmation"] as (
+        isTurningOn: boolean,
+      ) => MockProps | undefined;
 
     expect(confirm(true)).toEqual({
       title: "Require SSO for everyone?",

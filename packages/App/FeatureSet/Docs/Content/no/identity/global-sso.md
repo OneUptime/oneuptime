@@ -51,7 +51,7 @@ På siden til leverandøren viser kortet **Identity Provider URL** **Redirect UR
 
 ### Slå på leverandøren
 
-En ny leverandør starter avslått. Klikk på **Edit Configuration** på siden til leverandøren, og slå på **Aktivert**. **Aktiver** i leverandørens rad på **Enkel pålogging** gjør det samme.
+En ny leverandør starter avslått. Klikk på **Edit Configuration** på siden til leverandøren, og slå på **Aktivert**.
 
 Å slå på en global leverandør legger den bare til blant påloggingssidens valg for enkel pålogging — den håndhever aldri SSO og stenger ingen ute, så det er trygt å slå den på, teste den og slå den av igjen om nødvendig. Så lenge hele instansen krever SSO, tilbyr påloggingssiden likevel bare leverandørene som er slått på: test en leverandør før du krever SSO.
 

@@ -18,8 +18,7 @@ import path from "path";
  * so an entry is what decides whether a string is translated.
  *
  *   - Settings > Single Sign-On lists the server's SAML and OIDC providers,
- *     each with Test Sign-in, Enable and Disable in its row (Enable and
- *     Disable worded as the Dashboard words them), and under them the instance-wide
+ *     each with Test Sign-in in its row, and under them the instance-wide
  *     "Require SSO for Login" switch, in every edition. The switch asks
  *     before it turns on, and names the address master admins sign in at
  *     while SSO is required. Every string of the page, of the switch's card
@@ -37,8 +36,7 @@ import path from "path";
  *   - Single sign-on never depends on a license, so no screen offers the
  *     "disable a provider while the license is lapsed" action any more. Its
  *     strings are gone from all 17 locales, and nothing the Admin Dashboard
- *     renders uses them. (A provider's row switch says Disable again: any
- *     time, as a project's providers do.)
+ *     renders uses them.
  */
 
 const ADMIN_SRC: string = path.join(
@@ -66,29 +64,6 @@ const AUTHENTICATION_PAGE: string = path.join(
   "Settings",
   "Authentication",
   "Index.tsx",
-);
-
-// The row switch's actions: Enable and Disable, the Dashboard's words.
-const SWITCH_ACTIONS_SOURCE: string = path.join(
-  __dirname,
-  "..",
-  "..",
-  "..",
-  "Common",
-  "UI",
-  "Components",
-  "BulkUpdate",
-  "BulkSwitchActions.tsx",
-);
-
-const DASHBOARD_LOCALES_DIR: string = path.join(
-  __dirname,
-  "..",
-  "..",
-  "FeatureSet",
-  "Dashboard",
-  "src",
-  "Locales",
 );
 
 const COMMON_UI: string = path.join(
@@ -147,10 +122,10 @@ const SSO_CARD_STRINGS: Array<string> = [
 
 /*
  * The rest of Settings > Single Sign-On, in the order the locales keep it:
- * the line at the top, the two tables' lines and nouns, the rows' switch
- * (Enable, Disable) and Test Sign-in, the Sign Up card's line on Settings >
- * Authentication while SSO is required, and what the tables build from
- * their nouns - the Add button and the line while a table is empty.
+ * the line at the top, the two tables' lines and nouns, the rows' Test
+ * Sign-in, the Sign Up card's line on Settings > Authentication while SSO is
+ * required, and what the tables build from their nouns - the Add button and
+ * the line while a table is empty.
  */
 const SSO_PAGE_STRINGS: Array<string> = [
   "Single sign-on for this server",
@@ -161,8 +136,6 @@ const SSO_PAGE_STRINGS: Array<string> = [
   "SAML Providers",
   "OIDC Provider",
   "OIDC Providers",
-  "Enable",
-  "Disable",
   "Test Sign-in",
   "While SSO is required, people get their account by signing in with SSO or by an invitation, not by signing up.",
   "Add SAML Provider",
@@ -230,10 +203,11 @@ const RETIRED_PROVIDER_STRINGS: Array<string> = [
   "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.",
 ];
 
-const RETIRED_KEYS: Array<string> = [...RETIRED_PROVIDER_STRINGS];
-
-// The row switch's two actions, on a provider's row (rowSwitch).
-const ROW_SWITCH_WORDS: Array<string> = ["Enable", "Disable"];
+/*
+ * The Admin Dashboard had no "Disable" string before that action added one,
+ * and has none now. (The Dashboard's own "Disable" entry stays.)
+ */
+const RETIRED_KEYS: Array<string> = [...RETIRED_PROVIDER_STRINGS, "Disable"];
 
 // What a sentence may end with, per script.
 const SENTENCE_ENDINGS: Array<string> = [".", "。", "।"];
@@ -553,7 +527,6 @@ describe("Settings > Single Sign-On: the page's other strings", () => {
     expect(
       [
         ...pageCopy,
-        ...ROW_SWITCH_WORDS,
         SIGN_UP_WHILE_SSO_REQUIRED,
         `Add ${SSO_PAGE_COPY.samlProvider}`,
         `Add ${SSO_PAGE_COPY.oidcProvider}`,
@@ -582,7 +555,6 @@ describe("Settings > Single Sign-On: the page's other strings", () => {
       "description: SSO_PAGE_COPY.oidcCardDescription,",
       "title: SSO_PAGE_COPY.testSignIn,",
       'createVerb="Add"',
-      'rowSwitch={{ column: "isEnabled" }}',
     ]) {
       expect({ wiring, used: pageCode.includes(wiring) }).toEqual({
         wiring,
@@ -640,43 +612,6 @@ describe("Settings > Single Sign-On: the page's other strings", () => {
       });
     }
   });
-
-  // Each table's row switch: Enable or Disable, as every row switch says it.
-  test("both tables switch their rows, with the shared Enable and Disable", () => {
-    expect(
-      pageCode.split('rowSwitch={{ column: "isEnabled" }}').length - 1,
-    ).toBe(2);
-
-    const switchActions: string = fs.readFileSync(
-      SWITCH_ACTIONS_SOURCE,
-      "utf8",
-    );
-
-    for (const word of ROW_SWITCH_WORDS) {
-      expect(switchActions).toContain(`title: "${word}",`);
-    }
-  });
-
-  test.each(ALL_LOCALES)(
-    "%s words Enable and Disable as the Dashboard does",
-    (locale: string) => {
-      const dashboard: Locale = JSON.parse(
-        fs.readFileSync(
-          path.join(DASHBOARD_LOCALES_DIR, `${locale}.json`),
-          "utf8",
-        ),
-      ) as Locale;
-      const entries: Locale = readLocale(locale);
-
-      for (const word of ROW_SWITCH_WORDS) {
-        expect({ word, admin: entries[word] }).toEqual({
-          word,
-          admin: dashboard[word],
-        });
-        expect(typeof entries[word]).toBe("string");
-      }
-    },
-  );
 
   test("every locale keeps the page's entries together, right before the card's", () => {
     for (const locale of ALL_LOCALES) {

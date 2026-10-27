@@ -51,7 +51,7 @@ Na página do provedor, o cartão **Identity Provider URL** mostra a **Redirect 
 
 ### Ligar o provedor
 
-Um provedor novo começa desligado. Clique em **Edit Configuration** na página do provedor e ative **Habilitado**. **Ativar** na linha do provedor em **Login único** faz o mesmo.
+Um provedor novo começa desligado. Clique em **Edit Configuration** na página do provedor e ative **Habilitado**.
 
 Ligar um provedor global apenas o adiciona às opções de login único da página de login — ele nunca impõe o SSO nem bloqueia ninguém, então é seguro ligá-lo, testá-lo e desligá-lo de novo se precisar. Enquanto a instância inteira exige SSO, porém, a página de login oferece só os provedores ligados: teste um provedor antes de exigir SSO.
 

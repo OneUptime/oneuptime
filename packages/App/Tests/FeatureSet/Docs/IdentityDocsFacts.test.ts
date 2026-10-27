@@ -1049,13 +1049,13 @@ describe("the Global SSO guide", () => {
     expect(source.split('createVerb="Add"').length - 1).toBe(2);
     expect(page).not.toMatch(/\*\*Create Global (SSO|OIDC)\*\*/);
 
-    // Each row: its switch (Enable / Disable) and Test Sign-in.
-    expect(source.split('rowSwitch={{ column: "isEnabled" }}').length - 1).toBe(
-      2,
-    );
-    expect(page).toContain(
-      "**Enable** in the provider's row on **Single Sign-On** does the same.",
-    );
+    /*
+     * Each row: Test Sign-in. A provider is turned on and off on its own
+     * page, as the steps say (RowActionsAudit keeps the switch out of the
+     * rows: turning one off ends every sign-in it gave).
+     */
+    expect(source).not.toContain("rowSwitch=");
+    expect(page).not.toContain("**Enable**");
     expect(SSO_PAGE_COPY.testSignIn).toBe("Test Sign-in");
     expect(source.split("title: SSO_PAGE_COPY.testSignIn,").length - 1).toBe(2);
     expect(page).toContain(

@@ -51,7 +51,7 @@ Sur la page du fournisseur, la carte **Identity Provider URL** affiche la **Redi
 
 ### Activer le fournisseur
 
-Un nouveau fournisseur est désactivé au départ. Cliquez sur **Edit Configuration** sur la page du fournisseur et activez **Activé**. **Activer** dans la ligne du fournisseur sur **Authentification unique** fait de même.
+Un nouveau fournisseur est désactivé au départ. Cliquez sur **Edit Configuration** sur la page du fournisseur et activez **Activé**.
 
 Activer un fournisseur global l'ajoute seulement aux options d'authentification unique de la page de connexion — cela n'impose jamais le SSO et n'exclut personne ; vous pouvez donc l'activer, le tester et le désactiver sans risque si besoin. Tant que toute l'instance exige le SSO, en revanche, la page de connexion ne propose que les fournisseurs activés : testez un fournisseur avant d'exiger le SSO.
 

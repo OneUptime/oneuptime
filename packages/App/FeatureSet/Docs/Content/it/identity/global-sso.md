@@ -51,7 +51,7 @@ Nella pagina del provider, la scheda **Identity Provider URL** mostra la **Redir
 
 ### Attivare il provider
 
-Un nuovo provider parte disattivato. Fai clic su **Edit Configuration** nella pagina del provider e attiva **Abilitato**. **Attiva** nella riga del provider su **Single sign-on** fa lo stesso.
+Un nuovo provider parte disattivato. Fai clic su **Edit Configuration** nella pagina del provider e attiva **Abilitato**.
 
 Attivare un provider globale lo aggiunge solo alle opzioni di single sign-on della pagina di accesso: non impone mai l'SSO né esclude qualcuno, quindi puoi attivarlo, provarlo e disattivarlo di nuovo senza rischi se serve. Finché l'intera istanza richiede l'SSO, però, la pagina di accesso offre solo i provider attivi: prova un provider prima di richiedere l'SSO.
 

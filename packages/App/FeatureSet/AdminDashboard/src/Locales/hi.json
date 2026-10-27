@@ -848,8 +848,6 @@
   "SAML Providers": "SAML प्रदाता",
   "OIDC Provider": "OIDC प्रदाता",
   "OIDC Providers": "OIDC प्रदाता",
-  "Enable": "सक्षम करें",
-  "Disable": "अक्षम करें",
   "Test Sign-in": "साइन इन जाँचें",
   "While SSO is required, people get their account by signing in with SSO or by an invitation, not by signing up.": "जब तक SSO अनिवार्य है, लोगों को खाता साइन अप से नहीं, बल्कि SSO से साइन इन करके या आमंत्रण से मिलता है।",
   "Add SAML Provider": "SAML प्रदाता जोड़ें",

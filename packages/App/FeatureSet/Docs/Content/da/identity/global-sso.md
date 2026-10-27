@@ -51,7 +51,7 @@ På udbyderens side viser kortet **Identity Provider URL** **Redirect URI (Callb
 
 ### Slå udbyderen til
 
-En ny udbyder starter slået fra. Klik på **Edit Configuration** på udbyderens side, og slå **Aktiveret** til. **Aktivér** i udbyderens række på **Single sign-on** gør det samme.
+En ny udbyder starter slået fra. Klik på **Edit Configuration** på udbyderens side, og slå **Aktiveret** til.
 
 At slå en global udbyder til føjer den kun til loginsidens single sign-on-muligheder — den gennemtvinger aldrig SSO og udelukker ingen, så den er sikker at slå til, teste og slå fra igen, hvis det er nødvendigt. Så længe hele instansen kræver SSO, tilbyder loginsiden dog kun de udbydere, der er slået til: test en udbyder, før du kræver SSO.
 

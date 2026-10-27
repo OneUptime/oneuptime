@@ -51,7 +51,7 @@ På leverantörens sida visar kortet **Identity Provider URL** **Redirect URI (C
 
 ### Slå på leverantören
 
-En ny leverantör börjar avstängd. Klicka på **Edit Configuration** på leverantörens sida och slå på **Aktiverad**. **Aktivera** på leverantörens rad på **Enkel inloggning** gör samma sak.
+En ny leverantör börjar avstängd. Klicka på **Edit Configuration** på leverantörens sida och slå på **Aktiverad**.
 
 Att slå på en global leverantör lägger bara till den bland inloggningssidans alternativ för enkel inloggning — den tvingar aldrig fram SSO och stänger aldrig ute någon, så det är säkert att slå på den, testa den och stänga av den igen vid behov. Så länge hela instansen kräver SSO erbjuder inloggningssidan dock bara de leverantörer som är påslagna: testa en leverantör innan du kräver SSO.
 

@@ -50,9 +50,11 @@ import { useTranslation } from "react-i18next";
  * provider keeps its own page - its URLs for the identity provider, the
  * projects attached to it, its test link.
  *
- * A provider is turned on and off in its row (Enable or Disable in the ⋯
- * menu), and Test Sign-in in its row starts a sign-in with it in a new tab:
- * the step to take before requiring SSO, which the Require SSO card says.
+ * A provider is turned on and off on its own page, as before: turning one
+ * off ends every sign-in it gave, in every project on the server, so it is
+ * no one-click row action (RowActionsAudit). Test Sign-in in its row starts
+ * a sign-in with it in a new tab: the step to take before requiring SSO,
+ * which the Require SSO card says.
  * The card also names the master admins' way in, /accounts/admin-login:
  * while SSO is required the sign-in page offers only SSO, and only master
  * admins sign in with a password (SsoRequiredSignIn).
@@ -138,8 +140,6 @@ const SsoSettings: FunctionComponent = (): ReactElement => {
         isEditable={false}
         isViewable={true}
         isCreateable={true}
-        // Enable or Disable in each row's ⋯ menu: the one that changes the row.
-        rowSwitch={{ column: "isEnabled" }}
         /*
          * "Add SAML Provider", and "No SAML providers yet" while it has
          * none: what the card holds, beside the OIDC providers' card - as a
@@ -256,7 +256,6 @@ const SsoSettings: FunctionComponent = (): ReactElement => {
         isEditable={false}
         isViewable={true}
         isCreateable={true}
-        rowSwitch={{ column: "isEnabled" }}
         singularName={SSO_PAGE_COPY.oidcProvider}
         pluralName={SSO_PAGE_COPY.oidcProviders}
         createVerb="Add"

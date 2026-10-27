@@ -51,7 +51,7 @@ On the provider's page, the **Identity Provider URL** card shows the **Redirect 
 
 ### Turn the provider on
 
-A new provider starts switched off. Click **Edit Configuration** on the provider's page and turn **Enabled** on. **Enable** in the provider's row on **Single Sign-On** does the same.
+A new provider starts switched off. Click **Edit Configuration** on the provider's page and turn **Enabled** on.
 
 Enabling a global provider only adds it to the sign-in page's single sign-on options — it never forces SSO or locks anyone out, so it is safe to enable, test, and disable again if needed. While the whole instance requires SSO, though, the providers that are on are all the sign-in page offers: test a provider before you require SSO.
 
