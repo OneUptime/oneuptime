@@ -1,5 +1,6 @@
 import CommonAPI from "./CommonAPI";
 import UserMiddleware from "../Middleware/UserAuthorization";
+import AccessTokenService from "../Services/AccessTokenService";
 import ProjectSCIMService from "../Services/ProjectSCIMService";
 import TeamMemberService, {
   TeamMemberService as TeamMemberServiceType,
@@ -21,6 +22,7 @@ import Email from "../../Types/Email";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
+import UserType from "../../Types/UserType";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import User from "../../Models/DatabaseModels/User";
 
@@ -201,6 +203,8 @@ export default class TeamMemberAPI extends BaseAPI<
             select: {
               userId: true,
               projectId: true,
+              teamId: true,
+              hasAcceptedInvitation: true,
             },
           });
 
@@ -249,6 +253,43 @@ export default class TeamMemberAPI extends BaseAPI<
                   "Team membership is managed by SCIM Push Groups for this project. Please contact your administrator to be removed.",
                 ),
               );
+            }
+          }
+
+          /*
+           * Leaving a team lifts its blocks from the person who leaves, so
+           * it is held to what a removal by anyone else is held to
+           * (TeamMemberService.assertRemoverMayLiftBlocks) - with the
+           * leaver's own permissions in the team's project, whatever project
+           * the request names. A pending invitation holds no permissions,
+           * and a master admin may lift any block. The membership is then
+           * removed as root: a member needs no permission to manage teams to
+           * leave one.
+           */
+          if (
+            teamMember.projectId &&
+            teamMember.hasAcceptedInvitation &&
+            oneUptimeRequest.userType !== UserType.MasterAdmin
+          ) {
+            teamMember.id = teamMemberId;
+
+            try {
+              await this.service.assertRemoverMayLiftBlocks({
+                members: [teamMember],
+                props:
+                  await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
+                    {
+                      userId: userId,
+                      projectId: teamMember.projectId,
+                    },
+                  ),
+              });
+            } catch (err) {
+              if (err instanceof NotAuthorizedException) {
+                return Response.sendErrorResponse(req, res, err);
+              }
+
+              throw err;
             }
           }
 

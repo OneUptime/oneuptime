@@ -232,6 +232,7 @@ async function callRoute(data: {
 interface Spy {
   mock: { calls: Array<Array<unknown>> };
   mockImplementation: (implementation: (...args: Array<any>) => any) => unknown;
+  mockClear: () => unknown;
 }
 
 function spyOn<K extends string, T extends Record<K, unknown>>(

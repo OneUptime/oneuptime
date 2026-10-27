@@ -475,14 +475,14 @@
                 <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Detection Rules</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Detections as code, written in Sigma</h3>
-              <p class="mt-4 text-lg text-gray-600">Paste a Sigma rule, or start from the Rule Library: 47 ready-made rules for identity, endpoint, cloud, network, web and Kubernetes threats, written for the fields every source is normalized to. The 20 marked Recommended read data most projects already have, and one click adds them. Pick an interval between one minute and 24 hours; OneUptime parses and compiles the rule when you save it, so a broken rule fails in front of the person editing it rather than silently at 3 AM. Field names can be OneUptime columns, common Sigma spellings like <span class="font-mono text-sm text-gray-700">CommandLine</span> or <span class="font-mono text-sm text-gray-700">src_ip</span>, or any flattened key from the original payload. Group By, Distinct Count and a Match Count Threshold turn a rule into &ldquo;ten failed sign-ins from one IP&rdquo; or &ldquo;one IP against five accounts&rdquo;, with one detection per host, user or IP instead of one per event.</p>
+              <p class="mt-4 text-lg text-gray-600">Paste a Sigma rule, or start from the Rule Library: 60 ready-made rules for identity, endpoint, cloud, network, web and Kubernetes threats, written for the fields every source is normalized to. The 25 marked Recommended read data most projects already have, and one click adds them. Pick an interval between one minute and 24 hours; OneUptime parses and compiles the rule when you save it, so a broken rule fails in front of the person editing it rather than silently at 3 AM. Field names can be OneUptime columns, common Sigma spellings like <span class="font-mono text-sm text-gray-700">CommandLine</span> or <span class="font-mono text-sm text-gray-700">src_ip</span>, or any flattened key from the original payload. Group By, Distinct Count and a Match Count Threshold turn a rule into &ldquo;ten failed sign-ins from one IP&rdquo; or &ldquo;one IP against five accounts&rdquo;, with one detection per host, user or IP instead of one per event.</p>
               <p class="mt-4 text-lg text-gray-600">Sigma correlations join rules into what one event cannot show: failed sign-ins followed by a success from the same address, an account given admin rights within an hour of being created, or a sign-in from an address the account never used.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  47 ready-made rules, 20 recommended to start with
+                  60 ready-made rules, 25 recommended to start with
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -738,13 +738,13 @@
                 <span class="text-sm font-semibold text-red-600 uppercase tracking-wide">Playbooks</span>
               </div>
               <h3 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">Playbooks that respond, with a person in the loop where it matters</h3>
-              <p class="mt-4 text-lg text-gray-600">A playbook is a list of steps that runs as a case opens, each time a detection joins one, when OneUptime AI triages a case as Likely Malicious, or when someone clicks Run Playbook. Its 21 actions are the work an analyst would otherwise do by hand: assign and prioritize the case, check its entities against threat intel, email people, post to Slack or Microsoft Teams, page on-call, declare an incident, send a webhook or start a workflow. Four of them contain the threat: suspend the user or end their sessions in Okta, network-contain the host in CrowdStrike Falcon, or isolate the device in Microsoft Defender for Endpoint. Those act outside OneUptime, so by default they wait on the case until someone approves them. Three more undo one from the run: unsuspend the user in Okta, lift the containment in CrowdStrike, or release the device in Microsoft Defender - an ended session stays ended.</p>
+              <p class="mt-4 text-lg text-gray-600">A playbook is a list of steps that runs as a case opens, each time a detection joins one, when OneUptime AI triages a case as Likely Malicious, or when someone clicks Run Playbook. Its 25 actions are the work an analyst would otherwise do by hand: assign and prioritize the case, check its entities against threat intel, keep the evidence past its retention, email people, post to Slack, Microsoft Teams or your status pages, page on-call, declare an incident, send a webhook, start a workflow or a runbook, or have OneUptime AI open a pull request that fixes the code behind the exceptions the attack's requests threw. Four of them contain the threat: suspend the user or end their sessions in Okta, network-contain the host in CrowdStrike Falcon, or isolate the device in Microsoft Defender for Endpoint. Those act outside OneUptime, so by default they wait on the case until someone approves them, as a status page announcement and a runbook do. Three more undo one from the run: unsuspend the user in Okta, lift the containment in CrowdStrike, or release the device in Microsoft Defender - an ended session stays ended.</p>
               <ul class="mt-6 space-y-3">
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                   </svg>
-                  21 actions to enrich, notify, escalate, contain &amp; automate
+                  25 actions to enrich, notify, escalate, contain &amp; automate
                 </li>
                 <li class="flex items-center gap-3 text-gray-600">
                   <svg class="h-5 w-5 text-red-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

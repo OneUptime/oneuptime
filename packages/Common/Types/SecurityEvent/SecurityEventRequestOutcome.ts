@@ -41,9 +41,9 @@ export function isSecurityEventRequestOutcome(
 ): value is SecurityEventRequestOutcome {
   return (
     typeof value === "string" &&
-    (SECURITY_EVENT_REQUEST_OUTCOMES_IN_ORDER as ReadonlyArray<string>).includes(
-      value,
-    )
+    (
+      SECURITY_EVENT_REQUEST_OUTCOMES_IN_ORDER as ReadonlyArray<string>
+    ).includes(value)
   );
 }
 

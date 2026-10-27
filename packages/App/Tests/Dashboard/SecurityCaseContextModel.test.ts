@@ -154,11 +154,21 @@ describe("reading a story", () => {
             unknownLink: "dropped",
           },
         },
-        { key: "milestone", kind: "Milestone", time: TIME, milestone: "Closed" },
+        {
+          key: "milestone",
+          kind: "Milestone",
+          time: TIME,
+          milestone: "Closed",
+        },
         { key: "bad-kind", kind: "Nonsense", time: TIME },
         { key: "no-time", kind: "Note" },
         "not an item",
-        { key: "bad-milestone", kind: "Milestone", time: TIME, milestone: "Gone" },
+        {
+          key: "bad-milestone",
+          kind: "Milestone",
+          time: TIME,
+          milestone: "Gone",
+        },
       ],
       truncatedSources: ["Events", "Nonsense"],
       unreadableSources: ["Exceptions"],
@@ -238,13 +248,28 @@ describe("reading an impact", () => {
           certainty: "Possible",
           inventoryItemId: "item-1",
           calls: [
-            { key: "service:payments", name: "payments", type: "Service", callCount: 4, errorCount: 0 },
+            {
+              key: "service:payments",
+              name: "payments",
+              type: "Service",
+              callCount: 4,
+              errorCount: 0,
+            },
             { name: "no key" },
           ],
           calledBy: null,
           runsOn: "not a list",
-          monitors: { count: 2, items: [{ id: "m-1", title: "API", stateName: "Online" }, { title: "no id" }] },
-          owners: { teams: [{ id: "t-1", name: "Payments" }], users: [{ name: "no id" }] },
+          monitors: {
+            count: 2,
+            items: [
+              { id: "m-1", title: "API", stateName: "Online" },
+              { title: "no id" },
+            ],
+          },
+          owners: {
+            teams: [{ id: "t-1", name: "Payments" }],
+            users: [{ name: "no id" }],
+          },
           lastChange: {
             id: "c-1",
             time: TIME,
@@ -263,13 +288,25 @@ describe("reading an impact", () => {
         { name: "no id" },
       ],
       flowPeers: [
-        { caseAddress: "203.0.113.7", peerAddress: "10.0.3.17", direction: "in", bytes: 100, packets: 2, lastSeen: TIME },
+        {
+          caseAddress: "203.0.113.7",
+          peerAddress: "10.0.3.17",
+          direction: "in",
+          bytes: 100,
+          packets: 2,
+          lastSeen: TIME,
+        },
         { caseAddress: "203.0.113.7" },
       ],
       internet: {
         exposure: "Yes",
         evidence: [
-          { kind: "PublicRequestReachedApp", address: "203.0.113.7", time: TIME, requestOutcome: "Errored" },
+          {
+            kind: "PublicRequestReachedApp",
+            address: "203.0.113.7",
+            time: TIME,
+            requestOutcome: "Errored",
+          },
           { kind: "Guess", address: "1.2.3.4" },
         ],
       },
@@ -364,17 +401,19 @@ describe("reading an impact", () => {
 
 describe("what a story item opens", () => {
   test("a run of events opens the request's trace at its span, and the events around it", () => {
-    const links: Array<{ key: string; route: Route }> = model.getStoryItemLinks({
-      item: item({
-        endTime: "2026-10-27T06:45:00.000Z",
-        links: {
-          traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
-          spanId: "00f067aa0ba902b7",
-          observable: "203.0.113.7",
-        },
-      }),
-      caseId: CASE_ID,
-    });
+    const links: Array<{ key: string; route: Route }> = model.getStoryItemLinks(
+      {
+        item: item({
+          endTime: "2026-10-27T06:45:00.000Z",
+          links: {
+            traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+            spanId: "00f067aa0ba902b7",
+            observable: "203.0.113.7",
+          },
+        }),
+        caseId: CASE_ID,
+      },
+    );
 
     expect(
       links.map((link: { key: string }): string => {
@@ -397,17 +436,19 @@ describe("what a story item opens", () => {
   });
 
   test("an exception opens its group, when the reader may read it", () => {
-    const links: Array<{ key: string; route: Route }> = model.getStoryItemLinks({
-      item: item({
-        kind: SecurityCaseStoryItemKind.Exception,
-        links: {
-          exceptionId: EXCEPTION_ID,
-          exceptionFingerprint: "fp",
-          traceId: "trace-1",
-        },
-      }),
-      caseId: CASE_ID,
-    });
+    const links: Array<{ key: string; route: Route }> = model.getStoryItemLinks(
+      {
+        item: item({
+          kind: SecurityCaseStoryItemKind.Exception,
+          links: {
+            exceptionId: EXCEPTION_ID,
+            exceptionFingerprint: "fp",
+            traceId: "trace-1",
+          },
+        }),
+        caseId: CASE_ID,
+      },
+    );
 
     expect(
       links.map((link: { key: string }): string => {
@@ -560,18 +601,32 @@ describe("laying a story out", () => {
   });
 
   test("colours an item by how far its requests got, then by what it is", () => {
-    expect(model.getStoryItemTone(item({ requestOutcome: "Reached Database" }))).toBe("red");
-    expect(model.getStoryItemTone(item({ requestOutcome: "Errored" }))).toBe("red");
-    expect(model.getStoryItemTone(item({ requestOutcome: "Reached App" }))).toBe("amber");
-    expect(model.getStoryItemTone(item({ requestOutcome: "Rejected" }))).toBe("gray");
+    expect(
+      model.getStoryItemTone(item({ requestOutcome: "Reached Database" })),
+    ).toBe("red");
+    expect(model.getStoryItemTone(item({ requestOutcome: "Errored" }))).toBe(
+      "red",
+    );
+    expect(
+      model.getStoryItemTone(item({ requestOutcome: "Reached App" })),
+    ).toBe("amber");
+    expect(model.getStoryItemTone(item({ requestOutcome: "Rejected" }))).toBe(
+      "gray",
+    );
     expect(
       model.getStoryItemTone(
-        item({ kind: SecurityCaseStoryItemKind.Detection, severityName: "High" }),
+        item({
+          kind: SecurityCaseStoryItemKind.Detection,
+          severityName: "High",
+        }),
       ),
     ).toBe("red");
     expect(
       model.getStoryItemTone(
-        item({ kind: SecurityCaseStoryItemKind.Detection, severityName: "Low" }),
+        item({
+          kind: SecurityCaseStoryItemKind.Detection,
+          severityName: "Low",
+        }),
       ),
     ).toBe("amber");
     expect(
@@ -689,7 +744,9 @@ describe("the facts the Impact card leads with", () => {
   test("finds the status pages a record's monitors are shown on, and opens them", () => {
     expect(
       model.getRecordStatusPages(
-        record({ monitors: { count: 1, items: [{ id: "m-1", title: "API" }] } }),
+        record({
+          monitors: { count: 1, items: [{ id: "m-1", title: "API" }] },
+        }),
         [
           { id: STATUS_PAGE_ID, name: "Acme", monitorIds: ["m-1"] },
           { id: "other", name: "Other", monitorIds: ["m-9"] },
@@ -709,9 +766,30 @@ describe("the facts the Impact card leads with", () => {
       model
         .getTopFlowPeers(
           [
-            { caseAddress: "a", peerAddress: "x", direction: "out", bytes: 10, packets: 1, lastSeen: null },
-            { caseAddress: "a", peerAddress: "y", direction: "in", bytes: 900, packets: 1, lastSeen: null },
-            { caseAddress: "a", peerAddress: "z", direction: "out", bytes: 50, packets: 1, lastSeen: null },
+            {
+              caseAddress: "a",
+              peerAddress: "x",
+              direction: "out",
+              bytes: 10,
+              packets: 1,
+              lastSeen: null,
+            },
+            {
+              caseAddress: "a",
+              peerAddress: "y",
+              direction: "in",
+              bytes: 900,
+              packets: 1,
+              lastSeen: null,
+            },
+            {
+              caseAddress: "a",
+              peerAddress: "z",
+              direction: "out",
+              bytes: 50,
+              packets: 1,
+              lastSeen: null,
+            },
           ],
           2,
         )
