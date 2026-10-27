@@ -68,6 +68,25 @@ export function formatOffsetNano(nanoseconds: number): string {
   return `+${formatDurationNano(nanoseconds)}`;
 }
 
+/** The badge colours of a log line's severity in the span panel. */
+export function getLogSeverityClassName(severity: string): string {
+  const value: string = severity.toLowerCase();
+  if (
+    value.startsWith("err") ||
+    value.startsWith("fatal") ||
+    value.startsWith("crit")
+  ) {
+    return "bg-red-50 text-red-700";
+  }
+  if (value.startsWith("warn")) {
+    return "bg-amber-50 text-amber-700";
+  }
+  if (value.startsWith("debug") || value.startsWith("trace")) {
+    return "bg-gray-100 text-gray-600";
+  }
+  return "bg-sky-50 text-sky-700";
+}
+
 /** A share of a whole: "0%", "<1%", "7.5%", "42%", "100%". */
 export function formatPercent(value: number): string {
   if (!Number.isFinite(value) || value <= 0) {

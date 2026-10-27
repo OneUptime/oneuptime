@@ -66,13 +66,17 @@ import {
   formatDurationNano,
   formatOffsetNano,
   formatPercent,
+  getLogSeverityClassName,
   getSpanTiming,
   pluralize,
 } from "../../../Utils/TraceDetailPresentation";
+import { getPodNameFromSpanAttributes } from "../../../Utils/TracePodLogs";
 import { SpanSubtreeIds, WaterfallSpan } from "../../../Utils/TraceWaterfall";
 import { makeSpanSignalId } from "../../SessionReplay/Rail/ReplaySignalTypes";
 import LlmSpanPanel from "../LlmSpanPanel";
 import TraceScopedFlamegraph from "../TraceScopedFlamegraph";
+import SpanPodExceptions from "./SpanPodExceptions";
+import SpanPodLogs from "./SpanPodLogs";
 
 export interface ComponentProps {
   traceId: string;
@@ -107,24 +111,6 @@ type PanelTab =
 const LOG_LIMIT: number = 200;
 const EXCEPTION_LIMIT: number = 50;
 const ATTRIBUTE_FILTER_THRESHOLD: number = 8;
-
-function getSeverityClassName(severity: string): string {
-  const value: string = severity.toLowerCase();
-  if (
-    value.startsWith("err") ||
-    value.startsWith("fatal") ||
-    value.startsWith("crit")
-  ) {
-    return "bg-red-50 text-red-700";
-  }
-  if (value.startsWith("warn")) {
-    return "bg-amber-50 text-amber-700";
-  }
-  if (value.startsWith("debug") || value.startsWith("trace")) {
-    return "bg-gray-100 text-gray-600";
-  }
-  return "bg-sky-50 text-sky-700";
-}
 
 /*
  * Everything about one span, docked beside the waterfall: timing against the
@@ -468,6 +454,17 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
     }
   }, [activeTab, profileSampleCount, isLlmSpan, isDetailLoading]);
 
+  /*
+   * The pod the span ran in, when it ran in one: the Logs and Exceptions tabs
+   * also read what that pod wrote and raised meanwhile, which is all an eBPF
+   * span has.
+   */
+  const podEntityKey: string =
+    span.startTimeUnixNano > 0 ? span.k8sPodEntityKey || "" : "";
+  const podName: string = getPodNameFromSpanAttributes(
+    fullSpan?.attributes as JSONObject | undefined,
+  );
+
   const statusMessage: string = fullSpan?.statusMessage?.toString() || "";
   const exceptionEventCount: number = events.filter((event: SpanEventRow) => {
     return event.isException;
@@ -552,6 +549,100 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
       <div className="flex h-24 items-center justify-center">
         <ComponentLoader />
       </div>
+    );
+  };
+
+  // The exceptions recorded on this span.
+  const renderLinkedExceptions: () => ReactElement = (): ReactElement => {
+    return (
+      <ul className="space-y-2" data-testid="span-exceptions">
+        {exceptions.map(
+          (exception: ExceptionInstance, index: number): ReactElement => {
+            const groupRoute: Route | null = exception.fingerprint
+              ? buildExceptionsGroupRoute({
+                  exceptionsListRoute: RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.EXCEPTIONS_UNRESOLVED]!,
+                  ),
+                  fingerprint: exception.fingerprint.toString(),
+                })
+              : null;
+            return (
+              <li
+                key={index}
+                className="rounded-md border border-red-200 bg-red-50/60 px-3 py-2"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    {exception.exceptionType && (
+                      <div className="font-mono text-[11px] font-semibold text-red-700">
+                        {exception.exceptionType}
+                      </div>
+                    )}
+                    <div className="break-words text-xs text-gray-900">
+                      {exception.message || "Exception"}
+                    </div>
+                  </div>
+                  {groupRoute && (
+                    <Link
+                      to={groupRoute}
+                      openInNewTab={true}
+                      className="flex-none text-[11px] font-medium text-red-700 hover:underline"
+                    >
+                      View exception
+                    </Link>
+                  )}
+                </div>
+                {exception.stackTrace && (
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-[11px] font-medium text-red-700">
+                      Stack trace
+                    </summary>
+                    <pre className="mt-1 max-h-60 overflow-auto whitespace-pre rounded bg-white p-2 font-mono text-[11px] text-gray-800">
+                      {exception.stackTrace.replace(/\\n/g, "\n")}
+                    </pre>
+                  </details>
+                )}
+              </li>
+            );
+          },
+        )}
+      </ul>
+    );
+  };
+
+  // The logs that carry this span's ID.
+  const renderLinkedLogs: () => ReactElement = (): ReactElement => {
+    return (
+      <ul className="space-y-1" data-testid="span-logs">
+        {logs.map((log: Log, index: number): ReactElement => {
+          const severity: string = log.severityText?.toString() || "INFO";
+          const time: Date | null = log.time
+            ? OneUptimeDate.fromString(log.time as unknown as string)
+            : null;
+          return (
+            <li
+              key={index}
+              className="flex items-start gap-2 rounded-md border border-gray-100 bg-white px-2 py-1.5 font-mono text-[11px]"
+            >
+              <span
+                className={`flex-none rounded px-1 font-semibold uppercase ${getLogSeverityClassName(severity)}`}
+              >
+                {severity}
+              </span>
+              <span className="min-w-0 flex-1 break-words text-gray-800">
+                {log.body?.toString() || ""}
+              </span>
+              {time && (
+                <span className="flex-none text-gray-400">
+                  {OneUptimeDate.getLocalTimeString(time, {
+                    includeSeconds: true,
+                  })}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     );
   };
 
@@ -769,42 +860,25 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
             </div>
           );
         }
-        if (logs.length === 0) {
+        if (logs.length === 0 && !podEntityKey) {
           return renderEmpty(
             "No logs were written inside this span. The trace's logs are listed below the waterfall.",
           );
         }
         return (
-          <ul className="space-y-1" data-testid="span-logs">
-            {logs.map((log: Log, index: number): ReactElement => {
-              const severity: string = log.severityText?.toString() || "INFO";
-              const time: Date | null = log.time
-                ? OneUptimeDate.fromString(log.time as unknown as string)
-                : null;
-              return (
-                <li
-                  key={index}
-                  className="flex items-start gap-2 rounded-md border border-gray-100 bg-white px-2 py-1.5 font-mono text-[11px]"
-                >
-                  <span
-                    className={`flex-none rounded px-1 font-semibold uppercase ${getSeverityClassName(severity)}`}
-                  >
-                    {severity}
-                  </span>
-                  <span className="min-w-0 flex-1 break-words text-gray-800">
-                    {log.body?.toString() || ""}
-                  </span>
-                  {time && (
-                    <span className="flex-none text-gray-400">
-                      {OneUptimeDate.getLocalTimeString(time, {
-                        includeSeconds: true,
-                      })}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <div className="space-y-4">
+            {logs.length > 0 && renderLinkedLogs()}
+            {podEntityKey && (
+              <SpanPodLogs
+                key={spanId}
+                podEntityKey={podEntityKey}
+                podName={podName}
+                startTimeUnixNano={span.startTimeUnixNano}
+                endTimeUnixNano={span.endTimeUnixNano}
+                hasLinkedLogs={logs.length > 0}
+              />
+            )}
+          </div>
         );
 
       case "exceptions":
@@ -821,62 +895,23 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
             </div>
           );
         }
-        if (exceptions.length === 0) {
+        if (exceptions.length === 0 && !podEntityKey) {
           return renderEmpty("No exceptions were recorded on this span.");
         }
         return (
-          <ul className="space-y-2" data-testid="span-exceptions">
-            {exceptions.map(
-              (exception: ExceptionInstance, index: number): ReactElement => {
-                const groupRoute: Route | null = exception.fingerprint
-                  ? buildExceptionsGroupRoute({
-                      exceptionsListRoute: RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.EXCEPTIONS_UNRESOLVED]!,
-                      ),
-                      fingerprint: exception.fingerprint.toString(),
-                    })
-                  : null;
-                return (
-                  <li
-                    key={index}
-                    className="rounded-md border border-red-200 bg-red-50/60 px-3 py-2"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        {exception.exceptionType && (
-                          <div className="font-mono text-[11px] font-semibold text-red-700">
-                            {exception.exceptionType}
-                          </div>
-                        )}
-                        <div className="break-words text-xs text-gray-900">
-                          {exception.message || "Exception"}
-                        </div>
-                      </div>
-                      {groupRoute && (
-                        <Link
-                          to={groupRoute}
-                          openInNewTab={true}
-                          className="flex-none text-[11px] font-medium text-red-700 hover:underline"
-                        >
-                          View exception
-                        </Link>
-                      )}
-                    </div>
-                    {exception.stackTrace && (
-                      <details className="mt-2">
-                        <summary className="cursor-pointer text-[11px] font-medium text-red-700">
-                          Stack trace
-                        </summary>
-                        <pre className="mt-1 max-h-60 overflow-auto whitespace-pre rounded bg-white p-2 font-mono text-[11px] text-gray-800">
-                          {exception.stackTrace.replace(/\\n/g, "\n")}
-                        </pre>
-                      </details>
-                    )}
-                  </li>
-                );
-              },
+          <div className="space-y-4">
+            {exceptions.length > 0 && renderLinkedExceptions()}
+            {podEntityKey && (
+              <SpanPodExceptions
+                key={spanId}
+                podEntityKey={podEntityKey}
+                podName={podName}
+                startTimeUnixNano={span.startTimeUnixNano}
+                endTimeUnixNano={span.endTimeUnixNano}
+                hasLinkedExceptions={exceptions.length > 0}
+              />
             )}
-          </ul>
+          </div>
         );
 
       case "links":

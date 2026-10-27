@@ -25,10 +25,14 @@ import Span, {
   SpanKind,
   SpanStatus,
 } from "../../../Models/AnalyticsModels/Span";
+import InventoryItem from "../../../Models/DatabaseModels/InventoryItem";
 import Service from "../../../Models/DatabaseModels/Service";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import EntityType from "../../../Types/Telemetry/EntityType";
 import Color from "../../../Types/Color";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -264,6 +268,8 @@ interface SpanDefinition {
   durationMs: number;
   isError?: boolean;
   kind?: SpanKind;
+  // The pod the span ran in (k8sPodEntityKey); none outside Kubernetes.
+  podEntityKey?: string;
 }
 
 function makeSpan(definition: SpanDefinition): Span {
@@ -281,6 +287,7 @@ function makeSpan(definition: SpanDefinition): Span {
     startTimeUnixNano: start,
     endTimeUnixNano: start + definition.durationMs * MS,
     durationUnixNano: definition.durationMs * MS,
+    k8sPodEntityKey: definition.podEntityKey || "",
   });
 }
 
@@ -379,6 +386,13 @@ interface Backend {
   failTraceRead?: string;
   details?: Record<string, Partial<Span>>;
   logs?: Array<Log>;
+  // Every line the pods wrote, read by pod and time window.
+  podLogs?: Array<Log>;
+  // How many logs carry the trace's ID; a string fails the count with it.
+  linkedLogCount?: number | string;
+  inventoryItems?: Array<InventoryItem>;
+  // What the pods raised, as ingest extracts it from their log lines.
+  podExceptions?: Array<ExceptionInstance>;
   exceptions?: Array<ExceptionInstance>;
   holdTraceRead?: Promise<void>;
 }
@@ -428,7 +442,11 @@ beforeEach(() => {
 
   setBackend({ traceSpans: checkoutDefinitions().map(makeSpan) });
 
-  serviceListMock.mockImplementation(async () => {
+  serviceListMock.mockImplementation(async (args: ListArgs) => {
+    if (args.modelType === InventoryItem) {
+      const items: Array<InventoryItem> = backend.inventoryItems || [];
+      return { data: items, count: items.length, skip: 0, limit: args.limit };
+    }
     return { data: services(), count: 3, skip: 0, limit: 10000 };
   });
 
@@ -445,6 +463,16 @@ beforeEach(() => {
         );
       }
       return backend.totalCount ?? backend.traceSpans.length;
+    }
+    if (modelType === Log) {
+      if (typeof backend.linkedLogCount === "string") {
+        throw new HTTPErrorResponse(
+          500,
+          { message: backend.linkedLogCount },
+          {},
+        );
+      }
+      return backend.linkedLogCount ?? 0;
     }
     return 2;
   });
@@ -495,12 +523,61 @@ beforeEach(() => {
         hasMore,
       };
     }
+    if (args.modelType === Log && args.query["k8sPodEntityKey"]) {
+      // `time` is a DateTime64(9): compared to the nanosecond, both ends in.
+      const window: InBetween<Date> = args.query[
+        "time"
+      ] as unknown as InBetween<Date>;
+      const rows: Array<Log> = (backend.podLogs || [])
+        .filter((log: Log) => {
+          const time: number = Number(log.timeUnixNano);
+          return (
+            log.k8sPodEntityKey === args.query["k8sPodEntityKey"] &&
+            time >= window.startValue.getTime() * MS &&
+            time <= window.endValue.getTime() * MS
+          );
+        })
+        .sort((left: Log, right: Log) => {
+          return Number(left.timeUnixNano) - Number(right.timeUnixNano);
+        });
+      if (args.sort?.["time"] === SortOrder.Descending) {
+        rows.reverse();
+      }
+      return {
+        data: rows.slice(0, args.limit),
+        count: rows.length,
+        skip: 0,
+        limit: args.limit,
+      };
+    }
     if (args.modelType === Log) {
       return {
         data: backend.logs || [],
         count: (backend.logs || []).length,
         skip: 0,
         limit: 200,
+      };
+    }
+    if (args.modelType === ExceptionInstance && args.query["k8sPodEntityKey"]) {
+      // Compared on the `time` kept, which is to the second for these.
+      const window: InBetween<Date> = args.query[
+        "time"
+      ] as unknown as InBetween<Date>;
+      const rows: Array<ExceptionInstance> = (
+        backend.podExceptions || []
+      ).filter((exception: ExceptionInstance) => {
+        const time: number = (exception.time as Date).getTime();
+        return (
+          exception.k8sPodEntityKey === args.query["k8sPodEntityKey"] &&
+          time >= window.startValue.getTime() &&
+          time <= window.endValue.getTime()
+        );
+      });
+      return {
+        data: rows.slice(0, args.limit),
+        count: rows.length,
+        skip: 0,
+        limit: args.limit,
       };
     }
     if (args.modelType === ExceptionInstance) {
@@ -582,6 +659,7 @@ describe("loading the trace", () => {
         "durationUnixNano",
         "endTime",
         "endTimeUnixNano",
+        "k8sPodEntityKey",
         "kind",
         "name",
         "parentSpanId",
@@ -3504,5 +3582,465 @@ describe("related signals", () => {
     expect(
       screen.queryByTestId("trace-signal-tab-profile"),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * An eBPF (OBI) span carries no trace context into the lines its pod writes,
+ * so no log carries its trace's ID. What the pods wrote while the trace ran
+ * is read by pod and time instead: the span panel's Logs tab and the related
+ * signals' Logs tab both offer it, labelled as not linked by trace ID.
+ */
+describe("logs from the pods a trace ran in", () => {
+  const GATEWAY_POD: string = "0a1b2c3d4e5f6071";
+  const INVENTORY_POD: string = "7a2872b83f046399";
+
+  // The gateway and the inventory service ran in pods; checkout did not.
+  function podDefinitions(
+    pods: { gateway?: string; inventory?: string } = {
+      gateway: GATEWAY_POD,
+      inventory: INVENTORY_POD,
+    },
+  ): Array<SpanDefinition> {
+    return checkoutDefinitions().map(
+      (definition: SpanDefinition): SpanDefinition => {
+        if (definition.serviceId === GATEWAY && pods.gateway) {
+          return { ...definition, podEntityKey: pods.gateway };
+        }
+        if (definition.serviceId === INVENTORY && pods.inventory) {
+          return { ...definition, podEntityKey: pods.inventory };
+        }
+        return definition;
+      },
+    );
+  }
+
+  function podLog(
+    podEntityKey: string,
+    offsetMs: number,
+    body: string,
+    index: number,
+  ): Log {
+    return Object.assign(new Log(), {
+      _id: new ObjectID(
+        `30000000-0000-4000-8000-${index.toString().padStart(12, "0")}`,
+      ),
+      time: new Date(EPOCH_MS + offsetMs),
+      timeUnixNano: (EPOCH_MS + offsetMs) * MS,
+      severityText: "Information",
+      body,
+      k8sPodEntityKey: podEntityKey,
+    });
+  }
+
+  // UPDATE stock ran 150-350 ms into the trace, in the inventory pod.
+  function inventoryPodLogs(): Array<Log> {
+    return [
+      podLog(INVENTORY_POD, 120, "BEGIN", 1),
+      podLog(INVENTORY_POD, 160, "UPDATE stock SET count = count - 1", 2),
+      podLog(INVENTORY_POD, 345, "COMMIT", 3),
+      podLog(INVENTORY_POD, 420, "GET /health", 4),
+      podLog(INVENTORY_POD, 700, "outside the window", 5),
+      podLog(GATEWAY_POD, 200, "another pod's line", 6),
+    ];
+  }
+
+  function podReads(): Array<ListArgs> {
+    return getListMock.mock.calls
+      .map((call: [ListArgs]) => {
+        return call[0];
+      })
+      .filter((args: ListArgs) => {
+        return args.modelType === Log && Boolean(args.query["k8sPodEntityKey"]);
+      });
+  }
+
+  function lastLogsViewerProps(): Props {
+    return logsViewerProps.mock.calls[
+      logsViewerProps.mock.calls.length - 1
+    ]![0];
+  }
+
+  test("an eBPF span's Logs tab shows what its pod wrote around it, not linked by trace ID", async () => {
+    setBackend({
+      traceSpans: podDefinitions().map(makeSpan),
+      details: {
+        update: {
+          attributes: { "resource.k8s.pod.name": "inventory-7d9f-x2kq1" },
+          events: [],
+          links: [],
+          statusMessage: "",
+        },
+      },
+      podLogs: inventoryPodLogs(),
+    });
+    await renderTrace();
+
+    fireEvent.click(row("update"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-logs"));
+
+    const section: HTMLElement = await screen.findByTestId("span-pod-logs");
+    expect(section).toHaveTextContent("No logs carry this span's ID.");
+    expect(section).toHaveTextContent(
+      "Logs from this pod during this span (not linked by trace ID)",
+    );
+    expect(
+      await within(section).findByText("UPDATE stock SET count = count - 1"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("span-pod-logs-before")).getByText("BEGIN"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("span-pod-logs-during")).getByText("COMMIT"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("span-pod-logs-after")).getByText(
+        "GET /health",
+      ),
+    ).toBeInTheDocument();
+    expect(within(section).queryByText("outside the window")).toBeNull();
+    expect(within(section).queryByText("another pod's line")).toBeNull();
+    expect(screen.getByTestId("span-pod-logs-window")).toHaveTextContent(
+      "What inventory-7d9f-x2kq1 wrote from 100 ms before this span to 100 ms after it.",
+    );
+    expect(
+      screen.queryByText(/No logs were written inside this span/),
+    ).not.toBeInTheDocument();
+
+    const [before, fromStart] = podReads();
+    expect(podReads()).toHaveLength(2);
+    expect(before!.query["k8sPodEntityKey"]).toBe(INVENTORY_POD);
+    expect(String(before!.query["projectId"])).toBe(PROJECT_ID);
+    expect(before!.query["time"]).toEqual(
+      new InBetween<Date>(new Date(EPOCH_MS + 50), new Date(EPOCH_MS + 150)),
+    );
+    // The span's end, as makeSpan wrote it in nanoseconds, rounded outwards.
+    const spanEndMs: number = Math.ceil(
+      ((EPOCH_MS + 150) * MS + 200 * MS) / MS,
+    );
+    expect(fromStart!.query["time"]).toEqual(
+      new InBetween<Date>(new Date(EPOCH_MS + 150), new Date(spanEndMs + 100)),
+    );
+  });
+
+  test("a span whose logs carry its ID keeps its pod's lines folded below them", async () => {
+    setBackend({
+      traceSpans: podDefinitions().map(makeSpan),
+      logs: [
+        Object.assign(new Log(), {
+          time: new Date(EPOCH_MS + 160),
+          severityText: "WARN",
+          body: "retrying UPDATE after serialization failure",
+          spanId: "update",
+          traceId: TRACE_ID,
+        }),
+      ],
+      podLogs: inventoryPodLogs(),
+    });
+    await renderTrace();
+
+    fireEvent.click(row("update"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-logs"));
+
+    expect(
+      await screen.findByText("retrying UPDATE after serialization failure"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("span-panel-tab-logs")).toHaveTextContent("1");
+    expect(
+      screen.queryByText("No logs carry this span's ID."),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("span-pod-logs-toggle")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(podReads()).toHaveLength(0);
+
+    fireEvent.click(screen.getByTestId("span-pod-logs-toggle"));
+
+    expect(
+      await screen.findByText("UPDATE stock SET count = count - 1"),
+    ).toBeInTheDocument();
+    expect(podReads()).toHaveLength(2);
+  });
+
+  test("a trace no log carries opens its Logs tab on what its pods wrote while it ran", async () => {
+    setBackend({
+      traceSpans: podDefinitions().map(makeSpan),
+      linkedLogCount: 0,
+      inventoryItems: [
+        Object.assign(new InventoryItem(), {
+          entityKey: INVENTORY_POD,
+          entityType: EntityType.KubernetesPod,
+          displayName: "inventory-7d9f-x2kq1",
+          identifyingAttributes: {
+            "k8s.cluster.name": "prod",
+            "k8s.namespace.name": "default",
+            "k8s.pod.name": "inventory-7d9f-x2kq1",
+          },
+        }),
+      ],
+    });
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(lastLogsViewerProps()["id"]).toBe("traces-pod-logs-viewer");
+    });
+    const props: Props = lastLogsViewerProps();
+    expect(props["logQuery"]).toEqual({
+      entityKeys: new Includes([GATEWAY_POD, INVENTORY_POD]),
+      time: new InBetween<Date>(
+        new Date(EPOCH_MS - 100),
+        new Date(EPOCH_MS + 1100),
+      ),
+    });
+    expect(props["traceIds"]).toBeUndefined();
+    expect(props["enableRealtime"]).toBe(false);
+    expect(props["noLogsMessage"]).toBe(
+      "This trace's pods wrote nothing while it ran.",
+    );
+
+    // The pods' Inventory items name them in the viewer's chips.
+    await waitFor(() => {
+      expect(
+        (
+          lastLogsViewerProps()["entityKeyDisplays"] as Record<
+            string,
+            JSONObject
+          >
+        )[INVENTORY_POD],
+      ).toMatchObject({
+        displayKey: "Kubernetes Pod",
+        displayValue: "inventory-7d9f-x2kq1",
+      });
+    });
+    expect(
+      (
+        lastLogsViewerProps()["entityKeyDisplays"] as Record<string, JSONObject>
+      )[GATEWAY_POD],
+    ).toEqual({ displayKey: "Kubernetes Pod", displayValue: GATEWAY_POD });
+    const inventoryRead: ListArgs = serviceListMock.mock.calls
+      .map((call: [ListArgs]) => {
+        return call[0];
+      })
+      .find((args: ListArgs) => {
+        return args.modelType === InventoryItem;
+      })!;
+    expect(inventoryRead.query["entityKey"]).toEqual(
+      new Includes([GATEWAY_POD, INVENTORY_POD]),
+    );
+
+    // Whether logs carry the trace was counted over its window, padded.
+    const [, countQuery] = countMock.mock.calls.find(
+      (call: [unknown, JSONObject]) => {
+        return call[0] === Log;
+      },
+    )!;
+    expect(countQuery).toMatchObject({ traceId: TRACE_ID });
+    expect(countQuery["time"]).toEqual(
+      new InBetween<Date>(
+        new Date(EPOCH_MS - 5 * 60 * 1000),
+        new Date(EPOCH_MS + 1000 + 5 * 60 * 1000),
+      ),
+    );
+
+    expect(
+      screen.getByTestId("trace-logs-scope-description"),
+    ).toHaveTextContent(
+      "What this trace's 2 pods wrote from 100 ms before the trace to 100 ms after it, not linked by trace ID. A pod serves many requests at once, so some of these lines may belong to other requests.",
+    );
+    expect(screen.getByTestId("trace-logs-scope-pods")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(screen.getByTestId("trace-logs-scope-pods")).toHaveTextContent(
+      "Same pods, same time",
+    );
+
+    fireEvent.click(screen.getByTestId("trace-logs-scope-trace"));
+
+    expect(lastLogsViewerProps()).toMatchObject({
+      id: "traces-logs-viewer",
+      traceIds: [TRACE_ID],
+    });
+    expect(
+      screen.getByTestId("trace-logs-scope-description"),
+    ).toHaveTextContent(
+      "Logs that carry this trace's ID, from every service it touched.",
+    );
+  });
+
+  test("a trace its logs carry opens on them, with its pod one choice away", async () => {
+    setBackend({
+      traceSpans: podDefinitions({ inventory: INVENTORY_POD }).map(makeSpan),
+      linkedLogCount: 3,
+    });
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("trace-logs-scope-trace")).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+    });
+    expect(lastLogsViewerProps()).toMatchObject({
+      id: "traces-logs-viewer",
+      traceIds: [TRACE_ID],
+    });
+    expect(screen.getByTestId("trace-logs-scope-pods")).toHaveTextContent(
+      "Same pod, same time",
+    );
+
+    fireEvent.click(screen.getByTestId("trace-logs-scope-pods"));
+
+    expect(lastLogsViewerProps()).toMatchObject({
+      id: "traces-pod-logs-viewer",
+      noLogsMessage: "This trace's pod wrote nothing while it ran.",
+    });
+    expect(
+      screen.getByTestId("trace-logs-scope-description"),
+    ).toHaveTextContent(
+      "What this trace's pod wrote from 100 ms before the trace to 100 ms after it, not linked by trace ID.",
+    );
+  });
+
+  test("no view reads before the count that picks it has answered", async () => {
+    let release: (count: number) => void = () => {};
+    countMock.mockImplementation((modelType: unknown) => {
+      if (modelType === Log) {
+        return new Promise<number>((resolve: (count: number) => void) => {
+          release = resolve;
+        });
+      }
+      return Promise.resolve(2);
+    });
+    setBackend({ traceSpans: podDefinitions().map(makeSpan) });
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(
+        countMock.mock.calls.some((call: [unknown, JSONObject]) => {
+          return call[0] === Log;
+        }),
+      ).toBe(true);
+    });
+    expect(logsViewerProps).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("trace-logs-scope")).not.toBeInTheDocument();
+
+    await act(async () => {
+      release(0);
+    });
+
+    expect(lastLogsViewerProps()["id"]).toBe("traces-pod-logs-viewer");
+    expect(
+      logsViewerProps.mock.calls.some((call: [Props]) => {
+        return call[0]["id"] === "traces-logs-viewer";
+      }),
+    ).toBe(false);
+  });
+
+  test("a count that fails keeps the logs linked by the trace's ID", async () => {
+    setBackend({
+      traceSpans: podDefinitions().map(makeSpan),
+      linkedLogCount: "Logs could not be counted.",
+    });
+    await renderTrace();
+
+    await waitFor(() => {
+      expect(lastLogsViewerProps()["id"]).toBe("traces-logs-viewer");
+    });
+    expect(screen.getByTestId("trace-logs-scope-trace")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+
+  test("a trace outside Kubernetes offers no choice and counts nothing", async () => {
+    await renderTrace();
+
+    expect(lastLogsViewerProps()).toMatchObject({
+      id: "traces-logs-viewer",
+      traceIds: [TRACE_ID],
+    });
+    expect(screen.queryByTestId("trace-logs-scope")).not.toBeInTheDocument();
+    expect(
+      countMock.mock.calls.some((call: [unknown, JSONObject]) => {
+        return call[0] === Log;
+      }),
+    ).toBe(false);
+
+    fireEvent.click(row("auth"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-logs"));
+    expect(
+      await screen.findByText(/No logs were written inside this span/),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("span-pod-logs")).not.toBeInTheDocument();
+  });
+
+  test("an eBPF span's Exceptions tab shows what its pod raised around it, not linked by trace ID", async () => {
+    // As ingest writes one it extracts from a log line: time to the second.
+    function podException(
+      offsetMs: number,
+      message: string,
+    ): ExceptionInstance {
+      const nanos: number = (EPOCH_MS + offsetMs) * MS;
+      return Object.assign(new ExceptionInstance(), {
+        time: new Date(Math.floor((EPOCH_MS + offsetMs) / 1000) * 1000),
+        timeUnixNano: nanos,
+        exceptionType: "SerializationFailure",
+        message,
+        fingerprint: "9f86d081884c7d659a2feaa0c55ad015",
+        k8sPodEntityKey: INVENTORY_POD,
+      });
+    }
+    setBackend({
+      traceSpans: podDefinitions().map(makeSpan),
+      podExceptions: [
+        podException(345, "could not serialize access to stock"),
+        podException(700, "outside the window"),
+      ],
+    });
+    await renderTrace();
+
+    fireEvent.click(row("update"));
+    fireEvent.click(await screen.findByTestId("span-panel-tab-exceptions"));
+
+    const section: HTMLElement = await screen.findByTestId(
+      "span-pod-exceptions",
+    );
+    expect(section).toHaveTextContent("No exceptions carry this span's ID.");
+    expect(section).toHaveTextContent(
+      "Exceptions from this pod during this span (not linked by trace ID)",
+    );
+    expect(
+      await within(section).findByText("could not serialize access to stock"),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("span-pod-exceptions-during")).getByText(
+        "SerializationFailure",
+      ),
+    ).toBeInTheDocument();
+    expect(within(section).queryByText("outside the window")).toBeNull();
+    expect(
+      screen.queryByText("No exceptions were recorded on this span."),
+    ).not.toBeInTheDocument();
+
+    const podRead: ListArgs = getListMock.mock.calls
+      .map((call: [ListArgs]) => {
+        return call[0];
+      })
+      .find((args: ListArgs) => {
+        return (
+          args.modelType === ExceptionInstance &&
+          Boolean(args.query["k8sPodEntityKey"])
+        );
+      })!;
+    expect(podRead.query["k8sPodEntityKey"]).toBe(INVENTORY_POD);
+    // The span's window widened to whole seconds.
+    expect(podRead.query["time"]).toEqual(
+      new InBetween<Date>(
+        new Date(Math.floor((EPOCH_MS + 50) / 1000) * 1000),
+        new Date(Math.ceil((EPOCH_MS + 451) / 1000) * 1000),
+      ),
+    );
   });
 });
