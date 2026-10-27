@@ -28,7 +28,9 @@ import {
   SecurityEventConnectorDefinition,
 } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
+import { PROVIDER_LOGO_NAMES } from "../../../Types/ProviderLogo/ProviderLogo";
 import Icon from "../../../UI/Components/Icon/Icon";
+import { PROVIDER_LOGO_TILE_CLASS_NAME } from "../../../UI/Components/ProviderLogo/ProviderLogoImage";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -330,15 +332,18 @@ describe("SecurityEventProviderTile", () => {
       );
     });
 
-    test("the product badge is decorative", () => {
+    test("the product badge is its official logo, decorative: the name is the button's words", () => {
       const { tile } = renderTile();
 
       expect(badge(tile)).toHaveAttribute("aria-hidden", "true");
-      expect(badge(tile).querySelector("svg")).toHaveAttribute(
-        "aria-hidden",
-        "true",
+      expect(badge(tile)).toHaveAttribute(
+        "data-provider-logo",
+        SENTINEL.logo,
       );
+      expect(badge(tile)).not.toHaveAttribute("role");
       expect(badge(tile).textContent).toBe("");
+      // No generic icon stands in for the product any more.
+      expect(badge(tile).querySelector("svg")).toBeNull();
     });
 
     /*
@@ -367,7 +372,7 @@ describe("SecurityEventProviderTile", () => {
       );
     });
 
-    test("hover styles are applied, on the tile, the badge and the icons", () => {
+    test("hover styles are applied on the tile; the logo keeps its own colours", () => {
       const { tile } = renderTile();
 
       expect(tile).toHaveClass(
@@ -375,9 +380,14 @@ describe("SecurityEventProviderTile", () => {
         "hover:border-indigo-300",
         "transition-colors",
       );
-      expect(badge(tile)).toHaveClass("group-hover:bg-indigo-50");
-      expect(badge(tile).querySelector("svg")).toHaveClass(
-        "group-hover:text-indigo-600",
+      // A brand's logo is never recoloured, on hover or anywhere.
+      expect(
+        classTokens(badge(tile)).some((token: string): boolean => {
+          return token.startsWith("group-hover:");
+        }),
+      ).toBe(false);
+      expect(badge(tile)).toHaveClass(
+        ...PROVIDER_LOGO_TILE_CLASS_NAME.split(" "),
       );
     });
 
@@ -445,7 +455,7 @@ describe("SecurityEventProviderTile", () => {
      * A plus promises an action. Without the button there is nothing to
      * add, so the icon must go with it rather than sit there looking live.
      */
-    test("draws no plus anywhere: only the product icon and the external-link marker", () => {
+    test("draws no plus anywhere: only the product's logo and the external-link marker", () => {
       const { tile } = renderTile({ canConnect: false });
 
       const add: string = iconMarkup(IconProp.Add);
@@ -454,11 +464,12 @@ describe("SecurityEventProviderTile", () => {
           return svg.innerHTML;
         },
       );
-      expect(drawn).toEqual([
-        iconMarkup(SENTINEL.icon),
-        iconMarkup(IconProp.ExternalLink),
-      ]);
+      expect(drawn).toEqual([iconMarkup(IconProp.ExternalLink)]);
       expect(drawn).not.toContain(add);
+      expect(badge(tile)).toHaveAttribute(
+        "data-provider-logo",
+        SENTINEL.logo,
+      );
     });
 
     test("still links the setup guide, the tile's only control", () => {
@@ -521,19 +532,18 @@ describe("SecurityEventProviderTile", () => {
       expect(textColumn(tile)).toHaveClass("lg:col-span-2", "lg:row-start-2");
     });
 
-    test("the badge is the same decorative badge as a connectable tile", () => {
-      const connectable: string = svgMarkup(badge(renderTile().tile));
+    test("the badge is the same decorative logo as a connectable tile", () => {
+      const connectable: string = badge(renderTile().tile).outerHTML;
       cleanup();
       const { tile } = renderTile({ canConnect: false });
 
       expect(badge(tile)).toHaveAttribute("aria-hidden", "true");
-      expect(svgMarkup(badge(tile))).toBe(connectable);
+      expect(badge(tile).outerHTML).toBe(connectable);
       expect(badge(tile)).toHaveClass(
         "h-9",
         "w-9",
         "rounded-lg",
-        "bg-gray-50",
-        "text-gray-500",
+        ...PROVIDER_LOGO_TILE_CLASS_NAME.split(" "),
       );
     });
   });
@@ -800,17 +810,16 @@ describe("SecurityEventProviderTile", () => {
 
   describe("every catalog provider", () => {
     test.each(SecurityEventConnectorCatalog)(
-      "$title renders its own catalog icon in the badge",
+      "$title shows its own official logo in the badge",
       (definition: SecurityEventConnectorDefinition) => {
-        const expected: string = iconMarkup(definition.icon);
-        expect(expected.length).toBeGreaterThan(0);
+        expect(PROVIDER_LOGO_NAMES[definition.logo]).toBeTruthy();
 
         const { tile } = renderTile({ definition });
 
-        const svg: SVGElement | null = badge(tile).querySelector("svg");
-        expect(svg).not.toBeNull();
-        expect(svg!.children.length).toBeGreaterThan(0);
-        expect(svg!.innerHTML).toBe(expected);
+        expect(badge(tile)).toHaveAttribute(
+          "data-provider-logo",
+          definition.logo,
+        );
       },
     );
 
@@ -836,17 +845,18 @@ describe("SecurityEventProviderTile", () => {
     );
 
     test("no two providers draw the same badge", () => {
-      const markups: Array<string> = SecurityEventConnectorCatalog.map(
+      const logos: Array<string> = SecurityEventConnectorCatalog.map(
         (definition: SecurityEventConnectorDefinition): string => {
           const { tile } = renderTile({ definition });
-          const markup: string = svgMarkup(badge(tile));
+          const logo: string =
+            badge(tile).getAttribute("data-provider-logo") || "";
           cleanup();
-          return markup;
+          return logo;
         },
       );
 
-      expect(markups).toHaveLength(SecurityEventConnectorCatalog.length);
-      expect(new Set(markups).size).toBe(markups.length);
+      expect(logos).toHaveLength(SecurityEventConnectorCatalog.length);
+      expect(new Set(logos).size).toBe(logos.length);
     });
 
     test("every tile has the same structure and classes, whichever the product", () => {

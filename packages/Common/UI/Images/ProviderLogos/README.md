@@ -17,8 +17,10 @@ each file by itself (`ProviderLogoAssets.ts`), the first time a page shows it.
   licences cover the drawings; the marks stay their owners' trademarks.
 - **Unaltered.** Never recoloured, redrawn, cropped into another shape,
   stretched or rotated. The only changes are an optimiser's (`svgo`, which keeps
-  the drawing, the colours and the viewBox) and, for a lockup of a symbol and a
-  wordmark, keeping the symbol on its own the way the brand's own icon does.
+  the drawing, the colours and the viewBox), a viewBox fitted to the drawing
+  where a wordmark sat in a square of empty space, and, for a lockup of a symbol
+  and a wordmark, keeping the symbol on its own the way the brand's own icon
+  does.
 - **A mark for dark backgrounds only where the brand has one.** A `-dark` file
   is drawn on the dark theme instead of a mark that would all but disappear on
   it (black, dark navy): the brand's reversed logo (AWS's white lettering with
@@ -59,9 +61,9 @@ is registered and listed below, and no file reaches outside itself.
 | `backblaze.svg` | Backblaze | Simple Icons, `backblaze` | [Backblaze press](https://www.backblaze.com/company/news.html) |
 | `wasabi.svg` | Wasabi | Simple Icons, `wasabi` | [wasabi.com](https://wasabi.com) |
 | `minio.svg` | MinIO | Simple Icons, `minio` | [MinIO logo](https://min.io/logo) |
-| `crowdstrike.svg`, `crowdstrike-dark.svg` | CrowdStrike | CrowdStrike's falcon from crowdstrike.com (`CS_Logo_Falcon.svg`); dark: in white | [CrowdStrike](https://www.crowdstrike.com/) |
-| `splunk.svg`, `splunk-dark.svg` | Splunk | Simple Icons, `splunk` (Splunk's logo is its wordmark); dark: in white | [splunk.com](https://www.splunk.com) |
-| `elastic.svg`, `elastic-dark.svg` | Elastic Security | Elastic's Elastic Security logo from elastic.co (`logo-security-32-color.svg`); dark: its dark piece in white, as Elastic draws it on dark | [Elastic trademarks](https://www.elastic.co/legal/trademarks) |
+| `crowdstrike.svg`, `crowdstrike-dark.svg` | CrowdStrike | CrowdStrike's falcon from crowdstrike.com (its file CS_Logo_Falcon.svg); dark: in white | [CrowdStrike](https://www.crowdstrike.com/) |
+| `splunk.svg`, `splunk-dark.svg` | Splunk | Simple Icons, `splunk` (Splunk's logo is its wordmark), its viewBox fitted to the wordmark; dark: in white | [splunk.com](https://www.splunk.com) |
+| `elastic.svg`, `elastic-dark.svg` | Elastic Security | Elastic's Elastic Security logo from elastic.co (its file logo-security-32-color.svg); dark: its dark piece in white, as Elastic draws it on dark | [Elastic trademarks](https://www.elastic.co/legal/trademarks) |
 | `okta.svg`, `okta-dark.svg` | Okta | SVG Logos, `okta-icon` (the Okta aura); dark: in white | [Okta content terms](https://www.okta.com/terms-of-use-for-okta-content/) |
 | `openai.svg`, `openai-dark.svg` | OpenAI | SVG Logos, `openai-icon`; dark: in white | [OpenAI brand](https://openai.com/brand/) |
 | `anthropic.svg`, `anthropic-dark.svg` | Anthropic | Simple Icons, `anthropic`; dark: in white | [anthropic.com](https://www.anthropic.com) |
@@ -69,20 +71,20 @@ is registered and listed below, and no file reaches outside itself.
 | `groq.svg` | Groq | Groq's own favicon (groq.com/favicon.svg) | [groq.com](https://groq.com) |
 | `mistral-ai.svg` | Mistral AI | SVG Logos, `mistral-ai-icon` | [mistral.ai](https://mistral.ai) |
 | `ollama.svg`, `ollama-dark.svg` | Ollama | Simple Icons, `ollama`; dark: in white | [ollama.com](https://ollama.com) |
-| `zoom.svg` | Zoom | SVG Logos, `zoom-icon` (Zoom's app icon) | [Zoom brand](https://brand.zoom.us/usage-legal/) |
+| `zoom.svg` | Zoom | Simple Icons, `zoom` (Zoom's logo is its wordmark), its viewBox fitted to the wordmark | [Zoom brand](https://brand.zoom.us/usage-legal/) |
 | `slack.svg` | Slack | SVG Logos, `slack-icon` (the Slack mark) | [Slack media kit](https://slack.com/media-kit) |
 | `discord.svg` | Discord | SVG Logos, `discord-icon` | [Discord branding](https://discord.com/branding) |
 | `telegram.svg` | Telegram | SVG Logos, `telegram` | [telegram.org](https://telegram.org) |
 | `whatsapp.svg` | WhatsApp | SVG Logos, `whatsapp-icon` | [WhatsApp brand](https://about.meta.com/brand/resources/whatsapp/whatsapp-brand) |
 | `mattermost.svg`, `mattermost-dark.svg` | Mattermost | SVG Logos, `mattermost-icon`; dark: in white | [Mattermost brand guidelines](https://www.mattermost.org/brand-guidelines/) |
-| `opsgenie.svg` | Opsgenie | SVG Logos, `opsgenie` | [Atlassian press kit](https://www.atlassian.com/company/news/press-kit) |
-| `atlassian-statuspage.svg` | Statuspage | SVG Logos, `statuspage` | as above |
+| `opsgenie.svg` | Opsgenie | Atlassian's own icon, from its design system's `@atlaskit/logo` (Apache-2.0) | [Atlassian press kit](https://www.atlassian.com/company/news/press-kit) |
+| `atlassian-statuspage.svg` | Statuspage | Atlassian's own icon, from its design system's `@atlaskit/logo` (Apache-2.0) | as above |
 | `pagerduty.svg` | PagerDuty | SVG Logos, `pagerduty-icon` | [PagerDuty brand](https://www.pagerduty.com/brand/) |
 | `incident-io.svg` | incident.io | SVG Logos, `incident-icon` | [incident.io](https://incident.io) |
 | `grafana.svg` | Grafana | SVG Logos, `grafana` | [Grafana Labs trademark policy](https://grafana.com/legal/trademark-policy/) |
 | `better-stack.svg`, `better-stack-dark.svg` | Better Stack | Simple Icons, `betterstack`; dark: in white | [betterstack.com](https://betterstack.com) |
-| `pingdom.svg` | Pingdom | Pingdom's 2025 logo from pingdom.com (`SW_Logo2025_Pingdom_Web_Orange.svg`), its symbol on its own | [Pingdom brand assets](https://www.pingdom.com/resources/brand-assets/) |
-| `statuscake.svg` | StatusCake | StatusCake's logo from statuscake.com (`horizontal-logo-blackberry-text.svg`), its symbol on its own | [statuscake.com](https://www.statuscake.com) |
+| `pingdom.svg` | Pingdom | Pingdom's 2025 logo from pingdom.com (its file SW_Logo2025_Pingdom_Web_Orange.svg), its symbol on its own | [Pingdom brand assets](https://www.pingdom.com/resources/brand-assets/) |
+| `statuscake.svg` | StatusCake | StatusCake's logo from statuscake.com (its file horizontal-logo-blackberry-text.svg), its symbol on its own | [statuscake.com](https://www.statuscake.com) |
 | `uptimerobot.svg` | UptimeRobot | UptimeRobot's site icon (uptimerobot.com), its two circles at their own sizes and colours | [uptimerobot.com](https://uptimerobot.com) |
 | `uptime-kuma.svg` | Uptime Kuma | Simple Icons, `uptimekuma` | [uptime.kuma.pet](https://uptime.kuma.pet) |
 | `opentelemetry.svg` | OpenTelemetry | SVG Logos, `opentelemetry-icon` (CNCF artwork, CC BY 4.0) | [CNCF branding](https://cncf-branding.netlify.app/projects/opentelemetry/) |

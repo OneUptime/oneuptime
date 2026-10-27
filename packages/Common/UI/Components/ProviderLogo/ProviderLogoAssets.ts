@@ -17,13 +17,18 @@ import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
  */
 
 /*
- * The logos that are wider than they are tall - a wordmark, as AWS's and
- * Go's are: drawn across the tile's whole inside, so they are as large as
- * the square ones beside them instead of shrunk to fit a square.
+ * The logos that are wider than they are tall - a wordmark, as AWS's,
+ * Splunk's, Zoom's and Go's are, or Cloudflare's cloud: drawn across the
+ * tile's whole inside, so they are as large as the square ones beside them
+ * instead of shrunk to fit a square. A file's viewBox is fitted to what it
+ * draws, so its proportions are the logo's own (the tests hold this list to
+ * them).
  */
 export const WIDE_PROVIDER_LOGOS: ReadonlyArray<ProviderLogo> = [
   ProviderLogo.Aws,
+  ProviderLogo.Cloudflare,
   ProviderLogo.Splunk,
+  ProviderLogo.Zoom,
   ProviderLogo.Go,
   ProviderLogo.Php,
 ];

@@ -1674,7 +1674,8 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   ) : (
                     <></>
                   )}
-                  <span className="min-w-0">{method.label}</span>
+                  {/* The label stays the line's own text, as before the logo. */}
+                  {method.label}
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
                   {method.description}
