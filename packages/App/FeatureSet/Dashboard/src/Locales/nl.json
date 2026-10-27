@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "Een run begint bij de trigger van de workflow. Iemand die deze workflow mag bewerken, voegt die toe.",
   "Workflows do not run on this project's plan": "Workflows worden niet uitgevoerd met het abonnement van dit project",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Dit project heeft het {{plan}}-abonnement, dus niets start een workflow, zelfs “Workflow uitvoeren” niet. {{upgradeLink}} om workflows uit te voeren.",
-  "Upgrade to the Growth plan or above": "Upgrade naar het Growth-abonnement of hoger"
+  "Upgrade to the Growth plan or above": "Upgrade naar het Growth-abonnement of hoger",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "Nog geen globale variabelen. Een projecteigenaar of -beheerder voegt de hosts, sleutels, wachtwoorden en kubeconfigs toe die stappen gebruiken.",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "Dit runbook heeft nog geen eigen variabelen. Een projecteigenaar of -beheerder voegt ze toe, en globale variabelen werken hier ook.",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "Nog geen geheime variabelen. Vraag een projecteigenaar of -beheerder er een toe te voegen onder {{location}} en kies hem daarna hier.",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "De hierboven gekozen Runner mag {{name}} niet gebruiken, dus de stap mislukt wanneer hij wordt uitgevoerd. Kies voor deze stap een van de Runners van de variabele, of vraag een projecteigenaar of -beheerder deze Runner eraan toe te voegen onder {{location}}.",
+  "Its schedule is paused.": "Het schema is gepauzeerd.",
+  "Runs when its webhook URL is called.": "Draait wanneer de webhook-URL wordt aangeroepen.",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Geen schema of webhook: het draait wanneer iemand het start, of wanneer een regel of OneUptime AI dat doet.",
+  "Change it under {{location}}.": "Wijzig dit onder {{location}}.",
+  "Settings › Triggers": "Instellingen › Triggers"
 }

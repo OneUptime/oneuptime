@@ -12482,7 +12482,7 @@
   "Map options": "Kartenoptionen",
   "Mark as Archived By User": "Als archiviert markiert von Benutzer",
   "Mark as Archived By User ID": "Als archiviert markiert von Benutzer-ID",
-  "Mark complete": "Als abgeschlossen markieren",
+  "Mark complete": "Als erledigt markieren",
   "Mark this exception as unresolved and unarchive it before starting a new AI task.": "Markieren Sie diese Ausnahme als nicht behoben und heben Sie ihre Archivierung auf, bevor Sie eine neue KI-Aufgabe starten.",
   "Markdown": "Markdown",
   "Markdown Embed": "Markdown-Einbettung",
@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "Ein Lauf beginnt beim Auslöser des Arbeitsablaufs. Ihn fügt jemand hinzu, der diesen Arbeitsablauf bearbeiten darf.",
   "Workflows do not run on this project's plan": "Arbeitsabläufe laufen im Tarif dieses Projekts nicht",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Dieses Projekt hat den {{plan}}-Tarif, daher startet nichts einen Arbeitsablauf, nicht einmal „Arbeitsablauf ausführen“. {{upgradeLink}}, um Arbeitsabläufe auszuführen.",
-  "Upgrade to the Growth plan or above": "Auf den Growth-Tarif oder höher upgraden"
+  "Upgrade to the Growth plan or above": "Auf den Growth-Tarif oder höher upgraden",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "Noch keine globalen Variablen. Ein Projekteigentümer oder -administrator fügt die Hosts, Schlüssel, Passwörter und Kubeconfigs hinzu, die Schritte verwenden.",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "Dieses Runbook hat noch keine eigenen Variablen. Ein Projekteigentümer oder -administrator fügt sie hinzu, und globale Variablen funktionieren hier auch.",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "Noch keine geheimen Variablen. Bitten Sie einen Projekteigentümer oder -administrator, unter {{location}} eine hinzuzufügen, und wählen Sie sie dann hier aus.",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "Der oben gewählte Runner darf {{name}} nicht verwenden, daher schlägt der Schritt bei der Ausführung fehl. Wählen Sie für diesen Schritt einen der Runner der Variable, oder bitten Sie einen Projekteigentümer oder -administrator, diesen Runner unter {{location}} hinzuzufügen.",
+  "Its schedule is paused.": "Sein Zeitplan ist pausiert.",
+  "Runs when its webhook URL is called.": "Läuft, wenn seine Webhook-URL aufgerufen wird.",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Kein Zeitplan und kein Webhook: Es läuft, wenn jemand es startet oder wenn eine Regel oder OneUptime AI es tut.",
+  "Change it under {{location}}.": "Ändern Sie das unter {{location}}.",
+  "Settings › Triggers": "Einstellungen › Auslöser"
 }

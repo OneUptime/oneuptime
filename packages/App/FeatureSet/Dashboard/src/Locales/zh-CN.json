@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "运行从工作流的触发器开始。触发器由可以编辑此工作流的人添加。",
   "Workflows do not run on this project's plan": "此项目的套餐不运行工作流",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "此项目使用 {{plan}} 套餐，因此任何方式都不会启动工作流，包括“运行工作流”。{{upgradeLink}}即可运行工作流。",
-  "Upgrade to the Growth plan or above": "升级到 Growth 或更高套餐"
+  "Upgrade to the Growth plan or above": "升级到 Growth 或更高套餐",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "还没有全局变量。步骤要用的主机、私钥、密码和 kubeconfig 由项目所有者或管理员添加。",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "此运行手册还没有自己的变量。变量由项目所有者或管理员添加，全局变量在这里同样可用。",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "还没有密钥变量。请让项目所有者或管理员在 {{location}} 中添加一个，然后在这里选择它。",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "上面选择的 Runner 无法使用 {{name}}，因此该步骤运行时会失败。请为此步骤选择该变量的某个 Runner，或请项目所有者或管理员在 {{location}} 中将此 Runner 添加到该变量。",
+  "Its schedule is paused.": "其计划已暂停。",
+  "Runs when its webhook URL is called.": "调用其 Webhook URL 时运行。",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "没有计划或 Webhook：有人启动它，或规则或 OneUptime AI 启动它时才会运行。",
+  "Change it under {{location}}.": "可在 {{location}} 中更改。",
+  "Settings › Triggers": "设置 › 触发器"
 }

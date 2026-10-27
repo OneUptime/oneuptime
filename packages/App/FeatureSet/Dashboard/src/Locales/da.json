@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "En kørsel starter fra arbejdsgangens udløser. Den tilføjes af en, der må redigere denne arbejdsgang.",
   "Workflows do not run on this project's plan": "Arbejdsgange kører ikke på dette projekts abonnement",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Dette projekt har {{plan}}-abonnementet, så intet starter en arbejdsgang, heller ikke »Kør arbejdsgang«. {{upgradeLink}} for at køre arbejdsgange.",
-  "Upgrade to the Growth plan or above": "Opgrader til Growth-abonnementet eller højere"
+  "Upgrade to the Growth plan or above": "Opgrader til Growth-abonnementet eller højere",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "Ingen globale variabler endnu. En projektejer eller administrator tilføjer de værter, nøgler, adgangskoder og kubeconfigs, trinnene bruger.",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "Denne runbook har ingen egne variabler endnu. En projektejer eller administrator tilføjer dem, og globale variabler virker også her.",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "Ingen hemmelige variabler endnu. Bed en projektejer eller administrator om at tilføje en under {{location}}, og vælg den derefter her.",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "Den Runner, der er valgt ovenfor, må ikke bruge {{name}}, så trinnet fejler, når det køres. Vælg en af variablens Runnere til dette trin, eller bed en projektejer eller administrator om at føje denne Runner til den under {{location}}.",
+  "Its schedule is paused.": "Tidsplanen er sat på pause.",
+  "Runs when its webhook URL is called.": "Kører, når dens webhook-URL kaldes.",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Ingen tidsplan eller webhook: den kører, når nogen starter den, eller når en regel eller OneUptime AI gør det.",
+  "Change it under {{location}}.": "Skift det under {{location}}.",
+  "Settings › Triggers": "Indstillinger › Udløsere"
 }

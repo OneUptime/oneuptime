@@ -68,7 +68,7 @@ In jedem der folgenden automatisierten Schritte stehen unter **Weitere Felder** 
 
 ### Manual
 
-Ein Checklistenpunkt für eine Person: Seine **Anweisungen** sagen, was zu tun oder zu prüfen ist. Der Lauf pausiert, wenn er einen Manual-Schritt erreicht, und bleibt in `WaitingForManualStep` (**Wartet auf Sie**), bis jemand auf **Als abgeschlossen markieren** oder **Überspringen** klickt. Ein Lauf, der auf eine Person wartet, läuft nie in ein Timeout. Ein Manual-Schritt hat keinen Genehmigungsschalter: Er hält den Lauf ohnehin für eine Person an.
+Ein Checklistenpunkt für eine Person: Seine **Anweisungen** sagen, was zu tun oder zu prüfen ist. Der Lauf pausiert, wenn er einen Manual-Schritt erreicht, und bleibt in `WaitingForManualStep` (**Wartet auf Sie**), bis jemand auf **Als erledigt markieren** oder **Überspringen** klickt. Ein Lauf, der auf eine Person wartet, läuft nie in ein Timeout. Ein Manual-Schritt hat keinen Genehmigungsschalter: Er hält den Lauf ohnehin für eine Person an.
 
 Nutzen Sie ihn für das, was nur ein Mensch prüfen oder tun kann: „Bestätigen, dass der Verkehr im Dashboard des Load Balancers in die sekundäre Region verlagert wurde.“
 

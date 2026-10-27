@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "रन वर्कफ़्लो के ट्रिगर से शुरू होता है। इसे वही जोड़ता है जो इस वर्कफ़्लो को संपादित कर सकता है।",
   "Workflows do not run on this project's plan": "इस प्रोजेक्ट के प्लान पर वर्कफ़्लो नहीं चलते",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "यह प्रोजेक्ट {{plan}} प्लान पर है, इसलिए कोई भी चीज़ वर्कफ़्लो शुरू नहीं करती, “वर्कफ़्लो चलाएं” भी नहीं। वर्कफ़्लो चलाने के लिए {{upgradeLink}}।",
-  "Upgrade to the Growth plan or above": "Growth या उससे ऊपर के प्लान पर अपग्रेड करें"
+  "Upgrade to the Growth plan or above": "Growth या उससे ऊपर के प्लान पर अपग्रेड करें",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "अभी कोई ग्लोबल वेरिएबल नहीं है। चरणों में इस्तेमाल होने वाले होस्ट, की, पासवर्ड और kubeconfig प्रोजेक्ट के मालिक या एडमिन जोड़ते हैं।",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "इस रनबुक के अपने कोई वेरिएबल अभी नहीं हैं। इन्हें प्रोजेक्ट के मालिक या एडमिन जोड़ते हैं, और ग्लोबल वेरिएबल यहाँ भी काम करते हैं।",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "अभी कोई सीक्रेट वेरिएबल नहीं है। प्रोजेक्ट के मालिक या एडमिन से {{location}} में एक जोड़ने को कहें, फिर उसे यहाँ चुनें।",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "ऊपर चुना गया Runner {{name}} का इस्तेमाल नहीं कर सकता, इसलिए चलने पर चरण विफल होगा। इस चरण के लिए वेरिएबल का कोई Runner चुनें, या प्रोजेक्ट के मालिक या एडमिन से {{location}} में इस Runner को उसमें जोड़ने को कहें।",
+  "Its schedule is paused.": "इसका शेड्यूल रुका हुआ है।",
+  "Runs when its webhook URL is called.": "इसका वेबहुक URL कॉल होने पर चलता है।",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "कोई शेड्यूल या वेबहुक नहीं: यह तब चलता है जब कोई इसे शुरू करे, या कोई नियम या OneUptime AI ऐसा करे।",
+  "Change it under {{location}}.": "इसे {{location}} में बदलें।",
+  "Settings › Triggers": "सेटिंग्स › ट्रिगर"
 }

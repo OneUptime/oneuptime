@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "Запуск начинается с триггера рабочего процесса. Его добавляет тот, кто может редактировать этот рабочий процесс.",
   "Workflows do not run on this project's plan": "На тарифе этого проекта рабочие процессы не запускаются",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "У проекта тариф {{plan}}, поэтому рабочий процесс ничто не запускает, даже «Запустить рабочий процесс». {{upgradeLink}}, чтобы запускать рабочие процессы.",
-  "Upgrade to the Growth plan or above": "Перейдите на тариф Growth или выше"
+  "Upgrade to the Growth plan or above": "Перейдите на тариф Growth или выше",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "Глобальных переменных пока нет. Хосты, ключи, пароли и kubeconfig, которые используют шаги, добавляет владелец или администратор проекта.",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "У этого runbook пока нет своих переменных. Их добавляет владелец или администратор проекта, а глобальные переменные здесь тоже работают.",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "Секретных переменных пока нет. Попросите владельца или администратора проекта добавить её в разделе {{location}}, затем выберите здесь.",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "Выбранный выше Runner не может использовать {{name}}, поэтому шаг завершится ошибкой при запуске. Выберите для этого шага один из Runner-ов переменной или попросите владельца или администратора проекта добавить к ней этот Runner в разделе {{location}}.",
+  "Its schedule is paused.": "Расписание приостановлено.",
+  "Runs when its webhook URL is called.": "Запускается при вызове его URL веб-хука.",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Нет ни расписания, ни веб-хука: он запускается, когда его запускает кто-то, правило или OneUptime AI.",
+  "Change it under {{location}}.": "Измените это в разделе {{location}}.",
+  "Settings › Triggers": "Настройки › Триггеры"
 }

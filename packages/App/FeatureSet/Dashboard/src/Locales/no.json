@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "En kjøring starter fra arbeidsflytens utløser. Den legges til av noen som kan redigere denne arbeidsflyten.",
   "Workflows do not run on this project's plan": "Arbeidsflyter kjører ikke på dette prosjektets abonnement",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Dette prosjektet har {{plan}}-abonnementet, så ingenting starter en arbeidsflyt, heller ikke «Kjør arbeidsflyt». {{upgradeLink}} for å kjøre arbeidsflyter.",
-  "Upgrade to the Growth plan or above": "Oppgrader til Growth-abonnementet eller høyere"
+  "Upgrade to the Growth plan or above": "Oppgrader til Growth-abonnementet eller høyere",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "Ingen globale variabler ennå. En prosjekteier eller administrator legger til vertene, nøklene, passordene og kubeconfig-filene trinnene bruker.",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "Denne runbooken har ingen egne variabler ennå. En prosjekteier eller administrator legger dem til, og globale variabler fungerer også her.",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "Ingen hemmelige variabler ennå. Be en prosjekteier eller administrator om å legge til en under {{location}}, og velg den deretter her.",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "Runneren som er valgt ovenfor, kan ikke bruke {{name}}, så trinnet vil feile når det kjøres. Velg en av variabelens Runnere for dette trinnet, eller be en prosjekteier eller administrator om å legge til denne Runneren under {{location}}.",
+  "Its schedule is paused.": "Tidsplanen er satt på pause.",
+  "Runs when its webhook URL is called.": "Kjører når webhook-URL-en kalles.",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Ingen tidsplan eller webhook: den kjører når noen starter den, eller når en regel eller OneUptime AI gjør det.",
+  "Change it under {{location}}.": "Endre det under {{location}}.",
+  "Settings › Triggers": "Innstillinger › Utløsere"
 }

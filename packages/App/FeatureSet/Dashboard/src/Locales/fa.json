@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "اجرا از تریگر گردش کاری شروع می‌شود. آن را کسی اضافه می‌کند که اجازهٔ ویرایش این گردش کاری را دارد.",
   "Workflows do not run on this project's plan": "گردش‌های کاری روی طرح این پروژه اجرا نمی‌شوند",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "این پروژه روی طرح {{plan}} است، پس هیچ چیز گردش کاری را شروع نمی‌کند، حتی «اجرای گردش کاری». برای اجرای گردش‌های کاری، {{upgradeLink}}.",
-  "Upgrade to the Growth plan or above": "به طرح Growth یا بالاتر ارتقا دهید"
+  "Upgrade to the Growth plan or above": "به طرح Growth یا بالاتر ارتقا دهید",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "هنوز متغیر سراسری‌ای وجود ندارد. میزبان‌ها، کلیدها، گذرواژه‌ها و kubeconfigهایی را که گام‌ها استفاده می‌کنند، مالک یا مدیر پروژه اضافه می‌کند.",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "این رانبوک هنوز متغیر مخصوص خودش را ندارد. آن‌ها را مالک یا مدیر پروژه اضافه می‌کند و متغیرهای سراسری اینجا هم کار می‌کنند.",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "هنوز متغیر رازی وجود ندارد. از مالک یا مدیر پروژه بخواهید در {{location}} یکی اضافه کند و سپس آن را اینجا انتخاب کنید.",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "Runner انتخاب‌شده در بالا اجازه استفاده از {{name}} را ندارد، بنابراین گام هنگام اجرا ناموفق می‌شود. برای این گام یکی از Runnerهای متغیر را انتخاب کنید، یا از مالک یا مدیر پروژه بخواهید در {{location}} این Runner را به آن اضافه کند.",
+  "Its schedule is paused.": "زمان‌بندی آن متوقف است.",
+  "Runs when its webhook URL is called.": "وقتی نشانی وب‌هوک آن فراخوانی شود اجرا می‌شود.",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "نه زمان‌بندی دارد نه وب‌هوک: وقتی کسی آن را شروع کند، یا یک قاعده یا OneUptime AI این کار را بکند، اجرا می‌شود.",
+  "Change it under {{location}}.": "آن را در {{location}} تغییر دهید.",
+  "Settings › Triggers": "تنظیمات › تریگرها"
 }

@@ -79,6 +79,10 @@ import {
   isRunNowOffered,
 } from "../../../Components/Runbook/RunbookOverviewState";
 import RunbookTurnedOffBanner from "../../../Components/Runbook/RunbookTurnedOffBanner";
+import RunbookTriggersSummaryElement, {
+  RUNBOOK_TRIGGERS_SUMMARY_SELECT,
+  RunbookTriggersSummaryCopy,
+} from "../../../Components/Runbook/Triggers/RunbookTriggersSummary";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import Link from "Common/UI/Components/Link/Link";
 
@@ -469,8 +473,16 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
           showDetailsInNumberOfColumns: 2,
           modelType: Runbook,
           id: "model-detail-runbook-overview",
-          // What the Overview offers first: whether it is on, and has a step.
-          selectMoreFields: { steps: true, isEnabled: true },
+          /*
+           * What the Overview offers first: whether it is on, and has a
+           * step - and what starts it on its own (its Triggers page is in
+           * the menu's folded Settings section).
+           */
+          selectMoreFields: {
+            steps: true,
+            isEnabled: true,
+            ...RUNBOOK_TRIGGERS_SUMMARY_SELECT,
+          },
           onItemLoaded: (item: Runbook): void => {
             setFacts(getRunbookOverviewFacts(item));
           },
@@ -493,6 +505,23 @@ const Overview: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   );
                 }
                 return <Pill text="Disabled" color={Red500} isMinimal={true} />;
+              },
+            },
+            {
+              /*
+               * Whether a schedule or the webhook starts it, or neither -
+               * and where that is changed.
+               */
+              field: { isScheduleEnabled: true },
+              title: RunbookTriggersSummaryCopy.title,
+              fieldType: FieldType.Element,
+              getElement: (item: Runbook): ReactElement => {
+                return (
+                  <RunbookTriggersSummaryElement
+                    runbookId={modelId}
+                    runbook={item}
+                  />
+                );
               },
             },
             {

@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "En körning startar från arbetsflödets utlösare. Den läggs till av någon som får redigera det här arbetsflödet.",
   "Workflows do not run on this project's plan": "Arbetsflöden körs inte med det här projektets abonnemang",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Det här projektet har {{plan}}-abonnemanget, så ingenting startar ett arbetsflöde, inte ens ”Kör arbetsflöde”. {{upgradeLink}} för att köra arbetsflöden.",
-  "Upgrade to the Growth plan or above": "Uppgradera till Growth-abonnemanget eller högre"
+  "Upgrade to the Growth plan or above": "Uppgradera till Growth-abonnemanget eller högre",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "Inga globala variabler ännu. En projektägare eller administratör lägger till de värdar, nycklar, lösenord och kubeconfigs som stegen använder.",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "Den här runbooken har inga egna variabler ännu. En projektägare eller administratör lägger till dem, och globala variabler fungerar också här.",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "Inga hemliga variabler ännu. Be en projektägare eller administratör att lägga till en under {{location}} och välj den sedan här.",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "Runnern som valts ovan får inte använda {{name}}, så steget misslyckas när det körs. Välj en av variabelns Runners för det här steget, eller be en projektägare eller administratör att lägga till den här Runnern under {{location}}.",
+  "Its schedule is paused.": "Schemat är pausat.",
+  "Runs when its webhook URL is called.": "Körs när dess webhook-URL anropas.",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Inget schema eller webhook: den körs när någon startar den, eller när en regel eller OneUptime AI gör det.",
+  "Change it under {{location}}.": "Ändra det under {{location}}.",
+  "Settings › Triggers": "Inställningar › Utlösare"
 }

@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "Une exécution part du déclencheur du flux de travail. Il est ajouté par une personne autorisée à modifier ce flux de travail.",
   "Workflows do not run on this project's plan": "Les flux de travail ne s'exécutent pas avec le forfait de ce projet",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Ce projet a le forfait {{plan}}, donc rien ne démarre un flux de travail, pas même « Exécuter le flux de travail ». {{upgradeLink}} pour exécuter des flux de travail.",
-  "Upgrade to the Growth plan or above": "Passez au forfait Growth ou supérieur"
+  "Upgrade to the Growth plan or above": "Passez au forfait Growth ou supérieur",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "Aucune variable globale pour l'instant. Un propriétaire ou un administrateur du projet ajoute les hôtes, clés, mots de passe et kubeconfigs que les étapes utilisent.",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "Ce runbook n'a pas encore de variables à lui. Un propriétaire ou un administrateur du projet les ajoute, et les variables globales fonctionnent aussi ici.",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "Aucune variable secrète pour l'instant. Demandez à un propriétaire ou à un administrateur du projet d'en ajouter une dans {{location}}, puis choisissez-la ici.",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "L'agent Runbook choisi ci-dessus ne peut pas utiliser {{name}}, l'étape échouera donc à son exécution. Choisissez pour cette étape l'un des agents Runbook de la variable, ou demandez à un propriétaire ou à un administrateur du projet d'y ajouter cet agent Runbook dans {{location}}.",
+  "Its schedule is paused.": "Sa planification est en pause.",
+  "Runs when its webhook URL is called.": "S'exécute quand son URL de webhook est appelée.",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Ni planification ni webhook : il s'exécute quand quelqu'un le lance, ou quand une règle ou OneUptime AI le fait.",
+  "Change it under {{location}}.": "Modifiez-le dans {{location}}.",
+  "Settings › Triggers": "Paramètres › Déclencheurs"
 }

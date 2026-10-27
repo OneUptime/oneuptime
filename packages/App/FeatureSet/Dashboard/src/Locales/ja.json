@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "実行はワークフローのトリガーから始まります。トリガーは、このワークフローを編集できるユーザーが追加します。",
   "Workflows do not run on this project's plan": "このプロジェクトのプランではワークフローは実行されません",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "このプロジェクトは {{plan}} プランのため、「ワークフローを実行」を含め、何もワークフローを開始しません。ワークフローを実行するには、{{upgradeLink}}してください。",
-  "Upgrade to the Growth plan or above": "Growth プラン以上にアップグレード"
+  "Upgrade to the Growth plan or above": "Growth プラン以上にアップグレード",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "グローバル変数はまだありません。ステップで使うホスト、鍵、パスワード、kubeconfig は、プロジェクトのオーナーまたは管理者が追加します。",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "この Runbook 独自の変数はまだありません。変数はプロジェクトのオーナーまたは管理者が追加します。ここではグローバル変数も使えます。",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "シークレット変数はまだありません。プロジェクトのオーナーまたは管理者に {{location}} で追加してもらい、ここで選択してください。",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "上で選んだ Runner は {{name}} を使えないため、実行時にステップは失敗します。このステップには変数の Runner のいずれかを選ぶか、プロジェクトのオーナーまたは管理者に {{location}} でこの Runner を追加してもらってください。",
+  "Its schedule is paused.": "スケジュールは一時停止中です。",
+  "Runs when its webhook URL is called.": "Webhook URL が呼び出されると実行されます。",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "スケジュールも Webhook もありません。誰かが開始したとき、またはルールや OneUptime AI が開始したときに実行されます。",
+  "Change it under {{location}}.": "{{location}} で変更できます。",
+  "Settings › Triggers": "設定 › トリガー"
 }

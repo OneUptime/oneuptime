@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "Uma execução começa pelo gatilho do fluxo de trabalho. Quem pode editar este fluxo de trabalho o adiciona.",
   "Workflows do not run on this project's plan": "Os fluxos de trabalho não são executados no plano deste projeto",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Este projeto está no plano {{plan}}, por isso nada inicia um fluxo de trabalho, nem mesmo “Executar fluxo de trabalho”. {{upgradeLink}} para executar fluxos de trabalho.",
-  "Upgrade to the Growth plan or above": "Faça upgrade para o plano Growth ou superior"
+  "Upgrade to the Growth plan or above": "Faça upgrade para o plano Growth ou superior",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "Ainda não há variáveis globais. Um proprietário ou administrador do projeto adiciona os hosts, chaves, senhas e kubeconfigs que as etapas usam.",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "Este runbook ainda não tem variáveis próprias. Um proprietário ou administrador do projeto as adiciona, e as variáveis globais também funcionam aqui.",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "Ainda não há variáveis secretas. Peça a um proprietário ou administrador do projeto que adicione uma em {{location}} e depois escolha-a aqui.",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "O Runner escolhido acima não pode usar {{name}}, então a etapa vai falhar quando rodar. Escolha para esta etapa um dos Runners da variável, ou peça a um proprietário ou administrador do projeto que adicione este Runner a ela em {{location}}.",
+  "Its schedule is paused.": "O agendamento está pausado.",
+  "Runs when its webhook URL is called.": "É executado quando a URL do webhook é chamada.",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Sem agendamento nem webhook: é executado quando alguém o inicia, ou quando uma regra ou o OneUptime AI o faz.",
+  "Change it under {{location}}.": "Altere em {{location}}.",
+  "Settings › Triggers": "Configurações › Gatilhos"
 }

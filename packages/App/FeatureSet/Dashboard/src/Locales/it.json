@@ -35853,5 +35853,14 @@
   "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "Un'esecuzione parte dal trigger del flusso di lavoro. Lo aggiunge chi può modificare questo flusso di lavoro.",
   "Workflows do not run on this project's plan": "I flussi di lavoro non vengono eseguiti con il piano di questo progetto",
   "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Questo progetto ha il piano {{plan}}, quindi niente avvia un flusso di lavoro, nemmeno «Esegui flusso di lavoro». {{upgradeLink}} per eseguire i flussi di lavoro.",
-  "Upgrade to the Growth plan or above": "Passa al piano Growth o superiore"
+  "Upgrade to the Growth plan or above": "Passa al piano Growth o superiore",
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.": "Ancora nessuna variabile globale. Un proprietario o un amministratore del progetto aggiunge gli host, le chiavi, le password e i kubeconfig usati dai passaggi.",
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.": "Questo runbook non ha ancora variabili proprie. Le aggiunge un proprietario o un amministratore del progetto, e anche le variabili globali funzionano qui.",
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.": "Ancora nessuna variabile segreta. Chiedi a un proprietario o a un amministratore del progetto di aggiungerne una in {{location}}, poi sceglila qui.",
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.": "Il Runner scelto sopra non può usare {{name}}, quindi il passaggio fallirà quando viene eseguito. Scegli per questo passaggio uno dei Runner della variabile, oppure chiedi a un proprietario o a un amministratore del progetto di aggiungerle questo Runner in {{location}}.",
+  "Its schedule is paused.": "La sua pianificazione è in pausa.",
+  "Runs when its webhook URL is called.": "Viene eseguito quando viene chiamato il suo URL webhook.",
+  "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Né pianificazione né webhook: viene eseguito quando qualcuno lo avvia, o quando lo fa una regola o OneUptime AI.",
+  "Change it under {{location}}.": "Modificalo in {{location}}.",
+  "Settings › Triggers": "Impostazioni › Trigger"
 }

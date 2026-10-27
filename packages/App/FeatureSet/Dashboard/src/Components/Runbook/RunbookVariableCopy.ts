@@ -45,6 +45,44 @@ export const RUNBOOK_VARIABLES_EMPTY: string = translationKey(
   "No variables of this runbook's own yet. Global variables work here too.",
 );
 
+/*
+ * The same two, for someone who may read variables but not create them - a
+ * Runbook Admin, who picks them in the steps it writes: told who adds them,
+ * not to add one.
+ */
+export const GLOBAL_VARIABLES_EMPTY_READ_ONLY: string = translationKey(
+  "No global variables yet. A project owner or admin adds the hosts, keys, passwords and kubeconfigs steps use.",
+);
+
+export const RUNBOOK_VARIABLES_EMPTY_READ_ONLY: string = translationKey(
+  "No variables of this runbook's own yet. A project owner or admin adds them, and global variables work here too.",
+);
+
+/*
+ * A step's secret picker with nothing to pick, said to whoever may add a
+ * variable and to whoever may not.
+ */
+export const NO_SECRET_VARIABLES_ADD_ONE_TEMPLATE: string = translationKey(
+  "No secret variables yet. Add one under {{location}}, then pick it here.",
+);
+
+export const NO_SECRET_VARIABLES_ASK_TEMPLATE: string = translationKey(
+  "No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here.",
+);
+
+/*
+ * A secret the step's Runner may not use: to whoever may change the
+ * variable, add the Runner to it; to whoever may not, pick one of its
+ * Runners, or ask.
+ */
+export const NOT_FOR_RUNNER_EDIT_TEMPLATE: string = translationKey(
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Add the Runner to the variable's Runners under {{location}}.",
+);
+
+export const NOT_FOR_RUNNER_ASK_TEMPLATE: string = translationKey(
+  "The Runner picked above may not use {{name}}, so the step will fail when it runs. Pick one of the variable's Runners for this step, or ask a project owner or admin to add this Runner to it under {{location}}.",
+);
+
 // The form's steps: what the variable is, then who may use a secret.
 export const VARIABLE_STEP_TITLE: string = translationKey("Variable");
 export const ACCESS_STEP_TITLE: string = translationKey("Who can use it");
