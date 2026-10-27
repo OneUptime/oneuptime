@@ -1862,7 +1862,11 @@ describe("Riskiest Entities, by risk score", () => {
       { value: "203.0.113.47", type: SecurityEntityType.IpAddress, score: 125 },
       { value: "fin-ws-112", type: SecurityEntityType.Host, score: 113 },
       { value: "198.51.100.23", type: SecurityEntityType.IpAddress, score: 75 },
-      { value: "j.wilson@acme-commerce.example", type: SecurityEntityType.User, score: 25 },
+      {
+        value: "j.wilson@acme-commerce.example",
+        type: SecurityEntityType.User,
+        score: 25,
+      },
     ],
   };
 
@@ -1903,8 +1907,7 @@ describe("Riskiest Entities, by risk score", () => {
       rowsOf(card).map((row: HTMLElement): [string, string] => {
         return [
           within(row).getByRole("link").textContent || "",
-          (row.querySelector(".tabular-nums") as HTMLElement).textContent ||
-            "",
+          (row.querySelector(".tabular-nums") as HTMLElement).textContent || "",
         ];
       }),
     ).toEqual([
@@ -1978,10 +1981,9 @@ describe("Riskiest Entities, by risk score", () => {
         .textContent,
     ).toBe("Medium");
     // Its page, with no kind in its address.
-    expect(within(card).getByRole("link", { name: "odd-entity" })).toHaveAttribute(
-      "href",
-      getEntityRiskRoute("odd-entity").toString(),
-    );
+    expect(
+      within(card).getByRole("link", { name: "odd-entity" }),
+    ).toHaveAttribute("href", getEntityRiskRoute("odd-entity").toString());
   });
 
   test("fills each bar as Entity Risk's meter does, in its level's colour, with the threshold marked halfway", async () => {
@@ -2059,9 +2061,8 @@ describe("Riskiest Entities, by risk score", () => {
     );
     // Under the list, not above it.
     expect(
-      within(card)
-        .getByRole("list")
-        .compareDocumentPosition(all) & Node.DOCUMENT_POSITION_FOLLOWING,
+      within(card).getByRole("list").compareDocumentPosition(all) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
@@ -2134,7 +2135,9 @@ describe("Riskiest Entities, by risk score", () => {
     }
 
     const reads: number = (
-      SecurityCaseApi.getOverview as unknown as { mock: { calls: Array<unknown> } }
+      SecurityCaseApi.getOverview as unknown as {
+        mock: { calls: Array<unknown> };
+      }
     ).mock.calls.length;
 
     await act(async () => {

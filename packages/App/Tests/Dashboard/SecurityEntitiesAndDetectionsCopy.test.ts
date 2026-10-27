@@ -49,7 +49,9 @@ function source(relativePath: string): string {
 describe("the Overview's Riskiest Entities", () => {
   test("say they are Entity Risk's ranking, over Entity Risk's week, and what a reader does next", () => {
     expect(RISKIEST_ENTITIES_TITLE).toBe("Riskiest Entities");
-    expect(RISKIEST_ENTITIES_DESCRIPTION).toContain("as Entity Risk ranks them");
+    expect(RISKIEST_ENTITIES_DESCRIPTION).toContain(
+      "as Entity Risk ranks them",
+    );
     expect(RISKIEST_ENTITIES_DESCRIPTION).toContain("in the last 7 days");
     // The week is Entity Risk's own.
     expect(ENTITY_RISK_TABLE_DESCRIPTION).toContain("in the last 7 days");
@@ -120,7 +122,9 @@ describe("Look Up an Entity, under Entity Risk's list", () => {
       entityRisk.indexOf("<ModelTable<SecurityEntityRisk>"),
     );
     expect(
-      fs.existsSync(path.resolve(DASHBOARD_SRC, "Pages/SecurityEvents/Entities.tsx")),
+      fs.existsSync(
+        path.resolve(DASHBOARD_SRC, "Pages/SecurityEvents/Entities.tsx"),
+      ),
     ).toBe(false);
     expect(
       fs.existsSync(
@@ -188,9 +192,7 @@ describe("the words", () => {
       // "View all 9 entities" keeps its count, wherever the language puts it.
       expect([
         locale,
-        String(entries[RISKIEST_ENTITIES_VIEW_ALL.other]).includes(
-          "{{count}}",
-        ),
+        String(entries[RISKIEST_ENTITIES_VIEW_ALL.other]).includes("{{count}}"),
       ]).toEqual([locale, true]);
     }
   });

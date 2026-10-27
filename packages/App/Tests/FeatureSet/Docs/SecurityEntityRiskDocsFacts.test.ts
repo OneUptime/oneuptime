@@ -355,9 +355,7 @@ describe("Entity Risk docs", () => {
       ),
     );
     expect(reader).toContain("riskScore: QueryHelper.greaterThan(0)");
-    expect(reader).toContain(
-      "sort: { riskScore: SortOrder.Descending, lastRiskAt: SortOrder.Descending, }",
-    );
+    expect(reader).toContain("sort: { riskScore: SortOrder.Descending, }");
     expect(reader).toContain("SecurityEntityRiskService.findBy(");
 
     // The lookup is drawn under the list.

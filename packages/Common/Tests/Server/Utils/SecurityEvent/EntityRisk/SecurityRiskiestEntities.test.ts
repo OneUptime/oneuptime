@@ -130,15 +130,16 @@ beforeEach(() => {
   projectFailure = null;
 
   spies = {
-    findBy: getJestSpyOn(SecurityEntityRiskService, "findBy").mockImplementation(
-      async (): Promise<Array<SecurityEntityRisk>> => {
-        if (findFailure) {
-          throw findFailure;
-        }
+    findBy: getJestSpyOn(
+      SecurityEntityRiskService,
+      "findBy",
+    ).mockImplementation(async (): Promise<Array<SecurityEntityRisk>> => {
+      if (findFailure) {
+        throw findFailure;
+      }
 
-        return rows;
-      },
-    ),
+      return rows;
+    }),
     countBy: getJestSpyOn(
       SecurityEntityRiskService,
       "countBy",
@@ -220,12 +221,12 @@ describe("the riskiest entities, as Entity Risk ranks them", () => {
     expect(SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT).toBe(8);
     expect(args.limit).toBe(SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT);
     expect(args.skip).toBe(0);
-    // The highest score first; of two at the same score, the one found about last.
-    expect(args.sort).toEqual({
-      riskScore: SortOrder.Descending,
-      lastRiskAt: SortOrder.Descending,
-    });
-    expect(Object.keys(args.sort)).toEqual(["riskScore", "lastRiskAt"]);
+    /*
+     * The highest score first, by the score alone - as Entity Risk's table
+     * sorts - so a tie comes in the order that list shows it (every read
+     * breaks ties by the row's id).
+     */
+    expect(args.sort).toEqual({ riskScore: SortOrder.Descending });
     expect(args.select).toEqual({
       _id: true,
       entityValue: true,
@@ -352,9 +353,9 @@ describe("a row as the overview hands it over", () => {
   });
 
   test("a score is a whole number, never below nothing", () => {
-    expect(
-      toRiskiestEntity(riskRow({ value: "a", score: 112.5 })).score,
-    ).toBe(113);
+    expect(toRiskiestEntity(riskRow({ value: "a", score: 112.5 })).score).toBe(
+      113,
+    );
     expect(toRiskiestEntity(riskRow({ value: "a", score: -4 })).score).toBe(0);
     expect(
       toRiskiestEntity(riskRow({ value: "a", score: Number.NaN })).score,

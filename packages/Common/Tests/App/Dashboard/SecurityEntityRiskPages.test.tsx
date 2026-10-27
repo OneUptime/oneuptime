@@ -1003,9 +1003,9 @@ describe("Security Events > Entity Risk", () => {
       screen.getByTestId(ENTITY_LOOKUP_TEST_IDS.input),
     );
     expect(
-      screen.getByTestId(ENTITY_LOOKUP_TEST_IDS.input).getAttribute(
-        "placeholder",
-      ),
+      screen
+        .getByTestId(ENTITY_LOOKUP_TEST_IDS.input)
+        .getAttribute("placeholder"),
     ).toBe("e.g. alice@example.com, web-01 or 203.0.113.7");
     // Nothing to look up yet: Look Up waits for a value.
     expect(screen.getByRole("button", { name: "Look Up" })).toBeDisabled();
@@ -1031,10 +1031,9 @@ describe("Security Events > Entity Risk", () => {
     });
     drawList();
 
-    fireEvent.change(
-      await screen.findByTestId(ENTITY_LOOKUP_TEST_IDS.input),
-      { target: { value: "  update-sync.bad-cdn.example " } },
-    );
+    fireEvent.change(await screen.findByTestId(ENTITY_LOOKUP_TEST_IDS.input), {
+      target: { value: "  update-sync.bad-cdn.example " },
+    });
 
     await act(async () => {
       fireEvent.click(screen.getByRole("button", { name: "Look Up" }));

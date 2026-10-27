@@ -128,7 +128,9 @@ describe("the rows, worked out from the overview's answer", () => {
   test("keeps each entity's value, kind and score as sent, in the order sent", () => {
     expect(
       getRiskiestEntityRows(RISKIEST).map(
-        (row: RiskiestEntityRow): [string, SecurityEntityType | null, number] => {
+        (
+          row: RiskiestEntityRow,
+        ): [string, SecurityEntityType | null, number] => {
           return [row.value, row.type, row.score];
         },
       ),
@@ -197,7 +199,10 @@ describe("the card's body", () => {
       within(rows[1]!).getByRole("link", { name: "203.0.113.47" }),
     ).toHaveAttribute(
       "href",
-      getEntityRiskRoute("203.0.113.47", SecurityEntityType.IpAddress).toString(),
+      getEntityRiskRoute(
+        "203.0.113.47",
+        SecurityEntityType.IpAddress,
+      ).toString(),
     );
   });
 
@@ -210,9 +215,7 @@ describe("the card's body", () => {
 
     expect(row).toHaveTextContent("Host · Critical");
     expect(row).toHaveTextContent("450");
-    expect(within(row).getByTestId("ranked-bar-fill").style.width).toBe(
-      "100%",
-    );
+    expect(within(row).getByTestId("ranked-bar-fill").style.width).toBe("100%");
   });
 
   test("the way to the rest of Entity Risk's list, in the reader's count", () => {
@@ -236,9 +239,7 @@ describe("the card's body", () => {
       ENTITY_RISK_EMPTY_TITLE,
     );
     expect(screen.queryByTestId(RISKIEST_ENTITIES_TEST_IDS.list)).toBeNull();
-    expect(
-      screen.queryByTestId(RISKIEST_ENTITIES_TEST_IDS.viewAll),
-    ).toBeNull();
+    expect(screen.queryByTestId(RISKIEST_ENTITIES_TEST_IDS.viewAll)).toBeNull();
   });
 
   test("risk that could not be read: the words, and Try again - which waits while a read is in flight", async () => {
@@ -254,7 +255,9 @@ describe("the card's body", () => {
       RISKIEST_ENTITIES_TEST_IDS.error,
     );
 
-    expect(failed).toHaveTextContent("We could not load the riskiest entities.");
+    expect(failed).toHaveTextContent(
+      "We could not load the riskiest entities.",
+    );
     expect(screen.queryByTestId("ranked-bars-empty")).toBeNull();
 
     await act(async () => {
@@ -265,7 +268,9 @@ describe("the card's body", () => {
     cleanup();
     renderRiskiest(null, { isReading: true });
 
-    expect(screen.getByTestId(RISKIEST_ENTITIES_TEST_IDS.tryAgain)).toBeDisabled();
+    expect(
+      screen.getByTestId(RISKIEST_ENTITIES_TEST_IDS.tryAgain),
+    ).toBeDisabled();
   });
 });
 

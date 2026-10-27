@@ -102,7 +102,11 @@ const RiskiestEntities: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid={RISKIEST_ENTITIES_TEST_IDS.list}>
-      <RankedBars items={items} emptyText={ENTITY_RISK_EMPTY_TITLE} hasThresholdMark={true} />
+      <RankedBars
+        items={items}
+        emptyText={ENTITY_RISK_EMPTY_TITLE}
+        hasThresholdMark={true}
+      />
       {moreCount > 0 ? (
         <div className="mt-4 text-sm">
           <AppLink

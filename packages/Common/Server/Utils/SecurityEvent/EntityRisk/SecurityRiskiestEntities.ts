@@ -26,10 +26,12 @@ import { readRiskCaseThreshold } from "../../../../Utils/SecurityCase/SecurityEn
  * rule fired at above the account three different rules flagged.
  *
  * Read as the caller, as the rest of the overview is: the rows are security
- * data the Security tiers read. A tie keeps the entity found about most
- * recently first. The project's threshold comes with them - each score's
- * level is read against it - and how many entities have risk, for the
- * card's way on to the whole list.
+ * data the Security tiers read. Sorted exactly as Entity Risk's list is, by
+ * the score alone, so two entities with one score come in the order that
+ * list shows them too (every read breaks ties by the row's id). The
+ * project's threshold comes with them - each score's level is read against
+ * it - and how many entities have risk, for the card's way on to the whole
+ * list.
  */
 export default class SecurityRiskiestEntitiesReader {
   /*
@@ -60,9 +62,9 @@ export default class SecurityRiskiestEntitiesReader {
             entityType: true,
             riskScore: true,
           },
+          // Entity Risk's own order: its table sorts by the score alone.
           sort: {
             riskScore: SortOrder.Descending,
-            lastRiskAt: SortOrder.Descending,
           },
           skip: 0,
           limit: data.limit || SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT,

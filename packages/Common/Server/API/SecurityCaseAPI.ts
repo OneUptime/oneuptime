@@ -1061,7 +1061,13 @@ export default class SecurityCaseAPI extends BaseAPI<
       mitreTactics: true,
     };
 
-    const [openCases, casesInWindow, detections, waitingRuns, riskiestEntities]: [
+    const [
+      openCases,
+      casesInWindow,
+      detections,
+      waitingRuns,
+      riskiestEntities,
+    ]: [
       Array<SecurityCase>,
       Array<SecurityCase>,
       Array<SecurityDetection>,

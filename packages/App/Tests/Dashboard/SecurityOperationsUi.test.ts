@@ -44,7 +44,6 @@ import {
   readDate,
   readNumber,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApiTypes";
-import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
 import {
   DEFAULT_ENTITY_RISK_CASE_THRESHOLD,
   SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT,
