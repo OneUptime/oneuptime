@@ -1,11 +1,4 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import JSON5 from "json5";
 import JSONFunctions from "../../Types/JSONFunctions";
 import { SeededRandom, seededRandom } from "../Helpers/SeededRandom";
@@ -239,23 +232,36 @@ const jsonText: (random: SeededRandom, depth: number) => string = (
 };
 
 describe("JSONFunctions.parse reads JSON with JSON.parse and the rest with JSON5", () => {
-  let warn: jest.SpiedFunction<typeof console.warn>;
+  /*
+   * JSON5.parse counts its calls, and console.warn keeps what it was given,
+   * while each test runs. JSON5's own parse, uncounted, is `json5Parse`.
+   */
+  const json5Parse: typeof JSON5.parse = JSON5.parse;
+  // JSON5 warns through the global console.
+  const output: Console = globalThis.console;
+  const consoleWarn: Console["warn"] = output.warn;
+  let json5Calls: number = 0;
+  let warnings: Array<string> = [];
 
   beforeEach(() => {
-    warn = jest.spyOn(console, "warn").mockImplementation((): void => {});
+    json5Calls = 0;
+    warnings = [];
+    JSON5.parse = ((...args: Parameters<typeof JSON5.parse>): unknown => {
+      json5Calls++;
+      return json5Parse(...args);
+    }) as typeof JSON5.parse;
+    output.warn = (...data: Array<unknown>): void => {
+      warnings.push(data.map(String).join(" "));
+    };
   });
 
   afterEach(() => {
-    warn.mockRestore();
-    jest.restoreAllMocks();
+    JSON5.parse = json5Parse;
+    output.warn = consoleWarn;
   });
 
   test("every generated JSON text reads as JSON5 read it, without JSON5", () => {
     const random: SeededRandom = seededRandom(5381);
-    const json5Parse: jest.SpiedFunction<typeof JSON5.parse> = jest.spyOn(
-      JSON5,
-      "parse",
-    );
     let compared: number = 0;
 
     for (let index: number = 0; index < 4000; index++) {
@@ -269,15 +275,14 @@ describe("JSONFunctions.parse reads JSON with JSON.parse and the rest with JSON5
         return JSON.parse(text);
       }).not.toThrow();
 
-      json5Parse.mockClear();
+      json5Calls = 0;
       const parsed: string = outcomeOf((): unknown => {
         return JSONFunctions.parse(text);
       });
-      expect(json5Parse).not.toHaveBeenCalled();
+      expect(json5Calls).toBe(0);
 
-      // The spy calls JSON5's own parse through.
       const expected: string = outcomeOf((): unknown => {
-        return JSON5.parse(text);
+        return json5Parse(text);
       });
 
       if (parsed !== expected) {
@@ -317,7 +322,7 @@ describe("JSONFunctions.parse reads JSON with JSON.parse and the rest with JSON5
         }),
       ).toBe(
         outcomeOf((): unknown => {
-          return JSON5.parse(text);
+          return json5Parse(text);
         }),
       );
     }
@@ -334,10 +339,6 @@ describe("JSONFunctions.parse reads JSON with JSON.parse and the rest with JSON5
   });
 
   test("JSON5's own syntax still reads with JSON5, to the same values", () => {
-    const json5Parse: jest.SpiedFunction<typeof JSON5.parse> = jest.spyOn(
-      JSON5,
-      "parse",
-    );
     const texts: Array<string> = [
       "{ a: 1 }",
       "{ 'a': 'b' }",
@@ -360,15 +361,15 @@ describe("JSONFunctions.parse reads JSON with JSON.parse and the rest with JSON5
     ];
 
     for (const text of texts) {
-      json5Parse.mockClear();
+      json5Calls = 0;
       const parsed: string = outcomeOf((): unknown => {
         return JSONFunctions.parse(text);
       });
-      expect(json5Parse).toHaveBeenCalledTimes(1);
+      expect(json5Calls).toBe(1);
 
       expect(parsed).toBe(
         outcomeOf((): unknown => {
-          return JSON5.parse(text);
+          return json5Parse(text);
         }),
       );
       expect(parsed.startsWith("value ")).toBe(true);
@@ -400,7 +401,7 @@ describe("JSONFunctions.parse reads JSON with JSON.parse and the rest with JSON5
 
       expect(parsed).toBe(
         outcomeOf((): unknown => {
-          return JSON5.parse(text);
+          return json5Parse(text);
         }),
       );
       expect(parsed.startsWith("throws ")).toBe(true);
@@ -428,7 +429,7 @@ describe("JSONFunctions.parse reads JSON with JSON.parse and the rest with JSON5
         }),
       ).toBe(
         outcomeOf((): unknown => {
-          return JSON5.parse(value as string);
+          return json5Parse(value as string);
         }),
       );
     }
@@ -438,10 +439,11 @@ describe("JSONFunctions.parse reads JSON with JSON.parse and the rest with JSON5
     expect(JSONFunctions.parse('{"a":"x\u2028y\u2029z"}')).toEqual({
       a: "x\u2028y\u2029z",
     });
-    expect(warn).not.toHaveBeenCalled();
+    expect(warnings).toEqual([]);
 
-    JSON5.parse('{"a":"x\u2028y"}');
-    expect(warn).toHaveBeenCalled();
+    json5Parse('{"a":"x\u2028y"}');
+    expect(warnings.length).toBe(1);
+    expect(warnings[0]).toContain("JSON5");
   });
 
   test("a token payload reads faster than JSON5 read it", () => {
@@ -480,7 +482,7 @@ describe("JSONFunctions.parse reads JSON with JSON.parse and the rest with JSON5
       return JSONFunctions.parse(text);
     });
     read((text: string): unknown => {
-      return JSON5.parse(text);
+      return json5Parse(text);
     });
 
     const fast: FastestRun<number> = fastestRun({
@@ -494,7 +496,7 @@ describe("JSONFunctions.parse reads JSON with JSON.parse and the rest with JSON5
     const slow: FastestRun<number> = fastestRun({
       run: (): number => {
         return read((text: string): unknown => {
-          return JSON5.parse(text);
+          return json5Parse(text);
         });
       },
       limitInMs: 0,
