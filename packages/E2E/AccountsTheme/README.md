@@ -39,9 +39,10 @@ MCP client asking for access, a marketplace purchase, signing in to the mobile a
 and the pages for a wrong link - leaves no light box on the dark page and keeps its
 words at 4.5:1 on what is behind them, at 1280 and 390 pixels, nothing wider than a
 phone; the same pages light, as before; the sign-in, single sign-on and sign-up pages
-in German and Persian; that the footer sits on the dark page's own ground, a state
-icon's halo is a faint ring of its own colour and the backup codes' one action is as
-wide as the card's content; and an installation's only logo on a light plate on a
+in German and Persian; that the footer sits on the dark page's own ground with its
+language picker centred under its links on a phone, a state icon's halo is a faint
+ring of its own colour and the backup codes' one action is as wide as the card's
+content; and an installation's only logo on a light plate on a
 dark page. Screenshots of every page in both themes are saved under
 `output/playwright/accounts-theme-ui`.
 

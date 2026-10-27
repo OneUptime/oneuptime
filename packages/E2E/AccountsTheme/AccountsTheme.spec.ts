@@ -31,9 +31,10 @@ import {
  *     phone's, in English, German and Persian, nothing wider than the
  *     screen.
  *   - What a dark page draws quietly stays quiet: the footer is on the
- *     page's own ground, a state icon's halo is a faint ring of its own
- *     colour, and the backup codes' one action is as wide as the card's
- *     content, as every other step's is.
+ *     page's own ground (its language picker centred under its links on a
+ *     phone), a state icon's halo is a faint ring of its own colour, and
+ *     the backup codes' one action is as wide as the card's content, as
+ *     every other step's is.
  *   - An installation's only logo, made for light backgrounds, sits on a
  *     light plate on a dark page; its logo for dark backgrounds, when it has
  *     one, is drawn as it is.
@@ -975,6 +976,44 @@ test.describe("what a dark page draws quietly", () => {
     // No ground of its own: not a lighter band across the dark page.
     expect(footer.ground).toBe("rgba(0, 0, 0, 0)");
     expect(footer.edge).toBe("1px");
+  });
+
+  test("on a phone, the footer's language picker sits centred under its links", async ({
+    page,
+    context,
+  }: {
+    page: Page;
+    context: BrowserContext;
+  }) => {
+    await keep(context, { theme: "dark" });
+    await page.setViewportSize(PHONE);
+    await page.goto("/accounts/login");
+    await expect(page.getByTestId("email")).toBeVisible();
+    await settle(page);
+
+    const centres: { picker: number; contact: number } = await page
+      .locator("footer")
+      .evaluate((footer: Element): { picker: number; contact: number } => {
+        const picker: Element = footer.querySelector(
+          "#accounts-language-switcher",
+        )!.parentElement!;
+        const icon: DOMRect = picker.firstElementChild!.getBoundingClientRect();
+        const select: DOMRect =
+          picker.lastElementChild!.getBoundingClientRect();
+        const contact: DOMRect = Array.from(footer.querySelectorAll("a"))
+          .find((link: HTMLAnchorElement): boolean => {
+            return link.textContent?.trim() === "Contact";
+          })!
+          .getBoundingClientRect();
+
+        return {
+          picker: (icon.left + select.right) / 2,
+          contact: contact.left + contact.width / 2,
+        };
+      });
+
+    // Not hugging the left edge under two centred links.
+    expect(Math.abs(centres.picker - centres.contact)).toBeLessThan(2);
   });
 
   const HALOS: Array<{
