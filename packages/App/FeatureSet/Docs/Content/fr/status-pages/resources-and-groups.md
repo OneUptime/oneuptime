@@ -115,6 +115,8 @@ Les groupes ont leurs propres copies de ces commutateurs (voir plus bas) : un gr
 
 Les couleurs des barres du graphique d'historique se règlent sous **Plus de paramètres** sur la page **Image de marque**, et les statuts de moniteur qui comptent comme « en panne » dans **Compte comme indisponibilité**, dans la carte **Ce que montre votre page de statut** des **Paramètres avancés** – les deux sont décrits dans [Personnalisation et domaines de la page de statut](/docs/status-pages/branding-and-domains).
 
+Chaque barre correspond à un jour. Survolez une barre ou cliquez dessus (touchez-la sur un téléphone, ou appuyez sur Entrée au clavier) pour lire la journée : sa disponibilité, la durée de chaque statut, les incidents déclarés ce jour-là et la maintenance planifiée qui s'y est déroulée, chacun avec un lien vers sa propre page. Un jour de maintenance planifiée porte une bande bleue en haut de sa barre, et tant qu'un événement est en cours, chaque ressource de ses moniteurs affiche « En maintenance » à côté de son nom. La maintenance ne change ni la couleur d'une barre ni la disponibilité, qui viennent des statuts du moniteur : pour que les travaux planifiés ne comptent pas dans la disponibilité, choisissez pour l'événement, dans **Changer le statut du moniteur en**, un statut qui ne fait pas partie de ceux de **Compte comme indisponibilité** sur la page. Voir [Ce qu'un événement affecte](/docs/scheduled-maintenance/index#ce-quun-événement-affecte).
+
 ## Groupes
 
 La plupart des groupes n'ont besoin que d'un nom.
