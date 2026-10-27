@@ -40,6 +40,8 @@ import IsolatedText from "../../../UI/Components/IsolatedText/IsolatedText";
 import TableBody from "../../../UI/Components/Table/TableBody";
 import Detail from "../../../UI/Components/Detail/Detail";
 import LongTextViewer from "../../../UI/Components/LongText/LongTextViewer";
+import CodeEditor from "../../../UI/Components/CodeEditor/CodeEditor";
+import CodeType from "../../../Types/Code/CodeType";
 import LogsTable from "../../../UI/Components/LogsViewer/components/LogsTable";
 import Log from "../../../Models/AnalyticsModels/Log";
 import FieldType from "../../../UI/Components/Types/FieldType";
@@ -776,6 +778,22 @@ describe("fields read what is typed into them the way it is written", () => {
     for (const field of Array.from(container.querySelectorAll("input"))) {
       expect(field.className).not.toContain("unicode-bidi");
     }
+  });
+});
+
+describe("code reads left to right on every page", () => {
+  test("a code editor's code and line numbers are left to right; its toolbar follows the page", () => {
+    render(
+      <CodeEditor type={CodeType.JSON} value={'{"region": "eu-west-1"}'} />,
+    );
+
+    expect(screen.getByTestId("code-editor-scroller")).toHaveAttribute(
+      "dir",
+      "ltr",
+    );
+    expect(
+      screen.getByTestId("code-editor-language").closest("[dir]"),
+    ).toBeNull();
   });
 });
 
