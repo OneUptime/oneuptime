@@ -140,6 +140,11 @@ export function fixtureCodeExamples(
   return examples;
 }
 
+/*
+ * A column as Service/Model hands it to the page: `required` is what the
+ * database requires, `requiredOnCreate` what a create must send (the badge),
+ * and `documentedDefault` the declared default, as JSON, or null.
+ */
 function fixtureColumn(
   type: string,
   required: boolean,
@@ -149,10 +154,13 @@ function fixtureColumn(
     read: Array<string>;
     update: Array<string>;
   },
+  options?: { requiredOnCreate?: boolean; documentedDefault?: string | null },
 ): Record<string, unknown> {
   return {
     type: type,
     required: required,
+    requiredOnCreate: options?.requiredOnCreate ?? required,
+    documentedDefault: options?.documentedDefault ?? null,
     description: description,
     permissions: permissions || {
       create: ["CreateProjectMonitor"],
@@ -167,8 +175,18 @@ export const MODEL_PAGE_DATA: Record<string, unknown> = {
   description: "Monitor is anything that monitors your API or website.",
   apiPath: "/api/monitor",
   columns: {
-    _id: fixtureColumn("ObjectID", true, "ID of the object."),
+    _id: fixtureColumn("ObjectID", true, "ID of the object.", undefined, {
+      requiredOnCreate: false,
+    }),
     name: fixtureColumn("Name", true, "Name of the monitor."),
+    // Required by the database, with a default: a create leaves it out.
+    disableActiveMonitoring: fixtureColumn(
+      "Boolean",
+      true,
+      "Disable active monitoring for this monitor.",
+      undefined,
+      { requiredOnCreate: false, documentedDefault: "false" },
+    ),
     createdAt: fixtureColumn("Date", false, "When the object was created.", {
       create: [],
       read: ["ReadProjectMonitor"],

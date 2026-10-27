@@ -1803,13 +1803,12 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
       },
     ],
     values: [],
+    // The bounds sit beside _type, as InBetween.fromJSON reads them.
     jsonExample: JSON.stringify(
       {
         _type: "InBetween",
-        value: {
-          startValue: "2024-01-01T00:00:00.000Z",
-          endValue: "2024-12-31T23:59:59.999Z",
-        },
+        startValue: "2024-01-01T00:00:00.000Z",
+        endValue: "2024-12-31T23:59:59.999Z",
       },
       null,
       2,
@@ -1849,6 +1848,47 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
     values: [],
     jsonExample: JSON.stringify(
       { _type: "Includes", value: ["value1", "value2", "value3"] },
+      null,
+      2,
+    ),
+  },
+  // Common/Types/BaseDatabase/OwnedBy; the docs' API reference says the same.
+  "owned-by": {
+    title: "OwnedBy",
+    description:
+      'A query filter for a resource with owners - a monitor, an incident, an on-call policy and every other one with user and team owners. It goes under the query\'s owners key, not under a field - { "owners": { "_type": "OwnedBy", "userIds": [...] } } - and matches the records owned by one or more of the people and teams it names; match says how. Ownership is direct: a team\'s members are not owners of what the team owns. One filter names at most 1,000 people and teams together. A resource without owners refuses it with a 400, and filtering by owners without permission to read them is refused with a 422.',
+    isEnum: false,
+    properties: [
+      {
+        name: "userIds",
+        type: "Array<ObjectID>",
+        required: false,
+        description:
+          "The people whose records match, by their user IDs. With AnyOf or NoneOf, userIds and teamIds together name at least one; with AnyOwner or NoOwner, neither is sent.",
+      },
+      {
+        name: "teamIds",
+        type: "Array<ObjectID>",
+        required: false,
+        description:
+          "The teams whose records match, by their team IDs, as with userIds.",
+      },
+      {
+        name: "match",
+        type: "string",
+        required: false,
+        description:
+          "How the records are matched. AnyOf, the default: owned by one or more of them. NoneOf: owned by none of them, records without owners included. AnyOwner: owned by at least one person or team. NoOwner: owned by nobody.",
+      },
+    ],
+    values: [],
+    jsonExample: JSON.stringify(
+      {
+        _type: "OwnedBy",
+        match: "AnyOf",
+        userIds: ["550e8400-e29b-41d4-a716-446655440000"],
+        teamIds: ["7c9e6679-7425-40de-944b-e07fc1f90ae7"],
+      },
       null,
       2,
     ),
@@ -3420,14 +3460,23 @@ export default class ServiceHandler {
       return result;
     });
 
-    // Extract _type wrapper from JSON example
-    let jsonWrapperType: string = detail.title;
+    /*
+     * The JSON format line: the example's _type and the keys beside it, as
+     * the type reads them - {"_type": "InBetween", "startValue": ...,
+     * "endValue": ...}, not always a "value". An example with no _type is
+     * sent as it is shown, so it has no such line.
+     */
+    let jsonWrapperType: string | null = null;
+    let jsonWrapperKeys: Array<string> = [];
     try {
       const parsed: Record<string, unknown> = JSON.parse(
         detail.jsonExample,
       ) as Record<string, unknown>;
       if (parsed["_type"] && typeof parsed["_type"] === "string") {
         jsonWrapperType = parsed["_type"];
+        jsonWrapperKeys = Object.keys(parsed).filter((key: string) => {
+          return key !== "_type";
+        });
       }
     } catch {
       // ignore parse errors
@@ -3445,6 +3494,7 @@ export default class ServiceHandler {
       propertyCount: linkedProperties.length,
       valueCount: linkedValues.length,
       jsonWrapperType: jsonWrapperType,
+      jsonWrapperKeys: jsonWrapperKeys,
     };
 
     return res.render(`${ViewsPath}/pages/index`, {

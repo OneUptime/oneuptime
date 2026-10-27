@@ -33,6 +33,7 @@
     "pageNotFoundMetaTitle": "Pagina niet gevonden",
     "pageNotFoundMetaDescription": "De pagina die u zoekt is niet gevonden.",
     "required": "Vereist",
+    "defaultValue": "Standaard",
     "or": "of",
     "copy": "Kopiëren",
     "copied": "Gekopieerd!",
