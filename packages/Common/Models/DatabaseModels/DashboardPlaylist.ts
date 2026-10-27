@@ -168,25 +168,6 @@ export default class DashboardPlaylist extends BaseModel {
   })
   @TableColumn({
     required: false,
-    type: TableColumnType.LongText,
-    title: "Description",
-    description: "Friendly description that will help you remember",
-    example: "The screen above the on-call desk",
-  })
-  @Column({
-    nullable: true,
-    type: ColumnType.LongText,
-    length: ColumnLength.LongText,
-  })
-  public description?: string = undefined;
-
-  @ColumnAccessControl({
-    create: CREATORS,
-    read: READERS,
-    update: EDITORS,
-  })
-  @TableColumn({
-    required: false,
     type: TableColumnType.JSON,
     title: "Dashboards",
     description:

@@ -11,7 +11,7 @@ export class AddDashboardPlaylists1808070000000 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `CREATE TABLE "DashboardPlaylist" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "name" character varying(100) NOT NULL, "description" character varying(500), "dashboards" jsonb, "intervalInSeconds" integer NOT NULL DEFAULT '60', "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_5196a18d5806e2a50ea530cf7a8" PRIMARY KEY ("_id"))`,
+      `CREATE TABLE "DashboardPlaylist" ("_id" uuid NOT NULL DEFAULT uuid_generate_v4(), "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(), "deletedAt" TIMESTAMP WITH TIME ZONE, "version" integer NOT NULL, "projectId" uuid NOT NULL, "name" character varying(100) NOT NULL, "dashboards" jsonb, "intervalInSeconds" integer NOT NULL DEFAULT '60', "createdByUserId" uuid, "deletedByUserId" uuid, CONSTRAINT "PK_5196a18d5806e2a50ea530cf7a8" PRIMARY KEY ("_id"))`,
     );
     await queryRunner.query(
       `CREATE INDEX "IDX_e1ca8e92828cf4117f8228007f" ON "DashboardPlaylist" ("projectId") `,
