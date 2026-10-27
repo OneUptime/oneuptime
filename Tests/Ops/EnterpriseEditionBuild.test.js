@@ -1058,9 +1058,10 @@ describe("the Enterprise Edition's own CI", () => {
 
     /*
      * Two jobs: the ee tests and the guards that need ee/ (test), and the
-     * Backups page's browser checks (backups-ui), which run beside them.
+     * Enterprise pages' browser checks (enterprise-ui), which run beside
+     * them.
      */
-    expect(Object.keys(workflow.jobs)).toEqual(["test", "backups-ui"]);
+    expect(Object.keys(workflow.jobs)).toEqual(["test", "enterprise-ui"]);
 
     const steps = workflow.jobs.test.steps;
     const find = (predicate) => {
@@ -1125,15 +1126,17 @@ describe("the Enterprise Edition's own CI", () => {
     }
   });
 
-  test("test.ee.yaml runs the Backups page's browser checks with ee/ present, after installing what the bundle reads", () => {
+  test("test.ee.yaml runs the Enterprise pages' browser checks with ee/ present, in the Playwright image, after installing what the bundles read", () => {
     /*
-     * App Test's Dashboard Offline UI groups delete ee/, where the suite's
-     * Enterprise specs skip: this job is where they run. Its bundle reads
-     * Common's and the Admin Dashboard's packages (the Admin Dashboard's
-     * i18n module needs its language detector), and Playwright's from
-     * packages/E2E.
+     * App Test's Dashboard Offline UI groups delete ee/, where these suites'
+     * Enterprise specs skip: this job is where they run. Its bundles read
+     * Common's, the Admin Dashboard's (its i18n module needs its language
+     * detector) and the Dashboard's packages, and Playwright's from
+     * packages/E2E; the image has the browsers (Tests/Ops/PlaywrightImage).
      */
-    const job = readYaml(".github/workflows/test.ee.yaml").jobs["backups-ui"];
+    const job = readYaml(".github/workflows/test.ee.yaml").jobs[
+      "enterprise-ui"
+    ];
     const steps = job.steps;
     const indexOf = (predicate) => {
       return steps.findIndex(predicate);
@@ -1146,44 +1149,88 @@ describe("the Enterprise Edition's own CI", () => {
         );
       });
     };
+    const runs = (script) => {
+      return indexOf((step) => {
+        return (
+          stepWorkingDirectory(step) === "packages/E2E" &&
+          stepCommand(step).trim() === `npm run ${script}`
+        );
+      });
+    };
     const common = install("packages/Common");
     const admin = install("packages/App/FeatureSet/AdminDashboard");
+    const dashboard = install("packages/App/FeatureSet/Dashboard");
     const e2e = install("packages/E2E");
-    const chromium = indexOf((step) => {
-      return (
-        stepWorkingDirectory(step) === "packages/E2E" &&
-        /^npx playwright install --with-deps chromium$/.test(
-          stepCommand(step).trim(),
-        )
-      );
-    });
-    const suite = indexOf((step) => {
-      return (
-        stepWorkingDirectory(step) === "packages/E2E" &&
-        stepCommand(step).trim() === "npm run test-backups-ui"
-      );
-    });
+    const backups = runs("test-backups-ui");
+    const licenses = runs("test-enterprise-licenses-ui");
+    const roles = runs("test-custom-roles-ui");
     const upload = indexOf((step) => {
       return /^actions\/upload-artifact@/.test(step.uses || "");
     });
 
-    for (const index of [common, admin, e2e, chromium, suite, upload]) {
+    for (const index of [
+      common,
+      admin,
+      dashboard,
+      e2e,
+      backups,
+      licenses,
+      roles,
+      upload,
+    ]) {
       expect(index).toBeGreaterThan(-1);
     }
-    expect(Math.max(common, admin, e2e)).toBeLessThan(chromium);
-    expect(chromium).toBeLessThan(suite);
-    expect(suite).toBeLessThan(upload);
+    expect(Math.max(common, admin, dashboard, e2e)).toBeLessThan(backups);
+    expect(Math.max(backups, licenses, roles)).toBeLessThan(upload);
+    // Each suite reports even when one before it failed.
+    expect(steps[licenses].if).toBe("${{ !cancelled() }}");
+    expect(steps[roles].if).toBe("${{ !cancelled() }}");
     expect(steps.some(removesEnterprise)).toBe(false);
+    // A spec that would skip for want of ee/ fails here instead.
+    expect(job.env.E2E_REQUIRE_ENTERPRISE).toBe("1");
+    expect(read("packages/E2E/SuiteHelpers/Edition.ts")).toContain(
+      'REQUIRE_ENTERPRISE_VARIABLE: string = "E2E_REQUIRE_ENTERPRISE"',
+    );
+    // The browsers are the image's: no install, nothing from apt.
+    expect(String(job.container.image)).toMatch(
+      /^mcr\.microsoft\.com\/playwright:v\d+\.\d+\.\d+-noble$/,
+    );
+    expect(
+      steps.some((step) => {
+        return /playwright(@\S+)? install|apt-get/.test(stepCommand(step));
+      }),
+    ).toBe(false);
     // Skips the preinstall hook that downloads every browser.
     expect(stepCommand(steps[e2e])).toContain("--ignore-scripts");
-    // Its screenshots and traces, pass or fail, from the suite's outputDir.
+    // The Enterprise Licenses specs of the Bulk Actions suite, alone.
+    expect(
+      JSON.parse(read("packages/E2E/package.json")).scripts[
+        "test-enterprise-licenses-ui"
+      ],
+    ).toBe(
+      "playwright test --config playwright.bulk-actions-ui.config.ts EnterpriseLicenses.spec.ts",
+    );
+    // Their screenshots and traces, pass or fail, from each suite's outputDir.
     expect(steps[upload].if).toBe("always()");
-    expect(String(steps[upload].with.path)).toContain(
-      "output/playwright/backups-ui/test-results",
-    );
-    expect(read("packages/E2E/playwright.backups-ui.config.ts")).toContain(
-      'outputDir: "../../output/playwright/backups-ui/test-results"',
-    );
+    for (const [config, outputDir] of [
+      [
+        "playwright.backups-ui.config.ts",
+        "output/playwright/backups-ui/test-results",
+      ],
+      [
+        "playwright.bulk-actions-ui.config.ts",
+        "output/playwright/bulk-actions-ui/test-results",
+      ],
+      [
+        "playwright.custom-roles-ui.config.ts",
+        "output/playwright/custom-roles-ui/test-results",
+      ],
+    ]) {
+      expect(String(steps[upload].with.path)).toContain(outputDir);
+      expect(read(`packages/E2E/${config}`)).toContain(
+        `outputDir: "../../${outputDir}"`,
+      );
+    }
   });
 
   describeWhenEnterprisePresent("with ee/ in the checkout", () => {

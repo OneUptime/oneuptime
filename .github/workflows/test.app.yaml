@@ -117,9 +117,13 @@ jobs:
   session-replay-ui:
     name: Session Replay UI
     runs-on: ubuntu-latest
-    # Holds the Chromium install's own limit, each suite's, and about 7
-    # minutes for checkout and the npm installs (Tests/Ops/BrowserInstallLimits).
-    timeout-minutes: 57
+    # In the Playwright image, as dashboard-offline-ui below says why. The
+    # limit holds each suite's own, about 7 minutes for checkout and the npm
+    # installs, and 5 for the image's pull (Tests/Ops/PlaywrightImage).
+    timeout-minutes: 40
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001 --ipc=host
     permissions:
       contents: read
     steps:
@@ -147,14 +151,9 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/E2E
-          # Skip the preinstall hook that downloads every browser; this suite uses Chromium.
+          # Skip the preinstall hook that downloads every browser: the
+          # image has them.
           args: --ignore-scripts
-      # A slow Ubuntu mirror can stretch this install from seconds to 20
-      # minutes (see dashboard-offline-ui below), so it has a limit of its own.
-      - name: Install Chromium
-        working-directory: packages/E2E
-        timeout-minutes: 25
-        run: npx playwright install --with-deps chromium
       - name: Run Session Replay UI regressions
         working-directory: packages/E2E
         timeout-minutes: 15
@@ -193,14 +192,18 @@ jobs:
   # each group near 20 minutes on a slow runner, well under its run step's 28.
   # When one passes about 22, move a suite or add a group.
   #
-  # Setup is timed apart from the suites. `playwright install --with-deps`
-  # fetches about 25 MB of system packages and fonts from the runner's Ubuntu
-  # mirror, and on some runners that mirror serves them at 36 kB/s: the step
-  # took 20 minutes in group 3 (2026-10-22) and 11.7 in group 6 (2026-10-23),
-  # and under one 30-minute limit for the whole job, both groups were
-  # cancelled in their last suites with every suite that ran passing. So the
-  # install step and the run step each have a limit of their own, and the
-  # job's limit only has to hold both. When Event Overview or
+  # The groups run in the Playwright image (mcr.microsoft.com/playwright, at
+  # the version packages/E2E locks): Chromium, Firefox and the system
+  # packages and fonts they need are in it, so a group fetches nothing from
+  # the runner's Ubuntu mirror, and any suite can run in any group. They
+  # used to install them with `playwright install --with-deps`: about 25 MB
+  # that some runners' mirror served at 36 kB/s, 20 minutes in group 3
+  # (2026-10-22) and 11.7 in group 6 (2026-10-23), and elsewhere an apt-get
+  # update that hung for three hours. The image, about 1 GB from Microsoft's
+  # registry, is pulled before the first step in about a minute.
+  # Tests/Ops/PlaywrightImage holds its tag to the lockfile's Playwright, and
+  # the job's limit to the run step's 28 minutes, the setup and the pull.
+  # When Event Overview or
   # the Workflow Builder suite passes it alone, split that suite across two
   # groups. Event Overview is split since 2026-10-22: it is one spec file, so
   # its config reads EVENT_OVERVIEW_SHARD (set below from the group's
@@ -212,7 +215,14 @@ jobs:
   dashboard-offline-ui:
     name: Dashboard Offline UI (${{ matrix.group }})
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 40
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      # The runner's own user: the workspace and HOME are its, and Firefox
+      # will not start as root in a home another user owns. The host's IPC
+      # namespace, as Playwright's image asks, so Chromium cannot run short of
+      # shared memory.
+      options: --user 1001 --ipc=host
     permissions:
       contents: read
     # Which half of Event Overview a group runs, "1/2" or "2/2"; empty in
@@ -251,7 +261,6 @@ jobs:
           # minutes on master's last two runs with Traces AI, and group 9,
           # where Exceptions AI was going, 16.3 to 18.4: about 20.5.
           - group: 1
-            browsers: chromium
             event_overview_shard: 1/2
             suites: >-
               test-event-overview-ui
@@ -278,7 +287,6 @@ jobs:
           # moved here from group 7 on 2026-10-26, when 14.0.93's gate run took
           # this group 15.8 minutes and group 7 23.4: about 19.5.
           - group: 2
-            browsers: chromium firefox
             suites: >-
               test-chart-time-zoom-ui
               test-code-editor-ui
@@ -333,7 +341,6 @@ jobs:
           # run of 03:08 on 2026-10-26, 1.2 minutes with its new spec) moved to
           # group 11: about 20.5.
           - group: 3
-            browsers: chromium firefox
             suites: >-
               test-monitor-overview-ui
               test-value-picker-ui
@@ -348,7 +355,6 @@ jobs:
           # Chromium. Calendar Feed moved to group 6 when this group took 23.6
           # minutes.
           - group: 4
-            browsers: chromium
             suites: >-
               test-workflow-builder-ui
           # The Chromium-only suites that ran after Event Overview in group 1.
@@ -402,7 +408,6 @@ jobs:
           # Chromium only) moved here from group 8 the same day, when #5300's
           # UI review grew Cloud Connect there by about a minute: about 20.
           - group: 5
-            browsers: chromium
             suites: >-
               test-slo-burn-rate-ui
               test-incoming-call-policies-ui
@@ -439,7 +444,6 @@ jobs:
           # run step took 20.6 minutes on master's run of 03:08 that day, so
           # Global Runners moved on to group 10: about 20.5.
           - group: 6
-            browsers: chromium
             suites: >-
               test-discovery-ui
               test-status-page-theme-ui
@@ -502,7 +506,6 @@ jobs:
           # Logs AI and External MCP Servers moved to group 2 on 2026-10-26,
           # when 14.0.93's gate run took this group 23.4 minutes: about 20.
           - group: 7
-            browsers: chromium
             suites: >-
               test-profiles-ui
               test-llm-connect-ui
@@ -602,7 +605,6 @@ jobs:
           # Incidents, Alerts and Changes: about 55 seconds locally), so Side
           # by Side Pages (about a minute) moved on to group 5: about 20.5.
           - group: 8
-            browsers: chromium
             suites: >-
               test-dashboard-time-range-ui
               test-dashboard-widget-sort-ui
@@ -649,7 +651,6 @@ jobs:
           # minutes with every suite passing; Kubernetes Events and Topology
           # (2.8 minutes each) came from group 5: about 20.
           - group: 9
-            browsers: chromium
             suites: >-
               test-model-tables-ui
               test-home-overview-ui
@@ -679,7 +680,6 @@ jobs:
           # 14.0.93's gate run took this group 22.6 minutes and master's run of
           # 15:35 that day 26.5: about 20.5 to 24.5.
           - group: 10
-            browsers: chromium
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
@@ -711,7 +711,6 @@ jobs:
           # from group 3 on 2026-10-27, when that spec and Monitor Overview's
           # maintenance tests would have taken group 3 past 22: about 21.
           - group: 11
-            browsers: chromium
             suites: >-
               test-security-operations-ui
               test-ai-context-ui
@@ -734,7 +733,6 @@ jobs:
           # group 8, which its grown Docker Swarm Pages takes to about 20:
           # about 20.5.
           - group: 12
-            browsers: chromium
             suites: >-
               test-code-ui
               test-exceptions-ai-ui
@@ -769,14 +767,9 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/E2E
-          # Skip the preinstall hook that downloads every browser.
+          # Skip the preinstall hook that downloads every browser: the
+          # image has them.
           args: --ignore-scripts
-      - name: Install browsers
-        working-directory: packages/E2E
-        timeout-minutes: 25
-        env:
-          BROWSERS: ${{ matrix.browsers }}
-        run: npx playwright install --with-deps $BROWSERS
       # Every suite in the group runs even if an earlier one failed, so one run
       # reports them all, and the step fails at the end if any did. A name that
       # is not a script in packages/E2E/package.json fails before anything

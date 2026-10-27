@@ -159,21 +159,43 @@ jobs:
         working-directory: ee
         run: npm test
 
-  # The Backups page (Admin Dashboard > Settings > Backups) in real Chromium,
-  # with no backend: packages/E2E/Backups bundles the production page through
-  # the Admin Dashboard's Enterprise plugin, and the Community Edition beside
-  # it, over in-memory settings and runs - the first run, setting backups up,
-  # a backup running and one failed, a restore and its confirmation, at 1280
-  # and 390 pixels, light and dark. App Test's Dashboard Offline UI groups
-  # remove ee/ first, so only this job holds the Enterprise page to them.
-  # About a minute with its bundle; a job of its own, so it runs beside the ee
-  # tests rather than after them. The bundle reads Common's and the Admin
-  # Dashboard's packages and nothing of App's or ee's own installs.
-  backups-ui:
+  # The Enterprise pages in real Chromium, with no backend and with ee/
+  # checked out. App Test's Dashboard Offline UI groups remove ee/ first, and
+  # there these specs skip, so only this job holds the Enterprise pages to
+  # them:
+  #   - the Backups page (Admin Dashboard > Settings > Backups): Backups
+  #     bundles the production page through the Admin Dashboard's Enterprise
+  #     plugin, and the Community Edition beside it, over in-memory settings
+  #     and runs - the first run, setting backups up, a backup running and one
+  #     failed, a restore and its confirmation, at 1280 and 390 pixels, light
+  #     and dark (about a minute with its bundle);
+  #   - Admin Dashboard > Enterprise Licenses: Delete in a row's menu and in
+  #     Bulk Actions, and the bulk Change Expiry Date
+  #     (BulkActions/EnterpriseLicenses.spec.ts, about a minute);
+  #   - custom roles: Teams > Settings > Roles, a role's page, Add a Role's
+  #     custom roles and an API key's roles (CustomRoles, about 4 minutes with
+  #     its bundle).
+  # E2E_REQUIRE_ENTERPRISE turns a spec that would skip for want of ee/ into
+  # a failure (packages/E2E/SuiteHelpers/Edition.ts), so a fixture that stops
+  # finding ee/ cannot pass here by skipping everything. A job of its own, so
+  # it runs beside the ee tests rather than after them. The bundles read
+  # Common's, the Admin Dashboard's and the Dashboard's packages, and nothing
+  # of App's or ee's own installs.
+  enterprise-ui:
+    name: Enterprise UI
     runs-on: ubuntu-latest
-    # Holds the Chromium install's own limit, the suite's, and about 7 minutes
-    # for checkout and the npm installs (Tests/Ops/BrowserInstallLimits).
-    timeout-minutes: 42
+    # In the Playwright image, as App Test's Dashboard Offline UI groups are:
+    # Chromium and its system packages and fonts are in it, so nothing is
+    # fetched from the runner's Ubuntu mirror (an install from it ran past
+    # this job's old 10-minute limit twice on master on 2026-10-26). The
+    # limit holds each suite's own, about 7 minutes for checkout and the npm
+    # installs, and 5 for the image's pull (Tests/Ops/PlaywrightImage).
+    timeout-minutes: 50
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001 --ipc=host
+    env:
+      E2E_REQUIRE_ENTERPRISE: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -189,25 +211,34 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/App/FeatureSet/AdminDashboard
+      # The Enterprise Licenses and custom roles fixtures bundle Dashboard
+      # pages beside the Enterprise ones.
+      - name: Install Dashboard
+        uses: ./.github/actions/npm-install
+        with:
+          working-directory: packages/App/FeatureSet/Dashboard
       - name: Install browser test dependencies
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/E2E
-          # Skip the preinstall hook that downloads every browser.
+          # Skip the preinstall hook that downloads every browser: the
+          # image has them.
           args: --ignore-scripts
-      # `--with-deps` fetches about 25 MB of system packages and fonts from the
-      # runner's Ubuntu mirror, which some runners serve at a few dozen kB/s.
-      # The step takes about 25 seconds, but it ran past its old 10 minutes
-      # twice on master on 2026-10-26 and failed the job with nothing tested.
-      # So it has the 25 minutes App Test's browser installs have.
-      - name: Install Chromium
-        working-directory: packages/E2E
-        timeout-minutes: 25
-        run: npx playwright install --with-deps chromium
       - name: Run the Backups page's browser checks
         working-directory: packages/E2E
         timeout-minutes: 10
         run: npm run test-backups-ui
+      # Each suite runs even if one before it failed, so one run reports all.
+      - name: Run the Enterprise Licenses list's browser checks
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        timeout-minutes: 10
+        run: npm run test-enterprise-licenses-ui
+      - name: Run the custom roles' browser checks
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        timeout-minutes: 15
+        run: npm run test-custom-roles-ui
       - name: Upload browser screenshots and failure traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -216,3 +247,7 @@ jobs:
           path: |
             output/playwright/backups-ui/*.png
             output/playwright/backups-ui/test-results
+            output/playwright/bulk-actions-ui/*.png
+            output/playwright/bulk-actions-ui/test-results
+            output/playwright/custom-roles-ui/*.png
+            output/playwright/custom-roles-ui/test-results

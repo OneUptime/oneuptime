@@ -58,11 +58,17 @@ jobs:
 
   expo-web-export:
     runs-on: ubuntu-latest
-    # Holds the Chromium install's own limit, the responsive checks' three
-    # tries, and about 7 minutes for checkout and the npm install
-    # (Tests/Ops/BrowserInstallLimits). With no limit, a hung install holds
-    # the runner for GitHub's six-hour default.
-    timeout-minutes: 125
+    # In the Playwright image, as App Test's Dashboard Offline UI groups are:
+    # Chromium and its system packages and fonts are in it, so nothing is
+    # fetched from the runner's Ubuntu mirror (on 14.0.93's release gate an
+    # apt-get update here hung after its third index for over three hours).
+    # The limit holds the responsive checks' three tries, about 7 minutes for
+    # checkout and the npm install, and 5 for the image's pull
+    # (Tests/Ops/PlaywrightImage).
+    timeout-minutes: 105
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+      options: --user 1001 --ipc=host
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -78,15 +84,6 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/MobileApp
-      # `--with-deps` fetches about 26 MB of system packages and fonts from the
-      # runner's Ubuntu mirror. It usually takes 20 seconds, but some runners
-      # are served at a few dozen kB/s (10 minutes on master on 2026-10-26),
-      # and on 14.0.93's release gate that day apt-get update hung after its
-      # third index and sat for over three hours until it was cancelled. So
-      # it has the 25 minutes App Test's browser installs have.
-      - name: Install browser for responsive UI tests
-        timeout-minutes: 25
-        run: cd packages/MobileApp && npx playwright install --with-deps chromium
       - name: Verify responsive screens and project switching
         uses: nick-fields/retry@v3
         with:
