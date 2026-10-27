@@ -16,6 +16,10 @@ import PageMap from "../../Utils/PageMap";
 import { isAiOfferedForSelectedProject } from "../../Utils/UseAiOffered";
 import { PROFILE_SPAN_ID_LIMIT } from "../../Utils/TraceCorrelatedSignals";
 import {
+  PodEntityKeySet,
+  collectPodEntityKeys,
+} from "../../Utils/TracePodLogs";
+import {
   OperationSummary,
   ServiceSummary,
   SpanLoadState,
@@ -120,6 +124,8 @@ const SPAN_SELECT: Select<Span> = {
   primaryEntityId: true,
   durationUnixNano: true,
   statusCode: true,
+  // The span's pod: its logs are read by pod and time when none carry the trace.
+  k8sPodEntityKey: true,
 };
 
 export interface ComponentProps {
@@ -523,6 +529,15 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
   const tree: SpanTree = useMemo(() => {
     return buildSpanTree(waterfallSpans);
+  }, [waterfallSpans]);
+
+  // The pods the spans ran in: the Logs tab reads them by pod and time.
+  const tracePods: PodEntityKeySet = useMemo(() => {
+    return collectPodEntityKeys(
+      waterfallSpans.map((span: WaterfallSpan): string | undefined => {
+        return span.k8sPodEntityKey;
+      }),
+    );
   }, [waterfallSpans]);
 
   /*
@@ -1495,6 +1510,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
             ? serviceNameById.get(tree.roots[0].span.serviceId) || null
             : null
         }
+        podEntityKeys={tracePods.keys}
+        podCount={tracePods.totalCount}
       />
     </div>
   );

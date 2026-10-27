@@ -19,6 +19,11 @@ export interface WaterfallSpan {
   durationUnixNano: number;
   isError: boolean;
   kind: SpanKind | undefined;
+  /*
+   * The Kubernetes pod the span ran in (its k8sPodEntityKey); "" or absent
+   * outside a pod. Its logs are read by this key when none carry the trace.
+   */
+  k8sPodEntityKey?: string | undefined;
 }
 
 export interface WaterfallNode {
@@ -106,6 +111,7 @@ export function toWaterfallSpans(spans: Array<Span>): Array<WaterfallSpan> {
       durationUnixNano,
       isError: span.statusCode === SpanStatus.Error,
       kind: span.kind,
+      k8sPodEntityKey: span.k8sPodEntityKey?.toString().trim() || "",
     };
   });
 }

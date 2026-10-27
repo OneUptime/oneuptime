@@ -1578,6 +1578,15 @@ export default class Span extends AnalyticsBaseModel {
     this.setColumnValue("entityKeys", v);
   }
 
+  // The span's Kubernetes pod key; '' when it ran outside a pod.
+  public get k8sPodEntityKey(): string | undefined {
+    return this.getColumnValue("k8sPodEntityKey") as string | undefined;
+  }
+
+  public set k8sPodEntityKey(v: string | undefined) {
+    this.setColumnValue("k8sPodEntityKey", v);
+  }
+
   public get events(): Array<SpanEvent> | undefined {
     return this.getColumnValue("events") as Array<SpanEvent> | undefined;
   }

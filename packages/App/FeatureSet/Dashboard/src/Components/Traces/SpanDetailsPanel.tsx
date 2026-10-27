@@ -49,6 +49,8 @@ import {
   buildSpanPanelLogQuery,
 } from "../../Utils/TraceCorrelatedSignals";
 import LlmSpanPanel from "./LlmSpanPanel";
+import SpanPodLogs from "./TraceDetail/SpanPodLogs";
+import { getPodNameFromSpanAttributes } from "../../Utils/TracePodLogs";
 import { resolveReplayMomentRouteForSession } from "../../Utils/RumSessionLookup";
 import { makeSpanSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
 import { ResolvedTelemetryEntity } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
@@ -217,6 +219,13 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
             statusMessage: true,
             /* The list row is light; the replay link needs the session id. */
             sessionId: true,
+            /*
+             * And the Logs tab the span's pod and exact times: an eBPF span's
+             * logs are read by pod and time (SpanPodLogs).
+             */
+            k8sPodEntityKey: true,
+            startTimeUnixNano: true,
+            endTimeUnixNano: true,
           } as Select<Span>,
           sort: {},
           requestOptions: {},
@@ -547,6 +556,38 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
     },
   ];
 
+  /*
+   * What the span's pod wrote meanwhile, read by pod and time: all an eBPF
+   * span has, as its logs carry no trace context. Known once the full span
+   * is in - the list row carries neither the pod nor the exact times - and
+   * drawn once the tab's own reads have answered, which decide whether it
+   * opens on its own.
+   */
+  const podEntityKey: string =
+    fullSpan?.k8sPodEntityKey?.toString().trim() || "";
+  const podStartTimeUnixNano: number = Number(fullSpan?.startTimeUnixNano);
+  const podEndTimeUnixNano: number = Number(fullSpan?.endTimeUnixNano);
+  const podLogsElement: ReactElement | null =
+    logsFetched &&
+    podEntityKey &&
+    Number.isFinite(podStartTimeUnixNano) &&
+    podStartTimeUnixNano > 0 ? (
+      <SpanPodLogs
+        key={spanIdStr}
+        podEntityKey={podEntityKey}
+        podName={getPodNameFromSpanAttributes(
+          fullSpan?.attributes as JSONObject | undefined,
+        )}
+        startTimeUnixNano={podStartTimeUnixNano}
+        endTimeUnixNano={
+          Number.isFinite(podEndTimeUnixNano)
+            ? podEndTimeUnixNano
+            : podStartTimeUnixNano
+        }
+        hasLinkedLogs={relatedLogs.length > 0}
+      />
+    ) : null;
+
   const surfaceCardClass: string = "border-gray-200 bg-gray-50";
   const sectionHeaderClass: string =
     "text-[11px] uppercase tracking-wide text-gray-400";
@@ -687,6 +728,8 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
               <div className="flex h-24 items-center justify-center">
                 <ComponentLoader />
               </div>
+            ) : relatedLogs.length === 0 && podLogsElement ? (
+              podLogsElement
             ) : relatedLogs.length === 0 ? (
               <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-400">
                 No logs found for this span or its trace.
@@ -748,6 +791,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                     );
                   })}
                 </ul>
+                {podLogsElement && <div className="pt-2">{podLogsElement}</div>}
               </div>
             )}
           </div>

@@ -64,13 +64,16 @@ import {
   formatDurationNano,
   formatOffsetNano,
   formatPercent,
+  getLogSeverityClassName,
   getSpanTiming,
   pluralize,
 } from "../../../Utils/TraceDetailPresentation";
+import { getPodNameFromSpanAttributes } from "../../../Utils/TracePodLogs";
 import { SpanSubtreeIds, WaterfallSpan } from "../../../Utils/TraceWaterfall";
 import { makeSpanSignalId } from "../../SessionReplay/Rail/ReplaySignalTypes";
 import LlmSpanPanel from "../LlmSpanPanel";
 import TraceScopedFlamegraph from "../TraceScopedFlamegraph";
+import SpanPodLogs from "./SpanPodLogs";
 
 export interface ComponentProps {
   traceId: string;
@@ -105,24 +108,6 @@ type PanelTab =
 const LOG_LIMIT: number = 200;
 const EXCEPTION_LIMIT: number = 50;
 const ATTRIBUTE_FILTER_THRESHOLD: number = 8;
-
-function getSeverityClassName(severity: string): string {
-  const value: string = severity.toLowerCase();
-  if (
-    value.startsWith("err") ||
-    value.startsWith("fatal") ||
-    value.startsWith("crit")
-  ) {
-    return "bg-red-50 text-red-700";
-  }
-  if (value.startsWith("warn")) {
-    return "bg-amber-50 text-amber-700";
-  }
-  if (value.startsWith("debug") || value.startsWith("trace")) {
-    return "bg-gray-100 text-gray-600";
-  }
-  return "bg-sky-50 text-sky-700";
-}
 
 /*
  * Everything about one span, docked beside the waterfall: timing against the
@@ -466,6 +451,16 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
     }
   }, [activeTab, profileSampleCount, isLlmSpan, isDetailLoading]);
 
+  /*
+   * The pod the span ran in, when it ran in one: the Logs tab also reads what
+   * that pod wrote meanwhile, which is all an eBPF span has.
+   */
+  const podEntityKey: string =
+    span.startTimeUnixNano > 0 ? span.k8sPodEntityKey || "" : "";
+  const podName: string = getPodNameFromSpanAttributes(
+    fullSpan?.attributes as JSONObject | undefined,
+  );
+
   const statusMessage: string = fullSpan?.statusMessage?.toString() || "";
   const exceptionEventCount: number = events.filter((event: SpanEventRow) => {
     return event.isException;
@@ -538,6 +533,42 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
       <div className="flex h-24 items-center justify-center">
         <ComponentLoader />
       </div>
+    );
+  };
+
+  // The logs that carry this span's ID.
+  const renderLinkedLogs: () => ReactElement = (): ReactElement => {
+    return (
+      <ul className="space-y-1" data-testid="span-logs">
+        {logs.map((log: Log, index: number): ReactElement => {
+          const severity: string = log.severityText?.toString() || "INFO";
+          const time: Date | null = log.time
+            ? OneUptimeDate.fromString(log.time as unknown as string)
+            : null;
+          return (
+            <li
+              key={index}
+              className="flex items-start gap-2 rounded-md border border-gray-100 bg-white px-2 py-1.5 font-mono text-[11px]"
+            >
+              <span
+                className={`flex-none rounded px-1 font-semibold uppercase ${getLogSeverityClassName(severity)}`}
+              >
+                {severity}
+              </span>
+              <span className="min-w-0 flex-1 break-words text-gray-800">
+                {log.body?.toString() || ""}
+              </span>
+              {time && (
+                <span className="flex-none text-gray-400">
+                  {OneUptimeDate.getLocalTimeString(time, {
+                    includeSeconds: true,
+                  })}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
     );
   };
 
@@ -755,42 +786,25 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
             </div>
           );
         }
-        if (logs.length === 0) {
+        if (logs.length === 0 && !podEntityKey) {
           return renderEmpty(
             "No logs were written inside this span. The trace's logs are listed below the waterfall.",
           );
         }
         return (
-          <ul className="space-y-1" data-testid="span-logs">
-            {logs.map((log: Log, index: number): ReactElement => {
-              const severity: string = log.severityText?.toString() || "INFO";
-              const time: Date | null = log.time
-                ? OneUptimeDate.fromString(log.time as unknown as string)
-                : null;
-              return (
-                <li
-                  key={index}
-                  className="flex items-start gap-2 rounded-md border border-gray-100 bg-white px-2 py-1.5 font-mono text-[11px]"
-                >
-                  <span
-                    className={`flex-none rounded px-1 font-semibold uppercase ${getSeverityClassName(severity)}`}
-                  >
-                    {severity}
-                  </span>
-                  <span className="min-w-0 flex-1 break-words text-gray-800">
-                    {log.body?.toString() || ""}
-                  </span>
-                  {time && (
-                    <span className="flex-none text-gray-400">
-                      {OneUptimeDate.getLocalTimeString(time, {
-                        includeSeconds: true,
-                      })}
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <div className="space-y-4">
+            {logs.length > 0 && renderLinkedLogs()}
+            {podEntityKey && (
+              <SpanPodLogs
+                key={spanId}
+                podEntityKey={podEntityKey}
+                podName={podName}
+                startTimeUnixNano={span.startTimeUnixNano}
+                endTimeUnixNano={span.endTimeUnixNano}
+                hasLinkedLogs={logs.length > 0}
+              />
+            )}
+          </div>
         );
 
       case "exceptions":
