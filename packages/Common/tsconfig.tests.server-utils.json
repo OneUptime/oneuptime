@@ -1,0 +1,25 @@
+{
+  /*
+   * A part of tsconfig.tests.json that `npm run compile-tests`
+   * (Scripts/compile-tests.js) type-checks on its own: Tests/Server/Utils,
+   * the tests of Common's server utilities (telemetry, queries, monitors,
+   * AI, workflow and the rest), and the server sources they import. Split
+   * from tsconfig.tests.rest.json on 2026-10-27 with tsconfig.tests.server.json,
+   * when the rest needed 10.6 GB against its 8 GiB heap. Why the program is
+   * checked in parts: Scripts/compile-tests.js.
+   *
+   * Everything but "include" is inherited, so these tests are held to exactly
+   * the rules of the whole program.
+   */
+  "extends": "./tsconfig.tests.json",
+  "include": [
+    "Tests/Server/Utils/**/*.ts",
+    "Tests/Server/Utils/**/*.tsx",
+    // jest runs it before every test file (setupFilesAfterEnv), so the
+    // global types it brings in belong to every part, not only to the one
+    // whose include happens to match it.
+    "Tests/jest.setup.ts",
+    "Typings/**/*.d.ts",
+    "UI/index.d.ts"
+  ]
+}
