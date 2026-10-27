@@ -6,6 +6,7 @@ import {
   SecuritySetupStep,
   SETUP_CALL_FAILED,
   TURN_ON_RECOMMENDED_LOGS_SUBJECT,
+  TURN_ON_RECOMMENDED_TELEMETRY_SUBJECT,
   TURN_ON_RECOMMENDED_PLAYBOOK_SUBJECT,
   TURN_ON_RECOMMENDED_RULES_SUBJECT,
   TurnOnRecommendedProblem,
@@ -45,6 +46,7 @@ function status(
   return {
     connections: 0,
     logsSourceEnabled: false,
+    telemetrySourcesEnabled: 0,
     eventsLast24Hours: 0,
     lastEventAt: null,
     enabledRules: 0,
@@ -163,6 +165,17 @@ describe("Get started", () => {
     expect(hasSecuritySources(status({ connections: 1 }))).toBe(true);
     expect(hasSecuritySources(status())).toBe(false);
   });
+
+  test("each kind of your other OneUptime data counts as a source of its own", () => {
+    expect(
+      countSecuritySources(
+        status({ logsSourceEnabled: true, telemetrySourcesEnabled: 3 }),
+      ),
+    ).toBe(4);
+    expect(hasSecuritySources(status({ telemetrySourcesEnabled: 1 }))).toBe(
+      true,
+    );
+  });
 });
 
 describe("the pipeline", () => {
@@ -205,6 +218,7 @@ describe("reading the server's answers", () => {
       parseSecuritySetupStatus({
         connections: 2,
         logsSourceEnabled: true,
+        telemetrySourcesEnabled: 3,
         eventsLast24Hours: 1500,
         lastEventAt: "2026-10-19T11:59:00.000Z",
         enabledRules: 19,
@@ -218,6 +232,7 @@ describe("reading the server's answers", () => {
     ).toEqual({
       connections: 2,
       logsSourceEnabled: true,
+      telemetrySourcesEnabled: 3,
       eventsLast24Hours: 1500,
       lastEventAt: new Date("2026-10-19T11:59:00.000Z"),
       enabledRules: 19,
@@ -249,6 +264,7 @@ describe("reading the server's answers", () => {
         rulesAdded: 17,
         rulesTurnedOn: 2,
         logsTurnedOn: true,
+        telemetrySourcesTurnedOn: 3,
         playbookAdded: false,
         playbookTurnedOn: true,
       }),
@@ -256,6 +272,7 @@ describe("reading the server's answers", () => {
       rulesAdded: 17,
       rulesTurnedOn: 2,
       logsTurnedOn: true,
+      telemetrySourcesTurnedOn: 3,
       playbookAdded: false,
       playbookTurnedOn: true,
       problems: [],
@@ -264,6 +281,7 @@ describe("reading the server's answers", () => {
       rulesAdded: 0,
       rulesTurnedOn: 0,
       logsTurnedOn: false,
+      telemetrySourcesTurnedOn: 0,
       playbookAdded: false,
       playbookTurnedOn: false,
       problems: [],
@@ -385,6 +403,9 @@ describe("what Turn on recommended could not do", () => {
     expect(didTurnOnAnything({ ...nothing, rulesAdded: 1 })).toBe(true);
     expect(didTurnOnAnything({ ...nothing, rulesTurnedOn: 1 })).toBe(true);
     expect(didTurnOnAnything({ ...nothing, logsTurnedOn: true })).toBe(true);
+    expect(
+      didTurnOnAnything({ ...nothing, telemetrySourcesTurnedOn: 2 }),
+    ).toBe(true);
     expect(didTurnOnAnything({ ...nothing, playbookAdded: true })).toBe(true);
     expect(didTurnOnAnything({ ...nothing, playbookTurnedOn: true })).toBe(
       true,
@@ -405,6 +426,21 @@ describe("what Turn on recommended could not do", () => {
     });
     expect(TURN_ON_RECOMMENDED_LOGS_SUBJECT).toBe(
       "Find security events in your logs",
+    );
+    // Your other OneUptime data reads as its one switch, whichever kind failed.
+    expect(
+      getTurnOnRecommendedProblemWords(
+        problem({
+          part: TurnOnRecommendedPart.TelemetrySources,
+          name: "network-flows",
+        }),
+      ),
+    ).toMatchObject({
+      subject: TURN_ON_RECOMMENDED_TELEMETRY_SUBJECT,
+      isSubjectTranslated: true,
+    });
+    expect(TURN_ON_RECOMMENDED_TELEMETRY_SUBJECT).toBe(
+      "Find security events in your OneUptime data",
     );
     // With no name: the recommended rules as a whole, or the playbook.
     expect(

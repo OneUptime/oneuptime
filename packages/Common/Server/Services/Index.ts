@@ -382,6 +382,7 @@ import AuditLogExportService from "./AuditLogExportService";
 import BackupSettingService from "./BackupSettingService";
 import BackupRunService from "./BackupRunService";
 import SecurityLogSourceService from "./SecurityLogSourceService";
+import SecurityTelemetrySourceService from "./SecurityTelemetrySourceService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import SecurityCaseService from "./SecurityCaseService";
@@ -893,6 +894,7 @@ const services: Array<BaseService> = [
   BackupSettingService,
   BackupRunService,
   SecurityLogSourceService,
+  SecurityTelemetrySourceService,
   ThreatIntelFeedService,
   SecurityCaseService,
   SecurityCaseFeedService,

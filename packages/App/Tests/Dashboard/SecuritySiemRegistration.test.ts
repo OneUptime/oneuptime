@@ -32,7 +32,11 @@ describe("registry wiring", () => {
     );
     const services: string = readSquashed("Common/Server/Services/Index.ts");
 
-    for (const model of ["SecurityEventDestination", "SecurityLogSource"]) {
+    for (const model of [
+      "SecurityEventDestination",
+      "SecurityLogSource",
+      "SecurityTelemetrySource",
+    ]) {
       expect(models).toContain(`${model},`);
       expect(services).toContain(`${model}Service,`);
     }
@@ -88,6 +92,33 @@ describe("registry wiring", () => {
     expect(baseApi).toMatch(
       /new BaseAPI<\s*SecurityLogSource,\s*SecurityLogSourceServiceType\s*>\(\s*SecurityLogSource,\s*SecurityLogSourceService,?\s*\)/,
     );
+    expect(baseApi).toMatch(
+      /new BaseAPI<\s*SecurityTelemetrySource,\s*SecurityTelemetrySourceServiceType\s*>\(\s*SecurityTelemetrySource,\s*SecurityTelemetrySourceService,?\s*\)/,
+    );
+  });
+
+  test("your OneUptime data: its scan runs every minute, and its migration is registered", () => {
+    const workersIndex: string = readSquashed(
+      "App/FeatureSet/Workers/Index.ts",
+    );
+    const scan: string = readSquashed(
+      "App/FeatureSet/Workers/Jobs/SecurityEvents/ScanTelemetryForSecurityEvents.ts",
+    );
+    const migrations: string = readSquashed(
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts",
+    );
+
+    expect(workersIndex).toContain(
+      'import "./Jobs/SecurityEvents/ScanTelemetryForSecurityEvents"',
+    );
+    expect(scan).toContain("schedule: EVERY_MINUTE");
+    expect(scan).toContain(
+      "await SecurityTelemetryScanner.enqueueProjectsWithEnabledSources();",
+    );
+    expect(scan).toContain(
+      "return SecurityTelemetryScanner.scanProject(projectId, lease);",
+    );
+    expect(migrations).toMatch(/AddSecurityTelemetrySource\d+,/);
   });
 
   test("every SIEM the form offers has a sender", () => {

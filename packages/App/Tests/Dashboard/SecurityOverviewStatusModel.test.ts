@@ -93,6 +93,7 @@ function status(
   return {
     connections: 0,
     logsSourceEnabled: false,
+    telemetrySourcesEnabled: 0,
     eventsLast24Hours: 0,
     lastEventAt: null,
     enabledRules: 0,
@@ -450,6 +451,15 @@ describe("watching, and gone quiet", () => {
     expect(
       isSecurityWatching(status({ logsSourceEnabled: true, enabledRules: 3 })),
     ).toBe(true);
+    // Your other OneUptime data counts the same, and needs a rule the same.
+    expect(
+      isSecurityWatching(
+        status({ telemetrySourcesEnabled: 2, enabledRules: 1 }),
+      ),
+    ).toBe(true);
+    expect(isSecurityWatching(status({ telemetrySourcesEnabled: 2 }))).toBe(
+      false,
+    );
     expect(
       isSecurityWatching(
         status({ logsSourceEnabled: true, threatIntelFeeds: 1 }),

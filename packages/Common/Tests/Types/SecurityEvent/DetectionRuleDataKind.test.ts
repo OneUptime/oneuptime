@@ -277,6 +277,13 @@ describe("each library rule names the kind of event its Sigma reads", () => {
         case DetectionRuleDataKind.KubernetesAuditLogs:
           expect(readsField(entry, "objectRef.resource")).toBe(true);
           break;
+        case DetectionRuleDataKind.OneUptimeTraces:
+        case DetectionRuleDataKind.NetworkFlows:
+        case DetectionRuleDataKind.OneUptimeAuditLog:
+        case DetectionRuleDataKind.SessionReplays:
+          // What a source of your OneUptime data found, as each of its events names it.
+          expect(readsField(entry, "oneuptime.signal")).toBe(true);
+          break;
         default:
           throw new Error(`No check for ${String(entry.dataKind)}`);
       }

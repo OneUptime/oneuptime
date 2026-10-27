@@ -52,6 +52,12 @@ export const DATA_KIND_TITLES: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.KubernetesAuditLogs]: translationKey(
     "Kubernetes audit logs",
   ),
+  [DetectionRuleDataKind.OneUptimeTraces]: translationKey("Traces"),
+  [DetectionRuleDataKind.NetworkFlows]: translationKey("Network flows"),
+  [DetectionRuleDataKind.OneUptimeAuditLog]: translationKey(
+    "OneUptime audit log",
+  ),
+  [DetectionRuleDataKind.SessionReplays]: translationKey("Session replays"),
 };
 
 /*
@@ -88,6 +94,18 @@ export const DATA_KIND_HOW_TO_SEND: Record<DetectionRuleDataKind, string> = {
   [DetectionRuleDataKind.KubernetesAuditLogs]: translationKey(
     "Send your clusters' audit logs to OneUptime and find security events in your logs.",
   ),
+  [DetectionRuleDataKind.OneUptimeTraces]: translationKey(
+    "Send traces to OneUptime and find security events in your traces.",
+  ),
+  [DetectionRuleDataKind.NetworkFlows]: translationKey(
+    "Send NetFlow, IPFIX or sFlow from your network devices to OneUptime and find security events in your network flows.",
+  ),
+  [DetectionRuleDataKind.OneUptimeAuditLog]: translationKey(
+    "Turn on audit logs in Settings (OneUptime Enterprise) and find security events in your audit log.",
+  ),
+  [DetectionRuleDataKind.SessionReplays]: translationKey(
+    "Record session replays of signed-in users and find security events in your session replays.",
+  ),
 };
 
 /*
@@ -120,6 +138,11 @@ export const DATA_KIND_SEND_PAGE: Record<DetectionRuleDataKind, PageMap> = {
   [DetectionRuleDataKind.WebRequests]: PageMap.SECURITY_EVENTS_CONNECTIONS,
   [DetectionRuleDataKind.KubernetesAuditLogs]:
     PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.OneUptimeTraces]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.NetworkFlows]: PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.OneUptimeAuditLog]:
+    PageMap.SECURITY_EVENTS_CONNECTIONS,
+  [DetectionRuleDataKind.SessionReplays]: PageMap.SECURITY_EVENTS_CONNECTIONS,
 };
 
 export const GO_TO_CONNECTIONS: string = translationKey("Go to Connections");

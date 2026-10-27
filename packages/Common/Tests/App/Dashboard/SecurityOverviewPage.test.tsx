@@ -160,6 +160,7 @@ function status(
   return {
     connections: 0,
     logsSourceEnabled: false,
+    telemetrySourcesEnabled: 0,
     eventsLast24Hours: 0,
     lastEventAt: null,
     enabledRules: 0,
