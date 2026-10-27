@@ -18,17 +18,18 @@ import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 
 /*
  * The logos that are wider than they are tall - a wordmark, as AWS's,
- * Splunk's, Zoom's and Go's are, or Cloudflare's cloud: drawn across the
- * tile's whole inside, so they are as large as the square ones beside them
- * instead of shrunk to fit a square. A file's viewBox is fitted to what it
- * draws, so its proportions are the logo's own (the tests hold this list to
- * them).
+ * Splunk's, Zoom's, Cisco's and Go's are, or Cloudflare's cloud: drawn
+ * across the tile's whole inside, so they are as large as the square ones
+ * beside them instead of shrunk to fit a square. A file's viewBox is fitted
+ * to what it draws, so its proportions are the logo's own (the tests hold
+ * this list to them).
  */
 export const WIDE_PROVIDER_LOGOS: ReadonlyArray<ProviderLogo> = [
   ProviderLogo.Aws,
   ProviderLogo.Cloudflare,
   ProviderLogo.Splunk,
   ProviderLogo.Zoom,
+  ProviderLogo.Cisco,
   ProviderLogo.Go,
   ProviderLogo.Php,
 ];
@@ -112,6 +113,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   "better-stack.svg": () => {
     return import("../../Images/ProviderLogos/better-stack.svg");
   },
+  "cisco.svg": () => {
+    return import("../../Images/ProviderLogos/cisco.svg");
+  },
   "claude.svg": () => {
     return import("../../Images/ProviderLogos/claude.svg");
   },
@@ -150,6 +154,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   },
   "go.svg": () => {
     return import("../../Images/ProviderLogos/go.svg");
+  },
+  "google-calendar.svg": () => {
+    return import("../../Images/ProviderLogos/google-calendar.svg");
   },
   "google-cloud-storage.svg": () => {
     return import("../../Images/ProviderLogos/google-cloud-storage.svg");

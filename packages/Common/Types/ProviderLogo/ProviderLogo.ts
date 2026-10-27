@@ -55,6 +55,11 @@ enum ProviderLogo {
   MistralAI = "mistral-ai",
   Ollama = "ollama",
 
+  // Calendars and networks
+  GoogleCalendar = "google-calendar",
+  // Cisco Meraki: Meraki is Cisco's, and is shown by Cisco's logo.
+  Cisco = "cisco",
+
   // Video calls and chat
   Zoom = "zoom",
   GoogleMeet = "google-meet",
@@ -133,6 +138,8 @@ export const PROVIDER_LOGO_NAMES: Readonly<Record<ProviderLogo, string>> = {
   [ProviderLogo.Groq]: "Groq",
   [ProviderLogo.MistralAI]: "Mistral AI",
   [ProviderLogo.Ollama]: "Ollama",
+  [ProviderLogo.GoogleCalendar]: "Google Calendar",
+  [ProviderLogo.Cisco]: "Cisco",
   [ProviderLogo.Zoom]: "Zoom",
   [ProviderLogo.GoogleMeet]: "Google Meet",
   [ProviderLogo.MicrosoftTeams]: "Microsoft Teams",

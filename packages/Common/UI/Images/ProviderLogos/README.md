@@ -71,6 +71,8 @@ is registered and listed below, and no file reaches outside itself.
 | `groq.svg` | Groq | Groq's own favicon (groq.com/favicon.svg) | [groq.com](https://groq.com) |
 | `mistral-ai.svg` | Mistral AI | SVG Logos, `mistral-ai-icon` | [mistral.ai](https://mistral.ai) |
 | `ollama.svg`, `ollama-dark.svg` | Ollama | Simple Icons, `ollama`; dark: in white | [ollama.com](https://ollama.com) |
+| `google-calendar.svg` | Google Calendar | SVG Logos, `google-calendar-2020` (Google's current Calendar icon) | [Google brand resources](https://about.google/brand-resource-center/) |
+| `cisco.svg` | Cisco (Cisco Meraki) | Simple Icons, `cisco`, its viewBox fitted to the logo; Meraki is Cisco's and carries Cisco's logo | [Cisco brand](https://www.cisco.com/c/en/us/about/legal/trademarks.html) |
 | `zoom.svg` | Zoom | Simple Icons, `zoom` (Zoom's logo is its wordmark), its viewBox fitted to the wordmark | [Zoom brand](https://brand.zoom.us/usage-legal/) |
 | `slack.svg` | Slack | SVG Logos, `slack-icon` (the Slack mark) | [Slack media kit](https://slack.com/media-kit) |
 | `discord.svg` | Discord | SVG Logos, `discord-icon` | [Discord branding](https://discord.com/branding) |

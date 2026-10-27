@@ -365,7 +365,8 @@ const CodeRepositoriesPage: FunctionComponent<
       ) {
         actions.push({
           title: "Connect GitHub",
-          icon: IconProp.Link,
+          // GitHub's own mark, as the Connect GitHub button of Code's start has.
+          icon: IconProp.GitHub,
           onClick: (): void => {
             connection.connect();
           },
@@ -534,7 +535,7 @@ const CodeRepositoriesPage: FunctionComponent<
                     <span data-testid="code-not-connected-reconnect">
                       {renderTableHeaderMainButton({
                         title: "Connect GitHub",
-                        icon: IconProp.Link,
+                        icon: IconProp.GitHub,
                         buttonStyle: ButtonStyleType.NORMAL,
                         onClick: (): void => {
                           connection.connect();
