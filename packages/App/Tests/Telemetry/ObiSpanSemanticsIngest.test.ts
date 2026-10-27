@@ -34,6 +34,7 @@ import { resolveDatabaseCallTarget } from "Common/Types/DatabaseServer/DatabaseT
 import {
   DiscoveredDatabaseEndpoint,
   getDatabaseEndpointCallerContextNeeds,
+  isDatabaseEndpointAutoCreateCandidate,
   resolveDatabaseEndpointRows,
 } from "Common/Server/Utils/Telemetry/DatabaseEndpointDiscovery";
 import {
@@ -719,6 +720,14 @@ describe("an OBI ClickHouse insert over HTTP at ingest", () => {
     expect(discovered).toHaveLength(1);
     expect(discovered[0]!.system).toBe("clickhouse");
     expect(discovered[0]!.endpoint).toEqual(endpoint);
+    // Cluster-qualified, of a known engine: enough calls create its row.
+    expect(discovered[0]!.scope).toBe("global");
+    expect(
+      isDatabaseEndpointAutoCreateCandidate({
+        discovered: discovered[0]!,
+        minCalls: 1,
+      }),
+    ).toBe(true);
     expect(
       keyForDatabaseEndpoint(PROJECT_ID.toString(), discovered[0]!.endpoint),
     ).toBe(clickHouseEndpointKey(row));
