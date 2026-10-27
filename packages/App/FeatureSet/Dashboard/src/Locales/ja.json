@@ -2101,7 +2101,7 @@
   "Create Scheduled Maintenance Event": "定期メンテナンスイベントを作成",
   "Create Scheduled Maintenance from Template": "テンプレートから定期メンテナンスを作成",
   "Create Status Page Resource": "ステータスページリソースを作成",
-  "Created": "作成日時",
+  "Created": "作成",
   "Credentials": "認証情報",
   "Criteria Name": "条件名",
   "Criteria we will use to determine your resource status.": "リソースのステータスを判定するために使用する条件です。",
