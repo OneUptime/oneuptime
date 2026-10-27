@@ -618,10 +618,15 @@ describe("a form's pages", () => {
 
       fireEvent.click(header);
 
+      /*
+       * Open, the header is its title alone: the IP Allowlist card right
+       * under it says what it is.
+       */
       expect(header).toHaveAttribute("aria-expanded", "true");
+      expect(header).toHaveTextContent(/^More settings$/);
       expect(
-        within(header).getByText(FormsCopy.moreSettingsDescription),
-      ).toBeInTheDocument();
+        within(header).queryByTestId("folded-section-description"),
+      ).toBeNull();
     });
 
     test("opened at #ip-allowlist: More settings opens there", async () => {

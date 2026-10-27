@@ -88,14 +88,14 @@ export const getCustomRoleCount: (
 /*
  * What a page's More settings holds, under its title once open: Block
  * Permissions alone, as it always was, or Custom Roles too while that card
- * is drawn.
+ * is drawn - said in a few words, as each card below explains itself.
  */
 export const TEAM_MORE_SETTINGS_BLOCK_DESCRIPTION: string = translationKey(
   "Block permissions: what this team can never do, even when one of its roles or permissions allows it.",
 );
 
 export const TEAM_MORE_SETTINGS_ROLES_DESCRIPTION: string = translationKey(
-  "The custom roles this team is given, and block permissions: what it can never do, even when one of its roles or permissions allows it.",
+  "The custom roles this team is given, and what it can never do.",
 );
 
 export const API_KEY_MORE_SETTINGS_BLOCK_DESCRIPTION: string = translationKey(
@@ -103,7 +103,7 @@ export const API_KEY_MORE_SETTINGS_BLOCK_DESCRIPTION: string = translationKey(
 );
 
 export const API_KEY_MORE_SETTINGS_ROLES_DESCRIPTION: string = translationKey(
-  "The custom roles this key is given, and block permissions: what it can never do, even when one of its roles or permissions allows it.",
+  "The custom roles this key is given, and what it can never do.",
 );
 
 export const getTeamMoreSettingsDescription: (

@@ -110,11 +110,6 @@ export const SESSION_REPLAY_RETENTION_TITLE: string = translationKey(
   "Session Replay Retention",
 );
 
-// The same, on Settings > Telemetry.
-export const PROJECT_RETENTION_MORE_DESCRIPTION: string = translationKey(
-  "How long each type of telemetry is kept, when it should not follow the default retention above.",
-);
-
 /*
  * The values a retention-by-type override holds: the logs', traces',
  * metrics' and profiles' own defaults, and the logs' by severity and the

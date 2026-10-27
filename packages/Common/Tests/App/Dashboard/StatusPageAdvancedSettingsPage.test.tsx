@@ -108,7 +108,6 @@ import StatusPageSettings, {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/StatusPageSettings";
 import StatusPagePoweredByCopy, {
   STATUS_PAGE_POWERED_BY_PLACE,
-  STATUS_PAGE_SETTINGS_MORE_DESCRIPTION,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPagePoweredByCopy";
 import {
   listedNames,
@@ -297,7 +296,12 @@ describe("the Powered by OneUptime line, under More settings", () => {
     expect(fold()).not.toHaveTextContent("display-settings");
   });
 
-  test("is folded, names the card it holds, and says what it holds once open", async () => {
+  /*
+   * Open, the header is its title alone: the one card under it says what it
+   * is ("Whether the footer of this status page says Powered by
+   * OneUptime."), so a line of the fold's own would say it twice.
+   */
+  test("is folded, names the card it holds, and once open lets the card speak for itself", async () => {
     await renderPage();
 
     expect(header()).toHaveAttribute("aria-expanded", "false");
@@ -307,7 +311,12 @@ describe("the Powered by OneUptime line, under More settings", () => {
     fireEvent.click(header());
 
     expect(header()).toHaveAttribute("aria-expanded", "true");
-    expect(fold()).toHaveTextContent(STATUS_PAGE_SETTINGS_MORE_DESCRIPTION);
+    expect(header()).toHaveTextContent(/^More settings$/);
+    expect(
+      within(header()).queryByTestId("folded-section-description"),
+    ).toBeNull();
+    // The title sits level with the icon beside it.
+    expect(header().className).toContain("items-center");
   });
 
   test("the shell is handed a way to say whether visitors see the line", async () => {

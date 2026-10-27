@@ -108,7 +108,6 @@ const FormShare: FunctionComponent<PageComponentProps> = (): ReactElement => {
       />
 
       <AdvancedPageSection
-        description={FormsCopy.moreSettingsDescription}
         summary={
           ipAllowlist === null
             ? undefined

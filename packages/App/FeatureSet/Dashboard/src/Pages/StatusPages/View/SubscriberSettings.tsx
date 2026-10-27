@@ -237,7 +237,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
        */}
       <AdvancedPageSection
         description={SubscriberChoicesCopy.moreDescription}
-        items={getSubscriberSettingsMoreItems(moreValues)}
+        items={getSubscriberSettingsMoreItems(moreValues, translator)}
         dataTestId={SUBSCRIBER_SETTINGS_MORE_TEST_ID}
       >
         <SubscriberRestrictionsSettings

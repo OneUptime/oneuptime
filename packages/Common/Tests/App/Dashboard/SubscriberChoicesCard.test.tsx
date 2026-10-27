@@ -70,6 +70,13 @@ import PermissionGate, {
 } from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { FoldedSectionItem } from "../../../UI/Components/FoldedSection/FoldedSectionItem";
+import {
+  createTranslator,
+  Translator,
+} from "../../../UI/Utils/TranslateTemplate";
+
+// The page's translator, as an English reader has it.
+const ENGLISH: Translator = createTranslator(undefined, "en");
 
 const STATUS_PAGE_ID: string = "7d7d7d7d-0000-4000-8000-0000000000aa";
 
@@ -197,7 +204,10 @@ describe("the copy", () => {
       });
     };
 
-    const fresh: Array<FoldedSectionItem> = getSubscriberSettingsMoreItems({});
+    const fresh: Array<FoldedSectionItem> = getSubscriberSettingsMoreItems(
+      {},
+      ENGLISH,
+    );
 
     // Who Can Subscribe first: it folded in here from the page above.
     expect(titles(fresh)).toEqual([
@@ -222,6 +232,7 @@ describe("the copy", () => {
         smtpConfigName: "Acme mail",
         twilioConfigName: "Support Twilio",
       },
+      ENGLISH,
     );
 
     expect(
@@ -229,8 +240,8 @@ describe("the copy", () => {
         return [item.title, item.isSet, item.value];
       }),
     ).toEqual([
-      // Named alone: its two settings have no one short value between them.
-      ["Who Can Subscribe", true, undefined],
+      // Who may subscribe, as every other chip here says what it holds.
+      ["Who Can Subscribe", true, "Private users"],
       ["Subscriber Timezones", true, "2"],
       ["Email Footer", true, "Your own text"],
       ["Custom SMTP", true, "Acme mail"],
@@ -239,16 +250,19 @@ describe("the copy", () => {
 
     // Nothing loaded yet counts as what a new page starts with.
     expect(
-      getSubscriberSettingsMoreItems({
-        restrictions: {
-          limitSubscribersToPrivateUsers: false,
-          allowedEmailDomainCount: 0,
+      getSubscriberSettingsMoreItems(
+        {
+          restrictions: {
+            limitSubscribersToPrivateUsers: false,
+            allowedEmailDomainCount: 0,
+          },
+          timezoneCount: 0,
+          isCustomFooter: false,
+          smtpConfigName: null,
+          twilioConfigName: null,
         },
-        timezoneCount: 0,
-        isCustomFooter: false,
-        smtpConfigName: null,
-        twilioConfigName: null,
-      }).map((item: FoldedSectionItem) => {
+        ENGLISH,
+      ).map((item: FoldedSectionItem) => {
         return item.isSet;
       }),
     ).toEqual([false, false, false, false, false]);

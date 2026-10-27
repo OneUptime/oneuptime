@@ -4,7 +4,10 @@ import {
   getPageAnchorNameForTitle,
   isPageAnchorName,
 } from "Common/UI/Utils/PageAnchor";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  createTranslator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import {
   API_KEY_MORE_SETTINGS_BLOCK_DESCRIPTION,
   API_KEY_MORE_SETTINGS_ROLES_DESCRIPTION,
@@ -36,7 +39,6 @@ import StatusPageAccessCopy from "../../FeatureSet/Dashboard/src/Components/Stat
 import StatusPagePoweredByCopy, {
   getPoweredByFoldedItem,
   STATUS_PAGE_POWERED_BY_PLACE,
-  STATUS_PAGE_SETTINGS_MORE_DESCRIPTION,
 } from "../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPagePoweredByCopy";
 import StatusPageSessionLengthCopy, {
   getSessionLengthFoldedItem,
@@ -48,13 +50,16 @@ import SubscriberChoicesCopy, {
 import SubscriberRestrictionsCopy, {
   getSubscriberRestrictionsFoldedItem,
   getSubscriberRestrictionsState,
+  getSubscriberRestrictionsValue,
   isSubscriberRestrictionInForce,
+  SUBSCRIBER_RESTRICTIONS_EMAIL_DOMAINS_VALUE,
   SUBSCRIBER_RESTRICTIONS_PLACE,
+  SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_AND_EMAIL_DOMAINS_VALUE,
+  SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_VALUE,
 } from "../../FeatureSet/Dashboard/src/Components/StatusPage/SubscriberRestrictionsCopy";
 import {
   countRetentionTypeOverrides,
   getRetentionFoldedItems,
-  PROJECT_RETENTION_MORE_DESCRIPTION,
   readRetentionDays,
   RESOURCE_RETENTION_MORE_DESCRIPTION,
   RETENTION_BY_TELEMETRY_TYPE_PLACE,
@@ -140,6 +145,19 @@ const ENGLISH: Pick<Translator, "translatePlural"> = {
   },
 };
 
+// The Dashboard's own lookups, English and in a locale's words.
+const ENGLISH_TRANSLATOR: Translator = createTranslator(undefined, "en");
+
+const localeTranslator: (locale: string) => Translator = (
+  locale: string,
+): Translator => {
+  const words: Record<string, string> = readLocale(locale);
+
+  return createTranslator((key: string): string | undefined => {
+    return words[key];
+  }, locale);
+};
+
 const formatDays: (days: number) => string = (days: number): string => {
   return ENGLISH.translatePlural(
     { one: "{{count}} day", other: "{{count}} days" },
@@ -189,6 +207,30 @@ describe("custom roles, under More settings on a team's and a key's page", () =>
     expect(getApiKeyMoreSettingsDescription({ isShown: true, count: 1 })).toBe(
       API_KEY_MORE_SETTINGS_ROLES_DESCRIPTION,
     );
+  });
+
+  /*
+   * Open, the fold's line says what it holds in a few words: the cards in
+   * it each say what they are, and the Block Permissions card says what a
+   * block does. The UI review cut the line from two clauses and a colon
+   * ("..., and block permissions: what it can never do, even when one of
+   * its roles or permissions allows it.") to one.
+   */
+  test("with custom roles in it, the fold's line is one short sentence", () => {
+    expect(TEAM_MORE_SETTINGS_ROLES_DESCRIPTION).toBe(
+      "The custom roles this team is given, and what it can never do.",
+    );
+    expect(API_KEY_MORE_SETTINGS_ROLES_DESCRIPTION).toBe(
+      "The custom roles this key is given, and what it can never do.",
+    );
+
+    for (const sentence of [
+      TEAM_MORE_SETTINGS_ROLES_DESCRIPTION,
+      API_KEY_MORE_SETTINGS_ROLES_DESCRIPTION,
+    ]) {
+      expect(sentence.length).toBeLessThanOrEqual(70);
+      expect(sentence).not.toContain(":");
+    }
   });
 
   test("an empty Permissions card says where the access is when a custom role gives it some", () => {
@@ -295,19 +337,27 @@ describe("who can subscribe, under More settings on Subscriber Settings", () => 
 
   test("named first in the fold, at its title's place, marked while in force", () => {
     expect(SUBSCRIBER_RESTRICTIONS_PLACE).toBe("who-can-subscribe");
-    expect(getSubscriberRestrictionsFoldedItem(undefined)).toEqual({
+    expect(
+      getSubscriberRestrictionsFoldedItem(undefined, ENGLISH_TRANSLATOR),
+    ).toEqual({
       key: "who-can-subscribe",
       title: SubscriberRestrictionsCopy.cardTitle,
       isSet: false,
     });
     expect(
-      getSubscriberRestrictionsFoldedItem({
-        limitSubscribersToPrivateUsers: true,
-        allowedEmailDomainCount: 0,
-      }).isSet,
+      getSubscriberRestrictionsFoldedItem(
+        {
+          limitSubscribersToPrivateUsers: true,
+          allowedEmailDomainCount: 0,
+        },
+        ENGLISH_TRANSLATOR,
+      ).isSet,
     ).toBe(true);
 
-    const items: Array<FoldedSectionItem> = getSubscriberSettingsMoreItems({});
+    const items: Array<FoldedSectionItem> = getSubscriberSettingsMoreItems(
+      {},
+      ENGLISH_TRANSLATOR,
+    );
 
     expect(
       items.map((item: FoldedSectionItem): string => {
@@ -323,6 +373,121 @@ describe("who can subscribe, under More settings on Subscriber Settings", () => 
     expect(
       SubscriberChoicesCopy.moreDescription.startsWith("Who can subscribe"),
     ).toBe(true);
+  });
+
+  /*
+   * Every other chip in the fold says what it is set to ("Subscriber
+   * Timezones: 2", "Custom SMTP: Acme mail"), so Who Can Subscribe says who
+   * may subscribe - the page's private users, a number of email domains,
+   * or both - rather than standing alone as a name.
+   */
+  test("its chip says who may subscribe", () => {
+    const valueFor: (
+      limitSubscribersToPrivateUsers: boolean,
+      allowedEmailDomainCount: number,
+    ) => string | undefined = (
+      limitSubscribersToPrivateUsers: boolean,
+      allowedEmailDomainCount: number,
+    ): string | undefined => {
+      return getSubscriberRestrictionsValue(
+        { limitSubscribersToPrivateUsers, allowedEmailDomainCount },
+        ENGLISH_TRANSLATOR,
+      );
+    };
+
+    // Nobody is turned away: no value, as on every new page.
+    expect(
+      getSubscriberRestrictionsValue(undefined, ENGLISH_TRANSLATOR),
+    ).toBeUndefined();
+    expect(getSubscriberRestrictionsValue(null, ENGLISH_TRANSLATOR)).toBe(
+      undefined,
+    );
+    expect(valueFor(false, 0)).toBeUndefined();
+
+    expect(valueFor(true, 0)).toBe("Private users");
+    expect(valueFor(false, 1)).toBe("1 email domain");
+    expect(valueFor(false, 2)).toBe("2 email domains");
+    expect(valueFor(true, 1)).toBe("Private users, 1 email domain");
+    expect(valueFor(true, 3)).toBe("Private users, 3 email domains");
+
+    expect(
+      getSubscriberRestrictionsFoldedItem(
+        { limitSubscribersToPrivateUsers: true, allowedEmailDomainCount: 2 },
+        ENGLISH_TRANSLATOR,
+      ),
+    ).toEqual({
+      key: "who-can-subscribe",
+      title: SubscriberRestrictionsCopy.cardTitle,
+      isSet: true,
+      value: "Private users, 2 email domains",
+    });
+
+    // The fold lists it with its value, first.
+    expect(
+      getSubscriberSettingsMoreItems(
+        {
+          restrictions: {
+            limitSubscribersToPrivateUsers: false,
+            allowedEmailDomainCount: 4,
+          },
+        },
+        ENGLISH_TRANSLATOR,
+      )[0],
+    ).toEqual({
+      key: "who-can-subscribe",
+      title: SubscriberRestrictionsCopy.cardTitle,
+      isSet: true,
+      value: "4 email domains",
+    });
+  });
+
+  test("its chip says who may subscribe in the reader's language, the count in the right form", () => {
+    const german: Translator = localeTranslator("de");
+
+    expect(
+      getSubscriberRestrictionsValue(
+        { limitSubscribersToPrivateUsers: true, allowedEmailDomainCount: 0 },
+        german,
+      ),
+    ).toBe("Private Benutzer");
+    expect(
+      getSubscriberRestrictionsValue(
+        { limitSubscribersToPrivateUsers: true, allowedEmailDomainCount: 2 },
+        german,
+      ),
+    ).toBe("Private Benutzer, 2 E-Mail-Domains");
+    expect(
+      getSubscriberRestrictionsValue(
+        { limitSubscribersToPrivateUsers: false, allowedEmailDomainCount: 1 },
+        german,
+      ),
+    ).toBe("1 E-Mail-Domain");
+
+    // Russian: the "one" form for 1 and 21, the general form for the rest.
+    const russian: Translator = localeTranslator("ru");
+    const russianDomains: (count: number) => string | undefined = (
+      count: number,
+    ): string | undefined => {
+      return getSubscriberRestrictionsValue(
+        {
+          limitSubscribersToPrivateUsers: false,
+          allowedEmailDomainCount: count,
+        },
+        russian,
+      );
+    };
+
+    expect(russianDomains(1)).toBe("1 домен эл. почты");
+    expect(russianDomains(21)).toBe("21 домен эл. почты");
+    expect(russianDomains(5)).toBe("Доменов эл. почты: 5");
+
+    // Japanese counts with 件, whatever the number.
+    expect(
+      getSubscriberRestrictionsValue(
+        { limitSubscribersToPrivateUsers: true, allowedEmailDomainCount: 1 },
+        localeTranslator("ja"),
+      ),
+    ).toBe("プライベートユーザー、メールドメイン 1 件");
   });
 });
 
@@ -619,15 +784,45 @@ describe("your own mail servers and Twilio accounts, under More settings on Noti
 
 describe("a form's IP allowlist, under More settings on its Share page", () => {
   test("says, folded, whether every address can open the form", () => {
-    expect(FormsCopy.moreSettingsDescription).toBe(
-      "Limit which IP addresses can open and submit this form.",
-    );
     expect(FormsCopy.moreSettingsSummaryOpen).toBe(
       "Every IP address can open this form.",
     );
     expect(FormsCopy.moreSettingsSummaryConfigured).toBe(
       "Only the IP addresses on the allowlist can open this form.",
     );
+  });
+});
+
+/*
+ * A fold that holds one card says nothing of its own once open: the card
+ * right under its header says what it is, and a line above it said the
+ * same again ("The Powered by OneUptime line at the foot of this status
+ * page." over "Whether the footer of this status page says Powered by
+ * OneUptime."). Folded, each still names its card, and the form's says
+ * whether every address can open it.
+ */
+describe("a fold that holds one card adds no line of its own", () => {
+  // The fold's opening tag, as prettier lays it out: its props, not its cards'.
+  const foldProps: (source: string) => string = (source: string): string => {
+    const start: number = source.indexOf("<AdvancedPageSection");
+    const lineStart: number = source.lastIndexOf("\n", start) + 1;
+    const indent: string = source.slice(lineStart, start);
+    const end: number = source.indexOf(`\n${indent}>\n`, start);
+
+    expect([start >= 0, end > start]).toEqual([true, true]);
+
+    return source.slice(start, end);
+  };
+
+  test.each([
+    [["Pages", "StatusPages", "View", "StatusPageSettings.tsx"]],
+    [["Pages", "Settings", "TelemetrySettings.tsx"]],
+    [["Pages", "Forms", "View", "Share.tsx"]],
+  ])("%j", (parts: Array<string>) => {
+    const props: string = foldProps(readSource(...parts));
+
+    expect(props).toContain("items=");
+    expect(props).not.toContain("description=");
   });
 });
 
@@ -643,15 +838,51 @@ describe("translations", () => {
     API_KEY_PERMISSIONS_EMPTY_WITH_CUSTOM_ROLES,
     StatusPageAccessCopy.advancedDescription,
     SubscriberChoicesCopy.moreDescription,
-    PROJECT_RETENTION_MORE_DESCRIPTION,
     RUM_RETENTION_MORE_DESCRIPTION,
     RESOURCE_RETENTION_MORE_DESCRIPTION,
-    STATUS_PAGE_SETTINGS_MORE_DESCRIPTION,
     OWN_SENDERS_MORE_DESCRIPTION,
-    FormsCopy.moreSettingsDescription,
     FormsCopy.moreSettingsSummaryOpen,
     FormsCopy.moreSettingsSummaryConfigured,
+    SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_VALUE,
+    SUBSCRIBER_RESTRICTIONS_EMAIL_DOMAINS_VALUE.other,
+    SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_AND_EMAIL_DOMAINS_VALUE.other,
   ];
+
+  // Their "one" forms, kept under the general sentence's key plus "_one".
+  const NEW_PLURALS: Array<{ one: string; other: string }> = [
+    SUBSCRIBER_RESTRICTIONS_EMAIL_DOMAINS_VALUE,
+    SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_AND_EMAIL_DOMAINS_VALUE,
+  ];
+
+  test("en.json has each plural's one form under its key", () => {
+    const english: Record<string, string> = readLocale("en");
+
+    for (const plural of NEW_PLURALS) {
+      expect(english[`${plural.other}_one`]).toBe(plural.one);
+    }
+  });
+
+  test.each(OTHER_LOCALES)(
+    "%s words each plural's one form, keeping its count",
+    (locale: string) => {
+      const words: Record<string, string> = readLocale(locale);
+
+      for (const plural of NEW_PLURALS) {
+        const one: string | undefined = words[`${plural.other}_one`];
+
+        expect([plural.one, typeof one]).toEqual([plural.one, "string"]);
+        expect([plural.one, one === plural.one]).toEqual([plural.one, false]);
+        expect([plural.one, one!.includes("{{count}}")]).toEqual([
+          plural.one,
+          true,
+        ]);
+        expect([
+          plural.other,
+          (words[plural.other] || "").includes("{{count}}"),
+        ]).toEqual([plural.other, true]);
+      }
+    },
+  );
 
   test("en.json has every one, as itself", () => {
     const english: Record<string, string> = readLocale("en");

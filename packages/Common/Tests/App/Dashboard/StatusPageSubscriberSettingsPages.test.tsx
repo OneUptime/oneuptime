@@ -1136,17 +1136,40 @@ describe("Who Can Subscribe, under More settings", () => {
     expect(fold()).toHaveTextContent(SubscriberChoicesCopy.moreDescription);
   });
 
+  /*
+   * Marked with who may subscribe, as every other chip in the fold says
+   * what it holds ("Subscriber Timezones: 2").
+   */
   test.each([
-    [{ limitSubscribersToPrivateUsers: true, allowedEmailDomainCount: 0 }],
-    [{ limitSubscribersToPrivateUsers: false, allowedEmailDomainCount: 2 }],
-    [{ limitSubscribersToPrivateUsers: true, allowedEmailDomainCount: 1 }],
+    [
+      { limitSubscribersToPrivateUsers: true, allowedEmailDomainCount: 0 },
+      "Private users",
+    ],
+    [
+      { limitSubscribersToPrivateUsers: false, allowedEmailDomainCount: 2 },
+      "2 email domains",
+    ],
+    [
+      { limitSubscribersToPrivateUsers: false, allowedEmailDomainCount: 1 },
+      "1 email domain",
+    ],
+    [
+      { limitSubscribersToPrivateUsers: true, allowedEmailDomainCount: 1 },
+      "Private users, 1 email domain",
+    ],
+    [
+      { limitSubscribersToPrivateUsers: true, allowedEmailDomainCount: 3 },
+      "Private users, 3 email domains",
+    ],
   ])(
-    "marked while it turns anyone away: %o",
-    async (restrictions: SubscriberRestrictionsState) => {
+    "marked while it turns anyone away, saying who may subscribe: %o",
+    async (restrictions: SubscriberRestrictionsState, value: string) => {
       await renderPage(<SubscriberSettings {...PAGE_PROPS} />);
       await report(restrictions);
 
-      expect(setChips(fold())).toEqual([SubscriberRestrictionsCopy.cardTitle]);
+      expect(setChips(fold())).toEqual([
+        `${SubscriberRestrictionsCopy.cardTitle}: ${value}`,
+      ]);
       // Saying so does not open it.
       expect(header()).toHaveAttribute("aria-expanded", "false");
     },

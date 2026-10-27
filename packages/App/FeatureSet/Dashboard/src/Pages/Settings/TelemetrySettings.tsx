@@ -3,7 +3,6 @@ import PageComponentProps from "../PageComponentProps";
 import { getTelemetryRetentionUpsell } from "../../Components/TelemetryResource/TelemetryResourceRetentionSettings";
 import RetentionOverrideLeftover from "../../Components/TelemetryResource/RetentionOverrideLeftover";
 import { RetentionOverrideLeftoverKind } from "../../Components/TelemetryResource/RetentionOverrideLeftoverCopy";
-import { PROJECT_RETENTION_MORE_DESCRIPTION } from "../../Components/TelemetryResource/TelemetryRetentionFold";
 import useRetentionFold, {
   RetentionFold,
 } from "../../Components/TelemetryResource/UseRetentionFold";
@@ -35,7 +34,8 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * folded header says how many types it overrides while it does
  * (Components/TelemetryResource/TelemetryRetentionFold). A link to
  * #retention-by-telemetry-type (or #retention-overrides, the upsell) opens
- * it there.
+ * it there. Open, the fold says nothing of its own: its one card says what
+ * it is.
  */
 export const PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID: string =
   "project-telemetry-more-settings";
@@ -93,7 +93,6 @@ const TelemetrySettings: FunctionComponent<PageComponentProps> = (
         }}
       />
       <AdvancedPageSection
-        description={PROJECT_RETENTION_MORE_DESCRIPTION}
         items={retentionFold.items}
         dataTestId={PROJECT_TELEMETRY_MORE_SETTINGS_TEST_ID}
       >

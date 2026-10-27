@@ -1,4 +1,4 @@
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   FoldedSectionItem,
   foldedSectionItem,
@@ -180,17 +180,20 @@ export interface SubscriberSettingsMoreValues {
  * What the folded More settings header lists: its five cards, each a chip
  * once it holds something a new status page does not - who may subscribe,
  * how many timezones, your own footer, which mail server, which Twilio
- * account - so folding never hides a setting in force.
+ * account - so folding never hides a setting in force. The page's
+ * translator words who may subscribe ("Private users, 2 email domains").
  */
 export const getSubscriberSettingsMoreItems: (
   values: SubscriberSettingsMoreValues,
+  translator: Translator,
 ) => Array<FoldedSectionItem> = (
   values: SubscriberSettingsMoreValues,
+  translator: Translator,
 ): Array<FoldedSectionItem> => {
   const timezoneCount: number = values.timezoneCount || 0;
 
   return [
-    getSubscriberRestrictionsFoldedItem(values.restrictions),
+    getSubscriberRestrictionsFoldedItem(values.restrictions, translator),
     foldedSectionItem(SubscriberChoicesCopy.timezonesTitle, {
       isSet: timezoneCount > 0,
       value: String(timezoneCount),

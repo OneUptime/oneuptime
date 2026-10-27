@@ -11,10 +11,7 @@ import React, {
 } from "react";
 import StatusPageDisplaySettingsCard from "../../../Components/StatusPage/StatusPageDisplaySettingsCard";
 import StatusPagePoweredBySettings from "../../../Components/StatusPage/StatusPagePoweredBySettings";
-import {
-  getPoweredByFoldedItem,
-  STATUS_PAGE_SETTINGS_MORE_DESCRIPTION,
-} from "../../../Components/StatusPage/StatusPagePoweredByCopy";
+import { getPoweredByFoldedItem } from "../../../Components/StatusPage/StatusPagePoweredByCopy";
 import AdvancedPageSection from "Common/UI/Components/AdvancedPageSection/AdvancedPageSection";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import { STATUS_PAGE_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
@@ -39,6 +36,7 @@ import Route from "Common/Types/API/Route";
  * use - waits folded under More settings, between what the page shows and
  * what is done to the page as a whole; the folded header says "Off" while
  * the line is hidden, and a link to #powered-by-oneuptime opens it there.
+ * Open, the fold says nothing of its own: its one card says what it is.
  */
 export const STATUS_PAGE_SETTINGS_MORE_TEST_ID: string =
   "status-page-settings-more";
@@ -62,7 +60,6 @@ const StatusPageSettings: FunctionComponent<
        * is an Enterprise feature few pages use, so it waits folded.
        */}
       <AdvancedPageSection
-        description={STATUS_PAGE_SETTINGS_MORE_DESCRIPTION}
         items={[getPoweredByFoldedItem(isPoweredByShown)]}
         dataTestId={STATUS_PAGE_SETTINGS_MORE_TEST_ID}
       >

@@ -9,7 +9,11 @@ import {
   foldedSectionItem,
 } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { getPageAnchorNameForTitle } from "Common/UI/Utils/PageAnchor";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Who Can Subscribe, on Subscribers -> Subscriber Settings: Only Private
@@ -202,18 +206,79 @@ export const SUBSCRIBER_RESTRICTIONS_PLACE: string = getPageAnchorNameForTitle(
 );
 
 /*
- * Who Can Subscribe as the page's folded More settings names it: marked set
- * while anything turns a subscriber away - the name alone, as the two
- * settings it holds have no one short value between them.
+ * Who may subscribe, in the few words a folded chip has room for - as every
+ * other chip in the fold says what it is set to ("Subscriber Timezones: 2",
+ * "Custom SMTP: Acme mail"): the page's private users, a number of email
+ * domains, or both. Each is one phrase, translated whole.
+ */
+export const SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_VALUE: string =
+  translationKey("Private users");
+
+export const SUBSCRIBER_RESTRICTIONS_EMAIL_DOMAINS_VALUE: PluralTemplate = {
+  one: "{{count}} email domain",
+  other: "{{count}} email domains",
+};
+
+export const SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_AND_EMAIL_DOMAINS_VALUE: PluralTemplate =
+  {
+    one: "Private users, {{count}} email domain",
+    other: "Private users, {{count}} email domains",
+  };
+
+/*
+ * What Who Can Subscribe's chip says it is set to, in the reader's
+ * language: "Private users", "2 email domains" or "Private users, 2 email
+ * domains". Nothing while nobody is turned away.
+ */
+export const getSubscriberRestrictionsValue: (
+  restrictions: SubscriberRestrictionsState | null | undefined,
+  translator: Translator,
+) => string | undefined = (
+  restrictions: SubscriberRestrictionsState | null | undefined,
+  translator: Translator,
+): string | undefined => {
+  if (!restrictions || !isSubscriberRestrictionInForce(restrictions)) {
+    return undefined;
+  }
+
+  const domainCount: number = restrictions.allowedEmailDomainCount;
+
+  if (!restrictions.limitSubscribersToPrivateUsers) {
+    return translator.translatePlural(
+      SUBSCRIBER_RESTRICTIONS_EMAIL_DOMAINS_VALUE,
+      domainCount,
+    );
+  }
+
+  if (domainCount > 0) {
+    return translator.translatePlural(
+      SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_AND_EMAIL_DOMAINS_VALUE,
+      domainCount,
+    );
+  }
+
+  return (
+    translator.translateText(SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_VALUE) ||
+    SUBSCRIBER_RESTRICTIONS_PRIVATE_USERS_VALUE
+  );
+};
+
+/*
+ * Who Can Subscribe as the page's folded More settings names it: a chip
+ * while anything turns a subscriber away, saying who may subscribe; its
+ * name otherwise - where every page starts.
  */
 export const getSubscriberRestrictionsFoldedItem: (
   restrictions: SubscriberRestrictionsState | null | undefined,
+  translator: Translator,
 ) => FoldedSectionItem = (
   restrictions: SubscriberRestrictionsState | null | undefined,
+  translator: Translator,
 ): FoldedSectionItem => {
   return foldedSectionItem(SubscriberRestrictionsCopy.cardTitle, {
     key: SUBSCRIBER_RESTRICTIONS_PLACE,
     isSet: isSubscriberRestrictionInForce(restrictions),
+    value: getSubscriberRestrictionsValue(restrictions, translator),
   });
 };
 

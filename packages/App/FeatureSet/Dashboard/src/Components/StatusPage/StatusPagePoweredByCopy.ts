@@ -76,11 +76,6 @@ export const getPoweredByFoldedItem: (
   });
 };
 
-// What the page's More settings holds, under its title once open.
-export const STATUS_PAGE_SETTINGS_MORE_DESCRIPTION: string = translationKey(
-  "The Powered by OneUptime line at the foot of this status page.",
-);
-
 // The sentence under the switch, for the way it is set (on = shown).
 export const getPoweredByDescription: (isShown: boolean) => string = (
   isShown: boolean,

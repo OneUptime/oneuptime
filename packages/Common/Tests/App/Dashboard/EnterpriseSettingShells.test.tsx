@@ -1236,8 +1236,8 @@ describe("the custom role shells", () => {
  * Each of these cards waits folded under its page's More settings, and
  * tells the page what it holds - whichever edition draws it - so the folded
  * header can name it with what it is set to: "Reader Sessions: 8 hours",
- * "Who Can Subscribe" marked, "Powered by OneUptime: Off", "Custom Roles:
- * 2". The shells hand the same callback to the Enterprise card and to what
+ * "Who Can Subscribe: Private users", "Powered by OneUptime: Off", "Custom
+ * Roles: 2". The shells hand the same callback to the Enterprise card and to what
  * a lower plan or the Community Edition left of the feature.
  */
 describe("what the folded cards tell their page", () => {
