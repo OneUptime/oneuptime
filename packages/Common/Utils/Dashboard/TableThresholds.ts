@@ -37,6 +37,20 @@ export const TABLE_THRESHOLD_PERCENT_PRESET: Readonly<{
 };
 
 /*
+ * The same column's when lower is worse: free disk space or memory, the
+ * mirror of 80 and 90 in use. Picking Lower is worse on a percent column
+ * whose thresholds are still the preset moves them here, so the pick never
+ * leaves critical on the wrong side of warning.
+ */
+export const TABLE_THRESHOLD_PERCENT_LOWER_IS_WORSE_PRESET: Readonly<{
+  warning: number;
+  critical: number;
+}> = {
+  warning: 20,
+  critical: 10,
+};
+
+/*
  * A stored threshold as a number: a finite number, or text that is one
  * (" 90.5 "). Anything else - empty text, a word, NaN, Infinity - is no
  * threshold at all.
@@ -284,22 +298,61 @@ export const isTableColumnPercent: (display: TableColumnDisplay) => boolean = (
  * The thresholds a column starts with when they are turned on: 80 and 90,
  * higher is worse, for a percent column - CPU, memory and disk in use, what
  * the High CPU Utilization alert template watches at 80 - and none yet for
- * any other unit, whose scale only the person setting them knows.
+ * any other unit, whose scale only the person setting them knows. Asked
+ * for lower is worse, a percent column's are 20 and 10.
  */
 export const getTableThresholdPreset: (
   display: TableColumnDisplay,
+  direction?: TableThresholdDirection | undefined,
 ) => TableColumnThresholds = (
   display: TableColumnDisplay,
+  direction?: TableThresholdDirection | undefined,
 ): TableColumnThresholds => {
-  if (isTableColumnPercent(display)) {
-    return {
-      warning: TABLE_THRESHOLD_PERCENT_PRESET.warning,
-      critical: TABLE_THRESHOLD_PERCENT_PRESET.critical,
-      direction: TableThresholdDirection.HigherIsWorse,
-    };
+  const presetDirection: TableThresholdDirection =
+    readTableThresholdDirection(direction);
+
+  if (!isTableColumnPercent(display)) {
+    return { direction: presetDirection };
   }
 
-  return { direction: TableThresholdDirection.HigherIsWorse };
+  const preset: Readonly<{ warning: number; critical: number }> =
+    presetDirection === TableThresholdDirection.LowerIsWorse
+      ? TABLE_THRESHOLD_PERCENT_LOWER_IS_WORSE_PRESET
+      : TABLE_THRESHOLD_PERCENT_PRESET;
+
+  return {
+    warning: preset.warning,
+    critical: preset.critical,
+    direction: presetDirection,
+  };
+};
+
+/*
+ * Whether a column's thresholds are still the preset of their own
+ * direction, as they were turned on: nothing typed over them. A column
+ * whose numbers someone typed - or cleared - is not.
+ */
+export const isTableThresholdPreset: (data: {
+  thresholds: TableColumnThresholds | null | undefined;
+  display: TableColumnDisplay;
+}) => boolean = (data: {
+  thresholds: TableColumnThresholds | null | undefined;
+  display: TableColumnDisplay;
+}): boolean => {
+  if (!data.thresholds) {
+    return false;
+  }
+
+  const stored: TableColumnThresholds = data.thresholds;
+  const preset: TableColumnThresholds = getTableThresholdPreset(
+    data.display,
+    stored.direction,
+  );
+
+  return (
+    readTableThresholdNumber(stored.warning) === preset.warning &&
+    readTableThresholdNumber(stored.critical) === preset.critical
+  );
 };
 
 /*

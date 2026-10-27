@@ -6,6 +6,7 @@ import {
   TableThresholdStyle,
 } from "../../../Types/Dashboard/DashboardComponents/DashboardTableComponent";
 import {
+  TABLE_THRESHOLD_PERCENT_LOWER_IS_WORSE_PRESET,
   TABLE_THRESHOLD_PERCENT_PRESET,
   TableColumnDisplay,
   formatTableThreshold,
@@ -15,6 +16,7 @@ import {
   getTableThresholdPreset,
   isTableColumnPercent,
   isTableThresholdOrderReversed,
+  isTableThresholdPreset,
   joinTableValueAndUnit,
   readTableColumnThresholds,
   readTableThresholdDirection,
@@ -604,6 +606,145 @@ describe("isTableColumnPercent and getTableThresholdPreset", () => {
       ).toBeNull();
     },
   );
+
+  test("asked for lower is worse, a percent column starts at 20 and 10, the mirror of 80 and 90", () => {
+    expect(TABLE_THRESHOLD_PERCENT_LOWER_IS_WORSE_PRESET).toStrictEqual({
+      warning: 20,
+      critical: 10,
+    });
+    expect(
+      getTableThresholdPreset({ unit: "%", factor: 1 }, LOWER),
+    ).toStrictEqual({ warning: 20, critical: 10, direction: LOWER });
+    // The mirror of the higher-is-worse preset, in what is left.
+    expect(100 - TABLE_THRESHOLD_PERCENT_PRESET.warning).toBe(
+      TABLE_THRESHOLD_PERCENT_LOWER_IS_WORSE_PRESET.warning,
+    );
+    expect(100 - TABLE_THRESHOLD_PERCENT_PRESET.critical).toBe(
+      TABLE_THRESHOLD_PERCENT_LOWER_IS_WORSE_PRESET.critical,
+    );
+  });
+
+  test("each direction's preset is in order: it never says critical is on the wrong side", () => {
+    for (const direction of [HIGHER, LOWER]) {
+      const preset: TableColumnThresholds = getTableThresholdPreset(
+        { unit: "%", factor: 1 },
+        direction,
+      );
+
+      expect({
+        direction,
+        reversed: isTableThresholdOrderReversed(preset),
+      }).toStrictEqual({ direction, reversed: false });
+    }
+  });
+
+  test("lower is worse on another unit still starts with no numbers, only its direction", () => {
+    expect(
+      getTableThresholdPreset({ unit: "ms", factor: 1 }, LOWER),
+    ).toStrictEqual({ direction: LOWER });
+  });
+
+  test("an unknown direction asked for is higher is worse, as a stored one is read", () => {
+    expect(
+      getTableThresholdPreset(
+        { unit: "%", factor: 1 },
+        "Sideways" as unknown as TableThresholdDirection,
+      ),
+    ).toStrictEqual({ warning: 80, critical: 90, direction: HIGHER });
+  });
+});
+
+describe("isTableThresholdPreset", () => {
+  const PERCENT: TableColumnDisplay = { unit: "%", factor: 1 };
+  const MILLISECONDS: TableColumnDisplay = { unit: "ms", factor: 1 };
+
+  test("a percent column's 80 and 90, higher is worse, are its preset", () => {
+    expect(
+      isTableThresholdPreset({
+        thresholds: { warning: 80, critical: 90, direction: HIGHER },
+        display: PERCENT,
+      }),
+    ).toBe(true);
+    // Left out, the direction is higher is worse.
+    expect(
+      isTableThresholdPreset({
+        thresholds: { warning: 80, critical: 90 },
+        display: PERCENT,
+      }),
+    ).toBe(true);
+  });
+
+  test("20 and 10 are the preset when lower is worse, and only then", () => {
+    expect(
+      isTableThresholdPreset({
+        thresholds: { warning: 20, critical: 10, direction: LOWER },
+        display: PERCENT,
+      }),
+    ).toBe(true);
+    expect(
+      isTableThresholdPreset({
+        thresholds: { warning: 20, critical: 10, direction: HIGHER },
+        display: PERCENT,
+      }),
+    ).toBe(false);
+    expect(
+      isTableThresholdPreset({
+        thresholds: { warning: 80, critical: 90, direction: LOWER },
+        display: PERCENT,
+      }),
+    ).toBe(false);
+  });
+
+  test("a number someone typed, or cleared, is not the preset", () => {
+    for (const thresholds of [
+      { warning: 80, critical: 95, direction: HIGHER },
+      { warning: 75, critical: 90, direction: HIGHER },
+      { warning: 80, direction: HIGHER },
+      { critical: 90, direction: HIGHER },
+      { direction: HIGHER },
+    ]) {
+      expect({
+        thresholds,
+        isPreset: isTableThresholdPreset({ thresholds, display: PERCENT }),
+      }).toStrictEqual({ thresholds, isPreset: false });
+    }
+  });
+
+  test("the preset written as text by the API or Terraform is still the preset", () => {
+    expect(
+      isTableThresholdPreset({
+        thresholds: {
+          warning: "80",
+          critical: " 90 ",
+        } as unknown as TableColumnThresholds,
+        display: PERCENT,
+      }),
+    ).toBe(true);
+  });
+
+  test("another unit's preset is no numbers at all", () => {
+    expect(
+      isTableThresholdPreset({
+        thresholds: { direction: HIGHER },
+        display: MILLISECONDS,
+      }),
+    ).toBe(true);
+    expect(
+      isTableThresholdPreset({
+        thresholds: { warning: 250, direction: HIGHER },
+        display: MILLISECONDS,
+      }),
+    ).toBe(false);
+  });
+
+  test("thresholds that are off are no preset", () => {
+    expect(
+      isTableThresholdPreset({ thresholds: undefined, display: PERCENT }),
+    ).toBe(false);
+    expect(isTableThresholdPreset({ thresholds: null, display: PERCENT })).toBe(
+      false,
+    );
+  });
 });
 
 describe("joinTableValueAndUnit, formatTableValue and formatTableThreshold", () => {

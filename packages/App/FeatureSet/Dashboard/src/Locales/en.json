@@ -35919,5 +35919,7 @@
   "When the event shows on its status pages, and when their subscribers hear about it.": "When the event shows on its status pages, and when their subscribers hear about it.",
   "Sent when the event shows on its status pages.": "Sent when the event shows on its status pages.",
   "Reminders are not sent while the event is hidden from its status pages.": "Reminders are not sent while the event is hidden from its status pages.",
-  "Reminders due before the event is published are not sent.": "Reminders due before the event is published are not sent."
+  "Reminders due before the event is published are not sent.": "Reminders due before the event is published are not sent.",
+  "The number turns amber or red.": "The number turns amber or red.",
+  "The whole cell turns amber or red.": "The whole cell turns amber or red."
 }

@@ -15,6 +15,7 @@ import {
   TableColumnDisplay,
   getTableThresholdPreset,
   isTableThresholdOrderReversed,
+  isTableThresholdPreset,
   readTableColumnThresholds,
   readTableThresholdDirection,
   readTableThresholdNumber,
@@ -170,6 +171,33 @@ const TableColumnThresholdsEditor: FunctionComponent<ComponentProps> = (
     props.onChange(next);
   };
 
+  /*
+   * A new direction. Thresholds still at the preset they were turned on
+   * with follow it - a percent column's 80 and 90 become 20 and 10 for
+   * lower is worse - so the pick never leaves critical on the wrong side
+   * of warning. Numbers someone typed are kept as they are.
+   */
+  const writeDirection: (next: TableThresholdDirection) => void = (
+    next: TableThresholdDirection,
+  ): void => {
+    if (next === direction) {
+      return;
+    }
+
+    if (
+      isTableThresholdPreset({ thresholds: stored, display: props.display })
+    ) {
+      props.onChange(getTableThresholdPreset(props.display, next));
+      return;
+    }
+
+    props.onChange({ ...stored, direction: next });
+  };
+
+  // In Colored text a level is its words alone, lined up with the fields.
+  const isFilled: boolean =
+    props.thresholdStyle === TableThresholdStyle.Background;
+
   const rules: Array<{ level: TableThresholdLevel; rule: string }> =
     getTableThresholdRules({
       translator,
@@ -194,14 +222,18 @@ const TableColumnThresholdsEditor: FunctionComponent<ComponentProps> = (
     return (
       <>
         <div
-          className="mt-3 flex flex-wrap items-center gap-2"
+          className={`mt-3 flex flex-wrap items-center ${
+            isFilled ? "gap-2" : "gap-x-4 gap-y-1"
+          }`}
           data-testid={`table-column-thresholds-legend-${props.columnId}`}
         >
           {rules.map((entry: { level: TableThresholdLevel; rule: string }) => {
             return (
               <div
                 key={entry.level}
-                className={`inline-flex max-w-full items-center gap-1 rounded px-1.5 py-0.5 text-xs ${TABLE_THRESHOLD_CELL_CLASS_NAMES[props.thresholdStyle][entry.level]}`}
+                className={`inline-flex max-w-full items-center gap-1 rounded py-0.5 text-xs ${
+                  isFilled ? "px-1.5" : ""
+                } ${TABLE_THRESHOLD_CELL_CLASS_NAMES[props.thresholdStyle][entry.level]}`}
                 data-threshold-level={entry.level}
               >
                 <Icon
@@ -250,7 +282,7 @@ const TableColumnThresholdsEditor: FunctionComponent<ComponentProps> = (
                 : undefined,
             );
           }}
-          className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+          className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
           data-testid={`table-column-thresholds-toggle-${props.columnId}`}
         />
         {translator.translateText("Color by thresholds")}
@@ -297,10 +329,7 @@ const TableColumnThresholdsEditor: FunctionComponent<ComponentProps> = (
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ): void => {
-                  props.onChange({
-                    ...stored,
-                    direction: readTableThresholdDirection(value),
-                  });
+                  writeDirection(readTableThresholdDirection(value));
                 }}
               />
             </div>

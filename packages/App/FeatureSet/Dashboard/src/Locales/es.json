@@ -20639,7 +20639,7 @@
   "Audit logs and many more enterprise-focused features.": "Registros de auditoría y muchas más funciones orientadas a empresas.",
   "Auto-resolve each incident when…": "Auto-resolve each incident when…",
   "Auto-run": "Auto-run",
-  "Available variables: {{variables}}": "Available variables: {{variables}}",
+  "Available variables: {{variables}}": "Variables disponibles: {{variables}}",
   "Back to options": "Volver a las opciones",
   "Based on current settings": "Based on current settings",
   "Best {{shown}} of {{total}} matches.": "Las {{shown}} mejores de {{total}} coincidencias.",
@@ -21227,7 +21227,7 @@
   "Settings may have changed since this incident was created; this is not a recorded decision from that time.": "Settings may have changed since this incident was created; this is not a recorded decision from that time.",
   "Severity: {{name}}": "Severity: {{name}}",
   "Share findings, decisions and next steps with your team.": "Share findings, decisions and next steps with your team.",
-  "Show as column in the table": "Show as column in the table",
+  "Show as column in the table": "Mostrar como columna en la tabla",
   "Show more: {{list}}": "Show more: {{list}}",
   "Show the {{window}}": "Show the {{window}}",
   "Show value ({{count}} characters)": "Mostrar valor ({{count}} caracteres)",
@@ -35919,5 +35919,7 @@
   "When the event shows on its status pages, and when their subscribers hear about it.": "Cuándo se muestra el evento en sus páginas de estado y cuándo se enteran sus suscriptores.",
   "Sent when the event shows on its status pages.": "Se envía cuando el evento aparece en sus páginas de estado.",
   "Reminders are not sent while the event is hidden from its status pages.": "Los recordatorios no se envían mientras el evento está oculto en sus páginas de estado.",
-  "Reminders due before the event is published are not sent.": "Los recordatorios previstos antes de que se publique el evento no se envían."
+  "Reminders due before the event is published are not sent.": "Los recordatorios previstos antes de que se publique el evento no se envían.",
+  "The number turns amber or red.": "El número se vuelve ámbar o rojo.",
+  "The whole cell turns amber or red.": "Toda la celda se vuelve ámbar o roja."
 }

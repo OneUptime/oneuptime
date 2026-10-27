@@ -249,7 +249,7 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                 onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {
                   updateColumn(index, { showAsColumn: e.target.checked });
                 }}
-                className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-3.5 w-3.5 rounded border-gray-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
               />
               {translator.translateText("Show as column in the table")}
             </label>

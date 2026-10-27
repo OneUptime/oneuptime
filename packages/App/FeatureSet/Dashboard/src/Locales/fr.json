@@ -18920,7 +18920,7 @@
   "dismissed": "dismissed",
   "does not match": "does not match",
   "draining / rebalancing": "draining / rebalancing",
-  "e.g. %, ms, GB": "e.g. %, ms, GB",
+  "e.g. %, ms, GB": "p. ex. %, ms, GB",
   "e.g. /DC-East/host/Prod-Cluster/Resources/web-tier": "e.g. /DC-East/host/Prod-Cluster/Resources/web-tier",
   "e.g. /Shipment/ShipShipment": "e.g. /Shipment/ShipShipment",
   "e.g. 0 */18 * * *": "e.g. 0 */18 * * *",
@@ -20639,7 +20639,7 @@
   "Audit logs and many more enterprise-focused features.": "Audit logs and many more enterprise-focused features.",
   "Auto-resolve each incident when…": "Auto-resolve each incident when…",
   "Auto-run": "Auto-run",
-  "Available variables: {{variables}}": "Available variables: {{variables}}",
+  "Available variables: {{variables}}": "Variables disponibles : {{variables}}",
   "Back to options": "Retour aux options",
   "Based on current settings": "Based on current settings",
   "Best {{shown}} of {{total}} matches.": "Les {{shown}} meilleurs résultats sur {{total}}.",
@@ -21227,7 +21227,7 @@
   "Settings may have changed since this incident was created; this is not a recorded decision from that time.": "Settings may have changed since this incident was created; this is not a recorded decision from that time.",
   "Severity: {{name}}": "Severity: {{name}}",
   "Share findings, decisions and next steps with your team.": "Share findings, decisions and next steps with your team.",
-  "Show as column in the table": "Show as column in the table",
+  "Show as column in the table": "Afficher comme colonne du tableau",
   "Show more: {{list}}": "Show more: {{list}}",
   "Show the {{window}}": "Show the {{window}}",
   "Show value ({{count}} characters)": "Show value ({{count}} characters)",
@@ -35919,5 +35919,7 @@
   "When the event shows on its status pages, and when their subscribers hear about it.": "Quand l'événement s'affiche sur ses pages de statut, et quand leurs abonnés en sont informés.",
   "Sent when the event shows on its status pages.": "Envoyée lorsque l'événement apparaît sur ses pages de statut.",
   "Reminders are not sent while the event is hidden from its status pages.": "Les rappels ne sont pas envoyés tant que l'événement est masqué sur ses pages de statut.",
-  "Reminders due before the event is published are not sent.": "Les rappels prévus avant la publication de l'événement ne sont pas envoyés."
+  "Reminders due before the event is published are not sent.": "Les rappels prévus avant la publication de l'événement ne sont pas envoyés.",
+  "The number turns amber or red.": "Le nombre devient ambre ou rouge.",
+  "The whole cell turns amber or red.": "Toute la cellule devient ambre ou rouge."
 }

@@ -868,6 +868,17 @@ function plainColumn(overrides: Partial<TableColumn>): TableColumn {
   };
 }
 
+// Picks a direction in a column's Direction list, as a person does.
+function pickDirection(columnId: string, name: string): void {
+  const direction: HTMLElement = within(
+    screen.getByTestId(`table-column-thresholds-${columnId}`),
+  ).getByRole("combobox");
+  fireEvent.keyDown(direction, { key: "ArrowDown" });
+  const option: HTMLElement = screen.getByRole("option", { name });
+  fireEvent.mouseDown(option);
+  fireEvent.click(option);
+}
+
 function legendRules(columnId: string): Array<[string | null, string]> {
   const legend: HTMLElement | null = screen.queryByTestId(
     `table-column-thresholds-legend-${columnId}`,
@@ -1062,6 +1073,88 @@ describe("a column's thresholds in the table's settings", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("on a percent column still at 80 and 90, Lower is worse moves them to 20 and 10, and Higher is worse back", () => {
+    const onChange: ColumnsChange = renderEditor([plainColumn({})]);
+
+    fireEvent.click(screen.getByTestId("table-column-thresholds-toggle-cpu"));
+    pickDirection("cpu", "Lower is worse");
+
+    expect(lastColumns(onChange)[0]!.thresholds).toEqual({
+      warning: 20,
+      critical: 10,
+      direction: TableThresholdDirection.LowerIsWorse,
+    });
+    expect(
+      screen.getByTestId("table-column-thresholds-warning-cpu"),
+    ).toHaveValue(20);
+    expect(
+      screen.getByTestId("table-column-thresholds-critical-cpu"),
+    ).toHaveValue(10);
+    expect(legendRules("cpu")).toEqual([
+      [TableThresholdLevel.Warning, "Warning: 20% and below"],
+      [TableThresholdLevel.Critical, "Critical: 10% and below"],
+    ]);
+    // The pick never leaves critical on the wrong side of warning.
+    expect(
+      screen.queryByTestId("table-column-thresholds-reversed-cpu"),
+    ).not.toBeInTheDocument();
+
+    pickDirection("cpu", "Higher is worse");
+
+    expect(lastColumns(onChange)[0]!.thresholds).toEqual({
+      warning: 80,
+      critical: 90,
+      direction: TableThresholdDirection.HigherIsWorse,
+    });
+    expect(
+      screen.getByTestId("table-column-thresholds-warning-cpu"),
+    ).toHaveValue(80);
+  });
+
+  test("numbers someone typed stay as typed when the direction changes, and the card says when they are the wrong way round", () => {
+    const onChange: ColumnsChange = renderEditor([
+      plainColumn({ thresholds: { ...USAGE } }),
+    ]);
+
+    fireEvent.change(
+      screen.getByTestId("table-column-thresholds-critical-cpu"),
+      { target: { value: "95" } },
+    );
+    pickDirection("cpu", "Lower is worse");
+
+    expect(lastColumns(onChange)[0]!.thresholds).toEqual({
+      warning: 80,
+      critical: 95,
+      direction: TableThresholdDirection.LowerIsWorse,
+    });
+    expect(
+      screen.getByTestId("table-column-thresholds-reversed-cpu"),
+    ).toHaveTextContent("Critical should be at or below Warning.");
+  });
+
+  test("a column in another unit keeps its empty fields when the direction changes", () => {
+    const onChange: ColumnsChange = renderEditor([
+      plainColumn({
+        id: "requests",
+        header: "Requests",
+        metricName: "http.requests",
+        unit: "req/s",
+      }),
+    ]);
+
+    fireEvent.click(
+      screen.getByTestId("table-column-thresholds-toggle-requests"),
+    );
+    pickDirection("requests", "Lower is worse");
+
+    expect(lastColumns(onChange)[0]!.thresholds).toEqual({
+      direction: TableThresholdDirection.LowerIsWorse,
+    });
+    expect(
+      screen.getByTestId("table-column-thresholds-warning-requests"),
+    ).toHaveValue(null);
+  });
+
   test("critical on the wrong side of warning says how to put it right", () => {
     renderEditor([
       plainColumn({ thresholds: { warning: 90, critical: 80 } }),
@@ -1110,6 +1203,46 @@ describe("a column's thresholds in the table's settings", () => {
     );
     expect(legend.children[0]).toHaveClass("bg-amber-100", "text-amber-900");
     expect(legend.children[1]).toHaveClass("bg-red-100", "text-red-900");
+    // A filled level keeps room around its words.
+    expect(legend.children[0]).toHaveClass("px-1.5");
+  });
+
+  test("in Colored text the legend's levels line up with the fields above it: words alone, no fill to pad", () => {
+    renderEditor([plainColumn({ thresholds: { ...USAGE } })]);
+
+    const legend: HTMLElement = screen.getByTestId(
+      "table-column-thresholds-legend-cpu",
+    );
+
+    expect(legend.children).toHaveLength(2);
+    for (const entry of Array.from(legend.children)) {
+      const classNames: Array<string> = entry.className.split(" ");
+
+      expect({
+        level: entry.getAttribute("data-threshold-level"),
+        padded: classNames.includes("px-1.5"),
+        filled: classNames.some((name: string): boolean => {
+          return name.startsWith("bg-");
+        }),
+      }).toEqual({
+        level: entry.getAttribute("data-threshold-level"),
+        padded: false,
+        filled: false,
+      });
+    }
+    expect(legend.children[0]).toHaveClass("text-amber-700");
+    expect(legend.children[1]).toHaveClass("text-red-700", "font-bold");
+  });
+
+  test("its checkboxes take the product's indigo, as the shared Checkbox does", () => {
+    renderEditor([plainColumn({})]);
+
+    expect(
+      screen.getByRole("checkbox", { name: "Color by thresholds" }),
+    ).toHaveClass("accent-indigo-600");
+    expect(
+      screen.getByRole("checkbox", { name: "Show as column in the table" }),
+    ).toHaveClass("accent-indigo-600");
   });
 });
 
@@ -1210,19 +1343,91 @@ describe("the table's Threshold colors", () => {
     );
   });
 
-  test("each choice shows a critical value drawn its way", () => {
+  test("each choice is a picture of a column's warning and critical cells, drawn its way", () => {
     renderSettings({ columns: [plainColumn({ thresholds: { ...USAGE } })] });
 
+    const cellsOf: (style: TableThresholdStyle) => Array<HTMLElement> = (
+      style: TableThresholdStyle,
+    ): Array<HTMLElement> => {
+      return Array.from(
+        screen
+          .getByTestId(`table-threshold-style-${style}-visual`)
+          .querySelectorAll<HTMLElement>("[data-threshold-level]"),
+      );
+    };
+
+    const text: Array<HTMLElement> = cellsOf(TableThresholdStyle.Text);
+    const filled: Array<HTMLElement> = cellsOf(TableThresholdStyle.Background);
+
+    for (const cells of [text, filled]) {
+      expect(
+        cells.map((cell: HTMLElement): [string | null, string] => {
+          return [
+            cell.getAttribute("data-threshold-level"),
+            (cell.textContent || "").trim(),
+          ];
+        }),
+      ).toEqual([
+        [TableThresholdLevel.Warning, "84%"],
+        [TableThresholdLevel.Critical, "93%"],
+      ]);
+    }
+
+    // Colored text: the numbers alone are colored, critical in bold.
+    expect(text[0]).toHaveClass("text-amber-700");
+    expect(text[1]).toHaveClass("text-red-700", "font-bold");
+    expect(text[0]!.className).not.toContain("bg-");
+    expect(text[1]!.className).not.toContain("bg-");
+    // Colored background: each cell filled.
+    expect(filled[0]).toHaveClass("bg-amber-100", "text-amber-900");
+    expect(filled[1]).toHaveClass("bg-red-100", "text-red-900", "font-bold");
+
+    // Pictures only: a screen reader hears each choice's name.
     expect(
       screen.getByTestId(
         `table-threshold-style-${TableThresholdStyle.Text}-visual`,
       ),
-    ).toHaveClass("text-red-700");
+    ).toHaveAttribute("aria-hidden", "true");
+  });
+
+  test("each choice says under its name what it does, and a screen reader hears it", () => {
+    renderSettings({ columns: [plainColumn({ thresholds: { ...USAGE } })] });
+
+    const picker: HTMLElement = screen.getByTestId("table-threshold-style");
+    const text: HTMLElement = within(picker).getByRole("radio", {
+      name: "Colored text",
+    });
+    const filled: HTMLElement = within(picker).getByRole("radio", {
+      name: "Colored background",
+    });
+
+    expect(text).toHaveAccessibleDescription("The number turns amber or red.");
+    expect(filled).toHaveAccessibleDescription(
+      "The whole cell turns amber or red.",
+    );
+    // The product's choice rows, a ruled row a choice.
     expect(
+      screen.getByTestId(
+        `table-threshold-style-${TableThresholdStyle.Text}-row`,
+      ),
+    ).toBeInTheDocument();
+    expect(text).toHaveClass("accent-indigo-600");
+  });
+
+  test("pressing a choice's picture picks it, as pressing its name does", () => {
+    const onFormChange: FormChange = renderSettings({
+      columns: [plainColumn({ thresholds: { ...USAGE } })],
+    });
+
+    fireEvent.click(
       screen.getByTestId(
         `table-threshold-style-${TableThresholdStyle.Background}-visual`,
       ),
-    ).toHaveClass("bg-red-100", "text-red-900");
+    );
+
+    expect(lastArguments(onFormChange)["thresholdStyle"]).toBe(
+      TableThresholdStyle.Background,
+    );
   });
 
   test("a saved Colored background is checked when the settings open", () => {
