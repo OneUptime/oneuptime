@@ -88,6 +88,7 @@ import {
   toStateListRow,
 } from "Common/Utils/StateOrder";
 import ScheduledMaintenanceStartUtil from "Common/Utils/ScheduledMaintenanceStart";
+import ScheduledMaintenancePublication from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 import {
   DEFAULT_MAINTENANCE_DURATION_IN_MINUTES,
   MaintenanceWindow,
@@ -1023,13 +1024,18 @@ describe("what an event affects", () => {
     );
   });
 
-  it("shows on its status pages while Visible on Status Page is on, which it is for a new event", () => {
+  it("shows on its status pages while Visible on Status Page is on, which it is for a new event, and from its Publish At", () => {
     expect(
       new ScheduledMaintenance().getTableColumnMetadata("isVisibleOnStatusPage")
         .defaultValue,
     ).toBe(true);
+    // A new event has no publish time: it is published right away.
+    expect(
+      new ScheduledMaintenance().getTableColumnMetadata("publishOnStatusPageAt")
+        .required,
+    ).toBe(false);
     expect(affects).toContain(
-      "The event appears on the status pages you picked, as coming up, then in progress, then over, while **Visible on Status Page** is on in its **Settings**.",
+      "The event appears on the status pages you picked, as coming up, then in progress, then over, while **Visible on Status Page** is on in its **Settings**, and from its **Publish At** when you picked one.",
     );
   });
 
@@ -1676,8 +1682,14 @@ describe("the header's clock", () => {
     expect(CHANGE_STATE).toContain(
       "isStartOverdue ? START_OVERDUE_TEXT : OVERRUNNING_TEXT,",
     );
-    // An amber notice: the header's amber band, its words in amber.
-    expect(CHANGE_STATE).toContain('headerNoticeTone="warning"');
+    /*
+     * An amber notice: the header's amber band, its words in amber - the
+     * band's quiet tone is for an event kept off its status pages until its
+     * publish time, which a missed boundary outranks.
+     */
+    expect(CHANGE_STATE).toContain(
+      'headerNoticeTone={overdueNotice ? "warning" : "neutral"}',
+    );
     expect(CHANGE_STATE).toContain(
       '<p className="text-sm font-semibold text-amber-800">',
     );
@@ -2188,14 +2200,26 @@ describe("the create form", () => {
       "Reminders before the event",
     ]) {
       expect(fieldObject(CREATE_PAGE, title)).toContain(
-        "collapsibleSection: subscriberNotificationsSection,",
+        "collapsibleSection: eventSubscriberNotificationsSection,",
       );
     }
 
-    expect(creating).toContain(
-      "**Subscriber Notifications**, folded, says in one line who is told and when; open it to change **When the event is scheduled**, **When the event starts**, **When the event ends** or **Reminders before the event**.",
+    /*
+     * An event's section asks first when it is published on its status
+     * pages, and its line starts with when it shows (#5249).
+     */
+    expect(CREATE_PAGE).toContain(
+      "const eventSubscriberNotificationsSection: FormFieldCollapsibleSection<ScheduledMaintenance> =\n  getEventSubscriberNotificationsSection<ScheduledMaintenance>();",
     );
-    expect(fieldsTable).toContain("All three moments on, no reminders");
+    expect(FORM_MODULE).toContain(
+      "getPublishingSummary(values),\n        ...getSubscriberNotificationSummary(values),",
+    );
+    expect(creating).toContain(
+      "**Subscriber Notifications**, folded, says in one line when the event shows on them and who is told when; open it to pick **At a date and time** under **Publish on Status Pages**, or to change **When the event is scheduled**, **When the event starts**, **When the event ends** or **Reminders before the event**.",
+    );
+    expect(fieldsTable).toContain(
+      "Published right away, all three moments on, no reminders",
+    );
   });
 
   it("adds a monitor's linked resources, and suggests the status pages that show the monitors", () => {
@@ -2414,8 +2438,200 @@ describe("what happens when an event is created", () => {
       "NotificationSettingEventType.SEND_SCHEDULED_MAINTENANCE_CREATED_OWNER_NOTIFICATION",
     );
     expect(happens).toContain(
-      `Within a minute, the subscribers of its status pages are told that it is scheduled, unless you turned **When the event is scheduled** off. The **${trigger}** workflow trigger starts any workflow built on it,`,
+      `Within a minute of its publishing, which is right away unless you picked a **Publish At**, the subscribers of its status pages are told that it is scheduled, unless you turned **When the event is scheduled** off. The **${trigger}** workflow trigger starts any workflow built on it,`,
     );
+  });
+});
+
+/*
+ * Publishing an event at a chosen time (#5249): the form's question and
+ * its time, what an event waiting for it is not on, what its subscribers
+ * hear and when, and what its page says - held to the form, the rule the
+ * status pages read by, the jobs and the event's page.
+ */
+describe("publishing an event later", () => {
+  const creating: string = english(CREATING_EVENTS);
+  const later: string = section(creating, "## Publish it later");
+  const publishing: string = readDashboardSource(
+    "Components/ScheduledMaintenance/ScheduledMaintenancePublishing.ts",
+  );
+  const publishingNotice: string = readDashboardSource(
+    "Components/ScheduledMaintenance/ScheduledMaintenancePublishingNotice.tsx",
+  );
+  const publishAtField: string = readDashboardSource(
+    "Components/ScheduledMaintenance/ScheduledMaintenancePublishingFormFields.tsx",
+  );
+  const visibilityQuery: string = readCommonSource(
+    "Server/Utils/StatusPage/StatusPageVisibilityQuery.ts",
+  );
+  const rule: string = readCommonSource(
+    "Types/ScheduledMaintenance/ScheduledMaintenancePublication.ts",
+  );
+
+  it("asks Publish on Status Pages, Right away or At a date and time, and a Publish At, on the form and the Edit", () => {
+    expect(publishing).toContain(
+      'question: translationKey("Publish on Status Pages"),',
+    );
+    expect(publishing).toContain('rightAway: translationKey("Right away"),');
+    expect(publishing).toContain(
+      'atATime: translationKey("At a date and time"),',
+    );
+    expect(publishing).toContain(
+      'publishAtTitle: translationKey("Publish At"),',
+    );
+    expect(publishAtField).toContain("title: PublishingCopy.publishAtTitle,");
+
+    for (const page of [CREATE_PAGE, EVENT_OVERVIEW_PAGE]) {
+      expect(page).toContain("config: PUBLISH_CHOICE,");
+      expect(page).toContain("getPublishAtFormField({");
+    }
+
+    // On the Edit, on its Status Pages step.
+    expect(EVENT_OVERVIEW_PAGE).toContain('stepId: "status-pages",');
+    expect(later).toContain(
+      "Pick **At a date and time** under **Publish on Status Pages**, on the form or on the **Status Pages** step of the event's **Edit**, and a **Publish At** before **Starts At**.",
+    );
+  });
+
+  it("refuses a Publish At at or after Starts At, in the words the troubleshooting quotes", () => {
+    expect(publishing).toContain('"Publish At must be before Starts At.",');
+    expect(publishing).toContain(
+      "if (publishAt.getTime() < startsAt.getTime()) {",
+    );
+    expect(
+      detailsBody(creating, "Publish At says it must be before Starts At"),
+    ).toContain(
+      "Pick a **Publish At** before **Starts At**, or **Right away**.",
+    );
+  });
+
+  it("keeps it off every status page read until then, the uptime history and the feeds, calendar and API built on them", () => {
+    expect(visibilityQuery).toContain(
+      "publishOnStatusPageAt: QueryHelper.lessThanEqualToOrNull(",
+    );
+    expect(readCommonSource("Server/API/StatusPageAPI.ts")).toContain(
+      "StatusPageVisibilityQuery.shownScheduledMaintenance(",
+    );
+    expect(later).toContain(
+      "Until then the event is on none of its status pages: not in their lists, their uptime history, their RSS and Atom feeds, their maintenance calendar or their API, and not at its own link.",
+    );
+  });
+
+  it("tells its subscribers it is scheduled once, when it is published", () => {
+    const scheduledJob: string = readWorkerSource(
+      "ScheduledMaintenance/SendNotificationToSubscribers.ts",
+    );
+
+    expect(scheduledJob).toContain(
+      "publishOnStatusPageAt: QueryHelper.lessThanEqualToOrNull(now),",
+    );
+    expect(later).toContain(
+      "At that time it shows as coming up, and its subscribers are told it is scheduled, once.",
+    );
+  });
+
+  it("sends no reminder, state change or public note before then", () => {
+    expect(
+      readWorkerSource(
+        "ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled.ts",
+      ),
+    ).toContain("REMINDER_NOT_SENT_NOT_PUBLISHED_YET_MESSAGE");
+
+    for (const job of [
+      "ScheduledMaintenanceStateTimeline/SendNotificationToSubscribers.ts",
+      "ScheduledMaintenancePublicNote/SendNotificationToSubscribers.ts",
+    ]) {
+      expect(readWorkerSource(job)).toContain(
+        "NOT_PUBLISHED_YET_SKIPPED_MESSAGE",
+      );
+    }
+
+    expect(rule).toContain(
+      "Notifications skipped as scheduled maintenance is not published on status pages yet.",
+    );
+    expect(later).toContain(
+      "- **Until then, subscribers hear nothing.** Reminders before the event, state changes and public notes are not sent to them while the event waits.",
+    );
+  });
+
+  it("says so on its page: the header's band and Publish Now, its Settings and the list", () => {
+    expect(publishing).toContain(
+      'title: translationKey("Not on status pages yet"),',
+    );
+    expect(publishing).toContain('publishNow: translationKey("Publish Now"),');
+    expect(publishingNotice).toContain("<ConfirmModal");
+    expect(publishingNotice).toContain(
+      "[PUBLISH_ON_STATUS_PAGE_AT_COLUMN]: null,",
+    );
+    expect(
+      readDashboardSource(
+        "Components/StatusPageVisibility/StatusPageVisibilitySwitchCopy.ts",
+      ),
+    ).toContain('"This event shows on its status pages from {{time}}."');
+    expect(LIST_TABLE).toContain(
+      "<ScheduledMaintenanceStatusPagesCell item={item} />",
+    );
+    expect(later).toContain(
+      "- **Its page says so.** Its header says **Not on status pages yet**, with the time it shows from, and **Publish Now** publishes it at once, after asking. Its **Settings** say the same, and the list of events shows the time under its status pages.",
+    );
+  });
+
+  it("is changed on the Edit, published at once with Right away, or kept off with Visible on Status Page", () => {
+    expect(publishing).toContain(
+      "return { [PUBLISH_ON_STATUS_PAGE_AT_COLUMN]: null };",
+    );
+    expect(later).toContain(
+      "- **Change it, or publish right away.** Move the **Publish At** on the **Status Pages** step of its **Edit**, or pick **Right away**. Turn **Visible on Status Page** off in its **Settings** to keep it off its status pages whatever the time.",
+    );
+  });
+
+  it("names the column the API writes it with", () => {
+    const event: ScheduledMaintenance = new ScheduledMaintenance();
+
+    expect(event.hasColumn("publishOnStatusPageAt")).toBe(true);
+    expect(
+      event.getColumnAccessControlFor("publishOnStatusPageAt")?.update.length,
+    ).toBeGreaterThan(0);
+    expect(section(creating, "## Create events from code")).toContain(
+      "| `publishOnStatusPageAt`                               | When the event is published on its status pages and its subscribers are told it is scheduled. Left out, right away. |",
+    );
+  });
+
+  /*
+   * The event's life, by its own three times: kept off the pages from its
+   * creation, coming up from its Publish At, in progress from its Starts At
+   * and over from its Ends At - as a status page reads it
+   * (ScheduledMaintenancePublication, and the phases of its states).
+   */
+  it("walks the event's life by its own times: created, Publish At, Starts At, Ends At", () => {
+    expect(firstColumn(later)).toEqual([
+      "You create it",
+      "Its **Publish At**",
+      "Its **Starts At**",
+      "Its **Ends At**",
+    ]);
+    expect(
+      tableRows(later).map((row: string): string => {
+        return tableCells(row)[2] || "";
+      }),
+    ).toEqual(["Not shown", "Coming up", "In progress", "Over"]);
+
+    const now: Date = new Date(Date.UTC(2030, 10, 1, 9, 0, 0));
+    const publishAt: Date = new Date(Date.UTC(2030, 10, 24, 9, 0, 0));
+
+    // Not shown before its Publish At, shown from it.
+    expect(
+      ScheduledMaintenancePublication.isShown(
+        { isVisibleOnStatusPage: true, publishOnStatusPageAt: publishAt },
+        now,
+      ),
+    ).toBe(false);
+    expect(
+      ScheduledMaintenancePublication.isShown(
+        { isVisibleOnStatusPage: true, publishOnStatusPageAt: publishAt },
+        publishAt,
+      ),
+    ).toBe(true);
   });
 });
 
@@ -2438,7 +2654,7 @@ describe("changing an event later", () => {
       "| The title, the window or the labels         | **Edit** on the **Maintenance Details** card of its **Overview**, step **Event** |",
     );
     expect(later).toContain(
-      "| The status pages or the reminders           | The same **Edit**, step **Status Pages**",
+      "| The status pages, when it is published, or the reminders | The same **Edit**, step **Status Pages**",
     );
   });
 
@@ -2564,6 +2780,7 @@ describe("creating events from code", () => {
       "changeMonitorStatusToId",
       "currentScheduledMaintenanceStateId",
       "shouldStatusPageSubscribersBeNotifiedOnEventCreated",
+      "publishOnStatusPageAt",
     ]);
 
     for (const field of fields) {

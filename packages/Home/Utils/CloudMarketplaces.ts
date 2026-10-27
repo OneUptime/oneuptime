@@ -25,7 +25,10 @@ import CloudMarketplace, {
  * to everyone, and only as the marketplace itself links to it: never one put
  * together from a product ID. Until then it is null, and the Resellers page
  * says "Coming soon" without a link. When a listing goes public, set its
- * address here (and in the marketplace guide's list of public listings).
+ * address here, in the marketplace guide's list of public listings, and -
+ * for OneUptime Enterprise - in the Listing row of the buyer's guide,
+ * /docs/installation/cloud-marketplaces, in every language
+ * (Tests/CloudMarketplaces holds all three to this list).
  */
 
 export type CloudMarketplaceProduct = "cloud" | "enterprise";

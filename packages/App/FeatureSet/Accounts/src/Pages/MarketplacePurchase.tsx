@@ -200,7 +200,7 @@ const MarketplacePurchase: () => JSX.Element = () => {
         </h2>
         {subtitle ? (
           <p
-            className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0"
+            className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0"
             data-testid="marketplace-purchase-subtitle"
           >
             {subtitle}

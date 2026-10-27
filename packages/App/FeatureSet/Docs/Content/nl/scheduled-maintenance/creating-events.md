@@ -5,6 +5,7 @@ Plan onderhoud in twee korte stappen: zeg wat er gebeurt en wanneer, en daarna w
 :::cards
 - [Een gebeurtenis maken](#een-gebeurtenis-maken): Twee stappen en een controle.
 - [Wat er gebeurt als je haar maakt](#wat-er-gebeurt-als-je-haar-maakt): Haar nummer, regels, eigenaren en de eerste berichten.
+- [Later publiceren](#later-publiceren): Houd haar van je statuspagina's tot een datum en tijd.
 - [Een gebeurtenis later wijzigen](#een-gebeurtenis-later-wijzigen): Haar venster, resources, statuspagina's en notities.
 - [Gebeurtenissen vanuit code maken](#gebeurtenissen-vanuit-code-maken): De API, Terraform, workflows en chat.
 :::
@@ -42,7 +43,7 @@ Klik op **Volgende** om bij **Getroffen middelen** te komen. Kies de **Monitoren
 
 ### Kiezen wie ervan hoort
 
-Kies de statuspagina's onder **Gebeurtenis weergeven op deze statuspagina's**. **Meldingen aan abonnees**, ingeklapt, zegt in één regel wie bericht krijgt en wanneer; open het om **Wanneer de gebeurtenis wordt gepland**, **Wanneer de gebeurtenis begint**, **Wanneer de gebeurtenis eindigt** of **Herinneringen vóór de gebeurtenis** te wijzigen.
+Kies de statuspagina's onder **Gebeurtenis weergeven op deze statuspagina's**. **Meldingen aan abonnees**, ingeklapt, zegt in één regel wanneer de gebeurtenis erop verschijnt en wie wanneer bericht krijgt; open het om **Op een datum en tijd** te kiezen onder **Publiceren op statuspagina's**, of om **Wanneer de gebeurtenis wordt gepland**, **Wanneer de gebeurtenis begint**, **Wanneer de gebeurtenis eindigt** of **Herinneringen vóór de gebeurtenis** te wijzigen.
 
 ### Haar maken
 
@@ -65,7 +66,7 @@ Er wordt niets verstuurd tot je een statuspagina kiest: een gebeurtenis die op g
 | **Monitorstatus wijzigen naar**      | **Getroffen middelen** | Geen wijziging              | De status die deze monitoren tijdens de gebeurtenis tonen. Wordt gevraagd zodra er een monitor is gekozen. |
 | **Andere getroffen resources**       | **Getroffen middelen** | Geen                        | Hosts, clusters, databases, netwerklocaties, services en meer.                   |
 | **Gebeurtenis weergeven op deze statuspagina's** | **Getroffen middelen** | Geen           | De statuspagina's die de gebeurtenis tonen en hun abonnees informeren.           |
-| **Meldingen aan abonnees**           | **Getroffen middelen** | Alle drie de momenten aan, geen herinneringen | Wanneer de abonnees van die pagina's bericht krijgen.  |
+| **Meldingen aan abonnees**           | **Getroffen middelen** | Meteen gepubliceerd, alle drie de momenten aan, geen herinneringen | Wanneer de gebeurtenis op die pagina's verschijnt, en wanneer hun abonnees bericht krijgen. |
 
 Twee dingen vullen het formulier onderweg voor je in:
 
@@ -89,7 +90,22 @@ Op het moment dat je op **Geplande onderhoudsgebeurtenis aanmaken** klikt, werkt
 5. **Runbook-regels starten** de runbooks die bij de gebeurtenis passen.
 6. **Herinneringen worden ingepland**, wanneer een herinneringsregel past, voor haar eigenaren.
 
-Binnen een minuut krijgen de abonnees van haar statuspagina's bericht dat ze gepland is, tenzij je **Wanneer de gebeurtenis wordt gepland** hebt uitgezet. De workflowtrigger **On Create Scheduled Maintenance Event** start elke workflow die erop is gebouwd, en haar eigenaren horen ervan als ze die melding hebben aangezet: zie [Meldingsinstellingen](/docs/notifications/notification-settings).
+Binnen een minuut na haar publicatie, die meteen is tenzij je een **Publiceren op** hebt gekozen, krijgen de abonnees van haar statuspagina's bericht dat ze gepland is, tenzij je **Wanneer de gebeurtenis wordt gepland** hebt uitgezet. De workflowtrigger **On Create Scheduled Maintenance Event** start elke workflow die erop is gebouwd, en haar eigenaren horen ervan als ze die melding hebben aangezet: zie [Meldingsinstellingen](/docs/notifications/notification-settings).
+
+## Later publiceren
+
+Plan het werk zo vroeg als je wilt, en houd het binnen je team tot je klanten ervan moeten horen. Kies **Op een datum en tijd** onder **Publiceren op statuspagina's**, op het formulier of in de stap **Statuspagina's** van **Bewerken** van de gebeurtenis, en een **Publiceren op** vóór **Begint op**. Tot dan staat de gebeurtenis op geen van haar statuspagina's: niet in hun lijsten, hun beschikbaarheidsgeschiedenis, hun RSS- en Atom-feeds, hun onderhoudsagenda of hun API, en niet op haar eigen link. Op dat moment verschijnt ze als binnenkort, en krijgen haar abonnees één keer bericht dat ze gepland is.
+
+| Wanneer                  | Wat er gebeurt                                                        | Op je statuspagina's |
+| ------------------------ | --------------------------------------------------------------------- | -------------------- |
+| Als je haar maakt        | Je kiest een **Publiceren op** vóór haar **Begint op**                | Niet getoond         |
+| Haar **Publiceren op**   | Ze wordt gepubliceerd, en haar abonnees krijgen bericht dat ze gepland is | Binnenkort       |
+| Haar **Begint op**       | Ze begint, zoals elke gebeurtenis                                     | Lopend               |
+| Haar **Eindigt op**      | Ze eindigt                                                            | Voorbij              |
+
+- **Tot dan horen abonnees niets.** Herinneringen vóór de gebeurtenis, statuswijzigingen en openbare notities worden hun niet gestuurd zolang de gebeurtenis wacht.
+- **Haar pagina zegt het.** Haar kop toont **Nog niet op statuspagina's**, met het tijdstip vanaf wanneer ze verschijnt, en **Nu publiceren** publiceert haar meteen, na een bevestiging. Haar **Instellingen** zeggen hetzelfde, en de lijst met gebeurtenissen toont het tijdstip onder haar statuspagina's.
+- **Wijzig het, of publiceer meteen.** Verplaats het **Publiceren op** in de stap **Statuspagina's** van **Bewerken**, of kies **Meteen**. Zet **Zichtbaar op statuspagina** uit in haar **Instellingen** om haar van haar statuspagina's te houden, welk tijdstip het ook is.
 
 ## Een gebeurtenis later wijzigen
 
@@ -98,7 +114,7 @@ Alles uit het formulier kun je op de pagina's van de gebeurtenis wijzigen, behal
 | Om te wijzigen                              | Ga naar                                                                        |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | De titel, het venster of de labels          | **Bewerken** op de kaart **Maintenance Details** van haar **Overzicht**, stap **Gebeurtenis** |
-| De statuspagina's of de herinneringen       | Hetzelfde **Bewerken**, stap **Statuspagina's**                                 |
+| De statuspagina's, wanneer ze wordt gepubliceerd, of de herinneringen | Hetzelfde **Bewerken**, stap **Statuspagina's**             |
 | De monitoren, hun status of andere resources | **Bewerken** op de kaart **Getroffen resources**                              |
 | De beschrijving                             | **Beschrijving** in haar zijmenu                                               |
 | De eigenaren                                | **Eigenaren** in haar zijmenu                                                  |
@@ -137,6 +153,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `changeMonitorStatusToId`                             | De monitorstatus waarnaar haar monitoren gaan wanneer ze begint.                          |
 | `currentScheduledMaintenanceStateId`                  | Wordt genegeerd: elke gebeurtenis begint in je geplande status.                           |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | De schakelaar **Wanneer de gebeurtenis wordt gepland**. De andere twee momenten hebben eigen velden. |
+| `publishOnStatusPageAt`                               | Wanneer de gebeurtenis op haar statuspagina's wordt gepubliceerd en haar abonnees bericht krijgen dat ze gepland is. Weggelaten: meteen. |
 
 Dezelfde gebeurtenis als code is de Terraform-resource `oneuptime_scheduled_maintenance_event`: zie [Voorbeelden](/docs/terraform/examples#gepland-onderhoud). Een workflow maakt er een met zijn stap **Create One Scheduled Maintenance Event**, en `/oneuptime maintenance` opent het formulier in Slack: zie [Slack](/docs/workspace-connections/slack#incidenten-en-onderhoud-aanmaken-vanuit-slack).
 
@@ -152,6 +169,10 @@ Het wordt pas gevraagd als de gebeurtenis een monitor heeft. Kies er een onder *
 
 :::details Monitorstatus wijzigen naar kan niet meer worden gewijzigd
 De gebeurtenis is begonnen, en haar monitoren staan al in die status. De status geldt vanaf het begin van de gebeurtenis tot haar einde.
+:::
+
+:::details Publiceren op moet vóór Begint op liggen
+Een gebeurtenis wordt gepubliceerd zodat je klanten van het werk horen voordat het begint. Kies een **Publiceren op** vóór **Begint op**, of **Meteen**.
 :::
 
 ## Volgende stappen

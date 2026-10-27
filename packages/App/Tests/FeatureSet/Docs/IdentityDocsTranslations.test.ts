@@ -54,7 +54,7 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  *     the English where that locale has no wording, which is most of the
  *     global provider screens (ADMIN_LABELS). Its side menu and top bar use
  *     keys of their own (ADMIN_KEYS).
- *   - The sign-in pages (Accounts): "Login with SSO" is the Accounts
+ *   - The sign-in pages (Accounts): "Sign in with SSO" is the Accounts
  *     locale's sso.title, and "Admin Settings" in the user menu is the
  *     Dashboard's userProfile.adminSettings.
  *   - The docs themselves: the permission tables' column names and values
@@ -480,7 +480,7 @@ const USER_MENU_LABELS: Record<string, Record<string, string>> = {
 
 // The sign-in pages' labels, keys of the Accounts locale.
 const ACCOUNTS_LABELS: Record<string, Record<string, string>> = {
-  [SSO]: { "Login with SSO": "sso.title" },
+  [SSO]: { "Sign in with SSO": "sso.title" },
 };
 
 /*

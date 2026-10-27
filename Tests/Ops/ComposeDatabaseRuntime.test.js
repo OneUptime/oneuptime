@@ -561,6 +561,15 @@ describeRuntime("the Docker Compose guide's commands, run as written", () => {
       `COMPOSE_PROJECT_NAME=${project}`,
       `COMPOSE_FILE=${rendered.file}`,
     ]);
+    // The guide's commands give Compose config.env's settings through the
+    // checkout's own loader, so this copy of a checkout has it where it is.
+    fs.mkdirSync(path.join(directory, "Scripts", "Install"), {
+      recursive: true,
+    });
+    fs.copyFileSync(
+      path.join(REPO_ROOT, "Scripts", "Install", "WithConfig.sh"),
+      path.join(directory, "Scripts", "Install", "WithConfig.sh"),
+    );
   });
 
   afterAll(() => {

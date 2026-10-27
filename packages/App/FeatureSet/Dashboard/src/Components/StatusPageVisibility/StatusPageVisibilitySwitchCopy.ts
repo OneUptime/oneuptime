@@ -75,6 +75,16 @@ export const STATUS_PAGE_VISIBILITY_KIND_COPY: Record<
 };
 
 /*
+ * A scheduled maintenance event kept to the team until its publish time
+ * (#5249) is not on its status pages yet, whatever its switch says: while
+ * the time is still to come, the switch says when it will be. Moving the
+ * time, or publishing it now, is the event's Overview (its header and its
+ * Maintenance Details card).
+ */
+export const SCHEDULED_MAINTENANCE_WAITING_TO_PUBLISH_DESCRIPTION: string =
+  translationKey("This event shows on its status pages from {{time}}.");
+
+/*
  * A private episode is never shown on a status page, whatever its switch
  * says (Common/Types/StatusPage/StatusPageVisibility), and the server keeps
  * the switch off while it is private. So while the episode is private the

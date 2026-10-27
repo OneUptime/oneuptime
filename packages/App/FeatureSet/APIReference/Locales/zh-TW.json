@@ -33,6 +33,7 @@
     "pageNotFoundMetaTitle": "找不到頁面",
     "pageNotFoundMetaDescription": "您正在尋找的頁面找不到。",
     "required": "必填",
+    "defaultValue": "預設值",
     "or": "或",
     "copy": "複製",
     "copied": "已複製!",

@@ -47,7 +47,10 @@ const PLACEHOLDER = "please-change-this-to-random-value";
 const RANDOM_PASSWORD = /^[0-9a-f]{64}$/;
 // One `node ./Scripts/Install/<Name>.js` command of an npm script.
 const INSTALL_STEP = /^node \.\/Scripts\/Install\/[\w.-]+\.js$/;
-const INSTALL_STEP_IN_SCRIPT = /node (\.\/Scripts\/Install\/[\w.-]+\.js)/g;
+// The Scripts/Install files a script runs: its Node.js steps, and the shell
+// script that loads config.env for Compose (WithConfig.sh).
+const INSTALL_STEP_IN_SCRIPT =
+  /(?:node|sh) (\.\/Scripts\/Install\/[\w.-]+\.(?:js|sh))/g;
 
 const TEMPLATE = fs.readFileSync(
   path.join(REPO_ROOT, "config.example.env"),
@@ -697,8 +700,12 @@ describe("wiring", () => {
     const rest = start.split(" && ").slice(leading.length);
 
     expect(leading).toContain(`node ${SCRIPT_PATH}`);
-    expect(rest[0]).toBe("export $(grep -v '^#' config.env | xargs)");
-    expect(rest[1].startsWith("docker compose up ")).toBe(true);
+    // Compose starts next, with config.env's settings (WithConfig.sh).
+    expect(
+      rest[0].startsWith(
+        "sh ./Scripts/Install/WithConfig.sh docker compose up ",
+      ),
+    ).toBe(true);
     expect(start.split(SCRIPT_PATH)).toHaveLength(2);
     expect(ROOT_PACKAGE.scripts.update).toMatch(/&& npm run start$/);
     expect(fs.existsSync(path.join(REPO_ROOT, SCRIPT_PATH))).toBe(true);

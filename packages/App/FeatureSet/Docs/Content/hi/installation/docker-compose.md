@@ -84,7 +84,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | डैशबोर्ड, API, टेलीमेट्री इनजेस्ट और Let's Encrypt सत्यापन। |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | जब OneUptime सर्टिफ़िकेट संभालता है तब आपके इंस्टेंस के लिए HTTPS, और कस्टम डोमेन पर स्टेटस पेज और डैशबोर्ड के लिए। |
-| 5400 | `postgres` | `docker-compose.yml` में सेट | `npm run backup` और `restore.sh` को सर्वर से ही PostgreSQL तक पहुँचने देता है। यह सिर्फ़ `127.0.0.1` पर प्रकाशित है। |
+| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | `npm run backup` और `restore.sh` को सर्वर से ही PostgreSQL तक पहुँचने देता है। यह सिर्फ़ `127.0.0.1` पर प्रकाशित है। |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | प्रोब का अपना सर्वर। सर्वर के बाहर किसी को इसकी ज़रूरत नहीं। |
 
 इंस्टॉलेशन का एक [वीडियो वॉकथ्रू](https://youtu.be/j1SWmMW2oL4) भी है।
@@ -132,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 पहली बार शुरू करने से पहले प्लेसहोल्डर सीक्रेट ख़ुद बदलें, जैसा [रैंडम सीक्रेट बनाएँ](#रैंडम-सीक्रेट-बनाएँ) में दिखाया गया है: यह काम सिर्फ़ `npm start` आपके लिए करता है।
 :::
@@ -386,7 +386,7 @@ PostgreSQL वही पासवर्ड रखता है जिसके �
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -468,7 +468,7 @@ npm run down
 आपका डेटा `oneuptime_postgres` और `oneuptime_clickhouse` वॉल्यूम में बना रहता है, और `oneuptime` फ़ोल्डर में `config.env` और आपके बैकअप रहते हैं। डेटा भी मिटाने के लिए:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 फिर `oneuptime` फ़ोल्डर मिटा दें।
@@ -534,7 +534,7 @@ OneUptime को `HOST` वाले पते पर खोलें। ingress
 जब कोई ऑर्डर विफल होता है, तो ऐप `CoreSSL:EnsurePrimaryHostCertificate` से शुरू होने वाली एक त्रुटि लॉग करता है, जिसके बाद वजह होती है:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 

@@ -28,6 +28,7 @@ flowchart TB
 
 | | AWS | Microsoft | Google Cloud |
 | --- | --- | --- | --- |
+| Oferta | Aún no es pública: [contáctanos](https://oneuptime.com/enterprise/demo) | [OneUptime Enterprise](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-enterprise) | Aún no es pública: [contáctanos](https://oneuptime.com/enterprise/demo) |
 | Se ejecuta en | Amazon EKS | Azure Kubernetes Service (AKS) | Google Kubernetes Engine (GKE) |
 | Lo instalas con | Helm, desde el registro de la oferta | El portal de Azure | La consola de Google Cloud |
 | OneUptime envía los informes con | El rol de IAM de su cuenta de servicio de Kubernetes | La identidad administrada que Azure asigna a la instalación | El secreto de informes que Google Cloud Marketplace crea para el despliegue |

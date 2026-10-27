@@ -33,6 +33,7 @@
     "pageNotFoundMetaTitle": "Side ikke fundet",
     "pageNotFoundMetaDescription": "Den side, du leder efter, blev ikke fundet.",
     "required": "Påkrævet",
+    "defaultValue": "Standard",
     "or": "eller",
     "copy": "Kopiér",
     "copied": "Kopieret!",

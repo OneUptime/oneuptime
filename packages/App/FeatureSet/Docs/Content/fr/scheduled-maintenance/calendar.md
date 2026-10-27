@@ -113,7 +113,7 @@ Le calendrier contient chaque événement de 90 jours en arrière à un an en av
 
 Les personnes qui suivent une page de statut peuvent placer sa maintenance planifiée dans leur propre calendrier. Sur la page des événements planifiés de la page de statut, **S'abonner au calendrier** propose Google Agenda, l'application de calendrier de leur appareil ou le lien à copier. Le lien est l'adresse de la page suivie de `/maintenance.ics`, par exemple `https://status.example.com/maintenance.ics`.
 
-- **Ce qu'il contient.** Exactement ce que la page montre : les événements de la période d'historique de la page, chaque événement à venir et chaque événement en cours, tant que **Visible sur la page de statut** est activé. Ce que chaque événement touche est nommé comme la page nomme ses ressources, jamais par les noms propres de vos moniteurs.
+- **Ce qu'il contient.** Exactement ce que la page montre : les événements de la période d'historique de la page, chaque événement à venir et chaque événement en cours, tant que **Visible sur la page de statut** est activé, et à partir de son **Publier le** si vous en avez choisi un. Ce que chaque événement touche est nommé comme la page nomme ses ressources, jamais par les noms propres de vos moniteurs.
 - **Une page privée.** Une application de calendrier ne peut pas se connecter : une page privée ne propose donc pas **S'abonner au calendrier**, et son lien sert un calendrier vide qui indique que la page est privée.
 - **Un seul événement.** **Ajouter au calendrier** sur la page d'un événement ajoute cet événement seul : Google Agenda s'ouvre avec l'événement rempli, ou il se télécharge sous forme de fichier que l'application de calendrier de l'appareil ouvre. Cela fonctionne aussi sur une page privée, pour un visiteur connecté, et n'est plus proposé une fois l'événement terminé.
 
@@ -147,7 +147,7 @@ Google Agenda lit le lien depuis les serveurs de Google, le serveur OneUptime do
 :::
 
 :::details Un événement manque dans le calendrier d'une page de statut
-Le calendrier de la page contient ce que la page montre. Vérifiez que l'événement nomme la page, que **Visible sur la page de statut** est activé dans ses **Paramètres**, et qu'il a commencé dans la période d'historique de la page.
+Le calendrier de la page contient ce que la page montre. Vérifiez que l'événement nomme la page, que **Visible sur la page de statut** est activé dans ses **Paramètres**, que son **Publier le**, s'il en a un, est passé, et qu'il a commencé dans la période d'historique de la page.
 :::
 
 :::details Un calendrier externe indique Ne fonctionne pas

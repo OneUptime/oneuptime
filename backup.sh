@@ -2,7 +2,18 @@
 # The backup will be in the format of db-(date of the month).backup
 # Before the backup, please make sure DATABASE_BACKUP_* ENV vars in config.env is set properly. 
 
-export $(grep -v '^#' config.env | xargs)
+# config.env's settings, each value as written - a value with spaces, quotes or
+# a * in it included - read the way npm start reads them: the script runs
+# itself again through Scripts/Install/WithConfig.sh. It used to export
+# $(grep -v '^#' config.env | xargs), which split values at their spaces.
+if [ "${ONEUPTIME_WITH_CONFIG:-}" != "1" ]; then
+    ONEUPTIME_WITH_CONFIG=1 exec sh ./Scripts/Install/WithConfig.sh bash "$0" "$@"
+fi
+
+# PostgreSQL's port on this server: DATABASE_BACKUP_PORT, or else the port
+# docker-compose.yml publishes it on (DATABASE_PUBLISHED_PORT, 5400 by default).
+DATABASE_BACKUP_PORT="${DATABASE_BACKUP_PORT:-${DATABASE_PUBLISHED_PORT:-5400}}"
+
 mkdir -p "$(pwd)$DATABASE_BACKUP_DIRECTORY"
 
 echo "Starting backup...."
@@ -33,10 +44,13 @@ echo "Starting backup...."
 # --clean/--create are deliberately absent: pg_dump ignores both for archive formats.
 # They are restore-time options, so restore.sh passes --clean --if-exists instead.
 # Ownership and ACLs are still dumped (no --no-owner / --no-acl), same as before.
+#
+# The folder and the connection are quoted, so a value with a space or a * in
+# it reaches pg_dump as one argument, as config.env holds it.
 sudo docker run --net=host --rm \
 --env-file config.env \
---volume=$(pwd)$DATABASE_BACKUP_DIRECTORY:/var/lib/postgresql/data \
-postgres:latest /usr/bin/pg_dump --format=custom --dbname=postgresql://$DATABASE_BACKUP_USERNAME:$DATABASE_BACKUP_PASSWORD@$DATABASE_BACKUP_HOST:$DATABASE_BACKUP_PORT/$DATABASE_BACKUP_NAME --file=/var/lib/postgresql/data/db-$(date +%d).backup
+--volume="$(pwd)$DATABASE_BACKUP_DIRECTORY:/var/lib/postgresql/data" \
+postgres:latest /usr/bin/pg_dump --format=custom --dbname="postgresql://$DATABASE_BACKUP_USERNAME:$DATABASE_BACKUP_PASSWORD@$DATABASE_BACKUP_HOST:$DATABASE_BACKUP_PORT/$DATABASE_BACKUP_NAME" --file=/var/lib/postgresql/data/db-$(date +%d).backup
 
 
 echo "Backup completed successfully!"

@@ -343,7 +343,14 @@ describe("the card", () => {
     });
   });
 
-  test("while loading, placeholders", async () => {
+  /*
+   * The card drew placeholders while it read, and for most projects -
+   * nothing scheduled - they vanished a moment later and moved the page up
+   * under the reader (#4918's review). Now nothing is drawn until the
+   * answer lands: no card at all when nothing is scheduled, the card with
+   * its windows when something is.
+   */
+  test("while the windows are read, nothing is drawn: no placeholders that would vanish", async () => {
     getListMock.mockImplementation(() => {
       return new Promise(() => {
         // never answered
@@ -351,52 +358,186 @@ describe("the card", () => {
     });
     await renderCard();
 
-    expect(screen.getByTestId("home-upcoming-loading")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(cacheListMock).toHaveBeenCalled();
+    });
+    expect(screen.queryByTestId("home-upcoming-maintenance")).toBeNull();
+    expect(screen.queryByTestId("home-upcoming-loading")).toBeNull();
+    expect(document.querySelector(".animate-pulse")).toBeNull();
   });
 
-  /*
-   * The placeholders used to sit right under the description, and the
-   * divider appeared with the windows. Now they sit under the divider the
-   * windows are listed under, as the cards beside them in Home's row do
-   * while they load, and the body starts where those cards start theirs.
-   */
-  test("the placeholders and the windows sit under the same divider, where the row's other cards start their lists", async () => {
-    const bodyOfCard: () => HTMLElement = (): HTMLElement => {
-      return screen
-        .getByTestId("home-upcoming-maintenance")
-        .querySelector(
-          '[data-testid="card"] > div > div > div:last-child',
-        ) as HTMLElement;
-    };
-
-    getListMock.mockImplementation(() => {
-      return new Promise(() => {
-        // never answered
+  test("a project with nothing scheduled never shows the card, not even for a moment", async () => {
+    events = [];
+    let answer: (value: unknown) => void = (): void => {};
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      listRequests.push(args[0] as ListRequest);
+      return new Promise((resolve: (value: unknown) => void) => {
+        answer = resolve;
       });
     });
-    await renderCard();
 
-    const loading: HTMLElement = screen.getByTestId("home-upcoming-loading");
-
-    expect(bodyOfCard().firstElementChild).toBe(loading);
-    expect(loading).toHaveClass("border-t", "border-gray-100");
-    expect(bodyOfCard()).toHaveClass(
-      ...HOME_ROW_CARD_BODY_CLASS_NAME.split(" "),
-    );
-
-    cleanup();
-    getListMock.mockImplementation(() => {
-      return Promise.resolve({ data: events, count: 2, skip: 0, limit: 3 });
+    const seen: Array<boolean> = [];
+    const observer: MutationObserver = new MutationObserver(() => {
+      seen.push(
+        Boolean(
+          document.querySelector('[data-testid="home-upcoming-maintenance"]'),
+        ),
+      );
     });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    await renderCard();
+    seen.push(Boolean(screen.queryByTestId("home-upcoming-maintenance")));
+    await waitFor(() => {
+      expect(listRequests).toHaveLength(1);
+    });
+    await act(async () => {
+      answer({ data: [], count: 0, skip: 0, limit: 3 });
+    });
+    observer.disconnect();
+
+    expect(seen.length).toBeGreaterThan(0);
+    expect(
+      seen.every((shown: boolean): boolean => {
+        return !shown;
+      }),
+    ).toBe(true);
+    expect(screen.queryByTestId("home-upcoming-maintenance")).toBeNull();
+  });
+
+  test("the windows sit under the divider, where the row's other cards start their lists", async () => {
     await renderCard();
 
     await waitFor(() => {
       expect(screen.getAllByTestId("home-upcoming-row")).toHaveLength(2);
     });
-    expect(bodyOfCard().firstElementChild).toHaveClass(
-      "border-t",
-      "border-gray-100",
+
+    const body: HTMLElement = screen
+      .getByTestId("home-upcoming-maintenance")
+      .querySelector(
+        '[data-testid="card"] > div > div > div:last-child',
+      ) as HTMLElement;
+
+    expect(body).toHaveClass(...HOME_ROW_CARD_BODY_CLASS_NAME.split(" "));
+    expect(body.firstElementChild).toHaveClass("border-t", "border-gray-100");
+  });
+
+  /*
+   * Refresh reads the windows again. The card used to drop to its loading
+   * state first, so a refresh made it blink out and back; it now keeps the
+   * windows it shows until the new answer lands.
+   */
+  async function renderWithRefreshKey(
+    refreshKey: number,
+    projectId: string = PROJECT_ID,
+  ): Promise<(nextKey: number, nextProjectId?: string) => Promise<void>> {
+    let rerender: (ui: React.ReactElement) => void = (): void => {};
+    await act(async () => {
+      rerender = render(
+        <MemoryRouter>
+          <UpcomingMaintenance
+            projectId={new ObjectID(projectId)}
+            now={NOW}
+            refreshKey={refreshKey}
+          />
+        </MemoryRouter>,
+      ).rerender;
+    });
+
+    return async (
+      nextKey: number,
+      nextProjectId: string = projectId,
+    ): Promise<void> => {
+      await act(async () => {
+        rerender(
+          <MemoryRouter>
+            <UpcomingMaintenance
+              projectId={new ObjectID(nextProjectId)}
+              now={NOW}
+              refreshKey={nextKey}
+            />
+          </MemoryRouter>,
+        );
+      });
+    };
+  }
+
+  test("a refresh keeps the windows on screen until the new answer lands", async () => {
+    const refresh: (nextKey: number) => Promise<void> =
+      await renderWithRefreshKey(0);
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("home-upcoming-row")).toHaveLength(2);
+    });
+
+    let answer: (value: unknown) => void = (): void => {};
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      listRequests.push(args[0] as ListRequest);
+      return new Promise((resolve: (value: unknown) => void) => {
+        answer = resolve;
+      });
+    });
+
+    await refresh(1);
+    await waitFor(() => {
+      expect(listRequests).toHaveLength(2);
+    });
+
+    // Asked again, not yet answered: the same two windows, no blink.
+    expect(screen.getAllByTestId("home-upcoming-row")).toHaveLength(2);
+
+    await act(async () => {
+      answer({
+        data: [events[1]],
+        count: 1,
+        skip: 0,
+        limit: 3,
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("home-upcoming-row")).toHaveLength(1);
+    });
+    expect(screen.getByTestId("home-upcoming-row")).toHaveTextContent(
+      "CDN provider migration",
     );
+  });
+
+  test("a refresh that finds nothing scheduled any more leaves the card out", async () => {
+    const refresh: (nextKey: number) => Promise<void> =
+      await renderWithRefreshKey(0);
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("home-upcoming-row")).toHaveLength(2);
+    });
+
+    events = [];
+    await refresh(1);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("home-upcoming-maintenance")).toBeNull();
+    });
+  });
+
+  test("another project starts from nothing: its card is not drawn with the last project's windows", async () => {
+    const OTHER_PROJECT_ID: string = "65f00000000000000000dddd";
+    const switchTo: (nextKey: number, nextProjectId?: string) => Promise<void> =
+      await renderWithRefreshKey(0);
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("home-upcoming-row")).toHaveLength(2);
+    });
+
+    getListMock.mockImplementation((...args: Array<unknown>) => {
+      listRequests.push(args[0] as ListRequest);
+      return new Promise(() => {
+        // never answered
+      });
+    });
+
+    await switchTo(0, OTHER_PROJECT_ID);
+
+    expect(screen.queryByTestId("home-upcoming-maintenance")).toBeNull();
   });
 });
 

@@ -124,6 +124,7 @@ import FeedMarkdown, {
 } from "../../Utils/Markdown/FeedMarkdown";
 import { isSendingSubscriberNotifications } from "../../Types/StatusPage/SubscriberNotificationsSwitch";
 import { writeDefaultSubscriberSms } from "../../Utils/Sms/SubscriberSms";
+import ScheduledMaintenancePublication from "../../Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 
 /*
  * The attachments whose membership an ongoing event acts on. Monitors are
@@ -2316,6 +2317,14 @@ ${FeedMarkdown.asMarkdown(scheduledMaintenance.description || "No description pr
 
       if (scheduledMaintenance.endsAt) {
         feedInfoInMarkdown += mdText`**Ends At**: ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(scheduledMaintenance.endsAt)} \n\n`;
+      }
+
+      // Kept to the team until then: when its status pages show it.
+      const publishAt: Date | null =
+        ScheduledMaintenancePublication.getPublishAt(scheduledMaintenance);
+
+      if (publishAt) {
+        feedInfoInMarkdown += mdText`**Publish on Status Page At**: ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(publishAt)} \n\n`;
       }
 
       if (scheduledMaintenance.currentScheduledMaintenanceState?.name) {

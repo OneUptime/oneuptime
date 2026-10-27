@@ -113,6 +113,7 @@ enum EmailTemplateType {
   PostgresHealthWarning = "PostgresHealthWarning.hbs",
   // A backup or a restore of the instance failed (Enterprise, ee/Server/Backup).
   BackupFailed = "BackupFailed.hbs",
+  AuditLogExportFailed = "AuditLogExportFailed.hbs",
 
   EnterpriseLicenseUserLimitBreach = "EnterpriseLicenseUserLimitBreach.hbs",
   EnterpriseLicenseExpiryReminder = "EnterpriseLicenseExpiryReminder.hbs",
