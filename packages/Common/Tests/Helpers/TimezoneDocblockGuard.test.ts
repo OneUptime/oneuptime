@@ -23,8 +23,8 @@ import { REPOSITORY_DIRECTORY, listTestFiles } from "./TagStripScan";
  * named: DateClickhouseFormat and DateTelemetryHotPath (America/New_York,
  * against a formatter slipping onto local getters), ChartTrailingBucketGap
  * (a daylight-saving day in Europe/London) and DateColumnValue (a host on
- * Pacific time). Each now runs from a file whose first comment is a
- * @timezone docblock, which Common's test environment
+ * Pacific time). Each now runs from a file whose first comment is a docblock
+ * that names its zone (the timezone pragma), which Common's test environment
  * (Tests/Utils/TimezoneEnvironment.js) reads to set the worker's real zone
  * before the file loads, and each asserts the zone took.
  *
