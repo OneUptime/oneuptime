@@ -36334,5 +36334,6 @@
   "Recovered on its own while OneUptime AI held the page.": "Återhämtade sig av sig självt medan OneUptime AI höll inne larmet.",
   "Resolved by OneUptime AI. Nobody was paged.": "Löst av OneUptime AI. Ingen larmades.",
   "Wait for OneUptime AI for up to (minutes)": "Vänta på OneUptime AI i upp till (minuter)",
-  "Wait from 1 to 30 whole minutes.": "Vänta från 1 till 30 hela minuter."
+  "Wait from 1 to 30 whole minutes.": "Vänta från 1 till 30 hela minuter.",
+  "This page will come back as soon as you're online again, just as you left it.": "Den här sidan kommer tillbaka så snart du är online igen, precis som du lämnade den."
 }

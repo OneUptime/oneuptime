@@ -511,6 +511,7 @@ const SnmpWalkResults: FunctionComponent<ComponentProps> = (
     >
       <div className="max-w-md">
         <Input
+          isSearchOrFilter={true}
           value={query}
           placeholder="Filter by OID, name or value"
           ariaLabel="Filter the walked OIDs"

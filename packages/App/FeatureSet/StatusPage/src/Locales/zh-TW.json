@@ -404,6 +404,7 @@
   "Loading the latest version": "正在載入最新版本",
   "A newer version of this page is available. It's loading now.": "此頁面有較新的版本，正在載入。",
   "You're offline": "你已離線",
+  "This page will come back as soon as you're online again, just as you left it.": "恢復連線後，此頁面會立即恢復，保持你離開時的樣子。",
   "This page needs an internet connection to load. It will load as soon as you're back online.": "此頁面需要網路連線才能載入。恢復連線後會立即載入。",
   "Can't reach the server": "無法連線到伺服器",
   "It may be restarting after an update. This page will load as soon as the server is back.": "伺服器可能在更新後正在重新啟動。伺服器恢復後，此頁面會立即載入。",

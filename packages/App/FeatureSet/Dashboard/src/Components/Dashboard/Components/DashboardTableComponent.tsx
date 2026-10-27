@@ -713,6 +713,7 @@ const DashboardTableComponentElement: FunctionComponent<ComponentProps> = (
                 <Icon icon={IconProp.MagnifyingGlass} />
               </span>
               <input
+                data-unsaved-changes-ignore
                 type="text"
                 value={searchText}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>): void => {

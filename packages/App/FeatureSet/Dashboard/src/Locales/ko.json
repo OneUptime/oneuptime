@@ -36334,5 +36334,6 @@
   "Recovered on its own while OneUptime AI held the page.": "OneUptime AI가 호출을 보류하는 동안 저절로 복구되었습니다.",
   "Resolved by OneUptime AI. Nobody was paged.": "OneUptime AI가 해결했습니다. 아무도 호출되지 않았습니다.",
   "Wait for OneUptime AI for up to (minutes)": "OneUptime AI 최대 대기 시간(분)",
-  "Wait from 1 to 30 whole minutes.": "1~30분 사이의 정수로 입력하세요."
+  "Wait from 1 to 30 whole minutes.": "1~30분 사이의 정수로 입력하세요.",
+  "This page will come back as soon as you're online again, just as you left it.": "다시 온라인 상태가 되는 즉시 이 페이지가 보던 그대로 다시 표시됩니다."
 }

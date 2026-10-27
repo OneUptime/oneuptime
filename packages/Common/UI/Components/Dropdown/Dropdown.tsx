@@ -890,6 +890,12 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         <ReactSelectComponents.Input
           {...inputProps}
           aria-describedby={joinAriaIds(describedByRef.current, ownDescribedBy)}
+          /*
+           * What is typed here only searches the options; the pick is the
+           * change (a form notes it). A new version of OneUptime never
+           * waits for a search (Utils/NewVersion/UnsavedChanges).
+           */
+          data-unsaved-changes-ignore
         />
       );
     };

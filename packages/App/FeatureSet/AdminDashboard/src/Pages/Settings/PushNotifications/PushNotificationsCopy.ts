@@ -16,7 +16,7 @@ export const PUSH_NOTIFICATIONS_SWITCH_TEST_ID: string =
 export const TURN_OFF_PUSH_CONFIRMATION: ModelSwitchConfirmation = {
   title: "Turn off push notifications?",
   description:
-    "Nothing will be pushed to phones or browsers, in any project, until you turn them back on, and no device can be registered. People whose only way to be reached is a push device will not be paged: add a custom channel, or ask them to add another notification method.",
+    "Phones and browsers get no pushes in any project, and none can register. People reached only by push will not be paged: add a custom channel first.",
   submitButtonText: "Turn Off Push Notifications",
   submitButtonType: ButtonStyleType.DANGER,
 };

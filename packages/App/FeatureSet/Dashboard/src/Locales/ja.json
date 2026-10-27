@@ -36334,5 +36334,6 @@
   "Recovered on its own while OneUptime AI held the page.": "OneUptime AI が呼び出しを保留している間に自然に回復しました。",
   "Resolved by OneUptime AI. Nobody was paged.": "OneUptime AI が解決しました。誰も呼び出されていません。",
   "Wait for OneUptime AI for up to (minutes)": "OneUptime AI を待つ最大時間 (分)",
-  "Wait from 1 to 30 whole minutes.": "1〜30 分の整数で指定してください。"
+  "Wait from 1 to 30 whole minutes.": "1〜30 分の整数で指定してください。",
+  "This page will come back as soon as you're online again, just as you left it.": "オンラインに戻るとすぐに、このページが元の状態のまま表示されます。"
 }

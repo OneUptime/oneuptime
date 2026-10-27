@@ -1786,6 +1786,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
 
       {!props.readOnly && (
         <input
+          data-unsaved-changes-ignore
           ref={inputRef}
           type="text"
           value={searchQuery}

@@ -266,6 +266,7 @@ const AddLayerUserModal: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.Search} className="h-4 w-4" />
           </span>
           <input
+            data-unsaved-changes-ignore
             autoFocus
             type="text"
             value={searchText}

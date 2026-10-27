@@ -36334,5 +36334,6 @@
   "Recovered on its own while OneUptime AI held the page.": "Восстановилось само, пока OneUptime AI удерживал вызов.",
   "Resolved by OneUptime AI. Nobody was paged.": "Устранено OneUptime AI. Никого не вызывали.",
   "Wait for OneUptime AI for up to (minutes)": "Ждать OneUptime AI не дольше (минуты)",
-  "Wait from 1 to 30 whole minutes.": "Укажите от 1 до 30 целых минут."
+  "Wait from 1 to 30 whole minutes.": "Укажите от 1 до 30 целых минут.",
+  "This page will come back as soon as you're online again, just as you left it.": "Как только вы снова будете в сети, страница вернётся в том виде, в каком вы её оставили."
 }

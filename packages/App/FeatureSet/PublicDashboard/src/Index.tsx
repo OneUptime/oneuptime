@@ -1,3 +1,4 @@
+import "./Utils/i18n";
 import App from "./App";
 import DashboardThemeUtil from "./Utils/DashboardTheme";
 import "Common/UI/Styles/Theme.css";

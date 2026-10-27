@@ -419,6 +419,7 @@ const LogSearchBar: React.ForwardRefExoticComponent<
             className="h-4 w-4 flex-none text-gray-400"
           />
           <input
+            data-unsaved-changes-ignore
             ref={inputRef}
             type="text"
             value={props.value}

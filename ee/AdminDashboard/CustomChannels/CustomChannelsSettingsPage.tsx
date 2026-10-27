@@ -197,7 +197,7 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
           cardProps={{
             title: "Custom Channels",
             description:
-              "Reach people through your own service, such as your company's app. Each on-call page goes to the channel's URL, and people see the channel by name in their notification methods and on-call rules, with nothing to set up.",
+              "Reach people through your own service, such as your company's app. Each on-call page goes to the channel's URL, and people see the channel by name in their notification methods and on-call rules.",
           }}
           noItemsMessage={
             "No custom channels yet. Add one to send on-call pages to your own service."
@@ -268,7 +268,7 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
               required: true,
               defaultValue: defaultSecret,
               description:
-                "Your service checks the X-OneUptime-Signature header of every request with this secret. Copy it into your service; you can see it again by editing the channel.",
+                "Your service checks the X-OneUptime-Signature header of each request with this secret. Copy it into your service; editing the channel shows it again.",
             },
             {
               field: {
@@ -292,7 +292,7 @@ const CustomChannelsSettingsPage: FunctionComponent = (): ReactElement => {
               required: false,
               defaultValue: true,
               description:
-                "OneUptime adds this channel to everyone's on-call rules, including people who join later. Turn this off to let people add it to their rules themselves.",
+                "OneUptime adds this channel to everyone's on-call rules, including people who join later. Turn this off to let people add it to their own rules.",
             },
           ]}
           selectMoreFields={{
