@@ -277,6 +277,27 @@ async function expectChecked(
   });
 }
 
+// A choice of one (the traces explorer's Span Type) is a radio group.
+async function findChoice(name: string | RegExp): Promise<HTMLElement> {
+  return screen.findByRole("radio", { name: name });
+}
+
+async function clickChoice(name: string | RegExp): Promise<void> {
+  const choice: HTMLElement = await findChoice(name);
+  await act(async () => {
+    fireEvent.click(choice);
+  });
+}
+
+async function expectChosen(
+  name: string | RegExp,
+  chosen: "true" | "false",
+): Promise<void> {
+  await waitFor(async () => {
+    expect(await findChoice(name)).toHaveAttribute("aria-checked", chosen);
+  });
+}
+
 function noExcludeButtons(): void {
   expect(screen.queryAllByRole("button", { name: /^Exclude / })).toEqual([]);
 }
@@ -474,19 +495,35 @@ describe("Traces: a facet value clicks on and off", () => {
     expect(screen.queryByTitle("Remove Status: Error")).toBeNull();
   });
 
-  test("REGRESSION: 'Root spans' checks, then unchecks - root-only on and back off", async () => {
+  test("REGRESSION: Span Type is one choice - Entry spans to start, Root spans when clicked, Entry spans again when that is clicked", async () => {
+    /*
+     * The span type is a choice of one, Entry spans by default, drawn as
+     * radio buttons: there is always exactly one, so a click chooses rather
+     * than toggles, and choosing the chosen one again changes nothing.
+     */
     await open();
 
-    await clickRow("Root spans");
-    await expectChecked("Root spans", "true");
+    await expectChosen("Entry spans", "true");
+    await expectChosen("Root spans", "false");
+    await expectChosen("All spans", "false");
+
+    await clickChoice("Root spans");
+    await expectChosen("Root spans", "true");
+    await expectChosen("Entry spans", "false");
     await waitFor(() => {
       expect(lastPostTo("/telemetry/traces/facets")["rootOnly"]).toBe(true);
+      expect(lastPostTo("/telemetry/traces/facets")["entryOnly"]).toBe(false);
     });
 
-    await clickRow("Root spans");
-    await expectChecked("Root spans", "false");
+    await clickChoice("Root spans");
+    await expectChosen("Root spans", "true");
+
+    await clickChoice("Entry spans");
+    await expectChosen("Entry spans", "true");
+    await expectChosen("Root spans", "false");
     await waitFor(() => {
       expect(lastPostTo("/telemetry/traces/facets")["rootOnly"]).toBe(false);
+      expect(lastPostTo("/telemetry/traces/facets")["entryOnly"]).toBe(true);
     });
   });
 

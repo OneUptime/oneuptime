@@ -37,11 +37,7 @@ import {
 } from "@opentelemetry/sdk-metrics";
 import type { PushMetricExporter } from "@opentelemetry/sdk-metrics/build/src/export/MetricExporter";
 import * as opentelemetry from "@opentelemetry/sdk-node";
-import {
-  BatchSpanProcessor,
-  SpanExporter,
-  SpanProcessor,
-} from "@opentelemetry/sdk-trace-base";
+import { SpanExporter, SpanProcessor } from "@opentelemetry/sdk-trace-base";
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
@@ -52,6 +48,7 @@ import { AppVersion, Env, DisableTelemetry } from "../EnvironmentConfig";
 import logger from "./Logger";
 import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
 import ContextSpanProcessor from "./Telemetry/ContextSpanProcessor";
+import { createSpanExportProcessor } from "./Telemetry/SpanExportQueue";
 import ErrorClassResolver from "./Telemetry/ErrorClassResolver";
 import ErrorClass, {
   isNonActionableErrorClass,
@@ -321,7 +318,17 @@ export default class Telemetry {
       const spanProcessors: Array<SpanProcessor> = [new ContextSpanProcessor()];
 
       if (traceExporter) {
-        spanProcessors.push(new BatchSpanProcessor(traceExporter));
+        /*
+         * Not the SDK's default queue: it dropped worker jobs' spans, roots
+         * included, without a word. SpanExportQueue sets larger limits
+         * (OTEL_BSP_* override them) and counts and logs every drop.
+         */
+        spanProcessors.push(
+          createSpanExportProcessor({
+            exporter: traceExporter,
+            meterProvider: this.getMeterProvider(),
+          }),
+        );
       }
 
       nodeSdkConfiguration.spanProcessors = spanProcessors;

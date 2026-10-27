@@ -2,8 +2,9 @@ import { QueueJob, QueueName } from "./Queue";
 import TimeoutException from "../../Types/Exception/TimeoutException";
 import { PromiseVoidFunction } from "../../Types/FunctionTypes";
 import { Worker } from "bullmq";
-import { ROOT_CONTEXT, context } from "@opentelemetry/api";
+import { Link, ROOT_CONTEXT, context } from "@opentelemetry/api";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import QueueJobTraceContext from "../Utils/Telemetry/QueueJobTraceContext";
 import AppMetrics from "../Utils/Telemetry/AppMetrics";
 import TelemetryContext from "../Utils/Telemetry/TelemetryContext";
 import {
@@ -49,6 +50,15 @@ export default class QueueWorker {
 
       AppMetrics.getWorkerJobsInFlight().add(1, baseAttributes);
 
+      /*
+       * The span that enqueued the job, taken out of its data before the
+       * handler sees it. The job's root span links to it (see
+       * QueueJobTraceContext for why a link, not a parent).
+       */
+      const enqueuedBy: Link | null = QueueJobTraceContext.takeFromJobData(
+        job.data,
+      );
+
       let outcome: "success" | "failure" | "timeout" = "success";
 
       try {
@@ -85,7 +95,10 @@ export default class QueueWorker {
              */
             return Telemetry.startActiveSpan<Promise<void>>({
               name: `worker.job ${queueName}/${job.name || "unknown"}`,
-              options: { root: true },
+              options: {
+                root: true,
+                ...(enqueuedBy ? { links: [enqueuedBy] } : {}),
+              },
               fn: async (span: Span): Promise<void> => {
                 try {
                   await onJobInQueue(job);

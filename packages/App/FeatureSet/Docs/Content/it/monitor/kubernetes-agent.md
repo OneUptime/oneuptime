@@ -237,7 +237,7 @@ OBI porta anche la traccia attraverso una chiamata: quando il pod A chiama il po
 **Disattivato per impostazione predefinita.** Quando è attivo, OBI aggancia una sonda alla chiamata di sistema `write()` di ogni processo che instrumenta, e:
 
 - Una **riga di log JSON** riceve i campi `trace_id` e `span_id` (i campi che la riga ha già vengono mantenuti). Il collector di nodo li sposta nei campi di traccia propri del record di log, così i log di uno span sono a un clic in OneUptime, come lo è la traccia di una riga di log.
-- **Qualsiasi altra riga di log** viene raccolta invariata, senza il collegamento.
+- **Qualsiasi altra riga di log** viene raccolta invariata, senza il collegamento, a meno che tu non imposti anche `ebpf.logEnricher.plainText=true`. OBI le aggiunge allora ` trace_id=… span_id=…`, e il collector di nodo sposta gli id nel record di log e li toglie dalla riga, così OneUptime la mostra com'è stata scritta dalla tua applicazione. La riga nel file di log del container, che `kubectl logs` stampa, mantiene l'annotazione.
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
@@ -249,6 +249,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 | --- | --- | --- |
 | `ebpf.logToTraceCorrelation` | `false` | Attiva l'arricchitore di log di OBI e lo spostamento di `trace_id` nel collector di nodo. |
 | `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | Quali processi tocca l'arricchitore. Ogni voce è un selettore [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) di OBI, con campi come `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports` e `cmd_args`. |
+| `ebpf.logEnricher.plainText` | `false` | Collega anche le righe di log in testo semplice (non JSON). Cambia la riga che conserva il file di log del container. |
 
 #### Agenti APM che vanno in crash con questa funzione
 

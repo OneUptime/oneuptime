@@ -1269,6 +1269,55 @@ ebpf:
   # map as a remote endpoint rather than a database. Its metrics are
   # unaffected. Set false to keep these spans — and the one-span traces.
   dropUnlinkedDatabaseCalls: true
+  # Database proxies and connection poolers: PgBouncer, PgCat, Pgpool-II,
+  # ProxySQL, MaxScale, mongos and the like. OBI sees them from both sides: a
+  # database SERVER span for each command an application sends them, and a
+  # database CLIENT span, hung under it, for the command they pass on to the
+  # real database. dropDatabaseServerSpans drops that server span, so every
+  # passed-on command used to arrive pointing at a parent that was never
+  # sent: a trace of one span marked "1 span missing a parent". On the test
+  # cluster that was three quarters of all one-span traces, PgBouncer's.
+  #
+  # The proxy's hop says nothing the application's own call does not: that
+  # client span names the endpoint it talked to (the proxy) and carries the
+  # statement and its latency, the wait for a pooled connection included. So
+  # by default every eBPF database span of a proxy is dropped, server and
+  # client alike, and none is left orphaned. Its database metrics are
+  # computed by OBI before export and kept (`db.client.*`), so the database
+  # behind the proxy is still discovered from them.
+  #
+  # Set false to keep the hop instead: a proxy's server spans are then exempt
+  # from dropDatabaseServerSpans, so each passed-on command keeps its parent.
+  # Where OBI links the proxy's side of a connection to the application's
+  # call, the request trace shows the call, the proxy and the database behind
+  # it. Across nodes that needs contextPropagationMode `tcp` or `all`, since
+  # database wire protocols carry no headers; unlinked, each command is a
+  # trace of two spans of its own. A proxy multiplexes many clients on one
+  # thread, so OBI can hang a passed-on command under the wrong one of them.
+  dropDatabaseProxySpans: true
+  # What counts as a database proxy: a process whose container, service name
+  # (as OBI gives it), or Deployment / StatefulSet / DaemonSet name contains
+  # one of these as a word, case-insensitively. "pgbouncer" matches
+  # `oneuptime-pgbouncer` and `pgbouncer-0`, not `mypgbouncer`. Add the name
+  # of your own pooler; [] turns proxy detection off (and with it
+  # dropDatabaseProxySpans).
+  databaseProxyNames:
+    - pgbouncer
+    - pgcat
+    - pgdog
+    - odyssey
+    - pgpool
+    - supavisor
+    - connection-pooler
+    - proxysql
+    - maxscale
+    - mysqlrouter
+    - mysql-router
+    - vtgate
+    - mongos
+    - twemproxy
+    - nutcracker
+    - predixy
   # OBI's other client calls that belong to no trace: the HTTP, gRPC and
   # other calls (not database, messaging or GenAI calls) made by work no
   # request triggered — a worker querying ClickHouse over HTTP, a controller
@@ -1445,6 +1494,32 @@ ebpf:
     services:
       - service:
           - exe_path: "*"
+    # Plain-text logs too. Off: only JSON lines get trace ids. On: OBI also
+    # appends " trace_id=… span_id=…" to every line of a non-JSON write, and
+    # the node collector lifts those ids onto the log record and strips them
+    # from its body, so OneUptime shows the line as the app wrote it, linked
+    # to its span. The line in the container's log file — what
+    # `kubectl logs` prints — keeps the annotation. Only with
+    # `logToTraceCorrelation` on.
+    plainText: false
+
+  # The pod labels OBI names a service after, first one set wins. Empty keeps
+  # OBI's own order, the OpenTelemetry one: `app.kubernetes.io/instance`,
+  # then `app.kubernetes.io/name`, then the owning Deployment / StatefulSet /
+  # DaemonSet / ... name. A `resource.opentelemetry.io/service.name` pod
+  # annotation or an OTEL_SERVICE_NAME in the container wins over any label.
+  #
+  # Helm sets `app.kubernetes.io/instance` to the release name on every pod
+  # of a release, its subcharts' included, so with that order every
+  # component of an umbrella release shares one service: on the test
+  # cluster, KEDA's operator, metrics server and webhooks and the
+  # CloudNativePG operator all reported as `oneuptime`. To name services
+  # after the component instead:
+  #
+  #   serviceNameLabels: ["app.kubernetes.io/name", "app.kubernetes.io/instance"]
+  #
+  # Changing it renames the services it applies to in OneUptime.
+  serviceNameLabels: []
 
 # Continuous profiling via the OpenTelemetry eBPF Profiler.
 #

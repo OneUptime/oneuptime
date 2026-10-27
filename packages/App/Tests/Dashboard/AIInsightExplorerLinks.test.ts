@@ -907,6 +907,24 @@ describe("buildInsightInvestigationLink — Traces' findings", () => {
     expect(query.get("range")).toBe(TimeRange.CUSTOM);
     expect(query.get("start")).toBe(TRACE_WINDOW.windowStartTime);
     expect(query.get("end")).toBe(TRACE_WINDOW.windowEndTime);
+    /*
+     * The operation can be a database query or an outbound call, which the
+     * explorer's default (entry spans) does not list: every span.
+     */
+    expect(query.get("spanType")).toBe("all");
+  });
+
+  test("a finding without an operation opens the explorer's own default span type", () => {
+    const link: AIInsightExplorerLink | null =
+      Links.buildInsightInvestigationLink(
+        input({
+          insightType: AIInsightType.TraceMissingTracing,
+          serviceId: SERVICE_ID,
+          trace: { gap: "NoChildSpans", ...TRACE_WINDOW },
+        }),
+      );
+
+    expect(queryOf(link!.route).get("spanType")).toBeNull();
   });
 
   test("a failing operation, or failures that say nothing: only its failed spans", () => {

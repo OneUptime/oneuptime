@@ -34,7 +34,6 @@ export default abstract class IO {
     // this.socketServer.adapter(createAdapter(pubClient, subClient));
   }
 
-  @CaptureSpan()
   public static getSocketServer(): SocketIO.Server | null {
     if (!this.socketServer) {
       this.init();

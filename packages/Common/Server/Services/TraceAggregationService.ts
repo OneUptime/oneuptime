@@ -108,6 +108,11 @@ export interface TraceFilters {
   maxDurationNano?: number | undefined;
   exactDurationNano?: number | undefined;
   rootOnly?: boolean | undefined;
+  /*
+   * Only the spans where work enters a service (isEntrySpan: a root span, or
+   * a SERVER / CONSUMER span) - the traces explorer's default list.
+   */
+  entryOnly?: boolean | undefined;
   attributes?: TraceAttributeFilters | undefined;
   /*
    * Substring (contains) attribute matches — `@key:~value` in the explorer.
@@ -373,6 +378,7 @@ export class TraceAggregationService {
     "kind",
     "statusCode",
     "isRootSpan",
+    "isEntrySpan",
   ]);
   /*
    * Virtual facet keys — same scheme as LogAggregationService. The
@@ -776,12 +782,14 @@ export class TraceAggregationService {
    * scanning raw spans — same toStartOfMinute()/optimize_use_projections
    * requirements apply.
    *
-   * rootOnly is deliberately forced OFF here: a facet must not filter by its
-   * own dimension, or the unselected bucket would always read 0 and the user
-   * could never see how many root vs non-root spans exist (the exact confusion
-   * the facet is meant to resolve). Every OTHER active filter (service /
-   * status / ...) still applies, so the counts narrow with the rest of the
-   * sidebar.
+   * rootOnly and entryOnly are deliberately forced OFF here: a facet must not
+   * filter by its own dimension, or the unselected bucket would always read 0
+   * and the user could never see how many root vs non-root spans exist (the
+   * exact confusion the facet is meant to resolve). The explorer lists entry
+   * spans by default, and the Span Type facet's "All spans" is this root and
+   * non-root count added up, so it is every span. Every OTHER active filter
+   * (service / status / ...) still applies, so the counts narrow with the
+   * rest of the sidebar.
    */
   @CaptureSpan()
   public static async getRootSpanCounts(request: MultiFacetRequest): Promise<{
@@ -805,10 +813,11 @@ export class TraceAggregationService {
       }})`,
     );
 
-    // Force rootOnly off so both buckets survive (see method comment).
+    // Force the span type off so both buckets survive (see method comment).
     TraceAggregationService.appendCommonFilters(statement, {
       ...request,
       rootOnly: false,
+      entryOnly: false,
     });
 
     statement.append(" GROUP BY isRootSpan");
@@ -845,6 +854,82 @@ export class TraceAggregationService {
     }
 
     return { rootCount, nonRootCount };
+  }
+
+  /*
+   * Exact entry-span vs other-span counts, the "Entry spans" choice of the
+   * Span Type facet, beside getRootSpanCounts' "Root spans" (and its two
+   * buckets added up, "All spans").
+   *
+   * Over the same rows as getRootSpanCounts - the same minute-aligned window
+   * and filters, rootOnly and entryOnly forced off - so the three choices
+   * count one set of spans: entry spans are never fewer than root spans.
+   * isEntrySpan is not a proj_hist_by_minute key, so this one reads the table
+   * (one Bool column - for rows stored before it existed, its DEFAULT
+   * expression over isRootSpan and kind), still bounded by the time limit.
+   */
+  @CaptureSpan()
+  public static async getEntrySpanCounts(request: MultiFacetRequest): Promise<{
+    entryCount: number;
+    nonEntryCount: number;
+  }> {
+    const statement: Statement = new Statement();
+    statement.append(
+      `SELECT isEntrySpan, count() AS cnt FROM ${TraceAggregationService.TABLE_NAME}`,
+    );
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }} AND toStartOfMinute(startTime) >= toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: request.startTime,
+      }}) AND toStartOfMinute(startTime) <= toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: request.endTime,
+      }})`,
+    );
+
+    // Force the span type off so both buckets survive (see getRootSpanCounts).
+    TraceAggregationService.appendCommonFilters(statement, {
+      ...request,
+      rootOnly: false,
+      entryOnly: false,
+    });
+
+    statement.append(" GROUP BY isEntrySpan");
+
+    statement.append(
+      getQuerySettings({
+        ...INTERACTIVE_READ_TIME_LIMIT,
+      }),
+    );
+
+    let entryCount: number = 0;
+    let nonEntryCount: number = 0;
+
+    // Stopped at the time limit: throws, see getResourceFacetCounts.
+    const dbResult: Results = await SpanService.executeQuery(statement);
+
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+    const rows: Array<JSONObject> = response.data || [];
+
+    for (const row of rows) {
+      const cnt: number = Number(row["cnt"] || 0);
+      const raw: unknown = row["isEntrySpan"];
+      // ClickHouse Bool may serialize as true/false, 1/0, or "1"/"true".
+      const isEntry: boolean =
+        raw === true || raw === 1 || raw === "1" || raw === "true";
+      if (isEntry) {
+        entryCount += cnt;
+      } else {
+        nonEntryCount += cnt;
+      }
+    }
+
+    return { entryCount, nonEntryCount };
   }
 
   /*
@@ -1164,6 +1249,11 @@ export class TraceAggregationService {
   ): void {
     if (request.rootOnly) {
       statement.append(" AND isRootSpan = 1");
+    }
+
+    // Rows stored before the column existed read it from its DEFAULT.
+    if (request.entryOnly) {
+      statement.append(" AND isEntrySpan = 1");
     }
 
     TraceAggregationService.appendExceptionScopeFilter(statement, request);
