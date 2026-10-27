@@ -32,10 +32,7 @@ import React, {
   useState,
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Where a user lands when a project requires single sign-on - itself, or

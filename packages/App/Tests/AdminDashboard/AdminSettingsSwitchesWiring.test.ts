@@ -172,7 +172,9 @@ describe("Settings > Single Sign-On", () => {
     expect(SINGLE_SIGN_ON).toContain(
       'modelId={globalConfigId} column="requireSsoForLogin" modelAPI={AdminModelAPI}',
     );
-    expect(SINGLE_SIGN_ON).toMatch(/column="requireSsoForLogin" (?!isInverted)/);
+    expect(SINGLE_SIGN_ON).toMatch(
+      /column="requireSsoForLogin" (?!isInverted)/,
+    );
     expect(SINGLE_SIGN_ON).not.toContain("CardModelDetail");
     expect(SINGLE_SIGN_ON).not.toContain("editButtonText");
   });
@@ -189,9 +191,7 @@ describe("Settings > Single Sign-On", () => {
   });
 
   test("the providers' tables and the switch all save through the admin API", () => {
-    expect(SINGLE_SIGN_ON.split("modelAPI={AdminModelAPI}").length - 1).toBe(
-      3,
-    );
+    expect(SINGLE_SIGN_ON.split("modelAPI={AdminModelAPI}").length - 1).toBe(3);
   });
 });
 

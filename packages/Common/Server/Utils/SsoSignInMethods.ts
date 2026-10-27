@@ -263,7 +263,9 @@ export default class SsoSignInMethods {
       }),
     ];
 
-    const keep: (providers: Array<SsoSignInProvider | null>) => Array<SsoSignInProvider> = (
+    const keep: (
+      providers: Array<SsoSignInProvider | null>,
+    ) => Array<SsoSignInProvider> = (
       providers: Array<SsoSignInProvider | null>,
     ): Array<SsoSignInProvider> => {
       return providers

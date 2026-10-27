@@ -38,11 +38,11 @@ const MobilePasskeyPage: React.LazyExoticComponent<() => JSX.Element> = lazy(
   },
 );
 // Drawn on its own here, with none of the props the sign-in page hands it.
-const LoginWithSSO: React.LazyExoticComponent<ComponentType<object>> = lazy(
-  () => {
-    return import("./Pages/LoginWithSSO");
-  },
-);
+const LoginWithSSO: React.LazyExoticComponent<
+  ComponentType<{ showEditionLabel?: boolean | undefined }>
+> = lazy(() => {
+  return import("./Pages/LoginWithSSO");
+});
 const NotFound: React.LazyExoticComponent<() => JSX.Element> = lazy(() => {
   return import("./Pages/NotFound");
 });

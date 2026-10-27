@@ -151,7 +151,11 @@ const required: (
 
 const NOT_REQUIRED: Answer = {
   status: 200,
-  data: { isSsoRequired: false, ssoProviders: [], hasProjectSsoProviders: false },
+  data: {
+    isSsoRequired: false,
+    ssoProviders: [],
+    hasProjectSsoProviders: false,
+  },
 };
 
 let signInMethodsAnswer: Answer;

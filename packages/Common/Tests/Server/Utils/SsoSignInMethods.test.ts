@@ -153,9 +153,9 @@ const setServerRule: (requireSsoForLogin: boolean) => void = (
   GlobalConfigService.forgetSignInRules();
 };
 
-const kindsAndNames: (
+const kindsAndNames: (providers: Array<SsoSignInProvider>) => Array<string> = (
   providers: Array<SsoSignInProvider>,
-) => Array<string> = (providers: Array<SsoSignInProvider>): Array<string> => {
+): Array<string> => {
   return providers.map((provider: SsoSignInProvider): string => {
     return `${provider.type} ${provider.name}`;
   });
@@ -206,7 +206,11 @@ afterEach(() => {
 describe("SsoSignInMethods.getSignInMethods", () => {
   test("while SSO is not required: the instance-wide providers that are on, by name, and nothing about projects", async () => {
     projectSaml.rows.push(
-      projectProviderRow({ id: PROJECT_SAML, projectId: PROJECT_ID, name: "P" }),
+      projectProviderRow({
+        id: PROJECT_SAML,
+        projectId: PROJECT_ID,
+        name: "P",
+      }),
     );
 
     const methods: SignInMethods = await SsoSignInMethods.getSignInMethods();
@@ -459,9 +463,9 @@ describe("SsoRequiredSignIn", () => {
     await expect(
       SsoRequiredSignIn.assertNonSsoSignInAllowed({ isMasterAdmin: false }),
     ).rejects.toBeInstanceOf(BadDataException);
-    await expect(SsoRequiredSignIn.assertSignUpAllowed()).rejects.toBeInstanceOf(
-      BadDataException,
-    );
+    await expect(
+      SsoRequiredSignIn.assertSignUpAllowed(),
+    ).rejects.toBeInstanceOf(BadDataException);
   });
 
   test("a master admin is never refused, and the rule is not read for one", async () => {
