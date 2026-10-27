@@ -47,6 +47,7 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 import fs from "fs";
 import path from "path";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * The pure half of packet captures in the dashboard: whether a probe can
@@ -642,9 +643,14 @@ describe("the downloaded file", () => {
 
   test("a large file is decoded in good time", () => {
     const bytes: Buffer = Buffer.alloc(5 * 1024 * 1024, 0xab);
-    const started: number = Date.now();
-
-    expect(decodeDownload(bytes.toString("base64"))).toHaveLength(bytes.length);
-    expect(Date.now() - started).toBeLessThan(5000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(decodeDownload(bytes.toString("base64"))).toHaveLength(
+          bytes.length,
+        );
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
   });
 });

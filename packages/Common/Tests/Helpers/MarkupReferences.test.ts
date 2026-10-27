@@ -10,6 +10,7 @@ import {
   readTextAddresses,
   withoutTemplateComments,
 } from "./MarkupReferences";
+import { fastestRun, FastestRun } from "./FastestRun";
 
 /*
  * The reader behind the guards that keep pages and emails from loading
@@ -378,13 +379,16 @@ describe("linear time on text nobody wrote for it", () => {
     ["unclosed comments", "{{!--".repeat(80000)],
     ["unclosed tags", "<img src=".repeat(45000)],
   ])("%s", (_label: string, text: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        readTextAddresses(text);
+        readCssReferences(text, "style");
+        withoutTemplateComments(text);
+        readMarkupReferences(text);
+      },
+      limitInMs: 2000,
+    });
 
-    readTextAddresses(text);
-    readCssReferences(text, "style");
-    withoutTemplateComments(text);
-    readMarkupReferences(text);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

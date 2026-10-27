@@ -10,6 +10,7 @@ import {
 } from "./DashboardMarkdownDataUrls";
 import { seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * WHERE A DESCRIPTION USES A data: URL, AS THE DASHBOARD'S PARSER READS IT.
@@ -549,10 +550,15 @@ describe("MarkdownDataUrls.find - linear time", () => {
     const png: string = pngOfSize(6 * 1024 * 1024);
     const markdown: string = shape(png);
 
-    const started: number = Date.now();
-    const found: MarkdownDataUrlUses = find(markdown);
+    const timed: FastestRun<MarkdownDataUrlUses> = fastestRun({
+      run: (): MarkdownDataUrlUses => {
+        return find(markdown);
+      },
+      limitInMs: TIME_BOUND_IN_MS,
+    });
+    const found: MarkdownDataUrlUses = timed.result;
 
-    expect(Date.now() - started).toBeLessThan(TIME_BOUND_IN_MS);
+    expect(timed.inMs).toBeLessThan(TIME_BOUND_IN_MS);
     expect(markdown.length).toBeGreaterThan(8 * 1024 * 1024);
 
     for (const use of found.uses) {

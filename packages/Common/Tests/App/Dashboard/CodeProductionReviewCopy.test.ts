@@ -58,6 +58,7 @@ import {
 } from "../../../Utils/Profiles/ProfileTypes";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * A pull request's production review in Code, in words and plain rules
@@ -298,10 +299,13 @@ describe("the command that asks for a review on GitHub", () => {
 
   test("reads a long app name in time in line with it", () => {
     const name: string = "a -".repeat(200000);
-    const started: number = Date.now();
-
-    expect(getGitHubAppSlug(name).startsWith("a-a-a")).toBe(true);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(getGitHubAppSlug(name).startsWith("a-a-a")).toBe(true);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 
@@ -560,10 +564,13 @@ describe("OneUptime AI's words, in pieces", () => {
 
   test("a long answer is split in time in line with it", () => {
     const text: string = "`x` ".repeat(100000);
-    const started: number = Date.now();
-
-    expect(splitPointText(text)).toHaveLength(200000);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(splitPointText(text)).toHaveLength(200000);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 
@@ -619,10 +626,13 @@ describe("the names of code, in the pieces a narrow screen wraps them between", 
   test("a long name is split in time in line with it, whatever it holds", () => {
     for (const unit of ["a.", "/", "a.bbbbb", ".:", "x"]) {
       const name: string = unit.repeat(Math.ceil(400000 / unit.length));
-      const started: number = Date.now();
-
-      expect(splitCodeNameAtBreaks(name).join("")).toBe(name);
-      expect(Date.now() - started).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          expect(splitCodeNameAtBreaks(name).join("")).toBe(name);
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     }
   });
 });

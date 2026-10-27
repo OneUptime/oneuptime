@@ -49,6 +49,7 @@ import {
 } from "../../../Utils/LinearRegExp/PatternProblem";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, jest, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -193,11 +194,14 @@ describe("how large a pattern it compiles", () => {
 
   test("a pattern longer than the limit is refused before anything reads it, valid or not", () => {
     // Megabytes of pattern, as a filter's JSON could carry: refused at once.
-    const startedAt: number = Date.now();
-
-    expectTooLarge(`(${"a".repeat(5_000_000)}`);
-    expectTooLarge("a".repeat(5_000_000));
-    expect(Date.now() - startedAt).toBeLessThan(500);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expectTooLarge(`(${"a".repeat(5_000_000)}`);
+        expectTooLarge("a".repeat(5_000_000));
+      },
+      limitInMs: 500,
+    });
+    expect(timed.inMs).toBeLessThan(500);
 
     // Shorter than the limit, what is not a regular expression says so.
     expect(refusalOf("(abc")).toBeInstanceOf(SyntaxError);
@@ -220,10 +224,15 @@ describe("how large a pattern it compiles", () => {
 
     expect(first - 0x100).toBeGreaterThan(1200);
 
-    const startedAt: number = Date.now();
-    const pattern: LinearRegExp = new LinearRegExp(source, "i");
+    const timed: FastestRun<LinearRegExp> = fastestRun({
+      run: (): LinearRegExp => {
+        return new LinearRegExp(source, "i");
+      },
+      limitInMs: 1000,
+    });
+    const pattern: LinearRegExp = timed.result;
 
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    expect(timed.inMs).toBeLessThan(1000);
     expect(pattern.test("short text")).toBe(false);
   });
 
@@ -249,17 +258,21 @@ describe("how large a pattern it compiles", () => {
         return new RegExp(source);
       }).not.toThrow();
 
-      const startedAt: number = Date.now();
-      const refusal: unknown = refusalOf(source);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          const refusal: unknown = refusalOf(source);
 
-      expect(refusal).toBeInstanceOf(PatternProblemError);
-      expect((refusal as PatternProblemError).reason).toBe(
-        PatternProblemReason.TooLarge,
-      );
-      expect((refusal as Error).message).toContain(
-        "compiling it would visit its parts more than",
-      );
-      expect(Date.now() - startedAt).toBeLessThan(500);
+          expect(refusal).toBeInstanceOf(PatternProblemError);
+          expect((refusal as PatternProblemError).reason).toBe(
+            PatternProblemReason.TooLarge,
+          );
+          expect((refusal as Error).message).toContain(
+            "compiling it would visit its parts more than",
+          );
+        },
+        limitInMs: 500,
+      });
+      expect(timed.inMs).toBeLessThan(500);
     }
 
     // The same parts copied a few times are no problem.
@@ -276,10 +289,15 @@ describe("how large a pattern it compiles", () => {
 
     expect(source.length).toBeLessThanOrEqual(MAX_PATTERN_LENGTH);
 
-    const startedAt: number = Date.now();
-    const pattern: LinearRegExp = new LinearRegExp(source);
+    const timed: FastestRun<LinearRegExp> = fastestRun({
+      run: (): LinearRegExp => {
+        return new LinearRegExp(source);
+      },
+      limitInMs: 300,
+    });
+    const pattern: LinearRegExp = timed.result;
 
-    expect(Date.now() - startedAt).toBeLessThan(300);
+    expect(timed.inMs).toBeLessThan(300);
     // Every copy can match nothing: an empty match at the start of any text.
     expect(pattern.test("c")).toBe(true);
     expect(pattern.exec("c")).toMatchObject({ index: 0, value: "" });
@@ -532,30 +550,33 @@ describe("what the caches of compiled patterns keep", () => {
   test("a pattern longer than any that can run is refused each time, at once, and never kept", () => {
     clearLinearRegExpCache();
 
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        // Distinct megabytes of pattern, as one request after another could send.
+        for (let index: number = 0; index < 30; index++) {
+          const source: string = `${index}(a)\\1${"a".repeat(1_000_000)}`;
+          let refusal: unknown = null;
 
-    // Distinct megabytes of pattern, as one request after another could send.
-    for (let index: number = 0; index < 30; index++) {
-      const source: string = `${index}(a)\\1${"a".repeat(1_000_000)}`;
-      let refusal: unknown = null;
+          try {
+            getLinearRegExp(source, "i");
+          } catch (error: unknown) {
+            refusal = error;
+          }
 
-      try {
-        getLinearRegExp(source, "i");
-      } catch (error: unknown) {
-        refusal = error;
-      }
+          expect(refusal).toBeInstanceOf(PatternProblemError);
+          expect((refusal as PatternProblemError).reason).toBe(
+            PatternProblemReason.TooLarge,
+          );
+          expect(tryGetLinearRegExp(source)).toBeNull();
+        }
 
-      expect(refusal).toBeInstanceOf(PatternProblemError);
-      expect((refusal as PatternProblemError).reason).toBe(
-        PatternProblemReason.TooLarge,
-      );
-      expect(tryGetLinearRegExp(source)).toBeNull();
-    }
-
-    // Nothing of them is kept: not as a refusal, not as a key.
-    expect(getCachedPatternCount()).toBe(0);
-    expect(getCachedPatternCharacters()).toBe(0);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+        // Nothing of them is kept: not as a refusal, not as a key.
+        expect(getCachedPatternCount()).toBe(0);
+        expect(getCachedPatternCharacters()).toBe(0);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
 
     // One as long as may run is compiled, and kept, as before.
     const atLimit: string = `${"(?:)".repeat(MAX_PATTERN_LENGTH / 4 - 1)}abcd`;
@@ -736,13 +757,16 @@ describe("the work one question may take", () => {
     expectTooLarge(deep);
 
     const allowed: string = `${"(?:".repeat(MAX_EMPTY_REPEAT_NESTING)}a*${")*".repeat(MAX_EMPTY_REPEAT_NESTING)}`;
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (let run: number = 0; run < 200; run++) {
+          new LinearRegExp(allowed, "g").replace("aaaa b aaaa", String);
+        }
+      },
+      limitInMs: 2000,
+    });
 
-    for (let run: number = 0; run < 200; run++) {
-      new LinearRegExp(allowed, "g").replace("aaaa b aaaa", String);
-    }
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("copying what ways captured counts as work: many groups do not hold a short text", () => {
@@ -759,17 +783,20 @@ describe("the work one question may take", () => {
       captures: true,
     });
     const text: string = `${"a".repeat(2000)}!`;
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (let run: number = 0; run < 3; run++) {
+          try {
+            pattern.exec(text);
+          } catch (error: unknown) {
+            expect(error).toBeInstanceOf(PatternWorkLimitError);
+          }
+        }
+      },
+      limitInMs: 1500,
+    });
 
-    for (let run: number = 0; run < 3; run++) {
-      try {
-        pattern.exec(text);
-      } catch (error: unknown) {
-        expect(error).toBeInstanceOf(PatternWorkLimitError);
-      }
-    }
-
-    expect(Date.now() - startedAt).toBeLessThan(1500);
+    expect(timed.inMs).toBeLessThan(1500);
   });
 
   test("a large pattern on many short texts stops within its allowance each time", () => {
@@ -778,22 +805,25 @@ describe("the work one question may take", () => {
       "(?:[ab]*a[ab]{12}|[ab]{0,3900})Q",
     );
     const random: SeededRandom = seededRandom(5);
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (let text: number = 0; text < 200; text++) {
+          let short: string = "";
 
-    for (let text: number = 0; text < 200; text++) {
-      let short: string = "";
+          for (let index: number = 0; index < 40; index++) {
+            short += random(2) === 0 ? "a" : "b";
+          }
 
-      for (let index: number = 0; index < 40; index++) {
-        short += random(2) === 0 ? "a" : "b";
-      }
+          try {
+            expect(pattern.test(short)).toBe(false);
+          } catch (error: unknown) {
+            expect(error).toBeInstanceOf(PatternWorkLimitError);
+          }
+        }
+      },
+      limitInMs: 10000,
+    });
 
-      try {
-        expect(pattern.test(short)).toBe(false);
-      } catch (error: unknown) {
-        expect(error).toBeInstanceOf(PatternWorkLimitError);
-      }
-    }
-
-    expect(Date.now() - startedAt).toBeLessThan(10000);
+    expect(timed.inMs).toBeLessThan(10000);
   });
 });

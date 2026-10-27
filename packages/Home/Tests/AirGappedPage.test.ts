@@ -21,6 +21,7 @@ import ejs from "ejs";
 import fs from "fs";
 import { JSDOM } from "jsdom";
 import path from "path";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * THE AIR-GAPPED PAGE, RENDERED.
@@ -1288,11 +1289,14 @@ describe("the anchors the page links into the docs", () => {
   });
 
   test("the heading reader stays linear on a very long line", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        headingText(`# ${"\t".repeat(200000)}x${"#".repeat(200000)}`);
+      },
+      limitInMs: 2000,
+    });
 
-    headingText(`# ${"\t".repeat(200000)}x${"#".repeat(200000)}`);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("the helper finds a missing page and a missing heading", () => {

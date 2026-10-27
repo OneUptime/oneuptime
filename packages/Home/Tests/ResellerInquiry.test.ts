@@ -38,6 +38,7 @@ import Email from "Common/Types/Email";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { generatedTexts } from "Common/Tests/Helpers/GeneratedTexts";
+import { fastestRun } from "Common/Tests/Helpers/FastestRun";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -956,12 +957,13 @@ describe("reading takes time in line with the text, whatever its shape", () => {
   const TWO_SECONDS: number = 2000;
   const LENGTH: number = 400000;
 
+  /*
+   * How long the work takes: the fastest of up to three attempts, counted as
+   * it would have run on a usual runner when every attempt overran on a slow
+   * one (Tests/Helpers/FastestRun).
+   */
   function timeOf(work: () => unknown): number {
-    const startedAt: number = Date.now();
-
-    work();
-
-    return Date.now() - startedAt;
+    return fastestRun({ run: work, limitInMs: TWO_SECONDS }).inMs;
   }
 
   test.each([

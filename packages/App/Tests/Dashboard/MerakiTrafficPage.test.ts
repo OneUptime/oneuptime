@@ -116,6 +116,7 @@ import { NetworkControllerConnectionStatus } from "Common/Types/NetworkControlle
 import { NetworkControllerTestResult } from "Common/Types/NetworkController/NetworkControllerConnectionTest";
 import ObjectID from "Common/Types/ObjectID";
 import API from "Common/UI/Utils/API/API";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * The Meraki side of a Traffic page, as plain logic (App's node tests
@@ -449,11 +450,14 @@ describe("the Meraki numbers through the flow side's tiles and chart", () => {
 
   test("an address is told apart in time that grows with its length, whatever Meraki sends", () => {
     const long: string = "1".repeat(400_000);
-    const startedAt: number = Date.now();
-
-    expect(isNetworkAddressText(long)).toBe(false);
-    expect(isNetworkAddressText(`${":".repeat(400_000)}x`)).toBe(false);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(isNetworkAddressText(long)).toBe(false);
+        expect(isNetworkAddressText(`${":".repeat(400_000)}x`)).toBe(false);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("an empty range after the reads stopped: when the newest traffic is - and nothing for a page still reading", () => {

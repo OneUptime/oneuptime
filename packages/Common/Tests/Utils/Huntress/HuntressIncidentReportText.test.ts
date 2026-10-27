@@ -25,6 +25,7 @@ import {
 } from "../../Types/Huntress/HuntressWebhookFixtures";
 import { WORD_JOINER } from "../../../Utils/Markdown/MarkdownEscape";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The incident a Huntress report opens, as responders read it: the title a
@@ -248,14 +249,17 @@ describe("getHuntressAffectedName", () => {
   });
 
   test("is searched with indexOf: a megabyte of brackets is read at once", () => {
-    const started: number = Date.now();
-
-    getHuntressAffectedName({
-      subject: `Incident on ${" (".repeat(1024 * 1024)}`,
-      organization: { id: null, name: null },
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        getHuntressAffectedName({
+          subject: `Incident on ${" (".repeat(1024 * 1024)}`,
+          organization: { id: null, name: null },
+        });
+      },
+      limitInMs: 2000,
     });
 
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

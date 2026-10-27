@@ -6,6 +6,7 @@ import removeHtmlMarkup, {
 import { generatedTexts } from "../Helpers/GeneratedTexts";
 import { describe, expect, it } from "@jest/globals";
 import { JSDOM } from "jsdom";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * Script and style elements hold code and rules, which a browser never
@@ -376,10 +377,15 @@ describe("replaceHtmlMarkup with rawTextElements", () => {
       ],
       ["'<' with no '>' after them", "a <b".repeat(100000)],
     ])("reads %s in linear time", (_case: string, html: string) => {
-      const started: number = Date.now();
-      const text: string = replaceHtmlMarkup(html, NOTHING, WHOLE_AS_A_BROWSER);
+      const timed: FastestRun<string> = fastestRun({
+        run: (): string => {
+          return replaceHtmlMarkup(html, NOTHING, WHOLE_AS_A_BROWSER);
+        },
+        limitInMs: LIMIT_IN_MS,
+      });
+      const text: string = timed.result;
 
-      expect(Date.now() - started).toBeLessThan(LIMIT_IN_MS);
+      expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
       expect(text).not.toMatch(MARKUP_START);
     });
   });

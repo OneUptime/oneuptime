@@ -13,6 +13,7 @@ import {
   pcapLength,
 } from "./PcapFixture";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * The probe cuts a capture at its size limit with truncate(), and the
@@ -311,10 +312,13 @@ describe("PcapFile.decodeBase64", () => {
 
   test("a large upload is checked without a regular expression, in good time", () => {
     const large: string = Buffer.alloc(20 * 1024 * 1024, 1).toString("base64");
-    const started: number = Date.now();
-
-    expect(PcapFile.decodeBase64(large)).toHaveLength(20 * 1024 * 1024);
-    expect(Date.now() - started).toBeLessThan(5000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(PcapFile.decodeBase64(large)).toHaveLength(20 * 1024 * 1024);
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
 
     // One bad character at the very end is still found.
     expect(

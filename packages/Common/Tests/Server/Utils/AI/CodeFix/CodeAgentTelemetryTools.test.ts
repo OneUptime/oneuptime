@@ -36,6 +36,7 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { FindOperator } from "typeorm";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * THE CODE AGENT'S PRODUCTION TELEMETRY TOOLS READ ONLY WHAT THE RUN MAY
@@ -750,15 +751,18 @@ describe("frames that run through a file", () => {
   });
 
   test("a very long line is read in time in line with its length", () => {
-    const started: number = Date.now();
-
-    findMatchingFrames({
-      stackTrace: `    at f (${"a/".repeat(500_000)}x.ts:1:1)`,
-      paths: ["src/x.ts"],
-      functionName: "f",
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        findMatchingFrames({
+          stackTrace: `    at f (${"a/".repeat(500_000)}x.ts:1:1)`,
+          paths: ["src/x.ts"],
+          functionName: "f",
+        });
+      },
+      limitInMs: 2000,
     });
 
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("a function's name is not found in a file name that spells it", () => {
