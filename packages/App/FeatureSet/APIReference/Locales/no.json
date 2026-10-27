@@ -33,6 +33,7 @@
     "pageNotFoundMetaTitle": "Side ikke funnet",
     "pageNotFoundMetaDescription": "Siden du leter etter, ble ikke funnet.",
     "required": "Påkrevd",
+    "defaultValue": "Standard",
     "or": "eller",
     "copy": "Kopier",
     "copied": "Kopiert!",

@@ -63,9 +63,10 @@ Alle appens roller er det samme image: Docker Compose kører dem i én `app`-con
 
 ## Forbindelser ud af dit netværk
 
-Tre forbindelser oprettes, medmindre du ændrer en indstilling:
+Fire forbindelser oprettes, medmindre du ændrer en indstilling:
 
 - Én gang om dagen spørger appen GitHubs API (`api.github.com`), om der er kommet en nyere udgivelse. Du slår det fra med `updateCheck.disabled: true` i Helm-chartet eller med `DISABLE_UPDATE_CHECK=true` i `config.env` på Docker Compose.
+- Én gang om dagen fortæller appen `oneuptime.com` din installations adresse og hvilken version den kører, så OneUptime ved, hvilke installationer der stadig kører en udgivelse med et sikkerhedsproblem. Der sendes intet om dine brugere, projekter eller overvågningsdata. Du slår det fra med `instanceCheckIn.disabled: true` i Helm-chartet eller med `DISABLE_INSTANCE_CHECK_IN=true` i `config.env` på Docker Compose.
 - Tilmelder nogen sig med »Underret mig om sikkerhedsrettelser og nye udgivelser« markeret, som den er fra start, sendes personens navn og e-mail, et eventuelt firma og telefonnummer samt din installations adresse og version til `oneuptime.com`. Fjern markeringen på et netværk uden internetadgang.
 - På Kubernetes falder probes tilbage på de offentlige resolvere `8.8.8.8` og `1.1.1.1` efter din klynges egen DNS. Sæt `dnsConfig.nameservers` til `[]` for at holde alle opslag på din egen DNS.
 

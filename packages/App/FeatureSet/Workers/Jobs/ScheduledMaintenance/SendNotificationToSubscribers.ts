@@ -5,7 +5,12 @@ import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMainten
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import { Blue500 } from "Common/Types/BrandColors";
+import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import ScheduledMaintenancePublication, {
+  ScheduledMaintenancePublicationState,
+} from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import logger from "Common/Server/Utils/Logger";
 import BlockedProjectStatusPages from "Common/Server/Utils/StatusPage/BlockedProjectStatusPages";
@@ -19,10 +24,23 @@ import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 const SKIPPED_NOT_TO_BE_NOTIFIED_MESSAGE: string =
   "Notifications skipped as subscribers are not to be notified for this scheduled maintenance.";
 
+/*
+ * Subscribers hear that an event is scheduled when it is PUBLISHED on its
+ * status pages: as soon as it is created, or - for an event kept to the
+ * team until a publish time (Publish on Status Page At) - at that time. So
+ * the events this job sends are those whose time has come, and one still
+ * waiting stays "Sending Soon" until then: sent once, at publication,
+ * whatever was edited in between. Moving the time sends it then; clearing
+ * it sends it now; turning Visible on Status Page off before then skips it
+ * (Types/ScheduledMaintenance/ScheduledMaintenancePublication).
+ */
 RunCron(
   "ScheduledMaintenance:SendNotificationToSubscribers",
   { schedule: EVERY_MINUTE, runOnStartup: false },
   async () => {
+    // One moment for the whole run: what is published is decided by it.
+    const now: Date = OneUptimeDate.getCurrentDate();
+
     /*
      * A 'scheduled' message queued while notifying subscribers is off - it
      * was turned off after the message was queued, or Retry or the API
@@ -68,13 +86,18 @@ RunCron(
       }
     }
 
-    // get all scheduled events of all the projects.
+    /*
+     * The events to tell subscribers about: queued, notifying, and
+     * published by now - an event whose publish time is still to come waits
+     * for it.
+     */
     const scheduledEvents: Array<ScheduledMaintenance> =
       await ScheduledMaintenanceService.findAllBy({
         query: {
           subscriberNotificationStatusOnEventScheduled:
             StatusPageSubscriberNotificationStatus.Pending,
           shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+          publishOnStatusPageAt: QueryHelper.lessThanEqualToOrNull(now),
         },
         props: {
           isRoot: true,
@@ -93,6 +116,7 @@ RunCron(
             _id: true,
           },
           isVisibleOnStatusPage: true,
+          publishOnStatusPageAt: true,
           scheduledMaintenanceNumber: true,
           scheduledMaintenanceNumberWithPrefix: true,
         },
@@ -110,14 +134,40 @@ RunCron(
         logger.debug(
           `Processing scheduled maintenance ${event.id} (project: ${event.projectId}).`,
         );
+
+        const publication: ScheduledMaintenancePublicationState =
+          ScheduledMaintenancePublication.getState(event, now);
+
+        /*
+         * Not published yet after all: the query asked as of the same
+         * moment, so this is only ever an odd stored time. It waits, as
+         * "Sending Soon", rather than being sent early or skipped.
+         */
+        if (publication === ScheduledMaintenancePublicationState.Scheduled) {
+          continue;
+        }
+
         const scheduledMaintenanceId: ObjectID = event.id!;
         const projectId: ObjectID = event.projectId!;
         const scheduledMaintenanceNumber: string =
           event.scheduledMaintenanceNumberWithPrefix ||
           event.scheduledMaintenanceNumber?.toString() ||
           " - ";
+        const scheduledMaintenanceLink: string = (
+          await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(
+            projectId,
+            scheduledMaintenanceId,
+          )
+        ).toString();
+        /*
+         * Why it went out: the event was created, or - kept to the team
+         * until a publish time - it was published then.
+         */
         const scheduledMaintenanceFeedText: string =
-          mdText`📧 **Subscriber Scheduled Maintenance Scheduled Notification Sent for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${(await ScheduledMaintenanceService.getScheduledMaintenanceLinkInDashboard(projectId, scheduledMaintenanceId)).toString()})**:
+          ScheduledMaintenancePublication.hasPublishTime(event)
+            ? mdText`📧 **Subscriber Scheduled Maintenance Scheduled Notification Sent for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${scheduledMaintenanceLink})**:
+              Notification sent to status page subscribers because this scheduled maintenance was published on its status pages.`.toString()
+            : mdText`📧 **Subscriber Scheduled Maintenance Scheduled Notification Sent for [Scheduled Maintenance ${scheduledMaintenanceNumber}](${scheduledMaintenanceLink})**:
               Notification sent to status page subscribers because this scheduled maintenance was created.`.toString();
 
         // Set status to InProgress
@@ -136,7 +186,7 @@ RunCron(
           `Scheduled maintenance ${event.id} status set to InProgress for subscriber notifications.`,
         );
 
-        if (!event.isVisibleOnStatusPage) {
+        if (publication === ScheduledMaintenancePublicationState.Hidden) {
           // Set status to Skipped for non-visible events
           logger.debug(
             `Scheduled maintenance ${event.id} is not visible on status page; marking as Skipped.`,
@@ -241,7 +291,7 @@ RunCron(
     const successfulEvents: Array<ScheduledMaintenance> =
       scheduledEvents.filter((event: ScheduledMaintenance) => {
         return (
-          event.isVisibleOnStatusPage &&
+          ScheduledMaintenancePublication.isShown(event, now) &&
           !eventIdsOfBlockedProjects.has(event.id!.toString())
         );
       });

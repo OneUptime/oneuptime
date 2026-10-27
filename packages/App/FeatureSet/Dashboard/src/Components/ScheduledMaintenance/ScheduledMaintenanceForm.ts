@@ -10,6 +10,7 @@ import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Fi
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { translateValidationMessage } from "Common/UI/Components/Forms/Validation";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { getPublishingSummary } from "./ScheduledMaintenancePublishing";
 
 /*
  * SCHEDULING MAINTENANCE IN TWO SHORT STEPS.
@@ -199,6 +200,40 @@ export const getSubscriberNotificationsSection: <
       "When the subscribers of the event's status pages hear about it.",
     getSummary: (values: FormValues<TEntity>): Array<string> => {
       return getSubscriberNotificationSummary(values);
+    },
+  };
+};
+
+/*
+ * The same section on Create Scheduled Maintenance Event, where it first
+ * asks when the event is published on its status pages (#5249) - which is
+ * when their subscribers are told it is scheduled - then the switches and
+ * the reminders. Folded, its line starts with when the event shows:
+ * "Shown on its status pages as soon as it is saved. Subscribers of the
+ * event's status pages are notified when it is scheduled, when it starts
+ * and when it ends." (ScheduledMaintenancePublishing). A template, which is
+ * published nowhere, keeps the section above.
+ */
+export const EVENT_SUBSCRIBER_NOTIFICATIONS_DESCRIPTION: string =
+  translationKey(
+    "When the event shows on its status pages, and when their subscribers hear about it.",
+  );
+
+export const getEventSubscriberNotificationsSection: <
+  TEntity,
+>() => FormFieldCollapsibleSection<TEntity> = <
+  TEntity,
+>(): FormFieldCollapsibleSection<TEntity> => {
+  return {
+    id: SUBSCRIBER_NOTIFICATIONS_SECTION_ID,
+    title: "Subscriber Notifications",
+    description:
+      "When the event shows on its status pages, and when their subscribers hear about it.",
+    getSummary: (values: FormValues<TEntity>): Array<string> => {
+      return [
+        getPublishingSummary(values),
+        ...getSubscriberNotificationSummary(values),
+      ];
     },
   };
 };

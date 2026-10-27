@@ -5,7 +5,7 @@ import {
 } from "../ArchivableValue/ArchivedValueFacetOptions";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import AffectedResourcesCell from "../AffectedResources/AffectedResourcesCell";
-import StatusPagesElement from "../StatusPage/StatusPagesElement";
+import ScheduledMaintenanceStatusPagesCell from "./ScheduledMaintenanceStatusPagesCell";
 import AppLink from "../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
 import { Black } from "Common/Types/BrandColors";
@@ -698,6 +698,12 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
           selectMoreFields={{
             scheduledMaintenanceNumberWithPrefix: true,
             /*
+             * Whether an event is on its status pages yet: one kept to the
+             * team until its publish time says from when, under its pages.
+             */
+            isVisibleOnStatusPage: true,
+            publishOnStatusPageAt: true,
+            /*
              * The Resources Affected column lists several M2M relations under one
              * `field` block, but BaseModelTable only auto-selects the FIRST key
              * of each column.field. Include the remaining relations explicitly
@@ -958,9 +964,7 @@ const ScheduledMaintenancesTable: FunctionComponent<ComponentProps> = (
               hideOnMobile: true,
 
               getElement: (item: ScheduledMaintenance): ReactElement => {
-                return (
-                  <StatusPagesElement statusPages={item["statusPages"] || []} />
-                );
+                return <ScheduledMaintenanceStatusPagesCell item={item} />;
               },
             },
             {

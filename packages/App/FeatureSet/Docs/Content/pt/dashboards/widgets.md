@@ -68,6 +68,10 @@ Use-o quando o valor vive numa faixa conhecida: uso de CPU ou de disco em porcen
 
 Valores de métricas como linhas. **Group By Attributes** dá uma linha por valor, como uma por `host.name`; sem isso, cada linha é um intervalo de tempo. **Metrics & Columns** define as colunas: métricas, e fórmulas sobre elas, como a disponibilidade em porcentagem. Quando você agrupa, **Reduce across time** transforma a série de cada linha em um único valor: o último valor, a média, a soma, o mínimo ou o máximo.
 
+Ative **Colorir por limites** em uma coluna para colorir seus valores: um valor que atinge o **Limite de aviso** fica âmbar, com um triângulo, e um que atinge o **Limite crítico** fica vermelho e em negrito, com um círculo. Uma coluna de porcentagem começa em 80 e 90. Para uma coluna em que os valores baixos são o problema, como o espaço livre em disco, escolha **Menor é pior** em **Direção**.
+
+Os limites leem o número que a tabela mostra, então uma métrica de uso enviada como fração de 1, como `system.cpu.utilization`, é mostrada e comparada como porcentagem. Em **Cores dos limites**, **Fundo colorido** preenche a célula inteira em vez de colorir o número.
+
 Use-a para um detalhamento em vez de uma tendência: os hosts mais barulhentos, os erros por serviço, as requisições por endpoint.
 
 ## Texto, relógio e HTML

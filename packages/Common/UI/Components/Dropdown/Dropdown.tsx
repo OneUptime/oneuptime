@@ -26,7 +26,9 @@ import Select, {
   InputProps,
   MultiValueRemoveProps,
   OptionProps,
+  OptionsOrGroups,
 } from "react-select";
+import CreatableSelect from "react-select/creatable";
 
 export type DropdownValue = string | number | boolean;
 
@@ -140,7 +142,61 @@ export interface ComponentProps {
    * that must always have a value, where clearing would only be undone.
    */
   isClearable?: boolean | undefined;
+  /*
+   * A person may add a value no option has: what they type is offered at
+   * the foot of the menu as a row of its own (formatCreateLabel words it,
+   * in the reader's language), and picked, it is a value drawn as written.
+   * Off unless set.
+   */
+  isCreatable?: boolean | undefined;
+  // The row that adds what was typed, in the reader's language.
+  formatCreateLabel?: ((inputValue: string) => string) | undefined;
+  /*
+   * The options are on their way: the control shows a spinner and the open
+   * menu says loadingMessage (in the reader's language).
+   */
+  isLoading?: boolean | undefined;
+  loadingMessage?: string | undefined;
+  /*
+   * What the open menu says when no option matches what was typed, in the
+   * reader's language. Left out: react-select's own "No options".
+   */
+  noOptionsMessage?: ((inputValue: string) => string) | undefined;
+  // The menu opened: a list that is read only once it is needed.
+  onMenuOpen?: (() => void) | undefined;
+  // The menu closed: what it covered under the control can show again.
+  onMenuClose?: (() => void) | undefined;
+  /*
+   * Close the menu once an option is picked. Defaults to true; a
+   * multi-select whose people pick several in a row turns it off, so the
+   * list stays open, at the same place, for the next one.
+   */
+  closeMenuOnSelect?: boolean | undefined;
 }
+
+// Whether text names an option of the list, as a typed value would.
+const namesAnOption: (
+  text: string,
+  options: ReadonlyArray<DropdownOption | DropdownOptionGroup>,
+) => boolean = (
+  text: string,
+  options: ReadonlyArray<DropdownOption | DropdownOptionGroup>,
+): boolean => {
+  const wanted: string = text.trim().toLowerCase();
+
+  return options.some((item: DropdownOption | DropdownOptionGroup): boolean => {
+    if ("options" in item && Array.isArray(item.options)) {
+      return namesAnOption(text, item.options);
+    }
+
+    const option: DropdownOption = item as DropdownOption;
+
+    return (
+      String(option.value).trim().toLowerCase() === wanted ||
+      String(option.label).trim().toLowerCase() === wanted
+    );
+  });
+};
 
 /*
  * A picked value's name. A single pick longer than the control - a
@@ -841,6 +897,77 @@ const Dropdown: FunctionComponent<ComponentProps> = (
   const menuPortalTarget: HTMLElement | null =
     typeof document === "undefined" ? null : document.body;
 
+  /*
+   * The same select, with the "add what was typed" row when a person may
+   * add values: the typed text, trimmed, is the value and its own label,
+   * and it is offered only when it is not an option already, nor picked.
+   */
+  const SelectComponent: typeof Select = (
+    props.isCreatable ? CreatableSelect : Select
+  ) as typeof Select;
+
+  const creatableProps: Record<string, unknown> = props.isCreatable
+    ? {
+        formatCreateLabel: (inputValue: string): string => {
+          return props.formatCreateLabel
+            ? props.formatCreateLabel(inputValue.trim())
+            : inputValue.trim();
+        },
+        getNewOptionData: (
+          inputValue: string,
+          optionLabel: React.ReactNode,
+        ): DropdownOption => {
+          return {
+            value: inputValue.trim(),
+            label: String(optionLabel ?? inputValue).trim(),
+            isUserContent: true,
+          };
+        },
+        isValidNewOption: (
+          inputValue: string,
+          selectValue: ReadonlyArray<DropdownOption>,
+          selectOptions: OptionsOrGroups<
+            DropdownOption,
+            GroupBase<DropdownOption>
+          >,
+        ): boolean => {
+          return (
+            inputValue.trim().length > 0 &&
+            !namesAnOption(inputValue, selectValue) &&
+            !namesAnOption(
+              inputValue,
+              selectOptions as ReadonlyArray<
+                DropdownOption | DropdownOptionGroup
+              >,
+            )
+          );
+        },
+        createOptionPosition: "last",
+      }
+    : {};
+
+  // What the open menu says while loading, or when nothing matches.
+  const menuMessageProps: Record<string, unknown> = {};
+
+  if (props.loadingMessage) {
+    const loadingMessage: string = props.loadingMessage;
+
+    menuMessageProps["loadingMessage"] = (): string => {
+      return loadingMessage;
+    };
+  }
+
+  if (props.noOptionsMessage) {
+    const noOptionsMessage: (inputValue: string) => string =
+      props.noOptionsMessage;
+
+    menuMessageProps["noOptionsMessage"] = (input: {
+      inputValue: string;
+    }): string => {
+      return noOptionsMessage(input.inputValue);
+    };
+  }
+
   return (
     <div
       id={props.id}
@@ -853,7 +980,8 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         props.onFocus?.();
       }}
     >
-      <Select
+      <SelectComponent
+        {...creatableProps}
         classNamePrefix="ou-select"
         unstyled={false}
         formatOptionLabel={formatDropdownOptionLabel}
@@ -953,6 +1081,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           noOptionsMessage: () => {
             return "px-3 py-2 text-sm text-gray-500";
           },
+          // The same line while the options are on their way (isLoading).
+          loadingMessage: () => {
+            return "px-3 py-2 text-sm text-gray-500";
+          },
           multiValue: () => {
             return "flex items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1";
           },
@@ -1043,11 +1175,41 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               zIndex: DROPDOWN_MENU_Z_INDEX,
             };
           },
+          /*
+           * A message of the caller's own is a sentence or two ("Could not
+           * load the components of status.example.com. Type a component's
+           * name..."): it starts where the options start, as text reads,
+           * not centred line by line. react-select's own "No options"
+           * stays centred.
+           */
+          noOptionsMessage: (
+            provided: CSSObjectWithLabel,
+          ): CSSObjectWithLabel => {
+            return props.noOptionsMessage
+              ? { ...provided, textAlign: "start" }
+              : provided;
+          },
+          loadingMessage: (
+            provided: CSSObjectWithLabel,
+          ): CSSObjectWithLabel => {
+            return props.loadingMessage
+              ? { ...provided, textAlign: "start" }
+              : provided;
+          },
         }}
         menuPortalTarget={menuPortalTarget}
         menuPosition="fixed"
         isClearable={props.isClearable ?? true}
         isSearchable={true}
+        isLoading={Boolean(props.isLoading)}
+        closeMenuOnSelect={props.closeMenuOnSelect ?? true}
+        {...menuMessageProps}
+        onMenuOpen={() => {
+          props.onMenuOpen?.();
+        }}
+        onMenuClose={() => {
+          props.onMenuClose?.();
+        }}
         filterOption={filterOption}
         placeholder={tx(props.placeholder) ?? props.placeholder}
         options={props.options as any}

@@ -102,8 +102,8 @@ const PUBLISHED_PORTS = [
   {
     service: "postgres",
     target: 5432,
-    setting: null,
-    example: null,
+    setting: "DATABASE_PUBLISHED_PORT",
+    example: "5401",
     purpose: "OneUptime publishes PostgreSQL there for npm run backup",
   },
   {

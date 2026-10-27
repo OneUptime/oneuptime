@@ -9191,6 +9191,318 @@ test.describe("the header, by its own width", () => {
     await screenshotElement(hero(page), "event-header-maintenance-overdue");
   });
 
+  /*
+   * An event kept to the team until its publish time (#5249) says so in the
+   * header's quiet band: not on its status pages yet, from when, and that
+   * its subscribers are told then - with Publish Now, which asks first and
+   * clears the time. Its Maintenance Details card lists the time and says
+   * the 'scheduled' notification waits for it.
+   */
+  test("a maintenance event not published yet says so in its header, and Publish Now publishes it after asking (?publish=later)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    // Nobody has been told about it yet: no feed item says so.
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "publish=later", [
+      "Acme Internal Status",
+      "4 resources",
+      "Mark as Ongoing",
+      "Maintenance duration",
+    ]);
+    await loadProductionFont(page);
+
+    const band: Locator = hero(page).getByTestId("event-header-notice");
+    await expect(band).toHaveAttribute("data-tone", "neutral");
+    const notice: Locator = band.getByTestId(
+      "scheduled-maintenance-publishing-notice",
+    );
+    await expect(notice).toContainText("Not on status pages yet");
+    await expect(notice).toContainText(
+      "It shows on its status pages from Sep 14 2026, 07:30 PM GMT, when their subscribers are told it is scheduled.",
+    );
+    // The state actions stay where they were; the band holds its own.
+    await expect(
+      heroActions(page).getByRole("button", { name: "Mark as Ongoing" }),
+    ).toBeVisible();
+
+    const details: Locator = card(page, "Maintenance Details");
+    await expect(
+      details.getByTestId("scheduled-maintenance-publish-on-status-pages"),
+    ).toHaveText("Sep 14 2026, 07:30 PM GMT");
+    await expect(details).toContainText("Sent when it is published");
+
+    expect((await headerColours(page)).unreadable).toEqual([]);
+    await page.mouse.move(0, 0);
+    await screenshotElement(
+      hero(page),
+      "event-header-maintenance-not-published-yet",
+    );
+
+    await notice.getByRole("button", { name: "Publish Now" }).click();
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Publish this event now?",
+    });
+    await expect(confirm).toContainText(
+      "It shows on its status pages at once, and their subscribers are told it is scheduled.",
+    );
+    // Nothing is written until it is confirmed.
+    expect((await fixture(page)).updates).toEqual([]);
+
+    await confirm.getByRole("button", { name: "Publish Now" }).click();
+    await expect(confirm).toHaveCount(0);
+
+    expect((await fixture(page)).updates).toEqual([
+      {
+        modelName: "ScheduledMaintenance",
+        id: SCHEDULED_MAINTENANCE_ID,
+        data: { publishOnStatusPageAt: null },
+      },
+    ]);
+    // Read again: published from now, so the band is gone.
+    await expect(
+      hero(page).getByTestId("scheduled-maintenance-publishing-notice"),
+    ).toHaveCount(0);
+    await expect(
+      details.getByTestId("scheduled-maintenance-publish-on-status-pages"),
+    ).toHaveCount(0);
+  });
+
+  /*
+   * The band follows the header's own width (UI review of #5249): beside
+   * the words on a wide header, Publish Now's label level with "Not on
+   * status pages yet"; on a narrow one - a phone, or the header beside the
+   * side menu at 768px - on the line under them. At the end of the band
+   * either way, and sized to its label: as a NORMAL button it kept a dialog
+   * footer's 12px margin and was pushed off both.
+   */
+  test("the band keeps Publish Now at its end: beside the words on a wide header, level with them, and under them on a narrow one (?publish=later)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "publish=later", [
+      "Acme Internal Status",
+      "Mark as Ongoing",
+      "Maintenance duration",
+    ]);
+    await loadProductionFont(page);
+
+    const notice: Locator = hero(page).getByTestId(
+      "scheduled-maintenance-publishing-notice",
+    );
+
+    for (const [width, isBeside] of [
+      [1280, true],
+      [1024, true],
+      [768, false],
+      [390, false],
+    ] as Array<[number, boolean]>) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(notice).toBeVisible();
+
+      const boxes: {
+        contentLeft: number;
+        contentRight: number;
+        words: { left: number; right: number; bottom: number };
+        button: { left: number; right: number; top: number; width: number };
+        titleMiddle: number;
+        labelMiddle: number;
+      } = await notice.evaluate(
+        (
+          element: Element,
+        ): {
+          contentLeft: number;
+          contentRight: number;
+          words: { left: number; right: number; bottom: number };
+          button: { left: number; right: number; top: number; width: number };
+          titleMiddle: number;
+          labelMiddle: number;
+        } => {
+          const band: Element = element.closest(
+            "[data-testid=event-header-notice]",
+          )!;
+          const bandBox: DOMRect = band.getBoundingClientRect();
+          const style: CSSStyleDeclaration = window.getComputedStyle(band);
+          const words: DOMRect =
+            element.firstElementChild!.getBoundingClientRect();
+          const button: Element = element.querySelector(
+            "[data-testid=scheduled-maintenance-publish-now]",
+          )!;
+          const buttonBox: DOMRect = button.getBoundingClientRect();
+          const middleOf: (node: Node) => number = (node: Node): number => {
+            const range: Range = document.createRange();
+            range.selectNodeContents(node);
+            const first: DOMRect = range.getClientRects()[0]!;
+            return first.top + first.height / 2;
+          };
+          const label: Node = Array.from(button.childNodes).find(
+            (node: Node): boolean => {
+              return (
+                node.nodeType === Node.TEXT_NODE &&
+                (node.textContent || "").trim().length > 0
+              );
+            },
+          )!;
+
+          return {
+            contentLeft: bandBox.left + parseFloat(style.paddingLeft),
+            contentRight: bandBox.right - parseFloat(style.paddingRight),
+            words: {
+              left: words.left,
+              right: words.right,
+              bottom: words.bottom,
+            },
+            button: {
+              left: buttonBox.left,
+              right: buttonBox.right,
+              top: buttonBox.top,
+              width: buttonBox.width,
+            },
+            titleMiddle: middleOf(element.querySelector("p")!),
+            labelMiddle: middleOf(label),
+          };
+        },
+      );
+
+      // At the band's end, at every width - never 12px in from it.
+      expect(
+        Math.abs(boxes.button.right - boxes.contentRight),
+        `${width}px: Publish Now ends where the band's words may end`,
+      ).toBeLessThanOrEqual(1);
+      // Sized to its label, never stretched across a phone.
+      expect(
+        boxes.button.width,
+        `${width}px: Publish Now is as wide as its label`,
+      ).toBeLessThan((boxes.contentRight - boxes.contentLeft) / 2);
+      expect(
+        Math.abs(boxes.words.left - boxes.contentLeft),
+        `${width}px: the words start the band`,
+      ).toBeLessThanOrEqual(1);
+
+      if (isBeside) {
+        expect(
+          boxes.button.left,
+          `${width}px: Publish Now is beside the words`,
+        ).toBeGreaterThan(boxes.words.right);
+        expect(
+          Math.abs(boxes.titleMiddle - boxes.labelMiddle),
+          `${width}px: Publish Now's label is level with the band's title`,
+        ).toBeLessThanOrEqual(0.5);
+      } else {
+        expect(
+          boxes.button.top,
+          `${width}px: Publish Now is on the line under the words`,
+        ).toBeGreaterThanOrEqual(boxes.words.bottom);
+      }
+
+      await page.mouse.move(0, 0);
+      await screenshotElement(
+        hero(page),
+        `event-header-maintenance-not-published-yet-${width}`,
+      );
+    }
+  });
+
+  test("a refused Publish Now says why in its dialog, and the event keeps waiting (?publish=later&fail=publish)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(
+      page,
+      SCHEDULED_MAINTENANCE_PAGE,
+      "publish=later&fail=publish",
+      ["Acme Internal Status", "Mark as Ongoing", "Maintenance duration"],
+    );
+
+    const notice: Locator = hero(page).getByTestId(
+      "scheduled-maintenance-publishing-notice",
+    );
+    await notice.getByRole("button", { name: "Publish Now" }).click();
+
+    const confirm: Locator = page.getByRole("dialog", {
+      name: "Publish this event now?",
+    });
+    await confirm.getByRole("button", { name: "Publish Now" }).click();
+
+    // The dialog stays, saying why, and nothing is read as published.
+    await expect(confirm).toContainText(
+      "This scheduled maintenance event could not be updated. Please try again.",
+    );
+    expect((await fixture(page)).updates).toEqual([
+      {
+        modelName: "ScheduledMaintenance",
+        id: SCHEDULED_MAINTENANCE_ID,
+        data: { publishOnStatusPageAt: null },
+      },
+    ]);
+    await expect(
+      confirm.getByRole("button", { name: "Publish Now" }),
+    ).toBeEnabled();
+
+    await confirm.getByRole("button", { name: "Cancel" }).click();
+    await expect(confirm).toHaveCount(0);
+    await expect(notice).toContainText("Not on status pages yet");
+    await expect(
+      card(page, "Maintenance Details").getByTestId(
+        "scheduled-maintenance-publish-on-status-pages",
+      ),
+    ).toHaveText("Sep 14 2026, 07:30 PM GMT");
+  });
+
+  test("the details say a reminder due before the event is published is not sent (?publish=later), and say nothing once it is (?publish=past)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "publish=later", [
+      "Acme Internal Status",
+      "Maintenance duration",
+    ]);
+
+    // The 1-hour reminder (19:20) comes before the publish time (19:30).
+    const details: Locator = card(page, "Maintenance Details");
+    await expect(details).toContainText(
+      "Next reminder: Sep 14 2026, 07:20 PM GMT",
+    );
+    await expect(
+      details.getByTestId("scheduled-maintenance-next-reminder-not-sent"),
+    ).toHaveText("Reminders due before the event is published are not sent.");
+
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "publish=past", [
+      "Acme Internal Status",
+      "Maintenance duration",
+    ]);
+    await expect(
+      card(page, "Maintenance Details").getByTestId(
+        "scheduled-maintenance-publish-on-status-pages",
+      ),
+    ).toHaveText("Sep 14 2026, 12:00 PM GMT");
+    await expect(
+      card(page, "Maintenance Details").getByTestId(
+        "scheduled-maintenance-next-reminder-not-sent",
+      ),
+    ).toHaveCount(0);
+  });
+
+  test("a maintenance event whose publish time has come shows no band, and its details list the time (?publish=past)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, SCHEDULED_MAINTENANCE_PAGE, "publish=past");
+
+    await expect(hero(page).getByTestId("event-header-notice")).toHaveCount(0);
+    await expect(
+      card(page, "Maintenance Details").getByTestId(
+        "scheduled-maintenance-publish-on-status-pages",
+      ),
+    ).toHaveText("Sep 14 2026, 12:00 PM GMT");
+  });
+
   test("someone who may not change an incident's state sees its state actions locked, each saying which permission (?role=alert-member)", async ({
     page,
   }: {

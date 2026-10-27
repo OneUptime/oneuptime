@@ -136,6 +136,7 @@ const SOURCES: Record<string, string> = {
   composeBase: "docker-compose.base.yml",
   updateCheckJob:
     "packages/App/FeatureSet/Workers/Jobs/InstanceUpdate/CheckForNewVersion.ts",
+  checkInJob: "packages/App/FeatureSet/Workers/Jobs/InstanceCheckIn/CheckIn.ts",
   signUpApi: "packages/App/FeatureSet/Identity/API/Authentication.ts",
   registerPage: "packages/App/FeatureSet/Accounts/src/Pages/Register.tsx",
   accountsLocale: "packages/App/FeatureSet/Accounts/src/Locales/en.json",
@@ -2233,9 +2234,9 @@ describe("Architecture, against the compose file and the chart", () => {
       });
 
     expect(section).toContain(
-      "Three connections are made unless you change a setting:",
+      "Four connections are made unless you change a setting:",
     );
-    expect(items).toHaveLength(3);
+    expect(items).toHaveLength(4);
     expect(section).toContain(
       "Everything else reaches out only when you turn it on",
     );
@@ -2277,7 +2278,47 @@ describe("Architecture, against the compose file and the chart", () => {
     );
 
     /*
-     * 2. The release emails: a self-hosted install's sign-up form shows the
+     * 2. The daily check-in: the install's URL and version to oneuptime.com,
+     * once a day, until a setting stops it.
+     */
+    const checkInJob: string = readSource("checkInJob");
+
+    expect(checkInJob).toContain(
+      '"https://oneuptime.com/api/open-source-deployment/check-in"',
+    );
+    expect(checkInJob).toContain("schedule: EVERY_DAY,");
+    expect(checkInJob).toContain("if (DisableInstanceCheckIn) {");
+    expect(
+      textBetween(checkInJob, "data: {", "},")
+        .split("\n")
+        .map((line: string): string => {
+          return line.trim();
+        })
+        .filter(Boolean),
+    ).toEqual(["instanceUrl: instanceUrl,", "oneuptimeVersion: AppVersion,"]);
+    expect(readSource("environmentConfig")).toContain(
+      'process.env["DISABLE_INSTANCE_CHECK_IN"] === "true"',
+    );
+    expect(items[1]).toContain(
+      "Once a day, the app tells `oneuptime.com` your install's address and the version it runs",
+    );
+    expect(items[1]).toContain(
+      "Nothing about your users, projects or monitoring data is sent.",
+    );
+    expect(chartValue("instanceCheckIn.disabled")).toBe(false);
+    expect(readSource("chartHelpers")).toContain(
+      "- name: DISABLE_INSTANCE_CHECK_IN\n  value: {{ default false (($.Values.instanceCheckIn).disabled) | squote }}",
+    );
+    expect(configExampleValue("DISABLE_INSTANCE_CHECK_IN")).toBe("false");
+    expect(readSource("composeBase")).toContain(
+      "DISABLE_INSTANCE_CHECK_IN: ${DISABLE_INSTANCE_CHECK_IN:-false}",
+    );
+    expect(items[1]).toContain(
+      "set `instanceCheckIn.disabled: true` in the Helm chart, or `DISABLE_INSTANCE_CHECK_IN=true` in `config.env` on Docker Compose.",
+    );
+
+    /*
+     * 3. The release emails: a self-hosted install's sign-up form shows the
      * box ticked, and with it ticked the server sends these to oneuptime.com.
      */
     const label: string = JSON.parse(readSource("accountsLocale")).register
@@ -2298,7 +2339,7 @@ describe("Architecture, against the compose file and the chart", () => {
         'dataTestId: "notifySelfHosted"',
       ),
     ).toContain("defaultValue: true");
-    expect(items[1]).toContain(`“${label}” ticked, as it is at first`);
+    expect(items[2]).toContain(`“${label}” ticked, as it is at first`);
 
     const call: string = textBetween(
       readSource("signUpApi"),
@@ -2324,12 +2365,12 @@ describe("Architecture, against the compose file and the chart", () => {
       });
     }
 
-    expect(items[1]).toContain(
+    expect(items[2]).toContain(
       "sends the person's name and email, any company and phone number they gave, and your install's address and version to `oneuptime.com`.",
     );
 
     /*
-     * 3. The probes' fallback resolvers: the chart-wide dnsConfig every probe
+     * 4. The probes' fallback resolvers: the chart-wide dnsConfig every probe
      * takes unless it sets its own, after the cluster's DNS (dnsPolicy stays
      * ClusterFirst, the Kubernetes default, when the chart sets none).
      */
@@ -2338,10 +2379,10 @@ describe("Architecture, against the compose file and the chart", () => {
     expect(readSource("chartProbe")).toContain(
       "{{- else if $.Values.dnsConfig }}",
     );
-    expect(items[2]).toContain(
+    expect(items[3]).toContain(
       "probes fall back to the public resolvers `8.8.8.8` and `1.1.1.1` after your cluster's own DNS.",
     );
-    expect(items[2]).toContain("Set `dnsConfig.nameservers` to `[]`");
+    expect(items[3]).toContain("Set `dnsConfig.nameservers` to `[]`");
   });
 
   /*

@@ -146,6 +146,10 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Owners and labels are added",
     "Runbook rules start",
     "Reminders are scheduled",
+    // Publishing an event later.
+    "Until then, subscribers hear nothing.",
+    "Its page says so.",
+    "Change it, or publish right away.",
   ],
   [MAINTENANCE_STATES]: [
     "state",

@@ -1,5 +1,9 @@
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  REMINDER_NOT_SENT_HIDDEN_MESSAGE,
+  REMINDER_NOT_SENT_NOT_PUBLISHED_YET_MESSAGE,
+} from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Types/StatusPage/StatusPageProjectBlock";
 
 /*
@@ -18,6 +22,10 @@ import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Typ
  * The job registers itself via RunCron at import time and exports nothing, so
  * the Cron util is mocked to CAPTURE the handler and each test drives one full
  * tick.
+ *
+ * A reminder goes out only while the event is shown on its status pages
+ * (#5249): not for an event hidden from them - its reminders used to go
+ * out - nor for one kept to the team until its publish time.
  */
 
 type CronHandler = () => Promise<void>;
@@ -76,8 +84,16 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import URL from "Common/Types/API/URL";
+import OneUptimeDate from "Common/Types/Date";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenance/SendSubscriberRemindersOnEventScheduled";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 const JOB_NAME: string =
   "ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled";
@@ -93,8 +109,17 @@ const ENDS_AT: Date = new Date("2024-03-04T08:00:00.000Z");
 function storedEvent(overrides?: {
   id?: string;
   endsAt?: Date | undefined;
+  isVisibleOnStatusPage?: boolean | undefined;
+  publishOnStatusPageAt?: Date | undefined;
 }): ScheduledMaintenance {
   const event: ScheduledMaintenance = new ScheduledMaintenance();
+
+  // Shown on its status pages, as an event is by default.
+  event.isVisibleOnStatusPage = overrides?.isVisibleOnStatusPage !== false;
+
+  if (overrides?.publishOnStatusPageAt) {
+    event.publishOnStatusPageAt = overrides.publishOnStatusPageAt;
+  }
 
   event._id = overrides?.id || "22222222-2222-4222-8222-222222222222";
   event.projectId = PROJECT_ID;
@@ -214,6 +239,13 @@ describe("ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled", () => {
 
     expect(findAllBySelect()["endsAt"]).toBe(true);
     expect(findAllBySelect()["startsAt"]).toBe(true);
+  });
+
+  test("selects both columns that say whether the event is shown on its status pages", async () => {
+    await mockCapturedJobs[JOB_NAME]!();
+
+    expect(findAllBySelect()["isVisibleOnStatusPage"]).toBe(true);
+    expect(findAllBySelect()["publishOnStatusPageAt"]).toBe(true);
   });
 
   test("hands the end time through to the notification service", async () => {
@@ -384,6 +416,153 @@ describe("ScheduledMaintenance:SendSubscriberRemindersOnEventScheduled", () => {
             : "sent";
         }),
       ).toEqual(["not sent", "sent"]);
+    });
+  });
+  /*
+   * A reminder reminds subscribers of an event they were told about: one
+   * the status pages show. An event hidden from them, or kept to the team
+   * until its publish time (#5249), reminds nobody - its feed says why -
+   * and its next reminder is still scheduled, so a skipped one is never
+   * sent late.
+   */
+  describe("an event not shown on its status pages", () => {
+    const HIDDEN_ID: string = "99999999-9999-4999-8999-999999999991";
+    const WAITING_ID: string = "99999999-9999-4999-8999-999999999992";
+    const SHOWN_ID: string = "99999999-9999-4999-8999-999999999993";
+    const PUBLISHED_ID: string = "99999999-9999-4999-8999-999999999994";
+
+    // The run's clock: the day before the event, a week before it is published.
+    const NOW: Date = new Date("2024-03-03T06:08:00.000Z");
+
+    function feedItems(): Array<Record<string, unknown>> {
+      return (
+        ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem as unknown as jest.Mock
+      ).mock.calls.map((call: Array<unknown>): Record<string, unknown> => {
+        return call[0] as Record<string, unknown>;
+      });
+    }
+
+    function feedItemOf(id: string): Record<string, unknown> {
+      return feedItems().find((item: Record<string, unknown>): boolean => {
+        return String(item["scheduledMaintenanceId"]) === id;
+      })!;
+    }
+
+    beforeEach(() => {
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test("hidden from them: no reminder is sent, and the feed says why", async () => {
+      storedEvents = [
+        storedEvent({ id: HIDDEN_ID, isVisibleOnStatusPage: false }),
+      ];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(notifiedEvents()).toEqual([]);
+      expect(String(feedItemOf(HIDDEN_ID)["feedInfoInMarkdown"])).toContain(
+        "**No Reminder Notification Sent to Subscribers for [Scheduled Maintenance",
+      );
+      expect(feedItemOf(HIDDEN_ID)["moreInformationInMarkdown"]).toBe(
+        REMINDER_NOT_SENT_HIDDEN_MESSAGE,
+      );
+    });
+
+    test("not published yet: no reminder is sent, and the feed says why", async () => {
+      storedEvents = [
+        storedEvent({
+          id: WAITING_ID,
+          publishOnStatusPageAt: new Date("2024-03-10T00:00:00.000Z"),
+        }),
+      ];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(notifiedEvents()).toEqual([]);
+      expect(feedItemOf(WAITING_ID)["moreInformationInMarkdown"]).toBe(
+        REMINDER_NOT_SENT_NOT_PUBLISHED_YET_MESSAGE,
+      );
+    });
+
+    test("published already, from a time that has come: reminded as any other", async () => {
+      storedEvents = [
+        storedEvent({
+          id: PUBLISHED_ID,
+          publishOnStatusPageAt: new Date("2024-02-25T00:00:00.000Z"),
+        }),
+      ];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(
+        notifiedEvents().map((event: ScheduledMaintenance) => {
+          return event.id?.toString();
+        }),
+      ).toEqual([PUBLISHED_ID]);
+      expect(
+        feedItemOf(PUBLISHED_ID)["moreInformationInMarkdown"],
+      ).toBeUndefined();
+    });
+
+    test("still moves its next reminder on, so a skipped one is never sent late", async () => {
+      const nextAt: Date = new Date("2024-03-04T05:38:00.000Z");
+      (
+        ScheduledMaintenanceService.getNextTimeToNotify as unknown as jest.Mock
+      ).mockReturnValue(nextAt);
+      storedEvents = [
+        storedEvent({
+          id: WAITING_ID,
+          publishOnStatusPageAt: new Date("2024-03-10T00:00:00.000Z"),
+        }),
+      ];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      const updateArgs: {
+        id: ObjectID;
+        data: { nextSubscriberNotificationBeforeTheEventAt?: Date };
+      } = (ScheduledMaintenanceService.updateOneById as unknown as jest.Mock)
+        .mock.calls[0]![0] as {
+        id: ObjectID;
+        data: { nextSubscriberNotificationBeforeTheEventAt?: Date };
+      };
+
+      expect(updateArgs.id.toString()).toBe(WAITING_ID);
+      expect(
+        updateArgs.data.nextSubscriberNotificationBeforeTheEventAt,
+      ).toEqual(nextAt);
+    });
+
+    test("does not hold up an event that is shown, in the same tick", async () => {
+      storedEvents = [
+        storedEvent({ id: HIDDEN_ID, isVisibleOnStatusPage: false }),
+        storedEvent({
+          id: WAITING_ID,
+          publishOnStatusPageAt: new Date("2024-03-10T00:00:00.000Z"),
+        }),
+        storedEvent({ id: SHOWN_ID }),
+      ];
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(
+        notifiedEvents().map((event: ScheduledMaintenance) => {
+          return event.id?.toString();
+        }),
+      ).toEqual([SHOWN_ID]);
+      expect(
+        feedItems().map((item: Record<string, unknown>): string => {
+          return String(item["feedInfoInMarkdown"]).startsWith(
+            "🗓️ **No Reminder",
+          )
+            ? "not sent"
+            : "sent";
+        }),
+      ).toEqual(["not sent", "not sent", "sent"]);
     });
   });
 });

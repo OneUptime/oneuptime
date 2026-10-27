@@ -442,13 +442,16 @@ export const getDatabaseMonitorMoreFieldsItems: (data: {
   ];
 };
 
+/*
+ * An External Status Page monitor's More fields. The components it watches
+ * are out in the form (ExternalStatusPageComponentsField), not here.
+ */
 export const EXTERNAL_STATUS_PAGE_MONITOR_MORE_FIELDS: Array<MonitorOptionSpec> =
   [
     {
       key: "componentGroupName",
       title: translationKey("Component Group Filter"),
     },
-    { key: "componentName", title: translationKey("Component Name Filter") },
     { key: "timeout", title: TIMEOUT_TITLE, defaultValue: 10000 },
     { key: "retries", title: RETRIES_TITLE, defaultValue: 3 },
   ];

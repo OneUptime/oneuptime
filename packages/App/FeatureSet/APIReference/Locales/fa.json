@@ -33,6 +33,7 @@
     "pageNotFoundMetaTitle": "صفحه یافت نشد",
     "pageNotFoundMetaDescription": "صفحه‌ای که به دنبال آن هستید پیدا نشد.",
     "required": "الزامی",
+    "defaultValue": "پیش‌فرض",
     "or": "یا",
     "copy": "کپی",
     "copied": "کپی شد!",

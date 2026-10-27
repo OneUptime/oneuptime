@@ -63,9 +63,10 @@ Alle rollen van de app zijn hetzelfde image: Docker Compose draait ze in één `
 
 ## Verbindingen uit uw netwerk
 
-Drie verbindingen worden gemaakt, tenzij u een instelling wijzigt:
+Vier verbindingen worden gemaakt, tenzij u een instelling wijzigt:
 
 - Eén keer per dag vraagt de app aan de API van GitHub (`api.github.com`) of er een nieuwere versie is. Zet dit uit met `updateCheck.disabled: true` in de Helm-chart, of met `DISABLE_UPDATE_CHECK=true` in `config.env` bij Docker Compose.
+- Eén keer per dag meldt de app het adres van uw installatie en de versie die ze draait aan `oneuptime.com`, zodat OneUptime weet welke installaties nog een versie met een beveiligingsprobleem draaien. Er wordt niets over uw gebruikers, projecten of monitoringgegevens verstuurd. Zet dit uit met `instanceCheckIn.disabled: true` in de Helm-chart, of met `DISABLE_INSTANCE_CHECK_IN=true` in `config.env` bij Docker Compose.
 - Bij een aanmelding met „Stel mij op de hoogte van beveiligingspatches en nieuwe versies” aangevinkt, zoals het in het begin staat, gaan de naam en het e-mailadres van die persoon, een opgegeven bedrijf en telefoonnummer, en het adres en de versie van uw installatie naar `oneuptime.com`. Vink het uit op een netwerk zonder internettoegang.
 - Op Kubernetes vallen probes na de eigen DNS van uw cluster terug op de openbare resolvers `8.8.8.8` en `1.1.1.1`. Zet `dnsConfig.nameservers` op `[]` om elke lookup op uw eigen DNS te houden.
 

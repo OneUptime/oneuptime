@@ -148,6 +148,8 @@ fi
 
 assert_eq "a stock install leaves the update check on" "false" \
     "$(env_value_of "${WORK_DIR}/stock.d/Deployment@oneuptime-app" DISABLE_UPDATE_CHECK)"
+assert_eq "a stock install leaves the daily check-in on" "false" \
+    "$(env_value_of "${WORK_DIR}/stock.d/Deployment@oneuptime-app" DISABLE_INSTANCE_CHECK_IN)"
 assert_eq "a stock install refuses webhooks to private addresses" "false" \
     "$(env_value_of "${WORK_DIR}/stock.d/Deployment@oneuptime-app" ALLOW_PRIVATE_NETWORK_WEBHOOKS)"
 
@@ -230,6 +232,10 @@ assert_absent "nothing in the air-gapped render names 1.1.1.1" "$(cat "${WORK_DI
 # The worker job that would ask GitHub for the latest release is told not to.
 assert_eq "the app is told the update check is off" "true" \
     "$(env_value_of "${WORK_DIR}/air-gapped.d/Deployment@oneuptime-app" DISABLE_UPDATE_CHECK)"
+
+# And the one that would check in with oneuptime.com.
+assert_eq "the app is told the daily check-in is off" "true" \
+    "$(env_value_of "${WORK_DIR}/air-gapped.d/Deployment@oneuptime-app" DISABLE_INSTANCE_CHECK_IN)"
 
 # Workflows, project webhooks and on-call user webhooks may post to the
 # customer's own tools, which all sit on private addresses.

@@ -3,6 +3,41 @@
   and the product: the Dashboard during incident #1042, one window with the
   Home page and OneUptime AI's root cause and fix docked beside it.
 -%>
+<style>
+  /*
+   * The dots the pointer lights (the script at the end of the hero moves
+   * them). A square the size of the lit circle, faded out from its middle,
+   * moved on the compositor; its dots are shifted back by as much as it
+   * moves, so they stay where they are on the page while the light passes
+   * over them.
+   */
+  .hero-dots {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -10;
+    width: 36rem;
+    height: 36rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    background-image: radial-gradient(circle, rgb(17 24 39 / 0.22) 1px, transparent 1.5px);
+    background-size: 22px 22px;
+    -webkit-mask-image: radial-gradient(closest-side, #000 15%, transparent);
+    mask-image: radial-gradient(closest-side, #000 15%, transparent);
+    will-change: transform;
+  }
+  .hero-dots.is-lit {
+    opacity: 1;
+    transition-duration: 0.3s;
+  }
+  /* The script lights nothing here either; this keeps the square from ever being drawn. */
+  @media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+    .hero-dots {
+      display: none;
+    }
+  }
+</style>
 <section class="relative isolate overflow-hidden border-b border-gray-200/70 bg-white" id="hero-section" aria-labelledby="hero-title">
   <%#
     The stage the product stands on. Its edge is level with the Home page's
@@ -12,8 +47,16 @@
   -%>
   <div class="absolute inset-x-0 bottom-0 -z-10 h-[36rem] border-t border-gray-200/60 bg-gray-50 sm:h-[32.5rem] md:h-[24rem] lg:h-[31rem] xl:h-[30rem]" aria-hidden="true"></div>
 
+  <%#
+    A fine grid of dots shows in a soft circle around the pointer, follows
+    it a beat behind, and fades when it leaves the hero. On a touch screen,
+    for visitors who ask for less motion and without JavaScript, nothing is
+    drawn: the background stays plain.
+  -%>
+  <div class="hero-dots" data-hero-dots aria-hidden="true"></div>
+
   <div class="mx-auto max-w-6xl px-6 pt-14 sm:pt-20 lg:px-8 lg:pt-24">
-    <a href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-950">
+    <a href="https://github.com/oneuptime/oneuptime" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center gap-2 rounded-sm text-sm font-medium text-gray-600 transition-colors hover:text-gray-950 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gray-950">
       <svg class="h-4 w-4 text-gray-950" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" /></svg>
       <span>Open source<% if (githubStars) { %><span class="mx-1.5 text-gray-300" aria-hidden="true">/</span><%= githubStars %> stars on GitHub<% } else { %> on GitHub<% } %></span>
       <svg class="h-3.5 w-3.5 text-gray-400 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
@@ -32,11 +75,11 @@
       <div class="lg:col-span-5 lg:pt-1">
         <p class="max-w-md text-[17px] leading-7 text-gray-600">OneUptime is one open-source platform for uptime monitoring, status pages, on-call, incidents, logs, metrics and traces. Its AI agent finds the root cause and opens the fix for your team to review.</p>
         <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-          <a href="/accounts/register" class="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-gray-950 px-6 text-[15px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_rgba(16,24,40,0.24)] hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-950">
+          <a href="/accounts/register" class="group inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-gray-950 px-6 text-[15px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_rgba(16,24,40,0.24)] transition-colors hover:bg-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-950">
             Get started free
             <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
           </a>
-          <a href="/enterprise/demo" class="inline-flex h-12 items-center justify-center rounded-lg bg-white px-6 text-[15px] font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-900/15 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">Book a demo</a>
+          <a href="/enterprise/demo" class="inline-flex h-12 items-center justify-center rounded-lg bg-white px-6 text-[15px] font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-900/15 transition hover:bg-gray-50 hover:ring-gray-900/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-400">Book a demo</a>
         </div>
         <p class="mt-5 text-[13px] text-gray-500">Free plan &middot; No credit card required &middot; Self-host anytime</p>
       </div>
@@ -56,3 +99,106 @@
     </div>
   </div>
 </section>
+<script>
+(function () {
+    // The dots the pointer lights: a mouse or trackpad only, and never for visitors who ask for less motion.
+    const hero = document.getElementById('hero-section');
+    const dots = hero ? hero.querySelector('[data-hero-dots]') : null;
+    if (!dots || !window.matchMedia || !window.requestAnimationFrame) return;
+
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    // The spacing of the dots, as .hero-dots draws them.
+    const spacing = 22;
+    // How much of the way to the pointer the light closes in a sixtieth of a second, whatever the screen's refresh rate.
+    const follow = 0.2;
+    // How long the light takes to fade once the pointer leaves, as .hero-dots's transition.
+    const fadeMs = 600;
+
+    let clientX = 0;
+    let clientY = 0;
+    let targetX = 0;
+    let targetY = 0;
+    let x = 0;
+    let y = 0;
+    let half = 0;
+    let lit = false;
+    let darkenedAt = -fadeMs;
+    let frame = 0;
+    let lastFrameAt = 0;
+
+    const draw = function () {
+        // Whole pixels, so the dots stay sharp; the dots move back by what the square moved past a whole step.
+        const left = Math.round(x - half);
+        const top = Math.round(y - half);
+        dots.style.transform = 'translate3d(' + left + 'px, ' + top + 'px, 0)';
+        dots.style.backgroundPosition = -(((left % spacing) + spacing) % spacing) + 'px ' + -(((top % spacing) + spacing) % spacing) + 'px';
+    };
+
+    const step = function (now) {
+        // How far it closes goes by the time since the last frame (or since the pointer moved), not by how many frames the screen draws.
+        const elapsed = Math.min(Math.max(now - lastFrameAt, 0), 100);
+        const pull = 1 - Math.pow(1 - follow, elapsed / (1000 / 60));
+        lastFrameAt = now;
+        x += (targetX - x) * pull;
+        y += (targetY - y) * pull;
+        if (Math.abs(targetX - x) < 0.5 && Math.abs(targetY - y) < 0.5) {
+            x = targetX;
+            y = targetY;
+            frame = 0;
+        } else {
+            frame = window.requestAnimationFrame(step);
+        }
+        draw();
+    };
+
+    const darken = function () {
+        if (!lit) return;
+        lit = false;
+        darkenedAt = performance.now();
+        dots.classList.remove('is-lit');
+    };
+
+    const aim = function () {
+        const box = hero.getBoundingClientRect();
+        targetX = clientX - box.left;
+        targetY = clientY - box.top;
+        if (targetX < 0 || targetY < 0 || targetX > box.width || targetY > box.height) {
+            darken();
+            return;
+        }
+        if (!lit) {
+            half = dots.offsetWidth / 2;
+            // Lit where the pointer comes in, unless the light is still fading from where it left: then it glides over.
+            if (performance.now() - darkenedAt >= fadeMs) {
+                x = targetX;
+                y = targetY;
+                draw();
+            }
+            lit = true;
+            dots.classList.add('is-lit');
+        }
+        if (!frame) {
+            lastFrameAt = performance.now();
+            frame = window.requestAnimationFrame(step);
+        }
+    };
+
+    hero.addEventListener('pointermove', function (event) {
+        if (event.pointerType !== 'mouse' || !finePointer.matches || reducedMotion.matches) {
+            darken();
+            return;
+        }
+        clientX = event.clientX;
+        clientY = event.clientY;
+        aim();
+    }, { passive: true });
+
+    hero.addEventListener('pointerleave', darken, { passive: true });
+
+    // The page scrolls under a still pointer, and the light stays with the pointer.
+    window.addEventListener('scroll', function () {
+        if (lit) aim();
+    }, { passive: true });
+})();
+</script>

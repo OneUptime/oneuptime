@@ -352,7 +352,7 @@ const submitEmail: (email: string) => Promise<void> = async (
   await user.type(await screen.findByTestId("email"), email);
 
   await act(async () => {
-    await user.click(screen.getByTestId("Login with SSO"));
+    await user.click(screen.getByTestId("Sign in with SSO"));
   });
 };
 
@@ -823,7 +823,7 @@ describe("Accounts single sign-on, in every edition", () => {
 
       expect(field).toHaveValue("ada@example.com");
       expect(field).toHaveAttribute("readonly");
-      expect(screen.getByTestId("Login with SSO")).toBeDisabled();
+      expect(screen.getByTestId("Sign in with SSO")).toBeDisabled();
       expect(screen.getByText(english.sso.subtitle)).toBeInTheDocument();
 
       await act(async () => {
@@ -834,7 +834,7 @@ describe("Accounts single sign-on, in every edition", () => {
         await screen.findByText(noConfigFor("ada@example.com")),
       ).toBeInTheDocument();
       expect(screen.getByTestId("email")).not.toHaveAttribute("readonly");
-      expect(screen.getByTestId("Login with SSO")).toBeEnabled();
+      expect(screen.getByTestId("Sign in with SSO")).toBeEnabled();
     });
 
     test("an address that finds nothing stays in the field, under the message that names it", async () => {
@@ -874,7 +874,7 @@ describe("Accounts single sign-on, in every edition", () => {
       await user.clear(screen.getByTestId("email"));
       await user.type(screen.getByTestId("email"), "grace@example.com");
       await act(async () => {
-        await user.click(screen.getByTestId("Login with SSO"));
+        await user.click(screen.getByTestId("Sign in with SSO"));
       });
 
       expect(
@@ -1021,7 +1021,7 @@ describe("Accounts single sign-on, in every edition", () => {
       });
 
       await act(async () => {
-        await user.click(screen.getByTestId("Login with SSO"));
+        await user.click(screen.getByTestId("Sign in with SSO"));
       });
 
       expect(

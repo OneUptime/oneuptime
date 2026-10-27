@@ -1306,8 +1306,9 @@ describe("Home Page & Shortcuts", () => {
     expect(section).toContain(
       "**Upcoming maintenance** lists the next three scheduled maintenance windows, the soonest first. It is left out when nothing is scheduled.",
     );
+    // Left out until it has windows to list: while it reads, and after.
     expect(oneLine(UPCOMING_SOURCE)).toContain(
-      'state.status === "loaded" && state.items.length === 0',
+      'if (state.status !== "loaded" || state.items.length === 0) { return <></>; }',
     );
   });
 

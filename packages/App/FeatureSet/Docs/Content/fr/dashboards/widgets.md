@@ -68,6 +68,10 @@ Utilisez-la quand la valeur se situe dans une plage connue : l'utilisation du CP
 
 Des valeurs de métriques en lignes. **Regrouper par attributs** donne une ligne par valeur, par exemple une par `host.name` ; sans regroupement, chaque ligne est un intervalle de temps. **Metrics & Columns** définit les colonnes : des métriques, et des formules sur elles, comme la disponibilité en pourcentage. Quand vous regroupez, **Reduce across time** ramène la série de chaque ligne à une valeur : la dernière valeur, la moyenne, la somme, le minimum ou le maximum.
 
+Activez **Colorer selon les seuils** dans une colonne pour colorer ses valeurs : une valeur qui atteint le **Seuil d'avertissement** devient ambre, avec un triangle, et une valeur qui atteint le **Seuil critique** devient rouge et grasse, avec un cercle. Une colonne en pourcentage commence à 80 et 90. Pour une colonne où les valeurs basses posent problème, comme l'espace disque libre, choisissez **Plus bas est pire** sous **Direction**.
+
+Les seuils lisent le nombre que le tableau affiche : une métrique d'utilisation envoyée comme une fraction de 1, comme `system.cpu.utilization`, s'affiche et se compare en pourcentage. Sous **Couleurs des seuils**, **Fond coloré** remplit toute la cellule au lieu de colorer le nombre.
+
 Utilisez-le pour une ventilation plutôt qu'une tendance : les hôtes les plus bruyants, les erreurs par service, les requêtes par point de terminaison.
 
 ## Texte, horloge et HTML

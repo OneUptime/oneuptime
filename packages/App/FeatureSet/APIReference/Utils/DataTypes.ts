@@ -255,6 +255,12 @@ export default class DataTypeUtil {
           "A query filter that matches objects where a field value is included in the specified array of values.",
       },
       {
+        name: "OwnedBy",
+        path: "owned-by",
+        description:
+          "A query filter, under the query's owners key, that matches the records some people or teams own - or none of them, anyone, or no one.",
+      },
+      {
         name: "DashboardComponent",
         path: "dashboard-component",
         description:
