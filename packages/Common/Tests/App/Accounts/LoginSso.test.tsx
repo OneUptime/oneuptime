@@ -701,11 +701,15 @@ describe("Accounts single sign-on, in every edition", () => {
       await renderSso();
       await submitEmail("ada@example.com");
 
-      expect(
-        await screen.findByRole("heading", {
-          name: english.sso.selectProjectTitle,
-        }),
-      ).toBeInTheDocument();
+      const heading: HTMLElement = await screen.findByRole("heading", {
+        name: english.sso.selectProjectTitle,
+      });
+
+      /*
+       * The list took the form's place, and the focus with it: the keyboard
+       * and a screen reader go on from its heading.
+       */
+      expect(heading).toHaveFocus();
       expect(
         screen.getByText(english.sso.selectProjectSubtitle),
       ).toBeInTheDocument();

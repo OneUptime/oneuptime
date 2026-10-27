@@ -22,9 +22,11 @@ import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import React, {
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
@@ -128,6 +130,22 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
   const emailFormInitialValues: JSONObject = useMemo((): JSONObject => {
     return lookedUpEmail ? { email: lookedUpEmail } : {};
   }, [lookedUpEmail]);
+
+  /*
+   * The list of an address's projects takes the form's place: the keyboard
+   * and a screen reader start at its heading, rather than at the top of a
+   * page whose form, and the focus in it, have gone.
+   */
+  const isListingProjects: boolean =
+    (samlConfigs.length > 0 || oidcConfigs.length > 0) && !error;
+  const projectsHeadingRef: MutableRefObject<HTMLHeadingElement | null> =
+    useRef<HTMLHeadingElement | null>(null);
+
+  useEffect(() => {
+    if (isListingProjects) {
+      projectsHeadingRef.current?.focus();
+    }
+  }, [isListingProjects]);
 
   type FetchSSOConfigsFunction = (email: Email) => Promise<void>;
 
@@ -253,10 +271,18 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
 
   const isSsoRequired: boolean = Boolean(signInMethods?.isSsoRequired);
 
-  // The logo, the edition where the sign-in page shows it, and the heading.
-  const renderHeader: (title: string, subtitle: string) => ReactElement = (
+  /*
+   * The logo, the edition where the sign-in page shows it, and the heading
+   * (which can take the focus, given a ref).
+   */
+  const renderHeader: (
     title: string,
     subtitle: string,
+    headingRef?: MutableRefObject<HTMLHeadingElement | null> | undefined,
+  ) => ReactElement = (
+    title: string,
+    subtitle: string,
+    headingRef?: MutableRefObject<HTMLHeadingElement | null> | undefined,
   ): ReactElement => {
     return (
       <div className="w-full max-w-md mx-auto">
@@ -270,7 +296,11 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
             <EditionLabel />
           </div>
         )}
-        <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900 text-balance">
+        <h2
+          ref={headingRef}
+          tabIndex={headingRef ? -1 : undefined}
+          className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900 text-balance focus:outline-none"
+        >
           {title}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0 text-balance">
@@ -279,9 +309,6 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
       </div>
     );
   };
-
-  const hasAnyConfigs: boolean =
-    samlConfigs.length > 0 || oidcConfigs.length > 0;
 
   const getProjectName: (projectId: string) => string = (
     projectId: string,
@@ -312,7 +339,7 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
    * form, the address still in it. They were a list of their own under the
    * project names, with no way back but reloading the page.
    */
-  if (hasAnyConfigs && !error) {
+  if (isListingProjects) {
     const projectIdSet: Set<string> = new Set();
     for (const c of samlConfigs) {
       if (c.projectId) {
@@ -348,6 +375,7 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
         {renderHeader(
           t("sso.selectProjectTitle"),
           t("sso.selectProjectSubtitle"),
+          projectsHeadingRef,
         )}
 
         <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
@@ -385,7 +413,7 @@ const LoginWithSsoPage: FunctionComponent<ComponentProps> = (
                 <div key={projectId} data-testid="sso-project">
                   <h3
                     dir="auto"
-                    className="mb-3 text-center text-sm font-medium tracking-tight text-gray-900 break-words"
+                    className="mb-3 text-center text-sm font-medium tracking-tight text-gray-900 break-words text-balance"
                   >
                     {getProjectName(projectId)}
                   </h3>

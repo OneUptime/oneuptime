@@ -20,6 +20,8 @@
  *   providers=<n>                        how many instance-wide providers (0 to 3)
  *   projectsso=1                         while SSO is required, some project has a
  *                                        provider of its own (the email lookup stays)
+ *   lookup=found                         the email lookup finds providers in two
+ *                                        projects (it finds none otherwise)
  *   sso=0                                the status page has no SSO provider
  *
  * window.__setLanguage(code) switches the page's language in place, and
@@ -77,6 +79,48 @@ const PROVIDERS = [
   },
 ];
 
+/*
+ * What the email lookups find for an address with lookup=found: SAML
+ * providers in two projects (GET /identity/service-provider-login), and an
+ * OpenID Connect one in the first (.../service-provider-login-oidc).
+ */
+const ACME = { _id: "66666666-6666-4666-8666-666666666666", name: "Acme" };
+const GLOBEX = {
+  _id: "77777777-7777-4777-8777-777777777777",
+  name: "Globex Corporation - Customer Support Operations (EMEA)",
+};
+const projectProvider = (id, name, description, project) => {
+  return {
+    _id: id,
+    name: name,
+    description: description,
+    projectId: project._id,
+    project: project,
+  };
+};
+const LOOKUP_SAML = [
+  projectProvider(
+    "88888888-8888-4888-8888-888888888888",
+    "Acme Okta",
+    "Sign in with Acme Okta",
+    ACME,
+  ),
+  projectProvider(
+    "99999999-9999-4999-8999-999999999999",
+    "Globex Microsoft Entra ID for contractors",
+    "Use the email address your Globex manager gave you",
+    GLOBEX,
+  ),
+];
+const LOOKUP_OIDC = [
+  projectProvider(
+    "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "Acme Google Workspace",
+    "Sign in with Acme Google Workspace",
+    ACME,
+  ),
+];
+
 const isSsoRequired = params.get("ssorequired") === "1";
 const providerCount = params.has("providers")
   ? Number(params.get("providers"))
@@ -96,6 +140,17 @@ API.get = async (options) => {
         hasProjectSsoProviders:
           isSsoRequired && params.get("projectsso") === "1",
       },
+      {},
+    );
+  }
+  // An email's projects' providers: none, unless lookup=found.
+  if (url.includes("/service-provider-login")) {
+    if (params.get("lookup") !== "found") {
+      return new HTTPResponse(200, [], {});
+    }
+    return new HTTPResponse(
+      200,
+      url.includes("/service-provider-login-oidc") ? LOOKUP_OIDC : LOOKUP_SAML,
       {},
     );
   }

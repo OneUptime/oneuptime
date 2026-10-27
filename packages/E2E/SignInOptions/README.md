@@ -21,7 +21,8 @@ While the whole server requires single sign-on (`ssorequired=1`), it checks that
 
 - the sign-in, single sign-on and sign-up pages are the instance-wide provider's button alone, filled like the page's own button, with no email, password, passkey, Microsoft or sign-up;
 - several providers (`providers=3`) with a project that has a provider of its own (`projectsso=1`) are outlined options above the email lookup, each as wide and as tall as its button, with "or" between them;
-- the master admins' page (`page=adminlogin`) is the password form, with only the way to single sign-on under "or".
+- the master admins' page (`page=adminlogin`) is the password form, with only the way to single sign-on under "or";
+- the email lookup keeps the address it looked up, and an address's projects (`lookup=found`) are listed as their providers' buttons, held to the same checks, with the way back to the form.
 
 The instance-wide providers come from the fixture's answer to `GET /identity/sign-in-methods`, which every Accounts page reads first.
 

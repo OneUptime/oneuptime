@@ -38,6 +38,8 @@ const OPTIONS: string = [
   '[data-testid="passkey-login"]',
   // An instance-wide single sign-on provider (SsoProviderOptions).
   '[data-testid="sso-provider"]',
+  // A provider of a project an address belongs to, after the email lookup.
+  '[data-testid="sso-project-provider"]',
 ].join(", ");
 const DIVIDERS: string =
   '[data-testid="sign-in-options-divider"], [data-testid="sign-up-options-divider"]';
@@ -864,6 +866,94 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
     expect(result.checked).toBe(
       SUPPORTED_ACCOUNTS_LANGUAGE_CODES.length * WIDTHS.length * 3,
     );
+  });
+
+  /*
+   * The email lookup, kept while some project has a provider of its own:
+   * the address stays in its field whatever the answer - the page gave way
+   * to a loader and came back empty, under a message naming the address
+   * (the screenshot in #5193) - and an address's projects are listed as
+   * their providers' buttons, drawn as every other way in and held to the
+   * same checks, with the way back to the form.
+   */
+  test("while the server requires SSO, the email lookup keeps its address, and lists an address's projects as their providers' buttons", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const lookUp: () => Promise<void> = async (): Promise<void> => {
+      await page.getByTestId("email").fill("ada@example.com");
+      await page.locator(SUBMIT).click();
+    };
+
+    // An address that finds nothing: the message names it, and it stays.
+    await open(page, "page=login&ssorequired=1&providers=1&projectsso=1");
+    await lookUp();
+
+    await expect(
+      page.getByText(
+        "No SSO configuration found for the email: ada@example.com",
+      ),
+    ).toBeVisible();
+    await expect(page.getByTestId("email")).toHaveValue("ada@example.com");
+
+    // An address in two projects: their providers' buttons, by project.
+    await open(
+      page,
+      "page=login&ssorequired=1&providers=1&projectsso=1&lookup=found",
+    );
+    await lookUp();
+
+    await expect(page.getByTestId("sso-projects")).toBeVisible();
+    await expect(page.getByTestId("sso-project")).toHaveCount(2);
+    await expect(page.getByTestId("sso-project-provider")).toHaveCount(3);
+    await expect(page.getByTestId("email")).toHaveCount(0);
+
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      const card: Rect = await box(page.getByTestId("sso-projects"));
+      let first: Rect | null = null;
+
+      for (const provider of await page
+        .getByTestId("sso-project-provider")
+        .all()) {
+        const rect: Rect = await box(provider);
+
+        // One column of outlined buttons, as wide as each other, in the card.
+        if (first) {
+          expect(Math.abs(rect.left - first.left)).toBeLessThanOrEqual(0.5);
+          expect(Math.abs(widthOf(rect) - widthOf(first))).toBeLessThanOrEqual(
+            0.5,
+          );
+        }
+        expect(rect.left).toBeGreaterThan(card.left);
+        expect(rect.right).toBeLessThan(card.right);
+        expect(
+          await provider.evaluate((element: Element): string => {
+            return window.getComputedStyle(element).backgroundColor;
+          }),
+        ).not.toBe(FILLED_LOOK.background);
+        first = first || rect;
+      }
+    }
+
+    const result: Survey = await survey(
+      page,
+      SUPPORTED_ACCOUNTS_LANGUAGE_CODES,
+      WIDTHS,
+      null,
+    );
+
+    expect(result.problems).toEqual([]);
+    expect(result.checked).toBe(
+      SUPPORTED_ACCOUNTS_LANGUAGE_CODES.length * WIDTHS.length * 3,
+    );
+
+    // The way back: the form, with the address still in it.
+    await page.getByTestId("sso-use-different-email").click();
+
+    await expect(page.getByTestId("email")).toHaveValue("ada@example.com");
+    await expect(page.getByTestId("sso-projects")).toHaveCount(0);
   });
 
   /*
