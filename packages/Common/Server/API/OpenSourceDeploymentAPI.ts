@@ -46,7 +46,9 @@ export default class OpenSourceDeploymentAPI extends BaseAPI<
            * Skip instances nobody else can reach: localhost, loopback and test
            * hosts - default/unconfigured deployments and developer machines.
            */
-          if (!OpenSourceDeploymentService.isInstallUrl(deployment.instanceUrl)) {
+          if (
+            !OpenSourceDeploymentService.isInstallUrl(deployment.instanceUrl)
+          ) {
             return Response.sendEmptySuccessResponse(req, res);
           }
 
@@ -104,7 +106,9 @@ export default class OpenSourceDeploymentAPI extends BaseAPI<
             (body["oneuptimeVersion"] as string) || "unknown";
           deployment.instanceUrl = (body["instanceUrl"] as string) || "";
 
-          if (OpenSourceDeploymentService.isInstallUrl(deployment.instanceUrl)) {
+          if (
+            OpenSourceDeploymentService.isInstallUrl(deployment.instanceUrl)
+          ) {
             await OpenSourceDeploymentService.recordInstance(deployment);
           }
 
