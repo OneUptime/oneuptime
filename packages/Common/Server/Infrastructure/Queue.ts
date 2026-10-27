@@ -7,6 +7,7 @@ import { createBullBoard } from "@bull-board/api";
 import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressRouter } from "../Utils/Express";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import QueueJobTraceContext from "../Utils/Telemetry/QueueJobTraceContext";
 import logger from "../Utils/Logger";
 import Telemetry from "../Utils/Telemetry";
 import type { Attributes, ObservableResult } from "@opentelemetry/api";
@@ -578,7 +579,17 @@ export default class Queue {
       };
     }
 
-    const jobAdded: Job = await queue.add(jobName, data, optionsObject);
+    /*
+     * A one-off job carries this span's context, so its own trace links back
+     * to the request or job that enqueued it (QueueJobTraceContext). A
+     * repeatable job does not: every run would link to whoever registered it.
+     */
+    const jobData: JSONObject =
+      options && options.scheduleAt
+        ? data
+        : QueueJobTraceContext.addToJobData(data);
+
+    const jobAdded: Job = await queue.add(jobName, jobData, optionsObject);
 
     return jobAdded;
   }
