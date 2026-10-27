@@ -789,7 +789,8 @@ describe("reviewing a held record", () => {
     const run: OnCallDutyPolicyExecutionLog = heldRun(
       "6c000000-0000-4000-8000-0000000000b1",
     );
-    run.triggeredByIncidentId = undefined;
+    (run as unknown as Record<string, unknown>)["triggeredByIncidentId"] =
+      undefined;
     run.triggeredByAlertId = ALERT_ID;
     const world: World = stubHeldRuns({ runs: [run] });
     jest.spyOn(AlertService, "isAlertAcknowledged").mockResolvedValue(false);

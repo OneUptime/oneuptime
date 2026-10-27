@@ -898,6 +898,8 @@ describe("a run that waited, and its record's first page", () => {
 describe("a run OneUptime AI holds", () => {
   const AI_HOLD_MESSAGE: string = getOnCallPolicyRunWaitingMessage({
     pagingStartsAt: new Date("2026-10-27T10:40:00.000Z"),
+    now: new Date("2026-10-27T10:30:00.000Z"),
+    isWaitingForWorkingHours: false,
     isWaitingForOneUptimeAI: true,
   });
 
