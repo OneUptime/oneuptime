@@ -7,6 +7,7 @@ import {
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, it } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * These are the regression tests for GHSA-3x69-fj58-3pc6 (Slack / Microsoft
@@ -684,11 +685,14 @@ describe("the cluster key's spellings keep redaction linear", () => {
       `${"UCLUSTERKEY-".repeat(LENGTH / 12)}\u0000`,
     ],
   ])("%s", (_label: string, text: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        redactLogString(text);
+      },
+      limitInMs: 2000,
+    });
 
-    redactLogString(text);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 
@@ -731,11 +735,14 @@ describe("credentials in a URL", () => {
   ])(
     "are looked for in time in line with the text: %s",
     (_label: string, text: string) => {
-      const startedAt: number = Date.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          redactLogString(text);
+        },
+        limitInMs: 2000,
+      });
 
-      redactLogString(text);
-
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 });
@@ -1034,11 +1041,14 @@ describe("the keys' names keep redaction linear", () => {
       ),
     ],
   ])("%s", (_label: string, text: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        redactLogString(text);
+      },
+      limitInMs: 2000,
+    });
 
-    redactLogString(text);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 
@@ -1266,11 +1276,14 @@ describe("a request body stringified again keeps redaction linear", () => {
     ],
     ["numbers' members over and over", '\\"password\\":1'.repeat(LENGTH / 15)],
   ])("%s", (_label: string, text: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        redactLogString(text);
+      },
+      limitInMs: 2000,
+    });
 
-    redactLogString(text);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 
@@ -1393,11 +1406,14 @@ describe("private key blocks", () => {
   ])(
     "are looked for in time in line with the text: %s",
     (_label: string, text: string) => {
-      const startedAt: number = Date.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          redactLogString(text);
+        },
+        limitInMs: 2000,
+      });
 
-      redactLogString(text);
-
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 });

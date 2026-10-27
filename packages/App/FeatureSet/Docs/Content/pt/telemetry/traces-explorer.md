@@ -22,7 +22,7 @@ flowchart TB
     pay --> call["Span: chamar o<br/>provedor de pagamento"]
 ```
 
-Cada linha do explorador é um span, então um serviço movimentado enche a lista com suas consultas ao banco e chamadas internas. Para listar uma linha por requisição, escolha **Root spans** em **Categoria de span** na barra lateral.
+Cada linha do explorador é um span. Por padrão, a lista mostra **Entry spans**, os spans em que uma requisição ou mensagem entra em um serviço, então uma requisição aparece uma vez para cada serviço que alcança, enquanto as consultas ao banco e as chamadas internas ficam fora da lista. Para listar uma linha por requisição, escolha **Root spans** em **Categoria de span** na barra lateral; para listar cada operação, escolha **All spans**.
 
 O explorador tem cinco abas:
 
@@ -175,7 +175,7 @@ Eles indicam um span pai que o OneUptime não recebeu, muitas vezes porque o ser
 :::
 
 :::details A lista mostra muito mais linhas do que requisições
-Cada linha é um span, não uma requisição. Escolha **Root spans** em **Categoria de span** na barra lateral para listar uma linha por requisição.
+Cada linha é um span, não uma requisição: com **Entry spans**, o padrão, uma requisição aparece uma vez para cada serviço que alcança, e com **All spans**, uma vez para cada operação. Escolha **Root spans** em **Categoria de span** na barra lateral para listar uma linha por requisição.
 :::
 
 ## Próximos passos

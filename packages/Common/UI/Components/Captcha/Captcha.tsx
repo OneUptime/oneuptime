@@ -1,4 +1,5 @@
 import HCaptcha from "@hcaptcha/react-hcaptcha";
+import { Theme, useTheme } from "../../Utils/Theme";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React from "react";
@@ -21,6 +22,11 @@ const Captcha: React.FC<CaptchaProps> = ({
   className,
 }: CaptchaProps): JSX.Element => {
   const translator: Translator = useTranslator();
+  /*
+   * The widget in the page's theme: a white box on a dark sign-in page
+   * otherwise. A public form is always light, so its widget is too.
+   */
+  const theme: Theme = useTheme();
   const captchaRef: React.MutableRefObject<HCaptcha | null> =
     React.useRef<HCaptcha | null>(null);
   const onTokenChangeRef: React.MutableRefObject<
@@ -55,6 +61,7 @@ const Captcha: React.FC<CaptchaProps> = ({
     <div className={className || "flex flex-col items-center gap-2"}>
       <HCaptcha
         sitekey={siteKey}
+        theme={theme === Theme.Dark ? "dark" : "light"}
         ref={captchaRef}
         onVerify={(token: string) => {
           handleTokenChange(token);

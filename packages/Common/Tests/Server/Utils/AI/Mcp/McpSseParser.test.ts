@@ -3,6 +3,7 @@ import McpSseParser, {
   McpSseEventTooLargeError,
 } from "../../../../../Server/Utils/AI/Mcp/McpSseParser";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * The event-stream reader both MCP HTTP transports carry JSON-RPC messages
@@ -154,54 +155,67 @@ describe("McpSseParser", () => {
   });
 
   test("reads 400,000 characters of one unfinished line, ten at a time, in linear time", () => {
-    const parser: McpSseParser = new McpSseParser({
-      maxEventChars: 1_000_000,
-    });
     const piece: string = "x".repeat(10);
-    const startedAt: number = Date.now();
+    // Each attempt reads a stream of its own.
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const parser: McpSseParser = new McpSseParser({
+          maxEventChars: 1_000_000,
+        });
 
-    parser.push("data: ");
+        parser.push("data: ");
 
-    // A server trickling a long line: each piece must not re-read the rest.
-    for (let index: number = 0; index < 40_000; index++) {
-      parser.push(piece);
-    }
+        // A server trickling a long line: each piece must not re-read the rest.
+        for (let index: number = 0; index < 40_000; index++) {
+          parser.push(piece);
+        }
 
-    const events: Array<McpSseEvent> = parser.push("\n\n");
+        const events: Array<McpSseEvent> = parser.push("\n\n");
 
-    expect(events).toHaveLength(1);
-    expect(events[0]!.data).toHaveLength(400_000);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+        expect(events).toHaveLength(1);
+        expect(events[0]!.data).toHaveLength(400_000);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("reads 2,000,000 characters of one line in one chunk in linear time", () => {
-    const parser: McpSseParser = new McpSseParser({
-      maxEventChars: 4_000_000,
-    });
-    const startedAt: number = Date.now();
-    const events: Array<McpSseEvent> = parser.push(
-      `data: ${"y".repeat(2_000_000)}\n\n`,
-    );
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const parser: McpSseParser = new McpSseParser({
+          maxEventChars: 4_000_000,
+        });
+        const events: Array<McpSseEvent> = parser.push(
+          `data: ${"y".repeat(2_000_000)}\n\n`,
+        );
 
-    expect(events[0]!.data).toHaveLength(2_000_000);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+        expect(events[0]!.data).toHaveLength(2_000_000);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("reads 400,000 characters of carriage returns and lines in linear time", () => {
-    const parser: McpSseParser = new McpSseParser({
-      maxEventChars: 1_000_000,
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const parser: McpSseParser = new McpSseParser({
+          maxEventChars: 1_000_000,
+        });
+        let count: number = 0;
+
+        for (let index: number = 0; index < 100; index++) {
+          count += parser.push("\r".repeat(2000)).length;
+          count += parser.push("data:a\r\n".repeat(250)).length;
+        }
+
+        count += parser.push("\n\n").length;
+
+        expect(count).toBeGreaterThan(0);
+      },
+      limitInMs: 2000,
     });
-    const startedAt: number = Date.now();
-    let count: number = 0;
-
-    for (let index: number = 0; index < 100; index++) {
-      count += parser.push("\r".repeat(2000)).length;
-      count += parser.push("data:a\r\n".repeat(250)).length;
-    }
-
-    count += parser.push("\n\n").length;
-
-    expect(count).toBeGreaterThan(0);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

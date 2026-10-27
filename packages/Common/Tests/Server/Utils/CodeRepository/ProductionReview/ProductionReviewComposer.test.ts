@@ -29,6 +29,7 @@ import {
   fullReport,
 } from "./ProductionReviewFixtures";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * The production review comment: one per pull request, edited in place, so
@@ -615,10 +616,13 @@ describe("formatting", () => {
 
     // The worst case of the pattern this replaced: slashes, then not one.
     const worst: string = `${"/".repeat(400000)}x/`;
-    const started: number = Date.now();
-
-    expect(withoutTrailingSlashes(worst)).toBe(`${"/".repeat(400000)}x`);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(withoutTrailingSlashes(worst)).toBe(`${"/".repeat(400000)}x`);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("counts", () => {

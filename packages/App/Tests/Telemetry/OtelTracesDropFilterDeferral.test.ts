@@ -97,6 +97,7 @@ const EXPECTED_SPAN_ROW_KEY_ORDER: Array<string> = [
   "links",
   "hasException",
   "isRootSpan",
+  "isEntrySpan",
   "isLlmSpan",
   "llmSystem",
   "llmOperation",
@@ -335,6 +336,8 @@ describe("span row golden equivalence (kept rows)", () => {
     expect(row["links"]).toEqual([]);
     expect(row["hasException"]).toBe(false);
     expect(row["isRootSpan"]).toBe(true);
+    // A root SERVER span: where a request entered the service.
+    expect(row["isEntrySpan"]).toBe(true);
     expect(row["isLlmSpan"]).toBe(false);
 
     const attributes: JSONObject = row["attributes"] as JSONObject;

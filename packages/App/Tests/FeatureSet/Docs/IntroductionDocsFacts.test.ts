@@ -20,7 +20,14 @@ import {
   KeyboardSequenceState,
 } from "Common/UI/Utils/GlobalKeyboardShortcut";
 import { SECTION_TITLES_COLLAPSED_BY_DEFAULT } from "Common/UI/Components/SideMenu/SideMenuSectionState";
-import ThemeUtil, { THEME_STORAGE_KEY, Theme } from "Common/UI/Utils/Theme";
+import ThemeUtil from "Common/UI/Utils/Theme";
+import {
+  DEFAULT_THEME_PREFERENCE,
+  THEME_PREFERENCES,
+  THEME_STORAGE_KEY,
+  Theme,
+  ThemePreference,
+} from "Common/Types/Theme/ThemePreference";
 import ToolImportSource, {
   AllToolImportSources,
 } from "Common/Types/ToolImport/ToolImportSource";
@@ -1551,13 +1558,14 @@ describe("Home Page & Shortcuts", () => {
 // ---- Your Account -----------------------------------------------------------
 
 const USER_MENU_KEY: RegExp = /t\("userProfile\.(\w+)"/g;
+const TRANSLATION_KEY_LITERAL: RegExp = /translationKey\("([^"]+)"\)/g;
 
 describe("Your Account", () => {
   const english: { userProfile: Record<string, string> } = JSON.parse(
     dashboard("Locales/en.json"),
   ) as { userProfile: Record<string, string> };
 
-  it("lists the user menu as the header draws it: admin settings for master admins, the theme item naming the other theme", () => {
+  it("lists the user menu as the header draws it: admin settings for master admins, the theme row with its three choices", () => {
     const source: string = dashboard("Components/Header/UserProfile.tsx");
     const keys: Array<string> = Array.from(source.matchAll(USER_MENU_KEY)).map(
       (match: RegExpMatchArray): string => {
@@ -1565,13 +1573,38 @@ describe("Your Account", () => {
       },
     );
 
-    expect(keys).toEqual([
-      "label",
-      "profile",
-      "adminSettings",
-      "lightTheme",
-      "darkTheme",
-      "logOut",
+    expect(keys).toEqual(["label", "profile", "adminSettings", "logOut"]);
+
+    /*
+     * The theme is one row between Admin Settings and Log out, which draws
+     * its own words (Common's ThemeChoiceRow): "Theme", and Light, Dark and
+     * System, in that order.
+     */
+    const menu: string = oneLine(source);
+    const themeRow: number = menu.indexOf("<ThemeChoiceRow />");
+
+    expect(themeRow).toBeGreaterThan(
+      menu.indexOf('t("userProfile.adminSettings")'),
+    );
+    expect(themeRow).toBeLessThan(menu.indexOf('t("userProfile.logOut")'));
+
+    const row: string = oneLine(
+      readSource(
+        COMMON_DIR,
+        "UI/Components/Header/IconDropdown/ThemeChoiceRow.tsx",
+      ),
+    );
+    const rowWords: Array<string> = Array.from(
+      row.matchAll(TRANSLATION_KEY_LITERAL),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    expect(rowWords).toEqual(["Theme", "Light", "Dark", "System"]);
+    expect(THEME_PREFERENCES).toEqual([
+      ThemePreference.Light,
+      ThemePreference.Dark,
+      ThemePreference.System,
     ]);
 
     const rows: Array<Array<string>> = onlyTableOf(
@@ -1579,28 +1612,29 @@ describe("Your Account", () => {
     );
 
     expect(
-      rows.map((row: Array<string>): string => {
-        return boldSpans(row[0] as string)[0] as string;
+      rows.map((tableRow: Array<string>): string => {
+        return boldSpans(tableRow[0] as string)[0] as string;
       }),
-    ).toEqual(
-      ["profile", "adminSettings", "darkTheme", "logOut"].map(
-        (key: string): string => {
-          return english.userProfile[key] as string;
-        },
-      ),
-    );
+    ).toEqual([
+      english.userProfile["profile"] as string,
+      english.userProfile["adminSettings"] as string,
+      "Theme",
+      english.userProfile["logOut"] as string,
+    ]);
 
-    expect(oneLine(source)).toContain(
+    expect(menu).toContain(
       'User.isMasterAdmin() ? ( <IconDropdownItem title={t("userProfile.adminSettings")}',
-    );
-    expect(oneLine(source)).toContain(
-      'theme === Theme.Dark ? t("userProfile.lightTheme", "Light theme") : t("userProfile.darkTheme", "Dark theme")',
     );
     expect((rows[1] as Array<string>)[1]).toContain(
       "Only master admins of a self-hosted installation see it.",
     );
+    expect(boldSpans((rows[2] as Array<string>)[1] as string)).toEqual([
+      "Light",
+      "Dark",
+      "System",
+    ]);
     expect((rows[2] as Array<string>)[1]).toContain(
-      `the item reads **${english.userProfile["lightTheme"]}**`,
+      "which is light or dark as your device is set",
     );
   });
 
@@ -1802,7 +1836,7 @@ describe("Your Account", () => {
     ).toEqual(rows);
   });
 
-  it("keeps language and theme in the browser: the browser's language first, the light theme unless dark was picked", () => {
+  it("keeps language and theme in the browser: the browser's language first, the device's theme unless Light or Dark was picked", () => {
     const i18n: string = dashboard("Utils/i18n.ts");
 
     expect(i18n).toContain('order: ["localStorage", "navigator", "htmlTag"]');
@@ -1817,34 +1851,57 @@ describe("Your Account", () => {
     const savedWindow: unknown = globals.window;
     const asked: Array<string> = [];
 
-    try {
-      globals.window = {
+    /*
+     * A browser that kept nothing is System - the device decides - and so is
+     * every browser the page is opened in for the first time.
+     */
+    const browserWith: (
+      kept: string | null,
+      prefersDark: boolean,
+    ) => unknown = (kept: string | null, prefersDark: boolean): unknown => {
+      return {
         localStorage: {
           getItem: (key: string): string | null => {
             asked.push(key);
-            return null;
+            return kept;
           },
         },
+        matchMedia: (): { matches: boolean } => {
+          return { matches: prefersDark };
+        },
       };
-      expect(ThemeUtil.getStoredTheme()).toBe(Theme.Light);
-      expect(asked).toEqual([THEME_STORAGE_KEY]);
+    };
 
-      globals.window = {
-        localStorage: {
-          getItem: (): string | null => {
-            return Theme.Dark;
-          },
-        },
-      };
-      expect(ThemeUtil.getStoredTheme()).toBe(Theme.Dark);
+    try {
+      globals.window = browserWith(null, true);
+      expect(ThemeUtil.getPreference()).toBe(ThemePreference.System);
+      expect(ThemeUtil.getPreferredTheme()).toBe(Theme.Dark);
+      expect(asked).toContain(THEME_STORAGE_KEY);
+
+      globals.window = browserWith(null, false);
+      expect(ThemeUtil.getPreferredTheme()).toBe(Theme.Light);
+
+      globals.window = browserWith(ThemePreference.Dark, false);
+      expect(ThemeUtil.getPreferredTheme()).toBe(Theme.Dark);
+
+      globals.window = browserWith(ThemePreference.Light, true);
+      expect(ThemeUtil.getPreferredTheme()).toBe(Theme.Light);
     } finally {
       globals.window = savedWindow;
     }
 
+    expect(DEFAULT_THEME_PREFERENCE).toBe(ThemePreference.System);
     expect(YOUR_ACCOUNT).toContain(
       "Both are saved in your browser, not in your account",
     );
-    expect(YOUR_ACCOUNT).toContain("The dashboard starts in the light theme.");
+    expect(YOUR_ACCOUNT).toContain(
+      "**System** is light or dark as your device is set, and changes with it; every browser starts with it.",
+    );
+    // The sign-in pages draw the same theme (Accounts' views/index.ejs).
+    expect(YOUR_ACCOUNT).toContain("The sign-in pages use the same theme.");
+    expect(
+      readSource(path.join(APP_DIR, "FeatureSet/Accounts"), "views/index.ejs"),
+    ).toContain("Common/Server/Views/Partials/Theme");
     expect(YOUR_ACCOUNT).toContain(
       "the dashboard starts in your browser's language. To change it, use the language menu at the bottom of any page.",
     );

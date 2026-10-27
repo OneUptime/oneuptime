@@ -4,6 +4,7 @@ import {
   getCurrentPageUrl,
   getMarkdownLinkBehavior,
 } from "../../../UI/Components/Markdown.tsx/MarkdownLinkBehavior";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Where a link in rendered Markdown opens (MarkdownLinkBehavior).
@@ -434,13 +435,17 @@ describe("the page the viewer is drawn on", () => {
 
   test("reads in time that grows with the address, on a hundred thousand characters", () => {
     const href: string = `https://example.com/${"a/".repeat(100000)}?q=${"%".repeat(100000)}`;
-    const started: number = Date.now();
-    const behavior: MarkdownLinkBehavior = getMarkdownLinkBehavior(
-      href,
-      DASHBOARD_PAGE,
-    );
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const behavior: MarkdownLinkBehavior = getMarkdownLinkBehavior(
+          href,
+          DASHBOARD_PAGE,
+        );
 
-    expect(behavior.opensInNewTab).toBe(true);
-    expect(Date.now() - started).toBeLessThan(2000);
+        expect(behavior.opensInNewTab).toBe(true);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

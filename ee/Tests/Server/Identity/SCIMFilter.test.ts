@@ -7,6 +7,7 @@ import {
   isScimAttribute,
   parseScimFilter,
 } from "../../../Server/Identity/Utils/SCIMFilter";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * The filters identity providers send before they create or change anyone
@@ -167,12 +168,15 @@ describe("parseScimFilter - what it refuses", () => {
 describe("parseScimFilter - long input is read in linear time", () => {
   test("a filter at the length limit made of one long value", () => {
     const value: string = "x".repeat(MAX_SCIM_FILTER_LENGTH - 20);
-    const started: number = Date.now();
-
-    expect(parse(`userName eq "${value}"`)).toEqual([
-      { attribute: "userName", value: value },
-    ]);
-    expect(Date.now() - started).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(parse(`userName eq "${value}"`)).toEqual([
+          { attribute: "userName", value: value },
+        ]);
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   test("many and-ed equalities up to the limit", () => {

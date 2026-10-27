@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * Adding an LLM provider, end to end in a browser, on the real pages
@@ -623,17 +624,14 @@ test.describe("Project Settings > AI > LLM Providers: adding a provider", () => 
     await page.setViewportSize({ width: 390, height: 844 });
     await openCreate(page);
 
-    const first: { x: number; width: number } | null = await card(
-      page,
-      "OpenAI",
-    ).boundingBox();
-    const second: { x: number; width: number } | null = await card(
-      page,
-      "Anthropic",
-    ).boundingBox();
+    // In one frame: the dialog grows in as it opens (Modal, from 95%).
+    const [first, second] = (await boxesInOneFrame([
+      card(page, "OpenAI"),
+      card(page, "Anthropic"),
+    ])) as [FrameBox, FrameBox];
 
-    expect(Math.abs(first!.x - second!.x)).toBeLessThan(2);
-    expect(first!.x + first!.width).toBeLessThanOrEqual(390);
+    expect(Math.abs(first.x - second.x)).toBeLessThan(2);
+    expect(first.x + first.width).toBeLessThanOrEqual(390);
     expect(
       await page.evaluate(() => {
         return document.documentElement.scrollWidth;

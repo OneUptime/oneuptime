@@ -160,6 +160,7 @@ function status(
   return {
     connections: 0,
     logsSourceEnabled: false,
+    telemetrySourcesEnabled: 0,
     eventsLast24Hours: 0,
     lastEventAt: null,
     enabledRules: 0,
@@ -423,6 +424,7 @@ describe("a project that has not set Security up", () => {
         rulesAdded: 19,
         rulesTurnedOn: 0,
         logsTurnedOn: true,
+        telemetrySourcesTurnedOn: 0,
         playbookAdded: true,
         playbookTurnedOn: false,
         problems: [],
@@ -687,6 +689,7 @@ describe("when Turn on recommended cannot do everything", () => {
       rulesAdded: 0,
       rulesTurnedOn: 0,
       logsTurnedOn: false,
+      telemetrySourcesTurnedOn: 0,
       playbookAdded: false,
       playbookTurnedOn: false,
       problems: [],

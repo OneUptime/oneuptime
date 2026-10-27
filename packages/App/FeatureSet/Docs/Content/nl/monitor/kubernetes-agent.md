@@ -237,7 +237,7 @@ OBI neemt de trace ook over een aanroep heen mee: wanneer pod A pod B aanroept v
 **Standaard uit.** Wanneer het aan staat, koppelt OBI een probe aan de systeemaanroep `write()` van elk proces dat het instrumenteert, en:
 
 - Een **JSON-logregel** krijgt de velden `trace_id` en `span_id` (velden die de regel al heeft, blijven behouden). De node-collector verplaatst ze naar de eigen tracevelden van het logrecord, zodat de logs van een span in OneUptime één klik verwijderd zijn, net als de trace van een logregel.
-- **Elke andere logregel** wordt ongewijzigd verzameld, zonder de koppeling.
+- **Elke andere logregel** wordt ongewijzigd verzameld, zonder de koppeling, tenzij je ook `ebpf.logEnricher.plainText=true` instelt. OBI voegt er dan ` trace_id=… span_id=…` aan toe, en de node-collector verplaatst de id's naar het logrecord en haalt ze uit de regel, zodat OneUptime de regel toont zoals je app die schreef. De regel in het logbestand van de container, die `kubectl logs` afdrukt, behoudt de annotatie.
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
@@ -249,6 +249,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 | --- | --- | --- |
 | `ebpf.logToTraceCorrelation` | `false` | Zet de logverrijker van OBI aan en het overhevelen van `trace_id` door de node-collector. |
 | `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | Welke processen de verrijker aanraakt. Elk item is een OBI-selector [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery), met velden zoals `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports` en `cmd_args`. |
+| `ebpf.logEnricher.plainText` | `false` | Koppelt ook logregels in platte tekst (geen JSON). Wijzigt de regel die het logbestand van de container bewaart. |
 
 #### APM-agents die erdoor crashen
 

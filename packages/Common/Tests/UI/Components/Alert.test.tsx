@@ -1,15 +1,10 @@
-import Color, { RGB } from "../../../Types/Color";
+import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
 import Alert, {
   AlertSize,
   AlertType,
   ComponentProps,
 } from "../../../UI/Components/Alerts/Alert";
-import {
-  FilledAlertLook,
-  getFilledAlertLook,
-} from "../../../UI/Components/Alerts/FilledAlertLook";
-import { getContrastRatio, parseColor } from "../../../Utils/ColorContrast";
 import Icon from "../../../UI/Components/Icon/Icon";
 import "@testing-library/jest-dom";
 import { beforeAll, describe, expect, jest, test } from "@jest/globals";
@@ -314,103 +309,52 @@ describe("Alert content and caller customizations", () => {
     expect(alert.querySelector(".alert-text")).toHaveClass("caller-text-class");
   });
 
-  test("preserves a custom filled background, with white words where white reads on it", () => {
+  test("preserves a custom filled background with a white foreground", () => {
     renderAlert({ color: new Color("#123456"), title: "Custom banner" });
 
     const alert: HTMLElement = screen.getByRole("alert");
-    expect(alert).toHaveStyle({
-      backgroundColor: "#123456",
-      color: "#ffffff",
-    });
-    expect(alert).toHaveClass("border-transparent");
-    expect(alert).toHaveAttribute("data-filled-text", "light");
+    expect(alert).toHaveStyle({ backgroundColor: "#123456" });
+    expect(alert).toHaveClass("text-white", "border-transparent");
   });
 
   /*
-   * A status page's overall status banner, in the colour its owner gave
-   * the status. Its words were white whatever the fill: 2.6:1 on the
-   * default Operational green, 1.6:1 on Degraded's yellow.
+   * A status page's overall status banner ("All Resources are Operational"),
+   * filled with the colour its owner gave the status. Its words are white on
+   * every fill, the light defaults included: they once took a deep shade of
+   * the fill instead, and on the default Operational green the banner read
+   * black.
    */
   test.each([
     ["Operational's default green", "#2ab57d"],
     ["Degraded's default yellow", "#ffbf53"],
     ["Offline's default red", "#fd625e"],
+    ["a deep red", "#7f1d1d"],
   ])(
-    "on %s the words are a deep shade of the fill, at 4.5:1",
+    "on %s the words, the icon's tile and the hover tint are white",
     (_name: string, fill: string) => {
       renderAlert({
         color: new Color(fill),
         title: "All Resources are Operational",
         textOnRight: "99.98% uptime",
+        onClick: () => {},
       });
 
       const alert: HTMLElement = screen.getByRole("alert");
-      const look: FilledAlertLook = getFilledAlertLook(new Color(fill));
-      const words: RGB = parseColor(look.textColor)!;
 
-      expect(look.isLightText).toBe(false);
-      expect(alert).toHaveAttribute("data-filled-text", "dark");
-      expect(alert).toHaveStyle({
-        backgroundColor: fill,
-        color: look.textColor,
-      });
-      expect(getContrastRatio(words, parseColor(fill)!)).toBeGreaterThanOrEqual(
-        4.5,
+      expect(alert).toHaveStyle({ backgroundColor: fill });
+      expect(alert).toHaveClass("text-white", "hover:bg-white/10");
+      expect(alert).not.toHaveClass("hover:bg-black/10");
+      expect(alert.querySelector(".alert-icon")).toHaveClass(
+        "bg-white/10",
+        "text-white",
       );
-      // No text class a theme could turn pale: the colour is the fill's own.
-      expect(alert.className).not.toContain("text-white");
-      expect(alert.className).not.toContain("text-gray-");
-      // The words on the right inherit it.
+      // No inline colour of its own that would override the white.
+      expect(alert.style.color).toBe("");
       expect(screen.getByTestId("alert-text-on-right")).not.toHaveAttribute(
         "style",
       );
     },
   );
-
-  test("the icon's tile and the hover tint follow the words: dark on a light fill", () => {
-    renderAlert({
-      color: new Color("#ffbf53"),
-      title: "Some Resources are Degraded",
-      onClick: () => {},
-    });
-
-    const alert: HTMLElement = screen.getByRole("alert");
-
-    expect(alert).toHaveClass("hover:bg-black/10");
-    expect(alert).not.toHaveClass("hover:bg-white/10");
-    expect(alert.querySelector(".alert-icon")).toHaveClass("bg-black/10");
-  });
-
-  test("and light on a deep one", () => {
-    renderAlert({
-      color: new Color("#7f1d1d"),
-      title: "Some Resources are Offline",
-      onClick: () => {},
-    });
-
-    const alert: HTMLElement = screen.getByRole("alert");
-
-    expect(alert).toHaveClass("hover:bg-white/10");
-    expect(alert.querySelector(".alert-icon")).toHaveClass("bg-white/10");
-  });
-
-  test("a colour that cannot be read keeps white words", () => {
-    expect(getFilledAlertLook("not a colour")).toEqual({
-      backgroundColor: "not a colour",
-      textColor: "#ffffff",
-      isLightText: true,
-    });
-  });
-
-  test("an alert of a type, with no colour of its own, is drawn by its type as before", () => {
-    renderAlert({ type: AlertType.WARNING, title: "Careful" });
-
-    const alert: HTMLElement = screen.getByRole("alert");
-
-    expect(alert).not.toHaveAttribute("data-filled-text");
-    expect(alert).toHaveClass("bg-amber-50", "text-amber-900");
-    expect(alert.getAttribute("style") || "").toBe("");
-  });
 
   test.each([
     {

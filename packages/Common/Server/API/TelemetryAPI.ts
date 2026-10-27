@@ -54,6 +54,13 @@ import TraceAggregationService, {
   TraceAnalyticsTableSort,
   parseTraceAnalyticsTableSort,
 } from "../Services/TraceAggregationService";
+import TraceHealthService from "../Services/TraceHealthService";
+import {
+  TraceHealthWindow,
+  readTraceHealthServiceId,
+  resolveTraceHealthWindow,
+} from "../Utils/Telemetry/TraceHealth";
+import { TraceHealthReport } from "../../Types/Telemetry/TraceHealth";
 import ExceptionAggregationService, {
   HistogramBucket as ExceptionHistogramBucket,
   HistogramRequest as ExceptionHistogramRequest,
@@ -1283,6 +1290,9 @@ function parseTraceFilterBody(body: JSONObject): TraceFilters {
         : undefined,
     rootOnly:
       body["rootOnly"] === undefined ? undefined : Boolean(body["rootOnly"]),
+    // The explorer's default list: where work enters a service.
+    entryOnly:
+      body["entryOnly"] === undefined ? undefined : Boolean(body["entryOnly"]),
     attributes: parseAttributeFilterRecord(body["attributes"]),
     attributeSearches: stringRecord("attributeSearches"),
   };
@@ -1349,6 +1359,99 @@ router.post(
       return Response.sendJsonObjectResponse(req, res, {
         buckets: buckets as unknown as JSONObject,
       });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Trace Health Endpoint ---
+
+/*
+ * The trace health read's log filter: the service, when the caller may read
+ * its logs, and null when they may not - the report then has no log number,
+ * and the card still shows the trace numbers. A caller refused logs outright
+ * (a block with no labels) is answered the same way.
+ */
+async function getTraceHealthLogFilter(
+  databaseProps: DatabaseCommonInteractionProps,
+  serviceId: ObjectID,
+): Promise<TelemetryServiceFilter | null> {
+  let logScope: TelemetryReadScope;
+
+  try {
+    logScope = await TelemetryReadAccess.getScope(Log, databaseProps);
+  } catch (err: unknown) {
+    if (err instanceof NotAuthorizedException) {
+      return null;
+    }
+
+    throw err;
+  }
+
+  if (!TelemetryReadScopeUtil.isReadable(logScope, serviceId)) {
+    return null;
+  }
+
+  return TelemetryReadScopeUtil.toServiceFilter(logScope, [serviceId]);
+}
+
+/*
+ * How complete one service's traces are: the "Trace health" card at the top
+ * of its Traces page (Types/Telemetry/TraceHealth). Guarded, scoped to the
+ * project and windowed as the histogram above is: the caller's span read
+ * scope narrows the service (one they may not read reads nothing), and the
+ * window is the last hour unless the body names one, at most 24 hours wide.
+ */
+router.post(
+  "/telemetry/traces/health",
+  ...requireTraceReadAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: JSONObject = (req.body as JSONObject) || {};
+
+      const serviceId: ObjectID = readTraceHealthServiceId(body["serviceId"]);
+
+      const healthWindow: TraceHealthWindow = resolveTraceHealthWindow({
+        startTime: body["startTime"],
+        endTime: body["endTime"],
+        now: OneUptimeDate.getCurrentDate(),
+      });
+
+      const spanFilter: TelemetryServiceFilter =
+        TelemetryReadScopeUtil.toServiceFilter(
+          await TelemetryReadAccess.getScope(Span, databaseProps),
+          [serviceId],
+        );
+
+      const report: TraceHealthReport = await TraceHealthService.getReport({
+        projectId: databaseProps.tenantId,
+        startTime: healthWindow.startTime,
+        endTime: healthWindow.endTime,
+        spanFilter: spanFilter,
+        logFilter: await getTraceHealthLogFilter(databaseProps, serviceId),
+      });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        report as unknown as JSONObject,
+      );
     } catch (err: unknown) {
       next(err);
     }
@@ -1452,8 +1555,12 @@ router.post(
           return (
             !ResourceFacetResolver.isResourceFacet(key) &&
             key !== "statusCode" &&
-            // isRootSpan / hasException are counted exactly below, not sampled.
+            /*
+             * isRootSpan / isEntrySpan / hasException are counted exactly
+             * below, not sampled.
+             */
             key !== "isRootSpan" &&
+            key !== "isEntrySpan" &&
             key !== "hasException"
           );
         },
@@ -1476,6 +1583,7 @@ router.post(
           scope,
         });
       const wantsRootSpan: boolean = facetKeys.includes("isRootSpan");
+      const wantsEntrySpan: boolean = facetKeys.includes("isEntrySpan");
       const wantsHasException: boolean = facetKeys.includes("hasException");
 
       /*
@@ -1514,6 +1622,7 @@ router.post(
         accurate,
         rootSpanCounts,
         exceptionCounts,
+        entrySpanCounts,
       ]: [
         Record<string, Array<TraceFacetValue>>,
         ListedResourceFacets,
@@ -1523,6 +1632,7 @@ router.post(
         },
         { rootCount: number; nonRootCount: number } | null,
         { withExceptionCount: number; withoutExceptionCount: number } | null,
+        { entryCount: number; nonEntryCount: number } | null,
       ] = await Promise.all([
         sampledKeys.length > 0
           ? timedOutFacets
@@ -1610,6 +1720,15 @@ router.post(
                 return null;
               })
           : Promise.resolve(null),
+        wantsEntrySpan
+          ? timedOutFacets
+              .watch("isEntrySpan", () => {
+                return TraceAggregationService.getEntrySpanCounts(multiRequest);
+              })
+              .catch(() => {
+                return null;
+              })
+          : Promise.resolve(null),
       ]);
 
       const facets: Record<string, Array<TraceFacetValue>> = sampledFacets;
@@ -1629,14 +1748,29 @@ router.post(
 
       /*
        * Span-type facet: exact root vs non-root counts off the projection,
-       * computed ignoring rootOnly so both buckets survive (see
-       * getRootSpanCounts). Backs the "Span Type" sidebar choice.
+       * computed ignoring rootOnly and entryOnly so both buckets survive (see
+       * getRootSpanCounts). Backs the "Span Type" sidebar's Root spans and,
+       * added up, All spans.
        */
       if (wantsRootSpan) {
         facets["isRootSpan"] = rootSpanCounts
           ? [
               { value: "true", count: rootSpanCounts.rootCount },
               { value: "false", count: rootSpanCounts.nonRootCount },
+            ]
+          : [];
+      }
+
+      /*
+       * Entry spans (a root, or a SERVER / CONSUMER span): exact counts over
+       * the same rows as the root-span counts (see getEntrySpanCounts),
+       * backing the Span Type facet's default choice.
+       */
+      if (wantsEntrySpan) {
+        facets["isEntrySpan"] = entrySpanCounts
+          ? [
+              { value: "true", count: entrySpanCounts.entryCount },
+              { value: "false", count: entrySpanCounts.nonEntryCount },
             ]
           : [];
       }

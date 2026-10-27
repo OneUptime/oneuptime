@@ -237,7 +237,7 @@ OBI för också spåret vidare genom ett anrop: när podd A anropar podd B över
 **Avstängt som standard.** När det är påslaget fäster OBI en probe vid systemanropet `write()` för varje process som det instrumenterar, och:
 
 - En **JSON-loggrad** får fälten `trace_id` och `span_id` (fält som raden redan har behålls). Nod-collectorn flyttar dem till loggpostens egna spårfält, så att ett spans loggar är ett klick bort i OneUptime, och detsamma gäller en loggrads spår.
-- **Varje annan loggrad** samlas in oförändrad, utan länken.
+- **Varje annan loggrad** samlas in oförändrad, utan länken, om du inte också sätter `ebpf.logEnricher.plainText=true`. OBI lägger då till ` trace_id=… span_id=…` på den, och nod-collectorn flyttar id-värdena till loggposten och tar bort dem från raden, så att OneUptime visar den som din app skrev den. Raden i containerns loggfil, som `kubectl logs` skriver ut, behåller annoteringen.
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
@@ -249,6 +249,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 | --- | --- | --- |
 | `ebpf.logToTraceCorrelation` | `false` | Slår på OBI:s loggberikare och nod-collectorns lyft av `trace_id`. |
 | `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | Vilka processer berikaren rör. Varje post är en OBI-[GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery)-selektor, med fält som `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports` och `cmd_args`. |
+| `ebpf.logEnricher.plainText` | `false` | Länkar även loggrader i ren text (inte JSON). Ändrar raden som containerns loggfil behåller. |
 
 #### APM-agenter som kraschar med det
 

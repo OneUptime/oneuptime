@@ -189,6 +189,36 @@ describe("the Workspace page: which is connected, and the next step for each", (
     return screen.getByTestId(`workspace-connection-${workspaceType}`);
   }
 
+  /*
+   * Official logos audit: each tile shows its workspace's official logo
+   * where a white glyph on a coloured square was - decorative, since the
+   * tile's words name the workspace, and the same whether it is connected.
+   */
+  test.each([
+    [WorkspaceType.Slack, "slack"],
+    [WorkspaceType.MicrosoftTeams, "microsoft-teams"],
+  ])(
+    "%s's tile shows its official logo, connected or not",
+    async (workspaceType: WorkspaceType, logo: string) => {
+      connect(WorkspaceType.Slack);
+      await renderOverview();
+
+      const mark: Element | null = tile(workspaceType).querySelector(
+        "[data-provider-logo]",
+      );
+
+      expect(mark).toHaveAttribute("data-provider-logo", logo);
+      expect(mark).toHaveAttribute("aria-hidden", "true");
+      expect(mark).toHaveClass("bg-white", "h-10", "w-10");
+      expect(tile(workspaceType)).toHaveTextContent(
+        WORKSPACE_CONNECTION_COPY[workspaceType].name,
+      );
+      // No coloured square behind a glyph any more.
+      expect(tile(workspaceType).querySelector(".bg-fuchsia-500")).toBeNull();
+      expect(tile(workspaceType).querySelector(".bg-blue-500")).toBeNull();
+    },
+  );
+
   test("says what it is for", async () => {
     connect();
     await renderOverview();
@@ -694,6 +724,29 @@ describe("the 'not connected' state", () => {
       fireEvent.click(screen.getByTestId(`workspace-connect-${workspaceType}`));
 
       expect(navigatedTo()).toEqual([routeFor(settingsPage)]);
+    },
+  );
+
+  test.each([
+    [WorkspaceType.Slack, "slack"],
+    [WorkspaceType.MicrosoftTeams, "microsoft-teams"],
+  ])(
+    "%s: shows the workspace's official logo above its title, not a grey glyph",
+    (workspaceType: WorkspaceType, logo: string) => {
+      render(<WorkspaceNotConnected workspaceType={workspaceType} />);
+
+      const mark: Element | null = document.querySelector(
+        "[data-provider-logo]",
+      );
+
+      expect(mark).toHaveAttribute("data-provider-logo", logo);
+      // The title names it: the logo is not read out again.
+      expect(mark).toHaveAttribute("aria-hidden", "true");
+      expect(
+        document.querySelector(
+          `#workspace-not-connected-${workspaceType} svg.text-gray-400`,
+        ),
+      ).toBeNull();
     },
   );
 

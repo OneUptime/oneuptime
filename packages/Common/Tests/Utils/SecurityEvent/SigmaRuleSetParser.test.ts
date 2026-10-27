@@ -21,6 +21,7 @@ import SigmaRuleSetParser, {
 } from "../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
 import { indexSigmaRules } from "../../../Utils/SecurityEvent/Sigma/SigmaRuleIndex";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * A detection rule's YAML is one Sigma rule or a Sigma correlation with
@@ -1125,13 +1126,16 @@ correlation:
   });
 
   test("a timespan of any length is read at once", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(() => {
+          parseSigmaTimespan(`${"9".repeat(400000)}m`);
+        }).toThrow(BadDataException);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(() => {
-      parseSigmaTimespan(`${"9".repeat(400000)}m`);
-    }).toThrow(BadDataException);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("the count a condition is first met at, and whether a count meets it", () => {

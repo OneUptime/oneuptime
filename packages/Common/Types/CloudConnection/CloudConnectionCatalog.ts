@@ -1,5 +1,6 @@
 import { CloudProvider } from "../Cloud/CloudPlatform";
 import IconProp from "../Icon/IconProp";
+import ProviderLogo from "../ProviderLogo/ProviderLogo";
 
 /*
  * EVERYTHING ABOUT A CLOUD CONNECTION THAT IS NOT CODE.
@@ -103,6 +104,8 @@ export interface CloudConnectionDefinition {
   // What OneUptime may do with the access it is given, said under the command.
   explanation: string;
   icon: IconProp;
+  // The cloud's official logo, on its tile, its form and its row of the list.
+  logo: ProviderLogo;
   /*
    * The guide: a section of the cloud accounts page, e.g.
    * "/docs/telemetry/cloud-accounts#amazon-web-services". The anchor is the
@@ -195,6 +198,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
   {
     provider: CloudProvider.AWS,
     title: "Amazon Web Services",
+    logo: ProviderLogo.Aws,
     description:
       "EC2, RDS, Lambda, load balancers and more, read from CloudWatch.",
     summary:
@@ -276,6 +280,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
   {
     provider: CloudProvider.Azure,
     title: "Microsoft Azure",
+    logo: ProviderLogo.Azure,
     description:
       "Virtual machines, App Service, SQL, storage and more, read from Azure Monitor.",
     summary:
@@ -367,6 +372,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
   {
     provider: CloudProvider.GCP,
     title: "Google Cloud",
+    logo: ProviderLogo.GoogleCloud,
     description:
       "Compute Engine, Cloud SQL, Cloud Run, buckets and more, read from Cloud Monitoring.",
     summary:

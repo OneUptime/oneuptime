@@ -411,6 +411,72 @@ describe("dashboard chart widget drag-to-zoom (standalone fallback)", () => {
   });
 });
 
+/*
+ * A playlist's turn on a screen (issue #5235): the board is a display. The
+ * drawer Investigate opens sits under the player, which covers the whole
+ * window, so the chart offers nothing to act on - and a wall has no use for
+ * "Drag to zoom" in every header. Its title and its data stay.
+ */
+describe("dashboard chart widget in a playlist's turn", () => {
+  const select: (startTime: Date, endTime: Date) => void = (): void => {
+    // The board's own drag-to-zoom, which a playlist's turn does not offer.
+  };
+  const reset: () => void = (): void => {
+    // The board's own reset.
+  };
+
+  test("offers no zoom, no series menus, and no Investigate or Open in Metric Explorer", async () => {
+    renderWidget({
+      isPlayback: true,
+      onDashboardTimeRangeSelect: select,
+      onDashboardTimeRangeReset: reset,
+      isDashboardTimeRangeZoomed: true,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("metric-charts")).toBeInTheDocument();
+    });
+
+    const captured: CapturedChartProps = lastChartProps();
+    expect(captured.onTimeRangeSelect).toBeUndefined();
+    expect(captured.enableSeriesActions).toBe(false);
+
+    expect(
+      screen.queryByRole("button", {
+        name: "Investigate this time window in a side panel",
+      }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Open in Metric Explorer" }),
+    ).toBeNull();
+    // What it shows is still there.
+    expect(screen.getByText("CPU by host")).toBeInTheDocument();
+  });
+
+  test("the same widget on the dashboard's own page keeps all of them", async () => {
+    renderWidget({
+      onDashboardTimeRangeSelect: select,
+      onDashboardTimeRangeReset: reset,
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("metric-charts")).toBeInTheDocument();
+    });
+
+    const captured: CapturedChartProps = lastChartProps();
+    expect(captured.onTimeRangeSelect).toBeDefined();
+    expect(captured.enableSeriesActions).toBe(true);
+    expect(
+      screen.getByRole("button", {
+        name: "Investigate this time window in a side panel",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open in Metric Explorer" }),
+    ).toBeInTheDocument();
+  });
+});
+
 describe("dashboard widget event scope", () => {
   test("uses every effective query after dashboard variables are applied", async () => {
     const component: DashboardChartComponent = buildChartComponent();

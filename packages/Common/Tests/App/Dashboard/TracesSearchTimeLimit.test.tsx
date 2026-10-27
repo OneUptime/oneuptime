@@ -604,11 +604,18 @@ describe("when only the chart or the counts stopped", () => {
     expect(status).toHaveTextContent(NOT_COUNTED);
     expect(status).not.toHaveTextContent("No values in this time range");
 
-    // Its one choice stays pickable, without a root-span count of 0.
+    // Its three choices stay pickable, without a count of 0 for any.
     const spanType: HTMLElement = sectionFor("Span Type");
     expect(spanType).toHaveTextContent(NOT_COUNTED);
-    expect(within(spanType).getByText("Root spans")).toBeInTheDocument();
-    expect(within(spanType).getByTitle("Not counted")).toHaveTextContent("—");
+    for (const choice of ["Entry spans", "Root spans", "All spans"]) {
+      expect(within(spanType).getByText(choice)).toBeInTheDocument();
+    }
+    const uncounted: Array<HTMLElement> =
+      within(spanType).getAllByTitle("Not counted");
+    expect(uncounted).toHaveLength(3);
+    for (const count of uncounted) {
+      expect(count).toHaveTextContent("—");
+    }
     expect(within(spanType).queryByText("0")).not.toBeInTheDocument();
 
     // A facet that was counted keeps its count.

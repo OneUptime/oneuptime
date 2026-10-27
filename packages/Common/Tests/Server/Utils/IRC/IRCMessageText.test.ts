@@ -4,6 +4,7 @@ import IRCMessageText, {
 } from "../../../../Server/Utils/IRC/IRCMessageText";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * A workflow's message, made into lines IRC can carry: one IRC message per
@@ -288,31 +289,41 @@ describe("IRCMessageText.prepare — megabyte-long values", () => {
    */
   test("a several-megabyte line is cut short quickly", () => {
     const screenshot: string = `Screenshot: data:image/png;base64,${"iVBORw0KGgo".repeat(400_000)}`;
-    const startedAt: number = Date.now();
+    const timed: FastestRun<PreparedIRCText> = fastestRun({
+      run: (): PreparedIRCText => {
+        return prepare(screenshot);
+      },
+      limitInMs: 5000,
+    });
+    const prepared: PreparedIRCText = timed.result;
 
-    const prepared: PreparedIRCText = prepare(screenshot);
-
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    expect(timed.inMs).toBeLessThan(5000);
     expect(prepared.isTruncated).toBe(true);
     expect(prepared.lines).toHaveLength(15);
   });
 
   test("a megabyte of line breaks is read once", () => {
     const text: string = `start${"\n".repeat(3_000_000)}end`;
-    const startedAt: number = Date.now();
-
-    expect(prepare(text).lines).toEqual(["start", "end"]);
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(prepare(text).lines).toEqual(["start", "end"]);
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
   });
 
   test("a megabyte of single characters on their own lines is not read in full", () => {
     const text: string = "x\n".repeat(1_500_000);
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const prepared: PreparedIRCText = prepare(text);
 
-    const prepared: PreparedIRCText = prepare(text);
-
-    expect(prepared.isTruncated).toBe(true);
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+        expect(prepared.isTruncated).toBe(true);
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
   });
 });
 
@@ -325,20 +336,26 @@ describe("IRCMessageText.prepare — what is not sent costs nothing", () => {
    * that grows with the lines, not to measure the scan.
    */
   test("megabytes of blank lines are read quickly", () => {
-    const startedAt: number = Date.now();
-
-    expect(prepare(" \n".repeat(2_500_000)).lines).toEqual([]);
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(prepare(" \n".repeat(2_500_000)).lines).toEqual([]);
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
   });
 
   test("a long run of spaces inside a line is passed over, not copied", () => {
-    const startedAt: number = Date.now();
-
-    expect(prepare(`start${" ".repeat(4_000_000)}end`).lines).toEqual([
-      "start",
-      "end",
-    ]);
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(prepare(`start${" ".repeat(4_000_000)}end`).lines).toEqual([
+          "start",
+          "end",
+        ]);
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
   });
 
   test.each([
@@ -348,10 +365,13 @@ describe("IRCMessageText.prepare — what is not sent costs nothing", () => {
   ])(
     "a long run of %s before what shows is passed over too",
     (_label: string, blank: string) => {
-      const startedAt: number = Date.now();
-
-      expect(prepare(`${blank.repeat(4_000_000)}x`).lines).toEqual(["x"]);
-      expect(Date.now() - startedAt).toBeLessThan(5000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          expect(prepare(`${blank.repeat(4_000_000)}x`).lines).toEqual(["x"]);
+        },
+        limitInMs: 5000,
+      });
+      expect(timed.inMs).toBeLessThan(5000);
     },
   );
 

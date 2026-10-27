@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * A runbook's side menu in a browser, around the real pages, against the
@@ -304,12 +305,12 @@ test.describe("a runbook's side menu", () => {
     // Triggers first, then the runbook's Settings page.
     await expect(triggers).toBeVisible();
     await expect(link(menu, SETTINGS_PATH)).toBeVisible();
-    const triggersBox: { y: number } | null = await triggers.boundingBox();
-    const settingsBox: { y: number } | null = await link(
-      menu,
-      SETTINGS_PATH,
-    ).boundingBox();
-    expect(triggersBox!.y).toBeLessThan(settingsBox!.y);
+    // In one frame: the section has only just opened.
+    const [triggersBox, settingsBox] = (await boxesInOneFrame([
+      triggers,
+      link(menu, SETTINGS_PATH),
+    ])) as [FrameBox, FrameBox];
+    expect(triggersBox.y).toBeLessThan(settingsBox.y);
 
     await triggers.click();
     await expectPath(page, TRIGGERS_PATH);

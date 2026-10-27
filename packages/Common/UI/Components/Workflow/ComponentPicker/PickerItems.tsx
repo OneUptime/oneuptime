@@ -1,5 +1,9 @@
 import Icon from "../../Icon/Icon";
+import ProviderLogoImage, {
+  ProviderLogoSize,
+} from "../../ProviderLogo/ProviderLogoImage";
 import IconProp from "../../../../Types/Icon/IconProp";
+import ProviderLogo from "../../../../Types/ProviderLogo/ProviderLogo";
 import ComponentMetadata, {
   ComponentType,
 } from "../../../../Types/Workflow/Component";
@@ -81,12 +85,32 @@ const FOCUS_RING: string =
 
 interface IconBoxProps {
   icon: IconProp;
+  // The official logo of the product a step talks to, drawn instead.
+  logo?: ProviderLogo | undefined;
   size?: "small" | "regular" | "large";
 }
+
+const LOGO_BOX_SIZES: Readonly<
+  Record<"small" | "regular" | "large", ProviderLogoSize>
+> = {
+  small: 28,
+  regular: 36,
+  large: 44,
+};
 
 export const IconBox: FunctionComponent<IconBoxProps> = (
   props: IconBoxProps,
 ): ReactElement => {
+  if (props.logo) {
+    return (
+      <ProviderLogoImage
+        logo={props.logo}
+        size={LOGO_BOX_SIZES[props.size || "regular"]}
+        isDecorative={true}
+      />
+    );
+  }
+
   let boxClass: string = "h-9 w-9 rounded-lg";
   let iconClass: string = "h-4 w-4";
 
@@ -162,7 +186,10 @@ export const ComponentTile: FunctionComponent<ComponentTileProps> = (
       }}
       className={`flex w-full items-start gap-3 rounded-lg border border-gray-200 bg-white p-3 text-left transition-colors duration-150 hover:border-indigo-300 hover:bg-indigo-50 ${FOCUS_RING}`}
     >
-      <IconBox icon={props.componentMetadata.iconProp} />
+      <IconBox
+        icon={props.componentMetadata.iconProp}
+        logo={props.componentMetadata.logo}
+      />
       <div className="min-w-0 flex-1">
         <div className="text-sm font-medium text-gray-900">
           {translator.translateText(props.componentMetadata.title)}

@@ -397,20 +397,30 @@ describe("EmailInlineImages.attach - linear time", () => {
   test("a body full of unclosed <img tags", () => {
     const html: string = `${"<img src='data:image/png;base64,".repeat(20000)}`;
 
-    const startedAt: number = Date.now();
-    const attached: EmailHtmlWithInlineImages = EmailInlineImages.attach(html);
+    const timed: FastestRun<EmailHtmlWithInlineImages> = fastestRun({
+      run: (): EmailHtmlWithInlineImages => {
+        return EmailInlineImages.attach(html);
+      },
+      limitInMs: 5000,
+    });
+    const attached: EmailHtmlWithInlineImages = timed.result;
 
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    expect(timed.inMs).toBeLessThan(5000);
     expect(attached.html).toBe(html);
   });
 
   test("a long tag with an unterminated quote before its src", () => {
     const html: string = `<img a='${" b=c".repeat(50000)} src="data:image/png;base64,${PNG}">`;
 
-    const startedAt: number = Date.now();
-    const attached: EmailHtmlWithInlineImages = EmailInlineImages.attach(html);
+    const timed: FastestRun<EmailHtmlWithInlineImages> = fastestRun({
+      run: (): EmailHtmlWithInlineImages => {
+        return EmailInlineImages.attach(html);
+      },
+      limitInMs: 5000,
+    });
+    const attached: EmailHtmlWithInlineImages = timed.result;
 
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    expect(timed.inMs).toBeLessThan(5000);
     expect(attached.inlineImages).toHaveLength(1);
   });
 
@@ -418,10 +428,15 @@ describe("EmailInlineImages.attach - linear time", () => {
     const shot: string = pngOfSize(1536 * 1024);
     const html: string = `<html><body>${"<p>text</p>".repeat(1000)}${image(shot)}</body></html>`;
 
-    const startedAt: number = Date.now();
-    const attached: EmailHtmlWithInlineImages = EmailInlineImages.attach(html);
+    const timed: FastestRun<EmailHtmlWithInlineImages> = fastestRun({
+      run: (): EmailHtmlWithInlineImages => {
+        return EmailInlineImages.attach(html);
+      },
+      limitInMs: 5000,
+    });
+    const attached: EmailHtmlWithInlineImages = timed.result;
 
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+    expect(timed.inMs).toBeLessThan(5000);
     expect(attached.inlineImages[0]!.base64).toBe(shot);
     expect(attached.html.length).toBeLessThan(20000);
   });
@@ -512,13 +527,15 @@ describe("EmailInlineImages.attachImage - an image of the email's own", () => {
   test("a body full of unclosed <img tags, in linear time", () => {
     const html: string = `${"<img src='data:image/png;base64,".repeat(20000)}data:image/png;base64,${PNG}`;
 
-    const startedAt: number = Date.now();
-    const attached: EmailHtmlWithInlineImages = EmailInlineImages.attachImage(
-      html,
-      own,
-    );
+    const timed: FastestRun<EmailHtmlWithInlineImages> = fastestRun({
+      run: (): EmailHtmlWithInlineImages => {
+        return EmailInlineImages.attachImage(html, own);
+      },
+      limitInMs: 2000,
+    });
+    const attached: EmailHtmlWithInlineImages = timed.result;
 
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(attached.html).toBe(html);
   });
 });

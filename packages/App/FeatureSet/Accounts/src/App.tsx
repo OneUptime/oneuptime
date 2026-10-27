@@ -1,5 +1,12 @@
-import React, { ComponentType, ReactElement, lazy, Suspense } from "react";
+import React, {
+  ComponentType,
+  ReactElement,
+  lazy,
+  Suspense,
+  useEffect,
+} from "react";
 import {
+  Location,
   Navigate,
   Params,
   Route,
@@ -9,6 +16,7 @@ import {
   useParams,
 } from "react-router-dom";
 import Navigation from "Common/UI/Utils/Navigation";
+import AccountsTheme from "./Utils/AccountsTheme";
 import { MASTER_ADMIN_SIGN_IN_PATH } from "Common/Types/SSO/SignInMethods";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Footer from "./Components/Footer/Footer";
@@ -89,9 +97,19 @@ export function LegacyIncidentFormRedirect(): ReactElement {
 }
 
 function App(): ReactElement {
+  const location: Location = useLocation();
+
   Navigation.setNavigateHook(useNavigate());
-  Navigation.setLocation(useLocation());
+  Navigation.setLocation(location);
   Navigation.setParams(useParams());
+
+  /*
+   * Each page in its theme: a public form is always light, every other page
+   * the person's (Utils/AccountsTheme.ts).
+   */
+  useEffect(() => {
+    AccountsTheme.followPage();
+  }, [location.pathname]);
 
   return (
     <div className="m-auto flex min-h-screen flex-col">

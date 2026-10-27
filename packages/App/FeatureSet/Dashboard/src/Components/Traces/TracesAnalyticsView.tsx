@@ -31,6 +31,13 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import OneUptimeDate from "Common/Types/Date";
 import { formatTickTime, formatTooltipLabel } from "./TraceTimeFormat";
+import {
+  TRACE_SPAN_TYPE_HELP,
+  TRACE_SPAN_TYPE_OPTIONS,
+  TraceSpanType,
+  TraceSpanTypeOption,
+  parseTraceSpanType,
+} from "Common/Types/Telemetry/TraceSpanType";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
 import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import {
@@ -109,6 +116,13 @@ export interface TracesAnalyticsViewProps {
   onTimeRangeSelect?: ((startTime: Date, endTime: Date) => void) | undefined;
   // Set only while there is a zoom to undo: it holds single clicks open.
   onTimeRangeReset?: (() => void) | undefined;
+  /*
+   * Which spans the analysis covers - the explorer's Span Type (Entry, Root
+   * or All spans), already in baseFilters. Shown and changed here because
+   * the sidebar that holds it is hidden in this view. Both or neither.
+   */
+  spanType?: TraceSpanType | undefined;
+  onSpanTypeChange?: ((spanType: TraceSpanType) => void) | undefined;
 }
 
 export const TRACES_ANALYTICS_TIMESERIES_TEST_ID: string =
@@ -550,11 +564,13 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
     value: string | number,
     onChange: (val: string) => void,
     options: Array<{ value: string | number; label: string }>,
+    help?: string | undefined,
   ) => ReactElement = (
     label: string,
     value: string | number,
     onChange: (val: string) => void,
     options: Array<{ value: string | number; label: string }>,
+    help?: string | undefined,
   ): ReactElement => {
     return (
       <div className="flex items-center">
@@ -563,6 +579,8 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
         </span>
         <select
           className="appearance-none rounded-md border border-gray-200 bg-white px-2.5 py-1.5 pr-7 text-xs font-medium text-gray-700 shadow-sm transition-all hover:border-gray-300 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+          aria-label={label}
+          title={help}
           value={value}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
             onChange(e.target.value);
@@ -586,8 +604,37 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
   };
 
   const renderQueryBuilder: () => ReactElement = (): ReactElement => {
+    const spanType: TraceSpanType | undefined = props.spanType;
+    const onSpanTypeChange: ((spanType: TraceSpanType) => void) | undefined =
+      props.onSpanTypeChange;
+
     return (
       <div className="flex flex-wrap items-center gap-4 border-b border-gray-100 px-5 py-3">
+        {spanType && onSpanTypeChange && (
+          <>
+            {renderSelectControl(
+              "Span Type",
+              spanType,
+              (val: string) => {
+                onSpanTypeChange(parseTraceSpanType(val) || spanType);
+              },
+              TRACE_SPAN_TYPE_OPTIONS.map(
+                (
+                  option: TraceSpanTypeOption,
+                ): {
+                  value: string;
+                  label: string;
+                } => {
+                  return { value: option.value, label: option.label };
+                },
+              ),
+              TRACE_SPAN_TYPE_HELP,
+            )}
+
+            <div className="h-4 w-px bg-gray-200" />
+          </>
+        )}
+
         {renderSelectControl(
           "Chart",
           chartType,

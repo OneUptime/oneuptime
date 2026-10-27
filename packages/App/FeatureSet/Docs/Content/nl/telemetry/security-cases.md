@@ -88,7 +88,7 @@ Een zaak heeft een eigen zijmenu, zoals een incident, en elk deel van de zaak is
 | Sectie van het zijmenu | Pagina's |
 | --- | --- |
 | **Overzicht** | **Overzicht**, **Tijdlijn** |
-| **Onderzoek** | **Detecties**, **Entiteiten**, **Verbonden signalen**, **Playbooks** |
+| **Onderzoek** | **Verloop**, **Detecties**, **Entiteiten**, **Verbonden signalen**, **Playbooks** |
 | **Notities** | **Privénotities** |
 | **Geavanceerd** | **Auditlogboeken**, **Zaak verwijderen**, ingeklapt tot je op **Geavanceerd** klikt |
 
@@ -96,8 +96,10 @@ Elke pagina houdt bovenaan de kop van de zaak: nummer, prioriteit, status en tit
 
 - **Overzicht**: de beschrijving, labels en statusstappen van de zaak, wie haar heeft en wat haar opende, en haar cijfers: hoeveel detecties ze heeft, hoe lang ze al open is, en hoe lang het duurde tot ze bevestigd en ingedamd was.
 - **OneUptime AI**, op het **Overzicht**: wat OneUptime AI van de zaak maakt, de prioriteit en het playbook die het voorstelt, en het bewijs erachter. Zie [OneUptime AI in beveiliging](/docs/telemetry/security-ai).
+- **Impact**, op het **Overzicht**: wat de zaak in gevaar brengt: of OneUptime heeft gezien dat haar records vanaf het internet werden bereikt, wie de eigenaar is en wat er het laatst aan veranderde. Klap het open om te zien wat elk record aanroept en waardoor het wordt aangeroepen, welke monitors en statuspagina's het in de gaten houden en met welke machines de adressen van de zaak praatten.
 - **MITRE ATT&CK**, op het **Overzicht**: de tactieken en technieken waarop haar detecties zijn gemapt, elk gelinkt aan de bijbehorende pagina op attack.mitre.org.
 - **Tijdlijn**: alles wat er met de zaak gebeurde, met wie het deed.
+- **Verloop**: wat er gebeurde, op volgorde, in heel OneUptime: elke detectie en de beveiligingsgebeurtenissen erachter, hoe ver hun verzoeken kwamen, de uitzonderingen die ze opwierpen, de wijzigingen aan de records die de zaak noemt, de incidenten en meldingen die daarop ontstonden, en wat het team deed. De vele probes van een scanner zijn één regel, en elke regel opent wat hij noemt, zoals de trace van het verzoek of de uitzondering.
 - **Detecties**: wat afging en zo de zaak opende of eraan werd toegevoegd, hoe vaak, en de laatste overeenkomende gebeurtenis.
 - **Entiteiten**: de gebruikers, hosts en adressen waar de zaak over gaat, met hun activiteit in al je beveiligingsgebeurtenissen van de afgelopen 7 dagen. Elk ervan opent in **Correleren**.
 - **Verbonden signalen**: de hosts, clusters, services en leden die de zaak noemt, zoals OneUptime ze kent, en wat er op elk ervan gebeurde rond de detecties: hun logboeken, traces en metrieken, wat erop openstaat en wat er is veranderd. Zie [Verbonden signalen](/docs/telemetry/security-connected-signals).
@@ -231,9 +233,11 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Zaak | Add labels | Voorziet de zaak van labels |
 | Onderzoeken | Check entities against threat intel | Zoekt elke entiteit op in je threat intelligence, en kan bij een match de prioriteit verhogen |
 | Onderzoeken | Look up entity activity | Telt de beveiligingsgebeurtenissen van elke entiteit over een recent venster, en noteert dat bij de zaak |
+| Onderzoeken | Preserve the evidence | Bewaart de sessie-opnames van de verzoeken achter de zaak, en noteert hun traces en exceptions bij de zaak |
 | Informeren | Email people | Mailt gebruikers en teams een samenvatting van de zaak, met een link ernaartoe |
 | Informeren | Post to Slack | Plaatst een samenvatting van de zaak in een Slack-kanaal |
 | Informeren | Post to Microsoft Teams | Plaatst een samenvatting van de zaak in een kanaal van Microsoft Teams |
+| Informeren | Post a status page announcement | Plaatst een aankondiging die u schreef op de statuspagina's die u kiest |
 | Escaleren | Page on-call | Voert een on-callbeleid uit |
 | Escaleren | Declare an incident | Opent een OneUptime-incident dat aan de zaak is gekoppeld |
 | Inperken | Suspend the user in Okta | Schorst in Okta de gebruiker waar de zaak over gaat |
@@ -245,12 +249,23 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Inperken | Release the device in Microsoft Defender | Haalt in Microsoft Defender for Endpoint de host waar de zaak over gaat uit isolatie |
 | Automatiseren | Send a webhook | Post de zaak als JSON naar een URL |
 | Automatiseren | Run a workflow | Start een OneUptime-workflow met de zaak als invoer |
+| Automatiseren | Run a runbook | Start een van uw OneUptime-runbooks met de zaak als invoer |
+| Automatiseren | Fix the code with AI | Vraagt OneUptime AI om een pull request die de exceptions oplost die de verzoeken van de zaak veroorzaakten |
 
 Een playbook heeft hoogstens 25 stappen. Ze draaien op volgorde, elk zodra de vorige klaar is. Elke stap kan ook:
 
-- **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De vier stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet.
+- **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De vier stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet. **Run a runbook** en **Post a status page announcement** beginnen met goedkeuring aan, omdat de ene opdrachten op uw systemen uitvoert en de andere uw klanten toespreekt; wie de stap toevoegt, kan het uitzetten.
 - **Alleen bij treffer in dreigingsinformatie**: de stap overslaan, tenzij een eerdere stap **Entiteiten controleren in dreigingsinformatie** van dezelfde uitvoering een bekende indicator vond.
 - **Doorgaan bij fout**: de volgende stap uitvoeren, ook als deze mislukt. Staat dit uit, dan stopt een mislukte stap de uitvoering.
+
+### Reageren via OneUptime
+
+Vier stappen werken via de rest van OneUptime in plaats van via een verbonden product:
+
+- **Run a runbook** start een van uw [runbooks](/docs/runbooks/index) met de zaak als invoer, die een Bash-stap als omgevingsvariabelen leest (zie [De webhook aanroepen](/docs/runbooks/triggers#de-webhook-aanroepen)). `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` en `ONEUPTIME_INPUT_HOST` zijn het adres, de gebruiker en de host waar de zaak over gaat, gekozen volgens dezelfde regel als bij een inperkingsstap, en leeg als het over geen ervan gaat. `ONEUPTIME_INPUT_IPS`, `ONEUPTIME_INPUT_USERS` en `ONEUPTIME_INPUT_HOSTS` geven als JSON alle adressen, gebruikers en hosts die de zaak noemt, en `ONEUPTIME_INPUT_CASE_NUMBER`, `ONEUPTIME_INPUT_CASE_TITLE` en `ONEUPTIME_INPUT_CASE_URL` zeggen om welke zaak het gaat. Een beschermde gebruiker of host zit er nooit bij. De uitvoering van het runbook vermeldt dat **Security playbook** haar voor de zaak heeft gestart.
+- **Preserve the evidence** bewaart de sessie-opnames van de verzoeken achter de zaak langer dan hun bewaartermijn, en schrijft een notitie bij de zaak die naar de trace van elk verzoek, elke opname en elke exception linkt. Logs en traces kunnen niet langer worden bewaard dan het project telemetrie bewaart, dus exporteer vóór die tijd wat u nodig hebt.
+- **Post a status page announcement** plaatst wat u schreef, zoals u het schreef, op de statuspagina's die u kiest. Er wordt niets uit de zaak aan toegevoegd. Hun abonnees worden alleen ingelicht als **Abonnees op de hoogte stellen** aan staat.
+- **Fix the code with AI** vraagt OneUptime AI om voor elke exception die de verzoeken van de zaak veroorzaakten, tot drie, een pull request die haar oplost. De stap vereist dat OneUptime AI aan staat, een repository met de code die via de GitHub App is verbonden, en een runner. Zonder deze wordt de stap overgeslagen en zegt hij wat er ontbreekt.
 
 ### Inperking
 
@@ -311,7 +326,7 @@ Elke uitvoering staat stap voor stap vermeld bij haar zaak en onder **Producten 
 | Mislukt | Een stap mislukte en de uitvoering stopte |
 | Geannuleerd | Iemand heeft haar geannuleerd, of een stap afgewezen |
 
-Een stap die op goedkeuring wacht, toont **Goedkeuren** en **Afwijzen** op de uitvoering, met een optionele opmerking. Goedkeuren zet de uitvoering voort vanaf die stap; afwijzen beëindigt haar. De beslissing, wie haar nam en de opmerking worden bewaard bij de stap, op de tijdlijn van de zaak en in het auditlogboek van het project. De pagina **Goedkeuringen**, onder **Playbooks** in het menu, toont de uitvoeringen die op een beslissing wachten en telt ze; **Uitvoeringen** toont elke uitvoering. Op **Uitvoeringen** en op de pagina van een playbook is elke uitvoering één regel die zegt hoe ver ze kwam, of bij welke stap ze stopte; **Stappen tonen** opent haar stappen. Een uitvoering die op goedkeuring wacht, gaat vanzelf open.
+Een stap die op goedkeuring wacht, toont **Goedkeuren** en **Afwijzen** op de uitvoering, met een optionele opmerking. Goedkeuren zet de uitvoering voort vanaf die stap; afwijzen beëindigt haar. De beslissing, wie haar nam en de opmerking worden bewaard bij de stap, op de tijdlijn van de zaak en in het auditlogboek van het project. De pagina **Goedkeuringen**, onder **Playbooks** in het menu, toont de uitvoeringen die op een beslissing wachten en telt ze; **Uitvoeringen** toont elke uitvoering. Op **Uitvoeringen**, op de pagina van een playbook en onder **Playbooks** van een zaak is elke uitvoering één regel die zegt hoe ver ze kwam, of bij welke stap ze stopte; **Stappen tonen** opent haar stappen. Een uitvoering die op goedkeuring wacht, gaat vanzelf open, net als de nieuwste uitvoering van een zaak.
 
 Een uitvoering die niets meer van haar worker hoort, bijvoorbeeld na een herstart, wordt weer opgepakt: een uitvoering in de wachtrij wordt na 2 minuten opnieuw in de wachtrij gezet, en een uitvoering die 30 minuten niets heeft gemeld, wordt als mislukt gemarkeerd.
 

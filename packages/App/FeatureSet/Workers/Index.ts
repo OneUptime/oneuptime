@@ -287,6 +287,7 @@ import "./Jobs/DetectionRules/EvaluateDetectionRules";
 import "./Jobs/SecurityEvents/PollSecurityEventConnections";
 import "./Jobs/SecurityEvents/RunSecurityEventConnection";
 import "./Jobs/SecurityEvents/ScanLogsForSecurityEvents";
+import "./Jobs/SecurityEvents/ScanTelemetryForSecurityEvents";
 import "./Jobs/SecurityEvents/ForwardSecurityEvents";
 import "./Jobs/SecurityEvents/EntityRisk";
 import "./Jobs/ThreatIntel/PollThreatIntelFeeds";

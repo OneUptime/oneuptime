@@ -15,6 +15,7 @@ import logger from "../Utils/Logger";
 import Sleep from "../../Types/Sleep";
 import { Redis as RedisClient, RedisOptions } from "ioredis";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import RedisCommandSpans from "../Utils/Telemetry/RedisCommandSpans";
 import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 
 export type ClientType = RedisClient;
@@ -23,7 +24,12 @@ export type RedisOptionsType = RedisOptions;
 export default abstract class Redis {
   private static client: RedisClient | null = null;
 
-  @CaptureSpan()
+  /*
+   * No @CaptureSpan on the accessors: they answer in microseconds and run
+   * before every cache read and write. With Database's two, their spans were
+   * half of one telemetry job's trace (1,546 of 3,102 spans) and said
+   * nothing. The commands themselves are traced - see RedisCommandSpans.
+   */
   public static isConnected(): boolean {
     if (!this.client) {
       return false;
@@ -32,12 +38,10 @@ export default abstract class Redis {
     return this.client.status === "ready";
   }
 
-  @CaptureSpan()
   public static getClient(): RedisClient | null {
     return this.client;
   }
 
-  @CaptureSpan()
   public static getRedisOptions(): RedisOptions {
     const redisOptions: RedisOptions = {
       host: RedisHostname,
@@ -67,6 +71,9 @@ export default abstract class Redis {
 
     try {
       this.client = new RedisClient(this.getRedisOptions());
+
+      // A CLIENT span for each command a traced request or job sends.
+      RedisCommandSpans.instrument(this.client);
 
       // Listen to 'error' events to the Redis connection
       this.client.on("error", (error: Error) => {

@@ -8,6 +8,7 @@ import {
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * "I can't filter by Owner/team on /on-call-duty/schedules." - the
@@ -650,16 +651,14 @@ test.describe("On-Call Schedules, filtered by its owners", () => {
     await expectListed(page, ["SRE Weekdays", "SRE Weekends"]);
     expect(await horizontalOverflow(page)).toBe(0);
 
-    // The chip with its pick stays inside the bar.
-    const chipBox: { x: number; width: number } | null = await bar(page)
-      .getByTestId("filter-chip")
-      .filter({ hasText: "SRE" })
-      .boundingBox();
-    const barBox: { x: number; width: number } | null =
-      await bar(page).boundingBox();
+    // The chip with its pick stays inside the bar (one frame: it just changed).
+    const [chipBox, barBox] = (await boxesInOneFrame([
+      bar(page).getByTestId("filter-chip").filter({ hasText: "SRE" }),
+      bar(page),
+    ])) as [FrameBox, FrameBox];
 
-    expect(chipBox!.x + chipBox!.width).toBeLessThanOrEqual(
-      barBox!.x + barBox!.width + 1,
+    expect(chipBox.x + chipBox.width).toBeLessThanOrEqual(
+      barBox.x + barBox.width + 1,
     );
 
     await screenshot(page, "filtered-by-team-390");

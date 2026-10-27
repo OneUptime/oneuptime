@@ -574,7 +574,11 @@ eBPF 看到的是网络调用，而不是你的代码，因此一条追踪由服
 
 有一个权衡：OneUptime 通过数据库客户端 Span 发现数据库，并把它们绘制在服务地图上。只有后台工作与之通信的数据库（worker 的队列、cron 任务的数据仓库）就不再能从追踪中被发现，并会在服务地图上显示为远程端点。它的指标不受影响。设置 `ebpf.dropUnlinkedDatabaseCalls=false` 可保留这些 Span。
 
-后台工作的 HTTP 和 gRPC 调用（通过 HTTP 查询 ClickHouse 的 worker、续订其 Kubernetes 租约的控制器）同样会以只有一个 Span 的追踪到达（`POST /`、`PUT /apis/*/...`）。设置 `ebpf.dropUnlinkedClientCalls=true` 可把它们也丢弃，连同 OBI 未能放入所属请求追踪、看起来一样的调用；数据库、消息和 GenAI 调用（包括 MCP）永远不会因此被丢弃。它默认关闭，因为它会损失数据：当被调用的服务运行在同一节点上时，OBI 会把该服务处理的请求关联到这次调用之下，于是这次调用成为该追踪的根，丢弃它就会让追踪失去根。开启 `ebpf.contextPropagation` 时，这在任何节点上都会发生，对拥有自己 OpenTelemetry SDK 的服务也一样。服务地图也会读取这些调用：只有后台工作调用的依赖项此时只能根据 OBI 的服务图指标绘制，而在请求内也能看到的边只统计那些调用。服务的概览会统计其 Span，因此 Span 大多是这类调用的 worker 或探针会显示少得多的请求数，其错误率和 p95 延迟也基于剩下的 Span 计算。OBI 的客户端请求指标仍会统计每一次调用。
+数据库代理或连接池（如 PgBouncer、ProxySQL 或 mongos）既是数据库服务器，又是客户端：OBI 会为应用发给它的每条命令记录一个服务端 Span，并为它转发出去的命令，在该服务端 Span 之下记录一个客户端 Span。由于服务端 Span 会被丢弃，代理默认还会丢弃数据库代理产生的全部数据库 Span（`ebpf.dropDatabaseProxySpans=true`），因此不会有指向缺失父 Span 的 Span 到达；应用自身的调用已经带有该命令及其延迟，数据库代理的数据库指标也会保留。代理会根据容器、服务或工作负载的名称，对照 `ebpf.databaseProxyNames` 中的列表来识别数据库代理；请把你自己的连接池的名称加到那里。设置 `ebpf.dropDatabaseProxySpans=false` 可改为保留数据库代理这一跳：这样在请求的追踪中，你会看到这次调用、数据库代理以及它背后的数据库，只要 OBI 能把数据库代理一侧的连接关联到这次调用（跨节点时这需要 `ebpf.contextPropagationMode` 为 `tcp` 或 `all`）。
+
+后台工作的 HTTP 和 gRPC 调用（通过 HTTP 查询 ClickHouse 的 worker、续订其 Kubernetes 租约的控制器）同样会以只有一个 Span 的追踪到达（`PUT /apis/*/...`；对于通过 HTTP 发出的 ClickHouse 调用，OneUptime 会以其命令命名，例如 `INSERT LogItemV3`，并将其显示为数据库调用）。设置 `ebpf.dropUnlinkedClientCalls=true` 可把它们也丢弃，连同 OBI 未能放入所属请求追踪、看起来一样的调用；数据库、消息和 GenAI 调用（包括 MCP）永远不会因此被丢弃。它默认关闭，因为它会损失数据：当被调用的服务运行在同一节点上时，OBI 会把该服务处理的请求关联到这次调用之下，于是这次调用成为该追踪的根，丢弃它就会让追踪失去根。开启 `ebpf.contextPropagation` 时，这在任何节点上都会发生，对拥有自己 OpenTelemetry SDK 的服务也一样。服务地图也会读取这些调用：只有后台工作调用的依赖项此时只能根据 OBI 的服务图指标绘制，而在请求内也能看到的边只统计那些调用。服务的概览会统计其 Span，因此 Span 大多是这类调用的 worker 或探针会显示少得多的请求数，其错误率和 p95 延迟也基于剩下的 Span 计算。OBI 的客户端请求指标仍会统计每一次调用。
+
+每个进程都会以一个服务的身份上报，该服务的名称按以下顺序取自：其容器中的 `OTEL_SERVICE_NAME`、Pod 注解 `resource.opentelemetry.io/service.name`、其 Pod 的 `app.kubernetes.io/instance` 标签、其 `app.kubernetes.io/name` 标签，或其 Deployment、StatefulSet 或 DaemonSet。Helm 会把一个发布的每个 Pod（包括其子 chart 的 Pod）上的 `app.kubernetes.io/instance` 设置为发布名称，因此同一个 umbrella 发布的所有组件可能共用一个服务。把 `ebpf.serviceNameLabels` 设置为 `["app.kubernetes.io/name", "app.kubernetes.io/instance"]`，即可改为按组件命名；它所适用的服务会被重命名。
 
 在自托管的 OneUptime 上，请先升级服务器，再升级代理：此 chart 运行的 eBPF 追踪器（OBI v0.14）为被调用服务命名以及报告消息代理自身 Span 的方式，是旧版 OneUptime 服务器无法读取的。
 

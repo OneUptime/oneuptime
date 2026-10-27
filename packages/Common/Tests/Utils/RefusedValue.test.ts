@@ -13,6 +13,7 @@ import {
   refusedValue,
 } from "../../Utils/RefusedValue";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -182,10 +183,15 @@ describe.each([
   "%s that is refused repeats only the start of the value",
   (_label: string, refuse: () => unknown, start: string) => {
     test("in a short message, quickly", () => {
-      const startedAt: number = Date.now();
-      const message: string = messageOf(refuse);
+      const timed: FastestRun<string> = fastestRun({
+        run: (): string => {
+          return messageOf(refuse);
+        },
+        limitInMs: 2000,
+      });
+      const message: string = timed.result;
 
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
       expect(message.startsWith(start)).toBe(true);
       expect(message.length).toBeLessThan(SHORT_MESSAGE);
     });

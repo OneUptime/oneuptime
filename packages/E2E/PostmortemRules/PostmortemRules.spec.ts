@@ -1,6 +1,7 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * Postmortem rules - which resolved incidents OneUptime AI drafts a
@@ -1079,12 +1080,12 @@ test.describe("the LLM provider a rule drafts with", () => {
       "placeholder",
       PROJECT_DEFAULT_PLACEHOLDER,
     );
-    // First under More fields, above the description.
-    expect((await providerBox(dialog).boundingBox())!.y).toBeLessThan(
-      (await dialog
-        .getByRole("textbox", { name: /^Description/ })
-        .boundingBox())!.y,
-    );
+    // First under More fields, above the description (read in one frame).
+    const [provider, description] = (await boxesInOneFrame([
+      providerBox(dialog),
+      dialog.getByRole("textbox", { name: /^Description/ }),
+    ])) as [FrameBox, FrameBox];
+    expect(provider.y).toBeLessThan(description.y);
   });
 
   /*
@@ -1205,10 +1206,10 @@ test.describe("the LLM provider a rule drafts with", () => {
             return document.documentElement.scrollWidth;
           }),
         ).toBeLessThanOrEqual(width);
-        const dialogBox: { x: number; width: number } =
-          (await dialog.boundingBox())!;
-        const pickerBox: { x: number; width: number } =
-          (await providerPicker(dialog).boundingBox())!;
+        const [dialogBox, pickerBox] = (await boxesInOneFrame([
+          dialog,
+          providerPicker(dialog),
+        ])) as [FrameBox, FrameBox];
         expect(pickerBox.x + pickerBox.width).toBeLessThanOrEqual(
           dialogBox.x + dialogBox.width,
         );

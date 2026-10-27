@@ -85,6 +85,21 @@ export interface FacetConfig {
   hideWhenEmpty?: boolean | undefined;
   // Plural noun used in the empty state once revealed ("Docker Hosts").
   emptyStateNoun?: string | undefined;
+  /*
+   * A choice of exactly one value that the explorer keeps itself, rather
+   * than in chips: the traces explorer's Span Type (Entry, Root or All
+   * spans). Its rows are radio buttons. This value is drawn chosen whether
+   * or not a chip names it, a click on another value is handed to
+   * onFacetInclude, a click on the chosen one does nothing, and no value can
+   * be excluded. Every value the facet answers with is listed, even under a
+   * page's locked scope.
+   */
+  chosenValue?: string | undefined;
+  /*
+   * One plain-language line under the title saying what the facet's values
+   * mean. Drawn in the reader's language.
+   */
+  description?: string | undefined;
 }
 
 export interface SearchHelpRow {

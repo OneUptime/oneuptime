@@ -1890,6 +1890,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["siem", "security logs"],
           },
           {
+            page: PageMap.SECURITY_EVENTS_CAMPAIGNS,
+            title: "Campaigns",
+            icon: IconProp.Flag,
+            keywords: [
+              "attackers",
+              "scanners",
+              "web attacks",
+              "sql injection",
+              "path traversal",
+            ],
+          },
+          {
             page: PageMap.SECURITY_EVENTS_ENTITIES,
             title: "Entities",
             icon: IconProp.Fingerprint,
@@ -2802,6 +2814,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.DASHBOARDS,
             title: "Dashboards",
             icon: IconProp.Window,
+          },
+          {
+            page: PageMap.DASHBOARD_PLAYLISTS,
+            title: "Playlists",
+            icon: IconProp.QueueList,
+            // Dashboards one after another on a screen (issue #5235).
+            keywords: [
+              "noc",
+              "wallboard",
+              "tv",
+              "rotate",
+              "slideshow",
+              "kiosk",
+            ],
           },
         ],
       },

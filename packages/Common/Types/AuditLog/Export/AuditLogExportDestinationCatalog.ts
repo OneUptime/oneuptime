@@ -1,5 +1,6 @@
 import IconProp from "../../Icon/IconProp";
 import { JSONObject, JSONValue } from "../../JSON";
+import ProviderLogo from "../../ProviderLogo/ProviderLogo";
 import { ConnectorField } from "../../SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import AuditLogExportDestinationType from "./AuditLogExportDestinationType";
 
@@ -45,6 +46,12 @@ export interface AuditLogExportDestinationDefinition {
   // One line under the title in the picker: what tells it from the others.
   description: string;
   icon: IconProp;
+  /*
+   * The service's official logo, drawn in the icon's place wherever the
+   * destination is named. None for a generic destination (any S3-compatible
+   * storage, a webhook, syslog), which keeps its icon.
+   */
+  logo?: ProviderLogo | undefined;
   kind: AuditLogExportDestinationKind;
   // The setup guide: a docs page and the heading on it.
   docsPath: string;
@@ -135,6 +142,7 @@ export const AuditLogExportDestinationCatalog: Array<AuditLogExportDestinationDe
       title: "Amazon S3",
       description: "Compressed NDJSON files in an S3 bucket.",
       icon: IconProp.Archive,
+      logo: ProviderLogo.AmazonS3,
       kind: AuditLogExportDestinationKind.Files,
       docsPath: `${AUDIT_LOG_EXPORT_DOCS_PATH}#amazon-s3`,
       maxEntriesPerBatch: FILE_MAX_ENTRIES_PER_BATCH,
@@ -210,6 +218,7 @@ export const AuditLogExportDestinationCatalog: Array<AuditLogExportDestinationDe
       title: "Google Cloud Storage",
       description: "Compressed NDJSON files in a Cloud Storage bucket.",
       icon: IconProp.Cloud,
+      logo: ProviderLogo.GoogleCloudStorage,
       kind: AuditLogExportDestinationKind.Files,
       docsPath: `${AUDIT_LOG_EXPORT_DOCS_PATH}#google-cloud-storage`,
       maxEntriesPerBatch: FILE_MAX_ENTRIES_PER_BATCH,
@@ -242,6 +251,7 @@ export const AuditLogExportDestinationCatalog: Array<AuditLogExportDestinationDe
       title: "Azure Blob Storage",
       description: "Compressed NDJSON files in a Blob Storage container.",
       icon: IconProp.CloudArrowUp,
+      logo: ProviderLogo.AzureBlobStorage,
       kind: AuditLogExportDestinationKind.Files,
       docsPath: `${AUDIT_LOG_EXPORT_DOCS_PATH}#azure-blob-storage`,
       maxEntriesPerBatch: FILE_MAX_ENTRIES_PER_BATCH,

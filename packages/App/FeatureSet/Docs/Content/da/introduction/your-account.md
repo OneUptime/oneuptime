@@ -25,7 +25,7 @@ Klik på dit billede øverst til højre i dashboardet.
 | --- | --- |
 | **Profil** | Åbner **Brugerprofil**: dit navn, din e-mail, din tidszone, dit billede og sikkerheden ved dit login. |
 | **Admin-indstillinger** | Åbner Admin Dashboard. Kun hovedadministratorer på en selvhostet installation ser det. |
-| **Mørkt tema** | Skifter dashboardet til dets mørke tema. I det mørke tema hedder punktet **Lyst tema**. |
+| **Tema** | Vælger dashboardets tema: **Lyst**, **Mørkt** eller **System**, som er lyst eller mørkt, alt efter hvordan din enhed er indstillet. |
 | **Log ud** | Logger dig ud. |
 
 **Brugerprofil** har sin egen sidemenu. **Grundlæggende** indeholder **Oversigt** og **Profilbillede**. **Sikkerhed** og **Farezone** er foldet sammen: klik på et afsnits titel for at åbne det.
@@ -132,7 +132,7 @@ Du kan høre til så mange projekter, du vil. Projektvælgeren øverst til venst
 Begge gemmes i din browser, ikke på din konto, så indstil dem igen i en anden browser eller på en anden enhed.
 
 - **Sprog**: dashboardet starter på din browsers sprog. Brug sprogmenuen nederst på hver side for at skifte. Denne dokumentation har sin egen sprogmenu øverst.
-- **Tema**: vælg **Mørkt tema** i brugermenuen. Dashboardet starter i det lyse tema.
+- **Tema**: vælg **Lyst**, **Mørkt** eller **System** i brugermenuen. **System** er lyst eller mørkt, alt efter hvordan din enhed er indstillet, og skifter med den; alle browsere starter med det. Login-siderne bruger samme tema.
 
 ## Slet din konto
 

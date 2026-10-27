@@ -6,6 +6,7 @@ import {
 } from "../../../../Types/SecurityCase/SecurityConnection";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
 import { readSecurityLogResource } from "../../../../Utils/SecurityCase/SecurityConnectionMatch";
+import { DetectionRuleDataKind } from "../../../../Types/SecurityEvent/DetectionRuleDataKind";
 import {
   DETECTION_RULE_LIBRARY,
   DetectionRuleLibraryEntry,
@@ -493,7 +494,17 @@ describe("the recommended rules fire on what the log parsers make", () => {
         },
       ),
     ]);
+    // Your OneUptime data, which no log format makes: TelemetryLibraryRules shows these firing.
+    const oneUptimeData: Array<DetectionRuleDataKind> = [
+      DetectionRuleDataKind.OneUptimeTraces,
+      DetectionRuleDataKind.NetworkFlows,
+      DetectionRuleDataKind.OneUptimeAuditLog,
+      DetectionRuleDataKind.SessionReplays,
+    ];
     const notShown: Array<string> = getRecommendedDetectionRules()
+      .filter((entry: DetectionRuleLibraryEntry): boolean => {
+        return !oneUptimeData.includes(entry.dataKind);
+      })
       .map((entry: DetectionRuleLibraryEntry): string => {
         return entry.title;
       })

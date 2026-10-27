@@ -110,26 +110,16 @@ describe("coerceDateColumnValue", () => {
    * The whole point of coercing at all: what lands in Postgres must not
    * change. An offset-less literal in a timestamptz column is parsed in the
    * session timezone, which is UTC in every OneUptime deployment, so reading
-   * it as UTC here reproduces the previous stored instant exactly — and does
+   * it as UTC here reproduces the previous stored instant exactly - and does
    * it independently of the timezone the Node process happens to run in,
-   * which moment's default local parse would not.
+   * which moment's default local parse would not. That last part runs on a
+   * Pacific-time host in DateColumnValueHostTimezone.test.ts: a zone set at
+   * run time never takes, so it is a file of its own with a docblock.
    */
-  it("reads an offset-less string as UTC regardless of the host timezone", () => {
-    const originalTimezone: string | undefined = process.env["TZ"];
+  it("reads an offset-less string as UTC", () => {
+    const coerced: unknown = coerceDateColumnValue("2027-01-01");
 
-    try {
-      process.env["TZ"] = "America/Los_Angeles";
-
-      const coerced: unknown = coerceDateColumnValue("2027-01-01");
-
-      expect((coerced as Date).toISOString()).toBe("2027-01-01T00:00:00.000Z");
-    } finally {
-      if (originalTimezone === undefined) {
-        delete process.env["TZ"];
-      } else {
-        process.env["TZ"] = originalTimezone;
-      }
-    }
+    expect((coerced as Date).toISOString()).toBe("2027-01-01T00:00:00.000Z");
   });
 
   it("leaves a Date exactly as it is", () => {

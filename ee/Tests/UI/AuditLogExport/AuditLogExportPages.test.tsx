@@ -694,6 +694,53 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
     expect(document.body).not.toHaveTextContent(SECRET);
   });
 
+  /*
+   * Official logos audit: the row starts with its destination's official
+   * logo - decorative, the detail line names it - and a generic
+   * destination (a webhook, syslog, any S3-compatible storage) with its
+   * icon on the same tile, so the list's rows tell apart at a glance.
+   */
+  test("each row starts with its destination's logo, or a generic one's icon on the same tile", async () => {
+    await renderProjectPage();
+
+    for (const [destinationType, logo] of [
+      [AuditLogExportDestinationType.AmazonS3, "amazon-s3"],
+      [
+        AuditLogExportDestinationType.GoogleCloudStorage,
+        "google-cloud-storage",
+      ],
+      [AuditLogExportDestinationType.AzureBlobStorage, "azure-blob-storage"],
+      [AuditLogExportDestinationType.S3Compatible, undefined],
+      [AuditLogExportDestinationType.Webhook, undefined],
+      [AuditLogExportDestinationType.Syslog, undefined],
+    ] as Array<[AuditLogExportDestinationType, string | undefined]>) {
+      const { container, unmount } = render(
+        <MemoryRouter>
+          {column("Name").getElement!(savedExport({ destinationType }))}
+        </MemoryRouter>,
+      );
+
+      const mark: Element | null = container.querySelector(
+        "[data-provider-logo]",
+      );
+
+      if (logo) {
+        expect(mark).toHaveAttribute("data-provider-logo", logo);
+        expect(mark).toHaveAttribute("aria-hidden", "true");
+        expect(mark).toHaveClass("bg-white", "h-8", "w-8");
+      } else {
+        expect(mark).toBeNull();
+        const tile: Element | null = container.querySelector(
+          "[data-testid='provider-icon-tile']",
+        );
+        expect(tile).toHaveClass("bg-white", "h-8", "w-8");
+        expect(tile?.querySelector("svg")).not.toBeNull();
+      }
+
+      unmount();
+    }
+  });
+
   test("a long name is cut short on its own line, with an ellipsis, and the address wraps under it whole", async () => {
     await renderProjectPage();
 
@@ -835,6 +882,33 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
       expect(
         within(dialog()).getByRole("radio", { name: new RegExp(`^${title}`) }),
       ).toBeInTheDocument();
+    }
+
+    /*
+     * The maintainer's screenshot: six grey outline icons. The three
+     * services are their official logos now; the three generic ones keep
+     * their icons, on the same neutral tile.
+     */
+    for (const [destinationType, logo] of [
+      [AuditLogExportDestinationType.AmazonS3, "amazon-s3"],
+      [
+        AuditLogExportDestinationType.GoogleCloudStorage,
+        "google-cloud-storage",
+      ],
+      [AuditLogExportDestinationType.AzureBlobStorage, "azure-blob-storage"],
+      [AuditLogExportDestinationType.S3Compatible, undefined],
+      [AuditLogExportDestinationType.Webhook, undefined],
+      [AuditLogExportDestinationType.Syslog, undefined],
+    ] as Array<[AuditLogExportDestinationType, string | undefined]>) {
+      const option: HTMLElement = within(dialog()).getByTestId(
+        `card-select-option-${destinationType}`,
+      );
+      const mark: Element | null = option.querySelector("[data-provider-logo]");
+
+      expect({
+        destinationType,
+        logo: mark?.getAttribute("data-provider-logo"),
+      }).toEqual({ destinationType, logo });
     }
 
     await pickDestination("Amazon S3");

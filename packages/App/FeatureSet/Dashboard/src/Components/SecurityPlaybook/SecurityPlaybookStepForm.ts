@@ -4,6 +4,7 @@ import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connector
 import {
   SecurityPlaybookActionDefinition,
   SecurityPlaybookActionType,
+  doesActionNeedApprovalByDefault,
   getSecurityPlaybookAction,
   isSecurityPlaybookActionType,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
@@ -12,6 +13,7 @@ import {
   SecurityPlaybookStep,
   normalizeSecurityPlaybookStepConfig,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookStep";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * A playbook step as the step dialog edits it, and back. The dialog is one
@@ -77,6 +79,15 @@ const PLAIN_KEYS_BY_ACTION: Record<
   [SecurityPlaybookActionType.ReleaseDefenderDevice]: [],
   [SecurityPlaybookActionType.SendWebhook]: ["url"],
   [SecurityPlaybookActionType.RunWorkflow]: ["workflowId"],
+  [SecurityPlaybookActionType.RunRunbook]: ["runbookId"],
+  [SecurityPlaybookActionType.PreserveEvidence]: [],
+  [SecurityPlaybookActionType.PostStatusPageAnnouncement]: [
+    "statusPageIds",
+    "announcementTitle",
+    "announcementDescription",
+    "notifySubscribers",
+  ],
+  [SecurityPlaybookActionType.FixWithAi]: [],
 };
 
 export function getStepConfigKeys(
@@ -141,6 +152,7 @@ const ID_LIST_KEYS: ReadonlySet<string> = new Set<string>([
   "labelIds",
   "userIds",
   "teamIds",
+  "statusPageIds",
 ]);
 
 const ID_KEYS: ReadonlySet<string> = new Set<string>([
@@ -149,7 +161,11 @@ const ID_KEYS: ReadonlySet<string> = new Set<string>([
   "onCallPolicyId",
   "incidentSeverityId",
   "workflowId",
+  "runbookId",
 ]);
+
+// Switches among an action's settings: kept as true or false.
+const SWITCH_KEYS: ReadonlySet<string> = new Set<string>(["notifySubscribers"]);
 
 // A step as the dialog opens it: its settings under their form keys, and its three switches.
 export function stepToFormValues(step: SecurityPlaybookStep): JSONObject {
@@ -180,7 +196,8 @@ export function stepToFormValues(step: SecurityPlaybookStep): JSONObject {
 /*
  * What a new step of an action starts as: a containment step waits for
  * approval, which only a Security Admin can turn off (the server holds
- * everyone else to it).
+ * everyone else to it); so does a step that runs a runbook or posts to a
+ * status page, which whoever adds it may turn off.
  */
 export function getNewStepFormValues(
   action: SecurityPlaybookActionType,
@@ -190,7 +207,7 @@ export function getNewStepFormValues(
 
   return {
     [STEP_ACTION_KEY]: action,
-    requiresApproval: Boolean(definition?.isDisruptive),
+    requiresApproval: doesActionNeedApprovalByDefault(definition),
     continueOnFailure: false,
     onlyIfThreatIntelMatched: false,
     ...(action === SecurityPlaybookActionType.LookUpEntityActivity
@@ -198,6 +215,9 @@ export function getNewStepFormValues(
       : {}),
     ...(action === SecurityPlaybookActionType.IsolateDefenderDevice
       ? { isolationType: "Full" }
+      : {}),
+    ...(action === SecurityPlaybookActionType.PostStatusPageAnnouncement
+      ? { notifySubscribers: false }
       : {}),
   };
 }
@@ -222,6 +242,11 @@ export function formValuesToStep(data: {
 
   for (const key of getStepConfigKeys(action)) {
     const value: JSONValue | undefined = data.values[key];
+
+    if (SWITCH_KEYS.has(key)) {
+      rawConfig[key] = value === true;
+      continue;
+    }
 
     if (value === undefined || value === null || value === "") {
       continue;
@@ -299,4 +324,42 @@ export function moveStep(
   moved[target] = current;
 
   return moved;
+}
+
+export const EDIT_STEP_TITLE: string = translationKey(
+  "Edit Step {{number}}: {{title}}",
+);
+
+/*
+ * The dialog's title and the line under it. A step being changed is named
+ * by its place and what it does, as a run lists its steps ("Step 4: Add a
+ * note"), and what that does is said under it - each in the reader's
+ * language. Joined from English pieces, the title read "Edit Step 4" and
+ * its line "Add a note: Write a note on the case: ..." on every page, two
+ * colons in one sentence. A new step has its action still to pick.
+ */
+export function getStepDialogWords(data: {
+  definition: SecurityPlaybookActionDefinition | undefined;
+  index: number;
+  isNew: boolean;
+  translator: Translator;
+}): { title: string; description: string } {
+  const { definition, translator } = data;
+
+  if (data.isNew || !definition) {
+    return {
+      title: data.isNew ? "Add Step" : "Edit Step",
+      description: "Pick what the step does, then fill in its settings.",
+    };
+  }
+
+  return {
+    title: translator.translateTemplate(EDIT_STEP_TITLE, {
+      number: translator.formatNumber(data.index + 1),
+      title: translator.translateText(definition.title) || definition.title,
+    }),
+    description:
+      translator.translateText(definition.description) ||
+      definition.description,
+  };
 }
