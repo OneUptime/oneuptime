@@ -85,7 +85,7 @@ Under **Tjenestedetaljer** klikker du på **Rediger detaljer** for å endre **Na
 Under **Tjenesteinnstillinger** klikker du på **Rediger innstillinger**. **Tjenestefarge** markerer tjenesten i diagrammer og lister; en ny tjeneste får sin egen. **Teknologistabel** er valgfri: la den stå tom for å vise språket som er oppdaget fra telemetrien.
 :::
 
-Den samme siden har tjenestens oppbevaring. Kortene **Oppbevaring av telemetridata** og **Oppbevaring etter telemetritype** oppbevarer telemetrien lenger eller kortere enn prosjektets standard oppbevaring. De er en del av [Enterprise Edition](/docs/self-hosted/enterprise) og av Scale-planen på OneUptime Cloud; uten dem viser siden hva de tilfører, og tjenesten beholder prosjektets oppbevaring.
+Den samme siden har tjenestens oppbevaring, sammenfoldet under **Flere innstillinger**. Kortene **Oppbevaring av telemetridata** og **Oppbevaring etter telemetritype** oppbevarer telemetrien lenger eller kortere enn prosjektets standard oppbevaring. De er en del av [Enterprise Edition](/docs/self-hosted/enterprise) og av Scale-planen på OneUptime Cloud; uten dem viser siden hva de tilfører, og tjenesten beholder prosjektets oppbevaring.
 
 ## Gi etiketter og eiere automatisk
 

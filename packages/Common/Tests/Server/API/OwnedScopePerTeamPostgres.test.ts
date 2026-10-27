@@ -76,7 +76,8 @@ import { DataSource } from "typeorm";
  *   - a security case carries no labels of its own, only its incident's: a
  *     reader limited to a label reads the notes of the cases whose incident
  *     carries it (and of the cases of no incident), and sees the note they
- *     add - read as the case's own labels, every case had none.
+ *     add - read as the case's own labels, every case had none; and a block
+ *     with that label takes the notes of those cases away with the cases.
  *
  * Opt in with RUN_POSTGRES_RECORD_SCOPE_TESTS=true against a database the
  * registered migrations have been applied to, e.g.
@@ -1769,6 +1770,72 @@ describePostgres(
             expect(note).toBe("Changed note");
           }
         }
+      });
+    });
+
+    describe("a block with a label on security cases takes their notes away with them", () => {
+      beforeEach(async () => {
+        await grant({
+          editors: [],
+          viewers: [
+            { permission: Permission.SecurityMember },
+            {
+              permission: Permission.SecurityMember,
+              labelIds: [productionLabelId],
+              isBlock: true,
+            },
+          ],
+        });
+      });
+
+      test("the case of the labelled incident is not read, nor is its note", async () => {
+        const cases: Outcome = await list("/security-case");
+
+        expect(cases.error).toBeUndefined();
+        expect(cases.ids).toEqual(
+          sorted([caseOfUnlabelledIncident.id, caseOfNoIncident.id]),
+        );
+
+        const notes: Outcome = await list("/security-case-note");
+
+        expect(notes.error).toBeUndefined();
+        expect(notes.ids).toEqual(
+          sorted([caseOfUnlabelledIncident.noteId, caseOfNoIncident.noteId]),
+        );
+
+        expectRefused(
+          await getItem("/security-case-note", caseOfLabelledIncident.noteId),
+        );
+      });
+
+      test("its note is neither changed nor deleted; the others' are changed", async () => {
+        for (const item of SECURITY_CASES) {
+          const outcome: Outcome = await update(
+            "/security-case-note",
+            item.noteId,
+            { note: "Changed note" },
+          );
+          const note: unknown = await readColumn(
+            "SecurityCaseNote",
+            item.noteId,
+            "note",
+          );
+
+          if (item === caseOfLabelledIncident) {
+            expectRefused(outcome);
+            expect(note).toBe("A note on the case");
+          } else {
+            expect(outcome.isEmptySuccess).toBe(true);
+            expect(note).toBe("Changed note");
+          }
+        }
+
+        expectRefused(
+          await remove("/security-case-note", caseOfLabelledIncident.noteId),
+        );
+        expect(
+          await rowExists("SecurityCaseNote", caseOfLabelledIncident.noteId),
+        ).toBe(true);
       });
     });
 

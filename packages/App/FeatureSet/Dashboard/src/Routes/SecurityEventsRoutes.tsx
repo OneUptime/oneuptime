@@ -38,7 +38,6 @@ import SecurityCasePlaybookRunsPage from "../Pages/SecurityEvents/CaseView/Playb
 import SecurityCaseNotesPage from "../Pages/SecurityEvents/CaseView/Notes";
 import SecurityCaseAuditLogsPage from "../Pages/SecurityEvents/CaseView/AuditLogs";
 import SecurityCaseDeletePage from "../Pages/SecurityEvents/CaseView/Delete";
-import SecurityEntitiesPage from "../Pages/SecurityEvents/Entities";
 import RuleLibraryPage from "../Pages/SecurityEvents/RuleLibrary";
 import AttackCoveragePage from "../Pages/SecurityEvents/AttackCoverage";
 import SecurityPlaybooksPage from "../Pages/SecurityEvents/Playbooks";
@@ -131,12 +130,20 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             />
           }
         />
+        {/*
+         * Entities ranked values by how many findings named them, beside
+         * Entity Risk's scores: two riskiest lists. Entity Risk is the one
+         * ranking now, with Entities' lookup under it, so the old address
+         * opens it (SECURITY_EVENTS_REDIRECTED_PAGES).
+         */}
         <PageRoute
           path={SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_ENTITIES] || ""}
           element={
-            <SecurityEntitiesPage
-              {...props}
-              pageRoute={RouteMap[PageMap.SECURITY_EVENTS_ENTITIES] as Route}
+            <Navigate
+              replace={true}
+              to={RouteUtil.populateRouteParams(
+                RouteMap[PageMap.SECURITY_EVENTS_ENTITY_RISK] as Route,
+              ).toString()}
             />
           }
         />

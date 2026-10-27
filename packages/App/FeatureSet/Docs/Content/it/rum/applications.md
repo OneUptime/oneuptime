@@ -108,7 +108,7 @@ La telemetria di un'applicazione e le sue registrazioni vengono conservate per t
 
 ### Conservazione della telemetria
 
-Per impostazione predefinita, la telemetria di un'applicazione viene conservata per la durata di conservazione del progetto, impostata in **Impostazioni del progetto → Telemetria e APM → Conservazione dei dati**. Due schede della pagina **Impostazioni** dell'applicazione la sostituiscono:
+Per impostazione predefinita, la telemetria di un'applicazione viene conservata per la durata di conservazione del progetto, impostata in **Impostazioni del progetto → Telemetria e APM → Conservazione dei dati**. Due schede della pagina **Impostazioni** dell'applicazione, chiuse in **Altre impostazioni**, la sostituiscono:
 
 - **Conservazione dei dati di telemetria** contiene **Conserva i dati di telemetria per (giorni)**, un valore per tutta la telemetria dell'applicazione. Lascialo vuoto per usare la conservazione del progetto.
 - **Conservazione per tipo di telemetria** contiene un valore predefinito per log, tracce, metriche e profili, e per i log per gravità e le tracce per stato. Un valore lasciato vuoto ricade sul valore dell'applicazione e poi su quello del progetto.
@@ -119,7 +119,7 @@ Su un piano Cloud inferiore, una sostituzione lasciata da una prova continua ad 
 
 ### Conservazione della riproduzione delle sessioni
 
-Le registrazioni hanno una conservazione propria, impostata nella pagina **Replay Policy** dell'applicazione con **Modifica policy → Limiti**: 7 giorni per impostazione predefinita, oppure 1, 14, 30 o 90 giorni. È breve di proposito, perché una registrazione è molto più sensibile, e molto più grande, di uno span. La scheda **Conservazione della riproduzione delle sessioni** della pagina **Impostazioni** la mostra (_Session replays are kept for 7 days._), e il suo pulsante **Modifica in Replay Policy** apre la policy.
+Le registrazioni hanno una conservazione propria, impostata nella pagina **Replay Policy** dell'applicazione con **Modifica policy → Limiti**: 7 giorni per impostazione predefinita, oppure 1, 14, 30 o 90 giorni. È breve di proposito, perché una registrazione è molto più sensibile, e molto più grande, di uno span. La scheda **Conservazione della riproduzione delle sessioni**, in **Altre impostazioni** della pagina **Impostazioni**, la mostra (_Session replays are kept for 7 days._), e il suo pulsante **Modifica in Replay Policy** apre la policy.
 
 Una conservazione della telemetria più lunga non conserva le registrazioni più a lungo. I conteggi, i segnali e il dispositivo di una sessione scadono con le sue immagini; solo i log, gli span e le eccezioni della sessione seguono la conservazione della telemetria. Vedi [Conservazione ed eliminazione](/docs/telemetry/session-replay#conservazione-ed-eliminazione).
 

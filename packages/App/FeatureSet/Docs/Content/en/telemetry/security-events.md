@@ -37,7 +37,6 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **All Cases** | Security Cases | Every case, open or closed |
 | **Events** | Events | Search and filter every event, and open one to see all its fields |
 | **Campaigns** | Events | Every address that sent attack requests, and whether any of its requests got through |
-| **Entities** | Events | The users, hosts and addresses your findings name most |
 | **Entity Risk** | Events | Every user, host and address scored by what was found about it this week, the riskiest first |
 | **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
 | **Detection Rules** | Detections | Sigma rules that run on a schedule and open cases |

@@ -34,7 +34,7 @@ Guarda las credenciales para un proyecto, o una sola vez para toda la instalaci�
 
 | | Configuración del proyecto | Configuración de toda la instalación |
 | --- | --- | --- |
-| Dónde | La tarjeta **Configuración de Twilio** en **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones** | **Admin Dashboard > Ajustes > Llamadas y SMS** |
+| Dónde | La tarjeta **Configuración de Twilio**, en **Más ajustes** de **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones** | **Admin Dashboard > Ajustes > Llamadas y SMS** |
 | Quién puede configurarla | **Propietario del proyecto**, **Administrador del proyecto**, o **Create Call and SMS** en un rol personalizado | Un administrador maestro |
 | Quién puede leer su Auth Token | **Propietario del proyecto**, **Administrador del proyecto**, o **Read Call and SMS** en un rol personalizado. Los demás que pueden ver la configuración ven el resto; el token se guarda cifrado | Un administrador maestro |
 | Se usa para | Los SMS y las llamadas a los miembros del proyecto mientras sea la predeterminada del proyecto, las páginas de estado a las que está asignada y las políticas de llamadas entrantes que la usan | Los SMS y las llamadas a los miembros de cualquier proyecto que no tenga configuración predeterminada |
@@ -42,7 +42,7 @@ Guarda las credenciales para un proyecto, o una sola vez para toda la instalaci�
 Para añadir una configuración de proyecto:
 
 :::steps
-1. Ve a **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**.
+1. Ve a **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones** y abre **Más ajustes**.
 2. En **Configuración de Twilio**, selecciona **Crear configuración de Twilio**.
 3. Introduce un nombre y elige en **Usar esta cuenta para** lo que envía la cuenta: **Llamadas y SMS**, **Solo SMS** o **Solo llamadas**. Después introduce **SID de cuenta de Twilio**, **Token de autenticación de Twilio** y el número que pide esa elección: **Número de teléfono principal de Twilio** para las llamadas, o **Números de teléfono SMS de Twilio** para **Solo SMS**. En **Más campos**, si quieres, introduce **Números de teléfono secundarios de Twilio** separados por comas para otros países, y **Números de teléfono SMS de Twilio** si tus números no pueden enviar SMS.
 4. **Establecer como predeterminado del proyecto** empieza activado en la primera configuración del proyecto, así que los SMS y las llamadas a los miembros del proyecto, incluidas las notificaciones de guardia, pasan por ella en cuanto guardas. Desactívalo si esta cuenta es solo para páginas de estado o llamadas entrantes. Una configuración posterior empieza con el interruptor desactivado: actívalo, o elige **Establecer como predeterminado del proyecto** en el menú de la fila de la configuración, para trasladar esos mensajes a ella. Una solicitud a la API que omite `isProjectDefault` se trata de la misma forma.

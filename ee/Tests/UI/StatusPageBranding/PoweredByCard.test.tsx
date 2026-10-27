@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "Common/Tests/MockType";
 
@@ -231,5 +231,95 @@ describe("the Powered by OneUptime card", () => {
     ).toHaveTextContent(
       "Every status page shows Powered by OneUptime, whatever this switch says.",
     );
+  });
+});
+
+/*
+ * The card waits folded under a status page's More settings, whose header
+ * says "Powered by OneUptime: Off" while the line is hidden: the card tells
+ * the page whether visitors see it, once read and after each flip that
+ * saves.
+ */
+describe("what the Powered by OneUptime card tells its page", () => {
+  test.each([
+    ["shown", false, true],
+    ["hidden", true, false],
+    ["never set (shown)", undefined, true],
+  ] as Array<[string, boolean | undefined, boolean]>)(
+    "a page with the line %s, once read",
+    async (_label: string, hidden: boolean | undefined, isShown: boolean) => {
+      const reports: Array<boolean> = [];
+
+      getItemMock.mockResolvedValue(pageWith(hidden) as never);
+
+      render(
+        <PoweredByCard
+          statusPageId={STATUS_PAGE_ID}
+          onPoweredByChange={(shown: boolean) => {
+            reports.push(shown);
+          }}
+        />,
+      );
+
+      await screen.findByTestId("recorded-switch-row");
+
+      expect(reports).toEqual([isShown]);
+    },
+  );
+
+  test("each flip the switch saves", async () => {
+    const reports: Array<boolean> = [];
+
+    getItemMock.mockResolvedValue(pageWith(false) as never);
+
+    render(
+      <PoweredByCard
+        statusPageId={STATUS_PAGE_ID}
+        onPoweredByChange={(shown: boolean) => {
+          reports.push(shown);
+        }}
+      />,
+    );
+
+    await screen.findByTestId("recorded-switch-row");
+
+    const onSaved: (isShown: boolean) => void = recordedRows[0]!["onSaved"] as (
+      isShown: boolean,
+    ) => void;
+
+    expect(typeof onSaved).toBe("function");
+
+    await act(async () => {
+      onSaved(false);
+    });
+    await act(async () => {
+      onSaved(true);
+    });
+
+    expect(reports).toEqual([true, false, true]);
+  });
+
+  test("a read that fails says nothing: the folded header keeps the card's name", async () => {
+    const reports: Array<boolean> = [];
+
+    getItemMock.mockRejectedValue(new Error("The server is down") as never);
+
+    render(
+      <PoweredByCard
+        statusPageId={STATUS_PAGE_ID}
+        onPoweredByChange={(shown: boolean) => {
+          reports.push(shown);
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getItemMock).toHaveBeenCalledTimes(1);
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(reports).toEqual([]);
   });
 });

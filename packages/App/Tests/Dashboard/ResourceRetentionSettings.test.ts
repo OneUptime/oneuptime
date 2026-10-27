@@ -19,6 +19,13 @@ import path from "path";
  * not contain the Dashboard's browser dependency tree, and these invariants
  * are wiring contracts rather than component-library behaviour (the shared
  * form has its own rendered tests in Common).
+ *
+ * Retention overrides are an advanced feature most projects never use, so
+ * every page folds them under its More settings: through the shared fold
+ * (Components/TelemetryResource/TelemetryResourceMoreSettings), which draws
+ * the shell inside an AdvancedPageSection, or - a RUM application, which
+ * folds its replay retention beside them - an AdvancedPageSection of its own
+ * around the shell.
  */
 
 const REPOSITORY_ROOT: string = path.join(__dirname, "../../..");
@@ -56,6 +63,9 @@ const STANDARD_TELEMETRY_RESOURCES: Array<ResourceSettingsSpec> = [
 ];
 
 const SHARED_RETENTION_COMPONENT: string = "TelemetryResourceRetentionSettings";
+
+// The shared fold most pages draw the shell through, in More settings.
+const SHARED_RETENTION_FOLD: string = "TelemetryResourceMoreSettings";
 const BLOCK_COMMENT_PATTERN: RegExp = new RegExp("/\\*[\\s\\S]*?\\*/", "g");
 const LINE_COMMENT_PATTERN: RegExp = new RegExp("(^|[^:])//[^\\n]*", "g");
 
@@ -114,6 +124,8 @@ interface RetentionSettingsSource {
   implementation: string;
   combined: string;
   sharedInvocation: string | null;
+  // Which the page draws: the shared fold, or the shell in a fold of its own.
+  component: string;
 }
 
 /*
@@ -128,8 +140,11 @@ function retentionSettingsSource(
 ): RetentionSettingsSource {
   const filename: string = settingsFilename(spec.resource);
   const page: string = readFile(filename);
+  const component: string = page.includes(`<${SHARED_RETENTION_FOLD}`)
+    ? SHARED_RETENTION_FOLD
+    : SHARED_RETENTION_COMPONENT;
   const importPattern: RegExp = new RegExp(
-    `import\\s+${SHARED_RETENTION_COMPONENT}\\s+from\\s+["']([^"']+)["']`,
+    `import\\s+${component}\\s+from\\s+["']([^"']+)["']`,
   );
   const importMatch: RegExpMatchArray | null = page.match(importPattern);
 
@@ -139,9 +154,25 @@ function retentionSettingsSource(
   });
 
   const sharedFilename: string = resolveImport(filename, importMatch![1]!);
-  const implementation: string = readFile(sharedFilename);
+  let implementation: string = readFile(sharedFilename);
+
+  // The fold draws the shell: read on to it.
+  if (component === SHARED_RETENTION_FOLD) {
+    const shellImport: RegExpMatchArray | null = implementation.match(
+      new RegExp(
+        `import\\s+${SHARED_RETENTION_COMPONENT}[\\s\\S]*?from\\s+["']([^"']+)["']`,
+      ),
+    );
+
+    expect(shellImport).not.toBeNull();
+
+    implementation = `${implementation}\n${readFile(
+      resolveImport(sharedFilename, shellImport![1]!),
+    )}`;
+  }
+
   const invocationPattern: RegExp = new RegExp(
-    `<${SHARED_RETENTION_COMPONENT}\\b[\\s\\S]*?\\/>`,
+    `<${component}\\b[\\s\\S]*?\\/>`,
   );
   const invocation: RegExpMatchArray | null = page.match(invocationPattern);
 
@@ -152,6 +183,7 @@ function retentionSettingsSource(
     implementation,
     combined: `${page}\n${implementation}`,
     sharedInvocation: invocation?.[0] || null,
+    component,
   };
 }
 
@@ -197,7 +229,7 @@ function assertOwnModelAndId(
   source: RetentionSettingsSource,
 ): void {
   expect(source.sharedInvocation).toContain(
-    `<${SHARED_RETENTION_COMPONENT}<${spec.model}>`,
+    `<${source.component}<${spec.model}>`,
   );
   expect(source.sharedInvocation).toContain(`modelType={${spec.model}}`);
   expect(source.sharedInvocation).toMatch(
@@ -240,6 +272,49 @@ describe("standard telemetry resource retention Settings", () => {
       );
       expect(source.page).not.toContain("TelemetryRetentionConfigForm");
       expect(source.page).not.toContain("TelemetryRetentionConfigSummary");
+    },
+  );
+
+  /*
+   * Folded: through the shared fold, whose AdvancedPageSection holds the
+   * shell, or - the RUM application - inside the page's own fold.
+   */
+  test.each(STANDARD_TELEMETRY_RESOURCES)(
+    "$resource folds the retention overrides under More settings",
+    (spec: ResourceSettingsSpec): void => {
+      const source: RetentionSettingsSource = retentionSettingsSource(spec);
+
+      if (source.component === SHARED_RETENTION_FOLD) {
+        const fold: string = readFile(
+          path.join(
+            DASHBOARD_SRC,
+            "Components/TelemetryResource/TelemetryResourceMoreSettings.tsx",
+          ),
+        );
+
+        expect(fold.indexOf("<AdvancedPageSection")).toBeGreaterThanOrEqual(0);
+        expect(fold.indexOf("<AdvancedPageSection")).toBeLessThan(
+          fold.indexOf(`<${SHARED_RETENTION_COMPONENT}<TModel>`),
+        );
+        expect(
+          fold.indexOf(`<${SHARED_RETENTION_COMPONENT}<TModel>`),
+        ).toBeLessThan(fold.indexOf("</AdvancedPageSection>"));
+        // It hands the shell the page's own props, and listens to it.
+        expect(fold).toContain("onRetentionChange={fold.onRetentionChange}");
+        return;
+      }
+
+      const foldStart: number = source.page.indexOf("<AdvancedPageSection");
+      const shell: number = source.page.indexOf(
+        `<${SHARED_RETENTION_COMPONENT}`,
+      );
+
+      expect({ resource: spec.resource, foldStart }).not.toEqual({
+        resource: spec.resource,
+        foldStart: -1,
+      });
+      expect(foldStart).toBeLessThan(shell);
+      expect(shell).toBeLessThan(source.page.indexOf("</AdvancedPageSection>"));
     },
   );
 

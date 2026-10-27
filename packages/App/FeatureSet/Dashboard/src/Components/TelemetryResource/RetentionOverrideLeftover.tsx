@@ -52,6 +52,12 @@ export interface ComponentProps<TModel extends BaseModel> {
   modelType: { new (): TModel };
   modelId: ObjectID;
   kind: RetentionOverrideLeftoverKind;
+  /*
+   * Told whether an override is still applied - once read, and false once
+   * removed - so a page whose retention waits folded under More settings
+   * can mark it there.
+   */
+  onOverrideChange?: ((isSet: boolean) => void) | undefined;
 }
 
 enum LeftoverState {
@@ -114,6 +120,8 @@ const RetentionOverrideLeftover: <TModel extends BaseModel>(
         if (isSet) {
           setState(LeftoverState.Set);
         }
+
+        props.onOverrideChange?.(isSet);
       })
       .catch((): void => {
         // Nothing is drawn: the upsell is the page.
@@ -167,6 +175,7 @@ const RetentionOverrideLeftover: <TModel extends BaseModel>(
 
       setIsConfirming(false);
       setState(LeftoverState.Removed);
+      props.onOverrideChange?.(false);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }

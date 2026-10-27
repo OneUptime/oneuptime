@@ -372,6 +372,22 @@ Mientras un incidente espera, su tarjeta **Investigación de IA** muestra **Espe
 
 Las alertas funcionan igual, en **Alertas → IA → Ajustes**, contando desde que se crea la alerta.
 
+## OneUptime AI responde primero
+
+Una regla de guardia de incidentes o alertas puede dejar que OneUptime AI atienda el aviso primero. En **Más campos**, responda **¿Cuándo debe avisar esta regla?** con **Después de que OneUptime AI lo intente**. Cuando OneUptime AI puede corregir lo que trata un incidente o una alerta que coincide, las políticas de la regla esperan mientras la IA investiga, corrige y comprueba su corrección, como máximo el tiempo fijado en **Esperar a OneUptime AI hasta (minutos)**: 10 minutos por defecto, de 1 a 30. Si la corrección de la IA se verifica, OneUptime AI resuelve el registro y no se avisa a nadie.
+
+En cambio, la regla avisa de inmediato, y el feed del registro dice por qué, cuando una persona creó el registro, tiene la gravedad más alta del proyecto, se abrieron 3 o más alertas e incidentes en los 5 minutos anteriores, OneUptime AI no puede investigarlo ni corregirlo automáticamente, no tiene ningún monitor vinculado, o ningún clúster de Kubernetes ni recurso vinculado tiene un agente de IA en **Automático** u **Omitir aprobación**.
+
+Mientras la IA retiene un aviso, la tarjeta **Investigación de IA** indica cuándo empieza el aviso, con **Avisar ahora** para quien quiera a una persona en ello de inmediato. Cada minuto, OneUptime revisa cada aviso que retiene la IA y empieza a avisar de inmediato, diciendo por qué, cuando:
+
+- la investigación no empieza, espera una regla de IA o no termina;
+- la IA no encuentra ninguna corrección que pueda ejecutar por sí misma, o su corrección necesita la aprobación de una persona;
+- la corrección de la IA no recupera los monitores;
+- alguien pulsa **Avisar ahora**, el registro alcanza la gravedad más alta, o se abren muchos registros a la vez;
+- la IA o la corrección automática se desactiva, o la regla ya no deja que la IA responda primero.
+
+Los registros de ejecución de la política indican cómo terminó cada retención. Por la API o Terraform, el `whenToPage` de la regla es `After OneUptime AI` y su `aiHoldTimeInMinutes` es el tiempo de retención.
+
 ## La remediación automática espera al análisis
 
 Cuando el proyecto corrige automáticamente los incidentes o las alertas nuevos (**Corregir automáticamente los incidentes nuevos** y **Corregir automáticamente las alertas nuevas**, con las reglas de IA bajo **Más ajustes** en **Incidentes → IA → Ajustes** y **Alertas → IA → Ajustes**), la corrección espera a la investigación, **primero el análisis de causa raíz**:

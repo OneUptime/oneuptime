@@ -67,6 +67,9 @@ const ALLOWED_HOOK_WRITES: Record<string, string> = {
   "IncidentEpisodeStateTimelineService.ts#onBeforeDelete": TIMELINE_REASON,
   "IncidentStateTimelineService.ts#onBeforeDelete": TIMELINE_REASON,
   "ScheduledMaintenanceStateTimelineService.ts#onBeforeDelete": TIMELINE_REASON,
+  "CustomNotificationChannelService.ts#onBeforeDelete":
+    CASCADE_REASON +
+    " The children are the notification rules that page through the channel, deleted through UserNotificationRuleService, the one place rules are deleted; the foreign key would delete them with the channel anyway.",
   "MonitorGroupService.ts#onBeforeDelete": CASCADE_REASON,
   "MonitorService.ts#onBeforeDelete":
     CASCADE_REASON +

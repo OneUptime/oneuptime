@@ -25,14 +25,14 @@ In einer selbst gehosteten Installation ist der eigene Mailserver von OneUptime 
 
 ## Einen SMTP-Server hinzufügen
 
-Den Mailserver eines Projekts fügen Sie unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** in der Karte **Benutzerdefinierte SMTP-Konfigurationen** hinzu. In einer selbst gehosteten Installation legen Sie den Server, über den OneUptime selbst versendet, unter **Admin Dashboard > Einstellungen > Benachrichtigungen > E-Mails** in der Karte **Benutzerdefinierte E-Mail- und SMTP-Einstellungen** fest. Beide Formulare fragen dasselbe ab, in zwei Schritten.
+Den Mailserver eines Projekts fügen Sie unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** in der Karte **Benutzerdefinierte SMTP-Konfigurationen** unter **Weitere Einstellungen** hinzu. In einer selbst gehosteten Installation legen Sie den Server, über den OneUptime selbst versendet, unter **Admin Dashboard > Einstellungen > Benachrichtigungen > E-Mails** in der Karte **Benutzerdefinierte E-Mail- und SMTP-Einstellungen** fest. Beide Formulare fragen dasselbe ab, in zwei Schritten.
 
 :::steps
 ### Das Formular öffnen
 
 :::tabs
 @tab Projekt
-Klicken Sie unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** in der Karte **Benutzerdefinierte SMTP-Konfigurationen** auf **SMTP-Konfiguration erstellen**.
+Öffnen Sie unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** den Bereich **Weitere Einstellungen** und klicken Sie in der Karte **Benutzerdefinierte SMTP-Konfigurationen** auf **SMTP-Konfiguration erstellen**.
 @tab Selbst gehostete Instanz
 Öffnen Sie im Admin Dashboard **Einstellungen** und dann im Seitenmenü **Benachrichtigungen > E-Mails** (**Benachrichtigungen** ist anfangs eingeklappt). Klicken Sie in der Karte **E-Mail-Server-Einstellungen** auf **Server bearbeiten** und setzen Sie **E-Mail-Servertyp** auf `Custom SMTP`. Klicken Sie dann in der Karte **Benutzerdefinierte E-Mail- und SMTP-Einstellungen**, die darunter erscheint, auf **SMTP-Konfiguration bearbeiten**.
 :::

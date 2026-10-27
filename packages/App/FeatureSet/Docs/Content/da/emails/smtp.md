@@ -25,14 +25,14 @@ I en selvhostet installation er OneUptimes egen mailserver den, der er angivet i
 
 ## Tilføj en SMTP-server
 
-Tilføj et projekts mailserver under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, i kortet **Brugerdefinerede SMTP-konfigurationer**. I en selvhostet installation angives den server, som OneUptime selv sender fra, under **Admin Dashboard > Indstillinger > Notifikationer > E-mails**, i kortet **Tilpassede e-mail- og SMTP-indstillinger**. Begge formularer spørger om det samme, i to trin.
+Tilføj et projekts mailserver under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, i kortet **Brugerdefinerede SMTP-konfigurationer** under **Yderligere indstillinger**. I en selvhostet installation angives den server, som OneUptime selv sender fra, under **Admin Dashboard > Indstillinger > Notifikationer > E-mails**, i kortet **Tilpassede e-mail- og SMTP-indstillinger**. Begge formularer spørger om det samme, i to trin.
 
 :::steps
 ### Åbn formularen
 
 :::tabs
 @tab Projekt
-Klik under **Projektindstillinger > Notifikationer > Notifikationsindstillinger** på **Opret SMTP Konfiguration** i kortet **Brugerdefinerede SMTP-konfigurationer**.
+Åbn **Yderligere indstillinger** under **Projektindstillinger > Notifikationer > Notifikationsindstillinger**, og klik på **Opret SMTP Konfiguration** i kortet **Brugerdefinerede SMTP-konfigurationer**.
 @tab Selvhostet instans
 Åbn **Indstillinger** i Admin Dashboard og derefter **Notifikationer > E-mails** i sidemenuen (**Notifikationer** er foldet sammen fra start). Klik i kortet **E-mail-serverindstillinger** på **Rediger server**, og sæt **E-mailservertype** til `Custom SMTP`. Klik derefter på **Rediger SMTP-konfig** i kortet **Tilpassede e-mail- og SMTP-indstillinger**, som vises nedenunder.
 :::

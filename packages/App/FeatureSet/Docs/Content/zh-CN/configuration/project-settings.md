@@ -81,7 +81,7 @@ flowchart LR
 
 **项目设置 → 通知**包含项目发送通知的方式：
 
-- **通知设置**：**通知渠道**卡片为项目打开或关闭短信、电话、WhatsApp 和 Telegram。四者默认均为关闭。由 Project Owner、**账单管理员** 或拥有 **Manage Billing** 的人打开它们。该页面还包含项目自己的邮件服务器，位于**自定义 SMTP 配置**下（参见[SMTP](/docs/emails/smtp)），以及项目自己的 Twilio 账户（参见[Twilio 集成](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它还包含支付这些消息的余额：参见[预付余额](/docs/configuration/billing#预付余额)。
+- **通知设置**：**通知渠道**卡片为项目打开或关闭短信、电话、WhatsApp 和 Telegram。四者默认均为关闭。由 Project Owner、**账单管理员** 或拥有 **Manage Billing** 的人打开它们。该页面的 **更多设置** 中还包含项目自己的邮件服务器，位于**自定义 SMTP 配置**下（参见[SMTP](/docs/emails/smtp)），以及项目自己的 Twilio 账户（参见[Twilio 集成](/docs/self-hosted/twilio-integration)）。在 OneUptime Cloud 上，它还包含支付这些消息的余额：参见[预付余额](/docs/configuration/billing#预付余额)。
 - **通知日志**：项目发送的每条通知，每个渠道一个选项卡：**电子邮件**、**SMS**、**WhatsApp**、**Telegram**、**Webhook**、**调用**、**推送**和**工作区**。
 - **移动应用**：获取 iOS 和 Android 应用的位置。参见[应用概览](/docs/mobile-desktop-apps/index)。
 

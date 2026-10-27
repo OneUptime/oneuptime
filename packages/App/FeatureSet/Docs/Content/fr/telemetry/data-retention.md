@@ -28,10 +28,10 @@ En détail, OneUptime lit ces paramètres dans cet ordre, et le premier qui est 
 
 | Ordre | Paramètre | Où il se définit |
 | --- | --- | --- |
-| 1 | Des jours pour une gravité de journal ou un statut de span, pour un service ou une ressource | **Rétention par type de télémétrie**, sur sa page **Paramètres** |
+| 1 | Des jours pour une gravité de journal ou un statut de span, pour un service ou une ressource | **Rétention par type de télémétrie**, sous **Plus de paramètres** sur sa page **Paramètres** |
 | 2 | Des jours pour un type de télémétrie, pour un service ou une ressource | La même carte |
-| 3 | Des jours pour tout ce qui vient d'un service ou d'une ressource | **Conservation des données de télémétrie**, sur la même page |
-| 4 | Des jours pour une gravité de journal ou un statut de span, pour le projet | **Rétention par type de télémétrie**, sur **Rétention des données** |
+| 3 | Des jours pour tout ce qui vient d'un service ou d'une ressource | **Conservation des données de télémétrie**, sous **Plus de paramètres** sur la même page |
+| 4 | Des jours pour une gravité de journal ou un statut de span, pour le projet | **Rétention par type de télémétrie**, sous **Plus de paramètres** sur **Rétention des données** |
 | 5 | Des jours pour un type de télémétrie, pour le projet | La même carte |
 | 6 | Des jours pour tout le reste | **Conservation par défaut (jours)**, sur **Rétention des données** |
 
@@ -64,7 +64,7 @@ Les remplacements gardent plus longtemps ce dont vous avez besoin et moins longt
 
 ### Pour tout le projet
 
-Sous le défaut, la carte **Rétention par type de télémétrie** fixe des jours pour chaque type de télémétrie. Cliquez sur **Edit Overrides**, remplissez les champs dont vous avez besoin, et laissez les autres vides :
+Sous le défaut, repliée sous **Plus de paramètres**, la carte **Rétention par type de télémétrie** fixe des jours pour chaque type de télémétrie. Cliquez sur **Edit Overrides**, remplissez les champs dont vous avez besoin, et laissez les autres vides :
 
 | Type | Champs |
 | --- | --- |
@@ -77,7 +77,7 @@ Un champ laissé vide se rabat sur le paramètre suivant de l'ordre ci-dessus, d
 
 ### Pour un service ou une ressource
 
-Ouvrez la page **Paramètres** du service ou de la ressource. Sa carte **Conservation des données de télémétrie** contient **Conserver les données de télémétrie pendant (jours)**, un seul nombre pour tout ce qu'il envoie, et sa carte **Rétention par type de télémétrie** a les mêmes champs que celle du projet. Laissez un champ vide pour utiliser les paramètres du projet.
+Ouvrez la page **Paramètres** du service ou de la ressource, puis **Plus de paramètres**. Sa carte **Conservation des données de télémétrie** contient **Conserver les données de télémétrie pendant (jours)**, un seul nombre pour tout ce qu'il envoie, et sa carte **Rétention par type de télémétrie** a les mêmes champs que celle du projet. Laissez un champ vide pour utiliser les paramètres du projet.
 
 Les services, les hôtes, les clusters Kubernetes, les hôtes Docker et Podman, les clusters Docker Swarm, Proxmox et Ceph, les baies de stockage, les vCenter, les bases de données, les fonctions serverless, les ressources cloud, les applications RUM et les flottes IoT ont tous ces cartes. Voir le [Catalogue de services](/docs/telemetry/services#modifier-un-service) pour la page **Paramètres** d'un service.
 

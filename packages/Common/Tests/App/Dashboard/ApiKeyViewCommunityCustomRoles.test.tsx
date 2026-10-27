@@ -1,6 +1,8 @@
 import "@testing-library/jest-dom";
 import {
+  act,
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -24,10 +26,17 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * (ee/Tests/UI/CustomRoles/ApiKeyViewCustomRoles.test.tsx holds the
  * Enterprise card); here, with the Community Edition's empty plugins:
  *
- *   - a key with no custom role shows no custom roles card at all;
+ *   - a key with no custom role shows no custom roles card at all, and
+ *     its More settings names Block Permissions alone, as before;
  *   - a key that still has custom roles keeps their permissions, so they
  *     are listed, still in force, each with Remove - and nothing offers to
- *     give it another;
+ *     give it another - in the page's More settings, before Block
+ *     Permissions, whose folded header says how many there are (custom
+ *     roles are an advanced feature: the page opens on the key's own
+ *     Permissions);
+ *   - the key's own Permissions card, empty, says the roles give the key
+ *     its access, not that it can do nothing;
+ *   - a link to #custom-roles opens More settings at the card;
  *   - the key's own Permissions card never lists a role's copies.
  */
 
@@ -186,6 +195,15 @@ import { getJestSpyOn } from "../../Spy";
 import CustomRoleLeftoverCopy, {
   API_KEY_CUSTOM_ROLES_LEFTOVER_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRoleLeftoverCopy";
+import {
+  API_KEY_MORE_SETTINGS_ROLES_DESCRIPTION,
+  API_KEY_PERMISSIONS_EMPTY_WITH_CUSTOM_ROLES,
+  CUSTOM_ROLES_CARD_PLACE,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRolesFold";
+import {
+  listedNames,
+  setChips,
+} from "../../UI/Components/FoldedSection/FoldedSectionQueries";
 
 jest.setTimeout(30000);
 
@@ -358,11 +376,33 @@ async function renderPage(): Promise<void> {
   await waitFor(
     () => {
       expect(
-        screen.getAllByText(/This key can do nothing yet/).length,
+        screen.getAllByText(
+          /This key can do nothing yet|This key has no permissions of its own yet/,
+        ).length,
       ).toBeGreaterThanOrEqual(1);
     },
     { timeout: 10000 },
   );
+}
+
+function moreSettings(): HTMLElement {
+  return screen.getByTestId("api-key-advanced-section");
+}
+
+function moreSettingsHeader(): HTMLElement {
+  return within(moreSettings()).getByRole("button", {
+    name: "More settings",
+  });
+}
+
+function permissionsCard(): HTMLElement {
+  const heading: HTMLElement | undefined = screen
+    .getAllByTestId("card-details-heading")
+    .find((candidate: HTMLElement): boolean => {
+      return candidate.textContent === "Permissions";
+    });
+
+  return heading!.closest("[data-testid='card']") as HTMLElement;
 }
 
 describe("an API key's custom roles on the Community Edition", () => {
@@ -381,6 +421,13 @@ describe("an API key's custom roles on the Community Edition", () => {
       screen.queryByTestId(API_KEY_CUSTOM_ROLES_LEFTOVER_TEST_ID),
     ).toBeNull();
     expect(screen.queryByText(CustomRoleLeftoverCopy.apiKeyTitle)).toBeNull();
+
+    // More settings holds Block Permissions alone, as it always did.
+    await act(async (): Promise<void> => {});
+    expect(listedNames(moreSettingsHeader())).toEqual(["Block Permissions"]);
+    expect(
+      within(permissionsCard()).getByText("This key can do nothing yet"),
+    ).toBeInTheDocument();
   });
 
   test("a key that still has custom roles lists them, still in force, with Remove and nothing to add", async () => {
@@ -411,6 +458,97 @@ describe("an API key's custom roles on the Community Edition", () => {
     const rows: Array<any> = listCallsFor(ApiKeyCustomRole);
     expect(rows.length).toBeGreaterThan(0);
     expect(rows[0].query.apiKeyId.toString()).toBe(KEY_ID);
+  });
+
+  test("the roles a key still has are folded under More settings, before Block Permissions, the header saying how many", async () => {
+    const incidentResponder: CustomRole = responder();
+    roles = [incidentResponder];
+    givenRows = [givenToKey(incidentResponder)];
+    roleCountForTest = 1;
+
+    await renderPage();
+
+    const card: HTMLElement = await screen.findByTestId(
+      API_KEY_CUSTOM_ROLES_LEFTOVER_TEST_ID,
+      {},
+      { timeout: 10000 },
+    );
+
+    // The page opens on the key's own Permissions; the roles wait folded.
+    expect(moreSettings()).toContainElement(card);
+    expect(moreSettings()).not.toContainElement(permissionsCard());
+    expect(
+      Boolean(
+        permissionsCard().compareDocumentPosition(moreSettings()) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
+    expect(moreSettingsHeader()).toHaveAttribute("aria-expanded", "false");
+
+    await waitFor(() => {
+      expect(listedNames(moreSettingsHeader())).toEqual([
+        "Custom Roles: 1",
+        "Block Permissions",
+      ]);
+    });
+    expect(setChips(moreSettingsHeader())).toEqual(["Custom Roles: 1"]);
+
+    // The card takes the place a link to it names.
+    expect(card).toContainElement(
+      document.getElementById(CUSTOM_ROLES_CARD_PLACE),
+    );
+
+    fireEvent.click(moreSettingsHeader());
+
+    expect(
+      within(moreSettingsHeader()).getByText(
+        API_KEY_MORE_SETTINGS_ROLES_DESCRIPTION,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("a key whose access comes from its custom roles alone is not told it can do nothing", async () => {
+    const incidentResponder: CustomRole = responder();
+    roles = [incidentResponder];
+    givenRows = [givenToKey(incidentResponder)];
+    roleCountForTest = 1;
+
+    await renderPage();
+
+    await waitFor(() => {
+      expect(
+        within(permissionsCard()).getByText(
+          API_KEY_PERMISSIONS_EMPTY_WITH_CUSTOM_ROLES.split(". ")[0] as string,
+        ),
+      ).toBeInTheDocument();
+    });
+    expect(
+      within(permissionsCard()).queryByText("This key can do nothing yet"),
+    ).toBeNull();
+  });
+
+  test("opened at #custom-roles, as a role's page links its keys: More settings opens there", async () => {
+    const incidentResponder: CustomRole = responder();
+    roles = [incidentResponder];
+    givenRows = [givenToKey(incidentResponder)];
+    roleCountForTest = 1;
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `/dashboard/${PROJECT_ID}/settings/api-keys/${KEY_ID}#${CUSTOM_ROLES_CARD_PLACE}`,
+    );
+
+    await renderPage();
+
+    await screen.findByTestId(
+      API_KEY_CUSTOM_ROLES_LEFTOVER_TEST_ID,
+      {},
+      { timeout: 10000 },
+    );
+
+    await waitFor(() => {
+      expect(moreSettingsHeader()).toHaveAttribute("aria-expanded", "true");
+    });
   });
 
   test("the key's own Permissions card never lists a role's copies", async () => {

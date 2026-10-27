@@ -108,7 +108,7 @@ Die Telemetrie einer Anwendung und ihre Aufzeichnungen werden unterschiedlich la
 
 ### Aufbewahrung der Telemetrie
 
-Standardmäßig wird die Telemetrie einer Anwendung so lange aufbewahrt wie im Projekt festgelegt, unter **Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung**. Zwei Karten auf der Seite **Einstellungen** der Anwendung überschreiben das:
+Standardmäßig wird die Telemetrie einer Anwendung so lange aufbewahrt wie im Projekt festgelegt, unter **Projekteinstellungen → Telemetrie & APM → Datenaufbewahrung**. Zwei Karten auf der Seite **Einstellungen** der Anwendung, eingeklappt unter **Weitere Einstellungen**, überschreiben das:
 
 - **Aufbewahrung von Telemetriedaten** enthält **Telemetriedaten aufbewahren für (Tage)**, einen Wert für die gesamte Telemetrie der Anwendung. Lassen Sie das Feld leer, um die Aufbewahrung des Projekts zu verwenden.
 - **Aufbewahrung nach Telemetrietyp** enthält je einen Standard für Logs, Traces, Metriken und Profile sowie für Logs nach Schweregrad und Traces nach Status. Ein leer gelassener Wert fällt auf den Wert der Anwendung zurück, dann auf den des Projekts.
@@ -119,7 +119,7 @@ In einem kleineren Cloud-Tarif gilt eine Überschreibung, die eine Testphase hin
 
 ### Aufbewahrung der Sitzungswiedergabe
 
-Aufzeichnungen haben eine eigene Aufbewahrung, festgelegt auf der Seite **Wiedergaberichtlinie** der Anwendung mit **Richtlinie bearbeiten → Limits**: standardmäßig 7 Tage, oder 1, 14, 30 oder 90 Tage. Sie ist absichtlich kurz, denn eine Aufzeichnung ist weit sensibler und weit größer als ein Span. Die Karte **Aufbewahrung der Sitzungswiedergabe** auf der Seite **Einstellungen** zeigt sie an (_Sitzungswiedergaben werden 7 Tage aufbewahrt._), und ihre Schaltfläche **In der Wiedergaberichtlinie bearbeiten** öffnet die Richtlinie.
+Aufzeichnungen haben eine eigene Aufbewahrung, festgelegt auf der Seite **Wiedergaberichtlinie** der Anwendung mit **Richtlinie bearbeiten → Limits**: standardmäßig 7 Tage, oder 1, 14, 30 oder 90 Tage. Sie ist absichtlich kurz, denn eine Aufzeichnung ist weit sensibler und weit größer als ein Span. Die Karte **Aufbewahrung der Sitzungswiedergabe** unter **Weitere Einstellungen** auf der Seite **Einstellungen** zeigt sie an (_Sitzungswiedergaben werden 7 Tage aufbewahrt._), und ihre Schaltfläche **In der Wiedergaberichtlinie bearbeiten** öffnet die Richtlinie.
 
 Eine längere Telemetrie-Aufbewahrung hält Aufzeichnungen nicht länger. Zähler, Signale und Gerät einer Sitzung verfallen mit ihrem Material; nur die Logs, Spans und Ausnahmen der Sitzung folgen der Telemetrie-Aufbewahrung. Siehe [Aufbewahrung und Löschung](/docs/telemetry/session-replay#aufbewahrung-und-löschung).
 

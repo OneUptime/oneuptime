@@ -28,10 +28,10 @@ Em detalhe, o OneUptime lê estas configurações nesta ordem, e a primeira defi
 
 | Ordem | Configuração | Onde é definida |
 | --- | --- | --- |
-| 1 | Dias para uma gravidade de registro ou um status de span, para um serviço ou recurso | **Retenção por tipo de telemetria**, na sua página **Configurações** |
+| 1 | Dias para uma gravidade de registro ou um status de span, para um serviço ou recurso | **Retenção por tipo de telemetria**, em **Mais configurações** na sua página **Configurações** |
 | 2 | Dias para um tipo de telemetria, para um serviço ou recurso | O mesmo cartão |
-| 3 | Dias para tudo o que vem de um serviço ou recurso | **Retenção de Dados de Telemetria**, na mesma página |
-| 4 | Dias para uma gravidade de registro ou um status de span, para o projeto | **Retenção por tipo de telemetria**, em **Retenção de dados** |
+| 3 | Dias para tudo o que vem de um serviço ou recurso | **Retenção de Dados de Telemetria**, em **Mais configurações** na mesma página |
+| 4 | Dias para uma gravidade de registro ou um status de span, para o projeto | **Retenção por tipo de telemetria**, em **Mais configurações** de **Retenção de dados** |
 | 5 | Dias para um tipo de telemetria, para o projeto | O mesmo cartão |
 | 6 | Dias para todo o resto | **Retenção Padrão (Dias)**, em **Retenção de dados** |
 
@@ -64,7 +64,7 @@ As substituições mantêm por mais tempo o que você precisa e por menos tempo 
 
 ### Para o projeto inteiro
 
-Abaixo do padrão, o cartão **Retenção por tipo de telemetria** define dias para cada tipo de telemetria. Clique em **Edit Overrides**, preencha os campos de que precisa e deixe os outros em branco:
+Abaixo do padrão, recolhido em **Mais configurações**, o cartão **Retenção por tipo de telemetria** define dias para cada tipo de telemetria. Clique em **Edit Overrides**, preencha os campos de que precisa e deixe os outros em branco:
 
 | Tipo | Campos |
 | --- | --- |
@@ -77,7 +77,7 @@ Um campo deixado em branco recorre à configuração seguinte da ordem acima, en
 
 ### Para um serviço ou recurso
 
-Abra a página **Configurações** do serviço ou do recurso. O seu cartão **Retenção de Dados de Telemetria** tem **Reter dados de telemetria por (dias)**, um único número para tudo o que ele envia, e o seu cartão **Retenção por tipo de telemetria** tem os mesmos campos que o do projeto. Deixe um campo em branco para usar as configurações do projeto.
+Abra a página **Configurações** do serviço ou do recurso e depois **Mais configurações**. O seu cartão **Retenção de Dados de Telemetria** tem **Reter dados de telemetria por (dias)**, um único número para tudo o que ele envia, e o seu cartão **Retenção por tipo de telemetria** tem os mesmos campos que o do projeto. Deixe um campo em branco para usar as configurações do projeto.
 
 Serviços, hosts, clusters Kubernetes, hosts Docker e Podman, clusters Docker Swarm, Proxmox e Ceph, storage arrays, vCenters, bancos de dados, funções serverless, recursos de nuvem, aplicações RUM e frotas IoT têm todos esses cartões. Veja o [Catálogo de serviços](/docs/telemetry/services#alterar-um-serviço) para a página **Configurações** de um serviço.
 

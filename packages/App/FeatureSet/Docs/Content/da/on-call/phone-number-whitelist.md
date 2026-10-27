@@ -24,7 +24,7 @@ På OneUptime Cloud kommer SMS'er og telefonopkald til vagter fra numrene nedenf
 
 Dine tilkald kommer fra andre numre end dem ovenfor, når:
 
-- **Dit projekt bruger sin egen Twilio-konto.** Når et projekt har en Twilio-konfiguration, der er angivet som projektstandard (**Projektindstillinger** > **Notifikationer** > **Notifikationsindstillinger** > **Twilio-konfiguration**), går SMS'er og opkald til projektets medlemmer gennem den konto, fra dens telefonnumre. Whitelist de numre i stedet.
+- **Dit projekt bruger sin egen Twilio-konto.** Når et projekt har en Twilio-konfiguration, der er angivet som projektstandard (**Projektindstillinger** > **Notifikationer** > **Notifikationsindstillinger** > **Yderligere indstillinger** > **Twilio-konfiguration**), går SMS'er og opkald til projektets medlemmer gennem den konto, fra dens telefonnumre. Whitelist de numre i stedet.
 - **Du bruger en selvhostet installation.** SMS'er og opkald kommer fra de Twilio-numre, din administrator har konfigureret: projektets standard-Twilio-konfiguration eller den for hele installationen under **Admin Dashboard** > **Indstillinger** > **Call and SMS**. Spørg din administrator, hvilke numre du skal whiteliste.
 
 ## Næste trin

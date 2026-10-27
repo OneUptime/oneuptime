@@ -727,7 +727,7 @@ const STUB_TABS = [
   [PageMap.SECURITY_CASES_CLOSED, "Closed Cases"],
   [PageMap.SECURITY_CASES_ALL, "All Cases"],
   [PageMap.SECURITY_EVENTS_CORRELATE, "Correlate"],
-  [PageMap.SECURITY_EVENTS_ENTITIES, "Entities"],
+  [PageMap.SECURITY_EVENTS_ENTITY_RISK, "Entity Risk"],
   [PageMap.SECURITY_EVENTS_DETECTION_RULES, "Detection Rules"],
   [PageMap.SECURITY_EVENTS_RULE_LIBRARY, "Rule Library"],
   [PageMap.SECURITY_EVENTS_ATTACK_COVERAGE, "ATT&CK Coverage"],

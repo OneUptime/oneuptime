@@ -93,7 +93,7 @@ On **Share**, copy the link and send it to the people who should use the form. S
 | **Build** | The form's name and description, its **Branding** — logo and favicon, folded — and the builder: its questions, the question palette and **Preview**. |
 | **Templates** | Named sets of answers people can start the form from, how each asks the questions, the one it opens with, and each one's own link. |
 | **On Submit** | What each submission creates, and how every field of it is filled in. **Edit Settings** changes the defaults and what always applies. |
-| **Share** | **Accepting Submissions**, the **Share Link**, the message shown after submitting, and the **IP Allowlist**. |
+| **Share** | **Accepting Submissions**, the **Share Link**, the message shown after submitting, and, under **More settings**, the **IP Allowlist**. |
 | **Submissions** | Every submission made through the form, newest first, with its answers and what it created. |
 | **Duplicate Form** | Under **Advanced**: a copy of the form, named for you, with its questions, templates, On Submit settings, branding, thank-you message and IP allowlist, and a link of its own. The copy starts turned off, and opens on its builder. |
 | **Delete Form** | Deleting the form, under **Advanced**. Its submissions are deleted with it; the incidents and events it created are not. |

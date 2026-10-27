@@ -38,7 +38,7 @@ flowchart TB
 :::steps
 ### Legg til Twilio-kontoen din
 
-Gå til **Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger**. Klikk på **Opprett Twilio-konfigurasjon** i kortet **Twilio-konfigurasjon**, og fyll ut skjemaet:
+Gå til **Prosjektinnstillinger** > **Varsler** > **Varselinnstillinger**, og åpne **Flere innstillinger**. Klikk på **Opprett Twilio-konfigurasjon** i kortet **Twilio-konfigurasjon**, og fyll ut skjemaet:
 
 - **Navn** og **Beskrivelse**: hva kontoen brukes til, for eksempel "Supportlinje".
 - **Twilio-konto-SID**: fra Twilio Console. Den starter med `AC`.

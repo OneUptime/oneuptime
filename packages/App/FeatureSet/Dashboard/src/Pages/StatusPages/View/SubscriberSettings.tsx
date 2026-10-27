@@ -46,6 +46,7 @@ import SubscriberNotificationWarnings from "../../../Components/StatusPage/Subsc
 import SubscriberChannelsCard from "../../../Components/StatusPage/SubscriberChannelsCard";
 import SubscriberNotificationsCard from "../../../Components/StatusPage/SubscriberNotificationsCard";
 import SubscriberRestrictionsSettings from "../../../Components/StatusPage/SubscriberRestrictionsSettings";
+import { SubscriberRestrictionsState } from "../../../Components/StatusPage/SubscriberRestrictionsCopy";
 import SubscriberChoicesCard from "../../../Components/StatusPage/SubscriberChoicesCard";
 import SubscriberEmailFooterCard from "../../../Components/StatusPage/SubscriberEmailFooterCard";
 import {
@@ -221,27 +222,31 @@ const StatusPageSubscriberSettings: FunctionComponent<
       <SubscriberChannelsCard statusPageId={modelId} />
 
       {/*
-       * Who may be a subscriber, whatever the channel: only the page's
-       * private users, only addresses at the page's domains.
-       */}
-      <SubscriberRestrictionsSettings statusPageId={modelId} />
-
-      {/*
        * What a visitor picks when they subscribe: which parts of the page,
        * which kinds of event. Two switches, saved as they are flipped.
        */}
       <SubscriberChoicesCard statusPageId={modelId} />
 
       {/*
-       * Set once, if ever: the timezones times are shown in, the email
-       * footer, and the page's own mail server and Twilio account. Folded,
-       * the header names each card and says what is set.
+       * Set once, if ever: who may be a subscriber (only the page's private
+       * users, only addresses at the page's domains - an Enterprise access
+       * control few pages use, which had a card of its own above), the
+       * timezones times are shown in, the email footer, and the page's own
+       * mail server and Twilio account. Folded, the header names each card
+       * and says what is set.
        */}
       <AdvancedPageSection
         description={SubscriberChoicesCopy.moreDescription}
-        items={getSubscriberSettingsMoreItems(moreValues)}
+        items={getSubscriberSettingsMoreItems(moreValues, translator)}
         dataTestId={SUBSCRIBER_SETTINGS_MORE_TEST_ID}
       >
+        <SubscriberRestrictionsSettings
+          statusPageId={modelId}
+          onRestrictionsChange={(restrictions: SubscriberRestrictionsState) => {
+            rememberMore({ restrictions: restrictions });
+          }}
+        />
+
         <CardModelDetail<StatusPage>
           name="Status Page > Branding > Subscriber > Advanced"
           cardProps={{

@@ -242,6 +242,26 @@ describe("the docs on a project's first Twilio config", () => {
     },
   );
 
+  /*
+   * The card waits folded under Notification Settings' More settings: most
+   * projects never add a Twilio account of their own
+   * (Components/NotificationMethods/OwnSendersFold).
+   */
+  it.each(LANGUAGES)(
+    "%s: the Twilio guide's first step opens More settings, in the dashboard's words",
+    (lang: string) => {
+      const words: (english: string) => string = dashboardWords(lang);
+      const step: string | undefined = savingSteps(lang).find(
+        (line: string): boolean => {
+          return line.startsWith("1. ");
+        },
+      );
+
+      expect(step).toBeDefined();
+      expect(step).toContain(`**${words("More settings")}**`);
+    },
+  );
+
   it.each(LANGUAGES)(
     "%s: the Twilio guide's second step names the card, and its button as the table draws it",
     (lang: string) => {
@@ -281,6 +301,8 @@ describe("the docs on a project's first Twilio config", () => {
         `**${drawnCreateButton(lang, CREATE_BUTTON)}**`,
       );
       expect(step[1]).toContain(`**${words(CARD_TITLE)}**`);
+      // Under More settings, where the card waits folded.
+      expect(step[1]).toContain(`**${words("More settings")}**`);
 
       const fields: Array<string> = step.filter((line: string): boolean => {
         return line.startsWith("- **");

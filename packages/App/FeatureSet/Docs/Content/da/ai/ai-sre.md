@@ -372,6 +372,22 @@ Mens en hændelse venter, viser dens kort **AI Investigation** **Venter** og tid
 
 Advarsler fungerer på samme måde, på **Advarsler → AI → Indstillinger**, regnet fra advarslen oprettes.
 
+## OneUptime AI reagerer først
+
+En vagtregel for hændelser eller alarmer kan lade OneUptime AI tage tilkaldet først. Under **Flere felter** skal du svare **Når OneUptime AI har prøvet** på **Hvornår skal denne regel tilkalde?**. Når OneUptime AI må rette det, en matchende hændelse eller alarm handler om, venter reglens politikker, mens AI undersøger, retter og kontrollerer sin rettelse, i højst den tid, der er angivet i **Vent på OneUptime AI i op til (minutter)**: 10 minutter som standard, fra 1 til 30. Hvis AI's rettelse bekræftes, løser OneUptime AI posten, og ingen bliver tilkaldt.
+
+Ellers tilkalder reglen med det samme, og postens feed fortæller hvorfor, når en person har oprettet posten, den har projektets højeste alvorlighed, 3 eller flere andre alarmer og hændelser er åbnet i de 5 minutter før, OneUptime AI ikke må undersøge eller rette den automatisk, ingen monitor er knyttet til den, eller ingen tilknyttet Kubernetes-klynge eller ressource har en AI-agent sat til **Automatisk** eller **Spring godkendelse over**.
+
+Mens AI holder et tilkald tilbage, viser kortet **AI Investigation**, hvornår tilkaldet starter, med **Tilkald nu** til alle, der vil have en person på sagen med det samme. Hvert minut tjekker OneUptime hvert tilkald, AI holder tilbage, og begynder straks at tilkalde med en begrundelse, når:
+
+- undersøgelsen ikke starter, venter på en AI-regel eller ikke bliver færdig;
+- AI ikke finder en rettelse, den selv må køre, eller dens rettelse kræver en persons godkendelse;
+- AI's rettelse ikke får monitorerne tilbage;
+- nogen trykker på **Tilkald nu**, posten når den højeste alvorlighed, eller mange poster åbnes på én gang;
+- AI eller automatisk rettelse slås fra, eller reglen ikke længere lader AI reagere først.
+
+Politikkens kørselslogge viser, hvordan hver tilbageholdelse endte. Via API'et eller Terraform er reglens `whenToPage` `After OneUptime AI`, og dens `aiHoldTimeInMinutes` er ventetiden.
+
 ## Automatisk afhjælpning venter på analysen
 
 Når projektet retter nye hændelser eller advarsler automatisk (**Ret nye hændelser automatisk** og **Ret nye advarsler automatisk**, med AI-reglerne under **Yderligere indstillinger** på **Hændelser → AI → Indstillinger** og **Advarsler → AI → Indstillinger**), venter rettelser på undersøgelsen, **årsagsanalysen først**:

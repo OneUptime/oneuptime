@@ -446,10 +446,13 @@ export default class BasePermission {
      * The parents a block with labels takes away, and what is read through
      * them. A label-less model's own blocks leave out the rows of parents
      * carrying their labels already (ReadPermission.addBlockedLabelsToQuery),
-     * so only the other labels are asked again.
+     * so only the other labels are asked again - when the parent carries
+     * labels of its own. A parent that does not (a security case) is no
+     * labelled record those blocks follow: every label is asked of it.
      */
     const blockedOnRows: Set<string> = new Set<string>(
-      model.getAccessControlColumn()
+      model.getAccessControlColumn() ||
+      !new parentModelType().getAccessControlColumn()
         ? []
         : blockedLabelIds.map((labelId: ObjectID): string => {
             return labelId.toString();

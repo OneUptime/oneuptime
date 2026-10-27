@@ -98,6 +98,7 @@ import SubscriberRestrictionsCopy, {
   ALLOWED_EMAIL_DOMAINS_SETTING_TEST_ID,
   PRIVATE_USERS_ONLY_SWITCH_TEST_ID,
   SUBSCRIBER_RESTRICTIONS_CARD_TEST_ID,
+  SubscriberRestrictionsState,
 } from "@oneuptime/dashboard/Components/StatusPage/SubscriberRestrictionsCopy";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import SubscriptionPlan, {
@@ -593,5 +594,134 @@ describe("Allowed Email Domains", () => {
       screen.getByTestId(`${ALLOWED_EMAIL_DOMAINS_SETTING_TEST_ID}-editor`),
     ).toBeDisabled();
     expect(await theSwitch()).toHaveAttribute("aria-disabled", "true");
+  });
+});
+
+/*
+ * The card waits folded under Subscriber Settings' More settings, whose
+ * header marks Who Can Subscribe while it turns anyone away: the card tells
+ * the page what it restricts, once read and after each save.
+ */
+describe("what the Who Can Subscribe card tells its page", () => {
+  async function renderTelling(
+    reports: Array<SubscriberRestrictionsState>,
+  ): Promise<void> {
+    await act(async (): Promise<void> => {
+      render(
+        <SubscriberRestrictionsCard
+          statusPageId={new ObjectID(STATUS_PAGE_ID)}
+          onRestrictionsChange={(restrictions: SubscriberRestrictionsState) => {
+            reports.push({ ...restrictions });
+          }}
+        />,
+      );
+    });
+
+    await waitFor(() => {
+      expect(getItemMock).toHaveBeenCalled();
+    });
+  }
+
+  function last(
+    reports: Array<SubscriberRestrictionsState>,
+  ): SubscriberRestrictionsState | undefined {
+    return reports[reports.length - 1];
+  }
+
+  test("a new page, once read: nothing restricted", async () => {
+    const reports: Array<SubscriberRestrictionsState> = [];
+
+    await renderTelling(reports);
+
+    await waitFor(() => {
+      expect(last(reports)).toEqual({
+        limitSubscribersToPrivateUsers: false,
+        allowedEmailDomainCount: 0,
+      });
+    });
+  });
+
+  test("a page with both set, once read: both", async () => {
+    const reports: Array<SubscriberRestrictionsState> = [];
+
+    stored = {
+      isPublicStatusPage: false,
+      limitSubscribersToPrivateUsers: true,
+      allowedSubscriberEmailDomains: "acme.com\nacme.de",
+    };
+
+    await renderTelling(reports);
+
+    await waitFor(() => {
+      expect(last(reports)).toEqual({
+        limitSubscribersToPrivateUsers: true,
+        allowedEmailDomainCount: 2,
+      });
+    });
+  });
+
+  test("the switch flipped and saved: private users only, the domains kept", async () => {
+    const reports: Array<SubscriberRestrictionsState> = [];
+
+    stored = {
+      isPublicStatusPage: false,
+      allowedSubscriberEmailDomains: "acme.com",
+    };
+
+    await renderTelling(reports);
+
+    await act(async () => {
+      fireEvent.click(await theSwitch());
+    });
+
+    await waitFor(() => {
+      expect(last(reports)).toEqual({
+        limitSubscribersToPrivateUsers: true,
+        allowedEmailDomainCount: 1,
+      });
+    });
+  });
+
+  test("domains saved: how many, the switch kept", async () => {
+    const reports: Array<SubscriberRestrictionsState> = [];
+
+    stored = {
+      isPublicStatusPage: false,
+      limitSubscribersToPrivateUsers: true,
+    };
+
+    await renderTelling(reports);
+    await type("acme.com\nacme.de\nacme.fr");
+    await save();
+
+    await waitFor(() => {
+      expect(last(reports)).toEqual({
+        limitSubscribersToPrivateUsers: true,
+        allowedEmailDomainCount: 3,
+      });
+    });
+
+    // Emptied: any domain again.
+    await type("");
+    await save();
+
+    await waitFor(() => {
+      expect(last(reports)).toEqual({
+        limitSubscribersToPrivateUsers: true,
+        allowedEmailDomainCount: 0,
+      });
+    });
+  });
+
+  test("a read that fails says nothing: the folded header keeps the card's name", async () => {
+    const reports: Array<SubscriberRestrictionsState> = [];
+
+    stored = new Error("Unreachable.");
+    await renderTelling(reports);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(reports).toEqual([]);
   });
 });

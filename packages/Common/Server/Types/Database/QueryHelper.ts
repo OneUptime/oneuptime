@@ -788,6 +788,54 @@ export default class QueryHelper {
   }
 
   /**
+   * Several conditions on a record, all of which it meets: anyOfConditions'
+   * counterpart, each condition written on the record's id or on another
+   * column of the same row (`columnName`). For a block with labels on a
+   * record with no labels of its own, which takes it away through any of
+   * the records it names (ReadPermission.getBlockedLabelsCondition). An
+   * empty list matches every record.
+   */
+  public static allOfConditions(
+    conditions: Array<{
+      columnName?: string | undefined;
+      condition: FindWhereProperty<any>;
+    }>,
+  ): FindWhereProperty<any> {
+    const parameters: Dictionary<unknown> = {};
+    const writers: Array<(alias: string) => string> = [];
+
+    for (const each of conditions) {
+      const getSql: (alias: string) => string = QueryHelper.getRawSql(
+        each.condition,
+      );
+
+      Object.assign(
+        parameters,
+        (each.condition as unknown as FindOperator<unknown>)
+          .objectLiteralParameters || {},
+      );
+
+      writers.push((alias: string): string => {
+        return getSql(
+          each.columnName
+            ? QueryHelper.getColumnBeside(alias, each.columnName)
+            : alias,
+        );
+      });
+    }
+
+    return Raw((alias: string) => {
+      return writers.length > 0
+        ? `(${writers
+            .map((writer: (alias: string) => string): string => {
+              return writer(alias);
+            })
+            .join(" AND ")})`
+        : "(TRUE)";
+    }, parameters);
+  }
+
+  /**
    * Applied to a key naming a record of `tableName` (a security case note's
    * securityCaseId), matches the keys that name a record meeting
    * `condition` - one this class builds, written on that record's id, whose

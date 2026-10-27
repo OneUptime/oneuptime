@@ -19,7 +19,7 @@
 | **自訂網域** | 您自己的網域、它的 DNS 記錄以及免費的 SSL 憑證。 |
 | **HTML、CSS 與 JavaScript** | 標頭 HTML、頁尾 HTML、自訂 CSS、自訂 JavaScript。 |
 
-有三項看起來像品牌設定的內容，實際位於 **狀態頁面 → 您的頁面 → 進階 → 進階設定**（`{id}/settings`），因為它們決定的是頁面顯示什麼，而不是頁面的外觀：整體正常運作時間百分比、哪些監測器狀態會計入停機時間，以及「Powered by OneUptime」這一行。前兩項是那裡 **狀態頁面顯示的內容** 卡片中的列，而「Powered by OneUptime」這一行在它下方有單獨的卡片。
+有三項看起來像品牌設定的內容，實際位於 **狀態頁面 → 您的頁面 → 進階 → 進階設定**（`{id}/settings`），因為它們決定的是頁面顯示什麼，而不是頁面的外觀：整體正常運作時間百分比、哪些監測器狀態會計入停機時間，以及「Powered by OneUptime」這一行。前兩項是那裡 **狀態頁面顯示的內容** 卡片中的列，而「Powered by OneUptime」這一行在它下方的 **更多設定** 中有單獨的卡片。
 
 品牌設定以前分散在 **基本品牌**、**頁首**、**頁尾**、**概覽頁面** 與 **語言** 幾個獨立的畫面中。它們的舊地址（`{id}/header-style`、`{id}/footer-style`、`{id}/overview-page-branding` 與 `{id}/languages`）現在都會開啟 **品牌** 頁面，所以舊的書籤與連結仍然有效。
 
@@ -300,7 +300,7 @@ API 金鑰也是如此。只能讀取狀態頁網域的金鑰無法在 `/status-
 
 ## Powered by OneUptime
 
-「Powered by OneUptime」這一行不是品牌設定。它在 **狀態頁面 → 您的頁面 → 進階 → 進階設定**（`{id}/settings`）上 **狀態頁面顯示的內容** 卡片下方有單獨的卡片 **Powered by OneUptime**，其中的開關是 **顯示「Powered By OneUptime」品牌標示**，預設開啟。關閉它即可隱藏這一行；它會立即儲存。在 OneUptime Cloud 上，隱藏它需要 **Scale** 方案。自行託管時，隱藏它屬於 Enterprise Edition：在 Community Edition 上，每個狀態頁面都會顯示這一行。
+「Powered by OneUptime」這一行不是品牌設定。它在 **狀態頁面 → 您的頁面 → 進階 → 進階設定**（`{id}/settings`）上 **狀態頁面顯示的內容** 卡片下方的 **更多設定** 中有單獨的卡片 **Powered by OneUptime**，其中的開關是 **顯示「Powered By OneUptime」品牌標示**，預設開啟。關閉它即可隱藏這一行；它會立即儲存。在 OneUptime Cloud 上，隱藏它需要 **Scale** 方案。自行託管時，隱藏它屬於 Enterprise Edition：在 Community Edition 上，每個狀態頁面都會顯示這一行。
 
 ## 後續步驟
 

@@ -25,14 +25,14 @@ In un'installazione self-hosted, il server di posta di OneUptime è quello impos
 
 ## Aggiungere un server SMTP
 
-Aggiungi il server di posta di un progetto in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**, nella scheda **Configurazioni SMTP personalizzate**. In un'installazione self-hosted, il server da cui invia OneUptime stesso si imposta in **Admin Dashboard > Impostazioni > Notifiche > E-mail**, nella scheda **Impostazioni e-mail e SMTP personalizzate**. Entrambi i moduli chiedono le stesse cose, in due passaggi.
+Aggiungi il server di posta di un progetto in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**, nella scheda **Configurazioni SMTP personalizzate**, in **Altre impostazioni**. In un'installazione self-hosted, il server da cui invia OneUptime stesso si imposta in **Admin Dashboard > Impostazioni > Notifiche > E-mail**, nella scheda **Impostazioni e-mail e SMTP personalizzate**. Entrambi i moduli chiedono le stesse cose, in due passaggi.
 
 :::steps
 ### Aprire il modulo
 
 :::tabs
 @tab Progetto
-In **Impostazioni del progetto > Notifiche > Impostazioni notifiche**, fai clic su **Crea: SMTP Configurazione** nella scheda **Configurazioni SMTP personalizzate**.
+In **Impostazioni del progetto > Notifiche > Impostazioni notifiche**, apri **Altre impostazioni** e fai clic su **Crea: SMTP Configurazione** nella scheda **Configurazioni SMTP personalizzate**.
 @tab Istanza self-hosted
 Nell'Admin Dashboard, apri **Impostazioni**, poi **Notifiche > E-mail** nel menu laterale (**Notifiche** è inizialmente chiuso). Nella scheda **Impostazioni del server e-mail**, fai clic su **Modifica server** e imposta **Tipo di server email** su `Custom SMTP`. Poi fai clic su **Modifica config SMTP** nella scheda **Impostazioni e-mail e SMTP personalizzate**, che compare sotto.
 :::
