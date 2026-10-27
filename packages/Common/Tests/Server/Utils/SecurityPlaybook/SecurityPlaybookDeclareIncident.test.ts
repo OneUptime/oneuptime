@@ -213,7 +213,10 @@ describe("SecurityPlaybookActions.declareIncidentForCase, for a person", () => {
 
   beforeEach(() => {
     asked = [];
-    caseLinked = jest.spyOn(SecurityCaseService, "updateColumnsByIdWithoutHooks");
+    caseLinked = jest.spyOn(
+      SecurityCaseService,
+      "updateColumnsByIdWithoutHooks",
+    );
 
     jest
       .spyOn(SecurityConnections, "readIncidentLinks")
@@ -265,13 +268,13 @@ describe("SecurityPlaybookActions.declareIncidentForCase, for a person", () => {
   });
 
   test("a refusal declares nothing: no incident, no link on the case, no feed", async () => {
-    (IncidentService.checkCallerMayCreate as unknown as jest.Mock).mockImplementation(
-      async () => {
-        throw new CreateScopeException(
-          "Your access lets you create Incidents only with one of these labels: payments.",
-        );
-      },
-    );
+    (
+      IncidentService.checkCallerMayCreate as unknown as jest.Mock
+    ).mockImplementation(async () => {
+      throw new CreateScopeException(
+        "Your access lets you create Incidents only with one of these labels: payments.",
+      );
+    });
 
     await expect(
       SecurityPlaybookActions.declareIncidentForCase({
@@ -287,7 +290,9 @@ describe("SecurityPlaybookActions.declareIncidentForCase, for a person", () => {
 
     expect(created).toHaveLength(0);
     expect(caseLinked).not.toHaveBeenCalled();
-    expect(SecurityCaseFeedService.createSecurityCaseFeedItem).not.toHaveBeenCalled();
+    expect(
+      SecurityCaseFeedService.createSecurityCaseFeedItem,
+    ).not.toHaveBeenCalled();
     expect(incidentFeed).toHaveLength(0);
   });
 
