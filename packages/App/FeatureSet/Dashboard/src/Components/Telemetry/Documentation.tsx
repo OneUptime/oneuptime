@@ -17,6 +17,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
+import ProviderLogoOrIcon from "Common/UI/Components/ProviderLogo/ProviderLogoOrIcon";
 import Protocol from "Common/Types/API/Protocol";
 import URL from "Common/Types/API/URL";
 import Route from "Common/Types/API/Route";
@@ -166,9 +167,11 @@ interface IntegrationOption {
   /*
    * The official logo of the project the method uses (OpenTelemetry, Fluent
    * Bit, Grafana Alloy). None for the profiling language SDKs, which are
-   * several.
+   * several: they show their icon in the logo's place instead, so the titles
+   * of a row of methods start on one line.
    */
   logo?: ProviderLogo | undefined;
+  icon?: IconProp | undefined;
 }
 
 // Helper to replace placeholders in code snippets
@@ -1407,6 +1410,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         {
           key: "opentelemetry" as IntegrationMethod,
           label: "Language SDK",
+          icon: IconProp.Code,
           description:
             "In-process profiling with Pyroscope SDKs: Go, Node.js, .NET, Python, Ruby, Rust.",
         },
@@ -1652,6 +1656,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
               <button
                 key={method.key}
                 type="button"
+                aria-pressed={isSelected}
                 onClick={() => {
                   setSelectedMethod(method.key);
                 }}
@@ -1664,12 +1669,18 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 <div
                   className={`flex items-center gap-2 text-sm font-semibold ${isSelected ? "text-indigo-700" : "text-gray-900"}`}
                 >
-                  {method.logo ? (
-                    <ProviderLogoImage
+                  {/*
+                    The project's logo, or the method's icon on the same
+                    footprint: every title in the row starts on one line.
+                  */}
+                  {method.logo || method.icon ? (
+                    <ProviderLogoOrIcon
                       logo={method.logo}
+                      icon={method.icon || IconProp.Code}
                       isBare={true}
                       size={20}
                       isDecorative={true}
+                      iconClassName={`h-5 w-5 flex-shrink-0 ${isSelected ? "text-indigo-600" : "text-gray-500"}`}
                     />
                   ) : (
                     <></>

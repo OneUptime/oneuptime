@@ -45,6 +45,14 @@ import SecurityEventConnectionFormModal from "./SecurityEventConnectionFormModal
 import SecurityEventConnectionsEmptyState from "./SecurityEventConnectionsEmptyState";
 import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 
+/*
+ * The Provider column's logo slot: as wide as a 16px wordmark (Splunk's is
+ * 24px), the mark centred in it, level with the name's first line - so the
+ * names after the marks line up down the column.
+ */
+export const PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME: string =
+  "mt-0.5 inline-flex w-6 flex-shrink-0 justify-center";
+
 interface FormModalState {
   connection: SecurityEventConnection | null;
   credentialsOnly: boolean;
@@ -355,15 +363,24 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
                 definition,
                 item.alertingOnly,
               );
+              /*
+               * The mark sits in a slot as wide as a wordmark's (Splunk's),
+               * centred, so every product's name in the column starts on
+               * one line however wide its mark is.
+               */
               return (
                 <div className="flex items-start gap-2">
                   {definition ? (
-                    <ProviderLogoImage
-                      logo={definition.logo}
-                      isBare={true}
-                      isDecorative={true}
-                      className="mt-0.5"
-                    />
+                    <span
+                      className={PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME}
+                      data-testid="security-event-connection-provider-logo-slot"
+                    >
+                      <ProviderLogoImage
+                        logo={definition.logo}
+                        isBare={true}
+                        isDecorative={true}
+                      />
+                    </span>
                   ) : (
                     <></>
                   )}

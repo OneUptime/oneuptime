@@ -205,6 +205,75 @@ describe("TelemetryDocumentation", () => {
           .querySelector("[data-provider-logo]"),
       ).toBeNull();
     });
+
+    /*
+     * UI review: a row of three methods where two titles stood behind a logo
+     * and the third did not started its titles on two lines. The SDKs show
+     * a code icon in the logo's place, the size a logo is (20px), grey -
+     * indigo while picked, as the picked title is - and never read out.
+     */
+    test("the SDK method shows a code icon in the logo's place, so the three titles line up", () => {
+      renderGuide("profiles");
+
+      const sdkTitle: HTMLElement = screen.getByText("Language SDK", {
+        selector: "div",
+      });
+      const icon: Element | null = sdkTitle.querySelector(
+        '[data-testid="provider-icon-tile"]',
+      );
+
+      expect(icon).not.toBeNull();
+      expect(icon).toHaveAttribute("aria-hidden", "true");
+      expect(icon).toHaveClass("h-5", "w-5", "flex-shrink-0", "text-gray-500");
+      // First on the line, where the other titles have their logos.
+      expect(sdkTitle.firstElementChild).toContainElement(icon as HTMLElement);
+
+      // The logos beside the other two titles are 20px, as the icon is.
+      for (const label of ["Grafana Alloy (eBPF)", "Kubernetes agent (eBPF)"]) {
+        const mark: Element | null = screen
+          .getByText(label, { selector: "div" })
+          .querySelector("[data-provider-logo] > span");
+
+        expect(mark).toHaveClass("h-5", "w-5");
+      }
+
+      fireEvent.click(sdkTitle);
+
+      expect(
+        screen
+          .getByText("Language SDK", { selector: "div" })
+          .querySelector('[data-testid="provider-icon-tile"]'),
+      ).toHaveClass("text-indigo-600");
+    });
+
+    test("each method says whether it is the one picked", () => {
+      renderGuide("logs");
+
+      const methodButton: (label: string) => HTMLElement = (
+        label: string,
+      ): HTMLElement => {
+        return screen
+          .getByText(label, { selector: "div" })
+          .closest("button") as HTMLElement;
+      };
+
+      expect(methodButton("OpenTelemetry")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(methodButton("FluentBit")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+
+      fireEvent.click(methodButton("FluentBit"));
+
+      expect(methodButton("FluentBit")).toHaveAttribute("aria-pressed", "true");
+      expect(methodButton("OpenTelemetry")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
   });
 
   describe("the OpenTelemetry path", () => {

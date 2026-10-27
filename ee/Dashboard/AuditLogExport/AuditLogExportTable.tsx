@@ -400,12 +400,6 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
               );
 
               /*
-               * The name on one line, cut short with an ellipsis where the
-               * column ends (the cell shows it in full under the pointer):
-               * a block of its own, since an ellipsis does not reach into
-               * a box inside the cell's line.
-               */
-              /*
                * The destination's logo (or a webhook's or syslog's icon)
                * at the start of the row, as the AI and cloud connections
                * lists draw theirs: the destinations tell apart at a glance.
@@ -424,6 +418,12 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
                     <></>
                   )}
                   <div className="min-w-0">
+                    {/*
+                      The name on one line, cut short with an ellipsis where
+                      the column ends (the cell shows it in full under the
+                      pointer): a block of its own, since an ellipsis does
+                      not reach into a box inside the cell's line.
+                    */}
                     <div
                       className="truncate"
                       data-testid="audit-log-export-name"
