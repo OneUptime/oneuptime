@@ -437,6 +437,9 @@ import "./Jobs/OnCallPolicy/DeleteOldTimeLogs";
 // Checks GitHub for a newer OneUptime release so admins can be told to upgrade.
 import "./Jobs/InstanceUpdate/CheckForNewVersion";
 
+// Tells oneuptime.com once a day which URL and version this install runs.
+import "./Jobs/InstanceCheckIn/CheckIn";
+
 import AnalyticsTableManagement from "./Utils/AnalyticsDatabase/TableManegement";
 import RunDatabaseMigrations from "./Utils/DataMigration";
 import RunStartupMigrations from "./Utils/StartupMigration";

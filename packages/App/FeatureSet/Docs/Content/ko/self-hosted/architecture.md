@@ -63,9 +63,10 @@ flowchart TB
 
 ## 네트워크 밖으로 나가는 연결
 
-설정을 바꾸지 않는 한 다음 세 가지 연결이 이루어집니다.
+설정을 바꾸지 않는 한 다음 네 가지 연결이 이루어집니다.
 
 - 앱은 하루에 한 번 GitHub API(`api.github.com`)에 새 릴리스가 나왔는지 묻습니다. 이를 끄려면 Helm 차트에서는 `updateCheck.disabled: true`를, Docker Compose에서는 `config.env`에 `DISABLE_UPDATE_CHECK=true`를 설정하세요.
+- 앱은 하루에 한 번 설치의 주소와 실행 중인 버전을 `oneuptime.com`에 알립니다. 이를 통해 OneUptime은 보안 문제가 있는 릴리스를 아직 실행 중인 설치를 알 수 있습니다. 사용자, 프로젝트, 모니터링 데이터에 관해서는 아무것도 보내지 않습니다. 이를 끄려면 Helm 차트에서는 `instanceCheckIn.disabled: true`를, Docker Compose에서는 `config.env`에 `DISABLE_INSTANCE_CHECK_IN=true`를 설정하세요.
 - “보안 패치 및 새 릴리스에 대한 알림 받기”를 선택한 채로(처음에는 선택되어 있습니다) 가입하면, 그 사람의 이름과 이메일, 입력한 회사와 전화번호, 그리고 설치의 주소와 버전이 `oneuptime.com`으로 전송됩니다. 인터넷에 연결되지 않는 네트워크에서는 선택을 해제하세요.
 - Kubernetes에서는 프로브가 클러스터 자체 DNS 다음에 공용 리졸버 `8.8.8.8`과 `1.1.1.1`을 사용합니다. 모든 조회를 자체 DNS에서 처리하려면 `dnsConfig.nameservers`를 `[]`로 설정하세요.
 

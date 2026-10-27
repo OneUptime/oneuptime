@@ -1358,6 +1358,14 @@ updateCheck:
   disabled: false
   url:
 
+# Once a day this installation tells oneuptime.com its URL and the OneUptime
+# version it runs, so OneUptime knows which installations still run a release
+# with a security issue and can reach the admins who registered them. Nothing
+# about your users, projects or monitoring data is sent.
+# Set disabled to true to make no call at all.
+instanceCheckIn:
+  disabled: false
+
 # How many reverse proxies that YOU run sit in front of OneUptime and append to
 # the X-Forwarded-For header. This decides which address OneUptime treats as the
 # client for IP allowlists (status pages, public dashboards) and IP rate limits.
