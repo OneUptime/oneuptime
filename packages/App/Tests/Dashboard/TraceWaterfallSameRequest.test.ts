@@ -102,14 +102,7 @@ function eBpfAndSdkSpans(): Array<WaterfallSpan> {
       SpanKind.Client,
       "oneuptime-app",
     ),
-    span(
-      "select",
-      "app-ebpf",
-      6 * MS,
-      MS,
-      SpanKind.Client,
-      "oneuptime-app",
-    ),
+    span("select", "app-ebpf", 6 * MS, MS, SpanKind.Client, "oneuptime-app"),
     // The SDK stamps start times to the millisecond: 1.3 ms reads as 1 ms.
     span(
       "app-sdk",
