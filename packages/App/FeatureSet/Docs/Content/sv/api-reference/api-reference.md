@@ -91,6 +91,8 @@ En lista eller en räkning tar en `query`. Ett fält med ett värde matchar det 
 
 Ett fält i en post som resursen namnger filtreras under dess relation: `"user": { "name": { "_type": "Search", "value": "ada" } }` hittar de teammedlemmar vars användare har ett namn som innehåller ”ada”. Att filtrera på ett fält kräver behörighet att läsa det, genom en relation som på själva resursen: ett filter på ett fält du inte får läsa avvisas med en `422` som namnger fältet.
 
+En resurs med ägare - en monitor, en incident, en jourpolicy och varje annan med användar- och teamägare - filtreras också efter vem som äger den, under `owners`: `"owners": { "_type": "OwnedBy", "userIds": ["..."], "teamIds": ["..."] }` hittar de poster som en eller flera av de personerna och teamen äger. `match` är `AnyOf` om du inte anger den: `NoneOf` hittar de poster som ingen av dem äger, även poster utan ägare, och `AnyOwner` och `NoOwner` hittar de poster som har någon ägare eller ingen, utan att namnge någon. Ett teams medlemmar är inte ägare till det som teamet äger. Ett filter namnger högst 1 000 personer och team tillsammans, en resurs utan ägare avvisar det med en `400`, och att filtrera på ägare utan behörighet att läsa dem nekas med en `422`.
+
 `select` namnger fälten som ska returneras, och `_id` kommer alltid med. `sort` ordnar dem, `ASC` eller `DESC`; utan sortering kommer de nyaste först. En lista returnerar 10 poster om du inte anger `limit`, upp till 10 000, och `skip` hoppar först över så många: fortsätt att öka `skip` med `limit` tills du har `count` av dem. Lägg till `?output-type=csv` i en listbegäran för CSV i stället för JSON.
 
 Till exempel de monitorer vars namn innehåller ”checkout”, skapade sedan början av 2026, de nyaste först:

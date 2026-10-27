@@ -33,6 +33,7 @@
     "pageNotFoundMetaTitle": "ページが見つかりません",
     "pageNotFoundMetaDescription": "お探しのページは見つかりませんでした。",
     "required": "必須",
+    "defaultValue": "デフォルト",
     "or": "または",
     "copy": "コピー",
     "copied": "コピーしました!",

@@ -1,6 +1,7 @@
 import { Marked, MarkedOptions, Renderer, marked } from "marked";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import markdownSlugify from "./MarkdownSlugify";
+import { addCodeBreakOpportunities } from "./MarkdownCodeBreaks";
 import {
   DOCS_CALLOUT_TYPES,
   docsMarkdownExtensions,
@@ -2280,9 +2281,14 @@ export default class Markdown {
      * Inline code. marked has escaped the code already, so it goes in as it
      * is: escaping it again showed every quote, `<` and `&` in inline code
      * as its entity - `"UP"` read "&quot;UP&quot;" on the page.
+     *
+     * A long name gets places to break at its dots, underscores and slashes
+     * (MarkdownCodeBreaks.ts), so it wraps between its parts on a phone and
+     * lets a table column narrow, rather than breaking mid-word or pushing
+     * the table out of the page.
      */
     renderer.codespan = function (code) {
-      return `<code class="docs-code-inline">${code}</code>`;
+      return `<code class="docs-code-inline">${addCodeBreakOpportunities(code)}</code>`;
     };
 
     this.docsRenderer = renderer;

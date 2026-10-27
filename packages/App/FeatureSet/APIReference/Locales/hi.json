@@ -33,6 +33,7 @@
     "pageNotFoundMetaTitle": "पृष्ठ नहीं मिला",
     "pageNotFoundMetaDescription": "जिस पृष्ठ की आप तलाश कर रहे हैं वह नहीं मिला।",
     "required": "आवश्यक",
+    "defaultValue": "डिफ़ॉल्ट",
     "or": "या",
     "copy": "कॉपी करें",
     "copied": "कॉपी हो गया!",

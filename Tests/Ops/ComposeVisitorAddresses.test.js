@@ -118,12 +118,12 @@ describe("the compose files OneUptime ships keep OneUptime's network as installs
         return command.trim();
       })
       .filter((command) => {
-        return command.startsWith("docker compose");
+        return command.includes("docker compose");
       });
 
     // Docker Compose reads the override itself only when no file is named.
     expect(compose).toEqual([
-      "docker compose up --remove-orphans -d $npm_config_services",
+      "sh ./Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d $npm_config_services",
     ]);
     expect(scripts.update.trim().endsWith("&& npm run start")).toBe(true);
   });

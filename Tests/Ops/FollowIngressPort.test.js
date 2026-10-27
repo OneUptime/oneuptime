@@ -400,14 +400,18 @@ describe("init", () => {
 });
 
 describe("npm start", () => {
-  test("runs it before config.env is exported, and before Compose starts anything", () => {
+  test("runs it before Compose starts anything with config.env's settings", () => {
     const steps = ROOT_PACKAGE.scripts.start.split(" && ");
     const step = steps.indexOf(`node ${SCRIPT_PATH}`);
+    const compose = steps.findIndex((command) => {
+      return command.startsWith(
+        "sh ./Scripts/Install/WithConfig.sh docker compose up ",
+      );
+    });
 
     expect(step).toBeGreaterThan(0);
-    expect(step).toBeLessThan(
-      steps.indexOf("export $(grep -v '^#' config.env | xargs)"),
-    );
+    expect(compose).toBeGreaterThan(0);
+    expect(step).toBeLessThan(compose);
   });
 
   test("the services it points are the ones on the host's network that read those settings", () => {

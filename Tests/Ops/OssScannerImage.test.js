@@ -1016,8 +1016,9 @@ describe("the settings the image, its scripts, CI and the Probe image share", ()
     const valkeyPort = SETTINGS.get("VALKEY_PORT");
     const clickhousePort = SETTINGS.get("CLICKHOUSE_PORT");
 
+    // Published at DATABASE_PUBLISHED_PORT, whose default is the scanner's port.
     expect(devCompose.postgres.ports).toContain(
-      `127.0.0.1:${databasePort}:5432`,
+      `127.0.0.1:\${DATABASE_PUBLISHED_PORT:-${databasePort}}:5432`,
     );
     expect(devCompose.valkey.ports).toContain(`127.0.0.1:${valkeyPort}:6379`);
     expect(clickhousePort).toBe(heredocSetting(template, "CLICKHOUSE_PORT"));

@@ -33,6 +33,7 @@
     "pageNotFoundMetaTitle": "Pagina non trovata",
     "pageNotFoundMetaDescription": "La pagina che stai cercando non è stata trovata.",
     "required": "Obbligatorio",
+    "defaultValue": "Predefinito",
     "or": "oppure",
     "copy": "Copia",
     "copied": "Copiato!",

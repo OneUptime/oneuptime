@@ -24,13 +24,13 @@ const ForgotPassword: () => JSX.Element = () => {
         </h2>
 
         {!isSuccess && (
-          <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+          <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
             {t("forgotPassword.subtitle")}
           </p>
         )}
 
         {isSuccess && (
-          <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+          <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
             {t("forgotPassword.successMessage")}
           </p>
         )}
@@ -38,7 +38,10 @@ const ForgotPassword: () => JSX.Element = () => {
 
       <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto">
         {!isSuccess && (
-          <div className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10">
+          <div
+            className="bg-white py-6 px-4 shadow-sm sm:shadow rounded-lg sm:py-8 sm:px-10"
+            data-testid="forgot-password-card"
+          >
             <ModelForm<User>
               modelType={User}
               name="Forgot Password"
@@ -61,23 +64,19 @@ const ForgotPassword: () => JSX.Element = () => {
               submitButtonText={t("forgotPassword.submitButton")}
               formType={FormType.Create}
               maxPrimaryButtonWidth={true}
-              footer={
-                <div className="actions pointer text-center mt-4 hover:underline fw-semibold">
-                  <p>
-                    <Link
-                      to={new Route("/accounts/login")}
-                      className="text-indigo-500 hover:text-indigo-900 cursor-pointer text-sm"
-                    >
-                      {t("forgotPassword.returnToSignIn")}
-                    </Link>
-                  </p>
-                </div>
-              }
             />
           </div>
         )}
 
-        <div className="mt-4 sm:mt-5 text-center">
+        {/*
+         * The one way back to sign in, under the card as on the register
+         * and SSO pages. The card used to have a second one, "Return to
+         * Sign in.", a line above this "Sign in.".
+         */}
+        <div
+          className="mt-4 sm:mt-5 text-center"
+          data-testid="forgot-password-sign-in"
+        >
           <p className="text-muted mb-0 text-gray-500 text-sm sm:text-base">
             {t("forgotPassword.rememberPasswordPrompt")}{" "}
             <Link
