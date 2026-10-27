@@ -77,8 +77,10 @@
       <!-- What is wrong right now -->
       <div class="mt-4 overflow-hidden rounded-xl border border-red-200 bg-white">
         <div class="flex items-center gap-3 bg-red-50 px-4 py-3.5">
-          <span class="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-red-600 text-white">
-            <svg class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+          <%# A ring ripples out of the disc while the incident is open, as on the real Home page: this is happening right now. Never under reduced motion. -%>
+          <span class="relative flex h-9 w-9 flex-none items-center justify-center rounded-full bg-red-600 text-white">
+            <span class="absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-40 motion-safe:animate-ping"></span>
+            <svg class="relative h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
           </span>
           <div class="min-w-0">
             <p class="text-[14px] font-semibold text-gray-950">1 active incident</p>
