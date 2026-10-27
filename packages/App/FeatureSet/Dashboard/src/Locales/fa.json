@@ -154,8 +154,6 @@
     "label": "پروفایل کاربری",
     "profile": "پروفایل",
     "adminSettings": "تنظیمات مدیریت",
-    "darkTheme": "پوسته تیره",
-    "lightTheme": "پوسته روشن",
     "switchToDarkTheme": "تغییر به پوسته تیره",
     "switchToLightTheme": "تغییر به پوسته روشن",
     "logOut": "خروج از حساب"
@@ -216,6 +214,7 @@
       "darkTheme": "تغییر به پوسته تیره",
       "declareIncident": "اعلام حادثه",
       "lightTheme": "تغییر به پوسته روشن",
+      "systemTheme": "تغییر به پوسته سیستم",
       "logOut": "خروج از حساب",
       "myOnCallPolicies": "سیاست‌های آنکال من",
       "projectInvitations": "دعوت‌های پروژه"

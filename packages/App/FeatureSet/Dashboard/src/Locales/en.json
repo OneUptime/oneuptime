@@ -154,8 +154,6 @@
     "label": "User Profile",
     "profile": "Profile",
     "adminSettings": "Admin Settings",
-    "darkTheme": "Dark theme",
-    "lightTheme": "Light theme",
     "switchToDarkTheme": "Switch to dark theme",
     "switchToLightTheme": "Switch to light theme",
     "logOut": "Log out"
@@ -216,6 +214,7 @@
       "darkTheme": "Switch to dark theme",
       "declareIncident": "Declare Incident",
       "lightTheme": "Switch to light theme",
+      "systemTheme": "Switch to system theme",
       "logOut": "Log out",
       "myOnCallPolicies": "My On-Call Policies",
       "projectInvitations": "Project Invitations"

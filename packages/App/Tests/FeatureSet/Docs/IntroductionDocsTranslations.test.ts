@@ -54,10 +54,11 @@ import path from "path";
  *     runbook, workflow and OpenTelemetry pages (drawnActionLabel, which
  *     also fills "Create {{itemName}}" and "Edit {{itemName}}"). Menu paths
  *     ("A → B → C") are drawn segment by segment.
- *   - The user menu (Profile is a flat key; Admin Settings, Dark theme,
- *     Light theme and Log out are the Dashboard's userProfile.* keys) and
- *     the sign-in page (the Accounts app's own locale) are read from where
- *     those screens read them (USER_MENU_LABELS, SIGN_IN_LABELS).
+ *   - The user menu (Profile, and the theme row's Theme, Light, Dark and
+ *     System, are flat keys; Admin Settings and Log out are the Dashboard's
+ *     userProfile.* keys) and the sign-in page (the Accounts app's own
+ *     locale) are read from where those screens read them
+ *     (USER_MENU_LABELS, SIGN_IN_LABELS).
  *   - Bold words that are Dashboard labels only by coincidence - a concept
  *     introduced in prose, a list item's lead - are PROSE, with why.
  *   - Getting Started's section headings are the docs' own sidebar section
@@ -132,8 +133,6 @@ const PROSE: Record<string, Array<string>> = {
  */
 const USER_MENU_LABELS: Record<string, string> = {
   "Admin Settings": "adminSettings",
-  "Dark theme": "darkTheme",
-  "Light theme": "lightTheme",
   "Log out": "logOut",
 };
 

@@ -69,8 +69,6 @@
   },
   "userProfile": {
     "exitAdmin": "Выйти из админа",
-    "darkTheme": "Тёмная тема",
-    "lightTheme": "Светлая тема",
     "logOut": "Выйти"
   },
   "footer": {
@@ -1511,6 +1509,10 @@
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "Любой, кто может открыть этот сервер, может создать учетную запись. Отключите это, когда у вашей команды появятся учетные записи.",
   "Choose who can sign up": "Выбрать, кто может регистрироваться",
   "Still to do": "Осталось сделать",
+  "Theme": "Тема",
+  "Light": "Светлая",
+  "Dark": "Тёмная",
+  "System": "Система",
   "markdownCallouts": {
     "caution": "Осторожно",
     "danger": "Опасно",

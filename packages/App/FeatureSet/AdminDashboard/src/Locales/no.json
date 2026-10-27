@@ -69,8 +69,6 @@
   },
   "userProfile": {
     "exitAdmin": "Avslutt admin",
-    "darkTheme": "Mørkt tema",
-    "lightTheme": "Lyst tema",
     "logOut": "Logg ut"
   },
   "footer": {
@@ -1511,6 +1509,10 @@
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "Alle som kan åpne denne serveren, kan opprette en konto. Slå det av når teamet ditt har kontoene sine.",
   "Choose who can sign up": "Velg hvem som kan registrere seg",
   "Still to do": "Gjenstår",
+  "Theme": "Tema",
+  "Light": "Lyst",
+  "Dark": "Mørkt",
+  "System": "System",
   "markdownCallouts": {
     "caution": "Forsiktig",
     "danger": "Fare",

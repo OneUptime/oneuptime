@@ -181,9 +181,22 @@ describe("admin dashboard header on small screens", () => {
       ),
     ).toBe("visible at 375px");
 
-    fireEvent.click(screen.getByRole("button", { name: "Dark theme" }));
+    expect(
+      describeVisibility(
+        screen.getByRole("group", { name: "Theme" }),
+        PHONE_WIDTH_IN_PX,
+      ),
+    ).toBe("visible at 375px");
+
+    fireEvent.click(screen.getByRole("button", { name: "Dark" }));
 
     expect(document.documentElement).toHaveClass("dark");
+
+    fireEvent.click(screen.getByRole("button", { name: "System" }));
+
+    expect(window.localStorage.getItem("oneuptime-dashboard-theme")).toBe(
+      "system",
+    );
   });
 
   test("the standalone Exit Admin button is wide-screen only, and the menu covers it", async () => {

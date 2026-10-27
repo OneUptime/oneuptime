@@ -154,8 +154,6 @@
     "label": "Benutzerprofil",
     "profile": "Profil",
     "adminSettings": "Admin-Einstellungen",
-    "darkTheme": "Dunkles Design",
-    "lightTheme": "Helles Design",
     "switchToDarkTheme": "Zu dunklem Design wechseln",
     "switchToLightTheme": "Zu hellem Design wechseln",
     "logOut": "Abmelden"
@@ -216,6 +214,7 @@
       "darkTheme": "Zum dunklen Design wechseln",
       "declareIncident": "Vorfall melden",
       "lightTheme": "Zum hellen Design wechseln",
+      "systemTheme": "Zum System-Design wechseln",
       "logOut": "Abmelden",
       "myOnCallPolicies": "Meine Bereitschaftsrichtlinien",
       "projectInvitations": "Projekteinladungen"
