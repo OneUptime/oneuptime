@@ -2,6 +2,7 @@ import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBa
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -36,7 +37,7 @@ import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
  * resource type — Monitor, Service, Host, Kubernetes Cluster, Docker Host,
  * Podman Host, Proxmox / Ceph / Docker Swarm cluster, vCenter, Storage Array,
  * IoT Fleet, Database and — for Scheduled Maintenance only — Network Site,
- * and — for Incidents and Alerts only — SLO.
+ * and — for Incidents and Alerts only — Cloud Resource and SLO.
  *
  * The chip's value encoding is `${type}:${id}` so multiple resource types
  * can coexist in the same selection without ID collisions. The hook's
@@ -63,6 +64,7 @@ type AffectedResourceType =
   | "dockerSwarmCluster"
   | "iotFleet"
   | "databaseServer"
+  | "cloudResource"
   | "networkSite"
   | "serviceLevelObjective";
 
@@ -152,6 +154,12 @@ const RESOURCE_TYPES: Record<AffectedResourceType, ResourceTypeConfig> = {
     icon: IconProp.Database,
     modelType: DatabaseServer,
   },
+  cloudResource: {
+    label: "Cloud Resource",
+    pluralLabel: "Cloud Resources",
+    icon: IconProp.Cloud,
+    modelType: CloudResource,
+  },
   networkSite: {
     label: "Network Site",
     pluralLabel: "Network Sites",
@@ -180,6 +188,12 @@ const RESOURCE_ORDER: Array<AffectedResourceType> = [
   "dockerSwarmCluster",
   "iotFleet",
   "databaseServer",
+  /*
+   * Only Incident and Alert carry a cloudResources relation (a maintenance
+   * window silences monitors, not cloud resources), so this is opt-in (see
+   * includeCloudResource).
+   */
+  "cloudResource",
   /*
    * Only ScheduledMaintenance carries a networkSites relation, so this one
    * is opt-in per table (see includeNetworkSite). Filtering Incidents by it
@@ -217,6 +231,7 @@ const RESOURCE_QUERY_FIELD: Record<
   dockerSwarmCluster: "dockerSwarmClusters",
   iotFleet: "iotFleets",
   databaseServer: "databaseServers",
+  cloudResource: "cloudResources",
   networkSite: "networkSites",
   serviceLevelObjective: "serviceLevelObjectives",
 };
@@ -413,6 +428,11 @@ export interface AffectedResourcesFacetOptions<T extends BaseModel> {
    * on Scheduled Maintenance would filter on a column that does not exist.
    */
   includeServiceLevelObjective?: boolean | undefined;
+  /**
+   * Offer the Cloud Resource type. Off by default because Incident and
+   * Alert are the only parent models with a `cloudResources` relation.
+   */
+  includeCloudResource?: boolean | undefined;
 }
 
 const buildAffectedResourcesFacet: <T extends BaseModel>(
@@ -433,6 +453,9 @@ const buildAffectedResourcesFacet: <T extends BaseModel>(
       }
       if (t === "serviceLevelObjective") {
         return Boolean(options.includeServiceLevelObjective);
+      }
+      if (t === "cloudResource") {
+        return Boolean(options.includeCloudResource);
       }
       return true;
     },

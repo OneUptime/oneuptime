@@ -71,7 +71,8 @@ const RecurringArrayFieldElement: FunctionComponent<ComponentProps> = (
           );
         })}
 
-      <div className="flex space-x-3 mt-3 -ml-3">
+      {/* md:-ml-3 takes back the Button's own md:ml-3. */}
+      <div className="flex space-x-3 mt-3 md:-ml-3">
         <Button
           dataTestId={`add-recurring`}
           title="Add"

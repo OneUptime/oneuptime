@@ -11,6 +11,10 @@ on:
     branches:
       - master
 
+# Read-only: these jobs check out and test the code, nothing more.
+permissions:
+  contents: read
+
 jobs:
   expo-doctor:
     runs-on: ubuntu-latest
@@ -54,6 +58,11 @@ jobs:
 
   expo-web-export:
     runs-on: ubuntu-latest
+    # Holds the Chromium install's own limit, the responsive checks' three
+    # tries, and about 7 minutes for checkout and the npm install
+    # (Tests/Ops/BrowserInstallLimits). With no limit, a hung install holds
+    # the runner for GitHub's six-hour default.
+    timeout-minutes: 125
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -69,7 +78,14 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/MobileApp
+      # `--with-deps` fetches about 26 MB of system packages and fonts from the
+      # runner's Ubuntu mirror. It usually takes 20 seconds, but some runners
+      # are served at a few dozen kB/s (10 minutes on master on 2026-10-26),
+      # and on 14.0.93's release gate that day apt-get update hung after its
+      # third index and sat for over three hours until it was cancelled. So
+      # it has the 25 minutes App Test's browser installs have.
       - name: Install browser for responsive UI tests
+        timeout-minutes: 25
         run: cd packages/MobileApp && npx playwright install --with-deps chromium
       - name: Verify responsive screens and project switching
         uses: nick-fields/retry@v3

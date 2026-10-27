@@ -281,7 +281,7 @@ En gemning, der sender **Kræv SSO til login** som slået til, mens det allerede
 
 Et nyt projekt følger samme regel. Det har endnu ingen egen udbyder, så at oprette det med **Kræv SSO til login** allerede slået til — det kan kun en master-admin — kræver en global udbyder, der er slået til og logger personer ind i alle projekter, og uden en sådan afvises det med de samme ord. Opret projektet, opsæt og test dets udbyder, og slå derefter kontakten til.
 
-Så længe hele serveren kræver SSO (**Admin** > **Indstillinger** > **Godkendelse** > **Kræv SSO til login**), kræver oprettelse af ethvert projekt også en sådan global udbyder, ellers kunne ingen, heller ikke den, der opretter projektet, åbne det. Uden en sådan afvises oprettelsen af et projekt, og meddelelsen beder en serveradministrator slå en til. Master-admins kan stadig oprette projekter.
+Så længe hele serveren kræver SSO (**Admin** > **Indstillinger** > **Single sign-on** > **Kræv SSO til login**), kræver oprettelse af ethvert projekt også en sådan global udbyder, ellers kunne ingen, heller ikke den, der opretter projektet, åbne det. Uden en sådan afvises oprettelsen af et projekt, og meddelelsen beder en serveradministrator slå en til. Master-admins kan stadig oprette projekter.
 
 At slå **Kræv SSO til login** fra gemmes, så snart du slår kontakten om, og lukker medlemmer ind med deres adgangskode med det samme — medmindre nogen slår den til igen i præcis det øjeblik; så kan en appserver være op til et minut om at følge med. Projektejere, projektadministratorer og medlemmer med tilladelsen **Edit Project** kan ændre den; alle andre ser kontakten låst sammen med den tilladelse, de ville have brug for.
 
@@ -308,7 +308,7 @@ Så længe projektet kræver SSO, holder OneUptime en vej ind åben: du kan ikke
 
 At slå en udbyder til lader personer logge ind med den med det samme.
 
-Når hele serveren kræver SSO (**Admin** > **Indstillinger** > **Godkendelse** > **Kræv SSO til login**), beholder hvert projekt en vej ind på samme måde, også et projekt, der ikke selv kræver SSO: slå først en anden udbyder til for det.
+Når hele serveren kræver SSO (**Admin** > **Indstillinger** > **Single sign-on** > **Kræv SSO til login**), beholder hvert projekt en vej ind på samme måde, også et projekt, der ikke selv kræver SSO: slå først en anden udbyder til for det.
 
 Globale udbydere følger samme regel: en ændring af en global udbyder eller dens tilknyttede projekter, der ville efterlade et projekt, der kræver SSO, uden udbyder, afvises og nævner projektet. Se [Global SSO](/docs/identity/global-sso#slå-en-udbyder-fra-eller-slet-den).
 

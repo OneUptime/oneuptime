@@ -157,7 +157,7 @@ Der Wechsel von **Behoben** in einen Status danach, etwa „Geschlossen“, änd
 
 ## Die Statuszeitachse
 
-Die Seite **Zustands-Zeitachse** einer Warnung ist das Protokoll jedes Status, in dem sie war. Ihre Karte, **Status-Zeitachse**, zeichnet sie als Zeitachse: ein Band mit jedem Status so lang, wie er dauerte, und darunter jeder Wechsel, die neuesten zuerst. **Tabelle** im Kopf der Karte listet sie stattdessen als Zeilen, mit **Warnungsstatus**, **Beginnt am**, **Endet am** und **Dauer**.
+Die Seite **Zustands-Zeitachse** einer Warnung ist das Protokoll jedes Status, in dem sie war. Ihre Karte zeichnet sie als Zeitachse: ein Band mit jedem Status so lang, wie er dauerte, und darunter jeder Wechsel, die neuesten zuerst. **Tabelle** im Kopf der Karte listet sie stattdessen als Zeilen, mit **Warnungsstatus**, **Beginnt am**, **Endet am** und **Dauer**.
 
 - **Ursache anzeigen** zeigt die Grundursache, die mit diesem Wechsel festgehalten wurde.
 - **Protokolle anzeigen** zeigt, was OneUptime beim Wechsel der Warnung festgehalten hat, etwa die Monitorprüfung, die ihn auslöste.

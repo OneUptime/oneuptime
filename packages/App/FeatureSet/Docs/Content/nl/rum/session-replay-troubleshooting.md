@@ -199,6 +199,7 @@ Elke regel draagt een stabiele `code`. Zoek de jouwe hier op.
 | `bootstrap-already-started` | Twee kopieën van de snippet op één pagina. Verwijder er een. |
 | `bootstrap-already-running` | `bootstrap()` werd opnieuw aangeroepen terwijl er al een recorder draaide. Onschuldig; meestal een dubbele integratie. |
 | `bootstrap-cancelled` | Een `revokeConsent()` of `stop()` in de wachtrij `window.OneUptimeReplayQueue` werd uitgevoerd voordat de recorder startte, dus deze sessie wordt niet opgenomen. Correct als je banner al was afgewezen. |
+| `prerender-wait` | De browser heeft deze pagina vooraf weergegeven, zoals Chrome doet met een pagina die naar verwachting als volgende wordt geopend, en niemand heeft hem nog geopend. De recorder start wanneer de bezoeker de pagina opent, dus een pagina die nooit wordt geopend, neemt niets op; aanroepen die je pagina intussen doet, worden dan toegepast. |
 | `start-stopped` | `start()` kreeg geen bruikbaar beleid op het pad van de zelfstandige bundel. De precieze reden staat in de `config-*`-regel er direct boven. |
 | `rrweb-did-not-start` | De DOM-recorder weigerde te starten. Meld dit. |
 | `rrweb-error` | De DOM-recorder kreeg op deze pagina een interne fout (de naam van de fout staat in het detail; hij wordt één keer gelogd). De opname kan rond dat punt overslaan of bevriezen, en na drie van zulke fouten draagt de sessie een getrouwheidsmelding die dat zegt. Meld het met het framework van de pagina en de naam van de fout. |

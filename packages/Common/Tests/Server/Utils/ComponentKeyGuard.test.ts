@@ -65,7 +65,8 @@ const KNOWN_LOOKUPS: Record<string, number> = {
   "packages/Common/Server/Services/ProbeService.ts": 1,
   "packages/Common/Server/Services/RunnerService.ts": 1,
   "packages/Common/Server/Utils/AI/CodeFix/CodeFixAgentAuth.ts": 2,
-  "packages/Common/Server/API/AIAgentAPI.ts": 2,
+  // The heartbeat (/alive); the shared Runner's registration went with it.
+  "packages/Common/Server/API/AIAgentAPI.ts": 1,
   "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Register.ts": 1,
 };
 

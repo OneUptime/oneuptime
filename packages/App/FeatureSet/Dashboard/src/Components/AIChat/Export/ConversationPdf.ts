@@ -218,6 +218,18 @@ class ConversationPdfBuilder {
 
       this.pdf.y += 12;
 
+      // What the action names, by name: the resources it links.
+      if (action.description) {
+        this.pdf.paragraph(
+          action.description,
+          {
+            size: 7.5,
+            color: PDF_COLORS.heading,
+          },
+          { indent: chipWidth + 6 },
+        );
+      }
+
       const args: string = formatToolArguments(action.arguments || {});
       if (args) {
         this.pdf.paragraph(

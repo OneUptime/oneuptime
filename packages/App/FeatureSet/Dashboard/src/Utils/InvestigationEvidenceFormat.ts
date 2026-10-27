@@ -323,6 +323,23 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Infrastructure",
     },
   ],
+  // What a connected cloud's inventory says.
+  [
+    "query_cloud_resource",
+    {
+      description: "Read a cloud resource's inventory",
+      icon: IconProp.Cloud,
+      category: "Infrastructure",
+    },
+  ],
+  [
+    "query_cloud_accounts",
+    {
+      description: "Listed the connected cloud accounts",
+      icon: IconProp.Cloud,
+      category: "Infrastructure",
+    },
+  ],
   [
     "query_traces",
     {
@@ -560,9 +577,33 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     },
   ],
   [
+    "add_incident_affected_resources",
+    {
+      description: "Linked an incident to affected resources",
+      icon: IconProp.Alert,
+      category: "Incidents",
+    },
+  ],
+  [
+    "create_alert",
+    {
+      description: "Created an alert",
+      icon: IconProp.Bell,
+      category: "Alerts",
+    },
+  ],
+  [
     "acknowledge_alert",
     {
       description: "Acknowledged an alert",
+      icon: IconProp.Bell,
+      category: "Alerts",
+    },
+  ],
+  [
+    "add_alert_affected_resources",
+    {
+      description: "Linked an alert to affected resources",
       icon: IconProp.Bell,
       category: "Alerts",
     },

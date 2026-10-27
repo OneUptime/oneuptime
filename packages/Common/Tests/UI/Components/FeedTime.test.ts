@@ -52,14 +52,14 @@ afterEach(() => {
 
 describe("the reader's locale", () => {
   test.each<[string, string]>([
-    ["en", "en-u-ca-gregory-nu-latn"],
-    ["de", "de-u-ca-gregory-nu-latn"],
-    ["zh-CN", "zh-CN-u-ca-gregory-nu-latn"],
-    ["zh-TW", "zh-TW-u-ca-gregory-nu-latn"],
-    ["fa", "fa-u-ca-gregory-nu-latn"],
-    ["ja", "ja-u-ca-gregory-nu-latn"],
+    ["en", "en-u-ca-gregory"],
+    ["de", "de-u-ca-gregory"],
+    ["zh-CN", "zh-CN-u-ca-gregory"],
+    ["zh-TW", "zh-TW-u-ca-gregory"],
+    ["fa", "fa-u-ca-gregory"],
+    ["ja", "ja-u-ca-gregory"],
   ])(
-    "%s reads with its own words, the Gregorian calendar and Latin digits",
+    "%s reads with its own words and digits, on the Gregorian calendar",
     (language: string, locale: string) => {
       expect(getFeedLocale(language)).toBe(locale);
     },
@@ -68,20 +68,21 @@ describe("the reader's locale", () => {
   test.each<[string | undefined]>([[undefined], [""], ["not a language!"]])(
     "%p falls back to English rather than to the browser's own default",
     (language: string | undefined) => {
-      expect(getFeedLocale(language)).toBe("en-u-ca-gregory-nu-latn");
+      expect(getFeedLocale(language)).toBe("en-u-ca-gregory");
     },
   );
 
-  test("a Persian reader's dates use the Gregorian calendar and Latin digits, like every other date on the page", () => {
+  test("a Persian reader's dates use the Gregorian calendar and Persian digits, like the counts around them", () => {
     const day: string = formatFeedDay(
       new Date("2026-10-13T07:25:00.000Z"),
       clock({ language: "fa", timezone: "Asia/Tehran" }),
     );
 
-    expect(day).toContain("2026");
-    expect(day).toContain("13");
-    // No Persian digits (U+06F0..U+06F9).
-    expect(day).not.toMatch(/[۰-۹]/u);
+    expect(day).toContain("۲۰۲۶");
+    expect(day).toContain("۱۳");
+    expect(day).toContain("اکتبر");
+    // No Latin digits.
+    expect(day).not.toMatch(/[0-9]/);
   });
 });
 
@@ -475,14 +476,14 @@ describe("how long ago, at any distance", () => {
     },
   );
 
-  test("a Persian reader's distance is written in Latin digits, like every other number on the page", () => {
+  test("a Persian reader's distance is written in Persian digits, like the counts around it", () => {
     const words: string = formatFeedTimeAgo(
       ago(7 * MINUTE),
       clock({ now, language: "fa" }),
     ) as string;
 
-    expect(words).toContain("7");
-    expect(words).not.toContain("۷");
+    expect(words).toContain("۷");
+    expect(words).not.toContain("7");
   });
 
   test("an invalid date says nothing rather than 'NaN minutes ago'", () => {

@@ -124,6 +124,11 @@ export const LINKED_INFRASTRUCTURE_KINDS: ReadonlyArray<{
     noun: "Database",
   },
   {
+    type: LinkedAffectedResourceType.CloudResource,
+    aiResourceType: AIResourceType.CloudResource,
+    noun: "Cloud resource",
+  },
+  {
     type: LinkedAffectedResourceType.Service,
     noun: "Service",
   },

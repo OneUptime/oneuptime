@@ -253,7 +253,7 @@ const VerifyEmail: () => JSX.Element = () => {
                         title={t("verifyEmail.tryAgain")}
                         dataTestId="verify-email-try-again"
                         className="w-full justify-center"
-                        style={{ width: "100%", marginLeft: 0 }}
+                        style={{ width: "100%", marginInlineStart: "0px" }}
                         onClick={() => {
                           runInit();
                         }}

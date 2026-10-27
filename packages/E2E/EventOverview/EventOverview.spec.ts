@@ -17638,3 +17638,372 @@ test.describe("at a glance: layout", () => {
     });
   }
 });
+
+/*
+ * Issue #5293: an incident Ask AI declared on a host's page was linked to
+ * nothing, and its Remediation card said only that it was "not linked to a
+ * Kubernetes cluster or an infrastructure resource". The card now says, in
+ * plain words, what OneUptime AI fixes and what to do: add what the
+ * incident is about under Affected Resources, and OneUptime AI tries
+ * again. "Go to Affected Resources" takes the reader to that card - on a
+ * phone far below - and marks where it landed. ?fixing=nothing-linked is
+ * such a record with no monitor (an incident Ask AI declared);
+ * ?fixing=nothing-linked-monitor names its monitor too.
+ */
+test.describe("the Remediation card of a record linked to nothing (issue #5293)", () => {
+  const NOTHING_LINKED_INCIDENT: string =
+    "This incident is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.";
+  const WHAT_TO_DO: string =
+    "Add the host, cluster or database it is about under Affected Resources, and OneUptime AI tries again.";
+  const GO_TO_AFFECTED_RESOURCES: string = "Go to Affected Resources";
+
+  function decisionLine(page: Page): Locator {
+    return remediationCard(page).getByTestId("remediation-decision-line");
+  }
+
+  test("says what OneUptime AI fixes, and what to do, with no monitor to link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "fixing=nothing-linked");
+
+    const line: Locator = decisionLine(page);
+    await expect(line).toHaveCount(1, { timeout: 30000 });
+    await expect(line).toHaveAttribute("data-tone", "attention");
+    await expect(line.getByTestId("remediation-decision-text")).toHaveText(
+      NOTHING_LINKED_INCIDENT,
+    );
+    await expect(
+      line.getByTestId("remediation-decision-what-to-do"),
+    ).toHaveText(`What to do: ${WHAT_TO_DO}`);
+    // The sentence is the why: never the engine's words.
+    await expect(remediationCard(page)).not.toContainText(
+      "infrastructure resource",
+    );
+    await expect(remediationCard(page)).toContainText("Needs attention");
+
+    // The one step, and nothing else to follow: no monitor, no link.
+    await expect(
+      line.getByRole("button", { name: GO_TO_AFFECTED_RESOURCES, exact: true }),
+    ).toBeVisible();
+    await expect(line.getByRole("link")).toHaveCount(0);
+  });
+
+  test("with a monitor, links it too, after the step that fixes this one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, INCIDENT_PATH, "fixing=nothing-linked-monitor");
+
+    const line: Locator = decisionLine(page);
+    await expect(
+      line.getByTestId("remediation-decision-what-to-do"),
+    ).toHaveText(
+      `What to do: ${WHAT_TO_DO} Link its monitor to what it watches, and every incident it raises from then on is linked for you.`,
+      { timeout: 30000 },
+    );
+
+    const go: Locator = line.getByRole("button", {
+      name: GO_TO_AFFECTED_RESOURCES,
+      exact: true,
+    });
+    const monitorLink: Locator = line.getByRole("link", {
+      name: "Link Checkout API p95 latency",
+    });
+    await expect(monitorLink).toHaveAttribute(
+      "href",
+      `${DASHBOARD}/monitors/${uuid("70000000", 1)}`,
+    );
+
+    // Side by side in reading order: the button first.
+    const goBox: Box = await documentBox(go);
+    const linkBox: Box = await documentBox(monitorLink);
+    expect(goBox.y <= linkBox.y).toBe(true);
+    if (goBox.y === linkBox.y) {
+      expect(goBox.x).toBeLessThan(linkBox.x);
+    }
+  });
+
+  for (const width of [390, 1280]) {
+    test(`Go to Affected Resources lands on the card, under the header, at ${width}px`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width, height: 844 });
+      await open(page, INCIDENT_PATH, "fixing=nothing-linked");
+      await expectWhatHappenedSettled(page);
+
+      const affectedResources: Locator = card(page, "Affected Resources");
+      await expect(affectedResources).toBeVisible({ timeout: 30000 });
+      await expect(affectedResources).toHaveAttribute(
+        "id",
+        "affected-resources",
+      );
+
+      const go: Locator = decisionLine(page).getByRole("button", {
+        name: GO_TO_AFFECTED_RESOURCES,
+        exact: true,
+      });
+      await go.scrollIntoViewIfNeeded();
+      await go.click();
+
+      // Marked where it landed, and in view under the sticky header.
+      await expect(affectedResources).toHaveAttribute(
+        "data-page-anchor-landed",
+        "true",
+      );
+      // The button's focus is handed on: Tab goes on from the card.
+      await expect(affectedResources).toBeFocused();
+      await expect
+        .poll(
+          async (): Promise<number> => {
+            const box: { y: number } | null =
+              await affectedResources.boundingBox();
+            return box ? Math.round(box.y) : -1;
+          },
+          { timeout: 10000 },
+        )
+        .toBeGreaterThanOrEqual(0);
+      const box: { y: number; height: number } | null =
+        await affectedResources.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.y).toBeLessThan(844 / 2);
+      await expect(
+        affectedResources.getByRole("button", { name: "Edit" }),
+      ).toBeInViewport();
+
+      await expectNoHorizontalOverflow(page);
+      await screenshot(page, `remediation-linked-to-nothing-landed-${width}`, {
+        fullPage: false,
+      });
+    });
+  }
+
+  test("an alert linked to nothing says so in its own words, and lands on its own card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, ALERT_PATH, "fixing=nothing-linked");
+
+    const line: Locator = decisionLine(page);
+    await expect(line.getByTestId("remediation-decision-text")).toHaveText(
+      "This alert is not linked to a host, cluster or database, so OneUptime AI had nothing to fix.",
+      { timeout: 30000 },
+    );
+
+    await line
+      .getByRole("button", { name: GO_TO_AFFECTED_RESOURCES, exact: true })
+      .click();
+
+    const affectedResources: Locator = card(page, "Affected Resources");
+    await expect(affectedResources).toHaveAttribute(
+      "data-page-anchor-landed",
+      "true",
+    );
+    await expect(affectedResources).toBeInViewport();
+  });
+
+  test("reads the same in dark mode, at a phone's width", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, INCIDENT_PATH, "fixing=nothing-linked-monitor&theme=dark");
+
+    const line: Locator = decisionLine(page);
+    await expect(line).toHaveCount(1, { timeout: 30000 });
+    await expectNoHorizontalOverflow(page);
+    await screenshotElement(
+      remediationCard(page),
+      "remediation-linked-to-nothing-390-dark",
+    );
+  });
+});
+
+/*
+ * Issue #5293: asked to link the incident to the host it is about,
+ * OneUptime AI waits for approval of add_incident_affected_resources. The
+ * server prepared the action (prepareMutation), so the card says what it
+ * links by name - Adds host "checkout-api-7f9c". - and leaves the list's
+ * IDs out of the arguments line, where they would only repeat it.
+ * ?thread=linking is that conversation, on incident #1042 and alert #311.
+ */
+test.describe("an action linking what a record is about waits for approval (issue #5293)", () => {
+  const HOST_ID: string = uuid("84000000", 1);
+  const ADDS_HOST: string = 'Adds host "checkout-api-7f9c".';
+
+  function approvalPrompt(page: Page): Locator {
+    return answers(page).first().getByRole("group", {
+      name: "Actions waiting for approval",
+    });
+  }
+
+  test("the card names the host it links, and running it links it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConversation(page, "thread=linking");
+    const answer: Locator = answers(page).first();
+    const prompt: Locator = approvalPrompt(page);
+
+    await expect(prompt).toContainText("The AI wants to perform 1 action");
+    // Named by its number: never by the ID the arguments carry.
+    await expect(prompt).toContainText(
+      "Link incident #1042 to affected resources",
+    );
+    await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
+      ADDS_HOST,
+    );
+    // The arguments line keeps the incident and leaves the list out.
+    await expect(prompt).toContainText(`incidentId: ${INCIDENT_ID}`);
+    await expect(prompt).not.toContainText("affectedResources");
+    await expect(prompt).not.toContainText(HOST_ID);
+
+    await prompt.getByRole("button", { name: /Run 1 action/ }).click();
+
+    const decisions: Array<RecordedApiRequest> = await apiRequestsTo(
+      page,
+      "/ai-investigation/conversation/respond-to-approval",
+    );
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]!.body["decisions"]).toEqual([
+      { toolCallId: "call_link", approved: true },
+    ]);
+
+    await expect(answer).toContainText(
+      "Done — incident #1042 is linked to host checkout-api-7f9c.",
+    );
+    await expect(prompt).toHaveCount(0);
+    await expect(
+      answer.getByRole("list", { name: "Actions" }).getByRole("listitem"),
+    ).toHaveText(["Link incident #1042 to affected resources · Done"]);
+  });
+
+  test("an alert's card names the host the same way", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConversation(page, "thread=linking", ALERT_PATH);
+    const prompt: Locator = approvalPrompt(page);
+
+    await expect(prompt).toContainText("Link alert #311 to affected resources");
+    await expect(prompt.getByTestId("tool-approval-description")).toHaveText(
+      ADDS_HOST,
+    );
+    await expect(prompt).toContainText(`alertId: ${ALERT_ID}`);
+    await expect(prompt).not.toContainText(HOST_ID);
+  });
+
+  for (const theme of ["light", "dark"]) {
+    test(`on a phone the line stays inside the card (${theme})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openConversation(
+        page,
+        `thread=linking${theme === "dark" ? "&theme=dark" : ""}`,
+      );
+      const prompt: Locator = approvalPrompt(page);
+      const description: Locator = prompt.getByTestId(
+        "tool-approval-description",
+      );
+
+      await expect(description).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+
+      // The line wraps inside the card rather than running past it.
+      const promptBox: { x: number; width: number } | null =
+        await prompt.boundingBox();
+      const descriptionBox: { x: number; width: number } | null =
+        await description.boundingBox();
+      expect(promptBox).not.toBeNull();
+      expect(descriptionBox).not.toBeNull();
+      expect(descriptionBox!.x).toBeGreaterThanOrEqual(promptBox!.x);
+      expect(descriptionBox!.x + descriptionBox!.width).toBeLessThanOrEqual(
+        promptBox!.x + promptBox!.width + 0.5,
+      );
+
+      /*
+       * The title in full - the incident it acts on included - wrapped
+       * rather than cut at one line.
+       */
+      const title: Locator = prompt.getByTestId("tool-approval-title");
+      await expect(title).toHaveText(
+        "Link incident #1042 to affected resources",
+      );
+      expect(
+        await title.evaluate((element: HTMLElement): boolean => {
+          return (
+            element.scrollHeight <= element.clientHeight + 1 &&
+            element.scrollWidth <= element.clientWidth + 1
+          );
+        }),
+      ).toBe(true);
+
+      /*
+       * Allow and Skip under the action, which keeps the card's whole
+       * width (#5301's UI review): beside it on a phone, German's wider
+       * buttons left the title 85 px and cut it at three lines.
+       */
+      const action: Locator = prompt.getByTestId("tool-approval-action");
+      const choice: Locator = prompt.getByTestId("tool-approval-choice");
+      await expect(choice).toBeVisible();
+      const actionBox: { x: number; width: number } | null =
+        await action.boundingBox();
+      const titleBox: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      } | null = await title.boundingBox();
+      const choiceBox: { x: number; y: number } | null =
+        await choice.boundingBox();
+      expect(choiceBox!.y).toBeGreaterThanOrEqual(
+        titleBox!.y + titleBox!.height,
+      );
+      // The text's width is the action's, less its padding and border.
+      expect(titleBox!.width).toBeGreaterThanOrEqual(actionBox!.width - 28);
+      // The pair starts where the text starts.
+      expect(Math.abs(choiceBox!.x - titleBox!.x)).toBeLessThanOrEqual(1);
+
+      await screenshotElement(prompt, `tool-approval-linking-390-${theme}`);
+    });
+  }
+
+  test("on a wide card Allow and Skip sit beside the action, at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConversation(page, "thread=linking");
+    const prompt: Locator = approvalPrompt(page);
+    const title: Locator = prompt.getByTestId("tool-approval-title");
+    const choice: Locator = prompt.getByTestId("tool-approval-choice");
+
+    await expect(choice).toBeVisible();
+    // Named after the action it decides, for a screen reader.
+    await expect(
+      prompt.getByRole("group", {
+        name: "Link incident #1042 to affected resources",
+      }),
+    ).toBeVisible();
+
+    const titleBox: { x: number; y: number; width: number } | null =
+      await title.boundingBox();
+    const choiceBox: { x: number; y: number } | null =
+      await choice.boundingBox();
+    // On the title's line, past its end.
+    expect(Math.abs(choiceBox!.y - titleBox!.y)).toBeLessThan(8);
+    expect(choiceBox!.x).toBeGreaterThan(titleBox!.x + titleBox!.width);
+  });
+});

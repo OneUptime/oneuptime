@@ -1,6 +1,7 @@
 import AutoRemediationDecision from "../../../Models/DatabaseModels/AutoRemediationDecision";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
@@ -112,6 +113,12 @@ const LINKED_RELATIONS: Array<LinkedRelation> = [
     model: DatabaseServer,
     joinTable: "MonitorDatabaseServer",
     inverseColumn: "databaseServerId",
+  },
+  {
+    column: "cloudResources",
+    model: CloudResource,
+    joinTable: "MonitorCloudResource",
+    inverseColumn: "cloudResourceId",
   },
   {
     column: "services",

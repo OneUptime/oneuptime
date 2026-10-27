@@ -232,10 +232,12 @@ describe("bundle hygiene", (): void => {
     expect(recorderBundle.length).toBeGreaterThan(100 * 1024);
     /*
      * 323 KB since web vitals were timed as the web-vitals library times
-     * them (2026-10-22, issue #5181: 329727 bytes after, 325428 before);
-     * esbuild.config.js carries the measurement and the reason.
+     * them (2026-10-22, issue #5181: 329727 bytes after, 325428 before),
+     * 325 KB since a prerendered page is recorded only once it is opened
+     * (2026-10-26: 331411 bytes after, 329727 before); esbuild.config.js
+     * carries the measurements and the reasons.
      */
-    expect(recorderBundle.length).toBeLessThan(323 * 1024);
+    expect(recorderBundle.length).toBeLessThan(325 * 1024);
   });
 
   /*

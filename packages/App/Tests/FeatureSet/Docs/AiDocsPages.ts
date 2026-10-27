@@ -74,6 +74,12 @@ export const CREATE_BUTTONS: Readonly<Record<string, ReadonlyArray<string>>> = {
 export const PERMISSION_NAMES: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     [ASK_AI]: [
+      /*
+       * What creating an incident or an alert needs in a custom role
+       * (#5301): permissions, though "Create Alert" is a button too.
+       */
+      "Create Incident",
+      "Create Alert",
       "Create Incident State Timeline",
       "Create Alert State Timeline",
       "Create On-Call Duty Policy Execution Log",

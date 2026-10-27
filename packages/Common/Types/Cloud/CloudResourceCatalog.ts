@@ -1818,11 +1818,32 @@ export const GCP_MONITORED_RESOURCE_RULES: ReadonlyArray<GcpMonitoredResourceRul
  * ---- Lookups -------------------------------------------------------------
  */
 
+/*
+ * ---- Listed only ---------------------------------------------------------
+ *
+ * Types a cloud connection's inventory lists (CloudInventory) that publish
+ * no metrics of their own - the networks other resources run in, which an
+ * account's topology draws them inside. No metric rule finds them, so they
+ * are kept apart from the lists above, which every rule is held to.
+ */
+export const INVENTORY_ONLY_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescriptor> =
+  [
+    descriptorOf(CloudProvider.AWS, "AWS::EC2::VPC", "VPC", IAAS, C.Networking),
+    descriptorOf(
+      CloudProvider.GCP,
+      "compute.googleapis.com/Network",
+      "VPC Network",
+      IAAS,
+      C.Networking,
+    ),
+  ];
+
 export const CLOUD_RESOURCE_TYPES: ReadonlyArray<CloudResourceTypeDescriptor> =
   [
     ...AZURE_RESOURCE_TYPES,
     ...AWS_RESOURCE_TYPES,
     ...GCP_MONITORED_RESOURCE_RULES,
+    ...INVENTORY_ONLY_RESOURCE_TYPES,
   ];
 
 function typeLookupKey(provider: string, type: string): string {
@@ -1856,6 +1877,30 @@ export function getCloudResourceTypeDescriptor(
     return null;
   }
   return DESCRIPTORS_BY_TYPE.get(typeLookupKey(provider, type)) || null;
+}
+
+const INVENTORY_ONLY_TYPE_KEYS: ReadonlySet<string> = new Set(
+  INVENTORY_ONLY_RESOURCE_TYPES.map(
+    (descriptor: CloudResourceTypeDescriptor): string => {
+      return typeLookupKey(descriptor.provider, descriptor.type);
+    },
+  ),
+);
+
+/*
+ * Whether resources of this type publish no metrics of their own (a
+ * network: INVENTORY_ONLY_RESOURCE_TYPES), whatever case it is spelled in:
+ * a resource's page has none to list, and says nothing about them.
+ */
+export function isInventoryOnlyCloudResourceType(
+  provider: string | null | undefined,
+  type: string | null | undefined,
+): boolean {
+  if (!provider || !type) {
+    return false;
+  }
+
+  return INVENTORY_ONLY_TYPE_KEYS.has(typeLookupKey(provider, type));
 }
 
 /*

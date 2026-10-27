@@ -68,6 +68,15 @@ import {
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import {
+  RESOURCE_HERO_CONTROLS_CLASS_NAME,
+  RESOURCE_HERO_CONTROLS_TEST_ID,
+  RESOURCE_HERO_IDENTITY_CLASS_NAME,
+  RESOURCE_HERO_IDENTITY_TEST_ID,
+  RESOURCE_HERO_TOP_ROW_CLASS_NAME,
+  RESOURCE_HERO_TOP_ROW_TEST_ID,
+} from "../../../Components/TelemetryResource/ResourceHeroLayout";
+import { getResourceConnectionLabel } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -997,11 +1006,11 @@ const DockerHostOverview: FunctionComponent<
     const statusDotClass: string = isConnected
       ? "bg-emerald-500"
       : "bg-amber-500";
-    const statusLabel: string = isConnected
-      ? "Connected"
-      : status
-        ? status.charAt(0).toUpperCase() + status.slice(1)
-        : "Disconnected";
+    const statusLabel: string = getResourceConnectionLabel({
+      translator: translator,
+      isConnected: isConnected,
+      status: status,
+    });
 
     return (
       <div className="relative mb-6 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -1013,8 +1022,14 @@ const DockerHostOverview: FunctionComponent<
         </div>
         <div className="relative">
           <div className="relative px-6 py-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="flex items-start gap-4 min-w-0">
+            <div
+              data-testid={RESOURCE_HERO_TOP_ROW_TEST_ID}
+              className={RESOURCE_HERO_TOP_ROW_CLASS_NAME}
+            >
+              <div
+                data-testid={RESOURCE_HERO_IDENTITY_TEST_ID}
+                className={RESOURCE_HERO_IDENTITY_CLASS_NAME}
+              >
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-sky-200 shadow-sm">
                   <Icon
                     icon={IconProp.Docker}
@@ -1045,7 +1060,10 @@ const DockerHostOverview: FunctionComponent<
                   </div>
                 </div>
               </div>
-              <div className="flex-shrink-0 md:self-start">
+              <div
+                data-testid={RESOURCE_HERO_CONTROLS_TEST_ID}
+                className={RESOURCE_HERO_CONTROLS_CLASS_NAME}
+              >
                 {renderRefreshControl()}
               </div>
             </div>
@@ -1736,16 +1754,11 @@ const DockerHostOverview: FunctionComponent<
                 return Boolean(item.hostIdentifier);
               },
             },
-            {
-              field: {
-                otelCollectorStatus: true,
-              },
-              title: "Collector Status",
-              fieldType: FieldType.Text,
-              showIf: (item: DockerHost): boolean => {
-                return Boolean(item.otelCollectorStatus);
-              },
-            },
+            /*
+             * No "Collector Status" row: the hero's pill says whether the
+             * collector is connected, in words; the row repeated it as the
+             * stored lowercase value ("connected").
+             */
             {
               field: {
                 lastSeenAt: true,

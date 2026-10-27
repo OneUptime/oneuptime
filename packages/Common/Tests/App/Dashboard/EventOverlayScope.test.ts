@@ -317,7 +317,6 @@ describe("event overlay resource scope", () => {
   test.each([
     "networkDeviceId",
     "serverlessFunctionId",
-    "cloudResourceId",
     "rumApplicationId",
     "iotDeviceId",
     "entityIds",
@@ -1053,6 +1052,102 @@ describe("database overlays match by id, never by the stamped display name", () 
  * CPU chart. A chart like that now overlays the incidents and alerts raised
  * on the metric it plots, and change events as before.
  */
+describe("a cloud resource's charts", () => {
+  /*
+   * What a Cloud Resource's Metrics tab writes for its row click: the
+   * attributes its provider reports it under, and the row's own id.
+   */
+  const CLOUDWATCH_FILTER: Record<string, unknown> = {
+    Namespace: "AWS/EC2",
+    "Dimensions.InstanceId": "i-0abc",
+    "resource.cloud.account.id": "123456789012",
+    "resource.cloud.region": "eu-west-1",
+    "resource.service.namespace": "AWS/EC2",
+  };
+
+  function cloudChart(
+    eventScope: Record<string, unknown> | undefined,
+    attributes: Record<string, unknown> = CLOUDWATCH_FILTER,
+  ): EventOverlayScope {
+    return getEventOverlayScope([
+      {
+        metricQueryData: {
+          filterData: { metricName: "aws.ec2.cpuutilization", attributes },
+        },
+        ...(eventScope !== undefined ? { eventScope } : {}),
+      } as MetricQueryConfigData,
+    ]);
+  }
+
+  test("draw the incidents and alerts linked to it and the changes tied to it, whatever its metric filter", () => {
+    expect(cloudChart({ cloudResourceId: RESOURCE_A })).toEqual({
+      incidentQueries: [{ cloudResources: { _id: RESOURCE_A } }],
+      alertQueries: [{ cloudResources: { _id: RESOURCE_A } }],
+      changeEventQueries: [
+        { attributes: { "oneuptime.resource.id": RESOURCE_A } },
+      ],
+    });
+  });
+
+  test("several rows: one query each", () => {
+    expect(
+      cloudChart({ cloudResourceIds: new Includes([RESOURCE_B, RESOURCE_A]) })
+        .incidentQueries,
+    ).toEqual([
+      { cloudResources: { _id: RESOURCE_A } },
+      { cloudResources: { _id: RESOURCE_B } },
+    ]);
+  });
+
+  test("an id that is not one, or a context that names something else too, draws nothing", () => {
+    for (const eventScope of [
+      { cloudResourceId: "not-an-id" },
+      { cloudResourceId: "" },
+      { cloudResourceId: RESOURCE_A, hostId: RESOURCE_B },
+    ]) {
+      expect(cloudChart(eventScope)).toEqual({
+        incidentQueries: [],
+        alertQueries: [],
+        changeEventQueries: [],
+      });
+    }
+  });
+
+  test("without the row's id, its provider's attributes alone never draw another resource's incidents", () => {
+    const result: EventOverlayScope = cloudChart(undefined);
+
+    expect(result.incidentQueries).not.toContainEqual({});
+    expect(result.alertQueries).not.toContainEqual({});
+  });
+
+  test("the id read from the chart's own filter scopes it the same", () => {
+    expect(
+      cloudChart(undefined, { cloudResourceId: RESOURCE_A }).changeEventQueries,
+    ).toEqual([{ attributes: { "oneuptime.resource.id": RESOURCE_A } }]);
+  });
+
+  test("survives the explorer URL the Metrics tab writes", () => {
+    const result: EventOverlayScope = getEventOverlayScope(
+      buildQueryConfigsFromSerializedQueries(
+        MetricExplorerUrl.parseMetricQueriesParam(
+          JSON.stringify([
+            {
+              metricName: "aws.ec2.cpuutilization",
+              aggregationType: MetricsAggregationType.Avg,
+              attributes: CLOUDWATCH_FILTER,
+              eventScope: { cloudResourceId: RESOURCE_A },
+            },
+          ]),
+        ),
+      ),
+    );
+
+    expect(result.alertQueries).toEqual([
+      { cloudResources: { _id: RESOURCE_A } },
+    ]);
+  });
+});
+
 describe("incidents and alerts on a chart filtered to no resource", () => {
   function metricConfig(
     metricName: unknown,

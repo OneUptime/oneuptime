@@ -1,9 +1,9 @@
 # デプロイと変更
 
-OneUptime は、プロジェクトで何が変わったかを記録します。デプロイ、Kubernetes のロールアウト、設定変更、そして OneUptime 自身が実行した修正です。各変更はそのサービスのグラフにマーカーとして描かれ、OneUptime AI はインシデントを調査するときにそれらを読みます。そのため、「10:02 のデプロイの直後に始まった」ということが、最後ではなく最初にわかります。
+OneUptime は、プロジェクトで何が変わったかを記録します。デプロイ、Kubernetes のロールアウト、設定変更、接続したクラウド アカウントでの変更、そして OneUptime 自身が実行した修正です。各変更はそのサービスまたはクラウド リソースのグラフにマーカーとして描かれ、OneUptime AI はインシデントを調査するときにそれらを読みます。そのため、「10:02 のデプロイの直後に始まった」ということが、最後ではなく最初にわかります。
 
 :::cards
-- [OneUptime が自動で記録するもの](#oneuptime-が自動で記録するもの): テレメトリからわかるデプロイとロールアウト、そして自身の修正。
+- [OneUptime が自動で記録するもの](#oneuptime-が自動で記録するもの): テレメトリからわかるデプロイとロールアウト、クラウド アカウントの変更、そして自身の修正。
 - [パイプラインからデプロイを記録する](#パイプラインからデプロイを記録する): CLI、GitHub Actions、API。
 - [OneUptime AI による変更の使い方](#oneuptime-ai-による変更の使い方): すべての調査で挙がる疑わしい変更。
 - [リファレンス](#リファレンス): フィールド、属性、上限。
@@ -17,6 +17,7 @@ flowchart LR
     K["新しい Kubernetes<br/>ReplicaSet"] --> E
     P["パイプライン:<br/>CLI または API"] --> E
     A["OneUptime AI が<br/>実行した修正、<br/>OneUptime が<br/>実行した Runbook"] --> E
+    D["クラウド アカウントの<br/>アクティビティ ログ"] --> E
     E --> C["サービスの<br/>グラフ上のマーカー"]
     E --> I["OneUptime AI<br/>の調査"]
 ```
@@ -31,6 +32,8 @@ flowchart LR
 | ロールアウト | Kubernetes の Deployment の Pod が、これまで実行していなかった ReplicaSet の実行を始めたとき。新しいイメージ、環境変数や設定の参照の変更、または再起動によるものです | `kubernetes` |
 | OneUptime AI が実行した修正 | AI エージェントが、何かを変更するコマンド(`kubectl rollout restart` など)の結果を報告したとき | `oneuptime-ai` |
 | Runbook | OneUptime が実行した Runbook が、開始後に完了、失敗、またはキャンセルされたとき | `runbook` |
+| クラウドの変更 | 接続したクラウド アカウントのアクティビティ ログが変更を記録したとき: AWS CloudTrail、Azure のアクティビティ ログ、または Google Cloud の Admin Activity 監査ログ | `cloud` |
+| プロバイダーのイベント | クラウド プロバイダーがアカウントについてヘルス イベントを公開したとき: AWS Health、Azure Service Health または Resource Health、または Google Cloud Service Health | `cloud-health` |
 
 - **サービスが最初に報告したバージョンは、デプロイではなくベースラインです。** 何か月も稼働しているサービスが、OneUptime がそのテレメトリを受信し始めた瞬間にデプロイされたわけではありません。
 - **過去 30 日間に見られたバージョンへのロールバックは記録されません。** そのバージョンは新しくないからです。OneUptime AI が実行したロールバックは、修正として記録されます。
@@ -43,6 +46,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 ロールアウトには [Kubernetes エージェント](/docs/telemetry/kubernetes-agent) が必要です。エージェントは、各 Pod のテレメトリにその Deployment と ReplicaSet を付けます。
+
+クラウドの変更とプロバイダーのイベントには、[接続したクラウド アカウント](/docs/telemetry/cloud-accounts) が必要です。どちらも、OneUptime がそのリソースを一覧にしていれば、名前が挙がったクラウド リソースに結び付けられ、そのリソースのグラフに描かれます。種類は操作から決まります。操作の名前がそう示していれば `deployment`、`scaling`、`rollback`、それ以外は `config-change`、ヘルス イベントは `provider-event` です。どのリソースにも絞り込まれていないグラフにはクラウド アカウントのアクティビティ ログは表示されないため、忙しいアカウントでデプロイが埋もれることはありません。プロバイダーのヘルス イベントは表示されたままです。
 
 ## パイプラインからデプロイを記録する
 
@@ -94,7 +99,7 @@ CLI のすべてのオプションは [`oneuptime deploy`](/docs/cli/command-ref
 
 ## OneUptime AI による変更の使い方
 
-インシデントやアラートの [AI 調査](/docs/ai/ai-sre) はすべて、その前 2 時間に記録された変更と、その後 10 分間に記録された変更から始まります。後者は、ロールアウトが終わってからデプロイを記録するパイプラインのためです。インシデントがリンクされたサービス、クラスター、ホストの変更が先に来ます。
+インシデントやアラートの [AI 調査](/docs/ai/ai-sre) はすべて、その前 2 時間に記録された変更と、その後 10 分間に記録された変更から始まります。後者は、ロールアウトが終わってからデプロイを記録するパイプラインのためです。インシデントがリンクされたサービス、クラスター、ホスト、クラウド リソースの変更が先に来ます。
 
 OneUptime は、サービスを指定している変更のうち最大 4 件について、変更の前後 30 分間のサービスのテレメトリを読みます。そして、変更の直後にサービスが測定できるほど悪化していれば、その変更を **疑わしい変更** としてマークします:
 
@@ -139,6 +144,8 @@ OneUptime AI が作成した修正のプルリクエストも、同じ方法で�
 
 名前が `oneuptime.` で始まる属性は OneUptime 自身のもので、パイプラインが送った内容からは削除されます。パイプラインが記録した変更には、そのことが `oneuptime.change.source` に `api` として示されます。
 
+クラウド アカウントから読み取った変更は、アカウントとリソースを OpenTelemetry の名前 `cloud.provider`、`cloud.account.id`、`cloud.region`、`cloud.resource_id` で示し、操作を `oneuptime.cloud.operation`、実行した人を `oneuptime.cloud.actor`、失敗したかどうかを `oneuptime.change.status`、クラウド アカウントを `oneuptime.cloud_account.id` に保持します。
+
 ### 上限
 
 | 上限 | 値 |
@@ -155,4 +162,5 @@ OneUptime AI が作成した修正のプルリクエストも、同じ方法で�
 - [AI SRE](/docs/ai/ai-sre): 調査が読むものと、見つけた問題の修正方法。
 - [コマンド リファレンス](/docs/cli/command-reference): CLI のすべてのコマンド。
 - [OpenTelemetry](/docs/telemetry/open-telemetry): サービスのテレメトリを、バージョンと一緒に送信します。
+- [クラウド アカウントの接続](/docs/telemetry/cloud-accounts): AWS、Azure、Google Cloud のアカウントの変更とヘルス イベント。
 :::

@@ -205,8 +205,19 @@ describe("the steps", () => {
     expect(
       within(modal()).getByTestId("cloud-setup-command-code"),
     ).toHaveTextContent("az ad sp create-for-rbac");
-    // One way in: nothing to choose.
-    expect(within(modal()).queryAllByRole("radio")).toHaveLength(0);
+    // One way in: no sign-in method to choose - only what to read.
+    expect(
+      within(modal()).queryByTestId("cloud-connection-method"),
+    ).not.toBeInTheDocument();
+    expect(within(modal()).queryAllByRole("radio")).toHaveLength(2);
+    expect(
+      within(modal()).getByRole("radio", { name: /^This subscription/ }),
+    ).toBeChecked();
+    expect(
+      within(modal()).getByRole("radio", {
+        name: /^Every subscription in the tenant/,
+      }),
+    ).not.toBeChecked();
   });
 
   test("AWS waits to know whether it can offer a role", async () => {
@@ -278,6 +289,103 @@ describe("the steps", () => {
         },
       ),
     ).toEqual([CloudConnectionAuthMethod.AwsAccessKey]);
+  });
+});
+
+describe("what to read: one account or the organization", () => {
+  function scopeRadio(name: RegExp): HTMLElement {
+    return within(modal()).getByRole("radio", { name });
+  }
+
+  test("Azure: one subscription first; the tenant's every subscription changes the command", async () => {
+    await openForm({ provider: CloudProvider.Azure });
+    await stepTitles();
+
+    expect(scopeRadio(/^This subscription/)).toBeChecked();
+    expect(
+      within(modal()).getByTestId("cloud-setup-command-code"),
+    ).not.toHaveTextContent("managementGroups");
+
+    await act(async () => {
+      fireEvent.click(scopeRadio(/^Every subscription in the tenant/));
+    });
+
+    expect(
+      within(modal()).getByTestId("cloud-setup-command-code"),
+    ).toHaveTextContent("Microsoft.Management/managementGroups");
+  });
+
+  test("Google Cloud: the organization's every project, with the roles on the organization", async () => {
+    await openForm({ provider: CloudProvider.GCP });
+    await stepTitles();
+
+    await act(async () => {
+      fireEvent.click(scopeRadio(/^Every project in the organization/));
+    });
+
+    expect(
+      within(modal()).getByTestId("cloud-setup-command-code"),
+    ).toHaveTextContent("gcloud organizations add-iam-policy-binding");
+  });
+
+  test("AWS: an organization through a role only - the choice goes with the access key", async () => {
+    await openForm({ provider: CloudProvider.AWS, awsRoleSetup: ROLE_SETUP });
+    await stepTitles();
+
+    await act(async () => {
+      fireEvent.click(scopeRadio(/^Every account in the organization/));
+    });
+
+    expect(
+      within(modal()).getByTestId("cloud-setup-command-code"),
+    ).toHaveTextContent("aws cloudformation create-stack-set");
+
+    await act(async () => {
+      fireEvent.click(
+        within(modal()).getByRole("radio", { name: /Access key/ }),
+      );
+    });
+
+    // An access key's user cannot sign in to the other accounts' roles.
+    expect(
+      within(modal()).queryByRole("radio", { name: /^This account/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(modal()).getByTestId("cloud-setup-command-code"),
+    ).toHaveTextContent("aws iam create-access-key");
+  });
+
+  test("the organization picked is what is tested and saved", async () => {
+    await openForm({ provider: CloudProvider.Azure });
+    await stepTitles();
+
+    await act(async () => {
+      fireEvent.click(scopeRadio(/^Every subscription in the tenant/));
+    });
+
+    await next();
+    await paste(AZURE_OUTPUT);
+    await next();
+
+    await waitFor(() => {
+      expect(postSpy).toHaveBeenCalledTimes(1);
+    });
+
+    expect(postSpy.mock.calls[0]![0].data.config).toMatchObject({
+      readScope: "organization",
+    });
+  });
+
+  test("it is asked on the first step only: the values pasted are not where it is", async () => {
+    await openForm({ provider: CloudProvider.Azure });
+    await stepTitles();
+    await next();
+
+    // The fold of values under the paste holds the values, not the scope.
+    expect(within(modal()).queryAllByRole("radio")).toHaveLength(0);
+    expect(
+      within(modal()).queryByText("Client secret expires"),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -354,6 +462,7 @@ describe("every cloud, one paste", () => {
         authMethod: CloudConnectionAuthMethod.AwsRole,
         roleArn: ROLE_ARN,
         readIntervalInMinutes: "10",
+        readScope: "account",
       },
       secrets: {},
     });
@@ -522,6 +631,7 @@ describe("testing and connecting", () => {
         clientId: APP,
         cloud: "public",
         readIntervalInMinutes: "5",
+        readScope: "account",
       },
       secrets: { clientSecret: PASSWORD },
     });

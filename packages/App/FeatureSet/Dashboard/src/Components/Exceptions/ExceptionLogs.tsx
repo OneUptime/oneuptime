@@ -180,7 +180,7 @@ const ExceptionLogs: FunctionComponent<ComponentProps> = (
         limit={50}
         noLogsMessage={
           scope.key === ExceptionLogsViewerScopeKey.Trace
-            ? "No logs were written for this trace in the pinned window."
+            ? "This trace wrote no logs in the pinned window."
             : "This service wrote no logs in the minutes around the occurrence."
         }
       />

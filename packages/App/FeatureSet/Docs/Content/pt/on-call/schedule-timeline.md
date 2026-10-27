@@ -20,7 +20,7 @@ flowchart TB
 
 ## Abra a linha do tempo
 
-- **Plantão** > **Linha do tempo de plantões** mostra todos os agendamentos que você pode ver, agrupados pela equipe proprietária. O botão **Visualização em linha do tempo** em **Agendamentos de plantão** abre a mesma página.
+- **Plantão** > **Linha do tempo de plantões** mostra todos os agendamentos que você pode ver, agrupados pela equipe proprietária. Em **Agendamentos de plantão**, **Linha do tempo de plantões** no menu **⋯** abre a mesma página.
 - **Equipes** > uma equipe > **Agendamentos de plantão** mostra só os agendamentos de que essa equipe é proprietária.
 
 Uma equipe é proprietária de um agendamento quando aparece na página **Proprietários** do agendamento. Os agendamentos sem equipe proprietária ficam agrupados em **Sem equipe proprietária**. Desligue **Agrupar por equipe** para ver todos os agendamentos em uma única lista, ordenada por nome.

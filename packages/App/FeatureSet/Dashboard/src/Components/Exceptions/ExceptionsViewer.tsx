@@ -28,6 +28,19 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import IconProp from "Common/Types/Icon/IconProp";
 import { RESOURCE_FACET_CATALOG_KEYS } from "Common/Types/Telemetry/ResourceFacetCatalog";
+import {
+  FacetCountAnswer,
+  FacetCountRequestPart,
+  mergeFacetCountAnswers,
+  planFacetCountRequests,
+  readFacetCountAnswer,
+} from "Common/UI/Components/TelemetryViewer/FacetCountPlan";
+import {
+  EXCEPTIONS_EXPLORER_FACET_KEYS,
+  EXCEPTIONS_SERVICE_FACET_KEY,
+  getExceptionChosenFacetKeys,
+  getExceptionFacetServiceIds,
+} from "./ExceptionsFacetCounts";
 import { buildResourceFacetConfigs } from "Common/UI/Components/TelemetryViewer/ResourceFacetConfigs";
 import ModelAPI, {
   ListResult as ModelListResult,
@@ -1774,79 +1787,92 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     const dateRange: InBetween<Date> =
       RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
 
-    const payload: JSONObject = {
-      startTime: dateRange.startValue.toISOString(),
-      endTime: dateRange.endValue.toISOString(),
-      facetKeys: [
-        "primaryEntityId",
-        /*
-         * Every resource type in the catalog. The server answers each with
-         * the project's full list from Postgres, so a type the project has
-         * none of comes back empty and the sidebar folds it away.
-         */
-        ...RESOURCE_FACET_CATALOG_KEYS,
-        "exceptionType",
-        "environment",
-      ],
-    };
-
-    /*
-     * The same filters the list and the chart read (see fetchHistogram) —
-     * facet counts that disagree with the list are how a user learns not to
-     * trust either.
-     */
-    const facetResourceIds: Array<string> = [...resourceIds];
-    if (
-      primaryEntityId &&
-      !facetResourceIds.includes(primaryEntityId.toString())
-    ) {
-      facetResourceIds.push(primaryEntityId.toString());
-    }
-    if (resolvedServices.matchedNothing) {
-      payload["serviceIds"] = [NO_MATCH_ENTITY_ID];
-    } else if (facetResourceIds.length > 0) {
-      payload["serviceIds"] = facetResourceIds;
-    }
-    if (columnLiterals["exceptionType"]) {
-      payload["exceptionTypes"] = columnLiterals["exceptionType"];
-    }
-    if (columnLiterals["environment"]) {
-      payload["environments"] = columnLiterals["environment"];
-    }
-    if (parsedSearch.freeText.length > 0) {
-      payload["messageSearchText"] = parsedSearch.freeText;
-    }
-
     const facetSearchTextActive: Record<string, string> = {};
     for (const [key, val] of Object.entries(facetSearchText)) {
       if (val && val.trim().length > 0) {
         facetSearchTextActive[key] = val.trim();
       }
     }
-    if (Object.keys(facetSearchTextActive).length > 0) {
-      payload["facetSearchText"] = facetSearchTextActive;
-    }
-    // The instance scope narrows facet counts too (see fetchHistogram).
-    if (instanceScopeKey) {
-      payload["fingerprints"] =
-        resolvedScopeFingerprints && resolvedScopeFingerprints.length > 0
-          ? resolvedScopeFingerprints
-          : [NO_MATCH_FINGERPRINT];
-    }
+
+    /*
+     * The same filters the list and the chart read (see fetchHistogram) —
+     * facet counts that disagree with the list are how a user learns not to
+     * trust either. A facet the reader chose a value in is counted without
+     * its own selection, in a request of its own, so the types,
+     * environments or services beside the checked one stay listed with
+     * their counts and a second can be checked (FacetCountPlan).
+     */
+    const payloadOf: (part: FacetCountRequestPart) => JSONObject = (
+      part: FacetCountRequestPart,
+    ): JSONObject => {
+      const omit: string | null = part.withoutSelectionOf;
+      const payload: JSONObject = {
+        startTime: dateRange.startValue.toISOString(),
+        endTime: dateRange.endValue.toISOString(),
+        facetKeys: [...part.facetKeys],
+      };
+
+      const facetResourceIds: Array<string> = getExceptionFacetServiceIds({
+        typedServiceIds: resolvedServices.serviceIds,
+        facetGroups: facetGroups,
+        resourceFacetKeys: RESOURCE_FACET_KEYS,
+        pageEntityId: primaryEntityId?.toString(),
+        omitFacetKey: omit,
+      });
+      if (
+        resolvedServices.matchedNothing &&
+        omit !== EXCEPTIONS_SERVICE_FACET_KEY
+      ) {
+        payload["serviceIds"] = [NO_MATCH_ENTITY_ID];
+      } else if (facetResourceIds.length > 0) {
+        payload["serviceIds"] = facetResourceIds;
+      }
+      if (columnLiterals["exceptionType"] && omit !== "exceptionType") {
+        payload["exceptionTypes"] = columnLiterals["exceptionType"];
+      }
+      if (columnLiterals["environment"] && omit !== "environment") {
+        payload["environments"] = columnLiterals["environment"];
+      }
+      if (parsedSearch.freeText.length > 0) {
+        payload["messageSearchText"] = parsedSearch.freeText;
+      }
+      if (Object.keys(facetSearchTextActive).length > 0) {
+        payload["facetSearchText"] = facetSearchTextActive;
+      }
+      // The instance scope narrows facet counts too (see fetchHistogram).
+      if (instanceScopeKey) {
+        payload["fingerprints"] =
+          resolvedScopeFingerprints && resolvedScopeFingerprints.length > 0
+            ? resolvedScopeFingerprints
+            : [NO_MATCH_FINGERPRINT];
+      }
+
+      return payload;
+    };
+
+    const parts: Array<FacetCountRequestPart> = planFacetCountRequests({
+      facetKeys: EXCEPTIONS_EXPLORER_FACET_KEYS,
+      selectedFacetKeys: getExceptionChosenFacetKeys(activeFilters),
+    });
 
     try {
-      const response: HTTPResponse<JSONObject> = await postApi(
-        "/telemetry/exceptions/facets",
-        payload,
+      const responses: Array<HTTPResponse<JSONObject>> = await Promise.all(
+        parts.map(
+          (part: FacetCountRequestPart): Promise<HTTPResponse<JSONObject>> => {
+            return postApi("/telemetry/exceptions/facets", payloadOf(part));
+          },
+        ),
       );
-      const facets: FacetData = (response.data["facets"] ||
-        {}) as unknown as FacetData;
-      setFacetData(facets);
-      setTimedOutFacets(
-        Array.isArray(response.data["timedOutFacets"])
-          ? (response.data["timedOutFacets"] as Array<string>)
-          : [],
+      const answer: FacetCountAnswer = mergeFacetCountAnswers(
+        parts,
+        responses.map(
+          (response: HTTPResponse<JSONObject>): FacetCountAnswer => {
+            return readFacetCountAnswer(response.data);
+          },
+        ),
       );
+      setFacetData(answer.facets);
+      setTimedOutFacets(answer.timedOutFacets);
       setFacetError(undefined);
     } catch (err) {
       // Non-critical: the sidebar says why the facets are missing.
@@ -1859,7 +1885,8 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   }, [
     timeRange,
     columnLiterals,
-    resourceIds,
+    facetGroups,
+    activeFilters,
     resolvedServices,
     parsedSearch,
     primaryEntityId,

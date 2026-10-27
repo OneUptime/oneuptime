@@ -364,6 +364,8 @@ Die Verzögerung in Sekunden steht auf einem untätigen Primärserver auf null, 
 
 Zähler, die auf `total` enden, sind seit dem Serverstart kumulativ. Vergleichen Sie zwei Zeitpunkte, um eine Rate zu erhalten; ein einzelner Wert ist nur gegenüber seinem eigenen Verlauf aussagekräftig, und er springt beim Neustart des Servers auf null zurück (was Ihnen **Uptime** zeigt).
 
+**Cache Hit Ratio** und **Rollback Ratio** werden bei jeder Prüfung aus dem berechnet, was sich ihre Zähler seit der vorherigen Prüfung des Monitors bewegt haben, nicht seit dem Serverstart; ein Cache, der anfängt, Treffer zu verfehlen, zeigt sich also sofort. Die erste Prüfung nach dem Start der Sonde und die erste nach einem Neustart des Servers liefern keinen der beiden Werte.
+
 ## Kriterien einrichten
 
 | Filtertyp | Was er prüft |

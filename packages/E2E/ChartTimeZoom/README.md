@@ -279,6 +279,20 @@ range and Reset zoom joins it), and they used to take the width out of the name:
 name is not cut, every control stays inside the hero without covering it, the page
 never scrolls sideways, and a name longer than the row still truncates.
 
+### The Host Overview header
+
+Every resource hero lays its top row out the way the cluster's does since #5268's
+follow-up (`Components/TelemetryResource/ResourceHeroLayout`). The host's hero kept its
+controls beside the name from the md breakpoint: at a 768px window the name vanished
+under the time picker and the Auto-refresh select ran 35px past the window, and at
+1024px the name read "a..". `HostOverviewHeader.spec.ts` (8 tests, same fixture and
+command) measures `api-gateway-01` at 1440, 1280, 1024, 900 and 768px, before and
+after a real drag on the CPU chart, with the same checks as the cluster's; beside the
+side menu (768 and 1024) the controls sit under the name, ending at the row's right
+edge, and beside it at 1280; on a phone, light and dark, the name shows in full with
+the controls under it; and a name longer than the row still truncates, zoomed. It
+saves `host-overview-header-{768,1024,1280,phone,phone-dark}.png`.
+
 ### An outdated agent version
 
 `AgentVersionSign.spec.ts` (same fixture and command) opens the cluster Overview with
@@ -485,7 +499,7 @@ Screenshots: `value-suggestions-logs`, `value-suggestions-loading`,
 
 ## Explorers: a facet value clicks on and off
 
-`ExplorerFacetToggle.spec.ts` (10 tests, same fixture and command) pins the report
+`ExplorerFacetToggle.spec.ts` (11 tests, same fixture and command) pins the report
 "I'm not able to uncheck when I click on this": a checked value in the filter sidebar
 of the Traces, Metrics and Exceptions explorers stayed checked when clicked, and the
 Traces "Root spans" value could not be cleared from its row at all. Each value row is a
@@ -494,10 +508,15 @@ and the explorer's reads follow:
 
 - Traces: Status "Error" on and off (`statusCodes` in `/telemetry/traces/facets`, the
   "Status: Error" chip); "Root spans" on and off (`rootOnly`); two services checked and
-  one unchecked, the other staying checked (`serviceIds`). The Service facet is used
-  for that one because it lists every service, counted or not: Status is counted with
-  its own selection applied, so the other statuses drop out of it once Error is
-  checked;
+  one unchecked, the other staying checked (`serviceIds`);
+- a checked value keeps the values beside it: a facet with a value chosen is counted
+  without its own selection, in a request of its own (`facetKeys: ["statusCode"]`, no
+  `statusCodes`), and every other facet in one request that carries every filter
+  (FacetCountPlan). So with Error checked, "Unset (no error)" stays listed and can be
+  checked beside it (`statusCodes` `[0, 2]`). It used to be counted with its own
+  selection applied, and the other statuses dropped out of it once Error was checked.
+  The spec reads a facets endpoint's newest request that carries every filter, as the
+  two requests of one read may land in either order;
 - Logs: Severity "Error" on and off, in the log list's query and in the link's
   `filters`;
 - Exceptions: Exception Type "DeadlineExceededError" on and off (`exceptionTypes`);

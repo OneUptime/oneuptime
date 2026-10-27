@@ -11,6 +11,7 @@ import {
   mergeKubernetesEventRows,
 } from "../../../Components/Kubernetes/KubernetesEventsModel";
 import KubernetesEventsTable from "../../../Components/Kubernetes/KubernetesEventsTable";
+import KubernetesWarningEventsAlertLine from "../../../Components/Kubernetes/KubernetesWarningEventsAlertLine";
 import {
   KubernetesEventsViewState,
   hasKubernetesEventsFilters,
@@ -545,9 +546,15 @@ const KubernetesClusterEvents: FunctionComponent<
               />
             )}
 
+            {/*
+             * Under the list's pager, clear of it: the pager ends its card
+             * (-mb-6), so a mt-4 put this line 8px into it, against Rows per
+             * page (#5298's UI review). mt-10 is the pager's 24px back and
+             * 16px between them.
+             */}
             {rows.length > 0 && isTruncated ? (
               <p
-                className="mt-4 text-center text-xs text-gray-500"
+                className="mt-10 text-center text-xs text-gray-500"
                 data-testid="kubernetes-events-more-note"
               >
                 {translator.translateText(
@@ -558,6 +565,20 @@ const KubernetesClusterEvents: FunctionComponent<
               <></>
             )}
           </div>
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * Whether these warnings reach anyone: the monitor that alerts on
+         * them, or the cluster's Warning Events recommendation to turn on
+         * (follow-up of #5201).
+         */}
+        {clusterIdentifier ? (
+          <KubernetesWarningEventsAlertLine
+            clusterId={modelId}
+            clusterIdentifier={clusterIdentifier}
+          />
         ) : (
           <></>
         )}

@@ -60,6 +60,22 @@ export const KUBERNETES_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   },
 ];
 
+/*
+ * A Kubernetes cluster's Recommendations: Quick Setup's headings, then
+ * Events - the cluster's warning events alert, a Logs monitor over the
+ * events the agent sends (KubernetesEventAlertTemplates), which a Kubernetes
+ * monitor's Quick Setup cannot build and so never lists.
+ */
+export const KUBERNETES_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> =
+  [
+    ...KUBERNETES_TEMPLATE_CATEGORIES,
+    {
+      category: "Events",
+      label: "Events",
+      icon: IconProp.Bell,
+    },
+  ];
+
 // Proxmox.
 export const PROXMOX_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   {
@@ -231,7 +247,7 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
   [MonitorRecommendationResourceType.DockerSwarm]:
     DOCKER_SWARM_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.Kubernetes]:
-    KUBERNETES_TEMPLATE_CATEGORIES,
+    KUBERNETES_RECOMMENDATION_CATEGORIES,
   [MonitorRecommendationResourceType.Proxmox]: PROXMOX_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.VMware]: VMWARE_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.Ceph]: CEPH_TEMPLATE_CATEGORIES,

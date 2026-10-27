@@ -111,6 +111,70 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "View Resource",
       "Delete Resource",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS, [
+      "Project",
+      "Cloud",
+      "View Resource",
+      "Incidents",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_ALERTS, [
+      "Project",
+      "Cloud",
+      "View Resource",
+      "Alerts",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_RESOURCE_VIEW_CHANGES, [
+      "Project",
+      "Cloud",
+      "View Resource",
+      "Changes",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNTS, [
+      "Project",
+      "Cloud",
+      "Accounts",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW, [
+      "Project",
+      "Cloud",
+      "Accounts",
+      "View Account",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_RESOURCES, [
+      "Project",
+      "Cloud",
+      "Accounts",
+      "View Account",
+      "Resources",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_CHANGES, [
+      "Project",
+      "Cloud",
+      "Accounts",
+      "View Account",
+      "Changes",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_TOPOLOGY, [
+      "Project",
+      "Cloud",
+      "Accounts",
+      "View Account",
+      "Topology",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_SETTINGS, [
+      "Project",
+      "Cloud",
+      "Accounts",
+      "View Account",
+      "Settings",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_ACCOUNT_VIEW_DELETE, [
+      "Project",
+      "Cloud",
+      "Accounts",
+      "View Account",
+      "Delete Account",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

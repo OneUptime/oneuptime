@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 
@@ -1870,6 +1871,203 @@ test.describe("failures", () => {
     await expect(page.getByTestId("monitor-uptime-footnote")).toContainText(
       "Incident markers are unavailable.",
     );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Scheduled maintenance on the uptime strip (issue #5236)
+ * ---------------------------------------------------------------------------
+ */
+
+// The database upgrade's window, 08:00 to 10:00 UTC two days ago.
+const MAINTENANCE_WINDOW_TEXT: RegExp =
+  /^Sep 19, (08:00|8:00 AM) – (10:00|10:00 AM) (UTC|GMT)$/;
+
+// The list reads of scheduled maintenance, and of its states.
+const SCHEDULED_MAINTENANCE_LIST: RegExp = /^ScheduledMaintenance$/;
+const SCHEDULED_MAINTENANCE_STATE_LIST: RegExp = /^ScheduledMaintenanceState$/;
+
+// The database upgrade's item in the day's dialog: its name starts with the title.
+const DATABASE_UPGRADE_BUTTON: RegExp = /Database upgrade/;
+
+// The seeded events' ids, by title (Fixture.js, ?maintenance=1).
+async function maintenanceIds(page: Page): Promise<Record<string, string>> {
+  return page.evaluate((): Record<string, string> => {
+    return (
+      window as unknown as {
+        __monitorOverviewFixture: { maintenance: Record<string, string> };
+      }
+    ).__monitorOverviewFixture.maintenance;
+  });
+}
+
+// The colour and height of a bar's maintenance band, or null for none.
+async function bandOf(
+  bar: Locator,
+): Promise<{ color: string; height: string } | null> {
+  return bar.evaluate(
+    (element: Element): { color: string; height: string } | null => {
+      const style: CSSStyleDeclaration = window.getComputedStyle(
+        element,
+        "::before",
+      );
+
+      if (!style.content || style.content === "none") {
+        return null;
+      }
+
+      return { color: style.backgroundColor, height: style.height };
+    },
+  );
+}
+
+test.describe("scheduled maintenance on the uptime strip", () => {
+  test("bands the days the monitor's maintenance touched, and keys the band", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "maintenance=1" });
+    await expectSettled(page);
+
+    const bars: Locator = uptimeBars(page);
+    await expect(bars).toHaveCount(90);
+
+    // Sep 19 (two days ago) and today, Sep 21, the last bar.
+    await expect(bars.nth(87)).toHaveAttribute("data-has-maintenance", "true");
+    await expect(bars.nth(89)).toHaveAttribute("data-has-maintenance", "true");
+    await expect(bars.nth(88)).toHaveAttribute("data-has-maintenance", "false");
+    await expect(bars.nth(0)).toHaveAttribute("data-has-maintenance", "false");
+
+    expect(await bandOf(bars.nth(87))).toEqual({
+      color: "rgb(59, 130, 246)",
+      height: "4px",
+    });
+    expect(await bandOf(bars.nth(88))).toBeNull();
+
+    // The band is its own layer: the day keeps the colour its statuses give it.
+    expect(await backgroundColor(bars.nth(87))).not.toBe("rgb(59, 130, 246)");
+
+    await expect(bars.nth(87)).toHaveAttribute(
+      "aria-label",
+      /1 scheduled maintenance event$/,
+    );
+
+    await expect(
+      card(page, "Uptime history").getByRole("list", { name: "Legend" }),
+    ).toContainText("Scheduled maintenance");
+    await expect(
+      page.getByTestId("monitor-uptime-maintenance-unavailable"),
+    ).toHaveCount(0);
+
+    // Read once, for the subject monitor, by the project's states.
+    expect(
+      await listRequestsFor(page, SCHEDULED_MAINTENANCE_LIST),
+    ).toHaveLength(1);
+    expect(
+      (await listRequestsFor(page, SCHEDULED_MAINTENANCE_STATE_LIST)).length,
+    ).toBeGreaterThan(0);
+
+    await screenshot(page, "monitor-overview-uptime-maintenance");
+  });
+
+  test("a day's tooltip and dialog name the event, and it opens its page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "maintenance=1" });
+    await expectSettled(page);
+
+    const day: Locator = uptimeBars(page).nth(87);
+    await day.hover();
+
+    const tooltip: Locator = page.getByRole("tooltip");
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText("Scheduled maintenance");
+    await expect(tooltip).toContainText("Database upgrade");
+    await expect(tooltip).toContainText("Completed");
+
+    await page.mouse.move(0, 0);
+    await expect(tooltip).toBeHidden();
+
+    await day.click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole("heading", { name: "Scheduled maintenance" }),
+    ).toBeVisible();
+    await expect(dialog).toContainText(
+      "No incidents were reported on this day.",
+    );
+    // On the reader's clock: the browser runs in UTC, which moment names GMT.
+    await expect(
+      dialog.getByTestId("uptime-day-maintenance-window"),
+    ).toHaveText(MAINTENANCE_WINDOW_TEXT);
+
+    await screenshot(page, "monitor-overview-uptime-maintenance-day");
+
+    const ids: Record<string, string> = await maintenanceIds(page);
+
+    await dialog.getByRole("button", { name: DATABASE_UPGRADE_BUTTON }).click();
+
+    await expect(page).toHaveURL(
+      new RegExp(
+        `/dashboard/${escapeRegExp(PROJECT_ID)}/scheduled-maintenance-events/${escapeRegExp(ids["Database upgrade"]!)}$`,
+      ),
+    );
+  });
+
+  test("a read that fails keeps the strip and says the markers are missing", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "maintenance=1&fail=maintenance" });
+    await expectSettled(page);
+
+    await expect(uptimeBars(page)).toHaveCount(90);
+    await expect(
+      page.getByTestId("monitor-uptime-maintenance-unavailable"),
+    ).toHaveText("Maintenance markers are unavailable.");
+    await expect(
+      page.locator("[data-testid='uptime-bar'][data-has-maintenance='true']"),
+    ).toHaveCount(0);
+  });
+
+  test("a role that cannot read maintenance gets the strip without markers, and asks for none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, { query: "maintenance=1&role=monitor-viewer" });
+    await expectSettled(page);
+
+    await expect(uptimeBars(page)).toHaveCount(90);
+    await expect(
+      page.getByTestId("monitor-uptime-maintenance-unavailable"),
+    ).toBeVisible();
+    expect(
+      await listRequestsFor(page, SCHEDULED_MAINTENANCE_LIST),
+    ).toHaveLength(0);
+  });
+
+  test("a monitor without maintenance has no band and no key", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+    await expectSettled(page);
+
+    await expect(
+      page.locator("[data-testid='uptime-bar'][data-has-maintenance='true']"),
+    ).toHaveCount(0);
+    await expect(
+      page.getByTestId("monitor-uptime-legend-maintenance"),
+    ).toHaveCount(0);
   });
 });
 

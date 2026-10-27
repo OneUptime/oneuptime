@@ -50,6 +50,9 @@ import React, { useId, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import useAsyncEffect from "use-async-effect";
 import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
+import { SSO_REQUIRED_SIGN_UP_MESSAGE } from "Common/Types/SSO/SignInMethods";
+import LoginWithSsoPage from "./LoginWithSSO";
+import { SignInMethodsRead, useSignInMethods } from "../Utils/SignInMethods";
 
 /*
  * BasicForm wraps password values for submission. Keep validation and retry
@@ -65,6 +68,14 @@ const RegisterPage: () => JSX.Element = () => {
   const { t } = useTranslation();
   const apiUrl: URL = SIGNUP_API_URL;
   const passwordRequirementsId: string = useId();
+
+  /*
+   * Whether the whole server requires single sign-on: an account is then
+   * made by signing in with SSO (or by an invitation), never with a
+   * password, and the server refuses a sign-up (SsoRequiredSignIn). The page
+   * offers SSO in its place - an invitation's sign-up link lands here too.
+   */
+  const signInMethodsRead: SignInMethodsRead = useSignInMethods();
 
   const [initialValues, setInitialValues] = React.useState<JSONObject>({});
 
@@ -462,6 +473,14 @@ const RegisterPage: () => JSX.Element = () => {
     ]);
   }
 
+  if (signInMethodsRead.isReading) {
+    return <PageLoader isVisible={true} />;
+  }
+
+  if (signInMethodsRead.signInMethods?.isSsoRequired) {
+    return <LoginWithSsoPage signInMethods={signInMethodsRead.signInMethods} />;
+  }
+
   if (error) {
     return <ErrorMessage message={error} />;
   }
@@ -639,6 +658,15 @@ const RegisterPage: () => JSX.Element = () => {
             }}
             formType={FormType.Create}
             submitButtonText={t("register.submitButton")}
+            onSubmitError={(message: string) => {
+              /*
+               * The server came to require SSO after this page read that it
+               * did not: read again, and the page offers SSO instead.
+               */
+              if (message === SSO_REQUIRED_SIGN_UP_MESSAGE) {
+                signInMethodsRead.readAgain();
+              }
+            }}
             onLoadingChange={(loading: boolean) => {
               if (!isCaptchaEnabled) {
                 return;

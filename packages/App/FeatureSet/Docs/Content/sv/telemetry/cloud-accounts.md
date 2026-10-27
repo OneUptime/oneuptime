@@ -1,12 +1,12 @@
 # Anslut ett molnkonto
 
-Anslut ett AWS-konto, en Azure-prenumeration eller ett Google Cloud-projekt från instrumentpanelen, så listar OneUptime dess resurser och läser deras viktigaste mätvärden enligt ett schema. Du kör ett kommando i molnets egen webbläsarterminal och klistrar in det som skrivs ut: ingen collector att köra och inget att installera.
+Anslut ett AWS-konto, en Azure-prenumeration eller ett Google Cloud-projekt från instrumentpanelen, så listar OneUptime alla resurser där, läser deras viktigaste mätvärden och registrerar vad som ändrats i dem och vad din molnleverantör säger om deras hälsa. Du kör ett kommando i molnets egen webbläsarterminal och klistrar in det som skrivs ut: ingen collector att köra och inget att installera.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): En IAM-roll som OneUptime loggar in med, eller en åtkomstnyckel.
 - [Microsoft Azure](#microsoft-azure): En app med rollen Monitoring Reader.
-- [Google Cloud](#google-cloud): Ett tjänstkonto med rollen Monitoring Viewer.
-- [Vad OneUptime läser](#vad-oneuptime-läser): Vilka resurser och mätvärden, hur ofta och vad det kostar.
+- [Google Cloud](#google-cloud): Ett tjänstkonto med fyra skrivskyddade roller.
+- [Vad OneUptime läser](#vad-oneuptime-läser): Resurser, mätvärden, ändringar och hälsohändelser, hur ofta och vad det kostar.
 :::
 
 ## Så fungerar det
@@ -14,14 +14,17 @@ Anslut ett AWS-konto, en Azure-prenumeration eller ett Google Cloud-projekt frå
 ```mermaid title="Från ditt moln till molnresurser"
 flowchart TB
     cmd["Ett kommando i<br/>molnets terminal"] --> access["Skrivskyddad åtkomst"]
-    access --> ou["OneUptime läser den<br/>med några minuters<br/>mellanrum"]
+    access --> ou["OneUptime läser den<br/>med jämna mellanrum"]
     ou --> res["Molnresurser"]
     ou --> met["Mätvärden"]
+    ou --> chg["Ändringar och<br/>hälsohändelser"]
 ```
 
-- **Åtkomsten kan bara läsa.** Kommandot skapar en åtkomst som läser mätvärden och inget annat: tre läsåtgärder på AWS, rollen **Monitoring Reader** på Azure och rollen **Monitoring Viewer** på Google Cloud. Ta bort den för att stänga ute OneUptime.
-- **OneUptime läser enligt ett schema.** Var 5:e minut för Azure och Google Cloud, och var 10:e minut för AWS, om du inte väljer ett annat intervall när du ansluter.
-- **Varje resurs får en egen sida.** Resurser visas under **Moln → Alla resurser** med sina viktigaste mätvärden, ägare och etiketter, precis som resurserna som en collector rapporterar.
+- **Åtkomsten kan bara läsa.** Kommandot skapar en åtkomst som läser dina resurser och hur de är konfigurerade, deras mätvärden, vad som ändrats och leverantörens hälsohändelser, och inget annat: åtgärderna nedan på AWS, rollen **Monitoring Reader** på Azure och fyra visningsroller på Google Cloud. Den läser aldrig data eller hemligheter. Ta bort den för att stänga ute OneUptime.
+- **OneUptime läser enligt ett schema.** Var 5:e minut för Azure och Google Cloud, och var 10:e minut för AWS, om du inte väljer ett annat intervall när du ansluter. Varje läsning registrerar också vad som ändrats sedan den förra, och var 30:e minut listar en läsning alla resurser igen.
+- **Varje resurs får en egen sida.** Resurser visas under **Moln → Alla resurser** med sina viktigaste mätvärden, ägare och etiketter. Sidan för en listad resurs visar också dess **Anslutna resurser** (vad den körs i, vad som skickar trafik till den), dess slutpunkter, taggar och inställningar, och dess **Incidenter**, **Larm** och **Ändringar**.
+- **Varje konto får en egen sida.** Konton visas under **Moln → Konton** med sina resurser efter typ och region, sina **Ändringar** och en **Topologi** över hur resurserna hänger ihop.
+- **OneUptime AI läser vad som ändrats.** En undersökning av en incident eller ett larm som är länkat till en molnresurs läser först den resursens ändringar, och läser kontots aktivitetslogg igen när den startar.
 
 ## Innan du börjar
 
@@ -37,11 +40,15 @@ Gå till **Moln → Anslut** och välj **Amazon Web Services**.
 
 ### Kör kommandot i AWS CloudShell
 
-Välj hur OneUptime loggar in. En **IAM-roll** är det rekommenderade sättet: inget hemligt lagras, och du kan ta bort rollen när som helst. Formuläret visar kommandot, skrivet för ditt projekt: det skapar en roll som litar på OneUptimes AWS-konto med ditt projekts externa ID, och skriver ut rollens ARN. Använd en **Åtkomstnyckel** när en roll inte är möjlig. Det här kommandot skapar en användare med samma behörigheter och skriver ut dess nyckel:
+Välj hur OneUptime loggar in. En **IAM-roll** är det rekommenderade sättet: inget hemligt lagras, och du kan ta bort rollen när som helst. Formuläret visar kommandot, skrivet för ditt projekt: det skapar en roll som litar på OneUptimes AWS-konto med ditt projekts externa ID, och skriver ut rollens ARN.
+
+Under **Vad som ska läsas** väljer du det här kontot, eller alla konton i din AWS Organization. Kör organisationens kommando i dess hanteringskonto: det lägger till ett StackSet som placerar samma roll i varje konto, nu och när nya konton tillkommer, och låter hanteringskontots roll lista kontona. En anslutning läser upp till 50 konton.
+
+Använd en **Åtkomstnyckel** när en roll inte är möjlig: den läser bara sitt eget konto. Det här kommandot skapar en användare med samma behörigheter och skriver ut dess nyckel:
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources"],"Resource":"*"}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
@@ -54,16 +61,21 @@ Klistra in allt som kommandot skrev ut i **Det som kommandot skrev ut**. OneUpti
 OneUptime testar anslutningen när det här steget öppnas: det loggar in, räknar resurserna det hittar och säger vad det kostar att läsa dem. Välj **Anslut** för att spara.
 :::
 
-Rollen och användaren kan göra tre saker, och inget annat:
+Rollen och användaren kan göra följande, och inget annat:
 
-| Åtgärd | Vad OneUptime använder den till |
+| Vad OneUptime använder dem till | Åtgärder |
 | --- | --- |
-| `cloudwatch:ListMetrics` | Hitta resurserna som rapporterar mätvärden, i varje region |
-| `cloudwatch:GetMetricData` | Läsa deras viktigaste mätvärden |
-| `tag:GetResources` | Namnge varje resurs efter dess `Name`-tagg |
+| Hitta resurserna som rapporterar mätvärden, och läsa deras mätvärden | `cloudwatch:GetMetricData`, `cloudwatch:ListMetrics` |
+| Namnge varje resurs och läsa dess taggar | `tag:GetResources`, `iam:ListAccountAliases` |
+| Lista varje resurs och hur den är konfigurerad, genom Cloud Control | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
+| Läsa vad som ändrats: kontots hanteringshändelser | `cloudtrail:LookupEvents` |
+| Läsa AWS egna hälsohändelser för kontot | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| Lista organisationens konton, från dess hanteringskonto | `organizations:ListAccounts` |
+
+`apigateway:GET` tillåts bara på API:ernas egna definitioner, aldrig på deras nycklar, och bara hanteringskontots roll får lista organisationens konton. AWS Health svarar bara konton med en supportplan av typen Business, Enterprise On-Ramp eller Enterprise: utan en sådan frågar OneUptime igen en dag senare.
 
 > [!NOTE]
-> På en egen OneUptime-installation behöver sättet **IAM-roll** en egen AWS-identitet för OneUptime: ange `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` och `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY` som nyckeln för en IAM-användare som får anropa `sts:AssumeRole`. Utan dem erbjuder formuläret en **Åtkomstnyckel**.
+> På en egen installation av OneUptime behöver vägen med en **IAM-roll** en AWS-identitet som tillhör OneUptime självt: sätt `CLOUD_CONNECT_AWS_ACCESS_KEY_ID` och `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY` till nyckeln för en IAM-användare som får anropa `sts:AssumeRole`. Utan dem erbjuder formuläret en **Åtkomstnyckel**.
 
 ## Microsoft Azure
 
@@ -74,28 +86,42 @@ Gå till **Moln → Anslut** och välj **Microsoft Azure**.
 
 ### Kör kommandot i Azure Cloud Shell
 
-Kommandot skapar en app med rollen **Monitoring Reader** på din nuvarande prenumeration och skriver ut dess uppgifter:
+Kommandot skapar en app med rollen **Monitoring Reader** på din nuvarande prenumeration, och skriver ut dess uppgifter med datumet då dess hemlighet går ut:
 
 ```bash
-az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "/subscriptions/$(az account show --query id --output tsv)"
+SCOPE="/subscriptions/$(az account show --query id --output tsv)"
+OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
+APP=$(echo "$OUT" | jq -r .appId)
+END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
+echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
+```
+
+Under **Vad som ska läsas** väljer du i stället alla prenumerationer i klientorganisationen, och rollen tilldelas klientorganisationens rothanteringsgrupp:
+
+```bash
+SCOPE="/providers/Microsoft.Management/managementGroups/$(az account show --query tenantId --output tsv)"
+OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
+APP=$(echo "$OUT" | jq -r .appId)
+END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
+echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
 
 ### Klistra in det som Azure-kommandot skrev ut
 
-Klistra in allt som kommandot skrev ut i **Det som kommandot skrev ut**. OneUptime plockar ut `tenant`, `appId` och `password`.
+Klistra in allt som kommandot skrev ut i **Det som kommandot skrev ut**. OneUptime plockar ut `tenant`, `appId`, `password` och datumet då den går ut.
 
 ### Testa och anslut Azure
 
 OneUptime testar anslutningen när det här steget öppnas. Välj **Anslut** för att spara.
 :::
 
-Om du vill läsa fler prenumerationer med samma app ger du den rollen på var och en av dem:
+För att läsa fler prenumerationer med samma app ger du den rollen på var och en av dem:
 
 ```bash
 az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
 ```
 
-OneUptime läser alla prenumerationer som appen kan läsa, om du inte anger några under **Prenumerationer**.
+OneUptime läser varje prenumeration som appen kan läsa, upp till 50, om du inte listar några under **Prenumerationer**. Appens hemlighet slutar fungera det datum den går ut: från 30 dagar innan varnar varje läsning för det. Kör kommandot igen och klistra in det som skrivs ut för att ge den en ny.
 
 ## Google Cloud
 
@@ -106,13 +132,31 @@ Gå till **Moln → Anslut** och välj **Google Cloud**.
 
 ### Kör kommandot i Google Cloud Shell
 
-Kör det i projektet som ska övervakas. Det slår på Cloud Monitoring API, skapar ett tjänstkonto med rollen **Monitoring Viewer** och skriver ut dess nyckel:
+Kör det i projektet som ska övervakas. Det slår på API:erna som OneUptime läser, skapar ett tjänstkonto med rollerna **Monitoring Viewer**, **Cloud Asset Viewer**, **Logs Viewer** och **Service Health Viewer**, och skriver ut dess nyckel:
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
-gcloud services enable monitoring.googleapis.com
-gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)"
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com
+gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
+gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
+cat oneuptime-key.json && rm oneuptime-key.json
+```
+
+Under **Vad som ska läsas** väljer du i stället alla projekt i organisationen, och rollerna tilldelas projektets organisation:
+
+```bash
+PROJECT_ID=$(gcloud config get-value project)
+ORG_ID=$(gcloud projects get-ancestors "$PROJECT_ID" --format="value(id)" | tail -1)
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com
+gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
 gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
 cat oneuptime-key.json && rm oneuptime-key.json
 ```
@@ -126,24 +170,28 @@ Klistra in allt som kommandot skrev ut. OneUptime läser nyckelns eget projekt o
 OneUptime testar anslutningen när det här steget öppnas. Välj **Anslut** för att spara.
 :::
 
-Om du vill läsa fler projekt med samma tjänstkonto ger du det rollen i vart och ett av dem och anger dem under **Projekt**:
+För att läsa fler projekt med samma tjänstkonto ger du det de fyra rollerna i vart och ett av dem och listar dem under **Projekt**:
 
 ```bash
-gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role roles/monitoring.viewer
+for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
 ```
+
+En organisations anslutning läser upp till 50 av dess projekt, om du inte listar några under **Projekt**.
 
 ## Vad OneUptime läser
 
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
-| Resurser | De som rapporterar mätvärden till CloudWatch, i alla regioner du använder | Alla resurser i prenumerationerna | De som rapporterar mätvärden till Cloud Monitoring |
+| Resurser | Varje resurs av de typer som OneUptime känner till, i alla regioner du använder, från Cloud Control | Varje resurs i prenumerationerna, från Resource Graph | Varje resurs i projekten, från Cloud Asset Inventory |
 | Mätvärden | De viktigaste mätvärdena för varje tjänst, som en instans CPU, nätverk och statuskontroller | Upp till 8 viktiga mätvärden per resurs | De viktigaste mätvärdena för varje resurstyp |
+| Ändringar | Hanteringshändelserna i CloudTrail | Aktivitetsloggens administrativa händelser | Granskningsloggen Admin Activity |
+| Hälsohändelser | AWS Health | Service Health och Resource Health | Service Health |
 | Läses var | 10:e minut | 5:e minut | 5:e minut |
-| En borttagen resurs | Arkiveras efter 7 dagar utan mätvärden | Arkiveras vid nästa läsning | Arkiveras efter 7 dagar utan mätvärden |
+| En borttagen resurs | Arkiveras när en fullständig listning inte längre har den | Arkiveras när en fullständig listning inte längre har den | Arkiveras när en fullständig listning inte längre har den |
 
-Varje läsning fortsätter där den förra slutade, så varje datapunkt skrivs en gång. En ny anslutnings första läsning startar inom en minut och går en timme bakåt; efter ett uppehåll går en läsning högst 6 timmar bakåt.
+Varje läsning fortsätter där den förra slutade, så varje datapunkt och varje ändring skrivs en gång. En ny anslutnings första läsning startar inom en minut och går en timme bakåt för mätvärden och 2 timmar bakåt för ändringar; efter ett uppehåll går en läsning högst 6 timmar bakåt. En resurs som bara rapporterar mätvärden, och som ingen listning har, arkiveras efter 7 dagar utan mätvärden.
 
-Anropen som OneUptime gör faktureras ditt molnkonto, till molnets priser. Testet uppskattar vad det som hittas kostar, och att läsa mer sällan kostar mindre: ändra **Intervall för läsning av mätvärden** under **Fler fält**.
+Anropen som OneUptime gör faktureras ditt molnkonto, till molnets priser. Att lista resurser och läsa ändringar och hälsohändelser kostar inget på alla tre molnen; att läsa mätvärden gör det. Testet uppskattar vad det som hittas kostar, och att läsa mer sällan kostar mindre: ändra **Intervall för läsning av mätvärden** under **Fler fält**.
 
 | Moln | Pris |
 | --- | --- |
@@ -151,14 +199,20 @@ Anropen som OneUptime gör faktureras ditt molnkonto, till molnets priser. Teste
 | Azure | De första 1 000 000 mätvärdesläsningarna per månad för varje prenumeration är gratis, därefter $0.01 per 1 000 |
 | Google Cloud | De första 1 000 000 lästa tidsserierna per månad är gratis, därefter $0.50 per miljon |
 
+## Det du ser i OneUptime
+
+- **Ett kontos sida.** Under **Moln → Konton** räknar ett kontos översikt dess resurser efter typ och region och säger när en anslutning senast läste det. Dess **Resurser** listar dem, dess **Ändringar** listar vad som ändrats i det, nyast först, och dess **Topologi** ritar dess regioner, nätverken i dem och vad som körs i vart och ett, med de öppna incidenterna och larmen på resurserna de är länkade till.
+- **En resurs ändringar.** En ändring sparas som en ändringshändelse knuten till resursen den ändrade och till dess konto, och ritas som en markör i resursens mätvärdesdiagram tillsammans med dess incidenter och larm. Diagram som inte är filtrerade till någon resurs utelämnar ett molnkontos aktivitetslogg, så att ett livligt konto inte tränger undan dina driftsättningar; leverantörens hälsohändelser finns kvar i dem.
+- **Incidenter och larm.** Länka en molnresurs till en övervakning, en incident eller ett larm under dess länkade resurser, så listas dess incidenter och larm på resursens sida. En övervakning av en webbplats, ett API, SSL, ping eller en port vars värd leder till en slutpunkt för en resurs, direkt eller via dess DNS, listar resursen under **Föreslagna molnresurser** på sitt kort **Länkade resurser**: välj **Länka resurs** för att länka den.
+
 ## Felsökning
 
 :::details Testet säger att nyckeln eller hemligheten inte godkändes
-Kopiera allt som kommandot skrev ut och klistra in det igen. En nyckel som skapades för en minut sedan kan ta en minut innan den fungerar.
+Kopiera allt som kommandot skrev ut och klistra in det igen. En nyckel som skapades för en minut sedan kan ta en minut innan den fungerar. En Azure-hemlighet som har gått ut avvisas också: kör kommandot igen.
 :::
 
 :::details Testet loggar in, men kan inte läsa
-Kör kommandot igen: det ger rollen som OneUptime behöver. På AWS kör du kommandot som formuläret visar för det här projektet: en roll som skapades för ett annat projekt litar på det projektets externa ID, inte på det här projektets.
+Kör kommandot igen: det ger rollerna som OneUptime behöver. På AWS kör du kommandot som formuläret visar för det här projektet: en roll som skapades för ett annat projekt litar på det projektets externa ID, inte på det här projektets.
 :::
 
 :::details Google Cloud låter inte kommandot skapa en nyckel
@@ -166,12 +220,17 @@ En organisationsprincip, `iam.disableServiceAccountKeyCreation`, kan förbjuda n
 :::
 
 :::details Inga resurser visas
-På AWS och Google Cloud visas en resurs när den rapporterar mätvärden. Om en anslutning inte fungerar säger **View error** under **Moln → Anslut** varför dess senaste läsning misslyckades.
+Den första läsningen listar varje resurs i kontot, oavsett om den rapporterar mätvärden eller inte. Om en anslutning inte fungerar säger **View error** under **Moln → Anslut** varför dess senaste läsning misslyckades.
+:::
+
+:::details Några av organisationens konton saknas
+En anslutning läser upp till 50 konton, prenumerationer eller projekt, och varje läsning säger till när det finns fler. Anslut de andra med en egen anslutning.
 :::
 
 ## Nästa steg
 
 :::cards
 - [Molnresurser](/docs/telemetry/cloud-resources): Kör din egen OpenTelemetry Collector i stället, eller strömma CloudWatch-mätvärden.
+- [Driftsättningar och ändringar](/docs/telemetry/change-events): Varje ändring som OneUptime registrerar, och hur OneUptime AI läser dem.
 - [Mätvärdesmonitor](/docs/monitor/metrics-monitor): Larma på en resurs mätvärden.
 :::

@@ -44,8 +44,13 @@ const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
 
   const shown: Array<AIChatWidgetSpan> = spans.slice(0, MAX_SPANS);
 
+  /*
+   * Left to right in every language, as the trace page's waterfall
+   * (TraceDetail/TraceWaterfall): each bar is placed from the left by when
+   * its span started.
+   */
   return (
-    <div className="space-y-1">
+    <div className="space-y-1" dir="ltr">
       {shown.map((span: AIChatWidgetSpan, index: number) => {
         const leftPercent: number = Math.min(
           99,

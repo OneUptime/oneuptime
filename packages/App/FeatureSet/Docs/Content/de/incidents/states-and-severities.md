@@ -204,7 +204,7 @@ Von **Behoben** in einen Status danach zu wechseln – etwa **Closed** – ist k
 
 ## Die Statuszeitachse
 
-Die Seite **Zustands-Zeitachse** im Seitenmenü des Vorfalls ist der Prüfpfad jedes Status, in dem der Vorfall war. Die Karte auf dieser Seite heißt **Status-Zeitachse** und zeichnet das ganze Leben des Vorfalls als Zeitachse:
+Die Seite **Zustands-Zeitachse** im Seitenmenü des Vorfalls ist der Prüfpfad jedes Status, in dem der Vorfall war. Die Karte auf dieser Seite zeichnet das ganze Leben des Vorfalls als Zeitachse:
 
 - **Das Band** zeigt jeden Status als Abschnitt in seiner Farbe, so lang, wie der Vorfall darin war – so lässt sich der Verlauf des Vorfalls auf einen Blick ablesen. Solange der Vorfall offen ist, reicht das Band bis **Jetzt**; ist er gelöst, endet das Band kurz nach seiner letzten Änderung. Zeigen Sie auf einen Abschnitt, um zu sehen, wann er begann und wie lange er dauerte, und klicken Sie darauf, um seine Änderung in der Liste zu finden. Änderungen, die zu dicht beieinander liegen, um sie zu unterscheiden, werden als ein gestreifter Abschnitt gezeichnet: Klicken Sie darauf oder ziehen Sie über das Band, um hineinzuzoomen, und **Zoom zurücksetzen** führt zurück.
 - **Über dem Band** steht jeder Status mit der Zeit, die der Vorfall darin verbracht hat.

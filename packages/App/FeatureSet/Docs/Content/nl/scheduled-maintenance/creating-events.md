@@ -69,7 +69,7 @@ Er wordt niets verstuurd tot je een statuspagina kiest: een gebeurtenis die op g
 
 Twee dingen vullen het formulier onderweg voor je in:
 
-- **Gekoppelde resources.** Wanneer je een monitor kiest, worden de hosts, clusters, services en andere resources waaraan hij gekoppeld is toegevoegd onder **Andere getroffen resources**, en een regel onder het veld noemt ze. Verwijder wat je niet wilt.
+- **Gekoppelde resources.** Wanneer je een monitor kiest, worden de hosts, clusters, services en andere resources waaraan hij gekoppeld is toegevoegd onder **Andere getroffen resources**, en een regel onder het veld noemt ze. Verwijder wat je niet wilt. Cloudresources worden niet toegevoegd: een onderhoudsgebeurtenis bevat ze niet.
 - **Voorgestelde statuspagina's.** Onder **Gebeurtenis weergeven op deze statuspagina's** worden de pagina's voorgesteld die je monitoren tonen: klik op de naam van een pagina om haar toe te voegen, of op **Alles toevoegen**. Er wordt niets voor je gekozen. Zie [Geplande onderhoudsgebeurtenissen](/docs/status-pages/subscribers#geplande-onderhoudsgebeurtenissen).
 
 ## Beginnen vanaf een resource of een sjabloon

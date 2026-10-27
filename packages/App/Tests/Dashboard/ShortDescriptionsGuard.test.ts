@@ -245,6 +245,8 @@ describe("the short descriptions guard", () => {
     constant: sentenceOf("Explains the limit from a shared constant", 170),
     column: sentenceOf("Explains the size column for the API", 180),
     card: sentenceOf("Explains the widgets card", 240),
+    // A card drawn only sometimes: its props behind a condition.
+    conditionalCard: sentenceOf("Explains the recordings card", 245),
     empty: sentenceOf("No widgets yet, and here is why", 160),
     emptyState: sentenceOf("Nothing to show, and here is why", 170),
     switch: sentenceOf("Turns widgets on and explains both states", 200),
@@ -308,6 +310,10 @@ export default function Widgets() {
         ]}
       />
       <ModelTable modelType={Widget} cardProps={{ title: "Recent", description: "${SHORT["card"]}" }} />
+      <ModelTable
+        modelType={Widget}
+        cardProps={isMinimal ? undefined : { title: "All recordings", description: "${LONG["conditionalCard"]}" }}
+      />
       <Card title="Usage" description="${SHORT["mediumCard"]}" />
       <Toggle title="Enabled" description="${LONG["switch"]}" value={true} onChange={() => {}} />
       <Toggle title="Paused" description="${SHORT["switch"]}" value={false} onChange={() => {}} />
@@ -431,6 +437,7 @@ export default function Users() {
     expect(kindOf(LONG["constant"]!)).toEqual(["field"]);
     expect(kindOf(LONG["column"]!)).toEqual(["column"]);
     expect(kindOf(LONG["card"]!)).toEqual(["card"]);
+    expect(kindOf(LONG["conditionalCard"]!)).toEqual(["card"]);
     expect(kindOf(LONG["empty"]!)).toEqual(["empty"]);
     expect(kindOf(LONG["emptyState"]!)).toEqual(["empty"]);
     expect(kindOf(LONG["switch"]!)).toEqual(["switch"]);

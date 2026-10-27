@@ -11,7 +11,7 @@ flowchart TB
         direction TB
         Ingress["Ingress<br/>（Nginx、TLS）"]
         App["应用<br/>仪表板、状态页、<br/>API、采集、后台任务"]
-        Runner["Runner"]
+        Runner["全局 Runner"]
         Probe["探针"]
         subgraph Data["数据存储"]
             direction LR
@@ -54,8 +54,7 @@ flowchart TB
 | Worker | `app` 的一部分 | `worker`（默认关闭） | 在独立的 Pod 中运行后台任务，让繁重的队列处理永远不与 API 请求争抢资源。 |
 | Telemetry writer | `app` 的一部分 | `telemetryWriter`（默认关闭） | 一个固定规模的层，执行每一次 ClickHouse 插入，使插入量无论 worker 扩展到多大都保持在限度内。 |
 | 探针 | `probe-1` | `probes` | 运行监视器检查并把结果发回。每个内置探针都是所有项目都能使用的全局探针。 |
-| Runner | `runner` | `runner` | 实例自己的 Runner，可以为每个项目运行 AI 代码修复。Runbook 的步骤运行在你安装到相应位置的 [Runner](/docs/runbooks/agents) 上。 |
-| 全局 Runner | `global-runner` | `globalRunner` | 一个[全局 Runner](/docs/runbooks/agents#全局-runner)：它运行所有未选择自己 Runner 的项目的 JavaScript 步骤，每个步骤都在只能访问互联网的沙箱中运行。它持有自己的密钥，不持有服务器的任何其他东西。 |
+| 全局 Runner | `global-runner` | `globalRunner` | 一个[全局 Runner](/docs/runbooks/agents#全局-runner)：它运行所有未选择自己 Runner 的项目的 JavaScript 步骤，每个步骤都在只能访问互联网的沙箱中运行，并在每个未选择 Runner 的代码存储库中运行 OneUptime AI 的代码修复。它持有自己的密钥，不持有服务器的任何其他东西。Bash、SSH 和 kubectl 步骤运行在你安装到相应位置的 [Runner](/docs/runbooks/agents) 上。 |
 | PostgreSQL | `postgres` | `postgresql`，或 `postgresOperator.cnpg` | 项目、监视器、事件、用户以及其他所有设置和状态。 |
 | ClickHouse | `clickhouse` | `clickhouse`，或 `clickhouseOperator.altinity` | 日志、指标、链路追踪、异常、性能剖析和监视器日志。 |
 | Valkey | `valkey` | `valkey` | 缓存、任务队列，以及待处理的推送回执之类的短期状态。 |

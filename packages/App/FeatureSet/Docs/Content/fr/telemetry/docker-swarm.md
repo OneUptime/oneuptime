@@ -154,7 +154,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 
 ## Mettre à jour l'agent
 
-L'agent rapporte la version du collecteur qu'il exécute. Quand elle est plus ancienne que la version qu'épingle cette version de OneUptime, un signe d'avertissement apparaît à côté de la version de l'agent, sur la page **Vue d'ensemble** du cluster. Sélectionnez-le pour voir ces commandes.
+L'agent rapporte la version de ses fichiers : la version du collecteur qu'ils exécutent, dont le dernier nombre augmente chaque fois que OneUptime modifie les fichiers et non le collecteur. Quand elle est plus ancienne que la version que livre cette version de OneUptime, un signe d'avertissement apparaît à côté de la version de l'agent, sur la page **Vue d'ensemble** du cluster. Sélectionnez-le pour voir ces commandes.
 
 Relancez le script d'installation sur le nœud manager, et répondez à ses questions avec la même URL, la même clé et le même nom de cluster. Il télécharge les derniers fichiers, tire les images et redémarre l'agent :
 
@@ -239,7 +239,7 @@ Le nom du cluster vient de `DOCKER_SWARM_CLUSTER_NAME`. Modifiez-le dans `.env` 
 :::
 
 :::details Le CPU des tâches est une ligne plate
-Un ancien `otel-collector-config.yaml` envoie le chiffre de CPU calculé par le récepteur `docker_stats` lui-même. Depuis le collecteur 0.150.0, le récepteur le calcule à partir d'une seule lecture des statistiques : tout le CPU qu'un conteneur a utilisé depuis son démarrage, divisé par tout le CPU que le nœud a utilisé depuis son amorçage. La ligne bouge à peine et ne suit pas la charge, contrairement à `container.cpu.usage.total`. La version du collecteur n'a pas changé, donc aucun signe d'avertissement n'apparaît : téléchargez de nouveau les fichiers de l'agent, comme le montre [Mettre à jour l'agent](#mettre-à-jour-lagent). À partir de sa deuxième lecture, le collecteur envoie alors le CPU que chaque conteneur a utilisé sur chaque intervalle de 30 secondes. Les lectures déjà enregistrées restent telles quelles.
+Un ancien `otel-collector-config.yaml` envoie le chiffre de CPU calculé par le récepteur `docker_stats` lui-même. Depuis le collecteur 0.150.0, le récepteur le calcule à partir d'une seule lecture des statistiques : tout le CPU qu'un conteneur a utilisé depuis son démarrage, divisé par tout le CPU que le nœud a utilisé depuis son amorçage. La ligne bouge à peine et ne suit pas la charge, contrairement à `container.cpu.usage.total`. Un tel agent rapporte la version 0.161.0 ou antérieure, donc un signe d'avertissement apparaît à côté de sa version : téléchargez de nouveau les fichiers de l'agent, comme le montre [Mettre à jour l'agent](#mettre-à-jour-lagent). À partir de sa deuxième lecture, le collecteur envoie alors le CPU que chaque conteneur a utilisé sur chaque intervalle de 30 secondes. Les lectures déjà enregistrées restent telles quelles.
 :::
 
 ## Étapes suivantes

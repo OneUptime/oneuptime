@@ -11,6 +11,10 @@ on:
     branches:
       - master
 
+# Read-only: these jobs check out and test the code, nothing more.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -22,6 +26,12 @@ jobs:
     # Nothing goes unchecked: Probe's tsconfig.json includes ./**/*.ts, so the
     # compile-probe job in the Compile workflow type-checks every test file as
     # part of one tsc program. A type error in a test fails there.
+    #
+    # The limit holds the browser install's own limit, each later step's, and
+    # about 7 minutes for checkout and the npm installs
+    # (Tests/Ops/BrowserInstallLimits). With no limit, a hung install holds
+    # the runner for GitHub's six-hour default.
+    timeout-minutes: 82
     env:
       CI_PIPELINE_ID: ${{github.run_number}}
     steps:
@@ -41,10 +51,21 @@ jobs:
         uses: ./.github/actions/npm-install
         with:
           working-directory: packages/Probe
-      - run: cd packages/Probe && npx playwright install --with-deps chromium firefox
+      # Chromium and Firefox fetch about 54 MB of system packages and fonts
+      # from the runner's Ubuntu mirror, twice what one Chromium does. It
+      # usually takes 25 seconds, but some runners are served at a few dozen
+      # kB/s: 11 minutes on master on 2026-10-26, and still going at 19 on
+      # another run that day. At the pace of a Dashboard Offline UI group's
+      # 20-minute install (about 26 MB, 2026-10-22) it would take about 41,
+      # so it has 45 of its own.
+      - timeout-minutes: 45
+        run: cd packages/Probe && npx playwright install --with-deps chromium firefox
       # SyntheticBrowserSlowStorage.test.ts runs Chromium under strace to make
       # its storage slow, and FirefoxNoSyncLibrary.test.ts compiles the no-sync
       # shim with gcc and runs Firefox under strace; on CI both fail rather
       # than skip without these tools.
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends strace gcc
-      - run: cd packages/Probe && npm run test
+      - timeout-minutes: 10
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends strace gcc
+      # About 7 minutes.
+      - timeout-minutes: 20
+        run: cd packages/Probe && npm run test

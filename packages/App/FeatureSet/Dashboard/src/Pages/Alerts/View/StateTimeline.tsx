@@ -149,8 +149,8 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
         modelType={AlertStateTimeline}
         id="alert-status-timeline"
         name="Alert > State Timeline"
-        title="Status Timeline"
-        description="Each status this alert has been in, when it began and how long it lasted."
+        title="State Timeline"
+        description="Each state this alert has been in, when it began and how long it lasted."
         headerElement={viewSwitch}
         query={{
           alertId: modelId,
@@ -159,8 +159,8 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
         stateColumn="alertState"
         stateSelect={ALERT_FINAL_STATE.stateSelect}
         getFinalStateRule={ALERT_FINAL_STATE.getFinalStateRule}
-        ariaLabel="Status timeline of this alert"
-        emptyMessage="No status recorded for this alert yet."
+        ariaLabel="State timeline of this alert"
+        emptyMessage="No state recorded for this alert yet."
         isCreateable={true}
         formFields={ALERT_STATE_TIMELINE_FORM_FIELDS}
         onBeforeCreate={onBeforeCreate}
@@ -253,12 +253,12 @@ const AlertViewStateTimeline: FunctionComponent<PageComponentProps> = (
         ]}
         onBeforeCreate={onBeforeCreate}
         cardProps={{
-          title: "Status Timeline",
+          title: "State Timeline",
           description:
-            "Each status this alert has been in, when it began and how long it lasted.",
+            "Each state this alert has been in, when it began and how long it lasted.",
           rightElement: viewSwitch,
         }}
-        noItemsMessage={"No status timeline created for this alert so far."}
+        noItemsMessage={"No state recorded for this alert yet."}
         sortBy="startsAt"
         sortOrder={SortOrder.Descending}
         formFields={ALERT_STATE_TIMELINE_FORM_FIELDS}

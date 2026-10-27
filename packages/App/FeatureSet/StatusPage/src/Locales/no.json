@@ -61,7 +61,8 @@
   "monitorOverview": {
     "daysAgo": "for {{days}} dager siden",
     "today": "I dag",
-    "notAvailable": "Ikke tilgjengelig"
+    "notAvailable": "Ikke tilgjengelig",
+    "underMaintenance": "Under vedlikehold"
   },
   "uptimeHistory": {
     "graphLabel": "Oppetidshistorikk for de siste {{total}} dagene",
@@ -76,7 +77,12 @@
     "noIncidentsDescription": "Ingen hendelser ble rapportert denne dagen.",
     "declared": "Registrert",
     "oneIncidentOnThisDay": "1 hendelse rapportert denne dagen",
-    "incidentsOnThisDay": "{{total}} hendelser rapportert denne dagen"
+    "incidentsOnThisDay": "{{total}} hendelser rapportert denne dagen",
+    "scheduledMaintenance": "Planlagt vedlikehold",
+    "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
+    "oneMaintenanceEvent": "1 planlagt vedlikehold",
+    "maintenanceEvents": "{{total}} planlagte vedlikehold",
+    "moreMaintenance": "+{{total}} til"
   },
   "liveStatus": {
     "updated": "Oppdatert {{time}}",

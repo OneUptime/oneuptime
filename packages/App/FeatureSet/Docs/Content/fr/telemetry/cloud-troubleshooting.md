@@ -101,8 +101,8 @@ Un environnement affiche **Déconnecté** quand aucune télémétrie n'est arriv
 
 Les instances suivent deux horloges :
 
-- **Stale :** l'onglet **Instances** marque une tâche, une instance ou un réplica comme **Stale** quand il n'a rien remonté au cours des 15 dernières minutes, et la vue d'ensemble ne compte que les autres comme actifs.
-- **Supprimé :** un nettoyage supprime les lignes d'instance non vues depuis `CLOUD_INSTANCE_STALE_MINUTES` (15 par défaut, au moins 10), mesuré depuis la dernière télémétrie de l'environnement lui-même, si bien qu'une panne du collecteur fige cette horloge au lieu d'effacer la dernière liste de tâches connue. Les fonctions serverless utilisent `SERVERLESS_INSTANCE_STALE_MINUTES`. Relever le seuil garde les lignes plus longtemps ; cela ne change pas le moment où elles passent en **Stale**.
+- **Obsolète :** l'onglet **Instances** marque une tâche, une instance ou un réplica comme **Obsolète** quand il n'a rien remonté au cours des 15 dernières minutes, et la vue d'ensemble ne compte que les autres comme actifs.
+- **Supprimé :** un nettoyage supprime les lignes d'instance non vues depuis `CLOUD_INSTANCE_STALE_MINUTES` (15 par défaut, au moins 10), mesuré depuis la dernière télémétrie de l'environnement lui-même, si bien qu'une panne du collecteur fige cette horloge au lieu d'effacer la dernière liste de tâches connue. Les fonctions serverless utilisent `SERVERLESS_INSTANCE_STALE_MINUTES`. Relever le seuil garde les lignes plus longtemps ; cela ne change pas le moment où elles passent en **Obsolète**.
 
 ## Deux environnements là où il en faudrait un
 

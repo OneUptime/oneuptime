@@ -69,7 +69,7 @@ Nothing is sent until you pick a status page: an event shown on no status page t
 
 Two things fill the form in for you as you go:
 
-- **Linked resources.** When you pick a monitor, the hosts, clusters, services and other resources it is linked to are added under **Other Affected Resources**, and a line under the field names them. Remove any you do not want.
+- **Linked resources.** When you pick a monitor, the hosts, clusters, services and other resources it is linked to are added under **Other Affected Resources**, and a line under the field names them. Remove any you do not want. Cloud resources are not added: a maintenance event does not hold them.
 - **Suggested status pages.** Under **Show event on these status pages**, the pages that show your monitors are suggested: click a page's name to add it, or **Add all**. Nothing is picked for you. See [Scheduled maintenance events](/docs/status-pages/subscribers#scheduled-maintenance-events).
 
 ## Start from a resource or a template

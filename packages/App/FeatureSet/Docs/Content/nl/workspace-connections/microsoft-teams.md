@@ -29,7 +29,7 @@ Drie dingen maken dit mogelijk:
 - **De OneUptime-app in elk team** waarin je meldingen wilt. Microsoft laat de bot alleen plaatsen in een team waaraan hij is toegevoegd.
 - **De eigen koppeling van elke persoon**: hun Microsoft Teams-account gekoppeld aan hun OneUptime-account. Knoppen, commando's en reacties handelen als die persoon, met diens rechten in het project.
 
-Eén Microsoft 365-organisatie kan aan meer dan één project gekoppeld zijn, zoals productie en staging. De knop van een kaart handelt in het project van het record waar de kaart over gaat. Een bericht aan de bot handelt in het project van het kanaal waarin het wordt verstuurd, zoals het kanaal van een incident, of anders in het enige project waarin het Microsoft Teams-account van de afzender gekoppeld is. Als niets dat aangeeft, noemt de bot de projecten waarin diegene zit en vraagt het diegene het opnieuw te proberen vanuit een kanaal van het bedoelde project.
+Eén Microsoft 365-organisatie kan aan meer dan één project gekoppeld zijn, zoals productie en staging. De knop van een kaart handelt in het project waarvoor de kaart is verstuurd, zoals het project van het incident waar de kaart over gaat. Een bericht aan de bot handelt in het project van het kanaal waarin het wordt verstuurd, zoals het kanaal van een incident, of anders in het enige project waarin het Microsoft Teams-account van de afzender gekoppeld is. Als niets dat aangeeft, vraagt de bot de afzender welk project diegene bedoelt, met een knop voor elk project waarin diegene zit, en gaat het daar verder zodra diegene kiest. In een gesprek met OneUptime AI geldt die keuze voor de vervolgvragen, tot er een uur voorbijgaat zonder een.
 
 ## Voordat je begint
 

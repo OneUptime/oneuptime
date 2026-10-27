@@ -74,6 +74,13 @@ export interface ComponentProps {
   leftFooterElement?: ReactElement | undefined;
   disableCloseOnBackdropClick?: boolean | undefined;
   secondaryButton?: ModalSecondaryButton | undefined;
+  /*
+   * Starts the focus on the dialog itself, not on its button: for a dialog
+   * whose one button stops something already running - a bulk action's
+   * Stop - so that a stray Enter (the one that confirmed the action, held a
+   * moment too long) never presses it. Tab still reaches the button.
+   */
+  isInitialFocusOnDialog?: boolean | undefined;
 }
 
 /*
@@ -183,6 +190,8 @@ const Modal: FunctionComponent<ComponentProps> = (
     props.submitButtonStyleType ?? ButtonStyleType.PRIMARY;
   const isSubmitDestructiveRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+  const isInitialFocusOnDialogRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(Boolean(props.isInitialFocusOnDialog));
   isSubmitDestructiveRef.current =
     submitButtonStyleType === ButtonStyleType.DANGER ||
     submitButtonStyleType === ButtonStyleType.DANGER_OUTLINE;
@@ -377,12 +386,14 @@ const Modal: FunctionComponent<ComponentProps> = (
       }) as HTMLElement | undefined) || null;
 
     const initialFocusElement: HTMLElement | undefined =
-      pickInitialFocusElement({
-        focusableElements: getFocusableElements(),
-        footer,
-        isSubmitDestructive: isSubmitDestructiveRef.current,
-        header,
-      });
+      isInitialFocusOnDialogRef.current
+        ? undefined
+        : pickInitialFocusElement({
+            focusableElements: getFocusableElements(),
+            footer,
+            isSubmitDestructive: isSubmitDestructiveRef.current,
+            header,
+          });
 
     const placedFocusElement: HTMLElement = initialFocusElement || modal;
 
@@ -661,7 +672,7 @@ const Modal: FunctionComponent<ComponentProps> = (
         <div className="flex min-h-full items-end justify-center p-0 text-center sm:items-center sm:p-6">
           <div
             ref={modalRef}
-            className={`relative flex max-h-[calc(100dvh-1rem)] w-full flex-col rounded-t-2xl border border-gray-200/80 bg-white text-left shadow-2xl ring-1 ring-black/5 transition duration-150 ease-out focus:outline-none motion-reduce:transition-none sm:my-8 sm:max-h-[calc(100dvh-4rem)] sm:rounded-xl ${modalWidthClassName} ${panelTransitionClassName}`}
+            className={`relative flex max-h-[calc(100dvh-1rem)] w-full flex-col rounded-t-2xl border border-gray-200/80 bg-white text-start shadow-2xl ring-1 ring-black/5 transition duration-150 ease-out focus:outline-none motion-reduce:transition-none sm:my-8 sm:max-h-[calc(100dvh-4rem)] sm:rounded-xl ${modalWidthClassName} ${panelTransitionClassName}`}
             data-testid="modal"
             aria-labelledby={titleId}
             aria-describedby={translatedDescription ? descriptionId : undefined}

@@ -602,10 +602,10 @@ describe("ReplayRail recording pauses", () => {
     );
 
     expect(buttons[0]!.getAttribute("aria-label")).toBe(
-      "recording pause, info at 0:10.0: Recording paused: no input for 5m",
+      "recording pause at 0:10.0: Recording paused: no input for 5m",
     );
     expect(buttons[1]!.getAttribute("aria-label")).toBe(
-      "recording pause, info at 1:10.0: Recording resumed after 1m idle",
+      "recording pause at 1:10.0: Recording resumed after 1m idle",
     );
     expect(buttons[0]).toHaveTextContent("‖");
   });
@@ -624,9 +624,9 @@ describe("ReplayRail recording pauses", () => {
     );
 
     expect(glyphForSignal(paused!).label).toBe("‖");
-    expect(glyphForSignal(paused!).description).toBe("recording pause, info");
+    expect(glyphForSignal(paused!).description).toBe("recording pause");
     expect(glyphForSignal(hidden).label).toBe("#");
-    expect(glyphForSignal(hidden).description).toBe("marker, info");
+    expect(glyphForSignal(hidden).description).toBe("marker");
   });
 
   it("puts a capped run of pause rows' notice under Nav, where the rows are", () => {

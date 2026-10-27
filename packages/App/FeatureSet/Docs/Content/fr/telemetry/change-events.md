@@ -1,9 +1,9 @@
 # Déploiements et changements
 
-OneUptime garde une trace de ce qui a changé dans votre projet : déploiements, rollouts Kubernetes, changements de configuration et correctifs qu'il a exécutés lui-même. Chaque changement est dessiné comme un marqueur sur les graphiques de son service, et OneUptime AI les lit quand il investigue un incident : « ça a commencé juste après le déploiement de 10:02 » est ainsi la première chose que vous apprenez, pas la dernière.
+OneUptime garde une trace de ce qui a changé dans votre projet : déploiements, rollouts Kubernetes, changements de configuration, changements dans vos comptes cloud connectés et correctifs qu'il a exécutés lui-même. Chaque changement est dessiné comme un marqueur sur les graphiques de son service ou de sa ressource cloud, et OneUptime AI les lit quand il investigue un incident : « ça a commencé juste après le déploiement de 10:02 » est ainsi la première chose que vous apprenez, pas la dernière.
 
 :::cards
-- [Ce que OneUptime enregistre de lui-même](#ce-que-oneuptime-enregistre-de-lui-même): Les déploiements et les rollouts tirés de la télémétrie, et ses propres correctifs.
+- [Ce que OneUptime enregistre de lui-même](#ce-que-oneuptime-enregistre-de-lui-même): Les déploiements et les rollouts tirés de la télémétrie, les changements de vos comptes cloud, et ses propres correctifs.
 - [Enregistrer un déploiement depuis un pipeline](#enregistrer-un-déploiement-depuis-un-pipeline): La CLI, GitHub Actions et l'API.
 - [Comment OneUptime AI utilise les changements](#comment-oneuptime-ai-utilise-les-changements): Les changements suspects de chaque investigation.
 - [Référence](#référence): Champs, attributs et limites.
@@ -17,6 +17,7 @@ flowchart LR
     K["Un nouveau ReplicaSet<br/>Kubernetes"] --> E
     P["Un pipeline :<br/>la CLI ou l'API"] --> E
     A["Un correctif de<br/>OneUptime AI, un runbook<br/>de OneUptime"] --> E
+    D["Le journal d'activité<br/>d'un compte cloud"] --> E
     E --> C["Des marqueurs sur les<br/>graphiques du service"]
     E --> I["Les investigations<br/>de OneUptime AI"]
 ```
@@ -31,6 +32,8 @@ Pour ceux-là, vous n'avez rien à envoyer. OneUptime les enregistre à partir d
 | Un rollout | Les pods d'un Deployment Kubernetes commencent à exécuter un ReplicaSet qu'ils n'avaient encore jamais exécuté : une nouvelle image, une variable d'environnement ou une référence de configuration modifiée, ou un redémarrage | `kubernetes` |
 | Un correctif exécuté par OneUptime AI | Un agent IA signale le résultat d'une commande qui modifie quelque chose, comme `kubectl rollout restart` | `oneuptime-ai` |
 | Un runbook | Un runbook exécuté par OneUptime se termine, échoue ou est annulé après avoir démarré | `runbook` |
+| Un changement cloud | Le journal d'activité d'un compte cloud connecté enregistre un changement : AWS CloudTrail, le journal d'activité Azure ou le journal d'audit Admin Activity de Google Cloud | `cloud` |
+| Un événement du fournisseur | Le fournisseur cloud publie un événement de santé sur le compte : AWS Health, Azure Service Health ou Resource Health, ou Google Cloud Service Health | `cloud-health` |
 
 - **La première version qu'un service signale est sa référence, pas un déploiement.** Un service qui tourne depuis des mois n'est pas déployé au moment où OneUptime commence à recevoir sa télémétrie.
 - **Un retour arrière vers une version vue au cours des 30 derniers jours n'est pas enregistré,** car cette version n'est pas nouvelle. Un retour arrière exécuté par OneUptime AI est enregistré comme un correctif.
@@ -43,6 +46,8 @@ OTEL_RESOURCE_ATTRIBUTES="service.version=2.3.1,deployment.environment.name=prod
 ```
 
 Un rollout nécessite l'[agent Kubernetes](/docs/telemetry/kubernetes-agent), qui marque la télémétrie de chaque pod avec son Deployment et son ReplicaSet.
+
+Un changement cloud ou un événement du fournisseur nécessite un [compte cloud connecté](/docs/telemetry/cloud-accounts). Chacun est lié à la ressource cloud qu'il nomme, quand OneUptime liste cette ressource, et dessiné sur les graphiques de la ressource. Son type vient de l'opération : `deployment`, `scaling` ou `rollback` quand le nom de l'opération le dit, `config-change` sinon, et `provider-event` pour un événement de santé. Les graphiques filtrés sur aucune ressource laissent de côté le journal d'activité d'un compte cloud, pour qu'un compte chargé n'éclipse pas vos déploiements ; les événements de santé du fournisseur y restent.
 
 ## Enregistrer un déploiement depuis un pipeline
 
@@ -94,7 +99,7 @@ Voir [`oneuptime deploy`](/docs/cli/command-reference#oneuptime-deploy) pour tou
 
 ## Comment OneUptime AI utilise les changements
 
-Chaque [investigation IA](/docs/ai/ai-sre) d'un incident ou d'une alerte part des changements enregistrés dans les 2 heures qui précèdent, et dans les 10 minutes qui suivent, pour un pipeline qui enregistre son déploiement une fois le rollout terminé. Les changements des services, clusters et hôtes auxquels l'incident est lié passent en premier.
+Chaque [investigation IA](/docs/ai/ai-sre) d'un incident ou d'une alerte part des changements enregistrés dans les 2 heures qui précèdent, et dans les 10 minutes qui suivent, pour un pipeline qui enregistre son déploiement une fois le rollout terminé. Les changements des services, clusters, hôtes et ressources cloud auxquels l'incident est lié passent en premier.
 
 Pour au plus 4 d'entre eux qui nomment un service, OneUptime lit la télémétrie du service dans les 30 minutes avant et après le changement, et marque le changement comme **suspect** quand le service s'est dégradé de façon mesurable juste après :
 
@@ -139,6 +144,8 @@ Les champs de premier niveau sont stockés comme attributs sous les noms OpenTel
 
 Les attributs dont le nom commence par `oneuptime.` appartiennent à OneUptime et sont retirés de ce qu'un pipeline envoie. Chaque changement qu'un pipeline enregistre l'indique dans `oneuptime.change.source`, qui vaut `api`.
 
+Un changement lu dans un compte cloud nomme le compte et la ressource sous les noms d'OpenTelemetry, `cloud.provider`, `cloud.account.id`, `cloud.region` et `cloud.resource_id`, et garde l'opération dans `oneuptime.cloud.operation`, qui l'a lancée dans `oneuptime.cloud.actor`, si elle a échoué dans `oneuptime.change.status` et son compte cloud dans `oneuptime.cloud_account.id`.
+
 ### Limites
 
 | Limite | Valeur |
@@ -155,4 +162,5 @@ Les attributs dont le nom commence par `oneuptime.` appartiennent à OneUptime e
 - [AI SRE](/docs/ai/ai-sre): Ce qu'une investigation lit, et comment elle corrige ce qu'elle trouve.
 - [Référence des commandes](/docs/cli/command-reference): Chaque commande de la CLI.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Envoyer la télémétrie de vos services, avec leurs versions.
+- [Connecter un compte cloud](/docs/telemetry/cloud-accounts): Les changements et les événements de santé de vos comptes AWS, Azure et Google Cloud.
 :::

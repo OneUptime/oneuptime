@@ -156,7 +156,15 @@
     "emailRequired": "L'e-mail è richiesta per eseguire questa azione",
     "defaultProjectName": "Progetto",
     "globalProvidersTitle": "Accedi con la tua organizzazione",
-    "globalProvidersDivider": "Oppure continua con l'email"
+    "globalProvidersDivider": "Oppure continua con l'email",
+    "signInWithProvider": "Accedi con {{name}}",
+    "requiredSubtitle": "Accedi con il single sign-on (SSO) della tua organizzazione.",
+    "requiredNotSetUp": "Il single sign-on non è ancora configurato su questo server. Chiedi all’amministratore del server di configurarlo.",
+    "useDifferentEmail": "Usa un'altra email"
+  },
+  "adminLogin": {
+    "title": "Accesso amministratore principale",
+    "subtitle": "Questo server richiede il single sign-on (SSO). Gli amministratori principali possono comunque accedere qui con la propria password."
   },
   "verifyEmail": {
     "successTitle": "La tua e-mail è verificata.",

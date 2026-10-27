@@ -77,14 +77,14 @@ OneUptime trova l'applicazione tramite `service.name`, senza distinguere maiusco
 
 | Dove | Cosa mostra |
 | --- | --- |
-| **Panoramica** | I riquadri **Page loads**, **Page load time (p95)**, **Eventi**, **Tasso di errore**, **Event duration (p95)**, **Eccezioni**, **Client** e **Sessions recorded**, e grafici di andamento sull'intervallo di tempo che scegli. |
+| **Panoramica** | I riquadri **Caricamenti di pagina**, **Tempo di caricamento della pagina (p95)**, **Eventi**, **Tasso di errore**, **Event duration (p95)**, **Eccezioni**, **Client** e **Sessions recorded**, e grafici di andamento sull'intervallo di tempo che scegli. |
 | **Core Web Vitals** | Una scheda nella panoramica con LCP, INP, CLS, FCP e TTFB, ciascuno valutato secondo le soglie di Google, e l'INP di ogni route di un'app a pagina singola. Vedi [Core Web Vitals](/docs/rum/web-vitals) e [App a pagina singola](/docs/rum/web-vitals#app-a-pagina-singola). |
 | **Metriche**, **Registri**, **Tracce** | Gli explorer della telemetria, limitati a questa applicazione. |
 | **Client** | Le piattaforme browser e i modelli di dispositivo su cui l'applicazione è stata usata: un breve elenco per piattaforma, mai una riga per utente. |
 | **Riproduzione delle sessioni** | Registrazioni di sessioni reali, accanto ai loro errori, tracce e log: vedi [Riproduzione delle sessioni](/docs/telemetry/session-replay). |
 | **Raccomandazioni** | Monitor pronti all'uso per l'applicazione: Core Web Vitals scadenti, richieste fallite, eccezioni del browser e, appena registra, budget della Session Replay. |
 
-I conteggi derivano dagli span che la tua strumentazione invia. **Page loads** conta lo span `documentLoad` che la strumentazione di caricamento pagina registra a ogni caricamento completo, quindi un cambio di route dentro un'app a pagina singola non è un caricamento di pagina.
+I conteggi derivano dagli span che la tua strumentazione invia. **Caricamenti di pagina** conta lo span `documentLoad` che la strumentazione di caricamento pagina registra a ogni caricamento completo, quindi un cambio di route dentro un'app a pagina singola non è un caricamento di pagina.
 
 Un'applicazione mostra **Connesso** finché arriva telemetria e **Disconnesso** dopo 15 minuti senza. Il tempo in cui OneUptime stesso era fermo o stava smaltendo la sua coda di acquisizione non conta in quei 15 minuti.
 

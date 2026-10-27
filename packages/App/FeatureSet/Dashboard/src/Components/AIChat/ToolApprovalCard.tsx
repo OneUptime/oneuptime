@@ -27,11 +27,49 @@ export interface ComponentProps {
   onRespond: (decisions: Array<ToolDecision>) => void;
 }
 
-function argsPreview(args: JSONObject): string {
+/*
+ * Whether the action's title already shows this argument in full: "Create
+ * alert: <title>" ends with the title the alert takes.
+ */
+function isShownByTitle(value: string, title: string): boolean {
+  const shown: string = value.trim();
+  const titleShown: string = title.trim();
+
+  return (
+    shown.length > 0 &&
+    (titleShown === shown || titleShown.endsWith(`: ${shown}`))
+  );
+}
+
+/*
+ * The action's arguments in one line. An action whose description names
+ * what its lists stand for (the resources it links, by name) leaves those
+ * lists out here: their IDs would only repeat the description, unreadably.
+ * An argument the action's title ends with is left out too: the line is
+ * cut at two lines, and repeating the title there pushed what only this
+ * line says - the description an alert will carry - out of sight.
+ */
+export function argsPreview(
+  args: JSONObject,
+  options?: {
+    leaveOutLists?: boolean | undefined;
+    title?: string | undefined;
+  },
+): string {
   const parts: Array<string> = [];
   for (const key of Object.keys(args)) {
     const value: unknown = args[key];
     if (value === undefined || value === null || value === "") {
+      continue;
+    }
+    if (options?.leaveOutLists && typeof value === "object") {
+      continue;
+    }
+    if (
+      options?.title &&
+      typeof value === "string" &&
+      isShownByTitle(value, options.title)
+    ) {
       continue;
     }
     const valueString: string =
@@ -180,17 +218,48 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
           <div className="space-y-1.5">
             {pending.map((action: AIChatToolAction) => {
               const isApproved: boolean = selections[action.id] !== false;
-              const preview: string = argsPreview(action.arguments);
+              const preview: string = argsPreview(action.arguments, {
+                leaveOutLists: Boolean(action.description),
+                title: action.title,
+              });
+              /*
+               * Allow and Skip sit beside the action where the card has
+               * room for both, and under it where it has not: beside it
+               * on a phone, German's wider buttons left the title 85 px
+               * and cut it at three lines.
+               */
               return (
                 <div
                   key={action.id}
-                  className="rounded-lg border border-amber-200/70 bg-white px-3 py-2"
+                  data-testid="tool-approval-action"
+                  className="rounded-lg border border-amber-200/70 bg-white px-3 py-2 [container-type:inline-size]"
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-col gap-2 [@container(min-width:28rem)]:flex-row [@container(min-width:28rem)]:items-start [@container(min-width:28rem)]:justify-between">
                     <div className="min-w-0">
-                      <div className="truncate text-xs font-semibold text-gray-900">
+                      {/*
+                       * The action being approved, wrapped: cut at one
+                       * line, it lost what it acts on ("Link incident
+                       * #1…"). Three lines hold a linking action's title
+                       * on a phone in full.
+                       */}
+                      <div
+                        data-testid="tool-approval-title"
+                        className="line-clamp-3 break-words text-xs font-semibold text-gray-900"
+                      >
                         {action.title}
                       </div>
+                      {/*
+                       * What the action names, by name (the resources an
+                       * incident is linked to): read before approving it.
+                       */}
+                      {action.description && (
+                        <div
+                          data-testid="tool-approval-description"
+                          className="mt-1 break-words text-[11px] leading-relaxed text-gray-700"
+                        >
+                          {action.description}
+                        </div>
+                      )}
                       {preview && (
                         <div className="mt-1 line-clamp-2 font-mono text-[10.5px] leading-relaxed text-gray-600">
                           {preview}
@@ -198,9 +267,20 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                       )}
                     </div>
                     {props.interactive && (
-                      <div className="flex flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                      /*
+                       * A pair of toggles, named after the action they
+                       * decide: with several actions, "Allow" alone did
+                       * not say which one a screen reader was on.
+                       */
+                      <div
+                        role="group"
+                        aria-label={action.title}
+                        data-testid="tool-approval-choice"
+                        className="flex flex-shrink-0 self-start overflow-hidden rounded-md border border-gray-200"
+                      >
                         <button
                           type="button"
+                          aria-pressed={isApproved}
                           disabled={props.isSubmitting}
                           onClick={() => {
                             setSelections(
@@ -219,6 +299,7 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                         </button>
                         <button
                           type="button"
+                          aria-pressed={!isApproved}
                           disabled={props.isSubmitting}
                           onClick={() => {
                             setSelections(

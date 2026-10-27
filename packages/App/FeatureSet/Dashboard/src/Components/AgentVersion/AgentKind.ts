@@ -18,8 +18,16 @@ import VersionUtil from "Common/Utils/VersionUtil";
  *     release sets to the same version). The newest is the version this
  *     OneUptime runs.
  *   - PinnedCollector: the agent is the upstream OpenTelemetry Collector
- *     plus OneUptime's config, and reports the collector version its files
- *     pin. The newest is the pin in this release's files.
+ *     plus OneUptime's config, and reports the version of its files: the
+ *     collector release they pin, with the last number raised each time
+ *     OneUptime changes the files and not the collector (0.161.1 is the
+ *     second set of files on collector 0.161.0). The newest is the version
+ *     this release's files report. A change to an agent's files is a new
+ *     version of the agent, or an agent running the old files would never
+ *     be called outdated: the Docker Swarm agent's CPU fix (#5076) changed
+ *     only its config, and no Swarm showed a sign (its follow-up).
+ *     AgentFilesVersion.test.ts holds every pinned-collector agent's files
+ *     to the version they report.
  *   - None: OneUptime does not release it - the customer's own SDK in their
  *     app, function or devices. Its version is shown as it always was and is
  *     never called outdated.
@@ -87,8 +95,18 @@ export interface AgentKindDefinition {
    */
   name: string;
   latestVersionSource: AgentLatestVersionSource;
-  // PinnedCollector only: the collector version this release's files pin.
+  /*
+   * PinnedCollector only: the version this release's files report - the
+   * collector they pin, or a later patch of it after OneUptime changed the
+   * files on the same collector.
+   */
   pinnedVersion?: string | undefined;
+  /*
+   * PinnedCollector only: the collector release the files pin - the image
+   * their compose file runs. The pinned version has its major and minor
+   * number, and a patch number no lower.
+   */
+  collectorVersion?: string | undefined;
   /*
    * Versions this agent reports before it knows its own, which mean "not
    * reported" rather than "very old".
@@ -111,12 +129,20 @@ export interface AgentKindDefinition {
 export const ONEUPTIME_AGENT_PLACEHOLDER_VERSION: string = "1.0.0";
 
 /*
- * The collector version the Docker Swarm agent reports: the default of
- * APP_VERSION in agents/DockerSwarmAgent/docker-compose.yml, kept equal to
- * the collector image it pins there. AgentKind.test.ts fails when the
- * agent's file moves on without this.
+ * The collector the Docker Swarm agent runs: the image
+ * agents/DockerSwarmAgent/docker-compose.yml pins.
  */
-export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.0";
+export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.161.0";
+
+/*
+ * The version the Docker Swarm agent reports: the default of APP_VERSION in
+ * agents/DockerSwarmAgent/docker-compose.yml. 0.161.1, not the collector's
+ * 0.161.0: its files changed on the same collector (#5076's CPU
+ * processors), and a Swarm still running the old files reported 0.161.0
+ * with no sign beside it. AgentKind.test.ts and AgentFilesVersion.test.ts
+ * fail when the agent's files move on without this.
+ */
+export const DOCKER_SWARM_AGENT_VERSION: string = "0.161.1";
 
 /*
  * The collector version the Database agent reports: the
@@ -167,11 +193,13 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     name: "OneUptime Docker Swarm Agent",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: DOCKER_SWARM_AGENT_VERSION,
+    collectorVersion: DOCKER_SWARM_AGENT_COLLECTOR_VERSION,
   },
   [AgentKind.DatabaseAgent]: {
     name: "OneUptime Database Agent",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: DATABASE_AGENT_VERSION,
+    collectorVersion: DATABASE_AGENT_VERSION,
   },
   [AgentKind.Runner]: {
     name: "Runner",
@@ -189,6 +217,7 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     name: "OpenTelemetry Collector",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: HOST_COLLECTOR_VERSION,
+    collectorVersion: HOST_COLLECTOR_VERSION,
   },
   /*
    * The Proxmox, Ceph, VMware and Storage Array agents run the collector
@@ -200,21 +229,25 @@ export const AGENT_KINDS: Record<AgentKind, AgentKindDefinition> = {
     name: "OneUptime Proxmox Agent",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: PROXMOX_AGENT_VERSION,
+    collectorVersion: PROXMOX_AGENT_VERSION,
   },
   [AgentKind.CephAgent]: {
     name: "OneUptime Ceph Agent",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: CEPH_AGENT_VERSION,
+    collectorVersion: CEPH_AGENT_VERSION,
   },
   [AgentKind.VMwareAgent]: {
     name: "OneUptime VMware Agent",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: VMWARE_AGENT_VERSION,
+    collectorVersion: VMWARE_AGENT_VERSION,
   },
   [AgentKind.StorageArrayAgent]: {
     name: "OneUptime Storage Array Agent",
     latestVersionSource: AgentLatestVersionSource.PinnedCollector,
     pinnedVersion: STORAGE_ARRAY_AGENT_VERSION,
+    collectorVersion: STORAGE_ARRAY_AGENT_VERSION,
   },
   /*
    * IoT, serverless and RUM versions come from the customer's own

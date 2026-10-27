@@ -170,7 +170,9 @@ function findAnchor(title: string): HTMLAnchorElement {
     document.querySelectorAll("a"),
   ).find((candidate: Element): boolean => {
     return (
-      candidate.querySelector("span.truncate")?.textContent?.trim() === title
+      candidate
+        .querySelector('[data-testid="side-menu-item-title"]')
+        ?.textContent?.trim() === title
     );
   }) as HTMLAnchorElement | undefined;
 

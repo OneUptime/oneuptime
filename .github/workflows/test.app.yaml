@@ -11,6 +11,10 @@ on:
     branches:
       - master
 
+# Read-only: these jobs check out and test the code, nothing more.
+permissions:
+  contents: read
+
 jobs:
   test:
     name: test (${{ matrix.shard }}/${{ strategy.job-total }})
@@ -113,7 +117,9 @@ jobs:
   session-replay-ui:
     name: Session Replay UI
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Holds the Chromium install's own limit, each suite's, and about 7
+    # minutes for checkout and the npm installs (Tests/Ops/BrowserInstallLimits).
+    timeout-minutes: 57
     permissions:
       contents: read
     steps:
@@ -143,16 +149,21 @@ jobs:
           working-directory: packages/E2E
           # Skip the preinstall hook that downloads every browser; this suite uses Chromium.
           args: --ignore-scripts
+      # A slow Ubuntu mirror can stretch this install from seconds to 20
+      # minutes (see dashboard-offline-ui below), so it has a limit of its own.
       - name: Install Chromium
         working-directory: packages/E2E
+        timeout-minutes: 25
         run: npx playwright install --with-deps chromium
       - name: Run Session Replay UI regressions
         working-directory: packages/E2E
+        timeout-minutes: 15
         run: npm run test-session-replay-ui
       # Runs even if the replay suite failed, so one run reports both.
       - name: Run User Flows UI regressions
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
+        timeout-minutes: 10
         run: npm run test-user-flows-ui
       - name: Upload browser screenshots and failure traces
         if: always()
@@ -170,7 +181,7 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in eleven groups
+  # own fixture server on its own port - so they run here in twelve groups
   # balanced by measured duration. Event Overview and the Workflow Builder
   # suite fill a group each on their own (20.4 and 19.4 minutes on
   # 2026-10-17's slowest runner); the other groups hold 15 to 17 minutes of
@@ -259,7 +270,13 @@ jobs:
           # Runbook Variables, had reached 25 and group 7 about 18. Navigation
           # Search (2.9 to 3.5 minutes) moved to group 10 on 2026-10-22, when
           # this group took 26.2 minutes on a slow runner and 20.9 on a fast
-          # one.
+          # one. Chart Time Zoom gained HostOverviewHeader.spec.ts on
+          # 2026-10-26 (8 tests, about 35 seconds locally: a host's name and
+          # its hero's controls at five widths, zoomed and not, and on a
+          # phone), when this group took 17.8 minutes: about 18.5.
+          # Logs AI (2.5 minutes, Chromium only) and External MCP Servers (1.0)
+          # moved here from group 7 on 2026-10-26, when 14.0.93's gate run took
+          # this group 15.8 minutes and group 7 23.4: about 19.5.
           - group: 2
             browsers: chromium firefox
             suites: >-
@@ -271,6 +288,8 @@ jobs:
               test-color-picker-ui
               test-diagrams-ui
               test-runbook-steps-ui
+              test-logs-ai-ui
+              test-external-mcp-servers-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
           # when this group took 23.5 minutes. Global Runners (about a
@@ -290,6 +309,29 @@ jobs:
           # Model Tables), so Model Tables and Runbook Variables moved to
           # group 5, Security Events Empty States to group 8 and Global
           # Runners to group 6: about 9.5 minutes, 20.5 left for the eight.
+          # Rules Menu Section gained SideMenuNavigation.spec.ts on 2026-10-26
+          # (14 tests, about 50 seconds locally: the shared side menu's
+          # current entry, long French, German and Persian titles, and the lit
+          # entry kept in sight in a menu taller than the window), when this
+          # group took 18.2 to 18.9 minutes on master's runs of 2026-10-24:
+          # about 19.5 to 20. Its UI review added SideMenuWordBreaks.spec.ts
+          # the same day (6 tests in Chromium and the same 6 in Firefox,
+          # which this group installs: where the menu's words break, since
+          # Firefox hyphenates words Chrome moves whole) and 3 tests of the
+          # list's fades and fitted card: 45 tests in 2.4 minutes locally,
+          # about 50 seconds more, about 20.5 to 21. #5300's UI review added
+          # CloudLinkSuggestions.spec.ts to Monitor Overview the same day (5
+          # tests, about 20 seconds locally: the cloud resources a monitor's
+          # Linked Resources card offers, linking one, a refused link, a read
+          # that fails, dark): about 21 to 21.5. #5236 added 5 tests to Monitor
+          # Overview on 2026-10-27 (about 15 seconds locally: scheduled
+          # maintenance on a monitor's 90-day uptime strip - the band, the
+          # tooltip, the day's dialog opening the event, a read that fails,
+          # dark) and MaintenanceHistory.spec.ts to Status Page Search (8 tests
+          # on each of its two Chromium projects with its UI review's, about 37
+          # seconds locally), so Status Page Search (34.9 seconds on master's
+          # run of 03:08 on 2026-10-26, 1.2 minutes with its new spec) moved to
+          # group 11: about 20.5.
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -297,7 +339,6 @@ jobs:
               test-value-picker-ui
               test-event-notes-ui
               test-trace-detail-ui
-              test-status-page-search-ui
               test-label-rule-transfer-ui
               test-list-delete-ui
               test-rules-menu-section-ui
@@ -349,7 +390,17 @@ jobs:
           # card and its dialog, and the line a run's activity draws for what
           # it read with the dialog its View opens, at 1280 and 390 pixels,
           # light and dark, German and Persian) joined it on 2026-10-24, the
-          # lightest group: about 20.5.
+          # lightest group: about 20.5. Kubernetes Events gained 3 tests on
+          # 2026-10-26 (about 10 seconds locally: a node's and an HPA's page
+          # light their entry in the cluster's side menu, and a phone's menu
+          # button names the section and the page, in German): still about
+          # 20.5.
+          # Kubernetes Events and Topology (2.8 minutes each on 14.0.93's gate
+          # run) moved to group 9, and AI Context (1.6) to group 11, on
+          # 2026-10-26, when that run took this group 25.8 minutes: about 19.
+          # Side by Side Pages (about a minute locally with its two bundles,
+          # Chromium only) moved here from group 8 the same day, when #5300's
+          # UI review grew Cloud Connect there by about a minute: about 20.
           - group: 5
             browsers: chromium
             suites: >-
@@ -360,16 +411,14 @@ jobs:
               test-llm-provider-test-ui
               test-custom-field-options-ui
               test-pagination-ui
-              test-topology-ui
               test-status-timeline-ui
               test-episode-bulk-add-ui
               test-runbook-triggers-ui
               test-network-first-run-ui
               test-runbook-variables-ui
               test-dashboard-value-widget-ui
-              test-kubernetes-events-ui
               test-owners-on-create-ui
-              test-ai-context-ui
+              test-side-by-side-pages-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -450,6 +499,8 @@ jobs:
           # on 2026-10-26, and Public Dashboard Theme grew by 5 tests that day
           # (the page at a phone's width: about 20 seconds locally), so
           # Dashboard Templates moved on to group 10: about 21.
+          # Logs AI and External MCP Servers moved to group 2 on 2026-10-26,
+          # when 14.0.93's gate run took this group 23.4 minutes: about 20.
           - group: 7
             browsers: chromium
             suites: >-
@@ -458,8 +509,6 @@ jobs:
               test-auto-remediation-rules-ui
               test-custom-roles-ui
               test-public-dashboard-theme-ui
-              test-external-mcp-servers-ui
-              test-logs-ai-ui
           # Dashboard Time Range (about 3.5 minutes with its bundle locally: a
           # dashboard's default time range and auto-refresh inside OneUptime
           # and on its public page, at a laptop's width and, for what a phone
@@ -520,7 +569,38 @@ jobs:
           # phone and beside a side menu, open sections at their full height,
           # the pills, stat tiles and chips, and a team's avatar on a dark
           # card - at 1280 and 390 pixels, dark, German, Persian, Japanese and
-          # Chinese) joined them later that day: about 19.5.
+          # Chinese) joined them later that day: about 19.5. Docker Swarm
+          # Pages (1.7 minutes locally with its bundle, Chromium only: a
+          # swarm's Metrics tab and a task's Container ID on a phone, beside
+          # the side menu and at a laptop's width, and the Overview's name
+          # and agent version sign, dark and German) joined them on
+          # 2026-10-26, when this group's run step took 15.1 minutes on
+          # master's run of 03:08 that day, the lightest that holds several
+          # suites: about 17. Side by Side Pages (about a minute locally
+          # with its two bundles, Chromium only: two status pages and two
+          # public dashboards open in two tabs of one browser - each tab's
+          # refresh, links, Subscribe form and password its own, and another
+          # page's address opened in full) joined them the same day, still
+          # the lightest: about 18.
+          # Security Events Empty States (2.2 minutes) and Shared UI (2.5) moved
+          # to group 11, and New Version (1.4) to group 12, on 2026-10-26, when
+          # 14.0.93's gate run took this group 24.4 minutes before Side by Side
+          # Pages joined: about 19.5 with it. #5298's UI review (#5307) grew
+          # Docker Swarm Pages by twelve tests the same day (where names break,
+          # sparklines that line up and stay under the pointer, the hero's
+          # description and its Show more, its pills in German and for an agent
+          # that stopped reporting, right to left: 1.3 minutes locally for its
+          # 31 with the bundle): about 20. #5300 grew Cloud Connect by sixteen
+          # tests the same day (What to read for each cloud, the read's new
+          # changes, and Cloud > Accounts - the list, its empty state, an
+          # account's Overview in each status and its Resources - at 1280 and
+          # 390 pixels, dark and German: 3.1 minutes locally for its 54 with
+          # the bundle, from 2.7): about 20.5. Its UI review grew it by 22
+          # entries the same day, 14 of them run (the list's status, an
+          # account's four tiles and side-by-side counts, its Resources,
+          # Changes, Topology and Settings, and a cloud resource's Overview,
+          # Incidents, Alerts and Changes: about 55 seconds locally), so Side
+          # by Side Pages (about a minute) moved on to group 5: about 20.5.
           - group: 8
             browsers: chromium
             suites: >-
@@ -531,10 +611,8 @@ jobs:
               test-resource-onboarding-ui
               test-vmware-host-page-ui
               test-public-addresses-ui
-              test-security-events-empty-states-ui
               test-meraki-traffic-ui
-              test-new-version-ui
-              test-shared-ui-ui
+              test-docker-swarm-pages-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -565,18 +643,22 @@ jobs:
           # and dark) joined them on 2026-10-24, when this group's run step
           # took 16.7 and 17.1 minutes on master's two runs that day, the most
           # steady of the lightest: about 19.5.
+          # Code (13.0 minutes on 14.0.93's gate run, twice the 6.4 it took when
+          # it came here), Exceptions AI and Acknowledgement Timeout moved to
+          # group 12 on 2026-10-26, when this group ran past its run step's 28
+          # minutes with every suite passing; Kubernetes Events and Topology
+          # (2.8 minutes each) came from group 5: about 20.
           - group: 9
             browsers: chromium
             suites: >-
-              test-code-ui
               test-model-tables-ui
               test-home-overview-ui
               test-resource-topology-ui
               test-runbooks-menu-ui
               test-postmortems-ui
-              test-acknowledgement-timeout-ui
               test-archivable-values-ui
-              test-exceptions-ai-ui
+              test-kubernetes-events-ui
+              test-topology-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
@@ -593,6 +675,9 @@ jobs:
           # only) from group 7 joined them on 2026-10-26, when this group's
           # run step took 14.6 minutes on master's run of 03:08 that day, the
           # lightest of the eleven: about 19.
+          # Global Runners (1.9 minutes) moved to group 12 on 2026-10-26, when
+          # 14.0.93's gate run took this group 22.6 minutes and master's run of
+          # 15:35 that day 26.5: about 20.5 to 24.5.
           - group: 10
             browsers: chromium
             event_overview_shard: 2/2
@@ -601,7 +686,6 @@ jobs:
               test-navigation-search-ui
               test-owner-filters-ui
               test-bulk-actions-ui
-              test-global-runners-ui
               test-dashboard-templates-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
@@ -612,10 +696,52 @@ jobs:
           # actions, the Security Events pass and the SIEM and SOAR work still
           # to add theirs: alone, about 15 minutes with the setup, it has room
           # for them.
+          # AI Context (1.6 minutes) from group 5, and Security Events Empty
+          # States (2.2) and Shared UI (2.5) from group 8, joined it on
+          # 2026-10-26, when 14.0.93's gate run took this group 12.2 minutes:
+          # about 18.5, with room for Security Operations to grow.
+          # Reading Direction (1.3 minutes locally with its bundle, Chromium
+          # only: a Persian page laid out right to left and an English and a
+          # German one left to right - the switch, the status dot, a table's
+          # stuck Actions column, a dialog, a side panel, notes, chevrons,
+          # code and dates - at 1280 and 390 pixels, light and dark) joined
+          # them on 2026-10-26: about 20. Status Page Search (1.2 minutes
+          # locally with #5236's MaintenanceHistory.spec.ts and its UI
+          # review's checks, Chromium only: a laptop and a phone) moved here
+          # from group 3 on 2026-10-27, when that spec and Monitor Overview's
+          # maintenance tests would have taken group 3 past 22: about 21.
           - group: 11
             browsers: chromium
             suites: >-
               test-security-operations-ui
+              test-ai-context-ui
+              test-security-events-empty-states-ui
+              test-shared-ui-ui
+              test-reading-direction-ui
+              test-status-page-search-ui
+          # Added on 2026-10-26, when group 9 ran past its run step's 28
+          # minutes on 14.0.93's gate run with every suite passing: Code had
+          # grown to 13.0 minutes (6.4 when it joined group 9). Code, with
+          # Exceptions AI (2.4) and Acknowledgement Timeout (0.5) from group
+          # 9, New Version (1.4) from group 8 and Global Runners (1.9) from
+          # group 10, all Chromium only: about 19. Resource Overviews (1.3
+          # minutes locally with its bundle, Chromium only: a service's, a
+          # database's and a queue's Overview - the Details card's ID line, the
+          # labels card on a phone only, long values, the description under
+          # the name and its Show more, and the hero's controls - at 1280,
+          # 1024, 768 and 390 pixels, dark, German and right to left) joined
+          # them the same day with #5298's UI review (#5307), rather than
+          # group 8, which its grown Docker Swarm Pages takes to about 20:
+          # about 20.5.
+          - group: 12
+            browsers: chromium
+            suites: >-
+              test-code-ui
+              test-exceptions-ai-ui
+              test-acknowledgement-timeout-ui
+              test-new-version-ui
+              test-global-runners-ui
+              test-resource-overviews-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -814,6 +940,8 @@ jobs:
             output/playwright/new-version-ui/test-results
             output/playwright/shared-ui/*.png
             output/playwright/shared-ui/test-results
+            output/playwright/reading-direction/*.png
+            output/playwright/reading-direction/test-results
             output/playwright/metrics-ai-ui/*.png
             output/playwright/metrics-ai-ui/test-results
             output/playwright/dashboard-templates-ui/*.png
@@ -844,4 +972,10 @@ jobs:
             output/playwright/snmp-walk-ui/test-results
             output/playwright/asset-details-ui/*.png
             output/playwright/asset-details-ui/test-results
+            output/playwright/docker-swarm-pages-ui/*.png
+            output/playwright/docker-swarm-pages-ui/test-results
+            output/playwright/side-by-side-pages-ui/*.png
+            output/playwright/side-by-side-pages-ui/test-results
+            output/playwright/resource-overviews-ui/*.png
+            output/playwright/resource-overviews-ui/test-results
           retention-days: 7

@@ -680,6 +680,7 @@ const DatabaseServerOverview: FunctionComponent<
     {
       label: "Discovered from",
       value: getDatabaseServerDiscoverySourceLabel(r.discoverySource),
+      mono: false,
     },
     {
       label: "Endpoints",
@@ -698,6 +699,7 @@ const DatabaseServerOverview: FunctionComponent<
     {
       label: "Engine metrics",
       value: getDatabaseEngineMetricsStatusLabel(engineStatus),
+      mono: false,
     },
     {
       label: "Agent version",
@@ -725,8 +727,8 @@ const DatabaseServerOverview: FunctionComponent<
       value: r.collectorLastSeenAt
         ? OneUptimeDate.getDateAsLocalFormattedString(r.collectorLastSeenAt)
         : undefined,
+      mono: false,
     },
-    { label: "Database ID", value: modelId.toString(), mono: true },
   ];
 
   return (
@@ -784,7 +786,9 @@ const DatabaseServerOverview: FunctionComponent<
           />
         }
         detailRows={detailRows}
+        recordId={modelId.toString()}
         labels={r.labels}
+        settingsRoute={populate(PageMap.DATABASE_SERVER_VIEW_SETTINGS)}
       />
 
       <div className="mt-6">

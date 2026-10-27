@@ -950,6 +950,7 @@ De flesta av de här nämns på spelarens flik **Fidelity** i stället för att 
 | Formatmallar från andra ursprung | Spelas inte in, om de inte levereras med `Access-Control-Allow-Origin` och länkas med `crossorigin`. Uppspelningen laddar dem i stället från de ursprungliga adresserna, och ett meddelande säger det. Se [Spela in en formatmall från ett annat ursprung](#spela-in-en-formatmall-från-ett-annat-ursprung). |
 | En mycket stor DOM-ögonblicksbild | En ögonblicksbild som inspelaren inte kunde lagra rapporteras, och uppspelningen startar från nästa. |
 | Signaler över en gräns | Konsolutdata, nätverksförfrågningar och klick är begränsade per session eller per chunk; händelsepanelen markerar var fångsten stoppade. |
+| En förrenderad sida innan den öppnas | Chrome kan läsa in och köra en sida som den väntar sig ska öppnas härnäst innan någon öppnar den, och det kan en webbplats speculation rules också. Inspelningen börjar när besökaren öppnar sidan, från det hen ser då, och en sida som aldrig öppnas spelar inte in något. |
 | Bildpixlar i React Native | Bildens ram behålls som en ogenomskinlig platshållare; användarnas bilder och nedladdade pixlar kopieras inte. |
 | WebViews i React Native | Utanför det inbyggda vyträdet. Spela vid behov in den inbäddade sidan separat med webbinspelaren. |
 | Canvas och anpassad ritning i React Native | Skia, OpenGL, kartor, förhandsvisningar från kamera/video och liknande ytor är ogenomskinliga platshållare. |

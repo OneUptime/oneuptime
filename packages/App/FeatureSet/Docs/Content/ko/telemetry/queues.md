@@ -16,7 +16,7 @@ Apache Kafka, RabbitMQ, Apache ActiveMQ 및 기타 JMS 브로커, Amazon SQS와 
 | 소스 | 필요한 것 | 큐 페이지에 추가하는 내용 |
 | --- | --- | --- |
 | **애플리케이션 트레이스** | 계측된 애플리케이션(OpenTelemetry). [애플리케이션 계측](#애플리케이션-계측) 참조 | 게시 및 소비된 메시지, 오류와 처리 시간, 양쪽의 서비스, 그리고 트레이스 자체 |
-| **브로커 메트릭**(OpenTelemetry Collector) | 브로커용 Collector 리시버 또는 스크레이프. [브로커 상태 메트릭](#브로커-상태-메트릭) 참조 | **Broker health**: 백로그, 컨슈머 지연, 데드 레터, 가장 오래된 메시지의 나이, 스로틀링, 브로커 자체의 메시지 속도 |
+| **브로커 메트릭**(OpenTelemetry Collector) | 브로커용 Collector 리시버 또는 스크레이프. [브로커 상태 메트릭](#브로커-상태-메트릭) 참조 | **브로커 상태**: 백로그, 컨슈머 지연, 데드 레터, 가장 오래된 메시지의 나이, 스로틀링, 브로커 자체의 메시지 속도 |
 
 ```mermaid title="두 가지 소스, 하나의 큐 페이지"
 flowchart TB
@@ -212,7 +212,7 @@ builder.Services.AddOpenTelemetry()
 
 브로커는 어떤 애플리케이션도 볼 수 없는 것을 압니다: 대기 중인 메시지 수, 각 컨슈머 그룹이 얼마나 뒤처졌는지, 무엇이 데드 레터 큐로 갔는지입니다. 아래의 각 섹션에는 한 시스템용 Collector 구성이 있습니다. OneUptime으로 보내는 OTLP 익스포터로 끝나는 완전한 OpenTelemetry Collector 구성입니다. 텔레메트리 수집 키(**프로젝트 설정 → 텔레메트리 및 APM → 수집 키**)를 `x-oneuptime-token`에 넣고, 셀프 호스팅한다면 `https://oneuptime.com`을 자신의 호스트로 바꾼 다음, `otel/opentelemetry-collector-contrib` 0.161.0 이상으로 실행하세요(여기의 모든 구성은 0.161.0으로 검증했습니다). 최근 Collector는 `otlphttp`가 사용 중단되었으니 `otlp_http`를 쓰라고 로그에 남기지만, 두 이름은 같은 익스포터입니다. 여러 시스템을 수집하려면 그 리시버들을 하나의 Collector에 합치세요.
 
-각 큐의 **Broker health** 섹션은 해당 시스템에 나열된 메트릭을 차트로 보여 주며(게이지는 그 값, 기간별 개수는 간격별 합계, 카운터는 초당 속도), 메트릭마다 필요한 방식으로 큐의 시리즈를 결합합니다(RabbitMQ 큐의 준비된 메시지와 확인되지 않은 메시지는 합산되고, 가장 많이 뒤처진 컨슈머 그룹이 지연이 됩니다). Collector가 보내는 모든 것은 **메트릭** 탐색기에도 있습니다. 나열된 메트릭이 아직 큐에 도착하지 않은 동안에는 이 섹션에 해당 시스템의 메트릭을 어디에서 가져오는지가 여기의 해당 섹션 링크와 함께 표시됩니다.
+각 큐의 **브로커 상태** 섹션은 해당 시스템에 나열된 메트릭을 차트로 보여 주며(게이지는 그 값, 기간별 개수는 간격별 합계, 카운터는 초당 속도), 메트릭마다 필요한 방식으로 큐의 시리즈를 결합합니다(RabbitMQ 큐의 준비된 메시지와 확인되지 않은 메시지는 합산되고, 가장 많이 뒤처진 컨슈머 그룹이 지연이 됩니다). Collector가 보내는 모든 것은 **메트릭** 탐색기에도 있습니다. 나열된 메트릭이 아직 큐에 도착하지 않은 동안에는 이 섹션에 해당 시스템의 메트릭을 어디에서 가져오는지가 여기의 해당 섹션 링크와 함께 표시됩니다.
 
 ### Amazon SNS
 
@@ -791,7 +791,7 @@ metrics
   });
 ```
 
-이 게이지는 큐의 **메트릭** 탭에 표시됩니다. OneUptime에는 **Broker health**에 차트로 보여 줄 BullMQ 자체 메트릭이 없습니다.
+이 게이지는 큐의 **메트릭** 탭에 표시됩니다. OneUptime에는 **브로커 상태**에 차트로 보여 줄 BullMQ 자체 메트릭이 없습니다.
 
 ### Google Cloud Pub/Sub
 
@@ -945,9 +945,9 @@ service:
 
 큐는 브로커 메트릭에 대한 **메트릭** 모니터로 감시합니다([메트릭 모니터](/docs/monitor/metrics-monitor) 참조).
 
-**큐 페이지에서.** **Broker health**의 각 게이지와 기간별 개수에는 **Create monitor**가 있습니다: 해당 메트릭에 대한 새 메트릭 모니터를 열며, 그 메트릭에서 이 큐를 지정하는 정확한 속성 값으로 필터링하고, 나빠지는 방향이 분명한 것을 측정하는 메트릭(백로그, 데드 레터, 컨슈머 지연, 가장 오래된 메시지의 나이, 스로틀링, 오류)에는 시작 임계값을 넣습니다. 그중 네 개는 고정 임계값이 오해를 부르기 때문에 임계값 없이 시작합니다: 컨슈머 그룹의 지연이 이미 다루는 Kafka의 파티션 지연(`kafka.consumer_group.lag`), 브로커가 시작된 이후의 평균이라 정체가 끝난 뒤에도 오랫동안 높게 유지되는 ActiveMQ의 큐 내 평균 시간(`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), 그리고 브로커가 판단할 수 없는 동안 `-1`을 나타내는 Pulsar의 백로그 나이(`pulsar_storage_backlog_age_seconds`)입니다. 카운터에는 모니터가 없습니다: 카운터 차트는 속도를 보여 주지만, 모니터에는 속도 함수가 없습니다.
+**큐 페이지에서.** **브로커 상태**의 각 게이지와 기간별 개수에는 **Create monitor**가 있습니다: 해당 메트릭에 대한 새 메트릭 모니터를 열며, 그 메트릭에서 이 큐를 지정하는 정확한 속성 값으로 필터링하고, 나빠지는 방향이 분명한 것을 측정하는 메트릭(백로그, 데드 레터, 컨슈머 지연, 가장 오래된 메시지의 나이, 스로틀링, 오류)에는 시작 임계값을 넣습니다. 그중 네 개는 고정 임계값이 오해를 부르기 때문에 임계값 없이 시작합니다: 컨슈머 그룹의 지연이 이미 다루는 Kafka의 파티션 지연(`kafka.consumer_group.lag`), 브로커가 시작된 이후의 평균이라 정체가 끝난 뒤에도 오랫동안 높게 유지되는 ActiveMQ의 큐 내 평균 시간(`activemq.message.enqueue.average_duration`, `activemq.message.wait_time.avg`), 그리고 브로커가 판단할 수 없는 동안 `-1`을 나타내는 Pulsar의 백로그 나이(`pulsar_storage_backlog_age_seconds`)입니다. 카운터에는 모니터가 없습니다: 카운터 차트는 속도를 보여 주지만, 모니터에는 속도 함수가 없습니다.
 
-**카운터.** RabbitMQ, Apache ActiveMQ, Apache RocketMQ의 카운터는 누적 합계로 Collector에 도착하며, `cumulative_to_delta` 프로세서(이전 Collector에서는 `cumulativetodelta`)가 이를 모니터가 알림을 보낼 수 있는 델타로 바꿉니다. 카운터 자체가 아니라 별도 이름의 복사본을 변환하세요: 큐 페이지는 이 카운터들을 각각 누적 합계로 읽고 그 증가 속도를 차트로 보여 주므로, 델타로 바뀐 카운터는 **Broker health**와 **메트릭** 탭에서 의미 없는 차트가 되어, 꾸준한 트래픽이 초당 0개 메시지로 표시됩니다. Apache Kafka의 오프셋(`kafka.consumer_group.offset_sum`, `kafka.partition.current_offset`)과 Apache Pulsar의 `pulsar_in_messages_total`, `pulsar_out_messages_total`은 게이지로 도착하며, `cumulative_to_delta`는 이를 건드리지 않습니다: 이 시스템들에서는 대신 지연과 백로그 게이지로 알림을 설정하세요.
+**카운터.** RabbitMQ, Apache ActiveMQ, Apache RocketMQ의 카운터는 누적 합계로 Collector에 도착하며, `cumulative_to_delta` 프로세서(이전 Collector에서는 `cumulativetodelta`)가 이를 모니터가 알림을 보낼 수 있는 델타로 바꿉니다. 카운터 자체가 아니라 별도 이름의 복사본을 변환하세요: 큐 페이지는 이 카운터들을 각각 누적 합계로 읽고 그 증가 속도를 차트로 보여 주므로, 델타로 바뀐 카운터는 **브로커 상태**와 **메트릭** 탭에서 의미 없는 차트가 되어, 꾸준한 트래픽이 초당 0개 메시지로 표시됩니다. Apache Kafka의 오프셋(`kafka.consumer_group.offset_sum`, `kafka.partition.current_offset`)과 Apache Pulsar의 `pulsar_in_messages_total`, `pulsar_out_messages_total`은 게이지로 도착하며, `cumulative_to_delta`는 이를 건드리지 않습니다: 이 시스템들에서는 대신 지연과 백로그 게이지로 알림을 설정하세요.
 
 알림용 `rabbitmq.message.published` 복사본을 추가한 [RabbitMQ](#rabbitmq) 구성:
 

@@ -433,7 +433,7 @@ function RecordingPipeline(props: {
                 </p>
                 {!isLast && (
                   <span
-                    className="absolute right-0 top-1/2 z-10 max-xl:hidden h-6 w-6 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 shadow-sm xl:flex"
+                    className="absolute right-0 top-1/2 z-10 max-xl:hidden h-6 w-6 -translate-y-1/2 translate-x-1/2 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-400 shadow-sm xl:flex [&:dir(rtl)]:-translate-x-1/2"
                     aria-hidden="true"
                   >
                     <Icon icon={IconProp.ChevronRight} className="h-3 w-3" />

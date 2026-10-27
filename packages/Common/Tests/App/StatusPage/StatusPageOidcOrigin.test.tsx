@@ -1,5 +1,6 @@
 import type * as StatusPageConfig from "../../../../App/FeatureSet/StatusPage/src/Utils/Config";
 import type { ComponentProps } from "../../../../App/FeatureSet/StatusPage/src/Pages/Accounts/SSO";
+import type StatusPageUtilType from "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage";
 import type * as SharedConfig from "../../../UI/Config";
 import type NavigationUtil from "../../../UI/Utils/Navigation";
 import URL from "../../../Types/API/URL";
@@ -83,6 +84,7 @@ function configureEnvironment(data: LoginEnvironment): void {
 afterEach(() => {
   cleanup();
   localStorage.clear();
+  sessionStorage.clear();
   jest.restoreAllMocks();
   Object.defineProperty(window, "location", {
     configurable: true,
@@ -177,10 +179,21 @@ describe("Status Page OIDC login origin", () => {
         host: "oneuptime.example.com",
         protocol: "https",
       });
-      localStorage.setItem("statusPageId", statusPageId);
       localStorage.setItem(`isPrivateStatusPage-${statusPageId}`, "true");
 
       jest.isolateModules(() => {
+        /*
+         * The page this tab shows: its address names it on the preview, and
+         * on a custom domain the master page sets it once the domain is
+         * looked up.
+         */
+        const StatusPageUtil: typeof StatusPageUtilType = (
+          jest.requireActual(
+            "../../../../App/FeatureSet/StatusPage/src/Utils/StatusPage",
+          ) as { default: typeof StatusPageUtilType }
+        ).default;
+        StatusPageUtil.setStatusPageId(new ObjectID(statusPageId));
+
         /*
          * The page's default export is bound as `Sso` rather than `SSO` so the
          * JSX tag stays PascalCase; the status page app renders this same
@@ -216,7 +229,17 @@ describe("Status Page OIDC login origin", () => {
         expect(navigate.mock.calls[0]?.[0]?.toString()).toBe(
           `https://oneuptime.example.com/identity/status-page-oidc/${statusPageId}/${providerId}`,
         );
-        expect(localStorage.getItem("redirectUrl")).toBe(data.redirectPath);
+        /*
+         * Kept for the way back from the identity provider, in this tab's
+         * session storage and for this page alone - never under one name in
+         * localStorage, where any tab's overview, on any status page, took it.
+         */
+        expect(
+          sessionStorage.getItem(
+            `status-page-sign-in-redirect-${statusPageId}`,
+          ),
+        ).toBe(data.redirectPath);
+        expect(localStorage.getItem("redirectUrl")).toBeNull();
       });
     },
   );

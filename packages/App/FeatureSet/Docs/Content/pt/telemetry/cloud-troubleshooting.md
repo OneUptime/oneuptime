@@ -101,8 +101,8 @@ Um ambiente mostra **Desconectado** quando nenhuma telemetria chega para ele em 
 
 As instâncias seguem dois relógios:
 
-- **Stale:** a aba **Instâncias** marca uma tarefa, instância ou réplica como **Stale** quando ela não reporta nos últimos 15 minutos, e a visão geral conta só as outras como ativas.
-- **Excluída:** uma limpeza exclui as linhas de instâncias não vistas há `CLOUD_INSTANCE_STALE_MINUTES` (15 por padrão, no mínimo 10), contados a partir da última telemetria do próprio ambiente, então uma queda do coletor congela esse relógio em vez de apagar a última lista conhecida de tarefas. As funções serverless usam `SERVERLESS_INSTANCE_STALE_MINUTES`. Aumentar o limite mantém as linhas por mais tempo; não muda quando elas viram **Stale**.
+- **Desatualizado:** a aba **Instâncias** marca uma tarefa, instância ou réplica como **Desatualizado** quando ela não reporta nos últimos 15 minutos, e a visão geral conta só as outras como ativas.
+- **Excluída:** uma limpeza exclui as linhas de instâncias não vistas há `CLOUD_INSTANCE_STALE_MINUTES` (15 por padrão, no mínimo 10), contados a partir da última telemetria do próprio ambiente, então uma queda do coletor congela esse relógio em vez de apagar a última lista conhecida de tarefas. As funções serverless usam `SERVERLESS_INSTANCE_STALE_MINUTES`. Aumentar o limite mantém as linhas por mais tempo; não muda quando elas viram **Desatualizado**.
 
 ## Dois ambientes onde deveria haver um
 

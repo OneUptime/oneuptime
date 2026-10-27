@@ -210,7 +210,7 @@ Moving on from **Resolved** to a state after it — **Closed**, say — is not a
 
 ## The state timeline
 
-The incident's **State Timeline** page in the incident side menu is the audit trail of every state the incident has been in. The card on that page is titled **Status Timeline**, and it draws the incident's whole life as a timeline:
+The incident's **State Timeline** page in the incident side menu is the audit trail of every state the incident has been in. The card on that page draws the incident's whole life as a timeline:
 
 - **The band** shows each state as a stretch of its color, as long as the incident was in it, so how the incident went reads at a glance. While the incident is open, the band runs on to **Now**; once it is resolved, the band ends a little after its last change. Point at a stretch to see when it began and how long it lasted, and click it to find its change in the list. Changes too close together to tell apart are drawn as one striped stretch: click it, or drag across the band, to zoom in, and **Reset zoom** goes back.
 - **Above the band**, each state is listed with the time the incident spent in it.

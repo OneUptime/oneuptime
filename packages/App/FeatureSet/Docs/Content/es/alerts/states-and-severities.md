@@ -157,7 +157,7 @@ Pasar de **Resuelto** a un estado posterior, "Cerrado" por ejemplo, no cambia na
 
 ## La cronología de estados
 
-La página **Cronología de estados** de la alerta es el registro de cada estado en el que ha estado. Su tarjeta, **Cronología de estados**, los dibuja como una cronología: una banda con cada estado tan largo como duró y, debajo, cada cambio, del más reciente al más antiguo. **Tabla**, en la cabecera de la tarjeta, los muestra en filas, con **Estado de la alerta**, **Comienza en**, **Termina en** y **Duración**.
+La página **Cronología de estados** de la alerta es el registro de cada estado en el que ha estado. Su tarjeta los dibuja como una cronología: una banda con cada estado tan largo como duró y, debajo, cada cambio, del más reciente al más antiguo. **Tabla**, en la cabecera de la tarjeta, los muestra en filas, con **Estado de la alerta**, **Comienza en**, **Termina en** y **Duración**.
 
 - **Ver causa** muestra la causa raíz registrada con ese cambio.
 - **Ver registros** muestra lo que OneUptime registró cuando la alerta cambió, como la comprobación del monitor que lo provocó.

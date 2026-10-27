@@ -101,7 +101,7 @@ const ResourceTopologyOutline: FunctionComponent<ComponentProps> = (
         data-testid={`resource-topology-row-${node.id}`}
         data-health={node.effectiveHealth}
         className={`flex items-center gap-1 border-b border-gray-100 py-1.5 pr-3 ${selected ? "bg-indigo-50" : ""}`}
-        style={{ paddingLeft: 8 + level * indent }}
+        style={{ paddingInlineStart: 8 + level * indent }}
       >
         {card && card.canOpen ? (
           <button
@@ -190,7 +190,7 @@ const ResourceTopologyOutline: FunctionComponent<ComponentProps> = (
         role="listitem"
         key={group.id}
         className="flex items-center gap-2 border-b border-gray-100 bg-gray-50 py-1 pr-3 text-xs text-gray-500"
-        style={{ paddingLeft: 8 + level * indent + 24 }}
+        style={{ paddingInlineStart: 8 + level * indent + 24 }}
       >
         <span className="font-semibold uppercase tracking-wide text-gray-600">
           {tx(kind.plural, translator)}
@@ -232,7 +232,7 @@ const ResourceTopologyOutline: FunctionComponent<ComponentProps> = (
         role="listitem"
         key={more.id}
         className="border-b border-gray-100 py-1.5 pr-3"
-        style={{ paddingLeft: 8 + level * indent + 24 }}
+        style={{ paddingInlineStart: 8 + level * indent + 24 }}
       >
         <button
           type="button"

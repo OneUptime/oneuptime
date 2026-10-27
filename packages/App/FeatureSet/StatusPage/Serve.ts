@@ -15,8 +15,8 @@ import {
   StatusPageData,
 } from "./src/Server/Utils/StatusPage";
 import {
-  DEFAULT_STATUS_PAGE_LANGUAGE,
-  SUPPORTED_STATUS_PAGE_LANGUAGE_CODES,
+  getStatusPageLanguageHead,
+  StatusPageLanguageHead,
 } from "Common/Types/StatusPage/StatusPageLanguage";
 import applyStatusPageContentSecurityPolicy from "Common/Server/Utils/StatusPageContentSecurityPolicy";
 import applyStatusPageRobotsHeader from "Common/Server/Utils/StatusPageSearchEngineIndexing";
@@ -90,13 +90,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
            */
           applyPublicPageNotFound(res);
         } else if (statusPageData) {
-          const resolvedLang: string =
-            statusPageData.defaultLanguage &&
-            SUPPORTED_STATUS_PAGE_LANGUAGE_CODES.includes(
-              statusPageData.defaultLanguage,
-            )
-              ? statusPageData.defaultLanguage
-              : DEFAULT_STATUS_PAGE_LANGUAGE;
+          // The page's default language, and the way it is read.
+          const languageHead: StatusPageLanguageHead =
+            getStatusPageLanguageHead(statusPageData.defaultLanguage);
 
           /*
            * Belt and braces with the <meta name="robots"> the template
@@ -112,7 +108,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             title: statusPageData.title,
             description: statusPageData.description,
             faviconUrl: statusPageData.faviconUrl,
-            lang: resolvedLang,
+            lang: languageHead.lang,
+            dir: languageHead.dir,
             rssFeedPath: rssFeedPath,
             isSearchEngineIndexingEnabled:
               statusPageData.isSearchEngineIndexingEnabled,
@@ -143,7 +140,8 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
             "Status Page lets you see real-time information about the status of our services.",
           faviconUrl:
             "/status-page-api/favicon/" + ObjectID.getZeroObjectID().toString(),
-          lang: DEFAULT_STATUS_PAGE_LANGUAGE,
+          lang: getStatusPageLanguageHead(null).lang,
+          dir: getStatusPageLanguageHead(null).dir,
           rssFeedPath: rssFeedPath,
           isSearchEngineIndexingEnabled: isSearchEngineIndexingEnabled,
           /*

@@ -61,7 +61,8 @@
   "monitorOverview": {
     "daysAgo": "{{days}} дней назад",
     "today": "Сегодня",
-    "notAvailable": "Недоступно"
+    "notAvailable": "Недоступно",
+    "underMaintenance": "На обслуживании"
   },
   "uptimeHistory": {
     "graphLabel": "История доступности за последние {{total}} дней",
@@ -76,7 +77,12 @@
     "noIncidentsDescription": "В этот день инциденты не зафиксированы.",
     "declared": "Зарегистрирован",
     "oneIncidentOnThisDay": "В этот день зафиксирован 1 инцидент",
-    "incidentsOnThisDay": "В этот день зафиксировано инцидентов: {{total}}"
+    "incidentsOnThisDay": "В этот день зафиксировано инцидентов: {{total}}",
+    "scheduledMaintenance": "Запланированное обслуживание",
+    "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
+    "oneMaintenanceEvent": "1 запланированное обслуживание",
+    "maintenanceEvents": "запланированных работ по обслуживанию: {{total}}",
+    "moreMaintenance": "Ещё {{total}}"
   },
   "liveStatus": {
     "updated": "Обновлено {{time}}",

@@ -1,5 +1,6 @@
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import Button, { ButtonStyleType } from "../Button/Button";
+import IsolatedText from "../IsolatedText/IsolatedText";
 
 export interface ComponentProps {
   text: string;
@@ -21,7 +22,13 @@ const LongTextViewer: FunctionComponent<ComponentProps> = (
 
   return (
     <div className="max-w-2xl break-words">
-      <div className="whitespace-pre-wrap">{displayText}</div>
+      {/*
+       * Read the way it is written: an English description on a Persian
+       * page keeps its full stop at its end (IsolatedText).
+       */}
+      <div className="whitespace-pre-wrap">
+        <IsolatedText text={displayText} />
+      </div>
 
       {shouldTruncate && (
         <Button

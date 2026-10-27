@@ -12,6 +12,17 @@ import MetricSparkline, { SparklinePoint } from "./MetricSparkline";
 import ObjectID from "Common/Types/ObjectID";
 import { getVisibleMetricServices } from "./MetricRowData";
 import { getMetricServicesWithin } from "./Utils/MetricRowScope";
+import {
+  METRIC_ROW_CONTAINER_CLASS_NAME,
+  METRIC_ROW_DESCRIPTION_CLASS_NAME,
+  METRIC_ROW_INFO_CLASS_NAME,
+  METRIC_ROW_LAYOUT_CLASS_NAME,
+  METRIC_ROW_NAME_CLASS_NAME,
+  METRIC_ROW_SPARKLINE_CLASS_NAME,
+  METRIC_ROW_VALUE_CLASS_NAME,
+  METRIC_ROW_VALUE_TEXT_CLASS_NAME,
+} from "./MetricRowLayout";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -95,14 +106,30 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
 
   const isInteractive: boolean = Boolean(props.onClick);
 
+  /*
+   * Side by side - the metric on the left, its value and sparkline on the
+   * right - only while the row is wide enough for both: the right side
+   * takes about 15rem, which on a phone, or in a card beside a resource's
+   * side menu, left the metric's name a few letters (follow-up of #5076).
+   * Narrower, the name and description take the whole row and the
+   * sparkline and value sit under them, the sparkline first (MetricRowLayout
+   * says why). Keyed to the row's own width
+   * (METRIC_ROW_CONTAINER_CLASS_NAME), not the window's.
+   */
   const content: ReactElement = (
-    <div className="flex items-center gap-6">
+    <div
+      data-testid="metric-row-layout"
+      className={METRIC_ROW_LAYOUT_CLASS_NAME}
+    >
       {/* Left: metric info */}
-      <div className="min-w-0 flex-1">
+      <div className={METRIC_ROW_INFO_CLASS_NAME}>
         {/* Name + unit */}
         <div className="flex items-center gap-2">
-          <span className="truncate font-mono text-sm font-semibold text-gray-900 group-hover:text-indigo-700">
-            {metric.name || "(unnamed)"}
+          <span
+            data-testid="metric-row-name"
+            className={METRIC_ROW_NAME_CLASS_NAME}
+          >
+            <BreakableName text={metric.name || "(unnamed)"} />
           </span>
           {readableUnit && (
             <span className="flex-shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-600">
@@ -112,7 +139,7 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
         </div>
         {/* Description */}
         {metric.description && (
-          <p className="mt-1 truncate text-xs text-gray-500">
+          <p className={METRIC_ROW_DESCRIPTION_CLASS_NAME}>
             {metric.description}
           </p>
         )}
@@ -146,10 +173,16 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
         )}
       </div>
 
-      {/* Right: sparkline + last value */}
-      <div className="flex flex-shrink-0 items-center gap-4">
+      {/* Right: last value + sparkline (stacked: sparkline, then value) */}
+      <div
+        data-testid="metric-row-value"
+        className={METRIC_ROW_VALUE_CLASS_NAME}
+      >
         {displayedValue !== undefined && (
-          <div className="text-right">
+          <div
+            data-testid="metric-row-value-text"
+            className={METRIC_ROW_VALUE_TEXT_CLASS_NAME}
+          >
             <div className="font-mono text-sm font-semibold tabular-nums text-gray-900">
               {ValueFormatter.formatValue(
                 displayedValue,
@@ -173,13 +206,18 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
             )}
           </div>
         )}
-        <MetricSparkline
-          points={props.sparklinePoints || []}
-          isLoading={props.sparklineLoading}
-          widthClassName="w-40"
-          heightClassName="h-10"
-          onHoverPoint={handleHoverPoint}
-        />
+        <div
+          data-testid="metric-row-sparkline"
+          className={METRIC_ROW_SPARKLINE_CLASS_NAME}
+        >
+          <MetricSparkline
+            points={props.sparklinePoints || []}
+            isLoading={props.sparklineLoading}
+            widthClassName="w-40"
+            heightClassName="h-10"
+            onHoverPoint={handleHoverPoint}
+          />
+        </div>
         {/* Deep-link affordance — visible on hover/focus */}
         {isInteractive && (
           <span
@@ -198,7 +236,7 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
     return (
       <div
         data-testid="metric-row"
-        className="block w-full border-b border-gray-100 px-5 py-4 text-left"
+        className={`block w-full border-b border-gray-100 px-5 py-4 text-left ${METRIC_ROW_CONTAINER_CLASS_NAME}`}
       >
         {content}
       </div>
@@ -209,7 +247,7 @@ const MetricRow: FunctionComponent<MetricRowProps> = (
     <button
       type="button"
       data-testid="metric-row"
-      className="group block w-full border-b border-gray-100 px-5 py-4 text-left transition-all hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-400"
+      className={`group block w-full border-b border-gray-100 px-5 py-4 text-left transition-all hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-400 ${METRIC_ROW_CONTAINER_CLASS_NAME}`}
       onClick={props.onClick}
     >
       {content}

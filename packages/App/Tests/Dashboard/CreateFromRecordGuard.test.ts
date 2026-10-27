@@ -214,6 +214,11 @@ const RECORD_TABS: Array<RecordTabShape> = [
     CreateFromRecordKind.DatabaseServer,
     INCIDENTS_ALERTS_AND_MAINTENANCE,
   ),
+  // Incidents and alerts hold cloud resources; a maintenance event does not.
+  ...kindTabs("Cloud", CreateFromRecordKind.CloudResource, [
+    CreatedRecordKind.Incident,
+    CreatedRecordKind.Alert,
+  ]),
   ...kindTabs("NetworkSite", CreateFromRecordKind.NetworkSite, [
     CreatedRecordKind.ScheduledMaintenance,
   ]),

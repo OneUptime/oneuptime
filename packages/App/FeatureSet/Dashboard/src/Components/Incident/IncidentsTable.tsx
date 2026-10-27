@@ -24,6 +24,7 @@ import {
   SaveFilterProps,
 } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
+import { BULK_ACTION_CONCURRENCY } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import EmptyStateOptions from "Common/UI/Components/ModelTable/EmptyStateOptions";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
@@ -366,6 +367,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
       parentModelType: Incident,
       // Burn rate incidents are linked to the SLO that declared them.
       includeServiceLevelObjective: true,
+      includeCloudResource: true,
     }),
     // Incidents limited to some status pages (Incident.statusPages).
     buildStatusPageScopeFacet(),
@@ -557,6 +559,12 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             ...episodeBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
+          /*
+           * An incident's delete takes its own metrics with it, and gives
+           * its monitors back only once no other open incident holds them -
+           * asked again by every delete: several are deleted at once.
+           */
+          deleteConcurrency: BULK_ACTION_CONCURRENCY,
         }}
         actionButtons={[
           ...stateRowActions,
@@ -686,6 +694,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
             projectId: true,
           },
           databaseServers: {
+            name: true,
+            _id: true,
+            projectId: true,
+          },
+          cloudResources: {
             name: true,
             _id: true,
             projectId: true,
@@ -888,6 +901,11 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                 _id: true,
                 projectId: true,
               },
+              cloudResources: {
+                name: true,
+                _id: true,
+                projectId: true,
+              },
               services: {
                 name: true,
                 _id: true,
@@ -918,6 +936,7 @@ const IncidentsTable: FunctionComponent<ComponentProps> = (
                   dockerSwarmClusters={item.dockerSwarmClusters || []}
                   iotFleets={item.iotFleets || []}
                   databaseServers={item.databaseServers || []}
+                  cloudResources={item.cloudResources || []}
                   services={item.services || []}
                   serviceLevelObjectives={item.serviceLevelObjectives || []}
                 />

@@ -3,6 +3,7 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Navigation from "Common/UI/Utils/Navigation";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
@@ -25,6 +26,7 @@ import {
   CloudResourceTypeDescriptor,
   getCloudResourceTypeDescriptor,
   getCloudResourceTypeLabel,
+  isInventoryOnlyCloudResourceType,
 } from "Common/Types/Cloud/CloudResourceCatalog";
 import ResourceOverview, {
   ResourceOverviewChip,
@@ -37,15 +39,19 @@ import {
 } from "../Utils/CloudMonitoredResourceScope";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import AppLink from "../../../Components/AppLink/AppLink";
+import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import CloudResourceInventoryCards from "../../../Components/Cloud/CloudResourceInventoryCards";
 
 /*
- * The Overview of a Cloud Resource discovered from cloud monitoring: what
- * the provider says it is - its type, service model, region, account and
- * the provider's own id - and every metric the provider reports about it,
- * each one a click away from the explorer and from "Create monitor from
- * this view".
+ * The Overview of a Cloud Resource - one a cloud connection lists from its
+ * account's inventory, or one discovered from cloud monitoring: what the
+ * provider says it is - its type, service model, region, account and the
+ * provider's own id - its open incidents and alerts, what its inventory
+ * says (what it is connected to, its endpoints, tags and settings), and
+ * every metric the provider reports about it, each one a click away from
+ * the explorer and from "Create monitor from this view".
  *
  * There are no golden-metric tiles: a resource is any of a hundred types,
  * each with its own metrics, and the list below is what this one reports.
@@ -56,6 +62,13 @@ const MONITORING_SOURCE_BY_PROVIDER: Readonly<Record<string, string>> = {
   azure: "Azure Monitor",
   aws: "Amazon CloudWatch",
   gcp: "Google Cloud Monitoring",
+};
+
+// The inventory a cloud connection lists an account's resources from.
+const INVENTORY_SOURCE_BY_PROVIDER: Readonly<Record<string, string>> = {
+  azure: "Azure Resource Graph",
+  aws: "AWS Cloud Control",
+  gcp: "Google Cloud Asset Inventory",
 };
 
 const CloudMonitoredResourceOverview: FunctionComponent<
@@ -78,6 +91,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         modelType: CloudResource,
         id: modelId,
         select: {
+          _id: true,
           name: true,
           description: true,
           cloudResourceKind: true,
@@ -88,6 +102,11 @@ const CloudMonitoredResourceOverview: FunctionComponent<
           cloudAccountId: true,
           cloudResourceGroup: true,
           telemetryAttributes: true,
+          cloudTags: true,
+          cloudProperties: true,
+          cloudRelationships: true,
+          cloudEndpoints: true,
+          inventoriedAt: true,
           otelCollectorStatus: true,
           lastSeenAt: true,
           createdAt: true,
@@ -127,6 +146,11 @@ const CloudMonitoredResourceOverview: FunctionComponent<
     return getCloudMonitoredResourceAttributeDisplayKeys(attributeFilters);
   }, [attributeFilters]);
 
+  // A chart opened from here draws this resource's incidents, alerts and changes.
+  const eventScope: Record<string, string> = useMemo(() => {
+    return { cloudResourceId: modelId.toString() };
+  }, [modelId.toString()]);
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -146,6 +170,9 @@ const CloudMonitoredResourceOverview: FunctionComponent<
   const descriptor: CloudResourceTypeDescriptor | null =
     getCloudResourceTypeDescriptor(provider, type);
   const isReporting: boolean = r.otelCollectorStatus === "connected";
+  const hasNoMetrics: boolean =
+    isInventoryOnlyCloudResourceType(provider, type) &&
+    Object.keys(attributeFilters).length === 0;
 
   const chips: Array<ResourceOverviewChip> = [];
   if (provider) {
@@ -171,24 +198,34 @@ const CloudMonitoredResourceOverview: FunctionComponent<
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, { modelId });
   };
 
+  /*
+   * Words in the page's own type, the cloud's ids and names in mono: a
+   * reader tells "AWS" and "Networking" from the strings to copy.
+   */
   const detailRows: Array<ResourceOverviewDetailRow> = [
-    { label: "Cloud Provider", value: getCloudProviderLabel(provider) },
+    {
+      label: "Cloud Provider",
+      value: getCloudProviderLabel(provider),
+      mono: false,
+    },
     { label: "Resource Type", value: type, mono: true },
     {
       label: "Service Model",
       value: descriptor
         ? CLOUD_SERVICE_MODEL_LABELS[descriptor.serviceModel]
         : undefined,
+      mono: false,
     },
     {
       label: "Category",
       value: descriptor
         ? CLOUD_RESOURCE_CATEGORY_LABELS[descriptor.category]
         : undefined,
+      mono: false,
     },
-    { label: "Cloud Region", value: r.cloudRegion },
-    { label: "Cloud Account ID", value: r.cloudAccountId },
-    { label: "Resource Group", value: r.cloudResourceGroup },
+    { label: "Cloud Region", value: r.cloudRegion, mono: true },
+    { label: "Cloud Account ID", value: r.cloudAccountId, mono: true },
+    { label: "Resource Group", value: r.cloudResourceGroup, mono: true },
     {
       label: "Provider Resource ID",
       value: r.providerResourceId,
@@ -196,7 +233,26 @@ const CloudMonitoredResourceOverview: FunctionComponent<
     },
     {
       label: "Discovered From",
-      value: MONITORING_SOURCE_BY_PROVIDER[provider],
+      value: Object.keys(attributeFilters).length
+        ? MONITORING_SOURCE_BY_PROVIDER[provider]
+        : undefined,
+      mono: false,
+    },
+    {
+      label: "Listed By",
+      value: r.inventoriedAt
+        ? INVENTORY_SOURCE_BY_PROVIDER[provider]
+        : undefined,
+      mono: false,
+    },
+    {
+      label: "Last Listed",
+      value: r.inventoriedAt
+        ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            r.inventoriedAt,
+          )
+        : undefined,
+      mono: false,
     },
     /*
      * The cloud connection that reads it (Cloud > Connect), when one does:
@@ -204,6 +260,7 @@ const CloudMonitoredResourceOverview: FunctionComponent<
      */
     {
       label: "Cloud Connection",
+      mono: false,
       value: r.cloudConnectionId ? r.cloudConnection?.name || "" : undefined,
       element: r.cloudConnectionId ? (
         <AppLink
@@ -230,36 +287,60 @@ const CloudMonitoredResourceOverview: FunctionComponent<
         status={r.otelCollectorStatus}
         statusLabel={isReporting ? "Reporting" : "Not reporting"}
         statusTone={isReporting ? "positive" : "neutral"}
-        statusDescription="Reporting while its provider has sent a metric about it within the last hour. A quiet resource can skip an hour, and one silent for a week is archived until it reports again."
+        statusDescription="Reporting while its cloud connection listed it, or its provider sent a metric about it, within the last hour. One its account no longer lists, or silent for a week, is archived."
         lastSeenAt={r.lastSeenAt}
         description={r.description as string}
         chips={chips}
         tiles={[]}
         detailRows={detailRows}
+        detailsDescription={translationKey(
+          "What its cloud says it is, where it is, and how OneUptime reads it.",
+        )}
+        recordId={modelId.toString()}
         settingsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_SETTINGS)}
         labels={r.labels}
       />
 
       <div className="mt-6">
-        <Card
-          title="Metrics"
-          description="Everything the provider reports about this resource. Open a metric to chart it, then choose Create monitor from this view to alert on it."
-        >
-          {Object.keys(attributeFilters).length > 0 ? (
-            <MetricsViewer
-              attributeFilters={attributeFilters}
-              attributeFilterDisplayKeys={attributeFilterDisplayKeys}
-              disableUrlSync={true}
-            />
-          ) : (
-            <p className="text-sm text-gray-500">
-              {translator.translateText(
-                "No metric attributes are recorded for this resource yet. They are recorded with the next metrics its provider reports about it.",
-              )}
-            </p>
-          )}
-        </Card>
+        <ResourceActivityCards
+          modelId={modelId}
+          resourceQueryKey="cloudResources"
+          incidentsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS)}
+          alertsRoute={populate(PageMap.CLOUD_RESOURCE_VIEW_ALERTS)}
+        />
       </div>
+
+      <CloudResourceInventoryCards resource={r} />
+
+      {/*
+       * A network (a VPC) publishes no metrics of its own: no card saying
+       * they will come.
+       */}
+      {hasNoMetrics ? (
+        <></>
+      ) : (
+        <div className="mt-6">
+          <Card
+            title="Metrics"
+            description="Everything the provider reports about this resource. Open a metric to chart it, then choose Create monitor from this view to alert on it."
+          >
+            {Object.keys(attributeFilters).length > 0 ? (
+              <MetricsViewer
+                attributeFilters={attributeFilters}
+                attributeFilterDisplayKeys={attributeFilterDisplayKeys}
+                eventScope={eventScope}
+                disableUrlSync={true}
+              />
+            ) : (
+              <p className="text-sm text-gray-500">
+                {translator.translateText(
+                  "No metric attributes are recorded for this resource yet. They are recorded with the next metrics its provider reports about it.",
+                )}
+              </p>
+            )}
+          </Card>
+        </div>
+      )}
     </>
   );
 };

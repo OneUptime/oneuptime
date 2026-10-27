@@ -888,7 +888,6 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "No public notes.",
     "No status page.",
     "Two severities, so Medium becomes Low.",
-    "Root cause edits are not watched.",
     "Alert links and labels.",
     "Numbers say what they number.",
     "Private alerts.",

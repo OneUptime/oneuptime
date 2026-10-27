@@ -586,7 +586,6 @@ const NUMBERS: Record<string, Array<string>> = {
     "443",
     "5400",
     "3874",
-    "3876",
     "30",
     "1000",
     "13",
@@ -596,7 +595,8 @@ const NUMBERS: Record<string, Array<string>> = {
   ],
   [SIZING]: ["25", "95", "50", "500", "16", "15", "30", "90", "2", "8"],
   [SLACK]: ["443", "15"],
-  [TEAMS]: ["405", "404", "58", "24", "443", "15"],
+  // ...and the most projects the bot's question offers a button for.
+  [TEAMS]: ["405", "404", "58", "24", "443", "15", "25"],
   /*
    * Twilio's error for an SMS from a number that cannot send SMS. The
    * separate-numbers section names no country, so no country's number

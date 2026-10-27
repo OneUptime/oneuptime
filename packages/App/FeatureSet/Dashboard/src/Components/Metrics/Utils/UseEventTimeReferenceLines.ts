@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -31,6 +32,10 @@ import {
   translateTemplate,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ChangeEventAttribute,
+  ChangeEventSource,
+} from "Common/Utils/Telemetry/ChangeEventFields";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import { isPublicDashboard } from "../../Dashboard/Utils/PublicDashboardContext";
@@ -83,20 +88,56 @@ const CHANGE_EVENT_TYPE_LABELS: Record<string, string> = {
   // What OneUptime itself changed (OwnChangeRecorder).
   remediation: translationKey("AI fix"),
   runbook: translationKey("Runbook"),
+  // What a cloud provider published about an account's health.
+  "provider-event": translationKey("Cloud health"),
 };
+
+/*
+ * What kind of change an event is, in English (translationKey): "Deploy",
+ * "Config change", "Cloud health" - "Change" for a type it does not know.
+ * The marker labels and the cloud Changes lists name a change the same way.
+ */
+export function getChangeEventTypeLabel(eventType: string | undefined): string {
+  return (
+    CHANGE_EVENT_TYPE_LABELS[(eventType || "").toLowerCase()] ||
+    translationKey("Change")
+  );
+}
 
 export function getChangeEventMarkerLabel(
   eventType: string | undefined,
   title: string,
 ): string {
-  const prefix: string =
-    CHANGE_EVENT_TYPE_LABELS[(eventType || "").toLowerCase()] ||
-    translationKey("Change");
+  const prefix: string = getChangeEventTypeLabel(eventType);
   // The kind of change in the reader's language, then the event's own title.
   return translateTemplate("{{kind}}: {{title}}", {
     kind: translatableTerm(prefix),
     title: truncateEventMarkerTitle(title),
   });
+}
+
+/*
+ * The change events a marker fetch reads. A chart scoped to no resource
+ * draws the project's changes - but not every operation a cloud account's
+ * activity log recorded: a busy account records hundreds an hour, and the
+ * newest fifty of them would be all the chart could draw, its deploys
+ * pushed out. Those are on the charts of the resources they changed; the
+ * provider's own health events stay on every chart.
+ */
+export function getChangeEventFetchQuery(
+  query: Query<ChangeEvent>,
+): Query<ChangeEvent> {
+  if (Object.keys(query).length > 0) {
+    return query;
+  }
+
+  return {
+    attributes: {
+      [ChangeEventAttribute.Source]: new IncludesNone([
+        ChangeEventSource.Cloud,
+      ]),
+    },
+  } as unknown as Query<ChangeEvent>;
 }
 
 // One incident/alert/change event mapped onto a chart time marker.
@@ -292,7 +333,7 @@ export default function useEventTimeReferenceLines(input: {
             return AnalyticsModelAPI.getList<ChangeEvent>({
               modelType: ChangeEvent,
               query: {
-                ...query,
+                ...getChangeEventFetchQuery(query),
                 projectId: projectId,
                 time: eventsWindow,
               } as Query<ChangeEvent>,

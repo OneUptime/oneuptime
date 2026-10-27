@@ -135,6 +135,10 @@ import DockerSwarmClusterServices from "../../../../App/FeatureSet/Dashboard/src
 import DockerSwarmClusterStacks from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Stacks";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/DockerSwarmMetricDescriptions";
+import {
+  DOCKER_SWARM_AGENT_COLLECTOR_VERSION,
+  DOCKER_SWARM_AGENT_VERSION,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AgentVersion/AgentKind";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
 import DockerSwarmResource from "../../../Models/DatabaseModels/DockerSwarmResource";
 import Route from "../../../Types/API/Route";
@@ -442,19 +446,48 @@ describe("Docker Swarm overview page", () => {
   });
 
   /*
-   * The Swarm agent reports the collector version its compose file pins, so
-   * an agent on this release's pin is up to date whatever the server's own
-   * version is - and its chip is the plain gray one.
+   * The Swarm agent reports its files' version - the collector its compose
+   * file pins, raised when the files change without the collector - so an
+   * agent on this release's files is up to date whatever the server's own
+   * version is, and its chip is the plain gray one.
    */
-  test("an agent on the collector this release pins keeps the plain chip, with no sign", async () => {
+  test("an agent on the files this release ships keeps the plain chip, with no sign", async () => {
+    getItemMock.mockImplementation(async () => {
+      const model: DockerSwarmCluster = cluster();
+      model.agentVersion = DOCKER_SWARM_AGENT_VERSION;
+      return model;
+    });
     await renderOverview();
 
     expect(screen.getByTestId("agent-version-chip")).toHaveTextContent(
-      "Agent 0.161.0",
+      `Agent ${DOCKER_SWARM_AGENT_VERSION}`,
     );
     expect(
       screen.queryByTestId("agent-version-outdated"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * Follow-up of #5076: the CPU fix changed the agent's files, not its
+   * collector, and an agent that kept the old files showed no sign. On the
+   * same collector with the old files, it reports the collector's version,
+   * which is behind the files this release ships.
+   */
+  test("an agent on the same collector with the files before the fix gets the sign", async () => {
+    expect(DOCKER_SWARM_AGENT_COLLECTOR_VERSION).toBe("0.161.0");
+    getItemMock.mockImplementation(async () => {
+      const model: DockerSwarmCluster = cluster();
+      model.agentVersion = DOCKER_SWARM_AGENT_COLLECTOR_VERSION;
+      return model;
+    });
+    await renderOverview();
+
+    expect(
+      screen.getByRole("button", {
+        name: `Agent ${DOCKER_SWARM_AGENT_COLLECTOR_VERSION} is outdated. A newer agent is available: ${DOCKER_SWARM_AGENT_VERSION}. Show how to upgrade.`,
+      }),
+    ).toHaveTextContent(`Agent ${DOCKER_SWARM_AGENT_COLLECTOR_VERSION}`);
+    expect(screen.queryByTestId("agent-version-chip")).not.toBeInTheDocument();
   });
 
   test("an agent behind the pinned collector gets the sign, which opens how to upgrade it", async () => {
@@ -466,7 +499,7 @@ describe("Docker Swarm overview page", () => {
     await renderOverview();
 
     const chip: HTMLElement = screen.getByRole("button", {
-      name: "Agent 0.154.0 is outdated. A newer agent is available: 0.161.0. Show how to upgrade.",
+      name: `Agent 0.154.0 is outdated. A newer agent is available: ${DOCKER_SWARM_AGENT_VERSION}. Show how to upgrade.`,
     });
     expect(chip).toHaveTextContent("Agent 0.154.0");
     // Still in the hero's chip row, after the Docker version.

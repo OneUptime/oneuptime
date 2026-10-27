@@ -882,6 +882,52 @@ describe("Modal initial focus", () => {
     expect(getByTestId("modal-footer-submit-button")).not.toHaveFocus();
   });
 
+  /*
+   * A dialog whose one button stops something already running - a bulk
+   * action's Stop (#5299) - starts on the dialog itself: the Enter that
+   * confirmed the action, held a moment too long, must not press it. The
+   * button is still one Tab away.
+   */
+  it("starts on the dialog itself when asked, never on its button", () => {
+    const onSubmit: MockFunction = getJestMockFunction();
+    const { getByTestId, getByRole } = render(
+      <Modal
+        title="In Progress"
+        onSubmit={onSubmit}
+        submitButtonText="Stop"
+        submitButtonStyleType={ButtonStyleType.NORMAL}
+        isInitialFocusOnDialog={true}
+      >
+        <p>12 of 4,594 Alerts</p>
+      </Modal>,
+    );
+
+    const stop: HTMLElement = getByTestId("modal-footer-submit-button");
+
+    expect(stop).not.toHaveFocus();
+    expect(getByRole("dialog")).toHaveFocus();
+
+    // Still in the tab order: the next Tab reaches it.
+    expect(stop).not.toBeDisabled();
+    expect(stop).not.toHaveAttribute("tabindex", "-1");
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it("starts the same dialog on its button when not asked", () => {
+    const { getByTestId } = render(
+      <Modal
+        title="In Progress"
+        onSubmit={getJestMockFunction()}
+        submitButtonText="Stop"
+        submitButtonStyleType={ButtonStyleType.NORMAL}
+      >
+        <p>12 of 4,594 Alerts</p>
+      </Modal>,
+    );
+
+    expect(getByTestId("modal-footer-submit-button")).toHaveFocus();
+  });
+
   it("starts a DANGER_OUTLINE confirmation on Cancel too", () => {
     const { getByTestId } = render(
       <Modal

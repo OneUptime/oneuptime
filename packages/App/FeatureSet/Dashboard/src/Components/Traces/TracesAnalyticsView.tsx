@@ -1004,7 +1004,7 @@ const TracesAnalyticsView: FunctionComponent<TracesAnalyticsViewProps> = (
                       style={{
                         width: `${percentage}%`,
                         backgroundColor: mutedColor,
-                        borderLeft: `3px solid ${color}`,
+                        borderInlineStart: `3px solid ${color}`,
                       }}
                     />
                   </div>

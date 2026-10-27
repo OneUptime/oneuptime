@@ -17,7 +17,9 @@ import { OpenIssueRecord } from "./ResourceTopologyIssues";
  * Reads the open incidents and alerts of one resource, for its topology.
  *
  * Records are linked to the resource itself (`vmwareVCenters`,
- * `kubernetesClusters`, ...); the newest OPEN_ISSUES_READ_LIMIT of each kind
+ * `kubernetesClusters`, ...) - or, for a cloud account, to any of its
+ * resources (`cloudResources`, the ids given); the newest
+ * OPEN_ISSUES_READ_LIMIT of each kind
  * are read — open ones are few at any one time — with their series labels
  * and any links to the resource's own inventory rows, which say which part
  * they are about. Incidents and alerts are read apart: a role that may read
@@ -130,7 +132,7 @@ function relationSelect(
 async function readOpenIncidents(data: {
   projectId: ObjectID;
   resourceRelation: string;
-  resourceId: ObjectID;
+  resourceIds: Array<ObjectID>;
   relations: Array<OpenIssueRelation>;
 }): Promise<{ records: Array<OpenIssueRecord>; total: number }> {
   const states: Array<IncidentState> =
@@ -144,7 +146,7 @@ async function readOpenIncidents(data: {
     modelType: Incident,
     query: {
       projectId: data.projectId,
-      [data.resourceRelation]: new Includes([data.resourceId]),
+      [data.resourceRelation]: new Includes(data.resourceIds),
       currentIncidentStateId: new Includes(
         states.map((state: IncidentState): ObjectID => {
           return state.id!;
@@ -205,7 +207,7 @@ async function readOpenIncidents(data: {
 async function readOpenAlerts(data: {
   projectId: ObjectID;
   resourceRelation: string;
-  resourceId: ObjectID;
+  resourceIds: Array<ObjectID>;
   relations: Array<OpenIssueRelation>;
 }): Promise<{ records: Array<OpenIssueRecord>; total: number }> {
   const states: Array<AlertState> =
@@ -219,7 +221,7 @@ async function readOpenAlerts(data: {
     modelType: Alert,
     query: {
       projectId: data.projectId,
-      [data.resourceRelation]: new Includes([data.resourceId]),
+      [data.resourceRelation]: new Includes(data.resourceIds),
       currentAlertStateId: new Includes(
         states.map((state: AlertState): ObjectID => {
           return state.id!;
@@ -290,17 +292,34 @@ export async function loadOpenIssues(data: {
   projectId: ObjectID;
   /* The relation that links a record to the resource: "vmwareVCenters". */
   resourceRelation: string;
-  resourceId: ObjectID;
+  resourceId?: ObjectID | undefined;
+  /* Or any of several resources: a cloud account's (`cloudResources`). */
+  resourceIds?: Array<ObjectID> | undefined;
   /* Links to the resource's own inventory rows, read with each record. */
   relations?: Array<OpenIssueRelation> | undefined;
 }): Promise<OpenIssuesResult> {
   const relations: Array<OpenIssueRelation> = data.relations || [];
+  const resourceIds: Array<ObjectID> = [
+    ...(data.resourceId ? [data.resourceId] : []),
+    ...(data.resourceIds || []),
+  ];
+
+  // Linked to nothing: nothing to read, and nothing missed.
+  if (resourceIds.length === 0) {
+    return { records: [], incidentCount: 0, alertCount: 0, isPartial: false };
+  }
+
   const request: {
     projectId: ObjectID;
     resourceRelation: string;
-    resourceId: ObjectID;
+    resourceIds: Array<ObjectID>;
     relations: Array<OpenIssueRelation>;
-  } = { ...data, relations: relations };
+  } = {
+    projectId: data.projectId,
+    resourceRelation: data.resourceRelation,
+    resourceIds: resourceIds,
+    relations: relations,
+  };
 
   const [incidents, alerts]: [
     { records: Array<OpenIssueRecord>; total: number } | null,

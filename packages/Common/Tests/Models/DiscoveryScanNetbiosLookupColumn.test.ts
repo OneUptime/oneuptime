@@ -209,12 +209,12 @@ describe("NetworkDeviceDiscoveryScan.isNetbiosLookupEnabled", () => {
 
   /*
    * It is not an SNMP setting: NetBIOS names hosts that SNMP did NOT answer,
-   * and it runs with Check SNMP off as well as on. Carrying the note the SNMP
+   * and it runs on an ICMP scan as well as an SNMP one. Carrying the note the SNMP
    * config block's fields carry would tell the operator the opposite.
    */
   test("is not documented as part of the SNMP configuration", () => {
     expect(metadata().description ?? "").not.toContain(
-      "Ignored when Check SNMP is off.",
+      "Ignored on an ICMP scan.",
     );
   });
 

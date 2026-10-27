@@ -231,8 +231,9 @@ describe("a record's labels in a detail card", () => {
 
     for (const pill of Array.from(row.children)) {
       expect((pill as HTMLElement).dataset["testid"]).toBe("pill");
-      // The row spaces them: no margin of their own.
+      // The row spaces them: no margin of their own, on either side.
       expect((pill as HTMLElement).style.marginRight).toBe("");
+      expect((pill as HTMLElement).style.marginInlineEnd).toBe("");
     }
 
     // Nothing is folded away behind a button.
@@ -413,12 +414,16 @@ describe("a record's labels outside a detail card and a table are left as they w
       screen.getByRole("button", { name: "3 more labels" }),
     ).toBeInTheDocument();
 
-    // Each pill in a block of its own, spaced by its own margin.
+    /*
+     * Each pill in a block of its own, spaced by its own margin at the end
+     * of the line: the right, or the left on a page that reads right to left.
+     */
     for (const pill of Array.from(
       container.querySelectorAll<HTMLElement>('[data-testid="pill"]'),
     )) {
       expect(pill.parentElement).toHaveClass("my-2");
-      expect(pill.style.marginRight).toBe("5px");
+      expect(pill.style.marginInlineEnd).toBe("5px");
+      expect(pill.style.marginRight).toBe("");
     }
   });
 

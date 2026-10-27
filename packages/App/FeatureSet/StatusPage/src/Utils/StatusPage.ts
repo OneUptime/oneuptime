@@ -1,10 +1,27 @@
+import StatusPageInTab from "./StatusPageInTab";
 import UserUtil from "./User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
-import Typeof from "Common/Types/Typeof";
 import LocalStorage from "Common/UI/Utils/LocalStorage";
 import Navigation from "Common/UI/Utils/Navigation";
+
+/*
+ * What the browser keeps about one status page, under these names followed
+ * by the page's id: shared by every tab showing that page, and by no other.
+ */
+export const IS_PRIVATE_STATUS_PAGE_STORAGE_KEY: string = "isPrivateStatusPage";
+export const REQUIRES_MASTER_PASSWORD_STORAGE_KEY: string =
+  "requiresMasterPassword";
+export const MASTER_PASSWORD_VALIDATED_STORAGE_KEY: string =
+  "masterPasswordValidated";
+
+/*
+ * Where single sign-on takes the visitor once they are signed in, kept in
+ * this tab's session storage under this name followed by the page's id.
+ */
+export const SIGN_IN_REDIRECT_STORAGE_KEY: string =
+  "status-page-sign-in-redirect";
 
 export default class StatusPageUtil {
   // List of authentication-related paths that should not be used as redirect URLs
@@ -24,11 +41,20 @@ export default class StatusPageUtil {
     });
   }
 
+  /*
+   * A place on this status page to go to once signed in, or null: never
+   * another site, never a sign-in page, and never another status page's
+   * address (/status-page/<another id>/..., however it is written:
+   * /status-page/<id>/../<another id> opens the other page too) - signing in
+   * to one page leads to that page, not to the page another tab or another
+   * link named.
+   */
   public static getSafeRedirectPath(redirectUrl: string | null): string | null {
     if (
       !redirectUrl ||
       !Navigation.isSafeInternalRoute(redirectUrl) ||
-      StatusPageUtil.isAuthPath(redirectUrl)
+      StatusPageUtil.isAuthPath(redirectUrl) ||
+      StatusPageInTab.isAnotherPagesPath(redirectUrl)
     ) {
       return null;
     }
@@ -72,41 +98,51 @@ export default class StatusPageUtil {
     );
   }
 
+  // The status page this tab shows (Utils/StatusPageInTab).
   public static getStatusPageId(): ObjectID | null {
-    const value: ObjectID | null = LocalStorage.getItem(
-      "statusPageId",
-    ) as ObjectID | null;
-
-    if (value && typeof value === Typeof.String) {
-      return new ObjectID(value.toString());
-    }
-
-    return value;
+    return StatusPageInTab.get();
   }
 
+  // The status page this tab's address names, if it names one.
+  public static getStatusPageIdInAddress(): ObjectID | null {
+    return StatusPageInTab.getIdInAddress();
+  }
+
+  /*
+   * The status page this tab loaded: the master page sets it once it has
+   * found the page - from the address, or from the domain on a custom
+   * domain - and nothing another tab does changes it.
+   */
   public static setStatusPageId(id: ObjectID | null): void {
-    LocalStorage.setItem("statusPageId", id);
+    StatusPageInTab.set(id);
+  }
+
+  /*
+   * Whether this tab's address names another status page than the one the
+   * tab loaded: after a move inside the app to another page's address. The
+   * tab then opens that address in full, its own master page and all,
+   * instead of showing one page's name and navigation over another's
+   * content.
+   */
+  public static isAddressOfAnotherStatusPage(): boolean {
+    const idInAddress: ObjectID | null = StatusPageInTab.getIdInAddress();
+    const loadedId: ObjectID | null = StatusPageInTab.getResolved();
+
+    return Boolean(
+      idInAddress && loadedId && idInAddress.toString() !== loadedId.toString(),
+    );
   }
 
   public static setIsPrivateStatusPage(isPrivate: boolean): void {
-    const storageKey: string =
-      StatusPageUtil.getIsPrivateStatusPageStorageKey();
-
-    LocalStorage.setItem(storageKey, isPrivate);
+    StatusPageUtil.setPageItem(IS_PRIVATE_STATUS_PAGE_STORAGE_KEY, isPrivate);
   }
 
   public static isPrivateStatusPage(): boolean {
-    const storageKey: string =
-      StatusPageUtil.getIsPrivateStatusPageStorageKey();
-
-    return Boolean(LocalStorage.getItem(storageKey));
+    return StatusPageUtil.getPageItem(IS_PRIVATE_STATUS_PAGE_STORAGE_KEY);
   }
 
   public static setRequiresMasterPassword(value: boolean): void {
-    const storageKey: string =
-      StatusPageUtil.getRequiresMasterPasswordStorageKey();
-
-    LocalStorage.setItem(storageKey, value);
+    StatusPageUtil.setPageItem(REQUIRES_MASTER_PASSWORD_STORAGE_KEY, value);
 
     if (!value) {
       StatusPageUtil.setMasterPasswordValidated(false);
@@ -114,79 +150,113 @@ export default class StatusPageUtil {
   }
 
   public static requiresMasterPassword(): boolean {
-    const storageKey: string =
-      StatusPageUtil.getRequiresMasterPasswordStorageKey();
-
-    return Boolean(LocalStorage.getItem(storageKey));
+    return StatusPageUtil.getPageItem(REQUIRES_MASTER_PASSWORD_STORAGE_KEY);
   }
 
-  private static getStatusPageScopedStorageKey(baseKey: string): string {
+  public static setMasterPasswordValidated(value: boolean): void {
+    /*
+     * The one name every page shared before names ended in their page's id.
+     * It cannot say which page it was for, so it is never read: it goes.
+     */
+    LocalStorage.removeItem(MASTER_PASSWORD_VALIDATED_STORAGE_KEY);
+
+    StatusPageUtil.setPageItem(MASTER_PASSWORD_VALIDATED_STORAGE_KEY, value);
+  }
+
+  public static isMasterPasswordValidated(): boolean {
+    return StatusPageUtil.getPageItem(MASTER_PASSWORD_VALIDATED_STORAGE_KEY);
+  }
+
+  /*
+   * Where single sign-on takes the visitor once they are signed in: the
+   * place on this page they were sent to sign in from. It has to outlast the
+   * round trip to their identity provider and back, so it is kept - in this
+   * tab's session storage, and for this page alone. It was kept in
+   * localStorage under one name for every page, and whichever tab's overview
+   * drew next took it: a visitor signing in to one status page could send
+   * another tab, showing another page, to the first one.
+   */
+  public static rememberSignInRedirect(redirectPath: string | null): void {
+    const storageKey: string | null = StatusPageUtil.getPageStorageKey(
+      SIGN_IN_REDIRECT_STORAGE_KEY,
+    );
+
+    if (!storageKey) {
+      return;
+    }
+
+    const safeRedirectPath: string | null =
+      StatusPageUtil.getSafeRedirectPath(redirectPath);
+
+    try {
+      if (safeRedirectPath) {
+        window.sessionStorage.setItem(storageKey, safeRedirectPath);
+      } else {
+        window.sessionStorage.removeItem(storageKey);
+      }
+    } catch {
+      // Storage can be blocked: the visitor then lands on the overview.
+    }
+  }
+
+  // The place rememberSignInRedirect kept for this page, taken once.
+  public static takeSignInRedirect(): string | null {
+    const storageKey: string | null = StatusPageUtil.getPageStorageKey(
+      SIGN_IN_REDIRECT_STORAGE_KEY,
+    );
+
+    if (!storageKey) {
+      return null;
+    }
+
+    let redirectPath: string | null = null;
+
+    try {
+      redirectPath = window.sessionStorage.getItem(storageKey);
+
+      if (redirectPath !== null) {
+        window.sessionStorage.removeItem(storageKey);
+      }
+    } catch {
+      return null;
+    }
+
+    return StatusPageUtil.getSafeRedirectPath(redirectPath);
+  }
+
+  /*
+   * The name something about this tab's page is kept under: the name, then
+   * the page's id. Null while the tab does not know its page - then nothing
+   * is read or kept, as a name without an id would be every page's.
+   */
+  private static getPageStorageKey(baseKey: string): string | null {
     const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
 
     if (!statusPageId) {
-      return baseKey;
+      return null;
     }
 
     return `${baseKey}-${statusPageId.toString()}`;
   }
 
-  private static getIsPrivateStatusPageStorageKey(): string {
-    return StatusPageUtil.getStatusPageScopedStorageKey("isPrivateStatusPage");
-  }
+  private static setPageItem(baseKey: string, value: boolean): void {
+    const storageKey: string | null = StatusPageUtil.getPageStorageKey(baseKey);
 
-  private static getRequiresMasterPasswordStorageKey(): string {
-    return StatusPageUtil.getStatusPageScopedStorageKey(
-      "requiresMasterPassword",
-    );
-  }
-
-  private static getMasterPasswordValidationStorageKey(): string {
-    const statusPageId: ObjectID | null = StatusPageUtil.getStatusPageId();
-
-    if (!statusPageId) {
-      return "masterPasswordValidated";
+    if (!storageKey) {
+      return;
     }
-
-    return `masterPasswordValidated-${statusPageId.toString()}`;
-  }
-
-  public static setMasterPasswordValidated(value: boolean): void {
-    const storageKey: string =
-      StatusPageUtil.getMasterPasswordValidationStorageKey();
 
     LocalStorage.setItem(storageKey, value);
-
-    if (storageKey !== "masterPasswordValidated") {
-      LocalStorage.removeItem("masterPasswordValidated");
-    }
   }
 
-  public static isMasterPasswordValidated(): boolean {
-    const storageKey: string =
-      StatusPageUtil.getMasterPasswordValidationStorageKey();
+  private static getPageItem(baseKey: string): boolean {
+    const storageKey: string | null = StatusPageUtil.getPageStorageKey(baseKey);
 
-    const currentValue: boolean = Boolean(LocalStorage.getItem(storageKey));
-
-    if (currentValue) {
-      return true;
-    }
-
-    if (storageKey === "masterPasswordValidated") {
+    if (!storageKey) {
       return false;
     }
 
-    const legacyValue: boolean = Boolean(
-      LocalStorage.getItem("masterPasswordValidated"),
-    );
-
-    LocalStorage.removeItem("masterPasswordValidated");
-
-    if (legacyValue) {
-      LocalStorage.setItem(storageKey, legacyValue);
-      return true;
-    }
-
-    return false;
+    return Boolean(LocalStorage.getItem(storageKey));
   }
 
   public static isPreviewPage(): boolean {

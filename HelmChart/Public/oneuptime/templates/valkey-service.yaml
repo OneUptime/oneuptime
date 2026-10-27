@@ -56,7 +56,7 @@ spec:
   13.0.0.
 
   The old Service is deleted the moment the new manifest is applied, while the
-  app, worker, probe, runner and telemetry-writer Deployments roll pod by pod.
+  app, worker, probe and telemetry-writer Deployments roll pod by pod.
   Every pod still on the previous spec has REDIS_HOST=<release>-redis-master
   baked in, so without this alias it resolves NXDOMAIN until it happens to be
   replaced -- which for a large deployment is the whole rollout.

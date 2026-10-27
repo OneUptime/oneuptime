@@ -20,11 +20,15 @@ import FormTargetType, {
   FORM_TARGET_TYPE_TEXT,
 } from "Common/Types/Form/FormTargetType";
 import MicrosoftTeamsCommands from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
+import MicrosoftTeamsProjectChoice from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsProjectChoice";
 import MicrosoftTeamsHome, {
   MICROSOFT_TEAMS_HOME_ACTIONS,
   MICROSOFT_TEAMS_HOME_COMMAND,
 } from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsHome";
-import { SLACK_HOME_ACTIONS } from "Common/Server/Utils/Workspace/Slack/SlackHome";
+import {
+  SLACK_HOME_ACTIONS,
+  SLACK_HOME_PROJECT_MENU,
+} from "Common/Server/Utils/Workspace/Slack/SlackHome";
 import {
   WORKSPACE_HOME_TEXT,
   WorkspaceHomeActions,
@@ -1507,6 +1511,68 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(englishPage(TEAMS)).toContain(
       "**Open OneUptime in Microsoft Teams**, under **User Settings** > **Workspace** > **Microsoft Teams**, opens the app in Teams.",
     );
+  });
+
+  /*
+   * Somebody in several of a Slack workspace's projects: the Home's Switch
+   * project menu, named as the app draws it, and what it does - one project
+   * at a time, the one chosen kept for later openings while the person is a
+   * member there, the first connected before that (SlackHome).
+   */
+  it("names the Slack Home's Switch project menu as the app draws it, and what it does", () => {
+    const home: string = section(
+      englishPage(SLACK),
+      2,
+      "OneUptime's Home in Slack",
+    );
+    const paragraph: string = lineStarting(
+      home,
+      "In a Slack workspace connected to more than one project,",
+    );
+
+    expect(SLACK_HOME_PROJECT_MENU.placeholder).toBe("Switch project");
+    expect(boldSpans(paragraph)).toEqual([SLACK_HOME_PROJECT_MENU.placeholder]);
+    expect(paragraph).toContain("the Home shows one project at a time");
+    expect(paragraph).toContain("two or more of them");
+    expect(paragraph).toContain("as long as you're still a member there");
+    expect(paragraph).toContain(
+      "whichever of your projects was connected to Slack first",
+    );
+
+    // Only Slack draws the menu: the Teams page names none.
+    expect(englishPage(TEAMS)).not.toContain(
+      `**${SLACK_HOME_PROJECT_MENU.placeholder}**`,
+    );
+  });
+
+  /*
+   * A Microsoft 365 organization connected to several projects, where
+   * nothing a request carries tells which: the bot asks with a button for
+   * each project the sender is in, a card's button acts in the project the
+   * card was sent for, and a question's choice holds for its conversation's
+   * follow-ups for an hour (MicrosoftTeamsProjectChoice,
+   * MicrosoftTeamsCardProject).
+   */
+  it("says how the Teams bot asks which project, and how long a question's choice holds, as the bot does", () => {
+    const paragraph: string = lineStarting(
+      englishPage(TEAMS),
+      "One Microsoft 365 organization can be connected to more than one project,",
+    );
+
+    expect(paragraph).toContain(
+      "A card's button acts in the project the card was sent for",
+    );
+    expect(paragraph).toContain(
+      "the bot asks the sender which project they mean, with a button for each one they're in, and goes ahead there once they choose.",
+    );
+    expect(
+      MicrosoftTeamsProjectChoice.CONVERSATION_REMEMBERED_FOR_SECONDS,
+    ).toBe(60 * 60);
+    expect(paragraph).toContain(
+      "In a conversation with OneUptime AI, their choice holds for its follow-ups until an hour goes by without one.",
+    );
+    // The button the question offers is the project itself: no label to name.
+    expect(boldSpans(paragraph)).toEqual([]);
   });
 
   it("quotes the chats' refusals as the server words them", () => {

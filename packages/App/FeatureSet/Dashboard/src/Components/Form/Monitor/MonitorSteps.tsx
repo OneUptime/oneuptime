@@ -118,7 +118,8 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
    */
   const [hasLoadedOptions, setHasLoadedOptions] =
     React.useState<boolean>(false);
-  const [error, setError] = React.useState<string>();
+  // Why the statuses, severities or probes could not be read.
+  const [loadError, setLoadError] = React.useState<string>();
 
   /*
    * The status and severity ids the criteria were (or would have been)
@@ -146,10 +147,6 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
    */
   const [isAdvancedCollapsed, setIsAdvancedCollapsed] =
     React.useState<boolean>(true);
-
-  useEffect(() => {
-    setError(props.error);
-  }, [props.error]);
 
   const fetchDropdownOptions: () => Promise<void> = async (): Promise<void> => {
     setIsLoading(true);
@@ -492,7 +489,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       const probes: Array<Probe> = await ProbeUtil.getAllProbes();
       setProbes(probes);
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      setLoadError(API.getFriendlyMessage(err));
     }
 
     setHasLoadedOptions(true);
@@ -618,6 +615,15 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   if (isLoading) {
     return <ComponentLoader></ComponentLoader>;
   }
+
+  /*
+   * The form's message for the steps, drawn in the same render that brings
+   * it - not copied into state by an effect, a render later: after Next the
+   * form looks for the message to bring into view in that render
+   * (BringIntoView's bringFieldInErrorIntoView). Else why the lists could
+   * not be read.
+   */
+  const error: string | undefined = props.error || loadError;
 
   const defaultMonitorStatusColor: string | undefined =
     defaultMonitorStatusOption?.color
@@ -802,9 +808,18 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
+      {/*
+       * The field's error message, marked as every field's is: after Next or
+       * Create, the form brings it into view (BringIntoView's
+       * bringFieldInErrorIntoView), a screen or more below the steps' start.
+       */}
       {error ? (
         <div className="mt-4">
-          <Alert title={error} type={AlertType.DANGER} />
+          <Alert
+            title={error}
+            type={AlertType.DANGER}
+            dataTestId="error-message"
+          />
         </div>
       ) : (
         <></>

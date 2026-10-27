@@ -253,7 +253,6 @@ const PART_SENTENCES: Record<string, Array<string>> = {
     "It is off until you turn it on: uncomment the syslog receivers in the agent's config and open port 5514.",
     "Lines show here when the host names itself {{hostName}} in them. If it uses another name, see it with {{command}} on the host.",
     "No logs from this host",
-    "No logs from this host match these filters.",
     "No logs from this host yet",
     "Or with PowerCLI, signed in to this vCenter:",
     "Point this host at the agent",

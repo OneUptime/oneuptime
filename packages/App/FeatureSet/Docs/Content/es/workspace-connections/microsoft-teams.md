@@ -29,7 +29,7 @@ Tres cosas lo hacen posible:
 - **La app de OneUptime en cada equipo** en el que quieras notificaciones. Microsoft solo deja publicar al bot en un equipo al que se ha añadido.
 - **La conexión propia de cada persona**: su cuenta de Microsoft Teams vinculada a su cuenta de OneUptime. Los botones, los comandos y las reacciones actúan como esa persona, con sus permisos en el proyecto.
 
-Una organización de Microsoft 365 puede estar conectada a más de un proyecto, como producción y staging. El botón de una tarjeta actúa en el proyecto del registro al que se refiere. Un mensaje al bot actúa en el proyecto del canal en el que se envía, como el canal de un incidente, o si no, en el único proyecto en el que está conectada la cuenta de Microsoft Teams de quien lo envía. Cuando nada lo indica, el bot nombra los proyectos en los que está esa persona y le pide que lo intente de nuevo desde un canal del proyecto al que se refiere.
+Una organización de Microsoft 365 puede estar conectada a más de un proyecto, como producción y staging. El botón de una tarjeta actúa en el proyecto para el que se envió la tarjeta, como el proyecto del incidente al que se refiere. Un mensaje al bot actúa en el proyecto del canal en el que se envía, como el canal de un incidente, o si no, en el único proyecto en el que está conectada la cuenta de Microsoft Teams de quien lo envía. Cuando nada lo indica, el bot le pregunta a esa persona a qué proyecto se refiere, con un botón para cada proyecto en el que está, y continúa allí en cuanto elige. En una conversación con OneUptime AI, su elección se mantiene para las preguntas de seguimiento hasta que pasa una hora sin ninguna.
 
 ## Antes de empezar
 

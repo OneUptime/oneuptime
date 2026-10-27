@@ -17,10 +17,20 @@ import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
   ObservabilityTool,
+  PreparedMutation,
   ToolArgs,
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
+import AffectedResourceLinks, {
+  AFFECTED_RESOURCES_ARGUMENT_NAME,
+  AFFECTED_RESOURCES_ARGUMENT_SCHEMA,
+  AffectedResourcesToLink,
+  LinkedAffectedResource,
+} from "./AffectedResourceLinks";
+import { AiAffectedResourceRelation } from "../../../../Types/AI/AiAffectedResources";
+import AIChatPageContextType from "../../../../Types/AI/AIChatPageContext";
+import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
 
 import FeedMarkdown from "../../../../Utils/Markdown/FeedMarkdown";
 /*
@@ -51,6 +61,73 @@ const resolveStateChangePermissions: () => Array<Permission> =
     }
     return cachedStateChangePermissions;
   };
+// Linking resources to an incident edits it, as its Affected Resources Edit does.
+let cachedUpdatePermissions: Array<Permission> | null = null;
+const resolveUpdatePermissions: () => Array<Permission> =
+  (): Array<Permission> => {
+    if (!cachedUpdatePermissions) {
+      cachedUpdatePermissions = new Incident().getUpdatePermissions();
+    }
+    return cachedUpdatePermissions;
+  };
+
+/*
+ * The incident a call is about: its incidentId, or - when it names none -
+ * the incident the conversation is about (its page, or its shared thread).
+ */
+function getIncidentId(
+  args: JSONObject,
+  ctx: ToolContext,
+): ObjectID | undefined {
+  const named: ObjectID | undefined = ToolArgs.getObjectID(args, "incidentId");
+
+  if (named) {
+    return named;
+  }
+
+  if (
+    ctx.pageContext?.type === AIChatPageContextType.Incident &&
+    ctx.pageContext.entityId &&
+    ObjectID.isValidUUID(ctx.pageContext.entityId)
+  ) {
+    return new ObjectID(ctx.pageContext.entityId);
+  }
+
+  return undefined;
+}
+
+/*
+ * How the person knows an incident - its number with the project's prefix,
+ * "INC-42" or "#42" - read with their own props, for an approval card's
+ * title. Null when they may not read it or the read fails: the card then
+ * keeps buildActionTitle's title, and running the action says why.
+ */
+async function getIncidentNumberForPerson(data: {
+  incidentId: ObjectID;
+  ctx: ToolContext;
+}): Promise<string | null> {
+  try {
+    const incident: Incident | null = await IncidentService.findOneById({
+      id: data.incidentId,
+      select: {
+        _id: true,
+        incidentNumber: true,
+        incidentNumberWithPrefix: true,
+      },
+      props: data.ctx.props,
+    });
+
+    if (incident?.incidentNumberWithPrefix) {
+      return incident.incidentNumberWithPrefix;
+    }
+
+    return typeof incident?.incidentNumber === "number"
+      ? `#${incident.incidentNumber}`
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 /*
  * Write tools mutate the project. They are gated twice: once by the tool's
@@ -64,7 +141,7 @@ const resolveStateChangePermissions: () => Array<Permission> =
 export const CreateIncidentTool: ObservabilityTool = {
   name: "create_incident",
   description:
-    "Declare (create) a new incident in this project. Provide a clear title and a description of the problem. Optionally set the severity by name (must match an existing incident severity); otherwise the project's first-defined severity is used. Use this when the user asks you to open, declare or create an incident.",
+    "Declare (create) a new incident in this project. Provide a clear title and a description of the problem. Optionally set the severity by name (must match an existing incident severity); otherwise the project's first-defined severity is used. Link it to the infrastructure and services it is about with affectedResources: OneUptime AI investigates and fixes what an incident is linked to, and nothing else. Asked from a resource's page (a host, a cluster, a database, a service, ...), the incident is linked to that resource unless you pass affectedResources yourself; pass an empty list to link nothing. Use this when the user asks you to open, declare or create an incident.",
   inputSchema: {
     type: "object",
     properties: {
@@ -82,6 +159,7 @@ export const CreateIncidentTool: ObservabilityTool = {
         description:
           "Name of an existing incident severity (e.g. 'SEV1', 'Critical'). Defaults to the project's first-defined severity.",
       },
+      [AFFECTED_RESOURCES_ARGUMENT_NAME]: AFFECTED_RESOURCES_ARGUMENT_SCHEMA,
     },
     required: ["title"],
   },
@@ -91,6 +169,33 @@ export const CreateIncidentTool: ObservabilityTool = {
   isMutation: true,
   buildActionTitle: (args: JSONObject): string => {
     return `Create incident: ${ToolArgs.getString(args, "title") || "Untitled"}`;
+  },
+  /*
+   * The page's resource written out (the incident is declared from it), and
+   * what every resource it names is, for the approval card.
+   */
+  prepareMutation: async (
+    args: JSONObject,
+    ctx: ToolContext,
+  ): Promise<PreparedMutation> => {
+    const prepared: JSONObject =
+      AffectedResourceLinks.withPageResourceWrittenOut({ args, ctx });
+
+    const toLink: AffectedResourcesToLink =
+      await AffectedResourceLinks.resolveForCall({
+        args: prepared,
+        ctx,
+        defaultsToPage: false,
+      });
+
+    return {
+      arguments: prepared,
+      description: AffectedResourceLinks.describeForPerson({
+        linked: toLink.linked,
+        hasNotLinked: toLink.notLinked.length > 0,
+        verb: "Linked to",
+      }),
+    };
   },
   execute: async (
     args: JSONObject,
@@ -149,6 +254,19 @@ export const CreateIncidentTool: ObservabilityTool = {
       }
     }
 
+    /*
+     * What it is linked to: the resources the call names, or - declared
+     * from a resource's page without naming any - that resource. Each read
+     * with the person's props; the ones they may not view, archived ones
+     * and ones of another project are left out, and the model is told why.
+     */
+    const toLink: AffectedResourcesToLink =
+      await AffectedResourceLinks.resolveForCall({
+        args,
+        ctx,
+        defaultsToPage: true,
+      });
+
     const incident: Incident = new Incident();
     incident.projectId = ctx.projectId;
     incident.title = title;
@@ -165,6 +283,13 @@ export const CreateIncidentTool: ObservabilityTool = {
      * whose copilot opened it as its creator (WhoOpenedItRootCause).
      */
 
+    /*
+     * Linked with the create itself, as Declare Incident links what its
+     * Affected Resources step picks: the investigation and auto-remediation
+     * the create starts read these lists.
+     */
+    AffectedResourceLinks.setOnRecord(incident, toLink.linked);
+
     // Created under the user's props so the model-layer RBAC applies too.
     const created: Incident = await IncidentService.create({
       data: incident,
@@ -179,11 +304,30 @@ export const CreateIncidentTool: ObservabilityTool = {
         incidentNumber: created.incidentNumber,
         title: title,
         severity: severity.name,
+        ...(toLink.linked.length > 0
+          ? {
+              affectedResources: AffectedResourceLinks.describeForWidget(
+                toLink.linked,
+              ),
+            }
+          : {}),
       },
     ]);
 
+    const linkedText: string = AffectedResourceLinks.describeForModel({
+      linked: toLink.linked,
+      notLinked: toLink.notLinked,
+      verb: "Linked to",
+    });
+
     return {
-      dataForLlm: `Successfully created incident #${created.incidentNumber} ("${title}", severity ${severity.name}).\n${serialized.text}`,
+      dataForLlm: `Successfully created incident #${created.incidentNumber} ("${title}", severity ${severity.name}).${
+        linkedText ? `\n${linkedText}` : ""
+      }${
+        toLink.linked.length === 0
+          ? "\nIt is linked to no infrastructure or service, and OneUptime AI fixes only what an incident is linked to. When you know what it is about, link it with add_incident_affected_resources."
+          : ""
+      }\n${serialized.text}`,
       rowCount: 1,
       citationLabel: `Created incident #${created.incidentNumber}`,
       citationTarget: {
@@ -200,6 +344,14 @@ export const CreateIncidentTool: ObservabilityTool = {
         fields: [
           { label: "Number", value: `#${created.incidentNumber ?? ""}` },
           { label: "Severity", value: severity.name || "—" },
+          ...(toLink.linked.length > 0
+            ? [
+                {
+                  label: "Affected resources",
+                  value: AffectedResourceLinks.describeForWidget(toLink.linked),
+                },
+              ]
+            : []),
           ...(description
             ? [
                 {
@@ -208,6 +360,257 @@ export const CreateIncidentTool: ObservabilityTool = {
                     description.length > 200
                       ? `${description.substring(0, 200)}…`
                       : description,
+                },
+              ]
+            : []),
+        ],
+        link: {
+          type: AIChatCitationTargetType.IncidentView,
+          params: { incidentId: incidentIdString },
+        },
+      }),
+    };
+  },
+};
+
+/*
+ * Links an existing incident to infrastructure or services, as its
+ * Affected Resources Edit does: what OneUptime AI identified in the
+ * conversation ("this is about host test01"), so its investigation reaches
+ * it and auto-remediation can fix it there. Added to what the incident
+ * lists already - never in place of it - and made as the person, with
+ * their permission to edit the incident.
+ */
+export const AddIncidentAffectedResourcesTool: ObservabilityTool = {
+  name: "add_incident_affected_resources",
+  description:
+    "Link an existing incident to the infrastructure and services it is about, as its Affected Resources do: OneUptime AI investigates and fixes what an incident is linked to. What it is linked to already stays. Name each resource in affectedResources by its OneUptime ID from query_telemetry_resources (or lookup_context for a service). incidentId defaults to the incident this conversation is about; asked from a resource's page, affectedResources defaults to that resource. When OneUptime AI found nothing to fix on the incident because it was linked to nothing, it tries again once a cluster or host it can fix is linked.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      incidentId: {
+        type: "string",
+        description:
+          "The incident's ID. Defaults to the incident this conversation is about.",
+      },
+      [AFFECTED_RESOURCES_ARGUMENT_NAME]: AFFECTED_RESOURCES_ARGUMENT_SCHEMA,
+    },
+  },
+  get requiredPermissions(): Array<Permission> {
+    return resolveUpdatePermissions();
+  },
+  isMutation: true,
+  buildActionTitle: (args: JSONObject): string => {
+    const incidentId: string | undefined = ToolArgs.getString(
+      args,
+      "incidentId",
+    );
+
+    return incidentId
+      ? `Link incident ${incidentId} to affected resources`
+      : "Link this incident to affected resources";
+  },
+  prepareMutation: async (
+    args: JSONObject,
+    ctx: ToolContext,
+  ): Promise<PreparedMutation> => {
+    const incidentId: ObjectID | undefined = getIncidentId(args, ctx);
+
+    const prepared: JSONObject = {
+      ...AffectedResourceLinks.withPageResourceWrittenOut({ args, ctx }),
+      ...(incidentId ? { incidentId: incidentId.toString() } : {}),
+    };
+
+    const toLink: AffectedResourcesToLink =
+      await AffectedResourceLinks.resolveForCall({
+        args: prepared,
+        ctx,
+        defaultsToPage: false,
+      });
+
+    /*
+     * The card names the incident by its number: written out, its ID
+     * would otherwise be all buildActionTitle can name it by.
+     */
+    const incidentNumber: string | null = incidentId
+      ? await getIncidentNumberForPerson({ incidentId, ctx })
+      : null;
+
+    return {
+      arguments: prepared,
+      ...(incidentNumber
+        ? { title: `Link incident ${incidentNumber} to affected resources` }
+        : {}),
+      description: AffectedResourceLinks.describeForPerson({
+        linked: toLink.linked,
+        hasNotLinked: toLink.notLinked.length > 0,
+        verb: "Adds",
+      }),
+    };
+  },
+  execute: async (
+    args: JSONObject,
+    ctx: ToolContext,
+  ): Promise<ToolExecutionResult> => {
+    const incidentId: ObjectID | undefined = getIncidentId(args, ctx);
+
+    if (!incidentId) {
+      throw new BadDataException(
+        "incidentId is required. Use query_incidents to find it first.",
+      );
+    }
+
+    if (!ctx.props.userId) {
+      throw new BadDataException(
+        "No authenticated user in context; cannot change the incident.",
+      );
+    }
+
+    // The incident as the person reads it, for the answer below.
+    const incident: Incident | null = await IncidentService.findOneById({
+      id: incidentId,
+      select: { _id: true, incidentNumber: true, title: true },
+      props: ctx.props,
+    });
+
+    if (!incident) {
+      throw new BadDataException(
+        "Incident not found (or you do not have access to it).",
+      );
+    }
+
+    const toLink: AffectedResourcesToLink =
+      await AffectedResourceLinks.resolveForCall({
+        args,
+        ctx,
+        defaultsToPage: true,
+      });
+
+    if (toLink.linked.length === 0) {
+      throw new BadDataException(
+        toLink.notLinked.length > 0
+          ? `Nothing was linked. ${toLink.notLinked.join(" ")}`
+          : "Name the resources to link in affectedResources: { resourceType, resourceId } each, with the IDs query_telemetry_resources returns.",
+      );
+    }
+
+    /*
+     * What the incident lists already, of the kinds being added - read as
+     * OneUptime for the incident the person's own read returned: a list is
+     * written whole, and a link the person may not view must stay.
+     */
+    const relations: Array<AiAffectedResourceRelation> =
+      AffectedResourceLinks.getRelationsOf(toLink.linked);
+    const select: JSONObject = { _id: true };
+
+    for (const relation of relations) {
+      select[relation] = { _id: true };
+    }
+
+    const held: Incident | null = await IncidentService.findOneById({
+      id: incidentId,
+      select: select as never,
+      props: { isRoot: true },
+    });
+
+    const lists: {
+      lists: Partial<Record<AiAffectedResourceRelation, Array<unknown>>>;
+      added: Array<LinkedAffectedResource>;
+      alreadyLinked: Array<LinkedAffectedResource>;
+    } = AffectedResourceLinks.getListsWithAdded({
+      held: AffectedResourceLinks.readHeldIds(held, relations),
+      linked: toLink.linked,
+    });
+
+    if (lists.added.length > 0) {
+      /*
+       * Edited as the person, as the incident's Affected Resources Edit
+       * edits it: an incident they may read but not change changes
+       * nothing, and they are told so.
+       */
+      const updatedCount: number = await IncidentService.updateOneById({
+        id: incidentId,
+        data: lists.lists as never,
+        props: ctx.props,
+      });
+
+      if (updatedCount === 0) {
+        throw await IncidentService.getUnwrittenByIdError({
+          id: incidentId,
+          props: ctx.props,
+          type: DatabaseRequestType.Update,
+        });
+      }
+    }
+
+    const incidentIdString: string = incidentId.toString();
+
+    const serialized: SerializedResult = ToolResultSerializer.serializeRows([
+      {
+        incidentNumber: incident.incidentNumber,
+        added: AffectedResourceLinks.describeForWidget(lists.added),
+        alreadyLinked: AffectedResourceLinks.describeForWidget(
+          lists.alreadyLinked,
+        ),
+      },
+    ]);
+
+    const lines: Array<string> = [
+      lists.added.length > 0
+        ? `Linked incident #${incident.incidentNumber} ("${incident.title}") to ${AffectedResourceLinks.describeForWidget(lists.added)}.`
+        : `Incident #${incident.incidentNumber} ("${incident.title}") was linked to all of these already; nothing changed.`,
+    ];
+
+    if (lists.alreadyLinked.length > 0 && lists.added.length > 0) {
+      lines.push(
+        `Already linked: ${AffectedResourceLinks.describeForWidget(lists.alreadyLinked)}.`,
+      );
+    }
+
+    for (const reason of toLink.notLinked) {
+      lines.push(`Not linked: ${reason}`);
+    }
+
+    if (
+      lists.added.length > 0 &&
+      AffectedResourceLinks.hasFixableResource(lists.added)
+    ) {
+      lines.push(
+        "If OneUptime AI found nothing to fix on this incident because it was linked to nothing, it tries again now, under the project's AI rules and each resource's own fix settings.",
+      );
+    }
+
+    return {
+      dataForLlm: `${lines.join("\n")}\n${serialized.text}`,
+      rowCount: lists.added.length,
+      citationLabel: `Linked incident #${incident.incidentNumber}`,
+      citationTarget: {
+        type: AIChatCitationTargetType.IncidentView,
+        params: { incidentId: incidentIdString },
+      },
+      redactionCount: serialized.redactionCount,
+      isTruncated: false,
+      widget: WidgetBuilder.resourceCard({
+        title: "Affected resources linked",
+        resourceType: "Incident",
+        heading: `#${incident.incidentNumber} · ${incident.title}`,
+        fields: [
+          { label: "Number", value: `#${incident.incidentNumber ?? ""}` },
+          ...(lists.added.length > 0
+            ? [
+                {
+                  label: "Linked",
+                  value: AffectedResourceLinks.describeForWidget(lists.added),
+                },
+              ]
+            : []),
+          ...(lists.alreadyLinked.length > 0
+            ? [
+                {
+                  label: "Already linked",
+                  value: AffectedResourceLinks.describeForWidget(
+                    lists.alreadyLinked,
+                  ),
                 },
               ]
             : []),

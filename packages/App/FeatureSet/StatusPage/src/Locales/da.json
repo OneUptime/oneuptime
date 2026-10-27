@@ -61,7 +61,8 @@
   "monitorOverview": {
     "daysAgo": "for {{days}} dage siden",
     "today": "I dag",
-    "notAvailable": "Ikke tilgængelig"
+    "notAvailable": "Ikke tilgængelig",
+    "underMaintenance": "Under vedligeholdelse"
   },
   "uptimeHistory": {
     "graphLabel": "Oppetidshistorik for de seneste {{total}} dage",
@@ -76,7 +77,12 @@
     "noIncidentsDescription": "Der blev ikke rapporteret hændelser denne dag.",
     "declared": "Registreret",
     "oneIncidentOnThisDay": "1 hændelse rapporteret denne dag",
-    "incidentsOnThisDay": "{{total}} hændelser rapporteret denne dag"
+    "incidentsOnThisDay": "{{total}} hændelser rapporteret denne dag",
+    "scheduledMaintenance": "Planlagt vedligeholdelse",
+    "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
+    "oneMaintenanceEvent": "1 planlagt vedligeholdelse",
+    "maintenanceEvents": "{{total}} planlagte vedligeholdelser",
+    "moreMaintenance": "+{{total}} mere"
   },
   "liveStatus": {
     "updated": "Opdateret {{time}}",

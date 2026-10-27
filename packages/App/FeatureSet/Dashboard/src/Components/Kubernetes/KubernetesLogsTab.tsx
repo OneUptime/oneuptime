@@ -58,7 +58,7 @@ const KubernetesLogsTab: FunctionComponent<ComponentProps> = (
       attributeFilterDisplayKeys={KUBERNETES_LOGS_ATTRIBUTE_DISPLAY_KEYS}
       attributeFilterDisplayValues={attributeFilterDisplayValues}
       showFilters={true}
-      noLogsMessage="No application logs found for this pod. Logs will appear here once the kubernetes-agent's filelog receiver is collecting data."
+      noLogsMessage="Logs appear here once the kubernetes-agent's filelog receiver collects them."
     />
   );
 };

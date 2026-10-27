@@ -38,7 +38,7 @@ Een ontdekt item heeft een hartslag. Elke keer dat er telemetrie voor binnenkomt
 | --- | --- |
 | **Live** | Gezien in de laatste 30 minuten. |
 | **Recent** | Gezien binnen de laatste dag. |
-| **Stale** | Al meer dan een dag niet gezien. De pagina **Gone Quiet** toont ze. |
+| **Verouderd** | Al meer dan een dag niet gezien. De pagina **Gone Quiet** toont ze. |
 
 Elke drie uur verwijdert OneUptime de ontdekte items die langer stil zijn dan het venster van hun soort, gearchiveerde inbegrepen, en hun waarden van aangepaste velden gaan mee. Gespiegelde items en de items die jij hebt toegevoegd worden nooit op deze manier verwijderd.
 

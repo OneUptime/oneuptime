@@ -34,7 +34,6 @@ import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import ResourceOverview, {
   ResourceOverviewChip,
   ResourceOverviewDetailRow,
-  ResourceOverviewQuickLink,
   ResourceOverviewTile,
 } from "../../../Components/TelemetryResource/ResourceOverview";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
@@ -771,33 +770,6 @@ const RumApplicationOverview: FunctionComponent<
     </div>
   );
 
-  const quickLinks: Array<ResourceOverviewQuickLink> = [
-    {
-      title: "Session Replay",
-      description: "Watch what real users saw",
-      to: populate(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY),
-      icon: IconProp.Film,
-    },
-    {
-      title: "Traces",
-      description: "Page loads, interactions and fetches",
-      to: populate(PageMap.RUM_APPLICATION_VIEW_TRACES),
-      icon: IconProp.Workflow,
-    },
-    {
-      title: "Logs",
-      description: "Browser / mobile events and errors",
-      to: populate(PageMap.RUM_APPLICATION_VIEW_LOGS),
-      icon: IconProp.Terminal,
-    },
-    {
-      title: "Metrics",
-      description: "Client-side metrics",
-      to: populate(PageMap.RUM_APPLICATION_VIEW_METRICS),
-      icon: IconProp.ChartBar,
-    },
-  ];
-
   const recordingHealthValue: string | undefined =
     describeRecordingHealthRow(health);
 
@@ -812,8 +784,15 @@ const RumApplicationOverview: FunctionComponent<
         <AgentVersion kind={AgentKind.RumSdk} version={a.agentVersion} />
       ),
     },
+    // A sentence: in the page's own type, not a monospaced value.
     ...(recordingHealthValue
-      ? [{ label: "Recording health", value: recordingHealthValue }]
+      ? [
+          {
+            label: "Recording health",
+            value: recordingHealthValue,
+            mono: false,
+          },
+        ]
       : []),
   ];
 
@@ -905,8 +884,8 @@ const RumApplicationOverview: FunctionComponent<
             }
           />
         }
-        quickLinks={quickLinks}
         detailRows={detailRows}
+        recordId={modelId.toString()}
         settingsRoute={populate(PageMap.RUM_APPLICATION_VIEW_SETTINGS)}
         labels={a.labels}
       />

@@ -1,5 +1,8 @@
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
-import { CloudConnectionAuthMethod } from "../../../Types/CloudConnection/CloudConnectionCatalog";
+import {
+  AZURE_SECRET_EXPIRES_AT_KEY,
+  CloudConnectionAuthMethod,
+} from "../../../Types/CloudConnection/CloudConnectionCatalog";
 import {
   CloudConnectionPasteResult,
   MAX_PASTE_LENGTH,
@@ -205,6 +208,50 @@ describe("Azure", () => {
       config: { tenantId: TENANT, clientId: APP },
       secrets: { clientSecret: PASSWORD },
     });
+  });
+
+  test("the setup command's endDateTime is kept as when the password expires", () => {
+    const pasted: string = JSON.stringify(
+      {
+        appId: APP,
+        displayName: "OneUptimeReadOnly",
+        password: PASSWORD,
+        tenant: TENANT,
+        endDateTime: "2027-10-26T09:41:12.5101234+00:00",
+      },
+      null,
+      2,
+    );
+
+    expect(
+      read(
+        CloudProvider.Azure,
+        CloudConnectionAuthMethod.AzureClientSecret,
+        pasted,
+      ),
+    ).toEqual({
+      config: {
+        tenantId: TENANT,
+        clientId: APP,
+        [AZURE_SECRET_EXPIRES_AT_KEY]: "2027-10-26T09:41:12.510Z",
+      },
+      secrets: { clientSecret: PASSWORD },
+    });
+  });
+
+  test("an endDateTime that is not a date is left out", () => {
+    expect(
+      read(
+        CloudProvider.Azure,
+        CloudConnectionAuthMethod.AzureClientSecret,
+        JSON.stringify({
+          appId: APP,
+          password: PASSWORD,
+          tenant: TENANT,
+          endDateTime: "",
+        }),
+      ).config,
+    ).toEqual({ tenantId: TENANT, clientId: APP });
   });
 
   test("a brace inside the password does not end the object early", () => {

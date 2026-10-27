@@ -211,6 +211,8 @@ describe("validateSettings", () => {
 
     expect(settings.config).toEqual({
       readIntervalInMinutes: "5",
+      // Nothing chosen: the key's own project, not its organization.
+      readScope: "account",
       authMethod: CloudConnectionAuthMethod.GcpServiceAccountKey,
       clientEmail: "oneuptime-read-only@acme-prod.iam.gserviceaccount.com",
       keyProjectId: "acme-prod",

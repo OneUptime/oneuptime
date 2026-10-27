@@ -60,8 +60,15 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
               className="h-5 w-5 flex-shrink-0 text-gray-500"
             />
 
-            <span className="ml-2.5 block truncate font-medium text-gray-700">
-              {props.selectedProjectName}
+            {/*
+             * A project's name reads its own way (dir="auto"): cut short on
+             * a Persian page, an English name keeps its start in view. The
+             * space before it stays on the page's side, outside the name.
+             */}
+            <span className="ml-2.5 block min-w-0 font-medium text-gray-700">
+              <span className="block truncate" dir="auto">
+                {props.selectedProjectName}
+              </span>
             </span>
           </span>
           <span className="pointer-events-none absolute inset-y-0 right-0 ml-3 flex items-center pr-2">

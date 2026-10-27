@@ -6,7 +6,10 @@ import useTranslateValue from "../../Utils/Translation";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import UnsavedChanges from "../../Utils/NewVersion/UnsavedChanges";
-import bringIntoView, { focusInvalidControl } from "../../Utils/BringIntoView";
+import {
+  bringFieldInErrorIntoView,
+  focusInvalidControl,
+} from "../../Utils/BringIntoView";
 import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
 import ButtonTypes from "../Button/ButtonTypes";
@@ -680,6 +683,9 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
      * view: in a long dialog it can be above or below what is in sight, and
      * one folded away has been opened for it in this same render
      * (CollapsibleFormSection). Before paint, so it is drawn where it ends.
+     * A field taller than the view brings its message into view instead of
+     * its start (bringFieldInErrorIntoView): Monitor Steps says why a step
+     * cannot be saved under all of its steps, a screen below its first.
      * The focus goes to it too (focusInvalidControl): the reader types the
      * fix there, and a screen reader reads the field with its error.
      *
@@ -750,7 +756,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
         getFieldName(firstFieldInError),
       );
 
-      bringIntoView(fieldElement);
+      // Its message, when the field is taller than the view (Monitor Steps).
+      bringFieldInErrorIntoView(fieldElement);
       focusInvalidControl(fieldElement);
     }, [validationAttempt, shownServerErrorFieldName, currentFormStepId]);
 
@@ -1290,7 +1297,12 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const primaryButtonStyle: React.CSSProperties = {};
 
     if (props.maxPrimaryButtonWidth) {
-      primaryButtonStyle.marginLeft = "0px";
+      /*
+       * Clears the start margin Button keeps from md up (md:ml-3 - the
+       * start of the line, the right on a page that reads right to left:
+       * Common/UI/Styles/TailwindReadingDirection.js).
+       */
+      primaryButtonStyle.marginInlineStart = "0px";
       primaryButtonStyle.width = "100%";
     }
 

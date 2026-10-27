@@ -174,6 +174,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   initialValues?: FormValues<TBaseModel> | undefined;
   modelIdToEdit?: ObjectID | undefined;
   onError?: ((error: string) => void) | undefined;
+  /*
+   * Told what a refused save said, as the form shows it: the sign-in page
+   * reads how the server signs people in again when a password is refused
+   * because the server now requires single sign-on. (onError is for a
+   * record that could not be read.)
+   */
+  onSubmitError?: ((error: string) => void) | undefined;
   onBeforeCreate?: ModelFormOnBeforeCreate<TBaseModel> | undefined;
   onBeforeUpdate?: ModelFormOnBeforeUpdate<TBaseModel> | undefined;
   saveRequestOptions?: RequestOptions | undefined;
@@ -1578,7 +1585,9 @@ const ModelForm: <TBaseModel extends BaseModel>(
 
       onSubmitSuccessful();
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      const message: string = API.getFriendlyMessage(err);
+      setError(message);
+      props.onSubmitError?.(message);
     }
 
     setLoading(false);

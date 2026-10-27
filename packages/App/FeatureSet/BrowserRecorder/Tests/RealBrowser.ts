@@ -55,6 +55,9 @@ interface OsModule {
 
 interface IncomingMessage {
   url?: string;
+  method?: string;
+  headers?: Record<string, string | Array<string> | undefined>;
+  resume?: () => void;
 }
 
 interface ServerResponse {
@@ -433,7 +436,53 @@ export class Browser {
       },
     );
 
-    return new Browser(await Cdp.connect(url), child, profile);
+    const cdp: Cdp = await Cdp.connect(url);
+
+    await Browser.waitForStartupTab(cdp);
+
+    return new Browser(cdp, child, profile);
+  }
+
+  /*
+   * Chromium says DevTools is listening before it has opened its startup
+   * tab, which came 13 to 129 ms later on a developer machine. A tab opened
+   * in that gap is hidden when the startup tab opens over it, or sits in a
+   * window of its own: either way a test that hides it by bringing another
+   * tab to the front never sees it hide. The first vitals test failed that
+   * way on CI (no CLS from the library at the hide, 2 runs in 27 on
+   * 2026-10-26 and -27). So the browser is ready once its startup tab is
+   * open in a window.
+   */
+  private static async waitForStartupTab(cdp: Cdp): Promise<void> {
+    const deadline: number = Date.now() + COMMAND_TIMEOUT_MS;
+
+    while (Date.now() < deadline) {
+      const targets: Record<string, unknown> = await cdp.send(
+        "Target.getTargets",
+        {},
+      );
+      const page: { targetId: string } | undefined = (
+        targets["targetInfos"] as Array<{ type: string; targetId: string }>
+      ).find((info: { type: string }): boolean => {
+        return info.type === "page";
+      });
+
+      if (page) {
+        try {
+          await cdp.send("Browser.getWindowForTarget", {
+            targetId: page.targetId,
+          });
+
+          return;
+        } catch {
+          /* Its window is not there yet. */
+        }
+      }
+
+      await sleep(20);
+    }
+
+    throw new Error("Chromium never opened its startup tab");
   }
 
   public close(): void {
@@ -448,20 +497,63 @@ export class Browser {
   }
 }
 
-/* A local site serving fixed pages, on a port of its own. */
+/* One request the site was sent, as it arrived. */
+export interface SiteRequest {
+  method: string;
+  url: string;
+  path: string;
+
+  /*
+   * The Sec-Purpose header: "prefetch;prerender" on what Chromium fetches
+   * for a page it prerenders.
+   */
+  purpose: string;
+  atMs: number;
+}
+
+/*
+ * A local site serving fixed pages, on a port of its own. Every request is
+ * logged, and a POST - a recording's upload - is taken and answered 202, as
+ * OneUptime's ingest answers it.
+ */
 export class Site {
   public readonly origin: string;
+  public readonly requests: Array<SiteRequest>;
   private readonly server: Server;
 
-  private constructor(server: Server, origin: string) {
+  private constructor(
+    server: Server,
+    origin: string,
+    requests: Array<SiteRequest>,
+  ) {
     this.server = server;
     this.origin = origin;
+    this.requests = requests;
   }
 
   public static async serve(pages: Record<string, string>): Promise<Site> {
+    const requests: Array<SiteRequest> = [];
     const server: Server = http.createServer(
       (request: IncomingMessage, response: ServerResponse): void => {
         const pathname: string = (request.url || "/").split("?")[0] || "/";
+        const purpose: string | Array<string> | undefined =
+          request.headers?.["sec-purpose"];
+
+        requests.push({
+          method: request.method || "GET",
+          url: request.url || "/",
+          path: pathname,
+          purpose: typeof purpose === "string" ? purpose : "",
+          atMs: Date.now(),
+        });
+
+        if (request.method === "POST") {
+          request.resume?.();
+          response.writeHead(202, { "content-type": "text/plain" });
+          response.end("");
+          return;
+        }
+
         const body: string | undefined = pages[pathname];
 
         if (body === undefined) {
@@ -483,7 +575,11 @@ export class Site {
       server.listen(0, "127.0.0.1", resolve);
     });
 
-    return new Site(server, `http://127.0.0.1:${server.address().port}`);
+    return new Site(
+      server,
+      `http://127.0.0.1:${server.address().port}`,
+      requests,
+    );
   }
 
   public close(): void {

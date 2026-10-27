@@ -234,7 +234,7 @@ OneUptime Cloud 只存取網際網路上的 Git 伺服器，絕不存取私有�
 | LLM 提供商 | 無需設定：沒有自己提供商的專案使用全域提供商，費用從專案的 AI 額度中支付。在 **專案設定 → 人工智慧 → LLM 提供商** 下新增的自有提供商優先。 | 在伺服器上一次性設定 `GLOBAL_LLM_PROVIDER_*` 環境變數，或者為專案新增一個提供商。 |
 | 透過 GitHub App 連線的儲存庫 | **產品 → 程式碼**，然後是 **連接 GitHub**。如果該應用程式已安裝在 GitHub 帳號上，請改為點選 **連接現有安裝**：再次安裝並不會連線它。需要 Growth 方案。 | 相同，只要你的執行個體有 GitHub App（請參閱 [GitHub 整合](/docs/self-hosted/github-integration)）。 |
 | 或者 GitLab、Forgejo、Gitea 或任何 Git 伺服器上的儲存庫 | 程式碼中的 **儲存庫**，然後是 **連接儲存庫**（請參閱 [連接儲存庫](#連接儲存庫)）。需要 Growth 方案。 | 相同，無需設定 GitHub App。 |
-| 執行 AI 程式碼修復的 Runner | 無需執行任何東西：沒有選擇 Runner 的儲存庫在專案的預設 Runner 上工作，沒有預設 Runner 時在 OneUptime 的全域 Runner 上工作。 | Docker Compose 的 `runner` 服務，或 Helm chart 的 Runner（`runner.enabled`，預設開啟），會自行註冊，並在每個在全域 Runner 上工作的儲存庫中執行 AI 程式碼修復。 |
+| 執行 AI 程式碼修復的 Runner | 無需執行任何東西：沒有選擇 Runner 的儲存庫在專案的預設 Runner 上工作，沒有預設 Runner 時在 OneUptime 的全域 Runner 上工作。 | 無需執行任何東西：內建的全域 Runner（Docker Compose 中的 `global-runner`，Helm chart 中的 `globalRunner`，預設開啟），以及主管理員新增的每個全域 Runner，會在每個在全域 Runner 上工作的儲存庫中執行 AI 程式碼修復。 |
 
 在自行託管的執行個體上，全域提供商是 `config.env`（Docker Compose）或你的 Helm values 中的一個設定區塊。對於自行託管的 Ollama：
 

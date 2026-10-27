@@ -23,6 +23,10 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import { MonitorUptimeSummary } from "../../Types/Monitor/MonitorUptimeSummary";
 import ObjectID from "../../Types/ObjectID";
 import MonitorUptimeSummaryUtil from "../../Utils/Monitor/MonitorUptimeSummaryUtil";
+import CloudResource from "../../Models/DatabaseModels/CloudResource";
+import { CloudEndpointSuggestion } from "../../Types/Cloud/CloudEndpointMatch";
+import { JSONObject } from "../../Types/JSON";
+import CloudEndpointSuggestions from "../Utils/CloudConnection/CloudEndpointSuggestions";
 
 export default class MonitorAPI extends BaseAPI<Monitor, MonitorServiceType> {
   public constructor() {
@@ -249,6 +253,66 @@ export default class MonitorAPI extends BaseAPI<Monitor, MonitorServiceType> {
             res,
             MonitorUptimeSummaryUtil.toJSON(summary),
           );
+        } catch (e) {
+          next(e);
+        }
+      },
+    );
+
+    /*
+     * GET /monitor/cloud-resource-suggestions/:monitorId
+     *
+     * The cloud resources the monitor seems to check - those whose
+     * endpoints its host, or a name the host's DNS leads to, matches
+     * (CloudEndpointSuggestions) - that it is not linked to yet, for its
+     * Linked Resources card to offer.
+     *
+     * For an authenticated member of the project who may read monitors and
+     * cloud resources. The monitor and the resources are read with the
+     * caller's own props, so their table, label and owned-scope rules
+     * apply; a monitor the caller cannot see suggests nothing. No DNS answer
+     * is returned, only the caller's resources that match one.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/cloud-resource-suggestions/:monitorId`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          ObjectID.validateUUID(req.params["monitorId"] as string);
+
+          CommonAPI.assertCanReadTable({
+            modelType: Monitor,
+            props: databaseProps,
+            errorMessage:
+              "You do not have permission to read this project's monitors.",
+          });
+
+          CommonAPI.assertCanReadTable({
+            modelType: CloudResource,
+            props: databaseProps,
+            errorMessage:
+              "You do not have permission to read this project's cloud resources.",
+          });
+
+          const suggestions: Array<CloudEndpointSuggestion> =
+            await CloudEndpointSuggestions.forMonitor({
+              monitorId: new ObjectID(req.params["monitorId"] as string),
+              projectId: projectId,
+              props: databaseProps,
+            });
+
+          // A listing a moment later can change the answer.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(req, res, {
+            suggestions: suggestions as unknown as Array<JSONObject>,
+          });
         } catch (e) {
           next(e);
         }

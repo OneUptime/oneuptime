@@ -101,6 +101,7 @@ import {
   PrimaryEntitySuggestions,
   resolvePrimaryEntitySuggestions,
 } from "./LogsEntityNames";
+import { translationKey } from "../../Utils/TranslateTemplate";
 
 export interface ComponentProps {
   logs: Array<Log>;
@@ -125,14 +126,20 @@ export interface ComponentProps {
   facetError?: TelemetryLoadError | undefined;
   onRetryFacets?: (() => void) | undefined;
   showFilters?: boolean | undefined;
+  /*
+   * The line under "No logs found" while nothing narrows the list: how logs
+   * reach what the page shows ("Make sure your OTel collector forwards logs
+   * with the host.name resource attribute."). A list the reader's own chip
+   * or search emptied says what to try instead (getLogsEmptyMessage).
+   */
   noLogsMessage?: string | undefined;
   /*
    * What the list shows when it comes back empty while nothing narrows it -
    * no filter chip the reader added, no search typed: the Logs page's way
    * in for a project that may not be sending logs yet (its setup guide).
-   * A list a filter or a search emptied keeps noLogsMessage, and a page
-   * that leaves this unset (a service's or an incident's logs) is
-   * unchanged.
+   * A list a filter or a search emptied says what to try instead
+   * (getLogsEmptyMessage), and a page that leaves this unset (a service's
+   * or an incident's logs) shows its noLogsMessage.
    */
   emptyContentWhenUnfiltered?: ReactNode | undefined;
   getTraceRoute?: (traceId: string, log: Log) => Route | URL | undefined;
@@ -315,6 +322,38 @@ export function getEmptyMessageWithTimeRange(
 
   const rangeLabel: string = timeRange.range.toLowerCase();
   return `Time range: ${rangeLabel}. Try adjusting filters or expanding the time range.`;
+}
+
+/*
+ * What a list the reader narrowed to nothing says under "No logs found":
+ * what to try, in the words the Traces and Exceptions explorers use
+ * (TelemetryViewer).
+ */
+export const LOGS_NARROWED_EMPTY_HINT: string = translationKey(
+  "Try adjusting filters or time range.",
+);
+
+/**
+ * The line under "No logs found".
+ *
+ * A list the reader's own chip or search emptied says what to try, as every
+ * explorer does. A page that embeds the list hands over its own line for
+ * the rest (noLogsMessage): how logs reach what it shows - "Logs appear
+ * here as soon as this service sends them.", "Make sure your OTel collector
+ * forwards logs with the host.name resource attribute." That is true of a
+ * list nothing narrows, and was wrong of one a filter emptied, whose logs
+ * came and were filtered out.
+ */
+export function getLogsEmptyMessage(data: {
+  noLogsMessage: string | undefined;
+  isNarrowedByReader: boolean;
+  timeRange: RangeStartAndEndDateTime | undefined;
+}): string {
+  if (data.isNarrowedByReader) {
+    return LOGS_NARROWED_EMPTY_HINT;
+  }
+
+  return data.noLogsMessage || getEmptyMessageWithTimeRange(data.timeRange);
 }
 
 const getSeverityWeight: (severity: string | undefined) => number = (
@@ -1323,6 +1362,12 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       : {}),
   };
 
+  // A chip of the reader's own or a search in the bar (isNarrowedByReader).
+  const isListNarrowedByReader: boolean = isNarrowedByReader({
+    activeFilters: props.activeFilters,
+    searchQuery: searchQuery,
+  });
+
   const viewer: ReactElement = (
     <div className="space-y-2">
       {props.showFilters && (
@@ -1450,15 +1495,13 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                   focusedRowIndex={
                     focusedRowIndex >= 0 ? focusedRowIndex : undefined
                   }
-                  emptyMessage={
-                    props.noLogsMessage ||
-                    getEmptyMessageWithTimeRange(props.timeRange)
-                  }
+                  emptyMessage={getLogsEmptyMessage({
+                    noLogsMessage: props.noLogsMessage,
+                    isNarrowedByReader: isListNarrowedByReader,
+                    timeRange: props.timeRange,
+                  })}
                   emptyContent={
-                    isNarrowedByReader({
-                      activeFilters: props.activeFilters,
-                      searchQuery: searchQuery,
-                    })
+                    isListNarrowedByReader
                       ? undefined
                       : props.emptyContentWhenUnfiltered
                   }

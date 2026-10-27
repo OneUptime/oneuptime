@@ -14,6 +14,7 @@ import {
   WorkspacePayloadDivider,
   WorkspacePayloadHeader,
   WorkspacePayloadMarkdown,
+  WorkspacePayloadMenu,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import FeedMarkdown, {
@@ -62,6 +63,10 @@ const SENTENCE_END: RegExp = /[.!?]$/;
  * their own - one line under another in both chats (Teams joins lines of
  * one text block that a single line break separates). The footer is small
  * and muted (WorkspacePayloadContext).
+ *
+ * In Slack, somebody connected as a member in two or more of the projects a
+ * workspace is connected to sees one of them at a time, with a Switch
+ * project menu of the others beside the line that names it (SlackHome).
  *
  * Everything is read as the member the chat account is connected to, with
  * their own permissions (the lists through WorkspaceOpenRecords): a part
@@ -205,6 +210,15 @@ export default class WorkspaceHome {
     workspaceType: WorkspaceType;
     view: WorkspaceHomeView;
     actions: WorkspaceHomeActions;
+    /*
+     * A menu beside the line that names the project: the Slack Home's
+     * Switch project, for somebody in several of a workspace's projects
+     * (SlackHome). It needs that line, so a view without the project's
+     * name draws none.
+     */
+    projectMenu?: WorkspacePayloadMenu | undefined;
+    // A line under the greeting, before anything else: why the Home shows this project.
+    notice?: MarkdownText | undefined;
   }): Array<WorkspaceMessageBlock> {
     const { view } = data;
 
@@ -214,11 +228,16 @@ export default class WorkspaceHome {
       ),
     ];
 
+    if (data.notice) {
+      blocks.push(WorkspaceHome.markdown(data.notice));
+    }
+
     if (view.projectName) {
       blocks.push(
-        WorkspaceHome.markdown(
-          mdText`Here's what is happening in **${view.projectName}**${WorkspaceHome.fullStopAfter(view.projectName)}`,
-        ),
+        WorkspaceHome.getProjectLine({
+          projectName: view.projectName,
+          projectMenu: data.projectMenu,
+        }),
       );
     }
 
@@ -299,12 +318,75 @@ export default class WorkspaceHome {
 
   // The Home of somebody whose account is not a member of the project.
   public static getNotAMemberBlocks(): Array<WorkspaceMessageBlock> {
-    return [
+    return WorkspaceHome.getRefusedBlocks({
+      message: WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+    });
+  }
+
+  /*
+   * The Home of somebody the project refuses - not a member any more, or
+   * the project blocked by an administrator: why, in the refusal's own
+   * words, and nothing the project holds. Somebody in several of a
+   * workspace's projects (the Slack Home's Switch project) is told which
+   * one, on the line that names it on every Home, with the menu of their
+   * others beside it - so "this project" is never one of several left
+   * unnamed, and they can always switch away from it. A notice comes first,
+   * as on any Home.
+   */
+  public static getRefusedBlocks(data: {
+    // Plain text, as NotAuthorizedException words it: never Markdown.
+    message: string;
+    projectName?: string | null | undefined;
+    projectMenu?: WorkspacePayloadMenu | undefined;
+    notice?: MarkdownText | undefined;
+  }): Array<WorkspaceMessageBlock> {
+    const blocks: Array<WorkspaceMessageBlock> = [
       WorkspaceHome.header("👋 Hi there"),
-      WorkspaceHome.markdown(
-        mdText`${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}`,
-      ),
     ];
+
+    if (data.notice) {
+      blocks.push(WorkspaceHome.markdown(data.notice));
+    }
+
+    const refusal: WorkspacePayloadMarkdown = WorkspaceHome.markdown(
+      mdText`${data.message}`,
+    );
+
+    if (data.projectMenu && data.projectName) {
+      blocks.push(
+        WorkspaceHome.getProjectLine({
+          projectName: data.projectName,
+          projectMenu: data.projectMenu,
+        }),
+      );
+    } else if (data.projectMenu) {
+      // No name to put it beside: the menu goes beside why.
+      refusal.menu = data.projectMenu;
+    }
+
+    blocks.push(refusal);
+
+    return blocks;
+  }
+
+  /*
+   * "Here's what is happening in **Acme Production**." - the line under the
+   * greeting that says which project the Home is for, with the Slack Home's
+   * Switch project menu beside it when there is one.
+   */
+  public static getProjectLine(data: {
+    projectName: string;
+    projectMenu?: WorkspacePayloadMenu | undefined;
+  }): WorkspacePayloadMarkdown {
+    const projectLine: WorkspacePayloadMarkdown = WorkspaceHome.markdown(
+      mdText`Here's what is happening in **${data.projectName}**${WorkspaceHome.fullStopAfter(data.projectName)}`,
+    );
+
+    if (data.projectMenu) {
+      projectLine.menu = data.projectMenu;
+    }
+
+    return projectLine;
   }
 
   /*

@@ -281,7 +281,7 @@ En lagring som sender **Krev SSO for innlogging** som slått på mens det allere
 
 Et nytt prosjekt følger samme regel. Det har ingen egen leverandør ennå, så å opprette det med **Krev SSO for innlogging** allerede slått på — det kan bare en master-admin — krever en global leverandør som er slått på og logger personer inn i alle prosjekter, og uten en slik avvises det med de samme ordene. Opprett prosjektet, sett opp og test leverandøren, og slå deretter på bryteren.
 
-Så lenge hele serveren krever SSO (**Admin** > **Innstillinger** > **Autentisering** > **Krev SSO for innlogging**), krever det å opprette et hvilket som helst prosjekt også en slik global leverandør, ellers kunne ingen, heller ikke den som oppretter det, åpne prosjektet. Uten en slik avvises opprettelsen av et prosjekt, og meldingen ber en serveradministrator slå på en. Master-admins kan fortsatt opprette prosjekter.
+Så lenge hele serveren krever SSO (**Admin** > **Innstillinger** > **Enkel pålogging** > **Krev SSO for innlogging**), krever det å opprette et hvilket som helst prosjekt også en slik global leverandør, ellers kunne ingen, heller ikke den som oppretter det, åpne prosjektet. Uten en slik avvises opprettelsen av et prosjekt, og meldingen ber en serveradministrator slå på en. Master-admins kan fortsatt opprette prosjekter.
 
 Å slå av **Krev SSO for innlogging** lagres så snart du slår om bryteren, og slipper medlemmer inn med passordet sitt med en gang — med mindre noen slår den på igjen i akkurat det øyeblikket; da kan en appserver bruke opptil ett minutt på å følge etter. Prosjekteiere, prosjektadministratorer og medlemmer med tillatelsen **Edit Project** kan endre den; alle andre ser bryteren låst, sammen med tillatelsen de ville trengt.
 
@@ -308,7 +308,7 @@ Så lenge prosjektet krever SSO, holder OneUptime en vei inn åpen: du kan ikke 
 
 Å slå på en leverandør lar personer logge inn med den med en gang.
 
-Når hele serveren krever SSO (**Admin** > **Innstillinger** > **Autentisering** > **Krev SSO for innlogging**), beholder hvert prosjekt en vei inn på samme måte, også et prosjekt som ikke selv krever SSO: slå først på en annen leverandør for det.
+Når hele serveren krever SSO (**Admin** > **Innstillinger** > **Enkel pålogging** > **Krev SSO for innlogging**), beholder hvert prosjekt en vei inn på samme måte, også et prosjekt som ikke selv krever SSO: slå først på en annen leverandør for det.
 
 Globale leverandører følger samme regel: en endring av en global leverandør eller prosjektene som er knyttet til den, som ville etterlate et prosjekt som krever SSO uten leverandør, avvises og nevner prosjektet. Se [Global SSO](/docs/identity/global-sso#slå-av-eller-slette-en-leverandør).
 

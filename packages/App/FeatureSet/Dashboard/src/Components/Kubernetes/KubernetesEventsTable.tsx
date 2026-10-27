@@ -11,6 +11,7 @@ import {
   formatFeedTimeAgo,
   getFeedClock,
 } from "Common/UI/Components/Feed/FeedTime";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Table from "Common/UI/Components/Table/Table";
@@ -391,7 +392,13 @@ const EventCell: FunctionComponent<{
             className="mt-1 text-sm font-normal text-gray-600 [overflow-wrap:anywhere]"
             data-testid="kubernetes-event-message"
           >
-            {row.message}
+            {/*
+             * The names in it - an image, a node, a volume's path - break
+             * after their own dots and slashes first, as everywhere a name is
+             * drawn (BreakableName): "acmecloud.azurecr.io/shop/" /
+             * "storefront:9.3.1", not "storefront:9.3.1" / a lone quote.
+             */}
+            <BreakableName text={row.message} />
           </p>
         ) : (
           <></>

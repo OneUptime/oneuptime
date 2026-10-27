@@ -29,6 +29,12 @@ import {
   toggleMarkdownList,
 } from "./MarkdownListEditing";
 import MarkdownEditorHistory from "./MarkdownEditorHistory";
+import {
+  getMarkdownReadingDirection,
+  MARKDOWN_EDITOR_BLOCKS_READ_THEIR_OWN_WAY_CSS,
+} from "./MarkdownReadingDirection";
+import { ReadingDirection } from "../../../Types/ReadingDirection";
+import { TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME } from "../../Utils/TypedTextDirection";
 import { clipboardToMarkdown } from "./MarkdownPaste";
 import {
   deleteSelectionForInsert,
@@ -2405,6 +2411,14 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
       " border-red-300 pr-10 text-red-900 placeholder-red-300 focus:border-red-500 focus:outline-none focus:ring-red-500";
   }
 
+  /*
+   * What is written reads the way it is written: an English note left to
+   * right on a Persian page. Empty, the editor follows the page, so the
+   * placeholder starts where the page's words do.
+   */
+  const textDirection: ReadingDirection | undefined =
+    getMarkdownReadingDirection(text);
+
   const wysiwygClassName: string = `oneuptime-wysiwyg block w-full min-h-32 rounded-md rounded-t-none border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 ${
     props.error
       ? "border-red-300 pr-10 text-red-900 focus:border-red-500 focus:outline-none focus:ring-red-500"
@@ -2509,16 +2523,16 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         .oneuptime-wysiwyg h2 { font-size: 1.25rem; font-weight: 700; margin: 0.5rem 0; }
         .oneuptime-wysiwyg h3 { font-size: 1.125rem; font-weight: 600; margin: 0.5rem 0; }
         .oneuptime-wysiwyg p { margin: 0.5rem 0; }
-        .oneuptime-wysiwyg ul, .oneuptime-wysiwyg ol { margin: 0.5rem 0 0.5rem 1.5rem; }
+        .oneuptime-wysiwyg ul, .oneuptime-wysiwyg ol { margin-block: 0.5rem; margin-inline: 1.5rem 0; }
         .oneuptime-wysiwyg ul { list-style-type: disc; }
         /* Nested bullets step through circle and square, as MarkdownViewer draws them. */
         .oneuptime-wysiwyg ul ul, .oneuptime-wysiwyg ol ul { list-style-type: circle; }
         .oneuptime-wysiwyg ul ul ul, .oneuptime-wysiwyg ul ol ul, .oneuptime-wysiwyg ol ul ul, .oneuptime-wysiwyg ol ol ul { list-style-type: square; }
         .oneuptime-wysiwyg ol { list-style-type: decimal; }
-        .oneuptime-wysiwyg ul.task-list, .oneuptime-wysiwyg ul.task-list li { list-style: none; margin-left: 0; }
-        .oneuptime-wysiwyg ul.task-list li { padding-left: 0; }
-        .oneuptime-wysiwyg blockquote { border-left: 3px solid var(--ou-border-strong, #d1d5db); padding-left: 0.75rem; color: var(--ou-text-secondary, #4b5563); margin: 0.5rem 0; }
-        .oneuptime-wysiwyg pre { background: var(--ou-surface-tertiary, #f3f4f6); border-radius: 0.375rem; padding: 0.75rem; overflow-x: auto; margin: 0.5rem 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85rem; }
+        .oneuptime-wysiwyg ul.task-list, .oneuptime-wysiwyg ul.task-list li { list-style: none; margin-inline-start: 0; }
+        .oneuptime-wysiwyg ul.task-list li { padding-inline-start: 0; }
+        .oneuptime-wysiwyg blockquote { border-inline-start: 3px solid var(--ou-border-strong, #d1d5db); padding-inline-start: 0.75rem; color: var(--ou-text-secondary, #4b5563); margin: 0.5rem 0; }
+        .oneuptime-wysiwyg pre { background: var(--ou-surface-tertiary, #f3f4f6); border-radius: 0.375rem; padding: 0.75rem; overflow-x: auto; margin: 0.5rem 0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85rem; direction: ltr; text-align: left; }
         .oneuptime-wysiwyg code { background: var(--ou-surface-tertiary, #f3f4f6); padding: 0 0.25rem; border-radius: 0.25rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.85em; }
         .oneuptime-wysiwyg pre code { background: transparent; padding: 0; }
         .oneuptime-wysiwyg a { color: var(--ou-link, #4f46e5); text-decoration: underline; }
@@ -2528,6 +2542,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         .oneuptime-wysiwyg th { background: var(--ou-surface-secondary, #f9fafb); font-weight: 600; }
         .oneuptime-wysiwyg img { max-width: 100%; height: auto; }
         .oneuptime-wysiwyg:empty::before { content: attr(data-placeholder); color: var(--ou-text-subtle, #9ca3af); pointer-events: none; }
+        ${MARKDOWN_EDITOR_BLOCKS_READ_THEIR_OWN_WAY_CSS}
       `}</style>
 
       {/*
@@ -2643,8 +2658,11 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
         </div>
       </div>
 
-      {/* Editor Area */}
-      <div className="relative">
+      {/*
+       * Editor Area. Its direction is the text's own, so the text, its
+       * padding and the error icon at the end of its line all agree.
+       */}
+      <div className="relative" dir={textDirection}>
         {allowImageUpload && (
           <input
             ref={fileInputRef}
@@ -2737,7 +2755,7 @@ const MarkdownEditor: FunctionComponent<ComponentProps> = (
                 props.error ? errorId : undefined,
               )}
               placeholder={sourcePlaceholder}
-              className={`${className} rounded-t-none min-h-32 ${
+              className={`${className} rounded-t-none min-h-32 ${TYPED_TEXT_READS_ITS_OWN_WAY_CLASS_NAME} ${
                 isDraggingOver
                   ? "ring-2 ring-indigo-400 ring-offset-1 border-indigo-400"
                   : ""

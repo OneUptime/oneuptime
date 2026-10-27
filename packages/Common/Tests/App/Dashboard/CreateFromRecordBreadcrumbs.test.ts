@@ -66,6 +66,7 @@ import {
   getVMwareBreadcrumbs,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs";
 import { getNetworkSiteBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/Utils/Breadcrumbs";
+import { getCloudBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CloudBreadcrumbs";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
@@ -93,6 +94,7 @@ const PRODUCT_BREADCRUMBS: Record<CreateFromRecordKind, GetBreadcrumbs> = {
   [CreateFromRecordKind.DockerSwarmCluster]: getDockerSwarmBreadcrumbs,
   [CreateFromRecordKind.IoTFleet]: getIoTBreadcrumbs,
   [CreateFromRecordKind.DatabaseServer]: getDatabaseBreadcrumbs,
+  [CreateFromRecordKind.CloudResource]: getCloudBreadcrumbs,
   [CreateFromRecordKind.NetworkSite]: getNetworkSiteBreadcrumbs,
   [CreateFromRecordKind.Service]: getServiceBreadcrumbs,
   [CreateFromRecordKind.StatusPage]: getStatusPagesBreadcrumbs,

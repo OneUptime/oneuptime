@@ -10,15 +10,12 @@ import Navigation from "Common/UI/Utils/Navigation";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import {
-  BulkActionFailed,
-  BulkActionOnClickProps,
-} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { BulkActionOnClickProps } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import { runBulkAction } from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, {
   Fragment,
@@ -95,9 +92,10 @@ const NetworkDeviceInterfaces: FunctionComponent<
   }, [countsRefreshToken]);
 
   /*
-   * Bulk mute/unmute. Mirrors the loop in useBulkArchiveActions: update
-   * each selected row and stream progress back to the BulkUpdateForm so
-   * failures surface per-interface.
+   * Bulk mute/unmute: each selected row its own update, through the shared
+   * runner (progress, Stop, failures per interface). One at a time: every
+   * interface of a device rolls up into that device's health, which each
+   * write recomputes.
    */
   type ApplyBulkMonitoringFunction = (
     isMonitored: boolean,
@@ -108,20 +106,10 @@ const NetworkDeviceInterfaces: FunctionComponent<
     isMonitored: boolean,
     bulkProps: BulkActionOnClickProps<NetworkInterface>,
   ): Promise<void> => {
-    const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-      bulkProps;
-
-    onBulkActionStart();
-
-    const totalItems: Array<NetworkInterface> = [...items];
-    const inProgressItems: Array<NetworkInterface> = [...items];
-    const successItems: Array<NetworkInterface> = [];
-    const failedItems: Array<BulkActionFailed<NetworkInterface>> = [];
-
-    for (const item of totalItems) {
-      inProgressItems.splice(inProgressItems.indexOf(item), 1);
-
-      try {
+    await runBulkAction<NetworkInterface>({
+      actionProps: bulkProps,
+      concurrency: 1,
+      step: async (item: NetworkInterface): Promise<void> => {
         if (!item.id) {
           throw new BadDataException("Interface ID not found");
         }
@@ -133,24 +121,9 @@ const NetworkDeviceInterfaces: FunctionComponent<
             isMonitored: isMonitored,
           } as any,
         });
+      },
+    });
 
-        successItems.push(item);
-      } catch (err) {
-        failedItems.push({
-          item: item,
-          failedMessage: API.getFriendlyMessage(err),
-        });
-      }
-
-      onProgressInfo({
-        totalItems: totalItems,
-        failed: failedItems,
-        successItems: successItems,
-        inProgressItems: inProgressItems,
-      });
-    }
-
-    onBulkActionEnd();
     setCountsRefreshToken((current: number) => {
       return current + 1;
     });

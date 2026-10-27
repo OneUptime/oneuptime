@@ -192,6 +192,8 @@ Die Antworten auf `help` und `oncall` sind Nachrichten, die nur Sie sehen, unter
 
 Die Startseite liest als Sie, deshalb braucht sie Ihr eigenes verbundenes Slack-Konto. Bis es verbunden ist, enthält sie die Schaltfläche **Connect Slack account** und zeigt Ihnen Ihre Startseite, sobald Sie es verbunden haben.
 
+In einem Slack-Workspace, der mit mehr als einem Projekt verbunden ist, zeigt die Startseite jeweils ein Projekt. Ist Ihr Slack-Konto in zwei oder mehr davon verbunden, listet das Menü **Switch project** neben dem Namen des Projekts die anderen auf, in denen Sie Mitglied sind. Wählen Sie eines, um seine Startseite zu sehen, und die Startseite öffnet sich von da an mit ihm, solange Sie dort noch Mitglied sind. Bis Sie eines wählen, zeigt sie dasjenige Ihrer Projekte, das zuerst mit Slack verbunden wurde.
+
 Wenn jemand OneUptime zu einem Kanal hinzufügt, postet es dort eine Begrüßung: wie man ihm eine Frage stellt und wo man eine Benachrichtigungsregel hinzufügt, die in den Kanal postet. Wenn Sie den Tab **Messages** zum ersten Mal öffnen, heißt es Sie dort willkommen: was es in Slack tut und wie Sie anfangen.
 
 ## OneUptime AI aus Slack fragen

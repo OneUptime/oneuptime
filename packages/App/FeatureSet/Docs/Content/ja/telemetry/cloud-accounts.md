@@ -1,12 +1,12 @@
 # クラウド アカウントの接続
 
-ダッシュボードから AWS アカウント、Azure サブスクリプション、Google Cloud プロジェクトを接続すると、OneUptime がそのリソースを一覧にし、主要なメトリクスを定期的に読み取ります。クラウドのブラウザー ターミナルでコマンドを一つ実行し、出力を貼り付けるだけです。コレクターの運用も、インストールも不要です。
+ダッシュボードから AWS アカウント、Azure サブスクリプション、Google Cloud プロジェクトを接続すると、OneUptime がその中のすべてのリソースを一覧にし、主要なメトリクスを読み取り、リソースで何が変わったか、クラウド プロバイダーがリソースの状態について何を伝えているかを記録します。クラウドのブラウザー ターミナルでコマンドを一つ実行し、出力を貼り付けるだけです。コレクターの運用も、インストールも不要です。
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): OneUptime がサインインする IAM ロール、またはアクセス キー。
 - [Microsoft Azure](#microsoft-azure): Monitoring Reader ロールを持つアプリ。
-- [Google Cloud](#google-cloud): Monitoring Viewer ロールを持つサービス アカウント。
-- [OneUptime が読み取るもの](#oneuptime-が読み取るもの): どのリソースとメトリクスを、どのくらいの頻度で読み取り、いくらかかるか。
+- [Google Cloud](#google-cloud): 読み取り専用の四つのロールを持つサービス アカウント。
+- [OneUptime が読み取るもの](#oneuptime-が読み取るもの): リソース、メトリクス、変更、ヘルス イベントを、どのくらいの頻度で読み取り、いくらかかるか。
 :::
 
 ## 仕組み
@@ -17,11 +17,14 @@ flowchart TB
     access --> ou["OneUptime が<br/>数分ごとに読み取る"]
     ou --> res["クラウドリソース"]
     ou --> met["メトリクス"]
+    ou --> chg["変更と<br/>ヘルス イベント"]
 ```
 
-- **アクセスは読み取りだけです。** コマンドが作成するアクセスはメトリクスを読み取るだけで、それ以外は何もできません。AWS では三つの読み取りアクション、Azure では **Monitoring Reader** ロール、Google Cloud では **Monitoring Viewer** ロールです。削除すれば OneUptime のアクセスを止められます。
-- **OneUptime は定期的に読み取ります。** 接続時に別の間隔を選ばない限り、Azure と Google Cloud は 5 分ごと、AWS は 10 分ごとです。
-- **リソースごとに専用のページがあります。** リソースは **クラウド → すべてのリソース** に、主要なメトリクス、オーナー、ラベルとともに表示されます。コレクターが報告するリソースと同じです。
+- **アクセスは読み取りだけです。** コマンドが作成するアクセスは、リソースとその設定、メトリクス、変更内容、プロバイダーのヘルス イベントを読み取るだけで、それ以外は何もできません。AWS では下に挙げるアクション、Azure では **Monitoring Reader** ロール、Google Cloud では四つの閲覧者ロールです。データやシークレットを読み取ることはありません。削除すれば OneUptime のアクセスを止められます。
+- **OneUptime は定期的に読み取ります。** 接続時に別の間隔を選ばない限り、Azure と Google Cloud は 5 分ごと、AWS は 10 分ごとです。各読み取りは前回からの変更も記録し、30 分ごとにすべてのリソースをもう一度一覧にします。
+- **リソースごとに専用のページがあります。** リソースは **クラウド → すべてのリソース** に、主要なメトリクス、オーナー、ラベルとともに表示されます。一覧に載ったリソースのページには、**つながっているリソース** (どこで動いているか、どこからトラフィックが来るか)、エンドポイント、タグ、設定、そして **インシデント**、**アラート**、**変更** も表示されます。
+- **アカウントごとに専用のページがあります。** アカウントは **クラウド → アカウント** に、種類とリージョン別のリソース、**変更**、リソースどうしのつながりを示す **トポロジー** とともに表示されます。
+- **OneUptime AI が変更を読み取ります。** クラウド リソースにリンクされたインシデントやアラートの調査は、まずそのリソースの変更を読み取り、開始時にアカウントのアクティビティ ログを読み直します。
 
 ## 始める前に
 
@@ -37,11 +40,15 @@ flowchart TB
 
 ### AWS CloudShell でコマンドを実行する
 
-OneUptime のサインイン方法を選びます。推奨は **IAM ロール** です。秘密情報は保存されず、ロールはいつでも削除できます。フォームには、プロジェクト用に書かれたコマンドが表示されます。このコマンドは、プロジェクトの外部 ID で OneUptime の AWS アカウントを信頼するロールを作成し、ロールの ARN を出力します。ロールを使えない場合は **アクセス キー** を使います。次のコマンドは同じ権限を持つユーザーを作成し、そのキーを出力します。
+OneUptime のサインイン方法を選びます。推奨は **IAM ロール** です。秘密情報は保存されず、ロールはいつでも削除できます。フォームには、プロジェクト用に書かれたコマンドが表示されます。このコマンドは、プロジェクトの外部 ID で OneUptime の AWS アカウントを信頼するロールを作成し、ロールの ARN を出力します。
+
+**読み取る対象** で、このアカウントか、AWS Organization のすべてのアカウントを選びます。組織用のコマンドは管理アカウントで実行します。このコマンドは、すべてのアカウントに同じロールを置く StackSet を追加し (今あるアカウントにも、あとから加わるアカウントにも)、管理アカウントのロールがアカウントを一覧にできるようにします。一つの接続で最大 50 個のアカウントを読み取ります。
+
+ロールを使えない場合は **アクセス キー** を使います。読み取れるのは自分のアカウントだけです。次のコマンドは同じ権限を持つユーザーを作成し、そのキーを出力します。
 
 ```bash
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
-aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources"],"Resource":"*"}]}'
+aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeNatGateways","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:DescribeLoadBalancers","elasticloadbalancing:DescribeLoadBalancerAttributes","elasticloadbalancing:DescribeTargetGroups","elasticloadbalancing:DescribeTargetGroupAttributes","elasticloadbalancing:DescribeTargetHealth","elasticloadbalancing:DescribeTags","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","cloudtrail:LookupEvents","health:DescribeEvents","health:DescribeEventDetails"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis","arn:aws:apigateway:*::/restapis/*","arn:aws:apigateway:*::/apis","arn:aws:apigateway:*::/apis/*"]}]}'
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
@@ -51,16 +58,21 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 
 ### AWS をテストして接続する
 
-このステップを開くと、OneUptime が接続をテストします。サインインし、見つかったリソースを数え、その読み取りにかかる費用を示します。保存するには **接続** を選びます。
+この手順を開くと、OneUptime が接続をテストします。サインインし、見つかったリソースを数え、読み取りにかかる費用を示します。**接続** を選んで保存します。
 :::
 
-このロールとユーザーにできることは三つだけです。
+このロールとユーザーにできるのは次のことだけです。
 
-| アクション | OneUptime の用途 |
+| OneUptime の用途 | アクション |
 | --- | --- |
-| `cloudwatch:ListMetrics` | 各リージョンでメトリクスを送信しているリソースを見つける |
-| `cloudwatch:GetMetricData` | その主要なメトリクスを読み取る |
-| `tag:GetResources` | 各リソースを `Name` タグで名前付けする |
+| メトリクスを送信しているリソースを見つけ、そのメトリクスを読み取る | `cloudwatch:GetMetricData`, `cloudwatch:ListMetrics` |
+| 各リソースに名前を付け、そのタグを読み取る | `tag:GetResources`, `iam:ListAccountAliases` |
+| Cloud Control を通じて、すべてのリソースとその構成を一覧にする | `cloudformation:ListResources`, `ec2:DescribeInstances`, `ec2:DescribeVolumes`, `ec2:DescribeVpcs`, `ec2:DescribeNatGateways`, `autoscaling:DescribeAutoScalingGroups`, `elasticloadbalancing:DescribeLoadBalancers`, `elasticloadbalancing:DescribeLoadBalancerAttributes`, `elasticloadbalancing:DescribeTargetGroups`, `elasticloadbalancing:DescribeTargetGroupAttributes`, `elasticloadbalancing:DescribeTargetHealth`, `elasticloadbalancing:DescribeTags`, `ecs:ListClusters`, `ecs:DescribeClusters`, `ecs:ListServices`, `ecs:DescribeServices`, `lambda:ListFunctions`, `rds:DescribeDBInstances`, `rds:DescribeDBClusters`, `elasticache:DescribeReplicationGroups`, `sqs:ListQueues`, `sqs:GetQueueAttributes`, `sns:ListTopics`, `sns:GetTopicAttributes`, `sns:ListSubscriptionsByTopic`, `dynamodb:ListTables`, `dynamodb:DescribeTable`, `kinesis:ListStreams`, `kinesis:DescribeStreamSummary`, `states:ListStateMachines`, `states:DescribeStateMachine`, `cloudfront:ListDistributions`, `elasticfilesystem:DescribeFileSystems`, `es:ListDomainNames`, `es:DescribeDomains`, `apprunner:ListServices`, `apprunner:DescribeService`, `apigateway:GET` |
+| 変更を読み取る: アカウントの管理イベント | `cloudtrail:LookupEvents` |
+| アカウントに関する AWS 自身のヘルス イベントを読み取る | `health:DescribeEvents`, `health:DescribeEventDetails` |
+| 管理アカウントから組織のアカウントを一覧にする | `organizations:ListAccounts` |
+
+`apigateway:GET` は API 自身の定義に対してだけ許可され、キーには許可されません。また、組織のアカウントを一覧にできるのは管理アカウントのロールだけです。AWS Health が応答するのは、Business、Enterprise On-Ramp、Enterprise のいずれかのサポート プランを契約しているアカウントだけです。契約がない場合、OneUptime は一日後にもう一度問い合わせます。
 
 > [!NOTE]
 > セルフホストの OneUptime では、**IAM ロール** の方式に OneUptime 自身の AWS ID が必要です。`CLOUD_CONNECT_AWS_ACCESS_KEY_ID` と `CLOUD_CONNECT_AWS_SECRET_ACCESS_KEY` に、`sts:AssumeRole` を呼び出せる IAM ユーザーのキーを設定してください。設定がない場合、フォームは **アクセス キー** を提示します。
@@ -74,19 +86,33 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 
 ### Azure Cloud Shell でコマンドを実行する
 
-このコマンドは、現在のサブスクリプションに **Monitoring Reader** ロールを持つアプリを作成し、その詳細を出力します。
+このコマンドは、現在のサブスクリプションで **Monitoring Reader** ロールを持つアプリを作成し、その詳細をシークレットの有効期限とともに出力します。
 
 ```bash
-az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "/subscriptions/$(az account show --query id --output tsv)"
+SCOPE="/subscriptions/$(az account show --query id --output tsv)"
+OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
+APP=$(echo "$OUT" | jq -r .appId)
+END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
+echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
+```
+
+**読み取る対象** でテナントのすべてのサブスクリプションを選ぶと、ロールはテナントのルート管理グループに付与されます。
+
+```bash
+SCOPE="/providers/Microsoft.Management/managementGroups/$(az account show --query tenantId --output tsv)"
+OUT=$(az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --scopes "$SCOPE")
+APP=$(echo "$OUT" | jq -r .appId)
+END=$(az ad app credential list --id "$APP" --query "max([].endDateTime)" --output tsv)
+echo "$OUT" | jq --arg end "$END" '. + {endDateTime: $end}'
 ```
 
 ### Azure のコマンドの出力を貼り付ける
 
-コマンドの出力をすべて **コマンドの出力** に貼り付けます。OneUptime が `tenant`、`appId`、`password` を取り出します。
+コマンドの出力をすべて **コマンドの出力** に貼り付けます。OneUptime が `tenant`、`appId`、`password` と有効期限を取り出します。
 
 ### Azure をテストして接続する
 
-このステップを開くと、OneUptime が接続をテストします。保存するには **接続** を選びます。
+この手順を開くと、OneUptime が接続をテストします。**接続** を選んで保存します。
 :::
 
 同じアプリでほかのサブスクリプションも読み取るには、それぞれのサブスクリプションでアプリにロールを付与します。
@@ -95,7 +121,7 @@ az ad sp create-for-rbac --name OneUptimeReadOnly --role "Monitoring Reader" --s
 az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope /subscriptions/<SUBSCRIPTION_ID>
 ```
 
-**サブスクリプション** にいくつか指定しない限り、OneUptime はアプリが読み取れるすべてのサブスクリプションを読み取ります。
+**サブスクリプション** にいくつか指定しない限り、OneUptime はアプリが読み取れるすべてのサブスクリプションを最大 50 個まで読み取ります。アプリのシークレットは有効期限の日に使えなくなります。その 30 日前から、読み取りのたびに警告が出ます。コマンドをもう一度実行して出力を貼り付けると、新しいシークレットになります。
 
 ## Google Cloud
 
@@ -106,13 +132,31 @@ az role assignment create --assignee <APP_ID> --role "Monitoring Reader" --scope
 
 ### Google Cloud Shell でコマンドを実行する
 
-監視するプロジェクトで実行します。Cloud Monitoring API を有効にし、**Monitoring Viewer** ロールを持つサービス アカウントを作成して、そのキーを出力します。
+監視するプロジェクトで実行します。OneUptime が読み取る API を有効にし、**Monitoring Viewer**、**Cloud Asset Viewer**、**Logs Viewer**、**Service Health Viewer** の各ロールを持つサービス アカウントを作成して、そのキーを出力します。
 
 ```bash
 PROJECT_ID=$(gcloud config get-value project)
-gcloud services enable monitoring.googleapis.com
-gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)"
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com
+gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
 gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
+gcloud projects add-iam-policy-binding "$PROJECT_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
+gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
+cat oneuptime-key.json && rm oneuptime-key.json
+```
+
+**読み取る対象** で組織のすべてのプロジェクトを選ぶと、ロールはプロジェクトの組織に付与されます。
+
+```bash
+PROJECT_ID=$(gcloud config get-value project)
+ORG_ID=$(gcloud projects get-ancestors "$PROJECT_ID" --format="value(id)" | tail -1)
+gcloud services enable monitoring.googleapis.com cloudasset.googleapis.com logging.googleapis.com cloudresourcemanager.googleapis.com servicehealth.googleapis.com
+gcloud iam service-accounts create oneuptime-read-only --display-name "OneUptime (read only)" > /dev/null 2>&1 || true
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/monitoring.viewer --condition=None > /dev/null
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/cloudasset.viewer --condition=None > /dev/null
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/logging.viewer --condition=None > /dev/null
+gcloud organizations add-iam-policy-binding "$ORG_ID" --member "serviceAccount:oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com" --role roles/servicehealth.viewer --condition=None > /dev/null
 gcloud iam service-accounts keys create oneuptime-key.json --iam-account "oneuptime-read-only@$PROJECT_ID.iam.gserviceaccount.com"
 cat oneuptime-key.json && rm oneuptime-key.json
 ```
@@ -123,27 +167,31 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 ### Google Cloud をテストして接続する
 
-このステップを開くと、OneUptime が接続をテストします。保存するには **接続** を選びます。
+この手順を開くと、OneUptime が接続をテストします。**接続** を選んで保存します。
 :::
 
-同じサービス アカウントでほかのプロジェクトも読み取るには、それぞれのプロジェクトでロールを付与し、**プロジェクト** に指定します。
+同じサービス アカウントでほかのプロジェクトも読み取るには、それぞれのプロジェクトで四つのロールを付与し、**プロジェクト** に指定します。
 
 ```bash
-gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role roles/monitoring.viewer
+for ROLE in roles/monitoring.viewer roles/cloudasset.viewer roles/logging.viewer roles/servicehealth.viewer; do gcloud projects add-iam-policy-binding <PROJECT_ID> --member "serviceAccount:oneuptime-read-only@<KEY_PROJECT_ID>.iam.gserviceaccount.com" --role "$ROLE"; done
 ```
+
+**プロジェクト** にいくつか指定しない限り、組織の接続はその組織のプロジェクトを最大 50 個まで読み取ります。
 
 ## OneUptime が読み取るもの
 
 | | AWS | Azure | Google Cloud |
 | --- | --- | --- | --- |
-| リソース | 使用中のすべてのリージョンで CloudWatch にメトリクスを送信しているもの | サブスクリプション内のすべてのリソース | Cloud Monitoring にメトリクスを送信しているもの |
+| リソース | 使用中のすべてのリージョンにある、OneUptime が知っている種類のすべてのリソース (Cloud Control から) | サブスクリプション内のすべてのリソース (Resource Graph から) | プロジェクト内のすべてのリソース (Cloud Asset Inventory から) |
 | メトリクス | 各サービスの主要なメトリクス (インスタンスの CPU、ネットワーク、ステータス チェックなど) | リソースごとに最大 8 個の主要なメトリクス | 各リソース タイプの主要なメトリクス |
+| 変更 | CloudTrail の管理イベント | アクティビティ ログの管理イベント | Admin Activity 監査ログ |
+| ヘルス イベント | AWS Health | Service Health と Resource Health | Service Health |
 | 読み取り間隔 | 10 分 | 5 分 | 5 分 |
-| 削除されたリソース | メトリクスが 7 日間なければアーカイブ | 次の読み取りでアーカイブ | メトリクスが 7 日間なければアーカイブ |
+| 削除されたリソース | 完全な一覧に載らなくなるとアーカイブ | 完全な一覧に載らなくなるとアーカイブ | 完全な一覧に載らなくなるとアーカイブ |
 
-各読み取りは前回の続きから始まるため、各データ ポイントは一度だけ書き込まれます。新しい接続の最初の読み取りはすぐに始まり、直近一時間分をさかのぼります。中断のあとの読み取りは、さかのぼっても最大 6 時間です。
+各読み取りは前回の続きから始まるため、各データ ポイントと各変更は一度だけ書き込まれます。新しい接続の最初の読み取りは一分以内に始まり、メトリクスは一時間分、変更は 2 時間分さかのぼります。中断のあとの読み取りは、さかのぼっても最大 6 時間です。メトリクスを報告するだけでどの一覧にも載らないリソースは、メトリクスが 7 日間なければアーカイブされます。
 
-OneUptime の呼び出しは、クラウドの料金でお使いのクラウド アカウントに請求されます。テストは見つかったものの費用を見積もります。読み取り頻度を下げると費用も下がります。**その他の項目** の **メトリクスの読み取り間隔** を変更してください。
+OneUptime の呼び出しは、クラウドの料金でお使いのクラウド アカウントに請求されます。リソースの一覧と、変更やヘルス イベントの読み取りは、三つのクラウドのどれでも無料です。費用がかかるのはメトリクスの読み取りです。テストは見つかったものの費用を見積もります。読み取り頻度を下げると費用も下がります。**その他の項目** の **メトリクスの読み取り間隔** を変更してください。
 
 | クラウド | 料金 |
 | --- | --- |
@@ -151,10 +199,16 @@ OneUptime の呼び出しは、クラウドの料金でお使いのクラウド 
 | Azure | 各サブスクリプションで月 1,000,000 回までのメトリクス読み取りは無料。その後は 1,000 回あたり $0.01 |
 | Google Cloud | 月 1,000,000 件までの時系列の読み取りは無料。その後は百万件あたり $0.50 |
 
+## OneUptime で見えるもの
+
+- **アカウントのページ。** **クラウド → アカウント** で、アカウントの概要には種類とリージョン別のリソース数と、接続が最後に読み取った時刻が表示されます。**リソース** にはリソースの一覧、**変更** には新しい順の変更、**トポロジー** にはリージョン、その中のネットワーク、それぞれで動いているものが、リンクされたリソース上の未解決のインシデントとアラートとともに描かれます。
+- **リソースの変更。** 変更は、変更したリソースとそのアカウントに結び付いた変更イベントとして保存され、リソースのメトリクス チャートにインシデントやアラートとともにマーカーとして描かれます。どのリソースにも絞り込まれていないチャートには、クラウド アカウントのアクティビティ ログは表示されません。忙しいアカウントでデプロイが埋もれないようにするためです。プロバイダーのヘルス イベントは表示されたままです。
+- **インシデントとアラート。** モニター、インシデント、アラートのリンクされたリソースでクラウド リソースをリンクすると、そのインシデントとアラートがリソースのページに一覧表示されます。ホストがリソースのエンドポイントに (直接、または DNS を通じて) つながる Web サイト、API、SSL、ping、ポートのモニターでは、**リンクされたリソース** カードの **おすすめのクラウドリソース** にそのリソースが表示されます。**リソースをリンク** を選んでリンクします。
+
 ## トラブルシューティング
 
 :::details テストでキーまたはシークレットが受け付けられなかったと表示される
-コマンドの出力をすべてコピーして、もう一度貼り付けてください。作成したばかりのキーは、使えるようになるまで少し時間がかかることがあります。
+コマンドの出力をすべてコピーして、もう一度貼り付けてください。作成したばかりのキーは、使えるようになるまで少し時間がかかることがあります。有効期限が切れた Azure のシークレットも拒否されます。コマンドをもう一度実行してください。
 :::
 
 :::details テストでサインインはできるが、読み取れない
@@ -166,12 +220,17 @@ OneUptime の呼び出しは、クラウドの料金でお使いのクラウド 
 :::
 
 :::details リソースが表示されない
-AWS と Google Cloud では、リソースはメトリクスを送信すると表示されます。接続が動作していない場合は、**クラウド → 接続** の **エラーを表示** で、最後の読み取りが失敗した理由を確認できます。
+最初の読み取りでは、メトリクスを報告しているかどうかにかかわらず、アカウントのすべてのリソースが一覧になります。接続が動作していない場合は、**クラウド → 接続** の **エラーを表示** で、最後の読み取りが失敗した理由を確認できます。
+:::
+
+:::details 組織の一部のアカウントが見当たらない
+一つの接続で読み取れるのは最大 50 個のアカウント、サブスクリプション、プロジェクトで、それより多い場合は読み取りのたびにそう表示されます。残りは別の接続で接続してください。
 :::
 
 ## 次のステップ
 
 :::cards
 - [クラウドリソース](/docs/telemetry/cloud-resources): 代わりに独自の OpenTelemetry Collector を運用するか、CloudWatch メトリクスをストリーミングします。
+- [デプロイと変更](/docs/telemetry/change-events): OneUptime が記録するすべての変更と、OneUptime AI がそれを読み取るしくみ。
 - [メトリクス モニター](/docs/monitor/metrics-monitor): リソースのメトリクスでアラートを出します。
 :::

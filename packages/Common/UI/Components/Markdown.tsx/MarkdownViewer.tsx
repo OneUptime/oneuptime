@@ -92,11 +92,15 @@ import {
   rehypePutBackHeldText,
 } from "./MarkdownViewerOverLongText";
 import { markdownUrlTransform } from "./MarkdownUrlTransform";
+import {
+  getShownMarkdownReadingDirection,
+  rehypeBlocksReadTheirOwnWay,
+} from "./MarkdownReadingDirection";
 import MarkdownLink from "./MarkdownLink";
 import MarkdownBlockquote, { useMarkdownTextClassName } from "./MarkdownQuote";
 import { remarkMarkdownCallouts } from "./MarkdownCallouts";
 import OneUptimeDate from "../../../Types/Date";
-import { splitAtNameBreaks } from "../../../Utils/NameBreaks";
+import BreakableName from "../BreakableName/BreakableName";
 import { Theme, useTheme } from "../../Utils/Theme";
 import {
   translateTemplate,
@@ -334,16 +338,28 @@ const INLINE_REFERENCE_TRANSFORM_OPTIONS: InlineReferenceTransformOptions = {
  * The viewer's outer wrapper. Provides the inline reference callbacks to the
  * module-scope reference elements only when the caller opted in, so the
  * default render is unchanged.
+ *
+ * It lays the text out the way it is written (MarkdownReadingDirection): an
+ * English note left to right on a Persian page, as most of its letters
+ * read; each of its paragraphs, lists, quotes and tables then reads its own
+ * way (rehypeBlocksReadTheirOwnWay).
  */
 const MarkdownViewerFrame: FunctionComponent<{
   inlineReferences: MarkdownInlineReferenceRenderers | undefined;
+  text: string;
   children: ReactNode;
 }> = (props: {
   inlineReferences: MarkdownInlineReferenceRenderers | undefined;
+  text: string;
   children: ReactNode;
 }): ReactElement => {
   const frame: ReactElement = (
-    <div className="max-w-none">{props.children}</div>
+    <div
+      className="max-w-none"
+      dir={getShownMarkdownReadingDirection(props.text)}
+    >
+      {props.children}
+    </div>
   );
 
   if (!props.inlineReferences) {
@@ -1089,29 +1105,22 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
          * Inline code. A name in code is often one long word
          * ("com.example.checkout.http.server.request.count"), and on a
          * phone it ran out past the text's edge, cut off. It breaks after
-         * its own dots and slashes first (Utils/NameBreaks: a <wbr>, no
-         * character added, so a copy reads as written), and anywhere
-         * ([overflow-wrap:anywhere]) only when a part is still too long for
-         * its line, as a long link does (MarkdownLink).
+         * its own dots and slashes first (BreakableName, over
+         * Utils/NameBreaks: a <wbr>, no character added, so a copy reads as
+         * written), and anywhere ([overflow-wrap:anywhere]) only when a part
+         * is still too long for its line, as a long link does
+         * (MarkdownLink).
          */
-        const nameParts: Array<string> | null =
-          typeof children === "string" ? splitAtNameBreaks(children) : null;
-
         return (
           <code
             className="text-xs px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-gray-800 font-mono [overflow-wrap:anywhere]"
             {...rest}
           >
-            {nameParts && nameParts.length > 1
-              ? nameParts.map((part: string, index: number): ReactElement => {
-                  return (
-                    <React.Fragment key={index}>
-                      {part}
-                      {index < nameParts.length - 1 ? <wbr /> : <></>}
-                    </React.Fragment>
-                  );
-                })
-              : children}
+            {typeof children === "string" ? (
+              <BreakableName text={children} />
+            ) : (
+              children
+            )}
           </code>
         );
       },
@@ -1126,9 +1135,16 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
    */
   if (heldBack.showAsText) {
     return (
-      <MarkdownViewerFrame inlineReferences={inlineReferences}>
+      <MarkdownViewerFrame
+        inlineReferences={inlineReferences}
+        text={props.text}
+      >
+        {/*
+         * Each of its lines reads the way its first letter does
+         * (unicode-bidi: plaintext), and starts on that side.
+         */}
         <p
-          className="text-sm mt-2 mb-1 text-gray-700 leading-relaxed whitespace-pre-wrap break-words"
+          className="text-sm mt-2 mb-1 text-gray-700 leading-relaxed whitespace-pre-wrap break-words [unicode-bidi:plaintext] text-start"
           data-testid="markdown-viewer-text"
         >
           {props.text}
@@ -1138,7 +1154,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <MarkdownViewerFrame inlineReferences={inlineReferences}>
+    <MarkdownViewerFrame inlineReferences={inlineReferences} text={props.text}>
       <ReactMarkdown
         components={components}
         urlTransform={markdownUrlTransform}
@@ -1152,14 +1168,19 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
             : [remarkGfm, remarkMarkdownCallouts]
         }
         rehypePlugins={
+          /*
+           * The held-back text first, so each block's direction is read
+           * from its whole text.
+           */
           heldBack.held.length > 0
             ? [
                 [
                   rehypePutBackHeldText,
                   { held: heldBack.held, heldLines: heldBack.heldLines },
                 ],
+                rehypeBlocksReadTheirOwnWay,
               ]
-            : undefined
+            : [rehypeBlocksReadTheirOwnWay]
         }
       >
         {heldBack.markdown}

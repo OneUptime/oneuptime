@@ -146,6 +146,8 @@ const SOURCES: Record<string, string> = {
   teamsSignInAuthority: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsSignInAuthority.ts`,
   teamsDocumentation: `${DASHBOARD}/Components/MicrosoftTeams/MicrosoftTeamsIntegrationDocumentation.tsx`,
   teamsUtil: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeams.ts`,
+  teamsProjectChoice: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsProjectChoice.ts`,
+  projectChoiceStore: `${COMMON_SERVER}/Utils/Workspace/WorkspaceProjectChoiceStore.ts`,
   teamsServiceUrl: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsServiceUrl.ts`,
   teamsIntegration: `${DASHBOARD}/Components/MicrosoftTeams/MicrosoftTeamsIntegration.tsx`,
   teamsChatsCard: `${DASHBOARD}/Components/MicrosoftTeams/MicrosoftTeamsChatsCard.tsx`,
@@ -1213,7 +1215,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
       "ingress",
       "app",
       "probe-1",
-      "runner",
+      "global-runner",
       "postgres",
       "clickhouse",
       "valkey",
@@ -1238,7 +1240,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
     }
   });
 
-  it("the probe and the Runner use the host's network, and npm start moves their URLs to the ingress the proxy steps publish", () => {
+  it("the probe uses the host's network, and npm start moves its URLs to the ingress the proxy steps publish; the global Runner calls the app directly", () => {
     const base: Record<string, ComposeService> = composeServices("baseCompose");
     const config: Map<string, string> = configExample();
     const proxyStep: string = blockFrom(
@@ -1282,12 +1284,8 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(followed.moved).toEqual([
       "GLOBAL_PROBE_1_ONEUPTIME_URL",
       "GLOBAL_PROBE_2_ONEUPTIME_URL",
-      "ONEUPTIME_RUNNER_ONEUPTIME_URL",
     ]);
     expect(after.get("GLOBAL_PROBE_1_ONEUPTIME_URL")).toBe(
-      "http://localhost:8080",
-    );
-    expect(after.get("ONEUPTIME_RUNNER_ONEUPTIME_URL")).toBe(
       "http://localhost:8080",
     );
     expect(
@@ -1298,24 +1296,25 @@ describe("Docker Compose, against the compose files and scripts", () => {
       start.indexOf("docker compose up"),
     );
     expect(proxyStep).toContain(
-      "`npm start` moves them to the ingress's new port, `http://localhost:8080`, and says so.",
+      "`npm start` moves it to the ingress's new port, `http://localhost:8080`, and says so.",
     );
     expect(page).toContain(
-      "`npm start` moves it and `ONEUPTIME_RUNNER_ONEUPTIME_URL` to the ingress's port while they point at `localhost`.",
+      "`npm start` moves it to the ingress's port while it points at `localhost`.",
     );
 
     expect(base["probe-1"]?.["network_mode"]).toBe("host");
-    expect(base["runner"]?.["network_mode"]).toBe("host");
     expect(valueAt(base, "probe-1.environment.ONEUPTIME_URL")).toBe(
       "${GLOBAL_PROBE_1_ONEUPTIME_URL}",
     );
-    expect(valueAt(base, "runner.environment.ONEUPTIME_URL")).toBe(
-      "${ONEUPTIME_RUNNER_ONEUPTIME_URL}",
-    );
     expect(config.get("GLOBAL_PROBE_1_ONEUPTIME_URL")).toBe("http://localhost");
-    expect(config.get("ONEUPTIME_RUNNER_ONEUPTIME_URL")).toBe(
-      "http://localhost",
+
+    // The global Runner calls the app on the oneuptime network: no URL to move.
+    expect(base["global-runner"]?.["networks"]).toEqual(["oneuptime"]);
+    expect(valueAt(base, "global-runner.environment.ONEUPTIME_URL")).toBe(
+      "http://app:${APP_PORT}",
     );
+    expect(base["runner"]).toBeUndefined();
+    expect(config.has("ONEUPTIME_RUNNER_ONEUPTIME_URL")).toBe(false);
 
     expect(rowOf(sectionOf(page, "## How it works"), "`probe-1`")[2]).toContain(
       "It uses the host's network.",
@@ -1379,7 +1378,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
       rows.map((row: Array<string>): string => {
         return row[0] as string;
       }),
-    ).toEqual(["80", "443", "5400", "3874", "3876"]);
+    ).toEqual(["80", "443", "5400", "3874"]);
 
     for (const row of rows) {
       const settings: Array<string> = inlineCodes(row[2] as string);
@@ -1406,9 +1405,9 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(valueAt(base, "probe-1.environment.PORT")).toBe(
       "${GLOBAL_PROBE_1_PORT}",
     );
-    expect(valueAt(base, "runner.environment.PORT")).toBe(
-      "${ONEUPTIME_RUNNER_PORT}",
-    );
+    // The global Runner publishes no host port (the shared Runner's 3876 went with it).
+    expect(base["global-runner"]?.["ports"]).toBeUndefined();
+    expect(config.has("ONEUPTIME_RUNNER_PORT")).toBe(false);
     expect(config.get("DATABASE_BACKUP_HOST")).toBe("localhost");
     expect(config.get("DATABASE_BACKUP_PORT")).toBe("5400");
   });
@@ -1442,7 +1441,7 @@ describe("Docker Compose, against the compose files and scripts", () => {
     ].sort();
     const start: string = scriptsOf("rootPackage")["start"] as string;
 
-    expect(shipped.length).toBe(10);
+    expect(shipped.length).toBe(9);
     expect(named).toEqual(shipped);
     expect(setByNpmStart).toEqual(shipped);
     for (const step of [
@@ -1983,7 +1982,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
     const runByDefault: Array<[string, string]> = [
       ["app", "app.resources"],
       ["nginx", "nginx.resources"],
-      ["runner", "runner.resources"],
+      ["globalRunner", "globalRunner.resources"],
       ["probes.one", "probes.one.resources"],
       ["postgresql", "postgresql.primary.resources"],
       ["clickhouse", "clickhouse.resources"],
@@ -2083,7 +2082,7 @@ describe("Sizing & Capacity Planning, against the Helm chart", () => {
     expect(keda?.condition).toContain("keda.enabled");
     expect(valueAt(values, "keda.enabled")).toBe(false);
 
-    for (const service of ["app", "worker", "probes.one", "runner"]) {
+    for (const service of ["app", "worker", "probes.one", "globalRunner"]) {
       expect({
         service,
         keda: valueAt(values, `${service}.keda.enabled`),
@@ -2958,6 +2957,44 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
         from = at + part.length;
       }
     }
+  });
+
+  /*
+   * The bot asks which project a request is for, with a button for each
+   * (MicrosoftTeamsProjectChoice), and answers with the troubleshooting
+   * entry's sentence only when it cannot ask: more projects than a card
+   * lists, a project it cannot name, or a request it cannot keep in Valkey
+   * for the half hour its buttons work (WorkspaceProjectChoiceStore).
+   */
+  it("the ambiguous answer's entry says the bot asks first, and when it cannot, by the server's own limits", () => {
+    const store: string = readSource("projectChoiceStore");
+    const choice: string = readSource("teamsProjectChoice");
+    const entry: string = page.substring(
+      page.indexOf(
+        '### "This Microsoft 365 organization is connected to more than one OneUptime project"',
+      ),
+    );
+    const body: string = entry.split("\n")[2] || "";
+
+    expect(store).toContain("public static readonly MAX_CHOICES: number = 25;");
+    expect(store).toContain(
+      "public static readonly EXPIRES_IN_SECONDS: number = 30 * 60;",
+    );
+    expect(store).toContain("await GlobalCache.setString(");
+    expect(choice).toContain(
+      "projectIds.length > WorkspaceProjectChoiceStore.MAX_CHOICES",
+    );
+    expect(choice).toContain("if (!choices) {");
+
+    expect(body).toContain(
+      "the bot asks the sender which project they mean, with a button for each one they're in.",
+    );
+    expect(body).toContain(
+      "It answers with this sentence only when it cannot ask: the sender is in more than 25 of the projects, a project's name cannot be read, or Valkey, the cache that keeps the request for the half hour its buttons work, is unavailable.",
+    );
+    expect(body).toContain(
+      "Send it again from a channel of the project you mean, such as one of its incident channels.",
+    );
   });
 
   it("the tenant check logs the line the page searches for, and the query reads the token table", () => {

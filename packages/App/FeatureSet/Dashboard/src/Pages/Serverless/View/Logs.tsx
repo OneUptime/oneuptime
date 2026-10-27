@@ -109,7 +109,7 @@ const ServerlessFunctionLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs found for this function. Make sure your OTel collector forwards logs with the faas.name resource attribute."
+        noLogsMessage="Make sure your OTel collector forwards logs with the faas.name resource attribute."
       />
     </Fragment>
   );

@@ -184,6 +184,8 @@ import MonitorProbe, {
 } from "../../../Models/DatabaseModels/MonitorProbe";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
+import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import Probe, {
   ProbeConnectionStatus,
 } from "../../../Models/DatabaseModels/Probe";
@@ -315,6 +317,8 @@ interface FakeServer {
    * measure a skewed browser against.
    */
   isUptimeStampedLive: boolean;
+  // The monitor's scheduled maintenance the uptime strip asks for.
+  maintenance: Array<ScheduledMaintenance>;
 }
 
 interface ListRequest {
@@ -353,6 +357,52 @@ function buildStatus(statusId: string): MonitorStatus {
   status.isOfflineState = statusId === OFFLINE_ID;
   status.priority = statusId === OFFLINE_ID ? 2 : 1;
   return status;
+}
+
+const MAINTENANCE_ONGOING_STATE_ID: string =
+  "5f710000-0000-4000-8000-000000000002";
+const MAINTENANCE_COMPLETED_STATE_ID: string =
+  "5f710000-0000-4000-8000-000000000003";
+
+// The project's maintenance states: Scheduled, Ongoing, Completed.
+function buildMaintenanceStates(): Array<ScheduledMaintenanceState> {
+  return [
+    { id: "5f710000-0000-4000-8000-000000000001", name: "Scheduled" },
+    { id: MAINTENANCE_ONGOING_STATE_ID, name: "Ongoing" },
+    { id: MAINTENANCE_COMPLETED_STATE_ID, name: "Completed" },
+  ].map(
+    (
+      spec: { id: string; name: string },
+      index: number,
+    ): ScheduledMaintenanceState => {
+      const state: ScheduledMaintenanceState = new ScheduledMaintenanceState();
+      state._id = spec.id;
+      state.name = spec.name;
+      state.order = index + 1;
+      state.color = new Color("#16a34a");
+      state.isScheduledState = spec.name === "Scheduled";
+      state.isOngoingState = spec.name === "Ongoing";
+      state.isEndedState = false;
+      state.isResolvedState = spec.name === "Completed";
+      return state;
+    },
+  );
+}
+
+// An event of the monitor, over, from 09:00 to 11:00 UTC yesterday.
+function buildMaintenanceEvent(): ScheduledMaintenance {
+  const event: ScheduledMaintenance = new ScheduledMaintenance();
+  event._id = "5f720000-0000-4000-8000-000000000001";
+  event.title = "Database upgrade";
+  event.startsAt = new Date("2026-09-20T09:00:00.000Z");
+  event.endsAt = new Date("2026-09-20T11:00:00.000Z");
+  event.currentScheduledMaintenanceState = buildMaintenanceStates()[2]!;
+
+  const monitor: Monitor = new Monitor();
+  monitor._id = MONITOR_A;
+  event.monitors = [monitor];
+
+  return event;
 }
 
 function stepsOf(stepData: JSONObject): MonitorSteps {
@@ -758,6 +808,7 @@ beforeEach(() => {
     openIncidentCount: 0,
     probeFailure: null,
     isUptimeStampedLive: false,
+    maintenance: [],
   };
 
   jest
@@ -839,6 +890,15 @@ beforeEach(() => {
       return Promise.resolve(
         listOf([buildStatus(OPERATIONAL_ID), buildStatus(OFFLINE_ID)]),
       );
+    }
+
+    // The uptime strip's scheduled maintenance, and the states that place it.
+    if (request.modelType === ScheduledMaintenanceState) {
+      return Promise.resolve(listOf(buildMaintenanceStates()));
+    }
+
+    if (request.modelType === ScheduledMaintenance) {
+      return Promise.resolve(listOf(server.maintenance));
     }
 
     if (
@@ -2270,5 +2330,65 @@ describe("Monitor overview page: a history the page hides", () => {
 
     expect(heading("Uptime history")).toBeInTheDocument();
     expect(apiGetUrls("/monitor/uptime-summary/")).toHaveLength(2);
+  });
+});
+
+/*
+ * The monitor's scheduled maintenance reaches its 90-day strip (#5236): the
+ * page reads it over the summary's window, by the project's started states,
+ * and hands it to the strip with a key for its band.
+ */
+describe("Monitor overview page: scheduled maintenance on the uptime strip", () => {
+  function maintenanceListRequests(): Array<ListRequest> {
+    return getListSpy.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as ListRequest;
+      })
+      .filter((request: ListRequest) => {
+        return request.modelType === ScheduledMaintenance;
+      });
+  }
+
+  test("reads the monitor's maintenance once and hands it to the strip", async () => {
+    server.maintenance = [buildMaintenanceEvent()];
+
+    await renderPage();
+
+    expect(maintenanceListRequests()).toHaveLength(1);
+    expect(
+      String(
+        (
+          maintenanceListRequests()[0]!.query["monitors"] as {
+            values: Array<ObjectID>;
+          }
+        ).values[0],
+      ),
+    ).toBe(MONITOR_A);
+
+    const strip: { maintenanceEvents?: Array<{ title: string }> } =
+      latestProps<{ maintenanceEvents?: Array<{ title: string }> }>(
+        "MonitorUptimeGraph",
+      );
+
+    expect(
+      (strip.maintenanceEvents || []).map((event: { title: string }) => {
+        return event.title;
+      }),
+    ).toEqual(["Database upgrade"]);
+    expect(
+      screen.getByTestId("monitor-uptime-legend-maintenance"),
+    ).toHaveTextContent("Scheduled maintenance");
+  });
+
+  test("a monitor with no maintenance has no key for it", async () => {
+    await renderPage();
+
+    expect(maintenanceListRequests()).toHaveLength(1);
+    expect(
+      screen.queryByTestId("monitor-uptime-legend-maintenance"),
+    ).toBeNull();
+    expect(
+      screen.queryByTestId("monitor-uptime-maintenance-unavailable"),
+    ).toBeNull();
   });
 });

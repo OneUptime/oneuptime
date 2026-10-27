@@ -1931,7 +1931,7 @@ describe("an event's state timeline", () => {
     "## The state timeline",
   );
 
-  it("draws the Status Timeline card, and its Table view with the columns the page names", () => {
+  it("draws the State Timeline card, and its Table view with the columns the page names", () => {
     const viewSwitch: string = readCommonSource(
       "UI/Components/StatusTimeline/StatusTimelineView.tsx",
     );
@@ -1942,7 +1942,9 @@ describe("an event's state timeline", () => {
     );
     const columns: string = table.slice(table.indexOf("columns={["));
 
-    expect(STATE_TIMELINE_PAGE).toContain('title="Status Timeline"');
+    // The card is named like the page and its menu entry: State Timeline.
+    expect(STATE_TIMELINE_PAGE).toContain('title="State Timeline"');
+    expect(STATE_TIMELINE_PAGE).not.toContain('"Status Timeline"');
     expect(viewSwitch).toContain('label: translationKey("Table"),');
     expect(quotedTitles(columns)).toEqual([
       "Scheduled Maintenance Status",
@@ -1953,9 +1955,7 @@ describe("an event's state timeline", () => {
     expect(columns).toContain(
       "getStateTimelineEndsAtColumn<ScheduledMaintenanceStateTimeline>(),\n          getStateTimelineDurationColumn<ScheduledMaintenanceStateTimeline>(),",
     );
-    expect(timeline).toContain(
-      "Its card, **Status Timeline**, draws them as a timeline",
-    );
+    expect(timeline).toContain("Its card draws them as a timeline");
     expect(timeline).toContain(
       "**Table**, in the card's header, lists them as rows instead, with **Scheduled Maintenance Status**, **Starts At**, **Ends At**, **Duration**, whether subscribers were to be notified, and how their notification went.",
     );
@@ -2207,7 +2207,12 @@ describe("the create form", () => {
     );
 
     expect(prefill).toContain(
-      'export const SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> =\n  [...MONITOR_LINKED_RESOURCE_KEYS, "networkSites"];',
+      'export const SCHEDULED_MAINTENANCE_PREFILL_PAYLOAD_KEYS: Array<AffectedResourcesPayloadKey> =\n  [\n    ...MONITOR_LINKED_RESOURCE_KEYS.filter(\n      (key: MonitorLinkedResourceKey): boolean => {\n        return key !== "cloudResources";\n      },\n    ),\n    "networkSites",\n  ];',
+    );
+    // A maintenance event holds no cloud resources, and the page says so.
+    expect(prefill).toContain('"cloudResources",\n  "services",\n];');
+    expect(creating).toContain(
+      "Remove any you do not want. Cloud resources are not added: a maintenance event does not hold them.",
     );
     expect(suggestions).toContain(
       'export const ADD_ALL_SUGGESTED_STATUS_PAGES: string = translationKey("Add all");',

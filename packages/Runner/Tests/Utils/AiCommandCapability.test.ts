@@ -5,9 +5,10 @@
  * AI-composed remediation commands are the third capability, and its posture
  * is strictly deny-by-default: the dashboard's grant is the only thing that
  * can turn it ON, the ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS env var can only
- * ever turn it OFF, a cluster-scoped Runner can never have it (no project
- * row to opt in with), and an older server that never reported capabilities
- * cannot have granted it — so the legacy fallback keeps it off too.
+ * ever turn it OFF, a global Runner can never have it (it runs every
+ * project's work, and AI commands act in one project's own systems), and an
+ * older server that never reported capabilities cannot have granted it — so
+ * the legacy fallback keeps it off too.
  *
  * Config.ts reads the env at import time and RunnerCapabilities holds
  * module-level state (the server grant), so every scenario re-requires both
@@ -128,21 +129,36 @@ describe("project-scoped Runner: the dashboard grants AI commands, env can only 
   });
 });
 
-describe("cluster-scoped Runner: AI commands are always off", () => {
-  /*
-   * ONEUPTIME_SECRET set before Config is required makes
-   * Common/Server/EnvironmentConfig.HasClusterKey — and with it
-   * Config.IS_CLUSTER_SCOPED — true at import time.
-   */
+describe("a global Runner: AI commands are always off", () => {
   test("off even when a (buggy or malicious) grant and the env var both say yes", () => {
     const RunnerCapabilities: typeof RunnerCapabilitiesType = loadCapabilities({
-      ONEUPTIME_SECRET: "test-cluster-secret",
       ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS: "true",
     });
+
+    // Only the server says a Runner is global, on the same copy of the modules.
+    /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+    (
+      require("../../Utils/GlobalRunnerMode") as {
+        default: { setFromServer: (isGlobalRunner: boolean) => void };
+      }
+    ).default.setFromServer(true);
+    /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
     RunnerCapabilities.setGrantedByServer(AI_COMMANDS_GRANTED);
 
     expect(RunnerCapabilities.resolve().canRunAiCommands).toBe(false);
+  });
+});
+
+describe("a cluster key in the Runner's environment", () => {
+  test("changes nothing: AI commands follow the server's grant, as on any Runner", () => {
+    const RunnerCapabilities: typeof RunnerCapabilitiesType = loadCapabilities({
+      ONEUPTIME_SECRET: "test-cluster-secret",
+    });
+
+    RunnerCapabilities.setGrantedByServer(AI_COMMANDS_GRANTED);
+
+    expect(RunnerCapabilities.resolve().canRunAiCommands).toBe(true);
   });
 });
 

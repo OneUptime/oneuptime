@@ -102,7 +102,14 @@ describe("Dashboard LogsViewer facet request", () => {
   });
 
   test("asks /telemetry/logs/facets for the catalog-derived key list", () => {
-    expect(LOGS_VIEWER).toContain("facetKeys:[...LOGS_EXPLORER_FACET_KEYS]");
+    /*
+     * Planned over the list (FacetCountPlan): a facet with a value chosen
+     * is counted in a request of its own, the rest together.
+     */
+    expect(LOGS_VIEWER).toContain(
+      "planFacetCountRequests({facetKeys:LOGS_EXPLORER_FACET_KEYS,",
+    );
+    expect(LOGS_VIEWER).toContain("facetKeys:[...part.facetKeys]");
     expect(count(LOGS_VIEWER, '"/telemetry/logs/facets"')).toBe(1);
   });
 

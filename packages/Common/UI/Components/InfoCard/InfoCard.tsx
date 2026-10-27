@@ -1,3 +1,4 @@
+import BreakableName from "../BreakableName/BreakableName";
 import FieldLabelElement from "../Detail/FieldLabel";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -30,11 +31,33 @@ export interface ComponentProps {
   paddingClassName?: string | undefined;
 }
 
+/*
+ * A value with no place to break - a 64-character container ID, a digest, a
+ * long hostname - used to run out of its card, and out of the grid the
+ * cards sit in, on a phone (a Swarm task's Container ID, follow-up of
+ * #5076). It breaks anywhere it has to, which also lets the card shrink to
+ * its grid column; text that fits is drawn exactly as before.
+ *
+ * A text value that names something breaks after its own dots and slashes
+ * first (BreakableName): an image reads "registry.example/shop/" /
+ * "checkout:2.7.0" rather than "...checkout:2.7." / "0", a task's id
+ * "task/" / "x7k2m9...". Only a part still too long for its line - a
+ * container ID - breaks anywhere.
+ */
+export const INFO_CARD_VALUE_WRAP_CLASS_NAME: string =
+  "min-w-0 [overflow-wrap:anywhere]";
+
 const InfoCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const isClickable: boolean = Boolean(props.onClick);
   const paddingClassName: string = props.paddingClassName || "p-5";
+  const value: ReactElement =
+    typeof props.value === "string" ? (
+      <BreakableName text={props.value} />
+    ) : (
+      props.value
+    );
 
   /*
    * A selected card swaps its border rather than adding one: Tailwind emits
@@ -88,8 +111,11 @@ const InfoCard: FunctionComponent<ComponentProps> = (
             isCardStyle={true}
           />
         </div>
-        <div className={props.textClassName || "text-gray-900"}>
-          {props.value}
+        <div
+          data-testid="info-card-value"
+          className={`${INFO_CARD_VALUE_WRAP_CLASS_NAME} ${props.textClassName || "text-gray-900"}`}
+        >
+          {value}
         </div>
       </div>
     );
@@ -144,8 +170,11 @@ const InfoCard: FunctionComponent<ComponentProps> = (
           isCardStyle={true}
         />
       </div>
-      <div className={props.textClassName || "text-gray-900"}>
-        {props.value}
+      <div
+        data-testid="info-card-value"
+        className={`${INFO_CARD_VALUE_WRAP_CLASS_NAME} ${props.textClassName || "text-gray-900"}`}
+      >
+        {value}
       </div>
     </div>
   );

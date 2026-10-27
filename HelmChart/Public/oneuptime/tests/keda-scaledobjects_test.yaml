@@ -37,8 +37,7 @@ tests:
       worker.keda.enabled: true
       telemetryWriter.enabled: true
       telemetryWriter.keda.enabled: true
-      runner.enabled: true
-      runner.keda.enabled: true
+      globalRunner.keda.enabled: true
     asserts:
       # 6 tiers x (ScaledObject + TriggerAuthentication). A count below 12 means
       # objects were glued into shared documents rather than dropped from the
@@ -79,7 +78,7 @@ tests:
       - containsDocument:
           apiVersion: keda.sh/v1alpha1
           kind: ScaledObject
-          name: ou-runner-scaledobject
+          name: ou-global-runner-scaledobject
           namespace: oneuptime
           any: true
       # Every tier's TriggerAuthentication must survive as its own document.
@@ -117,7 +116,7 @@ tests:
       - containsDocument:
           apiVersion: keda.sh/v1alpha1
           kind: TriggerAuthentication
-          name: ou-runner-trigger-auth
+          name: ou-global-runner-trigger-auth
           namespace: oneuptime
           any: true
 
@@ -152,14 +151,134 @@ tests:
   # live in keda-global-default_test.yaml as failedTemplate assertions.
   #
   # Re-checked after the guard learned to excuse disableAutoscaler: it does not
-  # bring these two lines back. worker.disableAutoscaler and runner.disableAutoscaler
-  # both ship false, so both tiers would really render ScaledObjects with the
-  # global flag on and are genuine offenders with it off. Restoring the old set
-  # block fails with the guard's message, not with a document count.
+  # bring these lines back. worker.disableAutoscaler ships false, so the worker
+  # tier would really render a ScaledObject with the global flag on and is a
+  # genuine offender with it off (the runner tier is gone: the global Runner,
+  # which has no disableAutoscaler, took its place). Restoring the old set block
+  # fails with the guard's message, not with a document count.
   - it: should render nothing when keda is disabled globally
     set:
       keda.enabled: false
       worker.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # --- the global Runner -----------------------------------------------------
+  # The bundled global Runner does the AI code fixes of every project that uses
+  # global Runners (it took them over from the shared Runner, which is gone), so
+  # it is the tier that scales on the code-fix tasks waiting for a Runner: the
+  # same metric the shared Runner scaled on, read from the global Runner's own
+  # /metrics/queue-size through the Service global-runner.yaml renders while
+  # KEDA scales it (tests/global-runner_test.yaml holds that Service).
+  - it: scales the global Runner deployment on the code-fix queue, at its own http port
+    set:
+      keda.enabled: true
+      globalRunner.keda.enabled: true
+    documentSelector:
+      path: kind
+      value: ScaledObject
+    asserts:
+      - equal:
+          path: metadata.name
+          value: ou-global-runner-scaledobject
+      - equal:
+          path: spec.scaleTargetRef.name
+          value: ou-global-runner
+      - equal:
+          path: spec.triggers
+          value:
+            - type: metrics-api
+              metadata:
+                targetValue: "5"
+                url: http://ou-global-runner:3877/metrics/queue-size
+                valueLocation: queueSize
+      - equal:
+          path: spec.minReplicaCount
+          value: 1
+      - equal:
+          path: spec.maxReplicaCount
+          value: 100
+      - equal:
+          path: spec.pollingInterval
+          value: 30
+      - equal:
+          path: spec.cooldownPeriod
+          value: 300
+      - equal:
+          path: spec.fallback
+          value:
+            failureThreshold: 3
+            replicas: 1
+
+  - it: follows globalRunner.keda and the global Runner's own port
+    set:
+      keda.enabled: true
+      globalRunner.ports.http: 3999
+      globalRunner.keda.enabled: true
+      globalRunner.keda.minReplicas: 2
+      globalRunner.keda.maxReplicas: 8
+      globalRunner.keda.queueSizeThreshold: 3
+      globalRunner.keda.pollingInterval: 15
+      globalRunner.keda.cooldownPeriod: 120
+      globalRunner.keda.fallback.replicas: 0
+    documentSelector:
+      path: kind
+      value: ScaledObject
+    asserts:
+      - equal:
+          path: spec.triggers[0].metadata.url
+          value: http://ou-global-runner:3999/metrics/queue-size
+      - equal:
+          path: spec.triggers[0].metadata.targetValue
+          value: "3"
+      - equal:
+          path: spec.minReplicaCount
+          value: 2
+      - equal:
+          path: spec.maxReplicaCount
+          value: 8
+      - equal:
+          path: spec.pollingInterval
+          value: 15
+      - equal:
+          path: spec.cooldownPeriod
+          value: 120
+      - notExists:
+          path: spec.fallback
+
+  - it: renders no global Runner ScaledObject while globalRunner.keda is off
+    set:
+      keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders no global Runner ScaledObject while the global Runner is off
+    set:
+      keda.enabled: true
+      globalRunner.enabled: false
+      globalRunner.keda.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders no global Runner ScaledObject while deployments are off
+    set:
+      keda.enabled: true
+      globalRunner.keda.enabled: true
+      deployment.disableDeployments: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # An old values file may still turn the shared Runner's KEDA on. Nothing
+  # reads it: no ScaledObject for a runner deployment the chart no longer runs.
+  - it: renders no ScaledObject for the shared Runner, whatever runner.keda says
+    set:
+      keda.enabled: true
+      runner.enabled: true
+      runner.keda.enabled: true
     asserts:
       - hasDocuments:
           count: 0

@@ -261,4 +261,26 @@ describe("metric-list resource scope on row navigation", () => {
       "resource.k8s.cluster.name": "prod",
     });
   });
+
+  /*
+   * A Cloud Resource's Metrics tab: its metrics are filtered by what its
+   * provider reports it under, its markers by the row itself.
+   */
+  test("a cloud resource's row id travels beside its metric filter, never into it", async () => {
+    const query: MetricQueryConfigData = await openMetric({
+      attributeFilters: {
+        Namespace: "AWS/EC2",
+        "Dimensions.InstanceId": "i-0abc",
+      },
+      eventScope: { cloudResourceId: SECOND_ID.toString() },
+    });
+
+    expect(query.eventScope).toEqual({
+      cloudResourceId: SECOND_ID.toString(),
+    });
+    expect(query.metricQueryData.filterData.attributes).toEqual({
+      Namespace: "AWS/EC2",
+      "Dimensions.InstanceId": "i-0abc",
+    });
+  });
 });

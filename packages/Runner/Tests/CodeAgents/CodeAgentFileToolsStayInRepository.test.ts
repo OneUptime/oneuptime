@@ -2,8 +2,8 @@
  * ---------------------------------------------------------------------------
  * The code agent's file tools touch only the repository's working tree.
  *
- * On the shared in-cluster Runner the file tools are the agent's whole
- * surface: it runs no shell there (see SharedRunnerCommandSafety.test.ts).
+ * On a global Runner the file tools are the agent's whole surface: it runs
+ * no shell there (see GlobalRunnerCommandSafety.test.ts).
  * So the rule those tools enforce is the boundary itself:
  *
  *   - read_file, list_directory and search_files never return anything from
@@ -13,8 +13,8 @@
  *     workspace (links included), and never into the repository's git
  *     metadata (the pipeline owns the repository's git state).
  *
- * The rule is the same on a project-scoped Runner, so every case runs in
- * both scopes. Like the other tool suites, these drive the REAL agent with a
+ * The rule is the same on a project's own Runner, so every case runs on
+ * both. Like the other tool suites, these drive the REAL agent with a
  * scripted model against a REAL git repository on disk, and assert on what
  * ended up on disk and on what the model was shown.
  * ---------------------------------------------------------------------------
@@ -176,16 +176,20 @@ function toolResultsShownToModel(): Array<string> {
     });
 }
 
-function loadAgent(clusterKey: string | null): typeof InHouseCodeAgentType {
+/*
+ * A fresh copy of the agent, on a Runner the server called global or not
+ * (GlobalRunnerMode, set on the same copy of the modules).
+ */
+function loadAgent(isGlobalRunner: boolean): typeof InHouseCodeAgentType {
   jest.resetModules();
 
-  if (clusterKey === null) {
-    delete process.env["ONEUPTIME_SECRET"];
-  } else {
-    process.env["ONEUPTIME_SECRET"] = clusterKey;
-  }
-
   /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+  (
+    require("../../Utils/GlobalRunnerMode") as {
+      default: { setFromServer: (isGlobalRunner: boolean) => void };
+    }
+  ).default.setFromServer(isGlobalRunner);
+
   return (
     require("../../CodeAgents/InHouseCodeAgent") as {
       default: typeof InHouseCodeAgentType;
@@ -239,38 +243,27 @@ function snapshotGitMetadata(workspace: string): Map<string, string> {
   return snapshot;
 }
 
-const savedSecret: string | undefined = process.env["ONEUPTIME_SECRET"];
-
 afterEach(() => {
   jest.resetModules();
 });
 
 afterAll(() => {
-  if (savedSecret === undefined) {
-    delete process.env["ONEUPTIME_SECRET"];
-  } else {
-    process.env["ONEUPTIME_SECRET"] = savedSecret;
-  }
-
   for (const dir of temporaryPaths) {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
 
-const SCOPES: Array<{ name: string; clusterKey: string | null }> = [
-  {
-    name: "the shared (cluster-scoped) Runner",
-    clusterKey: "a-long-random-cluster-key-for-the-test",
-  },
-  { name: "a project-scoped Runner", clusterKey: null },
+const SCOPES: Array<{ name: string; isGlobalRunner: boolean }> = [
+  { name: "a global Runner", isGlobalRunner: true },
+  { name: "a project's own Runner", isGlobalRunner: false },
 ];
 
 describe.each(SCOPES)(
   "$name: the code agent's file tools stay inside the repository's working tree",
-  ({ clusterKey }: { name: string; clusterKey: string | null }) => {
+  ({ isGlobalRunner }: { name: string; isGlobalRunner: boolean }) => {
     test("read_file never returns a file outside the workspace through a link", async () => {
       const InHouseCodeAgent: typeof InHouseCodeAgentType =
-        loadAgent(clusterKey);
+        loadAgent(isGlobalRunner);
       const fixture: Fixture = makeFixture();
 
       const { shown } = await runAgent(InHouseCodeAgent, fixture.workspace, [
@@ -288,7 +281,7 @@ describe.each(SCOPES)(
 
     test("list_directory never lists a directory outside the workspace through a link", async () => {
       const InHouseCodeAgent: typeof InHouseCodeAgentType =
-        loadAgent(clusterKey);
+        loadAgent(isGlobalRunner);
       const fixture: Fixture = makeFixture();
 
       const { shown } = await runAgent(InHouseCodeAgent, fixture.workspace, [
@@ -302,7 +295,7 @@ describe.each(SCOPES)(
 
     test("search_files never searches a file outside the workspace through a link", async () => {
       const InHouseCodeAgent: typeof InHouseCodeAgentType =
-        loadAgent(clusterKey);
+        loadAgent(isGlobalRunner);
       const fixture: Fixture = makeFixture();
 
       const { shown } = await runAgent(InHouseCodeAgent, fixture.workspace, [
@@ -323,7 +316,7 @@ describe.each(SCOPES)(
 
     test("write_file never writes outside the workspace through a link", async () => {
       const InHouseCodeAgent: typeof InHouseCodeAgentType =
-        loadAgent(clusterKey);
+        loadAgent(isGlobalRunner);
       const fixture: Fixture = makeFixture();
 
       const { shown } = await runAgent(InHouseCodeAgent, fixture.workspace, [
@@ -361,7 +354,7 @@ describe.each(SCOPES)(
 
     test("write_file never writes the repository's git metadata, directly or through a link", async () => {
       const InHouseCodeAgent: typeof InHouseCodeAgentType =
-        loadAgent(clusterKey);
+        loadAgent(isGlobalRunner);
       const fixture: Fixture = makeFixture();
       const before: Map<string, string> = snapshotGitMetadata(
         fixture.workspace,
@@ -403,12 +396,13 @@ describe.each(SCOPES)(
 
       // The git metadata is byte-for-byte what it was before the agent ran.
       expect(snapshotGitMetadata(fixture.workspace)).toEqual(before);
-      expect(fs.existsSync(path.join(fixture.workspace, ".GIT"))).toBe(false);
+      // By its exact name: a disk that ignores case (macOS) finds .git there.
+      expect(fs.readdirSync(fixture.workspace)).not.toContain(".GIT");
     });
 
     test("the file tools still work inside the working tree (no regression)", async () => {
       const InHouseCodeAgent: typeof InHouseCodeAgentType =
-        loadAgent(clusterKey);
+        loadAgent(isGlobalRunner);
       const fixture: Fixture = makeFixture();
 
       const { result, shown } = await runAgent(

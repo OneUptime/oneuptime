@@ -59,7 +59,8 @@ const ColorInput: FunctionComponent<ComponentProps> = (
             width: "20px",
             borderRadius: "300px",
             boxShadow: "rgb(149 157 165 / 20%) 0px 8px 24px",
-            marginRight: "7px",
+            // Before the colour's name, at the start of the line.
+            marginInlineEnd: "7px",
             borderStyle: "solid",
           }}
           aria-hidden="true"

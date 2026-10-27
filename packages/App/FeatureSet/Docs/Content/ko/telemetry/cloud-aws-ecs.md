@@ -322,7 +322,7 @@ aws ecs update-service \
 ## 얻을 수 있는 것
 
 - **개요**: 트레이스에서 계산한 요청, 오류율, p95 지연 시간, **CPU**와 **메모리** 타일, **CPU 기준 상위 인스턴스**. 타일은 `awsecscontainermetrics` 수신기의 `ecs.task.cpu.utilized`와 `ecs.task.memory.utilized`, 또는 태스크의 식별자를 가진 `container.cpu.utilization`과 `container.memory.usage` 메트릭으로 채워집니다. SDK direct는 둘 다 보내지 않습니다.
-- **인스턴스**: 실행 중인 태스크마다 한 행이며, 이름은 태스크 ID(`aws.ecs.task.arn`의 끝부분)입니다. 최신 CPU, 메모리, 마지막으로 확인된 시각이 표시됩니다. 보고가 끊긴 태스크는 **Stale**이 됩니다.
+- **인스턴스**: 실행 중인 태스크마다 한 행이며, 이름은 태스크 ID(`aws.ecs.task.arn`의 끝부분)입니다. 최신 CPU, 메모리, 마지막으로 확인된 시각이 표시됩니다. 보고가 끊긴 태스크는 **오래됨**이 됩니다.
 - **로그**, **트레이스**, **메트릭**: 이 계정과 리전에서 `cloud.platform=aws_ecs`를 가진 모든 데이터.
 - **서비스**: 같은 태스크를 `service.name`별로 나눈 것.
 

@@ -393,12 +393,20 @@ describe("what the search bar typed reaches every panel", () => {
       ")",
     );
 
+    /*
+     * Every request of a read carries the slice: the one counting every
+     * facet nothing is chosen in carries all of it, and one counting a
+     * chosen facet carries it less that facet's own selection
+     * (withoutLogsFacetSelection, FacetCountPlan).
+     */
     expect(facetsCallback).toContain(
-      "applyTypedLogFilterToRequest(requestData, typedAggregateFilter)",
+      "applyTypedLogFilterToRequest( partRequest, part.withoutSelectionOf ? withoutLogsFacetSelection( typedAggregateFilter, part.withoutSelectionOf, ) : typedAggregateFilter, );",
     );
     expect(
       facetsCallback.indexOf("applyTypedLogFilterToRequest("),
-    ).toBeLessThan(facetsCallback.indexOf('postApi( "/telemetry/logs/facets"'));
+    ).toBeLessThan(
+      facetsCallback.indexOf('postApi("/telemetry/logs/facets", partRequest)'),
+    );
 
     const deps: string = dependencyList(facetsCallback);
 
@@ -418,15 +426,19 @@ describe("what the search bar typed reaches every panel", () => {
       "const sequence: number = ++facetRequestSequence.current;",
     );
 
-    // The guard sits between the response and every state write.
+    // The guard sits between the responses and every state write.
     const responseAt: number = facetsCallback.indexOf(
-      'postApi( "/telemetry/logs/facets"',
+      'postApi("/telemetry/logs/facets", partRequest)',
     );
     const guardAt: number = facetsCallback.indexOf(
       "if (!isCurrent()) { return; }",
       responseAt,
     );
-    const paintAt: number = facetsCallback.indexOf("setFacetData(facets)");
+    const paintAt: number = facetsCallback.indexOf(
+      "setFacetData(answer.facets)",
+    );
+
+    expect(responseAt).toBeGreaterThan(-1);
 
     expect(guardAt).toBeGreaterThan(responseAt);
     expect(paintAt).toBeGreaterThan(guardAt);

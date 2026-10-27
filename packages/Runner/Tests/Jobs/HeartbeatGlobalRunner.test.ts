@@ -54,7 +54,7 @@ afterEach(() => {
 });
 
 describe("the heartbeat and global Runners", () => {
-  test("a heartbeat saying the Runner is global makes it one, with code fixes and AI commands off", async () => {
+  test("a heartbeat saying the Runner is global makes it one, taking its code fixes, with AI commands off", async () => {
     heartbeat.mockResolvedValue({
       ok: true,
       statusCode: 200,
@@ -71,9 +71,27 @@ describe("the heartbeat and global Runners", () => {
     expect(GlobalRunnerMode.isActive()).toBe(true);
     expect(RunnerCapabilities.resolve()).toEqual({
       canRunRunbooks: true,
-      canRunCodeFixTasks: false,
+      canRunCodeFixTasks: true,
       canRunAiCommands: false,
     });
+  });
+
+  test("a heartbeat saying the Runner is global with no code fixes leaves them off", async () => {
+    heartbeat.mockResolvedValue({
+      ok: true,
+      statusCode: 200,
+      isGlobalRunner: true,
+      capabilities: {
+        canRunRunbooks: true,
+        canRunCodeFixTasks: false,
+        canRunAiCommands: false,
+      },
+    });
+
+    await new HeartbeatLoop().tick();
+
+    expect(GlobalRunnerMode.isActive()).toBe(true);
+    expect(RunnerCapabilities.resolve().canRunCodeFixTasks).toBe(false);
   });
 
   test("a heartbeat that does not say leaves the Runner as it was", async () => {

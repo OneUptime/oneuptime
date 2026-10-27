@@ -14,8 +14,13 @@ import Color from "../../../../Types/Color";
 import OneUptimeDate from "../../../../Types/Date";
 import {
   HistoryChartBarColorRuleValues,
+  MAINTENANCE_BAR_CLASS_NAME,
+  MAINTENANCE_MARK_COLOR,
   RECOMMENDED_HISTORY_CHART_BAR_COLOR_RULES,
 } from "../../../../Utils/StatusPage/HistoryChartBarColors";
+import UptimeBarTooltipMaintenance from "../../../../Types/Monitor/UptimeBarTooltipMaintenance";
+import ObjectID from "../../../../Types/ObjectID";
+import { ScheduledMaintenancePhaseOfState } from "../../../../Utils/ScheduledMaintenanceStart";
 import fs from "fs";
 import path from "path";
 
@@ -33,6 +38,24 @@ import path from "path";
 
 const END_DATE: Date = OneUptimeDate.getCurrentDate();
 const START_DATE: Date = OneUptimeDate.getSomeDaysAgoFromDate(END_DATE, 9);
+
+// A CSS comment, and a run of whitespace, as the stylesheet is read flat.
+const CSS_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
+// The strip's stylesheet, comments out and on one line.
+function readGraphCss(): string {
+  return fs
+    .readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../UI/Components/Graphs/DayUptimeGraph.css",
+      ),
+      "utf8",
+    )
+    .replace(CSS_COMMENT, "")
+    .replace(WHITESPACE_RUN, " ");
+}
 
 const OPERATIONAL_COLOR: Color = Green;
 const OFFLINE_COLOR: Color = Red;
@@ -106,6 +129,33 @@ function barFor(daysAgo: number): HTMLElement {
   return screen.getAllByTestId("uptime-bar")[9 - daysAgo] as HTMLElement;
 }
 
+// An hour of scheduled maintenance, over, at noon `daysAgo` before today.
+function maintenanceAt(daysAgo: number): UptimeBarTooltipMaintenance {
+  const noon: Date = OneUptimeDate.addRemoveHours(
+    OneUptimeDate.getStartOfDay(
+      OneUptimeDate.getSomeDaysAgoFromDate(END_DATE, daysAgo),
+    ),
+    12,
+  );
+
+  return {
+    id: `e4000000-0000-4000-8000-00000000000${daysAgo}`,
+    title: "Database upgrade",
+    startsAt: noon,
+    endsAt: OneUptimeDate.addRemoveHours(noon, 1),
+    currentState: { name: "Completed", color: Green },
+    phase: ScheduledMaintenancePhaseOfState.Over,
+    monitorIds: [new ObjectID("e4100000-0000-4000-8000-000000000001")],
+  };
+}
+
+// jsdom reports a style colour as rgb().
+function rgbOf(hex: string): string {
+  const value: number = parseInt(hex.replace("#", ""), 16);
+
+  return `rgb(${(value >> 16) & 255}, ${(value >> 8) & 255}, ${value & 255})`;
+}
+
 afterEach(() => {
   cleanup();
 });
@@ -167,23 +217,155 @@ describe("a day with no data is hatched, not only grey", () => {
       ),
       "utf8",
     );
-    const css: string = fs
-      .readFileSync(
-        path.resolve(
-          __dirname,
-          "../../../../UI/Components/Graphs/DayUptimeGraph.css",
-        ),
-        "utf8",
-      )
-      .replace(/\/\*[\s\S]*?\*\//g, "")
-      .replace(/\s+/g, " ");
+    const css: string = readGraphCss();
 
     expect(graphSource).toContain('import "./DayUptimeGraph.css";');
     expect(css).toContain(
       `.${NO_DATA_BAR_CLASS_NAME} { background-image: repeating-linear-gradient( 135deg, rgba(255, 255, 255, 0.55) 0, rgba(255, 255, 255, 0.55) 2px, transparent 2px, transparent 5px ); }`,
     );
-    // Only the image: the colour stays the bar's own.
-    expect(css).not.toContain("background-color");
+
+    /*
+     * Only the image: the colour stays the bar's own. Every rule that names
+     * the no-data class is read, so a colour slipped into another one is
+     * caught too; the maintenance band colours its own pseudo-element only.
+     */
+    const noDataRules: Array<string> = css
+      .split("}")
+      .filter((rule: string): boolean => {
+        return rule.includes(`.${NO_DATA_BAR_CLASS_NAME}`);
+      });
+
+    expect(noDataRules.length).toBeGreaterThan(0);
+
+    for (const rule of noDataRules) {
+      expect(rule).not.toContain("background-color");
+    }
+
+    const colouredRules: Array<string> = css
+      .split("}")
+      .filter((rule: string): boolean => {
+        return rule.includes("background-color");
+      });
+
+    for (const rule of colouredRules) {
+      expect(rule).toContain(`.${MAINTENANCE_BAR_CLASS_NAME}::before`);
+    }
+  });
+});
+
+/*
+ * A day with scheduled maintenance keeps its colour, and wears a blue band
+ * across its top: a pseudo-element of its own, so the no-data hatch (a
+ * background image) and the dark theme's edge (a box shadow) still show.
+ */
+describe("a day with scheduled maintenance wears a band, and keeps its colour", () => {
+  const css: string = readGraphCss();
+
+  test("the band is the maintenance blue, across the top of the bar, and lets clicks through", () => {
+    expect(css).toContain(
+      `.${MAINTENANCE_BAR_CLASS_NAME}::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background-color: ${MAINTENANCE_MARK_COLOR.toString().toLowerCase()}; box-shadow: 0 1px 0 var(--ou-surface-primary, #ffffff); pointer-events: none; }`,
+    );
+  });
+
+  test("a hairline of the card's own colour sets the band off from the bar, in both themes", () => {
+    /*
+     * Blue straight against a green bar ran together at a glance. The
+     * hairline is the card's surface, which the dark theme redefines
+     * (Theme.css), so the one rule serves both.
+     */
+    expect(css).toContain(
+      "box-shadow: 0 1px 0 var(--ou-surface-primary, #ffffff);",
+    );
+  });
+
+  test("the dark theme draws it a shade lighter", () => {
+    expect(css).toContain(
+      `html.dark .${MAINTENANCE_BAR_CLASS_NAME}::before { background-color: #60a5fa; }`,
+    );
+  });
+
+  test("the band is drawn on its own layer, never the bar's background or shadow", () => {
+    const bandRules: Array<string> = css
+      .split("}")
+      .filter((rule: string): boolean => {
+        return rule.includes(`.${MAINTENANCE_BAR_CLASS_NAME}`);
+      });
+
+    expect(bandRules.length).toBe(2);
+
+    /*
+     * Every rule is the band's own pseudo-element: the bar's background (its
+     * colour, the no-data hatch) and its box shadow (the dark theme's edge)
+     * are never touched. The band's hairline is the pseudo-element's shadow.
+     */
+    for (const rule of bandRules) {
+      const selector: string = rule.split("{")[0]!.trim();
+
+      expect(selector.endsWith(`.${MAINTENANCE_BAR_CLASS_NAME}::before`)).toBe(
+        true,
+      );
+      expect(rule).not.toContain("background-image");
+    }
+  });
+
+  test("a perfect day keeps the rules' green, and wears the band", () => {
+    renderStrip({
+      barColorRules: RECOMMENDED_RULES,
+      dayReadings: [dayWithDowntime(2, 0)],
+      maintenanceEvents: [maintenanceAt(2)],
+    });
+
+    expect(barFor(2)).toHaveClass(MAINTENANCE_BAR_CLASS_NAME);
+    expect(barFor(2)).toHaveAttribute("data-has-maintenance", "true");
+    expect(barFor(2).style.backgroundColor).toBe(rgbOf("#22c55e"));
+  });
+
+  test("a day of downtime keeps its downtime colour under the band: maintenance is no excuse the bar makes", () => {
+    renderStrip({
+      barColorRules: RECOMMENDED_RULES,
+      dayReadings: [dayWithDowntime(3, 1440)],
+      maintenanceEvents: [maintenanceAt(3)],
+    });
+
+    expect(barFor(3)).toHaveClass(MAINTENANCE_BAR_CLASS_NAME);
+    expect(barFor(3).style.backgroundColor).toBe(rgbOf("#7f1d1d"));
+  });
+
+  test("a day with no data keeps its hatch under the band", () => {
+    renderStrip({
+      maintenanceEvents: [maintenanceAt(4)],
+    });
+
+    expect(barFor(4)).toHaveClass(NO_DATA_BAR_CLASS_NAME);
+    expect(barFor(4)).toHaveClass(MAINTENANCE_BAR_CLASS_NAME);
+    expect(barFor(4)).toHaveStyle({
+      backgroundColor: NO_DATA_BAR_COLOR.toString(),
+    });
+  });
+
+  test("a day without maintenance has no band", () => {
+    renderStrip({
+      dayReadings: [dayWithDowntime(2, 0), dayWithDowntime(3, 0)],
+      maintenanceEvents: [maintenanceAt(2)],
+    });
+
+    expect(barFor(3)).not.toHaveClass(MAINTENANCE_BAR_CLASS_NAME);
+    expect(barFor(3)).toHaveAttribute("data-has-maintenance", "false");
+  });
+
+  test("the band's blue is none of the colours a bar is drawn in", () => {
+    const barColors: Array<string> = [
+      ...RECOMMENDED_RULES.map((rule: BarChartRule): string => {
+        return rule.barColor.toString().toLowerCase();
+      }),
+      NO_DATA_BAR_COLOR.toString().toLowerCase(),
+      OPERATIONAL_COLOR.toString().toLowerCase(),
+      OFFLINE_COLOR.toString().toLowerCase(),
+    ];
+
+    expect(barColors).not.toContain(
+      MAINTENANCE_MARK_COLOR.toString().toLowerCase(),
+    );
   });
 });
 

@@ -156,7 +156,15 @@
     "emailRequired": "E-mail er påkrævet for at udføre denne handling",
     "defaultProjectName": "Projekt",
     "globalProvidersTitle": "Log ind med din organisation",
-    "globalProvidersDivider": "Eller fortsæt med e-mail"
+    "globalProvidersDivider": "Eller fortsæt med e-mail",
+    "signInWithProvider": "Log ind med {{name}}",
+    "requiredSubtitle": "Log ind med din organisations single sign-on (SSO).",
+    "requiredNotSetUp": "Single sign-on er endnu ikke sat op på denne server. Bed din serveradministrator om at sætte det op.",
+    "useDifferentEmail": "Brug en anden e-mail"
+  },
+  "adminLogin": {
+    "title": "Log ind som hovedadministrator",
+    "subtitle": "Denne server kræver single sign-on (SSO). Hovedadministratorer kan stadig logge ind her med deres adgangskode."
   },
   "verifyEmail": {
     "successTitle": "Din e-mail er verificeret.",

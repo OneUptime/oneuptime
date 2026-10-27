@@ -78,6 +78,14 @@ export const DashboardWidgetSortCopy: {
   defaultChoice: string;
   columnChoice: string;
   queryOrderChoice: string;
+  /*
+   * A saved sort on a column the widget no longer has: the widget shows its
+   * default order, and the choice says so instead of the stored key.
+   */
+  removedColumnChoice: string;
+  // Direction words for a column whose kind is not known yet.
+  ascending: string;
+  descending: string;
 } = {
   sortedHint: translationKey("Sorted: {{direction}}"),
   sortHint: translationKey("Sort: {{direction}}"),
@@ -92,4 +100,9 @@ export const DashboardWidgetSortCopy: {
   // "Status: Worst first", as a shop lists "Price: Low to High".
   columnChoice: translationKey("{{column}}: {{direction}}"),
   queryOrderChoice: translationKey("The query's order"),
+  removedColumnChoice: translationKey(
+    "A removed column (the default order is shown)",
+  ),
+  ascending: translationKey("Ascending"),
+  descending: translationKey("Descending"),
 };

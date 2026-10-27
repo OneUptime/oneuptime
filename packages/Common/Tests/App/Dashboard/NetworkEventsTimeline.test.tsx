@@ -662,7 +662,7 @@ describe("the timeline in the reader's language", () => {
     expect(hintOf(rowElements()[0]!)).toBe("12 分前");
   });
 
-  test("Persian: Persian words, with the calendar and the digits every other date on the page uses", () => {
+  test("Persian: Persian words and digits, on the calendar every other date on the page uses", () => {
     mockLanguage = "fa";
     jest
       .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
@@ -673,10 +673,11 @@ describe("the timeline in the reader's language", () => {
       screen.getByTestId("network-events-day-heading"),
     );
 
-    // Gregorian, in Latin digits: 2026, not ۱۴۰۵.
-    expect(heading).toContain("2026");
-    expect(heading).toContain("13");
-    expect(shownTimeOf(rowElements()[0]!)).toBe("15:28");
+    // Gregorian, in Persian's own digits: ۲۰۲۶, not ۱۴۰۵ (or 2026).
+    expect(heading).toContain("۲۰۲۶");
+    expect(heading).toContain("۱۳");
+    expect(heading).not.toMatch(/[0-9]/);
+    expect(shownTimeOf(rowElements()[0]!)).toBe("۱۵:۲۸");
   });
 });
 

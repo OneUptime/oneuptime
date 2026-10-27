@@ -43,6 +43,19 @@ const mockRouter: MockIdentityRouter = createMockIdentityRouter();
 
 let mockBillingEnabled: boolean = false;
 
+/*
+ * The server does not require single sign-on here: every sign-in and sign-up
+ * asks SsoRequiredSignIn first, which reads GlobalConfig. Driven for real in
+ * SsoRequiredSignInRoutes.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
+  return (
+    jest.requireActual(
+      "./SsoNotRequiredStandIn",
+    ) as typeof import("./SsoNotRequiredStandIn")
+  ).ssoNotRequired();
+});
+
 // See SignupMasterAdminElection.test.ts for why defineProperty, not a spread.
 jest.mock("Common/Server/EnvironmentConfig", () => {
   const actual: Record<string, unknown> = jest.requireActual(

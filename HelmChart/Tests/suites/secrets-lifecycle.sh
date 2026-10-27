@@ -91,7 +91,7 @@ ONEUPTIME_SECRET_0=$(secret_value "$CHART_SECRET" 'oneuptime-secret')
 ENCRYPTION_SECRET_0=$(secret_value "$CHART_SECRET" 'encryption-secret')
 REGISTER_PROBE_KEY_0=$(secret_value "$CHART_SECRET" 'register-probe-key')
 PROBE_KEY_0=$(secret_value "$CHART_SECRET" 'probe-one')
-RUNNER_KEY_0=$(secret_value "$CHART_SECRET" 'runner-key')
+GLOBAL_RUNNER_KEY_0=$(secret_value "$CHART_SECRET" 'global-runner-key')
 VALKEY_0=$(secret_value "${RELEASE}-valkey" 'valkey-password')
 POSTGRES_0=$(secret_value "${RELEASE}-postgresql" 'postgres-password')
 CLICKHOUSE_0=$(secret_value "${RELEASE}-clickhouse" 'admin-password')
@@ -99,7 +99,7 @@ CLICKHOUSE_0=$(secret_value "${RELEASE}-clickhouse" 'admin-password')
 echo
 echo "=== 1. a fresh install generates every chart-managed secret ==="
 for pair in "oneuptime-secret:$ONEUPTIME_SECRET_0" "encryption-secret:$ENCRYPTION_SECRET_0" \
-    "register-probe-key:$REGISTER_PROBE_KEY_0" "probe-one:$PROBE_KEY_0" "runner-key:$RUNNER_KEY_0" \
+    "register-probe-key:$REGISTER_PROBE_KEY_0" "probe-one:$PROBE_KEY_0" "global-runner-key:$GLOBAL_RUNNER_KEY_0" \
     "valkey-password:$VALKEY_0" "postgres-password:$POSTGRES_0" "admin-password:$CLICKHOUSE_0"; do
     name="${pair%%:*}"
     value="${pair#*:}"
@@ -117,7 +117,7 @@ assert_eq "oneuptime-secret unchanged" "$ONEUPTIME_SECRET_0" "$(secret_value "$C
 assert_eq "encryption-secret unchanged" "$ENCRYPTION_SECRET_0" "$(secret_value "$CHART_SECRET" 'encryption-secret')"
 assert_eq "register-probe-key unchanged" "$REGISTER_PROBE_KEY_0" "$(secret_value "$CHART_SECRET" 'register-probe-key')"
 assert_eq "probe-one unchanged" "$PROBE_KEY_0" "$(secret_value "$CHART_SECRET" 'probe-one')"
-assert_eq "runner-key unchanged" "$RUNNER_KEY_0" "$(secret_value "$CHART_SECRET" 'runner-key')"
+assert_eq "global-runner-key unchanged" "$GLOBAL_RUNNER_KEY_0" "$(secret_value "$CHART_SECRET" 'global-runner-key')"
 assert_eq "valkey-password unchanged" "$VALKEY_0" "$(secret_value "${RELEASE}-valkey" 'valkey-password')"
 assert_eq "postgres-password unchanged" "$POSTGRES_0" "$(secret_value "${RELEASE}-postgresql" 'postgres-password')"
 assert_eq "clickhouse admin-password unchanged" "$CLICKHOUSE_0" "$(secret_value "${RELEASE}-clickhouse" 'admin-password')"
@@ -130,7 +130,7 @@ HOSTILE_ONEUPTIME='abc # not-a-comment'
 HOSTILE_ENCRYPTION='*alias-looking'
 HOSTILE_REGISTER='key: value'
 HOSTILE_PROBE='  padded  '
-HOSTILE_RUNNER='true'
+HOSTILE_GLOBAL_RUNNER='true'
 HOSTILE_VALKEY='0123456789'
 patch_secret_value() {
     # patch_secret_value <secret> <key> <raw value>
@@ -143,7 +143,7 @@ patch_secret_value "$CHART_SECRET" 'oneuptime-secret' "$HOSTILE_ONEUPTIME"
 patch_secret_value "$CHART_SECRET" 'encryption-secret' "$HOSTILE_ENCRYPTION"
 patch_secret_value "$CHART_SECRET" 'register-probe-key' "$HOSTILE_REGISTER"
 patch_secret_value "$CHART_SECRET" 'probe-one' "$HOSTILE_PROBE"
-patch_secret_value "$CHART_SECRET" 'runner-key' "$HOSTILE_RUNNER"
+patch_secret_value "$CHART_SECRET" 'global-runner-key' "$HOSTILE_GLOBAL_RUNNER"
 patch_secret_value "${RELEASE}-valkey" 'valkey-password' "$HOSTILE_VALKEY"
 
 if helm upgrade "$RELEASE" "$CHART_DIR" "${HELM_ARGS[@]}" >/dev/null 2>/tmp/hostile-upgrade.log; then
@@ -156,7 +156,7 @@ assert_eq "'$HOSTILE_ONEUPTIME' round-trips" "$HOSTILE_ONEUPTIME" "$(secret_valu
 assert_eq "'$HOSTILE_ENCRYPTION' round-trips" "$HOSTILE_ENCRYPTION" "$(secret_value "$CHART_SECRET" 'encryption-secret')"
 assert_eq "'$HOSTILE_REGISTER' round-trips" "$HOSTILE_REGISTER" "$(secret_value "$CHART_SECRET" 'register-probe-key')"
 assert_eq "'$HOSTILE_PROBE' round-trips" "$HOSTILE_PROBE" "$(secret_value "$CHART_SECRET" 'probe-one')"
-assert_eq "'$HOSTILE_RUNNER' round-trips" "$HOSTILE_RUNNER" "$(secret_value "$CHART_SECRET" 'runner-key')"
+assert_eq "'$HOSTILE_GLOBAL_RUNNER' round-trips" "$HOSTILE_GLOBAL_RUNNER" "$(secret_value "$CHART_SECRET" 'global-runner-key')"
 assert_eq "'$HOSTILE_VALKEY' round-trips" "$HOSTILE_VALKEY" "$(secret_value "${RELEASE}-valkey" 'valkey-password')"
 
 # Put the generated values back so the rest of the script reads normally.
@@ -164,7 +164,7 @@ patch_secret_value "$CHART_SECRET" 'oneuptime-secret' "$ONEUPTIME_SECRET_0"
 patch_secret_value "$CHART_SECRET" 'encryption-secret' "$ENCRYPTION_SECRET_0"
 patch_secret_value "$CHART_SECRET" 'register-probe-key' "$REGISTER_PROBE_KEY_0"
 patch_secret_value "$CHART_SECRET" 'probe-one' "$PROBE_KEY_0"
-patch_secret_value "$CHART_SECRET" 'runner-key' "$RUNNER_KEY_0"
+patch_secret_value "$CHART_SECRET" 'global-runner-key' "$GLOBAL_RUNNER_KEY_0"
 patch_secret_value "${RELEASE}-valkey" 'valkey-password' "$VALKEY_0"
 
 echo
@@ -209,7 +209,7 @@ assert_absent "release manifest has no oneuptime-secret" "$CHART_SECRET_MANIFEST
 assert_absent "release manifest has no encryption-secret" "$CHART_SECRET_MANIFEST" "encryption-secret:"
 assert_absent "release manifest has no register-probe-key" "$CHART_SECRET_MANIFEST" "register-probe-key:"
 assert_present "release manifest still has probe-one" "$CHART_SECRET_MANIFEST" "probe-one:"
-assert_present "release manifest still has runner-key" "$CHART_SECRET_MANIFEST" "runner-key:"
+assert_present "release manifest still has global-runner-key" "$CHART_SECRET_MANIFEST" "global-runner-key:"
 
 # Rendering the same release twice must produce an identical Secret: that is the
 # churn the issue reported.
@@ -229,9 +229,10 @@ assert_present "app REGISTER_PROBE_KEY points at the external secret" "$APP_ENV"
 PROBE_ENV=$(kubectl -n "$NAMESPACE" get deploy "${RELEASE}-probe-one" -o json | tr -d ' \n' | tr '}' '\n')
 assert_present "probe PROBE_KEY still points at the chart secret" "$PROBE_ENV" "\"key\":\"probe-one\",\"name\":\"${CHART_SECRET}\""
 
-# The chart still owns probe/runner keys, so they must not have been rotated.
+# The chart still owns the probe and global Runner keys, so they must not have
+# been rotated.
 assert_eq "probe-one preserved while externalSecrets is on" "$PROBE_KEY_0" "$(secret_value "$CHART_SECRET" 'probe-one')"
-assert_eq "runner-key preserved while externalSecrets is on" "$RUNNER_KEY_0" "$(secret_value "$CHART_SECRET" 'runner-key')"
+assert_eq "global-runner-key preserved while externalSecrets is on" "$GLOBAL_RUNNER_KEY_0" "$(secret_value "$CHART_SECRET" 'global-runner-key')"
 
 echo
 echo "=== 5. switching back to chart-managed secrets rotates nothing ==="
@@ -252,7 +253,7 @@ assert_absent "install does not create oneuptime-secret" "$KEYS" "oneuptime-secr
 assert_absent "install does not create encryption-secret" "$KEYS" "encryption-secret"
 assert_absent "install does not create register-probe-key" "$KEYS" "register-probe-key"
 assert_present "install still creates probe-one" "$KEYS" "probe-one"
-assert_present "install still creates runner-key" "$KEYS" "runner-key"
+assert_present "install still creates global-runner-key" "$KEYS" "global-runner-key"
 
 echo
 echo "=== 7. the Altinity operator's own user keeps or gets a password of the installation's own ==="

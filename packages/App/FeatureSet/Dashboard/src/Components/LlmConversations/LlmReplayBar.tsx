@@ -214,6 +214,8 @@ const LlmReplayBar: FunctionComponent<ComponentProps> = (
         aria-valuenow={position}
         aria-valuetext={positionText}
         className="relative mt-2 h-6 cursor-pointer touch-none select-none rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        // Left to right in every language, as time runs along every chart.
+        dir="ltr"
         data-testid="llm-replay-scrubber"
         onKeyDown={(event: React.KeyboardEvent<HTMLDivElement>) => {
           if (total === 0) {

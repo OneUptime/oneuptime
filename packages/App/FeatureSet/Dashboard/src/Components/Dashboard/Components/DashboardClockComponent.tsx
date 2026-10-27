@@ -374,7 +374,7 @@ const DashboardClockComponentElement: FunctionComponent<ComponentProps> = (
             className="text-gray-400 font-medium tracking-normal"
             style={{
               fontSize: `${secondaryFontPx}px`,
-              marginLeft: "0.25em",
+              marginInlineStart: "0.25em",
             }}
           >
             {display.meridiem}

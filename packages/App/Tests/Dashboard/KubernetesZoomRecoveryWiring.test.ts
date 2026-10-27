@@ -1,6 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  RESOURCE_HERO_CONTROLS_CLASS_NAME,
+  RESOURCE_HERO_IDENTITY_CLASS_NAME,
+  RESOURCE_HERO_TOP_ROW_CLASS_NAME,
+} from "../../FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceHeroLayout";
 
 /*
  * Issue #4105 follow-ups on the Kubernetes pages, pinned in the source:
@@ -24,6 +29,10 @@ import path from "path";
  * and the Overview's header in a real browser:
  *
  *   E2E/ChartTimeZoom/KubernetesOverviewHeader.spec.ts
+ *
+ * The header's layout is every resource hero's since #5268's follow-up
+ * (Components/TelemetryResource/ResourceHeroLayout, held to these classes
+ * for every hero by ResourceHeroLayoutGuard).
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -234,10 +243,20 @@ describe("the cluster Overview's header", () => {
   test("the cluster's name keeps its room: its column no longer shrinks to nothing beside the controls", () => {
     expectCode(
       header,
-      '<div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-start md:justify-between"> <div className="flex items-start gap-4 md:w-full md:flex-1">',
+      "<div data-testid={RESOURCE_HERO_TOP_ROW_TEST_ID} className={RESOURCE_HERO_TOP_ROW_CLASS_NAME} > <div data-testid={RESOURCE_HERO_IDENTITY_TEST_ID} className={RESOURCE_HERO_IDENTITY_CLASS_NAME} >",
+    );
+    // The shared layout is the one this header was fixed with (#4105).
+    expect(RESOURCE_HERO_TOP_ROW_CLASS_NAME).toBe(
+      "flex flex-col gap-4 md:flex-row md:flex-wrap md:items-start md:justify-between",
+    );
+    expect(RESOURCE_HERO_IDENTITY_CLASS_NAME).toBe(
+      "flex items-start gap-4 md:w-full md:flex-1",
     );
     // min-w-0 on the name's column is what let the controls squeeze it.
     expectNoCode(header, '<div className="flex items-start gap-4 min-w-0">');
+    expect(RESOURCE_HERO_IDENTITY_CLASS_NAME.split(" ")).not.toContain(
+      "min-w-0",
+    );
     // A name longer than the whole row still truncates.
     expectCode(
       header,
@@ -248,7 +267,11 @@ describe("the cluster Overview's header", () => {
   test("the controls give way instead: they take the rest of the row, wrap under the name when squeezed, and stay right-aligned", () => {
     expectCode(
       header,
-      '<div className="md:ml-auto md:min-w-[min(100%,24rem)] md:max-w-max md:flex-[1000_1_0%] md:self-start md:[&>div]:justify-end"> {renderRefreshControl()} </div>',
+      "<div data-testid={RESOURCE_HERO_CONTROLS_TEST_ID} className={RESOURCE_HERO_CONTROLS_CLASS_NAME} > {renderRefreshControl()} </div>",
+    );
+    // At the row's end, on a right-to-left page too (ms-auto, not ml-auto).
+    expect(RESOURCE_HERO_CONTROLS_CLASS_NAME).toBe(
+      "md:ms-auto md:min-w-[min(100%,24rem)] md:max-w-max md:flex-[1000_1_0%] md:self-start md:[&>div]:justify-end",
     );
     expectNoCode(header, '<div className="flex-shrink-0 md:self-start">');
   });

@@ -40,6 +40,14 @@ import {
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import {
+  RESOURCE_HERO_CONTROLS_CLASS_NAME,
+  RESOURCE_HERO_CONTROLS_TEST_ID,
+  RESOURCE_HERO_IDENTITY_CLASS_NAME,
+  RESOURCE_HERO_IDENTITY_TEST_ID,
+  RESOURCE_HERO_TOP_ROW_CLASS_NAME,
+  RESOURCE_HERO_TOP_ROW_TEST_ID,
+} from "../../../Components/TelemetryResource/ResourceHeroLayout";
 import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
@@ -518,8 +526,14 @@ const HostSystemdUnitView: FunctionComponent<
         </div>
         <div className="relative">
           <div className="relative px-6 py-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="flex items-start gap-4 min-w-0">
+            <div
+              data-testid={RESOURCE_HERO_TOP_ROW_TEST_ID}
+              className={RESOURCE_HERO_TOP_ROW_CLASS_NAME}
+            >
+              <div
+                data-testid={RESOURCE_HERO_IDENTITY_TEST_ID}
+                className={RESOURCE_HERO_IDENTITY_CLASS_NAME}
+              >
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-indigo-200 shadow-sm">
                   <Icon
                     icon={IconProp.Cog6Tooth}
@@ -550,7 +564,10 @@ const HostSystemdUnitView: FunctionComponent<
                   </div>
                 </div>
               </div>
-              <div className="flex-shrink-0 md:self-start">
+              <div
+                data-testid={RESOURCE_HERO_CONTROLS_TEST_ID}
+                className={RESOURCE_HERO_CONTROLS_CLASS_NAME}
+              >
                 {renderRefreshControl()}
               </div>
             </div>

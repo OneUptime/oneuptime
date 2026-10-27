@@ -312,17 +312,18 @@ describe("Japanese, Persian and the other languages", () => {
     expect(spaced(reading.read())).toBe(JAPANESE[name]);
   });
 
-  test("Persian writes the Gregorian calendar in Latin digits", () => {
+  test("Persian writes the Gregorian calendar in its own digits, as its counts", () => {
     setDateDisplayLanguage("fa");
 
     const text: string = OneUptimeDate.getDateAsLocalFormattedString(INSTANT);
 
     expect(text).toContain("اکتبر");
-    expect(text).toContain("2026");
-    expect(text).toContain("10:05");
+    expect(text).toContain("۲۰۲۶");
+    expect(text).toContain("۱۰:۰۵");
     expect(text).toContain("BST");
-    // No Persian or Arabic-Indic digits.
-    expect(NON_LATIN_DIGITS.test(text)).toBe(false);
+    // Persian digits only: no Latin ones beside them.
+    expect(NON_LATIN_DIGITS.test(text)).toBe(true);
+    expect(text).not.toMatch(/[0-9]/);
   });
 
   test.each([
@@ -346,6 +347,126 @@ describe("Japanese, Persian and the other languages", () => {
     expect(OneUptimeDate.getDateAsLocalFormattedString(INSTANT)).toBe(
       ENGLISH["local date and time"],
     );
+  });
+});
+
+/*
+ * The times moment writes itself - a chart's axis, "Refreshed at", a
+ * shift's hand-off - are in the reader's digits too, so a Persian page
+ * never puts "21:16" beside "۲۶ اکتبر".
+ */
+describe("times in the reader's digits", () => {
+  const TIMES: Array<Reading> = [
+    {
+      name: "time",
+      read: (): string => {
+        return OneUptimeDate.getLocalTimeString(INSTANT);
+      },
+    },
+    {
+      name: "time with seconds, 12-hour",
+      read: (): string => {
+        return OneUptimeDate.getLocalTimeString(INSTANT, {
+          includeSeconds: true,
+          use12HourFormat: true,
+        });
+      },
+    },
+    {
+      name: "day, month and hour",
+      read: (): string => {
+        return OneUptimeDate.getDateAsLocalDayMonthHourString(INSTANT);
+      },
+    },
+    {
+      name: "day, month and time",
+      read: (): string => {
+        return OneUptimeDate.getDateAsLocalDayMonthTimeString(INSTANT);
+      },
+    },
+    {
+      name: "hour and minute in a zone",
+      read: (): string => {
+        return OneUptimeDate.getHourAndMinuteInTimezoneString(
+          INSTANT,
+          "Asia/Tehran",
+        );
+      },
+    },
+    {
+      // The time an incident's Declared tile writes beside its date.
+      name: "a 24-hour time of day written to a pattern",
+      read: (): string => {
+        return OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+          date: INSTANT,
+          format: "HH:mm",
+        });
+      },
+    },
+  ];
+
+  test.each(
+    TIMES.map((reading: Reading): [string, Reading] => {
+      return [reading.name, reading];
+    }),
+  )(
+    "Persian: %s, in Persian digits alone",
+    (_name: string, reading: Reading) => {
+      setDateDisplayLanguage("fa");
+
+      const text: string = reading.read();
+
+      expect(NON_LATIN_DIGITS.test(text)).toBe(true);
+      expect(text).not.toMatch(/[0-9]/);
+    },
+  );
+
+  test("Persian writes the time of day as English does, in its own digits", () => {
+    setDateDisplayLanguage("fa");
+
+    const time: string = OneUptimeDate.getLocalTimeString(INSTANT);
+
+    expect(time).toBe("۱۰:۰۵");
+    expect(
+      OneUptimeDate.getHourAndMinuteInTimezoneString(INSTANT, "Asia/Tehran"),
+    ).toContain("۱۲:۳۵");
+    expect(
+      OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: INSTANT,
+        format: "HH:mm",
+      }),
+    ).toBe("۱۰:۰۵");
+
+    // Remembered with its English, which a sentence in English puts back.
+    expect(getEnglishOf(time)).toBe("10:05");
+  });
+
+  test.each(["en", "de", "ja"])(
+    "%s keeps Latin digits, as written",
+    (language: string) => {
+      setDateDisplayLanguage(language);
+
+      expect(OneUptimeDate.getLocalTimeString(INSTANT)).toBe("10:05");
+      expect(
+        OneUptimeDate.getHourAndMinuteInTimezoneString(INSTANT, "Asia/Tehran"),
+      ).toContain("12:35");
+      expect(
+        OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+          date: INSTANT,
+          format: "HH:mm",
+        }),
+      ).toBe("10:05");
+    },
+  );
+
+  test("nothing set: English, as it always read", () => {
+    expect(OneUptimeDate.getLocalTimeString(INSTANT)).toBe("10:05");
+    expect(
+      OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: INSTANT,
+        format: "HH:mm",
+      }),
+    ).toBe("10:05");
   });
 });
 

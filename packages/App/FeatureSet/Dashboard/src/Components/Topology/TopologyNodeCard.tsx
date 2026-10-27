@@ -56,7 +56,7 @@ const TopologyNodeCard: FunctionComponent<ComponentProps> = (
         minHeight: 88,
         borderRadius: 12,
         border: `1px solid ${props.selected ? "#6366f1" : "var(--ou-border-primary, #e2e8f0)"}`,
-        borderLeft: `4px solid ${props.statusColor}`,
+        borderInlineStart: `4px solid ${props.statusColor}`,
         background: "var(--ou-surface-primary, #ffffff)",
         color: "var(--ou-text-primary, #111827)",
         boxShadow: props.stacked

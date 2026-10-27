@@ -71,6 +71,19 @@ import {
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import ResourceHeroDescription from "../../../Components/TelemetryResource/ResourceHeroDescription";
+import {
+  RESOURCE_HERO_CONTROLS_CLASS_NAME,
+  RESOURCE_HERO_CONTROLS_TEST_ID,
+  RESOURCE_HERO_IDENTITY_CLASS_NAME,
+  RESOURCE_HERO_IDENTITY_TEST_ID,
+  RESOURCE_HERO_TOP_ROW_CLASS_NAME,
+  RESOURCE_HERO_TOP_ROW_TEST_ID,
+} from "../../../Components/TelemetryResource/ResourceHeroLayout";
+import {
+  getResourceConnectionLabel,
+  getResourceHealthLabel,
+} from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -1406,20 +1419,25 @@ const ProxmoxClusterOverview: FunctionComponent<
     const connectionDotClass: string = isConnected
       ? "bg-emerald-500"
       : "bg-amber-500";
-    const connectionLabel: string = isConnected
-      ? "Connected"
-      : status
-        ? status.charAt(0).toUpperCase() + status.slice(1)
-        : "Disconnected";
+    const connectionLabel: string = getResourceConnectionLabel({
+      translator: translator,
+      isConnected: isConnected,
+      status: status,
+    });
 
     /*
      * Health is derived from the last inventory snapshot, which goes stale
      * once the collector disconnects. Reporting "Healthy" next to a
-     * "Disconnected" badge is contradictory and misleading, so when the
-     * cluster is not connected we surface health as "Unknown" (neutral grey)
-     * rather than the last-known live status.
+     * "Disconnected" badge is contradictory and misleading, so while the
+     * cluster is not connected the pill says "Health Unknown" (neutral grey),
+     * as a Ceph cluster's and a storage array's do, rather than the
+     * last-known live status.
      */
-    const healthLabel: string = isConnected ? clusterHealth : "Unknown";
+    const healthLabel: string = getResourceHealthLabel({
+      translator: translator,
+      health: clusterHealth,
+      isConnected: isConnected,
+    });
     const healthBadgeClass: string = !isConnected
       ? "bg-gray-50 text-gray-600 ring-gray-200"
       : clusterHealth === "Healthy"
@@ -1538,8 +1556,14 @@ const ProxmoxClusterOverview: FunctionComponent<
         </div>
         <div className="relative">
           <div className="relative px-6 py-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="flex items-start gap-4 min-w-0">
+            <div
+              data-testid={RESOURCE_HERO_TOP_ROW_TEST_ID}
+              className={RESOURCE_HERO_TOP_ROW_CLASS_NAME}
+            >
+              <div
+                data-testid={RESOURCE_HERO_IDENTITY_TEST_ID}
+                className={RESOURCE_HERO_IDENTITY_CLASS_NAME}
+              >
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-orange-200 shadow-sm">
                   <Icon
                     icon={IconProp.ServerStack}
@@ -1570,17 +1594,18 @@ const ProxmoxClusterOverview: FunctionComponent<
                       </span>
                     )}
                   </div>
-                  {cluster.description && (
-                    <div className="mt-1 truncate text-sm text-gray-500">
-                      {String(cluster.description)}
-                    </div>
-                  )}
+                  <ResourceHeroDescription
+                    text={cluster.description as string | undefined}
+                  />
                   <div className="mt-1 text-xs text-gray-400">
                     {lastSeenText}
                   </div>
                 </div>
               </div>
-              <div className="flex-shrink-0 md:self-start">
+              <div
+                data-testid={RESOURCE_HERO_CONTROLS_TEST_ID}
+                className={RESOURCE_HERO_CONTROLS_CLASS_NAME}
+              >
                 {renderRefreshControl()}
               </div>
             </div>

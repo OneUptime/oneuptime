@@ -22,6 +22,10 @@ import {
   BulkActionFailed,
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
+import {
+  BULK_ACTION_CONCURRENCY,
+  runBulkAction,
+} from "Common/UI/Components/BulkUpdate/BulkActionRunner";
 import DeleteItemNames from "Common/UI/Components/DeleteConfirmation/DeleteItemNames";
 import { getRecordDisplayName } from "Common/UI/Utils/ModelDisplayName";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -95,20 +99,11 @@ const Users: FunctionComponent = (): ReactElement => {
       onClick: async (
         onClickProps: BulkActionOnClickProps<User>,
       ): Promise<void> => {
-        const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-          onClickProps;
-
-        onBulkActionStart();
-
-        const inProgressItems: Array<User> = [...items];
-        const totalItems: Array<User> = [...items];
-        const successItems: Array<User> = [];
-        const failedItems: Array<BulkActionFailed<User>> = [];
-
-        for (const user of totalItems) {
-          inProgressItems.splice(inProgressItems.indexOf(user), 1);
-
-          try {
+        // Each user their own update, several at once (runBulkAction).
+        await runBulkAction<User>({
+          actionProps: onClickProps,
+          concurrency: BULK_ACTION_CONCURRENCY,
+          step: async (user: User): Promise<void> => {
             if (!user.id) {
               throw new BadDataException("User ID not found");
             }
@@ -120,24 +115,8 @@ const Users: FunctionComponent = (): ReactElement => {
                 isBlocked: isBlocked,
               },
             });
-
-            successItems.push(user);
-          } catch (err) {
-            failedItems.push({
-              item: user,
-              failedMessage: API.getFriendlyMessage(err),
-            });
-          }
-
-          onProgressInfo({
-            totalItems: totalItems,
-            failed: failedItems,
-            successItems: successItems,
-            inProgressItems: inProgressItems,
-          });
-        }
-
-        onBulkActionEnd();
+          },
+        });
       },
     };
   };
@@ -394,20 +373,15 @@ const Users: FunctionComponent = (): ReactElement => {
         onClick: async (
           onClickProps: BulkActionOnClickProps<User>,
         ): Promise<void> => {
-          const { items, onProgressInfo, onBulkActionStart, onBulkActionEnd } =
-            onClickProps;
-
-          onBulkActionStart();
-
-          const inProgressItems: Array<User> = [...items];
-          const totalItems: Array<User> = [...items];
-          const successItems: Array<User> = [];
-          const failedItems: Array<BulkActionFailed<User>> = [];
-
-          for (const user of totalItems) {
-            inProgressItems.splice(inProgressItems.indexOf(user), 1);
-
-            try {
+          /*
+           * One user at a time (runBulkAction): deleting a user takes them out
+           * of every project, and a project keeps at least one owner - a rule
+           * two deletes at once would each check against the other's user.
+           */
+          await runBulkAction<User>({
+            actionProps: onClickProps,
+            concurrency: 1,
+            step: async (user: User): Promise<void> => {
               if (!user.id) {
                 throw new BadDataException("User ID not found");
               }
@@ -416,24 +390,8 @@ const Users: FunctionComponent = (): ReactElement => {
                 modelType: User,
                 id: user.id,
               });
-
-              successItems.push(user);
-            } catch (err) {
-              failedItems.push({
-                item: user,
-                failedMessage: API.getFriendlyMessage(err),
-              });
-            }
-
-            onProgressInfo({
-              totalItems: totalItems,
-              failed: failedItems,
-              successItems: successItems,
-              inProgressItems: inProgressItems,
-            });
-          }
-
-          onBulkActionEnd();
+            },
+          });
         },
       };
     };
