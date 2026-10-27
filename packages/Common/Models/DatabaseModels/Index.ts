@@ -519,6 +519,7 @@ import DashboardLabelRule from "./DashboardLabelRule";
 import TableView from "./TableView";
 import Dashboard from "./Dashboard";
 import DashboardDomain from "./DashboardDomain";
+import DashboardPlaylist from "./DashboardPlaylist";
 import DashboardOwnerTeam from "./DashboardOwnerTeam";
 import DashboardOwnerUser from "./DashboardOwnerUser";
 
@@ -996,6 +997,7 @@ const AllModelTypes: Array<{
   DashboardDomain,
   DashboardOwnerTeam,
   DashboardOwnerUser,
+  DashboardPlaylist,
 
   MonitorTest,
 

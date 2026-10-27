@@ -31,6 +31,8 @@ export interface DashboardWidgetTimeRangeZoomProps {
     | undefined;
   onDashboardTimeRangeReset?: (() => void) | undefined;
   isDashboardTimeRangeZoomed?: boolean | undefined;
+  // A playlist's turn on a screen: a display, which nobody zooms.
+  isPlayback?: boolean | undefined;
 }
 
 export interface DashboardWidgetTimeRangeZoomHandlers {
@@ -64,6 +66,8 @@ export default class DashboardWidgetTimeRangeZoom {
    * - Edit mode offers neither: the drag gesture belongs to widget
    *   move/resize there, and a board-wide retime mid-edit would land on top
    *   of unsaved layout changes.
+   * - Nor does a playlist's turn (isPlayback): a screen nobody touches
+   *   shows each board on its saved range, with no "Drag to zoom" on it.
    * - The reset is offered only while the board is zoomed. Charts hold a
    *   plain click open for a moment whenever a reset handler is present (to
    *   tell it apart from a double-click), so an idle one would slow every
@@ -75,7 +79,7 @@ export default class DashboardWidgetTimeRangeZoom {
   public static getHandlers(
     props: DashboardWidgetTimeRangeZoomProps,
   ): DashboardWidgetTimeRangeZoomHandlers {
-    if (props.isEditMode) {
+    if (props.isEditMode || props.isPlayback) {
       return { onTimeRangeSelect: undefined, onTimeRangeReset: undefined };
     }
 
@@ -152,6 +156,7 @@ export default class DashboardWidgetTimeRangeZoom {
     next: DashboardWidgetTimeRangeZoomProps,
   ): boolean {
     return (
+      Boolean(prev.isPlayback) === Boolean(next.isPlayback) &&
       Boolean(prev.isDashboardTimeRangeZoomed) ===
         Boolean(next.isDashboardTimeRangeZoomed) &&
       Boolean(prev.onDashboardTimeRangeSelect) ===

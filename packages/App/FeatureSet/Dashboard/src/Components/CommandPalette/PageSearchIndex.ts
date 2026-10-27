@@ -2815,6 +2815,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             title: "Dashboards",
             icon: IconProp.Window,
           },
+          {
+            page: PageMap.DASHBOARD_PLAYLISTS,
+            title: "Playlists",
+            icon: IconProp.QueueList,
+            // Dashboards one after another on a screen (issue #5235).
+            keywords: [
+              "noc",
+              "wallboard",
+              "tv",
+              "rotate",
+              "slideshow",
+              "kiosk",
+            ],
+          },
         ],
       },
       ...resourceSettingsSections({
