@@ -7,11 +7,14 @@ build before this change (master at 83484649c6), taken the same way with a diffe
 
 - `policy-dialog-1280-after.png`, `policy-dialog-1280-dark-after.png`,
   `policy-dialog-390-de-after.png`, `policy-dialog-390-fa-dark-after.png`: On-Call Duty > Policies >
-  Create On-Call Policy in a project with no policy and no on-call rule yet. The new switch, "Page it
-  for every new incident and alert", starts on and says why: a policy pages nobody until a rule or a
-  monitor names it. It is not shown once the project has a policy or an on-call rule, or to someone
-  who may not create on-call rules. Before this change the dialog had no such switch (the rest of it
-  is unchanged).
+  Create On-Call Policy in a project with no policy and no on-call rule yet. The new switch, "Page
+  this policy for every new incident and alert", starts on and says what it does, then why: "Adds
+  an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor
+  triggers it." It is not shown once the project has a policy or an on-call rule, or to someone who
+  may not create on-call rules. Before this change the dialog had no such switch (the rest of it is
+  unchanged). These four were taken after the UI review, from the production page in the review's
+  offline harness (the same page the FirstOnCallPolicy suite drives) with the Dashboard's font,
+  Tailwind and reading-direction config, at twice the pixels.
 - `incident-on-call-rules-after.png`: Incidents > Rules > On-Call Rules after creating that first
   policy with the switch on: one rule, "Page Beta on-call for every incident", matching all
   incidents. Alerts > Rules > On-Call Rules gets the same rule for alerts.
