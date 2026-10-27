@@ -398,6 +398,29 @@ describe("browser jobs run in the Playwright image", () => {
     },
   );
 
+  /*
+   * A run step with no shell of its own gets `bash -e {0}` on a runner but
+   * `sh -e {0}` in a container. The Dashboard Offline UI groups' step is a
+   * bash script (`set -uo pipefail`, `read -ra`, an array, a here-string),
+   * and in the image every group died on its first line before running a
+   * suite (14.0.95's gate). Every job in the image runs its steps in bash.
+   */
+  test.each(imageJobs.map((entry) => [entry.key, entry]))(
+    "%s runs its steps in bash, as a runner does, not the container's sh",
+    (_key, { job, steps }) => {
+      const jobShell = ((job.defaults || {}).run || {}).shell;
+
+      expect(
+        steps
+          .filter((step) => {
+            const shell = step.shell || jobShell || "";
+            return step.run !== undefined && !/^bash\b/.test(shell);
+          })
+          .map(nameOf),
+      ).toEqual([]);
+    },
+  );
+
   test.each(imageJobs.map((entry) => [entry.key, entry]))(
     "%s runs as the runner's user, with the host's IPC namespace",
     (_key, { job }) => {
