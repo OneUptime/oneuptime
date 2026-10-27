@@ -20,7 +20,7 @@ En vagtpolitik afgør, hvem der tilkaldes om en hændelse eller advarsel, og hve
 
 **Hvem tilkaldes først?** er valgfrit og vises kun for folk, der må tilføje eskaleringsregler: står det tomt, tilkalder politikken ingen, før den har en regel. **Beskrivelse** og **Etiketter** venter under **Flere felter**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) for at tilføje de næste niveauer.
 
-Listen **Vagtpolitikker** viser hver politiks **Navn**, **Beskrivelse**, **Etiketter** og **Ejere**. Vælg politikker for at bruge **Tilføj etiketter**, **Fjern etiketter**, **Tilføj ejer**, **Fjern ejer**, **Arkiver** eller **Eksportér JSON**, eller for at slette dem. **Import JSON** opretter politikker fra en eksport: en eksport rummer en politiks egne indstillinger, ikke dens eskaleringsregler eller ejere.
+Listen **Vagtpolitikker** viser hver politiks **Navn**, **Beskrivelse**, **Etiketter** og **Ejere**. Vælg politikker for at bruge **Tilføj etiketter**, **Fjern etiketter**, **Tilføj ejer**, **Fjern ejer**, **Arkiver** eller **Eksportér JSON**, eller for at slette dem. **Importér JSON** opretter politikker fra en eksport: en eksport rummer en politiks egne indstillinger, ikke dens eskaleringsregler eller ejere.
 
 ## Hvad der kører en politik
 

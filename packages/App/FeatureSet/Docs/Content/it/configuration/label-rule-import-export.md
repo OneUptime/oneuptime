@@ -1,11 +1,11 @@
 # Importare ed esportare regole per etichette
 
-Copia regole per etichette tra progetti, o creane molte in una volta, come file JSON. Ogni pagina **Regole etichette** ha le azioni **Export JSON** e **Import JSON** nel suo menu **Altre opzioni** (**⋯**), anche per incidenti, avvisi, monitor e dispositivi di rete. L'unica eccezione è VMware: le sue regole per etichette dei vCenter non hanno né l'una né l'altra.
+Copia regole per etichette tra progetti, o creane molte in una volta, come file JSON. Ogni pagina **Regole etichette** ha le azioni **Esporta JSON** e **Importa JSON** nel suo menu **Altre opzioni** (**⋯**), anche per incidenti, avvisi, monitor e dispositivi di rete. L'unica eccezione è VMware: le sue regole per etichette dei vCenter non hanno né l'una né l'altra.
 
 ```mermaid title="Spostare regole per etichette tra progetti"
 flowchart TB
-    E["Export JSON<br/>nel progetto di origine"] --> F["File JSON"]
-    F --> I["Import JSON<br/>nel progetto di destinazione"]
+    E["Esporta JSON<br/>nel progetto di origine"] --> F["File JSON"]
+    F --> I["Importa JSON<br/>nel progetto di destinazione"]
     I --> V{"Convalida e anteprima"}
     V -->|"Problemi trovati"| J["Modifica il JSON"]
     J --> V
@@ -15,7 +15,7 @@ flowchart TB
 
 ## Esportare le regole
 
-Apri **Altre opzioni** e seleziona **Export JSON** per scaricare tutte le regole di quel tipo nel progetto corrente. L'esportazione include le regole che si trovano in altre pagine della tabella e ignora i filtri della tabella.
+Apri **Altre opzioni** e seleziona **Esporta JSON** per scaricare tutte le regole di quel tipo nel progetto corrente. L'esportazione include le regole che si trovano in altre pagine della tabella e ignora i filtri della tabella.
 
 Il file conserva per ogni regola lo stato di abilitazione, le condizioni, le etichette da aggiungere e le opzioni di ereditarietà delle etichette. Gli ID di progetto, gli ID delle regole e i campi di audit vengono omessi.
 
@@ -24,9 +24,9 @@ Le etichette, i monitor e le gravità collegati sono scritti con il loro nome es
 ## Importare le regole
 
 :::steps
-### Aprire Import JSON
+### Aprire Importa JSON
 
-Apri la pagina **Regole etichette** del progetto di destinazione e seleziona **Altre opzioni → Import JSON**.
+Apri la pagina **Regole etichette** del progetto di destinazione e seleziona **Altre opzioni → Importa JSON**.
 
 ### Aggiungere il file
 
@@ -93,7 +93,7 @@ Questi casi bloccano l'intero lotto prima del passaggio di importazione: pattern
 
 ## Copiare tra tipi di risorsa
 
-Mantieni nel file il `resourceType` originale e apri **Import JSON** sulla pagina di destinazione. I pattern compatibili di nome o titolo principale, i pattern di descrizione e le etichette richieste vengono associati ai campi della destinazione, e l'anteprima elenca queste associazioni perché tu possa controllarle. I riferimenti alle gravità di incidenti e avvisi vengono confrontati con i nomi delle gravità della destinazione.
+Mantieni nel file il `resourceType` originale e apri **Importa JSON** sulla pagina di destinazione. I pattern compatibili di nome o titolo principale, i pattern di descrizione e le etichette richieste vengono associati ai campi della destinazione, e l'anteprima elenca queste associazioni perché tu possa controllarle. I riferimenti alle gravità di incidenti e avvisi vengono confrontati con i nomi delle gravità della destinazione.
 
 Le condizioni o le azioni che la destinazione non supporta bloccano l'importazione. Per esempio, una regola di incidenti limitata a monitor specifici non si può copiare nelle regole dei dispositivi di rete senza modificare quelle condizioni.
 

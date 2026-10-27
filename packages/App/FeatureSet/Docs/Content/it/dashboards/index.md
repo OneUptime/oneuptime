@@ -45,7 +45,7 @@ Il menu laterale dell'elenco contiene le pagine che si occupano di tutte le tue 
 
 | Pagina | Che cosa ci fai |
 | --- | --- |
-| **Dashboard** | Le dashboard del progetto. Creane una, oppure importa dashboard con **Import JSON**. |
+| **Dashboard** | Le dashboard del progetto. Creane una, oppure importa dashboard con **Importa JSON**. |
 | **Impostazioni → Regole del proprietario** | Aggiungere automaticamente proprietari alle nuove dashboard. |
 | **Impostazioni → Regole etichette** | Aggiungere automaticamente etichette alle nuove dashboard. |
 | **Impostazioni → Origini dati** | Collegare Prometheus, database SQL, ClickHouse, Loki, Elasticsearch o un'API REST. |

@@ -73,8 +73,8 @@ Dette er riktig grep når du vil forgrene en mal (som "vaktdashbordet vårt") ti
 
 Et dashbord reiser som JSON:
 
-- **Eksporter Dashbord**, på dashbordets side **Innstillinger**, laster det ned som en JSON-fil. For å eksportere flere velger du dem i listen **Dashbord** og velger **Export JSON**.
-- **Import JSON**, over listen **Dashbord**, oppretter dashbord fra en slik fil, i dette prosjektet eller et annet.
+- **Eksporter Dashbord**, på dashbordets side **Innstillinger**, laster det ned som en JSON-fil. For å eksportere flere velger du dem i listen **Dashbord** og velger **Eksporter JSON**.
+- **Importer JSON**, over listen **Dashbord**, oppretter dashbord fra en slik fil, i dette prosjektet eller et annet.
 
 En eksport inneholder dashbordets egne innstillinger, blant annet widgetene og variablene. Eierne og etikettene er utelatt, og widgets som peker på dette prosjektets ressurser, for eksempel et SLO eller en datakilde, kan trenge at de velges på nytt i et annet prosjekt.
 
