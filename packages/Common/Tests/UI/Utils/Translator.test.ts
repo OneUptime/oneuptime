@@ -148,6 +148,12 @@ describe("toSentenceTerm", () => {
     ["GitHub Repositories", "en", "GitHub repositories"],
     ["IoT Devices", "en", "IoT devices"],
     ["Kubernetes Clusters", "en", "Kubernetes clusters"],
+    ["AWS Account", "en", "AWS account"],
+    ["Azure Subscription", "en", "Azure subscription"],
+    ["Google Cloud Project", "en", "Google Cloud project"],
+    // Only after "Google" is "Cloud" a name.
+    ["Cloud Resources", "en", "cloud resources"],
+    ["Cloud Google", "en", "cloud Google"],
     [
       "Incident Episode State Timeline",
       "en",
