@@ -15742,7 +15742,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "Manutenzione programmata",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35845,5 +35845,8 @@
   "Each row is one recording of about a minute.": "Ogni riga è una registrazione di circa un minuto.",
   "Created an alert": "Ha creato un avviso",
   "Creating alert": "Creazione dell'avviso",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI esegue query reali su registri, tracce, metriche, incidenti, monitor e monitoraggio degli utenti reali — mostrando grafici e tabelle direttamente — e può creare incidenti e avvisi o confermarli, sempre con la tua approvazione."
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI esegue query reali su registri, tracce, metriche, incidenti, monitor e monitoraggio degli utenti reali — mostrando grafici e tabelle direttamente — e può creare incidenti e avvisi o confermarli, sempre con la tua approvazione.",
+  "Maintenance markers are unavailable.": "Gli indicatori di manutenzione non sono disponibili.",
+  "Maintenance markers need the uptime history, which did not load.": "Gli indicatori di manutenzione richiedono la cronologia di disponibilità, che non è stata caricata.",
+  "You need permission to read scheduled maintenance.": "Serve l'autorizzazione per leggere la manutenzione programmata."
 }

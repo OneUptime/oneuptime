@@ -44,6 +44,12 @@
  *              owner-add       every owner the hero's Add owners list adds
  *                              is refused, as the server refuses a second
  *                              row for an owner
+ *              maintenance     every ScheduledMaintenance list fails
+ *   ?maintenance=1  the subject monitor has scheduled maintenance on its
+ *              uptime strip: a completed database upgrade two days ago and
+ *              load balancer patching in progress now. Without it the
+ *              monitor has none (the project's four states are always
+ *              there: the strip reads them to place events).
  *   ?nav=1     shows links to every fixture monitor in the header, to move
  *              between monitors on the same, still-mounted route.
  *   ?monitorLimit=  the project's limit on active monitors, as
@@ -129,6 +135,8 @@ import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import Service from "Common/Models/DatabaseModels/Service";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
@@ -231,6 +239,7 @@ const probesMode = ["self-hosted", "both"].includes(params.get("probes"))
   ? params.get("probes")
   : "custom";
 const cloudMode = params.get("cloud") === "suggest" ? "suggest" : "none";
+const maintenanceMode = params.get("maintenance") === "1";
 
 /*
  * The project's limit on active monitors (Types/Monitor/ActiveMonitorLimit),
@@ -337,6 +346,7 @@ const fixture = {
     plan: planMode,
     probes: probesMode,
     cloud: cloudMode,
+    maintenance: maintenanceMode,
   },
   getItemRequests: [],
   listRequests: [],
@@ -2118,6 +2128,70 @@ fixture.monitors = Object.fromEntries(
 
 /*
  * ---------------------------------------------------------------------------
+ * Scheduled maintenance on the uptime strip (issue #5236)
+ * ---------------------------------------------------------------------------
+ *
+ * The project's four built-in states, which the strip reads to place each
+ * event in its life (only events that have started are drawn), and with
+ * ?maintenance=1 two events on the subject monitor: one completed two days
+ * ago, one in progress now.
+ */
+function maintenanceState(name, order, flag, color) {
+  return insert(ScheduledMaintenanceState, {
+    name,
+    order,
+    color: new Color(color),
+    isScheduledState: flag === "scheduled",
+    isOngoingState: flag === "ongoing",
+    isEndedState: flag === "ended",
+    isResolvedState: flag === "completed",
+  });
+}
+
+const maintenanceStates = {
+  scheduled: maintenanceState("Scheduled", 1, "scheduled", "#000000"),
+  ongoing: maintenanceState("Ongoing", 2, "ongoing", "#eab308"),
+  ended: maintenanceState("Ended", 3, "ended", "#4a4a4a"),
+  completed: maintenanceState("Completed", 4, "completed", "#16a34a"),
+};
+
+table(ScheduledMaintenance);
+
+// The seeded events, by title, so a spec can follow one to its page.
+fixture.maintenance = {};
+
+if (maintenanceMode) {
+  const subjectRef = make(Monitor, {
+    _id: String(monitors[subjectType]._id),
+    name: MONITOR_DEFINITIONS[subjectType].name,
+  });
+
+  const upgrade = insert(ScheduledMaintenance, {
+    title: "Database upgrade",
+    startsAt: ago(2 * DAY + 4 * HOUR),
+    endsAt: ago(2 * DAY + 2 * HOUR),
+    currentScheduledMaintenanceState: maintenanceStates.completed,
+    currentScheduledMaintenanceStateId: maintenanceStates.completed.id,
+    monitors: [subjectRef],
+  });
+
+  const patching = insert(ScheduledMaintenance, {
+    title: "Load balancer patching",
+    startsAt: ago(1 * HOUR),
+    endsAt: fromNow(1 * HOUR),
+    currentScheduledMaintenanceState: maintenanceStates.ongoing,
+    currentScheduledMaintenanceStateId: maintenanceStates.ongoing.id,
+    monitors: [subjectRef],
+  });
+
+  fixture.maintenance = {
+    [upgrade.title]: String(upgrade._id),
+    [patching.title]: String(patching._id),
+  };
+}
+
+/*
+ * ---------------------------------------------------------------------------
  * The uptime summary route (GET /monitor/uptime-summary/:monitorId), built
  * from the same status changes the timeline rows come from, the way
  * MonitorStatusTimelineService.getMonitorUptimeSummary builds it.
@@ -2471,6 +2545,9 @@ ModelAPI.getList = async (options) => {
   }
   if (failures.has("incidents") && modelName === "Incident") {
     throw fail(500, "Incidents could not be read.");
+  }
+  if (failures.has("maintenance") && modelName === "ScheduledMaintenance") {
+    throw fail(500, "Scheduled maintenance could not be read.");
   }
   const known = knownTable(options.modelType, "getList", {
     query: serialize(options.query),

@@ -115,6 +115,8 @@ Grupper har deres egne udgaver af disse kontakter (se nedenfor), så en gruppe k
 
 Farverne på historikdiagrammets søjler angives under **Yderligere indstillinger** på siden **Branding**, og hvilke monitorstatusser der tæller som "nede" under **Tæller som nedetid** på kortet **Hvad din statusside viser** under **Avancerede indstillinger**; begge dele er beskrevet i [Statusside – branding og domæner](/docs/status-pages/branding-and-domains).
 
+Hver søjle er én dag. Peg på en søjle, eller klik på den (tryk på den på en telefon, eller tryk Enter med tastaturet), for at læse dagen: dens oppetid, hvor længe hver status varede, de hændelser, der blev erklæret den dag, og den planlagte vedligeholdelse, der kørte på den, hver med et link til sin egen side. En dag med planlagt vedligeholdelse har et blåt bånd øverst på sin søjle, og mens en begivenhed er i gang, står der "Under vedligeholdelse" ved navnet på hver ressource for dens monitorer. Vedligeholdelse ændrer hverken en søjles farve eller oppetiden, som kommer fra monitorens statusser: for at holde planlagt arbejde ude af oppetiden skal du vælge en **Skift overvågningsstatus til** for begivenheden, der ikke er en af sidens statusser under **Tæller som nedetid**. Se [Hvad en begivenhed påvirker](/docs/scheduled-maintenance/index#hvad-en-begivenhed-påvirker).
+
 ## Grupper
 
 De fleste grupper behøver kun et navn.

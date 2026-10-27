@@ -341,6 +341,25 @@ export default class ScheduledMaintenanceStartUtil {
   }
 
   /*
+   * The project's states an event has started in (hasStarted): in progress
+   * or over, in the order given. What a status page's uptime history asks
+   * for - an event still waiting for its Starts At is no part of any day's
+   * history yet.
+   */
+  public static getStartedStates<T>(data: { states: Array<T> }): Array<T> {
+    return data.states.filter((state: T): boolean => {
+      return this.hasStarted({ states: data.states, state: state });
+    });
+  }
+
+  // The ids of getStartedStates, as ObjectIDs, for a query by state.
+  public static getStartedStateIds(data: {
+    states: Array<unknown>;
+  }): Array<ObjectID> {
+    return this.toStateIds(this.getStartedStates(data));
+  }
+
+  /*
    * Whether an event in `state` is waiting for its Starts At, from the state
    * alone: true for a state flagged scheduled, false for one flagged
    * ongoing, ended or completed, and null for a state of the project's own

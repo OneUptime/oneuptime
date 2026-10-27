@@ -35845,5 +35845,8 @@
   "Each row is one recording of about a minute.": "各行は約 1 分間の記録 1 件です。",
   "Created an alert": "アラートを作成しました",
   "Creating alert": "アラートを作成中",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI は、ログ、トレース、メトリクス、インシデント、モニター、リアルユーザーモニタリングに対して実際にクエリを実行し、チャートや表をその場で表示します。インシデントやアラートの作成や確認も行えますが、必ずあなたの承認を得てから実行します。"
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI は、ログ、トレース、メトリクス、インシデント、モニター、リアルユーザーモニタリングに対して実際にクエリを実行し、チャートや表をその場で表示します。インシデントやアラートの作成や確認も行えますが、必ずあなたの承認を得てから実行します。",
+  "Maintenance markers are unavailable.": "メンテナンスのマーカーを利用できません。",
+  "Maintenance markers need the uptime history, which did not load.": "メンテナンスのマーカーには稼働率の履歴が必要ですが、読み込めませんでした。",
+  "You need permission to read scheduled maintenance.": "定期メンテナンスを読み取る権限が必要です。"
 }

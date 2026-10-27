@@ -61,7 +61,8 @@
   "monitorOverview": {
     "daysAgo": "{{days}} 天前",
     "today": "今天",
-    "notAvailable": "無法使用"
+    "notAvailable": "無法使用",
+    "underMaintenance": "維護中"
   },
   "uptimeHistory": {
     "graphLabel": "最近 {{total}} 天的可用性紀錄",
@@ -76,7 +77,12 @@
     "noIncidentsDescription": "當天沒有回報任何事件。",
     "declared": "宣告於",
     "oneIncidentOnThisDay": "當天回報了 1 起事件",
-    "incidentsOnThisDay": "當天回報了 {{total}} 起事件"
+    "incidentsOnThisDay": "當天回報了 {{total}} 起事件",
+    "scheduledMaintenance": "排定維護",
+    "dayLabelWithMaintenance": "{{label}}，{{maintenance}}",
+    "oneMaintenanceEvent": "1 次排定維護",
+    "maintenanceEvents": "{{total}} 次排定維護",
+    "moreMaintenance": "還有 {{total}} 個"
   },
   "liveStatus": {
     "updated": "{{time}}更新",
