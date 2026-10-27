@@ -14,6 +14,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -117,6 +118,15 @@ import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { isFormFieldValueSet } from "../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import { guideToMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import SecurityCaseApi from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApi";
+import { DETECTION_RULE_TUNING_MENU_GROUP } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
+import { RETROHUNT_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Retrohunt/RetrohuntCopy";
+import { RULE_EXCEPTIONS_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleExceptions/RuleExceptionsCopy";
+import { getRuleExceptionsFilterParams } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleExceptions/RuleExceptionsRoute";
+import DetectionRuleException from "../../../Models/DatabaseModels/DetectionRuleException";
+import IconProp from "../../../Types/Icon/IconProp";
+import { DetectionRuleExceptionKind } from "../../../Types/SecurityEvent/DetectionRuleException";
+import { parseDetectionRetrohuntResult } from "../../../Types/SecurityEvent/DetectionRetrohunt";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -161,6 +171,13 @@ describe("Detection Rules page", () => {
     capturedTableProps = null;
     jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
     gateMonitorCreate({ isAllowed: true });
+    // The count under each rule's name reads the exceptions: none, unless a test says so.
+    jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+      data: [],
+      count: 0,
+      skip: 0,
+      limit: 0,
+    } as never);
   });
 
   afterEach(() => {
@@ -939,6 +956,324 @@ describe("Detection Rules page", () => {
       expect(String(navigateSpy.mock.calls[0]?.[0])).toContain(
         "/security-events/rule-library",
       );
+    });
+  });
+
+  /*
+   * Tuning a rule, from its row and its form: Run on Past Events (what it
+   * would have found), Add Exception (what it skips, with why) and View
+   * Exceptions (its exceptions on Rule Exceptions), in a run of their own
+   * in the row's menu; the count of exceptions that skip something now
+   * under its name; and Run on Past Events under the YAML as it is edited.
+   */
+  describe("tuning a rule", () => {
+    const TUNING: Array<string> = [
+      "Run on Past Events",
+      "Add Exception",
+      "View Exceptions",
+    ];
+
+    type TuningButton = CapturedActionButton & {
+      icon?: string | undefined;
+      menuGroup?: string | undefined;
+    };
+
+    type ElementColumn = {
+      title: string;
+      getElement?: (item: unknown) => React.ReactElement;
+    };
+
+    function tuningButton(title: string): TuningButton {
+      const button: CapturedActionButton | undefined =
+        capturedTableProps?.actionButtons?.find(
+          (actionButton: CapturedActionButton): boolean => {
+            return actionButton.title === title;
+          },
+        );
+
+      expect(button).toBeDefined();
+
+      return button as TuningButton;
+    }
+
+    function click(title: string, item: Record<string, unknown>): void {
+      act(() => {
+        tuningButton(title).onClick(
+          item,
+          () => {
+            // completed
+          },
+          () => {
+            // no-op
+          },
+        );
+      });
+    }
+
+    function nameColumn(): ElementColumn {
+      const column: ElementColumn | undefined = (
+        capturedTableProps as unknown as { columns: Array<ElementColumn> }
+      ).columns.find((candidate: ElementColumn): boolean => {
+        return candidate.title === "Name";
+      });
+
+      expect(column?.getElement).toBeDefined();
+
+      return column!;
+    }
+
+    function ruleNamed(name: string): DetectionRule {
+      const rule: DetectionRule = new DetectionRule();
+      rule._id = String(RULE["_id"]);
+      rule.name = name;
+      return rule;
+    }
+
+    const RULE: Record<string, unknown> = {
+      _id: "22222222-2222-4222-8222-222222222222",
+      name: "Failed logon burst",
+    };
+
+    test("the three wait in the row's menu, in a run of their own after the row's state and before Create Monitor", () => {
+      renderPage();
+
+      const titles: Array<string> = (
+        capturedTableProps?.actionButtons || []
+      ).map((button: CapturedActionButton): string => {
+        return button.title;
+      });
+
+      const first: number = titles.indexOf(TUNING[0]!);
+
+      expect(titles.slice(first, first + 3)).toEqual(TUNING);
+      expect(titles.indexOf("Create Monitor")).toBe(first + 3);
+
+      for (const title of TUNING) {
+        expect([title, tuningButton(title).placement]).toEqual([
+          title,
+          "MoreMenu",
+        ]);
+        expect([title, tuningButton(title).menuGroup]).toEqual([
+          title,
+          DETECTION_RULE_TUNING_MENU_GROUP,
+        ]);
+      }
+
+      expect(tuningButton("Run on Past Events").icon).toBe(IconProp.Backward);
+      expect(tuningButton("Add Exception").icon).toBe(IconProp.EyeSlash);
+      expect(tuningButton("View Exceptions").icon).toBe(IconProp.List);
+    });
+
+    test("Run on Past Events opens the rule's run, by its id, named", async () => {
+      const run: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(SecurityCaseApi, "runDetectionRuleRetrohunt")
+        .mockResolvedValue(
+          parseDetectionRetrohuntResult({ firedCount: 0 }) as never,
+        );
+
+      renderPage();
+      click("Run on Past Events", RULE);
+
+      const dialog: HTMLElement = await screen.findByRole("dialog");
+
+      expect(dialog).toHaveTextContent("Run on Past Events");
+      expect(dialog).toHaveTextContent("Failed logon burst");
+
+      await waitFor(() => {
+        expect(run).toHaveBeenCalledWith({
+          periodInHours: 168,
+          detectionRuleId: RULE["_id"],
+        });
+      });
+    });
+
+    test("View Exceptions opens Rule Exceptions filtered to the rule", () => {
+      const navigateSpy: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(Navigation, "navigate")
+        .mockImplementation(() => {
+          return undefined;
+        });
+
+      renderPage();
+      click("View Exceptions", RULE);
+
+      const destination: string = String(navigateSpy.mock.calls[0]?.[0]);
+      const params: Record<string, string> = getRuleExceptionsFilterParams(
+        String(RULE["_id"]),
+      );
+
+      expect(destination).toContain("/security-events/rule-exceptions?");
+      expect(destination).toContain(
+        `${Object.keys(params)[0]!}=${Object.values(params)[0]!}`,
+      );
+    });
+
+    test("Add Exception is open to whoever may add exceptions", () => {
+      renderPage();
+
+      expect(tuningButton("Add Exception").disabled).toBe(false);
+      expect(tuningButton("Add Exception").tooltip).toBeUndefined();
+    });
+
+    test("Add Exception is locked, with the gate's reason, for whoever may not", () => {
+      jest
+        .spyOn(PermissionGate, "check")
+        .mockImplementation((model: unknown): PermissionGateResult => {
+          return model instanceof DetectionRuleException
+            ? {
+                isAllowed: false,
+                disabledReason:
+                  "You need the Edit Detection Rule permission to add exceptions.",
+              }
+            : { isAllowed: true };
+        });
+
+      renderPage();
+
+      expect(tuningButton("Add Exception").disabled).toBe(true);
+      expect(tuningButton("Add Exception").tooltip).toBe(
+        "You need the Edit Detection Rule permission to add exceptions.",
+      );
+      // Monitors are another gate's.
+      expect(
+        capturedTableProps?.actionButtons?.find(
+          (button: CapturedActionButton): boolean => {
+            return button.title === "Create Monitor";
+          },
+        )?.disabled,
+      ).toBe(false);
+    });
+
+    test("Add Exception opens the exception form for the rule", async () => {
+      jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+        data: [],
+        count: 0,
+        skip: 0,
+        limit: 0,
+      } as never);
+
+      renderPage();
+      click("Add Exception", RULE);
+
+      const dialog: HTMLElement = await screen.findByRole("dialog");
+
+      expect(dialog).toHaveTextContent("Add Exception");
+      // The shared form's two steps: what to skip, then why.
+      expect(dialog).toHaveTextContent("What to Skip");
+      expect(dialog).toHaveTextContent("Why");
+    });
+
+    test("a rule's name has the count of its exceptions that skip something now under it", async () => {
+      const exception: DetectionRuleException = new DetectionRuleException();
+      exception._id = "33333333-3333-4333-8333-333333333333";
+      exception.detectionRuleId = new ObjectID(String(RULE["_id"]));
+      exception.kind = DetectionRuleExceptionKind.Entity;
+
+      const second: DetectionRuleException = new DetectionRuleException();
+      second._id = "33333333-3333-4333-8333-333333333334";
+      second.detectionRuleId = new ObjectID(String(RULE["_id"]));
+      second.kind = DetectionRuleExceptionKind.Value;
+
+      const getList: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(ModelAPI, "getList")
+        .mockResolvedValue({
+          data: [exception, second],
+          count: 2,
+          skip: 0,
+          limit: 2,
+        } as never);
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(getList).toHaveBeenCalled();
+      });
+
+      const query: Record<string, unknown> = (
+        getList.mock.calls[0]?.[0] as { query: Record<string, unknown> }
+      ).query;
+
+      expect(query["projectId"]).toBe(PROJECT_ID);
+
+      // The count arrives after the list's first draw: the page draws again.
+      await act(async () => {
+        await new Promise((resolve: (value: unknown) => void) => {
+          setTimeout(resolve, 0);
+        });
+      });
+
+      const cell: ReturnType<typeof render> = render(
+        nameColumn().getElement!(ruleNamed("Failed logon burst")),
+      );
+
+      expect(
+        within(cell.container).getByTestId(RULE_EXCEPTIONS_TEST_IDS.ruleCount),
+      ).toHaveTextContent("2 active exceptions");
+    });
+
+    test("a rule with none has no line under its name", () => {
+      renderPage();
+
+      render(nameColumn().getElement!(ruleNamed("Failed logon burst")));
+
+      expect(screen.getByText("Failed logon burst")).toBeInTheDocument();
+      expect(
+        screen.queryByTestId(RULE_EXCEPTIONS_TEST_IDS.ruleCount),
+      ).toBeNull();
+    });
+
+    test("Run on Past Events waits under the YAML, beside Draft with AI, for the rule as it stands", async () => {
+      const run: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(SecurityCaseApi, "runDetectionRuleRetrohunt")
+        .mockResolvedValue(
+          parseDetectionRetrohuntResult({ firedCount: 0 }) as never,
+        );
+
+      renderPage();
+
+      type FooterField = {
+        getFooterElement?: (
+          values: Record<string, unknown>,
+          error?: string,
+          footer?: { setValue: (value: unknown) => void },
+        ) => React.ReactElement | undefined;
+      };
+
+      const field: FooterField = fieldTitled(
+        "Sigma Rule (YAML)",
+      ) as unknown as FooterField;
+
+      render(
+        field.getFooterElement!(
+          {
+            _id: String(RULE["_id"]),
+            sigmaRuleYaml: "title: Edited\n",
+            groupByField: "principalIp",
+            matchCountThreshold: 5,
+            evaluationIntervalInMinutes: 10,
+          },
+          undefined,
+          {
+            setValue: () => {
+              // not drafted here
+            },
+          },
+        )!,
+      );
+
+      fireEvent.click(screen.getByTestId(RETROHUNT_TEST_IDS.open));
+
+      await waitFor(() => {
+        expect(run).toHaveBeenCalledWith({
+          periodInHours: 168,
+          detectionRuleId: RULE["_id"],
+          sigmaRuleYaml: "title: Edited\n",
+          groupByField: "principalIp",
+          distinctCountField: "",
+          matchCountThreshold: 5,
+          evaluationIntervalInMinutes: 10,
+        });
+      });
     });
   });
 });
