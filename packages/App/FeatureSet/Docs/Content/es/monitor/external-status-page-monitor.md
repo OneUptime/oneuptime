@@ -6,7 +6,7 @@ También lee páginas de estado creadas con OneUptime, recurso por recurso, y di
 
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-página-de-estado-externa): Pegue la URL de una página de estado y elija qué vigilar.
-- [Acotarlo](#opciones-de-configuración): Vigile un grupo de componentes o un componente.
+- [Elegir componentes](#componentes): Vigile solo los componentes de los que depende.
 - [Criterios](#criterios-de-monitoreo): Qué cuenta como caído, de entrada.
 - [Páginas de estado de OneUptime](#páginas-de-estado-de-oneuptime): Los recursos de otro proyecto, y su mantenimiento.
 - [Páginas de estado populares](#url-de-páginas-de-estado-populares): URL de los servicios de los que dependen la mayoría de los equipos.
@@ -14,13 +14,13 @@ También lee páginas de estado creadas con OneUptime, recurso por recurso, y di
 
 ## Cómo funciona
 
-En cada comprobación, una sonda descarga la página de estado, averigua qué formato usa y lee el estado general, los componentes y los incidentes activos. Si acotó el monitor a un grupo de componentes o a un componente, solo cuentan esos. Después, los criterios deciden si el monitor está en línea o sin conexión.
+En cada comprobación, una sonda descarga la página de estado, averigua qué formato usa y lee el estado general, los componentes y los incidentes activos. Si eligió componentes, o un grupo de componentes, solo cuentan esos. Después, los criterios deciden si el monitor está en línea o sin conexión.
 
 ```mermaid title="Una comprobación de una página de estado externa"
 flowchart TB
     fetch["Descargar la página de estado"] --> detect["Detectar el formato"]
     detect --> parse["Leer estado, componentes, incidentes"]
-    parse --> scope["Quedarse con el grupo o el componente"]
+    parse --> scope["Quedarse con los componentes elegidos"]
     scope --> criteria{"¿Incidente activo o interrupción?"}
     criteria -->|Sí| down["Sin conexión, incidente declarado"]
     criteria -->|No| up["En línea"]
@@ -31,7 +31,7 @@ Puede usarlo para:
 - Monitorear la disponibilidad de los servicios de terceros de los que depende su aplicación
 - Recibir alertas cuando sus proveedores sufren interrupciones
 - Seguir el estado de cada componente
-- Acotar el monitoreo a un solo grupo de componentes (p. ej., solo las "APIs" de OpenAI), para que incidentes ajenos en otras partes de la página no activen su monitor
+- Vigilar solo los componentes de los que depende (p. ej., Git Operations y Pull Requests de GitHub, o el grupo "APIs" de OpenAI), para que incidentes ajenos en otras partes de la página no activen su monitor
 - Detectar un rendimiento degradado antes de que afecte a sus usuarios
 - Relacionar sus propios incidentes con los problemas de sus proveedores
 
@@ -72,9 +72,9 @@ Vaya a **Monitores** y haga clic en **Crear monitor**. En **Tipo de monitor**, h
 
 Introduzca la **URL de la página de estado**. Deje el **Proveedor** en **Automático** salvo que conozca el formato.
 
-### Acotarlo, si hace falta
+### Elegir componentes, si hace falta
 
-Abra **Más campos** para introducir un **Filtro de grupo de componentes**, como `APIs`, y un **Filtro de nombre de componente** para vigilar un solo componente (dentro del grupo, si hay un grupo definido).
+Abra **Componentes** y elija de la lista de la página los componentes de los que depende, como `Git Operations` y `Pull Requests` en la de GitHub; déjelo vacío para vigilar toda la página. Para vigilar un grupo en su lugar, abra **Más campos** e introduzca un **Filtro de grupo de componentes**, como `APIs`.
 
 ### Probarlo
 
@@ -95,27 +95,33 @@ Seleccione las **Sondas** y un **Intervalo de monitoreo** —empieza en **Cada 5
 | --- | --- | --- |
 | **URL de la página de estado** | La URL de la página de estado. En los sitios basados en Atlassian Statuspage e incident.io suele ser la URL raíz (p. ej., `https://status.example.com`). En los feeds RSS/Atom, introduzca directamente la URL del feed. | — |
 | **Proveedor** | **Automático** para detectar el formato, o **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** o **Atom** si lo conoce. | **Automático** |
+| **Componentes** | Los componentes que se vigilan, elegidos de la lista de la página o escritos. | Toda la página |
 | **Filtro de grupo de componentes** | El grupo al que acotar el monitor. En **Más campos**. | Todos los grupos |
-| **Filtro de nombre de componente** | El componente que se vigila. En **Más campos**. | Todos los componentes del alcance |
 | **Tiempo de espera (ms)** | El tiempo máximo de espera de la página de estado. En **Más campos**. | `10000` (10 segundos) |
 | **Reintentos** | Cuántas veces reintentar, con un segundo de separación, después de que falle el primer intento; `0` significa un único intento. En **Más campos**. | `3` (hasta 4 intentos) |
+
+### Componentes
+
+Elija los componentes de los que depende y el monitor vigilará solo esos: **External Status Page Component Status** compara solo sus estados, el estado general es el peor de los suyos y **External Status Page Active Incidents** cuenta solo los incidentes que afectan al menos a uno de ellos. Sigue siendo una sola comprobación de la página, elija cuantos elija.
+
+Al abrir **Componentes**, su navegador lee la lista de la página desde una Atlassian Statuspage, una página de incident.io o una página de estado de OneUptime, y la muestra en los grupos de la página; cada componente que no está operativo dice cómo está. Un nombre que elija vigila el componente con exactamente ese nombre, sin distinguir mayúsculas y minúsculas: `Copilot` en la página de GitHub no es `Copilot AI Model Providers`.
+
+Cuando la lista no se puede leer (una página interna, una página que no comparte su lista con su navegador, un feed RSS o Atom), escriba un nombre y pulse Intro. Un `*` equivale a cualquier texto: `*us-east-1*` vigila cada componente con `us-east-1` en su nombre. En un feed RSS o Atom, un elemento cuenta cuando su título contiene uno de los nombres.
+
+Un incidente que no nombra ningún componente no cuenta mientras vigila componentes elegidos: nada indica que les afecte. Sin nada elegido, el monitor vigila toda la página y cuenta cada incidente.
+
+Un monitor guardado con el antiguo Filtro de nombre de componente sigue vigilando lo que vigilaba: el filtro aparece en **Componentes** como ese nombre entre asteriscos, como `*API*`, que coincide con cada componente cuyo nombre lo contiene.
+
+> [!WARNING]
+> Un nombre que no coincide con nada no vigila nada y parece sano. **Componentes** y **Probar monitor** nombran los componentes elegidos que la página no muestra.
 
 ### Filtro de grupo de componentes
 
 Si la página de estado organiza sus componentes en grupos, puede acotar el monitor a un solo grupo. Por ejemplo, en `https://status.openai.com`, introducir `APIs` acota el monitor a los servicios de API de OpenAI.
 
-Cuando hay un grupo de componentes definido, el **número de incidentes activos** y el **estado general** se calculan solo con los componentes de ese grupo: un incidente que afecta a un grupo ajeno (por ejemplo, ChatGPT) no activará un monitor acotado al grupo "APIs".
+Cuando hay un grupo de componentes definido, el **número de incidentes activos** y el **estado general** se calculan solo con los componentes de ese grupo: un incidente que afecta a un grupo ajeno (por ejemplo, ChatGPT) no activará un monitor acotado al grupo "APIs". Si también hay componentes elegidos, solo cuentan los componentes elegidos del grupo.
 
 El filtrado por grupo de componentes es compatible con los proveedores **Atlassian Statuspage**, **incident.io** y **OneUptime Status Page**. Los feeds RSS y Atom no exponen grupos de componentes.
-
-### Filtro de nombre de componente
-
-Si la página de estado informa de varios componentes, puede indicar el nombre de un componente para monitorear solo ese. El filtro coincide con cualquier componente cuyo nombre contenga lo que escriba, sin distinguir mayúsculas y minúsculas: `actions` coincide con un componente llamado "Actions".
-
-Cuando también hay un grupo de componentes definido, el filtro de nombre de componente se aplica **dentro** de ese grupo, lo que le permite apuntar a un solo componente dentro de un grupo más grande. Si no se indica ningún filtro, se monitorean todos los componentes del alcance. En un feed RSS o Atom, el filtro de nombre se compara con los títulos de los elementos del feed.
-
-> [!WARNING]
-> Un filtro que no coincide con nada parece sano: sin componentes en el alcance, no hay nada que pueda informar de una interrupción. Compruebe la ortografía en la página de estado, y use **Probar monitor** para ver qué conserva el filtro.
 
 ## Criterios de monitoreo
 
@@ -125,11 +131,11 @@ Puede configurar criterios para decidir cuándo el servicio externo se considera
 | --- | --- | --- |
 | **External Status Page Is Online** | Si la página de estado es accesible y devuelve datos de estado | Verdadero o Falso |
 | **External Status Page Overall Status** | El estado general que indica la página | Igual a, Distinto de, Contiene, No contiene, Empieza por, Termina en |
-| **External Status Page Component Status** | El estado de los componentes del alcance (respetando los filtros de grupo y de nombre de componente): Operativo, En mantenimiento, Rendimiento degradado, Interrupción parcial, Interrupción grave o Interrupción total | Igual a, Distinto de, Contiene, No contiene, Empieza por, Termina en |
-| **External Status Page Active Incidents** | El número de incidentes activos que muestra la página de estado (acotado al grupo o al componente cuando hay un filtro) | Igual a, Distinto de y las comparaciones numéricas |
+| **External Status Page Component Status** | El estado de cada componente del alcance (los componentes elegidos, o los del grupo, si los hay): Operativo, En mantenimiento, Rendimiento degradado, Interrupción parcial, Interrupción grave o Interrupción total | Igual a, Distinto de, Contiene, No contiene, Empieza por, Termina en |
+| **External Status Page Active Incidents** | El número de incidentes activos que muestra la página de estado (solo los que afectan a un componente del alcance, cuando hay componentes o un grupo elegidos) | Igual a, Distinto de y las comparaciones numéricas |
 | **External Status Page Response Time (in ms)** | Cuánto se tarda en descargar los datos de la página de estado | Mayor que, Menor que, Mayor o igual que, Menor o igual que |
 
-El estado general es lo que dice la página, así que sus valores dependen del proveedor: una Atlassian Statuspage informa de su propia descripción, como `All Systems Operational`; una página de estado de OneUptime, del peor estado entre sus componentes en el alcance, como `under_maintenance`; un feed informa de `operational` o `degraded_performance`; la comprobación de accesibilidad informa de `reachable` o `unreachable`. Estas comparaciones distinguen mayúsculas y minúsculas. Para alertar de interrupciones, **External Status Page Active Incidents** y **External Status Page Component Status** suelen ser más fiables.
+El estado general es lo que dice la página, así que sus valores dependen del proveedor: una Atlassian Statuspage informa de su propia descripción, como `All Systems Operational`; una página de estado de OneUptime, del peor estado entre sus componentes en el alcance, como `under_maintenance`; un feed informa de `operational` o `degraded_performance`; la comprobación de accesibilidad informa de `reachable` o `unreachable`. Con componentes o un grupo elegidos, es el peor estado entre ellos, en cualquier página. Estas comparaciones distinguen mayúsculas y minúsculas. Para alertar de interrupciones, **External Status Page Active Incidents** y **External Status Page Component Status** suelen ser más fiables.
 
 En un feed RSS o Atom, los elementos de las últimas 24 horas cuentan como incidentes activos: un elemento RSS por su fecha de publicación, una entrada Atom por su fecha de actualización. Un elemento con fecha futura no cuenta hasta esa fecha.
 
@@ -142,13 +148,13 @@ De forma predeterminada, OneUptime crea criterios basados en lo que de verdad im
 | Sin conexión | **Cualquiera** de: la página no está en línea; hay al menos un incidente activo en el alcance; un componente del alcance informa de Rendimiento degradado, Interrupción parcial, Interrupción grave o Interrupción total | Marca el monitor sin conexión y declara un incidente, que se resuelve solo cuando el criterio deja de coincidir |
 | En línea | **Todos** de: la página está en línea; no hay incidentes activos en el alcance | Marca el monitor en línea |
 
-Como el número de incidentes activos y los estados de los componentes respetan los filtros de grupo y de nombre de componente, estos criterios predeterminados se centran automáticamente solo en los componentes que le importan.
+Como el número de incidentes activos y los estados de los componentes respetan los componentes y el grupo elegidos, estos criterios predeterminados se centran automáticamente solo en los componentes que le importan.
 
 ## Páginas de estado de OneUptime
 
 Elija **OneUptime Status Page** como proveedor, o deje **Automático**, para vigilar una página de estado creada con OneUptime: el proyecto de otro equipo, o la página de un proveedor en OneUptime Cloud o en un OneUptime autoalojado. Introduzca la dirección propia de la página en **URL de la página de estado**: su dominio, como `https://status.example.com`, o `https://oneuptime.com/status-page/<status-page-id>` para una página sin dominio propio.
 
-El monitor lee el resumen de la página, `/status-page-api/summary/<page>` (consulte [Leer el resumen](/docs/status-pages/public-api#leer-el-resumen)): solo lo que la página muestra a sus visitantes, y nada más del otro proyecto. Cada recurso de la página, un monitor o un grupo de monitores, es un componente, con el nombre que la página le da, en el grupo de la página; un grupo dentro de otro se lee `Core / Databases`. Vigile un recurso con **Filtro de nombre de componente**, o un grupo con **Filtro de grupo de componentes**.
+El monitor lee el resumen de la página, `/status-page-api/summary/<page>` (consulte [Leer el resumen](/docs/status-pages/public-api#leer-el-resumen)): solo lo que la página muestra a sus visitantes, y nada más del otro proyecto. Cada recurso de la página, un monitor o un grupo de monitores, es un componente, con el nombre que la página le da, en el grupo de la página; un grupo dentro de otro se lee `Core / Databases`. Elija recursos en **Componentes**, o vigile un grupo con **Filtro de grupo de componentes**.
 
 El estado de un componente es el valor que representa su estado en la página, así que los criterios de estado de componente funcionan como en cualquier página de estado:
 
@@ -197,11 +203,11 @@ Al crear incidentes o alertas a partir de monitores de página de estado externa
 | `{{responseTimeInMs}}`    | Tiempo de respuesta en milisegundos |
 | `{{failureCause}}`        | Motivo del fallo, si lo hay |
 | `{{overallStatus}}`       | El valor del indicador de estado general |
-| `{{activeIncidentCount}}` | Número de incidentes activos (acotado por el filtro, si lo hay) |
+| `{{activeIncidentCount}}` | Número de incidentes activos (de los componentes que vigila, si eligió alguno) |
 | `{{componentStatuses}}`   | Array JSON de estados de componentes (`name`, `status`, `description`, `groupName`) |
 | `{{provider}}`            | Proveedor detectado (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); vacío tras una comprobación de accesibilidad |
 | `{{componentGroup}}`      | Grupo de componentes al que está acotado el monitor, si lo hay |
-| `{{componentName}}`       | Componente al que está acotado el monitor, si lo hay |
+| `{{componentName}}`       | Los componentes que vigila el monitor, separados por comas, si eligió alguno |
 
 ## URL de páginas de estado populares
 
@@ -235,22 +241,26 @@ Aquí tiene una lista de páginas de estado de servicios populares. Muchas usan 
 ## Buenas prácticas
 
 - **Use el proveedor Automático** salvo que conozca el formato exacto: la detección automática funciona bien con la mayoría de las páginas de estado.
-- **Acote a un grupo de componentes** si solo depende de una parte de un proveedor (p. ej., solo de las "APIs" de OpenAI), para que los incidentes ajenos no generen ruido.
-- **Monitoree componentes concretos** si solo depende de ciertos servicios.
+- **Elija los componentes de los que depende** (p. ej., Git Operations y Pull Requests de GitHub), para que los incidentes ajenos no generen ruido.
+- **Vigile un grupo entero** cuando dependa de todo él (p. ej., las "APIs" de OpenAI), para que también se vigilen los componentes que se le añadan más adelante.
 - **Combínelo con sus propios monitores**: empareje los monitores de página de estado externa con sus propios monitores de API y de sitio web. Cuando ambos caen a la vez, la página de estado del proveedor le lleva antes a la causa raíz.
 
 ## Solución de problemas
 
 :::details El monitor está sin conexión, pero el incidente es de una parte del servicio que no uso
-Acote el monitor con un **Filtro de grupo de componentes**, un **Filtro de nombre de componente** o ambos. Así, el número de incidentes activos y los estados de los componentes solo cuentan lo que está en el alcance.
+Elija en **Componentes** los componentes de los que depende, o un grupo en **Filtro de grupo de componentes**. Así, el número de incidentes activos y los estados de los componentes solo cuentan esos; un incidente que no nombra ningún componente no cuenta.
 :::
 
 :::details El monitor nunca queda sin conexión, ni siquiera durante una interrupción
-Puede que los filtros no coincidan con nada, lo que parece sano, o que la página solo reciba la comprobación de accesibilidad. Ejecute **Probar monitor** y revise el proveedor y los componentes que encontró.
+Puede que un nombre elegido no coincida con nada en la página, lo que parece sano, o que la página solo reciba la comprobación de accesibilidad. Ejecute **Probar monitor**: muestra el proveedor y los componentes que encontró, y nombra cada componente elegido que la página no muestra.
 :::
 
 :::details Automático elige el formato equivocado, o no encuentra componentes
 Ponga el **Proveedor** que sabe que usa la página. En un feed RSS o Atom, introduzca la URL del propio feed en lugar de la de la página de estado.
+:::
+
+:::details La lista de Componentes no se carga
+Su navegador lee la lista directamente de la página de estado. Una página interna a la que su navegador no llega, una página que no comparte su lista con otros sitios y un feed RSS o Atom no tienen lista de la que elegir: escriba el nombre de cada componente tal como lo muestra la página y pulse Intro. Las sondas leen la página como antes.
 :::
 
 :::details Una página de estado de OneUptime no muestra componentes

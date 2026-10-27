@@ -151,13 +151,74 @@ export default class ExternalStatusPageMonitorCriteria {
       const activeIncidents: number =
         externalStatusPageResponse?.activeIncidentCount || 0;
 
-      return CompareCriteria.compareCriteriaNumbers({
+      const result: string | null = CompareCriteria.compareCriteriaNumbers({
         value: activeIncidents,
         threshold: threshold as number,
         criteriaFilter: input.criteriaFilter,
       });
+
+      if (!result) {
+        return null;
+      }
+
+      /*
+       * Which incidents, by the names the page gives them: the ones that
+       * affect a component the monitor watches. A probe that has not been
+       * upgraded reports none, and the count says it all.
+       */
+      return ExternalStatusPageMonitorCriteria.withIncidentNames({
+        message: result,
+        names:
+          activeIncidents > 0
+            ? externalStatusPageResponse?.activeIncidentNames
+            : undefined,
+        count: activeIncidents,
+      });
     }
 
     return null;
+  }
+
+  // How many incident names a criteria's message spells out.
+  public static readonly MAX_NAMED_INCIDENTS: number = 3;
+
+  /*
+   * A criteria's message, followed by the incidents it counted:
+   * 'Incident: "Incident with Git Operations".', or the first few of them
+   * and how many more of the count there are.
+   */
+  public static withIncidentNames(data: {
+    message: string;
+    names: Array<string> | undefined;
+    count: number;
+  }): string {
+    const message: string = data.message;
+    const named: Array<string> = (Array.isArray(data.names) ? data.names : [])
+      .filter((name: unknown): name is string => {
+        return typeof name === "string" && name.trim().length > 0;
+      })
+      .map((name: string): string => {
+        return name.trim();
+      });
+
+    if (named.length === 0) {
+      return message;
+    }
+
+    const shown: Array<string> = named
+      .slice(0, ExternalStatusPageMonitorCriteria.MAX_NAMED_INCIDENTS)
+      .map((name: string): string => {
+        return `"${name}"`;
+      });
+    const total: number = Math.max(data.count, named.length);
+    const more: number = total - shown.length;
+    const list: string =
+      more > 0
+        ? `${shown.join(", ")} and ${more} more`
+        : shown.length > 1
+          ? `${shown.slice(0, -1).join(", ")} and ${shown[shown.length - 1]}`
+          : (shown[0] as string);
+
+    return `${message} ${total === 1 ? "Incident" : "Incidents"}: ${list}.`;
   }
 }

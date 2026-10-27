@@ -6,7 +6,7 @@ Hij leest ook statuspagina's die met OneUptime zijn gemaakt, resource voor resou
 
 :::cards
 - [De monitor maken](#een-monitor-voor-externe-statuspaginas-maken): Plak de URL van een statuspagina en kies wat u wilt volgen.
-- [Afbakenen](#configuratieopties): Volg één componentgroep of één component.
+- [Componenten kiezen](#componenten): Volg alleen de componenten waarvan u afhankelijk bent.
 - [Criteria](#bewakingscriteria): Wat standaard als uitgevallen telt.
 - [OneUptime-statuspagina's](#oneuptime-statuspaginas): De resources van een ander project, en het onderhoud ervan.
 - [Populaire statuspagina's](#populaire-statuspagina-urls): URL's van de diensten waarvan de meeste teams afhankelijk zijn.
@@ -14,13 +14,13 @@ Hij leest ook statuspagina's die met OneUptime zijn gemaakt, resource voor resou
 
 ## Zo werkt het
 
-Bij elke controle haalt een probe de statuspagina op, stelt vast welk formaat die gebruikt, en leest de algemene status, de componenten en de actieve incidenten. Hebt u de monitor afgebakend tot een componentgroep of een component, dan tellen alleen die mee. Daarna beslissen de criteria of de monitor online of offline is.
+Bij elke controle haalt een probe de statuspagina op, stelt vast welk formaat die gebruikt, en leest de algemene status, de componenten en de actieve incidenten. Hebt u componenten of een componentgroep gekozen, dan tellen alleen die mee. Daarna beslissen de criteria of de monitor online of offline is.
 
 ```mermaid title="Eén controle van een externe statuspagina"
 flowchart TB
     fetch["De statuspagina ophalen"] --> detect["Het formaat vaststellen"]
     detect --> parse["Status, componenten, incidenten lezen"]
-    parse --> scope["De groep of component behouden"]
+    parse --> scope["De gekozen componenten behouden"]
     scope --> criteria{"Actief incident of storing?"}
     criteria -->|Ja| down["Offline, incident verklaard"]
     criteria -->|Nee| up["Online"]
@@ -31,7 +31,7 @@ U kunt hem gebruiken om:
 - De beschikbaarheid te bewaken van diensten van derden waarvan uw applicatie afhankelijk is
 - Gewaarschuwd te worden als uw leveranciers een storing hebben
 - De status van afzonderlijke componenten te volgen
-- De bewaking af te bakenen tot één componentgroep (bijvoorbeeld alleen de "APIs" van OpenAI), zodat incidenten elders op de pagina die er niets mee te maken hebben uw monitor niet laten afgaan
+- Alleen de componenten te volgen waarvan u afhankelijk bent (bijvoorbeeld Git Operations en Pull Requests van GitHub, of de groep "APIs" van OpenAI), zodat incidenten elders op de pagina die er niets mee te maken hebben uw monitor niet laten afgaan
 - Verminderde prestaties op te merken voordat uw gebruikers er last van hebben
 - Uw eigen incidenten te koppelen aan problemen bij uw leveranciers
 
@@ -72,9 +72,9 @@ Ga naar **Monitoren** en klik op **Monitor maken**. Klik onder **Monitortype** o
 
 Voer de **URL statuspagina** in. Laat de **Provider** op **Auto** staan, tenzij u het formaat kent.
 
-### Afbakenen, als dat nodig is
+### Componenten kiezen, als dat nodig is
 
-Open **Meer velden** om een **Component Group Filter** in te voeren, zoals `APIs`, en een **Filter op componentnaam** om één component te volgen (binnen de groep, als er een groep is ingesteld).
+Open **Componenten** en kies uit de lijst van de pagina de componenten waarvan u afhankelijk bent, zoals `Git Operations` en `Pull Requests` op die van GitHub; laat het leeg om de hele pagina te volgen. Om in plaats daarvan één groep te volgen, opent u **Meer velden** en voert u een **Component Group Filter** in, zoals `APIs`.
 
 ### Testen
 
@@ -95,27 +95,33 @@ Selecteer de **Sondes** en een **Bewakingsinterval** — dat begint op **Elke 5 
 | --- | --- | --- |
 | **URL statuspagina** | De URL van de statuspagina. Voor sites die draaien op Atlassian Statuspage en incident.io is dit meestal de hoofd-URL (bijv. `https://status.example.com`). Voer voor RSS-/Atom-feeds direct de URL van de feed in. | — |
 | **Provider** | **Auto** om het formaat vast te stellen, of **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** of **Atom** als u het kent. | **Auto** |
+| **Componenten** | De componenten die u volgt, gekozen uit de lijst van de pagina of ingetypt. | De hele pagina |
 | **Component Group Filter** | De groep waartoe de monitor wordt afgebakend. Onder **Meer velden**. | Alle groepen |
-| **Filter op componentnaam** | Het component dat u volgt. Onder **Meer velden**. | Alle componenten binnen de afbakening |
 | **Time-out (ms)** | Hoe lang maximaal op de statuspagina wordt gewacht. Onder **Meer velden**. | `10000` (10 seconden) |
 | **Nieuwe pogingen** | Hoe vaak opnieuw wordt geprobeerd, met een seconde ertussen, nadat de eerste poging is mislukt; `0` betekent één poging. Onder **Meer velden**. | `3` (tot 4 pogingen) |
+
+### Componenten
+
+Kies de componenten waarvan u afhankelijk bent, en de monitor volgt alleen die: **External Status Page Component Status** vergelijkt alleen hun statussen, de algemene status is de slechtste van hun statussen, en **External Status Page Active Incidents** telt alleen de incidenten die minstens één van hen raken. Het blijft één controle van de pagina, hoeveel u er ook kiest.
+
+Als u **Componenten** opent, leest uw browser de lijst van de pagina van een Atlassian Statuspage, een incident.io-pagina of een OneUptime-statuspagina, en toont die in de groepen van de pagina; elk component dat niet operationeel is, zegt hoe het ermee staat. Een gekozen naam volgt het component met precies die naam, zonder op hoofdletters te letten: `Copilot` op de pagina van GitHub is niet `Copilot AI Model Providers`.
+
+Kan de lijst niet worden gelezen (een interne pagina, een pagina die haar lijst niet met uw browser deelt, een RSS- of Atom-feed), typ dan een naam en druk op Enter. Een `*` staat voor willekeurige tekst: `*us-east-1*` volgt elk component met `us-east-1` in de naam. Bij een RSS- of Atom-feed telt een item als de titel een van de namen bevat.
+
+Een incident dat geen component noemt, telt niet mee zolang u gekozen componenten volgt: niets zegt dat het die raakt. Is er niets gekozen, dan volgt de monitor de hele pagina en telt elk incident mee.
+
+Een monitor die is opgeslagen met het oude Filter op componentnaam, blijft volgen wat hij volgde: het filter staat in **Componenten** als die naam tussen sterretjes, zoals `*API*`, wat overeenkomt met elk component waarvan de naam het bevat.
+
+> [!WARNING]
+> Een naam die nergens mee overeenkomt, volgt niets en ziet er gezond uit. **Componenten** en **Monitor testen** noemen allebei de gekozen componenten die de pagina niet toont.
 
 ### Component Group Filter
 
 Deelt de statuspagina haar componenten in groepen in, dan kunt u de monitor afbakenen tot één groep. Op `https://status.openai.com` bakent u met `APIs` de monitor bijvoorbeeld af tot de API-diensten van OpenAI.
 
-Is er een componentgroep ingesteld, dan worden het **aantal actieve incidenten** en de **algemene status** berekend met alleen de componenten in die groep — een incident in een groep die er niets mee te maken heeft (bijvoorbeeld ChatGPT) laat een monitor die tot de groep "APIs" is afgebakend, niet afgaan.
+Is er een componentgroep ingesteld, dan worden het **aantal actieve incidenten** en de **algemene status** berekend met alleen de componenten in die groep — een incident in een groep die er niets mee te maken heeft (bijvoorbeeld ChatGPT) laat een monitor die tot de groep "APIs" is afgebakend, niet afgaan. Zijn er ook componenten gekozen, dan tellen alleen de gekozen componenten van de groep mee.
 
 Filteren op componentgroep wordt ondersteund voor de providers **Atlassian Statuspage**, **incident.io** en **OneUptime Status Page**. RSS- en Atom-feeds kennen geen componentgroepen.
-
-### Filter op componentnaam
-
-Meldt de statuspagina de status van meerdere componenten, dan kunt u een componentnaam opgeven om alleen dat component te bewaken. Het filter komt overeen met elk component waarvan de naam bevat wat u invoert, zonder op hoofdletters te letten — `actions` komt overeen met een component met de naam "Actions".
-
-Is er ook een componentgroep ingesteld, dan wordt het filter op componentnaam **binnen** die groep toegepast, zodat u één component in een grotere groep kunt kiezen. Is geen van beide filters opgegeven, dan worden alle componenten binnen de afbakening bewaakt. Bij een RSS- of Atom-feed wordt het naamfilter vergeleken met de titels van de items in de feed.
-
-> [!WARNING]
-> Een filter dat nergens mee overeenkomt, ziet er gezond uit: zonder componenten binnen de afbakening is er niets dat een storing kan melden. Controleer de spelling aan de hand van de statuspagina, en gebruik **Monitor testen** om te zien wat het filter overhoudt.
 
 ## Bewakingscriteria
 
@@ -125,11 +131,11 @@ U kunt criteria instellen die bepalen wanneer de externe dienst als online of of
 | --- | --- | --- |
 | **External Status Page Is Online** | Of de statuspagina bereikbaar is en statusgegevens teruggeeft | Waar of Onwaar |
 | **External Status Page Overall Status** | De algemene status die de pagina meldt | Gelijk aan, Niet gelijk aan, Bevat, Bevat niet, Begint met, Eindigt op |
-| **External Status Page Component Status** | De status van de componenten binnen de afbakening (met inachtneming van de filters op componentgroep / componentnaam): Operationeel, Under Maintenance, Degraded Performance, Partial Outage, Major Outage of Full Outage | Gelijk aan, Niet gelijk aan, Bevat, Bevat niet, Begint met, Eindigt op |
-| **External Status Page Active Incidents** | Het aantal momenteel actieve incidenten op de statuspagina (afgebakend tot de componentgroep / het component als er een filter is ingesteld) | Gelijk aan, Niet gelijk aan en de numerieke vergelijkingen |
+| **External Status Page Component Status** | De status van elk component binnen de afbakening (de gekozen componenten, of die van de groep, als die zijn ingesteld): Operationeel, Under Maintenance, Degraded Performance, Partial Outage, Major Outage of Full Outage | Gelijk aan, Niet gelijk aan, Bevat, Bevat niet, Begint met, Eindigt op |
+| **External Status Page Active Incidents** | Het aantal momenteel actieve incidenten op de statuspagina (alleen die een component binnen de afbakening raken, als er componenten of een groep zijn gekozen) | Gelijk aan, Niet gelijk aan en de numerieke vergelijkingen |
 | **External Status Page Response Time (in ms)** | Hoe lang het ophalen van de gegevens van de statuspagina duurt | Groter dan, Kleiner dan, Groter dan of gelijk aan, Kleiner dan of gelijk aan |
 
-De algemene status is wat de pagina zegt, dus de waarden verschillen per provider: een Atlassian Statuspage meldt haar eigen omschrijving, zoals `All Systems Operational`; een OneUptime-statuspagina de slechtste status van haar componenten binnen het bereik, zoals `under_maintenance`; een feed meldt `operational` of `degraded_performance`; de controle op bereikbaarheid meldt `reachable` of `unreachable`. Bij deze vergelijkingen tellen hoofdletters mee. Om bij storingen te waarschuwen, zijn **External Status Page Active Incidents** en **External Status Page Component Status** meestal betrouwbaarder.
+De algemene status is wat de pagina zegt, dus de waarden verschillen per provider: een Atlassian Statuspage meldt haar eigen omschrijving, zoals `All Systems Operational`; een OneUptime-statuspagina de slechtste status van haar componenten binnen het bereik, zoals `under_maintenance`; een feed meldt `operational` of `degraded_performance`; de controle op bereikbaarheid meldt `reachable` of `unreachable`. Met gekozen componenten of een groep is het de slechtste status onder hen, op elke pagina. Bij deze vergelijkingen tellen hoofdletters mee. Om bij storingen te waarschuwen, zijn **External Status Page Active Incidents** en **External Status Page Component Status** meestal betrouwbaarder.
 
 Bij een RSS- of Atom-feed tellen de items van de laatste 24 uur als actieve incidenten: een RSS-item op zijn publicatiedatum, een Atom-item op zijn bijwerkdatum. Een item met een datum in de toekomst telt pas vanaf die datum.
 
@@ -142,13 +148,13 @@ Standaard maakt OneUptime criteria op basis van wat voor een statuspagina echt t
 | Offline | **Minstens één** van: de pagina is niet online; er is ten minste één actief incident binnen de afbakening; een component binnen de afbakening meldt Degraded Performance, Partial Outage, Major Outage of Full Outage | Markeert de monitor als offline en verklaart een incident, dat zichzelf oplost zodra het criterium niet meer overeenkomt |
 | Online | **Alle** van: de pagina is online; er zijn geen actieve incidenten binnen de afbakening | Markeert de monitor als online |
 
-Omdat het aantal actieve incidenten en de componentstatussen de filters op componentgroep / componentnaam volgen, richten deze standaardcriteria zich automatisch alleen op de componenten die voor u tellen.
+Omdat het aantal actieve incidenten en de componentstatussen de gekozen componenten en groep volgen, richten deze standaardcriteria zich automatisch alleen op de componenten die voor u tellen.
 
 ## OneUptime-statuspagina's
 
 Kies **OneUptime Status Page** als provider, of laat **Auto** staan, om een statuspagina te volgen die met OneUptime is gemaakt: het project van een ander team, of de pagina van een leverancier op OneUptime Cloud of op een zelf gehoste OneUptime. Vul het eigen adres van de pagina in bij **URL statuspagina**: haar domein, zoals `https://status.example.com`, of `https://oneuptime.com/status-page/<status-page-id>` voor een pagina zonder eigen domein.
 
-De monitor leest de samenvatting van de pagina, `/status-page-api/summary/<page>` (zie [De samenvatting lezen](/docs/status-pages/public-api#de-samenvatting-lezen)): alleen wat de pagina haar bezoekers laat zien, en verder niets van het andere project. Elke resource op de pagina, een monitor of een monitorgroep, is een component, onder de naam die de pagina eraan geeft, in de groep van de pagina; een groep binnen een andere heet `Core / Databases`. Volg één resource met **Filter op componentnaam**, of één groep met **Component Group Filter**.
+De monitor leest de samenvatting van de pagina, `/status-page-api/summary/<page>` (zie [De samenvatting lezen](/docs/status-pages/public-api#de-samenvatting-lezen)): alleen wat de pagina haar bezoekers laat zien, en verder niets van het andere project. Elke resource op de pagina, een monitor of een monitorgroep, is een component, onder de naam die de pagina eraan geeft, in de groep van de pagina; een groep binnen een andere heet `Core / Databases`. Kies resources in **Componenten**, of volg één groep met **Component Group Filter**.
 
 De status van een component is de waarde waar zijn status op de pagina voor staat, zodat de criteria voor componentstatus werken zoals op elke statuspagina:
 
@@ -197,11 +203,11 @@ Als u incidenten of waarschuwingen maakt vanuit monitoren voor externe statuspag
 | `{{responseTimeInMs}}`    | Responstijd in milliseconden |
 | `{{failureCause}}`        | De reden van de fout, als die er is |
 | `{{overallStatus}}`       | De waarde van de algemene statusindicator |
-| `{{activeIncidentCount}}` | Aantal actieve incidenten (afgebakend tot het filter, als dat er is) |
+| `{{activeIncidentCount}}` | Aantal actieve incidenten (van de componenten die hij volgt, als er gekozen zijn) |
 | `{{componentStatuses}}`   | JSON-array met componentstatussen (`name`, `status`, `description`, `groupName`) |
 | `{{provider}}`            | De vastgestelde provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); leeg na een controle op bereikbaarheid |
 | `{{componentGroup}}`      | De componentgroep waartoe de monitor is afgebakend, als die er is |
-| `{{componentName}}`       | Het component waartoe de monitor is afgebakend, als dat er is |
+| `{{componentName}}`       | De componenten die de monitor volgt, gescheiden door komma's, als er gekozen zijn |
 
 ## Populaire statuspagina-URL's
 
@@ -235,22 +241,26 @@ Hier is een lijst met statuspagina's van populaire diensten. Veel daarvan gebrui
 ## Aanbevolen werkwijzen
 
 - **Gebruik de provider Auto**, tenzij u het exacte formaat kent — automatische detectie werkt goed voor de meeste statuspagina's.
-- **Baken af tot een componentgroep** als u maar van een deel van een provider afhankelijk bent (bijvoorbeeld alleen de "APIs" van OpenAI), zodat incidenten die er niets mee te maken hebben geen ruis geven.
-- **Bewaak specifieke componenten** als u maar van bepaalde diensten afhankelijk bent.
+- **Kies de componenten waarvan u afhankelijk bent** (bijvoorbeeld Git Operations en Pull Requests van GitHub), zodat incidenten die er niets mee te maken hebben geen ruis geven.
+- **Volg een hele groep** als u van de hele groep afhankelijk bent (bijvoorbeeld de "APIs" van OpenAI), zodat ook de componenten die er later bijkomen worden gevolgd.
 - **Combineer met uw eigen monitoren** — zet monitoren voor externe statuspagina's naast uw eigen API- en websitemonitoren. Vallen beide tegelijk uit, dan wijst de statuspagina van de leverancier u sneller de oorzaak aan.
 
 ## Probleemoplossing
 
 :::details De monitor is offline, maar het incident gaat over een deel van de dienst dat ik niet gebruik
-Baken de monitor af met een **Component Group Filter**, een **Filter op componentnaam**, of beide. Het aantal actieve incidenten en de componentstatussen tellen dan alleen wat binnen de afbakening valt.
+Kies in **Componenten** de componenten waarvan u afhankelijk bent, of één groep in **Component Group Filter**. Het aantal actieve incidenten en de componentstatussen tellen dan alleen die; een incident dat geen component noemt, telt niet mee.
 :::
 
 :::details De monitor gaat nooit offline, zelfs niet tijdens een storing
-Misschien komen de filters nergens mee overeen, wat er gezond uitziet, of krijgt de pagina alleen de controle op bereikbaarheid. Voer **Monitor testen** uit en controleer de provider en de componenten die hij vond.
+Misschien komt een gekozen naam nergens op de pagina mee overeen, wat er gezond uitziet, of krijgt de pagina alleen de controle op bereikbaarheid. Voer **Monitor testen** uit: dat toont de provider en de componenten die het vond, en noemt elk gekozen component dat de pagina niet toont.
 :::
 
 :::details Auto kiest het verkeerde formaat, of vindt geen componenten
 Zet de **Provider** op de provider waarvan u weet dat de pagina hem gebruikt. Voer voor een RSS- of Atom-feed de URL van de feed zelf in, niet die van de statuspagina.
+:::
+
+:::details De lijst bij Componenten laadt niet
+Uw browser leest de lijst rechtstreeks van de statuspagina. Een interne pagina die uw browser niet bereikt, een pagina die haar lijst niet met andere sites deelt, en een RSS- of Atom-feed hebben geen lijst om uit te kiezen: typ de naam van elk component zoals de pagina die toont, en druk op Enter. De probes lezen de pagina zoals voorheen.
 :::
 
 :::details Een OneUptime-statuspagina toont geen componenten

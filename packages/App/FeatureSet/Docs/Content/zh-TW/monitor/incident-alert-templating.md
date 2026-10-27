@@ -440,11 +440,11 @@ Alerts for payments:
 | 變數 | 內容 | 類型 |
 | --- | --- | --- |
 | `overallStatus` | 狀態頁面的整體狀態，例如 `major_outage`。 | `string` |
-| `activeIncidentCount` | 狀態頁面上處於開啟狀態的事件數量。 | `number` |
+| `activeIncidentCount` | 狀態頁面上處於開啟狀態、且影響監測器所關注內容的事件數量。 | `number` |
 | `componentStatuses` | 它的元件，每個形如 `{name, status, description, groupName}`。 | `Array<Object>` |
 | `provider` | 狀態頁面的類型：Atlassian Statuspage、incident.io、RSS 或 Atom。 | `string` |
 | `componentGroup` | 監測器關注的元件群組(如果有)。 | `string` |
-| `componentName` | 監測器關注的元件(如果有)。 | `string` |
+| `componentName` | 監測器關注的元件，以逗號分隔(如果選擇了元件)。 | `string` |
 | `isOnline` | 狀態頁面是否有回應。 | `boolean` |
 | `responseTimeInMs` | 狀態頁面回應所用的時間，以毫秒為單位。 | `number` |
 | `failureCause` | 檢查失敗時的原因。 | `string` |
