@@ -552,6 +552,143 @@ test.describe("the Overview's way to the runs", () => {
   });
 });
 
+/*
+ * What starts the runbook on its own, said on its Overview: its Triggers
+ * page sits in the menu's folded Settings section, so the Overview says
+ * whether a schedule or the webhook starts it - or neither, and what does -
+ * and links to the Triggers page.
+ */
+test.describe("the Overview says what starts the runbook", () => {
+  const summary: (page: Page) => Locator = (page: Page): Locator => {
+    return page.getByTestId("runbook-overview-triggers");
+  };
+
+  test("a schedule that is on: when it runs, in its time zone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview", "schedule=weekdays");
+
+    // As the Triggers page's schedule card says it, in the browser's clock.
+    await expect(summary(page)).toContainText(
+      "Runs every weekday at 09:00 · Europe/London",
+    );
+    await expect(summary(page)).not.toContainText("No schedule or webhook");
+  });
+
+  test("a webhook that is on, beside a schedule that is: a line each, and never the URL", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview", "schedule=every15&webhook=on");
+
+    const lines: Array<string> = await summary(page)
+      .locator("p[data-testid]")
+      .allTextContents();
+
+    expect(lines).toEqual([
+      "Runs every 15 minutes · UTC",
+      "Runs when its webhook URL is called.",
+    ]);
+    await expect(summary(page)).not.toContainText("http");
+  });
+
+  /*
+   * A paused schedule is a schedule: it never reads "No schedule or
+   * webhook". With nothing else to start the runbook, one line says both.
+   */
+  test("a paused schedule says so, and what starts the runbook meanwhile, in one line", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview", "schedule=paused");
+
+    const lines: Array<string> = await summary(page)
+      .locator("p[data-testid]")
+      .allTextContents();
+
+    expect(lines).toEqual([
+      "Its schedule is paused, so it runs only when someone starts it, or when a rule or OneUptime AI does.",
+    ]);
+    await expect(summary(page)).not.toContainText("No schedule or webhook");
+  });
+
+  test("a paused schedule beside a webhook that is on: the webhook first, then the paused schedule", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview", "schedule=paused&webhook=on");
+
+    const lines: Array<string> = await summary(page)
+      .locator("p[data-testid]")
+      .allTextContents();
+
+    expect(lines).toEqual([
+      "Runs when its webhook URL is called.",
+      "Its schedule is paused.",
+    ]);
+  });
+
+  test("neither: what does start it, and the link opens Triggers with Settings opened by itself", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview");
+    const menu: Locator = desktopMenu(page);
+
+    await expect(summary(page)).toContainText(
+      "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.",
+    );
+    await expectFolded(menu, "Settings");
+
+    await summary(page)
+      .getByRole("link", { name: "Settings › Triggers" })
+      .click();
+
+    await expectPath(page, TRIGGERS_PATH);
+    await expectOpen(menu, "Settings");
+    expect(await isMarked(link(menu, TRIGGERS_PATH))).toBe(true);
+  });
+
+  test("in German, as the German menu names the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openRunbook(page, "overview", "lang=de&webhook=on");
+
+    await expect(summary(page)).toContainText(
+      "Läuft, wenn seine Webhook-URL aufgerufen wird.",
+    );
+    await expect(
+      summary(page).getByRole("link", { name: "Einstellungen › Auslöser" }),
+    ).toBeVisible();
+  });
+
+  test("on a phone it stays inside its card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openRunbook(page, "overview", "schedule=cron&webhook=on");
+
+    await expect(summary(page)).toBeVisible();
+
+    const pastTheEdge: number = await page.evaluate((): number => {
+      return document.documentElement.scrollWidth - window.innerWidth;
+    });
+
+    expect(pastTheEdge).toBeLessThanOrEqual(0);
+    await screenshot(page, "overview-triggers-phone");
+  });
+});
+
 test.describe("a runbook's side menu on a phone", () => {
   test.beforeEach(async ({ page }: { page: Page }) => {
     await page.setViewportSize({ width: 390, height: 844 });

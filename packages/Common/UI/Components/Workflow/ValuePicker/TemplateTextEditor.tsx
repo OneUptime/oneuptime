@@ -43,10 +43,12 @@ import TemplateTextHistory, {
   TemplateTextChangeKind,
   TemplateTextSnapshot,
 } from "./TemplateTextHistory";
+import { WorkflowViewOnlyContext } from "../WorkflowViewOnly";
 import React, {
   ReactElement,
   forwardRef,
   useCallback,
+  useContext,
   useImperativeHandle,
   useLayoutEffect,
   useRef,
@@ -216,6 +218,19 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
     const propsRef: React.MutableRefObject<TemplateTextEditorProps> =
       useRef<TemplateTextEditorProps>(props);
     propsRef.current = props;
+
+    /*
+     * A step opened to be read, by someone who may not change the workflow
+     * (WorkflowViewOnly): the box shows its value as it is. The keyboard
+     * still reaches it, to read it, but nothing typed, pasted, cut or
+     * dropped changes it, and it never takes the focus on its own. Unlike a
+     * disabled box it is not greyed out: it is there to be read.
+     */
+    const isViewOnly: boolean = useContext(WorkflowViewOnlyContext);
+    const isReadOnly: boolean = Boolean(props.disabled) || isViewOnly;
+    const isReadOnlyRef: React.MutableRefObject<boolean> =
+      useRef<boolean>(isReadOnly);
+    isReadOnlyRef.current = isReadOnly;
 
     const [isEmpty, setIsEmpty] = useState<boolean>(initialText === "");
 
@@ -490,7 +505,8 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
 
       renderTemplateValue(root, valueRef.current, buildChip);
 
-      if (props.autoFocus) {
+      // A view's box is read, not typed in: it takes no focus on its own.
+      if (props.autoFocus && !isViewOnly) {
         root.focus();
         writeTemplateSelection(root, {
           start: valueRef.current.length,
@@ -579,7 +595,7 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
       ): void => {
         const current: TemplateTextEditorProps = propsRef.current;
 
-        if (current.disabled) {
+        if (isReadOnlyRef.current) {
           event.preventDefault();
           return;
         }
@@ -863,10 +879,11 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
           aria-invalid={props.ariaInvalid ? true : undefined}
           aria-placeholder={props.placeholder || undefined}
           aria-disabled={props.disabled ? true : undefined}
+          aria-readonly={isViewOnly && !props.disabled ? true : undefined}
           aria-autocomplete={props.onTriggerChange ? "list" : undefined}
           aria-controls={props.ariaControls}
           aria-activedescendant={props.ariaActiveDescendant}
-          contentEditable={!props.disabled}
+          contentEditable={!isReadOnly}
           suppressContentEditableWarning={true}
           spellCheck={props.spellCheck ?? props.multiline}
           tabIndex={props.tabIndex ?? 0}
@@ -885,6 +902,17 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
 
             const isModified: boolean = event.metaKey || event.ctrlKey;
             const key: string = event.key.toLowerCase();
+
+            // Nothing to undo or redo in a box that is only read.
+            if (
+              isReadOnly &&
+              isModified &&
+              !event.altKey &&
+              (key === "z" || key === "y")
+            ) {
+              event.preventDefault();
+              return;
+            }
 
             if (isModified && !event.altKey && key === "z") {
               event.preventDefault();
@@ -1092,7 +1120,7 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
           onPaste={(event: React.ClipboardEvent<HTMLDivElement>) => {
             event.preventDefault();
 
-            if (props.disabled) {
+            if (isReadOnly) {
               return;
             }
 
@@ -1142,7 +1170,7 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
               valueRef.current.slice(selection.start, selection.end),
             );
 
-            if (!props.disabled) {
+            if (!isReadOnly) {
               applyEdit(selection, "", TemplateTextChangeKind.Other);
             }
           }}
@@ -1159,7 +1187,7 @@ const TemplateTextEditor: React.ForwardRefExoticComponent<
             const root: HTMLDivElement | null = rootRef.current;
             const text: string = event.dataTransfer.getData("text/plain");
 
-            if (!root || !text || props.disabled) {
+            if (!root || !text || isReadOnly) {
               return;
             }
 

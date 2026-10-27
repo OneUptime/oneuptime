@@ -138,6 +138,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `timelineIncidents` | 運作率長條時間範圍內的事件（包括已解決的），用於長條的提示說明。 |
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | 事件片段的相同內容。 |
 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | 即將開始或正在進行的排定維護事件，以及它們的公開備註與狀態變化。 |
+| `timelineScheduledMaintenanceEvents` | 運作率長條時間範圍內已經開始的排定維護事件（進行中或已結束），用於長條的提示說明與每天的對話框：僅限頁面顯示、且包含頁面某個監控器的事件，每個事件只列出頁面的監控器。 |
 | `activeAnnouncements` | 目前顯示中的公告：已經開始且尚未結束。 |
 
 ## 讀取狀態概要

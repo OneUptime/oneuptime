@@ -138,6 +138,7 @@ Den samlade statusen är den sämsta aktuella statusen bland monitorerna och mon
 | `timelineIncidents` | Incidenterna i drifttidsstaplarnas tidsfönster, lösta inräknade, för staplarnas verktygstips. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Samma sak för incidentepisoder. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | De planerade underhållshändelser som ännu inte har börjat eller pågår, deras offentliga anteckningar och tillståndsändringar. |
+| `timelineScheduledMaintenanceEvents` | De planerade underhållshändelserna i drifttidsstaplarnas tidsfönster som har börjat, oavsett om de pågår eller är över, för staplarnas verktygstips och varje dags dialog: de som sidan visar och som gäller någon av dess monitorer, var och en med bara sidans monitorer. |
 | `activeAnnouncements` | Meddelandena som visas nu: påbörjade och inte avslutade. |
 
 ## Läs sammanfattningen

@@ -101,7 +101,7 @@ Go to **Runbooks → Runners** and create a new agent. Click **Create Runner** a
 | **Runs Runbooks** | Under **More fields** | On by default. Lets this Runner take runbook steps. |
 | **Labels** | Under **More fields** | Optional. |
 
-A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it. AI is not a capability. A code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it. An AI rule picks the Runner OneUptime AI runs its commands on: picking a Runner there is what lets OneUptime AI's commands run on it.
+A Runner picks up a change to its capabilities on its next heartbeat; there is no need to restart it. AI is not a capability. A code repository picks the Runner AI works in it on, in its settings in Code, and the Runner's page lists the repositories that pick it. An AI rule picks the Runner OneUptime AI runs its commands on: picking a Runner there is what lets OneUptime AI's commands run on it. The Runner's page lists the AI rules that pick it too.
 
 ### 2. Copy the install command
 

@@ -138,6 +138,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `timelineIncidents` | 可用率条时间窗口内的事件（包括已解决的），用于条形的提示信息。 |
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | 事件片段的相同内容。 |
 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | 即将开始或正在进行的计划维护事件，以及它们的公开备注和状态变化。 |
+| `timelineScheduledMaintenanceEvents` | 可用率条时间窗口内已经开始的计划维护事件（进行中或已结束），用于条形的提示信息和每天的对话框：仅限页面显示、且包含页面某个监控器的事件，每个事件只列出页面的监控器。 |
 | `activeAnnouncements` | 正在显示的公告：已经开始且尚未结束。 |
 
 ## 读取摘要

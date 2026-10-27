@@ -101,7 +101,7 @@ Gå til **Runbooks → Runbook-agenter**, og opret en ny agent. Klik på **Opret
 | **Kører runbooks** | Under **Flere felter** | Slået til som standard. Lader denne Runner overtage runbook-trin. |
 | **Etiketter** | Under **Flere felter** | Valgfri. |
 
-En Runner henter en ændring af sine funktioner ved sit næste heartbeat; den skal ikke genstartes. AI er ikke en funktion. Et koderepositorie vælger i sine indstillinger i Kode den Runner, AI arbejder i det på, og Runnerens side viser de repositorier, der vælger den. En AI-regel vælger den Runner, OneUptime AI kører sine kommandoer på: Det er valget af en Runner der, der lader OneUptime AI's kommandoer køre på den.
+En Runner henter en ændring af sine funktioner ved sit næste heartbeat; den skal ikke genstartes. AI er ikke en funktion. Et koderepositorie vælger i sine indstillinger i Kode den Runner, AI arbejder i det på, og Runnerens side viser de repositorier, der vælger den. En AI-regel vælger den Runner, OneUptime AI kører sine kommandoer på: Det er valget af en Runner der, der lader OneUptime AI's kommandoer køre på den. Runnerens side viser også de AI-regler, der vælger den.
 
 ### 2. Kopiér installationskommandoen
 

@@ -24,6 +24,7 @@ export const RULE_CODE_REPOSITORIES_FIELD_COPY: {
   manageHint: string;
   hiddenRepository: string;
   allRepositoriesSummary: string;
+  emptyList: string;
 } = {
   title: translationKey("Code Repositories"),
   placeholder: translationKey("All connected repositories"),
@@ -43,6 +44,11 @@ export const RULE_CODE_REPOSITORIES_FIELD_COPY: {
   allRepositoriesSummary: translationKey(
     "OneUptime AI may read all connected repositories.",
   ),
+  /*
+   * What the open list says while the project has no repository: the line
+   * under the field says where one is connected.
+   */
+  emptyList: translationKey("No connected repositories yet."),
 };
 
 // The data-testids of the field.

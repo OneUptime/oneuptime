@@ -70,6 +70,7 @@ import {
   getUnattendedTriggerText,
 } from "../../../Components/Runbook/Triggers/RunbookExecutionTrigger";
 import RunbookRunInputs from "../../../Components/Runbook/Triggers/RunbookRunInputs";
+import RunbookRunElapsed from "../../../Components/Runbook/RunbookRunElapsed";
 
 /*
  * How often the page polls the server for the latest execution state while
@@ -761,13 +762,21 @@ const ExecutionView: FunctionComponent<
                   : translator.translateText("Elapsed")}
               </div>
               <div className="text-sm text-gray-900">
-                {execution.completedAt
-                  ? OneUptimeDate.getDateAsLocalFormattedString(
-                      execution.completedAt,
-                    )
-                  : execution.startedAt
-                    ? translator.translateText("Running...")
-                    : "—"}
+                {/*
+                 * Until it ends, how long the run has been going, counting
+                 * up - a run that waits for a person included, where
+                 * "Running..." was not even true.
+                 */}
+                {execution.completedAt ? (
+                  OneUptimeDate.getDateAsLocalFormattedString(
+                    execution.completedAt,
+                  )
+                ) : (
+                  <RunbookRunElapsed
+                    startedAt={execution.startedAt}
+                    isFinished={isTerminal(execStatus)}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -848,10 +857,16 @@ const ExecutionView: FunctionComponent<
             </p>
           ) : (
             <div className="relative">
-              {/* Vertical timeline line */}
+              {/*
+               * Vertical timeline line, through the middle of the dots: on a
+               * phone the dots and the cards sit closer to the edge, so a
+               * step's card - and the buttons that move the run on - has
+               * the width a long label needs ("Genehmigen und ausführen").
+               */}
               <div
                 aria-hidden="true"
-                className="absolute left-[1.125rem] top-2 bottom-2 w-px bg-gray-200"
+                className="absolute left-[21.5px] top-2 bottom-2 w-px bg-gray-200 max-sm:left-[13.5px]"
+                data-testid="runbook-execution-timeline-line"
               ></div>
 
               <ul className="space-y-3">
@@ -896,9 +911,15 @@ const ExecutionView: FunctionComponent<
                     const waitingStepButtonTitle: string =
                       getWaitingStepButtonTitle(wait || RunbookStepWait.Manual);
                     return (
-                      <li key={stepExec.step.id} className="relative pl-12">
+                      <li
+                        key={stepExec.step.id}
+                        className="relative pl-12 max-sm:pl-9"
+                      >
                         {/* Timeline dot */}
-                        <div className="absolute left-2.5 top-3 z-10">
+                        <div
+                          className="absolute left-2.5 top-3 z-10 max-sm:left-0.5"
+                          data-testid={`runbook-execution-step-${idx}-dot`}
+                        >
                           <span
                             className={`flex h-6 w-6 items-center justify-center rounded-full ${stepVisual.dot} text-white shadow ring-4 ring-white`}
                           >
@@ -917,7 +938,7 @@ const ExecutionView: FunctionComponent<
                         </div>
 
                         <div
-                          className={`rounded-xl border bg-white px-5 py-4 shadow-sm transition ${
+                          className={`rounded-xl border bg-white px-5 py-4 shadow-sm transition max-sm:px-4 ${
                             isWaiting
                               ? "border-amber-300 ring-1 ring-amber-100"
                               : "border-gray-200"
@@ -1110,8 +1131,14 @@ const ExecutionView: FunctionComponent<
                                   buttonStyle={ButtonStyleType.PRIMARY}
                                   buttonSize={ButtonSize.Small}
                                   icon={IconProp.Check}
-                                  // Full width on a phone (Button's own), its own width beside the step.
-                                  className="sm:w-auto"
+                                  /*
+                                   * Full width on a phone (Button's own),
+                                   * its own width beside the step - in the
+                                   * card's own text size, not a dialog
+                                   * footer's larger one, so a long label
+                                   * stays on one line.
+                                   */
+                                  className="sm:w-auto max-sm:text-sm"
                                   onClick={() => {
                                     void completeStep(stepExec.step.id);
                                   }}
@@ -1126,8 +1153,8 @@ const ExecutionView: FunctionComponent<
                                   icon={IconProp.ChevronRight}
                                   className={
                                     canComplete
-                                      ? "max-sm:ml-0 max-sm:w-full max-sm:justify-center"
-                                      : undefined
+                                      ? "max-sm:ml-0 max-sm:w-full max-sm:justify-center max-sm:text-sm"
+                                      : "max-sm:text-sm"
                                   }
                                   onClick={() => {
                                     void skipStep(stepExec.step.id);

@@ -68,7 +68,7 @@ Einen Lauf zu starten, erfordert Project Owner, Project Admin, Project Member, R
 - **Titel und Beschreibung** — beim Start der Ausführung aus dem Runbook kopiert.
 - **Ausgabe** (einklappbar) — stdout, Rückgabewerte, HTTP-Antworten oder die Antwort der KI.
 - **Fehlermeldung**, falls der Schritt fehlgeschlagen ist.
-- An dem Schritt, auf den der Lauf wartet: **Als abgeschlossen markieren** (ein Manual-Schritt) oder **Genehmigen und ausführen** (ein Schritt mit **Genehmigung erforderlich**, der noch nicht gelaufen ist) sowie **Überspringen**.
+- An dem Schritt, auf den der Lauf wartet: **Als erledigt markieren** (ein Manual-Schritt) oder **Genehmigen und ausführen** (ein Schritt mit **Genehmigung erforderlich**, der noch nicht gelaufen ist) sowie **Überspringen**.
 - **Genehmigt von** an einem Schritt, der auf eine Genehmigung gewartet hat, sobald er gelaufen ist.
 - Solange der Lauf pausiert, **Überspringen** an späteren automatisierten Schritten, die keine Freigabe brauchen.
 
@@ -96,7 +96,7 @@ Der klassische Ablauf:
 | # | Schritt | Was passiert |
 | --- | --- | --- |
 | 1 | Bash: Systemzustand erfassen | Läuft auf seinem Runner, sobald der Lauf startet. |
-| 2 | Manual: „Kunden über das Banner der Statusseite informieren.“ | Der Lauf pausiert, bis eine reagierende Person auf **Als abgeschlossen markieren** klickt. |
+| 2 | Manual: „Kunden über das Banner der Statusseite informieren.“ | Der Lauf pausiert, bis eine reagierende Person auf **Als erledigt markieren** klickt. |
 | 3 | HTTP request: die DBA über PagerDuty alarmieren | Läuft auf dem Worker. |
 | 4 | Manual: „Bestätigen, dass die sekundäre Datenbank jetzt primär ist.“ | Der Lauf pausiert erneut. |
 | 5 | HTTP request: die Entwarnung an einen Slack-Webhook posten | Läuft, und die Ausführung ist **Abgeschlossen**. |
