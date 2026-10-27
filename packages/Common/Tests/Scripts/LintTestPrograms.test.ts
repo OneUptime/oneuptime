@@ -11,16 +11,18 @@ import ts from "typescript";
  * 2026-10-27: 7,996 files, killed after 916 s, and most of the memory was the
  * program itself - linting 798 of its files peaked at 9.9 GB.
  *
- * So the tests are linted in the parts `npm run compile-tests` already
- * type-checks, each holding only the sources its own tests reach:
- * Tests/App/tsconfig.json, Tests/UI/tsconfig.json and Tests/tsconfig.json
- * (the rest) each extend one. Measured that day: the rest (5,019 files)
- * peaked at 9.65 GB, Tests/App (1,776) at 7.36 GB, Tests/UI (1,201) at
- * 6.47 GB.
+ * So the tests are linted in the parts `npm run compile-tests` type-checks,
+ * each holding only the sources its own tests reach: the tsconfig.json in
+ * Tests/App, Tests/UI, Tests/Server, Tests/Server/Utils and Tests (the rest)
+ * each extend one. Measured that day, with the rest still holding
+ * Tests/Server: the rest (5,019 files) peaked at 9.65 GB, Tests/App (1,776)
+ * at 7.36 GB, Tests/UI (1,201) at 6.47 GB. Later that day the rest's
+ * type-check outgrew its own 8 GiB heap too, and Tests/Server became two
+ * parts of its own.
  *
  * These checks keep it so: each lint project is exactly its compile part;
- * every part has its lint project; every Common test is linted in exactly
- * one of them; and no part holds more than 6,000 files - past that, split
+ * every part has its lint project; every Common test is linted in the part
+ * that checks it; and no part holds more than 6,000 files - past that, split
  * it the way Scripts/compile-tests.js explains, with a tsconfig.json of its
  * own in its directory, before ESLint runs out of memory again.
  */
@@ -32,8 +34,28 @@ const MAX_FILES_PER_PROGRAM: number = 6000;
 const LINT_PROJECT_OF_PART: Record<string, string> = {
   "tsconfig.tests.app.json": "Tests/App/tsconfig.json",
   "tsconfig.tests.ui.json": "Tests/UI/tsconfig.json",
+  "tsconfig.tests.server.json": "Tests/Server/tsconfig.json",
+  "tsconfig.tests.server-utils.json": "Tests/Server/Utils/tsconfig.json",
   "tsconfig.tests.rest.json": "Tests/tsconfig.json",
 };
+
+/*
+ * The lint project a test belongs in: the one whose directory is the
+ * deepest that holds it.
+ */
+function lintProjectFor(file: string): string {
+  let best: string = "";
+
+  for (const lintProject of Object.values(LINT_PROJECT_OF_PART)) {
+    const directory: string = path.dirname(inCommon(lintProject)) + path.sep;
+
+    if (file.startsWith(directory) && directory.length > best.length) {
+      best = directory;
+    }
+  }
+
+  return path.join(best, "tsconfig.json");
+}
 
 const rootFilesByConfig: Map<string, Set<string>> = new Map();
 
@@ -163,16 +185,7 @@ describe("Common tests are linted in the parts compile-tests checks", () => {
 
     const misplaced: Array<string> = tests
       .filter((file: string) => {
-        const project: string | null = projectOf(file);
-        const expected: string = file.startsWith(
-          inCommon(path.join("Tests", "App")) + path.sep,
-        )
-          ? inCommon("Tests/App/tsconfig.json")
-          : file.startsWith(inCommon(path.join("Tests", "UI")) + path.sep)
-            ? inCommon("Tests/UI/tsconfig.json")
-            : inCommon("Tests/tsconfig.json");
-
-        return project !== expected;
+        return projectOf(file) !== lintProjectFor(file);
       })
       .map((file: string) => {
         return path.relative(COMMON, file);
