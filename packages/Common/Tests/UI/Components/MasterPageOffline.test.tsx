@@ -375,6 +375,138 @@ describe("MasterPage while the browser is offline", () => {
 });
 
 /*
+ * "This page will come back as soon as you're online again, just as you
+ * left it." A page put away is not laid out, so the browser scrolls the
+ * window to the top under the card and takes focus from the field being
+ * typed in; both come back with the page (UseOfflinePlace). jsdom does
+ * neither by itself, so the tests do what the browser does.
+ */
+describe("the reader's place, when the page comes back", () => {
+  let scrollYForTest: number = 0;
+  let scrolledTo: Array<[number, number]> = [];
+  const originalScrollTo: typeof window.scrollTo = window.scrollTo;
+
+  // What the browser does while the page is put away.
+  const browserPutsThePageAway: () => void = (): void => {
+    scrollYForTest = 0;
+    (document.activeElement as HTMLElement | null)?.blur();
+  };
+
+  beforeEach(() => {
+    scrollYForTest = 0;
+    scrolledTo = [];
+    Object.defineProperty(window, "scrollY", {
+      configurable: true,
+      get: (): number => {
+        return scrollYForTest;
+      },
+    });
+    window.scrollTo = ((x: number, y: number): void => {
+      scrolledTo.push([x, y]);
+      scrollYForTest = y;
+    }) as unknown as typeof window.scrollTo;
+  });
+
+  afterEach(() => {
+    window.scrollTo = originalScrollTo;
+  });
+
+  test("where it was scrolled, and the field being typed in with its caret, come back", () => {
+    render(drawMasterPage());
+
+    const note: HTMLTextAreaElement = screen.getByTestId(
+      "note",
+    ) as HTMLTextAreaElement;
+
+    fireEvent.input(note, { target: { value: "Rolled back the deploy" } });
+    note.focus();
+    note.setSelectionRange(6, 6);
+    scrollYForTest = 1200;
+
+    goOffline();
+    browserPutsThePageAway();
+
+    expect(screen.getByTestId(OFFLINE_SCREEN_TEST_ID)).toBeVisible();
+
+    goOnline();
+
+    expect(scrolledTo).toEqual([[0, 1200]]);
+    expect(document.activeElement).toBe(note);
+    expect(note.selectionStart).toBe(6);
+    expect(note.value).toBe("Rolled back the deploy");
+  });
+
+  test("Try again finding the server while the browser says offline brings the place back too", async () => {
+    NewVersion.start({
+      audience: NewVersionAudience.Members,
+      runningBuild: {
+        buildId: "running",
+        manifestUrl: "/dashboard/dist/build.json",
+      },
+      fetchFunction: (): Promise<Response> => {
+        return Promise.resolve({
+          status: 200,
+          ok: true,
+          text: (): Promise<string> => {
+            return Promise.resolve(JSON.stringify({ buildId: "running" }));
+          },
+        } as unknown as Response);
+      },
+      firstCheckDelayInMs: 24 * 60 * 60 * 1000,
+    });
+
+    render(drawMasterPage());
+
+    const note: HTMLElement = screen.getByTestId("note");
+
+    note.focus();
+    scrollYForTest = 800;
+
+    goOffline();
+    browserPutsThePageAway();
+
+    const tryAgain: HTMLElement = screen.getByTestId(
+      `${OFFLINE_SCREEN_TEST_ID}-try-again`,
+    );
+
+    tryAgain.focus();
+    fireEvent.click(tryAgain);
+
+    await waitFor(
+      () => {
+        expect(screen.queryByTestId(OFFLINE_SCREEN_TEST_ID)).toBeNull();
+      },
+      { timeout: 3000 },
+    );
+
+    expect(scrolledTo).toEqual([[0, 800]]);
+    expect(document.activeElement).toBe(note);
+  });
+
+  test("a page opened while offline starts at its own place, at the top", () => {
+    render(drawMasterPage());
+
+    screen.getByTestId("note").focus();
+    scrollYForTest = 1200;
+
+    const address: string = window.location.href;
+
+    goOffline();
+    browserPutsThePageAway();
+    window.history.pushState({}, "", "/dashboard/incidents");
+
+    try {
+      goOnline();
+
+      expect(scrolledTo).toEqual([]);
+      expect(document.activeElement).toBe(document.body);
+    } finally {
+      window.history.replaceState({}, "", address);
+    }
+  });
+});
+
+/*
  * In the reader's language: the Dashboard's, the Admin Dashboard's and the
  * Status Page's own locale files (each frontend reads only its own).
  */

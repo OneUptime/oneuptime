@@ -6,6 +6,7 @@ import { Translator } from "../../Utils/TranslateTemplate";
 import useBrowserOffline, {
   BrowserOffline,
 } from "../../Utils/UseBrowserOffline";
+import useOfflinePlace from "../../Utils/UseOfflinePlace";
 import useTranslator from "../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -35,10 +36,10 @@ export interface ComponentProps {
  * (OfflineScreen, ChunkLoadRecovery), in the reader's language. The header
  * and the product bar stay, so the reader still sees where they are.
  *
- * The page itself is kept, only hidden: what was typed in it and where it
- * was scrolled are there again the moment the network is back. It used to
- * be dropped and drawn anew, which lost everything typed on it to a
- * moment's dropped Wi-Fi.
+ * The page itself is kept, only hidden: what was typed in it, where it was
+ * scrolled and what had focus are there again the moment the network is
+ * back (UseOfflinePlace). It used to be dropped and drawn anew, which lost
+ * everything typed on it to a moment's dropped Wi-Fi.
  */
 const getPageStyle: (isOffline: boolean) => React.CSSProperties = (
   isOffline: boolean,
@@ -59,12 +60,17 @@ const MasterPage: FunctionComponent<ComponentProps> = (
   const offline: BrowserOffline = useBrowserOffline();
   const topSectionRef: React.RefObject<HTMLDivElement> =
     React.useRef<HTMLDivElement>(null);
+  // The page put away while offline, whichever of its states is drawn.
+  const pageRef: React.RefObject<HTMLDivElement> =
+    React.useRef<HTMLDivElement>(null);
+
+  useOfflinePlace(pageRef, offline.isOffline);
 
   /*
    * The status page supplies neither header nor navbar — it renders its own
-   * inside children. Rendering TopSection anyway left an empty white bar with a
-   * drop shadow above the content, so only render it when it has something in
-   * it.
+   * above this component. Rendering TopSection anyway left an empty white bar
+   * with a drop shadow above the content, so only render it when it has
+   * something in it.
    */
   const hasTopSection: boolean = Boolean(
     (!props.hideHeader && props.header) || props.navBar,
@@ -146,7 +152,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     return (
       <React.Fragment>
         {offlineScreen}
-        <div style={getPageStyle(offline.isOffline)}>
+        <div ref={pageRef} style={getPageStyle(offline.isOffline)}>
           <PageLoader isVisible={true} />
         </div>
       </React.Fragment>
@@ -157,7 +163,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
     return (
       <React.Fragment>
         {offlineScreen}
-        <div style={getPageStyle(offline.isOffline)}>
+        <div ref={pageRef} style={getPageStyle(offline.isOffline)}>
           <PageError message={props.error} />
         </div>
       </React.Fragment>
@@ -197,6 +203,7 @@ const MasterPage: FunctionComponent<ComponentProps> = (
       {offlineScreen}
 
       <div
+        ref={pageRef}
         data-testid="master-page-content"
         style={getPageStyle(offline.isOffline)}
       >

@@ -1098,9 +1098,15 @@ test.describe("the browser going offline under an open page", () => {
   }, testInfo: TestInfo) => {
     await page.goto(`/dashboard/settings?shell=master&${NO_LOOKING}`);
     await expect(page.getByTestId("page-settings")).toBeVisible();
-    await page
-      .getByTestId("settings-description")
-      .fill("Planned maintenance on Sunday");
+
+    const description: Locator = page.getByTestId("settings-description");
+
+    await description.fill("Planned maintenance on Sunday");
+    // The caret after "Planned", as the reader left it.
+    await description.evaluate((field: HTMLTextAreaElement): void => {
+      field.setSelectionRange(7, 7);
+    });
+    await expect(description).toBeFocused();
 
     await context.setOffline(true);
 
@@ -1129,10 +1135,48 @@ test.describe("the browser going offline under an open page", () => {
 
     await expect(offlineScreen(page)).toHaveCount(0);
     await expect(page.getByTestId("page-settings")).toBeVisible();
-    await expect(page.getByTestId("settings-description")).toHaveValue(
-      "Planned maintenance on Sunday",
-    );
+    await expect(description).toHaveValue("Planned maintenance on Sunday");
+    // The field being typed in has focus again, its caret where it was.
+    await expect(description).toBeFocused();
+    expect(
+      await description.evaluate((field: HTMLTextAreaElement): number => {
+        return field.selectionStart;
+      }),
+    ).toBe(7);
     // Nothing reloaded.
+    expect(await boots(page)).toBe(1);
+  });
+
+  test("the page comes back where it was scrolled, the card meanwhile at the top", async ({
+    page,
+    context,
+  }: {
+    page: Page;
+    context: BrowserContext;
+  }) => {
+    const scrolled: () => Promise<number> = async (): Promise<number> => {
+      return await page.evaluate((): number => {
+        return Math.round(window.scrollY);
+      });
+    };
+
+    await page.goto(`/dashboard/home?shell=master&${NO_LOOKING}`);
+    await expect(page.getByTestId("page-home")).toBeVisible();
+    await page.evaluate((): void => {
+      window.scrollTo(0, 1200);
+    });
+    await expect.poll(scrolled).toBe(1200);
+
+    await context.setOffline(true);
+
+    // The card is what the reader sees, not the bottom of an empty page.
+    await expect(offlineScreen(page)).toBeInViewport();
+
+    await context.setOffline(false);
+
+    await expect(offlineScreen(page)).toHaveCount(0);
+    await expect(page.getByTestId("page-home")).toBeVisible();
+    await expect.poll(scrolled).toBe(1200);
     expect(await boots(page)).toBe(1);
   });
 
