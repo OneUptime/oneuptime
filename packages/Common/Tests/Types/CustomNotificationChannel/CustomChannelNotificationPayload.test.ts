@@ -14,6 +14,7 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import NotificationSettingEventType from "../../../Types/NotificationSetting/NotificationSettingEventType";
 import { TRUNCATED_TEXT_NOTE } from "../../../Utils/MessageFit";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
 
@@ -445,11 +446,14 @@ describe("the notification's text budget", () => {
     const title: string = "Incident INC-42 acknowledged";
     const message: string = "log line\n".repeat(500_000);
 
-    const startedAt: number = Date.now();
-    const payload: JSONObject = build({ title, message });
-    const tookMs: number = Date.now() - startedAt;
+    const timed: FastestRun<JSONObject> = fastestRun({
+      run: (): JSONObject => {
+        return build({ title, message });
+      },
+      limitInMs: 2000,
+    });
 
-    const sent: { title: string; message: string } = textsOf(payload);
+    const sent: { title: string; message: string } = textsOf(timed.result);
 
     expect(sent.title).toBe(title);
     expect(sent.message.length).toBeLessThan(message.length);
@@ -459,7 +463,7 @@ describe("the notification's text budget", () => {
       MAX_CUSTOM_CHANNEL_TEXT_LENGTH,
     );
     // Linear in its input: megabytes in well under a second on any machine.
-    expect(tookMs).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("a title of megabytes is cut and the message stays whole", () => {

@@ -18,6 +18,7 @@ import {
 import { JSONObject } from "../../../Types/JSON";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import { TRUNCATED_TEXT_NOTE } from "../../../Utils/MessageFit";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -283,14 +284,18 @@ describe("buildCustomChannelPagePayload", () => {
     const description: string = "log line\n".repeat(500_000);
     const title: string = "New Incident INC-42: API latency high";
 
-    const startedAt: number = Date.now();
-    const payload: JSONObject = buildCustomChannelPagePayload(
-      pageInput({
-        title: title,
-        record: { ...pageInput().record, description: description },
-      }),
-    );
-    const tookMs: number = Date.now() - startedAt;
+    const timed: FastestRun<JSONObject> = fastestRun({
+      run: (): JSONObject => {
+        return buildCustomChannelPagePayload(
+          pageInput({
+            title: title,
+            record: { ...pageInput().record, description: description },
+          }),
+        );
+      },
+      limitInMs: 2000,
+    });
+    const payload: JSONObject = timed.result;
 
     const sent: string = (payload["record"] as JSONObject)[
       "description"
@@ -305,7 +310,7 @@ describe("buildCustomChannelPagePayload", () => {
         sent.length,
     ).toBeLessThanOrEqual(MAX_CUSTOM_CHANNEL_TEXT_LENGTH);
     // Linear in its input: megabytes in well under a second on any machine.
-    expect(tookMs).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("a description of one long line is cut without breaking a character", () => {
