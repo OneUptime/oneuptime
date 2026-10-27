@@ -35,13 +35,15 @@ import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import Navigation from "../../../UI/Utils/Navigation";
-import AIChatPanel from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AIChatPanel";
+import AskAiDialog from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 
 /*
  * Issue #3844: insights have to follow the module the user is investigating.
- * Exercise the actual panel, hook, route detection, suggestions, and request
- * serialization together. Only network, project storage, and the unused PDF
+ * Exercise the actual Ask AI dialog, hook, route detection, suggestions, and
+ * request serialization together. The dialog steps aside when the page under
+ * it changes (a source opened from it), so a test that moves to another page
+ * opens Ask AI again there, as a person does, and the context follows. Only network, project storage, and the unused PDF
  * exporter are replaced. Navigation is wired to MemoryRouter in the same way
  * the dashboard wires it to its browser router, so these tests also catch a
  * valid route being classified as the wrong module.
@@ -168,7 +170,16 @@ function PanelWithNavigation(): ReactElement {
   Navigation.setLocation(useLocation());
   navigate = useNavigate();
   Navigation.setNavigateHook(navigate);
-  return <AIChatPanel />;
+  return <AskAiDialog />;
+}
+
+// The context pill in the composer: what the questions are about.
+function contextChip(): HTMLElement {
+  return screen.getByTestId("ai-chat-context");
+}
+
+function isDialogOpen(): boolean {
+  return document.querySelector('[data-testid="ask-ai-dialog"]') !== null;
 }
 
 async function openAskAi(modulePath: string): Promise<void> {
@@ -190,6 +201,13 @@ async function goTo(
     currentProjectId = projectId;
     await navigate(route(modulePath, projectId));
   });
+
+  // The page moved under the dialog, which stepped aside: open it again.
+  if (!isDialogOpen()) {
+    await act(async () => {
+      GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE, { open: true });
+    });
+  }
 }
 
 function sentRequests(): Array<PostRequest> {
@@ -262,17 +280,21 @@ describe("module insights in Ask AI", () => {
     async (subpage: string) => {
       await openAskAi(`rum/${ENTITY_ID}${subpage}`);
 
+      // One question; the pill under it says what it is about, once.
       expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent(
-        "this RUM application",
+        "What would you like to know?",
+      );
+      expect(contextChip()).toHaveTextContent(
+        "This RUM application · Storefront",
       );
       expect(screen.getByRole("textbox")).toHaveAttribute(
         "placeholder",
-        "Ask about this RUM application…",
+        "Ask anything…",
       );
+      // The page's own suggestions, never the general ones as well.
       expect(
-        screen.getByText("This RUM application · Storefront"),
-      ).toBeInTheDocument();
-      expect(screen.getByText("Or explore everything")).toBeInTheDocument();
+        screen.queryByRole("button", { name: "Latency chart" }),
+      ).not.toBeInTheDocument();
       expect(getItemMock).toHaveBeenCalledWith(
         expect.objectContaining({
           modelType: RumApplication,
@@ -343,14 +365,10 @@ describe("module insights in Ask AI", () => {
     async (modulePath: string) => {
       await openAskAi(modulePath);
 
-      expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent(
-        "your RUM applications",
-      );
-      expect(screen.getByRole("textbox")).toHaveAttribute(
-        "placeholder",
-        "Ask about your RUM applications…",
-      );
-      expect(screen.getByText("Or explore everything")).toBeInTheDocument();
+      expect(contextChip()).toHaveTextContent("RUM applications");
+      expect(
+        screen.queryByRole("button", { name: "Latency chart" }),
+      ).not.toBeInTheDocument();
       expect(getItemMock).not.toHaveBeenCalled();
 
       const request: PostRequest = await sendQuestion();
@@ -363,14 +381,13 @@ describe("module insights in Ask AI", () => {
   test("the services list offers insights scoped to services", async () => {
     await openAskAi("service");
 
-    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent(
-      "your services",
-    );
-    expect(screen.getByRole("textbox")).toHaveAttribute(
-      "placeholder",
-      "Ask about your services…",
-    );
-    expect(screen.getByText("Or explore everything")).toBeInTheDocument();
+    expect(contextChip()).toHaveTextContent("Services");
+    expect(
+      screen.getByRole("button", { name: /Service health/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Latency chart" }),
+    ).not.toBeInTheDocument();
     expect(getItemMock).not.toHaveBeenCalled();
 
     const request: PostRequest = await sendQuestion();
@@ -406,12 +423,18 @@ describe("module insights in Ask AI", () => {
     fireEvent.click(screen.getByTitle("Remove page context"));
 
     expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent(
-      "Ask AI about your data — or tell it to act",
+      "What would you like to know?",
     );
-    expect(screen.queryByText("Or explore everything")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Latency chart" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Web vitals trends/ }),
+    ).not.toBeInTheDocument();
+    // The way back names the page in its own words: "+ This RUM application".
     expect(
       screen.getByTitle("Attach this page as context for your questions"),
-    ).toBeInTheDocument();
+    ).toHaveTextContent("This RUM application");
 
     const request: PostRequest = await sendQuestion();
     expect(request.data["pageContext"]).toBeNull();
@@ -487,9 +510,9 @@ describe("module insights in Ask AI", () => {
 
     await goTo(`rum/${OTHER_ENTITY_ID}`);
 
-    expect(
-      screen.getByText("This RUM application · Admin console"),
-    ).toBeInTheDocument();
+    expect(contextChip()).toHaveTextContent(
+      "This RUM application · Admin console",
+    );
     const request: PostRequest = await sendQuestion();
     expect(request.data["pageContext"]).toEqual({
       type: AIChatPageContextType.RumApplication,
@@ -572,19 +595,20 @@ describe("module insights in Ask AI", () => {
   );
 
   test.each([
-    ["logs", AIChatPageContextType.LogsExplorer],
-    ["traces", AIChatPageContextType.TracesExplorer],
-    ["metrics", AIChatPageContextType.MetricsExplorer],
-  ] as Array<[string, AIChatPageContextType]>)(
+    ["logs", "Logs", AIChatPageContextType.LogsExplorer],
+    ["traces", "Traces", AIChatPageContextType.TracesExplorer],
+    ["metrics", "Metrics", AIChatPageContextType.MetricsExplorer],
+  ] as Array<[string, string, AIChatPageContextType]>)(
     "navigating to %s replaces the application context with the explorer",
-    async (modulePath: string, type: AIChatPageContextType) => {
+    async (
+      modulePath: string,
+      chipLabel: string,
+      type: AIChatPageContextType,
+    ) => {
       await openAskAi(`rum/${ENTITY_ID}`);
       await goTo(modulePath);
 
-      expect(screen.getByRole("textbox")).toHaveAttribute(
-        "placeholder",
-        `Ask about your ${modulePath}…`,
-      );
+      expect(contextChip()).toHaveTextContent(chipLabel);
       expect(screen.queryByText(/Storefront/)).not.toBeInTheDocument();
       const request: PostRequest = await sendQuestion();
       expect(request.data["pageContext"]).toEqual({ type });
@@ -595,7 +619,8 @@ describe("module insights in Ask AI", () => {
     getItemMock.mockRejectedValue(new Error("Access denied"));
     await openAskAi(`rum/${ENTITY_ID}`);
 
-    expect(screen.getByText("This RUM application")).toBeInTheDocument();
+    expect(contextChip()).toHaveTextContent("This RUM application");
+    expect(contextChip()).not.toHaveTextContent("·");
     const request: PostRequest = await sendQuestion();
     expect(request.data["pageContext"]).toEqual({
       type: AIChatPageContextType.RumApplication,
@@ -614,13 +639,13 @@ describe("asynchronous module context changes", () => {
     });
     await openAskAi(`rum/${ENTITY_ID}`);
     await goTo(`service/${ENTITY_ID}`);
-    expect(screen.getByText("This service · Checkout API")).toBeInTheDocument();
+    expect(contextChip()).toHaveTextContent("This service · Checkout API");
 
     await act(async () => {
       oldTitle.resolve({ name: "Stale application title" });
     });
 
-    expect(screen.getByText("This service · Checkout API")).toBeInTheDocument();
+    expect(contextChip()).toHaveTextContent("This service · Checkout API");
     expect(
       screen.queryByText(/Stale application title/),
     ).not.toBeInTheDocument();
@@ -646,9 +671,9 @@ describe("asynchronous module context changes", () => {
     fireEvent.click(screen.getByTitle("Remove page context"));
     await goTo(`rum/${ENTITY_ID}`, OTHER_PROJECT_ID);
 
-    expect(
-      screen.getByText("This RUM application · Other project application"),
-    ).toBeInTheDocument();
+    expect(contextChip()).toHaveTextContent(
+      "This RUM application · Other project application",
+    );
     await act(async () => {
       oldTitle.resolve({ name: "Old project application" });
     });
@@ -670,14 +695,15 @@ describe("asynchronous module context changes", () => {
     getItemMock.mockReturnValueOnce(oldTitle.promise);
     getItemMock.mockResolvedValue({ name: "Renamed application" });
     await openAskAi(`rum/${ENTITY_ID}`);
-    fireEvent.click(screen.getByTitle("Close (Esc)"));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(isDialogOpen()).toBe(false);
 
     await act(async () => {
       GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE);
     });
-    expect(
-      screen.getByText("This RUM application · Renamed application"),
-    ).toBeInTheDocument();
+    expect(contextChip()).toHaveTextContent(
+      "This RUM application · Renamed application",
+    );
     await act(async () => {
       oldTitle.resolve({ name: "Previous application name" });
     });
@@ -704,10 +730,10 @@ describe("infrastructure context in Ask AI", () => {
     async (modulePath: string, resourceType: AIResourceType, noun: string) => {
       await openAskAi(`${modulePath}/${ENTITY_ID}`);
 
-      expect(screen.getByText(`This ${noun} · Storefront`)).toBeInTheDocument();
+      expect(contextChip()).toHaveTextContent(`This ${noun} · Storefront`);
       expect(screen.getByRole("textbox")).toHaveAttribute(
         "placeholder",
-        `Ask about this ${noun}…`,
+        "Ask anything…",
       );
       const request: PostRequest = await sendQuestion();
       expect(request.data["pageContext"]).toEqual({
@@ -735,9 +761,9 @@ describe("infrastructure context in Ask AI", () => {
 
   test("a pod suggestion sends its external identity separately from the parent UUID without inventing a namespace", async () => {
     await openAskAi(`kubernetes/${ENTITY_ID}/pods/checkout-123`);
-    expect(
-      screen.getByText("This pod · Storefront / pod: checkout-123"),
-    ).toBeInTheDocument();
+    expect(contextChip()).toHaveTextContent(
+      "This pod · Storefront / pod: checkout-123",
+    );
 
     await act(async () => {
       fireEvent.click(
@@ -758,9 +784,9 @@ describe("infrastructure context in Ask AI", () => {
 
   test("a collection view keeps the parent identity and a child kind without a selected key", async () => {
     await openAskAi(`kubernetes/${ENTITY_ID}/pods`);
-    expect(
-      screen.getByText("This Kubernetes cluster · Storefront"),
-    ).toBeInTheDocument();
+    expect(contextChip()).toHaveTextContent(
+      "This Kubernetes cluster · Storefront",
+    );
 
     const request: PostRequest = await sendQuestion();
     expect(request.data["pageContext"]).toEqual({
@@ -778,11 +804,9 @@ describe("infrastructure context in Ask AI", () => {
 
     await goTo(`docker/${ENTITY_ID}/containers/new-container`);
 
-    expect(
-      screen.getByText(
-        "This container · Storefront / container: new-container",
-      ),
-    ).toBeInTheDocument();
+    expect(contextChip()).toHaveTextContent(
+      "This container · Storefront / container: new-container",
+    );
     const request: PostRequest = await sendQuestion();
     expect(request.data["pageContext"]).toEqual({
       type: AIChatPageContextType.Resource,
@@ -835,9 +859,9 @@ describe("infrastructure context in Ask AI", () => {
 
     await goTo(`kubernetes/${ENTITY_ID}/deployments/checkout`);
 
-    expect(
-      screen.getByText("This deployment · Storefront / deployment: checkout"),
-    ).toBeInTheDocument();
+    expect(contextChip()).toHaveTextContent(
+      "This deployment · Storefront / deployment: checkout",
+    );
     const request: PostRequest = await sendQuestion();
     expect(request.data["pageContext"]).toEqual({
       type: AIChatPageContextType.Resource,
@@ -866,9 +890,9 @@ describe("infrastructure context in Ask AI", () => {
       oldTitle.resolve({ name: "Stale Docker title" });
     });
 
-    expect(
-      screen.getByText("This Podman host · Podman production"),
-    ).toBeInTheDocument();
+    expect(contextChip()).toHaveTextContent(
+      "This Podman host · Podman production",
+    );
     expect(screen.queryByText(/Stale Docker title/)).not.toBeInTheDocument();
     const request: PostRequest = await sendQuestion();
     expect(request.data["pageContext"]).toEqual({

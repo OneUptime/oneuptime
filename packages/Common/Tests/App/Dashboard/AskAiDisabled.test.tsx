@@ -15,7 +15,7 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
-import AIChatPanel from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AIChatPanel";
+import AskAiDialog from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 
 /*
@@ -30,7 +30,7 @@ import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName"
  * written a question and pressed send. The person hitting it is usually not
  * the person who flipped the switch, so "it just says no" is a support ticket.
  *
- * These tests render the REAL Ask AI panel the dashboard mounts, drive it the
+ * These tests render the REAL Ask AI dialog the dashboard mounts, drive it the
  * way the header does (the AI_CHAT_TOGGLE global event), and assert the two
  * halves of the fix that a refactor could quietly undo:
  *
@@ -38,7 +38,7 @@ import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName"
  *   2. what replaces it says AI is off and names the settings page that turns
  *      it back on — the reason it is off decides which page.
  *
- * The panel's fail-open posture is pinned too. The verdict arrives on the same
+ * The dialog's fail-open posture is pinned too. The verdict arrives on the same
  * request as the provider list, and that request can be slow, can fail, or can
  * be refused for a member without provider-read permission. Guessing
  * "disabled" there would lock a perfectly healthy assistant behind a setup
@@ -201,7 +201,7 @@ function respondWithProviders(data: ProvidersResponse): void {
 async function openAskAi(): Promise<void> {
   render(
     <MemoryRouter>
-      <AIChatPanel />
+      <AskAiDialog />
     </MemoryRouter>,
   );
 
@@ -303,7 +303,7 @@ describe("Ask AI on a project whose AI is switched off", () => {
 
     expect(screen.queryByText("Top exceptions")).not.toBeInTheDocument();
     expect(
-      screen.queryByText("Ask AI about your data — or tell it to act"),
+      screen.queryByText("What would you like to know?"),
     ).not.toBeInTheDocument();
   });
 
@@ -390,8 +390,9 @@ describe("Ask AI stays open for business unless it actually hears otherwise", ()
 
     expect(composer()).not.toBeNull();
     expect(
-      screen.getByText("Ask AI about your data — or tell it to act"),
+      screen.getByText("What would you like to know?"),
     ).toBeInTheDocument();
+    expect(screen.getByText("Top exceptions")).toBeInTheDocument();
     expect(
       screen.queryByText("AI features are disabled for this project"),
     ).not.toBeInTheDocument();

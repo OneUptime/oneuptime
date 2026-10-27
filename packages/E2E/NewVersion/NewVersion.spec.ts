@@ -3,6 +3,7 @@ import {
   BrowserContext,
   Locator,
   Page,
+  Route,
   TestInfo,
   expect,
   test,
@@ -22,9 +23,17 @@ import path from "path";
  * sudden reload. A quiet notice says a new version is ready; the next page
  * they open loads in the new version, at its address; a page whose code is
  * gone says it is updating and reloads into the same address and scroll;
- * nothing reloads while something typed is unsaved; offline, or with the
- * server restarting, the page says so and loads once it can; a part gone
- * for good says it could not be loaded after one reload, never a loop.
+ * nothing reloads while something typed is unsaved, and a query typed into
+ * a search box is never something unsaved; offline, or with the server
+ * restarting, the page says so and loads once it can; a part gone for good
+ * says it could not be loaded after one reload, never a loop.
+ *
+ * And the app shell around it: the browser going offline under a page drawn
+ * inside the product's own MasterPage puts the "You're offline" card in the
+ * page's place and keeps the page as it was; a page whose app cannot start
+ * at all - its entry bundle does not load - says what is wrong in the same
+ * card (the real Common/Server/Views/Partials/EntryLoadFailure.ejs) and
+ * loads once it can.
  */
 
 const SCREENSHOTS: string = path.resolve(
@@ -39,7 +48,13 @@ const NO_LOOKING: string = `gap=${DAY_IN_MS}`;
 
 interface FixtureState {
   build: string;
-  stats: { documents: number; manifests: number; lastDocument: string };
+  stats: {
+    documents: number;
+    manifests: number;
+    // How many times the entry bundle (dist/Index.js) was asked for.
+    entries: number;
+    lastDocument: string;
+  };
 }
 
 interface FixtureWindow {
@@ -324,11 +339,12 @@ test.describe("a deploy under the open tab", () => {
   /*
    * The product's own layers, with their own classes, mounted where the app
    * mounts them - inside the app, before the notice in the document - and
-   * made to cover the notice: a side panel (SideOver, z-30), the AI chat
-   * (AIChatPanel, z-40 around a z-50 panel), a dialog (Modal, z-50), and
-   * a bar of the page's own (z-20). The notice must stay under every panel
-   * a reader works in - at z-40 it drew over the AI chat and over a phone's
-   * full-width side panel - and over the page's own bars.
+   * made to cover the notice: a side panel (SideOver, z-30), Ask AI
+   * (AskAiDialog, a z-40 layer whose dialog fills a phone's screen), a
+   * dialog (Modal, z-50), and a bar of the page's own (z-20). The notice
+   * must stay under every panel a reader works in - at z-40 it drew over
+   * the AI chat and over a phone's full-width side panel - and over the
+   * page's own bars.
    */
   for (const layer of [
     {
@@ -338,9 +354,9 @@ test.describe("a deploy under the open tab", () => {
       onTop: "panel",
     },
     {
-      name: "the AI chat",
+      name: "Ask AI",
       wrapper: "relative z-40",
-      panel: "fixed inset-y-0 right-0 z-50 flex w-screen",
+      panel: "fixed inset-0 flex items-stretch justify-center",
       onTop: "panel",
     },
     {
@@ -990,6 +1006,24 @@ test.describe("one part of a page whose code is gone after a deploy", () => {
     await expect(page.getByTestId("chunk-load-recovery-reload")).toHaveText(
       "Reload page",
     );
+
+    /*
+     * The part's small button, drawn as the part draws its own states: small
+     * (its rules once lost to .oueb-button, which comes later in the
+     * sheet), with its border (the page's entry-failure stylesheet, on while
+     * the app ran, once took it away).
+     */
+    const reload: Locator = page.getByTestId("chunk-load-recovery-reload");
+
+    await expect(reload).toHaveCSS("font-size", "13px");
+    await expect(reload).toHaveCSS("padding", "6px 12px");
+    await expect(reload).toHaveCSS("border-top-style", "solid");
+    expect(
+      await reload.evaluate((element: Element): string => {
+        return getComputedStyle(element).borderTopColor;
+      }),
+    ).not.toBe("rgba(0, 0, 0, 0)");
+
     await page.waitForTimeout(1000);
     expect(await boots(page)).toBe(1);
     await expect(page.getByTestId("widgets-note")).toHaveValue(
@@ -1004,6 +1038,423 @@ test.describe("one part of a page whose code is gone after a deploy", () => {
  * The screens as they look, for the review: dark, German (long words) and
  * Persian (right to left), each checked to sit inside the screen.
  */
+/*
+ * "Search and filter boxes count as unsaved text when a new version wants
+ * to reload the page" - the maintainer. A query typed into a search box is
+ * never work to keep: it holds back neither Reload nor the next page.
+ */
+test.describe("a search box", () => {
+  test("a query typed in it never holds the new version: Reload goes straight ahead", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await page.goto("/dashboard/monitors?gap=0");
+    await expect(page.getByTestId("page-monitors")).toHaveAttribute(
+      "data-build",
+      "A",
+    );
+    await page.getByTestId("monitors-search").fill("checkout");
+    await deploy(request);
+    await lookNow(page);
+    await expect(notice(page)).toBeVisible();
+
+    await page.getByTestId("new-version-notice-reload").click();
+
+    // No question: nothing typed on the page is work to keep.
+    await expect(page.getByTestId("page-monitors")).toHaveAttribute(
+      "data-build",
+      "B",
+    );
+    expect(await boots(page)).toBe(2);
+  });
+
+  test("a query typed in it never keeps the next page inside the tab", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }) => {
+    await page.goto("/dashboard/monitors?gap=0");
+    await expect(page.getByTestId("page-monitors")).toBeVisible();
+    await page.getByTestId("monitors-search").fill("payments");
+    await deploy(request);
+    await lookNow(page);
+    await expect(notice(page)).toBeVisible();
+
+    await page.getByTestId("nav-settings").click();
+
+    await expect(page.getByTestId("page-settings")).toHaveAttribute(
+      "data-build",
+      "B",
+    );
+    expect(await boots(page)).toBe(2);
+  });
+});
+
+/*
+ * "The Dashboard's MasterPage replaces the whole page with an English-only
+ * 'You are offline' empty state ... give the Dashboard the same card, in
+ * every locale" - the maintainer. The pages here are drawn inside the
+ * product's own MasterPage (?shell=master), as the Dashboard's, the Admin
+ * Dashboard's and status pages' are.
+ */
+const offlineScreen: (page: Page) => Locator = (page: Page): Locator => {
+  return page.getByTestId("offline-screen");
+};
+
+test.describe("the browser going offline under an open page", () => {
+  test("the card takes the page's place under the header and the product bar, and the page comes back as it was", async ({
+    page,
+    context,
+  }: {
+    page: Page;
+    context: BrowserContext;
+  }, testInfo: TestInfo) => {
+    await page.goto(`/dashboard/settings?shell=master&${NO_LOOKING}`);
+    await expect(page.getByTestId("page-settings")).toBeVisible();
+
+    const description: Locator = page.getByTestId("settings-description");
+
+    await description.fill("Planned maintenance on Sunday");
+    // The caret after "Planned", as the reader left it.
+    await description.evaluate((field: HTMLTextAreaElement): void => {
+      field.setSelectionRange(7, 7);
+    });
+    await expect(description).toBeFocused();
+
+    await context.setOffline(true);
+
+    await expect(offlineScreen(page)).toBeVisible();
+    await expect(page.getByTestId("offline-screen-title")).toHaveText(
+      "You're offline",
+    );
+    await expect(offlineScreen(page)).toContainText(
+      "This page will come back as soon as you're online again, just as you left it.",
+    );
+    await expect(page.getByTestId("offline-screen-try-again")).toHaveText(
+      "Try again",
+    );
+    // The reader still sees where they are.
+    await expect(page.getByTestId("master-header")).toBeVisible();
+    await expect(page.getByTestId("master-product-bar")).toBeVisible();
+    // The page is put away, not drawn under the card, and not thrown away.
+    await expect(page.getByTestId("page-settings")).toBeHidden();
+    await expect(page.getByTestId("master-footer")).toBeHidden();
+    await expect(page.getByText("You are offline")).toHaveCount(0);
+
+    await fitsTheScreen(page);
+    await shoot(page, testInfo, "master-offline");
+
+    await context.setOffline(false);
+
+    await expect(offlineScreen(page)).toHaveCount(0);
+    await expect(page.getByTestId("page-settings")).toBeVisible();
+    await expect(description).toHaveValue("Planned maintenance on Sunday");
+    // The field being typed in has focus again, its caret where it was.
+    await expect(description).toBeFocused();
+    expect(
+      await description.evaluate((field: HTMLTextAreaElement): number => {
+        return field.selectionStart;
+      }),
+    ).toBe(7);
+    // Nothing reloaded.
+    expect(await boots(page)).toBe(1);
+  });
+
+  test("the page comes back where it was scrolled, the card meanwhile at the top", async ({
+    page,
+    context,
+  }: {
+    page: Page;
+    context: BrowserContext;
+  }) => {
+    const scrolled: () => Promise<number> = async (): Promise<number> => {
+      return await page.evaluate((): number => {
+        return Math.round(window.scrollY);
+      });
+    };
+
+    await page.goto(`/dashboard/home?shell=master&${NO_LOOKING}`);
+    await expect(page.getByTestId("page-home")).toBeVisible();
+    await page.evaluate((): void => {
+      window.scrollTo(0, 1200);
+    });
+    await expect.poll(scrolled).toBe(1200);
+
+    await context.setOffline(true);
+
+    // The card is what the reader sees, not the bottom of an empty page.
+    await expect(offlineScreen(page)).toBeInViewport();
+
+    await context.setOffline(false);
+
+    await expect(offlineScreen(page)).toHaveCount(0);
+    await expect(page.getByTestId("page-home")).toBeVisible();
+    await expect.poll(scrolled).toBe(1200);
+    expect(await boots(page)).toBe(1);
+  });
+
+  test("Try again while still offline spins while it asks, then still says so", async ({
+    page,
+    context,
+  }: {
+    page: Page;
+    context: BrowserContext;
+  }) => {
+    await page.goto(`/dashboard/home?shell=master&${NO_LOOKING}`);
+    await expect(page.getByTestId("page-home")).toBeVisible();
+    await context.setOffline(true);
+    await expect(offlineScreen(page)).toBeVisible();
+
+    const tryAgain: Locator = page.getByTestId("offline-screen-try-again");
+
+    await tryAgain.click();
+    await expect(tryAgain).toHaveAttribute("aria-busy", "true");
+    await expect(tryAgain).not.toHaveAttribute("aria-busy", "true");
+
+    await expect(offlineScreen(page)).toBeVisible();
+    expect(await boots(page)).toBe(1);
+
+    await context.setOffline(false);
+    await expect(page.getByTestId("page-home")).toBeVisible();
+  });
+
+  test("a new version found meanwhile waits: no notice over the card, and it shows once the page is back", async ({
+    page,
+    request,
+    context,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+    context: BrowserContext;
+  }) => {
+    await page.goto("/dashboard/home?shell=master&gap=0");
+    await expect(page.getByTestId("page-home")).toBeVisible();
+    await deploy(request);
+    await lookNow(page);
+    await expect(notice(page)).toBeVisible();
+
+    await context.setOffline(true);
+
+    await expect(offlineScreen(page)).toBeVisible();
+    await expect(notice(page)).toHaveCount(0);
+
+    await context.setOffline(false);
+
+    await expect(offlineScreen(page)).toHaveCount(0);
+    await expect(notice(page)).toBeVisible();
+    expect(await boots(page)).toBe(1);
+  });
+});
+
+/*
+ * "An entry bundle that fails to load before the app starts still shows the
+ * browser's own error page" - the maintainer. The page carries the real
+ * EntryLoadFailure partial after its root, as every frontend's index.ejs
+ * does: the app never starts here, and the page still says what is wrong,
+ * in the card the app draws, and loads itself once it can.
+ */
+const entryCard: (page: Page) => Locator = (page: Page): Locator => {
+  return page.getByTestId("entry-load-failure");
+};
+
+const entryStats: (
+  request: APIRequestContext,
+) => Promise<{ documents: number; entries: number }> = async (
+  request: APIRequestContext,
+): Promise<{ documents: number; entries: number }> => {
+  const state: FixtureState = await fixture(request, "stats");
+
+  return state.stats;
+};
+
+test.describe("an app that cannot start", () => {
+  test("THE SERVER DOWN: it says it can't reach the server, and the page loads once the server is back", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }, testInfo: TestInfo) => {
+    await fixture(request, "server", "?state=down");
+
+    await page.goto(`/dashboard/home?${NO_LOOKING}`);
+
+    await expect(entryCard(page)).toHaveAttribute("data-step", "unreachable");
+    await expect(page.getByTestId("entry-load-failure-title")).toHaveText(
+      "Can't reach the server",
+    );
+    await expect(entryCard(page)).toContainText(
+      "It may be restarting after an update. This page will load as soon as the server is back.",
+    );
+    await expect(page.getByTestId("entry-load-failure-action")).toHaveText(
+      "Try now",
+    );
+    // Never the browser's own error page: the page is still the page.
+    expect(new URL(page.url()).pathname).toBe("/dashboard/home");
+    expect((await entryStats(request)).documents).toBe(1);
+
+    await fitsTheScreen(page);
+    await shoot(page, testInfo, "entry-unreachable");
+
+    await fixture(request, "server", "?state=up");
+    await page.getByTestId("entry-load-failure-action").click();
+
+    await expect(page.getByTestId("page-home")).toBeVisible({
+      timeout: 20000,
+    });
+    expect(await boots(page)).toBe(1);
+  });
+
+  test("OFFLINE: it says so, and the page loads once the browser is back online", async ({
+    page,
+    context,
+  }: {
+    page: Page;
+    context: BrowserContext;
+  }, testInfo: TestInfo) => {
+    let release: () => void = (): void => {};
+    const held: Promise<void> = new Promise<void>((resolve: () => void) => {
+      release = resolve;
+    });
+
+    await page.route("**/dashboard/dist/Index.js", async (route: Route) => {
+      await held;
+      await route.abort("internetdisconnected");
+    });
+
+    const asked: Promise<unknown> = page.waitForRequest(
+      "**/dashboard/dist/Index.js",
+    );
+    const opened: Promise<unknown> = page.goto(`/dashboard/home?${NO_LOOKING}`);
+
+    await asked;
+    await context.setOffline(true);
+    release();
+    await opened;
+
+    await expect(entryCard(page)).toHaveAttribute("data-step", "offline");
+    await expect(page.getByTestId("entry-load-failure-title")).toHaveText(
+      "You're offline",
+    );
+    await expect(page.getByTestId("entry-load-failure-action")).toHaveText(
+      "Try again",
+    );
+
+    await fitsTheScreen(page);
+    await shoot(page, testInfo, "entry-offline");
+
+    await page.unroute("**/dashboard/dist/Index.js");
+    await context.setOffline(false);
+
+    await expect(page.getByTestId("page-home")).toBeVisible({
+      timeout: 20000,
+    });
+  });
+
+  test("THE ENTRY GONE FOR GOOD: one reload, then it says the page couldn't be loaded - never a loop", async ({
+    page,
+    request,
+  }: {
+    page: Page;
+    request: APIRequestContext;
+  }, testInfo: TestInfo) => {
+    await fixture(request, "entry", "?state=missing");
+
+    await page.goto(`/dashboard/home?${NO_LOOKING}`);
+
+    await expect(entryCard(page)).toHaveAttribute("data-step", "failed", {
+      timeout: 20000,
+    });
+    await expect(page.getByTestId("entry-load-failure-title")).toHaveText(
+      "This page couldn't be loaded",
+    );
+    await expect(entryCard(page)).toContainText(
+      "A file it needs couldn't be downloaded from the server. Try reloading in a moment.",
+    );
+    await expect(page.getByTestId("entry-load-failure-action")).toHaveText(
+      "Reload page",
+    );
+    // One reload: the one that would have fetched it again.
+    expect((await entryStats(request)).documents).toBe(2);
+
+    await fitsTheScreen(page);
+    await shoot(page, testInfo, "entry-failed");
+
+    // No loop.
+    await page.waitForTimeout(3000);
+    expect((await entryStats(request)).documents).toBe(2);
+
+    // Back: Reload page loads the app.
+    await fixture(request, "entry", "?state=ok");
+    await page.getByTestId("entry-load-failure-action").click();
+
+    await expect(page.getByTestId("page-home")).toBeVisible({
+      timeout: 20000,
+    });
+  });
+});
+
+test.describe("as it looks, offline and before the app starts", () => {
+  for (const variant of [
+    { name: "dark", query: "theme=dark", lang: "en" },
+    { name: "de", query: "lang=de", lang: "de" },
+    { name: "fa", query: "lang=fa", lang: "fa" },
+    { name: "fa-dark", query: "lang=fa&theme=dark", lang: "fa" },
+  ]) {
+    test(`in ${variant.name}: the offline card in the page's place, and a page whose app cannot reach the server`, async ({
+      page,
+      request,
+      context,
+    }: {
+      page: Page;
+      request: APIRequestContext;
+      context: BrowserContext;
+    }, testInfo: TestInfo) => {
+      const direction: string = variant.lang === "fa" ? "rtl" : "ltr";
+
+      await page.goto(
+        `/dashboard/home?shell=master&${NO_LOOKING}&${variant.query}`,
+      );
+      await expect(page.getByTestId("page-home")).toBeVisible();
+      await context.setOffline(true);
+      await expect(offlineScreen(page)).toBeVisible();
+      await expect(offlineScreen(page)).toHaveAttribute("lang", variant.lang);
+      await expect(offlineScreen(page)).toHaveAttribute("dir", direction);
+
+      if (variant.lang !== "en") {
+        await expect(page.getByTestId("offline-screen-title")).not.toHaveText(
+          "You're offline",
+        );
+      }
+
+      await fitsTheScreen(page);
+      await shoot(page, testInfo, `master-offline-${variant.name}`);
+      await context.setOffline(false);
+      await expect(offlineScreen(page)).toHaveCount(0);
+
+      await fixture(request, "server", "?state=down");
+      await page.reload();
+      await expect(entryCard(page)).toHaveAttribute("data-step", "unreachable");
+      await expect(entryCard(page)).toHaveAttribute("lang", variant.lang);
+      await expect(entryCard(page)).toHaveAttribute("dir", direction);
+
+      if (variant.lang !== "en") {
+        await expect(
+          page.getByTestId("entry-load-failure-title"),
+        ).not.toHaveText("Can't reach the server");
+      }
+
+      await fitsTheScreen(page);
+      await shoot(page, testInfo, `entry-unreachable-${variant.name}`);
+    });
+  }
+});
+
 test.describe("as it looks", () => {
   for (const variant of [
     { name: "dark", query: "theme=dark" },
@@ -1051,6 +1502,17 @@ test.describe("as it looks", () => {
       await page.getByTestId("nav-incidents").click();
       await expect(recovery(page)).toHaveAttribute("data-step", "updating");
       await expect(notice(page)).toHaveCount(0);
+      /*
+       * The accent of a new version, never the alarm's red: the page's own
+       * EntryLoadFailure stylesheet stays off while the app runs, so its
+       * copy of the badge's rules never beats the app's.
+       */
+      await expect(recovery(page).locator(".oueb-badge")).toHaveCSS(
+        "background-color",
+        variant.name.endsWith("dark")
+          ? "rgb(30, 27, 75)"
+          : "rgb(238, 242, 255)",
+      );
       await fitsTheScreen(page);
       await shoot(page, testInfo, `updating-${variant.name}`);
 

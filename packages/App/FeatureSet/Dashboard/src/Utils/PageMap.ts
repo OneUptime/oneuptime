@@ -1465,9 +1465,9 @@ enum PageMap {
   LLM_DOCUMENTATION = "LLM_DOCUMENTATION",
   LLM_CONNECT = "LLM_CONNECT",
 
-  // AI Copilot (full-page chat over observability data)
+  // Ask AI's own address: opens the Ask AI dialog over the page (AICopilot)
   AI_COPILOT = "AI_COPILOT",
-  // Same page, deep-linked to one conversation (shareable/bookmarkable).
+  // The same, opened on one conversation (bookmarkable).
   AI_COPILOT_CONVERSATION = "AI_COPILOT_CONVERSATION",
 
   // Push Logs in resource views

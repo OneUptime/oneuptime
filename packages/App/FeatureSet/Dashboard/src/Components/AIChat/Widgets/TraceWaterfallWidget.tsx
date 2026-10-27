@@ -64,7 +64,11 @@ const TraceWaterfallWidget: FunctionComponent<ComponentProps> = (
           ),
         );
         const depth: number = depthOf(span);
-        const barColor: string = span.isError ? "bg-rose-500" : "bg-gray-700";
+        /*
+         * A span's bar in the colour of the answer's charts: a dark grey
+         * one all but vanished into its track in the dark theme.
+         */
+        const barColor: string = span.isError ? "bg-rose-500" : "bg-indigo-500";
 
         return (
           <div key={span.spanId || index} className="flex items-center gap-2">

@@ -122,10 +122,10 @@ Twee balken lopen bovenaan over elke pagina.
 | Waar | Wat er staat |
 | --- | --- |
 | Linksboven | De projectkiezer: naar een ander van uw projecten wisselen, of een nieuw aanmaken. |
-| Rechtsboven | **Zoeken** en **Ask AI**, de meldingenbel met wat u nu nodig heeft (actieve incidenten en waarschuwingen, het bereikbaarheidsbeleid waarin u dienst hebt, openstaande uitnodigingen), **Hulp**, en uw foto, die het menu van uw [account](/docs/introduction/your-account) opent. |
+| Rechtsboven | **Zoeken** en **AI vragen**, de meldingenbel met wat u nu nodig heeft (actieve incidenten en waarschuwingen, het bereikbaarheidsbeleid waarin u dienst hebt, openstaande uitnodigingen), **Hulp**, en uw foto, die het menu van uw [account](/docs/introduction/your-account) opent. |
 | Daaronder | **Start** en **Producten** links, **Gebruikersinstellingen** rechts: hoe OneUptime u in dit project bereikt. |
 
-**Hulp** opent deze documentatie (**Documentatie**) en de lijst **Keyboard shortcuts**, en biedt ondersteuning per e-mail en op Slack. Op een smal scherm, zoals een telefoon, verdwijnen **Zoeken**, **Ask AI** en **Hulp** om ruimte te besparen; de bel en uw foto blijven.
+**Hulp** opent deze documentatie (**Documentatie**) en de lijst **Keyboard shortcuts**, en biedt ondersteuning per e-mail en op Slack. Op een smal scherm, zoals een telefoon, verdwijnen **Zoeken**, **AI vragen** en **Hulp** om ruimte te besparen; de bel en uw foto blijven.
 
 ## Zoeken naar een pagina, een instelling of een actie
 

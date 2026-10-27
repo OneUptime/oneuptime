@@ -142,6 +142,7 @@ const CorrelateFilterBuilder: FunctionComponent<ComponentProps> = (
 
     return (
       <Input
+        isSearchOrFilter={true}
         dataTestId={`correlate-condition-value-${index}`}
         ariaLabel={`Condition ${index + 1} value`}
         value={condition.value}

@@ -212,6 +212,7 @@ import { AddDashboardPlaylists1808070000000 } from "./1808070000000-AddDashboard
 import { AddCustomNotificationChannels1808080000000 } from "./1808080000000-AddCustomNotificationChannels";
 import { AddCustomNotificationChannelIndexesAndKeys1808090000000 } from "./1808090000000-AddCustomNotificationChannelIndexesAndKeys";
 import { AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000 } from "./1808100000000-AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting";
+import { AddOnCallAiFirstResponder1808110000000 } from "./1808110000000-AddOnCallAiFirstResponder";
 import { AddCloudAccountAiAccess1808200000000 } from "./1808200000000-AddCloudAccountAiAccess";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
@@ -1627,5 +1628,6 @@ export default [
   AddCustomNotificationChannels1808080000000,
   AddCustomNotificationChannelIndexesAndKeys1808090000000,
   AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000,
+  AddOnCallAiFirstResponder1808110000000,
   AddCloudAccountAiAccess1808200000000,
 ];

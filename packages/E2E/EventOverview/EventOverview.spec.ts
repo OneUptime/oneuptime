@@ -2539,7 +2539,13 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       );
       const chart: Locator = details.getByRole("application");
       await expect(chart).toBeVisible();
-      await expect(chart).toContainText("2,600ms");
+      /*
+       * The axis writes its values as the dashboards do, each on one line:
+       * "2,600 ms" did not fit its 64 px and was drawn as "2,600" over
+       * "ms" (Ask AI's UI review, #5349).
+       */
+      await expect(chart).toContainText("2.6 s");
+      await expect(chart).toContainText("650 ms");
     },
   },
   {
@@ -5456,7 +5462,7 @@ test.describe("one AI card: the investigation and the conversation", () => {
       const caption: Box = await documentBox(modeCaption(page));
       const send: Box = await documentBox(sendButton(page));
 
-      for (const mode of ["Ask for approval", "Read-only", "Auto-run"]) {
+      for (const mode of ["Ask to act", "Read-only", "Auto-run"]) {
         await modePicker(page).click();
         await conversation(page)
           .getByRole("menuitemradio", { name: new RegExp(`^${mode}`) })

@@ -1,11 +1,14 @@
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import AlertEpisodeStateTimelineService from "../../../Server/Services/AlertEpisodeStateTimelineService";
 import AlertMeasurementService from "../../../Server/Services/AlertMeasurementService";
+import AlertOnCallRuleService from "../../../Server/Services/AlertOnCallRuleService";
 import AlertService from "../../../Server/Services/AlertService";
 import AlertStateTimelineService from "../../../Server/Services/AlertStateTimelineService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentEpisodeStateTimelineService from "../../../Server/Services/IncidentEpisodeStateTimelineService";
 import IncidentMeasurementService from "../../../Server/Services/IncidentMeasurementService";
+import IncidentOnCallRuleService from "../../../Server/Services/IncidentOnCallRuleService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentStateTimelineService from "../../../Server/Services/IncidentStateTimelineService";
 import MonitorStatusTimelineService from "../../../Server/Services/MonitorStatusTimelineService";
@@ -17,6 +20,7 @@ import ScheduledMaintenanceStateTimelineService from "../../../Server/Services/S
 import WorkspaceNotificationRuleService from "../../../Server/Services/WorkspaceNotificationRuleService";
 import DeleteBy from "../../../Server/Types/Database/DeleteBy";
 import { OnDelete } from "../../../Server/Types/Database/Hooks";
+import AiFirstResponder from "../../../Server/Utils/AI/FirstResponder/AiFirstResponder";
 import MeasurementMetricWriter from "../../../Server/Utils/Measurement/MeasurementMetricWriter";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { JSONObject } from "../../../Types/JSON";
@@ -42,6 +46,11 @@ import { stubRowsCallerMayDelete } from "../TestingUtils/RowsCallerMayWrite";
  *   - What a success hook does with the rows the delete hook read - metrics
  *     tombstoned, monitors given back - it does only for the rows the
  *     delete removed (DatabaseService.getRowsDeleted).
+ *   - An alert or incident on-call rule that lets OneUptime AI respond
+ *     first: the pages AI holds for its policies go to people once the
+ *     delete has removed it - a hard delete too - and only for the rules
+ *     the delete removed, of those its hook read: the rules the caller may
+ *     delete. A delete refused or failed after the hook pages nobody.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -615,6 +624,212 @@ describe("success hooks act on the rows the delete removed, of those its hook re
     expect(tombstones.metrics).not.toHaveBeenCalled();
   });
 });
+
+const POLICY_A: string = "6e000000-0000-4000-8000-00000000000a";
+const POLICY_B: string = "6e000000-0000-4000-8000-00000000000b";
+
+describe.each([
+  ["AlertOnCallRuleService", asService(AlertOnCallRuleService)],
+  ["IncidentOnCallRuleService", asService(IncidentOnCallRuleService)],
+])(
+  "%s: a deleted rule's held pages go to people once it is gone",
+  (_name: string, service: DatabaseService<DatabaseBaseModel>) => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    function policy(id: string): OnCallDutyPolicy {
+      const row: OnCallDutyPolicy = new OnCallDutyPolicy();
+      row._id = id;
+      return row;
+    }
+
+    // Rule A pages policy A, rule B policy B.
+    function rules(): Array<DatabaseBaseModel> {
+      return [
+        rowOf(service, ROW_A, { onCallDutyPolicies: [policy(POLICY_A)] }),
+        rowOf(service, ROW_B, { onCallDutyPolicies: [policy(POLICY_B)] }),
+      ];
+    }
+
+    // Where the pages AI holds go to people: once per project.
+    function stubHandOff(): jest.SpyInstance {
+      return jest
+        .spyOn(AiFirstResponder, "onRuleStoppedHolding")
+        .mockResolvedValue(undefined as never);
+    }
+
+    // The policies whose held pages went to people, in the request's project.
+    function policiesHandedOff(handOff: jest.SpyInstance): Array<string> {
+      return handOff.mock.calls
+        .flatMap((call: Array<unknown>): Array<string> => {
+          const data: { projectId: ObjectID; policyIds: Array<ObjectID> } =
+            call[0] as { projectId: ObjectID; policyIds: Array<ObjectID> };
+
+          expect(data.projectId.toString()).toBe(PROJECT_ID.toString());
+
+          return data.policyIds.map((id: ObjectID): string => {
+            return id.toString().toLowerCase();
+          });
+        })
+        .sort();
+    }
+
+    async function beforeDelete(
+      deleteBy: DeleteBy<DatabaseBaseModel>,
+    ): Promise<OnDelete<DatabaseBaseModel>> {
+      return await (
+        service as unknown as {
+          onBeforeDelete: (
+            deleteBy: DeleteBy<DatabaseBaseModel>,
+          ) => Promise<OnDelete<DatabaseBaseModel>>;
+        }
+      ).onBeforeDelete(deleteBy);
+    }
+
+    async function afterDelete(
+      hook: "onDeleteSuccess" | "onHardDeleteSuccess",
+      onDelete: OnDelete<DatabaseBaseModel>,
+      deletedIds: Array<string>,
+    ): Promise<void> {
+      await (
+        service as unknown as Record<
+          string,
+          (
+            onDelete: OnDelete<DatabaseBaseModel>,
+            deletedIds: Array<ObjectID>,
+          ) => Promise<OnDelete<DatabaseBaseModel>>
+        >
+      )[hook]!.call(
+        service,
+        onDelete,
+        deletedIds.map((id: string): ObjectID => {
+          return new ObjectID(id);
+        }),
+      );
+    }
+
+    it("reads only the rules a teammate may delete, holds the delete to them and pages nobody before it", async () => {
+      const [ruleA, ruleOutOfReach] = rules() as [
+        DatabaseBaseModel,
+        DatabaseBaseModel,
+      ];
+
+      // The teammate may delete A only; B matches the query but is not theirs.
+      stubRowsCallerMayDelete(service, () => {
+        return [ruleA];
+      });
+      const findBy: jest.SpyInstance = stubReads(service, [
+        ruleA,
+        ruleOutOfReach,
+      ]);
+      const handOff: jest.SpyInstance = stubHandOff();
+
+      const deleteBy: DeleteBy<DatabaseBaseModel> = deleteOf(
+        { projectId: PROJECT_ID },
+        TEAMMATE,
+      );
+
+      const onDelete: OnDelete<DatabaseBaseModel> =
+        await beforeDelete(deleteBy);
+
+      // Nothing goes to people before the delete has removed the rule.
+      expect(handOff).not.toHaveBeenCalled();
+
+      // The rule read is the rule deleted, with the policies it pages.
+      expect(idsDeleted(deleteBy)).toEqual([ROW_A]);
+      expect(deleteBy.limit).toBe(1);
+      expect(
+        (findBy.mock.calls[0]![0] as { select: JSONObject }).select,
+      ).toEqual(
+        expect.objectContaining({
+          projectId: true,
+          onCallDutyPolicies: { _id: true },
+        }),
+      );
+      expect(
+        (onDelete.carryForward as Array<DatabaseBaseModel>).map(
+          (rule: DatabaseBaseModel): string => {
+            return String(rule._id).toLowerCase();
+          },
+        ),
+      ).toEqual([ROW_A]);
+
+      await afterDelete("onDeleteSuccess", onDelete, [ROW_A]);
+
+      expect(policiesHandedOff(handOff)).toEqual([POLICY_A]);
+    });
+
+    it("reads no rule, and pages nobody, when a teammate may delete none of them", async () => {
+      stubRowsCallerMayDelete(service, () => {
+        return [];
+      });
+      const findBy: jest.SpyInstance = stubReads(service, rules());
+      const handOff: jest.SpyInstance = stubHandOff();
+
+      const deleteBy: DeleteBy<DatabaseBaseModel> = deleteOf(
+        { _id: ROW_B },
+        TEAMMATE,
+        { skip: 0, limit: 1 },
+      );
+
+      const onDelete: OnDelete<DatabaseBaseModel> =
+        await beforeDelete(deleteBy);
+
+      expect(findBy).not.toHaveBeenCalled();
+      expect(onDelete.carryForward).toEqual([]);
+
+      await afterDelete("onDeleteSuccess", onDelete, []);
+
+      expect(handOff).not.toHaveBeenCalled();
+    });
+
+    it("hands off the pages of the rules the delete removed only, of those its hook read", async () => {
+      const handOff: jest.SpyInstance = stubHandOff();
+
+      await afterDelete(
+        "onDeleteSuccess",
+        {
+          deleteBy: deleteOf({}, { isRoot: true }),
+          carryForward: rules(),
+        } as OnDelete<DatabaseBaseModel>,
+        [ROW_A],
+      );
+
+      expect(policiesHandedOff(handOff)).toEqual([POLICY_A]);
+    });
+
+    it("hands them off after a hard delete too: the retention job's purge runs no onDeleteSuccess", async () => {
+      const handOff: jest.SpyInstance = stubHandOff();
+
+      await afterDelete(
+        "onHardDeleteSuccess",
+        {
+          deleteBy: deleteOf({}, { isRoot: true }),
+          carryForward: rules(),
+        } as OnDelete<DatabaseBaseModel>,
+        [ROW_A, ROW_B],
+      );
+
+      expect(policiesHandedOff(handOff)).toEqual([POLICY_A, POLICY_B]);
+    });
+
+    it("hands off nothing when the delete removed no rule", async () => {
+      const handOff: jest.SpyInstance = stubHandOff();
+
+      await afterDelete(
+        "onDeleteSuccess",
+        {
+          deleteBy: deleteOf({}, { isRoot: true }),
+          carryForward: rules(),
+        } as OnDelete<DatabaseBaseModel>,
+        [],
+      );
+
+      expect(handOff).not.toHaveBeenCalled();
+    });
+  },
+);
 
 describe("DatabaseService.getRowsDeleted", () => {
   it("keeps the rows whose ids were deleted, whatever case either is written in, and no other", () => {

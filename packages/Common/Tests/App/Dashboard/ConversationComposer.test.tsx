@@ -18,7 +18,7 @@ import AIChatPermissionMode from "../../../Types/AI/AIChatPermissionMode";
  * Where a responder types to OneUptime AI at the foot of the AI
  * Investigation card. It is one control: the text, what the AI may do with
  * the request (and what that means, beside the choice), and Send. The card
- * used to borrow the Ask AI panel's composer, with the mode picker, its
+ * used to borrow Ask AI's composer, with the mode picker, its
  * sentence and two hints in three rows under the box.
  */
 
@@ -369,7 +369,7 @@ describe("ConversationComposer — what OneUptime AI may do", () => {
       "Only reads and answers. It never changes anything.",
     ],
     [
-      "Ask for approval",
+      "Ask to act",
       AIChatPermissionMode.AskForApproval,
       "Asks for approval before it changes anything.",
     ],

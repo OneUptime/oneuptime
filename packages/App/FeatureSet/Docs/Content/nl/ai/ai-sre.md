@@ -398,6 +398,22 @@ Elk incident en elke waarschuwing heeft een kaart **Herstel** die zegt wat het a
 
 Is het incident aan helemaal geen cluster en geen infrastructuurresource gekoppeld, dan zegt de kaart dat in één regel (de meest voorkomende reden dat er niets werd hersteld), met wat je moet doen: voeg onder **Getroffen resources** de host, het cluster of de database toe waar het om gaat, en OneUptime AI probeert het opnieuw zolang het incident open is, zoals bij een nieuw incident. Een incident met monitoren krijgt ook een link naar elk ervan, waar je ze kunt koppelen aan wat ze bewaken, zodat het volgende incident dat ze veroorzaken gekoppeld is. Elke regel linkt naar waar het wordt gewijzigd: de pagina van de AI-agent van het cluster of de resource, de AI-instellingen van het incident (of de waarschuwing), waar de herstelschakelaar en de regels ervan staan, **AI inschakelen** of de LLM-providers. Incidenten en waarschuwingen die zijn aangemaakt voordat dit werd vastgelegd, tonen de kaart alleen als er iets werd voorgesteld. Als AI voor een incident helemaal uit stond, zegt de regel van de kaart **AI Investigation** waarom er niets is hersteld, en wordt de kaart **Herstel** weggelaten.
 
+## OneUptime AI reageert eerst
+
+Een on-call-regel voor incidenten of waarschuwingen kan OneUptime AI de oproep eerst laten oppakken. Kies onder **Meer velden** bij **Wanneer moet deze regel oproepen?** voor **Nadat OneUptime AI het heeft geprobeerd**. Als OneUptime AI mag oplossen waar een passend incident of een passende waarschuwing over gaat, wachten de beleidsregels van de regel terwijl AI onderzoekt, herstelt en de oplossing controleert, hoogstens de tijd die bij **Maximaal zo lang op OneUptime AI wachten (minuten)** is ingesteld: standaard 10 minuten, van 1 tot 30. Wordt de oplossing van AI bevestigd, dan lost OneUptime AI het record op en wordt niemand opgeroepen.
+
+Anders roept de regel meteen op, en de feed van het record zegt waarom, als een persoon het record heeft gemaakt, het de hoogste ernst van het project heeft, in de 5 minuten ervoor 3 of meer andere waarschuwingen en incidenten zijn geopend, OneUptime AI het niet mag onderzoeken of automatisch oplossen, er geen monitor aan gekoppeld is, of geen gekoppeld Kubernetes-cluster of gekoppelde resource een AI-agent op **Automatisch** of **Goedkeuring overslaan** heeft.
+
+Zolang AI een oproep vasthoudt, toont de kaart **AI Investigation** wanneer het oproepen begint, met **Nu oproepen** voor iedereen die er meteen een persoon op wil. Elke minuut controleert OneUptime elke oproep die AI vasthoudt en begint meteen op te roepen, met de reden, als:
+
+- het onderzoek niet start, op een AI-regel wacht of niet afrondt;
+- AI geen oplossing vindt die het zelf mag uitvoeren, of de oplossing goedkeuring van een persoon nodig heeft;
+- de oplossing van AI de monitors niet herstelt;
+- iemand op **Nu oproepen** drukt, het record de hoogste ernst bereikt of veel records tegelijk opengaan;
+- AI of automatisch oplossen wordt uitgezet, of de regel AI niet langer eerst laat reageren.
+
+De uitvoeringslogboeken van het beleid tonen hoe elk vasthouden eindigde. Via de API of Terraform is de `whenToPage` van de regel `After OneUptime AI` en is `aiHoldTimeInMinutes` de wachttijd.
+
 ## Wat OneUptime AI leerde, en alles wat het deed
 
 De sectie **AI** van de zijmenu's van Incidenten en Waarschuwingen opent met twee pagina's die terugkijken op wat OneUptime AI voor dat signaaltype deed. Geen van beide wijzigt iets: beide tonen alleen wat er is vastgelegd, en alleen voor de incidenten (of waarschuwingen) die je mag zien.

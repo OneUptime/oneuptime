@@ -371,4 +371,188 @@ describe("UnsavedChanges", () => {
 
     expect(UnsavedChanges.hasUnsavedChanges()).toBe(true);
   });
+
+  /*
+   * What is typed into a search or a filter is a query: it never holds the
+   * page, in a form or out of one (a picker's own search inside a form, a
+   * table's filters in a dialog).
+   */
+  describe("a search or filter box", () => {
+    const FormWithSearch: FunctionComponent = (): ReactElement => {
+      return (
+        <div data-unsaved-changes-scope="form" data-testid="form">
+          <input type="search" data-testid="type-search" />
+          <input role="searchbox" data-testid="searchbox" />
+          <input data-unsaved-changes-ignore="" data-testid="marked" />
+          <div data-unsaved-changes-ignore="">
+            <input data-testid="under-marked" />
+          </div>
+          <input data-testid="name" />
+        </div>
+      );
+    };
+
+    test.each<[string]>([
+      ["type-search"],
+      ["searchbox"],
+      ["marked"],
+      ["under-marked"],
+    ])(
+      "typing into one inside a form (%s) is no change to the form",
+      (testId: string) => {
+        const { getByTestId } = render(<FormWithSearch />);
+
+        type(getByTestId(testId), "checkout");
+        fireEvent.change(getByTestId(testId), {
+          target: { value: "checkout" },
+        });
+
+        expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+      },
+    );
+
+    test("a field of the form beside them still makes it count", () => {
+      const { getByTestId } = render(<FormWithSearch />);
+
+      type(getByTestId("type-search"), "checkout");
+      type(getByTestId("name"), "Checkout API");
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(true);
+    });
+
+    test("one outside a form never counts, however much it holds", () => {
+      const { getByTestId } = render(
+        <div>
+          <input type="search" data-testid="a" />
+          <input role="searchbox" data-testid="b" />
+          <input data-unsaved-changes-ignore="" data-testid="c" />
+        </div>,
+      );
+
+      for (const testId of ["a", "b", "c"]) {
+        type(getByTestId(testId), "status:open owner:me");
+      }
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+    });
+  });
+
+  /*
+   * A change no input event announces: a pick from a dropdown or a picker,
+   * a value a field's own control set. BasicForm notes each edit of its
+   * values (noteChange), and the form counts from then on.
+   */
+  describe("noteChange", () => {
+    test("makes the form it is in count, until the form is saved", () => {
+      const { getByTestId } = render(
+        <div data-unsaved-changes-scope="form" data-testid="form">
+          <div data-testid="picker" />
+        </div>,
+      );
+
+      UnsavedChanges.noteChange(getByTestId("picker"));
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(true);
+
+      UnsavedChanges.markSaved(getByTestId("form"));
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+    });
+
+    test("noted on the form's own root, it counts that form", () => {
+      const { getByTestId } = render(
+        <div data-unsaved-changes-scope="form" data-testid="form" />,
+      );
+
+      UnsavedChanges.noteChange(getByTestId("form"));
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(true);
+    });
+
+    test("outside any form it does nothing: a pick outside a form was never held", () => {
+      const { getByTestId } = render(<div data-testid="loose-picker" />);
+
+      UnsavedChanges.noteChange(getByTestId("loose-picker"));
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+    });
+
+    test("nothing to note, or not listening yet: nothing happens", () => {
+      const { getByTestId } = render(
+        <div data-unsaved-changes-scope="form" data-testid="form" />,
+      );
+
+      UnsavedChanges.noteChange(null);
+      UnsavedChanges.noteChange(undefined);
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+
+      UnsavedChanges.reset();
+      UnsavedChanges.noteChange(getByTestId("form"));
+      UnsavedChanges.install();
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+    });
+
+    test("a form that has left the page no longer counts", () => {
+      const Page: FunctionComponent<{ show: boolean }> = (props: {
+        show: boolean;
+      }): ReactElement => {
+        return props.show ? (
+          <div data-unsaved-changes-scope="form" data-testid="form" />
+        ) : (
+          <p>Closed</p>
+        );
+      };
+
+      const { getByTestId, rerender } = render(<Page show={true} />);
+
+      UnsavedChanges.noteChange(getByTestId("form"));
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(true);
+
+      rerender(<Page show={false} />);
+
+      expect(UnsavedChanges.hasUnsavedChanges()).toBe(false);
+    });
+  });
+
+  /*
+   * A long session opens and closes form after form: what it remembers of
+   * the ones that left is let go as soon as anything new is noted, not
+   * kept until the next time someone asks.
+   */
+  test("forms and fields that left the page are let go as new ones are noted", () => {
+    const remembered: () => number = (): number => {
+      const memory: {
+        changedScopes: Set<Element>;
+        typedFields: Set<Element>;
+      } = UnsavedChanges as unknown as {
+        changedScopes: Set<Element>;
+        typedFields: Set<Element>;
+      };
+
+      return memory.changedScopes.size + memory.typedFields.size;
+    };
+
+    const Page: FunctionComponent<{ index: number }> = (props: {
+      index: number;
+    }): ReactElement => {
+      return (
+        <div key={props.index}>
+          <div data-unsaved-changes-scope="form" data-testid="form" />
+          <textarea data-testid="note" />
+        </div>
+      );
+    };
+
+    const { getByTestId, rerender } = render(<Page index={0} />);
+
+    for (let index: number = 1; index <= 20; index++) {
+      UnsavedChanges.noteChange(getByTestId("form"));
+      type(getByTestId("note"), `Note ${index}`);
+      rerender(<Page key={index} index={index} />);
+    }
+
+    UnsavedChanges.noteChange(getByTestId("form"));
+    type(getByTestId("note"), "The last note");
+
+    expect(remembered()).toBe(2);
+  });
 });

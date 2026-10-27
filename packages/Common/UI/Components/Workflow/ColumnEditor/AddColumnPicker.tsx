@@ -411,6 +411,7 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
           />
         </div>
         <input
+          data-unsaved-changes-ignore
           ref={searchRef}
           type="text"
           role="combobox"

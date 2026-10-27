@@ -4,18 +4,21 @@ import { cleanup, render, screen } from "@testing-library/react";
 import * as React from "react";
 import ChatActivityFeed, {
   countActivitySteps,
+  describeLiveActivity,
   hasRenderableActivity,
+  LiveActivity,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
- * ChatActivityFeed is shared: the AI chat panel and copilot render it with its
- * own assistant bubble, while the investigation panel frames it itself and
- * asks for the steps alone (hideChrome). Both shapes need pinning here —
- * without the default-props test, inverting the hideChrome guard would strip
- * the chat panel's chrome with every other suite still green.
+ * ChatActivityFeed is shared: an AI insight's triage renders it with its own
+ * frame (a title and a live dot), while Ask AI's live line and the
+ * investigation panel frame it themselves and ask for the steps alone
+ * (hideChrome). Both shapes need pinning here — without the default-props
+ * test, inverting the hideChrome guard would strip the triage's frame with
+ * every other suite still green.
  */
 
 interface StepEvent {
@@ -266,7 +269,56 @@ describe("countActivitySteps", () => {
   });
 });
 
-describe("ChatActivityFeed default chrome (chat panel and copilot)", () => {
+/*
+ * Ask AI's live line: one line says what an answer being written does now
+ * ("Searching logs…"), and how many steps it took so far, which open into
+ * the steps themselves - never each step narrated as it happens.
+ */
+describe("describeLiveActivity", () => {
+  test("names the step running now, and counts the steps drawn", () => {
+    const live: LiveActivity = describeLiveActivity(
+      events([
+        { eventType: AIRunEventType.RunStarted },
+        { eventType: AIRunEventType.LlmCallStarted },
+        { eventType: AIRunEventType.LlmCallCompleted },
+        { eventType: AIRunEventType.ToolCallStarted, toolName: "search_logs" },
+      ]),
+    );
+
+    expect(live).toEqual({ text: "Searching logs", stepCount: 3 });
+  });
+
+  test("the latest step running is the one named", () => {
+    const live: LiveActivity = describeLiveActivity(
+      events([
+        { eventType: AIRunEventType.RunStarted },
+        { eventType: AIRunEventType.ToolCallStarted, toolName: "query_traces" },
+        { eventType: AIRunEventType.ToolCallStarted, toolName: "search_logs" },
+      ]),
+    );
+
+    expect(live.text).toBe("Searching logs");
+  });
+
+  test("with nothing running yet, it is thinking", () => {
+    expect(describeLiveActivity([])).toEqual({
+      text: "Thinking",
+      stepCount: 0,
+    });
+    expect(describeLiveActivity(SEARCH_LOGS_RUN)).toEqual({
+      text: "Thinking",
+      stepCount: 2,
+    });
+  });
+
+  test("counts what the feed draws, as the steps it opens into", () => {
+    expect(describeLiveActivity(MIXED_RUN).stepCount).toBe(
+      countActivitySteps(MIXED_RUN),
+    );
+  });
+});
+
+describe("ChatActivityFeed default chrome (an AI insight's triage)", () => {
   test("keeps its avatar, bubble, title and live indicator", () => {
     const { container } = render(<ChatActivityFeed events={SEARCH_LOGS_RUN} />);
 
@@ -292,7 +344,7 @@ describe("ChatActivityFeed default chrome (chat panel and copilot)", () => {
   });
 });
 
-describe("ChatActivityFeed hideChrome (investigation panel)", () => {
+describe("ChatActivityFeed hideChrome (Ask AI's steps and the investigation panel)", () => {
   test("renders the steps and none of the bubble chrome", () => {
     const { container } = render(
       <ChatActivityFeed events={SEARCH_LOGS_RUN} hideChrome={true} />,

@@ -3,7 +3,7 @@
 Preguntar a la IA es el chat de OneUptime sobre los datos de tu proyecto. Pregúntale por logs, trazas, métricas, excepciones, incidentes, alertas, monitores, guardias, páginas de estado, SLO, runbooks o flujos de trabajo: consulta tu proyecto en directo, respalda cada afirmación con una cita y, cuando se lo permites, actúa por ti.
 
 :::cards
-- [Abrir Preguntar a la IA](#abrir-preguntar-a-la-ia): Desde la cabecera, el teclado, un gráfico o su propia página.
+- [Abrir Preguntar a la IA](#abrir-preguntar-a-la-ia): Desde la cabecera, el teclado, un gráfico o el menú de productos.
 - [Qué puede ver](#qué-puede-ver): Los datos que lee para responderte.
 - [Acciones y modos de permiso](#acciones-y-modos-de-permiso): Elige si puede actuar y cuándo pregunta antes.
 - [Las acciones se hacen en tu nombre](#las-acciones-se-hacen-en-tu-nombre): Tus permisos, tu nombre en cada cambio.
@@ -33,7 +33,9 @@ En el modo **Solo lectura** las acciones nunca se ofrecen al modelo, así que la
 | Cualquier página | Haz clic en **Preguntar a la IA** en la cabecera, o pulsa `Ctrl` + `I` (`Cmd` + `I` en un Mac). Mientras escribes en un cuadro de texto o un editor, esas teclas siguen siendo el atajo de cursiva del editor. |
 | La paleta de comandos | Pulsa `Ctrl` + `K` (`Cmd` + `K` en un Mac) y elige **Preguntar a la IA**. |
 | Un patrón de error de los logs, o los hallazgos de un gráfico | Haz clic en **Explain with AI**: Preguntar a la IA se abre con las pruebas como una pregunta que puedes editar antes de enviarla. |
-| Su propia página | Abre **Productos → IA → Chat** para tener un espacio de trabajo a página completa. Cada conversación tiene allí su propia dirección, así que puedes guardar un hilo en marcadores o pegarlo en el canal de un incidente. |
+| El menú de productos | Abre **Productos → IA → Chat**. Preguntar a la IA se abre sobre la página en la que estabas. Cada conversación tiene su propia dirección, así que puedes guardarla en marcadores y volver a ella. |
+
+Preguntar a la IA se abre en el centro de la pantalla, sobre la página en la que estabas, y en un teléfono ocupa toda la pantalla. Pulsa `Esc`, o haz clic fuera de ella, para volver a la página. La conversación sigue donde la dejaste: vuelve a abrir Preguntar a la IA para continuar. Si la cierras mientras aún responde, un aviso en la esquina te dice cuándo está lista la respuesta, y la abre.
 
 En un incidente o una alerta, la tarjeta **Investigación de IA** tiene una conversación propia, **Ask OneUptime AI**, compartida con todos los que pueden ver ese incidente o esa alerta: consulta [Hablar con OneUptime AI sobre el incidente](/docs/ai/ai-sre#habla-con-oneuptime-ai-sobre-el-incidente).
 
@@ -52,7 +54,7 @@ Preguntar a la IA lee tu proyecto con tus propios permisos, así que ve lo que t
 
 ## Contexto de la página
 
-Preguntar a la IA sabe desde qué página la abriste. En la página de un incidente, "¿por qué ha pasado esto?" significa ese incidente, y el compositor muestra un chip con el tema de la página; quítalo para preguntar por todo el proyecto. Si pasas a otra página con el panel abierto, el contexto te sigue. La conversación también recuerda su primer tema en el servidor, así que una pregunta días después sigue entendiendo "este incidente".
+Preguntar a la IA sabe desde qué página la abriste. En la página de un incidente, "¿por qué ha pasado esto?" significa ese incidente: el compositor muestra un chip con el tema de la página, y las preguntas que sugiere son las de esa página. Quita el chip para preguntar por todo el proyecto, y vuelve a añadirlo de la misma forma. Abre Preguntar a la IA en otra página y el contexto te sigue. La conversación también recuerda su primer tema en el servidor, así que una pregunta días después sigue entendiendo "este incidente".
 
 Las listas de infraestructura y las páginas de recursos ofrecen preguntas para el tipo de recurso que estás viendo. Abre un clúster de Kubernetes y pregunta "¿Qué métricas cambiaron en las últimas 24 horas?", o abre un host de Docker y pregunta "Resume la gravedad de los logs y los errores de trazas de las últimas seis horas." Los enlaces a las pruebas vuelven a la página del recurso. Las lecturas respetan tus permisos de proyecto, recursos y telemetría, incluidas las restricciones por propietario y por etiquetas.
 
@@ -72,8 +74,8 @@ Cada conversación tiene un modo de permiso, que eliges en el compositor, junto 
 
 | Modo | Qué ocurre |
 | --- | --- |
-| **Ask to act** | El predeterminado. Preguntar a la IA propone cada acción en una tarjeta de aprobación, y nada se ejecuta hasta que eliges **Permitir** u **Omitir** para ella, o **Denegar todo**. |
-| **Auto-run** | Las acciones se ejecutan en cuanto el modelo las pide, siempre limitadas a lo que tu rol puede hacer. Úsalo con cuidado. |
+| **Preguntar antes de actuar** | El predeterminado. Preguntar a la IA propone cada acción en una tarjeta de aprobación, y nada se ejecuta hasta que eliges **Permitir** u **Omitir** para ella, o **Denegar todo**. |
+| **Ejecución automática** | Las acciones se ejecutan en cuanto el modelo las pide, siempre limitadas a lo que tu rol puede hacer. Úsalo con cuidado. |
 | **Solo lectura** | Las acciones no se ofrecen al modelo en absoluto: Preguntar a la IA solo puede leer. |
 
 Lo que Preguntar a la IA puede hacer cuando un modo lo permite:
@@ -99,10 +101,12 @@ Cada acción que realiza Preguntar a la IA se hace en tu nombre: hace el mismo c
 ## Dirigir una conversación
 
 - **Detenla.** Mientras Preguntar a la IA trabaja, el botón de enviar se convierte en un botón de detener. Detén una ejecución en cualquier momento y pregunta otra cosa enseguida.
-- **Elige el modelo.** El selector de proveedor del compositor muestra los proveedores de LLM de tu proyecto y los globales, con el predeterminado marcado. Una conversación nueva usa el predeterminado.
+- **Sigue su trabajo.** Mientras responde, una línea dice lo que está haciendo ahora, como buscar en los registros. Haz clic en el número de pasos que hay al lado para ver cada paso.
+- **Elige el modelo.** Cuando tu proyecto puede usar más de un proveedor de LLM, el selector de proveedor del compositor muestra los proveedores de LLM de tu proyecto y los globales, con el predeterminado marcado. Una conversación nueva usa el predeterminado.
 - **Valora una respuesta.** **Buena respuesta** y **Mala respuesta** se guardan con el mensaje, para poder medir la calidad de las respuestas a lo largo del tiempo.
-- **Mira el coste.** El pie de la respuesta más reciente muestra su coste, sus tokens y cuántas consultas ejecutó, y cada consulta es un chip de cita que abre los datos que hay detrás.
+- **Mira el coste.** Debajo de cada respuesta, sus fuentes se abren en las consultas que ejecutó, y las de la respuesta más reciente también dicen cuántas consultas ejecutó, sus tokens y su coste. Cada chip de cita de una respuesta abre los datos que hay detrás.
 - **Guarda una copia.** **Descargar conversación** guarda el hilo con **Descargar como Markdown**, para leerlo o pegarlo en un ticket, o con **Descargar como PDF**, para dárselo a alguien.
+- **Retoma donde lo dejaste.** **Todas las conversaciones**, en la cabecera de Preguntar a la IA, muestra tus conversaciones, de la más reciente a la más antigua, para volver a abrirlas o eliminarlas. El inicio de una conversación nueva muestra las tres últimas.
 
 ## Requisitos
 
@@ -115,7 +119,7 @@ Preguntar a la IA cuenta para los límites diarios de IA del propio proyecto cua
 ## Solución de problemas
 
 :::details Preguntar a la IA dice que la IA no está disponible
-El panel dice por qué antes de que escribas: el plan del proyecto no incluye IA, **Habilitar IA** está desactivado o el proyecto no tiene proveedor de LLM. Cada aviso enlaza con la página donde se cambia.
+Preguntar a la IA dice por qué antes de que escribas: el plan del proyecto no incluye IA, **Habilitar IA** está desactivado o el proyecto no tiene proveedor de LLM. Cada aviso enlaza con la página donde se cambia.
 :::
 
 :::details Se rechazó una acción

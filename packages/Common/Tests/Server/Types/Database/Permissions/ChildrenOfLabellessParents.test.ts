@@ -46,6 +46,12 @@ import { FindOperator } from "typeorm";
  * (ReadPermission.getParentLabelsCondition) - here as the SQL the condition
  * writes; the real-Postgres suite (Tests/Server/API
  * /OwnedScopePerTeamPostgres) reads and writes the rows.
+ *
+ * A block with labels on reading such a parent missed its children the
+ * same way, the other way round: the cases of the blocked incidents were
+ * left out, their notes, feed, detections and playbook runs were not. Now
+ * those keep to `parentKey IS NULL OR parentKey IN (the parents its own
+ * block rule keeps)` (ReadPermission.addParentBlockedLabelsToQuery).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -168,17 +174,60 @@ function valuesOf(condition: unknown): Array<string> {
     });
 }
 
+// The role over the whole project, and a block of it for the label.
+function blockedFor(permission: Permission): Array<UserPermission> {
+  return [
+    {
+      _type: "UserPermission",
+      permission: permission,
+      labelIds: [],
+      isBlockPermission: false,
+      scope: PermissionScope.All,
+    },
+    {
+      _type: "UserPermission",
+      permission: permission,
+      labelIds: [SECURITY],
+      isBlockPermission: true,
+      scope: PermissionScope.All,
+    },
+  ];
+}
+
 async function scopeOf(
   child: Child,
   type: DatabaseRequestType,
+  rows: Array<UserPermission> = [limitedTo(child.role)],
 ): Promise<Dictionary<unknown>> {
   return (await BasePermission.addRecordScopeToQuery(
     child.modelType,
     {},
     null,
-    memberWith([limitedTo(child.role)]),
+    memberWith(rows),
     type,
   )) as Dictionary<unknown>;
+}
+
+// The SQL a condition on the record's key column writes, for a SELECT.
+function keySqlOf(child: Child, condition: unknown): string {
+  expect(condition).toBeInstanceOf(FindOperator);
+
+  const operator: FindOperator<unknown> = condition as FindOperator<unknown>;
+  const tableName: string = new child.modelType().tableName as string;
+
+  if (operator.type === "and") {
+    return (operator.value as unknown as Array<unknown>)
+      .map((each: unknown): string => {
+        return keySqlOf(child, each);
+      })
+      .join(" AND ");
+  }
+
+  return String(
+    (operator.getSql as (alias: string) => string)(
+      `${tableName}.${child.parentKey}`,
+    ),
+  );
 }
 
 beforeEach(() => {
@@ -222,6 +271,79 @@ describe("a read of the parent limited to labels reaches the children of the par
       });
     }
   }
+});
+
+describe("a block with labels on reading the parent takes the children of the parents it takes away", () => {
+  for (const child of CHILDREN) {
+    for (const type of operationsOf(child)) {
+      test(`${new child.modelType().tableName}, ${type}: those of no ${child.parentTable}, and of the ones its own block rule keeps`, async () => {
+        const query: Dictionary<unknown> = await scopeOf(
+          child,
+          type,
+          blockedFor(child.role),
+        );
+        const tableName: string = new child.modelType().tableName as string;
+
+        // Before, nothing narrowed the key: every child was reached.
+        expect(query[child.parentKey]).toBeDefined();
+
+        const sql: string = keySqlOf(child, query[child.parentKey]);
+
+        // The key, as the SELECT names it.
+        expect(sql).toContain(`(${tableName}.${child.parentKey} IS NULL)`);
+        expect(sql).toMatch(
+          new RegExp(
+            `\\(${tableName}\\.${child.parentKey} IN \\(SELECT "(record[A-Za-z]+)"\\."_id" FROM "${child.parentTable}" "\\1" WHERE `,
+          ),
+        );
+
+        // A parent is kept when the labelled record it names carries none of the label.
+        expect(sql).toMatch(
+          new RegExp(
+            `"record[A-Za-z]+"\\."${child.parentLabelKey}" IS NULL OR "record[A-Za-z]+"\\."${child.parentLabelKey}" NOT IN \\(SELECT `,
+          ),
+        );
+        expect(valuesOf(query[child.parentKey])).toContain(
+          SECURITY.toString().toLowerCase(),
+        );
+      });
+    }
+  }
+
+  test("a parent that carries labels is still taken away by its own labels", async () => {
+    const note: Child = {
+      modelType: IncidentInternalNote,
+      parentTable: "Incident",
+      parentKey: "incidentId",
+      role: Permission.IncidentMember,
+      parentLabelKey: "",
+    };
+
+    const query: Dictionary<unknown> = await scopeOf(
+      note,
+      DatabaseRequestType.Read,
+      blockedFor(Permission.IncidentMember),
+    );
+    const sql: string = keySqlOf(note, query["incidentId"]);
+
+    expect(sql).toContain('NOT IN (SELECT "IncidentLabel"."incidentId"');
+    expect(sql).not.toContain('FROM "Incident" "record');
+  });
+
+  test("parents that name no labelled record are taken away by no block with labels", async () => {
+    jest
+      .spyOn(ReadPermission, "getBlockedLabelsCondition")
+      .mockReturnValue(null);
+
+    const child: Child = CHILDREN[0]!;
+    const query: Dictionary<unknown> = await scopeOf(
+      child,
+      DatabaseRequestType.Read,
+      blockedFor(child.role),
+    );
+
+    expect(query[child.parentKey]).toBeUndefined();
+  });
 });
 
 describe("the parent's own label rule", () => {

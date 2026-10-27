@@ -1,4 +1,5 @@
 import {
+  ANSWER_STYLE_SECTION,
   INCIDENTS_ALERTS_AND_MONITORS_SECTION,
   INFRASTRUCTURE_COMMANDS_GUIDANCE,
   buildObservabilityChatSystemPrompt,
@@ -403,6 +404,127 @@ describe("buildObservabilityChatSystemPrompt — sanitization markers", () => {
   test("explains truncation and how to see the rest", () => {
     expect(prompt).toContain('"... [truncated]"');
     expect(prompt).toContain("fetch the single record");
+  });
+});
+
+/*
+ * How an answer reads. The maintainer, of Ask AI: "The ask AI is very
+ * noisy as well." Answers opened with a preamble, walked through every
+ * query, listed the sources the conversation already draws, and closed by
+ * offering more help. One answer style, for every surface the prompt
+ * serves: Ask AI and the incident's conversation (every mode), and the
+ * read-only Slack, Microsoft Teams and investigation runs.
+ */
+describe("buildObservabilityChatSystemPrompt — a quiet answer", () => {
+  test.each<[AIChatPermissionMode]>([
+    [AIChatPermissionMode.ReadOnly],
+    [AIChatPermissionMode.AskForApproval],
+    [AIChatPermissionMode.AutoRun],
+  ])(
+    "%s ends with the one answer style, once",
+    (mode: AIChatPermissionMode) => {
+      const prompt: string = buildObservabilityChatSystemPrompt({
+        currentTime: new Date("2026-07-16T00:00:00Z"),
+        permissionMode: mode,
+      });
+
+      expect(
+        prompt.endsWith(`## Answer style\n\n${ANSWER_STYLE_SECTION}`),
+      ).toBe(true);
+      expect(prompt.split("## Answer style")).toHaveLength(2);
+      // The old, softer line is gone rather than kept beside the new ones.
+      expect(prompt).not.toContain("Be concise.");
+    },
+  );
+
+  test("the answer leads: no preamble, and the question is not said back", () => {
+    expect(ANSWER_STYLE_SECTION).toContain(
+      "Lead with the answer: its first sentence answers the question.",
+    );
+    expect(ANSWER_STYLE_SECTION).toContain(
+      'No preamble ("Great question", "Here is what I found", "Based on the data")',
+    );
+    expect(ANSWER_STYLE_SECTION).toContain("do not restate the question");
+  });
+
+  test("its work is not narrated, but an empty query that matters is still named", () => {
+    expect(ANSWER_STYLE_SECTION).toContain("Do not narrate your work.");
+    expect(ANSWER_STYLE_SECTION).toContain(
+      "name a query only when it matters to the answer, such as one that came back empty",
+    );
+    // Hard rule 1 still says what to do when the data is not there.
+    const prompt: string = buildObservabilityChatSystemPrompt({
+      currentTime: new Date("2026-07-16T00:00:00Z"),
+      permissionMode: AIChatPermissionMode.AskForApproval,
+    });
+    expect(prompt).toContain(
+      "state exactly which queries you ran and what came back empty",
+    );
+  });
+
+  test("short unless asked, and a later format still wins", () => {
+    expect(ANSWER_STYLE_SECTION).toContain(
+      "Keep it short and direct: a sentence or two, or a few bullets, unless the person asks for detail or later instructions give a format.",
+    );
+    expect(ANSWER_STYLE_SECTION).toContain("Use Markdown only where it helps");
+  });
+
+  test("it stops when it is done: no summary, no offer of more help, no list of sources", () => {
+    expect(ANSWER_STYLE_SECTION).toContain(
+      "Stop when the answer is complete: no closing summary, no offer of more help, and no list of your sources.",
+    );
+  });
+
+  test("it still cites each claim inline: the sources are drawn, the markers are its own", () => {
+    const prompt: string = buildObservabilityChatSystemPrompt({
+      currentTime: new Date("2026-07-16T00:00:00Z"),
+      permissionMode: AIChatPermissionMode.AskForApproval,
+    });
+
+    expect(prompt).toContain(
+      "Put the matching citation marker immediately after each factual claim it supports.",
+    );
+  });
+
+  test("an approval card is not said twice: no description before it, no asking in words", () => {
+    const prompt: string = buildObservabilityChatSystemPrompt({
+      currentTime: new Date("2026-07-16T00:00:00Z"),
+      permissionMode: AIChatPermissionMode.AskForApproval,
+    });
+
+    expect(prompt).toContain(
+      "The card already says what the action will do: do not describe it again before it, and do not ask for approval in words.",
+    );
+    expect(prompt).toContain(
+      "If an action is denied, say in one sentence that it was not done, and continue helping.",
+    );
+    expect(prompt).toContain(
+      "Never claim an action happened unless the tool result confirms it.",
+    );
+  });
+
+  test("an action run at once is said in one sentence, not listed again under its card", () => {
+    const prompt: string = buildObservabilityChatSystemPrompt({
+      currentTime: new Date("2026-07-16T00:00:00Z"),
+      permissionMode: AIChatPermissionMode.AutoRun,
+    });
+
+    expect(prompt).toContain(
+      "After an action succeeds, say in one sentence what you did: the card under your answer shows the record it created or changed, so do not list its details again.",
+    );
+    expect(prompt).not.toContain("tell the user exactly what you did");
+  });
+
+  test("read-only says nothing about cards it cannot leave", () => {
+    const prompt: string = buildObservabilityChatSystemPrompt({
+      currentTime: new Date("2026-07-16T00:00:00Z"),
+      permissionMode: AIChatPermissionMode.ReadOnly,
+    });
+
+    expect(prompt).not.toContain(
+      "The card already says what the action will do",
+    );
+    expect(prompt).not.toContain("the card under your answer shows the record");
   });
 });
 

@@ -398,6 +398,22 @@ Cada incidente e cada alerta tem um cartão **Remediação** que diz o que a rem
 
 Quando o incidente não está vinculado a nenhum cluster nem a nenhum recurso de infraestrutura, o cartão diz isso em uma linha (o motivo mais comum de nada ter sido corrigido), com o que fazer: adicione em **Recursos afetados** o host, o cluster ou o banco de dados a que ele se refere, e o OneUptime AI tenta de novo enquanto o incidente estiver aberto, como faria com um novo. Um incidente com monitores também recebe um link para cada um deles, onde você pode vinculá-los ao que monitoram para que o próximo incidente que gerarem fique vinculado. Cada linha tem um link para onde aquilo é alterado: a página do agente de IA do cluster ou do recurso, as configurações de IA do incidente (ou do alerta), onde ficam o interruptor de correção e as regras dele, **Habilitar IA** ou os provedores de LLM. Incidentes e alertas criados antes de isso ser registrado só mostram o cartão quando algo foi proposto. Quando a IA estava totalmente desativada para um incidente, a linha do cartão **AI Investigation** diz por que nada foi corrigido, e o cartão **Remediação** não aparece.
 
+## OneUptime AI responde primeiro
+
+Uma regra de plantão de incidentes ou alertas pode deixar a OneUptime AI atender o chamado primeiro. Em **Mais campos**, responda **Quando esta regra deve acionar?** com **Depois que a OneUptime AI tentar**. Quando a OneUptime AI pode corrigir o assunto de um incidente ou alerta correspondente, as políticas da regra esperam enquanto a IA investiga, corrige e confere a correção, por no máximo o tempo definido em **Aguardar a OneUptime AI por até (minutos)**: 10 minutos por padrão, de 1 a 30. Se a correção da IA for verificada, a OneUptime AI resolve o registro e ninguém é acionado.
+
+Caso contrário, a regra aciona na hora, e o feed do registro diz por quê, quando uma pessoa criou o registro, ele tem a maior gravidade do projeto, 3 ou mais outros alertas e incidentes foram abertos nos 5 minutos anteriores, a OneUptime AI não pode investigá-lo ou corrigi-lo automaticamente, nenhum monitor está vinculado a ele, ou nenhum cluster Kubernetes ou recurso vinculado tem um agente de IA em **Automático** ou **Ignorar aprovação**.
+
+Enquanto a IA segura um chamado, o cartão **AI Investigation** mostra quando o acionamento começa, com **Acionar agora** para quem quiser uma pessoa nisso na hora. A cada minuto, o OneUptime confere cada chamado que a IA segura e começa a acionar na hora, dizendo por quê, quando:
+
+- a investigação não começa, espera por uma regra de IA ou não termina;
+- a IA não encontra correção que possa executar sozinha, ou a correção precisa da aprovação de uma pessoa;
+- a correção da IA não recupera os monitores;
+- alguém pressiona **Acionar agora**, o registro chega à maior gravidade ou muitos registros abrem ao mesmo tempo;
+- a IA ou a correção automática é desligada, ou a regra deixa de permitir que a IA responda primeiro.
+
+Os logs de execução da política mostram como cada espera terminou. Pela API ou pelo Terraform, o `whenToPage` da regra é `After OneUptime AI` e o `aiHoldTimeInMinutes` é o tempo de espera.
+
 ## O que a OneUptime AI aprendeu, e tudo o que ela fez
 
 A seção **IA** dos menus laterais de Incidentes e Alertas abre em duas páginas que olham para trás, para o que a OneUptime AI fez por aquele tipo de sinal. Nenhuma das duas altera nada: ambas mostram apenas o que foi registrado, e apenas para os incidentes (ou alertas) que você pode ver.

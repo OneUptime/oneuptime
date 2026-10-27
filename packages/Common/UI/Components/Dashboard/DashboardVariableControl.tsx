@@ -296,6 +296,7 @@ const DashboardVariableControl: FunctionComponent<ComponentProps> = (
         </select>
       ) : (
         <input
+          data-unsaved-changes-ignore
           type="text"
           aria-label={label}
           className="text-xs border border-gray-200 rounded-md px-2.5 py-1.5 bg-white text-gray-700 w-28 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-colors"

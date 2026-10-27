@@ -89,6 +89,7 @@ const DataSourceTypeSelectModal: FunctionComponent<ComponentProps> = (
          */}
         <div className="sticky -top-5 z-10 -mx-5 -mt-5 bg-white px-5 pb-4 pt-5 sm:-mx-6 sm:px-6">
           <Input
+            isSearchOrFilter={true}
             autoFocus={true}
             placeholder="Search data source types..."
             value={searchText}

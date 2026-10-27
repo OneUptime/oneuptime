@@ -579,7 +579,7 @@ beforeEach(() => {
   }
 
   for (const module of [
-    "AIChat/AIChatPanel",
+    "AIChat/AskAiDialog",
     "CommandPalette/DashboardCommandPalette",
     "KeyboardShortcuts/DashboardKeyboardShortcuts",
     "UserTimezone/UserTimezoneInit",

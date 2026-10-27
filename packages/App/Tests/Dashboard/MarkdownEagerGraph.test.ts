@@ -8,7 +8,7 @@ import path from "path";
  * split into chunks, and one static import chain used to pull it into the
  * entry bundle:
  *
- *   App.tsx (eager) -> AIChatPanel -> ChatMessageList -> SafeChatMarkdown
+ *   App.tsx (eager) -> AskAiDialog -> ChatMessageList -> SafeChatMarkdown
  *     -> Common/UI/Components/Markdown.tsx/MarkdownViewer -> mermaid
  *
  * The fix has two independent halves, and each is pinned here because

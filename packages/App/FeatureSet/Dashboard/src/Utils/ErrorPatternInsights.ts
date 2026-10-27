@@ -986,7 +986,7 @@ function describeWindow(evidence: ErrorPatternEvidence): string {
 const PROMPT_LIST_LIMIT: number = 5;
 
 /**
- * The prepared prompt for the Ask AI panel: this error, restated with every
+ * The prepared prompt for Ask AI: this error, restated with every
  * piece of evidence the drawer gathered, and a clear question.
  *
  * The point is that the user never re-describes the problem. The issue

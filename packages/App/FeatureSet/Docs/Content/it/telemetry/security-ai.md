@@ -104,7 +104,7 @@ Per scrivere una bozza serve un ruolo che possa creare regole di rilevamento.
 
 ## Ask AI nelle pagine di sicurezza
 
-**Ask AI** sa in quale pagina di sicurezza ti trovi. Su un caso legge prima il caso e propone domande come **È reale?**. Nelle altre pagine degli eventi di sicurezza, una domanda con parole semplici cerca nei tuoi eventi di sicurezza. Può anche confrontare valori con la tua threat intelligence, vedere quanto è stato attivo un utente, un host o un indirizzo, ed elencare i playbook adatti a un caso.
+**Chiedi all'IA** sa in quale pagina di sicurezza ti trovi. Su un caso legge prima il caso e propone domande come **È reale?**. Nelle altre pagine degli eventi di sicurezza, una domanda con parole semplici cerca nei tuoi eventi di sicurezza. Può anche confrontare valori con la tua threat intelligence, vedere quanto è stato attivo un utente, un host o un indirizzo, ed elencare i playbook adatti a un caso.
 
 Ask AI può aggiungere una nota a un caso ed eseguire un playbook su di esso, a tuo nome, e chiede prima di ogni azione. Un playbook che esegue attende l'approvazione come qualsiasi altro.
 

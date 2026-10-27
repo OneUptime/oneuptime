@@ -1175,6 +1175,7 @@ const NetworkTrafficView: FunctionComponent<ComponentProps> = (
                           >
                             <div>
                               <input
+                                data-unsaved-changes-ignore
                                 type="text"
                                 inputMode="text"
                                 value={addressInput}

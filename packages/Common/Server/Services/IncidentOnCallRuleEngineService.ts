@@ -32,6 +32,11 @@ import OnCallRulePagingHoldUtil, {
   OnCallRulePagingHold,
   OnCallRulePagingHolds,
 } from "../Utils/OnCall/OnCallRulePagingHold";
+import OnCallRuleWhenToPage from "../../Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
+import AiFirstResponder from "../Utils/AI/FirstResponder/AiFirstResponder";
+import AiFirstResponderEligibility, {
+  AiHoldDecision,
+} from "../Utils/AI/FirstResponder/AiFirstResponderEligibility";
 
 class IncidentOnCallRuleEngineServiceClass {
   /**
@@ -72,6 +77,11 @@ class IncidentOnCallRuleEngineServiceClass {
       const matchedRules: Array<IncidentOnCallRule> = [];
       // When each matched rule lets its policies page: right away wins.
       const pagingHolds: OnCallRulePagingHolds = new OnCallRulePagingHolds();
+      /*
+       * Whether OneUptime AI may respond first to the incident: asked once, when
+       * a rule set to After OneUptime AI matches it (AiFirstResponderEligibility).
+       */
+      let aiHold: AiHoldDecision | undefined = undefined;
 
       for (const rule of rules) {
         const matches: boolean = await this.doesIncidentMatchRule(
@@ -83,11 +93,20 @@ class IncidentOnCallRuleEngineServiceClass {
         }
 
         if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
+          if (
+            rule.whenToPage === OnCallRuleWhenToPage.AfterOneUptimeAI &&
+            !aiHold
+          ) {
+            aiHold =
+              await AiFirstResponderEligibility.decideForIncident(incident);
+          }
+
           pagingHolds.addRule(
             rule,
             rule.onCallDutyPolicies.map((policy: OnCallDutyPolicy): string => {
               return policy.id?.toString() || "";
             }),
+            aiHold,
           );
 
           let ruleAddedAny: boolean = false;
@@ -181,6 +200,15 @@ class IncidentOnCallRuleEngineServiceClass {
         });
       }
 
+      // A rule set to After OneUptime AI that paged right away says why.
+      if (aiHold && !aiHold.canHold && aiHold.reason && toAddIds.length > 0) {
+        await AiFirstResponder.sayWhyNotHeld({
+          projectId: incident.projectId,
+          incidentId: incident.id,
+          reason: aiHold.reason,
+        });
+      }
+
       // A policy the incident had already pages as it always has: right away.
       return pagingHolds.getHolds(toAddIds);
     } catch (error) {
@@ -196,8 +224,10 @@ class IncidentOnCallRuleEngineServiceClass {
   /*
    * The policies the incident's matching rules page now, each with the
    * names of the rules that do: a rule that pages right away, or a
-   * working-hours rule inside its hours (OnCallRulePagingHoldUtil.getHold).
-   * Reads only: it adds no policy to the incident. For one that changed
+   * working-hours rule inside its hours (OnCallRulePagingHoldUtil.isPagingNow).
+   * A rule set to After OneUptime AI never does: what it holds starts when AI
+   * hands it off (AiFirstResponder). Reads only: it adds no policy to the
+   * incident. For one that changed
    * while some of its runs wait for working hours (WaitingRunsOnRecordChange).
    */
   @CaptureSpan()
@@ -219,7 +249,7 @@ class IncidentOnCallRuleEngineServiceClass {
       if (
         !rule.onCallDutyPolicies ||
         rule.onCallDutyPolicies.length === 0 ||
-        OnCallRulePagingHoldUtil.getHold(rule, now) !== null
+        !OnCallRulePagingHoldUtil.isPagingNow(rule, now)
       ) {
         continue;
       }

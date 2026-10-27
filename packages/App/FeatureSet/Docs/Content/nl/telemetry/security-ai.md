@@ -104,7 +104,7 @@ Voor een concept is een rol nodig die detectieregels mag aanmaken.
 
 ## Ask AI op de beveiligingspagina's
 
-**Ask AI** weet op welke beveiligingspagina je bent. Op een zaak leest het eerst de zaak en biedt het vragen aan zoals **Is het echt?**. Op de andere pagina's van beveiligingsgebeurtenissen doorzoekt een vraag in gewone woorden je beveiligingsgebeurtenissen. Het kan ook waarden vergelijken met je threat intelligence, zien hoe actief een gebruiker, host of adres is geweest, en de playbooks opsommen die bij een zaak passen.
+**AI vragen** weet op welke beveiligingspagina je bent. Op een zaak leest het eerst de zaak en biedt het vragen aan zoals **Is het echt?**. Op de andere pagina's van beveiligingsgebeurtenissen doorzoekt een vraag in gewone woorden je beveiligingsgebeurtenissen. Het kan ook waarden vergelijken met je threat intelligence, zien hoe actief een gebruiker, host of adres is geweest, en de playbooks opsommen die bij een zaak passen.
 
 Ask AI kan een notitie aan een zaak toevoegen en er een playbook op uitvoeren, namens jou, en vraagt het vóór elke stap. Een playbook dat het uitvoert, wacht zoals elk ander op goedkeuring.
 

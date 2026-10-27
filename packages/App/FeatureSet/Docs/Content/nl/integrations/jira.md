@@ -187,7 +187,7 @@ Elk sjabloon eindigt met een **Log**-stap die zegt wat er gebeurde, dus de laats
 - `❌` — een aanroep is mislukt. Bij een Jira-aanroep bevat de regel het antwoord van Jira.
 - `⚠️` — een sjabloon dat een record aanmaakt vanuit een Jira-issue heeft het aangemaakt, maar Jira heeft de koppelingslabels niet geaccepteerd, dus de andere sjablonen kunnen het nog niet vinden. Voeg de labels met de hand toe.
 
-Een overgeslagen uitvoering eindigt toch als **Executed**. Overslaan is normaal: de meeste Jira-gebeurtenissen zijn niet de gebeurtenissen waarop een bepaald sjabloon reageert. Zie [Workflow-uitvoeringen](/docs/workflows/runs-and-logs).
+Een overgeslagen uitvoering eindigt toch als **Uitgevoerd**. Overslaan is normaal: de meeste Jira-gebeurtenissen zijn niet de gebeurtenissen waarop een bepaald sjabloon reageert. Zie [Workflow-uitvoeringen](/docs/workflows/runs-and-logs).
 
 ## Hoe de sjablonen werken
 

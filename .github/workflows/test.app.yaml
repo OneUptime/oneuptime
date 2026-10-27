@@ -124,6 +124,12 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
       options: --user 1001 --ipc=host
+    # In a container a run step with no shell of its own gets sh, not the
+    # bash -e {0} a runner gives it; the steps here are written for the
+    # runner's (Tests/Ops/PlaywrightImage).
+    defaults:
+      run:
+        shell: bash -e {0}
     permissions:
       contents: read
     steps:
@@ -238,6 +244,12 @@ jobs:
       # namespace, as Playwright's image asks, so Chromium cannot run short of
       # shared memory.
       options: --user 1001 --ipc=host
+    # In a container a run step with no shell of its own gets sh, not the
+    # bash -e {0} a runner gives it; the steps here are written for the
+    # runner's (Tests/Ops/PlaywrightImage).
+    defaults:
+      run:
+        shell: bash -e {0}
     permissions:
       contents: read
     # Which half of Event Overview a group runs, "1/2" or "2/2"; empty in
@@ -803,6 +815,15 @@ jobs:
           # Global Runners (2.2 minutes on 14.0.93's gate run) moved to group 13
           # on 2026-10-27, when that run took this group 17.3 minutes before
           # Resource Overviews joined: about 16.5, with room for Code to grow.
+          # Ask AI (2.5 minutes locally with its bundle, 37 tests, Chromium only: the
+          # dialog over the blurred page from every way in, its start, an
+          # answer written step by step, its sources and cards, an approval,
+          # the history and the way back to an answer still being written, at
+          # 1280, 768 and 390 pixels, light and dark, German and Persian, and
+          # with reduced motion) joined them the same day: about 19. Its UI
+          # review took it to 50 tests and 3.0 minutes (the marks, charts,
+          # tables and figures an answer carries, its menus, deleting a
+          # conversation, right to left): about 19.5.
           - group: 12
             suites: >-
               test-code-ui
@@ -810,6 +831,7 @@ jobs:
               test-acknowledgement-timeout-ui
               test-new-version-ui
               test-resource-overviews-ui
+              test-ask-ai-ui
           # Added on 2026-10-27, when 14.0.93's gate run took groups 10, 11, 1, 6
           # and 2 20.9 to 24.4 minutes and the Workflow Builder suite's halves
           # filled groups 4 and 9: Navigation Search (3.6) and Bulk Actions (1.2)
@@ -985,6 +1007,8 @@ jobs:
             output/playwright/external-mcp-servers-ui/test-results
             output/playwright/ai-context-ui/*.png
             output/playwright/ai-context-ui/test-results
+            output/playwright/ask-ai-ui/*.png
+            output/playwright/ask-ai-ui/test-results
             output/playwright/resource-topology-ui/*.png
             output/playwright/resource-topology-ui/test-results
             output/playwright/runbook-variables-ui/*.png
