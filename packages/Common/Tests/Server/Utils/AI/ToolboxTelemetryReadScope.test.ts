@@ -23,12 +23,12 @@ const TOOLBOX_DIRECTORY: string = path.join(
 
 /*
  * The aggregation services and attribute lookups, and the security events'
- * own SQL reads (how active a value has been, the values findings name
- * most). A read of security events through the model (findBy) is scoped by
- * the permission layer, like any other model read.
+ * own SQL read (how active a value has been). A read of security events
+ * through the model (findBy) is scoped by the permission layer, like any
+ * other model read.
  */
 const HAND_BUILT_READS: RegExp =
-  /\b(LogAggregationService|TraceAggregationService|ExceptionAggregationService|MetricAggregationService|ProfileAggregationService|TelemetryAttributeService|SecurityEventService(?=\.(?:findObservableActivity|findEntitiesByFindings)\())\.([A-Za-z]+)\(/g;
+  /\b(LogAggregationService|TraceAggregationService|ExceptionAggregationService|MetricAggregationService|ProfileAggregationService|TelemetryAttributeService|SecurityEventService(?=\.findObservableActivity\())\.([A-Za-z]+)\(/g;
 
 // A read handed a service filter worked out from the asker's scope.
 const SERVICE_FILTER: RegExp = /\bserviceFilter\b/;

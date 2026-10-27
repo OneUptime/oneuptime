@@ -31,7 +31,6 @@ import SecurityCaseService, {
 } from "../Services/SecurityCaseService";
 import SecurityDetectionService from "../Services/SecurityDetectionService";
 import SecurityEventService, {
-  EntityFindingSummary,
   ObservableActivity,
 } from "../Services/SecurityEventService";
 import SecurityPlaybookRunService from "../Services/SecurityPlaybookRunService";
@@ -98,6 +97,8 @@ import SecurityConnections from "../Utils/SecurityEvent/Connections/SecurityConn
 import { getLogResourceKind } from "../Utils/SecurityEvent/Connections/SecurityConnectedRecords";
 import ResourceSecurity from "../Utils/SecurityEvent/Connections/ResourceSecurity";
 import IncidentSecurity from "../Utils/SecurityEvent/Connections/IncidentSecurity";
+import SecurityRiskiestEntitiesReader from "../Utils/SecurityEvent/EntityRisk/SecurityRiskiestEntities";
+import { SecurityRiskiestEntities } from "../../Types/SecurityCase/SecurityEntityRisk";
 
 // The overview's windows: cases over the last 30 days, detections over the last 14.
 export const SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS: number = 30;
@@ -222,9 +223,10 @@ function readWholeNumber(
 /*
  * The Security product's own routes, beside the security case CRUD:
  *
- *   POST /security-case/overview           the overview's figures
+ *   POST /security-case/overview           the overview's figures, and the
+ *                                          riskiest entities as Entity Risk
+ *                                          ranks them
  *   POST /security-case/entity-activity    how active some values have been
- *   POST /security-case/top-entities       the values the findings name most
  *   POST /security-case/connections        what a case or an event names in
  *                                          the rest of OneUptime (Connected
  *                                          Signals)
@@ -332,55 +334,6 @@ export default class SecurityCaseAPI extends BaseAPI<
                 lastSeen: item.lastSeen ? item.lastSeen.toISOString() : null,
               };
             }),
-          });
-        } catch (error) {
-          next(error);
-        }
-      },
-    );
-
-    this.router.post(
-      `${basePath}/top-entities`,
-      UserMiddleware.getUserMiddleware,
-      UserMiddleware.requireUserAuthentication,
-      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
-        try {
-          const props: DatabaseCommonInteractionProps =
-            await CommonAPI.getDatabaseCommonInteractionProps(req);
-          const projectId: ObjectID =
-            CommonAPI.assertAuthenticatedProjectMember(props);
-
-          this.assertCanReadSecurityEvents(props);
-
-          const body: JSONObject = readBody(req);
-          const days: number = readWholeNumber(body["days"], 7, 1, 30);
-          const limit: number = readWholeNumber(body["limit"], 25, 1, 100);
-          const endTime: Date = OneUptimeDate.getCurrentDate();
-
-          const entities: Array<EntityFindingSummary> =
-            await SecurityEventService.findEntitiesByFindings({
-              projectId,
-              startTime: OneUptimeDate.addRemoveDays(endTime, -days),
-              endTime,
-              limit,
-              serviceFilter: await this.getSecurityEventSourceFilter(props),
-            });
-
-          return Response.sendJsonObjectResponse(req, res, {
-            days,
-            entities: entities.map(
-              (entity: EntityFindingSummary): JSONObject => {
-                return {
-                  value: entity.value,
-                  findingCount: entity.findingCount,
-                  ruleCount: entity.ruleCount,
-                  maxSeverityId: entity.maxSeverityId,
-                  lastSeen: entity.lastSeen
-                    ? entity.lastSeen.toISOString()
-                    : null,
-                };
-              },
-            ),
           });
         } catch (error) {
           next(error);
@@ -1178,11 +1131,18 @@ export default class SecurityCaseAPI extends BaseAPI<
       mitreTactics: true,
     };
 
-    const [openCases, casesInWindow, detections, waitingRuns]: [
+    const [
+      openCases,
+      casesInWindow,
+      detections,
+      waitingRuns,
+      riskiestEntities,
+    ]: [
       Array<SecurityCase>,
       Array<SecurityCase>,
       Array<SecurityDetection>,
       number,
+      SecurityRiskiestEntities | null,
     ] = await Promise.all([
       SecurityCaseService.findBy({
         query: {
@@ -1231,6 +1191,11 @@ export default class SecurityCaseAPI extends BaseAPI<
       }).then((count: { toNumber: () => number }): number => {
         return count.toNumber();
       }),
+      /*
+       * Riskiest Entities: the top of Entity Risk's list, by risk score.
+       * Null when it could not be read - the card says so, not the page.
+       */
+      SecurityRiskiestEntitiesReader.read({ projectId, props }),
     ]);
 
     const toCaseRow: (row: SecurityCase) => OverviewCaseRow = (
@@ -1287,6 +1252,7 @@ export default class SecurityCaseAPI extends BaseAPI<
         casesInWindow.length >= SECURITY_OVERVIEW_ROW_LIMIT ||
         detections.length >= SECURITY_OVERVIEW_ROW_LIMIT,
       metrics: metrics as unknown as JSONObject,
+      riskiestEntities: riskiestEntities as unknown as JSONObject | null,
       priorities: values.priorities.map(
         (priority: SecurityCasePriority): JSONObject => {
           return toSecurityCaseValueJson(

@@ -202,3 +202,27 @@ export interface SecurityEntityRiskHistoryPoint {
   day: string;
   score: number;
 }
+
+/*
+ * THE RISKIEST ENTITIES, as the Security Overview shows them: the top of
+ * Entity Risk's list - the same scores, in the same order - so "riskiest"
+ * means one thing wherever the product says it. Read with the overview
+ * (POST /security-case/overview), with the project's threshold, which each
+ * score's level is read against, and how many entities have risk now.
+ */
+export const SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT: number = 8;
+
+export interface SecurityRiskiestEntity {
+  value: string;
+  // Its kind as its risk row keeps it; null for a row that names none.
+  type: SecurityEntityType | null;
+  score: number;
+}
+
+export interface SecurityRiskiestEntities {
+  threshold: number;
+  // How many entities have risk now: Entity Risk lists every one.
+  total: number;
+  // The riskiest first, at most SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT.
+  entities: Array<SecurityRiskiestEntity>;
+}

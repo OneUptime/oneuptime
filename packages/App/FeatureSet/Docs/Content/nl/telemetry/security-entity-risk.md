@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Bij de<br/>drempel"| case["Er wordt een zaak<br/>geopend, of de open<br/>zaak neemt het over"]
 ```
 
-Open **Producten → Security Events → Entiteitrisico**: elke gebruiker, host en elk IP-adres met nu een risico, de riskantste eerst, met het niveau, hoe zwaar het weegt, wat het vond en wanneer. Elk opent op een eigen pagina.
+Open **Producten → Security Events → Entiteitrisico**: elke gebruiker, host en elk IP-adres met nu een risico, de riskantste eerst, met het niveau, hoe zwaar het weegt, wat het vond en wanneer. Elk opent op een eigen pagina. **Riskantste entiteiten** op het overzicht toont de top van deze lijst, en **Een entiteit opzoeken**, eronder, zoekt elke waarde op in 30 dagen aan gebeurtenissen, ook een domein of een bestandshash.
 
 ## Voordat u begint
 

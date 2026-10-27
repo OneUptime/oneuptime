@@ -37,7 +37,6 @@ flowchart TB
 | **Alle Fälle** | Sicherheitsfälle | Jeder Fall, offen oder geschlossen |
 | **Ereignisse** | Ereignisse | Jedes Ereignis suchen und filtern, und eines öffnen, um alle seine Felder zu sehen |
 | **Campaigns** | Ereignisse | Jede Adresse, die Angriffsanfragen gesendet hat, und ob eine ihrer Anfragen durchkam |
-| **Entitäten** | Ereignisse | Die Benutzer, Hosts und Adressen, die Ihre Befunde am häufigsten nennen |
 | **Entitätsrisiko** | Ereignisse | Jeder Benutzer, Host und jede Adresse, bewertet nach dem, was diese Woche dazu gefunden wurde, die riskantesten zuerst |
 | **Korrelieren** | Ereignisse | Ein Graph der Ereignisse, die einen Host, einen Benutzer oder eine IP-Adresse teilen |
 | **Erkennungsregeln** | Erkennungen | Sigma-Regeln, die nach Zeitplan laufen und Fälle eröffnen |

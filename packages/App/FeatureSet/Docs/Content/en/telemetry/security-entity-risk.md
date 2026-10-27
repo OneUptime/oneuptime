@@ -24,7 +24,7 @@ flowchart TB
     score -->|"At the<br/>threshold"| case["A case opens, or the<br/>open case takes it in"]
 ```
 
-Open **Products → Security Events → Entity Risk**: every user, host and IP address with risk now, the riskiest first, with its level, how much it matters, what found it and when. Each one opens on a page of its own.
+Open **Products → Security Events → Entity Risk**: every user, host and IP address with risk now, the riskiest first, with its level, how much it matters, what found it and when. Each one opens on a page of its own. The Overview's **Riskiest Entities** shows the top of this list, and **Look Up an Entity**, under it, looks any value up across 30 days of events, a domain or a file hash too.
 
 ## Before you begin
 

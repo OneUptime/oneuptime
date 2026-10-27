@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Alla<br/>soglia"| case["Si apre un caso,<br/>o il caso aperto<br/>ne assorbe il rischio"]
 ```
 
-Apri **Prodotti → Security Events → Rischio delle entità**: ogni utente, host e indirizzo IP con un rischio ora, i più a rischio per primi, con il suo livello, quanto conta, cosa l'ha trovato e quando. Ognuno si apre su una pagina propria.
+Apri **Prodotti → Security Events → Rischio delle entità**: ogni utente, host e indirizzo IP con un rischio ora, i più a rischio per primi, con il suo livello, quanto conta, cosa l'ha trovato e quando. Ognuno si apre su una pagina propria. **Entità più a rischio**, nella panoramica, mostra la parte alta di questo elenco, e **Cerca un'entità**, sotto di esso, cerca qualsiasi valore in 30 giorni di eventi, anche un dominio o un hash di file.
 
 ## Prima di iniziare
 

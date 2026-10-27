@@ -37,7 +37,6 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Tous les dossiers** | Dossiers de sécurité | Chaque dossier, ouvert ou fermé |
 | **Événements** | Événements | Rechercher et filtrer tous les événements, et en ouvrir un pour voir tous ses champs |
 | **Campaigns** | Événements | Chaque adresse qui a envoyé des requêtes d'attaque, et si l'une de ses requêtes est passée |
-| **Entités** | Événements | Les utilisateurs, hôtes et adresses que vos constats nomment le plus |
 | **Risque des entités** | Événements | Chaque utilisateur, hôte et adresse, noté selon ce qui a été trouvé à son sujet cette semaine, les plus à risque d'abord |
 | **Corréler** | Événements | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
 | **Règles de détection** | Détections | Des règles Sigma qui s'exécutent selon un calendrier et ouvrent des dossiers |

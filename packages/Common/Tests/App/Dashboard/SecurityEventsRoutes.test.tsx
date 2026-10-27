@@ -22,7 +22,8 @@ import {
  * case queue's old address opens Open Cases and its other pages sit one
  * level down, beside a case's own page, which still opens for a case id;
  * the runs page's old address opens Approvals and every run is
- * one level down; Monitors still opens Monitors.
+ * one level down; Monitors still opens Monitors; Entities, folded into
+ * Entity Risk, opens Entity Risk.
  *
  * A case's pages: its address still opens the case - its Overview, now
  * inside the case's own layout and side menu - and each of its other pages
@@ -453,7 +454,7 @@ jest.mock(
 );
 
 jest.mock(
-  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Entities",
+  "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/EntityRisk",
   () => {
     const ReactModule: typeof import("react") = jest.requireActual(
       "react",
@@ -469,12 +470,12 @@ jest.mock(
               securityPageMounts?: Record<string, number>;
             }
           ).securityPageMounts ||= {});
-          counts["Entities"] = (counts["Entities"] || 0) + 1;
+          counts["EntityRisk"] = (counts["EntityRisk"] || 0) + 1;
         }, []);
 
         return ReactModule.createElement("div", {
           "data-testid": "security-page",
-          "data-page": "Entities",
+          "data-page": "EntityRisk",
           "data-view": props.view || "",
         });
       },
@@ -948,7 +949,7 @@ const ADDRESSES: Array<[string, string, string, boolean]> = [
   [`/cases/${CASE_ID}/notes`, "CaseNotes", "", false],
   [`/cases/${CASE_ID}/audit-logs`, "CaseAuditLogs", "", false],
   [`/cases/${CASE_ID}/delete`, "CaseDelete", "", false],
-  ["/entities", "Entities", "", true],
+  ["/entity-risk", "EntityRisk", "", true],
   ["/correlate", "Correlate", "", true],
   ["/detection-rules", "DetectionRules", "", true],
   ["/rule-library", "RuleLibrary", "", true],
@@ -1084,6 +1085,24 @@ describe("every Security Events address", () => {
     await open(`${PRODUCT}/cases/${CASE_ID}/not-a-page`);
 
     expect(screen.queryByTestId("security-page")).toBeNull();
+  });
+
+  /*
+   * Entities ranked values by how many findings named them, beside Entity
+   * Risk's scores - two riskiest lists. Entity Risk is the one ranking now,
+   * with Entities' Look Up an Entity under it: a bookmark of the old page
+   * lands there, inside the product's layout, and the address says so.
+   */
+  test("the old Entities address opens Entity Risk, the one ranking of who is riskiest", async () => {
+    await open(`${PRODUCT}/entities`);
+
+    expect(drawn()).toEqual({ page: "EntityRisk", view: "", inLayout: true });
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK),
+    );
+    expect(screen.getByTestId("location")).not.toHaveTextContent(
+      `${PRODUCT}/entities`,
+    );
   });
 
   test("the old Monitors address opens Monitors, where those monitors are listed", async () => {
