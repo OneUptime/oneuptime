@@ -55,6 +55,9 @@ interface OsModule {
 
 interface IncomingMessage {
   url?: string;
+  method?: string;
+  headers?: Record<string, string | Array<string> | undefined>;
+  resume?: () => void;
 }
 
 interface ServerResponse {
@@ -448,20 +451,63 @@ export class Browser {
   }
 }
 
-/* A local site serving fixed pages, on a port of its own. */
+/* One request the site was sent, as it arrived. */
+export interface SiteRequest {
+  method: string;
+  url: string;
+  path: string;
+
+  /*
+   * The Sec-Purpose header: "prefetch;prerender" on what Chromium fetches
+   * for a page it prerenders.
+   */
+  purpose: string;
+  atMs: number;
+}
+
+/*
+ * A local site serving fixed pages, on a port of its own. Every request is
+ * logged, and a POST - a recording's upload - is taken and answered 202, as
+ * OneUptime's ingest answers it.
+ */
 export class Site {
   public readonly origin: string;
+  public readonly requests: Array<SiteRequest>;
   private readonly server: Server;
 
-  private constructor(server: Server, origin: string) {
+  private constructor(
+    server: Server,
+    origin: string,
+    requests: Array<SiteRequest>,
+  ) {
     this.server = server;
     this.origin = origin;
+    this.requests = requests;
   }
 
   public static async serve(pages: Record<string, string>): Promise<Site> {
+    const requests: Array<SiteRequest> = [];
     const server: Server = http.createServer(
       (request: IncomingMessage, response: ServerResponse): void => {
         const pathname: string = (request.url || "/").split("?")[0] || "/";
+        const purpose: string | Array<string> | undefined =
+          request.headers?.["sec-purpose"];
+
+        requests.push({
+          method: request.method || "GET",
+          url: request.url || "/",
+          path: pathname,
+          purpose: typeof purpose === "string" ? purpose : "",
+          atMs: Date.now(),
+        });
+
+        if (request.method === "POST") {
+          request.resume?.();
+          response.writeHead(202, { "content-type": "text/plain" });
+          response.end("");
+          return;
+        }
+
         const body: string | undefined = pages[pathname];
 
         if (body === undefined) {
@@ -483,7 +529,11 @@ export class Site {
       server.listen(0, "127.0.0.1", resolve);
     });
 
-    return new Site(server, `http://127.0.0.1:${server.address().port}`);
+    return new Site(
+      server,
+      `http://127.0.0.1:${server.address().port}`,
+      requests,
+    );
   }
 
   public close(): void {

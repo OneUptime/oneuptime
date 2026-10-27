@@ -122,7 +122,7 @@ const HostLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs found for this host. Make sure your OTel collector forwards logs with the host.name resource attribute."
+        noLogsMessage="Make sure your OTel collector forwards logs with the host.name resource attribute."
       />
     </Fragment>
   );

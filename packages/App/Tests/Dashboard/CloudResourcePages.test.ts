@@ -473,7 +473,7 @@ describe("Cloud Environment copy", () => {
      * so its empty state is the copy left to say "environment".
      */
     expect(readCode("Pages/Cloud/View/Logs.tsx")).toContain(
-      'noLogsMessage="No logs found for this cloud environment."',
+      'noLogsMessage="Logs appear here when they carry this environment\'s cloud.platform, cloud.account.id and cloud.region resource attributes."',
     );
     expect(readCode("Pages/Cloud/SideMenu.tsx")).toContain(
       'title: "All Environments"',

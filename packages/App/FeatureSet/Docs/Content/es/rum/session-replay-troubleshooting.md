@@ -199,6 +199,7 @@ Cada línea lleva un `code` estable. Busca el tuyo aquí.
 | `bootstrap-already-started` | Dos copias del fragmento de código en una misma página. Quita una. |
 | `bootstrap-already-running` | Se volvió a llamar a `bootstrap()` mientras ya había un grabador en marcha. Inofensivo; normalmente una integración duplicada. |
 | `bootstrap-cancelled` | Un `revokeConsent()` o `stop()` en cola en `window.OneUptimeReplayQueue` se ejecutó antes de que arrancara el grabador, así que esta sesión no se graba. Correcto si tu banner ya había sido rechazado. |
+| `prerender-wait` | El navegador prerrenderizó esta página, como hace Chrome con una página que espera que se abra a continuación, y nadie la ha abierto todavía. El grabador arranca cuando el visitante abre la página, así que una página que nunca se abre no graba nada; las llamadas que tu página haga mientras tanto se aplican entonces. |
 | `start-stopped` | `start()` no recibió ninguna política utilizable en la ruta del paquete propio. El motivo concreto está en la línea `config-*` justo encima. |
 | `rrweb-did-not-start` | El grabador del DOM se negó a arrancar. Infórmalo. |
 | `rrweb-error` | El grabador del DOM sufrió un error interno en esta página (el nombre del error está en el detalle; se registra una vez). La grabación puede saltar o congelarse alrededor de ese punto, y tras tres errores así la sesión lleva un aviso de fidelidad que lo dice. Infórmalo con el framework de la página y el nombre del error. |

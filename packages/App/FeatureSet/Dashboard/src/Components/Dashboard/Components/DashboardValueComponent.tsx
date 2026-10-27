@@ -10,7 +10,6 @@ import React, {
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
-import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import MetricUtil from "../../Metrics/Utils/Metrics";
 import API from "Common/UI/Utils/API/API";
@@ -32,7 +31,9 @@ import {
   aggregateValues,
   collectDataPoints,
   getMetricValueWidgetReduce,
+  getMetricValueWidgetBucketWidthMs,
   getMetricValueWidgetSeries,
+  getMetricValueWidgetSparkline,
   getNumericValues,
   getResultsErrorMessage,
   isAdditiveAggregation,
@@ -202,9 +203,22 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
    * compared the newer half with the older one. One point per bucket, a
    * grouped query's groups combined the way the number combines them.
    */
-  const sparklineData: Array<SparklinePoint> = useMemo(() => {
+  const seriesData: Array<SparklinePoint> = useMemo(() => {
     return getMetricValueWidgetSeries(metricResults, aggregationType);
   }, [metricResults, aggregationType]);
+
+  /*
+   * What the line draws: for a sum or a count, the empty buckets between
+   * its readings at 0 - a sparse count drawn through only the buckets it
+   * had read flat while its arrow said it rose.
+   */
+  const sparklineData: Array<SparklinePoint> = useMemo(() => {
+    return getMetricValueWidgetSparkline({
+      results: metricResults,
+      aggregationType: aggregationType,
+      window: resultsWindow,
+    });
+  }, [metricResults, aggregationType, resultsWindow]);
 
   /*
    * The arrow: the second half of the time range against the first, each
@@ -219,21 +233,20 @@ const DashboardValueComponentElement: FunctionComponent<ComponentProps> = (
     const reduce: ValueWidgetReduce =
       getMetricValueWidgetReduce(aggregationType);
 
+    /*
+     * The buckets that had a reading, not the drawn zeros: a half of the
+     * range with none still has nothing to compare (getValueWidgetTrend).
+     */
     return getValueWidgetTrend({
-      points: sparklineData,
+      points: seriesData,
       reduce: reduce,
       isAdditive: isAdditiveAggregation(aggregationType),
       windowStart: resultsWindow.startDate,
       windowEnd: resultsWindow.endDate,
       // The interval the server bucketed this window at.
-      bucketWidthMs: AggregationIntervalUtil.getAggregationIntervalMs(
-        AggregationIntervalUtil.getAggregationIntervalForWindow({
-          startDate: resultsWindow.startDate,
-          endDate: resultsWindow.endDate,
-        }),
-      ),
+      bucketWidthMs: getMetricValueWidgetBucketWidthMs(resultsWindow),
     });
-  }, [sparklineData, aggregationType, resultsWindow]);
+  }, [seriesData, aggregationType, resultsWindow]);
 
   const metricName: string =
     props.component.arguments.metricQueryConfig?.metricQueryData.filterData.metricName?.toString() ||

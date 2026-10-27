@@ -199,7 +199,7 @@ const CompanionLogsTab: FunctionComponent<CompanionLogsTabProps> = (
           serviceIds={serviceIds.length > 0 ? serviceIds : undefined}
           logQuery={props.spec.logQuery}
           limit={10}
-          noLogsMessage={`No logs found in ${props.windowName}.`}
+          noLogsMessage={`Nothing was logged in ${props.windowName}.`}
         />
       </Card>
     </div>

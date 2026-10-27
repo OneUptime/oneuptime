@@ -302,7 +302,7 @@ describe("TracesViewer hosts a stored span query", () => {
       'applyScopeGroup("primaryEntityId", spanScope.serviceIds)',
     );
     const propIndex: number = TRACES_VIEWER.indexOf(
-      'applyScopeGroup("primaryEntityId", [props.primaryEntityId.toString()])',
+      'applyScopeGroup("primaryEntityId", [ props.primaryEntityId.toString(), ])',
     );
 
     expect(scopeIndex).toBeGreaterThan(-1);

@@ -1034,8 +1034,8 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
         </div>
       </CollapsibleSection>
 
-      {/* Delete Criteria Button */}
-      <div className="mt-4 -ml-3">
+      {/* Delete Criteria Button: md:-ml-3 takes back its own md:ml-3. */}
+      <div className="mt-4 md:-ml-3">
         <Button
           onClick={() => {
             if (props.onDelete) {

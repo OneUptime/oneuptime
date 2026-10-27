@@ -950,6 +950,7 @@ A maioria destes itens é indicada na aba **Fidelity** do reprodutor em vez de f
 | Folhas de estilos de outras origens | Não gravadas, a menos que sejam servidas com `Access-Control-Allow-Origin` e vinculadas com `crossorigin`. A reprodução as carrega dos endereços originais em vez disso, e um aviso diz isso. Consulte [Gravar uma folha de estilos de outra origem](#gravar-uma-folha-de-estilos-de-outra-origem). |
 | Um snapshot do DOM muito grande | Um snapshot que o gravador não conseguiu armazenar é informado, e a reprodução começa no seguinte. |
 | Sinais além de um limite | A saída do console, as requisições de rede e os cliques têm limite por sessão ou por fragmento; o painel de eventos marca onde a captura parou. |
+| Uma página pré-renderizada antes de ser aberta | O Chrome pode carregar e executar uma página que espera que seja aberta em seguida antes que alguém a abra, e as speculation rules de um site também podem. A gravação começa quando o visitante abre a página, a partir do que ele vê nesse momento, e uma página que nunca é aberta não grava nada. |
 | Pixels de imagens do React Native | O quadro da imagem é preservado como um marcador opaco; fotos de usuários e pixels baixados não são copiados. |
 | WebViews do React Native | Fora da árvore de views nativa. Grave a página hospedada separadamente com o gravador web, se necessário. |
 | Canvas e desenho personalizado do React Native | Skia, OpenGL, mapas, pré-visualizações de câmera/vídeo e superfícies semelhantes são marcadores opacos. |

@@ -950,6 +950,7 @@ De fleste af disse nævnes på afspillerens fane **Fidelity** i stedet for at st
 | Typografiark fra andre oprindelser | Optages ikke, medmindre de leveres med `Access-Control-Allow-Origin` og linkes med `crossorigin`. Afspilningen indlæser dem i stedet fra deres oprindelige adresser, og en meddelelse siger det. Se [Optag et typografiark fra en anden oprindelse](#optag-et-typografiark-fra-en-anden-oprindelse). |
 | Et meget stort DOM-snapshot | Et snapshot, som optageren ikke kunne gemme, rapporteres, og afspilningen starter fra det næste. |
 | Signaler over en grænse | Konsoloutput, netværksforespørgsler og klik er begrænset pr. session eller pr. chunk; hændelsespanelet markerer, hvor optagelsen stoppede. |
+| En forhåndsgengivet side, før den åbnes | Chrome kan indlæse og køre en side, den forventer bliver åbnet som den næste, før nogen åbner den, og det kan et websteds speculation rules også. Optagelsen starter, når den besøgende åbner siden, ud fra det, vedkommende ser i det øjeblik, og en side, der aldrig åbnes, optager intet. |
 | Billedpixels i React Native | Billedets ramme bevares som en uigennemsigtig pladsholder; brugernes fotos og downloadede pixels kopieres ikke. |
 | WebViews i React Native | Uden for det native view-træ. Optag om nødvendigt den hostede side separat med weboptageren. |
 | Canvas og specialtegning i React Native | Skia, OpenGL, kort, forhåndsvisninger fra kamera/video og lignende flader er uigennemsigtige pladsholdere. |

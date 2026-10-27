@@ -308,6 +308,26 @@ function facetRequests(): Array<Record<string, unknown>> {
   return postsTo("/telemetry/logs/facets");
 }
 
+/*
+ * The facet reads. A read is one request for every facet nothing is chosen
+ * in, carrying every filter, sent after one request per facet with a value
+ * chosen, which leaves that facet's own selection out (FacetCountPlan): a
+ * read is counted by the former.
+ */
+function facetReads(): Array<Record<string, unknown>> {
+  return facetRequests().filter((body: Record<string, unknown>): boolean => {
+    return (body["facetKeys"] as Array<string>).length > 1;
+  });
+}
+
+// The requests that count one chosen facet without its own selection.
+function ownSelectionCounts(facetKey: string): Array<Record<string, unknown>> {
+  return facetRequests().filter((body: Record<string, unknown>): boolean => {
+    const keys: Array<string> = body["facetKeys"] as Array<string>;
+    return keys.length === 1 && keys[0] === facetKey;
+  });
+}
+
 function savedViewReads(): number {
   return getListMock.mock.calls.filter((call: Array<unknown>): boolean => {
     return (call[0] as { modelType: unknown }).modelType === LogSavedView;
@@ -744,7 +764,7 @@ describe("an embedded viewer reads once, and only on a real change of its scope"
         showFilters={true}
         enableRealtime={true}
         limit={100}
-        noLogsMessage="No logs found for this service."
+        noLogsMessage="Logs appear here as soon as this service sends them."
       />
     );
   }
@@ -1039,7 +1059,14 @@ describe("a saved view that applies on load is waited for", () => {
     expect(lastListCall().query["body"]).toEqual(new Search("checkout"));
     expect(windowOf(lastListCall().query)).toBe(PAST_DAY_WINDOW);
     expect(histogramRequests()).toHaveLength(1);
-    expect(facetRequests()).toHaveLength(1);
+    expect(facetReads()).toHaveLength(1);
+    expect(facetReads()[0]!["severityTexts"]).toEqual([LogSeverity.Error]);
+    // The view's Severity facet is counted once, without its own Error.
+    expect(ownSelectionCounts("severityText")).toHaveLength(1);
+    expect(ownSelectionCounts("severityText")[0]!["severityTexts"]).toBe(
+      undefined,
+    );
+    expect(facetRequests()).toHaveLength(2);
 
     expect(urlParams().get("savedView")).toBe(SAVED_VIEW_ID);
     expect(urlParams().get("page")).toBe("3");
@@ -1076,7 +1103,8 @@ describe("a saved view that applies on load is waited for", () => {
 
     expect(listCalls()).toHaveLength(1);
     expect(histogramRequests()).toHaveLength(1);
-    expect(facetRequests()).toHaveLength(1);
+    expect(facetReads()).toHaveLength(1);
+    expect(ownSelectionCounts("severityText")).toHaveLength(1);
   });
 
   test("while the saved views are read, the explorer says it is loading - not that there are no logs", async () => {
@@ -1159,7 +1187,8 @@ describe("a saved view that applies on load is waited for", () => {
     );
     expect(windowOf(lastListCall().query)).toBe(PAST_DAY_WINDOW);
     expect(histogramRequests()).toHaveLength(1);
-    expect(facetRequests()).toHaveLength(1);
+    expect(facetReads()).toHaveLength(1);
+    expect(ownSelectionCounts("severityText")).toHaveLength(1);
     expect(urlParams().get("savedView")).toBe(DEFAULT_VIEW_ID);
   });
 

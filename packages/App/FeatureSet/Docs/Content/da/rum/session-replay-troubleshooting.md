@@ -199,6 +199,7 @@ Hver linje bærer en stabil `code`. Slå din op her.
 | `bootstrap-already-started` | To kopier af snippetten på én side. Fjern den ene. |
 | `bootstrap-already-running` | `bootstrap()` blev kaldt igen, mens en optager allerede kørte. Harmløst; normalt en dobbelt integration. |
 | `bootstrap-cancelled` | En `revokeConsent()` eller `stop()` i køen `window.OneUptimeReplayQueue` kørte, før optageren startede, så denne session optages ikke. Korrekt, hvis dit banner allerede var afvist. |
+| `prerender-wait` | Browseren har forhåndsgengivet denne side, sådan som Chrome gør med en side, den forventer bliver åbnet som den næste, og ingen har åbnet den endnu. Optageren starter, når den besøgende åbner siden, så en side, der aldrig åbnes, optager intet; kald, som din side foretager i mellemtiden, anvendes da. |
 | `start-stopped` | `start()` fik ingen brugbar politik på stien for den selvstændige pakke. Den præcise årsag står i `config-*`-linjen lige ovenover. |
 | `rrweb-did-not-start` | DOM-optageren nægtede at starte. Rapportér det. |
 | `rrweb-error` | DOM-optageren fik en intern fejl på denne side (fejlens navn står i detaljen; den logges én gang). Optagelsen kan springe over eller fryse omkring det punkt, og efter tre sådanne fejl bærer sessionen en troværdighedsmeddelelse, der siger det. Rapportér det med sidens framework og fejlens navn. |
