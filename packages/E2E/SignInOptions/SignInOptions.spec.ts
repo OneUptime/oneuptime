@@ -794,6 +794,81 @@ test.describe("The other ways to sign in, as the browser draws them", () => {
     );
   });
 
+  /*
+   * A self-hosted server with no account yet (fu-platform): the sign-up page
+   * says the account made there becomes the server's admin, under its
+   * title, and offers no way to sign in - there is nobody to sign in as. The
+   * line wraps inside its column at every width, in every language.
+   */
+  test("the sign-up page of a server with no account yet: its line under the title, and no way to sign in, in every language", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=register&ms=1&firstaccount=1");
+
+    const line: Locator = page.getByTestId("register-subtitle");
+    await expect(line).toHaveText(
+      "This OneUptime server has no accounts yet. The account you create now becomes its admin.",
+    );
+    await expect(page.getByTestId("register-have-account")).toHaveCount(0);
+    await expect(page.locator('a[href="/accounts/login"]')).toHaveCount(0);
+
+    const problems: Array<string> = [];
+    for (const width of WIDTHS) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const language of SUPPORTED_ACCOUNTS_LANGUAGE_CODES) {
+        await page.evaluate(async (code: string): Promise<void> => {
+          await (
+            window as unknown as {
+              __setLanguage: (language: string) => Promise<void>;
+            }
+          ).__setLanguage(code);
+        }, language);
+
+        const fits: {
+          scrollsSideways: boolean;
+          lineOverflows: boolean;
+          lineIsEmpty: boolean;
+        } = await line.evaluate(
+          (
+            element: Element,
+          ): {
+            scrollsSideways: boolean;
+            lineOverflows: boolean;
+            lineIsEmpty: boolean;
+          } => {
+            return {
+              scrollsSideways:
+                document.documentElement.scrollWidth > window.innerWidth,
+              lineOverflows: element.scrollWidth > element.clientWidth + 1,
+              lineIsEmpty: (element.textContent || "").trim().length === 0,
+            };
+          },
+        );
+
+        if (fits.scrollsSideways || fits.lineOverflows || fits.lineIsEmpty) {
+          problems.push(`${language} at ${width}px: ${JSON.stringify(fits)}`);
+        }
+      }
+    }
+
+    expect(problems).toEqual([]);
+    await expect(page.locator('a[href="/accounts/login"]')).toHaveCount(0);
+  });
+
+  test("the sign-up page of a server that has accounts: no line under the title, and the way to sign in", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=register&ms=1");
+
+    await expect(page.getByTestId("register-subtitle")).toHaveCount(0);
+    await expect(page.getByTestId("register-have-account")).toBeVisible();
+    await expect(page.locator('a[href="/accounts/login"]')).toHaveCount(1);
+  });
+
   test("a private status page: 'or', then Log in with SSO, as wide and as tall as its Login, in every language", async ({
     page,
   }: {

@@ -26,6 +26,8 @@ While the whole server requires single sign-on (`ssorequired=1`), it checks that
 
 The instance-wide providers come from the fixture's answer to `GET /identity/sign-in-methods`, which every Accounts page reads first.
 
+The sign-up page also asks `POST /identity/first-account` before it draws its form. The fixture answers that this self-hosted server has accounts, unless `firstaccount=1`: then the page's line under its title says the account made there becomes the server's admin, and the spec checks that line in every language at every width, and that the page offers no way to sign in.
+
 Run it from `packages/E2E`:
 
 ```bash

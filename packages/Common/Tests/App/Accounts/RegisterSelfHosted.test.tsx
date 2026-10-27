@@ -81,6 +81,25 @@ beforeEach(() => {
   jest.spyOn(UserUtil, "isLoggedIn").mockReturnValue(false);
   jest.spyOn(Navigation, "navigate").mockImplementation(() => {});
   jest.spyOn(Navigation, "getQueryStringByName").mockReturnValue(null);
+  /*
+   * The server does not require single sign-on, and says so at once: the
+   * page waits only for the first-account answer, which each test gives.
+   */
+  jest
+    .spyOn(API, "get")
+    .mockImplementation(
+      async (): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+        return new HTTPResponse<JSONObject>(
+          200,
+          {
+            isSsoRequired: false,
+            ssoProviders: [],
+            hasProjectSsoProviders: false,
+          },
+          {},
+        );
+      },
+    );
   jest
     .spyOn(API, "post")
     .mockImplementation(
@@ -143,6 +162,15 @@ async function renderPage(): Promise<void> {
     </MemoryRouter>,
   );
   await screen.findByTestId("password");
+}
+
+// Lets every other answer land and the page draw what it would.
+async function settle(): Promise<void> {
+  await act(async () => {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 100);
+    });
+  });
 }
 
 const firstAccountRequests: () => Array<string> = (): Array<string> => {
@@ -216,6 +244,9 @@ describe("a self-hosted server's register page", () => {
     await waitFor(() => {
       expect(firstAccountRequests()).toHaveLength(1);
     });
+    // Everything else answered and drawn: only the first-account answer is held.
+    await settle();
+    expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
     // Asked, not answered: the loader, and none of the page.
     expect(screen.queryByTestId("password")).toBeNull();
     expect(screen.queryByTestId("register-subtitle")).toBeNull();
@@ -244,6 +275,8 @@ describe("a self-hosted server's register page", () => {
     await waitFor(() => {
       expect(firstAccountRequests()).toHaveLength(1);
     });
+    await settle();
+    expect(screen.queryByTestId("password")).toBeNull();
     expect(screen.queryByTestId("register-have-account")).toBeNull();
 
     await act(async () => {
@@ -302,7 +335,12 @@ describe("a self-hosted server that requires single sign-on", () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByTestId("sso-provider")).toBeInTheDocument();
+    // Well before the first-account answer could time out, and still unanswered.
+    expect(
+      await screen.findByTestId("sso-provider", {}, { timeout: 1000 }),
+    ).toBeInTheDocument();
+    expect(1000).toBeLessThan(FIRST_ACCOUNT_ANSWER_TIMEOUT_IN_MS);
+    expect(firstAccountRequests()).toHaveLength(1);
     expect(screen.queryByTestId("password")).toBeNull();
   });
 });
