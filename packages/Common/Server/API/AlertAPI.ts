@@ -133,6 +133,8 @@ export default class AlertAPI extends BaseAPI<Alert, AlertServiceType> {
     const contextData: AlertContextData =
       await AlertAIContextBuilder.buildAlertContext({
         alertId,
+        // Its notes as the caller may read them.
+        readerProps: props,
       });
 
     // Format context for note generation
