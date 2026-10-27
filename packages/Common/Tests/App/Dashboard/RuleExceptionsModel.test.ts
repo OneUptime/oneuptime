@@ -22,11 +22,15 @@ import {
   RULE_EXCEPTIONS_RULE_FILTER_KEY,
   RULE_EXCEPTIONS_TABLE_ID,
   getRuleExceptionsFilterParams,
+  getRuleExceptionsFilteredRuleId,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleExceptions/RuleExceptionsRoute";
 import { Gray500, Green, Indigo500 } from "../../../Types/BrandColors";
+import IncludesNone from "../../../Types/BaseDatabase/IncludesNone";
+import IsNull from "../../../Types/BaseDatabase/IsNull";
 import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
 import JSONFunctions from "../../../Types/JSONFunctions";
+import ObjectID from "../../../Types/ObjectID";
 import {
   SecurityEntity,
   SecurityEntityType,
@@ -373,5 +377,46 @@ describe("where a rule's View Exceptions lands", () => {
   test("the filter is on the exception's rule id, and the table is the page's", () => {
     expect(RULE_EXCEPTIONS_RULE_FILTER_KEY).toBe("detectionRuleId");
     expect(RULE_EXCEPTIONS_TABLE_ID).toBe("rule-exceptions-table");
+  });
+});
+
+describe("the one rule the list is narrowed to", () => {
+  test("its Rule filter set to one rule, from View Exceptions or by hand", () => {
+    expect(
+      getRuleExceptionsFilteredRuleId({
+        projectId: "p",
+        [RULE_EXCEPTIONS_RULE_FILTER_KEY]: RULE_A,
+      }),
+    ).toBe(RULE_A);
+    expect(
+      getRuleExceptionsFilteredRuleId({
+        [RULE_EXCEPTIONS_RULE_FILTER_KEY]: new ObjectID(RULE_B),
+      }),
+    ).toBe(RULE_B);
+  });
+
+  test("no one rule: no filter, another rule's absence, or none at all", () => {
+    expect(getRuleExceptionsFilteredRuleId(null)).toBeNull();
+    expect(getRuleExceptionsFilteredRuleId({ projectId: "p" })).toBeNull();
+    expect(
+      getRuleExceptionsFilteredRuleId({
+        [RULE_EXCEPTIONS_RULE_FILTER_KEY]: "  ",
+      }),
+    ).toBeNull();
+    expect(
+      getRuleExceptionsFilteredRuleId({
+        [RULE_EXCEPTIONS_RULE_FILTER_KEY]: new IncludesNone([RULE_A]),
+      }),
+    ).toBeNull();
+    expect(
+      getRuleExceptionsFilteredRuleId({
+        [RULE_EXCEPTIONS_RULE_FILTER_KEY]: new IsNull(),
+      }),
+    ).toBeNull();
+    expect(
+      getRuleExceptionsFilteredRuleId({
+        [RULE_EXCEPTIONS_RULE_FILTER_KEY]: [RULE_A, RULE_B],
+      }),
+    ).toBeNull();
   });
 });

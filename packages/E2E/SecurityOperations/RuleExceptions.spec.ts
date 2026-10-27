@@ -58,6 +58,11 @@ interface FixtureState {
     body: Record<string, unknown> | null;
   }>;
   creates: Array<{ modelName: string; data: Record<string, unknown> }>;
+  updates: Array<{
+    modelName: string;
+    id: string;
+    data: Record<string, unknown>;
+  }>;
   unhandled: Array<unknown>;
 }
 
@@ -67,7 +72,7 @@ interface OpenOptions {
   theme?: "dark" | undefined;
   role?: "viewer";
   retrohunt?: "quiet" | "noisy" | "fail";
-  lang?: "fa" | "de";
+  lang?: "fa" | "de" | "ru" | "fr";
 }
 
 test.use({ deviceScaleFactor: 2, actionTimeout: 15000 });
@@ -254,6 +259,11 @@ async function openRowMenu(page: Page, text: string): Promise<Locator> {
   return menu;
 }
 
+// The line under a row's status pill: how far off, the date under the pointer.
+function statusLine(row: Locator): Locator {
+  return row.getByTestId("rule-exception-status").locator("span[title]");
+}
+
 // The rows of the list that hold a text: the row's whole box.
 function rowWith(page: Page, text: string): Locator {
   return page
@@ -331,7 +341,7 @@ test.describe("Rule Exceptions", () => {
       });
     expect(headers).toEqual(["Skips", "Rule", "Reason", "Status"]);
 
-    // Every state a row can be in, and until when or since when.
+    // Every state a row can be in, and how far off.
     const scanner: Locator = rowWith(page, "10.20.0.0/16");
     await expect(scanner).toContainText("IP address range");
     await expect(scanner).toContainText(BRUTE_FORCE);
@@ -344,21 +354,20 @@ test.describe("Rule Exceptions", () => {
       "No expiry",
     );
 
+    // Under the pill, how far off; the date itself under the pointer.
     const backupJob: Locator = rowWith(page, "svc-backup");
     await expect(backupJob).toContainText("User");
-    await expect(backupJob.getByTestId("rule-exception-status")).toContainText(
-      "Until Nov 13, 12:00 PM",
-    );
+    await expect(statusLine(backupJob)).toHaveText("Expires in a month");
+    await expect(statusLine(backupJob)).toHaveAttribute("title", /Nov 13/);
 
+    // Expired: how long ago, the pill already saying which way it went.
     const agent: Locator = rowWith(page, "backup.exe");
     await expect(agent).toContainText("Value of processName");
     await expect(agent).toContainText(PASSWORD_SPRAYING);
     await expect(agent.getByTestId("rule-exception-status")).toContainText(
       "Expired",
     );
-    await expect(agent.getByTestId("rule-exception-status")).toContainText(
-      "Expired Oct 12, 12:00 PM",
-    );
+    await expect(statusLine(agent)).toHaveText("2 days ago");
 
     const redTeam: Locator = rowWith(
       page,
@@ -368,7 +377,25 @@ test.describe("Rule Exceptions", () => {
     await expect(redTeam.getByTestId("rule-exception-status")).toContainText(
       "Upcoming",
     );
+    await expect(statusLine(redTeam)).toHaveText("Starts in 21 hours");
     await expect(redTeam).toContainText("Oct 15, 9:00 AM to Oct 15, 1:00 PM");
+    await expect(
+      statusLine(
+        rowWith(page, "The yearly penetration test by an outside firm."),
+      ),
+    ).toHaveText("8 days ago");
+
+    /*
+     * A value someone wrote is in the mono type, on its own isolate: a
+     * parent's font-mono never reached it through the page's * rule.
+     */
+    expect(
+      await scanner
+        .locator("bdi", { hasText: "10.20.0.0/16" })
+        .evaluate((element: Element): string => {
+          return getComputedStyle(element).fontFamily;
+        }),
+    ).toContain("monospace");
 
     const lab: Locator = rowWith(page, "*.lab.acme-commerce.example");
     await expect(lab).toContainText("Added through the API a month ago");
@@ -425,13 +452,85 @@ test.describe("Rule Exceptions", () => {
       rowWith(page, "Lab hosts are wiped every night."),
     ).toContainText("افزوده‌شده از طریق API");
 
-    // Persian's longer "Ended {{time}}" wraps under its pill: nothing runs under the row's actions.
+    // Persian's longer status lines wrap under their pills: nothing runs under the row's actions.
     await expect(page.getByTestId("table-scroll").first()).toHaveAttribute(
       "data-overflowing",
       "false",
     );
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "rule-exceptions-persian", { fullPage: false });
+  });
+
+  test("fits its card beside the side menu at 1280 in German, Russian and French", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Their Edit buttons and status words are the widest of the languages.
+    for (const lang of ["de", "ru", "fr"] as const) {
+      await open(page, RULE_EXCEPTIONS_PATH, { width: 1344, lang });
+      await expect(exceptionRows(page)).toHaveCount(6, { timeout: 30000 });
+      await expect(page.getByTestId("table-scroll").first()).toHaveAttribute(
+        "data-overflowing",
+        "false",
+      );
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test("an exception that expired can still have its reason fixed", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RULE_EXCEPTIONS_PATH);
+    await expect(exceptionRows(page)).toHaveCount(6, { timeout: 30000 });
+
+    await rowWith(page, "backup.exe")
+      .getByRole("button", { name: "Edit", exact: true })
+      .click();
+    await expect(dialog(page)).toContainText("Edit Rule Exception");
+    await dialog(page)
+      .getByRole("button", { name: "Next", exact: true })
+      .click();
+
+    const reason: Locator = dialog(page).getByTestId("rule-exception-reason");
+    await reason.fill("The old backup agent, until the new one took over.");
+    await dialog(page)
+      .getByRole("button", { name: "Save Changes", exact: true })
+      .click();
+
+    /*
+     * Saved: its expiry, past, is the row's own - not "An exception
+     * expires in the future", which only a new expiry is held to.
+     */
+    await expect(dialog(page)).toHaveCount(0);
+    const update: { data: Record<string, unknown> } | undefined = (
+      await fixture(page)
+    ).updates.find((candidate: { modelName: string }): boolean => {
+      return candidate.modelName === "DetectionRuleException";
+    });
+    expect(update?.data["reason"]).toBe(
+      "The old backup agent, until the new one took over.",
+    );
+  });
+
+  test("Delete names the exception it removes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, RULE_EXCEPTIONS_PATH);
+    await expect(exceptionRows(page)).toHaveCount(6, { timeout: 30000 });
+
+    const menu: Locator = await openRowMenu(page, "svc-backup");
+    await menu.getByRole("menuitem", { name: "Delete" }).click();
+
+    await expect(dialog(page)).toContainText(
+      "Are you sure you want to delete svc-backup?",
+    );
+    await dialog(page).getByRole("button", { name: "Cancel" }).click();
+    await expect(dialog(page)).toHaveCount(0);
   });
 
   test("a viewer reads every exception and adds none", async ({
@@ -517,6 +616,29 @@ test.describe("tuning a rule from its row", () => {
     ]);
   });
 
+  test("a rule's count of exceptions opens them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH);
+    await expect(page.getByText(BRUTE_FORCE, { exact: true })).toBeVisible({
+      timeout: 30000,
+    });
+
+    await rowWith(page, BRUTE_FORCE)
+      .getByRole("link", { name: "2 active exceptions" })
+      .click();
+
+    await expect
+      .poll(() => {
+        return new URL(page.url()).pathname;
+      })
+      .toBe(RULE_EXCEPTIONS_PATH);
+    // The rule's three: the scanners, the backup job and the red team's window.
+    await expect(exceptionRows(page)).toHaveCount(3, { timeout: 30000 });
+  });
+
   test("View Exceptions lands on Rule Exceptions filtered to the rule", async ({
     page,
   }: {
@@ -550,6 +672,32 @@ test.describe("tuning a rule from its row", () => {
       })
       .pop();
     expect(read?.query["detectionRuleId"]).toBe(BRUTE_FORCE_ID);
+  });
+
+  test("a rule with no exception yet: its list's Add starts with the rule", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH);
+    await expect(
+      page.getByText("Account locked out", { exact: true }),
+    ).toBeVisible({ timeout: 30000 });
+
+    const menu: Locator = await openRowMenu(page, "Account locked out");
+    await menu.getByRole("menuitem", { name: "View Exceptions" }).click();
+    await expect(
+      page.getByText("No rule exceptions match your search or filters"),
+    ).toBeVisible({ timeout: 30000 });
+
+    // Its first exception is added where its list sends you to look.
+    await page
+      .getByRole("button", { name: "Add Rule Exception", exact: true })
+      .first()
+      .click();
+    await expect(dialog(page)).toContainText("Add New Rule Exception");
+    // The rule's name is in the dialog only as its Detection Rule's pick.
+    await expect(dialog(page)).toContainText("Account locked out");
   });
 
   test("Add Exception starts with the rule: a user, with why and an expiry, saved as the kind keeps it", async ({
@@ -701,6 +849,14 @@ test.describe("Run on Past Events", () => {
       { periodInHours: 168, detectionRuleId: BRUTE_FORCE_ID },
     ]);
 
+    /*
+     * As wide as its answer needs (Medium, 48rem): a dialog as wide as the
+     * page put a value and its count a screen's width apart.
+     */
+    const dialogBox: { width: number } | null =
+      await dialog(page).boundingBox();
+    expect(dialogBox?.width || 0).toBeLessThanOrEqual(768 + 1);
+
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
     await screenshot(page, "rule-retrohunt-desktop", { fullPage: false });
 
@@ -810,6 +966,21 @@ test.describe("Run on Past Events", () => {
       .click();
     await expect(dialog(page)).toBeVisible();
 
+    // Beside Draft with AI, on one line under the YAML.
+    const draftBox: { y: number; height: number } | null = await dialog(page)
+      .getByTestId("detection-rule-ai-draft-open")
+      .boundingBox();
+    const runBox: { y: number; height: number } | null = await dialog(page)
+      .getByTestId("detection-rule-retrohunt-open")
+      .boundingBox();
+    expect(draftBox).not.toBeNull();
+    expect(runBox).not.toBeNull();
+    expect(
+      Math.abs(
+        draftBox!.y + draftBox!.height / 2 - (runBox!.y + runBox!.height / 2),
+      ),
+    ).toBeLessThanOrEqual(1);
+
     await dialog(page).getByTestId("detection-rule-retrohunt-open").click();
     await expect(
       dialog(page).getByTestId("detection-rule-retrohunt-summary"),
@@ -835,6 +1006,38 @@ test.describe("Run on Past Events", () => {
 
     expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
   });
+
+  test("a new rule's empty form has nothing to run: only Draft with AI", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DETECTION_RULES_PATH);
+    await expect(page.getByText(BRUTE_FORCE, { exact: true })).toBeVisible({
+      timeout: 30000,
+    });
+
+    await page
+      .getByRole("button", { name: "Create Detection Rule", exact: true })
+      .click();
+    await expect(
+      dialog(page).getByTestId("detection-rule-ai-draft-open"),
+    ).toBeVisible();
+    await expect(
+      dialog(page).getByTestId("detection-rule-retrohunt-open"),
+    ).toHaveCount(0);
+
+    // A rule written in: there is something to run.
+    await dialog(page)
+      .getByRole("textbox", { name: /^Sigma Rule \(YAML\)/ })
+      .fill(
+        "title: Failures\ndetection:\n  selection:\n    statusName: Failure\n  condition: selection\n",
+      );
+    await expect(
+      dialog(page).getByTestId("detection-rule-retrohunt-open"),
+    ).toBeVisible();
+    expect(await retrohuntRequests(page)).toEqual([]);
+  });
 });
 
 /*
@@ -858,7 +1061,7 @@ test.describe("Add Exception on a case's detection", () => {
 
     await expect(dialog(page)).toContainText("Add Exception");
     await expect(dialog(page)).toContainText(
-      "Stop this rule from firing on what you expect. Its other matches still fire.",
+      "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.",
     );
     await expect(dialog(page)).toContainText(BRUTE_FORCE);
     // The address the rule grouped the detection by.

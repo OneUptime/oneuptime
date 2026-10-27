@@ -2,32 +2,32 @@
 
 An offline harness for the Security Events SOC pages, on a month of synthetic security work:
 
-| Page                 | Route (from `RouteMap`)                                                                   | Production components                                                                        |
-| -------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Overview             | `SECURITY_EVENTS_OVERVIEW` `/dashboard/:projectId/security-events/overview`               | `Pages/SecurityEvents/{Layout,Overview}`, `SecurityOverview/*`                               |
-| Open Cases           | `SECURITY_CASES` `.../security-events/cases`                                              | `Pages/SecurityEvents/Cases`, `SecurityCasesTable` inside `ModelTable`                       |
-| Assigned to Me       | `SECURITY_CASES_ASSIGNED_TO_ME` `.../security-events/cases/assigned-to-me`                | the same, with the list `SecurityCaseQueueViews` gives the page                              |
-| Unassigned           | `SECURITY_CASES_UNASSIGNED` `.../security-events/cases/unassigned`                        | the same                                                                                     |
-| Closed Cases         | `SECURITY_CASES_CLOSED` `.../security-events/cases/closed`                                | the same                                                                                     |
-| All Cases            | `SECURITY_CASES_ALL` `.../security-events/cases/all`                                      | the same                                                                                     |
-| A case               | `SECURITY_CASE_VIEW` `.../security-events/cases/:id`, its Overview                        | `Pages/SecurityEvents/CaseView/{Layout,SideMenu,Index}`, `SecurityCase/*`                    |
-| A case's pages       | `SECURITY_CASE_VIEW_*` `.../cases/:id/{timeline,detections,entities,playbook-runs,...}`   | `Pages/SecurityEvents/CaseView/*`, `EventNotes`, `SecurityPlaybookRunCard`, `AuditLogsTable` |
-| Story                | `SECURITY_CASE_VIEW_STORY` `.../cases/:id/story`                                          | `Pages/SecurityEvents/CaseView/Story`, `SecurityCase/Context/*`                              |
-| Connected Signals    | `SECURITY_CASE_VIEW_CONNECTED_SIGNALS` `.../cases/:id/connected-signals`                  | `Pages/SecurityEvents/CaseView/ConnectedSignals`, `SecurityConnections/*`                    |
-| Entity Risk          | `SECURITY_EVENTS_ENTITY_RISK` `.../security-events/entity-risk` (and the old `entities`)  | `Pages/SecurityEvents/EntityRisk`, `EntityRisk/*`, `EntityLookupCard` under the list         |
-| Protected Entities   | `SECURITY_PROTECTED_ENTITIES` `.../security-events/protected-entities`                    | `Pages/SecurityEvents/ProtectedEntities`                                                     |
-| Detection Rules      | `SECURITY_EVENTS_DETECTION_RULES` `.../security-events/detection-rules`                   | `Pages/SecurityEvents/DetectionRules`, `DetectionRuleSummary`                                |
-| Rule Exceptions      | `SECURITY_EVENTS_RULE_EXCEPTIONS` `.../security-events/rule-exceptions`                   | `Pages/SecurityEvents/RuleExceptions`, `SecurityEvents/RuleExceptions/*`                     |
-| Rule Library         | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`                         | `Pages/SecurityEvents/RuleLibrary`                                                           |
-| Threat Intel         | `SECURITY_EVENTS_THREAT_INTEL` `.../security-events/threat-intel`                         | `Pages/SecurityEvents/ThreatIntel`, `ThreatIntelRecommendedLists`                            |
-| ATT&CK Coverage      | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`                   | `Pages/SecurityEvents/AttackCoverage`, `AttackCoverageTactics`, `AttackCoverageMatrix`       |
-| Playbooks            | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                                      | `Pages/SecurityEvents/Playbooks`, `SecurityPlaybookTemplatePicker`                           |
-| A playbook           | `SECURITY_PLAYBOOK_VIEW` `.../security-events/playbooks/:id`                              | `Pages/SecurityEvents/PlaybookView`, `SecurityPlaybookStepsEditor`                           |
-| Approvals            | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs`         | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it       |
-| Playbook Runs        | `SECURITY_PLAYBOOK_RUNS` `.../security-events/playbook-runs/all`                          | the same                                                                                     |
-| AI Settings          | `SECURITY_EVENTS_SETTINGS_AI` `.../security-events/ai/settings`                           | `Pages/SecurityEvents/AISettings`, `AISettings/ProjectAiSwitchesCard`, `ProjectAiNotice`     |
-| Case Priorities      | `SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES` `.../security-events/settings/case-priorities` | `Pages/SecurityEvents/Settings/CasePriorities`, `StateSettings/*`, `ArchivableValue/*`       |
-| Case Statuses        | `SECURITY_EVENTS_SETTINGS_CASE_STATUSES` `.../security-events/settings/case-statuses`     | `Pages/SecurityEvents/Settings/CaseStatuses`, the same                                       |
+| Page               | Route (from `RouteMap`)                                                                   | Production components                                                                        |
+| ------------------ | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Overview           | `SECURITY_EVENTS_OVERVIEW` `/dashboard/:projectId/security-events/overview`               | `Pages/SecurityEvents/{Layout,Overview}`, `SecurityOverview/*`                               |
+| Open Cases         | `SECURITY_CASES` `.../security-events/cases`                                              | `Pages/SecurityEvents/Cases`, `SecurityCasesTable` inside `ModelTable`                       |
+| Assigned to Me     | `SECURITY_CASES_ASSIGNED_TO_ME` `.../security-events/cases/assigned-to-me`                | the same, with the list `SecurityCaseQueueViews` gives the page                              |
+| Unassigned         | `SECURITY_CASES_UNASSIGNED` `.../security-events/cases/unassigned`                        | the same                                                                                     |
+| Closed Cases       | `SECURITY_CASES_CLOSED` `.../security-events/cases/closed`                                | the same                                                                                     |
+| All Cases          | `SECURITY_CASES_ALL` `.../security-events/cases/all`                                      | the same                                                                                     |
+| A case             | `SECURITY_CASE_VIEW` `.../security-events/cases/:id`, its Overview                        | `Pages/SecurityEvents/CaseView/{Layout,SideMenu,Index}`, `SecurityCase/*`                    |
+| A case's pages     | `SECURITY_CASE_VIEW_*` `.../cases/:id/{timeline,detections,entities,playbook-runs,...}`   | `Pages/SecurityEvents/CaseView/*`, `EventNotes`, `SecurityPlaybookRunCard`, `AuditLogsTable` |
+| Story              | `SECURITY_CASE_VIEW_STORY` `.../cases/:id/story`                                          | `Pages/SecurityEvents/CaseView/Story`, `SecurityCase/Context/*`                              |
+| Connected Signals  | `SECURITY_CASE_VIEW_CONNECTED_SIGNALS` `.../cases/:id/connected-signals`                  | `Pages/SecurityEvents/CaseView/ConnectedSignals`, `SecurityConnections/*`                    |
+| Entity Risk        | `SECURITY_EVENTS_ENTITY_RISK` `.../security-events/entity-risk` (and the old `entities`)  | `Pages/SecurityEvents/EntityRisk`, `EntityRisk/*`, `EntityLookupCard` under the list         |
+| Protected Entities | `SECURITY_PROTECTED_ENTITIES` `.../security-events/protected-entities`                    | `Pages/SecurityEvents/ProtectedEntities`                                                     |
+| Detection Rules    | `SECURITY_EVENTS_DETECTION_RULES` `.../security-events/detection-rules`                   | `Pages/SecurityEvents/DetectionRules`, `DetectionRuleSummary`                                |
+| Rule Exceptions    | `SECURITY_EVENTS_RULE_EXCEPTIONS` `.../security-events/rule-exceptions`                   | `Pages/SecurityEvents/RuleExceptions`, `SecurityEvents/RuleExceptions/*`                     |
+| Rule Library       | `SECURITY_EVENTS_RULE_LIBRARY` `.../security-events/rule-library`                         | `Pages/SecurityEvents/RuleLibrary`                                                           |
+| Threat Intel       | `SECURITY_EVENTS_THREAT_INTEL` `.../security-events/threat-intel`                         | `Pages/SecurityEvents/ThreatIntel`, `ThreatIntelRecommendedLists`                            |
+| ATT&CK Coverage    | `SECURITY_EVENTS_ATTACK_COVERAGE` `.../security-events/attack-coverage`                   | `Pages/SecurityEvents/AttackCoverage`, `AttackCoverageTactics`, `AttackCoverageMatrix`       |
+| Playbooks          | `SECURITY_PLAYBOOKS` `.../security-events/playbooks`                                      | `Pages/SecurityEvents/Playbooks`, `SecurityPlaybookTemplatePicker`                           |
+| A playbook         | `SECURITY_PLAYBOOK_VIEW` `.../security-events/playbooks/:id`                              | `Pages/SecurityEvents/PlaybookView`, `SecurityPlaybookStepsEditor`                           |
+| Approvals          | `SECURITY_PLAYBOOK_RUNS_WAITING_FOR_APPROVAL` `.../security-events/playbook-runs`         | `Pages/SecurityEvents/PlaybookRuns`, with the runs `SecurityPlaybookRunViews` gives it       |
+| Playbook Runs      | `SECURITY_PLAYBOOK_RUNS` `.../security-events/playbook-runs/all`                          | the same                                                                                     |
+| AI Settings        | `SECURITY_EVENTS_SETTINGS_AI` `.../security-events/ai/settings`                           | `Pages/SecurityEvents/AISettings`, `AISettings/ProjectAiSwitchesCard`, `ProjectAiNotice`     |
+| Case Priorities    | `SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES` `.../security-events/settings/case-priorities` | `Pages/SecurityEvents/Settings/CasePriorities`, `StateSettings/*`, `ArchivableValue/*`       |
+| Case Statuses      | `SECURITY_EVENTS_SETTINGS_CASE_STATUSES` `.../security-events/settings/case-statuses`     | `Pages/SecurityEvents/Settings/CaseStatuses`, the same                                       |
 
 `Fixture/server.js` bundles the production layout (breadcrumbs, the Security Events side menu) and
 the pages with esbuild, serves them with the same Tailwind build, `tailwind.config`, Inter font and
@@ -116,8 +116,8 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?setup=`   | Turn on recommended that cannot do everything: `partly` (the first click leaves Password spraying and Enrich New Cases undone, the Rule Library's first Add of Password spraying fails, and the Playbooks page's first template is refused by the role; the next click, Add or pick does them) or `fail` (the first click cannot reach the server; the next one turns everything on)                                               |
 | `?refuse=`  | case numbers, comma separated (`138`): the server refuses every change to those cases, as a role scoped to labels the reader lacks does, so Bulk Actions names the cases it could not change and why                                                                                                                                                                                                                               |
 | `?triage=`  | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
-| `?lang=`    | `de`, `es`, `fr`, `it`, `pt`, `nl`, `ru`, `ja` or `fa` (right to left): the Dashboard's words and its times ("vor 9 Minuten") in that language; the case lists are measured in the widest of them |
-| `?team=`    | `long`: the SOC team is "Security Operations Center - Tier 2 Escalations (EMEA)", wherever a list or a picker names it |
+| `?lang=`    | `de`, `es`, `fr`, `it`, `pt`, `nl`, `ru`, `ja` or `fa` (right to left): the Dashboard's words and its times ("vor 9 Minuten") in that language; the case lists are measured in the widest of them                                                                                                                                                                                                                                  |
+| `?team=`    | `long`: the SOC team is "Security Operations Center - Tier 2 Escalations (EMEA)", wherever a list or a picker names it                                                                                                                                                                                                                                                                                                             |
 
 ## What the fixture records
 
@@ -324,7 +324,7 @@ Reset Risk deletes the row; and an edit form saves onto the row it edits (`updat
 | `?riskcases=` | `off`: the project opens no case from risk (as a project made before entity risk): Entity Risk says so above its list          |
 | `?threshold=` | the project's risk threshold (100 when left out), which every level, meter and the guide read                                  |
 | `?riskcase=`  | `1`: a.ng's risk reached the threshold 20 minutes ago and opened CASE-143, a case of Entity Risk's own, with its one detection |
-| `?riskiest=`  | `fail`: the overview could not read the riskiest entities; the Overview's Riskiest Entities says so, with Try again           |
+| `?riskiest=`  | `fail`: the overview could not read the riskiest entities; the Overview's Riskiest Entities says so, with Try again            |
 
 `EntityRisk.spec.ts` covers: the list (the riskiest first, each level against the threshold,
 criticality beside the kind, what found it and when, ATT&CK left to Customize Columns, one read of
@@ -391,24 +391,28 @@ rule's id, as the server stores the relation the form's dropdown sends. `POST
 rule's active exceptions kept out; a correlation's YAML as a correlation, each group with what
 happened.
 
-| Parameter     | Values                                                                                                                                                                                                       |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Parameter     | Values                                                                                                                                                                                                     |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `?retrohunt=` | `quiet`: it would not have fired, 12 matching events none of whose runs reached the threshold; `noisy`: 1,680 firings for 64 addresses, the 50 that fired most listed; `fail`: the YAML is refused (a 400) |
 
 `RuleExceptions.spec.ts` covers: the list under Detections, its entry lit and its trail, four
-columns that fit beside the menu at 1280 (what it skips and its kind, the rule, why with who added
-it and when, the status and until or since when); one card each on a phone; Persian, right to
-left, with every status in Persian and the status line wrapping rather than running under the
-row's actions; a Security Viewer, Add locked and Run on Past Events still open; a rule's count of
-active exceptions under its name; the row's run of tuning actions before Create Monitor; View
-Exceptions landing on the list filtered to the rule; Add Exception from a rule's row, saved with
-its kind's fields only, and the count reading it at once; a value of only `*` refused under its
-field; a time window's fields; Run on Past Events from a row (the firings, a day's rate, who for,
-what the exceptions kept out, the request, another period), a noisy rule's advice and Show all, a
-quiet rule's near miss, a refused run, a correlation's groups, and the run under the form's YAML
-with "The rule changed after this run."; Add Exception on a case's detection, started with the
-rule and the address it grouped by, and none on a threat intel match. Its screenshots are named
-`rule-exceptions-*`, `rule-retrohunt-desktop` and `rule-exception-from-detection`.
+columns that fit beside the menu at 1280 (what it skips and its kind, values in the mono type, the
+rule, why with who added it and when, the status and how far off - "Expires in a month", "2 days
+ago" - with the date under the pointer), in German, Russian and French too; one card each on a
+phone; Persian, right to left, with every status in Persian and the status line wrapping rather
+than running under the row's actions; an exception that expired keeping its expiry while its
+reason is fixed; Delete naming the exception; a Security Viewer, Add locked and Run on Past Events
+still open; a rule's count of active exceptions under its name, a link to them; the row's run of
+tuning actions before Create Monitor; View Exceptions landing on the list filtered to the rule,
+whose Add starts with that rule; Add Exception from a rule's row, saved with its kind's fields only, and the count reading it at
+once; a value of only `*` refused under its field; a time window's fields; Run on Past Events
+from a row in a dialog as wide as its answer (the firings, a day's rate, who for, what the
+exceptions kept out, the request, another period), a noisy rule's advice and Show all, a quiet
+rule's near miss, a refused run, a correlation's groups, and the run under the form's YAML -
+beside Draft with AI, and not on an empty form - with "The rule changed after this run."; Add
+Exception on a case's detection, started with the rule and the address it grouped by, and none on
+a threat intel match. Its screenshots are named `rule-exceptions-*`, `rule-retrohunt-desktop` and
+`rule-exception-from-detection`.
 
 ## Run it
 

@@ -43,9 +43,9 @@ function writeRelativeTime(time: Date | undefined): string {
 }
 
 /*
- * A window's two times, each with its day: a bare clock reading for the
- * end of a one-day window was written in English ("PM") on a Persian page,
- * where the day and the time are written together in the reader's words.
+ * A window's two times, each with its day - a one-day window's too: the
+ * product writes a day and its time together in the reader's words, and a
+ * bare clock reading would be English ("1:00 PM") on a Persian page.
  */
 export function writeRuleExceptionWindowTimes(window: {
   from: Date | undefined;
@@ -109,8 +109,10 @@ export interface WindowRangeProps {
 export const RuleExceptionWindowRange: FunctionComponent<WindowRangeProps> = (
   props: WindowRangeProps,
 ): ReactElement => {
-  const times: { from: string; until: string } =
-    writeRuleExceptionWindowTimes(props);
+  const times: { from: string; until: string } = writeRuleExceptionWindowTimes({
+    from: props.from,
+    until: props.until,
+  });
 
   return (
     <TranslatedSentence
@@ -233,19 +235,21 @@ export interface ReasonCellProps {
   createdAt?: Date | undefined;
 }
 
+export interface AddedLineProps {
+  // The person who added it; none when an API key or a workflow did.
+  addedBy?: string | undefined;
+  createdAt?: Date | undefined;
+}
+
 /*
  * Who added it and when, as the line under the reason says it: the person's
  * name in an isolate of its own, so a Latin name keeps its place in a
  * Persian sentence, and how long ago kept whole on its line ("6 days ago",
  * never "6 days" over "ago").
  */
-export const RuleExceptionAddedLine: FunctionComponent<{
-  addedBy?: string | undefined;
-  createdAt?: Date | undefined;
-}> = (props: {
-  addedBy?: string | undefined;
-  createdAt?: Date | undefined;
-}): ReactElement => {
+export const RuleExceptionAddedLine: FunctionComponent<AddedLineProps> = (
+  props: AddedLineProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
 
   if (!props.createdAt) {

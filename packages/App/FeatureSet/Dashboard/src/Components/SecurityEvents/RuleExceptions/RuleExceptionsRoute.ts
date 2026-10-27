@@ -2,6 +2,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageMap from "../../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import Dictionary from "Common/Types/Dictionary";
+import ObjectID from "Common/Types/ObjectID";
 import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
 
 /*
@@ -36,4 +37,26 @@ export function getRuleExceptionsRoute(detectionRuleId?: string): Route {
   }
 
   return route.addQueryParams(getRuleExceptionsFilterParams(detectionRuleId));
+}
+
+/*
+ * The one rule the list is narrowed to, by its Rule filter set to "is" that
+ * rule - a rule's View Exceptions, or the filter picked by hand - so Add
+ * Rule Exception starts with it. Null for every other filter (none, "is
+ * not", empty), where no one rule is meant.
+ */
+export function getRuleExceptionsFilteredRuleId(
+  query: Record<string, unknown> | null | undefined,
+): string | null {
+  const value: unknown = query ? query[RULE_EXCEPTIONS_RULE_FILTER_KEY] : null;
+
+  if (typeof value === "string") {
+    return value.trim() || null;
+  }
+
+  if (value instanceof ObjectID) {
+    return value.toString() || null;
+  }
+
+  return null;
 }

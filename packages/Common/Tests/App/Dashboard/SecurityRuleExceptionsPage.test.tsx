@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -50,6 +50,7 @@ type Captured = {
   createInitialValues?: Record<string, unknown> | undefined;
   onShowFormType?: ((formType: number) => void) | undefined;
   getItemName?: ((item: unknown) => string) | undefined;
+  onQueryChange?: ((query: Record<string, unknown>) => void) | undefined;
   formSteps?: Array<{ id: string; title: string }> | undefined;
   formFields?: Array<{
     field: Record<string, unknown>;
@@ -301,11 +302,39 @@ describe("Security Events > Rule Exceptions", () => {
     expect(table().onShowFormType).toBeUndefined();
   });
 
+  test("narrowed to one rule, Add starts with it: a rule's first exception is added from its list", () => {
+    renderPage();
+
+    const RULE_ID: string = "33333333-3333-4333-8333-333333333333";
+
+    // Not narrowed: the form starts with no rule picked.
+    expect(table().createInitialValues?.["detectionRule"]).toBeUndefined();
+
+    // A rule's View Exceptions lands on the list narrowed to it.
+    act(() => {
+      table().onQueryChange!({
+        projectId: PROJECT_ID,
+        [RULE_EXCEPTIONS_RULE_FILTER_KEY]: RULE_ID,
+      });
+    });
+    expect(table().createInitialValues?.["detectionRule"]).toBe(RULE_ID);
+    // What it skips is still for the person to say.
+    expect(table().createInitialValues?.["kind"]).toBe(
+      DetectionRuleExceptionKind.Entity,
+    );
+
+    // The filter cleared: no rule picked again.
+    act(() => {
+      table().onQueryChange!({ projectId: PROJECT_ID });
+    });
+    expect(table().createInitialValues?.["detectionRule"]).toBeUndefined();
+  });
+
   test("a row is named by what it skips, where the list names one", () => {
     renderPage();
 
-    const name: (item: DetectionRuleException) => string =
-      table().getItemName as (item: DetectionRuleException) => string;
+    const name: (item: DetectionRuleException) => string = table()
+      .getItemName as (item: DetectionRuleException) => string;
 
     expect(name).toBeDefined();
     expect(

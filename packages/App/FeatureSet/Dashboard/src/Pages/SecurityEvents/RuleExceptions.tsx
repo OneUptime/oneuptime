@@ -27,9 +27,11 @@ import { getRuleExceptionInitialValues } from "../../Components/SecurityEvents/R
 import {
   RULE_EXCEPTIONS_RULE_FILTER_KEY,
   RULE_EXCEPTIONS_TABLE_ID,
+  getRuleExceptionsFilteredRuleId,
 } from "../../Components/SecurityEvents/RuleExceptions/RuleExceptionsRoute";
 import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
+import Query from "Common/Types/BaseDatabase/Query";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -45,7 +47,7 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 function kindFilterOptions(): Array<DropdownOption> {
   return DETECTION_RULE_EXCEPTION_KINDS.map((kind: string): DropdownOption => {
@@ -70,6 +72,14 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
   const translator: Translator = useTranslator();
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
+  /*
+   * The one rule the list is narrowed to - a rule's View Exceptions lands
+   * here so - for Add Rule Exception to start with: the list of a rule
+   * with no exception yet is where its first one is added. A hook, so
+   * above the reseller gate.
+   */
+  const [filteredRuleId, setFilteredRuleId] = useState<string | null>(null);
+
   // Same reseller-telemetry gate as every other Security Events page.
   if (props.currentProject?.reseller?.enableTelemetryFeatures === false) {
     return (
@@ -89,6 +99,7 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
       userPreferencesKey={RULE_EXCEPTIONS_TABLE_ID}
       singularName={RULE_EXCEPTION_SINGULAR}
       pluralName={RULE_EXCEPTION_PLURAL}
+      createVerb="Add"
       /*
        * A row is named by what it skips - "svc-backup", or a window's times -
        * where the list names one: Delete asks about it by name, and its check
@@ -97,7 +108,6 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
       getItemName={(item: DetectionRuleException): string => {
         return writeRuleExceptionName(translator, item);
       }}
-      createVerb="Add"
       query={{ projectId: projectId }}
       isDeleteable={true}
       isEditable={true}
@@ -117,9 +127,16 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
         description: RULE_EXCEPTIONS_EMPTY_DESCRIPTION,
         icon: IconProp.EyeSlash,
       }}
+      onQueryChange={(query: Query<DetectionRuleException>) => {
+        setFilteredRuleId(
+          getRuleExceptionsFilteredRuleId(query as Record<string, unknown>),
+        );
+      }}
       createInitialValues={
         {
-          ...getRuleExceptionInitialValues({}),
+          ...getRuleExceptionInitialValues({
+            detectionRuleId: filteredRuleId || undefined,
+          }),
           ...getRuleExceptionWindowDefaults(OneUptimeDate.getCurrentDate()),
         } as FormValues<DetectionRuleException>
       }
