@@ -30577,7 +30577,7 @@
   "Private User": "Privégebruiker",
   "Projects that require SSO accept a sign-in with this provider.": "Projecten die SSO vereisen, accepteren een aanmelding met deze provider.",
   "Resources that carry one of the labels you pick.": "Resources met een van de labels die je kiest.",
-  "Resources the person, or one of their teams, owns.": "Resources die van de persoon of een van diens teams zijn.",
+  "Resources the person, or the team given this permission, owns.": "Resources die van de persoon zijn, of van het team dat deze machtiging heeft gekregen.",
   "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.": "Verstuur de e-mail van dit project via je eigen mailserver. Een statuspagina kiest er een onder Abonneeinstellingen.",
   "Serves the badge at a link with a secret token, made the first time you turn it on.": "Biedt de badge aan op een link met een geheim token, dat wordt aangemaakt de eerste keer dat je hem inschakelt.",
   "Start {{runbooks}}": "{{runbooks}} starten",

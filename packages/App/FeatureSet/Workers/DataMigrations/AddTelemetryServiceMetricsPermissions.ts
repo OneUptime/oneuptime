@@ -239,23 +239,23 @@ function heldKey(granteeId: string, permission: Permission): string {
   return `${granteeId}:${permission}`;
 }
 
-// All and Owned reach what they reach whatever labels the row carries.
+/*
+ * Owned reaches what it reaches whatever labels the row carries. Labels
+ * narrow every other row, one stored as All too (PermissionHelper
+ * .isLimitedToLabels): a copy keeps them, or a trace grant limited to some
+ * services would become a metric grant over every service.
+ */
 function scopeIgnoresLabels(scope: PermissionScope | undefined): boolean {
-  return scope === PermissionScope.All || scope === PermissionScope.Owned;
+  return scope === PermissionScope.Owned;
 }
 
 /*
  * Which services' metrics a grant reaches, as the analytics read applies it
- * (ModelPermission.resolveOwnedScope): All reaches every service whatever
- * its labels, Owned the grantee's own services, and Labels - or no scope,
- * as on an API key - the labelled services, or every service when it has
- * no labels.
+ * (ModelPermission.resolveOwnedScope): Owned the grantee's own services,
+ * and any other scope - All, Labels, or none, as on an API key - the
+ * labelled services, or every service when it has no labels.
  */
 export function getMetricReach(grant: TelemetryGrant): string {
-  if (grant.scope === PermissionScope.All) {
-    return "all";
-  }
-
   if (grant.scope === PermissionScope.Owned) {
     return "owned";
   }

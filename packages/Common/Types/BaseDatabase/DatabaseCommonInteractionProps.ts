@@ -22,10 +22,12 @@ export default interface DatabaseCommonInteractionProps {
   isSubscriptionUnpaid?: boolean | undefined;
   isMasterAdmin?: boolean | undefined;
   /*
-   * Team membership for the requesting user within the current tenant. Used by
-   * the `Owned` permission scope to filter resources by team ownership. Absent
-   * for non-user callers (API keys, Probes), in which case `Owned` evaluates
-   * as `All`.
+   * Team membership for the requesting user within the current tenant.
+   * Absent for non-user callers (API keys, Probes). The `Owned` permission
+   * scope does not read it: each permission row names the team it is
+   * granted on (UserPermission.teamId), and an Owned row reaches what the
+   * user and that team own - not what the user's other teams own
+   * (OwnedScopePermission.getOwningTeamIds).
    */
   userTeamIds?: Array<ObjectID> | undefined;
   /*

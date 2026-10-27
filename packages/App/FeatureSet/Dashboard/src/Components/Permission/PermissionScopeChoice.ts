@@ -23,11 +23,18 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * three answers ("all (recommended), the ones this team owns, or the ones
  * with certain labels"), so a reader had to open the list and match the
  * names back to the sentence - and two of the names were off: "Owned by
- * this team or its members" (the server reads ownership from the person
- * acting: they, or any team of theirs, own it - Server/Types/Database/
- * Permissions/OwnedScopePermission), and "Restrict by labels (advanced)",
- * an answer that called itself advanced. The answers are now on screen,
- * each with one line under it, All first: what most teams want.
+ * this team or its members", and "Restrict by labels (advanced)", an
+ * answer that called itself advanced. The answers are now on screen, each
+ * with one line under it, All first: what most teams want.
+ *
+ * WHOSE RESOURCES. The server reads an Owned permission as reaching what
+ * the person acting owns, and what the team the permission is given to
+ * owns - never what the person's other teams own (Server/Types/Database/
+ * Permissions/OwnedScopePermission, getOwningTeamIds): a member of a team
+ * that may change what it owns and of a team that may only view what it
+ * owns changes the first team's incidents and only views the second's. A
+ * custom role's Owned permission reaches what each team given the role
+ * owns. The line under the answer says so.
  *
  * Only the words changed. The stored values are the PermissionScope values
  * they always were (All, Owned, Labels), so the API, Terraform and every
@@ -78,7 +85,7 @@ export const PERMISSION_SCOPE_DESCRIPTIONS: Readonly<
 > = {
   [PermissionScope.All]: translationKey("Recommended for most teams."),
   [PermissionScope.Owned]: translationKey(
-    "Resources the person, or one of their teams, owns.",
+    "Resources the person, or the team given this permission, owns.",
   ),
   [PermissionScope.Labels]: translationKey(
     "Resources that carry one of the labels you pick.",

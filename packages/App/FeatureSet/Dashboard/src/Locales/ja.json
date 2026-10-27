@@ -30577,7 +30577,7 @@
   "Private User": "プライベートユーザー",
   "Projects that require SSO accept a sign-in with this provider.": "SSO が必須のプロジェクトは、このプロバイダーでのサインインを受け入れます。",
   "Resources that carry one of the labels you pick.": "選んだラベルのいずれかが付いたリソースです。",
-  "Resources the person, or one of their teams, owns.": "その人、またはその人のチームのいずれかが所有するリソースです。",
+  "Resources the person, or the team given this permission, owns.": "その人、またはこの権限が与えられたチームが所有するリソースです。",
   "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.": "このプロジェクトのメールを自社のメールサーバーから送信します。ステータスページは購読者設定でどれを使うか選びます。",
   "Serves the badge at a link with a secret token, made the first time you turn it on.": "秘密のトークンを含むリンクでバッジを配信します。トークンは初めてオンにしたときに作成されます。",
   "Start {{runbooks}}": "{{runbooks}} を開始",

@@ -66,6 +66,30 @@ describe("shouldBypassRecordPrivacy", () => {
     expect(shouldBypassRecordPrivacy({ isMasterAdmin: true })).toBe(true);
   });
 
+  /*
+   * A read across projects is answered with a query per project of the
+   * caller's, while this is asked once, of the project the request names
+   * besides. An owner of a project of their own who sent both headers read
+   * the private incidents of every project they were in.
+   */
+  test("a read across projects sees only their own, whatever the project it names besides", () => {
+    expect(
+      shouldBypassRecordPrivacy({
+        ...propsWith([row(Permission.ProjectOwner)]),
+        isMultiTenantRequest: true,
+      }),
+    ).toBe(false);
+
+    expect(
+      shouldBypassRecordPrivacy(propsWith([row(Permission.ProjectOwner)])),
+    ).toBe(true);
+
+    // OneUptime itself still sees every record, across projects too.
+    expect(
+      shouldBypassRecordPrivacy({ isRoot: true, isMultiTenantRequest: true }),
+    ).toBe(true);
+  });
+
   test("a caller with no project sees only their own", () => {
     expect(
       shouldBypassRecordPrivacy({
