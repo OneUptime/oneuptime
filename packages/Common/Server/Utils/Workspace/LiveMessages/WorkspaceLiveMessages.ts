@@ -154,6 +154,8 @@ export default class WorkspaceLiveMessages {
     // What its notification shows (WorkspaceMessagePayload.text).
     text?: string | undefined;
     messageData?: WorkspaceLiveMessageData | undefined;
+    // Where it is a reply in a record's thread, shown in the channel too.
+    alsoSendToChannel?: boolean | undefined;
   }): Promise<Array<WorkspaceLiveMessage>> {
     const kept: Array<WorkspaceLiveMessage> = [];
 
@@ -190,6 +192,7 @@ export default class WorkspaceLiveMessages {
               ...destination,
               messageBlocks: data.messageBlocks,
               ...(data.text ? { text: data.text } : {}),
+              ...(data.alsoSendToChannel ? { alsoSendToChannel: true } : {}),
             },
             messageData: data.messageData,
             notificationFor: data.notificationFor,
