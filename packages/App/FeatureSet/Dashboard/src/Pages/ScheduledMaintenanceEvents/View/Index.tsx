@@ -642,9 +642,8 @@ const ScheduledMaintenanceView: FunctionComponent<
    * Kept to the team until its publish time: the header's band says it is
    * not on its status pages yet, and when it will be (#5249).
    */
-  const waitingPublishAt: Date | null = getWaitingPublishAt(
-    scheduledMaintenance,
-  );
+  const waitingPublishAt: Date | null =
+    getWaitingPublishAt(scheduledMaintenance);
 
   const createdByName: string =
     scheduledMaintenance?.createdByUser?.name?.toString() ||

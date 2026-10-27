@@ -1,4 +1,7 @@
-import { SHOWS_FROM_TEXT, getWaitingPublishAt } from "./ScheduledMaintenancePublishing";
+import {
+  SHOWS_FROM_TEXT,
+  getWaitingPublishAt,
+} from "./ScheduledMaintenancePublishing";
 import StatusPagesElement from "../StatusPage/StatusPagesElement";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import OneUptimeDate from "Common/Types/Date";
@@ -39,9 +42,9 @@ const ShowsFromTime: FunctionComponent<{ date: Date }> = (props: {
   );
 };
 
-const ScheduledMaintenanceStatusPagesCell: FunctionComponent<
-  ComponentProps
-> = (props: ComponentProps): ReactElement => {
+const ScheduledMaintenanceStatusPagesCell: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   const waitingPublishAt: Date | null = getWaitingPublishAt(props.item);
 
   return (

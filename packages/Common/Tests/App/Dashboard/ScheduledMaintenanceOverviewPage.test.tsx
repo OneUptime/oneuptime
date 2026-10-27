@@ -2752,9 +2752,8 @@ describe("Scheduled maintenance overview page", () => {
       await renderPage();
 
       const readsBefore: number = getItemMock.mock.calls.length;
-      const feedBefore: number | undefined = lastProps<FeedProps>(
-        feedRenderMock,
-      ).refreshToken;
+      const feedBefore: number | undefined =
+        lastProps<FeedProps>(feedRenderMock).refreshToken;
 
       await act(async () => {
         (noticeElement()!.props as NoticeProps).onPublished();

@@ -167,9 +167,7 @@ export default class ScheduledMaintenancePublication {
     record: ScheduledMaintenancePublicationColumns | undefined | null,
     now?: Date | undefined,
   ): boolean {
-    return (
-      this.isVisibilitySwitchedOn(record) && this.isPublished(record, now)
-    );
+    return this.isVisibilitySwitchedOn(record) && this.isPublished(record, now);
   }
 
   /*

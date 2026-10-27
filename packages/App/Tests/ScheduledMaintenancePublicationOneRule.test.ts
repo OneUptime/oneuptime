@@ -605,8 +605,8 @@ describe("A scheduled maintenance event is public by one rule: visible, and publ
         if (
           ts.isCallExpression(node) &&
           ts.isPropertyAccessExpression(unwrap(node.expression)) &&
-          (unwrap(node.expression) as ts.PropertyAccessExpression).name
-            .text === SEND_SCHEDULED_CALL
+          (unwrap(node.expression) as ts.PropertyAccessExpression).name.text ===
+            SEND_SCHEDULED_CALL
         ) {
           found = true;
         }

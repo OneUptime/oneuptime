@@ -583,7 +583,9 @@ describe("the scheduled maintenance forms", () => {
     for (const shape of [TEMPLATE_CREATE, TEMPLATE_EDIT]) {
       expect(
         `${shape.name}: ${shape.placements.some((placement: Placement) => {
-          return placement.key === PUBLISH_AT || placement.key === PUBLISH_CHOICE;
+          return (
+            placement.key === PUBLISH_AT || placement.key === PUBLISH_CHOICE
+          );
         })}`,
       ).toBe(`${shape.name}: false`);
     }

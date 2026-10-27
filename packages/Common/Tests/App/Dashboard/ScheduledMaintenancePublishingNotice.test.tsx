@@ -201,9 +201,9 @@ describe("the header's band while an event waits for its publish time", () => {
     renderNotice();
 
     // 09:00 UTC is half past two in the afternoon in India.
-    expect(screen.getByTestId("scheduled-maintenance-publish-at")).toHaveTextContent(
-      "02:30 PM",
-    );
+    expect(
+      screen.getByTestId("scheduled-maintenance-publish-at"),
+    ).toHaveTextContent("02:30 PM");
   });
 
   test("Publish Now asks first, saying what it does, and publishes the event right away", async () => {
@@ -223,7 +223,9 @@ describe("the header's band while an event waits for its publish time", () => {
     // Nothing is written until the dialog says so.
     expect(updateByIdMock).not.toHaveBeenCalled();
 
-    fireEvent.click(within(dialog).getByRole("button", { name: "Publish Now" }));
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Publish Now" }),
+    );
     await flush();
 
     expect(updateByIdMock).toHaveBeenCalledTimes(1);

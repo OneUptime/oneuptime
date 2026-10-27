@@ -129,9 +129,7 @@ export const PublishingNoticeCopy: {
   ),
   publishNow: translationKey("Publish Now"),
   confirmTitle: translationKey("Publish this event now?"),
-  confirmDescription: translationKey(
-    "It shows on its status pages at once.",
-  ),
+  confirmDescription: translationKey("It shows on its status pages at once."),
   confirmDescriptionAndTold: translationKey(
     "It shows on its status pages at once, and their subscribers are told it is scheduled.",
   ),
@@ -167,7 +165,8 @@ export const SENT_WHEN_PUBLISHED_TEXT: string = translationKey(
 );
 
 // What the page reads of an event to say where it stands.
-export interface PublishingEvent extends ScheduledMaintenancePublicationColumns {
+export interface PublishingEvent
+  extends ScheduledMaintenancePublicationColumns {
   shouldStatusPageSubscribersBeNotifiedOnEventCreated?: unknown;
   subscriberNotificationStatusOnEventScheduled?: unknown;
   statusPages?: Array<unknown> | undefined;

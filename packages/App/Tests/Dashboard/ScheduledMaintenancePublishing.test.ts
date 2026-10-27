@@ -305,14 +305,16 @@ describe("the folded Publishing line", () => {
 
     expect(section.id).toBe(SUBSCRIBER_NOTIFICATIONS_SECTION_ID);
     expect(section.title).toBe("Subscriber Notifications");
-    expect(section.description).toBe(EVENT_SUBSCRIBER_NOTIFICATIONS_DESCRIPTION);
+    expect(section.description).toBe(
+      EVENT_SUBSCRIBER_NOTIFICATIONS_DESCRIPTION,
+    );
 
-    expect(
-      section.getSummary!({} as FormValues<ScheduledMaintenance>),
-    ).toEqual([
-      PUBLISHING_SUMMARIES.rightAway,
-      SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"],
-    ]);
+    expect(section.getSummary!({} as FormValues<ScheduledMaintenance>)).toEqual(
+      [
+        PUBLISHING_SUMMARIES.rightAway,
+        SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"],
+      ],
+    );
 
     expect(
       section.getSummary!({
@@ -330,9 +332,9 @@ describe("the folded Publishing line", () => {
       getSubscriberNotificationsSection<ScheduledMaintenance>();
 
     expect(section.title).toBe("Subscriber Notifications");
-    expect(
-      section.getSummary!({} as FormValues<ScheduledMaintenance>),
-    ).toEqual([SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"]]);
+    expect(section.getSummary!({} as FormValues<ScheduledMaintenance>)).toEqual(
+      [SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"]],
+    );
   });
 });
 
@@ -391,10 +393,9 @@ describe("Publish At's own check", () => {
 });
 
 describe("the event's page while it waits", () => {
-  function waitingEvent(overrides?: Record<string, unknown>): Record<
-    string,
-    unknown
-  > {
+  function waitingEvent(
+    overrides?: Record<string, unknown>,
+  ): Record<string, unknown> {
     return {
       isVisibleOnStatusPage: true,
       publishOnStatusPageAt: PUBLISH_AT,

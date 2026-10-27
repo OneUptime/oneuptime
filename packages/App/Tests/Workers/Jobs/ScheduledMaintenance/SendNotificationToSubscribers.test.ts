@@ -788,7 +788,9 @@ describe("ScheduledMaintenance:SendNotificationToSubscribers", () => {
     });
 
     test("a publish time moved earlier is sent at the earlier time", async () => {
-      const MOVED_TO: Date = new Date(PUBLISH_AT.getTime() - 7 * 24 * 60 * MINUTE);
+      const MOVED_TO: Date = new Date(
+        PUBLISH_AT.getTime() - 7 * 24 * 60 * MINUTE,
+      );
 
       await runAt(CREATED_ON);
       storedRow().publishOnStatusPageAt = MOVED_TO;

@@ -46,9 +46,7 @@ afterEach(() => {
 describe("the zone this suite runs in", () => {
   test("is India's, half an hour off UTC, as the docblock asks", () => {
     // UTC+05:30 is -330 minutes in getTimezoneOffset's sign.
-    expect(new Date("2026-11-24T09:00:00.000Z").getTimezoneOffset()).toBe(
-      -330,
-    );
+    expect(new Date("2026-11-24T09:00:00.000Z").getTimezoneOffset()).toBe(-330);
   });
 });
 
@@ -75,9 +73,9 @@ describe("ScheduledMaintenancePublication.isPublished", () => {
     expect(
       ScheduledMaintenancePublication.isPublished(planned, PUBLISH_AT),
     ).toBe(true);
-    expect(ScheduledMaintenancePublication.isPublished(planned, STARTS_AT)).toBe(
-      true,
-    );
+    expect(
+      ScheduledMaintenancePublication.isPublished(planned, STARTS_AT),
+    ).toBe(true);
   });
 
   test("published exactly at its time, and not a millisecond before", () => {
@@ -92,7 +90,10 @@ describe("ScheduledMaintenancePublication.isPublished", () => {
       ),
     ).toBe(false);
     expect(
-      ScheduledMaintenancePublication.isPublished(planned, new Date(PUBLISH_AT)),
+      ScheduledMaintenancePublication.isPublished(
+        planned,
+        new Date(PUBLISH_AT),
+      ),
     ).toBe(true);
   });
 

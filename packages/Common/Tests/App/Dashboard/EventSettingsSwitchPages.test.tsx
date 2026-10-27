@@ -665,7 +665,9 @@ describe("a scheduled maintenance event's Settings", () => {
         ),
       ).toBeInTheDocument();
 
-      fireEvent.click(screen.getByTestId(STATUS_PAGE_VISIBILITY_SWITCH_TEST_ID));
+      fireEvent.click(
+        screen.getByTestId(STATUS_PAGE_VISIBILITY_SWITCH_TEST_ID),
+      );
       await flush();
 
       expect(updateCalls()).toEqual([

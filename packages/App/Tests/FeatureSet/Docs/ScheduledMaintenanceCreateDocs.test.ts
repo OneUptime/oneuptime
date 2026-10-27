@@ -95,8 +95,8 @@ describe("the scheduled maintenance create form in the docs", () => {
    * status pages - right away - then who is told, and when (#5249).
    */
   test("quotes the folded section's line word for word", () => {
-    const line: Array<string> = getEventSubscriberNotificationsSection()
-      .getSummary!({});
+    const line: Array<string> =
+      getEventSubscriberNotificationsSection().getSummary?.({}) || [];
 
     expect(line).toEqual([
       PUBLISHING_SUMMARIES.rightAway,
