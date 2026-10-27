@@ -10,6 +10,11 @@ import {
   SecurityEventAttributeColumn,
   getSecurityEventAttributeValue,
 } from "./SecurityEventAttributeColumns";
+import { isSecurityEventRequestOutcome } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
+import { getRequestOutcomeColor } from "./SecurityEventRequestStory";
+
+export const SECURITY_EVENT_ROW_OUTCOME_TEST_ID: string =
+  "security-event-row-outcome";
 
 export const SECURITY_EVENT_ROW_TEST_ID: string = "security-event-row";
 
@@ -136,6 +141,24 @@ const SecurityEventListRow: FunctionComponent<ComponentProps> = (
             >
               {severity}
             </span>
+            {/*
+             * How far the request got, beside how bad it is: a page of
+             * probes the app turned away reads differently from one where
+             * a single row reached the database.
+             */}
+            {isSecurityEventRequestOutcome(event.requestOutcome) && (
+              <span
+                data-testid={SECURITY_EVENT_ROW_OUTCOME_TEST_ID}
+                className="flex-shrink-0 text-[11px] font-medium"
+                style={{
+                  color: getRequestOutcomeColor(
+                    event.requestOutcome,
+                  ).toString(),
+                }}
+              >
+                {event.requestOutcome}
+              </span>
+            )}
             {event.className && (
               <span className="flex-shrink-0 font-mono text-xs font-semibold text-gray-900">
                 {event.className}

@@ -1351,6 +1351,61 @@ detection:
 `,
     },
 
+    /*
+     * What happened next, as the request's trace showed it
+     * (Types/SecurityEvent/SecurityEventRequestOutcome): the attempts above
+     * say somebody tried; these say it worked.
+     */
+    {
+      id: "a1218db8-8e28-4afb-ae8e-ed4f0aef7595",
+      title: "Injected SQL reached the database",
+      description:
+        "A request carrying SQL injection reached the database: a query it made holds the payload, or it waited as long as its SQL asked the database to sleep.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "Web requests followed into their traces",
+      dataKind: DetectionRuleDataKind.WebRequests,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Injected SQL reached the database
+id: a1218db8-8e28-4afb-ae8e-ed4f0aef7595
+description: A request whose injected SQL ran in a query the app made.
+level: critical
+tags:
+  - attack.initial_access
+  - attack.t1190
+detection:
+  selection:
+    requestOutcome: 'Reached Database'
+  condition: selection
+`,
+    },
+    {
+      id: "47d32cc6-462c-44f9-8bcb-b99d7b083860",
+      title: "Attack request broke the app",
+      description:
+        "A request carrying an attack made the app fail: it answered with a server error, or threw an exception. The payload reached code that did not expect it.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "Web requests followed into their traces",
+      dataKind: DetectionRuleDataKind.WebRequests,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Attack request broke the app
+id: 47d32cc6-462c-44f9-8bcb-b99d7b083860
+description: A request carrying an attack string that errored in the app.
+level: high
+tags:
+  - attack.initial_access
+  - attack.t1190
+detection:
+  selection:
+    className: 'HTTP Activity'
+    requestOutcome: 'Errored'
+  condition: selection
+`,
+    },
+
     // Kubernetes
     {
       id: "1ce3af71-a3d5-409a-b477-34e4a734aa83",

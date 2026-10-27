@@ -20,6 +20,7 @@ import { Navigate, Route as PageRoute, Routes } from "react-router-dom";
 // Pages
 import SecurityEventsPage from "../Pages/SecurityEvents/Index";
 import SecurityEventsCorrelatePage from "../Pages/SecurityEvents/Correlate";
+import SecurityEventsCampaignsPage from "../Pages/SecurityEvents/Campaigns";
 import SecurityEventsDetectionRulesPage from "../Pages/SecurityEvents/DetectionRules";
 import SecurityEventsDocumentationPage from "../Pages/SecurityEvents/Documentation";
 import SecurityEventsConnectionsPage from "../Pages/SecurityEvents/Connections";
@@ -107,6 +108,17 @@ const SecurityEventsRoutes: FunctionComponent<ComponentProps> = (
             );
           },
         )}
+        <PageRoute
+          path={
+            SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CAMPAIGNS] || ""
+          }
+          element={
+            <SecurityEventsCampaignsPage
+              {...props}
+              pageRoute={RouteMap[PageMap.SECURITY_EVENTS_CAMPAIGNS] as Route}
+            />
+          }
+        />
         <PageRoute
           path={
             SecurityEventsRoutePath[PageMap.SECURITY_EVENTS_CORRELATE] || ""

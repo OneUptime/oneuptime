@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -104,6 +105,12 @@ export interface LogDetailsPanelProps {
    * same path as picking a value from the search bar autocomplete.
    */
   onFilterByAttribute?: ((key: string, value: string) => void) | undefined;
+  /*
+   * A section the app adds about this line, above its attributes - the
+   * Dashboard says there which security events the line, or the request it
+   * was written in, is part of. Rendering nothing is fine.
+   */
+  renderExtraSection?: ((log: Log) => ReactNode) | undefined;
 }
 
 interface AttributeEntry {
@@ -905,6 +912,8 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
               )}
             </section>
           )}
+
+          {props.renderExtraSection && props.renderExtraSection(props.log)}
 
           {attributeEntries.length > 0 && (
             <section className="space-y-3">

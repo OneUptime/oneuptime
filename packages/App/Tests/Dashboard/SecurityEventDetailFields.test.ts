@@ -187,6 +187,9 @@ describe("buildSecurityEventOverviewFields", () => {
           targetUser: "root",
           targetHost: "db-01",
           targetIp: "10.0.0.9",
+          requestOutcome: "Rejected",
+          traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+          sessionId: "session-1",
         }),
       );
 
@@ -267,6 +270,65 @@ describe("buildSecurityEventOverviewFields", () => {
         })?.facetKey,
       ).toBeUndefined();
     }
+  });
+});
+
+describe("the request an event happened in", () => {
+  test("says how far it got, and the ids that find the rest of it", () => {
+    const fields: Array<SecurityEventDetailField> =
+      buildSecurityEventOverviewFields(
+        event({
+          targetResource: "/sitemap.xml?offset=1",
+          requestOutcome: "Rejected",
+          traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+          sessionId: "session-1",
+          eventUid: "log:abc",
+        }),
+      );
+
+    // After what it was aimed at, before the event's own id.
+    expect(labels(fields)).toEqual([
+      "Target Resource",
+      "Request Outcome",
+      "Trace ID",
+      "Session ID",
+      "Event UID",
+    ]);
+    expect(
+      fields.find((field: SecurityEventDetailField): boolean => {
+        return field.label === "Request Outcome";
+      })?.facetKey,
+    ).toBe("requestOutcome");
+    expect(valueOf(fields, "Trace ID")).toBe(
+      "4bf92f3577b34da6a3ce929d0e0e4736",
+    );
+  });
+
+  test("an event in no request shows none of it", () => {
+    expect(
+      labels(buildSecurityEventOverviewFields(event({ eventUid: "x" }))),
+    ).toEqual(["Event UID"]);
+  });
+
+  test("the JSON carries the request's ids and outcome, empty when unknown", () => {
+    const json: JSONObject = buildSecurityEventJson(
+      event({
+        traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+        spanId: "00f067aa0ba902b7",
+        sessionId: "session-1",
+        requestOutcome: "Reached Database",
+      }),
+    );
+
+    expect(json["traceId"]).toBe("4bf92f3577b34da6a3ce929d0e0e4736");
+    expect(json["spanId"]).toBe("00f067aa0ba902b7");
+    expect(json["sessionId"]).toBe("session-1");
+    expect(json["requestOutcome"]).toBe("Reached Database");
+
+    const empty: JSONObject = buildSecurityEventJson(event());
+
+    expect(empty["traceId"]).toBe("");
+    expect(empty["requestOutcome"]).toBe("");
   });
 });
 

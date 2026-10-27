@@ -609,6 +609,7 @@ import ThreatIntelFeedService, {
   Service as ThreatIntelFeedServiceType,
 } from "Common/Server/Services/ThreatIntelFeedService";
 import SecurityCaseAPI from "Common/Server/API/SecurityCaseAPI";
+import SecurityAttackCampaignAPI from "Common/Server/API/SecurityAttackCampaignAPI";
 import SecurityPlaybookRunAPI from "Common/Server/API/SecurityPlaybookRunAPI";
 import SecurityCaseFeedService, {
   Service as SecurityCaseFeedServiceType,
@@ -4041,6 +4042,12 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityCaseAPI().getRouter(),
+    );
+
+    // Web attacks grouped by the address that sent them: the Campaigns page.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityAttackCampaignAPI().getRouter(),
     );
 
     app.use(

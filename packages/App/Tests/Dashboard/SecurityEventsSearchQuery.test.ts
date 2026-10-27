@@ -312,6 +312,26 @@ describe("field filters", () => {
     );
   });
 
+  /*
+   * The request an event happened in: pasted from the trace or session a
+   * reader came from, and how far it got. `outcome:` stays the OCSF status
+   * it always was, the way ECS readers type it.
+   */
+  test("the request fields: a trace, a session, and how far it got", () => {
+    expect(compiled("trace:4bf92f3577b34da6a3ce929d0e0e4736")["traceId"]).toBe(
+      "4bf92f3577b34da6a3ce929d0e0e4736",
+    );
+    expect(compiled("traceid:abc")["traceId"]).toBe("abc");
+    expect(compiled("span:00f067aa0ba902b7")["spanId"]).toBe(
+      "00f067aa0ba902b7",
+    );
+    expect(compiled("session:session-1")["sessionId"]).toBe("session-1");
+    expect(compiled("requestoutcome:Rejected")["requestOutcome"]).toBe(
+      "Rejected",
+    );
+    expect(compiled("outcome:Failure")["statusName"]).toBe("Failure");
+  });
+
   test("an explicit operator always beats the contains default", () => {
     expect(compiled("-observable:10.0.0.4")["observables"]).toBeInstanceOf(
       NotEqual,
