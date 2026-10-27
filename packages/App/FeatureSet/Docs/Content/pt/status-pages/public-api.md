@@ -138,6 +138,7 @@ O status geral é o pior status atual dos monitores e grupos de monitores da pá
 | `timelineIncidents` | Os incidentes dentro da janela das barras de disponibilidade, inclusive os resolvidos, para as dicas das barras. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | O mesmo para os episódios de incidentes. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Os eventos de manutenção programada que ainda vão acontecer ou estão em andamento, as suas notas públicas e mudanças de estado. |
+| `timelineScheduledMaintenanceEvents` | Os eventos de manutenção programada dentro da janela das barras de disponibilidade que já começaram, em andamento ou encerrados, para as dicas das barras e a caixa de diálogo de cada dia: os que a página mostra e que incluem um dos seus monitores, cada um só com os monitores da página. |
 | `activeAnnouncements` | Os avisos em exibição agora: já começados e ainda não encerrados. |
 
 ## Ler o resumo

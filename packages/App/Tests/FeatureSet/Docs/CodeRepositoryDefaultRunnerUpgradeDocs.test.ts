@@ -20,7 +20,8 @@ import path from "path";
  *
  * The note (installation/upgrading, "Other changes in 14") sits after the
  * note on runbook step approvals (RunbookStepApprovalUpgradeDocs) and
- * before the endpoint pointer, and every translation carries it in the
+ * before the note on requiring SSO for the whole server
+ * (RequireSsoSignInUpgradeDocs), and every translation carries it in the
  * English note's place, with Global Runner named as its Dashboard draws it
  * and a link to the Code page's section on the repository's Runner in the
  * reader's language. What it claims is what the change does:
@@ -48,7 +49,9 @@ const NOTE_LEAD: string = `**${LEAD}**`;
 // The note before it (RunbookStepApprovalUpgradeDocs).
 const PREVIOUS_LEAD: string =
   "**A runbook step asks for approval before it runs.**";
-const POINTER_START: string = "- See [API and endpoint changes]";
+// The note after it (RequireSsoSignInUpgradeDocs).
+const NEXT_LEAD: string =
+  "**While the whole server requires SSO, the sign-in pages offer only SSO, and its global providers have one page.**";
 
 const CODE_PAGE: string = "ai/ai-agent";
 const SECTION_HEADING: string = "### Pick the repository's Runner";
@@ -95,7 +98,7 @@ const NOTE_INDEX: number = ENGLISH_ITEMS.findIndex((item: string): boolean => {
 const ENGLISH_NOTE: string = flattened(ENGLISH_ITEMS[NOTE_INDEX] || "");
 
 describe("the English upgrade note on code repositories following the default Runner", () => {
-  it("is a note of the 14 changes, once, after the note on runbook step approvals and before the endpoint pointer", () => {
+  it("is a note of the 14 changes, once, after the note on runbook step approvals and before the note on requiring SSO", () => {
     expect(NOTE_INDEX).toBeGreaterThan(0);
     expect(
       ENGLISH_ITEMS.filter((item: string): boolean => {
@@ -107,7 +110,9 @@ describe("the English upgrade note on code repositories following the default Ru
         `- ${PREVIOUS_LEAD}`,
       ),
     ).toBe(true);
-    expect(ENGLISH_ITEMS[NOTE_INDEX + 1]!.startsWith(POINTER_START)).toBe(true);
+    expect(
+      flattened(ENGLISH_ITEMS[NOTE_INDEX + 1]!).startsWith(`- ${NEXT_LEAD}`),
+    ).toBe(true);
   });
 
   it("says what changed, what the upgrade keeps, and what the API calls the pick", () => {

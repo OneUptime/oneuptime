@@ -138,6 +138,7 @@ The overall status is the worst current status of the monitors and monitor group
 | `timelineIncidents` | The incidents in the uptime bars' window, resolved ones included, for the bars' tooltips. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | The same for incident episodes. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | The scheduled maintenance events that are still to come or in progress, their public notes and state changes. |
+| `timelineScheduledMaintenanceEvents` | The scheduled maintenance events in the uptime bars' window that have started, in progress or over, for the bars' tooltips and day dialogs: the ones the page shows that hold one of its monitors, each listing only the page's monitors. |
 | `activeAnnouncements` | The announcements showing now: started, and not ended. |
 
 ## Read the summary

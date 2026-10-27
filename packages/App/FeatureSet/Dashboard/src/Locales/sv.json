@@ -35848,6 +35848,7 @@
   "Maintenance markers are unavailable.": "Underhållsmarkeringar är inte tillgängliga.",
   "Maintenance markers need the uptime history, which did not load.": "Underhållsmarkeringar behöver drifttidshistoriken, som inte lästes in.",
   "You need permission to read scheduled maintenance.": "Du behöver behörighet att läsa schemalagt underhåll.",
+  "Sign in with {{name}}": "Logga in med {{name}}",
   "View only": "Endast visning",
   "Changing this workflow takes permission to edit it.": "Att ändra det här arbetsflödet kräver behörighet att redigera det.",
   "No trigger yet": "Ingen utlösare än",

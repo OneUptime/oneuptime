@@ -35848,6 +35848,7 @@
   "Maintenance markers are unavailable.": "维护标记不可用。",
   "Maintenance markers need the uptime history, which did not load.": "维护标记需要可用性历史，但未能加载。",
   "You need permission to read scheduled maintenance.": "您需要读取计划维护的权限。",
+  "Sign in with {{name}}": "使用 {{name}} 登录",
   "View only": "仅查看",
   "Changing this workflow takes permission to edit it.": "更改此工作流需要编辑它的权限。",
   "No trigger yet": "尚无触发器",

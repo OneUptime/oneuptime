@@ -138,6 +138,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `timelineIncidents` | अपटाइम बार की अवधि की घटनाएं, सुलझी हुई भी, बार के टूलटिप के लिए। |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | घटना एपिसोड के लिए यही सब। |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | अनुसूचित रखरखाव इवेंट जो अभी आने वाले हैं या चल रहे हैं, उनके सार्वजनिक नोट और स्थिति बदलाव। |
+| `timelineScheduledMaintenanceEvents` | अपटाइम बार की अवधि के वे अनुसूचित रखरखाव इवेंट जो शुरू हो चुके हैं, जारी या समाप्त, बार के टूलटिप और हर दिन के डायलॉग के लिए: पृष्ठ पर दिखने वाले इवेंट जिनमें पृष्ठ का कोई मॉनिटर शामिल है, हर एक के साथ केवल पृष्ठ के मॉनिटर। |
 | `activeAnnouncements` | अभी दिख रही घोषणाएं: शुरू हो चुकी और खत्म नहीं हुई। |
 
 ## सारांश पढ़ें

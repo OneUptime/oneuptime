@@ -35848,6 +35848,7 @@
   "Maintenance markers are unavailable.": "रखरखाव मार्कर उपलब्ध नहीं हैं।",
   "Maintenance markers need the uptime history, which did not load.": "रखरखाव मार्करों को अपटाइम इतिहास चाहिए, जो लोड नहीं हुआ।",
   "You need permission to read scheduled maintenance.": "निर्धारित रखरखाव पढ़ने के लिए आपको अनुमति चाहिए।",
+  "Sign in with {{name}}": "{{name}} से साइन इन करें",
   "View only": "केवल देखें",
   "Changing this workflow takes permission to edit it.": "इस वर्कफ़्लो को बदलने के लिए इसे संपादित करने की अनुमति चाहिए।",
   "No trigger yet": "अभी कोई ट्रिगर नहीं",

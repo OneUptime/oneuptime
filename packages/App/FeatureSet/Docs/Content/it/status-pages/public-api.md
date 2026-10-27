@@ -138,6 +138,7 @@ Lo stato complessivo è il peggior stato attuale dei monitor e dei gruppi di mon
 | `timelineIncidents` | Gli incidenti nella finestra delle barre di disponibilità, compresi quelli risolti, per i tooltip delle barre. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Lo stesso per gli episodi di incidenti. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Gli eventi di manutenzione pianificata in arrivo o in corso, le loro note pubbliche e i cambi di stato. |
+| `timelineScheduledMaintenanceEvents` | Gli eventi di manutenzione pianificata nella finestra delle barre di disponibilità già iniziati, in corso o conclusi, per i tooltip delle barre e la finestra di dialogo di ogni giorno: quelli che la pagina mostra e che includono uno dei suoi monitor, ciascuno solo con i monitor della pagina. |
 | `activeAnnouncements` | Gli annunci visibili adesso: iniziati e non ancora terminati. |
 
 ## Leggere il riepilogo

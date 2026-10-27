@@ -35848,6 +35848,7 @@
   "Maintenance markers are unavailable.": "유지 관리 표시를 사용할 수 없습니다.",
   "Maintenance markers need the uptime history, which did not load.": "유지 관리 표시에는 가동 시간 기록이 필요하지만 불러오지 못했습니다.",
   "You need permission to read scheduled maintenance.": "예정된 유지 관리를 읽을 권한이 필요합니다.",
+  "Sign in with {{name}}": "{{name}} 계정으로 로그인",
   "View only": "보기 전용",
   "Changing this workflow takes permission to edit it.": "이 워크플로를 변경하려면 편집 권한이 필요합니다.",
   "No trigger yet": "아직 트리거가 없습니다",

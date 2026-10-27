@@ -35848,6 +35848,7 @@
   "Maintenance markers are unavailable.": "Os marcadores de manutenção não estão disponíveis.",
   "Maintenance markers need the uptime history, which did not load.": "Os marcadores de manutenção precisam do histórico de disponibilidade, que não foi carregado.",
   "You need permission to read scheduled maintenance.": "Você precisa de permissão para ler a manutenção programada.",
+  "Sign in with {{name}}": "Entrar com {{name}}",
   "View only": "Somente leitura",
   "Changing this workflow takes permission to edit it.": "Alterar este fluxo de trabalho exige permissão para editá-lo.",
   "No trigger yet": "Ainda sem gatilho",

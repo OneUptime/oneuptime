@@ -35848,6 +35848,7 @@
   "Maintenance markers are unavailable.": "Отметки обслуживания недоступны.",
   "Maintenance markers need the uptime history, which did not load.": "Для отметок обслуживания нужна история доступности, но она не загрузилась.",
   "You need permission to read scheduled maintenance.": "Нужно разрешение на просмотр планового обслуживания.",
+  "Sign in with {{name}}": "Войти через {{name}}",
   "View only": "Только просмотр",
   "Changing this workflow takes permission to edit it.": "Чтобы изменить этот рабочий процесс, нужно разрешение на его редактирование.",
   "No trigger yet": "Триггера пока нет",

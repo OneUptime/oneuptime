@@ -156,7 +156,15 @@
     "emailRequired": "E-mail is vereist om deze actie uit te voeren",
     "defaultProjectName": "Project",
     "globalProvidersTitle": "Aanmelden met uw organisatie",
-    "globalProvidersDivider": "Of ga verder met e-mail"
+    "globalProvidersDivider": "Of ga verder met e-mail",
+    "signInWithProvider": "Inloggen met {{name}}",
+    "requiredSubtitle": "Log in met de single sign-on (SSO) van je organisatie.",
+    "requiredNotSetUp": "Single sign-on is nog niet ingesteld op deze server. Vraag je serverbeheerder om het in te stellen.",
+    "useDifferentEmail": "Ander e-mailadres gebruiken"
+  },
+  "adminLogin": {
+    "title": "Aanmelden als hoofdbeheerder",
+    "subtitle": "Deze server vereist single sign-on (SSO). Hoofdbeheerders kunnen hier nog steeds inloggen met hun wachtwoord."
   },
   "verifyEmail": {
     "successTitle": "Uw e-mail is geverifieerd.",

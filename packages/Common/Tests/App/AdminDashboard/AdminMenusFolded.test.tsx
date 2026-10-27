@@ -112,6 +112,7 @@ import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import {
   DESKTOP_WIDTH,
+  MenuLink,
   activeLinkTitles,
   goTo,
   isExpanded,
@@ -170,7 +171,6 @@ describe("Admin Settings: only Basic starts open", () => {
 
     expect(sectionStates()).toEqual([
       { title: "Basic", expanded: true },
-      { title: "Authentication", expanded: false },
       { title: "Notifications", expanded: false },
       { title: "Monitoring", expanded: false },
       { title: "Runbooks", expanded: false },
@@ -192,7 +192,6 @@ describe("Admin Settings: only Basic starts open", () => {
 
     expect(sectionStates()).toEqual([
       { title: "«Basic»", expanded: true },
-      { title: "«Authentication»", expanded: false },
       { title: "«Notifications»", expanded: false },
       { title: "«Monitoring»", expanded: false },
       { title: "«Runbooks»", expanded: false },
@@ -206,7 +205,8 @@ describe("Admin Settings: only Basic starts open", () => {
     [PageMap.SETTINGS_SMTP, "Notifications", "Emails"],
     [PageMap.SETTINGS_LLM_PROVIDERS, "AI", "Global LLM Providers"],
     [PageMap.SETTINGS_GLOBAL_RUNNERS, "Runbooks", "Global Runners"],
-    [PageMap.SETTINGS_GLOBAL_SSO, "Authentication", "Global SSO"],
+    // Single sign-on, under Basic: no folded "Authentication" section of its own.
+    [PageMap.SETTINGS_SSO, "Basic", "Single Sign-On"],
     [PageMap.SETTINGS_API_KEY, "API and Integrations", "API Key"],
   ])(
     "the %s page opens %s and marks %s",
@@ -219,6 +219,29 @@ describe("Admin Settings: only Basic starts open", () => {
       expect(isExpanded("Basic")).toBe(true);
     },
   );
+
+  /*
+   * Single sign-on is one entry under Basic, beside Authentication: the SAML
+   * and OIDC providers and Require SSO for Login on one page. It was "Global
+   * SSO" and "Global OIDC" in a folded section that was also called
+   * Authentication, and the switch was on the Authentication page.
+   */
+  test("Basic holds Authentication and Single Sign-On, and nothing is called Global SSO", async () => {
+    goTo(adminRoute(PageMap.SETTINGS_AUTHENTICATION));
+    await renderMenu(<AdminSettingsSideMenu />);
+
+    expect(
+      linksIn("Basic").map((link: MenuLink): string => {
+        return link.title;
+      }),
+    ).toEqual(["Authentication", "Single Sign-On"]);
+    expect(
+      linksIn("Basic").map((link: MenuLink): string => {
+        return link.href;
+      }),
+    ).toEqual(["/admin/settings/authentication", "/admin/settings/sso"]);
+    expect(document.body.textContent).not.toMatch(/Global (SSO|OIDC)/);
+  });
 
   test("a folded section opens with a click", async () => {
     goTo(adminRoute(PageMap.SETTINGS_AUTHENTICATION));

@@ -8,7 +8,7 @@ Met globale SSO stelt een **instantiebeheerder** van OneUptime (master-admin) **
 :::cards
 - [Een provider instellen](#globale-sso-instellen): Maak hem aan, geef uw identiteitsprovider de URL's van OneUptime en test hem.
 - [Zo melden gebruikers zich aan](#zo-melden-gebruikers-zich-aan): Alleen bestaande leden, of nieuwkomers die worden toegevoegd aan de projecten die u koppelt.
-- [SSO afdwingen](#sso-afdwingen): SSO verplichten voor één project of voor de hele instantie.
+- [SSO afdwingen](#sso-afdwingen): SSO verplichten voor één project, of voor de hele instantie en haar aanmeldpagina.
 - [Een provider uitzetten](#een-provider-uitzetten-of-verwijderen): Wat er eindigt en welke wijzigingen OneUptime weigert.
 :::
 
@@ -27,21 +27,16 @@ Voor de eigen provider van één project, zie [SSO](/docs/identity/sso).
 :::steps
 ### De lijst met providers openen
 
-:::tabs
-@tab SAML
-Meld u aan als master-admin en open het Admin Dashboard met **Beheerdersinstellingen** in uw gebruikersmenu. Ga daarna naar **Instellingen** > **Authenticatie** > **Global SSO**.
-@tab OpenID Connect
-Meld u aan als master-admin en open het Admin Dashboard met **Beheerdersinstellingen** in uw gebruikersmenu. Ga daarna naar **Instellingen** > **Authenticatie** > **Global OIDC**.
-:::
+Meld u aan als master-admin en open het Admin Dashboard met **Beheerdersinstellingen** in uw gebruikersmenu. Ga daarna naar **Instellingen** > **Single sign-on**. Daar staan de SAML-providers van de instantie, dan haar OpenID Connect-providers, en tot slot de kaart **SSO vereisen**.
 
 ### De provider aanmaken
 
 :::tabs
 @tab SAML
-- Klik op **Create Global SSO**.
+- Klik op **SAML-provider toevoegen**.
 - Voer een **Naam**, de **Sign On URL** en de **Issuer** van uw identiteitsprovider in en plak het **Public Certificate**. De rest staat al ingevuld onder **Meer velden**: de **Signature Method** (`RSA-SHA256`), de **Digest Method** (`SHA256`) en een beschrijving (`Sign in with` en de naam). Wijzig ze alleen als uw IdP dat vraagt. Bij het opslaan opent de pagina van de provider.
 @tab OpenID Connect
-- Klik op **Create Global OIDC**.
+- Klik op **OIDC-provider toevoegen**.
 - Voer een **Naam**, de **Issuer URL** en de **Client ID** en het **Client Secret** van de app in die u in uw IdP hebt geregistreerd. De discovery-URL van de IdP in **Issuer URL** plakken werkt ook. De rest staat al ingevuld onder **Meer velden**: de **Discovery URL** (de issuer gevolgd door `/.well-known/openid-configuration`), de **Scopes** (`openid email profile`), de claimnamen `email` en `name`, en een beschrijving (`Sign in with` en de naam). Wijzig ze alleen als uw IdP dat vraagt. Bij het opslaan opent de pagina van de provider.
 :::
 
@@ -58,11 +53,11 @@ Op de pagina van de provider toont de kaart **Identity Provider URL** de **Redir
 
 Een nieuwe provider staat eerst uit. Klik op de pagina van de provider op **Edit Configuration** en zet **Ingeschakeld** aan.
 
-Een globale provider inschakelen voegt alleen een optie "Sign in with SSO" toe aan de aanmeldpagina — het dwingt nooit SSO af en sluit niemand buiten, dus u kunt hem veilig inschakelen, testen en zo nodig weer uitschakelen.
+Een globale provider inschakelen voegt hem alleen toe aan de single sign-on-opties van de aanmeldpagina — het dwingt nooit SSO af en sluit niemand buiten, dus u kunt hem veilig inschakelen, testen en zo nodig weer uitschakelen. Zolang de hele instantie SSO verplicht, biedt de aanmeldpagina wel alleen de ingeschakelde providers aan: test een provider voordat u SSO verplicht.
 
 ### De provider testen
 
-Gebruik de link in de kaart **Test this SSO provider** (**Test this OIDC provider** voor OpenID Connect) om een volledige aanmelding via uw identiteitsprovider te doen. U hoeft eerst geen projecten te koppelen: de test meldt u aan in de projecten waar u al lid van bent. De provider moet ingeschakeld zijn om de link te laten werken.
+Gebruik de link in de kaart **Test this SSO provider** (**Test this OIDC provider** voor OpenID Connect) om een volledige aanmelding via uw identiteitsprovider te doen. **Inloggen testen** in de rij van de provider op **Single sign-on** start dezelfde aanmelding in een nieuw tabblad. U hoeft eerst geen projecten te koppelen: de test meldt u aan in de projecten waar u al lid van bent. De provider moet ingeschakeld zijn om de link te laten werken.
 :::
 
 ## Zo melden gebruikers zich aan
@@ -101,7 +96,14 @@ Met **Elk project** voldoet aanmelden met de provider in elk project waar de per
 Een globale provider instellen dwingt niemand om hem te gebruiken; aanmelden met een wachtwoord blijft werken. Om SSO te verplichten, zet u de verplichting aan voor een project of voor de hele instantie:
 
 - **Per project:** een project kan SSO verplichten, en optioneel een *specifieke* provider (van het project of globaal). Zie [SSO verplichten voor uw project](/docs/identity/sso#sso-verplichten-voor-uw-project).
-- **Instantiebreed:** **Admin** > **Instellingen** > **Authenticatie** heeft een schakelaar **SSO vereisen voor inloggen** die SSO afdwingt voor elke gebruiker op de instantie. Hij vraagt om bevestiging voordat hij aangaat en slaat op zodra u bevestigt. Master-admins blijven uitgezonderd, zodat ze niet buitengesloten kunnen worden.
+- **Instantiebreed:** de kaart **SSO vereisen** onderaan **Admin** > **Instellingen** > **Single sign-on** heeft een schakelaar **SSO vereisen voor inloggen** die SSO afdwingt voor elke gebruiker op de instantie. Hij vraagt om bevestiging voordat hij aangaat en slaat op zodra u bevestigt. Master-admins blijven uitgezonderd, zodat ze niet buitengesloten kunnen worden.
+
+Zolang de hele instantie SSO verplicht:
+
+- De aanmeldpagina biedt alleen SSO aan: een knop voor elke ingeschakelde globale provider, en geen wachtwoord, passkey, aanmelding met Microsoft of registratie. Het zoeken op e-mailadres, dat de eigen provider van een project vindt, blijft alleen zolang een project er een heeft.
+- OneUptime weigert een wachtwoord, een passkey, een aanmelding met Microsoft en een registratie met "This server requires single sign-on (SSO). Sign in with SSO instead." Alleen het wachtwoord of de passkey van een master-admin meldt die nog aan. Mensen krijgen hun account door zich met SSO aan te melden of via een uitnodiging.
+- Wie al met een wachtwoord is aangemeld, meldt zich met SSO aan om een project te openen. Diegene komt op de single sign-on-pagina van het project, die de eigen providers van het project biedt en de globale providers die mensen in het project aanmelden.
+- Master-admins melden zich met hun wachtwoord aan op `/accounts/admin-login`, een adres waar de aanmeldpagina niet naar linkt. De kaart **SSO vereisen** toont het volledige adres onder de schakelaar, als **Inloggen voor hoofdbeheerders**: bewaar het, om de verplichting uit te zetten als uw identiteitsprovider niet meer werkt.
 
 Om **SSO vereisen voor inloggen** aan te zetten, is een SSO-provider nodig die mensen aanmeldt, zodat niemand erdoor wordt buitengesloten:
 
@@ -157,6 +159,10 @@ Bij een SAML-provider is het antwoord voor een andere applicatie gemaakt: de aud
 
 :::details "SAML response was already used"
 Met elk antwoord van uw identiteitsprovider wordt maar één keer aangemeld, en alleen in de minuten nadat het is uitgegeven: daarna wordt het geweigerd met "SAML response has expired". Meld u opnieuw aan. Verlopen antwoorden steeds weer, controleer dan de klokken van deze server en van uw identiteitsprovider.
+:::
+
+:::details "This server requires single sign-on (SSO). Sign in with SSO instead."
+De hele instantie verplicht SSO, en dit was een aanmelding met een wachtwoord, een passkey of Microsoft, of een registratie. Meld u in plaats daarvan aan met een van de SSO-knoppen op de aanmeldpagina. Een master-admin meldt zich met zijn wachtwoord aan op `/accounts/admin-login`; om iedereen weer met een wachtwoord te laten aanmelden, zet hij **SSO vereisen voor inloggen** uit op **Single sign-on**.
 :::
 
 ## Volgende stappen

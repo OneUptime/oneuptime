@@ -35848,6 +35848,7 @@
   "Maintenance markers are unavailable.": "Onderhoudsmarkeringen zijn niet beschikbaar.",
   "Maintenance markers need the uptime history, which did not load.": "Onderhoudsmarkeringen hebben de beschikbaarheidsgeschiedenis nodig, die niet is geladen.",
   "You need permission to read scheduled maintenance.": "U hebt toestemming nodig om gepland onderhoud te lezen.",
+  "Sign in with {{name}}": "Inloggen met {{name}}",
   "View only": "Alleen bekijken",
   "Changing this workflow takes permission to edit it.": "Deze workflow wijzigen vereist toestemming om hem te bewerken.",
   "No trigger yet": "Nog geen trigger",

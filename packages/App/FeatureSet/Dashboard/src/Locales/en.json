@@ -35848,6 +35848,7 @@
   "Maintenance markers are unavailable.": "Maintenance markers are unavailable.",
   "Maintenance markers need the uptime history, which did not load.": "Maintenance markers need the uptime history, which did not load.",
   "You need permission to read scheduled maintenance.": "You need permission to read scheduled maintenance.",
+  "Sign in with {{name}}": "Sign in with {{name}}",
   "View only": "View only",
   "Changing this workflow takes permission to edit it.": "Changing this workflow takes permission to edit it.",
   "No trigger yet": "No trigger yet",

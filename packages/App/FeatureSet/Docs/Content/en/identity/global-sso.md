@@ -8,7 +8,7 @@ Global SSO lets a OneUptime **instance administrator** (master admin) configure 
 :::cards
 - [Set up a provider](#setting-up-global-sso): Create it, give your identity provider OneUptime's URLs, and test it.
 - [How users sign in](#how-users-sign-in): Existing members only, or newcomers added to the projects you attach.
-- [Enforce SSO](#enforcing-sso): Require SSO for one project or for the whole instance.
+- [Enforce SSO](#enforcing-sso): Require SSO for one project, or for the whole instance and its sign-in page.
 - [Turn a provider off](#turning-a-provider-off-or-deleting-it): What ends, and which changes OneUptime refuses.
 :::
 
@@ -27,21 +27,16 @@ For a single project's own provider, see [SSO](/docs/identity/sso).
 :::steps
 ### Open the provider list
 
-:::tabs
-@tab SAML
-Sign in as a master admin and open the Admin Dashboard with **Admin Settings** in your user menu. Then go to **Settings** > **Authentication** > **Global SSO**.
-@tab OpenID Connect
-Sign in as a master admin and open the Admin Dashboard with **Admin Settings** in your user menu. Then go to **Settings** > **Authentication** > **Global OIDC**.
-:::
+Sign in as a master admin and open the Admin Dashboard with **Admin Settings** in your user menu. Then go to **Settings** > **Single Sign-On**. It lists the instance's SAML providers, then its OpenID Connect providers, and ends with the **Require SSO** card.
 
 ### Create the provider
 
 :::tabs
 @tab SAML
-- Click **Create Global SSO**.
+- Click **Add SAML Provider**.
 - Enter a **Name**, the **Sign On URL** and **Issuer** from your identity provider, and paste the **Public Certificate**. Everything else is filled in under **More fields**: the **Signature Method** (`RSA-SHA256`), the **Digest Method** (`SHA256`) and a description (`Sign in with` and the name). Change them only if your IdP needs it. Saving opens the provider's page.
 @tab OpenID Connect
-- Click **Create Global OIDC**.
+- Click **Add OIDC Provider**.
 - Enter a **Name**, the **Issuer URL**, and the **Client ID** and **Client Secret** of the app you registered in your IdP. Pasting the IdP's discovery URL into **Issuer URL** works too. Everything else is filled in under **More fields**: the **Discovery URL** (the issuer followed by `/.well-known/openid-configuration`), the **Scopes** (`openid email profile`), the `email` and `name` claim names, and a description (`Sign in with` and the name). Change them only if your IdP needs it. Saving opens the provider's page.
 :::
 
@@ -58,11 +53,11 @@ On the provider's page, the **Identity Provider URL** card shows the **Redirect 
 
 A new provider starts switched off. Click **Edit Configuration** on the provider's page and turn **Enabled** on.
 
-Enabling a global provider only adds a "Sign in with SSO" option on the login page — it never forces SSO or locks anyone out, so it is safe to enable, test, and disable again if needed.
+Enabling a global provider only adds it to the sign-in page's single sign-on options — it never forces SSO or locks anyone out, so it is safe to enable, test, and disable again if needed. While the whole instance requires SSO, though, the providers that are on are all the sign-in page offers: test a provider before you require SSO.
 
 ### Test the provider
 
-Use the link in the **Test this SSO provider** card (**Test this OIDC provider** for OpenID Connect) to run an end-to-end sign-in through your identity provider. You do not need to attach any projects first: the test signs you in to the projects you already belong to. The provider must be enabled for the link to work.
+Use the link in the **Test this SSO provider** card (**Test this OIDC provider** for OpenID Connect) to run an end-to-end sign-in through your identity provider. **Test Sign-in** in the provider's row on **Single Sign-On** starts the same sign-in in a new tab. You do not need to attach any projects first: the test signs you in to the projects you already belong to. The provider must be enabled for the link to work.
 :::
 
 ## How Users Sign In
@@ -101,7 +96,14 @@ With **Every project**, signing in with the provider meets SSO enforcement in ev
 Configuring a global provider does not force anyone to use it; password login still works. To require SSO, turn the requirement on for a project or for the whole instance:
 
 - **Per project:** a project can require SSO, and optionally require a _specific_ provider (project or global). See [Requiring SSO for Your Project](/docs/identity/sso#requiring-sso-for-your-project).
-- **Instance-wide:** **Admin** > **Settings** > **Authentication** has a **Require SSO for Login** switch that forces SSO for every user across the instance. It asks you to confirm before it turns on, and saves as soon as you do. Master admins remain exempt so they cannot be locked out.
+- **Instance-wide:** the **Require SSO** card at the bottom of **Admin** > **Settings** > **Single Sign-On** has a **Require SSO for Login** switch that forces SSO for every user across the instance. It asks you to confirm before it turns on, and saves as soon as you do. Master admins remain exempt so they cannot be locked out.
+
+While the whole instance requires SSO:
+
+- The sign-in page offers only SSO: a button for each global provider that is on, and no password, passkey, Microsoft sign-in or sign-up. It keeps the email lookup that finds a project's own provider only while some project has one.
+- OneUptime refuses a password, a passkey, a Microsoft sign-in and a sign-up with "This server requires single sign-on (SSO). Sign in with SSO instead." Only a master admin's password or passkey still signs them in. People get their account by signing in with SSO or by an invitation.
+- Someone already signed in with a password signs in with SSO to open a project. They land on the project's single sign-on page, which offers the project's own providers and the global providers that sign people in to it.
+- Master admins sign in with their password at `/accounts/admin-login`, which the sign-in page does not link to. The **Require SSO** card shows the whole address under the switch, as **Master admin sign-in**: keep it, to turn the requirement off if your identity provider stops working.
 
 Turning **Require SSO for Login** on needs an SSO provider that signs people in, so nobody is locked out by it:
 
@@ -157,6 +159,10 @@ For a SAML provider, the response was made for another application: its audience
 
 :::details "SAML response was already used"
 Each response from your identity provider signs someone in once, and only within minutes of being issued: after that it is refused with "SAML response has expired". Sign in again. If responses keep expiring, check the clocks of this server and of your identity provider.
+:::
+
+:::details "This server requires single sign-on (SSO). Sign in with SSO instead."
+The whole instance requires SSO, and this was a sign-in with a password, a passkey or Microsoft, or a sign-up. Sign in with one of the SSO buttons on the sign-in page instead. A master admin signs in with their password at `/accounts/admin-login`; to let everyone sign in with a password again, they turn off **Require SSO for Login** on **Single Sign-On**.
 :::
 
 ## Next steps

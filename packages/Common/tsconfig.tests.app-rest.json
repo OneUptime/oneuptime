@@ -1,0 +1,33 @@
+{
+  /*
+   * A part of tsconfig.tests.json that `npm run compile-tests`
+   * (Scripts/compile-tests.js) type-checks on its own: every Tests/App test
+   * but the Dashboard ones whose names start with A to M
+   * (tsconfig.tests.app-dashboard-a-m.json), and the frontend sources they
+   * import. Its "include" is tsconfig.tests.app.json's, so a new App test
+   * lands here unless its name puts it in the other part. Split from
+   * tsconfig.tests.app.json on 2026-10-27, when its check used 7.64 GB of its
+   * 8 GiB heap. Why the program is checked in parts: Scripts/compile-tests.js.
+   *
+   * Everything but "exclude" is inherited, so these tests are held to exactly
+   * the rules of the whole program.
+   */
+  "extends": "./tsconfig.tests.app.json",
+  "exclude": [
+    "node_modules",
+    "build",
+    "Tests/App/Dashboard/A*",
+    "Tests/App/Dashboard/B*",
+    "Tests/App/Dashboard/C*",
+    "Tests/App/Dashboard/D*",
+    "Tests/App/Dashboard/E*",
+    "Tests/App/Dashboard/F*",
+    "Tests/App/Dashboard/G*",
+    "Tests/App/Dashboard/H*",
+    "Tests/App/Dashboard/I*",
+    "Tests/App/Dashboard/J*",
+    "Tests/App/Dashboard/K*",
+    "Tests/App/Dashboard/L*",
+    "Tests/App/Dashboard/M*"
+  ]
+}

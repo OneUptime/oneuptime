@@ -35848,6 +35848,7 @@
   "Maintenance markers are unavailable.": "メンテナンスのマーカーを利用できません。",
   "Maintenance markers need the uptime history, which did not load.": "メンテナンスのマーカーには稼働率の履歴が必要ですが、読み込めませんでした。",
   "You need permission to read scheduled maintenance.": "定期メンテナンスを読み取る権限が必要です。",
+  "Sign in with {{name}}": "{{name}} でサインイン",
   "View only": "閲覧のみ",
   "Changing this workflow takes permission to edit it.": "このワークフローを変更するには、編集する権限が必要です。",
   "No trigger yet": "トリガーはまだありません",

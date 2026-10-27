@@ -51,6 +51,7 @@ import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import MailService from "Common/Server/Services/MailService";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
+import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
 import UserService from "Common/Server/Services/UserService";
 import UserTotpAuthService from "Common/Server/Services/UserTotpAuthService";
 import UserTwoFactorBackupCodeService from "Common/Server/Services/UserTwoFactorBackupCodeService";
@@ -404,6 +405,14 @@ router.post(
         throw new BadDataException(PASSKEY_LOGIN_ERROR);
       }
 
+      /*
+       * A passkey is not single sign-on: while the whole server requires
+       * SSO, only a master admin signs in with one (SsoRequiredSignIn).
+       * After the passkey is verified, so only its holder is told why, and
+       * before a mobile sign-in is handed its code.
+       */
+      await SsoRequiredSignIn.assertNonSsoSignInAllowed(user);
+
       if (mobileContext) {
         const callbackUrl: string =
           await MobilePasskeyLoginService.createAuthorizationCode({
@@ -489,6 +498,9 @@ router.post(
       if (!user?.id || !user.email || !user.isEmailVerified || user.isBlocked) {
         throw new BadDataException(PASSKEY_LOGIN_ERROR);
       }
+
+      // Or the server may have come to require SSO since (SsoRequiredSignIn).
+      await SsoRequiredSignIn.assertNonSsoSignInAllowed(user);
       await AccessTokenService.refreshUserAllPermissions(user.id);
       const loginResult: FinalizeUserLoginResult = await finalizeUserLogin({
         req,
@@ -530,6 +542,14 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      /*
+       * While the whole server requires single sign-on, an account is made
+       * by signing in with SSO, or by an invitation - never with a password
+       * it could not sign in with (SsoRequiredSignIn). Claiming an invited
+       * account included: the invited person signs in with SSO instead.
+       */
+      await SsoRequiredSignIn.assertSignUpAllowed();
+
       if (await DatabaseConfig.shouldDisableSignup()) {
         /*
          * Check if this user has been invited to a project.
@@ -2664,6 +2684,16 @@ const login: LoginFunction = async (options: {
           new BadDataException(ExceptionMessages.UserBlocked),
         );
       }
+
+      /*
+       * While the whole server requires single sign-on, only a master admin
+       * signs in with a password (SsoRequiredSignIn) - at every stage, so a
+       * second step started before it was turned on finishes nowhere either.
+       * After the password, like the checks around it, so only the account's
+       * holder is told why; ahead of the address check, so nobody is mailed a
+       * verification link for a sign-in that cannot happen.
+       */
+      await SsoRequiredSignIn.assertNonSsoSignInAllowed(alreadySavedUser);
 
       /*
        * An unverified address gets no session, on any stage. This is the gate

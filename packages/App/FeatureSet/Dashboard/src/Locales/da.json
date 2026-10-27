@@ -35848,6 +35848,7 @@
   "Maintenance markers are unavailable.": "Vedligeholdelsesmarkeringer er ikke tilgængelige.",
   "Maintenance markers need the uptime history, which did not load.": "Vedligeholdelsesmarkeringer kræver oppetidshistorikken, som ikke blev indlæst.",
   "You need permission to read scheduled maintenance.": "Du skal have tilladelse til at læse planlagt vedligeholdelse.",
+  "Sign in with {{name}}": "Log ind med {{name}}",
   "View only": "Kun visning",
   "Changing this workflow takes permission to edit it.": "Det kræver tilladelse til at redigere denne arbejdsgang at ændre den.",
   "No trigger yet": "Ingen udløser endnu",

@@ -1,0 +1,52 @@
+{
+  /*
+   * A part of tsconfig.tests.json that `npm run compile-tests`
+   * (Scripts/compile-tests.js) type-checks on its own: the Dashboard tests in
+   * Tests/App/Dashboard whose names start with A to M, and the frontend
+   * sources they import. tsconfig.tests.app-rest.json holds every other
+   * Tests/App test, and leaves out exactly these letters. Split from
+   * tsconfig.tests.app.json on 2026-10-27, when its check used 7.64 GB of its
+   * 8 GiB heap. Tests/App/Dashboard is one directory of some 1,650 tests, so
+   * the line is drawn by name, where it halves the memory the two parts
+   * need; TypeScript's globs know * and ?, not ranges, so each letter is
+   * listed. Why the program is checked in parts: Scripts/compile-tests.js.
+   *
+   * Everything but "include" is inherited, so these tests are held to exactly
+   * the rules of the whole program.
+   */
+  "extends": "./tsconfig.tests.json",
+  "include": [
+    "Tests/App/Dashboard/A*.ts",
+    "Tests/App/Dashboard/A*.tsx",
+    "Tests/App/Dashboard/B*.ts",
+    "Tests/App/Dashboard/B*.tsx",
+    "Tests/App/Dashboard/C*.ts",
+    "Tests/App/Dashboard/C*.tsx",
+    "Tests/App/Dashboard/D*.ts",
+    "Tests/App/Dashboard/D*.tsx",
+    "Tests/App/Dashboard/E*.ts",
+    "Tests/App/Dashboard/E*.tsx",
+    "Tests/App/Dashboard/F*.ts",
+    "Tests/App/Dashboard/F*.tsx",
+    "Tests/App/Dashboard/G*.ts",
+    "Tests/App/Dashboard/G*.tsx",
+    "Tests/App/Dashboard/H*.ts",
+    "Tests/App/Dashboard/H*.tsx",
+    "Tests/App/Dashboard/I*.ts",
+    "Tests/App/Dashboard/I*.tsx",
+    "Tests/App/Dashboard/J*.ts",
+    "Tests/App/Dashboard/J*.tsx",
+    "Tests/App/Dashboard/K*.ts",
+    "Tests/App/Dashboard/K*.tsx",
+    "Tests/App/Dashboard/L*.ts",
+    "Tests/App/Dashboard/L*.tsx",
+    "Tests/App/Dashboard/M*.ts",
+    "Tests/App/Dashboard/M*.tsx",
+    // jest runs it before every test file (setupFilesAfterEnv), so the
+    // global types it brings in belong to every part, not only to the one
+    // whose include happens to match it.
+    "Tests/jest.setup.ts",
+    "Typings/**/*.d.ts",
+    "UI/index.d.ts"
+  ]
+}

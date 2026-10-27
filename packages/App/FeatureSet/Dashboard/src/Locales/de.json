@@ -35848,6 +35848,7 @@
   "Maintenance markers are unavailable.": "Wartungsmarkierungen sind nicht verfügbar.",
   "Maintenance markers need the uptime history, which did not load.": "Wartungsmarkierungen benötigen den Verfügbarkeitsverlauf, der nicht geladen wurde.",
   "You need permission to read scheduled maintenance.": "Sie benötigen die Berechtigung, geplante Wartungen zu lesen.",
+  "Sign in with {{name}}": "Mit {{name}} anmelden",
   "View only": "Nur ansehen",
   "Changing this workflow takes permission to edit it.": "Um diesen Arbeitsablauf zu ändern, ist die Berechtigung erforderlich, ihn zu bearbeiten.",
   "No trigger yet": "Noch kein Auslöser",

@@ -350,16 +350,38 @@ else
 	TITLE="New package: $PACKAGE_ID version $VERSION"
 fi
 
-# The branch, at winget-pkgs' newest commit. One left by a run that stopped
-# before its pull request is moved there too, so it carries only this commit.
+# set_branch: the branch, at winget-pkgs' newest commit ($BASE). One left by a
+# run that stopped before its pull request is moved there too, so it carries
+# only this commit. GitHub can refuse this for a moment: on 14.0.93's release
+# (2026-10-27) it answered "Reference update failed (HTTP 422)" to the
+# branch's creation, and the fork had the commit when it was looked at
+# again. So it is asked up to four times, as exists() asks, looking each time
+# whether an earlier attempt made the branch after all, before the job stops.
+set_branch() {
+	local out status attempt=1
+	while true; do
+		status=0
+		if exists "repos/$FORK/git/ref/heads/$BRANCH"; then
+			out="$(gh api --method PATCH "repos/$FORK/git/refs/heads/$BRANCH" \
+				-f sha="$BASE" -F force=true 2>&1 >/dev/null)" || status=$?
+		else
+			out="$(gh api --method POST "repos/$FORK/git/refs" \
+				-f ref="refs/heads/$BRANCH" -f sha="$BASE" 2>&1 >/dev/null)" || status=$?
+		fi
+		if ((status == 0)); then
+			return 0
+		fi
+		if ((attempt >= 4)); then
+			fail "could not point $FORK's $BRANCH at $UPSTREAM's $BASE: $out"
+		fi
+		echo "Pointing $FORK's $BRANCH at $BASE failed (attempt $attempt of 4); asking again. GitHub said: $out" >&2
+		sleep $((attempt * ${WINGET_RETRY_DELAY_SECONDS:-15}))
+		attempt=$((attempt + 1))
+	done
+}
+
 BASE="$(gh api "repos/$UPSTREAM/git/ref/heads/$UPSTREAM_BRANCH" --jq .object.sha)"
-if exists "repos/$FORK/git/ref/heads/$BRANCH"; then
-	gh api --method PATCH "repos/$FORK/git/refs/heads/$BRANCH" \
-		-f sha="$BASE" -F force=true >/dev/null
-else
-	gh api --method POST "repos/$FORK/git/refs" \
-		-f ref="refs/heads/$BRANCH" -f sha="$BASE" >/dev/null
-fi
+set_branch
 
 for manifest in "${MANIFESTS[@]}"; do
 	gh api --method PUT "repos/$FORK/contents/$VERSION_DIR/$manifest" \
