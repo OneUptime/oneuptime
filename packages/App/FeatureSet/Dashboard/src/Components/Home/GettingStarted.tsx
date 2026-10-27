@@ -145,8 +145,13 @@ const gettingStartedTasks: Array<GettingStartedTask> = [
   {
     key: "create-on-call-policy",
     title: "Set up an on-call policy",
+    /*
+     * Says what happens until then, too: an incident or alert nobody owns
+     * is emailed to the project's owners (the Owners workers), so a new
+     * project's first monitor already reaches whoever made the project.
+     */
     description:
-      "Route alerts and incidents to the right person at the right time.",
+      "Page the right person when an incident or alert opens. Until then, the project's owners get an email.",
     icon: IconProp.Call,
     iconBackgroundClassName: "bg-rose-500",
     pageMap: PageMap.ON_CALL_DUTY,

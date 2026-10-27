@@ -269,6 +269,7 @@ RunCron(
       ).toString();
 
       const episodeFeedText: string = OwnerNotificationFeedText.membersAdded({
+        isProjectOwners: !doesResourceHasOwners,
         memberNoun: "incident",
         count: incidentCountInBatch,
       });

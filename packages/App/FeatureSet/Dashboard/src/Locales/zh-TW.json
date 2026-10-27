@@ -36335,5 +36335,9 @@
   "Resolved by OneUptime AI. Nobody was paged.": "已由 OneUptime AI 解決。沒有呼叫任何人。",
   "Wait for OneUptime AI for up to (minutes)": "最多等待 OneUptime AI（分鐘）",
   "Wait from 1 to 30 whole minutes.": "請輸入 1 到 30 之間的整數分鐘。",
-  "This page will come back as soon as you're online again, just as you left it.": "恢復連線後，此頁面會立即恢復，保持你離開時的樣子。"
+  "This page will come back as soon as you're online again, just as you left it.": "恢復連線後，此頁面會立即恢復，保持你離開時的樣子。",
+  "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.": "為事件與警示各新增一條待命規則。在規則或監測器觸發之前，策略不會通知任何人。",
+  "Page this policy for every new incident and alert": "每個新事件與警示都觸發此策略",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "建立事件或警示時通知合適的人。在此之前，專案擁有者會收到電子郵件。",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "選擇要監測的對象並為其命名。其餘內容皆使用可變更的預設值。一旦發生問題，OneUptime 會建立事件或警示，並以電子郵件通知專案擁有者。"
 }

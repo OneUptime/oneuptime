@@ -102,13 +102,13 @@ export interface UseSetupChecklistOptions {
  * has no address on, and nothing on that page ever says the resulting mail goes
  * nowhere.
  */
-interface SettingChannel {
+export interface SettingChannel {
   column: keyof UserNotificationSetting;
   methodType: string;
   label: string;
 }
 
-const SETTING_CHANNELS: Array<SettingChannel> = [
+export const SETTING_CHANNELS: Array<SettingChannel> = [
   { column: "alertByEmail", methodType: "Email", label: "Email" },
   { column: "alertBySMS", methodType: "SMS", label: "SMS" },
   { column: "alertByCall", methodType: "Call", label: "Call" },
@@ -117,6 +117,73 @@ const SETTING_CHANNELS: Array<SettingChannel> = [
   { column: "alertByTelegram", methodType: "Telegram", label: "Telegram" },
   { column: "alertByWebhook", methodType: "Webhook", label: "Webhook" },
 ];
+
+/*
+ * The channels "Your notification settings point at channels that work"
+ * names only for an update that reaches the reader no other way: Push.
+ *
+ * A new member starts with push switched on, beside email, for five updates
+ * that a phone is for (a shift about to start or reassigned, and security
+ * cases). Held to the rule every other channel is held to, each member who
+ * had not registered a phone or a browser for push was told "You switched on
+ * Push, but have no verified method there, so those updates are not sent"
+ * about switches they never touched, while those updates reached them by
+ * email - and their checklist could never be finished. An update switched on
+ * for push alone, with no device behind it, still reaches nobody, and is
+ * still named.
+ */
+export const CHANNELS_NAMED_ONLY_WHEN_ALONE: ReadonlyArray<string> = ["Push"];
+
+/*
+ * The channels to name in "You switched on ..., but have no verified method
+ * there": those the reader switched on for some update (any row) while no
+ * usable method of theirs is on that channel, in the settings page's column
+ * order. A channel in CHANNELS_NAMED_ONLY_WHEN_ALONE counts only on a row
+ * that no other switched-on, usable channel carries.
+ */
+export const getUndeliverableSettingChannels: (data: {
+  rows: Array<UserNotificationSetting>;
+  usableMethodTypes: ReadonlySet<string>;
+}) => Array<string> = (data: {
+  rows: Array<UserNotificationSetting>;
+  usableMethodTypes: ReadonlySet<string>;
+}): Array<string> => {
+  const isCarriedByAnother: (
+    row: UserNotificationSetting,
+    channel: SettingChannel,
+  ) => boolean = (
+    row: UserNotificationSetting,
+    channel: SettingChannel,
+  ): boolean => {
+    return SETTING_CHANNELS.some((other: SettingChannel): boolean => {
+      return (
+        other !== channel &&
+        Boolean(row[other.column]) &&
+        data.usableMethodTypes.has(other.methodType)
+      );
+    });
+  };
+
+  return SETTING_CHANNELS.filter((channel: SettingChannel): boolean => {
+    if (data.usableMethodTypes.has(channel.methodType)) {
+      return false;
+    }
+
+    return data.rows.some((row: UserNotificationSetting): boolean => {
+      if (!row[channel.column]) {
+        return false;
+      }
+
+      if (CHANNELS_NAMED_ONLY_WHEN_ALONE.includes(channel.methodType)) {
+        return !isCarriedByAnother(row, channel);
+      }
+
+      return true;
+    });
+  }).map((channel: SettingChannel): string => {
+    return channel.label;
+  });
+};
 
 /*
  * The unknown answer for each probe, named once so that a `catch` cannot
@@ -356,19 +423,11 @@ const loadNotificationSettingProbes: LoadNotificationSettingsFunction =
         }),
     );
 
-    const undeliverableChannels: Array<string> = SETTING_CHANNELS.filter(
-      (channel: SettingChannel): boolean => {
-        if (usableMethodTypes.has(channel.methodType)) {
-          return false;
-        }
-
-        return rows.some((row: UserNotificationSetting): boolean => {
-          return Boolean(row[channel.column]);
-        });
-      },
-    ).map((channel: SettingChannel): string => {
-      return channel.label;
-    });
+    const undeliverableChannels: Array<string> =
+      getUndeliverableSettingChannels({
+        rows: rows,
+        usableMethodTypes: usableMethodTypes,
+      });
 
     return {
       onCallShiftAlerts: {

@@ -1602,8 +1602,14 @@ const MonitorCreate: FunctionComponent<
       <MonitorPayAsYouGoCard />
       <Card
         title="Create New Monitor"
+        /*
+         * Who is told is the first thing someone new asks of a monitor.
+         * Its default criteria open an incident when it goes down (an alert
+         * for a few types), and an incident or alert nobody owns is emailed
+         * to the project's owners.
+         */
         description={
-          "Pick what to monitor and give it a name. Everything else starts with defaults you can change."
+          "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners."
         }
         className="mb-10"
       >

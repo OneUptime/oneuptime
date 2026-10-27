@@ -118,6 +118,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
       "The AI / LLM monitor's settings, embedded in one step of the monitor form like the other monitors' filters; a stepper inside a step would nest one wizard in another. On screen are the questions every AI alert answers (which problems make an answer bad, how slow is too slow, how far back to look, which apps); the model folds under More fields, and the preview of what the monitor would count sits under them.",
   },
   {
+    file: `${DASHBOARD}/Pages/OnCallDuty/OnCallDutyPolicies.tsx`,
+    form: "ModelTable: On-Call > Policies",
+    reason:
+      "Create On-Call Policy is three rows - Name, Who gets paged first? and the folded description and labels - and a fourth only for a project's first policy: the switch 'Page this policy for every new incident and alert', without which that policy pages nobody (EveryNewEventRules). A step of its own for one switch would make the first policy the longest to create; OnCallPolicyCreateFormGuard pins the shape.",
+  },
+  {
     file: `${DASHBOARD}/Components/OnCallPolicy/OnCallScheduleLayer/LayerConfigForm.tsx`,
     form: "ModelForm: Layer Configuration",
     reason:

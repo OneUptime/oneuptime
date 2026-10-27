@@ -93,8 +93,6 @@ RunCron(
         },
       });
 
-      const incidentFeedText: string =
-        OwnerNotificationFeedText.created("incident");
       let moreIncidentFeedInformationInMarkdown: string = "";
 
       const incidentIdentifiedDate: Date =
@@ -312,7 +310,9 @@ RunCron(
         projectId: incident.projectId!,
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
         displayColor: Yellow500,
-        feedInfoInMarkdown: incidentFeedText,
+        feedInfoInMarkdown: OwnerNotificationFeedText.created("incident", {
+          isProjectOwners: !doesResourceHasOwners,
+        }),
         moreInformationInMarkdown: moreIncidentFeedInformationInMarkdown,
         workspaceNotification: {
           sendWorkspaceNotification: false,

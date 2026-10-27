@@ -59,16 +59,16 @@ Vill du prova kontrollen innan du sparar, klickar du på **Testa monitor** i det
 
 ## Bli larmad när den går ner
 
-Som det är nu skickas en incident utan ägare med e-post till projektets ägare, och det inkluderar dig. För att bli larmad tills någon svarar skapar du en jourpolicy och låter varje incident utlösa den.
+Som det är nu skickas en incident utan ägare med e-post till projektets ägare, och det inkluderar dig. För att bli larmad tills någon svarar skapar du en jourpolicy: den första i ett projekt utlöses vid varje ny incident och varje nytt larm.
 
 :::steps
 ### Skapa en jourpolicy
 
-Klicka på **Konfigurera en jourpolicy** i checklistan, eller öppna **Jourtjänst** från menyn **Produkter**. Klicka på **Skapa Jourpolicy** och ange ett **Namn**. Under **Vem larmas först?** klickar du på **Lägg till mottagare** och väljer dig själv. Klicka på **Skapa Jourpolicy**.
+Klicka på **Konfigurera en jourpolicy** i checklistan, eller öppna **Jourtjänst** från menyn **Produkter**. Klicka på **Skapa Jourpolicy** och ange ett **Namn**. Under **Vem larmas först?** klickar du på **Lägg till mottagare** och väljer dig själv. Låt **Utlös den vid varje ny incident och varje nytt larm** vara påslaget och klicka på **Skapa Jourpolicy**.
 
-### Utlös den för varje incident
+### Se regeln som utlöser den
 
-Öppna **Incidenter** från menyn **Produkter**, fäll ut **Regler** i sidomenyn och välj **Jourregler**. Klicka på **Skapa Incident On-Call Rule**, ange ett **Namn** och klicka på **Nästa**. Låt **Alla incidenter** vara valt under **Matchningskriterier**, så att regeln gäller varje incident, och klicka på **Nästa**. Välj din policy under **Jourpolicyer** och klicka på **Skapa Incident On-Call Rule**.
+Reglaget lade till en jourregel för incidenter och en för larm. För att se din öppnar du **Incidenter** från menyn **Produkter**, fäller ut **Regler** i sidomenyn och väljer **Jourregler**: den matchar **Alla incidenter**. Vill du bara utlösa policyn för vissa incidenter, till exempel kritiska, redigerar du regeln där, eller klickar på **Skapa Incident On-Call Rule** för att lägga till en egen.
 
 ### Välj hur du nås
 
