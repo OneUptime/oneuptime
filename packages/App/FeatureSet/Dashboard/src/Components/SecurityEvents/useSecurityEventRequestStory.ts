@@ -91,21 +91,14 @@ export function toPanelTraceException(
   };
 }
 
-async function readTrace(data: {
-  traceId: string;
-  time: Date;
-}): Promise<{
+async function readTrace(data: { traceId: string; time: Date }): Promise<{
   spans: Array<RequestTraceSpan>;
   exceptions: Array<RequestTraceException>;
 }> {
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const traceWindow: InBetween<Date> = new InBetween<Date>(
-    new Date(
-      data.time.getTime() - PANEL_TRACE_WINDOW_IN_MINUTES * 60 * 1000,
-    ),
-    new Date(
-      data.time.getTime() + PANEL_TRACE_WINDOW_IN_MINUTES * 60 * 1000,
-    ),
+    new Date(data.time.getTime() - PANEL_TRACE_WINDOW_IN_MINUTES * 60 * 1000),
+    new Date(data.time.getTime() + PANEL_TRACE_WINDOW_IN_MINUTES * 60 * 1000),
   );
 
   const [spans, exceptions] = await Promise.all([

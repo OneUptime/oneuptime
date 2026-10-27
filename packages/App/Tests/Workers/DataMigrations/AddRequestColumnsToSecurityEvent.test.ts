@@ -399,8 +399,7 @@ describe("AddRequestColumnsToSecurityEvent", () => {
     expect(
       loggedWarnings.some((message: string): boolean => {
         return (
-          message.includes(MIGRATION_NAME) &&
-          message.includes("sessionId")
+          message.includes(MIGRATION_NAME) && message.includes("sessionId")
         );
       }),
     ).toBe(true);

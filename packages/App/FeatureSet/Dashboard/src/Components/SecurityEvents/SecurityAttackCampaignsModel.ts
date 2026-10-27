@@ -196,7 +196,9 @@ export function getCampaignOutcomeSegments(
       key: SecurityEventRequestOutcome.ReachedDatabase,
       label: SecurityEventRequestOutcome.ReachedDatabase,
       count: campaign.reachedDatabaseCount,
-      color: getRequestOutcomeColor(SecurityEventRequestOutcome.ReachedDatabase),
+      color: getRequestOutcomeColor(
+        SecurityEventRequestOutcome.ReachedDatabase,
+      ),
     },
     {
       key: SecurityEventRequestOutcome.Errored,

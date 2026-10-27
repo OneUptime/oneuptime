@@ -330,7 +330,9 @@ const SecurityEventSourceSection: FunctionComponent<ComponentProps> = (
         route={replayRoute}
         icon={IconProp.Play}
         label={translator.translateText(WATCH_SESSION) || WATCH_SESSION}
-        hint={translator.translateText(WATCH_SESSION_HINT) || WATCH_SESSION_HINT}
+        hint={
+          translator.translateText(WATCH_SESSION_HINT) || WATCH_SESSION_HINT
+        }
         testId="security-event-watch-session"
       />,
     );

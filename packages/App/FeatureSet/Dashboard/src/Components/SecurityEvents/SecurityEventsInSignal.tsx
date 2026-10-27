@@ -65,8 +65,9 @@ const SecurityEventsInSignal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const kind: SecurityEventsInSignalKind | null =
-    getSecurityEventsInSignalKind(props.scope);
+  const kind: SecurityEventsInSignalKind | null = getSecurityEventsInSignalKind(
+    props.scope,
+  );
   const timeKey: number = props.time ? new Date(props.time).getTime() : NaN;
 
   const searchWindow: InBetween<Date> = useMemo(() => {
@@ -89,12 +90,13 @@ const SecurityEventsInSignal: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     setEvents([]);
 
-    const query: Query<SecurityEvent> | null =
-      buildSecurityEventsInSignalQuery({
+    const query: Query<SecurityEvent> | null = buildSecurityEventsInSignalQuery(
+      {
         scope: props.scope,
         window: searchWindow,
         projectId: ProjectUtil.getCurrentProjectId(),
-      });
+      },
+    );
 
     if (!query) {
       return;

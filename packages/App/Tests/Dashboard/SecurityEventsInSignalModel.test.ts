@@ -269,8 +269,6 @@ describe("the event a callout names", () => {
         ],
         2,
       ),
-    ).toBe(
-      "2 security events happened in requests that threw this exception",
-    );
+    ).toBe("2 security events happened in requests that threw this exception");
   });
 });

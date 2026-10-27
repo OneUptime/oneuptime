@@ -1,6 +1,12 @@
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import Color from "Common/Types/Color";
-import { Amber500, Gray500, Green500, Orange, Red } from "Common/Types/BrandColors";
+import {
+  Amber500,
+  Gray500,
+  Green500,
+  Orange,
+  Red,
+} from "Common/Types/BrandColors";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import SecurityEventRequestOutcome, {
   SECURITY_REQUEST_ATTRIBUTES,
@@ -96,7 +102,10 @@ export function readSecurityEventRequestFacts(
     userAgent: readText(attributes, SECURITY_REQUEST_ATTRIBUTES.userAgent),
     userId: readText(attributes, SECURITY_REQUEST_ATTRIBUTES.userId),
     durationMs: readNumber(attributes, SECURITY_REQUEST_ATTRIBUTES.durationMs),
-    serverSpanId: readText(attributes, SECURITY_REQUEST_ATTRIBUTES.serverSpanId),
+    serverSpanId: readText(
+      attributes,
+      SECURITY_REQUEST_ATTRIBUTES.serverSpanId,
+    ),
     exceptionFingerprint: readText(
       attributes,
       SECURITY_REQUEST_ATTRIBUTES.exceptionFingerprint,
@@ -312,10 +321,13 @@ export function describeWhatHappenedNext(data: {
 
       return translator.translateText(ERRORED) || ERRORED;
     case SecurityEventRequestOutcome.ReachedApp:
-      return translator.translateTemplate(duration ? REACHED_APP_IN : REACHED_APP, {
-        status: status || "2xx",
-        duration,
-      });
+      return translator.translateTemplate(
+        duration ? REACHED_APP_IN : REACHED_APP,
+        {
+          status: status || "2xx",
+          duration,
+        },
+      );
     case SecurityEventRequestOutcome.Rejected:
       return translator.translateTemplate(duration ? REJECTED_IN : REJECTED, {
         status: status || "4xx",

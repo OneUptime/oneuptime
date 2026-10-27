@@ -1,6 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
-import { Amber500, Gray500, Green500, Orange, Red } from "Common/Types/BrandColors";
+import {
+  Amber500,
+  Gray500,
+  Green500,
+  Orange,
+  Red,
+} from "Common/Types/BrandColors";
 import { JSONObject } from "Common/Types/JSON";
 import SecurityEventRequestOutcome, {
   SECURITY_REQUEST_ATTRIBUTES,
@@ -201,7 +207,11 @@ describe("mergeAssessment", () => {
       facts({ outcome: SecurityEventRequestOutcome.Rejected }),
       assessment({
         outcome: SecurityEventRequestOutcome.ReachedDatabase,
-        database: { system: "postgresql", statement: "SELECT 1", durationMs: 2 },
+        database: {
+          system: "postgresql",
+          statement: "SELECT 1",
+          durationMs: 2,
+        },
         exception: {
           spanId: "s",
           fingerprint: "fp",
@@ -228,9 +238,9 @@ describe("the words", () => {
     expect(getRequestOutcomeColor(SecurityEventRequestOutcome.Rejected)).toBe(
       Green500,
     );
-    expect(
-      getRequestOutcomeColor(SecurityEventRequestOutcome.ReachedApp),
-    ).toBe(Amber500);
+    expect(getRequestOutcomeColor(SecurityEventRequestOutcome.ReachedApp)).toBe(
+      Amber500,
+    );
     expect(getRequestOutcomeColor(SecurityEventRequestOutcome.Errored)).toBe(
       Orange,
     );

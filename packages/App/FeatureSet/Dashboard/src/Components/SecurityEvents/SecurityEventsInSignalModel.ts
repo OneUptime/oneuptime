@@ -4,8 +4,10 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Query from "Common/Types/BaseDatabase/Query";
 import Dictionary from "Common/Types/Dictionary";
 import ObjectID from "Common/Types/ObjectID";
-import { SECURITY_REQUEST_ATTRIBUTES } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
-import { getRequestOutcomeRank } from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
+import {
+  SECURITY_REQUEST_ATTRIBUTES,
+  getRequestOutcomeRank,
+} from "Common/Types/SecurityEvent/SecurityEventRequestOutcome";
 import { SECURITY_LOG_ID_ATTRIBUTE } from "Common/Types/SecurityEvent/SecurityLogFormat";
 import {
   PluralTemplate,

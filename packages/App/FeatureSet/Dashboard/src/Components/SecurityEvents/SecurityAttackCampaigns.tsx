@@ -129,9 +129,9 @@ const SummaryFigure: FunctionComponent<{
   );
 };
 
-const OutcomeBar: FunctionComponent<{ campaign: SecurityAttackCampaign }> = (
-  props: { campaign: SecurityAttackCampaign },
-): ReactElement => {
+const OutcomeBar: FunctionComponent<{
+  campaign: SecurityAttackCampaign;
+}> = (props: { campaign: SecurityAttackCampaign }): ReactElement => {
   const translator: Translator = useTranslator();
   const segments: Array<CampaignOutcomeSegment> = getCampaignOutcomeSegments(
     props.campaign,
