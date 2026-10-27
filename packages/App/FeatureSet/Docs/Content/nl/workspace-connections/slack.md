@@ -192,6 +192,8 @@ Open OneUptime onder **Apps** in de zijbalk van Slack: het tabblad **Home** laat
 
 De startpagina leest als jou, dus heeft ze je eigen gekoppelde Slack-account nodig. Zolang dat niet zo is, staat er een knop **Connect Slack account** op, en zodra je het hebt gekoppeld, zie je je startpagina.
 
+In een Slack-workspace die aan meer dan één project gekoppeld is, toont de startpagina één project tegelijk. Is je Slack-account in twee of meer ervan gekoppeld, dan staat naast de naam van het project het menu **Switch project** met de andere projecten waarvan je lid bent. Kies er een om de startpagina ervan te zien, en vanaf dan opent de startpagina daarop, zolang je daar nog lid bent. Tot je er een kiest, toont ze je project dat als eerste aan Slack is gekoppeld.
+
 Als iemand OneUptime aan een kanaal toevoegt, plaatst het daar een begroeting: hoe je het een vraag stelt en waar je een meldingsregel toevoegt die in het kanaal plaatst. De eerste keer dat je het tabblad **Messages** opent, heet het je daar welkom: wat het in Slack doet en hoe je begint.
 
 ## OneUptime AI vragen vanuit Slack

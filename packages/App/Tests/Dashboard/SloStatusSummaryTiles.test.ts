@@ -2,6 +2,10 @@ import { describe, expect, test } from "@jest/globals";
 import {
   applySloStatusSummaryTile,
   getSloListBaseQuery,
+  getSloSummaryHadSlosKey,
+  readProjectHadSlos,
+  rememberProjectHasSlos,
+  SLO_SUMMARY_HAD_SLOS_KEY_PREFIX,
   getSloListStatusKind,
   getSloStatusSummaryTileColor,
   getSloStatusSummaryTileQuery,
@@ -526,5 +530,41 @@ describe("activating a tile", () => {
           .sort(),
       ).toEqual([SLO_ENABLED_FACET_KEY, SLO_STATUS_FACET_KEY].sort());
     }
+  });
+});
+
+/*
+ * Whether the strip may hold its place with skeletons while it counts: only
+ * on a project this browser last saw with a live SLO, so a new project never
+ * flashes six grey tiles over its empty list. Rendered in Common's
+ * SloStatusSummaryCards suite; the memory itself is pinned here, in a
+ * process with no browser storage at all (RememberedChoice holds a choice
+ * for the page's life when nothing can keep it).
+ */
+describe("the strip's memory of a project's SLOs", () => {
+  test("one key per project, under the strip's own prefix", () => {
+    expect(SLO_SUMMARY_HAD_SLOS_KEY_PREFIX).toBe(
+      "oneuptime-slo-summary-had-slos:",
+    );
+    expect(getSloSummaryHadSlosKey("project-a")).toBe(
+      "oneuptime-slo-summary-had-slos:project-a",
+    );
+    expect(getSloSummaryHadSlosKey("project-a")).not.toBe(
+      getSloSummaryHadSlosKey("project-b"),
+    );
+  });
+
+  test("an unknown project had none; what is remembered is read back, per project", () => {
+    const projectA: string = "6a1d0000-0000-4000-8000-00000000000a";
+    const projectB: string = "6a1d0000-0000-4000-8000-00000000000b";
+
+    expect(readProjectHadSlos(projectA)).toBe(false);
+
+    rememberProjectHasSlos(projectA, true);
+    expect(readProjectHadSlos(projectA)).toBe(true);
+    expect(readProjectHadSlos(projectB)).toBe(false);
+
+    rememberProjectHasSlos(projectA, false);
+    expect(readProjectHadSlos(projectA)).toBe(false);
   });
 });

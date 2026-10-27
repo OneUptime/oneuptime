@@ -120,7 +120,7 @@ const ProxmoxClusterLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs found. The Proxmox agent ships metrics only — logs appear here when you send OpenTelemetry logs stamped with this cluster's proxmox.cluster.name resource attribute."
+        noLogsMessage="The Proxmox agent sends metrics only. Logs appear here when you send OpenTelemetry logs with this cluster's proxmox.cluster.name resource attribute."
       />
     </Fragment>
   );

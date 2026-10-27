@@ -115,7 +115,7 @@ const CephClusterLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs found for this cluster. The Ceph agent ships metrics only — logs appear here when you forward them with the ceph.cluster.name resource attribute."
+        noLogsMessage="The Ceph agent sends metrics only. Logs appear here when you forward them with the ceph.cluster.name resource attribute."
       />
     </Fragment>
   );

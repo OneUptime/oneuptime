@@ -19,6 +19,7 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import Search from "Common/Types/BaseDatabase/Search";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import { SpanStatus } from "Common/Models/AnalyticsModels/Span";
+import { isServiceFacetKey } from "Common/Types/Telemetry/ResourceEntityFacet";
 import {
   SearchQueryValue,
   SearchToken,
@@ -455,4 +456,93 @@ export const toTraceDurationFilter: ToTraceDurationFilterFunction = (
   const nano: number | null = toNano(trimmed);
 
   return nano === null ? {} : { exactDurationNano: nano };
+};
+
+// The key the facets endpoint counts the Service facet under.
+const SERVICE_FACET_COUNT_KEY: string = "primaryEntityId";
+
+/*
+ * Facets with one value to choose ("Has exception"): counted the same with
+ * or without their own selection, so never asked for on their own.
+ */
+const SINGLE_CHOICE_FACET_KEYS: ReadonlySet<string> = new Set<string>([
+  "hasException",
+]);
+
+/*
+ * The facet a traces explorer chip filters on, by the key the facets
+ * endpoint counts it under: a Service chip (primaryEntityId, or its old name
+ * serviceId) the Service facet's, an `attributes.<key>` chip the attribute
+ * facet's (Host Name, Service Instance) when the sidebar lists one, and any
+ * other chip its own column's - which no facet may list (a trace id, a
+ * duration). Null for an attribute no facet lists.
+ */
+export const getTraceChipFacetKey: (
+  chipKey: string,
+  attributeFacetKeys: ReadonlySet<string>,
+) => string | null = (
+  chipKey: string,
+  attributeFacetKeys: ReadonlySet<string>,
+): string | null => {
+  if (chipKey.startsWith(ATTRIBUTE_CHIP_PREFIX)) {
+    const attributeKey: string = chipKey.substring(
+      ATTRIBUTE_CHIP_PREFIX.length,
+    );
+
+    return attributeFacetKeys.has(attributeKey) ? attributeKey : null;
+  }
+
+  if (chipKey.startsWith(ATTRIBUTE_SEARCH_CHIP_PREFIX)) {
+    return null;
+  }
+
+  return isServiceFacetKey(chipKey) ? SERVICE_FACET_COUNT_KEY : chipKey;
+};
+
+/*
+ * The facets the reader chose a value in: each is counted without its own
+ * selection (FacetCountPlan), so the statuses, kinds or services beside a
+ * checked one stay listed with their counts and a second can be checked.
+ * The page's own (read-only) chips are not a choice.
+ */
+export const getTraceChosenFacetKeys: (
+  filters: ReadonlyArray<{ facetKey: string; readOnly?: boolean | undefined }>,
+  attributeFacetKeys: ReadonlySet<string>,
+) => Array<string> = (
+  filters: ReadonlyArray<{ facetKey: string; readOnly?: boolean | undefined }>,
+  attributeFacetKeys: ReadonlySet<string>,
+): Array<string> => {
+  const keys: Set<string> = new Set<string>();
+
+  for (const filter of filters) {
+    if (filter.readOnly) {
+      continue;
+    }
+
+    const facetKey: string | null = getTraceChipFacetKey(
+      filter.facetKey,
+      attributeFacetKeys,
+    );
+
+    if (facetKey && !SINGLE_CHOICE_FACET_KEYS.has(facetKey)) {
+      keys.add(facetKey);
+    }
+  }
+
+  return Array.from(keys);
+};
+
+/*
+ * Whether a typed `field:value` token filters on the facet being counted
+ * without its own selection: `service:` is the Service facet's.
+ */
+export const isTraceFieldOfFacet: (
+  fieldKey: string,
+  facetKey: string,
+) => boolean = (fieldKey: string, facetKey: string): boolean => {
+  if (facetKey === SERVICE_FACET_COUNT_KEY) {
+    return isServiceFacetKey(fieldKey);
+  }
+
+  return fieldKey === facetKey;
 };

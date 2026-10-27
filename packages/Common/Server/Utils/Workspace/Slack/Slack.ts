@@ -19,6 +19,8 @@ import WorkspaceMessagePayload, {
   WorkspacePayloadImage,
   WorkspacePayloadInlineImage,
   WorkspacePayloadMarkdown,
+  WorkspacePayloadMenu,
+  WorkspacePayloadMenuOption,
   WorkspaceTextAreaBlock,
   WorkspaceTextBoxBlock,
 } from "../../../../Types/Workspace/WorkspaceMessagePayload";
@@ -3552,15 +3554,107 @@ export default class SlackUtil extends WorkspaceBase {
       );
     }
 
-    return sectionTexts.map((sectionText: string): JSONObject => {
-      return {
-        type: "section",
-        text: {
-          type: "mrkdwn",
-          text: sectionText,
-        },
-      };
-    });
+    const sections: Array<JSONObject> = sectionTexts.map(
+      (sectionText: string): JSONObject => {
+        return {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: sectionText,
+          },
+        };
+      },
+    );
+
+    // A menu beside the text (the Home's Switch project): its first section's.
+    if (data.payloadMarkdownBlock.menu && sections[0]) {
+      SlackUtil.addMenu({
+        section: sections[0],
+        menu: data.payloadMarkdownBlock.menu,
+      });
+    }
+
+    return sections;
+  }
+
+  // The most options Slack's static select takes.
+  public static readonly MAX_MENU_OPTIONS: number = 100;
+
+  // The most characters an option's text, or a select's placeholder, holds.
+  public static readonly MENU_OPTION_TEXT_MAX_LENGTH: number = 75;
+
+  // The most characters an option's value, or a block's id, holds.
+  private static readonly MENU_OPTION_VALUE_MAX_LENGTH: number = 150;
+  private static readonly BLOCK_ID_MAX_LENGTH: number = 255;
+
+  /*
+   * A section with a menu beside its text (WorkspacePayloadMenu): Slack's
+   * static select as the section's accessory, which Slack posts as soon as
+   * an option is chosen. Each option's text is cut to what Slack takes, and
+   * at most MAX_MENU_OPTIONS are listed. A menu with no option to list, or
+   * one Slack would refuse, is left out: the text stands on its own.
+   */
+  private static addMenu(data: {
+    section: JSONObject;
+    menu: WorkspacePayloadMenu;
+  }): void {
+    const options: Array<JSONObject> = data.menu.options
+      .filter((option: WorkspacePayloadMenuOption): boolean => {
+        return (
+          Boolean(option.label.trim()) &&
+          Boolean(option.value) &&
+          option.value.length <= SlackUtil.MENU_OPTION_VALUE_MAX_LENGTH
+        );
+      })
+      .slice(0, SlackUtil.MAX_MENU_OPTIONS)
+      .map((option: WorkspacePayloadMenuOption): JSONObject => {
+        return {
+          text: {
+            type: "plain_text",
+            text: SlackUtil.cutPlainText(
+              option.label.trim(),
+              SlackUtil.MENU_OPTION_TEXT_MAX_LENGTH,
+            ),
+            emoji: true,
+          },
+          value: option.value,
+        };
+      });
+
+    if (options.length === 0 || !data.menu.actionId) {
+      return;
+    }
+
+    data.section["accessory"] = {
+      type: "static_select",
+      action_id: data.menu.actionId,
+      placeholder: {
+        type: "plain_text",
+        text: SlackUtil.cutPlainText(
+          data.menu.placeholder,
+          SlackUtil.MENU_OPTION_TEXT_MAX_LENGTH,
+        ),
+        emoji: true,
+      },
+      options: options,
+    };
+
+    if (
+      data.menu.blockId &&
+      data.menu.blockId.length <= SlackUtil.BLOCK_ID_MAX_LENGTH
+    ) {
+      data.section["block_id"] = data.menu.blockId;
+    }
+  }
+
+  /*
+   * Plain text cut to `maxLength` characters, ending with "…" when cut -
+   * never between the two halves of an emoji (cutToLength).
+   */
+  private static cutPlainText(text: string, maxLength: number): string {
+    return text.length > maxLength
+      ? `${cutToLength(text, maxLength - 1).trimEnd()}…`
+      : text;
   }
 
   /*

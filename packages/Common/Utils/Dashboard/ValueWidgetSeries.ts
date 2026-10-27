@@ -266,6 +266,100 @@ const isUsableDate: (date: Date | undefined) => date is Date = (
 };
 
 /*
+ * The most points a filled sparkline draws. The metrics API buckets a window
+ * into a few hundred at most (AggregationIntervalUtil); a series spread
+ * wider than this was not bucketed the way the caller thinks, and is drawn
+ * as it came.
+ */
+export const VALUE_WIDGET_MAX_FILLED_POINTS: number = 2000;
+
+export interface FillValueWidgetSeriesGapsData {
+  // From getValueWidgetSeries: oldest first, one point per time.
+  series: Array<ValueWidgetPoint>;
+  // The interval the server bucketed the window at.
+  bucketWidthMs: number;
+}
+
+/*
+ * A sum's or a count's series with the empty buckets between its readings
+ * drawn as 0.
+ *
+ * The metrics API answers only the buckets that had a reading. A count of
+ * something that happens now and then - deploys, errors, sign-ups - comes
+ * back as a few buckets with hours between them, and a line through just
+ * those read flat ("4, then 4, then 4") while the arrow beside it, which
+ * compares totals per half of the range, said the count rose. For a sum or
+ * a count, a bucket with no reading counts nothing: it is a real 0. So each
+ * empty bucket between the first reading and the last is drawn at 0, and
+ * the spikes show as spikes.
+ *
+ * Only between readings: the newest bucket is often empty only because its
+ * readings have not landed yet, and a line that dropped to 0 at its right
+ * end on every refresh would read as an outage. Before the first reading
+ * there may be no metric yet at all. And only for a sum or a count: an
+ * average or a percentile of no readings is not 0 but unknown, and keeps
+ * its gaps. Nothing is filled when
+ *
+ *   - a point does not sit on the bucket grid the caller names (a calendar
+ *     month or year is not a fixed width, and a widget bucketed some other
+ *     way must not get zeros between its real points);
+ *   - the readings span more buckets than VALUE_WIDGET_MAX_FILLED_POINTS.
+ */
+export const fillValueWidgetSeriesGaps: (
+  data: FillValueWidgetSeriesGapsData,
+) => Array<ValueWidgetPoint> = (
+  data: FillValueWidgetSeriesGapsData,
+): Array<ValueWidgetPoint> => {
+  const series: Array<ValueWidgetPoint> = data.series;
+  const widthMs: number = data.bucketWidthMs;
+
+  if (series.length < 2 || !Number.isFinite(widthMs) || widthMs <= 0) {
+    return series;
+  }
+
+  const firstMs: number = series[0]!.timestamp.getTime();
+  const lastMs: number = series[series.length - 1]!.timestamp.getTime();
+  const valuesByTime: Map<number, number> = new Map<number, number>();
+
+  for (const point of series) {
+    const timeMs: number = point.timestamp.getTime();
+
+    if ((timeMs - firstMs) % widthMs !== 0) {
+      return series;
+    }
+
+    valuesByTime.set(timeMs, point.value);
+  }
+
+  const slotCount: number = (lastMs - firstMs) / widthMs + 1;
+
+  if (
+    !Number.isFinite(slotCount) ||
+    slotCount > VALUE_WIDGET_MAX_FILLED_POINTS
+  ) {
+    return series;
+  }
+
+  if (slotCount === series.length) {
+    // No bucket between the readings is empty.
+    return series;
+  }
+
+  const filled: Array<ValueWidgetPoint> = [];
+
+  for (let slot: number = 0; slot < slotCount; slot++) {
+    const slotMs: number = firstMs + slot * widthMs;
+
+    filled.push({
+      timestamp: new Date(slotMs),
+      value: valuesByTime.get(slotMs) ?? 0,
+    });
+  }
+
+  return filled;
+};
+
+/*
  * How the widget's number moved across the time range: the second half of
  * the range against the first, each reduced the way the widget reduces the
  * whole range. Null when there is nothing honest to compare - fewer than two

@@ -199,6 +199,7 @@ OneUptimeReplay.captureSession("installation test");
 | `bootstrap-already-started` | 같은 페이지에 스니펫이 두 개 있습니다. 하나를 제거하세요. |
 | `bootstrap-already-running` | 레코더가 이미 실행 중일 때 `bootstrap()`이 다시 호출되었습니다. 무해하며, 보통 통합이 중복된 경우입니다. |
 | `bootstrap-cancelled` | 레코더가 시작되기 전에 `window.OneUptimeReplayQueue` 대기열의 `revokeConsent()` 또는 `stop()`이 실행되어 이 세션은 녹화되지 않습니다. 배너가 이미 거부되었다면 올바른 동작입니다. |
+| `prerender-wait` | 브라우저가 이 페이지를 미리 렌더링했으며(Chrome이 다음에 열릴 것으로 예상하는 페이지에 하는 것처럼), 아직 아무도 열지 않았습니다. 레코더는 방문자가 페이지를 열 때 시작되므로, 한 번도 열리지 않은 페이지는 아무것도 녹화하지 않습니다. 그동안 페이지가 한 호출은 그때 적용됩니다. |
 | `start-stopped` | 독립 실행형 번들 경로에서 `start()`가 사용할 수 있는 정책을 얻지 못했습니다. 정확한 이유는 바로 위의 `config-*` 줄에 있습니다. |
 | `rrweb-did-not-start` | DOM 레코더가 시작을 거부했습니다. 보고해 주세요. |
 | `rrweb-error` | 이 페이지에서 DOM 레코더에 내부 오류가 발생했습니다(오류 이름은 세부 정보에 있으며, 로그는 한 번만 남습니다). 녹화가 그 지점에서 건너뛰거나 멈출 수 있으며, 이런 오류가 세 번 생기면 세션에 이를 알리는 충실도 알림이 붙습니다. 페이지의 프레임워크와 오류 이름을 함께 보고하세요. |

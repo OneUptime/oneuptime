@@ -66,7 +66,11 @@ export function backendKindForTab(
 export interface ReplayRailGlyph {
   label: string;
   className: string;
-  /* For screen readers: "network request", not "->". */
+  /*
+   * For screen readers, what the glyph and its colour show: "request
+   * failed", "console warning", "performance over budget" - not "->", and
+   * never the bare severity ("performance, success").
+   */
   description: string;
 }
 
@@ -86,7 +90,11 @@ const KIND_GLYPHS: Record<ReplaySignalKind, { label: string; noun: string }> = {
   navigation: { label: "↗", noun: "navigation" },
   interaction: { label: "○", noun: "click" },
   frustration: { label: "z", noun: "frustration" },
-  performance: { label: "ⓒ", noun: "performance" },
+  /*
+   * An hourglass: what a performance row measures is time. It was a circled
+   * c (ⓒ), which every font draws as the copyright sign.
+   */
+  performance: { label: "⧗", noun: "performance" },
   "client-error": { label: "!", noun: "client error" },
   "server-error": { label: "‼", noun: "server exception" },
   log: { label: "=", noun: "log" },
@@ -94,6 +102,41 @@ const KIND_GLYPHS: Record<ReplaySignalKind, { label: string; noun: string }> = {
   custom: { label: "*", noun: "custom event" },
   marker: { label: "#", noun: "marker" },
 };
+
+/*
+ * What a row's colour says, in words, or null where it says nothing a
+ * listener does not already hear.
+ *
+ *   - info and success are the plain rows: no word. A good web vital's
+ *     title already ends with its rating ("FCP 68 ms good").
+ *   - a web vital that needs improvement or is poor says so in its title
+ *     too; a budget row (a long task, a slow request) is "over budget".
+ *   - a client or server error row is named an error by its kind.
+ *   - a request that failed (a 5xx, or no answer at all) "failed"; a 4xx
+ *     is a "warning", as a console or log warning is.
+ *
+ * The screen reader used to hear the raw severity: "performance, success",
+ * "request, info".
+ */
+export function getRailStatusWords(signal: ReplaySignal): string | null {
+  if (signal.severity !== "error" && signal.severity !== "warn") {
+    return null;
+  }
+
+  if (signal.kind === "performance") {
+    return signal.detail["kind"] === "web-vital" ? null : "over budget";
+  }
+
+  if (signal.kind === "client-error" || signal.kind === "server-error") {
+    return null;
+  }
+
+  if (signal.kind === "network") {
+    return signal.severity === "error" ? "failed" : "warning";
+  }
+
+  return signal.severity === "error" ? "error" : "warning";
+}
 
 export function glyphForSignal(signal: ReplaySignal): ReplayRailGlyph {
   const glyph: { label: string; noun: string } =
@@ -115,10 +158,12 @@ export function glyphForSignal(signal: ReplaySignal): ReplayRailGlyph {
     className = "bg-indigo-100 text-indigo-700";
   }
 
+  const statusWords: string | null = getRailStatusWords(signal);
+
   return {
     label: glyph.label,
     className: className,
-    description: `${glyph.noun}, ${signal.severity}`,
+    description: statusWords ? `${glyph.noun} ${statusWords}` : glyph.noun,
   };
 }
 

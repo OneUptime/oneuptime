@@ -125,7 +125,7 @@ const KubernetesClusterLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs found for this cluster. Make sure your OTel collector forwards logs with the k8s.cluster.name resource attribute."
+        noLogsMessage="Make sure your OTel collector forwards logs with the k8s.cluster.name resource attribute."
       />
     </Fragment>
   );

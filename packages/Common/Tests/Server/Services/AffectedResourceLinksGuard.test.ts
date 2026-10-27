@@ -29,8 +29,8 @@ import { describe, expect, test } from "@jest/globals";
  *      the Affected Resources Edit, the AI tools and the API alike.
  *   C. Every AI tool that creates an incident or an alert links what it is
  *      about: it takes affectedResources and writes the page's resource out
- *      before approval (prepareMutation). An alert tool created after this
- *      one (create_alert) is held to it the day it appears.
+ *      before approval (prepareMutation) - create_incident and, since #5301,
+ *      create_alert.
  */
 
 const COMMON_ROOT: string = path.resolve(__dirname, "../../..");
@@ -176,8 +176,9 @@ describe("C: every AI tool that creates an incident or an alert links what it is
       );
     });
 
-  test("the scan finds create_incident's file", () => {
+  test("the scan finds create_incident's file and create_alert's", () => {
     expect(creatingFiles).toContain("IncidentWriteTools.ts");
+    expect(creatingFiles).toContain("AlertWriteTools.ts");
   });
 
   const creatingTools: Array<ObservabilityTool> = AIToolbox.getTools().filter(
@@ -186,12 +187,14 @@ describe("C: every AI tool that creates an incident or an alert links what it is
     },
   );
 
-  test("create_incident is one of them", () => {
+  test("create_incident and create_alert are both of them", () => {
     expect(
-      creatingTools.map((tool: ObservabilityTool): string => {
-        return tool.name;
-      }),
-    ).toContain("create_incident");
+      creatingTools
+        .map((tool: ObservabilityTool): string => {
+          return tool.name;
+        })
+        .sort(),
+    ).toEqual(["create_alert", "create_incident"]);
   });
 
   test.each(

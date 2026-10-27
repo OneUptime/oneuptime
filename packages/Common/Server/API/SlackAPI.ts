@@ -1159,6 +1159,23 @@ export default class SlackAPI {
           }
 
           /*
+           * The Home's Switch project menu: Slack is answered at once, and
+           * the Home drawn again for the project chosen - when the person
+           * may see it, read again (SlackHome).
+           */
+          if (action.actionType === SlackActionType.SwitchHomeProject) {
+            Response.sendTextResponse(req, res, "");
+
+            await SlackHome.switchProject({
+              teamId: authResult.slackTeamId,
+              slackUserId: authResult.slackUserId,
+              projectId: SlackHome.readProjectSwitch(authResult.payload),
+            });
+
+            return;
+          }
+
+          /*
            * Join call and Connect are link buttons: Slack opens the link,
            * and the click it reports needs nothing but an acknowledgement.
            */

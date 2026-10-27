@@ -17934,8 +17934,8 @@ test.describe("an action linking what a record is about waits for approval (issu
       );
 
       /*
-       * The title in full beside Allow and Skip - the incident it acts on
-       * included - wrapped rather than cut at one line.
+       * The title in full - the incident it acts on included - wrapped
+       * rather than cut at one line.
        */
       const title: Locator = prompt.getByTestId("tool-approval-title");
       await expect(title).toHaveText(
@@ -17950,7 +17950,60 @@ test.describe("an action linking what a record is about waits for approval (issu
         }),
       ).toBe(true);
 
+      /*
+       * Allow and Skip under the action, which keeps the card's whole
+       * width (#5301's UI review): beside it on a phone, German's wider
+       * buttons left the title 85 px and cut it at three lines.
+       */
+      const action: Locator = prompt.getByTestId("tool-approval-action");
+      const choice: Locator = prompt.getByTestId("tool-approval-choice");
+      await expect(choice).toBeVisible();
+      const actionBox: { x: number; width: number } | null =
+        await action.boundingBox();
+      const titleBox: {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      } | null = await title.boundingBox();
+      const choiceBox: { x: number; y: number } | null =
+        await choice.boundingBox();
+      expect(choiceBox!.y).toBeGreaterThanOrEqual(
+        titleBox!.y + titleBox!.height,
+      );
+      // The text's width is the action's, less its padding and border.
+      expect(titleBox!.width).toBeGreaterThanOrEqual(actionBox!.width - 28);
+      // The pair starts where the text starts.
+      expect(Math.abs(choiceBox!.x - titleBox!.x)).toBeLessThanOrEqual(1);
+
       await screenshotElement(prompt, `tool-approval-linking-390-${theme}`);
     });
   }
+
+  test("on a wide card Allow and Skip sit beside the action, at its end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openConversation(page, "thread=linking");
+    const prompt: Locator = approvalPrompt(page);
+    const title: Locator = prompt.getByTestId("tool-approval-title");
+    const choice: Locator = prompt.getByTestId("tool-approval-choice");
+
+    await expect(choice).toBeVisible();
+    // Named after the action it decides, for a screen reader.
+    await expect(
+      prompt.getByRole("group", {
+        name: "Link incident #1042 to affected resources",
+      }),
+    ).toBeVisible();
+
+    const titleBox: { x: number; y: number; width: number } | null =
+      await title.boundingBox();
+    const choiceBox: { x: number; y: number } | null =
+      await choice.boundingBox();
+    // On the title's line, past its end.
+    expect(Math.abs(choiceBox!.y - titleBox!.y)).toBeLessThan(8);
+    expect(choiceBox!.x).toBeGreaterThan(titleBox!.x + titleBox!.width);
+  });
 });

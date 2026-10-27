@@ -5,8 +5,10 @@ import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import {
   aggregateValues,
   collectDataPoints,
+  getMetricValueWidgetBucketWidthMs,
   getMetricValueWidgetReduce,
   getMetricValueWidgetSeries,
+  getMetricValueWidgetSparkline,
   getNumericValues,
   getResultsErrorMessage,
   isAdditiveAggregation,
@@ -312,5 +314,116 @@ describe("ValueWidgetData.getResultsErrorMessage", () => {
   test("undefined when no result explains itself", () => {
     expect(getResultsErrorMessage([result([1])])).toBeUndefined();
     expect(getResultsErrorMessage([])).toBeUndefined();
+  });
+});
+
+/*
+ * What the metric Value widget's sparkline draws: for a sum or a count, the
+ * empty buckets between its readings at 0, on the grid the metrics API
+ * buckets the range at. A sparse count drawn through only the buckets it had
+ * read flat while its arrow said it rose.
+ */
+describe("ValueWidgetData.getMetricValueWidgetSparkline", () => {
+  const HOUR_MS: number = 60 * 60 * 1000;
+  const WEEK_START: Date = new Date("2026-10-15T10:00:00.000Z");
+  const WEEK: { startDate: Date; endDate: Date } = {
+    startDate: WEEK_START,
+    endDate: new Date(WEEK_START.getTime() + 168 * HOUR_MS),
+  };
+
+  const atHour: (hour: number, value: number) => AggregatedModel = (
+    hour: number,
+    value: number,
+  ): AggregatedModel => {
+    return {
+      timestamp: new Date(WEEK_START.getTime() + hour * HOUR_MS),
+      value: value,
+    };
+  };
+
+  // Deploys, now and then, answered newest first as the metrics API does.
+  const SPARSE: Array<AggregatedResult> = [
+    { data: [atHour(160, 12), atHour(100, 12), atHour(40, 4), atHour(10, 4)] },
+  ];
+
+  test("a week is bucketed by the hour, as the server buckets it", () => {
+    expect(getMetricValueWidgetBucketWidthMs(WEEK)).toBe(HOUR_MS);
+  });
+
+  test("a sum and a count draw their empty hours between readings at 0", () => {
+    for (const type of [AggregationType.Sum, AggregationType.Count]) {
+      const line: Array<ValueWidgetPoint> = getMetricValueWidgetSparkline({
+        results: SPARSE,
+        aggregationType: type,
+        window: WEEK,
+      });
+
+      expect(line).toHaveLength(151);
+      expect(line[0]!.value).toBe(4);
+      expect(line[1]!.value).toBe(0);
+      expect(line[150]!.value).toBe(12);
+      expect(
+        line.filter((point: ValueWidgetPoint): boolean => {
+          return point.value !== 0;
+        }),
+      ).toHaveLength(4);
+    }
+  });
+
+  test("an average, a percentile, a min or a max keeps its gaps", () => {
+    for (const type of [
+      AggregationType.Avg,
+      AggregationType.Min,
+      AggregationType.Max,
+    ]) {
+      expect(
+        getMetricValueWidgetSparkline({
+          results: SPARSE,
+          aggregationType: type,
+          window: WEEK,
+        }),
+      ).toEqual(getMetricValueWidgetSeries(SPARSE, type));
+    }
+  });
+
+  test("before the results know their window, the series is drawn as it came", () => {
+    expect(
+      getMetricValueWidgetSparkline({
+        results: SPARSE,
+        aggregationType: AggregationType.Sum,
+        window: null,
+      }),
+    ).toEqual(getMetricValueWidgetSeries(SPARSE, AggregationType.Sum));
+  });
+
+  test("no data stays no data: never a line of zeros", () => {
+    expect(
+      getMetricValueWidgetSparkline({
+        results: [{ data: [] }],
+        aggregationType: AggregationType.Count,
+        window: WEEK,
+      }),
+    ).toEqual([]);
+  });
+
+  test("the arrow still compares the readings: the zeros change neither half", () => {
+    const reduce: (values: Array<number>) => number | null =
+      getMetricValueWidgetReduce(AggregationType.Sum);
+    const trend: ValueWidgetTrend | null = getValueWidgetTrend({
+      points: getMetricValueWidgetSparkline({
+        results: SPARSE,
+        aggregationType: AggregationType.Sum,
+        window: WEEK,
+      }),
+      reduce: reduce,
+      isAdditive: true,
+      windowStart: WEEK.startDate,
+      windowEnd: WEEK.endDate,
+      bucketWidthMs: HOUR_MS,
+    });
+
+    // The halves' totals, 8 then 24, as with the readings alone.
+    expect(trend?.direction).toBe(ValueWidgetTrendDirection.Up);
+    expect(trend?.percent).toBe(200);
   });
 });

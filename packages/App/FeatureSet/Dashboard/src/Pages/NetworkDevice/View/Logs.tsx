@@ -118,7 +118,7 @@ const NetworkDeviceLogs: FunctionComponent<
         attributeFilterDisplayValues={attributeFilterDisplayValues}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs received from this device yet. Point the device's syslog and SNMP trap forwarding at the probe and messages will appear here."
+        noLogsMessage="Point the device's syslog and SNMP trap forwarding at the probe, and its messages appear here."
       />
       <div className="mt-4">
         <Card

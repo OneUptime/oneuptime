@@ -103,7 +103,7 @@ const IoTFleetLogs: FunctionComponent<
         }}
         showFilters={true}
         enableRealtime={true}
-        noLogsMessage="No logs found. The IoT agent ships metrics only — logs appear here when you send OpenTelemetry logs stamped with this fleet's iot.fleet.name resource attribute."
+        noLogsMessage="The IoT agent sends metrics only. Logs appear here when you send OpenTelemetry logs with this fleet's iot.fleet.name resource attribute."
       />
     </Fragment>
   );

@@ -21,6 +21,8 @@ import SloStatusSummaryCards, {
   hasAnySlo,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloStatusSummaryCards";
 import {
+  getSloSummaryHadSlosKey,
+  rememberProjectHasSlos,
   SLO_ENABLED_FACET_KEY,
   SLO_STATUS_FACET_KEY,
   SLO_STATUS_SUMMARY_TILES,
@@ -37,6 +39,11 @@ import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
  * here is behaviour only a render shows: one COUNT per tile scoped to the
  * project, inert tiles until the numbers land, the pressed state following the
  * chips, hiding on failure, and a slow old count never overwriting a fresh one.
+ *
+ * And no skeletons where there is nothing to count: while the counts load,
+ * the strip holds its place with skeleton tiles only on a project this
+ * browser last saw with an SLO. On a new project they flashed six grey boxes
+ * over the empty list for the moment the counts took, then vanished.
  */
 
 interface CountArgs {
@@ -77,6 +84,10 @@ jest.mock("react-i18next", () => {
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "0193c0de-5555-4aaa-8bbb-000000000005",
+);
+
+const OTHER_PROJECT_ID: ObjectID = new ObjectID(
+  "0193c0de-5555-4aaa-8bbb-000000000006",
 );
 
 const COUNTS: Record<SloStatusSummaryTileKey, number> = {
@@ -168,8 +179,51 @@ function tileButton(label: string, count: number): HTMLElement {
   });
 }
 
+// Six counts that answer only when the test says so.
+function holdCounts(): Array<Deferred<number>> {
+  const held: Array<Deferred<number>> = [];
+
+  countMock.mockImplementation((): Promise<number> => {
+    const pending: Deferred<number> = deferred<number>();
+    held.push(pending);
+    return pending.promise;
+  });
+
+  return held;
+}
+
+async function answer(
+  held: Array<Deferred<number>>,
+  value: number,
+): Promise<void> {
+  await act(async () => {
+    for (const pending of held) {
+      pending.resolve(value);
+    }
+    await Promise.all(
+      held.map((pending: Deferred<number>) => {
+        return pending.promise;
+      }),
+    );
+  });
+}
+
+// A skeleton tile: its title is drawn, its count is not yet.
+function isShowingSkeletons(): boolean {
+  return (
+    screen.queryByTestId("slo-status-summary-cards") !== null &&
+    screen.queryByTestId(
+      `slo-status-count-${SloStatusSummaryTileKey.Healthy}`,
+    ) === null
+  );
+}
+
 beforeEach(() => {
   countMock.mockReset().mockImplementation(countsFrom(COUNTS));
+  window.localStorage.clear();
+  // The memory of every project the tests use starts empty.
+  rememberProjectHasSlos(PROJECT_ID.toString(), false);
+  rememberProjectHasSlos(OTHER_PROJECT_ID.toString(), false);
 });
 
 afterEach(() => {
@@ -230,6 +284,8 @@ describe("SloStatusSummaryCards", () => {
   });
 
   test("keeps the tiles inert until the counts land", async () => {
+    // Skeleton tiles are drawn only for a project seen with an SLO before.
+    rememberProjectHasSlos(PROJECT_ID.toString(), true);
     const pending: Deferred<number> = deferred<number>();
     countMock.mockReturnValue(pending.promise);
     const onTileClick: Mock<(tile: SloStatusSummaryTile) => void> =
@@ -359,6 +415,101 @@ describe("SloStatusSummaryCards", () => {
     expect(
       screen.getByTestId(`slo-status-count-${SloStatusSummaryTileKey.Healthy}`),
     ).toHaveTextContent("0");
+  });
+
+  test("a new project draws nothing while it counts: no skeletons flash over the empty list", async () => {
+    const held: Array<Deferred<number>> = holdCounts();
+
+    renderStrip({ onTileClick: jest.fn() });
+
+    expect(held).toHaveLength(SLO_STATUS_SUMMARY_TILES.length);
+    expect(screen.queryByTestId("slo-status-summary-cards")).toBeNull();
+    expect(screen.queryByText("Healthy")).toBeNull();
+    expect(screen.queryByText("Budget Exhausted")).toBeNull();
+
+    await answer(held, 0);
+
+    expect(screen.queryByTestId("slo-status-summary-cards")).toBeNull();
+    expect(screen.queryByText("Healthy")).toBeNull();
+  });
+
+  test("a project this browser saw with an SLO holds the strip's place with skeletons while it counts", async () => {
+    rememberProjectHasSlos(PROJECT_ID.toString(), true);
+    const held: Array<Deferred<number>> = holdCounts();
+
+    renderStrip({ onTileClick: jest.fn() });
+
+    expect(isShowingSkeletons()).toBe(true);
+    for (const tile of SLO_STATUS_SUMMARY_TILES) {
+      expect(screen.getByText(tile.label)).toBeInTheDocument();
+    }
+
+    await answer(held, 2);
+
+    expect(isShowingSkeletons()).toBe(false);
+    expect(
+      screen.getByTestId(`slo-status-count-${SloStatusSummaryTileKey.Healthy}`),
+    ).toHaveTextContent("2");
+  });
+
+  test("a project with SLOs this browser has not seen yet shows its tiles once the counts land", async () => {
+    const held: Array<Deferred<number>> = holdCounts();
+
+    renderStrip();
+
+    expect(screen.queryByTestId("slo-status-summary-cards")).toBeNull();
+
+    await answer(held, 3);
+
+    expect(screen.getByTestId("slo-status-summary-cards")).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`slo-status-count-${SloStatusSummaryTileKey.AtRisk}`),
+    ).toHaveTextContent("3");
+  });
+
+  test("the strip remembers what it found, project by project", async () => {
+    const key: string = getSloSummaryHadSlosKey(PROJECT_ID.toString());
+
+    renderStrip();
+    await waitForCounts();
+    expect(window.localStorage.getItem(key)).toBe("1");
+    cleanup();
+
+    // Another project is not this one: nothing remembered for it.
+    holdCounts();
+    renderStrip({ projectId: OTHER_PROJECT_ID });
+    expect(screen.queryByTestId("slo-status-summary-cards")).toBeNull();
+    cleanup();
+
+    // Every SLO archived since: the memory goes with them.
+    countMock.mockImplementation(countsFrom(zeroCounts()));
+    renderStrip();
+    expect(isShowingSkeletons()).toBe(true);
+    await waitFor(() => {
+      expect(screen.queryByTestId("slo-status-summary-cards")).toBeNull();
+    });
+    expect(window.localStorage.getItem(key)).toBeNull();
+    cleanup();
+
+    holdCounts();
+    renderStrip();
+    expect(screen.queryByTestId("slo-status-summary-cards")).toBeNull();
+  });
+
+  test("a failed count keeps what the strip remembered", async () => {
+    rememberProjectHasSlos(PROJECT_ID.toString(), true);
+    countMock.mockRejectedValue(new Error("count failed"));
+
+    renderStrip();
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("slo-status-summary-cards")).toBeNull();
+    });
+    expect(
+      window.localStorage.getItem(
+        getSloSummaryHadSlosKey(PROJECT_ID.toString()),
+      ),
+    ).toBe("1");
   });
 
   test("hasAnySlo adds the tiles up", () => {

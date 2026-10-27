@@ -65,7 +65,9 @@ export interface PreparedMutation {
   title?: string | undefined;
   /*
    * One sentence for the approval card, under its title, naming what the
-   * arguments name by ID: "Linked to host "test01"." Read with the
+   * arguments name by ID: "Linked to host "test01"." - and what the
+   * prepare chose for the person, which the argument line, cut at two
+   * lines, may hide: "Severity: High." (create_alert). Read with the
    * person's own permissions.
    */
   description?: string | undefined;

@@ -950,6 +950,7 @@ De fleste av disse nevnes på avspillerens fane **Fidelity** i stedet for å st�
 | Stilark fra andre opprinnelser | Tas ikke opp, med mindre de leveres med `Access-Control-Allow-Origin` og lenkes med `crossorigin`. Avspillingen laster dem i stedet inn fra de opprinnelige adressene, og en melding sier det. Se [Ta opp et stilark fra en annen opprinnelse](#ta-opp-et-stilark-fra-en-annen-opprinnelse). |
 | Et svært stort DOM-øyeblikksbilde | Et øyeblikksbilde som opptakeren ikke kunne lagre, rapporteres, og avspillingen starter fra det neste. |
 | Signaler over en grense | Konsollutdata, nettverksforespørsler og klikk er begrenset per økt eller per chunk; hendelsespanelet markerer hvor fangsten stoppet. |
+| En forhåndsgjengitt side før den åpnes | Chrome kan laste inn og kjøre en side den forventer blir åpnet som den neste, før noen åpner den, og det kan et nettsteds speculation rules også. Opptaket starter når den besøkende åpner siden, fra det vedkommende ser da, og en side som aldri åpnes, tar ikke opp noe. |
 | Bildepiksler i React Native | Bildets ramme beholdes som en ugjennomsiktig plassholder; brukernes bilder og nedlastede piksler kopieres ikke. |
 | WebViews i React Native | Utenfor det native visningstreet. Ta opp den hostede siden separat med webopptakeren om nødvendig. |
 | Canvas og egendefinert tegning i React Native | Skia, OpenGL, kart, forhåndsvisninger fra kamera/video og lignende flater er ugjennomsiktige plassholdere. |
