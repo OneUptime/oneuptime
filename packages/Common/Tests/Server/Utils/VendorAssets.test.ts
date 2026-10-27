@@ -18,6 +18,7 @@ import mountVendorAssets, {
   MermaidEntryFilename,
   MermaidEntryUrl,
   MountVendorAssetsFunction,
+  OneUptimeDarkLogoUrl,
   OneUptimeFaviconUrl,
   OneUptimeLogoUrl,
   VendorAssetsPath,
@@ -408,6 +409,19 @@ describe("vendored browser assets", () => {
       expect(asset.contentType).toContain("image/svg+xml");
       expect(asset.text).toContain("<svg");
       expect(asset.body.byteLength).toBeGreaterThan(1000);
+    });
+
+    test("serves OneUptime's wordmark for a dark page, beside the light one", async () => {
+      const asset: AssetResponse = await getAsset(OneUptimeDarkLogoUrl);
+
+      expect(OneUptimeDarkLogoUrl).toBe(
+        "/oneuptime-assets/brand/oneuptime-logo-dark.svg",
+      );
+      expect(asset.status).toBe(200);
+      expect(asset.contentType).toContain("image/svg+xml");
+      expect(asset.text).toContain("<svg");
+      expect(asset.text).toContain('fill="#f8fafc"');
+      expect(asset.text).not.toContain("#121212");
     });
 
     test("serves the contrast-safe Up favicon as a self-contained SVG", async () => {

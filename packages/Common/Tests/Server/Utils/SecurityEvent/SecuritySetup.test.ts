@@ -25,6 +25,12 @@ import SecurityEventConnectionService from "../../../../Server/Services/Security
 import SecurityEventDestinationService from "../../../../Server/Services/SecurityEventDestinationService";
 import SecurityEventService from "../../../../Server/Services/SecurityEventService";
 import SecurityLogSourceService from "../../../../Server/Services/SecurityLogSourceService";
+import SecurityTelemetrySourceService from "../../../../Server/Services/SecurityTelemetrySourceService";
+import SecurityTelemetrySource from "../../../../Models/DatabaseModels/SecurityTelemetrySource";
+import {
+  SECURITY_TELEMETRY_SOURCE_KINDS,
+  SecurityTelemetrySourceKind,
+} from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
 import SecurityPlaybookService from "../../../../Server/Services/SecurityPlaybookService";
 import ThreatIntelFeedService from "../../../../Server/Services/ThreatIntelFeedService";
 import DetectionRuleEvaluator, {
@@ -93,6 +99,19 @@ beforeEach(() => {
   // The project's priorities and statuses: a new project's.
   stubSecurityCaseValues();
 });
+
+function telemetrySource(
+  kind: SecurityTelemetrySourceKind,
+  isEnabled: boolean,
+  index: number,
+): SecurityTelemetrySource {
+  const model: SecurityTelemetrySource = new SecurityTelemetrySource();
+  model._id = `6ba7b813-9dad-41d1-80b4-00c04fd4350${index}`;
+  model.projectId = PROJECT_ID;
+  model.kind = kind;
+  model.isEnabled = isEnabled;
+  return model;
+}
 
 function rule(data: {
   name: string;
@@ -213,6 +232,9 @@ describe("SecuritySetup.getStatus", () => {
     jest
       .spyOn(SecurityLogSourceService, "findOneBy")
       .mockResolvedValue({ isEnabled: true } as never);
+    jest
+      .spyOn(SecurityTelemetrySourceService, "countBy")
+      .mockResolvedValue(count(3));
     const eventCount: ReturnType<typeof jest.spyOn> = jest
       .spyOn(SecurityEventService, "countBy")
       .mockResolvedValue(count(1234));
@@ -251,6 +273,7 @@ describe("SecuritySetup.getStatus", () => {
     expect(status).toEqual({
       connections: 2,
       logsSourceEnabled: true,
+      telemetrySourcesEnabled: 3,
       eventsLast24Hours: 1234,
       lastEventAt: "2026-10-19T11:59:00.000Z",
       enabledRules: 2,
@@ -282,6 +305,9 @@ describe("SecuritySetup.getStatus", () => {
       .spyOn(SecurityLogSourceService, "findOneBy")
       .mockRejectedValue(new Error("not allowed"));
     jest
+      .spyOn(SecurityTelemetrySourceService, "countBy")
+      .mockRejectedValue(new Error("not allowed"));
+    jest
       .spyOn(SecurityEventService, "countBy")
       .mockRejectedValue(new Error("not allowed"));
     jest
@@ -309,6 +335,7 @@ describe("SecuritySetup.getStatus", () => {
     expect(status.openCases).toBe(5);
     expect(status.connections).toBe(0);
     expect(status.logsSourceEnabled).toBe(false);
+    expect(status.telemetrySourcesEnabled).toBe(0);
     expect(status.eventsLast24Hours).toBe(0);
     expect(status.lastEventAt).toBeNull();
     expect(status.enabledRules).toBe(0);
@@ -326,6 +353,8 @@ describe("SecuritySetup.turnOnRecommended", () => {
     rulesUpdated: Array<{ id: string; data: JSONObject }>;
     logSourcesCreated: Array<SecurityLogSource>;
     logSourcesUpdated: Array<JSONObject>;
+    telemetrySourcesCreated: Array<SecurityTelemetrySource>;
+    telemetrySourcesUpdated: Array<{ id: string; data: JSONObject }>;
     playbooksCreated: Array<SecurityPlaybook>;
     playbooksUpdated: Array<{ id: string; data: JSONObject }>;
     propsSeen: Array<unknown>;
@@ -334,6 +363,8 @@ describe("SecuritySetup.turnOnRecommended", () => {
   function install(existing: {
     rules?: Array<DetectionRule>;
     logSource?: SecurityLogSource | null;
+    // Every kind already on, unless a test says otherwise.
+    telemetrySources?: Array<SecurityTelemetrySource>;
     playbooks?: Array<SecurityPlaybook>;
   }): Writes {
     const writes: Writes = {
@@ -341,6 +372,8 @@ describe("SecuritySetup.turnOnRecommended", () => {
       rulesUpdated: [],
       logSourcesCreated: [],
       logSourcesUpdated: [],
+      telemetrySourcesCreated: [],
+      telemetrySourcesUpdated: [],
       playbooksCreated: [],
       playbooksUpdated: [],
       propsSeen: [],
@@ -382,6 +415,32 @@ describe("SecuritySetup.turnOnRecommended", () => {
         writes.logSourcesUpdated.push(data.data as JSONObject);
         return 1;
       });
+    jest.spyOn(SecurityTelemetrySourceService, "findBy").mockResolvedValue(
+      (existing.telemetrySources ||
+        SECURITY_TELEMETRY_SOURCE_KINDS.map(
+          (kind: SecurityTelemetrySourceKind, index: number) => {
+            return telemetrySource(kind, true, index);
+          },
+        )) as never,
+    );
+    jest
+      .spyOn(SecurityTelemetrySourceService, "create")
+      .mockImplementation(
+        async (data: { data: SecurityTelemetrySource; props: unknown }) => {
+          writes.telemetrySourcesCreated.push(data.data);
+          writes.propsSeen.push(data.props);
+          return data.data as never;
+        },
+      );
+    jest
+      .spyOn(SecurityTelemetrySourceService, "updateOneById")
+      .mockImplementation(async (data: { id: ObjectID; data: unknown }) => {
+        writes.telemetrySourcesUpdated.push({
+          id: data.id.toString(),
+          data: data.data as JSONObject,
+        });
+        return 1;
+      });
     jest
       .spyOn(SecurityPlaybookService, "findBy")
       .mockResolvedValue((existing.playbooks || []) as never);
@@ -421,6 +480,7 @@ describe("SecuritySetup.turnOnRecommended", () => {
       rulesAdded: recommended.length,
       rulesTurnedOn: 0,
       logsTurnedOn: true,
+      telemetrySourcesTurnedOn: 0,
       playbookAdded: true,
       playbookTurnedOn: false,
       problems: [],
@@ -494,6 +554,7 @@ describe("SecuritySetup.turnOnRecommended", () => {
       rulesAdded: 0,
       rulesTurnedOn: 0,
       logsTurnedOn: false,
+      telemetrySourcesTurnedOn: 0,
       playbookAdded: false,
       playbookTurnedOn: false,
       problems: [],
@@ -632,6 +693,7 @@ describe("SecuritySetup.turnOnRecommended", () => {
       rulesAdded: recommended.length - 1,
       rulesTurnedOn: 0,
       logsTurnedOn: true,
+      telemetrySourcesTurnedOn: 0,
       playbookAdded: true,
       playbookTurnedOn: false,
       problems: [
@@ -709,6 +771,7 @@ describe("SecuritySetup.turnOnRecommended", () => {
       rulesAdded: 1,
       rulesTurnedOn: 0,
       logsTurnedOn: false,
+      telemetrySourcesTurnedOn: 0,
       playbookAdded: false,
       playbookTurnedOn: false,
       problems: [],
@@ -1016,6 +1079,143 @@ describe("SecuritySetup.turnOnRecommended", () => {
       expect(typeof problem.name).toBe("string");
       expect(typeof problem.detail).toBe("string");
     }
+  });
+
+  /*
+   * The rest of your OneUptime data rides on "your logs": the click turns
+   * on each kind the project does not read yet, as the caller. Tests run as
+   * OneUptime Community, where nothing writes the audit log, so it is left
+   * off there.
+   */
+  describe("your OneUptime data", () => {
+    test("each kind not read yet is added as the caller - all but the audit log, which only Enterprise writes", async () => {
+      const writes: Writes = install({ telemetrySources: [] });
+
+      const result: TurnOnRecommendedResult =
+        await SecuritySetup.turnOnRecommended({
+          projectId: PROJECT_ID,
+          props: PROPS,
+          options: { logs: true, detections: false, playbook: false },
+        });
+
+      expect(
+        writes.telemetrySourcesCreated.map(
+          (created: SecurityTelemetrySource): unknown => {
+            return [created.kind, created.isEnabled, created.projectId];
+          },
+        ),
+      ).toEqual([
+        [SecurityTelemetrySourceKind.Traces, true, PROJECT_ID],
+        [SecurityTelemetrySourceKind.NetworkFlows, true, PROJECT_ID],
+        [SecurityTelemetrySourceKind.RumSessions, true, PROJECT_ID],
+      ]);
+      expect(result.telemetrySourcesTurnedOn).toBe(3);
+      expect(result.problems).toEqual([]);
+
+      for (const props of writes.propsSeen) {
+        expect(props).toBe(PROPS);
+      }
+    });
+
+    test("one turned off is turned back on, and one already on is left alone", async () => {
+      const writes: Writes = install({
+        telemetrySources: [
+          telemetrySource(SecurityTelemetrySourceKind.Traces, false, 1),
+          telemetrySource(SecurityTelemetrySourceKind.NetworkFlows, true, 2),
+          telemetrySource(SecurityTelemetrySourceKind.RumSessions, true, 3),
+        ],
+      });
+
+      const result: TurnOnRecommendedResult =
+        await SecuritySetup.turnOnRecommended({
+          projectId: PROJECT_ID,
+          props: PROPS,
+          options: { logs: true, detections: false, playbook: false },
+        });
+
+      expect(writes.telemetrySourcesCreated).toEqual([]);
+      expect(writes.telemetrySourcesUpdated).toEqual([
+        {
+          id: "6ba7b813-9dad-41d1-80b4-00c04fd43501",
+          data: { isEnabled: true },
+        },
+      ]);
+      expect(result.telemetrySourcesTurnedOn).toBe(1);
+    });
+
+    test("a kind that cannot be added is named with why, and the others are still added", async () => {
+      const writes: Writes = install({ telemetrySources: [] });
+      jest
+        .spyOn(SecurityTelemetrySourceService, "create")
+        .mockImplementation(async (data: { data: SecurityTelemetrySource }) => {
+          if (data.data.kind === SecurityTelemetrySourceKind.NetworkFlows) {
+            throw new Error("connection reset by peer at 10.0.0.12");
+          }
+
+          writes.telemetrySourcesCreated.push(data.data);
+          return data.data as never;
+        });
+
+      const result: TurnOnRecommendedResult =
+        await SecuritySetup.turnOnRecommended({
+          projectId: PROJECT_ID,
+          props: PROPS,
+          options: { logs: true, detections: false, playbook: false },
+        });
+
+      expect(result.problems).toEqual([
+        {
+          part: TurnOnRecommendedPart.TelemetrySources,
+          action: TurnOnRecommendedAction.Add,
+          name: SecurityTelemetrySourceKind.NetworkFlows,
+          reason: TurnOnRecommendedReason.Failed,
+          detail: "",
+        },
+      ]);
+      expect(result.telemetrySourcesTurnedOn).toBe(2);
+      expect(result.logsTurnedOn).toBe(true);
+      expect(JSON.stringify(result)).not.toContain("10.0.0.12");
+    });
+
+    test("what the project has that cannot be read adds nothing, and says so once", async () => {
+      install({});
+      jest
+        .spyOn(SecurityTelemetrySourceService, "findBy")
+        .mockRejectedValue(new Error("not allowed"));
+
+      const result: TurnOnRecommendedResult =
+        await SecuritySetup.turnOnRecommended({
+          projectId: PROJECT_ID,
+          props: PROPS,
+          options: { logs: true, detections: false, playbook: false },
+        });
+
+      expect(result.problems).toEqual([
+        {
+          part: TurnOnRecommendedPart.TelemetrySources,
+          action: TurnOnRecommendedAction.Check,
+          name: "",
+          reason: TurnOnRecommendedReason.Failed,
+          detail: "",
+        },
+      ]);
+      expect(result.telemetrySourcesTurnedOn).toBe(0);
+    });
+
+    test("leaving your logs out leaves your OneUptime data alone too", async () => {
+      const writes: Writes = install({ telemetrySources: [] });
+
+      const result: TurnOnRecommendedResult =
+        await SecuritySetup.turnOnRecommended({
+          projectId: PROJECT_ID,
+          props: PROPS,
+          options: { logs: false, detections: false, playbook: false },
+        });
+
+      expect(writes.telemetrySourcesCreated).toEqual([]);
+      expect(result.telemetrySourcesTurnedOn).toBe(0);
+      expect(SecurityTelemetrySourceService.findBy).not.toHaveBeenCalled();
+    });
   });
 });
 

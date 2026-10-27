@@ -4,7 +4,10 @@ import FeedLinkField from "./CalendarFeed/FeedLinkField";
 import CalendarSubscriptionLinks from "Common/Types/Calendar/CalendarSubscriptionLinks";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
+import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
 import Icon from "Common/UI/Components/Icon/Icon";
+import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
+import ProviderLogoOrIcon from "Common/UI/Components/ProviderLogo/ProviderLogoOrIcon";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -57,6 +60,11 @@ export interface ComponentProps {
 /*
  * One subscribe option: a tile with the app's mark, its name and what a
  * click does. The colours are the classes Theme.css remaps for dark mode.
+ *
+ * The mark is Google Calendar's official logo for Google Calendar, and a
+ * calendar for "the calendar app on this device" - two apps, so no one
+ * brand's logo - on the same neutral tile, so the pair reads as one set
+ * (Common/UI/Components/ProviderLogo).
  */
 export const SUBSCRIBE_OPTION_CLASS_NAME: string =
   "group flex min-w-0 items-center gap-3 rounded-lg border border-gray-200 bg-white px-3.5 py-3 shadow-sm transition-colors duration-150 ease-out hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
@@ -91,9 +99,6 @@ export const SUBSCRIBE_BLOCK_ALONE_CLASS_NAME: string = "max-w-3xl";
  */
 export const SUBSCRIBE_OPTION_HINT_CLASS_NAME: string =
   "mt-0.5 text-pretty text-xs leading-5 text-gray-500";
-
-export const SUBSCRIBE_OPTION_MARK_CLASS_NAME: string =
-  "flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-indigo-50 text-indigo-600";
 
 // A section's heading in the block, and in the status panel beside it.
 export const FEED_SECTION_HEADING_CLASS_NAME: string =
@@ -144,9 +149,12 @@ const CalendarFeedLinks: FunctionComponent<ComponentProps> = (
               ) || undefined
             }
           >
-            <div className={SUBSCRIBE_OPTION_MARK_CLASS_NAME}>
-              <Icon icon={IconProp.GlobeAlt} className="h-5 w-5" />
-            </div>
+            {/* The name is written beside it, so the logo is not read out. */}
+            <ProviderLogoImage
+              logo={ProviderLogo.GoogleCalendar}
+              size={36}
+              isDecorative={true}
+            />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold text-gray-900">
                 {translateString("Google Calendar")}
@@ -170,9 +178,11 @@ const CalendarFeedLinks: FunctionComponent<ComponentProps> = (
               ) || undefined
             }
           >
-            <div className={SUBSCRIBE_OPTION_MARK_CLASS_NAME}>
-              <Icon icon={IconProp.Calendar} className="h-5 w-5" />
-            </div>
+            <ProviderLogoOrIcon
+              icon={IconProp.Calendar}
+              size={36}
+              isDecorative={true}
+            />
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold text-gray-900">
                 {translateString("Apple Calendar / Outlook")}

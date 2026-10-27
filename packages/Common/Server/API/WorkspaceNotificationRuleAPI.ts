@@ -85,8 +85,13 @@ export default class WorkspaceNotificationRuleAPI extends BaseAPI<
      * could create a rule - whoever could make OneUptime post into these
      * channels anyway - and a rule they may read, in their own project.
      * testRule then reads the rule as OneUptime to send it.
+     *
+     * A POST: it posts into chat channels. The session cookie is
+     * SameSite=Lax, which a link on another site still carries on a GET,
+     * and the project can be named in the query string - so as a GET, a
+     * link someone with the rule's access followed sent the test as them.
      */
-    this.router.get(
+    this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/test/:workspaceNotifcationRuleId`,
       UserMiddleware.getUserMiddleware,
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {

@@ -701,7 +701,11 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
                     isActive ? "bg-indigo-50" : ""
                   }`}
                 >
-                  <IconBox icon={componentMetadata.iconProp} size="small" />
+                  <IconBox
+                    icon={componentMetadata.iconProp}
+                    logo={componentMetadata.logo}
+                    size="small"
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm text-gray-900">
                       <HighlightedText

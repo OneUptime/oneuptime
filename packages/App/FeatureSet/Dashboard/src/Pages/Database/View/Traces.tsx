@@ -5,6 +5,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
+import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
 import DatabaseServerUnscopedBanner from "../../../Components/DatabaseServer/DatabaseServerUnscopedBanner";
 import useDatabaseServerTelemetryScope, {
   UseDatabaseServerTelemetryScopeResult,
@@ -69,6 +70,11 @@ const DatabaseServerTraces: FunctionComponent<
       <TracesViewer
         entityKeysFilter={keys}
         entityKeyDisplays={entityKeyDisplays}
+        /*
+         * A database's spans are the CLIENT calls services make to it, which
+         * are not entry spans: every span, or the list would open empty.
+         */
+        defaultSpanType={TraceSpanType.All}
       />
     </Fragment>
   );

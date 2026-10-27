@@ -11,10 +11,8 @@ import {
   getLlmProviderFormSteps,
   getProjectLlmProviderFormFields,
 } from "Common/UI/Components/AI/LlmProviderFormFields";
-import {
-  getLlmProviderShownModelName,
-  getLlmProviderTypeCopy,
-} from "Common/UI/Components/AI/LlmProviderFormCopy";
+import { getLlmProviderShownModelName } from "Common/UI/Components/AI/LlmProviderFormCopy";
+import LlmProviderTypeLabel from "Common/UI/Components/AI/LlmProviderTypeLabel";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { APP_API_URL, BILLING_ENABLED } from "Common/UI/Config";
@@ -152,11 +150,7 @@ const LlmPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               type: FieldType.Text,
               getElement: (item: LlmProvider): ReactElement => {
                 return (
-                  <span>
-                    {getLlmProviderTypeCopy(item.llmType)?.title ||
-                      item.llmType ||
-                      "-"}
-                  </span>
+                  <LlmProviderTypeLabel llmType={item.llmType} emptyText="-" />
                 );
               },
             },

@@ -19,6 +19,12 @@ export const TelemetryViewerUrlParamNames: Array<string> = [
   "page",
   "pageSize",
   "view",
+  /*
+   * The traces explorer's Span Type (entry / root / all spans). "rootOnly"
+   * is what links said before it: still owned, so the explorer removes it
+   * when it writes the URL again.
+   */
+  "spanType",
   "rootOnly",
   "status",
   /*

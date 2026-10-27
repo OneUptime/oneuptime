@@ -5,9 +5,10 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The names a step's ids stand for, as far as the page could read them: a
- * connection, an on-call policy, a severity, a label, a workflow, and the
- * project's case priorities and statuses. An id with no name here reads as
- * "a removed ..." - the record was deleted, or the reader may not see it.
+ * connection, an on-call policy, a severity, a label, a workflow, a
+ * runbook, a status page, and the project's case priorities and statuses.
+ * An id with no name here reads as "a removed ..." - the record was
+ * deleted, or the reader may not see it.
  */
 export interface StepNameLookup {
   connections: Map<string, string>;
@@ -15,6 +16,8 @@ export interface StepNameLookup {
   incidentSeverities: Map<string, string>;
   labels: Map<string, string>;
   workflows: Map<string, string>;
+  runbooks: Map<string, string>;
+  statusPages: Map<string, string>;
   casePriorities: Map<string, string>;
   caseStatuses: Map<string, string>;
 }
@@ -26,6 +29,8 @@ export function emptyStepNameLookup(): StepNameLookup {
     incidentSeverities: new Map(),
     labels: new Map(),
     workflows: new Map(),
+    runbooks: new Map(),
+    statusPages: new Map(),
     casePriorities: new Map(),
     caseStatuses: new Map(),
   };
@@ -248,6 +253,43 @@ export function summarizeSecurityPlaybookStep(
         text(config, "workflowId"),
         translationKey("a removed workflow"),
         translator,
+      );
+    case SecurityPlaybookActionType.RunRunbook:
+      return named(
+        lookup.runbooks,
+        text(config, "runbookId"),
+        translationKey("a removed runbook"),
+        translator,
+      );
+    case SecurityPlaybookActionType.PreserveEvidence:
+      return (
+        translator.translateText(
+          "Keeps session replays, notes traces and exceptions",
+        ) || ""
+      );
+    case SecurityPlaybookActionType.PostStatusPageAnnouncement: {
+      const pages: string = ids(config, "statusPageIds")
+        .map((id: string): string => {
+          return named(
+            lookup.statusPages,
+            id,
+            translationKey("a removed status page"),
+            translator,
+          );
+        })
+        .join(", ");
+
+      return config["notifySubscribers"] === true
+        ? translator.translateTemplate("On {{pages}}, notifying subscribers", {
+            pages,
+          })
+        : translator.translateTemplate("On {{pages}}", { pages });
+    }
+    case SecurityPlaybookActionType.FixWithAi:
+      return (
+        translator.translateText(
+          "A pull request for each exception the case's requests threw",
+        ) || ""
       );
     default:
       return "";

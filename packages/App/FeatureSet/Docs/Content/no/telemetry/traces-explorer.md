@@ -22,7 +22,7 @@ flowchart TB
     pay --> call["Span: kall<br/>betalingsleverandøren"]
 ```
 
-Hver rad i utforskeren er et span, så en travel tjeneste fyller listen med databasespørringer og interne kall. For å vise én rad per forespørsel velger du **Root spans** under **Span-kategori** i sidepanelet.
+Hver rad i utforskeren er et span. Som standard viser listen **Entry spans**, spanene der en forespørsel eller melding kommer inn i en tjeneste, slik at en forespørsel vises én gang for hver tjeneste den når, mens databasespørringer og interne kall holdes utenfor listen. For å vise én rad per forespørsel velger du **Root spans** under **Span-kategori** i sidepanelet; for å vise hver operasjon velger du **All spans**.
 
 Utforskeren har fem faner:
 
@@ -175,7 +175,7 @@ De viser til et forelder-span som OneUptime ikke har mottatt, ofte fordi tjenest
 :::
 
 :::details Listen viser langt flere rader enn forespørsler
-Hver rad er et span, ikke en forespørsel. Velg **Root spans** under **Span-kategori** i sidepanelet for å vise én rad per forespørsel.
+Hver rad er et span, ikke en forespørsel: med **Entry spans**, som er standard, vises en forespørsel én gang for hver tjeneste den når, og med **All spans** én gang for hver operasjon. Velg **Root spans** under **Span-kategori** i sidepanelet for å vise én rad per forespørsel.
 :::
 
 ## Neste steg

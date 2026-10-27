@@ -707,6 +707,13 @@ jobs:
           # tests, 9.6 minutes locally on a busy machine; about 9 on a runner)
           # joined it on 2026-10-27, the lightest group on 14.0.93's gate run
           # (12.9 minutes), and Model Tables (4.7) moved on to group 4: about 17.
+          # Dashboard Playlists (3.6 minutes locally with its bundle, Chromium
+          # only: Dashboards > Playlists, a playlist's page and the player that
+          # rotates its dashboards on a screen - each for its time on a clock
+          # the test holds, the next one drawn ahead, Pause, Next and Previous
+          # by button and key, skipped dashboards, Create, Edit and Delete, a
+          # Viewer - at 1280, 1024, 768 and 390 pixels, dark, German, Japanese
+          # and Persian) joined them later that day: about 20.5.
           - group: 9
             workflow_builder_shard: 2/2
             suites: >-
@@ -718,6 +725,7 @@ jobs:
               test-archivable-values-ui
               test-kubernetes-events-ui
               test-topology-ui
+              test-dashboard-playlists-ui
           # Added on 2026-10-22 with the second half of Event Overview (about
           # 13 minutes on a slow runner) and Navigation Search from group 2
           # (2.9 to 3.5): about 18.5 with the setup. Chromium only. Owner
@@ -810,6 +818,14 @@ jobs:
           # 7, Global Runners (2.2) from group 12, Asset Details (0.9) from group
           # 1, and Status Page Search (1.2) and Reading Direction (about 1.8)
           # from group 11, all Chromium only: about 18.5.
+          # Accounts Theme (1.7 minutes locally, about 2 with its bundle,
+          # Chromium only: the sign-in pages in the person's theme - drawn
+          # before the first paint, following the device and another tab, the
+          # public form kept light, every page, state and dialog in the dark
+          # theme with no light box and words at 4.5:1, the footer, halos and
+          # backup codes' action, at 1280 and 390 pixels, light and dark,
+          # German and Persian) joined them the same day, rather than group 7,
+          # which it would have taken to about 21.5: about 20.5.
           - group: 13
             suites: >-
               test-asset-details-ui
@@ -822,6 +838,7 @@ jobs:
               test-status-page-search-ui
               test-reading-direction-ui
               test-global-runners-ui
+              test-accounts-theme-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1033,6 +1050,10 @@ jobs:
             output/playwright/dashboard-value-widget-ui/test-results
             output/playwright/dashboard-table-thresholds-ui/*.png
             output/playwright/dashboard-table-thresholds-ui/test-results
+            output/playwright/dashboard-playlists-ui/*.png
+            output/playwright/dashboard-playlists-ui/test-results
+            output/playwright/accounts-theme-ui/*.png
+            output/playwright/accounts-theme-ui/test-results
             output/playwright/cloud-connect-ui/*.png
             output/playwright/cloud-connect-ui/test-results
             output/playwright/host-collectors-ui/*.png

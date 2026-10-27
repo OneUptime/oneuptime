@@ -265,12 +265,19 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
         <div id={facetListId} className="flex-1 overflow-y-auto">
           {visibleConfigs.map((config: FacetConfig) => {
             /*
+             * A choice of one (see FacetConfig.chosenValue) lists every
+             * value it answered with, a locked scope or not: an option
+             * counting 0 is still one to choose.
+             */
+            const isSingleChoice: boolean = config.chosenValue !== undefined;
+
+            /*
              * A value that is filtering keeps its row even when the answer
              * left it out (an excluded value counts nothing), so it can
              * always be clicked off where it was clicked on.
              */
             const values: Array<FacetValue> = withSelectedFacetValues(
-              facetData[config.key] || [],
+              (isSingleChoice ? props.facetData : facetData)[config.key] || [],
               selections.get(config.key),
             );
             const sectionSelection: FacetSectionSelection =
@@ -288,7 +295,11 @@ const TelemetryFacetSidebar: FunctionComponent<TelemetryFacetSidebarProps> = (
                 title={config.title}
                 values={values}
                 onIncludeValue={props.onIncludeFilter}
-                onExcludeValue={props.onExcludeFilter}
+                onExcludeValue={
+                  isSingleChoice ? undefined : props.onExcludeFilter
+                }
+                chosenValue={config.chosenValue}
+                description={config.description}
                 onClearValue={(facetKey: string, value: string) => {
                   for (const chip of getFacetChipsToClear(
                     selections,

@@ -16,9 +16,12 @@ import React from "react";
 import Page from "../../../UI/Components/Page/Page";
 import ProductLogo, {
   getProductLogoSource,
+  isLightLogoOnDarkPage,
+  LOGO_PLATE_ATTRIBUTE,
   PAGE_LOGO_CLASS_NAME,
   PAGE_PRODUCT_NAME_CLASS_NAME,
 } from "../../../UI/Components/ProductLogo/ProductLogo";
+import { declaredValue } from "../Styles/ThemeStylesheet";
 import PublicFormLogo from "../../../UI/Components/PublicForm/PublicFormLogo";
 import Container from "../../../UI/Container";
 import {
@@ -363,6 +366,104 @@ describe("ProductLogo", () => {
 
       expect(clicks).toBe(1);
     });
+  });
+});
+
+describe("ProductLogo on a dark sign-in page", () => {
+  /*
+   * The sign-in pages are drawn in the person's theme now, so their logo is
+   * on a dark page for everyone whose theme is dark. An installation whose
+   * only logo is made for light backgrounds - dark letters on nothing -
+   * would all but vanish there: it sits on a small light plate instead
+   * (Theme.css, [data-ou-logo-plate]), as a status page's logo does.
+   */
+  const LIGHT_ONLY: string = JSON.stringify({
+    productName: "Acme",
+    logoUrl: "/api/branding/logo?v=1",
+  });
+
+  afterEach(() => {
+    ThemeUtil.applyTheme(Theme.Light, false);
+  });
+
+  test("an installation's only logo sits on the light plate while the page is dark", () => {
+    setBranding(LIGHT_ONLY);
+    ThemeUtil.applyTheme(Theme.Dark, false);
+
+    render(<ProductLogo />);
+
+    const logo: HTMLElement = screen.getByRole("img", { name: "Acme" });
+
+    expect(logo).toHaveAttribute("src", "/api/branding/logo?v=1");
+    expect(logo).toHaveAttribute(LOGO_PLATE_ATTRIBUTE, "");
+    expect(isLightLogoOnDarkPage(Theme.Dark)).toBe(true);
+  });
+
+  test("and on nothing while the page is light", () => {
+    setBranding(LIGHT_ONLY);
+
+    render(<ProductLogo />);
+
+    expect(screen.getByRole("img", { name: "Acme" })).not.toHaveAttribute(
+      LOGO_PLATE_ATTRIBUTE,
+    );
+    expect(isLightLogoOnDarkPage(Theme.Light)).toBe(false);
+  });
+
+  test("a logo made for dark backgrounds is drawn as it is", () => {
+    setBranding(ACME);
+    ThemeUtil.applyTheme(Theme.Dark, false);
+
+    render(<ProductLogo />);
+
+    const logo: HTMLElement = screen.getByRole("img", { name: "Acme" });
+
+    expect(logo).toHaveAttribute("src", "/api/branding/dark-logo?v=1");
+    expect(logo).not.toHaveAttribute(LOGO_PLATE_ATTRIBUTE);
+    expect(isLightLogoOnDarkPage(Theme.Dark)).toBe(false);
+  });
+
+  test("OneUptime's own wordmark is recoloured, never plated", () => {
+    ThemeUtil.applyTheme(Theme.Dark, false);
+
+    render(<ProductLogo />);
+
+    const logo: HTMLElement = screen.getByRole("img", { name: "OneUptime" });
+
+    expect(logo.getAttribute("src")).toBe(getProductLogoSource(Theme.Dark));
+    expect(logo).not.toHaveAttribute(LOGO_PLATE_ATTRIBUTE);
+  });
+
+  test("a logo given classes of its own (the dashboards' headers) is drawn as it is", () => {
+    setBranding(LIGHT_ONLY);
+    ThemeUtil.applyTheme(Theme.Dark, false);
+
+    render(<ProductLogo className="h-8 w-auto" />);
+
+    expect(screen.getByRole("img", { name: "Acme" })).not.toHaveAttribute(
+      LOGO_PLATE_ATTRIBUTE,
+    );
+  });
+
+  test("a name drawn in the logo's place is never plated: its words are recoloured", () => {
+    setBranding(JSON.stringify({ productName: "Acme" }));
+    ThemeUtil.applyTheme(Theme.Dark, false);
+
+    render(<ProductLogo dataTestId="product-logo" />);
+
+    expect(screen.getByTestId("product-logo")).not.toHaveAttribute(
+      LOGO_PLATE_ATTRIBUTE,
+    );
+    expect(screen.getByTestId("product-logo")).toHaveClass("text-gray-900");
+  });
+
+  test("the plate is light, in the dark theme only", () => {
+    expect(
+      declaredValue(`html.dark [${LOGO_PLATE_ATTRIBUTE}]`, "background-color"),
+    ).toBe("#f8fafc");
+    expect(
+      declaredValue(`[${LOGO_PLATE_ATTRIBUTE}]`, "background-color"),
+    ).toBeUndefined();
   });
 });
 

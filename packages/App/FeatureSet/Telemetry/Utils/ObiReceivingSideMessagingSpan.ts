@@ -1,5 +1,6 @@
 import { SpanKind } from "Common/Models/AnalyticsModels/Span";
 import { EPHEMERAL_PORT_RANGE_START } from "Common/Types/DatabaseServer/DatabaseEndpoint";
+import { OBI_TELEMETRY_DISTRO_NAME } from "./ObiSpan";
 
 /*
  * OBI (OpenTelemetry eBPF Instrumentation, the Kubernetes agent's tracer)
@@ -155,9 +156,11 @@ import { EPHEMERAL_PORT_RANGE_START } from "Common/Types/DatabaseServer/Database
  * read the ephemeral range, in the cases each names, and by the address
  * when there is no port evidence and the application is named like its
  * broker.
+ *
+ * OBI's distro name is ObiSpan's, which every OBI rule reads; it is
+ * exported from here too, where it was first defined.
  */
-export const OBI_TELEMETRY_DISTRO_NAME: string =
-  "opentelemetry-ebpf-instrumentation";
+export { OBI_TELEMETRY_DISTRO_NAME };
 
 /*
  * The systems OBI parses with a receiving-side (`*Server`) event type. AMQP

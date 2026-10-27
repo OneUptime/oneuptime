@@ -25,7 +25,7 @@ Fai clic sulla tua foto in alto a destra nella dashboard.
 | --- | --- |
 | **Profilo** | Apre **Profilo utente**: il tuo nome, la tua e-mail, il fuso orario, la foto e la sicurezza dell'accesso. |
 | **Impostazioni admin** | Apre l'Admin Dashboard. La vedono solo gli amministratori principali di un'installazione self-hosted. |
-| **Tema scuro** | Passa la dashboard al tema scuro. Con il tema scuro, la voce diventa **Tema chiaro**. |
+| **Tema** | Imposta il tema della dashboard: **Chiaro**, **Scuro** o **Sistema**, che è chiaro o scuro in base all'impostazione del tuo dispositivo. |
 | **Esci** | Ti disconnette. |
 
 **Profilo utente** ha un proprio menu laterale. **Base** contiene **Panoramica** e **Immagine del profilo**. **Sicurezza** e **Zona pericolosa** sono compresse: fai clic sul titolo di una sezione per aprirla.
@@ -132,7 +132,7 @@ Le **Impostazioni utente**, a destra nella barra sotto la barra superiore, sono 
 Entrambi vengono salvati nel tuo browser, non nel tuo account: impostali di nuovo su un altro browser o dispositivo.
 
 - **Lingua**: la dashboard parte nella lingua del tuo browser. Per cambiarla, usa il menu delle lingue in fondo a ogni pagina. Questa documentazione ha un proprio menu delle lingue, in alto.
-- **Tema**: scegli **Tema scuro** nel menu utente. La dashboard parte con il tema chiaro.
+- **Tema**: scegli **Chiaro**, **Scuro** o **Sistema** nel menu utente. **Sistema** è chiaro o scuro in base all'impostazione del tuo dispositivo, e cambia con essa; ogni browser parte da qui. Le pagine di accesso usano lo stesso tema.
 
 ## Eliminare il tuo account
 

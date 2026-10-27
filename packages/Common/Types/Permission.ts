@@ -195,6 +195,12 @@ enum Permission {
   EditDashboardDomain = "EditDashboardDomain",
   ReadDashboardDomain = "ReadDashboardDomain",
 
+  // Dashboard Playlists (dashboards shown one after another on a screen)
+  CreateDashboardPlaylist = "CreateDashboardPlaylist",
+  DeleteDashboardPlaylist = "DeleteDashboardPlaylist",
+  EditDashboardPlaylist = "EditDashboardPlaylist",
+  ReadDashboardPlaylist = "ReadDashboardPlaylist",
+
   // Logs
   CreateTelemetryServiceLog = "CreateTelemetryServiceLog",
   DeleteTelemetryServiceLog = "DeleteTelemetryServiceLog",
@@ -3309,6 +3315,52 @@ export class PermissionHelper {
         title: "Read Dashboard Domain",
         description:
           "This permission can read Dashboard Domains of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+
+      /*
+       * Dashboard Playlist permissions. Playing a playlist takes Read
+       * Dashboard Playlist; each of its dashboards is still shown only to
+       * someone who may read that dashboard.
+       */
+      {
+        permission: Permission.CreateDashboardPlaylist,
+        title: "Create Dashboard Playlist",
+        description:
+          "This permission can create Dashboard Playlists of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.DeleteDashboardPlaylist,
+        title: "Delete Dashboard Playlist",
+        description:
+          "This permission can delete Dashboard Playlists of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.EditDashboardPlaylist,
+        title: "Edit Dashboard Playlist",
+        description:
+          "This permission can edit Dashboard Playlists of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Settings,
+      },
+      {
+        permission: Permission.ReadDashboardPlaylist,
+        title: "Read Dashboard Playlist",
+        description:
+          "This permission can read and play Dashboard Playlists of this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

@@ -389,10 +389,15 @@ describe("what the traces explorer hands its sidebar", () => {
     expect(LANGUAGES).toEqual(expect.arrayContaining(["en", "ja", "es"]));
   });
 
-  test("a Span Type facet whose one choice is Root spans, and a Span Kind facet", () => {
+  test("a Span Type facet choosing Entry, Root or All spans, and a Span Kind facet", () => {
     expect(configTitled(SPAN_TYPE)).toMatchObject({
       key: "spanType",
-      valueDisplayMap: { root: "Root spans" },
+      valueDisplayMap: {
+        entry: "Entry spans",
+        root: "Root spans",
+        all: "All spans",
+      },
+      chosenValue: "entry",
     });
     expect(configTitled(SPAN_KIND).key).toBe("kind");
   });

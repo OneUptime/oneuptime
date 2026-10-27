@@ -16,6 +16,8 @@ import { JSONObject } from "../../Types/JSON";
  *                      name
  *   productLogoUrl     its own logo for light backgrounds, a path on this
  *                      host; absent when it has none
+ *   productDarkLogoUrl its own logo for dark backgrounds, for a page drawn
+ *                      in the dark theme; absent when it has none
  *   productFaviconUrl  its own browser tab icon, a path on this host; absent
  *                      when it has none
  *
@@ -32,6 +34,10 @@ export const getProductBrandingViewVariables: () => JSONObject =
 
     if (branding?.logoUrl) {
       variables["productLogoUrl"] = branding.logoUrl;
+    }
+
+    if (branding?.darkLogoUrl) {
+      variables["productDarkLogoUrl"] = branding.darkLogoUrl;
     }
 
     if (branding?.faviconUrl) {

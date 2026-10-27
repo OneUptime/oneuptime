@@ -7,9 +7,11 @@ import DetectionRule from "../../Models/DatabaseModels/DetectionRule";
 import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
 import Label from "../../Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "../../Models/DatabaseModels/OnCallDutyPolicy";
+import Runbook from "../../Models/DatabaseModels/Runbook";
 import SecurityCasePriority from "../../Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "../../Models/DatabaseModels/SecurityCaseStatus";
 import SecurityEventConnection from "../../Models/DatabaseModels/SecurityEventConnection";
+import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import Team from "../../Models/DatabaseModels/Team";
 import User from "../../Models/DatabaseModels/User";
 import Workflow from "../../Models/DatabaseModels/Workflow";
@@ -87,6 +89,13 @@ const STEP_REFERENCE_SETTINGS: ReadonlyArray<{
     isList: false,
     modelName: "Workflow",
     modelType: Workflow,
+  },
+  { key: "runbookId", isList: false, modelName: "Runbook", modelType: Runbook },
+  {
+    key: "statusPageIds",
+    isList: true,
+    modelName: "Status Page",
+    modelType: StatusPage,
   },
   // Set priority, Check threat intel's raise and Set status: the project's own.
   {

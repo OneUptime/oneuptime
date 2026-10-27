@@ -25,7 +25,7 @@ Clique na sua foto, no canto superior direito do painel.
 | --- | --- |
 | **Perfil** | Abre **Perfil do usuário**: seu nome, seu e-mail, seu fuso horário, sua foto e a segurança do seu login. |
 | **Configurações de admin** | Abre o Admin Dashboard. Só os administradores principais de uma instalação auto-hospedada o veem. |
-| **Tema escuro** | Muda o painel para o tema escuro. No tema escuro, o item se chama **Tema claro**. |
+| **Tema** | Define o tema do painel: **Claro**, **Escuro** ou **Sistema**, que é claro ou escuro conforme a configuração do seu dispositivo. |
 | **Sair** | Encerra sua sessão. |
 
 **Perfil do usuário** tem o próprio menu lateral. **Básico** contém **Visão geral** e **Foto do perfil**. **Segurança** e **Zona de perigo** ficam recolhidas: clique no título de uma seção para abri-la.
@@ -132,7 +132,7 @@ As **Configurações do usuário**, à direita na barra abaixo da barra do topo,
 Os dois ficam salvos no seu navegador, não na sua conta, então configure-os de novo em outro navegador ou dispositivo.
 
 - **Idioma**: o painel começa no idioma do seu navegador. Para mudá-lo, use o menu de idiomas no rodapé de qualquer página. Esta documentação tem seu próprio menu de idiomas, no topo.
-- **Tema**: escolha **Tema escuro** no menu do usuário. O painel começa no tema claro.
+- **Tema**: escolha **Claro**, **Escuro** ou **Sistema** no menu do usuário. **Sistema** é claro ou escuro conforme a configuração do seu dispositivo, e muda com ela; todo navegador começa nele. As páginas de login usam o mesmo tema.
 
 ## Excluir sua conta
 

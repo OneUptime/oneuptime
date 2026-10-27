@@ -18,8 +18,12 @@ import {
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import TelemetryDocumentation, {
+  TELEMETRY_LANGUAGES,
   TelemetryType,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Telemetry/Documentation";
+import ProviderLogo, {
+  isProviderLogo,
+} from "../../../Types/ProviderLogo/ProviderLogo";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import API from "../../../UI/Utils/API/API";
@@ -101,6 +105,175 @@ describe("TelemetryDocumentation", () => {
   afterEach(() => {
     cleanup();
     jest.restoreAllMocks();
+  });
+
+  /*
+   * Official logos audit: each language beside its own logo, and each
+   * method beside the logo of the project it uses (OpenTelemetry, Fluent
+   * Bit, Fluentd, Grafana Alloy, Kubernetes).
+   */
+  describe("the official logos", () => {
+    const languageButton: (label: string) => HTMLElement = (
+      label: string,
+    ): HTMLElement => {
+      return screen.getByRole("button", { name: label });
+    };
+
+    test("every language has a logo of its own", () => {
+      const logos: Array<ProviderLogo> = TELEMETRY_LANGUAGES.map(
+        (language: { logo: ProviderLogo }): ProviderLogo => {
+          return language.logo;
+        },
+      );
+
+      for (const logo of logos) {
+        expect(isProviderLogo(logo)).toBe(true);
+      }
+
+      expect(new Set(logos).size).toBe(logos.length);
+    });
+
+    test("each language's button shows its logo, decorative, beside its name", () => {
+      renderGuide("traces");
+
+      for (const language of TELEMETRY_LANGUAGES) {
+        const button: HTMLElement = languageButton(language.shortLabel);
+        const logo: Element | null = button.querySelector(
+          "[data-provider-logo]",
+        );
+
+        expect(logo).toHaveAttribute("data-provider-logo", language.logo);
+        expect(logo).toHaveAttribute("aria-hidden", "true");
+      }
+    });
+
+    test("the picked language is pressed, tinted rather than filled, so its logo stays readable", () => {
+      renderGuide("traces");
+
+      const node: HTMLElement = languageButton("Node.js");
+      const python: HTMLElement = languageButton("Python");
+
+      expect(node).toHaveAttribute("aria-pressed", "true");
+      expect(python).toHaveAttribute("aria-pressed", "false");
+      expect(node).toHaveClass("bg-indigo-50", "text-indigo-700");
+      expect(node).not.toHaveClass("bg-indigo-600");
+
+      fireEvent.click(python);
+
+      expect(languageButton("Python")).toHaveAttribute("aria-pressed", "true");
+      expect(languageButton("Node.js")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
+
+    test("the log guide's methods show OpenTelemetry's, Fluent Bit's and Fluentd's logos", () => {
+      renderGuide("logs");
+
+      for (const [label, logo] of [
+        ["OpenTelemetry", ProviderLogo.OpenTelemetry],
+        ["FluentBit", ProviderLogo.FluentBit],
+        ["Fluentd", ProviderLogo.Fluentd],
+      ] as Array<[string, ProviderLogo]>) {
+        const method: HTMLElement = screen.getByText(label, {
+          selector: "div",
+        });
+
+        expect(method.querySelector("[data-provider-logo]")).toHaveAttribute(
+          "data-provider-logo",
+          logo,
+        );
+      }
+    });
+
+    test("the profiles guide's eBPF methods show Grafana's and Kubernetes' logos; the SDKs, being several, none", () => {
+      renderGuide("profiles");
+
+      expect(
+        screen
+          .getByText("Grafana Alloy (eBPF)", { selector: "div" })
+          .querySelector("[data-provider-logo]"),
+      ).toHaveAttribute("data-provider-logo", ProviderLogo.Grafana);
+      expect(
+        screen
+          .getByText("Kubernetes agent (eBPF)", { selector: "div" })
+          .querySelector("[data-provider-logo]"),
+      ).toHaveAttribute("data-provider-logo", ProviderLogo.Kubernetes);
+      expect(
+        screen
+          .getByText("Language SDK", { selector: "div" })
+          .querySelector("[data-provider-logo]"),
+      ).toBeNull();
+    });
+
+    /*
+     * UI review: a row of three methods where two titles stood behind a logo
+     * and the third did not started its titles on two lines. The SDKs show
+     * a code icon in the logo's place, the size a logo is (20px), grey -
+     * indigo while picked, as the picked title is - and never read out.
+     */
+    test("the SDK method shows a code icon in the logo's place, so the three titles line up", () => {
+      renderGuide("profiles");
+
+      const sdkTitle: HTMLElement = screen.getByText("Language SDK", {
+        selector: "div",
+      });
+      const icon: Element | null = sdkTitle.querySelector(
+        '[data-testid="provider-icon-tile"]',
+      );
+
+      expect(icon).not.toBeNull();
+      expect(icon).toHaveAttribute("aria-hidden", "true");
+      expect(icon).toHaveClass("h-5", "w-5", "flex-shrink-0", "text-gray-500");
+      // First on the line, where the other titles have their logos.
+      expect(sdkTitle.firstElementChild).toContainElement(icon as HTMLElement);
+
+      // The logos beside the other two titles are 20px, as the icon is.
+      for (const label of ["Grafana Alloy (eBPF)", "Kubernetes agent (eBPF)"]) {
+        const mark: Element | null = screen
+          .getByText(label, { selector: "div" })
+          .querySelector("[data-provider-logo] > span");
+
+        expect(mark).toHaveClass("h-5", "w-5");
+      }
+
+      fireEvent.click(sdkTitle);
+
+      expect(
+        screen
+          .getByText("Language SDK", { selector: "div" })
+          .querySelector('[data-testid="provider-icon-tile"]'),
+      ).toHaveClass("text-indigo-600");
+    });
+
+    test("each method says whether it is the one picked", () => {
+      renderGuide("logs");
+
+      const methodButton: (label: string) => HTMLElement = (
+        label: string,
+      ): HTMLElement => {
+        return screen
+          .getByText(label, { selector: "div" })
+          .closest("button") as HTMLElement;
+      };
+
+      expect(methodButton("OpenTelemetry")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(methodButton("FluentBit")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+
+      fireEvent.click(methodButton("FluentBit"));
+
+      expect(methodButton("FluentBit")).toHaveAttribute("aria-pressed", "true");
+      expect(methodButton("OpenTelemetry")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
   });
 
   describe("the OpenTelemetry path", () => {

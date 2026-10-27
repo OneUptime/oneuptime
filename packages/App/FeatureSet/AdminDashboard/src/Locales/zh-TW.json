@@ -69,8 +69,6 @@
   },
   "userProfile": {
     "exitAdmin": "退出管理員",
-    "darkTheme": "深色主題",
-    "lightTheme": "淺色主題",
     "logOut": "登出"
   },
   "footer": {
@@ -1511,6 +1509,10 @@
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "任何能開啟此伺服器的人都能建立帳戶。等您的團隊都有帳戶後，請將其關閉。",
   "Choose who can sign up": "選擇誰可以註冊",
   "Still to do": "待完成",
+  "Theme": "主題",
+  "Light": "淺色",
+  "Dark": "深色",
+  "System": "系統",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危險",

@@ -1,5 +1,6 @@
 import IconProp from "../Icon/IconProp";
 import { JSONObject } from "../JSON";
+import ProviderLogo from "../ProviderLogo/ProviderLogo";
 import { parseTemplateExpressions } from "./TemplateSyntax";
 
 export enum ComponentInputType {
@@ -395,6 +396,12 @@ export default interface ComponentMetadata {
   category: string;
   description: string;
   iconProp: IconProp;
+  /*
+   * The official logo of the product the step talks to (Slack, Discord),
+   * drawn in the icon's place in the Add Component picker and on the
+   * step's header in the builder.
+   */
+  logo?: ProviderLogo | undefined;
   componentType: ComponentType;
   arguments: Array<Argument>;
   returnValues: Array<ReturnValue>;
@@ -413,6 +420,8 @@ export interface ComponentCategory {
   name: string;
   description: string;
   icon: IconProp;
+  // The product's official logo, for a category of one product's steps.
+  logo?: ProviderLogo | undefined;
   /*
    * Set on the category of a database model's steps, which is named after
    * the model's singular name. Two models can share that name, so the Add

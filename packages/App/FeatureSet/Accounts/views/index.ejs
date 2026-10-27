@@ -14,12 +14,20 @@
 <head>
   <meta charset="utf-8" />
   <%- include('../../../../Common/Server/Views/Partials/SensitiveUrlToken') -%>
+  <%#
+    The person's theme - Light, Dark, or as their device is set - before the
+    first paint, as the Dashboard draws it (Common/Types/Theme/
+    ThemePreference.ts). A public form is its owner's page and stays light,
+    whatever the visitor picked (Accounts' src/Utils/AccountsTheme.ts holds
+    the same addresses).
+  -%>
+  <%- include('../../../../Common/Server/Views/Partials/Theme', {
+    alwaysLightPathPrefixes: ['/accounts/form/', '/accounts/incident-form/']
+  }) -%>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#000000" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta charSet='utf-8' />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <meta name="theme-color" content="#000000">
   <meta name="slack-app-id" content="ACVBMTPJQ">
   <% if (brandName !== 'OneUptime') { %>
   <meta name="description" content="<%= brandName %>">
@@ -54,7 +62,6 @@
   <meta name="msapplication-TileColor" content="#121212">
   <meta name="msapplication-TileImage" content="/accounts/assets/img/favicons/mstile-144x144.png">
   <% } %>
-  <meta name="theme-color" content="#121212">
   
   <script src="/accounts/env.js"></script>
 
@@ -130,6 +137,7 @@
   <script type="module" src="/accounts/dist/Index.js"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           colors: {

@@ -43,9 +43,13 @@ const LanguageSwitcher: FunctionComponent<ComponentProps> = (
 
   return (
     <div
+      /*
+       * Centred under Contact and Privacy & Terms while the footer stacks
+       * them (a phone), at the start of its place in the row from md up.
+       */
       className={
         props.className ||
-        "flex items-center gap-1.5 text-sm text-gray-500 transition-colors duration-200 hover:text-gray-700"
+        "flex items-center justify-center gap-1.5 text-sm text-gray-500 transition-colors duration-200 hover:text-gray-700 md:justify-start"
       }
     >
       <Icon

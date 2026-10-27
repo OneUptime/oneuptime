@@ -2,6 +2,13 @@ import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import DetectionRule from "../../../Models/DatabaseModels/DetectionRule";
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import SecurityLogSource from "../../../Models/DatabaseModels/SecurityLogSource";
+import SecurityTelemetrySource from "../../../Models/DatabaseModels/SecurityTelemetrySource";
+import {
+  SECURITY_TELEMETRY_SOURCE_KINDS,
+  SecurityTelemetrySourceKind,
+} from "../../../Types/SecurityEvent/SecurityTelemetrySource";
+import SecurityTelemetrySourceService from "../../Services/SecurityTelemetrySourceService";
+import EnterpriseEdition from "../../Enterprise/EnterpriseEdition";
 import SecurityPlaybook from "../../../Models/DatabaseModels/SecurityPlaybook";
 import GreaterThan from "../../../Types/BaseDatabase/GreaterThan";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -86,7 +93,9 @@ import { buildSecurityEventDbRow } from "./SecurityEventRow";
  *   - getStatus: the project's security pipeline at a glance - where events
  *     come from, how many arrived, which rules and playbooks are on, what
  *     is open - read with the caller's own permissions.
- *   - turnOnRecommended: the one click. "Your logs" becomes a source, the
+ *   - turnOnRecommended: the one click. "Your logs" becomes a source, and
+ *     so does the rest of your OneUptime data (traces, network flows, the
+ *     audit log, session replays), the
  *     recommended rules of the library are added (or turned back on) and
  *     the Enrich New Cases playbook is created - each only if it is not
  *     there yet, so clicking twice changes nothing. Each is done on its
@@ -107,6 +116,8 @@ export interface SecuritySetupStatus {
   // Where security events come from.
   connections: number;
   logsSourceEnabled: boolean;
+  // "Your OneUptime data": the telemetry sources beyond logs that are on.
+  telemetrySourcesEnabled: number;
   eventsLast24Hours: number;
   lastEventAt: string | null;
   // What finds threats in them.
@@ -243,6 +254,7 @@ export default class SecuritySetup {
     const [
       connections,
       logSource,
+      telemetrySourcesEnabled,
       eventsLast24Hours,
       lastEventAt,
       rules,
@@ -266,6 +278,14 @@ export default class SecuritySetup {
           props,
         });
       }, null),
+      this.count(async (): Promise<number> => {
+        return (
+          await SecurityTelemetrySourceService.countBy({
+            query: { projectId, isEnabled: true },
+            props,
+          })
+        ).toNumber();
+      }),
       this.count(async (): Promise<number> => {
         return (
           await SecurityEventService.countBy({
@@ -354,6 +374,7 @@ export default class SecuritySetup {
     return {
       connections,
       logsSourceEnabled: logSource?.isEnabled === true,
+      telemetrySourcesEnabled,
       eventsLast24Hours,
       lastEventAt,
       enabledRules: rules.filter((rule: DetectionRule): boolean => {
@@ -411,13 +432,16 @@ export default class SecuritySetup {
       rulesAdded: 0,
       rulesTurnedOn: 0,
       logsTurnedOn: false,
+      telemetrySourcesTurnedOn: 0,
       playbookAdded: false,
       playbookTurnedOn: false,
       problems: [],
     };
 
+    // Your logs, and the rest of your OneUptime data beside them.
     if (options.logs) {
       await this.turnOnLogs({ projectId, props, result });
+      await this.turnOnTelemetrySources({ projectId, props, result });
     }
 
     if (options.detections) {
@@ -506,6 +530,87 @@ export default class SecuritySetup {
         name: "",
         error,
       });
+    }
+  }
+
+  /*
+   * Your OneUptime data: each kind of telemetry beyond logs that the project
+   * does not read yet - traces, network flows, the audit log, session
+   * replays - added, or turned back on. The audit log is left alone where
+   * nothing writes it (OneUptime Community), so no switch says it watches
+   * what is not there. Each kind on its own, as the rules are.
+   */
+  private static async turnOnTelemetrySources(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    result: TurnOnRecommendedResult;
+  }): Promise<void> {
+    const { projectId, props, result } = data;
+    let sources: Array<SecurityTelemetrySource>;
+
+    try {
+      sources = await SecurityTelemetrySourceService.findBy({
+        query: { projectId },
+        select: { _id: true, kind: true, isEnabled: true },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props,
+      });
+    } catch (error) {
+      this.recordProblem({
+        result,
+        projectId,
+        part: TurnOnRecommendedPart.TelemetrySources,
+        action: TurnOnRecommendedAction.Check,
+        name: "",
+        error,
+      });
+      return;
+    }
+
+    for (const kind of SECURITY_TELEMETRY_SOURCE_KINDS) {
+      if (
+        kind === SecurityTelemetrySourceKind.AuditLog &&
+        !EnterpriseEdition.isLoaded()
+      ) {
+        continue;
+      }
+
+      const source: SecurityTelemetrySource | undefined = sources.find(
+        (item: SecurityTelemetrySource): boolean => {
+          return item.kind === kind;
+        },
+      );
+      let action: TurnOnRecommendedAction = TurnOnRecommendedAction.Add;
+
+      try {
+        if (!source) {
+          const created: SecurityTelemetrySource =
+            new SecurityTelemetrySource();
+          created.projectId = projectId;
+          created.kind = kind;
+          created.isEnabled = true;
+          await SecurityTelemetrySourceService.create({ data: created, props });
+          result.telemetrySourcesTurnedOn += 1;
+        } else if (source.isEnabled !== true) {
+          action = TurnOnRecommendedAction.TurnOn;
+          await SecurityTelemetrySourceService.updateOneById({
+            id: source.id!,
+            data: { isEnabled: true },
+            props,
+          });
+          result.telemetrySourcesTurnedOn += 1;
+        }
+      } catch (error) {
+        this.recordProblem({
+          result,
+          projectId,
+          part: TurnOnRecommendedPart.TelemetrySources,
+          action,
+          name: kind,
+          error,
+        });
+      }
     }
   }
 

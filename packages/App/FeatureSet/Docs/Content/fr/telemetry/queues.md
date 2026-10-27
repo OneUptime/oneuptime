@@ -725,6 +725,8 @@ service:
 
 BullMQ garde ses jobs dans Redis et n'a pas de broker à collecter ; rapportez la profondeur de la file depuis l'application sous forme de métrique portant `messaging.system` et `messaging.destination.name`, comme le font les propres workers de OneUptime avec `queue.size`.
 
+Avec le [traceur eBPF de l'agent Kubernetes](/docs/telemetry/kubernetes-agent#à-quoi-ressemblent-les-traces-ebpf), OneUptime lit aussi les files BullMQ (BullMQ 5 et versions ultérieures) à partir des commandes Redis qu'envoie BullMQ, sans modifier votre application : l'ajout d'un job fait apparaître le service comme producteur de sa file, et la fin d'un job comme consommateur. L'agent supprime par défaut les appels de base de données effectués hors d'une requête (`ebpf.dropUnlinkedDatabaseCalls`), et un worker qui traite un job se trouve hors d'une requête ; ainsi, d'emblée, une file découverte de cette façon montre surtout ses producteurs. Définissez `ebpf.dropUnlinkedDatabaseCalls=false` pour voir aussi ses consommateurs.
+
 La télémétrie propre de BullMQ — son option `telemetry`, qu'implémente le package `bullmq-otel` — nomme la file dans `bullmq.queue.name` et ne définit pas de `messaging.system` ; seule, elle ne crée donc aucune file. Un processeur `transform` dans le collecteur auquel vos applications envoient ajoute les deux clés que lit OneUptime, sur les spans qui ajoutent et traitent des jobs et sur les métriques propres de BullMQ :
 
 ```yaml

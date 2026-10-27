@@ -130,6 +130,19 @@ type PasskeyNotice =
 const QUIET_CONTROL_FOCUS: string =
   "rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
 
+/*
+ * The backup codes' one action (Continue to Dashboard, Generate Backup
+ * Codes): as wide as the card and flush with what is above it, as every
+ * other step of signing in draws its button (BasicForm's
+ * maxPrimaryButtonWidth). Button keeps a dialog footer's start margin and
+ * its own width from md up otherwise, which set it 12px in from the codes
+ * and the checkbox above it.
+ */
+const BACKUP_CODES_ACTION_STYLE: React.CSSProperties = {
+  marginInlineStart: "0px",
+  width: "100%",
+};
+
 interface PasskeyAttempt {
   controller: AbortController;
   canCancel: boolean;
@@ -1076,6 +1089,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                 title={t("login.backupCodes.continue")}
                 buttonStyle={ButtonStyleType.PRIMARY}
                 dataTestId="backup-codes-continue"
+                style={BACKUP_CODES_ACTION_STYLE}
                 disabled={!hasSavedCodes}
                 onClick={() => {
                   const finished: PendingLogin = pendingLogin;
@@ -1118,6 +1132,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                 title={t("login.backupCodes.generate")}
                 buttonStyle={ButtonStyleType.PRIMARY}
                 dataTestId="generate-backup-codes"
+                style={BACKUP_CODES_ACTION_STYLE}
                 isLoading={isGeneratingBackupCodes}
                 disabled={isGeneratingBackupCodes}
                 onClick={() => {

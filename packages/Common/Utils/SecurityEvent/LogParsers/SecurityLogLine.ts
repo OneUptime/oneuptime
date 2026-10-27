@@ -52,6 +52,15 @@ export interface SecurityLogLine {
    */
   resourceId?: string | undefined;
   resourceType?: string | undefined;
+  /*
+   * The request the line was written in, when it was written inside a
+   * traced one: the Log record's own trace, span and session ids. Every
+   * event the line becomes carries them, so it links to that trace, the
+   * exception the request threw and the session it was part of.
+   */
+  traceId?: string | undefined;
+  spanId?: string | undefined;
+  sessionId?: string | undefined;
 }
 
 // The longest line a text parser reads; past it a line is cut, not skipped.
@@ -65,6 +74,9 @@ export const MAX_EVENT_MESSAGE_LENGTH: number = 1000;
 
 // An IP address, a port or a host name is never longer than this.
 const MAX_TOKEN_LENGTH: number = 255;
+
+// A trace, span or session id is never longer than this.
+export const MAX_TELEMETRY_ID_LENGTH: number = 128;
 
 export function cutText(text: string, limit: number): string {
   if (text.length <= limit) {
@@ -284,5 +296,29 @@ export function buildLogSecurityEvent(
       targetIp,
     ]),
     attributes,
+    traceId: readTelemetryId(input.line.traceId),
+    spanId: readTelemetryId(input.line.spanId),
+    sessionId: readTelemetryId(input.line.sessionId),
   };
+}
+
+/*
+ * A trace, span or session id from a log record: trimmed, and '' for
+ * anything no id is - empty, all zeros (OpenTelemetry's "no trace"), or
+ * longer than any id.
+ */
+export function readTelemetryId(value: string | undefined): string {
+  const id: string = (value || "").trim();
+
+  if (!id || id.length > MAX_TELEMETRY_ID_LENGTH) {
+    return "";
+  }
+
+  for (let index: number = 0; index < id.length; index++) {
+    if (id[index] !== "0" && id[index] !== "-") {
+      return id;
+    }
+  }
+
+  return "";
 }

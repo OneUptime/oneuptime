@@ -142,15 +142,31 @@ const NO_SAVED_DEFAULTS: SavedDefaults = {
   refreshInterval: null,
 };
 
+// No choice of a link's or the viewer's: the dashboard's defaults decide.
+const NO_CHOICES: ViewerChoices = {
+  timeRange: null,
+  refreshInterval: null,
+};
+
 const useDashboardViewerSettings: (data: {
   dashboardId: string;
+  /*
+   * A dashboard shown as its editors saved it, whoever looks at it: a
+   * playlist's turn on a screen (issue #5235). The page's address and the
+   * viewer's remembered picks are neither read nor written - the address
+   * is the playlist's, and the dashboards it shows share it - so the board
+   * opens on the dashboard's own default time range and auto-refresh.
+   */
+  savedDefaultsOnly?: boolean | undefined;
 }) => DashboardViewerSettings = (data: {
   dashboardId: string;
+  savedDefaultsOnly?: boolean | undefined;
 }): DashboardViewerSettings => {
   const dashboardId: string = data.dashboardId;
+  const savedDefaultsOnly: boolean = Boolean(data.savedDefaultsOnly);
 
   const [initialChoices] = useState<ViewerChoices>(() => {
-    return readChoices(dashboardId);
+    return savedDefaultsOnly ? NO_CHOICES : readChoices(dashboardId);
   });
 
   const [choices, setChoices] = useState<ViewerChoices>(initialChoices);
@@ -195,11 +211,47 @@ const useDashboardViewerSettings: (data: {
    * they see; a parameter no choice came from (one it cannot read) goes.
    */
   useEffect(() => {
+    if (savedDefaultsOnly) {
+      return;
+    }
+
     DashboardSettingsUrlState.writeToBrowserUrl({
       timeRange: initialChoices.timeRange,
       refreshInterval: initialChoices.refreshInterval,
     });
   }, []);
+
+  /*
+   * A pick, or its end, kept in the viewer's browser for this dashboard and
+   * written into the address - never for a board on saved defaults only.
+   */
+  const rememberTimeRange: (timeRange: TimeRange | null) => void = useCallback(
+    (timeRange: TimeRange | null): void => {
+      if (savedDefaultsOnly) {
+        return;
+      }
+
+      DashboardViewerPicks.setTimeRange(dashboardId, timeRange);
+      DashboardSettingsUrlState.writeToBrowserUrl({ timeRange: timeRange });
+    },
+    [dashboardId, savedDefaultsOnly],
+  );
+
+  const rememberAutoRefreshInterval: (
+    refreshInterval: AutoRefreshInterval | null,
+  ) => void = useCallback(
+    (refreshInterval: AutoRefreshInterval | null): void => {
+      if (savedDefaultsOnly) {
+        return;
+      }
+
+      DashboardViewerPicks.setAutoRefreshInterval(dashboardId, refreshInterval);
+      DashboardSettingsUrlState.writeToBrowserUrl({
+        refreshInterval: refreshInterval,
+      });
+    },
+    [dashboardId, savedDefaultsOnly],
+  );
 
   const putBoardOnDefaultTimeRange: () => void = useCallback((): void => {
     const defaultRange: TimeRange =
@@ -237,8 +289,7 @@ const useDashboardViewerSettings: (data: {
           ) {
             nextChoices.timeRange = null;
             hasLeftTimeRangeChoice = true;
-            DashboardViewerPicks.setTimeRange(dashboardId, null);
-            DashboardSettingsUrlState.writeToBrowserUrl({ timeRange: null });
+            rememberTimeRange(null);
           }
 
           if (
@@ -247,10 +298,7 @@ const useDashboardViewerSettings: (data: {
             nextChoices.refreshInterval !== null
           ) {
             nextChoices.refreshInterval = null;
-            DashboardViewerPicks.setAutoRefreshInterval(dashboardId, null);
-            DashboardSettingsUrlState.writeToBrowserUrl({
-              refreshInterval: null,
-            });
+            rememberAutoRefreshInterval(null);
           }
         }
 
@@ -270,7 +318,12 @@ const useDashboardViewerSettings: (data: {
           }
         }
       },
-      [dashboardId, updateChoices, putBoardOnDefaultTimeRange],
+      [
+        updateChoices,
+        putBoardOnDefaultTimeRange,
+        rememberTimeRange,
+        rememberAutoRefreshInterval,
+      ],
     );
 
   const pickTimeRange: (range: RangeStartAndEndDateTime) => void = useCallback(
@@ -289,18 +342,16 @@ const useDashboardViewerSettings: (data: {
 
       appliedDefaultTimeRangeRef.current = null;
       updateChoices({ ...choicesRef.current, timeRange: preset });
-      DashboardViewerPicks.setTimeRange(dashboardId, preset);
-      DashboardSettingsUrlState.writeToBrowserUrl({ timeRange: preset });
+      rememberTimeRange(preset);
     },
-    [dashboardId, setStartAndEndDate, updateChoices],
+    [setStartAndEndDate, updateChoices, rememberTimeRange],
   );
 
   const pickDefaultTimeRange: () => void = useCallback((): void => {
     updateChoices({ ...choicesRef.current, timeRange: null });
-    DashboardViewerPicks.setTimeRange(dashboardId, null);
-    DashboardSettingsUrlState.writeToBrowserUrl({ timeRange: null });
+    rememberTimeRange(null);
     putBoardOnDefaultTimeRange();
-  }, [dashboardId, updateChoices, putBoardOnDefaultTimeRange]);
+  }, [updateChoices, putBoardOnDefaultTimeRange, rememberTimeRange]);
 
   const pickAutoRefreshInterval: (interval: AutoRefreshInterval) => void =
     useCallback(
@@ -313,19 +364,15 @@ const useDashboardViewerSettings: (data: {
         }
 
         updateChoices({ ...choicesRef.current, refreshInterval: picked });
-        DashboardViewerPicks.setAutoRefreshInterval(dashboardId, picked);
-        DashboardSettingsUrlState.writeToBrowserUrl({
-          refreshInterval: picked,
-        });
+        rememberAutoRefreshInterval(picked);
       },
-      [dashboardId, updateChoices],
+      [updateChoices, rememberAutoRefreshInterval],
     );
 
   const pickDefaultAutoRefreshInterval: () => void = useCallback((): void => {
     updateChoices({ ...choicesRef.current, refreshInterval: null });
-    DashboardViewerPicks.setAutoRefreshInterval(dashboardId, null);
-    DashboardSettingsUrlState.writeToBrowserUrl({ refreshInterval: null });
-  }, [dashboardId, updateChoices]);
+    rememberAutoRefreshInterval(null);
+  }, [updateChoices, rememberAutoRefreshInterval]);
 
   const defaultAutoRefreshInterval: AutoRefreshInterval =
     savedDefaults.refreshInterval || DASHBOARD_AUTO_REFRESH_FALLBACK;

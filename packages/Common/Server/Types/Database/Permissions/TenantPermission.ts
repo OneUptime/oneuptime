@@ -4,7 +4,14 @@ import Select from "../Select";
 import BasePermission, { CheckPermissionBaseInterface } from "./BasePermission";
 import TablePermission from "./TablePermission";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import EqualTo from "../../../../Types/BaseDatabase/EqualTo";
+import EqualToOrNull from "../../../../Types/BaseDatabase/EqualToOrNull";
 import Includes from "../../../../Types/BaseDatabase/Includes";
+import IncludesAll from "../../../../Types/BaseDatabase/IncludesAll";
+import IncludesNone from "../../../../Types/BaseDatabase/IncludesNone";
+import IsNull from "../../../../Types/BaseDatabase/IsNull";
+import NotEqual from "../../../../Types/BaseDatabase/NotEqual";
+import NotNull from "../../../../Types/BaseDatabase/NotNull";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
   PermissionType,
@@ -56,6 +63,93 @@ export default class TenantPermission {
     const records: string = (model.pluralName || "records").toLowerCase();
 
     return `Changes to ${records} are made in one project at a time. Please pass the project ID in the 'tenantid' header.`;
+  }
+
+  // Why a read across projects with a filter on the project it cannot work out is refused.
+  public static getReadAcrossProjectsFilterMessage(model: BaseModel): string {
+    const records: string = (model.pluralName || "records").toLowerCase();
+
+    return `A read of ${records} across projects can filter the project only by its ID or a list of IDs. Please pass the project ID in the 'tenantid' header to read one project.`;
+  }
+
+  /*
+   * THE PROJECTS A READ ACROSS PROJECTS ASKS FOR, of those its caller
+   * belongs to (`projectIds`). Such a read is answered with a query per
+   * project, and each names its project in the tenant column - which would
+   * replace whatever the read asked of that column. So the read's own
+   * filter on the column (`filter`) is worked out here, on each project's
+   * ID, as the database works it out on the column, and only the projects
+   * it keeps are asked. It only ever narrows: a read of a project the
+   * caller is not in asks no project at all. It never asks the caller's
+   * own instead - for Project, whose tenant column is its _id, "read
+   * project A" was answered with one of the caller's projects, which let
+   * someone outside A pass a check that read A as them.
+   *
+   * IncludesAll on a column of one ID keeps any of its IDs, and
+   * EqualToOrNull its one ID, as QueryUtil writes them for the database;
+   * no record's tenant column is empty. A filter that cannot be worked
+   * out on an ID - a text search, a range - is refused, never dropped.
+   */
+  public static getProjectsTheFilterKeeps(data: {
+    filter: unknown;
+    projectIds: Array<ObjectID>;
+    model: BaseModel;
+  }): Array<ObjectID> {
+    const filter: unknown = data.filter;
+
+    if (filter === undefined || filter instanceof NotNull) {
+      return data.projectIds;
+    }
+
+    if (filter === null || filter instanceof IsNull) {
+      return [];
+    }
+
+    let ids: Array<unknown> | null = null;
+    let isExcluded: boolean = false;
+
+    if (typeof filter === "string" || filter instanceof ObjectID) {
+      ids = [filter];
+    } else if (filter instanceof EqualTo || filter instanceof EqualToOrNull) {
+      ids = [filter.value];
+    } else if (filter instanceof NotEqual) {
+      ids = [filter.value];
+      isExcluded = true;
+    } else if (filter instanceof Includes || filter instanceof IncludesAll) {
+      ids = filter.values;
+    } else if (filter instanceof IncludesNone) {
+      ids = filter.values;
+      isExcluded = true;
+    }
+
+    const idKeys: Array<string | null> = (ids || []).map((id: unknown) => {
+      return TenantPermission.getProjectIdKey(id);
+    });
+
+    if (!ids || idKeys.includes(null)) {
+      throw new BadDataException(
+        TenantPermission.getReadAcrossProjectsFilterMessage(data.model),
+      );
+    }
+
+    return data.projectIds.filter((projectId: ObjectID) => {
+      return (
+        idKeys.includes(TenantPermission.getProjectIdKey(projectId)) !==
+        isExcluded
+      );
+    });
+  }
+
+  /*
+   * An ID as the database compares it: a uuid, whatever its case. Null for
+   * a value that is not an ID.
+   */
+  private static getProjectIdKey(value: unknown): string | null {
+    if (typeof value === "string" || value instanceof ObjectID) {
+      return value.toString().toLowerCase();
+    }
+
+    return null;
   }
 
   /*
@@ -183,21 +277,17 @@ export default class TenantPermission {
       }
 
       /*
-       * Check if the query already has a filter on the tenant column (e.g., projectId filter)
-       * If so, only iterate through projects that match both the filter AND user's permissions
+       * The read's own filter on the tenant column chooses among the
+       * caller's projects, and is then left to each project's query, which
+       * names its project in that column (getProjectsTheFilterKeeps).
        */
-      const existingTenantFilter: unknown = (query as any)[tenantColumn];
-      if (existingTenantFilter && existingTenantFilter instanceof Includes) {
-        const filterValues: Array<string> = (
-          existingTenantFilter as Includes
-        ).values.map((v: string | ObjectID | number) => {
-          return v.toString();
+      if ((query as any)[tenantColumn] !== undefined) {
+        projectIDs = TenantPermission.getProjectsTheFilterKeeps({
+          filter: (query as any)[tenantColumn],
+          projectIds: projectIDs,
+          model: model,
         });
-        // Filter projectIDs to only include those that are in the filter
-        projectIDs = projectIDs.filter((pid: ObjectID) => {
-          return filterValues.includes(pid.toString());
-        });
-        // Remove the tenant filter from query since we're handling it via projectIDs iteration
+
         delete (query as any)[tenantColumn];
       }
 

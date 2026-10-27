@@ -1,4 +1,5 @@
 import IconProp from "../../Icon/IconProp";
+import ProviderLogo from "../../ProviderLogo/ProviderLogo";
 import ComponentID from "../ComponentID";
 import ComponentMetadata, {
   ComponentInputType,
@@ -10,6 +11,7 @@ const components: Array<ComponentMetadata> = [
     id: ComponentID.SlackSendMessageToChannel,
     title: "Send Message to Slack",
     category: "Slack",
+    logo: ProviderLogo.Slack,
     description: "Send message to slack channel",
     iconProp: IconProp.SendMessage,
     componentType: ComponentType.Component,

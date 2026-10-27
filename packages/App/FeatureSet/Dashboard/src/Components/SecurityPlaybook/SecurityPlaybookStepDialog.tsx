@@ -11,6 +11,8 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IconProp from "Common/Types/Icon/IconProp";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { JSONObject } from "Common/Types/JSON";
@@ -34,6 +36,7 @@ import {
   isSecurityPlaybookActionType,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
 import {
+  ANNOUNCEMENT_TITLE_MAX_LENGTH,
   DefenderIsolationType,
   ENTITY_ACTIVITY_LOOKBACK_MAX_HOURS,
   ENTITY_ACTIVITY_LOOKBACK_MIN_HOURS,
@@ -647,6 +650,107 @@ export function getStepSettingsFields(
       },
       showIf: (values: FormValues<JSONObject>): boolean => {
         return isAction(values, SecurityPlaybookActionType.RunWorkflow);
+      },
+    },
+    {
+      field: { runbookId: true },
+      title: "Runbook",
+      description:
+        "The runbook to start. A Bash step reads the case's address, user and host as $ONEUPTIME_INPUT_IP, $ONEUPTIME_INPUT_USER and $ONEUPTIME_INPUT_HOST.",
+      fieldType: FormFieldSchemaType.Dropdown,
+      stepId: "settings",
+      dropdownModal: {
+        type: Runbook,
+        labelField: "name",
+        valueField: "_id",
+        sort: { name: SortOrder.Ascending },
+      },
+      required: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.RunRunbook);
+      },
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(values, SecurityPlaybookActionType.RunRunbook);
+      },
+    },
+    {
+      field: { statusPageIds: true },
+      title: "Status Pages",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      stepId: "settings",
+      dropdownModal: {
+        type: StatusPage,
+        labelField: "name",
+        valueField: "_id",
+        sort: { name: SortOrder.Ascending },
+      },
+      required: (values: FormValues<JSONObject>): boolean => {
+        return isAction(
+          values,
+          SecurityPlaybookActionType.PostStatusPageAnnouncement,
+        );
+      },
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(
+          values,
+          SecurityPlaybookActionType.PostStatusPageAnnouncement,
+        );
+      },
+    },
+    {
+      field: { announcementTitle: true },
+      title: "Announcement Title",
+      fieldType: FormFieldSchemaType.Text,
+      stepId: "settings",
+      placeholder: "We are investigating a security issue",
+      validation: {
+        maxLength: ANNOUNCEMENT_TITLE_MAX_LENGTH,
+      },
+      required: (values: FormValues<JSONObject>): boolean => {
+        return isAction(
+          values,
+          SecurityPlaybookActionType.PostStatusPageAnnouncement,
+        );
+      },
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(
+          values,
+          SecurityPlaybookActionType.PostStatusPageAnnouncement,
+        );
+      },
+    },
+    {
+      field: { announcementDescription: true },
+      title: "Announcement",
+      description:
+        "Markdown, posted as written: nothing from the case is added, so nothing about the investigation reaches a public page unless you write it here.",
+      fieldType: FormFieldSchemaType.Markdown,
+      stepId: "settings",
+      required: (values: FormValues<JSONObject>): boolean => {
+        return isAction(
+          values,
+          SecurityPlaybookActionType.PostStatusPageAnnouncement,
+        );
+      },
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(
+          values,
+          SecurityPlaybookActionType.PostStatusPageAnnouncement,
+        );
+      },
+    },
+    {
+      field: { notifySubscribers: true },
+      title: "Notify Subscribers",
+      description:
+        "Also tell the pages' subscribers, the way each subscribed. Off: the announcement only shows on the pages.",
+      fieldType: FormFieldSchemaType.Toggle,
+      stepId: "settings",
+      required: false,
+      showIf: (values: FormValues<JSONObject>): boolean => {
+        return isAction(
+          values,
+          SecurityPlaybookActionType.PostStatusPageAnnouncement,
+        );
       },
     },
     {

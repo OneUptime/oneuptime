@@ -14,6 +14,7 @@ import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import Service from "../DatabaseModels/Service";
 import ServiceType from "../../Types/Telemetry/ServiceType";
+import { IS_ENTRY_SPAN_DEFAULT_EXPRESSION } from "../../Utils/Telemetry/EntrySpan";
 
 export enum SpanKind {
   Server = "SPAN_KIND_SERVER",
@@ -969,6 +970,56 @@ export default class Span extends AnalyticsBaseModel {
     });
 
     /*
+     * Where work enters a service: a root span, or a SERVER or CONSUMER span
+     * whatever its parent (Utils/Telemetry/EntrySpan says why). The traces
+     * explorer lists these by default - a downstream service behind a gateway
+     * or a queue never owns a trace root, so a root-only list would hide all
+     * of its requests, while every span buries them under database calls and
+     * internal steps.
+     *
+     * Written at ingest. Rows stored before the column existed read its
+     * DEFAULT expression, computed from their own isRootSpan and kind, so
+     * they filter the same with no backfill.
+     */
+    const isEntrySpanColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
+      key: "isEntrySpan",
+      title: "Is Entry Span",
+      description:
+        "Whether work enters a service at this span (a root span, or a SERVER or CONSUMER span), populated at ingest time for fast entry-span filtering",
+      required: true,
+      defaultValue: false,
+      defaultExpression: IS_ENTRY_SPAN_DEFAULT_EXPRESSION,
+      type: TableColumnType.Boolean,
+      skipIndex: {
+        name: "idx_is_entry_span",
+        type: SkipIndexType.Set,
+        params: [2],
+        granularity: 4,
+      },
+      accessControl: {
+        read: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.Viewer,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.TelemetryViewer,
+          Permission.ReadTelemetryServiceTraces,
+        ],
+        create: [
+          Permission.ProjectOwner,
+          Permission.ProjectAdmin,
+          Permission.ProjectMember,
+          Permission.TelemetryAdmin,
+          Permission.TelemetryMember,
+          Permission.CreateTelemetryServiceTraces,
+        ],
+        update: [],
+      },
+    });
+
+    /*
      * First-class LLM / GenAI / AI-agent columns. Denormalized at ingest from
      * gen_ai.* (and OpenLLMetry/OpenInference) span attributes so LLM calls can
      * be listed, filtered, and aggregated (tokens/cost/latency) cheaply without
@@ -1382,6 +1433,7 @@ export default class Span extends AnalyticsBaseModel {
         kindColumn,
         hasExceptionColumn,
         isRootSpanColumn,
+        isEntrySpanColumn,
         isLlmSpanColumn,
         llmSystemColumn,
         llmOperationColumn,
@@ -1578,6 +1630,15 @@ export default class Span extends AnalyticsBaseModel {
     this.setColumnValue("entityKeys", v);
   }
 
+  // The span's Kubernetes pod key; '' when it ran outside a pod.
+  public get k8sPodEntityKey(): string | undefined {
+    return this.getColumnValue("k8sPodEntityKey") as string | undefined;
+  }
+
+  public set k8sPodEntityKey(v: string | undefined) {
+    this.setColumnValue("k8sPodEntityKey", v);
+  }
+
   public get events(): Array<SpanEvent> | undefined {
     return this.getColumnValue("events") as Array<SpanEvent> | undefined;
   }
@@ -1624,6 +1685,14 @@ export default class Span extends AnalyticsBaseModel {
 
   public set isRootSpan(v: boolean | undefined) {
     this.setColumnValue("isRootSpan", v);
+  }
+
+  public get isEntrySpan(): boolean | undefined {
+    return this.getColumnValue("isEntrySpan") as boolean | undefined;
+  }
+
+  public set isEntrySpan(v: boolean | undefined) {
+    this.setColumnValue("isEntrySpan", v);
   }
 
   public get retentionDate(): Date | undefined {
