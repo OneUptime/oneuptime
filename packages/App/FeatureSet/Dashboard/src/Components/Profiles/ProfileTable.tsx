@@ -106,6 +106,11 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const modelId: ObjectID | undefined = props.modelId;
 
+  // A resource's Profiles tab, not the Profiler's own All profiles page.
+  const isScopedToResource: boolean = Boolean(
+    props.modelId || props.profileQuery || props.entityKeys,
+  );
+
   const [attributes, setAttributes] = React.useState<Array<string>>([]);
   const [attributesLoaded, setAttributesLoaded] =
     React.useState<boolean>(false);
@@ -642,8 +647,17 @@ const ProfileTable: FunctionComponent<ComponentProps> = (
               ? undefined
               : {
                   title: "All profiles",
-                  description:
-                    "Every row is one ~60-second recording of a service. Prefer the aggregated view on the Overview page for answering \u201cwhat is slow right now\u201d \u2014 individual profiles are most useful when you need a specific recording (for example, one linked from a slow trace).",
+                  /*
+                   * On the Profiler's own list, the side menu's Overview
+                   * answers what is slow across every service. A
+                   * resource's Profiles tab has that answer above the list
+                   * (or, an inventory item's, none): there "the Overview"
+                   * read as the resource's own Overview page, which shows
+                   * no profiles, so the card only says what a row is.
+                   */
+                  description: isScopedToResource
+                    ? "Each row is one recording of about a minute."
+                    : "Each row is one recording of about a minute. For what is slow right now, use the Overview.",
                 }
           }
           query={query}

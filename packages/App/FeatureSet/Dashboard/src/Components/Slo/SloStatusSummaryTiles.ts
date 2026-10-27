@@ -21,6 +21,7 @@ import Color from "Common/Types/Color";
 import IconProp from "Common/Types/Icon/IconProp";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import { getSloStatusColor } from "Common/Utils/Slo/SloStatusColor";
+import RememberedChoice from "Common/UI/Utils/RememberedChoice";
 
 /*
  * The SLO list's status vocabulary: how a row reads (Archived, Disabled, or
@@ -239,6 +240,46 @@ export const SLO_STATUS_SUMMARY_TILES: Array<SloStatusSummaryTile> = [
     attentionClassName: "text-gray-900",
   },
 ];
+
+/*
+ * Whether this browser last saw the project with a live SLO.
+ *
+ * While its counts load, the strip holds its place with six skeleton tiles,
+ * so the list under it does not jump when the numbers land. On a project
+ * with no SLO - every new project - those skeletons flashed over the empty
+ * list's one next step for the moment the counts took, and then vanished.
+ * So the strip draws its skeletons only where it last showed tiles, and
+ * otherwise nothing until the counts say there is something to count.
+ * Remembered per project in the browser (RememberedChoice, which never
+ * throws); a browser that keeps nothing simply never draws the skeletons.
+ */
+export const SLO_SUMMARY_HAD_SLOS_KEY_PREFIX: string =
+  "oneuptime-slo-summary-had-slos:";
+
+export const getSloSummaryHadSlosKey: (projectId: string) => string = (
+  projectId: string,
+): string => {
+  return `${SLO_SUMMARY_HAD_SLOS_KEY_PREFIX}${projectId}`;
+};
+
+export const readProjectHadSlos: (projectId: string) => boolean = (
+  projectId: string,
+): boolean => {
+  return RememberedChoice.read(getSloSummaryHadSlosKey(projectId)) === "1";
+};
+
+export const rememberProjectHasSlos: (
+  projectId: string,
+  hasSlos: boolean,
+) => void = (projectId: string, hasSlos: boolean): void => {
+  const key: string = getSloSummaryHadSlosKey(projectId);
+
+  if (hasSlos) {
+    RememberedChoice.remember(key, "1");
+  } else {
+    RememberedChoice.forget(key);
+  }
+};
 
 /*
  * What the tile counts. Starts from the live list's own base query, so the

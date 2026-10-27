@@ -123,13 +123,53 @@ async function requests(page: Page): Promise<Array<RecordedRequest>> {
 }
 
 // The body of the newest request to an explorer endpoint.
+/*
+ * Whether a facets request counted one chosen facet on its own, without its
+ * selection (FacetCountPlan): the rest of a read's facets are counted in one
+ * request that carries every filter.
+ */
+function isOwnSelectionCount(body: Record<string, unknown>): boolean {
+  const keys: unknown = body["facetKeys"];
+  return Array.isArray(keys) && keys.length === 1;
+}
+
+/*
+ * The newest body sent to an endpoint. For a facets endpoint, the newest
+ * request that carries every filter: a facet with a value chosen is also
+ * counted on its own, without its selection, and the two requests may land
+ * in either order.
+ */
 async function lastBodyTo(
   page: Page,
   path: string,
 ): Promise<Record<string, unknown> | null> {
   const calls: Array<RecordedRequest> = (await requests(page)).filter(
     (request: RecordedRequest): boolean => {
-      return request.kind === "api" && Boolean(request.url?.endsWith(path));
+      return (
+        request.kind === "api" &&
+        Boolean(request.url?.endsWith(path)) &&
+        !(path.endsWith("/facets") && isOwnSelectionCount(request.body || {}))
+      );
+    },
+  );
+  return calls.length > 0 ? calls[calls.length - 1]!.body || {} : null;
+}
+
+// The newest request that counted one chosen facet without its selection.
+async function lastOwnCountOf(
+  page: Page,
+  path: string,
+  facetKey: string,
+): Promise<Record<string, unknown> | null> {
+  const calls: Array<RecordedRequest> = (await requests(page)).filter(
+    (request: RecordedRequest): boolean => {
+      const body: Record<string, unknown> = request.body || {};
+      return (
+        request.kind === "api" &&
+        Boolean(request.url?.endsWith(path)) &&
+        isOwnSelectionCount(body) &&
+        (body["facetKeys"] as Array<string>)[0] === facetKey
+      );
     },
   );
   return calls.length > 0 ? calls[calls.length - 1]!.body || {} : null;
@@ -334,10 +374,60 @@ test.describe("Traces explorer: a facet value clicks on and off", () => {
   });
 
   /*
+   * A facet with a value checked is counted without its own selection, so
+   * the values beside the checked one stay listed with their counts and a
+   * second can be checked. It used to be counted with its own selection
+   * applied: once Error was checked, Ok and Unset had nothing left to count
+   * and dropped out of the Status facet.
+   */
+  test("Status: a checked Error keeps Ok and Unset listed, and a second status can be checked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, TRACES_PATH);
+
+    const status: Locator = facetSection(page, "Status");
+    const error: Locator = valueRow(status, "Error");
+    const unset: Locator = valueRow(status, "Unset (no error)");
+    await expect(error).toHaveAttribute("aria-checked", "false", {
+      timeout: 30000,
+    });
+
+    await error.click();
+    await expect(error).toHaveAttribute("aria-checked", "true");
+
+    // Still there, unchecked, counted without the Error chip.
+    await expect(unset).toBeVisible();
+    await expect(unset).toHaveAttribute("aria-checked", "false");
+    await expect
+      .poll(async () => {
+        return (
+          await lastOwnCountOf(page, "/telemetry/traces/facets", "statusCode")
+        )?.["statusCodes"];
+      })
+      .toBeUndefined();
+    expect(
+      await lastOwnCountOf(page, "/telemetry/traces/facets", "statusCode"),
+    ).not.toBeNull();
+
+    await unset.click();
+    await expect(error).toHaveAttribute("aria-checked", "true");
+    await expect(unset).toHaveAttribute("aria-checked", "true");
+    await expect
+      .poll(async () => {
+        const codes: unknown = (
+          await lastBodyTo(page, "/telemetry/traces/facets")
+        )?.["statusCodes"];
+        return Array.isArray(codes) ? [...codes].sort() : codes;
+      })
+      .toEqual([0, 2]);
+  });
+
+  /*
    * The Service facet lists every service of the project, counted or not,
-   * so two can be checked at once. (A facet such as Status is counted with
-   * its own selection applied, so once Error is checked the other statuses
-   * have nothing left to count and drop out of it.)
+   * and is counted without its own selection like every facet, so two can
+   * be checked at once.
    */
   test("two Services: unchecking one leaves the other checked", async ({
     page,

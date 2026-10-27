@@ -554,9 +554,16 @@ function buildValueComponent(): DashboardValueComponent {
       metricQueryConfig: {
         metricAliasData: { metricVariable: "a" },
         metricQueryData: {
+          /*
+           * An average: its line is the points as they came. A sum's or a
+           * count's line also draws the empty buckets between its readings,
+           * at 0, on the grid the server buckets at - one minute over this
+           * half hour (ValueWidgetTimeOrder's sparse-count tests) - so the
+           * five-minute points here would not be a sum's real buckets.
+           */
           filterData: {
             metricName: "http.requests",
-            aggegationType: MetricsAggregationType.Sum,
+            aggegationType: MetricsAggregationType.Avg,
           },
         },
       },

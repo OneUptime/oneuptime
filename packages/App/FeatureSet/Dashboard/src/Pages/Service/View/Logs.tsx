@@ -23,7 +23,7 @@ const ServiceLogs: FunctionComponent<PageComponentProps> = (): ReactElement => {
         showFilters={true}
         enableRealtime={true}
         limit={100}
-        noLogsMessage="No logs found for this service."
+        noLogsMessage="Logs appear here as soon as this service sends them."
       />
       {/*
        * Only when it can do something (AI on, a repository, no improvement

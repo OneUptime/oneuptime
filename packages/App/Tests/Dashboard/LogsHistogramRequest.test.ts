@@ -18,12 +18,14 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import {
   applyTypedLogFilterToRequest,
   buildLogsHistogramRequest,
+  getLogsChosenFacetKeys,
   parseLogsHistogramResponse,
   pickTypedLogFilter,
   preserveBaseAttributesInTypedFilter,
   RESOURCE_FACET_KEYS,
   serializeTypedLogFilter,
   TYPED_LOG_FILTER_KEYS,
+  withoutLogsFacetSelection,
 } from "../../FeatureSet/Dashboard/src/Components/Logs/LogsHistogramRequest";
 
 const NOW: Date = new Date("2026-08-05T12:00:00.000Z");
@@ -1065,4 +1067,118 @@ describe("parseLogsHistogramResponse", () => {
       });
     },
   );
+});
+
+/*
+ * A facet with a value chosen is counted without its own selection
+ * (FacetCountPlan): these say which facets the reader chose a value in, and
+ * what the list query's slice is without one facet's selection. The
+ * explorer's wiring is rendered in Common's ExplorerFacetMultiSelect.
+ */
+describe("getLogsChosenFacetKeys", () => {
+  test("names each facet a chip chose a value in, by the key it is counted under", () => {
+    expect(
+      getLogsChosenFacetKeys(
+        new Map<string, Set<string>>([
+          ["severityText", new Set<string>(["Error", "Warning"])],
+          ["kubernetesClusterId", new Set<string>(["c-1"])],
+        ]),
+      ).sort(),
+    ).toEqual(["kubernetesClusterId", "severityText"]);
+  });
+
+  test("a Service chip under its old name counts the Service facet", () => {
+    expect(
+      getLogsChosenFacetKeys(
+        new Map<string, Set<string>>([
+          ["serviceId", new Set<string>(["s-1"])],
+          ["primaryEntityId", new Set<string>(["s-2"])],
+        ]),
+      ),
+    ).toEqual(["primaryEntityId"]);
+  });
+
+  test("an emptied chip group chooses nothing", () => {
+    expect(
+      getLogsChosenFacetKeys(
+        new Map<string, Set<string>>([["severityText", new Set<string>()]]),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("withoutLogsFacetSelection", () => {
+  const typed: Record<string, unknown> = {
+    severityText: new Includes(["Error", "Warning"]),
+    primaryEntityId: "s-1",
+    resourceFilters: { hostId: ["h-1"], kubernetesClusterId: ["c-1"] },
+    attributes: { "http.route": "/orders", "k8s.pod.name": "web-1" },
+    body: new Search("timeout"),
+  };
+
+  test("leaves the counted facet's own selection out, and every other filter in", () => {
+    expect(withoutLogsFacetSelection(typed, "severityText")).toEqual({
+      primaryEntityId: "s-1",
+      resourceFilters: { hostId: ["h-1"], kubernetesClusterId: ["c-1"] },
+      attributes: { "http.route": "/orders", "k8s.pod.name": "web-1" },
+      body: new Search("timeout"),
+    });
+  });
+
+  test("the Service facet, under either of its names", () => {
+    for (const key of ["primaryEntityId", "serviceId"]) {
+      const without: Record<string, unknown> | undefined =
+        withoutLogsFacetSelection(typed, key);
+
+      expect(without?.["primaryEntityId"]).toBeUndefined();
+      expect(without?.["severityText"]).toEqual(
+        new Includes(["Error", "Warning"]),
+      );
+    }
+  });
+
+  test("a resource facet: only its own entry of the resource filters", () => {
+    expect(
+      withoutLogsFacetSelection(typed, "hostId")?.["resourceFilters"],
+    ).toEqual({ kubernetesClusterId: ["c-1"] });
+    expect(
+      withoutLogsFacetSelection(
+        { resourceFilters: { hostId: ["h-1"] } },
+        "hostId",
+      ),
+    ).toEqual({});
+  });
+
+  test("an attribute facet: only its own attribute", () => {
+    expect(
+      withoutLogsFacetSelection(typed, "attributes.http.route")?.["attributes"],
+    ).toEqual({ "k8s.pod.name": "web-1" });
+  });
+
+  test("never changes the slice it was handed, and passes nothing through as nothing", () => {
+    const before: string = JSON.stringify(typed);
+
+    withoutLogsFacetSelection(typed, "hostId");
+    withoutLogsFacetSelection(typed, "attributes.http.route");
+    withoutLogsFacetSelection(typed, "severityText");
+
+    expect(JSON.stringify(typed)).toBe(before);
+    expect(withoutLogsFacetSelection(undefined, "severityText")).toBe(
+      undefined,
+    );
+  });
+
+  test("the request built without a facet's selection keeps the page's scope", () => {
+    const request: JSONObject = { serviceIds: ["page-service"] };
+
+    applyTypedLogFilterToRequest(
+      request,
+      withoutLogsFacetSelection(
+        { primaryEntityId: "chip-service" },
+        "primaryEntityId",
+      ),
+    );
+
+    expect(request["serviceIds"]).toEqual(["page-service"]);
+  });
 });

@@ -25,7 +25,7 @@ const InventoryItemLogs: FunctionComponent<
             entityKeyDisplays={signal.entityKeyDisplays}
             showFilters={true}
             enableRealtime={true}
-            noLogsMessage="No logs found for this inventory item."
+            noLogsMessage="Logs appear here as soon as this item sends them."
           />
         );
       }}

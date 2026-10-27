@@ -630,7 +630,9 @@ describe("the database Logs tab", () => {
     expect(props["id"]).toBe(`database-server-logs-${MODEL_ID_STRING}`);
     expect(props["showFilters"]).toBe(true);
     expect(props["enableRealtime"]).toBe(true);
-    expect(props["noLogsMessage"]).toBe("No logs found for this database.");
+    expect(props["noLogsMessage"]).toBe(
+      "Logs from the Database Agent, and from the pods or containers this database runs in, appear here.",
+    );
   });
 });
 

@@ -16,6 +16,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Name from "../../../Types/Name";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import OnCallDutyPolicySchedule from "../../../Models/DatabaseModels/OnCallDutyPolicySchedule";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -1198,5 +1199,1154 @@ describe("a workspace connected to more than one project", () => {
     });
 
     expect(projectIds).toEqual([PROJECT_ID.toString()]);
+  });
+});
+
+/*
+ * SOMEBODY IN SEVERAL OF A SHARED WORKSPACE'S PROJECTS: SWITCH PROJECT.
+ *
+ * A company connects one Slack workspace to several OneUptime projects, and
+ * its people are members of more than one of them. The Home showed each of
+ * them only the first of their projects, with no way to see another. Now
+ * the Home of somebody connected as a member in two or more of them has a
+ * Switch project menu beside the line that names the project, listing their
+ * others by name. Choosing one draws the Home again for it, and their later
+ * openings show it while they are still a member there - otherwise the
+ * first of their projects. Nobody with one project sees anything new, and
+ * the menu never offers - nor a press ever draws - a project where the
+ * Slack account is not connected to a current member.
+ *
+ * Through the real router and Home, against a recorded Slack: who is
+ * connected where, and who is a member of which project, are stood in for.
+ */
+describe("a person in several of the workspace's projects: Switch project", () => {
+  const PRODUCTION: ObjectID = new ObjectID(
+    "d2000000-0000-4000-8000-000000000001",
+  );
+  const STAGING: ObjectID = new ObjectID(
+    "d2000000-0000-4000-8000-000000000002",
+  );
+  const SANDBOX: ObjectID = new ObjectID(
+    "d2000000-0000-4000-8000-000000000003",
+  );
+  // Connected to the workspace too; Alice's Slack account is not connected there.
+  const FINANCE: ObjectID = new ObjectID(
+    "d2000000-0000-4000-8000-000000000004",
+  );
+  // A project of another Slack workspace, where Alice is in two projects too.
+  const ELSEWHERE_TEAM_ID: string = "T0ELSEWHERE";
+  const LAB: ObjectID = new ObjectID("d2000000-0000-4000-8000-000000000005");
+  const STUDIO: ObjectID = new ObjectID("d2000000-0000-4000-8000-000000000006");
+
+  const BOB: string = "U0BOB";
+  const DAVE: string = "U0DAVE";
+  const ERIN: string = "U0ERIN";
+  const BOB_ID: ObjectID = new ObjectID("d2000000-0000-4000-8000-0000000000b0");
+  const DAVE_ID: ObjectID = new ObjectID(
+    "d2000000-0000-4000-8000-0000000000d0",
+  );
+  const ERIN_ID: ObjectID = new ObjectID(
+    "d2000000-0000-4000-8000-0000000000e0",
+  );
+
+  const NAMES: Record<string, string> = {
+    [PRODUCTION.toString()]: "Acme Production",
+    [STAGING.toString()]: "Acme Staging",
+    [SANDBOX.toString()]: "Acme Sandbox",
+    [FINANCE.toString()]: "Acme Finance",
+    [LAB.toString()]: "Elsewhere Lab",
+    [STUDIO.toString()]: "Elsewhere Studio",
+  };
+
+  const USERS: Record<string, ObjectID> = {
+    [ALICE]: ALICE_ID,
+    [BOB]: BOB_ID,
+    [DAVE]: DAVE_ID,
+    [ERIN]: ERIN_ID,
+  };
+
+  interface Link {
+    teamId: string;
+    slackUserId: string;
+    projectId: ObjectID;
+  }
+
+  let connectionsByTeam: Record<string, Array<ObjectID>>;
+  let links: Array<Link>;
+  // "<user id> <project id>" of each current membership.
+  let members: Set<string>;
+  let memberPropsReads: Array<string>;
+  let namesReadable: boolean;
+  // Projects an administrator blocked: their members are refused there.
+  let blocked: Set<string>;
+  /*
+   * Projects Alice left a moment ago: still in her projects as they were
+   * read for the menu, refused by the Home's own read of her membership.
+   */
+  let leftJustNow: Set<string>;
+
+  function memberKey(userId: ObjectID, projectId: ObjectID | string): string {
+    return `${userId.toString()} ${projectId.toString().toLowerCase()}`;
+  }
+
+  // The ids a query's value names: an id, or QueryHelper.any's values.
+  function idsOf(value: unknown): Array<string> {
+    if (value === undefined || value === null) {
+      return [];
+    }
+
+    if (value instanceof ObjectID || typeof value === "string") {
+      return [value.toString().toLowerCase()];
+    }
+
+    const parameters: JSONObject | undefined = (
+      value as { objectLiteralParameters?: JSONObject }
+    ).objectLiteralParameters;
+
+    return Object.values(parameters || {})
+      .flatMap((entry: unknown): Array<unknown> => {
+        return Array.isArray(entry) ? entry : [entry];
+      })
+      .map((entry: unknown): string => {
+        return String(entry).toLowerCase();
+      });
+  }
+
+  function connectionOf(
+    projectId: ObjectID,
+    teamId: string,
+  ): WorkspaceProjectAuthToken {
+    const projectAuth: WorkspaceProjectAuthToken =
+      new WorkspaceProjectAuthToken();
+    projectAuth.projectId = projectId;
+    projectAuth.workspaceProjectId = teamId;
+    projectAuth.authToken = `xoxb-${projectId.toString().substring(0, 8)}`;
+    projectAuth.miscData = { botUserId: ONEUPTIME } as never;
+    return projectAuth;
+  }
+
+  function linksMatching(query: JSONObject): Array<WorkspaceUserAuthToken> {
+    const projectIds: Array<string> = idsOf(query["projectId"]);
+    const workspaceUserIds: Array<string> = idsOf(query["workspaceUserId"]);
+
+    return links
+      .filter((link: Link): boolean => {
+        return (
+          workspaceUserIds.includes(link.slackUserId.toLowerCase()) &&
+          (projectIds.length === 0 ||
+            projectIds.includes(link.projectId.toString().toLowerCase()))
+        );
+      })
+      .map((link: Link): WorkspaceUserAuthToken => {
+        const userAuth: WorkspaceUserAuthToken = new WorkspaceUserAuthToken();
+        userAuth.projectId = link.projectId;
+        userAuth.userId = USERS[link.slackUserId]!;
+        userAuth.workspaceUserId = link.slackUserId;
+        userAuth.authToken = "xoxp-user-token";
+        return userAuth;
+      });
+  }
+
+  beforeEach(() => {
+    connectionsByTeam = {
+      // In the order they were connected: Production first.
+      [TEAM_ID]: [PRODUCTION, STAGING, SANDBOX, FINANCE],
+      [ELSEWHERE_TEAM_ID]: [LAB, STUDIO],
+    };
+    links = [
+      ...[PRODUCTION, STAGING, SANDBOX].map((projectId: ObjectID): Link => {
+        return { teamId: TEAM_ID, slackUserId: ALICE, projectId: projectId };
+      }),
+      { teamId: TEAM_ID, slackUserId: BOB, projectId: STAGING },
+      { teamId: TEAM_ID, slackUserId: DAVE, projectId: PRODUCTION },
+      { teamId: TEAM_ID, slackUserId: DAVE, projectId: STAGING },
+      ...[PRODUCTION, STAGING, SANDBOX].map((projectId: ObjectID): Link => {
+        return { teamId: TEAM_ID, slackUserId: ERIN, projectId: projectId };
+      }),
+      { teamId: ELSEWHERE_TEAM_ID, slackUserId: ALICE, projectId: LAB },
+      { teamId: ELSEWHERE_TEAM_ID, slackUserId: ALICE, projectId: STUDIO },
+    ];
+    members = new Set<string>([
+      memberKey(ALICE_ID, PRODUCTION),
+      memberKey(ALICE_ID, STAGING),
+      memberKey(ALICE_ID, SANDBOX),
+      memberKey(ALICE_ID, LAB),
+      memberKey(ALICE_ID, STUDIO),
+      memberKey(BOB_ID, STAGING),
+      // Dave was removed from Acme Staging; his account is still connected there.
+      memberKey(DAVE_ID, PRODUCTION),
+      memberKey(ERIN_ID, PRODUCTION),
+      memberKey(ERIN_ID, STAGING),
+      memberKey(ERIN_ID, SANDBOX),
+    ]);
+    memberPropsReads = [];
+    namesReadable = true;
+    blocked = new Set<string>();
+    leftJustNow = new Set<string>();
+
+    // The workspaces' connections, oldest first, as the resolver reads them.
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockImplementation((async (findBy: { query: JSONObject }) => {
+        const teamId: string = String(findBy.query["workspaceProjectId"]);
+
+        return (connectionsByTeam[teamId] || []).map(
+          (projectId: ObjectID): WorkspaceProjectAuthToken => {
+            return connectionOf(projectId, teamId);
+          },
+        );
+      }) as never);
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
+      .mockImplementation((async (getProjectAuth: { projectId: ObjectID }) => {
+        for (const [teamId, projectIds] of Object.entries(connectionsByTeam)) {
+          if (
+            projectIds.some((projectId: ObjectID): boolean => {
+              return (
+                projectId.toString() === getProjectAuth.projectId.toString()
+              );
+            })
+          ) {
+            return connectionOf(getProjectAuth.projectId, teamId);
+          }
+        }
+
+        return null;
+      }) as never);
+
+    // Who connected which Slack account in which project.
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findBy")
+      .mockImplementation((async (findBy: { query: JSONObject }) => {
+        return linksMatching(findBy.query);
+      }) as never);
+    jest
+      .spyOn(WorkspaceUserAuthTokenService, "findOneBy")
+      .mockImplementation((async (findOneBy: { query: JSONObject }) => {
+        return linksMatching(findOneBy.query)[0] || null;
+      }) as never);
+
+    // Who is a member of which project, now.
+    jest
+      .spyOn(WorkspaceActionAuthorization, "isProjectMember")
+      .mockImplementation((async (data: {
+        userId: ObjectID;
+        projectId: ObjectID;
+      }) => {
+        return members.has(memberKey(data.userId, data.projectId));
+      }) as never);
+    jest
+      .spyOn(WorkspaceActionAuthorization, "getProjectMemberProps")
+      .mockImplementation((async (data: {
+        userId: ObjectID;
+        projectId: ObjectID;
+      }) => {
+        memberPropsReads.push(data.projectId.toString());
+
+        if (
+          !members.has(memberKey(data.userId, data.projectId)) ||
+          leftJustNow.has(data.projectId.toString())
+        ) {
+          throw new NotAuthorizedException(
+            WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+          );
+        }
+
+        if (blocked.has(data.projectId.toString())) {
+          throw new NotAuthorizedException(ExceptionMessages.ProjectBlocked);
+        }
+
+        return { userId: data.userId, tenantId: data.projectId };
+      }) as never);
+
+    // The projects' names: for the line that names one, and for the menu.
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockImplementation((async (findOneById: { id: ObjectID }) => {
+        const project: Project = new Project();
+        project.name = NAMES[findOneById.id.toString()]!;
+        return project;
+      }) as never);
+    jest.spyOn(ProjectService, "findBy").mockImplementation((async (findBy: {
+      query: JSONObject;
+    }) => {
+      if (!namesReadable) {
+        throw new Error("connection refused");
+      }
+
+      return idsOf(findBy.query["_id"]).map((id: string): Project => {
+        const project: Project = new Project();
+        project.id = new ObjectID(id);
+        project.name = NAMES[id]!;
+        return project;
+      });
+    }) as never);
+
+    // No record owns a channel, and no project has posted in one.
+    for (const service of [
+      IncidentEpisodeService,
+      AlertEpisodeService,
+      ScheduledMaintenanceService,
+    ] as unknown as Array<{ findBy: () => Promise<unknown> }>) {
+      jest.spyOn(service, "findBy").mockResolvedValue([] as never);
+    }
+
+    jest
+      .spyOn(WorkspaceNotificationLogService, "findOneBy")
+      .mockResolvedValue(null);
+  });
+
+  function openHomeIn(teamId: string, user: string): JSONObject {
+    const event: JSONObject = openHome(user);
+    event["team_id"] = teamId;
+    return event;
+  }
+
+  /*
+   * What Slack posts when an option of the Home's Switch project menu is
+   * chosen: the Home view, which carries the project it shows, and the
+   * menu's chosen option.
+   */
+  function switchTo(data: {
+    value: unknown;
+    shown: ObjectID;
+    user?: string | undefined;
+    teamId?: string | undefined;
+  }): JSONObject {
+    // Any value a press may carry, as Slack would post it.
+    const payload: Record<string, unknown> = {
+      type: "block_actions",
+      user: {
+        id: data.user || ALICE,
+        username: "alice",
+        name: "Alice",
+        team_id: data.teamId || TEAM_ID,
+      },
+      api_app_id: "A0ONEUPTIME",
+      team: { id: data.teamId || TEAM_ID },
+      container: { type: "view", view_id: "V0HOME" },
+      trigger_id: "1760000000.home-trigger",
+      view: {
+        id: "V0HOME",
+        type: "home",
+        blocks: [],
+        private_metadata: JSON.stringify({
+          oneuptime: 1,
+          value: "",
+          projectId: data.shown.toString(),
+        }),
+        callback_id: "",
+        state: { values: {} },
+      },
+      actions: [
+        {
+          type: "static_select",
+          action_id: "SwitchHomeProject",
+          block_id: `SwitchHomeProject:${data.shown.toString()}`,
+          selected_option: {
+            text: { type: "plain_text", text: "a project", emoji: true },
+            value: data.value,
+          },
+          placeholder: {
+            type: "plain_text",
+            text: "Switch project",
+            emoji: true,
+          },
+          action_ts: "1760000001.000300",
+        },
+      ],
+    };
+
+    return payload as JSONObject;
+  }
+
+  interface DrawnHome {
+    projectId: string;
+    projectLine: string;
+    // The menu's options, by name and value; null without a menu.
+    menu: Array<{ name: string; value: string }> | null;
+    menuBlockId: string | null;
+    // The text the menu is drawn beside.
+    menuBeside: string | null;
+    texts: Array<string>;
+    json: string;
+  }
+
+  // The Home drawn last: the project it carries, its line and its menu.
+  function lastHome(): DrawnHome {
+    const publishes: Array<SlackCall> = calls("views.publish");
+    const view: JSONObject = publishes[publishes.length - 1]!.data[
+      "view"
+    ] as JSONObject;
+    const blocks: Array<JSONObject> = view["blocks"] as Array<JSONObject>;
+    const withMenus: Array<JSONObject> = blocks.filter(
+      (block: JSONObject): boolean => {
+        return Boolean(block["accessory"]);
+      },
+    );
+
+    expect(withMenus.length).toBeLessThanOrEqual(1);
+
+    const line: JSONObject | undefined = blocks.find(
+      (block: JSONObject): boolean => {
+        return (
+          block["type"] === "section" &&
+          String((block["text"] as JSONObject)["text"]).includes(
+            "Here's what is happening in",
+          )
+        );
+      },
+    );
+    // The menu: beside the project's line, or beside why the project was refused.
+    const menuBlock: JSONObject | undefined = withMenus[0];
+    const accessory: JSONObject | undefined = menuBlock?.["accessory"] as
+      | JSONObject
+      | undefined;
+
+    return {
+      projectId: String(
+        JSON.parse(view["private_metadata"] as string)["projectId"],
+      ),
+      projectLine: line
+        ? String((line["text"] as JSONObject)["text"])
+            .split(ZWSP)
+            .join("")
+        : "",
+      menu: accessory
+        ? (accessory["options"] as Array<JSONObject>).map(
+            (option: JSONObject): { name: string; value: string } => {
+              return {
+                name: String((option["text"] as JSONObject)["text"]),
+                value: String(option["value"]),
+              };
+            },
+          )
+        : null,
+      menuBlockId: accessory ? String(menuBlock!["block_id"]) : null,
+      menuBeside: menuBlock
+        ? String((menuBlock["text"] as JSONObject)["text"])
+            .split(ZWSP)
+            .join("")
+        : null,
+      texts: blockTexts(blocks).map((text: string): string => {
+        return text.split(ZWSP).join("");
+      }),
+      json: JSON.stringify(view),
+    };
+  }
+
+  /*
+   * The project a Home's menu is named for (its block id: the menu's action,
+   * the project shown, and a name for this drawing of it); null without one.
+   */
+  function menuProjectOf(home: DrawnHome): string | null {
+    if (!home.menuBlockId) {
+      return null;
+    }
+
+    const parts: Array<string> = home.menuBlockId.split(":");
+
+    expect(parts).toHaveLength(3);
+    expect(parts[0]).toBe("SwitchHomeProject");
+    expect(parts[2]).toHaveLength(8);
+
+    return parts[1]!;
+  }
+
+  // The names a menu lists.
+  function namesIn(home: DrawnHome): Array<string> | null {
+    return home.menu
+      ? home.menu.map((option: { name: string }): string => {
+          return option.name;
+        })
+      : null;
+  }
+
+  async function opened(
+    user: string = ALICE,
+    teamId: string = TEAM_ID,
+  ): Promise<DrawnHome> {
+    const count: number = calls("views.publish").length;
+
+    expect((await deliverEvent(openHomeIn(teamId, user))).status).toBe(200);
+    await until((): boolean => {
+      return calls("views.publish").length === count + 1;
+    }, "the Home drawn");
+
+    return lastHome();
+  }
+
+  async function switched(data: {
+    value: unknown;
+    shown: ObjectID;
+    user?: string | undefined;
+    teamId?: string | undefined;
+  }): Promise<DrawnHome> {
+    const count: number = calls("views.publish").length;
+
+    expect((await press(switchTo(data))).status).toBe(200);
+    await until((): boolean => {
+      return calls("views.publish").length === count + 1;
+    }, "the Home drawn again");
+
+    return lastHome();
+  }
+
+  // Lets the ten seconds pass in which opening the Home again draws nothing.
+  function later(): void {
+    clockOffsetInMs += 11 * 1000;
+  }
+
+  // What is kept of the project chosen for a Home, by its cache key.
+  function rememberedHomes(): Array<{ value: string; expiresAt: number }> {
+    const store: Map<string, { value: string; expiresAt: number }> = (
+      jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
+        default: { store: Map<string, { value: string; expiresAt: number }> };
+      }
+    ).default.store;
+
+    return Array.from(store.entries())
+      .filter(([key]: [string, unknown]): boolean => {
+        return key.startsWith("slack-project-choice-home-");
+      })
+      .map(([, entry]: [string, { value: string; expiresAt: number }]) => {
+        return entry;
+      });
+  }
+
+  const REFUSED: string =
+    "⚠️ You can't switch to that project: you're no longer a member of it, or your Slack account isn't connected there.\n";
+
+  test("Alice, a member in three of the four projects: the first one's Home, with Switch project beside its name, listing her other two - never the one she is not connected in", async () => {
+    const home: DrawnHome = await opened();
+
+    expect(home.projectId).toBe(PRODUCTION.toString());
+    expect(home.projectLine).toBe(
+      "Here's what is happening in *Acme Production*.\n",
+    );
+    expect(home.menu).toEqual([
+      { name: "Acme Staging", value: STAGING.toString() },
+      { name: "Acme Sandbox", value: SANDBOX.toString() },
+    ]);
+    expect(menuProjectOf(home)).toBe(PRODUCTION.toString());
+    expect(home.menuBeside).toBe(home.projectLine);
+    expect(home.json).not.toContain("Acme Finance");
+    expect(home.json).not.toContain(FINANCE.toString());
+
+    // The select itself, as Slack draws it beside the line.
+    const view: JSONObject = calls("views.publish")[0]!.data[
+      "view"
+    ] as JSONObject;
+    const line: JSONObject = (view["blocks"] as Array<JSONObject>)[1]!;
+    const accessory: JSONObject = line["accessory"] as JSONObject;
+
+    expect(accessory["type"]).toBe("static_select");
+    expect(accessory["action_id"]).toBe("SwitchHomeProject");
+    expect((accessory["placeholder"] as JSONObject)["text"]).toBe(
+      "Switch project",
+    );
+    expect(accessory["initial_option"]).toBeUndefined();
+
+    // The rest of the Home, as anybody's: the buttons right under it.
+    expect(
+      (view["blocks"] as Array<JSONObject>).map(
+        (block: JSONObject): unknown => {
+          return block["type"];
+        },
+      ),
+    ).toEqual([
+      "header",
+      "section",
+      "actions",
+      "divider",
+      "section",
+      "section",
+      "divider",
+      "section",
+      "section",
+      "section",
+      "divider",
+      "context",
+    ]);
+
+    // Read as Alice, in Acme Production.
+    expect(memberPropsReads).toEqual([PRODUCTION.toString()]);
+    expect(String((onCallReads[0]!["props"] as JSONObject)["tenantId"])).toBe(
+      PRODUCTION.toString(),
+    );
+  });
+
+  test("Bob, in one of the projects: his project's Home, and no menu - nothing new", async () => {
+    const home: DrawnHome = await opened(BOB);
+
+    expect(home.projectId).toBe(STAGING.toString());
+    expect(home.projectLine).toContain("Acme Staging");
+    expect(home.menu).toBeNull();
+    expect(home.json).not.toContain("static_select");
+    expect(home.json).not.toContain("SwitchHomeProject");
+  });
+
+  test("Dave, connected in two projects but a member of one: that one, and no menu - never the project he was removed from", async () => {
+    const home: DrawnHome = await opened(DAVE);
+
+    expect(home.projectId).toBe(PRODUCTION.toString());
+    expect(home.menu).toBeNull();
+    expect(home.json).not.toContain("Acme Staging");
+  });
+
+  test("a workspace connected to one project: no menu, and no choice is ever looked up", async () => {
+    connectionsByTeam[TEAM_ID] = [PRODUCTION];
+
+    // The in-memory cache keeps the calls of every test: these are this one's.
+    const cache: { getString: { mock: { calls: Array<Array<unknown>> } } } = (
+      jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
+        default: { getString: { mock: { calls: Array<Array<unknown>> } } };
+      }
+    ).default;
+    const callsBefore: number = cache.getString.mock.calls.length;
+
+    const home: DrawnHome = await opened();
+
+    expect(home.projectId).toBe(PRODUCTION.toString());
+    expect(home.menu).toBeNull();
+    expect(
+      cache.getString.mock.calls
+        .slice(callsBefore)
+        .filter((call: Array<unknown>): boolean => {
+          return call[0] === "slack-project-choice-home";
+        }),
+    ).toEqual([]);
+  });
+
+  test("choosing Acme Staging: Slack is answered at once, and the Home is drawn again for it - its lists read as Alice there, its buttons carrying it, the menu listing her others", async () => {
+    await opened();
+    onCallReads = [];
+    memberPropsReads = [];
+
+    const home: DrawnHome = await switched({
+      value: STAGING.toString(),
+      shown: PRODUCTION,
+    });
+
+    expect(home.projectId).toBe(STAGING.toString());
+    expect(home.projectLine).toBe(
+      "Here's what is happening in *Acme Staging*.\n",
+    );
+    expect(namesIn(home)).toEqual(["Acme Production", "Acme Sandbox"]);
+    expect(menuProjectOf(home)).toBe(STAGING.toString());
+    // Switched as asked: nothing to explain.
+    expect(home.texts).not.toContain(REFUSED);
+
+    expect(memberPropsReads).toEqual([STAGING.toString()]);
+    expect(onCallReads.length).toBeGreaterThan(0);
+    for (const read of onCallReads) {
+      expect(String((read["props"] as JSONObject)["tenantId"])).toBe(
+        STAGING.toString(),
+      );
+      expect(String((read["props"] as JSONObject)["userId"])).toBe(
+        ALICE_ID.toString(),
+      );
+    }
+
+    // Drawn for Alice, with the workspace's token, as Slack has it.
+    const publish: SlackCall = calls("views.publish")[1]!;
+    expect(publish.data["user_id"]).toBe(ALICE);
+    expect(calls("views.open")).toEqual([]);
+    expect(calls("chat.postMessage")).toEqual([]);
+  });
+
+  test("the choice is remembered: her next opening shows Acme Staging, and her choice after that, Acme Sandbox", async () => {
+    await opened();
+    await switched({ value: STAGING.toString(), shown: PRODUCTION });
+
+    later();
+    const next: DrawnHome = await opened();
+
+    expect(next.projectId).toBe(STAGING.toString());
+    expect(namesIn(next)).toEqual(["Acme Production", "Acme Sandbox"]);
+
+    await switched({ value: SANDBOX.toString(), shown: STAGING });
+
+    later();
+    expect((await opened()).projectId).toBe(SANDBOX.toString());
+
+    // One choice kept for her in this workspace, the last.
+    expect(rememberedHomes()).toHaveLength(1);
+    expect(rememberedHomes()[0]!.value).toBe(SANDBOX.toString());
+  });
+
+  test("kept for each person in each workspace: Erin, in the same three, still sees the first; Alice's Home elsewhere is her own", async () => {
+    await opened();
+    await switched({ value: STAGING.toString(), shown: PRODUCTION });
+
+    expect((await opened(ERIN)).projectId).toBe(PRODUCTION.toString());
+
+    const elsewhere: DrawnHome = await opened(ALICE, ELSEWHERE_TEAM_ID);
+
+    expect(elsewhere.projectId).toBe(LAB.toString());
+    expect(namesIn(elsewhere)).toEqual(["Elsewhere Studio"]);
+    // Nothing of this workspace's projects there.
+    expect(elsewhere.json).not.toContain("Acme");
+  });
+
+  test("kept while she goes on opening it: each opening keeps it for ninety days again", async () => {
+    await opened();
+    await switched({ value: STAGING.toString(), shown: PRODUCTION });
+
+    const ninetyDays: number = 90 * 24 * 60 * 60 * 1000;
+    const keptAt: number = rememberedHomes()[0]!.expiresAt;
+
+    expect(keptAt - Date.now()).toBeGreaterThan(ninetyDays - 60000);
+
+    // Sixty days on, she opens it: kept for ninety days from then.
+    clockOffsetInMs += 60 * 24 * 60 * 60 * 1000;
+
+    expect((await opened()).projectId).toBe(STAGING.toString());
+    expect(rememberedHomes()[0]!.expiresAt - Date.now()).toBeGreaterThan(
+      ninetyDays - 60000,
+    );
+    expect(rememberedHomes()[0]!.expiresAt).toBeGreaterThan(keptAt);
+  });
+
+  test("removed from the project she chose: her next opening falls back to the first, the menu listing only what she is still in", async () => {
+    await opened();
+    await switched({ value: STAGING.toString(), shown: PRODUCTION });
+
+    members.delete(memberKey(ALICE_ID, STAGING));
+    memberPropsReads = [];
+
+    later();
+    const home: DrawnHome = await opened();
+
+    expect(home.projectId).toBe(PRODUCTION.toString());
+    expect(namesIn(home)).toEqual(["Acme Sandbox"]);
+    expect(home.json).not.toContain("Acme Staging");
+    // Nothing read in the project she left.
+    expect(memberPropsReads).toEqual([PRODUCTION.toString()]);
+    // An opening is not a switch: nothing to explain.
+    expect(home.texts).not.toContain(REFUSED);
+  });
+
+  test("removed from all but one: the first project she is still in, and no menu", async () => {
+    await opened();
+    await switched({ value: SANDBOX.toString(), shown: PRODUCTION });
+
+    members.delete(memberKey(ALICE_ID, SANDBOX));
+    members.delete(memberKey(ALICE_ID, PRODUCTION));
+
+    later();
+    const home: DrawnHome = await opened();
+
+    expect(home.projectId).toBe(STAGING.toString());
+    expect(home.menu).toBeNull();
+  });
+
+  test("her Slack account disconnected in the project she chose: the first project again", async () => {
+    await opened();
+    await switched({ value: STAGING.toString(), shown: PRODUCTION });
+
+    links = links.filter((link: Link): boolean => {
+      return !(
+        link.slackUserId === ALICE &&
+        link.projectId.toString() === STAGING.toString()
+      );
+    });
+
+    later();
+    const home: DrawnHome = await opened();
+
+    expect(home.projectId).toBe(PRODUCTION.toString());
+    expect(namesIn(home)).toEqual(["Acme Sandbox"]);
+  });
+
+  test("the project she chose disconnected from the workspace: the first project again", async () => {
+    await opened();
+    await switched({ value: SANDBOX.toString(), shown: PRODUCTION });
+
+    connectionsByTeam[TEAM_ID] = [PRODUCTION, STAGING, FINANCE];
+
+    later();
+    const home: DrawnHome = await opened();
+
+    expect(home.projectId).toBe(PRODUCTION.toString());
+    expect(namesIn(home)).toEqual(["Acme Staging"]);
+  });
+
+  test("taken back into the project she chose: shown again - her choice still stands", async () => {
+    await opened();
+    await switched({ value: STAGING.toString(), shown: PRODUCTION });
+
+    members.delete(memberKey(ALICE_ID, STAGING));
+    later();
+    expect((await opened()).projectId).toBe(PRODUCTION.toString());
+
+    members.add(memberKey(ALICE_ID, STAGING));
+    later();
+    expect((await opened()).projectId).toBe(STAGING.toString());
+  });
+
+  test("removed from a project after the menu was drawn, then choosing it: told she can't switch, her Home stays where it was - nothing of it read, nothing remembered", async () => {
+    const before: DrawnHome = await opened();
+
+    members.delete(memberKey(ALICE_ID, STAGING));
+    memberPropsReads = [];
+
+    const home: DrawnHome = await switched({
+      value: STAGING.toString(),
+      shown: PRODUCTION,
+    });
+
+    expect(home.projectId).toBe(PRODUCTION.toString());
+    expect(home.texts[1]).toBe(REFUSED);
+    expect(home.projectLine).toContain("Acme Production");
+    expect(namesIn(home)).toEqual(["Acme Sandbox"]);
+    expect(memberPropsReads).toEqual([PRODUCTION.toString()]);
+    expect(rememberedHomes()).toEqual([]);
+
+    /*
+     * The same project's Home, drawn again: its menu named afresh, so Slack
+     * shows "Switch project" on it, never the option she chose in vain.
+     */
+    expect(menuProjectOf(home)).toBe(PRODUCTION.toString());
+    expect(home.menuBlockId).not.toBe(before.menuBlockId);
+  });
+
+  test("a press she could not have made - a project she is not connected in, one of another workspace, none at all - draws nothing of it: her Home as it opens, saying she can't switch, and nothing remembered", async () => {
+    await opened();
+    await switched({ value: SANDBOX.toString(), shown: PRODUCTION });
+
+    for (const value of [
+      FINANCE.toString(),
+      LAB.toString(),
+      ObjectID.generate().toString(),
+      "not-a-project",
+      "",
+      42,
+    ]) {
+      memberPropsReads = [];
+
+      const home: DrawnHome = await switched({ value: value, shown: SANDBOX });
+
+      // Her Home as it opens: the project she chose last.
+      expect({ value, projectId: home.projectId }).toEqual({
+        value,
+        projectId: SANDBOX.toString(),
+      });
+      expect(home.texts[1]).toBe(REFUSED);
+      expect(memberPropsReads).toEqual([SANDBOX.toString()]);
+      expect(home.json).not.toContain("Acme Finance");
+      expect(home.json).not.toContain("Elsewhere");
+      expect(
+        rememberedHomes().map((entry: { value: string }) => {
+          return entry.value;
+        }),
+      ).toEqual([SANDBOX.toString()]);
+    }
+  });
+
+  test("a press naming another workspace's project, sent as from that workspace's Home, never mixes the two: drawn as the press's own workspace opens", async () => {
+    await opened(ALICE, ELSEWHERE_TEAM_ID);
+
+    const home: DrawnHome = await switched({
+      value: STAGING.toString(),
+      shown: LAB,
+      teamId: ELSEWHERE_TEAM_ID,
+    });
+
+    expect(home.projectId).toBe(LAB.toString());
+    expect(home.texts[1]).toBe(REFUSED);
+    expect(home.json).not.toContain("Acme");
+  });
+
+  test("Bob, in one project, sending a press for another: his one project's Home, told he can't switch, and no menu", async () => {
+    const home: DrawnHome = await switched({
+      value: PRODUCTION.toString(),
+      shown: STAGING,
+      user: BOB,
+    });
+
+    expect(home.projectId).toBe(STAGING.toString());
+    expect(home.texts[1]).toBe(REFUSED);
+    expect(home.menu).toBeNull();
+    expect(home.json).not.toContain("Acme Production");
+    expect(rememberedHomes()).toEqual([]);
+  });
+
+  test("somebody connected in none of the projects, sending a press: told where to connect - no project drawn, nothing remembered", async () => {
+    const home: DrawnHome = await switched({
+      value: PRODUCTION.toString(),
+      shown: PRODUCTION,
+      user: CAROL,
+    });
+
+    expect(home.texts.join("\n")).toContain(
+      "User Settings → Workspace → Slack",
+    );
+    expect(home.menu).toBeNull();
+    expect(memberPropsReads).toEqual([]);
+    expect(onCallReads).toEqual([]);
+    expect(rememberedHomes()).toEqual([]);
+  });
+
+  test("the project her Home opens on is refused - blocked by an administrator: told why, with the menu of her others beside it, so she is never stuck there", async () => {
+    await opened();
+    await switched({ value: STAGING.toString(), shown: PRODUCTION });
+
+    blocked.add(STAGING.toString());
+
+    later();
+    const readsBefore: number = onCallReads.length;
+    const home: DrawnHome = await opened();
+
+    expect(home.projectId).toBe(STAGING.toString());
+    /*
+     * Which project is refused, on the line that names it on every Home,
+     * with the menu of her others beside it - then why. "This project" is
+     * never one of her three left unnamed.
+     */
+    expect(home.texts).toEqual([
+      "👋 Hi there",
+      "Here's what is happening in *Acme Staging*.\n",
+      `${ExceptionMessages.ProjectBlocked}\n`,
+    ]);
+    expect(home.menuBeside).toBe(home.projectLine);
+    expect(menuProjectOf(home)).toBe(STAGING.toString());
+    expect(namesIn(home)).toEqual(["Acme Production", "Acme Sandbox"]);
+    // Nothing the blocked project holds is read or shown, nor its buttons.
+    expect(onCallReads).toHaveLength(readsBefore);
+    expect(home.json).not.toContain("Your on-call");
+    expect(home.json).not.toContain('"type":"actions"');
+
+    const away: DrawnHome = await switched({
+      value: PRODUCTION.toString(),
+      shown: STAGING,
+    });
+
+    expect(away.projectId).toBe(PRODUCTION.toString());
+    expect(away.projectLine).toContain("Acme Production");
+    expect(namesIn(away)).toEqual(["Acme Staging", "Acme Sandbox"]);
+
+    later();
+    expect((await opened()).projectId).toBe(PRODUCTION.toString());
+  });
+
+  test("a switch she may not make, and the project her Home falls back to is blocked: why it did not switch, then which project is refused and why, with the menu of her others", async () => {
+    await opened();
+
+    members.delete(memberKey(ALICE_ID, STAGING));
+    blocked.add(PRODUCTION.toString());
+    const readsBefore: number = onCallReads.length;
+
+    const home: DrawnHome = await switched({
+      value: STAGING.toString(),
+      shown: PRODUCTION,
+    });
+
+    expect(home.projectId).toBe(PRODUCTION.toString());
+    // Never "this project has been blocked" left to read as the one she chose.
+    expect(home.texts).toEqual([
+      "👋 Hi there",
+      REFUSED,
+      "Here's what is happening in *Acme Production*.\n",
+      `${ExceptionMessages.ProjectBlocked}\n`,
+    ]);
+    expect(home.menuBeside).toBe(home.projectLine);
+    expect(namesIn(home)).toEqual(["Acme Sandbox"]);
+    expect(onCallReads).toHaveLength(readsBefore);
+    expect(rememberedHomes()).toEqual([]);
+  });
+
+  test("the project her Home opens on was left a moment ago - after her projects were read for the menu: told she is not a member there, which project, with the menu of her others", async () => {
+    await opened();
+    await switched({ value: SANDBOX.toString(), shown: PRODUCTION });
+
+    leftJustNow.add(SANDBOX.toString());
+    later();
+    const readsBefore: number = onCallReads.length;
+
+    const home: DrawnHome = await opened();
+
+    expect(home.projectId).toBe(SANDBOX.toString());
+    expect(home.texts).toEqual([
+      "👋 Hi there",
+      "Here's what is happening in *Acme Sandbox*.\n",
+      `${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}\n`,
+    ]);
+    expect(home.menuBeside).toBe(home.projectLine);
+    expect(namesIn(home)).toEqual(["Acme Production", "Acme Staging"]);
+    expect(onCallReads).toHaveLength(readsBefore);
+
+    // She switches away from it, and stays away.
+    const away: DrawnHome = await switched({
+      value: STAGING.toString(),
+      shown: SANDBOX,
+    });
+
+    expect(away.projectId).toBe(STAGING.toString());
+    expect(away.texts).not.toContain(REFUSED);
+    later();
+    expect((await opened()).projectId).toBe(STAGING.toString());
+  });
+
+  test("the projects cannot be named: the Home of the first, with no menu - never a nameless option", async () => {
+    namesReadable = false;
+
+    const home: DrawnHome = await opened();
+
+    expect(home.projectId).toBe(PRODUCTION.toString());
+    expect(home.projectLine).toContain("Acme Production");
+    expect(home.menu).toBeNull();
+  });
+
+  test("the cache is down: the Home of the first project; choosing still draws the one chosen, which her next opening cannot keep", async () => {
+    interface CacheMethod {
+      getMockImplementation: () => unknown;
+      mockImplementation: (implementation: never) => unknown;
+    }
+
+    // The in-memory cache's own methods, put back once this is done.
+    const cache: { getString: CacheMethod; setString: CacheMethod } = (
+      jest.requireMock("../../../Server/Infrastructure/GlobalCache") as {
+        default: { getString: CacheMethod; setString: CacheMethod };
+      }
+    ).default;
+    const realGetString: (...args: Array<unknown>) => Promise<unknown> =
+      cache.getString.getMockImplementation() as (
+        ...args: Array<unknown>
+      ) => Promise<unknown>;
+    const realSetString: (...args: Array<unknown>) => Promise<unknown> =
+      cache.setString.getMockImplementation() as (
+        ...args: Array<unknown>
+      ) => Promise<unknown>;
+
+    // Only what keeps a Home's project fails: the rest of the cache is up.
+    for (const [method, real] of [
+      [cache.getString, realGetString],
+      [cache.setString, realSetString],
+    ] as Array<[CacheMethod, (...args: Array<unknown>) => Promise<unknown>]>) {
+      method.mockImplementation((async (
+        namespace: string,
+        ...rest: Array<unknown>
+      ) => {
+        if (namespace === "slack-project-choice-home") {
+          throw new Error("connection refused");
+        }
+
+        return await real(namespace, ...rest);
+      }) as never);
+    }
+
+    try {
+      expect((await opened()).projectId).toBe(PRODUCTION.toString());
+      expect(
+        (await switched({ value: STAGING.toString(), shown: PRODUCTION }))
+          .projectId,
+      ).toBe(STAGING.toString());
+
+      later();
+      expect((await opened()).projectId).toBe(PRODUCTION.toString());
+      expect(rememberedHomes()).toEqual([]);
+    } finally {
+      cache.getString.mockImplementation(realGetString as never);
+      cache.setString.mockImplementation(realSetString as never);
+    }
+  });
+
+  test("a long project name: cut in the menu to what Slack takes, named in full on the Home it chooses", async () => {
+    const longName: string =
+      `Acme Staging ${"for the payments platform ".repeat(4)}`.trim();
+    NAMES[STAGING.toString()] = longName;
+
+    try {
+      const home: DrawnHome = await opened();
+      const option: string = namesIn(home)![0]!;
+
+      expect(longName.length).toBeGreaterThan(75);
+      expect(option.length).toBeLessThanOrEqual(75);
+      expect(option.endsWith("…")).toBe(true);
+
+      const switchedHome: DrawnHome = await switched({
+        value: STAGING.toString(),
+        shown: PRODUCTION,
+      });
+
+      expect(switchedHome.projectLine).toContain(longName);
+    } finally {
+      NAMES[STAGING.toString()] = "Acme Staging";
+    }
+  });
+
+  test("Slack refusing the Home drawn again: logged, never thrown - Slack had its 200", async () => {
+    await opened();
+    refusals.set("views.publish", "invalid_blocks");
+
+    expect(
+      (await press(switchTo({ value: STAGING.toString(), shown: PRODUCTION })))
+        .status,
+    ).toBe(200);
+    await until((): boolean => {
+      return errorLines.includes(
+        "Could not switch a Slack Home to another project.",
+      );
+    }, "the refusal logged");
+  });
+
+  test("the Home's buttons, once switched, act in the project it now shows", async () => {
+    await opened();
+    await switched({ value: STAGING.toString(), shown: PRODUCTION });
+
+    const publishes: Array<SlackCall> = calls("views.publish");
+    const view: JSONObject = publishes[publishes.length - 1]!.data[
+      "view"
+    ] as JSONObject;
+    const button: JSONObject = homeButton("ShowOnCall");
+    (button["view"] as JSONObject)["private_metadata"] =
+      view["private_metadata"];
+
+    memberPropsReads = [];
+
+    await press(button);
+    await until((): boolean => {
+      return calls("views.open").length === 1;
+    }, "the answer opened");
+
+    expect(memberPropsReads.length).toBeGreaterThan(0);
+    for (const projectId of memberPropsReads) {
+      expect(projectId).toBe(STAGING.toString());
+    }
+  });
+
+  test("just connected in Acme Sandbox: the Home shows it, with the menu of her others, and her next opening too", async () => {
+    await SlackHome.refreshAfterConnect({
+      projectId: SANDBOX,
+      slackUserId: ALICE,
+    });
+
+    const home: DrawnHome = lastHome();
+
+    expect(home.projectId).toBe(SANDBOX.toString());
+    expect(namesIn(home)).toEqual(["Acme Production", "Acme Staging"]);
+    expect(home.texts).not.toContain(REFUSED);
+
+    expect((await opened()).projectId).toBe(SANDBOX.toString());
+  });
+
+  test("just connected, but not a member of the project: told so there - the menu of no other project, nothing remembered", async () => {
+    members.delete(memberKey(ALICE_ID, FINANCE));
+    links.push({ teamId: TEAM_ID, slackUserId: ALICE, projectId: FINANCE });
+
+    await SlackHome.refreshAfterConnect({
+      projectId: FINANCE,
+      slackUserId: ALICE,
+    });
+
+    const home: DrawnHome = lastHome();
+
+    expect(home.projectId).toBe(FINANCE.toString());
+    expect(home.texts).toContain(
+      `${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}\n`,
+    );
+    expect(home.menu).toBeNull();
+    expect(rememberedHomes()).toEqual([]);
   });
 });

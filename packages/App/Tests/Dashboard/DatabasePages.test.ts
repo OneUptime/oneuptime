@@ -283,7 +283,9 @@ describe("the Logs / Traces / Metrics tabs", () => {
     expect(code).toContain("if (!entityKeys) { return null; }");
     expect(code).toContain("|| !logQuery");
     expect(code).toContain("entityKeyDisplays={entityKeyDisplays}");
-    expect(code).toContain('noLogsMessage="No logs found for this database."');
+    expect(code).toContain(
+      'noLogsMessage="Logs from the Database Agent, and from the pods or containers this database runs in, appear here."',
+    );
   });
 
   test("the unscoped banner offers the two ways out", () => {

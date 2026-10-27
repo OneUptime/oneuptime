@@ -1,6 +1,7 @@
 import { expect, Locator, Page, Route, test, TestInfo } from "@playwright/test";
 import AggregationIntervalUtil from "Common/Types/BaseDatabase/AggregationIntervalUtil";
 import {
+  fillValueWidgetSeriesGaps,
   getMeanOfValues,
   getValueWidgetSeries,
   getValueWidgetTrend,
@@ -213,6 +214,44 @@ const seriesOf: (
   );
 };
 
+// The interval the server buckets a metric read's window at.
+const bucketWidthOf: (read: RecordedRead) => number = (
+  read: RecordedRead,
+): number => {
+  return AggregationIntervalUtil.getAggregationIntervalMs(
+    AggregationIntervalUtil.getAggregationIntervalForWindow({
+      startDate: new Date(read.start),
+      endDate: new Date(read.end),
+    }),
+  );
+};
+
+/*
+ * The line the widget should draw: its series, and for a metric's sum or
+ * count the empty buckets between its readings at 0 (the Deploys tile's
+ * sparse count) - a line through the readings alone read flat while its
+ * arrow said the count rose. A Data Source widget's rows are drawn as they
+ * are.
+ */
+const drawnSeriesOf: (
+  read: RecordedRead,
+  widget: WidgetUnderTest,
+) => Array<ValueWidgetPoint> = (
+  read: RecordedRead,
+  widget: WidgetUnderTest,
+): Array<ValueWidgetPoint> => {
+  const series: Array<ValueWidgetPoint> = seriesOf(read, widget);
+
+  if (widget.metricName === null || widget.reduction !== "sum") {
+    return series;
+  }
+
+  return fillValueWidgetSeriesGaps({
+    series: series,
+    bucketWidthMs: bucketWidthOf(read),
+  });
+};
+
 // The trend the widget should show for the read it drew.
 const trendOf: (
   read: RecordedRead,
@@ -231,12 +270,7 @@ const trendOf: (
     ...(widget.metricName === null
       ? {}
       : {
-          bucketWidthMs: AggregationIntervalUtil.getAggregationIntervalMs(
-            AggregationIntervalUtil.getAggregationIntervalForWindow({
-              startDate: new Date(read.start),
-              endDate: new Date(read.end),
-            }),
-          ),
+          bucketWidthMs: bucketWidthOf(read),
         }),
   });
 };
@@ -696,7 +730,7 @@ const expectLinesOldestFirst: (
 ): Promise<void> => {
   for (const widgetUnderTest of widgets) {
     const widget: Locator = widgetTitled(page, widgetUnderTest.title);
-    const expected: Array<ValueWidgetPoint> = seriesOf(
+    const expected: Array<ValueWidgetPoint> = drawnSeriesOf(
       await readOf(page, widgetUnderTest),
       widgetUnderTest,
     );
@@ -793,6 +827,49 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     await openApp(page);
 
     await expectArrows(page, [...LINES, EXTERNAL]);
+  });
+
+  test("draw a sparse count's empty hours between its readings at 0, so its rise reads as one", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openApp(page);
+
+    const deploys: WidgetUnderTest = LINES.find(
+      (widget: WidgetUnderTest): boolean => {
+        return widget.title === "Deploys";
+      },
+    )!;
+    const read: RecordedRead = await readOf(page, deploys);
+    const readings: Array<ValueWidgetPoint> = seriesOf(read, deploys);
+    const drawn: Array<ValueWidgetPoint> = drawnSeriesOf(read, deploys);
+    const points: Array<[number, number]> = await linePointsOf(
+      widgetTitled(page, deploys.title),
+    );
+
+    // Most hours had no deploy: far more points drawn than readings.
+    expect(readings.length).toBeGreaterThan(1);
+    expect(drawn.length).toBeGreaterThan(readings.length);
+    expect(points.length).toBe(drawn.length);
+
+    // The line starts and ends on a reading, never on a 0 not yet landed.
+    expect(drawn[0]).toEqual(readings[0]);
+    expect(drawn[drawn.length - 1]).toEqual(readings[readings.length - 1]);
+
+    // Every empty hour sits on the line's lowest level.
+    const lowest: number = Math.max(
+      ...points.map((point: [number, number]): number => {
+        return point[1];
+      }),
+    );
+    drawn.forEach((point: ValueWidgetPoint, index: number): void => {
+      if (point.value === 0) {
+        expect(points[index]![1]).toBeCloseTo(lowest, 2);
+      }
+    });
+
+    await shoot(page, testInfo, "sparse-count", widgetTitled(page, "Deploys"));
   });
 
   test("read the oldest bucket at a line's left end and the newest at its right, the ends labelled", async ({
