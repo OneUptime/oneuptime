@@ -658,7 +658,7 @@ const RegisterPage: () => JSX.Element = () => {
             }}
             formType={FormType.Create}
             submitButtonText={t("register.submitButton")}
-            onError={(message: string) => {
+            onSubmitError={(message: string) => {
               /*
                * The server came to require SSO after this page read that it
                * did not: read again, and the page offers SSO instead.

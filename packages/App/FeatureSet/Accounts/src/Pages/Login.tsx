@@ -1219,7 +1219,7 @@ const LoginPage: (props: ComponentProps) => JSX.Element = (
                     setInitialValues(User.toJSON(data, User));
                     return Promise.resolve(data);
                   }}
-                  onError={(message: string) => {
+                  onSubmitError={(message: string) => {
                     /*
                      * The server came to require SSO after this page read
                      * that it did not (or could not read it): read again,

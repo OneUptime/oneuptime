@@ -28,6 +28,18 @@ import RegisterPage from "../../../../App/FeatureSet/Accounts/src/Pages/Register
  * master admins still find the license in the Admin Dashboard header.
  */
 
+/*
+ * The server does not require single sign-on here, and says so at once: the
+ * sign-in pages ask before they draw (SignInMethodsStandIn).
+ */
+jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/SignInMethods", () => {
+  return jest
+    .requireActual<typeof import("./SignInMethodsStandIn")>(
+      "./SignInMethodsStandIn",
+    )
+    .signInMethodsNotRequired();
+});
+
 jest.mock("../../../UI/Config", () => {
   return {
     ...(jest.requireActual(

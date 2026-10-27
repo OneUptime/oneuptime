@@ -43,6 +43,18 @@ import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
  * for /identity/login.
  */
 
+/*
+ * The server does not require single sign-on here, and says so at once: the
+ * sign-in pages ask before they draw (SignInMethodsStandIn).
+ */
+jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/SignInMethods", () => {
+  return jest
+    .requireActual<typeof import("./SignInMethodsStandIn")>(
+      "./SignInMethodsStandIn",
+    )
+    .signInMethodsNotRequired();
+});
+
 jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
   return {
     __esModule: true,

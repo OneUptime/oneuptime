@@ -59,6 +59,18 @@ import User from "../../../Models/DatabaseModels/User";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
+ * The server does not require single sign-on here, and says so at once: the
+ * sign-in pages ask before they draw (SignInMethodsStandIn).
+ */
+jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/SignInMethods", () => {
+  return jest
+    .requireActual<typeof import("./SignInMethodsStandIn")>(
+      "./SignInMethodsStandIn",
+    )
+    .signInMethodsNotRequired();
+});
+
+/*
  * The edition pill fetches the instance's global config on mount. It is page
  * chrome with nothing to do with recovery, and stubbing the component is a
  * smaller lie than stubbing the fetch it makes.

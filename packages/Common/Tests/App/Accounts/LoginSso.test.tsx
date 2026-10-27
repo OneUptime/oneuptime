@@ -27,6 +27,7 @@ import english from "../../../../App/FeatureSet/Accounts/src/Locales/en.json";
 import german from "../../../../App/FeatureSet/Accounts/src/Locales/de.json";
 import LoginPage from "../../../../App/FeatureSet/Accounts/src/Pages/Login";
 import LoginWithSSOPage from "../../../../App/FeatureSet/Accounts/src/Pages/LoginWithSSO";
+import SsoProviderType from "../../../Types/SSO/SsoProviderType";
 
 /*
  * Single sign-on on the Accounts pages, in every edition.
@@ -34,12 +35,15 @@ import LoginWithSSOPage from "../../../../App/FeatureSet/Accounts/src/Pages/Logi
  * SAML and OIDC sign-in are part of every edition, so:
  *   - the password page always offers "Sign in with SSO", a button under
  *     "or" below Login (it was the link "Use single sign-on (SSO) instead");
- *   - the SSO page always shows the email form, with the instance-wide
- *     providers it discovers above it. A provider lookup that fails - a 404
- *     from a proxy that does not route /identity, a 402, a 500 - is treated
- *     like one that found nothing: global providers are optional, and an
- *     email with no provider gets the normal "No SSO configuration found"
- *     message. Neither page says anything about an edition or a license.
+ *   - the SSO page always shows the email form while the server does not
+ *     require SSO, with the instance-wide providers it reads as it opens
+ *     (GET /identity/sign-in-methods, one read for SAML and OIDC alike)
+ *     above it. A read that fails - a 404 from a proxy that does not route
+ *     /identity, a 402, a 500 - is treated like one that found nothing:
+ *     global providers are optional, and an email with no provider gets the
+ *     normal "No SSO configuration found" message. Neither page says
+ *     anything about an edition or a license. (While the server requires
+ *     SSO the pages offer nothing else: LoginSsoRequired.test.tsx.)
  *
  * Billing and the edition are pinned in every test: CI's config.env sets
  * BILLING_ENABLED=true. IDENTITY_URL is pinned to a fixed origin so the
@@ -168,6 +172,11 @@ const SSO_LOCALE_KEYS: Array<string> = [
   "sso.defaultProjectName",
   "sso.globalProvidersTitle",
   "sso.globalProvidersDivider",
+  "sso.signInWithProvider",
+  "sso.requiredSubtitle",
+  "sso.requiredNotSetUp",
+  "adminLogin.title",
+  "adminLogin.subtitle",
 ];
 
 const localeValue: (locale: JSONObject, key: string) => unknown = (
@@ -219,6 +228,31 @@ const toResponse: (
   }
 
   return new HTTPResponse<JSONObject>(answer.status, answer.data, {});
+};
+
+// A provider listing's rows, as the sign-in methods read names them.
+const asProviders: (
+  answer: LookupAnswer,
+  type: SsoProviderType,
+) => Array<JSONObject> = (
+  answer: LookupAnswer,
+  type: SsoProviderType,
+): Array<JSONObject> => {
+  return (Array.isArray(answer.data) ? answer.data : []).map(
+    (row: JSONObject): JSONObject => {
+      return {
+        type: type,
+        id: row["_id"] as string,
+        name: row["name"] as string,
+        description: (row["description"] as string) || "",
+      };
+    },
+  );
+};
+
+// What a provider's button says when its admin wrote no description.
+const signInWith: (name: string) => string = (name: string): string => {
+  return english.sso.signInWithProvider.replace("{{name}}", name);
 };
 
 const NOT_ROUTED: LookupAnswer = {
@@ -361,6 +395,37 @@ describe("Accounts single sign-on, in every edition", () => {
           const url: string = options.url?.toString() || "";
           requestedUrls.push(url);
 
+          /*
+           * How the server signs people in: its instance-wide providers, as
+           * the two answers above hold them, in one read. Either failing
+           * fails the read.
+           */
+          if (url.includes("/sign-in-methods")) {
+            const failed: LookupAnswer | undefined = [
+              globalSamlAnswer,
+              globalOidcAnswer,
+            ].find((answer: LookupAnswer): boolean => {
+              return answer.status >= 400;
+            });
+
+            if (failed) {
+              return toResponse(failed);
+            }
+
+            return toResponse({
+              status: 200,
+              data: {
+                isSsoRequired: false,
+                ssoProviders: [
+                  ...asProviders(globalSamlAnswer, SsoProviderType.GlobalSSO),
+                  ...asProviders(globalOidcAnswer, SsoProviderType.GlobalOIDC),
+                ],
+                hasProjectSsoProviders: false,
+              },
+            });
+          }
+
+          // The page reads them all from /sign-in-methods now; never these.
           if (url.includes("/global-sso/service-provider-login")) {
             return toResponse(globalSamlAnswer);
           }
@@ -430,15 +495,12 @@ describe("Accounts single sign-on, in every edition", () => {
         await renderSso();
 
         expectEmailForm();
-        // Instance-wide providers are looked up as the page opens.
-        expect(
-          requestedUrls.filter((url: string) => {
-            return (
-              url === `${IDENTITY_ORIGIN}/global-sso/service-provider-login` ||
-              url === `${IDENTITY_ORIGIN}/global-oidc/service-provider-login`
-            );
-          }),
-        ).toHaveLength(2);
+        /*
+         * How the server signs people in - its instance-wide providers with
+         * it - is read once as the page opens; the two listings it read
+         * before are not.
+         */
+        expect(requestedUrls).toEqual([`${IDENTITY_ORIGIN}/sign-in-methods`]);
       },
     );
 
@@ -503,8 +565,12 @@ describe("Accounts single sign-on, in every edition", () => {
       expect(
         await screen.findByText(english.sso.globalProvidersTitle),
       ).toBeInTheDocument();
-      expect(screen.getByText("Okta (company-wide)")).toBeInTheDocument();
-      expect(screen.getByText("Google Workspace")).toBeInTheDocument();
+      expect(
+        screen.getByText(signInWith("Okta (company-wide)")),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(signInWith("Google Workspace")),
+      ).toBeInTheDocument();
       expect(
         screen.getByText(english.sso.globalProvidersDivider),
       ).toBeInTheDocument();
@@ -519,7 +585,7 @@ describe("Accounts single sign-on, in every edition", () => {
       };
 
       await renderSso();
-      await clickProvider("Okta (company-wide)");
+      await clickProvider(signInWith("Okta (company-wide)"));
 
       expect(navigatedTo()).toEqual([
         `${IDENTITY_ORIGIN}/global-sso/${PROVIDER_1}`,
@@ -533,7 +599,7 @@ describe("Accounts single sign-on, in every edition", () => {
       };
 
       await renderSso();
-      await clickProvider("Google Workspace");
+      await clickProvider(signInWith("Google Workspace"));
 
       expect(navigatedTo()).toEqual([
         `${IDENTITY_ORIGIN}/global-oidc/${PROVIDER_2}`,
