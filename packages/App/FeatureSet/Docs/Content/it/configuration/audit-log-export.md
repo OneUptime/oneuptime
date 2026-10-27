@@ -160,7 +160,9 @@ Chiavi, token e password non escono mai: vengono registrati come `[REDACTED]`, e
 
 Un lotto viene tentato tre volte, a pochi secondi di distanza, poi l'esportazione aspetta prima di riprovare: un minuto, poi due, quattro e così via, fino a un'ora. La sua riga dice **In errore**, e **Visualizza errore** mostra cosa ha risposto la destinazione e quando verrà ritentata.
 
-Nulla viene saltato: le voci aspettano nel registro di audit, e la prossima consegna che riesce recupera dalla più vecchia. Una voce più vecchia della conservazione del registro di audit del suo progetto viene eliminata prima di poter essere inviata, quindi correggi un'esportazione in errore entro quel tempo.
+Nulla viene saltato: le voci aspettano nel registro di audit, e la prossima consegna che riesce recupera dalla più vecchia. Ogni voce viene comunque eliminata appena è più vecchia della conservazione con cui è stata registrata, inviata o no, quindi correggi un'esportazione in errore entro quel tempo. Una conservazione più lunga trattiene più a lungo solo le voci registrate dopo averla cambiata.
+
+Un'esportazione in errore invia un'email a chi può correggerla: ai proprietari del progetto per l'esportazione di un progetto, e a tutti gli amministratori principali per quella dell'istanza. La prima email parte dopo 30 minuti di errori, con ciò che ha risposto la destinazione. Una seconda parte un giorno prima che venga eliminata la voce più vecchia che l'esportazione non ha inviato, con il momento da cui le voci iniziano a perdersi. Ognuna parte una volta finché gli errori continuano, e una consegna che riesce le azzera entrambe.
 
 Per mettere in pausa un'esportazione, scegli **Disattiva** nel menu della sua riga: mantiene la sua posizione, e **Attiva** invia ciò che è stato registrato nel frattempo. Su OneUptime Cloud, un progetto che lascia il piano Enterprise smette di esportare, e le sue esportazioni aspettano sotto la scheda di upgrade, dove possono essere disattivate o eliminate. Quando ospiti OneUptime in proprio, l'esportazione si ferma finché la licenza non include i registri di audit, e riprende da dove si era fermata appena una licenza li include.
 

@@ -160,7 +160,9 @@ Sleutels, tokens en wachtwoorden gaan nooit naar buiten: ze worden vastgelegd al
 
 Een batch wordt drie keer geprobeerd, met een paar seconden ertussen, waarna de export wacht voordat hij het opnieuw probeert: een minuut, dan twee, vier enzovoort, tot een uur. De rij zegt **Mislukt**, en **Fout bekijken** toont wat de bestemming antwoordde en wanneer de volgende poging is.
 
-Er wordt niets overgeslagen: de vermeldingen wachten in het auditlogboek, en de volgende levering die lukt, haalt de achterstand in vanaf de oudste. Een vermelding die ouder is dan de bewaartermijn van het auditlogboek van haar project, wordt verwijderd voordat ze kan worden verzonden, dus herstel een mislukte export binnen die tijd.
+Er wordt niets overgeslagen: de vermeldingen wachten in het auditlogboek, en de volgende levering die lukt, haalt de achterstand in vanaf de oudste. Elke vermelding wordt toch verwijderd zodra ze ouder is dan de bewaartermijn waarmee ze is vastgelegd, verzonden of niet, dus herstel een mislukte export binnen die tijd. Een langere bewaartermijn bewaart alleen de vermeldingen die na de wijziging worden vastgelegd langer.
+
+Een mislukte export mailt de mensen die hem kunnen herstellen: de eigenaren van het project bij de export van een project, en alle master-admins bij die van de instantie. De eerste e-mail gaat na 30 minuten met fouten, met wat de bestemming antwoordde. Een tweede gaat een dag voordat de oudste vermelding die de export niet heeft verzonden wordt verwijderd, met vanaf wanneer vermeldingen verloren gaan. Elke e-mail gaat één keer zolang de fouten duren, en een levering die lukt zet beide terug.
 
 Om een export te pauzeren, kiest u **Uitzetten** in het menu van zijn rij: hij houdt zijn plaats, en **Inschakelen** verstuurt wat er in de tussentijd is vastgelegd. In OneUptime Cloud stopt een project dat het Enterprise-abonnement verlaat met exporteren, en zijn exports wachten onder de upgradekaart, waar ze kunnen worden uitgeschakeld of verwijderd. Als u zelf host, stopt het exporteren zolang de licentie geen auditlogboeken omvat, en gaat het verder waar het was gebleven zodra een licentie ze omvat.
 

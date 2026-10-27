@@ -33,6 +33,7 @@
     "pageNotFoundMetaTitle": "Страница не найдена",
     "pageNotFoundMetaDescription": "Страница, которую вы ищете, не найдена.",
     "required": "Обязательно",
+    "defaultValue": "По умолчанию",
     "or": "или",
     "copy": "Копировать",
     "copied": "Скопировано!",

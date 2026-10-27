@@ -266,10 +266,15 @@ const VerifyEmail: () => JSX.Element = () => {
           )}
         </div>
 
+        {/*
+         * "Already verified your email? Sign in.": an earlier click on the
+         * same link may well have verified it. It read "Return to sign in?
+         * Sign in." once the page said Sign in for Login.
+         */}
         {error && (
           <div className="mt-6 text-center sm:mt-8">
             <p className="text-sm text-gray-500 sm:text-base">
-              {t("verifyEmail.returnToSignIn")}{" "}
+              {t("verifyEmail.alreadyVerifiedPrompt")}{" "}
               <Link
                 to={new Route("/accounts/login")}
                 className="cursor-pointer font-medium text-indigo-500 hover:text-indigo-700"

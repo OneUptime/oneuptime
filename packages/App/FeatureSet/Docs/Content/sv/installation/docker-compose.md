@@ -84,7 +84,7 @@ Du behöver också:
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | Dashboarden, API:t, inläsning av telemetri och validering hos Let's Encrypt. |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS för din instans när OneUptime hanterar certifikatet, och för statussidor och dashboards på egna domäner. |
-| 5400 | `postgres` | Anges i `docker-compose.yml` | Låter `npm run backup` och `restore.sh` nå PostgreSQL från själva servern. Den är bara publicerad på `127.0.0.1`. |
+| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | Låter `npm run backup` och `restore.sh` nå PostgreSQL från själva servern. Den är bara publicerad på `127.0.0.1`. |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | Probens egen server. Inget utanför servern behöver den. |
 
 Det finns också en [videogenomgång](https://youtu.be/j1SWmMW2oL4) av installationen.
@@ -132,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 Före första starten ersätter du platshållarhemligheterna själv, som [Generera slumpmässiga hemligheter](#generera-slumpmässiga-hemligheter) visar: Bara `npm start` gör det åt dig.
 :::
@@ -386,7 +386,7 @@ PostgreSQL behåller lösenordet den skapades med, så om du bara ändrar `DATAB
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -468,7 +468,7 @@ npm run down
 Dina data finns kvar i volymerna `oneuptime_postgres` och `oneuptime_clickhouse`, och mappen `oneuptime` behåller `config.env` och dina säkerhetskopior. För att ta bort även data:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 Ta sedan bort mappen `oneuptime`.
@@ -534,7 +534,7 @@ Tills Let's Encrypt utfärdar certifikatet levererar ingressen ett tillfälligt 
 När en beställning misslyckas loggar appen ett fel som börjar med `CoreSSL:EnsurePrimaryHostCertificate`, följt av orsaken:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 

@@ -231,7 +231,7 @@ describe("Passwordless passkey login", () => {
       renderPage();
       const email: HTMLElement = await screen.findByTestId("email");
       const password: HTMLElement = screen.getByTestId("password");
-      const signIn: HTMLElement = screen.getByTestId("Login");
+      const signIn: HTMLElement = screen.getByTestId("Sign in");
       const divider: HTMLElement = screen.getByTestId(
         "sign-in-options-divider",
       );
@@ -271,7 +271,7 @@ describe("Passwordless passkey login", () => {
       await screen.findByTestId("email");
 
       const passkey: HTMLElement = screen.getByTestId("passkey-login");
-      const signIn: HTMLElement = screen.getByTestId("Login");
+      const signIn: HTMLElement = screen.getByTestId("Sign in");
       const filled: Array<HTMLElement> = screen
         .getAllByRole("button")
         .filter((button: HTMLElement) => {
@@ -560,7 +560,7 @@ describe("Passwordless passkey login", () => {
       await user.type(await screen.findByTestId("email"), "ada@example.com");
       await user.type(screen.getByTestId("password"), "wrong-password");
       await act(async () => {
-        await user.click(screen.getByTestId("Login"));
+        await user.click(screen.getByTestId("Sign in"));
       });
 
       expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -649,7 +649,7 @@ describe("Passwordless passkey login", () => {
       await user.type(await screen.findByTestId("email"), "ada@example.com");
       await user.type(screen.getByTestId("password"), "correct-password");
       await act(async () => {
-        await user.click(screen.getByTestId("Login"));
+        await user.click(screen.getByTestId("Sign in"));
       });
 
       expect(LoginUtil.login).toHaveBeenCalledWith({
@@ -775,7 +775,7 @@ describe("Passwordless passkey login", () => {
       await user.type(screen.getByTestId("email"), "ada@example.com");
       await user.type(screen.getByTestId("password"), "wrong-password");
       await act(async () => {
-        await user.click(screen.getByTestId("Login"));
+        await user.click(screen.getByTestId("Sign in"));
       });
 
       expect(screen.queryByText(NOT_COMPLETED)).not.toBeInTheDocument();
@@ -886,7 +886,7 @@ describe("Passwordless passkey login", () => {
       await user.type(screen.getByTestId("email"), "ada@example.com");
       await user.type(screen.getByTestId("password"), "wrong-password");
       await act(async () => {
-        await user.click(screen.getByTestId("Login"));
+        await user.click(screen.getByTestId("Sign in"));
       });
 
       // Submitting the form clears the passkey's messages.
@@ -962,7 +962,7 @@ describe("Passwordless passkey login", () => {
        * Everything of the form pauses together: its links, the "or" divider
        * and single sign-on, which would leave the page.
        */
-      expect(form.contains(screen.getByTestId("Login"))).toBe(true);
+      expect(form.contains(screen.getByTestId("Sign in"))).toBe(true);
       expect(form.contains(ssoLink())).toBe(true);
       expect(form.contains(screen.getByTestId("sign-in-options-divider"))).toBe(
         true,
@@ -975,7 +975,7 @@ describe("Passwordless passkey login", () => {
 
       expect(form).toBeDisabled();
       expect(screen.getByTestId("email")).toBeDisabled();
-      expect(screen.getByTestId("Login")).toBeDisabled();
+      expect(screen.getByTestId("Sign in")).toBeDisabled();
       expect(screen.getByTestId("cancel-passkey-login")).toBeEnabled();
       // The option whose attempt runs stays at full strength: busy, not faded.
       const option: HTMLElement = screen.getByTestId("passkey-login");
@@ -993,7 +993,7 @@ describe("Passwordless passkey login", () => {
 
       expect(form).toBeEnabled();
       expect(screen.getByTestId("email")).toBeEnabled();
-      expect(screen.getByTestId("Login")).toBeEnabled();
+      expect(screen.getByTestId("Sign in")).toBeEnabled();
       expect(screen.getByTestId("passkey-login")).toHaveClass(
         ...optionClasses("ready"),
       );
@@ -1364,7 +1364,7 @@ describe("Passwordless passkey login", () => {
     });
     expect(screen.getByTestId("passkey-login")).toBeDisabled();
     expect(screen.getByTestId("password")).toBeDisabled();
-    expect(screen.getByTestId("Login")).toBeDisabled();
+    expect(screen.getByTestId("Sign in")).toBeDisabled();
     expect(posted).toHaveLength(1);
     await act(async () => {
       finish!(WebAuthnTestUtil.credential());
@@ -1388,7 +1388,7 @@ describe("Passwordless passkey login", () => {
     await user.type(await screen.findByTestId("email"), "ada@example.com");
     await user.type(screen.getByTestId("password"), "correct-password");
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     expect(screen.getByTestId("passkey-login")).toBeDisabled();
@@ -1433,7 +1433,7 @@ describe("Passwordless passkey login", () => {
     await user.type(await screen.findByTestId("email"), "ada@example.com");
     await user.type(screen.getByTestId("password"), "correct-password");
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
     expect(LoginUtil.login).toHaveBeenCalledWith({
       user: expect.any(User),
@@ -1447,7 +1447,7 @@ describe("Passwordless passkey login", () => {
 
     expect(ssoLink()).toHaveAttribute("href", "/accounts/sso");
     expect(ssoLink().tagName).toBe("A");
-    expect(comesAfter(ssoLink(), screen.getByTestId("Login"))).toBe(true);
+    expect(comesAfter(ssoLink(), screen.getByTestId("Sign in"))).toBe(true);
   });
 
   test("preserves password plus security key MFA after introducing passkeys", async () => {
@@ -1492,7 +1492,7 @@ describe("Passwordless passkey login", () => {
     await user.type(await screen.findByTestId("email"), "ada@example.com");
     await user.type(screen.getByTestId("password"), "correct-password");
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
     expect(screen.queryByTestId("passkey-login")).not.toBeInTheDocument();
     expect(screen.queryByTestId("passkey-option")).not.toBeInTheDocument();

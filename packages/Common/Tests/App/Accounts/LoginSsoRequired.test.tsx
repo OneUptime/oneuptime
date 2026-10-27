@@ -103,6 +103,19 @@ jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
   };
 });
 
+/*
+ * A self-hosted server that has accounts, and says so at once: the sign-up
+ * form waits for that answer (FirstAccountStandIn). While SSO is required
+ * the sign-up page offers SSO without asking.
+ */
+jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/FirstAccount", () => {
+  return (
+    jest.requireActual(
+      "./FirstAccountStandIn",
+    ) as typeof import("./FirstAccountStandIn")
+  ).serverWithAccounts();
+});
+
 const IDENTITY_ORIGIN: string = "https://oneuptime.example.com/identity";
 const OKTA_ID: string = "11111111-1111-4111-8111-111111111111";
 const GOOGLE_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -507,7 +520,7 @@ describe("the sign-in page while the server does not require SSO", () => {
     await user.type(screen.getByTestId("email"), "ada@example.com");
     await user.type(screen.getByTestId("password"), "correct horse battery");
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     expect(await screen.findByTestId("sso-provider")).toHaveTextContent(
@@ -537,7 +550,7 @@ describe("the sign-in page while the server does not require SSO", () => {
     await user.type(screen.getByTestId("email"), "ada@example.com");
     await user.type(screen.getByTestId("password"), "a wrong password");
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     expect(
@@ -593,7 +606,7 @@ describe("the master admins' sign-in (/accounts/admin-login)", () => {
     await user.type(screen.getByTestId("email"), "ada@example.com");
     await user.type(screen.getByTestId("password"), "not a master admin");
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     expect(
@@ -638,7 +651,7 @@ describe("the single sign-on page (/accounts/sso) while the server requires SSO"
     await renderPage(<LoginWithSSOPage />);
 
     expect(screen.getByTestId("email")).toBeInTheDocument();
-    expect(screen.getByTestId("Login with SSO")).toBeInTheDocument();
+    expect(screen.getByTestId("Sign in with SSO")).toBeInTheDocument();
     expect(screen.queryByTestId("sign-in-options")).not.toBeInTheDocument();
     expect(screen.queryByTestId("password-login")).not.toBeInTheDocument();
   });
@@ -665,7 +678,7 @@ describe("the single sign-on page (/accounts/sso) while the server requires SSO"
 
     await user.type(screen.getByTestId("email"), "ada@example.com");
     await act(async () => {
-      await user.click(screen.getByTestId("Login with SSO"));
+      await user.click(screen.getByTestId("Sign in with SSO"));
     });
 
     /*
@@ -705,7 +718,7 @@ describe("the single sign-on page (/accounts/sso) while the server requires SSO"
 
     await user.type(screen.getByTestId("email"), "bgssteeph@wbhq.com");
     await act(async () => {
-      await user.click(screen.getByTestId("Login with SSO"));
+      await user.click(screen.getByTestId("Sign in with SSO"));
     });
 
     expect(

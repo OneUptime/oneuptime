@@ -24,13 +24,13 @@ const ResetPasswordPage: () => JSX.Element = () => {
         </h2>
 
         {!isSuccess && (
-          <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+          <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
             {t("resetPassword.subtitle")}{" "}
           </p>
         )}
 
         {isSuccess && (
-          <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+          <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
             {t("resetPassword.successMessage")}
           </p>
         )}

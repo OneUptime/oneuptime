@@ -40,6 +40,18 @@ jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/SignInMethods", () => {
   ).signInMethodsNotRequired();
 });
 
+/*
+ * A self-hosted server that has accounts, and says so at once: the sign-up
+ * page asks before it draws (FirstAccountStandIn).
+ */
+jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/FirstAccount", () => {
+  return (
+    jest.requireActual(
+      "./FirstAccountStandIn",
+    ) as typeof import("./FirstAccountStandIn")
+  ).serverWithAccounts();
+});
+
 jest.mock("../../../UI/Config", () => {
   return {
     ...(jest.requireActual(

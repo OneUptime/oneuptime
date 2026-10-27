@@ -28,6 +28,7 @@ flowchart TB
 
 | | AWS | Microsoft | Google Cloud |
 | --- | --- | --- | --- |
+| 商品頁面 | 尚未公開：[聯絡我們](https://oneuptime.com/enterprise/demo) | [OneUptime Enterprise](https://marketplace.microsoft.com/en-us/product/oneupitme.oneuptime-enterprise) | 尚未公開：[聯絡我們](https://oneuptime.com/enterprise/demo) |
 | 執行平台 | Amazon EKS | Azure Kubernetes Service (AKS) | Google Kubernetes Engine (GKE) |
 | 安裝方式 | Helm，從該商品的映像檔登錄庫安裝 | Azure 入口網站 | Google Cloud 主控台 |
 | OneUptime 回報時使用 | 其 Kubernetes 服務帳戶的 IAM 角色 | Azure 為該安裝提供的受控識別 | Google Cloud Marketplace 為該部署建立的回報用 Secret |
