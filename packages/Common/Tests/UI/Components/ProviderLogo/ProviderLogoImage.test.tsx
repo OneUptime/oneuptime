@@ -34,7 +34,7 @@ const requested: Array<string> = [];
 jest.mock("../../../../UI/Components/ProviderLogo/ProviderLogoAssets", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../../UI/Components/ProviderLogo/ProviderLogoAssets",
-  );
+  ) as Record<string, unknown>;
   const loaded: Map<string, string> = new Map();
 
   return {

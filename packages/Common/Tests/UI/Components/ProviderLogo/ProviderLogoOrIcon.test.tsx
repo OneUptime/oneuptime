@@ -24,7 +24,7 @@ import ProviderLogoOrIcon, {
 jest.mock("../../../../UI/Components/ProviderLogo/ProviderLogoAssets", () => {
   const actual: Record<string, unknown> = jest.requireActual(
     "../../../../UI/Components/ProviderLogo/ProviderLogoAssets",
-  );
+  ) as Record<string, unknown>;
 
   return {
     __esModule: true,
