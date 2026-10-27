@@ -520,9 +520,9 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
 
   const explainWithAi: VoidFunction = (): void => {
     /*
-     * Opens (never toggles closed) the Ask AI panel with the evidence as
-     * an editable prompt. The panel sits above the drawer (z-40 > z-30),
-     * so the user keeps the evidence in view while they ask.
+     * Opens (never toggles closed) the Ask AI dialog with the evidence as
+     * an editable prompt: the dialog covers the page, the drawer included,
+     * so the evidence goes with the question, written into it.
      */
     GlobalEvents.dispatchEvent(EventName.AI_CHAT_TOGGLE, {
       prompt: buildInvestigationPrompt(evidence, findings),

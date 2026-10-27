@@ -12,7 +12,7 @@ En LLM-leverandør er modellen bak hver AI-funksjon i OneUptime: undersøkelser,
 ## Hva en leverandør driver
 
 - **Undersøkelser**: OneUptime AI undersøker nye hendelser og varsler og legger ut en rotårsaksanalyse med kilder på tidslinjen. Se [AI SRE](/docs/ai/ai-sre).
-- **Spørsmål**: **Ask AI** svarer ut fra dataene i prosjektet ditt, med en kilde for hver påstand. Se [Spør AI](/docs/ai/ask-ai).
+- **Spørsmål**: **Spør AI** svarer ut fra dataene i prosjektet ditt, med en kilde for hver påstand. Se [Spør AI](/docs/ai/ask-ai).
 - **Utkast**: **Utkast med KI** i notatene til hendelser, varsler og planlagt vedlikehold, og postmortems, skrevet på forespørsel eller når en hendelse løses.
 - **Kode**: pull requests som retter unntak, trege spor og årsakene undersøkelser finner, fra OneUptime eller fra GitHub. Se [Kode](/docs/ai/ai-agent).
 - **Alt annet**: triage i AI Insights, AI-stegene i arbeidsflyter og runbooks, og svar i Slack og Microsoft Teams.

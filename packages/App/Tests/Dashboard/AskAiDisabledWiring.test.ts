@@ -52,7 +52,7 @@ const readCode: ReadCodeFunction = (
 
 const HOOK: string = readCode("Components", "AIChat", "useAiChat.ts");
 
-const PANEL: string = readCode("Components", "AIChat", "AIChatPanel.tsx");
+const PANEL: string = readCode("Components", "AIChat", "AskAiDialog.tsx");
 
 const FULL_PAGE: string = readCode("Pages", "AICopilot", "AICopilot.tsx");
 
@@ -94,61 +94,50 @@ describe("the verdict is resolved once, in the hook both surfaces share", () => 
   });
 });
 
-describe("both front doors close", () => {
-  test("the panel shows the notice", () => {
-    expect(PANEL).toContain(
-      "{chat.unavailableReason && ( <AIChatUnavailableView reason={chat.unavailableReason} /> )}",
-    );
-  });
-
-  test("the panel withholds the composer entirely", () => {
+describe("the one front door closes", () => {
+  test("a reason to be off wins over every other view of the dialog", () => {
     /*
-     * Withheld, not disabled: a greyed-out textarea still reads as "type here
-     * and something will happen", and the send path is the thing that cannot
-     * work.
+     * The dialog draws one view at a time: the notice, the history, a
+     * conversation or the start. The reason AI is off is read first, so
+     * none of the others - and none of their composers - is ever drawn
+     * while it stands.
      */
-    expect(PANEL).toContain("{!chat.unavailableReason && ( <ChatInput");
-  });
-
-  test("the panel hides the home view, so no suggested prompt can start a doomed turn", () => {
     expect(PANEL).toContain(
-      "{!chat.unavailableReason && !chat.isConversationView && (",
+      'const view: View = chat.unavailableReason ? "unavailable" : props.isHistoryOpen',
     );
   });
 
-  test("the panel hides the thread too, so nothing invites a follow-up question", () => {
+  test("the dialog shows the notice", () => {
     expect(PANEL).toContain(
-      "{!chat.unavailableReason && chat.isConversationView && (",
+      '{view === "unavailable" && chat.unavailableReason ? (',
     );
-  });
-
-  test("the full page returns the notice instead of its workspace", () => {
-    expect(FULL_PAGE).toContain("if (chat.unavailableReason) {");
-    expect(FULL_PAGE).toContain(
+    expect(PANEL).toContain(
       "<AIChatUnavailableView reason={chat.unavailableReason} />",
     );
   });
 
-  test("the full page's early return sits after every hook it calls", () => {
+  test("the dialog withholds the composer entirely", () => {
     /*
-     * React's rules, not style: useAiChat and the three effects below it run
-     * unconditionally, so the bail-out has to come after them or the render
-     * where a project switches AI off throws.
+     * Withheld, not disabled: a greyed-out textarea still reads as "type here
+     * and something will happen", and the send path is the thing that cannot
+     * work. The composer is drawn only by the start and the conversation.
      */
-    const bailOut: number = FULL_PAGE.indexOf("if (chat.unavailableReason) {");
-
-    expect(bailOut).toBeGreaterThan(-1);
-    expect(FULL_PAGE.lastIndexOf("useEffect(", bailOut)).toBeGreaterThan(-1);
-    expect(FULL_PAGE.indexOf("useEffect(", bailOut)).toBe(-1);
-    expect(FULL_PAGE.indexOf("useAiChat({")).toBeLessThan(bailOut);
+    expect(PANEL.split("composer={composer}").length - 1).toBe(1);
+    expect(PANEL).toContain('{view === "home" ? (');
+    expect(PANEL).toContain('{view === "conversation" ? (');
+    expect(PANEL).toContain(
+      '<div className="mx-auto w-full max-w-3xl px-4 sm:px-6"> {composer} </div>',
+    );
   });
 
-  test("the full page no longer carries a separate plan banner that the notice now covers", () => {
+  test("the chat's own address draws no workspace of its own to close", () => {
     /*
-     * <AIPlanGate /> used to sit above the chat card and speak for the plan
-     * half alone. Leaving it there would put two different messages about the
-     * same switch on one screen.
+     * It used to be a second design of the conversation, with its own
+     * early return for this notice. It opens the dialog now, which decides.
      */
+    expect(FULL_PAGE).toContain("openAskAi({");
+    expect(FULL_PAGE).not.toContain("useAiChat(");
+    expect(FULL_PAGE).not.toContain("<AIChatUnavailableView");
     expect(FULL_PAGE).not.toContain("<AIPlanGate />");
   });
 });

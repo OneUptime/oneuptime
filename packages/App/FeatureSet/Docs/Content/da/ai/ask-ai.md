@@ -3,7 +3,7 @@
 Spørg AI er OneUptimes chat over dit projekts data. Spørg om logs, traces, metrikker, undtagelser, hændelser, advarsler, monitorer, vagtordning, statussider, SLO'er, runbooks eller workflows: chatten forespørger dit projekt live, underbygger hver påstand med en kilde og handler for dig, når du tillader det.
 
 :::cards
-- [Åbn Spørg AI](#åbn-spørg-ai): Fra topbjælken, tastaturet, et diagram eller dens egen side.
+- [Åbn Spørg AI](#åbn-spørg-ai): Fra topbjælken, tastaturet, et diagram eller produktmenuen.
 - [Hvad den kan se](#hvad-den-kan-se): De data, den læser for at svare dig.
 - [Handlinger og tilladelsestilstande](#handlinger-og-tilladelsestilstande): Vælg, om den må handle, og hvornår den spørger først.
 - [Handlinger udføres som dig](#handlinger-udføres-som-dig): Dine tilladelser, dit navn på hver ændring.
@@ -15,7 +15,7 @@ Spørg AI svarer kun ud fra det, dens værktøjer returnerer: den kører foresp�
 
 ```mermaid title="Fra et spørgsmål til et underbygget svar"
 flowchart TB
-    Q["Dit spørgsmål,<br/>med den side,<br/>du står på"] --> A["Ask AI"]
+    Q["Dit spørgsmål,<br/>med den side,<br/>du står på"] --> A["Spørg AI"]
     A -->|"læseværktøjer"| D["Dit projekts data,<br/>forespurgt live"]
     D --> R["Et svar med en<br/>kilde for hver<br/>påstand"]
     A -->|"en handling"| M{"Tilladelses-<br/>tilstanden"}
@@ -30,10 +30,12 @@ I tilstanden **Skrivebeskyttet** tilbydes modellen aldrig handlingerne, så samt
 
 | Hvor | Hvordan |
 | --- | --- |
-| Enhver side | Klik på **Ask AI** i topbjælken, eller tryk `Ctrl` + `I` (`Cmd` + `I` på en Mac). Mens du skriver i et tekstfelt eller en editor, forbliver tasterne editorens genvej til kursiv. |
-| Kommandopaletten | Tryk `Ctrl` + `K` (`Cmd` + `K` på en Mac), og vælg **Ask AI**. |
+| Enhver side | Klik på **Spørg AI** i topbjælken, eller tryk `Ctrl` + `I` (`Cmd` + `I` på en Mac). Mens du skriver i et tekstfelt eller en editor, forbliver tasterne editorens genvej til kursiv. |
+| Kommandopaletten | Tryk `Ctrl` + `K` (`Cmd` + `K` på en Mac), og vælg **Spørg AI**. |
 | Et fejlmønster i logs eller et diagrams fund | Klik på **Explain with AI**: Spørg AI åbner med beviserne som et spørgsmål, du kan redigere, før du sender det. |
-| Dens egen side | Åbn **Produkter → AI → Chat** for et arbejdsområde på hele siden. Hver samtale der har sin egen adresse, så du kan bogmærke en tråd eller indsætte den i en hændelseskanal. |
+| Produktmenuen | Åbn **Produkter → AI → Chat**. Spørg AI åbner over den side, du var på. Hver samtale har sin egen adresse, så du kan bogmærke den og vende tilbage til den. |
+
+Spørg AI åbner midt på skærmen, over den side, du var på, og på en telefon fylder den hele skærmen. Tryk på `Esc`, eller klik ved siden af, for at gå tilbage til siden. Samtalen bliver, hvor du forlod den: åbn Spørg AI igen for at fortsætte. Lukker du den, mens den stadig svarer, siger en påmindelse i hjørnet, hvornår svaret er klar, og åbner det.
 
 På en hændelse eller en advarsel har kortet **AI Investigation** sin egen samtale, **Ask OneUptime AI**, som deles af alle, der kan se hændelsen eller advarslen: se [Tal med OneUptime AI om hændelsen](/docs/ai/ai-sre#tal-med-oneuptime-ai-om-hændelsen).
 
@@ -52,7 +54,7 @@ Spørg AI læser dit projekt med dine egne tilladelser, så den ser det, du må 
 
 ## Sidekontekst
 
-Spørg AI ved, hvilken side du åbnede den fra. På en hændelsesside betyder "hvorfor skete det?" netop den hændelse, og indtastningsfeltet viser en chip med sidens emne; fjern den for at spørge om hele projektet i stedet. Går du til en anden side, mens panelet er åbent, følger konteksten med. Samtalen husker også sit første emne på serveren, så et opfølgende spørgsmål dage senere stadig forstår "denne hændelse".
+Spørg AI ved, hvilken side du åbnede den fra. På en hændelsesside betyder "hvorfor skete det?" netop den hændelse: indtastningsfeltet viser en chip med sidens emne, og de spørgsmål, den foreslår, er sidens egne. Fjern chippen for at spørge om hele projektet i stedet, og tilføj den igen på samme måde. Åbn Spørg AI på en anden side, så følger konteksten med. Samtalen husker også sit første emne på serveren, så et opfølgende spørgsmål dage senere stadig forstår "denne hændelse".
 
 Infrastrukturlister og ressourcesider tilbyder spørgsmål til den slags ressource, du ser på. Åbn en Kubernetes-klynge og spørg "Hvilke metrikker har ændret sig de seneste 24 timer?", eller åbn en Docker-host og spørg "Opsummér logalvorlighed og trace-fejl de seneste seks timer." Bevislinks fører tilbage til ressourcens side. Læsninger respekterer dine tilladelser til projekt, ressourcer og telemetri, inklusive begrænsninger på ejerskab og labels.
 
@@ -72,8 +74,8 @@ Hver samtale har en tilladelsestilstand, som du vælger i indtastningsfeltet ved
 
 | Tilstand | Hvad der sker |
 | --- | --- |
-| **Ask to act** | Standard. Spørg AI foreslår hver handling på et godkendelseskort, og intet kører, før du vælger **Allow** eller **Spring over** for den, eller **Deny all**. |
-| **Auto-run** | Handlinger kører, så snart modellen beder om dem, stadig begrænset til det, din rolle må. Brug den med omtanke. |
+| **Spørg før handling** | Standard. Spørg AI foreslår hver handling på et godkendelseskort, og intet kører, før du vælger **Tillad** eller **Spring over** for den, eller **Afvis alle**. |
+| **Kør automatisk** | Handlinger kører, så snart modellen beder om dem, stadig begrænset til det, din rolle må. Brug den med omtanke. |
 | **Skrivebeskyttet** | Handlingerne tilbydes slet ikke modellen: Spørg AI kan kun læse. |
 
 Hvad Spørg AI kan gøre, når en tilstand tillader det:
@@ -99,10 +101,12 @@ Enhver handling, Spørg AI udfører, sker som dig: den foretager den samme ændr
 ## Styr en samtale
 
 - **Stop den.** Mens Spørg AI arbejder, bliver send-knappen til en stopknap. Stop en kørsel når som helst, og spørg straks om noget andet.
-- **Vælg modellen.** Udbydervælgeren i indtastningsfeltet viser dit projekts LLM-udbydere og de globale, med standarden markeret. En ny samtale bruger standarden.
-- **Bedøm et svar.** **Good answer** og **Poor answer** gemmes sammen med beskeden, så svarenes kvalitet kan måles over tid.
-- **Se prisen.** Sidefoden under det nyeste svar viser dets pris, dets tokens og hvor mange forespørgsler det kørte, og hver forespørgsel er en kildechip, der åbner dataene bag den.
-- **Gem en kopi.** **Download conversation** gemmer tråden med **Download as Markdown**, til at læse eller indsætte i en sag, eller **Download as PDF**, til at give videre.
+- **Følg dens arbejde.** Mens den svarer, siger én linje, hvad den gør nu, for eksempel søger i logs. Klik på antallet af trin ved siden af for at se hvert trin.
+- **Vælg modellen.** Når dit projekt kan bruge mere end én LLM-udbyder, viser udbydervælgeren i indtastningsfeltet dit projekts LLM-udbydere og de globale, med standarden markeret. En ny samtale bruger standarden.
+- **Bedøm et svar.** **Godt svar** og **Dårligt svar** gemmes sammen med beskeden, så svarenes kvalitet kan måles over tid.
+- **Se prisen.** Under hvert svar åbner kilderne sig i de forespørgsler, det kørte, og kilderne til det nyeste svar siger også, hvor mange forespørgsler det kørte, dets tokens og dets pris. Hver kildechip i et svar åbner dataene bag den.
+- **Gem en kopi.** **Download samtale** gemmer tråden med **Download som Markdown**, til at læse eller indsætte i en sag, eller **Download som PDF**, til at give videre.
+- **Fortsæt, hvor du slap.** **Alle samtaler**, i Spørg AI's topbjælke, viser dine samtaler, nyeste først, så du kan åbne dem igen eller slette dem. Starten på en ny samtale viser de seneste tre.
 
 ## Krav
 
@@ -115,7 +119,7 @@ Spørg AI tæller med i projektets egne daglige AI-grænser, når projektet sæt
 ## Fejlfinding
 
 :::details Spørg AI siger, at AI ikke er tilgængelig
-Panelet siger hvorfor, før du skriver: projektets abonnement omfatter ikke AI, **Aktivér AI** er slået fra, eller projektet har ingen LLM-udbyder. Hver besked linker til den side, hvor det ændres.
+Spørg AI siger hvorfor, før du skriver: projektets abonnement omfatter ikke AI, **Aktivér AI** er slået fra, eller projektet har ingen LLM-udbyder. Hver besked linker til den side, hvor det ændres.
 :::
 
 :::details En handling blev afvist

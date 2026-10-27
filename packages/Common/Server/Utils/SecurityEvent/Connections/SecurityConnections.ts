@@ -8,6 +8,7 @@ import PodmanHost from "../../../../Models/DatabaseModels/PodmanHost";
 import ServiceModel from "../../../../Models/DatabaseModels/Service";
 import InventoryItem from "../../../../Models/DatabaseModels/InventoryItem";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import SecurityEvent from "../../../../Models/AnalyticsModels/SecurityEvent";
 import SecurityCase from "../../../../Models/DatabaseModels/SecurityCase";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
@@ -60,6 +61,7 @@ import SecurityEventService from "../../../Services/SecurityEventService";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import TelemetryReadAccess from "../../Telemetry/TelemetryReadAccess";
 import SecurityConnectedRecords, {
   SecurityConnectedRecord,
   SecurityConnectedRecordsResult,
@@ -368,6 +370,7 @@ export default class SecurityConnections {
         projectId: data.projectId,
         entities,
         window,
+        props: data.props,
       }),
     };
   }
@@ -403,6 +406,7 @@ export default class SecurityConnections {
           projectId: data.projectId,
           entities: data.entities,
           window,
+          props: data.props,
         })),
       );
     }
@@ -418,12 +422,16 @@ export default class SecurityConnections {
 
   /*
    * The records the logs behind events naming these entities were sent
-   * under, in the window. Enrichment: a read that fails reads as none.
+   * under, in the window - of the events of the sources the reader may
+   * read, as a read of the events would be (OneUptime's own read, as root,
+   * reads every source). Enrichment: a read that fails, or that the reader
+   * may not make, reads as none.
    */
   private static async readLogResources(data: {
     projectId: ObjectID;
     entities: Array<SecurityEntity>;
     window: SecurityConnectionWindow;
+    props: DatabaseCommonInteractionProps;
   }): Promise<Array<SecurityLogResource>> {
     if (data.entities.length === 0) {
       return [];
@@ -438,11 +446,18 @@ export default class SecurityConnections {
         startTime: data.window.start,
         endTime: data.window.end,
         limit: MAX_LOG_RESOURCES,
+        serviceFilter: await TelemetryReadAccess.getServiceFilter({
+          modelType: SecurityEvent,
+          props: data.props,
+        }),
       });
     } catch (error) {
-      logger.error(
-        `Security connections: the logs behind the events could not be read: ${error}`,
-      );
+      if (!isRefusedRead(error)) {
+        logger.error(
+          `Security connections: the logs behind the events could not be read: ${error}`,
+        );
+      }
+
       return [];
     }
   }

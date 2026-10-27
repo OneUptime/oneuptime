@@ -1,4 +1,4 @@
-import AIChatPanel from "./Components/AIChat/AIChatPanel";
+import AskAiDialog from "./Components/AIChat/AskAiDialog";
 import DashboardCommandPalette from "./Components/CommandPalette/DashboardCommandPalette";
 import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/DashboardKeyboardShortcuts";
 import MasterPage from "./Components/MasterPage/MasterPage";
@@ -609,7 +609,7 @@ const App: () => JSX.Element = () => {
       }}
     >
       <UseTimezoneInitElement />
-      <AIChatPanel />
+      <AskAiDialog />
       <DashboardCommandPalette />
       <DashboardKeyboardShortcuts />
       {/*

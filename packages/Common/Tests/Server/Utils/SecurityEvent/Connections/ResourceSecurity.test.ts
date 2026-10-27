@@ -12,6 +12,8 @@ import TeamMemberService from "../../../../../Server/Services/TeamMemberService"
 import UserService from "../../../../../Server/Services/UserService";
 import logger from "../../../../../Server/Utils/Logger";
 import SecurityCaseValues from "../../../../../Server/Utils/SecurityCase/SecurityCaseValues";
+import TelemetryReadAccess from "../../../../../Server/Utils/Telemetry/TelemetryReadAccess";
+import { TelemetryServiceFilter } from "../../../../../Server/Utils/Telemetry/TelemetryReadScope";
 import IncidentSecurity, {
   getIncidentLinkedRecords,
 } from "../../../../../Server/Utils/SecurityEvent/Connections/IncidentSecurity";
@@ -19,6 +21,7 @@ import ResourceSecurity, {
   INVENTORY_MACHINE_TYPES,
   toResourceSecurityCaseJson,
 } from "../../../../../Server/Utils/SecurityEvent/Connections/ResourceSecurity";
+import SecurityEvent from "../../../../../Models/AnalyticsModels/SecurityEvent";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import SecurityCase from "../../../../../Models/DatabaseModels/SecurityCase";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -186,6 +189,8 @@ describe("ResourceSecurity.read", () => {
       values: ["web-1", "WEB-1", "web one", "WEB ONE", "203.0.113.9"],
       startTime: new Date("2026-10-18T12:00:00.000Z"),
       endTime: NOW,
+      // The caller's sources: the next test.
+      serviceFilter: expect.anything(),
     });
     expect(security).toMatchObject({
       eventCount: 42,
@@ -193,6 +198,27 @@ describe("ResourceSecurity.read", () => {
       maxSeverityId: 4,
       lastSeen: "2026-10-25T11:00:00.000Z",
     });
+  });
+
+  test("counts the events of the sources the caller may read, no other; whether the project uses Security Events at all is asked of every source", async () => {
+    readHost();
+    const sources: TelemetryServiceFilter = {
+      serviceIds: [new ObjectID(OTHER_HOST_ID)],
+    };
+    const scope: jest.SpyInstance = jest
+      .spyOn(TelemetryReadAccess, "getServiceFilter")
+      .mockResolvedValue(sources);
+
+    await read();
+
+    expect(scope).toHaveBeenCalledWith({
+      modelType: SecurityEvent,
+      props: CALLER,
+    });
+    expect(countSpy.mock.calls[0]![0]).toMatchObject({
+      serviceFilter: sources,
+    });
+    expect(inUseSpy.mock.calls[0]![0]).not.toHaveProperty("serviceFilter");
   });
 
   test("a public address another record holds too is left out: it would only be a possible connection", async () => {

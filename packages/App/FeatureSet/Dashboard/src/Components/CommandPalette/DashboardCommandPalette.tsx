@@ -77,7 +77,7 @@ import PermissionGate from "Common/UI/Utils/PermissionGate";
 
 /*
  * The dashboard's command palette host: always mounted (App.tsx, next to
- * AIChatPanel), owns the Cmd/Ctrl+K shortcut (the legacy NavBar binding is
+ * AskAiDialog), owns the Cmd/Ctrl+K shortcut (the legacy NavBar binding is
  * disabled via disableCommandKShortcut) and the COMMAND_PALETTE_TOGGLE global
  * event, and feeds the generic Common CommandPalette with:
  *  - every product from the shared NavBar catalog (useDashboardNavigationItems),
@@ -205,7 +205,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
 
   /*
    * Cmd/Ctrl+K opens the palette from anywhere. Same guard style as
-   * AIChatPanel's Cmd/Ctrl+I: bail on extra modifiers and on events another
+   * AskAiDialog's Cmd/Ctrl+I: bail on extra modifiers and on events another
    * handler already claimed (defaultPrevented). No input-focus guard — the
    * chorded shortcut never collides with plain typing.
    */

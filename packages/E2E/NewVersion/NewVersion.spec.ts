@@ -339,11 +339,12 @@ test.describe("a deploy under the open tab", () => {
   /*
    * The product's own layers, with their own classes, mounted where the app
    * mounts them - inside the app, before the notice in the document - and
-   * made to cover the notice: a side panel (SideOver, z-30), the AI chat
-   * (AIChatPanel, z-40 around a z-50 panel), a dialog (Modal, z-50), and
-   * a bar of the page's own (z-20). The notice must stay under every panel
-   * a reader works in - at z-40 it drew over the AI chat and over a phone's
-   * full-width side panel - and over the page's own bars.
+   * made to cover the notice: a side panel (SideOver, z-30), Ask AI
+   * (AskAiDialog, a z-40 layer whose dialog fills a phone's screen), a
+   * dialog (Modal, z-50), and a bar of the page's own (z-20). The notice
+   * must stay under every panel a reader works in - at z-40 it drew over
+   * the AI chat and over a phone's full-width side panel - and over the
+   * page's own bars.
    */
   for (const layer of [
     {
@@ -353,9 +354,9 @@ test.describe("a deploy under the open tab", () => {
       onTop: "panel",
     },
     {
-      name: "the AI chat",
+      name: "Ask AI",
       wrapper: "relative z-40",
-      panel: "fixed inset-y-0 right-0 z-50 flex w-screen",
+      panel: "fixed inset-0 flex items-stretch justify-center",
       onTop: "panel",
     },
     {

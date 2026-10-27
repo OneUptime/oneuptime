@@ -174,8 +174,6 @@ const GROUP_HOVER_GREY_TEXT_RULE: string =
 const KNOWN_EXCEPTIONS: Record<string, string> = {
   // The verdict's answers while a save is in flight: disabled and hovered.
   "disabled:hover:text-gray-600": "InvestigationPanel.tsx",
-  // A citation chip's hover ring.
-  "hover:ring-indigo-200": "InvestigationReport/InvestigationCitationChip.tsx",
   // Rows returned as text, in a code block that is dark in both themes.
   "text-gray-100": "InvestigationReport/InvestigationEvidenceList.tsx",
 };
@@ -402,8 +400,9 @@ describe("the AI Investigation card in the dark theme", () => {
     );
     expect(tokensOf("InvestigationConversation/AnswerSources.tsx")).toEqual(
       expect.arrayContaining([
+        // A source's round C# mark, as the answer's text draws it.
         "bg-gray-100",
-        "ring-gray-200",
+        "text-gray-600",
         "hover:bg-gray-50",
         "group-hover:text-gray-600",
       ]),

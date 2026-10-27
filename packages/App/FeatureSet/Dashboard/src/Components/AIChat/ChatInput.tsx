@@ -1,6 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
-import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -28,20 +27,29 @@ export interface ComponentProps {
   onStop?: (() => void) | undefined;
   isStopping?: boolean | undefined;
   /*
-   * Optional control rendered on the left of the composer footer (the model
-   * switcher). Kept as a slot so the composer stays reusable across surfaces.
+   * Controls drawn inside the composer, on its bottom row beside the send
+   * button: the model and what Ask AI may do. Kept as a slot so the
+   * composer stays reusable across surfaces.
    */
   leading?: ReactElement | undefined;
   /*
-   * Optional page-context pill rendered inside the composer, above the
-   * textarea — like an attachment, it shows what the question is grounded in.
+   * The page-context pill, drawn inside the composer above the textarea:
+   * like an attachment, it shows what the question is grounded in.
    */
   contextChip?: ReactElement | undefined;
   placeholder?: string | undefined;
+  // Focus the textarea when the composer is drawn. Defaults to true.
+  autoFocus?: boolean | undefined;
 }
 
 const MAX_TEXTAREA_HEIGHT_PX: number = 160;
 
+/*
+ * Ask AI's composer: one box holding what the question is about, the
+ * question, and the few controls that shape the answer - nothing under it.
+ * Enter sends and Shift + Enter starts a new line, as in every chat; the
+ * send button says so to a pointer and a screen reader.
+ */
 const ChatInput: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -49,17 +57,32 @@ const ChatInput: FunctionComponent<ComponentProps> = (
   const textareaRef: React.RefObject<HTMLTextAreaElement> =
     useRef<HTMLTextAreaElement>(null);
 
-  // Auto-grow with the content, capped at ~6 lines.
+  /*
+   * Auto-grow with the content, capped at ~6 lines. Measured again a frame
+   * later: the Dashboard draws its Tailwind as classes first appear, so the
+   * first time the composer is drawn its padding and line height may not be
+   * styled yet when it is measured, and the box set from that measure cut
+   * the question in half. Its min-height keeps one whole line meanwhile.
+   */
   useEffect(() => {
-    const textarea: HTMLTextAreaElement | null = textareaRef.current;
-    if (!textarea) {
-      return;
-    }
-    textarea.style.height = "auto";
-    textarea.style.height = `${Math.min(
-      textarea.scrollHeight,
-      MAX_TEXTAREA_HEIGHT_PX,
-    )}px`;
+    const measure: () => void = (): void => {
+      const textarea: HTMLTextAreaElement | null = textareaRef.current;
+      if (!textarea) {
+        return;
+      }
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.min(
+        textarea.scrollHeight,
+        MAX_TEXTAREA_HEIGHT_PX,
+      )}px`;
+    };
+
+    measure();
+    const frame: number = requestAnimationFrame(measure);
+
+    return () => {
+      cancelAnimationFrame(frame);
+    };
   }, [props.value]);
 
   const trySend: () => void = (): void => {
@@ -73,103 +96,81 @@ const ChatInput: FunctionComponent<ComponentProps> = (
 
   const isSendable: boolean = Boolean(props.value.trim()) && props.canSend;
 
+  const placeholder: string = translator.translateText(
+    props.placeholder || "Ask anything…",
+  ) as string;
+
   return (
-    <div className="border-t border-gray-200 bg-white px-4 pb-4 pt-3">
-      <div className="rounded-2xl border border-gray-200 bg-white px-3.5 py-2.5 transition-all focus-within:border-gray-300 focus-within:ring-4 focus-within:ring-gray-900/[0.04]">
-        {props.contextChip && (
-          <div className="mb-2 flex min-w-0">{props.contextChip}</div>
-        )}
-        <div className="flex items-end gap-2">
-          <textarea
-            ref={textareaRef}
-            rows={1}
-            value={props.value}
-            autoFocus={true}
-            placeholder={translator.translateText(
-              props.placeholder ||
-                (props.isWorking
-                  ? "Type your next question — it can be sent when this answer finishes…"
-                  : "Ask about your logs, traces, metrics, incidents…"),
+    <div
+      data-testid="ai-chat-composer"
+      className="rounded-2xl border border-gray-200 bg-white shadow-sm transition-shadow duration-150 focus-within:border-gray-300 focus-within:shadow-md motion-reduce:transition-none"
+    >
+      {props.contextChip && (
+        <div className="flex min-w-0 px-3 pt-3">{props.contextChip}</div>
+      )}
+      <textarea
+        ref={textareaRef}
+        rows={1}
+        value={props.value}
+        autoFocus={props.autoFocus ?? true}
+        aria-label={placeholder}
+        placeholder={placeholder}
+        onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
+          props.onChange(event.target.value);
+        }}
+        onKeyDown={(event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+          if (
+            event.key === "Enter" &&
+            !event.shiftKey &&
+            !event.nativeEvent.isComposing
+          ) {
+            event.preventDefault();
+            trySend();
+          }
+        }}
+        className="block max-h-40 min-h-[2.5rem] w-full resize-none overscroll-contain border-0 bg-transparent px-4 pb-1 pt-3 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
+      />
+      <div className="flex items-center justify-between gap-2 px-2 pb-2 pt-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-1">
+          {props.leading}
+        </div>
+        {props.isWorking && props.onStop ? (
+          <button
+            type="button"
+            title={translator.translateText("Stop generating")}
+            aria-label={translator.translateText("Stop generating")}
+            data-testid="ai-chat-stop"
+            disabled={props.isStopping}
+            onClick={() => {
+              props.onStop?.();
+            }}
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gray-900 text-white transition-colors hover:bg-gray-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+          >
+            {props.isStopping ? (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-500 border-t-white motion-reduce:animate-none"></span>
+            ) : (
+              <span className="h-2.5 w-2.5 rounded-[2px] bg-white"></span>
             )}
-            onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
-              props.onChange(event.target.value);
+          </button>
+        ) : (
+          <button
+            type="button"
+            title={translator.translateText("Send (Enter)")}
+            aria-label={translator.translateText("Send (Enter)")}
+            data-testid="ai-chat-send"
+            disabled={!isSendable}
+            onClick={() => {
+              trySend();
             }}
-            onKeyDown={(event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                trySend();
-              }
-            }}
-            className="max-h-40 flex-1 resize-none overscroll-contain border-0 bg-transparent p-0 text-sm leading-6 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0"
-          />
-          {props.isWorking && props.onStop ? (
-            <button
-              type="button"
-              title={translator.translateText("Stop generating")}
-              disabled={props.isStopping}
-              onClick={() => {
-                props.onStop?.();
-              }}
-              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-900 text-white transition-colors hover:bg-gray-700"
-            >
-              {props.isStopping ? (
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-500 border-t-white"></span>
-              ) : (
-                <span className="h-2.5 w-2.5 rounded-[2px] bg-white"></span>
-              )}
-            </button>
-          ) : (
-            <button
-              type="button"
-              title={translator.translateText("Send (Enter)")}
-              disabled={!isSendable}
-              onClick={() => {
-                trySend();
-              }}
-              className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg transition-colors ${
-                isSendable
-                  ? "bg-gray-900 text-white hover:bg-gray-800"
-                  : "bg-gray-100 text-gray-300"
-              }`}
-            >
-              {props.isWorking ? (
-                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-gray-200 border-t-gray-400"></span>
-              ) : (
-                <Icon icon={IconProp.PaperAirplane} className="h-4 w-4" />
-              )}
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="mt-2.5 space-y-2 px-1">
-        {/*
-         * Controls (model + permission pickers) get their own row so they can
-         * breathe and never collide with the hint text on narrow surfaces.
-         */}
-        {props.leading}
-        <div className="flex items-center justify-between gap-2 text-[11px] text-gray-400">
-          <span className="min-w-0 truncate">
-            {/* The keys keep their names; the sentence is translated whole. */}
-            <TranslatedSentence
-              template="{{enter}} to send · {{shiftEnter}} for a new line"
-              slots={{
-                enter: (
-                  <kbd className="font-sans font-medium text-gray-500">
-                    Enter
-                  </kbd>
-                ),
-                shiftEnter: (
-                  <kbd className="font-sans font-medium text-gray-500">
-                    Shift + Enter
-                  </kbd>
-                ),
-              }}
-            />
-          </span>
-          <span className="max-sm:hidden flex-shrink-0 sm:inline">
-            {translator.translateText("Every answer cites its queries")}
-          </span>
-        </div>
+            className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+              isSendable
+                ? "bg-gray-900 text-white hover:bg-gray-800"
+                : "bg-gray-100 text-gray-400"
+            }`}
+          >
+            <Icon icon={IconProp.ArrowUp} className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   );

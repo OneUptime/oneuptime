@@ -12,7 +12,7 @@ Um provedor de LLM é o modelo por trás de cada recurso de IA do OneUptime: inv
 ## O que um provedor alimenta
 
 - **Investigações**: a OneUptime AI investiga novos incidentes e alertas e publica na linha do tempo uma análise de causa raiz com citações. Veja [AI SRE](/docs/ai/ai-sre).
-- **Perguntas**: **Ask AI** responde a partir dos dados do seu projeto, com uma citação em cada afirmação. Veja [Pergunte à IA](/docs/ai/ask-ai).
+- **Perguntas**: **Pergunte à IA** responde a partir dos dados do seu projeto, com uma citação em cada afirmação. Veja [Pergunte à IA](/docs/ai/ask-ai).
 - **Rascunhos**: **Rascunho com IA** nas notas de incidentes, alertas e manutenções programadas, e postmortems, redigidos sob demanda ou quando um incidente é resolvido.
 - **Código**: pull requests que corrigem exceções, traces lentos e as causas que as investigações encontram, a partir do OneUptime ou do GitHub. Veja [Código](/docs/ai/ai-agent).
 - **Todo o resto**: a triagem do AI Insights, as etapas de IA de fluxos de trabalho e runbooks, e as respostas no Slack e no Microsoft Teams.

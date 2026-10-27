@@ -57,7 +57,7 @@ const SPINNER_CLASS_NAME: string =
  * Investigation card. It is one control: the text, what the AI may do with
  * the request (and what that means, said next to the choice), and Send. It
  * looks like the dashboard's other inputs (gray-300 frame, indigo focus)
- * because it sits on a page among them; the Ask AI side panel keeps its own
+ * because it sits on a page among them; the Ask AI dialog keeps its own
  * composer (AIChat/ChatInput).
  *
  * It never takes focus by itself: loading an incident must not jump to it.

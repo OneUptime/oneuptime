@@ -36,7 +36,7 @@ import { useTranslation } from "react-i18next";
 
 /**
  * The dashboard's global keyboard layer. Mounted once in App.tsx, beside the
- * command palette and the Ask AI panel, and it owns two things:
+ * command palette and the Ask AI dialog, and it owns two things:
  *
  *  - "g then <key>" navigation, so moving between products costs two
  *    keystrokes instead of a trip through a menu, and

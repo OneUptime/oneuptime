@@ -12,7 +12,7 @@ Een LLM-provider is het model achter elke AI-functie in OneUptime: onderzoeken, 
 ## Wat een provider aandrijft
 
 - **Onderzoeken**: OneUptime AI onderzoekt nieuwe incidenten en waarschuwingen en plaatst een onderbouwde analyse van de hoofdoorzaak op de tijdlijn. Zie [AI SRE](/docs/ai/ai-sre).
-- **Vragen**: **Ask AI** antwoordt uit de gegevens van je project, met een bron bij elke bewering. Zie [AI vragen](/docs/ai/ask-ai).
+- **Vragen**: **AI vragen** antwoordt uit de gegevens van je project, met een bron bij elke bewering. Zie [AI vragen](/docs/ai/ask-ai).
 - **Concepten**: **Concept met AI** in de notities van incidenten, waarschuwingen en gepland onderhoud, en postmortems, opgesteld op verzoek of wanneer een incident wordt opgelost.
 - **Code**: pull requests die uitzonderingen, trage traces en de oorzaken die onderzoeken vinden herstellen, vanuit OneUptime of vanuit GitHub. Zie [Code](/docs/ai/ai-agent).
 - **Al het andere**: de triage van AI Insights, de AI-stappen van workflows en runbooks, en antwoorden in Slack en Microsoft Teams.
