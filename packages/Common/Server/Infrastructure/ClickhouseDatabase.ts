@@ -15,6 +15,7 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import { JSONObject } from "../../Types/JSON";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import ClickhouseQuerySpans from "../Utils/Telemetry/ClickhouseQuerySpans";
 import GracefulShutdown, { ShutdownPriority } from "../Utils/GracefulShutdown";
 
 export type ClickhouseClient = ClickHouseClient;
@@ -76,6 +77,13 @@ export default class ClickhouseDatabase {
 
             const clickhouseClient: ClickhouseClient =
               createClient(dataSourceOptions);
+
+            // A CLIENT span for each call a traced request or job makes.
+            ClickhouseQuerySpans.instrument(clickhouseClient, {
+              url: dataSourceOptions.url,
+              database: dataSourceOptions.database,
+            });
+
             this.dataSource = clickhouseClient;
 
             const result: PingResult = await clickhouseClient.ping();

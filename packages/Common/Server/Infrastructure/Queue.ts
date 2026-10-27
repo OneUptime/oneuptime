@@ -155,7 +155,6 @@ export default class Queue {
     });
   }
 
-  @CaptureSpan()
   public static getQueue(queueName: QueueName): BullQueue {
     // check if the queue is already created
     if (this.queueDict[queueName]) {
@@ -398,7 +397,6 @@ export default class Queue {
     return removedCount;
   }
 
-  @CaptureSpan()
   public static getInspectorRoute(): string {
     return "/worker/inspect/queue/:dashboardSecret";
   }
