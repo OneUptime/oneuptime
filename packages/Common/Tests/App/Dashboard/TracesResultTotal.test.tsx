@@ -515,6 +515,50 @@ describe("the rows are named for what they are", () => {
     expect(screen.queryByText("Traces over time")).toBeNull();
   });
 
+  test("no entry spans over spans that exist: the list says so, and every span is one click away", async () => {
+    // The window holds 3 spans, none of them an entry span.
+    analyticsGetListMock.mockImplementation(
+      async (args: Record<string, any>) => {
+        return args["query"]["isEntrySpan"]
+          ? smallResultPage(0)
+          : smallResultPage(3);
+      },
+    );
+    postMock.mockImplementation(
+      async (args: { url: { toString: () => string } }) => {
+        const url: string = args.url.toString();
+        if (url.includes("/telemetry/traces/facets")) {
+          return {
+            data: {
+              facets: {
+                isEntrySpan: [{ value: "false", count: 3 }],
+                isRootSpan: [{ value: "false", count: 3 }],
+              },
+            },
+          };
+        }
+        if (url.includes("/telemetry/traces/histogram")) {
+          return { data: { buckets: [] } };
+        }
+        return { data: {} };
+      },
+    );
+
+    await renderExplorer();
+
+    expect(await screen.findByText("No entry spans found")).toBeInTheDocument();
+    expect(screen.queryByText("No traces found")).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Show all spans"));
+    });
+    await settle();
+
+    expect(lastListArgs()["query"]["isEntrySpan"]).toBeUndefined();
+    expect(resultTotalText()).toBe("3 spans");
+    expect(window.location.search).toContain("spanType=all");
+  });
+
   test("every span: nothing narrows the count, and it says spans", async () => {
     await renderExplorer("/?spanType=all");
 

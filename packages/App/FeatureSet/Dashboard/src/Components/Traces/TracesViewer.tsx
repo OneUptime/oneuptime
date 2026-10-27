@@ -3565,11 +3565,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
               props.onTimeRangeChange?.(value);
             }}
           />
-        ) : spanType !== TraceSpanType.All ? (
+        ) : spanType !== TraceSpanType.All && spansInWindow > 0 ? (
           /*
            * A list of entry or root spans can be empty where spans are not:
-           * a database's or a worker's spans are all calls and steps. It says
-           * which spans it looked for, and every span is one click away.
+           * a database's or a worker's spans are all calls and steps. When
+           * the window holds spans the list does not, it says which spans it
+           * looked for, and every span is one click away.
            */
           <div
             className="flex h-48 flex-col items-center justify-center gap-2 px-6 text-center"
