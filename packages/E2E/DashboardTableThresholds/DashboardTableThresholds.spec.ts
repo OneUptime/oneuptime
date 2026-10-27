@@ -396,7 +396,7 @@ const boardDrawn: (page: Page) => Promise<void> = async (
   for (const widgetId of [SATURATION, FILLED, OVER_TIME]) {
     await expect(
       widgetTitled(page, widgetId).getByRole("heading", {
-        name: TITLES[widgetId],
+        name: TITLES[widgetId]!,
         exact: true,
       }),
     ).toBeVisible({ timeout: 60000 });

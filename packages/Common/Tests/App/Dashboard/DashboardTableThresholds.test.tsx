@@ -21,6 +21,11 @@ import DashboardTableComponentElement from "../../../../App/FeatureSet/Dashboard
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import { getDashboardWidgetSortHeaderTestId } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetSortCopy";
 import TableColumnsEditor from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/TableColumnsEditor";
+import {
+  WidgetCatalogCategory,
+  WidgetCatalogItem,
+  searchWidgetCatalog,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Toolbar/WidgetCatalog";
 import ArgumentsForm from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Canvas/ArgumentsForm";
 import DashboardTableComponent, {
   TableColumn,
@@ -1257,5 +1262,28 @@ describe("the table's Threshold colors", () => {
       critical: 95,
       direction: TableThresholdDirection.HigherIsWorse,
     });
+  });
+});
+
+describe("finding the table by what it now does", () => {
+  function matchedTypes(searchTerm: string): Array<string> {
+    return searchWidgetCatalog(searchTerm).flatMap(
+      (category: WidgetCatalogCategory): Array<string> => {
+        return category.items.map((item: WidgetCatalogItem): string => {
+          return item.type.toString();
+        });
+      },
+    );
+  }
+
+  test("a search for threshold in Add Widget offers the metric Table beside the Value and the Gauge", () => {
+    const types: Array<string> = matchedTypes("threshold");
+
+    expect(types).toContain(DashboardComponentType.Table);
+    expect(types).toContain(DashboardComponentType.Gauge);
+  });
+
+  test("a search for color offers it too", () => {
+    expect(matchedTypes("color")).toContain(DashboardComponentType.Table);
   });
 });

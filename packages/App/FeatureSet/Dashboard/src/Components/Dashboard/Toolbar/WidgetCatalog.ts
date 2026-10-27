@@ -107,7 +107,21 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
         icon: IconProp.TableCells,
         description:
           "Tabular metric values — set a Group By (e.g. host.name) for one row per entity, or none for time-bucketed rows. Add formulas for derived columns like availability %.",
-        keywords: ["grid", "rows", "columns", "group by", "formula", "metric"],
+        /*
+         * Its columns color values past a warning or critical threshold
+         * (issue #5231): a search for those finds it beside the Value and
+         * the Gauge.
+         */
+        keywords: [
+          "grid",
+          "rows",
+          "columns",
+          "group by",
+          "formula",
+          "metric",
+          "threshold",
+          "color",
+        ],
       },
     ],
   },
