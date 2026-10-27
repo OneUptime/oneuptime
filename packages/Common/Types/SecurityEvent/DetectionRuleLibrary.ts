@@ -1520,6 +1520,9 @@ detection:
 id: 48612a6d-c4b3-4ffb-a5da-0bc4e1e8a45b
 description: A prompt that tries to override an LLM's instructions.
 level: medium
+tags:
+  - attack.initial_access
+  - attack.t1190
 detection:
   selection:
     oneuptime.signal: prompt-injection

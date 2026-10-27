@@ -54,8 +54,10 @@ export function cutTelemetryText(text: string, limit: number): string {
 
 /*
  * The MITRE ATT&CK tactics and techniques each signal stands for, in the
- * version Types/SecurityEvent/MitreAttack.ts carries. A prompt injection has
- * none: ATT&CK does not cover attacks on models (MITRE ATLAS does).
+ * version Types/SecurityEvent/MitreAttack.ts carries. A prompt injection is
+ * read as what ATT&CK can say of it - an exploit of a public-facing app
+ * (T1190) - since ATT&CK does not cover attacks on models (MITRE ATLAS
+ * does). Deleting an API key is housekeeping, and stands for nothing.
  */
 export const SECURITY_TELEMETRY_SIGNAL_ATTACK: Record<
   SecurityTelemetrySignal,
@@ -69,7 +71,10 @@ export const SECURITY_TELEMETRY_SIGNAL_ATTACK: Record<
     tactics: ["TA0001", "TA0006"],
     techniques: ["T1190", "T1552"],
   },
-  [SecurityTelemetrySignal.PromptInjection]: { tactics: [], techniques: [] },
+  [SecurityTelemetrySignal.PromptInjection]: {
+    tactics: ["TA0001"],
+    techniques: ["T1190"],
+  },
   [SecurityTelemetrySignal.PortScan]: {
     tactics: ["TA0007"],
     techniques: ["T1046"],

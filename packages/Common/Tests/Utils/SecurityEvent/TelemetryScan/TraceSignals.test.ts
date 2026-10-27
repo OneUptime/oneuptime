@@ -358,7 +358,9 @@ describe("a prompt injection", () => {
     );
     expect(event!.attributes["gen_ai.system"]).toBe("openai");
     expect(event!.attributes["gen_ai.request.model"]).toBe("gpt-4o");
-    expect(event!.mitreTactics).toEqual([]);
+    // What ATT&CK can say of it: an exploit of a public-facing app.
+    expect(event!.mitreTactics).toEqual(["TA0001"]);
+    expect(event!.mitreTechniques).toEqual(["T1190"]);
   });
 
   test("an ordinary prompt is no event, nor is a span that is not an LLM call", () => {
