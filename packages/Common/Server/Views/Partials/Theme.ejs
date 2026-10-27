@@ -1,0 +1,99 @@
+<%#
+    The person's theme, drawn before the first paint, on the pages that are
+    theirs: the Dashboard, the Admin Dashboard, the sign-in pages (Accounts)
+    and the pages the server draws on the way in. Light, Dark or System, as
+    they picked it in the user menu and their browser keeps it; a browser
+    where nobody picked follows the device (Common/Types/Theme/
+    ThemePreference.ts has the rules, and Common/UI/Utils/Theme.ts keeps the
+    page in step once its app runs).
+
+    Include it in <head>, before any stylesheet or script that paints. It
+    writes the page's one theme-color tag - the colour the browser draws its
+    own chrome in - so the page has no other.
+
+    The script draws the dark class, data-theme and color-scheme on <html>
+    and the theme-color tag, and the canvas takes the theme's background
+    before any stylesheet arrives (the style below), so a dark page never
+    flashes white and a light one never flashes dark.
+
+    Locals, all optional:
+      alwaysLightPathPrefixes  addresses drawn light whatever the person
+                               picked: the page at an address that starts
+                               with one of them is light. A public form is
+                               its owner's page, not the person's
+                               (Accounts' index.ejs).
+
+    Its tests run this file as it is: Common/Tests/Server/Views/
+    ThemeBeforeFirstPaint.test.ts.
+-%>
+<%
+  var themeAlwaysLightPathPrefixes = [];
+
+  if (typeof alwaysLightPathPrefixes !== 'undefined' && Array.isArray(alwaysLightPathPrefixes)) {
+    // Plain paths only, so the list is safe to write into the script.
+    themeAlwaysLightPathPrefixes = alwaysLightPathPrefixes.filter(function (prefix) {
+      return typeof prefix === 'string' && /^\/[a-z0-9\/-]+$/.test(prefix);
+    });
+  }
+%>
+<meta name="theme-color" content="#f9fafb" />
+<style>
+  html.dark,
+  html.dark body {
+    background-color: #0f172a;
+    color: #f8fafc;
+  }
+</style>
+<script>
+  (function (themeWindow, alwaysLightPathPrefixes) {
+    var root = themeWindow.document.documentElement;
+    var preference = "system";
+
+    try {
+      var kept = themeWindow.localStorage.getItem("oneuptime-dashboard-theme");
+
+      if (kept === "light" || kept === "dark" || kept === "system") {
+        preference = kept;
+      }
+    } catch (_storageError) {
+      // Storage can be blocked: nothing was picked, so the device decides.
+    }
+
+    var theme = preference === "dark" ? "dark" : "light";
+
+    if (preference === "system") {
+      try {
+        theme =
+          themeWindow.matchMedia &&
+          themeWindow.matchMedia("(prefers-color-scheme: dark)").matches
+            ? "dark"
+            : "light";
+      } catch (_mediaError) {
+        theme = "light";
+      }
+    }
+
+    var path = themeWindow.location.pathname || "";
+
+    for (var index = 0; index < alwaysLightPathPrefixes.length; index++) {
+      if (path.indexOf(alwaysLightPathPrefixes[index]) === 0) {
+        theme = "light";
+      }
+    }
+
+    root.classList.toggle("dark", theme === "dark");
+    root.setAttribute("data-theme", theme);
+    root.style.colorScheme = theme;
+
+    var themeColor = themeWindow.document.querySelector(
+      'meta[name="theme-color"]:not([media])',
+    );
+
+    if (themeColor) {
+      themeColor.setAttribute(
+        "content",
+        theme === "dark" ? "#0f172a" : "#f9fafb",
+      );
+    }
+  })(window, <%- JSON.stringify(themeAlwaysLightPathPrefixes) %>);
+</script>
