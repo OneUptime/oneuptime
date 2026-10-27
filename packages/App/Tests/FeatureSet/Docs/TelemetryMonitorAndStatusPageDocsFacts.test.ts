@@ -1584,9 +1584,21 @@ describe("the Metrics monitor", () => {
 
     expect([...documented.keys()].sort()).toEqual([...order].sort());
 
+    /*
+     * Every window ends at one instant, not now. A day range steps back days
+     * on the calendar of the zone the test runs in, so a window the clocks
+     * went back inside is an hour longer, and Past 1, 3 and 7 Days and Past
+     * 180 Days, each on a bucket's edge, tip into the next bucket - in London
+     * from 25 October 2026 until the clocks go forward in March. No zone's
+     * clocks went back in the 180 days before this instant.
+     */
+    const windowEnd: Date = new Date(Date.UTC(2026, 9, 16, 12, 0, 0));
+
     for (const rollingTime of Object.values(RollingTime)) {
-      const window: InBetween<Date> =
-        RollingTimeUtil.convertToStartAndEndDate(rollingTime);
+      const window: InBetween<Date> = RollingTimeUtil.convertToStartAndEndDate(
+        rollingTime,
+        windowEnd,
+      );
       const interval: AggregationInterval =
         AggregationIntervalUtil.getAggregationIntervalForWindow({
           startDate: window.startValue,
