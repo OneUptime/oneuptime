@@ -372,6 +372,22 @@ Medan en incident väntar visar dess kort **AI Investigation** **Väntar** och t
 
 Larm fungerar på samma sätt, på **Larm → AI → Inställningar**, räknat från när larmet skapas.
 
+## OneUptime AI reagerar först
+
+En jourregel för incidenter eller larm kan låta OneUptime AI ta larmet först. Under **Fler fält** svarar du **Efter att OneUptime AI har försökt** på **När ska den här regeln larma?**. När OneUptime AI får åtgärda det en matchande incident eller ett matchande larm gäller, väntar regelns policyer medan AI undersöker, åtgärdar och kontrollerar sin åtgärd, i högst den tid som anges i **Vänta på OneUptime AI i upp till (minuter)**: 10 minuter som standard, från 1 till 30. Om AI:s åtgärd bekräftas löser OneUptime AI posten och ingen larmas.
+
+Annars larmar regeln direkt, och postens flöde säger varför, när en person skapade posten, den har projektets högsta allvarlighetsgrad, 3 eller fler andra larm och incidenter öppnades under de 5 minuterna före, OneUptime AI inte får undersöka eller åtgärda den automatiskt, ingen monitor är kopplad till den, eller inget kopplat Kubernetes-kluster eller resurs har en AI-agent inställd på **Automatiskt** eller **Hoppa över godkännande**.
+
+Medan AI håller kvar ett larm visar kortet **AI Investigation** när larmningen börjar, med **Larma nu** för alla som vill ha en person på det direkt. Varje minut kontrollerar OneUptime varje larm som AI håller kvar och börjar larma direkt, med orsak, när:
+
+- undersökningen inte startar, väntar på en AI-regel eller inte blir klar;
+- AI inte hittar någon åtgärd den får köra på egen hand, eller dess åtgärd kräver en persons godkännande;
+- AI:s åtgärd inte får tillbaka monitorerna;
+- någon trycker på **Larma nu**, posten når högsta allvarlighetsgraden eller många poster öppnas samtidigt;
+- AI eller automatisk åtgärd stängs av, eller regeln inte längre låter AI reagera först.
+
+Policyns körloggar visar hur varje kvarhållning slutade. Via API:t eller Terraform är regelns `whenToPage` `After OneUptime AI` och dess `aiHoldTimeInMinutes` är väntetiden.
+
 ## Automatisk åtgärd väntar på analysen
 
 När projektet åtgärdar nya incidenter eller larm automatiskt (**Åtgärda nya incidenter automatiskt** och **Åtgärda nya larm automatiskt**, med AI-reglerna under **Fler inställningar** på **Incidenter → AI → Inställningar** och **Larm → AI → Inställningar**), väntar åtgärderna på utredningen, **orsaksanalysen först**:
