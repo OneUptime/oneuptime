@@ -1,7 +1,7 @@
 {
   "name": "@oneuptime/resource-ai-agent",
   "version": "14.0.94",
-  "description": "OneUptime resource AI agent — runs the commands OneUptime AI asks for on one Docker, Podman or Swarm host, Proxmox or VMware cluster, Ceph cluster, database server or host, with its own credentials (read-only unless you allow fixes).",
+  "description": "OneUptime resource AI agent — runs the commands OneUptime AI asks for on one Docker, Podman or Swarm host, Proxmox or VMware cluster, Ceph cluster, database server, host or cloud account, with its own credentials (read-only unless you allow fixes).",
   "repository": {
     "type": "git",
     "url": "https://github.com/OneUptime/oneuptime"
