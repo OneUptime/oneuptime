@@ -169,9 +169,10 @@ describe("Run Workflow on a workflow with no trigger", () => {
 
     renderPanel({ onAddTrigger: onAddTrigger });
 
-    const button: HTMLElement = screen.getByTestId("run-workflow-add-trigger");
+    const button: HTMLElement = screen.getByRole("button", {
+      name: WORKFLOW_ADD_TRIGGER_TITLE,
+    });
 
-    expect(button).toHaveTextContent(WORKFLOW_ADD_TRIGGER_TITLE);
     expect(WORKFLOW_ADD_TRIGGER_TITLE).toBe("Add Trigger");
 
     fireEvent.click(button);
@@ -179,14 +180,22 @@ describe("Run Workflow on a workflow with no trigger", () => {
     expect(onAddTrigger).toHaveBeenCalledTimes(1);
   });
 
-  test("Add Trigger is the panel's one primary button: there is no Run Workflow to press", () => {
+  /*
+   * The footer's own action, the one primary button a dialog has
+   * (DialogPrimaryActionGuard): in the empty state it would have been a
+   * second one beside the footer's Run Workflow, as far as the code reads.
+   */
+  test("Add Trigger is the footer's action, in Run Workflow's place, and nothing in the panel is another button", () => {
     renderPanel({ onAddTrigger: getJestMockFunction() });
 
     expect(
       screen.queryByRole("button", { name: RUN_WORKFLOW_SUBMIT_TITLE }),
     ).not.toBeInTheDocument();
     // The panel still closes, by its footer and its header.
-    expect(footerButtons()).toEqual(["Close"]);
+    expect(footerButtons()).toEqual(["Close", WORKFLOW_ADD_TRIGGER_TITLE]);
+    expect(
+      screen.getByTestId("run-workflow-no-trigger").querySelector("button"),
+    ).toBeNull();
   });
 
   test("no red error, and none of the old words", () => {
@@ -215,7 +224,7 @@ describe("Run Workflow on a workflow with no trigger", () => {
       screen.getByText(RunModalCopy.noTriggerViewOnlyDescription),
     ).toBeInTheDocument();
     expect(
-      screen.queryByTestId("run-workflow-add-trigger"),
+      screen.queryByRole("button", { name: WORKFLOW_ADD_TRIGGER_TITLE }),
     ).not.toBeInTheDocument();
     expect(footerButtons()).toEqual(["Close"]);
   });
@@ -232,7 +241,7 @@ describe("Run Workflow on a workflow with a trigger", () => {
       screen.queryByTestId("run-workflow-no-trigger"),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByTestId("run-workflow-add-trigger"),
+      screen.queryByRole("button", { name: WORKFLOW_ADD_TRIGGER_TITLE }),
     ).not.toBeInTheDocument();
     expect(footerButtons()).toEqual(["Close", RUN_WORKFLOW_SUBMIT_TITLE]);
     expect(screen.getByRole("textbox")).toBeInTheDocument();

@@ -1,4 +1,4 @@
-import Button, { ButtonStyleType } from "../Button/Button";
+import { ButtonStyleType } from "../Button/Button";
 import EmptyState from "../EmptyState/EmptyState";
 import ConfirmModal from "../Modal/ConfirmModal";
 import SideOver from "../SideOver/SideOver";
@@ -244,7 +244,12 @@ const RunModal: FunctionComponent<ComponentProps> = (
         ? typedRecord.trim()
         : "";
 
-  // No trigger yet: nothing to run, so no Run button and no form.
+  /*
+   * No trigger yet: nothing to run, so no run form and no Run Workflow. The
+   * panel's one action is then Add Trigger - the footer's own button, the
+   * one primary a dialog has - for someone who may add one; anyone else
+   * gets Close alone.
+   */
   const hasNoTrigger: boolean = component.nodeType === NodeType.PlaceholderNode;
 
   return (
@@ -252,10 +257,16 @@ const RunModal: FunctionComponent<ComponentProps> = (
       title={"Run Workflow"}
       description={RunModalCopy.description}
       onClose={props.onClose}
-      submitButtonText={RUN_WORKFLOW_SUBMIT_TITLE}
+      submitButtonText={
+        hasNoTrigger ? WORKFLOW_ADD_TRIGGER_TITLE : RUN_WORKFLOW_SUBMIT_TITLE
+      }
       onSubmit={
         hasNoTrigger
-          ? undefined
+          ? props.onAddTrigger
+            ? () => {
+                props.onAddTrigger?.();
+              }
+            : undefined
           : () => {
               if (hasFormValidationErrors) {
                 /*
@@ -341,25 +352,6 @@ const RunModal: FunctionComponent<ComponentProps> = (
                   : RunModalCopy.noTriggerViewOnlyDescription
               }
               paddingClassName="pt-10 pb-6"
-              footer={
-                props.onAddTrigger ? (
-                  /*
-                   * Button keeps a dialog footer's left margin (md:ml-3),
-                   * which would push it off the centre here.
-                   */
-                  <div className="[&>button]:ml-0 [&>button]:md:ml-0">
-                    <Button
-                      title={WORKFLOW_ADD_TRIGGER_TITLE}
-                      icon={IconProp.Add}
-                      buttonStyle={ButtonStyleType.PRIMARY}
-                      dataTestId="run-workflow-add-trigger"
-                      onClick={() => {
-                        props.onAddTrigger?.();
-                      }}
-                    />
-                  </div>
-                ) : undefined
-              }
             />
           </div>
         )}

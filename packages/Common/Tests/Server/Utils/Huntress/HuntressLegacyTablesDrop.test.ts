@@ -29,6 +29,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * THE LEGACY HUNTRESS TABLES GO ONCE EVERY CONNECTION HAS ITS WORKFLOW
@@ -138,8 +139,10 @@ describe("every connection in use has its workflow", () => {
   });
 
   test("the move is not run again: no connection is read, no workflow made", async () => {
-    const create: jest.SpiedFunction<typeof WorkflowService.create> =
-      jest.spyOn(WorkflowService, "create");
+    const create: SpyInstance<typeof WorkflowService.create> = jest.spyOn(
+      WorkflowService,
+      "create",
+    );
 
     await drop();
 

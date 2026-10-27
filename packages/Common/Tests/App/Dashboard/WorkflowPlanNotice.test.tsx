@@ -92,7 +92,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: async (): Promise<unknown> => {
         const workflowModule: {
           default: new () => Record<string, unknown>;
-        } = jest.requireActual("../../../Models/DatabaseModels/Workflow");
+        } = jest.requireActual("../../../Models/DatabaseModels/Workflow") as {
+          default: new () => Record<string, unknown>;
+        };
         const workflow: Record<string, unknown> = new workflowModule.default();
 
         workflow["graph"] = {
