@@ -990,8 +990,14 @@ describe("notification methods", () => {
   it("has the tabs the page draws, in its order", () => {
     expect(captures(tabsSource, TAB_NAME)).toEqual([
       "Workspace Apps",
-      "Direct Contact",
+      // A server's custom channels: drawn only while one is on.
+      "Custom Channels",
+      /*
+       * The push devices, or the notice that the server has push turned off
+       * (getPushNotificationsTab): defined before the page, drawn fourth.
+       */
       "Push Notifications",
+      "Direct Contact",
       "Webhooks",
     ]);
     // Workspace Apps is defined first, and drawn second, only when offered.
@@ -1000,6 +1006,29 @@ describe("notification methods", () => {
     );
     expect(tabsSource).toContain(
       "if (offered.length === 0) {\n    return null;",
+    );
+
+    // Drawn after Direct Contact, the workspaces and the custom channels, before Webhooks.
+    const drawnAt: (code: string) => number = (code: string): number => {
+      const at: number = tabsSource.indexOf(code);
+
+      expect([code, at > -1]).toEqual([code, true]);
+
+      return at;
+    };
+
+    const drawn: Array<number> = [
+      drawnAt('name: translationKey("Direct Contact")'),
+      drawnAt("...(workspaceAppsTab ? [workspaceAppsTab] : []),"),
+      drawnAt("...(customChannelsTab ? [customChannelsTab] : []),"),
+      drawnAt("getPushNotificationsTab(isPushTurnedOff),"),
+      drawnAt('name: translationKey("Webhooks")'),
+    ];
+
+    expect(drawn).toEqual(
+      [...drawn].sort((a: number, b: number): number => {
+        return a - b;
+      }),
     );
   });
 
@@ -1944,9 +1973,12 @@ describe("notification settings", () => {
       "Slack",
       "Microsoft Teams",
       "Webhook",
+      // A server's custom channels: a column only while one is on.
+      "Custom Channels",
     ]);
     expect(page).toContain("workspaceType: WorkspaceType.Slack,");
     expect(page).toContain("workspaceType: WorkspaceType.MicrosoftTeams,");
+    expect(page).toContain("isCustomChannels: true,");
 
     const columns: string =
       "Email, SMS, Call, Push, WhatsApp, Telegram, Slack and Microsoft Teams, and Webhook.";
@@ -1963,11 +1995,24 @@ describe("notification settings", () => {
     let from: number = 0;
 
     for (const channel of channels) {
+      if (channel === "Custom Channels") {
+        continue;
+      }
+
       const at: number = columns.indexOf(channel, from);
 
       expect({ channel, named: at >= 0 }).toEqual({ channel, named: true });
       from = at + channel.length;
     }
+
+    /*
+     * The custom channels' column is there only on a server whose admin
+     * turned a custom channel on, so it is named, by its label, where custom
+     * channels are.
+     */
+    expect(english("self-hosted/custom-notification-channels")).toContain(
+      "**User Settings > Notification Settings**, which has a **Custom Channels** column while a channel is on.",
+    );
   });
 
   it("sends to every verified method of a channel that is on, and nothing without a setting", () => {

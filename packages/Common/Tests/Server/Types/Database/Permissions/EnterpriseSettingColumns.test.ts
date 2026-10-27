@@ -50,7 +50,9 @@ import { setTestBillingEnabled } from "../../../Enterprise/TestBillingFlag";
 /*
  * Enterprise configuration kept in COLUMNS of the status page, dashboard and
  * form models (the retention overrides have a suite of their own,
- * RetentionOverrideColumns.test.ts):
+ * RetentionOverrideColumns.test.ts, and so do the custom channel columns of
+ * on-call rules and notification settings,
+ * CustomChannelEditionPermissions.test.ts):
  *
  *   ipWhitelist on StatusPage, Dashboard and Form      IP allow-lists
  *   StatusPage.hidePoweredByOneUptimeBranding          status page branding
@@ -296,6 +298,32 @@ describe("which columns are enterprise settings", () => {
         {
           ipWhitelist: EnterpriseFeature.IpAllowlists,
         },
+      );
+    },
+  );
+
+  /*
+   * The custom channel columns, gated by a suite of their own
+   * (CustomChannelEditionPermissions.test.ts): what an on-call rule pages
+   * through and whether a person's notifications go to the channels.
+   */
+  test.each([
+    [
+      "UserNotificationRule",
+      {
+        customNotificationChannelId:
+          EnterpriseFeature.CustomNotificationChannels,
+      },
+    ],
+    [
+      "UserNotificationSetting",
+      { alertByCustomChannel: EnterpriseFeature.CustomNotificationChannels },
+    ],
+  ] as Array<[string, Record<string, EnterpriseFeature>]>)(
+    "%s: only its custom channel column",
+    (table: string, columns: Record<string, EnterpriseFeature>) => {
+      expect(EnterpriseEdition.getEnterpriseColumnsForTableName(table)).toEqual(
+        columns,
       );
     },
   );

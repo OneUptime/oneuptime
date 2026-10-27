@@ -340,6 +340,8 @@ const REFERENCED_AS_A_WHOLE_TABLE: Record<string, string> = {
   UserTelegram: NOTIFICATION_METHOD,
   UserWebhook: NOTIFICATION_METHOD,
   UserWhatsApp: NOTIFICATION_METHOD,
+  CustomNotificationChannel:
+    "A rule names a custom channel the installation's admin set up for everyone, which belongs to no project; the rule guard refuses one that does not exist or is turned off (UserNotificationRuleAdminService).",
 };
 
 // References to records read one by one the rule leaves out. May only shrink - and is empty.

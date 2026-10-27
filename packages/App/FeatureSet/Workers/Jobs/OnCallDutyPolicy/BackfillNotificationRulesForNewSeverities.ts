@@ -132,7 +132,8 @@ type NotificationMethodColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
-  | "userWebhookId";
+  | "userWebhookId"
+  | "customNotificationChannelId";
 
 const NOTIFICATION_METHOD_COLUMNS: Array<NotificationMethodColumn> = [
   "userEmailId",
@@ -144,6 +145,7 @@ const NOTIFICATION_METHOD_COLUMNS: Array<NotificationMethodColumn> = [
   "userSlackId",
   "userMicrosoftTeamsId",
   "userWebhookId",
+  "customNotificationChannelId",
 ];
 
 /* One (channel, delay) the responder already asked for, ready to be re-stated. */
@@ -402,6 +404,7 @@ const backfillSeverityForRuleType: BackfillSeverityForRuleTypeFunction = async (
         userSlackId: true,
         userMicrosoftTeamsId: true,
         userWebhookId: true,
+        customNotificationChannelId: true,
       },
       props: {
         isRoot: true,
@@ -729,6 +732,8 @@ const buildNotificationMethodQuery: BuildNotificationMethodQueryFunction = (
       return { userMicrosoftTeamsId: methodId };
     case "userWebhookId":
       return { userWebhookId: methodId };
+    case "customNotificationChannelId":
+      return { customNotificationChannelId: methodId };
     default:
       return {};
   }
@@ -778,6 +783,9 @@ const applyNotificationMethod: ApplyNotificationMethodFunction = (
       break;
     case "userWebhookId":
       rule.userWebhookId = methodId;
+      break;
+    case "customNotificationChannelId":
+      rule.customNotificationChannelId = methodId;
       break;
     default:
       break;

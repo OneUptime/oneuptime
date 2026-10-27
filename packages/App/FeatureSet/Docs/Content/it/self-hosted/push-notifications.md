@@ -7,6 +7,7 @@ OneUptime avvisa le persone sul telefono tramite l'app mobile **OneUptime On-Cal
 - [Apri il firewall](#accesso-di-rete): Gli indirizzi raggiunti dal tuo server e dai dispositivi delle tue persone.
 - [Suona anche in modalità silenziosa](#avvisi-critici-di-reperibilità-superare-la-modalità-silenziosa): Fai suonare gli avvisi di reperibilità su un telefono silenziato.
 - [Ripara i push che non arrivano mai](#risoluzione-dei-problemi): Che cosa significa ciascun errore di Expo.
+- [Disattiva i push](#disattivare-i-push-per-lintero-server): Non inviare nulla tramite Expo, il relay o i browser.
 :::
 
 ## Come funziona
@@ -118,6 +119,19 @@ La connettività dei dispositivi è un requisito a parte. I dispositivi iOS hann
 :::
 
 Per i push mobili, OneUptime legge anche la ricevuta di consegna di Expo circa 15 minuti dopo ogni push: un push che non ha mai raggiunto il dispositivo compare allora come non consegnato nel registro dei push e, per un avviso di reperibilità, nella cronologia della reperibilità.
+
+## Disattivare i push per l'intero server
+
+Se nulla deve uscire dalla tua rete tramite Expo, il relay push o il servizio push di un browser, un master admin può disattivare i push in **Admin Dashboard > Impostazioni > Push Notifications**: disattiva **Send push notifications** e conferma.
+
+Finché i push sono disattivati:
+
+- Nulla viene inviato via push a telefoni o browser, in nessun progetto.
+- Nessun dispositivo può essere registrato. La scheda **Push Notifications** di ogni persona, in **Impostazioni utente > Metodi di notifica**, indica che i push sono disattivati, e le regole di reperibilità non offrono dispositivi push.
+- Un avviso tramite una regola push non viene inviato. Il registro di reperibilità della persona riporta `Push notification not sent: Push notifications are turned off on this server.`
+- La prontezza della reperibilità considera inutilizzabili i dispositivi push, e il ripiego li salta. Chi ha come unico metodo verificato un dispositivo push risulta irraggiungibile.
+
+Per continuare a raggiungere le persone sul telefono, aggiungi un [canale personalizzato](/docs/self-hosted/custom-notification-channels) per la tua app o il tuo gateway. Ogni server OneUptime rilegge l'interruttore entro 10 secondi da una modifica. Quando i push vengono riattivati, i dispositivi si registrano di nuovo dall'app mobile al suo prossimo avvio, oppure dal browser.
 
 ## Avvisi critici di reperibilità (superare la modalità silenziosa)
 

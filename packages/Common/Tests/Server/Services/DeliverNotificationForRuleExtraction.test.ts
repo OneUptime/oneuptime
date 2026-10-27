@@ -787,6 +787,15 @@ describe("UserNotificationRuleService - the deliverNotificationForRule extractio
           secret: true,
           userId: true,
         },
+        /*
+         * A custom channel has no owner, so no userId to compare: its name
+         * and whether it is on. Its URL and secret are read only by the
+         * Enterprise Edition's sender, never with a rule.
+         */
+        customNotificationChannel: {
+          name: true,
+          isEnabled: true,
+        },
         userEmail: {
           email: true,
           isVerified: true,

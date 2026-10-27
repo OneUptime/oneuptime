@@ -1,5 +1,6 @@
 import IncidentSeverity from "./IncidentSeverity";
 import AlertSeverity from "./AlertSeverity";
+import CustomNotificationChannel from "./CustomNotificationChannel";
 import Project from "./Project";
 import User from "./User";
 import UserCall from "./UserCall";
@@ -954,6 +955,72 @@ class UserNotificationRule extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public userWebhookId?: ObjectID = undefined;
+
+  /*
+   * A CUSTOM CHANNEL IS EVERYBODY'S, SO THE OWNERSHIP RULE ABOVE DOES NOT FIT IT.
+   *
+   * The nine methods above each belong to one person, and the danger the essay
+   * above `userCall` describes is a rule owned by one person pointing at a
+   * method owned by another. A custom channel (CustomNotificationChannel)
+   * belongs to nobody: it is the installation's, every member's rules may name
+   * it, and its pages go to the service the installation's own admin set up,
+   * whoever's rule sent them. So the write-time guard asks something different
+   * of it - that the channel exists and is on - and
+   * UserNotificationRuleAdminService says so in its descriptor.
+   *
+   * The relation is readable where a rule is, because the one column of a
+   * channel a relation may read is its name (canReadOnRelationQuery): it is
+   * what a rules table shows. The URL and the secret refuse a relation read and
+   * a relation filter outright, whoever asks.
+   */
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser, ...ADMIN_WRITE_PERMISSIONS],
+    read: [Permission.CurrentUser, ...ADMIN_READ_PERMISSIONS],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "customNotificationChannelId",
+    type: TableColumnType.Entity,
+    modelType: CustomNotificationChannel,
+    title: "Custom Channel",
+    description:
+      "Relation to the Custom Channel this rule pages through, if it pages through one",
+  })
+  @ManyToOne(
+    () => {
+      return CustomNotificationChannel;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "CASCADE",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "customNotificationChannelId" })
+  public customNotificationChannel?: CustomNotificationChannel = undefined;
+
+  // Re-pointable by an administrator, as the method ids above are.
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser, ...ADMIN_WRITE_PERMISSIONS],
+    read: [Permission.CurrentUser, ...ADMIN_READ_PERMISSIONS],
+    update: [...ADMIN_WRITE_PERMISSIONS],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Custom Channel ID",
+    description: "ID of the Custom Channel this rule pages through",
+    example: "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public customNotificationChannelId?: ObjectID = undefined;
 
   /*
    * READ IS OWNER-ONLY ON THE RELATION, EVEN THOUGH THIS TABLE IS ADMIN-READABLE.

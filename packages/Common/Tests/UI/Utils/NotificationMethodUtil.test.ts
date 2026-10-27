@@ -177,6 +177,7 @@ describe("NotificationMethodUtil.getSelectForNotificationMethods", () => {
 
     expect(Object.keys(select).sort()).toEqual(
       [
+        "customNotificationChannel",
         "userCall",
         "userEmail",
         "userMicrosoftTeams",

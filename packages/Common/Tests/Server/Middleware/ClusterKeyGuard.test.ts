@@ -107,6 +107,8 @@ const PRESENTERS: Record<string, string> = {
   "packages/App/FeatureSet/Telemetry/Services/IncomingEmailWorkflowDelivery.ts":
     "WorkflowHostname",
   "packages/Common/Server/Services/CallService.ts": "AppApiHostname",
+  "packages/Common/Server/Services/CustomNotificationChannelDeliveryService.ts":
+    "AppApiHostname",
   "packages/Common/Server/Services/DatabaseService.ts": "WorkflowHostname",
   "packages/Common/Server/Services/MailService.ts": "AppApiHostname",
   "packages/Common/Server/Services/SmsService.ts": "AppApiHostname",
@@ -114,6 +116,7 @@ const PRESENTERS: Record<string, string> = {
   "packages/Common/Server/Services/WebhookService.ts": "AppApiHostname",
   "packages/Common/Server/Services/WhatsAppService.ts": "AppApiHostname",
   "packages/Common/Server/Services/WorkflowService.ts": "WorkflowHostname",
+  "packages/Common/Server/Utils/CallAndSmsGatewayTest.ts": "AppApiHostname",
   "packages/Common/Server/Utils/IncomingCallPhoneNumber.ts": "AppApiHostname",
   "packages/Common/Server/Utils/Telemetry/TelemetryWriterClient.ts":
     "TELEMETRY_WRITER_URL",
@@ -628,9 +631,21 @@ describe("the routes that take the cluster key, and who calls them", () => {
 
   test("every route that takes the key has a caller in the repository, and every listed caller's route exists", () => {
     const found: Array<string> = findClusterKeyRoutes().map(routeKey).sort();
+
+    /*
+     * A route the Enterprise Edition serves (ee/) is found only where ee/
+     * is checked out - the Common Test job removes it - so its entry is
+     * held to the route there. Its caller is core's, and is held to the
+     * rest of these checks everywhere.
+     */
+    const hasEe: boolean = fs.existsSync(path.join(REPOSITORY_DIRECTORY, "ee"));
     const called: Array<string> = Array.from(
       new Set(
-        CLUSTER_KEY_ROUTE_CALLERS.map((entry: ClusterKeyRouteCaller) => {
+        CLUSTER_KEY_ROUTE_CALLERS.filter(
+          (entry: ClusterKeyRouteCaller): boolean => {
+            return hasEe || !entry.route.file.startsWith("ee/");
+          },
+        ).map((entry: ClusterKeyRouteCaller) => {
           return routeKey(entry.route);
         }),
       ),

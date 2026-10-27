@@ -7,6 +7,7 @@ OneUptime larmar personer i telefonen via mobilappen **OneUptime On-Call**, och 
 - [Öppna brandväggen](#nätverksåtkomst): De adresser som din server och dina personers enheter når.
 - [Ring igenom tyst läge](#kritiska-jourlarm-åsidosätter-tyst-läge): Låt jourlarm höras på en telefon som är ljudlös.
 - [Åtgärda pushar som aldrig kommer fram](#felsökning): Vad vart och ett av Expos fel betyder.
+- [Stäng av push](#stänga-av-push-för-hela-servern): Skicka ingenting via Expo, reläet eller webbläsare.
 :::
 
 ## Så fungerar det
@@ -118,6 +119,19 @@ Enheternas anslutning är ett separat krav. iOS-enheter behöver åtkomst till A
 :::
 
 För mobila pushar läser OneUptime också Expos leveranskvitto ungefär 15 minuter efter varje push: en push som aldrig nådde enheten visas då som inte levererad i push-loggen och, för ett jourlarm, på jourtidslinjen.
+
+## Stänga av push för hela servern
+
+Om ingenting får lämna ditt nätverk via Expo, push-reläet eller en webbläsares push-tjänst, kan en huvudadministratör stänga av push under **Admin Dashboard > Inställningar > Push Notifications**: stäng av **Send push notifications** och bekräfta.
+
+Så länge push är avstängt:
+
+- Ingenting pushas till telefoner eller webbläsare, i något projekt.
+- Ingen enhet kan registreras. Fliken **Push Notifications** under **Användarinställningar > Aviseringsmetoder** visar för varje person att push är avstängt, och jourregler erbjuder inga push-enheter.
+- Ett larm via en push-regel skickas inte. Personens jourlogg säger `Push notification not sent: Push notifications are turned off on this server.`
+- Beredskapen räknar push-enheter som oanvändbara, och reservlösningen hoppar över dem. Den vars enda verifierade metod är en push-enhet visas som onåbar.
+
+För att fortsätta nå personer i telefonen lägger du till en [anpassad kanal](/docs/self-hosted/custom-notification-channels) för din egen app eller gateway. Varje OneUptime-server läser reglaget igen inom 10 sekunder efter en ändring. När push slås på igen registreras enheterna igen från mobilappen nästa gång den startar, eller från webbläsaren.
 
 ## Kritiska jourlarm (åsidosätter tyst läge)
 

@@ -51,6 +51,7 @@ Questa pagina spiega cosa include ogni edizione, come eseguire la Enterprise Edi
 | **Query Console** dell'amministrazione | No | Sì | Non disponibile |
 | Avvisi sullo stato di salute di PostgreSQL e Valkey (Redis) | No | Sì | Non applicabile |
 | [Backup](/docs/installation/backups) di PostgreSQL e ClickHouse su uno storage di vostra proprietà, secondo una pianificazione, con ripristino | No | Sì | Non applicabile |
+| [Canali di notifica personalizzati](/docs/self-hosted/custom-notification-channels): avvisare le persone tramite un vostro servizio, come l'app della vostra azienda | No | Sì | Non applicabile |
 | Vista della capacità di ClickHouse, avvisi sulla capacità e pulizia automatica del disco | Sì | Sì | Non applicabile |
 | Stato delle migrazioni, pacchetto di supporto e probe globali nel pannello amministratore | Sì | Sì | Non applicabile |
 | Gestione della licenza Enterprise, dei posti e delle istanze | No | Sì | Non applicabile |
@@ -194,6 +195,7 @@ Cosa si ferma quando una licenza scade:
 - **Le sostituzioni della conservazione smettono di applicarsi.** La nuova telemetria viene conservata per la conservazione predefinita del progetto. La telemetria già memorizzata mantiene la conservazione con cui è stata scritta. Potete ancora cancellare una sostituzione tramite l'API, ma non impostarne una.
 - **Le pagine di stato mostrano di nuovo Powered by OneUptime.** Una pagina che nasconde la riga la mostra finché non viene attivata una licenza. L'impostazione viene conservata.
 - **I backup pianificati si fermano.** Non viene creato alcun nuovo backup. I backup già creati restano nella loro destinazione, e potete ancora ripristinarli ed eliminarli.
+- **I canali personalizzati si fermano.** Nessun avviso né notifica viene inviato a un canale personalizzato, e nessuno viene offerto nelle regole di reperibilità. I canali e le regole che li usano vengono conservati, e potete ancora eliminare un canale.
 
 Cosa **non** si ferma:
 

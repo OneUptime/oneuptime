@@ -1,6 +1,7 @@
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import DashboardSideMenu from "../SideMenu";
+import CallAndSmsGatewayCard from "./CallAndSmsGatewayCard";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
@@ -87,6 +88,9 @@ const Settings: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<DashboardSideMenu />}
     >
+      {/* What carries the server's SMS and calls: Twilio, or a gateway. */}
+      <CallAndSmsGatewayCard />
+
       <CardModelDetail
         name="Call and SMS Settings"
         cardProps={{

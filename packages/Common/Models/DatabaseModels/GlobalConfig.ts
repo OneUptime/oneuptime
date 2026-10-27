@@ -23,6 +23,10 @@ import {
   DEFAULT_TWILIO_CONFIG_USE,
   TwilioConfigUse,
 } from "../../Types/CallAndSMS/TwilioConfigUse";
+import {
+  CallAndSmsProvider,
+  DEFAULT_CALL_AND_SMS_PROVIDER,
+} from "../../Types/CallAndSMS/CallAndSmsProvider";
 import { Column, Entity } from "typeorm";
 
 export enum EmailServerType {
@@ -124,6 +128,34 @@ export default class GlobalConfig extends GlobalConfigModel {
     unique: true,
   })
   public disableUserProjectCreation?: boolean = undefined;
+
+  /*
+   * Push notifications for the whole server: when on, nothing is sent to a
+   * phone or browser through OneUptime's apps - through Expo, the push
+   * relay, or a browser's push service - and no device can be registered
+   * for them. For installations whose rules let nothing leave through
+   * those services: they reach people through a custom channel instead
+   * (CustomNotificationChannel). A push not sent says why on the person's
+   * on-call log (PushNotificationService).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Disable Push Notifications",
+    description:
+      "When enabled, OneUptime sends no push notifications to phones or browsers, and no device can be registered for them.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public disablePushNotifications?: boolean = undefined;
 
   // SMTP Settings.
 
@@ -525,6 +557,80 @@ export default class GlobalConfig extends GlobalConfigModel {
     default: DEFAULT_TWILIO_CONFIG_USE,
   })
   public twilioUsedFor?: TwilioConfigUse = undefined;
+
+  /*
+   * What carries the server's SMS and calls (Types/CallAndSMS/
+   * CallAndSmsProvider): its Twilio account above - what every installation
+   * sent through, and what the column starts with - or the installation's
+   * own gateway, a URL each SMS and call is posted to, signed with the
+   * secret below (CallAndSmsGatewayPayload). A project with a Twilio config
+   * of its own still sends through that config.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    title: "Send SMS and Calls Through",
+    description:
+      'What carries the server\'s SMS and calls: "Twilio" (its Twilio account) or "Gateway" (your own gateway, at the Gateway URL).',
+    defaultValue: DEFAULT_CALL_AND_SMS_PROVIDER,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    unique: false,
+    default: DEFAULT_CALL_AND_SMS_PROVIDER,
+  })
+  public callAndSmsProvider?: CallAndSmsProvider = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.LongText,
+    title: "Gateway URL",
+    description:
+      "Where OneUptime posts each SMS and call when it sends them through your own gateway.",
+  })
+  @Column({
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+    nullable: true,
+    unique: false,
+  })
+  public callAndSmsGatewayUrl?: string = undefined;
+
+  /*
+   * Made for the admin when the gateway is first saved, and again when it
+   * is cleared (GlobalConfigService): the gateway checks each request's
+   * X-OneUptime-Signature with it, as a custom channel's service does.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Gateway Signing Secret",
+    description:
+      "The secret each request to your gateway is signed with, in the X-OneUptime-Signature header.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: false,
+  })
+  public callAndSmsGatewaySecret?: string = undefined;
 
   @ColumnAccessControl({
     create: [],

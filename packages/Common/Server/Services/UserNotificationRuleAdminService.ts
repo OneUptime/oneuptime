@@ -13,6 +13,7 @@ import UserTelegramService from "./UserTelegramService";
 import UserSlackService from "./UserSlackService";
 import UserMicrosoftTeamsService from "./UserMicrosoftTeamsService";
 import UserWebhookService from "./UserWebhookService";
+import CustomNotificationChannelService from "./CustomNotificationChannelService";
 import UserWhatsAppService from "./UserWhatsAppService";
 import type AuditLogServiceType from "./AuditLogService";
 import { resolveReferenceId } from "../Utils/Database/ProjectScopedReferenceValidator";
@@ -29,6 +30,7 @@ import ObjectID from "../../Types/ObjectID";
 import Project from "../../Models/DatabaseModels/Project";
 import TeamMember from "../../Models/DatabaseModels/TeamMember";
 import User from "../../Models/DatabaseModels/User";
+import CustomNotificationChannel from "../../Models/DatabaseModels/CustomNotificationChannel";
 import UserNotificationRule from "../../Models/DatabaseModels/UserNotificationRule";
 
 /*
@@ -77,7 +79,7 @@ import UserNotificationRule from "../../Models/DatabaseModels/UserNotificationRu
  */
 
 /*
- * One of the nine ways a rule can name a delivery address, reduced to what the
+ * One of the ten ways a rule can name a delivery address, reduced to what the
  * ownership guard needs: which column carried it (for the error message and the
  * audit line) and which row it points at.
  */
@@ -99,7 +101,7 @@ export interface NotificationMethodReference {
 }
 
 /*
- * A rule-shaped bag of values to read the guarded columns out of — the nine
+ * A rule-shaped bag of values to read the guarded columns out of — the ten
  * method references AND the ownership column, because both halves of the pair
  * this file exists to compare arrive through the same payload.
  *
@@ -138,7 +140,21 @@ interface NotificationMethodDescriptor {
   idColumn: string;
   relationColumn: string;
   label: string;
-  findOwnerUserId: (methodId: ObjectID) => Promise<ObjectID | undefined>;
+  /*
+   * Who owns the method row, for the nine methods that belong to one person.
+   * Absent for a method that belongs to nobody, which says what it requires
+   * instead (assertSharedMethodIsUsable).
+   */
+  findOwnerUserId?: (methodId: ObjectID) => Promise<ObjectID | undefined>;
+  /*
+   * A custom channel is the installation's, every member's rules may name it
+   * and its pages go to the service its admin set up, so the anti-hijack
+   * check (R3) has nothing to compare: there is no owner to be somebody else.
+   * What a rule may not do is name a channel that does not exist or is
+   * turned off, and that is checked instead - with isRoot, for the reason
+   * above.
+   */
+  assertSharedMethodIsUsable?: (methodId: ObjectID) => Promise<void>;
 }
 
 export class UserNotificationRuleAdminService extends BaseService {
@@ -298,13 +314,40 @@ export class UserNotificationRuleAdminService extends BaseService {
           )?.userId;
         },
       },
+      {
+        idColumn: "customNotificationChannelId",
+        relationColumn: "customNotificationChannel",
+        label: "Custom Channel",
+        assertSharedMethodIsUsable: async (
+          methodId: ObjectID,
+        ): Promise<void> => {
+          const channel: CustomNotificationChannel | null =
+            await CustomNotificationChannelService.findOneById({
+              id: methodId,
+              select: { _id: true, name: true, isEnabled: true },
+              props: { isRoot: true },
+            });
+
+          if (!channel) {
+            throw new BadDataException(
+              "The Custom Channel notification method referenced by this rule does not exist.",
+            );
+          }
+
+          if (!channel.isEnabled) {
+            throw new BadDataException(
+              `${channel.name || "This custom channel"} is turned off, so a notification rule cannot use it. Your administrator can turn it on in the Admin Dashboard.`,
+            );
+          }
+        },
+      },
     ];
   }
 
   /*
-   * The nine FK columns, in one place, so a future tenth channel is a single
-   * entry rather than a tenth thing to remember. A guard that covers eight of
-   * nine covers none: the attacker picks the ninth.
+   * The ten FK columns, in one place, so a future eleventh channel is a single
+   * entry rather than an eleventh thing to remember. A guard that covers nine of
+   * ten covers none: the attacker picks the tenth.
    */
   public getNotificationMethodIdColumns(): Array<string> {
     return this.getNotificationMethodDescriptors().map(
@@ -407,7 +450,7 @@ export class UserNotificationRuleAdminService extends BaseService {
    * spelling survives a create.
    *
    * This is the same reduction collapseNotificationMethodRelationsOnCreate
-   * performs for the nine method FKs, and the same one
+   * performs for the ten method FKs, and the same one
    * CreatePermission.checkCreateOwnership performs for this very column — it
    * validates `user` identically to `userId` and then CLEARS it, because after
    * clearing there is no second source of truth left to disagree with the
@@ -859,8 +902,14 @@ export class UserNotificationRuleAdminService extends BaseService {
         );
       }
 
+      // A method nobody owns: usable or refused, and never anybody else's.
+      if (descriptor.assertSharedMethodIsUsable) {
+        await descriptor.assertSharedMethodIsUsable(reference.methodId);
+        continue;
+      }
+
       const methodOwnerUserId: ObjectID | undefined =
-        await descriptor.findOwnerUserId(reference.methodId);
+        await descriptor.findOwnerUserId?.(reference.methodId);
 
       if (!methodOwnerUserId) {
         throw new BadDataException(

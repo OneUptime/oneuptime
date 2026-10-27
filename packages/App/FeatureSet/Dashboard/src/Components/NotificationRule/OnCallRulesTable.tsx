@@ -21,6 +21,9 @@ import UserTelegram from "Common/Models/DatabaseModels/UserTelegram";
 import UserSlack from "Common/Models/DatabaseModels/UserSlack";
 import UserMicrosoftTeams from "Common/Models/DatabaseModels/UserMicrosoftTeams";
 import UserWebhook from "Common/Models/DatabaseModels/UserWebhook";
+import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
+import { loadCustomNotificationChannels } from "../../Utils/CustomNotificationChannels";
+import { usePushNotificationsTurnedOff } from "../../Utils/PushNotificationsTurnedOff";
 import UserWhatsApp from "Common/Models/DatabaseModels/UserWhatsApp";
 import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
@@ -82,7 +85,7 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
  * submits nothing and is refused.
  */
 export interface NotificationMethodChoice {
-  /* One of the nine channel names: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook. */
+  /* One of the ten channel names: Email, SMS, Call, Push, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook, Custom Channel. */
   methodType: string;
   /* The method row's own id — UserSMS._id and so on — as a plain uuid string. */
   methodId: string;
@@ -119,7 +122,8 @@ type MethodForeignKeyColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
-  | "userWebhookId";
+  | "userWebhookId"
+  | "customNotificationChannelId";
 
 interface MethodChannel {
   /* One of the nine channel names OnCallReadinessService puts on the wire. */
@@ -137,6 +141,11 @@ const METHOD_CHANNELS: Array<MethodChannel> = [
   { methodType: "Slack", foreignKeyColumn: "userSlackId" },
   { methodType: "Microsoft Teams", foreignKeyColumn: "userMicrosoftTeamsId" },
   { methodType: "Webhook", foreignKeyColumn: "userWebhookId" },
+  // A channel readiness lists for the person: everybody's, never owned.
+  {
+    methodType: "Custom Channel",
+    foreignKeyColumn: "customNotificationChannelId",
+  },
 ];
 
 type GetForeignKeyColumn = (
@@ -532,6 +541,17 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
   const [userWebhooks, setUserWebhooks] = useState<Array<UserWebhook>>([]);
   const [userCalls, setUserCalls] = useState<Array<UserCall>>([]);
   const [userPush, setUserPush] = useState<Array<UserPush>>([]);
+  const [customNotificationChannels, setCustomNotificationChannels] = useState<
+    Array<CustomNotificationChannel>
+  >([]);
+
+  /*
+   * No push device is offered for a rule while the server has push turned
+   * off (PushNotificationsTurnedOff): nothing would be pushed to it. The
+   * rules already pointed at one still show it, by its name.
+   */
+  const isPushTurnedOff: boolean = usePushNotificationsTurnedOff() === true;
+  const offeredUserPush: Array<UserPush> = isPushTurnedOff ? [] : userPush;
 
   const isEditable: boolean = props.isEditable ?? true;
 
@@ -570,14 +590,21 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
           userCalls: userCalls,
           userEmails: userEmails,
           userSMSs: userSMSs,
-          userPush: userPush,
+          userPush: offeredUserPush,
           userWhatsApps: userWhatsApps,
           userTelegrams: userTelegrams,
           userSlacks: userSlacks,
           userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
           userWebhooks: userWebhooks,
+          customNotificationChannels: customNotificationChannels,
         })
-      : getSuppliedDropdownOptions(props.notificationMethods || []);
+      : getSuppliedDropdownOptions(
+          (props.notificationMethods || []).filter(
+            (method: NotificationMethodChoice): boolean => {
+              return !isPushTurnedOff || method.methodType !== "Push";
+            },
+          ),
+        );
 
   /*
    * Maps the id the dropdown submitted back onto one of the rule's seven method
@@ -603,12 +630,13 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
         userCalls: userCalls,
         userEmails: userEmails,
         userSMSs: userSMSs,
-        userPush: userPush,
+        userPush: offeredUserPush,
         userWhatsApps: userWhatsApps,
         userTelegrams: userTelegrams,
         userSlacks: userSlacks,
         userMicrosoftTeamsAccounts: userMicrosoftTeamsAccounts,
         userWebhooks: userWebhooks,
+        customNotificationChannels: customNotificationChannels,
       });
 
       return;
@@ -623,7 +651,12 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
     const selectedMethod: NotificationMethodChoice | undefined = (
       props.notificationMethods || []
     ).find((method: NotificationMethodChoice): boolean => {
-      return method.methodId === selectedId && isSelectableMethod(method);
+      return (
+        method.methodId === selectedId &&
+        isSelectableMethod(method) &&
+        // What the dropdown does not offer, it does not take.
+        (!isPushTurnedOff || method.methodType !== "Push")
+      );
     });
 
     if (!selectedMethod) {
@@ -1624,6 +1657,21 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
       setUserSlacks(userSlackList.data);
       setUserMicrosoftTeamsAccounts(userMicrosoftTeamsList.data);
       setUserWebhooks(userWebhookList.data);
+
+      /*
+       * The server's custom channels, which nobody owns. Read beside the
+       * person's own methods and never waited for: a channel list that is
+       * slow or could not be read leaves the table and the rest of the
+       * dropdown as they are. It then offers no channel, and the server has
+       * the last word on any that is named.
+       */
+      loadCustomNotificationChannels()
+        .then((channels: Array<CustomNotificationChannel>) => {
+          setCustomNotificationChannels(channels);
+        })
+        .catch(() => {
+          setCustomNotificationChannels([]);
+        });
     };
 
   const init: PromiseVoidFunction = async (): Promise<void> => {

@@ -110,6 +110,12 @@ const PROJECT_FREE_ALLOWLIST: Array<ProjectFreeAllowlistEntry> = [
     reason:
       "A browser's renewed push subscription belongs to the signed-in user's browser, not to one project: the route takes the user from the session and moves every device they registered with the old subscription - one per project they are a member of - onto the new one.",
   },
+  {
+    file: "Utils/CustomNotificationChannels.ts",
+    routes: ["/custom-notification-channel/available"],
+    reason:
+      "Custom notification channels belong to the instance, not to a project: the route lists the channels that are on, by id and name, the same answer for every project and every signed-in person, and reads no tenant.",
+  },
 ];
 
 /*
