@@ -267,7 +267,9 @@ export default class IncidentEpisodeAIContextBuilder {
 
     const readable: ContextRows<Incident> = await readContextRows<Incident>({
       readerProps: data.readerProps,
-      read: (props: DatabaseCommonInteractionProps): Promise<Array<Incident>> => {
+      read: (
+        props: DatabaseCommonInteractionProps,
+      ): Promise<Array<Incident>> => {
         return IncidentService.findBy({
           query: {
             _id: QueryHelper.any(incidentIds),
