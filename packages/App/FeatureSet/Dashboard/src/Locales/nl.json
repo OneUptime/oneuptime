@@ -35944,5 +35944,11 @@
   "Sending a test request…": "Sending a test request…",
   "Ways to reach people that the server's admin adds: each page goes to the channel's URL as a signed JSON request.": "Ways to reach people that the server's admin adds: each page goes to the channel's URL as a signed JSON request.",
   "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as you.": "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as you.",
-  "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as {{email}}.": "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as {{email}}."
+  "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as {{email}}.": "Ways to reach you that your administrator set up for everyone. There is nothing to set up: OneUptime sends your pages to them as {{email}}.",
+  "Disable Push Notifications": "Disable Push Notifications",
+  "Gateway Signing Secret": "Gateway Signing Secret",
+  "Gateway URL": "Gateway URL",
+  "On-call pages and notifications reach you through your other notification methods, and through any custom channels your administrator set up.": "On-call pages and notifications reach you through your other notification methods, and through any custom channels your administrator set up.",
+  "Push notifications are turned off on this server. Your administrator can turn them on in the Admin Dashboard, under Settings > Push Notifications.": "Push notifications are turned off on this server. Your administrator can turn them on in the Admin Dashboard, under Settings > Push Notifications.",
+  "Send SMS and Calls Through": "Send SMS and Calls Through"
 }
