@@ -188,6 +188,12 @@ const RIGHT_IN_BOTH_THEMES: Record<string, string> = {
   "text-red-400": "a light red reads on white and on slate",
   // The Owners card's round add button turns indigo-600 under the pointer.
   "hover:text-white": "white on the indigo-600 hover fill, in both themes",
+  /*
+   * The Owners card's Add owner (nobody owns the record yet) keeps the fill
+   * the pointer gives it while its list is open: its white words read on
+   * indigo-700 in both themes, as they do under the pointer.
+   */
+  "bg-indigo-700": "the white-worded Add owner's held hover fill, in both themes",
 };
 
 const IDENTIFIER_CHAR: RegExp = /[\w-]/;

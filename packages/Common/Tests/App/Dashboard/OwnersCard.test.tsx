@@ -63,7 +63,14 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-import OwnersCard from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/OwnersCard";
+import OwnersCard, {
+  OWNERS_ADD_BUTTON_CLASS_NAME,
+  OWNERS_ADD_BUTTON_IDLE_CLASS_NAME,
+  OWNERS_ADD_BUTTON_OPEN_CLASS_NAME,
+  OWNERS_ADD_CIRCLE_CLASS_NAME,
+  OWNERS_ADD_CIRCLE_IDLE_CLASS_NAME,
+  OWNERS_ADD_CIRCLE_OPEN_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Owners/OwnersCard";
 import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
 import Team from "../../../Models/DatabaseModels/Team";
@@ -198,6 +205,20 @@ function optionNames(dialog: HTMLElement): Array<string> {
     .map((option: HTMLElement): string => {
       return option.getAttribute("data-id") || "";
     });
+}
+
+// Every class in `classNames` is on the element.
+function expectClasses(element: HTMLElement, classNames: Array<string>): void {
+  for (const className of classNames) {
+    expect(element).toHaveClass(className);
+  }
+}
+
+// None of the classes of `classNames` (one class string) is on the element.
+function expectNoneOf(element: HTMLElement, classNames: string): void {
+  for (const className of classNames.split(" ")) {
+    expect(element).not.toHaveClass(className);
+  }
 }
 
 function createdModels(): Array<any> {
@@ -545,6 +566,195 @@ describe("OwnersCard", () => {
     expect(
       within(dialog).getByTestId("people-search-locked-kind"),
     ).toHaveTextContent("You do not have permission to add teams as owners.");
+  });
+
+  /*
+   * The two controls that open the Add owners list each have an open state
+   * of their own (#5262's follow-up): while the list is open, the control
+   * that opened it stays as the pointer draws it, so it is clear which
+   * control the list belongs to - as a header's place button and the
+   * word-and-plus Add owners stay lit. One colour set or the other, never
+   * both: the Dashboard's Tailwind would let whichever rule it wrote last
+   * win.
+   */
+  test("the + after the avatars stays filled while its list is open, and goes back when it closes", async () => {
+    renderCard();
+
+    const plus: HTMLElement = await screen.findByTestId("owners-add-circle");
+
+    expect(plus).toHaveAccessibleName("Add owner");
+    expect(plus).toHaveAttribute("aria-haspopup", "dialog");
+    expect(plus).toHaveAttribute("aria-expanded", "false");
+    expectClasses(plus, [
+      ...OWNERS_ADD_CIRCLE_CLASS_NAME.split(" "),
+      ...OWNERS_ADD_CIRCLE_IDLE_CLASS_NAME.split(" "),
+    ]);
+    expectNoneOf(plus, OWNERS_ADD_CIRCLE_OPEN_CLASS_NAME);
+
+    fireEvent.click(plus);
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add owner",
+    });
+
+    expect(plus).toHaveAttribute("aria-expanded", "true");
+    expect(plus).toHaveAttribute("aria-controls", dialog.id);
+    expectClasses(plus, [
+      ...OWNERS_ADD_CIRCLE_CLASS_NAME.split(" "),
+      ...OWNERS_ADD_CIRCLE_OPEN_CLASS_NAME.split(" "),
+    ]);
+    expectNoneOf(plus, OWNERS_ADD_CIRCLE_IDLE_CLASS_NAME);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Add owner" })).toBeNull();
+    });
+    expect(plus).toHaveFocus();
+    expect(plus).toHaveAttribute("aria-expanded", "false");
+    expectClasses(plus, OWNERS_ADD_CIRCLE_IDLE_CLASS_NAME.split(" "));
+    expectNoneOf(plus, OWNERS_ADD_CIRCLE_OPEN_CLASS_NAME);
+  });
+
+  test("the + stays filled while owners are added from its list, one after another", async () => {
+    renderCard();
+
+    const plus: HTMLElement = await screen.findByTestId("owners-add-circle");
+
+    fireEvent.click(plus);
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add owner",
+    });
+
+    await within(dialog).findAllByRole("option");
+
+    ownerTeamRows = [
+      ...ownerTeamRows,
+      ownerTeamRow("33333333-3333-4333-8333-333333333334", TEAMS[0]!),
+    ];
+
+    fireEvent.click(
+      within(dialog)
+        .getAllByRole("option")
+        .find((option: HTMLElement): boolean => {
+          return option.getAttribute("data-id") === DATABASE;
+        })!,
+    );
+
+    // The new team's avatar is drawn in front of it, and the + is still lit.
+    expect(
+      await screen.findByRole("button", { name: "Remove Database" }),
+    ).toBeInTheDocument();
+
+    const plusAfter: HTMLElement = screen.getByTestId("owners-add-circle");
+
+    expect(screen.getByRole("dialog", { name: "Add owner" })).toBeVisible();
+    expect(plusAfter).toHaveAttribute("aria-expanded", "true");
+    expectClasses(plusAfter, OWNERS_ADD_CIRCLE_OPEN_CLASS_NAME.split(" "));
+    expectNoneOf(plusAfter, OWNERS_ADD_CIRCLE_IDLE_CLASS_NAME);
+  });
+
+  test("with nobody owning it, Add owner keeps its pressed fill while its list is open", async () => {
+    ownerUserRows = [];
+    ownerTeamRows = [];
+
+    renderCard();
+
+    expect(await screen.findByText("No owners yet")).toBeInTheDocument();
+
+    const add: HTMLElement = screen.getByTestId("owners-add");
+
+    expect(add).toHaveAccessibleName("Add owner");
+    expect(add).toHaveAttribute("aria-haspopup", "dialog");
+    expect(add).toHaveAttribute("aria-expanded", "false");
+    expectClasses(add, [
+      ...OWNERS_ADD_BUTTON_CLASS_NAME.split(" "),
+      ...OWNERS_ADD_BUTTON_IDLE_CLASS_NAME.split(" "),
+    ]);
+    expectNoneOf(add, OWNERS_ADD_BUTTON_OPEN_CLASS_NAME);
+
+    fireEvent.click(add);
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add owner",
+    });
+
+    expect(add).toHaveAttribute("aria-expanded", "true");
+    expect(add).toHaveAttribute("aria-controls", dialog.id);
+    expectClasses(add, [
+      ...OWNERS_ADD_BUTTON_CLASS_NAME.split(" "),
+      ...OWNERS_ADD_BUTTON_OPEN_CLASS_NAME.split(" "),
+    ]);
+    expectNoneOf(add, OWNERS_ADD_BUTTON_IDLE_CLASS_NAME);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "Add owner" })).toBeNull();
+    });
+    expect(add).toHaveFocus();
+    expectClasses(add, OWNERS_ADD_BUTTON_IDLE_CLASS_NAME.split(" "));
+    expectNoneOf(add, OWNERS_ADD_BUTTON_OPEN_CLASS_NAME);
+  });
+
+  test("the open look is what the pointer draws: the + filled indigo with a white plus, Add owner its hover fill", () => {
+    // The + under the pointer turns indigo-600 with a white plus ...
+    const circleHover: Array<string> = OWNERS_ADD_CIRCLE_IDLE_CLASS_NAME.split(
+      " ",
+    )
+      .filter((className: string): boolean => {
+        return className.startsWith("hover:");
+      })
+      .map((className: string): string => {
+        return className.slice("hover:".length);
+      });
+
+    // ... and open, it stays so (its lift and scale are for the pointer only).
+    for (const className of [
+      "border-indigo-500",
+      "bg-indigo-600",
+      "text-white",
+      "shadow-md",
+    ]) {
+      expect(circleHover).toContain(className);
+      expect(OWNERS_ADD_CIRCLE_OPEN_CLASS_NAME.split(" ")).toContain(
+        className,
+      );
+    }
+
+    expect(OWNERS_ADD_BUTTON_IDLE_CLASS_NAME.split(" ")).toContain(
+      "hover:bg-indigo-700",
+    );
+    expect(OWNERS_ADD_BUTTON_OPEN_CLASS_NAME.split(" ")).toEqual([
+      "bg-indigo-700",
+    ]);
+
+    // The sets never share a class, so neither can undo the other.
+    for (const [idle, open] of [
+      [OWNERS_ADD_CIRCLE_IDLE_CLASS_NAME, OWNERS_ADD_CIRCLE_OPEN_CLASS_NAME],
+      [OWNERS_ADD_BUTTON_IDLE_CLASS_NAME, OWNERS_ADD_BUTTON_OPEN_CLASS_NAME],
+    ] as Array<[string, string]>) {
+      const idleClasses: Array<string> = idle.split(" ");
+
+      for (const className of open.split(" ")) {
+        expect(idleClasses).not.toContain(className);
+      }
+    }
+  });
+
+  /*
+   * With no word beside it, the + is the control's only mark: grey-500
+   * (4.8:1 on white), not the grey-400 of a decoration (2.5:1), which is
+   * under the 3:1 a control's mark needs - as the header's place button.
+   */
+  test("the + is grey-500 while idle, not the fainter grey of a decoration", async () => {
+    renderCard();
+
+    const plus: HTMLElement = await screen.findByTestId("owners-add-circle");
+
+    expect(plus).toHaveClass("text-gray-500");
+    expect(plus).not.toHaveClass("text-gray-400");
   });
 
   test("says what owning means where it is not 'notified about changes' - a template's owners", async () => {
