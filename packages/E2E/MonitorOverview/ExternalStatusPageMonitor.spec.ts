@@ -23,11 +23,17 @@ import path from "path";
  * phone; and, start to finish, the steps the docs give for showing upstream
  * maintenance on your monitor, down to what Create Monitor sends.
  *
+ * Issue #5156: a page's components, picked in the Components field from the
+ * page's own list (read in the browser, modelled here for a vendor's
+ * Atlassian Statuspage), sent with the monitor, and a page that could not be
+ * read, read again with Try again.
+ *
  * Then what a check found (SummaryView/ExternalStatusPageMonitorView): the
  * Summary card of the fixture's External Status Page monitor, which watches
  * the Core group of another team's OneUptime status page while one of its
  * resources is under maintenance, and the same view in Monitoring Logs'
- * View Summary dialog - two widths of container at one screen width.
+ * View Summary dialog - two widths of container at one screen width. With
+ * ?components=chosen it watches two chosen components of the group.
  *
  * The same guards as the other specs here: a network fence, no uncaught
  * page errors, and no request the fixture does not model.
@@ -61,6 +67,68 @@ const PROVIDER_DESCRIPTION: string =
   "How OneUptime reads this status page. 'Auto' detects the format for you.";
 const GROUP_FILTER_DESCRIPTION: string =
   "Only watch one component group, e.g. 'APIs'. RSS and Atom feeds have no groups.";
+
+/*
+ * The Components field (ExternalStatusPageComponentsField, issue #5156): the
+ * components of the page the monitor watches, picked from the page's own
+ * list, which the browser reads when the field is opened.
+ */
+const COMPONENTS_FIELD_TEST_ID: string =
+  "external-status-page-components-field";
+const COMPONENTS_STATUS_TEST_ID: string =
+  "external-status-page-components-status";
+const COMPONENTS_UNMATCHED_TEST_ID: string =
+  "external-status-page-components-unmatched";
+const COMPONENTS_RETRY_TEST_ID: string =
+  "external-status-page-components-retry";
+
+/*
+ * A vendor's Atlassian Statuspage, modelled in the browser: GitHub's shape
+ * (issue #5156) - Git Operations and Pull Requests, a Copilot that is not
+ * Copilot AI Model Providers, and an Automation group.
+ */
+const VENDOR_PAGE_URL: string = "https://status.vendor.example";
+const VENDOR_HOST: string = "status.vendor.example";
+const VENDOR_COMPONENTS: Record<string, unknown> = {
+  page: { id: "vendor", name: "Vendor", url: VENDOR_PAGE_URL },
+  components: [
+    { id: "git", name: "Git Operations", status: "operational", group: false },
+    { id: "prs", name: "Pull Requests", status: "operational", group: false },
+    {
+      id: "copilot",
+      name: "Copilot",
+      status: "degraded_performance",
+      group: false,
+    },
+    {
+      id: "models",
+      name: "Copilot AI Model Providers",
+      status: "operational",
+      group: false,
+    },
+    {
+      id: "automation",
+      name: "Automation",
+      status: "operational",
+      group: true,
+      components: ["actions", "webhooks"],
+    },
+    {
+      id: "actions",
+      name: "Actions",
+      status: "operational",
+      group: false,
+      group_id: "automation",
+    },
+    {
+      id: "webhooks",
+      name: "Webhooks",
+      status: "major_outage",
+      group: false,
+      group_id: "automation",
+    },
+  ],
+};
 
 // The criteria the docs' steps make, named after its filter's words.
 const MAINTENANCE_CRITERIA_NAME: string =
@@ -286,6 +354,67 @@ async function optionTexts(list: Locator): Promise<Array<string>> {
   );
 }
 
+// The Components field's box, named by its label ("Components (Optional)").
+function componentsBox(form: Locator): Locator {
+  return form.getByRole("combobox", { name: /^Components/ });
+}
+
+interface VendorPage {
+  // Off: every request to the page fails, as when the browser cannot reach it.
+  reachable: boolean;
+  // Each request the browser made of the page: its path and its headers.
+  requests: Array<{ path: string; headers: Record<string, string> }>;
+}
+
+/*
+ * The vendor's status page, as the browser reaches it: Atlassian's
+ * components.json, and nothing else (the incident.io proxy and a OneUptime
+ * page's summary are not found). Every answer lets any page read it, as
+ * Statuspage's API does (Access-Control-Allow-Origin: *).
+ */
+async function serveVendorPage(page: Page): Promise<VendorPage> {
+  const vendor: VendorPage = { reachable: true, requests: [] };
+
+  await page.route(`${VENDOR_PAGE_URL}/**`, async (route: PlaywrightRoute) => {
+    const url: URL = new URL(route.request().url());
+
+    vendor.requests.push({
+      path: url.pathname,
+      headers: await route.request().allHeaders(),
+    });
+
+    if (!vendor.reachable) {
+      await route.abort("failed");
+      return;
+    }
+
+    const headers: Record<string, string> = {
+      "access-control-allow-origin": "*",
+      "content-type": "application/json",
+    };
+
+    if (url.pathname === "/api/v2/components.json") {
+      await route.fulfill({
+        status: 200,
+        headers: headers,
+        body: JSON.stringify(VENDOR_COMPONENTS),
+      });
+      return;
+    }
+
+    await route.fulfill({ status: 404, headers: headers, body: "{}" });
+  });
+
+  return vendor;
+}
+
+// An option's name: its first line, without the status under it.
+async function optionNames(list: Locator): Promise<Array<string>> {
+  return (await optionTexts(list)).map((text: string): string => {
+    return (text.split("\n")[0] || "").trim();
+  });
+}
+
 test.describe("Create Monitor: an External Status Page monitor's provider", () => {
   test("offers Auto first, then OneUptime Status Page between incident.io and the feeds, and says what Auto does", async ({
     page,
@@ -339,16 +468,29 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
     ).toBeVisible();
 
     /*
+     * The components it watches are out in the form, not under More fields
+     * (issue #5156): optional like the rest, and named by its label.
+     */
+    const componentsField: Locator = form.getByTestId(COMPONENTS_FIELD_TEST_ID);
+    await expect(componentsField).toBeVisible();
+    await expect(moreFields.getByTestId(COMPONENTS_FIELD_TEST_ID)).toHaveCount(
+      0,
+    );
+    await expect(componentsField.locator("label").first()).toContainText(
+      "Components (Optional)",
+    );
+    await expect(componentsBox(form)).toBeVisible();
+    // The one name filter it replaced is gone.
+    await expect(
+      form.locator("label", { hasText: "Component Name Filter" }),
+    ).toHaveCount(0);
+
+    /*
      * Each optional field says "(Optional)" once, small and grey after its
      * title, the way Timeout and Retries do - not in the title's own words
      * - and its box is named by its label.
      */
-    for (const title of [
-      "Component Group Filter",
-      "Component Name Filter",
-      "Timeout (ms)",
-      "Retries",
-    ]) {
+    for (const title of ["Component Group Filter", "Timeout (ms)", "Retries"]) {
       const label: Locator = moreFields.locator("label", { hasText: title });
       await expect(label).toHaveText(`${title} (Optional)`);
       await expect(label.locator("span.text-gray-400")).toHaveText(
@@ -564,6 +706,199 @@ test.describe("Create Monitor: an External Status Page monitor's provider", () =
       },
     );
     expect(criteriaNames).toContain(MAINTENANCE_CRITERIA_NAME);
+  });
+});
+
+/*
+ * Issue #5156: a person depends on a few of a page's components (GitHub's
+ * Git Operations and Pull Requests, not Copilot). Opened, the Components
+ * field reads the page's own list - in this browser, carrying nothing of
+ * OneUptime's - and offers it in the page's groups; the monitor is created
+ * with the names picked.
+ */
+test.describe("Create Monitor: the components an External Status Page monitor watches", () => {
+  /*
+   * The fixture server's Content-Security-Policy (connect-src 'self') is a
+   * second fence that would stop this browser's read of the vendor's page,
+   * which the Dashboard makes in production (it sends no connect-src). The
+   * network fence still holds: every request is either the fixture's or
+   * the vendor page this test models.
+   */
+  test.use({ bypassCSP: true });
+
+  test("picks from the page's own list, in its groups, and sends the chosen names", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(240000);
+    await page.setViewportSize({ width: 1280, height: 900 });
+
+    const vendor: VendorPage = await serveVendorPage(page);
+    const form: Locator = await openStatusPageStep(page);
+
+    await form
+      .getByRole("textbox", { name: "Status Page URL", exact: true })
+      .fill(VENDOR_PAGE_URL);
+
+    // Nothing is asked of the page until the list is opened.
+    expect(vendor.requests).toEqual([]);
+
+    await componentsBox(form).click();
+    const list: Locator = page.getByRole("listbox");
+    await expect(list).toBeVisible();
+
+    const status: Locator = form.getByTestId(COMPONENTS_STATUS_TEST_ID);
+    await expect(status).toHaveText(`6 components on ${VENDOR_HOST}.`);
+    // Under the open list, out of sight rather than peeking above it.
+    await expect(status).toBeHidden();
+
+    // The page's order: its own components first, then each group's.
+    expect(await optionNames(list)).toEqual([
+      "Git Operations",
+      "Pull Requests",
+      "Copilot",
+      "Copilot AI Model Providers",
+      "Actions",
+      "Webhooks",
+    ]);
+    await expect(list.locator(".ou-select__group-heading")).toHaveText([
+      "Automation",
+    ]);
+
+    // A component that is not operational says how it is.
+    await expect(
+      list.getByRole("option").filter({ hasText: "Webhooks" }),
+    ).toContainText("Major Outage");
+    await expect(
+      list.getByRole("option").filter({ hasText: "Git Operations" }),
+    ).toHaveText("Git Operations");
+
+    // Several are picked in a row: the list stays open for the next.
+    await list
+      .getByRole("option", { name: "Git Operations", exact: true })
+      .click();
+    await expect(list).toBeVisible();
+    await list
+      .getByRole("option", { name: "Pull Requests", exact: true })
+      .click();
+
+    await screenshot(page, "external-status-page-components-picked-1280");
+
+    // A name the page does not list can be typed, and is said to watch nothing.
+    await componentsBox(form).fill("Payments");
+    await expect(
+      list.getByRole("option", { name: "Add “Payments”", exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press("Enter");
+    await expect(form.getByTestId(COMPONENTS_UNMATCHED_TEST_ID)).toHaveText(
+      "Not on this page, so not watched: Payments",
+    );
+
+    // A * stands for any text, and its row says what it watches.
+    await componentsBox(form).fill("*Model*");
+    await expect(
+      list.getByRole("option", {
+        name: "Watch every component that matches “*Model*”",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await componentsBox(form).fill("");
+
+    await page.keyboard.press("Escape");
+    await expect(status).toBeVisible();
+    await expect(form.getByTestId(COMPONENTS_UNMATCHED_TEST_ID)).toBeVisible();
+    await form.getByRole("button", { name: "Remove Payments" }).click();
+    await expect(form.getByTestId(COMPONENTS_UNMATCHED_TEST_ID)).toHaveCount(0);
+    await expect(
+      form
+        .getByTestId(COMPONENTS_FIELD_TEST_ID)
+        .getByTestId("dropdown-value-label"),
+    ).toHaveText(["Git Operations", "Pull Requests"]);
+
+    /*
+     * Read once, in the probe's order - incident.io's proxy, then
+     * Statuspage's components - and with nothing of OneUptime's: no
+     * cookie, no referrer.
+     */
+    expect(
+      vendor.requests.map((request: { path: string }): string => {
+        return request.path;
+      }),
+    ).toEqual([`/proxy/${VENDOR_HOST}`, "/api/v2/components.json"]);
+    for (const request of vendor.requests) {
+      expect(request.headers["cookie"]).toBeUndefined();
+      expect(request.headers["referer"]).toBeUndefined();
+    }
+
+    await form.getByRole("button", { name: "Next", exact: true }).click();
+
+    const probes: Locator = page.getByRole("combobox", { name: /^Probes/ });
+    await expect(probes).toBeVisible({ timeout: 30000 });
+    await probes.click();
+    await page
+      .getByRole("option", { name: "Frankfurt (eu-central-1)", exact: true })
+      .click();
+    await page.keyboard.press("Escape");
+
+    await page.getByTestId("Create Monitor").click();
+    await expect(page).toHaveURL(
+      `/dashboard/${PROJECT_ID}/monitors/${CREATED_MONITOR_ID}`,
+      { timeout: 30000 },
+    );
+
+    const creates: Array<RecordedCreate> = await createsRecorded(page);
+    expect(creates).toHaveLength(1);
+
+    const statusPages: Array<Record<string, unknown>> = objectsWithKey(
+      creates[0]!.data["monitorSteps"],
+      "statusPageUrl",
+    );
+    expect(statusPages).toHaveLength(1);
+    expect(statusPages[0]).toMatchObject({
+      statusPageUrl: VENDOR_PAGE_URL,
+      componentNames: ["Git Operations", "Pull Requests"],
+    });
+    // Two names: a probe that has not been upgraded watches the whole page.
+    expect(statusPages[0]!["componentName"]).toBeUndefined();
+  });
+
+  test("says why a page could not be read, and reads it again with Try again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    const vendor: VendorPage = await serveVendorPage(page);
+    vendor.reachable = false;
+
+    const form: Locator = await openStatusPageStep(page);
+    await form
+      .getByRole("textbox", { name: "Status Page URL", exact: true })
+      .fill(VENDOR_PAGE_URL);
+    await componentsBox(form).click();
+
+    const status: Locator = form.getByTestId(COMPONENTS_STATUS_TEST_ID);
+    await expect(status).toContainText(
+      `Could not read a list of components from ${VENDOR_HOST}. Type a component's name as the page shows it, then press Enter.`,
+    );
+    await expect(status).toHaveAttribute("data-problem", "NotRead");
+    await page.keyboard.press("Escape");
+
+    // On a phone, the sentence and Try again stay inside the screen.
+    await noSidewaysScroll(page);
+    const retry: Locator = form.getByTestId(COMPONENTS_RETRY_TEST_ID);
+    const retryBox: Box = await boxOf(retry);
+    expect(retryBox.x).toBeGreaterThanOrEqual(0);
+    expect(retryBox.x + retryBox.width).toBeLessThanOrEqual(390);
+    await screenshot(page, "external-status-page-components-failed-390");
+
+    vendor.reachable = true;
+    await retry.click();
+    await expect(status).toHaveText(`6 components on ${VENDOR_HOST}.`);
+    await expect(retry).toHaveCount(0);
   });
 });
 
@@ -825,6 +1160,71 @@ test.describe("an External Status Page monitor's Summary", () => {
     ).toHaveText(["Operational", "Under Maintenance"]);
 
     await screenshot(page, "external-status-page-view-summary-1280");
+  });
+
+  /*
+   * Issue #5156: a monitor that watches two chosen components of the Core
+   * group. Its Scope names them by count, Active Incidents says the
+   * incident elsewhere on the page was not counted, and the chosen name
+   * the page does not list is said to watch nothing - on a laptop, on a
+   * phone and in the dark.
+   */
+  test("a monitor of chosen components says what it watches, what it left out, and the names the page does not list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+    await page.setViewportSize({ width: 1280, height: 900 });
+
+    const summary: Locator = await openStatusPageMonitor(
+      page,
+      "components=chosen",
+    );
+    const pageFacts: Locator = summary.getByTestId(
+      "external-status-page-page-facts",
+    );
+
+    await expect(pageFacts).toContainText("Core › 2 chosen components");
+    await expect(
+      summary.getByTestId("external-status-page-incidents-outside-scope"),
+    ).toHaveText("1 more on the page, not counted");
+
+    const unmatched: Locator = summary.getByTestId(
+      "external-status-page-unmatched-components",
+    );
+    await expect(unmatched).toHaveText(
+      "Not on this page, so not watched: Payments API",
+    );
+    await expect(
+      summary.getByTestId("external-status-page-component-name"),
+    ).toHaveText(["Checkout API"]);
+    await expectFactsFit(summary);
+    await screenshot(page, "external-status-page-summary-chosen-1280");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await noSidewaysScroll(page);
+    const note: Box = await boxOf(unmatched);
+    expect(note.x).toBeGreaterThanOrEqual(0);
+    expect(note.x + note.width).toBeLessThanOrEqual(390);
+    await expectFactsFit(summary);
+    await screenshot(page, "external-status-page-summary-chosen-390");
+
+    const dark: Locator = await openStatusPageMonitor(
+      page,
+      "components=chosen&theme=dark",
+    );
+    const darkNote: Locator = dark.getByTestId(
+      "external-status-page-unmatched-components",
+    );
+    expect(luminance(await backgroundColor(darkNote))).toBeLessThan(0.2);
+    const noteColor: string = await darkNote.evaluate(
+      (element: Element): string => {
+        return getComputedStyle(element).color;
+      },
+    );
+    expect(luminance(noteColor)).toBeGreaterThan(0.5);
+    await screenshot(page, "external-status-page-summary-chosen-dark-390");
   });
 
   test("dark mode keeps the facts and the components on dark surfaces", async ({

@@ -164,6 +164,8 @@ export interface ComponentProps {
   noOptionsMessage?: ((inputValue: string) => string) | undefined;
   // The menu opened: a list that is read only once it is needed.
   onMenuOpen?: (() => void) | undefined;
+  // The menu closed: what it covered under the control can show again.
+  onMenuClose?: (() => void) | undefined;
   /*
    * Close the menu once an option is picked. Defaults to true; a
    * multi-select whose people pick several in a row turns it off, so the
@@ -1179,6 +1181,9 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         {...menuMessageProps}
         onMenuOpen={() => {
           props.onMenuOpen?.();
+        }}
+        onMenuClose={() => {
+          props.onMenuClose?.();
         }}
         filterOption={filterOption}
         placeholder={tx(props.placeholder) ?? props.placeholder}

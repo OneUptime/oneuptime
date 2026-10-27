@@ -448,6 +448,63 @@ describe("the facts", () => {
     },
   );
 
+  /*
+   * The page's names are its own words, each drawn in its own direction: on
+   * a Persian page an English group name took the count after it into its
+   * run ("2 › Core", then the sentence). The count and the sentence stay
+   * outside them.
+   */
+  test("draws the group's and the components' names each in its own direction, the count outside them", () => {
+    renderView(
+      pageResponse({
+        componentGroupName: "Core",
+        componentNames: ["Checkout API", "Orders database"],
+      }),
+    );
+
+    const value: HTMLElement = factValue("external-status-page-page-facts", 3);
+    const isolated: Array<string> = Array.from(
+      value.querySelectorAll("bdi"),
+    ).map((element: Element): string => {
+      return element.textContent || "";
+    });
+
+    expect(isolated).toEqual(["Core"]);
+    expect(value).toHaveTextContent("Core › 2 chosen components");
+
+    cleanup();
+    renderView(
+      pageResponse({
+        componentGroupName: "Core",
+        componentNames: ["Checkout API"],
+      }),
+    );
+
+    expect(
+      Array.from(
+        factValue("external-status-page-page-facts", 3).querySelectorAll("bdi"),
+      ).map((element: Element): string => {
+        return element.textContent || "";
+      }),
+    ).toEqual(["Core", "Checkout API"]);
+
+    cleanup();
+    renderView(
+      pageResponse({
+        componentGroupName: undefined,
+        componentNames: ["Checkout API"],
+      }),
+    );
+
+    const component: HTMLElement = factValue(
+      "external-status-page-page-facts",
+      3,
+    );
+
+    expect(component).toHaveTextContent("Component: Checkout API");
+    expect(component.querySelector("bdi")).toHaveTextContent("Checkout API");
+  });
+
   test("what a check watched: its chosen components, else its one filter, else the whole page", () => {
     expect(
       getWatchedComponentNames(
@@ -570,7 +627,9 @@ describe("what the scope leaves out", () => {
       }),
     );
 
-    expect(screen.queryByTestId(EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID),
+    ).toBeNull();
   });
 });
 
@@ -653,6 +712,26 @@ describe("in German", () => {
     expect(
       screen.getByRole("list", { name: DE["Component Statuses"]! }),
     ).toBeInTheDocument();
+  });
+
+  test("chosen components of a group: the German sentence, with the group's name isolated in it", () => {
+    renderView(
+      pageResponse({
+        componentGroupName: "Core",
+        componentNames: ["Checkout API", "Orders database"],
+      }),
+    );
+
+    const value: HTMLElement = factValue("external-status-page-page-facts", 3);
+
+    expect(value).toHaveTextContent(
+      DE["{{group}} › {{count}} chosen components"]!.replace(
+        "{{group}}",
+        "Core",
+      ).replace("{{count}}", "2"),
+    );
+    expect(value).toHaveTextContent("Core › 2 ausgewählte Komponenten");
+    expect(value.querySelector("bdi")).toHaveTextContent("Core");
   });
 
   test("a whole page in scope says so in German", () => {

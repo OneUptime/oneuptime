@@ -10,7 +10,13 @@ import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  getSentenceParts,
+  PluralTemplate,
+  SentencePart,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import ExternalStatusPageComponentStatusDisplayUtil, {
   ExternalStatusPageComponentStatusDisplay,
@@ -39,49 +45,95 @@ export const getWatchedComponentNames: (
   return response?.componentName ? [response.componentName] : [];
 };
 
-// The Scope fact: the whole page, a group, the chosen components, or both.
-export const getScopeText: (data: {
+/*
+ * The Scope fact: the whole page, a group, the chosen components, or both.
+ * The group's and the components' names are the page's words, each drawn
+ * in its own direction (a bdi): on a Persian page "Core" otherwise took the
+ * count after it into its English run, and "Core › 2 chosen components"
+ * read as "2 › Core" followed by the rest of the sentence.
+ */
+export const getScopeValue: (data: {
   translator: Translator;
   componentGroupName: string | undefined;
   componentNames: Array<string>;
-}) => string = (data: {
+}) => ReactElement = (data: {
   translator: Translator;
   componentGroupName: string | undefined;
   componentNames: Array<string>;
-}): string => {
+}): ReactElement => {
   const group: string | undefined = data.componentGroupName;
   const names: Array<string> = data.componentNames;
 
+  // A translated sentence with the page's names drawn in it, each isolated.
+  const sentence: (
+    template: string | PluralTemplate,
+    slotNames: Record<string, string>,
+    count?: number,
+  ) => ReactElement = (
+    template: string | PluralTemplate,
+    slotNames: Record<string, string>,
+    count?: number,
+  ): ReactElement => {
+    const parts: Array<SentencePart> = getSentenceParts({
+      translator: data.translator,
+      template: template,
+      slots: Object.keys(slotNames),
+      count: count,
+    });
+
+    return (
+      <>
+        {parts.map((part: SentencePart, index: number): ReactElement => {
+          return part.kind === "text" ? (
+            <React.Fragment key={index}>{part.text}</React.Fragment>
+          ) : (
+            <bdi key={index}>{slotNames[part.slot]}</bdi>
+          );
+        })}
+      </>
+    );
+  };
+
   if (names.length === 0) {
-    return group
-      ? data.translator.translateTemplate("Group: {{group}}", { group: group })
-      : data.translator.translateTemplate("All components");
+    return group ? (
+      sentence(translationKey("Group: {{group}}"), { group: group })
+    ) : (
+      <>{data.translator.translateTemplate("All components")}</>
+    );
   }
 
   if (names.length === 1) {
-    return group
-      ? `${group} › ${names[0]}`
-      : data.translator.translateTemplate("Component: {{component}}", {
-          component: names[0] as string,
-        });
+    return group ? (
+      <>
+        <bdi>{group}</bdi> › <bdi>{names[0]}</bdi>
+      </>
+    ) : (
+      sentence(translationKey("Component: {{component}}"), {
+        component: names[0] as string,
+      })
+    );
   }
 
-  return group
-    ? data.translator.translatePlural(
-        {
-          one: "{{group}} › {{count}} chosen component",
-          other: "{{group}} › {{count}} chosen components",
-        },
-        names.length,
-        { group: group },
-      )
-    : data.translator.translatePlural(
+  return group ? (
+    sentence(
+      {
+        one: "{{group}} › {{count}} chosen component",
+        other: "{{group}} › {{count}} chosen components",
+      },
+      { group: group },
+      names.length,
+    )
+  ) : (
+    <>
+      {data.translator.translatePlural(
         {
           one: "{{count}} chosen component",
           other: "{{count}} chosen components",
         },
         names.length,
-      );
+      )}
+    </>
+  );
 };
 
 export interface ComponentProps {
@@ -163,7 +215,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
     props.probeMonitorResponse.totalAttempts ?? probeAttempts.length;
   const hadRetries: boolean = totalAttempts > 1;
 
-  const scopeText: string = getScopeText({
+  const scopeValue: ReactElement = getScopeValue({
     translator: translator,
     componentGroupName: externalStatusPageResponse?.componentGroupName,
     componentNames: getWatchedComponentNames(externalStatusPageResponse),
@@ -283,7 +335,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
             )
           }
         />
-        <SummaryFact title="Scope" value={scopeText} />
+        <SummaryFact title="Scope" value={scopeValue} />
       </SummaryFacts>
 
       {unmatchedNames.length > 0 && (

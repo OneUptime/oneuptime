@@ -12,6 +12,7 @@ import * as React from "react";
 import { Mock } from "jest-mock";
 import ExternalStatusPageComponentsField, {
   COMPONENTS_FIELD_TEST_ID,
+  COMPONENTS_HINTS_TEST_ID,
   COMPONENTS_RETRY_TEST_ID,
   COMPONENTS_STATUS_TEST_ID,
   COMPONENTS_UNMATCHED_TEST_ID,
@@ -250,6 +251,40 @@ describe("opened, it reads the page once and offers its components", () => {
     expect(harness.readCatalog).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * The open list lies over the lines under the field: they step out of
+   * sight (kept in their place, so nothing below moves) rather than show
+   * their top edge in the gap between the box and the list, and come back
+   * when it closes.
+   */
+  test("the lines under the field step out of sight while the list lies over them", async () => {
+    renderField({ componentNames: ["Webhook"] });
+
+    const hints: HTMLElement = screen.getByTestId(COMPONENTS_HINTS_TEST_ID);
+
+    expect(hints).not.toHaveClass("invisible");
+    expect(hints).toHaveAttribute("data-menu-open", "false");
+
+    await openMenu();
+
+    expect(hints).toHaveClass("invisible");
+    expect(hints).toHaveAttribute("data-menu-open", "true");
+    // Still there, under the list: what was read, and the name not on the page.
+    expect(
+      within(hints).getByTestId(COMPONENTS_STATUS_TEST_ID),
+    ).toHaveTextContent(`12 components on ${GITHUB_HOST}.`);
+    expect(
+      within(hints).getByTestId(COMPONENTS_UNMATCHED_TEST_ID),
+    ).toHaveTextContent("Not on this page, so not watched: Webhook");
+
+    await act(async () => {
+      fireEvent.keyDown(box(), { key: "Escape" });
+    });
+
+    expect(hints).not.toHaveClass("invisible");
+    expect(hints).toHaveAttribute("data-menu-open", "false");
+  });
+
   test("while it reads, the menu says so", async () => {
     let finish: (catalog: ExternalStatusPageCatalog) => void = (): void => {};
 
@@ -303,15 +338,20 @@ describe("opened, it reads the page once and offers its components", () => {
       return (heading.textContent || "").trim();
     });
 
-    expect(groups.map((group: string): string => {
-      return group.toLowerCase();
-    })).toEqual(["apis", "chatgpt", "codex"]);
+    expect(
+      groups.map((group: string): string => {
+        return group.toLowerCase();
+      }),
+    ).toEqual(["apis", "chatgpt", "codex"]);
   });
 
   test("with a group set, only that group's components, and the line says so", async () => {
-    renderField({ componentGroupName: "ChatGPT" }, (): Promise<ExternalStatusPageCatalog> => {
-      return Promise.resolve(openAiCatalog());
-    });
+    renderField(
+      { componentGroupName: "ChatGPT" },
+      (): Promise<ExternalStatusPageCatalog> => {
+        return Promise.resolve(openAiCatalog());
+      },
+    );
 
     await openMenu();
 
@@ -457,17 +497,20 @@ describe("typing a name the page does not list", () => {
 describe("a page that cannot be read", () => {
   test("says why, under the field and in the menu, and Try again reads it again", async () => {
     let attempt: number = 0;
-    const harness: Harness = renderField({}, (): Promise<ExternalStatusPageCatalog> => {
-      attempt++;
+    const harness: Harness = renderField(
+      {},
+      (): Promise<ExternalStatusPageCatalog> => {
+        attempt++;
 
-      return attempt === 1
-        ? Promise.reject(
-            new ExternalStatusPageCatalogError(
-              ExternalStatusPageCatalogProblem.NotRead,
-            ),
-          )
-        : Promise.resolve(githubCatalog());
-    });
+        return attempt === 1
+          ? Promise.reject(
+              new ExternalStatusPageCatalogError(
+                ExternalStatusPageCatalogProblem.NotRead,
+              ),
+            )
+          : Promise.resolve(githubCatalog());
+      },
+    );
 
     await openMenu();
 

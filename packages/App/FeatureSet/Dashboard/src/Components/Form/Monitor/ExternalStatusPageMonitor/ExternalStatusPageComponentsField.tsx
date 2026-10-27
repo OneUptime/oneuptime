@@ -86,6 +86,8 @@ export const COMPONENTS_UNMATCHED_TEST_ID: string =
   "external-status-page-components-unmatched";
 export const COMPONENTS_RETRY_TEST_ID: string =
   "external-status-page-components-retry";
+export const COMPONENTS_HINTS_TEST_ID: string =
+  "external-status-page-components-hints";
 
 // What a read is for: the page's address and how it is read.
 const readKey: (statusPageUrl: string, provider: string) => string = (
@@ -100,6 +102,12 @@ const ExternalStatusPageComponentsField: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [readState, setReadState] = useState<ReadState>({ kind: "idle" });
+  /*
+   * Whether the list is open. The open list lies over the lines under the
+   * field, which then step out of sight rather than show their top edge
+   * in the gap between the box and the list.
+   */
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const abortRef: React.MutableRefObject<AbortController | null> =
     useRef<AbortController | null>(null);
 
@@ -172,6 +180,8 @@ const ExternalStatusPageComponentsField: FunctionComponent<ComponentProps> = (
    * is read again only with Try again.
    */
   const onMenuOpen: () => void = (): void => {
+    setIsMenuOpen(true);
+
     if (state.kind !== "idle") {
       return;
     }
@@ -306,6 +316,9 @@ const ExternalStatusPageComponentsField: FunctionComponent<ComponentProps> = (
           );
         }}
         onMenuOpen={onMenuOpen}
+        onMenuClose={(): void => {
+          setIsMenuOpen(false);
+        }}
         onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
           const names: Array<string> = (
             Array.isArray(value) ? value : value === null ? [] : [value]
@@ -316,66 +329,72 @@ const ExternalStatusPageComponentsField: FunctionComponent<ComponentProps> = (
           props.onChange(ExternalStatusPageComponentNames.normalize(names));
         }}
       />
-      {state.kind === "loaded" && (
-        <p
-          className="mt-1 break-words text-xs text-gray-500"
-          role="status"
-          data-testid={COMPONENTS_STATUS_TEST_ID}
-        >
-          {ExternalStatusPageComponentsCopy.readSentence({
-            translator: translator,
-            count: offered.length,
-            host: state.catalog.host,
-            componentGroupName: props.componentGroupName,
-          })}
-        </p>
-      )}
-      {unmatched.length > 0 && (
-        <p
-          className="mt-1 flex items-start gap-1.5 break-words text-xs text-amber-700"
-          data-testid={COMPONENTS_UNMATCHED_TEST_ID}
-        >
-          <Icon
-            icon={IconProp.Alert}
-            className="mt-0.5 h-3.5 w-3.5 flex-none"
-          />
-          <span className="min-w-0">
-            {ExternalStatusPageComponentsCopy.unmatchedSentence(
-              translator,
-              unmatched,
+      <div
+        className={isMenuOpen ? "invisible" : undefined}
+        data-testid={COMPONENTS_HINTS_TEST_ID}
+        data-menu-open={isMenuOpen ? "true" : "false"}
+      >
+        {state.kind === "loaded" && (
+          <p
+            className="mt-1 break-words text-xs text-gray-500"
+            role="status"
+            data-testid={COMPONENTS_STATUS_TEST_ID}
+          >
+            {ExternalStatusPageComponentsCopy.readSentence({
+              translator: translator,
+              count: offered.length,
+              host: state.catalog.host,
+              componentGroupName: props.componentGroupName,
+            })}
+          </p>
+        )}
+        {unmatched.length > 0 && (
+          <p
+            className="mt-1 flex items-start gap-1.5 break-words text-xs text-amber-700"
+            data-testid={COMPONENTS_UNMATCHED_TEST_ID}
+          >
+            <Icon
+              icon={IconProp.Alert}
+              className="mt-0.5 h-3.5 w-3.5 flex-none"
+            />
+            <span className="min-w-0">
+              {ExternalStatusPageComponentsCopy.unmatchedSentence(
+                translator,
+                unmatched,
+              )}
+            </span>
+          </p>
+        )}
+        {state.kind === "failed" && (
+          <div
+            className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500"
+            role="status"
+            data-testid={COMPONENTS_STATUS_TEST_ID}
+            data-problem={state.problem}
+          >
+            <span className="min-w-0 break-words">
+              {ExternalStatusPageComponentsCopy.failureMessage(
+                translator,
+                state.problem,
+                state.host,
+              )}
+            </span>
+            {ExternalStatusPageComponentsCopy.canTryAgain(state.problem) && (
+              <button
+                type="button"
+                data-testid={COMPONENTS_RETRY_TEST_ID}
+                onClick={(): void => {
+                  read();
+                }}
+                className="-mx-1 inline-flex flex-none items-center gap-1 rounded px-1 py-0.5 font-medium text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+              >
+                <Icon icon={IconProp.Refresh} className="h-3 w-3" />
+                <span>{translator.translateText("Try again")}</span>
+              </button>
             )}
-          </span>
-        </p>
-      )}
-      {state.kind === "failed" && (
-        <div
-          className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500"
-          role="status"
-          data-testid={COMPONENTS_STATUS_TEST_ID}
-          data-problem={state.problem}
-        >
-          <span className="min-w-0 break-words">
-            {ExternalStatusPageComponentsCopy.failureMessage(
-              translator,
-              state.problem,
-              state.host,
-            )}
-          </span>
-          {ExternalStatusPageComponentsCopy.canTryAgain(state.problem) && (
-            <button
-              type="button"
-              data-testid={COMPONENTS_RETRY_TEST_ID}
-              onClick={(): void => {
-                read();
-              }}
-              className="-mx-1 inline-flex flex-none items-center gap-1 rounded px-1 py-0.5 font-medium text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-            >
-              <Icon icon={IconProp.Refresh} className="h-3 w-3" />
-              <span>{translator.translateText("Try again")}</span>
-            </button>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

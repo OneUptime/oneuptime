@@ -23,7 +23,8 @@ import React from "react";
  *     is a value drawn as written - never looked up as a translation;
  *   - isLoading and loadingMessage: the options are on their way;
  *   - noOptionsMessage: what the open menu says when nothing matches;
- *   - onMenuOpen: a list read only once it is needed.
+ *   - onMenuOpen: a list read only once it is needed, and onMenuClose:
+ *     what the open list lay over can show again.
  */
 
 type OnChange = (value: DropdownValue | Array<DropdownValue> | null) => void;
@@ -107,9 +108,9 @@ describe("a creatable multi-select", () => {
     });
 
     expect(onChange).toHaveBeenLastCalledWith(["Probe"]);
-    expect(
-      screen.getByTestId("dropdown-value-label"),
-    ).toHaveTextContent(/^Probe$/);
+    expect(screen.getByTestId("dropdown-value-label")).toHaveTextContent(
+      /^Probe$/,
+    );
   });
 
   test("never offers to add an option's own name, one already picked, or nothing", async () => {
@@ -196,7 +197,11 @@ describe("opening the menu", () => {
     const onMenuOpen: Mock<() => void> = jest.fn<() => void>();
 
     render(
-      <Dropdown ariaLabel="Components" options={OPTIONS} onMenuOpen={onMenuOpen} />,
+      <Dropdown
+        ariaLabel="Components"
+        options={OPTIONS}
+        onMenuOpen={onMenuOpen}
+      />,
     );
 
     expect(onMenuOpen).not.toHaveBeenCalled();
@@ -211,5 +216,45 @@ describe("opening the menu", () => {
     await openMenu();
 
     expect(onMenuOpen).toHaveBeenCalledTimes(2);
+  });
+
+  test("tells the caller when it closes, and not before", async () => {
+    const onMenuOpen: Mock<() => void> = jest.fn<() => void>();
+    const onMenuClose: Mock<() => void> = jest.fn<() => void>();
+
+    render(
+      <Dropdown
+        ariaLabel="Components"
+        options={OPTIONS}
+        onMenuOpen={onMenuOpen}
+        onMenuClose={onMenuClose}
+      />,
+    );
+
+    await openMenu();
+
+    expect(onMenuOpen).toHaveBeenCalledTimes(1);
+    expect(onMenuClose).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.keyDown(box(), { key: "Escape" });
+    });
+
+    expect(onMenuClose).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  test("a dropdown told nothing of its menu opens and closes as before", async () => {
+    render(<Dropdown ariaLabel="Components" options={OPTIONS} />);
+
+    await openMenu();
+
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.keyDown(box(), { key: "Escape" });
+    });
+
+    expect(screen.queryByRole("listbox")).toBeNull();
   });
 });
