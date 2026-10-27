@@ -147,9 +147,12 @@ describe("the sign-in pages' colours", () => {
     ACCOUNTS_FILES.map((file: string): [string, string] => {
       return [path.relative(ACCOUNTS, file), file];
     }),
-  )("%s draws every colour in the dark theme too", (_name: string, file: string) => {
-    expect(classesWithoutDarkTheme(colourClassesInSource(file))).toEqual([]);
-  });
+  )(
+    "%s draws every colour in the dark theme too",
+    (_name: string, file: string) => {
+      expect(classesWithoutDarkTheme(colourClassesInSource(file))).toEqual([]);
+    },
+  );
 
   test.each(
     SIGN_IN_PIECES.map((relative: string): [string, string] => {

@@ -30,7 +30,10 @@ import {
   VIEW_SWITCH_CLASS_NAME,
   VIEW_SWITCH_IDLE_CLASS_NAME,
 } from "../../../UI/Components/ViewSwitch/ViewSwitch";
-import { classesWithoutDarkTheme, colourClassesIn } from "../Styles/DarkThemeCoverage";
+import {
+  classesWithoutDarkTheme,
+  colourClassesIn,
+} from "../Styles/DarkThemeCoverage";
 
 /*
  * The user menu's theme row (Header/IconDropdown/ThemeChoiceRow), in the
@@ -86,15 +89,17 @@ const FEATURE_SET: string = path.resolve(
   "FeatureSet",
 );
 
-const readLocale: (app: string, language: string) => Record<string, unknown> =
-  (app: string, language: string): Record<string, unknown> => {
-    return JSON.parse(
-      fs.readFileSync(
-        path.join(FEATURE_SET, app, "src", "Locales", `${language}.json`),
-        "utf8",
-      ),
-    ) as Record<string, unknown>;
-  };
+const readLocale: (app: string, language: string) => Record<string, unknown> = (
+  app: string,
+  language: string,
+): Record<string, unknown> => {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(FEATURE_SET, app, "src", "Locales", `${language}.json`),
+      "utf8",
+    ),
+  ) as Record<string, unknown>;
+};
 
 const LANGUAGES: Array<string> = [
   "en",
@@ -244,10 +249,7 @@ describe("the row", () => {
       ...VIEW_SWITCH_ACTIVE_CLASS_NAME.split(" "),
     );
 
-    for (const preference of [
-      ThemePreference.Light,
-      ThemePreference.System,
-    ]) {
+    for (const preference of [ThemePreference.Light, ThemePreference.System]) {
       expect(choice(preference)).toHaveClass(
         ...VIEW_SWITCH_IDLE_CLASS_NAME.split(" "),
       );
@@ -398,11 +400,9 @@ describe("its words", () => {
 
     expect(screen.getByRole("group", { name: "Design" })).toBeInTheDocument();
     expect(
-      screen
-        .getAllByRole("button")
-        .map((button: HTMLElement): string => {
-          return button.getAttribute("aria-label") || "";
-        }),
+      screen.getAllByRole("button").map((button: HTMLElement): string => {
+        return button.getAttribute("aria-label") || "";
+      }),
     ).toEqual(["Hell", "Dunkel", "System"]);
     expect(choice(ThemePreference.Dark)).toHaveAttribute("title", "Dunkel");
   });

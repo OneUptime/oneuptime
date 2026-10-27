@@ -36,14 +36,17 @@ import ThemeUtil from "../../../UI/Utils/Theme";
  * what is under test is which theme each address is drawn in.
  */
 
-jest.mock("../../../../App/FeatureSet/Accounts/src/Components/Footer/Footer", () => {
-  return {
-    __esModule: true,
-    default: (): null => {
-      return null;
-    },
-  };
-});
+jest.mock(
+  "../../../../App/FeatureSet/Accounts/src/Components/Footer/Footer",
+  () => {
+    return {
+      __esModule: true,
+      default: (): null => {
+        return null;
+      },
+    };
+  },
+);
 
 const PAGE_MODULES: Array<string> = [
   "Forbidden",

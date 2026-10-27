@@ -52,8 +52,7 @@ export const THEME_PREFERENCES: ReadonlyArray<ThemePreference> = [
  * What a browser where nobody has picked is drawn in: as the device is set,
  * the way the mobile app, a new status page and a new public dashboard start.
  */
-export const DEFAULT_THEME_PREFERENCE: ThemePreference =
-  ThemePreference.System;
+export const DEFAULT_THEME_PREFERENCE: ThemePreference = ThemePreference.System;
 
 /*
  * Where the browser keeps the pick. Named for the Dashboard, where the pick

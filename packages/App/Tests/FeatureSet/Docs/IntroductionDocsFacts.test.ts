@@ -1583,7 +1583,9 @@ describe("Your Account", () => {
     const menu: string = oneLine(source);
     const themeRow: number = menu.indexOf("<ThemeChoiceRow />");
 
-    expect(themeRow).toBeGreaterThan(menu.indexOf('t("userProfile.adminSettings")'));
+    expect(themeRow).toBeGreaterThan(
+      menu.indexOf('t("userProfile.adminSettings")'),
+    );
     expect(themeRow).toBeLessThan(menu.indexOf('t("userProfile.logOut")'));
 
     const row: string = oneLine(

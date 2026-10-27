@@ -43,7 +43,14 @@ const THEME_PARTIAL: string = path.join(
 const frontendIndex: (frontend: string) => string = (
   frontend: string,
 ): string => {
-  return path.join(PACKAGES, "App", "FeatureSet", frontend, "views", "index.ejs");
+  return path.join(
+    PACKAGES,
+    "App",
+    "FeatureSet",
+    frontend,
+    "views",
+    "index.ejs",
+  );
 };
 
 const commonView: (name: string) => string = (name: string): string => {
@@ -432,9 +439,9 @@ describe.each(
       expect(charset).toBeLessThan(themeScript);
       expect(firstExternalScript).toBeGreaterThan(themeScript);
       expect(tailwind).toBeGreaterThan(themeScript);
-      expect(
-        firstStylesheet === -1 || firstStylesheet > themeScript,
-      ).toBe(true);
+      expect(firstStylesheet === -1 || firstStylesheet > themeScript).toBe(
+        true,
+      );
       expect(themedPage.html.indexOf("<body")).toBeGreaterThan(themeScript);
     });
 
@@ -663,8 +670,8 @@ describe("the Dashboard's offline page", () => {
   );
 
   it("follows the device when storage is blocked", () => {
-    expect(drawnOnce(html, { storageBlocked: true, prefersDark: true })).toEqual(
-      DARK,
-    );
+    expect(
+      drawnOnce(html, { storageBlocked: true, prefersDark: true }),
+    ).toEqual(DARK);
   });
 });

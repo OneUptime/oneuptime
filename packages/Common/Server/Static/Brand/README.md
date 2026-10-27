@@ -22,13 +22,13 @@ absolute path, or from server code via the `OneUptimeLogoUrl` constant -
 
 ## Contents
 
-| Path                      | Source                                                  |
-| ------------------------- | ------------------------------------------------------- |
-| `oneuptime-logo.svg`      | `packages/Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg` |
-| `oneuptime-logo-dark.svg` | `oneuptime-logo.svg` with its letters light (`#121212` to `#f8fafc`), for a dark page |
+| Path                       | Source                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------- |
+| `oneuptime-logo.svg`       | `packages/Common/UI/Images/logos/OneUptimeSVG/3-transparent.svg`                      |
+| `oneuptime-logo-dark.svg`  | `oneuptime-logo.svg` with its letters light (`#121212` to `#f8fafc`), for a dark page |
 | `oneuptime-email-logo.png` | `packages/Common/UI/Images/logos/OneUptimePNG/1.png`, at 96 x 96 with rounded corners |
-| `ou-wb.svg`, `hou-wb.svg` | `packages/Home/Static/img/`                                      |
-| `favicons/`               | `packages/Home/Static/img/favicons/`                             |
+| `ou-wb.svg`, `hou-wb.svg`  | `packages/Home/Static/img/`                                                           |
+| `favicons/`                | `packages/Home/Static/img/favicons/`                                                  |
 
 `oneuptime-email-logo.png` is the logo in the header of every email that
 shows OneUptime's branding. It is not fetched by address: the email carries

@@ -80,9 +80,11 @@ const darkPartnerPrefix: (token: string) => string = (
   const utility: string = parts.pop() as string;
   const kind: string = utility.slice(0, utility.indexOf("-", 1));
 
-  return `dark:${parts.map((part: string): string => {
-    return `${part}:`;
-  }).join("")}${kind}-`;
+  return `dark:${parts
+    .map((part: string): string => {
+      return `${part}:`;
+    })
+    .join("")}${kind}-`;
 };
 
 const render: (view: string, variables: Record<string, unknown>) => string = (
@@ -143,7 +145,9 @@ describe("every colour on the server's own pages", () => {
 
       expect(source).toContain('tailwind.config = { darkMode: "class" };');
       expect(source).toContain("Theme', { followChanges: true }) -%>");
-      expect(source).not.toContain('<meta name="theme-color" content="#000000">');
+      expect(source).not.toContain(
+        '<meta name="theme-color" content="#000000">',
+      );
     }
   });
 

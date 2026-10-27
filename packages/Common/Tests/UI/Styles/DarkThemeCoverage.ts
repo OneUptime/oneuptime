@@ -139,8 +139,7 @@ export function isRemappedForDarkTheme(token: string): boolean {
   const selector: RegExp = new RegExp(`\\.${escapeRegExp(escaped)}`, "g");
 
   for (const match of THEME_CSS.matchAll(selector)) {
-    const next: string =
-      THEME_CSS[(match.index || 0) + match[0].length] || " ";
+    const next: string = THEME_CSS[(match.index || 0) + match[0].length] || " ";
 
     if (!IDENTIFIER_CHARACTER.test(next)) {
       return true;

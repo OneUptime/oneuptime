@@ -448,7 +448,10 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
        */
       "action-system-theme": {
         id: "action-system-theme",
-        title: t("commandPalette.actions.systemTheme", "Switch to system theme"),
+        title: t(
+          "commandPalette.actions.systemTheme",
+          "Switch to system theme",
+        ),
         icon: IconProp.ComputerDesktop,
         iconColor: "indigo",
         category: actionsCategory,

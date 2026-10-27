@@ -10,10 +10,7 @@ import {
   ThemePreference,
 } from "../../../../Types/Theme/ThemePreference";
 import ThemeUtil, { useThemePreference } from "../../../Utils/Theme";
-import {
-  Translator,
-  translationKey,
-} from "../../../Utils/TranslateTemplate";
+import { Translator, translationKey } from "../../../Utils/TranslateTemplate";
 import useTranslator from "../../../Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useId } from "react";
 
@@ -87,9 +84,9 @@ const ThemeChoiceRow: FunctionComponent = (): ReactElement => {
       >
         {THEME_PREFERENCES.map((choice: ThemePreference): ReactElement => {
           const isInUse: boolean = choice === preference;
-          const label: string = translator.translateText(
-            THEME_CHOICES[choice].label,
-          );
+          const label: string =
+            translator.translateText(THEME_CHOICES[choice].label) ||
+            THEME_CHOICES[choice].label;
 
           return (
             <button

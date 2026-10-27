@@ -77,13 +77,10 @@ describe("reading what the browser kept", () => {
     true,
     {},
     ["dark"],
-  ])(
-    "reads %p as no pick, so the device decides",
-    (kept: unknown) => {
-      expect(isThemePreference(kept)).toBe(false);
-      expect(parseThemePreference(kept)).toBe(ThemePreference.System);
-    },
-  );
+  ])("reads %p as no pick, so the device decides", (kept: unknown) => {
+    expect(isThemePreference(kept)).toBe(false);
+    expect(parseThemePreference(kept)).toBe(ThemePreference.System);
+  });
 });
 
 describe("the theme a pick draws", () => {

@@ -7,13 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import {
-  act,
-  cleanup,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import * as React from "react";
@@ -188,13 +182,18 @@ const PROVIDERS: SignInMethods["ssoProviders"] = [
 let loginAnswer: "wrong" | JSONObject = {};
 // What a second step's own calls are answered.
 let secondStepAnswer: JSONObject = {};
-let apiGetAnswer: (url: string) => HTTPResponse<JSONObject> | HTTPErrorResponse =
-  (): HTTPResponse<JSONObject> => {
-    return new HTTPResponse<JSONObject>(200, {}, {});
-  };
+let apiGetAnswer: (
+  url: string,
+) =>
+  | HTTPResponse<JSONObject>
+  | HTTPErrorResponse = (): HTTPResponse<JSONObject> => {
+  return new HTTPResponse<JSONObject>(200, {}, {});
+};
 let apiPostAnswer: (
   url: string,
-) => HTTPResponse<JSONObject> | HTTPErrorResponse = (): HTTPResponse<JSONObject> => {
+) =>
+  | HTTPResponse<JSONObject>
+  | HTTPErrorResponse = (): HTTPResponse<JSONObject> => {
   return new HTTPResponse<JSONObject>(200, {}, {});
 };
 
@@ -280,21 +279,25 @@ beforeEach(() => {
       return response;
     });
 
-  jest.spyOn(API, "get").mockImplementation(
-    async (options: {
-      url?: { toString: () => string } | undefined;
-    }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
-      return apiGetAnswer(options.url?.toString() || "");
-    },
-  );
+  jest
+    .spyOn(API, "get")
+    .mockImplementation(
+      async (options: {
+        url?: { toString: () => string } | undefined;
+      }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+        return apiGetAnswer(options.url?.toString() || "");
+      },
+    );
 
-  jest.spyOn(API, "post").mockImplementation(
-    async (options: {
-      url?: { toString: () => string } | undefined;
-    }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
-      return apiPostAnswer(options.url?.toString() || "");
-    },
-  );
+  jest
+    .spyOn(API, "post")
+    .mockImplementation(
+      async (options: {
+        url?: { toString: () => string } | undefined;
+      }): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+        return apiPostAnswer(options.url?.toString() || "");
+      },
+    );
 });
 
 afterEach(() => {
@@ -349,7 +352,11 @@ describe("signing in", () => {
   });
 
   test("the second step: a code from the authenticator app, and the ways out", async () => {
-    loginAnswer = { totpAuthList: [TOTP], webAuthnList: [], backupCodeCount: 8 };
+    loginAnswer = {
+      totpAuthList: [TOTP],
+      webAuthnList: [],
+      backupCodeCount: 8,
+    };
     draw(<LoginPage />, "/accounts/login");
 
     await signInWithPassword();
@@ -368,7 +375,11 @@ describe("signing in", () => {
   });
 
   test("an account with no backup codes, locked out of its second step", async () => {
-    loginAnswer = { totpAuthList: [TOTP], webAuthnList: [], backupCodeCount: 0 };
+    loginAnswer = {
+      totpAuthList: [TOTP],
+      webAuthnList: [],
+      backupCodeCount: 0,
+    };
     draw(<LoginPage />, "/accounts/login");
 
     await signInWithPassword();
@@ -398,7 +409,11 @@ describe("signing in", () => {
   });
 
   test("the backup codes an enrolment minted, shown once", async () => {
-    loginAnswer = { totpAuthList: [TOTP], webAuthnList: [], backupCodeCount: 0 };
+    loginAnswer = {
+      totpAuthList: [TOTP],
+      webAuthnList: [],
+      backupCodeCount: 0,
+    };
     secondStepAnswer = { token: "session-token", backupCodes: BACKUP_CODES };
     draw(<LoginPage />, "/accounts/login");
 
@@ -418,7 +433,11 @@ describe("signing in", () => {
   });
 
   test("the offer of backup codes to an account that has none", async () => {
-    loginAnswer = { totpAuthList: [TOTP], webAuthnList: [], backupCodeCount: 0 };
+    loginAnswer = {
+      totpAuthList: [TOTP],
+      webAuthnList: [],
+      backupCodeCount: 0,
+    };
     draw(<LoginPage />, "/accounts/login");
 
     await signInWithPassword();
@@ -613,7 +632,9 @@ describe("pages other apps send a person to", () => {
 
       draw(<McpAuthorizePage />, "/accounts/mcp-authorize");
 
-      expect(await screen.findByTestId("mcp-authorize-client")).toBeInTheDocument();
+      expect(
+        await screen.findByTestId("mcp-authorize-client"),
+      ).toBeInTheDocument();
       expect(lightOnlyColours()).toEqual([]);
     },
   );
