@@ -35849,5 +35849,21 @@
   "Maintenance markers are unavailable.": "维护标记不可用。",
   "Maintenance markers need the uptime history, which did not load.": "维护标记需要可用性历史，但未能加载。",
   "You need permission to read scheduled maintenance.": "您需要读取计划维护的权限。",
-  "Sign in with {{name}}": "使用 {{name}} 登录"
+  "Sign in with {{name}}": "使用 {{name}} 登录",
+  "Color by thresholds": "按阈值着色",
+  "Colored background": "彩色背景",
+  "Colored text": "彩色文本",
+  "Critical at": "严重阈值",
+  "Critical should be at or above Warning.": "严重阈值应不低于警告阈值。",
+  "Critical should be at or below Warning.": "严重阈值应不高于警告阈值。",
+  "Critical: {{value}} and above": "严重：{{value}}及以上",
+  "Critical: {{value}} and below": "严重：{{value}}及以下",
+  "Higher is worse": "越高越差",
+  "How every column colors a value that reaches its warning or critical threshold.": "各列如何为达到警告或严重阈值的值着色。",
+  "Lower is worse": "越低越差",
+  "Set a warning or a critical value to color this column.": "设置警告阈值或严重阈值，为此列着色。",
+  "Threshold colors": "阈值颜色",
+  "Warning at": "警告阈值",
+  "Warning: {{value}} and above": "警告：{{value}}及以上",
+  "Warning: {{value}} and below": "警告：{{value}}及以下"
 }

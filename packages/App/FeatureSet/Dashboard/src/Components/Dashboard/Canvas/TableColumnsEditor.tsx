@@ -2,7 +2,14 @@ import React, { FunctionComponent, ReactElement } from "react";
 import {
   TableColumn,
   TableColumnKind,
+  TableColumnThresholds,
+  TableThresholdStyle,
 } from "Common/Types/Dashboard/DashboardComponents/DashboardTableComponent";
+import {
+  TableColumnDisplay,
+  getTableColumnDisplay,
+} from "Common/Utils/Dashboard/TableThresholds";
+import TableColumnThresholdsEditor from "./TableColumnThresholdsEditor";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
 import ObjectID from "Common/Types/ObjectID";
@@ -24,7 +31,40 @@ export interface ComponentProps {
   columns: Array<TableColumn>;
   metricTypes: Array<MetricType>;
   onChange: (columns: Array<TableColumn>) => void;
+  /*
+   * How the table colors a value past a threshold, so each column's
+   * thresholds show their levels as the table will draw them.
+   */
+  thresholdStyle?: TableThresholdStyle | undefined;
 }
+
+/*
+ * How a column shows its values (TableThresholds.getTableColumnDisplay):
+ * what its thresholds are typed in, and the unit written after them.
+ */
+export const getTableColumnEditorDisplay: (data: {
+  column: TableColumn;
+  metricTypes: Array<MetricType>;
+}) => TableColumnDisplay = (data: {
+  column: TableColumn;
+  metricTypes: Array<MetricType>;
+}): TableColumnDisplay => {
+  if (data.column.kind !== TableColumnKind.Metric) {
+    return getTableColumnDisplay({ columnUnit: data.column.unit });
+  }
+
+  const metricType: MetricType | undefined = data.column.metricName
+    ? data.metricTypes.find((m: MetricType): boolean => {
+        return m.name === data.column.metricName;
+      })
+    : undefined;
+
+  return getTableColumnDisplay({
+    columnUnit: data.column.unit,
+    metricUnit: metricType?.unit || undefined,
+    metricName: data.column.metricName,
+  });
+};
 
 const TableColumnsEditor: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -64,6 +104,30 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
   ): void => {
     const next: Array<TableColumn> = [...columns];
     next[index] = { ...next[index]!, ...patch };
+    props.onChange(next);
+  };
+
+  /*
+   * Thresholds are replaced, not merged: turning them off takes the key
+   * off the column, so a column that never had them stores nothing.
+   */
+  const writeThresholds: (
+    index: number,
+    thresholds: TableColumnThresholds | undefined,
+  ) => void = (
+    index: number,
+    thresholds: TableColumnThresholds | undefined,
+  ): void => {
+    const next: Array<TableColumn> = [...columns];
+    const column: TableColumn = { ...next[index]! };
+
+    if (thresholds) {
+      column.thresholds = thresholds;
+    } else {
+      delete column.thresholds;
+    }
+
+    next[index] = column;
     props.onChange(next);
   };
 
@@ -316,6 +380,25 @@ const TableColumnsEditor: FunctionComponent<ComponentProps> = (
                 </div>
               )}
             </div>
+
+            {showAsColumn && (
+              <TableColumnThresholdsEditor
+                columnId={column.id}
+                thresholds={column.thresholds}
+                display={getTableColumnEditorDisplay({
+                  column,
+                  metricTypes: props.metricTypes,
+                })}
+                thresholdStyle={
+                  props.thresholdStyle || TableThresholdStyle.Text
+                }
+                onChange={(
+                  thresholds: TableColumnThresholds | undefined,
+                ): void => {
+                  writeThresholds(index, thresholds);
+                }}
+              />
+            )}
           </div>
         );
       })}

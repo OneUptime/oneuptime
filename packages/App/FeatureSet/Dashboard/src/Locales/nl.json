@@ -35849,5 +35849,21 @@
   "Maintenance markers are unavailable.": "Onderhoudsmarkeringen zijn niet beschikbaar.",
   "Maintenance markers need the uptime history, which did not load.": "Onderhoudsmarkeringen hebben de beschikbaarheidsgeschiedenis nodig, die niet is geladen.",
   "You need permission to read scheduled maintenance.": "U hebt toestemming nodig om gepland onderhoud te lezen.",
-  "Sign in with {{name}}": "Inloggen met {{name}}"
+  "Sign in with {{name}}": "Inloggen met {{name}}",
+  "Color by thresholds": "Kleuren op drempels",
+  "Colored background": "Gekleurde achtergrond",
+  "Colored text": "Gekleurde tekst",
+  "Critical at": "Kritieke drempel",
+  "Critical should be at or above Warning.": "De kritieke drempel moet gelijk aan of hoger dan de waarschuwingsdrempel zijn.",
+  "Critical should be at or below Warning.": "De kritieke drempel moet gelijk aan of lager dan de waarschuwingsdrempel zijn.",
+  "Critical: {{value}} and above": "Kritiek: {{value}} en hoger",
+  "Critical: {{value}} and below": "Kritiek: {{value}} en lager",
+  "Higher is worse": "Hoger is slechter",
+  "How every column colors a value that reaches its warning or critical threshold.": "Hoe elke kolom een waarde kleurt die zijn waarschuwings- of kritieke drempel bereikt.",
+  "Lower is worse": "Lager is slechter",
+  "Set a warning or a critical value to color this column.": "Stel een waarschuwings- of kritieke drempel in om deze kolom te kleuren.",
+  "Threshold colors": "Drempelkleuren",
+  "Warning at": "Waarschuwingsdrempel",
+  "Warning: {{value}} and above": "Waarschuwing: {{value}} en hoger",
+  "Warning: {{value}} and below": "Waarschuwing: {{value}} en lager"
 }

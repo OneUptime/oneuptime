@@ -35849,5 +35849,21 @@
   "Maintenance markers are unavailable.": "Maintenance markers are unavailable.",
   "Maintenance markers need the uptime history, which did not load.": "Maintenance markers need the uptime history, which did not load.",
   "You need permission to read scheduled maintenance.": "You need permission to read scheduled maintenance.",
-  "Sign in with {{name}}": "Sign in with {{name}}"
+  "Sign in with {{name}}": "Sign in with {{name}}",
+  "Color by thresholds": "Color by thresholds",
+  "Colored background": "Colored background",
+  "Colored text": "Colored text",
+  "Critical at": "Critical at",
+  "Critical should be at or above Warning.": "Critical should be at or above Warning.",
+  "Critical should be at or below Warning.": "Critical should be at or below Warning.",
+  "Critical: {{value}} and above": "Critical: {{value}} and above",
+  "Critical: {{value}} and below": "Critical: {{value}} and below",
+  "Higher is worse": "Higher is worse",
+  "How every column colors a value that reaches its warning or critical threshold.": "How every column colors a value that reaches its warning or critical threshold.",
+  "Lower is worse": "Lower is worse",
+  "Set a warning or a critical value to color this column.": "Set a warning or a critical value to color this column.",
+  "Threshold colors": "Threshold colors",
+  "Warning at": "Warning at",
+  "Warning: {{value}} and above": "Warning: {{value}} and above",
+  "Warning: {{value}} and below": "Warning: {{value}} and below"
 }

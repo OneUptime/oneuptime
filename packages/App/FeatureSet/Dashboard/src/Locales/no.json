@@ -35849,5 +35849,21 @@
   "Maintenance markers are unavailable.": "Vedlikeholdsmarkeringer er ikke tilgjengelige.",
   "Maintenance markers need the uptime history, which did not load.": "Vedlikeholdsmarkeringer trenger oppetidshistorikken, som ikke ble lastet inn.",
   "You need permission to read scheduled maintenance.": "Du trenger tillatelse til å lese planlagt vedlikehold.",
-  "Sign in with {{name}}": "Logg inn med {{name}}"
+  "Sign in with {{name}}": "Logg inn med {{name}}",
+  "Color by thresholds": "Farg etter terskler",
+  "Colored background": "Farget bakgrunn",
+  "Colored text": "Farget tekst",
+  "Critical at": "Kritisk terskel",
+  "Critical should be at or above Warning.": "Den kritiske terskelen skal være lik eller høyere enn advarselsterskelen.",
+  "Critical should be at or below Warning.": "Den kritiske terskelen skal være lik eller lavere enn advarselsterskelen.",
+  "Critical: {{value}} and above": "Kritisk: {{value}} og over",
+  "Critical: {{value}} and below": "Kritisk: {{value}} og under",
+  "Higher is worse": "Høyere er verre",
+  "How every column colors a value that reaches its warning or critical threshold.": "Hvordan hver kolonne farger en verdi som når kolonnens advarsels- eller kritiske terskel.",
+  "Lower is worse": "Lavere er verre",
+  "Set a warning or a critical value to color this column.": "Angi en advarsels- eller kritisk terskel for å farge denne kolonnen.",
+  "Threshold colors": "Terskelfarger",
+  "Warning at": "Advarselsterskel",
+  "Warning: {{value}} and above": "Advarsel: {{value}} og over",
+  "Warning: {{value}} and below": "Advarsel: {{value}} og under"
 }

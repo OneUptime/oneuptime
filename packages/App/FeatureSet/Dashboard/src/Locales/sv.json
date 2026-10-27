@@ -35849,5 +35849,21 @@
   "Maintenance markers are unavailable.": "Underhållsmarkeringar är inte tillgängliga.",
   "Maintenance markers need the uptime history, which did not load.": "Underhållsmarkeringar behöver drifttidshistoriken, som inte lästes in.",
   "You need permission to read scheduled maintenance.": "Du behöver behörighet att läsa schemalagt underhåll.",
-  "Sign in with {{name}}": "Logga in med {{name}}"
+  "Sign in with {{name}}": "Logga in med {{name}}",
+  "Color by thresholds": "Färga efter tröskelvärden",
+  "Colored background": "Färgad bakgrund",
+  "Colored text": "Färgad text",
+  "Critical at": "Kritiskt tröskelvärde",
+  "Critical should be at or above Warning.": "Det kritiska tröskelvärdet ska vara lika med eller högre än varningströskeln.",
+  "Critical should be at or below Warning.": "Det kritiska tröskelvärdet ska vara lika med eller lägre än varningströskeln.",
+  "Critical: {{value}} and above": "Kritisk: {{value}} och högre",
+  "Critical: {{value}} and below": "Kritisk: {{value}} och lägre",
+  "Higher is worse": "Högre är sämre",
+  "How every column colors a value that reaches its warning or critical threshold.": "Hur varje kolumn färgar ett värde som når kolumnens varningströskel eller kritiska tröskelvärde.",
+  "Lower is worse": "Lägre är sämre",
+  "Set a warning or a critical value to color this column.": "Ange en varningströskel eller ett kritiskt tröskelvärde för att färga den här kolumnen.",
+  "Threshold colors": "Tröskelfärger",
+  "Warning at": "Varningströskel",
+  "Warning: {{value}} and above": "Varning: {{value}} och högre",
+  "Warning: {{value}} and below": "Varning: {{value}} och lägre"
 }

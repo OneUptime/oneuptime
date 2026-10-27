@@ -35849,5 +35849,21 @@
   "Maintenance markers are unavailable.": "유지 관리 표시를 사용할 수 없습니다.",
   "Maintenance markers need the uptime history, which did not load.": "유지 관리 표시에는 가동 시간 기록이 필요하지만 불러오지 못했습니다.",
   "You need permission to read scheduled maintenance.": "예정된 유지 관리를 읽을 권한이 필요합니다.",
-  "Sign in with {{name}}": "{{name}} 계정으로 로그인"
+  "Sign in with {{name}}": "{{name}} 계정으로 로그인",
+  "Color by thresholds": "임계값으로 색상 표시",
+  "Colored background": "배경 색상",
+  "Colored text": "텍스트 색상",
+  "Critical at": "심각 임계값",
+  "Critical should be at or above Warning.": "심각 임계값은 경고 임계값 이상이어야 합니다.",
+  "Critical should be at or below Warning.": "심각 임계값은 경고 임계값 이하여야 합니다.",
+  "Critical: {{value}} and above": "심각: {{value}} 이상",
+  "Critical: {{value}} and below": "심각: {{value}} 이하",
+  "Higher is worse": "높을수록 나쁨",
+  "How every column colors a value that reaches its warning or critical threshold.": "각 열에서 경고 또는 심각 임계값에 도달한 값을 어떻게 색칠할지 정합니다.",
+  "Lower is worse": "낮을수록 나쁨",
+  "Set a warning or a critical value to color this column.": "이 열에 색상을 표시하려면 경고 또는 심각 임계값을 설정하세요.",
+  "Threshold colors": "임계값 색상",
+  "Warning at": "경고 임계값",
+  "Warning: {{value}} and above": "경고: {{value}} 이상",
+  "Warning: {{value}} and below": "경고: {{value}} 이하"
 }

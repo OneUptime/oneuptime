@@ -35849,5 +35849,21 @@
   "Maintenance markers are unavailable.": "Отметки обслуживания недоступны.",
   "Maintenance markers need the uptime history, which did not load.": "Для отметок обслуживания нужна история доступности, но она не загрузилась.",
   "You need permission to read scheduled maintenance.": "Нужно разрешение на просмотр планового обслуживания.",
-  "Sign in with {{name}}": "Войти через {{name}}"
+  "Sign in with {{name}}": "Войти через {{name}}",
+  "Color by thresholds": "Окрашивать по порогам",
+  "Colored background": "Цветной фон",
+  "Colored text": "Цветной текст",
+  "Critical at": "Критический порог",
+  "Critical should be at or above Warning.": "Критический порог должен быть не ниже порога предупреждения.",
+  "Critical should be at or below Warning.": "Критический порог должен быть не выше порога предупреждения.",
+  "Critical: {{value}} and above": "Критический: {{value}} и выше",
+  "Critical: {{value}} and below": "Критический: {{value}} и ниже",
+  "Higher is worse": "Чем выше, тем хуже",
+  "How every column colors a value that reaches its warning or critical threshold.": "Как каждый столбец окрашивает значение, достигшее порога предупреждения или критического порога.",
+  "Lower is worse": "Чем ниже, тем хуже",
+  "Set a warning or a critical value to color this column.": "Задайте порог предупреждения или критический порог, чтобы окрасить этот столбец.",
+  "Threshold colors": "Цвета порогов",
+  "Warning at": "Порог предупреждения",
+  "Warning: {{value}} and above": "Предупреждение: {{value}} и выше",
+  "Warning: {{value}} and below": "Предупреждение: {{value}} и ниже"
 }

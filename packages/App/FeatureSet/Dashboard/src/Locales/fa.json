@@ -35849,5 +35849,21 @@
   "Maintenance markers are unavailable.": "نشانگرهای تعمیر و نگهداری در دسترس نیستند.",
   "Maintenance markers need the uptime history, which did not load.": "نشانگرهای تعمیر و نگهداری به تاریخچه زمان کارکرد نیاز دارند که بارگذاری نشد.",
   "You need permission to read scheduled maintenance.": "برای خواندن تعمیر و نگهداری زمان‌بندی‌شده به مجوز نیاز دارید.",
-  "Sign in with {{name}}": "ورود با {{name}}"
+  "Sign in with {{name}}": "ورود با {{name}}",
+  "Color by thresholds": "رنگ‌آمیزی بر اساس آستانه‌ها",
+  "Colored background": "پس‌زمینهٔ رنگی",
+  "Colored text": "متن رنگی",
+  "Critical at": "آستانهٔ بحرانی",
+  "Critical should be at or above Warning.": "آستانهٔ بحرانی باید برابر یا بالاتر از آستانهٔ هشدار باشد.",
+  "Critical should be at or below Warning.": "آستانهٔ بحرانی باید برابر یا پایین‌تر از آستانهٔ هشدار باشد.",
+  "Critical: {{value}} and above": "بحرانی: {{value}} و بالاتر",
+  "Critical: {{value}} and below": "بحرانی: {{value}} و پایین‌تر",
+  "Higher is worse": "بالاتر بدتر است",
+  "How every column colors a value that reaches its warning or critical threshold.": "هر ستون مقداری را که به آستانهٔ هشدار یا بحرانی‌اش می‌رسد چگونه رنگ می‌کند.",
+  "Lower is worse": "پایین‌تر بدتر است",
+  "Set a warning or a critical value to color this column.": "برای رنگ‌آمیزی این ستون، آستانهٔ هشدار یا بحرانی را تعیین کنید.",
+  "Threshold colors": "رنگ‌های آستانه",
+  "Warning at": "آستانهٔ هشدار",
+  "Warning: {{value}} and above": "هشدار: {{value}} و بالاتر",
+  "Warning: {{value}} and below": "هشدار: {{value}} و پایین‌تر"
 }

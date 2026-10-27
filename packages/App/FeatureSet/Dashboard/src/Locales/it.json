@@ -35849,5 +35849,21 @@
   "Maintenance markers are unavailable.": "Gli indicatori di manutenzione non sono disponibili.",
   "Maintenance markers need the uptime history, which did not load.": "Gli indicatori di manutenzione richiedono la cronologia di disponibilità, che non è stata caricata.",
   "You need permission to read scheduled maintenance.": "Serve l'autorizzazione per leggere la manutenzione programmata.",
-  "Sign in with {{name}}": "Accedi con {{name}}"
+  "Sign in with {{name}}": "Accedi con {{name}}",
+  "Color by thresholds": "Colora in base alle soglie",
+  "Colored background": "Sfondo colorato",
+  "Colored text": "Testo colorato",
+  "Critical at": "Soglia critica",
+  "Critical should be at or above Warning.": "La soglia critica deve essere uguale o superiore alla soglia di avviso.",
+  "Critical should be at or below Warning.": "La soglia critica deve essere uguale o inferiore alla soglia di avviso.",
+  "Critical: {{value}} and above": "Critico: {{value}} o più",
+  "Critical: {{value}} and below": "Critico: {{value}} o meno",
+  "Higher is worse": "Più alto è peggio",
+  "How every column colors a value that reaches its warning or critical threshold.": "Come ogni colonna colora un valore che raggiunge la sua soglia di avviso o critica.",
+  "Lower is worse": "Più basso è peggio",
+  "Set a warning or a critical value to color this column.": "Imposta una soglia di avviso o critica per colorare questa colonna.",
+  "Threshold colors": "Colori delle soglie",
+  "Warning at": "Soglia di avviso",
+  "Warning: {{value}} and above": "Avviso: {{value}} o più",
+  "Warning: {{value}} and below": "Avviso: {{value}} o meno"
 }

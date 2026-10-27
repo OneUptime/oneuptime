@@ -35849,5 +35849,21 @@
   "Maintenance markers are unavailable.": "रखरखाव मार्कर उपलब्ध नहीं हैं।",
   "Maintenance markers need the uptime history, which did not load.": "रखरखाव मार्करों को अपटाइम इतिहास चाहिए, जो लोड नहीं हुआ।",
   "You need permission to read scheduled maintenance.": "निर्धारित रखरखाव पढ़ने के लिए आपको अनुमति चाहिए।",
-  "Sign in with {{name}}": "{{name}} से साइन इन करें"
+  "Sign in with {{name}}": "{{name}} से साइन इन करें",
+  "Color by thresholds": "सीमाओं के अनुसार रंग दें",
+  "Colored background": "रंगीन पृष्ठभूमि",
+  "Colored text": "रंगीन टेक्स्ट",
+  "Critical at": "गंभीर सीमा",
+  "Critical should be at or above Warning.": "गंभीर सीमा चेतावनी सीमा के बराबर या उससे अधिक होनी चाहिए।",
+  "Critical should be at or below Warning.": "गंभीर सीमा चेतावनी सीमा के बराबर या उससे कम होनी चाहिए।",
+  "Critical: {{value}} and above": "गंभीर: {{value}} और ऊपर",
+  "Critical: {{value}} and below": "गंभीर: {{value}} और नीचे",
+  "Higher is worse": "जितना अधिक, उतना बुरा",
+  "How every column colors a value that reaches its warning or critical threshold.": "हर कॉलम चेतावनी या गंभीर सीमा तक पहुंचे मान को कैसे रंगता है।",
+  "Lower is worse": "जितना कम, उतना बुरा",
+  "Set a warning or a critical value to color this column.": "इस कॉलम को रंगने के लिए चेतावनी या गंभीर सीमा सेट करें।",
+  "Threshold colors": "सीमा के रंग",
+  "Warning at": "चेतावनी सीमा",
+  "Warning: {{value}} and above": "चेतावनी: {{value}} और ऊपर",
+  "Warning: {{value}} and below": "चेतावनी: {{value}} और नीचे"
 }

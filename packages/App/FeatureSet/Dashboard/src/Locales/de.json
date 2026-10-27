@@ -35849,5 +35849,21 @@
   "Maintenance markers are unavailable.": "Wartungsmarkierungen sind nicht verfügbar.",
   "Maintenance markers need the uptime history, which did not load.": "Wartungsmarkierungen benötigen den Verfügbarkeitsverlauf, der nicht geladen wurde.",
   "You need permission to read scheduled maintenance.": "Sie benötigen die Berechtigung, geplante Wartungen zu lesen.",
-  "Sign in with {{name}}": "Mit {{name}} anmelden"
+  "Sign in with {{name}}": "Mit {{name}} anmelden",
+  "Color by thresholds": "Nach Schwellenwerten einfärben",
+  "Colored background": "Farbiger Hintergrund",
+  "Colored text": "Farbiger Text",
+  "Critical at": "Kritischer Schwellenwert",
+  "Critical should be at or above Warning.": "Der kritische Schwellenwert sollte mindestens so hoch sein wie die Warnschwelle.",
+  "Critical should be at or below Warning.": "Der kritische Schwellenwert sollte höchstens so hoch sein wie die Warnschwelle.",
+  "Critical: {{value}} and above": "Kritisch: {{value}} und darüber",
+  "Critical: {{value}} and below": "Kritisch: {{value}} und darunter",
+  "Higher is worse": "Höher ist schlechter",
+  "How every column colors a value that reaches its warning or critical threshold.": "Wie jede Spalte einen Wert einfärbt, der ihre Warnschwelle oder ihren kritischen Schwellenwert erreicht.",
+  "Lower is worse": "Niedriger ist schlechter",
+  "Set a warning or a critical value to color this column.": "Legen Sie eine Warnschwelle oder einen kritischen Schwellenwert fest, um diese Spalte einzufärben.",
+  "Threshold colors": "Schwellenwertfarben",
+  "Warning at": "Warnschwelle",
+  "Warning: {{value}} and above": "Warnung: {{value}} und darüber",
+  "Warning: {{value}} and below": "Warnung: {{value}} und darunter"
 }
