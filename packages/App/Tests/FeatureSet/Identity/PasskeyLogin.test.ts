@@ -31,6 +31,19 @@ import logger from "Common/Server/Utils/Logger";
 import { HttpProtocol } from "Common/Server/EnvironmentConfig";
 import "../../../FeatureSet/Identity/API/Authentication";
 
+/*
+ * The server does not require single sign-on here: every sign-in and sign-up
+ * asks SsoRequiredSignIn first, which reads GlobalConfig. Driven for real in
+ * SsoRequiredSignInRoutes.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
+  return jest
+    .requireActual<typeof import("./SsoNotRequiredStandIn")>(
+      "./SsoNotRequiredStandIn",
+    )
+    .ssoNotRequired();
+});
+
 jest.mock("Common/Server/EnvironmentConfig", () => {
   return {
     ...jest.requireActual("Common/Server/EnvironmentConfig"),

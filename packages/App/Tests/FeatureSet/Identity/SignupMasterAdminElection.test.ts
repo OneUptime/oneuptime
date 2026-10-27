@@ -50,6 +50,19 @@ const mockRouter: MockIdentityRouter = createMockIdentityRouter();
 let mockBillingEnabled: boolean = false;
 
 /*
+ * The server does not require single sign-on here: every sign-in and sign-up
+ * asks SsoRequiredSignIn first, which reads GlobalConfig. Driven for real in
+ * SsoRequiredSignInRoutes.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
+  return jest
+    .requireActual<typeof import("./SsoNotRequiredStandIn")>(
+      "./SsoNotRequiredStandIn",
+    )
+    .ssoNotRequired();
+});
+
+/*
  * IsBillingEnabled is a module-level constant read from process.env at import
  * time, and the test runner exports BILLING_ENABLED=true. Both deployment
  * shapes have to be reachable from one file, so it is served through a getter

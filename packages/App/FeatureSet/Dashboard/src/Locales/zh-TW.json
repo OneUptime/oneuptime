@@ -35845,5 +35845,6 @@
   "Each row is one recording of about a minute.": "每一列是一次約一分鐘的記錄。",
   "Created an alert": "已建立警示",
   "Creating alert": "正在建立警示",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI 會對你的日誌、追蹤、指標、事件、監測器與真實使用者監測執行真實查詢，並直接顯示圖表與表格，也能建立事件與警示或確認它們，一律需經你核准。"
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI 會對你的日誌、追蹤、指標、事件、監測器與真實使用者監測執行真實查詢，並直接顯示圖表與表格，也能建立事件與警示或確認它們，一律需經你核准。",
+  "Sign in with {{name}}": "使用 {{name}} 登入"
 }

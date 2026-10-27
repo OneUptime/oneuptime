@@ -35845,5 +35845,6 @@
   "Each row is one recording of about a minute.": "هر سطر یک ضبط حدوداً یک‌دقیقه‌ای است.",
   "Created an alert": "هشدار ساخته شد",
   "Creating alert": "ساختن هشدار",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI روی لاگ‌ها، ترِیس‌ها، متریک‌ها، حوادث، مانیتورها و پایش کاربر واقعی شما پرس‌وجوهای واقعی اجرا می‌کند — نمودارها و جدول‌ها را همان‌جا نشان می‌دهد — و می‌تواند حادثه و هشدار ایجاد کند یا آن‌ها را تأیید کند، همیشه با تأیید شما."
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI روی لاگ‌ها، ترِیس‌ها، متریک‌ها، حوادث، مانیتورها و پایش کاربر واقعی شما پرس‌وجوهای واقعی اجرا می‌کند — نمودارها و جدول‌ها را همان‌جا نشان می‌دهد — و می‌تواند حادثه و هشدار ایجاد کند یا آن‌ها را تأیید کند، همیشه با تأیید شما.",
+  "Sign in with {{name}}": "ورود با {{name}}"
 }

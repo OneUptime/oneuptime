@@ -35845,5 +35845,6 @@
   "Each row is one recording of about a minute.": "Каждая строка — одна запись длиной около минуты.",
   "Created an alert": "Оповещение создано",
   "Creating alert": "Создание оповещения",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI выполняет настоящие запросы к вашим журналам, трассировкам, метрикам, инцидентам, мониторам и мониторингу реальных пользователей — с графиками и таблицами прямо в беседе — и может создавать инциденты и оповещения или подтверждать их, всегда с вашего одобрения."
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI выполняет настоящие запросы к вашим журналам, трассировкам, метрикам, инцидентам, мониторам и мониторингу реальных пользователей — с графиками и таблицами прямо в беседе — и может создавать инциденты и оповещения или подтверждать их, всегда с вашего одобрения.",
+  "Sign in with {{name}}": "Войти через {{name}}"
 }

@@ -40,6 +40,19 @@ import { createHash, generateKeyPairSync, randomBytes } from "crypto";
 import { Server } from "http";
 
 /*
+ * The server does not require single sign-on here: every sign-in and sign-up
+ * asks SsoRequiredSignIn first, which reads GlobalConfig. Driven for real in
+ * SsoRequiredSignInRoutes.test.ts.
+ */
+jest.mock("Common/Server/Utils/SsoRequiredSignIn", () => {
+  return jest
+    .requireActual<typeof import("./SsoNotRequiredStandIn")>(
+      "./SsoNotRequiredStandIn",
+    )
+    .ssoNotRequired();
+});
+
+/*
  * Run the production Express router, cookie parser, limiter, Redis Lua,
  * WebAuthn verification, JWT signing and JSON serializer over HTTP. Only
  * database-backed dependencies and telemetry are replaced. The loopback

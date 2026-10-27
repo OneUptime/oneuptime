@@ -35845,5 +35845,6 @@
   "Each row is one recording of about a minute.": "Hver rad er ett opptak på omtrent ett minutt.",
   "Created an alert": "Opprettet et varsel",
   "Creating alert": "Oppretter varsel",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI kjører ekte spørringer mot loggene, sporene, målingene, hendelsene og monitorene dine og overvåkingen av reelle brukere — med diagrammer og tabeller rett i samtalen — og kan opprette hendelser og varsler eller bekrefte dem, alltid med din godkjenning."
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI kjører ekte spørringer mot loggene, sporene, målingene, hendelsene og monitorene dine og overvåkingen av reelle brukere — med diagrammer og tabeller rett i samtalen — og kan opprette hendelser og varsler eller bekrefte dem, alltid med din godkjenning.",
+  "Sign in with {{name}}": "Logg inn med {{name}}"
 }

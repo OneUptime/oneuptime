@@ -35845,5 +35845,6 @@
   "Each row is one recording of about a minute.": "Jede Zeile ist eine Aufzeichnung von etwa einer Minute.",
   "Created an alert": "Hat eine Warnung erstellt",
   "Creating alert": "Warnung wird erstellt",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI führt echte Abfragen auf Ihren Protokollen, Traces, Metriken, Vorfällen, Monitoren und Real User Monitoring aus — mit Diagrammen und Tabellen direkt im Verlauf — und kann Vorfälle und Warnungen erstellen oder bestätigen, stets mit Ihrer Genehmigung."
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI führt echte Abfragen auf Ihren Protokollen, Traces, Metriken, Vorfällen, Monitoren und Real User Monitoring aus — mit Diagrammen und Tabellen direkt im Verlauf — und kann Vorfälle und Warnungen erstellen oder bestätigen, stets mit Ihrer Genehmigung.",
+  "Sign in with {{name}}": "Mit {{name}} anmelden"
 }

@@ -68,6 +68,20 @@ const READERS: Record<string, Array<string>> = {
     "getRequirement: GlobalConfigService.getRequireSsoForLogin",
     "getRequirement: ProjectService.getRequireSsoWithSsoProviderId",
   ],
+  /*
+   * Every sign-in that is not SSO - a password and its second steps, a
+   * passkey, Sign in with Microsoft - and every sign-up, while the server
+   * requires SSO (SsoRequiredSignInRoutes, MicrosoftSignInAPI and
+   * SsoSignInMethods make each read fail).
+   */
+  "packages/Common/Server/Utils/SsoRequiredSignIn.ts": [
+    "isNonSsoSignInRefused: GlobalConfigService.getRequireSsoForLogin",
+    "isSsoRequired: GlobalConfigService.getRequireSsoForLogin",
+  ],
+  // The providers the page a project that requires SSO sends people to lists.
+  "packages/Common/Server/Utils/SsoSignInMethods.ts": [
+    "getProjectSignInMethods: ProjectService.getRequireSsoWithSsoProviderId",
+  ],
 };
 
 interface Finding {
