@@ -19,6 +19,7 @@ import {
   SlackMessageKind,
 } from "../../../../../Server/Utils/Workspace/Slack/SlackAiConversations";
 import SlackProjectChoice, {
+  SlackHomeOfPerson,
   SlackProjectChoiceKind,
   SlackProjectChoicePress,
   SlackProjectChoiceRecord,
@@ -1155,5 +1156,167 @@ describe("a conversation with OneUptime AI keeps its project", () => {
     expect(
       await SlackProjectChoice.getConversationProject(conversation),
     ).toBeNull();
+  });
+});
+
+/*
+ * The project somebody chose for the app's Home tab with its Switch project
+ * menu (SlackHome): kept for each person in each workspace, so their later
+ * openings show it. Whether they may still see it is the Home's to read,
+ * every time - what is kept here only says which they chose.
+ */
+describe("the project somebody chose for their Home", () => {
+  const DEANE_HOME: SlackHomeOfPerson = { teamId: TEAM_ID, slackUserId: DEANE };
+
+  test("remembered for the person in the workspace: theirs alone", async () => {
+    expect(await SlackProjectChoice.getHomeProject(DEANE_HOME)).toBeNull();
+
+    await SlackProjectChoice.rememberHomeProject({
+      person: DEANE_HOME,
+      projectId: NONPRD,
+    });
+
+    expect(
+      (await SlackProjectChoice.getHomeProject(DEANE_HOME))?.toString(),
+    ).toBe(NONPRD.toString());
+
+    // Somebody else, or the same Slack user id in another workspace: nothing chosen.
+    expect(
+      await SlackProjectChoice.getHomeProject({
+        teamId: TEAM_ID,
+        slackUserId: NITIN,
+      }),
+    ).toBeNull();
+    expect(
+      await SlackProjectChoice.getHomeProject({
+        teamId: "T0ELSEWHERE",
+        slackUserId: DEANE,
+      }),
+    ).toBeNull();
+  });
+
+  test("choosing again replaces it", async () => {
+    await SlackProjectChoice.rememberHomeProject({
+      person: DEANE_HOME,
+      projectId: NONPRD,
+    });
+    await SlackProjectChoice.rememberHomeProject({
+      person: DEANE_HOME,
+      projectId: PLATFORM,
+    });
+
+    expect(
+      (await SlackProjectChoice.getHomeProject(DEANE_HOME))?.toString(),
+    ).toBe(PLATFORM.toString());
+    expect(cache().store.size).toBe(1);
+  });
+
+  test("kept for ninety days from when it was last kept", async () => {
+    await SlackProjectChoice.rememberHomeProject({
+      person: DEANE_HOME,
+      projectId: NONPRD,
+    });
+
+    const entry: { value: string; expiresAt: number } = Array.from(
+      cache().store.values(),
+    )[0]!;
+    const ninetyDays: number = 90 * 24 * 60 * 60 * 1000;
+
+    expect(SlackProjectChoice.HOME_REMEMBERED_FOR_SECONDS).toBe(
+      90 * 24 * 60 * 60,
+    );
+    expect(entry.expiresAt - Date.now()).toBeGreaterThan(ninetyDays - 60000);
+    expect(entry.expiresAt - Date.now()).toBeLessThanOrEqual(ninetyDays);
+
+    // Gone once that time has passed: the Home shows the first project again.
+    entry.expiresAt = Date.now() - 1;
+
+    expect(await SlackProjectChoice.getHomeProject(DEANE_HOME)).toBeNull();
+  });
+
+  test("kept under a key of its own, which names neither the workspace nor the person", async () => {
+    await SlackProjectChoice.rememberHomeProject({
+      person: DEANE_HOME,
+      projectId: NONPRD,
+    });
+
+    const [key] = Array.from(cache().store.keys());
+
+    expect(key!.startsWith("slack-project-choice-home-")).toBe(true);
+    expect(key).not.toContain(TEAM_ID);
+    expect(key).not.toContain(DEANE);
+  });
+
+  test("apart from a conversation's choice: neither is taken for the other", async () => {
+    const conversation: ReturnType<
+      typeof SlackProjectChoice.getConversationOf
+    > = SlackProjectChoice.getConversationOf({
+      kind: SlackMessageKind.DirectMessage,
+      teamId: TEAM_ID,
+      channelId: "D0DEANE",
+      userId: DEANE,
+      text: "is checkout healthy?",
+      ts: "1760000000.000500",
+    });
+
+    await SlackProjectChoice.rememberConversationProject({
+      conversation: conversation,
+      projectId: NONPRD,
+    });
+
+    expect(await SlackProjectChoice.getHomeProject(DEANE_HOME)).toBeNull();
+
+    await SlackProjectChoice.rememberHomeProject({
+      person: DEANE_HOME,
+      projectId: PLATFORM,
+    });
+
+    expect(
+      (
+        await SlackProjectChoice.getConversationProject(conversation)
+      )?.toString(),
+    ).toBe(NONPRD.toString());
+    expect(
+      (await SlackProjectChoice.getHomeProject(DEANE_HOME))?.toString(),
+    ).toBe(PLATFORM.toString());
+  });
+
+  test("a cache that cannot be read or written remembers nothing, and does not throw", async () => {
+    jest
+      .spyOn(GlobalCache, "setString")
+      .mockRejectedValueOnce(new Error("connection refused"));
+
+    await expect(
+      SlackProjectChoice.rememberHomeProject({
+        person: DEANE_HOME,
+        projectId: NONPRD,
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(cache().store.size).toBe(0);
+
+    await SlackProjectChoice.rememberHomeProject({
+      person: DEANE_HOME,
+      projectId: NONPRD,
+    });
+
+    jest
+      .spyOn(GlobalCache, "getString")
+      .mockRejectedValueOnce(new Error("connection refused"));
+
+    expect(await SlackProjectChoice.getHomeProject(DEANE_HOME)).toBeNull();
+  });
+
+  test("what is kept that is not a project is none", async () => {
+    await SlackProjectChoice.rememberHomeProject({
+      person: DEANE_HOME,
+      projectId: NONPRD,
+    });
+
+    for (const entry of cache().store.values()) {
+      entry.value = "not-a-project";
+    }
+
+    expect(await SlackProjectChoice.getHomeProject(DEANE_HOME)).toBeNull();
   });
 });
