@@ -122,6 +122,15 @@ import MicrosoftTeamsMessageSize, {
 import MicrosoftTeamsReplies from "./MicrosoftTeamsReplies";
 import MicrosoftTeamsAiAnswer from "./MicrosoftTeamsAiAnswer";
 import MicrosoftTeamsInlineImages from "./MicrosoftTeamsInlineImages";
+import MicrosoftTeamsCardProject from "./MicrosoftTeamsCardProject";
+import MicrosoftTeamsProjectChoice, {
+  MicrosoftTeamsProjectChoiceKind,
+  MicrosoftTeamsProjectChoiceRequest,
+} from "./MicrosoftTeamsProjectChoice";
+import {
+  WorkspaceProjectChoiceRefusal,
+  WorkspaceProjectChoiceTaken,
+} from "../WorkspaceProjectChoiceStore";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
@@ -3813,6 +3822,33 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       return;
     }
 
+    await this.answerTypedMessage({
+      activity: data.activity,
+      turnContext: data.turnContext,
+    });
+  }
+
+  /*
+   * A message typed to the bot - a command, or a question for OneUptime AI -
+   * answered in its project, told apart by what it carries
+   * (resolveProjectByTenantId). In an organization connected to several
+   * projects, one that nothing ties to one of them asks its sender which,
+   * with a button for each (MicrosoftTeamsProjectChoice), and is made again
+   * here, in `chosenProjectId`, once they choose - or, when that cannot be
+   * asked, is answered with the projects and where to try again. A question
+   * in a conversation whose project its sender chose for an earlier one is
+   * answered there.
+   */
+  @CaptureSpan()
+  public static async answerTypedMessage(data: {
+    activity: JSONObject;
+    turnContext: TurnContext;
+    chosenProjectId?: ObjectID | undefined;
+  }): Promise<void> {
+    const messageText: string = (data.activity["text"] as string) || "";
+    const channelData: JSONObject =
+      (data.activity["channelData"] as JSONObject) || {};
+
     /*
      * Preserve the original casing of the user's question. The AI assistant
      * should receive the free-form text exactly as the user typed it (case,
@@ -3867,19 +3903,31 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       /*
        * The project, by the tenant - and, for a tenant connected to several,
-       * by the channel the message was sent in and the sender's own
-       * connections.
+       * by the project its sender chose for it, the channel the message was
+       * sent in and the sender's own connections.
        */
       const tenantResolution: MicrosoftTeamsTenantResolution =
         await this.resolveProjectByTenantId({
           tenantId: tenantId,
-          clues: this.getProjectClues({ activity: data.activity }),
+          clues: this.getProjectClues({
+            activity: data.activity,
+            chosenProjectId: data.chosenProjectId,
+          }),
         });
 
-      if (
-        !tenantResolution.projectAuth ||
-        !tenantResolution.projectAuth.projectId
-      ) {
+      // A question for OneUptime AI, not a command.
+      const isQuestion: boolean =
+        !listCommand &&
+        !MicrosoftTeamsHome.isHomeCommand(cleanText) &&
+        (!input.command || input.command === WorkspaceCommandName.Ask);
+
+      let projectAuth: WorkspaceProjectAuthToken | null =
+        tenantResolution.projectAuth;
+
+      // Answered in the project chosen earlier in this conversation.
+      let isInConversationProject: boolean = false;
+
+      if (!projectAuth || !projectAuth.projectId) {
         /*
          * The help, and the answer to a misspelt command, read nothing in
          * any project: an organization connected to several projects, with
@@ -3907,12 +3955,63 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           }
         }
 
-        // A question for OneUptime AI is asked again; a command run again.
-        const isQuestion: boolean =
-          !listCommand &&
-          !MicrosoftTeamsHome.isHomeCommand(cleanText) &&
-          (!input.command || input.command === WorkspaceCommandName.Ask);
+        /*
+         * A question nothing else ties to one project, in a conversation
+         * whose project its sender chose for an earlier question: a
+         * follow-up, answered there - while they are still a member there.
+         */
+        if (isQuestion && !data.chosenProjectId) {
+          projectAuth =
+            await MicrosoftTeamsProjectChoice.findConversationProject({
+              activity: data.activity,
+              resolution: tenantResolution.resolution,
+            });
+          isInConversationProject = Boolean(projectAuth?.projectId);
+        }
+      }
 
+      if (
+        !projectAuth ||
+        !projectAuth.projectId ||
+        !this.isChosenProject(projectAuth.projectId, data.chosenProjectId)
+      ) {
+        /*
+         * Made again in the project its sender chose, which this
+         * organization is no longer connected to: nothing is made in
+         * another project instead.
+         */
+        if (data.chosenProjectId) {
+          await MicrosoftTeamsActionAnswer.reply({
+            turnContext: data.turnContext,
+            answer: MicrosoftTeamsProjectChoice.getRefusalAnswer(
+              WorkspaceProjectChoiceRefusal.Gone,
+            ),
+          });
+          return;
+        }
+
+        /*
+         * Several projects, and nothing to tell which: asked which, with a
+         * button for each project the sender is in, and made again in the
+         * one they choose (MicrosoftTeamsProjectChoice).
+         */
+        if (
+          tenantResolution.isAmbiguous &&
+          (await MicrosoftTeamsProjectChoice.offer({
+            turnContext: data.turnContext,
+            activity: data.activity,
+            resolution: tenantResolution.resolution,
+            kind: MicrosoftTeamsProjectChoiceKind.Message,
+            isQuestion: isQuestion,
+          }))
+        ) {
+          return;
+        }
+
+        /*
+         * Or, when that cannot be asked, told why and how to say which: a
+         * question is asked again, a command run again.
+         */
         await this.answerTenantResolutionFailure({
           turnContext: data.turnContext,
           resolution: tenantResolution,
@@ -3925,10 +4024,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return;
       }
 
-      projectId = tenantResolution.projectAuth.projectId;
+      projectId = projectAuth.projectId;
       logger.debug(
         `Found project ID: ${projectId.toString()} for tenant ID: ${tenantId}`,
       );
+
+      /*
+       * Every card this message is answered with carries its project, so a
+       * form it opens is submitted there (MicrosoftTeamsCardProject).
+       */
+      if (tenantResolution.candidateProjectIds.length > 1) {
+        MicrosoftTeamsCardProject.drawCardsFor({
+          turnContext: data.turnContext,
+          projectId: projectId,
+        });
+      }
 
       // "home": the sender's Home, as a card (MicrosoftTeamsHome).
       if (MicrosoftTeamsHome.isHomeCommand(cleanText)) {
@@ -4029,6 +4139,18 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
               misspelt: input.misspelt,
             });
             return;
+          }
+
+          /*
+           * A question answered in a project its sender chose - just now,
+           * or earlier in this conversation - keeps it for the
+           * conversation's follow-ups (MicrosoftTeamsProjectChoice).
+           */
+          if (data.chosenProjectId || isInConversationProject) {
+            await MicrosoftTeamsProjectChoice.rememberConversationProject({
+              activity: data.activity,
+              projectId: projectId,
+            });
           }
 
           /*
@@ -4760,6 +4882,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   public static async handleBotInvokeActivity(data: {
     activity: JSONObject;
     turnContext: TurnContext;
+    /*
+     * The project its presser chose for it, asked which once nothing it
+     * carries told (MicrosoftTeamsProjectChoice): the press made again
+     * there.
+     */
+    chosenProjectId?: ObjectID | undefined;
   }): Promise<void> {
     /*
      * A 👍 or 👎 on an answer from OneUptime AI (MicrosoftTeamsAiAnswer):
@@ -4783,6 +4911,23 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     let projectId: ObjectID | undefined = undefined;
 
     try {
+      /*
+       * A button of the question that asks which project a request is for
+       * (MicrosoftTeamsProjectChoice): it reads and writes nothing itself.
+       * The request it spends is made again in the project chosen, read in
+       * full there.
+       */
+      if (MicrosoftTeamsProjectChoice.isChoiceAction(actionType)) {
+        if (!data.chosenProjectId) {
+          await this.answerProjectChoice({
+            activity: data.activity,
+            turnContext: data.turnContext,
+            actionValue: actionValue,
+          });
+        }
+        return;
+      }
+
       // Resolve project and user context from activity
       const channelData: JSONObject =
         (data.activity["channelData"] as JSONObject) || {};
@@ -4799,8 +4944,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       /*
        * The project, by the tenant - and, for a tenant connected to several,
-       * by the record the card's button is about, the channel, and the
-       * sender's own connections.
+       * by the record the card's button is about, the project the card was
+       * sent for, the channel, and the sender's own connections.
        */
       const tenantResolution: MicrosoftTeamsTenantResolution =
         await this.resolveProjectByTenantId({
@@ -4808,13 +4953,51 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           clues: this.getProjectClues({
             activity: data.activity,
             actionValue: actionValue,
+            chosenProjectId: data.chosenProjectId,
           }),
         });
 
+      const resolvedProjectId: ObjectID | undefined =
+        tenantResolution.projectAuth?.projectId || undefined;
+
       if (
-        !tenantResolution.projectAuth ||
-        !tenantResolution.projectAuth.projectId
+        !resolvedProjectId ||
+        !this.isChosenProject(resolvedProjectId, data.chosenProjectId)
       ) {
+        /*
+         * Made again in the project its presser chose, which this
+         * organization is no longer connected to: nothing is done in
+         * another project instead.
+         */
+        if (data.chosenProjectId) {
+          await MicrosoftTeamsActionAnswer.reply({
+            turnContext: data.turnContext,
+            answer: MicrosoftTeamsProjectChoice.getRefusalAnswer(
+              WorkspaceProjectChoiceRefusal.Gone,
+            ),
+          });
+          return;
+        }
+
+        /*
+         * A Home button that names no project, pressed by somebody in
+         * several: asked which, and made again in the one they choose. A
+         * form's submission is not made again - its fields were filled in
+         * for one project - and is answered as before.
+         */
+        if (
+          tenantResolution.isAmbiguous &&
+          MicrosoftTeamsProjectChoice.canMakeAgain(actionType) &&
+          (await MicrosoftTeamsProjectChoice.offer({
+            turnContext: data.turnContext,
+            activity: data.activity,
+            resolution: tenantResolution.resolution,
+            kind: MicrosoftTeamsProjectChoiceKind.Press,
+          }))
+        ) {
+          return;
+        }
+
         await this.answerTenantResolutionFailure({
           turnContext: data.turnContext,
           resolution: tenantResolution,
@@ -4822,7 +5005,19 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         return;
       }
 
-      projectId = tenantResolution.projectAuth.projectId;
+      projectId = resolvedProjectId;
+
+      /*
+       * Every card this press is answered with carries its project, so a
+       * form it opens is submitted there (MicrosoftTeamsCardProject).
+       */
+      if (tenantResolution.candidateProjectIds.length > 1) {
+        MicrosoftTeamsCardProject.drawCardsFor({
+          turnContext: data.turnContext,
+          projectId: projectId,
+        });
+      }
+
       const fromObj: JSONObject = ((data.activity["from"] as JSONObject) ||
         {}) as JSONObject;
       const teamsUserId: string | undefined =
@@ -5095,6 +5290,77 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }
 
   /*
+   * A press of one of the buttons that ask which project a request is for
+   * (MicrosoftTeamsProjectChoice): the request kept behind it spent - only
+   * by the person who made it, for a project it offered - the question
+   * replaced by what was chosen, and the request made again in that
+   * project. Somebody else's press, one whose request is gone and an
+   * edited one are each answered with a short line mentioning whoever
+   * pressed, and make nothing.
+   */
+  private static async answerProjectChoice(data: {
+    activity: JSONObject;
+    turnContext: TurnContext;
+    actionValue: string | undefined;
+  }): Promise<void> {
+    const taken: WorkspaceProjectChoiceTaken<MicrosoftTeamsProjectChoiceRequest> =
+      await MicrosoftTeamsProjectChoice.take({
+        activity: data.activity,
+        actionValue: data.actionValue,
+      });
+
+    if (!taken.isTaken) {
+      logger.debug(
+        `A Microsoft Teams project choice spent nothing: ${taken.refusal}`,
+      );
+      await MicrosoftTeamsActionAnswer.reply({
+        turnContext: data.turnContext,
+        answer: MicrosoftTeamsProjectChoice.getRefusalAnswer(taken.refusal),
+      });
+      return;
+    }
+
+    const request: MicrosoftTeamsProjectChoiceRequest = taken.record.request;
+    const chosenProjectId: ObjectID = taken.choice.projectId;
+
+    await MicrosoftTeamsProjectChoice.answerChosen({
+      turnContext: data.turnContext,
+      replyToId: (data.activity["replyToId"] as string | undefined) || undefined,
+      projectName: taken.choice.name,
+    });
+
+    if (request.kind === MicrosoftTeamsProjectChoiceKind.Press) {
+      await this.handleBotInvokeActivity({
+        activity: request.activity,
+        turnContext: data.turnContext,
+        chosenProjectId: chosenProjectId,
+      });
+      return;
+    }
+
+    await this.answerTypedMessage({
+      activity: request.activity,
+      turnContext: data.turnContext,
+      chosenProjectId: chosenProjectId,
+    });
+  }
+
+  /*
+   * Whether the project a request was read in is the one its sender chose
+   * for it, when they chose one.
+   */
+  private static isChosenProject(
+    projectId: ObjectID,
+    chosenProjectId: ObjectID | undefined,
+  ): boolean {
+    return (
+      !chosenProjectId ||
+      projectId.toString().toLowerCase() ===
+        chosenProjectId.toString().toLowerCase()
+    );
+  }
+
+  /*
    * What a button no handler knows is answered with: a button of a card an
    * older OneUptime posted, which no longer does anything. Where to go
    * instead, not what the server could not work out.
@@ -5225,11 +5491,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * to it. Picking arbitrarily is never right: so a tenant connected to
    * several projects is told apart by what the activity itself carries
    * (`clues`, WorkspaceProjectResolution) - the record a card's button is
-   * about, the channel it was sent in, the projects the sender's Microsoft
-   * Teams account is connected in - and refused only when none of those
-   * tells (isAmbiguous). Whatever the activity then does, it does as the
-   * member the sender's account is connected to in that project, with their
-   * own permissions. Without clues, several projects are refused as before.
+   * about, the project the card was sent for or its sender chose, the
+   * channel it was sent in, the projects the sender's Microsoft Teams
+   * account is connected in - and refused only when none of those tells
+   * (isAmbiguous): its sender is then asked which, with a button for each
+   * project they are in (MicrosoftTeamsProjectChoice). Whatever the
+   * activity then does, it does as the member the sender's account is
+   * connected to in that project, with their own permissions. Without
+   * clues, several projects are refused as before.
    */
   @CaptureSpan()
   public static async resolveProjectByTenantId(data: {
@@ -5374,7 +5643,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    * read: the projects they are in, by name, or that their account is
    * connected in none of them (WorkspaceProjectResolution), in a reply that
    * mentions them, as every refusal is (MicrosoftTeamsActionAnswer). `retry`
-   * says how they make it again there: a question is asked again.
+   * says how they make it again there: a question is asked again. Somebody
+   * in several of the projects is asked which instead, with a button for
+   * each (MicrosoftTeamsProjectChoice): this answers them only when the
+   * buttons cannot be offered.
    */
   @CaptureSpan()
   public static async answerTenantResolutionFailure(data: {
@@ -5402,11 +5674,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   /*
    * What an activity carries that can tell its project apart, for a tenant
    * connected to several (resolveProjectByTenantId): the channel it was
-   * sent in, the sender, and the record a card's button names.
+   * sent in, the sender, the record a card's button names, and the project
+   * the card was sent for (MicrosoftTeamsCardProject) - or the one its
+   * sender chose for it (`chosenProjectId`, MicrosoftTeamsProjectChoice).
    */
   public static getProjectClues(data: {
     activity: JSONObject;
     actionValue?: string | undefined;
+    chosenProjectId?: ObjectID | undefined;
   }): WorkspaceProjectClues {
     const channelData: JSONObject =
       (data.activity["channelData"] as JSONObject | undefined) || {};
@@ -5415,6 +5690,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       | undefined;
     const from: JSONObject =
       (data.activity["from"] as JSONObject | undefined) || {};
+    const drawnForProjectId: string | undefined =
+      data.chosenProjectId?.toString() ||
+      MicrosoftTeamsCardProject.readDrawnForProjectId(data.activity["value"]);
 
     return {
       recordIds: data.actionValue ? [data.actionValue] : [],
@@ -5426,6 +5704,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         typeof from["aadObjectId"] === "string"
           ? (from["aadObjectId"] as string)
           : undefined,
+      ...(drawnForProjectId ? { drawnForProjectId: drawnForProjectId } : {}),
     };
   }
 
@@ -7182,6 +7461,14 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         resolution?.projectAuth?.projectId || null;
       const isPersonal: boolean =
         conversation["conversationType"] === "personal";
+
+      // Its Home's buttons act in its project (MicrosoftTeamsCardProject).
+      if (projectId && resolution && resolution.candidateProjectIds.length > 1) {
+        MicrosoftTeamsCardProject.drawCardsFor({
+          turnContext: turnContext,
+          projectId: projectId,
+        });
+      }
 
       if (isPersonal && projectId) {
         await MicrosoftTeamsHome.sendPersonalWelcome({
