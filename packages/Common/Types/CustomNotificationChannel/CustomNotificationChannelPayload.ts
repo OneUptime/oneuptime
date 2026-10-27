@@ -47,6 +47,12 @@ export enum CustomChannelEvent {
   AlertCreated = "on-call.alert.created",
   IncidentEpisodeCreated = "on-call.incidentEpisode.created",
   AlertEpisodeCreated = "on-call.alertEpisode.created",
+  /*
+   * A notification that is not a page - an owner's, a note posted, a shift
+   * starting - for a person who turned on custom channels for it in their
+   * notification settings (UserNotificationSetting.alertByCustomChannel).
+   */
+  Notification = "notification",
   // Sent by Send test, from the admin's page or a person's own.
   Test = "test",
 }
@@ -148,6 +154,22 @@ export interface CustomChannelTestInput {
   channel: CustomChannelReference;
   user: CustomChannelPerson;
   project?: CustomChannelReference | undefined;
+}
+
+export interface CustomChannelNotificationInput {
+  sentAt: Date;
+  channel: CustomChannelReference;
+  /*
+   * What it is about: the notification setting it was sent for, as User
+   * Settings > Notification Settings names it (NotificationSettingEventType).
+   */
+  notificationType: string;
+  title: string;
+  message: string;
+  // Where to read more, when the notification links somewhere.
+  url?: string | undefined;
+  project: CustomChannelReference;
+  user: CustomChannelPerson;
 }
 
 // The event and record type of an on-call page, by what fired it.
@@ -270,5 +292,44 @@ export const buildCustomChannelTestPayload: (
     escalationRule: null,
     isPageAgain: false,
     actions: null,
+  };
+};
+
+/*
+ * The body of a notification that is not a page: the same shape, with no
+ * record and nothing to act on, what it is about in `notificationType` and,
+ * when it links somewhere, where to read more in `url`.
+ */
+export const buildCustomChannelNotificationPayload: (
+  input: CustomChannelNotificationInput,
+) => JSONObject = (input: CustomChannelNotificationInput): JSONObject => {
+  const [title, message] = fitTextsToBudget(
+    [input.title, input.message],
+    MAX_CUSTOM_CHANNEL_TEXT_LENGTH,
+  );
+
+  return {
+    version: CUSTOM_CHANNEL_PAYLOAD_VERSION,
+    event: CustomChannelEvent.Notification,
+    notificationId: null,
+    sentAt: input.sentAt.toISOString(),
+    channel: toReferenceJson(input.channel),
+    title: title || "",
+    message: message || "",
+    project: toReferenceJson(input.project),
+    team: null,
+    user: {
+      id: input.user.id,
+      name: input.user.name,
+      email: input.user.email,
+    },
+    recordType: null,
+    record: null,
+    onCallPolicy: null,
+    escalationRule: null,
+    isPageAgain: false,
+    actions: null,
+    notificationType: input.notificationType,
+    url: input.url || null,
   };
 };

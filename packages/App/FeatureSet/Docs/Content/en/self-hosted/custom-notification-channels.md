@@ -7,6 +7,7 @@ A custom channel sends on-call pages to a service you run: your company's own ap
 - [What your service receives](#what-your-service-receives): One signed JSON request per person per page.
 - [Act on a page](#act-on-a-page): Acknowledge, escalate or resolve from your own app.
 - [Delivery and retries](#delivery-and-retries): What happens when your service is down.
+- [Other notifications](#other-notifications): Owner notifications, notes and shifts, for people who want them.
 :::
 
 ## How It Works
@@ -85,7 +86,7 @@ Every page is a `POST` request with a JSON body:
 | Field | What it is |
 | --- | --- |
 | `version` | `1`. Fields are only ever added to this version. |
-| `event` | `on-call.incident.created`, `on-call.alert.created`, `on-call.incidentEpisode.created`, `on-call.alertEpisode.created`, or `test` |
+| `event` | `on-call.incident.created`, `on-call.alert.created`, `on-call.incidentEpisode.created`, `on-call.alertEpisode.created`, `notification` for [other notifications](#other-notifications), or `test` |
 | `notificationId` | One per person per page. Use it to drop a request you already handled. |
 | `title`, `message` | Ready to show, as a push notification would show them |
 | `user` | Who the page is for. Find their account in your app by `email` or `id`. |
@@ -141,6 +142,37 @@ The answer says what happened, in words your app can show as they are:
 ```
 
 `result` is one of `acknowledged`, `alreadyAcknowledged`, `escalated`, `notEscalated`, `resolved` and `alreadyResolved`. An expired or wrong link is refused with a 4xx status and a message.
+
+## Other Notifications
+
+Pages are not the only notifications people get: OneUptime also tells them when an incident they own changes state, when a note is posted, when their on-call shift starts, and more. Each person chooses where each of these goes in **User Settings > Notification Settings**, which has a **Custom Channels** column while a channel is on. It is off for everyone until they turn it on.
+
+A notification goes to every channel that is on, as one request per channel, with `event` set to `notification`:
+
+```json title="A notification"
+{
+  "version": 1,
+  "event": "notification",
+  "notificationId": null,
+  "sentAt": "2026-10-27T03:20:00.000Z",
+  "channel": { "id": "0b7e…", "name": "CorpoApp" },
+  "title": "Incident INC-42 acknowledged",
+  "message": "Incident INC-42 (API latency high) was acknowledged in Agency A.",
+  "project": { "id": "8d1f…", "name": "Agency A" },
+  "team": null,
+  "user": { "id": "4e6b…", "name": "Jane Tan", "email": "jane@example.com" },
+  "recordType": null,
+  "record": null,
+  "onCallPolicy": null,
+  "escalationRule": null,
+  "isPageAgain": false,
+  "actions": null,
+  "notificationType": "Send incident state changed notification when I am the owner of the incident",
+  "url": "https://oneuptime.example.com/dashboard/8d1f…/incidents/9a3c…"
+}
+```
+
+`title` and `message` are what the person's push notification would say. `notificationType` names the setting it was sent for, and `url` links to what it is about, or is `null`. There is nothing to act on, so `actions` is `null`.
 
 ## Delivery and Retries
 

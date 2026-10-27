@@ -63,6 +63,20 @@ import URL from "../../Types/API/URL";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import { fitNotificationSmsForSending } from "../../Utils/Sms/NotificationSms";
 import ProductBrandingText from "../Utils/ProductBrandingText";
+import CustomNotificationChannelService from "./CustomNotificationChannelService";
+import CustomNotificationChannelDeliveryService, {
+  CustomChannelDeliveryResult,
+} from "./CustomNotificationChannelDeliveryService";
+import ProjectService from "./ProjectService";
+import UserService from "./UserService";
+import CustomNotificationChannel from "../../Models/DatabaseModels/CustomNotificationChannel";
+import Project from "../../Models/DatabaseModels/Project";
+import User from "../../Models/DatabaseModels/User";
+import OneUptimeDate from "../../Types/Date";
+import {
+  buildCustomChannelNotificationPayload,
+  CustomChannelEvent,
+} from "../../Types/CustomNotificationChannel/CustomNotificationChannelPayload";
 
 // The events SecurityCaseNotifications sends, in the order the settings list them.
 export const SECURITY_CASE_NOTIFICATION_EVENT_TYPES: ReadonlyArray<NotificationSettingEventType> =
@@ -135,7 +149,8 @@ export type NotificationSettingChannel =
   | "alertByTelegram"
   | "alertBySlack"
   | "alertByMicrosoftTeams"
-  | "alertByWebhook";
+  | "alertByWebhook"
+  | "alertByCustomChannel";
 
 export const SLA_BREACH_CHANNELS: ReadonlyArray<NotificationSettingChannel> = [
   "alertByEmail",
@@ -147,6 +162,7 @@ export const SLA_BREACH_CHANNELS: ReadonlyArray<NotificationSettingChannel> = [
   "alertBySlack",
   "alertByMicrosoftTeams",
   "alertByWebhook",
+  "alertByCustomChannel",
 ];
 
 export class Service extends DatabaseService<UserNotificationSetting> {
@@ -231,6 +247,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           alertByCall: true,
           alertByPush: true,
           alertByWebhook: true,
+          alertByCustomChannel: true,
         },
         props: {
           isRoot: true,
@@ -869,6 +886,114 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           });
         }
       }
+
+      if (notificationSettings.alertByCustomChannel) {
+        logger.debug(
+          `Sending custom channel notifications to user ${data.userId.toString()} for event ${data.eventType}`,
+        );
+
+        this.sendToCustomChannels({
+          userId: data.userId,
+          projectId: data.projectId,
+          eventType: data.eventType,
+          pushNotificationMessage: data.pushNotificationMessage,
+        }).catch((err: Error) => {
+          logger.error(err);
+        });
+      }
+    }
+  }
+
+  /*
+   * A notification through every custom channel that is on
+   * (CustomNotificationChannel), for a person who turned custom channels on
+   * for this setting (UserNotificationSetting.alertByCustomChannel): one
+   * request per channel, naming them, as their on-call pages do. It says
+   * what their push notification says - the short form every notification
+   * has - and links where that links. Sent in the background, as every
+   * other channel is: a channel that is down costs nothing but its own
+   * request, and each outcome is in the server's log.
+   */
+  private async sendToCustomChannels(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    eventType: NotificationSettingEventType;
+    pushNotificationMessage: PushNotificationMessage;
+  }): Promise<void> {
+    const channels: Array<CustomNotificationChannel> =
+      await CustomNotificationChannelService.getChannelsThatAreOn();
+
+    if (channels.length === 0) {
+      return;
+    }
+
+    const [user, project]: [User | null, Project | null] = await Promise.all([
+      UserService.findOneById({
+        id: data.userId,
+        select: {
+          _id: true,
+          name: true,
+          email: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      }),
+      ProjectService.findOneById({
+        id: data.projectId,
+        select: {
+          _id: true,
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      }),
+    ]);
+
+    const message: PushNotificationMessage = data.pushNotificationMessage || {
+      title: "",
+      body: "",
+    };
+
+    for (const channel of channels) {
+      if (!channel.id) {
+        continue;
+      }
+
+      const result: CustomChannelDeliveryResult =
+        await CustomNotificationChannelDeliveryService.send({
+          customNotificationChannelId: channel.id,
+          eventType: CustomChannelEvent.Notification,
+          // A project a master admin blocked sends nothing.
+          projectId: data.projectId,
+          payload: buildCustomChannelNotificationPayload({
+            sentAt: OneUptimeDate.getCurrentDate(),
+            channel: {
+              id: channel.id.toString(),
+              name: channel.name || "",
+            },
+            notificationType: data.eventType,
+            title: message.title || "",
+            message: message.body || "",
+            url: message.url || message.clickAction || undefined,
+            project: {
+              id: data.projectId.toString(),
+              name: project?.name || "",
+            },
+            user: {
+              id: data.userId.toString(),
+              name: user?.name?.toString() || "",
+              email: user?.email?.toString() || "",
+            },
+          }),
+        });
+
+      if (!result.ok) {
+        logger.warn(
+          `Custom channel ${channel.id.toString()}: a ${data.eventType} notification for user ${data.userId.toString()} was not delivered. ${result.message}`,
+        );
+      }
     }
   }
 
@@ -1105,6 +1230,7 @@ export class Service extends DatabaseService<UserNotificationSetting> {
           alertBySlack: true,
           alertByMicrosoftTeams: true,
           alertByWebhook: true,
+          alertByCustomChannel: true,
         },
         props: {
           isRoot: true,
