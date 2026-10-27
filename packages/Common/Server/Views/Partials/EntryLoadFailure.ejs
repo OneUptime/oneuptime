@@ -1,0 +1,466 @@
+<%#
+    What a page says when its app cannot start: the entry bundle - the
+    frontend's dist/Index.js, or a file it imports - did not load. The
+    browser would leave the page blank, and a reload with the server down
+    lands on its own error page. Instead the page draws the card a page of
+    the app draws when its code cannot download (Common/UI/Components/
+    ErrorScreen/PageScreenCard, ChunkLoadRecovery), in the reader's
+    language, and loads itself once it can:
+
+      offline          "You're offline", until the browser is back online;
+      the server does  "Can't reach the server", asking again every ten
+       not answer      seconds while the tab is in view, and on Try now;
+      it answers       one reload, which loads the app; a reload less than
+                       half a minute ago that did not help says "This page
+                       couldn't be loaded", with Reload page - never a loop.
+
+    Plain browser JavaScript, inline: a file of its own would come from the
+    server that did not answer. No inline event handlers (a status page's
+    Content-Security-Policy refuses them), and nothing it draws comes from
+    outside this file. Its comments are EJS comments, so the page carries
+    none of them.
+
+    Include it right after <div id="root"></div>, before the entry script:
+    the module script whose address ends in /dist/Index.js, which a
+    failure to load it or a file it imports names. Locals, all optional:
+
+      languageStorageKey  where the frontend keeps the reader's language
+                          (oneuptimeLang for the Dashboard, the Admin
+                          Dashboard and Accounts; statusPageLang)
+      languageChoiceKey   a key that must say "true" for that language to
+                          count: a status page follows its own default
+                          language until the visitor picks one
+      usesPageLanguage    true: <html lang>, as the server drew it, before
+                          the browser's languages (a status page's default)
+
+    The words are the frontends' own (their locale files hold the same
+    translations), and the card's styles are ErrorScreenStyle's: Common/
+    Tests/Server/Views/EntryLoadFailure.test.ts holds both to them, and runs
+    this file as it is.
+-%>
+<%
+  var entrySafeKey = function (value) {
+    return typeof value === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(value) ? value : '';
+  };
+
+  var entryOptions = {
+    storageKey: entrySafeKey(typeof languageStorageKey !== 'undefined' ? languageStorageKey : ''),
+    choiceKey: entrySafeKey(typeof languageChoiceKey !== 'undefined' ? languageChoiceKey : ''),
+    usesPageLanguage: typeof usesPageLanguage !== 'undefined' && usesPageLanguage === true
+  };
+-%>
+<%#
+  Off (media "not all") until the card is drawn. The app draws its own
+  error screens with ErrorScreenStyle, and these rules - a copy of the ones
+  this card uses - come later in the page, so switched on they would win
+  over the ones they leave out: an updating page's accent badge drew red,
+  a widget's small buttons and the error screen's secondary button lost
+  their own padding and border.
+-%>
+<style id="oneuptime-entry-load-failure-style" media="not all">
+.oneuptime-error-boundary { --oueb-surface: var(--ou-surface-primary, #ffffff); --oueb-surface-muted: var(--ou-surface-secondary, #f9fafb); --oueb-border: var(--ou-border-default, #e5e7eb); --oueb-text: var(--ou-text-primary, #111827); --oueb-text-secondary: var(--ou-text-secondary, #4b5563); --oueb-text-muted: var(--ou-text-muted, #6b7280); --oueb-accent: #4f46e5; --oueb-accent-hover: #4338ca; --oueb-accent-ring: rgb(79 70 229 / 45%); --oueb-danger-surface: #fef2f2; --oueb-danger-border: #fee2e2; --oueb-danger-icon: #dc2626; --oueb-shadow: var(--ou-card-shadow, 0 1px 3px rgb(15 23 42 / 8%)); color: var(--oueb-text); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+.oneuptime-error-boundary { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 60vh; padding: 3rem 1.5rem; background-color: transparent; }
+html.dark .oneuptime-error-boundary { --oueb-surface: var(--ou-surface-primary, #172033); --oueb-surface-muted: var(--ou-surface-secondary, #1e293b); --oueb-border: var(--ou-border-default, #475569); --oueb-text: var(--ou-text-primary, #f8fafc); --oueb-text-secondary: var(--ou-text-secondary, #e2e8f0); --oueb-text-muted: var(--ou-text-muted, #cbd5e1); --oueb-shadow: var(--ou-card-shadow, 0 10px 28px rgb(0 0 0 / 42%), 0 0 0 1px rgb(148 163 184 / 10%)); --oueb-accent: #6366f1; --oueb-accent-hover: #818cf8; --oueb-accent-ring: rgb(129 140 248 / 55%); --oueb-danger-surface: rgb(153 27 27 / 22%); --oueb-danger-border: rgb(248 113 113 / 24%); --oueb-danger-icon: #fca5a5; }
+.oneuptime-error-boundary *, .oneuptime-error-boundary *::before, .oneuptime-error-boundary *::after { box-sizing: border-box; }
+.oueb-card { width: 100%; max-width: 34rem; padding: 2rem; border: 1px solid var(--oueb-border); border-radius: 1rem; background-color: var(--oueb-surface); box-shadow: var(--oueb-shadow); animation: oueb-enter 260ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes oueb-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.oueb-badge { display: flex; align-items: center; justify-content: center; width: 2.75rem; height: 2.75rem; border: 1px solid var(--oueb-danger-border); border-radius: 0.75rem; background-color: var(--oueb-danger-surface); color: var(--oueb-danger-icon); }
+.oueb-badge svg { width: 1.375rem; height: 1.375rem; }
+.oueb-badge-neutral { border-color: var(--oueb-border); background-color: var(--oueb-surface-muted); color: var(--oueb-text-secondary); }
+.oueb-spinner { display: inline-block; flex-shrink: 0; width: 1.25rem; height: 1.25rem; border: 2px solid currentColor; border-inline-end-color: transparent; border-radius: 9999px; animation: oueb-spin 800ms linear infinite; }
+@keyframes oueb-spin { to { transform: rotate(360deg); } }
+.oueb-title { margin: 1.25rem 0 0; font-size: 1.125rem; font-weight: 600; line-height: 1.5rem; letter-spacing: -0.01em; color: var(--oueb-text); text-wrap: balance; }
+.oueb-message { margin: 0.375rem 0 0; font-size: 0.875rem; line-height: 1.375rem; color: var(--oueb-text-muted); text-wrap: pretty; }
+.oueb-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }
+.oueb-button { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5625rem 1rem; border: 1px solid transparent; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; line-height: 1.25rem; cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease; }
+.oueb-button svg { width: 1rem; height: 1rem; flex-shrink: 0; }
+.oueb-button:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--oueb-surface), 0 0 0 4px var(--oueb-accent-ring); }
+.oueb-button .oueb-spinner { width: 1rem; height: 1rem; }
+.oueb-button[aria-busy="true"] { cursor: progress; }
+.oueb-button-primary { background-color: var(--oueb-accent); color: #ffffff; box-shadow: 0 1px 2px rgb(15 23 42 / 10%); }
+.oueb-button-primary:hover { background-color: var(--oueb-accent-hover); }
+@media (max-width: 30rem) { .oneuptime-error-boundary { padding: 2rem 1rem; } .oueb-card { padding: 1.5rem; } .oueb-actions .oueb-button { flex: 1 1 100%; } }
+@media (prefers-reduced-motion: reduce) { .oueb-card { animation: none; } .oueb-spinner { animation-duration: 2400ms; } }
+</style>
+<script>
+(function (shellWindow, options) {
+  "use strict";
+<%#
+  The words, in every language the frontends speak, in this order: the
+  offline title and message, the server's, the failed page's, Try again,
+  Try now, Reload page.
+-%>
+  var WORDS = {
+    "en": ["You're offline", "This page needs an internet connection to load. It will load as soon as you're back online.", "Can't reach the server", "It may be restarting after an update. This page will load as soon as the server is back.", "This page couldn't be loaded", "A file it needs couldn't be downloaded from the server. Try reloading in a moment.", "Try again", "Try now", "Reload page"],
+    "de": ["Sie sind offline", "Diese Seite braucht eine Internetverbindung, um zu laden. Sie wird geladen, sobald Sie wieder online sind.", "Der Server ist nicht erreichbar", "Er startet vielleicht nach einem Update neu. Diese Seite wird geladen, sobald der Server wieder erreichbar ist.", "Diese Seite konnte nicht geladen werden", "Eine benötigte Datei konnte nicht vom Server heruntergeladen werden. Laden Sie die Seite in einem Moment neu.", "Erneut versuchen", "Jetzt versuchen", "Seite neu laden"],
+    "fr": ["Vous êtes hors ligne", "Cette page a besoin d'une connexion Internet pour se charger. Elle se chargera dès que vous serez de nouveau en ligne.", "Impossible de joindre le serveur", "Il redémarre peut-être après une mise à jour. Cette page se chargera dès que le serveur sera de retour.", "Cette page n'a pas pu être chargée", "Un fichier nécessaire n'a pas pu être téléchargé depuis le serveur. Rechargez la page dans un instant.", "Réessayer", "Réessayer maintenant", "Recharger la page"],
+    "es": ["No tienes conexión", "Esta página necesita conexión a internet para cargarse. Se cargará en cuanto vuelvas a tener conexión.", "No se puede conectar con el servidor", "Puede que se esté reiniciando tras una actualización. Esta página se cargará en cuanto el servidor vuelva a estar disponible.", "No se pudo cargar esta página", "No se pudo descargar del servidor un archivo que necesita. Intenta recargar en un momento.", "Volver a intentar", "Intentar ahora", "Recargar página"],
+    "it": ["Sei offline", "Questa pagina ha bisogno di una connessione a Internet per caricarsi. Si caricherà appena sarai di nuovo online.", "Impossibile raggiungere il server", "Potrebbe essere in riavvio dopo un aggiornamento. Questa pagina si caricherà appena il server sarà di nuovo disponibile.", "Impossibile caricare questa pagina", "Non è stato possibile scaricare dal server un file necessario. Prova a ricaricare tra un momento.", "Riprova", "Riprova ora", "Ricarica la pagina"],
+    "pt": ["Você está offline", "Esta página precisa de conexão com a internet para carregar. Ela vai carregar assim que você estiver online de novo.", "Não foi possível acessar o servidor", "Ele pode estar reiniciando após uma atualização. Esta página vai carregar assim que o servidor voltar.", "Não foi possível carregar esta página", "Não foi possível baixar do servidor um arquivo necessário. Tente recarregar em instantes.", "Tentar novamente", "Tentar agora", "Recarregar página"],
+    "nl": ["U bent offline", "Deze pagina heeft een internetverbinding nodig om te laden. Ze laadt zodra u weer online bent.", "De server is niet bereikbaar", "Misschien start hij opnieuw op na een update. Deze pagina wordt geladen zodra de server weer bereikbaar is.", "Deze pagina kon niet worden geladen", "Een benodigd bestand kon niet van de server worden gedownload. Laad de pagina over een moment opnieuw.", "Opnieuw proberen", "Nu proberen", "Pagina opnieuw laden"],
+    "da": ["Du er offline", "Denne side skal bruge en internetforbindelse for at indlæse. Den indlæses, så snart du er online igen.", "Serveren kan ikke nås", "Den genstarter måske efter en opdatering. Denne side indlæses, så snart serveren er tilbage.", "Denne side kunne ikke indlæses", "En fil, siden skal bruge, kunne ikke hentes fra serveren. Prøv at genindlæse om et øjeblik.", "Prøv igen", "Prøv nu", "Genindlæs siden"],
+    "no": ["Du er frakoblet", "Denne siden trenger en internettforbindelse for å lastes inn. Den lastes inn så snart du er på nett igjen.", "Får ikke kontakt med serveren", "Den starter kanskje på nytt etter en oppdatering. Denne siden lastes inn så snart serveren er tilbake.", "Denne siden kunne ikke lastes inn", "En fil siden trenger, kunne ikke lastes ned fra serveren. Prøv å laste inn på nytt om et øyeblikk.", "Prøv igjen", "Prøv nå", "Last inn siden på nytt"],
+    "sv": ["Du är offline", "Den här sidan behöver en internetanslutning för att laddas. Den laddas så snart du är online igen.", "Servern går inte att nå", "Den kanske startar om efter en uppdatering. Den här sidan laddas så snart servern är tillbaka.", "Den här sidan kunde inte laddas", "En fil som sidan behöver kunde inte hämtas från servern. Försök att ladda om om en stund.", "Försök igen", "Försök nu", "Ladda om sidan"],
+    "ru": ["Вы не в сети", "Для загрузки этой страницы нужно подключение к интернету. Она загрузится, как только вы снова будете в сети.", "Нет связи с сервером", "Возможно, он перезапускается после обновления. Страница загрузится, как только сервер снова станет доступен.", "Не удалось загрузить эту страницу", "Не удалось загрузить с сервера нужный файл. Попробуйте перезагрузить страницу через минуту.", "Повторить попытку", "Попробовать сейчас", "Перезагрузить страницу"],
+    "ja": ["オフラインです", "このページの読み込みにはインターネット接続が必要です。オンラインに戻るとすぐに読み込まれます。", "サーバーに接続できません", "アップデート後に再起動している可能性があります。サーバーが復旧するとすぐにこのページが読み込まれます。", "このページを読み込めませんでした", "必要なファイルをサーバーからダウンロードできませんでした。しばらくしてから再読み込みしてください。", "再試行", "今すぐ再試行", "ページを再読み込み"],
+    "ko": ["오프라인 상태입니다", "이 페이지를 로드하려면 인터넷 연결이 필요합니다. 다시 온라인 상태가 되면 바로 로드됩니다.", "서버에 연결할 수 없습니다", "업데이트 후 다시 시작하는 중일 수 있습니다. 서버가 돌아오는 즉시 이 페이지가 로드됩니다.", "이 페이지를 로드할 수 없습니다", "필요한 파일을 서버에서 다운로드하지 못했습니다. 잠시 후 다시 로드해 보세요.", "다시 시도", "지금 시도", "페이지 다시 로드"],
+    "zh-CN": ["你已离线", "此页面需要网络连接才能加载。恢复联网后会立即加载。", "无法连接到服务器", "服务器可能在更新后正在重启。服务器恢复后，此页面会立即加载。", "无法加载此页面", "无法从服务器下载所需的文件。请稍后重新加载。", "重试", "立即重试", "重新加载页面"],
+    "zh-TW": ["你已離線", "此頁面需要網路連線才能載入。恢復連線後會立即載入。", "無法連線到伺服器", "伺服器可能在更新後正在重新啟動。伺服器恢復後，此頁面會立即載入。", "無法載入此頁面", "無法從伺服器下載所需的檔案。請稍後重新載入。", "再試一次", "立即重試", "重新載入頁面"],
+    "hi": ["आप ऑफ़लाइन हैं", "इस पेज को लोड होने के लिए इंटरनेट कनेक्शन चाहिए। आपके फिर से ऑनलाइन होते ही यह लोड हो जाएगा।", "सर्वर तक नहीं पहुँचा जा सका", "हो सकता है कि यह किसी अपडेट के बाद फिर से शुरू हो रहा हो। सर्वर के वापस आते ही यह पेज लोड हो जाएगा।", "यह पेज लोड नहीं हो सका", "ज़रूरी फ़ाइल सर्वर से डाउनलोड नहीं हो सकी। थोड़ी देर में पेज फिर से लोड करके देखें।", "फिर से प्रयास करें", "अभी कोशिश करें", "पेज पुनः लोड करें"],
+    "fa": ["شما آفلاین هستید", "این صفحه برای بارگذاری به اتصال اینترنت نیاز دارد. به‌محض اینکه دوباره آنلاین شوید، بارگذاری می‌شود.", "دسترسی به سرور ممکن نیست", "ممکن است پس از یک به‌روزرسانی در حال راه‌اندازی دوباره باشد. به‌محض برگشتن سرور، این صفحه بارگذاری می‌شود.", "بارگذاری این صفحه ممکن نشد", "فایل لازم از سرور دانلود نشد. چند لحظه دیگر صفحه را دوباره بارگذاری کنید.", "تلاش دوباره", "اکنون امتحان کنید", "بارگذاری دوباره صفحه"]
+  };
+  var STEPS = {
+    offline: { title: 0, message: 1, action: 6, icon: "offline", tone: "neutral" },
+    unreachable: { title: 2, message: 3, action: 7, icon: "cloud", tone: "neutral" },
+    failed: { title: 4, message: 5, action: 8, icon: "alert", tone: "alert" }
+  };
+  var ICONS = {
+    offline: "m3 3 8.735 8.735m0 0a.374.374 0 1 1 .53.53m-.53-.53.53.53m0 0L21 21M14.652 9.348a3.75 3.75 0 0 1 0 5.304m2.121-7.425a6.75 6.75 0 0 1 0 9.546m2.121-11.667c3.808 3.807 3.808 9.98 0 13.788m-9.546-4.242a3.733 3.733 0 0 1-1.06-2.122m-1.061 4.243a6.75 6.75 0 0 1-1.625-6.929m-.496 9.05c-3.068-3.067-3.664-7.67-1.79-11.334M12 12h.008v.008H12V12Z",
+    cloud: "M2.25 15a4.5 4.5 0 0 0 4.5 4.5H18a3.75 3.75 0 0 0 1.332-7.257 3 3 0 0 0-3.758-3.848 5.25 5.25 0 0 0-10.233 2.33A4.502 4.502 0 0 0 2.25 15Z",
+    alert: "M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z",
+    reload: "M16.023 9.348h4.992V4.356m0 4.992-3.181-3.183a8.25 8.25 0 0 0-13.803 3.7M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7"
+  };
+<%# Languages written from right to left (Common/Types/ReadingDirection). -%>
+  var RIGHT_TO_LEFT = { fa: true };
+<%# The frontend's entry bundle, whose failure this is about. -%>
+  var ENTRY_PATH_END = "/dist/Index.js";
+<%#
+  When it last reloaded for this, kept where TabMemory keeps what a tab
+  remembers across its reloads: sessionStorage, else window.name.
+-%>
+  var RELOAD_KEY = "oneuptime-entry-load-reload-at";
+  var STYLE_ID = "oneuptime-entry-load-failure-style";
+  var TAB_MEMORY_PREFIX = "oneuptime-tab-memory:";
+  var RELOAD_COOLDOWN_IN_MS = 30000;
+  var RETRY_INTERVAL_IN_MS = 10000;
+  var CHECK_TIMEOUT_IN_MS = 8000;
+<%# A pressed button spins at least this long, so the check is seen. -%>
+  var CHECK_MINIMUM_IN_MS = 600;
+  var shellDocument = shellWindow.document;
+  var entrySource = "";
+  var step = "";
+  var isChecking = false;
+  var retryTimer = null;
+
+  var toSupportedLanguage = function (code) {
+    if (!code || typeof code !== "string") {
+      return "";
+    }
+    var lower = code.toLowerCase();
+    if (lower === "zh-tw" || lower === "zh-hk" || lower === "zh-mo" || lower === "zh-hant" || lower.indexOf("zh-hant-") === 0) {
+      return "zh-TW";
+    }
+    if (lower === "zh" || lower.indexOf("zh-") === 0 || lower.indexOf("zh_") === 0) {
+      return "zh-CN";
+    }
+    if (WORDS[code]) {
+      return code;
+    }
+    var base = lower.split(/[-_]/)[0];
+    return WORDS[base] ? base : "";
+  };
+
+<%# The language the frontend's own app would pick (its Utils/i18n.ts). -%>
+  var pickLanguage = function () {
+    var candidates = [];
+    try {
+      if (options.storageKey) {
+        var stored = shellWindow.localStorage.getItem(options.storageKey);
+        var isChosen = !options.choiceKey || shellWindow.localStorage.getItem(options.choiceKey) === "true";
+        if (stored && isChosen) {
+          candidates.push(stored);
+        }
+      }
+    } catch (_storageError) {
+<%# Storage can be blocked: the page's and the browser's languages decide. -%>
+    }
+    if (options.usesPageLanguage) {
+      candidates.push(shellDocument.documentElement.getAttribute("lang"));
+    }
+    var browserLanguages = shellWindow.navigator.languages || [shellWindow.navigator.language];
+    for (var index = 0; index < browserLanguages.length; index++) {
+      candidates.push(browserLanguages[index]);
+    }
+    for (var candidate = 0; candidate < candidates.length; candidate++) {
+      var supported = toSupportedLanguage(candidates[candidate]);
+      if (supported) {
+        return supported;
+      }
+    }
+    return "en";
+  };
+
+  var readMemory = function (key) {
+    try {
+      return shellWindow.sessionStorage.getItem(key);
+    } catch (_storageError) {
+      var name = typeof shellWindow.name === "string" ? shellWindow.name : "";
+      if (name.indexOf(TAB_MEMORY_PREFIX) !== 0) {
+        return null;
+      }
+      try {
+        var values = JSON.parse(name.slice(TAB_MEMORY_PREFIX.length));
+        return values && typeof values[key] === "string" ? values[key] : null;
+      } catch (_parseError) {
+        return null;
+      }
+    }
+  };
+
+  var writeMemory = function (key, value) {
+    try {
+      shellWindow.sessionStorage.setItem(key, value);
+      return;
+    } catch (_storageError) {
+<%# Falls through to window.name - never one another script gave the window. -%>
+    }
+    var name = typeof shellWindow.name === "string" ? shellWindow.name : "";
+    var values = {};
+    if (name && name.indexOf(TAB_MEMORY_PREFIX) !== 0) {
+      return;
+    }
+    try {
+      values = name ? JSON.parse(name.slice(TAB_MEMORY_PREFIX.length)) || {} : {};
+    } catch (_parseError) {
+      values = {};
+    }
+    values[key] = value;
+    try {
+      shellWindow.name = TAB_MEMORY_PREFIX + JSON.stringify(values);
+    } catch (_nameError) {
+<%# Nothing left to remember it in. -%>
+    }
+  };
+
+  var hasRecentlyReloaded = function () {
+    var reloadedAt = Number(readMemory(RELOAD_KEY));
+    return isFinite(reloadedAt) && reloadedAt > 0 && Date.now() - reloadedAt < RELOAD_COOLDOWN_IN_MS;
+  };
+
+  var reload = function () {
+    writeMemory(RELOAD_KEY, String(Date.now()));
+    shellWindow.location.reload();
+  };
+
+<%#
+  Whether the server answers for the entry now: "answers" (anything it
+  serves - a reload loads it), "unavailable" (5xx, 408, 429: starting
+  again) or "unreachable" (no answer at all).
+-%>
+  var askServer = function (done) {
+    if (typeof shellWindow.fetch !== "function") {
+      done("answers");
+      return;
+    }
+    var isDone = false;
+    var controller = typeof shellWindow.AbortController === "function" ? new shellWindow.AbortController() : null;
+    var timeout = null;
+    var finish = function (answer) {
+      if (isDone) {
+        return;
+      }
+      isDone = true;
+      shellWindow.clearTimeout(timeout);
+      done(answer);
+    };
+    timeout = shellWindow.setTimeout(function () {
+      if (controller) {
+        controller.abort();
+      }
+      finish("unreachable");
+    }, CHECK_TIMEOUT_IN_MS);
+    shellWindow
+      .fetch(entrySource, { cache: "no-store", credentials: "same-origin", signal: controller ? controller.signal : undefined })
+      .then(
+        function (response) {
+          var status = response.status;
+          finish(status === 408 || status === 429 || status >= 500 ? "unavailable" : "answers");
+        },
+        function () {
+          finish("unreachable");
+        }
+      );
+  };
+
+  var element = function (tagName, className) {
+    var created = shellDocument.createElement(tagName);
+    if (className) {
+      created.className = className;
+    }
+    return created;
+  };
+
+  var icon = function (path) {
+    var namespace = "http://www.w3.org/2000/svg";
+    var svg = shellDocument.createElementNS(namespace, "svg");
+    var line = shellDocument.createElementNS(namespace, "path");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.5");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    line.setAttribute("d", path);
+    svg.appendChild(line);
+    return svg;
+  };
+
+  var stopRetrying = function () {
+    if (retryTimer) {
+      shellWindow.clearInterval(retryTimer);
+      retryTimer = null;
+    }
+  };
+
+  var check = null;
+
+<%# The card, as PageScreenCard draws it, in place of the page that did not start. -%>
+  var show = function (nextStep) {
+    var root = shellDocument.getElementById("root");
+    var shape = STEPS[nextStep];
+    if (!root || !shape) {
+      return;
+    }
+    step = nextStep;
+    var language = pickLanguage();
+    var words = WORDS[language] || WORDS.en;
+    var say = function (index) {
+      return words[index] || WORDS.en[index];
+    };
+    var screen = element("div", "oneuptime-error-boundary");
+    screen.setAttribute("data-testid", "entry-load-failure");
+    screen.setAttribute("data-step", nextStep);
+    screen.setAttribute("lang", language);
+    screen.setAttribute("dir", RIGHT_TO_LEFT[language] ? "rtl" : "ltr");
+    var card = element("div", "oueb-card");
+    var badge = element("div", shape.tone === "neutral" ? "oueb-badge oueb-badge-neutral" : "oueb-badge");
+    badge.setAttribute("aria-hidden", "true");
+    badge.appendChild(icon(ICONS[shape.icon]));
+    var said = element("div");
+    said.setAttribute("role", nextStep === "failed" ? "alert" : "status");
+    said.setAttribute("aria-live", "polite");
+    var title = element("h1", "oueb-title");
+    title.setAttribute("data-testid", "entry-load-failure-title");
+    title.textContent = say(shape.title);
+    var message = element("p", "oueb-message");
+    message.textContent = say(shape.message);
+    said.appendChild(title);
+    said.appendChild(message);
+    var actions = element("div", "oueb-actions");
+    var button = element("button", "oueb-button oueb-button-primary");
+    button.setAttribute("type", "button");
+    button.setAttribute("data-testid", "entry-load-failure-action");
+    button.appendChild(icon(ICONS.reload));
+    button.appendChild(shellDocument.createTextNode(say(shape.action)));
+    button.addEventListener("click", function () {
+      if (nextStep === "failed") {
+        reload();
+        return;
+      }
+      check(button);
+    });
+    actions.appendChild(button);
+    card.appendChild(badge);
+    card.appendChild(said);
+    card.appendChild(actions);
+    screen.appendChild(card);
+    while (root.firstChild) {
+      root.removeChild(root.firstChild);
+    }
+    var style = shellDocument.getElementById(STYLE_ID);
+    if (style) {
+      style.media = "all";
+    }
+    root.appendChild(screen);
+    if (nextStep !== "unreachable") {
+      stopRetrying();
+    } else if (!retryTimer) {
+      retryTimer = shellWindow.setInterval(function () {
+        if (shellDocument.visibilityState !== "hidden") {
+          check(null);
+        }
+      }, RETRY_INTERVAL_IN_MS);
+    }
+  };
+
+<%#
+  Asks again, and goes on from what it hears: a reload once the server
+  answers, the card for what it is otherwise. A pressed button spins while
+  it asks.
+-%>
+  check = function (button) {
+    if (isChecking) {
+      return;
+    }
+    isChecking = true;
+    var startedAt = Date.now();
+    if (button) {
+      var spinner = element("span", "oueb-spinner");
+      spinner.setAttribute("aria-hidden", "true");
+      button.setAttribute("aria-busy", "true");
+      button.replaceChild(spinner, button.firstChild);
+    }
+    var then = function (next) {
+      var wait = button ? Math.max(0, CHECK_MINIMUM_IN_MS - (Date.now() - startedAt)) : 0;
+      shellWindow.setTimeout(function () {
+        isChecking = false;
+        next();
+      }, wait);
+    };
+    if (shellWindow.navigator.onLine === false) {
+      then(function () {
+        show("offline");
+      });
+      return;
+    }
+    askServer(function (answer) {
+      then(function () {
+        if (answer !== "answers") {
+          show("unreachable");
+          return;
+        }
+        stopRetrying();
+        if (hasRecentlyReloaded()) {
+          show("failed");
+          return;
+        }
+        reload();
+      });
+    });
+  };
+
+  var isEntryScript = function (target) {
+    if (!target || target.nodeName !== "SCRIPT" || target.type !== "module" || !target.src) {
+      return false;
+    }
+    var path = String(target.src).split("#")[0].split("?")[0];
+    return path.slice(-ENTRY_PATH_END.length) === ENTRY_PATH_END;
+  };
+
+<%#
+  A script that did not load says so on the script itself, and the event
+  reaches the window only while it captures. The entry's own imports
+  failing is the entry failing.
+-%>
+  shellWindow.addEventListener(
+    "error",
+    function (event) {
+      var target = event && event.target;
+      if (!isEntryScript(target) || entrySource) {
+        return;
+      }
+      entrySource = target.src;
+      check(null);
+    },
+    true
+  );
+
+  shellWindow.addEventListener("online", function () {
+    if (step === "offline" || step === "unreachable") {
+      check(null);
+    }
+  });
+})(window, <%- JSON.stringify(entryOptions) %>);
+</script>

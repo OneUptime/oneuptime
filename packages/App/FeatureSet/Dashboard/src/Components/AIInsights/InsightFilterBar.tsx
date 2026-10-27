@@ -132,6 +132,7 @@ const InsightFilterBar: FunctionComponent<ComponentProps> = (
           <Icon icon={IconProp.Search} className="h-4 w-4" />
         </span>
         <Input
+          isSearchOrFilter={true}
           id="ai-insight-search"
           placeholder="Search insights by title..."
           value={props.searchText}

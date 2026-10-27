@@ -36335,6 +36335,7 @@
   "Resolved by OneUptime AI. Nobody was paged.": "OneUptime AI가 해결했습니다. 아무도 호출되지 않았습니다.",
   "Wait for OneUptime AI for up to (minutes)": "OneUptime AI 최대 대기 시간(분)",
   "Wait from 1 to 30 whole minutes.": "1~30분 사이의 정수로 입력하세요.",
+  "This page will come back as soon as you're online again, just as you left it.": "다시 온라인 상태가 되는 즉시 이 페이지가 보던 그대로 다시 표시됩니다.",
   "A field name has no spaces: principalUser, processName or an attribute key such as http.user_agent.": "필드 이름에는 공백이 없습니다. principalUser, processName 또는 http.user_agent 같은 속성 키를 사용하세요.",
   "A field name is at most 100 characters.": "필드 이름은 최대 100자입니다.",
   "A reason is at most 500 characters.": "사유는 최대 500자입니다.",

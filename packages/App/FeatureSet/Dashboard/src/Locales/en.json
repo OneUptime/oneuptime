@@ -36335,6 +36335,7 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Resolved by OneUptime AI. Nobody was paged.",
   "Wait for OneUptime AI for up to (minutes)": "Wait for OneUptime AI for up to (minutes)",
   "Wait from 1 to 30 whole minutes.": "Wait from 1 to 30 whole minutes.",
+  "This page will come back as soon as you're online again, just as you left it.": "This page will come back as soon as you're online again, just as you left it.",
   "A field name has no spaces: principalUser, processName or an attribute key such as http.user_agent.": "A field name has no spaces: principalUser, processName or an attribute key such as http.user_agent.",
   "A field name is at most 100 characters.": "A field name is at most 100 characters.",
   "A reason is at most 500 characters.": "A reason is at most 500 characters.",

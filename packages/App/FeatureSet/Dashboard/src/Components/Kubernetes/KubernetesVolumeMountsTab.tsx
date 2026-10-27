@@ -213,6 +213,7 @@ const KubernetesVolumeMountsTab: FunctionComponent<ComponentProps> = (
               <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
             </div>
             <Input
+              isSearchOrFilter={true}
               placeholder="Search by volume name or mount path..."
               value={search}
               onChange={(value: string) => {

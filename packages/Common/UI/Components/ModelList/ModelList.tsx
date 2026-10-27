@@ -316,6 +316,7 @@ const ModelList: <TBaseModel extends BaseModel>(
         {!isLoading && !error && props.isSearchEnabled && (
           <div className="p-2">
             <Input
+              isSearchOrFilter={true}
               placeholder="Search..."
               onChange={(value: string) => {
                 setSearchText(value);

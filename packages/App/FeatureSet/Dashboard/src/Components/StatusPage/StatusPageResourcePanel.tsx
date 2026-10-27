@@ -1283,6 +1283,7 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
           </div>
           <Input
+            isSearchOrFilter={true}
             type={InputType.TEXT}
             placeholder={`Search in ${title}...`}
             value={searchText}

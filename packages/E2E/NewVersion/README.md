@@ -16,11 +16,16 @@ build B mid-session, the old chunks gone, as a real deploy does.
 
 The spec drives the server over `/__fixture/`: `deploy`, `server` (`up`, `down` - the
 connection dropped - or `unavailable` - 503), `missing` (a page's chunk gone for good),
+`entry` (`missing`: the entry bundle itself answered 404, so the app cannot start),
 `slow-documents`, `hold-documents` (the page answered 204, which leaves the browser on the
-page it has, so what a page shows as it starts a reload stays on screen) and `stats`. The
-app keeps what the first load's query set (`audience`, `lang`, `theme`, `firstCheck`,
-`gap`) for the tab, counts its boots, and records every screen a page moving onto the new
-version showed, so the spec can read them after the reload that replaced the page.
+page it has, so what a page shows as it starts a reload stays on screen) and `stats` (the
+page's, the entry's and build.json's requests). The page carries what every frontend's
+`index.ejs` carries right after its root: `Common/Server/Views/Partials/EntryLoadFailure.ejs`,
+rendered as it is. The app keeps what the first load's query set (`audience`, `lang`,
+`theme`, `firstCheck`, `gap`, `shell`) for the tab, counts its boots, and records every
+screen a page moving onto the new version showed, so the spec can read them after the
+reload that replaced the page. `shell=master` draws the pages inside the product's own
+`MasterPage`, as the Dashboard, the Admin Dashboard and status pages are drawn.
 
 Desktop (1280px) and phone (390px) Chromium cover: no new version (nothing said); a deploy
 noticed quietly, the notice in its corner and gutters, under a side panel, the AI chat and a
@@ -28,11 +33,19 @@ dialog opened over it (the product's own layer classes, read with `elementFromPo
 the page's own bars; the next page loading in full in the
 new version at its address and query, by Common's `Link`, a router link and Back; Reload
 coming back to the same address, hash and scroll; Dismiss; unsaved changes making Reload
-ask first and keeping the next page inside the tab; a page whose code is gone saying it is
+ask first and keeping the next page inside the tab, and a query typed into a search box
+(Common's `Input`, `isSearchOrFilter`) doing neither; a page whose code is gone saying it is
 updating and reloading into the same address (and, for a status page's visitor, never
 naming OneUptime); offline; a server answering 503 or dropping the connection; a part gone
-for good after its one reload, never a loop; and one widget's code gone, in its place only,
-drawn in the middle of the widget as the widget draws its own states.
+for good after its one reload, never a loop; one widget's code gone, in its place only,
+drawn in the middle of the widget as the widget draws its own states, its small button
+small and bordered; the browser going offline under a page in the `MasterPage` (the
+"You're offline" card in the page's place under the header and the product bar, Try
+again, the notice waiting, the page coming back as it was - what was typed, where it was
+scrolled, the field that had focus and its caret); and an app that cannot start (the
+server down, offline, the entry gone for good after one reload - never a loop), in the
+same card, whose stylesheet stays off while the app runs (an updating page's badge keeps
+its accent).
 Screenshots of each state, light and dark, in German and in Persian (right to left), are
 under `output/playwright/new-version-ui`.
 

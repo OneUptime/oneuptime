@@ -13,7 +13,13 @@
  * name something else gave the window is never overwritten.
  */
 
-const WINDOW_NAME_PREFIX: string = "oneuptime-tab-memory:";
+/*
+ * Exported so its tests can hold the page a frontend draws before its app
+ * starts (Common/Server/Views/Partials/EntryLoadFailure.ejs) to it: that
+ * page keeps its reload the same way, with this prefix written out, as it
+ * cannot import this file.
+ */
+export const WINDOW_NAME_PREFIX: string = "oneuptime-tab-memory:";
 
 type MemoryValues = Record<string, string>;
 

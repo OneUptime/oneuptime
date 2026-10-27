@@ -36335,6 +36335,7 @@
   "Resolved by OneUptime AI. Nobody was paged.": "OneUptime AI が解決しました。誰も呼び出されていません。",
   "Wait for OneUptime AI for up to (minutes)": "OneUptime AI を待つ最大時間 (分)",
   "Wait from 1 to 30 whole minutes.": "1〜30 分の整数で指定してください。",
+  "This page will come back as soon as you're online again, just as you left it.": "オンラインに戻るとすぐに、このページが元の状態のまま表示されます。",
   "A field name has no spaces: principalUser, processName or an attribute key such as http.user_agent.": "フィールド名に空白は使えません。principalUser、processName、または http.user_agent のような属性キーを指定します。",
   "A field name is at most 100 characters.": "フィールド名は 100 文字以内です。",
   "A reason is at most 500 characters.": "理由は 500 文字以内です。",

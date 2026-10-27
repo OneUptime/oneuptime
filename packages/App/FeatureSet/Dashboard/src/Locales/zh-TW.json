@@ -36335,6 +36335,7 @@
   "Resolved by OneUptime AI. Nobody was paged.": "已由 OneUptime AI 解決。沒有呼叫任何人。",
   "Wait for OneUptime AI for up to (minutes)": "最多等待 OneUptime AI（分鐘）",
   "Wait from 1 to 30 whole minutes.": "請輸入 1 到 30 之間的整數分鐘。",
+  "This page will come back as soon as you're online again, just as you left it.": "恢復連線後，此頁面會立即恢復，保持你離開時的樣子。",
   "A field name has no spaces: principalUser, processName or an attribute key such as http.user_agent.": "欄位名稱不能包含空格：principalUser、processName，或 http.user_agent 這類屬性鍵。",
   "A field name is at most 100 characters.": "欄位名稱最多 100 個字元。",
   "A reason is at most 500 characters.": "原因最多 500 個字元。",

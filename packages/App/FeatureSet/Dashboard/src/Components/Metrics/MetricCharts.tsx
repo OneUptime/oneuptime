@@ -1220,6 +1220,7 @@ function renderSeriesControls(input: {
               />
             </svg>
             <input
+              data-unsaved-changes-ignore
               type="text"
               value={controls.searchQuery}
               aria-label={translator.translateText("Filter series by name")}

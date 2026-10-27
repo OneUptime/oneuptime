@@ -36335,6 +36335,7 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Résolu par OneUptime AI. Personne n'a été alerté.",
   "Wait for OneUptime AI for up to (minutes)": "Attendre OneUptime AI au plus (minutes)",
   "Wait from 1 to 30 whole minutes.": "Attendez de 1 à 30 minutes entières.",
+  "This page will come back as soon as you're online again, just as you left it.": "Cette page reviendra dès que vous serez de nouveau en ligne, telle que vous l'avez laissée.",
   "A field name has no spaces: principalUser, processName or an attribute key such as http.user_agent.": "Un nom de champ ne contient pas d'espace : principalUser, processName ou une clé d'attribut comme http.user_agent.",
   "A field name is at most 100 characters.": "Un nom de champ fait au plus 100 caractères.",
   "A reason is at most 500 characters.": "Un motif fait au plus 500 caractères.",

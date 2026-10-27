@@ -281,6 +281,7 @@ const SessionReplaySearchBar: FunctionComponent<SessionReplaySearchBarProps> = (
           }`}
         />
         <input
+          data-unsaved-changes-ignore
           ref={inputRef}
           type="text"
           data-testid="session-search-input"

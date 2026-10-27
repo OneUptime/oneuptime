@@ -36335,6 +36335,7 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Löst av OneUptime AI. Ingen larmades.",
   "Wait for OneUptime AI for up to (minutes)": "Vänta på OneUptime AI i upp till (minuter)",
   "Wait from 1 to 30 whole minutes.": "Vänta från 1 till 30 hela minuter.",
+  "This page will come back as soon as you're online again, just as you left it.": "Den här sidan kommer tillbaka så snart du är online igen, precis som du lämnade den.",
   "A field name has no spaces: principalUser, processName or an attribute key such as http.user_agent.": "Ett fältnamn har inga mellanslag: principalUser, processName eller en attributnyckel som http.user_agent.",
   "A field name is at most 100 characters.": "Ett fältnamn är högst 100 tecken.",
   "A reason is at most 500 characters.": "En orsak är högst 500 tecken.",

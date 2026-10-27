@@ -99,6 +99,7 @@ const NetworkTopologyToolbar: FunctionComponent<ComponentProps> = (
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="w-full sm:max-w-sm">
           <Input
+            isSearchOrFilter={true}
             dataTestId="network-topology-search"
             ariaLabel="Find a network device"
             placeholder="Find a device by name or vendor…"

@@ -1,3 +1,4 @@
+import { getReadingDirection } from "../../Types/ReadingDirection";
 import { downloadErrorSupportBundle } from "../Utils/ErrorSupportBundle";
 import {
   isChunkLoadError,
@@ -15,6 +16,7 @@ import {
   RELOAD_ICON_PATH,
   getIcon,
 } from "./ErrorScreen/ErrorScreenStyle";
+import { getScreenLanguage } from "./ErrorScreen/PageScreenCard";
 import ChunkLoadRecovery, {
   ChunkLoadRecoveryVariant,
 } from "./NewVersion/ChunkLoadRecovery";
@@ -88,15 +90,36 @@ interface FallbackComponentProps extends FallbackProps {
    */
   title?: string | undefined;
   message?: string | undefined;
+  /*
+   * The language the title and message are in, for a screen that words
+   * them itself: the screen says so (lang) and reads its way (dir), as
+   * every page card does (PageScreenCard). The default title's when not
+   * given.
+   */
+  language?: string | undefined;
   // "Try again" draws the page again; pointless when that cannot help.
   showTryAgain?: boolean | undefined;
   /*
    * The support bundle and the address to send it to. Status pages and
    * public dashboards leave it out: their visitors have nobody at
-   * OneUptime to send it to.
+   * OneUptime to send it to, and a visitor's screen never names OneUptime.
+   * When not given, the people who use OneUptime get it and visitors do
+   * not (NewVersion's audience).
    */
   showSupport?: boolean | undefined;
 }
+
+/*
+ * lang and dir for a part of the screen whose words may be in a language
+ * of their own: a part left in English inside a Persian card reads left to
+ * right, its question mark and full stop where English puts them.
+ */
+const languageAttributes: (language: string) => {
+  lang: string;
+  dir: string;
+} = (language: string): { lang: string; dir: string } => {
+  return { lang: language, dir: getReadingDirection(language) };
+};
 
 type SupportBundleStatusType = "success" | "error";
 
@@ -155,10 +178,17 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
     }
   };
 
+  const language: string =
+    props.language || getScreenLanguage(translator, "Something went wrong");
+  const showsSupport: boolean =
+    props.showSupport ??
+    NewVersion.getAudience() === NewVersionAudience.Members;
+
   return (
     <div
       data-testid="error-boundary-fallback"
       className="oneuptime-error-boundary"
+      {...languageAttributes(language)}
     >
       <style>{ERROR_SCREEN_CSS}</style>
       <div className="oueb-card">
@@ -201,10 +231,15 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
             </button>
           )}
         </div>
-        {props.showSupport === false ? (
+        {!showsSupport ? (
           <></>
         ) : (
-          <div className="oueb-support">
+          <div
+            className="oueb-support"
+            {...languageAttributes(
+              getScreenLanguage(translator, "Still stuck?"),
+            )}
+          >
             <p className="oueb-support-title">
               {translator.translateText("Still stuck?")}
             </p>
@@ -257,7 +292,12 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
           </div>
         )}
         {errorMessage ? (
-          <details className="oueb-details">
+          <details
+            className="oueb-details"
+            {...languageAttributes(
+              getScreenLanguage(translator, "Error details"),
+            )}
+          >
             <summary>
               {getIcon(CHEVRON_ICON_PATH)}
               {translator.translateText("Error details")}
@@ -265,6 +305,8 @@ export const Fallback: FunctionComponent<FallbackComponentProps> = (
             <pre
               data-testid="error-boundary-error-message"
               className="oueb-error-message"
+              // The error's own words, which read the way they are written.
+              dir="auto"
             >
               {errorMessage}
             </pre>
@@ -295,6 +337,7 @@ const ChunkLoadFailedFallback: FunctionComponent<FallbackComponentProps> = (
       message={translator.translateText(
         "A file it needs couldn't be downloaded from the server. Try reloading in a moment.",
       )}
+      language={getScreenLanguage(translator, "This page couldn't be loaded")}
       showTryAgain={false}
       showSupport={NewVersion.getAudience() === NewVersionAudience.Members}
     />

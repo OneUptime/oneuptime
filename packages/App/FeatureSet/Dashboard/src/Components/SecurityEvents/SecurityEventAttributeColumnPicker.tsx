@@ -324,6 +324,7 @@ const SecurityEventAttributeColumnPicker: FunctionComponent<ComponentProps> = (
             </p>
 
             <input
+              data-unsaved-changes-ignore
               type="text"
               value={searchQuery}
               aria-label="Search attributes"

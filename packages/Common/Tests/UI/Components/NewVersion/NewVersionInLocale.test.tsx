@@ -26,12 +26,13 @@ import UnsavedChanges from "../../../../UI/Utils/NewVersion/UnsavedChanges";
 
 /*
  * What a reader sees when a new version is out - the notice, and a page
- * moving onto the new version - in every language the frontends ship, read
- * from the locale files themselves: the Dashboard's, and the Admin
- * Dashboard's, Accounts' and Status Page's own (each frontend reads only
- * its own file). Every string is translated, the screens draw the locale's
- * words, a visitor's never name OneUptime in any language, and questions
- * end the way each language ends them.
+ * moving onto the new version, and a page whose browser went offline - in
+ * every language the frontends ship, read from the locale files themselves:
+ * the Dashboard's, and the Admin Dashboard's, Accounts', the Status Page's
+ * and the Public Dashboard's own (each frontend reads only its own file).
+ * Every string is translated, the screens draw the locale's words, a
+ * visitor's never name OneUptime in any language, and questions end the way
+ * each language ends them.
  */
 
 const FEATURE_SETS: string = path.resolve(
@@ -116,6 +117,23 @@ const PART: Array<string> = [
   "This couldn't be loaded.",
 ];
 
+// The browser offline under an open page (MasterPage's OfflineScreen).
+const OFFLINE_SCREEN: Array<string> = [
+  "You're offline",
+  "This page will come back as soon as you're online again, just as you left it.",
+  "Try again",
+];
+
+/*
+ * The screen an error draws (ErrorBoundary's Fallback): its Reload page and
+ * Try again are the words above, so where a frontend translates those, its
+ * title and message go with them - one card in one language.
+ */
+const GENERIC_ERROR: Array<string> = [
+  "Something went wrong",
+  "An unexpected error has occurred. Please reload the page to continue",
+];
+
 const unique: (keys: Array<string>) => Array<string> = (
   keys: Array<string>,
 ): Array<string> => {
@@ -128,10 +146,18 @@ const WHAT_EACH_FRONTEND_SHOWS: Record<string, Array<string>> = {
     ...PAGE_FOR_MEMBERS,
     ...PAGE_FOR_VISITORS,
     ...PART,
+    ...OFFLINE_SCREEN,
   ]),
-  AdminDashboard: unique([...NOTICE, ...PAGE_FOR_MEMBERS, ...PART]),
+  AdminDashboard: unique([
+    ...NOTICE,
+    ...PAGE_FOR_MEMBERS,
+    ...PART,
+    ...OFFLINE_SCREEN,
+  ]),
   Accounts: unique(PAGE_FOR_MEMBERS),
-  StatusPage: unique([...PAGE_FOR_VISITORS, ...PART]),
+  StatusPage: unique([...PAGE_FOR_VISITORS, ...PART, ...OFFLINE_SCREEN]),
+  // A visitor's browser language (PublicDashboard/src/Utils/i18n).
+  PublicDashboard: unique([...PAGE_FOR_VISITORS, ...PART, ...GENERIC_ERROR]),
 };
 
 type Locale = Record<string, unknown>;
@@ -184,10 +210,15 @@ describe.each(Object.keys(WHAT_EACH_FRONTEND_SHOWS))(
 
 describe("a visitor's words", () => {
   test.each(LANGUAGES)("never name OneUptime in %s", (language: string) => {
-    for (const frontend of ["Dashboard", "StatusPage"]) {
+    for (const frontend of ["Dashboard", "StatusPage", "PublicDashboard"]) {
       const locale: Locale = readLocale(frontend, language);
 
-      for (const key of [...PAGE_FOR_VISITORS, ...PART]) {
+      for (const key of [
+        ...PAGE_FOR_VISITORS,
+        ...PART,
+        ...OFFLINE_SCREEN,
+        ...GENERIC_ERROR,
+      ]) {
         expect({ frontend, key, value: locale[key] }).toEqual({
           frontend,
           key,
@@ -390,6 +421,16 @@ describe("drawn in each language", () => {
           language,
           "OneUptime was updated while you had it open. This page will open in the new version in a moment.",
         ),
+      );
+
+      // The card says which language its words are in, and reads its way.
+      expect(screen.getByTestId("chunk-load-recovery")).toHaveAttribute(
+        "lang",
+        language,
+      );
+      expect(screen.getByTestId("chunk-load-recovery")).toHaveAttribute(
+        "dir",
+        language === "fa" ? "rtl" : "ltr",
       );
     },
   );
