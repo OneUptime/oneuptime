@@ -518,8 +518,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   /*
    * A view's footer: no Delete and no Run just this step, both of which take
    * permission to edit the workflow - only what the dialog is, and why.
-   */
-  /*
+   *
    * Divs, not a p: the lock Icon draws a div of its own, which a paragraph
    * may not hold (React warned on every view). The footer stacks a div it
    * holds directly on a phone (ModalFooter's [&>div]:flex-col, for button
