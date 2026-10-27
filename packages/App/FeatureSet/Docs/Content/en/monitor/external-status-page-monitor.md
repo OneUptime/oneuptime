@@ -6,7 +6,7 @@ It reads status pages made with OneUptime too, resource by resource, and tells p
 
 :::cards
 - [Create the monitor](#creating-an-external-status-page-monitor): Paste a status page URL and pick what to watch.
-- [Scope it](#configuration-options): Watch one component group or one component.
+- [Choose components](#components): Watch only the components you depend on.
 - [Criteria](#monitoring-criteria): What counts as down, out of the box.
 - [OneUptime status pages](#oneuptime-status-pages): Another project's resources, and its maintenance.
 - [Popular status pages](#popular-status-page-urls): URLs for the services most teams depend on.
@@ -14,13 +14,13 @@ It reads status pages made with OneUptime too, resource by resource, and tells p
 
 ## How it works
 
-On every check, a probe fetches the status page, works out which format it uses, and reads the overall status, the components and the active incidents. If you scoped the monitor to a component group or a component, only those count. The criteria then decide whether the monitor is online or offline.
+On every check, a probe fetches the status page, works out which format it uses, and reads the overall status, the components and the active incidents. If you chose components, or a component group, only those count. The criteria then decide whether the monitor is online or offline.
 
 ```mermaid title="One check of an external status page"
 flowchart TB
     fetch["Fetch the status page"] --> detect["Detect the format"]
     detect --> parse["Read status, components, incidents"]
-    parse --> scope["Keep the group or component"]
+    parse --> scope["Keep the chosen components"]
     scope --> criteria{"Active incident or outage?"}
     criteria -->|Yes| down["Offline, incident declared"]
     criteria -->|No| up["Online"]
@@ -31,7 +31,7 @@ You can use it to:
 - Monitor the availability of third-party services your application depends on
 - Get alerted when upstream providers experience outages
 - Track individual component statuses
-- Scope monitoring to a single component group (e.g., only OpenAI's "APIs"), so unrelated incidents elsewhere on the page do not trip your monitor
+- Watch only the components you depend on (e.g., GitHub's Git Operations and Pull Requests, or OpenAI's "APIs" group), so unrelated incidents elsewhere on the page do not trip your monitor
 - Detect degraded performance before it impacts your users
 - Correlate your own incidents with upstream provider issues
 
@@ -72,9 +72,9 @@ Go to **Monitors** and click **Create Monitor**. Under **Monitor Type**, click *
 
 Enter the **Status Page URL**. Leave the **Provider** on **Auto** unless you know the format.
 
-### Scope it, if you need to
+### Choose components, if you need to
 
-Open **More fields** to enter a **Component Group Filter**, such as `APIs`, and a **Component Name Filter** to watch a single component (within the group, if a group is set).
+Open **Components** and pick the components you depend on from the page's own list, such as `Git Operations` and `Pull Requests` on GitHub's; leave it empty to watch the whole page. To watch one group instead, open **More fields** and enter a **Component Group Filter**, such as `APIs`.
 
 ### Test it
 
@@ -95,27 +95,33 @@ Select the **Probes** and a **Monitoring Interval** — it starts at **Every 5 M
 | --- | --- | --- |
 | **Status Page URL** | The URL of the status page. For Atlassian Statuspage and incident.io-powered sites, this is typically the root URL (e.g., `https://status.example.com`). For RSS/Atom feeds, enter the feed URL directly. | — |
 | **Provider** | **Auto** to detect the format, or **Atlassian Statuspage**, **incident.io**, **OneUptime Status Page**, **RSS** or **Atom** if you know it. | **Auto** |
+| **Components** | The components to watch, picked from the page's own list or typed. | The whole page |
 | **Component Group Filter** | The group to scope the monitor to. Under **More fields**. | All groups |
-| **Component Name Filter** | The component to watch. Under **More fields**. | All components in scope |
 | **Timeout (ms)** | The maximum time to wait for the status page. Under **More fields**. | `10000` (10 seconds) |
 | **Retries** | How many times to retry, a second apart, after the first attempt fails; `0` means a single attempt. Under **More fields**. | `3` (up to 4 attempts) |
+
+### Components
+
+Pick the components you depend on, and the monitor watches only them: **External Status Page Component Status** compares their statuses alone, the overall status is the worst of theirs, and **External Status Page Active Incidents** counts only the incidents that affect at least one of them. It is still one check of the page, however many you pick.
+
+When you open **Components**, your browser reads the page's own list from an Atlassian Statuspage, an incident.io page or a OneUptime status page, and shows it in the page's groups, each component that is not operational saying how it is. A name you pick watches the component of exactly that name, ignoring case: `Copilot` on GitHub's page is not `Copilot AI Model Providers`.
+
+When the list cannot be read (an internal page, a page that does not share its list with your browser, an RSS or Atom feed), type a name and press Enter. A `*` stands for any text: `*us-east-1*` watches every component with `us-east-1` in its name. On an RSS or Atom feed, an item counts when its title contains one of the names.
+
+An incident that names no component is not counted while you watch chosen components: nothing says it affects them. With nothing chosen, the monitor watches the whole page, and every incident counts.
+
+A monitor saved with the old Component Name Filter keeps watching what it watched: the filter shows in **Components** as that name between stars, such as `*API*`, which matches every component whose name contains it.
+
+> [!WARNING]
+> A name that matches nothing watches nothing, and looks healthy. **Components** and **Test Monitor** both name the chosen components the page does not list.
 
 ### Component Group Filter
 
 If the status page organizes its components into groups, you can scope the monitor to a single group. For example, on `https://status.openai.com`, entering `APIs` scopes the monitor to OpenAI's API services.
 
-When a component group is set, the **active incident count** and **overall status** are computed using only the components in that group — an incident affecting an unrelated group (for example, ChatGPT) will not trip a monitor scoped to the "APIs" group.
+When a component group is set, the **active incident count** and **overall status** are computed using only the components in that group — an incident affecting an unrelated group (for example, ChatGPT) will not trip a monitor scoped to the "APIs" group. With components chosen too, only the chosen components of the group count.
 
 Component group filtering is supported for **Atlassian Statuspage**, **incident.io** and **OneUptime Status Page** providers. RSS and Atom feeds do not expose component groups.
-
-### Component Name Filter
-
-If the status page reports on multiple components, you can specify a component name to monitor only that component. The filter matches any component whose name contains what you enter, ignoring case — `actions` matches a component named "Actions".
-
-When a component group is also set, the component name filter is applied **within** that group, letting you target a single component inside a larger group. When neither filter is specified, all components in scope are monitored. On an RSS or Atom feed, the name filter is matched against the titles of the feed's items.
-
-> [!WARNING]
-> A filter that matches nothing looks healthy: with no components in scope, there is nothing to report an outage. Check the spelling against the status page, and use **Test Monitor** to see what the filter keeps.
 
 ## Monitoring Criteria
 
@@ -125,11 +131,11 @@ You can configure criteria to decide when the external service is considered onl
 | --- | --- | --- |
 | **External Status Page Is Online** | Whether the status page is reachable and returning status data | True or False |
 | **External Status Page Overall Status** | The overall status the page reports | Equal To, Not Equal To, Contains, Not Contains, Starts With, Ends With |
-| **External Status Page Component Status** | The status of the components in scope (respecting the component group / component name filters): Operational, Under Maintenance, Degraded Performance, Partial Outage, Major Outage or Full Outage | Equal To, Not Equal To, Contains, Not Contains, Starts With, Ends With |
-| **External Status Page Active Incidents** | The number of currently active incidents reported on the status page (scoped to the component group / component when a filter is set) | Equal To, Not Equal To, and the numeric comparisons |
+| **External Status Page Component Status** | The status of each component in scope (the chosen components, or the group's, when set): Operational, Under Maintenance, Degraded Performance, Partial Outage, Major Outage or Full Outage | Equal To, Not Equal To, Contains, Not Contains, Starts With, Ends With |
+| **External Status Page Active Incidents** | The number of currently active incidents reported on the status page (only those that affect a component in scope, when components or a group are chosen) | Equal To, Not Equal To, and the numeric comparisons |
 | **External Status Page Response Time (in ms)** | How long it takes to fetch the status page data | Greater Than, Less Than, Greater Than Or Equal To, Less Than Or Equal To |
 
-The overall status is whatever the page says, so its values vary by provider: an Atlassian Statuspage reports its own description, such as `All Systems Operational`; a OneUptime status page, the worst status among its components in scope, such as `under_maintenance`; a feed reports `operational` or `degraded_performance`; the reachability check reports `reachable` or `unreachable`. These comparisons are case-sensitive. To alert on outages, **External Status Page Active Incidents** and **External Status Page Component Status** are usually more reliable.
+The overall status is whatever the page says, so its values vary by provider: an Atlassian Statuspage reports its own description, such as `All Systems Operational`; a OneUptime status page, the worst status among its components in scope, such as `under_maintenance`; a feed reports `operational` or `degraded_performance`; the reachability check reports `reachable` or `unreachable`. With components or a group chosen, it is the worst status among them, on any page. These comparisons are case-sensitive. To alert on outages, **External Status Page Active Incidents** and **External Status Page Component Status** are usually more reliable.
 
 On an RSS or Atom feed, the items of the last 24 hours count as active incidents: an RSS item by its publication date, an Atom entry by its update date. An item dated ahead does not count until its date.
 
@@ -142,13 +148,13 @@ By default, OneUptime seeds criteria based on what actually matters for a status
 | Offline | **Any** of: the page is not online; there is at least one active incident in scope; a component in scope reports Degraded Performance, Partial Outage, Major Outage or Full Outage | Marks the monitor offline and declares an incident, which resolves itself when the criteria stops matching |
 | Online | **All** of: the page is online; there are no active incidents in scope | Marks the monitor online |
 
-Because the active incident count and component statuses respect the component group / component name filters, these default criteria automatically target only the components you care about.
+Because the active incident count and component statuses respect the chosen components and group, these default criteria automatically target only the components you care about.
 
 ## OneUptime status pages
 
 Choose **OneUptime Status Page** as the provider, or leave **Auto**, to watch a status page made with OneUptime: another team's project, or a vendor's page on OneUptime Cloud or a self-hosted OneUptime. Enter the page's own address in **Status Page URL**: its domain, such as `https://status.example.com`, or `https://oneuptime.com/status-page/<status-page-id>` for a page without one.
 
-The monitor reads the page's summary, `/status-page-api/summary/<page>` (see [Read the summary](/docs/status-pages/public-api#read-the-summary)): only what the page shows its visitors, and nothing else of the other project. Each resource on the page, a monitor or a monitor group, is a component, by the name the page gives it, in the page's group; a group inside another reads `Core / Databases`. Watch one resource with **Component Name Filter**, or one group with **Component Group Filter**.
+The monitor reads the page's summary, `/status-page-api/summary/<page>` (see [Read the summary](/docs/status-pages/public-api#read-the-summary)): only what the page shows its visitors, and nothing else of the other project. Each resource on the page, a monitor or a monitor group, is a component, by the name the page gives it, in the page's group; a group inside another reads `Core / Databases`. Pick resources in **Components**, or watch one group with **Component Group Filter**.
 
 A component's status is the value its status on the page stands for, so the Component Status criteria work as on any status page:
 
@@ -197,11 +203,11 @@ When creating incidents or alerts from External Status Page monitors, you can us
 | `{{responseTimeInMs}}`    | Response time in milliseconds                                                   |
 | `{{failureCause}}`        | Reason for failure, if any                                                      |
 | `{{overallStatus}}`       | The overall status indicator value                                              |
-| `{{activeIncidentCount}}` | Number of active incidents (scoped to the filter, if any)                       |
+| `{{activeIncidentCount}}` | Number of active incidents (of the components it watches, if it chose some)    |
 | `{{componentStatuses}}`   | JSON array of component statuses (`name`, `status`, `description`, `groupName`) |
 | `{{provider}}`            | Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); empty after a reachability check |
 | `{{componentGroup}}`      | Component group the monitor is scoped to, if any                                |
-| `{{componentName}}`       | Component the monitor is scoped to, if any                                      |
+| `{{componentName}}`       | The components the monitor watches, separated by commas, if it chose some      |
 
 ## Popular Status Page URLs
 
@@ -235,22 +241,26 @@ Here is a list of popular service status pages. Many of these use Atlassian Stat
 ## Best Practices
 
 - **Use the Auto provider** unless you know the exact format — auto-detection works well for most status pages.
-- **Scope to a component group** if you only depend on part of a provider (e.g. only OpenAI's "APIs"), so unrelated incidents don't create noise.
-- **Monitor specific components** if you only depend on certain services.
+- **Choose the components you depend on** (e.g. GitHub's Git Operations and Pull Requests), so unrelated incidents don't create noise.
+- **Watch a whole group** when you depend on all of it (e.g. OpenAI's "APIs"), so the components it gains later are watched too.
 - **Combine with your own monitors** — pair External Status Page monitors with your own API and Website monitors. When both go down at once, the upstream status page points you at the root cause faster.
 
 ## Troubleshooting
 
 :::details The monitor is offline, but the incident is for a part of the service I do not use
-Scope the monitor with a **Component Group Filter**, a **Component Name Filter**, or both. The active incident count and the component statuses then only count what is in scope.
+Choose the components you depend on in **Components**, or one group in **Component Group Filter**. The active incident count and the component statuses then only count those; an incident that names no component is not counted.
 :::
 
 :::details The monitor never goes offline, even during an outage
-The filters may match nothing, which looks healthy, or the page may only get the reachability check. Run **Test Monitor** and check the provider and the components it found.
+A chosen name may match nothing on the page, which looks healthy, or the page may only get the reachability check. Run **Test Monitor**: it shows the provider and the components it found, and names any chosen component the page does not list.
 :::
 
 :::details Auto picks the wrong format, or finds no components
 Set the **Provider** to the one you know the page uses. For an RSS or Atom feed, enter the feed's own URL rather than the status page's.
+:::
+
+:::details The Components list does not load
+Your browser reads the list straight from the status page. An internal page your browser cannot reach, a page that does not share its list with other sites, and an RSS or Atom feed have no list to pick from: type each component's name as the page shows it, and press Enter. The probes read the page as before.
 :::
 
 :::details A OneUptime status page shows no components

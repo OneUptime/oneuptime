@@ -38,6 +38,11 @@ import StatusPageSummaryUtil, {
   STATUS_PAGE_SUMMARY_GROUP_SEPARATOR,
 } from "Common/Types/StatusPage/StatusPageSummary";
 import ExternalStatusPageComponentStatusUtil from "Common/Utils/Monitor/ExternalStatusPageComponentStatusUtil";
+import ExternalStatusPageComponentNames from "Common/Utils/Monitor/ExternalStatusPageComponentNames";
+import ExternalStatusPageReading from "Common/Utils/Monitor/ExternalStatusPageReading";
+import ExternalStatusPageScope, {
+  ExternalStatusPageScopeResult,
+} from "Common/Utils/Monitor/ExternalStatusPageScope";
 import {
   DEFAULT_SQL_CONNECTION_TIMEOUT_IN_MS,
   DEFAULT_SQL_MAX_ROWS,
@@ -134,6 +139,12 @@ const SQL_SHARED_FIELD_FILES: Array<string> = [
 ];
 const STATUS_PAGE_FORM_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/Form/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorStepForm.tsx";
+// The form's Components field, drawn by a component of its own.
+const STATUS_PAGE_COMPONENTS_FIELD_FILE: string =
+  "App/FeatureSet/Dashboard/src/Components/Form/Monitor/ExternalStatusPageMonitor/ExternalStatusPageComponentsField.tsx";
+// Where the probe and the form read a page's providers (issue #5156).
+const STATUS_PAGE_READING_FILE: string =
+  "Common/Utils/Monitor/ExternalStatusPageReading.ts";
 const SQL_SUMMARY_FILE: string =
   "App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SqlMonitorView.tsx";
 const CUSTOM_CODE_SUMMARY_FILE: string =
@@ -2203,18 +2214,29 @@ describe("External Status Page Monitor", () => {
       "// If all methods fail, just check if the URL is reachable\n        response = await ExternalStatusPageMonitorUtil.tryBasicHttpCheck(",
     );
 
+    /*
+     * The probe and the form's component picker read a page the same way,
+     * from the addresses ExternalStatusPageReading builds.
+     */
+    const reading: string = readRepoFile(STATUS_PAGE_READING_FILE);
+
     for (const endpoint of [
       "/api/v2/status.json",
       "/api/v2/components.json",
       "/api/v2/incidents/unresolved.json",
     ]) {
-      expect(probe).toContain(endpoint);
+      expect(reading).toContain(endpoint);
       expect(page).toContain(`\`${endpoint}\``);
     }
 
-    expect(probe).toContain(
+    expect(probe).toContain("ExternalStatusPageReading.getAtlassianUrls(");
+    expect(probe).toContain("ExternalStatusPageReading.getIncidentIoUrl(");
+    expect(reading).toContain(
       "const apiUrl: string = `${origin}/proxy/${host}`;",
     );
+    expect(
+      ExternalStatusPageReading.getIncidentIoUrl("https://status.openai.com"),
+    ).toBe("https://status.openai.com/proxy/status.openai.com");
   });
 
   it("reports what the reachability check reports", () => {
@@ -2373,10 +2395,17 @@ describe("External Status Page Monitor", () => {
     expect(oneUptime).toContain(
       "the component is `under_maintenance`, whatever status its monitors are in",
     );
-    expect(probe).toContain(
+
+    // The probe reads a OneUptime page's summary as the form does.
+    const reading: string = readRepoFile(STATUS_PAGE_READING_FILE);
+
+    expect(probe).toContain("ExternalStatusPageReading.readOneUptimeSummary(");
+    expect(reading).toContain(
       "status: ExternalStatusPageComponentStatusUtil.fromStatusPageStatus({",
     );
-    expect(probe).toContain("isUnderMaintenance: resource.isUnderMaintenance,");
+    expect(reading).toContain(
+      "isUnderMaintenance: resource.isUnderMaintenance,",
+    );
   });
 
   it("fails a private or allowlisted OneUptime page with why, when the provider is chosen", () => {
@@ -2396,10 +2425,14 @@ describe("External Status Page Monitor", () => {
     const rows: Array<Array<string>> = tableRows(
       section(page, "## Configuration Options"),
     );
-    const form: string = readRepoFile(STATUS_PAGE_FORM_FILE);
+    const form: string = `${readRepoFile(STATUS_PAGE_FORM_FILE)}\n${readRepoFile(
+      STATUS_PAGE_COMPONENTS_FIELD_FILE,
+    )}`;
 
     expect(defaults.timeout).toBe(10000);
     expect(defaults.retries).toBe(3);
+    // A new monitor watches the whole page.
+    expect(defaults.componentNames).toEqual([]);
 
     for (const row of rows) {
       const field: string = (row[0] as string).replace(/\*\*/g, "");
@@ -2417,11 +2450,148 @@ describe("External Status Page Monitor", () => {
     ).toEqual([
       "—",
       "**Auto**",
+      "The whole page",
       "All groups",
-      "All components in scope",
       "`10000` (10 seconds)",
       "`3` (up to 4 attempts)",
     ]);
+    // The name filter the list replaced is not offered any more.
+    expect(form).not.toContain('title="Component Name Filter"');
+  });
+
+  /*
+   * Issue #5156: a monitor watches some components of a page. What the
+   * Components section says of a name, a pattern, a feed, an incident that
+   * names no component and a monitor saved with the old filter, held to the
+   * code that does it.
+   */
+  describe("the components a monitor watches", () => {
+    const components: string = section(page, "### Components");
+
+    const scopeOf: (data: {
+      componentNames: Array<string>;
+      incidentComponentIds: Array<Array<string>>;
+    }) => ExternalStatusPageScopeResult = (data: {
+      componentNames: Array<string>;
+      incidentComponentIds: Array<Array<string>>;
+    }): ExternalStatusPageScopeResult => {
+      const github: Array<[string, string]> = [
+        ["git", "Git Operations"],
+        ["prs", "Pull Requests"],
+        ["copilot", "Copilot"],
+        ["models", "Copilot AI Model Providers"],
+      ];
+
+      return ExternalStatusPageScope.apply({
+        components: github.map(([key, name]: [string, string]) => {
+          return { key: key, name: name, status: "operational" };
+        }),
+        incidents: data.incidentComponentIds.map(
+          (ids: Array<string>, index: number) => {
+            return {
+              name: `Incident ${index}`,
+              affectedComponentNames: [],
+              affectedComponentKeys: ids,
+            };
+          },
+        ),
+        componentNames: data.componentNames,
+      });
+    };
+
+    it("a name watches the component of exactly that name, ignoring case", () => {
+      expect(components).toContain(
+        "A name you pick watches the component of exactly that name, ignoring case: `Copilot` on GitHub's page is not `Copilot AI Model Providers`.",
+      );
+      expect(
+        ExternalStatusPageComponentNames.matchesComponent(
+          "copilot",
+          "Copilot",
+        ),
+      ).toBe(true);
+      expect(
+        ExternalStatusPageComponentNames.matchesComponent(
+          "Copilot",
+          "Copilot AI Model Providers",
+        ),
+      ).toBe(false);
+    });
+
+    it("a * stands for any text", () => {
+      expect(components).toContain(
+        "A `*` stands for any text: `*us-east-1*` watches every component with `us-east-1` in its name.",
+      );
+      expect(
+        ExternalStatusPageComponentNames.matchesComponent(
+          "*us-east-1*",
+          "Amazon EC2 (us-east-1)",
+        ),
+      ).toBe(true);
+    });
+
+    it("on a feed, an item counts when its title contains one of the names", () => {
+      expect(components).toContain(
+        "On an RSS or Atom feed, an item counts when its title contains one of the names.",
+      );
+      expect(
+        ExternalStatusPageComponentNames.isFoundIn(
+          "Git Operations",
+          "Incident with Git Operations",
+        ),
+      ).toBe(true);
+      expect(probe).toContain(
+        "ExternalStatusPageComponentNames.isFoundIn(name, title)",
+      );
+    });
+
+    it("an incident counts when it affects at least one chosen component; one that names none does not", () => {
+      expect(components).toContain(
+        "**External Status Page Active Incidents** counts only the incidents that affect at least one of them.",
+      );
+      expect(components).toContain(
+        "An incident that names no component is not counted while you watch chosen components: nothing says it affects them. With nothing chosen, the monitor watches the whole page, and every incident counts.",
+      );
+
+      const incidents: Array<Array<string>> = [
+        ["git", "copilot"],
+        ["copilot"],
+        [],
+      ];
+
+      expect(
+        scopeOf({
+          componentNames: ["Git Operations", "Pull Requests"],
+          incidentComponentIds: incidents,
+        }).activeIncidentCount,
+      ).toBe(1);
+      expect(
+        scopeOf({ componentNames: [], incidentComponentIds: incidents })
+          .activeIncidentCount,
+      ).toBe(3);
+    });
+
+    it("a monitor saved with the old filter reads as that name between stars", () => {
+      expect(components).toContain(
+        "the filter shows in **Components** as that name between stars, such as `*API*`, which matches every component whose name contains it.",
+      );
+      expect(ExternalStatusPageComponentNames.fromLegacyName("API")).toEqual([
+        "*API*",
+      ]);
+      expect(
+        MonitorStepExternalStatusPageMonitorUtil.getComponentNames({
+          componentName: "API",
+        }),
+      ).toEqual(["*API*"]);
+    });
+
+    it("names the field as the form does, and says what empty means", () => {
+      const field: string = readRepoFile(STATUS_PAGE_COMPONENTS_FIELD_FILE);
+
+      expect(field).toContain('title="Components"');
+      expect(field).toContain('placeholder="All components"');
+      expect(boldItems(components)).toContain("Components");
+      expect(page).toContain("leave it empty to watch the whole page");
+    });
   });
 
   it("lists the criteria filters and conditions the form offers", () => {

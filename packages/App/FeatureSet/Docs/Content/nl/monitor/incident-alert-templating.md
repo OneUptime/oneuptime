@@ -440,11 +440,11 @@ De reeksnamen in `metrics` bevatten punten, zoals `oneuptime.monitor.database.co
 | Variabele | Wat ze bevat | Type |
 | --- | --- | --- |
 | `overallStatus` | De algemene status van de statuspagina, zoals `major_outage`. | `string` |
-| `activeIncidentCount` | Het aantal openstaande incidenten op de statuspagina. | `number` |
+| `activeIncidentCount` | Het aantal openstaande incidenten op de statuspagina dat gevolgen heeft voor wat de monitor in de gaten houdt. | `number` |
 | `componentStatuses` | De componenten ervan, elk als `{name, status, description, groupName}`. | `Array<Object>` |
 | `provider` | Het soort statuspagina: Atlassian Statuspage, incident.io, RSS of Atom. | `string` |
 | `componentGroup` | De componentgroep die de monitor in de gaten houdt, als hij er een volgt. | `string` |
-| `componentName` | Het component dat de monitor in de gaten houdt, als hij er een volgt. | `string` |
+| `componentName` | De componenten die de monitor in de gaten houdt, gescheiden door komma's, als hij er heeft gekozen. | `string` |
 | `isOnline` | Of de statuspagina antwoordde. | `boolean` |
 | `responseTimeInMs` | Hoe lang de statuspagina over het antwoord deed, in milliseconden. | `number` |
 | `failureCause` | Waarom de controle mislukte, als dat zo was. | `string` |

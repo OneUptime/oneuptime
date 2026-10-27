@@ -440,11 +440,11 @@ Serienavnene i `metrics` indeholder punktummer, som `oneuptime.monitor.database.
 | Variabel | Hvad den indeholder | Type |
 | --- | --- | --- |
 | `overallStatus` | Statussidens samlede status, som `major_outage`. | `string` |
-| `activeIncidentCount` | Antallet af åbne hændelser på statussiden. | `number` |
+| `activeIncidentCount` | Antallet af åbne hændelser på statussiden, der berører det, monitoren holder øje med. | `number` |
 | `componentStatuses` | Dens komponenter, hver som `{name, status, description, groupName}`. | `Array<Object>` |
 | `provider` | Typen af statusside: Atlassian Statuspage, incident.io, RSS eller Atom. | `string` |
 | `componentGroup` | Den komponentgruppe, monitoren holder øje med, hvis den holder øje med en. | `string` |
-| `componentName` | Den komponent, monitoren holder øje med, hvis den holder øje med en. | `string` |
+| `componentName` | De komponenter, monitoren holder øje med, adskilt af kommaer, hvis den har valgt nogle. | `string` |
 | `isOnline` | Om statussiden svarede. | `boolean` |
 | `responseTimeInMs` | Hvor lang tid statussiden tog om at svare, i millisekunder. | `number` |
 | `failureCause` | Hvorfor tjekket fejlede, når det gjorde. | `string` |
