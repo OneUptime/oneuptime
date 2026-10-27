@@ -480,7 +480,12 @@ export function normalizeSecurityPlaybookStepConfig(
 
     case SecurityPlaybookActionType.RunRunbook:
       return {
-        runbookId: requireId(rawConfig, "runbookId", label, "the runbook to run"),
+        runbookId: requireId(
+          rawConfig,
+          "runbookId",
+          label,
+          "the runbook to run",
+        ),
       };
 
     case SecurityPlaybookActionType.PostStatusPageAnnouncement: {

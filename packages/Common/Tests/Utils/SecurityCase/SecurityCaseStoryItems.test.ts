@@ -116,7 +116,7 @@ describe("reading the events a story is told from", () => {
           "web.attack.kind": "sql-injection",
           "oneuptime.exception.fingerprint": "fp-1",
           "oneuptime.exception.type": "QueryFailedError",
-          "oneuptime.exception.message": "syntax error at or near \"or\"",
+          "oneuptime.exception.message": 'syntax error at or near "or"',
         },
       }),
     ).toEqual({
@@ -162,7 +162,11 @@ describe("reading the events a story is told from", () => {
     ).toBe("kim");
     expect(
       getStoryEventPrincipal(
-        eventRow({ principalIp: "", principalUser: "", principalHost: "web-1" }),
+        eventRow({
+          principalIp: "",
+          principalUser: "",
+          principalHost: "web-1",
+        }),
       ),
     ).toBe("web-1");
     expect(
@@ -343,10 +347,7 @@ describe("telling alike events as one run", () => {
     expect(isMoreTelling(reached, rejected)).toBe(true);
     expect(isMoreTelling(rejected, reached)).toBe(false);
     expect(
-      isMoreTelling(
-        eventRow({ severityId: 4 }),
-        eventRow({ severityId: 3 }),
-      ),
+      isMoreTelling(eventRow({ severityId: 4 }), eventRow({ severityId: 3 })),
     ).toBe(true);
     expect(
       isMoreTelling(
@@ -502,14 +503,13 @@ describe("one time axis, oldest first", () => {
   });
 
   test("tells an item once, however many times it was read", () => {
-    const merged: { items: Array<SecurityCaseStoryItemJson> } =
-      mergeStoryItems(
-        [
-          item({ key: "a", kind: SecurityCaseStoryItemKind.Note }),
-          item({ key: "a", kind: SecurityCaseStoryItemKind.Note }),
-        ],
-        10,
-      );
+    const merged: { items: Array<SecurityCaseStoryItemJson> } = mergeStoryItems(
+      [
+        item({ key: "a", kind: SecurityCaseStoryItemKind.Note }),
+        item({ key: "a", kind: SecurityCaseStoryItemKind.Note }),
+      ],
+      10,
+    );
 
     expect(merged.items).toHaveLength(1);
   });
@@ -670,7 +670,9 @@ describe("the text an item keeps", () => {
   test("cuts a long text with an ellipsis, and trims", () => {
     const long: string = "x".repeat(SECURITY_CASE_STORY_MAX_TEXT_LENGTH + 50);
 
-    expect(cutStoryText(long)).toHaveLength(SECURITY_CASE_STORY_MAX_TEXT_LENGTH);
+    expect(cutStoryText(long)).toHaveLength(
+      SECURITY_CASE_STORY_MAX_TEXT_LENGTH,
+    );
     expect(cutStoryText(long).endsWith("…")).toBe(true);
     expect(cutStoryText("  short  ")).toBe("short");
     expect(cutStoryText(undefined)).toBe("");
