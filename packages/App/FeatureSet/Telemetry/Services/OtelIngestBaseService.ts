@@ -183,6 +183,34 @@ export type ServerlessFunctionIdentity = {
   cloudPlatform: string | null;
 };
 
+/*
+ * What autoDiscoverHost is asked about one resource block: its attributes,
+ * whether its metrics carry a host agent's system.* / process.* signal, the
+ * resources the block already resolved to (any of which keeps it from being
+ * a Host), and the stats the Host's heartbeat records.
+ */
+type HostDiscovery = {
+  projectId: ObjectID;
+  attributes: JSONArray;
+  hasInfraSignal?: boolean;
+  dockerHostId?: ObjectID | null;
+  podmanHostId?: ObjectID | null;
+  kubernetesClusterId?: ObjectID | null;
+  databaseServerId?: ObjectID | null;
+  cpuCores?: number | undefined;
+  totalMemoryBytes?: number | undefined;
+  processCount?: number | undefined;
+};
+
+/*
+ * A resource block autoDiscoverRum matched: a browser's or a mobile app's
+ * telemetry (clientType), from the application its service.name names.
+ */
+type RumApplicationMatch = {
+  clientType: string;
+  appIdentifier: string;
+};
+
 export default abstract class OtelIngestBaseService {
   private static readonly DOCKER_CONTAINER_NAME_CACHE_NAMESPACE: string =
     "docker-container-name";
@@ -357,6 +385,37 @@ export default abstract class OtelIngestBaseService {
   ): Promise<void> {
     for (const fence of fences) {
       await this.clearMaintenanceFence(fence.scope, fence.id);
+    }
+  }
+
+  /*
+   * What an autoDiscover* method discovers in one resource block - a
+   * cluster's name, a function's identity, a database's endpoint - read
+   * before any span starts. Most blocks carry nothing a given method
+   * discovers, and its span, one per block, used to end right there in
+   * microseconds: about 25 spans of a ~120-span telemetry job's trace. So
+   * each autoDiscover* method reads its match here, undecorated, and only a
+   * match goes on to the discovery: a method of its own that keeps the
+   * span's name, and keeps the try/catch that releases the fences it arms.
+   * It is named discoverMatched*: never autoDiscover*, which the fence and
+   * L1-memo suites enumerate, and nothing a subclass might call its own
+   * static - a static is called through `this`, so a subclass's method of
+   * the same name would run instead.
+   *
+   * A read that throws - a null attribute entry - fails the discovery as it
+   * always has: logged, and nothing discovered.
+   */
+  private static readDiscoveryMatch<T>(data: {
+    resource: string;
+    read: () => T | null;
+  }): T | null {
+    try {
+      return data.read();
+    } catch (err) {
+      logger.error(
+        `Error auto-discovering ${data.resource}: ${(err as Error).message}`,
+      );
+      return null;
     }
   }
 
@@ -1737,10 +1796,33 @@ export default abstract class OtelIngestBaseService {
     return null;
   }
 
-  @CaptureSpan()
   protected static async autoDiscoverKubernetesCluster(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const clusterName: string | null = this.readDiscoveryMatch({
+      resource: "Kubernetes cluster",
+      read: (): string | null => {
+        return this.getClusterNameFromAttributes(data.attributes);
+      },
+    });
+
+    if (!clusterName) {
+      return null;
+    }
+
+    return await this.discoverMatchedKubernetesCluster({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      clusterName: clusterName,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverKubernetesCluster" })
+  private static async discoverMatchedKubernetesCluster(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    clusterName: string;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -1748,19 +1830,11 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const clusterName: string | null = this.getClusterNameFromAttributes(
-        data.attributes,
-      );
-
-      if (!clusterName) {
-        return null;
-      }
-
       const clusterIdStr: string | null =
         await this.resolveDiscoveredResourceId({
           kindName: "KubernetesCluster",
           projectId: data.projectId,
-          identity: clusterName,
+          identity: data.clusterName,
         });
 
       if (!clusterIdStr) {
@@ -1861,10 +1935,33 @@ export default abstract class OtelIngestBaseService {
     return this.getStringAttribute(attributes, "proxmox.cluster.name");
   }
 
-  @CaptureSpan()
   protected static async autoDiscoverProxmoxCluster(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const clusterName: string | null = this.readDiscoveryMatch({
+      resource: "Proxmox cluster",
+      read: (): string | null => {
+        return this.getProxmoxClusterNameFromAttributes(data.attributes);
+      },
+    });
+
+    if (!clusterName) {
+      return null;
+    }
+
+    return await this.discoverMatchedProxmoxCluster({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      clusterName: clusterName,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverProxmoxCluster" })
+  private static async discoverMatchedProxmoxCluster(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    clusterName: string;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -1872,18 +1969,11 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const clusterName: string | null =
-        this.getProxmoxClusterNameFromAttributes(data.attributes);
-
-      if (!clusterName) {
-        return null;
-      }
-
       const clusterIdStr: string | null =
         await this.resolveDiscoveredResourceId({
           kindName: "ProxmoxCluster",
           projectId: data.projectId,
-          identity: clusterName,
+          identity: data.clusterName,
         });
 
       if (!clusterIdStr) {
@@ -1984,10 +2074,33 @@ export default abstract class OtelIngestBaseService {
     return this.getStringAttribute(attributes, "vmware.vcenter.name");
   }
 
-  @CaptureSpan()
   protected static async autoDiscoverVMwareVCenter(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const vcenterName: string | null = this.readDiscoveryMatch({
+      resource: "VMware vCenter",
+      read: (): string | null => {
+        return this.getVMwareVCenterNameFromAttributes(data.attributes);
+      },
+    });
+
+    if (!vcenterName) {
+      return null;
+    }
+
+    return await this.discoverMatchedVMwareVCenter({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      vcenterName: vcenterName,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverVMwareVCenter" })
+  private static async discoverMatchedVMwareVCenter(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    vcenterName: string;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -1995,18 +2108,11 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const vcenterName: string | null =
-        this.getVMwareVCenterNameFromAttributes(data.attributes);
-
-      if (!vcenterName) {
-        return null;
-      }
-
       const vcenterIdStr: string | null =
         await this.resolveDiscoveredResourceId({
           kindName: "VMwareVCenter",
           projectId: data.projectId,
-          identity: vcenterName,
+          identity: data.vcenterName,
         });
 
       if (!vcenterIdStr) {
@@ -2112,10 +2218,33 @@ export default abstract class OtelIngestBaseService {
     );
   }
 
-  @CaptureSpan()
   protected static async autoDiscoverIoTFleet(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const fleetName: string | null = this.readDiscoveryMatch({
+      resource: "IoT fleet",
+      read: (): string | null => {
+        return this.getIoTFleetNameFromAttributes(data.attributes);
+      },
+    });
+
+    if (!fleetName) {
+      return null;
+    }
+
+    return await this.discoverMatchedIoTFleet({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      fleetName: fleetName,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverIoTFleet" })
+  private static async discoverMatchedIoTFleet(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    fleetName: string;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -2123,18 +2252,10 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const fleetName: string | null = this.getIoTFleetNameFromAttributes(
-        data.attributes,
-      );
-
-      if (!fleetName) {
-        return null;
-      }
-
       const fleetIdStr: string | null = await this.resolveDiscoveredResourceId({
         kindName: "IoTFleet",
         projectId: data.projectId,
-        identity: fleetName,
+        identity: data.fleetName,
       });
 
       if (!fleetIdStr) {
@@ -2233,10 +2354,33 @@ export default abstract class OtelIngestBaseService {
     return this.getStringAttribute(attributes, "docker.swarm.cluster.name");
   }
 
-  @CaptureSpan()
   protected static async autoDiscoverDockerSwarmCluster(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const clusterName: string | null = this.readDiscoveryMatch({
+      resource: "Docker Swarm cluster",
+      read: (): string | null => {
+        return this.getDockerSwarmClusterNameFromAttributes(data.attributes);
+      },
+    });
+
+    if (!clusterName) {
+      return null;
+    }
+
+    return await this.discoverMatchedDockerSwarmCluster({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      clusterName: clusterName,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverDockerSwarmCluster" })
+  private static async discoverMatchedDockerSwarmCluster(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    clusterName: string;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -2244,18 +2388,11 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const clusterName: string | null =
-        this.getDockerSwarmClusterNameFromAttributes(data.attributes);
-
-      if (!clusterName) {
-        return null;
-      }
-
       const clusterIdStr: string | null =
         await this.resolveDiscoveredResourceId({
           kindName: "DockerSwarmCluster",
           projectId: data.projectId,
-          identity: clusterName,
+          identity: data.clusterName,
         });
 
       if (!clusterIdStr) {
@@ -2351,10 +2488,33 @@ export default abstract class OtelIngestBaseService {
     return this.getStringAttribute(attributes, "ceph.cluster.name");
   }
 
-  @CaptureSpan()
   protected static async autoDiscoverCephCluster(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const clusterName: string | null = this.readDiscoveryMatch({
+      resource: "Ceph cluster",
+      read: (): string | null => {
+        return this.getCephClusterNameFromAttributes(data.attributes);
+      },
+    });
+
+    if (!clusterName) {
+      return null;
+    }
+
+    return await this.discoverMatchedCephCluster({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      clusterName: clusterName,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverCephCluster" })
+  private static async discoverMatchedCephCluster(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    clusterName: string;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -2362,19 +2522,11 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const clusterName: string | null = this.getCephClusterNameFromAttributes(
-        data.attributes,
-      );
-
-      if (!clusterName) {
-        return null;
-      }
-
       const clusterIdStr: string | null =
         await this.resolveDiscoveredResourceId({
           kindName: "CephCluster",
           projectId: data.projectId,
-          identity: clusterName,
+          identity: data.clusterName,
         });
 
       if (!clusterIdStr) {
@@ -2492,10 +2644,33 @@ export default abstract class OtelIngestBaseService {
     );
   }
 
-  @CaptureSpan()
   protected static async autoDiscoverStorageArray(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const arrayName: string | null = this.readDiscoveryMatch({
+      resource: "storage array",
+      read: (): string | null => {
+        return this.getStorageArrayNameFromAttributes(data.attributes);
+      },
+    });
+
+    if (!arrayName) {
+      return null;
+    }
+
+    return await this.discoverMatchedStorageArray({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      arrayName: arrayName,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverStorageArray" })
+  private static async discoverMatchedStorageArray(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    arrayName: string;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -2503,18 +2678,10 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const arrayName: string | null = this.getStorageArrayNameFromAttributes(
-        data.attributes,
-      );
-
-      if (!arrayName) {
-        return null;
-      }
-
       const arrayIdStr: string | null = await this.resolveDiscoveredResourceId({
         kindName: "StorageArray",
         projectId: data.projectId,
-        identity: arrayName,
+        identity: data.arrayName,
       });
 
       if (!arrayIdStr) {
@@ -2791,10 +2958,36 @@ export default abstract class OtelIngestBaseService {
    * even when service.name also makes the batch a Service's — the
    * discriminator choice happens in resolveTelemetryResource.
    */
-  @CaptureSpan()
   protected static async autoDiscoverServerless(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const identity: ServerlessFunctionIdentity | null = this.readDiscoveryMatch(
+      {
+        resource: "Serverless function",
+        read: (): ServerlessFunctionIdentity | null => {
+          return this.resolveServerlessFunctionIdentity(data.attributes);
+        },
+      },
+    );
+
+    // Gate: no function identity, no function.
+    if (!identity) {
+      return null;
+    }
+
+    return await this.discoverMatchedServerless({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      identity: identity,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverServerless" })
+  private static async discoverMatchedServerless(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    identity: ServerlessFunctionIdentity;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -2802,16 +2995,8 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const identity: ServerlessFunctionIdentity | null =
-        this.resolveServerlessFunctionIdentity(data.attributes);
-
-      // Gate: no function identity, no function.
-      if (!identity) {
-        return null;
-      }
-
-      const functionIdentifier: string = identity.functionIdentifier;
-      const cloudPlatform: string | null = identity.cloudPlatform;
+      const functionIdentifier: string = data.identity.functionIdentifier;
+      const cloudPlatform: string | null = data.identity.cloudPlatform;
 
       const functionIdStr: string | null =
         await this.resolveDiscoveredResourceId({
@@ -2977,10 +3162,45 @@ export default abstract class OtelIngestBaseService {
    * service.name overlap that would otherwise mirror a Service row. Runs on
    * every ingest path so the environment's telemetry tabs stay populated.
    */
-  @CaptureSpan()
   protected static async autoDiscoverCloudResource(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const cloudPlatform: string | null = this.readDiscoveryMatch({
+      resource: "Cloud resource",
+      read: (): string | null => {
+        /*
+         * normalizeCloudPlatformAttribute has normally already rewritten
+         * the attribute in place, but normalise again here so the gate, the
+         * key and the stored platform are canonical even for a caller that
+         * hands this method attributes straight from the wire.
+         */
+        const platform: string | null = normalizeCloudPlatform(
+          this.getStringAttribute(data.attributes, "cloud.platform"),
+        );
+        if (!platform || !MANAGED_CLOUD_PLATFORM_VALUES.has(platform)) {
+          return null;
+        }
+        return platform;
+      },
+    });
+
+    if (!cloudPlatform) {
+      return null;
+    }
+
+    return await this.discoverMatchedCloudResource({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      cloudPlatform: cloudPlatform,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverCloudResource" })
+  private static async discoverMatchedCloudResource(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    cloudPlatform: string;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -2988,18 +3208,7 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      /*
-       * normalizeCloudPlatformAttribute has normally already rewritten the
-       * attribute in place, but normalise again here so the gate, the key
-       * and the stored platform are canonical even for a caller that hands
-       * this method attributes straight from the wire.
-       */
-      const cloudPlatform: string | null = normalizeCloudPlatform(
-        this.getStringAttribute(data.attributes, "cloud.platform"),
-      );
-      if (!cloudPlatform || !MANAGED_CLOUD_PLATFORM_VALUES.has(cloudPlatform)) {
-        return null;
-      }
+      const cloudPlatform: string = data.cloudPlatform;
 
       /*
        * Every resource detector that stamps cloud.platform also stamps
@@ -3210,8 +3419,22 @@ export default abstract class OtelIngestBaseService {
    *
    * Returns how many resources were sighted or already known.
    */
-  @CaptureSpan()
   protected static async autoDiscoverCloudMonitoredResources(data: {
+    projectId: ObjectID;
+    resources: Array<CloudMonitoredResource>;
+  }): Promise<number> {
+    // Most requests name no cloud resource: nothing to do, and no span.
+    if (data.resources.length === 0) {
+      return 0;
+    }
+
+    return await this.discoverMatchedCloudMonitoredResources(data);
+  }
+
+  @CaptureSpan({
+    name: "OtelIngestBaseService.autoDiscoverCloudMonitoredResources",
+  })
+  private static async discoverMatchedCloudMonitoredResources(data: {
     projectId: ObjectID;
     resources: Array<CloudMonitoredResource>;
   }): Promise<number> {
@@ -3622,11 +3845,38 @@ export default abstract class OtelIngestBaseService {
    * Never throws: null (no row) is always a valid answer, and the caller
    * then routes the batch as it would any other.
    */
-  @CaptureSpan()
   protected static async autoDiscoverDatabaseServer(data: {
     projectId: ObjectID;
     attributes: JSONArray;
     receiverSystemHint?: string | null | undefined;
+  }): Promise<ObjectID | null> {
+    const resolved: DatabaseServerResourceResolution | null =
+      this.readDiscoveryMatch({
+        resource: "database server",
+        read: (): DatabaseServerResourceResolution | null => {
+          return this.resolveDatabaseServerResource({
+            attributes: data.attributes,
+            receiverSystemHint: data.receiverSystemHint,
+          });
+        },
+      });
+
+    if (!resolved) {
+      return null;
+    }
+
+    return await this.discoverMatchedDatabaseServer({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      resolved: resolved,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverDatabaseServer" })
+  private static async discoverMatchedDatabaseServer(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    resolved: DatabaseServerResourceResolution;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -3634,15 +3884,7 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const resolved: DatabaseServerResourceResolution | null =
-        this.resolveDatabaseServerResource({
-          attributes: data.attributes,
-          receiverSystemHint: data.receiverSystemHint,
-        });
-
-      if (!resolved) {
-        return null;
-      }
+      const resolved: DatabaseServerResourceResolution = data.resolved;
 
       const agentVersion: string | null = this.getStringAttribute(
         data.attributes,
@@ -4072,10 +4314,50 @@ export default abstract class OtelIngestBaseService {
    * is also a backend service — the discriminator choice happens in
    * resolveTelemetryResource.
    */
-  @CaptureSpan()
   protected static async autoDiscoverRum(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const application: RumApplicationMatch | null = this.readDiscoveryMatch({
+      resource: "RUM application",
+      read: (): RumApplicationMatch | null => {
+        const clientType: string | null = this.getRumClientType(
+          data.attributes,
+        );
+        if (!clientType) {
+          return null;
+        }
+
+        const appIdentifier: string | null = this.getStringAttribute(
+          data.attributes,
+          "service.name",
+        );
+        if (!appIdentifier) {
+          return null;
+        }
+
+        return { clientType: clientType, appIdentifier: appIdentifier };
+      },
+    });
+
+    if (!application) {
+      return null;
+    }
+
+    return await this.discoverMatchedRum({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      clientType: application.clientType,
+      appIdentifier: application.appIdentifier,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverRum" })
+  private static async discoverMatchedRum(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    clientType: string;
+    appIdentifier: string;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -4083,23 +4365,12 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      const clientType: string | null = this.getRumClientType(data.attributes);
-      if (!clientType) {
-        return null;
-      }
-
-      const appIdentifier: string | null = this.getStringAttribute(
-        data.attributes,
-        "service.name",
-      );
-      if (!appIdentifier) {
-        return null;
-      }
+      const clientType: string = data.clientType;
 
       const appIdStr: string | null = await this.resolveDiscoveredResourceId({
         kindName: "RumApplication",
         projectId: data.projectId,
-        identity: appIdentifier,
+        identity: data.appIdentifier,
       });
 
       if (!appIdStr) {
@@ -4446,10 +4717,37 @@ export default abstract class OtelIngestBaseService {
     );
   }
 
-  @CaptureSpan()
   protected static async autoDiscoverDockerHost(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const hostName: string | null = this.readDiscoveryMatch({
+      resource: "Docker host",
+      read: (): string | null => {
+        if (!this.isDockerRuntime(data.attributes)) {
+          return null;
+        }
+
+        return this.getHostNameFromAttributes(data.attributes);
+      },
+    });
+
+    if (!hostName) {
+      return null;
+    }
+
+    return await this.discoverMatchedDockerHost({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      hostName: hostName,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverDockerHost" })
+  private static async discoverMatchedDockerHost(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    hostName: string;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -4457,22 +4755,10 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      if (!this.isDockerRuntime(data.attributes)) {
-        return null;
-      }
-
-      const hostName: string | null = this.getHostNameFromAttributes(
-        data.attributes,
-      );
-
-      if (!hostName) {
-        return null;
-      }
-
       const hostIdStr: string | null = await this.resolveDiscoveredResourceId({
         kindName: "DockerHost",
         projectId: data.projectId,
-        identity: hostName,
+        identity: data.hostName,
       });
 
       if (!hostIdStr) {
@@ -4568,10 +4854,37 @@ export default abstract class OtelIngestBaseService {
     }
   }
 
-  @CaptureSpan()
   protected static async autoDiscoverPodmanHost(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+  }): Promise<ObjectID | null> {
+    const hostName: string | null = this.readDiscoveryMatch({
+      resource: "Podman host",
+      read: (): string | null => {
+        if (!this.isPodmanRuntime(data.attributes)) {
+          return null;
+        }
+
+        return this.getHostNameFromAttributes(data.attributes);
+      },
+    });
+
+    if (!hostName) {
+      return null;
+    }
+
+    return await this.discoverMatchedPodmanHost({
+      projectId: data.projectId,
+      attributes: data.attributes,
+      hostName: hostName,
+    });
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverPodmanHost" })
+  private static async discoverMatchedPodmanHost(data: {
+    projectId: ObjectID;
+    attributes: JSONArray;
+    hostName: string;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -4579,22 +4892,10 @@ export default abstract class OtelIngestBaseService {
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      if (!this.isPodmanRuntime(data.attributes)) {
-        return null;
-      }
-
-      const hostName: string | null = this.getHostNameFromAttributes(
-        data.attributes,
-      );
-
-      if (!hostName) {
-        return null;
-      }
-
       const hostIdStr: string | null = await this.resolveDiscoveredResourceId({
         kindName: "PodmanHost",
         projectId: data.projectId,
-        identity: hostName,
+        identity: data.hostName,
       });
 
       if (!hostIdStr) {
@@ -4734,70 +5035,103 @@ export default abstract class OtelIngestBaseService {
    * They are still captured into the Host record if present, just not
    * sufficient to create a row by themselves.
    */
-  @CaptureSpan()
-  protected static async autoDiscoverHost(data: {
-    projectId: ObjectID;
-    attributes: JSONArray;
-    hasInfraSignal?: boolean;
-    dockerHostId?: ObjectID | null;
-    podmanHostId?: ObjectID | null;
-    kubernetesClusterId?: ObjectID | null;
-    databaseServerId?: ObjectID | null;
-    cpuCores?: number | undefined;
-    totalMemoryBytes?: number | undefined;
-    processCount?: number | undefined;
-  }): Promise<ObjectID | null> {
+  protected static async autoDiscoverHost(
+    data: HostDiscovery,
+  ): Promise<ObjectID | null> {
+    const hostName: string | null = this.readDiscoveryMatch({
+      resource: "Host",
+      read: (): string | null => {
+        return this.getDiscoverableHostName(data);
+      },
+    });
+
+    if (!hostName) {
+      return null;
+    }
+
+    return await this.discoverMatchedHost({ ...data, hostName: hostName });
+  }
+
+  /*
+   * autoDiscoverHost's gate, as described above it: the host.name a
+   * resource block registers its Host by, or null when the block is not a
+   * Host's telemetry.
+   */
+  private static getDiscoverableHostName(data: HostDiscovery): string | null {
+    /*
+     * Docker hosts, Podman hosts, Kubernetes clusters/nodes and databases
+     * live in their own tables. If this batch already resolved to one, do
+     * not also create a Host row.
+     */
+    if (
+      data.dockerHostId ||
+      data.podmanHostId ||
+      data.kubernetesClusterId ||
+      data.databaseServerId
+    ) {
+      return null;
+    }
+
+    const hostName: string | null = this.getStringAttribute(
+      data.attributes,
+      "host.name",
+    );
+
+    if (!hostName) {
+      return null;
+    }
+
+    if (this.hasKubernetesIdentity(data.attributes)) {
+      return null;
+    }
+
+    /*
+     * Managed / serverless compute (ECS, Fargate, Cloud Run, App Engine,
+     * Lambda, …) is owned by the CloudResource / ServerlessFunction tables,
+     * not Host. Skip so we don't also create a phantom Host row for those
+     * platforms. Raw VM platforms (aws_ec2, gcp_compute_engine, azure_vm)
+     * are intentionally NOT in these sets, so VMs still become Hosts.
+     */
+    const hostCloudPlatform: string | null = normalizeCloudPlatform(
+      this.getStringAttribute(data.attributes, "cloud.platform"),
+    );
+    if (
+      hostCloudPlatform &&
+      (FAAS_CLOUD_PLATFORM_VALUES.has(hostCloudPlatform) ||
+        MANAGED_CLOUD_PLATFORM_VALUES.has(hostCloudPlatform))
+    ) {
+      return null;
+    }
+
+    const osType: string | null = this.getStringAttribute(
+      data.attributes,
+      "os.type",
+    );
+    const containerRuntime: string | null = this.getStringAttribute(
+      data.attributes,
+      "container.runtime",
+    );
+
+    const hasResourceSignal: boolean = Boolean(osType || containerRuntime);
+
+    if (!hasResourceSignal && !data.hasInfraSignal) {
+      return null;
+    }
+
+    return hostName;
+  }
+
+  @CaptureSpan({ name: "OtelIngestBaseService.autoDiscoverHost" })
+  private static async discoverMatchedHost(
+    data: HostDiscovery & { hostName: string },
+  ): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
      * releaseMaintenanceFences.
      */
     const armedFences: Array<MaintenanceFence> = [];
     try {
-      /*
-       * Docker hosts, Podman hosts, Kubernetes clusters/nodes and databases
-       * live in their own tables. If this batch already resolved to one, do
-       * not also create a Host row.
-       */
-      if (
-        data.dockerHostId ||
-        data.podmanHostId ||
-        data.kubernetesClusterId ||
-        data.databaseServerId
-      ) {
-        return null;
-      }
-
-      const hostName: string | null = this.getStringAttribute(
-        data.attributes,
-        "host.name",
-      );
-
-      if (!hostName) {
-        return null;
-      }
-
-      if (this.hasKubernetesIdentity(data.attributes)) {
-        return null;
-      }
-
-      /*
-       * Managed / serverless compute (ECS, Fargate, Cloud Run, App Engine,
-       * Lambda, …) is owned by the CloudResource / ServerlessFunction tables,
-       * not Host. Skip so we don't also create a phantom Host row for those
-       * platforms. Raw VM platforms (aws_ec2, gcp_compute_engine, azure_vm)
-       * are intentionally NOT in these sets, so VMs still become Hosts.
-       */
-      const hostCloudPlatform: string | null = normalizeCloudPlatform(
-        this.getStringAttribute(data.attributes, "cloud.platform"),
-      );
-      if (
-        hostCloudPlatform &&
-        (FAAS_CLOUD_PLATFORM_VALUES.has(hostCloudPlatform) ||
-          MANAGED_CLOUD_PLATFORM_VALUES.has(hostCloudPlatform))
-      ) {
-        return null;
-      }
-
+      const hostName: string = data.hostName;
       const hostIdAttr: string | null = this.getStringAttribute(
         data.attributes,
         "host.id",
@@ -4826,12 +5160,6 @@ export default abstract class OtelIngestBaseService {
         data.attributes,
         "container.runtime",
       );
-
-      const hasResourceSignal: boolean = Boolean(osType || containerRuntime);
-
-      if (!hasResourceSignal && !data.hasInfraSignal) {
-        return null;
-      }
 
       const hostIdStr: string | null = await this.resolveDiscoveredResourceId({
         kindName: "Host",
