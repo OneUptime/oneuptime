@@ -11,6 +11,10 @@ on:
     branches:
       - master
 
+# Read-only: these jobs check out and test the code, nothing more.
+permissions:
+  contents: read
+
 jobs:
   # Every Helm chart test, in one check. The runner walks HelmChart/Tests/suites
   # cheapest-first -- lint, then the cluster-free helm-unittest suites, then the

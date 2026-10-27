@@ -14,6 +14,11 @@ on:
       - develop
   workflow_dispatch: # Allow manual trigger
 
+# Read-only: the job checks out the code, generates from it and uploads the
+# result as an artifact, nothing more.
+permissions:
+  contents: read
+
 jobs:
   generate-terraform-provider:
     runs-on: ubuntu-latest
