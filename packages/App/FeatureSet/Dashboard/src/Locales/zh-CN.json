@@ -35877,5 +35877,22 @@
   "Host key": "主机密钥",
   "The step signs in only when the machine presents one of these keys: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one per line. Left empty, any key is accepted, and the step's output shows the one the machine presented.": "只有当机器出示其中一个密钥时，步骤才会登录：其 SHA256 指纹，或 ssh-keyscan 输出的公钥，每行一个。留空时接受任何密钥，并在步骤输出中显示机器出示的密钥。",
   "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "此处有一行既不是 SHA256 指纹也不是公钥，因此步骤运行时会失败。",
-  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "这里的密钥多于一台机器拥有的数量，因此步骤运行时会失败。一台机器每种类型只有一个密钥：请填写这些。"
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "这里的密钥多于一台机器拥有的数量，因此步骤运行时会失败。一台机器每种类型只有一个密钥：请填写这些。",
+  "How the agent links spans": "How the agent links spans",
+  "Link logs to traces": "Link logs to traces",
+  "Logs linked to a trace": "Logs linked to a trace",
+  "Many traces are a single span: usually background work that no request started, or calls the agent could not link to the request they belong to.": "Many traces are a single span: usually background work that no request started, or calls the agent could not link to the request they belong to.",
+  "Measured from {{start}} to {{end}} on a {{percent}}% sample of the traces this service has spans in, {{spans}} in {{traces}}, and on all of its logs: {{logs}}.": "Measured from {{start}} to {{end}} on a {{percent}}% sample of the traces this service has spans in, {{spans}} in {{traces}}, and on all of its logs: {{logs}}.",
+  "Measured from {{start}} to {{end}} on a {{percent}}% sample of the traces this service has spans in: {{spans}} in {{traces}}.": "Measured from {{start}} to {{end}} on a {{percent}}% sample of the traces this service has spans in: {{spans}} in {{traces}}.",
+  "Measured from {{start}} to {{end}} on every trace this service has spans in, {{spans}} in {{traces}}, and on all of its logs: {{logs}}.": "Measured from {{start}} to {{end}} on every trace this service has spans in, {{spans}} in {{traces}}, and on all of its logs: {{logs}}.",
+  "Measured from {{start}} to {{end}} on every trace this service has spans in: {{spans}} in {{traces}}.": "Measured from {{start}} to {{end}} on every trace this service has spans in: {{spans}} in {{traces}}.",
+  "Most logs carry no trace id. Turn on log correlation in the agent, or send logs through your OpenTelemetry SDK.": "Most logs carry no trace id. Turn on log correlation in the agent, or send logs through your OpenTelemetry SDK.",
+  "One-span traces": "One-span traces",
+  "Some spans arrive without the span they belong to: usually a sender dropping spans under load, or a database proxy the Kubernetes agent does not recognise (add it to ebpf.databaseProxyNames).": "Some spans arrive without the span they belong to: usually a sender dropping spans under load, or a database proxy the Kubernetes agent does not recognise (add it to ebpf.databaseProxyNames).",
+  "Trace health": "Trace health",
+  "Traces with every span": "Traces with every span",
+  "Whether this service's traces arrive whole, and whether its logs link to them.": "Whether this service's traces arrive whole, and whether its logs link to them.",
+  "Why some traces are one span": "Why some traces are one span",
+  "{{count}} logs": "{{count}} logs",
+  "{{count}} logs_one": "{{count}} log"
 }
