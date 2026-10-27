@@ -8,7 +8,10 @@ import {
 } from "@jest/globals";
 import crypto from "crypto";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
-import logger from "Common/Server/Utils/Logger";
+import logger, { RecentLogEntry } from "Common/Server/Utils/Logger";
+import ConfigLogLevel from "Common/Server/Types/ConfigLogLevel";
+import ErrorClass from "Common/Types/Telemetry/ErrorClass";
+import { ERROR_CLASS_ATTRIBUTE_KEY } from "Common/Types/Telemetry/UnitOfWork";
 import {
   ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
   ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
@@ -32,6 +35,7 @@ import LicenseSigner, {
   ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY_ENV,
   LICENSE_SERVER_TOKEN_FEATURES,
   LicenseSigningKeyError,
+  LicenseSigningKeyProblem,
   LicenseSigningState,
   LicenseTokenSubject,
   ResolvedLicenseSigning,
@@ -512,28 +516,32 @@ describe("LicenseSigner.init - read once at boot", () => {
     expect(String(infoSpy.mock.calls[0]?.[0])).toContain("EdDSA");
     expect(String(infoSpy.mock.calls[0]?.[0])).toContain(SIGNING_KID);
     expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  test("logs no key as info, and a key it cannot use as a warning", () => {
+  test("logs no key as info, and a key it cannot use as an error", () => {
     initSignerWith({ rawKey: undefined, trustedKeys: [TRUSTED] });
 
     expect(infoSpy).toHaveBeenCalledTimes(1);
     expect(String(infoSpy.mock.calls[0]?.[0])).toContain("legacy HS256");
     expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
 
     infoSpy.mockClear();
 
     initSignerWith({ rawKey: SIGNING_PEM, trustedKeys: [] });
 
     expect(infoSpy).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledTimes(1);
-    expect(String(warnSpy.mock.calls[0]?.[0])).toContain("TrustedLicenseKeys");
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    expect(String(errorSpy.mock.calls[0]?.[0])).toContain("TrustedLicenseKeys");
   });
 
   test.each([
     ["PEM", SIGNING_PEM],
     ["escaped PEM", toEscapedPem(SIGNING_PEM)],
     ["base64 PEM", toBase64Pem(SIGNING_PEM)],
+    ['base64 PEM with a stray trailing "%"', `${toBase64Pem(SIGNING_PEM)}%`],
   ])(
     "never logs the private key (%s), trusted or not",
     (_label: string, raw: string) => {
@@ -566,6 +574,292 @@ describe("LicenseSigner.init - read once at boot", () => {
     } finally {
       process.env["JEST_WORKER_ID"] = workerId;
     }
+  });
+});
+
+/*
+ * A key that is set but cannot be used is a broken deployment: every
+ * installation is handed a token it cannot verify, shows a legacy license, and
+ * loses what only a signed license grants (white-labelling, offline license
+ * tokens). It used to be logged as a warning, which LOG_LEVEL=ERROR - what
+ * config.example.env ships and what OneUptime Cloud runs - drops. OneUptime
+ * Cloud signed every license in the legacy format while its key ended in a
+ * stray "%" (zsh's no-newline marker, copied from a terminal with the key),
+ * and nothing said so.
+ */
+interface UnusableKeyCase {
+  label: string;
+  problem: LicenseSigningKeyProblem;
+  rawKey: () => string;
+  trustedKeys: () => ReadonlyArray<TrustedLicenseKey>;
+  // Anything the case needs in place before the signer reads the key.
+  arrange?: (() => void) | undefined;
+}
+
+// The OneUptime Cloud value: the right key, base64-encoded, with zsh's "%" after it.
+const BASE64_PEM_WITH_STRAY_PERCENT: string = `${toBase64Pem(SIGNING_PEM)}%`;
+
+const trustsSigningKey: () => ReadonlyArray<TrustedLicenseKey> =
+  (): ReadonlyArray<TrustedLicenseKey> => {
+    return [TRUSTED];
+  };
+
+const UNUSABLE_KEY_CASES: Array<UnusableKeyCase> = [
+  {
+    label: 'a base64 PEM with a stray trailing "%"',
+    problem: "unparseable",
+    rawKey: (): string => {
+      return BASE64_PEM_WITH_STRAY_PERCENT;
+    },
+    trustedKeys: trustsSigningKey,
+  },
+  {
+    label: "a value that is not a key at all",
+    problem: "unparseable",
+    rawKey: (): string => {
+      return "definitely-not-a-key";
+    },
+    trustedKeys: trustsSigningKey,
+  },
+  {
+    label: "a public key instead of the private key",
+    problem: "unparseable",
+    rawKey: (): string => {
+      return toPublicPem(SIGNING_KEY);
+    },
+    trustedKeys: trustsSigningKey,
+  },
+  {
+    label: "an EC private key",
+    problem: "not-ed25519",
+    rawKey: (): string => {
+      return crypto
+        .generateKeyPairSync("ec", { namedCurve: "P-256" })
+        .privateKey.export({ type: "pkcs8", format: "pem" })
+        .toString();
+    },
+    trustedKeys: trustsSigningKey,
+  },
+  {
+    label: "an Ed25519 key this build does not trust",
+    problem: "not-trusted",
+    rawKey: (): string => {
+      return SIGNING_PEM;
+    },
+    trustedKeys: (): ReadonlyArray<TrustedLicenseKey> => {
+      return [toTrustedKey(OTHER_KEY)];
+    },
+  },
+  {
+    label: "a trusted key whose self-test fails",
+    problem: "self-test-failed",
+    rawKey: (): string => {
+      return SIGNING_PEM;
+    },
+    trustedKeys: trustsSigningKey,
+    arrange: (): void => {
+      jest.spyOn(LicenseToken, "sign").mockImplementationOnce((): string => {
+        throw new Error("signing is broken");
+      });
+    },
+  },
+];
+
+const initSignerWithUnusableKey: (
+  testCase: UnusableKeyCase,
+) => LicenseSigningState = (testCase: UnusableKeyCase): LicenseSigningState => {
+  if (testCase.arrange) {
+    testCase.arrange();
+  }
+
+  return initSignerWith({
+    rawKey: testCase.rawKey(),
+    trustedKeys: testCase.trustedKeys(),
+  });
+};
+
+describe("LicenseSigner.init - a key that is set but cannot be used is an error", () => {
+  test.each(UNUSABLE_KEY_CASES)(
+    "$label ($problem): one error, never a warning",
+    (testCase: UnusableKeyCase) => {
+      const state: LicenseSigningState = initSignerWithUnusableKey(testCase);
+
+      expect(state).toMatchObject({
+        mode: "legacy-hs256",
+        problem: testCase.problem,
+      });
+      expect(LicenseSigner.isEdDsaEnabled()).toBe(false);
+
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(warnSpy).not.toHaveBeenCalled();
+      expect(infoSpy).not.toHaveBeenCalled();
+
+      const message: string = String(errorSpy.mock.calls[0]?.[0]);
+
+      expect(message).toContain(
+        "Enterprise license server: license tokens are signed with the legacy HS256 format.",
+      );
+      expect(message).toContain(state.message);
+    },
+  );
+
+  test.each(UNUSABLE_KEY_CASES)(
+    "$label: tagged infrastructure - an Issue for a person, not the code-fix lane",
+    (testCase: UnusableKeyCase) => {
+      initSignerWithUnusableKey(testCase);
+
+      expect(errorSpy.mock.calls[0]?.[1]).toEqual({
+        [ERROR_CLASS_ATTRIBUTE_KEY]: ErrorClass.Infrastructure,
+      });
+    },
+  );
+
+  test("says what the broken key costs, so whoever reads it acts on it", () => {
+    initSignerWith({
+      rawKey: BASE64_PEM_WITH_STRAY_PERCENT,
+      trustedKeys: [TRUSTED],
+    });
+
+    const message: string = String(errorSpy.mock.calls[0]?.[0]);
+
+    expect(message).toContain(ENTERPRISE_LICENSE_SIGNING_PRIVATE_KEY_ENV);
+    expect(message).toContain(
+      "Self-hosted installations cannot verify these tokens",
+    );
+    expect(message).toContain("legacy license");
+    expect(message).toContain("white-labelling");
+    expect(message).toContain("offline license tokens");
+  });
+
+  test('the stray "%" is the only fault: the same key without it signs with EdDSA', () => {
+    expect(
+      initSignerWith({
+        rawKey: toBase64Pem(SIGNING_PEM),
+        trustedKeys: [TRUSTED],
+      }).mode,
+    ).toBe("eddsa");
+    expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  test("logs once, at boot - not again for each token it then signs", () => {
+    initSignerWith({
+      rawKey: BASE64_PEM_WITH_STRAY_PERCENT,
+      trustedKeys: [TRUSTED],
+    });
+
+    for (let index: number = 0; index < 3; index++) {
+      expect(LicenseSigner.signOnlineToken(subjectFor(), NOW)).not.toBeNull();
+    }
+
+    LicenseSigner.init();
+    LicenseSigner.getState();
+
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * The same through the real logger at LOG_LEVEL=ERROR: the line has to reach
+ * stdout and the recent logs a support bundle carries - exactly where the
+ * warning it used to be never arrived.
+ */
+describe("LicenseSigner.init - through the real logger at LOG_LEVEL=ERROR", () => {
+  let consoleErrorSpy: LoggerSpy;
+  let consoleWarnSpy: LoggerSpy;
+  let consoleInfoSpy: LoggerSpy;
+
+  const printedText: () => string = (): string => {
+    return collectLoggedText([
+      consoleErrorSpy as unknown as { mock: { calls: Array<Array<unknown>> } },
+      consoleWarnSpy as unknown as { mock: { calls: Array<Array<unknown>> } },
+      consoleInfoSpy as unknown as { mock: { calls: Array<Array<unknown>> } },
+    ]);
+  };
+
+  beforeEach(() => {
+    // The logger's own level methods, not the stand-ins the other suites use.
+    infoSpy.mockRestore();
+    warnSpy.mockRestore();
+    errorSpy.mockRestore();
+    debugSpy.mockRestore();
+
+    jest.spyOn(logger, "getLogLevel").mockReturnValue(ConfigLogLevel.ERROR);
+
+    consoleErrorSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+    consoleWarnSpy = jest
+      .spyOn(console, "warn")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+    consoleInfoSpy = jest
+      .spyOn(console, "info")
+      .mockImplementation((): void => {
+        return undefined;
+      });
+  });
+
+  test.each(UNUSABLE_KEY_CASES)(
+    "$label: printed as an error, and kept in the recent logs",
+    (testCase: UnusableKeyCase) => {
+      const state: LicenseSigningState = initSignerWithUnusableKey(testCase);
+
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+      expect(consoleWarnSpy).not.toHaveBeenCalled();
+      expect(consoleInfoSpy).not.toHaveBeenCalled();
+
+      const printed: string = String(consoleErrorSpy.mock.calls[0]?.[0]);
+
+      expect(printed).toContain("legacy HS256");
+      expect(printed).toContain(state.message);
+
+      const latest: RecentLogEntry | undefined = logger.getRecentLogs(1)[0];
+
+      expect(latest?.level).toBe("ERROR");
+      expect(latest?.message).toBe(printed);
+    },
+  );
+
+  test("prints nothing when no key is set: a server without one is not broken", () => {
+    const recentBefore: number = logger.getRecentLogs().length;
+
+    initSignerWith({ rawKey: undefined, trustedKeys: [TRUSTED] });
+
+    expect(printedText()).toBe("");
+    expect(logger.getRecentLogs().length).toBe(recentBefore);
+  });
+
+  test("prints nothing once the key is usable", () => {
+    const recentBefore: number = logger.getRecentLogs().length;
+
+    expect(
+      initSignerWith({ rawKey: SIGNING_PEM, trustedKeys: [TRUSTED] }).mode,
+    ).toBe("eddsa");
+    expect(printedText()).toBe("");
+    expect(logger.getRecentLogs().length).toBe(recentBefore);
+  });
+
+  test("never prints the private key", () => {
+    initSignerWith({
+      rawKey: BASE64_PEM_WITH_STRAY_PERCENT,
+      trustedKeys: [TRUSTED],
+    });
+    initSignerWith({
+      rawKey: BASE64_PEM_WITH_STRAY_PERCENT.substring(0, 100),
+      trustedKeys: [TRUSTED],
+    });
+
+    expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
+
+    const printed: string = `${printedText()}\n${JSON.stringify(logger.getRecentLogs(2))}`;
+    const pemBody: string = SIGNING_PEM.split("\n")[1] as string;
+
+    expect(printed).not.toContain(pemBody.substring(0, 24));
+    expect(printed).not.toContain(toBase64Pem(SIGNING_PEM).substring(0, 40));
+    expect(printed).not.toContain("PRIVATE KEY");
   });
 });
 

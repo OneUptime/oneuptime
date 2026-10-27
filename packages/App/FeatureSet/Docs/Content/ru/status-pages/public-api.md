@@ -138,6 +138,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `timelineIncidents` | Инциденты в окне полос времени работы, включая решённые, — для всплывающих подсказок полос. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | То же для эпизодов инцидентов. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | События плановых работ, которые ещё впереди или идут сейчас, их публичные заметки и смены состояний. |
+| `timelineScheduledMaintenanceEvents` | Уже начавшиеся события плановых работ в окне полос времени работы, идущие сейчас или прошедшие, — для всплывающих подсказок полос и диалогового окна каждого дня: те, что показывает страница и что затрагивают один из её мониторов, каждое только с мониторами страницы. |
 | `activeAnnouncements` | Объявления, которые показываются сейчас: уже начались и ещё не закончились. |
 
 ## Чтение сводки

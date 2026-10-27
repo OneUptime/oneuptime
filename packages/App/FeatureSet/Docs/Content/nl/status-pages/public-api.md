@@ -138,6 +138,7 @@ De algemene status is de slechtste huidige status van de monitors en monitorgroe
 | `timelineIncidents` | De incidenten in het venster van de beschikbaarheidsbalken, opgeloste incidenten inbegrepen, voor de tooltips van de balken. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Hetzelfde voor incidentepisodes. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | De geplande onderhoudsgebeurtenissen die nog moeten komen of lopen, hun publieke notities en statuswijzigingen. |
+| `timelineScheduledMaintenanceEvents` | De geplande onderhoudsgebeurtenissen in het venster van de beschikbaarheidsbalken die zijn begonnen, of ze nu lopen of voorbij zijn, voor de tooltips van de balken en het dialoogvenster van elke dag: de gebeurtenissen die de pagina toont en die een van haar monitors bevatten, elk met alleen de monitors van de pagina. |
 | `activeAnnouncements` | De aankondigingen die nu worden getoond: begonnen en nog niet afgelopen. |
 
 ## De samenvatting lezen

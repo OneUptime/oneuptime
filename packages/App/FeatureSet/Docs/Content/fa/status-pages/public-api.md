@@ -138,6 +138,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `timelineIncidents` | حادثه‌های درون بازهٔ نوارهای زمان کارکرد، از جمله حل‌شده‌ها، برای راهنمای نوارها. |
 | `activeEpisodes`، `episodePublicNotes`، `episodeStateTimelines` | همین‌ها برای اپیزودهای حادثه. |
 | `scheduledMaintenanceEvents`، `scheduledMaintenanceEventsPublicNotes`، `scheduledMaintenanceStateTimelines`، `scheduledMaintenanceStates` | رویدادهای نگهداری زمان‌بندی‌شده که هنوز در پیش‌اند یا در جریان‌اند، یادداشت‌های عمومی و تغییرات وضعیتشان. |
+| `timelineScheduledMaintenanceEvents` | رویدادهای نگهداری زمان‌بندی‌شدهٔ درون بازهٔ نوارهای زمان کارکرد که آغاز شده‌اند، چه در جریان باشند چه پایان‌یافته، برای راهنمای نوارها و پنجرهٔ گفت‌وگوی هر روز: رویدادهایی که صفحه نشان می‌دهد و یکی از مانیتورهای آن را در بر دارند، هر کدام فقط با مانیتورهای صفحه. |
 | `activeAnnouncements` | اطلاعیه‌هایی که اکنون نمایش داده می‌شوند: آغازشده و پایان‌نیافته. |
 
 ## خواندن خلاصه
