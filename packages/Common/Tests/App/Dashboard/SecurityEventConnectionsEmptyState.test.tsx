@@ -521,9 +521,13 @@ describe("SecurityEventConnectionsEmptyState", () => {
           screen.queryByTestId(`${ID}-disabled-reason`),
         ).not.toBeInTheDocument();
         expect(root().querySelectorAll("svg")).toHaveLength(
-          // Badge, Add icon, 8 tile badges, 8 external-link icons, 2 requirements.
-          1 + 1 + 8 + 8 + 2,
+          /*
+           * Badge, Add icon, 8 external-link icons, 2 requirements: the 8
+           * products are drawn with their logos (images), not icons.
+           */
+          1 + 1 + 8 + 2,
         );
+        expect(root().querySelectorAll("[data-provider-logo]")).toHaveLength(8);
       },
     );
   });
@@ -800,25 +804,18 @@ describe("SecurityEventConnectionsEmptyState", () => {
       }
     });
 
-    test("each tile shows its catalog icon, and no two tiles share one", () => {
+    test("each tile shows its product's official logo, and no two tiles share one", () => {
       renderEmptyState();
 
-      const markups: Array<string> = SecurityEventConnectorCatalog.map(
+      const logos: Array<string> = SecurityEventConnectorCatalog.map(
         (definition: SecurityEventConnectorDefinition): string => {
           const badge: Element = tileFor(definition.provider).children[0]!;
           expect(badge).toHaveAttribute("aria-hidden", "true");
-          const markup: string = svgMarkup(badge);
-          expect(markup.length).toBeGreaterThan(0);
-          return markup;
+          expect(badge).toHaveAttribute("data-provider-logo", definition.logo);
+          return definition.logo;
         },
       );
-      expect(new Set(markups).size).toBe(markups.length);
-
-      SecurityEventConnectorCatalog.forEach(
-        (definition: SecurityEventConnectorDefinition, index: number): void => {
-          expect(markups[index]).toBe(iconMarkup(definition.icon));
-        },
-      );
+      expect(new Set(logos).size).toBe(logos.length);
     });
 
     test("tiles use the empty state's id as their prefix", () => {
@@ -1188,9 +1185,10 @@ describe("SecurityEventConnectionsEmptyState", () => {
 
     /*
      * Sentinel, Elastic and Google SecOps all used to be drawn with a
-     * shield, three identical marks in a row of eight.
+     * shield, three identical marks in a row of eight; then with three
+     * generic icons. Each is now its own product's logo.
      */
-    test("only one tile is drawn with the ShieldCheck icon", () => {
+    test("Sentinel, Elastic and Google SecOps each show their own logo, no generic icon", () => {
       renderEmptyState();
 
       const shield: string = iconMarkup(IconProp.ShieldCheck);
@@ -1199,19 +1197,16 @@ describe("SecurityEventConnectionsEmptyState", () => {
           return svgMarkup(tile.children[0]!) === shield;
         },
       );
-      expectSameElements(shielded, [
-        tileFor(SecurityEventConnectorProvider.MicrosoftSentinel),
-      ]);
+      expect(shielded).toHaveLength(0);
       expect(
-        svgMarkup(
-          tileFor(SecurityEventConnectorProvider.ElasticSecurity).children[0]!,
-        ),
-      ).toBe(iconMarkup(IconProp.Database));
+        tileFor(SecurityEventConnectorProvider.MicrosoftSentinel).children[0],
+      ).toHaveAttribute("data-provider-logo", "microsoft-sentinel");
       expect(
-        svgMarkup(
-          tileFor(SecurityEventConnectorProvider.GoogleSecOps).children[0]!,
-        ),
-      ).toBe(iconMarkup(IconProp.ViewfinderCircle));
+        tileFor(SecurityEventConnectorProvider.ElasticSecurity).children[0],
+      ).toHaveAttribute("data-provider-logo", "elastic");
+      expect(
+        tileFor(SecurityEventConnectorProvider.GoogleSecOps).children[0],
+      ).toHaveAttribute("data-provider-logo", "google-security-operations");
     });
   });
 });

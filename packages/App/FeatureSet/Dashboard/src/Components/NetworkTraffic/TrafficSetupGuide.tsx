@@ -7,6 +7,7 @@ import {
   getTrafficSetupGuides,
 } from "./NetworkTrafficSetup";
 import IconProp from "Common/Types/Icon/IconProp";
+import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
 import Route from "Common/Types/API/Route";
 import Button, {
   ButtonSize,
@@ -15,6 +16,7 @@ import Button, {
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
+import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -129,9 +131,12 @@ const TrafficSetupGuide: FunctionComponent<ComponentProps> = (
           data-testid="traffic-setup-meraki"
         >
           <div className="flex min-w-0 items-start gap-3">
-            <Icon
-              icon={IconProp.Cloud}
-              className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-500"
+            {/* Meraki is Cisco's, and is shown by Cisco's official logo. */}
+            <ProviderLogoImage
+              logo={ProviderLogo.Cisco}
+              isBare={true}
+              size={20}
+              isDecorative={true}
             />
             <div className="min-w-0">
               <div className="text-sm font-medium text-gray-900">

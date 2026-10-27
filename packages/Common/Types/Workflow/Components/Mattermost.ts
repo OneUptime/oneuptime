@@ -1,4 +1,5 @@
 import IconProp from "../../Icon/IconProp";
+import ProviderLogo from "../../ProviderLogo/ProviderLogo";
 import ComponentID from "../ComponentID";
 import ComponentMetadata, {
   ComponentInputType,
@@ -47,6 +48,7 @@ const components: Array<ComponentMetadata> = [
     id: ComponentID.MattermostSendMessageToChannel,
     title: "Send Message to Mattermost",
     category: "Mattermost",
+    logo: ProviderLogo.Mattermost,
     description: "Send message to Mattermost channel",
     iconProp: IconProp.SendMessage,
     componentType: ComponentType.Component,
