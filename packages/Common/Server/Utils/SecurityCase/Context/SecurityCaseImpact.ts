@@ -458,7 +458,9 @@ export default class SecurityCaseImpact {
     ]);
 
     const records: Array<SecurityCaseImpactRecordJson> = resources.map(
-      (resource: SecurityConnectedResourceJson): SecurityCaseImpactRecordJson => {
+      (
+        resource: SecurityConnectedResourceJson,
+      ): SecurityCaseImpactRecordJson => {
         const key: string = recordKey(resource.kind, resource.id);
         const facts: DependencyFacts | undefined = dependencies?.get(key);
         const hasOwners: boolean = Boolean(OWNER_TABLES[resource.kind]);
@@ -905,7 +907,11 @@ export default class SecurityCaseImpact {
           first: SecurityCaseImpactStatusPageJson,
           second: SecurityCaseImpactStatusPageJson,
         ): number => {
-          return first.name < second.name ? -1 : first.name > second.name ? 1 : 0;
+          return first.name < second.name
+            ? -1
+            : first.name > second.name
+              ? 1
+              : 0;
         },
       )
       .slice(0, SECURITY_CASE_IMPACT_MAX_STATUS_PAGES);
@@ -962,7 +968,9 @@ export default class SecurityCaseImpact {
         };
       })
       .filter(
-        (peer: SecurityCaseFlowPeerJson | null): peer is SecurityCaseFlowPeerJson => {
+        (
+          peer: SecurityCaseFlowPeerJson | null,
+        ): peer is SecurityCaseFlowPeerJson => {
           return Boolean(peer);
         },
       );
@@ -981,17 +989,18 @@ export default class SecurityCaseImpact {
         props: data.props,
       });
 
-    const result: Awaited<ReturnType<typeof SecurityEventService.executeQuery>> =
-      await SecurityEventService.executeQuery(
-        buildReachedRequestsStatement({
-          projectId: data.projectId,
-          addresses: data.addresses,
-          start: data.scope.window.start,
-          end: data.scope.window.end,
-          serviceFilter,
-          limit: IMPACT_MAX_REACHED_REQUESTS,
-        }),
-      );
+    const result: Awaited<
+      ReturnType<typeof SecurityEventService.executeQuery>
+    > = await SecurityEventService.executeQuery(
+      buildReachedRequestsStatement({
+        projectId: data.projectId,
+        addresses: data.addresses,
+        start: data.scope.window.start,
+        end: data.scope.window.end,
+        serviceFilter,
+        limit: IMPACT_MAX_REACHED_REQUESTS,
+      }),
+    );
     const response: { data?: Array<JSONObject> } = await result.json<{
       data?: Array<JSONObject>;
     }>();

@@ -310,10 +310,8 @@ function toEventsItem(run: EventRun, index: number): SecurityCaseStoryItemJson {
 export function buildStoryExceptionItems(
   rows: ReadonlyArray<StoryEventRow>,
 ): Array<SecurityCaseStoryItemJson> {
-  const byFingerprint: Map<
-    string,
-    { first: StoryEventRow; count: number }
-  > = new Map();
+  const byFingerprint: Map<string, { first: StoryEventRow; count: number }> =
+    new Map();
 
   for (const row of [...rows].sort(byTime)) {
     if (!row.exceptionFingerprint) {
@@ -346,9 +344,7 @@ export function buildStoryExceptionItems(
           exceptionFingerprint: fingerprint,
           ...(seen.first.traceId ? { traceId: seen.first.traceId } : {}),
           ...(seen.first.spanId ? { spanId: seen.first.spanId } : {}),
-          ...(seen.first.sessionId
-            ? { sessionId: seen.first.sessionId }
-            : {}),
+          ...(seen.first.sessionId ? { sessionId: seen.first.sessionId } : {}),
         },
       };
 

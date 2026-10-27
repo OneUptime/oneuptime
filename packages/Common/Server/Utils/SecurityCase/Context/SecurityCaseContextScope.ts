@@ -92,7 +92,10 @@ export class SecurityCaseSourceTracker<Source extends string> {
    * The answer of `read`, or null when it was refused or failed - which is
    * then remembered against `source`. Never throws.
    */
-  public async read<T>(source: Source, read: () => Promise<T>): Promise<T | null> {
+  public async read<T>(
+    source: Source,
+    read: () => Promise<T>,
+  ): Promise<T | null> {
     try {
       return await read();
     } catch (error) {

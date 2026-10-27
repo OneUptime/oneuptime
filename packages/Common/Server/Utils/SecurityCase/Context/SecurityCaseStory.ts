@@ -273,12 +273,24 @@ export default class SecurityCaseStory {
         : Promise.resolve(null),
       connections
         ? tracker.read(SecurityCaseStorySource.Incidents, () => {
-            return this.readIncidents({ projectId, scope, resources, props, tracker });
+            return this.readIncidents({
+              projectId,
+              scope,
+              resources,
+              props,
+              tracker,
+            });
           })
         : Promise.resolve(null),
       connections
         ? tracker.read(SecurityCaseStorySource.Alerts, () => {
-            return this.readAlerts({ projectId, scope, resources, props, tracker });
+            return this.readAlerts({
+              projectId,
+              scope,
+              resources,
+              props,
+              tracker,
+            });
           })
         : Promise.resolve(null),
       tracker.read(SecurityCaseStorySource.Exceptions, () => {
@@ -399,8 +411,8 @@ export default class SecurityCaseStory {
     props: DatabaseCommonInteractionProps;
     tracker: SecurityCaseSourceTracker<SecurityCaseStorySource>;
   }): Promise<Array<SecurityDetection>> {
-    const rows: Array<SecurityDetection> = await SecurityDetectionService.findBy(
-      {
+    const rows: Array<SecurityDetection> =
+      await SecurityDetectionService.findBy({
         query: {
           projectId: data.projectId,
           securityCaseId: data.securityCaseId,
@@ -422,8 +434,7 @@ export default class SecurityCaseStory {
         limit: SECURITY_CASE_STORY_MAX_DETECTIONS + 1,
         skip: 0,
         props: data.props,
-      },
-    );
+      });
 
     return data.tracker.bound(
       SecurityCaseStorySource.Detections,
@@ -460,17 +471,18 @@ export default class SecurityCaseStory {
         props: data.props,
       });
 
-    const result: Awaited<ReturnType<typeof SecurityEventService.executeQuery>> =
-      await SecurityEventService.executeQuery(
-        buildStoryEventsStatement({
-          projectId: data.projectId,
-          values,
-          start: data.scope.window.start,
-          end: data.scope.window.end,
-          serviceFilter,
-          limit: SECURITY_CASE_STORY_MAX_EVENTS + 1,
-        }),
-      );
+    const result: Awaited<
+      ReturnType<typeof SecurityEventService.executeQuery>
+    > = await SecurityEventService.executeQuery(
+      buildStoryEventsStatement({
+        projectId: data.projectId,
+        values,
+        start: data.scope.window.start,
+        end: data.scope.window.end,
+        serviceFilter,
+        limit: SECURITY_CASE_STORY_MAX_EVENTS + 1,
+      }),
+    );
     const response: { data?: Array<JSONObject> } = await result.json<{
       data?: Array<JSONObject>;
     }>();
@@ -583,9 +595,13 @@ export default class SecurityCaseStory {
         fields["kubernetesClusterId"],
         fields["resourceId"],
       ]
-        .map((id: string | undefined): SecurityConnectedResourceJson | undefined => {
-          return id ? byId.get(id) : undefined;
-        })
+        .map(
+          (
+            id: string | undefined,
+          ): SecurityConnectedResourceJson | undefined => {
+            return id ? byId.get(id) : undefined;
+          },
+        )
         .find((found: SecurityConnectedResourceJson | undefined): boolean => {
           return Boolean(found);
         });
@@ -604,7 +620,11 @@ export default class SecurityCaseStory {
         ...(version ? { detail: cutStoryText(version) } : {}),
         stateName: row.eventType || "change",
         links: {
-          resource: { kind: resource.kind, id: resource.id, name: resource.name },
+          resource: {
+            kind: resource.kind,
+            id: resource.id,
+            name: resource.name,
+          },
         },
       });
     }
@@ -678,8 +698,7 @@ export default class SecurityCaseStory {
       });
     };
 
-    const declaredId: ObjectID | undefined =
-      data.scope.securityCase.incidentId;
+    const declaredId: ObjectID | undefined = data.scope.securityCase.incidentId;
 
     if (declaredId) {
       const declared: Incident | null = await IncidentService.findOneBy({
@@ -727,7 +746,10 @@ export default class SecurityCaseStory {
       }
 
       for (const incident of rows.slice(0, SECURITY_CASE_STORY_MAX_INCIDENTS)) {
-        add(incident, findLinkedResource(incident, column, data.resources, kind));
+        add(
+          incident,
+          findLinkedResource(incident, column, data.resources, kind),
+        );
       }
     }
 
