@@ -11,12 +11,10 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleExceptions/RuleExceptionsModel";
 import {
   ADDRESS_RANGE_LABEL,
-  STATUS_ENDED_AT,
   STATUS_ENDS_AT,
-  STATUS_EXPIRED_AT,
+  STATUS_EXPIRES,
   STATUS_NO_EXPIRY,
   STATUS_STARTS_AT,
-  STATUS_UNTIL,
   TIME_WINDOW_LABEL,
   VALUE_IN_FIELD,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleExceptions/RuleExceptionsCopy";
@@ -161,7 +159,12 @@ describe("where an exception stands, under its pill", () => {
     return getRuleExceptionStatusLine(exception, NOW);
   }
 
-  test("an entity or a value: no expiry, until when, or since when it expired", () => {
+  /*
+   * How far off, not a date: "Expires in 30 days", "2 days ago". The date
+   * itself is under the pointer, and the pill already says Expired or
+   * Ended, so a line under one is only how long ago.
+   */
+  test("an entity or a value: no expiry, how soon it expires, or how long ago it did", () => {
     const entity: DetectionRuleExceptionShape = {
       kind: DetectionRuleExceptionKind.Entity,
       entityType: SecurityEntityType.User,
@@ -170,31 +173,54 @@ describe("where an exception stands, under its pill", () => {
 
     expect(line(entity)).toEqual({ key: STATUS_NO_EXPIRY });
     expect(line({ ...entity, expiresAt: at(DAY) })).toEqual({
-      key: STATUS_UNTIL,
+      key: STATUS_EXPIRES,
       time: at(DAY),
+      isTimeRelative: true,
     });
     expect(line({ ...entity, expiresAt: at(-DAY) })).toEqual({
-      key: STATUS_EXPIRED_AT,
       time: at(-DAY),
+      isTimeRelative: true,
     });
   });
 
-  test("a window: when it starts, when it ends, or when it ended", () => {
+  test("a window: how soon it starts or ends, or how long ago it ended", () => {
     const window: DetectionRuleExceptionShape = {
       kind: DetectionRuleExceptionKind.TimeWindow,
       startsAt: at(HOUR),
       endsAt: at(2 * HOUR),
     };
 
-    expect(line(window)).toEqual({ key: STATUS_STARTS_AT, time: at(HOUR) });
+    expect(line(window)).toEqual({
+      key: STATUS_STARTS_AT,
+      time: at(HOUR),
+      isTimeRelative: true,
+    });
     expect(getRuleExceptionStatusLine(window, at(HOUR + 1))).toEqual({
       key: STATUS_ENDS_AT,
       time: at(2 * HOUR),
+      isTimeRelative: true,
     });
     expect(getRuleExceptionStatusLine(window, at(3 * HOUR))).toEqual({
-      key: STATUS_ENDED_AT,
       time: at(2 * HOUR),
+      isTimeRelative: true,
     });
+  });
+
+  test("a line under Expired or Ended never repeats its pill's word", () => {
+    const expired: RuleExceptionLine = line({
+      kind: DetectionRuleExceptionKind.Value,
+      fieldName: "processName",
+      value: "backup.exe",
+      expiresAt: at(-HOUR),
+    });
+    const ended: RuleExceptionLine = line({
+      kind: DetectionRuleExceptionKind.TimeWindow,
+      startsAt: at(-3 * HOUR),
+      endsAt: at(-HOUR),
+    });
+
+    expect(expired.key).toBeUndefined();
+    expect(ended.key).toBeUndefined();
   });
 });
 

@@ -50,17 +50,25 @@ export const STATUS_COLUMN_TITLE: string = translationKey("Status");
 export const ADDRESS_RANGE_LABEL: string = translationKey("IP address range");
 export const VALUE_IN_FIELD: string = translationKey("Value of {{field}}");
 export const TIME_WINDOW_LABEL: string = translationKey("Time window");
+/*
+ * A window's times: "Oct 15, 9:00 AM to Oct 15, 1:00 PM". Each time stays
+ * on one line; a narrow column breaks the line between them.
+ */
 export const TIME_WINDOW_RANGE: string = translationKey(
   "{{from}} to {{until}}",
 );
 
-// Under the status pill: until when, or since when.
-export const STATUS_UNTIL: string = translationKey("Until {{time}}");
+/*
+ * Under the status pill, how far ahead or how long ago ({{time}}: "in 30
+ * days", "2 days ago"), the date itself under the pointer: when an entity
+ * or a value expires, when a window starts or ends. An exception that
+ * expired, or a window that ended, says only how long ago - its pill
+ * already says which.
+ */
 export const STATUS_NO_EXPIRY: string = translationKey("No expiry");
-export const STATUS_EXPIRED_AT: string = translationKey("Expired {{time}}");
+export const STATUS_EXPIRES: string = translationKey("Expires {{time}}");
 export const STATUS_STARTS_AT: string = translationKey("Starts {{time}}");
 export const STATUS_ENDS_AT: string = translationKey("Ends {{time}}");
-export const STATUS_ENDED_AT: string = translationKey("Ended {{time}}");
 
 /*
  * Who added it, and when ({{time}}: "3 days ago"), under its reason; when no
@@ -146,7 +154,7 @@ export const REASON_FIELD_PLACEHOLDER: string = translationKey(
 
 export const EXPIRES_AT_FIELD_TITLE: string = translationKey("Expires At");
 export const EXPIRES_AT_FIELD_DESCRIPTION: string = translationKey(
-  "After this, the rule sees it again. Empty: until someone deletes the exception.",
+  "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.",
 );
 
 // ---------- Detection Rules: a rule's row ----------
@@ -164,10 +172,14 @@ export const ACTIVE_EXCEPTION_COUNT: PluralTemplate = {
   other: "{{count}} active exceptions",
 };
 
-// ---------- A case's detection ----------
-
-export const ADD_EXCEPTION_FROM_DETECTION_DESCRIPTION: string = translationKey(
-  "Stop this rule from firing on what you expect. Its other matches still fire.",
+/*
+ * ---------- Add Exception from a rule's row or a case's detection ----------
+ *
+ * Under the dialog's title: what an exception is for. The rule's own field
+ * says that its other matches still fire, so this does not.
+ */
+export const ADD_EXCEPTION_DESCRIPTION: string = translationKey(
+  "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.",
 );
 
 // ---------- Test ids ----------

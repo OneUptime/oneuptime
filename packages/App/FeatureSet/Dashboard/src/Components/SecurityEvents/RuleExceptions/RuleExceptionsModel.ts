@@ -1,11 +1,9 @@
 import {
   ADDRESS_RANGE_LABEL,
-  STATUS_ENDED_AT,
   STATUS_ENDS_AT,
-  STATUS_EXPIRED_AT,
+  STATUS_EXPIRES,
   STATUS_NO_EXPIRY,
   STATUS_STARTS_AT,
-  STATUS_UNTIL,
   TIME_WINDOW_LABEL,
   VALUE_IN_FIELD,
 } from "./RuleExceptionsCopy";
@@ -39,14 +37,19 @@ import {
 /*
  * One of the list's sentences: an en.json key and the values it takes. A
  * time is handed over as a date, written in the reader's language where the
- * sentence is drawn.
+ * sentence is drawn. A line with no key is its time alone ("2 days ago").
  */
 export interface RuleExceptionLine {
-  key: string;
+  key?: string | undefined;
   field?: string | undefined;
   time?: Date | undefined;
   from?: Date | undefined;
   until?: Date | undefined;
+  /*
+   * The time as how far ahead or how long ago it is ("in 30 days", "2 days
+   * ago"), not as a date: the date itself is under the pointer.
+   */
+  isTimeRelative?: boolean | undefined;
 }
 
 // What the Skips cell shows: the thing skipped, and what kind of thing it is.
@@ -118,7 +121,13 @@ export function getRuleExceptionStatusColor(
   }
 }
 
-// The line under the pill: until when it skips, or since when it does not.
+/*
+ * The line under the pill: how soon it stops skipping, or starts, or how
+ * long ago it stopped - "Expires in 30 days", "Starts in 21 hours", "Ends
+ * in 3 hours", "2 days ago" under Expired or Ended. A window's own times
+ * are in its row already, and the pill says which way it went, so the line
+ * says only how far off.
+ */
 export function getRuleExceptionStatusLine(
   exception: DetectionRuleExceptionShape,
   now: Date,
@@ -135,14 +144,14 @@ export function getRuleExceptionStatusLine(
       readDetectionRuleExceptionDate(exception.endsAt) || undefined;
 
     if (status === DetectionRuleExceptionStatus.Upcoming) {
-      return { key: STATUS_STARTS_AT, time: startsAt };
+      return { key: STATUS_STARTS_AT, time: startsAt, isTimeRelative: true };
     }
 
     if (status === DetectionRuleExceptionStatus.Ended) {
-      return { key: STATUS_ENDED_AT, time: endsAt };
+      return { time: endsAt, isTimeRelative: true };
     }
 
-    return { key: STATUS_ENDS_AT, time: endsAt };
+    return { key: STATUS_ENDS_AT, time: endsAt, isTimeRelative: true };
   }
 
   const expiresAt: Date | undefined =
@@ -153,8 +162,8 @@ export function getRuleExceptionStatusLine(
   }
 
   return status === DetectionRuleExceptionStatus.Expired
-    ? { key: STATUS_EXPIRED_AT, time: expiresAt }
-    : { key: STATUS_UNTIL, time: expiresAt };
+    ? { time: expiresAt, isTimeRelative: true }
+    : { key: STATUS_EXPIRES, time: expiresAt, isTimeRelative: true };
 }
 
 /*

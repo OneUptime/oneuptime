@@ -190,10 +190,35 @@ describe("the facts under the headline", () => {
         }),
       ),
     ).toEqual([
-      { template: FIRINGS_A_DAY, values: { count: 0.3 } },
+      // Two in a week is under one a day: no "0.3 a day".
       { template: FOR_ADDRESSES, count: 2 },
       { template: MATCHING_EVENTS, count: 14 },
     ]);
+  });
+
+  test("how many a day only over a week or a month, and only from one a day", () => {
+    function rate(data: Partial<DetectionRetrohuntResult>): unknown {
+      return getRetrohuntFacts(result(data)).find(
+        (fact: RetrohuntSentence): boolean => {
+          return fact.template === FIRINGS_A_DAY;
+        },
+      );
+    }
+
+    // The last 24 hours: a day's count is the headline's own.
+    expect(rate({ periodInHours: 24, firedCount: 6 })).toBeUndefined();
+    // Under one a day says nothing the headline does not.
+    expect(rate({ periodInHours: 168, firedCount: 6 })).toBeUndefined();
+    expect(rate({ periodInHours: 720, firedCount: 20 })).toBeUndefined();
+    // One a day and more is the rule's weight on whoever reads its alerts.
+    expect(rate({ periodInHours: 168, firedCount: 7 })).toEqual({
+      template: FIRINGS_A_DAY,
+      values: { count: 1 },
+    });
+    expect(rate({ periodInHours: 720, firedCount: 1680 })).toEqual({
+      template: FIRINGS_A_DAY,
+      values: { count: 56 },
+    });
   });
 
   test("would not have fired, but matched: how close it came, with the threshold", () => {

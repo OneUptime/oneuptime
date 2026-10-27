@@ -7,7 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -49,6 +49,7 @@ type Captured = {
     | undefined;
   createInitialValues?: Record<string, unknown> | undefined;
   onShowFormType?: ((formType: number) => void) | undefined;
+  getItemName?: ((item: unknown) => string) | undefined;
   formSteps?: Array<{ id: string; title: string }> | undefined;
   formFields?: Array<{
     field: Record<string, unknown>;
@@ -108,12 +109,12 @@ import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import { DetectionRuleExceptionKind } from "../../../Types/SecurityEvent/DetectionRuleException";
-import {
-  ModalTableBulkDefaultActions,
-  ModalType,
-} from "../../../UI/Components/ModelTable/BaseModelTable";
+import { ModalTableBulkDefaultActions } from "../../../UI/Components/ModelTable/BaseModelTable";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import ProjectUtil from "../../../UI/Utils/Project";
+
+// A day and a time as a list's line writes one: "Oct 27, 10:00 AM" or "Oct 27, 10:00".
+const DAY_AND_TIME: RegExp = /^[A-Z][a-z]{2} \d{1,2}, \d{1,2}:\d{2}( [AP]M)?$/;
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -263,7 +264,7 @@ describe("Security Events > Rule Exceptions", () => {
       expiresAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
     };
 
-    function expiryProblem(): string | null {
+    function expiryProblem(values: Record<string, unknown>): string | null {
       const field:
         | {
             field: Record<string, unknown>;
@@ -277,22 +278,69 @@ describe("Security Events > Rule Exceptions", () => {
         },
       );
 
-      return field!.customValidation!(expired);
+      return field!.customValidation!(values);
     }
 
-    expect(expiryProblem()).toBe(
+    // Add: the form holds no row yet, and a past expiry is refused.
+    expect(expiryProblem(expired)).toBe(
       "An exception expires in the future. To stop one now, delete it.",
     );
 
-    act(() => {
-      table().onShowFormType!(ModalType.Edit);
-    });
-    expect(expiryProblem()).toBeNull();
+    /*
+     * Edit: the form holds the row (its id), so the expiry it has is its
+     * own - the reason of an exception that expired can still be fixed.
+     * Told by the values, not by the table: it never says which form it
+     * opened (its onShowFormType is called once, when the list mounts).
+     */
+    expect(
+      expiryProblem({
+        ...expired,
+        _id: "22222222-2222-4222-8222-222222222222",
+      }),
+    ).toBeNull();
+    expect(table().onShowFormType).toBeUndefined();
+  });
 
-    act(() => {
-      table().onShowFormType!(ModalType.Create);
-    });
-    expect(expiryProblem()).not.toBeNull();
+  test("a row is named by what it skips, where the list names one", () => {
+    renderPage();
+
+    const name: (item: DetectionRuleException) => string =
+      table().getItemName as (item: DetectionRuleException) => string;
+
+    expect(name).toBeDefined();
+    expect(
+      name(
+        exception({
+          kind: DetectionRuleExceptionKind.Entity,
+          entityType: SecurityEntityType.User,
+          value: " svc-backup ",
+        }),
+      ),
+    ).toBe("svc-backup");
+    expect(
+      name(
+        exception({
+          kind: DetectionRuleExceptionKind.Value,
+          fieldName: "processName",
+          value: "backup.exe",
+        }),
+      ),
+    ).toBe("backup.exe");
+
+    // A window: its two times, each with its day.
+    const window: string = name(
+      exception({
+        kind: DetectionRuleExceptionKind.TimeWindow,
+        startsAt: new Date("2026-10-27T10:00:00.000Z"),
+        endsAt: new Date("2026-10-27T12:00:00.000Z"),
+      }),
+    );
+
+    expect(window).toContain(" to ");
+    expect(window.split(" to ")).toHaveLength(2);
+    for (const side of window.split(" to ")) {
+      expect(side).toMatch(DAY_AND_TIME);
+    }
   });
 
   test("filters by rule - the filter a rule's View Exceptions lands on - and by kind; searches what was written", () => {
@@ -355,8 +403,16 @@ describe("Security Events > Rule Exceptions", () => {
       expect(columnTitled(title!).wrapMaxWidthClassName).toBe(cap);
     }
 
-    // The status column's floor is its pill's, below a wrapping column's 10rem.
+    /*
+     * Floors below a wrapping column's 10rem, so the list fits its card
+     * beside the side menu at 1280 in German and Russian too, whose Edit
+     * buttons are wider: the status column's is its pill's, a rule's name
+     * and a reason wrap a line sooner.
+     */
     expect(columnTitled("Status").contentClassName).toBe("min-w-[7rem]");
+    expect(columnTitled("Rule").contentClassName).toBe("min-w-[8rem]");
+    expect(columnTitled("Reason").contentClassName).toBe("min-w-[9rem]");
+    expect(columnTitled("Skips").contentClassName).toBeUndefined();
 
     // Every column a cell reads is selected.
     expect(table().selectMoreFields).toMatchObject({
@@ -427,6 +483,42 @@ describe("Security Events > Rule Exceptions", () => {
 
     expect(window).toHaveTextContent(" to ");
     expect(window).toHaveTextContent("Time window");
+
+    /*
+     * Each of a window's times stays whole on its line: a narrow column
+     * breaks the line between the two, never inside one.
+     */
+    const times: Array<string> = Array.from(
+      window.querySelectorAll("span.whitespace-nowrap"),
+    ).map((part: Element): string => {
+      return part.textContent || "";
+    });
+    expect(times).toHaveLength(2);
+    for (const time of times) {
+      expect(time).toMatch(DAY_AND_TIME);
+    }
+  });
+
+  test("a value someone wrote is in the mono type, on its own isolate", () => {
+    renderPage();
+
+    const cell: HTMLElement = draw(
+      "Skips",
+      exception({
+        kind: DetectionRuleExceptionKind.Entity,
+        entityType: SecurityEntityType.Host,
+        value: "*.lab.acme-commerce.example",
+      }),
+    );
+
+    /*
+     * On the bdi itself: every element names its font (the page's * rule
+     * in index.ejs), so font-mono on a parent never reached the value.
+     */
+    const value: HTMLElement | null = cell.querySelector("bdi");
+    expect(value).not.toBeNull();
+    expect(value!.textContent).toBe("*.lab.acme-commerce.example");
+    expect(value!.className).toContain("font-mono");
   });
 
   test("a row says where it stands: Active with no expiry, Expired, Upcoming", () => {
@@ -471,7 +563,59 @@ describe("Security Events > Rule Exceptions", () => {
     );
 
     expect(upcoming).toHaveTextContent("Upcoming");
-    expect(upcoming).toHaveTextContent("Starts ");
+    expect(upcoming).toHaveTextContent("Starts in an hour");
+  });
+
+  test("under the pill, how far off - the date itself under the pointer", () => {
+    renderPage();
+
+    function line(values: Record<string, unknown>): HTMLElement {
+      const cell: HTMLElement = draw("Status", exception(values));
+      const found: HTMLElement | null = cell.querySelector(
+        `[data-testid="${RULE_EXCEPTIONS_TEST_IDS.statusCell}"] span[title]`,
+      );
+
+      expect(found).not.toBeNull();
+      return found!;
+    }
+
+    const entity: Record<string, unknown> = {
+      kind: DetectionRuleExceptionKind.Entity,
+      entityType: SecurityEntityType.User,
+      value: "alice",
+    };
+
+    // Active with an expiry: how soon it expires.
+    const expires: HTMLElement = line({
+      ...entity,
+      expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 60000),
+    });
+    expect(expires).toHaveTextContent(/^Expires in 3 days$/);
+    expect(expires.getAttribute("title")).toBeTruthy();
+
+    // Expired: only how long ago - the pill already says Expired.
+    expect(
+      line({
+        ...entity,
+        expiresAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      }),
+    ).toHaveTextContent(/^2 days ago$/);
+
+    // A window under way: how soon it ends; one that ended: how long ago.
+    const window: Record<string, unknown> = {
+      kind: DetectionRuleExceptionKind.TimeWindow,
+      startsAt: new Date(Date.now() - 60 * 60 * 1000),
+    };
+    expect(
+      line({ ...window, endsAt: new Date(Date.now() + 3 * 60 * 60 * 1000) }),
+    ).toHaveTextContent(/^Ends in 3 hours$/);
+    expect(
+      line({
+        kind: DetectionRuleExceptionKind.TimeWindow,
+        startsAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        endsAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000),
+      }),
+    ).toHaveTextContent(/^8 days ago$/);
   });
 
   test("a row names its rule, or says it is gone", () => {

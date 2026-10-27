@@ -41,7 +41,12 @@ const DetectionRuleRetrohuntModal: FunctionComponent<ComponentProps> = (
           </span>
         </span>
       }
-      modalWidth={ModalWidth.Large}
+      /*
+       * Medium: the answer is a few lines and a table of four short
+       * columns, which a dialog as wide as the page spread so far apart
+       * that a value and its count were a screen's width away.
+       */
+      modalWidth={ModalWidth.Medium}
       onClose={props.onClose}
       closeButtonText="Close"
     >

@@ -196,13 +196,21 @@ const DetectionRuleRetrohuntPanel: FunctionComponent<ComponentProps> = (
       )}
 
       {!isRunning && error ? (
-        <p
+        /*
+         * In a box of its own, as the answer's warning is: the reason the
+         * rule could not run, with Run again above it to try again.
+         */
+        <div
           role="alert"
-          className="break-words text-sm text-red-600"
+          className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
           data-testid={RETROHUNT_TEST_IDS.error}
         >
-          {error}
-        </p>
+          <Icon
+            icon={IconProp.Error}
+            className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600"
+          />
+          <span className="min-w-0 break-words">{error}</span>
+        </div>
       ) : (
         <></>
       )}
@@ -301,7 +309,11 @@ const RetrohuntAnswer: FunctionComponent<AnswerProps> = (
       )}
 
       {exceptionLines.length > 0 ? (
-        <p
+        /*
+         * A div, not a p: Icon draws a div, which a paragraph may not
+         * hold.
+         */
+        <div
           className="flex items-start gap-1.5 text-sm text-gray-700"
           data-testid={RETROHUNT_TEST_IDS.exceptions}
         >
@@ -310,7 +322,7 @@ const RetrohuntAnswer: FunctionComponent<AnswerProps> = (
             className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
           />
           <span>{exceptionLines.join(" ")}</span>
-        </p>
+        </div>
       ) : (
         <></>
       )}
@@ -443,8 +455,16 @@ const RetrohuntGroups: FunctionComponent<GroupsProps> = (
                             {translator.translateText(label.text)}
                           </span>
                         ) : (
-                          <span className="block break-all font-mono text-gray-900">
-                            <IsolatedText text={label.text} />
+                          <span className="block break-all text-gray-900">
+                            {/*
+                             * The mono type on the value's own isolate:
+                             * every element names its font (the page's *
+                             * rule), so a parent's does not reach it.
+                             */}
+                            <IsolatedText
+                              text={label.text}
+                              className="font-mono"
+                            />
                           </span>
                         )}
                         {props.isCorrelation && group.summary ? (

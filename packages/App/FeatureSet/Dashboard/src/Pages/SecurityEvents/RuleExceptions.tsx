@@ -3,6 +3,7 @@ import {
   RuleExceptionReasonCell,
   RuleExceptionSkipsCell,
   RuleExceptionStatusCell,
+  writeRuleExceptionName,
 } from "../../Components/SecurityEvents/RuleExceptions/RuleExceptionCells";
 import {
   RULE_EXCEPTION_FORM_STEPS,
@@ -38,16 +39,13 @@ import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import {
-  ModalTableBulkDefaultActions,
-  ModalType,
-} from "Common/UI/Components/ModelTable/BaseModelTable";
+import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement, useState } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 function kindFilterOptions(): Array<DropdownOption> {
   return DETECTION_RULE_EXCEPTION_KINDS.map((kind: string): DropdownOption => {
@@ -72,13 +70,6 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
   const translator: Translator = useTranslator();
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
 
-  /*
-   * Which form the table opens: a new exception's expiry must be ahead, an
-   * edit keeps the one it has (the API checks a changed one). A hook, so
-   * above the reseller gate.
-   */
-  const [isCreateForm, setIsCreateForm] = useState<boolean>(true);
-
   // Same reseller-telemetry gate as every other Security Events page.
   if (props.currentProject?.reseller?.enableTelemetryFeatures === false) {
     return (
@@ -98,6 +89,14 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
       userPreferencesKey={RULE_EXCEPTIONS_TABLE_ID}
       singularName={RULE_EXCEPTION_SINGULAR}
       pluralName={RULE_EXCEPTION_PLURAL}
+      /*
+       * A row is named by what it skips - "svc-backup", or a window's times -
+       * where the list names one: Delete asks about it by name, and its check
+       * box and its ⋯ say which row they are for.
+       */
+      getItemName={(item: DetectionRuleException): string => {
+        return writeRuleExceptionName(translator, item);
+      }}
       createVerb="Add"
       query={{ projectId: projectId }}
       isDeleteable={true}
@@ -124,14 +123,8 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
           ...getRuleExceptionWindowDefaults(OneUptimeDate.getCurrentDate()),
         } as FormValues<DetectionRuleException>
       }
-      onShowFormType={(formType: ModalType) => {
-        setIsCreateForm(formType === ModalType.Create);
-      }}
       formSteps={RULE_EXCEPTION_FORM_STEPS}
-      formFields={getRuleExceptionFormFields({
-        translator,
-        isCreate: isCreateForm,
-      })}
+      formFields={getRuleExceptionFormFields({ translator })}
       showRefreshButton={true}
       searchableFields={["value", "fieldName", "reason"]}
       filters={[
@@ -184,11 +177,17 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
           disableSort: true,
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-[12rem]",
+          /*
+           * A rule's name wraps to a second line before the list runs past
+           * its card: below a wrapping column's 10rem, so German's and
+           * Russian's longer Edit still fit beside the side menu at 1280.
+           */
+          contentClassName: "min-w-[8rem]",
           getElement: (item: DetectionRuleException): ReactElement => {
             const name: string = item.detectionRule?.name || "";
 
             return name ? (
-              <span className="block min-w-[7rem] text-sm text-gray-900">
+              <span className="block text-sm text-gray-900">
                 <IsolatedText text={name} />
               </span>
             ) : (
@@ -208,6 +207,8 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
           disableSort: true,
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-[18rem]",
+          // Prose wraps: a line shorter than a wrapping column's 10rem keeps Russian inside the card too.
+          contentClassName: "min-w-[9rem]",
           getElement: (item: DetectionRuleException): ReactElement => {
             return (
               <RuleExceptionReasonCell
@@ -228,11 +229,11 @@ const SecurityRuleExceptionsPage: FunctionComponent<PageComponentProps> = (
           type: FieldType.Element,
           disableSort: true,
           /*
-           * Until when, or since when, wraps under its pill: "Ended Oct 6,
-           * 4:00 PM" is longer in Persian or German, and a line that does
-           * not wrap is cut short under the row's actions. Its floor is the
-           * pill's, not a wrapping column's 10rem, so the list still fits
-           * its card at a laptop's width.
+           * How far off, under its pill, wraps: "Läuft ab in 1 Monat" is
+           * longer than "Expires in a month", and a line that does not wrap
+           * is cut short under the row's actions. Its floor is the pill's,
+           * not a wrapping column's 10rem, so the list still fits its card
+           * at a laptop's width.
            */
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-[11rem]",

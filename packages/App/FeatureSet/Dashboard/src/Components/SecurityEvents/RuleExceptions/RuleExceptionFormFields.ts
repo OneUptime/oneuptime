@@ -142,14 +142,24 @@ export function getRuleExceptionWindowDefaults(now: Date): {
 
 export interface RuleExceptionFormOptions {
   translator: Translator;
-  /*
-   * A new exception (its expiry must be ahead) or an edit (an expiry left
-   * as it was is the row's own, even once past: the API checks a changed
-   * one).
-   */
-  isCreate: boolean;
   // When the form is checked; the clock, unless a test hands one over.
   getNow?: (() => Date) | undefined;
+}
+
+/*
+ * Whether the form edits a saved exception: an Edit form's values carry the
+ * row's id. A new exception's expiry must be ahead; an edit's expiry left
+ * as it was is the row's own, even once past - so a reason can still be
+ * fixed on an exception that expired - and the API checks a changed one.
+ * Read from the values, not from which button opened the form: the list's
+ * table never says which of its forms it shows.
+ */
+export function isRuleExceptionFormEdit(
+  values: FormValues<DetectionRuleException>,
+): boolean {
+  const id: unknown = (values as Record<string, unknown>)["_id"];
+
+  return Boolean(id && id.toString().trim());
 }
 
 export function getRuleExceptionFormFields(
@@ -176,7 +186,7 @@ export function getRuleExceptionFormFields(
       const problem: string | null = getDetectionRuleExceptionFieldProblem(
         exception,
         field,
-        { now: getNow(), isExpiryNew: options.isCreate },
+        { now: getNow(), isExpiryNew: !isRuleExceptionFormEdit(values) },
       );
 
       return problem

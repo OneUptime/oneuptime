@@ -7,7 +7,7 @@ import SecurityEntityChips, {
 import AddRuleExceptionModal from "../SecurityEvents/RuleExceptions/AddRuleExceptionModal";
 import {
   ADD_EXCEPTION_ACTION,
-  ADD_EXCEPTION_FROM_DETECTION_DESCRIPTION,
+  ADD_EXCEPTION_DESCRIPTION,
 } from "../SecurityEvents/RuleExceptions/RuleExceptionsCopy";
 import { getDetectionExceptionEntity } from "../SecurityEvents/RuleExceptions/RuleExceptionsModel";
 import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
@@ -375,7 +375,7 @@ const SecurityCaseDetections: FunctionComponent<ComponentProps> = (
             groupValue: exceptionFor.groupValue,
             entities: readSecurityEntities(exceptionFor.entities),
           })}
-          description={ADD_EXCEPTION_FROM_DETECTION_DESCRIPTION}
+          description={ADD_EXCEPTION_DESCRIPTION}
           onClose={() => {
             setExceptionFor(null);
           }}

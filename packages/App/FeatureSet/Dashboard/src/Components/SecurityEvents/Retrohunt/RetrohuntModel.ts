@@ -160,12 +160,17 @@ export function getRetrohuntFacts(
     return [{ template: NO_MATCHES }];
   }
 
-  const facts: Array<RetrohuntSentence> = [
-    {
-      template: FIRINGS_A_DAY,
-      values: { count: getDetectionRetrohuntFiringsPerDay(result) },
-    },
-  ];
+  const facts: Array<RetrohuntSentence> = [];
+  const firingsPerDay: number = getDetectionRetrohuntFiringsPerDay(result);
+
+  /*
+   * How many a day, over a week or a month: over the last 24 hours it is
+   * the headline's count again, and under one a day ("0.1 a day") it says
+   * nothing the headline does not.
+   */
+  if (result.periodInHours > 24 && firingsPerDay >= 1) {
+    facts.push({ template: FIRINGS_A_DAY, values: { count: firingsPerDay } });
+  }
 
   if (!isRetrohuntUngrouped(result) && result.groupCount > 0) {
     facts.push({

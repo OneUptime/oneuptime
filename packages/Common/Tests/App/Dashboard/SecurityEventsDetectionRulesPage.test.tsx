@@ -100,6 +100,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 
 import DetectionRulesPage, {
   DETECTION_RULE_TUNING_MENU_GROUP,
+  DETECTION_RULE_YAML_TOOLS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/DetectionRules";
 import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
@@ -1210,6 +1211,22 @@ describe("Detection Rules page", () => {
       expect(
         within(cell.container).getByTestId(RULE_EXCEPTIONS_TEST_IDS.ruleCount),
       ).toHaveTextContent("2 active exceptions");
+
+      /*
+       * The count opens what it counts - the rule's exceptions, as View
+       * Exceptions does - a link, so it opens in a new tab too.
+       */
+      const link: HTMLElement = within(cell.container).getByRole("link", {
+        name: "2 active exceptions",
+      });
+      const href: string = link.getAttribute("href") || "";
+
+      expect(href).toContain("/security-events/rule-exceptions?");
+      for (const [key, value] of Object.entries(
+        getRuleExceptionsFilterParams(String(RULE["_id"])),
+      )) {
+        expect(href).toContain(`${key}=${value}`);
+      }
     });
 
     test("a rule with none has no line under its name", () => {
@@ -1221,6 +1238,24 @@ describe("Detection Rules page", () => {
       expect(
         screen.queryByTestId(RULE_EXCEPTIONS_TEST_IDS.ruleCount),
       ).toBeNull();
+    });
+
+    test("an empty form has no Run on Past Events: nothing to run yet", () => {
+      renderPage();
+
+      type FooterField = {
+        getFooterElement?: (
+          values: Record<string, unknown>,
+        ) => React.ReactElement | undefined;
+      };
+
+      const field: FooterField = fieldTitled(
+        "Sigma Rule (YAML)",
+      ) as unknown as FooterField;
+
+      render(field.getFooterElement!({ sigmaRuleYaml: "" })!);
+
+      expect(screen.queryByTestId(RETROHUNT_TEST_IDS.open)).toBeNull();
     });
 
     test("Run on Past Events waits under the YAML, beside Draft with AI, for the rule as it stands", async () => {
@@ -1261,6 +1296,19 @@ describe("Detection Rules page", () => {
           },
         )!,
       );
+
+      /*
+       * Beside Draft with AI: the two quiet tools on one line, the one
+       * opened under them across the field.
+       */
+      const tools: HTMLElement = screen.getByTestId(
+        DETECTION_RULE_YAML_TOOLS_TEST_ID,
+      );
+
+      expect(tools.className).toContain("flex-wrap");
+      expect(
+        within(tools).getByTestId(RETROHUNT_TEST_IDS.open),
+      ).toBeInTheDocument();
 
       fireEvent.click(screen.getByTestId(RETROHUNT_TEST_IDS.open));
 

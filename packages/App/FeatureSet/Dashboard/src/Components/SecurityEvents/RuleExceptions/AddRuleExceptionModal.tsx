@@ -67,7 +67,7 @@ const AddRuleExceptionModal: FunctionComponent<ComponentProps> = (
         id: "rule-exception-add",
         formType: FormType.Create,
         steps: RULE_EXCEPTION_FORM_STEPS,
-        fields: getRuleExceptionFormFields({ translator, isCreate: true }),
+        fields: getRuleExceptionFormFields({ translator }),
       }}
     />
   );

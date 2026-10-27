@@ -39,11 +39,6 @@ export const RULE_CHANGED: string = translationKey(
   "The rule changed after this run.",
 );
 
-// The form holds no YAML yet: nothing to run.
-export const NEEDS_RULE: string = translationKey(
-  "Write or draft the rule first.",
-);
-
 // ---------- What it would have found ----------
 
 export const WOULD_HAVE_FIRED: PluralTemplate = {

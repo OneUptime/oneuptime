@@ -89,6 +89,7 @@ import AddRuleExceptionModal from "../../Components/SecurityEvents/RuleException
 import {
   ACTIVE_EXCEPTION_COUNT,
   ADD_EXCEPTION_ACTION,
+  ADD_EXCEPTION_DESCRIPTION,
   RULE_EXCEPTIONS_TEST_IDS,
   VIEW_EXCEPTIONS_ACTION,
 } from "../../Components/SecurityEvents/RuleExceptions/RuleExceptionsCopy";
@@ -97,6 +98,7 @@ import useActiveRuleExceptionCounts, {
   ActiveRuleExceptionCounts,
 } from "../../Components/SecurityEvents/RuleExceptions/useActiveRuleExceptionCounts";
 import DetectionRuleException from "Common/Models/DatabaseModels/DetectionRuleException";
+import Link from "Common/UI/Components/Link/Link";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
@@ -114,6 +116,10 @@ const DETECTION_RULE_FORM_EVALUATION_INTERVAL_IN_MINUTES: number = 5;
  * View Exceptions - set apart from Create Monitor, Edit and Delete.
  */
 export const DETECTION_RULE_TUNING_MENU_GROUP: string = "tuning";
+
+// The line of quiet tools under the form's YAML: Draft with AI, Run on Past Events.
+export const DETECTION_RULE_YAML_TOOLS_TEST_ID: string =
+  "detection-rule-yaml-tools";
 
 /*
  * The description, the detection finding and how matches are counted:
@@ -337,41 +343,51 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
 
               return (
                 <>
-                  <DetectionRuleAiDraft
-                    hasRule={
-                      typeof values.sigmaRuleYaml === "string" &&
-                      values.sigmaRuleYaml.trim().length > 0
-                    }
-                    onDraft={(sigmaRuleYaml: string) => {
-                      footer?.setValue(sigmaRuleYaml);
-                    }}
-                  />
                   {/*
-                   * Run on Past Events: the rule as the form holds it -
-                   * new, or changed and not saved - over past events, with
-                   * the saved rule's exceptions on an edit.
+                   * The field's quiet tools on one line - Draft with AI,
+                   * then Run on Past Events once there is a rule to run -
+                   * and the one opened across the field's width under it.
                    */}
-                  <DetectionRuleRetrohuntInForm
-                    rule={{
-                      detectionRuleId:
-                        (values as Record<string, unknown>)[
-                          "_id"
-                        ]?.toString() || undefined,
-                      sigmaRuleYaml:
-                        typeof values.sigmaRuleYaml === "string"
-                          ? values.sigmaRuleYaml
-                          : undefined,
-                      groupByField: values.groupByField,
-                      distinctCountField: values.distinctCountField,
-                      matchCountThreshold: values.matchCountThreshold as
-                        | number
-                        | undefined,
-                      evaluationIntervalInMinutes:
-                        values.evaluationIntervalInMinutes as
+                  <div
+                    className="flex flex-wrap items-start gap-x-4"
+                    data-testid={DETECTION_RULE_YAML_TOOLS_TEST_ID}
+                  >
+                    <DetectionRuleAiDraft
+                      hasRule={
+                        typeof values.sigmaRuleYaml === "string" &&
+                        values.sigmaRuleYaml.trim().length > 0
+                      }
+                      onDraft={(sigmaRuleYaml: string) => {
+                        footer?.setValue(sigmaRuleYaml);
+                      }}
+                    />
+                    {/*
+                     * Run on Past Events: the rule as the form holds it -
+                     * new, or changed and not saved - over past events,
+                     * with the saved rule's exceptions on an edit.
+                     */}
+                    <DetectionRuleRetrohuntInForm
+                      rule={{
+                        detectionRuleId:
+                          (values as Record<string, unknown>)[
+                            "_id"
+                          ]?.toString() || undefined,
+                        sigmaRuleYaml:
+                          typeof values.sigmaRuleYaml === "string"
+                            ? values.sigmaRuleYaml
+                            : undefined,
+                        groupByField: values.groupByField,
+                        distinctCountField: values.distinctCountField,
+                        matchCountThreshold: values.matchCountThreshold as
                           | number
                           | undefined,
-                    }}
-                  />
+                        evaluationIntervalInMinutes:
+                          values.evaluationIntervalInMinutes as
+                            | number
+                            | undefined,
+                      }}
+                    />
+                  </div>
                   {shape && shape.isCorrelation ? (
                     <div className="mt-2">
                       <DetectionRuleSummary shape={shape} />
@@ -677,8 +693,8 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
         columns={[
           /*
            * The rule's name, with how many of its exceptions skip
-           * something now under it ("2 exceptions"): a rule with blind
-           * spots says so where its name is.
+           * something now under it ("2 active exceptions", opening them):
+           * a rule with blind spots says so where its name is.
            */
           {
             field: {
@@ -696,15 +712,24 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
               return (
                 <SecurityListNameCell
                   name={item.name || ""}
-                  detailParts={
-                    count > 0
-                      ? [
-                          translator.translatePlural(
-                            ACTIVE_EXCEPTION_COUNT,
-                            count,
-                          ),
-                        ]
-                      : []
+                  /*
+                   * The count opens what it counts: the list of the
+                   * rule's exceptions, as View Exceptions in its menu does.
+                   */
+                  detail={
+                    count > 0 ? (
+                      <Link
+                        to={getRuleExceptionsRoute(
+                          item._id?.toString() || undefined,
+                        )}
+                        className="rounded hover:text-indigo-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      >
+                        {translator.translatePlural(
+                          ACTIVE_EXCEPTION_COUNT,
+                          count,
+                        )}
+                      </Link>
+                    ) : undefined
                   }
                   detailTestId={RULE_EXCEPTIONS_TEST_IDS.ruleCount}
                 />
@@ -830,6 +855,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
       {exceptionRule ? (
         <AddRuleExceptionModal
           detectionRuleId={exceptionRule._id?.toString() || undefined}
+          description={ADD_EXCEPTION_DESCRIPTION}
           onClose={() => {
             setExceptionRule(null);
           }}

@@ -125,7 +125,7 @@ const DetectionRuleAiDraft: FunctionComponent<ComponentProps> = (
 
   return (
     <div
-      className="mt-3 space-y-2 border-t border-gray-100 pt-3"
+      className="mt-3 w-full space-y-2 border-t border-gray-100 pt-3"
       data-testid={DETECTION_RULE_AI_DRAFT_TEST_ID}
     >
       <div className="flex items-center justify-between gap-3">

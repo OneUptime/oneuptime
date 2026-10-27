@@ -73,7 +73,7 @@ jest.mock(
 );
 
 import SecurityCaseDetections from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseDetections";
-import { ADD_EXCEPTION_FROM_DETECTION_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleExceptions/RuleExceptionsCopy";
+import { ADD_EXCEPTION_DESCRIPTION } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleExceptions/RuleExceptionsCopy";
 import DetectionRuleException from "../../../Models/DatabaseModels/DetectionRuleException";
 import SecurityDetection from "../../../Models/DatabaseModels/SecurityDetection";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -182,7 +182,7 @@ describe("Add Exception on a case's detection", () => {
       type: SecurityEntityType.User,
       value: "svc-backup",
     });
-    expect(modal?.description).toBe(ADD_EXCEPTION_FROM_DETECTION_DESCRIPTION);
+    expect(modal?.description).toBe(ADD_EXCEPTION_DESCRIPTION);
 
     act(() => {
       modal!.onSuccess();

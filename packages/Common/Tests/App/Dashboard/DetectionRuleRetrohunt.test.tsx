@@ -186,6 +186,11 @@ describe("Run on Past Events", () => {
 
       expect(rows).toHaveLength(3);
       expect(rows[0]).toHaveTextContent("alice");
+      // A value as written, in the mono type, on its own isolate.
+      expect(within(rows[0]!).getByText("alice").tagName).toBe("BDI");
+      expect(within(rows[0]!).getByText("alice").className).toContain(
+        "font-mono",
+      );
       expect(within(rows[0]!).getAllByRole("cell")[1]).toHaveTextContent("30");
       expect(within(rows[0]!).getAllByRole("cell")[2]).toHaveTextContent("90");
 
@@ -231,6 +236,10 @@ describe("Run on Past Events", () => {
         }) as never,
       );
 
+      const consoleError: ReturnType<typeof jest.fn> = jest.fn();
+
+      jest.spyOn(console, "error").mockImplementation(consoleError as never);
+
       await drawPanel();
 
       expect(
@@ -238,6 +247,20 @@ describe("Run on Past Events", () => {
       ).toHaveTextContent(
         "Its exceptions skipped 310 matching events. Without them, it would have fired 12 more times.",
       );
+      /*
+       * Its mark is an Icon, which draws a div: in a div, not a paragraph,
+       * so React has no nesting to warn about.
+       */
+      expect(screen.getByTestId(RETROHUNT_TEST_IDS.exceptions).tagName).toBe(
+        "DIV",
+      );
+      expect(
+        consoleError.mock.calls.filter((call: Array<unknown>): boolean => {
+          return call.some((arg: unknown): boolean => {
+            return String(arg).includes("validateDOMNesting");
+          });
+        }),
+      ).toEqual([]);
     });
 
     test("would not have fired: how close it came", async () => {
@@ -414,9 +437,12 @@ describe("Run on Past Events", () => {
 
       await drawPanel();
 
-      expect(screen.getByTestId(RETROHUNT_TEST_IDS.error)).toHaveTextContent(
-        "Sigma rule YAML is required.",
-      );
+      const error: HTMLElement = screen.getByTestId(RETROHUNT_TEST_IDS.error);
+
+      expect(error).toHaveTextContent("Sigma rule YAML is required.");
+      // In a box of its own, said to a screen reader as it appears.
+      expect(error).toHaveAttribute("role", "alert");
+      expect(error.className).toContain("bg-red-50");
       expect(screen.queryByTestId(RETROHUNT_TEST_IDS.summary)).toBeNull();
 
       fireEvent.click(screen.getByTestId(RETROHUNT_TEST_IDS.runAgain));
@@ -481,14 +507,42 @@ describe("Run on Past Events", () => {
       expect(runMock).not.toHaveBeenCalled();
     });
 
-    test("waits for a rule: no YAML, nothing to run", () => {
-      drawInForm({ sigmaRuleYaml: "  " });
+    test("waits for a rule: an empty form shows no button at all", () => {
+      /*
+       * Nothing to run, so nothing to press: Draft with AI is an empty
+       * form's next step, and a greyed-out button that only says why under
+       * the pointer is lost on a touch screen.
+       */
+      const drawn: { rerender: (rule: RetrohuntRuleInput) => void } =
+        drawInForm({ sigmaRuleYaml: "  " });
 
-      expect(screen.getByTestId(RETROHUNT_TEST_IDS.open)).toBeDisabled();
-      expect(screen.getByTestId(RETROHUNT_TEST_IDS.open)).toHaveAttribute(
-        "title",
-        "Write or draft the rule first.",
+      expect(screen.queryByTestId(RETROHUNT_TEST_IDS.open)).toBeNull();
+      expect(runMock).not.toHaveBeenCalled();
+
+      // The rule written in: the button is there to press.
+      drawn.rerender({ sigmaRuleYaml: "title: x" });
+      expect(screen.getByTestId(RETROHUNT_TEST_IDS.open)).toBeEnabled();
+
+      // A saved rule's edit can run before its YAML is read back.
+      drawn.rerender({ detectionRuleId: RULE_ID });
+      expect(screen.getByTestId(RETROHUNT_TEST_IDS.open)).toBeEnabled();
+    });
+
+    test("open, stays open while the rule is rewritten - and says it changed", async () => {
+      const drawn: { rerender: (rule: RetrohuntRuleInput) => void } =
+        drawInForm({ sigmaRuleYaml: "title: x" });
+
+      fireEvent.click(screen.getByTestId(RETROHUNT_TEST_IDS.open));
+      await settle();
+
+      // Emptied while it is open, as when the whole rule is pasted over.
+      drawn.rerender({ sigmaRuleYaml: "" });
+
+      expect(screen.getByTestId(RETROHUNT_TEST_IDS.panel)).toBeInTheDocument();
+      expect(screen.getByTestId(RETROHUNT_TEST_IDS.changed)).toHaveTextContent(
+        "The rule changed after this run.",
       );
+      expect(requests()).toHaveLength(1);
     });
 
     test("opened, runs the rule as the form holds it - with the saved rule's id on an edit", async () => {
@@ -585,6 +639,12 @@ describe("Run on Past Events", () => {
       expect(
         within(dialog).queryByTestId("modal-footer-submit-button"),
       ).toBeNull();
+      /*
+       * As wide as its answer needs: a dialog as wide as the page put a
+       * value and its count a screen's width apart.
+       */
+      expect(dialog.className).toContain("sm:max-w-3xl");
+      expect(dialog.className).not.toContain("max-w-7xl");
     });
   });
 });

@@ -1,6 +1,5 @@
 import {
   CLOSE_RUN_ON_PAST_EVENTS,
-  NEEDS_RULE,
   RETROHUNT_TEST_IDS,
   RUN_ON_PAST_EVENTS,
   RUN_ON_PAST_EVENTS_DESCRIPTION,
@@ -26,31 +25,36 @@ export interface ComponentProps {
 /*
  * RUN ON PAST EVENTS under the Detection Rules form's YAML: the rule as it
  * stands in the form - new, or changed and not saved yet - run over past
- * events, with the saved rule's exceptions on an edit. One quiet button
- * beside Draft with AI until it is wanted; open, the answer, with an x to
- * put it away. Nothing is saved by running.
+ * events, with the saved rule's exceptions on an edit. One quiet button on
+ * the line Draft with AI starts, shown once the form holds a rule to run
+ * (an empty form has nothing to run, and Draft with AI is its next step);
+ * open, the answer across the field's width, with an x to put it away.
+ * Nothing is saved by running.
  */
 const DetectionRuleRetrohuntInForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const canRun: boolean = canRunRetrohunt(props.rule);
 
   if (!isOpen) {
+    /*
+     * Open, it stays open while the rule is rewritten - an answer about the
+     * rule as it was says so (The rule changed after this run).
+     */
+    if (!canRunRetrohunt(props.rule)) {
+      return <></>;
+    }
+
     return (
-      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
         <button
           type="button"
           data-testid={RETROHUNT_TEST_IDS.open}
-          disabled={!canRun}
-          title={
-            canRun ? undefined : translator.translateText(NEEDS_RULE) || ""
-          }
           onClick={() => {
             setIsOpen(true);
           }}
-          className="-ml-2.5 inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+          className="-ml-2.5 inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           <Icon icon={IconProp.Backward} className="h-4 w-4 text-indigo-500" />
           <span>{translator.translateText(RUN_ON_PAST_EVENTS)}</span>
@@ -60,7 +64,7 @@ const DetectionRuleRetrohuntInForm: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
+    <div className="mt-3 w-full space-y-2 border-t border-gray-100 pt-3">
       <div className="flex items-start justify-between gap-3">
         {/* The mark beside the title, not in it: Icon draws a div. */}
         <div className="flex min-w-0 items-start gap-1.5">

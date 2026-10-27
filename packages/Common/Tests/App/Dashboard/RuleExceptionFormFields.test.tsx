@@ -7,6 +7,7 @@ import {
   getRuleExceptionFormFields,
   getRuleExceptionKindChoices,
   getRuleExceptionWindowDefaults,
+  isRuleExceptionFormEdit,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RuleExceptions/RuleExceptionFormFields";
 import {
   ENDS_AT_FIELD_TITLE,
@@ -59,12 +60,9 @@ const english: Translator = createTranslator(undefined, "en");
 
 type Field = ModelField<DetectionRuleException>;
 
-function fields(
-  options: { isCreate?: boolean; translator?: Translator } = {},
-): Array<Field> {
+function fields(options: { translator?: Translator } = {}): Array<Field> {
   return getRuleExceptionFormFields({
     translator: options.translator || english,
-    isCreate: options.isCreate ?? true,
     getNow: (): Date => {
       return NOW;
     },
@@ -279,7 +277,7 @@ describe("each field's problem, in the reader's language", () => {
   function problem(
     name: string,
     data: Record<string, unknown>,
-    options: { isCreate?: boolean; translator?: Translator } = {},
+    options: { translator?: Translator } = {},
   ): string | null {
     return byColumn(name, fields(options)).customValidation!(values(data));
   }
@@ -370,15 +368,53 @@ describe("each field's problem, in the reader's language", () => {
       expiresAt: new Date(NOW.getTime() - DAY).toISOString(),
     };
 
-    expect(problem("expiresAt", expired, { isCreate: true })).toBe(
+    // A new exception: no row id in the form's values.
+    expect(problem("expiresAt", expired)).toBe(
       "An exception expires in the future. To stop one now, delete it.",
     );
-    expect(
-      problem("expiresAt", expired, { isCreate: true, translator: german }),
-    ).toBe(
+    expect(problem("expiresAt", expired, { translator: german })).toBe(
       "Eine Ausnahme läuft in der Zukunft ab. Um eine sofort zu beenden, löschen Sie sie.",
     );
-    expect(problem("expiresAt", expired, { isCreate: false })).toBeNull();
+
+    /*
+     * An Edit form holds the row's id: its expiry, past or not, is the
+     * row's own, so the reason of an exception that expired can still be
+     * fixed. The list's table never tells the page which form it opened, so
+     * the form reads it from its values.
+     */
+    expect(
+      problem("expiresAt", {
+        ...expired,
+        _id: "2c000000-0000-4000-8000-000000000004",
+      }),
+    ).toBeNull();
+  });
+});
+
+describe("whether the form edits a saved exception", () => {
+  test("an Edit form's values carry the row's id; a new one's do not", () => {
+    expect(isRuleExceptionFormEdit(values({}))).toBe(false);
+    expect(isRuleExceptionFormEdit(values({ _id: "" }))).toBe(false);
+    expect(isRuleExceptionFormEdit(values({ _id: "  " }))).toBe(false);
+    expect(
+      isRuleExceptionFormEdit(
+        values({ _id: "2c000000-0000-4000-8000-000000000004" }),
+      ),
+    ).toBe(true);
+  });
+
+  test("an id read from a model counts as its text", () => {
+    expect(
+      isRuleExceptionFormEdit(
+        values({
+          _id: {
+            toString: (): string => {
+              return "2c000000-0000-4000-8000-000000000004";
+            },
+          },
+        }),
+      ),
+    ).toBe(true);
   });
 });
 
