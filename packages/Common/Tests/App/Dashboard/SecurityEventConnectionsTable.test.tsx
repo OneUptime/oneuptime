@@ -1059,6 +1059,40 @@ describe("SecurityEventConnectionsTable", () => {
   });
 
   /*
+   * Official logos audit: each row's product reads beside that product's
+   * official logo, the mark alone at an icon's size, decorative since the
+   * product's name is written beside it.
+   */
+  test("each row's product shows its official logo beside its name", (): void => {
+    renderTable([
+      connection(),
+      connection({
+        _id: "66666666-6666-4666-8666-666666666666",
+        name: "Acme Splunk",
+        provider: SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+      }),
+      googleConnection(),
+    ]);
+
+    for (const [name, logo] of [
+      ["Acme Okta", "okta"],
+      ["Acme Splunk", "splunk"],
+      ["Customer SecOps", "google-security-operations"],
+    ]) {
+      const mark: Element | null = row(name!).querySelector(
+        "[data-provider-logo]",
+      );
+
+      expect({ name, logo: mark?.getAttribute("data-provider-logo") }).toEqual(
+        { name, logo },
+      );
+      expect(mark).toHaveAttribute("aria-hidden", "true");
+      // The mark alone, beside the words: no tile.
+      expect(mark).not.toHaveClass("bg-white");
+    }
+  });
+
+  /*
    * The retired SecOps table had a Scope column. "Alerts only" is still
    * visible at a glance, under the provider name, for a provider whose
    * records have an alerting distinction, and absent for every other one.

@@ -257,3 +257,103 @@ describe("Icon draws every IconProp", () => {
     expect(getGlyph(IconProp.UserIcon)).toBe(getGlyph(IconProp.User));
   });
 });
+
+/*
+ * Official logos audit: where the icon set stands for another company's
+ * product - Slack in a side menu, Kubernetes on a resource, Terraform on a
+ * Developer page - it draws that product's official one-colour mark
+ * (Simple Icons, CC0), filled in the current colour as such marks are, not
+ * an outline of the designers' own. Its shapes are the brand's, so they are
+ * pinned here by their first strokes.
+ */
+describe("Icon brand marks", () => {
+  type BrandMark = { icon: IconProp; pathStart: string; viewBox: string };
+
+  const BRAND_MARKS: Array<BrandMark> = [
+    {
+      icon: IconProp.Slack,
+      pathStart: "M53.841 161.32",
+      viewBox: "0 0 256 256",
+    },
+    {
+      icon: IconProp.WhatsApp,
+      pathStart: "M17.472 14.382",
+      viewBox: "0 0 24 24",
+    },
+    { icon: IconProp.Telegram, pathStart: "M11.944 0A12", viewBox: "0 0 24 24" },
+    {
+      icon: IconProp.Kubernetes,
+      pathStart: "M10.204 14.35",
+      viewBox: "0 0 24 24",
+    },
+    {
+      icon: IconProp.Docker,
+      pathStart: "M13.983 11.078",
+      viewBox: "0 0 24 24",
+    },
+    {
+      icon: IconProp.Discord,
+      pathStart: "M20.317 4.3698",
+      viewBox: "0 0 24 24",
+    },
+    {
+      icon: IconProp.Mattermost,
+      pathStart: "M12.081 0C7.048",
+      viewBox: "0 0 24 24",
+    },
+    {
+      icon: IconProp.Terraform,
+      pathStart: "M1.44 0v7.575",
+      viewBox: "0 0 24 24",
+    },
+  ];
+
+  const draw: (icon: IconProp) => SVGElement = (icon: IconProp): SVGElement => {
+    const { container } = render(<Icon icon={icon} />);
+    return container.querySelector("svg") as SVGElement;
+  };
+
+  it.each(BRAND_MARKS)(
+    "$icon is the brand's own mark, filled, with no outline",
+    (mark: BrandMark) => {
+      const svg: SVGElement = draw(mark.icon);
+      const paths: Array<Element> = Array.from(svg.querySelectorAll("path"));
+
+      expect(svg.getAttribute("viewBox")).toBe(mark.viewBox);
+      expect(paths.length).toBeGreaterThan(0);
+      expect(paths[0]!.getAttribute("d")?.startsWith(mark.pathStart)).toBe(
+        true,
+      );
+
+      for (const path of paths) {
+        expect(path.getAttribute("fill")).toBe("currentColor");
+        expect(path.getAttribute("stroke")).toBe("none");
+      }
+    },
+  );
+
+  it("Slack is all four of its shapes", () => {
+    expect(draw(IconProp.Slack).querySelectorAll("path")).toHaveLength(4);
+  });
+
+  it("no two brands share a mark", () => {
+    const glyphs: Array<string> = BRAND_MARKS.map((mark: BrandMark): string => {
+      return draw(mark.icon).innerHTML;
+    });
+
+    expect(new Set(glyphs).size).toBe(glyphs.length);
+  });
+
+  it("the Developer pages' Terraform is no longer the cube it was", () => {
+    expect(draw(IconProp.Terraform).innerHTML).not.toBe(
+      draw(IconProp.Cube).innerHTML,
+    );
+  });
+
+  it("Discord and Mattermost are no longer a chat bubble", () => {
+    const chat: string = draw(IconProp.Chat).innerHTML;
+
+    expect(draw(IconProp.Discord).innerHTML).not.toBe(chat);
+    expect(draw(IconProp.Mattermost).innerHTML).not.toBe(chat);
+  });
+});
