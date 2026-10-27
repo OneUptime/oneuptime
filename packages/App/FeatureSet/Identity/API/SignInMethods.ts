@@ -85,11 +85,21 @@ router.get(
 
       const projectIdValue: unknown = req.params["projectId"];
 
+      /*
+       * The route turns a malformed id away on its own terms, as the SSO
+       * routes beside it do: { message } with a 400. Express's error handler
+       * would answer { error } instead, the shape of a failure, not of a
+       * refusal.
+       */
       if (
         typeof projectIdValue !== "string" ||
         !ObjectID.isValidUUID(projectIdValue)
       ) {
-        throw new BadRequestException("Invalid project id.");
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadRequestException("Invalid project id."),
+        );
       }
 
       const methods: ProjectSignInMethods =

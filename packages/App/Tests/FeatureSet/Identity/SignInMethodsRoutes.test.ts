@@ -67,6 +67,7 @@ jest.mock("Common/Server/Utils/SsoSignInMethods", () => {
 });
 
 const sendJsonObjectResponse: jest.Mock = jest.fn();
+const sendErrorResponse: jest.Mock = jest.fn();
 const setNoCacheHeaders: jest.Mock = jest.fn();
 
 jest.mock("Common/Server/Utils/Response", () => {
@@ -75,6 +76,9 @@ jest.mock("Common/Server/Utils/Response", () => {
     default: {
       sendJsonObjectResponse: (...args: Array<unknown>): unknown => {
         return sendJsonObjectResponse(...args);
+      },
+      sendErrorResponse: (...args: Array<unknown>): unknown => {
+        return sendErrorResponse(...args);
       },
       setNoCacheHeaders: (...args: Array<unknown>): unknown => {
         return setNoCacheHeaders(...args);
@@ -214,15 +218,31 @@ describe("GET /project-sign-in-methods/:projectId", () => {
     expect(setNoCacheHeaders).toHaveBeenCalledWith(result.res);
   });
 
+  /*
+   * A refusal of the route's own, as the SSO routes beside it answer one:
+   * Response.sendErrorResponse's { message } with a 400. Handed to Express's
+   * error handler it read { error } - the shape of a failure - and the
+   * licensed Enterprise e2e (Tests/Helpers/SsoRoutes.ts) failed 14.0.94's
+   * release on it.
+   */
   it.each(["project-1", "", "../../admin", `${PROJECT_ID}x`])(
-    "refuses %j as a project id before reading anything",
+    "refuses %j as a project id before reading anything, with its own message",
     async (projectId: string) => {
       const result: CallResult = await call(
         "/project-sign-in-methods/:projectId",
         { projectId },
       );
 
-      expect(result.nextError).toBeInstanceOf(BadRequestException);
+      expect(result.nextError).toBeNull();
+      expect(sendErrorResponse).toHaveBeenCalledTimes(1);
+      expect(sendErrorResponse.mock.calls[0]![1]).toBe(result.res);
+
+      const refusal: unknown = sendErrorResponse.mock.calls[0]![2];
+
+      expect(refusal).toBeInstanceOf(BadRequestException);
+      expect((refusal as BadRequestException).message).toBe(
+        "Invalid project id.",
+      );
       expect(getProjectSignInMethods).not.toHaveBeenCalled();
       expect(sendJsonObjectResponse).not.toHaveBeenCalled();
     },
