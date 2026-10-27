@@ -7,6 +7,7 @@ import WhatsAppAPI from "./API/WhatsApp";
 import TelegramAPI from "./API/Telegram";
 import WebhookAPI from "./API/Webhook";
 import CustomChannelAPI from "./API/CustomChannel";
+import CallAndSmsGatewayAPI from "./API/CallAndSmsGateway";
 import PushRelayAPI from "./API/PushRelay";
 import SMTPConfigAPI from "./API/SMTPConfig";
 import PhoneNumberAPI from "./API/PhoneNumber";
@@ -31,6 +32,10 @@ const NotificationFeatureSet: FeatureSet = {
     app.use(
       [`/${APP_NAME}/custom-channel`, "/custom-channel"],
       CustomChannelAPI,
+    );
+    app.use(
+      [`/${APP_NAME}/call-and-sms-gateway`, "/call-and-sms-gateway"],
+      CallAndSmsGatewayAPI,
     );
     app.use([`/${APP_NAME}/push-relay`, "/push-relay"], PushRelayAPI);
     app.use([`/${APP_NAME}/call`, "/call"], CallAPI);

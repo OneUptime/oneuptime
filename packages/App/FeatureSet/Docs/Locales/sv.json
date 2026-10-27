@@ -298,6 +298,7 @@
     "GitHub Integration": "GitHub-integration",
     "Push Notifications": "Push-aviseringar",
     "Custom Notification Channels": "Anpassade aviseringskanaler",
+    "SMS and Call Gateway": "SMS- och samtalsgateway",
     "SendGrid Inbound Email": "SendGrid inkommande e-post",
     "Private Network Access": "Åtkomst till privat nätverk",
     "Behind a VPN or Firewall": "Bakom VPN eller brandvägg",

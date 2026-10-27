@@ -1,8 +1,19 @@
 import {
   SMSDefaultCostInCents,
   SMSHighRiskCostInCents,
+  getCallAndSmsGateway,
   getTwilioConfig,
 } from "../Config";
+import CallAndSmsGatewayService, {
+  CallAndSmsGatewayResult,
+} from "./CallAndSmsGatewayService";
+import { CallAndSmsGateway } from "Common/Types/CallAndSMS/CallAndSmsProvider";
+import {
+  buildCallAndSmsGatewayMessagePayload,
+  CallAndSmsGatewayEvent,
+} from "Common/Types/CallAndSMS/CallAndSmsGatewayPayload";
+import OneUptimeDate from "Common/Types/Date";
+import CustomChannelActionToken from "Common/Server/Utils/OnCall/CustomChannelActionToken";
 import { isHighRiskPhoneNumber } from "Common/Types/Call/CallRequest";
 import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import TwilioPhoneNumbers from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
@@ -302,10 +313,22 @@ export default class SmsService {
         smsLog.userOnCallLogTimelineId = options.userOnCallLogTimelineId;
       }
 
-      const twilioConfig: TwilioConfig | null =
-        customTwilioConfig || (await getTwilioConfig(TwilioMessageKind.SMS));
+      /*
+       * What the SMS goes out through: the config the caller handed over;
+       * else, when the server sends its SMS and calls through its own
+       * gateway (CallAndSmsProvider), that gateway; else the server's own
+       * Twilio account. A server that sends through its gateway sends
+       * nothing through Twilio.
+       */
+      const gateway: CallAndSmsGateway | null = customTwilioConfig
+        ? null
+        : await getCallAndSmsGateway();
 
-      if (!twilioConfig) {
+      const twilioConfig: TwilioConfig | null = gateway
+        ? null
+        : customTwilioConfig || (await getTwilioConfig(TwilioMessageKind.SMS));
+
+      if (!gateway && !twilioConfig) {
         /*
          * Nobody has filled in Twilio credentials in Global Settings (or the
          * caller passed a project-level config that is empty, or one used
@@ -322,23 +345,27 @@ export default class SmsService {
         ).asUserError();
       }
 
-      const client: Twilio.Twilio = Twilio(
-        twilioConfig.accountSid,
-        twilioConfig.authToken,
-      );
+      const client: Twilio.Twilio | null = twilioConfig
+        ? Twilio(twilioConfig.accountSid, twilioConfig.authToken)
+        : null;
 
       /*
        * One of the numbers the config sends SMS from: its SMS numbers when
        * it has them, never a number it keeps for calls only
-       * (TwilioPhoneNumbers).
+       * (TwilioPhoneNumbers). A gateway sends from whatever number it
+       * sends from, which OneUptime is not told.
        */
-      const fromNumber: Phone = TwilioPhoneNumbers.pickSenderNumber({
-        config: twilioConfig,
-        kind: TwilioMessageKind.SMS,
-        to: to,
-      });
+      const fromNumber: Phone | null = twilioConfig
+        ? TwilioPhoneNumbers.pickSenderNumber({
+            config: twilioConfig,
+            kind: TwilioMessageKind.SMS,
+            to: to,
+          })
+        : null;
 
-      smsLog.fromNumber = fromNumber;
+      if (fromNumber) {
+        smsLog.fromNumber = fromNumber;
+      }
 
       let project: Project | null = null;
 
@@ -491,7 +518,8 @@ export default class SmsService {
       if (options.projectId) {
         smsLog.status = SmsStatus.Sending;
 
-        if (Host) {
+        // Only Twilio calls back with a delivery status; a gateway does not.
+        if (Host && !gateway) {
           smsLog.statusCallbackToken = ObjectID.generate().toString();
         }
 
@@ -512,22 +540,69 @@ export default class SmsService {
         }
       }
 
-      const twillioMessage: MessageInstance = await client.messages.create({
-        body: message,
-        to: to.toString(),
-        from: fromNumber.toString(), // From a valid Twilio number
-        ...(statusCallbackUrl ? { statusCallback: statusCallbackUrl } : {}),
-      });
+      if (gateway) {
+        /*
+         * The gateway is handed the message as written, as Twilio would
+         * be, with its id - the SMS log's, when there is one - and, for an
+         * on-call page, the links that act on it (CustomChannelActionToken).
+         */
+        const result: CallAndSmsGatewayResult =
+          await CallAndSmsGatewayService.send({
+            gateway: gateway,
+            event: CallAndSmsGatewayEvent.Sms,
+            payload: buildCallAndSmsGatewayMessagePayload({
+              event: CallAndSmsGatewayEvent.Sms,
+              id: (smsLogId || ObjectID.generate()).toString(),
+              sentAt: OneUptimeDate.getCurrentDate(),
+              to: to.toString(),
+              message: message,
+              isSensitive: Boolean(options.isSensitive),
+              project:
+                project && project.id
+                  ? { id: project.id.toString(), name: project.name || "" }
+                  : undefined,
+              actions: options.userOnCallLogTimelineId
+                ? await CustomChannelActionToken.getActionLinks(
+                    options.userOnCallLogTimelineId,
+                  )
+                : undefined,
+            }),
+          });
 
-      /*
-       * messages.create resolves once Twilio accepts the message (typically status
-       * "queued"/"accepted"). The terminal delivered/undelivered/failed state arrives
-       * later via the status callback above.
-       */
-      smsLog.status =
-        SmsService.mapProviderStatusToSmsStatus(twillioMessage.status) ||
-        SmsStatus.Sent;
-      smsLog.statusMessage = "Message ID: " + twillioMessage.sid;
+        if (!result.ok) {
+          // The installation's own gateway refused it, or was not reached.
+          throw new BadDataException(result.message).asUserError();
+        }
+
+        smsLog.status = SmsStatus.Sent;
+        smsLog.statusMessage = result.message;
+      } else {
+        if (!client || !fromNumber) {
+          // Not reached: an SMS with no gateway was refused above without an account.
+          throw new BadDataException(
+            getNoTwilioAccountMessage(TwilioMessageKind.SMS, {
+              projectConfigUse: options.customTwilioConfig?.use,
+            }),
+          ).asUserError();
+        }
+
+        const twillioMessage: MessageInstance = await client.messages.create({
+          body: message,
+          to: to.toString(),
+          from: fromNumber.toString(), // From a valid Twilio number
+          ...(statusCallbackUrl ? { statusCallback: statusCallbackUrl } : {}),
+        });
+
+        /*
+         * messages.create resolves once Twilio accepts the message (typically status
+         * "queued"/"accepted"). The terminal delivered/undelivered/failed state arrives
+         * later via the status callback above.
+         */
+        smsLog.status =
+          SmsService.mapProviderStatusToSmsStatus(twillioMessage.status) ||
+          SmsStatus.Sent;
+        smsLog.statusMessage = "Message ID: " + twillioMessage.sid;
+      }
 
       logger.debug("SMS message sent successfully.");
       logger.debug(smsLog.statusMessage);

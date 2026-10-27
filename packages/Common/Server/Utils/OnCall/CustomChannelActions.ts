@@ -67,8 +67,9 @@ interface PagedRecord {
  *                own permissions would refuse it in the Dashboard
  *                (WorkspaceMemberActions).
  *
- * Only a notification that went out on a custom channel, with a valid token
- * for it.
+ * Only a notification that went out on a custom channel - or as an SMS or a
+ * call through the server's own gateway, which carries the same links - with
+ * a valid token for it.
  */
 export default class CustomChannelActions {
   @CaptureSpan()
@@ -108,6 +109,8 @@ export default class CustomChannelActions {
           isAcknowledged: true,
           onCallDutyPolicyExecutionLogId: true,
           customNotificationChannelId: true,
+          userSmsId: true,
+          userCallId: true,
           triggeredByIncidentId: true,
           triggeredByAlertId: true,
           triggeredByAlertEpisodeId: true,
@@ -125,7 +128,17 @@ export default class CustomChannelActions {
       throw new NotAuthorizedException(CUSTOM_CHANNEL_INVALID_LINK_MESSAGE);
     }
 
-    if (!notification.customNotificationChannelId) {
+    /*
+     * Only a notification that goes out with these links: one on a custom
+     * channel, or an SMS or a call - which carry them when the server sends
+     * through its own gateway (CallAndSmsGatewayPayload). The token is the
+     * server's, for this one notification, so it is minted for no other.
+     */
+    if (
+      !notification.customNotificationChannelId &&
+      !notification.userSmsId &&
+      !notification.userCallId
+    ) {
       throw new NotAuthorizedException(
         CUSTOM_CHANNEL_NOT_A_CHANNEL_PAGE_MESSAGE,
       );

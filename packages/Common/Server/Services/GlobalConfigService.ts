@@ -29,6 +29,7 @@ import CallAndSmsProviders, {
   CALL_AND_SMS_GATEWAY_URL_TITLE,
 } from "../../Types/CallAndSMS/CallAndSmsProvider";
 import SSRFProtection from "../Utils/SSRFProtection";
+import URL from "../../Types/API/URL";
 import crypto from "crypto";
 
 /*
@@ -637,16 +638,18 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (data.callAndSmsGatewayUrl !== undefined) {
+      // Text, or a URL as a request's body can carry one.
       if (
         data.callAndSmsGatewayUrl !== null &&
-        typeof data.callAndSmsGatewayUrl !== "string"
+        typeof data.callAndSmsGatewayUrl !== "string" &&
+        !(data.callAndSmsGatewayUrl instanceof URL)
       ) {
         throw new BadDataException(
           `${CALL_AND_SMS_GATEWAY_URL_TITLE} must be a web address.`,
         );
       }
 
-      const url: string = (data.callAndSmsGatewayUrl || "").trim();
+      const url: string = (data.callAndSmsGatewayUrl || "").toString().trim();
 
       if (url) {
         await SSRFProtection.validateWebhookTargetIsSafe(url, {

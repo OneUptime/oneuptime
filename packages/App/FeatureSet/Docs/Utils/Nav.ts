@@ -1535,6 +1535,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/self-hosted/twilio-integration",
       },
       {
+        title: "SMS and Call Gateway",
+        url: "/docs/self-hosted/sms-and-call-gateway",
+      },
+      {
         title: "GitHub Integration",
         url: "/docs/self-hosted/github-integration",
       },

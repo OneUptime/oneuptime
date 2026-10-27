@@ -49,6 +49,19 @@ export const CUSTOM_CHANNEL_RETRY_DELAYS_MS: ReadonlyArray<number> = [
  */
 export const MAX_CUSTOM_CHANNEL_BODY_LENGTH: number = 200_000;
 
+// The User-Agent of a custom channel's requests.
+export const CUSTOM_CHANNEL_USER_AGENT: string = "OneUptime-CustomChannel/1.0";
+
+// What a signed request came to, after every attempt (postSigned).
+export interface SignedPostOutcome {
+  isDelivered: boolean;
+  // The HTTP status of the last answer, when there was one.
+  statusCode?: number | undefined;
+  // Why the last attempt failed, for the server's log only.
+  error?: string | undefined;
+  attempts: number;
+}
+
 // What one attempt came to.
 interface AttemptOutcome {
   statusCode?: number | undefined;
@@ -177,39 +190,15 @@ export default class CustomChannelService {
       };
     }
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "User-Agent": "OneUptime-CustomChannel/1.0",
-      [CUSTOM_CHANNEL_EVENT_HEADER]: input.eventType,
-      [CUSTOM_CHANNEL_SIGNATURE_HEADER]: signCustomChannelBody({
-        secret: channel.secret || "",
-        body: body,
-      }),
-    };
+    const outcome: SignedPostOutcome = await this.postSigned({
+      url: channel.webhookUrl,
+      secret: channel.secret || "",
+      eventType: input.eventType,
+      payload: input.payload || {},
+      userAgent: CUSTOM_CHANNEL_USER_AGENT,
+    });
 
-    let outcome: AttemptOutcome = {
-      isWorthRetrying: true,
-      isDelivered: false,
-    };
-    let attempts: number = 0;
-
-    while (attempts < CUSTOM_CHANNEL_MAX_ATTEMPTS) {
-      if (attempts > 0) {
-        await this.sleep(CUSTOM_CHANNEL_RETRY_DELAYS_MS[attempts - 1] || 0);
-      }
-
-      attempts++;
-
-      outcome = await this.attempt({
-        url: channel.webhookUrl,
-        payload: input.payload || {},
-        headers: headers,
-      });
-
-      if (outcome.isDelivered || !outcome.isWorthRetrying) {
-        break;
-      }
-    }
+    const attempts: number = outcome.attempts;
 
     if (outcome.isDelivered) {
       return {
@@ -237,6 +226,65 @@ export default class CustomChannelService {
     return {
       ok: false,
       message: `Not delivered: ${name} could not be reached${tries}.`,
+    };
+  }
+
+  /*
+   * Posts a request signed with a secret, naming its event, and tries it
+   * again as a custom channel's is: CUSTOM_CHANNEL_MAX_ATTEMPTS times in all
+   * while the service does not answer, answers a server error, a timeout or
+   * a rate limit. The server's SMS and call gateway is posted to through it
+   * too (CallAndSmsGatewayService), so both are signed and retried alike.
+   * Answers how the last attempt went, and how many there were.
+   */
+  public static async postSigned(data: {
+    url: string;
+    secret: string;
+    eventType: string;
+    payload: JSONObject;
+    userAgent: string;
+  }): Promise<SignedPostOutcome> {
+    const body: string = JSON.stringify(data.payload);
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "User-Agent": data.userAgent,
+      [CUSTOM_CHANNEL_EVENT_HEADER]: data.eventType,
+      [CUSTOM_CHANNEL_SIGNATURE_HEADER]: signCustomChannelBody({
+        secret: data.secret,
+        body: body,
+      }),
+    };
+
+    let outcome: AttemptOutcome = {
+      isWorthRetrying: true,
+      isDelivered: false,
+    };
+    let attempts: number = 0;
+
+    while (attempts < CUSTOM_CHANNEL_MAX_ATTEMPTS) {
+      if (attempts > 0) {
+        await this.sleep(CUSTOM_CHANNEL_RETRY_DELAYS_MS[attempts - 1] || 0);
+      }
+
+      attempts++;
+
+      outcome = await this.attempt({
+        url: data.url,
+        payload: data.payload,
+        headers: headers,
+      });
+
+      if (outcome.isDelivered || !outcome.isWorthRetrying) {
+        break;
+      }
+    }
+
+    return {
+      isDelivered: outcome.isDelivered,
+      statusCode: outcome.statusCode,
+      error: outcome.error,
+      attempts: attempts,
     };
   }
 

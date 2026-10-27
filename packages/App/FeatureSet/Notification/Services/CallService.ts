@@ -1,8 +1,18 @@
 import {
   CallDefaultCostInCentsPerMinute,
   CallHighRiskCostInCentsPerMinute,
+  getCallAndSmsGateway,
   getTwilioConfig,
 } from "../Config";
+import CallAndSmsGatewayService, {
+  CallAndSmsGatewayResult,
+} from "./CallAndSmsGatewayService";
+import { CallAndSmsGateway } from "Common/Types/CallAndSMS/CallAndSmsProvider";
+import {
+  buildCallAndSmsGatewayMessagePayload,
+  CallAndSmsGatewayEvent,
+} from "Common/Types/CallAndSMS/CallAndSmsGatewayPayload";
+import CustomChannelActionToken from "Common/Server/Utils/OnCall/CustomChannelActionToken";
 import CallRequest, {
   GatherInput,
   Say,
@@ -111,6 +121,30 @@ function extractSayMessagesFromCallRequest(callRequest: CallRequest): string {
   return sayMessages.length > 0
     ? sayMessages.join(" ")
     : "No message content found";
+}
+
+/*
+ * What a call says, for a gateway that makes it (CallAndSmsGatewayPayload):
+ * its spoken sentences in order. The "press 1" a call asks for is left out -
+ * it is Twilio's keypad, and the gateway offers the page's actions its own
+ * way - as are the answers to a key press.
+ */
+export function getCallGatewayMessage(callRequest: CallRequest): string {
+  const sentences: Array<string> = [];
+
+  for (const item of callRequest.data || []) {
+    const sayMessage: unknown = (item as Say).sayMessage;
+
+    if (typeof sayMessage !== "string" || !sayMessage.trim()) {
+      continue;
+    }
+
+    // Each a sentence of its own, ended as one.
+    const sentence: string = sayMessage.trim();
+    sentences.push(/[.!?]$/.test(sentence) ? sentence : `${sentence}.`);
+  }
+
+  return sentences.join(" ");
 }
 
 export default class CallService {
@@ -241,10 +275,22 @@ export default class CallService {
 
       logger.debug("Call Cost (cents): " + callCostInUSDCents);
 
-      const twilioConfig: TwilioConfig | null =
-        customTwilioConfig || (await getTwilioConfig(TwilioMessageKind.Call));
+      /*
+       * What the call goes out through: the config the caller handed over;
+       * else, when the server sends its SMS and calls through its own
+       * gateway (CallAndSmsProvider), that gateway; else the server's own
+       * Twilio account. A server that sends through its gateway makes no
+       * call through Twilio.
+       */
+      const gateway: CallAndSmsGateway | null = customTwilioConfig
+        ? null
+        : await getCallAndSmsGateway();
 
-      if (!twilioConfig) {
+      const twilioConfig: TwilioConfig | null = gateway
+        ? null
+        : customTwilioConfig || (await getTwilioConfig(TwilioMessageKind.Call));
+
+      if (!gateway && !twilioConfig) {
         /*
          * Nobody has filled in Twilio credentials in Global Settings (or the
          * caller passed a project-level config that is empty, or one used
@@ -261,20 +307,28 @@ export default class CallService {
         ).asUserError();
       }
 
-      const client: Twilio.Twilio = Twilio(
-        twilioConfig.accountSid,
-        twilioConfig.authToken,
-      );
+      const client: Twilio.Twilio | null = twilioConfig
+        ? Twilio(twilioConfig.accountSid, twilioConfig.authToken)
+        : null;
 
       callLog.toNumber = callRequest.to;
 
-      // One of the numbers the config makes calls from, never an SMS one.
-      const fromNumber: Phone = TwilioPhoneNumbers.pickSenderNumber({
-        config: twilioConfig,
-        kind: TwilioMessageKind.Call,
-        to: callRequest.to,
-      });
-      callLog.fromNumber = fromNumber;
+      /*
+       * One of the numbers the config makes calls from, never an SMS one. A
+       * gateway calls from whatever number it calls from, which OneUptime
+       * is not told.
+       */
+      const fromNumber: Phone | null = twilioConfig
+        ? TwilioPhoneNumbers.pickSenderNumber({
+            config: twilioConfig,
+            kind: TwilioMessageKind.Call,
+            to: callRequest.to,
+          })
+        : null;
+
+      if (fromNumber) {
+        callLog.fromNumber = fromNumber;
+      }
       callLog.callData =
         options && options.isSensitive
           ? ({ message: "This call is sensitive and is not logged" } as any)
@@ -490,18 +544,68 @@ export default class CallService {
 
       logger.debug("Sending Call Request.");
 
-      const twillioCall: CallInstance = await client.calls.create({
-        twiml: this.generateTwimlForCall(callRequest),
-        to: callRequest.to.toString(),
-        from: fromNumber.toString(), // From a valid Twilio number
-      });
+      // Twilio's answer, which says how long the call took; a gateway's does not.
+      let twillioCall: CallInstance | null = null;
+
+      if (gateway) {
+        /*
+         * The gateway is told what the call says, and - for an on-call
+         * page - given the links that act on it (CustomChannelActionToken),
+         * which it can offer as key presses of its own.
+         */
+        const result: CallAndSmsGatewayResult =
+          await CallAndSmsGatewayService.send({
+            gateway: gateway,
+            event: CallAndSmsGatewayEvent.Call,
+            payload: buildCallAndSmsGatewayMessagePayload({
+              event: CallAndSmsGatewayEvent.Call,
+              id: ObjectID.generate().toString(),
+              sentAt: OneUptimeDate.getCurrentDate(),
+              to: callRequest.to.toString(),
+              message: getCallGatewayMessage(callRequest),
+              isSensitive: Boolean(options.isSensitive),
+              project:
+                project && project.id
+                  ? { id: project.id.toString(), name: project.name || "" }
+                  : undefined,
+              actions: options.userOnCallLogTimelineId
+                ? await CustomChannelActionToken.getActionLinks(
+                    options.userOnCallLogTimelineId,
+                  )
+                : undefined,
+            }),
+          });
+
+        if (!result.ok) {
+          // The installation's own gateway refused it, or was not reached.
+          throw new BadDataException(result.message).asUserError();
+        }
+
+        callLog.status = CallStatus.Success;
+        callLog.statusMessage = result.message;
+      } else {
+        if (!client || !fromNumber) {
+          // Not reached: a call with no gateway was refused above without an account.
+          throw new BadDataException(
+            getNoTwilioAccountMessage(TwilioMessageKind.Call, {
+              projectConfigUse: options.customTwilioConfig?.use,
+            }),
+          ).asUserError();
+        }
+
+        twillioCall = await client.calls.create({
+          twiml: this.generateTwimlForCall(callRequest),
+          to: callRequest.to.toString(),
+          from: fromNumber.toString(), // From a valid Twilio number
+        });
+
+        callLog.status = CallStatus.Success;
+        callLog.statusMessage = "Call ID: " + twillioCall.sid;
+
+        logger.debug("Call ID: " + twillioCall.sid);
+      }
 
       logger.debug("Call Request sent successfully.");
-
-      callLog.status = CallStatus.Success;
-      callLog.statusMessage = "Call ID: " + twillioCall.sid;
-
-      logger.debug("Call ID: " + twillioCall.sid);
       logger.debug(callLog.statusMessage);
 
       if (shouldChargeForCall && project) {

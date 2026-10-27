@@ -297,6 +297,7 @@
     "GitHub Integration": "یکپارچه‌سازی GitHub",
     "Push Notifications": "اعلان‌های پوش",
     "Custom Notification Channels": "کانال‌های اعلان سفارشی",
+    "SMS and Call Gateway": "درگاه پیامک و تماس",
     "SendGrid Inbound Email": "ایمیل ورودی SendGrid",
     "Private Network Access": "دسترسی به شبکه خصوصی",
     "Behind a VPN or Firewall": "پشت VPN یا فایروال",

@@ -9,6 +9,10 @@ import {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import BaseAPI from "./BaseAPI";
+import MasterAdminAuthorization from "../Middleware/MasterAdminAuthorization";
+import CallAndSmsGatewayTest, {
+  CallAndSmsGatewayTestResult,
+} from "../Utils/CallAndSmsGatewayTest";
 import GlobalConfig from "../../Models/DatabaseModels/GlobalConfig";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
@@ -107,6 +111,32 @@ export default class GlobalConfigAPI extends BaseAPI<
           });
         } catch (err) {
           next(err);
+        }
+      },
+    );
+
+    /*
+     * POST /global-config/call-and-sms-gateway/test - a master admin trying
+     * the server's SMS and call gateway as saved (Admin Dashboard >
+     * Settings > Call and SMS): one request to it, to nobody, from the
+     * Notification service (CallAndSmsGatewayTest). Answers how it went,
+     * delivered or not, as a custom channel's test does.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}/call-and-sms-gateway/test`,
+      MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const result: CallAndSmsGatewayTestResult =
+            await CallAndSmsGatewayTest.send();
+
+          return Response.sendJsonObjectResponse(req, res, {
+            ok: result.ok,
+            responseStatusCode: result.statusCode || null,
+            statusMessage: result.message,
+          });
+        } catch (err) {
+          return next(err);
         }
       },
     );
