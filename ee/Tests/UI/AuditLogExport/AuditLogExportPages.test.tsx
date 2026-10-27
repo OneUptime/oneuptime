@@ -705,7 +705,10 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
 
     for (const [destinationType, logo] of [
       [AuditLogExportDestinationType.AmazonS3, "amazon-s3"],
-      [AuditLogExportDestinationType.GoogleCloudStorage, "google-cloud-storage"],
+      [
+        AuditLogExportDestinationType.GoogleCloudStorage,
+        "google-cloud-storage",
+      ],
       [AuditLogExportDestinationType.AzureBlobStorage, "azure-blob-storage"],
       [AuditLogExportDestinationType.S3Compatible, undefined],
       [AuditLogExportDestinationType.Webhook, undefined],
@@ -888,7 +891,10 @@ describe("a project's exports: Settings > Audit Logs > Export", () => {
      */
     for (const [destinationType, logo] of [
       [AuditLogExportDestinationType.AmazonS3, "amazon-s3"],
-      [AuditLogExportDestinationType.GoogleCloudStorage, "google-cloud-storage"],
+      [
+        AuditLogExportDestinationType.GoogleCloudStorage,
+        "google-cloud-storage",
+      ],
       [AuditLogExportDestinationType.AzureBlobStorage, "azure-blob-storage"],
       [AuditLogExportDestinationType.S3Compatible, undefined],
       [AuditLogExportDestinationType.Webhook, undefined],

@@ -1462,12 +1462,17 @@ test.describe("connections empty state", () => {
      */
     const logos: Array<string> = [];
     for (const item of PROVIDERS) {
-      logos.push((await tileBadge(page, item).getAttribute("data-provider-logo")) || "");
+      logos.push(
+        (await tileBadge(page, item).getAttribute("data-provider-logo")) || "",
+      );
       await expect(tileLogoImage(page, item)).toHaveCount(1);
       await expect
-        .poll(async (): Promise<boolean> => {
-          return isDrawn(tileLogoImage(page, item));
-        }, { message: `${item.title} logo is drawn` })
+        .poll(
+          async (): Promise<boolean> => {
+            return isDrawn(tileLogoImage(page, item));
+          },
+          { message: `${item.title} logo is drawn` },
+        )
         .toBe(true);
     }
     expect(new Set(logos).size, "distinct tile logos").toBe(PROVIDERS.length);

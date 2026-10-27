@@ -336,10 +336,7 @@ describe("SecurityEventProviderTile", () => {
       const { tile } = renderTile();
 
       expect(badge(tile)).toHaveAttribute("aria-hidden", "true");
-      expect(badge(tile)).toHaveAttribute(
-        "data-provider-logo",
-        SENTINEL.logo,
-      );
+      expect(badge(tile)).toHaveAttribute("data-provider-logo", SENTINEL.logo);
       expect(badge(tile)).not.toHaveAttribute("role");
       expect(badge(tile).textContent).toBe("");
       // No generic icon stands in for the product any more.
@@ -466,10 +463,7 @@ describe("SecurityEventProviderTile", () => {
       );
       expect(drawn).toEqual([iconMarkup(IconProp.ExternalLink)]);
       expect(drawn).not.toContain(add);
-      expect(badge(tile)).toHaveAttribute(
-        "data-provider-logo",
-        SENTINEL.logo,
-      );
+      expect(badge(tile)).toHaveAttribute("data-provider-logo", SENTINEL.logo);
     });
 
     test("still links the setup guide, the tile's only control", () => {

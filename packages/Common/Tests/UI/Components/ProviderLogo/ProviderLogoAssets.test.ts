@@ -23,7 +23,12 @@ import {
  */
 
 const COMMON: string = path.join(__dirname, "..", "..", "..", "..");
-const LOGOS_DIRECTORY: string = path.join(COMMON, "UI", "Images", "ProviderLogos");
+const LOGOS_DIRECTORY: string = path.join(
+  COMMON,
+  "UI",
+  "Images",
+  "ProviderLogos",
+);
 const ASSETS_SOURCE: string = path.join(
   COMMON,
   "UI",

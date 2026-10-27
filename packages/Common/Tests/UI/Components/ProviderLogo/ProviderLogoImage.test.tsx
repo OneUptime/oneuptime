@@ -157,9 +157,7 @@ describe("ProviderLogoImage", () => {
       render(<ProviderLogoImage logo={ProviderLogo.Grafana} />);
 
       // Drawn at once, from what was loaded: no empty tile, no request.
-      expect(
-        tileOf(ProviderLogo.Grafana).querySelector("img"),
-      ).not.toBeNull();
+      expect(tileOf(ProviderLogo.Grafana).querySelector("img")).not.toBeNull();
       expect(requested).toEqual([]);
     });
 
@@ -216,9 +214,10 @@ describe("ProviderLogoImage", () => {
       });
 
       await waitFor(() => {
-        expect(
-          tileOf(ProviderLogo.Aws).querySelector("img"),
-        ).toHaveAttribute("data-provider-logo-file", "aws-dark.svg");
+        expect(tileOf(ProviderLogo.Aws).querySelector("img")).toHaveAttribute(
+          "data-provider-logo-file",
+          "aws-dark.svg",
+        );
       });
 
       act(() => {
@@ -226,9 +225,10 @@ describe("ProviderLogoImage", () => {
       });
 
       await waitFor(() => {
-        expect(
-          tileOf(ProviderLogo.Aws).querySelector("img"),
-        ).toHaveAttribute("data-provider-logo-file", "aws.svg");
+        expect(tileOf(ProviderLogo.Aws).querySelector("img")).toHaveAttribute(
+          "data-provider-logo-file",
+          "aws.svg",
+        );
       });
     });
   });
@@ -249,24 +249,27 @@ describe("ProviderLogoImage", () => {
       );
     });
 
-    test.each(SIZES)("is %i pixels when asked for that size", (size: number) => {
-      render(
-        <ProviderLogoImage
-          logo={ProviderLogo.Python}
-          size={size as ProviderLogoSize}
-        />,
-      );
+    test.each(SIZES)(
+      "is %i pixels when asked for that size",
+      (size: number) => {
+        render(
+          <ProviderLogoImage
+            logo={ProviderLogo.Python}
+            size={size as ProviderLogoSize}
+          />,
+        );
 
-      const tile: HTMLElement = tileOf(ProviderLogo.Python);
-      const tileClasses: Array<string> = getProviderLogoTileSizeClassName(
-        size as ProviderLogoSize,
-      ).split(" ");
+        const tile: HTMLElement = tileOf(ProviderLogo.Python);
+        const tileClasses: Array<string> = getProviderLogoTileSizeClassName(
+          size as ProviderLogoSize,
+        ).split(" ");
 
-      expect(classesOf(tile)).toEqual(expect.arrayContaining(tileClasses));
-      // Tailwind's scale: size / 4, so 40 pixels is h-10 w-10.
-      expect(tileClasses).toContain(`h-${size / 4}`);
-      expect(tileClasses).toContain(`w-${size / 4}`);
-    });
+        expect(classesOf(tile)).toEqual(expect.arrayContaining(tileClasses));
+        // Tailwind's scale: size / 4, so 40 pixels is h-10 w-10.
+        expect(tileClasses).toContain(`h-${size / 4}`);
+        expect(tileClasses).toContain(`w-${size / 4}`);
+      },
+    );
 
     test("is 40 pixels when no size is given", () => {
       render(<ProviderLogoImage logo={ProviderLogo.Python} />);
@@ -281,9 +284,7 @@ describe("ProviderLogoImage", () => {
 
       const mark: Element = tileOf(ProviderLogo.Slack).firstElementChild!;
 
-      expect(classesOf(mark)).toEqual(
-        expect.arrayContaining(["h-6", "w-6"]),
-      );
+      expect(classesOf(mark)).toEqual(expect.arrayContaining(["h-6", "w-6"]));
     });
 
     test("holds a wide logo across its inside, so a wordmark is not shrunk to a square", () => {
@@ -291,15 +292,11 @@ describe("ProviderLogoImage", () => {
 
       const mark: Element = tileOf(ProviderLogo.Aws).firstElementChild!;
 
-      expect(classesOf(mark)).toEqual(
-        expect.arrayContaining(["h-6", "w-8"]),
-      );
+      expect(classesOf(mark)).toEqual(expect.arrayContaining(["h-6", "w-8"]));
     });
 
     test("keeps the classes it is given", () => {
-      render(
-        <ProviderLogoImage logo={ProviderLogo.Ruby} className="mt-0.5" />,
-      );
+      render(<ProviderLogoImage logo={ProviderLogo.Ruby} className="mt-0.5" />);
 
       expect(classesOf(tileOf(ProviderLogo.Ruby))).toContain("mt-0.5");
     });
@@ -320,9 +317,7 @@ describe("ProviderLogoImage", () => {
 
       const mark: Element = tileOf(ProviderLogo.React).firstElementChild!;
 
-      expect(classesOf(mark)).toEqual(
-        expect.arrayContaining(["h-4", "w-4"]),
-      );
+      expect(classesOf(mark)).toEqual(expect.arrayContaining(["h-4", "w-4"]));
     });
 
     test("is still named for a screen reader unless its name is beside it", () => {

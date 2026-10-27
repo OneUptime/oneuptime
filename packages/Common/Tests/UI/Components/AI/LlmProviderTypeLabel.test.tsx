@@ -71,7 +71,9 @@ describe("LlmProviderTypeLabel", () => {
 
     expect(container.querySelector("[data-provider-logo]")).toBeNull();
     expect(
-      container.querySelector(`svg[data-testid='${PROVIDER_ICON_TILE_TEST_ID}']`),
+      container.querySelector(
+        `svg[data-testid='${PROVIDER_ICON_TILE_TEST_ID}']`,
+      ),
     ).toHaveClass("h-4", "w-4", "text-gray-500");
   });
 
@@ -115,7 +117,10 @@ describe("LlmProviderTypeLabel", () => {
     for (const page of pages) {
       const source: string = fs.readFileSync(path.join(packages, page), "utf8");
 
-      expect({ page, usesLabel: source.includes("<LlmProviderTypeLabel") }).toEqual({
+      expect({
+        page,
+        usesLabel: source.includes("<LlmProviderTypeLabel"),
+      }).toEqual({
         page,
         usesLabel: true,
       });

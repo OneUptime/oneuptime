@@ -1083,9 +1083,10 @@ describe("SecurityEventConnectionsTable", () => {
         "[data-provider-logo]",
       );
 
-      expect({ name, logo: mark?.getAttribute("data-provider-logo") }).toEqual(
-        { name, logo },
-      );
+      expect({ name, logo: mark?.getAttribute("data-provider-logo") }).toEqual({
+        name,
+        logo,
+      });
       expect(mark).toHaveAttribute("aria-hidden", "true");
       // The mark alone, beside the words: no tile.
       expect(mark).not.toHaveClass("bg-white");

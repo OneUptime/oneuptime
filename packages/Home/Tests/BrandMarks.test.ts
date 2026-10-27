@@ -191,7 +191,11 @@ describe("brand marks on the marketing site", () => {
     ["status-page.ejs", "\n                    Slack\n", "M5.042 15.165"],
     // The metrics page's alert channels and metric sources.
     ["metrics.ejs", "\n                          Slack\n", "M5.042 15.165"],
-    ["metrics.ejs", "\n                          PagerDuty\n", "M16.965 1.18C15"],
+    [
+      "metrics.ejs",
+      "\n                          PagerDuty\n",
+      "M16.965 1.18C15",
+    ],
     ["metrics.ejs", ">Prometheus</div>", "M12 0C5.373 0 0"],
     ["metrics.ejs", ">OTel</div>", "M12.6974 13.1173"],
     ["metrics.ejs", ">Graphite</div>", "m15.215 0-12 3.2"],
@@ -201,7 +205,11 @@ describe("brand marks on the marketing site", () => {
     ["logs-management.ejs", ">Docker</div>", "M13.983 11.078h2"],
     // The AI agent's GitHub card and the developers' Terraform card.
     ["ai-agent.ejs", ">GitHub Integration</h3>", "M12 .297c-6.63 0"],
-    ["solutions/developers.ejs", ">Terraform Provider</h3>", "M1.44 0v7.575l6."],
+    [
+      "solutions/developers.ejs",
+      ">Terraform Provider</h3>",
+      "M1.44 0v7.575l6.",
+    ],
   ])(
     "%s: %j is drawn with the brand's own mark",
     (view: string, label: string, pathStart: string) => {

@@ -280,7 +280,11 @@ describe("Icon brand marks", () => {
       pathStart: "M17.472 14.382",
       viewBox: "0 0 24 24",
     },
-    { icon: IconProp.Telegram, pathStart: "M11.944 0A12", viewBox: "0 0 24 24" },
+    {
+      icon: IconProp.Telegram,
+      pathStart: "M11.944 0A12",
+      viewBox: "0 0 24 24",
+    },
     {
       icon: IconProp.Kubernetes,
       pathStart: "M10.204 14.35",

@@ -75,7 +75,10 @@ function expectLogoShipped(logo: ProviderLogo): void {
     logo,
     isLogo: true,
   });
-  expect({ logo, hasLoader: Boolean(PROVIDER_LOGO_FILE_LOADERS[fileName]) }).toEqual({
+  expect({
+    logo,
+    hasLoader: Boolean(PROVIDER_LOGO_FILE_LOADERS[fileName]),
+  }).toEqual({
     logo,
     hasLoader: true,
   });
@@ -95,9 +98,13 @@ function expectCatalog(
   entries: Array<Entry>,
   expected: Record<string, ProviderLogo | undefined>,
 ): void {
-  expect(entries.map((entry: Entry): string => {
-    return entry.name;
-  }).sort()).toEqual(Object.keys(expected).sort());
+  expect(
+    entries
+      .map((entry: Entry): string => {
+        return entry.name;
+      })
+      .sort(),
+  ).toEqual(Object.keys(expected).sort());
 
   for (const entry of entries) {
     expect({ entry: entry.name, logo: entry.logo }).toEqual({

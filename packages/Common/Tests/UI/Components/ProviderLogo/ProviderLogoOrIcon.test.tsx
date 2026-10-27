@@ -45,7 +45,10 @@ describe("ProviderLogoOrIcon", () => {
   describe("with a logo", () => {
     test("draws the product's logo, not the icon", () => {
       render(
-        <ProviderLogoOrIcon logo={ProviderLogo.AmazonS3} icon={IconProp.Archive} />,
+        <ProviderLogoOrIcon
+          logo={ProviderLogo.AmazonS3}
+          icon={IconProp.Archive}
+        />,
       );
 
       const logo: HTMLElement = screen.getByTestId(

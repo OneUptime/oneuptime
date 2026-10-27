@@ -527,9 +527,7 @@ describe("SecurityEventConnectionsEmptyState", () => {
            */
           1 + 1 + 8 + 2,
         );
-        expect(root().querySelectorAll("[data-provider-logo]")).toHaveLength(
-          8,
-        );
+        expect(root().querySelectorAll("[data-provider-logo]")).toHaveLength(8);
       },
     );
   });
