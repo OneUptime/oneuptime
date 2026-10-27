@@ -1739,7 +1739,9 @@ html.dark .uptime-bar-no-data {
  * not - and on the dark page it sits on a small light backdrop, where it
  * reads as it does on the light page. A public dashboard's logo does the
  * same (PublicDashboard/src/Components/LogoPlate): any visitor can turn a
- * public dashboard dark from its toolbar.
+ * public dashboard dark from its toolbar. So does an installation's own
+ * logo at the top of a sign-in page, when it has none made for dark
+ * backgrounds (Components/ProductLogo, isLightLogoOnDarkPage).
  */
 html.dark [data-ou-logo-plate] {
   background-color: #f8fafc;

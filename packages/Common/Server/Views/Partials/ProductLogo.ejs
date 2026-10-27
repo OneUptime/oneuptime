@@ -9,11 +9,11 @@
   The page is drawn in the person's theme (Partials/Theme.ejs). On a dark
   page the logo is the one made for dark backgrounds - the installation's
   own when it has one, OneUptime's wordmark in light letters - as the app's
-  ProductLogo draws it; an installation with one logo shows it on both.
-  Which of the two is on screen is decided by data-theme-only, which the
-  theme partial's own style hides before the first paint. An installation's
-  only logo, made for light backgrounds, sits on a small light backdrop
-  while the page is dark, as on the sign-in pages (ProductLogo's plate).
+  ProductLogo draws it. Which of the two is on screen is decided by
+  data-theme-only, which the theme partial's own style hides before the
+  first paint. An installation's only logo, made for light backgrounds, is
+  shown on both, on a small light backdrop while the page is dark, as on
+  the sign-in pages (ProductLogo's plate).
 %>
 <%
   var productLogoName = (typeof productName !== 'undefined' && productName) ? productName : 'OneUptime';
