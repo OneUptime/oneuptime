@@ -64,7 +64,7 @@ As it is, an incident with no owners is emailed to the project's owners, and tha
 :::steps
 ### Create an on-call policy
 
-In the checklist, click **Set up an on-call policy**, or open **On-Call Duty** from the **Products** menu. Click **Create On-Call Policy** and enter a **Name**. Under **Who gets paged first?**, click **Add responder** and pick yourself. Leave **Page it for every new incident and alert** on, and click **Create On-Call Policy**.
+In the checklist, click **Set up an on-call policy**, or open **On-Call Duty** from the **Products** menu. Click **Create On-Call Policy** and enter a **Name**. Under **Who gets paged first?**, click **Add responder** and pick yourself. Leave **Page this policy for every new incident and alert** on, and click **Create On-Call Policy**.
 
 ### See the rule that pages it
 

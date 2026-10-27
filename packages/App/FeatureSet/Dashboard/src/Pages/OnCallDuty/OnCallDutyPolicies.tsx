@@ -103,9 +103,9 @@ const OnCallDutyPage: FunctionComponent<
   });
 
   /*
-   * A project's first policy is offered "Page it for every new incident and
-   * alert" (UseEveryNewEventRulesOffer): the list's first page says whether
-   * there is a policy yet.
+   * A project's first policy is offered "Page this policy for every new
+   * incident and alert" (UseEveryNewEventRulesOffer): the list's first page
+   * says whether there is a policy yet.
    */
   const everyNewEventRules: EveryNewEventRulesOffer =
     useEveryNewEventRulesOffer();

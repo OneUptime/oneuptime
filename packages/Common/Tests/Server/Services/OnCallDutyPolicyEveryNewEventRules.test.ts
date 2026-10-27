@@ -26,8 +26,9 @@ import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
 /*
  * A NEW PROJECT'S FIRST ON-CALL POLICY PAGES FOR EVERY INCIDENT AND ALERT.
  *
- * Create On-Call Policy's "Page it for every new incident and alert" travels
- * as misc data (EveryNewEventRules). OnCallDutyPolicyService.create, given
+ * Create On-Call Policy's "Page this policy for every new incident and
+ * alert" travels as misc data (EveryNewEventRules).
+ * OnCallDutyPolicyService.create, given
  * it, adds two on-call rules once the policy is saved - one for incidents,
  * one for alerts, matching everything and naming the policy - so the policy
  * pages whoever its first level names as soon as anything opens. These

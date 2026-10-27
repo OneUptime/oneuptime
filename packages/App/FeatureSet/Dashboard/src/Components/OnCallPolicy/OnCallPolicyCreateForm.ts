@@ -30,23 +30,28 @@ import SelectFormFields from "Common/UI/Types/SelectEntityField";
  * Three rows, so no steps. React-free, so tests can read the fields without
  * rendering the page.
  *
- * A project's first policy is asked one more thing: "Page it for every new
- * incident and alert", on to start with. A policy pages nobody until an
- * on-call rule or a monitor names it, and a new project has neither - so
- * the first policy someone made from the Home checklist paged nobody, and
- * the step said it was done. With it on, the server adds an on-call rule for
- * incidents and one for alerts naming the policy (EveryNewEventRules). The
- * page offers it only while the project has no on-call policy and no
- * on-call rule (shouldOfferEveryNewEventRules); four rows then, still one
- * page: a step for one switch would be the longer way.
+ * A project's first policy is asked one more thing: "Page this policy for
+ * every new incident and alert", on to start with. A policy pages nobody
+ * until an on-call rule or a monitor triggers it, and a new project has
+ * neither - so the first policy someone made from the Home checklist paged
+ * nobody, and the step said it was done. With it on, the server adds an
+ * on-call rule for incidents and one for alerts naming the policy
+ * (EveryNewEventRules). The page offers it only while the project has no
+ * on-call policy and no on-call rule (shouldOfferEveryNewEventRules); four
+ * rows then, still one page: a step for one switch would be the longer way.
+ *
+ * Its words: the label names the policy ("this policy", never "it", which
+ * under "Who gets paged first?" could be anyone), and the description says
+ * first what the switch does, then why it matters - in the dialog's own
+ * word for running a policy ("triggered", as "Who gets paged first?" says).
  */
 
 export const PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_TITLE: string =
-  translationKey("Page it for every new incident and alert");
+  translationKey("Page this policy for every new incident and alert");
 
 export const PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_DESCRIPTION: string =
   translationKey(
-    "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.",
+    "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.",
   );
 
 export interface OnCallPolicyCreateFormOptions {
@@ -57,9 +62,9 @@ export interface OnCallPolicyCreateFormOptions {
    */
   canAddEscalationRules: () => boolean;
   /*
-   * Whether to offer "Page it for every new incident and alert": a project's
-   * first policy, for someone who may add on-call rules. Read when the form
-   * is drawn. Left out, it is never offered.
+   * Whether to offer "Page this policy for every new incident and alert": a
+   * project's first policy, for someone who may add on-call rules. Read when
+   * the form is drawn. Left out, it is never offered.
    */
   offerEveryNewEventRules?: (() => boolean) | undefined;
 }

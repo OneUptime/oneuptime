@@ -11,7 +11,8 @@ import path from "path";
  * when something breaks:
  *
  *   - the Quickstart's "Get paged when it goes down": a project's first
- *     on-call policy is asked "Page it for every new incident and alert",
+ *     on-call policy is asked "Page this policy for every new incident and
+ *     alert",
  *     which starts on, and the rule it adds is listed under Incidents >
  *     Rules > On-Call Rules, matching All incidents;
  *   - On-Call Policies' "Create a policy", and the On-Call overview's "Run
@@ -36,7 +37,7 @@ const POLICIES: string = "on-call/policies.md";
 const ON_CALL: string = "on-call/index.md";
 const REACHING_YOU: string = "notifications/index.md";
 
-const SWITCH: string = "Page it for every new incident and alert";
+const SWITCH: string = "Page this policy for every new incident and alert";
 const STAYING_INFORMED: string = "Staying informed";
 
 function read(...segments: Array<string>): string {

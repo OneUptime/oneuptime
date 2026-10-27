@@ -39,8 +39,9 @@ import {
  * Every form that creates an on-call policy asks who gets paged first, with
  * the escalation rule's Notify picker, and keeps to three rows: Name, that
  * question, and a folded Advanced section holding the description and the
- * labels - and, for a project's first policy only, a fourth: "Page it for
- * every new incident and alert" (EveryNewEventRules), still on one page.
+ * labels - and, for a project's first policy only, a fourth: "Page this
+ * policy for every new incident and alert" (EveryNewEventRules), still on
+ * one page.
  * The picker hands the server the lists it reads
  * (OnCallDutyPolicyService.create): a form that asks the question and sends
  * keys the server does not read would make a policy that silently pages
@@ -102,7 +103,9 @@ function everyNewEventRulesField(fields: Array<PolicyField>): PolicyField {
   );
 
   if (!field) {
-    throw new Error("No 'Page it for every new incident and alert' field");
+    throw new Error(
+      "No 'Page this policy for every new incident and alert' field",
+    );
   }
 
   return field;
@@ -140,9 +143,16 @@ describe("the create form's fields", () => {
     const field: PolicyField = everyNewEventRulesField(fields);
 
     expect(field.title).toBe(PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_TITLE);
-    expect(field.title).toBe("Page it for every new incident and alert");
+    // It names the policy: under "Who gets paged first?", "it" could be anyone.
+    expect(field.title).toBe(
+      "Page this policy for every new incident and alert",
+    );
+    // What it does first, then why it matters, in the dialog's own words.
     expect(field.description).toBe(
       PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_DESCRIPTION,
+    );
+    expect(field.description).toBe(
+      "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.",
     );
     expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
     expect(field.defaultValue).toBe(true);
@@ -380,8 +390,9 @@ describe("the project's forms", () => {
       expect(form.hasSummaryOnly).toBe(false);
 
       /*
-       * Name, the question, "Page it for every new incident and alert" (a
-       * new project's first policy only) and the folded Advanced section.
+       * Name, the question, "Page this policy for every new incident and
+       * alert" (a new project's first policy only) and the folded Advanced
+       * section.
        */
       expect(countFieldRows(form.fields)).toBe(4);
       expect(form.visibleFieldCount).toBe(4);

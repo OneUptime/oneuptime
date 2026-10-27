@@ -18,10 +18,10 @@ import path from "path";
  *     names it.
  *
  * Three sentences now say so where the newcomer is: Create Monitor's card,
- * the Home checklist's on-call step, and Create On-Call Policy's "Page it for
- * every new incident and alert". This suite holds each one to the code that
- * makes it true, and to all 17 locales, so the words cannot drift from what
- * happens or fall back to English in one language.
+ * the Home checklist's on-call step, and Create On-Call Policy's "Page this
+ * policy for every new incident and alert". This suite holds each one to
+ * the code that makes it true, and to all 17 locales, so the words cannot
+ * drift from what happens or fall back to English in one language.
  */
 
 const PACKAGES: string = path.join(__dirname, "..", "..", "..");
@@ -47,10 +47,10 @@ const ON_CALL_STEP_DESCRIPTION: string =
   "Page the right person when an incident or alert opens. Until then, the project's owners get an email.";
 
 const EVERY_NEW_EVENT_TITLE: string =
-  "Page it for every new incident and alert";
+  "Page this policy for every new incident and alert";
 
 const EVERY_NEW_EVENT_DESCRIPTION: string =
-  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.";
+  "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.";
 
 const NEW_SENTENCES: Array<string> = [
   CREATE_MONITOR_DESCRIPTION,
@@ -63,6 +63,16 @@ const NEW_SENTENCES: Array<string> = [
 const RETIRED_SENTENCES: Array<string> = [
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change.",
   "Route alerts and incidents to the right person at the right time.",
+];
+
+/*
+ * The switch's first words, before its UI review: "it", under "Who gets
+ * paged first?", could be the person just added, and the description said
+ * why before it said what. Renamed in every locale, translations kept.
+ */
+const RETIRED_SWITCH_WORDS: Array<string> = [
+  "Page it for every new incident and alert",
+  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.",
 ];
 
 type Locale = Record<string, unknown>;
@@ -260,6 +270,15 @@ describe("in every language", () => {
       expect((value as string).trim().length).toBeGreaterThan(0);
     }
   });
+
+  test.each(Object.keys(locales).sort())(
+    "%s no longer holds the switch's first words",
+    (code: string) => {
+      for (const retired of RETIRED_SWITCH_WORDS) {
+        expect([retired, retired in locales[code]!]).toEqual([retired, false]);
+      }
+    },
+  );
 
   test.each(NON_ENGLISH)(
     "%s keeps the product's name in Create Monitor's card",

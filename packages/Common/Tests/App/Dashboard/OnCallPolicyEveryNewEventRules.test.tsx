@@ -23,12 +23,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * A NEW PROJECT'S FIRST ON-CALL POLICY PAGES FOR EVERY INCIDENT AND ALERT -
  * on the real On-Call Policies page, with only the network stubbed.
  *
- * A policy pages nobody until an on-call rule or a monitor names it, and a
+ * A policy pages nobody until an on-call rule or a monitor triggers it, and a
  * new project has neither: the first policy someone made from the Home
  * checklist paged nobody. So, while the project has no on-call policy and
- * no on-call rule yet, Create On-Call Policy also asks "Page it for every
- * new incident and alert", on to start with, and sends the answer as misc
- * data the server turns into the two rules (EveryNewEventRules):
+ * no on-call rule yet, Create On-Call Policy also asks "Page this policy
+ * for every new incident and alert", on to start with, and sends the answer
+ * as misc data the server turns into the two rules (EveryNewEventRules):
  *
  *   - offered only for the project's first policy, to someone who may add
  *     on-call rules, and only once the counts say so;

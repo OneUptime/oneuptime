@@ -14,12 +14,12 @@ import { JSONObject } from "../JSON";
  * folded Rules section of another product.
  *
  * Create On-Call Policy now offers, while the project has no on-call policy
- * and no on-call rule yet, "Page it for every new incident and alert" - on
- * to start with. The choice travels with the create as misc data under
- * PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY, and the server, once the policy
- * exists, adds two on-call rules naming it: one for incidents, one for
- * alerts, each matching everything (OnCallDutyPolicyService.create). They
- * are ordinary rules, listed and changed where every on-call rule is.
+ * and no on-call rule yet, "Page this policy for every new incident and
+ * alert" - on to start with. The choice travels with the create as misc
+ * data under PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY, and the server, once
+ * the policy exists, adds two on-call rules naming it: one for incidents,
+ * one for alerts, each matching everything (OnCallDutyPolicyService.create).
+ * They are ordinary rules, listed and changed where every on-call rule is.
  *
  * React-free and server-safe: the server, the dashboard and their tests
  * read it.

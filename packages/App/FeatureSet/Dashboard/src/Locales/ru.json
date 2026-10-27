@@ -36335,8 +36335,8 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Устранено OneUptime AI. Никого не вызывали.",
   "Wait for OneUptime AI for up to (minutes)": "Ждать OneUptime AI не дольше (минуты)",
   "Wait from 1 to 30 whole minutes.": "Укажите от 1 до 30 целых минут.",
-  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "Политика никого не оповещает, пока её не назовёт правило или монитор. Здесь добавляются правило для инцидентов и правило для оповещений.",
-  "Page it for every new incident and alert": "Срабатывать при каждом новом инциденте и оповещении",
+  "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.": "Добавляет правило дежурства для инцидентов и ещё одно для оповещений. Политика никого не оповещает, пока её не запустит правило или монитор.",
+  "Page this policy for every new incident and alert": "Срабатывать при каждом новом инциденте и оповещении",
   "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "Оповещайте нужного человека, когда открывается инцидент или оповещение. До тех пор владельцы проекта получают письмо.",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "Выберите, что отслеживать, и дайте этому название. Всё остальное начинается со значений по умолчанию, которые можно изменить. Если что-то пойдёт не так, OneUptime откроет инцидент или оповещение и напишет владельцам проекта."
 }

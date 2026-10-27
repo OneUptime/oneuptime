@@ -121,7 +121,7 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     file: `${DASHBOARD}/Pages/OnCallDuty/OnCallDutyPolicies.tsx`,
     form: "ModelTable: On-Call > Policies",
     reason:
-      "Create On-Call Policy is three rows - Name, Who gets paged first? and the folded description and labels - and a fourth only for a project's first policy: the switch 'Page it for every new incident and alert', without which that policy pages nobody (EveryNewEventRules). A step of its own for one switch would make the first policy the longest to create; OnCallPolicyCreateFormGuard pins the shape.",
+      "Create On-Call Policy is three rows - Name, Who gets paged first? and the folded description and labels - and a fourth only for a project's first policy: the switch 'Page this policy for every new incident and alert', without which that policy pages nobody (EveryNewEventRules). A step of its own for one switch would make the first policy the longest to create; OnCallPolicyCreateFormGuard pins the shape.",
   },
   {
     file: `${DASHBOARD}/Components/OnCallPolicy/OnCallScheduleLayer/LayerConfigForm.tsx`,

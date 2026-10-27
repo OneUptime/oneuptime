@@ -36335,8 +36335,8 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Løst af OneUptime AI. Ingen blev tilkaldt.",
   "Wait for OneUptime AI for up to (minutes)": "Vent på OneUptime AI i op til (minutter)",
   "Wait from 1 to 30 whole minutes.": "Vent fra 1 til 30 hele minutter.",
-  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "En politik tilkalder ingen, før en regel eller en monitor nævner den. Dette tilføjer en regel for hændelser og en for advarsler.",
-  "Page it for every new incident and alert": "Udløs den ved hver ny hændelse og hver ny advarsel",
+  "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.": "Tilføjer en vagtregel for hændelser og en for advarsler. En politik tilkalder ingen, før en regel eller en monitor udløser den.",
+  "Page this policy for every new incident and alert": "Udløs den ved hver ny hændelse og hver ny advarsel",
   "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "Tilkald den rette person, når en hændelse eller advarsel åbnes. Indtil da får projektejerne en e-mail.",
   "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "Vælg, hvad der skal overvåges, og giv det et navn. Alt andet starter med standardværdier, som du kan ændre. Når noget går galt, åbner OneUptime en hændelse eller advarsel og sender en e-mail til projektejerne."
 }

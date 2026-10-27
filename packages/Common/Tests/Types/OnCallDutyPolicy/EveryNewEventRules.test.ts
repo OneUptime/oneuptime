@@ -14,9 +14,9 @@ import {
 import ColumnLength from "../../../Types/Database/ColumnLength";
 
 /*
- * The shared rule of "Page it for every new incident and alert": the misc
- * data key and how the server reads it, what the two rules are called, and
- * when Create On-Call Policy offers it.
+ * The shared rule of "Page this policy for every new incident and alert":
+ * the misc data key and how the server reads it, what the two rules are
+ * called, and when Create On-Call Policy offers it.
  */
 
 function ask(value: unknown): JSONObject {

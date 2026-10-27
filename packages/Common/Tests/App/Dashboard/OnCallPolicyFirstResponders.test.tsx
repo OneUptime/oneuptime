@@ -92,9 +92,9 @@ const createOrUpdateMock: MockFunction = getJestMockFunction();
 
 /*
  * What ModelAPI.count answers. The project already pages a policy by an
- * on-call rule, so Create On-Call Policy does not offer "Page it for every
- * new incident and alert" here and the requests below hold the first
- * responders alone; OnCallPolicyEveryNewEventRules.test.tsx covers the
+ * on-call rule, so Create On-Call Policy does not offer "Page this policy
+ * for every new incident and alert" here and the requests below hold the
+ * first responders alone; OnCallPolicyEveryNewEventRules.test.tsx covers the
  * offer.
  */
 const countFor: (modelType: unknown) => number = (
