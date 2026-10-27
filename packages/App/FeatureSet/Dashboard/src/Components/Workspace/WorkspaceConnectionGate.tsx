@@ -36,6 +36,7 @@ export const WorkspaceNotConnected: FunctionComponent<NotConnectedProps> = (
     <EmptyState
       id={`workspace-not-connected-${props.workspaceType}`}
       icon={copy.icon}
+      logo={copy.logo}
       title={copy.notConnectedTitle}
       description={copy.notConnectedDescription}
       footer={

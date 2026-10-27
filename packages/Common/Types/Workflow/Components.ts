@@ -1,4 +1,5 @@
 import IconProp from "../Icon/IconProp";
+import ProviderLogo from "../ProviderLogo/ProviderLogo";
 import ComponentMetadata, { ComponentCategory } from "./Component";
 import APIComponents from "./Components/API";
 import AIComponents from "./Components/AI";
@@ -85,21 +86,25 @@ export const Categories: Array<ComponentCategory> = [
     name: "Slack",
     description: "Integrate OneUptime with your Slack team.",
     icon: IconProp.SendMessage,
+    logo: ProviderLogo.Slack,
   },
   {
     name: "Discord",
     description: "Integrate OneUptime with your Discord server.",
     icon: IconProp.SendMessage,
+    logo: ProviderLogo.Discord,
   },
   {
     name: "Microsoft Teams",
     description: "Integrate OneUptime with your Microsoft Teams.",
     icon: IconProp.SendMessage,
+    logo: ProviderLogo.MicrosoftTeams,
   },
   {
     name: "Telegram",
     description: "Integrate OneUptime with your Telegram chats and channels.",
     icon: IconProp.SendMessage,
+    logo: ProviderLogo.Telegram,
   },
   {
     name: "IRC",
@@ -110,6 +115,7 @@ export const Categories: Array<ComponentCategory> = [
     name: "Mattermost",
     description: "Integrate OneUptime with your Mattermost channels.",
     icon: IconProp.SendMessage,
+    logo: ProviderLogo.Mattermost,
   },
   {
     name: "Conditions",

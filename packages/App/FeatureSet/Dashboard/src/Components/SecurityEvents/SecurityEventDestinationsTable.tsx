@@ -13,6 +13,8 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   SecurityEventDestinationCatalog,
+  SecurityEventDestinationDefinition,
+  getSecurityEventDestinationDefinition,
   getSecurityEventDestinationTitle,
 } from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationCatalog";
 import { isSecurityEventDestinationScope } from "Common/Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
@@ -25,6 +27,7 @@ import {
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import TableEmptyState, {
   TableEmptyStateKind,
 } from "Common/UI/Components/Table/TableEmptyState";
@@ -259,29 +262,47 @@ const SecurityEventDestinationsTable: FunctionComponent = (): ReactElement => {
               ].filter((part: string | undefined): part is string => {
                 return Boolean(part);
               });
+              const definition: SecurityEventDestinationDefinition | undefined =
+                getSecurityEventDestinationDefinition(item.provider);
 
+              /*
+               * The SIEM's logo at the start of the row, as the AI and
+               * cloud connections lists draw theirs.
+               */
               return (
-                <div>
-                  <span>{item.name}</span>
-                  <div
-                    className="whitespace-normal text-xs text-gray-500"
-                    data-testid="security-event-destination-detail"
-                  >
-                    {detailParts.map(
-                      (part: string, index: number): ReactElement => {
-                        const isLast: boolean =
-                          index === detailParts.length - 1;
+                <div className="flex items-start gap-3">
+                  {definition ? (
+                    <ProviderLogoImage
+                      logo={definition.logo}
+                      size={32}
+                      isDecorative={true}
+                      className="mt-0.5"
+                    />
+                  ) : (
+                    <></>
+                  )}
+                  <div className="min-w-0">
+                    <span>{item.name}</span>
+                    <div
+                      className="whitespace-normal text-xs text-gray-500"
+                      data-testid="security-event-destination-detail"
+                    >
+                      {detailParts.map(
+                        (part: string, index: number): ReactElement => {
+                          const isLast: boolean =
+                            index === detailParts.length - 1;
 
-                        return (
-                          <Fragment key={index}>
-                            <span className="whitespace-nowrap">
-                              {isLast ? part : `${part} ·`}
-                            </span>
-                            {isLast ? "" : " "}
-                          </Fragment>
-                        );
-                      },
-                    )}
+                          return (
+                            <Fragment key={index}>
+                              <span className="whitespace-nowrap">
+                                {isLast ? part : `${part} ·`}
+                              </span>
+                              {isLast ? "" : " "}
+                            </Fragment>
+                          );
+                        },
+                      )}
+                    </div>
                   </div>
                 </div>
               );

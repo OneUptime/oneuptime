@@ -10,6 +10,7 @@ import { Green, Red } from "Common/Types/BrandColors";
 import { VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
+  SecurityEventConnectorDefinition,
   getSecurityEventConnectorDefinition,
   getSecurityEventConnectorTitle,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
@@ -18,6 +19,7 @@ import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import PermissionGate, {
   ModelAction,
@@ -347,16 +349,30 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
                * connection that skips non-alerting records is visible
                * without opening it.
                */
+              const definition: SecurityEventConnectorDefinition | undefined =
+                getSecurityEventConnectorDefinition(item.provider);
               const scope: string | undefined = connectorScopeSummary(
-                getSecurityEventConnectorDefinition(item.provider),
+                definition,
                 item.alertingOnly,
               );
               return (
-                <div>
-                  <span>{getSecurityEventConnectorTitle(item.provider)}</span>
-                  {scope && (
-                    <div className="text-xs text-gray-500">{scope}</div>
+                <div className="flex items-start gap-2">
+                  {definition ? (
+                    <ProviderLogoImage
+                      logo={definition.logo}
+                      isBare={true}
+                      isDecorative={true}
+                      className="mt-0.5"
+                    />
+                  ) : (
+                    <></>
                   )}
+                  <div className="min-w-0">
+                    <span>{getSecurityEventConnectorTitle(item.provider)}</span>
+                    {scope && (
+                      <div className="text-xs text-gray-500">{scope}</div>
+                    )}
+                  </div>
                 </div>
               );
             },

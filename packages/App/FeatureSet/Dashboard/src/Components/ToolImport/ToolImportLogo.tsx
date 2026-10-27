@@ -1,23 +1,25 @@
-import {
-  TOOL_IMPORT_BRANDS,
-  TOOL_IMPORT_FALLBACK_BRAND,
-  ToolImportBrand,
-} from "./ToolImportBrand";
+import { TOOL_IMPORT_LOGOS } from "./ToolImportBrand";
+import IconProp from "Common/Types/Icon/IconProp";
 import ToolImportSource from "Common/Types/ToolImport/ToolImportSource";
+import { ProviderLogoSize } from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
+import ProviderLogoOrIcon from "Common/UI/Components/ProviderLogo/ProviderLogoOrIcon";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * A tile that tells the tools apart at a glance: the tool's initial on a
- * square in a colour of its own (ToolImportBrand). Drawn rather than
- * loaded, so it needs no request and reads the same in both themes (white
- * on a solid colour).
+ * A tool's official logo on its tile (ToolImportBrand says which), so the
+ * tools tell apart at a glance - the same logo on the picker, the connect
+ * form, the preview, the progress and the earlier imports. The shared
+ * logos are part of the installation (never fetched from another address)
+ * and drawn in the brand's mark for dark backgrounds where it has one. A
+ * tool this build has no logo for is drawn as an import. The tool's name
+ * is always written beside it, so the logo is not read out again.
  */
 
 export type ToolImportLogoSize = "md" | "lg";
 
-const TILE_CLASS: Record<ToolImportLogoSize, string> = {
-  md: "h-9 w-9",
-  lg: "h-11 w-11",
+const TILE_SIZES: Readonly<Record<ToolImportLogoSize, ProviderLogoSize>> = {
+  md: 36,
+  lg: 44,
 };
 
 export interface ComponentProps {
@@ -28,31 +30,18 @@ export interface ComponentProps {
 const ToolImportLogo: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const brand: ToolImportBrand =
-    TOOL_IMPORT_BRANDS[props.source] || TOOL_IMPORT_FALLBACK_BRAND;
-
   return (
-    <svg
-      viewBox="0 0 32 32"
-      className={`flex-shrink-0 ${TILE_CLASS[props.size || "md"]}`}
-      aria-hidden="true"
-      focusable="false"
+    <span
       data-testid={`tool-import-logo-${props.source}`}
+      className="inline-flex flex-shrink-0"
     >
-      <rect width="32" height="32" rx="8" fill={brand.color} />
-      <text
-        x="16"
-        y="16"
-        dy="0.35em"
-        textAnchor="middle"
-        fontSize="17"
-        fontWeight="700"
-        fontFamily="Inter, ui-sans-serif, system-ui, sans-serif"
-        fill="#FFFFFF"
-      >
-        {brand.initial}
-      </text>
-    </svg>
+      <ProviderLogoOrIcon
+        logo={TOOL_IMPORT_LOGOS[props.source]}
+        icon={IconProp.InboxArrowDown}
+        size={TILE_SIZES[props.size || "md"]}
+        isDecorative={true}
+      />
+    </span>
   );
 };
 

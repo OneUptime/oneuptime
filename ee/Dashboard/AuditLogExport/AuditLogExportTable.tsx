@@ -19,6 +19,8 @@ import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import Route from "Common/Types/API/Route";
 import {
   AUDIT_LOG_EXPORT_DOCS_PATH,
+  AuditLogExportDestinationDefinition,
+  getAuditLogExportDestinationDefinition,
   getAuditLogExportDestinationTitle,
 } from "Common/Types/AuditLog/Export/AuditLogExportDestinationCatalog";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
@@ -37,6 +39,7 @@ import {
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
+import ProviderLogoOrIcon from "Common/UI/Components/ProviderLogo/ProviderLogoOrIcon";
 import TableEmptyState, {
   TableEmptyStateActionStyle,
   TableEmptyStateKind,
@@ -390,6 +393,11 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
               ].filter((part: string): boolean => {
                 return Boolean(part);
               });
+              const destination:
+                | AuditLogExportDestinationDefinition
+                | undefined = getAuditLogExportDestinationDefinition(
+                item.destinationType,
+              );
 
               /*
                * The name on one line, cut short with an ellipsis where the
@@ -397,34 +405,57 @@ const AuditLogExportTable: FunctionComponent<ComponentProps> = (
                * a block of its own, since an ellipsis does not reach into
                * a box inside the cell's line.
                */
+              /*
+               * The destination's logo (or a webhook's or syslog's icon)
+               * at the start of the row, as the AI and cloud connections
+               * lists draw theirs: the destinations tell apart at a glance.
+               */
               return (
-                <div className="min-w-0">
-                  <div className="truncate" data-testid="audit-log-export-name">
-                    {item.name}
-                  </div>
-                  <div
-                    className="whitespace-normal break-words text-xs text-gray-500"
-                    data-testid="audit-log-export-detail"
-                  >
-                    {parts.map((part: string, index: number): ReactElement => {
-                      const isLast: boolean = index === parts.length - 1;
+                <div className="flex min-w-0 items-start gap-3">
+                  {destination ? (
+                    <ProviderLogoOrIcon
+                      logo={destination.logo}
+                      icon={destination.icon}
+                      size={32}
+                      isDecorative={true}
+                      className="mt-0.5"
+                    />
+                  ) : (
+                    <></>
+                  )}
+                  <div className="min-w-0">
+                    <div
+                      className="truncate"
+                      data-testid="audit-log-export-name"
+                    >
+                      {item.name}
+                    </div>
+                    <div
+                      className="whitespace-normal break-words text-xs text-gray-500"
+                      data-testid="audit-log-export-detail"
+                    >
+                      {parts.map(
+                        (part: string, index: number): ReactElement => {
+                          const isLast: boolean = index === parts.length - 1;
 
-                      return (
-                        <Fragment key={index}>
-                          <span
-                            className={
-                              index === 0 ? "" : "inline-block max-w-full"
-                            }
-                          >
-                            {index === 0
-                              ? translator.translateText(part)
-                              : part}
-                            {isLast ? "" : " ·"}
-                          </span>
-                          {isLast ? "" : " "}
-                        </Fragment>
-                      );
-                    })}
+                          return (
+                            <Fragment key={index}>
+                              <span
+                                className={
+                                  index === 0 ? "" : "inline-block max-w-full"
+                                }
+                              >
+                                {index === 0
+                                  ? translator.translateText(part)
+                                  : part}
+                                {isLast ? "" : " ·"}
+                              </span>
+                              {isLast ? "" : " "}
+                            </Fragment>
+                          );
+                        },
+                      )}
+                    </div>
                   </div>
                 </div>
               );
