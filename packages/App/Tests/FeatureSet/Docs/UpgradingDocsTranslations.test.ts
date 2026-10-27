@@ -408,6 +408,7 @@ const PROSE_LEADS: Array<string> = [
   "A code repository picks its Runner, and Runners lose their AI code fix switch.",
   "A runbook step asks for approval before it runs.",
   "A code repository that picks no Runner follows the project's default Runner.",
+  "While the whole server requires SSO, the sign-in pages offer only SSO, and its global providers have one page.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",

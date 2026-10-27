@@ -158,7 +158,15 @@
     "emailRequired": "Email is required to perform this action",
     "defaultProjectName": "Project",
     "globalProvidersTitle": "Sign in with your organization",
-    "globalProvidersDivider": "Or continue with email"
+    "globalProvidersDivider": "Or continue with email",
+    "signInWithProvider": "Sign in with {{name}}",
+    "requiredSubtitle": "Sign in with your organization’s single sign-on (SSO).",
+    "requiredNotSetUp": "Single sign-on is not set up on this server yet. Ask your server admin to set it up.",
+    "useDifferentEmail": "Use a different email"
+  },
+  "adminLogin": {
+    "title": "Master admin sign-in",
+    "subtitle": "This server requires single sign-on (SSO). Master admins can still sign in here with their password."
   },
   "verifyEmail": {
     "successTitle": "Your email is verified.",

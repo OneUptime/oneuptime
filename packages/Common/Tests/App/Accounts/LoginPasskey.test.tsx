@@ -64,6 +64,18 @@ const NOT_COMPLETED: string = english.login.passkey.notCompleted;
 const CANCELLED: string = english.login.passkey.cancelled;
 
 /*
+ * The server does not require single sign-on here, and says so at once: the
+ * sign-in pages ask before they draw (SignInMethodsStandIn).
+ */
+jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/SignInMethods", () => {
+  return (
+    jest.requireActual(
+      "./SignInMethodsStandIn",
+    ) as typeof import("./SignInMethodsStandIn")
+  ).signInMethodsNotRequired();
+});
+
+/*
  * These tests expect the SSO choice next to the password and passkey ones,
  * which the page offers in every edition. Pinned to the Community Edition
  * with billing off (CI's config.env sets BILLING_ENABLED=true), the

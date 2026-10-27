@@ -1,10 +1,12 @@
 {
   /*
-   * A part of tsconfig.tests.json that `npm run compile-tests`
-   * (Scripts/compile-tests.js) type-checks on its own: Tests/App, the tests
-   * of App's frontends (Dashboard, Status Page, Accounts, Admin Dashboard and
-   * the rest), and the frontend sources they import. Why the program is
-   * checked in parts: Scripts/compile-tests.js.
+   * Tests/App as one program: the tests of App's frontends (Dashboard,
+   * Status Page, Accounts, Admin Dashboard and the rest), and the frontend
+   * sources they import. Editors and ESLint's typed linting use it for these
+   * tests (Tests/App/tsconfig.json extends it). `npm run compile-tests`
+   * (Scripts/compile-tests.js) type-checks it in two parts, since on
+   * 2026-10-27 it used 7.64 GB of the 8 GiB heap a part gets:
+   * tsconfig.tests.app-dashboard-a-m.json and tsconfig.tests.app-rest.json.
    *
    * Everything but "include" is inherited, so these tests are held to exactly
    * the rules of the whole program.

@@ -74,9 +74,10 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
           ),
         },
         {
-          title: "Global SSO",
+          // The page that lists it, with the OIDC providers and Require SSO.
+          title: t("breadcrumbs.singleSignOn"),
           to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SETTINGS_GLOBAL_SSO] as Route,
+            RouteMap[PageMap.SETTINGS_SSO] as Route,
           ),
         },
         {
@@ -374,7 +375,7 @@ const GlobalSSOView: FunctionComponent = (): ReactElement => {
           modelId={modelId}
           modelAPI={AdminModelAPI}
           onDeleteSuccess={() => {
-            Navigation.navigate(RouteMap[PageMap.SETTINGS_GLOBAL_SSO] as Route);
+            Navigation.navigate(RouteMap[PageMap.SETTINGS_SSO] as Route);
           }}
         />
       </Fragment>

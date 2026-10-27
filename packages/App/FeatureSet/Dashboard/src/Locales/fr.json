@@ -35848,5 +35848,6 @@
   "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "L'IA de OneUptime exécute de vraies requêtes sur vos journaux, traces, métriques, incidents, moniteurs et la surveillance des utilisateurs réels — en affichant graphiques et tableaux directement — et peut créer des incidents et des alertes ou les prendre en compte, toujours avec votre approbation.",
   "Maintenance markers are unavailable.": "Les marqueurs de maintenance ne sont pas disponibles.",
   "Maintenance markers need the uptime history, which did not load.": "Les marqueurs de maintenance ont besoin de l'historique de disponibilité, qui n'a pas pu être chargé.",
-  "You need permission to read scheduled maintenance.": "Vous devez avoir l'autorisation de lire la maintenance planifiée."
+  "You need permission to read scheduled maintenance.": "Vous devez avoir l'autorisation de lire la maintenance planifiée.",
+  "Sign in with {{name}}": "Se connecter avec {{name}}"
 }

@@ -9,7 +9,7 @@ export const LABELLED_DIVIDER_LINE_CLASS_NAME: string =
  * wrapped onto lines of even length.
  */
 export const LABELLED_DIVIDER_LABEL_CLASS_NAME: string =
-  "text-balance text-center text-sm text-gray-500";
+  "min-w-0 text-balance text-center text-sm text-gray-500";
 
 export interface ComponentProps {
   label: string;
@@ -31,10 +31,10 @@ export interface ComponentProps {
  * technology.
  *
  * The lines never shrink to nothing. On a 320px phone a long label ("Oder
- * mit E-Mail fortfahren", "Или продолжите с электронной почтой") filled the
- * row and pushed both lines out of it, so the words floated alone. Each line
- * keeps at least 1.5rem; past that the words wrap, onto lines of even
- * length, between them.
+ * mit E-Mail fortfahren", "Или продолжите с электронной почтой", "O continúe
+ * con su correo electrónico") filled the row and pushed both lines out of it,
+ * so the words floated alone. Each line keeps at least 1.5rem (min-w-6); past
+ * that the words wrap, onto lines of even length, between them.
  */
 const LabelledDivider: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

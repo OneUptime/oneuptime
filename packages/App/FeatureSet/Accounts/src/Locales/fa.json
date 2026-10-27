@@ -158,7 +158,15 @@
     "emailRequired": "برای انجام این کار وارد کردن ایمیل الزامی است",
     "defaultProjectName": "پروژه",
     "globalProvidersTitle": "با سازمان خود وارد شوید",
-    "globalProvidersDivider": "یا با ایمیل ادامه دهید"
+    "globalProvidersDivider": "یا با ایمیل ادامه دهید",
+    "signInWithProvider": "ورود با {{name}}",
+    "requiredSubtitle": "با ورود یکپارچه (SSO) سازمان خود وارد شوید.",
+    "requiredNotSetUp": "ورود یکپارچه هنوز روی این سرور راه‌اندازی نشده است. از مدیر سرور بخواهید آن را راه‌اندازی کند.",
+    "useDifferentEmail": "استفاده از ایمیل دیگر"
+  },
+  "adminLogin": {
+    "title": "ورود مدیر ارشد",
+    "subtitle": "این سرور ورود یکپارچه (SSO) را الزامی می‌کند. مدیران ارشد همچنان می‌توانند اینجا با رمز عبور خود وارد شوند."
   },
   "verifyEmail": {
     "successTitle": "ایمیل شما تأیید شد.",

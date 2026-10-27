@@ -158,7 +158,15 @@
     "emailRequired": "इस क्रिया को करने के लिए ईमेल आवश्यक है",
     "defaultProjectName": "प्रोजेक्ट",
     "globalProvidersTitle": "अपने संगठन से साइन इन करें",
-    "globalProvidersDivider": "या ईमेल से जारी रखें"
+    "globalProvidersDivider": "या ईमेल से जारी रखें",
+    "signInWithProvider": "{{name}} से साइन इन करें",
+    "requiredSubtitle": "अपने संगठन के सिंगल साइन-ऑन (SSO) से साइन इन करें।",
+    "requiredNotSetUp": "इस सर्वर पर सिंगल साइन-ऑन अभी सेट अप नहीं है। अपने सर्वर एडमिन से इसे सेट अप करने के लिए कहें।",
+    "useDifferentEmail": "दूसरा ईमेल इस्तेमाल करें"
+  },
+  "adminLogin": {
+    "title": "मास्टर एडमिन साइन इन",
+    "subtitle": "इस सर्वर पर सिंगल साइन-ऑन (SSO) ज़रूरी है। मास्टर एडमिन अब भी यहां अपने पासवर्ड से साइन इन कर सकते हैं।"
   },
   "verifyEmail": {
     "successTitle": "आपका ईमेल सत्यापित हो गया है।",

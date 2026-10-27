@@ -158,7 +158,15 @@
     "emailRequired": "E-post er nødvendig for å utføre denne handlingen",
     "defaultProjectName": "Prosjekt",
     "globalProvidersTitle": "Logg på med organisasjonen din",
-    "globalProvidersDivider": "Eller fortsett med e-post"
+    "globalProvidersDivider": "Eller fortsett med e-post",
+    "signInWithProvider": "Logg inn med {{name}}",
+    "requiredSubtitle": "Logg inn med organisasjonens enkel pålogging (SSO).",
+    "requiredNotSetUp": "Enkel pålogging er ikke satt opp på denne serveren ennå. Be serveradministratoren om å sette det opp.",
+    "useDifferentEmail": "Bruk en annen e-post"
+  },
+  "adminLogin": {
+    "title": "Logg inn som hovedadministrator",
+    "subtitle": "Denne serveren krever enkel pålogging (SSO). Hovedadministratorer kan fortsatt logge inn her med passordet sitt."
   },
   "verifyEmail": {
     "successTitle": "E-posten din er bekreftet.",

@@ -107,7 +107,7 @@ describe("the SSO guide: turning a provider off or deleting it", () => {
 
   it("says a server that requires SSO for everyone keeps a way in to each project too", () => {
     expect(section).toContain(
-      "When the whole server requires SSO (**Admin** > **Settings** > **Authentication** > **Require SSO for Login**), every project keeps a way in the same way, even one that does not require SSO itself: turn on another provider for it first.",
+      "When the whole server requires SSO (**Admin** > **Settings** > **Single Sign-On** > **Require SSO for Login**), every project keeps a way in the same way, even one that does not require SSO itself: turn on another provider for it first.",
     );
   });
 

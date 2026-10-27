@@ -75,6 +75,18 @@ export const SIGN_IN_OPTION_ICON_SLOT_CLASS: string =
 // The icon itself: the height of the label's line.
 export const SIGN_IN_OPTION_ICON_CLASS: string = "h-5 w-5";
 
+/*
+ * The one way in, filled: a sign-in page whose only way in is one single
+ * sign-on provider (while the server requires SSO) draws it as the page's
+ * filled button - the box above, filled like Button's PRIMARY, with its
+ * hover - rather than as an outlined option under a filled button the page
+ * does not have.
+ */
+export const SIGN_IN_OPTION_PRIMARY_LOOK_CLASS: string =
+  "cursor-pointer border-transparent bg-indigo-600 text-white shadow-sm hover:bg-indigo-700";
+
+export const SIGN_IN_OPTION_PRIMARY_CLASS: string = `${SIGN_IN_OPTION_LAYOUT_CLASS} ${SIGN_IN_OPTION_PRIMARY_LOOK_CLASS}`;
+
 type GetSignInOptionClassNameFunction = (state?: SignInOptionState) => string;
 
 export const getSignInOptionClassName: GetSignInOptionClassNameFunction = (

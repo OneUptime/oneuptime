@@ -86,10 +86,8 @@ const ROW_SWITCH_NOT_OFFERED: Record<string, string> = {
     "An archived SLO is not evaluated whatever its switch says: its rows offer Unarchive, and an SLO is turned on again on the live list.",
   "Dashboard/src/Pages/Settings/TelemetryIngestionKeys.tsx":
     "A key's switch is its kill switch for a key that is misused - rare, and turned on the key's own page, whose Status says what it does (telemetry sent with the key is refused). The list does not show it.",
-  "AdminDashboard/src/Pages/Settings/GlobalSSO/Index.tsx":
-    "Admin Dashboard > Global SSO: a provider is set up and turned on once, on its own page; turning one off ends every sign-in it gave, in every project on the server.",
-  "AdminDashboard/src/Pages/Settings/GlobalOIDC/Index.tsx":
-    "Admin Dashboard > Global OIDC: a provider is set up and turned on once, on its own page; turning one off ends every sign-in it gave, in every project on the server.",
+  "AdminDashboard/src/Pages/Settings/SSO/Index.tsx":
+    "Admin Dashboard > Single Sign-On (its SAML and OIDC providers): a provider is set up and turned on once, on its own page; turning one off ends every sign-in it gave, in every project on the server.",
   "AdminDashboard/src/Pages/Settings/GlobalSSO/View.tsx":
     "A provider's attached projects are attached and removed: an attachment is not edited from the Admin Dashboard, and its switch is set with it.",
   "AdminDashboard/src/Pages/Settings/GlobalOIDC/View.tsx":

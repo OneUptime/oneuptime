@@ -35848,5 +35848,6 @@
   "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI выполняет настоящие запросы к вашим журналам, трассировкам, метрикам, инцидентам, мониторам и мониторингу реальных пользователей — с графиками и таблицами прямо в беседе — и может создавать инциденты и оповещения или подтверждать их, всегда с вашего одобрения.",
   "Maintenance markers are unavailable.": "Отметки обслуживания недоступны.",
   "Maintenance markers need the uptime history, which did not load.": "Для отметок обслуживания нужна история доступности, но она не загрузилась.",
-  "You need permission to read scheduled maintenance.": "Нужно разрешение на просмотр планового обслуживания."
+  "You need permission to read scheduled maintenance.": "Нужно разрешение на просмотр планового обслуживания.",
+  "Sign in with {{name}}": "Войти через {{name}}"
 }

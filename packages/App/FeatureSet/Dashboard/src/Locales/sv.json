@@ -35848,5 +35848,6 @@
   "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI kör riktiga frågor mot dina loggar, spår, mätvärden, incidenter, monitorer och övervakningen av verkliga användare — med diagram och tabeller direkt i samtalet — och kan skapa incidenter och larm eller kvittera dem, alltid med ditt godkännande.",
   "Maintenance markers are unavailable.": "Underhållsmarkeringar är inte tillgängliga.",
   "Maintenance markers need the uptime history, which did not load.": "Underhållsmarkeringar behöver drifttidshistoriken, som inte lästes in.",
-  "You need permission to read scheduled maintenance.": "Du behöver behörighet att läsa schemalagt underhåll."
+  "You need permission to read scheduled maintenance.": "Du behöver behörighet att läsa schemalagt underhåll.",
+  "Sign in with {{name}}": "Logga in med {{name}}"
 }

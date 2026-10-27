@@ -32,6 +32,28 @@ describe("LabelledDivider", () => {
     expect(words).toHaveClass("text-sm", "text-gray-500", "text-center");
   });
 
+  /*
+   * Long words ("O continúe con su correo electrónico") on a phone took the
+   * whole row and left the lines nothing: each line keeps 1.5rem, and the
+   * words wrap into balanced lines between them. SignInOptions.spec.ts
+   * measures it in every language.
+   */
+  test("keeps each line 1.5rem wide, and wraps long words between them", () => {
+    render(
+      <LabelledDivider
+        label="O continúe con su correo electrónico"
+        dataTestId="divider"
+      />,
+    );
+
+    for (const line of screen.getAllByTestId("divider-line")) {
+      expect(line).toHaveClass("min-w-6");
+    }
+    expect(
+      screen.getByText("O continúe con su correo electrónico"),
+    ).toHaveClass("min-w-0", "text-balance");
+  });
+
   test("the words are read; the lines are hidden from assistive technology", () => {
     render(<LabelledDivider label="or" dataTestId="divider" />);
 

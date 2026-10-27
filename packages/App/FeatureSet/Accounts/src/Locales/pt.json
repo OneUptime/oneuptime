@@ -158,7 +158,15 @@
     "emailRequired": "E-mail é obrigatório para realizar esta ação",
     "defaultProjectName": "Projeto",
     "globalProvidersTitle": "Entre com sua organização",
-    "globalProvidersDivider": "Ou continue com e-mail"
+    "globalProvidersDivider": "Ou continue com e-mail",
+    "signInWithProvider": "Entrar com {{name}}",
+    "requiredSubtitle": "Entre com o login único (SSO) da sua organização.",
+    "requiredNotSetUp": "O login único ainda não está configurado neste servidor. Peça ao administrador do servidor para configurá-lo.",
+    "useDifferentEmail": "Usar outro e-mail"
+  },
+  "adminLogin": {
+    "title": "Login de administrador principal",
+    "subtitle": "Este servidor exige login único (SSO). Os administradores principais ainda podem entrar aqui com a senha."
   },
   "verifyEmail": {
     "successTitle": "Seu e-mail foi verificado.",
