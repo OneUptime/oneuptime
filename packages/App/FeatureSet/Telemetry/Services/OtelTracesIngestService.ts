@@ -89,6 +89,7 @@ import TelemetryFanInWriter, {
   FanInSubmitResult,
   pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
+import { isEntrySpan } from "Common/Utils/Telemetry/EntrySpan";
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
@@ -923,6 +924,17 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       spanRow,
                       pipelines,
                     );
+
+                    /*
+                     * A Span Kind Remapper can turn an INTERNAL span into a
+                     * SERVER one (or back): the span is an entry span by the
+                     * kind it is stored with, as the column's DEFAULT
+                     * expression would read it.
+                     */
+                    spanRow["isEntrySpan"] = isEntrySpan({
+                      isRootSpan: spanRow["isRootSpan"] === true,
+                      kind: spanRow["kind"],
+                    });
                   }
 
                   /*
@@ -1605,6 +1617,16 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       links: data.links,
       hasException: data.hasException,
       isRootSpan: data.isRootSpan,
+      /*
+       * Where work enters a service: the root, or a SERVER / CONSUMER span
+       * (Utils/Telemetry/EntrySpan). The traces explorer lists these by
+       * default. Worked out again after the pipelines, which can change
+       * the kind.
+       */
+      isEntrySpan: isEntrySpan({
+        isRootSpan: data.isRootSpan,
+        kind: data.kind,
+      }),
       isLlmSpan: data.llmFields.isLlmSpan,
       llmSystem: data.llmFields.llmSystem,
       llmOperation: data.llmFields.llmOperation,
