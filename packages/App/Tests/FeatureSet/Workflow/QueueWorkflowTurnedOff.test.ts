@@ -432,7 +432,7 @@ describe("a person's run of a workflow that is off: a test run", () => {
   test("the plan still counts it: past the plan's runs it is recorded, marked, and runs nothing", async () => {
     const spies: Spies = prepare({
       isEnabled: false,
-      plan: { plan: PlanType.Free, isSubscriptionUnpaid: false },
+      plan: { plan: PlanType.Growth, isSubscriptionUnpaid: false },
       runsThisMonth: 1_000_000_000,
     });
 

@@ -101,7 +101,7 @@ Gehen Sie zu **Runbooks → Runbook-Agents** und legen Sie einen neuen Agenten a
 | **Führt Runbooks aus** | Unter **Weitere Felder** | Standardmäßig an. Lässt diesen Runner Runbook-Schritte übernehmen. |
 | **Beschriftungen** | Unter **Weitere Felder** | Optional. |
 
-Ein Runner übernimmt eine Änderung seiner Fähigkeiten beim nächsten Heartbeat; ein Neustart ist nicht nötig. KI ist keine Fähigkeit. Ein Code-Repository wählt in seinen Einstellungen in Code den Runner aus, auf dem die KI darin arbeitet, und die Seite des Runners listet die Repositorys auf, die ihn auswählen. Eine KI-Regel wählt den Runner aus, auf dem OneUptime AI seine Befehle ausführt: Erst diese Auswahl lässt die Befehle von OneUptime AI auf dem Runner laufen.
+Ein Runner übernimmt eine Änderung seiner Fähigkeiten beim nächsten Heartbeat; ein Neustart ist nicht nötig. KI ist keine Fähigkeit. Ein Code-Repository wählt in seinen Einstellungen in Code den Runner aus, auf dem die KI darin arbeitet, und die Seite des Runners listet die Repositorys auf, die ihn auswählen. Eine KI-Regel wählt den Runner aus, auf dem OneUptime AI seine Befehle ausführt: Erst diese Auswahl lässt die Befehle von OneUptime AI auf dem Runner laufen. Die Seite des Runners listet auch die KI-Regeln auf, die ihn auswählen.
 
 ### 2. Den Installationsbefehl kopieren
 

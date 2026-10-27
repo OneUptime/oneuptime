@@ -203,13 +203,18 @@ const SideOver: FunctionComponent<ComponentProps> = (
                   >
                     {translateString(props.title) ?? props.title}
                   </h2>
-                  <p
-                    className="text-sm text-gray-500"
-                    id={descriptionId}
-                    data-testid="side-over-description"
-                  >
-                    {translateString(props.description) ?? props.description}
-                  </p>
+                  {/* A panel with nothing to add under its title says nothing. */}
+                  {props.description ? (
+                    <p
+                      className="text-sm text-gray-500"
+                      id={descriptionId}
+                      data-testid="side-over-description"
+                    >
+                      {translateString(props.description) ?? props.description}
+                    </p>
+                  ) : (
+                    <></>
+                  )}
                 </div>
                 <div className="flex h-7 items-center">
                   <button

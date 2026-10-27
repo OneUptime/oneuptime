@@ -69,6 +69,8 @@
  *                     the saved rule "Fix database incidents" also names a
  *                     repository the reader may not read (not in the list)
  *   - runbooks=0      the project has no runbook (three by default)
+ *   - mcpServers=0    the project has no external MCP server (two by
+ *                     default, AWS and GitHub)
  *   - role=viewer     may read the page only (Viewer); the default is a
  *                     project owner
  *   - providers=project
@@ -165,6 +167,7 @@ const repositorySet = ["0", "denied", "many"].includes(
   : "two";
 const hasHiddenRepository = params.get("hiddenRepository") === "1";
 const runbookCount = params.get("runbooks") === "0" ? 0 : 3;
+const hasMcpServers = params.get("mcpServers") !== "0";
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
 const language = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
@@ -464,22 +467,24 @@ const MCP_SERVER_IDS = {
   github: "c0000000-0000-4000-8000-000000000e02",
 };
 
-const MCP_SERVERS = [
-  record(ExternalMcpServer, {
-    _id: MCP_SERVER_IDS.aws,
-    name: "AWS",
-    projectId: new ObjectID(PROJECT_ID),
-    url: "https://mcp.aws.example.com/mcp",
-    isEnabled: true,
-  }),
-  record(ExternalMcpServer, {
-    _id: MCP_SERVER_IDS.github,
-    name: "GitHub",
-    projectId: new ObjectID(PROJECT_ID),
-    url: "https://mcp.github.example.com/mcp",
-    isEnabled: true,
-  }),
-];
+const MCP_SERVERS = hasMcpServers
+  ? [
+      record(ExternalMcpServer, {
+        _id: MCP_SERVER_IDS.aws,
+        name: "AWS",
+        projectId: new ObjectID(PROJECT_ID),
+        url: "https://mcp.aws.example.com/mcp",
+        isEnabled: true,
+      }),
+      record(ExternalMcpServer, {
+        _id: MCP_SERVER_IDS.github,
+        name: "GitHub",
+        projectId: new ObjectID(PROJECT_ID),
+        url: "https://mcp.github.example.com/mcp",
+        isEnabled: true,
+      }),
+    ]
+  : [];
 
 /*
  * The project's code repositories, connected through the GitHub App, which

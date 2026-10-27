@@ -222,7 +222,7 @@ describe("a step's More fields", () => {
     expect(items[0]!.value).toBeUndefined();
   });
 
-  test("an SSH step folds the switches, its port, its key passphrase, its notes and timeouts", () => {
+  test("an SSH step folds the switches, its port, its key passphrase, its host key, its notes and timeouts", () => {
     const items: Array<FoldedSectionItem> = getStepMoreFieldsItems(
       step(RunbookStepType.SSH, {
         host: "10.0.4.21",
@@ -237,10 +237,30 @@ describe("a step's More fields", () => {
       "continueOnFailure",
       "port",
       "passphrase",
+      "hostKey",
       "description",
       "timeouts",
     ]);
     expect(setKeys(items)).toEqual([]);
+  });
+
+  test("a host key named is set, and folds as its title alone - never the key", () => {
+    const items: Array<FoldedSectionItem> = getStepMoreFieldsItems(
+      step(RunbookStepType.SSH, {
+        host: "10.0.4.21",
+        script: "uptime",
+        hostKey: "SHA256:gwsSZuUZNvG/8pOZ2G715I2GTVbDlhL4EKu6z7WLKNM",
+      }),
+    );
+
+    const hostKey: FoldedSectionItem | undefined = items.find(
+      (item: FoldedSectionItem): boolean => {
+        return item.key === "hostKey";
+      },
+    );
+
+    expect(hostKey).toEqual({ key: "hostKey", title: "Host key", isSet: true });
+    expect(setKeys(items)).toEqual(["hostKey"]);
   });
 
   test("a port other than 22 and a passphrase are set, and the port says what it is", () => {

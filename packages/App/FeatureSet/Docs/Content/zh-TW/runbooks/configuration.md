@@ -93,11 +93,12 @@ Runbook 執行在 `Runbook` BullMQ 佇列上進行。每個 Worker 處理程序�
 ## 強化說明
 
 - **JavaScript、Bash、SSH 和 kubectl** 在您掌控的 Runner 主機上執行，而不是在 OneUptime Worker 上。JavaScript 在獨立的 `isolated-vm` 隔離環境中執行，擁有 128 MB 記憶體，無法存取 Runner 的檔案系統或處理程序；它可以用 `axios` 發出 HTTP 請求，但發往私人網路、回送和鏈路本機位址的請求會被拒絕。Bash 以 `bash -c` 執行，其逾時在 Runner 上強制執行。 未選擇 Runner 的 JavaScript 步驟會在專案預設 Runner 上執行；如果沒有設定，則在全域 Runner 上執行。
+- **SSH 步驟** 只有在機器出示步驟填寫的某把主機金鑰時才會登入。未填寫主機金鑰的步驟接受任何金鑰，並在輸出中註明機器出示的金鑰，以便填寫到步驟中。
 - **HTTP 步驟** 使用寬鬆的狀態驗證，因此 4xx 或 5xx 回應會被記錄為失敗的步驟，而不是作為例外擲回，記錄的輸出也會反映上游實際傳回的內容。不會追蹤重新導向。Worker 絕不呼叫回送或鏈路本機位址，例如雲端中繼資料端點；在 OneUptime Cloud 上，它也會拒絕私人網路位址，自行託管的 OneUptime 則在設定 `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` 時拒絕。
 - **AI 步驟** 永遠看不到事件的私人備註，也看不到 Slack 和 Microsoft Teams 的訊息；前面步驟的輸出會被掃描是否含有機密資訊，並在到達模型之前被遮蔽。內嵌圖片和很長的編碼資料不會進入提示詞。請參閱 [AI](/docs/runbooks/authoring#ai)。
 - **全域 Runner** 只執行 JavaScript 步驟，每個步驟都在為它建立、結束後丟棄的沙箱中執行，只能存取公用網際網路位址，最長 5 分鐘，而且同一專案同時最多執行三個步驟。它們只會取得步驟所屬專案中已為全域 Runner 開啟的機密變數；內建的全域 Runner 持有自己的金鑰，不持有伺服器的任何其他東西。請參閱 [全域 Runner](/docs/runbooks/agents#全域-runner)。
 - **Runner 驗證** 使用 ID 和秘密金鑰，以環境變數設定在 Runner 容器上。在伺服器端，Runner 的權威身分來自與所提供的 ID 和金鑰對應的資料庫列：即使金鑰外洩，用戶端也無法冒充另一個 Runner。
-- **機密變數** 靜態加密儲存，API 從不傳回，只在其列出的 Runner 認領引用它們的步驟時交給這些 Runner。當機密變數允許全域 Runner 使用時，它也會交給認領了該變數所屬專案中步驟的全域 Runner。Runner 會把步驟收到的每個機密在步驟輸出中取代為 `[REDACTED]`，OneUptime 在儲存輸出之前還會再取代一次。
+- **機密變數** 靜態加密儲存，API 從不傳回，只在其列出的 Runner 認領引用它們的步驟時交給這些 Runner。當機密變數允許全域 Runner 使用時，它也會交給認領了該變數所屬專案中步驟的全域 Runner。Runner 會把步驟收到的每個機密在步驟輸出中取代為 `[REDACTED]`，OneUptime 在儲存輸出之前還會再取代一次。由 OneUptime 自己發送的 HTTP 請求步驟，會得到它引用的、屬於自己專案的每個機密，並在它記錄的回應中隱藏這些機密。
 
 ## 資料庫資料表
 

@@ -1350,6 +1350,101 @@ test.describe("MCP servers", () => {
   });
 });
 
+/*
+ * An open picker with nothing to list says what is missing, or that all of
+ * it is picked. Every one of these lists said "No options." - for a project
+ * with no MCP server or no runbook alike, and once every entry was picked,
+ * as though there had never been any (EntityDropdownEmptyList).
+ */
+test.describe("an open picker with nothing to list", () => {
+  const emptyList: (page: Page) => Locator = (page: Page): Locator => {
+    return page.getByTestId("entity-dropdown-empty-list");
+  };
+
+  test("a project with no MCP server: the list says none is added yet, and the line under it says where", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "mcpServers=0" });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await mcpServersPicker(dialog).click();
+    await expect(page.getByRole("option")).toHaveCount(0);
+    await expect(emptyList(page)).toHaveText("No MCP servers yet.");
+    await expect(dialog.getByTestId("rule-mcp-servers-link")).toHaveText(
+      "External MCP Servers",
+    );
+  });
+
+  test("a project with no runbook: the Runbooks list says there are none yet", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, { query: "runbooks=0" });
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await runbooksPicker(dialog).click();
+    await expect(page.getByRole("option")).toHaveCount(0);
+    await expect(emptyList(page)).toHaveText("No runbooks yet.");
+  });
+
+  test("every MCP server picked: the list says all of them are, not that there are none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page);
+    const dialog: Locator = await openFixStep(page, card);
+    await openMoreFields(dialog);
+
+    await pickOption(page, mcpServersPicker(dialog), "AWS");
+    await page.getByRole("option", { name: "GitHub", exact: true }).click();
+
+    await expect(page.getByRole("option")).toHaveCount(0);
+    await expect(emptyList(page)).toHaveText("All of them are picked.");
+    await expect(emptyList(page)).not.toContainText("No MCP servers yet.");
+  });
+
+  test("German: the list says it in the Dashboard's German words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await openRulesCard(page, {
+      query: "lang=de&runbooks=0",
+      isGerman: true,
+    });
+    const dialog: Locator = await openDialogWith(
+      page,
+      card
+        .getByRole("button", {
+          name: GERMAN["Create {{itemName}}"]!.replace(
+            "{{itemName}}",
+            GERMAN["AI Rule"]!,
+          ),
+          exact: true,
+        })
+        .first(),
+    );
+    await dialog.getByRole("button", { name: GERMAN["Next"]! }).click();
+    await dialog.getByRole("button", { name: GERMAN["Next"]! }).click();
+    await dialog
+      .getByRole("button", { name: new RegExp(GERMAN["More fields"]!) })
+      .click();
+
+    await dialog
+      .getByRole("combobox", { name: GERMAN["Runbooks"] || "Runbooks" })
+      .click();
+
+    expect(GERMAN["No runbooks yet."]).toBe("Noch keine Runbooks erstellt.");
+    await expect(emptyList(page)).toHaveText(GERMAN["No runbooks yet."]!);
+  });
+});
+
 test.describe("rules saved before", () => {
   test("the table names each rule for what it does, and asks of none of them which fixes it", async ({
     page,
@@ -2255,6 +2350,10 @@ test.describe("code repositories and pull requests", () => {
     );
     await repositoriesPicker(dialog).click();
     await expect(page.getByRole("option")).toHaveCount(0);
+    // The list says what is missing - it said "No options." - and the line under it where.
+    await expect(page.getByTestId("entity-dropdown-empty-list")).toHaveText(
+      "No connected repositories yet.",
+    );
   });
 
   test("a plan without Code still saves a rule: the field reads all connected repositories, with nothing to pick", async ({

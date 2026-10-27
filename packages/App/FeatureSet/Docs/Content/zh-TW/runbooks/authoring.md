@@ -64,7 +64,7 @@
 | [kubectl](#kubectl) | Runner | 一個 Runner，以及一個 kubeconfig 變數或 Runner 自身的存取權限 |
 | [AI](#ai) | OneUptime Worker | 一個 LLM 提供者 |
 
-在下面的每個自動步驟中，步驟的 **更多欄位** 先放步驟的 **Runner** （對於在 Runner 上執行的步驟），再放 **需要核准** 和 **失敗時繼續** ，接著是步驟自己的設定（HTTP request 步驟的標頭、SSH 步驟的連接埠和金鑰複雜密碼、AI 步驟的提供者和上下文開關），最後是 **描述** 和逾時。摺疊時，它會顯示步驟的 Runner，這樣不必開啟就能看到步驟在哪裡執行。
+在下面的每個自動步驟中，步驟的 **更多欄位** 先放步驟的 **Runner** （對於在 Runner 上執行的步驟），再放 **需要核准** 和 **失敗時繼續** ，接著是步驟自己的設定（HTTP request 步驟的標頭、SSH 步驟的連接埠、金鑰複雜密碼和主機金鑰、AI 步驟的提供者和上下文開關），最後是 **描述** 和逾時。摺疊時，它會顯示步驟的 Runner，這樣不必開啟就能看到步驟在哪裡執行。
 
 ### Manual
 
@@ -111,6 +111,9 @@ return { durationMs: Date.now() - start };
 
 適用於：開啟 PagerDuty 事件、張貼到 Slack Webhook、呼叫雲端供應商的 API 或您自己的公開 API。
 
+> [!TIP]
+> 不要把權杖寫進步驟。把它們存為機密 [Runbook 變數](/docs/runbooks/variables)，並在 URL、標頭或本文中值應出現的位置寫 `{{global.variables.NAME}}`。請求由 OneUptime 自己發送，所以機密也會填入，而步驟記錄的回應中該位置顯示為 `[REDACTED]`。在 JSON 標頭或 JSON 本文中，值會放進它所在的字串，因此值中的引號或換行不會破壞 JSON。
+
 ### Bash
 
 一個 bash 指令碼，在您自己基礎架構中的 [Runbook 代理程式](/docs/runbooks/agents) 上以 `bash -c <script>` 執行。Bash 絕不在 OneUptime Worker 上執行。
@@ -152,6 +155,7 @@ fi
 | **Bash 指令碼** | 以登入的使用者身分在機器上用 `bash` 執行。輸出最多記錄 50 KB，結束代碼非零會讓步驟失敗。 |
 | **連接埠** | 位於 **更多欄位** 下。留空時為 22。 |
 | **金鑰複雜密碼** | 位於 **更多欄位** 下。保存金鑰複雜密碼的機密變數，用於有複雜密碼的金鑰。 |
+| **主機金鑰** | 位於 **更多欄位** 下。機器的 SHA256 指紋，或 `ssh-keyscan` 輸出的公開金鑰，每行一個。只有機器出示其中之一時，步驟才會登入。留空時接受任何金鑰，並在步驟輸出中註明機器出示的金鑰。 |
 | **執行逾時** | 連線、登入和執行指令碼合在一起計算，因此卡住的指令碼無法讓步驟一直開著。預設 30 秒。 |
 | **領取逾時** | Worker 等待 Runner 認領工作的時間。預設 2 分鐘。 |
 
@@ -161,6 +165,8 @@ fi
 sudo systemctl restart nginx
 systemctl status nginx --no-pager
 ```
+
+填寫機器的主機金鑰，確保步驟只登入這台機器而不是別的機器：`ssh-keyscan 10.0.4.21` 會輸出它的公開金鑰，在機器上執行 `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` 會輸出它的指紋。填寫了主機金鑰的步驟在太舊、無法檢查它的 Runner 上會失敗，並提示更新 Runner。
 
 ### kubectl
 

@@ -80,6 +80,10 @@ npm run test-auto-remediation-rules-ui
   open their pages in a new tab with the list read again on coming back
   (`window.__fixture.connectRepository`), and a repository the reader cannot
   access is kept and named in full on its chip (`?hiddenRepository=1`);
+- an open picker with nothing to list says what is missing - no repository
+  connected yet, no MCP server added yet (`?mcpServers=0`), no runbook yet
+  (`?runbooks=0`), in German too - and one whose entries are all picked
+  says so, where each said "No options.";
 - the rules that were auto remediation rules (`?rules=saved`): the table's one
   column, "Investigates and fixes", says when each investigates - right away
   for the one merged with an investigation rule, "Doesn't investigate" for

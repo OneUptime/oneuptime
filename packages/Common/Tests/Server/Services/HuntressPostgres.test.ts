@@ -12,6 +12,7 @@ import Encryption from "../../../Server/Utils/Encryption";
 import HuntressConnectionsToWorkflows, {
   HuntressMoveSummary,
   LegacyQuery,
+  LegacyTablesDropSummary,
 } from "../../../Server/Utils/Huntress/HuntressConnectionsToWorkflows";
 import HuntressWebhookHandler, {
   HuntressWebhookAnswer,
@@ -33,6 +34,7 @@ import API from "../../../Utils/API";
 import { getHuntressIncidentReportBody } from "../../Types/Huntress/HuntressWebhookFixtures";
 import {
   afterAll,
+  afterEach,
   beforeAll,
   beforeEach,
   describe,
@@ -654,6 +656,100 @@ describePostgres("Huntress workflows against a migrated Postgres", () => {
 
       expect(summary.moved).toBe(0);
       expect(await storedRow(connectionId)).toBeUndefined();
+    });
+
+    /*
+     * Once every connection in use has its workflow, the legacy tables go,
+     * all four in one statement (the data migration
+     * DropLegacyHuntressTables); a connection without one keeps them all.
+     * Dropped here are this schema's clones - the search path finds them
+     * first - which are made again after each test, from the migrated
+     * tables, which are never touched.
+     */
+    describe("the legacy tables", () => {
+      // The four the migrations made, named here rather than read from the code under test.
+      const LEGACY_TABLE_NAMES: Array<string> = [
+        "HuntressConnection",
+        "HuntressConnectionLabel",
+        "HuntressConnectionOnCallDutyPolicy",
+        "HuntressIncidentReport",
+      ];
+
+      async function tablesLeft(tableSchema: string): Promise<Array<string>> {
+        const rows: Array<{ table_name: string }> = await database.query(
+          `SELECT "table_name" FROM information_schema.tables WHERE "table_schema" = $1 AND "table_name" = ANY($2::text[]) ORDER BY "table_name"`,
+          [tableSchema, LEGACY_TABLE_NAMES],
+        );
+
+        return rows.map((row: { table_name: string }): string => {
+          return row.table_name;
+        });
+      }
+
+      afterEach(async () => {
+        for (const table of LEGACY_TABLE_NAMES) {
+          await database.query(
+            `CREATE TABLE IF NOT EXISTS "${schema}"."${table}" (LIKE public."${table}" INCLUDING ALL)`,
+          );
+        }
+      });
+
+      test("go, all four, once every connection in use has its workflow - a deleted one needs none", async () => {
+        await insertLegacy(svixSecret());
+        await HuntressConnectionsToWorkflows.moveAll(legacyQuery());
+
+        // A connection deleted before the move, which made it no workflow.
+        await database.query(
+          `INSERT INTO "${schema}"."HuntressConnection" ("_id", "version", "projectId", "name", "deletedAt") VALUES ($1, 1, $2, 'Old MSP', now())`,
+          [ObjectID.generate().toString(), projectA.toString()],
+        );
+
+        const summary: LegacyTablesDropSummary =
+          await HuntressConnectionsToWorkflows.dropLegacyTables(legacyQuery());
+
+        expect(summary).toEqual({ outcome: "dropped", unmoved: 0 });
+        expect(await tablesLeft(schema)).toEqual([]);
+        // The workflow, and the incident's report number, stay.
+        expect((await storedRow(connectionId)).name).toBe("Acme MSP");
+        // The migrated tables this schema was cloned from are not touched.
+        expect(await tablesLeft("public")).toEqual(LEGACY_TABLE_NAMES);
+        expect(recorder.failures).toEqual([]);
+      });
+
+      test("stay, all four, while a connection in use has no workflow - and say how many", async () => {
+        await insertLegacy(svixSecret());
+
+        const summary: LegacyTablesDropSummary =
+          await HuntressConnectionsToWorkflows.dropLegacyTables(legacyQuery());
+
+        expect(summary).toEqual({ outcome: "kept", unmoved: 1 });
+        expect(await tablesLeft(schema)).toEqual(LEGACY_TABLE_NAMES);
+
+        // What it was set up to do is all still there.
+        const rows: Array<{ count: string }> = await database.query(
+          `SELECT count(*)::text AS "count" FROM "${schema}"."HuntressConnectionOnCallDutyPolicy" WHERE "huntressConnectionId" = $1`,
+          [connectionId],
+        );
+
+        expect(rows[0]!.count).toBe("1");
+        expect(recorder.failures).toEqual([]);
+      });
+
+      test("a workflow deleted since keeps them too, and is not made again", async () => {
+        await insertLegacy(svixSecret());
+        await HuntressConnectionsToWorkflows.moveAll(legacyQuery());
+        await database.query(
+          `DELETE FROM "${schema}"."Workflow" WHERE "_id" = $1`,
+          [connectionId],
+        );
+
+        const summary: LegacyTablesDropSummary =
+          await HuntressConnectionsToWorkflows.dropLegacyTables(legacyQuery());
+
+        expect(summary).toEqual({ outcome: "kept", unmoved: 1 });
+        expect(await storedRow(connectionId)).toBeUndefined();
+        expect(await tablesLeft(schema)).toEqual(LEGACY_TABLE_NAMES);
+      });
     });
   });
 });

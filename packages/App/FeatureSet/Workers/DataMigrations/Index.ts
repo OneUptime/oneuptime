@@ -121,6 +121,7 @@ import MaterializeAttributeValuesIndex from "./MaterializeAttributeValuesIndex";
 import RemoveChatAccountLinksNotMadeBySignIn from "./RemoveChatAccountLinksNotMadeBySignIn";
 import RemoveNotificationSettingsOfNonMembers from "./RemoveNotificationSettingsOfNonMembers";
 import MoveHuntressConnectionsToWorkflows from "./MoveHuntressConnectionsToWorkflows";
+import DropLegacyHuntressTables from "./DropLegacyHuntressTables";
 import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUnits";
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
@@ -776,12 +777,21 @@ const DataMigrations: Array<DataMigrationBase> = [
    * posts to (/api/huntress/webhook/<id>), same signing secret, on - and
    * the incidents it opened keep their report's number, so the workflow
    * finds them when Huntress comments on or closes a report. Owners of a
-   * project whose plan runs no workflows are told by email. The legacy
-   * tables stay. After AddWorkflowWebhookSigningSecret1803400000000;
-   * idempotent; no other ordering requirement, so it sits before the last
-   * slot AddAuditLogMcpClientColumns asserts for itself.
+   * project whose plan runs no workflows are told by email. After
+   * AddWorkflowWebhookSigningSecret1803400000000; idempotent; no other
+   * ordering requirement, so it sits before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
    */
   new MoveHuntressConnectionsToWorkflows(),
+  /*
+   * The legacy Huntress tables ("HuntressConnection", its join tables and
+   * "HuntressIncidentReport") are dropped, once every Huntress connection
+   * in use has its workflow; a connection without one (its move failed, or
+   * its workflow was deleted since) keeps them all. Right after
+   * MoveHuntressConnectionsToWorkflows, which reads them; Postgres-only,
+   * idempotent and safe to run twice at once.
+   */
+  new DropLegacyHuntressTables(),
   /*
    * When somebody was first paged about each incident, alert and episode
    * paged before the upgrade - what "Time to acknowledge after paging"

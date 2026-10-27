@@ -30,6 +30,9 @@ import {
  *   - a secret reaches only a Runner of the project it lists (runners), or
  *     a global Runner when it lets global Runners use it
  *     (isAvailableToGlobalRunners);
+ *   - an HTTP request step, which OneUptime sends itself from its own
+ *     servers - no Runner is involved - gets every variable it names, a
+ *     secret too (Types/Runbook/HttpStepVariables);
  *   - a variable the step cannot have is a problem, never a value: the
  *     caller fails the step and names it (RunbookVariableProblems).
  *
@@ -44,8 +47,9 @@ export type RunbookVariableAccess =
   // A global Runner took it: one OneUptime runs for every project.
   | { kind: "global-runner" }
   /*
-   * The server itself: to check a step before it is sent anywhere, or to
-   * know what to redact from what a step printed. Values only on request.
+   * The server itself: to check a step before it is sent anywhere, to know
+   * what to redact from what a step printed, or to send an HTTP request
+   * step, which OneUptime sends itself. Values only on request.
    */
   | { kind: "server" };
 

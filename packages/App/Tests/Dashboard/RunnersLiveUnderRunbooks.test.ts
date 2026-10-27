@@ -440,8 +440,30 @@ describe("the messages people act on name Runbooks", () => {
     expect(picker).toContain(
       'translator.translateText("Runbooks › Settings › Global Variables")',
     );
+    /*
+     * Its sentence lives in the variables' copy, in two forms: to add one,
+     * for whoever may, and to ask a project owner or admin, for whoever may
+     * not (a Runbook Admin reads variables but does not create them).
+     */
+    const copy: string = read(
+      "App",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Components",
+      "Runbook",
+      "RunbookVariableCopy.ts",
+    ).replace(/\s+/g, " ");
+
+    expect(picker).toContain("template={noSecretsTemplate}");
     expect(picker).toContain(
-      'template="No secret variables yet. Add one under {{location}}, then pick it here."',
+      "? NO_SECRET_VARIABLES_ADD_ONE_TEMPLATE : NO_SECRET_VARIABLES_ASK_TEMPLATE;",
+    );
+    expect(copy).toContain(
+      '"No secret variables yet. Add one under {{location}}, then pick it here."',
+    );
+    expect(copy).toContain(
+      '"No secret variables yet. Ask a project owner or admin to add one under {{location}}, then pick it here."',
     );
     expect(steps).not.toContain("Settings › Credentials");
     expect(steps).not.toContain("Runbooks › Runners › Credentials");

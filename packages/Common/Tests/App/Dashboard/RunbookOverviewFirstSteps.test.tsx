@@ -249,7 +249,7 @@ function runNowButton(): HTMLButtonElement | null {
 }
 
 describe("the runbook is read with what the Overview offers first", () => {
-  test("its steps and its switch are selected with the details", async () => {
+  test("its steps and its switch are selected with the details - and what starts it on its own", async () => {
     await openRunbook({ isEnabled: true, steps: ONE_STEP });
 
     const details: DetailProps = mockDetails[mockDetails.length - 1]!;
@@ -257,6 +257,11 @@ describe("the runbook is read with what the Overview offers first", () => {
     expect(details.modelDetailProps.selectMoreFields).toEqual({
       steps: true,
       isEnabled: true,
+      // The Triggers line (Components/Runbook/Triggers/RunbookTriggersSummary).
+      isScheduleEnabled: true,
+      scheduleCron: true,
+      scheduleTimezone: true,
+      isWebhookEnabled: true,
     });
   });
 });

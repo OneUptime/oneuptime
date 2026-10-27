@@ -167,7 +167,7 @@ Feil i validering, konfigurasjon, tilgang, grenser, kreditt, samtidighet, levera
 Arbeidsflyter følger den rollebaserte tilgangskontrollen i prosjektet ditt. De tre arbeidsflytrollene:
 
 - **Arbeidsflytadministrator** — bygger arbeidsflyter: oppretter, endrer, kjører og sletter dem, og administrerer variablene de bruker.
-- **Arbeidsflytmedlem** — bruker dem: åpner arbeidsflyter og kjøringene deres, og kjører en arbeidsflyt manuelt med **Kjør arbeidsflyt**. Et medlem kan ikke opprette, endre eller slette en arbeidsflyt, eller kjøre ett av trinnene for seg.
+- **Arbeidsflytmedlem** — bruker dem: åpner arbeidsflyter og kjøringene deres, og kjører en arbeidsflyt manuelt med **Kjør arbeidsflyt**. Et medlem kan ikke opprette, endre eller slette en arbeidsflyt, eller kjøre ett av trinnene for seg. **Bygger** viser dem en arbeidsflyt slik den er, merket **Kun visning**: Et trinn åpnes for å leses, og ingenting de gjør der, lagres.
 - **Arbeidsflytleser** — leser arbeidsflyter og kjøringene deres.
 
 **Prosjekteier** og **Prosjektadministrator** kan alt en Workflow Admin kan. **Prosjektmedlem** kan opprette og slette arbeidsflyter, men ikke endre eller kjøre dem.
@@ -214,7 +214,7 @@ I OneUptime Cloud krever arbeidsflyter planen Growth eller høyere, og hver plan
 | Scale      | 2000                         |
 | Enterprise | Ingen praktisk grense        |
 
-Vinduet glir: hver kjøring prosjektet registrerer, manuelt eller fra en trigger, teller i 30 dager. På planene Growth og Scale viser siden **Arbeidsflyter** et kort **Arbeidsflytkjøringer** med hvor mange prosjektet har brukt. Når grensen er nådd, registreres nye kjøringer med statusen **Execution Exceeded Current Plan** og utføres ikke, og det samme skjer mens abonnementet er ubetalt. Selvhostede installasjoner uten fakturering har ingen grense.
+Vinduet glir: hver kjøring prosjektet registrerer, manuelt eller fra en trigger, teller i 30 dager. På planene Growth og Scale viser siden **Arbeidsflyter** et kort **Arbeidsflytkjøringer** med hvor mange prosjektet har brukt. Når grensen er nådd, registreres nye kjøringer med statusen **Execution Exceeded Current Plan** og utføres ikke, og det samme skjer mens abonnementet er ubetalt. Selvhostede installasjoner uten fakturering har ingen grense. På en plan som ikke kjører arbeidsflyter, sier **Bygger** og siden **Arbeidsflyter** det, med en lenke for å oppgradere.
 
 ## Hvor lenge en kjøring kan vare
 

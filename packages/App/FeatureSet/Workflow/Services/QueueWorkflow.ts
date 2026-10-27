@@ -7,7 +7,10 @@ import ObjectID from "Common/Types/ObjectID";
 import ComponentID from "Common/Types/Workflow/ComponentID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import CronTab from "Common/Utils/CronTab";
-import WorkflowPlan from "Common/Types/Workflow/WorkflowPlan";
+import WorkflowPlan, {
+  doesPlanRunWorkflows,
+  getWorkflowPlanRefusalMessage,
+} from "Common/Types/Workflow/WorkflowPlan";
 import WorkflowStatus from "Common/Types/Workflow/WorkflowStatus";
 import { WORKFLOW_ARCHIVED_RUN_REFUSED_MESSAGE } from "Common/Types/Workflow/WorkflowArchive";
 import {
@@ -385,26 +388,44 @@ export default class QueueWorkflow {
     }
 
     if (projectPlan.plan) {
-      const startDate: Date = OneUptimeDate.getSomeDaysAgo(30);
-      const endDate: Date = OneUptimeDate.getCurrentDate();
+      /*
+       * A plan allows so many runs in any 30 days (WorkflowPlan), and the
+       * runs already recorded in that window are counted before this one:
+       * at the limit, this one is refused. (It used to be refused only past
+       * the limit, so a plan of 500 ran 501, and the Free plan - which runs
+       * no workflows - ran one every 30 days.) A plan that runs none is not
+       * counted at all: its refusal says so, and which plan runs them.
+       */
+      const runsAllowed: number = WorkflowPlan[projectPlan.plan];
 
-      const workflowCount: PositiveNumber = await WorkflowLogService.countBy({
-        query: {
-          projectId: workflow.projectId,
-          createdAt: QueryHelper.inBetween(startDate, endDate),
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      const workflowCount: PositiveNumber = doesPlanRunWorkflows(
+        projectPlan.plan,
+      )
+        ? await WorkflowLogService.countBy({
+            query: {
+              projectId: workflow.projectId,
+              createdAt: QueryHelper.inBetween(
+                OneUptimeDate.getSomeDaysAgo(30),
+                OneUptimeDate.getCurrentDate(),
+              ),
+            },
+            props: {
+              isRoot: true,
+            },
+          })
+        : new PositiveNumber(0);
 
-      if (workflowCount.toNumber() > WorkflowPlan[projectPlan.plan]) {
+      if (
+        !doesPlanRunWorkflows(projectPlan.plan) ||
+        workflowCount.toNumber() >= runsAllowed
+      ) {
         // Add Workflow Run Log.
 
         const runLog: WorkflowLog = newRunLog([
-          `Workflow cannot run because it already ran ${workflowCount.toNumber()} in the last 30 days. Your current plan limit is ${
-            WorkflowPlan[projectPlan.plan]
-          }`,
+          getWorkflowPlanRefusalMessage({
+            plan: projectPlan.plan,
+            runsInLast30Days: workflowCount.toNumber(),
+          }),
         ]);
         runLog.workflowStatus = WorkflowStatus.WorkflowCountExceeded;
 

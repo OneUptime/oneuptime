@@ -1,5 +1,5 @@
 import { ButtonStyleType } from "../Button/Button";
-import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import EmptyState from "../EmptyState/EmptyState";
 import ConfirmModal from "../Modal/ConfirmModal";
 import SideOver from "../SideOver/SideOver";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
@@ -7,7 +7,9 @@ import RunForm, { RUN_WORKFLOW_SUBMIT_TITLE, RunFormHandle } from "./RunForm";
 import { getRunRecordLabel } from "./RunRecordField";
 import { LoadRunRecordsFunction } from "./RunRecordSource";
 import { getRunValues } from "./RunValues";
+import { WORKFLOW_ADD_TRIGGER_TITLE } from "./WorkflowAddButton";
 import { WorkflowRunPanelTestRunNote } from "./WorkflowTestRun";
+import IconProp from "../../../Types/Icon/IconProp";
 import { JSONValue } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { NodeDataProp, NodeType } from "../../../Types/Workflow/Component";
@@ -43,6 +45,9 @@ export const RunModalCopy: {
   readonly confirmCreated: string;
   readonly confirmUpdated: string;
   readonly confirmDeleted: string;
+  readonly noTriggerTitle: string;
+  readonly noTriggerDescription: string;
+  readonly noTriggerViewOnlyDescription: string;
 } = {
   description: translationKey(
     "Start a run now, from the trigger, with the values you choose.",
@@ -59,6 +64,24 @@ export const RunModalCopy: {
   ),
   confirmDeleted: translationKey(
     "It runs as if {{record}} had just been deleted, but nothing is deleted. Every step runs for real: anything it sends, writes or deletes actually happens.",
+  ),
+  /*
+   * Run Workflow on a workflow with no trigger. A run starts from the
+   * trigger, so the panel has nothing to run: it says so and offers the
+   * one thing to do, Add Trigger, which opens the panel the toolbar's
+   * button and the dashed card open. It used to show a red "No trigger
+   * added. Please add a trigger in order to run this workflow" over a
+   * disabled Run button. Someone who may not change the workflow is told
+   * whom to ask instead. The panel's own description - start a run "from
+   * the trigger, with the values you choose" - is left out while there is
+   * no trigger: the empty state says what a run starts from.
+   */
+  noTriggerTitle: translationKey("This workflow has no trigger yet"),
+  noTriggerDescription: translationKey(
+    "A run starts from the workflow's trigger. Add one, then run the workflow from here.",
+  ),
+  noTriggerViewOnlyDescription: translationKey(
+    "A run starts from the workflow's trigger. Ask someone who can edit this workflow to add one.",
   ),
 };
 
@@ -176,6 +199,12 @@ export interface ComponentProps {
   isTestRun?: boolean | undefined;
   // Where a record trigger's records come from; the server unless a test says otherwise.
   loadRunRecords?: LoadRunRecordsFunction | undefined;
+  /*
+   * Opens the Add Trigger panel, for a workflow with no trigger yet. Left
+   * out for someone who may not change the workflow: the panel then says
+   * who adds the trigger, and offers nothing.
+   */
+  onAddTrigger?: (() => void) | undefined;
 }
 
 const RunModal: FunctionComponent<ComponentProps> = (
@@ -217,28 +246,49 @@ const RunModal: FunctionComponent<ComponentProps> = (
         ? typedRecord.trim()
         : "";
 
+  /*
+   * No trigger yet: nothing to run, so no run form and no Run Workflow. The
+   * panel's one action is then Add Trigger - the footer's own button, the
+   * one primary a dialog has - for someone who may add one; anyone else
+   * gets Close alone.
+   */
+  const hasNoTrigger: boolean = component.nodeType === NodeType.PlaceholderNode;
+
   return (
     <SideOver
       title={"Run Workflow"}
-      description={RunModalCopy.description}
+      description={hasNoTrigger ? "" : RunModalCopy.description}
       onClose={props.onClose}
-      submitButtonDisabled={component.nodeType === NodeType.PlaceholderNode}
-      submitButtonText={RUN_WORKFLOW_SUBMIT_TITLE}
-      onSubmit={() => {
-        if (hasFormValidationErrors) {
-          /*
-           * Said where it is missing: each field shows its message and the
-           * first one gets the focus. A dialog used to say "Please fix
-           * errors" over a form that showed none.
-           */
-          runFormRef.current?.showErrors();
-        } else {
-          setShowRunConfirmation(true);
-        }
-      }}
+      submitButtonText={
+        hasNoTrigger ? WORKFLOW_ADD_TRIGGER_TITLE : RUN_WORKFLOW_SUBMIT_TITLE
+      }
+      onSubmit={
+        hasNoTrigger
+          ? props.onAddTrigger
+            ? () => {
+                props.onAddTrigger?.();
+              }
+            : undefined
+          : () => {
+              if (hasFormValidationErrors) {
+                /*
+                 * Said where it is missing: each field shows its message and the
+                 * first one gets the focus. A dialog used to say "Please fix
+                 * errors" over a form that showed none.
+                 */
+                runFormRef.current?.showErrors();
+              } else {
+                setShowRunConfirmation(true);
+              }
+            }
+      }
     >
       <>
-        {props.isTestRun && (
+        {/*
+         * A test run is what a run would be while the workflow is off - said
+         * only once there is a trigger to run from.
+         */}
+        {props.isTestRun && !hasNoTrigger && (
           <div className="mt-3">
             <WorkflowRunPanelTestRunNote />
           </div>
@@ -292,8 +342,20 @@ const RunModal: FunctionComponent<ComponentProps> = (
           />
         )}
 
-        {component.nodeType === NodeType.PlaceholderNode && (
-          <ErrorMessage message="No trigger added. Please add a trigger in order to run this workflow" />
+        {hasNoTrigger && (
+          <div data-testid="run-workflow-no-trigger">
+            <EmptyState
+              id="run-workflow-no-trigger"
+              icon={IconProp.Bolt}
+              title={RunModalCopy.noTriggerTitle}
+              description={
+                props.onAddTrigger
+                  ? RunModalCopy.noTriggerDescription
+                  : RunModalCopy.noTriggerViewOnlyDescription
+              }
+              paddingClassName="pt-10 pb-6"
+            />
+          </div>
         )}
       </>
     </SideOver>

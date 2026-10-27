@@ -4,8 +4,8 @@ A runbook variable is a value your steps use by name instead of holding it thems
 
 :::cards
 - [Create a variable](#create-a-variable): A plain value, or a secret and the Runners that may use it.
-- [Use a variable in a step](#use-a-variable-in-a-step): In a script, or as an SSH step's sign-in and a kubectl step's kubeconfig.
-- [Who receives a secret](#who-receives-a-secret): Your Runners, and global Runners when you let them.
+- [Use a variable in a step](#use-a-variable-in-a-step): In a script or an HTTP request, or as an SSH step's sign-in and a kubectl step's kubeconfig.
+- [Who receives a secret](#who-receives-a-secret): Your Runners, global Runners when you let them, and OneUptime for an HTTP request step.
 :::
 
 ## How a variable reaches a step
@@ -19,7 +19,7 @@ flowchart TB
 
 A step holds the variable's name, never its value. When the step's Runner claims it, OneUptime fills the value in - in the script, an SSH step's machine and sign-in, or a kubectl step's kubeconfig - and hands it to that Runner only. A step that names a variable it may not have fails with the reason, rather than running with the name where the value should be.
 
-Bash, JavaScript, SSH and kubectl steps use variables. HTTP request and AI steps do not fill them in.
+Bash, JavaScript, SSH, kubectl and HTTP request steps use variables. AI steps do not fill them in. OneUptime sends an HTTP request step itself, without a Runner, so the step gets every variable it names, secrets too, and hides them in the response it records.
 
 ## Global and runbook variables
 
@@ -71,20 +71,27 @@ curl -s -X POST \
   -H "Authorization: Bearer {{global.variables.CDN_API_TOKEN}}" \
   "https://api.cdn.example.com/v1/purge"
 ```
+@tab In an HTTP request
+Write the reference in an [HTTP request step](/docs/runbooks/authoring#http-request)'s URL, headers or body:
+
+```json
+{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
+```
 @tab SSH sign-in
 An [SSH step](/docs/runbooks/authoring#ssh) picks the secret variable that holds its private key or password under **Sign in with**, and its key's passphrase under **More fields → Key passphrase**. The value says whether it is a key or a password.
 @tab Kubeconfig
 A [kubectl step](/docs/runbooks/authoring#kubectl) picks the secret variable that holds the cluster's kubeconfig under **Kubeconfig**, or **The Runner's own access** to use the Runner's.
 :::
 
-On a runbook's **Steps** page, each script lists the variables its step can use under **Variables — click to copy**, and the editor says when a step names a variable that is not there, or a secret its Runner may not use.
+On a runbook's **Steps** page, each script and each HTTP request lists the variables its step can use under **Variables — click to copy**, and the editor says when a step names a variable that is not there, or a secret its Runner may not use.
 
 ## Who receives a secret
 
-| Runner | A plain variable | A secret |
+| Who runs the step | A plain variable | A secret |
 | --- | --- | --- |
 | One of your Runners | Always | When the secret lists it under **Your Runners that can use it** |
 | A global Runner | Always | When **Global Runners can use it** is on, for a step of the secret's own project |
+| OneUptime itself, for an HTTP request step | Always | Always |
 
 A step that names a secret its Runner may not use fails, naming the secret and what to change, and nothing is handed over.
 

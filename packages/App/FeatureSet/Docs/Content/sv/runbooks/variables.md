@@ -4,8 +4,8 @@ En runbook-variabel är ett värde som dina steg använder via namnet i stället
 
 :::cards
 - [Skapa en variabel](#skapa-en-variabel): Ett vanligt värde, eller en hemlighet och de Runners som får använda den.
-- [Använd en variabel i ett steg](#använd-en-variabel-i-ett-steg): I ett skript, eller som ett SSH-stegs inloggning och ett kubectl-stegs kubeconfig.
-- [Vem får en hemlighet](#vem-får-en-hemlighet): Dina Runners, och globala Runners när du låter dem.
+- [Använd en variabel i ett steg](#använd-en-variabel-i-ett-steg): I ett skript eller en HTTP-begäran, eller som ett SSH-stegs inloggning och ett kubectl-stegs kubeconfig.
+- [Vem får en hemlighet](#vem-får-en-hemlighet): Dina Runners, globala Runners när du låter dem, och OneUptime för ett HTTP-begäransteg.
 :::
 
 ## Så når en variabel ett steg
@@ -19,7 +19,7 @@ flowchart TB
 
 Ett steg innehåller variabelns namn, aldrig dess värde. När stegets Runner tar det fyller OneUptime i värdet - i skriptet, i ett SSH-stegs maskin och inloggning eller i ett kubectl-stegs kubeconfig - och lämnar det bara till den Runnern. Ett steg som nämner en variabel som det inte får ha misslyckas med orsaken, i stället för att köras med namnet där värdet borde stå.
 
-Bash-, JavaScript-, SSH- och kubectl-steg använder variabler. HTTP-begäran- och AI-steg fyller inte i dem.
+Bash-, JavaScript-, SSH-, kubectl- och HTTP-begäransteg använder variabler. AI-steg fyller inte i dem. Ett HTTP-begäransteg skickar OneUptime själv, utan Runner, så steget får varje variabel det nämner, även hemligheter, och döljer dem i svaret det registrerar.
 
 ## Globala variabler och runbook-variabler
 
@@ -71,20 +71,27 @@ curl -s -X POST \
   -H "Authorization: Bearer {{global.variables.CDN_API_TOKEN}}" \
   "https://api.cdn.example.com/v1/purge"
 ```
+@tab I en HTTP-begäran
+Skriv referensen i URL:en, headers eller body i ett [HTTP-begäransteg](/docs/runbooks/authoring#http-request):
+
+```json
+{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
+```
 @tab SSH-inloggning
 Ett [SSH-steg](/docs/runbooks/authoring#ssh) väljer under **Logga in med** den hemliga variabel som innehåller dess privata nyckel eller lösenord, och under **Fler fält → Nyckelns lösenfras** nyckelns lösenfras. Värdet visar om det är en nyckel eller ett lösenord.
 @tab Kubeconfig
 Ett [kubectl-steg](/docs/runbooks/authoring#kubectl) väljer under **Kubeconfig** den hemliga variabel som innehåller klustrets kubeconfig, eller **Runnerns egen åtkomst** för att använda Runnerns.
 :::
 
-På en runbooks sida **Steg** listar varje skript under **Variabler – klicka för att kopiera** de variabler som dess steg kan använda, och redigeraren säger till när ett steg nämner en variabel som inte finns, eller en hemlighet som dess Runner inte får använda.
+På en runbooks sida **Steg** listar varje skript och varje HTTP-begäran under **Variabler – klicka för att kopiera** de variabler som deras steg kan använda, och redigeraren säger till när ett steg nämner en variabel som inte finns, eller en hemlighet som dess Runner inte får använda.
 
 ## Vem får en hemlighet
 
-| Runner | En vanlig variabel | En hemlighet |
+| Vem som kör steget | En vanlig variabel | En hemlighet |
 | --- | --- | --- |
 | En av dina Runners | Alltid | När hemligheten listar den under **Dina Runners som får använda den** |
 | En global Runner | Alltid | När **Globala Runners får använda den** är påslagen, för ett steg i hemlighetens eget projekt |
+| OneUptime själv, för ett HTTP-begäransteg | Alltid | Alltid |
 
 Ett steg som nämner en hemlighet som dess Runner inte får använda misslyckas, med hemlighetens namn och vad som ska ändras, och ingenting lämnas ut.
 

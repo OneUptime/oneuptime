@@ -167,7 +167,7 @@ Fouten in validatie, configuratie, toegang, limieten, tegoed, gelijktijdigheid, 
 Workflows volgen het rolgebaseerde toegangsbeheer van je project. De drie workflowrollen:
 
 - **Workflowbeheerder** — bouwt workflows: maakt ze, wijzigt ze, voert ze uit en verwijdert ze, en beheert de variabelen die ze gebruiken.
-- **Workflowlid** — gebruikt ze: opent workflows en hun uitvoeringen, en voert een workflow handmatig uit met **Workflow uitvoeren**. Een member kan een workflow niet maken, wijzigen of verwijderen, en ook geen losse stap ervan uitvoeren.
+- **Workflowlid** — gebruikt ze: opent workflows en hun uitvoeringen, en voert een workflow handmatig uit met **Workflow uitvoeren**. Een member kan een workflow niet maken, wijzigen of verwijderen, en ook geen losse stap ervan uitvoeren. De **Bouwer** toont hun een workflow zoals hij is, gemarkeerd met **Alleen bekijken**: een stap opent om te lezen, en niets wat ze daar doen wordt opgeslagen.
 - **Workflowkijker** — leest workflows en hun uitvoeringen.
 
 **Projecteigenaar** en **Projectbeheerder** kunnen alles wat een Workflow Admin kan. **Projectlid** kan workflows maken en verwijderen, maar ze niet wijzigen of uitvoeren.
@@ -214,7 +214,7 @@ In OneUptime Cloud hebben workflows het abonnement Growth of hoger nodig, en elk
 | Scale      | 2.000                               |
 | Enterprise | Geen praktische limiet              |
 
-Het venster schuift mee: elke uitvoering die het project vastlegt, handmatig of door een trigger, telt 30 dagen mee. Bij de abonnementen Growth en Scale toont de pagina **Workflows** een kaart **Workflow-uitvoeringen** met hoeveel het project er heeft gebruikt. Is de limiet bereikt, dan worden nieuwe uitvoeringen vastgelegd met de status **Execution Exceeded Current Plan** en niet uitgevoerd, en hetzelfde gebeurt zolang het abonnement niet is betaald. Zelf gehoste installaties zonder facturering hebben geen limiet.
+Het venster schuift mee: elke uitvoering die het project vastlegt, handmatig of door een trigger, telt 30 dagen mee. Bij de abonnementen Growth en Scale toont de pagina **Workflows** een kaart **Workflow-uitvoeringen** met hoeveel het project er heeft gebruikt. Is de limiet bereikt, dan worden nieuwe uitvoeringen vastgelegd met de status **Execution Exceeded Current Plan** en niet uitgevoerd, en hetzelfde gebeurt zolang het abonnement niet is betaald. Zelf gehoste installaties zonder facturering hebben geen limiet. Bij een abonnement dat geen workflows uitvoert, zeggen de **Bouwer** en de pagina **Workflows** dat, met een link om te upgraden.
 
 ## Hoe lang een run mag duren
 
