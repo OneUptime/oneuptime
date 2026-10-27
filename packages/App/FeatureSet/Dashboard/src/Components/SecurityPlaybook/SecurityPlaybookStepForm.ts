@@ -4,6 +4,7 @@ import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connector
 import {
   SecurityPlaybookActionDefinition,
   SecurityPlaybookActionType,
+  doesActionNeedApprovalByDefault,
   getSecurityPlaybookAction,
   isSecurityPlaybookActionType,
 } from "Common/Types/SecurityPlaybook/SecurityPlaybookAction";
@@ -77,6 +78,15 @@ const PLAIN_KEYS_BY_ACTION: Record<
   [SecurityPlaybookActionType.ReleaseDefenderDevice]: [],
   [SecurityPlaybookActionType.SendWebhook]: ["url"],
   [SecurityPlaybookActionType.RunWorkflow]: ["workflowId"],
+  [SecurityPlaybookActionType.RunRunbook]: ["runbookId"],
+  [SecurityPlaybookActionType.PreserveEvidence]: [],
+  [SecurityPlaybookActionType.PostStatusPageAnnouncement]: [
+    "statusPageIds",
+    "announcementTitle",
+    "announcementDescription",
+    "notifySubscribers",
+  ],
+  [SecurityPlaybookActionType.FixWithAi]: [],
 };
 
 export function getStepConfigKeys(
@@ -141,6 +151,7 @@ const ID_LIST_KEYS: ReadonlySet<string> = new Set<string>([
   "labelIds",
   "userIds",
   "teamIds",
+  "statusPageIds",
 ]);
 
 const ID_KEYS: ReadonlySet<string> = new Set<string>([
@@ -149,7 +160,11 @@ const ID_KEYS: ReadonlySet<string> = new Set<string>([
   "onCallPolicyId",
   "incidentSeverityId",
   "workflowId",
+  "runbookId",
 ]);
+
+// Switches among an action's settings: kept as true or false.
+const SWITCH_KEYS: ReadonlySet<string> = new Set<string>(["notifySubscribers"]);
 
 // A step as the dialog opens it: its settings under their form keys, and its three switches.
 export function stepToFormValues(step: SecurityPlaybookStep): JSONObject {
@@ -180,7 +195,8 @@ export function stepToFormValues(step: SecurityPlaybookStep): JSONObject {
 /*
  * What a new step of an action starts as: a containment step waits for
  * approval, which only a Security Admin can turn off (the server holds
- * everyone else to it).
+ * everyone else to it); so does a step that runs a runbook or posts to a
+ * status page, which whoever adds it may turn off.
  */
 export function getNewStepFormValues(
   action: SecurityPlaybookActionType,
@@ -190,7 +206,7 @@ export function getNewStepFormValues(
 
   return {
     [STEP_ACTION_KEY]: action,
-    requiresApproval: Boolean(definition?.isDisruptive),
+    requiresApproval: doesActionNeedApprovalByDefault(definition),
     continueOnFailure: false,
     onlyIfThreatIntelMatched: false,
     ...(action === SecurityPlaybookActionType.LookUpEntityActivity
@@ -198,6 +214,9 @@ export function getNewStepFormValues(
       : {}),
     ...(action === SecurityPlaybookActionType.IsolateDefenderDevice
       ? { isolationType: "Full" }
+      : {}),
+    ...(action === SecurityPlaybookActionType.PostStatusPageAnnouncement
+      ? { notifySubscribers: false }
       : {}),
   };
 }
@@ -222,6 +241,11 @@ export function formValuesToStep(data: {
 
   for (const key of getStepConfigKeys(action)) {
     const value: JSONValue | undefined = data.values[key];
+
+    if (SWITCH_KEYS.has(key)) {
+      rawConfig[key] = value === true;
+      continue;
+    }
 
     if (value === undefined || value === null || value === "") {
       continue;

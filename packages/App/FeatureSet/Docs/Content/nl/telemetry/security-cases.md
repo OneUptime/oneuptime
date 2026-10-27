@@ -231,9 +231,11 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Zaak | Add labels | Voorziet de zaak van labels |
 | Onderzoeken | Check entities against threat intel | Zoekt elke entiteit op in je threat intelligence, en kan bij een match de prioriteit verhogen |
 | Onderzoeken | Look up entity activity | Telt de beveiligingsgebeurtenissen van elke entiteit over een recent venster, en noteert dat bij de zaak |
+| Onderzoeken | Preserve the evidence | Bewaart de sessie-opnames van de verzoeken achter de zaak, en noteert hun traces en exceptions bij de zaak |
 | Informeren | Email people | Mailt gebruikers en teams een samenvatting van de zaak, met een link ernaartoe |
 | Informeren | Post to Slack | Plaatst een samenvatting van de zaak in een Slack-kanaal |
 | Informeren | Post to Microsoft Teams | Plaatst een samenvatting van de zaak in een kanaal van Microsoft Teams |
+| Informeren | Post a status page announcement | Plaatst een aankondiging die u schreef op de statuspagina's die u kiest |
 | Escaleren | Page on-call | Voert een on-callbeleid uit |
 | Escaleren | Declare an incident | Opent een OneUptime-incident dat aan de zaak is gekoppeld |
 | Inperken | Suspend the user in Okta | Schorst in Okta de gebruiker waar de zaak over gaat |
@@ -245,12 +247,21 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Inperken | Release the device in Microsoft Defender | Haalt in Microsoft Defender for Endpoint de host waar de zaak over gaat uit isolatie |
 | Automatiseren | Send a webhook | Post de zaak als JSON naar een URL |
 | Automatiseren | Run a workflow | Start een OneUptime-workflow met de zaak als invoer |
+| Automatiseren | Run a runbook | Start een van uw OneUptime-runbooks met de zaak als invoer |
+| Automatiseren | Fix the code with AI | Vraagt OneUptime AI om een pull request die de exceptions oplost die de verzoeken van de zaak veroorzaakten |
 
 Een playbook heeft hoogstens 25 stappen. Ze draaien op volgorde, elk zodra de vorige klaar is. Elke stap kan ook:
 
-- **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De vier stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet.
+- **Goedkeuring nodig**: de uitvoering vóór de stap stilzetten totdat iemand hem op de zaak goedkeurt. De vier stappen die iemand de toegang ontnemen, zetten de uitvoering altijd stil, tenzij een Security Admin dit uitzet. **Run a runbook** en **Post a status page announcement** beginnen met goedkeuring aan, omdat de ene opdrachten op uw systemen uitvoert en de andere uw klanten toespreekt; wie de stap toevoegt, kan het uitzetten.
 - **Alleen bij treffer in dreigingsinformatie**: de stap overslaan, tenzij een eerdere stap **Entiteiten controleren in dreigingsinformatie** van dezelfde uitvoering een bekende indicator vond.
 - **Doorgaan bij fout**: de volgende stap uitvoeren, ook als deze mislukt. Staat dit uit, dan stopt een mislukte stap de uitvoering.
+
+### Reageren via OneUptime
+
+- **Run a runbook**: het runbook krijgt de zaak als invoer. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` en `ONEUPTIME_INPUT_HOST` zijn het adres, de gebruiker en de host waar de zaak over gaat, en leeg als het over geen ervan gaat. Een beschermde gebruiker of host wordt nooit doorgegeven.
+- **Preserve the evidence**: bewaart sessie-opnames langer dan hun bewaartermijn en noteert traces en exceptions bij de zaak. Logs en traces kunnen niet langer worden bewaard dan het project telemetrie bewaart.
+- **Post a status page announcement**: wordt geplaatst zoals u het schreef; er wordt niets uit de zaak aan toegevoegd. Abonnees worden alleen ingelicht als **Notify Subscribers** aan staat.
+- **Fix the code with AI**: vereist dat OneUptime AI aan staat, een repository die via de GitHub App is verbonden en een runner. Zonder deze wordt de stap overgeslagen en zegt hij wat er ontbreekt.
 
 ### Inperking
 

@@ -231,9 +231,11 @@ OneUptime 会就案例上的三件事通知相关人员。无需任何人做任�
 | 案例 | Add labels | 为案例添加标签 |
 | 调查 | Check entities against threat intel | 在你的威胁情报中查找每个实体，匹配时可以提高优先级 |
 | 调查 | Look up entity activity | 统计每个实体在最近一段时间内的安全事件，并记录到案例上 |
+| 调查 | Preserve the evidence | 保留案例背后请求的会话回放，并把它们的追踪和异常记录到案例上 |
 | 通知 | Email people | 通过电子邮件向用户和团队发送案例摘要及其链接 |
 | 通知 | Post to Slack | 把案例摘要发布到某个 Slack 频道 |
 | 通知 | Post to Microsoft Teams | 把案例摘要发布到某个 Microsoft Teams 频道 |
+| 通知 | Post a status page announcement | 把你撰写的公告发布到你选择的状态页 |
 | 升级 | Page on-call | 运行一个值班策略 |
 | 升级 | Declare an incident | 打开一个与案例关联的 OneUptime 事件 |
 | 遏制 | Suspend the user in Okta | 在 Okta 中暂停案例涉及的用户 |
@@ -245,12 +247,21 @@ OneUptime 会就案例上的三件事通知相关人员。无需任何人做任�
 | 遏制 | Release the device in Microsoft Defender | 在 Microsoft Defender for Endpoint 中将案例涉及的主机解除隔离 |
 | 自动化 | Send a webhook | 把案例以 JSON 格式 POST 到某个 URL |
 | 自动化 | Run a workflow | 以案例作为输入，启动一个 OneUptime 工作流 |
+| 自动化 | Run a runbook | 以案例作为输入，启动你的某个 OneUptime 运行手册 |
+| 自动化 | Fix the code with AI | 请 OneUptime AI 提交一个拉取请求，修复案例的请求所引发的异常 |
 
 一个剧本最多有 25 个步骤。它们按顺序运行，每个步骤在前一个完成后才开始。每个步骤还可以设置：
 
-- **需要批准**：在运行到该步骤之前暂停，直到有人在案例上批准它。切断某人访问的四个步骤始终如此，除非 Security Admin 将其关闭。
+- **需要批准**：在运行到该步骤之前暂停，直到有人在案例上批准它。切断某人访问的四个步骤始终如此，除非 Security Admin 将其关闭。**Run a runbook** 和 **Post a status page announcement** 默认开启批准，因为前者会在你的系统上执行命令，后者会面向你的客户发布内容；添加该步骤的人可以将其关闭。
 - **仅在威胁情报匹配时**：除非本次运行中之前的 **用威胁情报检查实体** 步骤发现了已知指标，否则跳过该步骤。
 - **失败时继续**：即使该步骤失败，也继续运行下一个步骤。关闭此项时，失败的步骤会停止本次运行。
+
+### 通过 OneUptime 响应
+
+- **Run a runbook**：运行手册以案例作为输入。`ONEUPTIME_INPUT_IP`、`ONEUPTIME_INPUT_USER` 和 `ONEUPTIME_INPUT_HOST` 是案例所涉及的地址、用户和主机，案例不涉及其中任何一个时为空。受保护的用户或主机永远不会被传入。
+- **Preserve the evidence**：在会话回放的保留期之后继续保留它们，并把追踪和异常记录到案例上。日志和追踪的保存时间不能超过项目保留遥测数据的时间。
+- **Post a status page announcement**：按你撰写的原样发布，不会添加案例中的任何内容。只有开启 **Notify Subscribers** 时才会通知订阅者。
+- **Fix the code with AI**：需要开启 OneUptime AI、一个通过 GitHub App 连接的代码仓库以及一个运行器。缺少这些时，该步骤会被跳过并说明缺少什么。
 
 ### 遏制
 

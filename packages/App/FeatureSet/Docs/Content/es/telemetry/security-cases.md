@@ -231,9 +231,11 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 | Caso | Add labels | Pone etiquetas al caso |
 | Investigación | Check entities against threat intel | Busca cada entidad en tu inteligencia de amenazas y puede subir la prioridad si hay una coincidencia |
 | Investigación | Look up entity activity | Cuenta los eventos de seguridad de cada entidad en una ventana reciente y anota el resultado en el caso |
+| Investigación | Preserve the evidence | Conserva las grabaciones de sesión de las solicitudes detrás del caso y anota sus trazas y excepciones en el caso |
 | Notificación | Email people | Envía por email a usuarios y equipos un resumen del caso, con un enlace a él |
 | Notificación | Post to Slack | Publica un resumen del caso en un canal de Slack |
 | Notificación | Post to Microsoft Teams | Publica un resumen del caso en un canal de Microsoft Teams |
+| Notificación | Post a status page announcement | Publica un anuncio que escribiste en las páginas de estado que elijas |
 | Escalado | Page on-call | Ejecuta una política de guardia |
 | Escalado | Declarar un incidente | Abre un incidente de OneUptime vinculado al caso |
 | Contención | Suspend the user in Okta | Suspende en Okta al usuario del que trata el caso |
@@ -245,12 +247,21 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 | Contención | Release the device in Microsoft Defender | Libera del aislamiento en Microsoft Defender for Endpoint al host del que trata el caso |
 | Automatización | Send a webhook | Envía el caso como JSON a una URL |
 | Automatización | Run a workflow | Inicia un flujo de trabajo de OneUptime con el caso como entrada |
+| Automatización | Run a runbook | Inicia uno de tus runbooks de OneUptime con el caso como entradas |
+| Automatización | Fix the code with AI | Pide a OneUptime AI un pull request que corrija las excepciones que lanzaron las solicitudes del caso |
 
 Un playbook tiene como máximo 25 pasos. Se ejecutan en orden, cada uno cuando ha terminado el anterior. Además, cada paso puede:
 
-- **Requiere aprobación**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los cuatro pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Security Admin lo desactive.
+- **Requiere aprobación**: detener la ejecución antes del paso hasta que alguien lo apruebe en el caso. Los cuatro pasos que dejan a alguien sin acceso siempre se detienen, salvo que un Security Admin lo desactive. **Run a runbook** y **Post a status page announcement** empiezan con la aprobación activada, porque uno ejecuta comandos en tus sistemas y el otro habla con tus clientes; quien añade el paso puede desactivarla.
 - **Solo si hubo coincidencia de inteligencia de amenazas**: omitir el paso salvo que un paso **Comprobar las entidades con la inteligencia de amenazas** anterior de la misma ejecución haya encontrado un indicador conocido.
 - **Continuar si falla**: ejecutar el paso siguiente aunque este falle. Si está desactivado, un paso fallido detiene la ejecución.
+
+### Responder con OneUptime
+
+- **Run a runbook**: el runbook recibe el caso como entradas. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER` y `ONEUPTIME_INPUT_HOST` son la dirección, el usuario y el host de los que trata el caso, y quedan vacíos si no trata de ninguno. Nunca se pasa un usuario o host protegido.
+- **Preserve the evidence**: conserva las grabaciones de sesión más allá de su retención y anota trazas y excepciones en el caso. Los logs y las trazas no se pueden conservar más tiempo del que el proyecto guarda la telemetría.
+- **Post a status page announcement**: se publica tal como lo escribiste; no se añade nada del caso. Los suscriptores solo reciben aviso si **Notify Subscribers** está activado.
+- **Fix the code with AI**: necesita OneUptime AI activado, un repositorio conectado mediante la GitHub App y un runner. Sin ellos, el paso se omite e indica qué falta.
 
 ### Contención
 

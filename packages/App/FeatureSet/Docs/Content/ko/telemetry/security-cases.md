@@ -231,9 +231,11 @@ OneUptime은 케이스에 관한 세 가지 일을 사람들에게 알립니다.
 | 케이스 | Add labels | 케이스에 레이블을 붙임 |
 | 조사 | Check entities against threat intel | 각 엔티티를 위협 인텔리전스에서 조회하고, 일치하면 우선순위를 올릴 수 있음 |
 | 조사 | Look up entity activity | 각 엔티티의 최근 기간 보안 이벤트를 세어 케이스에 기록 |
+| 조사 | Preserve the evidence | 케이스 뒤에 있는 요청의 세션 리플레이를 보존하고, 그 트레이스와 예외를 케이스에 기록 |
 | 알림 | Email people | 케이스 요약을 케이스 링크와 함께 사용자와 팀에 이메일로 보냄 |
 | 알림 | Post to Slack | 케이스 요약을 Slack 채널에 게시 |
 | 알림 | Post to Microsoft Teams | 케이스 요약을 Microsoft Teams 채널에 게시 |
+| 알림 | Post a status page announcement | 작성한 공지를 선택한 상태 페이지에 게시 |
 | 에스컬레이션 | Page on-call | 온콜 정책을 실행 |
 | 에스컬레이션 | Declare an incident | 케이스와 연결된 OneUptime 인시던트를 엶 |
 | 봉쇄 | Suspend the user in Okta | 케이스가 다루는 사용자를 Okta에서 일시 중지 |
@@ -245,12 +247,21 @@ OneUptime은 케이스에 관한 세 가지 일을 사람들에게 알립니다.
 | 봉쇄 | Release the device in Microsoft Defender | 케이스가 다루는 호스트를 Microsoft Defender for Endpoint의 격리에서 해제 |
 | 자동화 | Send a webhook | 케이스를 JSON으로 URL에 POST |
 | 자동화 | Run a workflow | 케이스를 입력으로 OneUptime 워크플로를 시작 |
+| 자동화 | Run a runbook | 케이스를 입력으로 OneUptime 런북 중 하나를 시작 |
+| 자동화 | Fix the code with AI | 케이스의 요청이 일으킨 예외를 고치는 풀 리퀘스트를 OneUptime AI에 요청 |
 
 플레이북에는 단계를 최대 25개까지 둘 수 있습니다. 단계는 순서대로, 앞 단계가 끝날 때마다 하나씩 실행됩니다. 모든 단계에서 다음도 설정할 수 있습니다.
 
-- **승인 필요**: 누군가 케이스에서 승인할 때까지 그 단계 앞에서 실행을 멈춥니다. 누군가를 차단하는 네 가지 단계에서는 Security Admin이 끄지 않는 한 항상 켜져 있습니다.
+- **승인 필요**: 누군가 케이스에서 승인할 때까지 그 단계 앞에서 실행을 멈춥니다. 누군가를 차단하는 네 가지 단계에서는 Security Admin이 끄지 않는 한 항상 켜져 있습니다. **Run a runbook**과 **Post a status page announcement**는 승인이 켜진 상태로 시작합니다. 하나는 시스템에서 명령을 실행하고 다른 하나는 고객에게 알리기 때문입니다. 단계를 추가한 사람이 끌 수 있습니다.
 - **위협 인텔리전스가 일치한 경우에만**: 같은 실행의 앞선 **위협 인텔리전스로 엔티티 확인** 단계가 알려진 지표를 찾지 않았다면 이 단계를 건너뜁니다.
 - **실패해도 계속**: 이 단계가 실패해도 다음 단계를 실행합니다. 꺼져 있으면 실패한 단계에서 실행이 멈춥니다.
+
+### OneUptime으로 대응하기
+
+- **Run a runbook**: 런북은 케이스를 입력으로 받습니다. `ONEUPTIME_INPUT_IP`, `ONEUPTIME_INPUT_USER`, `ONEUPTIME_INPUT_HOST`는 케이스가 다루는 주소, 사용자, 호스트이며, 해당하는 것이 없으면 비어 있습니다. 보호된 사용자나 호스트는 절대 전달되지 않습니다.
+- **Preserve the evidence**: 세션 리플레이를 보존 기간이 지나도 보관하고, 트레이스와 예외를 케이스에 기록합니다. 로그와 트레이스는 프로젝트가 텔레메트리를 보관하는 기간보다 오래 보관할 수 없습니다.
+- **Post a status page announcement**: 작성한 그대로 게시되며, 케이스의 내용은 추가되지 않습니다. 구독자에게는 **Notify Subscribers**가 켜져 있을 때만 알립니다.
+- **Fix the code with AI**: OneUptime AI가 켜져 있어야 하고, GitHub App으로 연결된 저장소와 러너가 필요합니다. 없으면 단계를 건너뛰고 무엇이 부족한지 알려 줍니다.
 
 ### 봉쇄
 
