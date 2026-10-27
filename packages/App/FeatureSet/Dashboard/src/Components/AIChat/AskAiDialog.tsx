@@ -167,8 +167,7 @@ const AskAiDialogPanel: FunctionComponent<PanelProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const chat: UseAiChat = props.chat;
-  const rootRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
+  const rootRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const panelRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
   const titleId: string = useId();
@@ -388,9 +387,7 @@ const AskAiDialogPanel: FunctionComponent<PanelProps> = (
       <ChatInput
         value={chat.inputValue}
         onChange={chat.setInputValue}
-        canSend={
-          !chat.isSending && !chat.isWorking && !chat.isAwaitingApproval
-        }
+        canSend={!chat.isSending && !chat.isWorking && !chat.isAwaitingApproval}
         isWorking={chat.isWorking}
         isStopping={chat.isCancelling}
         onStop={
@@ -414,9 +411,9 @@ const AskAiDialogPanel: FunctionComponent<PanelProps> = (
     </>
   );
 
-  const onBackdropMouseDown: (event: React.MouseEvent<HTMLDivElement>) => void = (
+  const onBackdropMouseDown: (
     event: React.MouseEvent<HTMLDivElement>,
-  ): void => {
+  ) => void = (event: React.MouseEvent<HTMLDivElement>): void => {
     backdropPressRef.current = event.target === event.currentTarget;
   };
 
@@ -492,7 +489,9 @@ const AskAiDialogPanel: FunctionComponent<PanelProps> = (
               {view === "home" || view === "conversation" ? (
                 <HeaderButton
                   icon={IconProp.Clock}
-                  label={translator.translateText("All conversations") as string}
+                  label={
+                    translator.translateText("All conversations") as string
+                  }
                   onClick={props.onOpenHistory}
                   testId="ask-ai-history"
                 />
@@ -511,7 +510,9 @@ const AskAiDialogPanel: FunctionComponent<PanelProps> = (
               )}
               {view === "conversation" && chat.messages.length > 0 ? (
                 <ChatDownloadMenu
-                  title={activeConversation?.title || chat.activeConversationTitle}
+                  title={
+                    activeConversation?.title || chat.activeConversationTitle
+                  }
                   messages={chat.messages}
                   latestRun={chat.latestRun}
                   onError={chat.setError}
@@ -834,8 +835,7 @@ const AskAiDialog: FunctionComponent = (): ReactElement => {
   }, [isOpen]);
 
   // An answer that came in while the dialog was closed is waiting to be read.
-  const wasWorkingRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(false);
+  const wasWorkingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
 
   useEffect(() => {
     if (wasWorkingRef.current && !chat.isWorking && !isOpenRef.current) {

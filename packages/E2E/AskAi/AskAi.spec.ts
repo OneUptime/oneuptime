@@ -212,15 +212,17 @@ async function addSteps(page: Page, count: number): Promise<void> {
 
 async function finishAnswer(page: Page): Promise<void> {
   await page.evaluate((): void => {
-    (window as unknown as { __askAiFixture: AskAiFixture }).__askAiFixture.finish();
+    (
+      window as unknown as { __askAiFixture: AskAiFixture }
+    ).__askAiFixture.finish();
   });
 }
 
 async function navigateInApp(page: Page, to: string): Promise<void> {
   await page.evaluate((target: string): void => {
-    (window as unknown as { __askAiFixture: AskAiFixture }).__askAiFixture.navigate(
-      target,
-    );
+    (
+      window as unknown as { __askAiFixture: AskAiFixture }
+    ).__askAiFixture.navigate(target);
   }, to);
 }
 
@@ -465,7 +467,9 @@ test.describe("Ask AI takes the main stage", () => {
     await expect(dialog(page)).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`${INCIDENT_PATH}\\?`));
     await expect(
-      page.getByTestId("ai-chat-question").filter({ hasText: LATENCY_QUESTION }),
+      page
+        .getByTestId("ai-chat-question")
+        .filter({ hasText: LATENCY_QUESTION }),
     ).toBeVisible();
     // The page under it is the incident, and the next question is about it.
     await expect(page.getByTestId("ai-chat-context")).toHaveText(INCIDENT_CHIP);
@@ -484,7 +488,9 @@ test.describe("Ask AI takes the main stage", () => {
     await expect(dialog(page)).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`${HOME_PATH}`));
     await expect(
-      page.getByTestId("ai-chat-question").filter({ hasText: LATENCY_QUESTION }),
+      page
+        .getByTestId("ai-chat-question")
+        .filter({ hasText: LATENCY_QUESTION }),
     ).toBeVisible();
 
     // Closing it leaves the person on a page, never on an empty one.
@@ -509,9 +515,9 @@ test.describe("the start", () => {
     await load(page);
     await openAskAi(page);
 
-    await expect(
-      dialog(page).getByRole("heading", { level: 3 }),
-    ).toHaveText("What would you like to know?");
+    await expect(dialog(page).getByRole("heading", { level: 3 })).toHaveText(
+      "What would you like to know?",
+    );
     await expect(page.getByTestId("ai-chat-context")).toHaveText(INCIDENT_CHIP);
     // What the pill says is not said again under the question.
     await expect(dialog(page).getByText(HOME_SENTENCE)).toHaveCount(0);
@@ -524,9 +530,13 @@ test.describe("the start", () => {
     );
 
     // The question, then the box under it, then the suggestions.
-    const heading: Box = await boxOf(dialog(page).getByRole("heading", { level: 3 }));
+    const heading: Box = await boxOf(
+      dialog(page).getByRole("heading", { level: 3 }),
+    );
     const box: Box = await boxOf(page.getByTestId("ai-chat-composer"));
-    const suggestions: Box = await boxOf(page.getByTestId("ai-chat-suggestions"));
+    const suggestions: Box = await boxOf(
+      page.getByTestId("ai-chat-suggestions"),
+    );
     expect(heading.y).toBeLessThan(box.y);
     expect(box.y + box.height).toBeLessThanOrEqual(suggestions.y);
 
@@ -548,9 +558,9 @@ test.describe("the start", () => {
     const start: Box = await boxOf(page.getByTestId("ai-chat-home"));
     // Under the 56px header, the start's middle is the space's middle.
     const spaceMiddle: number = panel.y + 56 + (panel.height - 56) / 2;
-    expect(Math.abs(start.y + start.height / 2 - spaceMiddle)).toBeLessThanOrEqual(
-      2,
-    );
+    expect(
+      Math.abs(start.y + start.height / 2 - spaceMiddle),
+    ).toBeLessThanOrEqual(2);
   });
 
   test("a suggestion asks its question about the incident", async ({
@@ -561,7 +571,10 @@ test.describe("the start", () => {
     await load(page, "run=hold");
     await openAskAi(page);
 
-    await page.getByTestId("ai-chat-suggestion").filter({ hasText: "Summarize" }).click();
+    await page
+      .getByTestId("ai-chat-suggestion")
+      .filter({ hasText: "Summarize" })
+      .click();
 
     await expect(page.getByTestId("ai-chat-live")).toBeVisible();
     expect((await state(page)).sent).toEqual([
@@ -617,7 +630,10 @@ test.describe("the start", () => {
     await expect(page.getByTestId("ai-chat-suggestion")).toHaveText(
       GENERIC_SUGGESTIONS,
     );
-    await expect(composer(page)).toHaveAttribute("placeholder", "Ask anything…");
+    await expect(composer(page)).toHaveAttribute(
+      "placeholder",
+      "Ask anything…",
+    );
 
     await screenshot(page, "start-home-1280");
   });
@@ -651,7 +667,9 @@ test.describe("an answer, written quietly", () => {
       "aria-hidden",
       "true",
     );
-    await expect(page.getByRole("button", { name: "Stop generating" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Stop generating" }),
+    ).toBeVisible();
 
     // The question is at the top of the conversation, the room below it.
     const thread: Box = await boxOf(page.getByTestId("ai-chat-thread"));
@@ -736,7 +754,9 @@ test.describe("an answer, written quietly", () => {
     await sources.click();
     await expect(sources).toHaveAttribute("aria-expanded", "true");
     const list: Locator = page.getByTestId("ai-chat-sources");
-    await expect(list).toContainText("Metrics: payments-db connections, last 2 hours");
+    await expect(list).toContainText(
+      "Metrics: payments-db connections, last 2 hours",
+    );
     await expect(list).toContainText("Recent changes, last 3 hours");
     await expect(page.getByTestId("ai-chat-run-stats")).toHaveText(
       "4 queries · 18,432 tokens · $0.0184 · claude-sonnet-5-5",
@@ -746,10 +766,9 @@ test.describe("an answer, written quietly", () => {
 
     // A thumb says what it is, and records the rating.
     await footer.getByRole("button", { name: "Good answer" }).click();
-    await expect(footer.getByRole("button", { name: "Good answer" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(
+      footer.getByRole("button", { name: "Good answer" }),
+    ).toHaveAttribute("aria-pressed", "true");
     expect((await state(page)).feedback).toEqual([
       expect.objectContaining({ feedback: "Up" }),
     ]);
@@ -777,11 +796,17 @@ test.describe("an answer, written quietly", () => {
 
     await page.keyboard.press("Control+i");
     await expect(
-      page.getByTestId("ai-chat-question").filter({ hasText: LATENCY_QUESTION }),
+      page
+        .getByTestId("ai-chat-question")
+        .filter({ hasText: LATENCY_QUESTION }),
     ).toBeVisible();
   });
 
-  test("Stop stops an answer being written", async ({ page }: { page: Page }) => {
+  test("Stop stops an answer being written", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await load(page, "run=hold");
     await openAskAi(page);
     await ask(page, LATENCY_QUESTION);
@@ -789,7 +814,9 @@ test.describe("an answer, written quietly", () => {
     await page.getByRole("button", { name: "Stop generating" }).click();
 
     await expect(dialog(page).getByText("Stopped by user.")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Send (Enter)" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Send (Enter)" }),
+    ).toBeVisible();
     expect((await state(page)).cancelled).toBe(1);
   });
 
@@ -805,7 +832,9 @@ test.describe("an answer, written quietly", () => {
       dialog(page).getByText("The AI wants to perform 1 action"),
     ).toBeVisible();
     // Nothing else is sent until it is decided.
-    await expect(page.getByRole("button", { name: "Send (Enter)" })).toBeDisabled();
+    await expect(
+      page.getByRole("button", { name: "Send (Enter)" }),
+    ).toBeDisabled();
     await screenshot(page, "approval-1280");
 
     await page.getByRole("button", { name: "Run 1 action" }).click();
@@ -871,7 +900,10 @@ test.describe("an answer, written quietly", () => {
     await composer(page).press("Enter");
 
     await expect(page.getByTestId("ask-ai-error")).toBeVisible();
-    await expect(page.getByTestId("ask-ai-error")).toHaveAttribute("role", "alert");
+    await expect(page.getByTestId("ask-ai-error")).toHaveAttribute(
+      "role",
+      "alert",
+    );
     await expect(composer(page)).toHaveValue(LATENCY_QUESTION);
     await expect(page.getByTestId("ai-chat-question")).toHaveCount(0);
   });
@@ -898,14 +930,20 @@ test.describe("conversations within reach", () => {
 
     await recent.getByRole("button", { name: "All conversations" }).click();
 
-    await expect(page.getByRole("dialog", { name: "All conversations" })).toBeVisible();
-    const rows: Locator = page.getByTestId("ai-chat-history").getByRole("listitem");
+    await expect(
+      page.getByRole("dialog", { name: "All conversations" }),
+    ).toBeVisible();
+    const rows: Locator = page
+      .getByTestId("ai-chat-history")
+      .getByRole("listitem");
     await expect(rows).toHaveCount(25);
     // The list scrolls inside the dialog; the page under it does not.
     const scroll: { inner: boolean; page: number } = await page
       .getByTestId("ai-chat-history")
       .evaluate((list: Element): { inner: boolean; page: number } => {
-        const scroller: HTMLElement = list.closest(".overflow-y-auto") as HTMLElement;
+        const scroller: HTMLElement = list.closest(
+          ".overflow-y-auto",
+        ) as HTMLElement;
         return {
           inner: scroller.scrollHeight > scroller.clientHeight,
           page: window.scrollY,
@@ -938,7 +976,9 @@ test.describe("conversations within reach", () => {
       .click();
 
     await expect(
-      page.getByTestId("ai-chat-history").getByText("Error log volume by service"),
+      page
+        .getByTestId("ai-chat-history")
+        .getByText("Error log volume by service"),
     ).toHaveCount(0);
     expect((await state(page)).deleted).toEqual([ids.error]);
 
@@ -951,7 +991,10 @@ test.describe("conversations within reach", () => {
       page.getByRole("dialog", { name: "Why did checkout latency spike?" }),
     ).toBeVisible();
     await expect(page.getByTestId("ai-chat-answer-text")).toBeVisible();
-    await expect(composer(page)).toHaveAttribute("placeholder", "Ask a follow-up…");
+    await expect(composer(page)).toHaveAttribute(
+      "placeholder",
+      "Ask a follow-up…",
+    );
 
     // New chat starts over.
     await page.getByTestId("ask-ai-new-chat").click();
@@ -1041,15 +1084,25 @@ test.describe("by keyboard", () => {
     }
   });
 
-  test("Esc in a menu closes the menu only", async ({ page }: { page: Page }) => {
+  test("Esc in a menu closes the menu only", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
     await load(page);
     await openAskAi(page);
-    const mode: Locator = page.getByTitle("Choose what the AI is allowed to do");
+    const mode: Locator = page.getByTitle(
+      "Choose what the AI is allowed to do",
+    );
 
     await mode.click();
-    await expect(page.getByRole("menu", { name: "AI permissions" })).toBeVisible();
+    await expect(
+      page.getByRole("menu", { name: "AI permissions" }),
+    ).toBeVisible();
     // Under the button: on Ask AI's start the composer is near the top.
-    const menu: Box = await boxOf(page.getByRole("menu", { name: "AI permissions" }));
+    const menu: Box = await boxOf(
+      page.getByRole("menu", { name: "AI permissions" }),
+    );
     const button: Box = await boxOf(mode);
     expect(menu.y).toBeGreaterThan(button.y);
 
@@ -1188,7 +1241,10 @@ test.describe("on a phone", () => {
  */
 
 // The relative luminance of a computed rgb() colour, 0 (black) to 1 (white).
-async function luminanceOf(locator: Locator, property: string): Promise<number> {
+async function luminanceOf(
+  locator: Locator,
+  property: string,
+): Promise<number> {
   return locator.evaluate((element: Element, name: string): number => {
     const value: string = window
       .getComputedStyle(element)
@@ -1215,18 +1271,28 @@ test.describe("in the dark", () => {
     await load(page, "theme=dark");
     await openAskAi(page);
 
-    expect(await luminanceOf(dialog(page), "background-color")).toBeLessThan(0.05);
+    expect(await luminanceOf(dialog(page), "background-color")).toBeLessThan(
+      0.05,
+    );
     expect(
-      await luminanceOf(dialog(page).getByRole("heading", { level: 3 }), "color"),
+      await luminanceOf(
+        dialog(page).getByRole("heading", { level: 3 }),
+        "color",
+      ),
     ).toBeGreaterThan(0.6);
     expect(
-      await luminanceOf(page.getByTestId("ai-chat-context"), "background-color"),
+      await luminanceOf(
+        page.getByTestId("ai-chat-context"),
+        "background-color",
+      ),
     ).toBeLessThan(0.1);
     // A deeper veil: a dark one over a dark page still sets the dialog apart.
     expect(
-      await page.getByTestId("ask-ai-backdrop").evaluate((element: Element): string => {
-        return window.getComputedStyle(element).backgroundColor;
-      }),
+      await page
+        .getByTestId("ask-ai-backdrop")
+        .evaluate((element: Element): string => {
+          return window.getComputedStyle(element).backgroundColor;
+        }),
     ).toBe("rgba(2, 6, 23, 0.62)");
     await screenshot(page, "start-incident-1280-dark");
 
@@ -1243,7 +1309,10 @@ test.describe("in the dark", () => {
     await page.getByRole("button", { name: "Run 1 action" }).click();
     await expect(page.getByTestId("ai-chat-resource-card")).toBeVisible();
     expect(
-      await luminanceOf(page.getByTestId("ai-chat-resource-card"), "background-color"),
+      await luminanceOf(
+        page.getByTestId("ai-chat-resource-card"),
+        "background-color",
+      ),
     ).toBeLessThan(0.1);
     await screenshot(page, "card-1280-dark");
   });
@@ -1259,9 +1328,9 @@ test.describe("in German", () => {
     await openAskAi(page);
 
     await expect(page.getByRole("dialog", { name: "KI fragen" })).toBeVisible();
-    await expect(
-      dialog(page).getByRole("heading", { level: 3 }),
-    ).toHaveText("Was möchten Sie wissen?");
+    await expect(dialog(page).getByRole("heading", { level: 3 })).toHaveText(
+      "Was möchten Sie wissen?",
+    );
     await expect(page.getByTestId("ai-chat-context")).toHaveText(
       "Dieser Vorfall · #42 Checkout latency above 2s",
     );
@@ -1271,7 +1340,10 @@ test.describe("in German", () => {
       "Was hat sich geändert?",
       "Status-Update entwerfen",
     ]);
-    await expect(composer(page)).toHaveAttribute("placeholder", "Fragen Sie etwas…");
+    await expect(composer(page)).toHaveAttribute(
+      "placeholder",
+      "Fragen Sie etwas…",
+    );
     await screenshot(page, "start-incident-1280-de");
 
     await ask(page, "Warum ist der Checkout langsam?");
@@ -1283,7 +1355,9 @@ test.describe("in German", () => {
       "3 Schritte",
     );
     await finishAnswer(page);
-    await expect(page.getByTestId("ai-chat-sources-toggle")).toHaveText("4 Quellen");
+    await expect(page.getByTestId("ai-chat-sources-toggle")).toHaveText(
+      "4 Quellen",
+    );
   });
 
   test.describe("on a phone", () => {
@@ -1336,7 +1410,10 @@ test.describe("in Persian", () => {
       "چه چیزی تغییر کرد؟",
       "پیش‌نویس به‌روزرسانی وضعیت",
     ]);
-    await expect(composer(page)).toHaveAttribute("placeholder", "هر چیزی بپرسید…");
+    await expect(composer(page)).toHaveAttribute(
+      "placeholder",
+      "هر چیزی بپرسید…",
+    );
     await screenshot(page, "start-incident-1280-fa");
 
     await load(page, "lang=fa&thread=answered");
@@ -1348,7 +1425,9 @@ test.describe("in Persian", () => {
       .locator("[dir=auto]");
     const asked: Box = await boxOf(question);
     const thread: Box = await boxOf(page.getByTestId("ai-chat-thread"));
-    expect(asked.x - thread.x).toBeLessThan(thread.x + thread.width - (asked.x + asked.width));
+    expect(asked.x - thread.x).toBeLessThan(
+      thread.x + thread.width - (asked.x + asked.width),
+    );
     expect(
       await question.evaluate((element: Element): string => {
         return window.getComputedStyle(element).direction;
@@ -1360,7 +1439,11 @@ test.describe("in Persian", () => {
   test.describe("on a phone", () => {
     test.use({ viewport: { width: 390, height: 844 } });
 
-    test("nothing is wider than the screen", async ({ page }: { page: Page }) => {
+    test("nothing is wider than the screen", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
       await load(page, "lang=fa&thread=answered");
       await expect(dialog(page)).toBeVisible();
       await settle(page);

@@ -86,7 +86,8 @@ describe("ProviderPicker", () => {
     const menu: HTMLElement = screen.getByRole("menu", { name: "AI provider" });
     expect(trigger()).toHaveAttribute("aria-expanded", "true");
     expect(trigger()).toHaveAttribute("aria-controls", menu.id);
-    const items: Array<HTMLElement> = within(menu).getAllByRole("menuitemradio");
+    const items: Array<HTMLElement> =
+      within(menu).getAllByRole("menuitemradio");
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveAttribute("aria-checked", "true");
     expect(items[1]).toHaveAttribute("aria-checked", "false");

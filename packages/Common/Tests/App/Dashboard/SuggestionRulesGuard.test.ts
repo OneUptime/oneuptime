@@ -245,9 +245,10 @@ describe("every Dashboard AI action asks the AI rule", () => {
 
     // Each entry point is still there, so the list cannot excuse a gone file.
     for (const file of ASK_AI_ENTRY_POINTS) {
-      expect({ file, exists: fs.existsSync(path.join(PACKAGES, file)) }).toEqual(
-        { file, exists: true },
-      );
+      expect({
+        file,
+        exists: fs.existsSync(path.join(PACKAGES, file)),
+      }).toEqual({ file, exists: true });
     }
   });
 

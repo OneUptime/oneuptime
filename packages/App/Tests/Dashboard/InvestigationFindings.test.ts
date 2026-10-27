@@ -254,11 +254,11 @@ describe("explain/pin wiring", () => {
   test("Ask AI opens and pre-fills on a prompt dispatch, never sending it", () => {
     const dialog: string = readSquashed("Components/AIChat/AskAiDialog.tsx");
     const events: string = readSquashed("Components/AIChat/AskAiEvents.ts");
-    expect(events).toContain('const prompt: string = readText(detail, "prompt");');
-    expect(dialog).toContain("setIsOpen(true)");
-    expect(dialog).toContain(
-      "chatRef.current.setInputValue(request.prompt)",
+    expect(events).toContain(
+      'const prompt: string = readText(detail, "prompt");',
     );
+    expect(dialog).toContain("setIsOpen(true)");
+    expect(dialog).toContain("chatRef.current.setInputValue(request.prompt)");
     expect(dialog).not.toContain("sendMessage(request.prompt");
   });
 });

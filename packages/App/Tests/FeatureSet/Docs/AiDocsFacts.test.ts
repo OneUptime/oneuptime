@@ -258,11 +258,11 @@ describe("Ask AI", () => {
     );
     const said: string = flat(englishSection(ASK_AI, "## Page context"));
 
-    expect(start).toContain("PageContextUtil.getSuggestions(context, translator)");
-    expect(chip).toContain('translateText("Remove page context")');
-    expect(chip).toContain(
-      '"Attach this page as context for your questions"',
+    expect(start).toContain(
+      "PageContextUtil.getSuggestions(context, translator)",
     );
+    expect(chip).toContain('translateText("Remove page context")');
+    expect(chip).toContain('"Attach this page as context for your questions"');
     expect(said).toContain(
       "the composer shows a chip with the page's subject, and the questions it suggests are that page's own. Remove the chip to ask about the whole project instead, and add it back the same way. Open Ask AI on another page and the context follows you.",
     );
@@ -467,7 +467,9 @@ describe("Ask AI", () => {
     }
 
     // Under an answer, its sources; the newest one's cost, tokens and queries.
-    expect(messages).toContain('{ one: "{{count}} source", other: "{{count}} sources" }');
+    expect(messages).toContain(
+      '{ one: "{{count}} source", other: "{{count}} sources" }',
+    );
     expect(messages).toContain("totalCostInUSDCents");
     expect(messages).toContain('other: "{{count}} tokens"');
     expect(messages).toContain('other: "{{count}} queries"');

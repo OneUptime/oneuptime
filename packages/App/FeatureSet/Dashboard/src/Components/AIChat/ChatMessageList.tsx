@@ -19,12 +19,7 @@ import useClipboardCopy, {
   ClipboardCopyStatus,
 } from "Common/UI/Utils/UseClipboardCopy";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useId,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import AnswerSources from "../AI/InvestigationConversation/AnswerSources";
 import ChatActivityFeed, {
   describeLiveActivity,

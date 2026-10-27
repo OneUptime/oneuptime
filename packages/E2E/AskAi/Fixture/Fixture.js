@@ -265,7 +265,8 @@ function latencyChart() {
 
   for (let index = 0; index < 24; index++) {
     const time = new Date(NOW - (23 - index) * 5 * 60 * 1000);
-    const value = index < 14 ? 170 + ((index * 37) % 25) : 2100 + ((index * 53) % 400);
+    const value =
+      index < 14 ? 170 + ((index * 37) % 25) : 2100 + ((index * 53) % 400);
     points.push({ x: time.toISOString(), y: value });
   }
 
@@ -344,7 +345,10 @@ function seedHistory() {
     createdAt: minutesAgo(95),
   });
 
-  const approval = conversationOf("Raise an alert for test01's memory", 60 * 26);
+  const approval = conversationOf(
+    "Raise an alert for test01's memory",
+    60 * 26,
+  );
   messageOf(approval.id.toString(), AIChatMessageRole.User, {
     contentInMarkdown: "Raise an alert for high memory on test01.",
     createdAt: minutesAgo(60 * 26),
@@ -415,11 +419,23 @@ const RUN_STEPS = [
   [AIRunEventType.LlmCallStarted],
   [AIRunEventType.LlmCallCompleted],
   [AIRunEventType.ToolCallStarted, "query_metrics"],
-  [AIRunEventType.ToolCallCompleted, "query_metrics", { rowCount: 120, durationInMs: 640 }],
+  [
+    AIRunEventType.ToolCallCompleted,
+    "query_metrics",
+    { rowCount: 120, durationInMs: 640 },
+  ],
   [AIRunEventType.ToolCallStarted, "query_traces"],
-  [AIRunEventType.ToolCallCompleted, "query_traces", { rowCount: 24, durationInMs: 910 }],
+  [
+    AIRunEventType.ToolCallCompleted,
+    "query_traces",
+    { rowCount: 24, durationInMs: 910 },
+  ],
   [AIRunEventType.ToolCallStarted, "search_logs"],
-  [AIRunEventType.ToolCallCompleted, "search_logs", { rowCount: 4812, durationInMs: 380 }],
+  [
+    AIRunEventType.ToolCallCompleted,
+    "search_logs",
+    { rowCount: 4812, durationInMs: 380 },
+  ],
   [AIRunEventType.LlmCallStarted],
 ];
 
@@ -488,7 +504,11 @@ fixture.addSteps = (count) => {
     return;
   }
 
-  for (let index = 0; index < count && liveRun.step < RUN_STEPS.length; index++) {
+  for (
+    let index = 0;
+    index < count && liveRun.step < RUN_STEPS.length;
+    index++
+  ) {
     addRunEvent(liveRun.run, RUN_STEPS[liveRun.step]);
     liveRun.step++;
   }
@@ -521,7 +541,11 @@ ModelAPI.getList = async (options) => {
 
   if (table === "AIConversation") {
     if (failKind === "conversations") {
-      throw new HTTPErrorResponse(500, { message: "Could not load your conversations." }, {});
+      throw new HTTPErrorResponse(
+        500,
+        { message: "Could not load your conversations." },
+        {},
+      );
     }
 
     const sorted = [...conversations].sort((a, b) => {
@@ -547,9 +571,9 @@ ModelAPI.getList = async (options) => {
   }
 
   if (table === "AIRunEvent") {
-    const events = (eventsByRun.get(idString(options.query?.aiRunId)) || []).map(
-      copy,
-    );
+    const events = (
+      eventsByRun.get(idString(options.query?.aiRunId)) || []
+    ).map(copy);
     return { data: events, count: events.length, skip: 0, limit: 100 };
   }
 
@@ -644,7 +668,11 @@ function kindOfQuestion(content) {
 
 function sendMessage(data) {
   if (failKind === "send") {
-    throw new HTTPErrorResponse(500, { message: "Ask AI could not send your question. Try again." }, {});
+    throw new HTTPErrorResponse(
+      500,
+      { message: "Ask AI could not send your question. Try again." },
+      {},
+    );
   }
 
   state.sent.push(JSON.parse(JSON.stringify(data)));
@@ -702,7 +730,9 @@ function respondToApproval(data) {
 
   message.toolActions = [
     alertAction(
-      approved ? AIChatToolActionStatus.Executed : AIChatToolActionStatus.Denied,
+      approved
+        ? AIChatToolActionStatus.Executed
+        : AIChatToolActionStatus.Denied,
     ),
   ];
   message.status = AIChatMessageStatus.Completed;
@@ -845,7 +875,9 @@ function Frame(props) {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">{props.children}</main>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+        {props.children}
+      </main>
     </div>
   );
 }
@@ -854,7 +886,9 @@ function Card(props) {
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
       <h2 className="text-base font-semibold text-gray-900">{props.title}</h2>
-      <div className="mt-3 space-y-2 text-sm text-gray-600">{props.children}</div>
+      <div className="mt-3 space-y-2 text-sm text-gray-600">
+        {props.children}
+      </div>
     </section>
   );
 }
@@ -862,7 +896,9 @@ function Card(props) {
 function IncidentPage() {
   return (
     <Frame>
-      <p className="text-sm font-medium text-red-600">Incident #42 · Critical</p>
+      <p className="text-sm font-medium text-red-600">
+        Incident #42 · Critical
+      </p>
       <h1 className="mt-1 text-2xl font-semibold text-gray-900">
         Checkout latency above 2s
       </h1>
@@ -870,8 +906,8 @@ function IncidentPage() {
         <div className="space-y-6 lg:col-span-2">
           <Card title="Description">
             <p>
-              The p95 latency of checkout-api went above 2 seconds at 14:02
-              and has stayed there. Payments are slow for every customer.
+              The p95 latency of checkout-api went above 2 seconds at 14:02 and
+              has stayed there. Payments are slow for every customer.
             </p>
           </Card>
           <Card title="Timeline">

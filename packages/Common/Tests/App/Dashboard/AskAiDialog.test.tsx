@@ -315,7 +315,9 @@ function workingConversation(): Array<AIConversationMessage> {
   ];
 }
 
-function newest(list: Array<AIConversationMessage>): Array<AIConversationMessage> {
+function newest(
+  list: Array<AIConversationMessage>,
+): Array<AIConversationMessage> {
   // The dialog asks for the newest first.
   return [...list].reverse();
 }
@@ -894,7 +896,9 @@ describe("what the question is about", () => {
     await toggle();
 
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: "Remove page context" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Remove page context" }),
+      );
     });
 
     expect(
@@ -1110,7 +1114,9 @@ describe("an answer, quietly", () => {
     expect(
       within(footer).getByRole("button", { name: "Poor answer" }),
     ).toBeInTheDocument();
-    expect(within(footer).getByTestId("ai-chat-copy-answer")).toBeInTheDocument();
+    expect(
+      within(footer).getByTestId("ai-chat-copy-answer"),
+    ).toBeInTheDocument();
     // Its sources are folded under that one line.
     expect(screen.queryByTestId("ai-chat-sources")).not.toBeInTheDocument();
 

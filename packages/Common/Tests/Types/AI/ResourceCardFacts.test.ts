@@ -17,9 +17,9 @@ import {
 describe("isFactSaidByHeading", () => {
   test("a value that is the whole heading, or one of its parts", () => {
     expect(isFactSaidByHeading("#42", "#42 · Payment API down")).toBe(true);
-    expect(isFactSaidByHeading("Payment API down", "#42 · Payment API down")).toBe(
-      true,
-    );
+    expect(
+      isFactSaidByHeading("Payment API down", "#42 · Payment API down"),
+    ).toBe(true);
     expect(isFactSaidByHeading("Payment API down", "Payment API down")).toBe(
       true,
     );
@@ -56,13 +56,19 @@ describe("isFactSaidBySubheading", () => {
 
   test("the label and the value with no colon", () => {
     expect(
-      isFactSaidBySubheading({ label: "Incident", value: "#42" }, "Incident #42"),
+      isFactSaidBySubheading(
+        { label: "Incident", value: "#42" },
+        "Incident #42",
+      ),
     ).toBe(true);
   });
 
   test("the value as the whole line or one of its parts", () => {
     expect(
-      isFactSaidBySubheading({ label: "State", value: "Investigating" }, "Investigating"),
+      isFactSaidBySubheading(
+        { label: "State", value: "Investigating" },
+        "Investigating",
+      ),
     ).toBe(true);
     expect(
       isFactSaidBySubheading(
@@ -86,7 +92,10 @@ describe("isFactSaidBySubheading", () => {
       ),
     ).toBe(false);
     expect(
-      isFactSaidBySubheading({ label: "Owner", value: "High" }, "Severity: High"),
+      isFactSaidBySubheading(
+        { label: "Owner", value: "High" },
+        "Severity: High",
+      ),
     ).toBe(false);
   });
 

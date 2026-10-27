@@ -420,19 +420,22 @@ describe("buildObservabilityChatSystemPrompt — a quiet answer", () => {
     [AIChatPermissionMode.ReadOnly],
     [AIChatPermissionMode.AskForApproval],
     [AIChatPermissionMode.AutoRun],
-  ])("%s ends with the one answer style, once", (mode: AIChatPermissionMode) => {
-    const prompt: string = buildObservabilityChatSystemPrompt({
-      currentTime: new Date("2026-07-16T00:00:00Z"),
-      permissionMode: mode,
-    });
+  ])(
+    "%s ends with the one answer style, once",
+    (mode: AIChatPermissionMode) => {
+      const prompt: string = buildObservabilityChatSystemPrompt({
+        currentTime: new Date("2026-07-16T00:00:00Z"),
+        permissionMode: mode,
+      });
 
-    expect(prompt.endsWith(`## Answer style\n\n${ANSWER_STYLE_SECTION}`)).toBe(
-      true,
-    );
-    expect(prompt.split("## Answer style")).toHaveLength(2);
-    // The old, softer line is gone rather than kept beside the new ones.
-    expect(prompt).not.toContain("Be concise.");
-  });
+      expect(
+        prompt.endsWith(`## Answer style\n\n${ANSWER_STYLE_SECTION}`),
+      ).toBe(true);
+      expect(prompt.split("## Answer style")).toHaveLength(2);
+      // The old, softer line is gone rather than kept beside the new ones.
+      expect(prompt).not.toContain("Be concise.");
+    },
+  );
 
   test("the answer leads: no preamble, and the question is not said back", () => {
     expect(ANSWER_STYLE_SECTION).toContain(
@@ -463,9 +466,7 @@ describe("buildObservabilityChatSystemPrompt — a quiet answer", () => {
     expect(ANSWER_STYLE_SECTION).toContain(
       "Keep it short and direct: a sentence or two, or a few bullets, unless the person asks for detail or later instructions give a format.",
     );
-    expect(ANSWER_STYLE_SECTION).toContain(
-      "Use Markdown only where it helps",
-    );
+    expect(ANSWER_STYLE_SECTION).toContain("Use Markdown only where it helps");
   });
 
   test("it stops when it is done: no summary, no offer of more help, no list of sources", () => {
@@ -520,7 +521,9 @@ describe("buildObservabilityChatSystemPrompt — a quiet answer", () => {
       permissionMode: AIChatPermissionMode.ReadOnly,
     });
 
-    expect(prompt).not.toContain("The card already says what the action will do");
+    expect(prompt).not.toContain(
+      "The card already says what the action will do",
+    );
     expect(prompt).not.toContain("the card under your answer shows the record");
   });
 });

@@ -168,7 +168,9 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
           role="menu"
           aria-label={translator.translateText("AI provider")}
           className={`absolute left-0 z-50 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
-            props.menuSide === "bottom" ? "top-full mt-1.5" : "bottom-full mb-1.5"
+            props.menuSide === "bottom"
+              ? "top-full mt-1.5"
+              : "bottom-full mb-1.5"
           }`}
         >
           <div className="border-b border-gray-100 px-3 py-2">

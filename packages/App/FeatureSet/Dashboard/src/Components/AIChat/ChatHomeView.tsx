@@ -105,8 +105,10 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
   const suggestions: Array<SuggestedQuestion> =
     contextSuggestions.length > 0 ? contextSuggestions : genericSuggestions;
 
-  const recentConversations: Array<AIConversation> =
-    props.conversations.slice(0, RECENT_CONVERSATIONS_SHOWN);
+  const recentConversations: Array<AIConversation> = props.conversations.slice(
+    0,
+    RECENT_CONVERSATIONS_SHOWN,
+  );
 
   const renderSuggestion: (suggestion: SuggestedQuestion) => ReactElement = (
     suggestion: SuggestedQuestion,
@@ -144,103 +146,103 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
      * top when it does not: a phone scrolls the start, never cuts its top.
      */
     <div className="flex min-h-full flex-col">
-    <div
-      data-testid="ai-chat-home"
-      className="ou-ai-rise mx-auto my-auto flex w-full max-w-2xl flex-col px-4 py-10 sm:px-6"
-    >
-      <div className="flex flex-col items-center text-center">
-        <AskAiMark size={AskAiMarkSize.Large} />
-        <h3 className="mt-4 text-balance text-xl font-semibold tracking-tight text-gray-900">
-          {translator.translateText(HOME_HEADING)}
-        </h3>
-        {context ? (
-          <></>
+      <div
+        data-testid="ai-chat-home"
+        className="ou-ai-rise mx-auto my-auto flex w-full max-w-2xl flex-col px-4 py-10 sm:px-6"
+      >
+        <div className="flex flex-col items-center text-center">
+          <AskAiMark size={AskAiMarkSize.Large} />
+          <h3 className="mt-4 text-balance text-xl font-semibold tracking-tight text-gray-900">
+            {translator.translateText(HOME_HEADING)}
+          </h3>
+          {context ? (
+            <></>
+          ) : (
+            <p className="mt-1.5 max-w-md text-balance text-sm leading-6 text-gray-500">
+              {translator.translateText(HOME_SENTENCE)}
+            </p>
+          )}
+        </div>
+
+        {props.composer ? <div className="mt-6">{props.composer}</div> : <></>}
+
+        <div
+          data-testid="ai-chat-suggestions"
+          className="mt-4 flex flex-wrap justify-center gap-2"
+        >
+          {suggestions.map(renderSuggestion)}
+        </div>
+
+        {recentConversations.length > 0 ? (
+          <section
+            aria-labelledby={recentHeadingId}
+            data-testid="ai-chat-recent"
+            className="mt-10"
+          >
+            <div className="flex items-center justify-between gap-3 px-2.5">
+              <h4
+                id={recentHeadingId}
+                className="text-xs font-medium text-gray-500"
+              >
+                {translator.translateText("Recent conversations")}
+              </h4>
+              {props.onShowAllConversations &&
+              props.conversations.length > recentConversations.length ? (
+                <button
+                  type="button"
+                  onClick={props.onShowAllConversations}
+                  className="rounded-md text-xs font-medium text-indigo-600 transition-colors hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  {translator.translateText("All conversations")}
+                </button>
+              ) : (
+                <></>
+              )}
+            </div>
+            <ul role="list" className="mt-1">
+              {recentConversations.map(
+                (conversation: AIConversation): ReactElement => {
+                  const conversationId: string =
+                    conversation.id?.toString() || "";
+
+                  return (
+                    <li key={conversationId}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          props.onOpenConversation(conversationId);
+                        }}
+                        className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-start transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+                      >
+                        <Icon
+                          icon={IconProp.ChatBubbleOvalLeft}
+                          className="h-4 w-4 flex-shrink-0 text-gray-400"
+                        />
+                        <span
+                          dir="auto"
+                          className="min-w-0 flex-1 truncate text-start text-sm text-gray-700 group-hover:text-gray-900"
+                        >
+                          {conversation.title ||
+                            translator.translateText("Untitled conversation")}
+                        </span>
+                        {conversation.lastMessageAt ? (
+                          <span className="flex-shrink-0 text-xs text-gray-400">
+                            {OneUptimeDate.fromNow(conversation.lastMessageAt)}
+                          </span>
+                        ) : (
+                          <></>
+                        )}
+                      </button>
+                    </li>
+                  );
+                },
+              )}
+            </ul>
+          </section>
         ) : (
-          <p className="mt-1.5 max-w-md text-balance text-sm leading-6 text-gray-500">
-            {translator.translateText(HOME_SENTENCE)}
-          </p>
+          <></>
         )}
       </div>
-
-      {props.composer ? <div className="mt-6">{props.composer}</div> : <></>}
-
-      <div
-        data-testid="ai-chat-suggestions"
-        className="mt-4 flex flex-wrap justify-center gap-2"
-      >
-        {suggestions.map(renderSuggestion)}
-      </div>
-
-      {recentConversations.length > 0 ? (
-        <section
-          aria-labelledby={recentHeadingId}
-          data-testid="ai-chat-recent"
-          className="mt-10"
-        >
-          <div className="flex items-center justify-between gap-3 px-2.5">
-            <h4
-              id={recentHeadingId}
-              className="text-xs font-medium text-gray-500"
-            >
-              {translator.translateText("Recent conversations")}
-            </h4>
-            {props.onShowAllConversations &&
-            props.conversations.length > recentConversations.length ? (
-              <button
-                type="button"
-                onClick={props.onShowAllConversations}
-                className="rounded-md text-xs font-medium text-indigo-600 transition-colors hover:text-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-              >
-                {translator.translateText("All conversations")}
-              </button>
-            ) : (
-              <></>
-            )}
-          </div>
-          <ul role="list" className="mt-1">
-            {recentConversations.map(
-              (conversation: AIConversation): ReactElement => {
-                const conversationId: string =
-                  conversation.id?.toString() || "";
-
-                return (
-                  <li key={conversationId}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        props.onOpenConversation(conversationId);
-                      }}
-                      className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-start transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
-                    >
-                      <Icon
-                        icon={IconProp.ChatBubbleOvalLeft}
-                        className="h-4 w-4 flex-shrink-0 text-gray-400"
-                      />
-                      <span
-                        dir="auto"
-                        className="min-w-0 flex-1 truncate text-start text-sm text-gray-700 group-hover:text-gray-900"
-                      >
-                        {conversation.title ||
-                          translator.translateText("Untitled conversation")}
-                      </span>
-                      {conversation.lastMessageAt ? (
-                        <span className="flex-shrink-0 text-xs text-gray-400">
-                          {OneUptimeDate.fromNow(conversation.lastMessageAt)}
-                        </span>
-                      ) : (
-                        <></>
-                      )}
-                    </button>
-                  </li>
-                );
-              },
-            )}
-          </ul>
-        </section>
-      ) : (
-        <></>
-      )}
-    </div>
     </div>
   );
 };

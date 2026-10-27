@@ -125,7 +125,9 @@ describe("the one front door closes", () => {
     expect(PANEL.split("composer={composer}").length - 1).toBe(1);
     expect(PANEL).toContain('{view === "home" ? (');
     expect(PANEL).toContain('{view === "conversation" ? (');
-    expect(PANEL).toContain('<div className="mx-auto w-full max-w-3xl px-4 sm:px-6"> {composer} </div>');
+    expect(PANEL).toContain(
+      '<div className="mx-auto w-full max-w-3xl px-4 sm:px-6"> {composer} </div>',
+    );
   });
 
   test("the chat's own address draws no workspace of its own to close", () => {
