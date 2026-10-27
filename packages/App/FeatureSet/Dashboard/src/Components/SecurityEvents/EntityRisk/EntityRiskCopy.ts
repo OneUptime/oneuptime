@@ -277,6 +277,78 @@ export const CRITICALITY_WEIGHT_LABELS: {
   Extreme: translationKey("Extreme (×2)"),
 };
 
+// ---------- The Overview's Riskiest Entities ----------
+
+/*
+ * The top of Entity Risk's list, by the same scores: "riskiest" means one
+ * thing wherever the product says it. It used to rank values by how many
+ * findings named them, beside Entity Risk's scores.
+ */
+export const RISKIEST_ENTITIES_TITLE: string =
+  translationKey("Riskiest Entities");
+
+export const RISKIEST_ENTITIES_DESCRIPTION: string = translationKey(
+  "The users, hosts and addresses with the highest risk, as Entity Risk ranks them: what was found about each in the last 7 days. Open one to see why.",
+);
+
+// Under the list, when Entity Risk lists more than the card shows.
+export const RISKIEST_ENTITIES_VIEW_ALL: PluralTemplate = {
+  one: "View {{count}} entity",
+  other: "View all {{count}} entities",
+};
+
+// Said in the list's place when the risk could not be read, with Try again.
+export const RISKIEST_ENTITIES_READ_FAILED: string = translationKey(
+  "We could not load the riskiest entities.",
+);
+
+export const RISKIEST_ENTITIES_TEST_IDS: {
+  list: string;
+  viewAll: string;
+  error: string;
+  tryAgain: string;
+} = {
+  list: "security-overview-riskiest-entities",
+  viewAll: "security-overview-riskiest-entities-all",
+  error: "security-overview-riskiest-entities-error",
+  tryAgain: "security-overview-riskiest-entities-try-again",
+};
+
+// ---------- Look Up an Entity, under Entity Risk's list ----------
+
+/*
+ * Any value, of any kind - a domain or a file hash too, which carry no
+ * risk - looked up across the last 30 days of security events.
+ */
+export const ENTITY_LOOKUP_TITLE: string = translationKey("Look Up an Entity");
+
+export const ENTITY_LOOKUP_DESCRIPTION: string = translationKey(
+  "Any user, host, IP address, domain or file hash: how often it appears in your security events over the last 30 days, and in how many findings.",
+);
+
+export const ENTITY_LOOKUP_PLACEHOLDER: string = translationKey(
+  "e.g. alice@example.com, web-01 or 203.0.113.7",
+);
+
+export const ENTITY_LOOKUP_BUTTON: string = translationKey("Look Up");
+
+export const ENTITY_LOOKUP_NOT_SEEN: string = translationKey(
+  "Not seen in the last 30 days.",
+);
+
+// How far back a lookup reads.
+export const ENTITY_LOOKUP_HOURS: number = 30 * 24;
+
+export const ENTITY_LOOKUP_TEST_IDS: {
+  card: string;
+  input: string;
+  result: string;
+} = {
+  card: "security-entity-lookup",
+  input: "security-entity-lookup-input",
+  result: "security-entity-lookup-result",
+};
+
 // ---------- A detection rule's Risk Points ----------
 
 export const RISK_POINTS_FIELD_TITLE: string = translationKey("Risk Points");

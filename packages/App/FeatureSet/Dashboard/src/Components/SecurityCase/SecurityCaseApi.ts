@@ -6,11 +6,9 @@ import ObjectID from "Common/Types/ObjectID";
 import {
   DeclaredIncident,
   EntityActivity,
-  EntityFindingSummary,
   SecurityOverview,
   parseEntityActivity,
   parseOverview,
-  parseTopEntities,
 } from "./SecurityCaseApiTypes";
 import {
   SecuritySetupStatus,
@@ -41,12 +39,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
-export type {
-  DeclaredIncident,
-  EntityActivity,
-  EntityFindingSummary,
-  SecurityOverview,
-};
+export type { DeclaredIncident, EntityActivity, SecurityOverview };
 
 /*
  * What Connected Signals is asked about: a case, by its id; or an event's
@@ -127,18 +120,6 @@ export default class SecurityCaseApi {
       await post("/security-case/entity-activity", {
         values: data.values,
         hours: data.hours,
-      }),
-    );
-  }
-
-  public static async getTopEntities(data: {
-    days: number;
-    limit: number;
-  }): Promise<Array<EntityFindingSummary>> {
-    return parseTopEntities(
-      await post("/security-case/top-entities", {
-        days: data.days,
-        limit: data.limit,
       }),
     );
   }

@@ -53,6 +53,21 @@ import SecurityOverviewPage, {
   SECURITY_OVERVIEW_NOW_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
 import { RANKED_BARS_EMPTY_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityOverview/RankedBars";
+import {
+  ENTITY_RISK_EMPTY_TITLE,
+  RISKIEST_ENTITIES_TEST_IDS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityRiskCopy";
+import {
+  getEntityRiskLevelColor,
+  getEntityRiskMeterPercent,
+  getEntityRiskRoute,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityRiskModel";
+import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
+import {
+  SecurityRiskiestEntities,
+  SecurityRiskiestEntity,
+} from "../../../Types/SecurityCase/SecurityEntityRisk";
+import { getEntityRiskLevel } from "../../../Utils/SecurityCase/SecurityEntityRiskScore";
 import { CARD_GRID_CELL_TEST_ID } from "../../../UI/Components/Card/CardGrid";
 import {
   CARD_GRID_CENTERED_STATE_CLASS_NAME,
@@ -212,6 +227,8 @@ function overview(
       topTactics: [],
       ...overrides,
     },
+    // No entity has risk: the Riskiest Entities card says so.
+    riskiestEntities: { threshold: 100, total: 0, entities: [] },
     priorities: PRIORITY_VALUES,
     statuses: STATUS_VALUES,
     ...top,
@@ -280,7 +297,6 @@ beforeEach(() => {
 
       return answer;
     });
-  jest.spyOn(SecurityCaseApi, "getTopEntities").mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -1609,7 +1625,7 @@ describe("the charts below the card", () => {
     for (const sentence of [
       "Nothing was detected in the last 14 days.",
       "No case in the last 30 days is mapped to an ATT&CK tactic.",
-      "No findings named an entity in the last 7 days.",
+      "No user, host or address has any risk yet.",
     ]) {
       const element: HTMLElement = screen.getByText(sentence);
 
@@ -1679,25 +1695,31 @@ describe("the rows of cards under the figures", () => {
   async function renderBusyMonth(): Promise<void> {
     answerStatus(status({ ...SET_UP, openCases: 3 }));
     answerOverview(
-      overview({
-        openCases: 3,
-        casesOpenedInWindow: 5,
-        detectionsInWindow: 9,
-        topTactics: [{ tacticId: "TA0006", count: 4 }],
-        topRules: [
-          { ruleName: "Encoded PowerShell", detectionRuleId: null, count: 3 },
-        ],
-      }),
+      overview(
+        {
+          openCases: 3,
+          casesOpenedInWindow: 5,
+          detectionsInWindow: 9,
+          topTactics: [{ tacticId: "TA0006", count: 4 }],
+          topRules: [
+            { ruleName: "Encoded PowerShell", detectionRuleId: null, count: 3 },
+          ],
+        },
+        {
+          riskiestEntities: {
+            threshold: 100,
+            total: 1,
+            entities: [
+              {
+                value: "203.0.113.47",
+                type: SecurityEntityType.IpAddress,
+                score: 125,
+              },
+            ],
+          },
+        },
+      ),
     );
-    jest.spyOn(SecurityCaseApi, "getTopEntities").mockResolvedValue([
-      {
-        value: "203.0.113.47",
-        findingCount: 3,
-        ruleCount: 1,
-        maxSeverityId: 4,
-        lastSeen: null,
-      },
-    ]);
     await renderPage();
     await screen.findByText("203.0.113.47");
   }
@@ -1814,6 +1836,341 @@ describe("the rows of cards under the figures", () => {
     for (const [testId] of ROWS) {
       expect(screen.queryByTestId(testId)).toBeNull();
     }
+  });
+});
+
+/*
+ * Riskiest Entities reads Entity Risk's scores. It used to rank values by
+ * how many findings named them, beside Entity Risk's scores - two lists
+ * that said "riskiest" and disagreed: a host one noisy rule fired at led
+ * the Overview while the account three different rules flagged led Entity
+ * Risk. Now the card is the top of Entity Risk's list, sent with the
+ * overview: the same order, the same scores, each level read against the
+ * project's threshold, each bar filled as Entity Risk's meter is, and each
+ * entity opening its own page.
+ */
+describe("Riskiest Entities, by risk score", () => {
+  const RISKIEST: SecurityRiskiestEntities = {
+    threshold: 100,
+    total: 9,
+    entities: [
+      {
+        value: "k.morgan@acme-commerce.example",
+        type: SecurityEntityType.User,
+        score: 200,
+      },
+      { value: "203.0.113.47", type: SecurityEntityType.IpAddress, score: 125 },
+      { value: "fin-ws-112", type: SecurityEntityType.Host, score: 113 },
+      { value: "198.51.100.23", type: SecurityEntityType.IpAddress, score: 75 },
+      { value: "j.wilson@acme-commerce.example", type: SecurityEntityType.User, score: 25 },
+    ],
+  };
+
+  async function renderRiskiest(
+    riskiest: SecurityRiskiestEntities | null,
+  ): Promise<HTMLElement> {
+    answerStatus(status({ ...SET_UP, openCases: 3 }));
+    answerOverview(
+      overview(
+        { openCases: 3, casesOpenedInWindow: 5, detectionsInWindow: 9 },
+        { riskiestEntities: riskiest },
+      ),
+    );
+    await renderPage();
+
+    return riskiestCard();
+  }
+
+  function riskiestCard(): HTMLElement {
+    return within(screen.getByTestId(SECURITY_OVERVIEW_NOW_ID))
+      .getAllByTestId("card")
+      .find((card: HTMLElement): boolean => {
+        return (
+          within(card).getByTestId("card-details-heading").textContent ===
+          "Riskiest Entities"
+        );
+      }) as HTMLElement;
+  }
+
+  function rowsOf(card: HTMLElement): Array<HTMLElement> {
+    return within(card).getAllByRole("listitem");
+  }
+
+  test("ranks the entities as Entity Risk does, the riskiest first, each with its score", async () => {
+    const card: HTMLElement = await renderRiskiest(RISKIEST);
+
+    expect(
+      rowsOf(card).map((row: HTMLElement): [string, string] => {
+        return [
+          within(row).getByRole("link").textContent || "",
+          (row.querySelector(".tabular-nums") as HTMLElement).textContent ||
+            "",
+        ];
+      }),
+    ).toEqual([
+      ["k.morgan@acme-commerce.example", "200"],
+      ["203.0.113.47", "125"],
+      ["fin-ws-112", "113"],
+      ["198.51.100.23", "75"],
+      ["j.wilson@acme-commerce.example", "25"],
+    ]);
+    // No count of findings, rules or worst severity is left.
+    expect(card).not.toHaveTextContent("rules");
+    expect(card).not.toHaveTextContent("worst");
+  });
+
+  test("says what the ranking is: Entity Risk's, over its week", async () => {
+    const card: HTMLElement = await renderRiskiest(RISKIEST);
+
+    expect(card).toHaveTextContent(
+      "The users, hosts and addresses with the highest risk, as Entity Risk ranks them: what was found about each in the last 7 days. Open one to see why.",
+    );
+    expect(card).not.toHaveTextContent("named by the most findings");
+  });
+
+  test("names each entity's kind and level, the level read against the project's threshold", async () => {
+    const card: HTMLElement = await renderRiskiest(RISKIEST);
+
+    expect(
+      rowsOf(card).map((row: HTMLElement): string => {
+        return (row.querySelector(".text-\\[11px\\]") as HTMLElement)
+          .textContent as string;
+      }),
+    ).toEqual([
+      "User · Critical",
+      "IP Address · High",
+      "Host · High",
+      "IP Address · Medium",
+      "User · Low",
+    ]);
+
+    cleanup();
+
+    // A project whose threshold is 250: Medium from 125, so 113 is Low there.
+    const higher: HTMLElement = await renderRiskiest({
+      ...RISKIEST,
+      threshold: 250,
+    });
+
+    expect(
+      rowsOf(higher).map((row: HTMLElement): string => {
+        return (row.querySelector(".text-\\[11px\\]") as HTMLElement)
+          .textContent as string;
+      }),
+    ).toEqual([
+      "User · Medium",
+      "IP Address · Medium",
+      "Host · Low",
+      "IP Address · Low",
+      "User · Low",
+    ]);
+  });
+
+  test("a row whose kind is unknown names its level alone", async () => {
+    const card: HTMLElement = await renderRiskiest({
+      threshold: 100,
+      total: 1,
+      entities: [{ value: "odd-entity", type: null, score: 60 }],
+    });
+
+    expect(
+      (rowsOf(card)[0]!.querySelector(".text-\\[11px\\]") as HTMLElement)
+        .textContent,
+    ).toBe("Medium");
+    // Its page, with no kind in its address.
+    expect(within(card).getByRole("link", { name: "odd-entity" })).toHaveAttribute(
+      "href",
+      getEntityRiskRoute("odd-entity").toString(),
+    );
+  });
+
+  test("fills each bar as Entity Risk's meter does, in its level's colour, with the threshold marked halfway", async () => {
+    const card: HTMLElement = await renderRiskiest(RISKIEST);
+
+    expect(
+      rowsOf(card).map((row: HTMLElement): [string, string] => {
+        const fill: HTMLElement = within(row).getByTestId("ranked-bar-fill");
+
+        return [fill.style.width, fill.style.backgroundColor];
+      }),
+    ).toEqual(
+      RISKIEST.entities.map(
+        (entity: SecurityRiskiestEntity): [string, string] => {
+          const probe: HTMLElement = document.createElement("div");
+          probe.style.backgroundColor = getEntityRiskLevelColor(
+            getEntityRiskLevel(entity.score, RISKIEST.threshold),
+          ).toString();
+
+          return [
+            `${getEntityRiskMeterPercent(entity.score, RISKIEST.threshold)}%`,
+            probe.style.backgroundColor,
+          ];
+        },
+      ),
+    );
+    // Critical fills its bar; the threshold - 100 - is halfway along.
+    expect(getEntityRiskMeterPercent(200, 100)).toBe(100);
+    expect(getEntityRiskMeterPercent(100, 100)).toBe(50);
+    expect(within(card).getAllByTestId("ranked-bar-threshold")).toHaveLength(
+      RISKIEST.entities.length,
+    );
+    for (const mark of within(card).getAllByTestId("ranked-bar-threshold")) {
+      expect(mark.className.split(" ")).toEqual(
+        expect.arrayContaining(["absolute", "start-1/2", "w-px"]),
+      );
+      expect(mark).toHaveAttribute("aria-hidden", "true");
+    }
+  });
+
+  test("each entity opens its own page, with its kind", async () => {
+    const card: HTMLElement = await renderRiskiest(RISKIEST);
+
+    for (const entity of RISKIEST.entities) {
+      expect([
+        entity.value,
+        within(card)
+          .getByRole("link", { name: entity.value })
+          .getAttribute("href"),
+      ]).toEqual([
+        entity.value,
+        getEntityRiskRoute(entity.value, entity.type).toString(),
+      ]);
+    }
+    // Never Correlate straight away: its page has Open in Correlate.
+    expect(
+      within(card)
+        .getAllByRole("link")
+        .some((link: HTMLElement): boolean => {
+          return (link.getAttribute("href") || "").includes("/correlate");
+        }),
+    ).toBe(false);
+  });
+
+  test("when Entity Risk lists more, the way to all of them is under the list, counted", async () => {
+    const card: HTMLElement = await renderRiskiest(RISKIEST);
+    const all: HTMLElement = within(card).getByTestId(
+      RISKIEST_ENTITIES_TEST_IDS.viewAll,
+    );
+
+    expect(all).toHaveTextContent("View all 9 entities");
+    expect(all).toHaveAttribute(
+      "href",
+      routeFor(PageMap.SECURITY_EVENTS_ENTITY_RISK),
+    );
+    // Under the list, not above it.
+    expect(
+      within(card)
+        .getByRole("list")
+        .compareDocumentPosition(all) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("when the card shows every entity with risk, there is no more to view", async () => {
+    const card: HTMLElement = await renderRiskiest({
+      ...RISKIEST,
+      total: RISKIEST.entities.length,
+    });
+
+    expect(rowsOf(card)).toHaveLength(RISKIEST.entities.length);
+    expect(
+      within(card).queryByTestId(RISKIEST_ENTITIES_TEST_IDS.viewAll),
+    ).toBeNull();
+  });
+
+  test("a project with no risk says so, in the middle of the card's room, as Entity Risk's empty list does", async () => {
+    const card: HTMLElement = await renderRiskiest({
+      threshold: 100,
+      total: 0,
+      entities: [],
+    });
+    const sentence: HTMLElement = within(card).getByText(
+      ENTITY_RISK_EMPTY_TITLE,
+    );
+
+    expect(ENTITY_RISK_EMPTY_TITLE).toBe(
+      "No user, host or address has any risk yet.",
+    );
+    expect(sentence.getAttribute("class")).toBe(RANKED_BARS_EMPTY_CLASS_NAME);
+    for (const width of WIDTHS_IN_PX) {
+      expect([width, describeHeightFill(sentence, width)]).toEqual([
+        width,
+        null,
+      ]);
+    }
+    expect(within(card).queryByRole("list")).toBeNull();
+    expect(
+      within(card).queryByTestId(RISKIEST_ENTITIES_TEST_IDS.viewAll),
+    ).toBeNull();
+  });
+
+  test("risk that could not be read says so, with Try again - never that there is none", async () => {
+    answerStatus(status({ ...SET_UP, openCases: 3 }));
+    answerOverview(
+      overview(
+        { openCases: 3, casesOpenedInWindow: 5, detectionsInWindow: 9 },
+        { riskiestEntities: null },
+      ),
+      overview(
+        { openCases: 3, casesOpenedInWindow: 5, detectionsInWindow: 9 },
+        { riskiestEntities: RISKIEST },
+      ),
+    );
+    await renderPage();
+
+    const failed: HTMLElement = within(riskiestCard()).getByTestId(
+      RISKIEST_ENTITIES_TEST_IDS.error,
+    );
+
+    expect(failed).toHaveTextContent(
+      "We could not load the riskiest entities.",
+    );
+    expect(riskiestCard()).not.toHaveTextContent(ENTITY_RISK_EMPTY_TITLE);
+    // Its words sit in the middle of the card's room, as an empty list's do.
+    expect(failed.className.split(" ")).toEqual(
+      expect.arrayContaining(CARD_GRID_CENTERED_STATE_CLASS_NAME.split(" ")),
+    );
+    for (const width of WIDTHS_IN_PX) {
+      expect([width, describeHeightFill(failed, width)]).toEqual([width, null]);
+    }
+
+    const reads: number = (
+      SecurityCaseApi.getOverview as unknown as { mock: { calls: Array<unknown> } }
+    ).mock.calls.length;
+
+    await act(async () => {
+      fireEvent.click(
+        within(failed).getByTestId(RISKIEST_ENTITIES_TEST_IDS.tryAgain),
+      );
+    });
+
+    await waitFor(() => {
+      expect(
+        within(riskiestCard()).getByRole("link", {
+          name: "k.morgan@acme-commerce.example",
+        }),
+      ).toBeInTheDocument();
+    });
+    expect(
+      (
+        SecurityCaseApi.getOverview as unknown as {
+          mock: { calls: Array<unknown> };
+        }
+      ).mock.calls.length,
+    ).toBe(reads + 1);
+    expect(
+      within(riskiestCard()).queryByTestId(RISKIEST_ENTITIES_TEST_IDS.error),
+    ).toBeNull();
+  });
+
+  test("the page reads the risk with the overview, in one answer: no read of its own", async () => {
+    const card: HTMLElement = await renderRiskiest(RISKIEST);
+
+    expect(rowsOf(card)).toHaveLength(RISKIEST.entities.length);
+    expect(
+      Object.getOwnPropertyNames(SecurityCaseApi).filter((name: string) => {
+        return name.toLowerCase().includes("entities");
+      }),
+    ).toEqual([]);
   });
 });
 

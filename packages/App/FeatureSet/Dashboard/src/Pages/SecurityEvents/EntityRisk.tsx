@@ -31,6 +31,7 @@ import {
   TACTICS_COLUMN_TITLE,
 } from "../../Components/SecurityEvents/EntityRisk/EntityRiskCopy";
 import EntityRiskScore from "../../Components/SecurityEvents/EntityRisk/EntityRiskScore";
+import EntityLookupCard from "../../Components/SecurityEvents/EntityRisk/EntityLookupCard";
 import {
   getEntityRiskRoute,
   readEntityCriticality,
@@ -199,7 +200,13 @@ const SourcesCell: FunctionComponent<{ item: SecurityEntityRisk }> = (props: {
  * found (Types/SecurityCase/SecurityEntityRisk), the riskiest first; each
  * opens on a page of its own. Above it, how the score is counted, worked out
  * for the project's own threshold, and - while the project opens no case
- * from risk - a line that says so, with the way to Risk Scoring.
+ * from risk - a line that says so, with the way to Risk Scoring. Under it,
+ * Look Up an Entity, for any value, of any kind.
+ *
+ * The product's one ranking of who is riskiest: the Overview's Riskiest
+ * Entities is the top of this list, and the Entities page - which ranked
+ * values by how many findings named them - folded into it (its address
+ * opens this page).
  */
 const SecurityEntityRiskPage: FunctionComponent<
   PageComponentProps
@@ -448,6 +455,8 @@ const SecurityEntityRiskPage: FunctionComponent<
           },
         ]}
       />
+
+      <EntityLookupCard />
     </div>
   );
 };

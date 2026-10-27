@@ -1,5 +1,4 @@
 import SecurityEventService, {
-  EntityFindingSummary,
   OBSERVABLE_ACTIVITY_MAX_VALUES,
   ObservableActivity,
 } from "../../../Server/Services/SecurityEventService";
@@ -11,10 +10,11 @@ import { getJestSpyOn } from "../../Spy";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 /*
- * The two entity queries the Security product reads besides the explorer:
- * one value's activity (the case page, the Look Up Entity Activity step) and
- * the values the findings name most (the overview). Every value - the
- * project, the window and every observable - is a bound parameter.
+ * The entity query the Security product reads besides the explorer: one
+ * value's activity (a case's Entities, an entity's page, Look Up an Entity,
+ * the Look Up Entity Activity step). Every value - the project, the window
+ * and every observable - is a bound parameter. The riskiest entities are
+ * Entity Risk's scores (SecurityRiskiestEntities), not a count of findings.
  */
 
 type Spy = ReturnType<typeof getJestSpyOn>;
@@ -127,45 +127,5 @@ describe("SecurityEventService.findObservableActivity", () => {
     ).toHaveLength(1);
     // No value is ever spliced into the SQL text.
     expect(statement.query).not.toContain("203.0.113.7");
-  });
-});
-
-describe("SecurityEventService.findEntitiesByFindings", () => {
-  test("reads findings only, worst first, and bounds the limit", async () => {
-    const spy: Spy = stubExecuteQuery([
-      {
-        value: "web-01",
-        findingCount: 7,
-        ruleCount: 3,
-        maxSeverityId: 5,
-        lastSeen: "2026-10-14 08:00:00.000000000",
-      },
-    ]);
-
-    const entities: Array<EntityFindingSummary> =
-      await SecurityEventService.findEntitiesByFindings({
-        projectId: PROJECT_ID,
-        startTime: START,
-        endTime: END,
-        limit: 5000,
-      });
-
-    expect(entities).toEqual([
-      {
-        value: "web-01",
-        findingCount: 7,
-        ruleCount: 3,
-        maxSeverityId: 5,
-        lastSeen: new Date("2026-10-14T08:00:00.000Z"),
-      },
-    ]);
-
-    const statement: Statement = spy.mock.calls[0]![0] as Statement;
-
-    expect(statement.query).toContain("classUid IN (2004, 2005)");
-    expect(statement.query).toContain(
-      "ORDER BY maxSeverityId DESC, findingCount DESC",
-    );
-    expect(Object.values(statement.query_params)).toContain(100);
   });
 });

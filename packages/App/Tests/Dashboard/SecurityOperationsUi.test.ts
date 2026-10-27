@@ -40,10 +40,15 @@ import { getMitreAttackUrl } from "../../FeatureSet/Dashboard/src/Components/Sec
 import {
   parseEntityActivity,
   parseOverview,
-  parseTopEntities,
+  parseRiskiestEntities,
   readDate,
   readNumber,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseApiTypes";
+import { SecurityEntityType } from "Common/Types/SecurityCase/SecurityEntity";
+import {
+  DEFAULT_ENTITY_RISK_CASE_THRESHOLD,
+  SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT,
+} from "Common/Types/SecurityCase/SecurityEntityRisk";
 import {
   formatDayLabel,
   getLabelledDayIndexes,
@@ -279,28 +284,128 @@ describe("reading the Security API's answers", () => {
     });
   });
 
-  test("top entities read the same way, and a missing list is empty", () => {
-    expect(parseTopEntities({})).toEqual([]);
+  /*
+   * Riskiest Entities: the top of Entity Risk's list, as the overview sends
+   * it - read defensively, so a field the server left out never throws in
+   * a render, and an answer that is not one reads as risk that could not
+   * be read (the card says so), never as "no risk".
+   */
+  test("the riskiest entities read each entity's value, kind and score, with the threshold and how many there are", () => {
     expect(
-      parseTopEntities({
+      parseRiskiestEntities({
+        threshold: 250,
+        total: 9,
         entities: [
           {
-            value: "10.0.0.5",
-            findingCount: 9,
-            ruleCount: 3,
-            maxSeverityId: 5,
+            value: "k.morgan@acme-commerce.example",
+            type: "User",
+            score: 200,
           },
+          { value: "203.0.113.47", type: "IP Address", score: 125 },
         ],
       }),
-    ).toEqual([
-      {
-        value: "10.0.0.5",
-        findingCount: 9,
-        ruleCount: 3,
-        maxSeverityId: 5,
-        lastSeen: null,
+    ).toEqual({
+      threshold: 250,
+      total: 9,
+      entities: [
+        {
+          value: "k.morgan@acme-commerce.example",
+          type: SecurityEntityType.User,
+          score: 200,
+        },
+        {
+          value: "203.0.113.47",
+          type: SecurityEntityType.IpAddress,
+          score: 125,
+        },
+      ],
+    });
+  });
+
+  test("the riskiest entities are read defensively", () => {
+    expect(
+      parseRiskiestEntities({
+        threshold: "not a number",
+        total: -3,
+        entities: [
+          // A kind the product does not know reads as none.
+          { value: " web-03 ", type: "Robot", score: 49.6 },
+          // No value: nobody to name, left out.
+          { value: "", type: "Host", score: 50 },
+          { type: "Host", score: 50 },
+          "not an entity",
+          null,
+          // A score below nothing is nothing.
+          { value: "j.wilson@acme-commerce.example", type: "User", score: -5 },
+        ],
+      } as unknown as JSONObject),
+    ).toEqual({
+      threshold: DEFAULT_ENTITY_RISK_CASE_THRESHOLD,
+      // Never fewer than it lists.
+      total: 2,
+      entities: [
+        { value: "web-03", type: null, score: 50 },
+        {
+          value: "j.wilson@acme-commerce.example",
+          type: SecurityEntityType.User,
+          score: 0,
+        },
+      ],
+    });
+  });
+
+  test("the riskiest entities never run past what the card shows", () => {
+    const many: Array<JSONObject> = Array.from(
+      { length: 20 },
+      (_value: unknown, index: number): JSONObject => {
+        return { value: `host-${index + 1}`, type: "Host", score: 100 - index };
       },
-    ]);
+    );
+
+    const riskiest: ReturnType<typeof parseRiskiestEntities> =
+      parseRiskiestEntities({ threshold: 100, total: 20, entities: many });
+
+    expect(riskiest!.entities).toHaveLength(
+      SECURITY_OVERVIEW_RISKIEST_ENTITY_LIMIT,
+    );
+    expect(riskiest!.entities[0]!.value).toBe("host-1");
+    expect(riskiest!.total).toBe(20);
+  });
+
+  test("an answer with no riskiest entities in it reads as risk that could not be read", () => {
+    for (const value of [undefined, null, "riskiest", 7, []]) {
+      expect(
+        parseRiskiestEntities(value as unknown as JSONObject | undefined),
+      ).toBeNull();
+    }
+    expect(parseOverview({ metrics: { openCases: 1 } }).riskiestEntities).toBe(
+      null,
+    );
+    // An object with nothing in it is a project with no risk.
+    expect(parseRiskiestEntities({})).toEqual({
+      threshold: DEFAULT_ENTITY_RISK_CASE_THRESHOLD,
+      total: 0,
+      entities: [],
+    });
+  });
+
+  test("the overview carries its riskiest entities", () => {
+    expect(
+      parseOverview({
+        metrics: { openCases: 1 },
+        riskiestEntities: {
+          threshold: 100,
+          total: 1,
+          entities: [{ value: "fin-ws-112", type: "Host", score: 113 }],
+        },
+      }).riskiestEntities,
+    ).toEqual({
+      threshold: 100,
+      total: 1,
+      entities: [
+        { value: "fin-ws-112", type: SecurityEntityType.Host, score: 113 },
+      ],
+    });
   });
 
   test("the overview's windows fall back to the server's defaults", () => {

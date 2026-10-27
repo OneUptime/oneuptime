@@ -2,18 +2,22 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
-  DEFAULT_ENTITY_WINDOW_IN_DAYS,
-  ENTITIES_EMPTY_DESCRIPTION,
-  ENTITIES_EMPTY_TITLE,
-  ENTITIES_PER_PAGE,
-  ENTITY_WINDOW_LABEL,
-  EntityPage,
+  ENTITY_LOOKUP_BUTTON,
+  ENTITY_LOOKUP_DESCRIPTION,
+  ENTITY_LOOKUP_HOURS,
+  ENTITY_LOOKUP_NOT_SEEN,
+  ENTITY_LOOKUP_PLACEHOLDER,
+  ENTITY_LOOKUP_TEST_IDS,
+  ENTITY_LOOKUP_TITLE,
+  ENTITY_RISK_EMPTY_TITLE,
+  ENTITY_RISK_TABLE_DESCRIPTION,
   OPEN_IN_CORRELATE,
   RISKIEST_ENTITIES_DESCRIPTION,
-  getEntityPage,
-  getEntityWindowOptionValue,
-  readEntityWindowOption,
-} from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEntitiesCopy";
+  RISKIEST_ENTITIES_READ_FAILED,
+  RISKIEST_ENTITIES_TEST_IDS,
+  RISKIEST_ENTITIES_TITLE,
+  RISKIEST_ENTITIES_VIEW_ALL,
+} from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/EntityRisk/EntityRiskCopy";
 import {
   DETECTION_RULES_EMPTY_DESCRIPTION,
   DETECTION_RULES_EMPTY_TITLE,
@@ -23,68 +27,128 @@ import { TRANSLATED_LOCALES } from "../../FeatureSet/Dashboard/scripts/i18n/Loca
 import { isSaidInLocale, readDashboardLocale } from "./SecurityLocaleSentences";
 
 /*
- * Security Events > Entities ranks what the findings name over a window the
- * shared switch picks, and says what an entity is in its card; an empty
- * Detection Rules list leads to the Rule Library. These are the React-free
- * parts: the windows as the switch's values, and the words.
+ * The words about entities on Security Events, and where an empty Detection
+ * Rules list leads (the Rule Library). React-free parts, pinned in a plain
+ * test.
+ *
+ * "Riskiest" means one thing: Entity Risk's scores. The Overview's
+ * Riskiest Entities is the top of Entity Risk's list, and the Entities page
+ * - which ranked values by how many findings named them, a second riskiest
+ * list - folded into Entity Risk, with its Look Up an Entity under the list.
  */
 
-const ENTITY_WINDOWS_IN_DAYS: Array<number> = [1, 7, 30];
+const DASHBOARD_SRC: string = path.resolve(
+  __dirname,
+  "../../FeatureSet/Dashboard/src",
+);
 
-describe("the Riskiest Entities window", () => {
-  test("opens on a week", () => {
-    expect(DEFAULT_ENTITY_WINDOW_IN_DAYS).toBe(7);
+function source(relativePath: string): string {
+  return fs.readFileSync(path.resolve(DASHBOARD_SRC, relativePath), "utf8");
+}
+
+describe("the Overview's Riskiest Entities", () => {
+  test("say they are Entity Risk's ranking, over Entity Risk's week, and what a reader does next", () => {
+    expect(RISKIEST_ENTITIES_TITLE).toBe("Riskiest Entities");
+    expect(RISKIEST_ENTITIES_DESCRIPTION).toContain("as Entity Risk ranks them");
+    expect(RISKIEST_ENTITIES_DESCRIPTION).toContain("in the last 7 days");
+    // The week is Entity Risk's own.
+    expect(ENTITY_RISK_TABLE_DESCRIPTION).toContain("in the last 7 days");
+    expect(RISKIEST_ENTITIES_DESCRIPTION).toContain("Open one to see why.");
+    // Never the old count of findings.
+    expect(RISKIEST_ENTITIES_DESCRIPTION).not.toContain("most findings");
+    expect(RISKIEST_ENTITIES_DESCRIPTION).not.toContain("findings name");
   });
 
-  test("each window is the switch's value, and reads back as itself", () => {
-    for (const windowInDays of ENTITY_WINDOWS_IN_DAYS) {
-      const value: string = getEntityWindowOptionValue(windowInDays);
-
-      expect(value).toBe(String(windowInDays));
-      expect(readEntityWindowOption(value, ENTITY_WINDOWS_IN_DAYS)).toBe(
-        windowInDays,
-      );
-    }
+  test("offer the whole list in the count Entity Risk lists, in both plural forms", () => {
+    expect(RISKIEST_ENTITIES_VIEW_ALL).toEqual({
+      one: "View {{count}} entity",
+      other: "View all {{count}} entities",
+    });
   });
 
-  test("a window the switch does not offer reads as a week", () => {
-    for (const value of ["", "2", "365", "seven", "-1", "7.5"]) {
-      expect(readEntityWindowOption(value, ENTITY_WINDOWS_IN_DAYS)).toBe(7);
-    }
+  test("an empty list says what Entity Risk's empty list says", () => {
+    expect(ENTITY_RISK_EMPTY_TITLE).toBe(
+      "No user, host or address has any risk yet.",
+    );
+    expect(RISKIEST_ENTITIES_READ_FAILED).toBe(
+      "We could not load the riskiest entities.",
+    );
   });
 
-  test("the page offers the windows the docs name: a day, a week and a month", () => {
-    const page: string = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        "../../FeatureSet/Dashboard/src/Pages/SecurityEvents/Entities.tsx",
+  test("have test ids of their own", () => {
+    expect(Object.values(RISKIEST_ENTITIES_TEST_IDS)).toEqual([
+      "security-overview-riskiest-entities",
+      "security-overview-riskiest-entities-all",
+      "security-overview-riskiest-entities-error",
+      "security-overview-riskiest-entities-try-again",
+    ]);
+  });
+
+  test("the Overview draws them from the overview's own answer, under the title the docs name", () => {
+    const overview: string = source("Pages/SecurityEvents/Overview.tsx");
+
+    expect(overview).toContain('title="Riskiest Entities"');
+    expect(overview).toContain("description={RISKIEST_ENTITIES_DESCRIPTION}");
+    expect(overview).toContain("riskiest={overview.riskiestEntities}");
+    // No second read of a ranking by findings.
+    expect(overview).not.toContain("getTopEntities");
+    expect(overview).not.toContain("findingCount");
+  });
+});
+
+describe("Look Up an Entity, under Entity Risk's list", () => {
+  test("reads any value across 30 days of security events", () => {
+    expect(ENTITY_LOOKUP_HOURS).toBe(30 * 24);
+    expect(ENTITY_LOOKUP_TITLE).toBe("Look Up an Entity");
+    expect(ENTITY_LOOKUP_DESCRIPTION).toContain("domain or file hash");
+    expect(ENTITY_LOOKUP_DESCRIPTION).toContain("over the last 30 days");
+    expect(ENTITY_LOOKUP_NOT_SEEN).toBe("Not seen in the last 30 days.");
+    expect(ENTITY_LOOKUP_BUTTON).toBe("Look Up");
+    expect(OPEN_IN_CORRELATE).toBe("Open in Correlate");
+    expect(ENTITY_LOOKUP_TEST_IDS).toEqual({
+      card: "security-entity-lookup",
+      input: "security-entity-lookup-input",
+      result: "security-entity-lookup-result",
+    });
+  });
+
+  test("is on Entity Risk, under its list, and the Entities page is gone", () => {
+    const entityRisk: string = source("Pages/SecurityEvents/EntityRisk.tsx");
+
+    expect(entityRisk).toContain("<EntityLookupCard />");
+    expect(entityRisk.indexOf("<EntityLookupCard />")).toBeGreaterThan(
+      entityRisk.indexOf("<ModelTable<SecurityEntityRisk>"),
+    );
+    expect(
+      fs.existsSync(path.resolve(DASHBOARD_SRC, "Pages/SecurityEvents/Entities.tsx")),
+    ).toBe(false);
+    expect(
+      fs.existsSync(
+        path.resolve(
+          DASHBOARD_SRC,
+          "Components/SecurityEvents/SecurityEntitiesCopy.ts",
+        ),
       ),
-      "utf8",
-    );
-
-    expect(page).toContain(
-      "export const ENTITY_WINDOWS_IN_DAYS: Array<number> = [1, 7, 30];",
-    );
+    ).toBe(false);
   });
 });
 
 describe("the words", () => {
   const SENTENCES: Array<string> = [
-    ENTITY_WINDOW_LABEL,
-    RISKIEST_ENTITIES_DESCRIPTION,
-    ENTITIES_EMPTY_TITLE,
-    ENTITIES_EMPTY_DESCRIPTION,
+    RISKIEST_ENTITIES_TITLE,
+    ENTITY_RISK_EMPTY_TITLE,
+    ENTITY_LOOKUP_TITLE,
+    ENTITY_LOOKUP_DESCRIPTION,
+    ENTITY_LOOKUP_PLACEHOLDER,
+    ENTITY_LOOKUP_BUTTON,
+    ENTITY_LOOKUP_NOT_SEEN,
     OPEN_IN_CORRELATE,
     DETECTION_RULES_EMPTY_TITLE,
     DETECTION_RULES_EMPTY_DESCRIPTION,
     OPEN_RULE_LIBRARY,
   ];
 
-  test("say what an entity is, and where an empty rules list goes", () => {
-    expect(RISKIEST_ENTITIES_DESCRIPTION).toContain(
-      "users, hosts, addresses and files",
-    );
-    expect(RISKIEST_ENTITIES_DESCRIPTION).toContain("Correlate");
+  test("where an empty rules list goes", () => {
     expect(DETECTION_RULES_EMPTY_DESCRIPTION).toContain("Rule Library");
     // A heading: no full stop.
     expect(DETECTION_RULES_EMPTY_TITLE.endsWith(".")).toBe(false);
@@ -94,7 +158,13 @@ describe("the words", () => {
     for (const locale of TRANSLATED_LOCALES) {
       const entries: Record<string, unknown> = readDashboardLocale(locale);
 
-      for (const sentence of SENTENCES) {
+      for (const sentence of [
+        ...SENTENCES,
+        RISKIEST_ENTITIES_DESCRIPTION,
+        RISKIEST_ENTITIES_READ_FAILED,
+        RISKIEST_ENTITIES_VIEW_ALL.other,
+        `${RISKIEST_ENTITIES_VIEW_ALL.other}_one`,
+      ]) {
         expect([locale, sentence, typeof entries[sentence]]).toEqual([
           locale,
           sentence,
@@ -102,14 +172,11 @@ describe("the words", () => {
         ]);
       }
 
-      // The page's new sentences; the rest were translated before.
+      // The Overview's new sentences, said in the language.
       for (const sentence of [
-        ENTITY_WINDOW_LABEL,
         RISKIEST_ENTITIES_DESCRIPTION,
-        ENTITIES_EMPTY_DESCRIPTION,
-        DETECTION_RULES_EMPTY_TITLE,
-        DETECTION_RULES_EMPTY_DESCRIPTION,
-        OPEN_RULE_LIBRARY,
+        RISKIEST_ENTITIES_READ_FAILED,
+        RISKIEST_ENTITIES_VIEW_ALL.other,
       ]) {
         expect([
           locale,
@@ -117,134 +184,32 @@ describe("the words", () => {
           isSaidInLocale(locale, sentence, entries[sentence]),
         ]).toEqual([locale, sentence, true]);
       }
-    }
-  });
-});
 
-/*
- * Riskiest Entities reads the ranking whole (the server's top 100) and
- * pages it here, ten a page as every list starts.
- */
-describe("a page of the ranking", () => {
-  const RANKING: Array<number> = Array.from(
-    { length: 23 },
-    (_value: unknown, index: number): number => {
-      return index + 1;
-    },
-  );
-
-  test("ten a page, as every list of the product starts", () => {
-    expect(ENTITIES_PER_PAGE).toBe(10);
-  });
-
-  test("the first, a middle and the last page hold their slice of the ranking", () => {
-    expect(
-      getEntityPage({ rows: RANKING, pageNumber: 1, perPage: 10 }),
-    ).toEqual({ rows: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], pageNumber: 1 });
-    expect(
-      getEntityPage({ rows: RANKING, pageNumber: 2, perPage: 10 }).rows,
-    ).toEqual([11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
-    expect(
-      getEntityPage({ rows: RANKING, pageNumber: 3, perPage: 10 }),
-    ).toEqual({ rows: [21, 22, 23], pageNumber: 3 });
-  });
-
-  test("a page past the end - a read that came back shorter - shows the last page, never an empty one", () => {
-    const page: EntityPage<number> = getEntityPage({
-      rows: RANKING.slice(0, 12),
-      pageNumber: 5,
-      perPage: 10,
-    });
-
-    expect(page).toEqual({ rows: [11, 12], pageNumber: 2 });
-  });
-
-  test("rows per page the reader picks page the same ranking", () => {
-    expect(
-      getEntityPage({ rows: RANKING, pageNumber: 1, perPage: 25 }),
-    ).toEqual({ rows: RANKING, pageNumber: 1 });
-    expect(
-      getEntityPage({ rows: RANKING, pageNumber: 2, perPage: 5 }).rows,
-    ).toEqual([6, 7, 8, 9, 10]);
-  });
-
-  test("an empty ranking is one empty page", () => {
-    expect(getEntityPage({ rows: [], pageNumber: 3, perPage: 10 })).toEqual({
-      rows: [],
-      pageNumber: 1,
-    });
-  });
-
-  test("a page or a size that is not a whole positive number reads as the first page of one at least", () => {
-    expect(
-      getEntityPage({ rows: RANKING, pageNumber: 0, perPage: 10 }).pageNumber,
-    ).toBe(1);
-    expect(
-      getEntityPage({ rows: RANKING, pageNumber: -2, perPage: 10 }).pageNumber,
-    ).toBe(1);
-    expect(
-      getEntityPage({ rows: RANKING, pageNumber: Number.NaN, perPage: 10 })
-        .pageNumber,
-    ).toBe(1);
-    expect(
-      getEntityPage({ rows: RANKING, pageNumber: 1, perPage: 0 }).rows,
-    ).toEqual([1]);
-    expect(
-      getEntityPage({ rows: RANKING, pageNumber: 2.7, perPage: 10 }).rows,
-    ).toEqual([11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
-  });
-
-  test("the page reads the ranking through it, and starts a new window at the top", () => {
-    const page: string = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        "../../FeatureSet/Dashboard/src/Pages/SecurityEvents/Entities.tsx",
-      ),
-      "utf8",
-    );
-
-    expect(page).toContain("data={isLoading ? [] : entityPage.rows}");
-    expect(page).toContain("currentPageNumber={entityPage.pageNumber}");
-    expect(page).not.toContain("disablePagination");
-    expect(page).toContain("setPageNumber(1);");
-  });
-});
-
-describe("the lookup's words", () => {
-  const LOOKUP_WORDS: Array<string> = [
-    "Any user, host, IP address, domain or file hash: how often it appears in your security events over the last 30 days, and in how many findings.",
-    "e.g. alice@example.com, web-01 or 203.0.113.7",
-  ];
-
-  test("are the page's own", () => {
-    const page: string = fs.readFileSync(
-      path.resolve(
-        __dirname,
-        "../../FeatureSet/Dashboard/src/Pages/SecurityEvents/Entities.tsx",
-      ),
-      "utf8",
-    );
-
-    for (const words of LOOKUP_WORDS) {
-      expect(page).toContain(`"${words}"`);
+      // "View all 9 entities" keeps its count, wherever the language puts it.
+      expect([
+        locale,
+        String(entries[RISKIEST_ENTITIES_VIEW_ALL.other]).includes(
+          "{{count}}",
+        ),
+      ]).toEqual([locale, true]);
     }
   });
 
-  test("are said in every Dashboard locale, the example's values as written", () => {
+  test("the lookup's example keeps its values as written, in every language", () => {
     for (const locale of TRANSLATED_LOCALES) {
       const entries: Record<string, unknown> = readDashboardLocale(locale);
 
-      for (const words of LOOKUP_WORDS) {
-        expect([
+      expect([
+        locale,
+        isSaidInLocale(
           locale,
-          words,
-          isSaidInLocale(locale, words, entries[words]),
-        ]).toEqual([locale, words, true]);
-      }
+          ENTITY_LOOKUP_DESCRIPTION,
+          entries[ENTITY_LOOKUP_DESCRIPTION],
+        ),
+      ]).toEqual([locale, true]);
 
-      // The example's values are values: the same in every language.
       for (const value of ["alice@example.com", "web-01", "203.0.113.7"]) {
-        expect([locale, String(entries[LOOKUP_WORDS[1]!])]).toEqual([
+        expect([locale, String(entries[ENTITY_LOOKUP_PLACEHOLDER])]).toEqual([
           locale,
           expect.stringContaining(value),
         ]);

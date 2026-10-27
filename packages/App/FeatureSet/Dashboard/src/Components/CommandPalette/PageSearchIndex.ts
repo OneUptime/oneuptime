@@ -1890,21 +1890,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["siem", "security logs"],
           },
           {
-            page: PageMap.SECURITY_EVENTS_ENTITIES,
-            title: "Entities",
-            icon: IconProp.Fingerprint,
-            keywords: ["risky users", "risky hosts", "ueba", "entity lookup"],
-          },
-          {
             page: PageMap.SECURITY_EVENTS_ENTITY_RISK,
             title: "Entity Risk",
             icon: IconProp.Fire,
+            // Entities folded into it: its words find it too.
             keywords: [
               "risk score",
               "risk based alerting",
               "rba",
               "user risk",
               "host risk",
+              "riskiest entities",
+              "risky users",
+              "risky hosts",
+              "ueba",
+              "entities",
+              "entity lookup",
             ],
           },
           {

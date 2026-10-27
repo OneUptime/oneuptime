@@ -14,6 +14,31 @@ export interface RankedBarItem {
   to?: Route | undefined;
   // A line under the label: a rule's source, an entity's type.
   hint?: string | undefined;
+  /*
+   * How full its bar is, from 0 to 100, when it is not its share of the
+   * list: an entity's risk fills its bar as Entity Risk's meter does,
+   * against twice the project's threshold.
+   */
+  fillPercent?: number | undefined;
+}
+
+// How much of its track an item's bar fills, from 0 to 100.
+export function getRankedBarFillPercent(
+  item: RankedBarItem,
+  max: number,
+): number {
+  if (item.fillPercent !== undefined) {
+    return Number.isFinite(item.fillPercent)
+      ? Math.min(100, Math.max(0, item.fillPercent))
+      : 0;
+  }
+
+  if (!(item.count > 0)) {
+    return 0;
+  }
+
+  // A count above nothing always shows: never thinner than a sliver.
+  return Math.min(100, Math.max(2, (item.count / Math.max(1, max)) * 100));
 }
 
 export interface ComponentProps {
@@ -21,6 +46,11 @@ export interface ComponentProps {
   emptyText: string;
   // Bars are drawn against this; the largest count when unset.
   total?: number | undefined;
+  /*
+   * A mark halfway along each bar, as Entity Risk's meter has: where a case
+   * opens, for bars that fill against twice the project's threshold.
+   */
+  hasThresholdMark?: boolean | undefined;
 }
 
 // Nothing to rank, as any card of a row says it (CardGrid).
@@ -64,6 +94,7 @@ const RankedBars: FunctionComponent<ComponentProps> = (
   return (
     <ul className="space-y-2.5">
       {props.items.map((item: RankedBarItem): ReactElement => {
+        const fill: number = getRankedBarFillPercent(item, max);
         const label: ReactElement = (
           <span className="block truncate text-sm text-gray-800">
             {item.label}
@@ -93,15 +124,25 @@ const RankedBars: FunctionComponent<ComponentProps> = (
                 {translator.formatNumber(item.count)}
               </span>
             </div>
-            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+            <div className="relative mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
               {/* Nothing to draw for a zero: the track alone says none. */}
-              {item.count > 0 ? (
+              {fill > 0 ? (
                 <div
                   className="h-full rounded-full"
+                  data-testid="ranked-bar-fill"
                   style={{
-                    width: `${Math.max(2, (item.count / max) * 100)}%`,
+                    width: `${fill}%`,
                     backgroundColor: item.color || "#6366f1",
                   }}
+                />
+              ) : (
+                <></>
+              )}
+              {props.hasThresholdMark ? (
+                <div
+                  className="absolute inset-y-0 start-1/2 w-px bg-gray-400"
+                  data-testid="ranked-bar-threshold"
+                  aria-hidden="true"
                 />
               ) : (
                 <></>
