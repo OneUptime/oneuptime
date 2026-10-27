@@ -281,7 +281,7 @@ Un enregistrement qui envoie **Exiger le SSO pour la connexion** activé alors q
 
 Un nouveau projet est soumis à la même règle. Il n'a pas encore de fournisseur à lui ; le créer avec **Exiger le SSO pour la connexion** déjà activé — seul un administrateur principal (master admin) le peut — nécessite donc un fournisseur global activé qui connecte des personnes à tous les projets, et la création est refusée avec les mêmes mots sans lui. Créez le projet, configurez et testez son fournisseur, puis activez l'interrupteur.
 
-Tant que tout le serveur exige le SSO (**Admin** > **Paramètres** > **Authentification** > **Exiger le SSO pour la connexion**), la création de tout projet nécessite aussi un tel fournisseur global, sinon personne, pas même la personne qui l'a créé, ne pourrait ouvrir le projet. Sans lui, la création d'un projet est refusée, et le message demande à un administrateur du serveur d'en activer un. Les administrateurs principaux peuvent toujours créer des projets.
+Tant que tout le serveur exige le SSO (**Admin** > **Paramètres** > **Authentification unique** > **Exiger le SSO pour la connexion**), la création de tout projet nécessite aussi un tel fournisseur global, sinon personne, pas même la personne qui l'a créé, ne pourrait ouvrir le projet. Sans lui, la création d'un projet est refusée, et le message demande à un administrateur du serveur d'en activer un. Les administrateurs principaux peuvent toujours créer des projets.
 
 Désactiver **Exiger le SSO pour la connexion** enregistre dès que vous basculez l'interrupteur et laisse immédiatement les membres revenir avec leur mot de passe — sauf si quelqu'un le réactive au même instant ; un serveur d'application peut alors mettre jusqu'à une minute à suivre. Les propriétaires et les administrateurs du projet, ainsi que les membres disposant de l'autorisation **Edit Project**, peuvent le modifier ; les autres voient l'interrupteur verrouillé, avec l'autorisation qu'il leur faudrait.
 
@@ -308,7 +308,7 @@ Tant que le projet exige le SSO, OneUptime garde un moyen d'y entrer : vous ne p
 
 Activer un fournisseur permet de se connecter avec lui immédiatement.
 
-Quand tout le serveur exige le SSO (**Admin** > **Paramètres** > **Authentification** > **Exiger le SSO pour la connexion**), chaque projet garde de la même façon un moyen d'y entrer, même un projet qui n'exige pas le SSO lui-même : activez d'abord un autre fournisseur pour lui.
+Quand tout le serveur exige le SSO (**Admin** > **Paramètres** > **Authentification unique** > **Exiger le SSO pour la connexion**), chaque projet garde de la même façon un moyen d'y entrer, même un projet qui n'exige pas le SSO lui-même : activez d'abord un autre fournisseur pour lui.
 
 Les fournisseurs globaux sont soumis à la même règle : une modification de l'un d'eux, ou de ses projets attachés, qui laisserait sans fournisseur un projet exigeant le SSO est refusée, en nommant le projet. Consultez [SSO global](/docs/identity/global-sso#désactiver-ou-supprimer-un-fournisseur).
 

@@ -8,7 +8,7 @@ Med global SSO setter en **instansadministrator** i OneUptime (master-admin) opp
 :::cards
 - [Sett opp en leverandør](#sette-opp-global-sso): Opprett den, gi identitetsleverandøren din URL-ene til OneUptime, og test den.
 - [Slik logger brukere inn](#slik-logger-brukere-inn): Bare eksisterende medlemmer, eller nye personer lagt til i prosjektene du knytter til.
-- [Håndhev SSO](#håndhev-sso): Krev SSO for ett prosjekt eller for hele instansen.
+- [Håndhev SSO](#håndhev-sso): Krev SSO for ett prosjekt, eller for hele instansen og påloggingssiden dens.
 - [Slå av en leverandør](#slå-av-eller-slette-en-leverandør): Hva som opphører, og hvilke endringer OneUptime avviser.
 :::
 
@@ -27,21 +27,16 @@ Se [SSO](/docs/identity/sso) for et enkelt prosjekts egen leverandør.
 :::steps
 ### Åpne listen over leverandører
 
-:::tabs
-@tab SAML
-Logg inn som master-admin, og åpne Admin Dashboard med **Admin-innstillinger** i brukermenyen. Gå deretter til **Innstillinger** > **Autentisering** > **Global SSO**.
-@tab OpenID Connect
-Logg inn som master-admin, og åpne Admin Dashboard med **Admin-innstillinger** i brukermenyen. Gå deretter til **Innstillinger** > **Autentisering** > **Global OIDC**.
-:::
+Logg inn som master-admin, og åpne Admin Dashboard med **Admin-innstillinger** i brukermenyen. Gå deretter til **Innstillinger** > **Enkel pålogging**. Siden viser instansens SAML-leverandører, deretter OpenID Connect-leverandørene og til slutt kortet **Krev SSO**.
 
 ### Opprett leverandøren
 
 :::tabs
 @tab SAML
-- Klikk på **Create Global SSO**.
+- Klikk på **Legg til SAML-leverandør**.
 - Skriv inn et **Navn**, **Sign On URL** og **Issuer** fra identitetsleverandøren din, og lim inn **Public Certificate**. Resten er allerede fylt ut under **Flere felt**: **Signature Method** (`RSA-SHA256`), **Digest Method** (`SHA256`) og en beskrivelse (`Sign in with` og navnet). Endre dem bare hvis IdP-en din krever det. Når du lagrer, åpnes siden til leverandøren.
 @tab OpenID Connect
-- Klikk på **Create Global OIDC**.
+- Klikk på **Legg til OIDC-leverandør**.
 - Skriv inn et **Navn**, **Issuer URL** og **Client ID** og **Client Secret** for appen du registrerte i IdP-en din. Det fungerer også å lime inn oppdagelses-URL-en til IdP-en i **Issuer URL**. Resten er allerede fylt ut under **Flere felt**: **Discovery URL** (utstederen etterfulgt av `/.well-known/openid-configuration`), **Scopes** (`openid email profile`), kravnavnene `email` og `name` og en beskrivelse (`Sign in with` og navnet). Endre dem bare hvis IdP-en din krever det. Når du lagrer, åpnes siden til leverandøren.
 :::
 
@@ -56,13 +51,13 @@ På siden til leverandøren viser kortet **Identity Provider URL** **Redirect UR
 
 ### Slå på leverandøren
 
-En ny leverandør starter avslått. Klikk på **Edit Configuration** på siden til leverandøren, og slå på **Aktivert**.
+En ny leverandør starter avslått. Klikk på **Edit Configuration** på siden til leverandøren, og slå på **Aktivert**. **Aktiver** i leverandørens rad på **Enkel pålogging** gjør det samme.
 
-Å slå på en global leverandør legger bare til et valg "Sign in with SSO" på påloggingssiden — den håndhever aldri SSO og stenger ingen ute, så det er trygt å slå den på, teste den og slå den av igjen om nødvendig.
+Å slå på en global leverandør legger den bare til blant påloggingssidens valg for enkel pålogging — den håndhever aldri SSO og stenger ingen ute, så det er trygt å slå den på, teste den og slå den av igjen om nødvendig. Så lenge hele instansen krever SSO, tilbyr påloggingssiden likevel bare leverandørene som er slått på: test en leverandør før du krever SSO.
 
 ### Test leverandøren
 
-Bruk lenken i kortet **Test this SSO provider** (**Test this OIDC provider** for OpenID Connect) til å gjennomføre en fullstendig pålogging via identitetsleverandøren din. Du trenger ikke knytte til prosjekter først: testen logger deg inn i prosjektene du allerede er med i. Leverandøren må være slått på for at lenken skal virke.
+Bruk lenken i kortet **Test this SSO provider** (**Test this OIDC provider** for OpenID Connect) til å gjennomføre en fullstendig pålogging via identitetsleverandøren din. **Test innlogging** i leverandørens rad på **Enkel pålogging** starter den samme påloggingen i en ny fane. Du trenger ikke knytte til prosjekter først: testen logger deg inn i prosjektene du allerede er med i. Leverandøren må være slått på for at lenken skal virke.
 :::
 
 ## Slik logger brukere inn
@@ -101,7 +96,14 @@ Med **Alle prosjekter** oppfyller pålogging med leverandøren SSO-kravet i alle
 Å sette opp en global leverandør tvinger ingen til å bruke den; pålogging med passord fungerer fortsatt. For å kreve SSO slår du på kravet for et prosjekt eller for hele instansen:
 
 - **Per prosjekt:** et prosjekt kan kreve SSO, og eventuelt kreve en *bestemt* leverandør (prosjekt eller global). Se [Krev SSO for prosjektet ditt](/docs/identity/sso#krev-sso-for-prosjektet-ditt).
-- **Hele instansen:** **Admin** > **Innstillinger** > **Autentisering** har en bryter **Krev SSO for innlogging** som håndhever SSO for alle brukere på instansen. Den ber om bekreftelse før den slås på, og lagres så snart du bekrefter. Master-admins forblir unntatt, slik at de ikke kan bli utestengt.
+- **Hele instansen:** kortet **Krev SSO** nederst på **Admin** > **Innstillinger** > **Enkel pålogging** har en bryter **Krev SSO for innlogging** som håndhever SSO for alle brukere på instansen. Den ber om bekreftelse før den slås på, og lagres så snart du bekrefter. Master-admins forblir unntatt, slik at de ikke kan bli utestengt.
+
+Så lenge hele instansen krever SSO:
+
+- Påloggingssiden tilbyr bare SSO: en knapp for hver global leverandør som er slått på, og ikke passord, tilgangsnøkkel, Microsoft-pålogging eller registrering. Den beholder oppslaget via e-post, som finner et prosjekts egen leverandør, bare så lenge et prosjekt har en.
+- OneUptime avviser et passord, en tilgangsnøkkel, en Microsoft-pålogging og en registrering med "This server requires single sign-on (SSO). Sign in with SSO instead." Bare en master-admins passord eller tilgangsnøkkel logger fortsatt vedkommende inn. Folk får kontoen sin ved å logge inn med SSO eller gjennom en invitasjon.
+- Den som allerede er logget inn med passord, logger inn med SSO for å åpne et prosjekt. Vedkommende havner på prosjektets side for enkel pålogging, som tilbyr prosjektets egne leverandører og de globale leverandørene som logger folk inn i det.
+- Master-admins logger inn med passordet sitt på `/accounts/admin-login`, en adresse påloggingssiden ikke lenker til. Kortet **Krev SSO** viser hele adressen under bryteren som **Innlogging for hovedadministratorer**: ta vare på den, så du kan slå av kravet hvis identitetsleverandøren din slutter å virke.
 
 Å slå på **Krev SSO for innlogging** krever en SSO-leverandør som logger personer inn, slik at ingen blir utestengt av det:
 
@@ -157,6 +159,10 @@ For en SAML-leverandør er svarets audience ikke leverandørens **Issuer (Entity
 
 :::details "SAML response was already used"
 Hvert svar fra identitetsleverandøren din logger inn bare én gang, og bare innen noen minutter etter at det ble utstedt: deretter avvises det med "SAML response has expired". Logg inn på nytt. Hvis svarene fortsetter å utløpe, kontroller klokkene på denne serveren og hos identitetsleverandøren din.
+:::
+
+:::details "This server requires single sign-on (SSO). Sign in with SSO instead."
+Hele instansen krever SSO, og dette var en pålogging med passord, tilgangsnøkkel eller Microsoft, eller en registrering. Logg heller inn med en av SSO-knappene på påloggingssiden. En master-admin logger inn med passordet sitt på `/accounts/admin-login`; for å la alle logge inn med passord igjen slår vedkommende av **Krev SSO for innlogging** på **Enkel pålogging**.
 :::
 
 ## Neste steg

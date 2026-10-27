@@ -8,7 +8,7 @@ El SSO global permite que un **administrador de la instancia** de OneUptime (adm
 :::cards
 - [Configurar un proveedor](#configurar-el-sso-global): Crearlo, dar a tu proveedor de identidad las URL de OneUptime y probarlo.
 - [Cómo inician sesión los usuarios](#cómo-inician-sesión-los-usuarios): Solo miembros existentes, o recién llegados añadidos a los proyectos que adjuntas.
-- [Imponer SSO](#imponer-sso): Exigir SSO en un proyecto o en toda la instancia.
+- [Imponer SSO](#imponer-sso): Exigir SSO en un proyecto, o en toda la instancia y su página de inicio de sesión.
 - [Desactivar un proveedor](#desactivar-o-eliminar-un-proveedor): Qué termina y qué cambios rechaza OneUptime.
 :::
 
@@ -27,21 +27,16 @@ Para el proveedor propio de un solo proyecto, consulta [SSO](/docs/identity/sso)
 :::steps
 ### Abrir la lista de proveedores
 
-:::tabs
-@tab SAML
-Inicia sesión como administrador maestro y abre el Admin Dashboard con **Ajustes de admin** en tu menú de usuario. Después ve a **Ajustes** > **Autenticación** > **Global SSO**.
-@tab OpenID Connect
-Inicia sesión como administrador maestro y abre el Admin Dashboard con **Ajustes de admin** en tu menú de usuario. Después ve a **Ajustes** > **Autenticación** > **Global OIDC**.
-:::
+Inicia sesión como administrador maestro y abre el Admin Dashboard con **Ajustes de admin** en tu menú de usuario. Después ve a **Ajustes** > **Inicio de sesión único**. Ahí están los proveedores SAML de la instancia, luego sus proveedores OpenID Connect y, al final, la tarjeta **Exigir SSO**.
 
 ### Crear el proveedor
 
 :::tabs
 @tab SAML
-- Haz clic en **Create Global SSO**.
+- Haz clic en **Añadir proveedor SAML**.
 - Introduce un **Nombre**, la **Sign On URL** y el **Issuer** de tu proveedor de identidad, y pega el **Public Certificate**. Todo lo demás ya está completado en **Más campos**: el **Signature Method** (`RSA-SHA256`), el **Digest Method** (`SHA256`) y una descripción (`Sign in with` y el nombre). Cámbialos solo si tu IdP lo requiere. Al guardar se abre la página del proveedor.
 @tab OpenID Connect
-- Haz clic en **Create Global OIDC**.
+- Haz clic en **Añadir proveedor OIDC**.
 - Introduce un **Nombre**, la **Issuer URL** y el **Client ID** y el **Client Secret** de la aplicación que registraste en tu IdP. También funciona pegar la URL de descubrimiento del IdP en **Issuer URL**. Todo lo demás ya está completado en **Más campos**: la **Discovery URL** (el emisor seguido de `/.well-known/openid-configuration`), los **Scopes** (`openid email profile`), los nombres de notificación `email` y `name`, y una descripción (`Sign in with` y el nombre). Cámbialos solo si tu IdP lo requiere. Al guardar se abre la página del proveedor.
 :::
 
@@ -56,13 +51,13 @@ En la página del proveedor, la tarjeta **Identity Provider URL** muestra la **R
 
 ### Activar el proveedor
 
-Un proveedor nuevo empieza desactivado. Haz clic en **Edit Configuration** en la página del proveedor y activa **Habilitado**.
+Un proveedor nuevo empieza desactivado. Haz clic en **Edit Configuration** en la página del proveedor y activa **Habilitado**. **Activar** en la fila del proveedor en **Inicio de sesión único** hace lo mismo.
 
-Activar un proveedor global solo añade una opción "Sign in with SSO" en la página de inicio de sesión: nunca impone el SSO ni deja fuera a nadie, así que puedes activarlo, probarlo y volver a desactivarlo sin riesgo si hace falta.
+Activar un proveedor global solo lo añade a las opciones de inicio de sesión único de la página de inicio de sesión: nunca impone el SSO ni deja fuera a nadie, así que puedes activarlo, probarlo y volver a desactivarlo sin riesgo si hace falta. Eso sí, mientras toda la instancia exige SSO, la página de inicio de sesión solo ofrece los proveedores activados: prueba un proveedor antes de exigir SSO.
 
 ### Probar el proveedor
 
-Usa el enlace de la tarjeta **Test this SSO provider** (**Test this OIDC provider** en OpenID Connect) para hacer un inicio de sesión completo a través de tu proveedor de identidad. No necesitas adjuntar ningún proyecto antes: la prueba inicia tu sesión en los proyectos a los que ya perteneces. El proveedor debe estar activado para que el enlace funcione.
+Usa el enlace de la tarjeta **Test this SSO provider** (**Test this OIDC provider** en OpenID Connect) para hacer un inicio de sesión completo a través de tu proveedor de identidad. **Probar inicio de sesión** en la fila del proveedor en **Inicio de sesión único** abre el mismo inicio de sesión en una pestaña nueva. No necesitas adjuntar ningún proyecto antes: la prueba inicia tu sesión en los proyectos a los que ya perteneces. El proveedor debe estar activado para que el enlace funcione.
 :::
 
 ## Cómo inician sesión los usuarios
@@ -101,7 +96,14 @@ Con **Todos los proyectos**, iniciar sesión con el proveedor cumple la exigenci
 Configurar un proveedor global no obliga a nadie a usarlo; el inicio de sesión con contraseña sigue funcionando. Para exigir SSO, activa la exigencia en un proyecto o en toda la instancia:
 
 - **Por proyecto:** un proyecto puede exigir SSO y, opcionalmente, un proveedor *concreto* (de proyecto o global). Consulta [Exigir SSO en tu proyecto](/docs/identity/sso#exigir-sso-en-tu-proyecto).
-- **En toda la instancia:** **Admin** > **Ajustes** > **Autenticación** tiene un interruptor **Exigir SSO para iniciar sesión** que impone el SSO a todos los usuarios de la instancia. Pide confirmación antes de activarse y se guarda en cuanto confirmas. Los administradores maestros quedan exentos para que nunca se queden fuera.
+- **En toda la instancia:** la tarjeta **Exigir SSO** al final de **Admin** > **Ajustes** > **Inicio de sesión único** tiene un interruptor **Exigir SSO para iniciar sesión** que impone el SSO a todos los usuarios de la instancia. Pide confirmación antes de activarse y se guarda en cuanto confirmas. Los administradores maestros quedan exentos para que nunca se queden fuera.
+
+Mientras toda la instancia exige SSO:
+
+- La página de inicio de sesión solo ofrece SSO: un botón por cada proveedor global activado, y ni contraseña, ni clave de acceso, ni inicio de sesión con Microsoft, ni registro. Conserva la búsqueda por correo, que encuentra el proveedor propio de un proyecto, solo mientras algún proyecto tenga uno.
+- OneUptime rechaza una contraseña, una clave de acceso, un inicio de sesión con Microsoft y un registro con "This server requires single sign-on (SSO). Sign in with SSO instead." Solo la contraseña o la clave de acceso de un administrador maestro siguen iniciando su sesión. Las personas obtienen su cuenta iniciando sesión con SSO o por invitación.
+- Quien ya inició sesión con una contraseña inicia sesión con SSO para abrir un proyecto. Llega a la página de inicio de sesión único del proyecto, que ofrece los proveedores propios del proyecto y los proveedores globales que inician sesión en él.
+- Los administradores maestros inician sesión con su contraseña en `/accounts/admin-login`, una dirección a la que no enlaza la página de inicio de sesión. La tarjeta **Exigir SSO** muestra la dirección completa bajo el interruptor, como **Inicio de sesión de administrador maestro**: guárdala, para desactivar la exigencia si tu proveedor de identidad deja de funcionar.
 
 Activar **Exigir SSO para iniciar sesión** necesita un proveedor de SSO que inicie sesiones, para que nadie se quede fuera por ello:
 
@@ -157,6 +159,10 @@ En un proveedor SAML, la respuesta se creó para otra aplicación: su audience n
 
 :::details "SAML response was already used"
 Cada respuesta de tu proveedor de identidad inicia sesión una sola vez, y solo durante unos minutos después de emitirse: después se rechaza con "SAML response has expired". Vuelve a iniciar sesión. Si las respuestas siguen caducando, comprueba los relojes de este servidor y de tu proveedor de identidad.
+:::
+
+:::details "This server requires single sign-on (SSO). Sign in with SSO instead."
+Toda la instancia exige SSO, y esto fue un inicio de sesión con contraseña, clave de acceso o Microsoft, o un registro. Inicia sesión con uno de los botones de SSO de la página de inicio de sesión. Un administrador maestro inicia sesión con su contraseña en `/accounts/admin-login`; para que todos puedan volver a iniciar sesión con contraseña, desactiva **Exigir SSO para iniciar sesión** en **Inicio de sesión único**.
 :::
 
 ## Próximos pasos

@@ -8,7 +8,7 @@ O SSO global permite que um **administrador da instância** do OneUptime (admini
 :::cards
 - [Configurar um provedor](#configurar-o-sso-global): Criá-lo, dar ao seu provedor de identidade as URLs do OneUptime e testá-lo.
 - [Como os usuários fazem login](#como-os-usuários-fazem-login): Só membros existentes, ou recém-chegados adicionados aos projetos que você anexa.
-- [Impor o SSO](#impor-o-sso): Exigir SSO em um projeto ou na instância inteira.
+- [Impor o SSO](#impor-o-sso): Exigir SSO em um projeto, ou na instância inteira e na sua página de login.
 - [Desligar um provedor](#desligar-ou-excluir-um-provedor): O que termina e quais alterações o OneUptime recusa.
 :::
 
@@ -27,21 +27,16 @@ Para o provedor próprio de um único projeto, veja [SSO](/docs/identity/sso).
 :::steps
 ### Abrir a lista de provedores
 
-:::tabs
-@tab SAML
-Faça login como administrador mestre e abra o Admin Dashboard com **Configurações de admin** no seu menu de usuário. Depois vá para **Configurações** > **Autenticação** > **Global SSO**.
-@tab OpenID Connect
-Faça login como administrador mestre e abra o Admin Dashboard com **Configurações de admin** no seu menu de usuário. Depois vá para **Configurações** > **Autenticação** > **Global OIDC**.
-:::
+Faça login como administrador mestre e abra o Admin Dashboard com **Configurações de admin** no seu menu de usuário. Depois vá para **Configurações** > **Login único**. A página lista os provedores SAML da instância, depois os provedores OpenID Connect, e termina com o cartão **Exigir SSO**.
 
 ### Criar o provedor
 
 :::tabs
 @tab SAML
-- Clique em **Create Global SSO**.
+- Clique em **Adicionar provedor SAML**.
 - Informe um **Nome**, a **Sign On URL** e o **Issuer** do seu provedor de identidade, e cole o **Public Certificate**. Todo o resto já vem preenchido em **Mais campos**: o **Signature Method** (`RSA-SHA256`), o **Digest Method** (`SHA256`) e uma descrição (`Sign in with` seguido do nome). Altere-os apenas se o seu IdP exigir. Ao salvar, abre-se a página do provedor.
 @tab OpenID Connect
-- Clique em **Create Global OIDC**.
+- Clique em **Adicionar provedor OIDC**.
 - Informe um **Nome**, a **Issuer URL**, o **Client ID** e o **Client Secret** do app que você registrou no seu IdP. Colar a URL de descoberta do IdP em **Issuer URL** também funciona. Todo o resto já vem preenchido em **Mais campos**: a **Discovery URL** (o emissor seguido de `/.well-known/openid-configuration`), os **Scopes** (`openid email profile`), os nomes das declarações `email` e `name`, e uma descrição (`Sign in with` seguido do nome). Altere-os apenas se o seu IdP exigir. Ao salvar, abre-se a página do provedor.
 :::
 
@@ -56,13 +51,13 @@ Na página do provedor, o cartão **Identity Provider URL** mostra a **Redirect 
 
 ### Ligar o provedor
 
-Um provedor novo começa desligado. Clique em **Edit Configuration** na página do provedor e ative **Habilitado**.
+Um provedor novo começa desligado. Clique em **Edit Configuration** na página do provedor e ative **Habilitado**. **Ativar** na linha do provedor em **Login único** faz o mesmo.
 
-Ligar um provedor global apenas adiciona uma opção "Sign in with SSO" na página de login — ele nunca impõe o SSO nem bloqueia ninguém, então é seguro ligá-lo, testá-lo e desligá-lo de novo se precisar.
+Ligar um provedor global apenas o adiciona às opções de login único da página de login — ele nunca impõe o SSO nem bloqueia ninguém, então é seguro ligá-lo, testá-lo e desligá-lo de novo se precisar. Enquanto a instância inteira exige SSO, porém, a página de login oferece só os provedores ligados: teste um provedor antes de exigir SSO.
 
 ### Testar o provedor
 
-Use o link do cartão **Test this SSO provider** (**Test this OIDC provider** no OpenID Connect) para fazer um login completo pelo seu provedor de identidade. Você não precisa anexar nenhum projeto antes: o teste faz o seu login nos projetos dos quais você já faz parte. O provedor precisa estar ligado para o link funcionar.
+Use o link do cartão **Test this SSO provider** (**Test this OIDC provider** no OpenID Connect) para fazer um login completo pelo seu provedor de identidade. **Testar login** na linha do provedor em **Login único** inicia o mesmo login em uma nova aba. Você não precisa anexar nenhum projeto antes: o teste faz o seu login nos projetos dos quais você já faz parte. O provedor precisa estar ligado para o link funcionar.
 :::
 
 ## Como os usuários fazem login
@@ -101,7 +96,14 @@ Com **Todos os projetos**, fazer login com o provedor atende à exigência de SS
 Configurar um provedor global não obriga ninguém a usá-lo; o login com senha continua funcionando. Para exigir SSO, ligue a exigência em um projeto ou na instância inteira:
 
 - **Por projeto:** um projeto pode exigir SSO e, opcionalmente, um provedor *específico* (de projeto ou global). Veja [Exigir SSO no seu projeto](/docs/identity/sso#exigir-sso-no-seu-projeto).
-- **Na instância inteira:** **Admin** > **Configurações** > **Autenticação** tem um interruptor **Exigir SSO para login** que impõe o SSO a todos os usuários da instância. Ele pede confirmação antes de ligar e salva assim que você confirma. Os administradores mestres continuam isentos para nunca ficarem sem acesso.
+- **Na instância inteira:** o cartão **Exigir SSO** no fim de **Admin** > **Configurações** > **Login único** tem um interruptor **Exigir SSO para login** que impõe o SSO a todos os usuários da instância. Ele pede confirmação antes de ligar e salva assim que você confirma. Os administradores mestres continuam isentos para nunca ficarem sem acesso.
+
+Enquanto a instância inteira exige SSO:
+
+- A página de login oferece só SSO: um botão para cada provedor global ligado, e nada de senha, chave de acesso, login com a Microsoft ou cadastro. Ela mantém a busca por e-mail, que encontra o provedor próprio de um projeto, só enquanto algum projeto tiver um.
+- O OneUptime recusa uma senha, uma chave de acesso, um login com a Microsoft e um cadastro com "This server requires single sign-on (SSO). Sign in with SSO instead." Só a senha ou a chave de acesso de um administrador mestre ainda fazem o login dele. As pessoas recebem a conta fazendo login com SSO ou por convite.
+- Quem já fez login com uma senha faz login com SSO para abrir um projeto. Essa pessoa chega à página de login único do projeto, que oferece os provedores próprios do projeto e os provedores globais que fazem login nele.
+- Os administradores mestres fazem login com a senha em `/accounts/admin-login`, um endereço para o qual a página de login não aponta. O cartão **Exigir SSO** mostra o endereço completo abaixo do interruptor, como **Login de administrador principal**: guarde-o, para desligar a exigência se o seu provedor de identidade parar de funcionar.
 
 Ligar **Exigir SSO para login** exige um provedor de SSO que faça o login das pessoas, para que ninguém fique sem acesso por causa disso:
 
@@ -157,6 +159,10 @@ Em um provedor SAML, a resposta foi criada para outro aplicativo: a audience del
 
 :::details "SAML response was already used"
 Cada resposta do seu provedor de identidade faz o login uma única vez, e só nos minutos seguintes à emissão: depois disso, ela é recusada com "SAML response has expired". Faça o login de novo. Se as respostas continuarem expirando, confira os relógios deste servidor e do seu provedor de identidade.
+:::
+
+:::details "This server requires single sign-on (SSO). Sign in with SSO instead."
+A instância inteira exige SSO, e este foi um login com senha, chave de acesso ou Microsoft, ou um cadastro. Faça login com um dos botões de SSO da página de login. Um administrador mestre faz login com a senha em `/accounts/admin-login`; para que todos voltem a fazer login com senha, ele desliga **Exigir SSO para login** em **Login único**.
 :::
 
 ## Próximos passos

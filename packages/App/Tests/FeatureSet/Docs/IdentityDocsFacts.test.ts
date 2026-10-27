@@ -2,7 +2,10 @@ import { readPage } from "./DocsContentSupport";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import SSOUtil from "../../../FeatureSet/Identity/Utils/SSO";
 import RequireSsoForLoginSwitchCopy from "../../../FeatureSet/Dashboard/src/Components/Project/RequireSsoForLoginSwitchCopy";
-import { REQUIRE_SSO_COPY } from "../../../FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/AuthenticationSwitchesCopy";
+import {
+  REQUIRE_SSO_COPY,
+  SSO_PAGE_COPY,
+} from "../../../FeatureSet/AdminDashboard/src/Pages/Settings/SSO/SsoSettingsCopy";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import GlobalOIDC from "Common/Models/DatabaseModels/GlobalOidc";
 import GlobalSSO from "Common/Models/DatabaseModels/GlobalSso";
@@ -12,6 +15,10 @@ import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import ProjectSSO from "Common/Models/DatabaseModels/ProjectSso";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
 import URL from "Common/Types/API/URL";
+import {
+  MASTER_ADMIN_SIGN_IN_PATH,
+  SSO_REQUIRED_SIGN_IN_MESSAGE,
+} from "Common/Types/SSO/SignInMethods";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { getTableColumn } from "Common/Types/Database/TableColumn";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
@@ -91,8 +98,10 @@ const SOURCES: Record<string, string> = {
   adminNavBar: `${ADMIN_DASHBOARD}/Components/NavBar/NavBar.tsx`,
   adminSettingsSideMenu: `${ADMIN_DASHBOARD}/Pages/Settings/SideMenu.tsx`,
   adminAuthenticationPage: `${ADMIN_DASHBOARD}/Pages/Settings/Authentication/Index.tsx`,
-  globalSsoList: `${ADMIN_DASHBOARD}/Pages/Settings/GlobalSSO/Index.tsx`,
-  globalOidcList: `${ADMIN_DASHBOARD}/Pages/Settings/GlobalOIDC/Index.tsx`,
+  // The providers, SAML then OIDC, and Require SSO for Login under them.
+  adminSsoPage: `${ADMIN_DASHBOARD}/Pages/Settings/SSO/Index.tsx`,
+  adminSsoCopy: `${ADMIN_DASHBOARD}/Pages/Settings/SSO/SsoSettingsCopy.ts`,
+  adminLocaleEn: `${ADMIN_DASHBOARD}/Locales/en.json`,
   globalSsoView: `${ADMIN_DASHBOARD}/Pages/Settings/GlobalSSO/View.tsx`,
   globalOidcView: `${ADMIN_DASHBOARD}/Pages/Settings/GlobalOIDC/View.tsx`,
   providerFields: "packages/Common/UI/Components/Sso/SsoProviderFormFields.ts",
@@ -791,11 +800,9 @@ describe("the SSO guide", () => {
   });
 
   it("names the create buttons after the models", () => {
-    for (const [model, page] of [
-      [new ProjectSCIM(), SCIM],
-      [new GlobalSSO(), GLOBAL_SSO],
-      [new GlobalOIDC(), GLOBAL_SSO],
-    ] as Array<[BaseModel, string]>) {
+    for (const [model, page] of [[new ProjectSCIM(), SCIM]] as Array<
+      [BaseModel, string]
+    >) {
       const button: string = `Create ${model.singularName}`;
 
       expect({
@@ -834,8 +841,14 @@ describe("the SSO guide", () => {
 
     const picker: string = readSource("providerPickPage");
 
-    expect(picker).toContain('.addRoute("/sso-list")');
-    expect(picker).toContain('.addRoute("/oidc-list")');
+    /*
+     * One list from the identity server: the project's own providers and
+     * the global ones that sign people in to it.
+     */
+    expect(picker).toContain(
+      "new Route(`/project-sign-in-methods/${projectId.toString()}`)",
+    );
+    expect(picker).not.toContain("/sso-list");
     expect(picker).toContain(
       'description="Please select an SSO provider to log in to this project."',
     );
@@ -894,24 +907,31 @@ describe("the SSO guide", () => {
     );
   });
 
-  it("finds the server-wide switch on the Admin Dashboard's Authentication page, as it is named there", () => {
+  it("finds the server-wide switch on the Admin Dashboard's Single Sign-On page, as it is named there", () => {
     expect(REQUIRE_SSO_COPY.switchTitle).toBe("Require SSO for Login");
+    expect(REQUIRE_SSO_COPY.cardTitle).toBe("Require SSO");
     expect(REQUIRE_SSO_COPY.confirmButton).toBe("Require SSO");
-    expect(readSource("adminAuthenticationPage")).toContain(
+    expect(readSource("adminSsoPage")).toContain('column="requireSsoForLogin"');
+    // Not on Settings > Authentication any more.
+    expect(readSource("adminAuthenticationPage")).not.toContain(
       'column="requireSsoForLogin"',
     );
     expect(readSource("adminSettingsSideMenu")).toMatch(
-      /title: t\("sideMenu\.settingsAuthentication"\),\s*to: RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.SETTINGS_AUTHENTICATION\]/,
+      /title: t\("sideMenu\.settingsSso"\),\s*to: RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.SETTINGS_SSO\]/,
     );
 
     for (const page of [SSO, GLOBAL_SSO]) {
       expect({
         page,
         path: english(page).includes(
-          "**Admin** > **Settings** > **Authentication**",
+          "**Admin** > **Settings** > **Single Sign-On**",
         ),
       }).toEqual({ page, path: true });
     }
+
+    expect(english(GLOBAL_SSO)).toContain(
+      "the **Require SSO** card at the bottom of **Admin** > **Settings** > **Single Sign-On** has a **Require SSO for Login** switch",
+    );
   });
 
   it("finds SSO, OIDC and SCIM under Security on a status page, and SSO and SCIM in a project's settings", () => {
@@ -970,32 +990,111 @@ describe("the Global SSO guide", () => {
     );
   });
 
-  it("goes to Settings > Authentication > Global SSO or Global OIDC, as the Admin Dashboard's menus name them", () => {
+  it("goes to Settings > Single Sign-On, as the Admin Dashboard's menus name it", () => {
     expect(readSource("adminNavBar")).toMatch(
       /title: "Settings",[\s\S]{0,200}?RouteMap\[PageMap\.SETTINGS\]/,
     );
 
+    // One page for both kinds of provider: no Global SSO or Global OIDC entry.
     const sideMenu: string = readSource("adminSettingsSideMenu");
-    const section: string = sideMenu.slice(
-      sideMenu.indexOf('title={t("sideMenu.settingsAuthentication")}'),
-    );
 
-    expect(section.indexOf('title: "Global SSO"')).toBeGreaterThan(0);
-    expect(section.indexOf('title: "Global OIDC"')).toBeGreaterThan(
-      section.indexOf('title: "Global SSO"'),
-    );
+    expect(sideMenu).toContain('title: t("sideMenu.settingsSso")');
+    expect(sideMenu).not.toMatch(/title: "Global (SSO|OIDC)"/);
+
+    const locale: {
+      sideMenu: Record<string, string>;
+      breadcrumbs: Record<string, string>;
+    } = JSON.parse(readSource("adminLocaleEn")) as {
+      sideMenu: Record<string, string>;
+      breadcrumbs: Record<string, string>;
+    };
+
+    expect(locale.sideMenu["settingsSso"]).toBe("Single Sign-On");
 
     const page: string = english(GLOBAL_SSO);
 
+    expect(page).toContain("Then go to **Settings** > **Single Sign-On**.");
+    // In the order the page draws them.
     expect(page).toContain(
-      "Then go to **Settings** > **Authentication** > **Global SSO**.",
+      "It lists the instance's SAML providers, then its OpenID Connect providers, and ends with the **Require SSO** card.",
+    );
+
+    const source: string = readSource("adminSsoPage");
+    const saml: number = source.indexOf("<ModelTable<GlobalSSO>");
+    const oidc: number = source.indexOf("<ModelTable<GlobalOIDC>");
+    const requireSso: number = source.indexOf("<ModelSwitchCard<GlobalConfig>");
+
+    expect(saml).toBeGreaterThan(0);
+    expect(oidc).toBeGreaterThan(saml);
+    expect(requireSso).toBeGreaterThan(oidc);
+  });
+
+  it("names the Single Sign-On page's buttons and row actions as it draws them", () => {
+    const source: string = readSource("adminSsoPage");
+    const page: string = english(GLOBAL_SSO);
+
+    for (const [noun, button] of [
+      [SSO_PAGE_COPY.samlProvider, "Add SAML Provider"],
+      [SSO_PAGE_COPY.oidcProvider, "Add OIDC Provider"],
+    ] as Array<[string, string]>) {
+      expect(`Add ${noun}`).toBe(button);
+      expect({
+        button,
+        named: page.includes(`- Click **${button}**.`),
+      }).toEqual({ button, named: true });
+    }
+
+    expect(source).toContain("singularName={SSO_PAGE_COPY.samlProvider}");
+    expect(source).toContain("singularName={SSO_PAGE_COPY.oidcProvider}");
+    expect(source.split('createVerb="Add"').length - 1).toBe(2);
+    expect(page).not.toMatch(/\*\*Create Global (SSO|OIDC)\*\*/);
+
+    // Each row: its switch (Enable / Disable) and Test Sign-in.
+    expect(source.split('rowSwitch={{ column: "isEnabled" }}').length - 1).toBe(
+      2,
     );
     expect(page).toContain(
-      "Then go to **Settings** > **Authentication** > **Global OIDC**.",
+      "**Enable** in the provider's row on **Single Sign-On** does the same.",
+    );
+    expect(SSO_PAGE_COPY.testSignIn).toBe("Test Sign-in");
+    expect(source.split("title: SSO_PAGE_COPY.testSignIn,").length - 1).toBe(2);
+    expect(page).toContain(
+      "**Test Sign-in** in the provider's row on **Single Sign-On** starts the same sign-in in a new tab.",
+    );
+    // The card above the switch says to test first, by that name.
+    expect(REQUIRE_SSO_COPY.cardDescription).toContain(
+      SSO_PAGE_COPY.testSignIn,
     );
   });
 
-  it("names the Admin Dashboard's Settings and Authentication by the words its menus look up, which agree in every language", () => {
+  it("says what requiring SSO for the whole instance does to the sign-in page, and where master admins sign in", () => {
+    const page: string = english(GLOBAL_SSO);
+
+    expect(MASTER_ADMIN_SIGN_IN_PATH).toBe("/accounts/admin-login");
+    expect(page).toContain(
+      `Master admins sign in with their password at \`${MASTER_ADMIN_SIGN_IN_PATH}\`, which the sign-in page does not link to.`,
+    );
+    expect(REQUIRE_SSO_COPY.masterAdminAddressLabel).toBe(
+      "Master admin sign-in",
+    );
+    expect(page).toContain("under the switch, as **Master admin sign-in**");
+    expect(readSource("adminSsoPage")).toContain(
+      "label: REQUIRE_SSO_COPY.masterAdminAddressLabel,",
+    );
+
+    // The refusal, quoted as the server sends it.
+    expect(page).toContain(`with "${SSO_REQUIRED_SIGN_IN_MESSAGE}"`);
+    expect(page).toContain(`:::details "${SSO_REQUIRED_SIGN_IN_MESSAGE}"`);
+
+    expect(page).toContain(
+      "The sign-in page offers only SSO: a button for each global provider that is on, and no password, passkey, Microsoft sign-in or sign-up.",
+    );
+    expect(page).toContain(
+      "They land on the project's single sign-on page, which offers the project's own providers and the global providers that sign people in to it.",
+    );
+  });
+
+  it("names the Admin Dashboard's Settings and Single Sign-On by the words its menus look up, which agree in every language", () => {
     const locales: string = path.join(
       PACKAGES_DIR,
       "App/FeatureSet/AdminDashboard/src/Locales",
@@ -1021,24 +1120,28 @@ describe("the Global SSO guide", () => {
         file,
         settings: navbar["settings"],
       });
-      expect({ file, authentication: locale["Authentication"] }).toEqual({
+      // The page reads the same in the side menu and in its breadcrumb.
+      const breadcrumbs: Record<string, string> = (locale["breadcrumbs"] ||
+        {}) as Record<string, string>;
+
+      expect({ file, singleSignOn: breadcrumbs["singleSignOn"] }).toEqual({
         file,
-        authentication: sideMenu["settingsAuthentication"],
+        singleSignOn: sideMenu["settingsSso"],
       });
     }
   });
 
   it("says saving a new provider opens its page", () => {
-    for (const [key, view] of [
-      ["globalSsoList", "SETTINGS_GLOBAL_SSO_VIEW"],
-      ["globalOidcList", "SETTINGS_GLOBAL_OIDC_VIEW"],
-    ] as Array<[string, string]>) {
+    for (const view of [
+      "SETTINGS_GLOBAL_SSO_VIEW",
+      "SETTINGS_GLOBAL_OIDC_VIEW",
+    ]) {
       expect({
-        key,
+        view,
         opens: new RegExp(
           `onCreateSuccess=\\{[\\s\\S]{0,300}?modalType === ModalType\\.Create[\\s\\S]{0,200}?RouteMap\\[PageMap\\.${view}\\]`,
-        ).test(readSource(key)),
-      }).toEqual({ key, opens: true });
+        ).test(readSource("adminSsoPage")),
+      }).toEqual({ view, opens: true });
     }
 
     expect(english(GLOBAL_SSO)).toContain("Saving opens the provider's page.");

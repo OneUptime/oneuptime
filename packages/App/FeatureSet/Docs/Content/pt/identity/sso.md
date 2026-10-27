@@ -281,7 +281,7 @@ Um salvamento que envia **Exigir SSO para login** ligado quando ele já está li
 
 Um projeto novo segue a mesma regra. Ele ainda não tem provedor próprio, então criá-lo com **Exigir SSO para login** já ligado — só um administrador mestre pode — exige um provedor global ligado que faça login em todos os projetos, e sem ele a criação é recusada com as mesmas palavras. Crie o projeto, configure e teste o provedor dele e depois ligue o interruptor.
 
-Enquanto o servidor inteiro exigir SSO (**Admin** > **Configurações** > **Autenticação** > **Exigir SSO para login**), criar qualquer projeto também exige um provedor global assim; caso contrário, ninguém, nem quem o criou, conseguiria abrir o projeto. Sem ele, a criação de um projeto é recusada, e a mensagem pede que um administrador do servidor ligue um. Administradores mestres continuam podendo criar projetos.
+Enquanto o servidor inteiro exigir SSO (**Admin** > **Configurações** > **Login único** > **Exigir SSO para login**), criar qualquer projeto também exige um provedor global assim; caso contrário, ninguém, nem quem o criou, conseguiria abrir o projeto. Sem ele, a criação de um projeto é recusada, e a mensagem pede que um administrador do servidor ligue um. Administradores mestres continuam podendo criar projetos.
 
 Desligar **Exigir SSO para login** salva assim que você muda o interruptor e deixa os membros voltarem com a senha na hora — a menos que alguém o ligue de novo nesse mesmo instante; nesse caso, um servidor de aplicação pode levar até um minuto para acompanhar. Podem alterá-lo os proprietários e administradores do projeto e os membros com a permissão **Edit Project**; os demais veem o interruptor bloqueado, com a permissão de que precisariam.
 
@@ -308,7 +308,7 @@ Enquanto o projeto exigir SSO, o OneUptime mantém uma forma de entrar: você n�
 
 Ligar um provedor permite fazer login com ele na hora.
 
-Quando o servidor inteiro exige SSO (**Admin** > **Configurações** > **Autenticação** > **Exigir SSO para login**), cada projeto mantém uma forma de entrar da mesma maneira, mesmo um que não exige SSO por conta própria: ligue primeiro outro provedor para ele.
+Quando o servidor inteiro exige SSO (**Admin** > **Configurações** > **Login único** > **Exigir SSO para login**), cada projeto mantém uma forma de entrar da mesma maneira, mesmo um que não exige SSO por conta própria: ligue primeiro outro provedor para ele.
 
 Os provedores globais seguem a mesma regra: uma alteração em um deles, ou nos projetos anexados a ele, que deixaria sem provedor um projeto que exige SSO é recusada, indicando o projeto. Veja [SSO global](/docs/identity/global-sso#desligar-ou-excluir-um-provedor).
 

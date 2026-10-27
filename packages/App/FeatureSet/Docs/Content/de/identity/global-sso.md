@@ -8,7 +8,7 @@ Mit Global SSO richtet ein **Instanzadministrator** (Master-Admin) von OneUptime
 :::cards
 - [Einen Anbieter einrichten](#global-sso-einrichten): Anlegen, Ihrem Identitätsanbieter die URLs von OneUptime geben und testen.
 - [So melden sich Benutzer an](#so-melden-sich-benutzer-an): Nur bestehende Mitglieder oder Neue, die den zugewiesenen Projekten hinzugefügt werden.
-- [SSO durchsetzen](#sso-durchsetzen): SSO für ein Projekt oder für die ganze Instanz verlangen.
+- [SSO durchsetzen](#sso-durchsetzen): SSO für ein Projekt oder für die ganze Instanz und ihre Anmeldeseite verlangen.
 - [Einen Anbieter ausschalten](#einen-anbieter-ausschalten-oder-löschen): Was endet und welche Änderungen OneUptime ablehnt.
 :::
 
@@ -27,21 +27,16 @@ Für den eigenen Anbieter eines einzelnen Projekts siehe [SSO](/docs/identity/ss
 :::steps
 ### Die Anbieterliste öffnen
 
-:::tabs
-@tab SAML
-Melden Sie sich als Master-Admin an und öffnen Sie das Admin Dashboard über **Admin-Einstellungen** in Ihrem Benutzermenü. Gehen Sie dann zu **Einstellungen** > **Authentifizierung** > **Global SSO**.
-@tab OpenID Connect
-Melden Sie sich als Master-Admin an und öffnen Sie das Admin Dashboard über **Admin-Einstellungen** in Ihrem Benutzermenü. Gehen Sie dann zu **Einstellungen** > **Authentifizierung** > **Global OIDC**.
-:::
+Melden Sie sich als Master-Admin an und öffnen Sie das Admin Dashboard über **Admin-Einstellungen** in Ihrem Benutzermenü. Gehen Sie dann zu **Einstellungen** > **Single Sign-On**. Dort stehen die SAML-Anbieter der Instanz, darunter ihre OpenID-Connect-Anbieter und zuletzt die Karte **SSO erfordern**.
 
 ### Den Anbieter anlegen
 
 :::tabs
 @tab SAML
-- Klicken Sie auf **Create Global SSO**.
+- Klicken Sie auf **SAML-Anbieter hinzufügen**.
 - Geben Sie einen **Name**, die **Sign On URL** und den **Issuer** Ihres Identitätsanbieters ein und fügen Sie das **Public Certificate** ein. Alles Weitere ist unter **Weitere Felder** ausgefüllt: die **Signature Method** (`RSA-SHA256`), die **Digest Method** (`SHA256`) und eine Beschreibung (`Sign in with` und der Name). Ändern Sie sie nur, wenn Ihr IdP es verlangt. Beim Speichern öffnet sich die Seite des Anbieters.
 @tab OpenID Connect
-- Klicken Sie auf **Create Global OIDC**.
+- Klicken Sie auf **OIDC-Anbieter hinzufügen**.
 - Geben Sie einen **Name**, die **Issuer URL** sowie die **Client ID** und das **Client Secret** der App ein, die Sie in Ihrem IdP registriert haben. Die Discovery-URL des IdP in **Issuer URL** einzufügen funktioniert auch. Alles Weitere ist unter **Weitere Felder** ausgefüllt: die **Discovery URL** (der Issuer, gefolgt von `/.well-known/openid-configuration`), die **Scopes** (`openid email profile`), die Claim-Namen `email` und `name` sowie eine Beschreibung (`Sign in with` und der Name). Ändern Sie sie nur, wenn Ihr IdP es verlangt. Beim Speichern öffnet sich die Seite des Anbieters.
 :::
 
@@ -56,13 +51,13 @@ Auf der Seite des Anbieters zeigt die Karte **Identity Provider URL** die **Redi
 
 ### Den Anbieter einschalten
 
-Ein neuer Anbieter ist zunächst ausgeschaltet. Klicken Sie auf der Seite des Anbieters auf **Edit Configuration** und schalten Sie **Aktiviert** ein.
+Ein neuer Anbieter ist zunächst ausgeschaltet. Klicken Sie auf der Seite des Anbieters auf **Edit Configuration** und schalten Sie **Aktiviert** ein. **Aktivieren** in der Zeile des Anbieters auf **Single Sign-On** tut dasselbe.
 
-Einen globalen Anbieter einzuschalten fügt der Anmeldeseite nur eine Option "Sign in with SSO" hinzu – es erzwingt nie SSO und sperrt niemanden aus. Sie können ihn also gefahrlos einschalten, testen und bei Bedarf wieder ausschalten.
+Einen globalen Anbieter einzuschalten nimmt ihn nur in die Single-Sign-On-Optionen der Anmeldeseite auf – es erzwingt nie SSO und sperrt niemanden aus. Sie können ihn also gefahrlos einschalten, testen und bei Bedarf wieder ausschalten. Solange die ganze Instanz SSO verlangt, bietet die Anmeldeseite allerdings nur die eingeschalteten Anbieter an: Testen Sie einen Anbieter, bevor Sie SSO verlangen.
 
 ### Den Anbieter testen
 
-Mit dem Link in der Karte **Test this SSO provider** (**Test this OIDC provider** bei OpenID Connect) führen Sie eine vollständige Anmeldung über Ihren Identitätsanbieter durch. Sie müssen vorher keine Projekte zuweisen: Der Test meldet Sie in den Projekten an, zu denen Sie schon gehören. Der Anbieter muss eingeschaltet sein, damit der Link funktioniert.
+Mit dem Link in der Karte **Test this SSO provider** (**Test this OIDC provider** bei OpenID Connect) führen Sie eine vollständige Anmeldung über Ihren Identitätsanbieter durch. **Anmeldung testen** in der Zeile des Anbieters auf **Single Sign-On** startet dieselbe Anmeldung in einem neuen Tab. Sie müssen vorher keine Projekte zuweisen: Der Test meldet Sie in den Projekten an, zu denen Sie schon gehören. Der Anbieter muss eingeschaltet sein, damit der Link funktioniert.
 :::
 
 ## So melden sich Benutzer an
@@ -101,7 +96,14 @@ Mit **Jedes Projekt** erfüllt die Anmeldung mit dem Anbieter die SSO-Pflicht in
 Einen globalen Anbieter einzurichten zwingt niemanden, ihn zu nutzen; die Anmeldung mit Passwort funktioniert weiter. Um SSO zu verlangen, schalten Sie die Anforderung für ein Projekt oder für die ganze Instanz ein:
 
 - **Pro Projekt:** Ein Projekt kann SSO verlangen und optional einen *bestimmten* Anbieter (Projekt- oder globalen Anbieter). Siehe [SSO für Ihr Projekt verlangen](/docs/identity/sso#sso-für-ihr-projekt-verlangen).
-- **Instanzweit:** Unter **Admin** > **Einstellungen** > **Authentifizierung** gibt es einen Schalter **SSO für die Anmeldung erfordern**, der SSO für jeden Benutzer der Instanz erzwingt. Er fragt vor dem Einschalten nach einer Bestätigung und speichert, sobald Sie bestätigen. Master-Admins bleiben ausgenommen, damit sie nicht ausgesperrt werden können.
+- **Instanzweit:** Die Karte **SSO erfordern** unten auf **Admin** > **Einstellungen** > **Single Sign-On** hat einen Schalter **SSO für die Anmeldung erfordern**, der SSO für jeden Benutzer der Instanz erzwingt. Er fragt vor dem Einschalten nach einer Bestätigung und speichert, sobald Sie bestätigen. Master-Admins bleiben ausgenommen, damit sie nicht ausgesperrt werden können.
+
+Solange die ganze Instanz SSO verlangt:
+
+- Die Anmeldeseite bietet nur SSO an: eine Schaltfläche für jeden eingeschalteten globalen Anbieter, und kein Passwort, keinen Passkey, keine Microsoft-Anmeldung und keine Registrierung. Die Suche per E-Mail, die den eigenen Anbieter eines Projekts findet, bleibt nur, solange ein Projekt einen eigenen hat.
+- OneUptime lehnt ein Passwort, einen Passkey, eine Microsoft-Anmeldung und eine Registrierung mit "This server requires single sign-on (SSO). Sign in with SSO instead." ab. Nur das Passwort oder der Passkey eines Master-Admins meldet ihn weiterhin an. Ihr Konto erhalten Personen, indem sie sich mit SSO anmelden oder eingeladen werden.
+- Wer schon mit einem Passwort angemeldet ist, meldet sich mit SSO an, um ein Projekt zu öffnen. Dabei landet er auf der Single-Sign-On-Seite des Projekts, die die eigenen Anbieter des Projekts anbietet und die globalen Anbieter, die Personen in das Projekt anmelden.
+- Master-Admins melden sich mit ihrem Passwort unter `/accounts/admin-login` an; die Anmeldeseite verlinkt diese Adresse nicht. Die Karte **SSO erfordern** zeigt die vollständige Adresse unter dem Schalter als **Anmeldung für Master-Administratoren**: Bewahren Sie sie auf, um die Anforderung auszuschalten, falls Ihr Identitätsanbieter nicht mehr funktioniert.
 
 Um **SSO für die Anmeldung erfordern** einzuschalten, braucht es einen SSO-Anbieter, der Personen anmeldet, damit niemand dadurch ausgesperrt wird:
 
@@ -157,6 +159,10 @@ Bei einem SAML-Anbieter ist die Audience der Antwort nicht die **Issuer (Entity 
 
 :::details "SAML response was already used"
 Jede Antwort Ihres Identitätsanbieters gilt für genau eine Anmeldung, und nur wenige Minuten nach ihrer Ausstellung: Danach wird sie mit "SAML response has expired" abgelehnt. Melden Sie sich erneut an. Laufen Antworten immer wieder ab, prüfen Sie die Uhren dieses Servers und Ihres Identitätsanbieters.
+:::
+
+:::details "This server requires single sign-on (SSO). Sign in with SSO instead."
+Die ganze Instanz verlangt SSO, und dies war eine Anmeldung mit Passwort, Passkey oder Microsoft oder eine Registrierung. Melden Sie sich stattdessen über eine der SSO-Schaltflächen der Anmeldeseite an. Ein Master-Admin meldet sich mit seinem Passwort unter `/accounts/admin-login` an; damit sich alle wieder mit Passwort anmelden können, schaltet er **SSO für die Anmeldung erfordern** auf **Single Sign-On** aus.
 :::
 
 ## Nächste Schritte

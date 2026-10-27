@@ -281,7 +281,7 @@ Ein Speichern, das **SSO für die Anmeldung erzwingen** als eingeschaltet sendet
 
 Für ein neues Projekt gilt dieselbe Regel. Es hat noch keinen eigenen Anbieter, daher braucht das Anlegen mit bereits eingeschaltetem **SSO für die Anmeldung erzwingen** – das kann nur ein Master-Admin – einen globalen Anbieter, der eingeschaltet ist und Personen in jedes Projekt anmeldet; ohne ihn wird es mit denselben Worten abgelehnt. Legen Sie das Projekt an, richten Sie seinen Anbieter ein und testen Sie ihn, und schalten Sie dann den Schalter ein.
 
-Solange der ganze Server SSO verlangt (**Admin** > **Einstellungen** > **Authentifizierung** > **SSO für die Anmeldung erfordern**), braucht das Anlegen jedes Projekts ebenfalls einen solchen globalen Anbieter, sonst könnte niemand, auch nicht die Person, die es anlegt, das Projekt öffnen. Ohne ihn wird das Anlegen eines Projekts abgelehnt, und die Meldung bittet darum, dass ein Server-Admin einen einschaltet. Master-Admins können weiterhin Projekte anlegen.
+Solange der ganze Server SSO verlangt (**Admin** > **Einstellungen** > **Single Sign-On** > **SSO für die Anmeldung erfordern**), braucht das Anlegen jedes Projekts ebenfalls einen solchen globalen Anbieter, sonst könnte niemand, auch nicht die Person, die es anlegt, das Projekt öffnen. Ohne ihn wird das Anlegen eines Projekts abgelehnt, und die Meldung bittet darum, dass ein Server-Admin einen einschaltet. Master-Admins können weiterhin Projekte anlegen.
 
 Das Ausschalten von **SSO für die Anmeldung erzwingen** speichert, sobald Sie den Schalter umlegen, und lässt Mitglieder sofort wieder mit ihrem Passwort hinein – es sei denn, jemand schaltet ihn im selben Moment wieder ein; dann kann ein App-Server bis zu einer Minute brauchen, um nachzuziehen. Ändern können ihn Projekteigentümer, Projektadmins und Mitglieder mit der Berechtigung **Edit Project**; alle anderen sehen den Schalter gesperrt, zusammen mit der Berechtigung, die sie bräuchten.
 
@@ -308,7 +308,7 @@ Solange das Projekt SSO verlangt, hält OneUptime einen Weg hinein offen: Sie k�
 
 Einen Anbieter einzuschalten lässt Personen sofort damit anmelden.
 
-Wenn der ganze Server SSO verlangt (**Admin** > **Einstellungen** > **Authentifizierung** > **SSO für die Anmeldung erfordern**), behält jedes Projekt auf dieselbe Weise einen Weg hinein, auch eines, das selbst kein SSO verlangt: Schalten Sie zuerst einen anderen Anbieter dafür ein.
+Wenn der ganze Server SSO verlangt (**Admin** > **Einstellungen** > **Single Sign-On** > **SSO für die Anmeldung erfordern**), behält jedes Projekt auf dieselbe Weise einen Weg hinein, auch eines, das selbst kein SSO verlangt: Schalten Sie zuerst einen anderen Anbieter dafür ein.
 
 Für globale Anbieter gilt dieselbe Regel: Eine Änderung an einem globalen Anbieter oder an seinen zugewiesenen Projekten, die ein Projekt, das SSO verlangt, ohne Anbieter ließe, wird abgelehnt und nennt das Projekt. Siehe [Globales SSO](/docs/identity/global-sso#einen-anbieter-ausschalten-oder-löschen).
 
