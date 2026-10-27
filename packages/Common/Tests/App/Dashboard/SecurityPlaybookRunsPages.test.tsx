@@ -13,6 +13,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
@@ -49,6 +50,10 @@ import SecurityCasePlaybookRuns, {
   CASE_PLAYBOOK_RUNS_EMPTY_TITLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityCasePlaybookRuns";
 import { TableEmptyStateKind } from "../../../UI/Components/Table/TableEmptyState";
+import {
+  RUN_CARD_STEPS_TOGGLE_TEST_ID,
+  RUN_CARD_SUMMARY_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunCard";
 import {
   PLAYBOOK_RUNS_PAGE_LIMIT,
   SECURITY_PLAYBOOK_RUN_VIEWS,
@@ -100,6 +105,33 @@ function finishedRun(): SecurityPlaybookRun {
   run.createdAt = new Date(Date.now() - 60 * 60 * 1000);
   run.startedAt = run.createdAt;
   run.completedAt = new Date(Date.now() - 59 * 60 * 1000);
+  return run;
+}
+
+/*
+ * Another run on the same case: a playbook run at a new detection, `minutes`
+ * ago, one step that did what it should.
+ */
+function runOnCase(
+  id: string,
+  playbookName: string,
+  minutesAgo: number,
+  status: SecurityPlaybookRunStatus,
+): SecurityPlaybookRun {
+  const run: SecurityPlaybookRun = finishedRun();
+  run._id = id;
+  run.playbookName = playbookName;
+  run.status = status;
+  run.steps = [
+    {
+      id: `${id}-step`,
+      action: "AddCaseNote",
+      title: "Add a note",
+    } as never,
+  ];
+  run.stepResults = [];
+  run.createdAt = new Date(Date.now() - minutesAgo * 60 * 1000);
+  run.startedAt = run.createdAt;
   return run;
 }
 
@@ -398,7 +430,7 @@ describe("a case's Playbooks", () => {
     expect(screen.queryByText(CASE_PLAYBOOK_RUNS_DESCRIPTION)).toBeNull();
   });
 
-  test("with runs, the card says what it holds and draws each run whole, with no empty state", async () => {
+  test("with runs, the card says what it holds and draws them, with no empty state", async () => {
     listedRuns = [finishedRun()];
 
     await renderCaseRuns();
@@ -410,6 +442,145 @@ describe("a case's Playbooks", () => {
       CASE_PLAYBOOK_RUNS_DESCRIPTION,
     );
     expect(screen.queryByTestId(CASE_PLAYBOOK_RUNS_EMPTY_TEST_ID)).toBeNull();
+  });
+
+  /*
+   * A playbook that runs at every new detection gives a busy case a run a
+   * detection, and drawn whole they made a page of steps nobody could
+   * scan. Each run is a line of how far it got, as on Playbook Runs - but
+   * the newest opens: it is the one a case's page is read for.
+   */
+  test("folds each run to a line, the newest open on its steps", async () => {
+    listedRuns = [
+      runOnCase(
+        "25000000-0000-4000-8000-000000000011",
+        "Escalate Known-Bad Indicators",
+        5,
+        SecurityPlaybookRunStatus.Succeeded,
+      ),
+      runOnCase(
+        "25000000-0000-4000-8000-000000000012",
+        "Enrich New Cases",
+        90,
+        SecurityPlaybookRunStatus.Succeeded,
+      ),
+      runOnCase(
+        "25000000-0000-4000-8000-000000000013",
+        "Notify the SOC",
+        180,
+        SecurityPlaybookRunStatus.Succeeded,
+      ),
+    ];
+
+    await renderCaseRuns();
+
+    const cards: Array<HTMLElement> = await screen.findAllByTestId(
+      "security-playbook-run-card",
+    );
+
+    expect(
+      cards.map((card: HTMLElement): [string, string | null] => {
+        return [
+          card.textContent?.includes("Escalate Known-Bad Indicators")
+            ? "newest"
+            : card.textContent?.includes("Enrich New Cases")
+              ? "older"
+              : "oldest",
+          within(card)
+            .getByTestId(RUN_CARD_STEPS_TOGGLE_TEST_ID)
+            .getAttribute("aria-expanded"),
+        ];
+      }),
+    ).toEqual([
+      ["newest", "true"],
+      ["older", "false"],
+      ["oldest", "false"],
+    ]);
+
+    // Each says how far it got, folded or not.
+    for (const card of cards) {
+      expect(within(card).getByTestId(RUN_CARD_SUMMARY_TEST_ID)).toBeVisible();
+    }
+
+    // The newest shows its steps; the others hide theirs a click away.
+    expect(within(cards[0]!).getByText("Hide steps")).toBeInTheDocument();
+    expect(within(cards[1]!).getByText("Show steps")).toBeInTheDocument();
+    expect(within(cards[2]!).getByText("Show steps")).toBeInTheDocument();
+  });
+
+  test("an older run waiting for approval opens too: its steps are what the approver decides on", async () => {
+    listedRuns = [
+      runOnCase(
+        "25000000-0000-4000-8000-000000000021",
+        "Enrich New Cases",
+        5,
+        SecurityPlaybookRunStatus.Succeeded,
+      ),
+      runOnCase(
+        "25000000-0000-4000-8000-000000000022",
+        "Contain Compromised Okta Users",
+        40,
+        SecurityPlaybookRunStatus.WaitingForApproval,
+      ),
+      runOnCase(
+        "25000000-0000-4000-8000-000000000023",
+        "Notify the SOC",
+        180,
+        SecurityPlaybookRunStatus.Failed,
+      ),
+    ];
+
+    await renderCaseRuns();
+
+    const cards: Array<HTMLElement> = await screen.findAllByTestId(
+      "security-playbook-run-card",
+    );
+
+    expect(
+      cards.map((card: HTMLElement): string | null => {
+        return within(card)
+          .getByTestId(RUN_CARD_STEPS_TOGGLE_TEST_ID)
+          .getAttribute("aria-expanded");
+      }),
+    ).toEqual(["true", "true", "false"]);
+  });
+
+  test("an older run opens on Show steps, and the newest folds on Hide steps", async () => {
+    listedRuns = [
+      runOnCase(
+        "25000000-0000-4000-8000-000000000031",
+        "Escalate Known-Bad Indicators",
+        5,
+        SecurityPlaybookRunStatus.Succeeded,
+      ),
+      runOnCase(
+        "25000000-0000-4000-8000-000000000032",
+        "Enrich New Cases",
+        90,
+        SecurityPlaybookRunStatus.Succeeded,
+      ),
+    ];
+
+    await renderCaseRuns();
+
+    const cards: Array<HTMLElement> = await screen.findAllByTestId(
+      "security-playbook-run-card",
+    );
+    const toggles: Array<HTMLElement> = cards.map(
+      (card: HTMLElement): HTMLElement => {
+        return within(card).getByTestId(RUN_CARD_STEPS_TOGGLE_TEST_ID);
+      },
+    );
+
+    await act(async () => {
+      toggles[1]!.click();
+    });
+    await act(async () => {
+      toggles[0]!.click();
+    });
+
+    expect(toggles[0]).toHaveAttribute("aria-expanded", "false");
+    expect(toggles[1]).toHaveAttribute("aria-expanded", "true");
   });
 
   test("while its runs load, the card keeps its description and says it is busy", async () => {

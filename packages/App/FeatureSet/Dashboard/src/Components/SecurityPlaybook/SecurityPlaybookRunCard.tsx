@@ -59,13 +59,19 @@ export interface ComponentProps {
    */
   heading?: ReactElement | undefined;
   /*
-   * In a list of runs - every run of the project, a playbook's latest - a
-   * run is its header and a line of how far it got, its steps a click away:
-   * fifty runs drawn whole, every step of each, made a page nobody could
-   * scan. A run waiting for approval opens, since its steps are what the
-   * approver decides on. A case's own runs are drawn whole.
+   * In a list of runs - every run of the project, a playbook's latest, a
+   * case's own - a run is its header and a line of how far it got, its
+   * steps a click away: fifty runs drawn whole, every step of each, made a
+   * page nobody could scan, and a case that a playbook runs on at each new
+   * detection gathers runs as fast. A run waiting for approval opens, since
+   * its steps are what the approver decides on.
    */
   isCollapsible?: boolean | undefined;
+  /*
+   * A collapsible run that starts open: a case's newest, the run its page is
+   * most likely opened to read. Whoever reads it can still fold it.
+   */
+  isExpandedAtFirst?: boolean | undefined;
 }
 
 export const RUN_CARD_STEPS_TOGGLE_TEST_ID: string =
@@ -108,7 +114,7 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
   );
 
   const [isExpanded, setIsExpanded] = useState<boolean>(
-    !props.isCollapsible || isWaiting,
+    !props.isCollapsible || isWaiting || Boolean(props.isExpandedAtFirst),
   );
   const stepsId: string = useId();
 
@@ -404,7 +410,7 @@ const SecurityPlaybookRunCard: FunctionComponent<ComponentProps> = (
                 title: "Comment",
                 fieldType: FormFieldSchemaType.LongText,
                 required: false,
-                placeholder: "Optional. Why you decided this way.",
+                placeholder: "Why you decided this way.",
               },
             ],
           }}

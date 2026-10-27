@@ -7,6 +7,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { getNameInitials } from "Common/Utils/NameInitials";
 
 /*
  * Helpers for filter-bar facets that pick a project member (e.g. the Users
@@ -20,24 +21,6 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
  */
 
 const PROJECT_USER_PICKER_LIMIT: number = 50;
-
-const getInitials: (name: string) => string = (name: string): string => {
-  const parts: Array<string> = name
-    .trim()
-    .split(/\s+/)
-    .filter((part: string) => {
-      return part.length > 0;
-    });
-  if (parts.length === 0) {
-    return "?";
-  }
-  if (parts.length === 1) {
-    return parts[0]!.charAt(0).toUpperCase();
-  }
-  return (
-    parts[0]!.charAt(0) + parts[parts.length - 1]!.charAt(0)
-  ).toUpperCase();
-};
 
 const toUserOptions: (
   results: Array<ListResult<TeamMember>>,
@@ -65,7 +48,8 @@ const toUserOptions: (
       options.push({
         value: userId,
         label: label,
-        initials: getInitials(label),
+        // As the person's avatar draws them everywhere else (PeopleAvatar).
+        initials: getNameInitials(label),
         icon: IconProp.User,
         group: "People",
       });
