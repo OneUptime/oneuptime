@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en" id="home">
+
+<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+
+<head>
+  <title><%= seo.title %></title>
+  <meta name="description" content="<%= seo.description %>">
+  <%- include('../head', {
+    enableGoogleTagManager: typeof enableGoogleTagManager !== 'undefined' ? enableGoogleTagManager : false
+  }) -%>
+  <% guide.structuredData.forEach(function (schema) { %>
+  <%- include('../Partials/json-ld', { schema: schema }) -%>
+  <% }) %>
+  <%- include('../Partials/integrations/styles') -%>
+  <%- include('../Partials/tailwind-stylesheet') -%>
+</head>
+
+<body>
+  <%- include('../nav') -%>
+
+  <main id="main-content">
+    <%# The guide's header: where it sits, its name, what it does, and when its steps were last run. %>
+    <header class="relative isolate overflow-hidden border-b border-gray-100 bg-white">
+      <div class="absolute inset-x-0 top-0 -z-10 h-[28rem] bg-[radial-gradient(60%_70%_at_30%_0%,rgba(79,70,229,0.08),transparent_70%)]" aria-hidden="true"></div>
+      <div class="mx-auto max-w-7xl px-4 pb-12 pt-24 sm:px-6 sm:pt-28 lg:px-8 lg:pb-16">
+        <nav aria-label="Breadcrumb" class="text-sm">
+          <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-gray-500" role="list">
+            <li><a href="<%= guide.indexHref %>" class="font-medium hover:text-gray-900">Integrations</a></li>
+            <li aria-hidden="true" class="text-gray-300">/</li>
+            <li><a href="<%= guide.indexHref %>#<%= guide.language.language %>" class="hover:text-gray-900"><%= guide.language.title %></a></li>
+            <li aria-hidden="true" class="text-gray-300">/</li>
+            <li class="text-gray-900" aria-current="page"><%= guide.name %></li>
+          </ol>
+        </nav>
+
+        <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-start lg:gap-14">
+        <div class="min-w-0">
+        <div class="mt-6 flex items-start gap-4 sm:gap-5">
+          <%- include('../Partials/integrations/mark', { mark: guide.mark, size: 'lg' }) -%>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-indigo-600"><%= guide.language.title %> · <%= guide.kindLabel %></p>
+            <h1 class="mt-1 text-3xl font-semibold tracking-tight text-gray-900 sm:text-5xl"><%= guide.h1 %></h1>
+          </div>
+        </div>
+
+        <p class="mt-6 max-w-2xl text-lg leading-8 text-gray-600"><%- guide.leadHtml %></p>
+
+        <ul class="mt-6 flex flex-wrap gap-2" role="list">
+          <% guide.highlights.forEach(function (highlight) { %>
+          <li class="inline-flex items-center rounded-full bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"><%= highlight %></li>
+          <% }) %>
+        </ul>
+
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <a href="/accounts/register" data-ou-cta="integrations_get_started" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gray-900 px-5 text-sm font-semibold text-white shadow-sm hover:bg-gray-800">
+            Start free
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+          </a>
+          <a href="#install" class="inline-flex h-11 items-center justify-center rounded-lg px-5 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-200 hover:bg-gray-50">Jump to the setup</a>
+        </div>
+
+        <% if (guide.checked) { %>
+        <p class="mt-6 flex items-start gap-2 text-sm text-gray-500">
+          <svg class="mt-0.5 h-4 w-4 flex-none text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+          <span><span class="font-medium text-gray-700"><%= guide.checked.onLabel %></span><% if (guide.checked.withLabel) { %> with <%= guide.checked.withLabel %><% } %></span>
+        </p>
+        <% } %>
+        </div>
+
+        <div class="mt-10 lg:mt-6">
+          <%- include('../Partials/integrations/example-trace', { trace: guide.exampleTrace }) -%>
+        </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12 xl:gap-16">
+        <%# The contents, beside the guide on a wide screen. %>
+        <aside class="max-lg:hidden lg:block">
+          <nav aria-label="On this page" class="guide-contents sticky top-24 py-12">
+            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">On this page</p>
+            <ul class="mt-4 space-y-1 border-l border-gray-200" role="list">
+              <% guide.sections.forEach(function (section) { %>
+              <li><a href="#<%= section.id %>" data-contents-link class="-ml-px block border-l border-transparent py-1 pl-4 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-900"><%= section.label %></a></li>
+              <% }) %>
+            </ul>
+          </nav>
+        </aside>
+
+        <article class="min-w-0 max-w-3xl py-10 lg:py-12">
+          <%# The contents, folded above the guide on a phone. %>
+          <details class="guide-faq mb-10 rounded-xl ring-1 ring-gray-200 lg:hidden">
+            <summary class="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-semibold text-gray-900">
+              On this page
+              <svg class="guide-faq-chevron h-4 w-4 text-gray-500 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+            </summary>
+            <ul class="grid grid-cols-1 gap-x-4 border-t border-gray-100 px-4 py-3 sm:grid-cols-2" role="list">
+              <% guide.sections.forEach(function (section) { %>
+              <li><a href="#<%= section.id %>" class="block py-1.5 text-sm text-gray-600 hover:text-gray-900"><%= section.label %></a></li>
+              <% }) %>
+            </ul>
+          </details>
+
+          <% const sectionOf = function (id) { return guide.sections.find(function (section) { return section.id === id; }); }; %>
+
+          <section id="what-you-get" class="guide-section" aria-labelledby="what-you-get-title">
+            <h2 id="what-you-get-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf('what-you-get').title %></h2>
+            <p class="mt-3 text-[15px] leading-7 text-gray-600"><%- guide.whatYouGet.introHtml %></p>
+            <dl class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <% guide.whatYouGet.signals.forEach(function (signal) { %>
+              <div class="rounded-xl bg-white p-5 ring-1 ring-gray-200">
+                <dt class="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                  <% if (signal.name === 'Traces') { %>
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M7.5 12h12.75M11.25 17.25h9" /></svg>
+                  <% } else if (signal.name === 'Metrics') { %>
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" /></svg>
+                  <% } else if (signal.name === 'Logs') { %>
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" /></svg>
+                  <% } else { %>
+                  <svg class="h-5 w-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" /></svg>
+                  <% } %>
+                  <%= signal.name %>
+                </dt>
+                <dd class="mt-2 text-sm leading-6 text-gray-600"><%- signal.html %></dd>
+              </div>
+              <% }) %>
+            </dl>
+          </section>
+
+          <section id="before-you-start" class="guide-section mt-14" aria-labelledby="before-you-start-title">
+            <h2 id="before-you-start-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf('before-you-start').title %></h2>
+            <ul class="mt-4 space-y-3" role="list">
+              <% guide.prerequisitesHtml.forEach(function (item) { %>
+              <li class="flex gap-3 text-[15px] leading-7 text-gray-600">
+                <svg class="mt-[0.3rem] h-5 w-5 flex-none text-emerald-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                <span class="min-w-0"><%- item %></span>
+              </li>
+              <% }) %>
+            </ul>
+          </section>
+
+          <section id="install" class="guide-section mt-14" aria-labelledby="install-title">
+            <h2 id="install-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf('install').title %></h2>
+            <p class="mt-3 text-[15px] leading-7 text-gray-600"><%- guide.install.introHtml %></p>
+            <% guide.install.snippets.forEach(function (snippet) { %><%- include('../Partials/integrations/code-block', { snippet: snippet }) -%><% }) %>
+            <%- include('../Partials/integrations/notes', { notes: guide.install.notesHtml }) -%>
+          </section>
+
+          <section id="configure" class="guide-section mt-14" aria-labelledby="configure-title">
+            <h2 id="configure-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf('configure').title %></h2>
+            <p class="mt-3 text-[15px] leading-7 text-gray-600"><%- guide.configure.introHtml %></p>
+            <%- include('../Partials/integrations/tabs', { tabs: guide.configure.tabs }) -%>
+            <%- include('../Partials/integrations/notes', { notes: guide.configure.notesHtml }) -%>
+          </section>
+
+          <section id="setup" class="guide-section mt-14" aria-labelledby="setup-title">
+            <h2 id="setup-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf('setup').title %></h2>
+            <p class="mt-3 text-[15px] leading-7 text-gray-600"><%- guide.setup.introHtml %></p>
+            <%- include('../Partials/integrations/steps', { steps: guide.setup.steps }) -%>
+          </section>
+
+          <section id="automatic-instrumentation" class="guide-section mt-14" aria-labelledby="automatic-instrumentation-title">
+            <h2 id="automatic-instrumentation-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf('automatic-instrumentation').title %></h2>
+            <p class="mt-3 text-[15px] leading-7 text-gray-600"><%- guide.autoInstrumentation.introHtml %></p>
+            <div class="mt-5 overflow-hidden rounded-xl ring-1 ring-gray-200">
+              <table class="w-full text-left text-sm">
+                <thead class="bg-gray-50 max-sm:hidden">
+                  <tr>
+                    <th scope="col" class="w-2/5 px-4 py-2.5 font-semibold text-gray-900">Library</th>
+                    <th scope="col" class="px-4 py-2.5 font-semibold text-gray-900">What you see in OneUptime</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 bg-white">
+                  <% guide.autoInstrumentation.rows.forEach(function (row) { %>
+                  <tr class="max-sm:flex max-sm:flex-col">
+                    <td class="px-4 pt-3 align-top text-gray-900 sm:py-3"><%- row.libraryHtml %></td>
+                    <td class="px-4 pb-3 pt-1 align-top leading-6 text-gray-600 sm:py-3"><%- row.coversHtml %></td>
+                  </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+            <%- include('../Partials/integrations/notes', { notes: guide.autoInstrumentation.notesHtml }) -%>
+            <% guide.autoInstrumentation.snippets.forEach(function (snippet) { %><%- include('../Partials/integrations/code-block', { snippet: snippet }) -%><% }) %>
+          </section>
+
+          <% [
+            { id: 'custom-spans', section: guide.manualSpans },
+            { id: 'logs', section: guide.logs }
+          ].forEach(function (item) { %>
+          <section id="<%= item.id %>" class="guide-section mt-14" aria-labelledby="<%= item.id %>-title">
+            <h2 id="<%= item.id %>-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf(item.id).title %></h2>
+            <p class="mt-3 text-[15px] leading-7 text-gray-600"><%- item.section.introHtml %></p>
+            <% item.section.snippets.forEach(function (snippet) { %><%- include('../Partials/integrations/code-block', { snippet: snippet }) -%><% }) %>
+            <%- include('../Partials/integrations/notes', { notes: item.section.notesHtml }) -%>
+          </section>
+          <% }) %>
+
+          <section id="metrics" class="guide-section mt-14" aria-labelledby="metrics-title">
+            <h2 id="metrics-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf('metrics').title %></h2>
+            <p class="mt-3 text-[15px] leading-7 text-gray-600"><%- guide.metrics.introHtml %></p>
+            <dl class="mt-5 divide-y divide-gray-100 overflow-hidden rounded-xl bg-white ring-1 ring-gray-200">
+              <% guide.metrics.builtIn.forEach(function (metric) { %>
+              <div class="px-4 py-3 sm:grid sm:grid-cols-[minmax(0,17rem)_minmax(0,1fr)] sm:gap-4">
+                <dt class="break-words font-mono text-[13px] text-gray-900"><%= metric.name %></dt>
+                <dd class="mt-1 text-sm leading-6 text-gray-600 sm:mt-0"><%- metric.descriptionHtml %></dd>
+              </div>
+              <% }) %>
+            </dl>
+            <% guide.metrics.snippets.forEach(function (snippet) { %><%- include('../Partials/integrations/code-block', { snippet: snippet }) -%><% }) %>
+            <%- include('../Partials/integrations/notes', { notes: guide.metrics.notesHtml }) -%>
+          </section>
+
+          <% [
+            { id: 'sampling', section: guide.sampling },
+            { id: 'containers', section: guide.deploy }
+          ].forEach(function (item) { %>
+          <section id="<%= item.id %>" class="guide-section mt-14" aria-labelledby="<%= item.id %>-title">
+            <h2 id="<%= item.id %>-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf(item.id).title %></h2>
+            <p class="mt-3 text-[15px] leading-7 text-gray-600"><%- item.section.introHtml %></p>
+            <% item.section.snippets.forEach(function (snippet) { %><%- include('../Partials/integrations/code-block', { snippet: snippet }) -%><% }) %>
+            <%- include('../Partials/integrations/notes', { notes: item.section.notesHtml }) -%>
+          </section>
+          <% }) %>
+
+          <section id="check" class="guide-section mt-14" aria-labelledby="check-title">
+            <h2 id="check-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf('check').title %></h2>
+            <p class="mt-3 text-[15px] leading-7 text-gray-600"><%- guide.verify.introHtml %></p>
+            <%- include('../Partials/integrations/steps', { steps: guide.verify.steps }) -%>
+          </section>
+
+          <% [
+            { id: 'troubleshooting', questions: guide.troubleshooting },
+            { id: 'faq', questions: guide.faq }
+          ].forEach(function (item) { %>
+          <section id="<%= item.id %>" class="guide-section mt-14" aria-labelledby="<%= item.id %>-title">
+            <h2 id="<%= item.id %>-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf(item.id).title %></h2>
+            <div class="mt-5 divide-y divide-gray-200 overflow-hidden rounded-xl ring-1 ring-gray-200">
+              <% item.questions.forEach(function (question) { %>
+              <details class="guide-faq group bg-white">
+                <summary class="flex cursor-pointer items-start justify-between gap-4 px-5 py-4 hover:bg-gray-50">
+                  <h3 class="text-[15px] font-medium leading-6 text-gray-900"><%= question.question %></h3>
+                  <svg class="guide-faq-chevron mt-1 h-4 w-4 flex-none text-gray-500 transition-transform" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                </summary>
+                <div class="px-5 pb-5">
+                  <p class="text-[15px] leading-7 text-gray-600"><%- question.answerHtml %></p>
+                  <% question.snippets.forEach(function (snippet) { %><%- include('../Partials/integrations/code-block', { snippet: snippet }) -%><% }) %>
+                </div>
+              </details>
+              <% }) %>
+            </div>
+          </section>
+          <% }) %>
+
+          <%# Deeper, in the docs. %>
+          <section class="mt-14 rounded-2xl bg-gray-50 p-6 ring-1 ring-inset ring-gray-200" aria-labelledby="docs-title">
+            <h2 id="docs-title" class="text-base font-semibold text-gray-900">Go deeper in the docs</h2>
+            <ul class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2" role="list">
+              <% guide.docs.forEach(function (doc) { %>
+              <li>
+                <a href="<%= doc.href %>" class="group block rounded-lg bg-white p-4 ring-1 ring-gray-200 hover:ring-indigo-300">
+                  <span class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600"><%= doc.title %></span>
+                  <span class="mt-1 block text-sm leading-6 text-gray-600"><%= doc.description %></span>
+                </a>
+              </li>
+              <% }) %>
+            </ul>
+          </section>
+        </article>
+      </div>
+    </div>
+
+    <% if (guide.related.length > 0) { %>
+    <section class="border-t border-gray-100 bg-gray-50 py-16" aria-labelledby="related-title">
+      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-wrap items-end justify-between gap-4">
+          <h2 id="related-title" class="text-2xl font-semibold tracking-tight text-gray-900">Related guides</h2>
+          <a href="<%= guide.indexHref %>" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">All integrations <span aria-hidden="true">&rarr;</span></a>
+        </div>
+        <ul class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" role="list">
+          <% guide.related.forEach(function (card) { %>
+          <li>
+            <a href="<%= card.href %>" class="group flex h-full flex-col rounded-xl bg-white p-5 ring-1 ring-gray-200 hover:ring-indigo-300 hover:shadow-sm">
+              <span class="flex items-center gap-3">
+                <%- include('../Partials/integrations/mark', { mark: card.mark, size: 'md' }) -%>
+                <span class="text-sm font-semibold text-gray-900 group-hover:text-indigo-600"><%= card.name %></span>
+              </span>
+              <span class="mt-3 text-sm leading-6 text-gray-600"><%= card.description %></span>
+            </a>
+          </li>
+          <% }) %>
+        </ul>
+      </div>
+    </section>
+    <% } %>
+
+    <%- include('../Partials/integrations/cta') -%>
+  </main>
+
+  <%- include('../footer') -%>
+  <script src="<%= integrationsScript %>" defer></script>
+</body>
+
+</html>

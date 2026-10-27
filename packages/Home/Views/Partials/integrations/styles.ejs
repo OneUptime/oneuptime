@@ -1,0 +1,48 @@
+<%#
+  The integrations pages' own styles: the code blocks' colours (the classes
+  highlight.js writes on the server, Utils/Integrations/OpenTelemetry/
+  GuideHighlight.ts) and the monospace font. head-basic.ejs sets Geist on
+  every element (`*`), so each span inside a code block names the
+  monospace font again, or highlighted words would be drawn in Geist.
+-%>
+<style>
+  .guide-code pre,
+  .guide-code code,
+  .guide-code code * {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+  .guide-code code { color: #e6edf3; }
+  .guide-code .hljs-comment,
+  .guide-code .hljs-quote,
+  .guide-code .hljs-meta { color: #8b949e; }
+  .guide-code .hljs-keyword,
+  .guide-code .hljs-selector-tag,
+  .guide-code .hljs-literal,
+  .guide-code .hljs-type { color: #ff7b72; }
+  .guide-code .hljs-string,
+  .guide-code .hljs-regexp,
+  .guide-code .hljs-addition,
+  .guide-code .hljs-meta .hljs-string { color: #a5d6ff; }
+  .guide-code .hljs-number,
+  .guide-code .hljs-symbol,
+  .guide-code .hljs-bullet,
+  .guide-code .hljs-attr,
+  .guide-code .hljs-attribute,
+  .guide-code .hljs-variable,
+  .guide-code .hljs-template-variable,
+  .guide-code .hljs-property { color: #79c0ff; }
+  .guide-code .hljs-title,
+  .guide-code .hljs-section,
+  .guide-code .hljs-name { color: #d2a8ff; }
+  .guide-code .hljs-built_in,
+  .guide-code .hljs-params { color: #ffa657; }
+  .guide-code .hljs-deletion { color: #ffa198; }
+  /* A long line scrolls inside its block, never the page. */
+  .guide-code pre { tab-size: 2; }
+  /* The section a heading link jumps to clears the sticky nav. */
+  .guide-section { scroll-margin-top: 6rem; }
+  .guide-contents a[aria-current="true"] { color: #111827; border-color: #4f46e5; font-weight: 500; }
+  .guide-faq summary::-webkit-details-marker { display: none; }
+  .guide-faq summary { list-style: none; }
+  .guide-faq[open] .guide-faq-chevron { transform: rotate(180deg); }
+</style>

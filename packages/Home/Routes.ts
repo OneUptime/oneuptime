@@ -10,6 +10,7 @@ import {
   generateSitemapIndexXml,
   generatePagesSitemapXml,
   generateCompareSitemapXml,
+  generateIntegrationsSitemapXml,
   generateBlogSitemapXml,
   getBlogSitemapPageCount,
   sendRetiredSitemap,
@@ -68,7 +69,27 @@ import { fetchGitHubContributors } from "./Utils/GitHubContributors";
 import { BackToMetal } from "./Utils/Books/BookCatalog";
 import { DefaultBookStore } from "./Utils/Books/BookStore";
 import { handleBookContent } from "./Utils/Books/BookContentRoute";
-import { getBookPageAssets } from "./Utils/StaticAssets";
+import { getBookPageAssets, versionedStaticPath } from "./Utils/StaticAssets";
+import {
+  GuidePageContent,
+  getGuidePageContent,
+} from "./Utils/Integrations/OpenTelemetry/GuidePage";
+import { getIntegrationsIndexContent } from "./Utils/Integrations/OpenTelemetry/IntegrationsIndex";
+import {
+  generateGuideMarkdown,
+  generateIntegrationsIndexMarkdown,
+} from "./Utils/Integrations/OpenTelemetry/GuideMarkdown";
+import { getGuidePage } from "./Utils/Integrations/OpenTelemetry/OpenTelemetryGuides";
+import {
+  OPEN_TELEMETRY_GUIDES_INDEX_PATH,
+  OPEN_TELEMETRY_GUIDE_PATH_PREFIX,
+  OpenTelemetryGuideEntry,
+  getOpenTelemetryGuide,
+} from "Common/Types/Telemetry/OpenTelemetryGuides";
+import {
+  PROVIDER_LOGO_ROUTE,
+  serveProviderLogo,
+} from "./Utils/ProviderLogoFiles";
 import {
   Claim,
   ClaimStatuses,
@@ -453,6 +474,13 @@ const HomeFeatureSet: FeatureSet = {
         );
       } else if (pagePath === "/enterprise/air-gapped") {
         markdown = generateAirGappedMarkdown(homeUrl, getAirGappedContent());
+      } else if (pagePath === OPEN_TELEMETRY_GUIDES_INDEX_PATH) {
+        markdown = generateIntegrationsIndexMarkdown(homeUrl);
+      } else if (pagePath.startsWith(OPEN_TELEMETRY_GUIDE_PATH_PREFIX)) {
+        const guide: ReturnType<typeof getGuidePage> = getGuidePage(
+          pagePath.slice(OPEN_TELEMETRY_GUIDE_PATH_PREFIX.length),
+        );
+        markdown = guide ? generateGuideMarkdown(guide, homeUrl) : null;
       } else if (pagePath.startsWith("/compare/")) {
         markdown = generateCompareMarkdown(
           pagePath.replace("/compare/", ""),
@@ -2143,6 +2171,59 @@ const HomeFeatureSet: FeatureSet = {
       },
     );
 
+    /*
+     * The integrations: one OpenTelemetry guide per framework, and their
+     * index, grouped by language (Utils/Integrations/OpenTelemetry). Each
+     * guide is data of one shape, drawn by one template; a slug the catalog
+     * does not know is the site's not-found page.
+     */
+    app.get(PROVIDER_LOGO_ROUTE, serveProviderLogo);
+
+    app.get(
+      OPEN_TELEMETRY_GUIDES_INDEX_PATH,
+      (_req: ExpressRequest, res: ExpressResponse) => {
+        const homeUrl: string = res.locals["homeUrl"] as string;
+        res.render(`${ViewsPath}/integrations/index`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo: getSEOForPath(OPEN_TELEMETRY_GUIDES_INDEX_PATH, homeUrl),
+          integrations: getIntegrationsIndexContent(homeUrl),
+          integrationsScript: versionedStaticPath("/js/integrations.js"),
+        });
+      },
+    );
+
+    // The guides' folder is no page of its own: it is the index.
+    app.get(
+      "/integrations/opentelemetry",
+      (req: ExpressRequest, res: ExpressResponse) => {
+        redirectPreservingQuery(req, res, OPEN_TELEMETRY_GUIDES_INDEX_PATH, 301);
+      },
+    );
+
+    app.get(
+      "/integrations/opentelemetry/:framework",
+      (req: ExpressRequest, res: ExpressResponse) => {
+        const slug: string = String(req.params["framework"] || "");
+        const entry: OpenTelemetryGuideEntry | undefined =
+          getOpenTelemetryGuide(slug);
+        const homeUrl: string = res.locals["homeUrl"] as string;
+        const guide: GuidePageContent | null = entry
+          ? getGuidePageContent(entry.slug, homeUrl)
+          : null;
+
+        if (!guide) {
+          return NotFoundUtil.renderNotFound(res);
+        }
+
+        return res.render(`${ViewsPath}/integrations/opentelemetry-guide`, {
+          enableGoogleTagManager: GoogleTagManagerEnabled,
+          seo: getSEOForPath(`${OPEN_TELEMETRY_GUIDE_PATH_PREFIX}${slug}`, homeUrl),
+          guide: guide,
+          integrationsScript: versionedStaticPath("/js/integrations.js"),
+        });
+      },
+    );
+
     // Dynamic Sitemap Index
     app.get(
       "/sitemap.xml",
@@ -2182,6 +2263,21 @@ const HomeFeatureSet: FeatureSet = {
       async (_req: ExpressRequest, res: ExpressResponse) => {
         try {
           const xml: string = await generateCompareSitemapXml();
+          res.setHeader("Content-Type", "text/xml");
+          res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
+          res.send(xml);
+        } catch {
+          res.status(500).send("Error generating sitemap");
+        }
+      },
+    );
+
+    // The OpenTelemetry guides' sitemap
+    app.get(
+      "/sitemap-integrations.xml",
+      async (_req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const xml: string = await generateIntegrationsSitemapXml();
           res.setHeader("Content-Type", "text/xml");
           res.setHeader("Cache-Control", "public, max-age=600"); // 10 minutes
           res.send(xml);

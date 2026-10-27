@@ -1,0 +1,13 @@
+<%#
+  A framework's mark: its official logo where the logo registry has one,
+  otherwise its initials, on the same tile so a row of cards lines up.
+  size is "lg" (the guide's header) or "md" (a card).
+-%>
+<% const isLarge = typeof size !== 'undefined' && size === 'lg'; %>
+<span class="flex flex-none items-center justify-center bg-white ring-1 ring-inset ring-gray-200 <%= isLarge ? 'h-14 w-14 rounded-2xl shadow-sm' : 'h-10 w-10 rounded-xl' %>">
+  <% if (mark.logo) { %>
+  <img src="<%= mark.logo.src %>" alt="<%= mark.logo.alt %>" width="<%= isLarge ? 32 : 24 %>" height="<%= isLarge ? 32 : 24 %>" class="<%= isLarge ? 'h-8 w-8' : 'h-6 w-6' %> object-contain"<%- isLarge ? ' decoding="async"' : ' loading="lazy" decoding="async"' %>>
+  <% } else { %>
+  <span class="font-semibold tracking-tight text-gray-700 <%= isLarge ? 'text-lg' : 'text-sm' %>" aria-hidden="true"><%= mark.monogram %></span>
+  <% } %>
+</span>
