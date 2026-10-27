@@ -215,13 +215,14 @@ describe("SelfHosted content model", () => {
     expect(text).toContain("Test restores");
   });
 
-  test("air-gap steps cover registry, update check, DNS, and upgrades", () => {
+  test("air-gap steps cover registry, update check, daily check-in, DNS, and upgrades", () => {
     const settings: string = AirGapSteps.map((step: AirGapStep) => {
       return `${step.title} ${step.setting}`;
     }).join(" ");
 
     expect(settings).toContain("image.registry");
     expect(settings).toContain("updateCheck.disabled");
+    expect(settings).toContain("instanceCheckIn.disabled");
     expect(settings).toContain("dnsConfig");
     expect(settings).toContain("helm upgrade");
   });
@@ -481,6 +482,20 @@ describe("SelfHosted content model", () => {
     expect(updateCheck!.description).toContain("offline license token");
   });
 
+  test("the check-in air-gap step says what the install sends to oneuptime.com, and that it fails quietly", () => {
+    const checkIn: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
+      return step.setting === "instanceCheckIn.disabled";
+    })!;
+
+    expect(checkIn.description).toContain(
+      "tells oneuptime.com its address and the version it runs",
+    );
+    expect(checkIn.description).toContain(
+      "Nothing about your users or monitoring data is sent.",
+    );
+    expect(checkIn.description).toContain("fails quietly");
+  });
+
   test("the update-check air-gap step says where the check goes: GitHub's API, not oneuptime.com", () => {
     const updateCheck: AirGapStep = AirGapSteps.find((step: AirGapStep) => {
       return step.setting === "updateCheck.disabled";
@@ -573,6 +588,9 @@ describe("SelfHosted content model", () => {
     })!.answer;
 
     expect(answer).toContain("GitHub's API");
+    expect(answer).toContain(
+      "a check-in that tells oneuptime.com the install's address and version",
+    );
     expect(answer).toContain(
       "“Notify me about security patches and new releases” ticked",
     );

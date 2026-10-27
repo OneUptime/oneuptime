@@ -458,8 +458,14 @@ export const AirGapSteps: Array<AirGapStep> = [
   {
     title: "Turn off the update check",
     description:
-      "Once a day the install asks GitHub's API for the latest release. One switch turns that off, and with no route out it fails quietly anyway. A Community Edition install then makes no outbound call on its own; an Enterprise Edition install also checks its license online unless it is activated with an offline license token.",
+      "Once a day the install asks GitHub's API for the latest release. One switch turns that off, and with no route out it fails quietly anyway. With the daily check-in off too, a Community Edition install makes no outbound call on its own; an Enterprise Edition install also checks its license online unless it is activated with an offline license token.",
     setting: "updateCheck.disabled",
+  },
+  {
+    title: "Turn off the daily check-in",
+    description:
+      "Once a day the install tells oneuptime.com its address and the version it runs, so we know which installs still run a release with a security issue. Nothing about your users or monitoring data is sent. One switch turns it off, and with no route out it fails quietly anyway.",
+    setting: "instanceCheckIn.disabled",
   },
   {
     title: "Keep DNS internal",
@@ -645,7 +651,7 @@ export const SelfHostedFaqs: Array<SelfHostedFaq> = [
   {
     question: "Does a self-hosted install phone home?",
     answer:
-      "The Community Edition makes one outbound call on its own: a daily version check against GitHub's API, which a single switch disables. A second is up to whoever signs up: with “Notify me about security patches and new releases” ticked, the install sends their name and email to oneuptime.com, so untick it on an air-gapped network. With both off and images mirrored into your registry, a Community Edition install runs with no connectivity to us at all. An Enterprise Edition install activated with a license key also checks its license with oneuptime.com once a day, sending seat counts, hashed user emails, and master-admin contact emails — never monitoring data. Activated with an offline license token, it never calls us.",
+      "The Community Edition makes two outbound calls on its own, once a day each: a version check against GitHub's API, and a check-in that tells oneuptime.com the install's address and version so we know which installs run a release with a security issue. A single switch disables each. A third is up to whoever signs up: with “Notify me about security patches and new releases” ticked, the install sends their name and email to oneuptime.com, so untick it on an air-gapped network. With all three off and images mirrored into your registry, a Community Edition install runs with no connectivity to us at all. An Enterprise Edition install activated with a license key also checks its license with oneuptime.com once a day, sending seat counts, hashed user emails, and master-admin contact emails — never monitoring data. Activated with an offline license token, it never calls us.",
   },
   {
     question: "Who is responsible for uptime when we self-host?",

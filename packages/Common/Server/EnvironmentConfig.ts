@@ -1340,6 +1340,15 @@ export const DisableUpdateCheck: boolean =
   process.env["DISABLE_UPDATE_CHECK"] === "true";
 
 /*
+ * Opt out of the daily check-in with oneuptime.com: the install's URL and
+ * the version it runs, so OneUptime knows which installs still run a release
+ * with a security issue and can reach the admins who registered them. Like
+ * the update check, separate from DISABLE_TELEMETRY.
+ */
+export const DisableInstanceCheckIn: boolean =
+  process.env["DISABLE_INSTANCE_CHECK_IN"] === "true";
+
+/*
  * On-call calendar feeds: the public, token-in-URL .ics endpoints that Google
  * Calendar / Outlook / Apple Calendar poll for on-call shifts
  * (/api/on-call-calendar/{user,schedule,project}/<token>/...).
