@@ -7,6 +7,12 @@ import {
   RELOAD_ICON_PATH,
   getIcon,
 } from "../ErrorScreen/ErrorScreenStyle";
+import PageScreenCard, {
+  PageScreenAction,
+  PageScreenTone,
+  getScreenLanguage,
+} from "../ErrorScreen/PageScreenCard";
+import { getReadingDirection } from "../../../Types/ReadingDirection";
 import {
   handleChunkLoadError,
   hasRecentlyReloadedForChunkLoadError,
@@ -21,7 +27,7 @@ import {
   ServerBuildStatus,
 } from "../../Utils/NewVersion/ServerBuildCheck";
 import UnsavedChanges from "../../Utils/NewVersion/UnsavedChanges";
-import { Translator } from "../../Utils/TranslateTemplate";
+import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -344,7 +350,8 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
       step === ChunkLoadRecoveryStep.Reloading ||
       step === ChunkLoadRecoveryStep.Updating;
 
-    let text: string = "";
+    // The English words, looked up below.
+    let englishText: string = "";
     let iconPath: string = ALERT_ICON_PATH;
     /*
      * The circle's colour says which kind of moment it is: the accent while
@@ -355,28 +362,33 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
     let toneClassName: string = "oueb-part-icon-info";
 
     if (step === ChunkLoadRecoveryStep.Updating) {
-      text = translate("Loading the latest version...");
+      englishText = translationKey("Loading the latest version...");
     } else if (isLoading) {
-      text = translate("Loading...");
+      englishText = translationKey("Loading...");
     } else if (step === ChunkLoadRecoveryStep.Offline) {
-      text = translate(
+      englishText = translationKey(
         "You're offline. This will load when you're back online.",
       );
       iconPath = OFFLINE_ICON_PATH;
       toneClassName = "";
     } else if (step === ChunkLoadRecoveryStep.Unreachable) {
-      text = translate("Can't reach the server. Trying again automatically.");
+      englishText = translationKey(
+        "Can't reach the server. Trying again automatically.",
+      );
       iconPath = CLOUD_ICON_PATH;
       toneClassName = "";
     } else if (step === ChunkLoadRecoveryStep.NeedsReload) {
-      text = translate(
+      englishText = translationKey(
         "This needs the latest version. Save your changes, then reload the page.",
       );
       iconPath = RELOAD_ICON_PATH;
     } else {
-      text = translate("This couldn't be loaded.");
+      englishText = translationKey("This couldn't be loaded.");
       toneClassName = "oueb-part-icon-warning";
     }
+
+    const text: string = translate(englishText);
+    const partLanguage: string = getScreenLanguage(translator, englishText);
 
     return (
       <div
@@ -386,6 +398,8 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
         data-step={step}
         role={step === ChunkLoadRecoveryStep.Failed ? "alert" : "status"}
         aria-live="polite"
+        lang={partLanguage}
+        dir={getReadingDirection(partLanguage)}
       >
         <style>{ERROR_SCREEN_CSS}</style>
         <div className="oueb-part-body">
@@ -535,83 +549,66 @@ const ChunkLoadRecovery: FunctionComponent<ComponentProps> = (
 
   const copy: CardCopy = getCopy();
 
-  const badgeClassName: string =
+  let tone: PageScreenTone = PageScreenTone.Neutral;
+
+  if (
     step === ChunkLoadRecoveryStep.Updating ||
     step === ChunkLoadRecoveryStep.NeedsReload
-      ? "oueb-badge oueb-badge-info"
-      : step === ChunkLoadRecoveryStep.Failed
-        ? "oueb-badge"
-        : "oueb-badge oueb-badge-neutral";
+  ) {
+    tone = PageScreenTone.Info;
+  } else if (step === ChunkLoadRecoveryStep.Failed) {
+    tone = PageScreenTone.Alert;
+  }
 
-  let badge: ReactElement = getIcon(ALERT_ICON_PATH);
+  // None while it updates: the badge spins.
+  let iconPath: string | undefined = ALERT_ICON_PATH;
 
   if (step === ChunkLoadRecoveryStep.Updating) {
-    badge = <span className="oueb-spinner" />;
+    iconPath = undefined;
   } else if (step === ChunkLoadRecoveryStep.Offline) {
-    badge = getIcon(OFFLINE_ICON_PATH);
+    iconPath = OFFLINE_ICON_PATH;
   } else if (step === ChunkLoadRecoveryStep.Unreachable) {
-    badge = getIcon(CLOUD_ICON_PATH);
+    iconPath = CLOUD_ICON_PATH;
   } else if (step === ChunkLoadRecoveryStep.NeedsReload) {
-    badge = getIcon(RELOAD_ICON_PATH);
+    iconPath = RELOAD_ICON_PATH;
+  }
+
+  const actions: Array<PageScreenAction> = [];
+
+  if (hasRetry) {
+    actions.push({
+      title: retryButtonText,
+      dataTestId: "chunk-load-recovery-retry",
+      onClick: () => {
+        void run();
+      },
+    });
+  }
+
+  if (hasReload) {
+    actions.push({
+      title: reloadButtonText,
+      dataTestId: "chunk-load-recovery-reload",
+      onClick: reloadNow,
+    });
   }
 
   return (
-    <div
-      className="oneuptime-error-boundary"
-      data-testid="chunk-load-recovery"
-      data-variant={props.variant}
-      data-step={step}
-    >
-      <style>{ERROR_SCREEN_CSS}</style>
-      <div className="oueb-card">
-        <div className={badgeClassName} aria-hidden="true">
-          {badge}
-        </div>
-        <div
-          role={step === ChunkLoadRecoveryStep.Failed ? "alert" : "status"}
-          aria-live="polite"
-        >
-          <h1 className="oueb-title" data-testid="chunk-load-recovery-title">
-            {copy.title}
-          </h1>
-          <p className="oueb-message">{copy.message}</p>
-        </div>
-        {hasRetry || hasReload ? (
-          <div className="oueb-actions">
-            {hasRetry ? (
-              <button
-                type="button"
-                className="oueb-button oueb-button-primary"
-                data-testid="chunk-load-recovery-retry"
-                onClick={() => {
-                  void run();
-                }}
-              >
-                {getIcon(RELOAD_ICON_PATH)}
-                {retryButtonText}
-              </button>
-            ) : (
-              <></>
-            )}
-            {hasReload ? (
-              <button
-                type="button"
-                className="oueb-button oueb-button-primary"
-                data-testid="chunk-load-recovery-reload"
-                onClick={reloadNow}
-              >
-                {getIcon(RELOAD_ICON_PATH)}
-                {reloadButtonText}
-              </button>
-            ) : (
-              <></>
-            )}
-          </div>
-        ) : (
-          <></>
-        )}
-      </div>
-    </div>
+    <PageScreenCard
+      dataTestId="chunk-load-recovery"
+      titleTestId="chunk-load-recovery-title"
+      dataAttributes={{
+        "data-variant": props.variant,
+        "data-step": step,
+      }}
+      tone={tone}
+      iconPath={iconPath}
+      title={copy.title}
+      message={copy.message}
+      isAlert={step === ChunkLoadRecoveryStep.Failed}
+      actions={actions}
+      language={getScreenLanguage(translator, copy.title)}
+    />
   );
 };
 

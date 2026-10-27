@@ -284,6 +284,19 @@ html.dark .oueb-part {
   box-shadow: 0 0 0 2px var(--oueb-surface), 0 0 0 4px var(--oueb-accent-ring);
 }
 
+/*
+ * Asking right now (is the network back?): a spinner where its icon was,
+ * the button as it was - a busy button never fades.
+ */
+.oueb-button .oueb-spinner {
+  width: 1rem;
+  height: 1rem;
+}
+
+.oueb-button[aria-busy="true"] {
+  cursor: progress;
+}
+
 .oueb-button-primary {
   background-color: var(--oueb-accent);
   color: #ffffff;

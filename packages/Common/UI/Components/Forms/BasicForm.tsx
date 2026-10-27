@@ -783,6 +783,10 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       fieldName: string,
       value: JSONValue,
     ): void => {
+      const previousValue: unknown = (
+        refCurrentValue.current as Record<string, unknown>
+      )[fieldName];
+
       const updatedValue: FormValues<T> = {
         ...refCurrentValue.current,
         [fieldName]: value as any,
@@ -790,6 +794,17 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
 
       hasUserEdited.current = true;
       changedFieldNames.current.add(fieldName);
+
+      /*
+       * The form holds a change the reader has not saved, however it was
+       * made: a pick from a dropdown or a picker fires no input event for
+       * UnsavedChanges to hear, and the search typed to find it no longer
+       * counts by itself (a search box never does). A field handing back
+       * the value it already had changed nothing.
+       */
+      if (!Object.is(previousValue, value)) {
+        UnsavedChanges.noteChange(formRootRef.current);
+      }
 
       // What the server said of the field was said of what it held before.
       if (serverErrorFieldName && fieldName === serverErrorFieldName) {
