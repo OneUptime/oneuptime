@@ -4,8 +4,8 @@ Runbook の変数は、ステップが値そのものを持つ代わりに名前
 
 :::cards
 - [変数を作成する](#変数を作成する): 通常の値、またはシークレットとそれを使える Runner。
-- [ステップで変数を使う](#ステップで変数を使う): スクリプトの中で、または SSH ステップのサインインや kubectl ステップの kubeconfig として。
-- [シークレットを受け取るもの](#シークレットを受け取るもの): 自社の Runner と、許可した場合のグローバル Runner。
+- [ステップで変数を使う](#ステップで変数を使う): スクリプトや HTTP リクエストの中で、または SSH ステップのサインインや kubectl ステップの kubeconfig として。
+- [シークレットを受け取るもの](#シークレットを受け取るもの): 自社の Runner、許可した場合のグローバル Runner、HTTP リクエストのステップでは OneUptime 自身。
 :::
 
 ## 変数がステップに届くしくみ
@@ -19,7 +19,7 @@ flowchart TB
 
 ステップが持つのは変数の名前で、値は持ちません。ステップの Runner がそれを取得すると、OneUptime が値を埋め込み (スクリプト、SSH ステップの接続先とサインイン、kubectl ステップの kubeconfig)、その Runner にだけ渡します。使えない変数を指定したステップは、値の代わりに名前を入れたまま実行されるのではなく、理由を示して失敗します。
 
-変数を使うのは Bash、JavaScript、SSH、kubectl のステップです。HTTP リクエストと AI のステップは変数を埋め込みません。
+変数を使うのは Bash、JavaScript、SSH、kubectl、HTTP リクエストのステップです。AI のステップは変数を埋め込みません。HTTP リクエストのステップは Runner を使わず OneUptime 自身が送るので、指定したすべての変数をシークレットも含めて受け取り、記録する応答ではそれらを隠します。
 
 ## グローバル変数と Runbook の変数
 
@@ -71,20 +71,27 @@ curl -s -X POST \
   -H "Authorization: Bearer {{global.variables.CDN_API_TOKEN}}" \
   "https://api.cdn.example.com/v1/purge"
 ```
+@tab HTTP リクエストで
+[HTTP リクエストのステップ](/docs/runbooks/authoring#http-request) の URL、ヘッダー、本文に参照を書きます。
+
+```json
+{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
+```
 @tab SSH のサインイン
 [SSH ステップ](/docs/runbooks/authoring#ssh) は、秘密鍵またはパスワードを持つシークレット変数を **サインイン方法** で選び、鍵のパスフレーズを **その他の項目 → 鍵のパスフレーズ** で選びます。鍵かパスワードかは値から判断されます。
 @tab Kubeconfig
 [kubectl ステップ](/docs/runbooks/authoring#kubectl) は、クラスターの kubeconfig を持つシークレット変数を **Kubeconfig** で選ぶか、Runner のものを使う **Runner 自身のアクセス** を選びます。
 :::
 
-Runbook の **ステップ** ページでは、各スクリプトの下の **変数 — クリックでコピー** にそのステップが使える変数が並び、ステップが存在しない変数や Runner が使えないシークレットを指定しているとエディターが知らせます。
+Runbook の **ステップ** ページでは、各スクリプトと各 HTTP リクエストの下の **変数 — クリックでコピー** にそのステップが使える変数が並び、ステップが存在しない変数や Runner が使えないシークレットを指定しているとエディターが知らせます。
 
 ## シークレットを受け取るもの
 
-| Runner | 通常の変数 | シークレット |
+| ステップを実行するもの | 通常の変数 | シークレット |
 | --- | --- | --- |
 | 自社の Runner | 常に | シークレットの **使用できる Runner** にその Runner がある場合 |
 | グローバル Runner | 常に | **グローバル Runner が使用できる** がオンで、シークレット自身のプロジェクトのステップの場合 |
+| OneUptime 自身 (HTTP リクエストのステップ) | 常に | 常に |
 
 Runner が使えないシークレットを指定したステップは、シークレットの名前と変えるべき点を示して失敗し、何も渡されません。
 

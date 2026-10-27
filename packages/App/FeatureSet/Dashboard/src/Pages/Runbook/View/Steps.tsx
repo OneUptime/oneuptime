@@ -30,6 +30,8 @@ import RunbookVariablePicker from "../../../Components/Runbook/Steps/RunbookVari
 import RunbookVariableChips from "../../../Components/Runbook/Steps/RunbookVariableChips";
 import SshTargetInput from "../../../Components/Runbook/Steps/SshTargetInput";
 import UnknownVariablesNote from "../../../Components/Runbook/Steps/UnknownVariablesNote";
+import { HTTP_STEP_VARIABLES_HELP } from "../../../Components/Runbook/RunbookVariableCopy";
+import { getHttpStepVariableTexts } from "Common/Types/Runbook/HttpStepVariables";
 import RunbookVariableChoicesLoader, {
   NO_RUNBOOK_VARIABLE_CHOICES,
   RunbookVariableChoices,
@@ -1593,6 +1595,43 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
         ) : (
           <></>
         )}
+        {/*
+         * Variables, named as a script names them, in the URL, the headers
+         * or the body. OneUptime sends the request itself - no Runner is
+         * involved - so a secret is filled in too, and hidden in what the
+         * step records. The chips copy what to write; with none yet, the
+         * line above says how one is written.
+         */}
+        <div data-testid={`runbook-step-${idx}-http-variables-field`}>
+          <p
+            className="text-xs text-gray-500"
+            data-testid={`runbook-step-${idx}-http-variables-help`}
+          >
+            <TranslatedSentence
+              template={HTTP_STEP_VARIABLES_HELP}
+              slots={{
+                reference: <code>{"{{global.variables.NAME}}"}</code>,
+              }}
+            />
+          </p>
+          <UnknownVariablesNote
+            references={getUnknownVariableReferences(
+              variableChoices,
+              getHttpStepVariableTexts(config),
+            )}
+            dataTestId={`runbook-step-${idx}-http-unknown-variables`}
+          />
+          {variableChoices.variables.length > 0 ? (
+            <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2.5">
+              <RunbookVariableChips
+                choices={variableChoices}
+                dataTestId={`runbook-step-${idx}-http-variables`}
+              />
+            </div>
+          ) : (
+            <></>
+          )}
+        </div>
         {renderMoreFields(
           step,
           idx,

@@ -35,6 +35,11 @@ import {
   REDACTED_SECRET_TEXT,
 } from "Common/Types/Runbook/SecretOutputRedaction";
 import {
+  fillHttpStepJsonText,
+  getHttpStepVariableTexts,
+  redactHttpStepSecrets,
+} from "Common/Types/Runbook/HttpStepVariables";
+import {
   RUNBOOK_VARIABLE_NAME_MAX_LENGTH,
   RunbookVariableScope,
   formatRunbookVariableReference,
@@ -610,8 +615,8 @@ describe("the runbook pages' step timeouts", () => {
       "Set the timeouts per step, under its **More fields** on the runbook's **Steps** page;",
     );
     // The HTTP request step runs with the step timeout too.
-    expect(STEP_EXECUTORS).toContain(
-      "const timeout: number = resolveStepExecutionTimeoutInMs(config.timeoutInMs);",
+    expect(STEP_EXECUTORS).toMatch(
+      /const timeout: number = resolveStepExecutionTimeoutInMs\(\s*storedConfig\.timeoutInMs,?\s*\);/,
     );
   });
 });
@@ -2148,6 +2153,56 @@ describe("runbook variables", () => {
     );
     expect(VARIABLES).toContain(
       "A secret shorter than 4 characters is not looked for.",
+    );
+  });
+
+  /*
+   * An HTTP request step names variables as a script does, in its URL, its
+   * headers and its body. OneUptime sends it itself, from the Worker - no
+   * Runner's list applies - so it is given every variable it names, a
+   * secret too, and hides each secret in what it records.
+   */
+  it("say an HTTP request step fills in every variable it names, secrets too, and hides them in what it records", () => {
+    expect(
+      getHttpStepVariableTexts({ url: "u", headersJson: "h", body: "b" }),
+    ).toEqual(["u", "h", "b"]);
+
+    const httpStep: string = STEP_EXECUTORS.slice(
+      STEP_EXECUTORS.indexOf("export async function runHttpStep("),
+    ).replace(/\s+/g, " ");
+
+    expect(httpStep).toContain(
+      'access: { kind: "server" }, includeValues: true,',
+    );
+    expect(httpStep).toContain("redactHttpStepSecrets(text, secretValues)");
+    expect(RUN_RUNBOOK).toContain("return runHttpStep(step, ctx);");
+
+    // In JSON, a value goes inside its string: a quote in it keeps the JSON whole.
+    expect(
+      JSON.parse(
+        fillHttpStepJsonText(
+          '{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }',
+          (): string => {
+            return 'sk_"live';
+          },
+        ),
+      ),
+    ).toEqual({ Authorization: 'Bearer sk_"live' });
+    expect(redactHttpStepSecrets("echo sk_live_8f2a", ["sk_live_8f2a"])).toBe(
+      `echo ${REDACTED_SECRET_TEXT}`,
+    );
+
+    expect(VARIABLES).toContain(
+      "Bash, JavaScript, SSH, kubectl and HTTP request steps use variables. AI steps do not fill them in. OneUptime sends an HTTP request step itself, without a Runner, so the step gets every variable it names, secrets too, and hides them in the response it records.",
+    );
+    expect(VARIABLES).toContain(
+      "| OneUptime itself, for an HTTP request step | Always | Always |",
+    );
+    expect(VARIABLES).toContain(
+      '{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }',
+    );
+    expect(AUTHORING).toContain(
+      "OneUptime sends the request itself, so it fills in secrets too, and the response the step records shows `[REDACTED]` in their place. In JSON headers or a JSON body, a value goes inside its string, so a quote or a line break in it does not break the JSON.",
     );
   });
 });

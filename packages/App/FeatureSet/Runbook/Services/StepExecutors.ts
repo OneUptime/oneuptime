@@ -26,6 +26,11 @@ import RunbookVariableResolver, {
   RunbookVariableResolution,
 } from "Common/Server/Utils/Runbook/RunbookVariableResolver";
 import { REMOVED_RUNBOOK_CREDENTIAL_STEP_MESSAGE } from "Common/Types/Runbook/RunbookLegacySteps";
+import {
+  fillHttpStepConfig,
+  getHttpStepVariableTexts,
+  redactHttpStepSecrets,
+} from "Common/Types/Runbook/HttpStepVariables";
 import { JSONObject } from "Common/Types/JSON";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
@@ -418,9 +423,97 @@ export async function runJavaScriptStep(
   });
 }
 
-export async function runHttpStep(step: RunbookStep): Promise<StepRunResult> {
-  const config: HttpRequestStepConfig = step.config as HttpRequestStepConfig;
-  const timeout: number = resolveStepExecutionTimeoutInMs(config.timeoutInMs);
+/*
+ * Why an HTTP request step that names runbook variables is not sent when it
+ * is run on its own, outside a runbook's run: there is no runbook to read
+ * its own variables from, and nothing records what it was given.
+ */
+export const HTTP_STEP_VARIABLES_OUTSIDE_RUN_MESSAGE: string =
+  "This step names runbook variables, which are read only when its runbook runs.";
+
+export const HTTP_STEP_VARIABLES_UNREAD_MESSAGE: string =
+  "This step's variables could not be read, so it was not sent. Try again in a moment.";
+
+/*
+ * An HTTP request step: OneUptime sends the request itself, from its own
+ * servers, with the runbook variables its URL, headers and body name filled
+ * in (Common/Types/Runbook/HttpStepVariables) - a secret too, since no
+ * Runner is involved. What it records - the response's status, headers and
+ * body, or the error - has every secret it was given hidden.
+ */
+export async function runHttpStep(
+  step: RunbookStep,
+  ctx?: StepExecutionContext | undefined,
+): Promise<StepRunResult> {
+  const storedConfig: HttpRequestStepConfig =
+    step.config as HttpRequestStepConfig;
+  const timeout: number = resolveStepExecutionTimeoutInMs(
+    storedConfig.timeoutInMs,
+  );
+
+  const references: Array<RunbookVariableReference> =
+    findRunbookVariableReferencesIn(getHttpStepVariableTexts(storedConfig));
+
+  let config: HttpRequestStepConfig = storedConfig;
+  let secretValues: Array<string> = [];
+
+  if (references.length > 0) {
+    if (!ctx) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: HTTP_STEP_VARIABLES_OUTSIDE_RUN_MESSAGE,
+      };
+    }
+
+    let resolution: RunbookVariableResolution;
+
+    try {
+      resolution = await RunbookVariableResolver.resolve({
+        projectId: ctx.projectId,
+        runbookId: ctx.runbookId || null,
+        references,
+        // OneUptime sends the request itself: no Runner's list applies.
+        access: { kind: "server" },
+        includeValues: true,
+      });
+    } catch (err) {
+      logger.error("HttpRequest step: could not read its variables");
+      logger.error(err);
+      return {
+        success: false,
+        output: "",
+        errorMessage: HTTP_STEP_VARIABLES_UNREAD_MESSAGE,
+      };
+    }
+
+    // A variable it may not have: never sent with the placeholder in it.
+    if (resolution.problems.length > 0) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: describeRunbookVariableProblems(resolution.problems),
+      };
+    }
+
+    config = fillHttpStepConfig(
+      storedConfig,
+      (reference: RunbookVariableReference): string | undefined => {
+        return resolution.variables.get(
+          getRunbookVariableReferenceKey(reference),
+        )?.value;
+      },
+    );
+    secretValues = resolution.secretValues;
+  }
+
+  /*
+   * Hidden before anything is cut or kept: a secret cut in half by the
+   * output's limit would show its first half.
+   */
+  const redact: (text: string) => string = (text: string): string => {
+    return redactHttpStepSecrets(text, secretValues);
+  };
 
   let headers: Record<string, string> = {};
   if (config.headersJson) {
@@ -430,9 +523,11 @@ export async function runHttpStep(step: RunbookStep): Promise<StepRunResult> {
       return {
         success: false,
         output: "",
-        errorMessage: `Invalid headers JSON: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
+        errorMessage: redact(
+          `Invalid headers JSON: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        ),
       };
     }
   }
@@ -458,7 +553,8 @@ export async function runHttpStep(step: RunbookStep): Promise<StepRunResult> {
      * So: validate the target and pin the addresses it resolved to, and refuse
      * redirects — pinning covers only the host that was validated, so a 3xx
      * would walk around it. maxRedirects rather than doNotFollowRedirects
-     * because this is raw axios, not Common's API wrapper.
+     * because this is raw axios, not Common's API wrapper. The URL checked is
+     * the one sent: its variables filled in.
      */
     const { httpAgent, httpsAgent } =
       await DataSourceEgressGuard.assertUrlAllowedAndPin(config.url || "", {
@@ -484,11 +580,13 @@ export async function runHttpStep(step: RunbookStep): Promise<StepRunResult> {
         ? response.data
         : JSON.stringify(response.data, null, 2);
 
-    const output: string = [
-      `Status: ${response.status} ${response.statusText}`,
-      `Headers: ${JSON.stringify(response.headers, null, 2)}`,
-      `Body: ${body}`,
-    ].join("\n");
+    const output: string = redact(
+      [
+        `Status: ${response.status} ${response.statusText}`,
+        `Headers: ${JSON.stringify(response.headers, null, 2)}`,
+        `Body: ${body}`,
+      ].join("\n"),
+    );
 
     if (response.status >= 200 && response.status < 400) {
       return { success: true, output: truncate(output) };
@@ -503,7 +601,7 @@ export async function runHttpStep(step: RunbookStep): Promise<StepRunResult> {
     return {
       success: false,
       output: "",
-      errorMessage: err instanceof Error ? err.message : String(err),
+      errorMessage: redact(err instanceof Error ? err.message : String(err)),
     };
   }
 }

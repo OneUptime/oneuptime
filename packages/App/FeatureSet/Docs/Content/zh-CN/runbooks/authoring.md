@@ -111,6 +111,9 @@ return { durationMs: Date.now() - start };
 
 适用于：打开 PagerDuty 事件、向 Slack Webhook 发帖、调用云服务商的 API 或你自己的公开 API。
 
+> [!TIP]
+> 不要把令牌写进步骤。把它们存为机密 [Runbook 变量](/docs/runbooks/variables)，并在 URL、请求头或正文中值应出现的位置写 `{{global.variables.NAME}}`。请求由 OneUptime 自己发送，所以机密也会填入，而步骤记录的响应中该位置显示为 `[REDACTED]`。在 JSON 请求头或 JSON 正文中，值会放进它所在的字符串，因此值中的引号或换行不会破坏 JSON。
+
 ### Bash
 
 一个 bash 脚本，在你自己基础设施中的 [Runbook 代理](/docs/runbooks/agents) 上通过 `bash -c <script>` 运行。Bash 从不在 OneUptime Worker 上运行。

@@ -35862,5 +35862,6 @@
   "Runs when its webhook URL is called.": "Viene eseguito quando viene chiamato il suo URL webhook.",
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Né pianificazione né webhook: viene eseguito quando qualcuno lo avvia, o quando lo fa una regola o OneUptime AI.",
   "Change it under {{location}}.": "Modificalo in {{location}}.",
-  "Settings › Triggers": "Impostazioni › Trigger"
+  "Settings › Triggers": "Impostazioni › Trigger",
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Usa una variabile nell'URL, nelle intestazioni o nel corpo come {{reference}}. OneUptime invia la richiesta da sé, quindi inserisce anche i segreti e li nasconde in ciò che il passaggio registra."
 }

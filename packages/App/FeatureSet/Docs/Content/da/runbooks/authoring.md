@@ -111,6 +111,9 @@ Trinnet lykkes ved et `2xx`- eller `3xx`-svar og fejler ved alt andet med `HTTP 
 
 Nyttigt til: at åbne en PagerDuty-hændelse, sende til en Slack-webhook, kalde din cloududbyders eller dit eget offentlige API.
 
+> [!TIP]
+> Hold tokens ude af trinnet. Gem dem som hemmelige [runbook-variabler](/docs/runbooks/variables), og skriv `{{global.variables.NAME}}`, hvor værdien skal stå, i URL'en, headerne eller body'en. OneUptime sender selv anmodningen, så det indsætter også hemmeligheder, og det svar, trinnet registrerer, viser `[REDACTED]` i stedet. I JSON-headere eller en JSON-body sættes en værdi ind i sin streng, så et anførselstegn eller et linjeskift i den ikke ødelægger JSON'en.
+
 ### Bash
 
 Et bash-script, der køres med `bash -c <script>` på en [runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. Bash kører aldrig på OneUptime Worker.

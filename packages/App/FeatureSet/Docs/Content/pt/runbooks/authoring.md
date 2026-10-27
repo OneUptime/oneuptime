@@ -111,6 +111,9 @@ A etapa dá certo com uma resposta `2xx` ou `3xx` e falha com qualquer outra, co
 
 Útil para: abrir um incidente no PagerDuty, publicar em um webhook do Slack, chamar a API pública do seu provedor de nuvem ou a sua.
 
+> [!TIP]
+> Mantenha tokens fora da etapa. Guarde-os como [variáveis de runbook](/docs/runbooks/variables) secretas e escreva `{{global.variables.NAME}}` onde o valor deve ficar, na URL, nos headers ou no corpo. O OneUptime envia a requisição ele mesmo, então insere também os segredos, e a resposta que a etapa registra mostra `[REDACTED]` no lugar deles. Em headers ou um corpo JSON, um valor fica dentro da sua string, então aspas ou uma quebra de linha nele não quebram o JSON.
+
 ### Bash
 
 Um script bash, executado com `bash -c <script>` em um [agente de runbook](/docs/runbooks/agents) na sua própria infraestrutura. Bash nunca roda no Worker do OneUptime.

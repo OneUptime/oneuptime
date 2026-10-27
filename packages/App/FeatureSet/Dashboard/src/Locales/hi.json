@@ -35862,5 +35862,6 @@
   "Runs when its webhook URL is called.": "इसका वेबहुक URL कॉल होने पर चलता है।",
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "कोई शेड्यूल या वेबहुक नहीं: यह तब चलता है जब कोई इसे शुरू करे, या कोई नियम या OneUptime AI ऐसा करे।",
   "Change it under {{location}}.": "इसे {{location}} में बदलें।",
-  "Settings › Triggers": "सेटिंग्स › ट्रिगर"
+  "Settings › Triggers": "सेटिंग्स › ट्रिगर",
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "URL, हेडर या बॉडी में वेरिएबल को {{reference}} के रूप में इस्तेमाल करें। अनुरोध OneUptime खुद भेजता है, इसलिए वह सीक्रेट भी भरता है, और चरण जो दर्ज करता है उसमें उन्हें छिपाता है।"
 }

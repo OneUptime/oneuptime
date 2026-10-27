@@ -35862,5 +35862,6 @@
   "Runs when its webhook URL is called.": "Kjører når webhook-URL-en kalles.",
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Ingen tidsplan eller webhook: den kjører når noen starter den, eller når en regel eller OneUptime AI gjør det.",
   "Change it under {{location}}.": "Endre det under {{location}}.",
-  "Settings › Triggers": "Innstillinger › Utløsere"
+  "Settings › Triggers": "Innstillinger › Utløsere",
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Bruk en variabel i URL-en, overskriftene eller brødteksten som {{reference}}. OneUptime sender forespørselen selv, så den fyller også inn hemmeligheter og skjuler dem i det trinnet lagrer."
 }

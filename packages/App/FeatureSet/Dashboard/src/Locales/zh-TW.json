@@ -35862,5 +35862,6 @@
   "Runs when its webhook URL is called.": "呼叫其 Webhook URL 時執行。",
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "沒有排程或 Webhook：有人啟動它，或規則或 OneUptime AI 啟動它時才會執行。",
   "Change it under {{location}}.": "可在 {{location}} 中變更。",
-  "Settings › Triggers": "設定 › 觸發器"
+  "Settings › Triggers": "設定 › 觸發器",
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "在 URL、標頭或本文中以 {{reference}} 的形式使用變數。請求由 OneUptime 自己傳送，因此也會填入密鑰，並在該步驟記錄的內容中隱藏它們。"
 }

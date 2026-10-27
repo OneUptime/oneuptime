@@ -111,6 +111,9 @@ OneUptime Worker が行う送信 HTTP 呼び出しです。Runner は不要で�
 
 用途: PagerDuty のインシデントを開く、Slack の Webhook に投稿する、クラウドプロバイダーや自社の公開 API を呼び出す。
 
+> [!TIP]
+> トークンをステップに書かないでください。シークレットの [Runbook の変数](/docs/runbooks/variables) として保存し、URL、ヘッダー、本文の値を入れる場所に `{{global.variables.NAME}}` と書きます。リクエストは OneUptime 自身が送るのでシークレットも埋め込まれ、ステップが記録する応答ではその場所に `[REDACTED]` と表示されます。JSON のヘッダーや本文では値がその文字列の中に入るため、値に引用符や改行があっても JSON は壊れません。
+
 ### Bash
 
 自社インフラの [Runbook エージェント](/docs/runbooks/agents) 上で `bash -c <script>` で実行される bash スクリプトです。Bash が OneUptime Worker で実行されることはありません。

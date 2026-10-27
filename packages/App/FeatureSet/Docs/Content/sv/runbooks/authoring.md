@@ -111,6 +111,9 @@ Steget lyckas vid ett `2xx`- eller `3xx`-svar och misslyckas vid allt annat, med
 
 Användbart för: att öppna en PagerDuty-incident, posta till en Slack-webhook, anropa din molnleverantörs API eller ditt eget publika API.
 
+> [!TIP]
+> Håll tokens utanför steget. Spara dem som hemliga [runbook-variabler](/docs/runbooks/variables) och skriv `{{global.variables.NAME}}` där värdet ska stå, i URL:en, headers eller body. OneUptime skickar begäran själv, så det fyller även i hemligheter, och svaret som steget registrerar visar `[REDACTED]` i deras ställe. I JSON-headers eller en JSON-body hamnar ett värde inuti sin sträng, så ett citattecken eller en radbrytning i det förstör inte JSON:en.
+
 ### Bash
 
 Ett bash-skript som körs med `bash -c <script>` på en [runbook-agent](/docs/runbooks/agents) i din egen infrastruktur. Bash körs aldrig på OneUptime Worker.

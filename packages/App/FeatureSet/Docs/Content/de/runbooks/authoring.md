@@ -111,6 +111,9 @@ Der Schritt gelingt bei einer `2xx`- oder `3xx`-Antwort und schlägt bei allem a
 
 Nützlich für: einen PagerDuty-Vorfall öffnen, an einen Slack-Webhook posten, die öffentliche API Ihres Cloud-Anbieters oder Ihre eigene aufrufen.
 
+> [!TIP]
+> Halten Sie Tokens aus dem Schritt heraus. Speichern Sie sie als geheime [Runbook-Variablen](/docs/runbooks/variables) und schreiben Sie `{{global.variables.NAME}}` dorthin, wo der Wert hingehört, in die URL, die Header oder den Body. OneUptime sendet die Anfrage selbst, setzt also auch Geheimnisse ein, und die Antwort, die der Schritt erfasst, zeigt an ihrer Stelle `[REDACTED]`. In JSON-Headern oder einem JSON-Body kommt ein Wert in seinen String, sodass ein Anführungszeichen oder ein Zeilenumbruch darin das JSON nicht zerbricht.
+
 ### Bash
 
 Ein Bash-Skript, ausgeführt mit `bash -c <script>` auf einem [Runbook-Agent](/docs/runbooks/agents) in Ihrer eigenen Infrastruktur. Bash läuft nie auf dem OneUptime Worker.

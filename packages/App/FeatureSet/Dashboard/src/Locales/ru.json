@@ -35862,5 +35862,6 @@
   "Runs when its webhook URL is called.": "Запускается при вызове его URL веб-хука.",
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "Нет ни расписания, ни веб-хука: он запускается, когда его запускает кто-то, правило или OneUptime AI.",
   "Change it under {{location}}.": "Измените это в разделе {{location}}.",
-  "Settings › Triggers": "Настройки › Триггеры"
+  "Settings › Triggers": "Настройки › Триггеры",
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "Используйте переменную в URL, заголовках или теле как {{reference}}. OneUptime отправляет запрос сам, поэтому подставляет и секреты, а в том, что сохраняет шаг, скрывает их."
 }

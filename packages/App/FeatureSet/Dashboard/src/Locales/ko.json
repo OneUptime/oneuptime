@@ -35862,5 +35862,6 @@
   "Runs when its webhook URL is called.": "웹훅 URL이 호출되면 실행됩니다.",
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "일정도 웹훅도 없습니다. 누군가 시작하거나 규칙 또는 OneUptime AI가 시작할 때 실행됩니다.",
   "Change it under {{location}}.": "{{location}}에서 변경하세요.",
-  "Settings › Triggers": "설정 › 트리거"
+  "Settings › Triggers": "설정 › 트리거",
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "URL, 헤더, 본문에서는 변수를 {{reference}}(으)로 사용합니다. 요청은 OneUptime이 직접 보내므로 시크릿도 채워 넣고, 단계가 기록하는 내용에서는 숨깁니다."
 }

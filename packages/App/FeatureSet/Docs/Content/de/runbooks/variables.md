@@ -4,8 +4,8 @@ Eine Runbook-Variable ist ein Wert, den Ihre Schritte über seinen Namen verwend
 
 :::cards
 - [Eine Variable erstellen](#eine-variable-erstellen): Ein einfacher Wert, oder ein Geheimnis und die Runner, die es nutzen dürfen.
-- [Eine Variable in einem Schritt verwenden](#eine-variable-in-einem-schritt-verwenden): In einem Skript, oder als Anmeldung eines SSH-Schritts und kubeconfig eines kubectl-Schritts.
-- [Wer ein Geheimnis erhält](#wer-ein-geheimnis-erhält): Ihre Runner, und globale Runner, wenn Sie es ihnen erlauben.
+- [Eine Variable in einem Schritt verwenden](#eine-variable-in-einem-schritt-verwenden): In einem Skript oder einer HTTP-Anfrage, oder als Anmeldung eines SSH-Schritts und kubeconfig eines kubectl-Schritts.
+- [Wer ein Geheimnis erhält](#wer-ein-geheimnis-erhält): Ihre Runner, globale Runner, wenn Sie es ihnen erlauben, und OneUptime für einen HTTP-Anfrage-Schritt.
 :::
 
 ## Wie eine Variable einen Schritt erreicht
@@ -19,7 +19,7 @@ flowchart TB
 
 Ein Schritt enthält den Namen der Variable, nie ihren Wert. Wenn der Runner des Schritts ihn übernimmt, setzt OneUptime den Wert ein - im Skript, in Rechner und Anmeldung eines SSH-Schritts oder in der kubeconfig eines kubectl-Schritts - und übergibt ihn nur diesem Runner. Ein Schritt, der eine Variable nennt, die er nicht haben darf, schlägt mit dem Grund fehl, statt mit dem Namen an der Stelle des Werts zu laufen.
 
-Bash-, JavaScript-, SSH- und kubectl-Schritte verwenden Variablen. HTTP-Anfrage- und KI-Schritte setzen sie nicht ein.
+Bash-, JavaScript-, SSH-, kubectl- und HTTP-Anfrage-Schritte verwenden Variablen. KI-Schritte setzen sie nicht ein. Einen HTTP-Anfrage-Schritt sendet OneUptime selbst, ohne Runner, daher erhält der Schritt jede Variable, die er nennt, auch Geheimnisse, und verbirgt sie in der Antwort, die er erfasst.
 
 ## Globale und Runbook-Variablen
 
@@ -71,20 +71,27 @@ curl -s -X POST \
   -H "Authorization: Bearer {{global.variables.CDN_API_TOKEN}}" \
   "https://api.cdn.example.com/v1/purge"
 ```
+@tab In einer HTTP-Anfrage
+Schreiben Sie den Verweis in die URL, die Header oder den Body eines [HTTP-Anfrage-Schritts](/docs/runbooks/authoring#http-request):
+
+```json
+{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
+```
 @tab SSH-Anmeldung
 Ein [SSH-Schritt](/docs/runbooks/authoring#ssh) wählt unter **Anmelden mit** die geheime Variable, die seinen privaten Schlüssel oder sein Passwort enthält, und unter **Weitere Felder → Passphrase des Schlüssels** die Passphrase seines Schlüssels. Der Wert sagt, ob es ein Schlüssel oder ein Passwort ist.
 @tab Kubeconfig
 Ein [kubectl-Schritt](/docs/runbooks/authoring#kubectl) wählt unter **Kubeconfig** die geheime Variable, die die kubeconfig des Clusters enthält, oder **Der eigene Zugriff des Runners**, um den des Runners zu verwenden.
 :::
 
-Auf der Seite **Schritte** eines Runbooks listet jedes Skript unter **Variablen – zum Kopieren klicken** die Variablen auf, die sein Schritt verwenden kann, und der Editor sagt, wenn ein Schritt eine Variable nennt, die es nicht gibt, oder ein Geheimnis, das sein Runner nicht nutzen darf.
+Auf der Seite **Schritte** eines Runbooks listen jedes Skript und jede HTTP-Anfrage unter **Variablen – zum Kopieren klicken** die Variablen auf, die ihr Schritt verwenden kann, und der Editor sagt, wenn ein Schritt eine Variable nennt, die es nicht gibt, oder ein Geheimnis, das sein Runner nicht nutzen darf.
 
 ## Wer ein Geheimnis erhält
 
-| Runner | Eine einfache Variable | Ein Geheimnis |
+| Wer den Schritt ausführt | Eine einfache Variable | Ein Geheimnis |
 | --- | --- | --- |
 | Einer Ihrer Runner | Immer | Wenn das Geheimnis ihn unter **Ihre Runner, die es nutzen dürfen** aufführt |
 | Ein globaler Runner | Immer | Wenn **Globale Runner dürfen es nutzen** eingeschaltet ist, für einen Schritt aus dem eigenen Projekt des Geheimnisses |
+| OneUptime selbst, für einen HTTP-Anfrage-Schritt | Immer | Immer |
 
 Ein Schritt, der ein Geheimnis nennt, das sein Runner nicht nutzen darf, schlägt fehl, nennt das Geheimnis und was zu ändern ist, und nichts wird übergeben.
 

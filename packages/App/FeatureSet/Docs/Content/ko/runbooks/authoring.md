@@ -111,6 +111,9 @@ OneUptime Worker가 보내는 아웃바운드 HTTP 호출입니다. Runner가 �
 
 용도: PagerDuty 인시던트 열기, Slack 웹훅에 게시, 클라우드 공급자나 자체 공개 API 호출.
 
+> [!TIP]
+> 토큰을 단계에 넣지 마세요. 시크릿 [Runbook 변수](/docs/runbooks/variables)로 저장하고, URL, 헤더, 본문의 값이 들어갈 자리에 `{{global.variables.NAME}}`를 쓰세요. 요청은 OneUptime이 직접 보내므로 시크릿도 채워지고, 단계가 기록하는 응답에서는 그 자리에 `[REDACTED]`가 표시됩니다. JSON 헤더나 JSON 본문에서는 값이 그 문자열 안에 들어가므로, 값에 따옴표나 줄바꿈이 있어도 JSON이 깨지지 않습니다.
+
 ### Bash
 
 자체 인프라의 [Runbook 에이전트](/docs/runbooks/agents)에서 `bash -c <script>`로 실행되는 bash 스크립트입니다. Bash는 OneUptime Worker에서 실행되지 않습니다.

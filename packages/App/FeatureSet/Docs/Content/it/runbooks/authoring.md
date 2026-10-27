@@ -111,6 +111,9 @@ Il passaggio riesce con una risposta `2xx` o `3xx` e fallisce con qualsiasi altr
 
 Utile per: aprire un incidente PagerDuty, pubblicare su un webhook Slack, chiamare l'API pubblica del tuo provider cloud o la tua.
 
+> [!TIP]
+> Tieni i token fuori dal passaggio. Salvali come [variabili di runbook](/docs/runbooks/variables) segrete e scrivi `{{global.variables.NAME}}` dove va il valore, nell'URL, negli header o nel corpo. OneUptime invia la richiesta da sé, quindi inserisce anche i segreti, e la risposta che il passaggio registra mostra `[REDACTED]` al loro posto. In header o in un corpo JSON, un valore va dentro la sua stringa, quindi una virgoletta o un a capo al suo interno non rompono il JSON.
+
 ### Bash
 
 Uno script bash, eseguito con `bash -c <script>` su un [agente di runbook](/docs/runbooks/agents) nella tua infrastruttura. Bash non viene mai eseguito sul Worker di OneUptime.

@@ -111,6 +111,9 @@ De stap slaagt bij een `2xx`- of `3xx`-antwoord en mislukt bij al het andere, me
 
 Handig voor: een PagerDuty-incident openen, naar een Slack-webhook posten, de openbare API van uw cloudprovider of uw eigen API aanroepen.
 
+> [!TIP]
+> Houd tokens uit de stap. Sla ze op als geheime [runbookvariabelen](/docs/runbooks/variables) en schrijf `{{global.variables.NAME}}` waar de waarde moet komen, in de URL, de headers of de body. OneUptime verstuurt het verzoek zelf, dus het vult ook geheimen in, en het antwoord dat de stap vastlegt toont `[REDACTED]` op hun plek. In JSON-headers of een JSON-body komt een waarde binnen zijn string, zodat een aanhalingsteken of regeleinde erin de JSON niet breekt.
+
 ### Bash
 
 Een bashscript, uitgevoerd met `bash -c <script>` op een [runbook-agent](/docs/runbooks/agents) in uw eigen infrastructuur. Bash loopt nooit op de OneUptime Worker.

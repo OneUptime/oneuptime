@@ -111,6 +111,9 @@ The step succeeds on a `2xx` or `3xx` response and fails on anything else, with 
 
 Useful for: opening a PagerDuty incident, posting to a Slack webhook, calling your cloud provider's or your own public API.
 
+> [!TIP]
+> Keep tokens out of the step. Store them as secret [runbook variables](/docs/runbooks/variables) and write `{{global.variables.NAME}}` where the value goes, in the URL, the headers or the body. OneUptime sends the request itself, so it fills in secrets too, and the response the step records shows `[REDACTED]` in their place. In JSON headers or a JSON body, a value goes inside its string, so a quote or a line break in it does not break the JSON.
+
 ### Bash
 
 A bash script, run with `bash -c <script>` on a [Runbook Agent](/docs/runbooks/agents) in your own infrastructure. Bash never runs on the OneUptime Worker.

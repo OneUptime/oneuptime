@@ -35862,5 +35862,6 @@
   "Runs when its webhook URL is called.": "وقتی نشانی وب‌هوک آن فراخوانی شود اجرا می‌شود.",
   "No schedule or webhook: it runs when someone starts it, or when a rule or OneUptime AI does.": "نه زمان‌بندی دارد نه وب‌هوک: وقتی کسی آن را شروع کند، یا یک قاعده یا OneUptime AI این کار را بکند، اجرا می‌شود.",
   "Change it under {{location}}.": "آن را در {{location}} تغییر دهید.",
-  "Settings › Triggers": "تنظیمات › تریگرها"
+  "Settings › Triggers": "تنظیمات › تریگرها",
+  "Use a variable in the URL, the headers or the body as {{reference}}. OneUptime sends the request itself, so it fills in secrets too, and hides them in what the step records.": "در نشانی، سرآیندها یا بدنه از متغیر به شکل {{reference}} استفاده کنید. OneUptime درخواست را خودش می‌فرستد، پس رازها را هم جایگذاری می‌کند و در آنچه گام ثبت می‌کند پنهانشان می‌کند."
 }

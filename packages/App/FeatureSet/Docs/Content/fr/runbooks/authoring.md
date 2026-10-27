@@ -111,6 +111,9 @@ L'étape réussit sur une réponse `2xx` ou `3xx` et échoue sur tout le reste, 
 
 Utile pour : ouvrir un incident PagerDuty, publier sur un webhook Slack, appeler l'API publique de votre fournisseur cloud ou la vôtre.
 
+> [!TIP]
+> Gardez les jetons hors de l'étape. Stockez-les comme [variables de runbook](/docs/runbooks/variables) secrètes et écrivez `{{global.variables.NAME}}` là où va la valeur, dans l'URL, les en-têtes ou le corps. OneUptime envoie la requête lui-même, il insère donc aussi les secrets, et la réponse que l'étape enregistre affiche `[REDACTED]` à leur place. Dans des en-têtes ou un corps JSON, une valeur va dans sa chaîne, si bien qu'un guillemet ou un saut de ligne qu'elle contient ne casse pas le JSON.
+
 ### Bash
 
 Un script bash, exécuté avec `bash -c <script>` sur un [agent Runbook](/docs/runbooks/agents) dans votre propre infrastructure. Bash ne s'exécute jamais sur le Worker OneUptime.

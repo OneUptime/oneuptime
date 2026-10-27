@@ -4,8 +4,8 @@ Uma variável de runbook é um valor que suas etapas usam pelo nome em vez de gu
 
 :::cards
 - [Criar uma variável](#criar-uma-variável): Um valor simples, ou um segredo e os Runners que podem usá-lo.
-- [Usar uma variável em uma etapa](#usar-uma-variável-em-uma-etapa): Em um script, ou como login de uma etapa SSH e kubeconfig de uma etapa kubectl.
-- [Quem recebe um segredo](#quem-recebe-um-segredo): Seus Runners, e os Runners globais quando você permite.
+- [Usar uma variável em uma etapa](#usar-uma-variável-em-uma-etapa): Em um script ou uma requisição HTTP, ou como login de uma etapa SSH e kubeconfig de uma etapa kubectl.
+- [Quem recebe um segredo](#quem-recebe-um-segredo): Seus Runners, os Runners globais quando você permite, e o OneUptime para uma etapa de requisição HTTP.
 :::
 
 ## Como uma variável chega a uma etapa
@@ -19,7 +19,7 @@ flowchart TB
 
 Uma etapa guarda o nome da variável, nunca o seu valor. Quando o Runner da etapa a pega, o OneUptime insere o valor - no script, na máquina e no login de uma etapa SSH, ou no kubeconfig de uma etapa kubectl - e o entrega apenas a esse Runner. Uma etapa que nomeia uma variável que não pode ter falha com o motivo, em vez de ser executada com o nome no lugar do valor.
 
-As etapas Bash, JavaScript, SSH e kubectl usam variáveis. As etapas de requisição HTTP e de IA não as inserem.
+As etapas Bash, JavaScript, SSH, kubectl e de requisição HTTP usam variáveis. As etapas de IA não as inserem. O OneUptime envia ele mesmo uma etapa de requisição HTTP, sem Runner, então a etapa recebe cada variável que nomeia, segredos também, e os oculta na resposta que registra.
 
 ## Variáveis globais e variáveis de runbook
 
@@ -71,20 +71,27 @@ curl -s -X POST \
   -H "Authorization: Bearer {{global.variables.CDN_API_TOKEN}}" \
   "https://api.cdn.example.com/v1/purge"
 ```
+@tab Em uma requisição HTTP
+Escreva a referência na URL, nos headers ou no corpo de uma [etapa de requisição HTTP](/docs/runbooks/authoring#http-request):
+
+```json
+{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }
+```
 @tab Login SSH
 Uma [etapa SSH](/docs/runbooks/authoring#ssh) escolhe em **Entrar com** a variável secreta que guarda sua chave privada ou senha, e em **Mais campos → Frase secreta da chave** a frase secreta da chave. O valor diz se é uma chave ou uma senha.
 @tab Kubeconfig
 Uma [etapa kubectl](/docs/runbooks/authoring#kubectl) escolhe em **Kubeconfig** a variável secreta que guarda o kubeconfig do cluster, ou **O acesso próprio do Runner** para usar o do Runner.
 :::
 
-Na página **Etapas** de um runbook, cada script lista em **Variáveis — clique para copiar** as variáveis que sua etapa pode usar, e o editor avisa quando uma etapa nomeia uma variável que não existe, ou um segredo que seu Runner não pode usar.
+Na página **Etapas** de um runbook, cada script e cada requisição HTTP listam em **Variáveis — clique para copiar** as variáveis que sua etapa pode usar, e o editor avisa quando uma etapa nomeia uma variável que não existe, ou um segredo que seu Runner não pode usar.
 
 ## Quem recebe um segredo
 
-| Runner | Uma variável simples | Um segredo |
+| Quem executa a etapa | Uma variável simples | Um segredo |
 | --- | --- | --- |
 | Um dos seus Runners | Sempre | Quando o segredo o lista em **Seus Runners que podem usá-lo** |
 | Um Runner global | Sempre | Quando **Runners globais podem usá-lo** está ativado, para uma etapa do próprio projeto do segredo |
+| O próprio OneUptime, para uma etapa de requisição HTTP | Sempre | Sempre |
 
 Uma etapa que nomeia um segredo que seu Runner não pode usar falha, nomeando o segredo e o que mudar, e nada é entregue.
 
