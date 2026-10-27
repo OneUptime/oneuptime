@@ -74,9 +74,10 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           ),
         },
         {
-          title: "Global OIDC",
+          // The page that lists it, with the SAML providers and Require SSO.
+          title: t("breadcrumbs.singleSignOn"),
           to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.SETTINGS_GLOBAL_OIDC] as Route,
+            RouteMap[PageMap.SETTINGS_SSO] as Route,
           ),
         },
         {
@@ -383,9 +384,7 @@ const GlobalOIDCView: FunctionComponent = (): ReactElement => {
           modelId={modelId}
           modelAPI={AdminModelAPI}
           onDeleteSuccess={() => {
-            Navigation.navigate(
-              RouteMap[PageMap.SETTINGS_GLOBAL_OIDC] as Route,
-            );
+            Navigation.navigate(RouteMap[PageMap.SETTINGS_SSO] as Route);
           }}
         />
       </Fragment>

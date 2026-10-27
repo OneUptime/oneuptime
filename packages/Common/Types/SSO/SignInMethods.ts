@@ -68,8 +68,14 @@ export const SSO_REQUIRED_SIGN_IN_MESSAGE: string =
 export const SSO_REQUIRED_SIGN_UP_MESSAGE: string =
   "This server requires single sign-on (SSO), so accounts are not created with a password. Sign in with SSO instead.";
 
-// The address master admins sign in at with their password while SSO is required.
-export const MASTER_ADMIN_SIGN_IN_PATH: string = "/accounts/admin-login";
+/*
+ * Where master admins sign in with their password while SSO is required: a
+ * page of the Accounts app (/accounts), which the sign-in page does not link
+ * to. The Admin Dashboard sends a signed-out visitor there, and its Require
+ * SSO card names the address.
+ */
+export const MASTER_ADMIN_SIGN_IN_ROUTE: string = "/admin-login";
+export const MASTER_ADMIN_SIGN_IN_PATH: string = `/accounts${MASTER_ADMIN_SIGN_IN_ROUTE}`;
 
 export const GLOBAL_SSO_PROVIDER_TYPES: ReadonlyArray<SsoProviderType> = [
   SsoProviderType.GlobalSSO,

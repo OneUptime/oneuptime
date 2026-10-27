@@ -11,6 +11,7 @@ import {
   useParams,
 } from "react-router-dom";
 import Navigation from "Common/UI/Utils/Navigation";
+import { MASTER_ADMIN_SIGN_IN_PATH } from "Common/Types/SSO/SignInMethods";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Footer from "./Components/Footer/Footer";
 
@@ -101,7 +102,7 @@ function App(): ReactElement {
              * signed-out visitor here, and its Require SSO card names it.
              */}
             <Route
-              path="/accounts/admin-login"
+              path={MASTER_ADMIN_SIGN_IN_PATH}
               element={<LoginPage isMasterAdminSignIn={true} />}
             />
             <Route
