@@ -8,8 +8,52 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
-import { readCommonSource, readDashboardSource } from "./DocsDashboardMenus";
+import {
+  PACKAGES_DIR,
+  readCommonSource,
+  readDashboardSource,
+} from "./DocsDashboardMenus";
+import EnterpriseEdition, {
+  RUNTIME_ENTERPRISE_FEATURES,
+} from "Common/Server/Enterprise/EnterpriseEdition";
+import EnterpriseFeature, {
+  ALL_ENTERPRISE_FEATURES,
+} from "Common/Server/Enterprise/EnterpriseFeature";
+import CustomNotificationChannelDeliveryService, {
+  CustomChannelDeliveryResult,
+} from "Common/Server/Services/CustomNotificationChannelDeliveryService";
+import CustomNotificationChannelService from "Common/Server/Services/CustomNotificationChannelService";
+import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
+import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import DatabaseRequestType from "Common/Server/Types/BaseDatabase/DatabaseRequestType";
+import EditionPermissions from "Common/Server/Types/Database/Permissions/EditionPermission";
+import CustomChannelEdition, {
+  CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
+} from "Common/Server/Utils/Notification/CustomChannelEdition";
+import logger from "Common/Server/Utils/Logger";
+import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
+import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationRule";
 import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
+import {
+  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+} from "Common/Types/EnterpriseLicense/EnterpriseLicensePeriods";
+import PaymentRequiredException from "Common/Types/Exception/PaymentRequiredException";
+import ObjectID from "Common/Types/ObjectID";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import API from "Common/Utils/API";
+import FakeEnterpriseModule, {
+  createLicenseSnapshot,
+  createLicenseSnapshotWithStatus,
+  installFakeEnterpriseModule,
+  LICENSE_STATE_CASES,
+  LicenseStateCase,
+  uninstallEnterpriseModule,
+} from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
+import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import fs from "fs";
+import path from "path";
 import {
   CUSTOM_CHANNEL_PAYLOAD_VERSION,
   CustomChannelAction,
@@ -25,7 +69,26 @@ import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import { JSONObject } from "Common/Types/JSON";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import { TRUNCATED_TEXT_NOTE } from "Common/Utils/MessageFit";
-import { describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+
+/*
+ * The Without a License section is held to the edition checks themselves,
+ * so billing and the edition are pinned where it is (CI's config.env sets
+ * BILLING_ENABLED=true). Nothing else in this file reads either.
+ */
+jest.mock("Common/Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("Common/Tests/Server/Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "Common/Tests/Server/Enterprise/TestBillingFlag",
+    ) as typeof import("Common/Tests/Server/Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("Common/Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
 
 /*
  * THE CUSTOM CHANNELS PAGE SAYS WHAT A NOTIFICATION SENDS.
@@ -328,5 +391,406 @@ describe("the custom channels page and other notifications", () => {
       `held to ${MAX_CUSTOM_CHANNEL_TEXT_LENGTH.toLocaleString("en-US")} characters`,
     );
     expect(english).toContain(`"${TRUNCATED_TEXT_NOTE}"`);
+  });
+});
+
+/*
+ * THE PAGE SAYS WHAT HAPPENS WITHOUT A LICENSE, AS THE EDITION CHECKS DO IT.
+ *
+ * Custom channels are an Enterprise feature
+ * (EnterpriseFeature.CustomNotificationChannels): the page's note and its
+ * "Without a License" section say what runs when, what stops, what is read-
+ * only and what is kept. Each sentence below is checked against the code
+ * that makes it true: the license periods, CustomChannelEdition, the
+ * delivery service, the channel lists and EditionPermissions - on the
+ * Community Edition (no Enterprise module in this process, as in every
+ * core test) and on an Enterprise Edition faked in each license state.
+ */
+describe("the custom channels page without a license", () => {
+  const withoutALicense: string = section("Without a License").replace(
+    /\s+/g,
+    " ",
+  );
+  const channelId: ObjectID = new ObjectID(
+    "c4a70000-0000-4000-8000-000000000001",
+  );
+  const timelineId: ObjectID = new ObjectID(
+    "c4a70000-0000-4000-8000-000000000002",
+  );
+
+  const licenseState: (label: string) => LicenseStateCase = (
+    label: string,
+  ): LicenseStateCase => {
+    const state: LicenseStateCase | undefined = LICENSE_STATE_CASES.find(
+      (candidate: LicenseStateCase): boolean => {
+        return candidate.label === label;
+      },
+    );
+
+    if (!state) {
+      throw new Error(`The test kit has no license state "${label}".`);
+    }
+
+    return state;
+  };
+
+  // How the edition's write check answered: allowed, or whose words.
+  const writeOutcome: (
+    modelType: DatabaseBaseModelType,
+    operation: DatabaseRequestType,
+    data: unknown,
+  ) => string = (
+    modelType: DatabaseBaseModelType,
+    operation: DatabaseRequestType,
+    data: unknown,
+  ): string => {
+    try {
+      EditionPermissions.checkEditionPermissions(
+        modelType,
+        { userId: ObjectID.generate(), isMasterAdmin: true },
+        operation,
+        data,
+      );
+      EditionPermissions.checkEnterpriseColumnPermissions(
+        modelType,
+        { userId: ObjectID.generate() },
+        operation,
+        data,
+      );
+      return "allowed";
+    } catch (err) {
+      if (err instanceof PaymentRequiredException) {
+        return err.message === EnterpriseEdition.COMMUNITY_EDITION_MESSAGE
+          ? "refused: Community Edition"
+          : "refused: license";
+      }
+
+      throw err;
+    }
+  };
+
+  beforeEach(() => {
+    setTestBillingEnabled(false);
+    uninstallEnterpriseModule();
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "info").mockImplementation((): void => {
+      return undefined;
+    });
+  });
+
+  afterEach(() => {
+    uninstallEnterpriseModule();
+    setTestBillingEnabled(false);
+    jest.restoreAllMocks();
+  });
+
+  it("is a section of its own, which the note at the top and the cards link to", () => {
+    expect(anchorsOfScanned(scanned).has("without-a-license")).toBe(true);
+    expect(english).toContain(
+      "> Custom channels are part of the [OneUptime Enterprise Edition](/docs/self-hosted/enterprise) and need an Enterprise license that includes them.",
+    );
+    expect(english).toContain("See [Without a license](#without-a-license).");
+    expect(english).toContain(
+      "- [Without a license](#without-a-license): What stops, and what is kept.",
+    );
+  });
+
+  it("names a feature a license can include, whose running stops with the license", () => {
+    expect(ALL_ENTERPRISE_FEATURES).toContain(
+      EnterpriseFeature.CustomNotificationChannels,
+    );
+    expect(RUNTIME_ENTERPRISE_FEATURES).toContain(
+      EnterpriseFeature.CustomNotificationChannels,
+    );
+  });
+
+  it("says the Community Edition sends nothing to a channel, and has no Custom Channels page", () => {
+    expect(english).toContain(
+      "The Community Edition has no **Custom Channels** page and sends nothing to a channel.",
+    );
+
+    for (const billing of [false, true]) {
+      setTestBillingEnabled(billing);
+      expect(CustomChannelEdition.isActive()).toBe(false);
+    }
+
+    const adminDashboardSource: string = path.join(
+      PACKAGES_DIR,
+      "App",
+      "FeatureSet",
+      "AdminDashboard",
+      "src",
+    );
+
+    expect(
+      fs.existsSync(
+        path.join(adminDashboardSource, "Pages", "Settings", "CustomChannels"),
+      ),
+    ).toBe(false);
+    expect(
+      fs.readFileSync(
+        path.join(adminDashboardSource, "Utils", "PageMap.ts"),
+        "utf8",
+      ),
+    ).not.toMatch(/CUSTOM_CHANNELS/);
+  });
+
+  it("names the trial and the grace period by the license's own lengths, and custom channels run in both", () => {
+    expect(withoutALicense).toContain(
+      `Custom channels work during the Enterprise Edition's ${ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS}-day trial and the ${ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS}-day grace period after a license expires.`,
+    );
+
+    licenseState("no license, inside the 14-day trial").install();
+    expect(CustomChannelEdition.isActive()).toBe(true);
+
+    licenseState("license expired less than 30 days ago (grace)").install();
+    expect(CustomChannelEdition.isActive()).toBe(true);
+  });
+
+  it("stops after them, and with a license that does not include them", () => {
+    expect(withoutALicense).toContain(
+      "After that, or with a license that does not include them:",
+    );
+
+    for (const label of [
+      "license expired more than 30 days ago",
+      "no license after the trial",
+      "invalid license",
+    ]) {
+      licenseState(label).install();
+      expect({ label, isActive: CustomChannelEdition.isActive() }).toEqual({
+        label,
+        isActive: false,
+      });
+    }
+
+    installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshot({
+        features: ALL_ENTERPRISE_FEATURES.filter(
+          (feature: EnterpriseFeature): boolean => {
+            return feature !== EnterpriseFeature.CustomNotificationChannels;
+          },
+        ),
+      }),
+    });
+    expect(CustomChannelEdition.isActive()).toBe(false);
+  });
+
+  it("says nothing is sent, and a page is recorded in the on-call log as not sent", async () => {
+    expect(withoutALicense).toContain(
+      "**Nothing is sent to a custom channel.** A page that would have gone to one is recorded in the person's on-call log as not sent, and so is a test.",
+    );
+    expect(CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE).toMatch(/^Not sent: /);
+
+    const post: jest.SpyInstance = jest.spyOn(API, "post");
+    const writeLogRow: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogTimelineService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+
+    const result: CustomChannelDeliveryResult =
+      await CustomNotificationChannelDeliveryService.send({
+        customNotificationChannelId: channelId,
+        eventType: "on-call.incident.created",
+        payload: {},
+        userOnCallLogTimelineId: timelineId,
+      });
+
+    expect(result).toEqual({
+      ok: false,
+      message: CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
+    });
+    expect(post).not.toHaveBeenCalled();
+    expect(writeLogRow).toHaveBeenCalledWith({
+      id: timelineId,
+      data: {
+        status: UserNotificationStatus.Error,
+        statusMessage: CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  it("and so is a test: both test routes ask the edition, and the sender refuses a test the same way", async () => {
+    const routes: string = readCommonSource(
+      "Server/API/CustomNotificationChannelAPI.ts",
+    );
+
+    expect(
+      routes.split("await CustomChannelEdition.assertAvailable();").length - 1,
+    ).toBe(2);
+
+    const post: jest.SpyInstance = jest.spyOn(API, "post");
+
+    expect(
+      (
+        await CustomNotificationChannelDeliveryService.send({
+          customNotificationChannelId: channelId,
+          eventType: "test",
+          payload: {},
+          isTest: true,
+        })
+      ).message,
+    ).toBe(CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE);
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it("says channels are no longer offered: every list a screen, readiness and the fallback read is empty", async () => {
+    expect(withoutALicense).toContain(
+      "**Channels are no longer offered.** They leave people's notification methods, on-call rules and notification settings, and readiness and the fallback stop counting them.",
+    );
+
+    // Where each reads them: the list a screen offers, readiness, notifications, the fallback.
+    expect(
+      readCommonSource("Server/API/CustomNotificationChannelAPI.ts"),
+    ).toContain("await this.service.getChannelsThatAreOn();");
+    expect(
+      readCommonSource("Server/Services/OnCallReadinessService.ts"),
+    ).toContain(
+      "await CustomNotificationChannelService.getChannelsThatAreOn();",
+    );
+    expect(
+      readCommonSource("Server/Services/UserNotificationSettingService.ts"),
+    ).toContain(
+      "await CustomNotificationChannelService.getChannelsThatAreOn();",
+    );
+    expect(
+      readCommonSource("Server/Services/UserNotificationRuleService.ts"),
+    ).toContain(
+      "await CustomNotificationChannelService.getChannelsPagingEveryone();",
+    );
+
+    const read: jest.SpyInstance = jest
+      .spyOn(CustomNotificationChannelService, "findBy")
+      .mockResolvedValue([new CustomNotificationChannel()]);
+
+    expect(
+      await CustomNotificationChannelService.getChannelsThatAreOn(),
+    ).toEqual([]);
+    expect(
+      await CustomNotificationChannelService.getChannelsPagingEveryone(),
+    ).toEqual([]);
+    expect(read).not.toHaveBeenCalled();
+  });
+
+  it("says the page is read-only: channels can be seen and deleted, not added or changed, and nothing can point at one", () => {
+    expect(withoutALicense).toContain(
+      "**The page is read-only.** You can see and delete channels, but not add or change them, and no one can point a rule or a notification setting at one.",
+    );
+
+    for (const operation of [
+      DatabaseRequestType.Create,
+      DatabaseRequestType.Update,
+    ]) {
+      expect(writeOutcome(CustomNotificationChannel, operation, {})).toBe(
+        "refused: Community Edition",
+      );
+    }
+
+    for (const operation of [
+      DatabaseRequestType.Read,
+      DatabaseRequestType.Delete,
+    ]) {
+      expect(writeOutcome(CustomNotificationChannel, operation, {})).toBe(
+        "allowed",
+      );
+    }
+
+    expect(
+      writeOutcome(UserNotificationRule, DatabaseRequestType.Create, {
+        customNotificationChannelId: channelId,
+      }),
+    ).toBe("refused: Community Edition");
+    expect(
+      writeOutcome(UserNotificationSetting, DatabaseRequestType.Update, {
+        alertByCustomChannel: true,
+      }),
+    ).toBe("refused: Community Edition");
+
+    // The same after a lapse, in the license's words.
+    installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshotWithStatus("expired"),
+    });
+
+    expect(
+      writeOutcome(CustomNotificationChannel, DatabaseRequestType.Create, {}),
+    ).toBe("refused: license");
+  });
+
+  it("says nothing is deleted: taking a channel off a rule or a setting is never refused", () => {
+    expect(withoutALicense).toContain(
+      "**Nothing is deleted.** The channels, and the on-call rules and settings that use them, are kept.",
+    );
+
+    expect(
+      writeOutcome(UserNotificationRule, DatabaseRequestType.Update, {
+        customNotificationChannelId: null,
+      }),
+    ).toBe("allowed");
+    expect(
+      writeOutcome(UserNotificationSetting, DatabaseRequestType.Update, {
+        alertByCustomChannel: false,
+      }),
+    ).toBe("allowed");
+  });
+
+  it("says everything resumes once a license is activated, without a restart", () => {
+    expect(withoutALicense).toContain(
+      "Everything resumes as soon as a license is activated, without a restart.",
+    );
+
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshotWithStatus("missing"),
+    });
+
+    expect(CustomChannelEdition.isActive()).toBe(false);
+
+    fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
+
+    expect(CustomChannelEdition.isActive()).toBe(true);
+    expect(
+      writeOutcome(UserNotificationRule, DatabaseRequestType.Create, {
+        customNotificationChannelId: channelId,
+      }),
+    ).toBe("allowed");
+  });
+
+  it("says people who joined while they were stopped do not get a channel that pages everyone, and can add it themselves", async () => {
+    expect(withoutALicense).toContain(
+      "People who joined a project while custom channels were stopped do not get a channel that pages everyone in their rules: they can add it themselves.",
+    );
+
+    const channel: CustomNotificationChannel = new CustomNotificationChannel();
+    channel._id = channelId.toString();
+    jest
+      .spyOn(CustomNotificationChannelService, "findBy")
+      .mockResolvedValue([channel]);
+    const addRules: jest.SpyInstance = jest
+      .spyOn(
+        UserNotificationRuleService,
+        "addDefaultNotificationRulesForVerifiedMethod",
+      )
+      .mockResolvedValue(undefined);
+
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule({
+      snapshot: createLicenseSnapshotWithStatus("expired"),
+    });
+
+    await UserNotificationRuleService.addCustomChannelsPagingEveryoneForUser({
+      projectId: ObjectID.generate(),
+      userId: ObjectID.generate(),
+    });
+
+    expect(addRules).not.toHaveBeenCalled();
+
+    // Once it runs again, a rule of their own through the channel may be written.
+    fake.setSnapshot(createLicenseSnapshotWithStatus("valid"));
+
+    expect(
+      writeOutcome(UserNotificationRule, DatabaseRequestType.Create, {
+        customNotificationChannelId: channelId,
+      }),
+    ).toBe("allowed");
   });
 });

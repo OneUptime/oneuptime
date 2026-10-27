@@ -27,6 +27,10 @@ describe("EnterpriseFeature", () => {
     expect(EnterpriseFeature.TeamCompliance).toBe("team-compliance");
     expect(EnterpriseFeature.AuditLogs).toBe("audit-logs");
     expect(EnterpriseFeature.InstanceHealth).toBe("instance-health");
+    expect(EnterpriseFeature.Backups).toBe("backups");
+    expect(EnterpriseFeature.CustomNotificationChannels).toBe(
+      "custom-notification-channels",
+    );
     expect(ENTERPRISE_FEATURE_WILDCARD).toBe("*");
   });
 
@@ -35,6 +39,7 @@ describe("EnterpriseFeature", () => {
       [
         "audit-logs",
         "backups",
+        "custom-notification-channels",
         "custom-roles",
         "instance-health",
         "ip-allowlists",

@@ -8,14 +8,38 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../../Utils/API";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
+import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
 
+jest.mock("../../../Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "../Enterprise/TestBillingFlag",
+    ) as typeof import("../Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
+
 /*
- * The hand-off from a page to the Notification service: it names the
+ * The hand-off from a page to the Enterprise Edition's sender: it names the
  * channel and never its URL, honours a project a master admin blocked, and
  * answers how the send went in words its sender can show.
+ *
+ * Custom channels are an Enterprise feature, so these run with the
+ * Enterprise Edition loaded and a license that includes them, billing pinned
+ * off (CI's config.env sets BILLING_ENABLED=true). What happens while they
+ * are not active is CustomChannelsWithoutLicense.test.ts.
  */
 
 const CHANNEL_ID: ObjectID = ObjectID.generate();
@@ -26,6 +50,9 @@ let post: jest.SpyInstance;
 let refusal: jest.SpyInstance;
 
 beforeEach(() => {
+  setTestBillingEnabled(false);
+  installFakeEnterpriseModule();
+
   refusal = jest
     .spyOn(BlockedProjectNotifications, "getRefusal")
     .mockResolvedValue(null);
@@ -41,6 +68,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  uninstallEnterpriseModule();
+  setTestBillingEnabled(false);
   jest.restoreAllMocks();
 });
 

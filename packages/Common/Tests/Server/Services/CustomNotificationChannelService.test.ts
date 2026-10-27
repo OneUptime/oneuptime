@@ -17,9 +17,28 @@ import SSRFProtection from "../../../Server/Utils/SSRFProtection";
 import CustomNotificationChannel from "../../../Models/DatabaseModels/CustomNotificationChannel";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
+import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../Server/Utils/Logger");
+
+jest.mock("../../../Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "../Enterprise/TestBillingFlag",
+    ) as typeof import("../Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
 
 /*
  * The checks on a custom channel as an admin saves it - a name people can
@@ -90,6 +109,8 @@ let findBy: jest.SpyInstance;
 let addJob: jest.SpyInstance;
 
 beforeEach(() => {
+  setTestBillingEnabled(false);
+
   ssrf = jest
     .spyOn(SSRFProtection, "validateWebhookTargetIsSafe")
     .mockResolvedValue(undefined);
@@ -100,6 +121,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  uninstallEnterpriseModule();
+  setTestBillingEnabled(false);
   jest.restoreAllMocks();
 });
 
@@ -519,6 +542,15 @@ describe("deleting a channel", () => {
 });
 
 describe("the channels people are offered", () => {
+  /*
+   * With custom channels active: the Enterprise Edition with a license that
+   * includes them. While they are not, none is offered and nothing is read
+   * (CustomChannelsWithoutLicense.test.ts).
+   */
+  beforeEach(() => {
+    installFakeEnterpriseModule();
+  });
+
   test("the ones that are on, by name, and nothing secret", async () => {
     await CustomNotificationChannelService.getChannelsThatAreOn();
 
