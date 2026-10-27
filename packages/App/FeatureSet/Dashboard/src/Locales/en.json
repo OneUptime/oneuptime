@@ -30577,7 +30577,7 @@
   "Private User": "Private User",
   "Projects that require SSO accept a sign-in with this provider.": "Projects that require SSO accept a sign-in with this provider.",
   "Resources that carry one of the labels you pick.": "Resources that carry one of the labels you pick.",
-  "Resources the person, or one of their teams, owns.": "Resources the person, or one of their teams, owns.",
+  "Resources the person, or the team given this permission, owns.": "Resources the person, or the team given this permission, owns.",
   "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.": "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.",
   "Serves the badge at a link with a secret token, made the first time you turn it on.": "Serves the badge at a link with a secret token, made the first time you turn it on.",
   "Start {{runbooks}}": "Start {{runbooks}}",

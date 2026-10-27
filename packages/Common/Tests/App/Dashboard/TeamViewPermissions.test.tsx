@@ -902,7 +902,7 @@ describe("what the team's members can do", () => {
     ).not.toBeChecked();
     expect(
       within(modal).getByText(
-        "Resources the person, or one of their teams, owns.",
+        "Resources the person, or the team given this permission, owns.",
       ),
     ).toBeInTheDocument();
     // No labels asked for until the third answer is picked.

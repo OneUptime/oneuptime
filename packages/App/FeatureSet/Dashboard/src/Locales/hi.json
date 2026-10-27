@@ -30577,7 +30577,7 @@
   "Private User": "निजी उपयोगकर्ता",
   "Projects that require SSO accept a sign-in with this provider.": "SSO की मांग करने वाले प्रोजेक्ट इस प्रदाता से किए गए साइन-इन को स्वीकार करते हैं।",
   "Resources that carry one of the labels you pick.": "वे संसाधन जिन पर आपके चुने गए लेबल में से कोई एक है।",
-  "Resources the person, or one of their teams, owns.": "वे संसाधन जिनका स्वामी वह व्यक्ति या उसकी कोई टीम है।",
+  "Resources the person, or the team given this permission, owns.": "वे संसाधन जिनका स्वामी वह व्यक्ति या वह टीम है जिसे यह अनुमति दी गई है।",
   "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.": "इस प्रोजेक्ट का ईमेल अपने मेल सर्वर से भेजें। स्थिति पृष्ठ सब्सक्राइबर सेटिंग्स में इनमें से एक चुनता है।",
   "Serves the badge at a link with a secret token, made the first time you turn it on.": "बैज को एक गुप्त टोकन वाले लिंक पर देता है, जो पहली बार चालू करने पर बनता है।",
   "Start {{runbooks}}": "{{runbooks}} शुरू करें",

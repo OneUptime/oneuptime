@@ -195,10 +195,12 @@ Elke toegestane machtiging wordt toegekend met een bereik: wanneer u haar toevoe
 | Bereik | Betekenis |
 | --- | --- |
 | Alle resources in het project | De standaard, en wat de meeste teams nodig hebben. De machtiging geldt voor elke passende resource. |
-| Alleen resources die van hen zijn | De machtiging geldt alleen voor resources die van de handelende persoon of een van diens teams zijn. |
+| Alleen resources die van hen zijn | De machtiging geldt alleen voor resources die van de handelende persoon zijn of van het team waaraan ze is gegeven, niet voor resources die alleen van een ander team van die persoon zijn. |
 | Alleen resources met bepaalde labels | De machtiging geldt alleen voor resources die minstens één van de gekozen labels dragen. |
 
 **Eigen** is de eenvoudigste manier om een model "jullie zorgen voor je eigen diensten" op te zetten: geef een team `MonitorAdmin` met bereik Eigen en maak dat team eigenaar van de monitors waarvoor het verantwoordelijk is. Het beperkt elke resource die eigenaren kan hebben — monitors, incidenten, dashboards, diensten, monitorgroepen, bereikbaarheidsschema's en dergelijke — en wat erbij hoort, zoals de lagen van een schema. Sondes, Runners, AI-agenten, bereikbaarheidsschema's en incident- en onderhoudssjablonen zijn waarmee andere resources worden ingericht, dus een machtiging met bereik Eigen leest ze nog steeds allemaal en u kunt er elk van kiezen; ze wijzigt en verwijdert alleen die waarvan u of uw teams eigenaar zijn. De sleutel van een Runner, waarmee wie hem heeft als die Runner kan optreden, is alleen te zien bij de Runners waarvan u of uw teams eigenaar zijn. Projectconfiguratie (incidentstatussen, labels, de teams zelf) heeft geen eigenaar, dus daar gedraagt een rol met bereik Eigen zich normaal.
+
+De machtiging met bereik Eigen van een team reikt tot wat van dat team is, niet tot wat van de andere teams van de persoon is. Iemand in twee teams, het ene met `IncidentMember` met bereik Eigen en het andere met `Viewer` met bereik Eigen, wijzigt de incidenten die van het eerste team zijn en die van zichzelf, en bekijkt de incidenten die van het tweede team zijn alleen. Een machtiging met bereik Eigen voegt ook alleen eigenaren toe aan resources die van de persoon zijn of van het team waaraan ze is gegeven, dus het eerste team kan geen eigenaar worden van de incidenten van het tweede team om dit te omzeilen. De machtiging met bereik Eigen van een aangepaste rol reikt tot wat van elk team is dat de rol heeft gekregen.
 
 **Labels** is de handmatigere versie van hetzelfde idee: tag resources en ken dan machtigingen toe die tot die tags zijn beperkt.
 

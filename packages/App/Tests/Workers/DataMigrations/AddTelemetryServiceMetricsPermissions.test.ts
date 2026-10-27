@@ -337,9 +337,9 @@ describe("which grantees are given Read Telemetry Service Metrics", () => {
 
   test.each([
     [
-      "All, whatever its labels, reaches what All reaches",
+      "All with labels reaches the labelled services, as Labels does",
       { scope: PermissionScope.All, labelIds: [LABEL] },
-      { scope: PermissionScope.All, labelIds: [] },
+      { scope: PermissionScope.Labels, labelIds: [LABEL] },
     ],
     [
       "Owned ignores labels",

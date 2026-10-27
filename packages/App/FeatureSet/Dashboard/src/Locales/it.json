@@ -30577,7 +30577,7 @@
   "Private User": "Utente privato",
   "Projects that require SSO accept a sign-in with this provider.": "I progetti che richiedono l'SSO accettano un accesso con questo provider.",
   "Resources that carry one of the labels you pick.": "Le risorse che hanno una delle etichette che scegli.",
-  "Resources the person, or one of their teams, owns.": "Le risorse di proprietà della persona o di uno dei suoi team.",
+  "Resources the person, or the team given this permission, owns.": "Le risorse di proprietà della persona o del team a cui è data questa autorizzazione.",
   "Send this project's email through your own mail server. A status page picks one under Subscriber Settings.": "Invia la posta di questo progetto tramite il tuo server di posta. Una pagina di stato ne sceglie uno in Impostazioni iscritti.",
   "Serves the badge at a link with a secret token, made the first time you turn it on.": "Serve il badge a un link con un token segreto, creato la prima volta che lo attivi.",
   "Start {{runbooks}}": "Avvia {{runbooks}}",

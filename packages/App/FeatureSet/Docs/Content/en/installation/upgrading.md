@@ -1666,6 +1666,22 @@ API, SSO, or the Slack and Microsoft Teams apps.
   Single Sign-On page under Settings, with Require SSO for Login under the
   providers, and their old addresses open it. See
   [Global SSO](/docs/identity/global-sso#enforcing-sso).
+- **A permission scoped to Owned reaches what its own team owns.** A team's
+  permission scoped to **Owned** reached the resources the person acting, or
+  any team of theirs, owned: someone on a team that may change the incidents
+  it owns and on another that may only view the incidents it owns could
+  change the second team's incidents too. Now each team's Owned permission
+  reaches what the person owns and what that team owns, never what only
+  another of the person's teams owns - for reading, changing and deleting a
+  resource, for adding or removing its owners (so the first team cannot be
+  made an owner of the second team's incidents that way), for a note or
+  another record that takes its owners from the one it belongs to, and for
+  telemetry. A custom role's Owned permission reaches what each team given
+  the role owns. A permission over the whole project or limited to labels,
+  and what a person owns themselves, reach what they did before. Someone who
+  relied on another team's ownership needs their own team made an owner of
+  those resources too, or a permission over the whole project. See
+  [Scope](/docs/permissions/index#scope-how-far-an-allow-permission-reaches).
 - See [API and endpoint changes](#api-and-endpoint-changes) above for the
   endpoints that moved or tightened, including
   `GET /api/global-config/license` and the license-server endpoints that

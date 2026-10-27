@@ -978,10 +978,11 @@ export default class UserMiddleware {
         }
 
         /*
-         * Load the user's team membership for this tenant so that the
-         * `Owned` permission scope can evaluate team-based ownership without
-         * an extra DB roundtrip on every permission check. Absent for non-user
-         * callers (API keys, Probes); `Owned` then evaluates as `All`.
+         * The user's team membership for this tenant. Absent for non-user
+         * callers (API keys, Probes). The `Owned` permission scope reads the
+         * team each permission row is granted on instead
+         * (UserPermission.teamId): a team's grant reaches what that team
+         * owns, not what the user's other teams own.
          */
         oneuptimeRequest.userTeamIds = userTeamIds;
       } catch (error) {
