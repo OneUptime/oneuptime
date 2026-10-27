@@ -167,6 +167,8 @@ function buildMemberRequest(data: {
   tenantPermissions: Dictionary<UserTenantAccessPermission>;
   projectIds?: Array<ObjectID> | undefined;
   headers?: Dictionary<string> | undefined;
+  // A request across the member's projects names none (MultiTenantQuery).
+  isAcrossProjects?: boolean | undefined;
 }): ExpressRequest {
   const globalPermission: UserGlobalAccessPermission = {
     _type: "UserGlobalAccessPermission",
@@ -177,9 +179,11 @@ function buildMemberRequest(data: {
   return {
     params: {},
     query: {},
-    headers: { tenantid: PROJECT_ID.toString(), ...(data.headers || {}) },
+    headers: data.isAcrossProjects
+      ? { "is-multi-tenant-query": "true", ...(data.headers || {}) }
+      : { tenantid: PROJECT_ID.toString(), ...(data.headers || {}) },
     body: data.body,
-    tenantId: PROJECT_ID,
+    tenantId: data.isAcrossProjects ? undefined : PROJECT_ID,
     userType: UserType.User,
     userAuthorization: {
       userId: ObjectID.generate(),
@@ -495,7 +499,13 @@ describe("BaseAnalyticsAPI aggregate cache authorization", () => {
     expect(logService.aggregateBy).toHaveBeenCalledTimes(2);
   });
 
-  test("a multi-tenant request does not share the slot of a single-project request for the same tenant", async () => {
+  /*
+   * A request is made in one project or across the member's projects, never
+   * both (MultiTenantQuery). One across their projects names no project, so
+   * it has no project's slot to share: it is answered live, never from the
+   * cache, and never written to it.
+   */
+  test("a request across the member's projects is answered live: it shares no project's slot", async () => {
     const tenantPermissions: Dictionary<UserTenantAccessPermission> = {
       [PROJECT_ID.toString()]: buildTenantPermissions(PROJECT_ID, [
         grant(Permission.ProjectMember),
@@ -505,15 +515,20 @@ describe("BaseAnalyticsAPI aggregate cache authorization", () => {
       ]),
     };
 
-    await callAggregateRoute({
+    const acrossProjects: CallResult = await callAggregateRoute({
       uri: "/monitor-log/aggregate",
       req: buildMemberRequest({
         body: buildAggregateBody({ aggregateColumnName: "time" }),
         tenantPermissions,
         projectIds: [PROJECT_ID, OTHER_PROJECT_ID],
-        headers: { "is-multi-tenant-query": "true" },
+        isAcrossProjects: true,
       }),
     });
+
+    expect(acrossProjects.thrownToNext).toBeUndefined();
+    expect(acrossProjects.sentBody).toEqual(LIVE_BODY);
+    expect(cacheRead).not.toHaveBeenCalled();
+    expect(cacheWrite).not.toHaveBeenCalled();
 
     await callAggregateRoute({
       uri: "/monitor-log/aggregate",
@@ -525,13 +540,11 @@ describe("BaseAnalyticsAPI aggregate cache authorization", () => {
       }),
     });
 
-    expect(cacheRead).toHaveBeenCalledTimes(2);
-    const multiTenantKey: string = cacheRead.mock.calls[0]![1];
-    const singleProjectKey: string = cacheRead.mock.calls[1]![1];
+    expect(cacheRead).toHaveBeenCalledTimes(1);
+    const singleProjectKey: string = cacheRead.mock.calls[0]![1];
 
-    expect(multiTenantKey).toContain(OTHER_PROJECT_ID.toString());
+    expect(singleProjectKey.startsWith(`${PROJECT_ID.toString()}:`)).toBe(true);
     expect(singleProjectKey).not.toContain(OTHER_PROJECT_ID.toString());
-    expect(multiTenantKey).not.toBe(singleProjectKey);
   });
 
   test("a member who can read the model but not the aggregated column gets 422 and the cache is never read", async () => {

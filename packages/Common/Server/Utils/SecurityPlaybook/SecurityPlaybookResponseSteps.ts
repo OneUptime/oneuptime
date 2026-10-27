@@ -7,7 +7,10 @@ import SecurityCaseNote from "../../../Models/DatabaseModels/SecurityCaseNote";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
-import { AIFixReadiness, AIFixReadinessCheck } from "../../../Types/AI/AIFixReadiness";
+import {
+  AIFixReadiness,
+  AIFixReadinessCheck,
+} from "../../../Types/AI/AIFixReadiness";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import OneUptimeDate from "../../../Types/Date";
 import { JSONObject } from "../../../Types/JSON";
@@ -249,7 +252,11 @@ export function buildRunbookInputs(data: {
 
       const value: string = cut(entity.value, MAX_RUNBOOK_INPUT_TEXT_LENGTH);
 
-      if (value && !list.includes(value) && list.length < MAX_RUNBOOK_INPUT_VALUES) {
+      if (
+        value &&
+        !list.includes(value) &&
+        list.length < MAX_RUNBOOK_INPUT_VALUES
+      ) {
         list.push(value);
       }
     }
@@ -440,8 +447,8 @@ export default class SecurityPlaybookResponseSteps {
     context: PlaybookStepContext,
     values: SecurityCaseTemplateValues,
   ): Promise<PlaybookStepOutcome> {
-    const config: RunRunbookConfig =
-      context.step.config as unknown as RunRunbookConfig;
+    const config: RunRunbookConfig = context.step
+      .config as unknown as RunRunbookConfig;
 
     const runbook: Runbook | null = await RunbookService.findOneBy({
       query: {
@@ -513,9 +520,8 @@ export default class SecurityPlaybookResponseSteps {
       return failed(describeRunbookRefusal(result.refusal, runbookName));
     }
 
-    const links: SecurityCaseEvidenceLinks = await SecurityCaseEvidence.getLinks(
-      context.projectId,
-    );
+    const links: SecurityCaseEvidenceLinks =
+      await SecurityCaseEvidence.getLinks(context.projectId);
     const runLink: MarkdownText = FeedMarkdown.link(
       runbookName,
       links
@@ -620,9 +626,8 @@ export default class SecurityPlaybookResponseSteps {
         };
       });
 
-    const links: SecurityCaseEvidenceLinks = await SecurityCaseEvidence.getLinks(
-      context.projectId,
-    );
+    const links: SecurityCaseEvidenceLinks =
+      await SecurityCaseEvidence.getLinks(context.projectId);
 
     const note: SecurityCaseNote = new SecurityCaseNote();
     note.projectId = context.projectId;
@@ -711,9 +716,8 @@ export default class SecurityPlaybookResponseSteps {
         props: ROOT,
       });
 
-    const links: SecurityCaseEvidenceLinks = await SecurityCaseEvidence.getLinks(
-      context.projectId,
-    );
+    const links: SecurityCaseEvidenceLinks =
+      await SecurityCaseEvidence.getLinks(context.projectId);
     const announcementLink: MarkdownText = FeedMarkdown.link(
       config.announcementTitle,
       links.announcement(created._id!.toString()).toString(),
@@ -767,7 +771,9 @@ export default class SecurityPlaybookResponseSteps {
     )
       .filter((exception: TelemetryException): boolean => {
         return (
-          Boolean(exception.id) && !exception.isResolved && !exception.isArchived
+          Boolean(exception.id) &&
+          !exception.isResolved &&
+          !exception.isArchived
         );
       })
       .slice(0, MAX_FIXED_EXCEPTIONS);
@@ -784,9 +790,8 @@ export default class SecurityPlaybookResponseSteps {
       );
     }
 
-    const links: SecurityCaseEvidenceLinks = await SecurityCaseEvidence.getLinks(
-      context.projectId,
-    );
+    const links: SecurityCaseEvidenceLinks =
+      await SecurityCaseEvidence.getLinks(context.projectId);
     const started: Array<MarkdownText> = [];
     const notFixed: Array<ExceptionNotFixed> = [];
 

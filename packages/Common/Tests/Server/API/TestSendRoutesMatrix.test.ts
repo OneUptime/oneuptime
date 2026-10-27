@@ -85,7 +85,7 @@ jest.mock("../../../Server/Utils/Logger");
  * Every Send Test the Common API serves, through its real route, asked the
  * one rule (TestSendAccess):
  *
- *   GET  /workspace-notification-rule/test/:id     a rule's Test Rule
+ *   POST /workspace-notification-rule/test/:id     a rule's Test Rule
  *   POST /workspace-notification-summary/test/:id  a summary's Send Test Now
  *   POST /slack/channels/test                      a Slack channel's Send Test
  *   POST /microsoft-teams/channels/test            a Teams channel's Send Test
@@ -293,7 +293,7 @@ const OTHER_PROJECTS_OWNER: Caller = {
 const ROUTES: Array<TestRoute> = [
   {
     name: "Test Rule",
-    method: "GET",
+    method: "POST",
     uri: "/workspace-notification-rule/test/:workspaceNotifcationRuleId",
     params: (recordId?: ObjectID): Record<string, string> => {
       return { workspaceNotifcationRuleId: (recordId || RULE_ID).toString() };

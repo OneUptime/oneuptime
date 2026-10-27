@@ -30,7 +30,9 @@ import {
 const FIRST_DETECTION: Date = new Date("2026-10-27T06:00:00.000Z");
 
 function hoursFrom(hours: number): string {
-  return new Date(FIRST_DETECTION.getTime() + hours * 3600 * 1000).toISOString();
+  return new Date(
+    FIRST_DETECTION.getTime() + hours * 3600 * 1000,
+  ).toISOString();
 }
 
 function change(
@@ -153,7 +155,12 @@ describe("what a record calls, and what calls it", () => {
       toImpactPeers([
         row({ otherKey: "k:quiet", otherName: "billing", callCount: 2 }),
         row({ otherKey: "k:busy", otherName: "payments", callCount: 90 }),
-        row({ otherKey: "k:gone", otherName: null, otherKnown: false, callCount: 500 }),
+        row({
+          otherKey: "k:gone",
+          otherName: null,
+          otherKnown: false,
+          callCount: 500,
+        }),
         row({ otherKey: "k:also-quiet", otherName: "auth", callCount: 2 }),
       ]).map((peer: { key: string }): string => {
         return peer.key;
@@ -164,7 +171,13 @@ describe("what a record calls, and what calls it", () => {
   test("names a peer by its key when it has no name, and keeps its call counts", () => {
     expect(
       toImpactPeers([
-        row({ otherKey: "db:orders", otherName: null, otherType: null, callCount: null, errorCount: 3 }),
+        row({
+          otherKey: "db:orders",
+          otherName: null,
+          otherType: null,
+          callCount: null,
+          errorCount: 3,
+        }),
       ]),
     ).toEqual([
       {
@@ -358,11 +371,29 @@ describe("the figures an impact is summed up by", () => {
           records: [
             record({
               calls: [
-                { key: "k:db", name: "db", type: "", callCount: 1, errorCount: 0 },
-                { key: "k:auth", name: "auth", type: "", callCount: 1, errorCount: 0 },
+                {
+                  key: "k:db",
+                  name: "db",
+                  type: "",
+                  callCount: 1,
+                  errorCount: 0,
+                },
+                {
+                  key: "k:auth",
+                  name: "auth",
+                  type: "",
+                  callCount: 1,
+                  errorCount: 0,
+                },
               ],
               calledBy: [
-                { key: "k:web", name: "web", type: "", callCount: 1, errorCount: 0 },
+                {
+                  key: "k:web",
+                  name: "web",
+                  type: "",
+                  callCount: 1,
+                  errorCount: 0,
+                },
               ],
               monitors: { count: 3, items: [] },
               owners: {
@@ -373,7 +404,13 @@ describe("the figures an impact is summed up by", () => {
             record({
               id: "s-2",
               calls: [
-                { key: "k:db", name: "db", type: "", callCount: 1, errorCount: 0 },
+                {
+                  key: "k:db",
+                  name: "db",
+                  type: "",
+                  callCount: 1,
+                  errorCount: 0,
+                },
               ],
               monitors: { count: 1, items: [] },
               owners: {

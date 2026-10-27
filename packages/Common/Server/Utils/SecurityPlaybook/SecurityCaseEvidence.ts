@@ -13,7 +13,10 @@ import {
 } from "../../../Types/SecurityCase/SecurityEntity";
 import { SECURITY_REQUEST_ATTRIBUTES } from "../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import DatabaseConfig from "../../DatabaseConfig";
-import { DbJSONResponse, Results } from "../../Services/AnalyticsDatabaseService";
+import {
+  DbJSONResponse,
+  Results,
+} from "../../Services/AnalyticsDatabaseService";
 import RumSessionService from "../../Services/RumSessionService";
 import SecurityDetectionService from "../../Services/SecurityDetectionService";
 import SecurityEventService, {
@@ -104,10 +107,7 @@ export function getEvidenceWindow(
   const earliest: number =
     endTime.getTime() - MAX_EVIDENCE_WINDOW_IN_DAYS * 24 * 60 * 60 * 1000;
   const startTime: Date = new Date(
-    Math.max(
-      earliest,
-      (first ? new Date(first) : endTime).getTime() - padding,
-    ),
+    Math.max(earliest, (first ? new Date(first) : endTime).getTime() - padding),
   );
 
   return { startTime, endTime };
@@ -150,7 +150,8 @@ export function buildRequestEvidenceStatement(data: {
   window: SecurityCaseEvidenceWindow;
   limit: number;
 }): Statement {
-  const fingerprintKey: string = SECURITY_REQUEST_ATTRIBUTES.exceptionFingerprint;
+  const fingerprintKey: string =
+    SECURITY_REQUEST_ATTRIBUTES.exceptionFingerprint;
 
   const statement: Statement = SQL`SELECT traceId, any(spanId) AS spanId, sessionId, anyIf(attributes[${{
     type: TableColumnType.Text,
@@ -438,8 +439,8 @@ export default class SecurityCaseEvidence {
 
     const results: Results = await RumSessionService.executeQuery(
       buildSessionReplayStatement({
-        databaseName: RumSessionService.database.getDatasourceOptions()
-          .database!,
+        databaseName:
+          RumSessionService.database.getDatasourceOptions().database!,
         tableName: RumSessionService.model.tableName,
         projectId: data.projectId,
         sessionIds: data.sessionIds,

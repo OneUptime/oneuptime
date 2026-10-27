@@ -219,8 +219,7 @@ const TelemetryFacetSection: FunctionComponent<TelemetryFacetSectionProps> = (
               className="px-1.5 pb-1.5 text-[11px] leading-snug text-gray-500"
               data-testid="facet-section-description"
             >
-              {translator.translateText(props.description) ||
-                props.description}
+              {translator.translateText(props.description) || props.description}
             </p>
           )}
 

@@ -3831,7 +3831,7 @@ describe("logs from the pods a trace ran in", () => {
 
     // Whether logs carry the trace was counted over its window, padded.
     const [, countQuery] = countMock.mock.calls.find(
-      (call: [unknown, JSONObject]) => {
+      (call: Parameters<CountFunction>) => {
         return call[0] === Log;
       },
     )!;
@@ -3918,7 +3918,7 @@ describe("logs from the pods a trace ran in", () => {
 
     await waitFor(() => {
       expect(
-        countMock.mock.calls.some((call: [unknown, JSONObject]) => {
+        countMock.mock.calls.some((call: Parameters<CountFunction>) => {
           return call[0] === Log;
         }),
       ).toBe(true);
@@ -3963,7 +3963,7 @@ describe("logs from the pods a trace ran in", () => {
     });
     expect(screen.queryByTestId("trace-logs-scope")).not.toBeInTheDocument();
     expect(
-      countMock.mock.calls.some((call: [unknown, JSONObject]) => {
+      countMock.mock.calls.some((call: Parameters<CountFunction>) => {
         return call[0] === Log;
       }),
     ).toBe(false);
