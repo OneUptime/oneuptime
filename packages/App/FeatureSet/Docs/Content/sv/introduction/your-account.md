@@ -25,7 +25,7 @@ Klicka på din bild uppe till höger i instrumentpanelen.
 | --- | --- |
 | **Profil** | Öppnar **Användarprofil**: ditt namn, din e-postadress, din tidszon, din bild och säkerheten för din inloggning. |
 | **Admin-inställningar** | Öppnar Admin Dashboard. Bara huvudadministratörer för en självhostad installation ser den. |
-| **Mörkt tema** | Växlar instrumentpanelen till dess mörka tema. I det mörka temat heter posten **Ljust tema**. |
+| **Tema** | Väljer instrumentpanelens tema: **Ljust**, **Mörkt** eller **System**, som är ljust eller mörkt beroende på hur din enhet är inställd. |
 | **Logga ut** | Loggar ut dig. |
 
 **Användarprofil** har en egen sidomeny. **Grundläggande** innehåller **Översikt** och **Profilbild**. **Säkerhet** och **Farozon** är hopfällda: klicka på ett avsnitts rubrik för att öppna det.
@@ -132,7 +132,7 @@ Du kan tillhöra hur många projekt som helst. Projektväljaren uppe till vänst
 Båda sparas i din webbläsare, inte i ditt konto, så ställ in dem igen i en annan webbläsare eller på en annan enhet.
 
 - **Språk**: instrumentpanelen startar på webbläsarens språk. Använd språkmenyn längst ned på varje sida för att byta. Den här dokumentationen har en egen språkmeny högst upp.
-- **Tema**: välj **Mörkt tema** i användarmenyn. Instrumentpanelen startar i det ljusa temat.
+- **Tema**: välj **Ljust**, **Mörkt** eller **System** i användarmenyn. **System** är ljust eller mörkt beroende på hur din enhet är inställd, och växlar med den; alla webbläsare startar med det. Inloggningssidorna använder samma tema.
 
 ## Ta bort ditt konto
 

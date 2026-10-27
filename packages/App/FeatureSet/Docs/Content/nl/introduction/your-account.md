@@ -25,7 +25,7 @@ Klik op uw foto rechtsboven in het dashboard.
 | --- | --- |
 | **Profiel** | Opent **Gebruikersprofiel**: uw naam, e-mailadres, tijdzone, foto en de beveiliging van uw aanmelding. |
 | **Beheerdersinstellingen** | Opent het Admin Dashboard. Alleen hoofdbeheerders van een zelf-gehoste installatie zien dit. |
-| **Donker thema** | Zet het dashboard in het donkere thema. In het donkere thema heet het item **Licht thema**. |
+| **Thema** | Stelt het thema van het dashboard in: **Licht**, **Donker** of **Systeem**, dat licht of donker is zoals uw apparaat is ingesteld. |
 | **Uitloggen** | Meldt u af. |
 
 **Gebruikersprofiel** heeft een eigen zijmenu. **Basis** bevat **Overzicht** en **Profielfoto**. **Beveiliging** en **Gevarenzone** zijn ingeklapt: klik op de titel van een sectie om die te openen.
@@ -132,7 +132,7 @@ U kunt bij zoveel projecten horen als u wilt. De projectkiezer linksboven in het
 Beide worden in uw browser opgeslagen, niet in uw account, dus stel ze opnieuw in op een andere browser of een ander apparaat.
 
 - **Taal**: het dashboard start in de taal van uw browser. Om die te wijzigen, gebruikt u het taalmenu onderaan elke pagina. Deze documentatie heeft bovenaan een eigen taalmenu.
-- **Thema**: kies **Donker thema** in het gebruikersmenu. Het dashboard start in het lichte thema.
+- **Thema**: kies **Licht**, **Donker** of **Systeem** in het gebruikersmenu. **Systeem** is licht of donker zoals uw apparaat is ingesteld, en verandert mee; elke browser start ermee. De aanmeldpagina's gebruiken hetzelfde thema.
 
 ## Uw account verwijderen
 

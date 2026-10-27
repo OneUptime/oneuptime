@@ -336,6 +336,11 @@ html.dark :is(.placeholder-gray-400, .placeholder-gray-500)::placeholder {
   color: var(--ou-text-subtle);
 }
 
+/* A field's placeholder while it has the focus (Input), the same shade. */
+html.dark [class~="focus:placeholder-gray-400"]:focus::placeholder {
+  color: var(--ou-text-subtle);
+}
+
 /*
  * Neutral borders, dividers, rings and SVG utility colors.
  *

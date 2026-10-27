@@ -15,7 +15,7 @@ import ThemeUtil from "Common/UI/Utils/Theme";
  * ...) is its owner's page, branded with the owner's logo, and is drawn
  * light whoever opens it - the Dashboard's Form Branding previews show it
  * so. views/index.ejs gives its first script the same addresses
- * (Common/Tests/App/Accounts/AccountsTheme.test.ts holds the two to each
+ * (Common/Tests/App/Accounts/AccountsTheme.test.tsx holds the two to each
  * other).
  */
 
