@@ -10,12 +10,14 @@ import React, { FunctionComponent, ReactElement, ReactNode } from "react";
 import SpanUtil from "../../../Utils/SpanUtil";
 import { formatRelativeTime } from "../../../Utils/ExceptionDetailPresentation";
 import {
+  OrphanSpanNote,
   ServiceSummary,
   TraceServiceInfo,
   TraceSummary,
   abbreviateId,
   formatDurationNano,
   formatPercent,
+  getOrphanSpanNote,
   getServiceInfo,
   pluralize,
 } from "../../../Utils/TraceDetailPresentation";
@@ -23,6 +25,8 @@ import {
 export interface ComponentProps {
   traceId: string;
   summary: TraceSummary;
+  // Spans not loaded yet remain: a missing parent may be among them.
+  hasMoreSpans: boolean;
   serviceInfoById: Map<string, TraceServiceInfo>;
   services: Array<ServiceSummary>;
   selectedServiceIds: Array<string>;
@@ -64,6 +68,10 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
   const startedAbsolute: string | null = summary.startTime
     ? OneUptimeDate.getDateAsUserFriendlyFormattedString(summary.startTime)
     : null;
+  const orphanNote: OrphanSpanNote | null = getOrphanSpanNote({
+    orphanCount: summary.orphanCount,
+    hasMoreSpans: props.hasMoreSpans,
+  });
 
   const stats: Array<Stat> = [
     {
@@ -74,7 +82,10 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
     {
       label: "Spans",
       value:
-        summary.totalSpanCount > summary.loadedSpanCount ? (
+        // More spans follow the loaded ones, and they are not counted yet.
+        summary.totalSpanCount === null ? (
+          `${summary.loadedSpanCount.toLocaleString()}+`
+        ) : summary.totalSpanCount > summary.loadedSpanCount ? (
           <span>
             {summary.loadedSpanCount.toLocaleString()}
             <span className="ml-1 text-sm font-normal text-gray-500">
@@ -164,13 +175,13 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
                   {rootService.name}
                 </span>
               )}
-              {summary.orphanCount > 0 && (
+              {orphanNote && (
                 <span
-                  className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"
-                  title="These spans name a parent that has not been received, so they are shown at the top level."
+                  className="inline-flex cursor-help items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"
+                  title={orphanNote.hint}
                   data-testid="trace-orphans"
                 >
-                  {pluralize(summary.orphanCount, "span")} missing a parent
+                  {orphanNote.label}
                 </span>
               )}
             </div>
