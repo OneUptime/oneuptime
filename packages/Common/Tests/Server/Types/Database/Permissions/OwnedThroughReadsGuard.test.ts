@@ -123,7 +123,12 @@ describe("what a record takes its owners from is read through OwnedScopePermissi
 
   test("the rule's own readers ask getOwnedThrough", () => {
     for (const [file, asks] of [
-      ["Types/Database/Permissions/OwnedScopePermission.ts", 5],
+      /*
+       * Among them whether the scope narrows a create (narrowsRecords) and
+       * the owned records and parents beside a grant limited to labels
+       * (getOwnedRecordsCondition, getOwnedParentsCondition).
+       */
+      ["Types/Database/Permissions/OwnedScopePermission.ts", 8],
       ["Types/Database/Permissions/BasePermission.ts", 1],
       /*
        * The create of a record under its owning parent, the update that
@@ -131,6 +136,11 @@ describe("what a record takes its owners from is read through OwnedScopePermissi
        * names its kind.
        */
       ["Types/Database/Permissions/CreateScopePermission.ts", 4],
+      /*
+       * The parent a changed row is read with, and whether the caller owns
+       * it once written, beside a permission to update limited to labels.
+       */
+      ["Types/Database/Permissions/UpdateScopePermission.ts", 2],
     ] as Array<[string, number]>) {
       const source: string = fs.readFileSync(
         path.join(SERVER_DIRECTORY, file),

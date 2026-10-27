@@ -620,20 +620,32 @@ describe("a create permission limited to owned records", () => {
     ).rejects.toThrow(CreateScopeException);
   });
 
-  test("a permission limited to labels beside it is the one that decides, as on a read", async () => {
-    const props: DatabaseCommonInteractionProps = apiKey([
+  /*
+   * The two reach their records together, as on a read: a monitor carrying
+   * the label, or one its creator will own - which only a person can.
+   */
+  test("a permission limited to labels beside it reaches what both reach, as on a read", async () => {
+    const rows: Array<UserPermission> = [
       owned(Permission.CreateProjectMonitor),
       on(Permission.MonitorMember, [PRODUCTION]),
-    ]);
+    ];
 
+    for (const props of [apiKey(rows), member(rows)]) {
+      await expect(
+        check({ modelType: Monitor, data: monitorWith([PRODUCTION]), props }),
+      ).resolves.toBeUndefined();
+    }
+
+    // A person owns the monitor they create without the label.
     await expect(
-      check({ modelType: Monitor, data: monitorWith([PRODUCTION]), props }),
+      check({ modelType: Monitor, data: monitorWith([]), props: member(rows) }),
     ).resolves.toBeUndefined();
 
+    // A key owns nothing: the label is needed.
     await expect(
-      check({ modelType: Monitor, data: monitorWith([]), props }),
+      check({ modelType: Monitor, data: monitorWith([]), props: apiKey(rows) }),
     ).rejects.toThrow(
-      "Your access lets you create Monitors only with one of these labels: Production.",
+      "Your access lets you create Monitors only with one of these labels: Production, or as their owner, and only a person can own one. Add one of the labels and try again.",
     );
   });
 
