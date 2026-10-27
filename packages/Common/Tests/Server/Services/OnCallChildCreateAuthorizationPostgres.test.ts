@@ -583,14 +583,38 @@ describePostgres(
               ownerId.toString(),
             ],
           );
+          /*
+           * Since #5337 an Owned row reaches what the user owns and what the
+           * row's own team owns (UserPermission.teamId), so for a policy a
+           * team owns, that team grants the row.
+           */
           const props: DatabaseCommonInteractionProps = permissionProps([
             permissionRow(Permission.OnCallViewer),
             permissionRow(createPermissions[kind], {
               scope: PermissionScope.Owned,
+              ...(ownerKind === "team" ? { teamId: targetTeamId } : {}),
             }),
           ]);
           if (ownerKind === "team") {
             props.userTeamIds = [targetTeamId];
+
+            // Another team of the same user lends its grant nothing it does not own.
+            const otherTeamId: ObjectID = ObjectID.generate();
+            const otherTeamProps: DatabaseCommonInteractionProps =
+              permissionProps([
+                permissionRow(Permission.OnCallViewer),
+                permissionRow(createPermissions[kind], {
+                  scope: PermissionScope.Owned,
+                  teamId: otherTeamId,
+                }),
+              ]);
+            otherTeamProps.userTeamIds = [targetTeamId, otherTeamId];
+
+            await expectDenied(
+              kind,
+              child(kind, developmentPolicyId, developmentRuleId),
+              otherTeamProps,
+            );
           }
           await expect(
             OnCallDutyPolicyService.findOneById({
