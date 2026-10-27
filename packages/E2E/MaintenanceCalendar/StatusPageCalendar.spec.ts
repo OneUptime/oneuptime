@@ -2,6 +2,7 @@ import { BrowserContext, expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { STATUS_PAGE_PLAIN_HTTP_HOST } from "./StatusPageOrigins";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * A status page's calendar buttons, end to end in a browser, on the real
@@ -277,15 +278,14 @@ test.describe("the status page's calendar dialogs", () => {
 
     expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
 
-    const google: { y: number; x: number } | null = await page
-      .getByTestId("maintenance-calendar-google")
-      .boundingBox();
-    const device: { y: number; x: number } | null = await page
-      .getByTestId("maintenance-calendar-device")
-      .boundingBox();
+    // In one frame: the dialog grows in as it opens (Modal, from 95%).
+    const [google, device] = (await boxesInOneFrame([
+      page.getByTestId("maintenance-calendar-google"),
+      page.getByTestId("maintenance-calendar-device"),
+    ])) as [FrameBox, FrameBox];
 
-    expect(device!.y).toBeGreaterThan(google!.y);
-    expect(Math.abs(device!.x - google!.x)).toBeLessThan(2);
+    expect(device.y).toBeGreaterThan(google.y);
+    expect(Math.abs(device.x - google.x)).toBeLessThan(2);
 
     await shot(page, "status-page-phone-subscribe", page.getByTestId("modal"));
   });

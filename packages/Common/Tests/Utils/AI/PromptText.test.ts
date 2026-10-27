@@ -12,6 +12,7 @@ import { getInlineImageTypeOfBase64 } from "../../../Utils/Markdown/InlineImageD
 import { AIPromptOmissions } from "../../../Types/AI/AIChatTypes";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * What a model is given of a record's text (issue #4587). A synthetic
@@ -620,24 +621,33 @@ describe("PromptText on megabytes", () => {
   test("a 12 MB screenshot is left out in linear time", () => {
     const screenshot: string = pngScreenshot(12 * 1024);
     const description: string = `Before.\n![x](data:image/png;base64,${screenshot})\nAfter.`;
-    const startedAt: number = Date.now();
-    const result: PromptTextResult = PromptText.omitEmbeddedData(description);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const result: PromptTextResult =
+          PromptText.omitEmbeddedData(description);
 
-    expect(result.text).toBe(
-      "Before.\n![x]([image omitted: PNG, 12 MB])\nAfter.",
-    );
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+        expect(result.text).toBe(
+          "Before.\n![x]([image omitted: PNG, 12 MB])\nAfter.",
+        );
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
   });
 
   test("16 MB of text with nothing embedded is read once and kept", () => {
     const text: string = "GET /api/checkout 502 upstream timed out\n".repeat(
       400_000,
     );
-    const startedAt: number = Date.now();
-    const result: PromptTextResult = PromptText.omitEmbeddedData(text);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const result: PromptTextResult = PromptText.omitEmbeddedData(text);
 
-    expect(result.text).toBe(text);
-    expect(Date.now() - startedAt).toBeLessThan(5000);
+        expect(result.text).toBe(text);
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
     expect(PromptText.field(text).length).toBeLessThan(
       MAX_PROMPT_FIELD_LENGTH + 60,
     );

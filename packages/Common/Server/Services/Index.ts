@@ -293,6 +293,7 @@ import DashboardOwnerUserService from "./DashboardOwnerUserService";
 import DashboardOwnerTeamService from "./DashboardOwnerTeamService";
 import DashboardLabelRuleService from "./DashboardLabelRuleService";
 import DashboardService from "./DashboardService";
+import DashboardPlaylistService from "./DashboardPlaylistService";
 import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageFooterLinkService from "./StatusPageFooterLinkService";
 import StatusPageGroupService from "./StatusPageGroupService";
@@ -382,6 +383,7 @@ import AuditLogExportService from "./AuditLogExportService";
 import BackupSettingService from "./BackupSettingService";
 import BackupRunService from "./BackupRunService";
 import SecurityLogSourceService from "./SecurityLogSourceService";
+import SecurityTelemetrySourceService from "./SecurityTelemetrySourceService";
 import ThreatIntelFeedService from "./ThreatIntelFeedService";
 import ThreatIntelIndicatorService from "./ThreatIntelIndicatorService";
 import SecurityCaseService from "./SecurityCaseService";
@@ -771,6 +773,7 @@ const services: Array<BaseService> = [
   DashboardOwnerTeamService,
   DashboardLabelRuleService,
   DashboardService,
+  DashboardPlaylistService,
   StatusPageDomainService,
   StatusPageFooterLinkService,
   StatusPageGroupService,
@@ -893,6 +896,7 @@ const services: Array<BaseService> = [
   BackupSettingService,
   BackupRunService,
   SecurityLogSourceService,
+  SecurityTelemetrySourceService,
   ThreatIntelFeedService,
   SecurityCaseService,
   SecurityCaseFeedService,

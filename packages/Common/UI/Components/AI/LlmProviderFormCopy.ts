@@ -1,5 +1,6 @@
 import IconProp from "../../../Types/Icon/IconProp";
 import LlmType from "../../../Types/LLM/LlmType";
+import ProviderLogo from "../../../Types/ProviderLogo/ProviderLogo";
 import LlmProviderEndpoint from "../../../Utils/LLM/LlmProviderEndpoint";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 
@@ -40,6 +41,11 @@ export interface LlmProviderTypeCopy {
   // The card's line: what it is, in a few words.
   description: string;
   icon: IconProp;
+  /*
+   * The provider's official logo, drawn on its card in the icon's place.
+   * None for an OpenAI-compatible server, which is any server's software.
+   */
+  logo?: ProviderLogo | undefined;
   /*
    * The name a new provider of this type starts with, followed until a
    * name of one's own is typed: a brand, never translated.
@@ -95,6 +101,7 @@ export const LLM_PROVIDER_TYPE_COPY: Record<LlmType, LlmProviderTypeCopy> = {
     title: "OpenAI",
     description: translationKey("GPT models, with an API key from OpenAI."),
     icon: IconProp.Sparkles,
+    logo: ProviderLogo.OpenAI,
     defaultName: "OpenAI",
     apiKey: LlmProviderFieldNeed.Required,
     baseUrl: LlmProviderFieldNeed.Optional,
@@ -112,6 +119,7 @@ export const LLM_PROVIDER_TYPE_COPY: Record<LlmType, LlmProviderTypeCopy> = {
       "Claude models, with an API key from Anthropic.",
     ),
     icon: IconProp.ChatBubbleLeftRight,
+    logo: ProviderLogo.Anthropic,
     defaultName: "Anthropic",
     apiKey: LlmProviderFieldNeed.Required,
     baseUrl: LlmProviderFieldNeed.Optional,
@@ -129,6 +137,7 @@ export const LLM_PROVIDER_TYPE_COPY: Record<LlmType, LlmProviderTypeCopy> = {
       "Models you deploy in Azure: OpenAI models, Foundry Models and Claude.",
     ),
     icon: IconProp.Cloud,
+    logo: ProviderLogo.AzureOpenAI,
     defaultName: "Azure OpenAI",
     apiKey: LlmProviderFieldNeed.Required,
     baseUrl: LlmProviderFieldNeed.Required,
@@ -154,6 +163,7 @@ export const LLM_PROVIDER_TYPE_COPY: Record<LlmType, LlmProviderTypeCopy> = {
     title: "Groq",
     description: translationKey("Fast open models, with an API key from Groq."),
     icon: IconProp.Bolt,
+    logo: ProviderLogo.Groq,
     defaultName: "Groq",
     apiKey: LlmProviderFieldNeed.Required,
     baseUrl: LlmProviderFieldNeed.Optional,
@@ -172,6 +182,7 @@ export const LLM_PROVIDER_TYPE_COPY: Record<LlmType, LlmProviderTypeCopy> = {
     ),
     // Brain draws the Sparkles path: OpenAI's card would look the same.
     icon: IconProp.GlobeEuropeAfrica,
+    logo: ProviderLogo.MistralAI,
     defaultName: "Mistral",
     apiKey: LlmProviderFieldNeed.Required,
     baseUrl: LlmProviderFieldNeed.Optional,
@@ -187,6 +198,7 @@ export const LLM_PROVIDER_TYPE_COPY: Record<LlmType, LlmProviderTypeCopy> = {
     title: "Ollama",
     description: translationKey("Open models you run yourself. No API key."),
     icon: IconProp.ComputerDesktop,
+    logo: ProviderLogo.Ollama,
     defaultName: "Ollama",
     apiKey: LlmProviderFieldNeed.NotUsed,
     baseUrl: LlmProviderFieldNeed.Required,

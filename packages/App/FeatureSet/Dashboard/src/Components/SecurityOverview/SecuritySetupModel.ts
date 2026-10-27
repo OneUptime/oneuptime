@@ -27,6 +27,8 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export interface SecuritySetupStatus {
   connections: number;
   logsSourceEnabled: boolean;
+  // The kinds of your OneUptime data beside logs that are read.
+  telemetrySourcesEnabled: number;
   eventsLast24Hours: number;
   lastEventAt: Date | null;
   enabledRules: number;
@@ -73,6 +75,7 @@ export function parseSecuritySetupStatus(
   return {
     connections: readNumber(body["connections"]),
     logsSourceEnabled: body["logsSourceEnabled"] === true,
+    telemetrySourcesEnabled: readNumber(body["telemetrySourcesEnabled"]),
     eventsLast24Hours: readNumber(body["eventsLast24Hours"]),
     lastEventAt: readDate(body["lastEventAt"]),
     enabledRules: readNumber(body["enabledRules"]),
@@ -137,6 +140,7 @@ export function parseTurnOnRecommendedResult(
     rulesAdded: readNumber(body["rulesAdded"]),
     rulesTurnedOn: readNumber(body["rulesTurnedOn"]),
     logsTurnedOn: body["logsTurnedOn"] === true,
+    telemetrySourcesTurnedOn: readNumber(body["telemetrySourcesTurnedOn"]),
     playbookAdded: body["playbookAdded"] === true,
     playbookTurnedOn: body["playbookTurnedOn"] === true,
     problems: Array.isArray(problems)
@@ -160,6 +164,7 @@ export function didTurnOnAnything(result: TurnOnRecommendedResult): boolean {
   return (
     result.rulesAdded + result.rulesTurnedOn > 0 ||
     result.logsTurnedOn ||
+    result.telemetrySourcesTurnedOn > 0 ||
     result.playbookAdded ||
     result.playbookTurnedOn
   );
@@ -181,6 +186,10 @@ export const TURN_ON_RECOMMENDED_LOGS_SUBJECT: string = translationKey(
 
 export const TURN_ON_RECOMMENDED_RULES_SUBJECT: string = translationKey(
   "The recommended detection rules",
+);
+
+export const TURN_ON_RECOMMENDED_TELEMETRY_SUBJECT: string = translationKey(
+  "Find security events in your OneUptime data",
 );
 
 export const TURN_ON_RECOMMENDED_PLAYBOOK_SUBJECT: string =
@@ -254,6 +263,14 @@ function getProblemSubject(problem: TurnOnRecommendedProblem): {
   if (problem.part === TurnOnRecommendedPart.Logs) {
     return {
       subject: TURN_ON_RECOMMENDED_LOGS_SUBJECT,
+      isSubjectTranslated: true,
+    };
+  }
+
+  // Said as one switch: the kind is the server's to log, not the reader's to parse.
+  if (problem.part === TurnOnRecommendedPart.TelemetrySources) {
+    return {
+      subject: TURN_ON_RECOMMENDED_TELEMETRY_SUBJECT,
       isSubjectTranslated: true,
     };
   }
@@ -412,7 +429,11 @@ export interface SecuritySetupStep {
 }
 
 export function hasSecuritySources(status: SecuritySetupStatus): boolean {
-  return status.connections > 0 || status.logsSourceEnabled;
+  return (
+    status.connections > 0 ||
+    status.logsSourceEnabled ||
+    status.telemetrySourcesEnabled > 0
+  );
 }
 
 /*
@@ -546,7 +567,11 @@ export function getSecurityPipelineStages(
   ];
 }
 
-// How many sources feed Security: each connection, and your logs.
+// How many sources feed Security: each connection, your logs, and each kind of your other OneUptime data.
 export function countSecuritySources(status: SecuritySetupStatus): number {
-  return status.connections + (status.logsSourceEnabled ? 1 : 0);
+  return (
+    status.connections +
+    (status.logsSourceEnabled ? 1 : 0) +
+    status.telemetrySourcesEnabled
+  );
 }

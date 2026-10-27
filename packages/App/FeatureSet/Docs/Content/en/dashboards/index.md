@@ -46,6 +46,7 @@ The list's side menu has the pages that look after all of your dashboards:
 | Page | What you do there |
 | --- | --- |
 | **Dashboards** | The project's dashboards. Create one, or bring dashboards in with **Import JSON**. |
+| **Dashboards → Playlists** | [Show dashboards one after another](/docs/dashboards/playlists) on a screen, such as a NOC wall. |
 | **Settings → Owner Rules** | Add owners to new dashboards automatically. |
 | **Settings → Label Rules** | Add labels to new dashboards automatically. |
 | **Settings → Data Sources** | Connect Prometheus, SQL databases, ClickHouse, Loki, Elasticsearch or a REST API. |

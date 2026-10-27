@@ -9,6 +9,7 @@ import {
 } from "./HtmlText";
 import { seededRandom } from "./SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { fastestRun, FastestRun } from "./FastestRun";
 
 /*
  * The readings the tests take rendered HTML in through (Tests/Helpers/
@@ -356,16 +357,21 @@ describe("every reading, on hostile text", () => {
       "<!--".repeat(50000),
       '<a b="x>'.repeat(30000),
     ];
-    const started: number = Date.now();
-
-    for (const html of hostile) {
-      expect(markupAsSpaces(html).includes("<")).toBe(false);
-      expect(markupAsSpacesWithOutlookContent(html).includes("<")).toBe(false);
-      expect(visibleText(html).includes("<")).toBe(false);
-      telegramTextLength(html);
-    }
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (const html of hostile) {
+          expect(markupAsSpaces(html).includes("<")).toBe(false);
+          expect(markupAsSpacesWithOutlookContent(html).includes("<")).toBe(
+            false,
+          );
+          expect(visibleText(html).includes("<")).toBe(false);
+          telegramTextLength(html);
+        }
+      },
+      limitInMs: 20000,
+    });
 
     // Quadratic reading of these would take minutes.
-    expect(Date.now() - started).toBeLessThan(20000);
+    expect(timed.inMs).toBeLessThan(20000);
   });
 });

@@ -1,7 +1,6 @@
 import Icon from "../Icon/Icon";
 import Color from "../../../Types/Color";
 import IconProp from "../../../Types/Icon/IconProp";
-import { FilledAlertLook, getFilledAlertLook } from "./FilledAlertLook";
 import useTranslateValue from "../../Utils/Translation";
 import React, {
   FunctionComponent,
@@ -89,26 +88,16 @@ const Alert: FunctionComponent<ComponentProps> = (
 
   /*
    * Public status pages provide their own status color and use a filled
-   * banner. Its words take the colour that reads on that fill
-   * (getFilledAlertLook): white on a deep colour, a deep shade of the fill
-   * itself on a light one - white on the default Operational green was
-   * 2.6:1, on Degraded's yellow 1.6:1.
+   * banner. Its words, icon and hover tint are white whatever the color.
    */
-  const filledLook: FilledAlertLook | null = props.color
-    ? getFilledAlertLook(props.color)
-    : null;
-  const surfaceClassName: string = filledLook
-    ? "border-transparent"
+  const surfaceClassName: string = props.color
+    ? "border-transparent text-white"
     : typeClassNames[type].surface;
-  const iconClassName: string = filledLook
-    ? filledLook.isLightText
-      ? "bg-white/10"
-      : "bg-black/10"
+  const iconClassName: string = props.color
+    ? "bg-white/10 text-white"
     : typeClassNames[type].icon;
-  const hoverClassName: string = filledLook
-    ? filledLook.isLightText
-      ? "hover:bg-white/10"
-      : "hover:bg-black/10"
+  const hoverClassName: string = props.color
+    ? "hover:bg-white/10"
     : typeClassNames[type].hover;
   const icon: IconProp =
     props.icon ??
@@ -145,17 +134,7 @@ const Alert: FunctionComponent<ComponentProps> = (
       onClick={props.onClick ? onClick : undefined}
       role="alert"
       aria-live="polite"
-      style={
-        filledLook
-          ? {
-              backgroundColor: filledLook.backgroundColor,
-              color: filledLook.textColor,
-            }
-          : {}
-      }
-      data-filled-text={
-        filledLook ? (filledLook.isLightText ? "light" : "dark") : undefined
-      }
+      style={props.color ? { backgroundColor: props.color.toString() } : {}}
     >
       {props.onClick && (
         <button

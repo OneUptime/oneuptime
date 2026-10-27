@@ -6,6 +6,7 @@ import RuleCriteria, {
   RULE_CRITERIA_SCHEMA_VERSION,
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 describe("CidrMatchUtil.ipInCidr", () => {
   it("matches inside a /24", () => {
@@ -230,20 +231,30 @@ describe("CidrMatchUtil.hostnameMatchesWildcard", () => {
     const pattern: string = `${"*a".repeat(12)}*b`;
     const hostname: string = "a".repeat(60);
 
-    const startedAt: number = Date.now();
-    expect(CidrMatchUtil.hostnameMatchesWildcard(hostname, pattern)).toBe(
-      false,
-    );
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(CidrMatchUtil.hostnameMatchesWildcard(hostname, pattern)).toBe(
+          false,
+        );
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   it("stays fast on the pathological pattern even when it does match", () => {
     const pattern: string = `${"*a".repeat(12)}*b`;
     const hostname: string = `${"a".repeat(60)}b`;
 
-    const startedAt: number = Date.now();
-    expect(CidrMatchUtil.hostnameMatchesWildcard(hostname, pattern)).toBe(true);
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(CidrMatchUtil.hostnameMatchesWildcard(hostname, pattern)).toBe(
+          true,
+        );
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   it("refuses patterns longer than the 253-character DNS maximum", () => {

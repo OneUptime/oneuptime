@@ -9307,6 +9307,16 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           rowsReadWithNamed.rows,
         );
 
+      /*
+       * A parent it takes its owners from: one its editor owns, when that is
+       * all their permission to update reaches. See the helper.
+       */
+      await ModelPermission.checkOwnedUpdatePermission({
+        modelType: this.modelType,
+        data: updateBy.data,
+        props: updateBy.props,
+      });
+
       const onUpdate: OnUpdate<TBaseModel> = updateBy.props.ignoreHooks
         ? { updateBy, carryForward: [] }
         : await this.onBeforeUpdate(updateBy);
@@ -9323,6 +9333,12 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
           onUpdate.updateBy,
           namedRecordsChecked,
         );
+
+        await ModelPermission.checkOwnedUpdatePermission({
+          modelType: this.modelType,
+          data: onUpdate.updateBy.data,
+          props: onUpdate.updateBy.props,
+        });
       }
 
       /*

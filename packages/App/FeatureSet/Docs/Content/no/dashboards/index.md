@@ -46,6 +46,7 @@ Listens sidemeny har sidene som tar seg av alle dashbordene dine:
 | Side | Hva du gjør der |
 | --- | --- |
 | **Dashbord** | Prosjektets dashbord. Opprett et, eller hent inn dashbord med **Importer JSON**. |
+| **Dashbord → Spillelister** | [Vis dashbord etter hverandre](/docs/dashboards/playlists) på en skjerm, for eksempel en NOC-vegg. |
 | **Innstillinger → Eierregler** | Legg til eiere automatisk på nye dashbord. |
 | **Innstillinger → Etikettregler** | Legg til etiketter automatisk på nye dashbord. |
 | **Innstillinger → Datakilder** | Koble til Prometheus, SQL-databaser, ClickHouse, Loki, Elasticsearch eller et REST-API. |

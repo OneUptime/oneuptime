@@ -5,6 +5,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import TracesViewer from "../../../Components/Traces/TracesViewer";
+import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
 import MessageQueueUnscopedBanner from "../../../Components/MessageQueue/MessageQueueUnscopedBanner";
 import useMessageQueueTelemetryScope, {
   UseMessageQueueTelemetryScopeResult,
@@ -59,6 +60,11 @@ const MessageQueueTraces: FunctionComponent<
       <TracesViewer
         entityKeysFilter={keys}
         entityKeyDisplays={entityKeyDisplays}
+        /*
+         * A queue's spans are its producers' sends as well as its consumers'
+         * receives, and a send is not an entry span: every span.
+         */
+        defaultSpanType={TraceSpanType.All}
       />
     </Fragment>
   );

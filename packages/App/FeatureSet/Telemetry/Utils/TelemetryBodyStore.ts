@@ -1,6 +1,7 @@
 import Redis, { ClientType } from "Common/Server/Infrastructure/Redis";
 import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
+import Sleep from "Common/Types/Sleep";
 
 /*
  * Out-of-band store for raw OTel ingest payloads.
@@ -49,7 +50,24 @@ const KEY_PREFIX: string = "telemetry:body:";
  */
 const TTL_SECONDS: number = 60 * 60;
 
+/*
+ * How long readBody waits for the shared Redis client to (re)connect before
+ * it fails the attempt. A worker pod that has just started takes jobs from
+ * BullMQ, on BullMQ's own connection, before that client is ready: right
+ * after a rollout of the test environment, 1,278 reads failed within one
+ * minute. A telemetry job gets three attempts, five and ten seconds apart
+ * (Queue.ts), so a slow connect could use them all up and drop an OTLP batch
+ * — spans missing from many traces, their children shown as "missing a
+ * parent". Waiting turns that window into a short delay; a Redis that is
+ * really down still fails the job, a little later.
+ */
+export const REDIS_READY_WAIT_MS: number = 15_000;
+const REDIS_READY_POLL_MS: number = 250;
+
 export default class TelemetryBodyStore {
+  // REDIS_READY_WAIT_MS; tests shorten it.
+  public static redisReadyWaitMs: number = REDIS_READY_WAIT_MS;
+
   /*
    * Persist a raw payload buffer and return the lookup key that
    * should be carried in the BullMQ job data. Throws if Redis is
@@ -91,8 +109,10 @@ export default class TelemetryBodyStore {
    * backstop for jobs that are dropped or exhaust their retries.
    */
   public static async readBody(key: string): Promise<Buffer | null> {
-    const client: ClientType | null = Redis.getClient();
-    if (!client || !Redis.isConnected()) {
+    const client: ClientType | null = await TelemetryBodyStore.waitForRedis(
+      TelemetryBodyStore.redisReadyWaitMs,
+    );
+    if (!client) {
       throw new Error("Redis not connected; cannot read telemetry body");
     }
 
@@ -106,6 +126,27 @@ export default class TelemetryBodyStore {
     }
 
     return buffer;
+  }
+
+  /*
+   * The shared client once it is connected, or null if it is not within
+   * timeoutMs (see REDIS_READY_WAIT_MS). Returns at once when it already is.
+   */
+  public static async waitForRedis(
+    timeoutMs: number,
+  ): Promise<ClientType | null> {
+    const deadline: number = Date.now() + timeoutMs;
+
+    for (;;) {
+      const client: ClientType | null = Redis.getClient();
+      if (client && Redis.isConnected()) {
+        return client;
+      }
+      if (Date.now() >= deadline) {
+        return null;
+      }
+      await Sleep.sleep(REDIS_READY_POLL_MS);
+    }
   }
 
   /*

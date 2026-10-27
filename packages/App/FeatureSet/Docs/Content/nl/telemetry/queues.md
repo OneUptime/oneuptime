@@ -725,6 +725,8 @@ service:
 
 BullMQ bewaart zijn jobs in Redis en heeft geen broker om te scrapen; rapporteer de wachtrijdiepte vanuit de applicatie als metric met `messaging.system` en `messaging.destination.name`, zoals de eigen workers van OneUptime doen met `queue.size`.
 
+Met de [eBPF-tracer van de Kubernetes-agent](/docs/telemetry/kubernetes-agent#hoe-ebpf-traces-eruitzien) leest OneUptime ook BullMQ-wachtrijen (BullMQ 5 en later) uit de Redis-commando's die BullMQ verstuurt, zonder wijziging in je applicatie: het toevoegen van een job toont de service als producer van zijn wachtrij, en het afronden van een job als consumer. De agent laat standaard databaseaanroepen buiten een request vallen (`ebpf.dropUnlinkedDatabaseCalls`), en een worker die een job afhandelt zit buiten een request, dus een wachtrij die zo wordt gevonden toont standaard vooral zijn producers; stel `ebpf.dropUnlinkedDatabaseCalls=false` in om ook zijn consumers te zien.
+
 De eigen telemetrie van BullMQ (zijn optie `telemetry`, die het pakket `bullmq-otel` implementeert) noemt de wachtrij in `bullmq.queue.name` en zet geen `messaging.system`, dus op zichzelf maakt ze geen wachtrij aan. Een `transform`-processor in de collector waarnaar je applicaties versturen, voegt de twee sleutels toe die OneUptime leest, op de spans die jobs toevoegen en verwerken en op de eigen metrics van BullMQ:
 
 ```yaml

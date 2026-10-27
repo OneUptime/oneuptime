@@ -1,7 +1,8 @@
-import { ElementHandle, expect, Locator, Page, test } from "@playwright/test";
+import { expect, Locator, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * AI rules - which new incidents (or alerts) OneUptime AI investigates, and
@@ -2281,25 +2282,16 @@ test.describe("code repositories and pull requests", () => {
       hint: Locator,
       next: Locator,
     ): Promise<{ underItsBox: number; aboveTheNext: number }> => {
-      return page.evaluate(
-        (elements: Array<SVGElement | HTMLElement>) => {
-          const [boxRect, hintRect, nextRect] = elements.map(
-            (element: SVGElement | HTMLElement): DOMRect => {
-              return element.getBoundingClientRect();
-            },
-          ) as [DOMRect, DOMRect, DOMRect];
+      const [boxRect, hintRect, nextRect] = (await boxesInOneFrame([
+        box,
+        hint,
+        next,
+      ])) as [FrameBox, FrameBox, FrameBox];
 
-          return {
-            underItsBox: hintRect.top - boxRect.bottom,
-            aboveTheNext: nextRect.top - hintRect.bottom,
-          };
-        },
-        [
-          await box.elementHandle(),
-          await hint.elementHandle(),
-          await next.elementHandle(),
-        ] as Array<ElementHandle<SVGElement | HTMLElement>>,
-      );
+      return {
+        underItsBox: hintRect.y - (boxRect.y + boxRect.height),
+        aboveTheNext: nextRect.y - (hintRect.y + hintRect.height),
+      };
     };
 
     for (const [hintTestId, box, next] of nextFields) {
@@ -2864,16 +2856,18 @@ test.describe("the LLM provider a rule picks", () => {
      * After what OneUptime AI reads with - the repositories and the MCP
      * servers - and before what only a fix uses: the runbooks and the Runner.
      */
-    const order: Array<number> = [];
-    for (const locator of [
-      repositoriesPicker(dialog),
-      mcpServersPicker(dialog),
-      providerBox(dialog),
-      runbooksPicker(dialog),
-      runnerPicker(dialog),
-    ]) {
-      order.push((await locator.boundingBox())!.y);
-    }
+    // Read in one frame: More fields scrolls its fields into view as it opens.
+    const order: Array<number> = (
+      await boxesInOneFrame([
+        repositoriesPicker(dialog),
+        mcpServersPicker(dialog),
+        providerBox(dialog),
+        runbooksPicker(dialog),
+        runnerPicker(dialog),
+      ])
+    ).map((box: FrameBox): number => {
+      return box.y;
+    });
     expect(
       [...order].sort((a: number, b: number) => {
         return a - b;
@@ -3183,10 +3177,12 @@ test.describe("the LLM provider a rule picks", () => {
     );
     await openMoreFields(dialog);
     await expect(dialog).toContainText(PROVIDER_DESCRIPTION);
-    // After the MCP servers, and nothing a fix uses after it.
-    expect((await providerBox(dialog).boundingBox())!.y).toBeGreaterThan(
-      (await mcpServersPicker(dialog).boundingBox())!.y,
-    );
+    // After the MCP servers, and nothing a fix uses after it (one frame).
+    const [provider, mcpServers] = (await boxesInOneFrame([
+      providerBox(dialog),
+      mcpServersPicker(dialog),
+    ])) as [FrameBox, FrameBox];
+    expect(provider.y).toBeGreaterThan(mcpServers.y);
     await expect(runbooksPicker(dialog)).toHaveCount(0);
 
     await providerBox(dialog).click();
@@ -3232,11 +3228,11 @@ test.describe("the LLM Provider field, at 1280px and 390px, light and dark", () 
             return document.documentElement.scrollWidth;
           }),
         ).toBeLessThanOrEqual(width);
-        // The box fits its dialog.
-        const dialogBox: { x: number; width: number } =
-          (await dialog.boundingBox())!;
-        const pickerBox: { x: number; width: number } =
-          (await providerPicker(dialog).boundingBox())!;
+        // The box fits its dialog (both read in one frame).
+        const [dialogBox, pickerBox] = (await boxesInOneFrame([
+          dialog,
+          providerPicker(dialog),
+        ])) as [FrameBox, FrameBox];
         expect(pickerBox.x + pickerBox.width).toBeLessThanOrEqual(
           dialogBox.x + dialogBox.width,
         );
@@ -3734,12 +3730,13 @@ test.describe("the Runner field on the Global Runner, at 1280px and 390px, light
               return document.documentElement.scrollWidth;
             }),
           ).toBeLessThanOrEqual(width);
-          const dialogBox: { x: number; width: number } =
-            (await dialog.boundingBox())!;
-          expect(
-            isInside((await runnerPicker(dialog).boundingBox())!, dialogBox),
-          ).toBe(true);
-          expect(isInside((await line.boundingBox())!, dialogBox)).toBe(true);
+          const [dialogBox, runnerBox, lineBox] = (await boxesInOneFrame([
+            dialog,
+            runnerPicker(dialog),
+            line,
+          ])) as [FrameBox, FrameBox, FrameBox];
+          expect(isInside(runnerBox, dialogBox)).toBe(true);
+          expect(isInside(lineBox, dialogBox)).toBe(true);
 
           await dialogScreenshot(
             dialog,

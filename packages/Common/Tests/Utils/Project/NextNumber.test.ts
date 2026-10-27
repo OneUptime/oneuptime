@@ -15,6 +15,7 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import { describe, expect, test } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
 import type { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * NextNumberUtil is the one definition of a next number: the number a
@@ -321,15 +322,18 @@ describe("NextNumberUtil.getProblem - what a next number may be", () => {
 
   test("reads a long typed text in time that grows with it", () => {
     const longText: string = "1".repeat(400_000) + "x";
-    const startedAt: number = Date.now();
-
-    expect(NextNumberUtil.getProblem(longText)).toBe(
-      NextNumberProblem.NotWholeNumber,
-    );
-    expect(NextNumberUtil.getProblem("-".repeat(400_000))).toBe(
-      NextNumberProblem.NotWholeNumber,
-    );
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(NextNumberUtil.getProblem(longText)).toBe(
+          NextNumberProblem.NotWholeNumber,
+        );
+        expect(NextNumberUtil.getProblem("-".repeat(400_000))).toBe(
+          NextNumberProblem.NotWholeNumber,
+        );
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

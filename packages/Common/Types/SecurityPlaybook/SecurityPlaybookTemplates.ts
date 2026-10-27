@@ -146,6 +146,32 @@ export const SECURITY_PLAYBOOK_TEMPLATE_DEFINITIONS: ReadonlyArray<SecurityPlayb
         ];
       },
     },
+    {
+      key: "attack-evidence",
+      title: "Keep the Evidence of an Attack",
+      description:
+        "As a case opens: keep the session replays of the requests behind it, note their traces and exceptions, ask OneUptime AI to fix the code an attack broke, and leave a response checklist.",
+      icon: IconProp.Archive,
+      trigger: SecurityPlaybookTrigger.CaseOpened,
+      minimumPriorityLevel: SecurityCasePriorityLevel.High,
+      getSteps: (): Array<SecurityPlaybookStep> => {
+        return [
+          step(
+            SecurityPlaybookActionType.PreserveEvidence,
+            {},
+            { continueOnFailure: true },
+          ),
+          step(
+            SecurityPlaybookActionType.FixWithAi,
+            {},
+            { continueOnFailure: true },
+          ),
+          step(SecurityPlaybookActionType.AddCaseNote, {
+            note: "Response checklist for {{case.number}}:\n\n- [ ] Open the traces in the evidence note: did any request reach the app, or the database?\n- [ ] Watch the session replays: what did the attacker do before and after?\n- [ ] Block the source: add a Run a runbook step to this playbook, with a runbook that blocks an address.\n- [ ] Review the AI's fix before it is merged.",
+          }),
+        ];
+      },
+    },
   ];
 
 export function getSecurityPlaybookTemplateDefinition(

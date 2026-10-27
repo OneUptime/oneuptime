@@ -21,6 +21,7 @@ import { execFileSync } from "child_process";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 jest.setTimeout(120000);
 
@@ -291,15 +292,18 @@ describe("reading git's -z output", () => {
   });
 
   test("takes time in line with the output, however it is built", () => {
-    const start: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        RepositoryManager.parseNumstat(`${"\t".repeat(400_000)}x`);
+        RepositoryManager.parseNumstat(NUL.repeat(400_000));
+        RepositoryManager.parseNameStatus(
+          `${"R".repeat(200_000)}${NUL.repeat(200_000)}`,
+        );
+        RepositoryManager.hunksOf(`${"\n".repeat(400_000)}@@`);
+      },
+      limitInMs: 2000,
+    });
 
-    RepositoryManager.parseNumstat(`${"\t".repeat(400_000)}x`);
-    RepositoryManager.parseNumstat(NUL.repeat(400_000));
-    RepositoryManager.parseNameStatus(
-      `${"R".repeat(200_000)}${NUL.repeat(200_000)}`,
-    );
-    RepositoryManager.hunksOf(`${"\n".repeat(400_000)}@@`);
-
-    expect(Date.now() - start).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

@@ -1351,6 +1351,61 @@ detection:
 `,
     },
 
+    /*
+     * What happened next, as the request's trace showed it
+     * (Types/SecurityEvent/SecurityEventRequestOutcome): the attempts above
+     * say somebody tried; these say it worked.
+     */
+    {
+      id: "a1218db8-8e28-4afb-ae8e-ed4f0aef7595",
+      title: "Injected SQL reached the database",
+      description:
+        "A request carrying SQL injection reached the database: a query it made holds the payload, or it waited as long as its SQL asked the database to sleep.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "Web requests followed into their traces",
+      dataKind: DetectionRuleDataKind.WebRequests,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Injected SQL reached the database
+id: a1218db8-8e28-4afb-ae8e-ed4f0aef7595
+description: A request whose injected SQL ran in a query the app made.
+level: critical
+tags:
+  - attack.initial_access
+  - attack.t1190
+detection:
+  selection:
+    requestOutcome: 'Reached Database'
+  condition: selection
+`,
+    },
+    {
+      id: "47d32cc6-462c-44f9-8bcb-b99d7b083860",
+      title: "Attack request broke the app",
+      description:
+        "A request carrying an attack made the app fail: it answered with a server error, or threw an exception. The payload reached code that did not expect it.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "Web requests followed into their traces",
+      dataKind: DetectionRuleDataKind.WebRequests,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Attack request broke the app
+id: 47d32cc6-462c-44f9-8bcb-b99d7b083860
+description: A request carrying an attack string that errored in the app.
+level: high
+tags:
+  - attack.initial_access
+  - attack.t1190
+detection:
+  selection:
+    className: 'HTTP Activity'
+    requestOutcome: 'Errored'
+  condition: selection
+`,
+    },
+
     // Kubernetes
     {
       id: "1ce3af71-a3d5-409a-b477-34e4a734aa83",
@@ -1470,6 +1525,288 @@ detection:
   condition: selection
 `,
     },
+
+    /*
+     * Your OneUptime data (SecurityTelemetrySource): the rest of what the
+     * project already sends OneUptime - traces, network flows, the audit
+     * log, session replays. Each source names what it found in the event's
+     * oneuptime.signal (SecurityTelemetrySignal), which these read.
+     */
+
+    // Web, from traces
+    {
+      id: "a3d31a45-a620-48d2-895e-84b44f834b65",
+      title: "Server-side request forgery toward cloud metadata",
+      description:
+        "A request that names a cloud metadata address (169.254.169.254 and the like) in its URL: somebody trying to make your server fetch its own cloud credentials.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "OneUptime traces",
+      dataKind: DetectionRuleDataKind.OneUptimeTraces,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Server-side request forgery toward cloud metadata
+id: a3d31a45-a620-48d2-895e-84b44f834b65
+description: A request that names a cloud metadata address in its URL.
+level: high
+tags:
+  - attack.initial_access
+  - attack.t1190
+  - attack.credential_access
+  - attack.t1552
+detection:
+  selection:
+    oneuptime.signal: ssrf
+  condition: selection
+`,
+    },
+    {
+      id: "48612a6d-c4b3-4ffb-a5da-0bc4e1e8a45b",
+      title: "Prompt injection attempt",
+      description:
+        "A prompt to one of your LLM features that tries to override its instructions or pull out its system prompt.",
+      category: DetectionRuleLibraryCategory.Web,
+      dataSource: "OneUptime traces",
+      dataKind: DetectionRuleDataKind.OneUptimeTraces,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Prompt injection attempt
+id: 48612a6d-c4b3-4ffb-a5da-0bc4e1e8a45b
+description: A prompt that tries to override an LLM's instructions.
+level: medium
+tags:
+  - attack.initial_access
+  - attack.t1190
+detection:
+  selection:
+    oneuptime.signal: prompt-injection
+  condition: selection
+`,
+    },
+
+    // Network, from network flows
+    {
+      id: "c3a5a3a9-2f46-418f-b9e5-cea6f11fd2ff",
+      title: "Port scan seen in network flows",
+      description:
+        "One address reaching twenty-five or more service ports of one host within five minutes, as your network devices' flows show it.",
+      category: DetectionRuleLibraryCategory.Network,
+      dataSource: "OneUptime network flows",
+      dataKind: DetectionRuleDataKind.NetworkFlows,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Port scan seen in network flows
+id: c3a5a3a9-2f46-418f-b9e5-cea6f11fd2ff
+description: One address reaching many service ports of one host.
+level: medium
+tags:
+  - attack.discovery
+  - attack.t1046
+detection:
+  selection:
+    oneuptime.signal: port-scan
+  condition: selection
+`,
+    },
+    {
+      id: "ed597f63-c407-4b6e-81ff-674b917b7dbe",
+      title: "Network sweep seen in network flows",
+      description:
+        "One address reaching the same service port on thirty or more hosts within five minutes: somebody looking for machines to move to.",
+      category: DetectionRuleLibraryCategory.Network,
+      dataSource: "OneUptime network flows",
+      dataKind: DetectionRuleDataKind.NetworkFlows,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Network sweep seen in network flows
+id: ed597f63-c407-4b6e-81ff-674b917b7dbe
+description: One address reaching one service port on many hosts.
+level: medium
+tags:
+  - attack.discovery
+  - attack.t1018
+detection:
+  selection:
+    oneuptime.signal: network-sweep
+  condition: selection
+`,
+    },
+    {
+      id: "b608ce0e-3d76-46c8-bcc2-1726de3fb3f3",
+      title: "Large transfer out of your network",
+      description:
+        "A private address sending a gigabyte or more to one public address within five minutes. Backups do this too; anything else is worth a look.",
+      category: DetectionRuleLibraryCategory.Network,
+      dataSource: "OneUptime network flows",
+      dataKind: DetectionRuleDataKind.NetworkFlows,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalIp",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Large transfer out of your network
+id: b608ce0e-3d76-46c8-bcc2-1726de3fb3f3
+description: A private address sending a lot of data to one public address.
+level: medium
+tags:
+  - attack.exfiltration
+  - attack.t1048
+detection:
+  selection:
+    oneuptime.signal: large-outbound-transfer
+  condition: selection
+`,
+    },
+    {
+      id: "0b89c3b4-d695-45e3-b4cb-27693cb77ae7",
+      title: "Packet capture downloaded from OneUptime",
+      description:
+        "Somebody downloaded a packet capture: a copy of your network traffic left OneUptime.",
+      category: DetectionRuleLibraryCategory.Network,
+      dataSource: "OneUptime audit log",
+      dataKind: DetectionRuleDataKind.OneUptimeAuditLog,
+      evaluationIntervalInMinutes: 15,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Packet capture downloaded from OneUptime
+id: 0b89c3b4-d695-45e3-b4cb-27693cb77ae7
+description: A packet capture was downloaded.
+level: low
+tags:
+  - attack.collection
+  - attack.t1040
+detection:
+  selection:
+    oneuptime.signal: packet-capture-downloaded
+  condition: selection
+`,
+    },
+
+    // Identity, from OneUptime's own audit log and session replays
+    {
+      id: "0720ff0e-f7af-4adb-8e61-1ded25079a39",
+      title: "New API key or MCP client in OneUptime",
+      description:
+        "Somebody created an API key or gave an MCP client access to the project: a new way in that does not sign in.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "OneUptime audit log",
+      dataKind: DetectionRuleDataKind.OneUptimeAuditLog,
+      evaluationIntervalInMinutes: 15,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: New API key or MCP client in OneUptime
+id: 0720ff0e-f7af-4adb-8e61-1ded25079a39
+description: An API key created, or an MCP client given access.
+level: low
+tags:
+  - attack.persistence
+  - attack.t1098
+detection:
+  selection:
+    oneuptime.signal:
+      - api-key-created
+      - mcp-client-authorized
+  condition: selection
+`,
+    },
+    {
+      id: "976f75a0-9773-4be7-9b69-94b0262614a1",
+      title: "Roles changed in OneUptime",
+      description:
+        "A custom role was created or changed, or given to an API key or a team: who may do what in the project changed.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "OneUptime audit log",
+      dataKind: DetectionRuleDataKind.OneUptimeAuditLog,
+      evaluationIntervalInMinutes: 15,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Roles changed in OneUptime
+id: 976f75a0-9773-4be7-9b69-94b0262614a1
+description: A custom role created, changed, or given to an API key or a team.
+level: medium
+tags:
+  - attack.privilege_escalation
+  - attack.t1098
+detection:
+  selection:
+    oneuptime.signal: role-changed
+    activityName: Assign Privileges
+  condition: selection
+`,
+    },
+    {
+      id: "51a51214-ca6e-43bc-b9ba-abf06cf4a135",
+      title: "Many records deleted at once in OneUptime",
+      description:
+        "One person or API key deleted twenty-five or more records within five minutes: a mistake worth catching, or somebody destroying what they found.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "OneUptime audit log",
+      dataKind: DetectionRuleDataKind.OneUptimeAuditLog,
+      evaluationIntervalInMinutes: 5,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Many records deleted at once in OneUptime
+id: 51a51214-ca6e-43bc-b9ba-abf06cf4a135
+description: One actor deleting many records in a few minutes.
+level: high
+tags:
+  - attack.impact
+  - attack.t1485
+detection:
+  selection:
+    oneuptime.signal: mass-delete
+  condition: selection
+`,
+    },
+    {
+      id: "d281b129-d12e-44e7-9b5b-957029e9a5a8",
+      title: "Security controls changed in OneUptime",
+      description:
+        "A protected entity, an audit log export or a security playbook was changed or removed: the first thing somebody covering their tracks touches.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "OneUptime audit log",
+      dataKind: DetectionRuleDataKind.OneUptimeAuditLog,
+      evaluationIntervalInMinutes: 15,
+      groupByField: "principalUser",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Security controls changed in OneUptime
+id: d281b129-d12e-44e7-9b5b-957029e9a5a8
+description: A protected entity, an audit log export or a security playbook changed or removed.
+level: medium
+tags:
+  - attack.defense_impairment
+  - attack.t1685
+detection:
+  selection:
+    oneuptime.signal: security-control-changed
+  condition: selection
+`,
+    },
+    {
+      id: "2d9c0872-c111-4db5-8651-33621280dcff",
+      title: "Signed-in user in two countries within an hour",
+      description:
+        "One user of your app used it from two countries less than an hour apart, as session replays show: somebody else has their session or their password.",
+      category: DetectionRuleLibraryCategory.Identity,
+      dataSource: "OneUptime session replays",
+      dataKind: DetectionRuleDataKind.SessionReplays,
+      evaluationIntervalInMinutes: 15,
+      groupByField: "rum.identified_user_key",
+      matchCountThreshold: 1,
+      sigmaRuleYaml: `title: Signed-in user in two countries within an hour
+id: 2d9c0872-c111-4db5-8651-33621280dcff
+description: One identified user's sessions from two countries less than an hour apart.
+level: medium
+tags:
+  - attack.initial_access
+  - attack.t1078
+detection:
+  selection:
+    oneuptime.signal: user-in-two-countries
+  condition: selection
+`,
+    },
   ];
 
 export function getDetectionRuleLibraryEntry(
@@ -1522,6 +1859,17 @@ export const RECOMMENDED_DETECTION_RULE_IDS: ReadonlyArray<string> = [
   "1ce3af71-a3d5-409a-b477-34e4a734aa83",
   "44e60520-facd-443a-bf1f-8c741819be91",
   "f18675fc-8708-44ff-9393-13e9c15250c0",
+  /*
+   * The rest of your OneUptime data: a forgery toward cloud metadata and a
+   * prompt injection from traces, mass deletes and changed security
+   * controls from the audit log, a user in two countries from session
+   * replays - each rare in a healthy project.
+   */
+  "a3d31a45-a620-48d2-895e-84b44f834b65",
+  "48612a6d-c4b3-4ffb-a5da-0bc4e1e8a45b",
+  "51a51214-ca6e-43bc-b9ba-abf06cf4a135",
+  "d281b129-d12e-44e7-9b5b-957029e9a5a8",
+  "2d9c0872-c111-4db5-8651-33621280dcff",
 ];
 
 export function isRecommendedDetectionRule(

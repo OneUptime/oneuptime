@@ -69,8 +69,6 @@
   },
   "userProfile": {
     "exitAdmin": "管理者を終了",
-    "darkTheme": "ダークテーマ",
-    "lightTheme": "ライトテーマ",
     "logOut": "ログアウト"
   },
   "footer": {
@@ -1511,6 +1509,10 @@
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "このサーバーを開ける人なら誰でもアカウントを作成できます。チームのアカウントがそろったらオフにしてください。",
   "Choose who can sign up": "サインアップできる人を選ぶ",
   "Still to do": "未完了",
+  "Theme": "テーマ",
+  "Light": "ライト",
+  "Dark": "ダーク",
+  "System": "システム",
   "markdownCallouts": {
     "caution": "注意",
     "danger": "危険",

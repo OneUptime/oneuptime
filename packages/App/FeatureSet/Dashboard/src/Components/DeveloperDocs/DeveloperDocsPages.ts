@@ -49,7 +49,8 @@ export const DEVELOPER_DOCS_PAGES: ReadonlyArray<DeveloperDocsPageDefinition> =
     {
       type: DeveloperDocsPageType.Terraform,
       title: "Terraform",
-      icon: IconProp.Cube,
+      // Terraform's own mark, as Slack's and GitHub's stand for theirs.
+      icon: IconProp.Terraform,
     },
     { type: DeveloperDocsPageType.Api, title: "API", icon: IconProp.Code },
     {

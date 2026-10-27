@@ -117,6 +117,7 @@ describe("Get Started with Security", () => {
     const empty: SecuritySetupStatus = {
       connections: 0,
       logsSourceEnabled: false,
+      telemetrySourcesEnabled: 0,
       eventsLast24Hours: 0,
       lastEventAt: null,
       enabledRules: 0,
@@ -197,6 +198,7 @@ describe("Get Started with Security", () => {
     const status: SecuritySetupStatus = {
       connections: 1,
       logsSourceEnabled: true,
+      telemetrySourcesEnabled: 0,
       eventsLast24Hours: 0,
       lastEventAt: new Date("2026-10-20T12:00:00.000Z"),
       enabledRules: 3,

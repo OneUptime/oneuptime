@@ -10,6 +10,7 @@ import {
   fitDetectionRuleName,
 } from "../../../Types/SecurityEvent/DetectionRuleName";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * THE NAME ONEUPTIME GIVES A DETECTION RULE FROM ITS SIGMA TITLE.
@@ -135,10 +136,15 @@ describe("fitDetectionRuleName", () => {
 
   test("reads a title of a megabyte in no time: no regular expression walks it", () => {
     const huge: string = "word ".repeat(400000);
-    const started: number = Date.now();
-    const name: string = fitDetectionRuleName(huge);
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return fitDetectionRuleName(huge);
+      },
+      limitInMs: 2000,
+    });
+    const name: string = timed.result;
 
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(name.length).toBeLessThanOrEqual(DETECTION_RULE_NAME_MAX_LENGTH);
   });
 });

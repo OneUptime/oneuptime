@@ -237,7 +237,7 @@ OBI propage aussi la trace à travers un appel : lorsque le pod A appelle le pod
 **Désactivé par défaut.** Lorsqu'il est activé, OBI attache une sonde à l'appel système `write()` de chaque processus qu'il instrumente, et :
 
 - Une **ligne de journal JSON** reçoit les champs `trace_id` et `span_id` (les champs que la ligne a déjà sont conservés). Le collecteur de nœud les déplace vers les champs de trace propres de l'enregistrement de journal, donc les journaux d'un span sont à un clic dans OneUptime, tout comme la trace d'une ligne de journal.
-- **Toute autre ligne de journal** est collectée sans changement, sans le lien.
+- **Toute autre ligne de journal** est collectée sans changement, sans le lien, sauf si vous définissez aussi `ebpf.logEnricher.plainText=true`. OBI lui ajoute alors ` trace_id=… span_id=…`, et le collecteur de nœud déplace les identifiants vers l'enregistrement de journal et les retire de la ligne, si bien que OneUptime l'affiche telle que votre application l'a écrite. La ligne du fichier de journaux du conteneur, que `kubectl logs` affiche, conserve l'annotation.
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
@@ -249,6 +249,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 | --- | --- | --- |
 | `ebpf.logToTraceCorrelation` | `false` | Active l'enrichisseur de journaux d'OBI et la remontée de `trace_id` par le collecteur de nœud. |
 | `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | Les processus que touche l'enrichisseur. Chaque entrée est un sélecteur [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) d'OBI, avec des champs comme `exe_path`, `languages`, `k8s_pod_labels`, `k8s_pod_annotations`, `open_ports` et `cmd_args`. |
+| `ebpf.logEnricher.plainText` | `false` | Relie aussi les lignes de journal en texte brut (non JSON). Modifie la ligne que conserve le fichier de journaux du conteneur. |
 
 #### Agents APM qui plantent avec
 

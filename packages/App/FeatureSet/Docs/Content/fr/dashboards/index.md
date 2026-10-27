@@ -46,6 +46,7 @@ Le menu latéral de la liste regroupe les pages qui gèrent l'ensemble de vos ta
 | Page | Ce que vous y faites |
 | --- | --- |
 | **Tableaux de bord** | Les tableaux de bord du projet. Créez-en un, ou importez des tableaux de bord avec **Importer du JSON**. |
+| **Tableaux de bord → Playlists** | [Afficher les tableaux de bord l'un après l'autre](/docs/dashboards/playlists) sur un écran, comme le mur d'un NOC. |
 | **Paramètres → Règles de propriétaire** | Ajouter automatiquement des propriétaires aux nouveaux tableaux de bord. |
 | **Paramètres → Règles d'étiquettes** | Ajouter automatiquement des étiquettes aux nouveaux tableaux de bord. |
 | **Paramètres → Sources de données** | Connecter Prometheus, des bases SQL, ClickHouse, Loki, Elasticsearch ou une API REST. |

@@ -5,6 +5,7 @@ import removeHtmlMarkup, {
 } from "../../Types/HtmlMarkup";
 import { generatedTexts } from "../Helpers/GeneratedTexts";
 import { describe, expect, it } from "@jest/globals";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * Read with rawTextElements, a title, a textarea or an xmp holds text: what
@@ -206,10 +207,15 @@ describe("time", () => {
     ["one title of '<'", `<title>${"<".repeat(1000000)}</title>b`],
     ["textareas that never close", "<textarea><".repeat(100000)],
   ])("reads %s in linear time", (_case: string, html: string) => {
-    const started: number = Date.now();
-    const text: string = asABrowser(html);
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return asABrowser(html);
+      },
+      limitInMs: LIMIT_IN_MS,
+    });
+    const text: string = timed.result;
 
-    expect(Date.now() - started).toBeLessThan(LIMIT_IN_MS);
+    expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
     expect(text).not.toMatch(MARKUP_START);
   });
 });

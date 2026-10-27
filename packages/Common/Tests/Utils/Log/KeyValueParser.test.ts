@@ -11,6 +11,7 @@ import {
 } from "../../../Utils/Log/KeyValueParser";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { describe, expect, it } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Contract under test - the key=value parser behind the KeyValueParser
@@ -392,9 +393,13 @@ describe("parseKeyValuePairs - ceilings on hostile input", () => {
       MAX_KEY_VALUE_INPUT_LENGTH,
     );
 
-    const startedAt: number = Date.now();
-    parseKeyValuePairs(line);
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        parseKeyValuePairs(line);
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });
 

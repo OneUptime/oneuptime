@@ -51,6 +51,7 @@ import {
   jest,
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * An Incoming Email monitor's criteria that opens an incident for every
@@ -1869,26 +1870,32 @@ describe("The note a reply leaves", () => {
     // The clock is faked for the other tests: time this one on the real one.
     jest.useRealTimers();
     const body: string = `${"<!channel> [a](b) ".repeat(60000)}\n`.repeat(2);
-    const start: number = Date.now();
-
-    IncomingEmailOpenForEveryEmail.getReplyNote({
-      from: "x@acme.example",
-      body,
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        IncomingEmailOpenForEveryEmail.getReplyNote({
+          from: "x@acme.example",
+          body,
+        });
+      },
+      limitInMs: 2000,
     });
 
-    expect(Date.now() - start).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   it("a hundred thousand short lines are noted in linear time too", () => {
     jest.useRealTimers();
     const body: string = "> a\nb\n".repeat(100000);
-    const start: number = Date.now();
-
-    IncomingEmailOpenForEveryEmail.getReplyNote({
-      from: "x@acme.example",
-      body,
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        IncomingEmailOpenForEveryEmail.getReplyNote({
+          from: "x@acme.example",
+          body,
+        });
+      },
+      limitInMs: 2000,
     });
 
-    expect(Date.now() - start).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

@@ -237,7 +237,7 @@ OBI همچنین ترِیس را از یک فراخوانی عبور می‌ده
 **به‌طور پیش‌فرض خاموش.** وقتی روشن باشد، OBI یک probe به فراخوان سیستمی `write()` هر فرایندی که ابزارگذاری می‌کند وصل می‌کند، و:
 
 - یک **خط لاگ JSON** فیلدهای `trace_id` و `span_id` را می‌گیرد (فیلدهایی که خط از پیش دارد نگه داشته می‌شوند). گردآورنده گره آن‌ها را به فیلدهای ترِیس خود رکورد لاگ منتقل می‌کند، پس لاگ‌های یک اسپن در OneUptime با یک کلیک در دسترس‌اند، و ترِیس یک خط لاگ هم همین‌طور.
-- **هر خط لاگ دیگر** بی‌تغییر، بدون پیوند، جمع می‌شود.
+- **هر خط لاگ دیگر** بی‌تغییر، بدون پیوند، جمع می‌شود، مگر اینکه `ebpf.logEnricher.plainText=true` را هم تنظیم کنید. در آن صورت OBI ` trace_id=… span_id=…` را به آن اضافه می‌کند و گردآورنده گره شناسه‌ها را به رکورد لاگ منتقل می‌کند و از خط حذف می‌کند، پس OneUptime آن را همان‌طور که برنامه شما نوشته نشان می‌دهد. خط داخل فایل لاگ کانتینر، که `kubectl logs` چاپ می‌کند، بخش افزوده‌شده را نگه می‌دارد.
 
 ```bash
 helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
@@ -249,6 +249,7 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 | --- | --- | --- |
 | `ebpf.logToTraceCorrelation` | `false` | غنی‌ساز لاگ OBI و برداشتن `trace_id` در گردآورنده گره را روشن می‌کند. |
 | `ebpf.logEnricher.services` | `[{service: [{exe_path: "*"}]}]` | غنی‌ساز به کدام فرایندها دست می‌زند. هر مدخل یک انتخابگر [GlobAttributes](https://opentelemetry.io/docs/zero-code/obi/configure/options/#service-discovery) در OBI است، با فیلدهایی مانند `exe_path`، `languages`، `k8s_pod_labels`، `k8s_pod_annotations`، `open_ports` و `cmd_args`. |
+| `ebpf.logEnricher.plainText` | `false` | خط‌های لاگ متن ساده (غیر JSON) را هم پیوند می‌دهد. خطی را که فایل لاگ کانتینر نگه می‌دارد تغییر می‌دهد. |
 
 #### عامل‌های APM که با آن از کار می‌افتند
 

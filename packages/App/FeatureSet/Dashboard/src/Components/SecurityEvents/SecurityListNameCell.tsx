@@ -1,5 +1,10 @@
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, {
+  Fragment,
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+} from "react";
 
 /*
  * A ROW'S NAME, WITH WHAT IT IS UNDER IT - as a Security Events list reads:
@@ -19,6 +24,10 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
  * the column is never narrower than the table's floor for a column that
  * wraps (10rem). The line under it wraps between its parts, never inside
  * one ("Google SecOps ·" / "Alerts only").
+ *
+ * A row may lead with a mark (a security tool's product logo): it sits
+ * before the name, and the name and the line under it keep one start
+ * beside it.
  */
 
 export const SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME: string =
@@ -33,6 +42,8 @@ export interface ComponentProps {
   // Already in the reader's words; empty parts are left out.
   detailParts?: Array<string | undefined> | undefined;
   detailTestId?: string | undefined;
+  // Drawn before the name, level with its first line: a product's logo.
+  mark?: ReactNode | undefined;
 }
 
 const SecurityListNameCell: FunctionComponent<ComponentProps> = (
@@ -44,8 +55,8 @@ const SecurityListNameCell: FunctionComponent<ComponentProps> = (
     },
   );
 
-  return (
-    <span className="block" data-testid="security-list-name-cell">
+  const words: ReactElement = (
+    <>
       {/*
        * A name someone gave reads the way it is written, as a table's own
        * text cells do (IsolatedText): an English one keeps its start and
@@ -75,6 +86,24 @@ const SecurityListNameCell: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
+    </>
+  );
+
+  if (!props.mark) {
+    return (
+      <span className="block" data-testid="security-list-name-cell">
+        {words}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="flex items-start gap-2"
+      data-testid="security-list-name-cell"
+    >
+      {props.mark}
+      <span className="block min-w-0">{words}</span>
     </span>
   );
 };

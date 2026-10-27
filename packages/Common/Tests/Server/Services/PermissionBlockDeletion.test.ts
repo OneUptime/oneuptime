@@ -784,7 +784,14 @@ describe.each(serviceCases)(
         },
       );
 
-      test("explicit All scope is not narrowed by labels left on the stored block", async () => {
+      /*
+       * A block stored as All with labels takes away only the records
+       * carrying them, as every check reads a block and as the dashboard
+       * shows it (PermissionHelper.isLimitedToLabels): removing it exposes
+       * those records alone, so authority over its labels removes it, and
+       * authority over other labels does not.
+       */
+      test("a block stored as All with labels is removed by authority over those labels", async () => {
         rows = [
           makeRow(serviceCase, {
             scope: PermissionScope.All,
@@ -796,6 +803,16 @@ describe.each(serviceCases)(
             editorProps([
               userPermission(Permission.TelemetryAdmin, {
                 labels: [labelA],
+                scope: PermissionScope.Labels,
+              }),
+            ]),
+          ),
+        ).resolves.toBeDefined();
+        await expect(
+          deleteAs(
+            editorProps([
+              userPermission(Permission.TelemetryAdmin, {
+                labels: [labelB],
                 scope: PermissionScope.Labels,
               }),
             ]),

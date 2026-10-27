@@ -493,6 +493,12 @@ data:
       # spans applications push from their own SDKs are not OBI's and are
       # kept. OBI computes its database metrics before export, so those still
       # count every command.
+      #   - every database span of a database proxy — PgBouncer and the like
+      #     (ebpf.dropDatabaseProxySpans, ebpf.databaseProxyNames). A proxy is
+      #     a database server AND a client: the commands it passes on hang
+      #     under its server span, which the first condition drops, so they
+      #     would arrive pointing at a missing parent. With the switch off,
+      #     its server spans are exempt from the first condition instead.
       filter/ebpf-unlinked-db:
         error_mode: ignore
         traces:

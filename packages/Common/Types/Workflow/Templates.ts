@@ -10135,7 +10135,8 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
       "Posts a short incident summary to a Discord channel the moment the incident is declared.",
     teaches: "How a database trigger feeds a chat integration.",
     category: WorkflowTemplateCategory.Incidents,
-    icon: IconProp.Chat,
+    // Discord's own mark, as its Slack and Microsoft Teams siblings carry theirs.
+    icon: IconProp.Discord,
     workflowName: "Notify Discord on new incident",
     workflowDescription:
       "Posts to Discord whenever an incident is created in this project.",
@@ -10259,7 +10260,7 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     teaches:
       "How a database trigger feeds a chat on a server of your own, through its incoming webhook.",
     category: WorkflowTemplateCategory.Incidents,
-    icon: IconProp.Chat,
+    icon: IconProp.Mattermost,
     workflowName: "Notify Mattermost on new incident",
     workflowDescription:
       "Posts to Mattermost whenever an incident is created in this project.",
@@ -10999,7 +11000,8 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
     teaches:
       "How one secret setting, kept as a variable, serves the whole workflow.",
     category: WorkflowTemplateCategory.Alerts,
-    icon: IconProp.Chat,
+    // Mattermost's own mark, as its Telegram sibling carries Telegram's.
+    icon: IconProp.Mattermost,
     workflowName: "Notify Mattermost on new alert",
     workflowDescription:
       "Posts to Mattermost whenever an alert is created in this project.",

@@ -1,4 +1,5 @@
 import IconProp from "../../Icon/IconProp";
+import ProviderLogo from "../../ProviderLogo/ProviderLogo";
 import ComponentID from "../ComponentID";
 import ComponentMetadata, {
   ComponentInputType,
@@ -10,6 +11,7 @@ const components: Array<ComponentMetadata> = [
     id: ComponentID.MicrosoftTeamsSendMessageToChannel,
     title: "Send Message to Teams",
     category: "Microsoft Teams",
+    logo: ProviderLogo.MicrosoftTeams,
     description: "Send message to teams channel",
     iconProp: IconProp.SendMessage,
     componentType: ComponentType.Component,

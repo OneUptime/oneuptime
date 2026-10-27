@@ -72,6 +72,7 @@ export const LLM_PROVIDER_CARD_OPTIONS: Array<CardSelectOption> =
       title: copy.title,
       description: copy.description,
       icon: copy.icon,
+      logo: copy.logo,
     };
   });
 

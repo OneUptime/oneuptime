@@ -45,6 +45,12 @@ export interface TelemetryFacetValueRowProps {
    * and shows no count rather than a 0 that is not true.
    */
   isCountUnknown?: boolean | undefined;
+  /*
+   * One of a choice of exactly one (FacetConfig.chosenValue): drawn as a
+   * radio button, Included meaning chosen. A click on another value chooses
+   * it; a click on the chosen one does nothing - there is no "none".
+   */
+  isRadio?: boolean | undefined;
   // A value that is not filtering was clicked: keep only its rows.
   onInclude: (value: string) => void;
   /*
@@ -89,7 +95,8 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
   const isIncluded: boolean = state === FacetValueState.Included;
   const isExcluded: boolean = state === FacetValueState.Excluded;
   const isFiltering: boolean = isIncluded || isExcluded;
-  const isLocked: boolean = Boolean(props.isLocked) && isFiltering;
+  const isRadio: boolean = Boolean(props.isRadio);
+  const isLocked: boolean = !isRadio && Boolean(props.isLocked) && isFiltering;
   /*
    * Resource facets list every resource in the project, including ones with
    * no telemetry in the range (count 0). Muting those lets the rows that do
@@ -103,14 +110,21 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
    * name keeps that width on every row: it shows while the row is hovered,
    * and for good once pressed - an excluded value counts nothing anyway.
    */
-  const hasExcludeButton: boolean = Boolean(props.onExclude) && !isLocked;
+  const hasExcludeButton: boolean =
+    Boolean(props.onExclude) && !isLocked && !isRadio;
   const countVisibility: string = !hasExcludeButton
     ? ""
     : isExcluded
       ? " invisible"
       : " group-hover/row:invisible";
 
-  const title: string = isLocked
+  const title: string = isRadio
+    ? isIncluded
+      ? displayLabel
+      : translator.translateTemplate("Show {{value}}", {
+          value: displayLabel,
+        })
+    : isLocked
     ? translator.translateTemplate("Set by this page: {{value}}", {
         value: displayLabel,
       })
@@ -143,12 +157,15 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
     >
       <button
         type="button"
-        role="checkbox"
+        role={isRadio ? "radio" : "checkbox"}
         /*
          * Checked keeps only this value; mixed is the third state, an
-         * excluded value, and a press clears either.
+         * excluded value, and a press clears either. A radio is chosen or
+         * not.
          */
-        aria-checked={isIncluded ? "true" : isExcluded ? "mixed" : "false"}
+        aria-checked={
+          isIncluded ? "true" : isExcluded && !isRadio ? "mixed" : "false"
+        }
         aria-disabled={isLocked ? true : undefined}
         className={`flex min-w-0 flex-1 items-center gap-2 rounded px-1.5 py-0.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
           isLocked
@@ -164,6 +181,14 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
             return;
           }
 
+          if (isRadio) {
+            // Choosing the chosen value again changes nothing.
+            if (!isIncluded) {
+              props.onInclude(props.value);
+            }
+            return;
+          }
+
           if (isFiltering) {
             props.onClear(props.value);
             return;
@@ -173,7 +198,17 @@ const TelemetryFacetValueRow: FunctionComponent<TelemetryFacetValueRowProps> = (
         }}
         title={title}
       >
-        {isLocked ? (
+        {isRadio ? (
+          <span
+            className={`flex h-3.5 w-3.5 flex-none items-center justify-center rounded-full border ${
+              isIncluded ? "border-indigo-500 bg-indigo-500" : "border-gray-300"
+            }`}
+          >
+            {isIncluded && (
+              <span className="h-1.5 w-1.5 rounded-full bg-white" />
+            )}
+          </span>
+        ) : isLocked ? (
           /*
            * The grey of the page's own locked chips, with their lock: set
            * by the page, not by the reader.

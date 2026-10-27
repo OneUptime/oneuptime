@@ -1,0 +1,130 @@
+# Two opt-in settings of the eBPF DaemonSet's OBI config.
+#
+# ebpf.serviceNameLabels — the pod labels a service is named after. OBI's own
+# order (the OpenTelemetry one) puts app.kubernetes.io/instance first, which
+# Helm sets to the release name on every pod of a release, subcharts
+# included: on the test cluster KEDA's three components and the
+# CloudNativePG operator all reported as one service, `oneuptime`. The
+# setting is written as attributes.kubernetes.resource_labels.service.name,
+# which OBI merges onto its defaults key by key.
+#
+# ebpf.logEnricher.plainText — trace ids on plain-text log lines. OBI appends
+# " trace_id=… span_id=…" to each line of a non-JSON write; the node
+# collector lifts the ids onto the log record and strips them from its body.
+#
+# What OBI makes of the rendered config is Tests/Ops/agent-obi-config-load.sh.
+suite: eBPF service names and plain-text log correlation
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+set:
+  clusterName: prod-us
+  oneuptime.url: https://oneuptime.example.com
+  oneuptime.apiKey: key-123
+tests:
+  - it: leaves OBI's own service-name order alone by default
+    templates:
+      - templates/configmap-ebpf.yaml
+    asserts:
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "resource_labels"
+
+  - it: writes the chosen labels under attributes.kubernetes, after the span attribute selection
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.serviceNameLabels:
+        - app.kubernetes.io/name
+        - " app.kubernetes.io/instance "
+        - ""
+        - app.kubernetes.io/name
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\nattributes:\\n  select:\\n    traces:\\n      include:\\n(?:        - \"[^\"]+\"\\n)+(?:  #[^\\n]*\\n)*  kubernetes:\\n    resource_labels:\\n      service\\.name:\\n        - \"app\\.kubernetes\\.io/name\"\\n        - \"app\\.kubernetes\\.io/instance\"\\n"
+      # One `attributes:` key: a second is a YAML error OBI refuses to start on.
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\nattributes:[\\s\\S]*\\nattributes:"
+
+  - it: still writes them for an OBI older than v0.14, which takes no span attribute selection
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.image.tag: v0.13.0
+      ebpf.serviceNameLabels: [app.kubernetes.io/name]
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\nattributes:\\n(?:  #[^\\n]*\\n)*  kubernetes:\\n    resource_labels:\\n      service\\.name:\\n        - \"app\\.kubernetes\\.io/name\"\\n"
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "select:"
+
+  - it: keeps plain-text lines out of the log enricher unless asked
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.logToTraceCorrelation: true
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    plain_text:\\n      enabled: false\\n"
+      - notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "placement:"
+
+  - it: annotates every plain-text line at its end when asked
+    templates:
+      - templates/configmap-ebpf.yaml
+    set:
+      ebpf.logToTraceCorrelation: true
+      ebpf.logEnricher.plainText: true
+    asserts:
+      - matchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "\\n    plain_text:\\n      enabled: true\\n      placement: suffix\\n      multiline: each_line\\n"
+
+  - it: does nothing with plainText while log correlation is off
+    templates:
+      - templates/configmap-ebpf.yaml
+      - templates/configmap-daemonset.yaml
+    set:
+      ebpf.logEnricher.plainText: true
+    asserts:
+      - template: templates/configmap-ebpf.yaml
+        notMatchRegex:
+          path: data["obi-config.yaml"]
+          pattern: "log_enricher|plain_text"
+      - template: templates/configmap-daemonset.yaml
+        notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "parse-ebpf-trace-text|_obi_text"
+
+  - it: lifts the plain-text ids onto the log record in the node collector and puts the line back as written
+    templates:
+      - templates/configmap-daemonset.yaml
+    set:
+      ebpf.logToTraceCorrelation: true
+      ebpf.logEnricher.plainText: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n          - output: parse-ebpf-trace-json\\n            expr: 'body matches \"\\\\\"trace_id\\\\\"\"'\\n(?: *#[^\\n]*\\n)*          - output: parse-ebpf-trace-text\\n            expr: 'body matches \" trace_id=\\[0-9a-f\\]\\{32\\} span_id=\\[0-9a-f\\]\\{16\\}\\\\\\\\s\\*\\$\"'\\n        default: recombine-multiline\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n      - type: regex_parser\\n        id: parse-ebpf-trace-text\\n        parse_from: body\\n        parse_to: attributes\\._obi_text\\n        regex: '\\^\\(\\?P<message>\\[\\\\s\\\\S\\]\\*\\?\\) trace_id=\\(\\?P<trace_id>\\[0-9a-f\\]\\{32\\}\\) span_id=\\(\\?P<span_id>\\[0-9a-f\\]\\{16\\}\\)\\\\s\\*\\$'\\n        on_error: send\\n        output: lift-obi-text-trace-context\\n      - type: trace_parser\\n        id: lift-obi-text-trace-context\\n        trace_id:\\n          parse_from: attributes\\._obi_text\\.trace_id\\n        span_id:\\n          parse_from: attributes\\._obi_text\\.span_id\\n        output: restore-obi-text-body\\n      - type: move\\n        id: restore-obi-text-body\\n        from: attributes\\._obi_text\\.message\\n        to: body\\n        output: cleanup-obi-text-attrs\\n      - type: remove\\n        id: cleanup-obi-text-attrs\\n        field: attributes\\._obi_text\\n        output: recombine-multiline\\n"
+
+  - it: parses only JSON lines in the node collector without plainText
+    templates:
+      - templates/configmap-daemonset.yaml
+    set:
+      ebpf.logToTraceCorrelation: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "parse-ebpf-trace-json"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "parse-ebpf-trace-text|_obi_text"

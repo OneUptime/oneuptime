@@ -1,4 +1,14 @@
-import { APIResponse, expect, Locator, Page, test } from "@playwright/test";
+import {
+  APIRequestContext,
+  expect,
+  Locator,
+  Page,
+  test,
+} from "@playwright/test";
+import {
+  readFixtureEdition,
+  skipUnlessEnterprise,
+} from "../SuiteHelpers/Edition";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs";
 import path from "path";
@@ -17,7 +27,10 @@ import path from "path";
  * The screen ships in the Enterprise Edition; the fixture reaches it through
  * the Admin Dashboard's plugin, as the Admin Dashboard does. Where ee/ is
  * not checked out (the Dashboard Offline UI job removes it) the fixture
- * builds the Community Edition, and these tests are skipped.
+ * builds the Community Edition, and these tests are skipped; the
+ * Enterprise Edition Test workflow's Enterprise UI job runs them with ee/
+ * (npm run test-enterprise-licenses-ui), where they must not skip
+ * (SuiteHelpers/Edition).
  */
 
 const LICENSES: string = "/admin/settings/enterprise-licenses?page=licenses";
@@ -62,22 +75,15 @@ interface RecordedWrite {
 
 let edition: string = "";
 
-test.beforeAll(
-  async ({
-    request,
-  }: {
-    request: { get: (url: string) => Promise<APIResponse> };
-  }) => {
-    const response: APIResponse = await request.get("/edition.json");
-    edition = ((await response.json()) as { edition: string }).edition;
-  },
-);
+test.beforeAll(async ({ request }: { request: APIRequestContext }) => {
+  edition = await readFixtureEdition(request);
+});
 
 const pageErrors: Map<Page, Array<string>> = new Map();
 
 test.beforeEach(({ page }: { page: Page }) => {
-  test.skip(
-    edition !== "enterprise",
+  skipUnlessEnterprise(
+    edition,
     "The Enterprise Licenses screen ships in the Enterprise Edition, and ee/ is not checked out.",
   );
 

@@ -75,6 +75,15 @@ export interface ComponentProps {
    * only to someone who may edit the dashboard.
    */
   onEditWidgetClick?: ((componentId: ObjectID) => void) | undefined;
+  /*
+   * The board is one turn of a playlist on a screen (issue #5235): a
+   * display nobody drives. Its widgets draw their data and nothing to act
+   * on - no drag-to-zoom and no "Drag to zoom", no Investigate, no Open in
+   * Explorer, no series menus. A drawer those open would land under the
+   * player, which covers the whole window; the dashboard's own page is
+   * where a reader digs in.
+   */
+  isPlayback?: boolean | undefined;
 }
 
 /** Extra empty rows kept below the lowest widget while editing. */
@@ -321,6 +330,7 @@ const DashboardCanvas: FunctionComponent<ComponentProps> = (
           onDashboardTimeRangeSelect={props.onDashboardTimeRangeSelect}
           onDashboardTimeRangeReset={props.onDashboardTimeRangeReset}
           isDashboardTimeRangeZoomed={props.isDashboardTimeRangeZoomed}
+          isPlayback={props.isPlayback}
           onClick={() => {
             props.onComponentSelected(componentId);
           }}

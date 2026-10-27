@@ -25,7 +25,7 @@ Klikk på bildet ditt øverst til høyre i dashbordet.
 | --- | --- |
 | **Profil** | Åpner **Brukerprofil**: navnet, e-posten, tidssonen og bildet ditt, og sikkerheten rundt innloggingen. |
 | **Admin-innstillinger** | Åpner Admin Dashboard. Bare hovedadministratorer på en selvhostet installasjon ser det. |
-| **Mørkt tema** | Bytter dashbordet til det mørke temaet. I det mørke temaet heter punktet **Lyst tema**. |
+| **Tema** | Velger dashbordets tema: **Lyst**, **Mørkt** eller **System**, som er lyst eller mørkt etter hvordan enheten din er stilt inn. |
 | **Logg ut** | Logger deg ut. |
 
 **Brukerprofil** har sin egen sidemeny. **Grunnleggende** inneholder **Oversikt** og **Profilbilde**. **Sikkerhet** og **Faresone** er slått sammen: klikk på tittelen til en del for å åpne den.
@@ -132,7 +132,7 @@ Du kan høre til så mange prosjekter du vil. Prosjektvelgeren øverst til venst
 Begge lagres i nettleseren din, ikke på kontoen, så still dem inn på nytt i en annen nettleser eller på en annen enhet.
 
 - **Språk**: dashbordet starter på nettleserens språk. Bruk språkmenyen nederst på hver side for å bytte. Denne dokumentasjonen har sin egen språkmeny øverst.
-- **Tema**: velg **Mørkt tema** i brukermenyen. Dashbordet starter i det lyse temaet.
+- **Tema**: velg **Lyst**, **Mørkt** eller **System** i brukermenyen. **System** er lyst eller mørkt etter hvordan enheten din er stilt inn, og skifter med den; alle nettlesere starter med det. Påloggingssidene bruker samme tema.
 
 ## Slett kontoen din
 

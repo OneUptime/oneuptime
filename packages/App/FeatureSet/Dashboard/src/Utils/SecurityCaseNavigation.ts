@@ -14,7 +14,10 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                   ATT&CK tactics its detections map to (Overview), and
  *                   everything that happened to it (Timeline), as an
  *                   incident has its State Timeline here
- *   Investigation   what it is made of and what was done about it: the
+ *   Investigation   what it is made of and what was done about it: its
+ *                   Story - what happened, in order, across OneUptime: the
+ *                   detections and the requests behind them, what they
+ *                   threw, what changed and what they set off - the
  *                   Detections that opened it or joined it, the Entities it
  *                   is about, its Connected Signals - those entities as the
  *                   rest of OneUptime knows them: the hosts, clusters,
@@ -80,6 +83,11 @@ export const SECURITY_CASE_MENU: Array<SecurityCaseMenuSection> = [
   {
     title: "Investigation",
     items: [
+      {
+        page: PageMap.SECURITY_CASE_VIEW_STORY,
+        title: "Story",
+        icon: IconProp.BookOpen,
+      },
       {
         page: PageMap.SECURITY_CASE_VIEW_DETECTIONS,
         title: "Detections",

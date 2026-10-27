@@ -320,6 +320,53 @@ describe("getVisibleActionIds", () => {
     expect(asMortal).not.toContain("action-admin-dashboard");
   });
 
+  test("the way back to the system theme is offered only while Light or Dark is picked", () => {
+    const withPick: Array<PaletteActionId> = getVisibleActionIds({
+      ...allGatesOpen,
+      hasProjectSelected: true,
+      isMasterAdmin: false,
+      isThemeFollowingDevice: false,
+    });
+    const followingDevice: Array<PaletteActionId> = getVisibleActionIds({
+      ...allGatesOpen,
+      hasProjectSelected: true,
+      isMasterAdmin: false,
+      isThemeFollowingDevice: true,
+    });
+    const unsaid: Array<PaletteActionId> = getVisibleActionIds({
+      ...allGatesOpen,
+      hasProjectSelected: true,
+      isMasterAdmin: false,
+    });
+
+    expect(withPick).toContain("action-system-theme");
+    // Right after the switch to the other theme.
+    expect(withPick.indexOf("action-system-theme")).toBe(
+      withPick.indexOf("action-toggle-theme") + 1,
+    );
+    expect(followingDevice).not.toContain("action-system-theme");
+    expect(unsaid).not.toContain("action-system-theme");
+    // The switch to the other theme is there either way.
+    expect(followingDevice).toContain("action-toggle-theme");
+    expect(withPick).toContain("action-toggle-theme");
+  });
+
+  test("the theme actions need no project and no permission", () => {
+    const actionIds: Array<PaletteActionId> = getVisibleActionIds({
+      canCreateIncident: false,
+      canCreateMonitor: false,
+      canCreateAlert: false,
+      canCreateScheduledMaintenance: false,
+      canCreateAnnouncement: false,
+      hasProjectSelected: false,
+      isMasterAdmin: false,
+      isThemeFollowingDevice: false,
+    });
+
+    expect(actionIds).toContain("action-toggle-theme");
+    expect(actionIds).toContain("action-system-theme");
+  });
+
   test("no action id is offered twice", () => {
     /*
      * The host maps each id straight onto a command, so a duplicate becomes
@@ -329,6 +376,7 @@ describe("getVisibleActionIds", () => {
       ...allGatesOpen,
       hasProjectSelected: true,
       isMasterAdmin: true,
+      isThemeFollowingDevice: false,
     });
 
     expect(new Set(actionIds).size).toBe(actionIds.length);

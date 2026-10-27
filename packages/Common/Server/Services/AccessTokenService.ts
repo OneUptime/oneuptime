@@ -215,9 +215,14 @@ export class AccessTokenService extends BaseService {
       return null;
     }
 
-    // get team permissions.
+    /*
+     * Every permission row of their teams, read page by page: one read stops
+     * at LIMIT_MAX rows, newest first, and a person whose teams were given a
+     * few broad custom roles (each a copy of every permission of the role)
+     * could pass it - losing the oldest rows, often the blocks set up first.
+     */
     const teamPermissions: Array<TeamPermission> =
-      await TeamPermissionService.findBy({
+      await TeamPermissionService.findAllBy({
         query: {
           teamId: QueryHelper.any(teamIds),
           projectId: projectId,
@@ -229,9 +234,8 @@ export class AccessTokenService extends BaseService {
           },
           isBlockPermission: true,
           scope: true,
+          teamId: true,
         },
-        limit: LIMIT_MAX,
-        skip: 0,
         props: {
           isRoot: true,
         },
@@ -251,6 +255,11 @@ export class AccessTokenService extends BaseService {
         }),
         isBlockPermission: teamPermission.isBlockPermission,
         scope: teamPermission.scope,
+        /*
+         * The team the row is granted on: an Owned row reaches what this
+         * team owns, not what the member's other teams own.
+         */
+        teamId: teamPermission.teamId,
         _type: "UserPermission",
       });
     }

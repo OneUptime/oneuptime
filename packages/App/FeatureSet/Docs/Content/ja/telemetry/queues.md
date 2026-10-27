@@ -725,6 +725,8 @@ service:
 
 BullMQ はジョブを Redis に保持し、スクレイプするブローカーを持ちません。OneUptime 自身のワーカーが `queue.size` で行っているように、`messaging.system` と `messaging.destination.name` を持つメトリクスとして、アプリケーションからキューの深さを報告します。
 
+[Kubernetes エージェントの eBPF トレーサー](/docs/telemetry/kubernetes-agent#ebpf-のトレースの見え方) を使うと、OneUptime は BullMQ が送る Redis コマンドから BullMQ のキュー (BullMQ 5 以降) も読み取ります。アプリケーションの変更は不要です。ジョブの追加ではサービスがそのキューのプロデューサーとして、ジョブの完了ではコンシューマーとして表示されます。エージェントはデフォルトでリクエストの外で行われたデータベース呼び出しを破棄し (`ebpf.dropUnlinkedDatabaseCalls`)、ジョブを処理するワーカーはリクエストの外で動作するため、この方法で見つかったキューには、初期状態ではほとんどプロデューサーしか表示されません。コンシューマーも表示するには、`ebpf.dropUnlinkedDatabaseCalls=false` を設定してください。
+
 BullMQ 自身のテレメトリ (`bullmq-otel` パッケージが実装する `telemetry` オプション) は、キューを `bullmq.queue.name` で示し、`messaging.system` を設定しないため、それだけではキューを作成しません。アプリケーションの送信先の Collector で `transform` プロセッサーを使い、ジョブを追加・処理するスパンと BullMQ 自身のメトリクスに、OneUptime が読み取る 2 つのキーを追加します:
 
 ```yaml

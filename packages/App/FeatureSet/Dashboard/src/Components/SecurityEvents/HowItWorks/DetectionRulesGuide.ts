@@ -330,6 +330,10 @@ export const SIGMA_FIELD_ALIAS_DOCS: Array<SigmaFieldDoc> = [
     aliases: ["ParentImage", "process.parent.executable"],
   },
   { column: "message", aliases: ["msg"] },
+  { column: "traceId", aliases: ["trace_id"] },
+  { column: "spanId", aliases: ["span_id"] },
+  { column: "sessionId", aliases: ["session_id"] },
+  { column: "requestOutcome", aliases: ["request_outcome"] },
 ];
 
 /*
@@ -385,6 +389,10 @@ export const SIGMA_COLUMN_DOCS: Array<{
   {
     group: "Source",
     columns: ["productName", "vendorName", "ruleId", "ruleName", "eventUid"],
+  },
+  {
+    group: "The request it was part of",
+    columns: ["traceId", "spanId", "sessionId", "requestOutcome"],
   },
   {
     group: "Content",

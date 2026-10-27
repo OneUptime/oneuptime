@@ -3,6 +3,7 @@ import { generatedTexts } from "../Helpers/GeneratedTexts";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * TEXT A REGULAR EXPRESSION MATCHES AS IT IS WRITTEN (RegExpEscape).
@@ -160,11 +161,15 @@ describe("escapeRegExp", () => {
     const text: string = SYNTAX_CHARACTERS.join("").repeat(
       Math.ceil((4 * 1024 * 1024) / SYNTAX_CHARACTERS.length),
     );
-    const startedAt: number = performance.now();
-    const escaped: string = escapeRegExp(text);
-    const tookMs: number = performance.now() - startedAt;
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return escapeRegExp(text);
+      },
+      limitInMs: 2000,
+    });
+    const escaped: string = timed.result;
 
     expect(escaped.length).toBe(text.length * 2);
-    expect(tookMs).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

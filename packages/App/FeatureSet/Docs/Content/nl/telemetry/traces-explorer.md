@@ -22,7 +22,7 @@ flowchart TB
     pay --> call["Span: de betaal-<br/>provider aanroepen"]
 ```
 
-Elke rij van de verkenner is een span, dus een drukke service vult de lijst met zijn databasequery's en interne aanroepen. Om één rij per verzoek te tonen, kiest u in de zijbalk **Root spans** onder **Span-type**.
+Elke rij van de verkenner is een span. Standaard toont de lijst **Entry spans**, de spans waar een verzoek of bericht een service binnenkomt, zodat een verzoek één keer verschijnt voor elke service die het bereikt, terwijl databasequery's en interne aanroepen buiten de lijst blijven. Om één rij per verzoek te tonen, kiest u in de zijbalk **Root spans** onder **Span-type**; om elke bewerking te tonen, kiest u **All spans**.
 
 De verkenner heeft vijf tabbladen:
 
@@ -175,7 +175,7 @@ Ze noemen een ouder-span die OneUptime niet heeft ontvangen, vaak omdat de servi
 :::
 
 :::details De lijst toont veel meer rijen dan verzoeken
-Elke rij is een span, geen verzoek. Kies in de zijbalk **Root spans** onder **Span-type** om één rij per verzoek te tonen.
+Elke rij is een span, geen verzoek: met **Entry spans**, de standaardinstelling, verschijnt een verzoek één keer voor elke service die het bereikt, en met **All spans** één keer voor elke bewerking. Kies in de zijbalk **Root spans** onder **Span-type** om één rij per verzoek te tonen.
 :::
 
 ## Volgende stappen

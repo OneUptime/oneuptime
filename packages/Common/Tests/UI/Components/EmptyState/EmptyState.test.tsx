@@ -7,6 +7,7 @@ import { beforeAll, describe, expect, test } from "@jest/globals";
 import { render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import IconProp from "../../../../Types/Icon/IconProp";
+import ProviderLogo from "../../../../Types/ProviderLogo/ProviderLogo";
 import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 
@@ -322,6 +323,111 @@ describe("EmptyState", () => {
       const svg: Element | null = container.querySelector("svg");
       expect(svg).toHaveClass("h-6", "w-6", "text-indigo-500");
       expect(svg).not.toHaveClass("h-12");
+    });
+  });
+
+  /*
+   * Official logos audit: a state about another company's product ("Slack
+   * is not connected") shows that product's official logo where the icon
+   * was - the mark alone, an icon's 48 pixels, centred above the title,
+   * which already says the product's name.
+   */
+  describe("logo", () => {
+    test("draws the product's logo instead of the icon", () => {
+      const { container } = render(
+        <EmptyState
+          id="empty-state"
+          icon={IconProp.Slack}
+          logo={ProviderLogo.Slack}
+          title="Slack is not connected"
+          description="Connect Slack to post notifications to it."
+        />,
+      );
+
+      const logo: Element | null = container.querySelector(
+        "[data-provider-logo='slack']",
+      );
+
+      expect(logo).not.toBeNull();
+      // No icon beside it: the logo takes the icon's place.
+      expect(container.querySelector("svg")).toBeNull();
+    });
+
+    test("the logo is the mark alone, an icon's size, centred", () => {
+      const { container } = render(
+        <EmptyState
+          id="empty-state"
+          icon={IconProp.MicrosoftTeams}
+          logo={ProviderLogo.MicrosoftTeams}
+          title="Microsoft Teams is not connected"
+          description="Connect it."
+        />,
+      );
+
+      const logo: Element = container.querySelector(
+        "[data-provider-logo='microsoft-teams']",
+      )!;
+
+      expect(logo).toHaveClass("mx-auto");
+      // Bare: no tile, no edge.
+      expect(logo).not.toHaveClass("bg-white");
+      expect(logo).not.toHaveClass("ring-1");
+      expect(logo.firstElementChild).toHaveClass("h-12", "w-12");
+    });
+
+    test("the logo is not read out: the title names the product", () => {
+      const { container } = render(
+        <EmptyState
+          id="empty-state"
+          icon={IconProp.Slack}
+          logo={ProviderLogo.Slack}
+          title="Slack is not connected"
+          description="Connect it."
+        />,
+      );
+
+      const logo: Element = container.querySelector(
+        "[data-provider-logo='slack']",
+      )!;
+
+      expect(logo).toHaveAttribute("aria-hidden", "true");
+      expect(screen.queryByRole("img")).toBeNull();
+    });
+
+    test("the logo comes before the title, where the icon was", () => {
+      const { container } = render(
+        <EmptyState
+          id="empty-state"
+          icon={IconProp.Slack}
+          logo={ProviderLogo.Slack}
+          title="Slack is not connected"
+          description="Connect it."
+        />,
+      );
+
+      const logo: Element = container.querySelector(
+        "[data-provider-logo='slack']",
+      )!;
+      const heading: HTMLElement = screen.getByRole("heading", { level: 3 });
+
+      expect(
+        logo.compareDocumentPosition(heading) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    test("without a logo the icon is drawn as before", () => {
+      const { container } = render(
+        <EmptyState
+          id="empty-state"
+          icon={IconProp.Slack}
+          title="Title"
+          description="Description"
+        />,
+      );
+
+      expect(container.querySelector("[data-provider-logo]")).toBeNull();
+      expect(container.querySelector("svg")).toHaveClass("h-12", "w-12");
     });
   });
 

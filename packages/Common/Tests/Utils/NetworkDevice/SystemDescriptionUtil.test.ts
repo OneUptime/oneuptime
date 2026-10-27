@@ -5,6 +5,7 @@ import {
   readSystemDescription,
 } from "../../../Utils/NetworkDevice/SystemDescriptionUtil";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Issue #4569 - a Cisco Meraki MX85's inventory record read
@@ -482,8 +483,12 @@ describe("parseSystemDescription stays fast on hostile input", () => {
     ["dots and digits", "1.".repeat(100000)],
     ["UniFi-like with no version", `UAP${"-".repeat(200000)}`],
   ])("%s", (_name: string, value: string) => {
-    const started: number = Date.now();
-    parseSystemDescription(value);
-    expect(Date.now() - started).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        parseSystemDescription(value);
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });

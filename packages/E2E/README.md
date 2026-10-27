@@ -139,6 +139,7 @@ E2E/
 │   └── Lapsed/         # Phase two: the same stack, licence lapsed
 ├── Alerts/, Discovery/, LabelRules/, SloBurnRate/, Topology/, ...
 │                       # Focused suites, each with its own config + script
+├── SuiteHelpers/       # Shared by the focused suites (see below)
 ├── Config.ts           # Environment configuration
 ├── playwright.config.ts # Playwright configuration
 └── package.json
@@ -301,6 +302,24 @@ when its words fit one line, and balances its lines when they wrap. See
 `SignInOptions/README.md`. Failure traces and review screenshots are written to
 `output/playwright/sign-in-options-ui/test-results/` at the repository root.
 
+## Helpers the focused suites share
+
+`SuiteHelpers/` holds what more than one focused suite needs:
+
+- `Frames.ts`: `boxesInOneFrame(locators)` reads several elements' boxes in
+  one frame. Each `boundingBox()` is a frame of its own, so two read one after
+  the other while something moves - a side panel sliding in, a dialog growing
+  in, More fields scrolling its fields into view, a menu opening - come from
+  two moments, and a gap or an alignment between them can be off by a hundred
+  pixels. Compare boxes read with it. An element that is not displayed fails
+  the read, naming it, where `boundingBox()` would answer null.
+- `Edition.ts`: `readFixtureEdition(request)` asks a fixture which edition it
+  bundled (`/edition.json`), and `skipUnlessEnterprise(edition, reason)` skips
+  an Enterprise spec where `ee/` is not checked out - or fails it where
+  `E2E_REQUIRE_ENTERPRISE` is set, as the Enterprise Edition Test workflow's
+  Enterprise UI job sets it, so a fixture that stops finding `ee/` cannot pass
+  there by skipping.
+
 ## Workflow builder UI regression tests
 
 Run the workflow builder canvas checks without starting the app or database:
@@ -309,6 +328,10 @@ Run the workflow builder canvas checks without starting the app or database:
 cd packages/E2E
 CI=1 npm run test-workflow-builder-ui
 ```
+
+App Test runs the suite in halves, in two Dashboard Offline UI groups:
+`WORKFLOW_BUILDER_SHARD=1/2` runs the laptop's specs and `2/2` the phone's
+(Playwright's shard, by spec file). Unset, it runs whole.
 
 The fixture (`WorkflowBuilder/Fixture`, port 4237) renders the real builder:
 react-flow, the Add Component picker, the step cards and the step settings
