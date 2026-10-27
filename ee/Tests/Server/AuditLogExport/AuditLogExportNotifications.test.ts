@@ -345,7 +345,7 @@ describe("the email's words", () => {
     const email: AuditLogExportFailureEmail =
       buildAuditLogExportFailureEmail(base);
 
-    expect(email.subject).toBe("The audit log export SIEM bucket is failing");
+    expect(email.subject).toBe('The audit log export "SIEM bucket" is failing');
     expect(email.badgeType).toBe("warning");
     expect(email.badgeText).toBe("Export failing");
     expect(titles(email)).toEqual([
@@ -358,9 +358,9 @@ describe("the email's words", () => {
     expect(email.details[0]!.text).toBe("SIEM bucket");
     expect(email.details[1]!.text).toBe("Amazon S3");
     expect(email.details[4]!.text).toBe(base.error);
-    expect(email.remediation).toContain("Nothing is lost yet");
-    expect(email.remediation).toContain(
-      "(the audit log's retention of 7 days)",
+    // What to do first, then why nothing is lost yet.
+    expect(email.remediation).toBe(
+      "Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log keeps each entry for 7 days.",
     );
     expect(email.buttonText).toBe("Open Audit Log Export");
   });
@@ -372,7 +372,7 @@ describe("the email's words", () => {
     });
 
     expect(email.subject).toBe(
-      "The audit log export SIEM bucket will start losing entries",
+      'The audit log export "SIEM bucket" will start losing entries',
     );
     expect(email.badgeType).toBe("critical");
     expect(email.badgeText).toBe("Entries about to be lost");
@@ -385,7 +385,12 @@ describe("the email's words", () => {
       "Why: ",
     ]);
     expect(email.details[4]!.text.startsWith("about ")).toBe(true);
-    expect(email.remediation).toContain("are then never sent");
+    // From when first, then what to do before then.
+    expect(
+      email.remediation.startsWith(
+        `From ${email.details[4]!.text}, the entries this export has not sent are deleted as they pass the audit log's retention of 7 days, and are never sent.`,
+      ),
+    ).toBe(true);
     expect(email.remediation).toContain(
       "Fix the destination before then, and the export sends them, oldest first.",
     );
@@ -399,7 +404,7 @@ describe("the email's words", () => {
     });
 
     expect(email.remediation).toContain(
-      "A longer retention under Project Settings > Audit Logs > Settings keeps the entries recorded from then on for longer; it does not change when the ones already recorded are deleted.",
+      "A longer retention (Project Settings > Audit Logs > Settings) only keeps the entries recorded after the change.",
     );
     expect(email.remediation).not.toMatch(/or keep entries longer/i);
   });
@@ -411,7 +416,7 @@ describe("the email's words", () => {
       oldestUnsentAt: null,
     });
 
-    expect(email.subject).toBe("The audit log export SIEM bucket is failing");
+    expect(email.subject).toBe('The audit log export "SIEM bucket" is failing');
     expect(titles(email)).toEqual([
       "Export: ",
       "Destination: ",
@@ -431,17 +436,21 @@ describe("the email's words", () => {
       notice: AuditLogExportFailureNotice.LosingEntries,
     });
 
+    // An instance can have several exports: the subject names this one.
     expect(failing.subject).toBe(
-      `The audit log export of your ${product} instance is failing`,
+      `The audit log export "SIEM bucket" of your ${product} instance is failing`,
     );
     expect(losing.subject).toBe(
-      `The audit log export of your ${product} instance will start losing entries`,
+      `The audit log export "SIEM bucket" of your ${product} instance will start losing entries`,
     );
     expect(failing.remediation).toContain(
-      "(each project's audit log retention)",
+      "Nothing is lost yet: entries stay in each project's audit log for as long as that project's retention.",
     );
     expect(losing.remediation).toContain(
-      "A longer retention in a project's Settings > Audit Logs > Settings keeps that project's entries recorded from then on for longer",
+      "are deleted as they pass their project's audit log retention, and are never sent.",
+    );
+    expect(losing.remediation).toContain(
+      "A longer retention in a project's Settings > Audit Logs > Settings only keeps that project's entries recorded after the change.",
     );
   });
 
@@ -452,10 +461,27 @@ describe("the email's words", () => {
       retentionInDays: 1,
     });
 
-    expect(email.subject).toBe(
-      "The audit log export audit log export is failing",
+    // Never "The audit log export audit log export is failing".
+    expect(email.subject).toBe("An audit log export is failing");
+    expect(email.details[0]).toEqual({
+      title: "Export: ",
+      text: "audit log export",
+    });
+    expect(email.remediation).toContain(
+      "the audit log keeps each entry for 1 day.",
     );
-    expect(email.remediation).toContain("the audit log's retention of 1 day)");
+
+    const instance: AuditLogExportFailureEmail =
+      buildAuditLogExportFailureEmail({
+        ...base,
+        exportName: "",
+        isInstanceExport: true,
+        notice: AuditLogExportFailureNotice.LosingEntries,
+      });
+
+    expect(instance.subject).toBe(
+      `An audit log export of your ${ProductBrandingText.getProductName()} instance will start losing entries`,
+    );
   });
 
   test("never more rows than the template shows (six)", () => {
@@ -636,7 +662,7 @@ describe("who is emailed", () => {
     expect(message.toEmail.toString()).toBe("ada@example.com");
     expect(message.templateType).toBe(EmailTemplateType.AuditLogExportFailed);
     expect(message.subject).toBe(
-      "The audit log export SIEM <bucket> is failing",
+      'The audit log export "SIEM <bucket>" is failing',
     );
     expect(message.isSubjectLiteral).toBe(true);
     expect(new globalThis.URL(message.vars["healthPageLink"]!).pathname).toBe(
@@ -684,7 +710,7 @@ describe("who is emailed", () => {
 
     expect(sent.templateType).toBe(EmailTemplateType.AuditLogExportFailed);
     expect(sent.check.subject).toBe(
-      `The audit log export of your ${ProductBrandingText.getProductName()} instance will start losing entries`,
+      `The audit log export "SIEM <bucket>" of your ${ProductBrandingText.getProductName()} instance will start losing entries`,
     );
     expect(sent.check.isCritical).toBe(true);
     expect(sent.check.badgeText).toBe("Entries about to be lost");

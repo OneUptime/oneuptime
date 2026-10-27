@@ -461,7 +461,7 @@ const NEW_KEYS: Array<string> = [
   "verifyEmail.requestNewLinkDescription",
   "verifyEmail.errorTitle",
   "verifyEmail.tryAgain",
-  "verifyEmail.returnToSignIn",
+  "verifyEmail.alreadyVerifiedPrompt",
   "verifyEmail.loginLink",
   "resendVerificationEmail.button",
   "resendVerificationEmail.countdown",

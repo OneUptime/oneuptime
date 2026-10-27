@@ -45,11 +45,11 @@ function render(data: {
   const vars: Record<string, string> = {
     subject: data.isInstanceExport
       ? data.isLosing
-        ? "The audit log export of your OneUptime instance will start losing entries"
-        : "The audit log export of your OneUptime instance is failing"
+        ? 'The audit log export "Instance archive" of your OneUptime instance will start losing entries'
+        : 'The audit log export "Instance archive" of your OneUptime instance is failing'
       : data.isLosing
-        ? "The audit log export SIEM <webhook> will start losing entries"
-        : "The audit log export SIEM <webhook> is failing",
+        ? 'The audit log export "SIEM <webhook>" will start losing entries'
+        : 'The audit log export "SIEM <webhook>" is failing',
     badgeType: data.isLosing ? "critical" : "warning",
     badgeText: data.isLosing ? "Entries about to be lost" : "Export failing",
     oneuptimeHost: "oneuptime.acme.test",
@@ -59,8 +59,8 @@ function render(data: {
       : "https://oneuptime.acme.test/dashboard/0f9e8d7c-6b5a-4493-8211-00aa11bb22cc/settings/audit-logs/export",
     healthPageButtonText: "Open Audit Log Export",
     remediation: data.isLosing
-      ? "The entries this export has not sent are deleted from the audit log once they are older than the audit log's retention of 7 days, the first of them from about Oct 30, 2026, 11:55 AM UTC, and are then never sent. Fix the destination before then, and the export sends them, oldest first."
-      : "Open the export to see what the destination answered, and fix it there. Nothing is lost yet.",
+      ? "From about Oct 31, 2026, 11:55 AM UTC, the entries this export has not sent are deleted as they pass the audit log's retention of 7 days, and are never sent. Fix the destination before then, and the export sends them, oldest first."
+      : "Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log keeps each entry for 7 days.",
     detail1Title: "Export: ",
     detail1Text: "SIEM <webhook>",
     detail2Title: "Destination: ",
@@ -146,12 +146,14 @@ describe("AuditLogExportFailed.hbs", () => {
       render({ isInstanceExport: false, isLosing: true }),
     );
 
-    expect(failing).toContain("The audit log export SIEM <webhook> is failing");
+    expect(failing).toContain(
+      'The audit log export "SIEM <webhook>" is failing',
+    );
     expect(failing).toContain("Export failing");
     expect(failing).toContain("Oldest entry not sent:");
     expect(failing).not.toContain("Entries lost from:");
     expect(losing).toContain(
-      "The audit log export SIEM <webhook> will start losing entries",
+      'The audit log export "SIEM <webhook>" will start losing entries',
     );
     expect(losing).toContain("Entries about to be lost");
     expect(losing).toContain("Entries lost from: about Oct 31, 2026");

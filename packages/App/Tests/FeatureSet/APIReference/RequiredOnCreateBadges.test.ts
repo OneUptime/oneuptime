@@ -279,8 +279,29 @@ describe("the page as it is drawn", () => {
 
   it("names the default beside a column that has one", () => {
     expect(item("disableActiveMonitoring")).toContain(
-      'Default <code class="font-mono">false</code>',
+      'Default <code class="font-mono text-ink">false</code>',
     );
     expect(item("name")).not.toContain("Default");
+  });
+
+  /*
+   * The badges sit in the column's type line, which is set in the code
+   * font: they are the page's words, so they carry its own font, and only
+   * the default's value is code (fu-platform's review).
+   */
+  it("draws both badges in the page's font, and only the default's value as code", () => {
+    const required: string = item("name");
+    const requiredBadge: string = required.slice(
+      required.lastIndexOf("<span", required.indexOf(">Required<")),
+      required.indexOf(">Required<"),
+    );
+    expect(requiredBadge).toContain("font-sans");
+
+    const withDefault: string = item("disableActiveMonitoring");
+    const defaultBadge: string = withDefault.slice(
+      withDefault.lastIndexOf("<span", withDefault.indexOf("Default <code")),
+      withDefault.indexOf("Default <code"),
+    );
+    expect(defaultBadge).toContain("font-sans");
   });
 });

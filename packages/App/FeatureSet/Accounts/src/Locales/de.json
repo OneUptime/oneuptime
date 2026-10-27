@@ -105,7 +105,6 @@
   "register": {
     "title": "Erstellen Sie Ihr OneUptime-Konto",
     "subtitle": "Schließen Sie sich Tausenden von Unternehmen an, die OneUptime nutzen, um stets online zu bleiben.",
-    "selfHostedSubtitle": "Erstellen Sie Ihr Konto auf diesem OneUptime-Server.",
     "firstAccountSubtitle": "Dieser OneUptime-Server hat noch keine Konten. Das erste Konto, das Sie erstellen, wird sein Administrator.",
     "noCreditCard": "Keine Kreditkarte erforderlich.",
     "submitButton": "Registrieren",
@@ -133,7 +132,6 @@
     "subtitle": "Bitte geben Sie Ihre E-Mail-Adresse ein, und der Link zum Zurücksetzen des Passworts wird an Sie gesendet.",
     "successMessage": "Wir haben Ihnen den Link zum Zurücksetzen des Passworts per E-Mail gesendet. Vergessen Sie nicht, den Spam-Ordner zu überprüfen.",
     "submitButton": "Link zum Zurücksetzen senden",
-    "returnToSignIn": "Zurück zur Anmeldung.",
     "rememberPasswordPrompt": "Erinnern Sie sich an Ihr Passwort?",
     "loginLink": "Anmelden."
   },
@@ -172,7 +170,7 @@
     "successTitle": "Ihre E-Mail ist bestätigt.",
     "successDescription": "Vielen Dank für die Bestätigung Ihrer E-Mail. Sie können sich jetzt bei OneUptime anmelden.",
     "errorTitle": "Entschuldigung, etwas ist schiefgelaufen!",
-    "returnToSignIn": "Zurück zur Anmeldung?",
+    "alreadyVerifiedPrompt": "Haben Sie Ihre E-Mail-Adresse bereits bestätigt?",
     "loginLink": "Anmelden.",
     "continueToSignIn": "Weiter zur Anmeldung",
     "linkInvalidTitle": "Dieser Bestätigungslink ist nicht mehr gültig",

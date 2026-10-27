@@ -112,11 +112,16 @@ const RegisterPage: () => JSX.Element = () => {
   /*
    * A self-hosted server that has no account yet: the account this page
    * creates becomes its admin, and the page says so. OneUptime Cloud never
-   * asks. Until the answer lands the page reads as a self-hosted server's
-   * usual register page, so nothing jumps for an answer of no.
+   * asks. Until the answer lands the page draws nothing of its own, as it
+   * does while it reads the sign-in methods: never a "Sign in." link, or a
+   * subtitle, that it then swaps for another. The helper answers within a
+   * few seconds whatever the server does, so the page always draws.
    */
   const [isAwaitingFirstAccount, setIsAwaitingFirstAccount] =
     React.useState<boolean>(false);
+
+  const [isReadingFirstAccount, setIsReadingFirstAccount] =
+    React.useState<boolean>(!BILLING_ENABLED);
 
   React.useEffect(() => {
     if (BILLING_ENABLED) {
@@ -129,10 +134,14 @@ const RegisterPage: () => JSX.Element = () => {
       .then((awaiting: boolean) => {
         if (isCurrent) {
           setIsAwaitingFirstAccount(awaiting);
+          setIsReadingFirstAccount(false);
         }
       })
       .catch(() => {
-        // The helper answers no rather than throwing; nothing to do here.
+        // The helper answers no rather than throwing; draw the page anyway.
+        if (isCurrent) {
+          setIsReadingFirstAccount(false);
+        }
       });
 
     return () => {
@@ -517,7 +526,8 @@ const RegisterPage: () => JSX.Element = () => {
     return <ErrorMessage message={error} />;
   }
 
-  if (isLoading) {
+  // The form's own header and links wait for the first-account answer too.
+  if (isLoading || isReadingFirstAccount) {
     return <PageLoader isVisible={true} />;
   }
 
@@ -542,7 +552,7 @@ const RegisterPage: () => JSX.Element = () => {
           <h2 className="mt-4 sm:mt-6 text-center text-xl sm:text-2xl tracking-tight text-gray-900">
             {t("register.checkEmailTitle")}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 px-2 sm:px-0">
+          <p className="mt-2 text-balance text-center text-sm text-gray-600 px-2 sm:px-0">
             {t("register.checkEmailMessage")}
           </p>
         </div>
@@ -558,20 +568,23 @@ const RegisterPage: () => JSX.Element = () => {
           {t("register.title")}
         </h1>
         {/*
-         * OneUptime Cloud's line asks people to join; a self-hosted server's
-         * says whose server it is, and - while it has no account yet - that
-         * the first one becomes its admin.
+         * OneUptime Cloud's line asks people to join. A self-hosted server
+         * has a line only while it has no account yet: the account made here
+         * becomes its admin. Otherwise the title says it all - a line that
+         * repeated "create your account" under it was only clutter.
          */}
-        <p
-          className="mx-auto mt-3 max-w-md text-balance text-center text-sm leading-6 text-gray-600"
-          data-testid="register-subtitle"
-        >
-          {BILLING_ENABLED
-            ? t("register.subtitle")
-            : isAwaitingFirstAccount
-              ? t("register.firstAccountSubtitle")
-              : t("register.selfHostedSubtitle")}
-        </p>
+        {BILLING_ENABLED || isAwaitingFirstAccount ? (
+          <p
+            className="mx-auto mt-3 max-w-md text-balance text-center text-sm leading-6 text-gray-600"
+            data-testid="register-subtitle"
+          >
+            {BILLING_ENABLED
+              ? t("register.subtitle")
+              : t("register.firstAccountSubtitle")}
+          </p>
+        ) : (
+          <></>
+        )}
       </div>
 
       <div className="mt-6 sm:mt-8 w-full max-w-md mx-auto lg:max-w-2xl">

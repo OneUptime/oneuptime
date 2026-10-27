@@ -33,7 +33,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     sender (Custom SMTP's host and From address, or SendGrid's From
  *     address); "Set up email" opens Settings > Emails;
  *   - HTTPS: done when HTTP_PROTOCOL=https and the page came over HTTPS;
- *     "How to set up HTTPS" opens the guide in a new tab;
+ *     "How to set up HTTPS" opens the guide in a new tab, and says so. A
+ *     page that came over HTTPS to a server still set to HTTP (a proxy in
+ *     front) is told just that - not that passwords cross the network
+ *     unencrypted (fu-platform's review);
  *   - Sign-ups: done once sign-ups are off; "Choose who can sign up" opens
  *     Settings > Authentication.
  *
@@ -91,6 +94,7 @@ import ServerSetupChecklist, {
   ServerSetupItemName,
   getServerSetupItems,
   isEmailSetUp,
+  isHttpsOnlyBeforeOneUptime,
   isServedOverHttps,
 } from "../../../../App/FeatureSet/AdminDashboard/src/Components/ServerSetup/ServerSetupChecklist";
 import PageMap from "../../../../App/FeatureSet/AdminDashboard/src/Utils/PageMap";
@@ -205,6 +209,7 @@ const COPY_WORDS: Array<string> = [
   SERVER_SETUP_COPY.https.title,
   SERVER_SETUP_COPY.https.done,
   SERVER_SETUP_COPY.https.open,
+  SERVER_SETUP_COPY.https.onlyBeforeOneUptime,
   SERVER_SETUP_COPY.https.action,
   SERVER_SETUP_COPY.signups.title,
   SERVER_SETUP_COPY.signups.done,
@@ -212,6 +217,7 @@ const COPY_WORDS: Array<string> = [
   SERVER_SETUP_COPY.signups.action,
   SERVER_SETUP_COPY.doneLabel,
   SERVER_SETUP_COPY.openLabel,
+  SERVER_SETUP_COPY.opensInNewTab,
 ];
 
 beforeEach(() => {
@@ -276,6 +282,15 @@ describe("isServedOverHttps", () => {
   });
 });
 
+describe("isHttpsOnlyBeforeOneUptime", () => {
+  test("only when the page came over HTTPS and OneUptime is still set to HTTP", () => {
+    expect(isHttpsOnlyBeforeOneUptime(Protocol.HTTP, "https:")).toBe(true);
+    expect(isHttpsOnlyBeforeOneUptime(Protocol.HTTPS, "https:")).toBe(false);
+    expect(isHttpsOnlyBeforeOneUptime(Protocol.HTTP, "http:")).toBe(false);
+    expect(isHttpsOnlyBeforeOneUptime(Protocol.HTTPS, "http:")).toBe(false);
+  });
+});
+
 describe("getServerSetupItems", () => {
   test("email, HTTPS and sign-ups, in that order, each with the place that changes it", () => {
     const items: Array<ServerSetupItem> = getServerSetupItems({
@@ -310,6 +325,22 @@ describe("getServerSetupItems", () => {
       SERVER_SETUP_COPY.https.open,
       SERVER_SETUP_COPY.signups.open,
     ]);
+  });
+
+  test("behind an HTTPS proxy, HTTPS is still to do, and says only HTTP_PROTOCOL is left", () => {
+    const https: ServerSetupItem = getServerSetupItems({
+      emailIsSetUp: false,
+      isServedOverHttps: false,
+      isHttpsOnlyBeforeOneUptime: true,
+      signupsAreClosed: false,
+    })[1]!;
+
+    expect(https.isDone).toBe(false);
+    expect(https.description).toBe(SERVER_SETUP_COPY.https.onlyBeforeOneUptime);
+    expect(https.description).toContain("HTTP_PROTOCOL=https");
+    // Not the line for a server nobody reaches over HTTPS.
+    expect(https.description).not.toContain("unencrypted");
+    expect(https.guideUrl).toBe(SERVER_SETUP_HTTPS_GUIDE);
   });
 
   test("a done item says what it means now", () => {
@@ -381,6 +412,24 @@ describe("the card", () => {
       "#set-up-https",
     );
     expect(https).toHaveAttribute("target", "_blank");
+    // The guide opens in a tab of its own, and the link says so.
+    expect(
+      within(https).getByTestId("server-setup-https-new-tab"),
+    ).toBeInTheDocument();
+    expect(https).toHaveTextContent(
+      `${SERVER_SETUP_COPY.https.action} (${SERVER_SETUP_COPY.opensInNewTab})`,
+    );
+    // The pages of the Admin Dashboard open where the card is.
+    for (const name of ["email", "signups"]) {
+      const action: HTMLElement = screen.getByTestId(
+        `server-setup-${name}-action`,
+      );
+      expect(action).not.toHaveAttribute("target", "_blank");
+      expect(
+        within(action).queryByTestId(`server-setup-${name}-new-tab`),
+      ).toBeNull();
+      expect(action).not.toHaveTextContent(SERVER_SETUP_COPY.opensInNewTab);
+    }
 
     // It reads only the settings it needs, never a secret.
     const [request] = mockGetItem.mock.calls[0] as [
@@ -415,6 +464,30 @@ describe("the card", () => {
     expect(screen.getByTestId("server-setup-https")).toHaveAttribute(
       "data-done",
       "false",
+    );
+  });
+
+  test("a page that came over HTTPS to a server still set to HTTP: HTTPS says only HTTP_PROTOCOL is left", async () => {
+    mockHttpProtocol = "http";
+
+    await renderIn("en", "https:");
+
+    const https: HTMLElement = screen.getByTestId("server-setup-https");
+    expect(https).toHaveAttribute("data-done", "false");
+    expect(https).toHaveTextContent(
+      SERVER_SETUP_COPY.https.onlyBeforeOneUptime,
+    );
+    expect(https).not.toHaveTextContent(SERVER_SETUP_COPY.https.open);
+    expect(
+      within(https).getByTestId("server-setup-https-action"),
+    ).toBeVisible();
+  });
+
+  test("a page that came over HTTP: HTTPS is not set up", async () => {
+    await renderIn("en", "http:");
+
+    expect(screen.getByTestId("server-setup-https")).toHaveTextContent(
+      SERVER_SETUP_COPY.https.open,
     );
   });
 
@@ -512,6 +585,20 @@ describe("its words, in every language the Admin Dashboard speaks", () => {
         // OneUptime keeps its name in every language.
         if (word.includes("OneUptime")) {
           expect(value as string).toContain("OneUptime");
+        }
+        // A setting and an address are written as they are typed.
+        for (const literal of ["HTTP_PROTOCOL=https", "http://"]) {
+          if (word.includes(literal)) {
+            expect({
+              word,
+              literal,
+              kept: (value as string).includes(literal),
+            }).toEqual({
+              word,
+              literal,
+              kept: true,
+            });
+          }
         }
       }
     },

@@ -183,6 +183,12 @@ const formatDate: (date: Date) => string = (date: Date): string => {
  * The email's words, for a project's export or the instance's. Every value
  * a person wrote (the export's name, the destination's answer) goes in as
  * text: the template escapes it.
+ *
+ * The subject names the export in quotes - an instance can have several
+ * exports, and a name such as SIEM webhook ran into the sentence around it
+ * - and an export with no name is "an audit log export", never "the audit
+ * log export audit log export". The remediation says what to do first,
+ * then what happens if nobody does (fu-platform's review).
  */
 export function buildAuditLogExportFailureEmail(data: {
   notice: AuditLogExportFailureNotice;
@@ -207,20 +213,22 @@ export function buildAuditLogExportFailureEmail(data: {
   const isLosing: boolean =
     data.notice === AuditLogExportFailureNotice.LosingEntries &&
     Boolean(lostAt);
-  const name: string = data.exportName.trim() || "audit log export";
-  const retention: string = data.isInstanceExport
-    ? "each project's audit log retention"
-    : `the audit log's retention of ${retentionInDays} ${
-        retentionInDays === 1 ? "day" : "days"
-      }`;
+  const givenName: string = data.exportName.trim();
+  const name: string = givenName || "audit log export";
+  const days: string = `${retentionInDays} ${
+    retentionInDays === 1 ? "day" : "days"
+  }`;
 
-  const subject: string = data.isInstanceExport
-    ? isLosing
-      ? `The audit log export of your ${product} instance will start losing entries`
-      : `The audit log export of your ${product} instance is failing`
-    : isLosing
-      ? `The audit log export ${name} will start losing entries`
-      : `The audit log export ${name} is failing`;
+  // "The audit log export "SIEM webhook"", or "An audit log export".
+  const which: string = givenName
+    ? `The audit log export "${givenName}"`
+    : "An audit log export";
+  const whose: string = data.isInstanceExport
+    ? ` of your ${product} instance`
+    : "";
+  const subject: string = `${which}${whose} ${
+    isLosing ? "will start losing entries" : "is failing"
+  }`;
 
   const details: Array<{ title: string; text: string }> = [
     { title: "Export: ", text: name },
@@ -245,15 +253,26 @@ export function buildAuditLogExportFailureEmail(data: {
   details.push({ title: "Why: ", text: data.error });
 
   const longerRetention: string = data.isInstanceExport
-    ? "A longer retention in a project's Settings > Audit Logs > Settings keeps that project's entries recorded from then on for longer; it does not change when the ones already recorded are deleted."
-    : "A longer retention under Project Settings > Audit Logs > Settings keeps the entries recorded from then on for longer; it does not change when the ones already recorded are deleted.";
+    ? "A longer retention in a project's Settings > Audit Logs > Settings only keeps that project's entries recorded after the change."
+    : "A longer retention (Project Settings > Audit Logs > Settings) only keeps the entries recorded after the change.";
 
+  /*
+   * Failing: what to do, then why nothing is lost yet. Losing entries: from
+   * when, what to do before then, and why a longer retention does not help
+   * the entries already waiting.
+   */
   const remediation: string =
     isLosing && lostAt
-      ? `The entries this export has not sent are deleted from the audit log once they are older than ${retention}, the first of them from about ${formatDate(
-          lostAt,
-        )}, and are then never sent. Fix the destination before then, and the export sends them, oldest first. ${longerRetention}`
-      : `Open the export to see what the destination answered, and fix it there. Nothing is lost yet: the entries it has not sent wait in the audit log and are sent, oldest first, once the destination works again - for as long as the audit log keeps them (${retention}).`;
+      ? `From about ${formatDate(lostAt)}, the entries this export has not sent are deleted as they pass ${
+          data.isInstanceExport
+            ? "their project's audit log retention"
+            : `the audit log's retention of ${days}`
+        }, and are never sent. Fix the destination before then, and the export sends them, oldest first. ${longerRetention}`
+      : `Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: ${
+          data.isInstanceExport
+            ? "entries stay in each project's audit log for as long as that project's retention."
+            : `the audit log keeps each entry for ${days}.`
+        }`;
 
   return {
     subject,

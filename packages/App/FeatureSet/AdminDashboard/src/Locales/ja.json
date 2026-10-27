@@ -1504,6 +1504,7 @@
   "HTTPS": "HTTPS",
   "People reach this server over HTTPS.": "利用者は HTTPS でこのサーバーにアクセスしています。",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "まだ設定されていません: パスワードとセッションは暗号化されないままネットワークを通り、パスキーには HTTPS が必要です。",
+  "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "あと少しです: このページは HTTPS で届きましたが、OneUptime はまだ HTTP に設定されているため、送信するリンクは http:// で始まります。HTTP_PROTOCOL=https を設定してください。",
   "How to set up HTTPS": "HTTPS の設定方法",
   "Sign-ups": "サインアップ",
   "Only people you invite can create an account.": "招待した人だけがアカウントを作成できます。",

@@ -1504,6 +1504,7 @@
   "HTTPS": "HTTPS",
   "People reach this server over HTTPS.": "Mensen bereiken deze server via HTTPS.",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "Nog niet ingesteld: wachtwoorden en sessies gaan onversleuteld over het netwerk, en passkeys hebben HTTPS nodig.",
+  "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "Bijna: deze pagina kwam binnen via HTTPS, maar OneUptime staat nog op HTTP, dus de links die het verstuurt beginnen met http://. Stel HTTP_PROTOCOL=https in.",
   "How to set up HTTPS": "Zo stelt u HTTPS in",
   "Sign-ups": "Registraties",
   "Only people you invite can create an account.": "Alleen mensen die u uitnodigt, kunnen een account aanmaken.",

@@ -105,7 +105,6 @@
   "register": {
     "title": "Crea il tuo account OneUptime",
     "subtitle": "Unisciti a migliaia di aziende che usano OneUptime per rimanere sempre online.",
-    "selfHostedSubtitle": "Crea il tuo account su questo server OneUptime.",
     "firstAccountSubtitle": "Questo server OneUptime non ha ancora account. Il primo che crei ne diventa l'amministratore.",
     "noCreditCard": "Nessuna carta di credito richiesta.",
     "submitButton": "Registrati",
@@ -133,7 +132,6 @@
     "subtitle": "Inserisci la tua e-mail e ti verrà inviato il link per il reset della password.",
     "successMessage": "Ti abbiamo inviato il link per il reset della password tramite e-mail. Non dimenticare di controllare la cartella spam.",
     "submitButton": "Invia link per il reset",
-    "returnToSignIn": "Torna all'accesso.",
     "rememberPasswordPrompt": "Ricordi la tua password?",
     "loginLink": "Accedi."
   },
@@ -172,7 +170,7 @@
     "successTitle": "La tua e-mail è verificata.",
     "successDescription": "Grazie per aver verificato la tua e-mail. Ora puoi accedere a OneUptime.",
     "errorTitle": "Spiacenti, qualcosa è andato storto!",
-    "returnToSignIn": "Torna all'accesso?",
+    "alreadyVerifiedPrompt": "Hai già verificato la tua email?",
     "loginLink": "Accedi.",
     "continueToSignIn": "Continua con l'accesso",
     "linkInvalidTitle": "Questo link di verifica non è più valido",

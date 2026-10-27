@@ -1504,6 +1504,7 @@
   "HTTPS": "HTTPS",
   "People reach this server over HTTPS.": "Le persone raggiungono questo server tramite HTTPS.",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "Non ancora configurato: password e sessioni attraversano la rete in chiaro, e le passkey richiedono HTTPS.",
+  "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "Quasi: questa pagina è arrivata tramite HTTPS, ma OneUptime è ancora impostato su HTTP, quindi i link che invia iniziano con http://. Imposta HTTP_PROTOCOL=https.",
   "How to set up HTTPS": "Come configurare HTTPS",
   "Sign-ups": "Registrazioni",
   "Only people you invite can create an account.": "Solo le persone che inviti possono creare un account.",

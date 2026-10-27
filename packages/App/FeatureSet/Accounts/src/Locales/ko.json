@@ -105,7 +105,6 @@
   "register": {
     "title": "OneUptime 계정 만들기",
     "subtitle": "OneUptime을 사용하여 항상 온라인 상태를 유지하는 수천 개의 비즈니스에 참여하세요.",
-    "selfHostedSubtitle": "이 OneUptime 서버에서 계정을 만드세요.",
     "firstAccountSubtitle": "이 OneUptime 서버에는 아직 계정이 없습니다. 처음 만드는 계정이 이 서버의 관리자가 됩니다.",
     "noCreditCard": "신용카드가 필요하지 않습니다.",
     "submitButton": "가입하기",
@@ -133,7 +132,6 @@
     "subtitle": "이메일을 입력하시면 비밀번호 재설정 링크가 발송됩니다.",
     "successMessage": "비밀번호 재설정 링크를 이메일로 보냈습니다. 스팸 폴더도 확인해 주세요.",
     "submitButton": "비밀번호 재설정 링크 보내기",
-    "returnToSignIn": "로그인으로 돌아가기.",
     "rememberPasswordPrompt": "비밀번호를 기억하시나요?",
     "loginLink": "로그인."
   },
@@ -172,7 +170,7 @@
     "successTitle": "이메일이 확인되었습니다.",
     "successDescription": "이메일을 확인해 주셔서 감사합니다. 이제 OneUptime에 로그인할 수 있습니다.",
     "errorTitle": "죄송합니다. 문제가 발생했습니다!",
-    "returnToSignIn": "로그인으로 돌아가시겠습니까?",
+    "alreadyVerifiedPrompt": "이미 이메일을 인증하셨나요?",
     "loginLink": "로그인.",
     "continueToSignIn": "로그인으로 계속",
     "linkInvalidTitle": "이 인증 링크는 더 이상 유효하지 않습니다",

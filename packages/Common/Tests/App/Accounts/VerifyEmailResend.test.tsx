@@ -64,7 +64,8 @@ const REQUEST_NEW_LINK: string =
   "If your link has expired or stopped working, we can email you a new one.";
 const ERROR_TITLE: string = "Sorry, something went wrong!";
 const TRY_AGAIN: string = "Try again";
-const RETURN_TO_SIGN_IN: string = "Return to sign in?";
+// Its own sentence, not "Return to sign in? Sign in." (fu-platform's review).
+const RETURN_TO_SIGN_IN: string = "Already verified your email?";
 const LOGIN_LINK: string = "Sign in.";
 const RESEND_BUTTON: string = "Resend verification email";
 const SENT: string =

@@ -105,7 +105,6 @@
   "register": {
     "title": "Skapa ditt OneUptime-konto",
     "subtitle": "Gå med i tusentals företag som använder OneUptime för att hålla dem online hela tiden.",
-    "selfHostedSubtitle": "Skapa ditt konto på den här OneUptime-servern.",
     "firstAccountSubtitle": "Den här OneUptime-servern har inga konton ännu. Det första du skapar blir dess administratör.",
     "noCreditCard": "Inget kreditkort krävs.",
     "submitButton": "Registrera dig",
@@ -133,7 +132,6 @@
     "subtitle": "Ange din e-post så skickas länken för återställning av lösenord till dig.",
     "successMessage": "Vi har skickat länken för återställning av lösenord till din e-post. Glöm inte att kontrollera skräpposten.",
     "submitButton": "Skicka länk för återställning",
-    "returnToSignIn": "Tillbaka till inloggning.",
     "rememberPasswordPrompt": "Kommer du ihåg ditt lösenord?",
     "loginLink": "Logga in."
   },
@@ -172,7 +170,7 @@
     "successTitle": "Din e-post är verifierad.",
     "successDescription": "Tack för att du verifierade din e-post. Du kan nu logga in på OneUptime.",
     "errorTitle": "Förlåt, något gick fel!",
-    "returnToSignIn": "Tillbaka till inloggning?",
+    "alreadyVerifiedPrompt": "Har du redan verifierat din e-postadress?",
     "loginLink": "Logga in.",
     "continueToSignIn": "Fortsätt till inloggning",
     "linkInvalidTitle": "Den här verifieringslänken är inte längre giltig",

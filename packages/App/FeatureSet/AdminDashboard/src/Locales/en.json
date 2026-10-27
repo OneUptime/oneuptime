@@ -1504,6 +1504,7 @@
   "HTTPS": "HTTPS",
   "People reach this server over HTTPS.": "People reach this server over HTTPS.",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.",
+  "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.",
   "How to set up HTTPS": "How to set up HTTPS",
   "Sign-ups": "Sign-ups",
   "Only people you invite can create an account.": "Only people you invite can create an account.",

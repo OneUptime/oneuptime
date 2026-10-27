@@ -1504,6 +1504,7 @@
   "HTTPS": "HTTPS",
   "People reach this server over HTTPS.": "大家透過 HTTPS 存取此伺服器。",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "尚未設定：密碼和工作階段以未加密的方式經過網路，而且通行金鑰需要 HTTPS。",
+  "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "差一步：此頁面透過 HTTPS 開啟，但 OneUptime 仍設定為 HTTP，因此它傳送的連結以 http:// 開頭。請設定 HTTP_PROTOCOL=https。",
   "How to set up HTTPS": "如何設定 HTTPS",
   "Sign-ups": "註冊",
   "Only people you invite can create an account.": "只有您邀請的人才能建立帳戶。",

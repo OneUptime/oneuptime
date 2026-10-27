@@ -46,10 +46,11 @@
                         <% } %>
                         <%# Required: a create must send it. A column with a default is left out of a create, and says its default. -%>
                         <% if(pageData.columns[Object.keys(pageData.columns)[i]].requiredOnCreate){ %>
-                           <span class="ms-1.5 inline-flex items-center rounded-full bg-warn-soft px-2 py-0.5 text-xs font-medium text-warn ring-1 ring-inset ring-warn/30"><%= t('ui.required') %></span>
+                           <span class="ms-1.5 inline-flex items-center rounded-full bg-warn-soft px-2 py-0.5 font-sans text-xs font-medium text-warn ring-1 ring-inset ring-warn/30"><%= t('ui.required') %></span>
                         <% } %>
                         <% if(pageData.columns[Object.keys(pageData.columns)[i]].documentedDefault !== null && pageData.columns[Object.keys(pageData.columns)[i]].documentedDefault !== undefined){ %>
-                           <span class="ms-1.5 inline-flex items-center gap-1 rounded-full bg-surface-soft px-2 py-0.5 text-xs font-medium text-ink-muted ring-1 ring-inset ring-line"><%= t('ui.defaultValue') %> <code class="font-mono"><%= pageData.columns[Object.keys(pageData.columns)[i]].documentedDefault %></code></span>
+                           <%# The badges are words of the page, in its own font; the default value is code. -%>
+                           <span class="ms-1.5 inline-flex items-center gap-1 rounded-full bg-surface-soft px-2 py-0.5 font-sans text-xs font-medium text-ink-muted ring-1 ring-inset ring-line"><%= t('ui.defaultValue') %> <code class="font-mono text-ink"><%= pageData.columns[Object.keys(pageData.columns)[i]].documentedDefault %></code></span>
                         <% } %>
                      </dd>
                      <dt class="sr-only"><%= t('ui.srDescription') %></dt>

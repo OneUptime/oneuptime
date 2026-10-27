@@ -105,7 +105,6 @@
   "register": {
     "title": "Crie sua conta OneUptime",
     "subtitle": "Junte-se a milhares de empresas que usam o OneUptime para mantê-las online o tempo todo.",
-    "selfHostedSubtitle": "Crie sua conta neste servidor OneUptime.",
     "firstAccountSubtitle": "Este servidor OneUptime ainda não tem contas. A primeira conta que você criar será a do administrador.",
     "noCreditCard": "Não é necessário cartão de crédito.",
     "submitButton": "Cadastrar",
@@ -133,7 +132,6 @@
     "subtitle": "Insira seu e-mail e o link de redefinição de senha será enviado para você.",
     "successMessage": "Enviamos o link de redefinição de senha para o seu e-mail. Não esqueça de verificar a pasta de spam.",
     "submitButton": "Enviar link de redefinição",
-    "returnToSignIn": "Voltar para o login.",
     "rememberPasswordPrompt": "Lembra da sua senha?",
     "loginLink": "Entrar."
   },
@@ -172,7 +170,7 @@
     "successTitle": "Seu e-mail foi verificado.",
     "successDescription": "Obrigado por verificar seu e-mail. Agora você pode fazer login no OneUptime.",
     "errorTitle": "Desculpe, algo deu errado!",
-    "returnToSignIn": "Voltar para o login?",
+    "alreadyVerifiedPrompt": "Já verificou seu e-mail?",
     "loginLink": "Entrar.",
     "continueToSignIn": "Continuar para o login",
     "linkInvalidTitle": "Este link de verificação não é mais válido",

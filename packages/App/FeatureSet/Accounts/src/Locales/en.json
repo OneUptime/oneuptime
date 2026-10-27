@@ -105,8 +105,7 @@
   "register": {
     "title": "Create your OneUptime account",
     "subtitle": "Join thousands of businesses that use OneUptime to help them stay online all the time.",
-    "selfHostedSubtitle": "Create your account on this OneUptime server.",
-    "firstAccountSubtitle": "This OneUptime server has no accounts yet. The first one you create becomes its admin.",
+    "firstAccountSubtitle": "This OneUptime server has no accounts yet. The account you create now becomes its admin.",
     "noCreditCard": "No credit card required.",
     "submitButton": "Sign Up",
     "haveAccountPrompt": "Already have an account?",
@@ -133,7 +132,6 @@
     "subtitle": "Please enter your email and the password reset link will be sent to you.",
     "successMessage": "We have emailed you the password reset link. Please do not forget to check spam.",
     "submitButton": "Send Password Reset Link",
-    "returnToSignIn": "Return to Sign in.",
     "rememberPasswordPrompt": "Remember your password?",
     "loginLink": "Sign in."
   },
@@ -172,7 +170,7 @@
     "successTitle": "Your email is verified.",
     "successDescription": "Thank you for verifying your email. You can now sign in to OneUptime.",
     "errorTitle": "Sorry, something went wrong!",
-    "returnToSignIn": "Return to sign in?",
+    "alreadyVerifiedPrompt": "Already verified your email?",
     "loginLink": "Sign in.",
     "continueToSignIn": "Continue to sign in",
     "linkInvalidTitle": "This verification link is no longer valid",

@@ -1504,6 +1504,7 @@
   "HTTPS": "HTTPS",
   "People reach this server over HTTPS.": "Folk når denne serveren over HTTPS.",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "Ikke satt opp ennå: passord og økter går ukryptert over nettverket, og passnøkler trenger HTTPS.",
+  "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "Nesten: denne siden kom over HTTPS, men OneUptime er fortsatt satt til HTTP, så lenkene den sender, starter med http://. Sett HTTP_PROTOCOL=https.",
   "How to set up HTTPS": "Slik setter du opp HTTPS",
   "Sign-ups": "Registreringer",
   "Only people you invite can create an account.": "Bare personer du inviterer, kan opprette en konto.",

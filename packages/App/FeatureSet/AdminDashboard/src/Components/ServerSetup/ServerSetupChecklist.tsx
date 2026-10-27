@@ -56,6 +56,11 @@ export enum ServerSetupItemName {
 export interface ServerSetupState {
   emailIsSetUp: boolean;
   isServedOverHttps: boolean;
+  /*
+   * The page came over HTTPS while OneUptime is still set to HTTP: a proxy
+   * in front encrypts the connection, and only HTTP_PROTOCOL is left.
+   */
+  isHttpsOnlyBeforeOneUptime?: boolean | undefined;
   signupsAreClosed: boolean;
 }
 
@@ -92,6 +97,7 @@ export const SERVER_SETUP_COPY: {
     title: string;
     done: string;
     open: string;
+    onlyBeforeOneUptime: string;
     action: string;
   };
   signups: {
@@ -102,6 +108,7 @@ export const SERVER_SETUP_COPY: {
   };
   doneLabel: string;
   openLabel: string;
+  opensInNewTab: string;
 } = {
   title: "Finish setting up this server",
   description: "Most servers need these three before people rely on them.",
@@ -116,6 +123,8 @@ export const SERVER_SETUP_COPY: {
     title: "HTTPS",
     done: "People reach this server over HTTPS.",
     open: "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.",
+    onlyBeforeOneUptime:
+      "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.",
     action: "How to set up HTTPS",
   },
   signups: {
@@ -126,6 +135,7 @@ export const SERVER_SETUP_COPY: {
   },
   doneLabel: "Done",
   openLabel: "Still to do",
+  opensInNewTab: "Opens in a new tab",
 };
 
 /*
@@ -168,6 +178,19 @@ export const isServedOverHttps: (
   return httpProtocol === Protocol.HTTPS && pageProtocol === "https:";
 };
 
+/*
+ * A proxy in front of OneUptime answers over HTTPS, and nobody told
+ * OneUptime: the connection is encrypted, but the links OneUptime sends and
+ * its sign-in cookies still say HTTP. The card says exactly that - not that
+ * passwords cross the network unencrypted, which here they do not.
+ */
+export const isHttpsOnlyBeforeOneUptime: (
+  httpProtocol: Protocol,
+  pageProtocol: string,
+) => boolean = (httpProtocol: Protocol, pageProtocol: string): boolean => {
+  return httpProtocol !== Protocol.HTTPS && pageProtocol === "https:";
+};
+
 export const getServerSetupItems: (
   state: ServerSetupState,
 ) => Array<ServerSetupItem> = (
@@ -192,7 +215,9 @@ export const getServerSetupItems: (
       title: SERVER_SETUP_COPY.https.title,
       description: state.isServedOverHttps
         ? SERVER_SETUP_COPY.https.done
-        : SERVER_SETUP_COPY.https.open,
+        : state.isHttpsOnlyBeforeOneUptime
+          ? SERVER_SETUP_COPY.https.onlyBeforeOneUptime
+          : SERVER_SETUP_COPY.https.open,
       actionTitle: SERVER_SETUP_COPY.https.action,
       guideUrl: SERVER_SETUP_HTTPS_GUIDE,
     },
@@ -268,11 +293,15 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
           return;
         }
 
+        const pageProtocol: string =
+          props.pageProtocol || window.location.protocol;
+
         setState({
           emailIsSetUp: isEmailSetUp(config),
-          isServedOverHttps: isServedOverHttps(
+          isServedOverHttps: isServedOverHttps(HTTP_PROTOCOL, pageProtocol),
+          isHttpsOnlyBeforeOneUptime: isHttpsOnlyBeforeOneUptime(
             HTTP_PROTOCOL,
-            props.pageProtocol || window.location.protocol,
+            pageProtocol,
           ),
           signupsAreClosed: config.disableSignup === true,
         });
@@ -328,7 +357,7 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
                 key={item.name}
                 data-testid={`server-setup-${item.name}`}
                 data-done={item.isDone ? "true" : "false"}
-                className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start"
+                className="flex flex-col gap-3 py-4 last:pb-0 sm:flex-row sm:items-start"
               >
                 <div className="flex min-w-0 flex-1 items-start gap-3">
                   <span
@@ -380,6 +409,23 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
                     className="ml-9 inline-flex flex-none items-center self-start rounded-md bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:ml-0"
                   >
                     {translator.translateText(item.actionTitle)}
+                    {/* A guide opens in a tab of its own, and says so. */}
+                    {item.guideUrl ? (
+                      <>
+                        <Icon
+                          icon={IconProp.ExternalLink}
+                          className="ms-1.5 h-3.5 w-3.5 text-gray-400"
+                          data-testid={`server-setup-${item.name}-new-tab`}
+                        />
+                        <span className="sr-only">
+                          {` (${translator.translateText(
+                            SERVER_SETUP_COPY.opensInNewTab,
+                          )})`}
+                        </span>
+                      </>
+                    ) : (
+                      <></>
+                    )}
                   </Link>
                 )}
               </li>

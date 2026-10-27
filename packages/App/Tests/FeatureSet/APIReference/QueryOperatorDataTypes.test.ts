@@ -220,6 +220,25 @@ describe("OwnedBy", () => {
     );
   });
 
+  it("keeps its lead to what it is, where it goes and its limits (fu-platform's review)", async () => {
+    const page: DataTypePage = await dataTypePage("owned-by");
+    const teamIds: string =
+      (
+        page.properties.find((property: { name: string }) => {
+          return property.name === "teamIds";
+        }) as unknown as { description: string }
+      ).description || "";
+
+    // The shape is the JSON format line's and the example's, not the lead's.
+    expect(page.description).not.toContain("{");
+    expect(page.description).not.toContain('"_type"');
+    // How a team owns is said where teams are named.
+    expect(page.description).not.toContain("Ownership is direct");
+    expect(teamIds).toContain(
+      "Ownership is direct: a team's members are not owners of what the team owns.",
+    );
+  });
+
   it("has an example the API reads", async () => {
     const page: DataTypePage = await dataTypePage("owned-by");
     const ownedBy: OwnedBy = JSONFunctions.deserializeValue(

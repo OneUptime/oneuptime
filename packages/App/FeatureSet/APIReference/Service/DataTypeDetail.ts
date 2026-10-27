@@ -1855,8 +1855,14 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
   // Common/Types/BaseDatabase/OwnedBy; the docs' API reference says the same.
   "owned-by": {
     title: "OwnedBy",
+    /*
+     * The page's lead: what it is, where it goes and its limits. How a team
+     * owns is said under teamIds, and the JSON format line and the example
+     * below show its shape - the lead used to spell it out inline too, and
+     * ran to nine lines.
+     */
     description:
-      'A query filter for a resource with owners - a monitor, an incident, an on-call policy and every other one with user and team owners. It goes under the query\'s owners key, not under a field - { "owners": { "_type": "OwnedBy", "userIds": [...] } } - and matches the records owned by one or more of the people and teams it names; match says how. Ownership is direct: a team\'s members are not owners of what the team owns. One filter names at most 1,000 people and teams together. A resource without owners refuses it with a 400, and filtering by owners without permission to read them is refused with a 422.',
+      "A query filter for a resource with owners - a monitor, an incident, an on-call policy and every other one with user and team owners. It goes under the query's owners key, not under a field, and matches the records owned by one or more of the people and teams it names; match says how. One filter names at most 1,000 people and teams together. A resource without owners refuses it with a 400, and filtering by owners without permission to read them is refused with a 422.",
     isEnum: false,
     properties: [
       {
@@ -1871,7 +1877,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "Array<ObjectID>",
         required: false,
         description:
-          "The teams whose records match, by their team IDs, as with userIds.",
+          "The teams whose records match, by their team IDs, as with userIds. Ownership is direct: a team's members are not owners of what the team owns.",
       },
       {
         name: "match",

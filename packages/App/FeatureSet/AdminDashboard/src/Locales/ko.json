@@ -1504,6 +1504,7 @@
   "HTTPS": "HTTPS",
   "People reach this server over HTTPS.": "사람들이 HTTPS로 이 서버에 접속합니다.",
   "Not set up yet: passwords and sessions cross the network unencrypted, and passkeys need HTTPS.": "아직 설정되지 않음: 비밀번호와 세션이 암호화되지 않은 채 네트워크를 오가며, 패스키에는 HTTPS가 필요합니다.",
+  "Almost: this page came over HTTPS, but OneUptime is still set to HTTP, so the links it sends start with http://. Set HTTP_PROTOCOL=https.": "거의 다 됐습니다: 이 페이지는 HTTPS로 열렸지만 OneUptime은 아직 HTTP로 설정되어 있어, 보내는 링크가 http://로 시작합니다. HTTP_PROTOCOL=https로 설정하세요.",
   "How to set up HTTPS": "HTTPS 설정 방법",
   "Sign-ups": "가입",
   "Only people you invite can create an account.": "초대한 사람만 계정을 만들 수 있습니다.",

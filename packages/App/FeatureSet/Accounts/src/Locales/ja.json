@@ -105,7 +105,6 @@
   "register": {
     "title": "OneUptimeアカウントを作成する",
     "subtitle": "OneUptimeを使って常時オンラインを維持している何千ものビジネスに参加しましょう。",
-    "selfHostedSubtitle": "このOneUptimeサーバーでアカウントを作成します。",
     "firstAccountSubtitle": "このOneUptimeサーバーにはまだアカウントがありません。最初に作成したアカウントがこのサーバーの管理者になります。",
     "noCreditCard": "クレジットカードは不要です。",
     "submitButton": "サインアップ",
@@ -133,7 +132,6 @@
     "subtitle": "メールアドレスを入力してください。パスワードリセットリンクが送信されます。",
     "successMessage": "パスワードリセットリンクをメールでお送りしました。スパムフォルダーも確認してください。",
     "submitButton": "パスワードリセットリンクを送信",
-    "returnToSignIn": "サインインに戻る。",
     "rememberPasswordPrompt": "パスワードを覚えていますか？",
     "loginLink": "ログイン。"
   },
@@ -172,7 +170,7 @@
     "successTitle": "メールが確認されました。",
     "successDescription": "メールを確認していただきありがとうございます。OneUptimeにログインできるようになりました。",
     "errorTitle": "申し訳ございませんが、エラーが発生しました！",
-    "returnToSignIn": "サインインに戻りますか？",
+    "alreadyVerifiedPrompt": "メールアドレスの確認はお済みですか？",
     "loginLink": "ログイン。",
     "continueToSignIn": "サインインに進む",
     "linkInvalidTitle": "この確認用リンクは無効になりました",

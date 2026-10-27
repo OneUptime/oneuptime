@@ -103,6 +103,19 @@ jest.mock("../../../UI/Components/EditionLabel/EditionLabel", () => {
   };
 });
 
+/*
+ * A self-hosted server that has accounts, and says so at once: the sign-up
+ * form waits for that answer (FirstAccountStandIn). While SSO is required
+ * the sign-up page offers SSO without asking.
+ */
+jest.mock("../../../../App/FeatureSet/Accounts/src/Utils/FirstAccount", () => {
+  return (
+    jest.requireActual(
+      "./FirstAccountStandIn",
+    ) as typeof import("./FirstAccountStandIn")
+  ).serverWithAccounts();
+});
+
 const IDENTITY_ORIGIN: string = "https://oneuptime.example.com/identity";
 const OKTA_ID: string = "11111111-1111-4111-8111-111111111111";
 const GOOGLE_ID: string = "22222222-2222-4222-8222-222222222222";
