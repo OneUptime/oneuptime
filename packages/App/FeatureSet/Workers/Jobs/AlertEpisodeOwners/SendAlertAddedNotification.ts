@@ -267,6 +267,7 @@ RunCron(
       ).toString();
 
       const episodeFeedText: string = OwnerNotificationFeedText.membersAdded({
+        isProjectOwners: !doesResourceHasOwners,
         memberNoun: "alert",
         count: alertCountInBatch,
       });
