@@ -35840,5 +35840,8 @@
   "{{host}} points to {{endpoint}}": "{{host}} は {{endpoint}} を指しています",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "クラウドが示すこのリソースの種類と場所、そして OneUptime による読み取り方法です。",
   "Which account it is in its cloud, and the connection that reads it.": "クラウド上のどのアカウントか、そしてそれを読み取る接続です。",
-  "Cloud resource": "クラウドリソース"
+  "Cloud resource": "クラウドリソース",
+  "Maintenance markers are unavailable.": "メンテナンスのマーカーを利用できません。",
+  "Maintenance markers need the uptime history, which did not load.": "メンテナンスのマーカーには稼働率の履歴が必要ですが、読み込めませんでした。",
+  "You need permission to read scheduled maintenance.": "定期メンテナンスを読み取る権限が必要です。"
 }

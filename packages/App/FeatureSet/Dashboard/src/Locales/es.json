@@ -35840,5 +35840,8 @@
   "{{host}} points to {{endpoint}}": "{{host}} apunta a {{endpoint}}",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "Qué es según su nube, dónde está y cómo lo lee OneUptime.",
   "Which account it is in its cloud, and the connection that reads it.": "Qué cuenta es en su nube y la conexión que la lee.",
-  "Cloud resource": "recurso en la nube"
+  "Cloud resource": "recurso en la nube",
+  "Maintenance markers are unavailable.": "Los marcadores de mantenimiento no están disponibles.",
+  "Maintenance markers need the uptime history, which did not load.": "Los marcadores de mantenimiento necesitan el historial de disponibilidad, que no se cargó.",
+  "You need permission to read scheduled maintenance.": "Necesitas permiso para leer el mantenimiento programado."
 }

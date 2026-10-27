@@ -15766,7 +15766,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "Manutenção programada",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35840,5 +35840,8 @@
   "{{host}} points to {{endpoint}}": "{{host}} aponta para {{endpoint}}",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "O que ele é segundo sua nuvem, onde está e como o OneUptime o lê.",
   "Which account it is in its cloud, and the connection that reads it.": "Qual conta é na sua nuvem e a conexão que a lê.",
-  "Cloud resource": "recurso de nuvem"
+  "Cloud resource": "recurso de nuvem",
+  "Maintenance markers are unavailable.": "Os marcadores de manutenção não estão disponíveis.",
+  "Maintenance markers need the uptime history, which did not load.": "Os marcadores de manutenção precisam do histórico de disponibilidade, que não foi carregado.",
+  "You need permission to read scheduled maintenance.": "Você precisa de permissão para ler a manutenção programada."
 }

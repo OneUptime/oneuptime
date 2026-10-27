@@ -15766,7 +15766,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "अनुसूचित रखरखाव",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35840,5 +35840,8 @@
   "{{host}} points to {{endpoint}}": "{{host}} {{endpoint}} की ओर इशारा करता है",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "इसका क्लाउड इसे क्या बताता है, यह कहाँ है, और OneUptime इसे कैसे पढ़ता है।",
   "Which account it is in its cloud, and the connection that reads it.": "यह अपने क्लाउड में कौन-सा खाता है, और वह कनेक्शन जो इसे पढ़ता है।",
-  "Cloud resource": "क्लाउड संसाधन"
+  "Cloud resource": "क्लाउड संसाधन",
+  "Maintenance markers are unavailable.": "रखरखाव मार्कर उपलब्ध नहीं हैं।",
+  "Maintenance markers need the uptime history, which did not load.": "रखरखाव मार्करों को अपटाइम इतिहास चाहिए, जो लोड नहीं हुआ।",
+  "You need permission to read scheduled maintenance.": "निर्धारित रखरखाव पढ़ने के लिए आपको अनुमति चाहिए।"
 }

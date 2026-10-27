@@ -15766,7 +15766,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "Planlagt vedligeholdelse",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35840,5 +35840,8 @@
   "{{host}} points to {{endpoint}}": "{{host}} peger på {{endpoint}}",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "Hvad dens cloud siger, den er, hvor den er, og hvordan OneUptime læser den.",
   "Which account it is in its cloud, and the connection that reads it.": "Hvilken konto det er i dens cloud, og den forbindelse, der læser den.",
-  "Cloud resource": "Cloud-ressource"
+  "Cloud resource": "Cloud-ressource",
+  "Maintenance markers are unavailable.": "Vedligeholdelsesmarkeringer er ikke tilgængelige.",
+  "Maintenance markers need the uptime history, which did not load.": "Vedligeholdelsesmarkeringer kræver oppetidshistorikken, som ikke blev indlæst.",
+  "You need permission to read scheduled maintenance.": "Du skal have tilladelse til at læse planlagt vedligeholdelse."
 }

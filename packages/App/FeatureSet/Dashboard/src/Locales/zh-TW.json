@@ -15766,7 +15766,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "排定維護",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35840,5 +35840,8 @@
   "{{host}} points to {{endpoint}}": "{{host}} 指向 {{endpoint}}",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "其雲端所述的資源類型、所在位置，以及 OneUptime 如何讀取它。",
   "Which account it is in its cloud, and the connection that reads it.": "它在雲端中是哪個帳戶，以及讀取它的連線。",
-  "Cloud resource": "雲端資源"
+  "Cloud resource": "雲端資源",
+  "Maintenance markers are unavailable.": "維護標記無法使用。",
+  "Maintenance markers need the uptime history, which did not load.": "維護標記需要可用性歷史，但未能載入。",
+  "You need permission to read scheduled maintenance.": "您需要讀取排定維護的權限。"
 }

@@ -15766,7 +15766,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "تعمیر و نگهداری زمان‌بندی‌شده",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35840,5 +35840,8 @@
   "{{host}} points to {{endpoint}}": "{{host}} به {{endpoint}} اشاره می‌کند",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "ابرش می‌گوید چیست، کجاست، و OneUptime چگونه آن را می‌خواند.",
   "Which account it is in its cloud, and the connection that reads it.": "کدام حساب در ابرش است، و اتصالی که آن را می‌خواند.",
-  "Cloud resource": "منبع ابری"
+  "Cloud resource": "منبع ابری",
+  "Maintenance markers are unavailable.": "نشانگرهای تعمیر و نگهداری در دسترس نیستند.",
+  "Maintenance markers need the uptime history, which did not load.": "نشانگرهای تعمیر و نگهداری به تاریخچه زمان کارکرد نیاز دارند که بارگذاری نشد.",
+  "You need permission to read scheduled maintenance.": "برای خواندن تعمیر و نگهداری زمان‌بندی‌شده به مجوز نیاز دارید."
 }

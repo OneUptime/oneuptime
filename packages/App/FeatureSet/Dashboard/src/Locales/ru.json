@@ -15766,7 +15766,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "Плановое обслуживание",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35840,5 +35840,8 @@
   "{{host}} points to {{endpoint}}": "{{host}} указывает на {{endpoint}}",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "Что это за ресурс по данным его облака, где он находится и как OneUptime его читает.",
   "Which account it is in its cloud, and the connection that reads it.": "Какой это аккаунт в его облаке и подключение, которое его читает.",
-  "Cloud resource": "Облачный ресурс"
+  "Cloud resource": "Облачный ресурс",
+  "Maintenance markers are unavailable.": "Отметки обслуживания недоступны.",
+  "Maintenance markers need the uptime history, which did not load.": "Для отметок обслуживания нужна история доступности, но она не загрузилась.",
+  "You need permission to read scheduled maintenance.": "Нужно разрешение на просмотр планового обслуживания."
 }

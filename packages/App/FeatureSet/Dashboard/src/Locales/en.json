@@ -35840,5 +35840,8 @@
   "{{host}} points to {{endpoint}}": "{{host}} points to {{endpoint}}",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "What its cloud says it is, where it is, and how OneUptime reads it.",
   "Which account it is in its cloud, and the connection that reads it.": "Which account it is in its cloud, and the connection that reads it.",
-  "Cloud resource": "Cloud resource"
+  "Cloud resource": "Cloud resource",
+  "Maintenance markers are unavailable.": "Maintenance markers are unavailable.",
+  "Maintenance markers need the uptime history, which did not load.": "Maintenance markers need the uptime history, which did not load.",
+  "You need permission to read scheduled maintenance.": "You need permission to read scheduled maintenance."
 }

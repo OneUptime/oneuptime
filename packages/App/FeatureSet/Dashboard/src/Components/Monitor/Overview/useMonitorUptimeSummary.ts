@@ -1,10 +1,14 @@
 import Incident from "Common/Models/DatabaseModels/Incident";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
+import GreaterThanOrEqual from "Common/Types/BaseDatabase/GreaterThanOrEqual";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Color from "Common/Types/Color";
@@ -13,6 +17,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import { MonitorUptimeSummary } from "Common/Types/Monitor/MonitorUptimeSummary";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
+import UptimeBarTooltipMaintenance from "Common/Types/Monitor/UptimeBarTooltipMaintenance";
 import ObjectID from "Common/Types/ObjectID";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -21,6 +26,9 @@ import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MonitorCheckScheduleUtil from "Common/Utils/Monitor/MonitorCheckScheduleUtil";
 import MonitorUptimeSummaryUtil from "Common/Utils/Monitor/MonitorUptimeSummaryUtil";
+import ScheduledMaintenanceStartUtil from "Common/Utils/ScheduledMaintenanceStart";
+import UptimeMaintenanceUtil from "Common/Utils/Uptime/UptimeMaintenanceUtil";
+import ScheduledMaintenanceStateUtil from "../../../Utils/ScheduledMaintenanceState";
 import {
   MutableRefObject,
   useCallback,
@@ -46,11 +54,15 @@ export const MONITOR_UPTIME_SUMMARY_UNREADABLE_MESSAGE: string = translationKey(
 export const MONITOR_UPTIME_ACCESS_REASONS: {
   summary: string;
   incidents: string;
+  maintenance: string;
 } = {
   summary: translationKey(
     "You need permission to read this monitor's status timeline.",
   ),
   incidents: translationKey("You need permission to read incidents."),
+  maintenance: translationKey(
+    "You need permission to read scheduled maintenance.",
+  ),
 };
 
 // The markers need the window the summary covers, so they cannot load without it.
@@ -59,12 +71,24 @@ export const MONITOR_UPTIME_INCIDENTS_WITHOUT_SUMMARY_MESSAGE: string =
     "Incident markers need the uptime history, which did not load.",
   );
 
+// The same for the maintenance on the strip.
+export const MONITOR_UPTIME_MAINTENANCE_WITHOUT_SUMMARY_MESSAGE: string =
+  translationKey(
+    "Maintenance markers need the uptime history, which did not load.",
+  );
+
 // Severity and state colours are required by the tooltip; a missing one is drawn black.
 const FALLBACK_MARKER_COLOR: string = "#000000";
 
 export interface UseMonitorUptimeSummaryResult {
   summary: OverviewSection<MonitorUptimeSummary>;
   incidents: OverviewSection<Array<UptimeBarTooltipIncident>>;
+  /*
+   * The scheduled maintenance of the monitor over the summary's window:
+   * listed on the days it touched and banding their bars, as a status page
+   * does (Common/Utils/Uptime/UptimeMaintenanceUtil).
+   */
+  maintenance: OverviewSection<Array<UptimeBarTooltipMaintenance>>;
   /*
    * Server time minus browser time, in milliseconds, from the newest
    * summary that could measure it (see getServerClockOffsetMs). 0 until
@@ -260,6 +284,10 @@ export const useMonitorUptimeSummary: (options: {
     useState<OverviewSection<Array<UptimeBarTooltipIncident>>>(
       getLoadingSection<Array<UptimeBarTooltipIncident>>(),
     );
+  const [maintenance, setMaintenance] =
+    useState<OverviewSection<Array<UptimeBarTooltipMaintenance>>>(
+      getLoadingSection<Array<UptimeBarTooltipMaintenance>>(),
+    );
   const [retryCount, setRetryCount] = useState<number>(0);
   const [serverClockOffsetMs, setServerClockOffsetMs] = useState<number>(0);
 
@@ -268,6 +296,11 @@ export const useMonitorUptimeSummary: (options: {
   const incidentsRef: MutableRefObject<
     OverviewSection<Array<UptimeBarTooltipIncident>>
   > = useRef<OverviewSection<Array<UptimeBarTooltipIncident>>>(incidents);
+  const maintenanceRef: MutableRefObject<
+    OverviewSection<Array<UptimeBarTooltipMaintenance>>
+  > = useRef<OverviewSection<Array<UptimeBarTooltipMaintenance>>>(
+    maintenance,
+  );
   /*
    * Only the newest load may write. A generation rather than an effect's
    * own flag, because the effect also re-runs when `isShown` flips, and
@@ -344,6 +377,123 @@ export const useMonitorUptimeSummary: (options: {
     ): void => {
       incidentsRef.current = section;
       setIncidents(section);
+    };
+
+    const commitMaintenance: (
+      section: OverviewSection<Array<UptimeBarTooltipMaintenance>>,
+    ) => void = (
+      section: OverviewSection<Array<UptimeBarTooltipMaintenance>>,
+    ): void => {
+      maintenanceRef.current = section;
+      setMaintenance(section);
+    };
+
+    /*
+     * The monitor's scheduled maintenance over the summary's window: every
+     * event that holds it, has started (in progress or over, by the
+     * project's own states) and whose planned window touches the window.
+     * An event still to come is no part of the history.
+     */
+    const loadMaintenance: (
+      loadedSummary: MonitorUptimeSummary,
+    ) => Promise<void> = async (
+      loadedSummary: MonitorUptimeSummary,
+    ): Promise<void> => {
+      if (
+        !shouldAttemptRead(
+          PermissionGate.check(new ScheduledMaintenance(), ModelAction.Read),
+        )
+      ) {
+        commitMaintenance(
+          forbidSection<Array<UptimeBarTooltipMaintenance>>({
+            reason: MONITOR_UPTIME_ACCESS_REASONS.maintenance,
+            subjectId: subjectId,
+          }),
+        );
+        return;
+      }
+
+      try {
+        const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
+
+        const states: Array<ScheduledMaintenanceState> =
+          await ScheduledMaintenanceStateUtil.getScheduledMaintenanceStates(
+            projectId,
+          );
+
+        const startedStateIds: Array<ObjectID> =
+          ScheduledMaintenanceStartUtil.getStartedStateIds({ states: states });
+
+        let events: Array<ScheduledMaintenance> = [];
+
+        if (startedStateIds.length > 0) {
+          const result: ListResult<ScheduledMaintenance> =
+            await ModelAPI.getList<ScheduledMaintenance>({
+              modelType: ScheduledMaintenance,
+              query: {
+                projectId: projectId,
+                monitors: new Includes([options.monitorId]),
+                currentScheduledMaintenanceStateId: new Includes(
+                  startedStateIds,
+                ),
+                startsAt: new LessThanOrEqual<Date>(loadedSummary.endDate),
+                endsAt: new GreaterThanOrEqual<Date>(loadedSummary.startDate),
+              },
+              limit: LIMIT_PER_PROJECT,
+              skip: 0,
+              select: {
+                _id: true,
+                title: true,
+                startsAt: true,
+                endsAt: true,
+                currentScheduledMaintenanceState: {
+                  _id: true,
+                  name: true,
+                  color: true,
+                  order: true,
+                  isScheduledState: true,
+                  isOngoingState: true,
+                  isEndedState: true,
+                  isResolvedState: true,
+                },
+                monitors: {
+                  _id: true,
+                },
+              },
+              sort: {
+                startsAt: SortOrder.Descending,
+              },
+            });
+
+          events = result.data;
+        }
+
+        if (isCancelled()) {
+          return;
+        }
+
+        commitMaintenance(
+          resolveSection({
+            value: UptimeMaintenanceUtil.fromScheduledMaintenances({
+              events: events,
+              states: states,
+            }),
+            subjectId: subjectId,
+          }),
+        );
+      } catch (err) {
+        if (isCancelled()) {
+          return;
+        }
+
+        commitMaintenance(
+          failSection({
+            previous: maintenanceRef.current,
+            message: API.getFriendlyMessage(err),
+            subjectId: subjectId,
+          }),
+        );
+      }
     };
 
     const loadIncidents: (
@@ -455,6 +605,12 @@ export const useMonitorUptimeSummary: (options: {
             subjectId: subjectId,
           }),
         );
+        commitMaintenance(
+          forbidSection<Array<UptimeBarTooltipMaintenance>>({
+            reason: MONITOR_UPTIME_ACCESS_REASONS.summary,
+            subjectId: subjectId,
+          }),
+        );
         return;
       }
 
@@ -514,6 +670,13 @@ export const useMonitorUptimeSummary: (options: {
             subjectId: subjectId,
           }),
         );
+        commitMaintenance(
+          failSection({
+            previous: maintenanceRef.current,
+            message: MONITOR_UPTIME_MAINTENANCE_WITHOUT_SUMMARY_MESSAGE,
+            subjectId: subjectId,
+          }),
+        );
         return;
       }
 
@@ -546,7 +709,11 @@ export const useMonitorUptimeSummary: (options: {
         resolveSection({ value: loadedSummary, subjectId: subjectId }),
       );
 
-      await loadIncidents(loadedSummary);
+      // Both overlays read the summary's window; neither waits on the other.
+      await Promise.all([
+        loadIncidents(loadedSummary),
+        loadMaintenance(loadedSummary),
+      ]);
     };
 
     load().catch(() => {
@@ -572,6 +739,7 @@ export const useMonitorUptimeSummary: (options: {
   return {
     summary: getSectionForSubject(summary, monitorIdString),
     incidents: getSectionForSubject(incidents, monitorIdString),
+    maintenance: getSectionForSubject(maintenance, monitorIdString),
     serverClockOffsetMs: serverClockOffsetMs,
     retry: retry,
   };

@@ -15766,7 +15766,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "计划维护",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35840,5 +35840,8 @@
   "{{host}} points to {{endpoint}}": "{{host}} 指向 {{endpoint}}",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "其云所述的资源类型、所在位置，以及 OneUptime 如何读取它。",
   "Which account it is in its cloud, and the connection that reads it.": "它在云中是哪个账户，以及读取它的连接。",
-  "Cloud resource": "云资源"
+  "Cloud resource": "云资源",
+  "Maintenance markers are unavailable.": "维护标记不可用。",
+  "Maintenance markers need the uptime history, which did not load.": "维护标记需要可用性历史，但未能加载。",
+  "You need permission to read scheduled maintenance.": "您需要读取计划维护的权限。"
 }

@@ -15766,7 +15766,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "예정된 유지 관리",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35840,5 +35840,8 @@
   "{{host}} points to {{endpoint}}": "{{host}}은(는) {{endpoint}}을(를) 가리킵니다",
   "What its cloud says it is, where it is, and how OneUptime reads it.": "클라우드가 알려 주는 이 리소스의 정체와 위치, 그리고 OneUptime이 읽는 방식입니다.",
   "Which account it is in its cloud, and the connection that reads it.": "클라우드에서 어떤 계정인지와 이 계정을 읽는 연결입니다.",
-  "Cloud resource": "클라우드 리소스"
+  "Cloud resource": "클라우드 리소스",
+  "Maintenance markers are unavailable.": "유지 관리 표시를 사용할 수 없습니다.",
+  "Maintenance markers need the uptime history, which did not load.": "유지 관리 표시에는 가동 시간 기록이 필요하지만 불러오지 못했습니다.",
+  "You need permission to read scheduled maintenance.": "예정된 유지 관리를 읽을 권한이 필요합니다."
 }

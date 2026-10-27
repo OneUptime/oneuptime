@@ -18,6 +18,7 @@ import {
   MonitorUptimeWindowTotal,
 } from "Common/Types/Monitor/MonitorUptimeSummary";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
+import UptimeBarTooltipMaintenance from "Common/Types/Monitor/UptimeBarTooltipMaintenance";
 import ObjectID from "Common/Types/ObjectID";
 import { UptimeStatusDuration } from "Common/Types/StatusPage/UptimeDailyAggregate";
 import Button, {
@@ -35,6 +36,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import MonitorUptimeSummaryUtil, {
   UptimeWindowPresentation,
 } from "Common/Utils/Monitor/MonitorUptimeSummaryUtil";
+import { MAINTENANCE_BAR_CLASS_NAME } from "Common/Utils/StatusPage/HistoryChartBarColors";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import React, {
   FunctionComponent,
@@ -52,6 +54,12 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 export interface ComponentProps {
   summary: OverviewSection<MonitorUptimeSummary>;
   incidents: OverviewSection<Array<UptimeBarTooltipIncident>>;
+  /*
+   * The monitor's scheduled maintenance over the strip's window, banding the
+   * days it touched and listed in their tooltips and dialogs beside the
+   * incidents. None drawn while it loads, or when it cannot be read.
+   */
+  maintenance?: OverviewSection<Array<UptimeBarTooltipMaintenance>> | undefined;
   monitorCreatedAt?: Date | undefined;
   onRetry: () => void;
 }
@@ -249,6 +257,22 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
     );
   };
 
+  const navigateToMaintenance: (maintenanceId: string) => void = (
+    maintenanceId: string,
+  ): void => {
+    Navigation.navigate(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
+        {
+          modelId: new ObjectID(maintenanceId),
+        },
+      ),
+    );
+  };
+
+  const maintenanceEvents: Array<UptimeBarTooltipMaintenance> =
+    props.maintenance?.value || [];
+
   if (!summary) {
     if (props.summary.status === "forbidden") {
       return (
@@ -375,6 +399,12 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
     !props.incidents.value &&
     (props.incidents.status === "error" ||
       props.incidents.status === "forbidden");
+  const areMaintenanceMarkersUnavailable: boolean = Boolean(
+    props.maintenance &&
+      !props.maintenance.value &&
+      (props.maintenance.status === "error" ||
+        props.maintenance.status === "forbidden"),
+  );
 
   return (
     <Card
@@ -400,6 +430,8 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
               endDate={summary.endDate}
               incidents={props.incidents.value || []}
               onIncidentClick={navigateToIncident}
+              maintenanceEvents={maintenanceEvents}
+              onMaintenanceClick={navigateToMaintenance}
               onBarClick={(
                 date: Date,
                 incidents: Array<UptimeBarTooltipIncident>,
@@ -440,6 +472,27 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
             <MonitorStatusDot color={NO_DATA_BAR_COLOR.toString()} />
             {translator.translateText("No data")}
           </li>
+          {maintenanceEvents.length > 0 ? (
+            <li
+              className="inline-flex items-center gap-1.5"
+              data-testid="monitor-uptime-legend-maintenance"
+            >
+              {/*
+               * A small bar wearing the band, drawn by the strip's own class,
+               * so the key and the bars it names can never drift apart.
+               */}
+              <span
+                aria-hidden="true"
+                className={`${MAINTENANCE_BAR_CLASS_NAME} relative inline-block h-3 w-2 overflow-hidden rounded-sm`}
+                style={{
+                  backgroundColor: "var(--ou-border-strong, #d1d5db)",
+                }}
+              />
+              {translator.translateText("Scheduled maintenance")}
+            </li>
+          ) : (
+            <></>
+          )}
         </ul>
 
         <div
@@ -464,6 +517,16 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
           {areIncidentMarkersUnavailable ? (
             <p className="mt-1">
               {translator.translateText("Incident markers are unavailable.")}
+            </p>
+          ) : (
+            <></>
+          )}
+          {areMaintenanceMarkersUnavailable ? (
+            <p
+              className="mt-1"
+              data-testid="monitor-uptime-maintenance-unavailable"
+            >
+              {translator.translateText("Maintenance markers are unavailable.")}
             </p>
           ) : (
             <></>
@@ -506,6 +569,8 @@ const MonitorUptimeHistoryCard: FunctionComponent<ComponentProps> = (
             uptimePercent={selectedDay.summary.uptimePercent}
             hasEvents={selectedDay.summary.hasEvents}
             statusDurations={selectedDay.summary.statusDurations}
+            maintenanceEvents={selectedDay.summary.maintenanceEvents}
+            onMaintenanceClick={navigateToMaintenance}
             onIncidentClick={navigateToIncident}
             onClose={() => {
               setSelectedDay(null);

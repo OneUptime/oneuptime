@@ -5,10 +5,18 @@ import useMonitorUptimeSummary, {
   MONITOR_SERVER_CLOCK_MAX_OFFSET_MS,
   MONITOR_SERVER_CLOCK_MAX_ROUND_TRIP_MS,
   MONITOR_UPTIME_ACCESS_REASONS,
+  MONITOR_UPTIME_MAINTENANCE_WITHOUT_SUMMARY_MESSAGE,
   MONITOR_UPTIME_SUMMARY_UNREADABLE_MESSAGE,
   UseMonitorUptimeSummaryResult,
   getServerClockOffsetMs,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/useMonitorUptimeSummary";
+import ScheduledMaintenanceStateUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/ScheduledMaintenanceState";
+import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
+import GreaterThanOrEqual from "../../../Types/BaseDatabase/GreaterThanOrEqual";
+import LessThanOrEqual from "../../../Types/BaseDatabase/LessThanOrEqual";
+import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
+import { ScheduledMaintenancePhaseOfState } from "../../../Utils/ScheduledMaintenanceStart";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
@@ -967,5 +975,252 @@ describe("getServerClockOffsetMs", () => {
     expect(measureAfter(0)).toBeNull();
     expect(measureAfter(30)).toBeNull();
     expect(measureAfter(-1)).toBe(-60 * 1000);
+  });
+});
+
+/*
+ * The monitor's scheduled maintenance on its 90-day strip (#5236): the
+ * events that hold it, have started - in progress or over, by the
+ * project's own states - and whose planned window touches the summary's,
+ * read alongside the incidents and as isolated from the history as they
+ * are.
+ */
+describe("useMonitorUptimeSummary - scheduled maintenance", () => {
+  const SCHEDULED_ID: string = "5f610000-0000-4000-8000-000000000001";
+  const ONGOING_ID: string = "5f610000-0000-4000-8000-000000000002";
+  const VERIFYING_ID: string = "5f610000-0000-4000-8000-000000000003";
+  const ENDED_ID: string = "5f610000-0000-4000-8000-000000000004";
+  const COMPLETED_ID: string = "5f610000-0000-4000-8000-000000000005";
+  const EVENT_ID: string = "5f620000-0000-4000-8000-000000000001";
+
+  function state(data: {
+    id: string;
+    name: string;
+    order: number;
+    flag?: string | undefined;
+  }): ScheduledMaintenanceState {
+    const model: ScheduledMaintenanceState = new ScheduledMaintenanceState();
+    model._id = data.id;
+    model.name = data.name;
+    model.order = data.order;
+    model.color = new Color("#7c3aed");
+    model.isScheduledState = data.flag === "scheduled";
+    model.isOngoingState = data.flag === "ongoing";
+    model.isEndedState = data.flag === "ended";
+    model.isResolvedState = data.flag === "completed";
+    return model;
+  }
+
+  // A project that added "Verifying" between Ongoing and Ended.
+  const STATES: Array<ScheduledMaintenanceState> = [
+    state({ id: SCHEDULED_ID, name: "Scheduled", order: 1, flag: "scheduled" }),
+    state({ id: ONGOING_ID, name: "Ongoing", order: 2, flag: "ongoing" }),
+    state({ id: VERIFYING_ID, name: "Verifying", order: 3 }),
+    state({ id: ENDED_ID, name: "Ended", order: 4, flag: "ended" }),
+    state({ id: COMPLETED_ID, name: "Completed", order: 5, flag: "completed" }),
+  ];
+
+  function buildMaintenance(): ScheduledMaintenance {
+    const event: ScheduledMaintenance = new ScheduledMaintenance();
+    event._id = EVENT_ID;
+    event.title = "Database upgrade";
+    event.startsAt = new Date("2026-09-21T09:00:00.000Z");
+    event.endsAt = new Date("2026-09-21T11:00:00.000Z");
+    event.currentScheduledMaintenanceState = STATES[2]!;
+
+    const monitor: Monitor = new Monitor();
+    monitor._id = MONITOR_ID.toString();
+    event.monitors = [monitor];
+
+    return event;
+  }
+
+  function maintenanceRequests(): Array<ListRequest> {
+    return getListSpy.mock.calls
+      .map((call: Array<unknown>) => {
+        return call[0] as ListRequest;
+      })
+      .filter((request: ListRequest) => {
+        return request.modelType === ScheduledMaintenance;
+      });
+  }
+
+  let maintenanceFailure: Error | null = null;
+
+  beforeEach(() => {
+    maintenanceFailure = null;
+
+    jest
+      .spyOn(ScheduledMaintenanceStateUtil, "getScheduledMaintenanceStates")
+      .mockImplementation((): Promise<Array<ScheduledMaintenanceState>> => {
+        return Promise.resolve(STATES);
+      });
+
+    getListSpy.mockImplementation((...args: Array<unknown>) => {
+      const request: ListRequest = args[0] as ListRequest;
+
+      if (request.modelType === ScheduledMaintenance) {
+        if (maintenanceFailure) {
+          return rejectWith(maintenanceFailure);
+        }
+
+        return Promise.resolve({
+          data: [buildMaintenance()],
+          count: 1,
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+        });
+      }
+
+      return Promise.resolve({
+        data: [buildIncident()],
+        count: 1,
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+      });
+    });
+  });
+
+  test("asks for the monitor's started events over exactly the summary's window", async () => {
+    renderSummary();
+    await flush();
+
+    expect(maintenanceRequests()).toHaveLength(1);
+
+    const request: ListRequest = maintenanceRequests()[0]!;
+
+    expect(request.query["projectId"]).toBe(PROJECT_ID);
+    expect((request.query["monitors"] as Includes).values).toEqual([
+      MONITOR_ID,
+    ]);
+    expect(
+      (
+        (request.query["currentScheduledMaintenanceStateId"] as Includes)
+          .values as Array<ObjectID>
+      ).map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([ONGOING_ID, VERIFYING_ID, ENDED_ID, COMPLETED_ID]);
+
+    const startsAt: LessThanOrEqual<Date> = request.query[
+      "startsAt"
+    ] as LessThanOrEqual<Date>;
+    const endsAt: GreaterThanOrEqual<Date> = request.query[
+      "endsAt"
+    ] as GreaterThanOrEqual<Date>;
+
+    expect(startsAt).toBeInstanceOf(LessThanOrEqual);
+    expect(startsAt.value).toEqual(NOW);
+    expect(endsAt).toBeInstanceOf(GreaterThanOrEqual);
+    expect(endsAt.value).toEqual(new Date("2026-06-24T00:00:00.000Z"));
+
+    // Every list that selects a relation also selects its sort column.
+    expect(request.select["startsAt"]).toBe(true);
+    expect(request.select["description"]).toBeUndefined();
+    expect(request.sort).toEqual({ startsAt: SortOrder.Descending });
+    expect(request.limit).toBe(LIMIT_PER_PROJECT);
+  });
+
+  test("hands the strip each event placed in its life by the project's states", async () => {
+    const { result } = renderSummary();
+    await flush();
+
+    expect(result.current.maintenance.status).toBe("loaded");
+    expect(result.current.maintenance.loadedFor).toBe(MONITOR_ID.toString());
+
+    const events: Array<UptimeBarTooltipMaintenance> =
+      result.current.maintenance.value!;
+
+    expect(events).toHaveLength(1);
+    expect(events[0]!.id).toBe(EVENT_ID);
+    expect(events[0]!.title).toBe("Database upgrade");
+    expect(events[0]!.startsAt).toEqual(new Date("2026-09-21T09:00:00.000Z"));
+    expect(events[0]!.endsAt).toEqual(new Date("2026-09-21T11:00:00.000Z"));
+    expect(events[0]!.currentState?.name).toBe("Verifying");
+    // A state of the project's own between Ongoing and Ended is in progress.
+    expect(events[0]!.phase).toBe(ScheduledMaintenancePhaseOfState.InProgress);
+    expect(
+      events[0]!.monitorIds.map((id: ObjectID): string => {
+        return id.toString();
+      }),
+    ).toEqual([MONITOR_ID.toString()]);
+  });
+
+  test("a project with no state an event has started in asks for nothing and shows none", async () => {
+    jest
+      .spyOn(ScheduledMaintenanceStateUtil, "getScheduledMaintenanceStates")
+      .mockImplementation((): Promise<Array<ScheduledMaintenanceState>> => {
+        return Promise.resolve([STATES[0]!]);
+      });
+
+    const { result } = renderSummary();
+    await flush();
+
+    expect(maintenanceRequests()).toHaveLength(0);
+    expect(result.current.maintenance.status).toBe("loaded");
+    expect(result.current.maintenance.value).toEqual([]);
+  });
+
+  test("someone who cannot read scheduled maintenance gets the history, the incidents, and no markers", async () => {
+    permissions = [Permission.MonitorViewer, Permission.ReadProjectIncident];
+
+    const { result } = renderSummary();
+    await flush();
+
+    expect(maintenanceRequests()).toHaveLength(0);
+    expect(result.current.summary.status).toBe("loaded");
+    expect(result.current.maintenance.status).toBe("forbidden");
+    expect(result.current.maintenance.error).toBe(
+      MONITOR_UPTIME_ACCESS_REASONS.maintenance,
+    );
+  });
+
+  test("someone who can read it, and not incidents, still gets the maintenance", async () => {
+    permissions = [Permission.MonitorViewer, Permission.ScheduledMaintenanceViewer];
+
+    const { result } = renderSummary();
+    await flush();
+
+    expect(incidentRequests()).toHaveLength(0);
+    expect(result.current.incidents.status).toBe("forbidden");
+    expect(maintenanceRequests()).toHaveLength(1);
+    expect(result.current.maintenance.status).toBe("loaded");
+  });
+
+  test("a failed maintenance read never takes the history or the incidents down with it", async () => {
+    maintenanceFailure = new Error("Maintenance is unavailable.");
+
+    const { result } = renderSummary();
+    await flush();
+
+    expect(result.current.summary.status).toBe("loaded");
+    expect(result.current.incidents.status).toBe("loaded");
+    expect(result.current.maintenance.status).toBe("error");
+    expect(result.current.maintenance.error).toBe("Maintenance is unavailable.");
+  });
+
+  test("without the history there is no window, so no maintenance either", async () => {
+    apiGetSpy.mockImplementation(() => {
+      return rejectWith(new Error("Network error."));
+    });
+
+    const { result } = renderSummary();
+    await flush();
+
+    expect(maintenanceRequests()).toHaveLength(0);
+    expect(result.current.maintenance.status).toBe("error");
+    expect(result.current.maintenance.error).toBe(
+      MONITOR_UPTIME_MAINTENANCE_WITHOUT_SUMMARY_MESSAGE,
+    );
+  });
+
+  test("a timeline it cannot read forbids the maintenance with the history", async () => {
+    permissions = [Permission.ReadProjectMonitor];
+
+    const { result } = renderSummary();
+    await flush();
+
+    expect(maintenanceRequests()).toHaveLength(0);
+    expect(result.current.maintenance.status).toBe("forbidden");
   });
 });
