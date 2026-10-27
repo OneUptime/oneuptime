@@ -85,7 +85,7 @@ Em **Detalhes do serviço**, clique em **Editar detalhes** para mudar o **Nome**
 Em **Configurações do serviço**, clique em **Editar definições**. A **Cor do serviço** marca o serviço em gráficos e listas; um serviço novo recebe uma cor própria. **Stack de Tecnologia** é opcional: deixe em branco para mostrar a linguagem detectada na telemetria dele.
 :::
 
-A mesma página traz a retenção do serviço. Os cartões **Retenção de Dados de Telemetria** e **Retenção por tipo de telemetria** guardam a telemetria dele por mais ou menos tempo que a retenção padrão do projeto. Eles fazem parte da [Enterprise Edition](/docs/self-hosted/enterprise), e do plano Scale no OneUptime Cloud; sem eles, a página mostra o que eles acrescentam, e o serviço mantém a retenção do projeto.
+A mesma página traz a retenção do serviço, recolhida em **Mais configurações**. Os cartões **Retenção de Dados de Telemetria** e **Retenção por tipo de telemetria** guardam a telemetria dele por mais ou menos tempo que a retenção padrão do projeto. Eles fazem parte da [Enterprise Edition](/docs/self-hosted/enterprise), e do plano Scale no OneUptime Cloud; sem eles, a página mostra o que eles acrescentam, e o serviço mantém a retenção do projeto.
 
 ## Definir rótulos e proprietários automaticamente
 

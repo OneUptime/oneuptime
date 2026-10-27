@@ -28,10 +28,10 @@ I sin helhet leser OneUptime disse innstillingene i denne rekkefølgen, og den f
 
 | Rekkefølge | Innstilling | Hvor den settes |
 | --- | --- | --- |
-| 1 | Dager for én loggalvorlighetsgrad eller span-status, for én tjeneste eller ressurs | **Oppbevaring etter telemetritype**, på siden **Innstillinger** for den |
+| 1 | Dager for én loggalvorlighetsgrad eller span-status, for én tjeneste eller ressurs | **Oppbevaring etter telemetritype**, under **Flere innstillinger** på siden **Innstillinger** for den |
 | 2 | Dager for én type telemetri, for én tjeneste eller ressurs | Det samme kortet |
-| 3 | Dager for alt fra én tjeneste eller ressurs | **Oppbevaring av telemetridata**, på den samme siden |
-| 4 | Dager for én loggalvorlighetsgrad eller span-status, for prosjektet | **Oppbevaring etter telemetritype**, på **Dataoppbevaring** |
+| 3 | Dager for alt fra én tjeneste eller ressurs | **Oppbevaring av telemetridata**, under **Flere innstillinger** på den samme siden |
+| 4 | Dager for én loggalvorlighetsgrad eller span-status, for prosjektet | **Oppbevaring etter telemetritype**, under **Flere innstillinger** på **Dataoppbevaring** |
 | 5 | Dager for én type telemetri, for prosjektet | Det samme kortet |
 | 6 | Dager for alt annet | **Standard oppbevaring (dager)**, på **Dataoppbevaring** |
 
@@ -64,7 +64,7 @@ Overstyringer oppbevarer det du trenger lenger og resten kortere: feillogger i e
 
 ### For hele prosjektet
 
-Under standarden setter kortet **Oppbevaring etter telemetritype** dager for hver type telemetri. Klikk på **Edit Overrides**, fyll ut feltene du trenger, og la resten stå tomme:
+Under standarden, sammenfoldet under **Flere innstillinger**, setter kortet **Oppbevaring etter telemetritype** dager for hver type telemetri. Klikk på **Edit Overrides**, fyll ut feltene du trenger, og la resten stå tomme:
 
 | Type | Felt |
 | --- | --- |
@@ -77,7 +77,7 @@ Et felt som står tomt, faller tilbake på neste innstilling i rekkefølgen over
 
 ### For én tjeneste eller ressurs
 
-Åpne siden **Innstillinger** for tjenesten eller ressursen. Kortet **Oppbevaring av telemetridata** der inneholder **Behold telemetridata i (dager)**, ett tall for alt den sender, og kortet **Oppbevaring etter telemetritype** har de samme feltene som prosjektets. La et felt stå tomt for å bruke prosjektets innstillinger.
+Åpne siden **Innstillinger** for tjenesten eller ressursen, og deretter **Flere innstillinger**. Kortet **Oppbevaring av telemetridata** der inneholder **Behold telemetridata i (dager)**, ett tall for alt den sender, og kortet **Oppbevaring etter telemetritype** har de samme feltene som prosjektets. La et felt stå tomt for å bruke prosjektets innstillinger.
 
 Tjenester, verter, Kubernetes-klynger, Docker- og Podman-verter, Docker Swarm-, Proxmox- og Ceph-klynger, lagringssystemer, vCentere, databaser, serverløse funksjoner, skyressurser, RUM-applikasjoner og IoT-flåter har alle disse kortene. Se [Tjenestekatalogen](/docs/telemetry/services#endre-en-tjeneste) for siden **Innstillinger** for en tjeneste.
 

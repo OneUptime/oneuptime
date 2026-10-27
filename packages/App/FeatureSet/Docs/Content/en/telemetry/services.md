@@ -85,7 +85,7 @@ On **Service Details**, click **Edit Details** to change its **Name**, **Descrip
 On **Service Settings**, click **Edit Settings**. The **Service Color** marks the service in charts and lists; a new service gets one of its own. **Tech Stack** is optional: leave it empty to show the language detected from its telemetry.
 :::
 
-The same page holds the service's retention. The **Telemetry Data Retention** and **Retention by Telemetry Type** cards keep its telemetry for longer or shorter than the project's default retention. They are part of the [Enterprise Edition](/docs/self-hosted/enterprise), and of the Scale plan on OneUptime Cloud; without them the page shows what they add, and the service keeps the project's retention.
+The same page holds the service's retention, folded under **More settings**. The **Telemetry Data Retention** and **Retention by Telemetry Type** cards keep its telemetry for longer or shorter than the project's default retention. They are part of the [Enterprise Edition](/docs/self-hosted/enterprise), and of the Scale plan on OneUptime Cloud; without them the page shows what they add, and the service keeps the project's retention.
 
 ## Set labels and owners automatically
 
