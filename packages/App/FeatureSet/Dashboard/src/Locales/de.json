@@ -36335,5 +36335,9 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Von OneUptime AI aufgelöst. Niemand wurde alarmiert.",
   "Wait for OneUptime AI for up to (minutes)": "Höchstens so lange auf OneUptime AI warten (Minuten)",
   "Wait from 1 to 30 whole minutes.": "Warten Sie 1 bis 30 ganze Minuten.",
-  "This page will come back as soon as you're online again, just as you left it.": "Sobald Sie wieder online sind, erscheint diese Seite genau so, wie Sie sie verlassen haben."
+  "This page will come back as soon as you're online again, just as you left it.": "Sobald Sie wieder online sind, erscheint diese Seite genau so, wie Sie sie verlassen haben.",
+  "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.": "Fügt eine Bereitschaftsregel für Vorfälle und eine für Warnungen hinzu. Eine Richtlinie alarmiert niemanden, bis eine Regel oder ein Monitor sie auslöst.",
+  "Page this policy for every new incident and alert": "Bei jedem neuen Vorfall und jeder neuen Warnung auslösen",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "Alarmieren Sie die richtige Person, wenn ein Vorfall oder eine Warnung eröffnet wird. Bis dahin erhalten die Projekteigentümer eine E-Mail.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "Wählen Sie, was überwacht werden soll, und geben Sie ihm einen Namen. Alles andere beginnt mit Standardwerten, die Sie ändern können. Wenn etwas schiefläuft, eröffnet OneUptime einen Vorfall oder eine Warnung und schickt den Projekteigentümern eine E-Mail."
 }

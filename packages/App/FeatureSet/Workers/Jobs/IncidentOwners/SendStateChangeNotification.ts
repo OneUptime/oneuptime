@@ -361,6 +361,7 @@ RunCron(
         incidentFeedEventType: IncidentFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
+          isProjectOwners: !doesResourceHasOwners,
           recordNoun: "incident",
           stateName: incidentState.name,
         }),

@@ -273,6 +273,8 @@ RunCron(
 
       const scheduledMaintenanceFeedText: string =
         OwnerNotificationFeedText.notePosted({
+          recordNoun: "scheduled maintenance event",
+          isProjectOwners: !doesResourceHasOwners,
           isPrivateNote: isPrivateNote,
         });
 

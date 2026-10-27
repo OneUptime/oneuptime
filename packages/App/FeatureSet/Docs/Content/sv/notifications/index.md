@@ -75,6 +75,8 @@ Varje metod som du verifierar senare får samma regler: en regel för varje allv
 | **Staying informed** | Du får veta när ett jourpass börjar, och bakom varje kanal som du har slagit på i **Aviseringsinställningar** finns en verifierad metod |
 | **Nice to have** | Ett nummer för inkommande samtal, dina Slack- och Microsoft Teams-konton, en kalenderlänk och dina profilfält |
 
+**Staying informed** nämner bara push för en uppdatering som inte når dig på något annat sätt: varje uppdatering som en ny medlem får via push kommer också via e-post.
+
 **Nice to have** räknas inte in i förloppsindikatorn, och det gör inte heller ett steg som bara någon annan kan åtgärda. Raden högst upp sammanfattar:
 
 | Rubrik | Vad den betyder |

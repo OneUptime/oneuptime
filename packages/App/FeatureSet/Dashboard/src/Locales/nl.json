@@ -36335,5 +36335,9 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Opgelost door OneUptime AI. Niemand is opgeroepen.",
   "Wait for OneUptime AI for up to (minutes)": "Maximaal zo lang op OneUptime AI wachten (minuten)",
   "Wait from 1 to 30 whole minutes.": "Wacht 1 tot 30 hele minuten.",
-  "This page will come back as soon as you're online again, just as you left it.": "Deze pagina komt terug zodra u weer online bent, precies zoals u haar achterliet."
+  "This page will come back as soon as you're online again, just as you left it.": "Deze pagina komt terug zodra u weer online bent, precies zoals u haar achterliet.",
+  "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.": "Voegt een bereikbaarheidsregel toe voor incidenten en een voor waarschuwingen. Een beleid roept niemand op totdat een regel of een monitor het activeert.",
+  "Page this policy for every new incident and alert": "Activeren bij elk nieuw incident en elke nieuwe waarschuwing",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "Roep de juiste persoon op wanneer een incident of waarschuwing wordt geopend. Tot die tijd krijgen de projecteigenaren een e-mail.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "Kies wat u wilt bewaken en geef het een naam. Al het andere begint met standaardwaarden die u kunt wijzigen. Gaat er iets mis, dan opent OneUptime een incident of waarschuwing en stuurt het de projecteigenaren een e-mail."
 }

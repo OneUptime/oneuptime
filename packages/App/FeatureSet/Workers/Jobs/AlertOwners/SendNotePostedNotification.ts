@@ -261,6 +261,8 @@ RunCron(
       }
 
       const alertFeedText: string = OwnerNotificationFeedText.notePosted({
+        recordNoun: "alert",
+        isProjectOwners: !doesResourceHasOwners,
         isPrivateNote: true,
       });
 

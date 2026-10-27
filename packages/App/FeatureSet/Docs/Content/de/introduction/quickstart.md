@@ -59,16 +59,16 @@ Um die Prüfung vor dem Speichern auszuprobieren, klicken Sie im zweiten Schritt
 
 ## Bei einem Ausfall alarmiert werden
 
-So wie es ist, wird ein Vorfall ohne Eigentümer per E-Mail an die Eigentümer des Projekts gemeldet, und dazu gehören Sie. Damit Sie alarmiert werden, bis jemand reagiert, legen Sie eine Bereitschaftsrichtlinie an und lassen jeden Vorfall sie auslösen.
+So wie es ist, wird ein Vorfall ohne Eigentümer per E-Mail an die Eigentümer des Projekts gemeldet, und dazu gehören Sie. Damit Sie alarmiert werden, bis jemand reagiert, legen Sie eine Bereitschaftsrichtlinie an: Die erste eines Projekts wird bei jedem neuen Vorfall und jeder neuen Warnung ausgelöst.
 
 :::steps
 ### Eine Bereitschaftsrichtlinie anlegen
 
-Klicken Sie in der Checkliste auf **Bereitschaftsrichtlinie einrichten**, oder öffnen Sie **Bereitschaftsdienst** im Menü **Produkte**. Klicken Sie auf **Bereitschaftsrichtlinie erstellen** und geben Sie einen **Name** ein. Klicken Sie unter **Wer wird zuerst alarmiert?** auf **Empfänger hinzufügen** und wählen Sie sich selbst. Klicken Sie auf **Bereitschaftsrichtlinie erstellen**.
+Klicken Sie in der Checkliste auf **Bereitschaftsrichtlinie einrichten**, oder öffnen Sie **Bereitschaftsdienst** im Menü **Produkte**. Klicken Sie auf **Bereitschaftsrichtlinie erstellen** und geben Sie einen **Name** ein. Klicken Sie unter **Wer wird zuerst alarmiert?** auf **Empfänger hinzufügen** und wählen Sie sich selbst. Lassen Sie **Bei jedem neuen Vorfall und jeder neuen Warnung auslösen** eingeschaltet, und klicken Sie auf **Bereitschaftsrichtlinie erstellen**.
 
-### Sie für jeden Vorfall auslösen
+### Die Regel ansehen, die sie auslöst
 
-Öffnen Sie **Vorfälle** im Menü **Produkte**, klappen Sie **Regeln** im Seitenmenü auf und wählen Sie **Bereitschaftsregeln**. Klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**, geben Sie einen **Name** ein und klicken Sie auf **Weiter**. Lassen Sie unter **Übereinstimmungskriterien** die Auswahl **Alle Vorfälle** stehen, damit die Regel auf jeden Vorfall zutrifft, und klicken Sie auf **Weiter**. Wählen Sie Ihre Richtlinie unter **Bereitschaftsrichtlinien** und klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**.
+Der Schalter hat eine Bereitschaftsregel für Vorfälle und eine für Warnungen angelegt. Um Ihre zu sehen, öffnen Sie **Vorfälle** im Menü **Produkte**, klappen **Regeln** im Seitenmenü auf und wählen **Bereitschaftsregeln**: Sie trifft auf **Alle Vorfälle** zu. Damit die Richtlinie nur bei manchen Vorfällen ausgelöst wird, etwa bei kritischen, bearbeiten Sie die Regel dort, oder klicken Sie auf **Bereitschaftsregel für Vorfälle erstellen**, um eine eigene anzulegen.
 
 ### Festlegen, wie Sie erreicht werden
 
