@@ -753,6 +753,23 @@ describe("a status page's calendar", () => {
     expect(PAGE).toContain("Exactly what the page shows");
     expect(STATUS_PAGE_FEED).toContain("readShownScheduledMaintenanceEvents");
   });
+
+  /*
+   * An event kept to the team until its publish time (#5249) is on none of
+   * the page's lists, so on none of its calendar's events either: the page's
+   * reads all pass through the one rule that leaves it out until then.
+   */
+  it("holds an event from its Publish At, as the page shows it", () => {
+    expect(PAGE).toContain(
+      "while **Visible on Status Page** is on, and from its **Publish At** when you picked one.",
+    );
+    expect(PAGE).toContain(
+      "that its **Publish At**, when it has one, has come,",
+    );
+    expect(
+      readCommonSource("Server/Utils/StatusPage/StatusPageVisibilityQuery.ts"),
+    ).toContain("publishOnStatusPageAt: QueryHelper.lessThanEqualToOrNull(");
+  });
 });
 
 describe("what a calendar event holds", () => {

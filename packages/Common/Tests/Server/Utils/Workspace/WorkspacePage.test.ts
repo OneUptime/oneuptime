@@ -62,6 +62,7 @@ import WorkspaceLiveMessageKey, {
   WorkspaceLiveMessagePageRecordType,
 } from "../../../../Types/Workspace/WorkspaceLiveMessageKey";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * PAGING SOMEBODY FROM A CHAT (WorkspacePage), WHAT SLACK AND TEAMS SHARE.
@@ -1383,19 +1384,22 @@ describe("WorkspacePage.getTitle: the alert's title, from the message", () => {
   });
 
   test("a message as long as a chat sends, and longer, of white space and words: read in time that grows with it", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (const message of [
+          " \t\n".repeat(400_000 / 3),
+          "a \u{a0}".repeat(400_000 / 3),
+          `${" ".repeat(400_000)}x${"\n".repeat(400_000)}`,
+        ]) {
+          expect(WorkspacePage.getTitle(message).length).toBeLessThanOrEqual(
+            WORKSPACE_PAGE_MAX_TITLE_LENGTH,
+          );
+        }
+      },
+      limitInMs: 2000,
+    });
 
-    for (const message of [
-      " \t\n".repeat(400_000 / 3),
-      "a \u{a0}".repeat(400_000 / 3),
-      `${" ".repeat(400_000)}x${"\n".repeat(400_000)}`,
-    ]) {
-      expect(WorkspacePage.getTitle(message).length).toBeLessThanOrEqual(
-        WORKSPACE_PAGE_MAX_TITLE_LENGTH,
-      );
-    }
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

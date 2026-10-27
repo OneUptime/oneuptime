@@ -1320,6 +1320,9 @@ values are set. Secrets can come from an existing Kubernetes secret.
 - name: LATEST_RELEASE_CHECK_URL
   value: {{ default "" $.Values.updateCheck.url | quote }}
 
+- name: DISABLE_INSTANCE_CHECK_IN
+  value: {{ default false (($.Values.instanceCheckIn).disabled) | squote }}
+
 {{/*
   Not `default 1 ...`: Helm's default treats 0 as empty, and 0 is a meaningful
   setting here (ignore X-Forwarded-For, use the connecting address).

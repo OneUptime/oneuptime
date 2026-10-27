@@ -68,6 +68,10 @@ Använd den när värdet lever i ett känt intervall: CPU- eller diskanvändning
 
 Mätvärden som rader. **Group By Attributes** ger en rad per värde, till exempel en per `host.name`; utan den är varje rad ett tidsfack. **Metrics & Columns** anger kolumnerna: mätvärden, och formler över dem, som tillgänglighet i procent. När du grupperar gör **Reduce across time** om varje rads serie till ett enda värde: det senaste värdet, medelvärdet, summan, minimum eller maximum.
 
+Slå på **Färga efter tröskelvärden** i en kolumn för att färga dess värden: Ett värde som når **Varningströskel** blir bärnstensfärgat med en triangel, och ett som når **Kritiskt tröskelvärde** blir rött och fetstilt med en cirkel. En procentkolumn börjar på 80 och 90. För en kolumn där låga värden är problemet, som ledigt diskutrymme, väljer du **Lägre är sämre** under **Riktning**.
+
+Tröskelvärden läser talet som tabellen visar, så ett användningsmått som skickas som en andel av 1, som `system.cpu.utilization`, visas och jämförs som procent. Under **Tröskelfärger** fyller **Färgad bakgrund** hela cellen i stället för att färga talet.
+
 Använd den för en uppdelning i stället för en trend: de mest bullriga värdarna, felen per tjänst, förfrågningarna per slutpunkt.
 
 ## Text, klocka och HTML

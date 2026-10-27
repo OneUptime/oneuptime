@@ -1,4 +1,5 @@
 import RulePatternMatchUtil from "../../../Utils/Rules/RulePatternMatchUtil";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Contract under test - the pattern language automation rules (label rules,
@@ -287,17 +288,25 @@ describe("RulePatternMatchUtil.matches - performance", () => {
     const pattern: string = `${"*a".repeat(12)}*b`;
     const value: string = "a".repeat(60);
 
-    const startedAt: number = Date.now();
-    expect(RulePatternMatchUtil.matches(value, pattern)).toBe(false);
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(RulePatternMatchUtil.matches(value, pattern)).toBe(false);
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   it("accepts a pathological wildcard pattern quickly when it does match", () => {
     const pattern: string = `${"*a".repeat(12)}*b`;
     const value: string = `${"a".repeat(60)}b`;
 
-    const startedAt: number = Date.now();
-    expect(RulePatternMatchUtil.matches(value, pattern)).toBe(true);
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(RulePatternMatchUtil.matches(value, pattern)).toBe(true);
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });

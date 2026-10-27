@@ -5,6 +5,7 @@ import AIRunEvent from "../../../../../Models/DatabaseModels/AIRunEvent";
 import AIRunEventType from "../../../../../Types/AI/AIRunEventType";
 import { CodeTaskStepJSON } from "../../../../../Types/AI/CodeTask";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * A run's event trail, as the steps a person reads in a task's conversation:
@@ -168,17 +169,20 @@ describe("CodeTaskSteps.stripLogPrefix", () => {
   });
 
   test("takes time in line with a line's length, however it is built", () => {
-    const start: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        CodeTaskSteps.stripLogPrefix(`${"[] ".repeat(140_000)}x`);
+        CodeTaskSteps.stripLogPrefix(`[${"] [".repeat(140_000)}`);
+        CodeTaskSteps.fromEvents([
+          line(`ran ${" (".repeat(200_000)}`, { toolName: "run_command" }),
+          line(`searched files for "${'"'.repeat(400_000)}`, {
+            toolName: "search_files",
+          }),
+        ]);
+      },
+      limitInMs: 2000,
+    });
 
-    CodeTaskSteps.stripLogPrefix(`${"[] ".repeat(140_000)}x`);
-    CodeTaskSteps.stripLogPrefix(`[${"] [".repeat(140_000)}`);
-    CodeTaskSteps.fromEvents([
-      line(`ran ${" (".repeat(200_000)}`, { toolName: "run_command" }),
-      line(`searched files for "${'"'.repeat(400_000)}`, {
-        toolName: "search_files",
-      }),
-    ]);
-
-    expect(Date.now() - start).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

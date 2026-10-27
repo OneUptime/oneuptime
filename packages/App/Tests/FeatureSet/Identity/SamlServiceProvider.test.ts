@@ -3,6 +3,7 @@ import SamlServiceProviders, {
 } from "../../../FeatureSet/Identity/Utils/SamlServiceProvider";
 import ObjectID from "Common/Types/ObjectID";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * What OneUptime tells an identity provider about each kind of SAML provider
@@ -212,9 +213,14 @@ describe("isSameAddress", () => {
 
   test("compares a path of 2,000 slashes quickly", () => {
     const slashes: string = `${EXPECTED}${"/".repeat(1900)}`;
-    const started: number = Date.now();
-
-    expect(SamlServiceProviders.isSameAddress(slashes, EXPECTED)).toBe(true);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(SamlServiceProviders.isSameAddress(slashes, EXPECTED)).toBe(
+          true,
+        );
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

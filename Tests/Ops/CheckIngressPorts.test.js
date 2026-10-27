@@ -39,7 +39,10 @@ const SCRIPT_PATH = "./Scripts/Install/CheckIngressPorts.js";
 const STEP = `node ${SCRIPT_PATH}`;
 // One `node ./Scripts/Install/<Name>.js` command of an npm script.
 const INSTALL_STEP = /^node \.\/Scripts\/Install\/[\w.-]+\.js$/;
-const INSTALL_STEP_IN_SCRIPT = /node (\.\/Scripts\/Install\/[\w.-]+\.js)/g;
+// The Scripts/Install files a script runs: its Node.js steps, and the shell
+// script that loads config.env for Compose (WithConfig.sh).
+const INSTALL_STEP_IN_SCRIPT =
+  /(?:node|sh) (\.\/Scripts\/Install\/[\w.-]+\.(?:js|sh))/g;
 
 const TEMPLATE = fs.readFileSync(
   path.join(REPO_ROOT, "config.example.env"),
@@ -495,8 +498,12 @@ describe("npm start runs it", () => {
     expect(commands.slice(0, at)).toContain(
       "node ./Scripts/Install/ReplacePlaceholderSecrets.js",
     );
-    expect(commands[at + 1]).toBe("export $(grep -v '^#' config.env | xargs)");
-    expect(commands[at + 2].startsWith("docker compose up ")).toBe(true);
+    // Compose starts next, with config.env's settings (WithConfig.sh).
+    expect(
+      commands[at + 1].startsWith(
+        "sh ./Scripts/Install/WithConfig.sh docker compose up ",
+      ),
+    ).toBe(true);
     expect(ROOT_PACKAGE.scripts.update).toMatch(/&& npm run start$/);
   });
 

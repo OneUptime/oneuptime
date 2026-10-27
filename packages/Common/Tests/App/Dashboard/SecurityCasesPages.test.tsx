@@ -15,6 +15,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import * as React from "react";
 import { ReactElement } from "react";
@@ -168,11 +169,22 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
 
 import SecurityCasesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Cases";
 import {
+  SECURITY_CASE_NO_BREAK_SPACE,
   SECURITY_CASE_QUEUE_VIEWS,
   SecurityCaseQueueView,
   SecurityCaseQueueViewKey,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import {
+  SECURITY_CASE_FORM_STEPS,
+  getSecurityCaseFormFields,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseFormFields";
+import {
+  OPEN_NEW_SECURITY_CASE,
+  OPEN_SECURITY_CASE,
+  SECURITY_CASE_ROW_DETECTIONS_TEST_ID,
+  SECURITY_CASE_ROW_NUMBER_TEST_ID,
+  SECURITY_CASE_ROW_SOURCE_LINE_TEST_ID,
+  SECURITY_CASE_ROW_TEAM_TEST_ID,
   VIEW_UNASSIGNED_CASES,
   VIEW_UNASSIGNED_CASES_TEST_ID,
   getSecurityCasesTablePreferencesKey,
@@ -365,6 +377,14 @@ function unassignedCase(
   }
 
   return row;
+}
+
+/*
+ * A time as a case's line writes it: its words joined by spaces no line
+ * breaks at, so the line never wraps inside it.
+ */
+function keptWhole(time: string): string {
+  return time.split(" ").join(SECURITY_CASE_NO_BREAK_SPACE);
 }
 
 function bodyRowTexts(): Array<string> {
@@ -598,12 +618,16 @@ describe("each case page draws the list its question needs", () => {
         "Last Detection",
       ],
     });
+    /*
+     * The time each list is sorted by waits in Customize Columns: each
+     * case's line under its title says it already.
+     */
     expect(hidden).toEqual({
-      open: ["Labels"],
-      mine: ["Labels"],
-      unassigned: ["Labels"],
-      closed: ["Labels"],
-      all: ["Verdict", "Labels"],
+      open: ["Labels", "Last Detection"],
+      mine: ["Labels", "Last Detection"],
+      unassigned: ["Labels", "Last Detection"],
+      closed: ["Labels", "Closed"],
+      all: ["Verdict", "Labels", "Last Detection"],
     });
   });
 
@@ -1012,7 +1036,7 @@ describe("the list a person sees", () => {
     expect(noTeamRow?.children[teamColumn]?.textContent?.trim()).toBe("-");
   });
 
-  test("a case OneUptime AI has read shows the read beside its title, with the AI mark", async () => {
+  test("a case OneUptime AI has read shows the read under its title, with the AI mark", async () => {
     const read: SecurityCase = unassignedCase(
       "20000000-0000-4000-8000-000000000151",
       "CASE-151",
@@ -1144,8 +1168,344 @@ describe("the list a person sees", () => {
     expect(listRequests[0]?.sort).toEqual({ closedAt: SortOrder.Descending });
     expect(screen.getAllByText("Benign Positive").length).toBeGreaterThan(0);
     expect(screen.getByRole("columnheader", { name: /Verdict/ })).toBeVisible();
-    expect(screen.getByRole("columnheader", { name: /Closed/ })).toBeVisible();
     expect(screen.queryByRole("columnheader", { name: /Status/ })).toBeNull();
+    /*
+     * When it closed is in the case's own line, so no column of its own
+     * until someone turns it on.
+     */
+    expect(screen.queryByRole("columnheader", { name: /Closed/ })).toBeNull();
+    expect(
+      screen.getByTestId(SECURITY_CASE_ROW_DETECTIONS_TEST_ID).textContent,
+    ).toBe(`2 detections, closed ${keptWhole("2 days ago")}`);
+  });
+
+  test("an open list's case says how many detections it holds and when the last fired", async () => {
+    listedRows = [
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000151",
+        "CASE-151",
+        "Brute force against web-1 ended in a sign-in",
+        undefined,
+      ),
+    ];
+
+    await drawTable(await capture("open"));
+    await screen.findByText("Brute force against web-1 ended in a sign-in");
+
+    const sentence: HTMLElement = screen.getByTestId(
+      SECURITY_CASE_ROW_DETECTIONS_TEST_ID,
+    );
+
+    expect(sentence.textContent).toBe(
+      `1 detection, ${keptWhole("2 hours ago")}`,
+    );
+    // The date and time itself, under the pointer.
+    expect(sentence.getAttribute("title")).toBeTruthy();
+    expect(sentence.getAttribute("title")).not.toContain("ago");
+    // No Last Detection column saying it again.
+    expect(
+      screen.queryByRole("columnheader", { name: /Last Detection/ }),
+    ).toBeNull();
+  });
+
+  test("several detections: the last one's time", async () => {
+    const busy: SecurityCase = unassignedCase(
+      "20000000-0000-4000-8000-000000000152",
+      "CASE-152",
+      "Impossible travel for a contractor",
+      undefined,
+    );
+    busy.detectionCount = 4;
+    listedRows = [busy];
+
+    await drawTable(await capture("all"));
+    await screen.findByText("Impossible travel for a contractor");
+
+    expect(
+      screen.getByTestId(SECURITY_CASE_ROW_DETECTIONS_TEST_ID).textContent,
+    ).toBe(`4 detections, the last ${keptWhole("2 hours ago")}`);
+  });
+
+  test("a case with nothing detected yet says only how many detections it holds", async () => {
+    const byHand: SecurityCase = unassignedCase(
+      "20000000-0000-4000-8000-000000000153",
+      "CASE-153",
+      "Opened by hand after a phishing report",
+      undefined,
+    );
+    byHand.detectionCount = 0;
+    delete (byHand as unknown as { lastDetectedAt?: Date }).lastDetectedAt;
+    listedRows = [byHand];
+
+    await drawTable(await capture("open"));
+    await screen.findByText("Opened by hand after a phishing report");
+
+    const sentence: HTMLElement = screen.getByTestId(
+      SECURITY_CASE_ROW_DETECTIONS_TEST_ID,
+    );
+
+    expect(sentence.textContent).toBe("0 detections");
+    expect(sentence).not.toHaveAttribute("title");
+  });
+
+  /*
+   * Laid out as text: the line wraps between its words and the sentence
+   * never jumps to a line of its own, leaving the "·" at the end of the one
+   * above; the source and its icon stay together.
+   */
+  test("the line under the title is laid out as text, the source with its icon", async () => {
+    listedRows = [closedCase()];
+
+    await drawTable(await capture("closed"));
+    await screen.findByText("Repeated MFA push denials for a sales account");
+
+    const line: HTMLElement = screen.getByTestId(
+      SECURITY_CASE_ROW_SOURCE_LINE_TEST_ID,
+    );
+
+    expect(line).not.toHaveClass("flex");
+    expect(line).toHaveClass("text-xs", "leading-5");
+
+    const source: HTMLElement = line.firstElementChild as HTMLElement;
+    expect(source).toHaveClass("inline-flex", "items-center");
+    expect(source.querySelector("svg")).not.toBeNull();
+    // The dot after the source is in its box: never the start of a line.
+    expect(source.lastElementChild).toHaveTextContent("·");
+    expect(source.lastElementChild).toHaveAttribute("aria-hidden", "true");
+    expect(line.lastElementChild).toBe(
+      screen.getByTestId(SECURITY_CASE_ROW_DETECTIONS_TEST_ID),
+    );
+  });
+
+  /*
+   * Beside the side menu the line wrapped inside its time: "vor 5 /
+   * Stunden" in German, "31 / минуту назад" in Russian, "9 minutes / ago"
+   * on a phone. The time's words are joined by no-break spaces; the rest
+   * of the sentence still wraps between its words.
+   */
+  test("the time in a case's line is kept whole where the line wraps", async () => {
+    const busy: SecurityCase = unassignedCase(
+      "20000000-0000-4000-8000-000000000157",
+      "CASE-157",
+      "Impossible travel for a contractor",
+      undefined,
+    );
+    busy.detectionCount = 3;
+    listedRows = [busy];
+
+    await drawTable(await capture("open"));
+    await screen.findByText("Impossible travel for a contractor");
+
+    const sentence: string =
+      screen.getByTestId(SECURITY_CASE_ROW_DETECTIONS_TEST_ID).textContent ||
+      "";
+    const time: string = sentence.slice("3 detections, the last ".length);
+
+    expect(sentence.startsWith("3 detections, the last ")).toBe(true);
+    expect(time).toBe(keptWhole("2 hours ago"));
+    expect(time).not.toContain(" ");
+    expect(SECURITY_CASE_NO_BREAK_SPACE).toBe(String.fromCharCode(0xa0));
+  });
+
+  /*
+   * OneUptime AI's read stood at the end of the line above, wherever that
+   * sentence happened to wrap - mid-line in German, on a line of its own
+   * in English. Under the line, at the cell's edge, it is in one place on
+   * every row and in every language, where the queue is scanned for it.
+   */
+  test("OneUptime AI's read is on a line of its own, under the case's line", async () => {
+    const read: SecurityCase = unassignedCase(
+      "20000000-0000-4000-8000-000000000158",
+      "CASE-158",
+      "Brute force against web-2 ended in a sign-in",
+      undefined,
+    );
+    read.aiVerdict = SecurityCaseAiVerdict.LikelyMalicious;
+    listedRows = [read];
+
+    await drawTable(await capture("open"));
+    await screen.findByText("Brute force against web-2 ended in a sign-in");
+
+    const line: HTMLElement = screen.getByTestId(
+      SECURITY_CASE_ROW_SOURCE_LINE_TEST_ID,
+    );
+    const pill: HTMLElement = screen.getByTestId(
+      "security-case-row-ai-verdict",
+    );
+
+    expect(pill).toHaveTextContent("Likely Malicious");
+    expect(line.contains(pill)).toBe(false);
+    expect(line.nextElementSibling).toBe(pill.parentElement);
+    expect(pill.parentElement).toHaveClass("mt-1", "flex");
+    // The line ends with its sentence, nothing after it.
+    expect(line.lastElementChild).toBe(
+      screen.getByTestId(SECURITY_CASE_ROW_DETECTIONS_TEST_ID),
+    );
+  });
+
+  /*
+   * A team named "Security Operations Center - Tier 2 Escalations (EMEA)"
+   * was drawn whole and ran every list past its card at 1280, under the
+   * sticky View and ⋯. Its name ends in "..." where its column does, as a
+   * person's beside their picture does, read the way it is written.
+   */
+  test("a team's name in the Assignee and Team columns is cut at its own end, never widening the list", async () => {
+    const teamName: string =
+      "Security Operations Center - Tier 2 Escalations (EMEA)";
+
+    for (const view of [
+      "open",
+      "unassigned",
+    ] as Array<SecurityCaseQueueViewKey>) {
+      listedRows = [
+        unassignedCase(
+          "20000000-0000-4000-8000-000000000159",
+          "CASE-159",
+          "Port scan from a lab host",
+          teamName,
+        ),
+      ];
+
+      await drawTable(await capture(view));
+      await screen.findByText("Port scan from a lab host");
+
+      const team: HTMLElement = screen.getByTestId(
+        SECURITY_CASE_ROW_TEAM_TEST_ID,
+      );
+      const name: HTMLElement = within(team).getByText(teamName);
+
+      // A box the table may narrow, its name the part that gives.
+      expect(team).toHaveAttribute("data-table-shrinks", "true");
+      expect(team).toHaveClass("flex", "min-w-0", "max-w-full");
+      expect(team.querySelector("svg")).toHaveClass("shrink-0");
+      expect(name.tagName).toBe("BDI");
+      expect(name).toHaveAttribute("dir", "ltr");
+      expect(name).toHaveClass("min-w-0", "truncate");
+
+      cleanup();
+    }
+  });
+
+  /*
+   * Open Security Case and a case's Edit Case are one form
+   * (SecurityCaseFormFields). Every field says what it is for in words of
+   * its own, translated: without them the form drew its column's, written
+   * for the API - "What the case is about, in a line." and "Labels to
+   * filter and report on cases by." in English on every page.
+   */
+  test("Open Security Case asks each field in words of its own", async () => {
+    const table: CapturedTable = await capture("open");
+    const props: Record<string, unknown> = table as unknown as Record<
+      string,
+      unknown
+    >;
+    const fields: Array<{
+      title: string;
+      stepId: string;
+      description?: unknown;
+      field: Record<string, boolean>;
+    }> = props["formFields"] as never;
+
+    expect(props["formSteps"]).toEqual(SECURITY_CASE_FORM_STEPS);
+    expect(titlesOf(fields)).toEqual([
+      "Title",
+      "Description",
+      "Priority",
+      "Assign To",
+      "Team",
+      "Labels",
+    ]);
+    expect(
+      fields.map((field: { description?: unknown }): unknown => {
+        return field.description;
+      }),
+    ).toEqual([
+      "What the case is about, in a line.",
+      "What prompted this case, and what to look at first.",
+      "How urgent the case is.",
+      "The person working the case.",
+      "The team the case belongs to.",
+      "Labels to filter and report on cases by.",
+    ]);
+    // The project's own priorities to pick from.
+    expect(
+      (fields[2] as unknown as { dropdownOptions: Array<unknown> })
+        .dropdownOptions.length,
+    ).toBe(PRIORITIES.length);
+    // Edit Case is the same form, the priority set from the header instead.
+    expect(
+      titlesOf(
+        getSecurityCaseFormFields() as unknown as Array<{ title: string }>,
+      ),
+    ).toEqual(["Title", "Description", "Assign To", "Team", "Labels"]);
+  });
+
+  /*
+   * A case's title is what a detection rule or a person wrote, in their
+   * language: it is read the way it is written, set apart from the page
+   * (IsolatedText). On a Persian page an English title ran into the number
+   * before it, "CASE-142Password spray"; isolated, the number keeps the
+   * start of the line and the title follows it.
+   */
+  test("each title is read the way it is written, after its number", async () => {
+    listedRows = [
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000154",
+        "CASE-154",
+        "Password spray against Okta from 203.0.113.47",
+        undefined,
+      ),
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000155",
+        "CASE-155",
+        "ورود مشکوک به حساب مدیر",
+        undefined,
+      ),
+    ];
+
+    await drawTable(await capture("open"));
+
+    const english: HTMLElement = await screen.findByText(
+      "Password spray against Okta from 203.0.113.47",
+    );
+    const persian: HTMLElement = screen.getByText("ورود مشکوک به حساب مدیر");
+
+    expect(english.tagName).toBe("BDI");
+    expect(english).toHaveAttribute("dir", "ltr");
+    expect(persian.tagName).toBe("BDI");
+    expect(persian).toHaveAttribute("dir", "rtl");
+
+    // Each number first, its title right after it, in the clamped line.
+    const numbers: Array<HTMLElement> = screen.getAllByTestId(
+      SECURITY_CASE_ROW_NUMBER_TEST_ID,
+    );
+    expect(
+      numbers.map((number: HTMLElement): string => {
+        return number.textContent || "";
+      }),
+    ).toEqual(["CASE-154", "CASE-155"]);
+    expect(numbers[0]!.nextElementSibling).toBe(english);
+    expect(numbers[1]!.nextElementSibling).toBe(persian);
+    expect(english.parentElement).toHaveClass("line-clamp-2", "break-words");
+  });
+
+  /*
+   * "Open" is not a verb the shared table words itself, so each word was
+   * looked up alone: "Öffnen Sicherheitsfall" in German. The list names
+   * its button and dialog in whole phrases.
+   */
+  test("Open Security Case and its dialog are named in whole phrases", async () => {
+    const table: CapturedTable = await capture("open");
+    const props: Record<string, unknown> = table as unknown as Record<
+      string,
+      unknown
+    >;
+
+    expect(OPEN_SECURITY_CASE).toBe("Open Security Case");
+    expect(OPEN_NEW_SECURITY_CASE).toBe("Open New Security Case");
+    expect(props["createVerb"]).toBe("Open");
+    expect(props["createFormTitle"]).toBe(OPEN_NEW_SECURITY_CASE);
+    expect(props["createFormSubmitButtonText"]).toBe(OPEN_SECURITY_CASE);
   });
 
   test("going from one case page to the next starts the list afresh: a new table, not the last one's", async () => {

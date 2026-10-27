@@ -114,6 +114,11 @@ const RAW_TRANSPORT_ALLOWLIST: Array<AllowlistEntry> = [
     reason:
       "Reads the frontend's own static dist/build.json, not the API: no session is involved, so there is nothing to refresh. It needs the raw answer (the status code, a page served in place of the JSON, a timeout, cache: no-store) to tell a new build from a server that is restarting or out of reach.",
   },
+  {
+    file: "App/FeatureSet/Dashboard/src/Utils/ExternalStatusPageComponentCatalog.ts",
+    reason:
+      "Reads another company's status page (its Statuspage, incident.io or OneUptime components list) for the External Status Page monitor's Components picker, not OneUptime's API: it sends nothing of OneUptime's - credentials omit, no referrer, no session to refresh - and reads the answer itself, for at most 4 MB within 15 seconds.",
+  },
 ];
 
 function toPackagesPath(filePath: string): string {

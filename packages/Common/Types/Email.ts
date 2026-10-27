@@ -1,5 +1,6 @@
 import Hostname from "./API/Hostname";
 import DatabaseProperty from "./Database/DatabaseProperty";
+import Domain from "./Domain";
 import BadDataException from "./Exception/BadDataException";
 import { JSONObject, JSONValue, ObjectType } from "./JSON";
 import { FindOperator } from "typeorm";
@@ -257,6 +258,25 @@ export default class Email extends DatabaseProperty {
     }
 
     return true;
+  }
+
+  /*
+   * Whether a value is an address on a name RFC 2606 reserves for testing
+   * (Domain.isReservedName): a test's or an example's address, never a
+   * person's. Reads any value, an address or not, and never throws.
+   */
+  public static isOnReservedDomain(value: string): boolean {
+    if (typeof value !== "string") {
+      return false;
+    }
+
+    const at: number = value.lastIndexOf("@");
+
+    if (at < 0) {
+      return false;
+    }
+
+    return Domain.isReservedName(value.slice(at + 1));
   }
 
   public static override toDatabase(

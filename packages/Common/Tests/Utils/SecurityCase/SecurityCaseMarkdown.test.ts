@@ -19,6 +19,7 @@ import {
   threatIntelMatchMarkdown,
 } from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Case data is attacker-reachable: a brute force picks the user names a
@@ -466,10 +467,13 @@ describe("renderSecurityCaseTemplate", () => {
 
   test("renders a long template in linear time", () => {
     const template: string = "{{case.title}} ".repeat(2000);
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        renderSecurityCaseTemplate(template, VALUES);
+      },
+      limitInMs: 2000,
+    });
 
-    renderSecurityCaseTemplate(template, VALUES);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

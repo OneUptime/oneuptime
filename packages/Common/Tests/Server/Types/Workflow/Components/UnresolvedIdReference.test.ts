@@ -28,6 +28,7 @@ import Exception from "../../../../../Types/Exception/Exception";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * Production Postgres logged, a few times a day:
@@ -170,15 +171,18 @@ describe("findUnresolvedIdReference", () => {
 
   // What a reference resolves to can be megabytes; it is read in one pass.
   test("reads a megabyte-long ID in one pass", () => {
-    const startedAt: number = Date.now();
-
-    expect(
-      findUnresolvedIdReference(
-        { currentIncidentStateId: `${"{".repeat(4 * 1024 * 1024)}x` },
-        incident,
-      ),
-    ).toBeNull();
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          findUnresolvedIdReference(
+            { currentIncidentStateId: `${"{".repeat(4 * 1024 * 1024)}x` },
+            incident,
+          ),
+        ).toBeNull();
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });
 

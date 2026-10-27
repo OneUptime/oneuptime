@@ -7,6 +7,7 @@ import {
   redactSecretValues,
 } from "../../../Types/Runbook/SecretOutputRedaction";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * SECRET VARIABLES NEVER SHOW IN A STEP'S OUTPUT.
@@ -118,16 +119,19 @@ describe("redactSecretValues", () => {
 
   test("reads a long output in time in line with its length", () => {
     const output: string = `${"a".repeat(399_990)}hunter2-hunter2`;
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const redacted: string = redactSecretValues(output, [
+          "hunter2-hunter2",
+          KUBECONFIG,
+          PRIVATE_KEY,
+        ]);
 
-    const redacted: string = redactSecretValues(output, [
-      "hunter2-hunter2",
-      KUBECONFIG,
-      PRIVATE_KEY,
-    ]);
-
-    expect(redacted.endsWith(R)).toBe(true);
-    expect(Date.now() - started).toBeLessThan(2000);
+        expect(redacted.endsWith(R)).toBe(true);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

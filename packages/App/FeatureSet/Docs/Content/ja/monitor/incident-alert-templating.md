@@ -440,11 +440,11 @@ Alerts for payments:
 | 変数 | 内容 | 型 |
 | --- | --- | --- |
 | `overallStatus` | ステータスページの全体のステータス (`major_outage` など)。 | `string` |
-| `activeIncidentCount` | ステータスページで開いているインシデントの数。 | `number` |
+| `activeIncidentCount` | ステータスページで開いているインシデントのうち、モニターが監視している対象に影響するものの数。 | `number` |
 | `componentStatuses` | コンポーネント。それぞれ `{name, status, description, groupName}` の形です。 | `Array<Object>` |
 | `provider` | ステータスページの種類: Atlassian Statuspage、incident.io、RSS、Atom。 | `string` |
 | `componentGroup` | モニターが監視しているコンポーネントグループ (ある場合)。 | `string` |
-| `componentName` | モニターが監視しているコンポーネント (ある場合)。 | `string` |
+| `componentName` | モニターが監視しているコンポーネント (選んでいる場合、カンマ区切り)。 | `string` |
 | `isOnline` | ステータスページが応答したかどうか。 | `boolean` |
 | `responseTimeInMs` | ステータスページの応答にかかった時間 (ミリ秒)。 | `number` |
 | `failureCause` | チェックが失敗したときの理由。 | `string` |

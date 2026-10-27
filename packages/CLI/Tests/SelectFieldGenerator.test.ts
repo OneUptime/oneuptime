@@ -222,9 +222,9 @@ describe("SelectFieldGenerator", () => {
       });
 
       it("should handle outer exception and return default select", () => {
-        const origFind: unknown = DatabaseModels.find;
+        const origFind: unknown = DatabaseModels["find"];
         try {
-          DatabaseModels.find = (): never => {
+          DatabaseModels["find"] = (): never => {
             throw new Error("Simulated error");
           };
 
@@ -238,14 +238,18 @@ describe("SelectFieldGenerator", () => {
             updatedAt: true,
           });
         } finally {
-          DatabaseModels.find = origFind;
+          DatabaseModels["find"] = origFind;
         }
       });
 
       it("should return default when getTableColumns returns empty", () => {
-        const origGetTableColumns: unknown = tableColumnModule.getTableColumns;
+        const origGetTableColumns: unknown =
+          tableColumnModule["getTableColumns"];
         try {
-          tableColumnModule.getTableColumns = (): Record<string, unknown> => {
+          tableColumnModule["getTableColumns"] = (): Record<
+            string,
+            unknown
+          > => {
             return {};
           };
 
@@ -259,32 +263,35 @@ describe("SelectFieldGenerator", () => {
             updatedAt: true,
           });
         } finally {
-          tableColumnModule.getTableColumns = origGetTableColumns;
+          tableColumnModule["getTableColumns"] = origGetTableColumns;
         }
       });
 
       it("should return default when all columns are filtered out", () => {
-        const origGetTableColumns: unknown = tableColumnModule.getTableColumns;
-        const origFind: unknown = DatabaseModels.find;
+        const origGetTableColumns: unknown =
+          tableColumnModule["getTableColumns"];
+        const origFind: unknown = DatabaseModels["find"];
 
         try {
-          tableColumnModule.getTableColumns = (): Record<
+          tableColumnModule["getTableColumns"] = (): Record<
             string,
             Record<string, unknown>
           > => {
             return { field1: {}, field2: {} };
           };
 
-          DatabaseModels.find = (fn: (model: unknown) => boolean): unknown => {
+          DatabaseModels["find"] = (
+            fn: (model: unknown) => boolean,
+          ): unknown => {
             function MockModel(this: Record<string, unknown>): void {
-              this.tableName = "MockTable";
-              this.getColumnAccessControlForAllColumns = (): Record<
+              this["tableName"] = "MockTable";
+              this["getColumnAccessControlForAllColumns"] = (): Record<
                 string,
                 unknown
               > => {
                 return {
-                  field1: { read: [Permission.CurrentUser] },
-                  field2: { read: [Permission.CurrentUser] },
+                  field1: { read: [Permission["CurrentUser"]] },
+                  field2: { read: [Permission["CurrentUser"]] },
                 };
               };
             }
@@ -305,8 +312,8 @@ describe("SelectFieldGenerator", () => {
             updatedAt: true,
           });
         } finally {
-          DatabaseModels.find = origFind;
-          tableColumnModule.getTableColumns = origGetTableColumns;
+          DatabaseModels["find"] = origFind;
+          tableColumnModule["getTableColumns"] = origGetTableColumns;
         }
       });
     });

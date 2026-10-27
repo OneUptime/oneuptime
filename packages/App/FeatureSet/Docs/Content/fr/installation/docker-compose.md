@@ -84,7 +84,7 @@ Il vous faut aussi :
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | Le tableau de bord, l'API, l'ingestion de télémétrie et la validation Let's Encrypt. |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | HTTPS pour votre instance quand OneUptime gère le certificat, et pour les pages de statut et tableaux de bord sur des domaines personnalisés. |
-| 5400 | `postgres` | Défini dans `docker-compose.yml` | Permet à `npm run backup` et à `restore.sh` de joindre PostgreSQL depuis le serveur lui-même. Il n'est publié que sur `127.0.0.1`. |
+| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | Permet à `npm run backup` et à `restore.sh` de joindre PostgreSQL depuis le serveur lui-même. Il n'est publié que sur `127.0.0.1`. |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | Le serveur propre à la sonde. Rien hors du serveur n'en a besoin. |
 
 Il existe aussi une [vidéo pas à pas](https://youtu.be/j1SWmMW2oL4) de l'installation.
@@ -132,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 Avant le premier démarrage, remplacez vous-même les secrets factices, comme le montre [Générer des secrets aléatoires](#générer-des-secrets-aléatoires) : seul `npm start` le fait pour vous.
 :::
@@ -386,7 +386,7 @@ PostgreSQL garde le mot de passe avec lequel il a été créé : changer seuleme
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -468,7 +468,7 @@ npm run down
 Vos données restent dans les volumes `oneuptime_postgres` et `oneuptime_clickhouse`, et le dossier `oneuptime` conserve `config.env` et vos sauvegardes. Pour supprimer aussi les données :
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 Supprimez ensuite le dossier `oneuptime`.
@@ -534,7 +534,7 @@ Jusqu'à ce que Let's Encrypt émette le certificat, l'ingress sert un certifica
 Quand une commande échoue, l'application journalise une erreur qui commence par `CoreSSL:EnsurePrimaryHostCertificate`, suivie de la raison :
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 

@@ -185,6 +185,7 @@ x-common-runtime-variables: &common-runtime-variables
   # existing config.env upgraded in place will not have the key.
   DISABLE_UPDATE_CHECK: ${DISABLE_UPDATE_CHECK:-false}
   LATEST_RELEASE_CHECK_URL: ${LATEST_RELEASE_CHECK_URL:-}
+  DISABLE_INSTANCE_CHECK_IN: ${DISABLE_INSTANCE_CHECK_IN:-false}
 
   # On-call calendar feeds (token-in-URL .ics subscriptions). Defaulted so a
   # config.env upgraded in place, which will not have these keys, neither warns

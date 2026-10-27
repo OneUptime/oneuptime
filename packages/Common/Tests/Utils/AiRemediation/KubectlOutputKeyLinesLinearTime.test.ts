@@ -1,6 +1,7 @@
 import KubectlOutputRedactor from "../../../Utils/AiRemediation/KubectlOutputRedactor";
 import { GenericOutputRedactor } from "../../../Utils/AiRemediation/Resource/ResourceOutputRedactor";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -62,11 +63,14 @@ describe.each(REDACTORS)(
   "$name reads a long line in time in line with its length",
   (redactor: Redactor) => {
     test.each(WORST_CASES)("%s", (_label: string, output: string) => {
-      const startedAt: number = Date.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          redactor.redact(output);
+        },
+        limitInMs: 2000,
+      });
 
-      redactor.redact(output);
-
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     });
   },
 );

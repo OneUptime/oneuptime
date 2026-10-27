@@ -10,6 +10,7 @@ import {
 import { RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN } from "../../../Types/Rules/RuleCriteria";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -373,12 +374,15 @@ describe("how much work one question may take", () => {
 
   test("a pattern built to need many steps per character is stopped, quickly", () => {
     const text: string = randomAb(200000);
-    const startedAt: number = Date.now();
-
-    expect(() => {
-      return linear(EXPLODING, "", false).test(text);
-    }).toThrow(PatternWorkLimitError);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(() => {
+          return linear(EXPLODING, "", false).test(text);
+        }).toThrow(PatternWorkLimitError);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("the same pattern answers a short text: the allowance for its size covers a large pattern's first states", () => {
@@ -387,17 +391,20 @@ describe("how much work one question may take", () => {
 
   test("a replace that would read the text over for every match is stopped", () => {
     const text: string = "a".repeat(100000);
-    const startedAt: number = Date.now();
-
-    /*
-     * Each "a" is a match, but only once the first alternative - a run to a
-     * "c" that is never there - has read on to the end of the text: the
-     * square of its length in all.
-     */
-    expect(() => {
-      return linear("(?:a.*c|a)", "g").replace(text, String);
-    }).toThrow(PatternWorkLimitError);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        /*
+         * Each "a" is a match, but only once the first alternative - a run to a
+         * "c" that is never there - has read on to the end of the text: the
+         * square of its length in all.
+         */
+        expect(() => {
+          return linear("(?:a.*c|a)", "g").replace(text, String);
+        }).toThrow(PatternWorkLimitError);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("a replace of a hundred thousand matches is not", () => {

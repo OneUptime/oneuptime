@@ -176,7 +176,9 @@ describe("the note and the guide are true to the install", () => {
     expect(check).toBeGreaterThan(-1);
     expect(check).toBeLessThan(
       commands.findIndex((command: string): boolean => {
-        return command.startsWith("docker compose up ");
+        return command.startsWith(
+          "sh ./Scripts/Install/WithConfig.sh docker compose up ",
+        );
       }),
     );
     expect(scripts["update"]).toMatch(/&& npm run start$/);

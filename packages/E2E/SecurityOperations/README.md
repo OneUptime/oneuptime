@@ -101,6 +101,8 @@ history is laid out from it with a seeded generator, so every run draws the same
 | `?setup=`   | Turn on recommended that cannot do everything: `partly` (the first click leaves Password spraying and Enrich New Cases undone, the Rule Library's first Add of Password spraying fails, and the Playbooks page's first template is refused by the role; the next click, Add or pick does them) or `fail` (the first click cannot reach the server; the next one turns everything on)                                               |
 | `?refuse=`  | case numbers, comma separated (`138`): the server refuses every change to those cases, as a role scoped to labels the reader lacks does, so Bulk Actions names the cases it could not change and why                                                                                                                                                                                                                               |
 | `?triage=`  | the case AI card's other states: `failed` (CASE-141's only triage stopped with an error), `provider`, `credits` or `limit` (no LLM provider, no AI credits, the daily AI limit: nothing can be triaged), `injection` (CASE-137's data held text written to steer an AI; its benign read set aside for Inconclusive), `retry` (CASE-142's latest triage stopped; the read before it stays) and `auto-off` (Triage new cases is off) |
+| `?lang=`    | `de`, `es`, `fr`, `it`, `pt`, `nl`, `ru`, `ja` or `fa` (right to left): the Dashboard's words and its times ("vor 9 Minuten") in that language; the case lists are measured in the widest of them |
+| `?team=`    | `long`: the SOC team is "Security Operations Center - Tier 2 Escalations (EMEA)", wherever a list or a picker names it |
 
 ## What the fixture records
 
@@ -138,8 +140,14 @@ that list is not empty.
   from the side menu lists what its name says (Unassigned names the team a case was handed to,
   Assigned to Me has no Assignee column, Closed Cases reads by verdict and when each closed); at
   1280 each list's title, search and buttons share one line with the description under them; at
-  1440 every column fits the card beside the side menu; at 1024 and 390 nothing runs off the page
-  and the header's search stays inside the card.
+  1440 every column fits the card beside the side menu, each case's line saying when its last
+  detection fired ("3 detections, the last 9 minutes ago") with no Last Detection column, and
+  Closed Cases saying when each closed; at a 1280 laptop every list fits its card in German,
+  French, Dutch and Russian (`?lang=`), German's button reading "Sicherheitsfall eröffnen", each
+  case's line keeping its time whole ("vor 5 Stunden") and OneUptime AI's read on a line of its
+  own under it; a team with a long name (`?team=long`) cut short with "...", the lists still inside
+  their card; at 1024 and 390 nothing runs off the page and the header's search stays inside the
+  card.
 - **Working cases from the queue**: each row's ⋯ offers the moves its case takes - Assign to
   Me, Assign to Someone Else, Change Status and Change Priority beside View, Delete last; none
   of the assigning on a closed case, no Assign to Me on the reader's own. "Assign to Someone
@@ -163,8 +171,8 @@ that list is not empty.
   named for the case; the Overview has the header in full (status steps, who has it), the
   figures, the AI card and ATT&CK, and every other page the header compact, with every action,
   the case read once for them all; a link straight to any page opens it; the held run with
-  Approve and Reject, counted beside Playbooks until approving it runs the rest; Delete Case
-  asks first; a Security Viewer reads every page and is shown why it cannot change one; a case
+  Approve and Reject, counted beside Playbooks until approving it runs the rest; Edit Case asks
+  what Open Security Case asks, in the reader's words; Delete Case asks first; a Security Viewer reads every page and is shown why it cannot change one; a case
   that is not there says so; the header at a laptop's width (actions on the title's line) and on
   a phone (buttons filling their rows, the ⋯ in the corner); every page at 1280 and 390, both
   themes.
@@ -175,7 +183,8 @@ that list is not empty.
   no playbook (`?empty=1`) has the templates as its empty list, with Create a blank playbook; a
   template becomes a working playbook in one click, built as Turn on recommended builds Enrich New
   Cases, and one that cannot be added says why in the amber box; a playbook's page is named for it
-  in the trail and the tab, its settings read in full; its steps and latest runs, each run named by
+  in the trail and the tab, its settings read in full; a step's dialog named by its place and what
+  it does ("Schritt 4 bearbeiten: Notiz hinzufügen"); its steps and latest runs, each run named by
   its case and folded to a line but the one waiting for approval; a run's Approve and Reject (or
   Cancel Run) keep its title's line at 1280, at the card's right, and drop under its words on a
   phone; Approvals, at the runs page's old

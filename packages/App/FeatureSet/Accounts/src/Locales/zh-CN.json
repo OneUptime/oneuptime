@@ -105,6 +105,7 @@
   "register": {
     "title": "创建您的 OneUptime 账户",
     "subtitle": "加入数千家使用 OneUptime 保持随时在线的企业。",
+    "firstAccountSubtitle": "此 OneUptime 服务器还没有任何账户。您创建的第一个账户将成为它的管理员。",
     "noCreditCard": "无需信用卡。",
     "submitButton": "注册",
     "haveAccountPrompt": "已经有账户？",
@@ -131,7 +132,6 @@
     "subtitle": "请输入您的电子邮件，密码重置链接将发送给您。",
     "successMessage": "我们已通过电子邮件向您发送了密码重置链接。请不要忘记检查垃圾邮件文件夹。",
     "submitButton": "发送密码重置链接",
-    "returnToSignIn": "返回登录。",
     "rememberPasswordPrompt": "记得您的密码？",
     "loginLink": "登录。"
   },
@@ -170,7 +170,7 @@
     "successTitle": "您的电子邮件已验证。",
     "successDescription": "感谢您验证您的电子邮件。您现在可以登录 OneUptime。",
     "errorTitle": "抱歉，出错了！",
-    "returnToSignIn": "返回登录？",
+    "alreadyVerifiedPrompt": "已经验证过电子邮件？",
     "loginLink": "登录。",
     "continueToSignIn": "继续登录",
     "linkInvalidTitle": "此验证链接已失效",

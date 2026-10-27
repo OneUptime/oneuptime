@@ -439,6 +439,16 @@ const presetVerdict =
       ? "Rejected"
       : null;
 const smMode = params.get("sm") || "scheduled";
+/*
+ * ?publish=: when scheduled maintenance #58 is published on its status pages
+ * (Publish on Status Page At, #5249). Absent: right away, as every event
+ * before it. `later`: kept to the team until 19:30 today, before its 20:20
+ * start - its subscribers' 'scheduled' notification waits for that time.
+ * `past`: it had a publish time, 12:00 today, which has come.
+ */
+const publishMode = ["later", "past"].includes(params.get("publish"))
+  ? params.get("publish")
+  : "now";
 const failures = new Set(
   (params.get("fail") || "").split(",").filter((value) => value.length > 0),
 );
@@ -728,6 +738,7 @@ const fixture = {
     title: titleMode,
     verdict: presetVerdict,
     sm: smMode,
+    publish: publishMode,
     fail: Array.from(failures),
     role: roleMode,
     resources: resourcesMode,
@@ -1291,6 +1302,10 @@ const RESEND_FAILURE_STATUS_MESSAGE =
   "The email provider rejected the batch: 421 too many connections.";
 const RESEND_FAILURE_MESSAGE =
   "Notifications cannot be resent while the email provider is rate limiting this project.";
+
+// ?fail=publish: Publish Now's write of #58's publish time is refused.
+const PUBLISH_FAILURE_MESSAGE =
+  "This scheduled maintenance event could not be updated. Please try again.";
 
 function stateChangeFeed(kind, number, state, when, byUser) {
   const emoji = state.isResolvedState ? "✅" : "🟡";
@@ -1967,12 +1982,28 @@ table(ScheduledMaintenance).push({
   services:
     resourcesMode === "none" ? [] : [services.orders, services.checkout],
   labels: [labels.platform, labels.production],
-  subscriberNotificationStatusOnEventScheduled: failures.has("resend")
-    ? StatusPageSubscriberNotificationStatus.Failed
-    : StatusPageSubscriberNotificationStatus.Success,
-  subscriberNotificationStatusMessage: failures.has("resend")
-    ? RESEND_FAILURE_STATUS_MESSAGE
-    : "Notified 1,284 status page subscribers.",
+  /*
+   * Kept to the team until its publish time, its subscribers have not been
+   * told yet: the 'scheduled' notification waits, Pending, for that time.
+   */
+  subscriberNotificationStatusOnEventScheduled:
+    publishMode === "later"
+      ? StatusPageSubscriberNotificationStatus.Pending
+      : failures.has("resend")
+        ? StatusPageSubscriberNotificationStatus.Failed
+        : StatusPageSubscriberNotificationStatus.Success,
+  subscriberNotificationStatusMessage:
+    publishMode === "later"
+      ? undefined
+      : failures.has("resend")
+        ? RESEND_FAILURE_STATUS_MESSAGE
+        : "Notified 1,284 status page subscribers.",
+  publishOnStatusPageAt:
+    publishMode === "later"
+      ? at("19:30")
+      : publishMode === "past"
+        ? at("12:00")
+        : undefined,
   shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
   shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
   shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
@@ -2035,7 +2066,13 @@ const smFeed = [
     new Date(smCreatedAt.getTime() + 6 * MINUTE),
     undefined,
   ],
-];
+].filter((item) => {
+  // Not published yet: nobody has been told about it.
+  return (
+    publishMode !== "later" ||
+    item[0] !== ScheduledMaintenanceFeedEventType.SubscriberNotificationSent
+  );
+});
 if (smHasStarted) {
   smFeed.push([
     ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
@@ -4888,6 +4925,15 @@ ModelAPI.updateById = async (options) => {
   });
   if (failures.has("resend") && isNotificationResend) {
     throw fail(400, RESEND_FAILURE_MESSAGE);
+  }
+  if (
+    failures.has("publish") &&
+    Object.prototype.hasOwnProperty.call(
+      options.data || {},
+      "publishOnStatusPageAt",
+    )
+  ) {
+    throw fail(500, PUBLISH_FAILURE_MESSAGE);
   }
   const record = (tables.get(modelName)?.records || []).find((item) => {
     return String(item._id) === id;

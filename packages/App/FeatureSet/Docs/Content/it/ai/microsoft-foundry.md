@@ -177,7 +177,7 @@ GLOBAL_LLM_PROVIDER_API_KEY=<KEY 1 of contoso-ai>
 Aggiungi le variabili a `config.env`, poi riavvia OneUptime nel modo in cui l'hai avviato:
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 @tab Kubernetes
 Tieni la chiave in un Secret e passa le variabili con l'`extraEnv` globale del chart:

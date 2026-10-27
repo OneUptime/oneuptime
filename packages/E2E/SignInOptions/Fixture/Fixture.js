@@ -23,6 +23,9 @@
  *   lookup=found                         the email lookup finds providers in two
  *                                        projects (it finds none otherwise)
  *   sso=0                                the status page has no SSO provider
+ *   firstaccount=1                       the self-hosted server has no account yet
+ *                                        (POST /identity/first-account says so; the
+ *                                        sign-up page waits for that answer)
  *
  * window.__setLanguage(code) switches the page's language in place, and
  * resolves once the page has drawn it.
@@ -159,6 +162,14 @@ API.get = async (options) => {
 
 API.post = async (options) => {
   const url = options.url.toString();
+  // Whether this self-hosted server waits for its first account: the sign-up page asks.
+  if (url.endsWith("/first-account")) {
+    return new HTTPResponse(
+      200,
+      { isAwaitingFirstAccount: params.get("firstaccount") === "1" },
+      {},
+    );
+  }
   if (url.endsWith("/passkey-login-options")) {
     return new HTTPResponse(
       200,

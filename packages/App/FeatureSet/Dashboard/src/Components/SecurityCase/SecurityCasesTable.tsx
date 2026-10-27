@@ -14,19 +14,22 @@ import SecurityEntityChips, {
   readSecurityEntities,
 } from "./SecurityEntityChips";
 import {
-  getSecurityCaseAssigneePickerConfig,
-  getSecurityCaseTeamPickerConfig,
-} from "./SecurityCaseAssigneePicker";
-import {
   SecurityCaseQueueColumn,
   SecurityCaseQueueFilter,
   SecurityCaseQueueView,
   SecurityCaseQueueViewKey,
+  SecurityCaseRowMoment,
   getSecurityCaseQueueFilters,
   getSecurityCaseQueueQuery,
   getSecurityCaseQueueStatusOptions,
   getSecurityCaseQueueView,
+  getSecurityCaseRowMoment,
+  keepSecurityCaseTimeWhole,
 } from "./SecurityCaseQueueViews";
+import {
+  SECURITY_CASE_FORM_STEPS,
+  getSecurityCaseFormFields,
+} from "./SecurityCaseFormFields";
 import { SecurityCaseValueLists } from "./SecurityCaseValues";
 import {
   getSecurityCasePriorityOptions,
@@ -51,9 +54,9 @@ import { BulkActionButtonSchema } from "Common/UI/Components/BulkUpdate/BulkUpda
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
@@ -102,6 +105,30 @@ export const VIEW_UNASSIGNED_CASES: string = translationKey(
 export const VIEW_UNASSIGNED_CASES_TEST_ID: string =
   "security-cases-view-unassigned";
 
+/*
+ * The case list's create button and its dialog, worded whole in every
+ * language. "Open" is not a verb the shared table words itself ("Create",
+ * "Add", "Declare"...), so the button was the locale's word for the verb
+ * before its word for the case: "Öffnen Sicherheitsfall" in German, open as
+ * a door is, where a case is "eröffnet".
+ */
+export const OPEN_SECURITY_CASE: string = translationKey("Open Security Case");
+export const OPEN_NEW_SECURITY_CASE: string = translationKey(
+  "Open New Security Case",
+);
+
+/*
+ * The line under each case's title - what raised it, its detections and
+ * the time its list is sorted by - and that sentence in it.
+ */
+export const SECURITY_CASE_ROW_SOURCE_LINE_TEST_ID: string =
+  "security-case-row-source-line";
+// The case's number, before its title.
+export const SECURITY_CASE_ROW_NUMBER_TEST_ID: string =
+  "security-case-row-number";
+export const SECURITY_CASE_ROW_DETECTIONS_TEST_ID: string =
+  "security-case-row-detections";
+
 // A case as its page names it: its number, then its title.
 export const getSecurityCaseName: (securityCase: SecurityCase) => string = (
   securityCase: SecurityCase,
@@ -137,6 +164,37 @@ const CaseMoment: FunctionComponent<{ value: Date | undefined }> = (props: {
       )}
     >
       {OneUptimeDate.fromNow(props.value)}
+    </span>
+  );
+};
+
+// The team a case is with, in the Assignee and Team columns.
+export const SECURITY_CASE_ROW_TEAM_TEST_ID: string = "security-case-row-team";
+
+/*
+ * A team's name ends in "..." where its column does, as a person's beside
+ * their picture does (UserElement), and the table shows the whole of it
+ * under the pointer: drawn whole, a team named "Security Operations Center
+ * - Tier 2 Escalations (EMEA)" ran every list past its card at 1280, its
+ * end under the sticky View and ⋯, in English as in German. The name is
+ * read the way it is written (IsolatedText's reading), so on a Persian page
+ * an English name is cut at its own end, not its start.
+ */
+const SecurityCaseTeamName: FunctionComponent<{ name: string }> = (props: {
+  name: string;
+}): ReactElement => {
+  return (
+    <span
+      className="flex min-w-0 max-w-full items-center gap-1.5 text-sm text-gray-700"
+      data-testid={SECURITY_CASE_ROW_TEAM_TEST_ID}
+      // A table that would run past its card may narrow it (TableLayout).
+      data-table-shrinks="true"
+    >
+      <Icon
+        icon={IconProp.UserGroup}
+        className="h-4 w-4 shrink-0 text-gray-400"
+      />
+      <IsolatedText text={props.name} className="min-w-0 truncate" />
     </span>
   );
 };
@@ -313,6 +371,14 @@ const SecurityCasesList: FunctionComponent<{
         const entities: Array<SecurityEntity> = readSecurityEntities(
           item.entities,
         );
+        /*
+         * How many detections, and the time the list is sorted by: when
+         * the last one fired, or when the case closed.
+         */
+        const moment: SecurityCaseRowMoment = getSecurityCaseRowMoment(
+          view.sortBy,
+          item,
+        );
 
         return (
           /*
@@ -331,42 +397,83 @@ const SecurityCasesList: FunctionComponent<{
                 { modelId: new ObjectID(item._id!.toString()) },
               )}
             >
+              {/*
+                The title is read the way it is written, apart from the
+                page (IsolatedText): on a Persian page an English title ran
+                into the number before it, "CASE-142Password spray", and
+                the number belongs at the start of the line, where a
+                Persian reader begins.
+              */}
               <span className="line-clamp-2 break-words font-medium text-gray-900 group-hover:underline">
-                <span className="mr-1.5 font-mono text-xs text-gray-500">
+                <span
+                  className="mr-1.5 font-mono text-xs text-gray-500"
+                  data-testid={SECURITY_CASE_ROW_NUMBER_TEST_ID}
+                >
                   {item.caseNumberWithPrefix || ""}
                 </span>
-                {item.title || ""}
+                <IsolatedText text={item.title || ""} />
               </span>
             </AppLink>
             {/*
               Where the case came from, how many detections it holds and
-              OneUptime AI's read of it, on one line while they fit; the
-              read wraps under them, on the cell's edge, when they do not.
+              when the last fired (or when it closed): one line of text
+              while it fits, which wraps between its words when it does
+              not, the time kept whole. Laid out as text rather than as
+              boxes, the sentence never jumps to a line of its own and
+              leaves the "·" alone at the end of the one above.
             */}
-            <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-gray-500">
-              <Icon
-                icon={getSecurityDetectionSourceIcon(item.source)}
-                className="h-3 w-3 text-gray-400"
-              />
-              <span>
-                {item.source ? translator.translateText(item.source) : ""}
+            <div
+              className="mt-0.5 text-xs leading-5 text-gray-500"
+              data-testid={SECURITY_CASE_ROW_SOURCE_LINE_TEST_ID}
+            >
+              {/*
+                The source, its icon and the dot after it stay together, one
+                box in the line: where the line breaks after it, the dot ends
+                the first line rather than starting the next.
+              */}
+              <span className="me-1.5 inline-flex items-center gap-1.5 align-top">
+                <Icon
+                  icon={getSecurityDetectionSourceIcon(item.source)}
+                  className="h-3 w-3 text-gray-400"
+                />
+                <span>
+                  {item.source ? translator.translateText(item.source) : ""}
+                </span>
+                <span aria-hidden="true">·</span>
               </span>
-              <span aria-hidden="true">·</span>
-              <span>
+              <span
+                data-testid={SECURITY_CASE_ROW_DETECTIONS_TEST_ID}
+                title={
+                  moment.time
+                    ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+                        moment.time,
+                      )
+                    : undefined
+                }
+              >
                 {translator.translatePlural(
-                  {
-                    one: "{{count}} detection",
-                    other: "{{count}} detections",
-                  },
+                  moment.template,
                   detections,
+                  moment.time
+                    ? {
+                        time: keepSecurityCaseTimeWhole(
+                          OneUptimeDate.fromNow(moment.time),
+                        ),
+                      }
+                    : {},
                 )}
               </span>
-              {/*
-                What OneUptime AI's triage read the case as, where the
-                queue is scanned: the likely malicious stand out. Not
-                drawn with the project's AI off.
-              */}
-              {isAiOffered && item.aiVerdict ? (
+            </div>
+            {/*
+              What OneUptime AI's triage read the case as, where the queue
+              is scanned: the likely malicious stand out. On a line of its
+              own, at the cell's edge, so it is in the same place on every
+              row and in every language - at the end of the line above, it
+              stood wherever that sentence happened to wrap. Not drawn with
+              the project's AI off.
+            */}
+            {isAiOffered && item.aiVerdict ? (
+              <div className="mt-1 flex">
                 <span
                   className="inline-flex"
                   data-testid="security-case-row-ai-verdict"
@@ -380,10 +487,10 @@ const SecurityCasesList: FunctionComponent<{
                     }
                   />
                 </span>
-              ) : (
-                <></>
-              )}
-            </div>
+              </div>
+            ) : (
+              <></>
+            )}
             {entities.length > 0 ? (
               <div className="mt-1.5">
                 <SecurityEntityChips entities={entities} limit={2} />
@@ -442,15 +549,7 @@ const SecurityCasesList: FunctionComponent<{
         }
 
         if (item.assignedToTeam?.name) {
-          return (
-            <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
-              <Icon
-                icon={IconProp.UserGroup}
-                className="h-4 w-4 text-gray-400"
-              />
-              {item.assignedToTeam.name}
-            </span>
-          );
+          return <SecurityCaseTeamName name={item.assignedToTeam.name} />;
         }
 
         return (
@@ -471,12 +570,7 @@ const SecurityCasesList: FunctionComponent<{
           return <span className="text-sm text-gray-400">-</span>;
         }
 
-        return (
-          <span className="inline-flex items-center gap-1.5 text-sm text-gray-700">
-            <Icon icon={IconProp.UserGroup} className="h-4 w-4 text-gray-400" />
-            {item.assignedToTeam.name}
-          </span>
-        );
+        return <SecurityCaseTeamName name={item.assignedToTeam.name} />;
       },
     },
     labels: {
@@ -581,6 +675,8 @@ const SecurityCasesList: FunctionComponent<{
         isViewable={true}
         viewButtonText="View"
         createVerb="Open"
+        createFormTitle={OPEN_NEW_SECURITY_CASE}
+        createFormSubmitButtonText={OPEN_SECURITY_CASE}
         createEditModalWidth={ModalWidth.Large}
         sortBy={view.sortBy}
         sortOrder={SortOrder.Descending}
@@ -606,67 +702,10 @@ const SecurityCasesList: FunctionComponent<{
             ? { securityCasePriorityId: defaultPriority.id.toString() }
             : {}) as unknown as FormValues<SecurityCase>
         }
-        formSteps={[
-          { title: "Case", id: "case" },
-          { title: "Assignment", id: "assignment" },
-        ]}
-        formFields={[
-          {
-            field: { title: true },
-            stepId: "case",
-            title: "Title",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "e.g. Suspicious sign-ins for alice@example.com",
-          },
-          {
-            field: { description: true },
-            stepId: "case",
-            title: "Description",
-            fieldType: FormFieldSchemaType.Markdown,
-            required: false,
-            description: "What prompted this case, and what to look at first.",
-          },
-          {
-            field: { securityCasePriorityId: true },
-            stepId: "case",
-            title: "Priority",
-            description: "How urgent the case is.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            required: true,
-            dropdownOptions: getSecurityCasePriorityOptions(priorities),
-          },
-          {
-            field: { assignedToUserId: true },
-            stepId: "assignment",
-            title: "Assign To",
-            fieldType: FormFieldSchemaType.PeoplePicker,
-            required: false,
-            description: "Optional. The person working the case.",
-            peoplePicker: getSecurityCaseAssigneePickerConfig(),
-          },
-          {
-            field: { assignedToTeamId: true },
-            stepId: "assignment",
-            title: "Team",
-            fieldType: FormFieldSchemaType.PeoplePicker,
-            required: false,
-            description: "Optional. The team the case belongs to.",
-            peoplePicker: getSecurityCaseTeamPickerConfig(),
-          },
-          {
-            field: { labels: true },
-            stepId: "assignment",
-            title: "Labels",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            required: false,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-          },
-        ]}
+        formSteps={SECURITY_CASE_FORM_STEPS}
+        formFields={getSecurityCaseFormFields({
+          priorityOptions: getSecurityCasePriorityOptions(priorities),
+        })}
         showRefreshButton={true}
         searchableFields={["title", "caseNumberWithPrefix"]}
         /*
@@ -678,6 +717,9 @@ const SecurityCasesList: FunctionComponent<{
           caseNumberWithPrefix: true,
           source: true,
           detectionCount: true,
+          // The times a case's line says, its own columns hidden or shown.
+          lastDetectedAt: true,
+          closedAt: true,
           aiVerdict: true,
           aiTriagePromptInjectionSuspected: true,
           verdict: true,

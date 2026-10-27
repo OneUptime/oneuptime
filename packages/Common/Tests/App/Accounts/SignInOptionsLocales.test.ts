@@ -375,6 +375,72 @@ describe("The other ways to sign in, in every language", () => {
   );
 });
 
+/*
+ * English Accounts said "Login" on the sign-in page's own button, beside
+ * "Sign in with SSO", "Sign in with Microsoft" and "Sign in with a passkey",
+ * under the title "Sign in to your account" - three words for one action
+ * (#4911's review). Every English Accounts string now says "sign in", as
+ * every other language already did with its own one word.
+ */
+describe("English Accounts says 'sign in', one way", () => {
+  const strings: (locale: Json, prefix?: string) => Array<[string, string]> = (
+    locale: Json,
+    prefix: string = "",
+  ): Array<[string, string]> => {
+    const found: Array<[string, string]> = [];
+    for (const [key, value] of Object.entries(locale)) {
+      const at: string = prefix ? `${prefix}.${key}` : key;
+      if (typeof value === "string") {
+        found.push([at, value]);
+      } else if (value && typeof value === "object") {
+        found.push(...strings(value as Json, at));
+      }
+    }
+    return found;
+  };
+
+  // "Login", "Log in", "log-in", "login to": the word for the action, not "Sign in".
+  const OTHER_WORD_FOR_SIGNING_IN: RegExp = /\blog[\s-]?in\b/i;
+
+  test("no English string calls signing in 'Login' or 'Log in'", () => {
+    const offenders: Array<string> = strings(accounts("en"))
+      .filter(([, value]: [string, string]): boolean => {
+        return OTHER_WORD_FOR_SIGNING_IN.test(value);
+      })
+      .map(([key, value]: [string, string]): string => {
+        return `${key}: ${value}`;
+      });
+
+    expect(offenders).toEqual([]);
+  });
+
+  test("the check sees each form of the other word (positive control)", () => {
+    for (const sample of ["Login", "Log in.", "log-in", "want to login to"]) {
+      expect(OTHER_WORD_FOR_SIGNING_IN.test(sample)).toBe(true);
+    }
+    for (const sample of ["Sign in", "Logging", "blogin", "logins"]) {
+      expect(OTHER_WORD_FOR_SIGNING_IN.test(sample)).toBe(false);
+    }
+  });
+
+  test("the page's own buttons and the way back say what the options say", () => {
+    const en: Json = accounts("en");
+
+    expect(text(en, "login.submitButton")).toBe("Sign in");
+    expect(text(en, "login.title")).toBe("Sign in to your account");
+    expect(text(en, "sso.title")).toBe(text(en, "login.signInWithSso"));
+    expect(text(en, "sso.submitButton")).toBe(text(en, "login.signInWithSso"));
+    for (const link of [
+      "register.loginLink",
+      "forgotPassword.loginLink",
+      "resetPassword.loginLink",
+      "verifyEmail.loginLink",
+    ]) {
+      expect(`${link}: ${text(en, link)}`).toBe(`${link}: Sign in.`);
+    }
+  });
+});
+
 describe("The pages read these words, and draw these buttons", () => {
   const login: string = readSource(ACCOUNTS_SRC, "Pages", "Login.tsx");
   const singleSignOn: string = readSource(

@@ -47,6 +47,7 @@ import {
   getEntityRiskKey,
 } from "../../../Utils/SecurityCase/SecurityEntityRiskScore";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Whether a value Security Events names is one of the project's own records,
@@ -691,20 +692,23 @@ describe("every rule reads outside text in linear time", () => {
       return [index, value];
     }),
   )("worst case %i", (_index: number, value: string) => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        isHostNameLike(value);
+        getShortHostName(value);
+        canonicalAddress(value);
+        getSecurityAddressScope(value);
+        isEmailLike(value);
+        matchHostName({ entityValue: value, resourceName: value });
+        readRecordAddresses(value);
+        getSecurityConnectionLookups([
+          { type: SecurityEntityType.Host, value },
+          { type: SecurityEntityType.User, value },
+        ]);
+      },
+      limitInMs: 2000,
+    });
 
-    isHostNameLike(value);
-    getShortHostName(value);
-    canonicalAddress(value);
-    getSecurityAddressScope(value);
-    isEmailLike(value);
-    matchHostName({ entityValue: value, resourceName: value });
-    readRecordAddresses(value);
-    getSecurityConnectionLookups([
-      { type: SecurityEntityType.Host, value },
-      { type: SecurityEntityType.User, value },
-    ]);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

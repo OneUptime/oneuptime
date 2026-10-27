@@ -73,6 +73,29 @@ describe("getPeopleInitials", () => {
     expect(getPeopleInitials("  platform  ")).toBe("P");
     expect(getPeopleInitials("")).toBe("?");
   });
+
+  /*
+   * The case lists' Assign to Someone Else drew a team named "Security
+   * Operations Center (EMEA)" as "S(": the first character of the first and
+   * the last bit of the name as written. Initials are read from words only,
+   * as every avatar's are (Utils/NameInitials).
+   */
+  test("reads letters only: never a bracket, a dash or an emoji", () => {
+    expect(getPeopleInitials("Security Operations Center (EMEA)")).toBe("SC");
+    expect(
+      getPeopleInitials(
+        "Security Operations Center - Tier 2 Escalations (EMEA)",
+      ),
+    ).toBe("SE");
+    expect(getPeopleInitials("(EMEA)")).toBe("E");
+    expect(getPeopleInitials("Platform - On Call")).toBe("PC");
+    expect(getPeopleInitials("🚀 Rockets")).toBe("R");
+    expect(getPeopleInitials("---")).toBe("?");
+  });
+
+  test("reads someone known only by their email by the part before its @", () => {
+    expect(getPeopleInitials("ada.lovelace@acme-commerce.example")).toBe("AL");
+  });
 });
 
 describe("getPeopleAvatarPalette", () => {
@@ -125,6 +148,20 @@ describe("PeopleAvatar", () => {
     const image: HTMLElement = screen.getByAltText("Ada Lovelace");
 
     expect(image.getAttribute("src")).toContain(ADA);
+  });
+
+  test("draws a team whose name ends in brackets by the letters of its name", () => {
+    const { container } = render(
+      <PeopleAvatar
+        item={{
+          kind: PeoplePickerKind.Team,
+          name: "Security Operations Center (EMEA)",
+        }}
+      />,
+    );
+
+    expect(container).toHaveTextContent("SC");
+    expect(container).not.toHaveTextContent("(");
   });
 
   test("draws a team with a people badge, which a screen reader skips", () => {

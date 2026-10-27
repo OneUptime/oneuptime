@@ -22,6 +22,7 @@ import {
   discoverResources,
   registerResourceCommands,
 } from "../Commands/ResourceCommands";
+import { ApiRequestOptions } from "../Core/ApiClient";
 
 const CONFIG_DIR: string = path.join(os.homedir(), ".oneuptime");
 const CONFIG_FILE: string = path.join(CONFIG_DIR, "config.json");
@@ -258,8 +259,7 @@ describe("ResourceCommands", () => {
         ]);
 
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
-        const opts: Record<string, unknown> =
-          mockExecuteApiRequest.mock.calls[0][0];
+        const opts: ApiRequestOptions = mockExecuteApiRequest.mock.calls[0][0];
         expect(opts.query).toEqual({ status: "active" });
         expect(opts.limit).toBe(20);
         expect(opts.skip).toBe(5);
@@ -338,8 +338,7 @@ describe("ResourceCommands", () => {
         ]);
 
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
-        const opts: Record<string, unknown> =
-          mockExecuteApiRequest.mock.calls[0][0];
+        const opts: ApiRequestOptions = mockExecuteApiRequest.mock.calls[0][0];
         expect(opts.operation).toBe("read");
         expect(opts.id).toBe("abc-123");
       });
@@ -375,8 +374,7 @@ describe("ResourceCommands", () => {
         ]);
 
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
-        const opts: Record<string, unknown> =
-          mockExecuteApiRequest.mock.calls[0][0];
+        const opts: ApiRequestOptions = mockExecuteApiRequest.mock.calls[0][0];
         expect(opts.operation).toBe("create");
         expect(opts.data).toEqual({ name: "New Incident" });
       });
@@ -448,8 +446,7 @@ describe("ResourceCommands", () => {
         ]);
 
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
-        const opts: Record<string, unknown> =
-          mockExecuteApiRequest.mock.calls[0][0];
+        const opts: ApiRequestOptions = mockExecuteApiRequest.mock.calls[0][0];
         expect(opts.operation).toBe("update");
         expect(opts.id).toBe("abc-123");
         expect(opts.data).toEqual({ name: "Updated" });
@@ -487,8 +484,7 @@ describe("ResourceCommands", () => {
         ]);
 
         expect(mockExecuteApiRequest).toHaveBeenCalledTimes(1);
-        const opts: Record<string, unknown> =
-          mockExecuteApiRequest.mock.calls[0][0];
+        const opts: ApiRequestOptions = mockExecuteApiRequest.mock.calls[0][0];
         expect(opts.operation).toBe("delete");
         expect(opts.id).toBe("abc-123");
       });

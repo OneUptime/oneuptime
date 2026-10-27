@@ -76,6 +76,23 @@ reports nothing, with no error anywhere. `/enterprise/self-hosted` was doing
 exactly that until its coverage was restored; the parameterised test above now
 fails any page that does.
 
+## Browser `reseller_inquiry_sent`
+
+`reseller_inquiry_sent` is a **browser** event too. It means: the "Become a
+reseller" form on `/resellers` sent an inquiry, and the server answered that
+it was sent (`packages/Home/API/ResellerInquiryAPI.ts`). A press of the button,
+a refusal, a field to fix or a network failure is not one; one sent inquiry
+is one event. The inquiry itself reaches the partner inbox by email, and that
+inbox is the source of truth for how many there were.
+
+The form's script (`packages/Home/Views/resellers.ejs`) sends it to PostHog,
+and to the `dataLayer`, where the GTM container's key event trigger
+(`gtm-key-events.json`) forwards it to GA4: import the container again after
+a change to that trigger, or GTM drops the event while PostHog still counts
+it. It carries `event_schema_version` and `page_path`, and nothing the visitor
+typed - no name, company, email, website, regions or message.
+`packages/Home/Tests/ResellersPage.test.ts` holds all of that.
+
 ## Privacy
 
 **No attendee details leave the page.** Cal's `bookingSuccessful` detail carries
@@ -85,12 +102,12 @@ browser `meeting_booked` event carries only `event_schema_version`,
 `booking_source`, `booking_kind`, `page_path`, `cal_event_type` and
 `cal_namespace`, for exactly this reason.
 
-What *does* leave the page is the visitor's own campaign — UTM values, ad click
+What _does_ leave the page is the visitor's own campaign — UTM values, ad click
 IDs, the landing URL and the first touch — handed to Cal.com as booking
 metadata so the CRM can attribute the booking, but only while measurement is
 allowed; see [Consent](#consent). Cal.com joins it to the attendee details the
 visitor types into the booking form, so a booked demo is identified campaign
-*and* person on the CRM's side. A visitor who has not allowed measurement books
+_and_ person on the CRM's side. A visitor who has not allowed measurement books
 with `ou_booking_kind` alone.
 
 ## Attribution
@@ -129,13 +146,13 @@ work: Cal serialises each config value into a query parameter, so the object
 becomes the string `"[object Object]"` and every key inside it is lost, silently,
 while bookings keep succeeding.
 
-| Key                                     | Contents                                                     |
-| --------------------------------------- | ------------------------------------------------------------ |
-| `metadata[utm_*]`                       | Every key in `UtmWireKeyToPropertyKey`                        |
-| `metadata[<click id>]`                  | Every key in `AdClickIdKeys` the visitor arrived with         |
-| `metadata[utm_url]`                     | The landing URL of the attributed visit                       |
-| `metadata[ou_first_touch]`              | The first attributed visit, one JSON string, bounded at 4000  |
-| `metadata[ou_booking_kind]`             | `enterprise_demo`, `support_call` or `architecture_assessment`|
+| Key                         | Contents                                                       |
+| --------------------------- | -------------------------------------------------------------- |
+| `metadata[utm_*]`           | Every key in `UtmWireKeyToPropertyKey`                         |
+| `metadata[<click id>]`      | Every key in `AdClickIdKeys` the visitor arrived with          |
+| `metadata[utm_url]`         | The landing URL of the attributed visit                        |
+| `metadata[ou_first_touch]`  | The first attributed visit, one JSON string, bounded at 4000   |
+| `metadata[ou_booking_kind]` | `enterprise_demo`, `support_call` or `architecture_assessment` |
 
 `ou_booking_kind` is not optional detail. All four embeds book the same Cal
 event type (`oneuptimehq/demo`), so without it the CRM cannot tell a free
@@ -281,6 +298,6 @@ send them to.
    the same unmeasurable shape the self-hosted page had, and the same fix
    applies: point them at a booking.
 9. **Reconciling the legacy browser events.** Dashboards and GTM still mix the
-    canonical `meeting_booked` with the older `bookingSuccessful`-derived
-    events. Separating them, and documenting the historical discontinuity, is
-    follow-up work.
+   canonical `meeting_booked` with the older `bookingSuccessful`-derived
+   events. Separating them, and documenting the historical discontinuity, is
+   follow-up work.

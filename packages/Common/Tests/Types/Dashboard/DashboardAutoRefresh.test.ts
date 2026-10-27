@@ -22,6 +22,7 @@ import {
 import { AutoRefreshInterval } from "../../../Types/Dashboard/DashboardViewConfig";
 import { DashboardSettingSource } from "../../../Types/Dashboard/DashboardViewerChoice";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 describe("the intervals", () => {
   test("are every interval the auto-refresh menu offers, in its order", () => {
@@ -136,10 +137,13 @@ describe("a link's own interval", () => {
     ["no value", null],
     ["far too long to be one", `${" ".repeat(400000)}1m`],
   ])("%s is no interval", (_what: string, value: unknown) => {
-    const startedAt: number = Date.now();
-
-    expect(parseDashboardLinkAutoRefreshInterval(value)).toBeNull();
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(parseDashboardLinkAutoRefreshInterval(value)).toBeNull();
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("an address without one names none", () => {

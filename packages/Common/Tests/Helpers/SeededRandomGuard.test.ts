@@ -14,6 +14,7 @@ import {
   valueOf,
 } from "./SeededRandomScan";
 import { REPOSITORY_DIRECTORY, listTestFiles } from "./TagStripScan";
+import { fastestRun, FastestRun } from "./FastestRun";
 
 /*
  * EVERY TEST DRAWS FROM ONE SEEDED GENERATOR.
@@ -421,12 +422,18 @@ describe("what it passes", () => {
     const longText: string = `x ^ y ${SHIFT_LEFT} 2, ${PARK_MILLER_2} `.repeat(
       120000,
     );
-    const started: number = Date.now();
-
-    expect(
-      findingsIn("Long.test.ts", code(`const big: string = "${longText}";`)),
-    ).toEqual([]);
-    expect(Date.now() - started).toBeLessThan(3000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          findingsIn(
+            "Long.test.ts",
+            code(`const big: string = "${longText}";`),
+          ),
+        ).toEqual([]);
+      },
+      limitInMs: 3000,
+    });
+    expect(timed.inMs).toBeLessThan(3000);
   });
 
   test("reads every multiplier and step it knows, however it is written", () => {

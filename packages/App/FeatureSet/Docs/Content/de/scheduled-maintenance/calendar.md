@@ -113,7 +113,7 @@ Der Kalender enthält jedes Ereignis von 90 Tagen zurück bis ein Jahr voraus, b
 
 Die Menschen, die einer Statusseite folgen, können ihre geplante Wartung in ihren eigenen Kalender holen. Auf der Seite der geplanten Ereignisse der Statusseite bietet **Kalender abonnieren** Google Kalender, die Kalender-App ihres Geräts oder den Link zum Kopieren an. Der Link ist die Adresse der Seite, gefolgt von `/maintenance.ics`, etwa `https://status.example.com/maintenance.ics`.
 
-- **Was er enthält.** Genau das, was die Seite zeigt: die Ereignisse im Verlaufszeitraum der Seite, jedes bevorstehende und jedes laufende Ereignis, solange **Auf Statusseite sichtbar** eingeschaltet ist. Was ein Ereignis betrifft, wird so benannt, wie die Seite ihre Ressourcen nennt, nie mit den eigenen Namen Ihrer Monitore.
+- **Was er enthält.** Genau das, was die Seite zeigt: die Ereignisse im Verlaufszeitraum der Seite, jedes bevorstehende und jedes laufende Ereignis, solange **Auf Statusseite sichtbar** eingeschaltet ist, und ab seinem **Veröffentlichen am**, wenn Sie eines gewählt haben. Was ein Ereignis betrifft, wird so benannt, wie die Seite ihre Ressourcen nennt, nie mit den eigenen Namen Ihrer Monitore.
 - **Eine private Seite.** Eine Kalender-App kann sich nicht anmelden, daher bietet eine private Seite kein **Kalender abonnieren** an, und ihr Link liefert einen leeren Kalender, der sagt, dass die Seite privat ist.
 - **Ein Ereignis.** **Zum Kalender hinzufügen** auf der Seite eines Ereignisses fügt nur dieses Ereignis hinzu: Google Kalender öffnet sich mit ausgefülltem Termin, oder es wird als Datei heruntergeladen, die die Kalender-App des Geräts öffnet. Es funktioniert auch auf einer privaten Seite für einen angemeldeten Besucher und wird nicht mehr angeboten, wenn das Ereignis vorbei ist.
 
@@ -147,7 +147,7 @@ Google Kalender liest den Link von Googles Servern, daher muss der OneUptime-Ser
 :::
 
 :::details Ein Ereignis fehlt im Kalender einer Statusseite
-Der Kalender der Seite enthält, was die Seite zeigt. Prüfen Sie, dass das Ereignis die Seite nennt, dass **Auf Statusseite sichtbar** in seinen **Einstellungen** eingeschaltet ist und dass es im Verlaufszeitraum der Seite begonnen hat.
+Der Kalender der Seite enthält, was die Seite zeigt. Prüfen Sie, dass das Ereignis die Seite nennt, dass **Auf Statusseite sichtbar** in seinen **Einstellungen** eingeschaltet ist, dass sein **Veröffentlichen am**, falls es eines hat, erreicht ist und dass es im Verlaufszeitraum der Seite begonnen hat.
 :::
 
 :::details Ein externer Kalender zeigt Funktioniert nicht

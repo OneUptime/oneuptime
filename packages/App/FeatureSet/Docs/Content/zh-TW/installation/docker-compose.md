@@ -84,7 +84,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | 80 | `ingress` | `ONEUPTIME_HTTP_PORT` | 儀表板、API、遙測資料接收與 Let's Encrypt 驗證。 |
 | 443 | `ingress` | `STATUS_PAGE_HTTPS_PORT` | 當 OneUptime 管理憑證時，為執行個體提供 HTTPS，並為自訂網域上的狀態頁面與儀表板提供 HTTPS。 |
-| 5400 | `postgres` | 在 `docker-compose.yml` 中設定 | 讓 `npm run backup` 和 `restore.sh` 從伺服器本機連到 PostgreSQL。它只發布在 `127.0.0.1` 上。 |
+| 5400 | `postgres` | `DATABASE_PUBLISHED_PORT` | 讓 `npm run backup` 和 `restore.sh` 從伺服器本機連到 PostgreSQL。它只發布在 `127.0.0.1` 上。 |
 | 3874 | `probe-1` | `GLOBAL_PROBE_1_PORT` | 探針本身的伺服器。伺服器以外不需要連到它。 |
 
 另有一段安裝過程的 [影片導覽](https://youtu.be/j1SWmMW2oL4)。
@@ -132,7 +132,7 @@ npm start
 ```
 @tab Docker CLI
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose up --remove-orphans -d)
+sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 ```
 第一次啟動前，請依照 [產生隨機密鑰](#產生隨機密鑰) 中的說明自行替換預留位置密鑰：只有 `npm start` 會替你完成這一步。
 :::
@@ -386,7 +386,7 @@ PostgreSQL 會一直使用建立時的密碼，所以只變更 `config.env` 中�
 
 ```bash
 NEW_PASSWORD=$(openssl rand -hex 32) &&
-  (export $(grep -v '^#' config.env | xargs) && docker compose exec -T postgres psql -U "$DATABASE_USERNAME" -d "$DATABASE_NAME" -c "ALTER USER \"$DATABASE_USERNAME\" PASSWORD '$NEW_PASSWORD'") &&
+  echo "ALTER USER CURRENT_USER PASSWORD '$NEW_PASSWORD';" | sh Scripts/Install/WithConfig.sh sh -c 'docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U "$DATABASE_USERNAME" -d "$DATABASE_NAME"' &&
   sed -i "s/^DATABASE_PASSWORD=.*/DATABASE_PASSWORD=$NEW_PASSWORD/" config.env
 npm start
 ```
@@ -468,7 +468,7 @@ npm run down
 你的資料會保留在 `oneuptime_postgres` 和 `oneuptime_clickhouse` 磁碟區中，`oneuptime` 資料夾也會保留 `config.env` 和你的備份。若也要刪除資料：
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose down --volumes --remove-orphans)
+sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 ```
 
 然後刪除 `oneuptime` 資料夾。
@@ -534,7 +534,7 @@ npm run logs
 當申請失敗時，應用程式會記錄一則以 `CoreSSL:EnsurePrimaryHostCertificate` 開頭、後面接著原因的錯誤：
 
 ```bash
-(export $(grep -v '^#' config.env | xargs) && docker compose logs app) | grep -A 5 CoreSSL
+sh Scripts/Install/WithConfig.sh docker compose logs app | grep -A 5 CoreSSL
 ```
 :::
 

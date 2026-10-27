@@ -281,10 +281,9 @@ const PROSE_LEADS: Record<string, Array<string>> = {
   [EXTERNAL_STATUS_PAGE_MONITOR]: [
     "active incident count",
     "overall status",
-    "within",
     "Use the Auto provider",
-    "Scope to a component group",
-    "Monitor specific components",
+    "Choose the components you depend on",
+    "Watch a whole group",
     "Combine with your own monitors",
   ],
 };

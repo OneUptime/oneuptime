@@ -256,85 +256,101 @@ export default class XAxisUtil {
     const endDate: Date = new Date(data.xAxisMax as Date);
     const intervals: Array<Date> = [];
 
-    const currentDate: Date = new Date(startDate);
+    let currentDate: Date = new Date(startDate);
 
     while (currentDate <= endDate) {
-      intervals.push(new Date(currentDate));
-
-      switch (precision) {
-        case XAxisPrecision.EVERY_SECOND:
-          currentDate.setSeconds(currentDate.getSeconds() + 1);
-          break;
-        case XAxisPrecision.EVERY_FIVE_SECONDS:
-          currentDate.setSeconds(currentDate.getSeconds() + 5);
-          break;
-        case XAxisPrecision.EVERY_TEN_SECONDS:
-          currentDate.setSeconds(currentDate.getSeconds() + 10);
-          break;
-        case XAxisPrecision.EVERY_THIRTY_SECONDS:
-          currentDate.setSeconds(currentDate.getSeconds() + 30);
-          break;
-        case XAxisPrecision.EVERY_MINUTE:
-          currentDate.setMinutes(currentDate.getMinutes() + 1);
-          break;
-        case XAxisPrecision.EVERY_FIVE_MINUTES:
-          currentDate.setMinutes(currentDate.getMinutes() + 5);
-          break;
-        case XAxisPrecision.EVERY_TEN_MINUTES:
-          currentDate.setMinutes(currentDate.getMinutes() + 10);
-          break;
-        case XAxisPrecision.EVERY_FIFTEEN_MINUTES:
-          currentDate.setMinutes(currentDate.getMinutes() + 15);
-          break;
-        case XAxisPrecision.EVERY_THIRTY_MINUTES:
-          currentDate.setMinutes(currentDate.getMinutes() + 30);
-          break;
-        case XAxisPrecision.EVERY_HOUR:
-          currentDate.setHours(currentDate.getHours() + 1);
-          break;
-        case XAxisPrecision.EVERY_TWO_HOURS:
-          currentDate.setHours(currentDate.getHours() + 2);
-          break;
-        case XAxisPrecision.EVERY_THREE_HOURS:
-          currentDate.setHours(currentDate.getHours() + 3);
-          break;
-        case XAxisPrecision.EVERY_SIX_HOURS:
-          currentDate.setHours(currentDate.getHours() + 6);
-          break;
-        case XAxisPrecision.EVERY_TWELVE_HOURS:
-          currentDate.setHours(currentDate.getHours() + 12);
-          break;
-        case XAxisPrecision.EVERY_DAY:
-          currentDate.setDate(currentDate.getDate() + 1);
-          break;
-        case XAxisPrecision.EVERY_TWO_DAYS:
-          currentDate.setDate(currentDate.getDate() + 2);
-          break;
-        case XAxisPrecision.EVERY_WEEK:
-          currentDate.setDate(currentDate.getDate() + 7);
-          break;
-        case XAxisPrecision.EVERY_TWO_WEEKS:
-          currentDate.setDate(currentDate.getDate() + 14);
-          break;
-        case XAxisPrecision.EVERY_MONTH:
-          currentDate.setMonth(currentDate.getMonth() + 1);
-          break;
-        case XAxisPrecision.EVERY_TWO_MONTHS:
-          currentDate.setMonth(currentDate.getMonth() + 2);
-          break;
-        case XAxisPrecision.EVERY_THREE_MONTHS:
-          currentDate.setMonth(currentDate.getMonth() + 3);
-          break;
-        case XAxisPrecision.EVERY_SIX_MONTHS:
-          currentDate.setMonth(currentDate.getMonth() + 6);
-          break;
-        case XAxisPrecision.EVERY_YEAR:
-          currentDate.setFullYear(currentDate.getFullYear() + 1);
-          break;
-      }
+      intervals.push(currentDate);
+      currentDate = XAxisUtil.getNextInterval(currentDate, precision);
     }
 
     return intervals;
+  }
+
+  /*
+   * The slot after `interval` on a grid of this precision: one step of the
+   * walk, in browser wall-clock time, so a step of a day across a clock
+   * change is 23 or 25 hours and a step of a month is that month's length.
+   * Returns a new Date; `interval` is left as it is.
+   */
+  public static getNextInterval(
+    interval: Date,
+    precision: XAxisPrecision,
+  ): Date {
+    const currentDate: Date = new Date(interval);
+
+    switch (precision) {
+      case XAxisPrecision.EVERY_SECOND:
+        currentDate.setSeconds(currentDate.getSeconds() + 1);
+        break;
+      case XAxisPrecision.EVERY_FIVE_SECONDS:
+        currentDate.setSeconds(currentDate.getSeconds() + 5);
+        break;
+      case XAxisPrecision.EVERY_TEN_SECONDS:
+        currentDate.setSeconds(currentDate.getSeconds() + 10);
+        break;
+      case XAxisPrecision.EVERY_THIRTY_SECONDS:
+        currentDate.setSeconds(currentDate.getSeconds() + 30);
+        break;
+      case XAxisPrecision.EVERY_MINUTE:
+        currentDate.setMinutes(currentDate.getMinutes() + 1);
+        break;
+      case XAxisPrecision.EVERY_FIVE_MINUTES:
+        currentDate.setMinutes(currentDate.getMinutes() + 5);
+        break;
+      case XAxisPrecision.EVERY_TEN_MINUTES:
+        currentDate.setMinutes(currentDate.getMinutes() + 10);
+        break;
+      case XAxisPrecision.EVERY_FIFTEEN_MINUTES:
+        currentDate.setMinutes(currentDate.getMinutes() + 15);
+        break;
+      case XAxisPrecision.EVERY_THIRTY_MINUTES:
+        currentDate.setMinutes(currentDate.getMinutes() + 30);
+        break;
+      case XAxisPrecision.EVERY_HOUR:
+        currentDate.setHours(currentDate.getHours() + 1);
+        break;
+      case XAxisPrecision.EVERY_TWO_HOURS:
+        currentDate.setHours(currentDate.getHours() + 2);
+        break;
+      case XAxisPrecision.EVERY_THREE_HOURS:
+        currentDate.setHours(currentDate.getHours() + 3);
+        break;
+      case XAxisPrecision.EVERY_SIX_HOURS:
+        currentDate.setHours(currentDate.getHours() + 6);
+        break;
+      case XAxisPrecision.EVERY_TWELVE_HOURS:
+        currentDate.setHours(currentDate.getHours() + 12);
+        break;
+      case XAxisPrecision.EVERY_DAY:
+        currentDate.setDate(currentDate.getDate() + 1);
+        break;
+      case XAxisPrecision.EVERY_TWO_DAYS:
+        currentDate.setDate(currentDate.getDate() + 2);
+        break;
+      case XAxisPrecision.EVERY_WEEK:
+        currentDate.setDate(currentDate.getDate() + 7);
+        break;
+      case XAxisPrecision.EVERY_TWO_WEEKS:
+        currentDate.setDate(currentDate.getDate() + 14);
+        break;
+      case XAxisPrecision.EVERY_MONTH:
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        break;
+      case XAxisPrecision.EVERY_TWO_MONTHS:
+        currentDate.setMonth(currentDate.getMonth() + 2);
+        break;
+      case XAxisPrecision.EVERY_THREE_MONTHS:
+        currentDate.setMonth(currentDate.getMonth() + 3);
+        break;
+      case XAxisPrecision.EVERY_SIX_MONTHS:
+        currentDate.setMonth(currentDate.getMonth() + 6);
+        break;
+      case XAxisPrecision.EVERY_YEAR:
+        currentDate.setFullYear(currentDate.getFullYear() + 1);
+        break;
+    }
+
+    return currentDate;
   }
 
   /*
@@ -404,15 +420,20 @@ export default class XAxisUtil {
     }
 
     const lastInterval: Date = intervals[intervals.length - 1]!;
-    const previousInterval: Date = intervals[intervals.length - 2]!;
 
     /*
-     * Bucket width read off the grid itself rather than recomputed from the
-     * precision: the walk steps in wall-clock time, so a month, a year or a
-     * daylight-saving day is exactly as wide as the grid says it is.
+     * The trailing bucket's own width: one more step of the walk from its
+     * start, rather than the precision's nominal length or the step before
+     * it. The walk steps in wall-clock time, so a month, a year or the day
+     * the clocks change is exactly as wide as it really is - the 23 hours
+     * of a spring-forward day, the 25 of a fall-back day, the 28 days of a
+     * February after a January of 31.
      */
     const bucketWidthInMs: number =
-      lastInterval.getTime() - previousInterval.getTime();
+      XAxisUtil.getNextInterval(
+        lastInterval,
+        XAxisUtil.getPrecision(data),
+      ).getTime() - lastInterval.getTime();
     if (bucketWidthInMs <= 0) {
       return intervals;
     }

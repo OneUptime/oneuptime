@@ -2664,22 +2664,29 @@ export default class StatusPageAPI extends BaseAPI<
     /*
      * Only events the page shows (StatusPageVisibilityQuery): one asked for
      * by its id too. By id there is no history window, so a link to an
-     * older event keeps working - but an event hidden from status pages is
-     * not one this page shows, however it is asked for.
+     * older event keeps working - but an event hidden from status pages, or
+     * not published on them yet, is not one this page shows, however it is
+     * asked for. Every read below asks as of the same moment.
      */
     let query: Query<ScheduledMaintenance> =
-      StatusPageVisibilityQuery.shownScheduledMaintenance({
-        startsAt: QueryHelper.inBetween(historyDays, today),
-        statusPages: [statusPageId] as any,
-        projectId: statusPage.projectId!,
-      });
+      StatusPageVisibilityQuery.shownScheduledMaintenance(
+        {
+          startsAt: QueryHelper.inBetween(historyDays, today),
+          statusPages: [statusPageId] as any,
+          projectId: statusPage.projectId!,
+        },
+        { now: today },
+      );
 
     if (scheduledMaintenanceId) {
-      query = StatusPageVisibilityQuery.shownScheduledMaintenance({
-        _id: scheduledMaintenanceId.toString(),
-        statusPages: [statusPageId] as any,
-        projectId: statusPage.projectId!,
-      });
+      query = StatusPageVisibilityQuery.shownScheduledMaintenance(
+        {
+          _id: scheduledMaintenanceId.toString(),
+          statusPages: [statusPageId] as any,
+          projectId: statusPage.projectId!,
+        },
+        { now: today },
+      );
     }
 
     let scheduledEventsSelect: Select<ScheduledMaintenance> = {
@@ -2789,12 +2796,15 @@ export default class StatusPageAPI extends BaseAPI<
       if (waitingStateIds.length > 0) {
         addEvents(
           await ScheduledMaintenanceService.findBy({
-            query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-              currentScheduledMaintenanceStateId:
-                QueryHelper.any(waitingStateIds),
-              statusPages: [statusPageId] as any,
-              projectId: statusPage.projectId!,
-            }),
+            query: StatusPageVisibilityQuery.shownScheduledMaintenance(
+              {
+                currentScheduledMaintenanceStateId:
+                  QueryHelper.any(waitingStateIds),
+                statusPages: [statusPageId] as any,
+                projectId: statusPage.projectId!,
+              },
+              { now: today },
+            ),
             select: scheduledEventsSelect,
             sort: {
               createdAt: SortOrder.Ascending,
@@ -2822,12 +2832,15 @@ export default class StatusPageAPI extends BaseAPI<
       if (inProgressStateIds.length > 0) {
         addEvents(
           await ScheduledMaintenanceService.findBy({
-            query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-              currentScheduledMaintenanceStateId:
-                QueryHelper.any(inProgressStateIds),
-              statusPages: [statusPageId] as any,
-              projectId: statusPage.projectId!,
-            }),
+            query: StatusPageVisibilityQuery.shownScheduledMaintenance(
+              {
+                currentScheduledMaintenanceStateId:
+                  QueryHelper.any(inProgressStateIds),
+                statusPages: [statusPageId] as any,
+                projectId: statusPage.projectId!,
+              },
+              { now: today },
+            ),
             select: scheduledEventsSelect,
             sort: {
               startsAt: SortOrder.Descending,
@@ -6382,12 +6395,15 @@ export default class StatusPageAPI extends BaseAPI<
 
       if (inProgressStateIds.length > 0) {
         scheduledMaintenanceEvents = await ScheduledMaintenanceService.findBy({
-          query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-            currentScheduledMaintenanceStateId:
-              QueryHelper.any(inProgressStateIds),
-            statusPages: statusPageId as any,
-            projectId: statusPage.projectId!,
-          }),
+          query: StatusPageVisibilityQuery.shownScheduledMaintenance(
+            {
+              currentScheduledMaintenanceStateId:
+                QueryHelper.any(inProgressStateIds),
+              statusPages: statusPageId as any,
+              projectId: statusPage.projectId!,
+            },
+            { now: today },
+          ),
           select: scheduledEventsSelect,
           sort: {
             startsAt: SortOrder.Ascending,
@@ -6420,12 +6436,15 @@ export default class StatusPageAPI extends BaseAPI<
     ) {
       futureScheduledMaintenanceEvents =
         await ScheduledMaintenanceService.findBy({
-          query: StatusPageVisibilityQuery.shownScheduledMaintenance({
-            currentScheduledMaintenanceStateId:
-              QueryHelper.any(waitingStateIds),
-            statusPages: statusPageId as any,
-            projectId: statusPage.projectId!,
-          }),
+          query: StatusPageVisibilityQuery.shownScheduledMaintenance(
+            {
+              currentScheduledMaintenanceStateId:
+                QueryHelper.any(waitingStateIds),
+              statusPages: statusPageId as any,
+              projectId: statusPage.projectId!,
+            },
+            { now: today },
+          ),
           select: scheduledEventsSelect,
           sort: {
             startsAt: SortOrder.Ascending,

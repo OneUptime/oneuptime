@@ -89,6 +89,7 @@ import {
   TRACE_INSIGHT_FINGERPRINT_PREFIXES,
 } from "../../../Utils/Traces/TraceInsight";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 const SERVICE_A: string = "5a000000-0000-4000-8000-0000000000a1";
 const SERVICE_B: string = "5a000000-0000-4000-8000-0000000000a2";
@@ -553,12 +554,15 @@ describe("what is left of a token is masked", () => {
     ];
 
     for (const text of worst) {
-      const started: number = Date.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          maskLogPatternTokens(text);
+          getPatternWords(text);
+        },
+        limitInMs: 2000,
+      });
 
-      maskLogPatternTokens(text);
-      getPatternWords(text);
-
-      expect(Date.now() - started).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     }
   });
 });

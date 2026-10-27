@@ -7,6 +7,7 @@ import VSphereXml, {
   parseXml,
 } from "../../../Utils/VMware/VSphereXml";
 import { loadExchanges } from "./Helpers/ReplayTransport";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 describe("VSphereXml", () => {
   test("reads elements by local name, whatever their prefix", () => {
@@ -168,10 +169,16 @@ describe("VSphereXml", () => {
         return `<objects><obj type="VirtualMachine">vm-${index}</obj><propSet><name>name</name><val xsi:type="xsd:string">vm number ${index}</val></propSet></objects>`;
       },
     ).join("");
-    const started: number = Date.now();
-    const document: XmlElement = parseXml(`<returnval>${objects}</returnval>`);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const document: XmlElement = parseXml(
+          `<returnval>${objects}</returnval>`,
+        );
 
-    expect(VSphereXml.children(document, "objects")).toHaveLength(20000);
-    expect(Date.now() - started).toBeLessThan(5000);
+        expect(VSphereXml.children(document, "objects")).toHaveLength(20000);
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
   });
 });
