@@ -312,7 +312,8 @@ export class Service extends ProjectReferencesService<Model> {
     teamIds: Array<ObjectID>;
     projectId: ObjectID;
   }): Promise<Array<Model>> {
-    return await this.findBy({
+    // Every row, page by page: a block past one read's LIMIT_MAX still counts.
+    return await this.findAllBy({
       query: {
         teamId:
           data.teamIds.length === 1
@@ -328,8 +329,6 @@ export class Service extends ProjectReferencesService<Model> {
         },
         scope: true,
       },
-      skip: 0,
-      limit: LIMIT_MAX,
       props: {
         isRoot: true,
       },
