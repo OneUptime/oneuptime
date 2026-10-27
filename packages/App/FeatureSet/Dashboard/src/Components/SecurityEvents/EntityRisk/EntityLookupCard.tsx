@@ -52,7 +52,7 @@ export function isEntityActivitySeen(activity: EntityActivity): boolean {
  * margin (md:ml-3) setting it 12px in from the value it is about.
  */
 export const ENTITY_LOOKUP_RESULT_CLASS_NAME: string =
-  "flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between";
+  "mt-3 flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between";
 
 // The value on its line, what was found about it on the next.
 export const ENTITY_LOOKUP_RESULT_FACTS_CLASS_NAME: string =
@@ -88,6 +88,8 @@ const EntityLookupCard: FunctionComponent = (): ReactElement => {
 
     setIsLookingUp(true);
     setLookupError("");
+    // A new lookup's answer replaces the last one's: never one value's counts under another's error.
+    setLookup(null);
 
     try {
       const rows: Array<EntityActivity> =
@@ -118,7 +120,7 @@ const EntityLookupCard: FunctionComponent = (): ReactElement => {
 
   return (
     <Card title={ENTITY_LOOKUP_TITLE} description={ENTITY_LOOKUP_DESCRIPTION}>
-      <div className="space-y-3" data-testid={ENTITY_LOOKUP_TEST_IDS.card}>
+      <div data-testid={ENTITY_LOOKUP_TEST_IDS.card}>
         {/*
          * The box and Look Up on one line from sm, the same height: the
          * input's own top and bottom margins stretched the button 12px
@@ -157,85 +159,95 @@ const EntityLookupCard: FunctionComponent = (): ReactElement => {
             }}
           />
         </div>
-        {lookupError ? <ErrorMessage message={lookupError} /> : <></>}
-        {lookup ? (
-          <div
-            className={ENTITY_LOOKUP_RESULT_CLASS_NAME}
-            data-testid={ENTITY_LOOKUP_TEST_IDS.result}
-          >
-            <div className={ENTITY_LOOKUP_RESULT_FACTS_CLASS_NAME}>
-              {/* Open in Correlate is the one way on: the value is not a second. */}
-              <div className="flex min-w-0">
-                <SecurityEntityChip
-                  entity={toEntity(lookup.value)}
-                  isLink={false}
-                />
+        {/*
+         * What a lookup found, or why it could not look, said to a screen
+         * reader as it arrives: the region is on the page before anything
+         * is in it, as a live region has to be.
+         */}
+        <div aria-live="polite" data-testid={ENTITY_LOOKUP_TEST_IDS.answer}>
+          {lookupError ? <ErrorMessage message={lookupError} /> : <></>}
+          {lookup ? (
+            <div
+              className={ENTITY_LOOKUP_RESULT_CLASS_NAME}
+              data-testid={ENTITY_LOOKUP_TEST_IDS.result}
+            >
+              <div className={ENTITY_LOOKUP_RESULT_FACTS_CLASS_NAME}>
+                {/* Open in Correlate is the one way on: the value is not a second. */}
+                <div className="flex min-w-0">
+                  <SecurityEntityChip
+                    entity={toEntity(lookup.value)}
+                    isLink={false}
+                  />
+                </div>
+                {isSeen ? (
+                  <p
+                    /*
+                     * Each fact whole on its line: the next one wraps under it,
+                     * never a separator left hanging at a line's end.
+                     */
+                    className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-sm text-gray-700"
+                    data-testid={ENTITY_LOOKUP_TEST_IDS.facts}
+                  >
+                    <span>
+                      {translator.translatePlural(
+                        { one: "{{count}} event", other: "{{count}} events" },
+                        lookup.eventCount,
+                      )}
+                    </span>
+                    <span>
+                      {translator.translatePlural(
+                        {
+                          one: "{{count}} finding",
+                          other: "{{count}} findings",
+                        },
+                        lookup.findingCount,
+                      )}
+                    </span>
+                    {lookup.lastSeen ? (
+                      <>
+                        <span className="text-gray-500">
+                          {translator.translateTemplate("Last seen {{when}}", {
+                            when: OneUptimeDate.fromNow(lookup.lastSeen),
+                          })}
+                        </span>
+                      </>
+                    ) : (
+                      <></>
+                    )}
+                  </p>
+                ) : (
+                  <p
+                    className="text-sm text-gray-500"
+                    data-testid={ENTITY_LOOKUP_TEST_IDS.facts}
+                  >
+                    {translator.translateText(ENTITY_LOOKUP_NOT_SEEN)}
+                  </p>
+                )}
               </div>
               {isSeen ? (
-                <p
-                  /*
-                   * Each fact whole on its line: the next one wraps under it,
-                   * never a separator left hanging at a line's end.
-                   */
-                  className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-sm text-gray-700"
-                  data-testid={ENTITY_LOOKUP_TEST_IDS.facts}
-                >
-                  <span>
-                    {translator.translatePlural(
-                      { one: "{{count}} event", other: "{{count}} events" },
-                      lookup.eventCount,
-                    )}
-                  </span>
-                  <span>
-                    {translator.translatePlural(
-                      { one: "{{count}} finding", other: "{{count}} findings" },
-                      lookup.findingCount,
-                    )}
-                  </span>
-                  {lookup.lastSeen ? (
-                    <>
-                      <span className="text-gray-500">
-                        {translator.translateTemplate("Last seen {{when}}", {
-                          when: OneUptimeDate.fromNow(lookup.lastSeen),
-                        })}
-                      </span>
-                    </>
-                  ) : (
-                    <></>
-                  )}
-                </p>
+                <Button
+                  title={OPEN_IN_CORRELATE}
+                  icon={IconProp.Share}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  className="!ml-0 flex-none sm:!w-auto"
+                  onClick={() => {
+                    // Over the 30 days the lookup read, not Correlate's own day.
+                    Navigation.navigate(
+                      getCorrelateRouteForEntity(
+                        lookup.value,
+                        ENTITY_LOOKUP_HOURS,
+                      ),
+                    );
+                  }}
+                />
               ) : (
-                <p
-                  className="text-sm text-gray-500"
-                  data-testid={ENTITY_LOOKUP_TEST_IDS.facts}
-                >
-                  {translator.translateText(ENTITY_LOOKUP_NOT_SEEN)}
-                </p>
+                <></>
               )}
             </div>
-            {isSeen ? (
-              <Button
-                title={OPEN_IN_CORRELATE}
-                icon={IconProp.Share}
-                buttonStyle={ButtonStyleType.NORMAL}
-                className="!ml-0 flex-none sm:!w-auto"
-                onClick={() => {
-                  // Over the 30 days the lookup read, not Correlate's own day.
-                  Navigation.navigate(
-                    getCorrelateRouteForEntity(
-                      lookup.value,
-                      ENTITY_LOOKUP_HOURS,
-                    ),
-                  );
-                }}
-              />
-            ) : (
-              <></>
-            )}
-          </div>
-        ) : (
-          <></>
-        )}
+          ) : (
+            <></>
+          )}
+        </div>
       </div>
     </Card>
   );

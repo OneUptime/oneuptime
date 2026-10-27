@@ -130,6 +130,7 @@ describe("Look Up an Entity, under Entity Risk's list", () => {
     expect(ENTITY_LOOKUP_TEST_IDS).toEqual({
       card: "security-entity-lookup",
       input: "security-entity-lookup-input",
+      answer: "security-entity-lookup-answer",
       result: "security-entity-lookup-result",
       facts: "security-entity-lookup-facts",
     });

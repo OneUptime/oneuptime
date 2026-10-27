@@ -1199,6 +1199,64 @@ describe("Security Events > Entity Risk", () => {
     ).toBeNull();
   });
 
+  /*
+   * A lookup's answer - what it found, or why it could not look - is said
+   * to a screen reader as it arrives: the live region is on the page
+   * before anything is in it. And a new lookup's answer replaces the last
+   * one's: a failed lookup of one value left the last value's counts
+   * under its error.
+   */
+  test("a lookup's answer is said in a live region that is there before it, and a new lookup replaces the last answer", async () => {
+    getEntityActivityMock.mockImplementationOnce(async () => {
+      return [
+        {
+          value: "fin-ws-112",
+          eventCount: 3,
+          findingCount: 1,
+          maxSeverityId: 4,
+          firstSeen: new Date(minutesAgo(3 * 60)),
+          lastSeen: new Date(Date.now() - 5 * 60 * 1000),
+        },
+      ];
+    });
+    getEntityActivityMock.mockImplementationOnce(async () => {
+      throw Object.assign(
+        new Error(
+          "Reading security events takes a Security role, or Project Owner or Project Admin.",
+        ),
+        { statusCode: 403 },
+      );
+    });
+    drawList();
+
+    const answer: HTMLElement = await screen.findByTestId(
+      ENTITY_LOOKUP_TEST_IDS.answer,
+    );
+    expect(answer).toHaveAttribute("aria-live", "polite");
+    expect(answer).toBeEmptyDOMElement();
+
+    const input: HTMLElement = screen.getByTestId(ENTITY_LOOKUP_TEST_IDS.input);
+    fireEvent.change(input, { target: { value: "fin-ws-112" } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Look Up" }));
+    });
+
+    expect(
+      within(answer).getByTestId(ENTITY_LOOKUP_TEST_IDS.result),
+    ).toHaveTextContent("fin-ws-112");
+
+    fireEvent.change(input, { target: { value: "web-01" } });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Look Up" }));
+    });
+
+    expect(answer).toHaveTextContent(
+      "Reading security events takes a Security role, or Project Owner or Project Admin.",
+    );
+    expect(screen.queryByTestId(ENTITY_LOOKUP_TEST_IDS.result)).toBeNull();
+    expect(answer).not.toHaveTextContent("fin-ws-112");
+  });
+
   test("a value is seen when an event named it in the days read: by a count, or by when it was last seen", () => {
     const nothing: {
       value: string;

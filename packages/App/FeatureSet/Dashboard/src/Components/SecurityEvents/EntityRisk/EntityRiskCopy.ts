@@ -355,12 +355,15 @@ export const ENTITY_LOOKUP_HOURS: number = 30 * 24;
 export const ENTITY_LOOKUP_TEST_IDS: {
   card: string;
   input: string;
+  // The live region a lookup's answer - its result, or why it failed - is said in.
+  answer: string;
   result: string;
   // What was found about the value, or that nothing was.
   facts: string;
 } = {
   card: "security-entity-lookup",
   input: "security-entity-lookup-input",
+  answer: "security-entity-lookup-answer",
   result: "security-entity-lookup-result",
   facts: "security-entity-lookup-facts",
 };
