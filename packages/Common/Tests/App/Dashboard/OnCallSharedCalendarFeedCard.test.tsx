@@ -537,6 +537,37 @@ describe("SharedCalendarFeedCard - publishing", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * The project-wide link shows every schedule: a reader held to some of
+   * them is told why, in the server's words, and offered nothing - no
+   * Publish button, no address, no menu.
+   */
+  test("a reader who may not read every schedule is told why, and offered nothing", async () => {
+    const reason: string =
+      "You can see only some of this project's on-call schedules, so its calendar link, which shows every schedule, is not yours to use.";
+    getMock.mockResolvedValue(ok({ ...UNPUBLISHED_JSON, refusedReason: reason }));
+
+    render(
+      <SharedCalendarFeedCard
+        kind={SharedCalendarFeedKind.Project}
+        now={NOW}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("project-shared-calendar-feed-refused"),
+      ).toHaveTextContent(reason);
+    });
+    expect(
+      screen.queryByTestId("project-shared-calendar-feed-publish"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("project-shared-calendar-feed-empty"),
+    ).not.toBeInTheDocument();
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
   test("a failed publish keeps the empty state and shows the server's message", async () => {
     getMock.mockResolvedValue(ok(UNPUBLISHED_JSON));
     postMock.mockResolvedValue(fail(403, "You need Edit on this schedule"));
