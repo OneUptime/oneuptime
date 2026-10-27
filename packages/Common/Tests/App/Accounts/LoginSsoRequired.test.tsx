@@ -668,15 +668,56 @@ describe("the single sign-on page (/accounts/sso) while the server requires SSO"
       await user.click(screen.getByTestId("Login with SSO"));
     });
 
-    expect(await screen.findByText("Acme SAML")).toBeInTheDocument();
+    /*
+     * Its one provider, under the project's name, drawn as the page's
+     * filled button - the look of the instance-wide providers' buttons.
+     */
+    const button: HTMLElement = await screen.findByRole("button", {
+      name: signInWith("Acme SAML"),
+    });
+
+    expect(screen.getByRole("heading", { name: "Acme" })).toBeInTheDocument();
+    expect(button.className).toBe(SIGN_IN_OPTION_PRIMARY_CLASS);
 
     await act(async () => {
-      await user.click(screen.getByText("Acme SAML"));
+      await user.click(button);
     });
 
     expect(navigatedTo()).toEqual([
       `${IDENTITY_ORIGIN}/sso/${OKTA_ID}/${WHATABURGER_ID}`,
     ]);
+  });
+
+  /*
+   * The screenshot in #5193: "No SSO configuration found for the email:
+   * <address>" above an empty field saying "Email is required." The page
+   * gave way to a loader while it looked the address up, and the form came
+   * back without it.
+   */
+  test("an address that finds no project's provider stays in the field, under the message that names it", async () => {
+    signInMethodsAnswer = required([WHATABURGER], true);
+
+    await renderPage(<LoginWithSSOPage />);
+
+    const user: ReturnType<typeof userEvent.setup> = userEvent.setup({
+      delay: null,
+    });
+
+    await user.type(screen.getByTestId("email"), "bgssteeph@wbhq.com");
+    await act(async () => {
+      await user.click(screen.getByTestId("Login with SSO"));
+    });
+
+    expect(
+      await screen.findByText(
+        english.sso.noConfigForEmail.replace("{{email}}", "bgssteeph@wbhq.com"),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("email")).toHaveValue("bgssteeph@wbhq.com");
+    // The instance-wide provider is still offered above it.
+    expect(
+      screen.getByRole("button", { name: "Login with Whataburger SSO" }),
+    ).toBeInTheDocument();
   });
 
   test("while SSO is not required: the email form, the way back to a password, and sign-up", async () => {

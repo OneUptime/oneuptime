@@ -159,7 +159,8 @@
     "globalProvidersDivider": "Ou continue com e-mail",
     "signInWithProvider": "Entrar com {{name}}",
     "requiredSubtitle": "Entre com o login único (SSO) da sua organização.",
-    "requiredNotSetUp": "O login único ainda não está configurado neste servidor. Peça ao administrador do servidor para configurá-lo."
+    "requiredNotSetUp": "O login único ainda não está configurado neste servidor. Peça ao administrador do servidor para configurá-lo.",
+    "useDifferentEmail": "Usar outro e-mail"
   },
   "adminLogin": {
     "title": "Login de administrador principal",

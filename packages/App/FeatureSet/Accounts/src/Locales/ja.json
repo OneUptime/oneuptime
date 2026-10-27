@@ -159,7 +159,8 @@
     "globalProvidersDivider": "またはメールで続行",
     "signInWithProvider": "{{name}} でサインイン",
     "requiredSubtitle": "組織のシングルサインオン（SSO）でサインインしてください。",
-    "requiredNotSetUp": "このサーバーではシングルサインオンがまだ設定されていません。サーバー管理者に設定を依頼してください。"
+    "requiredNotSetUp": "このサーバーではシングルサインオンがまだ設定されていません。サーバー管理者に設定を依頼してください。",
+    "useDifferentEmail": "別のメールアドレスを使用"
   },
   "adminLogin": {
     "title": "マスター管理者のサインイン",

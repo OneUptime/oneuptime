@@ -159,7 +159,8 @@
     "globalProvidersDivider": "或使用电子邮件继续",
     "signInWithProvider": "使用 {{name}} 登录",
     "requiredSubtitle": "使用您组织的单点登录（SSO）登录。",
-    "requiredNotSetUp": "此服务器尚未设置单点登录。请联系服务器管理员进行设置。"
+    "requiredNotSetUp": "此服务器尚未设置单点登录。请联系服务器管理员进行设置。",
+    "useDifferentEmail": "使用其他电子邮件"
   },
   "adminLogin": {
     "title": "主管理员登录",

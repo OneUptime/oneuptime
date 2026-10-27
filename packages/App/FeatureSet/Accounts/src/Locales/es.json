@@ -159,7 +159,8 @@
     "globalProvidersDivider": "O continúe con su correo electrónico",
     "signInWithProvider": "Iniciar sesión con {{name}}",
     "requiredSubtitle": "Inicia sesión con el inicio de sesión único (SSO) de tu organización.",
-    "requiredNotSetUp": "El inicio de sesión único aún no está configurado en este servidor. Pide a tu administrador del servidor que lo configure."
+    "requiredNotSetUp": "El inicio de sesión único aún no está configurado en este servidor. Pide a tu administrador del servidor que lo configure.",
+    "useDifferentEmail": "Usar otro correo electrónico"
   },
   "adminLogin": {
     "title": "Inicio de sesión de administrador maestro",

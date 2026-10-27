@@ -159,7 +159,8 @@
     "globalProvidersDivider": "Ou continuer avec votre e-mail",
     "signInWithProvider": "Se connecter avec {{name}}",
     "requiredSubtitle": "Connectez-vous avec l’authentification unique (SSO) de votre organisation.",
-    "requiredNotSetUp": "L’authentification unique n’est pas encore configurée sur ce serveur. Demandez à l’administrateur de votre serveur de la configurer."
+    "requiredNotSetUp": "L’authentification unique n’est pas encore configurée sur ce serveur. Demandez à l’administrateur de votre serveur de la configurer.",
+    "useDifferentEmail": "Utiliser un autre e-mail"
   },
   "adminLogin": {
     "title": "Connexion administrateur principal",

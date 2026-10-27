@@ -159,7 +159,8 @@
     "globalProvidersDivider": "Eller fortsätt med e-post",
     "signInWithProvider": "Logga in med {{name}}",
     "requiredSubtitle": "Logga in med organisationens enkel inloggning (SSO).",
-    "requiredNotSetUp": "Enkel inloggning är inte konfigurerad på den här servern ännu. Be serveradministratören att konfigurera den."
+    "requiredNotSetUp": "Enkel inloggning är inte konfigurerad på den här servern ännu. Be serveradministratören att konfigurera den.",
+    "useDifferentEmail": "Använd en annan e-postadress"
   },
   "adminLogin": {
     "title": "Inloggning för huvudadministratörer",

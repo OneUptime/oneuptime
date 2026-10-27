@@ -15,6 +15,7 @@ import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import { MASTER_ADMIN_SIGN_IN_PATH } from "Common/Types/SSO/SignInMethods";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import Banner from "Common/UI/Components/Banner/Banner";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CopyableValueList from "Common/UI/Components/CopyableValueList/CopyableValueList";
@@ -52,9 +53,9 @@ import { useTranslation } from "react-i18next";
  *
  * A provider is turned on and off on its own page, as before: turning one
  * off ends every sign-in it gave, in every project on the server, so it is
- * no one-click row action (RowActionsAudit). Test Sign-in in its row starts
- * a sign-in with it in a new tab: the step to take before requiring SSO,
- * which the Require SSO card says.
+ * no one-click row action (RowActionsAudit). Test Sign-in, the row's button
+ * while a provider is on, starts a sign-in with it in a new tab: the step to
+ * take before requiring SSO, which the Require SSO card says.
  * The card also names the master admins' way in, /accounts/admin-login:
  * while SSO is required the sign-in page offers only SSO, and only master
  * admins sign in with a password (SsoRequiredSignIn).
@@ -187,7 +188,14 @@ const SsoSettings: FunctionComponent = (): ReactElement => {
             title: SSO_PAGE_COPY.testSignIn,
             icon: IconProp.ExternalLink,
             buttonStyleType: ButtonStyleType.NORMAL,
-            // A provider that is off signs nobody in.
+            /*
+             * The row's own button, so a provider that is on is one click
+             * from being tried - the step the Require SSO card asks for
+             * before SSO is required. View waits in the ⋯ menu, and a
+             * click on the row opens the provider as before. A provider
+             * that is off keeps View as its button: it signs nobody in.
+             */
+            placement: ActionButtonPlacement.Primary,
             isVisible: (item: GlobalSSO): boolean => {
               return Boolean(item.isEnabled);
             },
@@ -296,6 +304,8 @@ const SsoSettings: FunctionComponent = (): ReactElement => {
             title: SSO_PAGE_COPY.testSignIn,
             icon: IconProp.ExternalLink,
             buttonStyleType: ButtonStyleType.NORMAL,
+            // The row's own button while the provider is on, as for SAML.
+            placement: ActionButtonPlacement.Primary,
             isVisible: (item: GlobalOIDC): boolean => {
               return Boolean(item.isEnabled);
             },

@@ -661,6 +661,75 @@ describe("Settings > Single Sign-On: the page's other strings", () => {
   });
 });
 
+/*
+ * A provider that is off has View as its row's button, and one that is on
+ * has it in its ⋯ menu as "View SAML Provider" (ModelTable's View, which
+ * names the record's kind there). The Admin Dashboard had neither string,
+ * so every table's View read English in every language - this page's
+ * included. Each locale says them as the Dashboard does.
+ */
+describe("the rows' View, on this page and every Admin Dashboard table", () => {
+  const VIEW_KEYS: Array<string> = ["View", "View {{itemName}}"];
+
+  const DASHBOARD_LOCALES_DIR: string = path.join(
+    __dirname,
+    "..",
+    "..",
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Locales",
+  );
+
+  const readDashboardLocale: (locale: string) => Locale = (
+    locale: string,
+  ): Locale => {
+    return JSON.parse(
+      fs.readFileSync(
+        path.join(DASHBOARD_LOCALES_DIR, `${locale}.json`),
+        "utf8",
+      ),
+    ) as Locale;
+  };
+
+  test("en.json maps both to themselves", () => {
+    for (const key of VIEW_KEYS) {
+      expect({ key, value: english[key] }).toEqual({ key, value: key });
+    }
+  });
+
+  test.each(OTHER_LOCALES)(
+    "%s translates both, as the Dashboard does",
+    (locale: string) => {
+      const entries: Locale = readLocale(locale);
+      const dashboard: Locale = readDashboardLocale(locale);
+
+      for (const key of VIEW_KEYS) {
+        const value: unknown = entries[key];
+
+        expect({ locale, key, type: typeof value }).toEqual({
+          locale,
+          key,
+          type: "string",
+        });
+        expect({ locale, key, translated: value !== key }).toEqual({
+          locale,
+          key,
+          translated: true,
+        });
+        expect({ locale, key, value }).toEqual({
+          locale,
+          key,
+          value: dashboard[key],
+        });
+      }
+
+      // The record's kind still has its place in the menu's words.
+      expect(String(entries["View {{itemName}}"])).toContain("{{itemName}}");
+    },
+  );
+});
+
 describe("the Health screens' license notice", () => {
   test("names SCIM and audit logging, and not single sign-on, in English", () => {
     const description: string = HEALTH_LICENSE_NOTICE[1] as string;

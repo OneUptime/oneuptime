@@ -354,6 +354,13 @@ import Route from "../../../Types/API/Route";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
+import ActionButtonSchema, {
+  ActionButtonPlacement,
+} from "../../../UI/Components/ActionButton/ActionButtonSchema";
+import splitActionButtons, {
+  SplitActionButtonsResult,
+} from "../../../UI/Components/ActionButton/SplitActionButtons";
+import IconProp from "../../../Types/Icon/IconProp";
 import Navigation from "../../../UI/Utils/Navigation";
 
 const PROVIDER_ID: string = "33333333-3333-4333-8333-333333333333";
@@ -1168,6 +1175,72 @@ describe("Settings > Single Sign-On", () => {
       expect(String(navigate.mock.calls[0]![0])).toBe(testUrl);
       expect(navigate.mock.calls[0]![1]).toEqual({ openInNewTab: true });
       expect(onCompleteAction).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  /*
+   * The card above the switch asks for a test sign-in first, so a provider
+   * that is on carries Test Sign-in as its row's one button - the row's
+   * View (ModelTable marks it Primary too, after the page's own actions)
+   * waits in the ⋯ menu, and a click on the row still opens the provider.
+   * A provider that is off signs nobody in: its button stays View.
+   */
+  test.each([
+    ["global-sso-table", GlobalSSO, "View SAML Provider"],
+    ["global-oidc-table", GlobalOIDC, "View OIDC Provider"],
+  ])(
+    "%s: Test Sign-in is the row's button while the provider is on, View while it is off",
+    async (
+      tableId: string,
+      modelType: typeof GlobalSSO | typeof GlobalOIDC,
+      viewTitle: string,
+    ) => {
+      await renderPage(PAGES[0]!);
+
+      const action: MockProps = testSignInAction(tableId);
+
+      expect(action["placement"]).toBe(ActionButtonPlacement.Primary);
+
+      // What BaseModelTable adds after the page's own actions.
+      const view: ActionButtonSchema<GlobalSSO | GlobalOIDC> = {
+        title: viewTitle,
+        icon: IconProp.Eye,
+        buttonStyleType: ButtonStyleType.NORMAL,
+        placement: ActionButtonPlacement.Primary,
+        onClick: async (): Promise<void> => {
+          return;
+        },
+      };
+
+      const rowActions: Array<ActionButtonSchema<GlobalSSO | GlobalOIDC>> = [
+        action as unknown as ActionButtonSchema<GlobalSSO | GlobalOIDC>,
+        view,
+      ];
+
+      const provider: GlobalSSO | GlobalOIDC = new modelType();
+      provider._id = PROVIDER_ID;
+
+      provider.isEnabled = true;
+
+      const whileOn: SplitActionButtonsResult<GlobalSSO | GlobalOIDC> =
+        splitActionButtons({ actionButtons: rowActions, item: provider });
+
+      expect(whileOn.primary?.button.title).toBe(SSO_PAGE_COPY.testSignIn);
+      expect(
+        whileOn.moreMenu.map(
+          (entry: { button: ActionButtonSchema<GlobalSSO | GlobalOIDC> }) => {
+            return entry.button.title;
+          },
+        ),
+      ).toEqual([viewTitle]);
+
+      provider.isEnabled = false;
+
+      const whileOff: SplitActionButtonsResult<GlobalSSO | GlobalOIDC> =
+        splitActionButtons({ actionButtons: rowActions, item: provider });
+
+      expect(whileOff.primary?.button.title).toBe(viewTitle);
+      expect(whileOff.moreMenu).toEqual([]);
     },
   );
 

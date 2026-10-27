@@ -159,7 +159,8 @@
     "globalProvidersDivider": "Eller fortsæt med e-mail",
     "signInWithProvider": "Log ind med {{name}}",
     "requiredSubtitle": "Log ind med din organisations single sign-on (SSO).",
-    "requiredNotSetUp": "Single sign-on er endnu ikke sat op på denne server. Bed din serveradministrator om at sætte det op."
+    "requiredNotSetUp": "Single sign-on er endnu ikke sat op på denne server. Bed din serveradministrator om at sætte det op.",
+    "useDifferentEmail": "Brug en anden e-mail"
   },
   "adminLogin": {
     "title": "Log ind som hovedadministrator",

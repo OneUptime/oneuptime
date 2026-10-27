@@ -159,7 +159,8 @@
     "globalProvidersDivider": "Oder mit E-Mail fortfahren",
     "signInWithProvider": "Mit {{name}} anmelden",
     "requiredSubtitle": "Melden Sie sich mit dem Single Sign-On (SSO) Ihrer Organisation an.",
-    "requiredNotSetUp": "Single Sign-On ist auf diesem Server noch nicht eingerichtet. Bitten Sie Ihren Server-Administrator, es einzurichten."
+    "requiredNotSetUp": "Single Sign-On ist auf diesem Server noch nicht eingerichtet. Bitten Sie Ihren Server-Administrator, es einzurichten.",
+    "useDifferentEmail": "Andere E-Mail verwenden"
   },
   "adminLogin": {
     "title": "Anmeldung für Master-Admins",

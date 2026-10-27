@@ -159,7 +159,8 @@
     "globalProvidersDivider": "或使用電子郵件繼續",
     "signInWithProvider": "使用 {{name}} 登入",
     "requiredSubtitle": "使用您組織的單一登入（SSO）登入。",
-    "requiredNotSetUp": "此伺服器尚未設定單一登入。請聯絡伺服器管理員進行設定。"
+    "requiredNotSetUp": "此伺服器尚未設定單一登入。請聯絡伺服器管理員進行設定。",
+    "useDifferentEmail": "使用其他電子郵件"
   },
   "adminLogin": {
     "title": "主要管理員登入",
