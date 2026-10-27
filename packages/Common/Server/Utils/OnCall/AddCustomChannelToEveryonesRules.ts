@@ -129,7 +129,9 @@ export default class AddCustomChannelToEveryonesRules {
           continue;
         }
 
-        const key: string = `${member.projectId.toString()}:${member.userId.toString()}`;
+        // Ids compared without regard to case, as Postgres and ObjectID may differ in it.
+        const key: string =
+          `${member.projectId.toString()}:${member.userId.toString()}`.toLowerCase();
 
         if (done.has(key)) {
           continue;

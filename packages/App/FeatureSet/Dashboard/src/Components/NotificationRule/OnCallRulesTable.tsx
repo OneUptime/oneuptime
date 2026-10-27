@@ -1639,16 +1639,19 @@ const OnCallRulesTable: FunctionComponent<ComponentProps> = (
       setUserWebhooks(userWebhookList.data);
 
       /*
-       * The server's custom channels, which nobody owns. Read apart from the
-       * person's own methods so a channel list that could not be read leaves
-       * the rest of the dropdown as it is: it then offers no channel, and the
-       * server has the last word on any that is named.
+       * The server's custom channels, which nobody owns. Read beside the
+       * person's own methods and never waited for: a channel list that is
+       * slow or could not be read leaves the table and the rest of the
+       * dropdown as they are. It then offers no channel, and the server has
+       * the last word on any that is named.
        */
-      try {
-        setCustomNotificationChannels(await loadCustomNotificationChannels());
-      } catch {
-        setCustomNotificationChannels([]);
-      }
+      loadCustomNotificationChannels()
+        .then((channels: Array<CustomNotificationChannel>) => {
+          setCustomNotificationChannels(channels);
+        })
+        .catch(() => {
+          setCustomNotificationChannels([]);
+        });
     };
 
   const init: PromiseVoidFunction = async (): Promise<void> => {

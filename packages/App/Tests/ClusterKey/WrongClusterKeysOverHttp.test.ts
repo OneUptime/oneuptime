@@ -137,6 +137,11 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
       "/api/notification/call/make-call",
     ),
     route(
+      `${NOTIFICATION_API}/CustomChannel.ts`,
+      '"/send"',
+      "/api/notification/custom-channel/send",
+    ),
+    route(
       `${NOTIFICATION_API}/Mail.ts`,
       '"/send"',
       "/api/notification/email/send",
@@ -248,6 +253,7 @@ async function startInstallation(): Promise<RunningInstallation> {
         ["whatsapp", "WhatsApp"],
         ["telegram", "Telegram"],
         ["webhook", "Webhook"],
+        ["custom-channel", "CustomChannel"],
         ["call", "Call"],
         ["phone-number", "PhoneNumber"],
       ]) {
@@ -474,6 +480,7 @@ describe("on each route, one client's different wrong keys", () => {
     "/api/notification/sms/send",
     "/api/notification/telegram/send",
     "/api/notification/webhook/send",
+    "/api/notification/custom-channel/send",
     "/api/notification/whatsapp/send",
     "/telemetry-writer/insert",
     `/workflow/update/${WORKFLOW_ID}`,

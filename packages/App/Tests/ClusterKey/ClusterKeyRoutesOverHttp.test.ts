@@ -244,6 +244,12 @@ function routesUnderTest(modelTriggerPath: string): Array<RouteUnderTest> {
       notificationUrls("webhook", "/send"),
     ),
     route(
+      `${NOTIFICATION_API}/CustomChannel.ts`,
+      "POST",
+      '"/send"',
+      notificationUrls("custom-channel", "/send"),
+    ),
+    route(
       `${NOTIFICATION_API}/WhatsApp.ts`,
       "POST",
       '"/send"',
@@ -409,6 +415,7 @@ async function startInstallation(
       mountNotification("whatsapp", "WhatsApp");
       mountNotification("telegram", "Telegram");
       mountNotification("webhook", "Webhook");
+      mountNotification("custom-channel", "CustomChannel");
       mountNotification("call", "Call");
       mountNotification("phone-number", "PhoneNumber");
 
@@ -1194,6 +1201,14 @@ describe("the real handlers behind the routes", () => {
       name: "a webhook",
       url: "/api/notification/webhook/send",
       body: { url: "https://example.com/hooks/oneuptime", eventType: "test" },
+    },
+    {
+      name: "a custom channel's request",
+      url: "/api/notification/custom-channel/send",
+      body: {
+        customNotificationChannelId: "6a1f1b4e-9f0c-4d8e-8b2a-3c4d5e6f7a8b",
+        eventType: "test",
+      },
     },
     {
       name: "a workflow update",
