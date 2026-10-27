@@ -96,14 +96,12 @@ export const WHERE_IT_CAME_FROM_TITLE: string =
   translationKey("Where it came from");
 
 export const FROM_A_LOG_LINE_OF: string = translationKey(
-  "A log line {{service}} wrote",
+  "From a log line written by {{service}}",
 );
 
 export const FROM_A_LOG_LINE: string = translationKey(
-  "A log line from your telemetry",
+  "From a log line in your telemetry",
 );
-
-export const FROM_SOURCE: string = translationKey("Sent by {{source}}");
 
 export const NO_TRACE_FOR_LOG_LINE: string = translationKey(
   "This line wasn't written inside a traced request, so OneUptime can't follow it. Send traces from this service to see what each attack did next.",

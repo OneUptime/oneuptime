@@ -269,7 +269,7 @@ describe("Where it came from", () => {
       );
     });
     await waitFor(() => {
-      expect(section).toHaveTextContent("A log line api wrote");
+      expect(section).toHaveTextContent("From a log line written by api");
     });
     await waitFor(() => {
       expect(screen.getByTestId("security-event-watch-session")).toBeInTheDocument();
@@ -311,7 +311,7 @@ describe("Where it came from", () => {
     const section: HTMLElement = screen.getByTestId(WHERE_IT_CAME_FROM_TEST_ID);
 
     expect(section).toHaveTextContent("wasn't written inside a traced request");
-    expect(section).toHaveTextContent("A log line from your telemetry");
+    expect(section).toHaveTextContent("From a log line in your telemetry");
     expect(screen.queryByTestId("security-event-view-trace")).toBeNull();
     // Its neighbours in the logs, rather than its request's.
     expect(screen.getByTestId("security-event-view-logs")).toHaveTextContent(
