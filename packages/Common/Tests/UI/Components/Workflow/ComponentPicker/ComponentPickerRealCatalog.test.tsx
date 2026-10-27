@@ -26,6 +26,7 @@ import { describe, expect, test } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import React from "react";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * The picker over the real catalog: every database model's steps plus the
@@ -351,22 +352,25 @@ describe("a search over the full catalog is fast", () => {
    * step on every key, seconds on a slow machine.
    */
   test("building the catalog and its index takes a moment, once", () => {
-    const started: number = performance.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (const componentsType of [
+          ComponentType.Component,
+          ComponentType.Trigger,
+        ]) {
+          buildComponentSearchIndex(
+            buildPickerCatalog({
+              components: loaded.components,
+              categories: loaded.categories,
+              componentsType: componentsType,
+            }),
+          );
+        }
+      },
+      limitInMs: 2000,
+    });
 
-    for (const componentsType of [
-      ComponentType.Component,
-      ComponentType.Trigger,
-    ]) {
-      buildComponentSearchIndex(
-        buildPickerCatalog({
-          components: loaded.components,
-          categories: loaded.categories,
-          componentsType: componentsType,
-        }),
-      );
-    }
-
-    expect(performance.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("each search, typed one letter at a time, stays well under a frame budget on average", () => {

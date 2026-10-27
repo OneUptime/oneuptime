@@ -22,6 +22,7 @@ import CodeFixTaskType, {
 import { getCodeTaskRequest } from "../../../Types/AI/CodeFixTaskContext";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * What a person can add to a request in Code is checked on both sides with
@@ -636,9 +637,13 @@ describe("CodeTaskBranchName", () => {
       `${".".repeat(400_000)}`,
       `${"a".repeat(400_000)}.lock`,
     ]) {
-      const start: number = Date.now();
-      CodeTaskBranchName.isValid(name);
-      expect(Date.now() - start).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          CodeTaskBranchName.isValid(name);
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     }
   });
 });
@@ -727,14 +732,22 @@ describe("CodeTaskChangeStats.fromOutcomes", () => {
 describe("reading what outside people typed takes time in line with its length", () => {
   const LONG: number = 400_000;
 
+  /*
+   * How long the work takes: the fastest of up to three attempts, counted as
+   * it would have run on a usual runner when every attempt overran on a slow
+   * one (Tests/Helpers/FastestRun).
+   */
   function timed(read: () => unknown): number {
-    const start: number = Date.now();
-    try {
-      read();
-    } catch {
-      // A refusal is an answer too; only how long it took matters here.
-    }
-    return Date.now() - start;
+    return fastestRun({
+      run: (): void => {
+        try {
+          read();
+        } catch {
+          // A refusal is an answer too; only how long it took matters here.
+        }
+      },
+      limitInMs: 2000,
+    }).inMs;
   }
 
   test.each([

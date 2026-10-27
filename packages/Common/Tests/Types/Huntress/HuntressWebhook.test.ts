@@ -29,6 +29,7 @@ import {
   getHuntressIncidentReportBody,
 } from "./HuntressWebhookFixtures";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * Reading Huntress webhook bodies, in the shapes Huntress documents, into
@@ -202,13 +203,19 @@ describe("parseHuntressWebhook: incident report events", () => {
   });
 
   test("a megabyte-long subject is cut without running a pattern over it", () => {
-    const started: number = Date.now();
-    const event: HuntressIncidentReportEvent = parseReport(
-      getHuntressIncidentReportBody({ subject: "(".repeat(3 * 1024 * 1024) }),
-    );
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const event: HuntressIncidentReportEvent = parseReport(
+          getHuntressIncidentReportBody({
+            subject: "(".repeat(3 * 1024 * 1024),
+          }),
+        );
 
-    expect(event.subject!.length).toBe(HUNTRESS_MAX_SUBJECT_LENGTH);
-    expect(Date.now() - started).toBeLessThan(2000);
+        expect(event.subject!.length).toBe(HUNTRESS_MAX_SUBJECT_LENGTH);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("indicator counts keep only well-formed, positive whole counts", () => {

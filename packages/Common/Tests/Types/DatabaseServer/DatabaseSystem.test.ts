@@ -24,6 +24,7 @@ import {
   ImageClassification,
 } from "../../../Types/DatabaseServer/DatabaseContainerClassifier";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 const CONTRIB_PREFIX: string =
   "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/";
@@ -1101,16 +1102,24 @@ describe("refineDatabaseSystemFromVersion", () => {
 
   test("reads the major of a pathological version string in linear time", () => {
     const hostile: string = " ".repeat(100_000) + "x";
-    const started: number = performance.now();
-    expect(refineDatabaseSystemFromVersion("mysql", hostile)).toBe("mysql");
-    expect(performance.now() - started).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(refineDatabaseSystemFromVersion("mysql", hostile)).toBe("mysql");
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   test("only reads the head of a pathological version string", () => {
     const hostile: string = "9".repeat(100_000) + "-MariaDB";
-    const started: number = performance.now();
-    expect(refineDatabaseSystemFromVersion("mysql", hostile)).toBe("mysql");
-    expect(performance.now() - started).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(refineDatabaseSystemFromVersion("mysql", hostile)).toBe("mysql");
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });
 
@@ -1473,12 +1482,18 @@ describe("trimTrailingCharacter", () => {
   test("stays linear on long runs that do not end the string", () => {
     // The regex it replaced (/\.+$/) backtracks quadratically on this input.
     const hostile: string = "a" + ".".repeat(200_000) + "b";
-    const started: number = performance.now();
-    expect(trimTrailingCharacter(hostile, ".")).toBe(hostile);
-    expect(
-      getDatabaseSystemFromReceiverScopeName("x" + "/".repeat(200_000) + "y"),
-    ).toBeNull();
-    expect(performance.now() - started).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(trimTrailingCharacter(hostile, ".")).toBe(hostile);
+        expect(
+          getDatabaseSystemFromReceiverScopeName(
+            "x" + "/".repeat(200_000) + "y",
+          ),
+        ).toBeNull();
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });
 

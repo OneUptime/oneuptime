@@ -4,6 +4,7 @@ import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { generatedTexts } from "../../../Helpers/GeneratedTexts";
 import { namedPattern } from "../../../Helpers/SourcePatterns";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -54,26 +55,32 @@ const WORST_CASES: Array<[string, string]> = [
 
 describe("database output is redacted in time in line with its length", () => {
   test.each(WORST_CASES)("%s", (_label: string, text: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        redact(text);
+      },
+      limitInMs: 2000,
+    });
 
-    redact(text);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   // The whole of a resource command's redaction: this hook, then the generic rules.
   test.each(WORST_CASES)(
     "%s, through a resource command's redaction",
     (_label: string, text: string) => {
-      const startedAt: number = Date.now();
-
-      redactResourceCommandOutput({
-        resourceType: AiResourceType.DatabaseServer,
-        program: "db",
-        text,
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          redactResourceCommandOutput({
+            resourceType: AiResourceType.DatabaseServer,
+            program: "db",
+            text,
+          });
+        },
+        limitInMs: 2000,
       });
 
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 });

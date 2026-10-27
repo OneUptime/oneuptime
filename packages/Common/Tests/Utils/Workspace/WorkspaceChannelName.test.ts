@@ -9,6 +9,7 @@ import WorkspaceChannelName, {
 } from "../../../Utils/Workspace/WorkspaceChannelName";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * THE NAME OF A CHANNEL A NOTIFICATION RULE CREATES (WorkspaceChannelName).
@@ -939,39 +940,46 @@ describe("long text", () => {
   test("a 400,000-character prefix and name are named in well under 2 seconds", () => {
     const longText: string = "Ab #-_ é".repeat(50000);
 
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        for (const workspaceType of BOTH) {
+          WorkspaceChannelName.describe({
+            workspaceType,
+            prefix: longText,
+            parts: WorkspaceChannelName.forNamedRecord({
+              eventType: NotificationRuleEventType.Monitor,
+              name: longText,
+            }),
+            attempt: 3,
+          });
+          WorkspaceChannelName.forNumberedRecord({
+            eventType: NotificationRuleEventType.Incident,
+            number: 42,
+            numberWithPrefix: `${"-".repeat(400000)}42`,
+          });
+        }
+      },
+      limitInMs: 2000,
+    });
 
-    for (const workspaceType of BOTH) {
-      WorkspaceChannelName.describe({
-        workspaceType,
-        prefix: longText,
-        parts: WorkspaceChannelName.forNamedRecord({
-          eventType: NotificationRuleEventType.Monitor,
-          name: longText,
-        }),
-        attempt: 3,
-      });
-      WorkspaceChannelName.forNumberedRecord({
-        eventType: NotificationRuleEventType.Incident,
-        number: 42,
-        numberWithPrefix: `${"-".repeat(400000)}42`,
-      });
-    }
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   // The worst case for trimming a Teams name's end: runs of spaces that do not end it.
   test("a 400,000-character Microsoft Teams prefix of spaces and tabs is named in well under 2 seconds", () => {
-    const started: number = Date.now();
-
-    const name: string = WorkspaceChannelName.getChannelName({
-      workspaceType: WorkspaceType.MicrosoftTeams,
-      prefix: `${"\t".repeat(200000)}x${" \t".repeat(100000)}`,
-      parts: incident("INC-42"),
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return WorkspaceChannelName.getChannelName({
+          workspaceType: WorkspaceType.MicrosoftTeams,
+          prefix: `${"\t".repeat(200000)}x${" \t".repeat(100000)}`,
+          parts: incident("INC-42"),
+        });
+      },
+      limitInMs: 2000,
     });
+    const name: string = timed.result;
 
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(name.endsWith("inc-42")).toBe(true);
     expect(name.length).toBeLessThanOrEqual(
       WorkspaceChannelName.MICROSOFT_TEAMS_MAX_LENGTH,

@@ -22,6 +22,11 @@
  *     Node and the npm installs before them.
  * Then a slow mirror costs time, not a red job, and a hung install or suite
  * stops at its own limit rather than GitHub's six hours.
+ *
+ * Since 2026-10-27 the browser jobs run in the Playwright image instead,
+ * which has the browsers and their packages (Tests/Ops/PlaywrightImage), and
+ * fetch nothing from the mirror. The Probe's job still installs its own: its
+ * suite needs strace and gcc from apt as well.
  */
 
 const fs = require("fs");
@@ -109,21 +114,17 @@ for (const file of fs.readdirSync(WORKFLOWS).sort()) {
 
 describe("browser jobs and a slow Ubuntu mirror", () => {
   test("finds the jobs that install a browser", () => {
-    // If these go missing, the checks below would pass by checking nothing.
+    /*
+     * If this goes missing, the checks below would pass by checking nothing.
+     * Every other browser job runs in the Playwright image
+     * (Tests/Ops/PlaywrightImage): a new job that installs its browsers
+     * instead is named here, with its reason there.
+     */
     expect(
       browserJobs.map(({ where }) => {
         return where;
       }),
-    ).toEqual(
-      expect.arrayContaining([
-        "test.app.yaml session-replay-ui",
-        "test.app.yaml dashboard-offline-ui",
-        "test.browser-recorder.yaml test",
-        "test.ee.yaml backups-ui",
-        "test.mobile-app.yaml expo-web-export",
-        "test.probe.yaml test",
-      ]),
-    );
+    ).toEqual(["test.probe.yaml test"]);
   });
 
   test("every job that installs a browser sets a time limit", () => {

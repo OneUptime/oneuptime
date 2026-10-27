@@ -75,6 +75,7 @@ import {
   GeoCluster,
   clusterPoints,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkSite/Geo/GeoClusterUtil";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * Pins the SiteGeoMap view-model: pin building on the single world
@@ -2315,16 +2316,18 @@ describe("resolveMarkerLabels", () => {
     );
     const markers: Array<PlacedMapMarker> = layoutMapMarkers(units, MAX_ZOOM);
 
-    const started: number = Date.now();
-    const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
-      markers,
-      MAX_ZOOM,
-    );
+    const timed: FastestRun<Map<string, LabelPlacement>> = fastestRun({
+      run: (): Map<string, LabelPlacement> => {
+        return resolveMarkerLabels(markers, MAX_ZOOM);
+      },
+      limitInMs: 2000,
+    });
+    const placements: Map<string, LabelPlacement> = timed.result;
     /*
      * Generous by two orders of magnitude — this is a runaway detector, not a
      * benchmark, and a CI runner under load must not fail it.
      */
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
     expect(placements.size).toBeGreaterThan(0);
   });
 
@@ -2341,9 +2344,13 @@ describe("resolveMarkerLabels", () => {
       },
     );
 
-    const started: number = Date.now();
-    expect(resolveMarkerLabels(markers, 4).size).toBe(0);
-    expect(Date.now() - started).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(resolveMarkerLabels(markers, 4).size).toBe(0);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   /*
@@ -2779,13 +2786,14 @@ describe("resolveMarkerLabels", () => {
       );
       const markers: Array<PlacedMapMarker> = layoutMapMarkers(units, MAX_ZOOM);
 
-      const started: number = Date.now();
-      const placements: Map<string, LabelPlacement> = resolveMarkerLabels(
-        markers,
-        MAX_ZOOM,
-        NO_THREADS,
-      );
-      expect(Date.now() - started).toBeLessThan(2000);
+      const timed: FastestRun<Map<string, LabelPlacement>> = fastestRun({
+        run: (): Map<string, LabelPlacement> => {
+          return resolveMarkerLabels(markers, MAX_ZOOM, NO_THREADS);
+        },
+        limitInMs: 2000,
+      });
+      const placements: Map<string, LabelPlacement> = timed.result;
+      expect(timed.inMs).toBeLessThan(2000);
       for (const placement of placements.values()) {
         expect(placement.push).toBe(0);
         expect(placement.leaderLine).toBeNull();

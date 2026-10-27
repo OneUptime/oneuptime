@@ -22,6 +22,13 @@
  * Timings of two versions of the same work against each other (limitInMs 0)
  * and runs on a test's own clock are never adjusted.
  *
+ * Every attempt must do the whole work again. Make what the work changes
+ * inside run() - a new parser, stream or framer each attempt - and never
+ * repeat an input the work remembers: a search box typed the same text
+ * again does not search (React fires no change), so a second attempt would
+ * time nothing and pass work that took minutes the first time (RolePicker's
+ * book-length search types a text of its own each attempt).
+ *
  *   const written: FastestRun<string> = fastestRun({
  *     run: (): string => {
  *       return ChatMessageMarkdown.toMarkdown(content).toString();

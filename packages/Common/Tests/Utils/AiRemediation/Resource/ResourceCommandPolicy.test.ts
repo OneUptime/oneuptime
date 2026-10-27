@@ -23,6 +23,7 @@ import AiResourceType, {
 import { ResourceCommandTier } from "../../../../Types/ResourceAiAgent/ResourceAiAccess";
 import { AiRemediationCommandPolicyVerdict } from "../../../../Types/AutoRemediation/AiRemediationCommandPolicyVerdict";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Contract under test — ResourceCommandPolicy, the dispatcher every caller
@@ -1292,14 +1293,17 @@ describe("allowlist stand-ins with the real tool policies", () => {
     const patterns: Array<string> = Array.from({ length: 50 }, (): string => {
       return "ceph osd reweight * *";
     });
-    const started: number = Date.now();
-
-    expect(
-      ResourceCommandPolicy.describeAllowlistProblems({
-        resourceType: AiResourceType.CephCluster,
-        patterns,
-      }),
-    ).toBeNull();
-    expect(Date.now() - started).toBeLessThan(5000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          ResourceCommandPolicy.describeAllowlistProblems({
+            resourceType: AiResourceType.CephCluster,
+            patterns,
+          }),
+        ).toBeNull();
+      },
+      limitInMs: 5000,
+    });
+    expect(timed.inMs).toBeLessThan(5000);
   });
 });

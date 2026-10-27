@@ -13,6 +13,7 @@ import {
 import { generatedTexts } from "../Helpers/GeneratedTexts";
 import { SeededRandom, seededRandom, shuffled } from "../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * NATURAL ORDER (Utils/NaturalOrder), the order labels are listed in
@@ -312,13 +313,16 @@ describe("the sort key", () => {
 
   test("is read in time that grows with the name, not its square", () => {
     const long: string = "12 ab ".repeat(70000);
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        getNaturalSortKey(long);
+        getNaturalSortKey(" \t".repeat(200000));
+        getNaturalSortKey("9".repeat(400000));
+      },
+      limitInMs: 2000,
+    });
 
-    getNaturalSortKey(long);
-    getNaturalSortKey(" \t".repeat(200000));
-    getNaturalSortKey("9".repeat(400000));
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

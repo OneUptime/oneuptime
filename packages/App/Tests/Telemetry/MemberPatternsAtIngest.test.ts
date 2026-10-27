@@ -53,6 +53,7 @@ import TraceScrubAction from "Common/Types/Trace/TraceScrubAction";
 import TraceScrubField from "Common/Types/Trace/TraceScrubField";
 import TraceScrubPatternType from "Common/Types/Trace/TraceScrubPatternType";
 import { describe, expect, jest, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -79,13 +80,16 @@ const BUDGET_IN_MS: number = 2000;
 const SLOW_RECORD: string = `${"a".repeat(LENGTH)}!`;
 const SLOW_PATTERN: string = "(a+)+$";
 
+// The work's result, once its fastest attempt (Tests/Helpers/FastestRun) is in budget.
 function timed<T>(work: () => T): T {
-  const startedAt: number = Date.now();
-  const result: T = work();
+  const run: FastestRun<T> = fastestRun({
+    run: work,
+    limitInMs: BUDGET_IN_MS,
+  });
 
-  expect(Date.now() - startedAt).toBeLessThan(BUDGET_IN_MS);
+  expect(run.inMs).toBeLessThan(BUDGET_IN_MS);
 
-  return result;
+  return run.result;
 }
 
 async function timedAsync<T>(work: () => Promise<T>): Promise<T> {

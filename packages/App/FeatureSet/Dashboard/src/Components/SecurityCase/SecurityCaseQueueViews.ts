@@ -6,7 +6,10 @@ import Query from "Common/Types/BaseDatabase/Query";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityCaseStatuses from "Common/Utils/SecurityCase/SecurityCaseStatuses";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The questions an analyst asks of the case queue, each a page of its own
@@ -117,7 +120,11 @@ export interface SecurityCaseQueueView {
    */
   canAssignToSomeoneElse: boolean;
   columns: ReadonlyArray<SecurityCaseQueueColumn>;
-  // Columns the list draws only once someone turns them on.
+  /*
+   * Columns the list draws only once someone turns them on: the labels,
+   * and the time the list is sorted by, which each case's line under its
+   * title already says (getSecurityCaseRowMoment).
+   */
   hiddenColumns: ReadonlyArray<SecurityCaseQueueColumn>;
   filters: ReadonlyArray<SecurityCaseQueueFilter>;
   sortBy: SecurityCaseQueueSort;
@@ -176,7 +183,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     canAssignToMe: true,
     canAssignToSomeoneElse: true,
     columns: OPEN_COLUMNS,
-    hiddenColumns: ["labels"],
+    hiddenColumns: ["labels", "lastDetection"],
     filters: OPEN_FILTERS,
     sortBy: "lastDetectedAt",
   },
@@ -197,7 +204,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     canAssignToSomeoneElse: true,
     // Every case here is yours: no Assignee column saying so on each row.
     columns: withoutColumn(OPEN_COLUMNS, "assignee"),
-    hiddenColumns: ["labels"],
+    hiddenColumns: ["labels", "lastDetection"],
     filters: OPEN_FILTERS,
     sortBy: "lastDetectedAt",
   },
@@ -222,7 +229,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
      * its Team says which team.
      */
     columns: ["case", "priority", "status", "team", "labels", "lastDetection"],
-    hiddenColumns: ["labels"],
+    hiddenColumns: ["labels", "lastDetection"],
     filters: OPEN_FILTERS,
     sortBy: "lastDetectedAt",
   },
@@ -247,7 +254,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     canAssignToMe: false,
     canAssignToSomeoneElse: false,
     columns: ["case", "priority", "verdict", "assignee", "labels", "closed"],
-    hiddenColumns: ["labels"],
+    hiddenColumns: ["labels", "closed"],
     filters: [
       "title",
       "priority",
@@ -283,7 +290,7 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
       "labels",
       "lastDetection",
     ],
-    hiddenColumns: ["verdict", "labels"],
+    hiddenColumns: ["verdict", "labels", "lastDetection"],
     filters: [
       "title",
       "priority",
@@ -296,6 +303,80 @@ export const SECURITY_CASE_QUEUE_VIEWS: ReadonlyArray<SecurityCaseQueueView> = [
     sortBy: "lastDetectedAt",
   },
 ];
+
+/*
+ * What a case's line under its title says of its detections, ending with
+ * the time its list is sorted by: when the last one fired, or - on Closed
+ * Cases - when the case closed. That time was a column of its own, which
+ * ran the queue past its card at 1280 beside the side menu in German,
+ * French, Dutch, Norwegian, Swedish and Russian, the rows' last values under
+ * the sticky View and ⋯, and which a phone never showed. The column is
+ * still there to turn on (hiddenColumns), and still what the list sorts by.
+ */
+export const SECURITY_CASE_DETECTIONS: PluralTemplate = {
+  one: "{{count}} detection",
+  other: "{{count}} detections",
+};
+
+export const SECURITY_CASE_DETECTIONS_THE_LAST: PluralTemplate = {
+  one: "{{count}} detection, {{time}}",
+  other: "{{count}} detections, the last {{time}}",
+};
+
+export const SECURITY_CASE_DETECTIONS_CLOSED: PluralTemplate = {
+  one: "{{count}} detection, closed {{time}}",
+  other: "{{count}} detections, closed {{time}}",
+};
+
+export interface SecurityCaseRowMoment {
+  // The sentence, with {{count}} and - when there is a time - {{time}}.
+  template: PluralTemplate;
+  // The moment {{time}} stands for: undefined when the case has none.
+  time: Date | undefined;
+}
+
+/*
+ * Which sentence a case's line uses on a list sorted by `sortBy`, and the
+ * moment in it. A case with no such moment (opened by hand, nothing
+ * detected yet) says how many detections it holds, and nothing more.
+ */
+export function getSecurityCaseRowMoment(
+  sortBy: SecurityCaseQueueSort,
+  securityCase: {
+    lastDetectedAt?: Date | undefined;
+    closedAt?: Date | undefined;
+  },
+): SecurityCaseRowMoment {
+  const time: Date | undefined =
+    sortBy === "closedAt" ? securityCase.closedAt : securityCase.lastDetectedAt;
+
+  if (!time) {
+    return { template: SECURITY_CASE_DETECTIONS, time: undefined };
+  }
+
+  return {
+    template:
+      sortBy === "closedAt"
+        ? SECURITY_CASE_DETECTIONS_CLOSED
+        : SECURITY_CASE_DETECTIONS_THE_LAST,
+    time: time,
+  };
+}
+
+// A space a line never breaks at.
+export const SECURITY_CASE_NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
+
+/*
+ * The time in a case's line, kept whole where the line wraps: in a column
+ * beside the side menu the line broke inside it - "vor 5 / Stunden" in
+ * German, "31 / минуту назад" in Russian, "9 minutes / ago" on a phone -
+ * a number at the end of one line and its unit at the start of the next.
+ * Written with spaces no line breaks at, the line wraps before the time or
+ * after it, never inside it.
+ */
+export function keepSecurityCaseTimeWhole(time: string): string {
+  return time.split(" ").join(SECURITY_CASE_NO_BREAK_SPACE);
+}
 
 export const SECURITY_CASE_QUEUE_VIEW_KEYS: ReadonlyArray<SecurityCaseQueueViewKey> =
   SECURITY_CASE_QUEUE_VIEWS.map(

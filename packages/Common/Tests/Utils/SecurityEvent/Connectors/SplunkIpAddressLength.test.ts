@@ -3,6 +3,7 @@ import {
   isIpAddress,
 } from "../../../../Utils/SecurityEvent/Connectors/SplunkNormalizer";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -38,11 +39,14 @@ describe("isIpAddress decides a long field at once", () => {
       repeat(":a", LENGTH) + "-",
     ],
   ])("%s", (_label: string, value: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(isIpAddress(value)).toBe(false);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(isIpAddress(value)).toBe(false);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

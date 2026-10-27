@@ -20,6 +20,7 @@ import {
 } from "../../../../Server/Utils/NetworkController/NetworkControllerTypes";
 import { NetworkTrafficUsageKind } from "../../../../Types/NetFlow/NetworkTrafficUsage";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Meraki's answers as NetworkTrafficUsage records, nothing of them trusted:
@@ -78,12 +79,15 @@ describe("cleaning outside text", () => {
   });
 
   test("a megabyte of it is cut before it is looked at", () => {
-    const startedAt: number = Date.now();
-
-    expect(
-      cleanText("\u0001 a".repeat(400_000), 128).length,
-    ).toBeLessThanOrEqual(128);
-    expect(Date.now() - startedAt).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          cleanText("\u0001 a".repeat(400_000), 128).length,
+        ).toBeLessThanOrEqual(128);
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 
   test("a MAC is lower case, a serial upper case", () => {

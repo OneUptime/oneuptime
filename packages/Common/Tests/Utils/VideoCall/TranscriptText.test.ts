@@ -12,6 +12,7 @@ import TranscriptText, {
   TranscriptLine,
   TranscriptSourceFormat,
 } from "../../../Utils/VideoCall/TranscriptText";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * A call's transcript arrives as whatever a meeting tool saved - WebVTT
@@ -659,15 +660,18 @@ describe("TranscriptText - reads hostile text in linear time", () => {
   ];
 
   test.each(hostile)("%s", (_name: string, text: string) => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        try {
+          TranscriptText.prepare({ text });
+        } catch (error) {
+          // Refusing it (too many remarks, no words) is an answer too.
+          expect(error).toBeInstanceOf(BadDataException);
+        }
+      },
+      limitInMs: 2_000,
+    });
 
-    try {
-      TranscriptText.prepare({ text });
-    } catch (error) {
-      // Refusing it (too many remarks, no words) is an answer too.
-      expect(error).toBeInstanceOf(BadDataException);
-    }
-
-    expect(Date.now() - started).toBeLessThan(2_000);
+    expect(timed.inMs).toBeLessThan(2_000);
   });
 });

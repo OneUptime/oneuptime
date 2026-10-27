@@ -94,6 +94,83 @@ export function readScanProgress(
 }
 
 /*
+ * The project's Your logs record, or null before it was first turned on -
+ * as this card and the Events page's empty state read it.
+ */
+export const readProjectSecurityLogSource: () => Promise<SecurityLogSource | null> =
+  async (): Promise<SecurityLogSource | null> => {
+    const result: { data: Array<SecurityLogSource> } = await ModelAPI.getList({
+      modelType: SecurityLogSource,
+      query: { projectId: ProjectUtil.getCurrentProjectId()! },
+      limit: 1,
+      skip: 0,
+      select: {
+        _id: true,
+        isEnabled: true,
+        lastScannedAt: true,
+        lastEventFoundAt: true,
+        lastScanResult: true,
+        lastError: true,
+      },
+      sort: {},
+    });
+
+    return result.data[0] || null;
+  };
+
+/*
+ * What Your logs says of itself while it is on: when it last checked (or
+ * that the first check is coming), when it last found a security event (or
+ * that it has found none yet), and that it is catching up when it is. Nothing
+ * while it is off.
+ */
+export const getYourLogsStatusLines: (data: {
+  source: SecurityLogSource | null;
+  translator: Translator;
+}) => Array<string> = (data: {
+  source: SecurityLogSource | null;
+  translator: Translator;
+}): Array<string> => {
+  const { source, translator } = data;
+
+  if (source?.isEnabled !== true) {
+    return [];
+  }
+
+  const timeAgo: (date: Date) => string = (date: Date): string => {
+    return (
+      formatFeedTimeAgo(
+        new Date(date),
+        getFeedClock({ language: translator.language }),
+      ) || ""
+    );
+  };
+
+  const lines: Array<string> = [
+    source.lastScannedAt
+      ? translator.translateTemplate("Checked {{time}}.", {
+          time: timeAgo(source.lastScannedAt),
+        })
+      : translator.translateText("The first check runs within a minute.") || "",
+    source.lastEventFoundAt
+      ? translator.translateTemplate("Last security event found {{time}}.", {
+          time: timeAgo(source.lastEventFoundAt),
+        })
+      : translator.translateText("No security event found yet.") || "",
+  ];
+
+  if (readScanProgress(source.lastScanResult).isCatchingUp) {
+    lines.push(
+      translator.translateText(
+        "Catching up on a busy stretch of logs: the next check goes on where this one stopped.",
+      ) || "",
+    );
+  }
+
+  return lines;
+};
+
+/*
  * "Your logs": one switch that makes the logs a project already sends
  * OneUptime a security source. A minute after it is on, every new line that
  * is a sign-in, a sudo, a Kubernetes audit record, a CloudTrail record or a
@@ -112,33 +189,10 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
   const [isSaved, setIsSaved] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
-  const read: () => Promise<SecurityLogSource | null> =
-    async (): Promise<SecurityLogSource | null> => {
-      const result: { data: Array<SecurityLogSource> } = await ModelAPI.getList(
-        {
-          modelType: SecurityLogSource,
-          query: { projectId: ProjectUtil.getCurrentProjectId()! },
-          limit: 1,
-          skip: 0,
-          select: {
-            _id: true,
-            isEnabled: true,
-            lastScannedAt: true,
-            lastEventFoundAt: true,
-            lastScanResult: true,
-            lastError: true,
-          },
-          sort: {},
-        },
-      );
-
-      return result.data[0] || null;
-    };
-
   useEffect(() => {
     let isCurrent: boolean = true;
 
-    read()
+    readProjectSecurityLogSource()
       .then((found: SecurityLogSource | null) => {
         if (isCurrent) {
           setSource(found);
@@ -198,7 +252,7 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
         });
       }
 
-      setSource(await read());
+      setSource(await readProjectSecurityLogSource());
       setIsSaved(true);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -206,21 +260,6 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
 
     setSwitchPosition(null);
     setIsSaving(false);
-  };
-
-  const timeAgo: (date: Date | undefined) => string = (
-    date: Date | undefined,
-  ): string => {
-    if (!date) {
-      return "";
-    }
-
-    return (
-      formatFeedTimeAgo(
-        new Date(date),
-        getFeedClock({ language: translator.language }),
-      ) || ""
-    );
   };
 
   const foundByFormat: Record<string, number> = readFoundByFormat(
@@ -231,33 +270,10 @@ const SecurityLogsSourceCard: FunctionComponent = (): ReactElement => {
     source?.lastScanResult,
   );
 
-  const statusLines: Array<string> = [];
-
-  if (isOn) {
-    statusLines.push(
-      source?.lastScannedAt
-        ? translator.translateTemplate("Checked {{time}}.", {
-            time: timeAgo(source.lastScannedAt),
-          })
-        : translator.translateText("The first check runs within a minute.") ||
-            "",
-    );
-    statusLines.push(
-      source?.lastEventFoundAt
-        ? translator.translateTemplate("Last security event found {{time}}.", {
-            time: timeAgo(source.lastEventFoundAt),
-          })
-        : translator.translateText("No security event found yet.") || "",
-    );
-
-    if (progress.isCatchingUp) {
-      statusLines.push(
-        translator.translateText(
-          "Catching up on a busy stretch of logs: the next check goes on where this one stopped.",
-        ) || "",
-      );
-    }
-  }
+  const statusLines: Array<string> = getYourLogsStatusLines({
+    source: source,
+    translator: translator,
+  });
 
   return (
     <Card
