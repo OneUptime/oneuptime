@@ -5325,7 +5325,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
     await MicrosoftTeamsProjectChoice.answerChosen({
       turnContext: data.turnContext,
-      replyToId: (data.activity["replyToId"] as string | undefined) || undefined,
+      replyToId:
+        (data.activity["replyToId"] as string | undefined) || undefined,
       projectName: taken.choice.name,
     });
 
@@ -7468,7 +7469,11 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         conversation["conversationType"] === "personal";
 
       // Its Home's buttons act in its project (MicrosoftTeamsCardProject).
-      if (projectId && resolution && resolution.candidateProjectIds.length > 1) {
+      if (
+        projectId &&
+        resolution &&
+        resolution.candidateProjectIds.length > 1
+      ) {
         MicrosoftTeamsCardProject.drawCardsFor({
           turnContext: turnContext,
           projectId: projectId,

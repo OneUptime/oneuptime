@@ -1645,8 +1645,12 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
   const PRODUCTION: ObjectID = new ObjectID(
     "f2000000-0000-4000-8000-000000000001",
   );
-  const STAGING: ObjectID = new ObjectID("f2000000-0000-4000-8000-000000000002");
-  const SANDBOX: ObjectID = new ObjectID("f2000000-0000-4000-8000-000000000003");
+  const STAGING: ObjectID = new ObjectID(
+    "f2000000-0000-4000-8000-000000000002",
+  );
+  const SANDBOX: ObjectID = new ObjectID(
+    "f2000000-0000-4000-8000-000000000003",
+  );
   const MEMBER: ObjectID = new ObjectID("f2000000-0000-4000-8000-0000000000a1");
   const NITIN_AAD_OBJECT_ID: string = "aad-object-id-nitin";
   const PERSONAL_CHAT_ID: string = "a:personal-chat-with-the-bot";
@@ -1841,14 +1845,12 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
       });
   }
 
-  function buttonFor(
-    reply: JSONObject | undefined,
-    name: string,
-  ): JSONObject {
-    const choice: { title: string; value: JSONObject } | undefined =
-      choicesOf(reply).find((candidate: { title: string }): boolean => {
-        return candidate.title === name;
-      });
+  function buttonFor(reply: JSONObject | undefined, name: string): JSONObject {
+    const choice: { title: string; value: JSONObject } | undefined = choicesOf(
+      reply,
+    ).find((candidate: { title: string }): boolean => {
+      return candidate.title === name;
+    });
 
     expect(choice).toBeDefined();
 
@@ -1903,27 +1905,27 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
     }) as never);
 
     // Where the bot keeps what a question is for: Redis, here a map.
-    jest
-      .spyOn(GlobalCache, "setString")
-      .mockImplementation((async (
-        namespace: string,
-        key: string,
-        value: string,
-      ) => {
-        kept.set(`${namespace}-${key}`, value);
-      }) as never);
-    jest
-      .spyOn(GlobalCache, "getString")
-      .mockImplementation((async (namespace: string, key: string) => {
-        return kept.get(`${namespace}-${key}`) ?? null;
-      }) as never);
-    jest
-      .spyOn(GlobalCache, "getAndDeleteString")
-      .mockImplementation((async (namespace: string, key: string) => {
-        const value: string | null = kept.get(`${namespace}-${key}`) ?? null;
-        kept.delete(`${namespace}-${key}`);
-        return value;
-      }) as never);
+    jest.spyOn(GlobalCache, "setString").mockImplementation((async (
+      namespace: string,
+      key: string,
+      value: string,
+    ) => {
+      kept.set(`${namespace}-${key}`, value);
+    }) as never);
+    jest.spyOn(GlobalCache, "getString").mockImplementation((async (
+      namespace: string,
+      key: string,
+    ) => {
+      return kept.get(`${namespace}-${key}`) ?? null;
+    }) as never);
+    jest.spyOn(GlobalCache, "getAndDeleteString").mockImplementation((async (
+      namespace: string,
+      key: string,
+    ) => {
+      const value: string | null = kept.get(`${namespace}-${key}`) ?? null;
+      kept.delete(`${namespace}-${key}`);
+      return value;
+    }) as never);
 
     // The channel: one no project owns or posts to - it tells nothing.
     jest
@@ -1992,13 +1994,11 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
       MicrosoftTeamsListCommand.ActiveIncidents,
     );
     expect(
-      (listSpy.mock.calls[0]?.[0] as { activity: JSONObject }).activity[
-        "text"
-      ],
+      (listSpy.mock.calls[0]?.[0] as { activity: JSONObject }).activity["text"],
     ).toBe("show active incidents");
-    expect(joinedSentText(chosen.turnContext.sendActivity as jest.Mock)).toContain(
-      "staging's incidents",
-    );
+    expect(
+      joinedSentText(chosen.turnContext.sendActivity as jest.Mock),
+    ).toContain("staging's incidents");
   });
 
   test("pressing Production instead: read there", async () => {
@@ -2033,12 +2033,18 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
 
   test("somebody else pressing Deane's button makes nothing, and is told only Deane can choose - Deane still can", async () => {
     const listSpy: jest.SpyInstance = stubListCommand("a list");
-    const asked: Turn = await deliver(typed("show active incidents", "channel"));
+    const asked: Turn = await deliver(
+      typed("show active incidents", "channel"),
+    );
     const staging: JSONObject = buttonFor(asked.sent[0], "Staging");
 
     const nitins: Turn = await deliver(
       pressed(staging, {
-        from: { id: "29:nitin", name: "Nitin", aadObjectId: NITIN_AAD_OBJECT_ID },
+        from: {
+          id: "29:nitin",
+          name: "Nitin",
+          aadObjectId: NITIN_AAD_OBJECT_ID,
+        },
         conversationId: CHANNEL_THREAD_ID,
       }),
     );
@@ -2122,7 +2128,9 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
 
     expect(answerSpy).toHaveBeenCalledTimes(1);
     expect(
-      (answerSpy.mock.calls[0]?.[0] as { projectId: ObjectID }).projectId.toString(),
+      (
+        answerSpy.mock.calls[0]?.[0] as { projectId: ObjectID }
+      ).projectId.toString(),
     ).toBe(STAGING.toString());
     expect(
       (answerSpy.mock.calls[0]?.[0] as { question: string }).question,
@@ -2133,7 +2141,9 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
     expect(followUp.sent).toEqual([]);
     expect(answerSpy).toHaveBeenCalledTimes(2);
     expect(
-      (answerSpy.mock.calls[1]?.[0] as { projectId: ObjectID }).projectId.toString(),
+      (
+        answerSpy.mock.calls[1]?.[0] as { projectId: ObjectID }
+      ).projectId.toString(),
     ).toBe(STAGING.toString());
   });
 
@@ -2248,7 +2258,9 @@ describe("MicrosoftTeamsUtil - asked which project, with a button for each, and 
     expect(turn.sent).toEqual([]);
     expect(incidentSpy).toHaveBeenCalledTimes(1);
     expect(
-      (incidentSpy.mock.calls[0]?.[0] as { projectId: ObjectID }).projectId.toString(),
+      (
+        incidentSpy.mock.calls[0]?.[0] as { projectId: ObjectID }
+      ).projectId.toString(),
     ).toBe(STAGING.toString());
   });
 

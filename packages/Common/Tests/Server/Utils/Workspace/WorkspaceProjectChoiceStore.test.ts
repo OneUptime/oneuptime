@@ -145,9 +145,9 @@ describe("what a button carries", () => {
     ).toEqual([PLATFORM.toString(), NONPRD.toString()]);
     expect(presses[0]!.token).toMatch(TOKEN_PATTERN);
     expect(presses[0]!.token).toBe(presses[1]!.token);
-    expect(
-      WorkspaceProjectChoiceStore.getChoiceValue(presses[0]!),
-    ).toBe(`${PLATFORM.toString()}:${presses[0]!.token}`);
+    expect(WorkspaceProjectChoiceStore.getChoiceValue(presses[0]!)).toBe(
+      `${PLATFORM.toString()}:${presses[0]!.token}`,
+    );
   });
 
   test("anything that is not one names nothing", () => {
@@ -200,9 +200,7 @@ describe("keeping a request", () => {
   test("with who made it, where, the projects offered in their order, and the chat's request", async () => {
     await keepDeanes();
 
-    expect(
-      JSON.parse(Array.from(cache().store.values())[0]!.value),
-    ).toEqual({
+    expect(JSON.parse(Array.from(cache().store.values())[0]!.value)).toEqual({
       workspaceId: TENANT,
       workspaceUserId: DEANE,
       choices: [
@@ -420,7 +418,10 @@ describe("spending it", () => {
     ]) {
       cache().store.set(key, { value: value, expiresAt: Date.now() + 60000 });
 
-      expect({ value, outcome: refusalOf(await take({ press: presses[0]! })) }).toEqual({
+      expect({
+        value,
+        outcome: refusalOf(await take({ press: presses[0]! })),
+      }).toEqual({
         value,
         outcome: WorkspaceProjectChoiceRefusal.Gone,
       });
@@ -677,7 +678,16 @@ describe("reading what a chat sent", () => {
           empty: "",
           absent: null,
         },
-        ["text", "isGroup", "count", "nested", "list", "empty", "absent", "missing"],
+        [
+          "text",
+          "isGroup",
+          "count",
+          "nested",
+          "list",
+          "empty",
+          "absent",
+          "missing",
+        ],
       ),
     ).toEqual({ text: "oncall", isGroup: true, empty: "" });
   });
@@ -696,7 +706,9 @@ describe("reading what a chat sent", () => {
 
     for (const value of [undefined, null, "", 1, {}, []]) {
       expect(WorkspaceProjectChoiceStore.isText(value)).toBe(false);
-      expect(WorkspaceProjectChoiceStore.textOrUndefined(value)).toBeUndefined();
+      expect(
+        WorkspaceProjectChoiceStore.textOrUndefined(value),
+      ).toBeUndefined();
     }
   });
 });

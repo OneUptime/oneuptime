@@ -115,7 +115,11 @@ const DEANE: JSONObject = {
   name: "Deane Barker",
   aadObjectId: DEANE_AAD,
 };
-const NITIN: JSONObject = { id: "29:nitin", name: "Nitin", aadObjectId: NITIN_AAD };
+const NITIN: JSONObject = {
+  id: "29:nitin",
+  name: "Nitin",
+  aadObjectId: NITIN_AAD,
+};
 
 const TOKEN_PATTERN: RegExp = /^[A-Za-z0-9_-]{43}$/;
 
@@ -370,7 +374,11 @@ describe("the question", () => {
 
     expect(
       sets.map((set: JSONObject): unknown => {
-        return [set["type"], set["spacing"], (set["actions"] as Array<JSONObject>).length];
+        return [
+          set["type"],
+          set["spacing"],
+          (set["actions"] as Array<JSONObject>).length,
+        ];
       }),
     ).toEqual([
       ["ActionSet", undefined, 1],
@@ -482,7 +490,9 @@ describe("the question", () => {
 
     const title: string = String(buttonsOf(question.card)[0]!["title"]);
 
-    expect(title).toHaveLength(WorkspaceProjectChoiceStore.BUTTON_TITLE_MAX_LENGTH);
+    expect(title).toHaveLength(
+      WorkspaceProjectChoiceStore.BUTTON_TITLE_MAX_LENGTH,
+    );
     expect(title.endsWith("…")).toBe(true);
     expect(long.startsWith(title.slice(0, -1))).toBe(true);
     expect(question.summary).toContain(long);
@@ -658,7 +668,11 @@ describe("what of the request is kept", () => {
       importance: "urgent",
       channelData: {
         tenant: { id: TENANT },
-        team: { id: "19:team@thread.tacv2", name: "Operations", aadGroupId: "g-1" },
+        team: {
+          id: "19:team@thread.tacv2",
+          name: "Operations",
+          aadGroupId: "g-1",
+        },
         channel: { id: "19:ops@thread.tacv2", name: "ops" },
         settings: { selectedChannel: { id: "19:ops@thread.tacv2" } },
         eventType: "teamMemberAdded",
@@ -701,7 +715,11 @@ describe("what of the request is kept", () => {
       },
       channelData: {
         tenant: { id: TENANT },
-        team: { id: "19:team@thread.tacv2", name: "Operations", aadGroupId: "g-1" },
+        team: {
+          id: "19:team@thread.tacv2",
+          name: "Operations",
+          aadGroupId: "g-1",
+        },
         channel: { id: "19:ops@thread.tacv2", name: "ops" },
       },
       entities: [
@@ -846,8 +864,7 @@ describe("a press of one of the buttons", () => {
 
   test("a value that is not one of the buttons': gone, and nothing read", async () => {
     await askDeane();
-    const reads: number = (GlobalCache.getString as unknown as Mock).mock
-      .calls
+    const reads: number = (GlobalCache.getString as unknown as Mock).mock.calls
       .length;
 
     for (const actionValue of [
@@ -947,11 +964,11 @@ describe("what the question becomes", () => {
     });
     expect(turn.updated).toEqual([]);
 
-    (
-      turn.turnContext.updateActivity as unknown as Mock
-    ).mockImplementationOnce(async () => {
-      throw new Error("Not Found");
-    });
+    (turn.turnContext.updateActivity as unknown as Mock).mockImplementationOnce(
+      async () => {
+        throw new Error("Not Found");
+      },
+    );
 
     await expect(
       MicrosoftTeamsProjectChoice.answerChosen({
@@ -1051,9 +1068,9 @@ describe("a conversation with OneUptime AI keeps the project chosen in it", () =
       expect(key).not.toContain(named);
     }
 
-    expect(MicrosoftTeamsProjectChoice.CONVERSATION_REMEMBERED_FOR_SECONDS).toBe(
-      60 * 60,
-    );
+    expect(
+      MicrosoftTeamsProjectChoice.CONVERSATION_REMEMBERED_FOR_SECONDS,
+    ).toBe(60 * 60);
     expect(entry.expiresAt - Date.now()).toBeGreaterThan(59 * 60 * 1000);
     expect(entry.expiresAt - Date.now()).toBeLessThanOrEqual(60 * 60 * 1000);
 
@@ -1179,7 +1196,11 @@ describe("a conversation with OneUptime AI keeps the project chosen in it", () =
 
     expect(conversation).not.toBeNull();
 
-    await askDeane(message("why?"), MicrosoftTeamsProjectChoiceKind.Message, true);
+    await askDeane(
+      message("why?"),
+      MicrosoftTeamsProjectChoiceKind.Message,
+      true,
+    );
     await MicrosoftTeamsProjectChoice.rememberConversationProject({
       activity: message("why?"),
       projectId: NONPRD,

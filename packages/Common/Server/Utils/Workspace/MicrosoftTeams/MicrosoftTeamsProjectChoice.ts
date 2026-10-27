@@ -517,9 +517,8 @@ export default class MicrosoftTeamsProjectChoice {
 
     await WorkspaceProjectChoiceStore.rememberProject({
       namespace: CONVERSATION_NAMESPACE,
-      keyParts: MicrosoftTeamsProjectChoice.getConversationKeyParts(
-        conversation,
-      ),
+      keyParts:
+        MicrosoftTeamsProjectChoice.getConversationKeyParts(conversation),
       projectId: data.projectId,
       expiresInSeconds:
         MicrosoftTeamsProjectChoice.CONVERSATION_REMEMBERED_FOR_SECONDS,
@@ -543,9 +542,8 @@ export default class MicrosoftTeamsProjectChoice {
 
     return await WorkspaceProjectChoiceStore.getRememberedProject({
       namespace: CONVERSATION_NAMESPACE,
-      keyParts: MicrosoftTeamsProjectChoice.getConversationKeyParts(
-        conversation,
-      ),
+      keyParts:
+        MicrosoftTeamsProjectChoice.getConversationKeyParts(conversation),
     });
   }
 
@@ -626,9 +624,9 @@ export default class MicrosoftTeamsProjectChoice {
       WorkspaceProjectChoiceStore.asObject(request["activity"]);
 
     if (
-      !(Object.values(MicrosoftTeamsProjectChoiceKind) as Array<unknown>).includes(
-        kind,
-      ) ||
+      !(
+        Object.values(MicrosoftTeamsProjectChoiceKind) as Array<unknown>
+      ).includes(kind) ||
       !activity ||
       !MicrosoftTeamsProjectChoice.getTenantId(activity) ||
       !MicrosoftTeamsProjectChoice.getAadObjectId(activity) ||

@@ -61,7 +61,10 @@ function everyKindOfButton(): JSONObject {
                       {
                         type: "Action.Submit",
                         title: "In a column",
-                        data: { action: "AcknowledgeIncident", actionValue: "x" },
+                        data: {
+                          action: "AcknowledgeIncident",
+                          actionValue: "x",
+                        },
                       },
                     ],
                   },
@@ -183,7 +186,9 @@ describe("a card's buttons carry the project it was sent for", () => {
       PROJECT,
     );
 
-    expect(((marked["actions"] as Array<JSONObject>)[0]!["data"] as JSONObject)).toEqual({
+    expect(
+      (marked["actions"] as Array<JSONObject>)[0]!["data"] as JSONObject,
+    ).toEqual({
       action: "SubmitNewIncident",
       [DRAWN_FOR_PROJECT_ID_FIELD]: PROJECT,
     });
@@ -213,7 +218,9 @@ describe("a card's buttons carry the project it was sent for", () => {
     const card: JSONObject = {
       type: "AdaptiveCard",
       body: [{ type: "TextBlock", text: "Going ahead in **IRM Non-Prod**." }],
-      actions: [{ type: "Action.OpenUrl", title: "Open", url: "https://x.test" }],
+      actions: [
+        { type: "Action.OpenUrl", title: "Open", url: "https://x.test" },
+      ],
     };
 
     expect(MicrosoftTeamsCardProject.markCard(card, PROJECT)).toEqual(card);

@@ -2976,9 +2976,7 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
     );
     const body: string = entry.split("\n")[2] || "";
 
-    expect(store).toContain(
-      "public static readonly MAX_CHOICES: number = 25;",
-    );
+    expect(store).toContain("public static readonly MAX_CHOICES: number = 25;");
     expect(store).toContain(
       "public static readonly EXPIRES_IN_SECONDS: number = 30 * 60;",
     );

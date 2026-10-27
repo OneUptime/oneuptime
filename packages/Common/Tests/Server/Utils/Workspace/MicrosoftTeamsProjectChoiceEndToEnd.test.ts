@@ -477,9 +477,7 @@ afterAll(async () => {
 
 beforeEach(() => {
   connector.calls.splice(0);
-  (
-    GlobalCache as unknown as { store: Map<string, unknown> }
-  ).store.clear();
+  (GlobalCache as unknown as { store: Map<string, unknown> }).store.clear();
   memberOf = [PLATFORM, NONPRD];
   readsOnCall = [];
   membersRead = [];
@@ -643,9 +641,7 @@ describe("Deane types 'oncall' in his chat with the bot", () => {
     expect(question.activity["summary"]).toBe(
       "Which project is this for: IRM Platform or IRM Non-Prod?",
     );
-    expect(
-      (cardOf(question)["msteams"] as JSONObject)["entities"],
-    ).toEqual([
+    expect((cardOf(question)["msteams"] as JSONObject)["entities"]).toEqual([
       {
         type: "mention",
         text: "<at>Deane Barker</at>",
@@ -671,11 +667,9 @@ describe("Deane types 'oncall' in his chat with the bot", () => {
     ]);
     // The question names no project of its own: it is not a card of one.
     expect(
-      choicesOf(question).every(
-        (choice: { data: JSONObject }): boolean => {
-          return choice.data[DRAWN_FOR_PROJECT_ID_FIELD] === undefined;
-        },
-      ),
+      choicesOf(question).every((choice: { data: JSONObject }): boolean => {
+        return choice.data[DRAWN_FOR_PROJECT_ID_FIELD] === undefined;
+      }),
     ).toBe(true);
     expect(readsOnCall).toEqual([]);
     expect(loggedErrors).toEqual([]);
@@ -717,7 +711,9 @@ describe("Deane types 'oncall' in his chat with the bot", () => {
   test("a second press - the other button, or the same again - is told the choice is gone, and reads nothing", async () => {
     const { question } = await ask("oncall");
 
-    await deliver(press(buttonOf(question, "IRM Non-Prod"), question.messageId!));
+    await deliver(
+      press(buttonOf(question, "IRM Non-Prod"), question.messageId!),
+    );
 
     for (const title of ["IRM Platform", "IRM Non-Prod"]) {
       const again: Delivery = await deliver(
@@ -834,11 +830,13 @@ describe("a form opened in the project Deane chose carries it, and is submitted 
     expect(submitted.httpStatus).toBe(200);
     expect(createSpy).toHaveBeenCalledTimes(1);
 
-    const createdWith: { data: Incident; props: DatabaseCommonInteractionProps } =
-      createSpy.mock.calls[0]![0] as unknown as {
-        data: Incident;
-        props: DatabaseCommonInteractionProps;
-      };
+    const createdWith: {
+      data: Incident;
+      props: DatabaseCommonInteractionProps;
+    } = createSpy.mock.calls[0]![0] as unknown as {
+      data: Incident;
+      props: DatabaseCommonInteractionProps;
+    };
 
     expect(createdWith.data.projectId?.toString()).toBe(PLATFORM.toString());
     expect(createdWith.data.title).toBe("Checkout is down");
@@ -901,7 +899,9 @@ describe("a question for OneUptime AI keeps the project chosen for its follow-up
     expect(chosen.calls[0]!.method).toBe("PUT");
     expect(chosen.calls[1]!.activity["text"]).toBe("Answered in IRM Non-Prod");
 
-    const followUp: Delivery = await deliver(message("and why is checkout slow?"));
+    const followUp: Delivery = await deliver(
+      message("and why is checkout slow?"),
+    );
 
     expect(
       followUp.calls.map((call: ConnectorCall): unknown => {
@@ -922,31 +922,31 @@ describe("a question for OneUptime AI keeps the project chosen for its follow-up
 
 describe("the Home, drawn for the project Deane chose, keeps it on its buttons", () => {
   test("'home': choose IRM Non-Prod, its Home's buttons name it, and Refresh draws it again there, in place, without asking", async () => {
-    jest
-      .spyOn(WorkspaceHome, "read")
-      .mockImplementation((async (data: { projectId: ObjectID }) => {
-        const view: WorkspaceHomeView = {
-          projectName: NAMES[data.projectId.toString()] || null,
-          firstName: "Deane",
-          onCall: null,
-          incidents: {
-            kind: WorkspaceOpenRecordKind.Incidents,
-            list: null,
-            refused: false,
-            failed: true,
-          },
-          alerts: {
-            kind: WorkspaceOpenRecordKind.Alerts,
-            list: null,
-            refused: false,
-            failed: true,
-          },
-          dashboardLink: null,
-          readAt: new Date("2026-10-27T09:00:00.000Z"),
-        };
+    jest.spyOn(WorkspaceHome, "read").mockImplementation((async (data: {
+      projectId: ObjectID;
+    }) => {
+      const view: WorkspaceHomeView = {
+        projectName: NAMES[data.projectId.toString()] || null,
+        firstName: "Deane",
+        onCall: null,
+        incidents: {
+          kind: WorkspaceOpenRecordKind.Incidents,
+          list: null,
+          refused: false,
+          failed: true,
+        },
+        alerts: {
+          kind: WorkspaceOpenRecordKind.Alerts,
+          list: null,
+          refused: false,
+          failed: true,
+        },
+        dashboardLink: null,
+        readAt: new Date("2026-10-27T09:00:00.000Z"),
+      };
 
-        return view;
-      }) as never);
+      return view;
+    }) as never);
 
     const { question } = await ask("home");
     const chosen: Delivery = await deliver(
@@ -1002,29 +1002,29 @@ describe("the Home, drawn for the project Deane chose, keeps it on its buttons",
 describe("the Home that welcomes somebody in one of the organization's projects", () => {
   test("adding the app for himself: his Home, whose buttons name its project - read without asking, pressed without asking", async () => {
     memberOf = [PLATFORM];
-    jest
-      .spyOn(WorkspaceHome, "read")
-      .mockImplementation((async (data: { projectId: ObjectID }) => {
-        return {
-          projectName: NAMES[data.projectId.toString()] || null,
-          firstName: "Deane",
-          onCall: null,
-          incidents: {
-            kind: WorkspaceOpenRecordKind.Incidents,
-            list: null,
-            refused: false,
-            failed: true,
-          },
-          alerts: {
-            kind: WorkspaceOpenRecordKind.Alerts,
-            list: null,
-            refused: false,
-            failed: true,
-          },
-          dashboardLink: null,
-          readAt: new Date("2026-10-27T09:00:00.000Z"),
-        } as WorkspaceHomeView;
-      }) as never);
+    jest.spyOn(WorkspaceHome, "read").mockImplementation((async (data: {
+      projectId: ObjectID;
+    }) => {
+      return {
+        projectName: NAMES[data.projectId.toString()] || null,
+        firstName: "Deane",
+        onCall: null,
+        incidents: {
+          kind: WorkspaceOpenRecordKind.Incidents,
+          list: null,
+          refused: false,
+          failed: true,
+        },
+        alerts: {
+          kind: WorkspaceOpenRecordKind.Alerts,
+          list: null,
+          refused: false,
+          failed: true,
+        },
+        dashboardLink: null,
+        readAt: new Date("2026-10-27T09:00:00.000Z"),
+      } as WorkspaceHomeView;
+    }) as never);
 
     const added: JSONObject = {
       ...message(""),
