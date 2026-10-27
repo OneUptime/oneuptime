@@ -64,7 +64,7 @@ Varje steg har de här fälten. Ett automatiserat steg visar sin **Titel** och i
 | [kubectl](#kubectl) | En Runner | En Runner och en kubeconfig-variabel eller Runnerns egen åtkomst |
 | [AI](#ai) | OneUptime Worker | En LLM-leverantör |
 
-I varje automatiserat steg nedan innehåller stegets **Fler fält** först dess **Runner**, för ett steg som körs på en, sedan **Kräv godkännande** och **Fortsätt vid fel**, sedan stegets egna inställningar - ett HTTP-anrops headers, ett SSH-stegs port och nyckelns lösenfras, ett AI-stegs leverantör och kontextbrytare - och sist **Beskrivning** och tidsgränserna. Hopfällt nämner det stegets Runner, så att du ser var ett steg körs utan att öppna det.
+I varje automatiserat steg nedan innehåller stegets **Fler fält** först dess **Runner**, för ett steg som körs på en, sedan **Kräv godkännande** och **Fortsätt vid fel**, sedan stegets egna inställningar - ett HTTP-anrops headers, ett SSH-stegs port, nyckelns lösenfras och värdnyckel, ett AI-stegs leverantör och kontextbrytare - och sist **Beskrivning** och tidsgränserna. Hopfällt nämner det stegets Runner, så att du ser var ett steg körs utan att öppna det.
 
 ### Manual
 
@@ -155,6 +155,7 @@ Logga in på en maskin över SSH och kör ett bash-skript där. Runnern öppnar 
 | **Bash-skript** | Körs med `bash` på maskinen som den användare steget loggar in som. Utdata fångas upp till 50 KB, och en slutkod som inte är noll gör att steget misslyckas. |
 | **Port** | Under **Fler fält**. 22 när den lämnas tom. |
 | **Nyckelns lösenfras** | Under **Fler fält**. Den hemliga variabel som innehåller lösenfrasen för en nyckel som har en. |
+| **Värdnyckel** | Under **Fler fält**. Maskinens SHA256-fingeravtryck eller dess publika nyckel som `ssh-keyscan` skriver ut den, en per rad. Steget loggar bara in när maskinen visar en av dem. Lämnas den tom godtas vilken nyckel som helst, och stegets utdata nämner den som maskinen visade. |
 | **Tidsgräns för körning** | Täcker anslutning, inloggning och körning av skriptet tillsammans, så att ett skript som hänger sig inte kan hålla steget öppet. Standard 30 sekunder. |
 | **Tidsgräns för övertagande** | Hur länge Workern väntar på att Runnern tar jobbet. Standard 2 minuter. |
 
@@ -164,6 +165,8 @@ Till exempel för att starta om en tjänst och visa att den kom tillbaka:
 sudo systemctl restart nginx
 systemctl status nginx --no-pager
 ```
+
+Ange maskinens värdnyckel så att steget loggar in på just den maskinen och ingen annan: `ssh-keyscan 10.0.4.21` skriver ut dess publika nycklar, och `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` på själva maskinen dess fingeravtryck. Ett steg som anger en misslyckas på en Runner som är för gammal för att kontrollera den, och säger att Runnern ska uppdateras.
 
 ### kubectl
 

@@ -35868,5 +35868,9 @@
   "Search to find more.": "Sök för att hitta fler.",
   "No repositories are connected yet.": "Inga repositorier är anslutna ännu.",
   "No MCP servers are added yet.": "Inga MCP-servrar har lagts till ännu.",
-  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Inga. En AI-regel väljer sin Runner under Fler fält, på Incidenter › AI › Inställningar eller Larm › AI › Inställningar."
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Inga. En AI-regel väljer sin Runner under Fler fält, på Incidenter › AI › Inställningar eller Larm › AI › Inställningar.",
+  "Host key": "Värdnyckel",
+  "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.": "Maskinens värdnyckel, kontrollerad innan steget loggar in: dess SHA256-fingeravtryck eller dess publika nyckel som ssh-keyscan skriver ut den, en per rad. Lämnas den tom godtas vilken nyckel som helst, och stegets utdata nämner den som maskinen visade.",
+  "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "En rad här är varken ett SHA256-fingeravtryck eller en publik nyckel, så steget misslyckas när det körs.",
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Här står fler nycklar än en maskin har, så steget misslyckas när det körs. En maskin har en nyckel av varje typ: ange dem."
 }

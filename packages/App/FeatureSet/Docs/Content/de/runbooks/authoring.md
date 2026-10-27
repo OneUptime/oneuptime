@@ -64,7 +64,7 @@ Jeder Schritt hat diese Felder. Ein automatisierter Schritt zeigt seinen **Titel
 | [kubectl](#kubectl) | Einem Runner | Einen Runner und eine kubeconfig-Variable oder den eigenen Zugriff des Runners |
 | [AI](#ai) | Dem OneUptime Worker | Einen LLM-Anbieter |
 
-In jedem der folgenden automatisierten Schritte stehen unter **Weitere Felder** des Schritts zuerst sein **Runner**, bei einem Schritt, der auf einem läuft, dann **Genehmigung erforderlich** und **Bei Fehler fortfahren**, dann die eigenen zusätzlichen Einstellungen des Schritts - die Header eines HTTP-Aufrufs, Port und Passphrase des Schlüssels eines SSH-Schritts, Anbieter und Kontextschalter eines KI-Schritts - und zuletzt die **Beschreibung** und die Timeouts. Eingeklappt nennt es den Runner des Schritts, sodass Sie sehen, wo ein Schritt läuft, ohne ihn zu öffnen.
+In jedem der folgenden automatisierten Schritte stehen unter **Weitere Felder** des Schritts zuerst sein **Runner**, bei einem Schritt, der auf einem läuft, dann **Genehmigung erforderlich** und **Bei Fehler fortfahren**, dann die eigenen zusätzlichen Einstellungen des Schritts - die Header eines HTTP-Aufrufs, Port, Passphrase des Schlüssels und Host-Schlüssel eines SSH-Schritts, Anbieter und Kontextschalter eines KI-Schritts - und zuletzt die **Beschreibung** und die Timeouts. Eingeklappt nennt es den Runner des Schritts, sodass Sie sehen, wo ein Schritt läuft, ohne ihn zu öffnen.
 
 ### Manual
 
@@ -155,6 +155,7 @@ Sich per SSH an einem Rechner anmelden und dort ein Bash-Skript ausführen. Der 
 | **Bash-Skript** | Läuft mit `bash` auf dem Rechner, als der Benutzer, mit dem sich der Schritt anmeldet. Die Ausgabe wird bis zu 50 KB erfasst, und ein Exit-Code ungleich null lässt den Schritt fehlschlagen. |
 | **Port** | Unter **Weitere Felder**. 22, wenn leer gelassen. |
 | **Passphrase des Schlüssels** | Unter **Weitere Felder**. Die geheime Variable, die die Passphrase eines Schlüssels enthält, der eine hat. |
+| **Host-Schlüssel** | Unter **Weitere Felder**. Der SHA256-Fingerabdruck des Rechners oder sein öffentlicher Schlüssel, wie `ssh-keyscan` ihn ausgibt, einer pro Zeile. Der Schritt meldet sich nur an, wenn der Rechner einen davon vorlegt. Leer gelassen, wird jeder Schlüssel akzeptiert, und die Ausgabe des Schritts nennt den, den der Rechner vorgelegt hat. |
 | **Ausführungs-Timeout** | Umfasst Verbinden, Anmelden und Ausführen des Skripts zusammen, sodass ein hängendes Skript den Schritt nicht offen halten kann. Standard 30 Sekunden. |
 | **Übernahme-Timeout** | Wie lange der Worker darauf wartet, dass der Runner den Job übernimmt. Standard 2 Minuten. |
 
@@ -164,6 +165,8 @@ Zum Beispiel, um einen Dienst neu zu starten und zu zeigen, dass er wieder läuf
 sudo systemctl restart nginx
 systemctl status nginx --no-pager
 ```
+
+Nennen Sie den Host-Schlüssel des Rechners, damit sich der Schritt bei genau diesem Rechner anmeldet und bei keinem anderen: `ssh-keyscan 10.0.4.21` gibt seine öffentlichen Schlüssel aus, und `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` auf dem Rechner selbst seinen Fingerabdruck. Ein Schritt, der einen nennt, schlägt auf einem Runner fehl, der zu alt ist, um ihn zu prüfen, und sagt, dass der Runner aktualisiert werden muss.
 
 ### kubectl
 

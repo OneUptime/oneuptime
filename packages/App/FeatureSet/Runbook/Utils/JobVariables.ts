@@ -3,6 +3,11 @@ import ObjectID from "Common/Types/ObjectID";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import { isSshPrivateKey } from "Common/Types/Runbook/RunbookLegacySteps";
+import { getSshHostKeyProblem } from "Common/Types/Runbook/SshHostKey";
+import {
+  SshPinnedHostKey,
+  getPinnedSshHostKeys,
+} from "Common/Utils/Runbook/SshHostKeyFingerprint";
 import {
   KUBECONFIG_CREDENTIAL_TYPE,
   SSH_CREDENTIAL_TYPE,
@@ -41,7 +46,9 @@ import RunbookVariableResolver, {
  *   - an SSH step that takes a script (no credentialId): its host, user and
  *     port, its script - also sent as `command`, which a Runner older than
  *     scripts runs - and, as `credential`, its key or password and the
- *     key's passphrase, in the shape every Runner reads (SSH_CREDENTIAL_TYPE);
+ *     key's passphrase, in the shape every Runner reads (SSH_CREDENTIAL_TYPE),
+ *     with the machine's host keys it names as fingerprints (hostKeys),
+ *     which the claim hands only a Runner that checks them (RunnerIngress);
  *   - a kubectl step (Kubernetes, with a script): its script, and its
  *     kubeconfig as `credential` - none when it uses the Runner's own
  *     access.
@@ -192,6 +199,17 @@ export default class RunbookJobVariables {
         };
       }
 
+      // The machine's host keys, as the Runner checks them: fingerprints.
+      const hostKeyText: string = asText(payload["hostKey"]);
+      const hostKeyProblem: string | null = getSshHostKeyProblem(hostKeyText);
+
+      if (hostKeyProblem) {
+        return { isRefused: true, refusal: hostKeyProblem };
+      }
+
+      const hostKeys: Array<SshPinnedHostKey> =
+        getPinnedSshHostKeys(hostKeyText);
+
       return {
         isRefused: false,
         script: "",
@@ -214,6 +232,16 @@ export default class RunbookJobVariables {
                 ...(passphrase ? { passphrase } : {}),
               }
             : { password: signIn }),
+          ...(hostKeys.length > 0
+            ? {
+                hostKeys: hostKeys.map((key: SshPinnedHostKey): JSONObject => {
+                  return {
+                    fingerprint: key.fingerprint,
+                    ...(key.keyType ? { keyType: key.keyType } : {}),
+                  };
+                }),
+              }
+            : {}),
         },
         secretValues: resolution.secretValues,
       };

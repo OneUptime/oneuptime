@@ -32,6 +32,10 @@ import SshTargetInput from "../../../Components/Runbook/Steps/SshTargetInput";
 import UnknownVariablesNote from "../../../Components/Runbook/Steps/UnknownVariablesNote";
 import { HTTP_STEP_VARIABLES_HELP } from "../../../Components/Runbook/RunbookVariableCopy";
 import { getHttpStepVariableTexts } from "Common/Types/Runbook/HttpStepVariables";
+import {
+  ParsedSshHostKeys,
+  parseSshHostKeys,
+} from "Common/Types/Runbook/SshHostKey";
 import RunbookVariableChoicesLoader, {
   NO_RUNBOOK_VARIABLE_CHOICES,
   RunbookVariableChoices,
@@ -53,6 +57,11 @@ import {
   REQUIRE_APPROVAL_TITLE,
   RUNNER_OWN_KUBECONFIG_LABEL,
   SSH_EXAMPLES,
+  SSH_HOST_KEY_HELP,
+  SSH_HOST_KEY_INVALID,
+  SSH_HOST_KEY_PLACEHOLDER,
+  SSH_HOST_KEY_TITLE,
+  SSH_HOST_KEY_TOO_LONG,
   SSH_PASSPHRASE_TITLE,
   SSH_TARGET_HELP,
   SSH_PORT_TITLE,
@@ -1886,6 +1895,7 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 updateConfig(idx, { passphrase: reference });
               }}
             />
+            {renderSshHostKeyField(config, idx)}
             {renderDescriptionField(step, idx)}
             {renderAgentTimeouts({
               idx,
@@ -1902,6 +1912,57 @@ const Steps: FunctionComponent<PageComponentProps> = (): ReactElement => {
           </>,
         )}
       </>
+    );
+  };
+
+  /*
+   * An SSH step's Host key, under More fields: the machine's keys, one a
+   * line, as a fingerprint or as ssh-keyscan prints them. Said under the
+   * box, while a line is not a key, that the step will fail - the server
+   * refuses it rather than sign in unchecked.
+   */
+  const renderSshHostKeyField: (
+    config: SSHStepConfig,
+    idx: number,
+  ) => ReactElement = (config: SSHStepConfig, idx: number): ReactElement => {
+    const parsed: ParsedSshHostKeys = parseSshHostKeys(config.hostKey);
+    const problem: string | null = parsed.isTooLong
+      ? SSH_HOST_KEY_TOO_LONG
+      : parsed.invalidLines.length > 0
+        ? SSH_HOST_KEY_INVALID
+        : null;
+
+    return (
+      <div data-testid={`runbook-step-${idx}-ssh-host-key-field`}>
+        <label
+          id={`runbook-step-${idx}-ssh-host-key-label`}
+          htmlFor={`runbook-step-${idx}-ssh-host-key`}
+          className="block text-xs font-medium text-gray-700 mb-1.5"
+        >
+          {translator.translateText(SSH_HOST_KEY_TITLE)}
+        </label>
+        <TextArea
+          id={`runbook-step-${idx}-ssh-host-key`}
+          dataTestId={`runbook-step-${idx}-ssh-host-key`}
+          value={config.hostKey || ""}
+          placeholder={SSH_HOST_KEY_PLACEHOLDER}
+          disableSpellCheck={true}
+          autoGrow={true}
+          rows={2}
+          maxRows={8}
+          ariaDescribedby={`runbook-step-${idx}-ssh-host-key-help`}
+          error={problem ? translator.translateText(problem) : undefined}
+          onChange={(v: string) => {
+            updateConfig(idx, { hostKey: v.trim() ? v : undefined });
+          }}
+        />
+        <p
+          id={`runbook-step-${idx}-ssh-host-key-help`}
+          className="text-xs text-gray-500 mt-1.5"
+        >
+          {translator.translateText(SSH_HOST_KEY_HELP)}
+        </p>
+      </div>
     );
   };
 

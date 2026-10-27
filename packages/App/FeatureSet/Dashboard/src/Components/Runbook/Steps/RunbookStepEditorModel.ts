@@ -130,6 +130,29 @@ export const SSH_PASSPHRASE_TITLE: string = translationKey("Key passphrase");
 
 export const SSH_PORT_TITLE: string = translationKey("Port");
 
+/*
+ * The machine's host keys (SSHStepConfig.hostKey), under More fields: the
+ * Runner signs in only when the machine presents one of them. Read line by
+ * line as Types/Runbook/SshHostKey reads them.
+ */
+export const SSH_HOST_KEY_TITLE: string = translationKey("Host key");
+
+export const SSH_HOST_KEY_HELP: string = translationKey(
+  "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.",
+);
+
+// Under the field, while a line is not a key: the server refuses the step.
+export const SSH_HOST_KEY_INVALID: string = translationKey(
+  "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.",
+);
+
+export const SSH_HOST_KEY_TOO_LONG: string = translationKey(
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.",
+);
+
+export const SSH_HOST_KEY_PLACEHOLDER: string =
+  "SHA256:gwsSZuUZNvG/8pOZ2G715I2GTVbDlhL4EKu6z7WLKNM";
+
 export const KUBECONFIG_TITLE: string = translationKey("Kubeconfig");
 
 // The kubeconfig picker's first choice: none, so the Runner's own access.
@@ -382,6 +405,11 @@ export function getStepMoreFieldsItems(
       key: "passphrase",
       title: SSH_PASSPHRASE_TITLE,
       isSet: hasText(ssh.passphrase),
+    });
+    items.push({
+      key: "hostKey",
+      title: SSH_HOST_KEY_TITLE,
+      isSet: hasText(ssh.hostKey),
     });
   }
 

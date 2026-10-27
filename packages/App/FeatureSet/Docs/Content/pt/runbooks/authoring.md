@@ -64,7 +64,7 @@ Toda etapa tem estes campos. Uma etapa automatizada mostra seu **Título** e as 
 | [kubectl](#kubectl) | Um Runner | Um Runner, e uma variável de kubeconfig ou o acesso próprio do Runner |
 | [AI](#ai) | O Worker do OneUptime | Um provedor de LLM |
 
-Em cada etapa automatizada abaixo, **Mais campos** da etapa traz primeiro o **Runner** dela, para uma etapa que roda em um, depois **Exigir aprovação** e **Continuar em caso de falha**, depois as configurações próprias da etapa - os headers de uma chamada HTTP, a porta e a frase secreta da chave de uma etapa SSH, o provedor e os interruptores de contexto de uma etapa de IA - e por último a **Descrição** e os tempos limite. Recolhido, ele nomeia o Runner da etapa, para você ver onde uma etapa roda sem abri-la.
+Em cada etapa automatizada abaixo, **Mais campos** da etapa traz primeiro o **Runner** dela, para uma etapa que roda em um, depois **Exigir aprovação** e **Continuar em caso de falha**, depois as configurações próprias da etapa - os headers de uma chamada HTTP, a porta, a frase secreta da chave e a chave do host de uma etapa SSH, o provedor e os interruptores de contexto de uma etapa de IA - e por último a **Descrição** e os tempos limite. Recolhido, ele nomeia o Runner da etapa, para você ver onde uma etapa roda sem abri-la.
 
 ### Manual
 
@@ -155,6 +155,7 @@ Entrar em uma máquina por SSH e executar um script bash nela. O Runner abre a c
 | **Script Bash** | Executa com `bash` na máquina, como o usuário com que entra. A saída é capturada até 50 KB, e um código de saída diferente de zero faz a etapa falhar. |
 | **Porta** | Em **Mais campos**. 22 quando deixada vazia. |
 | **Frase secreta da chave** | Em **Mais campos**. A variável secreta que guarda a frase secreta de uma chave que tenha uma. |
+| **Chave do host** | Em **Mais campos**. A impressão digital SHA256 da máquina, ou sua chave pública como o `ssh-keyscan` a imprime, uma por linha. A etapa só entra quando a máquina apresenta uma delas. Deixada vazia, qualquer chave é aceita, e a saída da etapa informa a que a máquina apresentou. |
 | **Tempo limite de execução** | Cobre conexão, login e execução do script juntos, para que um script travado não mantenha a etapa aberta. Padrão de 30 segundos. |
 | **Tempo limite para assumir** | Por quanto tempo o Worker espera o Runner assumir o trabalho. 2 minutos por padrão. |
 
@@ -164,6 +165,8 @@ Por exemplo, para reiniciar um serviço e mostrar que ele voltou:
 sudo systemctl restart nginx
 systemctl status nginx --no-pager
 ```
+
+Informe a chave do host da máquina para que a etapa entre nessa máquina e em nenhuma outra: `ssh-keyscan 10.0.4.21` imprime suas chaves públicas, e `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` na própria máquina a impressão digital. Uma etapa que informa uma falha em um Runner antigo demais para verificá-la, dizendo para atualizar o Runner.
 
 ### kubectl
 

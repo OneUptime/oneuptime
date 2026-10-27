@@ -35868,5 +35868,9 @@
   "Search to find more.": "Recherchez pour en trouver d'autres.",
   "No repositories are connected yet.": "Aucun dépôt n'est encore connecté.",
   "No MCP servers are added yet.": "Aucun serveur MCP n'est encore ajouté.",
-  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Aucune. Une règle IA choisit son agent Runbook dans Plus de champs, sur Incidents › IA › Paramètres ou Alertes › IA › Paramètres."
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Aucune. Une règle IA choisit son agent Runbook dans Plus de champs, sur Incidents › IA › Paramètres ou Alertes › IA › Paramètres.",
+  "Host key": "Clé d'hôte",
+  "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.": "La clé d'hôte de la machine, vérifiée avant que l'étape ne se connecte : son empreinte SHA256, ou sa clé publique telle que ssh-keyscan l'affiche, une par ligne. Laissée vide, toute clé est acceptée, et la sortie de l'étape nomme celle que la machine a présentée.",
+  "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "Une ligne ici n'est ni une empreinte SHA256 ni une clé publique : l'étape échouera donc à son exécution.",
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Il y a ici plus de clés qu'une machine n'en a : l'étape échouera donc à son exécution. Une machine a une clé de chaque type : nommez celles-ci."
 }

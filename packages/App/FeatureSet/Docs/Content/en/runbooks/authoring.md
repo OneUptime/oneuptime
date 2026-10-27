@@ -64,7 +64,7 @@ Every step has these fields. An automated step shows its **Title** and its type'
 | [kubectl](#kubectl) | A Runner | A Runner, and a kubeconfig variable or the Runner's own access |
 | [AI](#ai) | The OneUptime Worker | An LLM provider |
 
-In every automated step below, the step's **More fields** holds its **Runner** first, for a step that runs on one, then **Require approval** and **Continue on failure**, then the step's own extra settings - an HTTP request's headers, an SSH step's port and key passphrase, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.
+In every automated step below, the step's **More fields** holds its **Runner** first, for a step that runs on one, then **Require approval** and **Continue on failure**, then the step's own extra settings - an HTTP request's headers, an SSH step's port, key passphrase and host key, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.
 
 ### Manual
 
@@ -155,6 +155,7 @@ Sign in to a machine over SSH and run a bash script there. The Runner opens the 
 | **Bash script** | Runs with `bash` on the machine, as the user it signs in as. Output is captured up to 50 KB, and a non-zero exit code fails the step. |
 | **Port** | Under **More fields**. 22 when left empty. |
 | **Key passphrase** | Under **More fields**. The secret variable that holds the passphrase of a key that has one. |
+| **Host key** | Under **More fields**. The machine's SHA256 fingerprint, or its public key as `ssh-keyscan` prints it, one a line. The step signs in only when the machine presents one of them. Left empty, any key is accepted, and the step's output names the one the machine presented. |
 | **Execution timeout** | Covers connecting, signing in and running the script together, so a script that hangs cannot hold the step open. Default 30 seconds. |
 | **Claim timeout** | How long the Worker waits for the Runner to pick the job up. Default 2 minutes. |
 
@@ -164,6 +165,8 @@ For example, to restart a service and show that it came back:
 sudo systemctl restart nginx
 systemctl status nginx --no-pager
 ```
+
+Name the machine's host key so that the step signs in to that machine and no other: `ssh-keyscan 10.0.4.21` prints its public keys, and `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the machine itself its fingerprint. A step that names one fails on a Runner too old to check it, saying to update the Runner.
 
 ### kubectl
 

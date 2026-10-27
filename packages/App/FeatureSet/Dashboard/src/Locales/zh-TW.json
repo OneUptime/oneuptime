@@ -35868,5 +35868,9 @@
   "Search to find more.": "搜尋以找到更多。",
   "No repositories are connected yet.": "尚未連線任何儲存庫。",
   "No MCP servers are added yet.": "尚未新增任何 MCP 伺服器。",
-  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "無。AI 規則在 事件 › 人工智慧 › 設定 或 警示 › 人工智慧 › 設定 中，於其 更多欄位 裡選擇自己的 Runner。"
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "無。AI 規則在 事件 › 人工智慧 › 設定 或 警示 › 人工智慧 › 設定 中，於其 更多欄位 裡選擇自己的 Runner。",
+  "Host key": "主機金鑰",
+  "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.": "在步驟登入之前檢查的機器主機金鑰：其 SHA256 指紋，或 ssh-keyscan 輸出的公開金鑰，每行一個。留空時接受任何金鑰，並在步驟輸出中註明機器出示的金鑰。",
+  "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "此處有一行既不是 SHA256 指紋也不是公開金鑰，因此步驟執行時會失敗。",
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "這裡的金鑰多於一台機器擁有的數量，因此步驟執行時會失敗。一台機器每種類型只有一把金鑰：請填寫這些。"
 }

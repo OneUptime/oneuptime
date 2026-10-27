@@ -384,6 +384,115 @@ describe("a project's Runner claims an SSH step that takes a script", () => {
     expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
     expect(RunbookExecutionService.findOneById).not.toHaveBeenCalled();
   });
+
+  /*
+   * A step that names the machine's host keys: the Runner is handed them as
+   * fingerprints, and signs in only when the machine presents one of them.
+   * A Runner that does not say it checks them ("ssh-host-key") would sign
+   * in without checking, so it is never handed the step.
+   */
+  describe("that names the machine's host keys", () => {
+    // A throwaway host key; its fingerprint is the one ssh-keygen -l printed.
+    const ED25519_KEY: string =
+      "AAAAC3NzaC1lZDI1NTE5AAAAIFtux8m1u+wimvaBoFQoXsFnlH+H+VfhMAHNjDNrl2Q0";
+    const ED25519_FINGERPRINT: string =
+      "SHA256:gwsSZuUZNvG/8pOZ2G715I2GTVbDlhL4EKu6z7WLKNM";
+    const RSA_FINGERPRINT: string =
+      "SHA256:RbcFlZhe2wka/JUlPW5q7w6NacLcWWpI8xpwc4rkGgw";
+
+    test("a Runner that checks them is handed them as fingerprints, a key's with its type", async () => {
+      claimSpy.mockResolvedValue(
+        sshJob({
+          hostKey: `10.0.4.21 ssh-ed25519 ${ED25519_KEY}\n${RSA_FINGERPRINT}`,
+        }),
+      );
+
+      await callRoute({
+        uri: CLAIM_ROUTE,
+        body: { features: ["kubectl-script", "ssh-host-key"] },
+      });
+
+      const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
+
+      expect(job["credential"]).toEqual({
+        credentialType: "SSH",
+        hostname: "10.0.4.21",
+        port: 22,
+        username: "deploy",
+        privateKey: PRIVATE_KEY,
+        hostKeys: [
+          { fingerprint: ED25519_FINGERPRINT, keyType: "ssh-ed25519" },
+          { fingerprint: RSA_FINGERPRINT },
+        ],
+      });
+      // The machine's keys are no secret: nothing more to hide.
+      expect(job["secretValues"]).toEqual([PRIVATE_KEY]);
+      expect(submitSpy).not.toHaveBeenCalled();
+    });
+
+    test("a Runner too old to check them is not handed the step: it fails, saying to update the Runner, and nothing is read", async () => {
+      claimSpy.mockResolvedValue(sshJob({ hostKey: ED25519_FINGERPRINT }));
+
+      await callRoute({
+        uri: CLAIM_ROUTE,
+        body: { features: ["kubectl-script"] },
+      });
+
+      expect(lastJsonResponse()).toEqual({ job: null });
+      expect(submitSpy.mock.calls[0]![0]).toEqual({
+        jobId: new ObjectID(JOB_ID),
+        agentId: RUNNER_ID,
+        success: false,
+        errorMessage: RunnerIngressAPI.SSH_HOST_KEY_NEEDS_NEWER_RUNNER,
+      });
+      expect(RunnerIngressAPI.SSH_HOST_KEY_NEEDS_NEWER_RUNNER).toBe(
+        "This SSH step checks the machine's host key, and this Runner is too old to check one, so it was not run. Update the Runner to your server's version (pull its image again and restart it), then run the runbook again.",
+      );
+      expect(RunbookVariableService.findBy).not.toHaveBeenCalled();
+      expect(JSON.stringify(submitSpy.mock.calls)).not.toContain("OPENSSH");
+    });
+
+    test("a Runner older than features is not handed it either", async () => {
+      claimSpy.mockResolvedValue(sshJob({ hostKey: ED25519_FINGERPRINT }));
+
+      await callRoute({ uri: CLAIM_ROUTE, body: {} });
+
+      expect(lastJsonResponse()).toEqual({ job: null });
+      expect(
+        (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
+      ).toBe(RunnerIngressAPI.SSH_HOST_KEY_NEEDS_NEWER_RUNNER);
+    });
+
+    test("a step that names none is handed to an older Runner as before, with no host keys", async () => {
+      claimSpy.mockResolvedValue(sshJob());
+
+      await callRoute({ uri: CLAIM_ROUTE, body: {} });
+
+      const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
+
+      expect(job["credential"]).not.toHaveProperty("hostKeys");
+      expect(submitSpy).not.toHaveBeenCalled();
+    });
+
+    test("a line that is not a key fails the step, saying what to put there, and nothing secret is handed over", async () => {
+      claimSpy.mockResolvedValue(
+        sshJob({ hostKey: `${ED25519_FINGERPRINT}\nthe usual one` }),
+      );
+
+      await callRoute({
+        uri: CLAIM_ROUTE,
+        body: { features: ["kubectl-script", "ssh-host-key"] },
+      });
+
+      expect(lastJsonResponse()).toEqual({ job: null });
+      expect(
+        (submitSpy.mock.calls[0]![0] as { errorMessage: string }).errorMessage,
+      ).toBe(
+        "This SSH step's Host key has a line that is neither a SHA256 fingerprint nor a public key, so it was not run. Open the step and put the machine's SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line.",
+      );
+      expect(JSON.stringify(submitSpy.mock.calls)).not.toContain("OPENSSH");
+    });
+  });
 });
 
 describe("a project's Runner claims a kubectl step that takes a script", () => {

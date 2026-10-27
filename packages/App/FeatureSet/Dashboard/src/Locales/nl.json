@@ -35868,5 +35868,9 @@
   "Search to find more.": "Zoek om meer te vinden.",
   "No repositories are connected yet.": "Er zijn nog geen repository's verbonden.",
   "No MCP servers are added yet.": "Er zijn nog geen MCP-servers toegevoegd.",
-  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Geen. Een AI-regel kiest zijn Runner onder Meer velden, op Incidenten › AI › Instellingen of Waarschuwingen › AI › Instellingen."
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Geen. Een AI-regel kiest zijn Runner onder Meer velden, op Incidenten › AI › Instellingen of Waarschuwingen › AI › Instellingen.",
+  "Host key": "Hostsleutel",
+  "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.": "De hostsleutel van de machine, gecontroleerd voordat de stap zich aanmeldt: de SHA256-vingerafdruk, of de openbare sleutel zoals ssh-keyscan die toont, één per regel. Leeg gelaten wordt elke sleutel geaccepteerd, en de uitvoer van de stap noemt de sleutel die de machine liet zien.",
+  "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "Een regel hier is geen SHA256-vingerafdruk en geen openbare sleutel, dus de stap mislukt wanneer hij loopt.",
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Hier staan meer sleutels dan een machine heeft, dus de stap mislukt wanneer hij loopt. Een machine heeft één sleutel per type: noem die."
 }

@@ -64,7 +64,7 @@ Hvert trinn har disse feltene. Et automatisert trinn viser **Tittel** og innstil
 | [kubectl](#kubectl) | En Runner | En Runner og en kubeconfig-variabel eller Runnerens egen tilgang |
 | [AI](#ai) | OneUptime Worker | En LLM-leverandør |
 
-I hvert automatisert trinn nedenfor inneholder trinnets **Flere felt** først **Runner**, for et trinn som kjører på en, deretter **Krev godkjenning** og **Fortsett ved feil**, deretter trinnets egne innstillinger - headerne til et HTTP-kall, porten og passordfrasen for nøkkelen til et SSH-trinn, leverandøren og kontekstbryterne til et AI-trinn - og til slutt **Beskrivelse** og tidsavbruddene. Sammenslått nevner det Runneren til trinnet, så du ser hvor et trinn kjører uten å åpne det.
+I hvert automatisert trinn nedenfor inneholder trinnets **Flere felt** først **Runner**, for et trinn som kjører på en, deretter **Krev godkjenning** og **Fortsett ved feil**, deretter trinnets egne innstillinger - headerne til et HTTP-kall, porten, passordfrasen for nøkkelen og vertsnøkkelen til et SSH-trinn, leverandøren og kontekstbryterne til et AI-trinn - og til slutt **Beskrivelse** og tidsavbruddene. Sammenslått nevner det Runneren til trinnet, så du ser hvor et trinn kjører uten å åpne det.
 
 ### Manual
 
@@ -155,6 +155,7 @@ Logg på en maskin over SSH og kjør et bash-skript der. Runneren åpner forbind
 | **Bash-skript** | Kjører med `bash` på maskinen som brukeren trinnet logger på som. Utdata fanges opp til 50 KB, og en avslutningskode som ikke er null, får trinnet til å feile. |
 | **Port** | Under **Flere felt**. 22 når den står tom. |
 | **Passordfrase for nøkkelen** | Under **Flere felt**. Den hemmelige variabelen som holder passordfrasen til en nøkkel som har en. |
+| **Vertsnøkkel** | Under **Flere felt**. Maskinens SHA256-fingeravtrykk eller den offentlige nøkkelen slik `ssh-keyscan` skriver den ut, én per linje. Trinnet logger bare på når maskinen legger fram en av dem. Står den tom, godtas enhver nøkkel, og trinnets utdata nevner den maskinen la fram. |
 | **Tidsavbrudd for kjøring** | Dekker tilkobling, pålogging og kjøring av skriptet samlet, slik at et skript som henger, ikke kan holde trinnet åpent. Standard 30 sekunder. |
 | **Tidsavbrudd for overtakelse** | Hvor lenge Workeren venter på at Runneren tar jobben. Standard 2 minutter. |
 
@@ -164,6 +165,8 @@ For eksempel for å starte en tjeneste på nytt og vise at den kom opp igjen:
 sudo systemctl restart nginx
 systemctl status nginx --no-pager
 ```
+
+Oppgi maskinens vertsnøkkel så trinnet logger på akkurat den maskinen og ingen annen: `ssh-keyscan 10.0.4.21` skriver ut de offentlige nøklene, og `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` på selve maskinen fingeravtrykket. Et trinn som oppgir en, feiler på en Runner som er for gammel til å sjekke den, og sier at Runneren må oppdateres.
 
 ### kubectl
 

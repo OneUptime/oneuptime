@@ -31,6 +31,7 @@ import {
   getHttpStepVariableTexts,
   redactHttpStepSecrets,
 } from "Common/Types/Runbook/HttpStepVariables";
+import { getSshHostKeyProblem } from "Common/Types/Runbook/SshHostKey";
 import { JSONObject } from "Common/Types/JSON";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import {
@@ -688,6 +689,18 @@ export async function runSshStep(
     };
   }
 
+  /*
+   * The machine's host keys, when the step names them: a line that is not
+   * one fails the step here, before it is queued for a Runner, rather than
+   * signing in without the check the author asked for.
+   */
+  const hostKey: string = (config.hostKey || "").trim();
+  const hostKeyProblem: string | null = getSshHostKeyProblem(hostKey);
+
+  if (hostKeyProblem) {
+    return { success: false, output: "", errorMessage: hostKeyProblem };
+  }
+
   const port: number =
     typeof config.port === "number" &&
     Number.isInteger(config.port) &&
@@ -709,6 +722,7 @@ export async function runSshStep(
       ...(config.passphrase && config.passphrase.trim()
         ? { passphrase: config.passphrase.trim() }
         : {}),
+      ...(hostKey ? { hostKey } : {}),
       script,
     },
     timeoutInMs: resolveStepExecutionTimeoutInMs(config.timeoutInMs),

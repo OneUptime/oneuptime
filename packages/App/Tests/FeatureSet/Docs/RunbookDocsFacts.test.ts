@@ -1252,6 +1252,7 @@ describe("a step's options on the authoring page", () => {
       ...switches,
       "port",
       "passphrase",
+      "hostKey",
       "description",
       "timeouts",
     ]);
@@ -1292,7 +1293,7 @@ describe("a step's options on the authoring page", () => {
     }
 
     expect(AUTHORING).toContain(
-      `In every automated step below, the step's **More fields** holds its **${RUNNER_FIELD_TITLE}** first, for a step that runs on one, then **${REQUIRE_APPROVAL_FOLDED_TITLE}** and **${CONTINUE_ON_FAILURE_TITLE}**, then the step's own extra settings - an HTTP request's headers, an SSH step's port and key passphrase, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.`,
+      `In every automated step below, the step's **More fields** holds its **${RUNNER_FIELD_TITLE}** first, for a step that runs on one, then **${REQUIRE_APPROVAL_FOLDED_TITLE}** and **${CONTINUE_ON_FAILURE_TITLE}**, then the step's own extra settings - an HTTP request's headers, an SSH step's port, key passphrase and host key, an AI step's provider and context switches - and last the **Description** and the timeouts. Folded, it names the step's Runner, so you see where a step runs without opening it.`,
     );
     expect(STEPS_PAGE).toContain("getStepMoreFieldsItems(");
     expect(STEPS_PAGE).toContain(
@@ -2051,6 +2052,41 @@ describe("runbook variables", () => {
     );
   });
 
+  /*
+   * An SSH step may name the machine's host keys (SSHStepConfig.hostKey):
+   * the Runner hands ssh2 a host verifier and signs in only when the
+   * machine presents one of them; a step that names none says in its
+   * output which key the machine presented. A Runner that does not say it
+   * checks them ("ssh-host-key") is never handed such a step.
+   */
+  it("say an SSH step checks the machine's host key when it names one, under More fields", () => {
+    expect(STEP_EDITOR_MODEL).toContain(
+      'SSH_HOST_KEY_TITLE: string = translationKey("Host key");',
+    );
+    expect(RUNNER_SSH_EXECUTOR).toContain(
+      "hostVerifier: (key: Buffer): boolean => {",
+    );
+    expect(RUNNER_SSH_EXECUTOR).toContain(
+      "The machine's host key was not checked: it presented",
+    );
+    expect(readSource("Common/Types/Runbook/RunnerFeatures.ts")).toContain(
+      'export const RUNNER_FEATURE_SSH_HOST_KEY: string = "ssh-host-key";',
+    );
+    expect(RUNNER_INGRESS).toContain(
+      "RunnerIngressAPI.SSH_HOST_KEY_NEEDS_NEWER_RUNNER",
+    );
+
+    expect(AUTHORING).toContain(
+      "| **Host key** | Under **More fields**. The machine's SHA256 fingerprint, or its public key as `ssh-keyscan` prints it, one a line. The step signs in only when the machine presents one of them. Left empty, any key is accepted, and the step's output names the one the machine presented. |",
+    );
+    expect(AUTHORING).toContain(
+      "A step that names one fails on a Runner too old to check it, saying to update the Runner.",
+    );
+    expect(CONFIGURATION).toContain(
+      "- **SSH steps** sign in only when the machine presents one of the host keys the step names. A step that names none accepts any key, and its output names the one the machine presented, to name in the step.",
+    );
+  });
+
   it("say who manages variables, which Runbook Admin does not", () => {
     const model: RunbookVariable = new RunbookVariable();
 
@@ -2211,6 +2247,10 @@ describe("runbook variables", () => {
     );
     expect(VARIABLES).toContain(
       "| OneUptime itself, for an HTTP request step | Always | Always |",
+    );
+    // The hardening notes say it too, beside the Runners a secret is handed to.
+    expect(CONFIGURATION).toContain(
+      "An HTTP request step, which OneUptime sends itself, is given every secret of its own project that it names, and hides them in the response it records.",
     );
     expect(VARIABLES).toContain(
       '{ "Authorization": "Bearer {{global.variables.API_TOKEN}}" }',

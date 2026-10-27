@@ -35868,5 +35868,9 @@
   "Search to find more.": "Pesquise para encontrar mais.",
   "No repositories are connected yet.": "Nenhum repositório conectado ainda.",
   "No MCP servers are added yet.": "Nenhum servidor MCP adicionado ainda.",
-  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Nenhuma. Uma regra de IA escolhe o Runner dela em Mais campos, em Incidentes › IA › Configurações ou Alertas › IA › Configurações."
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Nenhuma. Uma regra de IA escolhe o Runner dela em Mais campos, em Incidentes › IA › Configurações ou Alertas › IA › Configurações.",
+  "Host key": "Chave do host",
+  "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.": "A chave do host da máquina, verificada antes de a etapa entrar: sua impressão digital SHA256, ou sua chave pública como o ssh-keyscan a imprime, uma por linha. Deixada vazia, qualquer chave é aceita, e a saída da etapa informa a que a máquina apresentou.",
+  "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "Uma linha aqui não é nem uma impressão digital SHA256 nem uma chave pública, então a etapa vai falhar quando for executada.",
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Aqui há mais chaves do que uma máquina tem, então a etapa vai falhar quando for executada. Uma máquina tem uma chave de cada tipo: informe essas."
 }

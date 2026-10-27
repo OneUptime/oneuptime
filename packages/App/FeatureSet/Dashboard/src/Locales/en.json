@@ -35868,5 +35868,9 @@
   "Search to find more.": "Search to find more.",
   "No repositories are connected yet.": "No repositories are connected yet.",
   "No MCP servers are added yet.": "No MCP servers are added yet.",
-  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings."
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.",
+  "Host key": "Host key",
+  "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.": "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.",
+  "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.",
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those."
 }

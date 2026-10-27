@@ -64,7 +64,7 @@ Cada paso tiene estos campos. Un paso automatizado muestra su **Título** y los 
 | [kubectl](#kubectl) | Un Runner | Un Runner, y una variable de kubeconfig o el acceso propio del Runner |
 | [AI](#ai) | El Worker de OneUptime | Un proveedor de LLM |
 
-En cada paso automatizado de abajo, **Más campos** del paso contiene primero su **Runner**, en un paso que se ejecuta en uno, luego **Requerir aprobación** y **Continuar en caso de error**, luego los ajustes propios del paso - los encabezados de una llamada HTTP, el puerto y la frase de contraseña de la clave de un paso SSH, el proveedor y los interruptores de contexto de un paso de IA - y por último la **Descripción** y los tiempos de espera. Plegado, nombra el Runner del paso, para que veas dónde se ejecuta un paso sin abrirlo.
+En cada paso automatizado de abajo, **Más campos** del paso contiene primero su **Runner**, en un paso que se ejecuta en uno, luego **Requerir aprobación** y **Continuar en caso de error**, luego los ajustes propios del paso - los encabezados de una llamada HTTP, el puerto, la frase de contraseña de la clave y la clave de host de un paso SSH, el proveedor y los interruptores de contexto de un paso de IA - y por último la **Descripción** y los tiempos de espera. Plegado, nombra el Runner del paso, para que veas dónde se ejecuta un paso sin abrirlo.
 
 ### Manual
 
@@ -155,6 +155,7 @@ Iniciar sesión en una máquina por SSH y ejecutar allí un script de bash. El R
 | **Script de Bash** | Se ejecuta con `bash` en la máquina, como el usuario con que inicia sesión. La salida se captura hasta 50 KB, y un código de salida distinto de cero hace fallar el paso. |
 | **Puerto** | En **Más campos**. 22 si se deja vacío. |
 | **Frase de contraseña de la clave** | En **Más campos**. La variable secreta que contiene la frase de contraseña de una clave que la tiene. |
+| **Clave de host** | En **Más campos**. La huella SHA256 de la máquina, o su clave pública tal como la imprime `ssh-keyscan`, una por línea. El paso solo inicia sesión cuando la máquina presenta una de ellas. Si se deja vacía, se acepta cualquier clave, y la salida del paso nombra la que presentó la máquina. |
 | **Tiempo de espera de ejecución** | Cubre a la vez la conexión, el inicio de sesión y la ejecución del script, para que un script colgado no pueda mantener abierto el paso. 30 segundos por defecto. |
 | **Tiempo de espera de reclamación** | Cuánto tiempo espera el Worker a que el Runner reclame el trabajo. 2 minutos por defecto. |
 
@@ -164,6 +165,8 @@ Por ejemplo, para reiniciar un servicio y mostrar que volvió a funcionar:
 sudo systemctl restart nginx
 systemctl status nginx --no-pager
 ```
+
+Indica la clave de host de la máquina para que el paso inicie sesión en esa máquina y en ninguna otra: `ssh-keyscan 10.0.4.21` imprime sus claves públicas, y `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` en la propia máquina su huella. Un paso que indica una falla en un Runner demasiado antiguo para comprobarla, diciendo que hay que actualizar el Runner.
 
 ### kubectl
 

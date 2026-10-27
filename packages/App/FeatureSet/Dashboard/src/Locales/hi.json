@@ -35868,5 +35868,9 @@
   "Search to find more.": "और ढूँढने के लिए खोजें।",
   "No repositories are connected yet.": "अभी तक कोई रिपॉजिटरी नहीं जोड़ी गई है।",
   "No MCP servers are added yet.": "अभी तक कोई MCP सर्वर नहीं जोड़ा गया है।",
-  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "कोई नहीं। AI नियम घटनाएं › एआई › सेटिंग्स या अलर्ट › एआई › सेटिंग्स पर, अपने और फ़ील्ड में अपना Runner चुनता है।"
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "कोई नहीं। AI नियम घटनाएं › एआई › सेटिंग्स या अलर्ट › एआई › सेटिंग्स पर, अपने और फ़ील्ड में अपना Runner चुनता है।",
+  "Host key": "होस्ट कुंजी",
+  "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.": "मशीन की होस्ट कुंजी, जो चरण के साइन इन करने से पहले जाँची जाती है: उसका SHA256 फ़िंगरप्रिंट, या उसकी सार्वजनिक कुंजी जैसी ssh-keyscan छापता है, हर पंक्ति में एक। खाली छोड़ने पर कोई भी कुंजी स्वीकार होती है, और चरण के आउटपुट में वह कुंजी बताई जाती है जो मशीन ने दिखाई।",
+  "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "यहाँ एक पंक्ति न तो SHA256 फ़िंगरप्रिंट है न ही सार्वजनिक कुंजी, इसलिए चरण चलने पर विफल होगा।",
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "यहाँ किसी मशीन के पास होने से ज़्यादा कुंजियाँ हैं, इसलिए चरण चलने पर विफल होगा। मशीन के पास हर प्रकार की एक कुंजी होती है: वही लिखें।"
 }

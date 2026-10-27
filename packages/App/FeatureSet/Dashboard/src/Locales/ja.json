@@ -35868,5 +35868,9 @@
   "Search to find more.": "検索すると、ほかにも見つかります。",
   "No repositories are connected yet.": "まだリポジトリが接続されていません。",
   "No MCP servers are added yet.": "まだ MCP サーバーが追加されていません。",
-  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "なし。AI ルールの Runner は、インシデント › AI › 設定 または アラート › AI › 設定 で、そのルールの その他の項目 から選択します。"
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "なし。AI ルールの Runner は、インシデント › AI › 設定 または アラート › AI › 設定 で、そのルールの その他の項目 から選択します。",
+  "Host key": "ホストキー",
+  "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.": "ステップがサインインする前に確認する、マシンのホストキーです。SHA256 フィンガープリント、または ssh-keyscan が出力する形式の公開鍵を 1 行に 1 つずつ入力します。空のままにすると任意のキーを受け入れ、ステップの出力にマシンが提示したキーが表示されます。",
+  "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "ここに SHA256 フィンガープリントでも公開鍵でもない行があるため、ステップは実行時に失敗します。",
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "マシンが持つより多くのキーが指定されているため、ステップは実行時に失敗します。マシンは種類ごとに 1 つのキーを持ちます。それらを指定してください。"
 }

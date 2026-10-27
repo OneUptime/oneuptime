@@ -64,7 +64,7 @@ Ogni passaggio ha questi campi. Un passaggio automatico mostra il suo **Titolo**
 | [kubectl](#kubectl) | Un Runner | Un Runner, e una variabile kubeconfig o l'accesso proprio del Runner |
 | [AI](#ai) | Il Worker di OneUptime | Un provider LLM |
 
-In ogni passaggio automatico qui sotto, **Altri campi** del passaggio contiene prima il suo **Runner**, per un passaggio che viene eseguito su uno, poi **Richiedi approvazione** e **Continua in caso di errore**, poi le impostazioni proprie del passaggio - gli header di una chiamata HTTP, la porta e la passphrase della chiave di un passaggio SSH, il provider e gli interruttori di contesto di un passaggio di IA - e infine la **Descrizione** e i timeout. Chiuso, indica il Runner del passaggio, così vedi dove viene eseguito un passaggio senza aprirlo.
+In ogni passaggio automatico qui sotto, **Altri campi** del passaggio contiene prima il suo **Runner**, per un passaggio che viene eseguito su uno, poi **Richiedi approvazione** e **Continua in caso di errore**, poi le impostazioni proprie del passaggio - gli header di una chiamata HTTP, la porta, la passphrase della chiave e la chiave host di un passaggio SSH, il provider e gli interruttori di contesto di un passaggio di IA - e infine la **Descrizione** e i timeout. Chiuso, indica il Runner del passaggio, così vedi dove viene eseguito un passaggio senza aprirlo.
 
 ### Manual
 
@@ -155,6 +155,7 @@ Accedere a una macchina via SSH ed eseguirvi uno script bash. Il Runner apre la 
 | **Script Bash** | Viene eseguito con `bash` sulla macchina, come l'utente con cui accede. L'output viene acquisito fino a 50 KB, e un codice di uscita diverso da zero fa fallire il passaggio. |
 | **Porta** | In **Altri campi**. 22 se lasciata vuota. |
 | **Passphrase della chiave** | In **Altri campi**. La variabile segreta che contiene la passphrase di una chiave che ne ha una. |
+| **Chiave host** | In **Altri campi**. L'impronta SHA256 della macchina, o la sua chiave pubblica come la stampa `ssh-keyscan`, una per riga. Il passaggio accede solo quando la macchina presenta una di esse. Lasciata vuota, qualsiasi chiave è accettata, e l'output del passaggio indica quella che la macchina ha presentato. |
 | **Timeout di esecuzione** | Copre insieme connessione, accesso ed esecuzione dello script, così uno script bloccato non può tenere aperto il passaggio. Predefinito 30 secondi. |
 | **Timeout di presa in carico** | Quanto tempo il Worker attende che il Runner prenda in carico il lavoro. 2 minuti per impostazione predefinita. |
 
@@ -164,6 +165,8 @@ Ad esempio, per riavviare un servizio e mostrare che è tornato attivo:
 sudo systemctl restart nginx
 systemctl status nginx --no-pager
 ```
+
+Indica la chiave host della macchina perché il passaggio acceda a quella macchina e a nessun'altra: `ssh-keyscan 10.0.4.21` stampa le sue chiavi pubbliche, e `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` sulla macchina stessa la sua impronta. Un passaggio che ne indica una fallisce su un Runner troppo vecchio per verificarla, dicendo di aggiornare il Runner.
 
 ### kubectl
 

@@ -64,7 +64,7 @@ Elke stap heeft deze velden. Een geautomatiseerde stap toont zijn **Titel** en d
 | [kubectl](#kubectl) | Een Runner | Een Runner, en een kubeconfig-variabele of de eigen toegang van de Runner |
 | [AI](#ai) | De OneUptime Worker | Een LLM-provider |
 
-In elke geautomatiseerde stap hieronder bevat **Meer velden** van de stap eerst zijn **Runner**, voor een stap die op een Runner loopt, dan **Goedkeuring vereisen** en **Doorgaan bij fout**, dan de eigen instellingen van de stap - de headers van een HTTP-aanroep, de poort en de wachtwoordzin van de sleutel van een SSH-stap, de provider en de contextschakelaars van een AI-stap - en als laatste de **Beschrijving** en de time-outs. Ingeklapt noemt het de Runner van de stap, zodat u ziet waar een stap loopt zonder hem te openen.
+In elke geautomatiseerde stap hieronder bevat **Meer velden** van de stap eerst zijn **Runner**, voor een stap die op een Runner loopt, dan **Goedkeuring vereisen** en **Doorgaan bij fout**, dan de eigen instellingen van de stap - de headers van een HTTP-aanroep, de poort, de wachtwoordzin van de sleutel en de hostsleutel van een SSH-stap, de provider en de contextschakelaars van een AI-stap - en als laatste de **Beschrijving** en de time-outs. Ingeklapt noemt het de Runner van de stap, zodat u ziet waar een stap loopt zonder hem te openen.
 
 ### Manual
 
@@ -155,6 +155,7 @@ Meld u via SSH aan op een machine en voer daar een bash-script uit. De Runner op
 | **Bash-script** | Loopt met `bash` op de machine, als de gebruiker waarmee de stap zich aanmeldt. De uitvoer wordt tot 50 KB vastgelegd, en een exitcode anders dan nul laat de stap mislukken. |
 | **Poort** | Onder **Meer velden**. 22 als het leeg blijft. |
 | **Wachtwoordzin van de sleutel** | Onder **Meer velden**. De geheime variabele die de wachtwoordzin bevat van een sleutel die er een heeft. |
+| **Hostsleutel** | Onder **Meer velden**. De SHA256-vingerafdruk van de machine, of de openbare sleutel zoals `ssh-keyscan` die toont, één per regel. De stap meldt zich alleen aan wanneer de machine er een van laat zien. Leeg gelaten wordt elke sleutel geaccepteerd, en de uitvoer van de stap noemt de sleutel die de machine liet zien. |
 | **Uitvoeringstime-out** | Omvat verbinden, aanmelden en het script uitvoeren samen, zodat een vastgelopen script de stap niet open kan houden. Standaard 30 seconden. |
 | **Time-out voor oppakken** | Hoe lang de Worker wacht tot de Runner de taak oppakt. Standaard 2 minuten. |
 
@@ -164,6 +165,8 @@ Bijvoorbeeld om een dienst te herstarten en te tonen dat hij weer draait:
 sudo systemctl restart nginx
 systemctl status nginx --no-pager
 ```
+
+Geef de hostsleutel van de machine op zodat de stap zich bij die machine aanmeldt en bij geen andere: `ssh-keyscan 10.0.4.21` toont de openbare sleutels, en `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` op de machine zelf de vingerafdruk. Een stap die er een opgeeft, mislukt op een Runner die te oud is om hem te controleren, met de melding de Runner bij te werken.
 
 ### kubectl
 

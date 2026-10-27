@@ -35868,5 +35868,9 @@
   "Search to find more.": "برای یافتن موارد بیشتر جستجو کنید.",
   "No repositories are connected yet.": "هنوز هیچ مخزنی متصل نشده است.",
   "No MCP servers are added yet.": "هنوز هیچ سرور MCPای اضافه نشده است.",
-  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "هیچ. هر قاعدهٔ هوش مصنوعی Runner خود را در «فیلدهای بیشتر»، در حوادث › هوش مصنوعی › تنظیمات یا هشدارها › هوش مصنوعی › تنظیمات انتخاب می‌کند."
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "هیچ. هر قاعدهٔ هوش مصنوعی Runner خود را در «فیلدهای بیشتر»، در حوادث › هوش مصنوعی › تنظیمات یا هشدارها › هوش مصنوعی › تنظیمات انتخاب می‌کند.",
+  "Host key": "کلید میزبان",
+  "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.": "کلید میزبان ماشین، که پیش از ورود گام بررسی می‌شود: اثر انگشت SHA256 آن، یا کلید عمومی‌اش همان‌طور که ssh-keyscan چاپ می‌کند، هر خط یکی. اگر خالی بماند، هر کلیدی پذیرفته می‌شود و خروجی گام کلیدی را که ماشین ارائه کرد نام می‌برد.",
+  "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "یک خط در اینجا نه اثر انگشت SHA256 است و نه کلید عمومی، پس گام هنگام اجرا شکست می‌خورد.",
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "اینجا کلیدهایی بیش از آنچه یک ماشین دارد آمده است، پس گام هنگام اجرا شکست می‌خورد. هر ماشین از هر نوع یک کلید دارد: همان‌ها را بنویسید."
 }

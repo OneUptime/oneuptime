@@ -64,7 +64,7 @@ Hvert trin har disse felter. Et automatiseret trin viser sin **Titel** og indsti
 | [kubectl](#kubectl) | En Runner | En Runner og en kubeconfig-variabel eller Runnerens egen adgang |
 | [AI](#ai) | OneUptime Worker | En LLM-udbyder |
 
-I hvert automatiseret trin nedenfor rummer trinnets **Flere felter** først dets **Runner**, for et trin, der kører på en, derefter **Kræv godkendelse** og **Fortsæt ved fejl**, derefter trinnets egne indstillinger - et HTTP-kalds headers, et SSH-trins port og nøglens adgangsfrase, et AI-trins udbyder og kontekstkontakter - og til sidst **Beskrivelse** og timeouts. Sammenfoldet nævner det trinnets Runner, så du kan se, hvor et trin kører, uden at åbne det.
+I hvert automatiseret trin nedenfor rummer trinnets **Flere felter** først dets **Runner**, for et trin, der kører på en, derefter **Kræv godkendelse** og **Fortsæt ved fejl**, derefter trinnets egne indstillinger - et HTTP-kalds headers, et SSH-trins port, nøglens adgangsfrase og værtsnøgle, et AI-trins udbyder og kontekstkontakter - og til sidst **Beskrivelse** og timeouts. Sammenfoldet nævner det trinnets Runner, så du kan se, hvor et trin kører, uden at åbne det.
 
 ### Manual
 
@@ -155,6 +155,7 @@ Log ind på en maskine over SSH, og kør et bash-script der. Runneren åbner for
 | **Bash-script** | Kører med `bash` på maskinen som den bruger, trinnet logger ind som. Output gemmes op til 50 KB, og en exitkode, der ikke er nul, får trinnet til at fejle. |
 | **Port** | Under **Flere felter**. 22, når den er tom. |
 | **Nøglens adgangsfrase** | Under **Flere felter**. Den hemmelige variabel, der indeholder adgangsfrasen til en nøgle, der har en. |
+| **Værtsnøgle** | Under **Flere felter**. Maskinens SHA256-fingeraftryk eller dens offentlige nøgle, som `ssh-keyscan` udskriver den, én pr. linje. Trinnet logger kun ind, når maskinen præsenterer en af dem. Efterlades den tom, accepteres enhver nøgle, og trinnets output nævner den, maskinen præsenterede. |
 | **Timeout for kørsel** | Dækker forbindelse, login og kørsel af scriptet tilsammen, så et script, der hænger, ikke kan holde trinnet åbent. Standard 30 sekunder. |
 | **Timeout for overtagelse** | Hvor længe Workeren venter på, at Runneren overtager jobbet. Standard 2 minutter. |
 
@@ -164,6 +165,8 @@ For eksempel for at genstarte en tjeneste og vise, at den kørte op igen:
 sudo systemctl restart nginx
 systemctl status nginx --no-pager
 ```
+
+Angiv maskinens værtsnøgle, så trinnet logger ind på netop den maskine og ingen anden: `ssh-keyscan 10.0.4.21` udskriver dens offentlige nøgler, og `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` på selve maskinen dens fingeraftryk. Et trin, der angiver en, fejler på en Runner, der er for gammel til at kontrollere den, og siger, at Runneren skal opdateres.
 
 ### kubectl
 

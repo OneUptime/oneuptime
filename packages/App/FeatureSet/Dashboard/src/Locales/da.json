@@ -35868,5 +35868,9 @@
   "Search to find more.": "Søg for at finde flere.",
   "No repositories are connected yet.": "Ingen repositorier er forbundet endnu.",
   "No MCP servers are added yet.": "Ingen MCP-servere er tilføjet endnu.",
-  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Ingen. En AI-regel vælger sin Runner under Flere felter, på Hændelser › AI › Indstillinger eller Advarsler › AI › Indstillinger."
+  "None. An AI rule picks its Runner in its More fields, on Incidents › AI › Settings or Alerts › AI › Settings.": "Ingen. En AI-regel vælger sin Runner under Flere felter, på Hændelser › AI › Indstillinger eller Advarsler › AI › Indstillinger.",
+  "Host key": "Værtsnøgle",
+  "The machine's host key, checked before the step signs in: its SHA256 fingerprint, or its public key as ssh-keyscan prints it, one a line. Left empty, any key is accepted, and the step's output names the one the machine presented.": "Maskinens værtsnøgle, kontrolleret før trinnet logger ind: dens SHA256-fingeraftryk eller dens offentlige nøgle, som ssh-keyscan udskriver den, én pr. linje. Efterlades den tom, accepteres enhver nøgle, og trinnets output nævner den, maskinen præsenterede.",
+  "A line here is neither a SHA256 fingerprint nor a public key, so the step will fail when it runs.": "En linje her er hverken et SHA256-fingeraftryk eller en offentlig nøgle, så trinnet fejler, når det kører.",
+  "This names more keys than a machine has, so the step will fail when it runs. A machine has one key of each type: name those.": "Her står flere nøgler, end en maskine har, så trinnet fejler, når det kører. En maskine har én nøgle af hver type: angiv dem."
 }
