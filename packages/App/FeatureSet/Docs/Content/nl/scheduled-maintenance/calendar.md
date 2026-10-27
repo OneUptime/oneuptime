@@ -113,7 +113,7 @@ De agenda bevat elke gebeurtenis van 90 dagen terug tot een jaar vooruit, tot 1.
 
 De mensen die een statuspagina volgen, kunnen het geplande onderhoud ervan in hun eigen agenda zetten. Op de pagina met geplande gebeurtenissen van de statuspagina biedt **Abonneren op agenda** Google Agenda, de agenda-app van hun apparaat of de link om te kopiëren. De link is het adres van de pagina gevolgd door `/maintenance.ics`, zoals `https://status.example.com/maintenance.ics`.
 
-- **Wat erin staat.** Precies wat de pagina toont: de gebeurtenissen binnen de geschiedenisperiode van de pagina, elke gebeurtenis die nog moet beginnen en elke die bezig is, zolang **Zichtbaar op statuspagina** aan staat. Wat elke gebeurtenis raakt, wordt genoemd zoals de pagina haar resources noemt, nooit met de eigen namen van je monitoren.
+- **Wat erin staat.** Precies wat de pagina toont: de gebeurtenissen binnen de geschiedenisperiode van de pagina, elke gebeurtenis die nog moet beginnen en elke die bezig is, zolang **Zichtbaar op statuspagina** aan staat, en vanaf haar **Publiceren op** als je er een hebt gekozen. Wat elke gebeurtenis raakt, wordt genoemd zoals de pagina haar resources noemt, nooit met de eigen namen van je monitoren.
 - **Een privépagina.** Een agenda-app kan niet inloggen, dus een privépagina biedt geen **Abonneren op agenda**, en haar link levert een lege agenda die zegt dat de pagina privé is.
 - **Eén gebeurtenis.** **Toevoegen aan agenda** op de pagina van een gebeurtenis voegt alleen die gebeurtenis toe: Google Agenda opent met haar ingevuld, of ze wordt gedownload als een bestand dat de agenda-app van het apparaat opent. Het werkt ook op een privépagina, voor een bezoeker die is ingelogd, en wordt niet meer aangeboden zodra de gebeurtenis voorbij is.
 
@@ -147,7 +147,7 @@ Google Agenda leest de link vanaf de servers van Google, dus de OneUptime-server
 :::
 
 :::details Een gebeurtenis ontbreekt in de agenda van een statuspagina
-De agenda van de pagina bevat wat de pagina toont. Controleer of de gebeurtenis de pagina noemt, of **Zichtbaar op statuspagina** aan staat in haar **Instellingen** en of ze binnen de geschiedenisperiode van de pagina is begonnen.
+De agenda van de pagina bevat wat de pagina toont. Controleer of de gebeurtenis de pagina noemt, of **Zichtbaar op statuspagina** aan staat in haar **Instellingen**, of haar **Publiceren op**, als ze er een heeft, is aangebroken en of ze binnen de geschiedenisperiode van de pagina is begonnen.
 :::
 
 :::details Een externe agenda zegt Werkt niet

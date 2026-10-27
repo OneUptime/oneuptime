@@ -113,7 +113,7 @@ Kalendern innehåller varje händelse från 90 dagar bakåt till ett år framåt
 
 De som följer en statussida kan lägga in dess schemalagda underhåll i sin egen kalender. På statussidans sida med schemalagda händelser erbjuder **Prenumerera på kalender** Google Kalender, kalenderappen på deras enhet eller länken att kopiera. Länken är sidans adress följd av `/maintenance.ics`, till exempel `https://status.example.com/maintenance.ics`.
 
-- **Vad den innehåller.** Exakt det sidan visar: händelserna i sidans historikfönster, varje händelse som ännu inte har börjat och varje som pågår, så länge **Synlig på statussidan** är påslaget. Det varje händelse påverkar namnges som sidan namnger sina resurser, aldrig med dina monitorers egna namn.
+- **Vad den innehåller.** Exakt det sidan visar: händelserna i sidans historikfönster, varje händelse som ännu inte har börjat och varje som pågår, så länge **Synlig på statussidan** är påslaget, och från dess **Publicera den** om du har valt ett. Det varje händelse påverkar namnges som sidan namnger sina resurser, aldrig med dina monitorers egna namn.
 - **En privat sida.** En kalenderapp kan inte logga in, så en privat sida erbjuder ingen **Prenumerera på kalender**, och dess länk levererar en tom kalender som säger att sidan är privat.
 - **En händelse.** **Lägg till i kalender** på en händelses sida lägger bara till den händelsen: Google Kalender öppnas med den ifylld, eller så laddas den ned som en fil som enhetens kalenderapp öppnar. Det fungerar också på en privat sida för en besökare som har loggat in, och erbjuds inte när händelsen är över.
 
@@ -147,7 +147,7 @@ Google Kalender läser länken från Googles servrar, så OneUptime-servern mås
 :::
 
 :::details En händelse saknas i en statussidas kalender
-Sidans kalender innehåller det sidan visar. Kontrollera att händelsen nämner sidan, att **Synlig på statussidan** är påslaget i dess **Inställningar** och att den började inom sidans historikfönster.
+Sidans kalender innehåller det sidan visar. Kontrollera att händelsen nämner sidan, att **Synlig på statussidan** är påslaget i dess **Inställningar**, att dess **Publicera den**, om den har ett, har inträffat och att den började inom sidans historikfönster.
 :::
 
 :::details En extern kalender säger Fungerar inte

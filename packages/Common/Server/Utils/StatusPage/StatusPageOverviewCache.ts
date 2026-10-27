@@ -20,7 +20,8 @@ import logger from "../Logger";
  *
  *   - an incident, an episode or a scheduled maintenance event hidden from
  *     status pages, made private, its postmortem taken off, limited to some
- *     pages, or moved off pages or monitors (HIDING_WRITES);
+ *     pages, moved off pages or monitors, or - an event - given a later
+ *     publish time (HIDING_WRITES);
  *   - an announcement moved off pages or monitors, or its dates changed;
  *   - any of those deleted, a public note, an incident's place in an
  *     episode, a monitor, a monitor group or a monitor's place in one - a
@@ -33,7 +34,9 @@ import logger from "../Logger";
  *
  * A write that can only show more - a switch turned on, Private turned off -
  * starts none, and neither does an edit that leaves a record shown (a title,
- * a note's text): they are seen when the entry runs out.
+ * a note's text): they are seen when the entry runs out. So is an event
+ * whose publish time comes, or an announcement whose time to be shown does:
+ * no write marks that moment, and the page shows it within TTL_MS.
  *
  * Each entry is kept under the generation its project had when its build
  * started (CacheGenerations, which OnCallCalendarFeedCache keeps its feeds
@@ -60,7 +63,8 @@ export const STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE: string =
  *   - "on": a switch that hides the record when on (Private, limiting an
  *     incident to some pages) - written as anything but off, it may;
  *   - "any": a column any write of which may - the pages or monitors the
- *     record is shown for, an announcement's dates.
+ *     record is shown for, an announcement's dates, an event's publish time
+ *     (moved later, it takes a published event off until then).
  */
 export type HidingWrite = "off" | "on" | "any";
 
@@ -87,6 +91,7 @@ export const HIDING_WRITES: Readonly<
   },
   ScheduledMaintenance: {
     isVisibleOnStatusPage: "off",
+    publishOnStatusPageAt: "any",
     statusPages: "any",
     monitors: "any",
   },

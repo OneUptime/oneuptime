@@ -359,6 +359,30 @@ test.describe("the calendar's own page", () => {
     ).toHaveCount(0);
   });
 
+  /*
+   * An event kept to the team until its publish time (#5249) names the
+   * pages it will show on, and under them from when: it is on none of them
+   * yet. Every other event's cell is as it was.
+   */
+  test("All Events says, under an event's status pages, from when it shows on them (?publish=later)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, "page=list&publish=later");
+
+    const row: Locator = page
+      .locator("tr")
+      .filter({ hasText: "Database upgrade" });
+    await expect(row).toContainText("Acme Status");
+    await expect(
+      row.getByTestId("scheduled-maintenance-shows-from"),
+    ).toHaveText("Shows from Oct 18 2026, 09:00 GMT");
+    await expect(
+      page.getByTestId("scheduled-maintenance-shows-from"),
+    ).toHaveCount(1);
+  });
+
   test("the side menu goes between the list and the calendar", async ({
     page,
   }: {

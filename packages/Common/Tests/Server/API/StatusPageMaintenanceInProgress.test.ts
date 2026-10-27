@@ -78,8 +78,9 @@ jest.mock("../../../Server/Utils/Response", () => {
  * Atom feeds, until it started.
  *
  * The database is a stand-in that keeps the rows each query lets through: an
- * event's state (by id or flag), whether it is shown on status pages, and
- * when it starts, as Postgres would.
+ * event's state (by id or flag), whether it is shown on status pages - its
+ * switch, and whether it is published yet (#5249) - and when it starts, as
+ * Postgres would.
  */
 
 const DAY_MS: number = 24 * 60 * 60 * 1000;
@@ -90,6 +91,49 @@ const STATUS_PAGE_ID: ObjectID = new ObjectID(
 
 // A time condition's SQL (QueryHelper): between two dates.
 const BETWEEN_SQL: RegExp = /^\(x >= :\w+ and x <= :\w+\)$/;
+
+// Up to a date, or no date at all: published by then (QueryHelper).
+const AT_MOST_OR_NONE_SQL: RegExp = /^\(x <= :\w+ or x IS NULL\)$/;
+
+/*
+ * Whether an event is published by the time a query asks as of: no publish
+ * time, or one not after it - `x IS NULL` lets an event with none through.
+ */
+function passesPublishTime(
+  event: ScheduledMaintenance,
+  condition: unknown,
+): boolean {
+  if (condition === undefined) {
+    return true;
+  }
+
+  const operator: FindOperator<unknown> = condition as FindOperator<unknown>;
+  const sql: string = operator.getSql!("x");
+  const dates: Array<Date> = Object.values(
+    (operator.objectLiteralParameters as Record<string, unknown>) || {},
+  ) as Array<Date>;
+
+  if (!AT_MOST_OR_NONE_SQL.test(sql)) {
+    throw new Error(`No stand-in for the publish time condition ${sql}`);
+  }
+
+  return (
+    !event.publishOnStatusPageAt ||
+    event.publishOnStatusPageAt.getTime() <= dates[0]!.getTime()
+  );
+}
+
+// An event kept to the team until a week from now.
+function notPublishedYet(event: ScheduledMaintenance): ScheduledMaintenance {
+  event.publishOnStatusPageAt = new Date(Date.now() + 7 * DAY_MS);
+  return event;
+}
+
+// An event whose publish time came an hour ago.
+function publishedAnHourAgo(event: ScheduledMaintenance): ScheduledMaintenance {
+  event.publishOnStatusPageAt = new Date(Date.now() - 60 * 60 * 1000);
+  return event;
+}
 
 function passesStartsAt(
   event: ScheduledMaintenance,
@@ -196,6 +240,7 @@ describe("a status page shows every scheduled maintenance event in progress as o
             (args.query["isVisibleOnStatusPage"] === undefined ||
               event.isVisibleOnStatusPage ===
                 args.query["isVisibleOnStatusPage"]) &&
+            passesPublishTime(event, args.query["publishOnStatusPageAt"]) &&
             passesStartsAt(event, args.query["startsAt"])
           );
         });
@@ -248,6 +293,67 @@ describe("a status page shows every scheduled maintenance event in progress as o
         expect(titlesOf(payload["scheduledMaintenanceEvents"])).toEqual([]);
       },
     );
+
+    /*
+     * Kept to the team until its publish time (#5249): neither coming up
+     * nor in progress on the overview until then - and as any other event
+     * from that time on.
+     */
+    it("leaves an event not published yet off the overview, to come or in progress, and shows one published", async () => {
+      events = [
+        notPublishedYet(
+          eventStartedDaysAgo("scheduled", -30, "Data center move"),
+        ),
+        notPublishedYet(eventStartedDaysAgo("ongoing", 1, "Quiet cutover")),
+        publishedAnHourAgo(
+          eventStartedDaysAgo("scheduled", -3, "Network upgrade"),
+        ),
+        eventStartedDaysAgo("ongoing", 1, "Database upgrade"),
+      ];
+
+      const payload: JSONObject =
+        await api.buildOverviewResponse(STATUS_PAGE_ID);
+
+      expect(titlesOf(payload["scheduledMaintenanceEvents"])).toEqual([
+        "Database upgrade",
+        "Network upgrade",
+      ]);
+    });
+
+    it("asks for the events to come and in progress as of one moment, published by then", async () => {
+      events = [];
+
+      const before: number = Date.now();
+
+      await api.buildOverviewResponse(STATUS_PAGE_ID);
+
+      const maintenanceQueries: Array<Record<string, unknown>> =
+        eventQueries.filter((query: Record<string, unknown>): boolean => {
+          return query["currentScheduledMaintenanceStateId"] !== undefined;
+        });
+
+      expect(maintenanceQueries.length).toBeGreaterThanOrEqual(2);
+
+      const asOf: Set<number> = new Set<number>();
+
+      for (const query of maintenanceQueries) {
+        const operator: FindOperator<unknown> = query[
+          "publishOnStatusPageAt"
+        ] as FindOperator<unknown>;
+
+        expect(AT_MOST_OR_NONE_SQL.test(operator.getSql!("x"))).toBe(true);
+
+        for (const value of Object.values(
+          (operator.objectLiteralParameters as Record<string, unknown>) || {},
+        )) {
+          asOf.add((value as Date).getTime());
+        }
+      }
+
+      expect(asOf.size).toBe(1);
+      expect(Array.from(asOf)[0]!).toBeGreaterThanOrEqual(before);
+      expect(Array.from(asOf)[0]!).toBeLessThanOrEqual(Date.now());
+    });
 
     it("still lists the events waiting in the scheduled state, after the ones in progress", async () => {
       events = [
@@ -463,6 +569,32 @@ describe("a status page shows every scheduled maintenance event in progress as o
 
       for (const query of eventQueries) {
         expect(query["isVisibleOnStatusPage"]).toBe(true);
+      }
+    });
+
+    it("an event not published yet is in no list - nor the RSS feed built from it - until its time comes", async () => {
+      events = [
+        notPublishedYet(
+          eventStartedDaysAgo("scheduled", -30, "Data center move"),
+        ),
+        notPublishedYet(eventStartedDaysAgo("verifying", 2, "Quiet cutover")),
+        publishedAnHourAgo(
+          eventStartedDaysAgo("scheduled", -3, "Network upgrade"),
+        ),
+      ];
+
+      const payload: JSONObject = await api.getScheduledMaintenanceEvents(
+        STATUS_PAGE_ID,
+        null,
+        request(),
+      );
+
+      expect(titlesOf(payload["scheduledMaintenanceEvents"])).toEqual([
+        "Network upgrade",
+      ]);
+
+      for (const query of eventQueries) {
+        expect(query["publishOnStatusPageAt"]).toBeDefined();
       }
     });
 

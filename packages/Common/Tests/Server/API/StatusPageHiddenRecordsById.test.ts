@@ -64,8 +64,9 @@ jest.mock("../../../Server/Utils/Response", () => {
 
 /*
  * A record a status page does not show is not shown by its id either: a
- * scheduled maintenance event hidden from status pages, and an announcement
- * scheduled for later, are not answered when asked for by id - on the event
+ * scheduled maintenance event hidden from status pages or not published on
+ * them yet (its Publish on Status Page At still to come, #5249), and an
+ * announcement scheduled for later, are not answered when asked for by id - on the event
  * and announcement pages, the public status page MCP tools that read them,
  * or the routes that serve their attachments. The lists keep showing what
  * they showed; by id there is still no history window, so a link to an older
@@ -96,6 +97,10 @@ interface Fixtures {
   statusPageId: string;
   shownEvent: ScheduledMaintenance;
   hiddenEvent: ScheduledMaintenance;
+  // Visible on Status Page on, with its publish time still to come.
+  notYetPublishedEvent: ScheduledMaintenance;
+  // Visible on Status Page on, with its publish time come an hour ago.
+  publishedEvent: ScheduledMaintenance;
   pastAnnouncement: StatusPageAnnouncement;
   laterAnnouncement: StatusPageAnnouncement;
   eventQueries: Array<Query>;
@@ -113,16 +118,32 @@ function boundDates(condition: unknown): Array<Date> {
 
 // A time condition's SQL (QueryHelper): "up to" one date, or between two.
 const UP_TO_SQL: RegExp = /^\(x <= :\w+\)$/;
+const UP_TO_OR_NONE_SQL: RegExp = /^\(x <= :\w+ or x IS NULL\)$/;
 const BETWEEN_SQL: RegExp = /^\(x >= :\w+ and x <= :\w+\)$/;
 
-// Whether a row's date passes a time condition: "up to" one date, or between two.
-function passesTimeCondition(date: Date, condition: unknown): boolean {
+/*
+ * Whether a row's date passes a time condition: "up to" one date, or between
+ * two - and "up to one date, or none" passes a row with no date, as
+ * Postgres lets a NULL through `x IS NULL`.
+ */
+function passesTimeCondition(
+  date: Date | null | undefined,
+  condition: unknown,
+): boolean {
   if (condition === undefined) {
     return true;
   }
 
   const sql: string = (condition as FindOperator<unknown>).getSql!("x");
   const dates: Array<Date> = boundDates(condition);
+
+  if (UP_TO_OR_NONE_SQL.test(sql)) {
+    return !date || date.getTime() <= dates[0]!.getTime();
+  }
+
+  if (!date) {
+    return false;
+  }
 
   if (UP_TO_SQL.test(sql)) {
     return date.getTime() <= dates[0]!.getTime();
@@ -155,15 +176,22 @@ function mockServices(): Fixtures {
   const event: (
     title: string,
     isVisibleOnStatusPage: boolean,
+    publishOnStatusPageAt?: Date | undefined,
   ) => ScheduledMaintenance = (
     title: string,
     isVisibleOnStatusPage: boolean,
+    publishOnStatusPageAt?: Date | undefined,
   ): ScheduledMaintenance => {
     const row: ScheduledMaintenance = new ScheduledMaintenance();
     row._id = ObjectID.generate().toString();
     row.title = title;
     row.isVisibleOnStatusPage = isVisibleOnStatusPage;
     row.startsAt = new Date();
+
+    if (publishOnStatusPageAt) {
+      row.publishOnStatusPageAt = publishOnStatusPageAt;
+    }
+
     return row;
   };
 
@@ -183,7 +211,22 @@ function mockServices(): Fixtures {
 
   const shownEvent: ScheduledMaintenance = event("Database upgrade", true);
   const hiddenEvent: ScheduledMaintenance = event("Internal rehearsal", false);
-  const events: Array<ScheduledMaintenance> = [shownEvent, hiddenEvent];
+  const notYetPublishedEvent: ScheduledMaintenance = event(
+    "Data center move",
+    true,
+    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  );
+  const publishedEvent: ScheduledMaintenance = event(
+    "Network upgrade",
+    true,
+    new Date(Date.now() - 60 * 60 * 1000),
+  );
+  const events: Array<ScheduledMaintenance> = [
+    shownEvent,
+    hiddenEvent,
+    notYetPublishedEvent,
+    publishedEvent,
+  ];
 
   const pastAnnouncement: StatusPageAnnouncement = announcement(
     "New region",
@@ -210,7 +253,11 @@ function mockServices(): Fixtures {
       return (
         idMatches(row, query["_id"]) &&
         (query["isVisibleOnStatusPage"] === undefined ||
-          row.isVisibleOnStatusPage === query["isVisibleOnStatusPage"])
+          row.isVisibleOnStatusPage === query["isVisibleOnStatusPage"]) &&
+        passesTimeCondition(
+          row.publishOnStatusPageAt,
+          query["publishOnStatusPageAt"],
+        )
       );
     });
   };
@@ -303,6 +350,8 @@ function mockServices(): Fixtures {
     statusPageId: page._id,
     shownEvent,
     hiddenEvent,
+    notYetPublishedEvent,
+    publishedEvent,
     pastAnnouncement,
     laterAnnouncement,
     eventQueries,
@@ -446,6 +495,129 @@ describe("a status page answers by id only what it shows", () => {
         params: {
           statusPageId: fixtures.statusPageId,
           scheduledMaintenanceId: fixtures.hiddenEvent._id!,
+          noteId: ObjectID.generate().toString(),
+          fileId: ObjectID.generate().toString(),
+        },
+      });
+
+      expect((next as unknown as jest.Mock).mock.calls[0]?.[0]).toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(Response.sendFileResponse).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Kept to the team until its publish time (#5249): on no page, by its
+     * id as much as in a list, and none of its files - until the time has
+     * come, when it is answered like any other event.
+     */
+    it("an event not published yet is not answered by its id, whoever asks", async () => {
+      const fixtures: Fixtures = mockServices();
+
+      const { sent } = await invoke({
+        route: EVENT_DETAIL_ROUTE,
+        params: {
+          statusPageIdOrDomain: fixtures.statusPageId,
+          scheduledMaintenanceId: fixtures.notYetPublishedEvent._id!,
+        },
+      });
+
+      expect(titlesOf(sent!["scheduledMaintenanceEvents"])).toEqual([]);
+      expect(sent!["scheduledMaintenanceEventsPublicNotes"]).toEqual([]);
+    });
+
+    it("an event whose publish time has come is answered by its id", async () => {
+      const fixtures: Fixtures = mockServices();
+
+      const { sent, next } = await invoke({
+        route: EVENT_DETAIL_ROUTE,
+        params: {
+          statusPageIdOrDomain: fixtures.statusPageId,
+          scheduledMaintenanceId: fixtures.publishedEvent._id!,
+        },
+      });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(titlesOf(sent!["scheduledMaintenanceEvents"])).toEqual([
+        "Network upgrade",
+      ]);
+    });
+
+    it("the read by id asks for events published up to now", async () => {
+      const fixtures: Fixtures = mockServices();
+      const before: number = Date.now();
+
+      await invoke({
+        route: EVENT_DETAIL_ROUTE,
+        params: {
+          statusPageIdOrDomain: fixtures.statusPageId,
+          scheduledMaintenanceId: fixtures.notYetPublishedEvent._id!,
+        },
+      });
+
+      const condition: unknown =
+        fixtures.eventQueries[0]!["publishOnStatusPageAt"];
+
+      expect(
+        UP_TO_OR_NONE_SQL.test(
+          (condition as FindOperator<unknown>).getSql!("x"),
+        ),
+      ).toBe(true);
+      expect(boundDates(condition)[0]!.getTime()).toBeGreaterThanOrEqual(
+        before,
+      );
+      expect(boundDates(condition)[0]!.getTime()).toBeLessThanOrEqual(
+        Date.now(),
+      );
+    });
+
+    it("the list leaves out an event not published yet, in each of its reads, and shows one published", async () => {
+      const fixtures: Fixtures = mockServices();
+
+      const { sent } = await invoke({
+        route: EVENTS_ROUTE,
+        params: { statusPageIdOrDomain: fixtures.statusPageId },
+      });
+
+      expect(fixtures.eventQueries.length).toBeGreaterThanOrEqual(2);
+
+      for (const query of fixtures.eventQueries) {
+        expect(
+          UP_TO_OR_NONE_SQL.test(
+            (query["publishOnStatusPageAt"] as FindOperator<unknown>).getSql!(
+              "x",
+            ),
+          ),
+        ).toBe(true);
+      }
+
+      // Every read of one list asks as of the same moment.
+      expect(
+        new Set(
+          fixtures.eventQueries.map((query: Query): number => {
+            return boundDates(query["publishOnStatusPageAt"])[0]!.getTime();
+          }),
+        ).size,
+      ).toBe(1);
+
+      const titles: Array<string> = titlesOf(
+        sent!["scheduledMaintenanceEvents"],
+      );
+
+      expect(titles).not.toContain("Data center move");
+      expect(titles).toContain("Network upgrade");
+      expect(titles).toContain("Database upgrade");
+    });
+
+    it("an event not published yet serves none of its note attachments", async () => {
+      const fixtures: Fixtures = mockServices();
+
+      const { next } = await invoke({
+        route: EVENT_NOTE_ATTACHMENT_ROUTE,
+        method: "get",
+        params: {
+          statusPageId: fixtures.statusPageId,
+          scheduledMaintenanceId: fixtures.notYetPublishedEvent._id!,
           noteId: ObjectID.generate().toString(),
           fileId: ObjectID.generate().toString(),
         },

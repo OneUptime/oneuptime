@@ -98,6 +98,13 @@ export interface ComponentProps {
    * Facts with an empty value are skipped by EventStatusPanel.
    */
   facts?: Array<EventStatusFact> | undefined;
+  /*
+   * The band at the foot of the header while the event is kept to the team
+   * until its publish time (ScheduledMaintenancePublishingNotice), in the
+   * header's quiet tone. An event that missed its start or end says that
+   * instead: it is what needs doing first.
+   */
+  publishingNotice?: ReactElement | undefined;
 }
 
 export const SCHEDULED_MAINTENANCE_STATE_LOADING_TEXT: string = translationKey(
@@ -714,8 +721,8 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
         onStateSelect={openModalForState}
         secondaryActions={props.secondaryActions}
         facts={props.facts}
-        headerNoticeTone="warning"
-        headerNotice={overdueNotice}
+        headerNoticeTone={overdueNotice ? "warning" : "neutral"}
+        headerNotice={overdueNotice || props.publishingNotice}
       />
 
       {showModal && (

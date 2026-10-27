@@ -52,6 +52,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - the three subscriber switches and the reminders are folded to the one
  *     line that says what happens, that line follows the switches, and the
  *     review step shows it;
+ *   - first in that section, when the event is published on its status
+ *     pages (#5249): right away, or at a date and time picked there - which
+ *     must come before the event starts - and the line says when;
  *   - an event made from a template that keeps subscribers quiet opens that
  *     section by itself, so nothing set away from the default is hidden.
  */
@@ -151,6 +154,12 @@ const STATUS_PAGE_ID: string = "22222222-2222-4222-8222-222222222222";
 
 const ALL_ON_SUMMARY: string =
   "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.";
+
+// The section's first sentence: when the event shows on its status pages.
+const RIGHT_AWAY_SUMMARY: string =
+  "Shown on its status pages as soon as it is saved.";
+
+const SECTION_LINE: string = `${RIGHT_AWAY_SUMMARY} ${ALL_ON_SUMMARY}`;
 
 const PAGE_PROPS: PageComponentProps = {
   pageRoute: new Route(
@@ -636,8 +645,11 @@ describe("Create Scheduled Maintenance Event", () => {
     );
 
     expect(notifications).toHaveAttribute("aria-expanded", "false");
-    expect(notifications).toHaveAccessibleDescription(ALL_ON_SUMMARY);
-    expect(screen.getByText(ALL_ON_SUMMARY)).toBeVisible();
+    expect(notifications).toHaveAccessibleDescription(SECTION_LINE);
+    expect(screen.getByTestId("collapsible-section-summary")).toBeVisible();
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      SECTION_LINE,
+    );
     // Folded, the switches are out of sight and out of the tab order.
     expect(
       screen.getByRole("checkbox", {
@@ -646,6 +658,9 @@ describe("Create Scheduled Maintenance Event", () => {
       }),
     ).not.toBeVisible();
     expect(fieldLabelsIn(sectionBody(notifications))).toEqual([
+      "Publish on Status Pages",
+      "Right away",
+      "At a date and time",
       "When the event is scheduled",
       "When the event starts",
       "When the event ends",
@@ -661,6 +676,9 @@ describe("Create Scheduled Maintenance Event", () => {
       "Monitors",
       "Other Affected Resources",
       "Show event on these status pages",
+      "Publish on Status Pages",
+      "Right away",
+      "At a date and time",
       "When the event is scheduled",
       "When the event starts",
       "When the event ends",
@@ -751,7 +769,7 @@ describe("Create Scheduled Maintenance Event", () => {
     ).toBeInTheDocument();
     expect(
       within(form()).getByTestId("form-summary-section-summary"),
-    ).toHaveTextContent(ALL_ON_SUMMARY);
+    ).toHaveTextContent(SECTION_LINE);
     // The switches are reviewed by that line, not one row each.
     expect(
       within(form()).queryByText("When the event is scheduled"),
@@ -890,5 +908,283 @@ describe("Create Scheduled Maintenance Event", () => {
         name: german_("Subscriber Notifications"),
       }),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * Publishing an event at a chosen time (#5249): planned work known long
+ * before customers should hear of it stays off its status pages - and its
+ * subscribers are told nothing - until a time picked first in Subscriber
+ * Notifications. Right away stays what every event does.
+ */
+describe("Create Scheduled Maintenance Event: when it is published", () => {
+  // The event starts at 10:00 UTC (the next full hour after 09:20).
+  const BEFORE_THE_START: string = "2026-10-03T09:45";
+  const AFTER_THE_START: string = "2026-10-03T10:30";
+
+  async function openSubscriberNotifications(): Promise<HTMLElement> {
+    await renderPage();
+    await typeTitle("Database upgrade");
+    await goToNextStep("Resources Affected");
+
+    const notifications: HTMLElement = sectionHeader(
+      "Subscriber Notifications",
+    );
+
+    fireEvent.click(notifications);
+    await act(async () => {});
+
+    return notifications;
+  }
+
+  function queryPublishAtInput(): HTMLInputElement | null {
+    const label: HTMLElement | undefined = Array.from(
+      form().querySelectorAll("label"),
+    ).find((candidate: HTMLLabelElement): boolean => {
+      return (candidate.textContent || "").trim().startsWith("Publish At");
+    }) as HTMLElement | undefined;
+
+    if (!label) {
+      return null;
+    }
+
+    return inputById(`[id="${label.getAttribute("for")}"]`);
+  }
+
+  async function pickAtADateAndTime(): Promise<HTMLInputElement> {
+    fireEvent.click(screen.getByRole("radio", { name: "At a date and time" }));
+    await act(async () => {});
+
+    const input: HTMLInputElement | null = queryPublishAtInput();
+
+    expect(input).not.toBeNull();
+
+    return input!;
+  }
+
+  async function setPublishAt(value: string): Promise<void> {
+    fireEvent.change(queryPublishAtInput()!, { target: { value } });
+    await act(async () => {});
+  }
+
+  test("asks first in Subscriber Notifications, with Right away picked and no time to fill in", async () => {
+    await openSubscriberNotifications();
+
+    const question: HTMLElement = screen.getByRole("radiogroup", {
+      name: "Publish on Status Pages",
+    });
+
+    expect(
+      within(question).getByRole("radio", { name: "Right away" }),
+    ).toBeChecked();
+    expect(
+      within(question).getByRole("radio", { name: "At a date and time" }),
+    ).not.toBeChecked();
+    // Each answer says what it means.
+    expect(
+      screen.getByText("It shows on its status pages as soon as it is saved."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "It stays off its status pages until then, and their subscribers hear nothing about it.",
+      ),
+    ).toBeInTheDocument();
+    expect(queryPublishAtInput()).toBeNull();
+  });
+
+  test("When the event is scheduled says it is sent when the event shows; the start and end boxes need no more words", async () => {
+    await openSubscriberNotifications();
+
+    expect(
+      screen.getByText("Sent when the event shows on its status pages."),
+    ).toBeVisible();
+    /*
+     * The columns' own help - "about this event creation?", "this event
+     * event is changed to ongoing?" - is drawn under none of the three.
+     */
+    expect(form()).not.toHaveTextContent("Should subscribers be notified");
+  });
+
+  test("published right away by default: the event is created with no publish time", async () => {
+    await renderPage();
+    await typeTitle("Database upgrade");
+    await createFromTheReview();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createdModel().publishOnStatusPageAt ?? null).toBeNull();
+  });
+
+  test("At a date and time asks for the time; the event is created with it, and the line says from when", async () => {
+    const notifications: HTMLElement = await openSubscriberNotifications();
+
+    await pickAtADateAndTime();
+    await setPublishAt(BEFORE_THE_START);
+
+    // The time is in the reader's timezone, and the field says which.
+    expect(
+      screen.getByText("This is in your timezone", { exact: false }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(notifications);
+    await act(async () => {});
+
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      `Shown on its status pages from ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(new Date("2026-10-03T09:45:00.000Z"))}.`,
+    );
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      ALL_ON_SUMMARY,
+    );
+
+    await createFromTheReview();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(isoOf(createdModel().publishOnStatusPageAt)).toBe(
+      "2026-10-03T09:45:00.000Z",
+    );
+    // Its subscribers are still told it is scheduled - at that time.
+    expect(
+      createdModel().shouldStatusPageSubscribersBeNotifiedOnEventCreated,
+    ).toBe(true);
+  });
+
+  test("the review step says when it is published, in the section's line", async () => {
+    await openSubscriberNotifications();
+    await pickAtADateAndTime();
+    await setPublishAt(BEFORE_THE_START);
+    await goToNextStep("Summary");
+
+    expect(
+      within(form()).getByTestId("form-summary-section-summary"),
+    ).toHaveTextContent(
+      `Shown on its status pages from ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(new Date("2026-10-03T09:45:00.000Z"))}.`,
+    );
+  });
+
+  test("At a date and time with no time picked asks for one", async () => {
+    await openSubscriberNotifications();
+    await pickAtADateAndTime();
+
+    fireEvent.click(nextButton());
+
+    expect(
+      await screen.findByText("Publish At is required."),
+    ).toBeInTheDocument();
+    expect(currentStepTitle()).toBe("Resources Affected");
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+  });
+
+  test("a time at or after the start is refused: it is published before the work", async () => {
+    await openSubscriberNotifications();
+    await pickAtADateAndTime();
+    await setPublishAt(AFTER_THE_START);
+
+    fireEvent.click(nextButton());
+
+    expect(
+      await screen.findByText("Publish At must be before Starts At."),
+    ).toBeInTheDocument();
+    expect(createOrUpdateMock).not.toHaveBeenCalled();
+
+    await setPublishAt("2026-10-03T10:00");
+    fireEvent.click(nextButton());
+
+    expect(
+      await screen.findByText("Publish At must be before Starts At."),
+    ).toBeInTheDocument();
+  });
+
+  test("back to Right away: the time is cleared, and the event is published as soon as it is created", async () => {
+    const notifications: HTMLElement = await openSubscriberNotifications();
+    await pickAtADateAndTime();
+    await setPublishAt(BEFORE_THE_START);
+
+    fireEvent.click(screen.getByRole("radio", { name: "Right away" }));
+    await act(async () => {});
+
+    expect(queryPublishAtInput()).toBeNull();
+
+    // Folded, the line says so again.
+    fireEvent.click(notifications);
+    await act(async () => {});
+
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      RIGHT_AWAY_SUMMARY,
+    );
+
+    await createFromTheReview();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createdModel().publishOnStatusPageAt ?? null).toBeNull();
+  });
+
+  test("a time picked in another timezone is the instant the reader meant", async () => {
+    // 04:50 UTC is 10:20 in Kolkata: the event starts at 11:00 there, 05:30 UTC.
+    jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockReturnValue(new Date("2026-10-03T04:50:00.000Z"));
+    OneUptimeDate.setUserTimezone(Timezone.AsiaKolkata);
+
+    await openSubscriberNotifications();
+    await pickAtADateAndTime();
+    // 10:45 in Kolkata, before its 11:00 start.
+    await setPublishAt("2026-10-03T10:45");
+
+    await createFromTheReview();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(isoOf(createdModel().publishOnStatusPageAt)).toBe(
+      "2026-10-03T05:15:00.000Z",
+    );
+  });
+
+  test("reads in the reader's language", async () => {
+    await renderPage(german);
+
+    const german_: (key: string) => string = (key: string): string => {
+      return german.t(key);
+    };
+
+    await typeTitle("Datenbank-Upgrade");
+    fireEvent.click(nextButton());
+    await waitFor(() => {
+      expect(currentStepTitle()).toBe(german_("Resources Affected"));
+    });
+
+    expect(screen.getByTestId("collapsible-section-summary")).toHaveTextContent(
+      german_(RIGHT_AWAY_SUMMARY),
+    );
+    expect(german_(RIGHT_AWAY_SUMMARY)).not.toBe(RIGHT_AWAY_SUMMARY);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: german_("Subscriber Notifications"),
+      }),
+    );
+    await act(async () => {});
+
+    const question: HTMLElement = screen.getByRole("radiogroup", {
+      name: german_("Publish on Status Pages"),
+    });
+
+    expect(
+      within(question).getByRole("radio", { name: german_("Right away") }),
+    ).toBeChecked();
+    expect(
+      within(question).getByRole("radio", {
+        name: german_("At a date and time"),
+      }),
+    ).not.toBeChecked();
   });
 });

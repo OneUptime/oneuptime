@@ -36,6 +36,12 @@ import {
  * has it - Owners and Labels under Advanced on Event, the subscriber
  * switches in Subscriber Notifications - and no step exists for one field.
  *
+ * An event - never a template, which is published nowhere - also asks when
+ * it is published on its status pages (#5249): on Create, first in its
+ * Subscriber Notifications (getEventSubscriberNotificationsSection), as a
+ * sixth row would overload the step; on its Edit, drawn open beside the
+ * status pages and the reminders.
+ *
  * Resources Affected asks for the monitors apart from every other resource,
  * with Change Monitor Status to right under them and never folded, as
  * Declare Incident does (#4354). The maintainer: "we also need to have
@@ -75,6 +81,14 @@ const NOTIFY_SWITCHES: Array<string> = [
 const REMINDERS: string = "sendSubscriberNotificationsOnBeforeTheEvent";
 
 /*
+ * The publishing question, Publish on Status Pages, and its time. The
+ * question is a ColumnChoice field (getColumnChoiceField), whose form-only
+ * key the scan reads as the helper writes it: by the config it is handed.
+ */
+const PUBLISH_CHOICE: string = "config.key";
+const PUBLISH_AT: string = "publishOnStatusPageAt";
+
+/*
  * The section constants the pages fold fields with, by the name the source
  * gives them, and the helper each must be built with (checked below).
  */
@@ -90,7 +104,13 @@ const SECTION_CONSTANTS: Record<
   subscriberNotificationsSection: {
     title: SUBSCRIBER_NOTIFICATIONS,
     builtWith: "getSubscriberNotificationsSection",
-    files: [CREATE_FILE, TEMPLATE_FILE],
+    files: [TEMPLATE_FILE],
+  },
+  // The event's own: its line starts with when the event is published.
+  eventSubscriberNotificationsSection: {
+    title: SUBSCRIBER_NOTIFICATIONS,
+    builtWith: "getEventSubscriberNotificationsSection",
+    files: [CREATE_FILE],
   },
   detailsAdvancedSection: {
     title: ADVANCED,
@@ -286,6 +306,14 @@ const NOTIFY_SECTION_ROW: string = `${SUBSCRIBER_NOTIFICATIONS}: ${[
   REMINDERS,
 ].join(", ")}`;
 
+// An event's: when it is published, first.
+const EVENT_NOTIFY_SECTION_ROW: string = `${SUBSCRIBER_NOTIFICATIONS}: ${[
+  PUBLISH_CHOICE,
+  PUBLISH_AT,
+  ...NOTIFY_SWITCHES,
+  REMINDERS,
+].join(", ")}`;
+
 describe("the scheduled maintenance forms", () => {
   test("are really read", () => {
     for (const shape of ALL_FORMS) {
@@ -319,7 +347,7 @@ describe("the scheduled maintenance forms", () => {
       "resources-affected": [
         ...RESOURCE_ROWS,
         "statusPages",
-        NOTIFY_SECTION_ROW,
+        EVENT_NOTIFY_SECTION_ROW,
       ],
     });
   });
@@ -358,7 +386,7 @@ describe("the scheduled maintenance forms", () => {
     expect(EDIT.steps).toEqual(["event: Event", "status-pages: Status Pages"]);
     expect(rowsByStep(EDIT)).toEqual({
       event: ["title", "startsAt", "endsAt", `${ADVANCED}: labels`],
-      "status-pages": ["statusPages", REMINDERS],
+      "status-pages": ["statusPages", PUBLISH_CHOICE, PUBLISH_AT, REMINDERS],
     });
 
     const source: string = readSource(VIEW_FILE);
@@ -499,9 +527,17 @@ describe("the scheduled maintenance forms", () => {
          */
         const isLoneReminders: boolean =
           shape === EDIT && placement.key === REMINDERS;
-        const section: string = isLoneReminders
-          ? SUBSCRIBER_NOTIFICATIONS
-          : placement.section;
+        /*
+         * Nor would its publishing question, which an Edit is where it is
+         * changed: drawn open beside the status pages and the reminders.
+         */
+        const isOpenPublishing: boolean =
+          shape === EDIT &&
+          (placement.key === PUBLISH_CHOICE || placement.key === PUBLISH_AT);
+        const section: string =
+          isLoneReminders || isOpenPublishing
+            ? SUBSCRIBER_NOTIFICATIONS
+            : placement.section;
         const step: string =
           STEP_OF_THE_EVENT[placement.stepId] || `step ${placement.stepId}`;
         const at: string = `${step} / ${section || "-"}`;
@@ -529,6 +565,45 @@ describe("the scheduled maintenance forms", () => {
     expect(seen.get("statusPages")?.at).toBe(
       "what it affects and who hears / -",
     );
+    // When it is published: right after the status pages, with who hears.
+    expect(seen.get(PUBLISH_AT)?.at).toBe(
+      `what it affects and who hears / ${SUBSCRIBER_NOTIFICATIONS}`,
+    );
+  });
+
+  test("ask when an event is published on the event's forms only, never a template's", () => {
+    for (const shape of [CREATE, EDIT]) {
+      expect(
+        `${shape.name}: ${shape.placements.some((placement: Placement) => {
+          return placement.key === PUBLISH_AT;
+        })}`,
+      ).toBe(`${shape.name}: true`);
+    }
+
+    for (const shape of [TEMPLATE_CREATE, TEMPLATE_EDIT]) {
+      expect(
+        `${shape.name}: ${shape.placements.some((placement: Placement) => {
+          return (
+            placement.key === PUBLISH_AT || placement.key === PUBLISH_CHOICE
+          );
+        })}`,
+      ).toBe(`${shape.name}: false`);
+    }
+
+    // The question and its time come first in Create's Subscriber Notifications.
+    const createKeys: Array<string> = CREATE.placements
+      .filter((placement: Placement): boolean => {
+        return placement.section === SUBSCRIBER_NOTIFICATIONS;
+      })
+      .map((placement: Placement): string => {
+        return placement.key;
+      });
+
+    expect(createKeys.slice(0, 3)).toEqual([
+      PUBLISH_CHOICE,
+      PUBLISH_AT,
+      NOTIFY_SWITCHES[0],
+    ]);
   });
 
   test("have no step for one field, and none named after the old one-field steps", () => {
