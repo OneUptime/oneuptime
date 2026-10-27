@@ -5,6 +5,7 @@ Schemalägg underhåll i två korta steg: säg vad som händer och när, och sed
 :::cards
 - [Skapa en händelse](#skapa-en-händelse): Två steg och en granskning.
 - [Vad som händer när du skapar den](#vad-som-händer-när-du-skapar-den): Numret, reglerna, ägarna och de första meddelandena.
+- [Publicera den senare](#publicera-den-senare): Håll den borta från dina statussidor till ett datum och en tid.
 - [Ändra en händelse senare](#ändra-en-händelse-senare): Fönstret, resurserna, statussidorna och anteckningarna.
 - [Skapa händelser från kod](#skapa-händelser-från-kod): API:et, Terraform, arbetsflöden och chatt.
 :::
@@ -42,7 +43,7 @@ Klicka på **Nästa** för att komma till **Berörda resurser**. Välj de **Moni
 
 ### Välj vem som får höra om det
 
-Välj statussidorna under **Visa händelse på dessa statussidor**. **Aviseringar till prenumeranter**, hopfällt, säger på en rad vem som får veta och när; öppna det för att ändra **När händelsen schemaläggs**, **När händelsen börjar**, **När händelsen slutar** eller **Påminnelser före händelsen**.
+Välj statussidorna under **Visa händelse på dessa statussidor**. **Aviseringar till prenumeranter**, hopfällt, säger på en rad när händelsen visas på dem och vem som får veta och när; öppna det för att välja **Vid ett datum och en tid** under **Publicera på statussidor**, eller för att ändra **När händelsen schemaläggs**, **När händelsen börjar**, **När händelsen slutar** eller **Påminnelser före händelsen**.
 
 ### Skapa den
 
@@ -65,7 +66,7 @@ Ingenting skickas förrän du väljer en statussida: en händelse som inte visas
 | **Ändra övervakningsstatus till**    | **Berörda resurser** | Ingen ändring                 | Den status monitorerna visar under händelsen. Efterfrågas så snart en monitor är vald. |
 | **Andra påverkade resurser**         | **Berörda resurser** | Inga                          | Värdar, kluster, databaser, nätverksplatser, tjänster och mer.                   |
 | **Visa händelse på dessa statussidor** | **Berörda resurser** | Inga                        | De statussidor som visar händelsen och meddelar sina prenumeranter.              |
-| **Aviseringar till prenumeranter**   | **Berörda resurser** | Alla tre tillfällen på, inga påminnelser | När prenumeranterna på de sidorna får veta.                     |
+| **Aviseringar till prenumeranter**   | **Berörda resurser** | Publicerad direkt, alla tre tillfällen på, inga påminnelser | När händelsen visas på de sidorna, och när deras prenumeranter får veta. |
 
 Två saker fyller i formuläret åt dig medan du arbetar:
 
@@ -89,7 +90,22 @@ I samma stund som du klickar på **Skapa schemalagt underhållsevenemang** går 
 5. **Runbook-regler startar** de runbooks som matchar händelsen.
 6. **Påminnelser schemaläggs**, när en påminnelseregel matchar, för dess ägare.
 
-Inom en minut får prenumeranterna på dess statussidor veta att den är schemalagd, om du inte har stängt av **När händelsen schemaläggs**. Arbetsflödesutlösaren **On Create Scheduled Maintenance Event** startar alla arbetsflöden som bygger på den, och dess ägare får höra om den om de har slagit på den aviseringen: se [Aviseringsinställningar](/docs/notifications/notification-settings).
+Inom en minut efter att den publiceras, vilket sker direkt om du inte har valt ett **Publicera den**, får prenumeranterna på dess statussidor veta att den är schemalagd, om du inte har stängt av **När händelsen schemaläggs**. Arbetsflödesutlösaren **On Create Scheduled Maintenance Event** startar alla arbetsflöden som bygger på den, och dess ägare får höra om den om de har slagit på den aviseringen: se [Aviseringsinställningar](/docs/notifications/notification-settings).
+
+## Publicera den senare
+
+Planera arbetet så tidigt du vill, och håll det inom ditt team tills dina kunder ska få höra om det. Välj **Vid ett datum och en tid** under **Publicera på statussidor**, i formuläret eller i steget **Statussidor** under händelsens **Redigera**, och ett **Publicera den** före **Börjar den**. Till dess finns händelsen inte på någon av sina statussidor: inte i deras listor, deras upptidshistorik, deras RSS- och Atom-flöden, deras underhållskalender eller deras API, och inte på sin egen länk. Vid den tiden visas den som kommande, och dess prenumeranter får veta en gång att den är schemalagd.
+
+| När                      | Vad som händer                                                        | På dina statussidor |
+| ------------------------ | --------------------------------------------------------------------- | ------------------- |
+| När du skapar den        | Du väljer ett **Publicera den** före dess **Börjar den**              | Visas inte          |
+| Dess **Publicera den**   | Den publiceras, och dess prenumeranter får veta att den är schemalagd | Kommande            |
+| Dess **Börjar den**      | Den börjar, som varje händelse                                        | Pågår               |
+| Dess **Slutar den**      | Den slutar                                                            | Över                |
+
+- **Till dess hör prenumeranterna ingenting.** Påminnelser före händelsen, statusändringar och offentliga anteckningar skickas inte till dem medan händelsen väntar.
+- **Dess sida säger det.** Dess sidhuvud visar **Inte på statussidor än**, med tiden den visas från, och **Publicera nu** publicerar den direkt, efter att ha frågat. Dess **Inställningar** säger detsamma, och listan över händelser visar tiden under dess statussidor.
+- **Ändra den, eller publicera direkt.** Flytta **Publicera den** i steget **Statussidor** under **Redigera**, eller välj **Direkt**. Stäng av **Synlig på statussidan** i dess **Inställningar** för att hålla den borta från sina statussidor oavsett tid.
 
 ## Ändra en händelse senare
 
@@ -98,7 +114,7 @@ Allt i formuläret kan ändras på händelsens egna sidor, utom de tre prenumera
 | För att ändra                               | Gå till                                                                        |
 | ------------------------------------------- | ------------------------------------------------------------------------------ |
 | Titeln, fönstret eller etiketterna          | **Redigera** på kortet **Maintenance Details** i dess **Översikt**, steget **Händelse** |
-| Statussidorna eller påminnelserna           | Samma **Redigera**, steget **Statussidor**                                      |
+| Statussidorna, när den publiceras, eller påminnelserna | Samma **Redigera**, steget **Statussidor**                           |
 | Monitorerna, deras status eller andra resurser | **Redigera** på kortet **Berörda resurser**                                 |
 | Beskrivningen                               | **Beskrivning** i dess sidomeny                                                |
 | Ägarna                                      | **Ägare** i dess sidomeny                                                      |
@@ -137,6 +153,7 @@ curl -X POST https://oneuptime.com/api/scheduled-maintenance \
 | `changeMonitorStatusToId`                             | Den övervakningsstatus dess monitorer går över till när den börjar.                       |
 | `currentScheduledMaintenanceStateId`                  | Ignoreras: varje händelse börjar i ditt schemalagda tillstånd.                            |
 | `shouldStatusPageSubscribersBeNotifiedOnEventCreated` | Reglaget **När händelsen schemaläggs**. De två andra tillfällena har egna fält.           |
+| `publishOnStatusPageAt`                               | När händelsen publiceras på sina statussidor och dess prenumeranter får veta att den är schemalagd. Utelämnad: direkt. |
 
 Samma händelse som kod är Terraform-resursen `oneuptime_scheduled_maintenance_event`: se [Exempel](/docs/terraform/examples#schemalagt-underhåll). Ett arbetsflöde skapar en med sitt steg **Create One Scheduled Maintenance Event**, och `/oneuptime maintenance` öppnar formuläret i Slack: se [Slack](/docs/workspace-connections/slack#skapa-incidenter-och-underhåll-från-slack).
 
@@ -152,6 +169,10 @@ Den efterfrågas bara när händelsen har en monitor. Välj en under **Monitorer
 
 :::details Ändra övervakningsstatus till kan inte ändras längre
 Händelsen har börjat, och dess monitorer har redan den statusen. Statusen gäller från det ögonblick händelsen börjar tills den slutar.
+:::
+
+:::details Publicera den säger att den måste vara före Börjar den
+En händelse publiceras så att dina kunder får höra om arbetet innan det börjar. Välj ett **Publicera den** före **Börjar den**, eller **Direkt**.
 :::
 
 ## Nästa steg

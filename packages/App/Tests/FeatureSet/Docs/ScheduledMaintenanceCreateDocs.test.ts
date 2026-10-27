@@ -1,5 +1,12 @@
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
-import { SUBSCRIBER_NOTIFICATION_SUMMARIES } from "../../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import {
+  SUBSCRIBER_NOTIFICATION_SUMMARIES,
+  getEventSubscriberNotificationsSection,
+} from "../../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import {
+  PUBLISHING_SUMMARIES,
+  PublishingCopy,
+} from "../../../FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenancePublishing";
 import { DEFAULT_MAINTENANCE_DURATION_IN_MINUTES } from "Common/Types/ScheduledMaintenance/MaintenanceWindow";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -83,9 +90,26 @@ describe("the scheduled maintenance create form in the docs", () => {
     expect(ENGLISH_GUIDE).toContain("**Subscriber Notifications**");
   });
 
+  /*
+   * The line a new event's folded section draws: when it shows on its
+   * status pages - right away - then who is told, and when (#5249).
+   */
   test("quotes the folded section's line word for word", () => {
+    const line: Array<string> = getEventSubscriberNotificationsSection()
+      .getSummary!({});
+
+    expect(line).toEqual([
+      PUBLISHING_SUMMARIES.rightAway,
+      SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"],
+    ]);
+    expect(ENGLISH_GUIDE).toContain(`"${line.join(" ")}"`);
+  });
+
+  test("says where the section asks when the event is published", () => {
+    expect(CREATE_FORM).toContain("config: PUBLISH_CHOICE,");
+    expect(PublishingCopy.question).toBe("Publish on Status Pages");
     expect(ENGLISH_GUIDE).toContain(
-      `"${SUBSCRIBER_NOTIFICATION_SUMMARIES["scheduled,started,ended"]}"`,
+      `Open it to pick when the event is published under **${PublishingCopy.question}**, and to change **When the event is scheduled**`,
     );
   });
 
