@@ -98,8 +98,18 @@ export const readProjectDashboards: () => Promise<
     });
 };
 
-const iconButtonClassName: string =
-  "rounded-md p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-gray-400";
+/*
+ * A row's Move up, Move down and Remove. One that can't be pressed (the
+ * first row's Move up) has no hover colour at all, rather than a
+ * disabled:hover: one the dark theme has no rule for.
+ */
+function getIconButtonClassName(isDisabled: boolean): string {
+  return `rounded-md p-1.5 text-gray-400 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 ${
+    isDisabled
+      ? "cursor-not-allowed opacity-40"
+      : "hover:bg-gray-100 hover:text-gray-700"
+  }`;
+}
 
 const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -334,7 +344,7 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
                   <div className="flex flex-none items-center">
                     <button
                       type="button"
-                      className={iconButtonClassName}
+                      className={getIconButtonClassName(index === 0)}
                       aria-label={translator.translateTemplate(
                         "Move {{name}} up",
                         { name: name },
@@ -352,7 +362,9 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
                     </button>
                     <button
                       type="button"
-                      className={iconButtonClassName}
+                      className={getIconButtonClassName(
+                        index === listed.length - 1,
+                      )}
                       aria-label={translator.translateTemplate(
                         "Move {{name}} down",
                         { name: name },
@@ -370,7 +382,7 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
                     </button>
                     <button
                       type="button"
-                      className={iconButtonClassName}
+                      className={getIconButtonClassName(false)}
                       aria-label={translator.translateTemplate(
                         "Remove {{name}}",
                         { name: name },
@@ -422,7 +434,7 @@ const PlaylistDashboardsField: FunctionComponent<ComponentProps> = (
       {props.error ? (
         <p
           data-testid="error-message"
-          className="text-sm text-red-400"
+          className="text-sm text-red-600"
           role="alert"
         >
           {props.error}
