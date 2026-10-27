@@ -428,12 +428,16 @@ describe("what reads through PagedFind", () => {
   });
 
   test("DatabaseService reads its pages through PagedFind, not repository.find", () => {
-    const source: string = fs.readFileSync(
-      path.join(__dirname, "../../../../Server/Services/DatabaseService.ts"),
-      "utf8",
-    );
+    // Read with its whitespace folded: prettier may break the call anywhere.
+    const source: string = fs
+      .readFileSync(
+        path.join(__dirname, "../../../../Server/Services/DatabaseService.ts"),
+        "utf8",
+      )
+      .split(/\s+/)
+      .join("");
 
-    expect(source).toContain("await PagedFind.find(this.getRepository(), {");
+    expect(source).toContain("awaitPagedFind.find(this.getRepository(),{");
     expect(source).not.toContain("this.getRepository().find(");
   });
 });
