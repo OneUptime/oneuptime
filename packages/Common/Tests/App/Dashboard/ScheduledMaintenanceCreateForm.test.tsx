@@ -986,10 +986,23 @@ describe("Create Scheduled Maintenance Event: when it is published", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Until then it is on no status page, and their subscribers hear nothing of it.",
+        "It stays off its status pages until then, and their subscribers hear nothing about it.",
       ),
     ).toBeInTheDocument();
     expect(queryPublishAtInput()).toBeNull();
+  });
+
+  test("When the event is scheduled says it is sent when the event shows; the start and end boxes need no more words", async () => {
+    await openSubscriberNotifications();
+
+    expect(
+      screen.getByText("Sent when the event shows on its status pages."),
+    ).toBeVisible();
+    /*
+     * The columns' own help - "about this event creation?", "this event
+     * event is changed to ongoing?" - is drawn under none of the three.
+     */
+    expect(form()).not.toHaveTextContent("Should subscribers be notified");
   });
 
   test("published right away by default: the event is created with no publish time", async () => {

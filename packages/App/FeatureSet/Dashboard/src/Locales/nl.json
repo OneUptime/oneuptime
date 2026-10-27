@@ -35870,7 +35870,10 @@
   "Shown on its status pages since {{time}}.": "Getoond op haar statuspagina's sinds {{time}}.",
   "Shows from {{time}}": "Getoond vanaf {{time}}",
   "This event shows on its status pages from {{time}}.": "Deze gebeurtenis wordt vanaf {{time}} op haar statuspagina's getoond.",
-  "Until then it is on no status page, and their subscribers hear nothing of it.": "Tot dan staat ze op geen enkele statuspagina, en hun abonnees horen er niets van.",
+  "It stays off its status pages until then, and their subscribers hear nothing about it.": "Tot dan staat ze niet op haar statuspagina's, en hun abonnees horen er niets van.",
   "You do not have permission to publish this event.": "U hebt geen toestemming om deze gebeurtenis te publiceren.",
-  "When the event shows on its status pages, and when their subscribers hear about it.": "Wanneer de gebeurtenis op haar statuspagina's wordt getoond, en wanneer hun abonnees ervan horen."
+  "When the event shows on its status pages, and when their subscribers hear about it.": "Wanneer de gebeurtenis op haar statuspagina's wordt getoond, en wanneer hun abonnees ervan horen.",
+  "Sent when the event shows on its status pages.": "Wordt verzonden wanneer de gebeurtenis op haar statuspagina's verschijnt.",
+  "Reminders are not sent while the event is hidden from its status pages.": "Herinneringen worden niet verzonden zolang de gebeurtenis verborgen is op haar statuspagina's.",
+  "Reminders due before the event is published are not sent.": "Herinneringen die vóór de publicatie van de gebeurtenis vallen, worden niet verzonden."
 }

@@ -35870,7 +35870,10 @@
   "Shown on its status pages since {{time}}.": "S'affiche sur ses pages de statut depuis le {{time}}.",
   "Shows from {{time}}": "Affiché à partir du {{time}}",
   "This event shows on its status pages from {{time}}.": "Cet événement s'affiche sur ses pages de statut à partir du {{time}}.",
-  "Until then it is on no status page, and their subscribers hear nothing of it.": "D'ici là, il ne figure sur aucune page de statut, et leurs abonnés n'en savent rien.",
+  "It stays off its status pages until then, and their subscribers hear nothing about it.": "Il n'apparaît pas sur ses pages de statut d'ici là, et leurs abonnés n'en savent rien.",
   "You do not have permission to publish this event.": "Vous n'avez pas l'autorisation de publier cet événement.",
-  "When the event shows on its status pages, and when their subscribers hear about it.": "Quand l'événement s'affiche sur ses pages de statut, et quand leurs abonnés en sont informés."
+  "When the event shows on its status pages, and when their subscribers hear about it.": "Quand l'événement s'affiche sur ses pages de statut, et quand leurs abonnés en sont informés.",
+  "Sent when the event shows on its status pages.": "Envoyée lorsque l'événement apparaît sur ses pages de statut.",
+  "Reminders are not sent while the event is hidden from its status pages.": "Les rappels ne sont pas envoyés tant que l'événement est masqué sur ses pages de statut.",
+  "Reminders due before the event is published are not sent.": "Les rappels prévus avant la publication de l'événement ne sont pas envoyés."
 }

@@ -35870,7 +35870,10 @@
   "Shown on its status pages since {{time}}.": "Visas på sina statussidor sedan {{time}}.",
   "Shows from {{time}}": "Visas från {{time}}",
   "This event shows on its status pages from {{time}}.": "Den här händelsen visas på sina statussidor från {{time}}.",
-  "Until then it is on no status page, and their subscribers hear nothing of it.": "Till dess finns den inte på någon statussida, och deras prenumeranter får inte veta något om den.",
+  "It stays off its status pages until then, and their subscribers hear nothing about it.": "Till dess visas den inte på sina statussidor, och deras prenumeranter får inte veta något om den.",
   "You do not have permission to publish this event.": "Du har inte behörighet att publicera den här händelsen.",
-  "When the event shows on its status pages, and when their subscribers hear about it.": "När händelsen visas på sina statussidor, och när deras prenumeranter får veta om den."
+  "When the event shows on its status pages, and when their subscribers hear about it.": "När händelsen visas på sina statussidor, och när deras prenumeranter får veta om den.",
+  "Sent when the event shows on its status pages.": "Skickas när händelsen visas på sina statussidor.",
+  "Reminders are not sent while the event is hidden from its status pages.": "Påminnelser skickas inte medan händelsen är dold på sina statussidor.",
+  "Reminders due before the event is published are not sent.": "Påminnelser som infaller innan händelsen publiceras skickas inte."
 }

@@ -839,7 +839,7 @@ describe("ScheduledMaintenanceFieldChange: the publish time on status pages", ()
       `\n\n**Publish on Status Page At**: \n${ScheduledMaintenanceFieldChange.publishedRightAwayLine}\n`,
     );
     expect(ScheduledMaintenanceFieldChange.publishedRightAwayLine).toBe(
-      "Right away: shown on its status pages as soon as it was saved.",
+      "Cleared, so it is published right away.",
     );
   });
 });

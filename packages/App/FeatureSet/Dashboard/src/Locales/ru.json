@@ -35870,7 +35870,10 @@
   "Shown on its status pages since {{time}}.": "Показывается на своих страницах статуса с {{time}}.",
   "Shows from {{time}}": "Будет показано с {{time}}",
   "This event shows on its status pages from {{time}}.": "Это событие будет показываться на своих страницах статуса с {{time}}.",
-  "Until then it is on no status page, and their subscribers hear nothing of it.": "До тех пор его нет ни на одной странице статуса, и их подписчики ничего о нём не знают.",
+  "It stays off its status pages until then, and their subscribers hear nothing about it.": "До тех пор оно не показывается на своих страницах статуса, и их подписчики ничего о нём не знают.",
   "You do not have permission to publish this event.": "У вас нет прав на публикацию этого события.",
-  "When the event shows on its status pages, and when their subscribers hear about it.": "Когда событие появляется на своих страницах статуса и когда их подписчики узнают о нём."
+  "When the event shows on its status pages, and when their subscribers hear about it.": "Когда событие появляется на своих страницах статуса и когда их подписчики узнают о нём.",
+  "Sent when the event shows on its status pages.": "Отправляется, когда событие появляется на своих страницах статуса.",
+  "Reminders are not sent while the event is hidden from its status pages.": "Напоминания не отправляются, пока событие скрыто на своих страницах статуса.",
+  "Reminders due before the event is published are not sent.": "Напоминания, срок которых наступает до публикации события, не отправляются."
 }

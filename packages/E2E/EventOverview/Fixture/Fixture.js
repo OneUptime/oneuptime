@@ -1303,6 +1303,10 @@ const RESEND_FAILURE_STATUS_MESSAGE =
 const RESEND_FAILURE_MESSAGE =
   "Notifications cannot be resent while the email provider is rate limiting this project.";
 
+// ?fail=publish: Publish Now's write of #58's publish time is refused.
+const PUBLISH_FAILURE_MESSAGE =
+  "This scheduled maintenance event could not be updated. Please try again.";
+
 function stateChangeFeed(kind, number, state, when, byUser) {
   const emoji = state.isResolvedState ? "✅" : "🟡";
   const noun = kind === "incident" ? "Incident" : "Alert";
@@ -4921,6 +4925,15 @@ ModelAPI.updateById = async (options) => {
   });
   if (failures.has("resend") && isNotificationResend) {
     throw fail(400, RESEND_FAILURE_MESSAGE);
+  }
+  if (
+    failures.has("publish") &&
+    Object.prototype.hasOwnProperty.call(
+      options.data || {},
+      "publishOnStatusPageAt",
+    )
+  ) {
+    throw fail(500, PUBLISH_FAILURE_MESSAGE);
   }
   const record = (tables.get(modelName)?.records || []).find((item) => {
     return String(item._id) === id;

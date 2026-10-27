@@ -35870,7 +35870,10 @@
   "Shown on its status pages since {{time}}.": "{{time}}부터 상태 페이지에 표시되고 있습니다.",
   "Shows from {{time}}": "{{time}}부터 표시",
   "This event shows on its status pages from {{time}}.": "이 이벤트는 {{time}}부터 상태 페이지에 표시됩니다.",
-  "Until then it is on no status page, and their subscribers hear nothing of it.": "그때까지는 어떤 상태 페이지에도 표시되지 않으며, 구독자에게도 알려지지 않습니다.",
+  "It stays off its status pages until then, and their subscribers hear nothing about it.": "그때까지는 상태 페이지에 표시되지 않으며, 구독자에게도 알려지지 않습니다.",
   "You do not have permission to publish this event.": "이 이벤트를 게시할 권한이 없습니다.",
-  "When the event shows on its status pages, and when their subscribers hear about it.": "이벤트가 상태 페이지에 표시되는 시점과 구독자가 이 이벤트에 대해 알게 되는 시점입니다."
+  "When the event shows on its status pages, and when their subscribers hear about it.": "이벤트가 상태 페이지에 표시되는 시점과 구독자가 이 이벤트에 대해 알게 되는 시점입니다.",
+  "Sent when the event shows on its status pages.": "이벤트가 상태 페이지에 표시될 때 전송됩니다.",
+  "Reminders are not sent while the event is hidden from its status pages.": "이벤트가 상태 페이지에서 숨겨져 있는 동안에는 리마인더가 전송되지 않습니다.",
+  "Reminders due before the event is published are not sent.": "이벤트가 게시되기 전에 예정된 리마인더는 전송되지 않습니다."
 }

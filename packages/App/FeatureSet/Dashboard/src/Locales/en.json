@@ -35870,7 +35870,10 @@
   "Shown on its status pages since {{time}}.": "Shown on its status pages since {{time}}.",
   "Shows from {{time}}": "Shows from {{time}}",
   "This event shows on its status pages from {{time}}.": "This event shows on its status pages from {{time}}.",
-  "Until then it is on no status page, and their subscribers hear nothing of it.": "Until then it is on no status page, and their subscribers hear nothing of it.",
+  "It stays off its status pages until then, and their subscribers hear nothing about it.": "It stays off its status pages until then, and their subscribers hear nothing about it.",
   "You do not have permission to publish this event.": "You do not have permission to publish this event.",
-  "When the event shows on its status pages, and when their subscribers hear about it.": "When the event shows on its status pages, and when their subscribers hear about it."
+  "When the event shows on its status pages, and when their subscribers hear about it.": "When the event shows on its status pages, and when their subscribers hear about it.",
+  "Sent when the event shows on its status pages.": "Sent when the event shows on its status pages.",
+  "Reminders are not sent while the event is hidden from its status pages.": "Reminders are not sent while the event is hidden from its status pages.",
+  "Reminders due before the event is published are not sent.": "Reminders due before the event is published are not sent."
 }

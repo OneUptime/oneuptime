@@ -35870,7 +35870,10 @@
   "Shown on its status pages since {{time}}.": "{{time}} से अपने स्थिति पृष्ठों पर दिखाया जा रहा है।",
   "Shows from {{time}}": "{{time}} से दिखेगा",
   "This event shows on its status pages from {{time}}.": "यह इवेंट {{time}} से अपने स्थिति पृष्ठों पर दिखेगा।",
-  "Until then it is on no status page, and their subscribers hear nothing of it.": "तब तक यह किसी भी स्थिति पृष्ठ पर नहीं होता, और उनके सब्सक्राइबर्स को इसके बारे में कुछ पता नहीं चलता।",
+  "It stays off its status pages until then, and their subscribers hear nothing about it.": "तब तक यह अपने स्थिति पृष्ठों पर नहीं दिखता, और उनके सब्सक्राइबर्स को इसके बारे में कुछ पता नहीं चलता।",
   "You do not have permission to publish this event.": "आपको इस इवेंट को प्रकाशित करने की अनुमति नहीं है।",
-  "When the event shows on its status pages, and when their subscribers hear about it.": "इवेंट अपने स्थिति पृष्ठों पर कब दिखता है, और उनके सब्सक्राइबर्स को इसके बारे में कब पता चलता है।"
+  "When the event shows on its status pages, and when their subscribers hear about it.": "इवेंट अपने स्थिति पृष्ठों पर कब दिखता है, और उनके सब्सक्राइबर्स को इसके बारे में कब पता चलता है।",
+  "Sent when the event shows on its status pages.": "इवेंट के अपने स्थिति पृष्ठों पर दिखने पर भेजा जाता है।",
+  "Reminders are not sent while the event is hidden from its status pages.": "जब तक इवेंट अपने स्थिति पृष्ठों से छिपा है, रिमाइंडर नहीं भेजे जाते।",
+  "Reminders due before the event is published are not sent.": "इवेंट के प्रकाशित होने से पहले के रिमाइंडर नहीं भेजे जाते।"
 }

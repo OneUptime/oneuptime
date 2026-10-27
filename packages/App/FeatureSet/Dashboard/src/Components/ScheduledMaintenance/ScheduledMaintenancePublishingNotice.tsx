@@ -1,4 +1,8 @@
 import { PublishingNoticeCopy } from "./ScheduledMaintenancePublishing";
+import {
+  atContainerWidth,
+  EVENT_HEADER_PHONE_WIDTH_REM,
+} from "../EventView/EventHeaderLayout";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -45,6 +49,29 @@ export const PUBLISHING_NOTICE_TEST_ID: string =
 export const PUBLISH_NOW_BUTTON_TEST_ID: string =
   "scheduled-maintenance-publish-now";
 
+export const PUBLISH_NOW_PLACE_TEST_ID: string =
+  "scheduled-maintenance-publish-now-place";
+
+/*
+ * The band follows the header's own width, as the header's other bands do
+ * (the header is a size container): from the width the header's buttons
+ * stop growing to fill a phone's row, Publish Now sits beside the words, at
+ * the end, its label level with the band's first line; narrower - a phone,
+ * or the header beside the side menu at 768px - it takes the line under
+ * them, still at the end, where the wide header has it. Sized to its label
+ * at every width (OUTLINE): NORMAL is as wide as a phone and keeps a
+ * dialog footer's margin, which pushed it 12px off its place.
+ */
+export const PUBLISHING_NOTICE_ROW_CLASS_NAME: string = `flex flex-col gap-3 ${atContainerWidth(
+  EVENT_HEADER_PHONE_WIDTH_REM,
+  "flex-row items-start justify-between gap-4",
+)}`;
+
+export const PUBLISH_NOW_PLACE_CLASS_NAME: string = `flex justify-end ${atContainerWidth(
+  EVENT_HEADER_PHONE_WIDTH_REM,
+  "-my-0.5 shrink-0",
+)}`;
+
 export interface ComponentProps {
   scheduledMaintenanceId: ObjectID;
   publishAt: Date;
@@ -54,7 +81,11 @@ export interface ComponentProps {
   onPublished: () => void;
 }
 
-// The time in the sentence, written in the sentence's language.
+/*
+ * The time in the sentence, written in the sentence's language, and kept on
+ * one line: "Sep / 14 2026" broken over two lines on a phone read as two
+ * things.
+ */
 const PublishTime: FunctionComponent<{ date: Date }> = (props: {
   date: Date;
 }): ReactElement => {
@@ -64,7 +95,7 @@ const PublishTime: FunctionComponent<{ date: Date }> = (props: {
   return (
     <time
       dateTime={props.date.toISOString()}
-      className="font-medium text-gray-900"
+      className="whitespace-nowrap font-medium text-gray-900"
       data-testid="scheduled-maintenance-publish-at"
     >
       {writeDates((): string => {
@@ -129,49 +160,56 @@ const ScheduledMaintenancePublishingNotice: FunctionComponent<
   return (
     <div
       data-testid={PUBLISHING_NOTICE_TEST_ID}
-      className="flex flex-wrap items-start gap-x-2.5 gap-y-3"
+      className={PUBLISHING_NOTICE_ROW_CLASS_NAME}
     >
-      <span
-        aria-hidden="true"
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-600"
-      >
-        <Icon icon={IconProp.Clock} className="h-4 w-4" />
-      </span>
-      <div className="min-w-0 flex-1 basis-56">
-        <p className="text-sm font-semibold text-gray-900">
-          {translator.translateText(PublishingNoticeCopy.title)}
-        </p>
-        <p className="mt-0.5 text-sm text-gray-700">
-          <TranslatedSentence
-            template={
-              props.areSubscribersTold
-                ? PublishingNoticeCopy.showsFromAndTold
-                : PublishingNoticeCopy.showsFrom
-            }
-            slots={{
-              time: <PublishTime date={props.publishAt} />,
-            }}
-          />
-        </p>
+      <div className="flex min-w-0 items-start gap-2.5">
+        <span
+          aria-hidden="true"
+          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gray-100 text-gray-600"
+        >
+          <Icon icon={IconProp.Clock} className="h-4 w-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-900">
+            {translator.translateText(PublishingNoticeCopy.title)}
+          </p>
+          <p className="mt-0.5 text-sm text-gray-700">
+            <TranslatedSentence
+              template={
+                props.areSubscribersTold
+                  ? PublishingNoticeCopy.showsFromAndTold
+                  : PublishingNoticeCopy.showsFrom
+              }
+              slots={{
+                time: <PublishTime date={props.publishAt} />,
+              }}
+            />
+          </p>
+        </div>
       </div>
       {isButtonShown ? (
-        <Button
-          title={PublishingNoticeCopy.publishNow}
-          buttonStyle={ButtonStyleType.NORMAL}
-          buttonSize={ButtonSize.Small}
-          icon={IconProp.Globe}
-          dataTestId={PUBLISH_NOW_BUTTON_TEST_ID}
-          disabled={!gate.isAllowed}
-          tooltip={gate.disabledReason}
-          onClick={() => {
-            if (!gate.isAllowed) {
-              return;
-            }
+        <div
+          className={PUBLISH_NOW_PLACE_CLASS_NAME}
+          data-testid={PUBLISH_NOW_PLACE_TEST_ID}
+        >
+          <Button
+            title={PublishingNoticeCopy.publishNow}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            buttonSize={ButtonSize.Small}
+            icon={IconProp.Globe}
+            dataTestId={PUBLISH_NOW_BUTTON_TEST_ID}
+            disabled={!gate.isAllowed}
+            tooltip={gate.disabledReason}
+            onClick={() => {
+              if (!gate.isAllowed) {
+                return;
+              }
 
-            setError("");
-            setIsConfirming(true);
-          }}
-        />
+              setError("");
+              setIsConfirming(true);
+            }}
+          />
+        </div>
       ) : (
         <></>
       )}

@@ -88,6 +88,7 @@ import {
 import {
   PUBLISH_CHOICE,
   PublishChoice,
+  SCHEDULED_NOTIFICATION_DESCRIPTION,
 } from "../../Components/ScheduledMaintenance/ScheduledMaintenancePublishing";
 import getPublishAtFormField from "../../Components/ScheduledMaintenance/ScheduledMaintenancePublishingFormFields";
 import { getColumnChoiceField } from "../../Utils/Form/ColumnChoiceField";
@@ -1079,11 +1080,19 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   stepId: "resources-affected",
                   collapsibleSection: eventSubscriberNotificationsSection,
                 }),
+                /*
+                 * Under the question of when the event is published: the
+                 * 'scheduled' notification goes out then, so the box says
+                 * so. The start and end boxes say what they are in their
+                 * names; their columns' own help (in English, "this event
+                 * event is changed to ongoing?") only repeated them.
+                 */
                 {
                   field: {
                     shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
                   },
                   title: "When the event is scheduled",
+                  description: SCHEDULED_NOTIFICATION_DESCRIPTION,
                   stepId: "resources-affected",
                   collapsibleSection: eventSubscriberNotificationsSection,
                   fieldType: FormFieldSchemaType.Checkbox,
@@ -1096,6 +1105,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       true,
                   },
                   title: "When the event starts",
+                  hideColumnDescription: true,
                   stepId: "resources-affected",
                   collapsibleSection: eventSubscriberNotificationsSection,
                   fieldType: FormFieldSchemaType.Checkbox,
@@ -1108,6 +1118,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       true,
                   },
                   title: "When the event ends",
+                  hideColumnDescription: true,
                   stepId: "resources-affected",
                   collapsibleSection: eventSubscriberNotificationsSection,
                   fieldType: FormFieldSchemaType.Checkbox,

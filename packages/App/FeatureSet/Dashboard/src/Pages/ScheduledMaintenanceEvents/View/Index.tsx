@@ -87,6 +87,7 @@ import {
   PublishingDetailCopy,
   SENT_WHEN_PUBLISHED_TEXT,
   areSubscribersToldWhenPublished,
+  getNextReminderNotSentText,
   getWaitingPublishAt,
   isScheduledNotificationWaitingToPublish,
 } from "../../../Components/ScheduledMaintenance/ScheduledMaintenancePublishing";
@@ -894,6 +895,11 @@ const ScheduledMaintenanceView: FunctionComponent<
                   true,
                 nextSubscriberNotificationBeforeTheEventAt: true,
                 subscriberNotificationStatusMessage: true,
+                /*
+                 * Whether its next reminder goes out: not while it is
+                 * hidden from its status pages, nor before it is published.
+                 */
+                isVisibleOnStatusPage: true,
               },
               fields: [
                 {
@@ -961,6 +967,9 @@ const ScheduledMaintenanceView: FunctionComponent<
                   getElement: (item: ScheduledMaintenance): ReactElement => {
                     const reminders: Array<Recurring> =
                       item.sendSubscriberNotificationsOnBeforeTheEvent || [];
+                    // A reminder due while it is not shown is not sent.
+                    const nextReminderNotSentText: string | null =
+                      getNextReminderNotSentText(item);
 
                     if (reminders.length === 0) {
                       return (
@@ -988,6 +997,16 @@ const ScheduledMaintenanceView: FunctionComponent<
                               )
                             : translator.translateText("No upcoming reminders")}
                         </div>
+                        {nextReminderNotSentText ? (
+                          <p
+                            className="text-xs text-gray-500"
+                            data-testid="scheduled-maintenance-next-reminder-not-sent"
+                          >
+                            {translator.translateText(nextReminderNotSentText)}
+                          </p>
+                        ) : (
+                          <></>
+                        )}
                       </div>
                     );
                   },

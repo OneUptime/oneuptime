@@ -115,11 +115,12 @@ export default class ScheduledMaintenanceFieldChange {
     ["startsAt", "endsAt", "publishOnStatusPageAt"];
 
   /*
-   * What the feed item says when an update clears the publish time: the
-   * event is published on its status pages as soon as it is saved.
+   * What the feed item says when an update clears the publish time (Publish
+   * Now, or Right away on its Edit): the time is gone, and with it the
+   * wait - the event is published from that update on.
    */
   public static readonly publishedRightAwayLine: string =
-    "Right away: shown on its status pages as soon as it was saved.";
+    "Cleared, so it is published right away.";
 
   // What the feed item says when every reminder before the event was taken off.
   public static readonly noRemindersLine: string =

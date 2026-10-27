@@ -468,6 +468,7 @@ interface CardProps {
     style?: DetailStyle;
     showDetailsInNumberOfColumns?: number;
     onBeforeFetch?: unknown;
+    selectMoreFields?: Record<string, unknown>;
     fields: Array<DetailField>;
   };
 }
@@ -2815,6 +2816,70 @@ describe("Scheduled maintenance overview page", () => {
       expect(publishedText.textContent).toBe("");
       expect(publishedText).toHaveAttribute("data-waiting", "false");
       publishedView.unmount();
+    });
+
+    test("the details card says a reminder due before it is published is not sent, and one due after says nothing", async () => {
+      getItemMock.mockResolvedValue(waitingEvent() as never);
+
+      await renderPage();
+
+      const field: DetailField = detailField("Subscriber Reminders");
+      const reminder: Recurring = new Recurring();
+      reminder.intervalType = EventInterval.Day;
+      reminder.intervalCount = new PositiveNumber(1);
+
+      const reminderAt: (event: ScheduledMaintenance, at: Date) => string = (
+        event: ScheduledMaintenance,
+        at: Date,
+      ): string => {
+        event.sendSubscriberNotificationsOnBeforeTheEvent = [reminder];
+        event.nextSubscriberNotificationBeforeTheEventAt = at;
+        const view: RenderResult = render(
+          <div>{field.getElement!(event)}</div>,
+        );
+        const note: HTMLElement | null = view.queryByTestId(
+          "scheduled-maintenance-next-reminder-not-sent",
+        );
+        const text: string = note ? note.textContent || "" : "";
+        view.unmount();
+        return text;
+      };
+
+      // Due in an hour, the event published in 30 days: skipped.
+      expect(reminderAt(waitingEvent(), new Date(Date.now() + HOUR))).toBe(
+        "Reminders due before the event is published are not sent.",
+      );
+      // Due after the publish time: sent, and nothing more is said.
+      expect(
+        reminderAt(waitingEvent(), new Date(Date.now() + PUBLISH_IN + HOUR)),
+      ).toBe("");
+
+      // Hidden from its status pages: no reminder goes out at all.
+      const hidden: ScheduledMaintenance = waitingEvent();
+      hidden.isVisibleOnStatusPage = false;
+      expect(reminderAt(hidden, new Date(Date.now() + PUBLISH_IN + HOUR))).toBe(
+        "Reminders are not sent while the event is hidden from its status pages.",
+      );
+
+      // Published from the start and shown: nothing more is said.
+      const published: ScheduledMaintenance = makeEvent();
+      published.isVisibleOnStatusPage = true;
+      expect(reminderAt(published, new Date(Date.now() + HOUR))).toBe("");
+    });
+
+    test("the details card reads whether the event is shown with its other fields", async () => {
+      getItemMock.mockResolvedValue(waitingEvent() as never);
+
+      await renderPage();
+
+      const selectMoreFields: Record<string, unknown> =
+        cardProps("Scheduled Maintenance Details").modelDetailProps
+          .selectMoreFields || {};
+
+      expect(selectMoreFields["isVisibleOnStatusPage"]).toBe(true);
+      expect(
+        selectMoreFields["nextSubscriberNotificationBeforeTheEventAt"],
+      ).toBe(true);
     });
 
     test("the details card selects the publish time with its other fields", async () => {

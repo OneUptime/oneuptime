@@ -7,9 +7,13 @@ import {
   PublishingCopy,
   PublishingDetailCopy,
   PublishingNoticeCopy,
+  REMINDERS_NOT_SENT_BEFORE_PUBLISHING_TEXT,
+  REMINDERS_NOT_SENT_WHILE_HIDDEN_TEXT,
+  SCHEDULED_NOTIFICATION_DESCRIPTION,
   SENT_WHEN_PUBLISHED_TEXT,
   SHOWS_FROM_TEXT,
   areSubscribersToldWhenPublished,
+  getNextReminderNotSentText,
   getPublishAtError,
   getPublishAtInForm,
   getPublishingSummary,
@@ -486,6 +490,121 @@ describe("the event's page while it waits", () => {
   });
 });
 
+describe("the next reminder, on the Maintenance Details card", () => {
+  // Reminders 1 day and 1 hour before a 1 December start.
+  const DAY_BEFORE: Date = new Date("2026-11-30T02:00:00.000Z");
+  const HOUR_BEFORE: Date = new Date("2026-12-01T01:00:00.000Z");
+
+  function event(overrides?: Record<string, unknown>): Record<string, unknown> {
+    return {
+      isVisibleOnStatusPage: true,
+      publishOnStatusPageAt: PUBLISH_AT,
+      nextSubscriberNotificationBeforeTheEventAt: DAY_BEFORE,
+      ...(overrides || {}),
+    };
+  }
+
+  test("says nothing for a reminder due once the event is published: it is sent", () => {
+    expect(getNextReminderNotSentText(event(), CREATED_ON)).toBeNull();
+    expect(
+      getNextReminderNotSentText(
+        event({ nextSubscriberNotificationBeforeTheEventAt: HOUR_BEFORE }),
+        CREATED_ON,
+      ),
+    ).toBeNull();
+  });
+
+  test("says a reminder due before the publish time is not sent", () => {
+    // Published at 09:00 on 1 December: the day-before reminder comes first.
+    const late: Date = new Date("2026-12-01T00:30:00.000Z");
+
+    expect(
+      getNextReminderNotSentText(
+        event({ publishOnStatusPageAt: late }),
+        CREATED_ON,
+      ),
+    ).toBe(REMINDERS_NOT_SENT_BEFORE_PUBLISHING_TEXT);
+    // Exactly at the publish time, the event is published: it is sent.
+    expect(
+      getNextReminderNotSentText(
+        event({ publishOnStatusPageAt: DAY_BEFORE }),
+        CREATED_ON,
+      ),
+    ).toBeNull();
+  });
+
+  test("says nothing about publishing once the time has come, or with none", () => {
+    expect(
+      getNextReminderNotSentText(
+        event({
+          publishOnStatusPageAt: new Date("2026-12-01T00:30:00.000Z"),
+        }),
+        new Date("2026-12-01T00:31:00.000Z"),
+      ),
+    ).toBeNull();
+
+    for (const publishOnStatusPageAt of [null, undefined, ""]) {
+      expect(
+        getNextReminderNotSentText(
+          event({ publishOnStatusPageAt }),
+          CREATED_ON,
+        ),
+      ).toBeNull();
+    }
+  });
+
+  test("says reminders are not sent while the event is hidden, whatever its time", () => {
+    for (const publishOnStatusPageAt of [null, PUBLISH_AT]) {
+      expect(
+        getNextReminderNotSentText(
+          event({ isVisibleOnStatusPage: false, publishOnStatusPageAt }),
+          CREATED_ON,
+        ),
+      ).toBe(REMINDERS_NOT_SENT_WHILE_HIDDEN_TEXT);
+    }
+
+    // A switch never set is off, as the reminders job reads it.
+    expect(
+      getNextReminderNotSentText(
+        event({ isVisibleOnStatusPage: null, publishOnStatusPageAt: null }),
+        CREATED_ON,
+      ),
+    ).toBe(REMINDERS_NOT_SENT_WHILE_HIDDEN_TEXT);
+  });
+
+  test("claims nothing it did not read: no next reminder, no event, or the switch left unread", () => {
+    expect(
+      getNextReminderNotSentText(
+        event({ nextSubscriberNotificationBeforeTheEventAt: null }),
+        CREATED_ON,
+      ),
+    ).toBeNull();
+    expect(getNextReminderNotSentText(null, CREATED_ON)).toBeNull();
+    expect(getNextReminderNotSentText(undefined, CREATED_ON)).toBeNull();
+    expect(
+      getNextReminderNotSentText(
+        event({
+          isVisibleOnStatusPage: undefined,
+          publishOnStatusPageAt: null,
+        }),
+        CREATED_ON,
+      ),
+    ).toBeNull();
+  });
+
+  test("reads the next reminder as the API hands it back: an ISO string", () => {
+    expect(
+      getNextReminderNotSentText(
+        event({
+          publishOnStatusPageAt: "2026-12-01T00:30:00.000Z",
+          nextSubscriberNotificationBeforeTheEventAt: DAY_BEFORE.toISOString(),
+        }),
+        CREATED_ON,
+      ),
+    ).toBe(REMINDERS_NOT_SENT_BEFORE_PUBLISHING_TEXT);
+  });
+});
+
 describe("the words", () => {
   const SENTENCES: Array<string> = [
     EVENT_SUBSCRIBER_NOTIFICATIONS_DESCRIPTION,
@@ -513,6 +632,9 @@ describe("the words", () => {
     SHOWS_FROM_TEXT,
     SENT_WHEN_PUBLISHED_TEXT,
     SCHEDULED_MAINTENANCE_WAITING_TO_PUBLISH_DESCRIPTION,
+    SCHEDULED_NOTIFICATION_DESCRIPTION,
+    REMINDERS_NOT_SENT_WHILE_HIDDEN_TEXT,
+    REMINDERS_NOT_SENT_BEFORE_PUBLISHING_TEXT,
   ];
 
   test("are Dashboard locale keys", () => {

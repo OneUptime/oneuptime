@@ -35870,7 +35870,10 @@
   "Shown on its status pages since {{time}}.": "Vist på sine statussider siden {{time}}.",
   "Shows from {{time}}": "Vises fra {{time}}",
   "This event shows on its status pages from {{time}}.": "Denne begivenhed vises på sine statussider fra {{time}}.",
-  "Until then it is on no status page, and their subscribers hear nothing of it.": "Indtil da er den ikke på nogen statusside, og deres abonnenter hører intet om den.",
+  "It stays off its status pages until then, and their subscribers hear nothing about it.": "Den vises ikke på sine statussider indtil da, og deres abonnenter hører intet om den.",
   "You do not have permission to publish this event.": "Du har ikke tilladelse til at offentliggøre denne begivenhed.",
-  "When the event shows on its status pages, and when their subscribers hear about it.": "Hvornår begivenheden vises på sine statussider, og hvornår deres abonnenter hører om den."
+  "When the event shows on its status pages, and when their subscribers hear about it.": "Hvornår begivenheden vises på sine statussider, og hvornår deres abonnenter hører om den.",
+  "Sent when the event shows on its status pages.": "Sendes, når begivenheden vises på sine statussider.",
+  "Reminders are not sent while the event is hidden from its status pages.": "Påmindelser sendes ikke, mens begivenheden er skjult på sine statussider.",
+  "Reminders due before the event is published are not sent.": "Påmindelser, der forfalder, før begivenheden offentliggøres, sendes ikke."
 }

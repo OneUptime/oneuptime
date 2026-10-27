@@ -35870,7 +35870,10 @@
   "Shown on its status pages since {{time}}.": "自 {{time}} 起已显示在其状态页面上。",
   "Shows from {{time}}": "从 {{time}} 起显示",
   "This event shows on its status pages from {{time}}.": "此事件从 {{time}} 起显示在其状态页面上。",
-  "Until then it is on no status page, and their subscribers hear nothing of it.": "在此之前，它不会出现在任何状态页面上，其订阅者也不会得知。",
+  "It stays off its status pages until then, and their subscribers hear nothing about it.": "在此之前，它不会显示在其状态页面上，其订阅者也不会得知。",
   "You do not have permission to publish this event.": "您没有发布此事件的权限。",
-  "When the event shows on its status pages, and when their subscribers hear about it.": "事件何时显示在其状态页面上，以及其订阅者何时获知此事件。"
+  "When the event shows on its status pages, and when their subscribers hear about it.": "事件何时显示在其状态页面上，以及其订阅者何时获知此事件。",
+  "Sent when the event shows on its status pages.": "在事件显示在其状态页面上时发送。",
+  "Reminders are not sent while the event is hidden from its status pages.": "事件在其状态页面上隐藏期间，不会发送提醒。",
+  "Reminders due before the event is published are not sent.": "在事件发布之前到期的提醒不会发送。"
 }

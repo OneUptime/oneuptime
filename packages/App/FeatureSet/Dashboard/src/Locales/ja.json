@@ -35870,7 +35870,10 @@
   "Shown on its status pages since {{time}}.": "{{time}} からステータスページに表示されています。",
   "Shows from {{time}}": "{{time}} から表示",
   "This event shows on its status pages from {{time}}.": "このイベントは {{time}} からステータスページに表示されます。",
-  "Until then it is on no status page, and their subscribers hear nothing of it.": "それまではどのステータスページにも表示されず、購読者にも知らされません。",
+  "It stays off its status pages until then, and their subscribers hear nothing about it.": "それまではステータスページに表示されず、購読者にも知らされません。",
   "You do not have permission to publish this event.": "このイベントを公開する権限がありません。",
-  "When the event shows on its status pages, and when their subscribers hear about it.": "イベントがステータスページに表示されるタイミングと、購読者に知らせるタイミングです。"
+  "When the event shows on its status pages, and when their subscribers hear about it.": "イベントがステータスページに表示されるタイミングと、購読者に知らせるタイミングです。",
+  "Sent when the event shows on its status pages.": "イベントがステータスページに表示されたときに送信されます。",
+  "Reminders are not sent while the event is hidden from its status pages.": "イベントがステータスページで非表示の間は、リマインダーは送信されません。",
+  "Reminders due before the event is published are not sent.": "イベントの公開前に予定されているリマインダーは送信されません。"
 }

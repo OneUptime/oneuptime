@@ -57,9 +57,13 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import ScheduledMaintenancePublishingNotice, {
+  PUBLISHING_NOTICE_ROW_CLASS_NAME,
   PUBLISHING_NOTICE_TEST_ID,
   PUBLISH_NOW_BUTTON_TEST_ID,
+  PUBLISH_NOW_PLACE_CLASS_NAME,
+  PUBLISH_NOW_PLACE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenancePublishingNotice";
+import { EVENT_HEADER_PHONE_WIDTH_REM } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventHeaderLayout";
 import ScheduledMaintenanceStatusPagesCell, {
   SHOWS_FROM_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/ScheduledMaintenance/ScheduledMaintenanceStatusPagesCell";
@@ -182,6 +186,58 @@ describe("the header's band while an event waits for its publish time", () => {
     expect(
       within(notice).getByTestId("scheduled-maintenance-publish-at"),
     ).toHaveAttribute("dateTime", PUBLISH_AT.toISOString());
+  });
+
+  test("lays out by the header's own width: the words first, Publish Now at the end - beside them from the header's phone width, under them below it", () => {
+    renderNotice();
+
+    const notice: HTMLElement = screen.getByTestId(PUBLISHING_NOTICE_TEST_ID);
+    const wide: string = `[@container(min-width:${EVENT_HEADER_PHONE_WIDTH_REM}rem)]:`;
+
+    expect(notice.className).toBe(PUBLISHING_NOTICE_ROW_CLASS_NAME);
+    // A column on a narrow header, a row from its phone width.
+    expect(notice.className.split(" ")).toEqual(
+      expect.arrayContaining(["flex", "flex-col", `${wide}flex-row`]),
+    );
+    // Never wraps by itself: where the button goes is decided by the width.
+    expect(notice.className).not.toContain("flex-wrap");
+
+    // The words come first, the button last, at the end of its line.
+    const place: HTMLElement = within(notice).getByTestId(
+      PUBLISH_NOW_PLACE_TEST_ID,
+    );
+
+    expect(notice.lastElementChild).toBe(place);
+    expect(notice.firstElementChild).toHaveTextContent(
+      "Not on status pages yet",
+    );
+    expect(place.className).toBe(PUBLISH_NOW_PLACE_CLASS_NAME);
+    expect(place.className.split(" ")).toEqual(
+      expect.arrayContaining(["flex", "justify-end", `${wide}shrink-0`]),
+    );
+  });
+
+  test("Publish Now is sized to its label, with no dialog footer's margin or phone-wide stretch", () => {
+    renderNotice();
+
+    const classes: Array<string> = screen
+      .getByTestId(PUBLISH_NOW_BUTTON_TEST_ID)
+      .className.split(" ");
+
+    // NORMAL's dialog-footer margin pushed it 12px off its place from md up.
+    expect(classes).not.toContain("md:ml-3");
+    expect(classes).not.toContain("w-full");
+    expect(classes).toEqual(expect.arrayContaining(["inline-flex", "border"]));
+  });
+
+  test("keeps the time on one line, so a phone never splits the date", () => {
+    renderNotice();
+
+    expect(
+      screen
+        .getByTestId("scheduled-maintenance-publish-at")
+        .className.split(" "),
+    ).toContain("whitespace-nowrap");
   });
 
   test("an event whose subscribers are told nothing promises them nothing", () => {

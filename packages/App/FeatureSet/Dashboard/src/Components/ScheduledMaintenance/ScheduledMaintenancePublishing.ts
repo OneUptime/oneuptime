@@ -72,7 +72,7 @@ export const PublishingCopy: {
   ),
   atATime: translationKey("At a date and time"),
   atATimeDescription: translationKey(
-    "Until then it is on no status page, and their subscribers hear nothing of it.",
+    "It stays off its status pages until then, and their subscribers hear nothing about it.",
   ),
   publishAtTitle: translationKey("Publish At"),
   publishAtPlaceholder: translationKey("Pick Date and Time"),
@@ -164,13 +164,84 @@ export const SENT_WHEN_PUBLISHED_TEXT: string = translationKey(
   "Sent when it is published",
 );
 
+/*
+ * Create's "When the event is scheduled": the 'scheduled' notification
+ * goes out when the event shows on its status pages - as it is created, or
+ * at the publish time picked just above it - never before (the column's
+ * own help said "about this event creation").
+ */
+export const SCHEDULED_NOTIFICATION_DESCRIPTION: string = translationKey(
+  "Sent when the event shows on its status pages.",
+);
+
+/*
+ * The Maintenance Details card's Subscriber Reminders, under "Next
+ * reminder": a reminder that comes due while the event is not shown on its
+ * status pages is not sent (the reminders job skips it, and its feed says
+ * why), so the card says so rather than promise it.
+ */
+export const REMINDERS_NOT_SENT_WHILE_HIDDEN_TEXT: string = translationKey(
+  "Reminders are not sent while the event is hidden from its status pages.",
+);
+
+export const REMINDERS_NOT_SENT_BEFORE_PUBLISHING_TEXT: string = translationKey(
+  "Reminders due before the event is published are not sent.",
+);
+
 // What the page reads of an event to say where it stands.
 export interface PublishingEvent
   extends ScheduledMaintenancePublicationColumns {
   shouldStatusPageSubscribersBeNotifiedOnEventCreated?: unknown;
   subscriberNotificationStatusOnEventScheduled?: unknown;
+  nextSubscriberNotificationBeforeTheEventAt?: unknown;
   statusPages?: Array<unknown> | undefined;
 }
+
+/*
+ * Why the event's next reminder before it starts will not be sent, or null
+ * when it will be (or there is none): the event is hidden from its status
+ * pages, or that reminder comes due before its publish time. Visible on
+ * Status Page not read at all says nothing - only a switch read as off is
+ * hidden.
+ */
+export const getNextReminderNotSentText: (
+  event: PublishingEvent | undefined | null,
+  now?: Date | undefined,
+) => string | null = (
+  event: PublishingEvent | undefined | null,
+  now?: Date | undefined,
+): string | null => {
+  if (!event) {
+    return null;
+  }
+
+  const nextReminderAt: Date | null = toMaintenanceDate(
+    event.nextSubscriberNotificationBeforeTheEventAt,
+  );
+
+  if (!nextReminderAt) {
+    return null;
+  }
+
+  if (
+    event.isVisibleOnStatusPage !== undefined &&
+    !ScheduledMaintenancePublication.isVisibilitySwitchedOn(event)
+  ) {
+    return REMINDERS_NOT_SENT_WHILE_HIDDEN_TEXT;
+  }
+
+  const publishAt: Date | null =
+    ScheduledMaintenancePublication.getPublishAt(event);
+
+  if (
+    !ScheduledMaintenancePublication.isPublished(event, now) &&
+    (!publishAt || nextReminderAt.getTime() < publishAt.getTime())
+  ) {
+    return REMINDERS_NOT_SENT_BEFORE_PUBLISHING_TEXT;
+  }
+
+  return null;
+};
 
 /*
  * When the header's band says the event is not on its status pages yet:
