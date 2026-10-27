@@ -102,13 +102,13 @@ export interface UseSetupChecklistOptions {
  * has no address on, and nothing on that page ever says the resulting mail goes
  * nowhere.
  */
-interface SettingChannel {
+export interface SettingChannel {
   column: keyof UserNotificationSetting;
   methodType: string;
   label: string;
 }
 
-const SETTING_CHANNELS: Array<SettingChannel> = [
+export const SETTING_CHANNELS: Array<SettingChannel> = [
   { column: "alertByEmail", methodType: "Email", label: "Email" },
   { column: "alertBySMS", methodType: "SMS", label: "SMS" },
   { column: "alertByCall", methodType: "Call", label: "Call" },
@@ -117,6 +117,53 @@ const SETTING_CHANNELS: Array<SettingChannel> = [
   { column: "alertByTelegram", methodType: "Telegram", label: "Telegram" },
   { column: "alertByWebhook", methodType: "Webhook", label: "Webhook" },
 ];
+
+/*
+ * The channels "Your notification settings point at channels that work"
+ * holds the reader to: each one a channel the reader switches on and then
+ * has to give a verified method - an address, a number, a webhook.
+ *
+ * Push is not one of them. It needs no method added here: signing in to the
+ * mobile app is what makes it work. And a new member starts with it switched
+ * on for five updates that a phone is for (a shift about to start or
+ * reassigned, and security cases), each of them sent by email too. Held to
+ * the same rule, every member without the app was told "You switched on
+ * Push, but have no verified method there, so those updates are not sent"
+ * about switches they never touched, while those updates reached them by
+ * email - and their checklist could never be finished.
+ */
+export const CHANNELS_NEEDING_A_VERIFIED_METHOD: Array<SettingChannel> =
+  SETTING_CHANNELS.filter((channel: SettingChannel): boolean => {
+    return channel.methodType !== "Push";
+  });
+
+/*
+ * The channels to name in "You switched on ..., but have no verified method
+ * there": those the reader switched on for some update (any row) while no
+ * usable method of theirs is on that channel, in the settings page's
+ * column order.
+ */
+export const getUndeliverableSettingChannels: (data: {
+  rows: Array<UserNotificationSetting>;
+  usableMethodTypes: ReadonlySet<string>;
+}) => Array<string> = (data: {
+  rows: Array<UserNotificationSetting>;
+  usableMethodTypes: ReadonlySet<string>;
+}): Array<string> => {
+  return CHANNELS_NEEDING_A_VERIFIED_METHOD.filter(
+    (channel: SettingChannel): boolean => {
+      if (data.usableMethodTypes.has(channel.methodType)) {
+        return false;
+      }
+
+      return data.rows.some((row: UserNotificationSetting): boolean => {
+        return Boolean(row[channel.column]);
+      });
+    },
+  ).map((channel: SettingChannel): string => {
+    return channel.label;
+  });
+};
 
 /*
  * The unknown answer for each probe, named once so that a `catch` cannot
@@ -356,19 +403,11 @@ const loadNotificationSettingProbes: LoadNotificationSettingsFunction =
         }),
     );
 
-    const undeliverableChannels: Array<string> = SETTING_CHANNELS.filter(
-      (channel: SettingChannel): boolean => {
-        if (usableMethodTypes.has(channel.methodType)) {
-          return false;
-        }
-
-        return rows.some((row: UserNotificationSetting): boolean => {
-          return Boolean(row[channel.column]);
-        });
-      },
-    ).map((channel: SettingChannel): string => {
-      return channel.label;
-    });
+    const undeliverableChannels: Array<string> =
+      getUndeliverableSettingChannels({
+        rows: rows,
+        usableMethodTypes: usableMethodTypes,
+      });
 
     return {
       onCallShiftAlerts: {

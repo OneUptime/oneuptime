@@ -1077,6 +1077,9 @@ describe("setup checklist page - deliverable notification settings", () => {
    * the verified ones - if Telegram were paired to "Webhook" by mistake it would
    * silently become deliverable, and no fixture without a verified webhook would
    * notice.
+   *
+   * Push is switched on too, and never named: it needs the mobile app, not a
+   * verified method (CHANNELS_NEEDING_A_VERIFIED_METHOD).
    */
   test("names exactly the switched-on channels with no verified method behind them", async (): Promise<void> => {
     respondWithProject({ enableAllChannels: true });
@@ -1126,7 +1129,101 @@ describe("setup checklist page - deliverable notification settings", () => {
     expect(
       screen.getByTestId("setup-checklist-detail-deliverable-settings"),
     ).toHaveTextContent(
-      "You switched on SMS, Call, Push and Telegram, but have no verified method there, so those updates are not sent.",
+      "You switched on SMS, Call and Telegram, but have no verified method there, so those updates are not sent.",
+    );
+  });
+
+  /*
+   * What every new member starts with (UserNotificationSettingService's
+   * defaults): email on for the updates about what they own, and push on as
+   * well for the five a phone is for. With their sign-in email verified and
+   * no mobile app, nothing is missing: those five reach them by email. The
+   * checklist used to say "You switched on Push, but have no verified method
+   * there" about switches they never touched, and could never be finished.
+   */
+  test("a new member's own defaults leave nothing to fix", async (): Promise<void> => {
+    respondWithProject({});
+
+    respondWithReadiness(
+      readinessJson({
+        methods: [
+          {
+            methodId: "m-email",
+            methodType: "Email",
+            maskedIdentifier: "n•••@•••.com",
+            isVerified: true,
+          },
+        ],
+      }),
+    );
+
+    probes.notificationSettings = [
+      makeSetting({
+        eventType:
+          NotificationSettingEventType.SEND_INCIDENT_CREATED_OWNER_NOTIFICATION,
+        alertByEmail: true,
+      }),
+      ...[
+        NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
+        NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
+        NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+        NotificationSettingEventType.SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION,
+        NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
+      ].map(
+        (eventType: NotificationSettingEventType): UserNotificationSetting => {
+          return makeSetting({
+            eventType: eventType,
+            alertByEmail: true,
+            alertByPush: true,
+          });
+        },
+      ),
+    ];
+
+    renderChecklist();
+    await settle();
+
+    expect(
+      screen.getByTestId("setup-checklist-step-deliverable-settings"),
+    ).toHaveAttribute("data-status", "Complete");
+    expect(
+      screen.queryByTestId("setup-checklist-detail-deliverable-settings"),
+    ).toBeNull();
+    expect(screen.queryByText(/You switched on Push/)).toBeNull();
+  });
+
+  test("push alone is never held against the reader, while SMS beside it still is", async (): Promise<void> => {
+    respondWithProject({ enableAllChannels: true });
+
+    respondWithReadiness(
+      readinessJson({
+        methods: [
+          {
+            methodId: "m-email",
+            methodType: "Email",
+            maskedIdentifier: "n•••@•••.com",
+            isVerified: true,
+          },
+        ],
+      }),
+    );
+
+    probes.notificationSettings = [
+      makeSetting({
+        eventType:
+          NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
+        alertByPush: true,
+        alertBySMS: true,
+      }),
+    ];
+
+    renderChecklist();
+    await settle();
+
+    expect(
+      screen.getByTestId("setup-checklist-detail-deliverable-settings"),
+    ).toHaveTextContent(
+      "You switched on SMS, but have no verified method there, so those updates are not sent.",
     );
   });
 
