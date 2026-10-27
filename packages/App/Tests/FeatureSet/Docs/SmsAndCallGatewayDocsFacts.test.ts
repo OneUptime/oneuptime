@@ -632,7 +632,7 @@ describe("How It Works", () => {
     }
 
     expect(section("How It Works")).toContain(
-      "Projects that add a Twilio config of their own, under **Project Settings > Call & SMS**, still send through that config.",
+      "Projects that add a Twilio config of their own, on the **Twilio Config** card in **Project Settings > Notifications > Notification Settings**, still send through that config.",
     );
     expect(card).toContain(
       "Projects with a Twilio config of their own still send through it.",

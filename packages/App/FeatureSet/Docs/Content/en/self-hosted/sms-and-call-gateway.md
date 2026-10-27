@@ -22,7 +22,7 @@ flowchart LR
     Provider --> Phone
 ```
 
-The gateway takes the place of the server's own Twilio account, for everything that would go through it: on-call pages, notifications, verification codes and status page subscriber SMS. Projects that add a Twilio config of their own, under **Project Settings > Call & SMS**, still send through that config. Each project's SMS and call switches, and its balance where billing is on, are checked as they are for Twilio.
+The gateway takes the place of the server's own Twilio account, for everything that would go through it: on-call pages, notifications, verification codes and status page subscriber SMS. Projects that add a Twilio config of their own, on the **Twilio Config** card in **Project Settings > Notifications > Notification Settings**, still send through that config. Each project's SMS and call switches, and its balance where billing is on, are checked as they are for Twilio.
 
 ## Set It Up
 
