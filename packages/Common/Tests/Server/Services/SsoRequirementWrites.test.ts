@@ -10,7 +10,9 @@ import SsoSignInWays, {
 } from "../../../Server/Utils/SsoSignInWays";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
-import { UserGlobalAccessPermission } from "../../../Types/Permission";
+import Permission, {
+  UserGlobalAccessPermission,
+} from "../../../Types/Permission";
 import Project from "../../../Models/DatabaseModels/Project";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import FakeEnterpriseModule, {
@@ -97,13 +99,25 @@ type Caller = {
 
 const ownerProps: () => DatabaseCommonInteractionProps =
   (): DatabaseCommonInteractionProps => {
+    /*
+     * A signed-in member's global permissions, whole: the write checks
+     * (OwnedScopePermission's owned-only rows, since b4a4b5056d) read them.
+     */
+    const userGlobalAccessPermission: UserGlobalAccessPermission = {
+      _type: "UserGlobalAccessPermission",
+      globalPermissions: [
+        Permission.Public,
+        Permission.User,
+        Permission.CurrentUser,
+      ],
+      projectIds: [PROJECT_ID],
+    };
+
     return {
       userId: USER_ID,
       tenantId: PROJECT_ID,
       ...ON_HIGHEST_PLAN,
-      userGlobalAccessPermission: {
-        projectIds: [PROJECT_ID],
-      } as unknown as UserGlobalAccessPermission,
+      userGlobalAccessPermission: userGlobalAccessPermission,
     };
   };
 
