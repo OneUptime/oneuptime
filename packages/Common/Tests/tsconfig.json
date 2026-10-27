@@ -1,12 +1,12 @@
 {
   /*
-   * The project every file in this directory belongs to, Tests/App and
-   * Tests/UI aside: exactly ../tsconfig.tests.rest.json, the part of
-   * `npm run compile-tests` that type-checks every Common test outside those
-   * two (see ../Scripts/compile-tests.js). Its "include" and "exclude" are
+   * The project every file in this directory belongs to, Tests/App,
+   * Tests/UI and Tests/Server aside: exactly ../tsconfig.tests.rest.json, the
+   * part of `npm run compile-tests` that type-checks every Common test outside
+   * those (see ../Scripts/compile-tests.js). Its "include" and "exclude" are
    * inherited and resolve against packages/Common, where they are written.
-   * Tests/App/tsconfig.json and Tests/UI/tsconfig.json are the other two
-   * parts.
+   * The tsconfig.json in Tests/App, Tests/UI, Tests/Server and
+   * Tests/Server/Utils are the other parts.
    *
    * It exists because TypeScript picks a file's project by the nearest
    * tsconfig.json - editors, and ESLint's typed linting (projectService in
