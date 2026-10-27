@@ -1,7 +1,8 @@
 import dataSourceOptions from "../../../../Server/Infrastructure/Postgres/DataSourceOptions";
 import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
 import timers from "timers";
-import { DataSource, DataSourceOptions, QueryRunner } from "typeorm";
+import { DataSource, QueryRunner } from "typeorm";
+import { PostgresConnectionOptions } from "typeorm/driver/postgres/PostgresConnectionOptions";
 
 /*
  * A connection opened as OneUptime opens its own has Postgres's JIT compiler
@@ -117,8 +118,11 @@ describePostgres("Postgres's JIT compiler on OneUptime's connections", () => {
   let database: DataSource;
 
   beforeAll(async () => {
+    const production: PostgresConnectionOptions =
+      dataSourceOptions as PostgresConnectionOptions;
+
     database = new DataSource({
-      ...dataSourceOptions,
+      ...production,
       host:
         process.env["POSTGRES_JIT_TEST_DATABASE_HOST"] ||
         process.env["DATABASE_HOST"] ||
@@ -138,8 +142,7 @@ describePostgres("Postgres's JIT compiler on OneUptime's connections", () => {
       migrations: [],
       migrationsRun: false,
       synchronize: false,
-      maxQueryExecutionTime: undefined,
-    } as DataSourceOptions);
+    });
     await database.initialize();
 
     await database.query(`CREATE SCHEMA "${SCHEMA}"`);

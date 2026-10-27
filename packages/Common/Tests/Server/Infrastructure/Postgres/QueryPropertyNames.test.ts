@@ -316,7 +316,10 @@ describe("QueryPropertyNames", () => {
     const withEmbedded: DataSource = new DataSource({
       type: "postgres",
       entities: [
-        new EntitySchema({
+        new EntitySchema<{
+          id: string;
+          address: { city: string; street: string };
+        }>({
           name: "Place",
           columns: { id: { type: "uuid", primary: true } },
           embeddeds: {

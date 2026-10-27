@@ -36,7 +36,7 @@ import {
  * public into a schema of the test's own, every row is synthetic, and the
  * schema is dropped afterwards.
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_PAGED_FIND_TESTS"] === "true"
     ? describe
     : describe.skip;
@@ -175,7 +175,7 @@ describePostgres("PagedFind against TypeORM's own pages, on Postgres", () => {
       if (
         Array.isArray(value) &&
         value.every((item: unknown) => {
-          return Boolean(item) && typeof item === "object" && "_id" in item;
+          return item !== null && typeof item === "object" && "_id" in item;
         })
       ) {
         return [...value].sort((a: Row, b: Row) => {

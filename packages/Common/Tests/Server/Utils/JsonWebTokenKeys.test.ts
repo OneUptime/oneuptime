@@ -78,7 +78,7 @@ describe("JsonWebTokenKeys", () => {
   });
 
   test("PEM text becomes the private or public key jsonwebtoken reads it as", () => {
-    const pair: crypto.KeyPairSyncResult<string, string> =
+    const pair: { publicKey: string; privateKey: string } =
       crypto.generateKeyPairSync("rsa", {
         modulusLength: 2048,
         publicKeyEncoding: { type: "spki", format: "pem" },
