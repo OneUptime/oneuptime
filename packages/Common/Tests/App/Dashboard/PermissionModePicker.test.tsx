@@ -362,3 +362,134 @@ describe("PermissionModePicker — where the menu opens", () => {
     expect(open()).toHaveClass("bottom-full", "mb-2");
   });
 });
+
+/*
+ * The menu's side is measured, which jsdom does not do: these stub where
+ * the button is, how tall the menu is and the box that clips them both
+ * (Ask AI's dialog), and put the real methods back after each test.
+ */
+interface StubbedLayout {
+  button: [number, number];
+  boundary: [number, number];
+  menuHeight: number;
+}
+
+const restoreLayout: Array<() => void> = [];
+
+function rectOf(top: number, bottom: number): DOMRect {
+  return {
+    top: top,
+    bottom: bottom,
+    left: 0,
+    right: 200,
+    width: 200,
+    height: bottom - top,
+    x: 0,
+    y: top,
+    toJSON: () => {
+      return {};
+    },
+  };
+}
+
+function stubLayout(layout: StubbedLayout): void {
+  const originalRect: () => DOMRect =
+    HTMLElement.prototype.getBoundingClientRect;
+  const originalOffsetHeight: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight");
+
+  HTMLElement.prototype.getBoundingClientRect = function (
+    this: HTMLElement,
+  ): DOMRect {
+    if (this.getAttribute("aria-haspopup") === "menu") {
+      return rectOf(layout.button[0], layout.button[1]);
+    }
+
+    if (this.hasAttribute("data-boundary")) {
+      return rectOf(layout.boundary[0], layout.boundary[1]);
+    }
+
+    return originalRect.call(this);
+  };
+
+  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+    configurable: true,
+    get(this: HTMLElement): number {
+      return this.getAttribute("role") === "menu" ? layout.menuHeight : 0;
+    },
+  });
+
+  restoreLayout.push(() => {
+    HTMLElement.prototype.getBoundingClientRect = originalRect;
+
+    if (originalOffsetHeight) {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        "offsetHeight",
+        originalOffsetHeight,
+      );
+    }
+  });
+}
+
+afterEach(() => {
+  for (const restore of restoreLayout.splice(0)) {
+    restore();
+  }
+});
+
+describe("PermissionModePicker — a menu that would not fit", () => {
+  function renderInDialog(): void {
+    render(
+      <div data-boundary="" style={{ overflowY: "hidden" }}>
+        <PermissionModePicker
+          value={AIChatPermissionMode.AskForApproval}
+          onChange={getJestMockFunction()}
+          menuAlign="left"
+          menuSide="bottom"
+        />
+      </div>,
+    );
+  }
+
+  /*
+   * Ask AI's start on a laptop window 800 px tall: the composer in the
+   * middle of the dialog, 256 px between its controls and the dialog's
+   * foot, and a menu 286 px tall.
+   */
+  test("asked to open down where the dialog would cut it off, it opens up", () => {
+    stubLayout({ button: [486, 512], boundary: [24, 776], menuHeight: 286 });
+    renderInDialog();
+
+    const opened: HTMLElement = open();
+    expect(opened).toHaveAttribute("data-menu-side", "top");
+    expect(opened).toHaveClass("bottom-full", "mb-2", "left-0");
+    expect(opened).not.toHaveClass("top-full");
+  });
+
+  test("with room below, it opens down as asked", () => {
+    stubLayout({ button: [402, 428], boundary: [24, 776], menuHeight: 286 });
+    renderInDialog();
+
+    const opened: HTMLElement = open();
+    expect(opened).toHaveAttribute("data-menu-side", "bottom");
+    expect(opened).toHaveClass("top-full", "mt-2");
+  });
+
+  test("each opening starts from the side asked for", () => {
+    stubLayout({ button: [486, 512], boundary: [24, 776], menuHeight: 286 });
+    renderInDialog();
+
+    expect(open()).toHaveAttribute("data-menu-side", "top");
+    fireEvent.click(trigger());
+    expect(menu()).toBeNull();
+
+    // The start scrolled: the controls are higher, with room below now.
+    restoreLayout.splice(0).forEach((restore: () => void) => {
+      restore();
+    });
+    stubLayout({ button: [300, 326], boundary: [24, 776], menuHeight: 286 });
+
+    expect(open()).toHaveAttribute("data-menu-side", "bottom");
+  });
+});

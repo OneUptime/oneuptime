@@ -8,6 +8,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { MenuSide, useMenuSide } from "./MenuSide";
 import { ChatProvider } from "./useAiChat";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -22,8 +23,10 @@ export interface ComponentProps {
   /*
    * Which side of the button the menu opens on: "top" (the default) for a
    * composer at the foot of its surface, "bottom" for one near the top.
+   * The other side when the menu would not fit on this one and fits
+   * better there (MenuSide).
    */
-  menuSide?: "top" | "bottom" | undefined;
+  menuSide?: MenuSide | undefined;
 }
 
 function providerLabel(provider: ChatProvider): string {
@@ -65,7 +68,16 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
     useRef<HTMLDivElement>(null);
   const buttonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
+  const menuRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const menuId: string = useId();
+  // 6 px between the button and the menu (mt-1.5 / mb-1.5).
+  const menuSide: MenuSide = useMenuSide({
+    isOpen: isOpen,
+    preferred: props.menuSide || "top",
+    gap: 6,
+    buttonRef: buttonRef,
+    menuRef: menuRef,
+  });
 
   const variant: "compact" | "full" = props.variant || "compact";
 
@@ -164,13 +176,13 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
 
       {isOpen && (
         <div
+          ref={menuRef}
           id={menuId}
           role="menu"
           aria-label={translator.translateText("AI provider")}
+          data-menu-side={menuSide}
           className={`absolute left-0 z-50 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
-            props.menuSide === "bottom"
-              ? "top-full mt-1.5"
-              : "bottom-full mb-1.5"
+            menuSide === "bottom" ? "top-full mt-1.5" : "bottom-full mb-1.5"
           }`}
         >
           <div className="border-b border-gray-100 px-3 py-2">

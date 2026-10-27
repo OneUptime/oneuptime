@@ -75,17 +75,35 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                 className="border-b border-gray-100 last:border-0"
               >
                 {columns.map((column: AIChatWidgetColumn) => {
+                  const text: string = renderCell(row[column.key], column);
+
+                  /*
+                   * Every column on screen, at any width: a number keeps
+                   * its one line, and text wraps - anywhere, an endpoint
+                   * has no spaces to wrap at - up to three lines, the
+                   * whole value on hover. Cut at one line 22rem wide, the
+                   * first column of a table filled a phone and pushed the
+                   * others out of sight, with nothing to say they were
+                   * there.
+                   */
                   return (
                     <td
                       key={column.key}
-                      className={`max-w-[22rem] truncate px-2.5 py-2 text-gray-700 ${
+                      data-testid="ai-chat-table-cell"
+                      className={`px-2.5 py-2 align-top text-gray-700 ${
                         column.type === "number"
-                          ? "text-right tabular-nums"
-                          : "text-left"
+                          ? "whitespace-nowrap text-right tabular-nums"
+                          : "min-w-[5rem] text-left"
                       }`}
-                      title={renderCell(row[column.key], column)}
+                      title={text}
                     >
-                      {renderCell(row[column.key], column)}
+                      {column.type === "number" ? (
+                        text
+                      ) : (
+                        <span className="line-clamp-3 [overflow-wrap:anywhere]">
+                          {text}
+                        </span>
+                      )}
                     </td>
                   );
                 })}

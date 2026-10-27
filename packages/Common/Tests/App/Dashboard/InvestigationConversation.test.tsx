@@ -1815,13 +1815,16 @@ describe("InvestigationConversation — an answer's parts", () => {
     ]);
     /*
      * A quiet list: no bordered, rounded-full pills; the only shape here is
-     * the small C# mark.
+     * the small round C# mark, the one the answer's text carries.
      */
     const PILL_CLASS: RegExp = /(^|\s)(border|rounded-full|shadow\S*)(\s|$)/;
     expect(
       Array.from(sources.querySelectorAll("*")).filter(
         (element: Element): boolean => {
-          return PILL_CLASS.test(element.getAttribute("class") || "");
+          return (
+            !element.hasAttribute("data-citation-mark") &&
+            PILL_CLASS.test(element.getAttribute("class") || "")
+          );
         },
       ),
     ).toEqual([]);

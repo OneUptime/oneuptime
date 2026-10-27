@@ -35,6 +35,10 @@ import ChatInput from "./ChatInput";
 import PageContextChip from "./PageContextChip";
 import PermissionModePicker from "./PermissionModePicker";
 import ProviderPicker from "./ProviderPicker";
+import {
+  getTitleDirection,
+  PAGE_START_ALIGN_CLASS_NAME,
+} from "./TitleDirection";
 import { useAiChat, UseAiChat } from "./useAiChat";
 
 /*
@@ -287,6 +291,45 @@ const AskAiDialogPanel: FunctionComponent<PanelProps> = (
         ? "conversation"
         : "home";
 
+  /*
+   * The history has no composer to take the focus as it is drawn, and the
+   * button that opened it is gone from the header: the focus would fall
+   * out of the dialog onto the page's body, and a screen reader would lose
+   * its place. It goes to the first conversation - what the history is
+   * opened for - or to Back when there is none, and comes back there when
+   * the last conversation is deleted. Every other view's composer focuses
+   * itself.
+   */
+  const historyViewRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const previousViewRef: React.MutableRefObject<View> = useRef<View>(view);
+
+  useEffect(() => {
+    const wasHistory: boolean = previousViewRef.current === "history";
+    previousViewRef.current = view;
+
+    const panel: HTMLDivElement | null = panelRef.current;
+
+    if (view !== "history" || !panel) {
+      return;
+    }
+
+    const active: Element | null = document.activeElement;
+    const isFocusLost: boolean =
+      !active || active === document.body || !panel.contains(active);
+
+    if (wasHistory && !isFocusLost) {
+      return;
+    }
+
+    const target: HTMLElement | null =
+      historyViewRef.current?.querySelector<HTMLElement>(
+        '[data-testid="ai-chat-history"] button',
+      ) || panel.querySelector<HTMLElement>('[data-testid="ask-ai-back"]');
+
+    target?.focus({ preventScroll: true });
+  }, [view, chat.conversations.length]);
+
   const activeConversation: AIConversation | undefined =
     chat.conversations.find((conversation: AIConversation): boolean => {
       return conversation.id?.toString() === chat.activeConversationId;
@@ -477,13 +520,19 @@ const AskAiDialogPanel: FunctionComponent<PanelProps> = (
             ) : (
               <AskAiMark size={AskAiMarkSize.Small} />
             )}
+            {/*
+             * A conversation's title reads its own way - an English one on
+             * a Persian page is cut at its end ("Why did checkout…"), not
+             * at its start - and stands beside the mark, where the page
+             * reads from (TitleDirection).
+             */}
             <h2
               id={titleId}
+              dir={getTitleDirection(title)}
               data-testid="ask-ai-title"
-              className="ms-1.5 min-w-0 flex-1 truncate text-sm font-semibold text-gray-900"
+              className={`ms-1.5 min-w-0 flex-1 truncate text-sm font-semibold text-gray-900 ${PAGE_START_ALIGN_CLASS_NAME}`}
             >
-              {/* A conversation's title reads its own way. */}
-              <bdi>{title}</bdi>
+              {title}
             </h2>
             <div className="flex flex-shrink-0 items-center gap-0.5">
               {view === "home" || view === "conversation" ? (
@@ -540,7 +589,10 @@ const AskAiDialogPanel: FunctionComponent<PanelProps> = (
             )}
 
             {view === "history" ? (
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <div
+                ref={historyViewRef}
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
+              >
                 <AskAiHistory
                   conversations={chat.conversations}
                   activeConversationId={chat.activeConversationId}

@@ -366,3 +366,79 @@ describe("the approval card's layout and its choice", () => {
     expect(screen.queryByRole("group")).not.toBeInTheDocument();
   });
 });
+
+/*
+ * WRITTEN IN ENGLISH, ON A PAGE READ RIGHT TO LEFT (#5349's UI review).
+ *
+ * The title, the description and the arguments come from the server and
+ * the model in English today. On a Persian page, laid out in the card's
+ * own direction, 'Linked to host "test01".' read '."Linked to host
+ * "test01': its full stop and quote moved to the other end. Each is an
+ * isolate that reads the way most of its letters do (Common's
+ * IsolatedText), so its punctuation stays where it was written while the
+ * line still starts where the card reads from.
+ */
+describe("the approval card's lines read the way they are written", () => {
+  test("an English title, description and arguments are isolates read left to right", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[action()]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={() => {}}
+      />,
+    );
+
+    for (const testId of [
+      "tool-approval-title",
+      "tool-approval-description",
+      "tool-approval-arguments",
+    ]) {
+      const isolate: HTMLElement | null = screen
+        .getByTestId(testId)
+        .querySelector("bdi");
+
+      expect(isolate).not.toBeNull();
+      expect(isolate).toHaveAttribute("dir", "ltr");
+    }
+
+    expect(
+      screen.getByTestId("tool-approval-description").querySelector("bdi"),
+    ).toHaveTextContent('Linked to host "test01".');
+  });
+
+  test("a description in Persian is read right to left", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[
+          action({
+            description:
+              "\u{0628}\u{0647} \u{0645}\u{06cc}\u{0632}\u{0628}\u{0627}\u{0646} test01 \u{067e}\u{06cc}\u{0648}\u{0646}\u{062f} \u{062f}\u{0627}\u{062f}\u{0647} \u{0634}\u{062f}.",
+          }),
+        ]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("tool-approval-description").querySelector("bdi"),
+    ).toHaveAttribute("dir", "rtl");
+  });
+
+  test("the arguments keep their line's monospace, which every page's font rule on * would take from the isolate", () => {
+    render(
+      <ToolApprovalCard
+        toolActions={[action()]}
+        interactive={true}
+        isSubmitting={false}
+        onRespond={() => {}}
+      />,
+    );
+
+    const line: HTMLElement = screen.getByTestId("tool-approval-arguments");
+    expect(line).toHaveClass("font-mono");
+    expect(line.querySelector("bdi")).toHaveClass("[font-family:inherit]");
+  });
+});

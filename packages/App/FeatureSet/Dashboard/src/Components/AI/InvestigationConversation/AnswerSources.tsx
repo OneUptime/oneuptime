@@ -39,8 +39,9 @@ export function describeSourceRows(
   );
 }
 
+// The same round pill the answer's marks are (CITATION_CHIP_CLASS_NAME).
 const ID_CLASS_NAME: string =
-  "inline-flex h-[18px] min-w-[1.5rem] flex-shrink-0 items-center justify-center rounded px-1 text-[11px] font-semibold tabular-nums bg-gray-100 text-gray-700 ring-1 ring-inset ring-gray-200";
+  "inline-flex h-4 min-w-[1.5rem] flex-shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold leading-none bg-gray-100 text-gray-600";
 
 /*
  * What an answer in the AI Investigation card's conversation read, one line
@@ -88,7 +89,9 @@ const AnswerSources: FunctionComponent<ComponentProps> = (
             : citation.label;
           const line: ReactElement = (
             <>
-              <span className={ID_CLASS_NAME}>{citation.id}</span>
+              <span className={ID_CLASS_NAME} data-citation-mark="">
+                {citation.id}
+              </span>
               <span className="min-w-0 break-words">
                 {citation.label}
                 <span className="text-gray-400">

@@ -64,6 +64,17 @@ const SOURCES: Array<[string, string]> = [
   ].map((file: string): [string, string] => {
     return [file, path.join(AI_CHAT_DIR, file)];
   }),
+  // What an answer draws under its words: its charts, tables and figures.
+  ...[
+    "ChartWidget.tsx",
+    "DataTableWidget.tsx",
+    "StatCardsWidget.tsx",
+    "EntityListWidget.tsx",
+    "TraceWaterfallWidget.tsx",
+    "WidgetRenderer.tsx",
+  ].map((file: string): [string, string] => {
+    return [`Widgets/${file}`, path.join(AI_CHAT_DIR, "Widgets", file)];
+  }),
   // An answer's citation marks and its sources, shared with the AI card.
   [
     "AnswerCitationChip.tsx",
@@ -140,6 +151,17 @@ const BACKSLASH: RegExp = /\\/g;
 const COLON: RegExp = /:/g;
 const SLASH: RegExp = /\//g;
 
+// A shadow utility Theme.css redraws for the dark theme ("shadow-lg").
+const REMAPPED_SHADOW: RegExp =
+  /(?<![\w:[-])shadow(?:-(?:sm|md|lg|xl|2xl))?(?![\w[-])/;
+
+// A shadow written out in full: "shadow-[0_10px_24px_-8px_rgba(...)]".
+const ARBITRARY_SHADOW: RegExp = /shadow-\[[^\]\s]+\]/;
+
+// The rule that turns shadow-lg black in the dark theme, which the glow avoids.
+const DARK_SHADOW_LG_RULE: RegExp =
+  /html\.dark :is\(\.shadow-lg, \.shadow-xl, \.shadow-2xl\)/;
+
 /*
  * Interaction variants Theme.css remaps by prefix, e.g.
  * [class*="hover:text-emerald-"]:hover. Matched with startsWith.
@@ -178,8 +200,6 @@ const KNOWN_EXCEPTIONS: Record<string, Array<string>> = {
   "border-white/40": ["ToolApprovalCard.tsx"],
   // The Stop button's spinner while it stops: on the dark button too.
   "border-gray-500": ["ChatInput.tsx"],
-  // A citation chip's hover ring (the AI card's guard excuses it too).
-  "hover:ring-indigo-200": ["InvestigationCitationChip.tsx"],
 };
 
 function isRemapped(token: string): boolean {
@@ -303,6 +323,23 @@ describe("Ask AI in the dark theme", () => {
       ]),
     );
     expect(unmapped).toEqual([]);
+  });
+
+  /*
+   * The large mark over Ask AI's start glows in its own indigo. Written as
+   * `shadow-lg shadow-indigo-500/25`, the dark theme redrew it with the
+   * deep black shadow Theme.css gives every shadow-lg, and the mark sat in
+   * a dark smudge on the dark dialog (#5349's UI review).
+   */
+  test("the start's mark glows indigo in both themes, with no shadow the dark theme turns black", () => {
+    const mark: string = readCodeAt(path.join(AI_CHAT_DIR, "AskAiMark.tsx"));
+    const glow: string | undefined = mark.match(ARBITRARY_SHADOW)?.[0];
+
+    expect(mark).not.toMatch(REMAPPED_SHADOW);
+    expect(glow).toContain("rgba(99,102,241,");
+    // No rule of the dark theme touches the glow.
+    expect(THEME_CSS.includes(glow || "-")).toBe(false);
+    expect(THEME_CSS).toMatch(DARK_SHADOW_LG_RULE);
   });
 
   test("every known exception is still in the code it excuses", () => {

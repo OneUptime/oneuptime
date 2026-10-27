@@ -167,3 +167,121 @@ describe("ProviderPicker", () => {
     expect(menu).not.toHaveClass("bottom-full");
   });
 });
+
+/*
+ * The menu's side is measured, which jsdom does not do: these stub where
+ * the button is, how tall the menu is and the box that clips them both
+ * (Ask AI's dialog), and put the real methods back after each test.
+ */
+interface StubbedLayout {
+  button: [number, number];
+  boundary: [number, number];
+  menuHeight: number;
+}
+
+const restoreLayout: Array<() => void> = [];
+
+function rectOf(top: number, bottom: number): DOMRect {
+  return {
+    top: top,
+    bottom: bottom,
+    left: 0,
+    right: 200,
+    width: 200,
+    height: bottom - top,
+    x: 0,
+    y: top,
+    toJSON: () => {
+      return {};
+    },
+  };
+}
+
+function stubLayout(layout: StubbedLayout): void {
+  const originalRect: () => DOMRect =
+    HTMLElement.prototype.getBoundingClientRect;
+  const originalOffsetHeight: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight");
+
+  HTMLElement.prototype.getBoundingClientRect = function (
+    this: HTMLElement,
+  ): DOMRect {
+    if (this.getAttribute("aria-haspopup") === "menu") {
+      return rectOf(layout.button[0], layout.button[1]);
+    }
+
+    if (this.hasAttribute("data-boundary")) {
+      return rectOf(layout.boundary[0], layout.boundary[1]);
+    }
+
+    return originalRect.call(this);
+  };
+
+  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+    configurable: true,
+    get(this: HTMLElement): number {
+      return this.getAttribute("role") === "menu" ? layout.menuHeight : 0;
+    },
+  });
+
+  restoreLayout.push(() => {
+    HTMLElement.prototype.getBoundingClientRect = originalRect;
+
+    if (originalOffsetHeight) {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        "offsetHeight",
+        originalOffsetHeight,
+      );
+    }
+  });
+}
+
+afterEach(() => {
+  for (const restore of restoreLayout.splice(0)) {
+    restore();
+  }
+});
+
+describe("ProviderPicker — a menu that would not fit", () => {
+  test("asked to open down where the dialog would cut it off, it opens up", () => {
+    stubLayout({ button: [600, 626], boundary: [24, 776], menuHeight: 190 });
+    render(
+      <div data-boundary="" style={{ overflowY: "hidden" }}>
+        <ProviderPicker
+          providers={PROVIDERS}
+          selectedProviderId="provider-0"
+          onSelect={getJestMockFunction()}
+          menuSide="bottom"
+        />
+      </div>,
+    );
+
+    fireEvent.click(trigger());
+
+    const menu: HTMLElement = screen.getByRole("menu");
+    expect(menu).toHaveAttribute("data-menu-side", "top");
+    expect(menu).toHaveClass("bottom-full", "mb-1.5");
+  });
+
+  test("with room below, it opens down as asked", () => {
+    stubLayout({ button: [402, 428], boundary: [24, 776], menuHeight: 190 });
+    render(
+      <div data-boundary="" style={{ overflowY: "hidden" }}>
+        <ProviderPicker
+          providers={PROVIDERS}
+          selectedProviderId="provider-0"
+          onSelect={getJestMockFunction()}
+          menuSide="bottom"
+        />
+      </div>,
+    );
+
+    fireEvent.click(trigger());
+
+    expect(screen.getByRole("menu")).toHaveAttribute(
+      "data-menu-side",
+      "bottom",
+    );
+  });
+});

@@ -46,6 +46,7 @@ import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import Navigation from "../../../UI/Utils/Navigation";
 import AskAiDialog from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiDialog";
 import { openAskAi } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiEvents";
+import { PAGE_START_ALIGN_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/TitleDirection";
 import AskAI from "../../../../App/FeatureSet/Dashboard/src/Components/Header/AskAI";
 import AICopilot from "../../../../App/FeatureSet/Dashboard/src/Pages/AICopilot/AICopilot";
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
@@ -998,7 +999,7 @@ describe("conversations within reach", () => {
     expect(screen.getByTestId("ai-chat-answer-text")).toBeInTheDocument();
   });
 
-  test("a conversation is deleted by name", async () => {
+  test("a conversation is deleted by name, once the row has asked", async () => {
     await renderAt();
     await toggle();
     await act(async () => {
@@ -1014,6 +1015,17 @@ describe("conversations within reach", () => {
     });
     await settle();
 
+    // The bin deletes nothing: the row asks, named after the conversation.
+    expect(deleteItemMock).not.toHaveBeenCalled();
+    const asking: HTMLElement = screen.getByRole("group", {
+      name: "Delete conversation: Error log volume by service",
+    });
+
+    await act(async () => {
+      fireEvent.click(within(asking).getByRole("button", { name: "Delete" }));
+    });
+    await settle();
+
     expect(deleteItemMock).toHaveBeenCalledWith(
       expect.objectContaining({ id: new ObjectID(OTHER_CONVERSATION_ID) }),
     );
@@ -1022,6 +1034,217 @@ describe("conversations within reach", () => {
         name: /^Error log volume by service/,
       }),
     ).not.toBeInTheDocument();
+  });
+
+  test("the history takes the focus as it opens: the first conversation, from the header or the start", async () => {
+    await renderAt();
+    await toggle();
+    // The composer had it; it is gone with the start.
+    expect(document.activeElement).toBe(composer());
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("ask-ai-history"));
+    });
+    await settle();
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: /^Why did checkout slow down\?/ }),
+    );
+
+    // Back, and in from the start's own link.
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    });
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByTestId("ai-chat-recent")).getByRole("button", {
+          name: "All conversations",
+        }),
+      );
+    });
+    await settle();
+
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: /^Why did checkout slow down\?/ }),
+    );
+  });
+
+  test("an empty history gives the focus to Back", async () => {
+    server.conversations = [];
+    await renderAt();
+    await toggle();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("ask-ai-history"));
+    });
+    await settle();
+
+    expect(screen.getByTestId("ai-chat-history-empty")).toBeInTheDocument();
+    expect(document.activeElement).toBe(screen.getByTestId("ask-ai-back"));
+  });
+
+  test("the row's question keeps the conversation: Cancel, or Esc, which leaves the dialog open", async () => {
+    await renderAt();
+    await toggle();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("ask-ai-history"));
+    });
+
+    const bin: () => HTMLElement = (): HTMLElement => {
+      return screen.getByRole("button", {
+        name: "Delete conversation: Error log volume by service",
+      });
+    };
+
+    await act(async () => {
+      fireEvent.click(bin());
+    });
+    await settle();
+
+    const asking: HTMLElement = screen.getByRole("group", {
+      name: "Delete conversation: Error log volume by service",
+    });
+    // Asked, the focus is on Cancel: an Enter pressed twice keeps it.
+    expect(document.activeElement).toBe(
+      within(asking).getByRole("button", { name: "Cancel" }),
+    );
+    // Delete first, Cancel at the row's end, where the bin was.
+    expect(
+      within(asking)
+        .getAllByRole("button")
+        .map((button: HTMLElement): string => {
+          return button.textContent || "";
+        }),
+    ).toEqual(["Delete", "Cancel"]);
+
+    // Esc keeps it - and only takes the question back, not the dialog.
+    await pressKeys("Escape", {}, document.activeElement!);
+
+    expect(
+      screen.queryByRole("group", { name: /^Delete conversation/ }),
+    ).not.toBeInTheDocument();
+    expect(dialog()).toBeInTheDocument();
+    expect(document.activeElement).toBe(bin());
+
+    // Cancel keeps it too.
+    await act(async () => {
+      fireEvent.click(bin());
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    });
+    await settle();
+
+    expect(
+      screen.queryByRole("group", { name: /^Delete conversation/ }),
+    ).not.toBeInTheDocument();
+    expect(deleteItemMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: /^Error log volume by service/ }),
+    ).toBeInTheDocument();
+  });
+
+  test("after a delete the focus moves to the row that took its place, and to Back when none is left", async () => {
+    await renderAt();
+    await toggle();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("ask-ai-history"));
+    });
+
+    const deleteByName: (title: string) => Promise<void> = async (
+      title: string,
+    ): Promise<void> => {
+      const label: string = "Delete conversation: " + title;
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: label }));
+      });
+      await act(async () => {
+        fireEvent.click(
+          within(screen.getByRole("group", { name: label })).getByRole(
+            "button",
+            { name: "Delete" },
+          ),
+        );
+      });
+      await settle();
+    };
+
+    // The second row goes: the third takes its place, and the focus.
+    await deleteByName("Error log volume by service");
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: /^Top exceptions/ }),
+    );
+
+    // The last row goes: the one before it takes the focus.
+    await deleteByName("Payments API");
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: /^Top exceptions/ }),
+    );
+
+    await deleteByName("Top exceptions");
+    await deleteByName("Why did checkout slow down?");
+
+    // None left: Back.
+    expect(screen.getByTestId("ai-chat-history-empty")).toBeInTheDocument();
+    expect(document.activeElement).toBe(screen.getByTestId("ask-ai-back"));
+  });
+
+  test("a title reads the way its letters do, and stands where the page reads from", async () => {
+    server.conversations = [
+      conversation(CONVERSATION_ID, "Why did checkout slow down?"),
+      conversation(
+        OTHER_CONVERSATION_ID,
+        "\u0686\u0631\u0627 \u067e\u0631\u062f\u0627\u062e\u062a \u06a9\u0646\u062f \u0634\u062f\u061f",
+      ),
+    ];
+    server.messages.set(CONVERSATION_ID, answeredConversation());
+    await renderAt();
+    await toggle();
+
+    const titleOf: (row: HTMLElement) => HTMLElement = (
+      row: HTMLElement,
+    ): HTMLElement => {
+      return row.querySelector("span[dir]") as HTMLElement;
+    };
+
+    const recent: Array<HTMLElement> = within(
+      screen.getByTestId("ai-chat-recent"),
+    ).getAllByRole("listitem");
+    expect(titleOf(recent[0]!)).toHaveAttribute("dir", "ltr");
+    expect(titleOf(recent[1]!)).toHaveAttribute("dir", "rtl");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("ask-ai-history"));
+    });
+
+    const rows: Array<HTMLElement> = within(
+      screen.getByTestId("ai-chat-history"),
+    ).getAllByRole("listitem");
+    expect(titleOf(rows[0]!)).toHaveAttribute("dir", "ltr");
+    expect(titleOf(rows[1]!)).toHaveAttribute("dir", "rtl");
+
+    for (const title of [
+      titleOf(recent[0]!),
+      titleOf(rows[0]!),
+      titleOf(rows[1]!),
+    ]) {
+      // Aligned by the page's direction, not by the title's own.
+      expect(title.className).toContain(PAGE_START_ALIGN_CLASS_NAME);
+      expect(title).not.toHaveClass("text-start");
+    }
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("button", { name: /^Why did checkout slow down\?/ }),
+      );
+    });
+    await settle();
+
+    const heading: HTMLElement = screen.getByTestId("ask-ai-title");
+    expect(heading).toHaveTextContent("Why did checkout slow down?");
+    expect(heading).toHaveAttribute("dir", "ltr");
+    expect(heading.className).toContain(PAGE_START_ALIGN_CLASS_NAME);
   });
 
   test("New chat starts over from a conversation", async () => {

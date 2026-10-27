@@ -5,6 +5,7 @@ import {
 import { JSONObject } from "Common/Types/JSON";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -242,11 +243,19 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                        * #1…"). Three lines hold a linking action's title
                        * on a phone in full.
                        */}
+                      {/*
+                       * The title, the description and the arguments are
+                       * written by the server and the model, in English
+                       * today: each is an isolate that reads its own way
+                       * (IsolatedText), so on a Persian page the period of
+                       * 'Linked to host "test01".' stays at its end, while
+                       * the line still starts where the card reads from.
+                       */}
                       <div
                         data-testid="tool-approval-title"
                         className="line-clamp-3 break-words text-xs font-semibold text-gray-900"
                       >
-                        {action.title}
+                        <IsolatedText text={action.title} />
                       </div>
                       {/*
                        * What the action names, by name (the resources an
@@ -257,12 +266,23 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                           data-testid="tool-approval-description"
                           className="mt-1 break-words text-[11px] leading-relaxed text-gray-700"
                         >
-                          {action.description}
+                          <IsolatedText text={action.description} />
                         </div>
                       )}
                       {preview && (
-                        <div className="mt-1 line-clamp-2 font-mono text-[10.5px] leading-relaxed text-gray-600">
-                          {preview}
+                        <div
+                          data-testid="tool-approval-arguments"
+                          className="mt-1 line-clamp-2 font-mono text-[10.5px] leading-relaxed text-gray-600"
+                        >
+                          {/*
+                           * In the line's own monospace: every page's
+                           * `* { font-family: Inter }` would otherwise
+                           * reach the isolate.
+                           */}
+                          <IsolatedText
+                            text={preview}
+                            className="[font-family:inherit]"
+                          />
                         </div>
                       )}
                     </div>

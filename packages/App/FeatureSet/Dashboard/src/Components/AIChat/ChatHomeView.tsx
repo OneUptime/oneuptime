@@ -1,4 +1,8 @@
 import AskAiMark, { AskAiMarkSize } from "./AskAiMark";
+import {
+  getTitleDirection,
+  PAGE_START_ALIGN_CLASS_NAME,
+} from "./TitleDirection";
 import PageContextUtil, {
   DashboardPageContext,
   SuggestedQuestion,
@@ -204,6 +208,11 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
                 (conversation: AIConversation): ReactElement => {
                   const conversationId: string =
                     conversation.id?.toString() || "";
+                  const title: string =
+                    conversation.title ||
+                    (translator.translateText(
+                      "Untitled conversation",
+                    ) as string);
 
                   return (
                     <li key={conversationId}>
@@ -218,12 +227,15 @@ const ChatHomeView: FunctionComponent<ComponentProps> = (
                           icon={IconProp.ChatBubbleOvalLeft}
                           className="h-4 w-4 flex-shrink-0 text-gray-400"
                         />
+                        {/*
+                         * Read its own way, cut at its own end, beside its
+                         * icon (TitleDirection).
+                         */}
                         <span
-                          dir="auto"
-                          className="min-w-0 flex-1 truncate text-start text-sm text-gray-700 group-hover:text-gray-900"
+                          dir={getTitleDirection(title)}
+                          className={`min-w-0 flex-1 truncate text-sm text-gray-700 group-hover:text-gray-900 ${PAGE_START_ALIGN_CLASS_NAME}`}
                         >
-                          {conversation.title ||
-                            translator.translateText("Untitled conversation")}
+                          {title}
                         </span>
                         {conversation.lastMessageAt ? (
                           <span className="flex-shrink-0 text-xs text-gray-400">

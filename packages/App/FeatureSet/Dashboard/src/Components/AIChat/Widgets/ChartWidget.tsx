@@ -23,6 +23,7 @@ import {
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import ValueFormatter from "Common/Utils/ValueFormatter";
 import OneUptimeDate from "Common/Types/Date";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
@@ -46,12 +47,17 @@ interface ChartZoomWindow {
   endTime: Date;
 }
 
-// Compact number formatter: trims trailing zeros, appends an optional unit.
-function formatValue(value: number, unit?: string | undefined): string {
-  const rounded: number =
-    Math.abs(value) >= 100 ? Math.round(value) : Math.round(value * 100) / 100;
-  const text: string = rounded.toLocaleString();
-  return unit ? `${text} ${unit}` : text;
+/*
+ * A value as the chart's axis and tooltip write it: scaled and with its
+ * unit's symbol, as the dashboards write metric values (ValueFormatter) -
+ * "650 ms", "2.6 s", "1.2M". The y-axis has 64 px for a label: "2,600 ms"
+ * did not fit, and broke into "2,600" over "ms" on every latency chart.
+ */
+export function formatChartValue(
+  value: number,
+  unit?: string | undefined,
+): string {
+  return ValueFormatter.formatValueCompact(value, unit || "").formatted;
 }
 
 const ChartWidget: FunctionComponent<ComponentProps> = (
@@ -252,7 +258,7 @@ const ChartWidget: FunctionComponent<ComponentProps> = (
       min: isBar ? 0 : "auto",
       max: "auto",
       formatter: (value: number) => {
-        return formatValue(value, widget.data.unit);
+        return formatChartValue(value, widget.data.unit);
       },
       precision: YAxisPrecision.TwoDecimals,
     },
@@ -287,7 +293,8 @@ const ChartWidget: FunctionComponent<ComponentProps> = (
             <ResetTimeRangeZoomButton />
           </div>
         ) : null}
-        <div className="h-64 w-full">
+        {/* As tall as the chart drawn in it: no band of white under it. */}
+        <div className="h-60 w-full">
           {isBar ? (
             <BarChartElement
               data={visibleSeries}

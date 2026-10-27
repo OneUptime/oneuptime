@@ -6,6 +6,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { MenuSide, useMenuSide } from "./MenuSide";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -30,9 +31,11 @@ export interface ComponentProps {
    * Which side of the button the menu opens on. Defaults to "top", for a
    * composer at the foot of its surface. Ask AI's start draws the composer
    * near the top of the dialog, where a menu opening upwards would be cut
-   * off by the dialog's edge: there it opens downwards ("bottom").
+   * off by the dialog's edge: there it asks for "bottom". Either way the
+   * menu opens on the other side when it would not fit on the one asked
+   * for and fits better there (MenuSide).
    */
-  menuSide?: "top" | "bottom" | undefined;
+  menuSide?: MenuSide | undefined;
 }
 
 const modeIcon: { [key in AIChatPermissionMode]: IconProp } = {
@@ -57,7 +60,16 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
     useRef<HTMLDivElement>(null);
   const buttonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
+  const menuRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const menuId: string = useId();
+  // 8 px between the button and the menu (mt-2 / mb-2).
+  const menuSide: MenuSide = useMenuSide({
+    isOpen: isOpen,
+    preferred: props.menuSide || "top",
+    gap: 8,
+    buttonRef: buttonRef,
+    menuRef: menuRef,
+  });
 
   useEffect(() => {
     if (!isOpen) {
@@ -128,11 +140,13 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
 
       {isOpen && (
         <div
+          ref={menuRef}
           id={menuId}
           role="menu"
           aria-label={translator.translateText("AI permissions")}
+          data-menu-side={menuSide}
           className={`absolute z-50 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
-            props.menuSide === "bottom" ? "top-full mt-2" : "bottom-full mb-2"
+            menuSide === "bottom" ? "top-full mt-2" : "bottom-full mb-2"
           } ${props.menuAlign === "left" ? "left-0" : "right-0"}`}
         >
           <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
