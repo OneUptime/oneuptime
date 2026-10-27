@@ -81,6 +81,19 @@ import {
   getMaintenanceEndsAtError,
   moveMaintenanceEndWithStart,
 } from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
+import {
+  PUBLISH_CHOICE,
+  PublishChoice,
+  PublishingDetailCopy,
+  SENT_WHEN_PUBLISHED_TEXT,
+  areSubscribersToldWhenPublished,
+  getWaitingPublishAt,
+  isScheduledNotificationWaitingToPublish,
+} from "../../../Components/ScheduledMaintenance/ScheduledMaintenancePublishing";
+import getPublishAtFormField from "../../../Components/ScheduledMaintenance/ScheduledMaintenancePublishingFormFields";
+import { getColumnChoiceField } from "../../../Utils/Form/ColumnChoiceField";
+import ScheduledMaintenancePublishingNotice from "../../../Components/ScheduledMaintenance/ScheduledMaintenancePublishingNotice";
+import ScheduledMaintenancePublication from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 import useRecordChannelLinks, {
   getOpenInChatActions,
 } from "../../../Components/Workspace/useRecordChannelLinks";
@@ -112,6 +125,27 @@ export const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
 // The details card's Edit: labels folded under Advanced on Event, as on the create form.
 const detailsAdvancedSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
   getAdvancedFormSection<ScheduledMaintenance>();
+
+/*
+ * When the event shows on its status pages, as its Edit asks it: Right
+ * away, or the time picked - in the reader's timezone and language.
+ */
+const PublishingDetailValue: FunctionComponent<{
+  item: ScheduledMaintenance;
+}> = (props: { item: ScheduledMaintenance }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const publishAt: Date | null = ScheduledMaintenancePublication.getPublishAt(
+    props.item,
+  );
+
+  return (
+    <span data-testid="scheduled-maintenance-publish-on-status-pages">
+      {publishAt
+        ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(publishAt)
+        : translator.translateText(PublishingDetailCopy.rightAway)}
+    </span>
+  );
+};
 
 type GetStatusPagesFactFunction = (
   statusPages: Array<StatusPage> | undefined,
@@ -371,6 +405,13 @@ const ScheduledMaintenanceView: FunctionComponent<
                 true,
               shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
                 true,
+              /*
+               * Whether it is on its status pages yet, and when it will be:
+               * the header says so while it waits for its publish time.
+               */
+              isVisibleOnStatusPage: true,
+              publishOnStatusPageAt: true,
+              subscriberNotificationStatusOnEventScheduled: true,
               statusPages: {
                 _id: true,
                 name: true,
@@ -597,6 +638,14 @@ const ScheduledMaintenanceView: FunctionComponent<
     icon: IconProp.Globe,
   });
 
+  /*
+   * Kept to the team until its publish time: the header's band says it is
+   * not on its status pages yet, and when it will be (#5249).
+   */
+  const waitingPublishAt: Date | null = getWaitingPublishAt(
+    scheduledMaintenance,
+  );
+
   const createdByName: string =
     scheduledMaintenance?.createdByUser?.name?.toString() ||
     scheduledMaintenance?.createdByUser?.email?.toString() ||
@@ -620,6 +669,24 @@ const ScheduledMaintenanceView: FunctionComponent<
         eventEndsAt={eventEndsAt}
         subscriberNotificationSettings={scheduledMaintenance}
         facts={heroFacts}
+        publishingNotice={
+          waitingPublishAt ? (
+            <ScheduledMaintenancePublishingNotice
+              scheduledMaintenanceId={modelId}
+              publishAt={waitingPublishAt}
+              areSubscribersTold={areSubscribersToldWhenPublished(
+                scheduledMaintenance,
+              )}
+              onPublished={() => {
+                // Its details, and the subscriber notification it now sends.
+                refreshPage();
+                setFeedRefreshToken((token: number) => {
+                  return token + 1;
+                });
+              }}
+            />
+          ) : undefined
+        }
         secondaryActions={getOpenInChatActions(channelLinks)}
         onActionComplete={() => {
           // The state change adds a feed item and can change the details.
@@ -774,6 +841,22 @@ const ScheduledMaintenanceView: FunctionComponent<
                     },
                   }),
               },
+              /*
+               * When it shows on them - Right away, or At a date and time -
+               * drawn open beside them: this is where an event's publishing
+               * is moved, or brought forward to right away. Create asks it
+               * first in its folded Subscriber Notifications.
+               */
+              getColumnChoiceField<ScheduledMaintenance, PublishChoice>({
+                config: PUBLISH_CHOICE,
+                column: "publishOnStatusPageAt",
+                stepId: "status-pages",
+                // Open: no fold, for the question an Edit is for.
+                collapsibleSection: undefined,
+              }),
+              getPublishAtFormField({
+                stepId: "status-pages",
+              }),
               {
                 field: {
                   sendSubscriberNotificationsOnBeforeTheEvent: true,
@@ -852,6 +935,24 @@ const ScheduledMaintenanceView: FunctionComponent<
                     );
                   },
                 },
+                /*
+                 * When it shows on them: Right away, or the time its Edit
+                 * picked. Listed only for an event that has a time - for
+                 * every other, Right away is what every event does.
+                 */
+                {
+                  field: {
+                    publishOnStatusPageAt: true,
+                  },
+                  title: PublishingDetailCopy.title,
+                  fieldType: FieldType.Element,
+                  showIf: (item: ScheduledMaintenance): boolean => {
+                    return ScheduledMaintenancePublication.hasPublishTime(item);
+                  },
+                  getElement: (item: ScheduledMaintenance): ReactElement => {
+                    return <PublishingDetailValue item={item} />;
+                  },
+                },
                 {
                   field: {
                     sendSubscriberNotificationsOnBeforeTheEvent: true,
@@ -908,6 +1009,18 @@ const ScheduledMaintenanceView: FunctionComponent<
                           subscriberNotificationStatusMessage={
                             item.subscriberNotificationStatusMessage
                           }
+                          /*
+                           * Queued for the publish time, not about to go:
+                           * a clock, saying when it is sent.
+                           */
+                          statusText={
+                            isScheduledNotificationWaitingToPublish(item)
+                              ? SENT_WHEN_PUBLISHED_TEXT
+                              : undefined
+                          }
+                          isWaiting={isScheduledNotificationWaitingToPublish(
+                            item,
+                          )}
                           onResendNotification={handleResendNotification}
                         />
                         {resendNotificationError && (

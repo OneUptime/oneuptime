@@ -104,6 +104,7 @@ import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import Runbook from "../../../Models/DatabaseModels/Runbook";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import Route from "../../../Types/API/Route";
+import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate, {
@@ -577,6 +578,108 @@ describe("a scheduled maintenance event's Settings", () => {
         data: { enableReminders: false },
       }),
     ]);
+  });
+
+  /*
+   * Kept to the team until its publish time (#5249), an event is on none of
+   * its status pages yet, whatever its switch says: switched on, the switch
+   * says from when it shows. Published - from the start, or from a time
+   * that has come - it says what it always has; switched off, it is hidden.
+   */
+  describe("kept to the team until its publish time", () => {
+    const PUBLISH_AT: Date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    test("reads the publish time with the switch", async () => {
+      await renderPage(ScheduledMaintenanceSettings);
+
+      const select: Record<string, unknown> = (
+        getItemMock.mock.calls.find((call: Array<unknown>): boolean => {
+          return (
+            (call[0] as { modelType: unknown }).modelType ===
+              ScheduledMaintenance &&
+            Boolean(
+              (call[0] as { select: Record<string, unknown> }).select[
+                "isVisibleOnStatusPage"
+              ],
+            )
+          );
+        })![0] as { select: Record<string, unknown> }
+      ).select;
+
+      expect(select).toEqual(
+        expect.objectContaining({
+          isVisibleOnStatusPage: true,
+          publishOnStatusPageAt: true,
+        }),
+      );
+    });
+
+    test("switched on, the switch says from when it shows on its status pages", async () => {
+      storedFor(ScheduledMaintenance)["isVisibleOnStatusPage"] = true;
+      storedFor(ScheduledMaintenance)["publishOnStatusPageAt"] = PUBLISH_AT;
+
+      await renderPage(ScheduledMaintenanceSettings);
+
+      expect(
+        screen.getByText(
+          `This event shows on its status pages from ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(PUBLISH_AT)}.`,
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(
+          STATUS_PAGE_VISIBILITY_KIND_COPY[
+            StatusPageVisibilityKind.ScheduledMaintenance
+          ].switchOnDescription,
+        ),
+      ).toBeNull();
+    });
+
+    test("published from a time that has come, the switch says what it always has", async () => {
+      storedFor(ScheduledMaintenance)["isVisibleOnStatusPage"] = true;
+      storedFor(ScheduledMaintenance)["publishOnStatusPageAt"] = new Date(
+        Date.now() - 60 * 60 * 1000,
+      );
+
+      await renderPage(ScheduledMaintenanceSettings);
+
+      expect(
+        screen.getByText(
+          STATUS_PAGE_VISIBILITY_KIND_COPY[
+            StatusPageVisibilityKind.ScheduledMaintenance
+          ].switchOnDescription,
+        ),
+      ).toBeInTheDocument();
+    });
+
+    test("switched off, it is hidden whatever its time, and turning it on says from when", async () => {
+      storedFor(ScheduledMaintenance)["isVisibleOnStatusPage"] = false;
+      storedFor(ScheduledMaintenance)["publishOnStatusPageAt"] = PUBLISH_AT;
+
+      await renderPage(ScheduledMaintenanceSettings);
+
+      expect(
+        screen.getByText(
+          STATUS_PAGE_VISIBILITY_KIND_COPY[
+            StatusPageVisibilityKind.ScheduledMaintenance
+          ].switchOffDescription,
+        ),
+      ).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId(STATUS_PAGE_VISIBILITY_SWITCH_TEST_ID));
+      await flush();
+
+      expect(updateCalls()).toEqual([
+        expect.objectContaining({
+          modelType: ScheduledMaintenance,
+          data: { isVisibleOnStatusPage: true },
+        }),
+      ]);
+      expect(
+        screen.getByText(
+          `This event shows on its status pages from ${OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(PUBLISH_AT)}.`,
+        ),
+      ).toBeInTheDocument();
+    });
   });
 });
 

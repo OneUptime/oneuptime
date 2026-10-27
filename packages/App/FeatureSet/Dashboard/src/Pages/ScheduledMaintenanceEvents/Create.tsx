@@ -77,14 +77,20 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   getDefaultMaintenanceEndsAt,
   getDefaultMaintenanceStartsAt,
+  getEventSubscriberNotificationsSection,
   getMaintenanceEndsAtError,
-  getSubscriberNotificationsSection,
   moveMaintenanceEndWithStart,
 } from "../../Components/ScheduledMaintenance/ScheduledMaintenanceForm";
 import {
   hasPickedMonitors,
   omitMonitorStatusWithoutMonitors,
 } from "../../Components/Incident/ChangeMonitorStatusField";
+import {
+  PUBLISH_CHOICE,
+  PublishChoice,
+} from "../../Components/ScheduledMaintenance/ScheduledMaintenancePublishing";
+import getPublishAtFormField from "../../Components/ScheduledMaintenance/ScheduledMaintenancePublishingFormFields";
+import { getColumnChoiceField } from "../../Utils/Form/ColumnChoiceField";
 import {
   CreatedRecordKind,
   pickRecordToCreateFrom,
@@ -102,8 +108,13 @@ import useRecordToCreateFrom, {
 const advancedSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
   getAdvancedFormSection<ScheduledMaintenance>();
 
-const subscriberNotificationsSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
-  getSubscriberNotificationsSection<ScheduledMaintenance>();
+/*
+ * Subscriber Notifications, as an event asks it: first when the event is
+ * published on its status pages - right away, unless a time is picked -
+ * then who is told, and when.
+ */
+const eventSubscriberNotificationsSection: FormFieldCollapsibleSection<ScheduledMaintenance> =
+  getEventSubscriberNotificationsSection<ScheduledMaintenance>();
 
 /*
  * The "Resources Affected" step asks for the event's monitors in a picker of
@@ -1050,17 +1061,31 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                 },
                 /*
-                 * Folded to one line that says what happens. All three are
-                 * on, as on the model: subscribers hear when the event is
-                 * scheduled, starts and ends.
+                 * Folded to one line that says what happens. The event is
+                 * published right away - for one planned long before
+                 * customers should hear of it, a time picked here keeps it
+                 * off the pages, and its subscribers told nothing, until
+                 * then. All three switches are on, as on the model:
+                 * subscribers hear when the event is scheduled, starts and
+                 * ends.
                  */
+                getColumnChoiceField<ScheduledMaintenance, PublishChoice>({
+                  config: PUBLISH_CHOICE,
+                  column: "publishOnStatusPageAt",
+                  stepId: "resources-affected",
+                  collapsibleSection: eventSubscriberNotificationsSection,
+                }),
+                getPublishAtFormField({
+                  stepId: "resources-affected",
+                  collapsibleSection: eventSubscriberNotificationsSection,
+                }),
                 {
                   field: {
                     shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
                   },
                   title: "When the event is scheduled",
                   stepId: "resources-affected",
-                  collapsibleSection: subscriberNotificationsSection,
+                  collapsibleSection: eventSubscriberNotificationsSection,
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: true,
                   required: false,
@@ -1072,7 +1097,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   title: "When the event starts",
                   stepId: "resources-affected",
-                  collapsibleSection: subscriberNotificationsSection,
+                  collapsibleSection: eventSubscriberNotificationsSection,
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: true,
                   required: false,
@@ -1084,7 +1109,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   },
                   title: "When the event ends",
                   stepId: "resources-affected",
-                  collapsibleSection: subscriberNotificationsSection,
+                  collapsibleSection: eventSubscriberNotificationsSection,
                   fieldType: FormFieldSchemaType.Checkbox,
                   defaultValue: true,
                   required: false,
@@ -1094,7 +1119,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     sendSubscriberNotificationsOnBeforeTheEvent: true,
                   },
                   stepId: "resources-affected",
-                  collapsibleSection: subscriberNotificationsSection,
+                  collapsibleSection: eventSubscriberNotificationsSection,
                   title: "Reminders before the event",
                   description:
                     "Remind subscribers before the event starts, for example 1 day before.",
