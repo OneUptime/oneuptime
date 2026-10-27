@@ -11,6 +11,16 @@ import type { PageSEOData } from "../../PageSEO";
 import { OpenTelemetryGuide } from "./GuideTypes";
 import { ExpressGuide } from "./Guides/Express";
 import { NodeJsGuide } from "./Guides/NodeJs";
+import { NestJsGuide } from "./Guides/NestJs";
+import { NextJsGuide } from "./Guides/NextJs";
+import { FastifyGuide } from "./Guides/Fastify";
+import { KoaGuide } from "./Guides/Koa";
+import { HapiGuide } from "./Guides/Hapi";
+import { BunGuide } from "./Guides/Bun";
+import { DenoGuide } from "./Guides/Deno";
+import { BrowserGuide } from "./Guides/Browser";
+import { ReactGuide } from "./Guides/React";
+import { AngularGuide } from "./Guides/Angular";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -21,6 +31,16 @@ import { NodeJsGuide } from "./Guides/NodeJs";
 export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   NodeJsGuide,
   ExpressGuide,
+  NestJsGuide,
+  NextJsGuide,
+  FastifyGuide,
+  KoaGuide,
+  HapiGuide,
+  BunGuide,
+  DenoGuide,
+  BrowserGuide,
+  ReactGuide,
+  AngularGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";

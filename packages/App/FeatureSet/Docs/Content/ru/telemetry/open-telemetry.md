@@ -82,6 +82,8 @@ export OTEL_SERVICE_NAME="my-service"
 
 Выберите язык. Каждая настройка читает переменные окружения, указанные выше, поэтому в коде нет ни адреса, ни ключа.
 
+Используете фреймворк? [Руководства по интеграции](https://oneuptime.com/integrations) пошагово настраивают OpenTelemetry для Express, NestJS, Next.js, Fastify, Koa, hapi, Bun, Deno, браузера, React и Angular: что каждый из них трассирует автоматически и как исправить то, что не работает.
+
 :::tabs
 @tab Node.js
 Установите SDK, автоматические инструментации и экспортёры OTLP/HTTP:

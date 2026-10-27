@@ -107,20 +107,24 @@
     });
   }
 
-  // Opens one tab of a set, without moving the reader's focus or scroll.
+  /*
+   * Opens one tab of a set, without moving the reader's focus or scroll. A
+   * choice the set does not offer - remembered from a guide whose tabs
+   * differ - leaves the set as it is.
+   */
   function selectTab(tabs, value) {
-    var found = false;
-    tabs.querySelectorAll('[data-tab-button]').forEach(function (button) {
+    var buttons = Array.prototype.slice.call(tabs.querySelectorAll('[data-tab-button]'));
+    var offered = buttons.some(function (button) {
+      return button.getAttribute('data-tab-value') === value;
+    });
+    if (!offered) {
+      return;
+    }
+    buttons.forEach(function (button) {
       var isSelected = button.getAttribute('data-tab-value') === value;
-      if (isSelected) {
-        found = true;
-      }
       button.setAttribute('aria-selected', isSelected ? 'true' : 'false');
       button.setAttribute('tabindex', isSelected ? '0' : '-1');
     });
-    if (!found) {
-      return;
-    }
     tabs.querySelectorAll('[data-tab-panel]').forEach(function (panel) {
       panel.hidden = panel.getAttribute('data-tab-value') !== value;
     });

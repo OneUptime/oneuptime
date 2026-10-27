@@ -17,6 +17,12 @@ export const JAVASCRIPT_PACKAGE_VERSIONS: Record<string, string> = {
   "@opentelemetry/instrumentation": "0.300.0",
   "@opentelemetry/winston-transport": "0.35.0",
   "@fastify/otel": "0.21.4",
+  // Loggers a guide asks for, at the versions its check ran with.
+  "nestjs-pino": "5.3.1",
+  "pino-http": "11.0.0",
+  pino: "10.4.0",
+  "hapi-pino": "13.0.0",
+  winston: "3.19.0",
   // In the browser.
   "@opentelemetry/sdk-trace": "3.0.0",
   "@opentelemetry/sdk-logs": "3.0.0",
@@ -35,6 +41,9 @@ export const JAVASCRIPT_PACKAGE_VERSIONS: Record<string, string> = {
 
 // The oldest Node.js the SDK supports (its package.json engines).
 export const MINIMUM_NODE_VERSION: string = "22.15";
+
+// The Node.js frameworks' first prerequisite.
+export const NODE_PREREQUISITE: string = `Node.js ${MINIMUM_NODE_VERSION} or later, which the OpenTelemetry JS SDK 3.0 needs.`;
 
 // A package at its pinned version: "@opentelemetry/api@1.10.0".
 export function pinned(packageName: string): string {
@@ -67,6 +76,16 @@ export function npmInstallSnippet(
     id: id,
     language: "bash",
     code: `npm install ${names.join(" \\\n  ")}`,
+    check: "run",
+  };
+}
+
+// `bun add` of the given packages at their pinned versions, one a line.
+export function bunAddSnippet(id: string, packages: Array<string>): GuideSnippet {
+  return {
+    id: id,
+    language: "bash",
+    code: `bun add ${packages.map(pinned).join(" \\\n  ")}`,
     check: "run",
   };
 }

@@ -200,7 +200,7 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
   },
   {
     slug: "hapi",
-    name: "Hapi",
+    name: "hapi",
     language: OpenTelemetryGuideLanguage.JavaScript,
     kind: "framework",
     telemetryGuideLanguage: "node",

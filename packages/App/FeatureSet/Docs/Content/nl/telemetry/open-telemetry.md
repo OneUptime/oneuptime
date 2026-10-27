@@ -82,6 +82,8 @@ Zelf gehost? Vervang `https://oneuptime.com` door de URL van je OneUptime-instan
 
 Kies je taal. Elke opzet leest de omgevingsvariabelen hierboven, dus er staat geen endpoint of sleutel in je code.
 
+Gebruik je een framework? De [integratiehandleidingen](https://oneuptime.com/integrations) zetten OpenTelemetry stap voor stap op voor Express, NestJS, Next.js, Fastify, Koa, hapi, Bun, Deno, de browser, React en Angular, met wat elk automatisch traceert en hoe je oplost wat misgaat.
+
 :::tabs
 @tab Node.js
 Installeer de SDK, de automatische instrumentaties en de OTLP/HTTP-exporters:

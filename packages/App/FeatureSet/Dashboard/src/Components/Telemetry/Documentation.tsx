@@ -29,6 +29,7 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import AppLink from "../AppLink/AppLink";
 import IngestionKeySelector from "./IngestionKeySelector";
+import FrameworkGuideLinks from "./FrameworkGuideLinks";
 import { SetupGuideStepVariants } from "../SetupGuide/SetupGuideSteps";
 import SetupGuideTopics from "../SetupGuide/SetupGuideTopics";
 import { getKubernetesAgentUpgradeCommand } from "../../Pages/Kubernetes/Utils/DocumentationMarkdown";
@@ -1634,6 +1635,8 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             );
           })}
         </div>
+        {/* The website's full guide for the language and its frameworks. */}
+        {!isProfiles && <FrameworkGuideLinks language={selectedLanguage} />}
       </div>
     );
   };

@@ -2,9 +2,10 @@ import { OpenTelemetryGuide, GuideSnippet } from "../GuideTypes";
 import {
   DOCS,
   SCREENS,
+  SERVER_KEY_PREREQUISITE,
   kubernetesManifestSnippet,
   otlpEnvironmentTabs,
-  validateKeySnippet,
+  validateKeyStep,
 } from "../GuideShared";
 import {
   MINIMUM_NODE_VERSION,
@@ -188,7 +189,7 @@ export const ExpressGuide: OpenTelemetryGuide = {
   seo: {
     title: "Express OpenTelemetry: Tracing, Metrics & Logs | OneUptime",
     description:
-      "Instrument Express with OpenTelemetry in minutes: route and middleware spans, per-route latency, pino and winston logs with trace IDs, and errors, sent to OneUptime.",
+      "Instrument Express with OpenTelemetry: route and middleware spans, per-route latency, pino and winston logs with trace IDs, and errors, sent to OneUptime.",
   },
   h1: "OpenTelemetry for Express",
   lead: "Trace every Express route, middleware and database call, and send the traces, metrics and logs to OneUptime with the OpenTelemetry Node.js SDK. One instrumentation file, three environment variables, and no change to your routes.",
@@ -256,7 +257,7 @@ export const ExpressGuide: OpenTelemetryGuide = {
   prerequisites: [
     `Node.js ${MINIMUM_NODE_VERSION} or later: the OpenTelemetry JS SDK 3.0 these steps install needs it. Node.js 24 LTS is a good choice.`,
     "An Express 4 or 5 app, written with `import` (ES modules) or `require` (CommonJS).",
-    `A OneUptime ingestion key of the **Server** type, from ${SCREENS.ingestionKeys}: see [Ingestion keys](/docs/telemetry/ingestion-keys).`,
+    SERVER_KEY_PREREQUISITE,
   ],
 
   install: {
@@ -441,11 +442,7 @@ export const ExpressGuide: OpenTelemetryGuide = {
   verify: {
     intro: "Check in this order: each step rules out one cause.",
     steps: [
-      {
-        title: "Ask OneUptime whether it accepts the key",
-        body: "`200` with `\"valid\": true` means it does. `401` says what is wrong with it: unknown, disabled or expired.",
-        snippets: [validateKeySnippet()],
-      },
+      validateKeyStep("server"),
       {
         title: "Find the service",
         body: `Start the app, request a route such as \`/users/42\`, and open ${SCREENS.services}. \`checkout-api\` is listed within a minute.`,

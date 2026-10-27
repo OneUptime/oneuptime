@@ -120,7 +120,7 @@ export function generateGuideMarkdown(
 ): string {
   const baseUrl: string = homeUrl.replace(/\/$/, "");
   const entry: OpenTelemetryGuideEntry = getGuideEntry(guide.slug);
-  const sections: Array<GuideSection> = guideSections(entry.name);
+  const sections: Array<GuideSection> = guideSections(entry.name, entry.kind);
   const title: (id: string) => string = (id: string): string => {
     return (
       sections.find((section: GuideSection): boolean => {
@@ -261,6 +261,10 @@ export function generateIntegrationsIndexMarkdown(homeUrl: string): string {
     const language: string = getGuideLanguageGroup(entry.slug).title;
 
     if (language !== lastLanguage) {
+      // A blank line ends the previous language's list before its heading.
+      if (lastLanguage) {
+        lines.push("");
+      }
       lines.push(`## ${language}`, "");
       lastLanguage = language;
     }

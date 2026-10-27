@@ -74,7 +74,10 @@ import {
   GuidePageContent,
   getGuidePageContent,
 } from "./Utils/Integrations/OpenTelemetry/GuidePage";
-import { getIntegrationsIndexContent } from "./Utils/Integrations/OpenTelemetry/IntegrationsIndex";
+import {
+  getFrameworkGuideCards,
+  getIntegrationsIndexContent,
+} from "./Utils/Integrations/OpenTelemetry/IntegrationsIndex";
 import {
   generateGuideMarkdown,
   generateIntegrationsIndexMarkdown,
@@ -197,6 +200,13 @@ const HomeFeatureSet: FeatureSet = {
     app.locals["productIconSpriteHref"] = productIconSprite
       ? productIconSprite.href
       : null;
+
+    /*
+     * The OpenTelemetry guides, as the telemetry product pages list them
+     * (Views/Partials/integrations/framework-strip.ejs): every page reads
+     * them from app.locals, as it reads the stylesheet's URL.
+     */
+    app.locals["frameworkGuides"] = getFrameworkGuideCards();
 
     app.get(
       ProductIconSpriteRoutePattern,
@@ -2180,12 +2190,12 @@ const HomeFeatureSet: FeatureSet = {
     app.get(PROVIDER_LOGO_ROUTE, serveProviderLogo);
 
     app.get(
-      OPEN_TELEMETRY_GUIDES_INDEX_PATH,
+      "/integrations",
       (_req: ExpressRequest, res: ExpressResponse) => {
         const homeUrl: string = res.locals["homeUrl"] as string;
         res.render(`${ViewsPath}/integrations/index`, {
           enableGoogleTagManager: GoogleTagManagerEnabled,
-          seo: getSEOForPath(OPEN_TELEMETRY_GUIDES_INDEX_PATH, homeUrl),
+          seo: getSEOForPath("/integrations", homeUrl),
           integrations: getIntegrationsIndexContent(homeUrl),
           integrationsScript: versionedStaticPath("/js/integrations.js"),
         });
@@ -2196,7 +2206,7 @@ const HomeFeatureSet: FeatureSet = {
     app.get(
       "/integrations/opentelemetry",
       (req: ExpressRequest, res: ExpressResponse) => {
-        redirectPreservingQuery(req, res, OPEN_TELEMETRY_GUIDES_INDEX_PATH, 301);
+        redirectPreservingQuery(req, res, "/integrations", 301);
       },
     );
 
@@ -2217,7 +2227,7 @@ const HomeFeatureSet: FeatureSet = {
 
         return res.render(`${ViewsPath}/integrations/opentelemetry-guide`, {
           enableGoogleTagManager: GoogleTagManagerEnabled,
-          seo: getSEOForPath(`${OPEN_TELEMETRY_GUIDE_PATH_PREFIX}${slug}`, homeUrl),
+          seo: getSEOForPath(`/integrations/opentelemetry/${slug}`, homeUrl),
           guide: guide,
           integrationsScript: versionedStaticPath("/js/integrations.js"),
         });

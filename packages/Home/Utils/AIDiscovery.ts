@@ -108,6 +108,21 @@ const machineReadableSection: (baseUrl: string) => Array<string> = (
   ];
 };
 
+/*
+ * The OpenTelemetry guides (Utils/Integrations/OpenTelemetry), each as its
+ * Markdown copy: the index first, then a guide per framework in the
+ * catalog's order, as the PageSEO register lists them.
+ */
+function integrationsSection(baseUrl: string): Array<string> {
+  return [
+    "## Integrations",
+    "",
+    ...getPagesByType("integration").map((seo: PageSEOData): string => {
+      return `- [${shortTitle(seo)}](${baseUrl}${seo.canonicalPath}.md): ${seo.description}`;
+    }),
+  ];
+}
+
 export function generateLlmsTxt(
   homeUrl: string,
   recentPosts: Array<RecentBlogPostLink>,
@@ -178,6 +193,9 @@ export function generateLlmsTxt(
       `- [OneUptime vs ${product.productName}](${baseUrl}/compare/${slug}.md): ${product.tagline}`,
     );
   }
+
+  lines.push("");
+  lines.push(...integrationsSection(baseUrl));
 
   lines.push("");
   lines.push("## Pricing");
@@ -281,6 +299,9 @@ export function generateLlmsFullTxt(
       lines.push(`- ${difference.title}: ${difference.description}`);
     }
   }
+
+  lines.push("");
+  lines.push(...integrationsSection(baseUrl));
 
   if (recentPosts.length > 0) {
     lines.push("");

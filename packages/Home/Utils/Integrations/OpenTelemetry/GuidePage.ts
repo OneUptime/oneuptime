@@ -251,14 +251,64 @@ function renderQuestion(question: GuideQuestion): RenderedQuestion {
   };
 }
 
+/*
+ * How the section titles name what the page is for. A framework's catalog
+ * name reads well there ("Add OpenTelemetry to Express"); the browser
+ * entry's ("JavaScript in the browser") does not, so a browser page names
+ * the web app instead, and its deploy section is about shipping a bundle,
+ * not running a container.
+ */
+interface SectionWords {
+  setupTitle: string;
+  setupLabel: string;
+  troubleshootingTitle: string;
+  faqTitle: string;
+  deployTitle: string;
+  deployLabel: string;
+}
+
+function sectionWords(name: string, kind: OpenTelemetryGuideKind): SectionWords {
+  if (kind === "browser") {
+    const isPlainBrowser: boolean = name.toLowerCase().includes("browser");
+    const app: string = isPlainBrowser ? "your web app" : `your ${name} app`;
+
+    return {
+      setupTitle: `Add OpenTelemetry to ${app}`,
+      setupLabel: isPlainBrowser ? "Add to your web app" : `Add to ${name}`,
+      troubleshootingTitle: isPlainBrowser
+        ? "Troubleshooting OpenTelemetry in the browser"
+        : `Troubleshooting OpenTelemetry in ${name}`,
+      faqTitle: isPlainBrowser
+        ? "Browser OpenTelemetry FAQ"
+        : `${name} OpenTelemetry FAQ`,
+      deployTitle: "Ship it to production",
+      deployLabel: "Production",
+    };
+  }
+
+  return {
+    setupTitle: `Add OpenTelemetry to ${name}`,
+    setupLabel: `Add to ${name}`,
+    troubleshootingTitle: `Troubleshooting OpenTelemetry in ${name}`,
+    faqTitle: `${name} OpenTelemetry FAQ`,
+    deployTitle: "Run it in Docker and Kubernetes",
+    deployLabel: "Docker and Kubernetes",
+  };
+}
+
 // The page's sections, in order: its h2s and the contents list.
-export function guideSections(name: string): Array<GuideSection> {
+export function guideSections(
+  name: string,
+  kind: OpenTelemetryGuideKind,
+): Array<GuideSection> {
+  const words: SectionWords = sectionWords(name, kind);
+
   return [
     { id: "what-you-get", title: "What you get in OneUptime", label: "What you get" },
     { id: "before-you-start", title: "Before you start", label: "Before you start" },
     { id: "install", title: "Install the OpenTelemetry packages", label: "Install" },
     { id: "configure", title: "Point the exporter at OneUptime", label: "Configure" },
-    { id: "setup", title: `Add OpenTelemetry to ${name}`, label: `Add to ${name}` },
+    { id: "setup", title: words.setupTitle, label: words.setupLabel },
     {
       id: "automatic-instrumentation",
       title: "What is traced automatically",
@@ -268,14 +318,14 @@ export function guideSections(name: string): Array<GuideSection> {
     { id: "logs", title: "Logs and trace correlation", label: "Logs" },
     { id: "metrics", title: "Metrics", label: "Metrics" },
     { id: "sampling", title: "Sampling and noise", label: "Sampling" },
-    { id: "containers", title: "Run it in Docker and Kubernetes", label: "Docker and Kubernetes" },
+    { id: "containers", title: words.deployTitle, label: words.deployLabel },
     { id: "check", title: "Check that data is arriving", label: "Check it works" },
     {
       id: "troubleshooting",
-      title: `Troubleshooting OpenTelemetry in ${name}`,
+      title: words.troubleshootingTitle,
       label: "Troubleshooting",
     },
-    { id: "faq", title: `${name} OpenTelemetry FAQ`, label: "FAQ" },
+    { id: "faq", title: words.faqTitle, label: "FAQ" },
   ];
 }
 
@@ -394,7 +444,7 @@ export function getGuidePageContent(
     language: getGuideLanguageGroup(slug),
     mark: guideMark(entry),
     checked: checkedLabels(getVerificationRecord(slug)),
-    sections: guideSections(entry.name),
+    sections: guideSections(entry.name, entry.kind),
     whatYouGet: {
       introHtml: inlineTextToHtml(guide.whatYouGet.intro),
       signals: [

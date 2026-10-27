@@ -115,6 +115,15 @@ export function getIntegrationsIndexContent(
   };
 }
 
+// Every published guide's card, in the catalog's order: the product pages' strip.
+export function getFrameworkGuideCards(): Array<GuideCard> {
+  return getPublishedGuides().map(
+    ({ guide }: { guide: OpenTelemetryGuide }): GuideCard => {
+      return guideCard(guide.slug);
+    },
+  );
+}
+
 // "A", "A and B", "A, B and C".
 export function listInWords(items: Array<string>): string {
   if (items.length <= 1) {

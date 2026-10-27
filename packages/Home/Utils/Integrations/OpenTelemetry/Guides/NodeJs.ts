@@ -2,9 +2,10 @@ import { GuideSnippet, OpenTelemetryGuide } from "../GuideTypes";
 import {
   DOCS,
   SCREENS,
+  SERVER_KEY_PREREQUISITE,
   kubernetesManifestSnippet,
   otlpEnvironmentTabs,
-  validateKeySnippet,
+  validateKeyStep,
 } from "../GuideShared";
 import {
   MINIMUM_NODE_VERSION,
@@ -217,7 +218,7 @@ export const NodeJsGuide: OpenTelemetryGuide = {
   seo: {
     title: "Node.js OpenTelemetry: Traces, Metrics & Logs | OneUptime",
     description:
-      "Add OpenTelemetry to any Node.js app: one instrumentation file for ES modules and CommonJS, automatic HTTP and database spans, runtime metrics and logs in OneUptime.",
+      "Add OpenTelemetry to any Node.js app: one file for ES modules and CommonJS, automatic HTTP and database spans, runtime metrics and logs, sent to OneUptime.",
   },
   h1: "OpenTelemetry for Node.js",
   lead: "Send traces, metrics and logs from any Node.js app to OneUptime: an HTTP server without a framework, a queue worker, a cron job or a CLI. One instrumentation file loads before your code, works for ES modules and CommonJS, and traces the libraries you already use.",
@@ -293,7 +294,7 @@ export const NodeJsGuide: OpenTelemetryGuide = {
   prerequisites: [
     `Node.js ${MINIMUM_NODE_VERSION} or later, the oldest the OpenTelemetry JS SDK 3.0 supports. These steps were checked on Node.js 24 LTS.`,
     "An app started with `node`: a server, a worker or a script, written as ES modules or CommonJS, in JavaScript or TypeScript.",
-    `A OneUptime ingestion key of the **Server** type, from ${SCREENS.ingestionKeys}: see [Ingestion keys](/docs/telemetry/ingestion-keys).`,
+    SERVER_KEY_PREREQUISITE,
   ],
 
   install: {
@@ -482,11 +483,7 @@ export const NodeJsGuide: OpenTelemetryGuide = {
   verify: {
     intro: "Check in this order: each step rules out one cause.",
     steps: [
-      {
-        title: "Ask OneUptime whether it accepts the key",
-        body: "`200` with `\"valid\": true` means it does; `401` says why it does not.",
-        snippets: [validateKeySnippet()],
-      },
+      validateKeyStep("server"),
       {
         title: "Find the service",
         body: `Start the app, send it a request or a job, and open ${SCREENS.services}. \`invoice-service\` appears within a minute.`,

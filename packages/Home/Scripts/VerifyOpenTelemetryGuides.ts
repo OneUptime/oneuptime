@@ -29,7 +29,8 @@
  *   - Node.js 22.15 or later for the Node.js guides: the one on PATH, or
  *     OTEL_GUIDES_NODE_BIN, a folder holding node, npm and npx.
  *   - OTEL_GUIDES_BUN and OTEL_GUIDES_DENO, the binaries, for those guides.
- *   - Chromium as Common's Playwright installs it, for the browser guides.
+ *   - Chromium as Common's Playwright installs it, for the browser guides,
+ *     or OTEL_GUIDES_CHROMIUM, the path of another Chromium to launch.
  *
  * OTEL_GUIDES_CONTAINER_NAME names the collector's container, and
  * OTEL_GUIDES_WORK_DIR the folder the apps are written to (the system's
@@ -41,6 +42,7 @@ import http from "http";
 import net from "net";
 import os from "os";
 import path from "path";
+import ts from "typescript";
 import {
   GuideSnippet,
   GuideVerification,
@@ -107,12 +109,22 @@ interface ObservedSpan {
   name: string;
   attributes: Record<string, unknown>;
   hasException: boolean;
+  // The exception.message of each of its exception events.
+  exceptionMessages: Array<string>;
 }
 
 interface ObservedLog {
   body: string;
   traceId: string;
+  // exception.* attributes: OneUptime files the record under Exceptions.
+  hasException: boolean;
 }
+
+const EXCEPTION_ATTRIBUTES: Array<string> = [
+  "exception.type",
+  "exception.message",
+  "exception.stacktrace",
+];
 
 type JsonObject = Record<string, unknown>;
 
@@ -484,14 +496,18 @@ function collect(outDir: string, from: Record<string, number>): Observed {
       );
       for (const scopeSpans of (resourceSpans["scopeSpans"] as Array<JsonObject>) || []) {
         for (const span of (scopeSpans["spans"] as Array<JsonObject>) || []) {
+          const exceptionEvents: Array<JsonObject> = (
+            (span["events"] as Array<JsonObject>) || []
+          ).filter((event: JsonObject): boolean => {
+            return event["name"] === "exception";
+          });
           observed.spans.push({
             name: String(span["name"]),
             attributes: attributesOf(span["attributes"]),
-            hasException: ((span["events"] as Array<JsonObject>) || []).some(
-              (event: JsonObject): boolean => {
-                return event["name"] === "exception";
-              },
-            ),
+            hasException: exceptionEvents.length > 0,
+            exceptionMessages: exceptionEvents.map((event: JsonObject): string => {
+              return String(attributesOf(event["attributes"])["exception.message"] ?? "");
+            }),
           });
         }
       }
@@ -519,9 +535,15 @@ function collect(outDir: string, from: Record<string, number>): Observed {
       for (const scopeLogs of (resourceLogs["scopeLogs"] as Array<JsonObject>) || []) {
         for (const record of (scopeLogs["logRecords"] as Array<JsonObject>) || []) {
           const body: unknown = attributeValue(record["body"] as JsonObject);
+          const attributes: Record<string, unknown> = attributesOf(
+            record["attributes"],
+          );
           observed.logs.push({
             body: typeof body === "string" ? body : JSON.stringify(body),
             traceId: String(record["traceId"] || ""),
+            hasException: EXCEPTION_ATTRIBUTES.some((key: string): boolean => {
+              return attributes[key] !== undefined;
+            }),
           });
         }
       }
@@ -539,7 +561,18 @@ function check(verification: GuideVerification, observed: Observed): Array<strin
       if (span.name !== expected.name) {
         return false;
       }
-      if (expected.hasException && !span.hasException) {
+      if (
+        expected.hasException !== undefined &&
+        expected.hasException !== span.hasException
+      ) {
+        return false;
+      }
+      if (
+        expected.exceptionMessage !== undefined &&
+        !span.exceptionMessages.some((message: string): boolean => {
+          return message.includes(expected.exceptionMessage || "");
+        })
+      ) {
         return false;
       }
       return Object.entries(expected.attributes || {}).every(
@@ -564,7 +597,9 @@ function check(verification: GuideVerification, observed: Observed): Array<strin
     const found: boolean = observed.logs.some((record: ObservedLog): boolean => {
       return (
         record.body.includes(expected.body) &&
-        (!expected.hasTraceContext || record.traceId.length > 0)
+        (!expected.hasTraceContext || record.traceId.length > 0) &&
+        (expected.hasException === undefined ||
+          expected.hasException === record.hasException)
       );
     });
 
@@ -597,6 +632,28 @@ function check(verification: GuideVerification, observed: Observed): Array<strin
 
     if (traced) {
       failures.push(`a span for ${untraced}, which the guide leaves out: ${traced.name}`);
+    }
+  }
+
+  for (const absent of verification.expect.absentSpans || []) {
+    if (
+      observed.spans.some((span: ObservedSpan): boolean => {
+        return span.name === absent;
+      })
+    ) {
+      failures.push(`a span named ${absent}, which the guide turns off`);
+    }
+  }
+
+  for (const absent of verification.expect.absentLogs || []) {
+    const found: ObservedLog | undefined = observed.logs.find(
+      (record: ObservedLog): boolean => {
+        return record.body.includes(absent);
+      },
+    );
+
+    if (found) {
+      failures.push(`a log line with ${absent}, which the guide leaves out: ${found.body}`);
     }
   }
 
@@ -699,7 +756,10 @@ async function driveBrowser(url: string, clicks: Array<string>): Promise<Array<s
   const playwright: {
     chromium: { launch: (options: Record<string, unknown>) => Promise<PlaywrightBrowser> };
   } = require(path.join(COMMON, "node_modules", "playwright"));
-  const browser: PlaywrightBrowser = await playwright.chromium.launch({});
+  const executablePath: string | undefined = process.env["OTEL_GUIDES_CHROMIUM"];
+  const browser: PlaywrightBrowser = await playwright.chromium.launch(
+    executablePath ? { executablePath: executablePath } : {},
+  );
   const page: PlaywrightPage = await browser.newPage();
   const messages: Array<string> = [];
   page.on("pageerror", (error: { message?: string }) => {
@@ -748,7 +808,13 @@ function runtimeVersion(verification: GuideVerification, env: NodeJS.ProcessEnv)
     case "deno":
       return `Deno ${version(process.env["OTEL_GUIDES_DENO"] || "deno", ["--version"]).replace("deno ", "").split(" ")[0]}`;
     case "browser":
-      return `Chromium, built with Node.js ${version("node", ["--version"]).replace("v", "")}`;
+      // "Google Chrome for Testing 153.0.8010.12" is Chrome 153.
+      return process.env["OTEL_GUIDES_CHROMIUM"]
+        ? version(process.env["OTEL_GUIDES_CHROMIUM"], ["--version"]).replace(
+            "Google Chrome for Testing",
+            "Chrome",
+          )
+        : "Chromium, as Common's Playwright installs it";
     default:
       return `Node.js ${version("node", ["--version"]).replace("v", "")}`;
   }
@@ -757,11 +823,70 @@ function runtimeVersion(verification: GuideVerification, env: NodeJS.ProcessEnv)
 function installedVersion(appDir: string, packageName: string): string | undefined {
   const file: string = path.join(appDir, "node_modules", packageName, "package.json");
 
-  if (!fs.existsSync(file)) {
+  if (fs.existsSync(file)) {
+    return (JSON.parse(fs.readFileSync(file, "utf8")) as { version?: string }).version;
+  }
+
+  // Deno keeps npm packages in its cache, and their versions in deno.lock.
+  const lockFile: string = path.join(appDir, "deno.lock");
+
+  if (!fs.existsSync(lockFile)) {
     return undefined;
   }
 
-  return (JSON.parse(fs.readFileSync(file, "utf8")) as { version?: string }).version;
+  const specifiers: Record<string, string> =
+    (JSON.parse(fs.readFileSync(lockFile, "utf8")) as { specifiers?: Record<string, string> })
+      .specifiers || {};
+
+  for (const [specifier, version] of Object.entries(specifiers)) {
+    if (specifier.startsWith(`npm:${packageName}@`)) {
+      return version;
+    }
+  }
+
+  return undefined;
+}
+
+/*
+ * The names a package's type declarations export, as the app's own
+ * TypeScript resolves it: its interfaces and types too, and the exports of
+ * packages that cannot be imported outside their runtime (Angular's need
+ * its compiler to load in Node.js). Empty for a package with no types.
+ */
+function declaredExportsOf(appDir: string, specifier: string): Array<string> {
+  const options: ts.CompilerOptions = {
+    module: ts.ModuleKind.ESNext,
+    moduleResolution: ts.ModuleResolutionKind.Bundler,
+    target: ts.ScriptTarget.ES2022,
+    skipLibCheck: true,
+    noEmit: true,
+    types: [],
+  };
+  const resolved: ts.ResolvedModuleFull | undefined = ts.resolveModuleName(
+    specifier,
+    path.join(appDir, "index.ts"),
+    options,
+    ts.sys,
+  ).resolvedModule;
+
+  if (!resolved || !resolved.resolvedFileName.endsWith(".d.ts") && !resolved.resolvedFileName.endsWith(".d.mts") && !resolved.resolvedFileName.endsWith(".d.cts")) {
+    return [];
+  }
+
+  const program: ts.Program = ts.createProgram([resolved.resolvedFileName], options);
+  const checker: ts.TypeChecker = program.getTypeChecker();
+  const sourceFile: ts.SourceFile | undefined = program.getSourceFile(resolved.resolvedFileName);
+  const moduleSymbol: ts.Symbol | undefined = sourceFile
+    ? checker.getSymbolAtLocation(sourceFile)
+    : undefined;
+
+  if (!moduleSymbol) {
+    return [];
+  }
+
+  return checker.getExportsOfModule(moduleSymbol).map((symbol: ts.Symbol): string => {
+    return symbol.getName();
+  });
 }
 
 // The names a package exports, as the app's runtime imports it.
@@ -847,7 +972,8 @@ async function verifyGuide(
 
       if (command.isServer) {
         log(`  $ ${text} &`);
-        server = spawn("bash", ["-c", `exec ${text}`], {
+        // Its own process group, so stopping it reaches every process it starts.
+        server = spawn("bash", ["-c", text], {
           cwd: appDir,
           env: env,
           detached: true,
@@ -977,9 +1103,15 @@ async function verifyGuide(
     }
   }
 
+  // What each package exports: at run time, and in its type declarations.
   const packageExports: Record<string, Array<string>> = {};
   for (const specifier of importedPackages(guideSnippets(guide))) {
-    packageExports[specifier] = exportsOf(appDir, specifier, verification, env);
+    packageExports[specifier] = Array.from(
+      new Set([
+        ...exportsOf(appDir, specifier, verification, env),
+        ...declaredExportsOf(appDir, specifier),
+      ]),
+    ).sort();
   }
 
   const frameworkVersion: string | undefined = verification.framework.package

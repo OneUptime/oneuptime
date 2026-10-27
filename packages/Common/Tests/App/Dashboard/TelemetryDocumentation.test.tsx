@@ -458,4 +458,83 @@ describe("TelemetryDocumentation", () => {
       ).not.toBeInTheDocument();
     });
   });
+
+  /*
+   * The website's step-by-step guide for the language picked, and one per
+   * framework of that language (Common/Types/Telemetry/OpenTelemetryGuides):
+   * each language button opens its own guides, and a language with no guide
+   * yet shows none.
+   */
+  describe("the step-by-step guides on the website", () => {
+    const guideLinks: () => Array<[string, string | null]> = (): Array<
+      [string, string | null]
+    > => {
+      return within(screen.getByTestId("telemetry-framework-guides"))
+        .getAllByRole("link")
+        .map((link: HTMLElement): [string, string | null] => {
+          return [link.textContent || "", link.getAttribute("href")];
+        });
+    };
+
+    test("Node.js opens its own guide and every framework's, in the catalog's order", () => {
+      renderGuide("traces");
+
+      expect(guideLinks()).toEqual([
+        ["Node.js", "https://oneuptime.com/integrations/opentelemetry/nodejs"],
+        ["Express", "https://oneuptime.com/integrations/opentelemetry/express"],
+        ["NestJS", "https://oneuptime.com/integrations/opentelemetry/nestjs"],
+        ["Next.js", "https://oneuptime.com/integrations/opentelemetry/nextjs"],
+        ["Fastify", "https://oneuptime.com/integrations/opentelemetry/fastify"],
+        ["Koa", "https://oneuptime.com/integrations/opentelemetry/koa"],
+        ["hapi", "https://oneuptime.com/integrations/opentelemetry/hapi"],
+        ["Bun", "https://oneuptime.com/integrations/opentelemetry/bun"],
+        ["Deno", "https://oneuptime.com/integrations/opentelemetry/deno"],
+      ]);
+      expect(screen.getByTestId("telemetry-framework-guides")).toHaveTextContent(
+        "Step-by-step guide",
+      );
+      for (const link of within(
+        screen.getByTestId("telemetry-framework-guides"),
+      ).getAllByRole("link")) {
+        expect(link.getAttribute("target")).toBe("_blank");
+        expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+      }
+    });
+
+    test("React and Angular each open their own guide, with no framework list", () => {
+      renderGuide("logs");
+
+      fireEvent.click(screen.getByRole("button", { name: "React" }));
+      expect(guideLinks()).toEqual([
+        ["React", "https://oneuptime.com/integrations/opentelemetry/react"],
+      ]);
+      expect(screen.getByTestId("telemetry-framework-guides")).not.toHaveTextContent(
+        "For your framework",
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Angular" }));
+      expect(guideLinks()).toEqual([
+        ["Angular", "https://oneuptime.com/integrations/opentelemetry/angular"],
+      ]);
+    });
+
+    test("a language with no guide yet shows none", () => {
+      renderGuide("metrics");
+
+      fireEvent.click(screen.getByRole("button", { name: "Python" }));
+
+      expect(
+        screen.queryByTestId("telemetry-framework-guides"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("the profiles guide, which is not OpenTelemetry, shows none", () => {
+      renderGuide("profiles");
+      pickMethod("Language SDK");
+
+      expect(
+        screen.queryByTestId("telemetry-framework-guides"),
+      ).not.toBeInTheDocument();
+    });
+  });
 });

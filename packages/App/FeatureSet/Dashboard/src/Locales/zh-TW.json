@@ -36334,5 +36334,6 @@
   "Recovered on its own while OneUptime AI held the page.": "OneUptime AI 暫緩呼叫期間，已自行恢復。",
   "Resolved by OneUptime AI. Nobody was paged.": "已由 OneUptime AI 解決。沒有呼叫任何人。",
   "Wait for OneUptime AI for up to (minutes)": "最多等待 OneUptime AI（分鐘）",
-  "Wait from 1 to 30 whole minutes.": "請輸入 1 到 30 之間的整數分鐘。"
+  "Wait from 1 to 30 whole minutes.": "請輸入 1 到 30 之間的整數分鐘。",
+  "For your framework": "依框架"
 }

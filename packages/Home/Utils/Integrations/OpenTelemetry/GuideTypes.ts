@@ -152,8 +152,10 @@ export interface ExpectedSpan {
   name: string;
   // Attributes the span must carry, with these values.
   attributes?: Record<string, string> | undefined;
-  // The span must hold an exception event.
+  // true: the span must hold an exception event; false: it must hold none.
   hasException?: boolean | undefined;
+  // An exception event's message must contain this text.
+  exceptionMessage?: string | undefined;
 }
 
 export interface ExpectedLog {
@@ -161,6 +163,11 @@ export interface ExpectedLog {
   body: string;
   // The record carries the trace and span id of the request it was written in.
   hasTraceContext: boolean;
+  /*
+   * true: the record carries exception.* attributes, which OneUptime files
+   * under Exceptions; false: it carries none.
+   */
+  hasException?: boolean | undefined;
 }
 
 export interface VerificationExpectations {
@@ -171,6 +178,10 @@ export interface VerificationExpectations {
   resource?: Record<string, string> | undefined;
   // Request paths no span may be recorded for: the health checks left out.
   untracedPaths?: Array<string> | undefined;
+  // Span names that must not arrive: what the guide's configuration turns off.
+  absentSpans?: Array<string> | undefined;
+  // Text no log record's body may contain: the lines the guide leaves out.
+  absentLogs?: Array<string> | undefined;
 }
 
 export interface GuideVerification {

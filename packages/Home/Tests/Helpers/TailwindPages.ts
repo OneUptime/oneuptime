@@ -7,6 +7,11 @@ import { getSelfHostedContent } from "../../Utils/SelfHosted";
 import { getResellersPageContent } from "../../Utils/Resellers";
 import { getAirGappedContent } from "../../Utils/AirGapped";
 import { getCloudMarketplacesContent } from "../../Utils/CloudMarketplaces";
+import { getGuidePageContent } from "../../Utils/Integrations/OpenTelemetry/GuidePage";
+import {
+  getFrameworkGuideCards,
+  getIntegrationsIndexContent,
+} from "../../Utils/Integrations/OpenTelemetry/IntegrationsIndex";
 import { getPageSEO, PageSEOData } from "../../Utils/PageSEO";
 import type { BlogPost, BlogPostContributor } from "../../Utils/BlogPost";
 import BlogTag from "../../Utils/BlogTag";
@@ -353,6 +358,54 @@ export const MARKETING_PAGES: Array<MarketingPage> = [
         enableGoogleTagManager: false,
         seo: seoFor("/enterprise/air-gapped"),
         airGapped: getAirGappedContent(),
+      };
+    },
+  },
+  {
+    name: "the integrations index",
+    template: "integrations/index.ejs",
+    locals: async (): Promise<Record<string, unknown>> => {
+      // The locals Routes.ts hands the page.
+      return {
+        enableGoogleTagManager: false,
+        seo: seoFor("/integrations"),
+        integrations: getIntegrationsIndexContent(HOME_URL),
+        integrationsScript: "/js/integrations.js",
+      };
+    },
+  },
+  {
+    name: "an OpenTelemetry guide (Express)",
+    template: "integrations/opentelemetry-guide.ejs",
+    locals: async (): Promise<Record<string, unknown>> => {
+      return {
+        enableGoogleTagManager: false,
+        seo: seoFor("/integrations/opentelemetry/express"),
+        guide: getGuidePageContent("express", HOME_URL),
+        integrationsScript: "/js/integrations.js",
+      };
+    },
+  },
+  {
+    name: "a browser OpenTelemetry guide (React)",
+    template: "integrations/opentelemetry-guide.ejs",
+    locals: async (): Promise<Record<string, unknown>> => {
+      return {
+        enableGoogleTagManager: false,
+        seo: seoFor("/integrations/opentelemetry/react"),
+        guide: getGuidePageContent("react", HOME_URL),
+        integrationsScript: "/js/integrations.js",
+      };
+    },
+  },
+  {
+    name: "a product page with its framework guides (traces)",
+    template: "traces.ejs",
+    locals: async (): Promise<Record<string, unknown>> => {
+      return {
+        enableGoogleTagManager: false,
+        seo: seoFor("/product/traces"),
+        frameworkGuides: getFrameworkGuideCards(),
       };
     },
   },

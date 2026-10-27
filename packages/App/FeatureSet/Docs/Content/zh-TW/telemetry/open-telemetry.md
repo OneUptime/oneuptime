@@ -82,6 +82,8 @@ export OTEL_SERVICE_NAME="my-service"
 
 選擇你的語言。每種設定都會讀取上方的環境變數，因此程式碼中不會出現端點或金鑰。
 
+在用某個框架嗎？[整合指南](https://oneuptime.com/integrations)為 Express、NestJS、Next.js、Fastify、Koa、hapi、Bun、Deno、瀏覽器、React 和 Angular 逐步設定 OpenTelemetry，並說明每種框架會自動追蹤什麼，以及出問題時如何解決。
+
 :::tabs
 @tab Node.js
 安裝 SDK、自動檢測與 OTLP/HTTP 匯出器：
