@@ -3,6 +3,7 @@ import IncidentEpisode from "../../../Models/DatabaseModels/IncidentEpisode";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import StatusPageVisibility, {
   VISIBLE_ON_STATUS_PAGE_COLUMN,
@@ -16,8 +17,9 @@ import { applyIncidentEpisodeSelfPrivacyFilter } from "../IncidentEpisode/Incide
  * StatusPageVisibility's rule in SQL, for the queries that decide what a
  * status page shows: an incident or an episode is shown only when Visible on
  * Status Page is on and it is not private; a scheduled maintenance event
- * only when Visible on Status Page is on; an announcement only once the time
- * it is shown from has come.
+ * only when Visible on Status Page is on and it is published (its Publish
+ * on Status Page At, when it has one, has come); an announcement only once
+ * the time it is shown from has come.
  *
  * "Not private" is what anyone outside the project may see: the privacy
  * filters' anonymous form (IncidentPrivacyFilter, IncidentEpisodePrivacyFilter,
@@ -82,14 +84,23 @@ export default class StatusPageVisibilityQuery {
 
   /*
    * Scheduled maintenance events a status page shows: Visible on Status Page
-   * on. An event has no Private switch.
+   * on, and published by `now` (the current time when not given) - no
+   * Publish on Status Page At, or one that has come
+   * (Types/ScheduledMaintenance/ScheduledMaintenancePublication, the same
+   * rule in code). An event kept to the team until its publish time is on
+   * no page, by its id as much as in a list, and in no feed or calendar
+   * built from them. An event has no Private switch.
    */
   public static shownScheduledMaintenance(
     query: Query<ScheduledMaintenance>,
+    window?: { now: Date } | undefined,
   ): Query<ScheduledMaintenance> {
     return {
       ...query,
       isVisibleOnStatusPage: true,
+      publishOnStatusPageAt: QueryHelper.lessThanEqualToOrNull(
+        window?.now || OneUptimeDate.getCurrentDate(),
+      ),
     };
   }
 

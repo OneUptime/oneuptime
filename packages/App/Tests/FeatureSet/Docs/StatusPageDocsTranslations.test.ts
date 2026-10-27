@@ -354,7 +354,7 @@ const STATUS_PAGE_APP_MESSAGES: Record<string, Array<string>> = {
  */
 const DASHBOARD_QUOTES: Record<string, Array<string>> = {
   [SUBSCRIBERS]: [
-    "Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.",
+    "Shown on its status pages as soon as it is saved. Subscribers of the event's status pages are notified when it is scheduled, when it starts and when it ends.",
     "Status pages that show the affected monitors:",
     "The event has started, so this can no longer be changed.",
     "Shows now and stays until you end it. Subscribers are notified when it starts showing.",

@@ -52,6 +52,10 @@ import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailL
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
+import ScheduledMaintenancePublication, {
+  NOT_PUBLISHED_YET_SKIPPED_MESSAGE,
+  ScheduledMaintenancePublicationState,
+} from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
 
 RunCron(
@@ -167,6 +171,7 @@ RunCron(
                 _id: true,
               },
               isVisibleOnStatusPage: true,
+              publishOnStatusPageAt: true,
               scheduledMaintenanceNumber: true,
               scheduledMaintenanceNumberWithPrefix: true,
             },
@@ -186,18 +191,29 @@ RunCron(
           continue;
         }
 
-        if (!event.isVisibleOnStatusPage) {
+        /*
+         * Only an event shown on its status pages tells their subscribers
+         * it moved on: not one hidden from them, nor one kept to the team
+         * until its publish time - its subscribers hear of it when it is
+         * published, and see its state on the page from then on.
+         */
+        const publication: ScheduledMaintenancePublicationState =
+          ScheduledMaintenancePublication.getState(event);
+
+        if (publication !== ScheduledMaintenancePublicationState.Published) {
           await ScheduledMaintenanceStateTimelineService.updateOneById({
             id: scheduledEventStateTimeline.id!,
             data: {
               subscriberNotificationStatus:
                 StatusPageSubscriberNotificationStatus.Skipped,
               subscriberNotificationStatusMessage:
-                "Scheduled maintenance is not visible on status page. Skipping notifications.",
+                publication === ScheduledMaintenancePublicationState.Hidden
+                  ? "Scheduled maintenance is not visible on status page. Skipping notifications."
+                  : NOT_PUBLISHED_YET_SKIPPED_MESSAGE,
             },
             props: { isRoot: true, ignoreHooks: true },
           });
-          continue; // skip if not visible on status page.
+          continue; // skip if not shown on status page.
         }
 
         /*

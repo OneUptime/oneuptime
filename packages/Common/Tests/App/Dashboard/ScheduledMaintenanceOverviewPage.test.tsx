@@ -285,11 +285,26 @@ jest.mock(
       __esModule: true,
       default: (props: {
         onResendNotification: () => void;
+        statusText?: string;
+        isWaiting?: boolean;
       }): React.ReactElement => {
         return React.createElement(
-          "button",
-          { type: "button", onClick: props.onResendNotification },
-          "Resend notifications",
+          "span",
+          {},
+          React.createElement(
+            "button",
+            { type: "button", onClick: props.onResendNotification },
+            "Resend notifications",
+          ),
+          // What the badge says in place of its status's own words, if anything.
+          React.createElement(
+            "span",
+            {
+              "data-testid": "subscriber-status-text",
+              "data-waiting": props.isWaiting ? "true" : "false",
+            },
+            props.statusText || "",
+          ),
         );
       },
     };
@@ -453,6 +468,7 @@ interface CardProps {
     style?: DetailStyle;
     showDetailsInNumberOfColumns?: number;
     onBeforeFetch?: unknown;
+    selectMoreFields?: Record<string, unknown>;
     fields: Array<DetailField>;
   };
 }
@@ -756,6 +772,14 @@ describe("Scheduled maintenance overview page", () => {
         shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
         shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
         shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
+        /*
+         * Whether it is on its status pages yet, and when it will be: the
+         * header says so while it waits for its publish time (#5249) - and
+         * whether its subscribers are told it is scheduled then.
+         */
+        isVisibleOnStatusPage: true,
+        publishOnStatusPageAt: true,
+        subscriberNotificationStatusOnEventScheduled: true,
         statusPages: { _id: true, name: true },
         createdByUser: { name: true, email: true },
         /*
@@ -1440,6 +1464,8 @@ describe("Scheduled maintenance overview page", () => {
         "Ends At",
         "Created At",
         "Shown on Status Pages",
+        // Listed only for an event that has a publish time (#5249).
+        "Publish on Status Pages",
         "Subscriber Reminders",
         "Subscriber Notifications",
         "Labels",
@@ -2362,7 +2388,10 @@ describe("Scheduled maintenance overview page", () => {
    */
   describe("details card Edit", () => {
     interface EditField {
-      field: Record<string, unknown>;
+      field?: Record<string, unknown>;
+      // A choice that stands for a column (ColumnChoice), and its own key.
+      overrideField?: Record<string, unknown>;
+      overrideFieldKey?: string;
       title?: string;
       stepId?: string;
       collapsibleSection?: { id: string; title: string };
@@ -2393,7 +2422,10 @@ describe("Scheduled maintenance overview page", () => {
     }
 
     function keyOf(field: EditField): string {
-      return Object.keys(field.field)[0]!;
+      return (
+        field.overrideFieldKey ||
+        Object.keys(field.field || field.overrideField || {})[0]!
+      );
     }
 
     function rowsOn(card: EditCard, stepId: string): Array<string> {
@@ -2442,8 +2474,14 @@ describe("Scheduled maintenance overview page", () => {
         "endsAt",
         "More fields: labels",
       ]);
+      /*
+       * When it is published - Right away, or At a date and time - asked
+       * open between the pages and the reminders (#5249).
+       */
       expect(rowsOn(card, "status-pages")).toEqual([
         "statusPages",
+        "publishOnStatusPagesChoice",
+        "publishOnStatusPageAt",
         "sendSubscriberNotificationsOnBeforeTheEvent",
       ]);
       // Every field is on one of the two steps.
@@ -2589,6 +2627,275 @@ describe("Scheduled maintenance overview page", () => {
           endsAt: "2026-10-03T11:00:00.000Z",
         }),
       ).toBe(null);
+    });
+  });
+  /*
+   * An event kept to the team until its publish time (#5249): the header's
+   * band says it is not on its status pages yet, and from when; the details
+   * card says when it is published, and its subscriber notification that it
+   * is sent then - not "Sending Soon" for weeks.
+   */
+  describe("an event kept to the team until its publish time", () => {
+    const PUBLISH_IN: number = 30 * 24 * HOUR;
+
+    interface NoticeProps {
+      scheduledMaintenanceId: ObjectID;
+      publishAt: Date;
+      areSubscribersTold: boolean;
+      onPublished: () => void;
+    }
+
+    function waitingEvent(): ScheduledMaintenance {
+      const event: ScheduledMaintenance = makeEvent();
+      event.isVisibleOnStatusPage = true;
+      event.publishOnStatusPageAt = new Date(Date.now() + PUBLISH_IN);
+      event.shouldStatusPageSubscribersBeNotifiedOnEventCreated = true;
+      event.subscriberNotificationStatusOnEventScheduled =
+        StatusPageSubscriberNotificationStatus.Pending;
+      return event;
+    }
+
+    function noticeElement(): React.ReactElement | undefined {
+      return lastProps<{ publishingNotice?: React.ReactElement }>(
+        changeStateRenderMock,
+      ).publishingNotice;
+    }
+
+    function detailField(title: string): DetailField {
+      const found: DetailField | undefined = cardProps(
+        "Scheduled Maintenance Details",
+      ).modelDetailProps.fields.find((field: DetailField): boolean => {
+        return field.title === title;
+      });
+
+      expect(found).toBeDefined();
+
+      return found!;
+    }
+
+    test("hands the header a band: not on its status pages yet, from its publish time", async () => {
+      const event: ScheduledMaintenance = waitingEvent();
+      getItemMock.mockResolvedValue(event as never);
+
+      await renderPage();
+
+      const notice: React.ReactElement | undefined = noticeElement();
+
+      expect(notice).toBeDefined();
+
+      const props: NoticeProps = notice!.props as NoticeProps;
+
+      expect(props.publishAt.toISOString()).toBe(
+        event.publishOnStatusPageAt!.toISOString(),
+      );
+      expect(props.scheduledMaintenanceId.toString()).toBe(EVENT_ID);
+      // Its subscribers hear it is scheduled then, and the band says so.
+      expect(props.areSubscribersTold).toBe(true);
+    });
+
+    test("an event whose subscribers are told nothing has a band that promises them nothing", async () => {
+      const event: ScheduledMaintenance = waitingEvent();
+      event.shouldStatusPageSubscribersBeNotifiedOnEventCreated = false;
+      event.subscriberNotificationStatusOnEventScheduled =
+        StatusPageSubscriberNotificationStatus.Skipped;
+      getItemMock.mockResolvedValue(event as never);
+
+      await renderPage();
+
+      expect((noticeElement()!.props as NoticeProps).areSubscribersTold).toBe(
+        false,
+      );
+    });
+
+    test.each([
+      [
+        "published already",
+        (event: ScheduledMaintenance): void => {
+          event.publishOnStatusPageAt = new Date(Date.now() - HOUR);
+        },
+      ],
+      [
+        "published from the start",
+        (event: ScheduledMaintenance): void => {
+          delete (event as unknown as Record<string, unknown>)[
+            "publishOnStatusPageAt"
+          ];
+        },
+      ],
+      [
+        "hidden from its status pages",
+        (event: ScheduledMaintenance): void => {
+          event.isVisibleOnStatusPage = false;
+        },
+      ],
+      [
+        "on no status page",
+        (event: ScheduledMaintenance): void => {
+          event.statusPages = [];
+        },
+      ],
+    ] as Array<[string, (event: ScheduledMaintenance) => void]>)(
+      "no band for an event %s",
+      async (_label: string, change: (event: ScheduledMaintenance) => void) => {
+        const event: ScheduledMaintenance = waitingEvent();
+        change(event);
+        getItemMock.mockResolvedValue(event as never);
+
+        await renderPage();
+
+        expect(noticeElement()).toBeUndefined();
+      },
+    );
+
+    test("publishing it from the band reads the event again, and its feed", async () => {
+      getItemMock.mockResolvedValue(waitingEvent() as never);
+
+      await renderPage();
+
+      const readsBefore: number = getItemMock.mock.calls.length;
+      const feedBefore: number | undefined =
+        lastProps<FeedProps>(feedRenderMock).refreshToken;
+
+      await act(async () => {
+        (noticeElement()!.props as NoticeProps).onPublished();
+      });
+      await flush();
+
+      expect(getItemMock.mock.calls.length).toBeGreaterThan(readsBefore);
+      expect(lastProps<FeedProps>(feedRenderMock).refreshToken).not.toBe(
+        feedBefore,
+      );
+    });
+
+    test("the details card says when it is published - only for an event that has a time", async () => {
+      const event: ScheduledMaintenance = waitingEvent();
+      detailItemsByCardName["Scheduled Maintenance Details"] = event;
+      getItemMock.mockResolvedValue(event as never);
+
+      await renderPage();
+
+      const field: DetailField = detailField("Publish on Status Pages");
+
+      expect(field.field).toEqual({ publishOnStatusPageAt: true });
+      expect(field.showIf!(event)).toBe(true);
+      expect(field.showIf!(makeEvent())).toBe(false);
+      expect(
+        screen.getByTestId("scheduled-maintenance-publish-on-status-pages"),
+      ).toHaveTextContent(
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+          event.publishOnStatusPageAt!,
+        ),
+      );
+    });
+
+    test("its subscriber notification, queued until then, is sent when it is published - not Sending Soon", async () => {
+      const event: ScheduledMaintenance = waitingEvent();
+      getItemMock.mockResolvedValue(event as never);
+
+      await renderPage();
+
+      const field: DetailField = detailField("Subscriber Notifications");
+      const view: RenderResult = render(<div>{field.getElement!(event)}</div>);
+      const text: HTMLElement = view.getByTestId("subscriber-status-text");
+
+      expect(text).toHaveTextContent("Sent when it is published");
+      // Drawn as waiting - a clock - rather than about to go.
+      expect(text).toHaveAttribute("data-waiting", "true");
+      view.unmount();
+
+      // Once its time has come, it is about to go as any other: its own words.
+      const published: ScheduledMaintenance = waitingEvent();
+      published.publishOnStatusPageAt = new Date(Date.now() - HOUR);
+      const publishedView: RenderResult = render(
+        <div>{field.getElement!(published)}</div>,
+      );
+      const publishedText: HTMLElement = publishedView.getByTestId(
+        "subscriber-status-text",
+      );
+
+      expect(publishedText.textContent).toBe("");
+      expect(publishedText).toHaveAttribute("data-waiting", "false");
+      publishedView.unmount();
+    });
+
+    test("the details card says a reminder due before it is published is not sent, and one due after says nothing", async () => {
+      getItemMock.mockResolvedValue(waitingEvent() as never);
+
+      await renderPage();
+
+      const field: DetailField = detailField("Subscriber Reminders");
+      const reminder: Recurring = new Recurring();
+      reminder.intervalType = EventInterval.Day;
+      reminder.intervalCount = new PositiveNumber(1);
+
+      const reminderAt: (event: ScheduledMaintenance, at: Date) => string = (
+        event: ScheduledMaintenance,
+        at: Date,
+      ): string => {
+        event.sendSubscriberNotificationsOnBeforeTheEvent = [reminder];
+        event.nextSubscriberNotificationBeforeTheEventAt = at;
+        const view: RenderResult = render(
+          <div>{field.getElement!(event)}</div>,
+        );
+        const note: HTMLElement | null = view.queryByTestId(
+          "scheduled-maintenance-next-reminder-not-sent",
+        );
+        const text: string = note ? note.textContent || "" : "";
+        view.unmount();
+        return text;
+      };
+
+      // Due in an hour, the event published in 30 days: skipped.
+      expect(reminderAt(waitingEvent(), new Date(Date.now() + HOUR))).toBe(
+        "Reminders due before the event is published are not sent.",
+      );
+      // Due after the publish time: sent, and nothing more is said.
+      expect(
+        reminderAt(waitingEvent(), new Date(Date.now() + PUBLISH_IN + HOUR)),
+      ).toBe("");
+
+      // Hidden from its status pages: no reminder goes out at all.
+      const hidden: ScheduledMaintenance = waitingEvent();
+      hidden.isVisibleOnStatusPage = false;
+      expect(reminderAt(hidden, new Date(Date.now() + PUBLISH_IN + HOUR))).toBe(
+        "Reminders are not sent while the event is hidden from its status pages.",
+      );
+
+      // Published from the start and shown: nothing more is said.
+      const published: ScheduledMaintenance = makeEvent();
+      published.isVisibleOnStatusPage = true;
+      expect(reminderAt(published, new Date(Date.now() + HOUR))).toBe("");
+    });
+
+    test("the details card reads whether the event is shown with its other fields", async () => {
+      getItemMock.mockResolvedValue(waitingEvent() as never);
+
+      await renderPage();
+
+      const selectMoreFields: Record<string, unknown> =
+        cardProps("Scheduled Maintenance Details").modelDetailProps
+          .selectMoreFields || {};
+
+      expect(selectMoreFields["isVisibleOnStatusPage"]).toBe(true);
+      expect(
+        selectMoreFields["nextSubscriberNotificationBeforeTheEventAt"],
+      ).toBe(true);
+    });
+
+    test("the details card selects the publish time with its other fields", async () => {
+      getItemMock.mockResolvedValue(waitingEvent() as never);
+
+      await renderPage();
+
+      expect(
+        cardProps("Scheduled Maintenance Details").modelDetailProps.fields.some(
+          (field: DetailField): boolean => {
+            return Object.keys(field.field || {}).includes(
+              "publishOnStatusPageAt",
+            );
+          },
+        ),
+      ).toBe(true);
     });
   });
 });

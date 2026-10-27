@@ -73,9 +73,9 @@ jest.mock("../../../Server/Utils/Response", () => {
  * overview as timelineScheduledMaintenanceEvents.
  *
  *   - Only events the page shows: through StatusPageVisibilityQuery
- *     (Visible on Status Page on) - the one filter every read of a page's
- *     maintenance goes through, which a publish time will extend - and
- *     on this page. An event reaches a page by naming it, never through
+ *     (Visible on Status Page on, and published: no Publish on Status Page
+ *     At, or one that has come - #5249) - the one filter every read of a
+ *     page's maintenance goes through - and on this page. An event reaches a page by naming it, never through
  *     its monitors, so the read asks by the page alone.
  *   - Of those, only events that hold one of the page's monitors: an event
  *     is drawn on the resources of the monitors it holds.
@@ -108,6 +108,7 @@ const WINDOW_START: Date = new Date(NOW.getTime() - 90 * DAY_MS);
 
 // A time condition's SQL (QueryHelper), with `x` for the column.
 const AT_MOST_SQL: RegExp = /^\(x <= :\w+\)$/;
+const AT_MOST_OR_NONE_SQL: RegExp = /^\(x <= :\w+ or x IS NULL\)$/;
 const AT_LEAST_SQL: RegExp = /^\(x >= :\w+\)$/;
 const BETWEEN_SQL: RegExp = /^\(x >= :\w+ and x <= :\w+\)$/;
 
@@ -125,17 +126,26 @@ function sqlOf(condition: unknown): string {
 }
 
 // Whether a date passes a time condition, as Postgres would decide it.
-function passesTime(value: Date | undefined, condition: unknown): boolean {
+function passesTime(
+  value: Date | null | undefined,
+  condition: unknown,
+): boolean {
   if (condition === undefined) {
     return true;
+  }
+
+  const sql: string = sqlOf(condition);
+  const dates: Array<Date> = datesOf(condition);
+
+  // `x IS NULL` lets a row with no date through.
+  if (AT_MOST_OR_NONE_SQL.test(sql)) {
+    return !value || value.getTime() <= dates[0]!.getTime();
   }
 
   if (!value) {
     return false;
   }
 
-  const sql: string = sqlOf(condition);
-  const dates: Array<Date> = datesOf(condition);
   const time: number = value.getTime();
 
   if (AT_MOST_SQL.test(sql)) {
@@ -203,6 +213,7 @@ function maintenance(data: {
   monitorIds?: Array<string> | undefined;
   statusPageIds?: Array<ObjectID> | undefined;
   isVisibleOnStatusPage?: boolean | undefined;
+  publishOnStatusPageAt?: Date | undefined;
 }): ScheduledMaintenance {
   const event: ScheduledMaintenance = makeEventInState(data.key, {
     title: data.title,
@@ -210,6 +221,10 @@ function maintenance(data: {
   event.startsAt = data.startsAt;
   event.endsAt = data.endsAt;
   event.isVisibleOnStatusPage = data.isVisibleOnStatusPage ?? true;
+
+  if (data.publishOnStatusPageAt) {
+    event.publishOnStatusPageAt = data.publishOnStatusPageAt;
+  }
   event.description = `Everything about ${data.title}`;
   event.monitors = (data.monitorIds || [PAGE_MONITOR]).map(monitor);
   event.statusPages = (data.statusPageIds || [STATUS_PAGE_ID]).map(page);
@@ -314,7 +329,11 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
                 args.query["monitors"],
               ) &&
               passesTime(event.startsAt, args.query["startsAt"]) &&
-              passesTime(event.endsAt, args.query["endsAt"])
+              passesTime(event.endsAt, args.query["endsAt"]) &&
+              passesTime(
+                event.publishOnStatusPageAt,
+                args.query["publishOnStatusPageAt"],
+              )
             );
           })
           .map((event: ScheduledMaintenance): ScheduledMaintenance => {
@@ -457,6 +476,70 @@ describe("a status page's uptime history shows its scheduled maintenance", () =>
       expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual([
         "Shown",
       ]);
+    });
+
+    /*
+     * Kept to the team until its publish time (#5249): no day of the page's
+     * history holds it, even once it has started - and from its publish
+     * time on, the history holds it as any other event. The publish time is
+     * read against the real clock, so these are set far from it.
+     */
+    it("leaves out an event that has started but is not published on status pages yet", async () => {
+      events = [
+        maintenance({
+          key: "ongoing",
+          title: "Published next week",
+          startsAt: daysAgo(0, 10),
+          endsAt: daysAgo(-1, 2),
+          publishOnStatusPageAt: new Date(Date.now() + 7 * DAY_MS),
+        }),
+        maintenance({
+          key: "completed",
+          title: "Shown",
+          startsAt: daysAgo(3),
+          endsAt: daysAgo(3, 14),
+        }),
+      ];
+
+      const payload: JSONObject =
+        await api.buildOverviewResponse(STATUS_PAGE_ID);
+
+      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual([
+        "Shown",
+      ]);
+    });
+
+    it("holds an event whose publish time has come", async () => {
+      events = [
+        maintenance({
+          key: "completed",
+          title: "Published an hour ago",
+          startsAt: daysAgo(3),
+          endsAt: daysAgo(3, 14),
+          publishOnStatusPageAt: new Date(Date.now() - 60 * 60 * 1000),
+        }),
+      ];
+
+      const payload: JSONObject =
+        await api.buildOverviewResponse(STATUS_PAGE_ID);
+
+      expect(titlesOf(payload["timelineScheduledMaintenanceEvents"])).toEqual([
+        "Published an hour ago",
+      ]);
+    });
+
+    it("the history's read asks for events published up to now", async () => {
+      events = [];
+
+      const before: number = Date.now();
+
+      await api.buildOverviewResponse(STATUS_PAGE_ID);
+
+      const condition: unknown = historyQuery()!["publishOnStatusPageAt"];
+
+      expect(AT_MOST_OR_NONE_SQL.test(sqlOf(condition))).toBe(true);
+      expect(datesOf(condition)[0]!.getTime()).toBeGreaterThanOrEqual(before);
+      expect(datesOf(condition)[0]!.getTime()).toBeLessThanOrEqual(Date.now());
     });
 
     it("leaves out an event shown only on another status page", async () => {
