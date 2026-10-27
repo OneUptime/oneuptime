@@ -154,8 +154,6 @@
     "label": "Gebruikersprofiel",
     "profile": "Profiel",
     "adminSettings": "Beheerdersinstellingen",
-    "darkTheme": "Donker thema",
-    "lightTheme": "Licht thema",
     "switchToDarkTheme": "Overschakelen naar donker thema",
     "switchToLightTheme": "Overschakelen naar licht thema",
     "logOut": "Uitloggen"
@@ -216,6 +214,7 @@
       "darkTheme": "Overschakelen naar donker thema",
       "declareIncident": "Incident melden",
       "lightTheme": "Overschakelen naar licht thema",
+      "systemTheme": "Overschakelen naar systeemthema",
       "logOut": "Uitloggen",
       "myOnCallPolicies": "Mijn bereikbaarheidsbeleid",
       "projectInvitations": "Projectuitnodigingen"

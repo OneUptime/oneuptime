@@ -1,9 +1,11 @@
 import OneUptimeLogo from "../../Images/logos/OneUptimeSVG/3-transparent.svg";
 import {
+  getProductBranding,
   getProductLogoUrl,
   getProductName,
   isProductRenamed,
 } from "../../Utils/ProductBranding";
+import { ProductBranding } from "../../../Types/Branding/ProductBranding";
 import { Theme, useTheme } from "../../Utils/Theme";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -81,6 +83,29 @@ export const getProductLogoSource: (theme: Theme) => string | null = (
 export const PAGE_LOGO_CLASS_NAME: string =
   "mx-auto h-10 w-auto max-w-full object-contain sm:h-12";
 
+/*
+ * What a page logo sits on while the page is dark and the installation's
+ * only logo is made for light backgrounds: a small light backdrop
+ * (Theme.css, [data-ou-logo-plate]), so its letters read as they do on the
+ * light page - a status page's logo does the same (StatusPage's LogoPlate).
+ * The installation's logo for dark backgrounds, when it has one, is drawn
+ * as it is.
+ */
+export const LOGO_PLATE_ATTRIBUTE: string = "data-ou-logo-plate";
+
+// Whether a page in this theme draws the installation's light logo on a plate.
+export const isLightLogoOnDarkPage: (theme: Theme) => boolean = (
+  theme: Theme,
+): boolean => {
+  if (theme !== Theme.Dark) {
+    return false;
+  }
+
+  const branding: ProductBranding | null = getProductBranding();
+
+  return Boolean(branding?.logoUrl) && !branding?.darkLogoUrl;
+};
+
 // The name in its place: one line of it is as tall as the logo.
 export const PAGE_PRODUCT_NAME_CLASS_NAME: string =
   "mx-auto max-w-full break-words text-center text-2xl font-semibold leading-10 tracking-tight text-gray-900 sm:text-3xl sm:leading-[3rem]";
@@ -116,6 +141,16 @@ const ProductLogo: FunctionComponent<ComponentProps> = (
     );
   }
 
+  /*
+   * The plate is for the logo at the top of a page (the sign-in pages); a
+   * logo given classes of its own (the dashboards' headers) is drawn as it
+   * is.
+   */
+  const plateProps: Record<string, string> =
+    !props.className && isLightLogoOnDarkPage(theme)
+      ? { [LOGO_PLATE_ATTRIBUTE]: "" }
+      : {};
+
   return (
     <img
       className={props.className || PAGE_LOGO_CLASS_NAME}
@@ -123,6 +158,7 @@ const ProductLogo: FunctionComponent<ComponentProps> = (
       alt={productName}
       data-testid={props.dataTestId}
       onClick={props.onClick}
+      {...plateProps}
     />
   );
 };

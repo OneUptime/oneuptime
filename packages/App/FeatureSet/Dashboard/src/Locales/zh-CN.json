@@ -154,8 +154,6 @@
     "label": "用户配置",
     "profile": "个人资料",
     "adminSettings": "管理员设置",
-    "darkTheme": "深色主题",
-    "lightTheme": "浅色主题",
     "switchToDarkTheme": "切换到深色主题",
     "switchToLightTheme": "切换到浅色主题",
     "logOut": "登出"
@@ -216,6 +214,7 @@
       "darkTheme": "切换到深色主题",
       "declareIncident": "声明事件",
       "lightTheme": "切换到浅色主题",
+      "systemTheme": "切换到系统主题",
       "logOut": "登出",
       "myOnCallPolicies": "我的值班策略",
       "projectInvitations": "项目邀请"

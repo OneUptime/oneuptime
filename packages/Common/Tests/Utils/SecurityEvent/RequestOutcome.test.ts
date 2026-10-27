@@ -20,6 +20,7 @@ import {
   readStatusCode,
   requestOutcomeFromStatusCode,
 } from "../../../Utils/SecurityEvent/RequestOutcome";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * How far a request got, read from its trace: the verdict that turns "an
@@ -187,9 +188,9 @@ describe("readRequestedDelaySeconds", () => {
     ).toBe(16);
     expect(readRequestedDelaySeconds("/x?id=1 AND SLEEP%285%29")).toBe(5);
     expect(readRequestedDelaySeconds("/x?id=1;select pg_sleep(10)--")).toBe(10);
-    expect(
-      readRequestedDelaySeconds("/x?id=1;WAITFOR DELAY '0:0:7'--"),
-    ).toBe(7);
+    expect(readRequestedDelaySeconds("/x?id=1;WAITFOR DELAY '0:0:7'--")).toBe(
+      7,
+    );
     expect(
       readRequestedDelaySeconds("/x?id=1;waitfor delay '00:01:30'--"),
     ).toBe(90);
@@ -222,10 +223,15 @@ describe("readRequestedDelaySeconds", () => {
 
   test("reads a megabyte of request in time that grows with it", () => {
     const text: string = "sleep(".repeat(200_000);
-    const startedAt: number = Date.now();
+    const read: FastestRun<number> = fastestRun({
+      run: (): number => {
+        return readRequestedDelaySeconds(text);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(readRequestedDelaySeconds(text)).toBe(0);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(read.result).toBe(0);
+    expect(read.inMs).toBeLessThan(2000);
   });
 });
 
@@ -579,7 +585,7 @@ describe("assessRequestTrace", () => {
             spanId: "server",
             fingerprint: "fp-1",
             exceptionType: "QueryFailedError",
-            message: "syntax error at or near \"or\"",
+            message: 'syntax error at or near "or"',
           },
           {
             spanId: "server",

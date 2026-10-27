@@ -11,6 +11,7 @@
     "test-alerts-ui": "playwright test --config playwright.alerts.config.ts",
     "test-status-page-search-ui": "playwright test --config playwright.status-page-search.config.ts",
     "test-status-page-theme-ui": "playwright test --config playwright.status-page-theme-ui.config.ts",
+    "test-accounts-theme-ui": "playwright test --config playwright.accounts-theme-ui.config.ts",
     "test-public-dashboard-theme-ui": "playwright test --config playwright.public-dashboard-theme-ui.config.ts",
     "test-navigation-search-ui": "playwright test --config playwright.navigation-search.config.ts",
     "preinstall": "npx playwright install-deps && npx playwright install",

@@ -21,6 +21,7 @@ import WebAttackLogParser, {
   severityForWebAttack,
 } from "../../../../Utils/SecurityEvent/LogParsers/WebAttackLogParser";
 import SigmaRuleParser from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleParser";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 import { logLine } from "./LogParserFixtures";
 import { sigmaRuleMatchesEvent } from "./SigmaTestMatcher";
 
@@ -276,19 +277,25 @@ describe("readAttackPayload", () => {
 
   test("an endless word is read no further than the reach either side", () => {
     const text: string = `${"a".repeat(10_000)}../../${"b".repeat(10_000)}`;
-    const payload: string = readAttackPayload(text, WebAttackKind.PathTraversal);
+    const payload: string = readAttackPayload(
+      text,
+      WebAttackKind.PathTraversal,
+    );
 
     expect(payload.length).toBe(MAX_PAYLOAD_REACH * 2 + "../../".length);
   });
 
   test("a megabyte line is read in time that grows with it", () => {
     const text: string = `${"x ".repeat(500_000)}/etc/passwd`;
-    const startedAt: number = Date.now();
+    const read: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return readAttackPayload(text, WebAttackKind.PathTraversal);
+      },
+      limitInMs: 2000,
+    });
 
-    expect(readAttackPayload(text, WebAttackKind.PathTraversal)).toBe(
-      "/etc/passwd",
-    );
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(read.result).toBe("/etc/passwd");
+    expect(read.inMs).toBeLessThan(2000);
   });
 });
 

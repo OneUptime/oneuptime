@@ -185,9 +185,12 @@ describe("the acknowledge page's alert context", () => {
       ...ALERT_CONTEXT,
     });
 
-    expect(html).toContain("background-color: #dc2626");
-    expect(html).toContain("background-color: #f59e0b");
-    expect((html.match(/background-color:/g) || []).length).toBe(2);
+    // The page's body: its head styles the dark theme's ground (Partials/Theme.ejs).
+    const body: string = html.slice(html.indexOf("<body"));
+
+    expect(body).toContain("background-color: #dc2626");
+    expect(body).toContain("background-color: #f59e0b");
+    expect((body.match(/background-color:/g) || []).length).toBe(2);
   });
 });
 

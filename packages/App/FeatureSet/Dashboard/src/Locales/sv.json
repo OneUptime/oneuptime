@@ -154,8 +154,6 @@
     "label": "Användarprofil",
     "profile": "Profil",
     "adminSettings": "Admin-inställningar",
-    "darkTheme": "Mörkt tema",
-    "lightTheme": "Ljust tema",
     "switchToDarkTheme": "Byt till mörkt tema",
     "switchToLightTheme": "Byt till ljust tema",
     "logOut": "Logga ut"
@@ -216,6 +214,7 @@
       "darkTheme": "Byt till mörkt tema",
       "declareIncident": "Deklarera incident",
       "lightTheme": "Byt till ljust tema",
+      "systemTheme": "Byt till systemets tema",
       "logOut": "Logga ut",
       "myOnCallPolicies": "Mina jourpolicyer",
       "projectInvitations": "Projektinbjudningar"

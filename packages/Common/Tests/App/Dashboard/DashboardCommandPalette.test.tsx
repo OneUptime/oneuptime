@@ -27,6 +27,12 @@ import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName"
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
+import RememberedChoice from "../../../UI/Utils/RememberedChoice";
+import ThemeUtil from "../../../UI/Utils/Theme";
+import {
+  THEME_STORAGE_KEY,
+  ThemePreference,
+} from "../../../Types/Theme/ThemePreference";
 
 /*
  * The flagship interaction of the command palette — press Cmd/Ctrl+K anywhere
@@ -885,6 +891,96 @@ describe("dashboard Cmd/Ctrl+K ownership with the products menu mounted", () => 
       expect(productsMenu()).not.toBeInTheDocument();
       expect(palette()).toBeInTheDocument();
       expect(screen.getAllByRole("dialog")).toHaveLength(1);
+    },
+  );
+});
+
+describe("DashboardCommandPalette theme actions", () => {
+  /*
+   * The theme from the keyboard: the switch to the other theme, always, and
+   * the way back to the system theme - the user menu's System - while
+   * Light or Dark is picked.
+   */
+  const TOGGLE: string = "command-palette-option-action-toggle-theme";
+  const SYSTEM: string = "command-palette-option-action-system-theme";
+
+  const searchFor: (query: string) => void = (query: string): void => {
+    if (!palette()) {
+      pressChord({ key: "k", metaKey: true });
+    }
+
+    fireEvent.change(screen.getByTestId("command-palette-input"), {
+      target: { value: query },
+    });
+  };
+
+  const isPageDark: () => boolean = (): boolean => {
+    return document.documentElement.classList.contains("dark");
+  };
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    RememberedChoice.clearHeldForThisPage();
+    document.documentElement.removeAttribute("class");
+    ThemeUtil.initialize();
+  });
+
+  afterEach(() => {
+    window.localStorage.clear();
+    document.documentElement.removeAttribute("class");
+  });
+
+  test("a browser that follows its device is offered the switch to the other theme only", () => {
+    render(<DashboardCommandPalette />);
+    searchFor("theme");
+
+    expect(screen.getByTestId(TOGGLE)).toHaveTextContent(
+      "Switch to dark theme",
+    );
+    expect(screen.queryByTestId(SYSTEM)).not.toBeInTheDocument();
+  });
+
+  test("the switch picks the other theme; then the way back to the system theme is offered, and takes it", () => {
+    render(<DashboardCommandPalette />);
+    searchFor("theme");
+
+    fireEvent.click(screen.getByTestId(TOGGLE));
+
+    expect(isPageDark()).toBe(true);
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe(
+      ThemePreference.Dark,
+    );
+
+    searchFor("theme");
+
+    expect(screen.getByTestId(TOGGLE)).toHaveTextContent(
+      "Switch to light theme",
+    );
+    expect(screen.getByTestId(SYSTEM)).toHaveTextContent(
+      "Switch to system theme",
+    );
+
+    fireEvent.click(screen.getByTestId(SYSTEM));
+
+    expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe(
+      ThemePreference.System,
+    );
+    // jsdom's device says nothing about its theme: the light one.
+    expect(isPageDark()).toBe(false);
+
+    searchFor("theme");
+    expect(screen.queryByTestId(SYSTEM)).not.toBeInTheDocument();
+  });
+
+  test.each(["system", "device", "auto"])(
+    "%p finds the way back to the system theme",
+    (query: string) => {
+      window.localStorage.setItem(THEME_STORAGE_KEY, ThemePreference.Light);
+      ThemeUtil.initialize();
+      render(<DashboardCommandPalette />);
+      searchFor(query);
+
+      expect(screen.getByTestId(SYSTEM)).toBeInTheDocument();
     },
   );
 });

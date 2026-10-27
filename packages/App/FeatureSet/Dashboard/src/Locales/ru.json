@@ -154,8 +154,6 @@
     "label": "Профиль пользователя",
     "profile": "Профиль",
     "adminSettings": "Настройки администратора",
-    "darkTheme": "Тёмная тема",
-    "lightTheme": "Светлая тема",
     "switchToDarkTheme": "Переключиться на тёмную тему",
     "switchToLightTheme": "Переключиться на светлую тему",
     "logOut": "Выйти"
@@ -216,6 +214,7 @@
       "darkTheme": "Переключиться на тёмную тему",
       "declareIncident": "Объявить инцидент",
       "lightTheme": "Переключиться на светлую тему",
+      "systemTheme": "Переключиться на системную тему",
       "logOut": "Выйти",
       "myOnCallPolicies": "Мои политики дежурства",
       "projectInvitations": "Приглашения в проект"

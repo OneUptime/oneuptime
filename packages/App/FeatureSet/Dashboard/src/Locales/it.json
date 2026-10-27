@@ -154,8 +154,6 @@
     "label": "Profilo utente",
     "profile": "Profilo",
     "adminSettings": "Impostazioni admin",
-    "darkTheme": "Tema scuro",
-    "lightTheme": "Tema chiaro",
     "switchToDarkTheme": "Passa al tema scuro",
     "switchToLightTheme": "Passa al tema chiaro",
     "logOut": "Esci"
@@ -216,6 +214,7 @@
       "darkTheme": "Passa al tema scuro",
       "declareIncident": "Dichiara incidente",
       "lightTheme": "Passa al tema chiaro",
+      "systemTheme": "Passa al tema di sistema",
       "logOut": "Esci",
       "myOnCallPolicies": "I miei criteri di reperibilità",
       "projectInvitations": "Inviti al progetto"

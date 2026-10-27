@@ -1,5 +1,7 @@
 import App from "./App";
 import "./Utils/i18n";
+import AccountsTheme from "./Utils/AccountsTheme";
+import "Common/UI/Styles/Theme.css";
 import Telemetry from "Common/UI/Utils/Telemetry/Telemetry";
 import ErrorBoundary from "Common/UI/Components/ErrorBoundary";
 import NewVersionNavigation from "Common/UI/Components/NewVersion/NewVersionNavigation";
@@ -18,6 +20,13 @@ import { BrowserRouter } from "react-router-dom";
  * ForeignDomMutationGuard).
  */
 ForeignDomMutationGuard.install();
+
+/*
+ * The person's theme, which the page's first script drew before the first
+ * paint, kept in step from here: the device, and a pick made in another tab
+ * (Utils/AccountsTheme.ts).
+ */
+AccountsTheme.initialize();
 
 Telemetry.init({
   serviceName: "accounts",

@@ -69,8 +69,6 @@
   },
   "userProfile": {
     "exitAdmin": "خروج از بخش مدیریت",
-    "darkTheme": "پوسته تیره",
-    "lightTheme": "پوسته روشن",
     "logOut": "خروج از حساب"
   },
   "footer": {
@@ -1511,6 +1509,10 @@
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "هر کسی که بتواند این سرور را باز کند می‌تواند حساب بسازد. وقتی همهٔ اعضای تیم حساب گرفتند، آن را خاموش کنید.",
   "Choose who can sign up": "انتخاب کنید چه کسی بتواند ثبت‌نام کند",
   "Still to do": "مانده",
+  "Theme": "پوسته",
+  "Light": "روشن",
+  "Dark": "تیره",
+  "System": "سیستم",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",
