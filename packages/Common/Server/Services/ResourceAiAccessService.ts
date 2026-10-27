@@ -183,9 +183,17 @@ type SubjectRelation =
  * CloudAccount row (one table for the three clouds, told apart by
  * `query`). The table has no archive.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyDatabaseService = DatabaseService<any>;
+
+/*
+ * Each spec reads its service when it is used, never when this module
+ * loads: the model services import this one back (through the AI settings
+ * rules and the agent service), so a process that loads a model service
+ * first would otherwise find it undefined here.
+ */
 interface ResourceAiAccessModelSpec {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  service: DatabaseService<any>;
+  readonly service: AnyDatabaseService;
   identityColumns: Record<string, boolean>;
   subjectRelation: SubjectRelation;
   resolvedIdsKey: keyof SeriesResolvedResourceIds;
@@ -205,7 +213,9 @@ function cloudAccountSpec(
   resourceType: AiResourceType,
 ): ResourceAiAccessModelSpec {
   return {
-    service: CloudAccountService,
+    get service(): AnyDatabaseService {
+      return CloudAccountService;
+    },
     identityColumns: CLOUD_ACCOUNT_IDENTITY_COLUMNS,
     subjectRelation: "cloudResources",
     resolvedIdsKey: "cloudResourceIds",
@@ -217,7 +227,9 @@ function cloudAccountSpec(
 const MODEL_SPECS: Readonly<Record<AiResourceType, ResourceAiAccessModelSpec>> =
   {
     [AiResourceType.DockerHost]: {
-      service: DockerHostService,
+      get service(): AnyDatabaseService {
+        return DockerHostService;
+      },
       identityColumns: { hostIdentifier: true },
       subjectRelation: "dockerHosts",
       resolvedIdsKey: "dockerHostIds",
@@ -225,7 +237,9 @@ const MODEL_SPECS: Readonly<Record<AiResourceType, ResourceAiAccessModelSpec>> =
       hasArchive: true,
     },
     [AiResourceType.PodmanHost]: {
-      service: PodmanHostService,
+      get service(): AnyDatabaseService {
+        return PodmanHostService;
+      },
       identityColumns: { hostIdentifier: true },
       subjectRelation: "podmanHosts",
       resolvedIdsKey: "podmanHostIds",
@@ -233,7 +247,9 @@ const MODEL_SPECS: Readonly<Record<AiResourceType, ResourceAiAccessModelSpec>> =
       hasArchive: true,
     },
     [AiResourceType.DockerSwarmCluster]: {
-      service: DockerSwarmClusterService,
+      get service(): AnyDatabaseService {
+        return DockerSwarmClusterService;
+      },
       identityColumns: {},
       subjectRelation: "dockerSwarmClusters",
       resolvedIdsKey: "dockerSwarmClusterIds",
@@ -241,7 +257,9 @@ const MODEL_SPECS: Readonly<Record<AiResourceType, ResourceAiAccessModelSpec>> =
       hasArchive: true,
     },
     [AiResourceType.ProxmoxCluster]: {
-      service: ProxmoxClusterService,
+      get service(): AnyDatabaseService {
+        return ProxmoxClusterService;
+      },
       identityColumns: {},
       subjectRelation: "proxmoxClusters",
       resolvedIdsKey: "proxmoxClusterIds",
@@ -249,7 +267,9 @@ const MODEL_SPECS: Readonly<Record<AiResourceType, ResourceAiAccessModelSpec>> =
       hasArchive: true,
     },
     [AiResourceType.VMwareVCenter]: {
-      service: VMwareVCenterService,
+      get service(): AnyDatabaseService {
+        return VMwareVCenterService;
+      },
       identityColumns: {},
       subjectRelation: "vmwareVCenters",
       resolvedIdsKey: "vmwareVCenterIds",
@@ -257,7 +277,9 @@ const MODEL_SPECS: Readonly<Record<AiResourceType, ResourceAiAccessModelSpec>> =
       hasArchive: true,
     },
     [AiResourceType.CephCluster]: {
-      service: CephClusterService,
+      get service(): AnyDatabaseService {
+        return CephClusterService;
+      },
       identityColumns: {},
       subjectRelation: "cephClusters",
       resolvedIdsKey: "cephClusterIds",
@@ -265,7 +287,9 @@ const MODEL_SPECS: Readonly<Record<AiResourceType, ResourceAiAccessModelSpec>> =
       hasArchive: true,
     },
     [AiResourceType.DatabaseServer]: {
-      service: DatabaseServerService,
+      get service(): AnyDatabaseService {
+        return DatabaseServerService;
+      },
       identityColumns: {
         dbSystem: true,
         serverAddress: true,
@@ -277,7 +301,9 @@ const MODEL_SPECS: Readonly<Record<AiResourceType, ResourceAiAccessModelSpec>> =
       hasArchive: true,
     },
     [AiResourceType.Host]: {
-      service: HostService,
+      get service(): AnyDatabaseService {
+        return HostService;
+      },
       identityColumns: { hostIdentifier: true },
       subjectRelation: "hosts",
       resolvedIdsKey: "hostIds",
