@@ -153,7 +153,7 @@ describe("which joins keep one row per record", () => {
     const kinds: DataSource = new DataSource({
       type: "postgres",
       entities: [
-        new EntitySchema({
+        new EntitySchema<Record<string, unknown>>({
           name: "PagedParent",
           columns: {
             id: { type: "uuid", primary: true },
@@ -167,7 +167,7 @@ describe("which joins keep one row per record", () => {
             },
           },
         }),
-        new EntitySchema({
+        new EntitySchema<Record<string, unknown>>({
           name: "PagedChild",
           columns: {
             id: { type: "uuid", primary: true },
@@ -185,7 +185,7 @@ describe("which joins keep one row per record", () => {
             },
           },
         }),
-        new EntitySchema({
+        new EntitySchema<Record<string, unknown>>({
           name: "PagedPerson",
           columns: { id: { type: "uuid", primary: true } },
           relations: {
@@ -197,7 +197,7 @@ describe("which joins keep one row per record", () => {
             },
           },
         }),
-        new EntitySchema({
+        new EntitySchema<Record<string, unknown>>({
           name: "PagedPassport",
           columns: { id: { type: "uuid", primary: true } },
           relations: {
