@@ -16,8 +16,8 @@ import path from "path";
  *     Rules > On-Call Rules, matching All incidents;
  *   - On-Call Policies' "Create a policy", and the On-Call overview's "Run
  *     the policy automatically": when that switch is asked, and what it adds;
- *   - How OneUptime Reaches You's setup checklist: push is left out of
- *     "Staying informed".
+ *   - How OneUptime Reaches You's setup checklist: "Staying informed" names
+ *     push only for an update that reaches the reader no other way.
  *
  * Markdown is not compiled, so these tests read the sources of truth - the
  * create form, the shared rule (EveryNewEventRules), the policy service, the
@@ -164,8 +164,8 @@ describe("On-Call Policies and the On-Call overview", () => {
   });
 });
 
-describe("the setup checklist leaves push out", () => {
-  it("as the checklist does: the step checks every channel but push", () => {
+describe("the setup checklist names push only when nothing else carries the update", () => {
+  it("as the checklist does: push is the one channel named only when alone", () => {
     const checklist: string = read(
       PACKAGES,
       "App/FeatureSet/Dashboard/src/Components/UserSettings/SetupChecklist/useSetupChecklist.ts",
@@ -175,11 +175,13 @@ describe("the setup checklist leaves push out", () => {
       "App/FeatureSet/Dashboard/src/Components/UserSettings/SetupChecklist/ChecklistModel.ts",
     );
 
-    expect(checklist).toContain('return channel.methodType !== "Push";');
+    expect(checklist).toContain(
+      'export const CHANNELS_NAMED_ONLY_WHEN_ALONE: ReadonlyArray<string> = ["Push"];',
+    );
     expect(model).toContain(`title: "${STAYING_INFORMED}",`);
 
     expect(page("en", REACHING_YOU)).toContain(
-      `Push is left out of **${STAYING_INFORMED}**: it needs only the mobile app, and every update a new member gets by push goes by email as well.`,
+      `**${STAYING_INFORMED}** names Push only for an update that reaches you no other way: every update a new member gets by push goes by email as well.`,
     );
   });
 });
@@ -191,7 +193,7 @@ describe("every translation tells the same story, where the English does", () =>
     [ON_CALL]: lineWith(page("en", ON_CALL), `**${SWITCH}**`),
     [REACHING_YOU]: lineWith(
       page("en", REACHING_YOU),
-      `Push is left out of **${STAYING_INFORMED}**`,
+      `**${STAYING_INFORMED}** names Push only`,
     ),
   };
 
@@ -224,7 +226,7 @@ describe("every translation tells the same story, where the English does", () =>
   );
 
   it.each(TRANSLATIONS)(
-    "%s leaves push out of its own Staying informed, on the English line",
+    "%s names its own Staying informed on the push line, as the English does",
     (language: string) => {
       const lines: Array<string> = page(language, REACHING_YOU).split("\n");
       const drawn: string = drawnDashboardLabel(language, STAYING_INFORMED);

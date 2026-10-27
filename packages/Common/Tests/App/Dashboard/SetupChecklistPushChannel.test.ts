@@ -4,7 +4,7 @@ import path from "path";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import NotificationSettingEventType from "../../../Types/NotificationSetting/NotificationSettingEventType";
 import {
-  CHANNELS_NEEDING_A_VERIFIED_METHOD,
+  CHANNELS_NAMED_ONLY_WHEN_ALONE,
   SETTING_CHANNELS,
   SettingChannel,
   getUndeliverableSettingChannels,
@@ -13,12 +13,12 @@ import {
 /*
  * "Your notification settings point at channels that work" - the Setup
  * Checklist step that catches a switch turned green in Notification Settings
- * with no address behind it - holds the reader to the channels that need a
- * verified method. Push is not one: the mobile app makes it work, and every
- * new member starts with it on for five updates that go by email as well.
- * Held to the same rule, every member without the app was told "You switched
- * on Push, but have no verified method there, so those updates are not sent"
- * on their first visit, about switches they never touched.
+ * with no method behind it - names Push only for an update that reaches the
+ * reader no other way. Every new member starts with push on, beside email,
+ * for five updates. Held to the rule every other channel is held to, each
+ * member who had not registered a phone or a browser for push was told "You
+ * switched on Push, but have no verified method there, so those updates are
+ * not sent" on their first visit, about switches they never touched.
  */
 
 type ChannelColumn = SettingChannel["column"];
@@ -43,16 +43,35 @@ function usable(...methodTypes: Array<string>): ReadonlySet<string> {
 }
 
 describe("the channels the step holds the reader to", () => {
-  test("are every Notification Settings channel but Push, in the page's column order", () => {
+  test("are every Notification Settings channel, in the page's column order", () => {
     expect(
-      CHANNELS_NEEDING_A_VERIFIED_METHOD.map((channel: SettingChannel) => {
-        return channel.label;
+      getUndeliverableSettingChannels({
+        rows: [
+          setting(
+            SETTING_CHANNELS.map((channel: SettingChannel): ChannelColumn => {
+              return channel.column;
+            }),
+          ),
+        ],
+        usableMethodTypes: usable(),
       }),
-    ).toEqual(["Email", "SMS", "Call", "WhatsApp", "Telegram", "Webhook"]);
+    ).toEqual([
+      "Email",
+      "SMS",
+      "Call",
+      "Push",
+      "WhatsApp",
+      "Telegram",
+      "Webhook",
+    ]);
+  });
+
+  test("Push alone is named only for an update nothing else carries", () => {
+    expect(CHANNELS_NAMED_ONLY_WHEN_ALONE).toEqual(["Push"]);
 
     expect(
       SETTING_CHANNELS.filter((channel: SettingChannel): boolean => {
-        return !CHANNELS_NEEDING_A_VERIFIED_METHOD.includes(channel);
+        return CHANNELS_NAMED_ONLY_WHEN_ALONE.includes(channel.methodType);
       }).map((channel: SettingChannel): string => {
         return `${channel.label} (${channel.column})`;
       }),
@@ -85,13 +104,68 @@ describe("getUndeliverableSettingChannels", () => {
     ).toEqual([]);
   });
 
-  test("push alone, with no app, is not named either", () => {
+  test("an update switched on for push alone, with no device, is named: it reaches nobody", () => {
     expect(
       getUndeliverableSettingChannels({
         rows: [setting(["alertByPush"])],
-        usableMethodTypes: usable(),
+        usableMethodTypes: usable("Email"),
       }),
-    ).toEqual([]);
+    ).toEqual(["Push"]);
+  });
+
+  test("push beside any usable channel is not named, whichever channel it is", () => {
+    for (const channel of SETTING_CHANNELS) {
+      if (channel.column === "alertByPush") {
+        continue;
+      }
+
+      expect({
+        beside: channel.label,
+        named: getUndeliverableSettingChannels({
+          rows: [setting(["alertByPush", channel.column])],
+          usableMethodTypes: usable(channel.methodType),
+        }),
+      }).toEqual({ beside: channel.label, named: [] });
+    }
+  });
+
+  test("push beside a channel that is not usable either is named with it", () => {
+    expect(
+      getUndeliverableSettingChannels({
+        rows: [setting(["alertBySMS", "alertByPush"])],
+        usableMethodTypes: usable("Email"),
+      }),
+    ).toEqual(["SMS", "Push"]);
+  });
+
+  test("push is judged update by update: one update carried by email does not cover another left to push", () => {
+    expect(
+      getUndeliverableSettingChannels({
+        rows: [
+          setting(
+            ["alertByEmail", "alertByPush"],
+            NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
+          ),
+          setting(
+            ["alertByPush"],
+            NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
+          ),
+        ],
+        usableMethodTypes: usable("Email"),
+      }),
+    ).toEqual(["Push"]);
+  });
+
+  test("a registered push device covers every update switched on for push", () => {
+    expect(
+      getUndeliverableSettingChannels({
+        rows: [
+          setting(["alertByPush"]),
+          setting(["alertBySMS", "alertByPush"]),
+        ],
+        usableMethodTypes: usable("Push"),
+      }),
+    ).toEqual(["SMS"]);
   });
 
   test("names each switched-on channel with no usable method, in column order", () => {
@@ -160,9 +234,9 @@ describe("getUndeliverableSettingChannels", () => {
 });
 
 /*
- * Why leaving Push out never hides an update that reaches nobody: every
- * default switch the server turns on is turned on by email first, and push
- * only beside it.
+ * Why a new member's own defaults never name Push: every default switch the
+ * server turns on is turned on by email first, and push only beside it, so
+ * each of those updates is carried by email.
  */
 describe("the defaults a new member starts with", () => {
   const service: string = fs.readFileSync(

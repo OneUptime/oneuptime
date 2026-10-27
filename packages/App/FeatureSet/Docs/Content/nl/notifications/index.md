@@ -75,7 +75,7 @@ Elke methode die je later verifieert, krijgt dezelfde regels: een regel voor elk
 | **Staying informed** | Je hoort wanneer een dienst begint, en achter elk kanaal dat je in **Meldingsinstellingen** hebt aangezet, staat een geverifieerde methode |
 | **Nice to have** | Een nummer voor inkomende gesprekken, je Slack- en Microsoft Teams-accounts, een agendalink en je profielvelden |
 
-Push telt niet mee bij **Staying informed**: daarvoor is alleen de mobiele app nodig, en elke update die een nieuw lid via push krijgt, komt ook per e-mail.
+**Staying informed** noemt push alleen voor een update die je op geen andere manier bereikt: elke update die een nieuw lid via push krijgt, komt ook per e-mail.
 
 **Nice to have** telt niet mee in de voortgangsbalk, en een stap die alleen iemand anders kan oplossen evenmin. De regel bovenaan vat het samen:
 

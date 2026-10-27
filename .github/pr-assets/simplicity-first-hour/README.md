@@ -21,8 +21,9 @@ build before this change (master at 83484649c6), taken the same way with a diffe
   minute. After, one rule per severity.
 - `setup-checklist-before.png` / `setup-checklist-after.png`: User Settings > Setup Checklist of a
   new member who changed nothing. Before: "A few things still need setting up" and "You switched on
-  Push, but have no verified method there" - push is on by default and needs the mobile app. After:
-  "You are all set", and "You are on call in this project" once the first policy names them.
+  Push, but have no verified method there" - push starts on, beside email, and they had no phone or
+  browser registered for push. After: "You are all set", and "You are on call in this project" once
+  the first policy names them.
 - `home-first-steps-before.png` / `home-first-steps-after.png`: Home's Welcome card. The on-call
   step now says who is told until a policy exists: "Page the right person when an incident or alert
   opens. Until then, the project's owners get an email."

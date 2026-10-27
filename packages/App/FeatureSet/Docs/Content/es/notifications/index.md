@@ -75,7 +75,7 @@ Cada método que verifiques después recibe las mismas reglas: una regla para ca
 | **Mantenerse informado** | Te enteras de cuándo empieza un turno, y cada canal que activaste en **Ajustes de notificaciones** tiene detrás un método verificado |
 | **Deseable** | Un número para llamadas entrantes, tus cuentas de Slack y Microsoft Teams, un enlace de calendario y tus campos de perfil |
 
-Las notificaciones push no cuentan en **Mantenerse informado**: solo necesitan la aplicación móvil, y cada actualización que un miembro nuevo recibe por push también le llega por correo.
+**Mantenerse informado** solo señala las notificaciones push para una actualización que no te llega de ninguna otra forma: cada actualización que un miembro nuevo recibe por push también le llega por correo.
 
 **Deseable** no cuenta en la barra de progreso, ni tampoco un paso que solo otra persona puede resolver. La línea de arriba lo resume:
 

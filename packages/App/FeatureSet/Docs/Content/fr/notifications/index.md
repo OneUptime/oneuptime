@@ -75,7 +75,7 @@ Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règ
 | **Staying informed** | Vous êtes prévenu quand une permanence commence, et chaque canal activé dans les **Paramètres de notification** a une méthode vérifiée derrière lui |
 | **Souhaitable** | Un numéro pour les appels entrants, vos comptes Slack et Microsoft Teams, un lien de calendrier et vos champs de profil |
 
-Le push n'est pas compté dans **Staying informed** : il ne demande que l'application mobile, et chaque mise à jour qu'un nouveau membre reçoit par push arrive aussi par e-mail.
+**Staying informed** ne signale le push que pour une mise à jour qui ne vous parvient par aucun autre moyen : chaque mise à jour qu'un nouveau membre reçoit par push arrive aussi par e-mail.
 
 **Souhaitable** ne compte pas dans la barre de progression, pas plus qu'une étape que seul quelqu'un d'autre peut régler. La ligne du haut résume le tout :
 

@@ -1078,8 +1078,8 @@ describe("setup checklist page - deliverable notification settings", () => {
    * silently become deliverable, and no fixture without a verified webhook would
    * notice.
    *
-   * Push is switched on too, and never named: it needs the mobile app, not a
-   * verified method (CHANNELS_NEEDING_A_VERIFIED_METHOD).
+   * Push is switched on too, and not named: email carries that update
+   * (CHANNELS_NAMED_ONLY_WHEN_ALONE).
    */
   test("names exactly the switched-on channels with no verified method behind them", async (): Promise<void> => {
     respondWithProject({ enableAllChannels: true });
@@ -1137,7 +1137,7 @@ describe("setup checklist page - deliverable notification settings", () => {
    * What every new member starts with (UserNotificationSettingService's
    * defaults): email on for the updates about what they own, and push on as
    * well for the five a phone is for. With their sign-in email verified and
-   * no mobile app, nothing is missing: those five reach them by email. The
+   * no push device, nothing is missing: those five reach them by email. The
    * checklist used to say "You switched on Push, but have no verified method
    * there" about switches they never touched, and could never be finished.
    */
@@ -1192,7 +1192,7 @@ describe("setup checklist page - deliverable notification settings", () => {
     expect(screen.queryByText(/You switched on Push/)).toBeNull();
   });
 
-  test("push alone is never held against the reader, while SMS beside it still is", async (): Promise<void> => {
+  test("push beside email is not held against the reader, while SMS beside it still is", async (): Promise<void> => {
     respondWithProject({ enableAllChannels: true });
 
     respondWithReadiness(
@@ -1212,6 +1212,7 @@ describe("setup checklist page - deliverable notification settings", () => {
       makeSetting({
         eventType:
           NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
+        alertByEmail: true,
         alertByPush: true,
         alertBySMS: true,
       }),
@@ -1224,6 +1225,55 @@ describe("setup checklist page - deliverable notification settings", () => {
       screen.getByTestId("setup-checklist-detail-deliverable-settings"),
     ).toHaveTextContent(
       "You switched on SMS, but have no verified method there, so those updates are not sent.",
+    );
+  });
+
+  /*
+   * An update switched on for push and nothing that works beside it reaches
+   * nobody without a phone or a browser registered for push, so it is named,
+   * as the step names every other channel.
+   */
+  test("names push for an update nothing else of the reader's carries", async (): Promise<void> => {
+    respondWithProject({ enableAllChannels: true });
+
+    respondWithReadiness(
+      readinessJson({
+        methods: [
+          {
+            methodId: "m-email",
+            methodType: "Email",
+            maskedIdentifier: "n•••@•••.com",
+            isVerified: true,
+          },
+        ],
+      }),
+    );
+
+    probes.notificationSettings = [
+      makeSetting({
+        eventType:
+          NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
+        alertByEmail: true,
+        alertByPush: true,
+      }),
+      makeSetting({
+        eventType:
+          NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
+        alertByPush: true,
+        alertBySMS: true,
+      }),
+    ];
+
+    renderChecklist();
+    await settle();
+
+    expect(
+      screen.getByTestId("setup-checklist-step-deliverable-settings"),
+    ).toHaveAttribute("data-status", "Incomplete");
+    expect(
+      screen.getByTestId("setup-checklist-detail-deliverable-settings"),
+    ).toHaveTextContent(
+      "You switched on SMS and Push, but have no verified method there, so those updates are not sent.",
     );
   });
 
