@@ -21,7 +21,8 @@
  *                    many, twenty-five
  *   - thread=answered  Ask AI opens on a conversation already answered;
  *                    approval, one waiting on an approval card; error, one
- *                    whose answer failed
+ *                    whose answer failed; rich, one whose answer carries a
+ *                    row of figures, a wide table and a trace
  *   - run=hold       an answer being written stays written-so-far until
  *                    window.__askAiFixture.finish() is called (it finishes
  *                    on its own, a step a poll, by default)
@@ -104,7 +105,7 @@ const language = ["de", "fa"].includes(params.get("lang"))
 const historyKind = ["some", "many"].includes(params.get("history"))
   ? params.get("history")
   : "none";
-const threadKind = ["answered", "approval", "error"].includes(
+const threadKind = ["answered", "approval", "error", "rich"].includes(
   params.get("thread"),
 )
   ? params.get("thread")
@@ -326,6 +327,112 @@ function alertAction(status) {
 
 const LATENCY_QUESTION = "Why did checkout latency spike this afternoon?";
 
+/*
+ * An answer that carries what a tool returns at its widest: four figures,
+ * a table whose first and last columns hold long values (an endpoint with
+ * no spaces to wrap at, a service with a long name), and a trace. Each has
+ * to fit the dialog's column at 1280 pixels and a phone's whole screen.
+ */
+let richConversation = null;
+
+function seedRichAnswer() {
+  richConversation = conversationOf("Payments health this week", 3);
+  messageOf(richConversation.id.toString(), AIChatMessageRole.User, {
+    contentInMarkdown: "How healthy were payments this week?",
+    createdAt: minutesAgo(4),
+  });
+  messageOf(richConversation.id.toString(), AIChatMessageRole.Assistant, {
+    contentInMarkdown:
+      "Payments were healthy except for **Tuesday afternoon**, when `payments-db` ran out of connections [C1].",
+    citations: [latencyCitations()[0]],
+    widgets: [
+      {
+        id: "W1",
+        type: AIChatWidgetType.StatCards,
+        title: "This week",
+        data: {
+          stats: [
+            { label: "Requests", value: "1.36M" },
+            { label: "Error rate", value: "0.36", unit: "%" },
+            { label: "p95 latency", value: "412", unit: "ms" },
+            { label: "Incidents", value: 2 },
+          ],
+        },
+      },
+      {
+        id: "W2",
+        type: AIChatWidgetType.Table,
+        title: "Slowest endpoints",
+        data: {
+          columns: [
+            { key: "endpoint", title: "Endpoint" },
+            { key: "p95", title: "p95 (ms)", type: "number" },
+            { key: "calls", title: "Calls", type: "number" },
+            { key: "service", title: "Service" },
+          ],
+          rows: [
+            {
+              endpoint: "POST /api/v2/checkout/sessions/{sessionId}/confirm",
+              p95: 2412,
+              calls: 120443,
+              service: "checkout-api",
+            },
+            {
+              endpoint: "GET /api/v2/payments/{paymentId}",
+              p95: 380,
+              calls: 98221,
+              service: "payments-worker-eu-west-1-production",
+            },
+            {
+              endpoint: "POST /ledger/entries",
+              p95: 95,
+              calls: 55002,
+              service: "ledger",
+            },
+          ],
+        },
+      },
+      {
+        id: "W3",
+        type: AIChatWidgetType.TraceWaterfall,
+        title: "Slowest checkout trace",
+        data: {
+          totalDurationMs: 2480,
+          spans: [
+            {
+              spanId: "s1",
+              name: "POST /api/v2/checkout/sessions/{sessionId}/confirm",
+              startOffsetMs: 0,
+              durationMs: 2480,
+              isError: false,
+              serviceName: "checkout-api",
+            },
+            {
+              spanId: "s2",
+              parentSpanId: "s1",
+              name: "pgbouncer acquire connection",
+              startOffsetMs: 12,
+              durationMs: 2210,
+              isError: true,
+              serviceName: "payments-db",
+            },
+            {
+              spanId: "s3",
+              parentSpanId: "s1",
+              name: "SELECT * FROM payments WHERE id = $1",
+              startOffsetMs: 2230,
+              durationMs: 180,
+              isError: false,
+              serviceName: "payments-db",
+            },
+          ],
+        },
+      },
+    ],
+    createdAt: minutesAgo(3),
+  });
+}
+
 function seedHistory() {
   if (historyKind === "none" && !threadKind) {
     return;
@@ -372,6 +479,10 @@ function seedHistory() {
     createdAt: minutesAgo(60 * 50),
   });
 
+  if (threadKind === "rich") {
+    seedRichAnswer();
+  }
+
   if (historyKind === "none") {
     return;
   }
@@ -410,6 +521,7 @@ fixture.conversationIds = {
   answered: conversations[0]?.id.toString(),
   approval: conversations[1]?.id.toString(),
   error: conversations[2]?.id.toString(),
+  rich: richConversation?.id.toString(),
 };
 
 // ---- a run, written step by step as the dialog polls --------------------------

@@ -37,7 +37,8 @@ An in-page server answers what the dialog asks and records what it sends on
   question (four citations, a chart and a run of 4 queries and 18,432 tokens), an alert waiting
   for approval, a failed answer, and more.
 - `?thread=answered|approval|error` opens Ask AI on one of the first three, as the chat's
-  address does (`openAskAi`).
+  address does (`openAskAi`); `?thread=rich` on an answer whose tools returned four figures, a
+  table with long values in its first and last columns, and a trace.
 - A question sent starts a run whose steps are written one per poll, then the answer; a
   question about an alert ends on an approval card, and one asking to fail ends on an error.
   `?run=hold` holds the run where it is until `window.__askAiFixture.addSteps(n)` and
@@ -52,7 +53,7 @@ words (Persian right to left), and `?theme=dark` the dark theme.
 
 ## What the spec holds
 
-`AskAi.spec.ts` (37 tests, Chromium) pins the browser clock, fences the network to the fixture
+`AskAi.spec.ts` (49 tests, Chromium) pins the browser clock, fences the network to the fixture
 server, and fails on any uncaught page error:
 
 - every way in: the header's Ask AI, `Ctrl` / `Cmd` + `I` (and the keys left to another text
@@ -68,10 +69,19 @@ server, and fails on any uncaught page error:
   while the answer is written below it, the answer's citation chips, its sources, time, Copy and
   thumbs on one row, its sources and run stats, Stop, Try again, a question that cannot be sent,
   an approval decided inside the dialog and the card it leaves saying each fact once;
-- conversations within reach: the last three on the start, all of them a click away, opening
-  and deleting one, New chat;
+- what an answer carries, fitted to where it is drawn: citation marks that read as footnotes, not
+  as inline code; a chart's axis writing each value on one line ("2.6 s", "650 ms"); a table
+  keeping every column on screen on a phone; four figures in a row on a laptop and two by two on
+  a phone; a trace's bars that read in the dark;
+- the composer's menus opening where they fit: up from the start's composer when the dialog's
+  foot would cut them off, down when there is room;
+- conversations within reach: the last three on the start, all of them a click away, the focus
+  moving into the history as it opens, opening one, deleting one only once its row has asked
+  (Esc keeps it and leaves the dialog open), New chat;
 - closing loses nothing: the way back to an answer still being written, in the corner on a
   laptop and under the header on a phone, saying when it is ready;
-- dark, German, Persian (right to left) and reduced motion.
+- dark (the start's mark glowing indigo, not sitting in a black shadow), German, Persian (right
+  to left: an English title beside its icon and cut at its own end, an approval card's English
+  lines keeping their punctuation) and reduced motion.
 
 Screenshots of each state land in `output/playwright/ask-ai-ui/`.

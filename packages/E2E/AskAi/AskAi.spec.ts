@@ -108,6 +108,9 @@ interface Box {
   height: number;
 }
 
+// A monospace family, as the Dashboard writes code.
+const MONOSPACE: RegExp = /mono|Menlo|Consolas|Courier/i;
+
 const pageErrors: Map<Page, Array<string>> = new Map();
 
 test.beforeEach(async ({ page }: { page: Page }) => {
@@ -911,6 +914,245 @@ test.describe("an answer, written quietly", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * What an answer carries fits where it is drawn
+ * ---------------------------------------------------------------------------
+ */
+
+interface MarkStyle {
+  radius: number;
+  height: number;
+  border: number;
+  shadow: string;
+  font: string;
+  numeric: string;
+  size: number;
+}
+
+async function markStyleOf(locator: Locator): Promise<MarkStyle> {
+  return locator.evaluate((element: Element): MarkStyle => {
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    return {
+      radius: parseFloat(style.borderTopLeftRadius),
+      height: element.getBoundingClientRect().height,
+      border: parseFloat(style.borderTopWidth),
+      shadow: style.boxShadow,
+      font: style.fontFamily,
+      numeric: style.fontVariantNumeric,
+      size: parseFloat(style.fontSize),
+    };
+  });
+}
+
+// The y-axis' tick labels (a layer of their own), and the lines each was drawn on.
+const Y_AXIS_LABEL: string =
+  ".recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value";
+
+async function yAxisLabels(
+  page: Page,
+): Promise<Array<{ text: string; lines: number }>> {
+  return page
+    .locator(Y_AXIS_LABEL)
+    .evaluateAll(
+      (ticks: Array<Element>): Array<{ text: string; lines: number }> => {
+        return ticks.map((tick: Element): { text: string; lines: number } => {
+          return {
+            text: tick.textContent || "",
+            lines: Math.max(tick.querySelectorAll("tspan").length, 1),
+          };
+        });
+      },
+    );
+}
+
+test.describe("what an answer carries fits where it is drawn", () => {
+  test("a citation reads as a footnote, never as inline code", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=answered");
+    await expect(dialog(page)).toBeVisible();
+    await settle(page);
+
+    const text: Locator = page.getByTestId("ai-chat-answer-text");
+    const mark: MarkStyle = await markStyleOf(
+      text.locator('[data-citation-id="C1"]').first(),
+    );
+    const code: MarkStyle = await markStyleOf(
+      text.locator("code").filter({ hasText: "checkout-api" }).first(),
+    );
+
+    // A small round mark in the text's own font, with no frame...
+    expect(mark.radius).toBeGreaterThanOrEqual(mark.height / 2 - 0.5);
+    expect(mark.border).toBe(0);
+    expect(mark.shadow).toBe("none");
+    expect(mark.font).not.toMatch(MONOSPACE);
+    // ...and Inter's proportional figures: its tabular 1 has a foot.
+    expect(mark.numeric).not.toContain("tabular-nums");
+    expect(mark.size).toBeLessThan(code.size);
+    // Where the code beside it is a framed monospace box.
+    expect(code.border).toBeGreaterThanOrEqual(1);
+    expect(code.font).toMatch(MONOSPACE);
+  });
+
+  for (const width of [1280, 390]) {
+    test(`a chart's axis writes each value on one line, scaled as the dashboards write it (${width})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: width, height: 844 });
+      await load(page, "thread=answered");
+      await expect(dialog(page)).toBeVisible();
+      // The chart draws its axes once it has measured its box.
+      await expect(page.locator(Y_AXIS_LABEL).first()).toBeAttached();
+      await settle(page);
+
+      const labels: Array<{ text: string; lines: number }> =
+        await yAxisLabels(page);
+
+      expect(labels.length).toBeGreaterThanOrEqual(3);
+      // "2,600 ms" broke into "2,600" over "ms" on its 64 px.
+      for (const label of labels) {
+        expect(label, label.text).toEqual({ text: label.text, lines: 1 });
+      }
+      expect(
+        labels.map((label: { text: string; lines: number }): string => {
+          return label.text;
+        }),
+      ).toEqual(expect.arrayContaining(["650 ms", "1.3 s", "2.6 s"]));
+    });
+  }
+
+  test("on a phone a table keeps every column on screen, its text wrapped and its numbers whole", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, "thread=rich");
+    await expect(dialog(page)).toBeVisible();
+    await settle(page);
+
+    const table: Locator = page.locator("table").filter({
+      hasText: "Endpoint",
+    });
+    await table.scrollIntoViewIfNeeded();
+    await settle(page);
+
+    // Nothing hidden past the card's edge, waiting to be scrolled to.
+    const fit: { table: number; room: number } = await table.evaluate(
+      (element: Element): { table: number; room: number } => {
+        return {
+          table: element.scrollWidth,
+          room: (element.parentElement as HTMLElement).clientWidth,
+        };
+      },
+    );
+    expect(fit.table).toBeLessThanOrEqual(fit.room);
+
+    const card: Box = await boxOf(table);
+    for (const heading of await table.locator("th").all()) {
+      const box: Box = await boxOf(heading);
+      expect(box.x).toBeGreaterThanOrEqual(card.x - 0.5);
+      expect(box.x + box.width).toBeLessThanOrEqual(card.x + card.width + 0.5);
+    }
+
+    const cells: Locator = table.getByTestId("ai-chat-table-cell");
+    // The lines a cell's text was laid out on (a cell is as tall as its row).
+    const linesOf: (cell: Locator) => Promise<number> = async (
+      cell: Locator,
+    ): Promise<number> => {
+      return cell.evaluate((element: Element): number => {
+        const range: Range = document.createRange();
+        range.selectNodeContents(element);
+        return new Set(
+          Array.from(range.getClientRects()).map((rect: DOMRect): number => {
+            return Math.round(rect.top);
+          }),
+        ).size;
+      });
+    };
+
+    // The endpoint wraps over lines; its number stays on one.
+    await expect(cells.nth(1)).toHaveText("2,412");
+    expect(await linesOf(cells.nth(0))).toBeGreaterThanOrEqual(2);
+    expect(await linesOf(cells.nth(1))).toBe(1);
+    expect(await linesOf(cells.nth(2))).toBe(1);
+    await expect(cells.nth(0)).toHaveAttribute(
+      "title",
+      "POST /api/v2/checkout/sessions/{sessionId}/confirm",
+    );
+
+    await screenshot(page, "rich-table-390");
+  });
+
+  for (const viewport of [
+    { width: 1280, rows: 1 },
+    { width: 390, rows: 2 },
+  ]) {
+    test(`four figures fill their rows: ${viewport.rows === 1 ? "one row on a laptop" : "two by two on a phone"} (${viewport.width})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: viewport.width, height: 844 });
+      await load(page, "thread=rich");
+      await expect(dialog(page)).toBeVisible();
+      await settle(page);
+
+      const tiles: Array<Box> = [];
+      for (const tile of await page
+        .getByTestId("ai-chat-stat-cards")
+        .locator(":scope > div")
+        .all()) {
+        tiles.push(await boxOf(tile));
+      }
+
+      expect(tiles).toHaveLength(4);
+      const rows: Set<number> = new Set(
+        tiles.map((tile: Box): number => {
+          return Math.round(tile.y);
+        }),
+      );
+      expect(rows.size).toBe(viewport.rows);
+      // All the same width: no tile alone on a row of its own.
+      const widths: Array<number> = tiles.map((tile: Box): number => {
+        return tile.width;
+      });
+      expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(1);
+    });
+  }
+
+  test("a trace's bars read in the dark: its spans in the charts' indigo, its error in rose", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=rich&theme=dark");
+    await expect(dialog(page)).toBeVisible();
+    await settle(page);
+
+    const bars: Array<string> = await page
+      .getByText("Slowest checkout trace")
+      .locator("xpath=ancestor::div[contains(@class,'rounded-xl')][1]")
+      .locator("div.absolute.rounded")
+      .evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element).backgroundColor;
+        });
+      });
+
+    expect(bars).toEqual([
+      "rgb(99, 102, 241)",
+      "rgb(244, 63, 94)",
+      "rgb(99, 102, 241)",
+    ]);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Conversations within reach
  * ---------------------------------------------------------------------------
  */
@@ -969,11 +1211,30 @@ test.describe("conversations within reach", () => {
     const ids: ConversationIds = await conversationIds(page);
 
     await page.getByTestId("ask-ai-history").click();
-    await page
-      .getByRole("button", {
-        name: "Delete conversation: Error log volume by service",
-      })
-      .click();
+    const bin: Locator = page.getByRole("button", {
+      name: "Delete conversation: Error log volume by service",
+    });
+    await bin.click();
+
+    // The bin deletes nothing: the row asks, named after the conversation.
+    const asking: Locator = page.getByRole("group", {
+      name: "Delete conversation: Error log volume by service",
+    });
+    await expect(asking).toBeVisible();
+    await expect(asking.getByRole("button")).toHaveText(["Delete", "Cancel"]);
+    // Cancel has the focus, and stands where the bin was: a double click keeps it.
+    await expect(asking.getByRole("button", { name: "Cancel" })).toBeFocused();
+    expect((await state(page)).deleted).toEqual([]);
+    await screenshot(page, "history-delete-asks-1280");
+
+    // Esc keeps it, and leaves the dialog open.
+    await page.keyboard.press("Escape");
+    await expect(asking).toHaveCount(0);
+    await expect(dialog(page)).toBeVisible();
+    await expect(bin).toBeFocused();
+
+    await bin.click();
+    await asking.getByRole("button", { name: "Delete" }).click();
 
     await expect(
       page
@@ -981,6 +1242,12 @@ test.describe("conversations within reach", () => {
         .getByText("Error log volume by service"),
     ).toHaveCount(0);
     expect((await state(page)).deleted).toEqual([ids.error]);
+    // The row that took its place has the focus.
+    await expect(
+      page
+        .getByTestId("ai-chat-history")
+        .getByRole("button", { name: /^Top exceptions this week/ }),
+    ).toBeFocused();
 
     await page
       .getByTestId("ai-chat-history")
@@ -999,6 +1266,29 @@ test.describe("conversations within reach", () => {
     // New chat starts over.
     await page.getByTestId("ask-ai-new-chat").click();
     await expect(page.getByTestId("ai-chat-home")).toBeVisible();
+  });
+
+  test("by keyboard, the history takes the focus as it opens: the first conversation", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "history=some");
+    await openAskAi(page);
+    await expect(composer(page)).toBeFocused();
+
+    // The button that opens it leaves the header with the start.
+    await page.getByTestId("ask-ai-history").focus();
+    await page.keyboard.press("Enter");
+
+    await expect(
+      page.getByRole("dialog", { name: "All conversations" }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByTestId("ai-chat-history")
+        .getByRole("button", { name: /^Why did checkout latency spike\?/ }),
+    ).toBeFocused();
   });
 });
 
@@ -1099,12 +1389,20 @@ test.describe("by keyboard", () => {
     await expect(
       page.getByRole("menu", { name: "AI permissions" }),
     ).toBeVisible();
-    // Under the button: on Ask AI's start the composer is near the top.
+    await settle(page);
+    /*
+     * On a laptop window 800 px tall the start's composer sits in the
+     * middle of the dialog, too low for the menu to open down without the
+     * dialog's foot cutting its last choice in half: it opens up, whole.
+     */
     const menu: Box = await boxOf(
       page.getByRole("menu", { name: "AI permissions" }),
     );
     const button: Box = await boxOf(mode);
-    expect(menu.y).toBeGreaterThan(button.y);
+    const panel: Box = await boxOf(dialog(page));
+    expect(menu.y + menu.height).toBeLessThanOrEqual(button.y);
+    expect(menu.y).toBeGreaterThanOrEqual(panel.y);
+    await screenshot(page, "start-menu-up-1280");
 
     await page.keyboard.press("Escape");
     await expect(page.getByRole("menu")).toHaveCount(0);
@@ -1113,6 +1411,30 @@ test.describe("by keyboard", () => {
 
     await page.keyboard.press("Escape");
     await expect(dialog(page)).toBeHidden();
+  });
+
+  test("with room under the start's composer, its menu opens down, as asked", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // The recent conversations under it lift the start's composer.
+    await load(page, "history=some");
+    await openAskAi(page);
+    const mode: Locator = page.getByTitle(
+      "Choose what the AI is allowed to do",
+    );
+
+    await mode.click();
+    const opened: Locator = page.getByRole("menu", { name: "AI permissions" });
+    await expect(opened).toBeVisible();
+    await settle(page);
+
+    const menu: Box = await boxOf(opened);
+    const button: Box = await boxOf(mode);
+    const panel: Box = await boxOf(dialog(page));
+    expect(menu.y).toBeGreaterThanOrEqual(button.y + button.height);
+    expect(menu.y + menu.height).toBeLessThanOrEqual(panel.y + panel.height);
   });
 
   test("one LLM provider: nothing to choose; two: the picker lists them", async ({
@@ -1294,6 +1616,18 @@ test.describe("in the dark", () => {
           return window.getComputedStyle(element).backgroundColor;
         }),
     ).toBe("rgba(2, 6, 23, 0.62)");
+    /*
+     * The start's mark glows in its own indigo, not in the deep black
+     * shadow the dark theme gives every shadow-lg (a dark smudge).
+     */
+    expect(
+      await page
+        .getByTestId("ai-chat-home")
+        .getByTestId("ask-ai-mark")
+        .evaluate((element: Element): string => {
+          return window.getComputedStyle(element).boxShadow;
+        }),
+    ).toContain("rgba(99, 102, 241, 0.55)");
     await screenshot(page, "start-incident-1280-dark");
 
     await load(page, "theme=dark&thread=answered");
@@ -1436,8 +1770,127 @@ test.describe("in Persian", () => {
     await screenshot(page, "answer-1280-fa");
   });
 
+  test("an English title stands beside its icon, where the page reads from", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "lang=fa&history=some");
+    await openAskAi(page);
+
+    for (const row of await page
+      .getByTestId("ai-chat-recent")
+      .getByRole("listitem")
+      .all()) {
+      const gap: { title: number; icon: number; direction: string } =
+        await row.evaluate(
+          (
+            item: Element,
+          ): { title: number; icon: number; direction: string } => {
+            const title: HTMLElement = item.querySelector(
+              "span[dir]",
+            ) as HTMLElement;
+            const range: Range = document.createRange();
+            range.selectNodeContents(title);
+            const icon: Element = item.querySelector("svg") as Element;
+            return {
+              title: range.getBoundingClientRect().right,
+              icon: icon.getBoundingClientRect().left,
+              direction: window.getComputedStyle(title).direction,
+            };
+          },
+        );
+
+      // Read left to right, its "?" at its end...
+      expect(gap.direction).toBe("ltr");
+      // ...beside its icon on the right, not across the row from it.
+      expect(gap.icon - gap.title).toBeGreaterThanOrEqual(0);
+      expect(gap.icon - gap.title).toBeLessThanOrEqual(16);
+    }
+  });
+
+  test("an approval's English lines keep their punctuation at their end", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "lang=fa&thread=approval");
+    await expect(dialog(page)).toBeVisible();
+    await settle(page);
+
+    const line: { direction: string; stop: number; end: number } = await page
+      .getByTestId("tool-approval-description")
+      .evaluate(
+        (
+          element: Element,
+        ): { direction: string; stop: number; end: number } => {
+          const isolate: HTMLElement = element.querySelector(
+            "bdi",
+          ) as HTMLElement;
+          const text: Text = isolate.firstChild as Text;
+          const range: Range = document.createRange();
+          range.setStart(text, text.length - 1);
+          range.setEnd(text, text.length);
+          return {
+            direction: window.getComputedStyle(isolate).direction,
+            stop: range.getBoundingClientRect().right,
+            end: isolate.getBoundingClientRect().right,
+          };
+        },
+      );
+
+    // 'Linked to host "test01".' - its full stop at its right, not its left.
+    await expect(page.getByTestId("tool-approval-description")).toHaveText(
+      'Severity: High. Linked to host "test01".',
+    );
+    expect(line.direction).toBe("ltr");
+    expect(Math.abs(line.end - line.stop)).toBeLessThanOrEqual(1);
+  });
+
   test.describe("on a phone", () => {
     test.use({ viewport: { width: 390, height: 844 } });
+
+    test("an English title too long for the header is cut at its own end", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await load(page, "lang=fa&thread=answered");
+      await expect(dialog(page)).toBeVisible();
+      await settle(page);
+
+      const heading: {
+        direction: string;
+        cut: boolean;
+        first: number;
+        left: number;
+      } = await page.getByTestId("ask-ai-title").evaluate(
+        (
+          element: Element,
+        ): {
+          direction: string;
+          cut: boolean;
+          first: number;
+          left: number;
+        } => {
+          const text: Text = element.firstChild as Text;
+          const range: Range = document.createRange();
+          range.setStart(text, 0);
+          range.setEnd(text, 3);
+          return {
+            direction: window.getComputedStyle(element).direction,
+            cut: element.scrollWidth > element.clientWidth,
+            first: range.getBoundingClientRect().left,
+            left: element.getBoundingClientRect().left,
+          };
+        },
+      );
+
+      expect(heading.cut).toBe(true);
+      expect(heading.direction).toBe("ltr");
+      // "Why" is on screen at the title's start; its end is what is cut.
+      expect(Math.abs(heading.first - heading.left)).toBeLessThanOrEqual(1);
+    });
 
     test("nothing is wider than the screen", async ({
       page,
