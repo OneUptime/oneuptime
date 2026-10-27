@@ -3,6 +3,7 @@ import OnCallDutyPolicyExecutionLog from "../../../../Models/DatabaseModels/OnCa
 import TeamMember from "../../../../Models/DatabaseModels/TeamMember";
 import AccessTokenService from "../../../../Server/Services/AccessTokenService";
 import ProjectService from "../../../../Server/Services/ProjectService";
+import UserService from "../../../../Server/Services/UserService";
 import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import ModelPermission from "../../../../Server/Types/Database/Permissions/Index";
 import DatabaseRequestType from "../../../../Server/Types/BaseDatabase/DatabaseRequestType";
@@ -214,6 +215,8 @@ describe("WorkspaceActionAuthorization.getProjectMemberProps on the project's pl
 
     jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([membership]);
     jest.spyOn(ProjectService, "isProjectBlocked").mockResolvedValue(false);
+    // Nor a blocked person (WorkspaceActionAuthorization asks that too).
+    jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
     jest
       .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
       .mockResolvedValue(null);

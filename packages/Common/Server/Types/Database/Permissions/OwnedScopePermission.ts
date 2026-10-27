@@ -576,23 +576,28 @@ export default class OwnedScopePermission {
   }
 
   /*
-   * THE COLUMNS OF A KIND READ IN FULL THAT FOLLOW ITS OWNERS ALL THE SAME:
-   * the ones only those who may change the kind may read (every permission
-   * that reads the column is one that changes the kind) - a Runner's key,
-   * which lets whoever presents it claim the work meant for that Runner,
-   * and the secrets and credentials that come with it. Reading such a
-   * column is as good as managing the record, so the Owned scope, which
-   * leaves the reads of the kind alone that it may be picked
-   * (leavesReadsAlone), does not leave the column alone: for a caller whose
-   * every grant that lets them read it is scoped to Owned, it is read only
-   * on the records they or their teams own. It is left out of every other
-   * record they read (withholdColumnsKeptToOwners), a filter on it reaches
-   * only the records they own (BasePermission.addRecordScopeToQuery), and
-   * they may neither order the records by it (DatabaseService) nor filter
-   * another record by it (QueryPermission): an order or a match is read one
-   * guess at a time. None for a kind whose reads the scope narrows already,
-   * and none for a caller with a grant over the whole project, or limited to
-   * labels, that lets them read the column.
+   * THE COLUMNS OF A KIND WITH OWNERS THAT FOLLOW ITS OWNERS, HOWEVER FAR
+   * THE READ OF THE KIND REACHES: the ones only those who may change the
+   * kind may read (every permission that reads the column is one that
+   * changes the kind) - a Runner's key, which lets whoever presents it claim
+   * the work meant for that Runner, a monitor's secret keys, with which a
+   * host agent's heartbeats are forged, and the secrets and credentials that
+   * come with them. Reading such a column is as good as managing the
+   * record, so for a caller whose every grant that lets them read it is
+   * scoped to Owned, it is read only on the records they or the teams of
+   * those grants own - whatever else lets them read the record: the Owned
+   * scope leaves the reads of some kinds alone that they may be picked
+   * (leavesReadsAlone), and a Viewer over the whole project beside a
+   * Monitor Admin scoped to Owned reads every monitor. It is left out of
+   * every other record they read (withholdColumnsKeptToOwners), a filter on
+   * it reaches only the records they own (BasePermission
+   * .addRecordScopeToQuery), and they may neither order the records by it
+   * (DatabaseService) nor filter another record by it (QueryPermission): an
+   * order or a match is read one guess at a time. None for a kind without
+   * owners, which the scope has nothing to narrow on; none where the read of
+   * the kind keeps to the records of those teams already; and none for a
+   * caller with a grant over the whole project, or limited to labels, that
+   * lets them read the column.
    */
   public static getColumnsKeptToOwners(
     modelType: { new (): BaseModel },
@@ -618,13 +623,31 @@ export default class OwnedScopePermission {
     if (
       props.isRoot ||
       props.isMasterAdmin ||
-      !OwnedScopePermission.leavesReadsAlone(modelType)
+      !OwnedScopePermission.hasOwners(modelType)
     ) {
       return [];
     }
 
     const model: BaseModel = new modelType();
     const changePermissions: Array<Permission> = model.getUpdatePermissions();
+
+    /*
+     * The teams whose records a read of the kind keeps to already, when it
+     * is limited to owned records: a column read on those teams' records
+     * at least is left out of none of them.
+     */
+    const readTeamIds: Array<ObjectID> | null =
+      OwnedScopePermission.isLimitedToOwnedRecords(
+        modelType,
+        props,
+        DatabaseRequestType.Read,
+      )
+        ? OwnedScopePermission.getOwningTeamIds(
+            modelType,
+            props,
+            DatabaseRequestType.Read,
+          )
+        : null;
 
     const userPermissions: Array<UserPermission> =
       DatabaseCommonInteractionPropsUtil.getUserPermissions(
@@ -656,22 +679,48 @@ export default class OwnedScopePermission {
 
       // No grant reads it at all: the select check refuses it already.
       if (
-        grantingRows.length > 0 &&
-        grantingRows.every((row: UserPermission): boolean => {
+        grantingRows.length === 0 ||
+        !grantingRows.every((row: UserPermission): boolean => {
           return (
             PermissionHelper.isScopeApplicable(row.permission) &&
             row.scope === PermissionScope.Owned
           );
         })
       ) {
-        kept.push({
-          column: column,
-          teamIds: OwnedScopePermission.getTeamIdsOfRows(grantingRows),
-        });
+        continue;
       }
+
+      const teamIds: Array<ObjectID> =
+        OwnedScopePermission.getTeamIdsOfRows(grantingRows);
+
+      // The read reaches no record but the ones the column is read on.
+      if (
+        readTeamIds &&
+        OwnedScopePermission.isTeamListWithin(readTeamIds, teamIds)
+      ) {
+        continue;
+      }
+
+      kept.push({ column: column, teamIds: teamIds });
     }
 
     return kept;
+  }
+
+  /*
+   * Whether a model's records have owners for the Owned scope to narrow by:
+   * an operational resource, a kind of the owner table registry, or a model
+   * that takes its owners from one (@OwnedThrough). Every other model has
+   * nothing for the scope to narrow (getOwnedOnlyGrantRows).
+   */
+  public static hasOwners(modelType: { new (): BaseModel }): boolean {
+    const model: BaseModel = new modelType();
+
+    return Boolean(
+      model.isOperationalResource ||
+        model.ownedThrough ||
+        this.getOwnerTableRegistry().has(model.constructor.name),
+    );
   }
 
   /*

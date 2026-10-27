@@ -124,6 +124,8 @@ const row: (
     labelIds: data?.labelIds || [],
     isBlockPermission: Boolean(data?.isBlock),
     ...(data?.scope ? { scope: data.scope } : {}),
+    // The member's team holds it: an Owned row reaches what that team owns.
+    teamId: TEAM_ID,
   };
 };
 

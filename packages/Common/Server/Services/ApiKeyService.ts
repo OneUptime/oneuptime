@@ -26,6 +26,8 @@ interface CachedApiKey {
   id: string;
   projectId: string;
   name: string | null;
+  // When the key stops working, in ms since the epoch: a hit past it is a miss.
+  expiresAt: number | null;
 }
 
 export interface ResolvedApiKey {
@@ -74,12 +76,36 @@ export class Service extends DatabaseService<Model> {
     return { updateBy, carryForward: null };
   }
 
+  /*
+   * And again once the change is written: a request between the clear above
+   * and the write would have cached the key as it was - a regenerated key's
+   * old value, an expiry pulled in - for another minute.
+   */
+  @CaptureSpan()
+  protected override async onUpdateSuccess(
+    onUpdate: OnUpdate<Model>,
+    _updatedItemIds: Array<ObjectID>,
+  ): Promise<OnUpdate<Model>> {
+    this.apiKeyCache.clear();
+    return onUpdate;
+  }
+
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
     this.apiKeyCache.clear();
     return { deleteBy, carryForward: null };
+  }
+
+  // See onUpdateSuccess: a deleted key is not cached again in between.
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    _itemIdsBeforeDelete: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    this.apiKeyCache.clear();
+    return onDelete;
   }
 
   /**
@@ -97,6 +123,16 @@ export class Service extends DatabaseService<Model> {
       if (cached === null) {
         return null;
       }
+
+      /*
+       * A key that expired while cached stops working when it expires, not
+       * up to a minute later: it is looked up again, and found expired.
+       */
+      if (cached.expiresAt !== null && cached.expiresAt <= Date.now()) {
+        this.apiKeyCache.delete(cacheKey);
+        return await this.findApiKey(apiKey);
+      }
+
       return {
         id: new ObjectID(cached.id),
         projectId: new ObjectID(cached.projectId),
@@ -113,6 +149,7 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         projectId: true,
         name: true,
+        expiresAt: true,
       },
       props: { isRoot: true },
     });
@@ -130,6 +167,9 @@ export class Service extends DatabaseService<Model> {
         id: row.id.toString(),
         projectId: row.projectId.toString(),
         name,
+        expiresAt: row.expiresAt
+          ? OneUptimeDate.fromString(row.expiresAt).getTime()
+          : null,
       },
       POSITIVE_TTL_MS,
     );

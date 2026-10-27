@@ -189,15 +189,18 @@ export default class PermissionRowsOfDeletedLabels {
         },
       });
 
+      // Each team once, its members' permissions rebuilt.
+      const teamIds: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+      for (const row of projectRows) {
+        if (row.teamId) {
+          teamIds.set(idText(row.teamId), row.teamId);
+        }
+      }
+
       await CustomRoleSync.refreshMembersOfTeams({
         projectId: projectId,
-        teamIds: projectRows
-          .map((row: LabelledRow): ObjectID | undefined => {
-            return row.teamId;
-          })
-          .filter((teamId: ObjectID | undefined): teamId is ObjectID => {
-            return Boolean(teamId);
-          }),
+        teamIds: Array.from(teamIds.values()),
       });
     }
 

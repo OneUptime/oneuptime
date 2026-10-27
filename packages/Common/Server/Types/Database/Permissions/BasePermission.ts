@@ -237,11 +237,17 @@ export default class BasePermission {
       blockedLabelIds,
     );
 
-    // A labelled model's own labels.
+    /*
+     * A labelled model's own labels: each operation's grants, and each
+     * column it names or selects that its caller may read only on some
+     * labels, a condition of its own (AccessControlPermission
+     * .getAccessControlIdListsForQuery) - a column read on fewer records
+     * than the table narrows the read, never widens it.
+     */
     if (new modelType().getAccessControlColumn()) {
-      const labelListsByOperation: Array<Array<ObjectID>> = operations.map(
-        (operation: RecordOperation): Array<ObjectID> => {
-          return AccessControlPermission.getAccessControlIdsForQuery(
+      const labelListsByOperation: Array<Array<ObjectID>> = operations.flatMap(
+        (operation: RecordOperation): Array<Array<ObjectID>> => {
+          return AccessControlPermission.getAccessControlIdListsForQuery(
             modelType,
             query,
             operation === type ? select : null,
@@ -456,14 +462,33 @@ export default class BasePermission {
           }),
     );
 
+    /*
+     * An update keeps to the parents the caller may update: a block with
+     * labels on updating the parent takes the parents carrying them away
+     * too, as the parent's update grants limited to labels narrow it below
+     * (a block on editing the Production status pages keeps their domains
+     * as they are).
+     */
+    const parentBlockedLabelIds: Array<ObjectID> =
+      ArrayUtil.removeDuplicatesFromObjectIDArray([
+        ...ReadPermission.getBlockedLabelIds(
+          parentModelType,
+          props,
+          DatabaseRequestType.Read,
+        ),
+        ...(type === DatabaseRequestType.Update
+          ? ReadPermission.getBlockedLabelIds(
+              parentModelType,
+              props,
+              DatabaseRequestType.Update,
+            )
+          : []),
+      ]);
+
     query = ReadPermission.addParentBlockedLabelsToQuery(
       modelType,
       query,
-      ReadPermission.getBlockedLabelIds(
-        parentModelType,
-        props,
-        DatabaseRequestType.Read,
-      ).filter((labelId: ObjectID): boolean => {
+      parentBlockedLabelIds.filter((labelId: ObjectID): boolean => {
         return !blockedOnRows.has(labelId.toString());
       }),
     );

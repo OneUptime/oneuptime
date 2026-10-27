@@ -15,6 +15,7 @@ import AccessTokenService from "../../Services/AccessTokenService";
 import DatabaseService from "../../Services/DatabaseService";
 import ProjectService from "../../Services/ProjectService";
 import TeamMemberService from "../../Services/TeamMemberService";
+import UserService from "../../Services/UserService";
 import ModelPermission from "../../Types/Database/Permissions/Index";
 import ColumnWriteRefusedException from "../../Types/Database/Permissions/ColumnWriteRefusedException";
 import Query from "../../Types/Database/Query";
@@ -173,6 +174,17 @@ export default class WorkspaceActionAuthorization {
      */
     if (await ProjectService.isProjectBlocked(projectId)) {
       throw new NotAuthorizedException(ExceptionMessages.ProjectBlocked);
+    }
+
+    /*
+     * A person a master admin blocked: blocking ends their sessions, but
+     * their memberships and chat links stay, so without this they went on
+     * acknowledging incidents, paging on-call and asking OneUptime AI from
+     * Slack and Microsoft Teams - as an MCP client of theirs may not
+     * (McpDelegationAuthorization, McpOAuthGrantAccess).
+     */
+    if (await UserService.isUserBlocked(userId)) {
+      throw new NotAuthorizedException(ExceptionMessages.UserBlocked);
     }
 
     const userGlobalAccessPermission: UserGlobalAccessPermission | null =
