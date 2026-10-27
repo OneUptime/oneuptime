@@ -272,7 +272,11 @@ describe("each library rule names the kind of event its Sigma reads", () => {
           expect(readsField(entry, "className", "Network Activity")).toBe(true);
           break;
         case DetectionRuleDataKind.WebRequests:
-          expect(readsField(entry, "targetResource")).toBe(true);
+          // What was asked for, or how far the request got (only a request followed into its trace has an outcome).
+          expect(
+            readsField(entry, "targetResource") ||
+              readsField(entry, "requestOutcome"),
+          ).toBe(true);
           break;
         case DetectionRuleDataKind.KubernetesAuditLogs:
           expect(readsField(entry, "objectRef.resource")).toBe(true);
