@@ -2539,7 +2539,13 @@ const INCIDENT_EVIDENCE: ReadonlyArray<EvidenceCase> = [
       );
       const chart: Locator = details.getByRole("application");
       await expect(chart).toBeVisible();
-      await expect(chart).toContainText("2,600ms");
+      /*
+       * The axis writes its values as the dashboards do, each on one line:
+       * "2,600 ms" did not fit its 64 px and was drawn as "2,600" over
+       * "ms" (Ask AI's UI review, #5349).
+       */
+      await expect(chart).toContainText("2.6 s");
+      await expect(chart).toContainText("650 ms");
     },
   },
   {
