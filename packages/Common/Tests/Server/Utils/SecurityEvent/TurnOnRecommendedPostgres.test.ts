@@ -7,6 +7,7 @@ import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatab
 import { WidenDetectionRuleName1806400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1806400000000-WidenDetectionRuleName";
 import DetectionRuleService from "../../../../Server/Services/DetectionRuleService";
 import SecurityLogSourceService from "../../../../Server/Services/SecurityLogSourceService";
+import SecurityTelemetrySourceService from "../../../../Server/Services/SecurityTelemetrySourceService";
 import SecurityCasePriorityService from "../../../../Server/Services/SecurityCasePriorityService";
 import SecurityCaseStatusService from "../../../../Server/Services/SecurityCaseStatusService";
 import SecurityPlaybookService from "../../../../Server/Services/SecurityPlaybookService";
@@ -31,6 +32,11 @@ import {
   getRecommendedDetectionRules,
 } from "../../../../Types/SecurityEvent/DetectionRuleLibrary";
 import {
+  SECURITY_TELEMETRY_SOURCE_KINDS,
+  SecurityTelemetrySourceKind,
+} from "../../../../Types/SecurityEvent/SecurityTelemetrySource";
+import EnterpriseEdition from "../../../../Server/Enterprise/EnterpriseEdition";
+import {
   TurnOnRecommendedAction,
   TurnOnRecommendedPart,
   TurnOnRecommendedReason,
@@ -42,6 +48,20 @@ import {
   buildSecurityPlaybookFromTemplate,
 } from "../../../../Utils/SecurityEvent/SecurityTemplateRecords";
 import { DataSource, QueryRunner } from "typeorm";
+
+/*
+ * The kinds of your OneUptime data the click turns on: every one, but the
+ * audit log only where OneUptime Enterprise writes it.
+ */
+const TELEMETRY_SOURCES_TURNED_ON: number =
+  SECURITY_TELEMETRY_SOURCE_KINDS.filter(
+    (kind: SecurityTelemetrySourceKind): boolean => {
+      return (
+        kind !== SecurityTelemetrySourceKind.AuditLog ||
+        EnterpriseEdition.isLoaded()
+      );
+    },
+  ).length;
 
 /*
  * TURN ON RECOMMENDED, ON A MIGRATED POSTGRES, THROUGH ITS ROUTE.
@@ -62,7 +82,8 @@ import { DataSource, QueryRunner } from "typeorm";
  * POST /security-case/setup/turn-on-recommended runs as a Security Admin,
  * with the production SecurityCaseAPI, SecuritySetup and services, on
  * structure-only copies of the migrated DetectionRule, SecurityPlaybook,
- * SecurityLogSource, SecurityCasePriority and SecurityCaseStatus tables in a
+ * SecurityLogSource, SecurityTelemetrySource, SecurityCasePriority and
+ * SecurityCaseStatus tables in a
  * schema of their own (CREATE TABLE ... LIKE ... INCLUDING ALL: their
  * columns, widths, defaults and indexes) - the project's case priorities and
  * statuses, which a template's steps name, written there the first time
@@ -121,6 +142,7 @@ const TABLES: Array<string> = [
   "DetectionRule",
   "SecurityPlaybook",
   "SecurityLogSource",
+  "SecurityTelemetrySource",
   "SecurityCasePriority",
   "SecurityCaseStatus",
 ];
@@ -221,6 +243,7 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
       DetectionRuleService,
       SecurityPlaybookService,
       SecurityLogSourceService,
+      SecurityTelemetrySourceService,
       SecurityCasePriorityService,
       SecurityCaseStatusService,
     ]) {
@@ -304,6 +327,14 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
     );
   }
 
+  async function telemetrySources(): Promise<
+    Array<{ kind: string; isEnabled: boolean; createdByUserId: string }>
+  > {
+    return database.query(
+      `SELECT "kind", "isEnabled", "createdByUserId" FROM "${schema}"."SecurityTelemetrySource" ORDER BY "kind"`,
+    );
+  }
+
   function namesOf(rows: Array<RuleRow>): Array<string> {
     return rows
       .map((row: RuleRow): string => {
@@ -346,6 +377,7 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
       rulesAdded: recommended.length,
       rulesTurnedOn: 0,
       logsTurnedOn: true,
+      telemetrySourcesTurnedOn: TELEMETRY_SOURCES_TURNED_ON,
       playbookAdded: true,
       playbookTurnedOn: false,
       problems: [],
@@ -369,6 +401,18 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
       { isEnabled: true, createdByUserId: userId.toString() },
     ]);
 
+    // The rest of your OneUptime data, each kind once, as the caller.
+    const sources: Array<{
+      kind: string;
+      isEnabled: boolean;
+      createdByUserId: string;
+    }> = await telemetrySources();
+    expect(sources).toHaveLength(TELEMETRY_SOURCES_TURNED_ON);
+    for (const source of sources) {
+      expect(source.isEnabled).toBe(true);
+      expect(source.createdByUserId).toBe(userId.toString());
+    }
+
     const playbookRows: Array<PlaybookRow> = await playbooks();
     expect(playbookRows).toHaveLength(1);
     expect(playbookRows[0]).toMatchObject({
@@ -389,6 +433,7 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
       rulesAdded: 0,
       rulesTurnedOn: 0,
       logsTurnedOn: false,
+      telemetrySourcesTurnedOn: 0,
       playbookAdded: false,
       playbookTurnedOn: false,
       problems: [],
@@ -396,6 +441,7 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
     expect((await rules()).length).toBe(before);
     expect(await playbooks()).toHaveLength(1);
     expect(await logSources()).toHaveLength(1);
+    expect(await telemetrySources()).toHaveLength(TELEMETRY_SOURCES_TURNED_ON);
   });
 
   test("a write the database refuses part way: the rest is written, the answer names it with why, and the next run writes only it", async () => {
@@ -457,6 +503,7 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
       rulesAdded: 1,
       rulesTurnedOn: 0,
       logsTurnedOn: false,
+      telemetrySourcesTurnedOn: 0,
       playbookAdded: false,
       playbookTurnedOn: false,
       problems: [],
@@ -486,6 +533,7 @@ describePostgres("Turn on recommended against a migrated Postgres", () => {
       rulesAdded: recommended.length - 2,
       rulesTurnedOn: 1,
       logsTurnedOn: false,
+      telemetrySourcesTurnedOn: 0,
       playbookAdded: false,
       playbookTurnedOn: false,
       problems: [],

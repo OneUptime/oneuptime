@@ -496,6 +496,30 @@ describe("before backups are set up", () => {
       expect(destinations).toHaveTextContent(provider.title);
     }
 
+    /*
+     * Official logos audit: each storage shows its official logo beside its
+     * name - decorative, the name is written beside it - and "S3-compatible
+     * storage", which is no one brand, keeps its icon.
+     */
+    for (const item of within(destinations).getAllByRole("listitem")) {
+      const provider: BackupProviderDefinition | undefined = (
+        BackupProviderCatalog as Array<BackupProviderDefinition>
+      ).find((candidate: BackupProviderDefinition): boolean => {
+        return item.textContent === candidate.title;
+      });
+      const logo: Element | null = item.querySelector("[data-provider-logo]");
+
+      expect(provider).toBeDefined();
+
+      if (provider?.logo) {
+        expect(logo).toHaveAttribute("data-provider-logo", provider.logo);
+        expect(logo).toHaveAttribute("aria-hidden", "true");
+      } else {
+        expect(logo).toBeNull();
+        expect(item.querySelector("svg")).not.toBeNull();
+      }
+    }
+
     // Nothing to show of backups that do not exist.
     expect(screen.queryByTestId("backups-status")).toBeNull();
     expect(mockTables[BACKUP_RUNS_TABLE_ID]).toBeUndefined();
@@ -905,10 +929,15 @@ describe("the status card", () => {
     // On: Turn on is not offered.
     expect(screen.queryByTestId("backups-turn-on")).toBeNull();
 
-    // What it is set to.
+    // What it is set to, beside the storage's official logo.
     expect(
       screen.getByTestId("backups-settings-destination"),
     ).toHaveTextContent("MinIO");
+    expect(
+      screen
+        .getByTestId("backups-settings-destination")
+        .querySelector("[data-provider-logo]"),
+    ).toHaveAttribute("data-provider-logo", "minio");
     expect(screen.getByTestId("backups-settings-location")).toHaveTextContent(
       "s3://oneuptime-backups/prod/",
     );

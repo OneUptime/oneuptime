@@ -2324,6 +2324,40 @@ export class PermissionHelper {
     );
   }
 
+  /*
+   * WHETHER A ROW'S LABELS NARROW IT: a row that carries labels, whatever
+   * scope it is stored with - except one scoped to Owned, which its owners
+   * narrow instead, and an All row of a role that cannot be scoped
+   * (isScopeApplicable), which reaches the whole project by definition.
+   *
+   * A row stored as All with labels is limited to its labels, as the
+   * dashboard shows it ("Only resources with certain labels"): every
+   * label-limited row of an install older than the scope column - which the
+   * column's default made All - and a row an API or Terraform caller wrote
+   * with labels and no scope are such rows. Read as All, each reached the
+   * whole project: a team limited to one customer's incidents read every
+   * incident, and an admin limited to some labels could hand their team the
+   * permission for the whole project by leaving the scope out.
+   */
+  public static isLimitedToLabels(row: {
+    permission: Permission;
+    labelIds?: ReadonlyArray<unknown> | null | undefined;
+    scope?: PermissionScope | undefined;
+  }): boolean {
+    if ((row.labelIds || []).length === 0) {
+      return false;
+    }
+
+    if (row.scope === PermissionScope.Owned) {
+      return false;
+    }
+
+    return !(
+      row.scope === PermissionScope.All &&
+      !this.isScopeApplicable(row.permission)
+    );
+  }
+
   public static isAccessControlPermission(permission: Permission): boolean {
     return (
       this.getAllPermissionProps()
@@ -2338,10 +2372,11 @@ export class PermissionHelper {
 
   /*
    * Returns permissions that grant access WITHOUT a label restriction.
-   * A permission row grants unrestricted access when:
-   *   - scope === All, OR
-   *   - scope is unset/undefined AND labelIds is empty (legacy: empty
-   *     labels meant no restriction regardless of the permission type).
+   * A permission row grants unrestricted access when it carries no labels
+   * (whatever its scope: All, Labels, or unset - legacy: empty labels meant
+   * no restriction regardless of the permission type), or it is an All row
+   * of a role that cannot be scoped. Labels narrow every other row, an All
+   * row's too (isLimitedToLabels).
    *
    * Owned-scoped rows are NOT unrestricted — they restrict to owned
    * resources via OwnedScopePermission — but they also don't contribute
@@ -2362,9 +2397,6 @@ export class PermissionHelper {
   ): Array<Permission> {
     return userPermissions
       .filter((i: UserPermission) => {
-        if (i.scope === PermissionScope.All) {
-          return true;
-        }
         /*
          * A role that cannot be scoped (Project Owner, Project Admin, the
          * Settings and Billing roles) reaches the whole project whatever
@@ -2375,8 +2407,8 @@ export class PermissionHelper {
         if (i.scope === PermissionScope.Owned) {
           return !this.isScopeApplicable(i.permission);
         }
-        // scope === Labels OR scope === undefined (legacy default)
-        return i.labelIds.length === 0;
+        // All, Labels or unset (legacy default): unless its labels narrow it.
+        return !this.isLimitedToLabels(i);
       })
       .map((i: UserPermission) => {
         return i.permission;
@@ -2384,23 +2416,16 @@ export class PermissionHelper {
   }
 
   /*
-   * Returns permission rows that apply a label-based restriction. Rows
-   * count as label-restricting when they have at least one labelId AND
-   * the scope is `Labels` (explicitly) or unset (legacy default).
-   * All/Owned scopes are excluded — All grants unconditionally and Owned
-   * is handled separately by OwnedScopePermission.
+   * Returns permission rows that apply a label-based restriction: the rows
+   * whose labels narrow them (isLimitedToLabels) - a row with at least one
+   * labelId at any scope but Owned, which OwnedScopePermission handles, and
+   * but an All row of a role that cannot be scoped.
    */
   public static getAccessControlPermissions(
     userPermissions: Array<UserPermission>,
   ): Array<UserPermission> {
     return userPermissions.filter((i: UserPermission) => {
-      if (
-        i.scope === PermissionScope.All ||
-        i.scope === PermissionScope.Owned
-      ) {
-        return false;
-      }
-      return i.labelIds.length > 0;
+      return this.isLimitedToLabels(i);
     });
   }
 
@@ -17910,10 +17935,20 @@ export interface UserPermission extends JSONObject {
    * Scope of this permission row. Absent means `Labels` (legacy default).
    * - `All`: applies project-wide.
    * - `Owned`: applies to resources owned by the user (in *OwnerUser) OR by
-   *   this team (in *OwnerTeam).
+   *   this team (in *OwnerTeam) - the row's teamId, never the user's other
+   *   teams: a team that may only view what it owns lends its resources to
+   *   no other team's grant to change them.
    * - `Labels`: existing allow/block-list label semantics.
    */
   scope?: PermissionScope | undefined;
+  /*
+   * The team whose permission this row is (AccessTokenService builds one row
+   * per TeamPermission). An `Owned` row reaches the resources this team owns
+   * (OwnedScopePermission). Absent on rows no team grants - a global
+   * permission, the defaults every member holds, an API key's rows - none of
+   * which is Owned. An Owned row without it reaches only what the user owns.
+   */
+  teamId?: ObjectID | undefined;
 }
 
 export interface UserTenantAccessPermission extends JSONObject {

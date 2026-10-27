@@ -606,6 +606,9 @@ import BackupRunService, {
 import SecurityLogSourceService, {
   Service as SecurityLogSourceServiceType,
 } from "Common/Server/Services/SecurityLogSourceService";
+import SecurityTelemetrySourceService, {
+  Service as SecurityTelemetrySourceServiceType,
+} from "Common/Server/Services/SecurityTelemetrySourceService";
 import SecurityEventConnectionRunService, {
   Service as SecurityEventConnectionRunServiceType,
 } from "Common/Server/Services/SecurityEventConnectionRunService";
@@ -613,6 +616,8 @@ import ThreatIntelFeedService, {
   Service as ThreatIntelFeedServiceType,
 } from "Common/Server/Services/ThreatIntelFeedService";
 import SecurityCaseAPI from "Common/Server/API/SecurityCaseAPI";
+import SecurityAttackCampaignAPI from "Common/Server/API/SecurityAttackCampaignAPI";
+import SecurityCaseContextAPI from "Common/Server/API/SecurityCaseContextAPI";
 import SecurityPlaybookRunAPI from "Common/Server/API/SecurityPlaybookRunAPI";
 import SecurityCaseFeedService, {
   Service as SecurityCaseFeedServiceType,
@@ -1651,6 +1656,7 @@ import LogDropFilter from "Common/Models/DatabaseModels/LogDropFilter";
 import SecurityEventConnectionRun from "Common/Models/DatabaseModels/SecurityEventConnectionRun";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
 import SecurityLogSource from "Common/Models/DatabaseModels/SecurityLogSource";
+import SecurityTelemetrySource from "Common/Models/DatabaseModels/SecurityTelemetrySource";
 import AuditLogExport from "Common/Models/DatabaseModels/AuditLogExport";
 import BackupSetting from "Common/Models/DatabaseModels/BackupSetting";
 import BackupRun from "Common/Models/DatabaseModels/BackupRun";
@@ -4050,10 +4056,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<SecurityTelemetrySource, SecurityTelemetrySourceServiceType>(
+        SecurityTelemetrySource,
+        SecurityTelemetrySourceService,
+      ).getRouter(),
+    );
+
     // Security cases and playbooks: the SOAR half of the Security product.
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new SecurityCaseAPI().getRouter(),
+    );
+
+    // Web attacks grouped by the address that sent them: the Campaigns page.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityAttackCampaignAPI().getRouter(),
+    );
+
+    // A case's Story and Impact: the case as the rest of OneUptime tells it.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new SecurityCaseContextAPI().getRouter(),
     );
 
     app.use(

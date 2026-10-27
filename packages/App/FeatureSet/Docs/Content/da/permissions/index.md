@@ -195,10 +195,12 @@ Hver tilladt rettighed gives med et omfang: når du tilføjer den, ligger **Omfa
 | Omfang | Betydning |
 | --- | --- |
 | Alle ressourcer i projektet | Standarden, og hvad de fleste teams har brug for. Tilladelsen gælder for alle matchende ressourcer. |
-| Kun ressourcer, de ejer | Tilladelsen gælder kun for ressourcer, som den handlende person eller et af vedkommendes teams ejer. |
+| Kun ressourcer, de ejer | Tilladelsen gælder kun for ressourcer, som den handlende person eller det team, den er givet til, ejer — ikke for ressourcer, som kun et andet af vedkommendes teams ejer. |
 | Kun ressourcer med bestemte etiketter | Tilladelsen gælder kun for ressourcer, der bærer mindst én af de valgte etiketter. |
 
 **Ejede** er den enkleste måde at bygge en model på, hvor "I passer på jeres egne tjenester": giv et team `MonitorAdmin` med omfanget Ejede, og gør så teamet til ejer af de monitorer, det har ansvaret for. Det indsnævrer alle ressourcer, der kan have ejere — monitorer, hændelser, dashboards, tjenester, monitorgrupper, vagtplaner og lignende — og det, der hører til dem, såsom en vagtplans lag. Sonder, Runnere, AI-agenter, vagtplaner samt hændelses- og vedligeholdelsesskabeloner er det, andre ressourcer sættes op med, så en tilladelse med omfanget Ejede læser stadig dem alle, og du kan vælge enhver af dem; den ændrer og sletter kun dem, du eller dine teams ejer. En Runners nøgle, som lader den, der har den, optræde som Runneren, vises kun på de Runnere, du eller dine teams ejer. Projektkonfiguration (hændelsestilstande, labels, teamsene selv) har ingen ejer, så en rolle med omfanget Ejede opfører sig normalt der.
+
+Hvert teams tilladelse med omfanget Ejede rækker til det, teamet selv ejer, ikke til det, personens andre teams ejer. En person på to teams, hvor det ene har fået `IncidentMember` med omfanget Ejede og det andet `Viewer` med omfanget Ejede, ændrer de hændelser, det første team ejer, og dem, personen selv ejer, og ser kun de hændelser, det andet team ejer. En tilladelse med omfanget Ejede tilføjer også kun ejere til ressourcer, som personen eller det team, den er givet til, ejer, så det første team kan ikke gøres til ejer af det andet teams hændelser for at komme uden om det. En brugerdefineret rolles tilladelse med omfanget Ejede rækker til det, hvert team, der har fået rollen, ejer.
 
 **Labels** er den mere manuelle udgave af samme idé: mærk ressourcer, og giv så tilladelser begrænset til de mærker.
 

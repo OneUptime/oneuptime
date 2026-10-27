@@ -140,58 +140,70 @@ export const SECURITY_EVENT_FACETS: ReadonlyArray<SecurityEventFacetDefinition> 
       priority: 1,
     },
     {
+      /*
+       * How far the request behind an event got, as its trace shows
+       * (Types/SecurityEvent/SecurityEventRequestOutcome): the cut between a
+       * scanner the app turned away and an attack that reached the
+       * database, so it sits right under severity.
+       */
+      key: "requestOutcome",
+      title: "Request Outcome",
+      pluralTitle: "Request Outcomes",
+      priority: 2,
+    },
+    {
       key: "className",
       title: "Event Class",
       pluralTitle: "Event Classes",
-      priority: 2,
+      priority: 3,
     },
     {
       key: "categoryName",
       title: "Category",
       pluralTitle: "Categories",
-      priority: 3,
+      priority: 4,
     },
     {
       key: "activityName",
       title: "Activity",
       pluralTitle: "Activities",
-      priority: 4,
+      priority: 5,
     },
     {
       key: "statusName",
       title: "Status",
       pluralTitle: "Statuses",
-      priority: 5,
+      priority: 6,
     },
     {
       key: "vendorName",
       title: "Vendor",
       pluralTitle: "Vendors",
-      priority: 6,
+      priority: 7,
     },
     {
       key: "productName",
       title: "Product",
       pluralTitle: "Products",
-      priority: 7,
+      priority: 8,
     },
     {
       key: "ruleName",
       title: "Detection Rule",
       pluralTitle: "Detection Rules",
-      priority: 8,
+      priority: 9,
     },
     {
       key: "principalUser",
       title: "Principal User",
       pluralTitle: "Principal Users",
-      priority: 9,
+      priority: 10,
     },
     {
       key: "principalHost",
       title: "Principal Host",
       pluralTitle: "Principal Hosts",
-      priority: 10,
+      priority: 11,
     },
     {
       /*
@@ -203,13 +215,13 @@ export const SECURITY_EVENT_FACETS: ReadonlyArray<SecurityEventFacetDefinition> 
       key: "processName",
       title: "Process",
       pluralTitle: "Processes",
-      priority: 11,
+      priority: 12,
     },
     {
       key: "parentProcessName",
       title: "Parent Process",
       pluralTitle: "Parent Processes",
-      priority: 12,
+      priority: 13,
     },
   ];
 

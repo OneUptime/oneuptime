@@ -34,7 +34,26 @@ import VideoCallProviderLogo from "./VideoCallProviderLogo";
  *
  * Colour classes are literal and limited to ones Theme.css re-colours for
  * the dark theme.
+ *
+ * The columns follow the gallery's own width, not the window's: beside the
+ * Settings side menu a 1280px window leaves the gallery some 880px, where
+ * five tiles side by side were 160px each and pushed their Connect buttons
+ * out of the tile. A tile is at least some 15rem wide: two across from
+ * 34rem, three from 51rem, all five from 78rem. A tile's footer wraps - its
+ * guide link over its button - rather than run out of the tile in a
+ * language with longer words.
  */
+
+// The size container the gallery reads its width from: its own wrapper.
+export const VIDEO_CALL_GALLERY_CONTAINER_CLASS_NAME: string =
+  "w-full min-w-0 [container-type:inline-size]";
+
+// Literal class names, so whatever reads the source for Tailwind finds them.
+export const VIDEO_CALL_GALLERY_CLASS_NAME: string =
+  "grid grid-cols-1 gap-4 [@container(min-width:34rem)]:grid-cols-2 [@container(min-width:51rem)]:grid-cols-3 [@container(min-width:78rem)]:grid-cols-5";
+
+export const VIDEO_CALL_TILE_FOOTER_CLASS_NAME: string =
+  "mt-4 flex flex-wrap items-center justify-between gap-x-3 gap-y-2";
 
 export interface ComponentProps {
   connectionCounts: Partial<Record<VideoCallProvider, number>>;
@@ -109,7 +128,10 @@ const ProviderTile: FunctionComponent<{
         {translator.translateText(definition.description)}
       </p>
 
-      <div className="mt-4 flex items-center justify-between gap-2">
+      <div
+        className={VIDEO_CALL_TILE_FOOTER_CLASS_NAME}
+        data-testid={`video-call-provider-footer-${definition.provider}`}
+      >
         <Link
           to={videoCallDocsUrl(
             isVideoCallOAuthAvailable(definition.provider)
@@ -117,7 +139,7 @@ const ProviderTile: FunctionComponent<{
               : definition.docsPath,
           )}
           openInNewTab={true}
-          className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-indigo-600"
+          className="inline-flex items-center gap-1 whitespace-nowrap text-xs font-medium text-gray-500 hover:text-indigo-600"
         >
           {isVideoCallOAuthAvailable(definition.provider)
             ? translator.translateText("How it works")
@@ -200,28 +222,33 @@ const VideoCallProviderGallery: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   return (
-    <ul
-      data-testid="video-call-provider-gallery"
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5"
+    <div
+      className={VIDEO_CALL_GALLERY_CONTAINER_CLASS_NAME}
+      data-testid="video-call-provider-gallery-container"
     >
-      <SlackHuddleTile />
-      {VideoCallProviderCatalog.map(
-        (definition: VideoCallProviderDefinition): ReactElement => {
-          return (
-            <ProviderTile
-              key={definition.provider}
-              definition={definition}
-              count={props.connectionCounts[definition.provider] || 0}
-              canConnect={props.canConnect}
-              connectDisabledReason={props.connectDisabledReason}
-              onConnect={() => {
-                props.onConnect(definition.provider);
-              }}
-            />
-          );
-        },
-      )}
-    </ul>
+      <ul
+        data-testid="video-call-provider-gallery"
+        className={VIDEO_CALL_GALLERY_CLASS_NAME}
+      >
+        <SlackHuddleTile />
+        {VideoCallProviderCatalog.map(
+          (definition: VideoCallProviderDefinition): ReactElement => {
+            return (
+              <ProviderTile
+                key={definition.provider}
+                definition={definition}
+                count={props.connectionCounts[definition.provider] || 0}
+                canConnect={props.canConnect}
+                connectDisabledReason={props.connectDisabledReason}
+                onConnect={() => {
+                  props.onConnect(definition.provider);
+                }}
+              />
+            );
+          },
+        )}
+      </ul>
+    </div>
   );
 };
 

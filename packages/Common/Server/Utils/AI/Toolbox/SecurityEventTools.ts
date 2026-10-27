@@ -88,6 +88,13 @@ const SEARCH_SELECT: JSONObject = {
   vendorName: true,
   ruleName: true,
   mitreTechniques: true,
+  /*
+   * The request the event happened in, and how far it got: with the trace
+   * id the model opens the exact trace (its spans, the exception it threw)
+   * rather than searching for it by time and host.
+   */
+  traceId: true,
+  requestOutcome: true,
 };
 
 function text(value: unknown): string {
@@ -193,6 +200,8 @@ export function securityEventSearchRow(event: SecurityEvent): JSONObject {
   put("vendor", event.vendorName);
   put("rule", event.ruleName);
   put("techniques", event.mitreTechniques);
+  put("traceId", event.traceId);
+  put("requestOutcome", event.requestOutcome);
 
   return row;
 }
@@ -312,7 +321,7 @@ export function securityEventTableText(row: JSONObject): string {
 export const SearchSecurityEventsTool: ObservabilityTool = {
   name: "search_security_events",
   description:
-    "Search SIEM security events (normalized to OCSF). Filter by time range, severity, event class, message text, user, host, process name, command line, or any observable (IP, hostname, username). Each event says what was done (its class, activity and status), who did it (user, host, IP and the process that acted, principalProcess), the process it is about with its path, command line and parent (in a process launch the process started; in an open, an injection or an end the process acted on), and what it touched. Use this to investigate what security activity involved a given entity, what ran on a host, or what fired recently.",
+    "Search SIEM security events (normalized to OCSF). Filter by time range, severity, event class, message text, user, host, process name, command line, or any observable (IP, hostname, username). Each event says what was done (its class, activity and status), who did it (user, host, IP and the process that acted, principalProcess), the process it is about with its path, command line and parent (in a process launch the process started; in an open, an injection or an end the process acted on), and what it touched. An event read from a log line written inside a traced request also gives its traceId - open it with the trace tools to see the request's spans and the exception it threw - and its requestOutcome: how far the request got (Rejected, Reached App, Errored, Reached Database). Use this to investigate what security activity involved a given entity, what ran on a host, or what fired recently.",
   inputSchema: {
     type: "object",
     properties: {

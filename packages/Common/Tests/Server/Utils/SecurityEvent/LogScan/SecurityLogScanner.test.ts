@@ -24,6 +24,10 @@ import SecurityProjectWork, {
 } from "../../../../../Server/Utils/SecurityEvent/SecurityProjectWork";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import ThreatIntelEnricher from "../../../../../Server/Utils/SecurityEvent/ThreatIntel/ThreatIntelEnricher";
+import SecurityRequestTrace from "../../../../../Server/Utils/SecurityEvent/RequestTrace/SecurityRequestTrace";
+import SpanService from "../../../../../Server/Services/SpanService";
+import ExceptionInstanceService from "../../../../../Server/Services/ExceptionInstanceService";
+import SecurityEventRequestOutcome from "../../../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import OneUptimeDate from "../../../../../Types/Date";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -60,6 +64,10 @@ interface StoredLog {
   // The record the log was sent under.
   primaryEntityId?: string | undefined;
   primaryEntityType?: string | undefined;
+  // The request it was written in.
+  traceId?: string | undefined;
+  spanId?: string | undefined;
+  sessionId?: string | undefined;
 }
 
 function toClickhouse(date: Date): string {
@@ -138,6 +146,10 @@ function install(stored: Array<StoredLog>): Installed {
               body: log.body,
               primaryEntityId: log.primaryEntityId,
               primaryEntityType: log.primaryEntityType,
+              // The Log table's own columns: '' when the line was in no request.
+              traceId: log.traceId || "",
+              spanId: log.spanId || "",
+              sessionId: log.sessionId || "",
             };
           });
       },
@@ -578,6 +590,157 @@ describe("SecurityLogScanner.scanSource", () => {
     expect(first[SECURITY_LOG_RESOURCE_TYPE_ATTRIBUTE]).toBe(ServiceType.Host);
     // A log that names no record connects its event to none.
     expect(second[SECURITY_LOG_RESOURCE_ID_ATTRIBUTE]).toBeUndefined();
+  });
+
+  test("an event made from a line written inside a traced request carries its trace, span and session", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    const stored: Array<StoredLog> = logs(
+      2,
+      startAt,
+      30,
+      WEB_LINES.sqlInjectionEncoded,
+    );
+    stored[0]!.traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+    stored[0]!.spanId = "00f067aa0ba902b7";
+    stored[0]!.sessionId = "session-1";
+    const installed: Installed = install(stored);
+    jest.spyOn(SpanService, "findSpansOfTraces").mockResolvedValue([]);
+    jest
+      .spyOn(ExceptionInstanceService, "findExceptionsOfTraces")
+      .mockResolvedValue([]);
+
+    await SecurityLogScanner.scanSource(source(startAt.toISOString()));
+
+    expect(installed.inserted[0]!["traceId"]).toBe(
+      "4bf92f3577b34da6a3ce929d0e0e4736",
+    );
+    expect(installed.inserted[0]!["spanId"]).toBe("00f067aa0ba902b7");
+    expect(installed.inserted[0]!["sessionId"]).toBe("session-1");
+    // A line in no request names none, and is not followed.
+    expect(installed.inserted[1]!["traceId"]).toBe("");
+    expect(installed.inserted[1]!["sessionId"]).toBe("");
+  });
+
+  test("each event is followed into its request before threat intel reads it, and stored knowing what happened next", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    const stored: Array<StoredLog> = logs(
+      1,
+      startAt,
+      30,
+      JSON.stringify({
+        name: "Error",
+        message:
+          "Page not found - /sitemap.xml?offset=1;SELECT%20IF((SLEEP(16)),1,2356)",
+        stack: "Error: Page not found - /sitemap.xml?offset=1;SELECT...",
+      }),
+    );
+    stored[0]!.traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+    stored[0]!.spanId = "00f067aa0ba902b7";
+    const installed: Installed = install(stored);
+    const traceReads: Array<Array<string>> = [];
+
+    jest
+      .spyOn(SpanService, "findSpansOfTraces")
+      .mockImplementation(
+        async (data: { traceIds: Array<string> }): Promise<Array<JSONObject>> => {
+          installed.order.push("follow");
+          traceReads.push(data.traceIds);
+
+          return [
+            {
+              traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+              spanId: "aaaaaaaaaaaaaaaa",
+              parentSpanId: "",
+              name: "GET",
+              kind: "SPAN_KIND_SERVER",
+              statusCode: 0,
+              durationUnixNano: "3000000",
+              attributes: {
+                "http.response.status_code": "404",
+                "http.request.method": "GET",
+                "client.address": "198.51.100.23",
+                "user_agent.original": "Mozilla/5.0 (scanner)",
+              },
+            },
+            {
+              traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
+              spanId: "00f067aa0ba902b7",
+              parentSpanId: "aaaaaaaaaaaaaaaa",
+              name: "router",
+              kind: "SPAN_KIND_INTERNAL",
+              statusCode: 0,
+              durationUnixNano: "1000000",
+              attributes: {},
+            },
+          ];
+        },
+      );
+    jest
+      .spyOn(ExceptionInstanceService, "findExceptionsOfTraces")
+      .mockResolvedValue([]);
+
+    await SecurityLogScanner.scanSource(source(startAt.toISOString()));
+
+    expect(traceReads).toEqual([["4bf92f3577b34da6a3ce929d0e0e4736"]]);
+    expect(installed.order).toEqual(["follow", "enrich", "insert"]);
+
+    const row: JSONObject = installed.inserted[0]!;
+    const attributes: JSONObject = row["attributes"] as JSONObject;
+
+    // The request as the trace tells it: turned away, from this client.
+    expect(row["requestOutcome"]).toBe(SecurityEventRequestOutcome.Rejected);
+    expect(row["severityName"]).toBe("Low");
+    expect(row["principalIp"]).toBe("198.51.100.23");
+    expect(row["targetResource"]).toBe(
+      "/sitemap.xml?offset=1;SELECT%20IF((SLEEP(16)),1,2356)",
+    );
+    expect(row["message"]).toBe(
+      "SQL injection attempt: GET /sitemap.xml?offset=1;SELECT%20IF((SLEEP(16)),1,2356) → 404",
+    );
+    expect(attributes["http.response.status_code"]).toBe("404");
+    expect(attributes["oneuptime.request.span_id"]).toBe("aaaaaaaaaaaaaaaa");
+    // Threat intel saw the address the trace found.
+    expect(installed.enriched[0]![0]!.principalIp).toBe("198.51.100.23");
+  });
+
+  test("a trace that cannot be read leaves the events as their lines said them, and still stores them", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    const stored: Array<StoredLog> = logs(
+      1,
+      startAt,
+      30,
+      WEB_LINES.pathTraversal,
+    );
+    stored[0]!.traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+    const installed: Installed = install(stored);
+    jest
+      .spyOn(SpanService, "findSpansOfTraces")
+      .mockRejectedValue(new Error("ClickHouse timed out"));
+    jest
+      .spyOn(ExceptionInstanceService, "findExceptionsOfTraces")
+      .mockResolvedValue([]);
+
+    const result: SecurityLogScanResult = await SecurityLogScanner.scanSource(
+      source(startAt.toISOString()),
+    );
+
+    expect(result.eventsFound).toBe(1);
+    expect(installed.inserted).toHaveLength(1);
+    // The access log's own status still says how far it got.
+    expect(installed.inserted[0]!["requestOutcome"]).toBe(
+      SecurityEventRequestOutcome.Rejected,
+    );
+  });
+
+  test("events that name no trace are never followed", async () => {
+    const startAt: Date = OneUptimeDate.addRemoveMinutes(NOW, -3);
+    install(logs(3, startAt, 30, SSH_LINES.failedPasswordRoot));
+    const follow: SpyInstance = jest.spyOn(SpanService, "findSpansOfTraces");
+
+    await SecurityLogScanner.scanSource(source(startAt.toISOString()));
+
+    expect(follow).not.toHaveBeenCalled();
+    expect(SecurityRequestTrace).toBeDefined();
   });
 
   test("a store that fails leaves the cursor where it was", async () => {

@@ -591,7 +591,11 @@ describe("a create permission limited to owned records", () => {
       }),
     ).resolves.toBeUndefined();
 
-    expect(ownedIds).toHaveBeenCalledWith(IncidentInternalNote, props);
+    /*
+     * The teams of the rows that grant the create: none here, a row no team
+     * grants reaching what the caller owns alone.
+     */
+    expect(ownedIds).toHaveBeenCalledWith(IncidentInternalNote, props, []);
 
     const refusal: unknown = await refusalOf(
       check({

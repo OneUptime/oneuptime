@@ -1890,6 +1890,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             keywords: ["siem", "security logs"],
           },
           {
+            page: PageMap.SECURITY_EVENTS_CAMPAIGNS,
+            title: "Campaigns",
+            icon: IconProp.Flag,
+            keywords: [
+              "attackers",
+              "scanners",
+              "web attacks",
+              "sql injection",
+              "path traversal",
+            ],
+          },
+          {
             page: PageMap.SECURITY_EVENTS_ENTITIES,
             title: "Entities",
             icon: IconProp.Fingerprint,

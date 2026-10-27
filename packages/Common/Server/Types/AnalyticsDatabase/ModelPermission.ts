@@ -66,8 +66,10 @@ export interface CheckReadPermissionType<TBaseModel extends BaseModel> {
  * Caches, per resource type (Service, Host, RumApplication ...), so a read
  * covering some types and a read covering all of them share what either
  * looked up:
- *   - `ownedIds`: the ids of that type the user owns (the inputs are
- *     userId + teamIds + tenantId, all stable for one props).
+ *   - `ownedIds`: the ids of that type the user, or the teams of the Owned
+ *     grants weighed, own - keyed by the sorted team ids as well, since
+ *     different permissions can be granted on different teams (userId and
+ *     tenantId are stable for one props).
  *   - `labeledIds`: keyed by the sorted label ids as well, since grants and
  *     blocks can carry different label sets.
  * Each holds the lookup's promise (PromiseCache.lookUpOnce), so reads
@@ -135,6 +137,12 @@ interface ReadGrants {
   isProjectWide: boolean;
   // One of them is Owned: the resources the caller or their teams own.
   hasOwnedGrant: boolean;
+  /*
+   * The teams of the Owned ones: each reaches what its own team owns, beside
+   * what the caller owns (OwnedScopePermission.getOwningTeamIds) - never
+   * what only another team of the caller's owns.
+   */
+  ownedTeamIds: Array<ObjectID>;
   // The labels the rest of them are limited to.
   grantedLabelIds: Array<ObjectID>;
 }
@@ -1097,7 +1105,11 @@ export default class ModelPermission {
           )
         : noResources,
       isNarrowed && grants.hasOwnedGrant
-        ? this.resolveOwnedParentIds(props, data.resourceTypes)
+        ? this.resolveOwnedParentIds(
+            props,
+            grants.ownedTeamIds,
+            data.resourceTypes,
+          )
         : noResources,
       isNarrowed && grants.grantedLabelIds.length > 0
         ? this.resolveLabeledParentIds(
@@ -1237,8 +1249,9 @@ export default class ModelPermission {
       return true;
     }
 
+    // The teams of the Owned grants, not every team the caller is on.
     const callerTeamIds: Set<string> = new Set<string>(
-      (props.userTeamIds || []).map((teamId: ObjectID): string => {
+      grants.ownedTeamIds.map((teamId: ObjectID): string => {
         return TelemetryReadScopeUtil.normalizeId(teamId.toString());
       }),
     );
@@ -1320,15 +1333,20 @@ export default class ModelPermission {
         return grantingPermissions.includes(row.permission);
       });
 
+    const ownedRows: Array<UserPermission> = grantingRows.filter(
+      (row: UserPermission): boolean => {
+        return row.scope === PermissionScope.Owned;
+      },
+    );
+
     return {
       blockedLabelIds: blockedLabelIds,
       grantingRows: grantingRows,
       isProjectWide: grantingRows.some((row: UserPermission): boolean => {
         return HeldPermissionsUtil.isProjectWideRow(row);
       }),
-      hasOwnedGrant: grantingRows.some((row: UserPermission): boolean => {
-        return row.scope === PermissionScope.Owned;
-      }),
+      hasOwnedGrant: ownedRows.length > 0,
+      ownedTeamIds: HeldPermissionsUtil.getTeamIdsOfRows(ownedRows),
       grantedLabelIds: this.getLabelIdsOfRows(
         grantingRows.filter((row: UserPermission): boolean => {
           return row.scope !== PermissionScope.Owned;
@@ -1459,17 +1477,30 @@ export default class ModelPermission {
    * types it covers (session replays: RUM applications). The polymorphic set
    * lives only in the registry (single source of truth).
    *
-   * Looked up once per resource type per request (the WeakMap on `props`):
-   * the inputs (userId, teamIds, tenantId) are stable for one props object,
-   * so every read of the request - whichever types it covers - reuses what
-   * an earlier one found, and reads running at the same time share one
-   * lookup.
+   * Owned by the user, or by one of `teamIds` - the teams of the Owned
+   * grants that let the caller read (ReadGrants.ownedTeamIds), never every
+   * team the caller is on: a team's grant reaches what that team owns.
+   *
+   * Looked up once per resource type and set of teams per request (the
+   * WeakMap on `props`): the other inputs (userId, tenantId) are stable for
+   * one props object, so every read of the request - whichever types it
+   * covers - reuses what an earlier one found, and reads running at the
+   * same time share one lookup.
    */
   private static async resolveOwnedParentIds(
     props: DatabaseCommonInteractionProps,
+    teamIds: ReadonlyArray<ObjectID>,
     resourceTypes?: ReadonlyArray<string> | undefined,
   ): Promise<Set<string>> {
     const cache: ScopeResolveCacheEntry = getScopeCacheBucket(props);
+
+    // The same teams in any order or case are one lookup.
+    const teamsKey: string = teamIds
+      .map((teamId: ObjectID): string => {
+        return TelemetryReadScopeUtil.normalizeId(teamId.toString());
+      })
+      .sort()
+      .join(",");
 
     // The kinds of resource are looked up a few at a time.
     const idsByType: Array<Array<string>> = await ArrayUtil.mapWithConcurrency(
@@ -1480,9 +1511,9 @@ export default class ModelPermission {
       > => {
         return PromiseCache.lookUpOnce(
           cache.ownedIds,
-          resourceType,
+          `${resourceType}|${teamsKey}`,
           (): Promise<Array<string>> => {
-            return this.findOwnedIdsOfType(entry, props);
+            return this.findOwnedIdsOfType(entry, props, teamIds);
           },
         );
       },
@@ -1491,10 +1522,11 @@ export default class ModelPermission {
     return new Set<string>(idsByType.flat());
   }
 
-  // The resources of one type the user, or one of their teams, owns.
+  // The resources of one type the user, or one of `teamIds`, owns.
   private static async findOwnedIdsOfType(
     entry: OwnerTablePair,
     props: DatabaseCommonInteractionProps,
+    teamIds: ReadonlyArray<ObjectID>,
   ): Promise<Array<string>> {
     const tenantFilter: Record<string, ObjectID> = props.tenantId
       ? { projectId: props.tenantId }
@@ -1509,11 +1541,11 @@ export default class ModelPermission {
               column: entry.fkColumn,
             })
           : Promise.resolve([]),
-        props.userTeamIds && props.userTeamIds.length > 0
+        teamIds.length > 0
           ? this.findAllIds({
               service: entry.ownerTeamService,
               query: {
-                teamId: QueryHelper.any(props.userTeamIds),
+                teamId: QueryHelper.any([...teamIds]),
                 ...tenantFilter,
               },
               column: entry.fkColumn,

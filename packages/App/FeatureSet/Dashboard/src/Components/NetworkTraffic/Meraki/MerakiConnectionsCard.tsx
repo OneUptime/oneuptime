@@ -27,6 +27,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { DEFAULT_MERAKI_REGION } from "Common/Types/NetworkController/MerakiRegion";
 import { NetworkControllerConnectionStatus } from "Common/Types/NetworkController/NetworkControllerConnectionHealth";
 import ObjectID from "Common/Types/ObjectID";
+import ProviderLogo from "Common/Types/ProviderLogo/ProviderLogo";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -37,6 +38,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import Pill from "Common/UI/Components/Pill/Pill";
+import ProviderLogoImage from "Common/UI/Components/ProviderLogo/ProviderLogoImage";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
@@ -454,9 +456,16 @@ const MerakiConnectionsCard: FunctionComponent<ComponentProps> = (
         className="mb-5 flex items-start gap-2 px-1 text-sm text-gray-500"
         data-testid="meraki-offer"
       >
-        <Icon
-          icon={IconProp.Cloud}
-          className="mt-0.5 h-4 w-4 flex-shrink-0 text-gray-400"
+        {/*
+          Meraki is Cisco's, and is shown by Cisco's official logo - the
+          words beside it name it, so it is not read out.
+        */}
+        <ProviderLogoImage
+          logo={ProviderLogo.Cisco}
+          isBare={true}
+          size={16}
+          isDecorative={true}
+          className="mt-0.5"
         />
         <span>
           {translator.translateText("Using Cisco Meraki?")}{" "}

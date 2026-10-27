@@ -179,6 +179,7 @@ import AuditLogExport from "./AuditLogExport";
 import BackupSetting from "./BackupSetting";
 import BackupRun from "./BackupRun";
 import SecurityLogSource from "./SecurityLogSource";
+import SecurityTelemetrySource from "./SecurityTelemetrySource";
 import LogScrubRule from "./LogScrubRule";
 import MetricPipelineRule from "./MetricPipelineRule";
 import LlmCostBudget from "./LlmCostBudget";
@@ -614,6 +615,7 @@ const AllModelTypes: Array<{
   BackupSetting,
   BackupRun,
   SecurityLogSource,
+  SecurityTelemetrySource,
   LogScrubRule,
   MetricPipelineRule,
   LlmCostBudget,

@@ -16,6 +16,7 @@ import {
   SecurityPlaybookActionDefinition,
   SecurityPlaybookActionType,
   actsOnSecurityEntities,
+  doesActionNeedApprovalByDefault,
   getSecurityPlaybookAction,
   getSecurityPlaybookUndoAction,
 } from "../../../Types/SecurityPlaybook/SecurityPlaybookAction";
@@ -618,5 +619,173 @@ describe("parseSecurityPlaybookSteps", () => {
       { url: "https://" },
       /https:\/\//,
     );
+  });
+});
+
+/*
+ * The steps that respond through the rest of OneUptime: a runbook, the
+ * evidence a case's requests left, a status page announcement and a fix by
+ * OneUptime AI.
+ */
+describe("the steps that respond through OneUptime", () => {
+  test("Run a runbook names the runbook, by id, and nothing else", () => {
+    expect(
+      parseOne(SecurityPlaybookActionType.RunRunbook, {
+        runbookId: ` ${OTHER_ID} `,
+        command: "rm -rf /",
+      }).config,
+    ).toEqual({ runbookId: OTHER_ID });
+    expectRejected(
+      SecurityPlaybookActionType.RunRunbook,
+      {},
+      /choose the runbook to run/,
+    );
+    expectRejected(
+      SecurityPlaybookActionType.RunRunbook,
+      { runbookId: "not-an-id" },
+      /choose the runbook to run/,
+    );
+  });
+
+  test("Preserve the evidence and Fix the code with AI take no settings: they read the case", () => {
+    expect(
+      parseOne(SecurityPlaybookActionType.PreserveEvidence, {
+        anything: "dropped",
+      }).config,
+    ).toEqual({});
+    expect(
+      parseOne(SecurityPlaybookActionType.FixWithAi, { repository: "x" })
+        .config,
+    ).toEqual({});
+  });
+
+  test("Post a status page announcement keeps its pages, title, text and whether to notify", () => {
+    expect(
+      parseOne(SecurityPlaybookActionType.PostStatusPageAnnouncement, {
+        statusPageIds: [USER_ID, "not-an-id", USER_ID, TEAM_ID],
+        announcementTitle: "  We are investigating a security issue  ",
+        announcementDescription: "Some sign-ins may be slower while we look.",
+        notifySubscribers: true,
+        extra: "dropped",
+      }).config,
+    ).toEqual({
+      statusPageIds: [USER_ID, TEAM_ID],
+      announcementTitle: "We are investigating a security issue",
+      announcementDescription: "Some sign-ins may be slower while we look.",
+      notifySubscribers: true,
+    });
+
+    // Subscribers are told only when the step says so.
+    expect(
+      parseOne(SecurityPlaybookActionType.PostStatusPageAnnouncement, {
+        statusPageIds: [USER_ID],
+        announcementTitle: "Title",
+        announcementDescription: "Text",
+        notifySubscribers: "yes",
+      }).config["notifySubscribers"],
+    ).toBe(false);
+  });
+
+  test("Post a status page announcement says what is missing or too long", () => {
+    const complete: Record<string, unknown> = {
+      statusPageIds: [USER_ID],
+      announcementTitle: "Title",
+      announcementDescription: "Text",
+    };
+
+    expectRejected(
+      SecurityPlaybookActionType.PostStatusPageAnnouncement,
+      { ...complete, statusPageIds: [] },
+      /choose the status pages to post on/,
+    );
+    expectRejected(
+      SecurityPlaybookActionType.PostStatusPageAnnouncement,
+      { ...complete, announcementTitle: "  " },
+      /write the announcement's title/,
+    );
+    expectRejected(
+      SecurityPlaybookActionType.PostStatusPageAnnouncement,
+      { ...complete, announcementTitle: "x".repeat(101) },
+      /longer than 100 characters/,
+    );
+    expectRejected(
+      SecurityPlaybookActionType.PostStatusPageAnnouncement,
+      { ...complete, announcementDescription: "" },
+      /write what the announcement says/,
+    );
+    expectRejected(
+      SecurityPlaybookActionType.PostStatusPageAnnouncement,
+      { ...complete, announcementDescription: "x".repeat(10001) },
+      /longer than 10000 characters/,
+    );
+  });
+
+  test("a runbook and a status page announcement start needing approval; neither is disruptive", () => {
+    for (const type of [
+      SecurityPlaybookActionType.RunRunbook,
+      SecurityPlaybookActionType.PostStatusPageAnnouncement,
+    ]) {
+      const definition: SecurityPlaybookActionDefinition =
+        getSecurityPlaybookAction(type)!;
+
+      expect(definition.isDisruptive).toBe(false);
+      expect(definition.needsApprovalByDefault).toBe(true);
+      expect(doesActionNeedApprovalByDefault(definition)).toBe(true);
+    }
+
+    // Containment starts needing it too; reading and noting does not.
+    expect(
+      doesActionNeedApprovalByDefault(
+        getSecurityPlaybookAction(SecurityPlaybookActionType.SuspendOktaUser),
+      ),
+    ).toBe(true);
+    expect(
+      doesActionNeedApprovalByDefault(
+        getSecurityPlaybookAction(SecurityPlaybookActionType.PreserveEvidence),
+      ),
+    ).toBe(false);
+    expect(
+      doesActionNeedApprovalByDefault(
+        getSecurityPlaybookAction(SecurityPlaybookActionType.FixWithAi),
+      ),
+    ).toBe(false);
+    expect(doesActionNeedApprovalByDefault(undefined)).toBe(false);
+  });
+
+  test("the approval a step was saved with is the one it waits for: a runbook step saved without it runs without it", () => {
+    const [withApproval, withoutApproval] = parseSecurityPlaybookSteps([
+      step(
+        SecurityPlaybookActionType.RunRunbook,
+        { runbookId: OTHER_ID },
+        { requiresApproval: true },
+      ),
+      step(
+        SecurityPlaybookActionType.RunRunbook,
+        { runbookId: OTHER_ID },
+        { requiresApproval: false },
+      ),
+    ]) as [SecurityPlaybookStep, SecurityPlaybookStep];
+
+    expect(doesStepNeedApproval(withApproval)).toBe(true);
+    expect(doesStepNeedApproval(withoutApproval)).toBe(false);
+  });
+
+  test("each sits where a response reaches for it", () => {
+    expect(
+      getSecurityPlaybookAction(SecurityPlaybookActionType.PreserveEvidence)
+        ?.category,
+    ).toBe(SecurityPlaybookActionCategory.Investigate);
+    expect(
+      getSecurityPlaybookAction(
+        SecurityPlaybookActionType.PostStatusPageAnnouncement,
+      )?.category,
+    ).toBe(SecurityPlaybookActionCategory.Notify);
+    expect(
+      getSecurityPlaybookAction(SecurityPlaybookActionType.RunRunbook)
+        ?.category,
+    ).toBe(SecurityPlaybookActionCategory.Automate);
+    expect(
+      getSecurityPlaybookAction(SecurityPlaybookActionType.FixWithAi)?.category,
+    ).toBe(SecurityPlaybookActionCategory.Automate);
   });
 });

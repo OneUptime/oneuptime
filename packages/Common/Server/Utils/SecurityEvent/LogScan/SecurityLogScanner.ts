@@ -24,6 +24,7 @@ import SecurityProjectWork, {
   UNLIMITED_SECURITY_PROJECT_WORK_LEASE,
 } from "../SecurityProjectWork";
 import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
+import SecurityRequestTrace from "../RequestTrace/SecurityRequestTrace";
 
 /*
  * "Your logs" (SecurityLogSource): every minute, for each project that
@@ -49,7 +50,11 @@ import ThreatIntelEnricher from "../ThreatIntel/ThreatIntelEnricher";
  *
  * The events keep the time the log line was written. They are attributed
  * to one "OneUptime Logs" service per project - as detections are to
- * "OneUptime Detections" - and each names the log record it came from.
+ * "OneUptime Detections" - and each names the log record it came from and,
+ * when the line was written inside a traced request, that request's trace,
+ * span and session - followed into the trace before the event is stored
+ * (RequestTrace/SecurityRequestTrace.ts), so it is stored knowing what the
+ * app answered and how far an attack got.
  *
  * The work is spread by project (SecurityProjectWork): the cron queues one
  * turn for each project that turned the scan on.
@@ -120,6 +125,10 @@ function readAttributes(value: JSONValue | undefined): JSONObject {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as JSONObject)
     : {};
+}
+
+function readText(value: JSONValue | undefined): string | undefined {
+  return typeof value === "string" && value ? value : undefined;
 }
 
 function readNumber(value: JSONValue | undefined): number {
@@ -338,6 +347,14 @@ export default class SecurityLogScanner {
                 typeof row["primaryEntityType"] === "string"
                   ? row["primaryEntityType"]
                   : undefined,
+              /*
+               * The request the line was written in, so each event links
+               * to its trace, its exception and its session - and can be
+               * followed (storeEvents).
+               */
+              traceId: readText(row["traceId"]),
+              spanId: readText(row["spanId"]),
+              sessionId: readText(row["sessionId"]),
             }),
           );
         }
@@ -419,6 +436,17 @@ export default class SecurityLogScanner {
     events: Array<NormalizedSecurityEvent>;
     serviceMetadata: TelemetryServiceMetadata;
   }): Promise<void> {
+    /*
+     * Each event made from a line written inside a traced request is
+     * followed into that request first: the trace says who sent it, what
+     * the app answered and how far an attack got - and an address found
+     * there is then matched against threat intel like any other.
+     */
+    await SecurityRequestTrace.followEvents({
+      projectId: data.projectId,
+      events: data.events,
+    });
+
     // Threat intel stamps its matches before the rows are built, as ingest does.
     await ThreatIntelEnricher.enrichNormalizedEvents({
       projectId: data.projectId,

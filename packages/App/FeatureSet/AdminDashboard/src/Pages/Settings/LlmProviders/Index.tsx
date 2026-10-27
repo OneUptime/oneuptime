@@ -13,10 +13,8 @@ import {
   getGlobalLlmProviderFormFields,
   getLlmProviderFormSteps,
 } from "Common/UI/Components/AI/LlmProviderFormFields";
-import {
-  getLlmProviderShownModelName,
-  getLlmProviderTypeCopy,
-} from "Common/UI/Components/AI/LlmProviderFormCopy";
+import { getLlmProviderShownModelName } from "Common/UI/Components/AI/LlmProviderFormCopy";
+import LlmProviderTypeLabel from "Common/UI/Components/AI/LlmProviderTypeLabel";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -156,11 +154,7 @@ const Settings: FunctionComponent = (): ReactElement => {
             // As the form's cards name it: "Azure OpenAI / Microsoft Foundry".
             getElement: (item: LlmProvider): ReactElement => {
               return (
-                <span>
-                  {getLlmProviderTypeCopy(item.llmType)?.title ||
-                    item.llmType ||
-                    "-"}
-                </span>
+                <LlmProviderTypeLabel llmType={item.llmType} emptyText="-" />
               );
             },
           },

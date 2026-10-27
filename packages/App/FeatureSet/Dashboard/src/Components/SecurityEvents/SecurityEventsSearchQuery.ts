@@ -97,6 +97,18 @@ export const SECURITY_EVENT_FIELD_ALIASES: Readonly<Record<string, string>> = {
   mitretechniques: "mitreTechniques",
   uid: "eventUid",
   eventuid: "eventUid",
+  /*
+   * The request an event happened in, and how far it got. `trace:` and
+   * `session:` are what a person pastes from the trace or session they came
+   * from; `outcome:` stays the OCSF status it always was.
+   */
+  trace: "traceId",
+  traceid: "traceId",
+  span: "spanId",
+  spanid: "spanId",
+  session: "sessionId",
+  sessionid: "sessionId",
+  requestoutcome: "requestOutcome",
 };
 
 /*
@@ -166,6 +178,9 @@ export const SECURITY_EVENT_SEARCH_SUGGESTIONS: ReadonlyArray<string> = [
   "observable",
   "tactic",
   "technique",
+  "requestoutcome",
+  "trace",
+  "session",
 ];
 
 export const SECURITY_EVENT_SEARCH_PLACEHOLDER: string =
