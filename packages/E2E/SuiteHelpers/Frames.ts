@@ -32,7 +32,10 @@ export type BoxesInOneFrameFunction = (
 /*
  * The boxes of the locators' elements, in the order given, read in one
  * frame of the page they belong to. Each locator waits for its element as
- * boundingBox() does; an element that is not displayed has an empty box.
+ * boundingBox() does. An element that is not displayed (display: none, or
+ * nothing of it in the layout) has no box, and the read fails naming it, as
+ * the boundingBox() reads this replaced failed on their null: a box of
+ * zeros would let a comparison pass that never saw the element.
  */
 export const boxesInOneFrame: BoxesInOneFrameFunction = async (
   locators: Array<Locator>,
@@ -43,19 +46,25 @@ export const boxesInOneFrame: BoxesInOneFrameFunction = async (
 
   const page: Page = locators[0]!.page();
   const elements: Array<ElementHandle<HTMLElement | SVGElement>> = [];
-
-  for (const locator of locators) {
-    elements.push(
-      (await locator.elementHandle()) as ElementHandle<
-        HTMLElement | SVGElement
-      >,
-    );
-  }
+  let boxes: Array<FrameBox | null>;
 
   try {
-    return await page.evaluate(
-      (nodes: Array<HTMLElement | SVGElement>): Array<FrameBox> => {
-        return nodes.map((node: HTMLElement | SVGElement): FrameBox => {
+    for (const locator of locators) {
+      elements.push(
+        (await locator.elementHandle()) as ElementHandle<
+          HTMLElement | SVGElement
+        >,
+      );
+    }
+
+    boxes = await page.evaluate(
+      (nodes: Array<HTMLElement | SVGElement>): Array<FrameBox | null> => {
+        return nodes.map((node: HTMLElement | SVGElement): FrameBox | null => {
+          // No box at all, where boundingBox() answers null.
+          if (node.getClientRects().length === 0) {
+            return null;
+          }
+
           const rect: DOMRect = node.getBoundingClientRect();
 
           return {
@@ -77,4 +86,20 @@ export const boxesInOneFrame: BoxesInOneFrameFunction = async (
       ),
     );
   }
+
+  const notDisplayed: Array<string> = locators
+    .filter((_locator: Locator, index: number): boolean => {
+      return boxes[index] === null;
+    })
+    .map((locator: Locator): string => {
+      return String(locator);
+    });
+
+  if (notDisplayed.length > 0) {
+    throw new Error(
+      `boxesInOneFrame: not displayed, so there is no box to compare: ${notDisplayed.join(", ")}`,
+    );
+  }
+
+  return boxes as Array<FrameBox>;
 };

@@ -311,7 +311,8 @@ when its words fit one line, and balances its lines when they wrap. See
   the other while something moves - a side panel sliding in, a dialog growing
   in, More fields scrolling its fields into view, a menu opening - come from
   two moments, and a gap or an alignment between them can be off by a hundred
-  pixels. Compare boxes read with it.
+  pixels. Compare boxes read with it. An element that is not displayed fails
+  the read, naming it, where `boundingBox()` would answer null.
 - `Edition.ts`: `readFixtureEdition(request)` asks a fixture which edition it
   bundled (`/edition.json`), and `skipUnlessEnterprise(edition, reason)` skips
   an Enterprise spec where `ee/` is not checked out - or fails it where
