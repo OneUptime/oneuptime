@@ -45,6 +45,9 @@ import { ScheduledMaintenancePhaseOfState } from "../../../../Utils/ScheduledMai
 
 const DAY: Date = new Date("2026-10-21T00:00:00.000Z");
 
+// The dialog's subtitle when it counts a day's incidents ("2 incidents reported on this day").
+const INCIDENTS_REPORTED_SUBTITLE: RegExp = /incidents? reported on this day/;
+
 const OPERATIONAL: StatusDuration = {
   label: "Operational",
   seconds: 16 * 60 * 60,
@@ -175,7 +178,7 @@ describe("UptimeBarDayModal - a day of maintenance and no incidents", () => {
     renderDialog({ maintenanceEvents: [maintenance()] });
 
     expect(
-      screen.queryByText(/incidents? reported on this day/),
+      screen.queryByText(INCIDENTS_REPORTED_SUBTITLE),
     ).not.toBeInTheDocument();
   });
 });

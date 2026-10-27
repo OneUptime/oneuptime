@@ -39,6 +39,24 @@ import path from "path";
 const END_DATE: Date = OneUptimeDate.getCurrentDate();
 const START_DATE: Date = OneUptimeDate.getSomeDaysAgoFromDate(END_DATE, 9);
 
+// A CSS comment, and a run of whitespace, as the stylesheet is read flat.
+const CSS_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
+const WHITESPACE_RUN: RegExp = /\s+/g;
+
+// The strip's stylesheet, comments out and on one line.
+function readGraphCss(): string {
+  return fs
+    .readFileSync(
+      path.resolve(
+        __dirname,
+        "../../../../UI/Components/Graphs/DayUptimeGraph.css",
+      ),
+      "utf8",
+    )
+    .replace(CSS_COMMENT, "")
+    .replace(WHITESPACE_RUN, " ");
+}
+
 const OPERATIONAL_COLOR: Color = Green;
 const OFFLINE_COLOR: Color = Red;
 
@@ -199,16 +217,7 @@ describe("a day with no data is hatched, not only grey", () => {
       ),
       "utf8",
     );
-    const css: string = fs
-      .readFileSync(
-        path.resolve(
-          __dirname,
-          "../../../../UI/Components/Graphs/DayUptimeGraph.css",
-        ),
-        "utf8",
-      )
-      .replace(/\/\*[\s\S]*?\*\//g, "")
-      .replace(/\s+/g, " ");
+    const css: string = readGraphCss();
 
     expect(graphSource).toContain('import "./DayUptimeGraph.css";');
     expect(css).toContain(
@@ -250,16 +259,7 @@ describe("a day with no data is hatched, not only grey", () => {
  * background image) and the dark theme's edge (a box shadow) still show.
  */
 describe("a day with scheduled maintenance wears a band, and keeps its colour", () => {
-  const css: string = fs
-    .readFileSync(
-      path.resolve(
-        __dirname,
-        "../../../../UI/Components/Graphs/DayUptimeGraph.css",
-      ),
-      "utf8",
-    )
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\s+/g, " ");
+  const css: string = readGraphCss();
 
   test("the band is the maintenance blue, across the top of the bar, and lets clicks through", () => {
     expect(css).toContain(

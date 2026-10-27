@@ -1,4 +1,7 @@
 import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
+// The page's fixture state, as window.__statusPageSearchFixture.
+import "./FixtureState";
 
 /*
  * A public status page's 90-day history shows the page's scheduled
@@ -10,19 +13,17 @@ import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
  * laptop and a phone (Pixel 5).
  */
 
-interface FixtureState {
-  requests: number;
-  maintenanceIds: Array<string>;
-}
-
-declare global {
-  interface Window {
-    __statusPageSearchFixture: FixtureState;
-  }
-}
-
 // The maintenance blue (MAINTENANCE_MARK_COLOR) as the browser computes it.
 const MAINTENANCE_BLUE: string = "rgb(59, 130, 246)";
+
+// How a bar's accessible name ends on a day with one event.
+const ONE_EVENT_LABEL_END: RegExp = /% uptime, 1 scheduled maintenance event$/;
+
+// An event's window, on the reader's clock and naming it: "..., 01:00 – 03:00 UTC".
+const WINDOW_ON_THE_READERS_CLOCK: RegExp = /– .*(UTC|GMT)/;
+
+// The completed upgrade's item in the day's dialog: its name starts with the title.
+const DATABASE_UPGRADE_BUTTON: RegExp = /Database 0660 upgrade/;
 
 async function openWithMaintenance(page: Page): Promise<void> {
   await page.goto("/?maintenance=1");
@@ -70,10 +71,7 @@ test("bands the days a resource's maintenance touched, and names them", async ({
   // Two days ago, over the outage: the event's only day.
   const day: Locator = bars.nth(88);
   await expect(day).toHaveAttribute("data-has-maintenance", "true");
-  await expect(day).toHaveAttribute(
-    "aria-label",
-    /% uptime, 1 scheduled maintenance event$/,
-  );
+  await expect(day).toHaveAttribute("aria-label", ONE_EVENT_LABEL_END);
   expect(await bandOf(day)).toEqual({ color: MAINTENANCE_BLUE, height: "4px" });
 
   // Every other day of its history is bare.
@@ -109,8 +107,7 @@ test("a day's tooltip names its maintenance after its incidents, with window and
   await expect(tooltip).toContainText("Scheduled maintenance");
   await expect(tooltip).toContainText("Database 0660 upgrade");
   await expect(tooltip).toContainText("Completed");
-  // The window, on the reader's clock and naming it: "..., 10:00 - 12:00 UTC".
-  await expect(tooltip).toContainText(/– .*(UTC|GMT)/);
+  await expect(tooltip).toContainText(WINDOW_ON_THE_READERS_CLOCK);
 
   await page.mouse.move(0, 0);
   await expect(tooltip).toBeHidden();
@@ -136,7 +133,7 @@ test("the day dialog lists the maintenance and opens the event's page, from the 
   ).toBeVisible();
 
   const event: Locator = dialog.getByRole("button", {
-    name: /Database 0660 upgrade/,
+    name: DATABASE_UPGRADE_BUTTON,
   });
   await expect(event).toBeVisible();
   await expect(dialog.getByTestId("uptime-day-maintenance-state")).toHaveText(
@@ -161,7 +158,9 @@ test("the day dialog lists the maintenance and opens the event's page, from the 
   await event.focus();
   await event.press("Enter");
 
-  await expect(page).toHaveURL(new RegExp(`/scheduled-events/${ids[0]}$`));
+  await expect(page).toHaveURL(
+    new RegExp(`/scheduled-events/${escapeRegExp(ids[0]!)}$`),
+  );
 });
 
 test("a resource under maintenance in progress says so beside its name, and only that one", async ({

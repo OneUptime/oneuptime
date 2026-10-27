@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
 
@@ -1883,6 +1884,13 @@ test.describe("failures", () => {
 const MAINTENANCE_WINDOW_TEXT: RegExp =
   /^Sep 19, (08:00|8:00 AM) – (10:00|10:00 AM) (UTC|GMT)$/;
 
+// The list reads of scheduled maintenance, and of its states.
+const SCHEDULED_MAINTENANCE_LIST: RegExp = /^ScheduledMaintenance$/;
+const SCHEDULED_MAINTENANCE_STATE_LIST: RegExp = /^ScheduledMaintenanceState$/;
+
+// The database upgrade's item in the day's dialog: its name starts with the title.
+const DATABASE_UPGRADE_BUTTON: RegExp = /Database upgrade/;
+
 // The seeded events' ids, by title (Fixture.js, ?maintenance=1).
 async function maintenanceIds(page: Page): Promise<Record<string, string>> {
   return page.evaluate((): Record<string, string> => {
@@ -1954,11 +1962,11 @@ test.describe("scheduled maintenance on the uptime strip", () => {
     ).toHaveCount(0);
 
     // Read once, for the subject monitor, by the project's states.
-    expect(await listRequestsFor(page, /^ScheduledMaintenance$/)).toHaveLength(
-      1,
-    );
     expect(
-      (await listRequestsFor(page, /^ScheduledMaintenanceState$/)).length,
+      await listRequestsFor(page, SCHEDULED_MAINTENANCE_LIST),
+    ).toHaveLength(1);
+    expect(
+      (await listRequestsFor(page, SCHEDULED_MAINTENANCE_STATE_LIST)).length,
     ).toBeGreaterThan(0);
 
     await screenshot(page, "monitor-overview-uptime-maintenance");
@@ -2003,11 +2011,11 @@ test.describe("scheduled maintenance on the uptime strip", () => {
 
     const ids: Record<string, string> = await maintenanceIds(page);
 
-    await dialog.getByRole("button", { name: /Database upgrade/ }).click();
+    await dialog.getByRole("button", { name: DATABASE_UPGRADE_BUTTON }).click();
 
     await expect(page).toHaveURL(
       new RegExp(
-        `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/${ids["Database upgrade"]}$`,
+        `/dashboard/${escapeRegExp(PROJECT_ID)}/scheduled-maintenance-events/${escapeRegExp(ids["Database upgrade"]!)}$`,
       ),
     );
   });
@@ -2041,9 +2049,9 @@ test.describe("scheduled maintenance on the uptime strip", () => {
     await expect(
       page.getByTestId("monitor-uptime-maintenance-unavailable"),
     ).toBeVisible();
-    expect(await listRequestsFor(page, /^ScheduledMaintenance$/)).toHaveLength(
-      0,
-    );
+    expect(
+      await listRequestsFor(page, SCHEDULED_MAINTENANCE_LIST),
+    ).toHaveLength(0);
   });
 
   test("a monitor without maintenance has no band and no key", async ({
