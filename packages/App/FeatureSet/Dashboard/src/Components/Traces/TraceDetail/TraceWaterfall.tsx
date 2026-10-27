@@ -548,6 +548,15 @@ const TraceWaterfall: FunctionComponent<ComponentProps> = (
                             Linked
                           </span>
                         )}
+                        {row.node.isSameRequest && (
+                          <span
+                            className="flex-none rounded-full bg-sky-100 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700"
+                            title="The same request, recorded twice (for example by the Kubernetes agent and by an SDK in the app). Shown inside the other recording so their spans read as one."
+                            data-testid="trace-row-same-request"
+                          >
+                            Same request
+                          </span>
+                        )}
                         {row.isCollapsed && (
                           <span
                             className="flex-none rounded bg-gray-100 px-1.5 text-[10px] font-medium tabular-nums text-gray-600"
