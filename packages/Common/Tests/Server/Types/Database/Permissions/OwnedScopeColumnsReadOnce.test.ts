@@ -324,7 +324,11 @@ describe("OwnedScopePermission.getColumnsKeptToOwnersWithTeams", () => {
     expect(asked).toBeGreaterThan(500);
     // Columns are kept to owners for some of these (a Runner's key, ...).
     expect(keptSomewhere).toBeGreaterThan(0);
-  });
+    /*
+     * About 4 seconds alone and 22 beside fifteen other suites here: three
+     * minutes leaves a slow runner's busy shard room under it.
+     */
+  }, 180000);
 
   test("a Runner's key is still kept to its owners on an Owned grant", () => {
     expect(new Runner().getColumnAccessControlFor("key")?.read).toContain(
