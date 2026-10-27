@@ -19,8 +19,11 @@ import {
  * current Node (the read-only `performance` global).
  */
 
+type GetBuffer = (key: string) => Promise<Buffer | null>;
+type MockClient = { getBuffer: ReturnType<typeof jest.fn<GetBuffer>> };
+
 const mockRedisState: {
-  client: { getBuffer: jest.Mock } | null;
+  client: MockClient | null;
   connected: boolean;
 } = {
   client: null,
@@ -76,9 +79,9 @@ import TelemetryBodyStore, {
 const BODY: Buffer = Buffer.from([0x0a, 0x00, 0xff, 0x10]);
 const SHORT_WAIT_MS: number = 1_500;
 
-function connectedClient(): { getBuffer: jest.Mock } {
+function connectedClient(): MockClient {
   return {
-    getBuffer: jest.fn(async (): Promise<Buffer> => {
+    getBuffer: jest.fn<GetBuffer>(async (): Promise<Buffer> => {
       return BODY;
     }),
   };
@@ -100,7 +103,7 @@ describe("TelemetryBodyStore.readBody while Redis is not ready", () => {
   });
 
   test("reads at once when the client is already connected", async () => {
-    const client: { getBuffer: jest.Mock } = connectedClient();
+    const client: MockClient = connectedClient();
     mockRedisState.client = client;
     mockRedisState.connected = true;
 
@@ -113,7 +116,7 @@ describe("TelemetryBodyStore.readBody while Redis is not ready", () => {
   });
 
   test("waits for a client that connects within the window, then reads the body", async () => {
-    const client: { getBuffer: jest.Mock } = connectedClient();
+    const client: MockClient = connectedClient();
     after(400, () => {
       mockRedisState.client = client;
       mockRedisState.connected = true;
@@ -126,7 +129,7 @@ describe("TelemetryBodyStore.readBody while Redis is not ready", () => {
   });
 
   test("waits for a client that exists but is still reconnecting", async () => {
-    const client: { getBuffer: jest.Mock } = connectedClient();
+    const client: MockClient = connectedClient();
     mockRedisState.client = client;
     after(400, () => {
       mockRedisState.connected = true;
@@ -163,7 +166,7 @@ describe("TelemetryBodyStore.waitForRedis", () => {
   });
 
   test("returns the client as soon as it is connected", async () => {
-    const client: { getBuffer: jest.Mock } = connectedClient();
+    const client: MockClient = connectedClient();
     after(300, () => {
       mockRedisState.client = client;
       mockRedisState.connected = true;
