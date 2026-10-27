@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "Hoppa till huvudinnehåll",
-    "loading": "Läser in..."
+    "loading": "Läser in...",
+    "moreLinks": "Fler länkar",
+    "navigation": "Navigering"
   },
   "common": {
     "save": "Spara",
@@ -303,7 +305,8 @@
       "loginPrompt": "Logga in för att se {{statusPageName}}",
       "noProviders": "Inga SSO-leverantörer har konfigurerats eller aktiverats",
       "notAvailable": "Single sign-on (SSO) är inte tillgängligt för den här statussidan. Logga in med din e-postadress och ditt lösenord istället.",
-      "backToLogin": "Tillbaka till inloggningen"
+      "backToLogin": "Tillbaka till inloggningen",
+      "logInWithPassword": "Logga in med lösenord"
     },
     "forgotPassword": {
       "title": "Glömt lösenord",
@@ -320,13 +323,9 @@
       "knowPassword": "Kommer du ihåg ditt lösenord?"
     },
     "masterPassword": {
-      "enterWithName": "Ange lösenord för {{statusPageName}}",
-      "enterGeneric": "Ange lösenord",
-      "prompt": "Ange lösenordet för att fortsätta.",
+      "prompt": "Ange lösenordet för att se den här statussidan.",
       "passwordRequired": "lösenord krävs.",
       "passwordLabel": "Lösenord",
-      "passwordDescription": "Ange lösenordet för att låsa upp den här sidan.",
-      "passwordPlaceholder": "Ange lösenord",
       "submit": "Lås upp statussida"
     },
     "signingOut": "Loggar ut dig..."
@@ -416,6 +415,8 @@
   "Try again": "Försök igen",
   "Loading...": "Laddar...",
   "Loading": "Laddar",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} är inte giltig JSON. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} är inte giltig YAML. {{parserMessage}}",
   "markdownCallouts": {
     "caution": "Försiktighet",
     "danger": "Fara",

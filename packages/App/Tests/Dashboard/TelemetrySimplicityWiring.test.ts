@@ -276,9 +276,9 @@ const LINES_IN_PAGES: Record<string, Array<string>> = {
     "The value to give it.",
     "What to write in place of the value. Empty writes [REDACTED].",
   ],
+  // The empty list's setup steps gave way to its showcase (#5289).
   "Pages/Rum/RumApplications.tsx": [
     "Your web and mobile apps, as their real users see them. Each app appears here once it sends telemetry.",
-    "Pick what you are instrumenting and follow the steps. Your app appears in the list above once its first telemetry arrives.",
   ],
   "Pages/Rum/View/SessionReplaySettings.tsx": [
     "For other sensitive data, pick a stricter mode or add selectors below.",

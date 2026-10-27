@@ -68,7 +68,7 @@ Nunca atrasado e nunca contado:
 | Cobrança e saldo | Faturas, assinatura vencida, "não conseguimos chamar ninguém porque o cartão foi recusado" |
 | Saúde da instância | Avisos de Postgres, Valkey e ClickHouse para os administradores da instância |
 | Assinantes de páginas de status | Todo e-mail que sua página de status envia aos seus próprios assinantes |
-| Violações de SLA | Enviadas imediatamente, mesmo reutilizando o tipo de notificação de incidente criado |
+| Violações de SLA | Um incidente do qual você é proprietário que perde o prazo de SLA de resposta ou de resolução |
 
 Só o e-mail é afetado. SMS, chamadas telefônicas, notificações push, WhatsApp, Telegram, Slack, Microsoft Teams e webhooks são entregues imediatamente, exatamente como antes, inclusive para as notificações cujo e-mail foi retido.
 

@@ -36,9 +36,14 @@ services:
       # referenced env var is unset — it would crash-loop rather than run
       # without the attribute. It used to be baked in as ENV APP_VERSION by an
       # image that was never actually built or published; now that the agent
-      # is the upstream collector plus this config, the image pin is the
-      # version that means something. Keep it in step with `image:` above.
-      - APP_VERSION=${APP_VERSION:-0.161.0}
+      # is the upstream collector plus this config, it is the version of
+      # these files: the collector `image:` above pins, with the last number
+      # raised each time the files change on the same collector (0.161.1:
+      # the CPU processors, #5076). OneUptime shows a sign beside an agent
+      # that reports less. Raise it with any change to this file, the
+      # collector config or inventory-snapshot.sh, and set it back to the
+      # collector's version when `image:` moves on.
+      - APP_VERSION=${APP_VERSION:-0.161.1}
     restart: unless-stopped
     logging:
       driver: json-file

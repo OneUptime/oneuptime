@@ -1,5 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
+import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import SnmpDataType from "Common/Types/Monitor/SnmpMonitor/SnmpDataType";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
 import SnmpVersion from "Common/Types/Monitor/SnmpMonitor/SnmpVersion";
@@ -31,8 +31,10 @@ import {
   SNMP_WALK_POLL_INTERVAL_IN_MS,
   SNMP_WALK_SERVER_MESSAGES,
   SNMP_WALK_START_POINTS,
+  SNMP_WALK_UPTIME_RESTART_THRESHOLD,
   SNMP_WALK_WAIT_IN_MS,
   SnmpWalkAlertPrefill,
+  SnmpWalkAlertThreshold,
   SnmpWalkHistoryEntry,
   SnmpWalkMessage,
   SnmpWalkPage,
@@ -48,6 +50,7 @@ import {
   getCollectedOids,
   getSelectedStartPoint,
   getSnmpWalkAlertCondition,
+  getSnmpWalkAlertCriteria,
   getSnmpWalkContinueAfter,
   getSnmpWalkRowLabels,
   getSnmpWalkRows,
@@ -921,7 +924,87 @@ describe("Alert on it", () => {
     }
   });
 
-  test("the create page reads it back: OID, name, condition and a numeric threshold", () => {
+  /*
+   * Issue #5215. The criteria starts from what holds whatever the walk read,
+   * and leaves a threshold the person has to choose blank. "Above the walked
+   * value" on a counter fired at the very next poll - a counter only grows -
+   * and stayed fired until the device restarted; on a gauge it fired at the
+   * next rise; "below the walked uptime" held the alert open until the
+   * uptime passed it again.
+   */
+  test.each([
+    [
+      SnmpDataType.Counter,
+      CheckOn.SnmpOidRatePerSecond,
+      FilterType.GreaterThan,
+      SnmpWalkAlertThreshold.None,
+    ],
+    [
+      SnmpDataType.Counter32,
+      CheckOn.SnmpOidRatePerSecond,
+      FilterType.GreaterThan,
+      SnmpWalkAlertThreshold.None,
+    ],
+    [
+      SnmpDataType.Counter64,
+      CheckOn.SnmpOidRatePerSecond,
+      FilterType.GreaterThan,
+      SnmpWalkAlertThreshold.None,
+    ],
+    [
+      SnmpDataType.Gauge,
+      CheckOn.SnmpOidValue,
+      FilterType.GreaterThan,
+      SnmpWalkAlertThreshold.None,
+    ],
+    [
+      SnmpDataType.Gauge32,
+      CheckOn.SnmpOidValue,
+      FilterType.GreaterThan,
+      SnmpWalkAlertThreshold.None,
+    ],
+    [
+      SnmpDataType.TimeTicks,
+      CheckOn.SnmpOidValue,
+      FilterType.LessThan,
+      SnmpWalkAlertThreshold.RecentRestart,
+    ],
+    [
+      SnmpDataType.Integer,
+      CheckOn.SnmpOidValue,
+      FilterType.NotEqualTo,
+      SnmpWalkAlertThreshold.WalkedValue,
+    ],
+    [
+      SnmpDataType.OctetString,
+      CheckOn.SnmpOidValue,
+      FilterType.NotEqualTo,
+      SnmpWalkAlertThreshold.WalkedValue,
+    ],
+    [
+      SnmpDataType.Unknown,
+      CheckOn.SnmpOidValue,
+      FilterType.NotEqualTo,
+      SnmpWalkAlertThreshold.WalkedValue,
+    ],
+  ])(
+    "a %s is alerted on by %s, %s, threshold %s",
+    (
+      type: SnmpDataType,
+      checkOn: CheckOn,
+      filterType: FilterType,
+      threshold: SnmpWalkAlertThreshold,
+    ) => {
+      expect(getSnmpWalkAlertCriteria(type)).toEqual({
+        checkOn: checkOn,
+        filterType: filterType,
+        threshold: threshold,
+      });
+      expect(getSnmpWalkAlertCondition(type)).toBe(filterType);
+    },
+  );
+
+  test("the create page reads a gauge back: OID, name, condition, and a threshold left to the person", () => {
     const prefill: SnmpWalkAlertPrefill | null = parseSnmpWalkAlertQuery({
       snmpOid: "1.3.6.1.4.1.9.9.109.1.1.1.1.8.1",
       snmpOidType: SnmpDataType.Gauge32,
@@ -931,9 +1014,54 @@ describe("Alert on it", () => {
     expect(prefill).toEqual({
       oid: "1.3.6.1.4.1.9.9.109.1.1.1.1.8.1",
       oidName: "CPU 5-min %",
+      checkOn: CheckOn.SnmpOidValue,
       filterType: FilterType.GreaterThan,
-      value: 7,
+      value: undefined,
+      description:
+        "The value the device reports for CPU 5-min % (1.3.6.1.4.1.9.9.109.1.1.1.1.8.1).",
     });
+  });
+
+  test("a counter is alerted on by how fast it grows, never by the value the walk read", () => {
+    for (const type of [SnmpDataType.Counter32, SnmpDataType.Counter64]) {
+      expect(
+        parseSnmpWalkAlertQuery({
+          snmpOid: "1.3.6.1.2.1.2.2.1.14.3",
+          snmpOidType: type,
+          snmpOidValue: "1200",
+        }),
+      ).toEqual({
+        oid: "1.3.6.1.2.1.2.2.1.14.3",
+        oidName: "ifInErrors.3",
+        checkOn: CheckOn.SnmpOidRatePerSecond,
+        filterType: FilterType.GreaterThan,
+        value: undefined,
+        description:
+          "How fast the counter ifInErrors.3 (1.3.6.1.2.1.2.2.1.14.3) grows, per second, between polls.",
+      });
+    }
+  });
+
+  test("an uptime alerts when the device restarted in the last ten minutes, whatever the walk read", () => {
+    expect(SNMP_WALK_UPTIME_RESTART_THRESHOLD).toBe(10 * 60 * 100);
+
+    for (const walked of ["8640000", "12", null]) {
+      expect(
+        parseSnmpWalkAlertQuery({
+          snmpOid: "1.3.6.1.2.1.1.3.0",
+          snmpOidType: SnmpDataType.TimeTicks,
+          snmpOidValue: walked,
+        }),
+      ).toEqual({
+        oid: "1.3.6.1.2.1.1.3.0",
+        oidName: "sysUpTime.0",
+        checkOn: CheckOn.SnmpOidValue,
+        filterType: FilterType.LessThan,
+        value: SNMP_WALK_UPTIME_RESTART_THRESHOLD,
+        description:
+          "How long the device has been up, from sysUpTime.0 (1.3.6.1.2.1.1.3.0), in hundredths of a second: below 60000 (ten minutes), it restarted.",
+      });
+    }
   });
 
   test("a text value stays text, and an OID OneUptime cannot name is named by itself", () => {
@@ -946,8 +1074,10 @@ describe("Alert on it", () => {
     ).toEqual({
       oid: "1.3.6.1.4.1.99999.1.0",
       oidName: "1.3.6.1.4.1.99999.1.0",
+      checkOn: CheckOn.SnmpOidValue,
       filterType: FilterType.NotEqualTo,
       value: "1",
+      description: "The value the device reports for 1.3.6.1.4.1.99999.1.0.",
     });
   });
 

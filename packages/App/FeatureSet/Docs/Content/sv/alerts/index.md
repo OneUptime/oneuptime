@@ -34,16 +34,16 @@ Båda registrerar ett problem, och båda kan larma den som har jour. Skillnaden 
 | **Vad det är**               | Ett problem som ditt team bör undersöka innan användarna drabbas | Ett problem som drabbar dina användare, till exempel ett avbrott |
 | **På statussidor**           | Aldrig                                                 | Kan visas och meddelar prenumeranter              |
 | **Anteckningar**             | Privata anteckningar, bara för ditt team               | Offentliga anteckningar för kunder och privata anteckningar |
-| **Starttillstånd**           | **Identified**, **Bekräftad**, **Löst**                | **Identified**, **Bekräftad**, **Löst**           |
-| **Startallvarlighetsgrader** | **High**, **Low**                                      | Critical Incident, Major Incident, Minor Incident |
+| **Starttillstånd**           | **Identifierad**, **Bekräftad**, **Löst**                | **Identifierad**, **Bekräftad**, **Löst**           |
+| **Startallvarlighetsgrader** | **Hög**, **Låg**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Nummer i ett nytt projekt** | `ALT-42` och `AE-42` för episoder                     | `INC-42` och `IE-42` för episoder                 |
 
 Utlös ett larm när ditt team bör titta innan någon utanför märker något, och deklarera en incident när användarna drabbas. Visar det sig att ett larm är en del av ett avbrott kan du deklarera en incident från det eller länka det till incidenten som förklarar det: se [Länkade larm](/docs/incidents/linked-alerts).
 
 ## Var larm kommer ifrån
 
-- **En monitors kriterier.** Under **Åtgärder** för ett kriterium slår du på **När filter matchar, skapa en varning.** och fyller i larmet det skapar: **Larmtitel** och **Allvarlighetsgrad**, sedan, var för sig hopfällda, **Beskrivning**, **Ägarskap och etiketter**, **Jour** och **Fler fält**, som innehåller **Lös larm automatiskt**, **Privat larm** och **Åtgärdsanteckningar**. Ett kriterium håller ett öppet larm åt gången, ett per serie på en monitor som grupperar efter ett fält, och **Lös larm automatiskt** löser det när kriteriet slutar matcha. Se [Skapa en monitor](/docs/monitor/create-monitor) och [Incident- och varningsmallar](/docs/monitor/incident-alert-templating).
-- **Manuellt.** Klicka på **Skapa varning** i larmlistan, eller på fliken **Varningar** för en monitor, en värd eller en annan resurs, som väljer den resursen åt dig. Se [Skapa ett larm manuellt](#skapa-ett-larm-manuellt).
+- **En monitors kriterier.** Under **Åtgärder** för ett kriterium slår du på **När filter matchar, skapa ett larm.** och fyller i larmet det skapar: **Larmtitel** och **Allvarlighetsgrad**, sedan, var för sig hopfällda, **Beskrivning**, **Ägarskap och etiketter**, **Jour** och **Fler fält**, som innehåller **Lös larm automatiskt**, **Privat larm** och **Åtgärdsanteckningar**. Ett kriterium håller ett öppet larm åt gången, ett per serie på en monitor som grupperar efter ett fält, och **Lös larm automatiskt** löser det när kriteriet slutar matcha. Se [Skapa en monitor](/docs/monitor/create-monitor) och [Incident- och larmmallar](/docs/monitor/incident-alert-templating).
+- **Manuellt.** Klicka på **Skapa larm** i larmlistan, eller på fliken **Larm** för en monitor, en värd eller en annan resurs, som väljer den resursen åt dig. Se [Skapa ett larm manuellt](#skapa-ett-larm-manuellt).
 - **En SLO:s förbrukningstakt.** En regel för förbrukningstakt kan skapa ett larm när en SLO förbrukar sin felbudget för snabbt. Se [Larm och incidenter för förbrukningstakt](/docs/slo/burn-rate-alerts).
 - **Nätverksplatser och säkerhetshändelser.** En nätverksplats som är inställd på att larma när den är ohälsosam öppnar ett larm när dess sammanfattning inte längre är i drift, och dina detekteringsregler för säkerhetshändelser öppnar också larm. Se [Nätverksplatser (hälsosammanfattning och upptid)](/docs/monitor/network-sites) och [Säkerhetshändelser (SIEM)](/docs/telemetry/security-events).
 - **Ett larmanrop.** `/oneuptime page` i Slack eller Microsoft Teams öppnar ett larm med ditt meddelande som titel och larmar personerna du nämner. Larmblocken i ett arbetsflöde gör samma sak med titeln och meddelandet du ger dem. Se [Larma någon från Slack](/docs/workspace-connections/slack#larma-någon-från-slack) och [Paging](/docs/workflows/components#paging).
@@ -51,33 +51,33 @@ Utlös ett larm när ditt team bör titta innan någon utanför märker något, 
 
 ## Var larm finns i instrumentpanelen
 
-Öppna **Varningar** från menyn **Produkter** i det övre fältet. Larmlistan finns på `/dashboard/{projectId}/alerts`, och dess sidomeny innehåller allt om larm:
+Öppna **Larm** från menyn **Produkter** i det övre fältet. Larmlistan finns på `/dashboard/{projectId}/alerts`, och dess sidomeny innehåller allt om larm:
 
 | Avsnitt           | Vad du gör där                                                                                                            |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Varningar**     | **Alla varningar** och **Aktiva varningar**, där det röda märket räknar larmen som inte är lösta ännu.                     |
+| **Larm**     | **Alla larm** och **Aktiva larm**, där det röda märket räknar larmen som inte är lösta ännu.                     |
 | **Episoder** | **Alla episoder** och **Aktiva episoder**: relaterade larm samlade i ett problem att arbeta med. |
 | **AI**            | **Insikter**, **Loggar** och **Inställningar**: vad OneUptime AI har lärt sig av dina larm, allt den har gjort och vad den får göra. |
 | **Arbetsyta**     | **Slack** och **Microsoft Teams**, beroende på vad projektet har anslutit, eller **Anslut Slack eller Teams** när det inte har någon av dem. |
 | **Regler**        | **Grupperingsregler**, **Jourregler**, **Ägarregler**, **Runbook-regler**, **Sekretessregler**, **Etikettregler**, **Reminder Rules**. |
-| **Inställningar** | **Varningsstatus**, **Varningsallvar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Medlemskap i episoder**, **Numrering**.         |
+| **Inställningar** | **Larmstatus**, **Larmallvar**, **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Medlemskap i episoder**, **Numrering**.         |
 
-**Varningar** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnar sig självt när du är på en av dess sidor. Konfigurationen av larm finns här, inte i **Projektinställningar**.
+**Larm** och **Episoder** är öppna; **AI**, **Arbetsyta**, **Regler**, **Inställningar** och **Utvecklare** börjar hopfällda, och ett avsnitt öppnar sig självt när du är på en av dess sidor. Konfigurationen av larm finns här, inte i **Projektinställningar**.
 
-Listan visar **Larmnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser** (larmets monitor först), **Skapad**, **Varaktighet**, **Etiketter** och **Ägare**. Markera larm för att agera på flera samtidigt: **Bekräfta**, **Lös**, **Ändra tillstånd**, **Ändra allvarlighetsgrad**, **Tilldela mig**, **Add Owner**, **Remove Owner**, **Add Labels**, **Remove Labels**, **Länka till incident**, **Deklarera incident** eller ta bort dem.
+Listan visar **Larmnummer**, **Titel**, **Tillstånd**, **Allvarlighetsgrad**, **Berörda resurser** (larmets monitor först), **Skapad**, **Varaktighet**, **Etiketter** och **Ägare**. Markera larm för att agera på flera samtidigt: **Bekräfta**, **Lös**, **Ändra tillstånd**, **Ändra allvarlighetsgrad**, **Tilldela mig**, **Lägg till ägare**, **Ta bort ägare**, **Lägg till etiketter**, **Ta bort etiketter**, **Länka till incident**, **Deklarera incident** eller ta bort dem.
 
-Menyn **⋯** i slutet av varje larms rad gör samma sak för just det larmet: **Bekräfta** och **Lös** så länge larmet kan ta det steget, **Ändra tillstånd**, **Ändra allvarlighetsgrad**, **Tilldela mig** tills du äger det, och **Add Owner** för att lämna över det till någon annan.
+Menyn **⋯** i slutet av varje larms rad gör samma sak för just det larmet: **Bekräfta** och **Lös** så länge larmet kan ta det steget, **Ändra tillstånd**, **Ändra allvarlighetsgrad**, **Tilldela mig** tills du äger det, och **Lägg till ägare** för att lämna över det till någon annan.
 
 ## Skapa ett larm manuellt
 
 :::steps
 ### Öppna formuläret
 
-Gå till **Varningar → Alla varningar** och klicka på **Skapa varning**. Formuläret **Skapa nytt larm** öppnas på sitt första steg, **Larmdetaljer**.
+Gå till **Larm → Alla larm** och klicka på **Skapa larm**. Formuläret **Skapa nytt larm** öppnas på sitt första steg, **Larmdetaljer**.
 
 ### Beskriv larmet
 
-Fyll i **Titel** och välj en **Varningsallvar**; båda krävs. Lägg till en **Beskrivning** om det hjälper. Under **Fler fält**, hopfällt, kan du välja ett **Inledande tillstånd**, lägga till **Etiketter** eller slå på **Privat larm**. Där väntar även **Ägare**: du blir ändå ägare till varningen du skapar, och varje team du är medlem i är ett klick bort under väljaren.
+Fyll i **Titel** och välj en **Larmallvar**; båda krävs. Lägg till en **Beskrivning** om det hjälper. Under **Fler fält**, hopfällt, kan du välja ett **Inledande tillstånd**, lägga till **Etiketter** eller slå på **Privat larm**. Där väntar även **Ägare**: du blir ändå ägare till larmet du skapar, och varje team du är medlem i är ett klick bort under väljaren. En master admin, som sköter hela installationen, är det enda undantaget: den blir inte ägare till det den skapar.
 
 ### Välj vad det påverkar och vem som larmas
 
@@ -85,10 +85,10 @@ Klicka på **Nästa** för att komma till **Resurser och jour**. Välj den **Öv
 
 ### Skapa det
 
-Klicka på **Nästa** för att granska sammanfattningen och sedan på **Skapa varning**. Larmets egen sida öppnas, och reglerna börjar köras. I sammanfattningen nämner raden **Ägare** varje ägarregel som kommer att lägga till någon, och vem: se [Vem som äger den](/docs/incidents/declaring-incidents#vem-som-äger-den).
+Klicka på **Nästa** för att granska sammanfattningen och sedan på **Skapa larm**. Larmets egen sida öppnas, och reglerna börjar köras. I sammanfattningen nämner raden **Ägare** varje ägarregel som kommer att lägga till någon, och vem: se [Vem som äger den](/docs/incidents/declaring-incidents#vem-som-äger-den).
 :::
 
-Lämnar du **Inledande tillstånd** tomt börjar larmet där alla nya larm börjar: i ditt skapandetillstånd, **Identified** i ett nytt projekt. Väljer du ett senare tillstånd registrerar du ett larm som någon redan hanterar, eller som redan är över; se [Skapat redan bekräftat eller löst](#skapat-redan-bekräftat-eller-löst).
+Lämnar du **Inledande tillstånd** tomt börjar larmet där alla nya larm börjar: i ditt skapandetillstånd, **Identifierad** i ett nytt projekt. Väljer du ett senare tillstånd registrerar du ett larm som någon redan hanterar, eller som redan är över; se [Skapat redan bekräftat eller löst](#skapat-redan-bekräftat-eller-löst).
 
 ## Vad som händer när ett larm skapas
 
@@ -101,7 +101,7 @@ I samma ögonblick som ett larm skapas går OneUptime igenom de här stegen, i d
 5. **Jourregler lägger till sina policyer**, sedan startar runbook-regler de runbooks som matchar.
 6. **Jourpolicyer körs.** Varje policy på larmet larmar sina personer parallellt; att en misslyckas stoppar inte de andra.
 7. **Grupperingsregler lägger det i en episod**, när en av dem matchar. Se [Larmepisoder och grupperingsregler](/docs/alerts/episodes).
-8. **Påminnelser schemaläggs**, när en påminnelseregel matchar, och **OneUptime AI** utreder larmet när **Utred nya larm** är påslaget under **Varningar → AI → Inställningar**, och åtgärdar det när **Åtgärda nya larm automatiskt** är påslaget. Se [AI SRE](/docs/ai/ai-sre).
+8. **Påminnelser schemaläggs**, när en påminnelseregel matchar, och **OneUptime AI** utreder larmet när **Utred nya larm** är påslaget under **Larm → AI → Inställningar**, och åtgärdar det när **Åtgärda nya larm automatiskt** är påslaget. Se [AI SRE](/docs/ai/ai-sre).
 
 Ett bakgrundsjobb meddelar larmets ägare inom en minut, och arbetsflödesutlösaren **On Create Alert** startar alla arbetsflöden som bygger på den.
 
@@ -119,7 +119,7 @@ Dess regler, ägare, flöde och första tillstånd sker ändå i båda fallen. I
 Öppna larmet. Dess sidhuvud visar tillståndet, allvarlighetsgraden, hur länge det har pågått, ägarna och vilken monitor och episod det hör till, med knapparna som nästa steg behöver:
 
 - **Bekräfta** säger att någon tar hand om det. Det hindrar larmets jourpolicyer från att larma nästa nivå.
-- **Lös** stänger det. Larmet lämnar **Aktiva varningar**, och dess påminnelser upphör.
+- **Lös** stänger det. Larmet lämnar **Aktiva larm**, och dess påminnelser upphör.
 - **Ändra tillstånd till**, i menyn **⋯** bredvid, flyttar det till ett eget tillstånd, till exempel "Under utredning".
 - **Deklarera incident** öppnar en ny incident, förifylld från larmet, när det visar sig att problemet drabbar användarna. Se [Länkade larm](/docs/incidents/linked-alerts).
 
@@ -137,7 +137,7 @@ Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckning
 | **Aviseringar**           | **Aviseringsloggar** och **AI-loggar**: varje meddelande som skickats om larmet, och allt AI har gjort för det |
 | **Anteckningar** | **Privata anteckningar**                                                                                    |
 | **Utvecklare**       | **Terraform**, **API** och **AI-assistenter**: larmet hanterat från kod                                     |
-| **Avancerad** | **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort varning** |
+| **Avancerad** | **Anpassade fält**, **Inställningar**, **Granskningsloggar**, **Ta bort larm** |
 
 **Översikt**, **Utredning**, **Team** och **Anteckningar** är öppna; de andra avsnitten är hopfällda tills du klickar på dem.
 
@@ -150,15 +150,15 @@ Medan du arbetar med det skriver du ner det du lär dig som **Privata anteckning
 
 Ett privat larm syns bara för dess ägare, det vill säga ägaranvändarna och medlemmarna i dess ägarteam, och för projektets administratörer och ägare. Ingen annan i projektet kan öppna det.
 
-Gör ett larm privat med **Privat larm** under **Fler fält** i formuläret för att skapa eller i en monitors kriterier, med **Varningar → Regler → Sekretessregler**, eller senare på dess sida **Inställningar**, som frågar **Göra det här larmet privat?** innan larmet döljs. Är du ingen av de personerna förlorar du också själv åtkomsten.
+Gör ett larm privat med **Privat larm** under **Fler fält** i formuläret för att skapa eller i en monitors kriterier, med **Larm → Regler → Sekretessregler**, eller senare på dess sida **Inställningar**, som frågar **Göra det här larmet privat?** innan larmet döljs. Är du ingen av de personerna förlorar du också själv åtkomsten.
 
 En episod som ett privat larm öppnar är inte privat, så den visar aldrig larmets titel eller beskrivning: Där dess titel eller beskrivning skulle innehålla dem står det "Private alert".
 
 ## Vem som får veta om ett larm
 
-- **Jouren.** Larmets jourpolicyer larmar sina personer, var och en på det sätt de har ställt in under **Användarinställningar → Jourregler** på fliken **Varningar**. Den som svarar på larmanropet bekräftar larmet, och larmningen upphör.
-- **Dess ägare.** Via e-post, om de inte har valt andra kanaler under **Användarinställningar → Aviseringsinställningar** på fliken **Varningar**: **Larm skapat**, **Larmtillstånd ändrades** och **Alert reminder** är påslagna som standard, och **Larmanteckning publicerad** och **Tillagd som ägare av larm** är avslagna tills någon slår på dem. Ett larm utan ägare meddelar i stället projektets ägare.
-- **Dina chattverktyg.** **Varningar → Arbetsyta** innehåller Slack- och Microsoft Teams-reglerna som publicerar larm och episoder i kanaler. Se [Slack](/docs/workspace-connections/slack) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
+- **Jouren.** Larmets jourpolicyer larmar sina personer, var och en på det sätt de har ställt in under **Användarinställningar → Jourregler** på fliken **Larm**. Den som svarar på larmanropet bekräftar larmet, och larmningen upphör.
+- **Dess ägare.** Via e-post, om de inte har valt andra kanaler under **Användarinställningar → Aviseringsinställningar** på fliken **Larm**: **Larm skapat**, **Larmtillstånd ändrades** och **Alert reminder** är påslagna som standard, och **Larmanteckning publicerad** och **Tillagd som ägare av larm** är avslagna tills någon slår på dem. Ett larm utan ägare meddelar i stället projektets ägare.
+- **Dina chattverktyg.** **Larm → Arbetsyta** innehåller Slack- och Microsoft Teams-reglerna som publicerar larm och episoder i kanaler. Se [Slack](/docs/workspace-connections/slack) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
 ## Felsökning
 

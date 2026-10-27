@@ -1,5 +1,6 @@
 import PodmanHostElement from "./PodmanHost";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { MORE_PODMAN_HOSTS_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -14,7 +15,7 @@ const PodmanHostsElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent
       items={props.podmanHosts}
-      moreText="more Podman hosts"
+      moreTemplate={MORE_PODMAN_HOSTS_TEMPLATE}
       getEachElement={(podmanHost: PodmanHost) => {
         return (
           <PodmanHostElement

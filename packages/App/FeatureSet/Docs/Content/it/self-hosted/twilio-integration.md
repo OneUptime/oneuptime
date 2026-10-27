@@ -35,21 +35,21 @@ Salva le credenziali per un progetto, oppure una sola volta per l'intera install
 | | Configurazione del progetto | Configurazione dell'installazione |
 | --- | --- | --- |
 | Dove | La scheda **Configurazione Twilio** in **Impostazioni del progetto > Notifiche > Impostazioni notifiche** | **Admin Dashboard > Impostazioni > Chiamate e SMS** |
-| Chi può impostarla | **Project Owner**, **Project Admin**, oppure **Create Call and SMS** in un ruolo personalizzato | Un amministratore principale |
-| Chi può leggerne l'Auth Token | **Project Owner**, **Project Admin**, oppure **Read Call and SMS** in un ruolo personalizzato. Gli altri che vedono la configurazione ne vedono il resto; il token è salvato cifrato | Un amministratore principale |
+| Chi può impostarla | **Proprietario del progetto**, **Amministratore del progetto**, oppure **Create Call and SMS** in un ruolo personalizzato | Un amministratore principale |
+| Chi può leggerne l'Auth Token | **Proprietario del progetto**, **Amministratore del progetto**, oppure **Read Call and SMS** in un ruolo personalizzato. Gli altri che vedono la configurazione ne vedono il resto; il token è salvato cifrato | Un amministratore principale |
 | Usata per | SMS e chiamate ai membri del progetto finché è la predefinita del progetto, le pagine di stato a cui è assegnata e le policy delle chiamate in arrivo che la usano | SMS e chiamate ai membri di qualsiasi progetto che non ha una configurazione predefinita |
 
 Per aggiungere una configurazione di progetto:
 
 :::steps
 1. Vai su **Impostazioni del progetto > Notifiche > Impostazioni notifiche**.
-2. In **Configurazione Twilio**, seleziona **Crea: Configurazione Twilio**.
-3. Inserisci un nome e scegli in **Usa questo account per** che cosa invia l'account: **Chiamate e SMS**, **Solo SMS** o **Solo chiamate**. Poi inserisci **Twilio Account SID**, **Twilio Auth Token** e il numero che la scelta richiede: **Numero di telefono principale Twilio** per le chiamate, oppure **Numeri di telefono SMS Twilio** per **Solo SMS**. In **Altri campi**, se vuoi, inserisci **Numeri di telefono secondari Twilio** separati da virgole per altri paesi, e **Numeri di telefono SMS Twilio** se i tuoi numeri non possono inviare SMS.
+2. In **Configurazione Twilio**, seleziona **Crea configurazione Twilio**.
+3. Inserisci un nome e scegli in **Usa questo account per** che cosa invia l'account: **Chiamate e SMS**, **Solo SMS** o **Solo chiamate**. Poi inserisci **SID dell'account Twilio**, **Token di autenticazione Twilio** e il numero che la scelta richiede: **Numero di telefono principale Twilio** per le chiamate, oppure **Numeri di telefono SMS Twilio** per **Solo SMS**. In **Altri campi**, se vuoi, inserisci **Numeri di telefono secondari Twilio** separati da virgole per altri paesi, e **Numeri di telefono SMS Twilio** se i tuoi numeri non possono inviare SMS.
 4. **Imposta come predefinito del progetto** è attivo per la prima configurazione del progetto, quindi SMS e chiamate ai membri del progetto, notifiche di reperibilità comprese, passano da lì appena salvi. Disattivalo se questo account serve solo per le pagine di stato o le chiamate in arrivo. Una configurazione aggiunta dopo parte con l'interruttore disattivato: attivalo, oppure scegli **Imposta come predefinito del progetto** dal menu della riga della configurazione, per spostarvi quei messaggi. Una richiesta API che omette `isProjectDefault` viene trattata allo stesso modo.
 5. Salva. Solo una configurazione può essere la predefinita del progetto. Le pagine di stato usano la configurazione assegnata esplicitamente a ciascuna di esse.
 
 > [!IMPORTANT]
-> **SMS** e **Chiamate telefoniche** partono disattivati in ogni progetto, e finché non sono attivi nessuno nel progetto può aggiungere un numero di telefono per loro. Un proprietario del progetto, un **Billing Admin** o chi ha **Manage Billing** li attiva nella scheda **Canali di notifica** della stessa pagina.
+> **SMS** e **Chiamate telefoniche** partono disattivati in ogni progetto, e finché non sono attivi nessuno nel progetto può aggiungere un numero di telefono per loro. Un proprietario del progetto, un **Amministratore della fatturazione** o chi ha **Manage Billing** li attiva nella scheda **Canali di notifica** della stessa pagina.
 :::
 
 Per una configurazione predefinita valida per l'intera installazione, un amministratore può invece aprire **Admin Dashboard > Impostazioni > Chiamate e SMS**, scegliere che cosa invia l'account, modificare le credenziali e i numeri di telefono Twilio e salvare. Le notifiche dei membri usano questa configurazione globale quando il loro progetto non ne ha una predefinita. Mantieni riservato l'Auth Token.
@@ -150,7 +150,7 @@ Per lo sviluppo, la [guida ai test dei webhook](https://www.twilio.com/docs/usag
 
 :::steps
 1. Da fuori della rete aziendale e della VPN, verifica che il nome host dei callback si risolva nel gateway pubblico e presenti un certificato TLS valido. Un GET dal browser non mette alla prova questi callback POST.
-2. Usa **Invia SMS di prova** e **Invia chiamata di prova** sulla configurazione Twilio del progetto. Conferma la ricezione sul telefono di destinazione. Entrambi richiedono il permesso di aggiungere configurazioni Twilio: **Project Owner**, **Project Admin**, oppure **Create Call and SMS** e **Read Call and SMS** in un ruolo personalizzato.
+2. Usa **Invia SMS di prova** e **Invia chiamata di prova** sulla configurazione Twilio del progetto. Conferma la ricezione sul telefono di destinazione. Entrambi richiedono il permesso di aggiungere configurazioni Twilio: **Proprietario del progetto**, **Amministratore del progetto**, oppure **Create Call and SMS** e **Read Call and SMS** in un ruolo personalizzato.
 3. Configura per l'utente un contatto SMS o di chiamata verificato e le regole di notifica, poi fai scattare un avviso di reperibilità controllato. Premi 1 e conferma la presa in carico in OneUptime. Se usi le policy delle chiamate in arrivo, chiama il numero configurato e controlla l'instradamento e il registro delle chiamate.
 4. Verifica lo stato di consegna degli SMS in OneUptime e nei log dei messaggi di Twilio. Un invio accettato non è una prova di consegna; [Twilio segnala i cambi di stato successivi tramite callback](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::

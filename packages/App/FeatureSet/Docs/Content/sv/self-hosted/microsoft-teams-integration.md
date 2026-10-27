@@ -42,7 +42,7 @@ Videosamtal (ett Teams-möte för en incident) använder inte den här boten: de
 - Ett konto som kan skapa appregistreringar i Microsoft Entra ID, och en Microsoft 365-administratör som kan bevilja administratörssamtycke.
 - Ett offentligt HTTPS-värdnamn för OneUptime som Azure Bot Service kan nå. Se [Nätverksåtkomst](#nätverksåtkomst).
 - Åtkomst till serverkonfigurationen: `config.env` med Docker Compose, eller dina Helm-values på Kubernetes.
-- För att ansluta ett projekt: rollen **Project Owner**, **Project Admin** eller **Project Member** i projektet.
+- För att ansluta ett projekt: rollen **Projektägare**, **Projektadministratör** eller **Projektmedlem** i projektet.
 
 ## Konfigurera integrationen
 
@@ -382,7 +382,7 @@ När Microsoft skickar tillbaka dig och anslutningen inte gjordes (när du bevil
 | Sidan säger | Vad du gör |
 | --- | --- |
 | **"Den här anslutningslänken är ogiltig, har gått ut eller har redan använts. Börja om."** | Länken fungerar en gång, i 15 minuter, i den webbläsare som startade den. Börja om från Microsoft Teams-sidan och slutför inom 15 minuter i samma webbläsare. |
-| **"Du har inte behörighet att ansluta det här projektet till Microsoft Teams."** | Att bevilja administratörssamtycke för projektet kräver **Project Owner**, **Project Admin** eller **Project Member**. Det kontrolleras igen när Microsoft skickar tillbaka dig. |
+| **"Du har inte behörighet att ansluta det här projektet till Microsoft Teams."** | Att bevilja administratörssamtycke för projektet kräver **Projektägare**, **Projektadministratör** eller **Projektmedlem**. Det kontrolleras igen när Microsoft skickar tillbaka dig. |
 | **"Du är inte längre medlem i det här projektet."** | För att ansluta ditt eget Microsoft-konto måste du vara medlem i projektet när Microsoft skickar tillbaka dig. |
 | **"Du loggade in i en annan Microsoft 365-organisation än den som den här anslutningen gäller."** | Logga in med ett konto från den Microsoft 365-organisation som beviljade administratörssamtycke, eller som projektet är anslutet till. |
 | **"Din Microsoft 365-organisation har inga team ännu."** | Skapa ett team i Microsoft Teams och bevilja sedan administratörssamtycke igen. |

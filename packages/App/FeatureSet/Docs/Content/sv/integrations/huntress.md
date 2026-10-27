@@ -40,7 +40,7 @@ Incidenten sparar rapportens nummer i sina anpassade fält, som `huntressReportI
 
 ## Innan du börjar
 
-- I OneUptime en roll som kan skapa och redigera arbetsflöden, till exempel **Project Owner**, **Project Admin** eller **Workflow Admin**.
+- I OneUptime en roll som kan skapa och redigera arbetsflöden, till exempel **Projektägare**, **Projektadministratör** eller **Arbetsflödesadministratör**.
 - I Huntress rollen **Account Admin**: bara kontoadministratörer kan lägga till webhooks.
 - En jourpolicy att larma.
 - På OneUptime Cloud en plan med arbetsflöden: Growth eller högre. Varje händelse som Huntress skickar är en körning av arbetsflödet.

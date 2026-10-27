@@ -2,7 +2,8 @@ import URL from "../../../Types/API/URL";
 import Email from "../../../Types/Email";
 import Phone from "../../../Types/Phone";
 import SubscriberContactKey from "../../../Types/StatusPage/SubscriberContactKey";
-import { describe, expect, test } from "@jest/globals";
+import { afterAll, beforeAll, describe, expect, test } from "@jest/globals";
+import NodeUrl from "url";
 
 /*
  * ONE CONTACT, HOWEVER IT IS WRITTEN (SubscriberContactKey).
@@ -275,9 +276,29 @@ describe("an email address", () => {
  * Every pattern reads text from outside OneUptime - what a visitor typed -
  * so it must take time in line with the text, never with its square. Each
  * gets about 400,000 characters of its worst case.
+ *
+ * Timed with the URL parser the code runs with outside tests: Node's own,
+ * or a browser's. Common's tests run in jsdom, whose URL is written in
+ * JavaScript and parses these addresses some 250 times slower - about 400 ms
+ * an address against Node's 1 or 2 - so on a busy machine the limit timed
+ * jsdom's parser rather than these patterns (3.2 s on 2026-10-26).
  */
 describe("on long text", () => {
   const LENGTH: number = 400000;
+  const jsdomUrl: typeof globalThis.URL = globalThis.URL;
+
+  beforeAll(() => {
+    globalThis.URL = NodeUrl.URL as unknown as typeof globalThis.URL;
+  });
+
+  afterAll(() => {
+    globalThis.URL = jsdomUrl;
+  });
+
+  test("the addresses are parsed by Node's own URL, not jsdom's", () => {
+    expect(globalThis.URL).toBe(NodeUrl.URL);
+    expect(globalThis.URL).not.toBe(jsdomUrl);
+  });
 
   function within2Seconds(run: () => unknown): unknown {
     const startedAt: number = Date.now();

@@ -446,6 +446,8 @@ Four more sections, under **More settings** at the bottom of **Subscriber Settin
 
 Custom SMTP is worth doing early if you have email subscribers: mail that comes from your own domain is far less likely to be filtered, and far more likely to be trusted by the customer reading it at 2am.
 
+The default text messages are written in the characters a text message carries most cheaply: curly quotes, dashes and the like go out as their plain look-alikes and an emoji is left out, so one character in a title never makes a text cost two or three parts. Links go out exactly as written. A custom SMS template goes out as you wrote it, with the values it places.
+
 ## Announcements
 
 An announcement is a project-level record (the `StatusPageAnnouncement` model) that you fan out to one or more status pages, optionally scoped to specific monitors, with a window during which it is shown.

@@ -78,7 +78,7 @@ Teamene **Owners** og **Admin** er bevisst låst: tillatelsene deres kan ikke re
 
 `ProjectOwner` er det høyeste tilgangsnivået: fakturering, sletting av prosjektet og alt en administrator kan gjøre. `ProjectAdmin` dekker alt bortsett fra fakturering og sletting av prosjektet.
 
-Å slå SMS, telefonanrop, WhatsApp eller Telegram av eller på for prosjektet regnes som fakturering, fordi hver melding koster penger. Bare `ProjectOwner`, rollen `BillingAdmin` (**Billing Admin**) og tillatelsen `ManageProjectBilling` (**Manage Billing**) kan endre disse bryterne, under **Prosjektinnstillinger > Varsler > Varselinnstillinger** — ikke `ProjectAdmin`.
+Å slå SMS, telefonanrop, WhatsApp eller Telegram av eller på for prosjektet regnes som fakturering, fordi hver melding koster penger. Bare `ProjectOwner`, rollen `BillingAdmin` (**Faktureringsadministrator**) og tillatelsen `ManageProjectBilling` (**Manage Billing**) kan endre disse bryterne, under **Prosjektinnstillinger > Varsler > Varselinnstillinger** — ikke `ProjectAdmin`.
 
 Å fylle på prosjektets forhåndsbetalte saldoer regnes også som fakturering. På OneUptime Cloud betales SMS, telefonanrop, WhatsApp og Telegram fra saldoen under **Prosjektinnstillinger > Varsler > Varselinnstillinger**, og KI fra AI-kredittene under **Prosjektinnstillinger > KI > AI-kreditter**. Bare en prosjekteier eller noen med **Manage Billing** kan fylle dem på eller endre **Automatisk påfylling** for dem — ikke en prosjektadministrator. En melding om en saldo som er i ferd med å gå tom, sier hvem som kan fylle den på, og bare de personene får en knapp **Fyll på saldo** som virker, eller en lenke til siden.
 
@@ -202,7 +202,7 @@ Hver tillatt rettighet gis med et omfang: når du legger den til, ligger **Omfan
 
 **Etiketter** er den mer manuelle varianten av samme idé: merk ressurser, og gi så tillatelser begrenset til de merkene.
 
-**Å handle på hele prosjektet krever en tillatelse som når det.** **Run Now** for en regel bruker regelen på alle ressursene i prosjektet, og et nettverks regler for tildeling av steder, enhetsetiketter og automatisk import på alle nettverksenheter eller skanninger, så det krever tillatelser med omfang over alle ressursene i prosjektet: en tillatelse begrenset til etiketter eller til eide ressurser er ikke nok, og en blokkering med etiketter på ressursene en kjøring endrer, avviser kjøringen, fordi den også ville endret ressursene med de etikettene.
+**Å handle på hele prosjektet krever en tillatelse som når det.** **Kjør nå** for en regel bruker regelen på alle ressursene i prosjektet, og et nettverks regler for tildeling av steder, enhetsetiketter og automatisk import på alle nettverksenheter eller skanninger, så det krever tillatelser med omfang over alle ressursene i prosjektet: en tillatelse begrenset til etiketter eller til eide ressurser er ikke nok, og en blokkering med etiketter på ressursene en kjøring endrer, avviser kjøringen, fordi den også ville endret ressursene med de etikettene.
 
 Noen roller gjelder per definisjon hele prosjektet og tilbyr ikke noe omfang i det hele tatt, fordi en avgrensning ville vært meningsløs — «Billing Admin, men bare for faktureringen jeg eier» beskriver ingenting:
 

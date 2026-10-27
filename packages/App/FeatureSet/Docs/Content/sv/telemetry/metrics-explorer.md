@@ -59,7 +59,7 @@ Under **Aggregate by** väljer du hur värdena i varje punkt i diagrammet kombin
 
 ### Filtrera och gruppera det
 
-Öppna **Filters & grouping**. **Filter by attributes** behåller de datapunkter vars attribut matchar, till exempel en viss `http.route`, och **Group by** ritar en linje per värde av de attribut du väljer, till exempel en linje per värd.
+Öppna **Filters & grouping**. **Filter by attributes** behåller de datapunkter vars attribut matchar, till exempel en viss `http.route`, och **Gruppera efter** ritar en linje per värde av de attribut du väljer, till exempel en linje per värd.
 
 ### Justera diagrammet
 
@@ -94,7 +94,7 @@ Knapparna ovanför diagrammen arbetar med tidsintervallet du tittar på:
 | **Loggar** | Öppnar [Loggutforskare](/docs/telemetry/logs-explorer) för det här tidsintervallet och dina filter. |
 | **Spår** | Öppnar [Spårutforskare](/docs/telemetry/traces-explorer) för det här tidsintervallet och dina filter. |
 | **Utreda** | Öppnar en sidopanel med loggarna, spåren och undantagen från det här tidsintervallet. |
-| **Händelser** | Markerar incidenterna och varningarna från det här tidsintervallet i diagrammen. |
+| **Händelser** | Markerar incidenterna och larmen från det här tidsintervallet i diagrammen. |
 | **Compare** | Ritar den föregående perioden i varje diagram som en streckad linje, så att du ser vad som har ändrats. |
 
 Dra över ett diagram för att zooma in på ett ögonblick, och dubbelklicka för att zooma ut igen: se [Zooma in på ett tidsintervall](/docs/telemetry/charts-and-time-ranges).
@@ -104,7 +104,7 @@ Dra över ett diagram för att zooma in på ett ögonblick, och dubbelklicka fö
 - **Åtgärder → Skapa monitor från den här vyn** öppnar en ny monitor för mätvärden med de här frågorna och formlerna ifyllda. Se [Metrikövervakning](/docs/monitor/metrics-monitor).
 - **Åtgärder → Add to dashboard** lägger till diagrammet på en instrumentpanel som du väljer. Du behöver behörighet att redigera den instrumentpanelen.
 - **Kopiera länk** kopierar en länk till exakt den här vyn: frågor, formler och tidsintervall.
-- **Saved Views** behåller vyn under ett namn för alla i projektet. **Tittare** har egna sparade vyer för sin sökning och sina filter. Sparade vyer fungerar som i [Loggutforskare](/docs/telemetry/logs-explorer#spara-en-vy).
+- **Sparade vyer** behåller vyn under ett namn för alla i projektet. **Tittare** har egna sparade vyer för sin sökning och sina filter. Sparade vyer fungerar som i [Loggutforskare](/docs/telemetry/logs-explorer#spara-en-vy).
 
 ## Insikter i mätvärden
 
@@ -182,7 +182,7 @@ Filtrera **Tittare** på den **Tjänst** och vidga tidsintervallet. Om de fortfa
 ## Nästa steg
 
 :::cards
-- [Metrikövervakning](/docs/monitor/metrics-monitor): Få en varning när ett mätvärde passerar en tröskel.
+- [Metrikövervakning](/docs/monitor/metrics-monitor): Få ett larm när ett mätvärde passerar en tröskel.
 - [Skapa en instrumentpanel](/docs/dashboards/authoring): Ställ dina diagram bredvid varandra.
 - [Söksyntax](/docs/telemetry/search-syntax): Varje filter som sökrutan förstår.
 :::

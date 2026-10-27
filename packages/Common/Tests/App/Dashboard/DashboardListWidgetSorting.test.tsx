@@ -31,6 +31,7 @@ import DashboardProxmoxNodeListComponentElement, {
   ComponentProps as ProxmoxNodeListProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardProxmoxNodeListComponent";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
+import { DASHBOARD_LIST_TABLE_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardResourceListBase";
 import {
   DASHBOARD_WIDGET_SORT_ARROW_TEST_ID,
   getDashboardWidgetSortHeaderTestId,
@@ -758,6 +759,36 @@ describe("an incident list's severity and state", () => {
       "title",
       "Sorted: Newest first",
     );
+  });
+
+  /*
+   * At 6 units an incident's long title, drawn whole on its line, made the
+   * table wider than the widget: the rows scrolled sideways, and Declared -
+   * the column the rows are in, its arrow - was out of sight. A cell that
+   * ends its words in ... gives its text's width up, keeping 6rem.
+   */
+  test("its table fits its widget: a title that ends in ... gives way, keeping 6rem", async () => {
+    render(<DashboardIncidentListComponentElement {...incidentListProps()} />);
+    const title: HTMLElement = await screen.findByText("Checkout is down");
+
+    const table: HTMLElement = title.closest("table") as HTMLElement;
+    expect(table.className).toBe(DASHBOARD_LIST_TABLE_CLASS_NAME);
+    expect(DASHBOARD_LIST_TABLE_CLASS_NAME.split(" ")).toEqual([
+      "w-full",
+      "text-sm",
+      "text-left",
+      "[&_td.truncate]:max-w-0",
+      "[&_td.truncate]:min-w-[6rem]",
+    ]);
+
+    // The title's cell is one that ends its words in ...
+    const cell: HTMLElement = title.closest("td") as HTMLElement;
+    expect(cell).toHaveClass("truncate");
+    // ...and Declared is its last column, the one its arrow is on.
+    const headers: Array<HTMLElement> = Array.from(
+      table.querySelectorAll("thead th"),
+    );
+    expect(headers[headers.length - 1]).toBe(headerCell("declared"));
   });
 
   test("Severity sorts the project's worst severity first - the lowest order - then the other way", async () => {

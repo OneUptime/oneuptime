@@ -66,7 +66,7 @@ flowchart TB
 
 | 방법 | 위치 |
 | --- | --- |
-| 직접 | 만들기 양식의 **추가 필드** 아래에서, 또는 나중에 애플리케이션 **설정** 페이지의 **애플리케이션 세부 정보** 카드에 있는 **세부 정보 편집**으로. 여러 개에 한 번에 붙이려면 목록에서 선택한 뒤 **Add Labels**를 **일괄 작업**에서 고르세요. |
+| 직접 | 만들기 양식의 **추가 필드** 아래에서, 또는 나중에 애플리케이션 **설정** 페이지의 **애플리케이션 세부 정보** 카드에 있는 **세부 정보 편집**으로. 여러 개에 한 번에 붙이려면 목록에서 선택한 뒤 **레이블 추가**를 **일괄 작업**에서 고르세요. |
 | 텔레메트리에서 | 이름이 `oneuptime.label.<name>`인 리소스 속성이 아래와 같이 레이블 `<name>:<value>`를 추가합니다. |
 | 레이블 규칙에서 | 규칙은 일치하는 모든 새 애플리케이션에 레이블을 추가합니다. [레이블 규칙과 소유자 규칙](#레이블-규칙과-소유자-규칙)을 참고하세요. |
 
@@ -91,11 +91,11 @@ const resource = defaultResource().merge(
 1. **일치** 단계에서 새 규칙이 처음 고르는 **모든 RUM 애플리케이션**은 모든 애플리케이션과 일치합니다. 범위를 좁히려면 **조건과 일치하는 RUM 애플리케이션만**을 고르고 **애플리케이션 레이블**(선택한 레이블 중 하나, 전부, 또는 하나도 없음), **애플리케이션 이름** 또는 **애플리케이션 설명**(같음, 포함, 시작, 끝남, 패턴 일치)에 대한 조건을 추가합니다.
 2. **레이블** 단계(소유자 규칙에서는 **소유자** 단계)에서 규칙이 추가할 항목을 고릅니다. 새 규칙은 레이블이나 소유자를 적어도 하나 추가해야 합니다. **이름**은 직접 이름을 입력할 때까지 _Add team:payments_ 또는 _Add Payments as owners_ 같은 선택 내용으로 채워집니다. **설명**과 소유자 규칙의 **소유자에게 알림**은 **추가 필드** 아래에 있습니다.
 
-규칙은 감지된 애플리케이션을 포함해 애플리케이션이 만들어질 때 실행됩니다. 이미 있는 애플리케이션에 규칙을 적용하려면 해당 행의 **⋯** 메뉴를 열고 **Run Now**를 선택합니다. [기존 리소스에 규칙 실행](/docs/configuration/run-rules-now)을 참고하세요. 편집 후 추가할 것이 남지 않은 규칙은 목록에 **추가하는 항목 없음**으로 표시됩니다. 양식 전체는 [레이블 및 소유자 규칙](/docs/configuration/label-and-owner-rules)에서 다룹니다.
+규칙은 감지된 애플리케이션을 포함해 애플리케이션이 만들어질 때 실행됩니다. 이미 있는 애플리케이션에 규칙을 적용하려면 해당 행의 **⋯** 메뉴를 열고 **지금 실행**을 선택합니다. [기존 리소스에 규칙 실행](/docs/configuration/run-rules-now)을 참고하세요. 편집 후 추가할 것이 남지 않은 규칙은 목록에 **추가하는 항목 없음**으로 표시됩니다. 양식 전체는 [레이블 및 소유자 규칙](/docs/configuration/label-and-owner-rules)에서 다룹니다.
 
 ### 소유자
 
-소유자는 애플리케이션을 책임지는 사람과 팀입니다. 소유자 규칙이 새 애플리케이션에 소유자를 추가합니다. 직접 추가하거나 제거하려면 목록에서 애플리케이션을 선택하고 **Add Owner** 또는 **Remove Owner**를 **일괄 작업**에서 고르세요. API는 `/rum-application-owner-user`와 `/rum-application-owner-team`을 통해 추가합니다. 기본값인 **소유자에게 알림**이 켜져 있으면 규칙이 추가한 각 소유자에게 알림이 갑니다. 아무에게도 알리지 않으려면 여러 애플리케이션에 규칙을 실행하기 전에 끄세요.
+소유자는 애플리케이션을 책임지는 사람과 팀입니다. 소유자 규칙이 새 애플리케이션에 소유자를 추가합니다. 직접 추가하거나 제거하려면 목록에서 애플리케이션을 선택하고 **소유자 추가** 또는 **소유자 제거**를 **일괄 작업**에서 고르세요. API는 `/rum-application-owner-user`와 `/rum-application-owner-team`을 통해 추가합니다. 기본값인 **소유자에게 알림**이 켜져 있으면 규칙이 추가한 각 소유자에게 알림이 갑니다. 아무에게도 알리지 않으려면 여러 애플리케이션에 규칙을 실행하기 전에 끄세요.
 
 ## 보존
 
@@ -104,7 +104,7 @@ const resource = defaultResource().merge(
 | 데이터 | 보관 기간 | 설정 위치 |
 | --- | --- | --- |
 | 로그, 메트릭, 트레이스, 프로필 | 애플리케이션이 재정의하지 않는 한 프로젝트의 보존 기간 | 애플리케이션의 **설정** 페이지 |
-| 세션 리플레이 녹화 | 기본 7일, 또는 1, 14, 30, 90일 | **Replay Policy**에서 **Edit Policy → Limits**로 |
+| 세션 리플레이 녹화 | 기본 7일, 또는 1, 14, 30, 90일 | **Replay Policy**에서 **정책 편집 → 제한**으로 |
 
 ### 텔레메트리 보존
 
@@ -119,7 +119,7 @@ const resource = defaultResource().merge(
 
 ### 세션 리플레이 보존
 
-녹화에는 자체 보존 기간이 있으며, 애플리케이션의 **Replay Policy** 페이지에서 **Edit Policy → Limits**로 설정합니다. 기본값은 7일이며 1, 14, 30, 90일도 선택할 수 있습니다. 녹화는 스팬보다 훨씬 민감하고 훨씬 크기 때문에 일부러 짧게 정했습니다. **설정** 페이지의 **Session Replay Retention** 카드가 이를 보여 주고(_Session replays are kept for 7 days._), 카드의 **Replay Policy에서 편집** 버튼이 정책을 엽니다.
+녹화에는 자체 보존 기간이 있으며, 애플리케이션의 **Replay Policy** 페이지에서 **정책 편집 → 제한**으로 설정합니다. 기본값은 7일이며 1, 14, 30, 90일도 선택할 수 있습니다. 녹화는 스팬보다 훨씬 민감하고 훨씬 크기 때문에 일부러 짧게 정했습니다. **설정** 페이지의 **세션 리플레이 보존** 카드가 이를 보여 주고(_Session replays are kept for 7 days._), 카드의 **Replay Policy에서 편집** 버튼이 정책을 엽니다.
 
 텔레메트리 보존 기간을 늘려도 녹화를 더 오래 보관하지는 않습니다. 세션의 집계, 신호, 기기는 녹화와 함께 만료되며, 텔레메트리 보존 기간을 따르는 것은 세션의 로그, 스팬, 예외뿐입니다. [보존과 삭제](/docs/telemetry/session-replay#보존과-삭제)를 참고하세요.
 
@@ -147,17 +147,17 @@ const resource = defaultResource().merge(
 | `CreateRumApplication`, `EditRumApplication`, `DeleteRumApplication` | 애플리케이션을 추가, 편집, 삭제합니다. |
 | `ReadRumSessionReplay` (_List Session Replays_) | 녹화된 세션과 그 세부 정보를 나열합니다. 재생하거나 사용자가 누구였는지 알 수는 없습니다. |
 | `ReadRumSessionReplayPayload` (_Watch Session Replays_) | 녹화를 재생하고, 식별된 사용자의 참조와 특성을 읽습니다. |
-| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | **Replay Access Log**를 읽습니다. 누가 어떤 녹화를 시청했는지입니다. |
+| `ReadRumSessionReplayAudit` (_Read Session Replay Audit_) | **리플레이 접근 로그**를 읽습니다. 누가 어떤 녹화를 시청했는지입니다. |
 | `DeleteRumSessionReplay` (_Delete Session Replays_) | 녹화를 삭제합니다. |
 | `CreateRumSessionErasureRequest`, `ReadRumSessionErasureRequest` | 삭제 요청을 제출하고 진행 상황을 확인합니다. |
 | `ReadRumApplicationLabelRule`, `ReadRumApplicationOwnerRule` (및 해당 Create, Edit, Delete) | 레이블 규칙과 소유자 규칙을 관리합니다. |
 | `ReadRumApplicationOwnerUser`, `ReadRumApplicationOwnerTeam` (및 해당 Create, Edit, Delete) | API로 소유자를 추가하고 제거합니다. |
 
-유용한 분리 방법: 지원 엔지니어에게 `ReadRumApplication`과 `ReadRumSessionReplay`를 부여하세요. 누구의 화면도 보지 않고 사용자가 누구였는지도 모른 채, 어떤 세션에 오류가 있었는지 확인할 수 있습니다. `ReadRumSessionReplayPayload`는 필요한 사람에게만 부여하세요. 그러면 `ReadRumSessionReplayAudit`이 있는 멤버가 애플리케이션의 **Replay Access Log** 페이지에서 모든 시청 기록을 볼 수 있습니다. [녹화를 시청할 수 있는 사람](/docs/telemetry/session-replay#녹화를-시청할-수-있는-사람)에서 각 권한이 세션 목록과 플레이어에서 무엇을 여는지 설명합니다.
+유용한 분리 방법: 지원 엔지니어에게 `ReadRumApplication`과 `ReadRumSessionReplay`를 부여하세요. 누구의 화면도 보지 않고 사용자가 누구였는지도 모른 채, 어떤 세션에 오류가 있었는지 확인할 수 있습니다. `ReadRumSessionReplayPayload`는 필요한 사람에게만 부여하세요. 그러면 `ReadRumSessionReplayAudit`이 있는 멤버가 애플리케이션의 **리플레이 접근 로그** 페이지에서 모든 시청 기록을 볼 수 있습니다. [녹화를 시청할 수 있는 사람](/docs/telemetry/session-replay#녹화를-시청할-수-있는-사람)에서 각 권한이 세션 목록과 플레이어에서 무엇을 여는지 설명합니다.
 
 ## RUM 데이터 알림
 
-RUM 텔레메트리는 일반적인 로그, 메트릭, 트레이스이므로 별도의 RUM 모니터는 없습니다. 일반 모니터가 그대로 작동합니다. 가장 빠르게 시작하는 방법은 애플리케이션의 **Recommendations** 페이지로, 이미 애플리케이션 범위로 지정된 모니터를 제안합니다.
+RUM 텔레메트리는 일반적인 로그, 메트릭, 트레이스이므로 별도의 RUM 모니터는 없습니다. 일반 모니터가 그대로 작동합니다. 가장 빠르게 시작하는 방법은 애플리케이션의 **권장 사항** 페이지로, 이미 애플리케이션 범위로 지정된 모니터를 제안합니다.
 
 | 그룹 | 권장 사항 |
 | --- | --- |

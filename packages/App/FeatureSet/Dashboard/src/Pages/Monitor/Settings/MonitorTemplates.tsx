@@ -144,6 +144,7 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
             stepId: "template-info",
             required: true,
             placeholder: "Production API Health",
+            hideColumnDescription: true,
             validation: {
               minLength: 2,
             },
@@ -153,13 +154,16 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
               templateDescription: true,
             },
             title: "Template Description",
+            /*
+             * Optional: the name usually says what a template is for. No
+             * minLength, since a field that may be left blank has no
+             * business refusing a one-character description.
+             */
             fieldType: FormFieldSchemaType.LongText,
             stepId: "template-info",
-            required: true,
+            required: false,
             placeholder: "What is this template for?",
-            validation: {
-              minLength: 2,
-            },
+            hideColumnDescription: true,
           },
           /*
            * What kind of monitor comes first, as on Create Monitor: the
@@ -200,6 +204,7 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
             stepId: "monitor-defaults",
             required: false,
             placeholder: "Description",
+            hideColumnDescription: true,
             collapsibleSection: MONITOR_DEFAULTS_MORE_FIELDS,
           },
           /*
@@ -220,6 +225,9 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
             stepId: "criteria",
             styleType: FormFieldStyleType.Heading,
             title: "Monitor Details",
+            // As Create Monitor says it: a template's criteria are a monitor's.
+            description:
+              "What to check, and what counts as a problem. The criteria start with defaults that suit most monitors.",
             fieldType: FormFieldSchemaType.CustomComponent,
             required: true,
             customValidation: (values: FormValues<MonitorTemplate>) => {
@@ -262,6 +270,8 @@ const MonitorTemplates: FunctionComponent<PageComponentProps> = (
             title: "Monitoring Interval",
             fieldType: FormFieldSchemaType.Dropdown,
             required: true,
+            // The column's description is the API's, about cron expressions.
+            hideColumnDescription: true,
             // What Create Monitor offers the type.
             fetchDropdownOptions: (item: FormValues<MonitorTemplate>) => {
               return Promise.resolve(

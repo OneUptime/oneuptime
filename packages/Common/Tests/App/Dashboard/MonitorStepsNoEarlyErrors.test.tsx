@@ -131,6 +131,7 @@ interface Mounted {
 async function mount(data: {
   initialValue?: MonitorSteps | undefined;
   foldDefaultCriteria?: boolean | undefined;
+  error?: string | undefined;
 }): Promise<Mounted> {
   const onChange: MockFunction = getJestMockFunction();
   const onBlur: MockFunction = getJestMockFunction();
@@ -141,6 +142,7 @@ async function mount(data: {
       monitorName="Marketing site"
       {...(data.initialValue ? { initialValue: data.initialValue } : {})}
       foldDefaultCriteria={data.foldDefaultCriteria}
+      {...(data.error ? { error: data.error } : {})}
       onChange={(value: MonitorSteps) => {
         onChange(value);
       }}
@@ -245,5 +247,81 @@ describe("the monitor steps form, on a new monitor", () => {
     expect(
       stepProps[stepProps.length - 1]!["foldDefaultCriteria"],
     ).toBeUndefined();
+  });
+
+  /*
+   * The steps draw the form's message for them under all of the steps, a
+   * screen or more below their start. Marked as every field's message is
+   * (BringIntoView's FIELD_ERROR_MESSAGE_SELECTOR), so after Next or Create
+   * the form brings the message into view, not the steps' start
+   * (BasicFormRevealsFirstError.test.tsx).
+   */
+  test("its error is drawn as a field's message, under the steps", async () => {
+    await mount({ error: "Pick at least one browser to run the script in." });
+
+    const message: HTMLElement = screen.getByTestId("error-message");
+
+    expect(message).toHaveTextContent(
+      "Pick at least one browser to run the script in.",
+    );
+    expect(message).toHaveAttribute("role", "alert");
+    expect(
+      screen
+        .getByRole("button", { name: "More fields" })
+        .compareDocumentPosition(message) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("draws no message while the steps are fine", async () => {
+    await mount({});
+
+    expect(screen.queryByTestId("error-message")).toBeNull();
+  });
+
+  /*
+   * The form looks for the message to bring into view in a layout effect,
+   * in the render that hands the steps their error. A message copied into
+   * state by an effect is drawn a render later, after the form has looked:
+   * the form found nothing, and the reader saw no message (14.0.93's gate).
+   * So it must be in the page by the first layout effect after the error
+   * arrives - a parent's, which runs after the steps have drawn.
+   */
+  test("its error is in the page in the render that brings it", async () => {
+    const seenByLayoutEffect: Array<string | null> = [];
+
+    const Form: React.FunctionComponent<{
+      error?: string | undefined;
+    }> = (props: { error?: string | undefined }): React.ReactElement => {
+      React.useLayoutEffect(() => {
+        if (props.error) {
+          seenByLayoutEffect.push(
+            document.querySelector("[data-testid='error-message']")
+              ?.textContent || null,
+          );
+        }
+      }, [props.error]);
+
+      return (
+        <MonitorStepsElement
+          monitorType={MonitorType.Website}
+          monitorName="Marketing site"
+          {...(props.error ? { error: props.error } : {})}
+          onChange={() => {}}
+          onBlur={() => {}}
+        />
+      );
+    };
+
+    const { rerender } = render(<Form />);
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "More fields" }),
+      ).toBeInTheDocument();
+    });
+
+    rerender(<Form error="Monitor Destination is required." />);
+
+    expect(seenByLayoutEffect).toHaveLength(1);
+    expect(seenByLayoutEffect[0]).toContain("Monitor Destination is required.");
   });
 });

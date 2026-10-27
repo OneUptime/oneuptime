@@ -18,7 +18,7 @@ Configurar a segurança exige a função Project Owner, Project Admin ou Securit
 :::steps
 ### Ativar o que a maioria das equipes precisa
 
-Abra **Produtos → Security Events**. Em **Visão geral**, clique em **Ativar o recomendado**. Três coisas são ativadas de uma vez: **Encontrar eventos de segurança nos seus logs**, as regras de detecção recomendadas e **Enrich New Cases**, um playbook que compara cada caso novo com a inteligência de ameaças e deixa nele uma lista de verificação para a triagem.
+Abra **Produtos → Security Events**. Em **Visão geral**, clique em **Ativar o recomendado**. Três coisas são ativadas de uma vez: **Encontrar eventos de segurança nos seus logs**, as regras de detecção recomendadas e **Enriquecer novos casos**, um playbook que compara cada caso novo com a inteligência de ameaças e deixa nele uma lista de verificação para a triagem.
 
 ### Enviar um ataque de teste
 
@@ -26,7 +26,7 @@ Clique em **Enviar um ataque de teste**. Uma dúzia de logins com falha a partir
 
 ### Abrir o caso
 
-Clique em **Abrir o caso**. É assim que uma descoberta real se parece: os eventos que a sustentam, o endereço a que se refere e o que o **Enrich New Cases** encontrou. Feche-o como teste quando terminar.
+Clique em **Abrir o caso**. É assim que uma descoberta real se parece: os eventos que a sustentam, o endereço a que se refere e o que o **Enriquecer novos casos** encontrou. Feche-o como teste quando terminar.
 :::
 
 A partir daí, **Visão geral** abre no que precisa de alguém, em **Requer atenção**: os seus casos abertos, os que ninguém assumiu e as etapas de playbook aguardando uma aprovação. Quando não há nenhum, mostra **Tudo tranquilo**.
@@ -43,8 +43,8 @@ flowchart LR
 
 | Parte | Onde | O que faz |
 | --- | --- | --- |
-| **Fontes** | **Connections** | Seus logs, os produtos de segurança que o OneUptime consulta e tudo o que você envia |
-| **Detections** | **Detections** | Regras Sigma e feeds de inteligência de ameaças que procuram ameaças em cada evento |
+| **Fontes** | **Conexões** | Seus logs, os produtos de segurança que o OneUptime consulta e tudo o que você envia |
+| **Detecções** | **Detecções** | Regras Sigma e feeds de inteligência de ameaças que procuram ameaças em cada evento |
 | **Casos de segurança** | **Casos de segurança** | O que foi encontrado, agrupado pelo usuário, host ou endereço a que se refere |
 | **Playbooks** | **Playbooks** | Etapas que rodam nos casos novos: enriquecê-los, notificar, abrir um incidente ou conter |
 
@@ -52,7 +52,7 @@ No topo da **Visão geral**, abaixo do que precisa de alguém, cada parte mostra
 
 ## Encontrar eventos de segurança nos seus logs
 
-O cartão **Seus logs**, no topo de **Connections**, não precisa de instalação. Com **Encontrar eventos de segurança nos seus logs** ativado, o OneUptime lê a cada minuto os logs novos do projeto e transforma em eventos de segurança as linhas que reconhece:
+O cartão **Seus logs**, no topo de **Conexões**, não precisa de instalação. Com **Encontrar eventos de segurança nos seus logs** ativado, o OneUptime lê a cada minuto os logs novos do projeto e transforma em eventos de segurança as linhas que reconhece:
 
 | Logs | O que vira um evento de segurança |
 | --- | --- |
@@ -66,7 +66,7 @@ Seus logs continuam como estão. Só as linhas que importam para a segurança vi
 
 ## Enviar ao seu SIEM o que o OneUptime encontra
 
-Se a sua equipe já trabalha em um SIEM, o OneUptime também envia para lá o que encontra. Em **Connections → Enviar para o seu SIEM**, clique em **Adicionar destino**, preencha a região, a instância e a chave da conta de serviço do seu Google SecOps e clique em **Enviar um evento de teste** antes de salvar. Consulte [Enviar eventos de segurança ao Google SecOps](/docs/integrations/google-secops#enviar-eventos-de-segurança-ao-google-secops).
+Se a sua equipe já trabalha em um SIEM, o OneUptime também envia para lá o que encontra. Em **Conexões → Enviar para o seu SIEM**, clique em **Adicionar destino**, preencha a região, a instância e a chave da conta de serviço do seu Google SecOps e clique em **Enviar um evento de teste** antes de salvar. Consulte [Enviar eventos de segurança ao Google SecOps](/docs/integrations/google-secops#enviar-eventos-de-segurança-ao-google-secops).
 
 ## Solução de problemas
 
@@ -79,7 +79,7 @@ O cartão indica cada item que não conseguiu ativar e o motivo: a sua função,
 :::
 
 :::details O ataque de teste não abriu nenhum caso
-Normalmente o caso abre antes de o botão responder; quando a regra ainda está se atualizando, ele avisa, e o caso abre em até um minuto. Confira de novo **Casos de segurança** e verifique em **Detections** se a regra de força bruta está ativada.
+Normalmente o caso abre antes de o botão responder; quando a regra ainda está se atualizando, ele avisa, e o caso abre em até um minuto. Confira de novo **Casos de segurança** e verifique em **Detecções** se a regra de força bruta está ativada.
 :::
 
 :::details Nenhum evento de segurança vem dos meus logs
@@ -87,7 +87,7 @@ Verifique se **Encontrar eventos de segurança nos seus logs** está ativado e s
 :::
 
 :::details A Visão geral diz que o último evento de segurança chegou há dias
-Nada chegou ao Security desde então. Abra **Connections** e verifique se **Seus logs** e cada conexão continuam ativados, e quando cada um verificou pela última vez.
+Nada chegou ao Security desde então. Abra **Conexões** e verifique se **Seus logs** e cada conexão continuam ativados, e quando cada um verificou pela última vez.
 :::
 
 :::details O cartão que ativa o Security sumiu

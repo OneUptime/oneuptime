@@ -64,7 +64,7 @@ Invitationsmailen nævner projektet. Dens knap er **Create Your Account** for de
 | Hvor personen er | Hvad personen ser | Hvad personen klikker på |
 | --- | --- | --- |
 | Endnu ikke i noget projekt | Invitationen, på siden personen lander på efter login | **Accept & Join** eller **Decline** |
-| Allerede i et andet projekt | Den ventende invitation ved klokken øverst til højre, som åbner **Projektinvitationer** | **Accepter** eller **Reject** |
+| Allerede i et andet projekt | Den ventende invitation ved klokken øverst til højre, som åbner **Projektinvitationer** | **Accepter** eller **Afvis** |
 
 Når personen accepterer, er den med i projektet med det samme, med teamets tilladelser og den notifikationsopsætning, alle medlemmer starter med: se [Det, du starter med](/docs/notifications/index#det-starter-du-med). Afvisning sletter invitationen, så det kræver en ny at komme med senere.
 

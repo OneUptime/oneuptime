@@ -51,7 +51,7 @@ Maak van `device.id` een ID per installatie, nooit een advertentie-ID of iets an
 | Logs | `POST https://oneuptime.com/otlp/v1/logs` |
 
 > [!WARNING]
-> De sleutel zit in je app, en een app kan worden uitgepakt, dus ga ervan uit dat iemand hem kopieert. Stel op de pagina van de sleutel een **Pinned Service Name** in, zodat een kopie niet onder de namen van je backend-services kan schrijven, voeg een **Requests Per Minute Limit** en een datum bij **Verloopt om** toe, en vervang de sleutel bij elke release.
+> De sleutel zit in je app, en een app kan worden uitgepakt, dus ga ervan uit dat iemand hem kopieert. Stel op de pagina van de sleutel een **Vastgezette servicenaam** in, zodat een kopie niet onder de namen van je backend-services kan schrijven, voeg een **Requests Per Minute Limit** en een datum bij **Verloopt om** toe, en vervang de sleutel bij elke release.
 
 ## Je platform instellen
 
@@ -193,9 +193,9 @@ Open de pagina **Clients** van de applicatie: elk apparaatmodel uit `device.mode
 
 ## Session Replay op mobiel
 
-React Native-apps kunnen sessies opnemen met `@oneuptime/react-native-replay`. Het neemt de native viewboom op als draadmodel, nooit schermafbeeldingen of de tekst op het scherm, en de opnames openen in dezelfde speler als die van het web. Het verstuurt met een **Browser**-sleutel waarvan de **Allowed Origins** je app vermelden als `app://` gevolgd door de Android-applicatie-ID of de iOS-bundle-ID: een andere sleutel dan de Server-sleutel die je OpenTelemetry-SDK gebruikt. [Installeren in React Native](/docs/telemetry/session-replay#installeren-in-react-native) leidt je erdoorheen.
+React Native-apps kunnen sessies opnemen met `@oneuptime/react-native-replay`. Het neemt de native viewboom op als draadmodel, nooit schermafbeeldingen of de tekst op het scherm, en de opnames openen in dezelfde speler als die van het web. Het verstuurt met een **Browser**-sleutel waarvan de **Toegestane origins** je app vermelden als `app://` gevolgd door de Android-applicatie-ID of de iOS-bundle-ID: een andere sleutel dan de Server-sleutel die je OpenTelemetry-SDK gebruikt. [Installeren in React Native](/docs/telemetry/session-replay#installeren-in-react-native) leidt je erdoorheen.
 
-Native Android- en iOS-apps, en de andere platforms, hebben geen sessierecorder: hun pagina **Session Replay** blijft leeg, terwijl traces, logs, metrieken, uitzonderingen en de pagina **Clients** gewoon werken.
+Native Android- en iOS-apps, en de andere platforms, hebben geen sessierecorder: hun pagina **Sessieherhaling** blijft leeg, terwijl traces, logs, metrieken, uitzonderingen en de pagina **Clients** gewoon werken.
 
 ## Probleemoplossing
 

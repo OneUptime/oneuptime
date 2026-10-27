@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "Saltar al contenido principal",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "moreLinks": "Más enlaces",
+    "navigation": "Navegación"
   },
   "common": {
     "save": "Guardar",
@@ -303,7 +305,8 @@
       "loginPrompt": "Por favor, inicie sesión para ver {{statusPageName}}",
       "noProviders": "No hay proveedores SSO configurados o habilitados",
       "notAvailable": "El inicio de sesión único (SSO) no está disponible para esta página de estado. Inicie sesión con su correo electrónico y contraseña en su lugar.",
-      "backToLogin": "Volver a iniciar sesión"
+      "backToLogin": "Volver a iniciar sesión",
+      "logInWithPassword": "Iniciar sesión con contraseña"
     },
     "forgotPassword": {
       "title": "Contraseña olvidada",
@@ -320,13 +323,9 @@
       "knowPassword": "¿Conoce su contraseña?"
     },
     "masterPassword": {
-      "enterWithName": "Introduzca la contraseña de {{statusPageName}}",
-      "enterGeneric": "Introduzca la contraseña",
-      "prompt": "Introduzca la contraseña para continuar.",
+      "prompt": "Introduzca la contraseña para ver esta página de estado.",
       "passwordRequired": "la contraseña es obligatoria.",
       "passwordLabel": "Contraseña",
-      "passwordDescription": "Introduzca la contraseña para desbloquear esta página.",
-      "passwordPlaceholder": "Introducir contraseña",
       "submit": "Desbloquear página de estado"
     },
     "signingOut": "Cerrando sesión..."
@@ -416,6 +415,8 @@
   "Try again": "Volver a intentar",
   "Loading...": "Cargando...",
   "Loading": "Cargando",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} no es un JSON válido. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} no es un YAML válido. {{parserMessage}}",
   "markdownCallouts": {
     "caution": "Precaución",
     "danger": "Peligro",

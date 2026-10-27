@@ -169,7 +169,7 @@ En webhook trenger ingen verifisering, så når du legger den til, legges reglen
 
 **SMS**, **Telefonanrop**, **WhatsApp** og **Telegram** er slått av i hvert nytt prosjekt, fordi hver melding koster penger: I OneUptime Cloud betales den fra prosjektets saldo, og SMS og anrop går i stedet gjennom prosjektets egen Twilio-konto når standardkontoen sender dem. E-post, push, Slack, Microsoft Teams og webhooks er alltid slått på.
 
-Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den: kortet har ingen legg-til-knapp, og sier hvem som kan slå den på. En prosjekteier, en **Billing Admin** eller noen med **Manage Billing** slår den på, i kortet **Varslingskanaler** under **Prosjektinnstillinger → Varsler → Varselinnstillinger**. En prosjektadministrator kan ikke det. I en selvdriftet OneUptime trenger SMS og anrop i tillegg en Twilio-konto, og Telegram en bot som serverens administrator kobler til; se [Twilio-integrasjon](/docs/self-hosted/twilio-integration).
+Så lenge en kanal er slått av, kan ingen i prosjektet legge til en metode på den: kortet har ingen legg-til-knapp, og sier hvem som kan slå den på. En prosjekteier, en **Faktureringsadministrator** eller noen med **Manage Billing** slår den på, i kortet **Varslingskanaler** under **Prosjektinnstillinger → Varsler → Varselinnstillinger**. En prosjektadministrator kan ikke det. I en selvdriftet OneUptime trenger SMS og anrop i tillegg en Twilio-konto, og Telegram en bot som serverens administrator kobler til; se [Twilio-integrasjon](/docs/self-hosted/twilio-integration).
 
 ## Slett en metode
 

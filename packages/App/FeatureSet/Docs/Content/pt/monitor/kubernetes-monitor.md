@@ -97,7 +97,7 @@ A aba **Custom Metric** oferece estas métricas, agrupadas por tipo de recurso:
 
 ### O que é avaliado
 
-Esses monitores sempre avaliam o **Metric Value** – o valor da consulta de métricas ou da fórmula configurada. O formulário de critérios não tem seletor de tipo de filtro; ele mostra **Métrica**, **Agregação**, **Condição** e **Threshold**.
+Esses monitores sempre avaliam o **Metric Value** – o valor da consulta de métricas ou da fórmula configurada. O formulário de critérios não tem seletor de tipo de filtro; ele mostra **Métrica**, **Agregação**, **Condição** e **Limite**.
 
 ### Tipos de agregação
 
@@ -112,7 +112,7 @@ Esses monitores sempre avaliam o **Metric Value** – o valor da consulta de mé
 
 ### Condições
 
-Limites estáticos são comparados com o **Threshold** que você informa: **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** e **Igual a**.
+Limites estáticos são comparados com o **Limite** que você informa: **Maior que**, **Menor que**, **Maior ou igual a**, **Menor ou igual a** e **Igual a**.
 
 A detecção de anomalias por linha de base não precisa de limite. Escolha uma destas condições, e o formulário mostra **Sensibilidade** e **Janela de linha de base** no lugar:
 
@@ -124,7 +124,7 @@ A detecção de anomalias por linha de base não precisa de limite. Escolha uma 
 
 Cada amostra é comparada com uma linha de base da mesma hora da semana construída a partir da **Janela de linha de base** (14 dias por padrão; 28, 60 ou 90 dias). **Sensibilidade** define a largura da faixa esperada: **Baixo (4σ — apenas desvios graves)**, **Médio (3σ — recomendado)**, o padrão, ou **Alto (2σ — mais ruidoso, serviços muito estáveis)**. As condições de anomalia ficam em um estado "Learning" e não produzem alertas até existir pelo menos a janela de linha de base escolhida de histórico da métrica.
 
-**Se não houver dados**, em **Mais campos**, decide o que acontece quando a consulta não retorna nada na janela: **Ignore** (o padrão) não corresponde, **Trigger** trata o silêncio como o problema e **Treat As Zero** compara um zero. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela contém esse tempo espera no lugar, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
+**Se não houver dados**, em **Mais campos**, decide o que acontece quando a consulta não retorna nada na janela: **Ignore** (o padrão) não corresponde, **Gatilho** trata o silêncio como o problema e **Treat As Zero** compara um zero. O tempo em que o próprio OneUptime não estava recebendo nunca é ausência de dados: uma verificação cuja janela contém esse tempo espera no lugar, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Modelos de alerta prontos
 

@@ -46,7 +46,7 @@ Der Schritt nimmt seinen Ausgang **Erfolg**, sobald der Server jede Zeile angeno
 ## Bevor Sie beginnen
 
 - In OneUptime Cloud den Tarif **Growth** oder einen höheren: Workflows und ihre Variablen gehören dazu. Selbst gehostete Installationen ohne Abrechnung haben keine Tarifgrenzen.
-- Eine Rolle, die Workflows baut: **Project Owner**, **Project Admin** oder **Workflow Admin**.
+- Eine Rolle, die Workflows baut: **Projektinhaber**, **Projektadministrator** oder **Arbeitsablauf-Administrator**.
 - Ein Konto im IRC-Netzwerk, falls es eine Anmeldung verlangt. Libera.Chat verlangt sie bei Verbindungen von manchen Cloud- und VPN-Adressen.
 
 ## Die Integration einrichten

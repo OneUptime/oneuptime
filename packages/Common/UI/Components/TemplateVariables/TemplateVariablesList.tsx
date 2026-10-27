@@ -178,17 +178,24 @@ const TemplateVariablesList: FunctionComponent<TemplateVariablesListProps> = (
         >
           {"{ }"}
         </span>
-        <span className="font-medium text-gray-900">
-          {tx(TemplateVariablesCopy.listTitle)}
-        </span>
-        {count > 0 ? (
-          <span
-            data-testid="template-variables-count"
-            className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
-          >
-            {count}
+        {/*
+         * The title and its count wrap as one line of words: in an editor
+         * some 170px wide (a monitor criteria's alert form on a phone)
+         * they took the chevron past the box's edge.
+         */}
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="min-w-0 font-medium text-gray-900">
+            {tx(TemplateVariablesCopy.listTitle)}
           </span>
-        ) : null}
+          {count > 0 ? (
+            <span
+              data-testid="template-variables-count"
+              className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
+            >
+              {count}
+            </span>
+          ) : null}
+        </span>
         <ChevronDownIcon className="ml-auto h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
       </summary>
 

@@ -1,5 +1,6 @@
 import DockerHostElement from "./DockerHost";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { MORE_DOCKER_HOSTS_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -14,7 +15,7 @@ const DockerHostsElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent
       items={props.dockerHosts}
-      moreText="more Docker hosts"
+      moreTemplate={MORE_DOCKER_HOSTS_TEMPLATE}
       getEachElement={(dockerHost: DockerHost) => {
         return (
           <DockerHostElement

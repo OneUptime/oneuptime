@@ -122,7 +122,7 @@ Trinnet **Konfigurer** i opprettelsesveiviseren ber om opptil sju verdier: hver 
 
 For å sjekke påloggingen før noe kjører, åpner du **Arbeidsflytvariabler**, klikker på **Vis** ved `dynamicsAccessToken` og klikker på **Oppdater nå**. **Access Token Fetched** betyr at appregistreringen er riktig. Ellers sier feilen fra Microsoft Entra ID hva som er galt, f.eks. `AADSTS7000215: Invalid client secret provided`.
 
-Hver arbeidsflyt har sin egen kopi. Når du bytter ut klienthemmeligheten, åpner du `dynamicsAccessToken` i hver Dynamics 365-arbeidsflyt og bruker **Update Credentials**.
+Hver arbeidsflyt har sin egen kopi. Når du bytter ut klienthemmeligheten, åpner du `dynamicsAccessToken` i hver Dynamics 365-arbeidsflyt og bruker **Oppdater påloggingsinformasjon**.
 
 ### Opprett arbeidsflytene
 

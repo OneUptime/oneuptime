@@ -70,6 +70,7 @@ import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
+import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
@@ -86,6 +87,14 @@ import {
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import {
+  RESOURCE_HERO_CONTROLS_CLASS_NAME,
+  RESOURCE_HERO_CONTROLS_TEST_ID,
+  RESOURCE_HERO_IDENTITY_CLASS_NAME,
+  RESOURCE_HERO_IDENTITY_TEST_ID,
+  RESOURCE_HERO_TOP_ROW_CLASS_NAME,
+  RESOURCE_HERO_TOP_ROW_TEST_ID,
+} from "../../../Components/TelemetryResource/ResourceHeroLayout";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -236,6 +245,7 @@ export interface ClusterChartCardProps {
 export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
   props: ClusterChartCardProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const colors: { bg: string; ring: string; text: string } =
     tileColorClasses[props.iconColor];
 
@@ -244,7 +254,7 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
       <div className="flex min-w-0 items-center gap-2">
         <div className="flex min-w-0 items-center gap-1">
           <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {props.title}
+            {translator.translateText(props.title) || props.title}
           </span>
           <InfoTooltip label={props.title} text={props.description} />
         </div>
@@ -303,7 +313,7 @@ export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
     <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {header}
       <LineChartElement
-        data={props.data}
+        data={withTranslatedSeriesNames(props.data, translator)}
         xAxis={xAxis}
         yAxis={yAxis}
         curve={props.curve ?? ChartCurve.MONOTONE}
@@ -1877,9 +1887,15 @@ const KubernetesClusterOverview: FunctionComponent<
 
     const status: string = (cluster.otelCollectorStatus as string) || "";
     const lastSeenAt: Date | undefined = cluster.lastSeenAt;
+    /*
+     * One whole sentence either way: an English "never" in a translated
+     * "Last seen {{time}}" would read in two languages at once.
+     */
     const lastSeenText: string = lastSeenAt
-      ? OneUptimeDate.fromNow(lastSeenAt)
-      : "never";
+      ? translator.translateTemplate("Last seen {{time}}", {
+          time: OneUptimeDate.fromNow(lastSeenAt),
+        })
+      : translator.translateText("Never seen") || "Never seen";
 
     const isConnected: boolean =
       status.toLowerCase() === "connected" || status.toLowerCase() === "active";
@@ -2033,28 +2049,20 @@ const KubernetesClusterOverview: FunctionComponent<
         <div className="relative">
           <div className="relative px-6 py-5">
             {/*
-             * The cluster's name keeps its room; the controls give way.
-             * They used to keep their whole width and squeeze the name
-             * instead, and a zoom widens them - a custom range in the
-             * picker and Reset zoom beside it - so zooming truncated the
-             * name ("Production (eu-..."), and narrower windows lost it
-             * altogether.
-             *
-             * - The name column never shrinks below its own content (the
-             *   automatic minimum of a flex item; min-w-0 is what let it),
-             *   capped at the row by w-full, so a name longer than the
-             *   whole row still truncates.
-             * - The controls take the rest of the row up to their full
-             *   width (basis 0, max-w-max, and a grow that outweighs the
-             *   name's), and wrap onto a second line of their own when
-             *   squeezed, still aligned right.
-             * - When that rest is narrower than 24rem - about a custom
-             *   range and Reset zoom side by side, so the picker's label
-             *   never has to wrap - they move under the name as one
-             *   block, kept on the right.
+             * The cluster's name keeps its room; the controls give way. A
+             * zoom widens them - a custom range in the picker and Reset
+             * zoom beside it - and they used to squeeze the name
+             * ("Production (eu-..."). The layout is every resource hero's
+             * now (ResourceHeroLayout).
              */}
-            <div className="flex flex-col gap-4 md:flex-row md:flex-wrap md:items-start md:justify-between">
-              <div className="flex items-start gap-4 md:w-full md:flex-1">
+            <div
+              data-testid={RESOURCE_HERO_TOP_ROW_TEST_ID}
+              className={RESOURCE_HERO_TOP_ROW_CLASS_NAME}
+            >
+              <div
+                data-testid={RESOURCE_HERO_IDENTITY_TEST_ID}
+                className={RESOURCE_HERO_IDENTITY_CLASS_NAME}
+              >
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-violet-200 shadow-sm">
                   <Icon
                     icon={IconProp.Kubernetes}
@@ -2091,13 +2099,14 @@ const KubernetesClusterOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    {translator.translateTemplate("Last seen {{time}}", {
-                      time: lastSeenText,
-                    })}
+                    {lastSeenText}
                   </div>
                 </div>
               </div>
-              <div className="md:ml-auto md:min-w-[min(100%,24rem)] md:max-w-max md:flex-[1000_1_0%] md:self-start md:[&>div]:justify-end">
+              <div
+                data-testid={RESOURCE_HERO_CONTROLS_TEST_ID}
+                className={RESOURCE_HERO_CONTROLS_CLASS_NAME}
+              >
                 {renderRefreshControl()}
               </div>
             </div>

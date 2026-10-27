@@ -50,6 +50,10 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
+  // The charts draw their titles and legends as given: hand them the reader's words.
+  const tx: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
   /*
    * Route shape: .../vmware/:modelId/virtual-machines/:subModelId —
    * subModelId is the percent-encoded inventory externalId
@@ -136,12 +140,11 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const cpuQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "vm_cpu",
-      title: "CPU Utilization",
+      title: tx("CPU Utilization"),
       description: translator.translateTemplate(
-        "vcenter.vm.cpu.utilization for {{vmName}} — already a percentage of the VM's configured vCPUs. Reported only while the VM is powered on.",
-        { vmName: vmName },
+        "CPU in use by this virtual machine, as a percentage of its configured vCPUs. Reported only while it is powered on.",
       ),
-      legend: "CPU",
+      legend: tx("CPU"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -160,12 +163,11 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const cpuReadinessQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "vm_cpu_readiness",
-      title: "CPU Ready",
+      title: tx("CPU Ready"),
       description: translator.translateTemplate(
-        "vcenter.vm.cpu.readiness for {{vmName}} — percentage of time the VM was ready to run but waited for a physical CPU. Sustained values above ~10% mean the host is CPU-contended.",
-        { vmName: vmName },
+        "How long this virtual machine was ready to run but waited for a physical CPU, as a share of its time. Above about 10% for a while, its host is short of CPU.",
       ),
-      legend: "CPU Ready",
+      legend: tx("CPU Ready"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -184,12 +186,11 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const memoryQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "vm_memory",
-      title: "Memory Usage",
+      title: tx("Memory Usage"),
       description: translator.translateTemplate(
-        "vcenter.vm.memory.usage for {{vmName}} (reported in MiB, shown in bytes).",
-        { vmName: vmName },
+        "Memory in use by this virtual machine.",
       ),
-      legend: "Memory",
+      legend: tx("Memory"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -212,12 +213,11 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const balloonedQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "vm_memory_ballooned",
-      title: "Memory Ballooned",
+      title: tx("Memory Ballooned"),
       description: translator.translateTemplate(
-        "vcenter.vm.memory.ballooned for {{vmName}} — memory the balloon driver reclaimed from the guest. Anything above zero means the host is under memory pressure.",
-        { vmName: vmName },
+        "Memory the host took back from this virtual machine through its balloon driver. Anything above zero means the host is short of memory.",
       ),
-      legend: "Ballooned",
+      legend: tx("Ballooned"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -240,12 +240,11 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const swappedQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "vm_memory_swapped",
-      title: "Memory Swapped",
+      title: tx("Memory Swapped"),
       description: translator.translateTemplate(
-        "vcenter.vm.memory.swapped for {{vmName}} — guest memory the hypervisor swapped to disk. Any swapping is a serious performance problem.",
-        { vmName: vmName },
+        "Memory of this virtual machine that the host swapped to disk. Any swapping slows the virtual machine down badly.",
       ),
-      legend: "Swapped",
+      legend: tx("Swapped"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -268,12 +267,11 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const diskUsageQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "vm_disk_usage",
-      title: "Disk Usage",
+      title: tx("Disk Usage"),
       description: translator.translateTemplate(
-        "vcenter.vm.disk.usage{disk_state=used} for {{vmName}} — space consumed on its datastores.",
-        { vmName: vmName },
+        "Space this virtual machine uses on its datastores.",
       ),
-      legend: "Used",
+      legend: tx("Used"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -293,12 +291,11 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const diskUtilizationQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "vm_disk_utilization",
-      title: "Disk Utilization",
+      title: tx("Disk Utilization"),
       description: translator.translateTemplate(
-        "vcenter.vm.disk.utilization for {{vmName}} — already a percentage.",
-        { vmName: vmName },
+        "How full this virtual machine's disks are, as a percentage.",
       ),
-      legend: "Disk",
+      legend: tx("Disk"),
       legendUnit: "%",
     },
     metricQueryData: {
@@ -322,12 +319,11 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const networkQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "vm_network",
-      title: "Network Throughput",
+      title: tx("Network Throughput"),
       description: translator.translateTemplate(
-        "vcenter.vm.network.throughput per direction and vNIC for {{vmName}}.",
-        { vmName: vmName },
+        "Data received and sent per second, one line per virtual network adapter and direction.",
       ),
-      legend: "Network",
+      legend: tx("Network"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -349,12 +345,11 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const diskThroughputQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "vm_disk_throughput",
-      title: "Disk Throughput",
+      title: tx("Disk Throughput"),
       description: translator.translateTemplate(
-        "vcenter.vm.disk.throughput per direction and virtual disk for {{vmName}}.",
-        { vmName: vmName },
+        "Data read and written per second, one line per virtual disk and direction.",
       ),
-      legend: "Disk I/O",
+      legend: tx("Disk I/O"),
       legendUnit: "",
     },
     metricQueryData: {
@@ -379,12 +374,11 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
   const diskLatencyQuery: MetricQueryConfigData = {
     metricAliasData: {
       metricVariable: "vm_disk_latency",
-      title: "Disk Latency (max)",
+      title: tx("Disk Latency (max)"),
       description: translator.translateTemplate(
-        "vcenter.vm.disk.latency.max per virtual disk for {{vmName}}.",
-        { vmName: vmName },
+        "The slowest request on each of this virtual machine's virtual disks.",
       ),
-      legend: "Latency",
+      legend: tx("Latency"),
       legendUnit: "ms",
     },
     metricQueryData: {

@@ -254,7 +254,13 @@ describe("BaseModelTable permission gating", () => {
 
     return (
       buttons.find((button: HTMLButtonElement) => {
-        return (button.textContent || "").trim().startsWith(label);
+        /*
+         * By its name: its aria-label, or else its words. A row's View
+         * says "View", named "View Monitor".
+         */
+        return (button.getAttribute("aria-label") || button.textContent || "")
+          .trim()
+          .startsWith(label);
       }) || null
     );
   };

@@ -528,12 +528,23 @@ const IncidentView: FunctionComponent<
     recordStartedAt: incidentStartedAt,
   });
 
+  // Bumped to make the header read the incident's state again.
+  const [headerRefreshToken, setHeaderRefreshToken] = useState<number>(0);
+
   // "Escalate", for somebody an on-call policy is paging about it.
   const passOn: PassOnPageControls = usePassOnPage({
     recordType: OnCallPageRecordType.Incident,
     recordId: modelId,
     // Escalating is a new feed entry.
     onPassedOn: refreshFeed,
+    // Somebody took it while the dialog asked: the page reads it again.
+    onRecordChanged: () => {
+      setHeaderRefreshToken((token: number): number => {
+        return token + 1;
+      });
+      refreshData();
+      refreshFeed();
+    },
   });
 
   const fetchData: (options: FetchDataOptions) => Promise<void> = async (
@@ -1164,6 +1175,7 @@ const IncidentView: FunctionComponent<
           aiInvestigationStatus={currentAIInvestigationStatus}
           aiInvestigationSummary={currentAIInvestigationSummary}
           aiInvestigationVerdict={currentAIInvestigationVerdict}
+          refreshToken={headerRefreshToken}
           onActionComplete={() => {
             refreshData();
             // The state change is a new feed entry.
@@ -1212,16 +1224,20 @@ const IncidentView: FunctionComponent<
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName:
-              acknowledgeState?.name || translatableTerm("Acknowledged"),
+            stateName: translatableTerm(
+              acknowledgeState?.name || "Acknowledged",
+            ),
           })}
           icon={IconProp.Check}
-          value={getTimeToStateText({
-            startedAt: responseTimes.startedAt,
-            reachedAt: responseTimes.acknowledgedAt,
-            stateName: acknowledgeState?.name,
-            fallbackStateName: "acknowledged",
-          })}
+          value={getTimeToStateText(
+            {
+              startedAt: responseTimes.startedAt,
+              reachedAt: responseTimes.acknowledgedAt,
+              stateName: acknowledgeState?.name,
+              fallbackStateName: "Acknowledged",
+            },
+            translator,
+          )}
           note={getAcknowledgedAfterPagingText(
             {
               firstPagedAt: incidentFirstPagedAt,
@@ -1234,15 +1250,18 @@ const IncidentView: FunctionComponent<
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: resolvedState?.name || translatableTerm("Resolved"),
+            stateName: translatableTerm(resolvedState?.name || "Resolved"),
           })}
           icon={IconProp.CheckCircle}
-          value={getTimeToStateText({
-            startedAt: responseTimes.startedAt,
-            reachedAt: responseTimes.resolvedAt,
-            stateName: resolvedState?.name,
-            fallbackStateName: "resolved",
-          })}
+          value={getTimeToStateText(
+            {
+              startedAt: responseTimes.startedAt,
+              reachedAt: responseTimes.resolvedAt,
+              stateName: resolvedState?.name,
+              fallbackStateName: "Resolved",
+            },
+            translator,
+          )}
           description={formatDate(responseTimes.resolvedAt)}
         />
       </EventStatBar>

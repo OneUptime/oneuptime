@@ -65,7 +65,7 @@ Open **Producten → Bronnen → Inventaris**. Het zijmenu heeft deze pagina's. 
 | **Hulp → Documentatie** | Een korte gids over de inventaris, met de soorten items die hij herkent. |
 | **Geavanceerd → Gearchiveerd** | De items die je hebt gearchiveerd. Haal ze hier uit het archief. |
 
-Open een item, en het eigen zijmenu heeft zijn **Overzicht** (type, bron en status, en elk attribuut dat erop is waargenomen), zijn **Connections** en zijn **Aangepaste velden**; zijn **Logboeken**, **Traces**, **Metrieken**, **Prestatieprofielen** en **Uitzonderingen**; en zijn **Incidenten**, **Waarschuwingen** en **Geplande onderhoud**. Onder **Geavanceerd** staan zijn **Instellingen**, zijn **Auditlogboeken** en **Delete Item**. De telemetriepagina's tonen wat het item zelf heeft gestuurd. De incidenten, waarschuwingen en onderhoudsgebeurtenissen zijn die van de service, host of het Kubernetes-cluster waar het item voor staat; bij elk ander item zeggen die pagina's welke resource je in plaats daarvan moet bekijken.
+Open een item, en het eigen zijmenu heeft zijn **Overzicht** (type, bron en status, en elk attribuut dat erop is waargenomen), zijn **Verbindingen** en zijn **Aangepaste velden**; zijn **Logboeken**, **Traces**, **Metrieken**, **Prestatieprofielen** en **Uitzonderingen**; en zijn **Incidenten**, **Waarschuwingen** en **Geplande onderhoud**. Onder **Geavanceerd** staan zijn **Instellingen**, zijn **Auditlogboeken** en **Delete Item**. De telemetriepagina's tonen wat het item zelf heeft gestuurd. De incidenten, waarschuwingen en onderhoudsgebeurtenissen zijn die van de service, host of het Kubernetes-cluster waar het item voor staat; bij elk ander item zeggen die pagina's welke resource je in plaats daarvan moet bekijken.
 
 ### Assetgegevens
 
@@ -80,7 +80,7 @@ Dezelfde gegevens zijn kolommen van de lijst **All Items**, verborgen tot je ze 
 
 ### Verbindingen
 
-De pagina **Connections** van een item toont zijn buren in beide richtingen, gegroepeerd in **Aanroepen**, **Called by**, **Runs on** en **Related**. Elke groep toont haar totaal (een groep met meer dan 100.000 verbindingen toont "100.000+"), en **Meer tonen** bladert door de rest, zodat een druk cluster, een drukke namespace of node elke verbinding toont in plaats van alleen de eerste. De pagina is niet beperkt tot een tijdsbereik: hij bevat relaties die handmatig via de API zijn toegevoegd, en buren die zijn gearchiveerd. Een buur die niet meer in de inventaris staat, wordt met zijn sleutel getoond.
+De pagina **Verbindingen** van een item toont zijn buren in beide richtingen, gegroepeerd in **Aanroepen**, **Aangeroepen door**, **Draait op** en **Gerelateerd**. Elke groep toont haar totaal (een groep met meer dan 100.000 verbindingen toont "100.000+"), en **Meer tonen** bladert door de rest, zodat een druk cluster, een drukke namespace of node elke verbinding toont in plaats van alleen de eerste. De pagina is niet beperkt tot een tijdsbereik: hij bevat relaties die handmatig via de API zijn toegevoegd, en buren die zijn gearchiveerd. Een buur die niet meer in de inventaris staat, wordt met zijn sleutel getoond.
 
 ## Iets handmatig toevoegen
 
@@ -102,8 +102,8 @@ Open het nieuwe item. De bron staat op **Added by you**, en de pagina **Aangepas
 
 Drie typen kun je handmatig toevoegen:
 
-- `external.service` (**External Service**): een API van een derde partij of een software-as-a-service-afhankelijkheid.
-- `external.database` (**External Database**): een database die geen server is die OneUptime kan modelleren. Een databaseserver, zelf gehost of beheerd, van PostgreSQL tot Snowflake, hoort in plaats daarvan onder **Databases → Database aanmaken** ([Databases](/docs/telemetry/databases)): dat record wordt gekoppeld aan de traces, containers en enginemetrics die hetzelfde adres noemen, wat een inventarisitem nooit doet, en wie dezelfde server op beide manieren toevoegt, houdt twee losse records over.
+- `external.service` (**Externe service**): een API van een derde partij of een software-as-a-service-afhankelijkheid.
+- `external.database` (**Externe database**): een database die geen server is die OneUptime kan modelleren. Een databaseserver, zelf gehost of beheerd, van PostgreSQL tot Snowflake, hoort in plaats daarvan onder **Databases → Database aanmaken** ([Databases](/docs/telemetry/databases)): dat record wordt gekoppeld aan de traces, containers en enginemetrics die hetzelfde adres noemen, wat een inventarisitem nooit doet, en wie dezelfde server op beide manieren toevoegt, houdt twee losse records over.
 - `appliance` (**Appliance**): hardware of software zonder agent.
 
 De beperking voorkomt duplicaten. Een handgemaakt item van een type dat OneUptime kan waarnemen, zoals een host, zou op de getypte naam worden geïdentificeerd, terwijl het ontdekte item van dezelfde machine wordt geïdentificeerd op de attributen die ze meldt. De twee zouden nooit samenkomen, dus dezelfde host zou voorgoed twee keer in je lijst staan.
@@ -125,7 +125,7 @@ Om items te archiveren selecteer je ze in **All Items** en archiveer je ze in é
 
 ## Relaties en topologie
 
-OneUptime verbindt items met gerichte relaties zodra het die waarneemt. **Inventaris → Topology Map** tekent ze, en de pagina **Connections** van een item toont die van het item zelf. Zie [Topologie](/docs/telemetry/topology).
+OneUptime verbindt items met gerichte relaties zodra het die waarneemt. **Inventaris → Topology Map** tekent ze, en de pagina **Verbindingen** van een item toont die van het item zelf. Zie [Topologie](/docs/telemetry/topology).
 
 | Relatie | Bijvoorbeeld |
 | --- | --- |

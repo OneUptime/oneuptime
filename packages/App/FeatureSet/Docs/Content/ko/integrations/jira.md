@@ -64,7 +64,7 @@ flowchart TB
 | Create a Jira issue when an alert is created | 모니터가 발생시키는 알림을 포함해 새 알림마다 이슈를 열고 알림의 ID를 레이블로 붙입니다. Jira에서 만든 알림과 비공개 알림은 건너뜁니다. | API URL, API token, project key, issue type, OneUptime URL |
 | Move the Jira issue when the alert is acknowledged or resolved | 연결된 이슈를 앞으로 옮깁니다. 알림이 확인되면 In Progress 상태로, 해결되면 Done 상태로 옮깁니다. 뒤로 되돌리지 않습니다. | API URL, API token |
 | Copy alert private notes to the Jira issue | 새 비공개 노트를 하나씩 연결된 이슈에 댓글로 게시하며, Jira Service Management에서는 내부 댓글이 됩니다. | API URL, API token |
-| Comment on the Jira issue when the alert is edited | 알림의 제목, 심각도, 설명, 해결 노트가 바뀌면 알림의 현재 내용을 Jira Service Management의 내부 댓글로 게시합니다. | API URL, API token |
+| Comment on the Jira issue when the alert is edited | 알림의 제목, 심각도, 설명, 근본 원인, 해결 노트가 바뀌면 알림의 현재 내용을 Jira Service Management의 내부 댓글로 게시합니다. | API URL, API token |
 | **Jira → OneUptime** | | |
 | Create an alert when a Jira issue is created | 새 이슈마다 이슈의 우선순위에 따른 심각도로 알림을 만든 다음, 이슈에 레이블을 붙여 둘을 연결합니다. | Site URL, API URL, API token, 그리고 **Issue created**용 Jira 웹훅 |
 | Acknowledge or resolve the alert when its Jira issue moves | 연결된 이슈가 In Progress 상태로 바뀌면 알림을 확인하고, Done 상태로 바뀌면 해결합니다. | **Issue updated**용 Jira 웹훅 |
@@ -80,7 +80,6 @@ OneUptime → Jira 템플릿은 [**비공개 인시던트**](/docs/incidents/dec
 - **공개 노트가 없습니다.** 알림에는 비공개 노트만 있으므로, 알림용 템플릿이 게시하는 댓글은 모두 Jira Service Management의 내부 댓글입니다.
 - **상태 페이지가 없습니다.** 알림은 상태 페이지에 올라가지 않으므로, **Create an alert when a Jira issue is created**는 심각도, 제목, 설명, `customFields.jiraIssueKey`만 쓰고 그 밖의 것은 쓰지 않습니다.
 - **심각도가 두 가지이므로 Medium은 Low가 됩니다.** 새 프로젝트에는 인시던트 심각도가 세 가지인 반면 알림 심각도는 High와 Low 두 가지입니다. 생성 템플릿은 Jira의 우선순위를 프로젝트에 있는 심각도에 나눠 배정합니다. 기본 두 가지에서는 Highest, High, Critical, Blocker가 High가 되고, Medium과 Major를 포함한 그 밖의 우선순위는 모두 Low가 됩니다. Medium을 High로 보내려면 `prepare-alert-1` 스크립트의 `PRIORITY_RANK`에서 `medium: 1`을 `medium: 0`으로 바꾸세요.
-- **근본 원인 편집은 감시하지 않습니다.** 알림의 근본 원인은 알림을 만들 때 쓰이며 편집할 수 없으므로, 편집 템플릿은 제목, 설명, 심각도, 해결 노트에 반응합니다. 그래도 댓글에는 근본 원인이 표시됩니다.
 - **알림의 링크와 레이블.** 이슈는 `/dashboard/<project id>/alerts/<alert id>`로 연결되고 `oneuptime-alert-<alert id>` 레이블이 붙습니다.
 - **번호가 무엇의 번호인지 알려 줍니다.** 기본 접두사 `#`에서는 알림과 인시던트가 모두 `#12`일 수 있으므로, 템플릿은 `Alert #12` 또는 `Incident #12`로 씁니다. `ALT-12`처럼 자체 접두사가 있는 번호는 그대로 씁니다.
 - **비공개 알림.** 직접 또는 알림 개인 정보 규칙에 의해 **비공개 경고**로 표시된 알림은 `SYNC_PRIVATE_ALERTS`를 `true`로 설정하지 않는 한 Jira로 가지 않습니다.

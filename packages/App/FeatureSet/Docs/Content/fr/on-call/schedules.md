@@ -64,8 +64,8 @@ flowchart TB
 | Champ | Ce qu'il définit |
 | --- | --- |
 | **Nom de la couche** | Ce que la couche couvre, par exemple « Principal en semaine ». |
-| **Rotation starts at** | La date et l'heure de début de la rotation de la couche. |
-| **Rotate every** | La fréquence à laquelle l'astreinte passe à la personne suivante de la couche. |
+| **La rotation commence le** | La date et l'heure de début de la rotation de la couche. |
+| **Rotation tous les** | La fréquence à laquelle l'astreinte passe à la personne suivante de la couche. |
 | **Heure de la première passation** | La première passation à la personne suivante, au début ou après. Les passations suivantes suivent chaque intervalle de rotation. |
 | **Restrictions** | Les heures d'astreinte de la couche : **Aucune restriction**, **Heures spécifiques de la journée** ou **Heures spécifiques de la semaine**, dans le fuseau horaire du planning. En dehors, les couches inférieures prennent le relais. |
 

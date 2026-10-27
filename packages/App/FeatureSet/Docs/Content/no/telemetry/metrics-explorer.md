@@ -12,7 +12,7 @@ Metrikker er tallene tjenestene og infrastrukturen din rapporterer over tid: ant
 
 ## Slik fungerer utforskeren
 
-Utforskeren har to nivåer. Fanen **Viser** viser metrikkene prosjektet ditt mottar. Klikk på en, så åpnes metrikkutforskeren med en spørring for den: en metrikk, hvordan den aggregeres, og hvordan den filtreres og grupperes. Hver spørring er en variabel, `a`, `b` og så videre, som en formel kan bruke.
+Utforskeren har to nivåer. Fanen **Leser** viser metrikkene prosjektet ditt mottar. Klikk på en, så åpnes metrikkutforskeren med en spørring for den: en metrikk, hvordan den aggregeres, og hvordan den filtreres og grupperes. Hver spørring er en variabel, `a`, `b` og så videre, som en formel kan bruke.
 
 ```mermaid title="Fra metrikkspørringer til et diagram, en monitor eller et dashbord"
 flowchart TB
@@ -27,7 +27,7 @@ Utforskeren har fem faner:
 
 | Fane | Hva den er til |
 | --- | --- |
-| **Viser** | Listen over metrikker, hver med et lite diagram og den siste verdien. Den åpner på siste time. |
+| **Leser** | Listen over metrikker, hver med et lite diagram og den siste verdien. Den åpner på siste time. |
 | **Innsikt** | Hvilke tjenester som rapporterer metrikker, og hvor mange. |
 | **KI** | Problemene OneUptime finner i målingene dine (for mange verdier, histogrambøtter som ikke passer, manglende målinger), og hva OneUptime AI gjorde med dem. Se [Forbedre målinger og legg til de som mangler med KI](#forbedre-målinger-og-legg-til-de-som-mangler-med-ki). |
 | **Oppsettveiledning** | Hvordan du sender metrikker med OpenTelemetry med en av inntaksnøklene dine. |
@@ -40,7 +40,7 @@ Utforskeren har fem faner:
 
 ## Finn en metrikk
 
-Gå til **Produkter → Observerbarhet → Målinger**. **Viser** viser hver metrikk prosjektet ditt har mottatt, etter navn, hver med et lite diagram over tidsintervallet og den siste verdien.
+Gå til **Produkter → Observerbarhet → Målinger**. **Leser** viser hver metrikk prosjektet ditt har mottatt, etter navn, hver med et lite diagram over tidsintervallet og den siste verdien.
 
 - Søk i navn med løse ord eller `name:`, for eksempel finner `name:http.server` metrikken `http.server.request.duration`. Se [Søkesyntaks](/docs/telemetry/search-syntax#målinger).
 - Filtrer etter **Tjeneste** i sidepanelet for bare å se metrikkene én tjeneste rapporterer.
@@ -51,7 +51,7 @@ Gå til **Produkter → Observerbarhet → Målinger**. **Viser** viser hver met
 :::steps
 ### Åpne metrikken
 
-Klikk på metrikken i **Viser**. Utforskeren åpnes med én spørring, `a`, for tidsintervallet og filtrene til listen.
+Klikk på metrikken i **Leser**. Utforskeren åpnes med én spørring, `a`, for tidsintervallet og filtrene til listen.
 
 ### Velg hvordan den aggregeres
 
@@ -59,7 +59,7 @@ Under **Aggregate by** velger du hvordan verdiene i hvert punkt i diagrammet kom
 
 ### Filtrer og grupper den
 
-Åpne **Filters & grouping**. **Filter by attributes** beholder datapunktene der attributtene passer, som én bestemt `http.route`, og **Group by** tegner én linje per verdi av attributtene du velger, som én linje per vert.
+Åpne **Filters & grouping**. **Filter by attributes** beholder datapunktene der attributtene passer, som én bestemt `http.route`, og **Grupper etter** tegner én linje per verdi av attributtene du velger, som én linje per vert.
 
 ### Juster diagrammet
 
@@ -104,7 +104,7 @@ Dra over et diagram for å zoome inn på et øyeblikk, og dobbeltklikk for å zo
 - **Handlinger → Opprett monitor fra denne visningen** åpner en ny metrikkmonitor der disse spørringene og formlene allerede er fylt inn. Se [Metrikk-overvåking](/docs/monitor/metrics-monitor).
 - **Handlinger → Add to dashboard** legger diagrammet til et dashbord du velger. Du trenger tillatelse til å redigere det dashbordet.
 - **Kopier lenke** kopierer en lenke til nøyaktig denne visningen: spørringer, formler og tidsintervall.
-- **Saved Views** tar vare på visningen under et navn for alle i prosjektet. **Viser** har egne lagrede visninger for søket og filtrene sine. Lagrede visninger fungerer som i [Loggutforsker](/docs/telemetry/logs-explorer#lagre-en-visning).
+- **Lagrede visninger** tar vare på visningen under et navn for alle i prosjektet. **Leser** har egne lagrede visninger for søket og filtrene sine. Lagrede visninger fungerer som i [Loggutforsker](/docs/telemetry/logs-explorer#lagre-en-visning).
 
 ## Innsikt i metrikker
 
@@ -176,7 +176,7 @@ Tøm først søket og filterbrikkene dine. Er listen fortsatt tom, har ingen met
 :::
 
 :::details Metrikkene til en tjeneste mangler
-Filtrer **Viser** etter den **Tjeneste** og utvid tidsintervallet. Mangler de fortsatt, kan rollens omfang utelate den tjenesten: se [Telemetri](/docs/permissions/index#telemetri).
+Filtrer **Leser** etter den **Tjeneste** og utvid tidsintervallet. Mangler de fortsatt, kan rollens omfang utelate den tjenesten: se [Telemetri](/docs/permissions/index#telemetri).
 :::
 
 ## Neste steg

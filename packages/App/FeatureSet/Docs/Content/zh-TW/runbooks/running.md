@@ -41,7 +41,7 @@ Runbook 執行有五種建立方式：
 
 1. **透過規則自動啟動**：當相符的事件、警示或排定維護事件被建立時，[Runbook 規則](/docs/runbooks/rules) 會啟動執行。AI 規則也可以啟動執行；請參閱 [AI SRE](/docs/ai/ai-sre)。
 2. **從事件手動啟動**：在事件、警示或排定維護事件上點選 **執行操作手冊** 。執行會關聯到該事件。
-3. **從 Runbook 頁面手動啟動**：在 Runbook 的 **概覽** 頁面上點選 **Run Now** 。這次執行不會關聯到任何事件、警示或排定維護事件。
+3. **從 Runbook 頁面手動啟動**：在 Runbook 的 **概覽** 頁面上點選 **立即執行** 。這次執行不會關聯到任何事件、警示或排定維護事件。
 4. **依排程**：Runbook 的排程會在設定的時間啟動它。請參閱[依排程執行](/docs/runbooks/triggers#依排程執行)。
 5. **從其他工具**：向 Runbook 的 Webhook URL 傳送 `POST` 即可啟動它，並帶上呼叫傳送的值。請參閱[呼叫 Webhook](/docs/runbooks/triggers#呼叫-webhook)。
 
@@ -54,15 +54,15 @@ Runbook 執行有五種建立方式：
 3. 點選 Runbook 旁邊的 **Run** 。這次執行會出現在該事件的清單中：點選 **檢視** 開啟它。
 @tab 從 Runbook 啟動
 1. 從 **運行手冊** 開啟 Runbook。
-2. 在其 **概覽** 上點選 **Run Now** 。
+2. 在其 **概覽** 上點選 **立即執行** 。
 3. 執行頁面會開啟。
 :::
 
-啟動執行需要 Project Owner、Project Admin、Project Member、Runbook Admin 或 Runbook Member，或 **Create Runbook Execution** 權限。Runbook Viewer 和 Viewer 看到的 **Run Now** 處於鎖定狀態，並附有原因。請參閱 [權限](/docs/runbooks/configuration#權限)。
+啟動執行需要 Project Owner、Project Admin、Project Member、Runbook Admin 或 Runbook Member，或 **Create Runbook Execution** 權限。Runbook Viewer 和 Viewer 看到的 **立即執行** 處於鎖定狀態，並附有原因。請參閱 [權限](/docs/runbooks/configuration#權限)。
 
 ## 執行檢視
 
-開啟一次執行即可看到它的檢查清單。頁面頂端顯示執行的 **狀態** 、 **Progress** （已完成的步驟數與總步驟數）、 **已開始** （開始時間）和 **觸發者** （由什麼啟動）。每個步驟顯示：
+開啟一次執行即可看到它的檢查清單。頁面頂端顯示執行的 **狀態** 、 **進度** （已完成的步驟數與總步驟數）、 **已開始** （開始時間）和 **觸發者** （由什麼啟動）。每個步驟顯示：
 
 - **狀態徽章** ——待處理、執行中、等待您處理、等待核准、完成、已略過、失敗或已取消。
 - **標題和描述** ——在執行開始時從 Runbook 複製而來。
@@ -113,7 +113,7 @@ Runbook 執行有五種建立方式：
 
 ## 再次執行 Runbook
 
-執行是一次性、不可變更的紀錄。要再次執行，請在已結束的執行上點選 **再次執行** ，或在 Runbook 上點選 **Run Now** 。兩者都會依據 Runbook 目前的步驟建立一次新的執行，且不關聯任何事件。若要在某個事件上再次執行，請在該事件的 **運行手冊** 頁面上使用 **執行操作手冊** 。原本的執行保持不變，作為稽核軌跡。
+執行是一次性、不可變更的紀錄。要再次執行，請在已結束的執行上點選 **再次執行** ，或在 Runbook 上點選 **立即執行** 。兩者都會依據 Runbook 目前的步驟建立一次新的執行，且不關聯任何事件。若要在某個事件上再次執行，請在該事件的 **運行手冊** 頁面上使用 **執行操作手冊** 。原本的執行保持不變，作為稽核軌跡。
 
 ## 尋找過去的執行
 
@@ -130,11 +130,11 @@ Runbook 執行有五種建立方式：
 :::
 
 :::details 啟動執行時失敗，顯示「Runbook is disabled」或「Runbook has no steps to run」
-Runbook 的 **執行此操作手冊** 開關在其 **設定** 頁面上被關閉了，或者它沒有已儲存的步驟。請開啟開關或新增步驟，然後點選 **Save Steps** 。Runbook 的 **概覽** 會說明是哪一種，並提供 **開啟執行手冊** 或 **新增步驟** 。
+Runbook 的 **執行此操作手冊** 開關在其 **設定** 頁面上被關閉了，或者它沒有已儲存的步驟。請開啟開關或新增步驟，然後點選 **儲存步驟** 。Runbook 的 **概覽** 會說明是哪一種，並提供 **開啟執行手冊** 或 **新增步驟** 。
 :::
 
 :::details 步驟因缺少 Runner 而失敗
-訊息類似於「This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.」該步驟儲存時沒有選擇 **Runner** ，專案也沒有 [預設 Runner](/docs/runbooks/agents#專案預設-runner) 。只有在沒有 [全域 Runner](/docs/runbooks/agents#全域-runner) 可以執行 JavaScript 步驟時，它才需要您自己的 Runner。開啟 Runbook 的 **步驟** ，在步驟的 **更多欄位** 中選擇它的 Runner，點選 **Save Steps** ，然後再次執行 Runbook。
+訊息類似於「This Bash step has no Runner. Bash steps run on a Runner of your own, inside your network: global Runners run JavaScript steps only. Pick one of your Runners for the step, or make one the project's default Runner under Runbooks → Runners.」該步驟儲存時沒有選擇 **Runner** ，專案也沒有 [預設 Runner](/docs/runbooks/agents#專案預設-runner) 。只有在沒有 [全域 Runner](/docs/runbooks/agents#全域-runner) 可以執行 JavaScript 步驟時，它才需要您自己的 Runner。開啟 Runbook 的 **步驟** ，在步驟的 **更多欄位** 中選擇它的 Runner，點選 **儲存步驟** ，然後再次執行 Runbook。
 :::
 
 :::details 步驟因引用了無法使用的變數而失敗

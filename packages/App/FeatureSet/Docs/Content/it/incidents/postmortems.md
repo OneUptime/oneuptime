@@ -167,7 +167,7 @@ Sopra l'elenco, un riquadro per stato conta i post-mortem che contiene. Fate cli
 
 Filtrate l'elenco con i chip sopra di esso: **Proprietario**, una persona o un team; **Gravità**; **Stato del post-mortem**; **Stato incidente**; **Etichette**; e **Risorse interessate**. Per vedere quali post-mortem un team deve ancora per i vostri incidenti più gravi, scegliete il team sotto **Proprietario**, la gravità sotto **Gravità**, e **Non iniziato** e **Bozza** sotto **Stato del post-mortem**. I filtri restano nell'indirizzo della pagina, così potete salvare l'elenco nei preferiti o condividerlo.
 
-Per cambiarne molti in una volta, selezionateli e aprite **Azioni di massa**: **Cambia stato del post-mortem** li sposta tutti in uno stesso stato, come **Non necessario** per gli incidenti che non ne hanno bisogno, e **Add Owner** e **Remove Owner** cambiano chi ne è proprietario.
+Per cambiarne molti in una volta, selezionateli e aprite **Azioni di massa**: **Cambia stato del post-mortem** li sposta tutti in uno stesso stato, come **Non necessario** per gli incidenti che non ne hanno bisogno, e **Aggiungi proprietario** e **Rimuovi proprietario** cambiano chi ne è proprietario.
 
 ## Post-mortem degli episodi
 

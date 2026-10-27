@@ -39,7 +39,7 @@ De regels verschillen in hoe ze meerdere treffers afhandelen:
 - **Eigenaarsregels**, **Labelregels** en **Runbook-regels** werken allemaal wanneer ze passen. Eigenaren en labels die meerdere regels toevoegen, worden één keer toegevoegd.
 - **Reminder Rules** worden van boven naar beneden in hun lijst gecontroleerd, en de eerste die past wint. Sleep een regel om zijn plaats te wijzigen; een nieuwe regel komt onderaan.
 
-Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in het bewerkformulier om haar te pauzeren, en de lijst toont voor elke regel een groen **Ingeschakeld** of een rood **Uitgeschakeld**. Eigenaars-, label- en runbook-regels werken op gebeurtenissen die worden gemaakt nadat je ze opslaat. Om een eigenaars- of labelregel toe te passen op gebeurtenissen die je al hebt, gebruik je **Run Now**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now).
+Een nieuwe regel begint ingeschakeld; zet **Ingeschakeld** uit in het bewerkformulier om haar te pauzeren, en de lijst toont voor elke regel een groen **Ingeschakeld** of een rood **Uitgeschakeld**. Eigenaars-, label- en runbook-regels werken op gebeurtenissen die worden gemaakt nadat je ze opslaat. Om een eigenaars- of labelregel toe te passen op gebeurtenissen die je al hebt, gebruik je **Nu uitvoeren**: zie [Regels uitvoeren op bestaande resources](/docs/configuration/run-rules-now).
 
 ## Eigenaars- en labelregels
 
@@ -82,7 +82,7 @@ Stel onder **Herinneringen** het **Herinneringsinterval (minuten)** in, hoe vaak
 | **Voordat het begint** | Vanaf het moment dat de gebeurtenis gepland is tot het begin ervan. |
 | **Voordat het begint en terwijl het bezig is** | Vanaf het moment dat de gebeurtenis gepland is tot het einde ervan. |
 
-Een regel die via de API of Terraform is opgeslagen en wacht tot de gebeurtenis begint en stopt zodra die begint, stuurt nooit een herinnering: de lijst markeert hem met **Herinnert nooit**, en het formulier vraagt je een antwoord te kiezen.
+De API en Terraform weigeren een regel die zou wachten tot de gebeurtenis begint en zou stoppen zodra die begint: die zou nooit een herinnering sturen. Een oudere regel die zo is opgeslagen, staat in de lijst met **Herinnert nooit**, en het formulier vraagt je te kiezen wanneer er herinnerd wordt.
 
 Eigenaren krijgen elke herinnering als **Maintenance reminder**, die voor elk nieuw lid per e-mail aanstaat. Een herinneringsregel opslaan, wijzigen of verwijderen koppelt elke gebeurtenis die nog niet voltooid is opnieuw aan een regel. Om de herinneringen voor één gebeurtenis te stoppen, zet je **Herinneringen sturen** uit op haar pagina **Instellingen**; dat slaat op zodra je omschakelt.
 
@@ -119,16 +119,16 @@ Elk onderhoudsmodel heeft workflowtriggers en -acties, naar het model genoemd: *
 
 | Rol                               | Wat ze mag                                                                                           |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Scheduled Maintenance Viewer**  | Leest gebeurtenissen en wijzigt niets.                                                               |
-| **Scheduled Maintenance Member**  | Maakt, wijzigt en verwijdert gebeurtenissen met hun notities, statustijdlijnen en eigenaren, en beide soorten sjablonen. |
-| **Scheduled Maintenance Admin**   | Alles wat een lid doet, en maakt, wijzigt en verwijdert daarnaast onderhoudsstatussen.               |
+| **Onderhoudskijker**  | Leest gebeurtenissen en wijzigt niets.                                                               |
+| **Onderhoudslid**  | Maakt, wijzigt en verwijdert gebeurtenissen met hun notities, statustijdlijnen en eigenaren, en beide soorten sjablonen. |
+| **Onderhoudsbeheerder**   | Alles wat een lid doet, en maakt, wijzigt en verwijdert daarnaast onderhoudsstatussen.               |
 
-Regels, aangepaste velden en metingen vragen **Project Owner** of **Project Admin**, of een aangepaste rol met de eigen machtiging van die pagina, zoals **Create Scheduled Maintenance Owner Rule**. Runbook-regels accepteren ook **Runbook Admin**. **Project Member** werkt met gebeurtenissen en sjablonen, net als **Scheduled Maintenance Member**. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index).
+Regels, aangepaste velden en metingen vragen **Projecteigenaar** of **Projectbeheerder**, of een aangepaste rol met de eigen machtiging van die pagina, zoals **Create Scheduled Maintenance Owner Rule**. Runbook-regels accepteren ook **Runbookbeheerder**. **Projectlid** werkt met gebeurtenissen en sjablonen, net als **Onderhoudslid**. Zie [Gebruikers, teams en machtigingen](/docs/permissions/index).
 
 ## Probleemoplossing
 
 :::details Een eigenaarsregel heeft niemand aan een nieuwe gebeurtenis toegevoegd
-Open de regel en controleer haar voorwaarden: elke voorwaarde die je hebt ingevuld, moet kloppen. Een titelpatroon is een reguliere expressie, dus `db upgrade` past niet op 'DB-Upgrade'; schrijf `db.upgrade`. Een regel werkt bovendien alleen op gebeurtenissen die na het opslaan worden gemaakt: gebruik **Run Now** voor de gebeurtenissen die je al hebt.
+Open de regel en controleer haar voorwaarden: elke voorwaarde die je hebt ingevuld, moet kloppen. Een titelpatroon is een reguliere expressie, dus `db upgrade` past niet op 'DB-Upgrade'; schrijf `db.upgrade`. Een regel werkt bovendien alleen op gebeurtenissen die na het opslaan worden gemaakt: gebruik **Nu uitvoeren** voor de gebeurtenissen die je al hebt.
 :::
 
 :::details Eigenaren kregen geen herinnering

@@ -160,7 +160,7 @@ I campi delle tracce accettano un valore semplice o un elenco come `status:(ok O
 
 Le parole semplici cercano nel messaggio dell'eccezione.
 
-L'explorer **Security Events** usa lo stesso linguaggio con campi propri, come `severity`, `tactic` e `user`: vedete [Security Events](/docs/telemetry/security-events).
+L'explorer **Eventi di sicurezza** usa lo stesso linguaggio con campi propri, come `severity`, `tactic` e `user`: vedete [Security Events](/docs/telemetry/security-events).
 
 ## Combinare i filtri
 

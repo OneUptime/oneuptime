@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "跳到主要内容",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "moreLinks": "更多链接",
+    "navigation": "导航"
   },
   "common": {
     "save": "保存",
@@ -303,7 +305,8 @@
       "loginPrompt": "请登录以查看 {{statusPageName}}",
       "noProviders": "未配置或启用 SSO 提供商",
       "notAvailable": "此状态页不支持单点登录（SSO）。请改用您的电子邮件和密码登录。",
-      "backToLogin": "返回登录"
+      "backToLogin": "返回登录",
+      "logInWithPassword": "使用密码登录"
     },
     "forgotPassword": {
       "title": "忘记密码",
@@ -320,13 +323,9 @@
       "knowPassword": "知道您的密码？"
     },
     "masterPassword": {
-      "enterWithName": "输入 {{statusPageName}} 密码",
-      "enterGeneric": "输入密码",
-      "prompt": "请输入密码以继续。",
+      "prompt": "输入密码以查看此状态页。",
       "passwordRequired": "密码是必需的。",
       "passwordLabel": "密码",
-      "passwordDescription": "输入密码以解锁此页面。",
-      "passwordPlaceholder": "输入密码",
       "submit": "解锁状态页"
     },
     "signingOut": "正在退出登录..."
@@ -416,6 +415,8 @@
   "Try again": "重试",
   "Loading...": "加载中...",
   "Loading": "加载中",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} 不是有效的 JSON。{{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} 不是有效的 YAML。{{parserMessage}}",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危险",

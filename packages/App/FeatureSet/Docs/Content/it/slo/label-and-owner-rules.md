@@ -73,13 +73,13 @@ Una nuova condizione sul nome o sulla descrizione parte da **Contiene**. Un patt
 ## Quando vengono eseguite le regole
 
 - **Quando si crea uno SLO**, dalla dashboard o tramite l'API: ogni regola per etichette abilitata, poi ogni regola del proprietario abilitata.
-- **Quando esegui una regola** con **Run Now**: vedi sotto.
+- **Quando esegui una regola** con **Esegui ora**: vedi sotto.
 
 Modificare uno SLO non applica di nuovo le regole, e una regola non rimuove mai nulla: né etichette o proprietari che qualcuno ha aggiunto a mano, né quelli che ha aggiunto lei stessa. Una regola disattivata non fa nulla.
 
 ## Applicare una regola agli SLO esistenti
 
-Una regola che scrivi oggi si applica agli SLO creati dopo. Per applicarla agli SLO che hai già, fai clic su **Run Now** nella riga della regola, oppure su **Visualizza** e poi su **Run Now** nella pagina della regola. Puoi anche selezionare più regole ed eseguirle dalle azioni di massa della tabella.
+Una regola che scrivi oggi si applica agli SLO creati dopo. Per applicarla agli SLO che hai già, fai clic su **Esegui ora** nella riga della regola, oppure su **Visualizza** e poi su **Esegui ora** nella pagina della regola. Puoi anche selezionare più regole ed eseguirle dalle azioni di massa della tabella.
 
 Un'esecuzione controlla ogni SLO del progetto, compresi quelli archiviati, e riporta a quanti ha trovato corrispondenza e quanti ne ha cambiati. I proprietari aggiunti da un'esecuzione vengono avvisati solo se scegli di avvisarli nella finestra di esecuzione e la regola ha **Notifica ai proprietari** attivo. Vedi [Eseguire le regole sulle risorse esistenti](/docs/configuration/run-rules-now).
 

@@ -64,7 +64,7 @@ flowchart TB
 | Create a Jira issue when an alert is created | 为每个新警报创建一个问题，包括监视器产生的每一条警报，并用警报的 ID 为它加标签。从 Jira 创建的警报和私密警报会被跳过。 | API URL、API 令牌、项目键、问题类型、OneUptime URL |
 | Move the Jira issue when the alert is acknowledged or resolved | 把关联的问题向前推进：警报被确认时移到 In Progress 状态，被解决时移到 Done 状态。从不向后移动。 | API URL、API 令牌 |
 | Copy alert private notes to the Jira issue | 把每条新的私密备注作为评论发布到关联的问题上——在 Jira Service Management 中是内部评论。 | API URL、API 令牌 |
-| Comment on the Jira issue when the alert is edited | 当警报的标题、严重程度、描述或修复说明发生变化时，发布警报的当前情况——在 Jira Service Management 中是内部评论。 | API URL、API 令牌 |
+| Comment on the Jira issue when the alert is edited | 当警报的标题、严重程度、描述、根本原因或修复说明发生变化时，发布警报的当前情况——在 Jira Service Management 中是内部评论。 | API URL、API 令牌 |
 | **Jira → OneUptime** | | |
 | Create an alert when a Jira issue is created | 为每个新问题创建一个警报，严重程度根据问题的优先级选择，然后为问题加标签，把两者关联起来。 | 站点 URL、API URL、API 令牌，以及用于 **Issue created** 的 Jira Webhook |
 | Acknowledge or resolve the alert when its Jira issue moves | 关联的问题移到 In Progress 状态时确认警报，移到 Done 状态时解决警报。 | 用于 **Issue updated** 的 Jira Webhook |
@@ -80,7 +80,6 @@ flowchart TB
 - **没有公开备注。** 警报只有私密备注，因此警报模板发布的每条评论在 Jira Service Management 中都是内部评论。
 - **没有状态页。** 警报永远不会出现在状态页上，因此 **Create an alert when a Jira issue is created** 只写入严重程度、标题、描述和 `customFields.jiraIssueKey`，不写入其他内容。
 - **只有两种严重程度，所以 Medium 会变成 Low。** 新项目有三种事件严重程度，但只有 High 和 Low 两种警报严重程度。创建模板把 Jira 的优先级分配到项目已有的严重程度上。在默认的两种严重程度下，Highest、High、Critical 和 Blocker 会变成 High，其他所有优先级（包括 Medium 和 Major）都会变成 Low。要把 Medium 发送为 High，请在 `prepare-alert-1` 脚本的 `PRIORITY_RANK` 中把 `medium: 1` 改为 `medium: 0`。
-- **不监视根本原因的编辑。** 警报的根本原因在创建警报时写入，之后无法编辑，因此编辑模板只在标题、描述、严重程度和修复说明变化时触发。它的评论仍会显示根本原因。
 - **警报的链接和标签。** 问题链接到 `/dashboard/<project id>/alerts/<alert id>`，并带有标签 `oneuptime-alert-<alert id>`。
 - **编号会说明它是什么的编号。** 在默认的 `#` 前缀下，警报和事件可能都是 `#12`，因此模板会写成 `Alert #12` 或 `Incident #12`。带有自己前缀的编号（例如 `ALT-12`）按原样写入。
 - **私密警报。** 被手动或被警报隐私规则标记为 **私密警报** 的警报不会进入 Jira，除非你把 `SYNC_PRIVATE_ALERTS` 设为 `true`。

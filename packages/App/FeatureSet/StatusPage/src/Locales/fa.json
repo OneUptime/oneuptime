@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "رفتن به محتوای اصلی",
-    "loading": "در حال بارگذاری..."
+    "loading": "در حال بارگذاری...",
+    "moreLinks": "پیوندهای بیشتر",
+    "navigation": "ناوبری"
   },
   "common": {
     "save": "ذخیره",
@@ -303,7 +305,8 @@
       "loginPrompt": "برای مشاهده {{statusPageName}} لطفاً وارد شوید",
       "noProviders": "هیچ ارائه‌دهنده SSO پیکربندی یا فعال نشده است",
       "notAvailable": "ورود یکپارچه (SSO) برای این صفحه وضعیت در دسترس نیست. به جای آن با ایمیل و رمز عبور خود وارد شوید.",
-      "backToLogin": "بازگشت به صفحه ورود"
+      "backToLogin": "بازگشت به صفحه ورود",
+      "logInWithPassword": "ورود با رمز عبور"
     },
     "forgotPassword": {
       "title": "فراموشی رمز عبور",
@@ -320,13 +323,9 @@
       "knowPassword": "رمز عبور خود را می‌دانید؟"
     },
     "masterPassword": {
-      "enterWithName": "رمز عبور {{statusPageName}} را وارد کنید",
-      "enterGeneric": "رمز عبور را وارد کنید",
-      "prompt": "برای ادامه، لطفاً رمز عبور را وارد کنید.",
+      "prompt": "برای دیدن این صفحه وضعیت، رمز عبور را وارد کنید.",
       "passwordRequired": "رمز عبور الزامی است.",
       "passwordLabel": "رمز عبور",
-      "passwordDescription": "برای باز کردن این صفحه، رمز عبور را وارد کنید.",
-      "passwordPlaceholder": "رمز عبور را وارد کنید",
       "submit": "باز کردن صفحه وضعیت"
     },
     "signingOut": "در حال خروج از حساب شما..."
@@ -416,6 +415,8 @@
   "Try again": "تلاش دوباره",
   "Loading...": "در حال بارگذاری...",
   "Loading": "در حال بارگذاری",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} یک JSON معتبر نیست. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} یک YAML معتبر نیست. {{parserMessage}}",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",

@@ -65,6 +65,7 @@ import Email from "Common/Types/Email";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
+import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
 
 RunCron(
   "IncidentEpisode:SendNotificationToSubscribers",
@@ -818,7 +819,9 @@ RunCron(
                         );
                     } else {
                       // Use default hard-coded template
-                      smsMessage = `Incident ${episode.title || ""} (${episode.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedPlainText}. Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                      smsMessage = writeDefaultSubscriberSms(
+                        `Incident ${episode.title || ""} (${episode.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedPlainText}. Details: ${episodeDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                      );
                     }
 
                     const sms: SMS = {

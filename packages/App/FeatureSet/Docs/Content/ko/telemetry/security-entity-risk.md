@@ -29,7 +29,7 @@ flowchart TB
 ## 시작하기 전에
 
 - 보안 이벤트가 들어오고 있고, 그 안에서 무언가를 찾는 탐지 규칙, 위협 인텔리전스 또는 연결된 제품이 있어야 합니다. [보안 시작하기](/docs/telemetry/security-getting-started)를 참고하세요.
-- 누군가를 가리키는 필드로 그룹화하는 탐지 규칙: **Group By Field**(예: `principalUser`, `principalHost`, `principalIp`) 또는 상관 규칙이 그룹화하는 필드. 아무것으로도 그룹화하지 않는 규칙은 위험을 더하지 않습니다.
+- 누군가를 가리키는 필드로 그룹화하는 탐지 규칙: **그룹화 필드**(예: `principalUser`, `principalHost`, `principalIp`) 또는 상관 규칙이 그룹화하는 필드. 아무것으로도 그룹화하지 않는 규칙은 위험을 더하지 않습니다.
 - **위험 점수 매기기**을 변경하려면: 스위치와 임계값은 Project Owner 또는 Project Admin, 엔티티 목록은 탐지 규칙을 만들 수 있는 역할이 필요합니다. Security Viewer는 모두 읽을 수 있습니다. [역할](/docs/permissions/reference#역할)을 참고하세요.
 
 ## 점수를 세는 방법

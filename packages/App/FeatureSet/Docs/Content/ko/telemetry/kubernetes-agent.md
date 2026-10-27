@@ -241,6 +241,8 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | 개수 | 발생한 횟수. 반복되면 행을 추가하지 않고 개수를 올립니다 |
 | 마지막 확인 | 마지막으로 발생한 시각. 포인터를 올리면 처음 발생한 시각을 볼 수 있습니다 |
 
+너비가 1024픽셀보다 좁은 화면에서는 **이벤트** 열에 **개수**와 **마지막 확인**도 표시되며, 이 둘은 그곳에서 별도의 열이 없습니다.
+
 ### 이벤트 검색과 알림
 
 모든 이벤트는 로그이기도 합니다. 경고는 심각도 **Warning**로 저장되며, 이벤트의 내용은 속성에 들어 있습니다.
@@ -256,7 +258,7 @@ aws eks update-addon --cluster-name my-cluster --addon-name oneuptime_kubernetes
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-**로그**에서 검색하고, 원하지 않는 것은 드롭 필터로 버리거나, [로그 모니터](/docs/monitor/logs-monitor)로 발생 시 알림을 받을 수 있습니다. 심각도 **Warning**와 `k8s.event.reason`으로 필터링하고 `k8s.object.name`으로 그룹화하면 노드나 오토스케일러마다 알림이 하나씩 옵니다.
+**로그**에서 검색하거나, 원하지 않는 것은 드롭 필터로 버릴 수 있습니다. 발생 시 알림을 받으려면 클러스터의 **권장 사항** 페이지에서 **Warning Events**를 켜거나, **이벤트** 페이지 아래쪽의 **경고 알림 켜기**를 선택하세요. 클러스터의 경고에 대한 [로그 모니터](/docs/monitor/logs-monitor)로, 객체와 사유마다 알림을 하나씩 보내고 그에 대한 새 경고 없이 5분이 지나면 해결합니다. 일부 사유만 알림을 받으려면 필터에 `k8s.event.reason`을 추가하세요.
 
 ## 구성 옵션
 
@@ -619,7 +621,7 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \
 
 이 클러스터에서 인시던트나 알림이 발생하면 OneUptime AI가 조사합니다. 차트의 **Kubernetes AI 에이전트**는 AI에게 터미널을 줍니다. 온콜 엔지니어처럼 읽기 전용 `kubectl`을 실행하고(실패하는 Pod를 describe하고, 이벤트를 읽고, 크래시하는 컨테이너의 로그를 tail하고, 노드 용량을 확인), 실행한 모든 명령을 인시던트 페이지에 인용합니다.
 
-에이전트는 **기본적으로 켜져** 있고 **읽기 전용**입니다. 작은 Deployment 하나(`kubernetes-agent-ai-agent`, Pod 레이블 `component=ai-agent`, 이미지 `oneuptime/kubernetes-ai-agent`)이며, 그 ServiceAccount는 읽기만 할 수 있습니다. Collector와 같은 `oneuptime.apiKey`와 `clusterName`으로 스스로 등록하므로 대시보드에서 설정할 것이 없습니다. 클러스터의 **AI 에이전트** 페이지(Kubernetes → 클러스터 → AI → 에이전트)에 1분 안에 연결됨으로 표시되며, 그 상태 옆 **⋯** 메뉴의 **연결 테스트**는 에이전트를 통해 `kubectl version`과 `kubectl auth can-i --list`를 실행합니다. AI가 에이전트로 한 모든 작업은 클러스터의 **AI 로그** 페이지(AI → 로그)에 있고, 클러스터에 대해 알아 둘 만한 것(계속 반복되는 문제와 그 이유, 그 대부분의 원인인 노드나 워크로드, AI가 고친 것)은 **AI Insights** 페이지(AI → Insights)에 있습니다. 에이전트에는 고정된 kubectl(v1.36.5)이 포함되어 있습니다. Runner가 아니며 Runbooks → Runners 아래에 나타나지 않습니다. OneUptime은 에이전트에 자격 증명을 넘기지 않고, 런북을 실행하지 않으며, AI 규칙의 명령 Runner로도 받아들이지 않습니다.
+에이전트는 **기본적으로 켜져** 있고 **읽기 전용**입니다. 작은 Deployment 하나(`kubernetes-agent-ai-agent`, Pod 레이블 `component=ai-agent`, 이미지 `oneuptime/kubernetes-ai-agent`)이며, 그 ServiceAccount는 읽기만 할 수 있습니다. Collector와 같은 `oneuptime.apiKey`와 `clusterName`으로 스스로 등록하므로 대시보드에서 설정할 것이 없습니다. 클러스터의 **AI 에이전트** 페이지(Kubernetes → 클러스터 → AI → 에이전트)에 1분 안에 연결됨으로 표시되며, 그 상태 옆 **⋯** 메뉴의 **연결 테스트**는 에이전트를 통해 `kubectl version`과 `kubectl auth can-i --list`를 실행합니다. AI가 에이전트로 한 모든 작업은 클러스터의 **AI 로그** 페이지(AI → 로그)에 있고, 클러스터에 대해 알아 둘 만한 것(계속 반복되는 문제와 그 이유, 그 대부분의 원인인 노드나 워크로드, AI가 고친 것)은 **AI 인사이트** 페이지(AI → Insights)에 있습니다. 에이전트에는 고정된 kubectl(v1.36.5)이 포함되어 있습니다. Runner가 아니며 Runbooks → Runners 아래에 나타나지 않습니다. OneUptime은 에이전트에 자격 증명을 넘기지 않고, 런북을 실행하지 않으며, AI 규칙의 명령 Runner로도 받아들이지 않습니다.
 
 AI 에이전트가 생기기 전에 설치한 에이전트에서는 먼저 차트 인덱스를 새로 고친 다음 업그레이드하세요(자체 호스팅 OneUptime에서는 OneUptime을 먼저 업그레이드하세요. [에이전트 업그레이드](#에이전트-업그레이드) 참조):
 
@@ -709,7 +711,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 
 - **"This OneUptime server does not have the Kubernetes AI agent API"** — 차트가 OneUptime 서버보다 새 버전입니다. OneUptime을 업그레이드하거나, 서버와 맞는 차트 버전(`--version <your OneUptime version>`)을 설치하세요. 에이전트는 5분마다 다시 시도합니다.
 - **저절로 해소되는 거부** — 이전 에이전트 Pod가 아직 보고하고 있거나(정상 종료 없이 교체된 Pod), 업그레이드 중에 이전 클러스터 내 Runner가 아직 종료되고 있는 경우입니다. 에이전트는 서버가 알려 주는 대기 시간 뒤에 다시 시도합니다.
-- **조치가 필요한 거부** — `clusterName`이 비어 있거나 너무 긴 경우, 또는 프로젝트가 AI 에이전트 한도에 도달한 경우입니다. 로그에 바꿀 내용이 나옵니다. 에이전트가 전혀 연결되지 않고 로그에 `Another Kubernetes AI agent for cluster "<name>" is online`이 나오면 두 설치가 하나의 `clusterName`을 공유하는 것입니다(AI 에이전트 페이지에서도 경고합니다). 이미 연결된 쪽이 실행되는 동안 계속 유지하므로, 클러스터마다 고유한 `clusterName`을 주거나 여분의 릴리스를 제거하세요. **Pinned Service Name**이 있는 수집 키로는 에이전트를 등록할 수 없습니다. 차트에는 그것이 없는 키를 주세요.
+- **조치가 필요한 거부** — `clusterName`이 비어 있거나 너무 긴 경우, 또는 프로젝트가 AI 에이전트 한도에 도달한 경우입니다. 로그에 바꿀 내용이 나옵니다. 에이전트가 전혀 연결되지 않고 로그에 `Another Kubernetes AI agent for cluster "<name>" is online`이 나오면 두 설치가 하나의 `clusterName`을 공유하는 것입니다(AI 에이전트 페이지에서도 경고합니다). 이미 연결된 쪽이 실행되는 동안 계속 유지하므로, 클러스터마다 고유한 `clusterName`을 주거나 여분의 릴리스를 제거하세요. **고정된 서비스 이름**이 있는 수집 키로는 에이전트를 등록할 수 없습니다. 차트에는 그것이 없는 키를 주세요.
 
 AI 에이전트 페이지에서 에이전트 상태 옆 **⋯** 메뉴의 **에이전트 재설정**은 확인 후 서버가 에이전트의 키를 잊게 합니다(Project Owner, Project Admin, 또는 **Edit AI Rule** 권한이 있으면 편집할 수 있는 클러스터에서 할 수 있습니다). Pod는 몇 분 안에 스스로 다시 연결합니다. 에이전트의 준비 상태는 OneUptime에 의존하지 않으므로, 잘못 구성된 AI 에이전트가 `helm upgrade --wait`를 실패시키는 일은 없습니다. 실패시키는 것은 이미지를 가져올 수 없는 Pod뿐입니다.
 
@@ -753,7 +755,7 @@ helm get values kubernetes-agent --namespace oneuptime-agent -o yaml > values.ya
 - `aiAccess.image`와 `aiAccess.resources`는 이어지지 않습니다. AI 에이전트는 다른 이미지이며 자체 `aiAgent.image`와 `aiAgent.resources`가 있습니다.
 - OneUptime에서는 각 클러스터가 AI 설정을 유지하지만, 서버를 업그레이드할 때 두 가지가 바뀝니다. 누군가 Runner(클러스터 내 Runner든 다른 Runner든)의 바인딩을 해제하거나 삭제한 클러스터는 **kubectl로 조사**와 수정이 꺼진 상태로 시작합니다(AI 에이전트 페이지에서 다시 켜세요). 그리고 프로젝트에서 **Enable AI Command Execution**을 한 번도 켜지 않은 클러스터의 **자동** 또는 **승인 건너뛰기**는 **승인 요청**이 됩니다. 이 스위치는 예전에 그런 수정을 막고 있었지만, AI 에이전트를 통한 수정에는 더 이상 필요하지 않습니다.
 
-되돌리려면 `helm upgrade --version <older version>`이 아니라 `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent`를 사용하세요(`helm history`로 리비전을 나열할 수 있습니다). 이전 차트의 스키마는 릴리스에 저장된 `aiAgent` 값을 거부하기 때문입니다. 업그레이드 후 일주일 안이면 롤백으로 클러스터 내 Runner가 돌아오며, AI 에이전트가 멈추면 스스로 다시 연결됩니다. 그 이후에는 OneUptime이 이전 Runner를 제거했을 수 있습니다(클러스터의 **Feed**에 언제인지 나옵니다). 그러면 롤백된 Runner는 연결되지만, API나 Terraform으로 클러스터에 다시 바인딩하거나(클러스터의 **AI Access Runner**. Project Owner, Project Admin, 또는 **Edit AI Rule** 권한이 있으면 할 수 있습니다) 차트를 다시 업그레이드할 때까지 사용되지 않습니다.
+되돌리려면 `helm upgrade --version <older version>`이 아니라 `helm rollback kubernetes-agent <revision> --namespace oneuptime-agent`를 사용하세요(`helm history`로 리비전을 나열할 수 있습니다). 이전 차트의 스키마는 릴리스에 저장된 `aiAgent` 값을 거부하기 때문입니다. 업그레이드 후 일주일 안이면 롤백으로 클러스터 내 Runner가 돌아오며, AI 에이전트가 멈추면 스스로 다시 연결됩니다. 그 이후에는 OneUptime이 이전 Runner를 제거했을 수 있습니다(클러스터의 **피드**에 언제인지 나옵니다). 그러면 롤백된 Runner는 연결되지만, API나 Terraform으로 클러스터에 다시 바인딩하거나(클러스터의 **AI Access Runner**. Project Owner, Project Admin, 또는 **Edit AI Rule** 권한이 있으면 할 수 있습니다) 차트를 다시 업그레이드할 때까지 사용되지 않습니다.
 
 Kubernetes AI 에이전트는 OneUptime 12에서 폐지된 AI Agent와 관련이 없습니다.
 

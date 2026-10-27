@@ -50,11 +50,11 @@ Sophos non riporta la salute dei gateway né quella di SD-WAN via SNMP, in nessu
 
 :::steps
 1. Sul firewall, attiva SNMP in **Administration → SNMP**: aggiungi un utente SNMPv3, o una community v2c, e consenti all'indirizzo della sonda di interrogarlo.
-2. In OneUptime, vai su **Rete → Devices** e fai clic su **Add Device**. Digita l'indirizzo di gestione del firewall, scegli una sonda in grado di raggiungerlo e aggiungi le credenziali SNMP in **SNMP**.
+2. In OneUptime, vai su **Rete → Devices** e fai clic su **Aggiungi dispositivo**. Digita l'indirizzo di gestione del firewall, scegli una sonda in grado di raggiungerlo e aggiungi le credenziali SNMP in **SNMP**.
 3. Nella pagina **Impostazioni** del dispositivo, in **Polling & Data Collection**, applica il modello **Sophos Firewall (SFOS / XGS)** da **Vendor Health Template** e aggiungi le sue tabelle da **Add a Vendor's Tables**. Oppure attiva **Auto-Apply Vendor Health Template**, e il primo polling fa entrambe le cose.
 :::
 
-Dopo il polling successivo, la pagina **SNMP Tables** del dispositivo elenca ogni connessione IPsec con il suo stato (active, inactive, partially active), e i core della CPU. SFOS numera i suoi core a partire da 196608, ed è per questo che la CPU viene da una tabella e non da un singolo `hrProcessorLoad.1`.
+Dopo il polling successivo, la pagina **Tabelle SNMP** del dispositivo elenca ogni connessione IPsec con il suo stato (active, inactive, partially active), e i core della CPU. SFOS numera i suoi core a partire da 196608, ed è per questo che la CPU viene da una tabella e non da un singolo `hrProcessorLoad.1`.
 
 ### Avvisare su ogni tunnel IPsec
 

@@ -34,7 +34,7 @@ Een statuspagina ondersteunt vijf kanalen. Die, en de pagina waarop bezoekers zi
 
 - **Abonneepagina weergeven** (`showSubscriberPageOnStatusPage`) — standaard aan. Zet het item **Abonneren** in de navigatiebalk van de statuspagina, waar bezoekers zich aanmelden via de kanalen hieronder.
 - **E-mail** (`enableEmailSubscribers`) — standaard aan. Al het andere staat uit totdat u het aanzet.
-- **SMS** (`enableSmsSubscribers`) — standaard uit. Op OneUptime Cloud wordt elke SMS betaald uit het SMS- en belsaldo van het project, tenzij de pagina een eigen **Twilio-configuratie** heeft (zie [hieronder](#e-mailvoettekst-eigen-smtp-en-twilio)). Inschakelen vereist ook dat **SMS** voor het project aan staat, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen**, wat een projecteigenaar, een **Billing Admin** of iemand met **Manage Billing** kan doen.
+- **SMS** (`enableSmsSubscribers`) — standaard uit. Op OneUptime Cloud wordt elke SMS betaald uit het SMS- en belsaldo van het project, tenzij de pagina een eigen **Twilio-configuratie** heeft (zie [hieronder](#e-mailvoettekst-eigen-smtp-en-twilio)). Inschakelen vereist ook dat **SMS** voor het project aan staat, in de kaart **Meldingskanalen** onder **Projectinstellingen > Meldingen > Meldingsinstellingen**, wat een projecteigenaar, een **Factureringsbeheerder** of iemand met **Manage Billing** kan doen.
 - **Slack** (`enableSlackSubscribers`) — standaard uit.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) — standaard uit.
 - **Webhook** (`enableWebhookSubscribers`) — standaard uit.
@@ -275,7 +275,7 @@ Aangepaste incidentvelden met **Opnemen in meldingen aan abonnees** aan (onder *
 - **Slack** en **Microsoft Teams** zetten ze op dezelfde manier, één per regel.
 - **Webhook**-payloads bevatten ze in `data.customFields`, met de **Sjabloonvariabele** van elk veld als sleutel: `{ "name": ..., "type": ..., "value": ... }`, met de waarde zoals opgeslagen (`null` wanneer het incident er geen heeft). Sleutels veranderen niet wanneer een veld wordt hernoemd.
 - **SMS** laat ze weg. Een sms wordt per segment gefactureerd en de standaardtekst zit al bijna aan één; een aangepast SMS-sjabloon kan elk veld plaatsen met `{{incident.customFields.<key>}}`.
-- Meldingen van een **Incident episode** bevatten geen aangepaste velden: een episode groepeert incidenten die elk hun eigen waarden hebben. De eigen meldingen van elk lid-incident bevatten zijn velden.
+- Meldingen van een **Incidentepisode** bevatten geen aangepaste velden: een episode groepeert incidenten die elk hun eigen waarden hebben. De eigen meldingen van elk lid-incident bevatten zijn velden.
 
 De vermelding **Abonneemelding verzonden** in de incidentfeed toont onder **Custom fields sent** de waarden die elke verzending in een bericht heeft gezet. Abonnees staan meestal buiten uw team, dus zet de instelling alleen aan voor velden die veilig met hen kunnen worden gedeeld.
 
@@ -415,7 +415,7 @@ De sleutel is de **Sjabloonvariabele** van het veld, die niet verandert wanneer 
 
 **Twee ervan zijn interne gegevens.** `{{affectedStatusPages}}` noemt elke doelgroep die het incident bereikt: met [één statuspagina per doelgroep](/docs/status-pages/one-status-page-per-audience) leren de abonnees van de ene locatie welke andere locaties zijn getroffen, en leert de ene klant de namen van andere. Een aangepast veld kan notities bevatten die voor uw team bedoeld zijn. Plaats ze alleen in sjablonen waarvan de abonnees ze mogen zien.
 
-**Labels en aangepaste velden plaatsen vereist toegang tot incidenten.** `{{incidentLabels}}` en `{{incident.customFields.<key>}}` lezen de incidentrecords van uw team, die de statuspagina niet toont. Een sjabloon dat ze plaatst, kan daarom alleen worden opgeslagen door iemand die elk incident en de aangepaste velden ervan kan lezen — **Project Owner**, **Project Admin**, **Project Member** of **Viewer**, of **Incident Admin**, **Incident Member** of **Incident Viewer**, zonder beperking tot bepaalde labels of tot incidenten waarvan hij eigenaar is. **Status Page Admin** en **Status Page Member** kunnen op zichzelf sjablonen schrijven, maar deze tijdelijke aanduidingen niet toevoegen; ze kunnen de rest van een sjabloon dat ze al bevat nog steeds bewerken. `{{affectedStatusPages}}` vereist niet meer dan het sjabloon zelf.
+**Labels en aangepaste velden plaatsen vereist toegang tot incidenten.** `{{incidentLabels}}` en `{{incident.customFields.<key>}}` lezen de incidentrecords van uw team, die de statuspagina niet toont. Een sjabloon dat ze plaatst, kan daarom alleen worden opgeslagen door iemand die elk incident en de aangepaste velden ervan kan lezen — **Projecteigenaar**, **Projectbeheerder**, **Projectlid** of **Kijker**, of **Incidentbeheerder**, **Incidentlid** of **Incidentkijker**, zonder beperking tot bepaalde labels of tot incidenten waarvan hij eigenaar is. **Statuspaginabeheerder** en **Statuspaginalid** kunnen op zichzelf sjablonen schrijven, maar deze tijdelijke aanduidingen niet toevoegen; ze kunnen de rest van een sjabloon dat ze al bevat nog steeds bewerken. `{{affectedStatusPages}}` vereist niet meer dan het sjabloon zelf.
 
 ### De status in notitiesjablonen
 
@@ -445,6 +445,8 @@ Nog vier secties, onder **Meer instellingen** onderaan **Abonneeinstellingen**, 
 - **Twilio-configuratie** — **Twilio-configuratie** is het Twilio-account dat voor sms-abonnees wordt gebruikt.
 
 Aangepaste SMTP is de moeite waard om vroeg in te stellen als u e-mailabonnees hebt: mail die van uw eigen domein komt, wordt veel minder snel weggefilterd en veel eerder vertrouwd door de klant die hem om 2 uur 's nachts leest.
+
+De standaard-sms'jes worden geschreven in de tekens die een sms het goedkoopst vervoert: gekrulde aanhalingstekens, streepjes en dergelijke gaan als hun eenvoudige tegenhanger de deur uit en een emoji wordt weggelaten, zodat één teken in een titel een sms nooit twee of drie delen laat kosten. Links gaan precies zoals ze geschreven zijn. Een eigen sms-sjabloon gaat zoals u het schreef, met de waarden die het invult.
 
 ## Aankondigingen
 

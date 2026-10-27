@@ -167,7 +167,7 @@ Boven de lijst telt een tegel per status de postmortems erin. Klik op een tegel 
 
 Filter de lijst met de chips erboven: **Eigenaar**, een persoon of een team; **Ernst**; **Postmortem-status**; **Status incident**; **Labels**; en **Getroffen resources**. Om te zien welke postmortems een team nog schuldig is voor uw ernstigste incidenten, kiest u het team onder **Eigenaar**, de ernst onder **Ernst**, en **Niet gestart** en **Concept** onder **Postmortem-status**. De filters staan in het adres van de pagina, dus u kunt de lijst als bladwijzer opslaan of delen.
 
-Om er veel tegelijk te wijzigen, selecteert u ze en opent u **Bulkacties**: **Postmortem-status wijzigen** verplaatst ze allemaal naar één status, zoals **Niet nodig** voor incidenten die er geen nodig hebben, en **Add Owner** en **Remove Owner** wijzigen wie de eigenaar is.
+Om er veel tegelijk te wijzigen, selecteert u ze en opent u **Bulkacties**: **Postmortem-status wijzigen** verplaatst ze allemaal naar één status, zoals **Niet nodig** voor incidenten die er geen nodig hebben, en **Eigenaar toevoegen** en **Eigenaar verwijderen** wijzigen wie de eigenaar is.
 
 ## Postmortems van episodes
 

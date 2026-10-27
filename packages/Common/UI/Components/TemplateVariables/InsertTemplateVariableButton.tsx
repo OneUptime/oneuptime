@@ -37,7 +37,20 @@ export interface InsertTemplateVariableButtonProps {
   onCloseFocus?: (() => void) | undefined;
   className?: string | undefined;
   dataTestId?: string | undefined;
+  /*
+   * Its { } alone, where its words do not fit (a Markdown editor some 170px
+   * wide): the words stay its name, read by a screen reader and shown on
+   * hover (its title).
+   */
+  isCompact?: boolean | undefined;
 }
+
+/*
+ * Its { } alone (isCompact), in a Markdown editor too narrow for its words:
+ * a square like the editor's formatting buttons, in the editor's indigo.
+ */
+export const INSERT_TEMPLATE_VARIABLE_COMPACT_BUTTON_CLASS: string =
+  "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-sm font-medium text-indigo-700 transition-colors duration-200 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2";
 
 // The code editor's toolbar buttons look like this.
 export const INSERT_TEMPLATE_VARIABLE_BUTTON_CLASS: string =
@@ -61,7 +74,11 @@ const InsertTemplateVariableButton: FunctionComponent<
       <button
         ref={anchorRef}
         type="button"
-        className={props.className || INSERT_TEMPLATE_VARIABLE_BUTTON_CLASS}
+        className={
+          props.isCompact
+            ? INSERT_TEMPLATE_VARIABLE_COMPACT_BUTTON_CLASS
+            : props.className || INSERT_TEMPLATE_VARIABLE_BUTTON_CLASS
+        }
         title={label}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
@@ -89,7 +106,7 @@ const InsertTemplateVariableButton: FunctionComponent<
         >
           {"{ }"}
         </span>
-        <span>{label}</span>
+        <span className={props.isCompact ? "sr-only" : undefined}>{label}</span>
       </button>
 
       {isOpen ? (

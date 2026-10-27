@@ -168,14 +168,16 @@ const shoot: (
 /*
  * A press on a control of the dashboard's toolbar, as the viewer makes it.
  *
- * Both dashboards are 1000px wide (DashboardView, DashboardViewPage:
- * minWidth), so on a phone the toolbar sits past the screen's right edge
- * and the viewer scrolls to it. Playwright's own click cannot reach it
- * there - in the phone emulation the browser scrolls the visual viewport,
- * and the check of what is under the pointer looks at the wrong place - so
- * on the phone the control is scrolled to, must be visible and enabled, and
- * gets the click a tap ends in (as the public dashboard theme suite does);
- * at 1280 it is Playwright's real click.
+ * The dashboard in the app is 1000px wide (DashboardView: minWidth), so on
+ * a phone its toolbar sits past the screen's right edge and the viewer
+ * scrolls to it; the public dashboard's toolbar fits the screen, and only
+ * its board scrolls, in its own frame (DashboardViewLayout). Playwright's
+ * own click cannot reach a control the viewer scrolls to - in the phone
+ * emulation the browser scrolls the visual viewport, and the check of what
+ * is under the pointer looks at the wrong place - so on the phone the
+ * control is scrolled to, must be visible and enabled, and gets the click
+ * a tap ends in (as the public dashboard theme suite does); at 1280 it is
+ * Playwright's real click.
  */
 const press: (control: Locator) => Promise<void> = async (
   control: Locator,
@@ -352,6 +354,15 @@ const expectAppAutoRefreshShows: (
 
 const publicAutoRefresh: (page: Page) => Locator = (page: Page): Locator => {
   return page.getByTestId(PUBLIC_AUTO_REFRESH_MENU);
+};
+
+/*
+ * The toolbar's menu words in Persian: the Dashboard draws them translated
+ * (since #5287), so its button and item are found by them.
+ */
+const PERSIAN_EDIT_WORDS: { options: string; edit: string } = {
+  options: "گزینه‌های بیشتر داشبورد",
+  edit: "ویرایش داشبورد",
 };
 
 // The toolbar's "More dashboard options" menu, then its "Edit Dashboard".
@@ -747,7 +758,7 @@ test.describe("the dashboard inside OneUptime", () => {
     // Right to left.
     await page.goto(appPath("wall", "?lang=fa"));
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-    await enterEditMode(page);
+    await enterEditMode(page, PERSIAN_EDIT_WORDS);
     await expect(page.getByTestId(DEFAULTS_BAR)).toContainText(
       "بازه زمانی پیش‌فرض",
     );
@@ -967,7 +978,7 @@ test.describe("the dashboard inside OneUptime", () => {
 
     await page.goto(appPath("wall", "?lang=fa"));
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-    await enterEditMode(page);
+    await enterEditMode(page, PERSIAN_EDIT_WORDS);
 
     const button: Locator = page.getByTestId(DEFAULT_TIME_RANGE_PICKER);
 
@@ -987,10 +998,10 @@ test.describe("the dashboard inside OneUptime", () => {
     await page.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
 
-    // The time range picker, in view mode.
-    await openApp(page, "wall", "Past 1 Day", "?lang=fa");
+    // The time range picker, in view mode: its button reads Persian (#5287).
+    await openApp(page, "wall", "۱ روز گذشته", "?lang=fa");
 
-    const rail: Locator = await openRangePicker(page, "Past 1 Day");
+    const rail: Locator = await openRangePicker(page, "۱ روز گذشته");
     const railBox: { x: number; width: number } | null =
       await rail.boundingBox();
     const preview: Locator = rail.locator("xpath=following-sibling::*[1]");

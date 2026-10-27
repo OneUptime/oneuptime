@@ -93,7 +93,7 @@ docker compose logs --tail 50 oneuptime-docker-swarm-agent oneuptime-docker-swar
 
 ### 在 OneUptime 中找到集群
 
-打开 **产品 → 基础设施 → Docker Swarm → 所有集群**。集群会在几分钟内出现，在第一次清单快照之后的 5 分钟内，其 **节点**、**服务**、**任务**、**Stacks**、**网络**、**密钥**、**Configs** 和 **卷** 页面会填充内容。集群的 **拓扑** 页面将其堆栈、服务、任务和节点绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
+打开 **产品 → 基础设施 → Docker Swarm → 所有集群**。集群会在几分钟内出现，在第一次清单快照之后的 5 分钟内，其 **节点**、**服务**、**任务**、**堆栈**、**网络**、**密钥**、**Configs** 和 **卷** 页面会填充内容。集群的 **拓扑** 页面将其堆栈、服务、任务和节点绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
 :::
 
 ## 环境变量
@@ -154,7 +154,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 
 ## 升级代理
 
-代理会报告它运行的 Collector 版本。当该版本早于此 OneUptime 版本固定的版本时，集群的 **概览** 页面上代理版本旁会出现一个警告标志。选择它即可查看这些命令。
+代理会报告其文件的版本：即这些文件运行的 Collector 版本，每当 OneUptime 只修改文件而不更换 Collector 时，最后一位数字就会增加。当该版本早于此 OneUptime 版本提供的版本时，集群的 **概览** 页面上代理版本旁会出现一个警告标志。选择它即可查看这些命令。
 
 在管理节点上再次运行安装脚本，并用相同的 URL、密钥和集群名称回答它的问题。它会下载最新文件、拉取镜像并重启代理：
 
@@ -239,7 +239,7 @@ docker version --format '{{ .Server.APIVersion }}'
 :::
 
 :::details 任务 CPU 是一条平线
-旧版 `otel-collector-config.yaml` 发送的是 `docker_stats` 接收器自己算出的 CPU 值。从 Collector 0.150.0 起，接收器只根据一次统计读数来计算它：容器自启动以来用掉的全部 CPU，除以节点自开机以来用掉的全部 CPU。这条线几乎不动，也不随负载变化，而 `container.cpu.usage.total` 会随负载变化。Collector 版本没有变化，所以不会出现警告标志：请按照 [升级代理](#升级代理) 重新下载代理的文件。从第二次读数起，Collector 就会发送每个容器在每个 30 秒间隔内用掉的 CPU。已存储的读数保持不变。
+旧版 `otel-collector-config.yaml` 发送的是 `docker_stats` 接收器自己算出的 CPU 值。从 Collector 0.150.0 起，接收器只根据一次统计读数来计算它：容器自启动以来用掉的全部 CPU，除以节点自开机以来用掉的全部 CPU。这条线几乎不动，也不随负载变化，而 `container.cpu.usage.total` 会随负载变化。这样的代理报告的版本为 0.161.0 或更早，所以版本旁会出现警告标志：请按照 [升级代理](#升级代理) 重新下载代理的文件。从第二次读数起，Collector 就会发送每个容器在每个 30 秒间隔内用掉的 CPU。已存储的读数保持不变。
 :::
 
 ## 后续步骤

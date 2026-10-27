@@ -49,7 +49,7 @@ Hela resultatmängden skickas aldrig till OneUptime, så kunddata kopieras inte 
 
 MySQL-kompatibla och PostgreSQL-kompatibla motorer som talar samma trådprotokoll och SQL-dialekt fungerar i regel också, men bara de tre motorerna ovan är officiellt testade.
 
-När värden och porten som monitorn ansluter till är en av slutpunkterna för en databas på sidan [Databaser](/docs/telemetry/databases), visas monitorns larm och incidenter också på den databasens sida (se [Larm för en databas](/docs/telemetry/databases#varningar-för-en-databas)). En värd som anges som en hänvisning till en övervakningshemlighet matchas inte.
+När värden och porten som monitorn ansluter till är en av slutpunkterna för en databas på sidan [Databaser](/docs/telemetry/databases), visas monitorns larm och incidenter också på den databasens sida (se [Larm för en databas](/docs/telemetry/databases#larm-för-en-databas)). En värd som anges som en hänvisning till en övervakningshemlighet matchas inte.
 
 ## Säkerhetsmodell
 

@@ -53,7 +53,7 @@ Ti servono una sottoscrizione Azure, un ruolo che ti permetta di creare e legger
 
 OneUptime in sé non ha bisogno di alcun ruolo Azure. Una chiave dà da sola accesso a ogni distribuzione della risorsa, senza controlli di ruolo, quindi trattala come una password.
 
-In OneUptime, aggiungere un provider a un progetto richiede **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** o **Create LLM**. Un'istanza self-hosted può invece registrare un provider per tutti i progetti da variabili d'ambiente, il che richiede l'accesso al server.
+In OneUptime, aggiungere un provider a un progetto richiede **Proprietario del progetto**, **Amministratore del progetto**, **Membro del progetto**, **Amministratore delle impostazioni**, **Membro delle impostazioni** o **Create LLM**. Un'istanza self-hosted può invece registrare un provider per tutti i progetti da variabili d'ambiente, il che richiede l'accesso al server.
 
 ## Configurare Microsoft Foundry
 

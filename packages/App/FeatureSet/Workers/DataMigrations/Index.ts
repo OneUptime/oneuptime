@@ -125,6 +125,7 @@ import RecordContainerPercentMetricUnits from "./RecordContainerPercentMetricUni
 import MoveRunbookSecretsAndCredentialsToVariables from "./MoveRunbookSecretsAndCredentialsToVariables";
 import RemoveRunbookCredentials from "./RemoveRunbookCredentials";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
+import FillSyntheticMonitorBrowsersAndScreenSizes from "./FillSyntheticMonitorBrowsersAndScreenSizes";
 import BackfillLabelNameSortKeys from "./BackfillLabelNameSortKeys";
 import BackfillFirstPagedAt from "./BackfillFirstPagedAt";
 import AddAuditLogWorkflowColumns from "./AddAuditLogWorkflowColumns";
@@ -149,6 +150,8 @@ import RemoveProjectAccessOfFormerMembers from "./RemoveProjectAccessOfFormerMem
 import AddMissingIdsToMonitorSteps from "./AddMissingIdsToMonitorSteps";
 import MoveRunbookApprovalsBeforeTheirSteps from "./MoveRunbookApprovalsBeforeTheirSteps";
 import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotificationSettingsForUsers";
+import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
+import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 
@@ -833,6 +836,32 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new BackfillLabelNameSortKeys(),
+  /*
+   * Synthetic monitors and templates stored with a step that lists no
+   * browser or no screen size ran nothing and never failed: each such step
+   * is given what the form gives a new one, Chromium at Desktop, and runs
+   * from its next check. Only empty lists are filled; idempotent, and a row
+   * is written only while it holds what was read. The server refuses such
+   * steps on every write now (SyntheticMonitorStepsUtil). Above the runbook
+   * moves, which keep their places right before the last slot.
+   */
+  new FillSyntheticMonitorBrowsersAndScreenSizes(),
+  /*
+   * "Incident SLA breached" gets a notification setting of its own: every
+   * existing member gets it, on email and the channels they have on for
+   * "Incident created", which SLA breaches were sent through before.
+   * Idempotent; no ordering requirement of its own, so above the runbook
+   * moves, which keep their places right before the last slot.
+   */
+  new AddIncidentSlaBreachedNotificationSettingsForUsers(),
+  /*
+   * The attachment links of feed entries written before the download routes
+   * took the project id are 404s: each gets its entry's project id (an
+   * episode's private note, which has no route, the file's name). Only the
+   * entries that mention "/attachment/" are read; idempotent; no ordering
+   * requirement of its own, so above the runbook moves.
+   */
+  new RewriteFeedAttachmentLinks(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

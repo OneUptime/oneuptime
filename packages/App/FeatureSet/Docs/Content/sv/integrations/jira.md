@@ -64,7 +64,7 @@ Mallarna för larm gör samma jobb för larm. Det finns en färre, eftersom larm
 | Create a Jira issue when an alert is created | Skapar ett ärende för varje nytt larm, även varje larm som en monitor utlöser, och lägger till larmets ID som etikett. Larm som skapats från Jira, och privata larm, hoppas över. | API URL, API token, project key, issue type, OneUptime URL |
 | Move the Jira issue when the alert is acknowledged or resolved | Flyttar det kopplade ärendet framåt: till en In Progress-status när larmet kvitteras och till en Done-status när det löses. Flyttar det aldrig bakåt. | API URL, API token |
 | Copy alert private notes to the Jira issue | Publicerar varje ny privat anteckning som en kommentar på det kopplade ärendet, som en intern kommentar i Jira Service Management. | API URL, API token |
-| Comment on the Jira issue when the alert is edited | När larmets titel, allvarlighetsgrad, beskrivning eller åtgärdsanteckningar ändras publicerar den hur larmet ser ut nu, som en intern kommentar i Jira Service Management. | API URL, API token |
+| Comment on the Jira issue when the alert is edited | När larmets titel, allvarlighetsgrad, beskrivning, grundorsak eller åtgärdsanteckningar ändras publicerar den hur larmet ser ut nu, som en intern kommentar i Jira Service Management. | API URL, API token |
 | **Jira → OneUptime** | | |
 | Create an alert when a Jira issue is created | Skapar ett larm för varje nytt ärende, med en allvarlighetsgrad som väljs utifrån ärendets prioritet, och sätter sedan etikett på ärendet för att koppla ihop de två. | Site URL, API URL, API token och en Jira-webhook för **Issue created** |
 | Acknowledge or resolve the alert when its Jira issue moves | Kvitterar larmet när dess kopplade ärende flyttas till en In Progress-status, och löser det när ärendet flyttas till en Done-status. | En Jira-webhook för **Issue updated** |
@@ -80,7 +80,6 @@ Varje mall för larm är byggd som sin tvilling för incidenter, steg för steg.
 - **Inga offentliga anteckningar.** Larm har bara privata anteckningar, så varje kommentar som mallarna för larm publicerar är en intern kommentar i Jira Service Management.
 - **Ingen statussida.** Ett larm når aldrig en statussida, så **Create an alert when a Jira issue is created** skriver allvarlighetsgraden, titeln, beskrivningen och `customFields.jiraIssueKey`, och inget annat.
 - **Två allvarlighetsgrader, så Medium blir Low.** Ett nytt projekt har två allvarlighetsgrader för larm, High och Low, medan det har tre för incidenter. Skapandemallen fördelar Jiras prioriteter över de allvarlighetsgrader som projektet har. Med de två standardgraderna blir Highest, High, Critical och Blocker till High, och alla andra prioriteter blir Low, även Medium och Major. För att skicka Medium till High ändrar du `medium: 1` till `medium: 0` i `PRIORITY_RANK` i skriptet `prepare-alert-1`.
-- **Redigeringar av grundorsaken bevakas inte.** Ett larms grundorsak skrivs när larmet skapas och kan inte redigeras, så redigeringsmallen reagerar på titeln, beskrivningen, allvarlighetsgraden och åtgärdsanteckningarna. Dess kommentar visar ändå grundorsaken.
 - **Länkar och etiketter för larm.** Ärendet länkar till `/dashboard/<project id>/alerts/<alert id>` och får etiketten `oneuptime-alert-<alert id>`.
 - **Nummer säger vad de numrerar.** Med standardprefixet `#` kan ett larm och en incident båda vara `#12`, så mallarna skriver `Alert #12` eller `Incident #12`. Ett nummer med eget prefix, t.ex. `ALT-12`, skrivs som det är.
 - **Privata larm.** Ett larm markerat som **Privat larm**, för hand eller av en integritetsregel för larm, hålls utanför Jira om du inte ställer in `SYNC_PRIVATE_ALERTS` på `true`.
@@ -154,7 +153,7 @@ Mallarna Jira → OneUptime, fyra för incidenter och fyra för larm, startar fr
 | Acknowledge or resolve the incident when its Jira issue moves | **Issue updated** | `project = OPS` |
 | Add Jira comments to the incident as private notes | **Comment created** | `project = OPS` |
 | Add Jira issue changes to the incident as private notes | **Issue updated** | `project = OPS` |
-| **Varningar** | | |
+| **Larm** | | |
 | Create an alert when a Jira issue is created | **Issue created** | `project = OPS AND (labels is EMPTY OR labels != oneuptime)` |
 | Acknowledge or resolve the alert when its Jira issue moves | **Issue updated** | `project = OPS` |
 | Add Jira comments to the alert as private notes | **Comment created** | `project = OPS` |

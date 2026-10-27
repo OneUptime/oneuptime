@@ -100,7 +100,7 @@ O cartão **Video Call** na página de um incidente ou alerta tem **Start call**
 
 **Remover** no cartão tira uma chamada da página do incidente. A reunião em si não é excluída, e quem tiver o link ainda pode entrar nela.
 
-Iniciar e remover chamadas requer permissão para trabalhar em incidentes (ou alertas): **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** ou **Incident Member**, ou **Create Incident Video Call** e **Delete Incident Video Call** em uma função personalizada. Todos que podem ler o incidente veem as chamadas dele.
+Iniciar e remover chamadas requer permissão para trabalhar em incidentes (ou alertas): **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de incidentes** ou **Membro de incidentes**, ou **Create Incident Video Call** e **Delete Incident Video Call** em uma função personalizada. Todos que podem ler o incidente veem as chamadas dele.
 
 ## Transcrições de chamadas
 
@@ -146,7 +146,7 @@ A Microsoft só deixa os apps lerem as transcrições de reuniões do Teams que 
 
 ### Quem pode fazer o quê
 
-Obter, adicionar, substituir e remover uma transcrição, fazê-la ser lida de novo e dispensar uma sugestão exigem permissão para iniciar as chamadas do incidente: **Project Owner**, **Project Admin**, **Project Member**, **Incident Admin** ou **Incident Member**, ou **Create Incident Video Call** numa função personalizada. **Usar como causa raiz** exige permissão para editar a causa raiz do incidente. Quem pode ler o incidente vê as transcrições das chamadas dele e o que a OneUptime AI leu nelas.
+Obter, adicionar, substituir e remover uma transcrição, fazê-la ser lida de novo e dispensar uma sugestão exigem permissão para iniciar as chamadas do incidente: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de incidentes** ou **Membro de incidentes**, ou **Create Incident Video Call** numa função personalizada. **Usar como causa raiz** exige permissão para editar a causa raiz do incidente. Quem pode ler o incidente vê as transcrições das chamadas dele e o que a OneUptime AI leu nelas.
 
 ### O que a OneUptime AI lê
 
@@ -160,7 +160,7 @@ As credenciais são criptografadas em repouso e nunca são retornadas pela API. 
 
 **Start test meeting** no formulário da conexão, e **Testar** na linha de uma conexão, criam uma reunião real com as configurações da conexão e mostram o link dela. É a única verificação que prova que as credenciais, a permissão do lado do provedor e o host funcionam juntos. Nada é publicado em lugar nenhum.
 
-Conectar um provedor requer **Project Owner**, **Project Admin** ou **Settings Admin**, ou **Create Video Call Connection** e **Edit Video Call Connection** em uma função personalizada.
+Conectar um provedor requer **Proprietário do projeto**, **Administrador do projeto** ou **Administrador de configurações**, ou **Create Video Call Connection** e **Edit Video Call Connection** em uma função personalizada.
 
 ### Zoom
 
@@ -169,7 +169,7 @@ O OneUptime cria uma reunião do Zoom para cada incidente por meio de um app **S
 :::steps
 1. No [Zoom App Marketplace](https://marketplace.zoom.us/), escolha **Develop** > **Build App** e crie um app **Server-to-Server OAuth**. Criar um requer um administrador da conta do Zoom, ou uma função que permita apps Server-to-Server OAuth.
 2. Na página **Scopes** do app, adicione **meeting:write:meeting:admin** (criar uma reunião para um usuário). Um app criado antes dos escopos granulares pode usar **meeting:write:admin** em vez disso. Para que o OneUptime também leia [transcrições de chamadas](#transcrições-de-chamadas), adicione **cloud_recording:read:list_recording_files:admin** e **cloud_recording:read:meeting_transcript:admin** (ou **recording:read:admin** num app criado antes dos escopos granulares).
-3. Clique em **Activate** para ativar o app e copie o **Account ID**, o **Client ID** e o **Client secret** da página **App Credentials** dele para o formulário da conexão.
+3. Clique em **Activate** para ativar o app e copie o **Account ID**, o **Client ID** e o **Segredo do cliente** da página **App Credentials** dele para o formulário da conexão.
 4. Informe o **Meeting host**: o e-mail de um usuário licenciado do Zoom, de preferência uma conta de serviço como incidents@example.com, para que as reuniões continuem funcionando quando pessoas saírem. Reuniões hospedadas por um usuário Basic (gratuito) terminam após 40 minutos.
 5. Os responders entram sem esperar pelo host, porque o host é uma conta de serviço que nunca entra. Verifique se a configuração **Waiting room** da sua conta do Zoom não está travada como ativada, ou ninguém consegue entrar.
 :::
@@ -203,7 +203,7 @@ O OneUptime cria uma reunião do Microsoft Teams para cada incidente com o Micro
 :::steps
 1. No [centro de administração do Microsoft Entra](https://entra.microsoft.com/), abra **App registrations** > **New registration** e registre um app de locatário único. Copie o **Directory (tenant) ID** e o **Application (client) ID** dele.
 2. Em **API permissions**, adicione a permissão de **application** do Microsoft Graph **OnlineMeetings.ReadWrite.All** (e, para também [gravar e transcrever chamadas de incidentes](#gravar-e-transcrever-todas-as-chamadas), **Calendars.ReadWrite** e **OnlineMeetingTranscript.Read.All**) e depois clique em **Grant admin consent**.
-3. Em **Certificates & secrets**, crie um segredo do cliente e cole o **Value** dele, não o Secret ID, no formulário da conexão como **Client secret**.
+3. Em **Certificates & secrets**, crie um segredo do cliente e cole o **Value** dele, não o Secret ID, no formulário da conexão como **Segredo do cliente**.
 4. Escolha o organizador: um usuário licenciado do Teams, de preferência uma conta de serviço. Copie o **Object ID** dele em **Users** no centro de administração do Entra para **Organizer object ID**.
 5. Permita que o app crie reuniões para o organizador com uma política de acesso de aplicativo. No Teams PowerShell, depois de `Connect-MicrosoftTeams`, execute os dois comandos abaixo.
 :::

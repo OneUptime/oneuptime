@@ -78,7 +78,7 @@ As equipes **Owners** e **Admin** são bloqueadas de propósito: suas permissõe
 
 `ProjectOwner` é o nível de acesso mais alto: faturamento, exclusão do projeto e tudo o que um administrador pode fazer. `ProjectAdmin` cobre tudo, exceto o faturamento e a exclusão do projeto.
 
-Ligar ou desligar SMS, chamadas telefônicas, WhatsApp ou Telegram para o projeto conta como faturamento, porque cada mensagem custa dinheiro. Somente `ProjectOwner`, a função `BillingAdmin` (**Billing Admin**) e a permissão `ManageProjectBilling` (**Manage Billing**) podem alterar essas chaves, em **Configurações do projeto > Notificações > Configurações de notificação** — não `ProjectAdmin`.
+Ligar ou desligar SMS, chamadas telefônicas, WhatsApp ou Telegram para o projeto conta como faturamento, porque cada mensagem custa dinheiro. Somente `ProjectOwner`, a função `BillingAdmin` (**Administrador de cobrança**) e a permissão `ManageProjectBilling` (**Manage Billing**) podem alterar essas chaves, em **Configurações do projeto > Notificações > Configurações de notificação** — não `ProjectAdmin`.
 
 Recarregar os saldos pré-pagos do projeto também conta como faturamento. No OneUptime Cloud, SMS, chamadas telefônicas, WhatsApp e Telegram são pagos pelo saldo em **Configurações do projeto > Notificações > Configurações de notificação**, e a IA pelos créditos de IA em **Configurações do projeto > IA > Créditos de IA**. Somente um proprietário do projeto ou alguém com **Manage Billing** pode recarregá-los ou alterar a **Recarga automática** deles — um administrador do projeto não pode. Uma mensagem sobre um saldo que está acabando diz quem pode recarregá-lo, e só essas pessoas recebem um botão **Recarregar Saldo** que funciona ou um link para a página.
 
@@ -202,7 +202,7 @@ Toda permissão concedida tem um escopo: quando você a adiciona, **Escopo** fic
 
 **Rótulos** é a versão mais manual da mesma ideia: marque os recursos e depois conceda permissões restritas a essas marcas.
 
-**Agir sobre o projeto inteiro exige uma permissão que o alcance.** **Run Now** de uma regra aplica a regra a todos os recursos do projeto, e as regras de atribuição de site, de rótulo de dispositivo e de importação automática de uma rede a todos os dispositivos de rede ou varreduras, então isso exige permissões com escopo em todos os recursos do projeto: uma permissão restrita a rótulos ou a recursos próprios não basta, e um bloqueio com rótulos nos recursos que uma execução altera recusa a execução, porque ela também alteraria os recursos que carregam esses rótulos.
+**Agir sobre o projeto inteiro exige uma permissão que o alcance.** **Executar agora** de uma regra aplica a regra a todos os recursos do projeto, e as regras de atribuição de site, de rótulo de dispositivo e de importação automática de uma rede a todos os dispositivos de rede ou varreduras, então isso exige permissões com escopo em todos os recursos do projeto: uma permissão restrita a rótulos ou a recursos próprios não basta, e um bloqueio com rótulos nos recursos que uma execução altera recusa a execução, porque ela também alteraria os recursos que carregam esses rótulos.
 
 Algumas funções valem para o projeto inteiro por definição e não oferecem escopo algum, porque restringi-las não faria sentido — «Billing Admin, mas só para o faturamento que é meu» não descreve nada:
 

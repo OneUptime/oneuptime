@@ -42,6 +42,14 @@ import {
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import {
+  RESOURCE_HERO_CONTROLS_CLASS_NAME,
+  RESOURCE_HERO_CONTROLS_TEST_ID,
+  RESOURCE_HERO_IDENTITY_CLASS_NAME,
+  RESOURCE_HERO_IDENTITY_TEST_ID,
+  RESOURCE_HERO_TOP_ROW_CLASS_NAME,
+  RESOURCE_HERO_TOP_ROW_TEST_ID,
+} from "../../../Components/TelemetryResource/ResourceHeroLayout";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -558,9 +566,15 @@ const IoTFleetOverview: FunctionComponent<
   const renderHero: () => ReactElement = (): ReactElement => {
     const status: string = (fleet.otelCollectorStatus as string) || "";
     const lastSeenAt: Date | undefined = fleet.lastSeenAt;
+    /*
+     * One whole sentence either way: an English "never" in a translated
+     * "Last seen {{time}}" would read in two languages at once.
+     */
     const lastSeenText: string = lastSeenAt
-      ? OneUptimeDate.fromNow(lastSeenAt)
-      : "never";
+      ? translator.translateTemplate("Last seen {{time}}", {
+          time: OneUptimeDate.fromNow(lastSeenAt),
+        })
+      : translator.translateText("Never seen") || "Never seen";
 
     const isConnected: boolean =
       status.toLowerCase() === "connected" || status.toLowerCase() === "active";
@@ -613,8 +627,14 @@ const IoTFleetOverview: FunctionComponent<
         </div>
         <div className="relative">
           <div className="relative px-6 py-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="flex items-start gap-4 min-w-0">
+            <div
+              data-testid={RESOURCE_HERO_TOP_ROW_TEST_ID}
+              className={RESOURCE_HERO_TOP_ROW_CLASS_NAME}
+            >
+              <div
+                data-testid={RESOURCE_HERO_IDENTITY_TEST_ID}
+                className={RESOURCE_HERO_IDENTITY_CLASS_NAME}
+              >
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-blue-200 shadow-sm">
                   <Icon icon={IconProp.IoT} className="h-6 w-6 text-blue-600" />
                 </div>
@@ -638,13 +658,14 @@ const IoTFleetOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    {translator.translateTemplate("Last seen {{time}}", {
-                      time: lastSeenText,
-                    })}
+                    {lastSeenText}
                   </div>
                 </div>
               </div>
-              <div className="flex-shrink-0 md:self-start">
+              <div
+                data-testid={RESOURCE_HERO_CONTROLS_TEST_ID}
+                className={RESOURCE_HERO_CONTROLS_CLASS_NAME}
+              >
                 {renderRefreshControl()}
               </div>
             </div>

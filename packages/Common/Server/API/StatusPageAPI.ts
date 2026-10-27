@@ -173,6 +173,7 @@ import StatusPagesListingMonitorsBuilder, {
 import FileOwnership from "../Utils/File/FileOwnership";
 import StatusPageEmailLogo from "../Utils/StatusPage/StatusPageEmailLogo";
 import BlockedProjectStatusPages from "../Utils/StatusPage/BlockedProjectStatusPages";
+import { writeDefaultSubscriberSms } from "../../Utils/Sms/SubscriberSms";
 
 /*
  * A manage-subscription request is unauthenticated, and one Slack or Microsoft
@@ -221,14 +222,19 @@ const resolveStatusPageIdOrThrow: ResolveStatusPageIdOrThrowFunction = async (
 };
 
 /*
- * The images a status page shows: its logo, cover image and favicon, each a
- * File the page points at by id.
+ * The images a status page shows: its logo (and the one for its dark theme),
+ * cover image and favicon, each a File the page points at by id.
  */
 const STATUS_PAGE_IMAGES: Array<{
-  relation: "logoFile" | "coverImageFile" | "faviconFile";
-  id: "logoFileId" | "coverImageFileId" | "faviconFileId";
+  relation: "logoFile" | "darkThemeLogoFile" | "coverImageFile" | "faviconFile";
+  id:
+    | "logoFileId"
+    | "darkThemeLogoFileId"
+    | "coverImageFileId"
+    | "faviconFileId";
 }> = [
   { relation: "logoFile", id: "logoFileId" },
+  { relation: "darkThemeLogoFile", id: "darkThemeLogoFileId" },
   { relation: "coverImageFile", id: "coverImageFileId" },
   { relation: "faviconFile", id: "faviconFileId" },
 ];
@@ -495,6 +501,66 @@ export default class StatusPageAPI extends BaseAPI<
             req,
             res,
             new NotFoundException("Status Page logo not found"),
+          );
+        }
+      },
+    );
+
+    /*
+     * The logo made for the dark theme, which the sign-in pages show while
+     * the page is dark (StatusPage app, StatusPageLogoImage). Served as the
+     * logo is: only a file of the page's own project, nothing for an
+     * archived page.
+     */
+    this.router.get(
+      `${new this.entityType().getCrudApiPath()?.toString()}/dark-theme-logo/:statusPageIdOrDomain`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const statusPageId: ObjectID = await resolveStatusPageIdOrThrow(
+            req.params["statusPageIdOrDomain"] as string,
+          );
+
+          const statusPage: StatusPage | null =
+            await StatusPageService.findOneBy({
+              query: {
+                _id: statusPageId,
+                // An archived page serves none of its branding.
+                isArchived: false,
+              },
+              select: {
+                projectId: true,
+                darkThemeLogoFile: SERVED_IMAGE_SELECT,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+          // Only a file of the page's own project. See keepOwnStatusPageImages.
+          const darkThemeLogo: File | undefined = FileOwnership.keepProjectFile(
+            statusPage?.darkThemeLogoFile,
+            statusPage?.projectId,
+          );
+
+          if (!darkThemeLogo) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new NotFoundException("Status Page dark theme logo not found"),
+            );
+          }
+
+          return Response.sendFileResponse(req, res, darkThemeLogo);
+        } catch (error) {
+          if (error instanceof NotFoundException) {
+            return Response.sendErrorResponse(req, res, error);
+          }
+
+          logger.error(error, getLogAttributesFromRequest(req as any));
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new NotFoundException("Status Page dark theme logo not found"),
           );
         }
       },
@@ -1153,6 +1219,8 @@ export default class StatusPageAPI extends BaseAPI<
             slug: true,
             coverImageFileId: true,
             logoFileId: true,
+            // The logo for the dark theme, shown where the page is dark.
+            darkThemeLogoFileId: true,
             logoAltText: true,
             coverImageAltText: true,
             pageTitle: true,
@@ -1176,6 +1244,7 @@ export default class StatusPageAPI extends BaseAPI<
             coverImageFile: SERVED_IMAGE_SELECT,
             faviconFile: SERVED_IMAGE_SELECT,
             logoFile: SERVED_IMAGE_SELECT,
+            darkThemeLogoFile: SERVED_IMAGE_SELECT,
             showIncidentsOnStatusPage: true,
             showAnnouncementsOnStatusPage: true,
             showScheduledMaintenanceEventsOnStatusPage: true,
@@ -3615,7 +3684,8 @@ export default class StatusPageAPI extends BaseAPI<
                 manageTemplateVariables,
               );
           } else {
-            smsMessage = defaultChatMessage;
+            // OneUptime's own words, in GSM-7's characters (SubscriberSms).
+            smsMessage = writeDefaultSubscriberSms(defaultChatMessage);
           }
 
           const sms: SMS = {

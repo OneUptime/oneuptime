@@ -65,11 +65,12 @@ export interface StateSettingsPageCopy {
   descriptionPlaceholder: string;
   /*
    * What the form says under Name and Description, in the reader's
-   * language. Left out, the form says what the model's columns say, in
-   * English (an API reader's words).
+   * language. Every page says it in its own words: left to the model's
+   * columns, the form said "Any friendly name of this object", an API
+   * reader's words, in English in every language.
    */
-  nameDescription?: string | undefined;
-  descriptionDescription?: string | undefined;
+  nameDescription: string;
+  descriptionDescription: string;
 }
 
 export const StateSettingsSharedCopy: {
@@ -135,6 +136,10 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
       deleteLockedReason: "Built-in states can be renamed, but not deleted.",
       namePlaceholder: "Investigating",
       descriptionPlaceholder: "The team is looking into what happened.",
+      nameDescription:
+        "What the state is called, like Investigating or Monitoring.",
+      descriptionDescription:
+        "What the team is doing while an incident is in this state, in a sentence.",
     },
     [StateListType.AlertState]: {
       title: "Alert States",
@@ -152,6 +157,10 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
       deleteLockedReason: "Built-in states can be renamed, but not deleted.",
       namePlaceholder: "Investigating",
       descriptionPlaceholder: "The team is looking into what happened.",
+      nameDescription:
+        "What the state is called, like Investigating or Monitoring.",
+      descriptionDescription:
+        "What the team is doing while an alert is in this state, in a sentence.",
     },
     [StateListType.ScheduledMaintenanceState]: {
       title: "Scheduled Maintenance States",
@@ -183,6 +192,9 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
       namePlaceholder: "Verifying",
       descriptionPlaceholder:
         "The work is done and the team is checking that everything is back to normal.",
+      nameDescription: "What the state is called, like Verifying or Delayed.",
+      descriptionDescription:
+        "What is happening while an event is in this state, in a sentence.",
     },
     [StateListType.MonitorStatus]: {
       title: "Monitor Statuses",
@@ -197,6 +209,9 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
       deleteLockedReason: "Built-in statuses can be renamed, but not deleted.",
       namePlaceholder: "Degraded",
       descriptionPlaceholder: "The monitor responds, but slowly.",
+      nameDescription: "What the status is called, like Degraded or Down.",
+      descriptionDescription:
+        "How a monitor in this status behaves, in a sentence.",
     },
     [StateListType.IncidentSeverity]: {
       title: "Incident Severities",
@@ -206,6 +221,9 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
       namePlaceholder: "Critical",
       descriptionPlaceholder:
         "Customers cannot use the product. Respond immediately.",
+      nameDescription: "What the severity is called, like Critical or SEV1.",
+      descriptionDescription:
+        "What an incident of this severity means, and how fast to respond.",
     },
     [StateListType.AlertSeverity]: {
       title: "Alert Severities",
@@ -215,6 +233,9 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
       namePlaceholder: "Critical",
       descriptionPlaceholder:
         "Customers cannot use the product. Respond immediately.",
+      nameDescription: "What the severity is called, like Critical or SEV1.",
+      descriptionDescription:
+        "What an alert of this severity means, and how fast to respond.",
     },
     /*
      * A postmortem can move back up this list (reopened for another look),
@@ -249,6 +270,9 @@ export const STATE_SETTINGS_COPY: Record<StateListType, StateSettingsPageCopy> =
       namePlaceholder: "In Review",
       descriptionPlaceholder:
         "The postmortem is written and waiting for the team's review.",
+      nameDescription: "What the status is called, like In Review or Approved.",
+      descriptionDescription:
+        "How far a postmortem in this status has come, in a sentence.",
     },
     /*
      * A security case can move back up (reopened), so like the postmortem
@@ -346,14 +370,8 @@ export const getStateSettingsStrings: () => Array<string> =
       strings.add(page.description);
       strings.add(page.namePlaceholder);
       strings.add(page.descriptionPlaceholder);
-
-      if (page.nameDescription) {
-        strings.add(page.nameDescription);
-      }
-
-      if (page.descriptionDescription) {
-        strings.add(page.descriptionDescription);
-      }
+      strings.add(page.nameDescription);
+      strings.add(page.descriptionDescription);
 
       if (page.deleteLockedReason) {
         strings.add(page.deleteLockedReason);

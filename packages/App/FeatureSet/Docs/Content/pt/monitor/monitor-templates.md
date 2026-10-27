@@ -39,7 +39,7 @@ Acesse **Monitores → Configurações → Modelos** e clique em **Criar: Monito
 
 ### Dar um nome ao modelo
 
-Em **Informações do modelo**, informe um **Nome do modelo**, como `Production API Health`, e uma **Descrição do modelo**, e então clique em **Próximo**.
+Em **Informações do modelo**, informe um **Nome do modelo**, como `Production API Health`. A **Descrição do modelo** é opcional. Então clique em **Próximo**.
 
 ### Definir os padrões do monitor
 

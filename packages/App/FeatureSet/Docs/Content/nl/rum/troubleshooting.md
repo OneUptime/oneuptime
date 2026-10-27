@@ -77,7 +77,7 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 Een browser verstuurt zelden zulke grote batches, tenzij spans grote attributen meedragen, zoals een volledige stacktrace of een response-body. Die inkorten is de betere oplossing.
 
-**`422`.** OneUptime heeft de sleutel hier geweigerd, en de melding zegt waarom. `Origin https://app.example.com is not allowed for this browser ingestion key.` betekent dat de exacte origin van de pagina, met haar schema en eventuele poort, ontbreekt in de **Allowed Origins** van de sleutel. `This telemetry ingestion key has been disabled.` betekent dat iemand de sleutel heeft uitgeschakeld.
+**`422`.** OneUptime heeft de sleutel hier geweigerd, en de melding zegt waarom. `Origin https://app.example.com is not allowed for this browser ingestion key.` betekent dat de exacte origin van de pagina, met haar schema en eventuele poort, ontbreekt in de **Toegestane origins** van de sleutel. `This telemetry ingestion key has been disabled.` betekent dat iemand de sleutel heeft uitgeschakeld.
 
 **`429`.** De **Requests Per Minute Limit** van de sleutel is op: `Too many telemetry requests for this ingestion key. Please retry later.` Een Browser-sleutel staat 6000 verzoeken per minuut toe voor al je bezoekers samen, tenzij je een eigen limiet op de sleutel instelt.
 
@@ -139,7 +139,7 @@ localStorage.setItem("oneuptime.sessionReplay.debug", "true");
 // then reload the page
 ```
 
-De pagina **Health** van de applicatie, in de sectie **Session Replay**, en het paneel **Test your installation** op **Replay Policy** controleren de sleutel, de lijsten met toegestane origins en het beleid vanaf de serverkant, en zeggen waarom er niets binnenkomt. De browserconsole geeft je de helft die de server niet kan zien.
+De pagina **Gezondheid** van de applicatie, in de sectie **Sessieherhaling**, en het paneel **Test your installation** op **Replay Policy** controleren de sleutel, de lijsten met toegestane origins en het beleid vanaf de serverkant, en zeggen waarom er niets binnenkomt. De browserconsole geeft je de helft die de server niet kan zien.
 
 Met het standaardbeleid verstuurt een recorder ongeveer elke 15 seconden een chunk terwijl de gebruiker met de pagina bezig is. Een inactief tabblad heeft niets te versturen, dus klik eerst of beweeg de muis; als er daarna geen chunk-verzoek is, gaat er iets mis. Als de app alleen _On error or frustration_ uploadt, is stilte te verwachten tot er iets misgaat. Roep `OneUptimeReplay.captureSession()` aan om een upload te forceren en het pad toch te testen.
 

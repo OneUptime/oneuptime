@@ -225,7 +225,7 @@ Un gruppo è un'unità che attivi o disattivi, e l'unità per cui viene segnalat
 
 | Gruppo | Cosa raccoglie | Richiede |
 |---|---|---|
-| Connections | Numero di connessioni, limite configurato, connessioni interrotte, uptime del server | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| Connessioni | Numero di connessioni, limite configurato, connessioni interrotte, uptime del server | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Activity | Query in esecuzione più lunga, transazione aperta più lunga, transazioni aperte | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
 | Throughput | Transazioni, query, cache hit ratio, letture e scritture su disco, tempo di I/O | PostgreSQL: niente oltre a `CONNECT`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Locks | Sessioni bloccate, attese di lock, deadlock, attese di lock sulle tabelle | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
@@ -274,19 +274,19 @@ Quarantuno serie in otto categorie. Engines elenca i motori che possono davvero 
 
 | Metrica | Serie | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Connessioni | PostgreSQL, MySQL, SQL Server |
+| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Connessioni | PostgreSQL, MySQL, SQL Server |
 
 ### Connessioni
 
 | Metrica | Serie | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Connections | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Connections | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connections | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Connections | MySQL |
+| **Connections** | `oneuptime.monitor.database.connections.total` | Connessioni | PostgreSQL, MySQL, SQL Server |
+| **Active Connections** | `oneuptime.monitor.database.connections.active` | Connessioni | PostgreSQL, MySQL, SQL Server |
+| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Connessioni | PostgreSQL, MySQL |
+| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Connessioni | PostgreSQL, MySQL |
+| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connessioni | PostgreSQL |
+| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Connessioni | MySQL |
 
 ### Throughput
 
@@ -363,6 +363,8 @@ Il ritardo in secondi segna zero su un primario inattivo anche quando una replic
 > **Transaction ID Used** merita un criterio su ogni monitor PostgreSQL che crei. PostgreSQL rifiuta tutte le scritture quando arriva al 100%, il ripristino richiede un vacuum in modalità utente singolo con il database fermo, e quasi nessuno lo tiene d'occhio. Imposta l'avviso ben prima del precipizio: l'80% lascia giorni di margine per la maggior parte dei carichi.
 
 I contatori che finiscono con `total` sono cumulativi dall'avvio del server. Confronta due momenti per ottenere un tasso; un singolo valore ha senso solo rispetto alla propria storia, e torna a zero quando il server si riavvia (cosa che ti mostrerà **Uptime**).
+
+**Cache Hit Ratio** e **Rollback Ratio** vengono calcolati a ogni controllo da quanto sono avanzati i loro contatori dal controllo precedente del monitor, non dall'avvio del server, quindi una cache che comincia a mancare si vede subito. Il primo controllo dopo l'avvio della sonda, e il primo dopo un riavvio del server, non hanno né l'uno né l'altro.
 
 ## Imposta i criteri
 

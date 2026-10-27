@@ -346,7 +346,7 @@ describe("a person who escalated the page", () => {
       build({ log: runOn(RULE_2, 2), timeline: ANA_PASSED_BOB_PAGED }),
     );
 
-    expect(markdown).toContain("**Escalation rule 2 of 3 (Level 2)**");
+    expect(markdown).toContain("**Level 2 of 3**");
   });
 });
 

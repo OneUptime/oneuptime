@@ -39,11 +39,11 @@ flowchart TB
 4. OneUptime را از Dock باز کنید، و یک بار دیگر وارد شوید: وب‌اپلیکیشن ورود Safari را شریک نیست.
 @tab Chrome
 1. OneUptime خودتان را در Chrome باز کنید، و وارد شوید.
-2. در هر صفحه‌ای از داشبورد، روی نماد نصب در سمت راست نوار نشانی کلیک کنید، سپس روی **Install**. یا **⋮** > **Cast, save, and share** > **Install page as app…** را باز کنید.
+2. در هر صفحه‌ای از داشبورد، روی نماد نصب در سمت راست نوار نشانی کلیک کنید، سپس روی **نصب**. یا **⋮** > **Cast, save, and share** > **Install page as app…** را باز کنید.
 3. Chrome اپلیکیشن OneUptime را در پنجرهٔ خودش باز می‌کند، و آن را به Launchpad اضافه می‌کند.
 @tab Edge
 1. OneUptime خودتان را در Edge باز کنید، و وارد شوید.
-2. در هر صفحه‌ای از داشبورد، روی نماد نصب در سمت راست نوار نشانی کلیک کنید، سپس روی **Install**. یا **Settings and more (…)** > **More tools** > **Apps** > **Install this site as an app** را باز کنید.
+2. در هر صفحه‌ای از داشبورد، روی نماد نصب در سمت راست نوار نشانی کلیک کنید، سپس روی **نصب**. یا **Settings and more (…)** > **More tools** > **Apps** > **Install this site as an app** را باز کنید.
 3. Edge اپلیکیشن OneUptime را در پنجرهٔ خودش باز می‌کند، و آن را به Launchpad اضافه می‌کند.
 :::
 

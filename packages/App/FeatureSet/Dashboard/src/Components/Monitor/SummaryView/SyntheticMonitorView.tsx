@@ -3,8 +3,8 @@ import SyntheticMonitorResponse from "Common/Types/Monitor/SyntheticMonitors/Syn
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
-import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, { FunctionComponent, ReactElement } from "react";
+import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
@@ -27,14 +27,10 @@ const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
     props.probeMonitorResponse.syntheticMonitorResponse;
 
   return (
-    <div className="space-y-5">
-      <div className="flex space-x-3">
-        <InfoCard
-          className="w-full shadow-none border-2 border-gray-100 "
-          title="Probe"
-          value={props.probeName || "-"}
-        />
-      </div>
+    <SummaryView dataTestId="synthetic-monitor-summary">
+      <SummaryFacts>
+        <SummaryFact title="Probe" value={props.probeName || "-"} />
+      </SummaryFacts>
       {syntheticMonitorResponses &&
         syntheticMonitorResponses.map(
           (
@@ -55,7 +51,7 @@ const SyntheticMonitorView: FunctionComponent<ComponentProps> = (
             );
           },
         )}
-    </div>
+    </SummaryView>
   );
 };
 

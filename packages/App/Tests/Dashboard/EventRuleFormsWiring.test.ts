@@ -265,10 +265,17 @@ describe("a maintenance reminder rule's one choice", () => {
       "Components/Reminders/MaintenanceReminderTimingText.tsx",
     );
 
-    expect(text).toContain("<Pill");
+    /*
+     * A pill that says why on hover, on a tap, on keyboard focus and to a
+     * screen reader (ExplainedPill), not under a mouse only.
+     */
+    expect(text).toContain("<ExplainedPill");
+    expect(text).not.toContain("<Pill");
     expect(text).toContain("color={Yellow}");
     expect(text).toContain("text={MAINTENANCE_REMINDER_NEVER_REMINDS_TEXT}");
-    expect(text).toContain("tooltip={MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE}");
+    expect(text).toContain(
+      "explanation={MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE}",
+    );
     // Not an empty value's dash: a phone's card leaves an empty value out.
     expect(text).not.toContain("TableEmptyValue");
   });
@@ -361,13 +368,33 @@ describe("a new SLA rule starts with targets", () => {
     }
   });
 
-  test("an emptied box is saved as none, on Create and on Edit", () => {
-    expect(page).toContain(
-      "onBeforeCreate={async (\n          item: IncidentSlaRule,\n        ): Promise<IncidentSlaRule> => {\n          return clearEmptiedSlaRuleMinutes(item);",
+  /*
+   * An emptied box is saved as none, on Create and on Edit - by the form
+   * every page shares (ModelForm runs Types/Database/BlankColumnValue on
+   * what it sends), not by a hook of this page's own: the page kept one
+   * (clearEmptiedSlaRuleMinutes) while every other form's emptied number
+   * failed to save. Common's EventRuleFormsRender empties a target on both
+   * forms and reads what is sent.
+   */
+  test("an emptied box is left to the shared form, which saves it as none", () => {
+    expect(page).not.toContain("clearEmptiedSlaRuleMinutes");
+    expect(page).not.toContain("onBeforeCreate=");
+    expect(page).not.toContain("onBeforeUpdate=");
+
+    const modelForm: string = fs.readFileSync(
+      path.join(
+        APP_ROOT,
+        "..",
+        "Common",
+        "UI",
+        "Components",
+        "Forms",
+        "ModelForm.tsx",
+      ),
+      "utf8",
     );
-    expect(page).toContain(
-      "onBeforeUpdate={async (\n          item: IncidentSlaRule,\n        ): Promise<IncidentSlaRule> => {\n          return clearEmptiedSlaRuleMinutes(item);",
-    );
+
+    expect(modelForm).toContain("clearBlankColumnValues(valuesToSend, model);");
   });
 
   test("the list shows the targets right after the name", () => {

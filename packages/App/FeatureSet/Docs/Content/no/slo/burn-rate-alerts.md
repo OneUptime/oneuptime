@@ -75,33 +75,33 @@ Du trenger tillatelse til å opprette SLO-forbruksrateregler.
 :::steps
 ### Åpne Burn Rate Rules
 
-Åpne SLO-et, gå til **Burn Rate Rules** i seksjonen **Regler** i sidemenyen, og klikk på **Opprett SLO Burn Rate Rule**, eller rediger en av standardreglene.
+Åpne SLO-et, gå til **Forbruksrateregler** i seksjonen **Regler** i sidemenyen, og klikk på **Opprett SLO-forbruksrateregel**, eller rediger en av standardreglene.
 
 ### Gi regelen et navn
 
-Under **Rule** skriver du inn et **Navn**, som «Fast burn». En ny regel er slått på; vil du senere hindre den i å utløses, slår du av **Aktivert** i redigeringsskjemaet.
+Under **Regel** skriver du inn et **Navn**, som «Fast burn». En ny regel er slått på; vil du senere hindre den i å utløses, slår du av **Aktivert** i redigeringsskjemaet.
 
 ### Angi forbruksvinduet
 
-Under **Burn Window** angir du **Burn Rate Threshold** (for eksempel `14.4`), **Long Window (Minutes)** og **Short Window (Minutes)**, og eventuelt **Re-fire Suppression (Minutes)**.
+Under **Forbruksvindu** angir du **Terskel for forbruksrate** (for eksempel `14.4`), **Langt vindu (minutter)** og **Kort vindu (minutter)**, og eventuelt **Undertrykking av ny utløsning (minutter)**.
 
 ### Velg hva den erklærer
 
-Under **What It Declares** svarer du på **Når den utløses**: **Opprett et varsel**, standardvalget, **Erklær en hendelse** eller **Begge**. **Add SLO Owners as Owners** gjør også eierne av SLO-et til eiere av alt regelen oppretter.
+Under **Hva den erklærer** svarer du på **Når den utløses**: **Opprett et varsel**, standardvalget, **Erklær en hendelse** eller **Begge**. **Legg til SLO-eiere som eiere** gjør også eierne av SLO-et til eiere av alt regelen oppretter.
 
 ### Beskriv varselet og hendelsen
 
-Trinnene **Varsel** og **Hendelse** vises bare for det regelen erklærer. Hvert av dem har en tittel og en alvorsgrad, og sammenslåtte seksjoner: **Beskrivelse**, **Eierskap og etiketter**, **Vakt** og **Flere felt**, som inneholder automatisk løsning, personvern og utbedringsnotater. Nye regler starter med standardtittelen og -beskrivelsen, klare til å redigeres. Klikk på **Opprett SLO Burn Rate Rule** i det siste trinnet.
+Trinnene **Varsel** og **Hendelse** vises bare for det regelen erklærer. Hvert av dem har en tittel og en alvorsgrad, og sammenslåtte seksjoner: **Beskrivelse**, **Eierskap og etiketter**, **Vakt** og **Flere felt**, som inneholder automatisk løsning, personvern og utbedringsnotater. Nye regler starter med standardtittelen og -beskrivelsen, klare til å redigeres. Klikk på **Opprett SLO-forbruksrateregel** i det siste trinnet.
 :::
 
 OneUptime sjekker tallene til en regel når du lagrer den:
 
 | Innstilling | Må være |
 | --- | --- |
-| **Burn Rate Threshold** | Større enn 0. |
-| **Short Window (Minutes)** | Større enn 0. |
-| **Long Window (Minutes)** | Lengre enn det korte vinduet. |
-| **Re-fire Suppression (Minutes)** | 0 eller mer. Tom betyr lengden på det lange vinduet. |
+| **Terskel for forbruksrate** | Større enn 0. |
+| **Kort vindu (minutter)** | Større enn 0. |
+| **Langt vindu (minutter)** | Lengre enn det korte vinduet. |
+| **Undertrykking av ny utløsning (minutter)** | 0 eller mer. Tom betyr lengden på det lange vinduet. |
 
 Hvert svar på **Når den utløses** åpner noe. API-et avviser en regel som verken ville opprettet et varsel eller erklært en hendelse, fordi den ville blitt sjekket ved hver evaluering uten noen gang å erklære noe.
 
@@ -118,7 +118,7 @@ Regeltabellen viser for hver regel terskelen, vinduene og undertrykkingen, hva d
 | Hva det er | Det lette signalet: havner i listen over varsler. | Det tunge signalet: får et hendelsesnummer og starter hele responsforløpet. |
 | Tittel og beskrivelse | Egne, eller standardteksten | Egne, eller standardteksten |
 | Alvorsgrad | **Varselsalvor**: prosjektets høyeste hvis tom | **Hendelsesalvor**: prosjektets høyeste hvis tom |
-| Eskalering | **Alert On-Call Duty Policies** | **Incident On-Call Duty Policies** |
+| Eskalering | **Vaktpolicyer for varselet** | **Vaktpolicyer for hendelsen** |
 | Eiere og etiketter | **Eiere av varselet** og **Varseletiketter** | **Eiere av hendelsen** og **Hendelsesetiketter** |
 | Privat | Av | Av |
 | Automatisk løsning | På | På |
@@ -180,7 +180,7 @@ For eksempel blir tittelen `{{ruleName}}: {{sloName}} is burning {{longWindowBur
 ## Eiere, etiketter og personvern
 
 - **Eiere av varselet** og **Eiere av hendelsen** er personer og team, valgt fra én liste med **Legg til eier**. De legges til på varselet eller hendelsen så snart det opprettes, og får beskjed. Personer må være medlemmer av prosjektet.
-- **Add SLO Owners as Owners** legger også til eierne av SLO-et, eierbrukerne og medlemmene av eierteamene, på alt regelen oppretter. Eierne av SLO-et får allerede høre om statusendringene til selve SLO-et, så dette kan gi dem beskjed to ganger. Det er slått av som standard.
+- **Legg til SLO-eiere som eiere** legger også til eierne av SLO-et, eierbrukerne og medlemmene av eierteamene, på alt regelen oppretter. Eierne av SLO-et får allerede høre om statusendringene til selve SLO-et, så dette kan gi dem beskjed to ganger. Det er slått av som standard.
 - Hver eier legges til én gang: en bruker som allerede er eier av varselet eller hendelsen, for eksempel via prosjektets eierregler, eller som er med i et eierteam som er lagt til, legges ikke til på nytt.
 - **Varseletiketter** og **Hendelsesetiketter** legges til på varselet eller hendelsen, så filtre, eierregler og varslingsregler for arbeidsområdet kan treffe dem.
 - Et privat varsel eller en privat hendelse er bare synlig for eierne, prosjektadministratorene og prosjekteierne.
@@ -198,7 +198,7 @@ Noen endringer løser alltid det en regel har åpnet, uansett hva innstillingene
 - å endre **Når den utløses** slik at varselet eller hendelsen utelates, lukker det den utgangen hadde åpnet;
 - å slå av regelen eller slette den;
 - å slå av evalueringen av SLO-et, arkivere SLO-et eller slette det;
-- at SLO-et går over til **Pauset** eller **Misconfigured**, fordi det da ikke måler noe;
+- at SLO-et går over til **Pauset** eller **Feilkonfigurert**, fordi det da ikke måler noe;
 - at regelen mister terskelen eller vinduene sine, eller at SLO-et ikke lenger har et helt langt vindu med historikk.
 
 ## Planlagt vedlikehold

@@ -122,7 +122,7 @@ Dataverse 中沒有類似 Jira 標籤的東西，因此案例和 OneUptime 記�
 
 要在執行任何內容之前檢查登入，請開啟 **工作流程變數**，在 `dynamicsAccessToken` 上點選 **檢視**，然後點選 **立即重新整理**。顯示 **Access Token Fetched** 表示應用程式註冊正確。否則，Microsoft Entra ID 的錯誤會指出問題所在，例如 `AADSTS7000215: Invalid client secret provided`。
 
-每個工作流程都儲存自己的副本。更換用戶端密鑰時，請在每個 Dynamics 365 工作流程中開啟 `dynamicsAccessToken`，並使用 **Update Credentials**。
+每個工作流程都儲存自己的副本。更換用戶端密鑰時，請在每個 Dynamics 365 工作流程中開啟 `dynamicsAccessToken`，並使用 **更新憑證**。
 
 ### 建立工作流程
 

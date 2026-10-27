@@ -70,7 +70,7 @@ Recolhido, o cabeçalho de **Mais campos** cita os dois e mostra os que a regra 
 
 ### Crie a regra
 
-Clique em **Create Rule**. A regra é adicionada abaixo das outras, como o próximo nível da política.
+Clique em **Criar regra**. A regra é adicionada abaixo das outras, como o próximo nível da política.
 :::
 
 ## Como os níveis acionam as pessoas
@@ -134,6 +134,13 @@ Ele informa a severidade e o que aconteceu (um incidente, um alerta ou um episó
 
 A severidade, o número e o link nunca são cortados. Um título mantém pelo menos 20 caracteres: se nem isso couber, por exemplo com um endereço ou um nome de produto muito longo, o SMS ocupa uma segunda parte e diz tudo.
 
+Quando uma política aciona de novo porque um incidente ou alerta confirmado ainda não foi resolvido, o SMS diz isso depois do número e do projeto, e essas palavras também nunca são cortadas:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Um único caractere fora do alfabeto simples do SMS faz a mensagem inteira sair em partes de 70 caracteres. Por isso aspas e travessões tipográficos são escritos como `"`, `'` e `-`, `…` como `...`, e letras como `ç` e `ł` perdem seus diacríticos; emojis são omitidos. Um título em outra escrita, como japonês ou russo, é enviado como foi escrito e ocupa duas partes ou mais.
 
 Os outros SMS que o OneUptime envia para você, por exemplo sobre uma mudança em um incidente do qual você é dono ou o início do seu turno de plantão, também começam com `OneUptime:` e terminam com `Turn off in User Settings > Notification Settings.`, uma frase que é omitida quando é isso que faz o SMS caber em uma parte.
@@ -154,7 +161,7 @@ No OneUptime Cloud, cada SMS, chamada, mensagem de WhatsApp e de Telegram é pag
 - Os acionamentos continuam saindo com o saldo restante enquanto a recarga automática não consegue cobrar o cartão.
 
 > [!IMPORTANT]
-> SMS, chamadas telefônicas, WhatsApp e Telegram começam desligados em um projeto novo: no OneUptime Cloud, cada mensagem é paga com o saldo do projeto, e uma instalação auto-hospedada precisa antes de uma conta do Twilio ou de um bot do Telegram configurado. Enquanto um canal está desligado, ninguém no projeto pode adicionar um método nele. Só um proprietário do projeto ou alguém com o papel **Billing Admin** ou a permissão **Manage Billing** pode ligar um, no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Configurações de notificação** — um administrador do projeto não pode. Todos os outros são informados exatamente de quem pode, onde quer que um canal esteja desligado: acima da própria lista de métodos nele, na lista de configuração deles e na mensagem que recebem quando algo precisa dele.
+> SMS, chamadas telefônicas, WhatsApp e Telegram começam desligados em um projeto novo: no OneUptime Cloud, cada mensagem é paga com o saldo do projeto, e uma instalação auto-hospedada precisa antes de uma conta do Twilio ou de um bot do Telegram configurado. Enquanto um canal está desligado, ninguém no projeto pode adicionar um método nele. Só um proprietário do projeto ou alguém com o papel **Administrador de cobrança** ou a permissão **Manage Billing** pode ligar um, no cartão **Canais de notificação** de **Configurações do projeto > Notificações > Configurações de notificação** — um administrador do projeto não pode. Todos os outros são informados exatamente de quem pode, onde quer que um canal esteja desligado: acima da própria lista de métodos nele, na lista de configuração deles e na mensagem que recebem quando algo precisa dele.
 
 ## Escalonar para a próxima pessoa da rotação
 
@@ -168,7 +175,7 @@ Um nível pode acionar a próxima pessoa da rotação de um agendamento de plant
 
 :::steps
 1. Confirme que o primeiro nível da política, **Level 1**, notifica o agendamento de plantão.
-2. Clique em **Adicionar regra de escalonamento**, depois em **Adicionar destinatário**, e escolha o mesmo agendamento em **Próximo da rotação**. Defina **Escalonar após (em minutos)** e clique em **Create Rule**.
+2. Clique em **Adicionar regra de escalonamento**, depois em **Adicionar destinatário**, e escolha o mesmo agendamento em **Próximo da rotação**. Defina **Escalonar após (em minutos)** e clique em **Criar regra**.
 3. Adicione mais um nível para a equipe ou o gerente que deve saber em seguida.
 :::
 
@@ -221,15 +228,15 @@ Escalonar um acionamento não o confirma: o incidente ou alerta continua esperan
 
 Um acionamento que um workflow envia diretamente a pessoas não tem níveis: escaloná-lo faz você deixar de ser acionado, e quando todos que ele acionou já escalonaram, os acionamentos param.
 
-Cada escalonamento fica registrado. A **Linha do tempo de execução** da execução marca a linha da pessoa como **Escalonado**, o feed do incidente diz "Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.", a mensagem da execução no Slack e no Microsoft Teams diz que ela escalonou, e os **Registros de plantão** dela mostram o acionamento como **Escalonado**.
+Cada escalonamento fica registrado. A **Linha do tempo de execução** da execução marca a linha da pessoa como **Escalonado**, o feed do incidente diz "Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.", a mensagem da execução no Slack e no Microsoft Teams diz que ela escalonou, e os **Registros de plantão** dela mostram o acionamento como **Escalonado**.
 
 ## Editar, reordenar e excluir regras
 
-O cartão de cada regra tem **Edit rule** e um menu **⋯** com as outras ações:
+O cartão de cada regra tem **Editar regra** e um menu **⋯** com as outras ações:
 
-- **Edit rule** abre a mesma caixa de diálogo de uma página, preenchida com a regra como está: os destinatários, a espera, e o nome e a descrição em **Mais campos**. Adicione ou remova destinatários e clique em **Salvar alterações**. Apagar o nome devolve à regra o nome do nível dela.
+- **Editar regra** abre a mesma caixa de diálogo de uma página, preenchida com a regra como está: os destinatários, a espera, e o nome e a descrição em **Mais campos**. Adicione ou remova destinatários e clique em **Salvar alterações**. Apagar o nome devolve à regra o nome do nível dela.
 - **Mover para cima** e **Mover para baixo**, no menu **⋯** de uma regra, mudam o nível dela. Uma regra com o nome do nível mantém um nome que corresponde ao lugar dela: quando **Level 3** sobe acima de **Level 2**, as duas trocam de nome. Um nome que você escolheu, como **Gestores**, continua igual aonde quer que a regra vá.
-- **Delete rule** pergunta antes e diz quem o nível aciona. Excluir um nível sobe os níveis abaixo dele, e as regras com o nome do nível são renomeadas para corresponder.
+- **Excluir regra** pergunta antes e diz quem o nível aciona. Excluir um nível sobe os níveis abaixo dele, e as regras com o nome do nível são renomeadas para corresponder.
 
 ## Criar regras com a API ou o Terraform
 

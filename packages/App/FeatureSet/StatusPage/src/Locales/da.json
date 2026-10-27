@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "Spring til hovedindhold",
-    "loading": "Indlæser..."
+    "loading": "Indlæser...",
+    "moreLinks": "Flere links",
+    "navigation": "Navigation"
   },
   "common": {
     "save": "Gem",
@@ -303,7 +305,8 @@
       "loginPrompt": "Log venligst ind for at se {{statusPageName}}",
       "noProviders": "Ingen SSO-udbydere konfigureret eller aktiveret",
       "notAvailable": "Single sign-on (SSO) er ikke tilgængelig for denne statusside. Log i stedet ind med din e-mail og adgangskode.",
-      "backToLogin": "Tilbage til log ind"
+      "backToLogin": "Tilbage til log ind",
+      "logInWithPassword": "Log ind med adgangskode"
     },
     "forgotPassword": {
       "title": "Glemt adgangskode",
@@ -320,13 +323,9 @@
       "knowPassword": "Kender du din adgangskode?"
     },
     "masterPassword": {
-      "enterWithName": "Indtast adgangskode til {{statusPageName}}",
-      "enterGeneric": "Indtast adgangskode",
-      "prompt": "Indtast venligst adgangskoden for at fortsætte.",
+      "prompt": "Indtast adgangskoden for at se denne statusside.",
       "passwordRequired": "adgangskode er påkrævet.",
       "passwordLabel": "Adgangskode",
-      "passwordDescription": "Indtast adgangskoden for at låse denne side op.",
-      "passwordPlaceholder": "Indtast adgangskode",
       "submit": "Lås statusside op"
     },
     "signingOut": "Logger dig ud..."
@@ -416,6 +415,8 @@
   "Try again": "Prøv igen",
   "Loading...": "Indlæser...",
   "Loading": "Indlæser",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} er ikke gyldig JSON. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} er ikke gyldig YAML. {{parserMessage}}",
   "markdownCallouts": {
     "caution": "Forsigtig",
     "danger": "Fare",

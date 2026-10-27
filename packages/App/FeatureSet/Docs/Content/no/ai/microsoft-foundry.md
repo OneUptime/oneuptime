@@ -53,7 +53,7 @@ Du trenger et Azure-abonnement, en rolle som lar deg opprette og lese ressursen,
 
 OneUptime selv trenger ingen Azure-rolle. En nøkkel gir alene tilgang til alle utrullinger på ressursen uten rollesjekk, så behandle den som et passord.
 
-I OneUptime krever det **Project Owner**, **Project Admin**, **Project Member**, **Settings Admin**, **Settings Member** eller **Create LLM** å legge til en leverandør i et prosjekt. En selvhostet instans kan i stedet registrere én leverandør for alle prosjekter fra miljøvariabler, noe som krever tilgang til serveren.
+I OneUptime krever det **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator**, **Innstillingsmedlem** eller **Create LLM** å legge til en leverandør i et prosjekt. En selvhostet instans kan i stedet registrere én leverandør for alle prosjekter fra miljøvariabler, noe som krever tilgang til serveren.
 
 ## Sett opp Microsoft Foundry
 

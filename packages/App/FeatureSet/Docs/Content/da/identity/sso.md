@@ -54,7 +54,7 @@ På OneUptime Cloud optager en person, der kommer med i projektet via SSO, en pl
 
 ## Opsætning af SSO
 
-Du skal have tilladelse til at tilføje SSO-udbydere — **Project Owner**, **Project Admin** eller **Create Project SSO** — og på OneUptime Cloud planen **Scale**. Se [vejledningerne til identitetsudbydere](#vejledninger-til-identitetsudbydere) for din identitetsudbyders side.
+Du skal have tilladelse til at tilføje SSO-udbydere — **Projektejer**, **Projektadministrator** eller **Create Project SSO** — og på OneUptime Cloud planen **Scale**. Se [vejledningerne til identitetsudbydere](#vejledninger-til-identitetsudbydere) for din identitetsudbyders side.
 
 :::steps
 1. **Gå til projektindstillinger**
@@ -248,7 +248,7 @@ OneUptimes SSO bruger SAML 2.0 og fungerer med enhver kompatibel identitetsudbyd
 
 ## OpenID Connect (OIDC)
 
-Et projekt kan også logge ind via en OpenID Connect-udbyder som Google Workspace, Okta, Microsoft Entra ID, Auth0 eller Keycloak. Du skal have tilladelse til at tilføje OIDC-udbydere (**Project Owner**, **Project Admin** eller **Create Project OIDC**) og på OneUptime Cloud planen **Scale**.
+Et projekt kan også logge ind via en OpenID Connect-udbyder som Google Workspace, Okta, Microsoft Entra ID, Auth0 eller Keycloak. Du skal have tilladelse til at tilføje OIDC-udbydere (**Projektejer**, **Projektadministrator** eller **Create Project OIDC**) og på OneUptime Cloud planen **Scale**.
 
 :::steps
 1. Registrer en app (en OIDC-klient) hos din identitetsudbyder, der må bruge authorization code-flowet med PKCE, og kopiér dens **Udsteder-URL**, **Klient-ID** og **Klienthemmelighed**.

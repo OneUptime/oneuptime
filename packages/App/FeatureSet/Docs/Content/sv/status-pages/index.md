@@ -87,7 +87,7 @@ När du har öppnat en statussida är dess egen vänstermeny indelad i tio sekti
 | --- | --- |
 | **Grundläggande** | **Översikt**, **Meddelanden**, **Ägare**. |
 | **Resurser** | En enda skärm **Resurser** (grupperna till vänster, den valda gruppens monitorer till höger). |
-| **Regler** | **Monitor Rules**: regler som lägger till varje monitor som matchar på sidan, nu och senare. |
+| **Regler** | **Monitorregler**: regler som lägger till varje monitor som matchar på sidan, nu och senare. |
 | **Prenumeranter** | **E-postprenumeranter**, **SMS-prenumeranter**, **Slack-prenumeranter**, **Microsoft Teams-prenumeranter**, **Webhook-prenumeranter**, **Prenumerantinställningar**. |
 | **Aviseringsloggar** | **Aviseringsloggar**: vad som har skickats till prenumeranterna. |
 | **Varumärke** | **Varumärke** (logotyp, titel, favicon, länkar, sidfot, färger och språk, på en sida), **Anpassade domäner**, **HTML, CSS och JavaScript**. |
@@ -217,7 +217,7 @@ Under **Fler inställningar** på **Åtkomst** begränsar sektionen **IP-tillåt
 
 Tre sätt att visa status någon annanstans än på själva sidan.
 
-**Inbäddad statusbricka.** Under **Statussidor → din sida → Avancerad → Inbäddad status** slår du på **Aktivera inbäddad statusbricka** (`enableEmbeddedOverallStatus`, av som standard). Första gången du slår på den får brickan sin token (`embeddedOverallStatusToken`), och kortet **Bädda in brickan** visar brickan, levererad från `/api/status-page/badge/<status-page-id>?token=<token>`, med dess **HTML** och dess **Markdown, med länk till statussidan** att kopiera, så att du kan lägga in den aktuella övergripande statusen i din dokumentation, i sidfoten i din app eller på en marknadsföringssida. Token finns på kortet **Säkerhetstoken** under **Fler inställningar**, med **Generera om token** för när länken har delats för brett.
+**Inbäddad statusbricka.** Under **Statussidor → din sida → Avancerad → Inbäddad status** slår du på **Aktivera inbäddad statusbricka** (`enableEmbeddedOverallStatus`, av som standard). Första gången du slår på den får brickan sin token (`embeddedOverallStatusToken`), och kortet **Bädda in brickan** visar brickan, levererad från `/api/status-page/badge/<status-page-id>?token=<token>`, med dess **HTML** och dess **Markdown, med länk till statussidan** att kopiera, så att du kan lägga in den aktuella övergripande statusen i din dokumentation, i sidfoten i din app eller på en marknadsföringssida. Markdown-koden länkar till sidans första aktiva anpassade domän, även en med ett certifikat som du har laddat upp, eller till dess adress hos OneUptime så länge ingen är aktiv. Token finns på kortet **Säkerhetstoken** under **Fler inställningar**, med **Generera om token** för när länken har delats för brett.
 
 **RSS-flöde.** Varje statussida levererar `/rss`: ett flöde med titeln "{sidtitel} Updates", med den **Sidtitel** som anges under **Varumärke**, eller sidans namn om den inte har någon, och vars poster börjar med `Incident: `, `Announcement: ` och `Scheduled Maintenance: `. Varje post är daterad som sidan daterar den: en incident efter när den deklarerades, ett meddelande efter när det publicerades och en planerad underhållshändelse efter när den börjar, med beskrivningen inledd av dess tidsfönster. Användbart för den som hellre hämtar dina uppdateringar till en flödesläsare eller en chattbot än prenumererar via e-post.
 

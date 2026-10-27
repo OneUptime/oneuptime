@@ -44,7 +44,7 @@ Hvert nyt projekt starter med tre advarselstilstande i denne rækkefølge:
 
 | Tilstand         | `order` | Flag                  | Farve     | Hvad den betyder                                  |
 | ---------------- | ------- | --------------------- | --------- | ------------------------------------------------- |
-| **Identified**   | `1`     | `isCreatedState`      | `#fd625e` | Den tilstand, nye advarsler starter i.            |
+| **Identificeret**   | `1`     | `isCreatedState`      | `#fd625e` | Den tilstand, nye advarsler starter i.            |
 | **Bekræftet**    | `2`     | `isAcknowledgedState` | `#ffbf53` | Nogen tager sig af den, og tilkaldelsen stopper.  |
 | **Løst**         | `3`     | `isResolvedState`     | `#2ab57d` | Advarslen er overstået og tæller ikke længere som aktiv. |
 
@@ -99,10 +99,10 @@ Hvert nyt projekt starter med to advarselsalvorsgrader, den mest alvorlige førs
 
 | Alvorsgrad | `order` | Farve     | Forudoprettet beskrivelse                                                         |
 | ---------- | ------- | --------- | --------------------------------------------------------------------------------- |
-| **High**   | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
-| **Low**    | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
+| **Høj**   | `1`     | `#b70400` | Issues causing very high impact to customers. Immediate attention is required.    |
+| **Lav**    | `2`     | `#ffbf53` | Issues causing low impact to customers.                                           |
 
-Hændelser starter med tre alvorsgrader og advarsler med to. Når skabelonen i en monitoranbefaling siger **Kritisk** eller **Warning**, oversætter OneUptime det til din første og anden advarselsalvorsgrad, som i et nyt projekt er **High** og **Low**.
+Hændelser starter med tre alvorsgrader og advarsler med to. Når skabelonen i en monitoranbefaling siger **Kritisk** eller **Warning**, oversætter OneUptime det til din første og anden advarselsalvorsgrad, som i et nyt projekt er **Høj** og **Lav**.
 
 ## Rediger alvorsgrader
 

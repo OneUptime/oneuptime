@@ -25,7 +25,7 @@ flowchart TB
 
 - **Navnet er tjenestens identitet.** Store og små bokstaver spiller ingen rolle i sammenligningen, så `Checkout-API` og `checkout-api` er én tjeneste. Et nytt `service.name` starter en ny tjeneste.
 - **Containere navngir seg selv.** Telemetri fra Docker- og Podman-agentene navngir en tjeneste etter containeren når den ikke har et `service.name`.
-- **En inntaksnøkkel kan bestemme tjenesten.** OpenTelemetry-data som sendes med en nøkkel med et **Pinned Service Name**, legges under det navnet, uansett hva `service.name` sier. Se [Inntaksnøkler](/docs/telemetry/ingestion-keys#lås-ned-en-nettlesernøkkel).
+- **En inntaksnøkkel kan bestemme tjenesten.** OpenTelemetry-data som sendes med en nøkkel med et **Festet tjenestenavn**, legges under det navnet, uansett hva `service.name` sier. Se [Inntaksnøkler](/docs/telemetry/ingestion-keys#lås-ned-en-nettlesernøkkel).
 - **Nettlesere og telefoner er ikke tjenester.** Telemetri fra en nettleser eller en mobilapp hører i stedet til en [RUM-applikasjon](/docs/rum/applications).
 - **Etiketter kan følge med telemetrien.** Et ressursattributt med navnet `oneuptime.label.<name>` gir tjenesten etiketten `<name>:<value>`, for eksempel `oneuptime.label.team=payments` for `team:payments`.
 
@@ -61,7 +61,7 @@ Sidemenyen til en tjeneste har fem seksjoner:
 
 | Seksjon | Sider |
 | --- | --- |
-| **Grunnleggende** | **Oversikt**: forespørsler, feilrate og p95-latens fra spannene, diagrammer og detaljene. **Recommendations**: ferdige monitorer for tjenesten, valgt etter språket. **Eiere**: personene og teamene som har ansvaret for den. **Feed**: alt som har skjedd med den, fra hvordan den ble opprettet til hver endring siden. |
+| **Grunnleggende** | **Oversikt**: forespørsler, feilrate og p95-latens fra spannene, diagrammer og detaljene. **Anbefalinger**: ferdige monitorer for tjenesten, valgt etter språket. **Eiere**: personene og teamene som har ansvaret for den. **Feed**: alt som har skjedd med den, fra hvordan den ble opprettet til hver endring siden. |
 | **Telemetri** | **Logger**, **Spor**, **Målinger**, **Ytelsesprofiler**, **Unntak** og **Source Maps**, allerede filtrert til denne tjenesten. |
 | **Aktivitet** | **Hendelser**, **Varsler** og hendelser under **Planlagt vedlikehold** som berører den. |
 | **Utvikler** | **Terraform**, **API** og **AI-assistenter**: tjenesten styrt fra kode. Seksjonen er slått sammen fra start. |

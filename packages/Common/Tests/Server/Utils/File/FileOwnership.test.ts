@@ -171,6 +171,13 @@ describe("FileOwnership.getFileReferenceColumns", () => {
             "The logo's file could not be found. Upload the logo again.",
         },
         {
+          relationColumn: "darkThemeLogoFile",
+          idColumn: "darkThemeLogoFileId",
+          isList: false,
+          notFoundMessage:
+            "The dark theme logo's file could not be found. Upload the dark theme logo again.",
+        },
+        {
           relationColumn: "coverImageFile",
           idColumn: "coverImageFileId",
           isList: false,

@@ -36,12 +36,15 @@ import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
 import {
-  FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import VMwareDocumentationCard from "../../Components/VMware/DocumentationCard";
+import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
+import useShowcaseCreateForm, {
+  ShowcaseCreateForm,
+} from "../../Components/ResourceShowcase/UseShowcaseCreateForm";
+import VMWARE_VCENTER_SHOWCASE from "../../Components/VMware/VMwareVCenterShowcase";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -68,6 +71,11 @@ const VMwareVCenters: FunctionComponent<
   );
   // The probes a vCenter can be connected through (the Connect form's picker).
   const [probes, setProbes] = useState<Array<Probe>>([]);
+  // The showcase's Connect vCenter: the table's own form.
+  const showcaseCreateForm: ShowcaseCreateForm = useShowcaseCreateForm({
+    modelType: VMwareVCenter,
+    createVerb: "Connect",
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<VMwareVCenter>({ modelType: VMwareVCenter });
@@ -160,8 +168,8 @@ const VMwareVCenters: FunctionComponent<
         emptyState={getFirstRunEmptyState({
           emptyState: facetEmptyState,
           count: firstRecordWatch.count,
-          isAddedByHand: true,
         })}
+        showCreateForm={showcaseCreateForm.showCreateForm}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -418,9 +426,9 @@ const VMwareVCenters: FunctionComponent<
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <VMwareDocumentationCard
-          title="Getting Started with VMware Monitoring"
-          description={FIRST_RUN_GUIDE_DESCRIPTION}
+        <ResourceShowcaseCard
+          showcase={VMWARE_VCENTER_SHOWCASE}
+          addButton={showcaseCreateForm.addButton}
         />
       )}
       {labelBulkActionModals}

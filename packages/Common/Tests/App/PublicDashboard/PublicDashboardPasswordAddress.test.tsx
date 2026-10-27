@@ -206,7 +206,7 @@ describe("the way back, once the password opens the dashboard", () => {
       );
     });
 
-    fireEvent.change(screen.getByPlaceholderText("Enter password"), {
+    fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "open sesame" },
     });
 

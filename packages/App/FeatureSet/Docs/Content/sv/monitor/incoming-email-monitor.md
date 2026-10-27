@@ -261,7 +261,7 @@ Från och med då hanterar kriteriet varje e-postmeddelande för sig:
 | Ett automatiskt svar, som ett frånvaromeddelande | Öppnar inget. |
 | Ett e-postmeddelande efter att monitorn har öppnat 20 incidenter från e-post under den senaste timmen | Öppnar inget, så att en e-postslinga eller en flod av e-post inte kan larma ert team i all oändlighet. |
 
-Varje e-postmeddelande får fortfarande en rad i **Övervakningsloggar**, och **Visa sammanfattning** på den raden säger vad e-postmeddelandet öppnade, eller varför det inte öppnade något. När kriteriet även skapar larm heter reglaget **Öppna en ny incident och en ny varning för varje e-postmeddelande**, och varje e-postmeddelande öppnar ett eget larm på samma sätt.
+Varje e-postmeddelande får fortfarande en rad i **Övervakningsloggar**, och **Visa sammanfattning** på den raden säger vad e-postmeddelandet öppnade, eller varför det inte öppnade något. När kriteriet även skapar larm heter reglaget **Öppna en ny incident och ett nytt larm för varje e-postmeddelande**, och varje e-postmeddelande öppnar ett eget larm på samma sätt.
 
 Dessa incidenter förblir öppna tills någon löser dem. Med **Lös incident automatiskt** påslaget löses de också när ett senare e-postmeddelande matchar ett annat kriterium, som alla incidenter; ett senare e-postmeddelande som matchar samma kriterium löser aldrig de tidigare. En kontroll av saknad e-post (**Email Received**) är inget e-postmeddelande, så den öppnar fortfarande en incident i taget.
 
@@ -282,7 +282,7 @@ För mer kontroll, som en allvarlighetsgrad läst från ämnet eller ett team va
 
 ## Mallvariabler
 
-Titlarna, beskrivningarna och åtgärdsanteckningarna i de larm och incidenter som den här monitorn skapar kan använda de här variablerna. Kriteriets formulär för larm och incidenter listar dem under **Mallvariabler**, och [Incident- och varningsmallar](/docs/monitor/incident-alert-templating) förklarar syntaxen.
+Titlarna, beskrivningarna och åtgärdsanteckningarna i de larm och incidenter som den här monitorn skapar kan använda de här variablerna. Kriteriets formulär för larm och incidenter listar dem under **Mallvariabler**, och [Incident- och larmmallar](/docs/monitor/incident-alert-templating) förklarar syntaxen.
 
 | Variabel | Beskrivning |
 | --------------------- | ----------------------------------------------------------------- |
@@ -357,7 +357,7 @@ Tills det är konfigurerat säger monitorns adresskort att inkommande e-post int
 ## Nästa steg
 
 :::cards
-- [Incident- och varningsmallar](/docs/monitor/incident-alert-templating): Lägg in e-postmeddelandets ämne och innehåll i larm.
+- [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Lägg in e-postmeddelandets ämne och innehåll i larm.
 - [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor): Ta emot heartbeats och webhooks över HTTP i stället.
 - [SendGrid inkommande e-post](/docs/self-hosted/sendgrid-inbound-email): Konfigurera inkommande e-post på en självhostad server.
 :::

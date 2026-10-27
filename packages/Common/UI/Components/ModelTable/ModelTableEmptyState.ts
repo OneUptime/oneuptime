@@ -354,7 +354,12 @@ export const isListEmptyWithNothingApplied: (
 };
 
 export interface NoAccessStateInput {
-  // The names of the permissions that would let the viewer read the list.
+  /*
+   * The English names of the permissions that would let the viewer read the
+   * list. Each is looked up: a built-in role's name (Project Owner, Incident
+   * Viewer ...) reads in the reader's language, as the role picker and the
+   * team pages draw it; a permission with no translation reads as given.
+   */
   permissionTitles: Array<string>;
   translate: TranslateFunction;
 }
@@ -365,7 +370,11 @@ export const buildNoAccessState: (
 ) => TableEmptyStateProps = (
   input: NoAccessStateInput,
 ): TableEmptyStateProps => {
-  const permissions: string = input.permissionTitles.join(", ");
+  const permissions: string = input.permissionTitles
+    .map((title: string): string => {
+      return input.translate(title) || title;
+    })
+    .join(", ");
 
   return {
     kind: TableEmptyStateKind.NoAccess,

@@ -241,6 +241,8 @@ Der Agent sendet jedes Kubernetes-Ereignis des Clusters an OneUptime: aus jedem 
 | Anzahl | Wie oft es passiert ist: eine Wiederholung erhöht die Anzahl, statt eine Zeile hinzuzufügen |
 | Zuletzt gesehen | Wann es zuletzt passiert ist; fahren Sie mit der Maus darüber, um zu sehen, wann zum ersten Mal |
 
+Auf einem Bildschirm, der schmaler als 1024 Pixel ist, zeigt die Spalte **Ereignis** auch **Anzahl** und **Zuletzt gesehen**, die dort keine eigenen Spalten haben.
+
 ### Ereignisse durchsuchen und Alarme erhalten
 
 Jedes Ereignis ist auch ein Log. Eine Warnung wird mit dem Schweregrad **Warnung** gespeichert, und was das Ereignis sagt, steht in seinen Attributen:
@@ -256,7 +258,7 @@ Jedes Ereignis ist auch ein Log. Eine Warnung wird mit dem Schweregrad **Warnung
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Durchsuchen Sie sie unter **Protokolle**, verwerfen Sie unerwünschte mit einem Drop-Filter, oder lassen Sie sich mit einem [Logs-Monitor](/docs/monitor/logs-monitor) benachrichtigen, wenn eines eintritt: Filtern Sie nach dem Schweregrad **Warnung** und `k8s.event.reason`, und gruppieren Sie nach `k8s.object.name` für einen Alarm pro Knoten oder Autoscaler.
+Durchsuchen Sie sie unter **Protokolle**, oder verwerfen Sie unerwünschte mit einem Drop-Filter. Um benachrichtigt zu werden, wenn eines eintritt, schalten Sie **Warning Events** auf der Seite **Empfehlungen** des Clusters ein, oder wählen Sie **Alarm bei Warnungen einschalten** unten auf seiner Seite **Ereignisse**: ein [Logs-Monitor](/docs/monitor/logs-monitor) über die Warnungen des Clusters, der einen Alarm pro Objekt und Grund auslöst und ihn auflöst, sobald 5 Minuten ohne neue Warnung dazu vergangen sind. Um nur über einige Gründe benachrichtigt zu werden, fügen Sie seinem Filter `k8s.event.reason` hinzu.
 
 ## Konfigurationsoptionen
 

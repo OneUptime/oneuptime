@@ -69,13 +69,13 @@ Sous **Authentification**, saisissez un **Nom d'utilisateur** et un **Mot de pas
 Cliquez sur **Créer : Source de données**, puis sur **Tester** dans sa ligne. OneUptime se connecte avec les informations fournies et indique si cela a fonctionné ou ce qui n'a pas marché.
 :::
 
-Pour modifier une source de données plus tard, ouvrez-la depuis la liste. **Modifier** sur **Détails de la source de données** change tout sauf ses secrets ; **Update Credentials** remplace le mot de passe, le jeton ou les en-têtes, et laisse tels quels les champs que vous laissez vides ; **Tester** la vérifie à nouveau.
+Pour modifier une source de données plus tard, ouvrez-la depuis la liste. **Modifier** sur **Détails de la source de données** change tout sauf ses secrets ; **Mettre à jour les identifiants** remplace le mot de passe, le jeton ou les en-têtes, et laisse tels quels les champs que vous laissez vides ; **Tester** la vérifie à nouveau.
 
 ## L'utiliser dans un widget
 
 Modifiez un tableau de bord, cliquez sur **Ajouter un widget** et choisissez un widget du groupe External Data Sources : un **Graphique**, une **Valeur**, une **Jauge** ou un **Tableau**. Dans ses paramètres :
 
-- Choisissez la **Source de données** et écrivez la **Query**. L'éditeur nomme le langage de requête et montre un exemple pour le type.
+- Choisissez la **Source de données** et écrivez la **Requête**. L'éditeur nomme le langage de requête et montre un exemple pour le type.
 - Dans un graphique, **Ajouter une requête** superpose d'autres requêtes sur les mêmes axes, et **Légende (facultative)** nomme chaque série d'après ses étiquettes : `{{instance}} — errors` écrit l'étiquette `instance` de la série en tête.
 - Pour une valeur ou une jauge, **Reduce** ramène les points à un nombre : la dernière valeur (par défaut), la première, la moyenne, la somme, le minimum ou le maximum. **Unit** ajoute un suffixe, et met à l'échelle les unités connues : `Bytes` s'affiche 1.5 MB, `ms` 2.4 s.
 - Dans un tableau, toute requête en lecture seule fonctionne, et ses lignes s'affichent telles qu'elles reviennent.

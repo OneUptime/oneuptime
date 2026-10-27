@@ -6,6 +6,10 @@ import useTranslateValue from "../../Utils/Translation";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import UnsavedChanges from "../../Utils/NewVersion/UnsavedChanges";
+import {
+  bringFieldInErrorIntoView,
+  focusInvalidControl,
+} from "../../Utils/BringIntoView";
 import Alert, { AlertType } from "../Alerts/Alert";
 import Button, { ButtonStyleType } from "../Button/Button";
 import ButtonTypes from "../Button/ButtonTypes";
@@ -164,6 +168,15 @@ export interface BaseComponentProps<T> {
    * shared ModelAPI.
    */
   modelAPI?: typeof ModelAPI | undefined;
+  /*
+   * Show a field's error as soon as the field is left, changed or not. For
+   * a form with no action of its own that checks it: a panel whose host
+   * turns its Save off while a field fails (a workflow step's settings, a
+   * dashboard widget's) has no press that would say what is wrong. Every
+   * other form says nothing about a field the reader has not changed until
+   * its action is pressed (see changedFieldNames).
+   */
+  showErrorsWhenLeftUnchanged?: boolean | undefined;
 }
 
 export interface ComponentProps<T extends GenericObject>
@@ -319,6 +332,40 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
     const [errors, setErrors] = useState<Dictionary<string>>({});
     const [touched, setTouched] = useState<Dictionary<boolean>>({});
     const [validationAttempt, setValidationAttempt] = useState<number>(0);
+
+    /*
+     * The fields the reader has changed since the form opened. Leaving a
+     * field shows what is wrong with it only once it has been changed:
+     * moving through a form - tabbing past a field, picking a plan before
+     * typing a project's name, opening More fields - says nothing yet, and
+     * an empty required field is first called out when the form's action
+     * (or Next) is pressed, which checks every field on the step. A field
+     * changed and left says what is wrong at once, a required one emptied
+     * included.
+     */
+    const changedFieldNames: MutableRefObject<Set<string>> = useRef<
+      Set<string>
+    >(new Set<string>());
+
+    /*
+     * Where each field is drawn, by name: after a failed press the first
+     * field in error is brought into view.
+     */
+    const fieldElements: MutableRefObject<Map<string, HTMLElement>> = useRef<
+      Map<string, HTMLElement>
+    >(new Map<string, HTMLElement>());
+
+    /*
+     * The field whose server error the reader has put away by changing the
+     * field since (see serverErrorFieldName). Reset with every new error.
+     */
+    const [serverErrorPutAwayFor, setServerErrorPutAwayFor] = useState<
+      string | null
+    >(null);
+
+    useEffect(() => {
+      setServerErrorPutAwayFor(null);
+    }, [props.error]);
 
     useEffect(() => {
       setFormSteps(getVisibleFormSteps());
@@ -496,6 +543,224 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       return field.defaultValue !== undefined && field.defaultValue !== null;
     };
 
+    /*
+     * Whether the reader has changed the field since the form opened (see
+     * changedFieldNames). A people picker keeps its picks under a form
+     * value per kind - an owner field's ownerUsers and ownerTeams - and
+     * none under its own name.
+     */
+    const hasFieldChanged: (fieldName: string) => boolean = (
+      fieldName: string,
+    ): boolean => {
+      if (changedFieldNames.current.has(fieldName)) {
+        return true;
+      }
+
+      const field: Field<T> | undefined = formFields.find(
+        (formField: Field<T>): boolean => {
+          return getFieldName(formField) === fieldName;
+        },
+      );
+
+      if (
+        field?.fieldType === FormFieldSchemaType.PeoplePicker &&
+        field.peoplePicker
+      ) {
+        return getPeoplePickerValueKeys(field.peoplePicker).some(
+          (valueKey: string): boolean => {
+            return changedFieldNames.current.has(valueKey);
+          },
+        );
+      }
+
+      return false;
+    };
+
+    /*
+     * What a field calls when the reader leaves it, and a picker once a
+     * pick is made: the field counts as touched - its error shows - once
+     * it has been changed, or straight away on a form that asks for that
+     * (showErrorsWhenLeftUnchanged).
+     */
+    const touchFieldWhenLeft: (fieldName: string, value: boolean) => void = (
+      fieldName: string,
+      value: boolean,
+    ): void => {
+      if (
+        value &&
+        !props.showErrorsWhenLeftUnchanged &&
+        !hasFieldChanged(fieldName)
+      ) {
+        return;
+      }
+
+      setFieldTouched(fieldName, value);
+    };
+
+    /*
+     * Whether the reader can reach the field now: on a step the form shows
+     * (a step hidden by its showIf is not one), and not hidden by its own
+     * showIf.
+     */
+    const isFieldReachable: (field: Field<T>) => boolean = (
+      field: Field<T>,
+    ): boolean => {
+      if (field.showIf && !field.showIf(refCurrentValue.current)) {
+        return false;
+      }
+
+      const steps: Array<FormStep<T>> = getVisibleFormSteps() || [];
+
+      if (steps.length === 0 || !field.stepId) {
+        return true;
+      }
+
+      return steps.some((step: FormStep<T>): boolean => {
+        return step.id === field.stepId;
+      });
+    };
+
+    /*
+     * An error the server refused the form with that is about one field
+     * (Field.ownsServerError) - a promo code that does not apply, a name
+     * already taken - is shown under that field, not above the form: the
+     * folded section the field is in opens (More fields), the form moves to
+     * the field's step, and the field is brought into view. Changing the
+     * field puts the message away (the server judges the new value when
+     * the form is sent again); an error no field owns stays above the form.
+     */
+    const serverErrorField: Field<T> | undefined = props.error
+      ? formFields.find((field: Field<T>): boolean => {
+          return Boolean(
+            field.ownsServerError &&
+              field.ownsServerError(props.error as string) &&
+              isFieldReachable(field),
+          );
+        })
+      : undefined;
+
+    const serverErrorFieldName: string | null = serverErrorField
+      ? getFieldName(serverErrorField)
+      : null;
+
+    const shownServerErrorFieldName: string | null =
+      serverErrorFieldName && serverErrorPutAwayFor !== serverErrorFieldName
+        ? serverErrorFieldName
+        : null;
+
+    // The error a field shows now: its own once touched, else the server's.
+    const getShownFieldError: (fieldName: string) => string = (
+      fieldName: string,
+    ): string => {
+      if (touched[fieldName] && errors[fieldName]) {
+        return errors[fieldName] as string;
+      }
+
+      if (fieldName === shownServerErrorFieldName) {
+        return props.error || "";
+      }
+
+      return "";
+    };
+
+    // A field the server refused, on another step: the form goes there.
+    useEffect(() => {
+      if (
+        serverErrorField &&
+        shownServerErrorFieldName &&
+        serverErrorField.stepId &&
+        currentFormStepId &&
+        serverErrorField.stepId !== currentFormStepId
+      ) {
+        setCurrentFormStepId(serverErrorField.stepId);
+      }
+    }, [shownServerErrorFieldName, props.error]);
+
+    /*
+     * After a press that found a field in error - the form's action, Next,
+     * Enter in a field - or a field the server refused, the first field
+     * showing an error, in the order the form draws them, is brought into
+     * view: in a long dialog it can be above or below what is in sight, and
+     * one folded away has been opened for it in this same render
+     * (CollapsibleFormSection). Before paint, so it is drawn where it ends.
+     * A field taller than the view brings its message into view instead of
+     * its start (bringFieldInErrorIntoView): Monitor Steps says why a step
+     * cannot be saved under all of its steps, a screen below its first.
+     * The focus goes to it too (focusInvalidControl): the reader types the
+     * fix there, and a screen reader reads the field with its error.
+     *
+     * Only a press or the server's answer asks for it, once, and the ask is
+     * kept until the field is drawn - a field the server refused on another
+     * step is drawn once the form has moved there. Nothing else moves the
+     * reader: putting the server's answer away by changing its field (the
+     * reader is typing there), or opening a step from the step list.
+     */
+    const isRevealPending: MutableRefObject<boolean> = useRef<boolean>(false);
+    const lastRevealAttempt: MutableRefObject<number> = useRef<number>(0);
+    const lastServerErrorFieldName: MutableRefObject<string | null> = useRef<
+      string | null
+    >(null);
+
+    useLayoutEffect(() => {
+      if (validationAttempt !== lastRevealAttempt.current) {
+        lastRevealAttempt.current = validationAttempt;
+        isRevealPending.current = true;
+      }
+
+      if (shownServerErrorFieldName !== lastServerErrorFieldName.current) {
+        lastServerErrorFieldName.current = shownServerErrorFieldName;
+
+        if (shownServerErrorFieldName) {
+          isRevealPending.current = true;
+        }
+      }
+
+      if (!isRevealPending.current) {
+        return;
+      }
+
+      const firstFieldInError: Field<T> | undefined = formFields.find(
+        (field: Field<T>): boolean => {
+          if (currentFormStepId && field.stepId !== currentFormStepId) {
+            return false;
+          }
+
+          if (field.showIf && !field.showIf(refCurrentValue.current)) {
+            return false;
+          }
+
+          return Boolean(getShownFieldError(getFieldName(field)));
+        },
+      );
+
+      if (!firstFieldInError) {
+        // The server's field is on another step: once the form is there.
+        const isMovingToServerErrorStep: boolean = Boolean(
+          serverErrorField &&
+            shownServerErrorFieldName &&
+            serverErrorField.stepId &&
+            currentFormStepId &&
+            serverErrorField.stepId !== currentFormStepId,
+        );
+
+        if (!isMovingToServerErrorStep) {
+          isRevealPending.current = false;
+        }
+
+        return;
+      }
+
+      isRevealPending.current = false;
+
+      const fieldElement: HTMLElement | undefined = fieldElements.current.get(
+        getFieldName(firstFieldInError),
+      );
+
+      // Its message, when the field is taller than the view (Monitor Steps).
+      bringFieldInErrorIntoView(fieldElement);
+      focusInvalidControl(fieldElement);
+    }, [validationAttempt, shownServerErrorFieldName, currentFormStepId]);
+
     const setAllTouched: VoidFunction = (): void => {
       const touchedObj: Dictionary<boolean> = {};
 
@@ -524,6 +789,12 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
       };
 
       hasUserEdited.current = true;
+      changedFieldNames.current.add(fieldName);
+
+      // What the server said of the field was said of what it held before.
+      if (serverErrorFieldName && fieldName === serverErrorFieldName) {
+        setServerErrorPutAwayFor(fieldName);
+      }
 
       refCurrentValue.current = updatedValue;
 
@@ -1145,7 +1416,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                     </p>
                   </div>
                 )}
-                {props.error && (
+                {props.error && !serverErrorFieldName && (
                   <div className="mb-3">
                     <Alert title={props.error} type={AlertType.DANGER} />
                   </div>
@@ -1216,16 +1487,38 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                             </div>
                           )}
                           <div
+                            /*
+                             * scroll-my-4: brought into view for an error,
+                             * a field keeps a little room from the edge of
+                             * the dialog or page it scrolls in.
+                             */
                             className={
-                              field.spanFullRow ? fullRowSpan : undefined
+                              field.spanFullRow
+                                ? `scroll-my-4 ${fullRowSpan}`
+                                : "scroll-my-4"
                             }
+                            ref={(element: HTMLDivElement | null): void => {
+                              if (element) {
+                                fieldElements.current.set(fieldName, element);
+                              } else {
+                                fieldElements.current.delete(fieldName);
+                              }
+                            }}
                           >
                             <FormField<T>
                               field={field}
                               fieldName={fieldName}
                               index={index}
-                              error={errors[fieldName] || ""}
-                              touched={touched[fieldName] || false}
+                              error={
+                                errors[fieldName] ||
+                                (fieldName === shownServerErrorFieldName
+                                  ? props.error || ""
+                                  : "")
+                              }
+                              touched={
+                                touched[fieldName] ||
+                                fieldName === shownServerErrorFieldName
+                              }
                               isDisabled={
                                 isLoading ||
                                 (isDropdownOptionsLoading &&
@@ -1234,7 +1527,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                               }
                               currentValues={refCurrentValue.current}
                               setFieldValue={setFieldValue}
-                              setFieldTouched={setFieldTouched}
+                              setFieldTouched={touchFieldWhenLeft}
                               submitForm={submitForm}
                               disableAutofocus={props.disableAutofocus || false}
                               modelAPI={props.modelAPI}
@@ -1247,9 +1540,7 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                             {field.getFooterElement &&
                               field.getFooterElement(
                                 refCurrentValue.current,
-                                touched[fieldName]
-                                  ? errors[fieldName] || undefined
-                                  : undefined,
+                                getShownFieldError(fieldName) || undefined,
                                 {
                                   setValue: (value: JSONValue): void => {
                                     setFieldValueFromFooter(
@@ -1327,9 +1618,8 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                               icon={section.icon}
                               hasError={group.some(
                                 (field: Field<T>): boolean => {
-                                  const fieldName: string = getFieldName(field);
                                   return Boolean(
-                                    touched[fieldName] && errors[fieldName],
+                                    getShownFieldError(getFieldName(field)),
                                   );
                                 },
                               )}

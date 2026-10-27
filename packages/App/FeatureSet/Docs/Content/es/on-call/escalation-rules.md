@@ -134,6 +134,13 @@ Indica la severidad y qué ha pasado (un incidente, una alerta o un episodio de 
 
 La severidad, el número y el enlace nunca se cortan. Un título conserva al menos 20 caracteres: si ni eso cabe, por ejemplo con una dirección o un nombre de producto muy largos, el SMS ocupa una segunda parte y lo dice todo.
 
+Cuando una política vuelve a avisar porque un incidente o una alerta reconocidos siguen sin resolverse, el SMS lo dice después del número y el proyecto, y esas palabras tampoco se cortan nunca:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Un solo carácter fuera del alfabeto sencillo de los SMS hace que todo el mensaje salga en partes de 70 caracteres. Por eso las comillas tipográficas y las rayas se escriben como `"`, `'` y `-`, `…` como `...`, y letras como `ç` y `ł` pierden sus acentos; los emojis se omiten. Un título en otra escritura, como japonés o ruso, se envía tal como está escrito y ocupa dos partes o más.
 
 Los demás SMS que te envía OneUptime, por ejemplo sobre un cambio en un incidente del que eres propietario o el inicio de tu turno de guardia, también empiezan con `OneUptime:` y terminan con `Turn off in User Settings > Notification Settings.`, una frase que se omite cuando así el mensaje cabe en una parte.
@@ -154,7 +161,7 @@ En OneUptime Cloud, cada SMS, llamada, mensaje de WhatsApp y de Telegram se paga
 - Los avisos siguen saliendo con el saldo que queda mientras la recarga automática no puede cargar la tarjeta.
 
 > [!IMPORTANT]
-> SMS, llamadas telefónicas, WhatsApp y Telegram empiezan apagados en un proyecto nuevo: en OneUptime Cloud cada mensaje se paga con el saldo del proyecto, y una instalación autoalojada necesita antes una cuenta de Twilio o un bot de Telegram configurado. Mientras un canal esté apagado, nadie en el proyecto puede añadir un método en él. Solo un propietario del proyecto o alguien con el rol **Billing Admin** o el permiso **Manage Billing** puede encender uno, en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**; un administrador del proyecto no puede. A todos los demás se les dice exactamente quién puede, allí donde un canal esté apagado: encima de su propia lista de métodos en ese canal, en su lista de configuración y en el mensaje que reciben cuando algo lo necesita.
+> SMS, llamadas telefónicas, WhatsApp y Telegram empiezan apagados en un proyecto nuevo: en OneUptime Cloud cada mensaje se paga con el saldo del proyecto, y una instalación autoalojada necesita antes una cuenta de Twilio o un bot de Telegram configurado. Mientras un canal esté apagado, nadie en el proyecto puede añadir un método en él. Solo un propietario del proyecto o alguien con el rol **Administrador de facturación** o el permiso **Manage Billing** puede encender uno, en la tarjeta **Canales de notificación** de **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**; un administrador del proyecto no puede. A todos los demás se les dice exactamente quién puede, allí donde un canal esté apagado: encima de su propia lista de métodos en ese canal, en su lista de configuración y en el mensaje que reciben cuando algo lo necesita.
 
 ## Escalar a la siguiente persona de la rotación
 
@@ -221,7 +228,7 @@ Escalar un aviso no lo reconoce: el incidente o la alerta sigue esperando a que 
 
 Un aviso que un workflow envía directamente a personas no tiene niveles: escalarlo deja de avisarte, y cuando todas las personas a las que avisó lo han escalado, los avisos se detienen.
 
-Cada vez que se escala un aviso, queda registrado. La **Cronología de ejecución** de la ejecución marca la línea de la persona como **Escalado**, el feed del incidente dice «Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.», el mensaje de la ejecución en Slack y Microsoft Teams dice que lo escaló, y sus **Registros de guardia** muestran el aviso como **Escalado**.
+Cada vez que se escala un aviso, queda registrado. La **Cronología de ejecución** de la ejecución marca la línea de la persona como **Escalado**, el feed del incidente dice «Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.», el mensaje de la ejecución en Slack y Microsoft Teams dice que lo escaló, y sus **Registros de guardia** muestran el aviso como **Escalado**.
 
 ## Editar, reordenar y eliminar reglas
 

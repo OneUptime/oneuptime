@@ -225,9 +225,9 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | Группа | Что собирает | Что нужно |
 |---|---|---|
-| Connections | Число соединений, настроенный предел, прерванные подключения, время работы сервера | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| Подключения | Число соединений, настроенный предел, прерванные подключения, время работы сервера | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Activity | Самый долгий выполняющийся запрос, самая долгая открытая транзакция, открытые транзакции | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
-| Throughput | Транзакции, запросы, доля попаданий в кэш, чтения и записи на диск, время ввода-вывода | PostgreSQL: ничего, кроме `CONNECT`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| Пропускная способность | Транзакции, запросы, доля попаданий в кэш, чтения и записи на диск, время ввода-вывода | PostgreSQL: ничего, кроме `CONNECT`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Locks | Заблокированные сеансы, ожидания блокировок, взаимоблокировки, ожидания табличных блокировок | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Storage | Размер базы данных, сброс во временные файлы, место в журнале, свободное место в tempdb | PostgreSQL: ничего, кроме `CONNECT`. MySQL: `SELECT` на базу данных. SQL Server: ничего для размера базы данных; `VIEW SERVER STATE` для места в журнале и свободного места в tempdb |
 | Replication | Подключённые реплики, задержка репликации в секундах и байтах, неактивные слоты, состояние восстановления | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`; в Azure SQL Database не собирается |
@@ -274,28 +274,28 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | Метрика | Ряд | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Подключения | PostgreSQL, MySQL, SQL Server |
+| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Подключения | PostgreSQL, MySQL, SQL Server |
 
 ### Соединения
 
 | Метрика | Ряд | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Connections | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Connections | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connections | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Connections | MySQL |
+| **Connections** | `oneuptime.monitor.database.connections.total` | Подключения | PostgreSQL, MySQL, SQL Server |
+| **Active Connections** | `oneuptime.monitor.database.connections.active` | Подключения | PostgreSQL, MySQL, SQL Server |
+| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Подключения | PostgreSQL, MySQL |
+| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Подключения | PostgreSQL, MySQL |
+| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Подключения | PostgreSQL |
+| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Подключения | MySQL |
 
 ### Пропускная способность
 
 | Метрика | Ряд | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Throughput | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Throughput | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Throughput | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Throughput | PostgreSQL |
+| **Transactions** | `oneuptime.monitor.database.transactions.total` | Пропускная способность | PostgreSQL, SQL Server |
+| **Queries** | `oneuptime.monitor.database.queries.total` | Пропускная способность | MySQL, SQL Server |
+| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Пропускная способность | MySQL |
+| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Пропускная способность | PostgreSQL |
 | **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
@@ -315,13 +315,13 @@ ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
 
 | Метрика | Ряд | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Throughput | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Throughput | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Throughput | SQL Server |
+| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Пропускная способность | PostgreSQL, MySQL, SQL Server |
+| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Пропускная способность | PostgreSQL, MySQL, SQL Server |
+| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Пропускная способность | MySQL, SQL Server |
+| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Пропускная способность | PostgreSQL, SQL Server |
+| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Пропускная способность | PostgreSQL, SQL Server |
+| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Пропускная способность | SQL Server |
+| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Пропускная способность | SQL Server |
 
 PostgreSQL измеряет время чтения и записи ввода-вывода, только когда включён `track_io_timing`. По умолчанию он выключен, и тогда PostgreSQL сообщает оба значения как `0` — поэтому в PostgreSQL ровный ноль в этих двух рядах обычно означает «не измерялось», а не «быстро». Это настройка сервера, а не проблема прав.
 
@@ -363,6 +363,8 @@ PostgreSQL измеряет время чтения и записи ввода-�
 > **Transaction ID Used** заслуживает критерия на каждом мониторе PostgreSQL, который вы создаёте. Когда значение доходит до 100 %, PostgreSQL отказывает во всех записях, восстановление требует VACUUM в однопользовательском режиме при остановленной базе, и почти никто за этим не следит. Настройте оповещение задолго до обрыва — 80 % оставляют дни запаса для большинства нагрузок.
 
 Счётчики, оканчивающиеся на `total`, накапливаются с момента запуска сервера. Сравните две точки во времени, чтобы получить скорость; одно значение имеет смысл только по сравнению с его собственной историей, и оно сбрасывается в ноль при перезапуске сервера (что покажет **Uptime**).
+
+**Cache Hit Ratio** и **Rollback Ratio** считаются при каждой проверке по тому, насколько сдвинулись их счётчики с предыдущей проверки монитора, а не с запуска сервера, поэтому кэш, который начинает промахиваться, виден сразу. У первой проверки после запуска пробы и у первой после перезапуска сервера нет ни того, ни другого.
 
 ## Настроить критерии
 
@@ -410,7 +412,7 @@ PostgreSQL измеряет время чтения и записи ввода-�
 | 2 | **Деградация** | `Database Metric` → Connections Used больше `90`, оценивается за 5 минут с All Values, чтобы одиночный всплеск никого не вызвал. |
 | 3 | **Деградация** | `Database Metric` → Transaction ID Used больше `80`. |
 | 4 | **Деградация** | `Database Metric` → Blocked Sessions больше `0`, за 5 минут. |
-| 5 | **Online** | `Database Is Online` равно `true`. |
+| 5 | **В сети** | `Database Is Online` равно `true`. |
 
 Критерии проверяются сверху вниз, и побеждает первое совпадение, поэтому ставьте критерии оповещений первыми, а критерий здорового состояния — последним.
 

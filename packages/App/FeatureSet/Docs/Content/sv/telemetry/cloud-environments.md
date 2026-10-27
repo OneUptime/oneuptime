@@ -174,7 +174,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 :::
 
 > [!TIP]
-> Samma steg finns i instrumentpanelen, med din token ifylld: under **Moln → All Environments** tills din första miljö kommer, och på varje miljös flik **Dokumentation**.
+> Samma steg finns i instrumentpanelen, med din token ifylld: under **Moln → All Environments**, klicka på **Lägg till molnmiljö**. Varje miljös flik **Dokumentation** har dem också.
 
 ## Vad du får
 

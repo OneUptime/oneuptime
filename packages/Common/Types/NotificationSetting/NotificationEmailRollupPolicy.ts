@@ -11,8 +11,8 @@ import NotificationSettingEventType from "./NotificationSettingEventType";
  */
 
 /*
- * Time-critical on-call mail. Never held back, never counted, never written to
- * the queue table at all.
+ * Time-critical mail. Never held back, never counted, never written to the
+ * queue table at all.
  *
  * A five-minute coalescing window eats a thirty-minute shift lead time, which
  * is the entire value of "your shift starts soon". And "you are on call now",
@@ -20,6 +20,12 @@ import NotificationSettingEventType from "./NotificationSettingEventType";
  * allowed to have. The saving from rolling these up would be nil anyway: they
  * fire once per roster transition, not per resource, so they are not what
  * floods anyone's inbox.
+ *
+ * An SLA breach is a deadline that has already passed: holding it back five
+ * minutes to batch it with the incident chatter that caused it is exactly
+ * backwards, and it fires once per deadline. It borrowed "Incident created"
+ * until it had an event of its own, so its sender asked for the bypass
+ * (forceImmediate) every time; now the event type says it.
  */
 export const NEVER_ROLLED_UP_EVENT_TYPES: ReadonlySet<NotificationSettingEventType> =
   new Set<NotificationSettingEventType>([
@@ -28,6 +34,7 @@ export const NEVER_ROLLED_UP_EVENT_TYPES: ReadonlySet<NotificationSettingEventTy
     NotificationSettingEventType.SEND_WHEN_USER_IS_NO_LONGER_ACTIVE_ON_ON_CALL_ROSTER,
     NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
     NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
+    NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
   ]);
 
 /*
@@ -63,7 +70,7 @@ export const ROLLUP_ELIGIBLE_ON_CALL_ADMIN_EVENT_TYPES: ReadonlySet<Notification
   ]);
 
 /*
- * Everything else - the other 43 members. Derived from the enum by exclusion
+ * Everything else - every other member. Derived from the enum by exclusion
  * rather than listed by hand, so the two sets are a partition by construction
  * and cannot drift: there is no edit that adds a member to both, and no edit
  * that drops one from both.

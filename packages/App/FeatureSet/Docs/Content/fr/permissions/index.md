@@ -78,7 +78,7 @@ Les équipes **Owners** et **Admin** sont volontairement verrouillées : leurs a
 
 `ProjectOwner` est le niveau d'accès le plus élevé : facturation, suppression du projet, et tout ce que peut faire un administrateur. `ProjectAdmin` couvre tout sauf la facturation et la suppression du projet.
 
-Activer ou désactiver les SMS, les appels téléphoniques, WhatsApp ou Telegram pour le projet relève de la facturation, car chaque message coûte de l'argent. Seuls `ProjectOwner`, le rôle `BillingAdmin` (**Billing Admin**) et l'autorisation `ManageProjectBilling` (**Manage Billing**) peuvent modifier ces interrupteurs, dans **Paramètres du projet > Notifications > Paramètres de notification** — pas `ProjectAdmin`.
+Activer ou désactiver les SMS, les appels téléphoniques, WhatsApp ou Telegram pour le projet relève de la facturation, car chaque message coûte de l'argent. Seuls `ProjectOwner`, le rôle `BillingAdmin` (**Administrateur de la facturation**) et l'autorisation `ManageProjectBilling` (**Manage Billing**) peuvent modifier ces interrupteurs, dans **Paramètres du projet > Notifications > Paramètres de notification** — pas `ProjectAdmin`.
 
 Recharger les soldes prépayés du projet relève aussi de la facturation. Sur OneUptime Cloud, les SMS, les appels téléphoniques, WhatsApp et Telegram sont payés par le solde de **Paramètres du projet > Notifications > Paramètres de notification**, et l'IA par les crédits IA de **Paramètres du projet > IA > Crédits IA**. Seul un propriétaire du projet ou une personne disposant de **Manage Billing** peut les recharger ou modifier leur **Rechargement automatique** — un administrateur du projet ne le peut pas. Un message sur un solde qui s'épuise indique qui peut le recharger, et seules ces personnes ont un bouton **Recharger le solde** qui fonctionne ou un lien vers la page.
 
@@ -202,7 +202,7 @@ Chaque autorisation accordée l'est avec une portée : au moment de l'ajout, **P
 
 **Étiquettes** est la version plus manuelle de la même idée : marquez les ressources, puis accordez des autorisations restreintes à ces marqueurs.
 
-**Agir sur tout le projet demande une autorisation qui l'atteint.** **Run Now** d'une règle applique la règle à chaque ressource du projet, et les règles d'affectation de site, d'étiquette d'appareil et d'importation automatique d'un réseau à chaque appareil réseau ou analyse ; cela demande donc des autorisations dont la portée couvre toutes les ressources du projet : une autorisation restreinte à des étiquettes ou aux ressources possédées ne suffit pas, et un blocage avec étiquettes sur les ressources qu'une exécution modifie refuse l'exécution, car elle modifierait aussi les ressources qui portent ces étiquettes.
+**Agir sur tout le projet demande une autorisation qui l'atteint.** **Exécuter maintenant** d'une règle applique la règle à chaque ressource du projet, et les règles d'affectation de site, d'étiquette d'appareil et d'importation automatique d'un réseau à chaque appareil réseau ou analyse ; cela demande donc des autorisations dont la portée couvre toutes les ressources du projet : une autorisation restreinte à des étiquettes ou aux ressources possédées ne suffit pas, et un blocage avec étiquettes sur les ressources qu'une exécution modifie refuse l'exécution, car elle modifierait aussi les ressources qui portent ces étiquettes.
 
 Certains rôles sont projet-entier par définition et n'offrent aucune portée, car les restreindre n'aurait pas de sens — « Billing Admin, mais seulement pour la facturation que je possède » ne décrit rien :
 

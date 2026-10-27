@@ -50,6 +50,7 @@ import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailL
 import SubscriberMarkdownTemplateValues from "Common/Server/Utils/StatusPage/SubscriberMarkdownTemplateValues";
 import FeedMarkdown, { mdText } from "Common/Utils/Markdown/FeedMarkdown";
 import { isSendingSubscriberNotifications } from "Common/Types/StatusPage/SubscriberNotificationsSwitch";
+import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
 
 /*
  * Two jobs share this send path: one tells subscribers about a new
@@ -496,7 +497,9 @@ const notifySubscribersOfAnnouncement: (data: {
                     subscriberPlainTextTemplateVariables,
                   );
               } else {
-                smsMessage = `${copy.smsPrefix} ${announcement.title || ""} on ${statusPageName}. Details: ${announcementDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                smsMessage = writeDefaultSubscriberSms(
+                  `${copy.smsPrefix} ${announcement.title || ""} on ${statusPageName}. Details: ${announcementDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                );
               }
 
               const sms: SMS = {

@@ -48,7 +48,7 @@ Klikk på **Flere monitortyper** under **Monitortype**, og velg **Proxmox** unde
 
 ### Velg klyngen
 
-Velg klyngen i **Proxmox Cluster** under **Proxmox Monitor Configuration**. Hver klynge som har sendt data, står i listen.
+Velg klyngen i **Proxmox-klynge** under **Proxmox Monitor Configuration**. Hver klynge som har sendt data, står i listen.
 
 ### Velg hva som skal overvåkes
 
@@ -56,11 +56,11 @@ Velg en av de tre fanene:
 
 - **Quick Setup** – klikk på en [mal](#ferdige-varslingsmaler). Den angir metrikkene, filtrene, aggregeringen, tidsintervallet og tersklene, og erstatter kriteriene nedenfor med sine egne. Du kan fortsatt endre **Tidsintervall**.
 - **Custom Metric** – velg én metrikk i **Proxmox Metric**, og angi deretter **Aggregering** og **Tidsintervall**. [Filtrene](#monitorinnstillinger) snevrer den inn til én type ressurs eller til én ressurs.
-- **Avansert** – bygg spørringer og formler selv under **Velg målinger**, for eksempel en minneprosent fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Bruk **Group by** `id` for å vurdere hver ressurs for seg.
+- **Avansert** – bygg spørringer og formler selv under **Velg målinger**, for eksempel en minneprosent fra `pve_memory_usage_bytes / pve_memory_size_bytes`. Bruk **Grupper etter** `id` for å vurdere hver ressurs for seg.
 
 ### Kontroller kriteriene
 
-Åpne hvert kriterium under **Monitorkriterier** og kontroller **Metrikk**, **Aggregering**, **Betingelse** og **Threshold**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at en metrikk faller til null, så angi din egen terskel.
+Åpne hvert kriterium under **Monitorkriterier** og kontroller **Metrikk**, **Aggregering**, **Betingelse** og **Terskel**. En mal fyller inn disse. Med **Custom Metric** eller **Avansert** starter monitoren med [standardkriteriene](#standardkriterier), som bare merker at en metrikk faller til null, så angi din egen terskel.
 
 ### Opprett monitoren
 
@@ -68,13 +68,13 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 :::
 
 > [!TIP]
-> For å sette opp flere maler samtidig åpner du klyngen fra **Produkter → Infrastruktur → Proxmox** og går til **Recommendations**. Velg malene du vil ha og hvem som skal varsles, så oppretter OneUptime én monitor per mal.
+> For å sette opp flere maler samtidig åpner du klyngen fra **Produkter → Infrastruktur → Proxmox** og går til **Anbefalinger**. Velg malene du vil ha og hvem som skal varsles, så oppretter OneUptime én monitor per mal.
 
 ## Monitorinnstillinger
 
 | Felt | Fane | Hva det gjør |
 | --- | --- | --- |
-| **Proxmox Cluster** | Alle | Påkrevd. Avgrenser hver spørring til `resource.proxmox.cluster.name`. |
+| **Proxmox-klynge** | Alle | Påkrevd. Avgrenser hver spørring til `resource.proxmox.cluster.name`. |
 | **Ressursomfang** | Custom Metric, Avansert | Valgfritt. **Node**, **Guest (VM / container)**, **Lagring** eller **Klynge** – et nøyaktig samsvar med `pve.scope`. |
 | **PVE ID** | Custom Metric, Avansert | Valgfritt. Nøyaktig samsvar med `pve.id`: et nodenavn (`pve1`), en VMID (`100`) eller `<node>/<storage>` (`pve1/local`). Kombiner det med et omfang for å treffe én ressurs. |
 | **Nodenavn** | Custom Metric, Avansert | Valgfritt. Bare en nodes egne serier (`pve.scope = node` og `pve.id`). Det kan ikke velge gjestene eller lagringen på den noden. |
@@ -82,7 +82,7 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **Proxmox Metric** | Custom Metric | Én metrikk fra [katalogen](#innsamlede-metrikker). |
 | **Aggregering** | Custom Metric | Hvordan målinger kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på metrikkens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Past 1 Minute**; maler angir sitt eget. |
-| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Group by**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
+| **Velg målinger** | Avansert | Spørringsbyggeren: **Metrikk**, **Aggregate by**, **Filter by attributes**, **Grupper etter**, pluss **Legg til metrikk** og **Legg til formel** for å kombinere spørringer. |
 
 ## Ressursidentitet
 
@@ -224,10 +224,10 @@ Et kriterium sammenligner en av monitorens spørringer eller formler med en ters
 | **Metrikk** | Spørringen eller formelen som kontrolleres, etter variabelnavnet. |
 | **Aggregering** | Hvordan verdiene i vinduet blir til ett svar: **Gjennomsnitt**, **Sum**, **Maximum Value**, **Minimum Value**, **All Values** (hver verdi må samsvare, i hele vinduet) eller **Any Value** (én er nok). |
 | **Betingelse** | **Større enn**, **Mindre enn**, **Større enn eller lik**, **Mindre enn eller lik** eller **Lik** – eller en avviksbetingelse: **Anomalously High**, **Anomalously Low** eller **Anomalous**. |
-| **Threshold** | Verdien det sammenlignes med. En liste over enheter står ved siden av når metrikken har en enhet. Vises ikke for avviksbetingelser. |
+| **Terskel** | Verdien det sammenlignes med. En liste over enheter står ved siden av når metrikken har en enhet. Vises ikke for avviksbetingelser. |
 | **Følsomhet** | Bare avviksbetingelser. **Lav** (4σ), **Middels** (3σ, standard) eller **Høy** (2σ). |
 | **Grunnlinjevindu** | Bare avviksbetingelser. 14 dager (standard), 28, 60 eller 90 dager med historikk. |
-| **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har noen målinger: **Ignore** (standard), **Treat As Zero** eller **Trigger**. |
+| **Hvis ingen data** | Under **Flere felt**. Hva som skjer når vinduet ikke har noen målinger: **Ignore** (standard), **Treat As Zero** eller **Utløser**. |
 
 Avviksbetingelser sammenligner hver verdi med samme time i uken i grunnlinjen. De blir værende i en «Learning»-tilstand og gir ingenting før grunnlinjevinduet inneholder nok historikk.
 
@@ -243,7 +243,7 @@ En monitor du ikke bygger fra en mal, starter med to kriterier:
 | 2 | Check if _monitor name_ is online | En hvilken som helst verdi er over `0` | Markerer monitoren som **I drift**. |
 
 > [!IMPORTANT]
-> Stillhet samsvarer med ingen av kriteriene: en klynge som slutter å sende data, etterlater monitoren slik den var. For å få beskjed når data stopper, setter du **Hvis ingen data** til **Trigger** på et kriterium. Tid der OneUptime selv ikke mottok data, er aldri manglende data: en kontroll der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
+> Stillhet samsvarer med ingen av kriteriene: en klynge som slutter å sende data, etterlater monitoren slik den var. For å få beskjed når data stopper, setter du **Hvis ingen data** til **Utløser** på et kriterium. Tid der OneUptime selv ikke mottok data, er aldri manglende data: en kontroll der vinduet inneholder slik tid, venter i stedet, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
 ## Feilsøking
 

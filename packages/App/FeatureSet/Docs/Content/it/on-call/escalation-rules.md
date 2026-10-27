@@ -70,7 +70,7 @@ Da chiusa, l'intestazione di **Altri campi** nomina i due campi e mostra quelli 
 
 ### Crea la regola
 
-Fai clic su **Create Rule**. La regola viene aggiunta sotto le altre, come livello successivo della policy.
+Fai clic su **Crea regola**. La regola viene aggiunta sotto le altre, come livello successivo della policy.
 :::
 
 ## Come i livelli avvisano le persone
@@ -134,6 +134,13 @@ Indica la gravità e cosa è successo (un incidente, un avviso o un episodio di 
 
 La gravità, il numero e il link non vengono mai tagliati. Un titolo conserva almeno 20 caratteri: se nemmeno così entra, ad esempio con un indirizzo o un nome di prodotto molto lungo, l'SMS occupa una seconda parte e dice tutto.
 
+Quando una policy avvisa di nuovo perché un incidente o un avviso riconosciuto non è ancora risolto, l'SMS lo dice dopo il numero e il progetto, e nemmeno quelle parole vengono mai tagliate:
+
+```text
+OneUptime: Critical Incident INC-42 in Acme Prod is still not resolved:
+Checkout API is down. Ack or escalate: https://oneuptime.com/l/XJlaZRsd
+```
+
 Un solo carattere fuori dall'alfabeto semplice degli SMS fa partire l'intero messaggio in parti da 70 caratteri. Per questo le virgolette e i trattini tipografici vengono scritti come `"`, `'` e `-`, `…` come `...`, e lettere come `ç` e `ł` perdono i loro accenti; le emoji vengono omesse. Un titolo in un'altra scrittura, come il giapponese o il russo, viene inviato così come è scritto e occupa due parti o più.
 
 Gli altri SMS che OneUptime ti invia, ad esempio per una modifica a un incidente di cui sei proprietario o l'inizio del tuo turno di reperibilità, iniziano anch'essi con `OneUptime:` e terminano con `Turn off in User Settings > Notification Settings.`, una frase che viene omessa quando è proprio questo a far stare l'SMS in una parte.
@@ -154,7 +161,7 @@ Su OneUptime Cloud ogni SMS, chiamata, messaggio WhatsApp e Telegram viene pagat
 - Gli avvisi continuano a partire con il saldo rimasto finché la ricarica automatica non riesce ad addebitare la carta.
 
 > [!IMPORTANT]
-> SMS, chiamate telefoniche, WhatsApp e Telegram sono disattivati in un nuovo progetto: su OneUptime Cloud ogni messaggio viene pagato con il saldo del progetto, e un'installazione self-hosted ha prima bisogno di un account Twilio o di un bot Telegram configurato. Finché un canale è disattivato, nessuno nel progetto può aggiungere un metodo su di esso. Solo un proprietario del progetto o qualcuno con il ruolo **Billing Admin** o il permesso **Manage Billing** può attivarne uno, nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche**: un amministratore del progetto non può. Tutti gli altri vengono informati esattamente su chi può farlo, ovunque un canale sia disattivato: sopra il proprio elenco di metodi su quel canale, nella propria checklist di configurazione e nel messaggio che ricevono quando qualcosa ne ha bisogno.
+> SMS, chiamate telefoniche, WhatsApp e Telegram sono disattivati in un nuovo progetto: su OneUptime Cloud ogni messaggio viene pagato con il saldo del progetto, e un'installazione self-hosted ha prima bisogno di un account Twilio o di un bot Telegram configurato. Finché un canale è disattivato, nessuno nel progetto può aggiungere un metodo su di esso. Solo un proprietario del progetto o qualcuno con il ruolo **Amministratore della fatturazione** o il permesso **Manage Billing** può attivarne uno, nella scheda **Canali di notifica** di **Impostazioni del progetto > Notifiche > Impostazioni notifiche**: un amministratore del progetto non può. Tutti gli altri vengono informati esattamente su chi può farlo, ovunque un canale sia disattivato: sopra il proprio elenco di metodi su quel canale, nella propria checklist di configurazione e nel messaggio che ricevono quando qualcosa ne ha bisogno.
 
 ## Escalation alla persona successiva nella rotazione
 
@@ -168,7 +175,7 @@ Un livello può avvisare la persona successiva nella rotazione di una pianificaz
 
 :::steps
 1. Assicurati che il primo livello della policy, **Level 1**, notifichi la pianificazione di reperibilità.
-2. Fai clic su **Aggiungi regola di escalation**, poi su **Aggiungi destinatario**, e scegli la stessa pianificazione in **Successivo nella rotazione**. Imposta **Escala dopo (in minuti)** e fai clic su **Create Rule**.
+2. Fai clic su **Aggiungi regola di escalation**, poi su **Aggiungi destinatario**, e scegli la stessa pianificazione in **Successivo nella rotazione**. Imposta **Escala dopo (in minuti)** e fai clic su **Crea regola**.
 3. Aggiungi un altro livello per il team o il manager che deve essere avvisato dopo.
 :::
 
@@ -221,15 +228,15 @@ Escalare un avviso non lo conferma: l'incidente o l'avviso continua ad attendere
 
 Un avviso che un workflow invia direttamente alle persone non ha livelli: escalarlo smette di avvisarti, e quando tutti quelli che ha avvisato l'hanno escalato, gli avvisi si fermano.
 
-Ogni escalation viene registrata. La **Cronologia di esecuzione** dell'esecuzione segna la riga della persona come **Escalato**, il feed dell'incidente dice «Alex Kim escalated the page from on-call policy Payments at escalation rule Level 1.», il messaggio dell'esecuzione in Slack e Microsoft Teams dice che l'ha escalato, e i suoi **Registri di reperibilità** mostrano l'avviso come **Escalato**.
+Ogni escalation viene registrata. La **Cronologia di esecuzione** dell'esecuzione segna la riga della persona come **Escalato**, il feed dell'incidente dice «Alex Kim escalated the page from on-call policy Payments at Level 1 of 3.», il messaggio dell'esecuzione in Slack e Microsoft Teams dice che l'ha escalato, e i suoi **Registri di reperibilità** mostrano l'avviso come **Escalato**.
 
 ## Modificare, riordinare ed eliminare le regole
 
-La scheda di ogni regola ha **Edit rule** e un menu **⋯** con le altre azioni:
+La scheda di ogni regola ha **Modifica regola** e un menu **⋯** con le altre azioni:
 
-- **Edit rule** apre la stessa finestra di dialogo di una pagina, compilata con la regola com'è: i suoi destinatari, la sua attesa, il nome e la descrizione in **Altri campi**. Aggiungi o rimuovi destinatari e fai clic su **Salva modifiche**. Svuotare il nome ridà alla regola il nome del suo livello.
+- **Modifica regola** apre la stessa finestra di dialogo di una pagina, compilata con la regola com'è: i suoi destinatari, la sua attesa, il nome e la descrizione in **Altri campi**. Aggiungi o rimuovi destinatari e fai clic su **Salva modifiche**. Svuotare il nome ridà alla regola il nome del suo livello.
 - **Sposta su** e **Sposta giù** nel menu **⋯** di una regola ne cambiano il livello. Una regola che prende il nome dal suo livello mantiene un nome coerente con la sua posizione: quando **Level 3** sale sopra **Level 2**, le due si scambiano i nomi. Un nome che hai scelto, come **Responsabili**, resta lo stesso ovunque vada la regola.
-- **Delete rule** chiede prima conferma e indica chi avvisa il livello. Eliminare un livello fa salire i livelli sottostanti, e le regole che prendono il nome dal livello vengono rinominate di conseguenza.
+- **Elimina regola** chiede prima conferma e indica chi avvisa il livello. Eliminare un livello fa salire i livelli sottostanti, e le regole che prendono il nome dal livello vengono rinominate di conseguenza.
 
 ## Creare regole con l'API o Terraform
 

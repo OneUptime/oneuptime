@@ -39,7 +39,7 @@ sequenceDiagram
 - Et Slack-arbejdsområde, hvor du kan oprette og installere apps.
 - Et offentligt HTTPS-værtsnavn til OneUptime, som Slack kan nå. Se [Netværksadgang](#netværksadgang-for-selvhostede-installationer).
 - Adgang til serverens konfiguration: `config.env` til Docker Compose eller dine Helm-values til Kubernetes.
-- For at forbinde et projekt: rollen **Project Owner**, **Project Admin** eller **Project Member** i det.
+- For at forbinde et projekt: rollen **Projektejer**, **Projektadministrator** eller **Projektmedlem** i det.
 
 ## Opsæt Slack-appen
 
@@ -239,7 +239,7 @@ Når Slack sender dig tilbage, og forbindelsen ikke blev oprettet, viser den Sla
 | Siden siger | Hvad du gør |
 | --- | --- |
 | **"Dette forbindelseslink er ugyldigt, er udløbet eller er allerede brugt. Start forfra."** | Linket virker én gang, i 15 minutter, i den browser, der startede det. Start forfra fra Slack-siden, og gør det færdigt i Slack inden for 15 minutter i samme browser. |
-| **"Du har ikke tilladelse til at forbinde dette projekt til Slack."** | At installere OneUptime i Slack kræver **Project Owner**, **Project Admin** eller **Project Member**. Det kontrolleres igen, når Slack sender dig tilbage, så en rolle, der er fjernet i mellemtiden, afslutter også forbindelsen her. |
+| **"Du har ikke tilladelse til at forbinde dette projekt til Slack."** | At installere OneUptime i Slack kræver **Projektejer**, **Projektadministrator** eller **Projektmedlem**. Det kontrolleres igen, når Slack sender dig tilbage, så en rolle, der er fjernet i mellemtiden, afslutter også forbindelsen her. |
 | **"Du er ikke længere medlem af dette projekt."** | For at forbinde din egen Slack-konto skal du være medlem af projektet, når Slack sender dig tilbage. |
 | **"Dette projekt er endnu ikke forbundet til et Slack-arbejdsområde."** | Installér først OneUptime i Slack fra **Projektindstillinger > Arbejdsområde > Slack**, og forbind derefter din egen konto. |
 | **"Du loggede ind i et andet Slack-arbejdsområde end det, dette projekt er forbundet til."** | Forbind din konto, mens du er logget ind i det Slack-arbejdsområde, projektet er installeret i. |

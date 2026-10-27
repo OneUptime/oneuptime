@@ -68,7 +68,7 @@ flowchart TB
 
 ## オーバーライドを追加できる人
 
-**Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin**、 **On-Call Member** はオーバーライドを追加、削除でき、 **Viewer** と **On-Call Viewer** は閲覧できます。カスタムロールでの権限は **Create On-Call Duty Policy User Override**、 **Delete On-Call Duty Policy User Override**、 **Read On-Call Duty Policy User Override** です。 **スケジュールタイムライン** では、オーバーライドを閲覧できる人だけが、誰のシフトが代理されているかを確認できます。
+**プロジェクト所有者**、 **プロジェクト管理者**、 **プロジェクトメンバー**、 **オンコール管理者**、 **オンコールメンバー** はオーバーライドを追加、削除でき、 **閲覧者** と **オンコール閲覧者** は閲覧できます。カスタムロールでの権限は **Create On-Call Duty Policy User Override**、 **Delete On-Call Duty Policy User Override**、 **Read On-Call Duty Policy User Override** です。 **スケジュールタイムライン** では、オーバーライドを閲覧できる人だけが、誰のシフトが代理されているかを確認できます。
 
 OneUptime Cloud では、ユーザーオーバーライドには **Growth** プランが必要です。
 

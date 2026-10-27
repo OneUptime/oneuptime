@@ -3,7 +3,7 @@
 Dina jourregler avgör hur ett larm når dig: vilka av dina aviseringsmetoder OneUptime försöker med, och hur lång tid efter att larmet startade. Varje typ av larm har egna regler, en uppsättning per allvarlighetsgrad, så att en kritisk incident kan ringa dig direkt medan ett lågt larm väntar på ett e-postmeddelande. Du ställer in dem under **Användarinställningar → Jourregler**.
 
 > [!NOTE]
-> De här reglerna är bara dina. **Jourregler** under **Incidenter → Regler** och **Varningar → Regler** är något annat: de avgör vilka jourpolicyer en ny incident eller ett nytt larm kör.
+> De här reglerna är bara dina. **Jourregler** under **Incidenter → Regler** och **Larm → Regler** är något annat: de avgör vilka jourpolicyer en ny incident eller ett nytt larm kör.
 
 :::cards
 - [Så når ett larm dig](#så-når-ett-larm-dig): Dina regler för ett larm, steg för steg.
@@ -24,7 +24,7 @@ flowchart TB
     ack["Du bekräftar"] -.->|"stoppar resten"| third
 ```
 
-De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsApp, Telegram, Slack och Microsoft Teams har en bekräftelselänk, och ett samtal ber dig trycka 1. Kan du inte ta ett larm kan du eskalera det från samma meddelanden, och ett samtal ber dig trycka 2: policyn larmar nästa nivå direkt, och du larmas inte om det igen. Se [Eskalera ett larm](/docs/on-call/escalation-rules#eskalera-ett-larm). Varje larm du får finns under **Användarinställningar → Jourloggar**, där **View Timeline** visar varje skickat meddelande och om det levererades.
+De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsApp, Telegram, Slack och Microsoft Teams har en bekräftelselänk, och ett samtal ber dig trycka 1. Kan du inte ta ett larm kan du eskalera det från samma meddelanden, och ett samtal ber dig trycka 2: policyn larmar nästa nivå direkt, och du larmas inte om det igen. Se [Eskalera ett larm](/docs/on-call/escalation-rules#eskalera-ett-larm). Varje larm du får finns under **Användarinställningar → Jourloggar**, där **Visa tidslinje** visar varje skickat meddelande och om det levererades.
 
 ## De fyra flikarna
 
@@ -34,7 +34,7 @@ De flesta meddelanden kan bekräfta larmet: e-post, SMS och meddelanden i WhatsA
 | --- | --- | --- |
 | **Incidenter** | Incidenter | Allvarlighetsgrader för incidenter |
 | **Incident Episoder** | Episoder som samlar incidenter | Allvarlighetsgrader för incidenter |
-| **Varningar** | Larm | Allvarlighetsgrader för larm |
+| **Larm** | Larm | Allvarlighetsgrader för larm |
 | **Larm Episoder** | Episoder som samlar larm | Allvarlighetsgrader för larm |
 
 En episod larmar dig genom sina egna jourpolicyer, separat från incidenterna eller larmen i den, så dess regler har en egen flik. Sidans adress anger den öppna fliken, till exempel `/dashboard/{projectId}/user-settings/on-call-rules?type=alerts`; de andra värdena är `incident-episodes` och `alert-episodes`, och utan `type` öppnas sidan på **Incidenter**.
@@ -66,7 +66,7 @@ Klicka på **Lägg till Avisering Regel**. Välj under **Aviseringsmetod** en av
 
 ### Välj hur en push låter
 
-För en telefon väljer du under **Push-avisering** antingen **Kritisk varning** eller **Normal**. För alla push-enheter väljer du **Upprepa tills bekräftad**. Se [Push-regler](#push-regler).
+För en telefon väljer du under **Push-avisering** antingen **Kritiskt larm** eller **Normal**. För alla push-enheter väljer du **Upprepa tills bekräftad**. Se [Push-regler](#push-regler).
 
 ### Ställ in väntetiden
 
@@ -78,7 +78,7 @@ Kortet listar sina regler i ordning efter väntetid, med **Aviseringsmetod** och
 ## Ändra eller ta bort en regel
 
 - **Redigera** på en regels rad ändrar dess väntetid. För att skicka en regel till en annan metod tar du bort den och lägger till en ny.
-- Klicka på etiketten under metoden på en push-regel för att växla mellan **Kritisk varning** och **Normal**, eller för att ändra hur ofta den upprepas. Det sparas direkt.
+- Klicka på etiketten under metoden på en push-regel för att växla mellan **Kritiskt larm** och **Normal**, eller för att ändra hur ofta den upprepas. Det sparas direkt.
 - **Ta bort** frågar först, och berättar om allvarlighetsgraden blir utan regel. En allvarlighetsgrad utan regel faller tillbaka på dina verifierade metoder; se [När en allvarlighetsgrad saknar regel](#när-en-allvarlighetsgrad-saknar-regel).
 
 ## Push-regler
@@ -87,7 +87,7 @@ En regel som larmar en telefon bestämmer hur dess push låter:
 
 | Val | Vad telefonen gör |
 | --- | --- |
-| **Kritisk varning** | Ringer även när telefonen är på ljudlöst eller i Stör ej, när Critical On-Call Alerts är påslaget i appen OneUptime On-Call. En ny telefonregel börjar här. |
+| **Kritiskt larm** | Ringer även när telefonen är på ljudlöst eller i Stör ej, när Critical On-Call Alerts är påslaget i appen OneUptime On-Call. En ny telefonregel börjar här. |
 | **Normal** | Följer telefonens inställningar för ljud, ljudlöst och Stör ej. |
 
 En push-regel, för en telefon eller en webbläsare, kan också skicka sin push igen tills någon bekräftar: **Upprepa inte**, standardvalet, eller **Varje minut**, **Varannan minut**, **Var 3:e minut**, **Var 5:e minut**, **Var 10:e minut**, **Var 15:e minut** eller **Var 30:e minut**. Den upprepas upp till 10 gånger till och stoppar så snart incidenten, larmet eller episoden har bekräftats. Se [Kritiska jourlarm](/docs/self-hosted/push-notifications#kritiska-jourlarm-åsidosätter-tyst-läge).
@@ -113,7 +113,7 @@ Projektägare och administratörer kan se och ändra samma sida för alla i proj
 ## Felsökning
 
 :::details Min telefon var tyst vid ett kritiskt larm
-Kontrollera att regelns push är **Kritisk varning** och inte **Normal**, och att **Kritiska varningar** är påslaget för telefonen under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**.
+Kontrollera att regelns push är **Kritiskt larm** och inte **Normal**, och att **Kritiska larm** är påslaget för telefonen under **Användarinställningar → Aviseringsmetoder**, på fliken **Push Notifications**.
 :::
 
 :::details Jag larmas två gånger för varje incident

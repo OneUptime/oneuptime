@@ -97,7 +97,7 @@ Fanen **Custom Metric** tilbyder disse metrikker, grupperet efter ressourcetype:
 
 ### Hvad der evalueres
 
-Disse monitorer evaluerer altid **Metric Value** – værdien af den konfigurerede metrikforespørgsel eller formel. Kriterieformularen har ingen vælger for filtertype; den viser **Metrik**, **Aggregering**, **Betingelse** og **Threshold**.
+Disse monitorer evaluerer altid **Metric Value** – værdien af den konfigurerede metrikforespørgsel eller formel. Kriterieformularen har ingen vælger for filtertype; den viser **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**.
 
 ### Aggregeringstyper
 
@@ -112,7 +112,7 @@ Disse monitorer evaluerer altid **Metric Value** – værdien af den konfigurere
 
 ### Betingelser
 
-Statiske tærskler sammenlignes med den **Threshold**, du angiver: **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** og **Lig med**.
+Statiske tærskler sammenlignes med den **Tærskel**, du angiver: **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** og **Lig med**.
 
 Anomalidetektion mod en baseline kræver ingen tærskel. Vælg en af disse betingelser, så viser formularen i stedet **Følsomhed** og **Baseline-vindue**:
 

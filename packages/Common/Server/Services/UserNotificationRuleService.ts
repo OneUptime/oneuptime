@@ -1501,6 +1501,7 @@ export class Service extends ProjectReferencesService<Model> {
           notificationRuleItem.userSms.phone,
           alert,
           updatedLog.id!,
+          pageAgain,
         );
 
         // send sms.
@@ -1556,6 +1557,7 @@ export class Service extends ProjectReferencesService<Model> {
             notificationRuleItem.userSms.phone,
             incident,
             updatedLog.id!,
+            pageAgain,
           );
 
         // send sms.
@@ -1610,6 +1612,7 @@ export class Service extends ProjectReferencesService<Model> {
             notificationRuleItem.userSms.phone,
             alertEpisode,
             updatedLog.id!,
+            pageAgain,
           );
 
         SmsService.sendSms(smsMessage, {
@@ -1662,6 +1665,7 @@ export class Service extends ProjectReferencesService<Model> {
             notificationRuleItem.userSms.phone,
             incidentEpisode,
             updatedLog.id!,
+            pageAgain,
           );
 
         /*
@@ -4102,10 +4106,12 @@ export class Service extends ProjectReferencesService<Model> {
     to: Phone,
     alert: Alert,
     userOnCallLogTimelineId: ObjectID,
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<SMS> {
     return {
       to,
       message: this.buildOnCallPageSmsText({
+        isPageAgain: Boolean(pageAgain),
         kind: OnCallPageSmsKind.Alert,
         severityName: alert.alertSeverity?.name,
         number: this.getRecordNumberText(
@@ -4126,10 +4132,12 @@ export class Service extends ProjectReferencesService<Model> {
     to: Phone,
     incident: Incident,
     userOnCallLogTimelineId: ObjectID,
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<SMS> {
     return {
       to,
       message: this.buildOnCallPageSmsText({
+        isPageAgain: Boolean(pageAgain),
         kind: OnCallPageSmsKind.Incident,
         severityName: incident.incidentSeverity?.name,
         number: this.getRecordNumberText(
@@ -4150,10 +4158,12 @@ export class Service extends ProjectReferencesService<Model> {
     to: Phone,
     alertEpisode: AlertEpisode,
     userOnCallLogTimelineId: ObjectID,
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<SMS> {
     return {
       to,
       message: this.buildOnCallPageSmsText({
+        isPageAgain: Boolean(pageAgain),
         kind: OnCallPageSmsKind.AlertEpisode,
         severityName: alertEpisode.alertSeverity?.name,
         number: this.getRecordNumberText(
@@ -4174,10 +4184,12 @@ export class Service extends ProjectReferencesService<Model> {
     to: Phone,
     incidentEpisode: IncidentEpisode,
     userOnCallLogTimelineId: ObjectID,
+    pageAgain?: OnCallPageAgainNotice | undefined,
   ): Promise<SMS> {
     return {
       to,
       message: this.buildOnCallPageSmsText({
+        isPageAgain: Boolean(pageAgain),
         kind: OnCallPageSmsKind.IncidentEpisode,
         severityName: incidentEpisode.incidentSeverity?.name,
         number: this.getRecordNumberText(
@@ -4212,9 +4224,12 @@ export class Service extends ProjectReferencesService<Model> {
     projectName: string | undefined;
     title: string | undefined;
     link: URL;
+    // A page again: the text says the record is still not resolved.
+    isPageAgain: boolean;
   }): string {
     return buildOnCallPageSms({
       kind: data.kind,
+      isPageAgain: data.isPageAgain,
       productName: ONEUPTIME_PRODUCT_NAME,
       severityName: data.severityName,
       number: data.number,

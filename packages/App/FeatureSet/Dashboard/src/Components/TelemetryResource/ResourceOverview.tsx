@@ -8,14 +8,22 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import AppLink from "../AppLink/AppLink";
 import EditInSettingsLink from "./EditInSettingsLink";
+import { getReportedResourceOverviewDetailRows } from "./ResourceOverviewDetails";
 
 export interface ResourceOverviewChip {
   icon: IconProp;
   label: string;
 }
 
+/*
+ * One fact in the Details card. A row whose value is empty is not drawn
+ * (ResourceOverviewDetails), so a page lists every fact it can show and
+ * the card says only the ones the resource reported.
+ */
 export interface ResourceOverviewDetailRow {
   label: string;
   value: string | undefined;
@@ -57,13 +65,6 @@ export interface ResourceOverviewTile {
   description?: string | undefined;
 }
 
-export interface ResourceOverviewQuickLink {
-  title: string;
-  description: string;
-  to: Route;
-  icon: IconProp;
-}
-
 // The status pill's colour: green, amber or gray.
 export type ResourceOverviewStatusTone = "positive" | "warning" | "neutral";
 
@@ -99,8 +100,12 @@ export interface ResourceOverviewProps {
   controls?: ReactElement | undefined;
   // Trend charts rendered between the tiles and the details card.
   charts?: ReactElement | undefined;
-  // Secondary navigation to the raw telemetry tabs.
-  quickLinks?: Array<ResourceOverviewQuickLink> | undefined;
+  /*
+   * There are no links to the resource's telemetry pages here: the side
+   * menu beside the Overview already lists every one of them (#4979 and
+   * its follow-up of #4980 took the "Explore telemetry" card off every
+   * Overview).
+   */
   detailRows: Array<ResourceOverviewDetailRow>;
   labels?: Array<Label> | undefined;
   /*
@@ -280,23 +285,44 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
 const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
   props: ResourceOverviewProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   /*
-   * The Details rows and the quick links: ruled from edge to edge of their
-   * card, their words where the card's title starts, at every width.
+   * The Details rows: ruled from edge to edge of their card, their words
+   * where the card's title starts, at every width.
    */
   const ruledListClassName: string = useCardRuledListClassName();
+  // Only the facts the resource reported; an empty one is not a row.
+  const reportedDetailRows: Array<ResourceOverviewDetailRow> =
+    getReportedResourceOverviewDetailRows(props.detailRows);
   const status: string = (props.status || "").toLowerCase();
   const isConnected: boolean = status === "connected" || status === "active";
+  /*
+   * One whole sentence either way, in the reader's language: "Last seen" and
+   * a German time read "Zuletzt gesehen vor 5 Minuten", never "Last seen vor
+   * 5 Minuten", and a resource that never reported reads "Never seen".
+   */
   const lastSeenText: string = props.lastSeenAt
-    ? OneUptimeDate.fromNow(props.lastSeenAt)
-    : "never";
+    ? translator.translateTemplate("Last seen {{time}}", {
+        time: OneUptimeDate.fromNow(props.lastSeenAt),
+      })
+    : translator.translateText("Never seen") || "Never seen";
 
   const statusTone: ResourceOverviewStatusTone =
     props.statusTone || (isConnected ? "positive" : "warning");
   const statusBadgeClass: string = STATUS_TONE_CLASSES[statusTone].badge;
   const statusDotClass: string = STATUS_TONE_CLASSES[statusTone].dot;
+  /*
+   * The pill's word: one the product words ("Connected", "Seen recently",
+   * "Reporting") in the reader's language, one a page worded itself as
+   * given.
+   */
+  const givenStatusLabel: string =
+    props.statusLabel ||
+    (isConnected
+      ? translationKey("Connected")
+      : translationKey("Disconnected"));
   const statusLabel: string =
-    props.statusLabel || (isConnected ? "Connected" : "Disconnected");
+    translator.translateText(givenStatusLabel) || givenStatusLabel;
 
   return (
     <Fragment>
@@ -352,9 +378,7 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
                 ) : (
                   <></>
                 )}
-                <div className="mt-1 text-xs text-gray-400">
-                  Last seen {lastSeenText}
-                </div>
+                <div className="mt-1 text-xs text-gray-400">{lastSeenText}</div>
               </div>
             </div>
             {props.controls ? (
@@ -449,80 +473,43 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
             : undefined
         }
       >
-        <div className={ruledListClassName}>
-          {props.detailRows.map(
-            (row: ResourceOverviewDetailRow, idx: number): ReactElement => {
-              return (
-                <div
-                  key={`row-${idx}`}
-                  className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"
-                >
-                  <dt className="text-sm font-medium text-gray-500">
-                    {row.label}
-                  </dt>
-                  <dd
-                    className={`mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0 break-all ${
-                      row.mono === false ? "" : "font-mono"
-                    }`}
-                  >
-                    {row.value && row.value.length > 0
-                      ? row.element || row.value
-                      : "—"}
-                  </dd>
-                </div>
-              );
-            },
-          )}
-        </div>
-      </Card>
-
-      {/* Explore telemetry (secondary navigation) */}
-      {props.quickLinks && props.quickLinks.length > 0 ? (
-        <div className="mt-6">
-          <Card
-            title="Explore telemetry"
-            description="Drill into the raw signals for this resource."
+        {reportedDetailRows.length > 0 ? (
+          <dl
+            data-testid="resource-overview-details"
+            className={ruledListClassName}
           >
-            <div className={ruledListClassName}>
-              {props.quickLinks.map(
-                (
-                  link: ResourceOverviewQuickLink,
-                  idx: number,
-                ): ReactElement => {
-                  return (
-                    <AppLink
-                      key={`ql-${idx}`}
-                      to={link.to}
-                      className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 md:px-6"
+            {reportedDetailRows.map(
+              (row: ResourceOverviewDetailRow, idx: number): ReactElement => {
+                return (
+                  <div
+                    key={`row-${idx}`}
+                    data-testid="resource-overview-detail-row"
+                    className="px-5 py-3 sm:grid sm:grid-cols-3 sm:gap-4 md:px-6"
+                  >
+                    <dt className="text-sm font-medium text-gray-500">
+                      {row.label}
+                    </dt>
+                    <dd
+                      className={`mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0 break-all ${
+                        row.mono === false ? "" : "font-mono"
+                      }`}
                     >
-                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md bg-gray-50 ring-1 ring-inset ring-gray-200">
-                        <Icon
-                          icon={link.icon}
-                          className="h-4 w-4 text-gray-500"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-medium text-gray-900">
-                          {link.title}
-                        </div>
-                        <div className="text-xs text-gray-500 truncate">
-                          {link.description}
-                        </div>
-                      </div>
-                      <Icon
-                        icon={IconProp.ChevronRight}
-                        className="h-4 w-4 flex-shrink-0 text-gray-400"
-                      />
-                    </AppLink>
-                  );
-                },
-              )}
-            </div>
-          </Card>
-        </div>
-      ) : (
-        <></>
-      )}
+                      {row.element || row.value}
+                    </dd>
+                  </div>
+                );
+              },
+            )}
+          </dl>
+        ) : (
+          <p
+            data-testid="resource-overview-no-details"
+            className="text-sm text-gray-500"
+          >
+            {translator.translateText("No details reported yet.")}
+          </p>
+        )}
+      </Card>
 
       {/* Labels */}
       {props.labels && props.labels.length > 0 ? (

@@ -39,7 +39,7 @@ Gå til **Monitorer → Innstillinger → Maler**, og klikk på **Opprett Monito
 
 ### Gi malen et navn
 
-Under **Malinformasjon** angir du et **Malnavn**, som `Production API Health`, og en **Malbeskrivelse**, og klikker så på **Neste**.
+Under **Malinformasjon** angir du et **Malnavn**, som `Production API Health`. En **Malbeskrivelse** er valgfri. Klikk så på **Neste**.
 
 ### Angi monitorens standardverdier
 

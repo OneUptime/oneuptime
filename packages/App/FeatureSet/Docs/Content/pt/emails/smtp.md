@@ -51,7 +51,7 @@ Na etapa **Remetente**, informe o **E-mail de origem** e o **Nome de origem** de
 
 ### Salvar e enviar um e-mail de teste
 
-Salve a configuração. Depois que uma configuração de projeto é salva, **Enviar e-mail de teste** na linha dela verifica se funciona. É preciso ter permissão para adicionar configurações SMTP: **Project Owner**, **Project Admin**, ou **Create SMTP Config** e **Read SMTP Config** numa função personalizada. No OneUptime Cloud também é preciso o plano **Growth**, como para adicionar uma configuração. Para qualquer outra pessoa o botão fica bloqueado, e a dica dele diz o que falta.
+Salve a configuração. Depois que uma configuração de projeto é salva, **Enviar e-mail de teste** na linha dela verifica se funciona. É preciso ter permissão para adicionar configurações SMTP: **Proprietário do projeto**, **Administrador do projeto**, ou **Create SMTP Config** e **Read SMTP Config** numa função personalizada. No OneUptime Cloud também é preciso o plano **Growth**, como para adicionar uma configuração. Para qualquer outra pessoa o botão fica bloqueado, e a dica dele diz o que falta.
 
 O teste pede um endereço de **E-mail** para onde enviar, o seu de início. Confira se a mensagem chega.
 :::

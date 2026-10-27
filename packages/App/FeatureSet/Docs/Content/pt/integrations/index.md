@@ -113,7 +113,7 @@ Para uma ferramenta de alerta, comece com um [monitor Incoming Request](/docs/mo
 
 :::steps
 1. Abra **Fluxos de trabalho**, clique em **Criar fluxo de trabalho** e depois em **Começar do zero**. Dê um nome ao workflow e clique em **Criar fluxo de trabalho**.
-2. Clique no bloco tracejado **Choose what starts this workflow** e escolha **Webhook**. Clique no gatilho e depois em **Copiar URL**.
+2. Clique no bloco tracejado **Escolha o que inicia este fluxo de trabalho** e escolha **Webhook**. Clique no gatilho e depois em **Copiar URL**.
 3. Na outra ferramenta, envie o webhook dela para essa URL como um `POST` com `Content-Type: application/json`.
 4. Adicione os blocos que agem sobre ele. Eles leem a requisição com referências como `{{local.components.webhook-1.returnValues.request-body.status}}`: um bloco **If / Else** para verificar um campo e depois **Create One Incident** para declarar um incidente.
 5. Ative **Habilitado** no topo do **Construtor**, envie um teste a partir da outra ferramenta e abra **Registros → Execuções** para ver o que chegou.

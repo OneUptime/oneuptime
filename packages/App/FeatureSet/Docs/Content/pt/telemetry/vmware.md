@@ -228,7 +228,7 @@ As unidades são as unidades OTLP do próprio receiver, que o OneUptime escala p
 
 ### Estado de energia das VMs
 
-O receiver não envia nenhuma métrica de estado de energia de uma VM. Ele envia `vcenter.vm.cpu.*` **só para VMs ligadas**, então o OneUptime deduz o estado a partir do que chegou em cada coleta: uma VM que informou métricas de CPU está **Powered on**; uma que informou só uso de memória e disco está **Powered off** (ou suspensa: aqui o vSphere não diferencia as duas). Modelos de VM não têm estado de energia. Isso lê **uma coleta inteira de cada vez**, e é por isso que o processador `batch` incluído tem um `send_batch_size` grande e, de propósito, nenhum `send_batch_max_size`: uma coleta dividida entre duas exportações zeraria as contagens do inventário e "desligaria" VMs. Mantenha as configurações de batch como vêm.
+O receiver não envia nenhuma métrica de estado de energia de uma VM. Ele envia `vcenter.vm.cpu.*` **só para VMs ligadas**, então o OneUptime deduz o estado a partir do que chegou em cada coleta: uma VM que informou métricas de CPU está **Powered on**; uma que informou só uso de memória e disco está **Desligada** (ou suspensa: aqui o vSphere não diferencia as duas). Modelos de VM não têm estado de energia. Isso lê **uma coleta inteira de cada vez**, e é por isso que o processador `batch` incluído tem um `send_batch_size` grande e, de propósito, nenhum `send_batch_max_size`: uma coleta dividida entre duas exportações zeraria as contagens do inventário e "desligaria" VMs. Mantenha as configurações de batch como vêm.
 
 ## O vCenter no OneUptime
 
@@ -249,7 +249,7 @@ Selecione um host para abrir a página dele. Ela responde ao que a página de um
 
 Quando o vCenter para de informar um host, a página diz isso acima das abas, com quando o vCenter o informou pela última vez. Depois de 15 minutos sem informe, o host sai do inventário: a página dele então diz isso e continua mostrando as métricas anteriores.
 
-Os cinco alertas do host (saturação de CPU e de memória, latência de disco alta, erros de pacotes de rede e pacotes descartados) observam, cada um, todos os hosts do vCenter e disparam para cada host que ultrapassa o limite. O cartão **Alertas do host** na página de um host mostra quais estão ativados, e o botão dele abre as **Recommendations** do vCenter com os que faltam já selecionados: crie-os ali, uma vez, para todos os hosts.
+Os cinco alertas do host (saturação de CPU e de memória, latência de disco alta, erros de pacotes de rede e pacotes descartados) observam, cada um, todos os hosts do vCenter e disparam para cada host que ultrapassa o limite. O cartão **Alertas do host** na página de um host mostra quais estão ativados, e o botão dele abre as **Recomendações** do vCenter com os que faltam já selecionados: crie-os ali, uma vez, para todos os hosts.
 
 ### Máquinas virtuais
 

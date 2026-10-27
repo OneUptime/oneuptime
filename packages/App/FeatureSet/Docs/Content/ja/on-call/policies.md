@@ -123,7 +123,7 @@ flowchart TB
 
 ## ポリシーを変更できる人
 
-**Project Owner**、 **Project Admin**、 **Project Member**、 **On-Call Admin**、 **On-Call Member** はポリシーを作成、変更、削除でき、 **Viewer** と **On-Call Viewer** は閲覧できます。カスタムロールでの権限は **Create On-Call Duty Policy**、 **Edit On-Call Duty Policy**、 **Delete On-Call Duty Policy**、 **Read On-Call Duty Policy** で、一部のラベルに限定されたロールは、そのラベルが付いたポリシーにだけアクセスできます。OneUptime Cloud で所有者やカスタムフィールドを追加するには **Growth** プランが必要です。
+**プロジェクト所有者**、 **プロジェクト管理者**、 **プロジェクトメンバー**、 **オンコール管理者**、 **オンコールメンバー** はポリシーを作成、変更、削除でき、 **閲覧者** と **オンコール閲覧者** は閲覧できます。カスタムロールでの権限は **Create On-Call Duty Policy**、 **Edit On-Call Duty Policy**、 **Delete On-Call Duty Policy**、 **Read On-Call Duty Policy** で、一部のラベルに限定されたロールは、そのラベルが付いたポリシーにだけアクセスできます。OneUptime Cloud で所有者やカスタムフィールドを追加するには **Growth** プランが必要です。
 
 ## API と Terraform
 
@@ -138,7 +138,7 @@ flowchart TB
 | **何分後？** | `acknowledgementTimeoutInMinutes` |
 | アーカイブ済み | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` は **通知を停止** なら `false`、 **Level 1 からやり直す** なら `true` です。 `true` で `repeatPolicyIfNoOneAcknowledgesNoOfTimes` が `0` のポリシーは繰り返されず、ダッシュボードには **通知を停止** と表示されます。
+`repeatPolicyIfNoOneAcknowledges` は **通知を停止** なら `false`、 **Level 1 からやり直す** なら `true` です。 `true` のときは `repeatPolicyIfNoOneAcknowledgesNoOfTimes` を 1 以上の整数にする必要があり、OneUptime は `0` を拒否します。以前に `0` で保存されたポリシーは繰り返されず、ダッシュボードには **通知を停止** と表示されます。
 
 `acknowledgementTimeoutInMinutes` は **再通知しない** なら `null`、 **再通知する** なら 5〜1440 の整数の分数です。それ以外の値は OneUptime が拒否します。
 

@@ -11,7 +11,7 @@
 
 ## 運作方式
 
-SDK 在訪客的瀏覽器中執行。它會為每次頁面載入和請求記錄一個 span，並使用 **Browser** 擷取金鑰直接匯出到 OneUptime，中間不需要你自己的收集器或代理伺服器。
+SDK 在訪客的瀏覽器中執行。它會為每次頁面載入和請求記錄一個 span，並使用 **瀏覽器** 擷取金鑰直接匯出到 OneUptime，中間不需要你自己的收集器或代理伺服器。
 
 ```mermaid title="瀏覽器遙測的去向"
 flowchart TB
@@ -35,8 +35,8 @@ flowchart TB
 
 1. 前往 **產品 → 專案設定** 。
 2. 在側邊選單中開啟 **遙測與 APM** ，然後選取 **擷取金鑰** 。
-3. 按一下 **建立擷取金鑰** ，並在 **金鑰類型** 中選擇 **Browser** 。
-4. 在 **瀏覽器設定** 步驟中，以 JSON 陣列的形式在 **Allowed Origins** 中列出你的來源，例如 `["https://app.example.com"]` ，然後建立金鑰。在 OneUptime Cloud 的 Free 方案中，最後一個 **帳單** 步驟會先顯示遙測價格。
+3. 按一下 **建立擷取金鑰** ，並在 **金鑰類型** 中選擇 **瀏覽器** 。
+4. 在 **瀏覽器設定** 步驟中，以 JSON 陣列的形式在 **允許的來源** 中列出你的來源，例如 `["https://app.example.com"]` ，然後建立金鑰。在 OneUptime Cloud 的 Free 方案中，最後一個 **帳單** 步驟會先顯示遙測價格。
 
 ![專案設定中的遙測擷取金鑰頁面](/docs/static/images/TelemetryIngestionKeys.png)
 
@@ -164,9 +164,9 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 
 | 設定 | 作用 |
 | --- | --- |
-| **Allowed Origins** | 只接受來自這些來源的請求，每個來源都包含通訊協定和連接埠（如有）。主機可以用一個 `*.` 萬用字元開頭： `https://*.example.com` 涵蓋 `example.com` 的所有子網域，但不包括 `example.com` 本身。 |
+| **允許的來源** | 只接受來自這些來源的請求，每個來源都包含通訊協定和連接埠（如有）。主機可以用一個 `*.` 萬用字元開頭： `https://*.example.com` 涵蓋 `example.com` 的所有子網域，但不包括 `example.com` 本身。 |
 | **Requests Per Minute Limit** | 所有使用該金鑰的訪客共用的一個上限：除非你自行設定，否則為每分鐘 6000 個請求。 |
-| **Pinned Service Name** | 對金鑰寫入的所有資料強制使用 `service.name` ，因此副本無法把它的遙測偽裝成你的某個後端服務。 |
+| **固定的服務名稱** | 對金鑰寫入的所有資料強制使用 `service.name` ，因此副本無法把它的遙測偽裝成你的某個後端服務。 |
 | **到期於** | 過了這個日期，金鑰就不再被接受。 |
 | **已啟用** | 關閉它即可立刻停用外洩的金鑰。 |
 
@@ -245,7 +245,7 @@ new FetchInstrumentation({
 
 如果你也使用 [工作階段重播](/docs/telemetry/session-replay) ，你的 **後端** 遙測不需要在這裡寫任何程式碼就會與錄製連結。工作階段上傳期間，錄製器會在頁面傳往自身來源的請求中，加入一個攜帶工作階段 ID 的 `tracestate` 成員，並把 `traceparent` 留給你的 `FetchInstrumentation` / `XMLHttpRequestInstrumentation` 。在每個延續 W3C 追蹤內容的服務中，後端 span 會在擷取時被標上工作階段 ID，其日誌和例外則透過追蹤 ID 連結到錄製。運作方式、不涵蓋的範圍以及關閉它的開關，請參閱 [與其他遙測建立關聯](/docs/telemetry/session-replay#與其他遙測資料關聯) 。
 
-無論呼叫傳入的是 URL（帶或不帶 init 物件）還是 `Request` 物件，錄製器都會讀回你的檢測所設定的 `traceparent` ，因此重播中的每個請求列都會連到其後端追蹤。若 API 位於其他來源，請把它列在上面的 `propagateTraceHeaderCorsUrls` 中；它的請求不攜帶工作階段 ID，而是透過追蹤 ID 連結到錄製。對於 *沒有* 使用此 SDK 的頁面，應用程式重播政策中的 **Trace propagation origins** 有同樣的作用。
+無論呼叫傳入的是 URL（帶或不帶 init 物件）還是 `Request` 物件，錄製器都會讀回你的檢測所設定的 `traceparent` ，因此重播中的每個請求列都會連到其後端追蹤。若 API 位於其他來源，請把它列在上面的 `propagateTraceHeaderCorsUrls` 中；它的請求不攜帶工作階段 ID，而是透過追蹤 ID 連結到錄製。對於 *沒有* 使用此 SDK 的頁面，應用程式重播政策中的 **追蹤傳播來源** 有同樣的作用。
 
 標頭無法涵蓋的是此 SDK 自己的瀏覽器 span：文件載入、路由切換以及你回報的錯誤。若也要把它們歸入錄製，請在每個 span 開始時標上 `session.id` 。錄製器會透過 `onSessionChange` 告訴你 ID：如果工作階段已存在，它會立即觸發，之後每當 ID 變更時再次觸發：訪客閒置 30 分鐘後回來時、達到 4 小時上限時、 `identify()` 指定了另一位使用者時，或同一位訪客的另一個分頁先變更了它時。
 
@@ -430,7 +430,7 @@ metrics.setGlobalMeterProvider(
 :::
 
 :::details OneUptime 拒絕了請求
-- `422` 加上 `Origin https://app.example.com is not allowed for this browser ingestion key.` 表示頁面的確切來源（通訊協定、主機和連接埠）不在金鑰的 **Allowed Origins** 中。
+- `422` 加上 `Origin https://app.example.com is not allowed for this browser ingestion key.` 表示頁面的確切來源（通訊協定、主機和連接埠）不在金鑰的 **允許的來源** 中。
 - `422` 加上 `This telemetry ingestion key has been disabled.` 表示有人關閉了該金鑰。請重新開啟它，或改用另一個金鑰。
 - `401` 表示金鑰不明、已撤銷或已過期。執行 [設定步驟](#設定步驟) 中的金鑰檢查，然後建立一個有效的 Browser 金鑰。
 - `404` 表示 URL 錯誤。追蹤匯出器需要完整路徑 `/otlp/v1/traces` 。

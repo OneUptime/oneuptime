@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import { afterEach, describe, expect, test } from "@jest/globals";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -12,6 +13,7 @@ import ScheduledMaintenanceReminderRule from "../../../Models/DatabaseModels/Sch
 import ScheduledMaintenanceReminderStopState from "../../../Types/Reminder/ScheduledMaintenanceReminderStopState";
 import { TABLE_EMPTY_VALUE_TEST_ID } from "../../../UI/Components/Table/TableEmptyValue";
 import MaintenanceReminderTimingText, {
+  MAINTENANCE_REMINDER_NEVER_REMINDS_BUTTON_TEST_ID,
   MAINTENANCE_REMINDER_NEVER_REMINDS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Reminders/MaintenanceReminderTimingText";
 import {
@@ -26,9 +28,10 @@ import {
  * starts", or both - in one Remind Owners column, where it showed the two
  * columns the answer is stored in ("Stop Reminders When: Completed",
  * "Remind While Scheduled: No"). A rule stored with the pair that never
- * reminds is marked "Never reminds" in amber, with why in its tooltip, as
- * a label rule that adds nothing is marked "Adds nothing": an empty value's
- * dash passed for "not set", and a phone's card left the line out.
+ * reminds is marked "Never reminds" in amber, as a label rule that adds
+ * nothing is marked "Adds nothing": an empty value's dash passed for "not
+ * set", and a phone's card left the line out. Why is said on hover, on a
+ * tap, on keyboard focus and to a screen reader - not under a mouse only.
  */
 
 function rule(
@@ -114,14 +117,55 @@ describe("a maintenance reminder rule's answer in the list", () => {
     );
 
     fireEvent.mouseEnter(
-      within(
-        screen.getByTestId(MAINTENANCE_REMINDER_NEVER_REMINDS_TEST_ID),
-      ).getByTestId("pill"),
+      screen.getByTestId(MAINTENANCE_REMINDER_NEVER_REMINDS_BUTTON_TEST_ID),
     );
 
-    expect(
-      await screen.findByText(MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE,
+    );
+  });
+
+  test("a tap says why too - a phone's card of the list never hovers", async () => {
+    render(
+      <MaintenanceReminderTimingText
+        rule={rule(false, ScheduledMaintenanceReminderStopState.Ongoing)}
+      />,
+    );
+
+    const button: HTMLElement = screen.getByTestId(
+      MAINTENANCE_REMINDER_NEVER_REMINDS_BUTTON_TEST_ID,
+    );
+
+    fireEvent.mouseDown(button);
+    act(() => {
+      button.focus();
+    });
+    fireEvent.mouseUp(button);
+    fireEvent.click(button);
+    fireEvent.mouseLeave(button);
+
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE,
+    );
+  });
+
+  test("a keyboard reaches it, and a screen reader hears why without opening anything", () => {
+    render(
+      <MaintenanceReminderTimingText
+        rule={rule(false, ScheduledMaintenanceReminderStopState.Ongoing)}
+      />,
+    );
+
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Never reminds",
+    });
+
+    expect(button).toBe(
+      screen.getByTestId(MAINTENANCE_REMINDER_NEVER_REMINDS_BUTTON_TEST_ID),
+    );
+    expect(button).toHaveAccessibleDescription(
+      MAINTENANCE_REMINDER_NEVER_REMINDS_NOTE,
+    );
   });
 
   test("a rule that reminds is never marked", () => {

@@ -50,11 +50,11 @@ Sophos rapporterer ikke gateways' eller SD-WAN's tilstand via SNMP, i nogen SFOS
 
 :::steps
 1. Slå SNMP til på firewallen under **Administration → SNMP**: tilføj en SNMPv3-bruger, eller et v2c-community, og tillad sondens adresse at forespørge den.
-2. Gå i OneUptime til **Netværk → Devices**, og klik på **Add Device**. Skriv firewallens administrationsadresse, vælg en sonde, der kan nå den, og tilføj SNMP-loginoplysningerne under **SNMP**.
+2. Gå i OneUptime til **Netværk → Devices**, og klik på **Tilføj enhed**. Skriv firewallens administrationsadresse, vælg en sonde, der kan nå den, og tilføj SNMP-loginoplysningerne under **SNMP**.
 3. På enhedens side **Indstillinger**, under **Polling & Data Collection**, anvender du skabelonen **Sophos Firewall (SFOS / XGS)** fra **Vendor Health Template** og tilføjer dens tabeller fra **Add a Vendor's Tables**. Eller slå **Auto-Apply Vendor Health Template** til, så gør den første polling begge dele.
 :::
 
-Efter næste polling viser enhedens side **SNMP Tables** hver IPsec-forbindelse med dens status (active, inactive, partially active) og CPU-kernerne. SFOS nummererer sine kerner fra 196608, og derfor kommer CPU'en fra en tabel i stedet for fra én enkelt `hrProcessorLoad.1`.
+Efter næste polling viser enhedens side **SNMP-tabeller** hver IPsec-forbindelse med dens status (active, inactive, partially active) og CPU-kernerne. SFOS nummererer sine kerner fra 196608, og derfor kommer CPU'en fra en tabel i stedet for fra én enkelt `hrProcessorLoad.1`.
 
 ### Advar om hver IPsec-tunnel
 

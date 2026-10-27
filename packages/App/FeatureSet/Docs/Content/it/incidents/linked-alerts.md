@@ -121,7 +121,7 @@ In qualunque modo lo facciate, arrivate al consueto modulo **Dichiara nuovo inci
 | **Etichette**              | Ogni etichetta di ogni avviso selezionato.                                                                                                                                                                                                                                             |
 | **Incidente privato**      | Attivo se uno qualsiasi degli avvisi è privato. Il modulo lo dice, e i proprietari degli avvisi diventano proprietari dell'incidente — vedete più sotto.                                                                                                                               |
 
-«Più grave» segue l'ordine delle vostre gravità degli avvisi: la prima gravità di avviso dell'elenco è la più grave. Con le gravità con cui parte ogni progetto, un avviso **High** diventa un **Critical Incident** e un avviso **Low** un **Major Incident**.
+«Più grave» segue l'ordine delle vostre gravità degli avvisi: la prima gravità di avviso dell'elenco è la più grave. Con le gravità con cui parte ogni progetto, un avviso **Alto** diventa un **Critical Incident** e un avviso **Basso** un **Major Incident**.
 
 Tutto è modificabile prima dell'invio. **Etichette** e **Incidente privato** si trovano sotto **Altri campi** nel primo passaggio del modulo, la cui intestazione ripiegata mostra ciascuno dei due finché è impostato.
 

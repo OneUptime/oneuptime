@@ -279,6 +279,20 @@ range and Reset zoom joins it), and they used to take the width out of the name:
 name is not cut, every control stays inside the hero without covering it, the page
 never scrolls sideways, and a name longer than the row still truncates.
 
+### The Host Overview header
+
+Every resource hero lays its top row out the way the cluster's does since #5268's
+follow-up (`Components/TelemetryResource/ResourceHeroLayout`). The host's hero kept its
+controls beside the name from the md breakpoint: at a 768px window the name vanished
+under the time picker and the Auto-refresh select ran 35px past the window, and at
+1024px the name read "a..". `HostOverviewHeader.spec.ts` (8 tests, same fixture and
+command) measures `api-gateway-01` at 1440, 1280, 1024, 900 and 768px, before and
+after a real drag on the CPU chart, with the same checks as the cluster's; beside the
+side menu (768 and 1024) the controls sit under the name, ending at the row's right
+edge, and beside it at 1280; on a phone, light and dark, the name shows in full with
+the controls under it; and a name longer than the row still truncates, zoomed. It
+saves `host-overview-header-{768,1024,1280,phone,phone-dark}.png`.
+
 ### An outdated agent version
 
 `AgentVersionSign.spec.ts` (same fixture and command) opens the cluster Overview with

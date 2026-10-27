@@ -22,7 +22,7 @@ flowchart TB
 
 ## Innan du börjar
 
-- **Din roll.** För att skapa en händelse krävs **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** eller **Scheduled Maintenance Member**, eller en anpassad roll med **Create Scheduled Maintenance**.
+- **Din roll.** För att skapa en händelse krävs **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Underhållsadministratör** eller **Underhållsmedlem**, eller en anpassad roll med **Create Scheduled Maintenance**.
 - **Dina statussidor.** För att informera kunderna behöver du en statussida som visar schemalagda underhållshändelser. Se [Statussidor – Översikt](/docs/status-pages/index).
 
 ## Skapa en händelse

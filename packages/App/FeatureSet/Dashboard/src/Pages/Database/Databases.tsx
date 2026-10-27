@@ -41,7 +41,6 @@ import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
 import {
-  FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
@@ -50,7 +49,11 @@ import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import { getDatabaseServerDiscoverySourceLabel } from "Common/Types/DatabaseServer/DatabaseServerDiscoverySource";
-import DatabaseDocumentationCard from "../../Components/DatabaseServer/DocumentationCard";
+import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
+import useShowcaseCreateForm, {
+  ShowcaseCreateForm,
+} from "../../Components/ResourceShowcase/UseShowcaseCreateForm";
+import DATABASE_SHOWCASE from "../../Components/DatabaseServer/DatabaseShowcase";
 import DatabaseAddedModal from "../../Components/DatabaseServer/DatabaseAddedModal";
 import DatabaseServerSummaryStrip from "../../Components/DatabaseServer/DatabaseServerSummaryStrip";
 import DatabaseRunsOnLink from "../../Components/DatabaseServer/DatabaseRunsOnLink";
@@ -136,6 +139,10 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
       modelType: DatabaseServer,
       onFirstRecord: refreshSummary,
     });
+  // The showcase's Create Database: the table's own form.
+  const showcaseCreateForm: ShowcaseCreateForm = useShowcaseCreateForm({
+    modelType: DatabaseServer,
+  });
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<DatabaseServer>({ modelType: DatabaseServer });
@@ -278,8 +285,8 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
         emptyState={getFirstRunEmptyState({
           emptyState: facetEmptyState,
           count: firstRecordWatch.count,
-          isAddedByHand: true,
         })}
+        showCreateForm={showcaseCreateForm.showCreateForm}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}
@@ -656,9 +663,9 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <DatabaseDocumentationCard
-          title="Getting Started with Databases"
-          description={FIRST_RUN_GUIDE_DESCRIPTION}
+        <ResourceShowcaseCard
+          showcase={DATABASE_SHOWCASE}
+          addButton={showcaseCreateForm.addButton}
         />
       )}
       {addedDatabase && (

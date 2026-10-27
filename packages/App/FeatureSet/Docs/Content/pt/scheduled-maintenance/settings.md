@@ -39,7 +39,7 @@ As regras se diferenciam em como resolvem várias correspondências:
 - **Regras de proprietário**, **Regras de Rótulos** e **Regras de runbook** agem todas quando correspondem. Proprietários e rótulos que várias regras adicionam são adicionados uma só vez.
 - **Reminder Rules** são verificadas de cima para baixo na lista, e vence a primeira que corresponde. Arraste uma regra para mudar o lugar dela; uma regra nova vai para o final.
 
-Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição dela para pausá-la, e a lista mostra para cada regra um **Habilitado** verde ou um **Desabilitado** vermelho. As regras de proprietário, de rótulos e de runbook agem sobre os eventos criados depois que você as salva. Para aplicar uma regra de proprietário ou de rótulos aos eventos que você já tem, use **Run Now**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now).
+Uma regra nova começa habilitada; desative **Habilitado** no formulário de edição dela para pausá-la, e a lista mostra para cada regra um **Habilitado** verde ou um **Desabilitado** vermelho. As regras de proprietário, de rótulos e de runbook agem sobre os eventos criados depois que você as salva. Para aplicar uma regra de proprietário ou de rótulos aos eventos que você já tem, use **Executar agora**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now).
 
 ## Regras de proprietário e de rótulos
 
@@ -82,7 +82,7 @@ Em **Lembretes**, defina **Intervalo de lembrete (minutos)**, a frequência com 
 | **Antes de começar** | Desde o agendamento do evento até o início dele. |
 | **Antes de começar e enquanto estiver em andamento** | Desde o agendamento do evento até o fim dele. |
 
-Uma regra salva pela API ou pelo Terraform que espera o evento começar e para quando ele começa nunca envia um lembrete: a lista a marca com **Nunca envia lembretes**, e o formulário dela pede que você escolha uma resposta.
+A API e o Terraform recusam uma regra que esperaria o evento começar e pararia quando ele começa: ela nunca enviaria um lembrete. Uma regra mais antiga salva assim aparece na lista com **Nunca envia lembretes**, e o formulário dela pede que você escolha quando lembrar.
 
 Os proprietários recebem cada lembrete como **Maintenance reminder**, ativado por e-mail para cada membro novo. Salvar, alterar ou excluir uma regra de lembrete volta a atribuir uma regra a cada evento que ainda não foi concluído. Para parar os lembretes de um evento, desative **Enviar lembretes** na página **Configurações** dele; a chave salva assim que você a aciona.
 
@@ -119,16 +119,16 @@ Cada modelo de manutenção tem gatilhos e ações de workflow com o nome dele: 
 
 | Função                            | O que pode fazer                                                                                     |
 | --------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| **Scheduled Maintenance Viewer**  | Lê eventos e não altera nada.                                                                        |
-| **Scheduled Maintenance Member**  | Cria, altera e exclui eventos com suas notas, linhas do tempo de estado e proprietários, e os dois tipos de modelos. |
-| **Scheduled Maintenance Admin**   | Tudo o que um membro faz, e além disso cria, altera e exclui estados de manutenção.                  |
+| **Visualizador de manutenção programada**  | Lê eventos e não altera nada.                                                                        |
+| **Membro de manutenção programada**  | Cria, altera e exclui eventos com suas notas, linhas do tempo de estado e proprietários, e os dois tipos de modelos. |
+| **Administrador de manutenção programada**   | Tudo o que um membro faz, e além disso cria, altera e exclui estados de manutenção.                  |
 
-Regras, campos personalizados e medições exigem **Project Owner** ou **Project Admin**, ou uma função personalizada com a permissão própria daquela página, como **Create Scheduled Maintenance Owner Rule**. As regras de runbook também aceitam **Runbook Admin**. **Project Member** trabalha com eventos e modelos, como **Scheduled Maintenance Member**. Veja [Usuários, equipes e permissões](/docs/permissions/index).
+Regras, campos personalizados e medições exigem **Proprietário do projeto** ou **Administrador do projeto**, ou uma função personalizada com a permissão própria daquela página, como **Create Scheduled Maintenance Owner Rule**. As regras de runbook também aceitam **Administrador de runbooks**. **Membro do projeto** trabalha com eventos e modelos, como **Membro de manutenção programada**. Veja [Usuários, equipes e permissões](/docs/permissions/index).
 
 ## Solução de problemas
 
 :::details Uma regra de proprietário não adicionou ninguém a um evento novo
-Abra a regra e confira as condições: todas as condições preenchidas precisam se cumprir. Um padrão de título é uma expressão regular, então `db upgrade` não corresponde a «DB-Upgrade»; escreva `db.upgrade`. Além disso, uma regra só age sobre os eventos criados depois que ela foi salva: use **Run Now** para os que você já tem.
+Abra a regra e confira as condições: todas as condições preenchidas precisam se cumprir. Um padrão de título é uma expressão regular, então `db upgrade` não corresponde a «DB-Upgrade»; escreva `db.upgrade`. Além disso, uma regra só age sobre os eventos criados depois que ela foi salva: use **Executar agora** para os que você já tem.
 :::
 
 :::details Os proprietários não receberam nenhum lembrete

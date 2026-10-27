@@ -52,9 +52,11 @@ export const SCHEDULED_MAINTENANCE_NAV_SECTION: string = "Incident Response";
 export const SCHEDULED_MAINTENANCE_NAV_GROUP_AFTER: string = "Status Pages";
 
 /*
- * Role and permission names, as a custom role's permission list shows them:
- * the Dashboard draws a permission's title untranslated (PermissionPicker),
- * so every language writes them in English.
+ * The roles that may create events and templates, as the English pages list
+ * them (ScheduledMaintenanceDocsFacts holds them to the models' create
+ * permissions). A translated page names each as its Dashboard draws it: the
+ * built-in roles' names are keys of their own (DocsRoleNames), so they are
+ * not kept in English with the permissions' titles.
  */
 export const ROLE_NAMES: ReadonlyArray<string> = [
   "Project Owner",
@@ -79,21 +81,21 @@ export const WORKFLOW_COMPONENTS: ReadonlyArray<string> = [
 ];
 
 /*
- * Bold words every language writes as the English does, by page: role and
- * permission names, the workflow components and the model a component is
- * named after, and the "⋯" that opens a menu.
+ * Bold words every language writes as the English does, by page: the
+ * permissions' titles, the workflow components and the model a component is
+ * named after, and the "⋯" that opens a menu. (A built-in role's name reads
+ * in the page's language, as its Dashboard draws it.)
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
     [MAINTENANCE_OVERVIEW]: ["Create One Scheduled Maintenance Event", "⋯"],
     [CREATING_EVENTS]: [
-      ...ROLE_NAMES,
       "Create Scheduled Maintenance",
       "On Create Scheduled Maintenance Event",
       "Create One Scheduled Maintenance Event",
     ],
     [MAINTENANCE_STATES]: ["⋯"],
-    [TEMPLATES_AND_RECURRING]: [...ROLE_NAMES],
+    [TEMPLATES_AND_RECURRING]: [],
     [RULES_AND_SETTINGS]: [
       "On Create Scheduled Maintenance Event",
       "On Update Scheduled Maintenance Event",
@@ -102,14 +104,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "Scheduled Maintenance State Timeline",
       "Create One Scheduled Maintenance Event",
       "Update One Scheduled Maintenance Event",
-      "Scheduled Maintenance Viewer",
-      "Scheduled Maintenance Member",
-      "Scheduled Maintenance Admin",
-      "Project Owner",
-      "Project Admin",
-      "Project Member",
       "Create Scheduled Maintenance Owner Rule",
-      "Runbook Admin",
     ],
     // The + a day of the calendar shows, and the list's menu.
     [MAINTENANCE_CALENDAR]: ["+", "⋯"],

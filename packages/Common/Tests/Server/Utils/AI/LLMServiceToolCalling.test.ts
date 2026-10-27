@@ -560,16 +560,38 @@ describe("LLMService — OpenAI-compatible (generic, e.g. vLLM)", () => {
     ).rejects.toThrow("Base URL is required");
   });
 
-  test("requires a model name", async () => {
-    await expect(
-      LLMService.getCompletion({
-        llmProviderConfig: {
-          llmType: LlmType.OpenAICompatible,
-          baseUrl: "http://vllm.local:8000/v1",
+  test("with no model name, asks the server for the model it serves", async () => {
+    LLMService.clearServedModelCache();
+
+    const listSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(API, "get")
+      .mockResolvedValue({
+        jsonData: {
+          object: "list",
+          data: [{ id: "Qwen/Qwen3.8-27B", object: "model" }],
         },
-        messages: [{ role: "user", content: "ping" }],
-      }),
-    ).rejects.toThrow("Model Name is required");
+      } as unknown as HTTPResponse<JSONObject>);
+    const spy: PostSpy = mockPostResponse({
+      choices: [{ message: { content: "OK" } }],
+    });
+
+    const response: LLMCompletionResponse = await LLMService.getCompletion({
+      llmProviderConfig: {
+        llmType: LlmType.OpenAICompatible,
+        baseUrl: "http://vllm.local:8000/v1",
+      },
+      messages: [{ role: "user", content: "ping" }],
+    });
+
+    expect(
+      (
+        listSpy.mock.calls[0]![0] as { url: { toString: () => string } }
+      ).url.toString(),
+    ).toBe("http://vllm.local:8000/v1/models");
+    expect((spy.mock.calls[0]![0] as { data: JSONObject }).data["model"]).toBe(
+      "Qwen/Qwen3.8-27B",
+    );
+    expect(response.modelName).toBe("Qwen/Qwen3.8-27B");
   });
 });
 

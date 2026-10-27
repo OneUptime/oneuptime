@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "Перейти к основному содержанию",
-    "loading": "Загрузка..."
+    "loading": "Загрузка...",
+    "moreLinks": "Другие ссылки",
+    "navigation": "Навигация"
   },
   "common": {
     "save": "Сохранить",
@@ -303,7 +305,8 @@
       "loginPrompt": "Пожалуйста, войдите, чтобы просмотреть {{statusPageName}}",
       "noProviders": "Провайдеры SSO не настроены или не включены",
       "notAvailable": "Единый вход (SSO) недоступен для этой страницы статуса. Войдите, используя адрес электронной почты и пароль.",
-      "backToLogin": "Вернуться ко входу"
+      "backToLogin": "Вернуться ко входу",
+      "logInWithPassword": "Войти с паролем"
     },
     "forgotPassword": {
       "title": "Забыли пароль",
@@ -320,13 +323,9 @@
       "knowPassword": "Знаете свой пароль?"
     },
     "masterPassword": {
-      "enterWithName": "Введите пароль для {{statusPageName}}",
-      "enterGeneric": "Введите пароль",
-      "prompt": "Пожалуйста, введите пароль, чтобы продолжить.",
+      "prompt": "Введите пароль, чтобы открыть эту страницу статуса.",
       "passwordRequired": "пароль обязателен.",
       "passwordLabel": "Пароль",
-      "passwordDescription": "Введите пароль, чтобы разблокировать эту страницу.",
-      "passwordPlaceholder": "Введите пароль",
       "submit": "Разблокировать страницу статуса"
     },
     "signingOut": "Выполняется выход..."
@@ -416,6 +415,8 @@
   "Try again": "Повторить попытку",
   "Loading...": "Загрузка...",
   "Loading": "Загрузка",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}}: недопустимый JSON. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}}: недопустимый YAML. {{parserMessage}}",
   "markdownCallouts": {
     "caution": "Осторожно",
     "danger": "Опасно",

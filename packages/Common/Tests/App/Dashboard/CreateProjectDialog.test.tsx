@@ -789,7 +789,12 @@ describe("Create New Project: the promo code is folded under More fields", () =>
     expect(sentProjects()[0]!.paymentProviderPromoCode || "").toBe("");
   });
 
-  test("a refused code keeps the dialog open with what was typed, and says why", async () => {
+  /*
+   * The server's answer is about the code, so it is said under the code:
+   * More fields opens on it, where it can be changed or cleared. It used to
+   * be said at the top of the dialog while the code stayed folded away.
+   */
+  test("a refused code opens More fields and says why under the code, keeping what was typed", async () => {
     createOrUpdateMock.mockImplementation(async () => {
       throw new HTTPErrorResponse(
         400,
@@ -804,17 +809,226 @@ describe("Create New Project: the promo code is folded under More fields", () =>
     await pressCreate();
 
     await waitFor(() => {
-      expect(
-        within(dialog()).getByText("Promo code is invalid."),
-      ).toBeVisible();
+      expect(promoInput()).toBeVisible();
     });
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "true");
+    expect(promoInput()!.value).toBe("OLD10");
+    expect(promoInput()).toHaveAttribute("aria-invalid", "true");
+    expect(promoInput()).toHaveAccessibleDescription(
+      "If you have one, from an offer or a reseller. Promo code is invalid.",
+    );
+    // Said once, under the code - not again at the top of the dialog.
+    expect(
+      within(dialog()).getAllByText("Promo code is invalid."),
+    ).toHaveLength(1);
     expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
     expect(nameInput().value).toBe("Acme Production");
     expect(planRadio("Free")).toBeChecked();
-    expect(setChips(moreFieldsHeader())).toEqual(["Promo Code: OLD10"]);
     expect(onProjectSelectedMock).not.toHaveBeenCalled();
     // Kept for the next try.
     expect(window.localStorage.getItem("promoCode")).not.toBeNull();
+  });
+
+  test("changing the refused code puts the message away, and a cleared code creates the project", async () => {
+    createOrUpdateMock.mockImplementationOnce(async () => {
+      throw new HTTPErrorResponse(
+        400,
+        { message: "This promocode has already been used." },
+        {},
+      );
+    });
+    window.localStorage.setItem("promoCode", JSON.stringify("USED10"));
+
+    await openDialog();
+    await typeName("Acme Production");
+    await pressCreate();
+
+    await waitFor(() => {
+      expect(
+        within(dialog()).getByText("This promocode has already been used."),
+      ).toBeVisible();
+    });
+
+    await act(async () => {
+      fireEvent.change(promoInput()!, { target: { value: "" } });
+    });
+    await settle();
+
+    expect(
+      within(dialog()).queryByText("This promocode has already been used."),
+    ).toBeNull();
+    expect(promoInput()).not.toHaveAttribute("aria-invalid");
+
+    await pressCreate();
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(2);
+    });
+    expect(sentProjects()[1]!.paymentProviderPromoCode || "").toBe("");
+  });
+
+  test("the refused code is brought into view as More fields opens on it", async () => {
+    const scrolled: Array<Element> = [];
+    const scrollIntoView: unknown = Element.prototype.scrollIntoView;
+
+    Element.prototype.scrollIntoView = function (this: Element): void {
+      scrolled.push(this);
+    };
+
+    try {
+      createOrUpdateMock.mockImplementation(async () => {
+        throw new HTTPErrorResponse(
+          400,
+          { message: "Promo code is invalid." },
+          {},
+        );
+      });
+      window.localStorage.setItem("promoCode", JSON.stringify("OLD10"));
+
+      await openDialog();
+      await typeName("Acme Production");
+      await pressCreate();
+
+      await waitFor(() => {
+        expect(promoInput()).toBeVisible();
+      });
+
+      expect(
+        scrolled.some((element: Element): boolean => {
+          return element.contains(promoInput());
+        }),
+      ).toBe(true);
+    } finally {
+      Element.prototype.scrollIntoView =
+        scrollIntoView as typeof Element.prototype.scrollIntoView;
+    }
+  });
+});
+
+describe("Create New Project: answers from the server", () => {
+  test("a name another of the reader's projects has is said under the name", async () => {
+    createOrUpdateMock.mockImplementation(async () => {
+      throw new HTTPErrorResponse(
+        400,
+        { message: "Project with the same name already exists" },
+        {},
+      );
+    });
+
+    await openDialog();
+    await typeName("Acme Production");
+    await pressCreate();
+
+    await waitFor(() => {
+      expect(nameInput()).toHaveAttribute("aria-invalid", "true");
+    });
+    expect(nameInput()).toHaveAccessibleDescription(
+      "Such as your company or team name. You can change it later. Project with the same name already exists",
+    );
+    expect(
+      within(dialog()).getAllByText(
+        "Project with the same name already exists",
+      ),
+    ).toHaveLength(1);
+    // Nothing about the promo code: More fields stays folded.
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("an answer about nothing on the form stays above the form", async () => {
+    createOrUpdateMock.mockImplementation(async () => {
+      throw new HTTPErrorResponse(
+        500,
+        { message: "Server error. Please try again." },
+        {},
+      );
+    });
+
+    await openDialog();
+    await typeName("Acme Production");
+    await pressCreate();
+
+    await waitFor(() => {
+      expect(
+        within(dialog()).getByText("Server error. Please try again."),
+      ).toBeVisible();
+    });
+    expect(nameInput()).not.toHaveAttribute("aria-invalid");
+    expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
+  });
+});
+
+/*
+ * A field says what is wrong once it has been changed and left, or once
+ * Create Project is pressed - not because the reader moved through it. The
+ * name takes the focus as the dialog opens, and picking a plan or opening
+ * More fields first used to say "Project Name is required." before anything
+ * was typed.
+ */
+describe("Create New Project: errors wait for a change or for Create Project", () => {
+  test("picking a plan before typing a name says nothing about the name", async () => {
+    await openDialog();
+
+    act(() => {
+      nameInput().focus();
+    });
+    await act(async () => {
+      fireEvent.blur(nameInput());
+    });
+    await pickPlan("Growth");
+
+    expect(
+      within(dialog()).queryByText("Project Name is required."),
+    ).toBeNull();
+    expect(nameInput()).not.toHaveAttribute("aria-invalid");
+  });
+
+  test("opening More fields first says nothing about the name", async () => {
+    await openDialog();
+
+    await act(async () => {
+      fireEvent.blur(nameInput());
+    });
+    await openMoreFields();
+
+    expect(
+      within(dialog()).queryByText("Project Name is required."),
+    ).toBeNull();
+  });
+
+  test("a name typed, emptied and left says it is required", async () => {
+    await openDialog();
+    await typeName("Acme");
+    await typeName("");
+
+    await act(async () => {
+      fireEvent.blur(nameInput());
+    });
+
+    expect(
+      within(dialog()).getByText("Project Name is required."),
+    ).toBeVisible();
+    expect(nameInput()).toHaveAttribute("aria-invalid", "true");
+  });
+
+  test("a name too short says so once it is left", async () => {
+    await openDialog();
+    await typeName("A");
+
+    expect(
+      within(dialog()).queryByText(
+        "Project Name cannot be less than 2 characters.",
+      ),
+    ).toBeNull();
+
+    await act(async () => {
+      fireEvent.blur(nameInput());
+    });
+
+    expect(
+      within(dialog()).getByText(
+        "Project Name cannot be less than 2 characters.",
+      ),
+    ).toBeVisible();
   });
 });
 
@@ -829,18 +1043,33 @@ describe("Create New Project: what it refuses before sending", () => {
     expect(createOrUpdateMock).not.toHaveBeenCalled();
   });
 
-  test("a name shorter than four characters", async () => {
+  test("a name of one character", async () => {
     await openDialog();
-    await typeName("Acm");
+    await typeName("A");
     await pressCreate();
 
     expect(createOrUpdateMock).not.toHaveBeenCalled();
     expect(
       within(dialog()).getByText(
-        "Project Name cannot be less than 4 characters.",
+        "Project Name cannot be less than 2 characters.",
       ),
     ).toBeVisible();
   });
+
+  // Two characters are a name, as everywhere else in the product.
+  test.each(["QA", "IBM"])(
+    "takes a short real name: %s",
+    async (name: string) => {
+      await openDialog();
+      await typeName(name);
+      await pressCreate();
+
+      await waitFor(() => {
+        expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+      });
+      expect(sentProjects()[0]!.name).toBe(name);
+    },
+  );
 
   test("no plan, where every plan costs money and none is picked for you", async () => {
     planEnv = PAID_ONLY_PLAN_ENV;

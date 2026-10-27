@@ -154,7 +154,7 @@ sudo systemctl enable --now oneuptime-docker-swarm-agent
 
 ## Uppgradera agenten
 
-Agenten rapporterar den collectorversion den kör. När den är äldre än den version som den här OneUptime-versionen låser, visas ett varningstecken bredvid agentens version på klustrets sida **Översikt**. Välj det för att se de här kommandona.
+Agenten rapporterar versionen av sina filer: den collectorversion de kör, där den sista siffran höjs varje gång OneUptime ändrar filerna men inte collectorn. När den är äldre än den version som den här OneUptime-versionen levererar, visas ett varningstecken bredvid agentens version på klustrets sida **Översikt**. Välj det för att se de här kommandona.
 
 Kör installationsskriptet igen på managernoden och besvara dess frågor med samma URL, nyckel och klusternamn. Det laddar ned de senaste filerna, hämtar imagesen och startar om agenten:
 
@@ -239,7 +239,7 @@ Klustrets namn kommer från `DOCKER_SWARM_CLUSTER_NAME`. Ändra det i `.env` och
 :::
 
 :::details Uppgifternas CPU är en platt linje
-En äldre `otel-collector-config.yaml` skickar mottagaren `docker_stats` egen CPU-siffra. Sedan collector 0.150.0 räknar mottagaren ut den från en enda statistikmätning: all CPU som en container har använt sedan den startade, delat med all CPU som noden har använt sedan den senast startades. Linjen rör sig knappt och följer inte belastningen, medan `container.cpu.usage.total` gör det. Collectorversionen har inte ändrats, så ingen varningssymbol visas: ladda ned agentens filer igen så som [Uppgradera agenten](#uppgradera-agenten) visar. Från sin andra mätning skickar collectorn sedan den CPU som varje container använde under varje intervall på 30 sekunder. Mätningar som redan har sparats förblir som de var.
+En äldre `otel-collector-config.yaml` skickar mottagaren `docker_stats` egen CPU-siffra. Sedan collector 0.150.0 räknar mottagaren ut den från en enda statistikmätning: all CPU som en container har använt sedan den startade, delat med all CPU som noden har använt sedan den senast startades. Linjen rör sig knappt och följer inte belastningen, medan `container.cpu.usage.total` gör det. En sådan agent rapporterar version 0.161.0 eller äldre, så en varningssymbol visas bredvid dess version: ladda ned agentens filer igen så som [Uppgradera agenten](#uppgradera-agenten) visar. Från sin andra mätning skickar collectorn sedan den CPU som varje container använde under varje intervall på 30 sekunder. Mätningar som redan har sparats förblir som de var.
 :::
 
 ## Nästa steg

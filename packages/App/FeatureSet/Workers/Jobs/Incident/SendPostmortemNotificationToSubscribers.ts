@@ -68,6 +68,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownText,
 } from "Common/Utils/Markdown/FeedMarkdown";
+import { writeDefaultSubscriberSms } from "Common/Utils/Sms/SubscriberSms";
 
 /*
  * A run decides from the incident as it read it, which was before it
@@ -888,7 +889,9 @@ RunCron(
                         smsTemplate.templateBody,
                       ]);
                     } else {
-                      smsMessage = `Postmortem: ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedPlainText}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`;
+                      smsMessage = writeDefaultSubscriberSms(
+                        `Postmortem: ${incident.title || ""} (${incident.incidentSeverity?.name || "-"}) on ${statusPageName}. Impact: ${resourcesAffectedPlainText}. Details: ${incidentDetailsUrl}. Unsub: ${unsubscribeUrl}`,
+                      );
                     }
 
                     const sms: SMS = {

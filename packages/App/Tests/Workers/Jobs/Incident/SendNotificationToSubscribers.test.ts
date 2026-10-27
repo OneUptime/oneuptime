@@ -342,6 +342,7 @@ import {
   pageShowingTheMonitorThroughAGroup,
   pageShowingTheMonitorTwice,
 } from "../Fixtures/MonitorGroupSubscriberFixtures";
+import { SmsEncoding, countSmsSegments } from "Common/Utils/Sms/SmsSegments";
 import "../../../../FeatureSet/Workers/Jobs/Incident/SendNotificationToSubscribers";
 import {
   afterEach,
@@ -817,6 +818,58 @@ describe("Incident:SendNotificationToSubscribers", () => {
     await runJob();
 
     expect(sentSms()).toEqual([`Stop: ${UNSUBSCRIBE_URL}`]);
+  });
+
+  /*
+   * One curly apostrophe, en dash or emoji in a title made every
+   * subscriber's text UCS-2: 70 characters a part instead of 160, so two
+   * or three times the cost. The default text is written with plain
+   * look-alikes (SubscriberSms), links exactly as written.
+   */
+  test("the default SMS is written in GSM-7's look-alikes, links exactly as written", async () => {
+    const curly: Incident = incident();
+    curly.title = "Checkout’s “EU” API – down 🔥";
+    pendingIncidents = [curly];
+    const page: StatusPage = statusPage();
+    page.pageTitle = "Acme’s Status";
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+
+    await runJob();
+
+    expect(sentSms()).toEqual([
+      `Incident Checkout's "EU" API - down (Critical) on Acme's Status. Impact: Checkout API. Details: ${DETAILS_URL}. Unsub: ${SMS_UNSUBSCRIBE_URL}`,
+    ]);
+    expect(countSmsSegments(sentSms()[0]!).encoding).toBe(SmsEncoding.Gsm7);
+    // The other channels keep every character.
+    expect(sentSlack()[0]).toContain("Checkout’s “EU” API – down 🔥");
+  });
+
+  test("a custom SMS template goes out exactly as the team wrote it, values and all", async () => {
+    const curly: Incident = incident();
+    curly.title = "Checkout’s API – down";
+    pendingIncidents = [curly];
+    const page: StatusPage = statusPage();
+    // A custom SMS template is used only with the page's own Twilio.
+    (page as unknown as JSONObject)["callSmsConfig"] = { _id: "twilio" };
+    mock(
+      StatusPageSubscriberNotificationTemplateService.getTemplateForStatusPage,
+    ).mockImplementation(async (args: unknown) => {
+      return (args as JSONObject)["notificationMethod"] ===
+        StatusPageSubscriberNotificationMethod.SMS
+        ? { templateBody: "Störung – {{incidentTitle}}: {{unsubscribeUrl}}" }
+        : null;
+    });
+    mock(
+      StatusPageSubscriberService.getStatusPagesToSendNotification,
+    ).mockResolvedValue([page] as never);
+
+    await runJob();
+
+    expect(sentSms()).toEqual([
+      `Störung – Checkout’s API – down: ${UNSUBSCRIBE_URL}`,
+    ]);
   });
 
   test("matches the dashboard's incident created defaults", async () => {

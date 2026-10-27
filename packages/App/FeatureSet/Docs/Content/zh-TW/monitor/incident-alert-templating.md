@@ -150,7 +150,7 @@ Alerts for payments:
 
 ### 分組監測器的值
 
-帶有 **Group by** 屬性的指標型監測器會為每個序列開啟一個事件，每個屬性的值都是以該屬性名稱命名的變數。依 `host.name` 分組會得到 `{{host.name}}`，依 `resource.k8s.pod.name` 分組會得到 `{{resource.k8s.pod.name}}`。`{{seriesLabels}}` 以物件形式包含它們全部。
+帶有 **分組依據** 屬性的指標型監測器會為每個序列開啟一個事件，每個屬性的值都是以該屬性名稱命名的變數。依 `host.name` 分組會得到 `{{host.name}}`，依 `resource.k8s.pod.name` 分組會得到 `{{resource.k8s.pod.name}}`。`{{seriesLabels}}` 以物件形式包含它們全部。
 
 分組的 [日誌監測器](/docs/monitor/logs-monitor) 也是如此：每個分組屬性的值都是以其鍵命名的變數。
 
@@ -457,7 +457,7 @@ Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、VMware�
 | --- | --- | --- |
 | `metricName` | 監測器的第一個查詢所讀取的指標名稱，例如 `container.cpu.time`。 | `string` |
 
-分組時，它們還有每個 **Group by** 屬性的值以及 `seriesLabels`：請參閱 [分組監測器的值](#分組監測器的值)。IoT Device 監測器的範本依裝置分組，因此用範本建立的監測器還有 `{{device.id}}`。
+分組時，它們還有每個 **分組依據** 屬性的值以及 `seriesLabels`：請參閱 [分組監測器的值](#分組監測器的值)。IoT Device 監測器的範本依裝置分組，因此用範本建立的監測器還有 `{{device.id}}`。
 
 ### 其他監測器類型
 

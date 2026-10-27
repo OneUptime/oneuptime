@@ -11,7 +11,7 @@ Om een dashboard te maken, open je **Producten → Dashboards** en klik je op **
 
 ## Voordat je begint
 
-Projecteigenaren en -beheerders kunnen elk dashboard maken en bewerken. Alle anderen hebben een teammachtiging nodig: `CreateDashboard` om dashboards te maken en `EditDashboard` om ze te wijzigen. Projectleden en kijkers kunnen dashboards lezen zonder een van beide. Wie een dashboard niet mag bewerken, opent toch het menu **⋯**, waar **Edit Dashboard** vergrendeld is en zegt welke machtiging nodig is.
+Projecteigenaren en -beheerders kunnen elk dashboard maken en bewerken. Alle anderen hebben een teammachtiging nodig: `CreateDashboard` om dashboards te maken en `EditDashboard` om ze te wijzigen. Projectleden en kijkers kunnen dashboards lezen zonder een van beide. Wie een dashboard niet mag bewerken, opent toch het menu **⋯**, waar **Dashboard bewerken** vergrendeld is en zegt welke machtiging nodig is.
 
 ## Het dashboard maken
 
@@ -45,7 +45,7 @@ De sjablonen, per categorie waaronder de kiezer ze toont:
 
 ## Bewerken en opslaan
 
-Een dashboard opent in leesmodus. Om het te wijzigen, open je het menu **⋯** in de werkbalk en kies je **Edit Dashboard**. De werkbalk toont **Editing** naast de naam, en vervangt het tijdsbereik en de andere bedieningselementen door **Widget toevoegen**, **Variabelen**, **Annuleren** en **Wijzigingen opslaan**, met daaronder een rij voor de **Standaardperiode** en **Standaard automatisch vernieuwen** van het dashboard.
+Een dashboard opent in leesmodus. Om het te wijzigen, open je het menu **⋯** in de werkbalk en kies je **Dashboard bewerken**. De werkbalk toont **Bewerken** naast de naam, en vervangt het tijdsbereik en de andere bedieningselementen door **Widget toevoegen**, **Variabelen**, **Annuleren** en **Wijzigingen opslaan**, met daaronder een rij voor de **Standaardperiode** en **Standaard automatisch vernieuwen** van het dashboard.
 
 ```mermaid title="Van een dashboard lezen naar het wijzigen, en terug"
 flowchart TB
@@ -122,7 +122,7 @@ De eerste keuze van elke kiezer noemt de standaard van het dashboard, zoals in S
 
 Je hoeft de tijdsbereikkiezer er niet bij te pakken om naar een piek te kijken. Sleep over het interessante stuk van een lijn- of vlakgrafiek en het **hele dashboard** gaat naar dat venster, net alsof je het in de tijdsbereikkiezer had gekozen: elke widget die het tijdsbereik gebruikt, voert zijn query tegelijk opnieuw uit, zodat je één moment over het hele dashboard leest in plaats van één grafiek op een andere schaal dan zijn buren. Live lijsten blijven tonen wat er nu gebeurt, zoals altijd.
 
-**Dubbelklik op een willekeurige grafiek** om het ongedaan te maken: het dashboard gaat terug naar het bereik dat het had voordat je begon in te zoomen, hoe vaak je ook verder bent ingezoomd. Zolang er een zoom actief is, verschijnt er een knop **Reset zoom** naast de tijdsbereikkiezer, en dubbelklikken op een dashboard dat niet is ingezoomd, doet niets.
+**Dubbelklik op een willekeurige grafiek** om het ongedaan te maken: het dashboard gaat terug naar het bereik dat het had voordat je begon in te zoomen, hoe vaak je ook verder bent ingezoomd. Zolang er een zoom actief is, verschijnt er een knop **Zoom herstellen** naast de tijdsbereikkiezer, en dubbelklikken op een dashboard dat niet is ingezoomd, doet niets.
 
 Een ingezoomd venster ligt vast, dus het schuift niet meer mee terwijl automatisch vernieuwen aan staat; dat is bewust, want een venster dat midden in een onderzoek onder je wegschuift, zou erger zijn. Reset de zoom om het weer mee te laten schuiven.
 
@@ -130,7 +130,7 @@ Inzoomen werkt alleen in leesmodus; in bewerkmodus verplaatst en schaalt slepen 
 
 ## Volledig scherm
 
-**⋯ → Full Screen** toont de widgets van het dashboard op het hele scherm, voor een scherm aan de muur of een vergadering. Druk op Esc om het te verlaten.
+**⋯ → Volledig scherm** toont de widgets van het dashboard op het hele scherm, voor een scherm aan de muur of een vergadering. Druk op Esc om het te verlaten.
 
 ## Tips voor dashboards die goed blijven
 

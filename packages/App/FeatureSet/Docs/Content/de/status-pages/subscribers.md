@@ -34,7 +34,7 @@ Eine Statusseite unterstützt fünf Kanäle. Sie und die Seite, auf der sich Bes
 
 - **Abonnentenseite anzeigen** (`showSubscriberPageOnStatusPage`) – standardmäßig an. Zeigt den Eintrag **Abonnieren** in der Navigationsleiste der Statusseite, über den sich Besucher über die Kanäle darunter anmelden.
 - **E-Mail** (`enableEmailSubscribers`) – standardmäßig an. Alles andere ist aus, bis Sie es einschalten.
-- **SMS** (`enableSmsSubscribers`) – standardmäßig aus. In OneUptime Cloud wird jede SMS vom SMS- und Anrufguthaben des Projekts bezahlt, es sei denn, die Seite hat eine eigene **Twilio-Konfiguration** (siehe [unten](#e-mail-fußzeile-eigenes-smtp-und-twilio)). Zum Einschalten muss für das Projekt außerdem **SMS** an sein, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen**. Das kann ein Projekteigentümer oder jemand mit **Billing Admin** oder **Manage Billing** einschalten.
+- **SMS** (`enableSmsSubscribers`) – standardmäßig aus. In OneUptime Cloud wird jede SMS vom SMS- und Anrufguthaben des Projekts bezahlt, es sei denn, die Seite hat eine eigene **Twilio-Konfiguration** (siehe [unten](#e-mail-fußzeile-eigenes-smtp-und-twilio)). Zum Einschalten muss für das Projekt außerdem **SMS** an sein, in der Karte **Benachrichtigungskanäle** unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen**. Das kann ein Projekteigentümer oder jemand mit **Abrechnungs-Administrator** oder **Manage Billing** einschalten.
 - **Slack** (`enableSlackSubscribers`) – standardmäßig aus.
 - **Microsoft Teams** (`enableMicrosoftTeamsSubscribers`) – standardmäßig aus.
 - **Webhook** (`enableWebhookSubscribers`) – standardmäßig aus.
@@ -275,7 +275,7 @@ Benutzerdefinierte Vorfallfelder mit eingeschaltetem **In Abonnentenbenachrichti
 - **Slack** und **Microsoft Teams** listen sie genauso auf, eines pro Zeile.
 - **Webhook**-Nutzlasten tragen sie in `data.customFields`, geschlüsselt nach der **Vorlagenvariable** jedes Felds: `{ "name": ..., "type": ..., "value": ... }`, mit dem Wert wie gespeichert (`null`, wenn der Vorfall keinen hat). Die Schlüssel ändern sich nicht, wenn ein Feld umbenannt wird.
 - **SMS** lässt sie weg. Eine SMS wird pro Segment abgerechnet, und die Standardnachricht ist schon nah an einem; eine eigene SMS-Vorlage kann jedes Feld mit `{{incident.customFields.<key>}}` platzieren.
-- Benachrichtigungen zu einer **Incident episode** tragen keine benutzerdefinierten Felder: Eine Episode gruppiert Vorfälle, die jeweils eigene Werte haben. Die eigenen Benachrichtigungen jedes enthaltenen Vorfalls tragen seine Felder.
+- Benachrichtigungen zu einer **Vorfall-Episode** tragen keine benutzerdefinierten Felder: Eine Episode gruppiert Vorfälle, die jeweils eigene Werte haben. Die eigenen Benachrichtigungen jedes enthaltenen Vorfalls tragen seine Felder.
 
 Der Eintrag **Abonnentenbenachrichtigung gesendet** im Vorfall-Feed listet unter **Custom fields sent** die Werte auf, die jeder Versand in eine Nachricht gesetzt hat. Abonnenten stehen meist außerhalb Ihres Teams, also schalten Sie die Einstellung nur für Felder ein, die man ihnen bedenkenlos zeigen kann.
 
@@ -415,7 +415,7 @@ Der Schlüssel ist die **Vorlagenvariable** des Felds, die sich nicht ändert, w
 
 **Zwei davon sind interne Daten.** `{{affectedStatusPages}}` nennt jede Zielgruppe, die der Vorfall erreicht: Mit [einer Statusseite pro Zielgruppe](/docs/status-pages/one-status-page-per-audience) erfahren die Abonnenten eines Standorts, welche anderen Standorte betroffen sind, und ein Kunde erfährt die Namen anderer. Ein benutzerdefiniertes Feld kann Notizen für Ihr Team enthalten. Platzieren Sie sie nur in Vorlagen, deren Abonnenten sie sehen dürfen.
 
-**Beschriftungen und benutzerdefinierte Felder zu platzieren braucht Zugriff auf Vorfälle.** `{{incidentLabels}}` und `{{incident.customFields.<key>}}` lesen die Vorfalldatensätze Ihres Teams, die die Statusseite nicht zeigt. Eine Vorlage, die sie platziert, kann deshalb nur speichern, wer jeden Vorfall und seine benutzerdefinierten Felder lesen darf – **Project Owner**, **Project Admin**, **Project Member** oder **Viewer** oder **Incident Admin**, **Incident Member** oder **Incident Viewer**, ohne Beschränkung auf bestimmte Beschriftungen oder auf eigene Vorfälle. **Status Page Admin** und **Status Page Member** allein können Vorlagen schreiben, aber diese Platzhalter nicht hinzufügen; den Rest einer Vorlage, die sie schon enthält, können sie weiterhin bearbeiten. `{{affectedStatusPages}}` braucht nicht mehr als die Vorlage selbst.
+**Beschriftungen und benutzerdefinierte Felder zu platzieren braucht Zugriff auf Vorfälle.** `{{incidentLabels}}` und `{{incident.customFields.<key>}}` lesen die Vorfalldatensätze Ihres Teams, die die Statusseite nicht zeigt. Eine Vorlage, die sie platziert, kann deshalb nur speichern, wer jeden Vorfall und seine benutzerdefinierten Felder lesen darf – **Projektinhaber**, **Projektadministrator**, **Projektmitglied** oder **Betrachter** oder **Vorfall-Administrator**, **Vorfall-Mitglied** oder **Vorfall-Betrachter**, ohne Beschränkung auf bestimmte Beschriftungen oder auf eigene Vorfälle. **Statusseiten-Administrator** und **Statusseiten-Mitglied** allein können Vorlagen schreiben, aber diese Platzhalter nicht hinzufügen; den Rest einer Vorlage, die sie schon enthält, können sie weiterhin bearbeiten. `{{affectedStatusPages}}` braucht nicht mehr als die Vorlage selbst.
 
 ### Der Zustand in Notizvorlagen
 
@@ -445,6 +445,8 @@ Vier weitere Abschnitte unter **Weitere Einstellungen** unten in den **Abonnente
 - **Twilio-Konfiguration** – **Twilio-Konfiguration** ist das Twilio-Konto für SMS-Abonnenten.
 
 Eigenes SMTP lohnt sich früh, wenn Sie E-Mail-Abonnenten haben: Mail von Ihrer eigenen Domain wird weit seltener gefiltert und weit eher von dem Kunden vertraut, der sie um 2 Uhr nachts liest.
+
+Die Standard-SMS werden in den Zeichen geschrieben, die eine SMS am günstigsten überträgt: Typografische Anführungszeichen, Gedankenstriche und Ähnliches gehen als ihre schlichten Entsprechungen hinaus, und ein Emoji wird weggelassen, sodass ein einzelnes Zeichen in einem Titel eine SMS nie zwei oder drei Teile kosten lässt. Links gehen genau so hinaus, wie sie geschrieben sind. Eine eigene SMS-Vorlage geht so hinaus, wie Sie sie geschrieben haben, mit den Werten, die sie einsetzt.
 
 ## Ankündigungen
 

@@ -613,7 +613,7 @@ stateDiagram-v2
     Archived --> Reporting: rapporterar igen
 ```
 
-- **Rapportering** betyder att leverantören har skickat ett mätvärde om resursen den senaste timmen; efter en timme utan står det **Ingen rapportering**. Vissa resurser är tysta av naturen, till exempel ett Key Vault som ingen anropade eller en bucket vars lagringsmätvärden CloudWatch publicerar en gång om dagen, och de kommer tillbaka med sin nästa datapunkt.
+- **Rapporterar** betyder att leverantören har skickat ett mätvärde om resursen den senaste timmen; efter en timme utan står det **Ingen rapportering**. Vissa resurser är tysta av naturen, till exempel ett Key Vault som ingen anropade eller en bucket vars lagringsmätvärden CloudWatch publicerar en gång om dagen, och de kommer tillbaka med sin nästa datapunkt.
 - En resurs som **inte skickar något mätvärde på 7 dagar** arkiveras automatiskt: en instans som en Auto Scaling-grupp ersatte, en borttagen volym, en bucket som är borta. Den behåller sina etiketter, ägare och sin historik under **Moln → Avancerad → Arkiverad**, och återställs av sig själv så snart den rapporterar igen. En resurs som du arkiverar själv förblir arkiverad; en som du återställer medan den är tyst stannar i listan tills den rapporterar.
 - Att ta bort en resurs som leverantören fortfarande rapporterar håller inte: den upptäcks igen från sina nästa mätvärden. Arkivera den i stället.
 - Upptäckten slutar skapa resurser när ett projekt har **5 000** levande (inte arkiverade), och loggar en varning; arkiverade resurser räknas inte.

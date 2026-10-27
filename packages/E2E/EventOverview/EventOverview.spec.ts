@@ -12239,8 +12239,12 @@ test.describe("the feed, as a timeline", () => {
     }
     expect(run.length).toBe(4);
     expect(run[0]).toContain("Sam Rivera acknowledged the page");
-    expect(run[1]).toContain("paged nobody at escalation rule Backup");
-    expect(run[2]).toContain("paged Sam Rivera at escalation rule");
+    expect(run[1]).toContain(
+      "paged nobody at Platform leads (Level 2 of 3): nobody was on call",
+    );
+    expect(run[2]).toContain(
+      "paged Sam Rivera at First responders (Level 1 of 3, schedule EU days).",
+    );
     expect(run[3]).toContain("Started Executing");
 
     // Show fewer ends the group, under its last entry, not after its first.
@@ -12257,7 +12261,7 @@ test.describe("the feed, as a timeline", () => {
     const focused: string = await page.evaluate((): string => {
       return document.activeElement?.textContent || "";
     });
-    expect(focused).toContain("paged nobody at escalation rule");
+    expect(focused).toContain("paged nobody at Platform leads");
 
     // Folding it again hands focus back to the button that unfolds it.
     await showFewer.focus();
@@ -12424,6 +12428,12 @@ test.describe("links and quotes in a note", () => {
       openedTabs += 1;
     });
 
+    // A mark on this page's window: a page loaded again would not have it.
+    await page.evaluate((): void => {
+      (window as unknown as { keptAcrossTheLink: boolean }).keptAcrossTheLink =
+        true;
+    });
+
     await Promise.all([
       page.waitForURL(`**${incidentPath(1036)}`),
       otherIncident.click(),
@@ -12431,6 +12441,15 @@ test.describe("links and quotes in a note", () => {
 
     expect(openedTabs).toBe(0);
     expect(page.context().pages()).toHaveLength(1);
+    // Opened inside the app, as its own links open: the app was not loaded again.
+    expect(
+      await page.evaluate((): boolean => {
+        return Boolean(
+          (window as unknown as { keptAcrossTheLink?: boolean })
+            .keptAcrossTheLink,
+        );
+      }),
+    ).toBe(true);
   });
 
   test("quoted text is a quote: a grey bar and lighter text, with no icon", async ({
@@ -13085,7 +13104,7 @@ test.describe("Escalate", () => {
     ]);
   });
 
-  test("somebody acknowledged it meanwhile: it says so, and nothing is escalated", async ({
+  test("somebody acknowledged it meanwhile: it says so, nothing is escalated, and the header reads the incident again", async ({
     page,
   }: {
     page: Page;
@@ -13095,6 +13114,12 @@ test.describe("Escalate", () => {
       INCIDENT_PAGE,
       "paged=incident&state=created&passOn=acknowledged",
     );
+
+    await expect(heroActions(page).getByRole("button")).toHaveText([
+      "Acknowledge",
+      "Resolve",
+      "Escalate",
+    ]);
 
     await escalateButton(page).click();
     await escalateDialog(page)
@@ -13106,12 +13131,24 @@ test.describe("Escalate", () => {
       "Already acknowledged",
     );
     expect(await dialogLines(page, "pass-on-answer")).toEqual([
-      "Sam Lee acknowledged it already, so there is nothing to escalate.",
+      "Sam Rivera acknowledged it already, so there is nothing to escalate.",
     ]);
     await screenshotElement(
       escalateDialog(page),
       "escalate-dialog-acknowledged",
     );
+
+    /*
+     * Behind the dialog the page read the incident again (#4914): the
+     * header no longer offers Acknowledge for an incident Sam took, nor
+     * Escalate for a page that is over.
+     */
+    await escalateDialog(page)
+      .getByTestId("modal-footer-submit-button")
+      .click();
+    await expect(escalateDialog(page)).toHaveCount(0);
+    await expect(heroActions(page).getByRole("button")).toHaveText(["Resolve"]);
+    await expectRenderedText(heroChips(page), "Acknowledged SEV-2");
   });
 
   test("a failed request keeps the question open, with an error", async ({
@@ -17575,7 +17612,8 @@ test.describe("at a glance: layout", () => {
       ]);
 
       const [declared] = await statCells(page, "Reaktionszeiten bei Vorfällen");
-      expect(declared?.label).toBe("Erklärt");
+      // German calls the declared time Gemeldet (#5287).
+      expect(declared?.label).toBe("Gemeldet");
       expect(declared?.note).toBe("3 Minuten nach Beginn der Auswirkung");
       expect(declared?.description).toBe("Von eu-west-1 probe");
 

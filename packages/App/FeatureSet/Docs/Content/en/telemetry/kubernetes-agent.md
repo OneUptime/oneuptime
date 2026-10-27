@@ -241,6 +241,8 @@ The agent sends every Kubernetes event of the cluster to OneUptime: from every n
 | Count | How many times it happened: a repeat raises the count rather than adding a row |
 | Last seen | When it last happened; hover to see when it first did |
 
+On a screen narrower than 1024 pixels, the **Event** column also shows **Count** and **Last seen**, which have no columns of their own there.
+
 ### Search and alert on events
 
 Every event is also a log. A warning is stored with the **Warning** severity, and what the event says is in its attributes:
@@ -256,7 +258,7 @@ Every event is also a log. A warning is stored with the **Warning** severity, an
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Search them in **Logs**, drop the ones you do not want with a drop filter, or be told when one happens with a [Logs monitor](/docs/monitor/logs-monitor): filter on the **Warning** severity and `k8s.event.reason`, and group by `k8s.object.name` for one alert per node or autoscaler.
+Search them in **Logs**, or drop the ones you do not want with a drop filter. To be told when one happens, turn on **Warning Events** on the cluster's **Recommendations** page, or select **Turn on warning alerts** at the foot of its **Events** page: a [Logs monitor](/docs/monitor/logs-monitor) on the cluster's warnings that raises one alert per object and reason, and resolves it once 5 minutes pass without a new warning about it. To be told about some reasons only, add `k8s.event.reason` to its filter.
 
 ## Configuration options
 

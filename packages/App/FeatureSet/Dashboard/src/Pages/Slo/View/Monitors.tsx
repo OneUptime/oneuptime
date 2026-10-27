@@ -336,6 +336,7 @@ const SloMonitors: FunctionComponent<PageComponentProps> = (): ReactElement => {
     PermissionGate.gateCardButton(
       {
         title: "Add Monitors",
+        phoneTitle: "Add",
         buttonStyle: ButtonStyleType.NORMAL,
         icon: IconProp.Add,
         isLoading: isLoadingAddOptions,

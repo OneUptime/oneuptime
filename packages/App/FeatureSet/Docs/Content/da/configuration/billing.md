@@ -144,10 +144,10 @@ Når en saldo ikke kan betale, sendes beskeden ikke, eller OneUptime AI stopper,
 
 | For at | Kræver det |
 | --- | --- |
-| Læse faktureringssiderne: planen, fakturaer, forbrug, saldi og betalingsmetoder | Project Owner, **Manage Billing**, **Billing Admin**, **Billing Member** eller **Billing Viewer** |
-| Downloade en faktura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Billing Admin** eller **Billing Member** |
-| Ændre faktureringsadressen og faktura-e-mailen | Project Owner, **Manage Billing**, **Billing Admin** eller **Billing Member** |
-| Slå SMS, opkald, WhatsApp eller Telegram til eller fra | Project Owner, **Manage Billing** eller **Billing Admin** |
+| Læse faktureringssiderne: planen, fakturaer, forbrug, saldi og betalingsmetoder | Project Owner, **Manage Billing**, **Faktureringsadministrator**, **Faktureringsmedlem** eller **Faktureringsseer** |
+| Downloade en faktura | Project Owner, Project Admin, **Manage Billing**, **Read Invoices**, **Faktureringsadministrator** eller **Faktureringsmedlem** |
+| Ændre faktureringsadressen og faktura-e-mailen | Project Owner, **Manage Billing**, **Faktureringsadministrator** eller **Faktureringsmedlem** |
+| Slå SMS, opkald, WhatsApp eller Telegram til eller fra | Project Owner, **Manage Billing** eller **Faktureringsadministrator** |
 | Tilføje en betalingsmetode | Project Owner, **Manage Billing** eller **Create Payment Method** |
 | Betale en faktura | Project Owner, **Manage Billing** eller **Edit Invoices** |
 | Skifte plan, genoplade en saldo eller ændre automatisk genopfyldning | Project Owner eller **Manage Billing** |

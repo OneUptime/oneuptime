@@ -56,11 +56,11 @@ flowchart TB
 
 - **Quick Setup**：点击一个 [模板](#预置告警模板)。它会设置指标、属性过滤器、聚合、时间范围、分组和阈值，并用自己的条件替换下面的条件。你仍然可以修改 **时间范围**。
 - **Custom Metric**：从 **VMware Metric** 中选择一个指标，然后设置 **聚合** 和 **时间范围**。表单会按它描述的对象分组，因此每台主机、每个 VM 或每个数据存储都会单独判断，而 [过滤器](#监视器设置) 可以把它缩小到一个数据中心、集群、主机、VM、数据存储或资源池。
-- **高级**：在 **选择指标** 下自己构建查询和公式，并按 `disk_state`、`power_state` 或 `status` 等属性过滤。用一个 [标识属性](#标识属性) 进行 **Group by**，即可分别判断每个对象。
+- **高级**：在 **选择指标** 下自己构建查询和公式，并按 `disk_state`、`power_state` 或 `status` 等属性过滤。用一个 [标识属性](#标识属性) 进行 **分组依据**，即可分别判断每个对象。
 
 ### 检查条件
 
-打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **Threshold**。模板会填写这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，它只会注意到指标降为零，所以请设置你自己的阈值。
+打开 **监视器条件** 下的每个条件，检查其 **指标**、**聚合**、**条件** 和 **阈值**。模板会填写这些内容。使用 **Custom Metric** 或 **高级** 时，监视器从 [默认条件](#默认条件) 开始，它只会注意到指标降为零，所以请设置你自己的阈值。
 
 ### 创建监视器
 
@@ -68,7 +68,7 @@ flowchart TB
 :::
 
 > [!TIP]
-> 要一次设置多个模板，请从 **产品 → 基础设施 → VMware** 打开 vCenter，然后进入 **Recommendations**。选择你需要的模板和要呼叫的人员，OneUptime 会为每个模板创建一个监视器。
+> 要一次设置多个模板，请从 **产品 → 基础设施 → VMware** 打开 vCenter，然后进入 **建议**。选择你需要的模板和要呼叫的人员，OneUptime 会为每个模板创建一个监视器。
 
 ## 监视器设置
 
@@ -77,14 +77,14 @@ flowchart TB
 | **vCenter** | 全部 | 必填。把每个查询限定到 `resource.vmware.vcenter.name`。 |
 | **数据中心** | Custom Metric、高级 | 可选。一个数据中心：`resource.vcenter.datacenter.name`。每个序列都带有它。 |
 | **集群** | Custom Metric、高级 | 可选。一个集群：`resource.vcenter.cluster.name`。匹配集群自身的序列，以及其中的主机、VM 和资源池的序列；独立的 ESXi 主机没有集群。 |
-| **ESXi Host** | Custom Metric、高级 | 可选。一台 ESXi 主机：`resource.vcenter.host.name`。匹配主机自身的序列 **以及** 它运行的每个 VM 的序列，因为 VM 带有其主机的名称。 |
-| **Virtual Machine** | Custom Metric、高级 | 可选。一个 VM：`resource.vcenter.vm.name`。VM 名称不一定唯一：当两个 VM 同名时，请再加上一台主机或一个集群。 |
-| **Datastore** | Custom Metric、高级 | 可选。一个数据存储：`resource.vcenter.datastore.name`。 |
+| **ESXi 主机** | Custom Metric、高级 | 可选。一台 ESXi 主机：`resource.vcenter.host.name`。匹配主机自身的序列 **以及** 它运行的每个 VM 的序列，因为 VM 带有其主机的名称。 |
+| **虚拟机** | Custom Metric、高级 | 可选。一个 VM：`resource.vcenter.vm.name`。VM 名称不一定唯一：当两个 VM 同名时，请再加上一台主机或一个集群。 |
+| **数据存储** | Custom Metric、高级 | 可选。一个数据存储：`resource.vcenter.datastore.name`。 |
 | **Resource Pool Path** | Custom Metric、高级 | 可选。一个资源池，按其清单路径(`/DC/host/Cluster/Resources/pool`)：`resource.vcenter.resource_pool.inventory_path`。之所以用路径，是因为资源池名称只在其父对象内唯一。 |
 | **VMware Metric** | Custom Metric | [目录](#采集的指标) 中的一个指标。 |
 | **聚合** | Custom Metric | 如何合并样本：**平均值**、**最大值**、**最小值**、**总和** 或 **计数**。从该指标的常用聚合开始。 |
-| **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **Past 5 Minutes** 开始；模板会设置自己的值。 |
-| **选择指标** | 高级 | 查询构建器：**指标**、**Aggregate by**、**Filter by attributes**、**Group by**，以及用于合并查询的 **添加指标** 和 **添加公式**。 |
+| **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **过去 5 分钟** 开始；模板会设置自己的值。 |
+| **选择指标** | 高级 | 查询构建器：**指标**、**Aggregate by**、**Filter by attributes**、**分组依据**，以及用于合并查询的 **添加指标** 和 **添加公式**。 |
 
 vCenter 每个采集间隔(默认 2 分钟)读取一次，因此 1 分钟的窗口可能根本没有样本。请把窗口保持在 5 分钟或更长；如果你为大型清单调高了采集间隔，还要更长。
 
@@ -117,15 +117,15 @@ OneUptime 为常见的 VMware 问题提供 23 个模板，**Quick Setup** 会提
 | Host Disk Latency High | 主机 | Warning | `vcenter.host.disk.latency.max`，按主机取 Max | 高于 50 ms：磁盘位于该路径上的每个 VM 都在等待存储。需要性能计数器级别 3 | 达到或低于 45 ms |
 | Host Network Packet Errors | 主机 | Warning | `vcenter.host.network.packet.error.rate`，按主机取 Max | 高于 0：几乎总是线缆、SFP 或交换机端口故障 | 恢复为 0 |
 | Host Network Packet Drops | 主机 | Warning | `vcenter.host.network.packet.drop.rate`，按主机取 Max | 高于 0：上行链路超额订阅，或 NIC 环形缓冲区溢出 | 恢复为 0 |
-| VM CPU Saturation | Virtual Machine | Warning | `vcenter.vm.cpu.utilization`，按 `resource.vcenter.vm.name` 取 Avg，**过去 15 分钟** | 在整整 15 分钟内都高于 VM vCPU 的 90%：VM 可以使用分配给它的资源，因此只有始终不降下来的 VM 才会呼叫 | 达到或低于 81% |
-| VM CPU Ready Contention | Virtual Machine | Warning | `vcenter.vm.cpu.readiness`，按 VM 取 Avg | 高于 10%：VM 已准备好运行，但主机没有物理内核分配给它。在客户机内部看不到 | 达到或低于 9% |
-| VM Memory Saturation | Virtual Machine | Warning | `vcenter.vm.memory.utilization`，按 VM 取 Avg | 高于其内存的 90%：客户机即将开始换页 | 达到或低于 81% |
-| VM Memory Ballooning | Virtual Machine | Warning | `vcenter.vm.memory.ballooned`，按 VM 取 Max | 高于 0：主机内存不足，正在从这个客户机收回内存 | 恢复为 0 |
-| VM Memory Swapping | Virtual Machine | 严重 | `vcenter.vm.memory.swapped`，按 VM 取 Max | 高于 0：主机正在交换 VM 的内存，这是在气球回收和压缩之后的最后手段 | 恢复为 0 |
-| VM Disk Latency High | Virtual Machine | Warning | `vcenter.vm.disk.latency.max`，按 VM 取 Max | 高于 50 ms：客户机中的应用程序 I/O 超时 | 达到或低于 45 ms |
-| VM Disk Usage High | Virtual Machine | Warning | `vcenter.vm.disk.utilization`，按 VM 取 Avg | 已占用其预配存储的 90% 以上：精简置备的 VM 即将占满其全部大小 | 达到或低于 81% |
-| Datastore Capacity Warning | Datastore | Warning | `vcenter.datastore.disk.utilization`，按 `resource.vcenter.datastore.name` 取 Avg | 高于 80%：一个提前的警告，因为精简磁盘和快照会很快用完剩余空间 | 达到或低于 72% |
-| Datastore Capacity Critical | Datastore | 严重 | `vcenter.datastore.disk.utilization`，按数据存储取 Avg | 高于 90%：写满的数据存储会暂停每个在其上有磁盘的 VM | 达到或低于 81% |
+| VM CPU Saturation | 虚拟机 | Warning | `vcenter.vm.cpu.utilization`，按 `resource.vcenter.vm.name` 取 Avg，**过去 15 分钟** | 在整整 15 分钟内都高于 VM vCPU 的 90%：VM 可以使用分配给它的资源，因此只有始终不降下来的 VM 才会呼叫 | 达到或低于 81% |
+| VM CPU Ready Contention | 虚拟机 | Warning | `vcenter.vm.cpu.readiness`，按 VM 取 Avg | 高于 10%：VM 已准备好运行，但主机没有物理内核分配给它。在客户机内部看不到 | 达到或低于 9% |
+| VM Memory Saturation | 虚拟机 | Warning | `vcenter.vm.memory.utilization`，按 VM 取 Avg | 高于其内存的 90%：客户机即将开始换页 | 达到或低于 81% |
+| VM Memory Ballooning | 虚拟机 | Warning | `vcenter.vm.memory.ballooned`，按 VM 取 Max | 高于 0：主机内存不足，正在从这个客户机收回内存 | 恢复为 0 |
+| VM Memory Swapping | 虚拟机 | 严重 | `vcenter.vm.memory.swapped`，按 VM 取 Max | 高于 0：主机正在交换 VM 的内存，这是在气球回收和压缩之后的最后手段 | 恢复为 0 |
+| VM Disk Latency High | 虚拟机 | Warning | `vcenter.vm.disk.latency.max`，按 VM 取 Max | 高于 50 ms：客户机中的应用程序 I/O 超时 | 达到或低于 45 ms |
+| VM Disk Usage High | 虚拟机 | Warning | `vcenter.vm.disk.utilization`，按 VM 取 Avg | 已占用其预配存储的 90% 以上：精简置备的 VM 即将占满其全部大小 | 达到或低于 81% |
+| Datastore Capacity Warning | 数据存储 | Warning | `vcenter.datastore.disk.utilization`，按 `resource.vcenter.datastore.name` 取 Avg | 高于 80%：一个提前的警告，因为精简磁盘和快照会很快用完剩余空间 | 达到或低于 72% |
+| Datastore Capacity Critical | 数据存储 | 严重 | `vcenter.datastore.disk.utilization`，按数据存储取 Avg | 高于 90%：写满的数据存储会暂停每个在其上有磁盘的 VM | 达到或低于 81% |
 | Cluster Host Not Effective | 集群 | 严重 | `vcenter.cluster.host.count` 过滤到 `effective = false`，按 `resource.vcenter.cluster.name` 取 Max | 高于 0：某台主机处于维护模式、已断开连接或无响应，因此集群以低于其设计容量的容量运行 | 恢复为 0 |
 | Datacenter Hosts Unhealthy | 数据中心 | 严重 | `vcenter.datacenter.host.count` 过滤到 `status = red`，按 `resource.vcenter.datacenter.name` 取 Max | 高于 0：某台主机有严重警报，例如硬件传感器、丢失的存储路径或 HA 代理错误 | 恢复为 0 |
 | Datacenter Hosts Degraded | 数据中心 | Warning | `vcenter.datacenter.host.count` 过滤到 `status = yellow`，按数据中心取 Max | 高于 0：某台主机有警告级警报 | 恢复为 0 |
@@ -260,7 +260,7 @@ OneUptime 为常见的 VMware 问题提供 23 个模板，**Quick Setup** 会提
 | `vcenter.vm.vsan.throughput` | `By/s` | VM 的 vSAN 吞吐量，按 `direction` |
 
 > [!NOTE]
-> VM 的电源状态不是一个指标。接收器只为已开机的 VM 发送 `vcenter.vm.cpu.*`，因此 OneUptime 根据 CPU 数据是否与 VM 的内存和磁盘数据在同一次采集中到达，来区分 **Powered on** 和 **Powered off**；vCenter 的 **虚拟机** 页面会显示结果。要针对已关机的主机或正在运行的 VM 数量告警，请使用 `power_state` 属性，它位于 `vcenter.datacenter.host.count`、`vcenter.datacenter.vm.count` 或 `vcenter.cluster.vm.count` 上。
+> VM 的电源状态不是一个指标。接收器只为已开机的 VM 发送 `vcenter.vm.cpu.*`，因此 OneUptime 根据 CPU 数据是否与 VM 的内存和磁盘数据在同一次采集中到达，来区分 **Powered on** 和 **已关机**；vCenter 的 **虚拟机** 页面会显示结果。要针对已关机的主机或正在运行的 VM 数量告警，请使用 `power_state` 属性，它位于 `vcenter.datacenter.host.count`、`vcenter.datacenter.vm.count` 或 `vcenter.cluster.vm.count` 上。
 
 ## 监控条件
 
@@ -271,7 +271,7 @@ OneUptime 为常见的 VMware 问题提供 23 个模板，**Quick Setup** 会提
 | **指标** | 要检查的查询或公式，按其变量名。 |
 | **聚合** | 窗口中的值如何变成一个答案：**平均值**、**总和**、**Maximum Value**、**Minimum Value**、**All Values**(整个窗口内每个值都必须匹配)或 **Any Value**(一个就够)。 |
 | **条件** | **大于**、**小于**、**大于或等于**、**小于或等于** 或 **等于**——或者一个异常条件：**Anomalously High**、**Anomalously Low** 或 **Anomalous**。 |
-| **Threshold** | 用于比较的值。指标有单位时，旁边会有一个单位列表。异常条件不显示此字段。 |
+| **阈值** | 用于比较的值。指标有单位时，旁边会有一个单位列表。异常条件不显示此字段。 |
 | **灵敏度** | 仅限异常条件。**低**(4σ)、**中**(3σ，默认)或 **高**(2σ)。 |
 | **基线窗口** | 仅限异常条件。14 天(默认)、28、60 或 90 天的历史。 |
 | **如果无数据** | 位于 **更多字段** 下。窗口中没有样本时会发生什么：**Ignore**(默认)、**Treat As Zero** 或 **触发器**。 |

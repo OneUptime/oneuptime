@@ -34,7 +34,7 @@ Gruppering sker när ett larm skapas. En regel som du lägger till i dag grupper
 
 ## Skapa en grupperingsregel
 
-Gå till **Varningar → Regler → Grupperingsregler**. Avsnittet **Regler** i sidomenyn börjar hopfällt, så fäll ut det först.
+Gå till **Larm → Regler → Grupperingsregler**. Avsnittet **Regler** i sidomenyn börjar hopfällt, så fäll ut det först.
 
 ### Börja från en mall
 
@@ -64,7 +64,7 @@ Klicka på **Skapa anpassad regel** under mallarna, eller på **Skapa gruppering
 
 #### Avgränsa den
 
-I **Vilka larm** grupperar **Alla varningar**, som en ny regel börjar på, varje nytt larm. För att snäva in regeln väljer du **Endast varningar som uppfyller villkoren** och lägger till villkor för monitorer, allvarlighetsgrader, etiketter, titlar och beskrivningar. Klicka sedan på **Skapa grupperingsregel för larm**.
+I **Vilka larm** grupperar **Alla larm**, som en ny regel börjar på, varje nytt larm. För att snäva in regeln väljer du **Endast larm som uppfyller villkoren** och lägger till villkor för monitorer, allvarlighetsgrader, etiketter, titlar och beskrivningar. Klicka sedan på **Skapa grupperingsregel för larm**.
 :::
 
 Allt annat som en regel kan göra är hopfällt under **Fler fält** i slutet av steget **Gruppering**, i tre grupper. Hopfälld anger dess rubrik vad den innehåller och visar vad varje inställning som regeln använder är satt till, så att redigering av en regel aldrig döljer vad den gör.
@@ -95,7 +95,7 @@ En variabel som det första larmet inte har något värde för, eller en som int
 
 En episod går igenom dina larmtillstånd, samma lista som larm använder, och har egna ägare, anteckningar, rotorsak och åtgärdsanteckningar.
 
-- **Dess allvarlighetsgrad stiger med dess larm.** Den börjar med det första larmets allvarlighetsgrad och tar allvarlighetsgraden från varje allvarligare larm som ansluter till den, där "allvarligare" betyder högre upp i **Varningar → Inställningar → Varningsallvar**.
+- **Dess allvarlighetsgrad stiger med dess larm.** Den börjar med det första larmets allvarlighetsgrad och tar allvarlighetsgraden från varje allvarligare larm som ansluter till den, där "allvarligare" betyder högre upp i **Larm → Inställningar → Larmallvar**.
 - **Dess tillstånd flyttar dess larm.** Bekräfta eller lös en episod, eller flytta den till ett eget tillstånd, så flyttas varje larm i den också, utom ett larm som redan är i det tillståndet eller efter det.
 - **Den löser sig själv** när varje larm i den är löst. **Vänta innan en episod löses** håller den öppen i så många minuter först, ifall ett larm kommer tillbaka.
 - **Den kan öppnas igen.** Med **Återöppna nyligen lösta episoder** påslaget öppnar ett matchande larm som kommer inom minuterna efter att episoden löstes den igen, i stället för att öppna en ny. Det är det enda steget tillbaka uppåt i listan över tillstånd, och det öppnar inte episodens larm igen.
@@ -115,25 +115,25 @@ flowchart TB
     grouped -->|"Ansluter till en episod"| none["Inget mer körs"]
 ```
 
-- **En ny episod** kör regelns **Jourpolicyer**, plus de från varje matchande regel på fliken **Episode Rules** under **Varningar → Regler → Jourregler**.
+- **En ny episod** kör regelns **Jourpolicyer**, plus de från varje matchande regel på fliken **Episode Rules** under **Larm → Regler → Jourregler**.
 - **Ett larm som ansluter till en öppen episod** kör bara sina egna policyer. Episodens körs inte igen.
 - **Att svara på en episods larmanrop** bekräftar episoden, och därmed varje larm i den.
 
 > [!TIP]
 > För att larma en gång per problem i stället för en gång per larm lägger du jourpolicyer på dina grupperingsregler och håller dem borta från larmen: från monitorns kriterier, från formuläret för att skapa och från dina jourregler för larm.
 
-Episodens ägare får också veta det: **Larmepisod skapad**, **Tillstånd för larmepisod ändrades** och **Larm tillagt i larmepisod** är påslagna via e-post som standard, under **Användarinställningar → Aviseringsinställningar**, på fliken **Varningar**. Regelns **Episodägare** blir ägare till varje episod som den öppnar, och meddelas som alla andra ägare.
+Episodens ägare får också veta det: **Larmepisod skapad**, **Tillstånd för larmepisod ändrades** och **Larm tillagt i larmepisod** är påslagna via e-post som standard, under **Användarinställningar → Aviseringsinställningar**, på fliken **Larm**. Regelns **Episodägare** blir ägare till varje episod som den öppnar, och meddelas som alla andra ägare.
 
 ## Skapa en episod manuellt
 
 :::steps
 ### Öppna formuläret
 
-Gå till **Varningar → Alla episoder** och klicka på **Skapa episod**. Formuläret **Skapa ny larmepisod** öppnas.
+Gå till **Larm → Alla episoder** och klicka på **Skapa episod**. Formuläret **Skapa ny larmepisod** öppnas.
 
 ### Beskriv episoden
 
-I **Episoddetaljer** fyller du i **Titel** och, om du vill, en **Varningsallvar** och en **Beskrivning**. **Inledande tillstånd** och **Etiketter** väntar under **Fler fält**.
+I **Episoddetaljer** fyller du i **Titel** och, om du vill, en **Larmallvar** och en **Beskrivning**. **Inledande tillstånd** och **Etiketter** väntar under **Fler fält**.
 
 ### Välj vem som larmas och vem som äger den
 
@@ -143,10 +143,10 @@ Varje team du är medlem i är ett klick bort under **Ägare**, och sammanfattni
 
 ### Lägg till larmen
 
-Öppna episodens sida **Medlemsvarningar**, klicka på **Lägg till varningar** och markera larmen som hör till den, så många du behöver på en gång. Vill du hellre börja från larmen markerar du dem i listan **Varningar** och väljer **Lägg till i ny episod** under **Massåtgärder** (se [Episoder](/docs/incidents/episodes)).
+Öppna episodens sida **Medlemslarm**, klicka på **Lägg till larm** och markera larmen som hör till den, så många du behöver på en gång. Vill du hellre börja från larmen markerar du dem i listan **Larm** och väljer **Lägg till i ny episod** under **Massåtgärder** (se [Episoder](/docs/incidents/episodes)).
 :::
 
-En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grupperingsregel** som **Manual**, och ingen livscykelinställning gäller för den. Den löser ändå sig själv när varje larm i den är löst.
+En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grupperingsregel** som **Manuell**, och ingen livscykelinställning gäller för den. Den löser ändå sig själv när varje larm i den är löst.
 
 ## Vad varje sida av en episod visar
 
@@ -155,14 +155,14 @@ En episod som du skapar har ingen grupperingsregel, så listan visar dess **Grup
 | **Översikt** | **Översikt**, **Tillståndstidslinje** |
 | **Utredning** | **Beskrivning**, **Rotorsak**, **Åtgärdsanteckningar** |
 | **Team** | **Ägare** |
-| **Varningar** | **Medlemsvarningar** |
+| **Larm** | **Medlemslarm** |
 | **Anteckningar** | **Privata anteckningar** |
 | **Utvecklare** | **Terraform**, **API**, **AI-assistenter** |
 | **Avancerad** | **Granskningsloggar**, **Ta bort episod** |
 
 **Utvecklare** och **Avancerad** börjar hopfällda. På **Översikt** nämner sidhuvudet episodens **Ägare**, team först, och den första rutan, **Skapad**, säger när episoden skapades — **Automatiskt**, när en grupperingsregel öppnade den. Kortet **Vad som hände** står överst på sidan — episodens beskrivning och dess **Rotorsak** — sedan **Alerts in this episode** och **Episodflöde**, bredvid kortet **Episoddetaljer**: dess nummer, tillstånd, allvarlighetsgrad, antal larm, grupperingsregel och jourpolicyer. Dess sidhuvud har **Bekräfta** och **Lös**, och **Flytta episoden till** i menyn **⋯**.
 
-**Varningar → Aktiva episoder** listar de episoder som inte är lösta ännu, och märket bredvid räknar dem.
+**Larm → Aktiva episoder** listar de episoder som inte är lösta ännu, och märket bredvid räknar dem.
 
 ## Felsökning
 

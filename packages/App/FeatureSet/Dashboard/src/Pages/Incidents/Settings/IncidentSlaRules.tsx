@@ -17,7 +17,6 @@ import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Fi
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import {
   SLA_RULE_NAME_DESCRIPTION,
-  clearEmptiedSlaRuleMinutes,
   followValueWithRuleName,
   getNewSlaRuleValues,
   getSlaRuleFormSteps,
@@ -146,17 +145,10 @@ const IncidentSlaRulesPage: FunctionComponent<
          * Edit form shows what the rule stores, an empty target included.
          */
         createInitialValues={getNewSlaRuleValues<IncidentSlaRule>()}
-        // An emptied target or note interval is saved as none, not as "".
-        onBeforeCreate={async (
-          item: IncidentSlaRule,
-        ): Promise<IncidentSlaRule> => {
-          return clearEmptiedSlaRuleMinutes(item);
-        }}
-        onBeforeUpdate={async (
-          item: IncidentSlaRule,
-        ): Promise<IncidentSlaRule> => {
-          return clearEmptiedSlaRuleMinutes(item);
-        }}
+        /*
+         * An emptied target or note interval is saved as none, as every
+         * form's emptied number box is (ModelForm, BlankColumnValue).
+         */
         filters={[
           {
             field: {

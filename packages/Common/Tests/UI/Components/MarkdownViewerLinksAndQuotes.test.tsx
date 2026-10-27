@@ -29,7 +29,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import type { SpyInstance } from "jest-mock";
+import type { Mock, SpyInstance } from "jest-mock";
 
 jest.mock("react-markdown", () => {
   return {
@@ -56,6 +56,8 @@ import i18next, { TFunction } from "i18next";
 import { initReactI18next } from "react-i18next";
 import remarkGfm from "remark-gfm";
 import MarkdownViewer from "../../../UI/Components/Markdown.tsx/MarkdownViewer";
+import Navigation from "../../../UI/Utils/Navigation";
+import type { NavigateFunction } from "react-router-dom";
 import {
   CalloutMarkdownNode,
   MARKDOWN_CALLOUT_KINDS,
@@ -480,6 +482,148 @@ describe("a link into the same app stays in the tab", () => {
     expect(reference).toHaveAttribute("data-footnote-ref", "true");
     expect(reference).toHaveAttribute("aria-describedby", "footnote-label");
     expectStaysInTab(reference);
+  });
+});
+
+/*
+ * A link to another page of the same app opened it by loading the whole
+ * app again, and the page lost what it had loaded. A plain click now opens
+ * it inside the app, as the app's own links do; everything else - a
+ * modifier key, another button, another project, a section of the page, an
+ * app with no router - is left to the browser.
+ */
+describe("a link to another page of the same app opens inside the app", () => {
+  let navigate: Mock<(to: unknown) => void>;
+
+  beforeEach(() => {
+    navigate = jest.fn<(to: unknown) => void>();
+    Navigation.setNavigateHook(navigate as unknown as NavigateFunction);
+  });
+
+  afterEach(() => {
+    Navigation.setNavigateHook(undefined as unknown as NavigateFunction);
+  });
+
+  const clickOn: (element: HTMLElement, init?: MouseEventInit) => MouseEvent = (
+    element: HTMLElement,
+    init?: MouseEventInit,
+  ): MouseEvent => {
+    const event: MouseEvent = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+      ...(init || {}),
+    });
+
+    element.dispatchEvent(event);
+
+    return event;
+  };
+
+  test.each([
+    [
+      "an incident a feed entry names, written absolute",
+      `${window.location.origin}/dashboard/${PROJECT_ID}/incidents/1036`,
+      `/dashboard/${PROJECT_ID}/incidents/1036`,
+    ],
+    [
+      "a path from the root, with its query and section",
+      `/dashboard/${PROJECT_ID}/monitors?page=2#top`,
+      `/dashboard/${PROJECT_ID}/monitors?page=2#top`,
+    ],
+    [
+      "a path relative to the page",
+      "../monitors",
+      `/dashboard/${PROJECT_ID}/monitors`,
+    ],
+  ])(
+    "a plain click on %s opens it inside the app",
+    (_name: string, url: string, path: string) => {
+      showMarkdown(root(paragraph(link(url, "Go there"))));
+
+      const element: HTMLElement = linkNamed("Go there");
+      // The address stays as written, for a new tab and for the reader.
+      expect(element).toHaveAttribute("href", url);
+      expectStaysInTab(element);
+
+      const event: MouseEvent = clickOn(element);
+
+      expect(event.defaultPrevented).toBe(true);
+      expect(navigate).toHaveBeenCalledTimes(1);
+      expect(navigate).toHaveBeenCalledWith(path);
+    },
+  );
+
+  test("a cmd/ctrl, shift, alt or middle click stays the browser's", () => {
+    showMarkdown(
+      root(paragraph(link(`/dashboard/${PROJECT_ID}/monitors`, "Monitors"))),
+    );
+
+    for (const init of [
+      { metaKey: true },
+      { ctrlKey: true },
+      { shiftKey: true },
+      { altKey: true },
+      { button: 1 },
+    ]) {
+      expect(clickOn(linkNamed("Monitors"), init).defaultPrevented).toBe(false);
+    }
+
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [
+      "another project: loaded in full, as switching projects is",
+      "/dashboard/0b0b0b0b-0000-4000-8000-000000000000/incidents/1",
+    ],
+    ["a section of the page: the browser scrolls to it", "#root-cause"],
+    ["an email address", "mailto:oncall@acme.example"],
+  ])("%s is left to the browser", (_name: string, url: string) => {
+    showMarkdown(root(paragraph(link(url, "Go there"))));
+
+    expect(clickOn(linkNamed("Go there")).defaultPrevented).toBe(false);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  test("with no router to open it in, the browser loads the page", () => {
+    Navigation.setNavigateHook(undefined as unknown as NavigateFunction);
+    showMarkdown(
+      root(paragraph(link(`/dashboard/${PROJECT_ID}/monitors`, "Monitors"))),
+    );
+
+    expect(clickOn(linkNamed("Monitors")).defaultPrevented).toBe(false);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  test("on a status page, one of its own pages opens inside it", () => {
+    goTo(STATUS_PAGE_PATH);
+    showMarkdown(
+      root(
+        paragraph(
+          link(
+            "/status-page/2a1b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d/announcements",
+            "Announcements",
+          ),
+        ),
+      ),
+    );
+
+    expect(clickOn(linkNamed("Announcements")).defaultPrevented).toBe(true);
+    expect(navigate).toHaveBeenCalledWith(
+      "/status-page/2a1b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d/announcements",
+    );
+  });
+
+  test("a link that opens a new tab is never opened inside the app", () => {
+    jest.spyOn(window, "open").mockImplementation((): Window | null => {
+      return null;
+    });
+    showMarkdown(root(paragraph(link(SLACK_FILE, "image.png"))));
+
+    clickOn(linkNamed("image.png"));
+
+    expect(navigate).not.toHaveBeenCalled();
   });
 });
 

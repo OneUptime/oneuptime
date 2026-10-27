@@ -20,7 +20,7 @@ flowchart TB
     union --> sli["SLI und Fehlerbudget"]
 ```
 
-Ein neues SLO hat keine Monitore, denn das Erstellungsformular fragt nicht danach. Bis es einen hat, kann es nicht ausgewertet werden: Seine Seiten zeigen **No monitors attached**, und seine **Übersicht** bietet beide Wege an, Monitore zuzuordnen.
+Ein neues SLO hat keine Monitore, denn das Erstellungsformular fragt nicht danach. Bis es einen hat, kann es nicht ausgewertet werden: Seine Seiten zeigen **Keine Monitore verbunden**, und seine **Übersicht** bietet beide Wege an, Monitore zuzuordnen.
 
 ## Monitore von Hand zuordnen
 
@@ -102,7 +102,7 @@ Ein Muster ist ein regulärer Ausdruck, etwa `^api-.*`, oder ein `*`-Platzhalter
 - Wenn eine Beschriftung gelöscht wird, werden die SLOs, deren Regeln sie verwendet haben, neu bewertet.
 - Regeln halten die Monitorliste eines SLO aktuell, auch während das SLO ausgeschaltet oder archiviert ist, sodass es mit den richtigen Monitoren weitermacht.
 
-Regeln synchronisieren sich bei jedem Speichern neu, **Jetzt ausführen** ist also dafür da, etwas nachzuholen, das dem SLO entgangen ist. Es steht in jeder Zeile, auf der eigenen Seite der Regel (**Ansehen**) und in den Massenaktionen der Tabelle. Das Ausführen einer Regel bewertet alle aktivierten Monitor-Regeln des SLO gemeinsam neu, und der Dialog sagt danach, wie viele Monitore zugeordnet und gelöst wurden. Zum Ausführen einer Regel brauchen Sie die Berechtigung, SLO-Monitor-Regeln zu bearbeiten. Siehe [Regeln für bestehende Ressourcen ausführen](/docs/configuration/run-rules-now).
+Regeln synchronisieren sich bei jedem Speichern neu, **Jetzt ausführen** ist also dafür da, etwas nachzuholen, das dem SLO entgangen ist. Es steht in jeder Zeile, auf der eigenen Seite der Regel (**Anzeigen**) und in den Massenaktionen der Tabelle. Das Ausführen einer Regel bewertet alle aktivierten Monitor-Regeln des SLO gemeinsam neu, und der Dialog sagt danach, wie viele Monitore zugeordnet und gelöst wurden. Zum Ausführen einer Regel brauchen Sie die Berechtigung, SLO-Monitor-Regeln zu bearbeiten. Siehe [Regeln für bestehende Ressourcen ausführen](/docs/configuration/run-rules-now).
 
 ### Welche Monitore einer Regel gehören
 

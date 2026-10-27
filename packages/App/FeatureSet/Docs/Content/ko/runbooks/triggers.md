@@ -24,7 +24,7 @@ flowchart TB
     execution --> worker["OneUptime Worker가 단계를 실행"]
 ```
 
-트리거는 **Run Now** 와 같은 방식으로 실행을 시작합니다. 실행은 Runbook의 현재 단계를 대상으로 하며 인시던트, 알림, 예약된 유지 관리 이벤트 어디에도 연결되지 않습니다. 각 실행은 무엇이 자신을 시작했는지 기록합니다. Runbook의 **실행** 과 **런북 → 실행** 은 이를 **트리거한 사용자** 에 표시하고, 예약 실행의 예정 시각이나 웹훅을 호출한 주소도 함께 보여 주며, 두 목록 모두 이를 기준으로 필터링할 수 있습니다.
+트리거는 **지금 실행** 과 같은 방식으로 실행을 시작합니다. 실행은 Runbook의 현재 단계를 대상으로 하며 인시던트, 알림, 예약된 유지 관리 이벤트 어디에도 연결되지 않습니다. 각 실행은 무엇이 자신을 시작했는지 기록합니다. Runbook의 **실행** 과 **런북 → 실행** 은 이를 **트리거한 사용자** 에 표시하고, 예약 실행의 예정 시각이나 웹훅을 호출한 주소도 함께 보여 주며, 두 목록 모두 이를 기준으로 필터링할 수 있습니다.
 
 ## 시작하기 전에
 
@@ -44,7 +44,7 @@ flowchart TB
 **시간대** 는 처음에 사용자의 시간대입니다. 일정의 시각은 이 시간대의 시계를 기준으로 합니다.
 
 ### 저장
-**일정 저장** 을 클릭합니다. 일정이 켜지고, 카드에 일정이 한 문장과 **Next runs** 으로 표시됩니다.
+**일정 저장** 을 클릭합니다. 일정이 켜지고, 카드에 일정이 한 문장과 **다음 실행** 으로 표시됩니다.
 :::
 
 | **반복** | 선택하는 항목 | 예 |
@@ -102,7 +102,7 @@ curl -X POST "https://oneuptime.com/runbook/webhook/RUNBOOK_ID/SECRET_KEY" \
 ```
 
 ### 실행 확인
-응답은 시작한 실행을 알려 줍니다: `{"runbookExecutionId": "...", "status": "Scheduled"}`. 실행은 Runbook의 **실행** 에 있으며 **트리거한 사용자** 에 **웹훅** 이 표시되고, 실행 페이지의 **Inputs** 에서 호출이 보낸 내용을 볼 수 있습니다.
+응답은 시작한 실행을 알려 줍니다: `{"runbookExecutionId": "...", "status": "Scheduled"}`. 실행은 Runbook의 **실행** 에 있으며 **트리거한 사용자** 에 **웹훅** 이 표시되고, 실행 페이지의 **입력** 에서 호출이 보낸 내용을 볼 수 있습니다.
 :::
 
 **테스트 요청 보내기** 는 다른 도구처럼 직접 작성한 본문으로 URL에 `POST` 를 보내고, 시작된 실행으로 연결합니다. 이것은 Runbook의 실제 실행입니다.
@@ -136,7 +136,7 @@ URL이 유출되면 **URL 재설정** 을 클릭하세요. Runbook에 새 URL이
 | --- | --- |
 | Bash, kubectl | 환경 변수: 최상위 값마다 하나씩인 `ONEUPTIME_INPUT_<NAME>`, 개체 전체를 JSON으로 담은 `ONEUPTIME_INPUTS`, 실행을 시작한 것을 담은 `ONEUPTIME_TRIGGER` (예: `Webhook` 또는 `Schedule`). |
 | JavaScript | 보낸 그대로의 개체인 `args.inputs` 와 `args.trigger`. |
-| AI | **Include trigger context** 가 켜져 있으면 프롬프트 안에서 OneUptime 외부의 데이터로 표시됩니다. |
+| AI | **트리거 컨텍스트 포함** 이 켜져 있으면 프롬프트 안에서 OneUptime 외부의 데이터로 표시됩니다. |
 | HTTP request, SSH | 전혀 읽지 않습니다. URL, 스크립트, 대상은 Runbook에 적힌 그대로이며 호출자가 보내는 어떤 것도 이를 바꾸지 못합니다. |
 
 변수 이름은 값의 이름을 대문자로 바꾼 것이며, 문자나 숫자가 아닌 모든 문자는 `_` 로 씁니다. `host-name` 은 `ONEUPTIME_INPUT_HOST_NAME` 이 됩니다. 텍스트는 그대로, 숫자와 `true` 또는 `false` 는 쓰인 그대로, 개체와 목록은 JSON으로 전달됩니다. 단계는 이런 변수를 최대 100개까지 받고, 100자보다 긴 이름은 변수가 되지 않습니다. 모든 값은 여전히 `ONEUPTIME_INPUTS` 에 있습니다. 모든 이름이 `ONEUPTIME_` 으로 시작하므로 호출자는 `PATH` 나 Runner가 읽는 다른 변수를 설정할 수 없습니다.
@@ -163,7 +163,7 @@ return { host };
 
 ## 트리거를 설정할 수 있는 사람
 
-일정이나 웹훅은 아무도 없을 때 실행을 시작하므로, 설정하려면 Runbook을 편집하고 실행할 권한이 필요합니다. Project Owner, Project Admin, Runbook Admin이거나, **Edit Runbook** 과 함께 Project Member, Runbook Member 또는 **Create Runbook Execution** 이 있어야 합니다. **Run Now** 와 마찬가지로 역할이 제한된 레이블도 적용됩니다. 웹훅 URL을 보거나 재설정할 때도 같은 권한이 필요합니다.
+일정이나 웹훅은 아무도 없을 때 실행을 시작하므로, 설정하려면 Runbook을 편집하고 실행할 권한이 필요합니다. Project Owner, Project Admin, Runbook Admin이거나, **Edit Runbook** 과 함께 Project Member, Runbook Member 또는 **Create Runbook Execution** 이 있어야 합니다. **지금 실행** 과 마찬가지로 역할이 제한된 레이블도 적용됩니다. 웹훅 URL을 보거나 재설정할 때도 같은 권한이 필요합니다.
 
 일정이나 웹훅을 끄는 것은 아무것도 시작하지 않으므로 Runbook을 편집할 권한만 있으면 됩니다. Runbook을 편집할 수 있지만 실행할 수 없는 사람에게는 **일정 설정** 이 잠긴 **트리거** 페이지가 보이고, 웹훅 URL을 볼 수 있는 사람이 안내됩니다.
 

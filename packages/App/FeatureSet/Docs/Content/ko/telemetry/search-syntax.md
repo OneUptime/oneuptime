@@ -160,7 +160,7 @@ name:"SELECT wp_options"
 
 단어만 입력한 항목은 예외 메시지를 검색합니다.
 
-**Security Events** 탐색기도 같은 언어를 사용하며 `severity`, `tactic`, `user` 같은 자체 필드를 가집니다. [Security Events](/docs/telemetry/security-events)를 참고하세요.
+**보안 이벤트** 탐색기도 같은 언어를 사용하며 `severity`, `tactic`, `user` 같은 자체 필드를 가집니다. [Security Events](/docs/telemetry/security-events)를 참고하세요.
 
 ## 필터 결합
 

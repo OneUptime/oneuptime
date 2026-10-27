@@ -52,7 +52,7 @@ Arbeidsflyten åpnes i **Bygger** med tre trinn: **On Create Incident**; **Send 
 @tab Fra bunnen
 1. Lagre URL-en som en hemmelig global variabel: gå til **Arbeidsflyter → Globale variabler**, klikk på **Opprett Workflow Variabel**, gi den navnet `DISCORD_WEBHOOK_URL`, og klikk på **Neste**. Lim inn URL-en i **Innhold**, slå på **Hemmelighet**, og klikk på **Opprett Workflow Variabel**.
 2. Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt**, velg **Start fra bunnen**, gi arbeidsflyten et navn, og klikk på **Opprett arbeidsflyt**.
-3. Klikk på **Choose what starts this workflow** i **Bygger**, og velg **On Create Incident** under **Popular**. Klikk på utløseren: **Fields to pass on** starter med **Tittel**, så klikk på **Legg til felt**, og velg de andre feltene meldingen din viser, for eksempel **Incident Number With Prefix**.
+3. Klikk på **Velg hva som starter denne arbeidsflyten** i **Bygger**, og velg **On Create Incident** under **Populære**. Klikk på utløseren: **Fields to pass on** starter med **Tittel**, så klikk på **Legg til felt**, og velg de andre feltene meldingen din viser, for eksempel **Incident Number With Prefix**.
 4. Klikk på **Legg til komponent**, søk etter `discord`, og klikk på **Send Message to Discord**. Koble utgangen **Success** fra utløseren til den.
 5. Klikk på det nye trinnet. Klikk på **{ }** i **Discord Incoming Webhook URL**, og velg `DISCORD_WEBHOOK_URL` under **Global variables**. Skriv meldingen i **Message Text**, og sett inn feltene til hendelsen med **{ }**.
 :::

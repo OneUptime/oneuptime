@@ -60,11 +60,11 @@ Abra o workspace do Log Analytics no portal do Azure. A página **Overview** del
 
 ### Adicionar a conexão no OneUptime
 
-Abra **Produtos → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Microsoft Sentinel** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o valor do segredo em **Client secret**.
+Abra **Produtos → Security Events → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Microsoft Sentinel** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o valor do segredo em **Segredo do cliente**.
 
 ### Testar antes de salvar
 
-Clique em **Test these settings** em **Testar antes de salvar**. O teste entra e lê incidentes com os valores do formulário, e não salva nada, então um segredo errado ou uma função que falta aparecem antes de a conexão existir. Depois clique em **Próximo**, dê à conexão um **Nome** e crie-a.
+Clique em **Testar estas configurações** em **Testar antes de salvar**. O teste entra e lê incidentes com os valores do formulário, e não salva nada, então um segredo errado ou uma função que falta aparecem antes de a conexão existir. Depois clique em **Próximo**, dê à conexão um **Nome** e crie-a.
 :::
 
 | Configuração | Onde encontrar |
@@ -75,9 +75,9 @@ Clique em **Test these settings** em **Testar antes de salvar**. O teste entra e
 | **Resource group** | A página **Overview** do workspace. De 1 a 90 letras, dígitos, sublinhados, hifens, pontos ou parênteses, sem terminar em ponto. |
 | **Workspace name** | A página **Overview** do workspace. De 3 a 90 letras, dígitos ou hifens, começando e terminando com uma letra ou um dígito. |
 | **Nuvem** | **Nuvem pública do Azure** (`login.microsoftonline.com`, `management.azure.com`) ou **Azure Government (EUA)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
-| **Client secret** | O **Value** do segredo. Ele é criptografado, nunca devolvido pela API e nunca mais mostrado. Substitua-o com **Update credentials** na conexão. |
+| **Segredo do cliente** | O **Value** do segredo. Ele é criptografado, nunca devolvido pela API e nunca mais mostrado. Substitua-o com **Atualizar credenciais** na conexão. |
 
-A etapa **Polling** também tem uma **Descrição** opcional, o **Poll Interval (Minutes)**, um número inteiro de `1` a `1440` que começa em `5`, e **Habilitado**, que começa ativado.
+A etapa **Consulta periódica** também tem uma **Descrição** opcional, o **Intervalo de consulta (minutos)**, um número inteiro de `1` a `1440` que começa em `5`, e **Habilitado**, que começa ativado.
 
 ## O que é importado
 
@@ -114,12 +114,12 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **O horário de criação é o cursor.** Uma regra de análise agendada que roda a cada hora abre o incidente dela bem depois da atividade que detectou, e o `firstActivityTimeUtc` do incidente pode ser horas ou dias anterior. Um cursor pelo horário de atividade pularia cada um desses incidentes. Os horários de atividade ficam em `attributes`, e as amostras do diagnóstico mostram os dois.
 - **A primeira consulta olha 24 horas para trás**, para que uma nova conexão mostre logo os incidentes recentes dela.
 - **Cada consulta seguinte começa 1 minuto antes do cursor salvo**, para que um incidente criado na fronteira entre duas janelas nunca seja pulado.
-- **Uma consulta lê no máximo 24 horas além do cursor.** Uma conexão cujo cursor ficou para trás se atualiza em uma série de janelas de 24 horas, e a **Health** dela mostra **Catching up**.
+- **Uma consulta lê no máximo 24 horas além do cursor.** Uma conexão cujo cursor ficou para trás se atualiza em uma série de janelas de 24 horas, e a **Integridade** dela mostra **Catching up**.
 - **As duplicatas são descartadas pelo GUID do incidente** (`name`) dentro do projeto, para que a sobreposição, uma janela repetida e uma importação nunca salvem um incidente duas vezes.
 
 ### Quando uma janela contém mais do que uma consulta consegue ler
 
-Uma consulta lê no máximo 20 páginas de 50 incidentes: 1.000 incidentes. Quando esse limite a interrompe antes do fim da janela, a execução fica **Partial**, com um aviso como este:
+Uma consulta lê no máximo 20 páginas de 50 incidentes: 1.000 incidentes. Quando esse limite a interrompe antes do fim da janela, a execução fica **Parcial**, com um aviso como este:
 
 ```text
 Stopped after 20 incidents requests (the per-run request limit) before reading the whole window. Incidents are read oldest first; every incident created before 2026-09-14T08:12:44.000Z was read.
@@ -131,22 +131,22 @@ Quando uma execução não consegue passar do cursor salvo de jeito nenhum, o On
 
 1. **Reduzir.** A consulta seguinte lê uma janela com a metade do tamanho, a partir do mesmo ponto de partida, e continua dividindo pela metade até que uma janela seja lida por inteiro, até um minuto. O aviso da execução diz isso: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voltar a crescer.** Depois que uma janela é lida por inteiro, a seguinte volta a ter o dobro do tamanho, até 24 horas.
-3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os incidentes mais novos continuem chegando. A execução continua **Partial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
+3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os incidentes mais novos continuem chegando. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
 
-Uma execução que falha por completo, com um erro do Microsoft Entra ID ou do Azure Resource Manager, mantém o cursor e o tamanho da janela, e a consulta seguinte relê a mesma janela. A única exceção é uma requisição que expirou: o cursor fica, mas a janela seguinte tem a metade do tamanho, porque uma janela pesada demais para ser respondida a tempo expiraria a cada tentativa. Mudar o **Poll Interval (Minutes)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
+Uma execução que falha por completo, com um erro do Microsoft Entra ID ou do Azure Resource Manager, mantém o cursor e o tamanho da janela, e a consulta seguinte relê a mesma janela. A única exceção é uma requisição que expirou: o cursor fica, mas a janela seguinte tem a metade do tamanho, porque uma janela pesada demais para ser respondida a tempo expiraria a cada tentativa. Mudar o **Intervalo de consulta (minutos)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
 
 ### Executar, pré-visualizar e importar sob demanda
 
-Clique em **Diagnostics** em uma conexão para ver as execuções recentes dela e trabalhar com ela manualmente. Quem pode alterar a conexão pode iniciar essas ações; quem pode vê-la pode ler o histórico.
+Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela e trabalhar com ela manualmente. Quem pode alterar a conexão pode iniciar essas ações; quem pode vê-la pode ler o histórico.
 
-- **Run now** inicia uma consulta na hora, com o cursor de sempre, mesmo quando a conexão não está **Habilitado**.
+- **Executar agora** inicia uma consulta na hora, com o cursor de sempre, mesmo quando a conexão não está **Habilitado**.
 - **Preview incidents** lê um intervalo de tempo de até 7 dias e não importa nada.
 - **Import this time range** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os incidentes já importados são pulados.
 - **Copy diagnostics** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
 
 ## Testar conexão
 
-**Testar conexão** na linha de uma conexão, e **Test these settings** no formulário, rodam no processo da API, não em um worker em segundo plano, para que um teste responda mesmo quando o problema são os workers. Ele faz estas verificações, em ordem:
+**Testar conexão** na linha de uma conexão, e **Testar estas configurações** no formulário, rodam no processo da API, não em um worker em segundo plano, para que um teste responda mesmo quando o problema são os workers. Ele faz estas verificações, em ordem:
 
 | Verificação | O que ela verifica |
 | --- | --- |
@@ -174,7 +174,7 @@ Registre um aplicativo e dê a ele um segredo do cliente, como em [Registrar um 
 
 ### Adicione o destino
 
-Abra **Produtos → Security Events → Connections**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**, escolha Microsoft Sentinel em **SIEM** e clique em **Próximo**. Preencha o **ID do diretório (tenant)**, o **ID do aplicativo (cliente)** e o **Client secret**, o **Endpoint de ingestão de logs** da página **Overview** do endpoint de coleta de dados (ou da regra), e o **ID imutável da regra de coleta de dados** da **JSON View** da regra. **Fluxo** é opcional: vazio, ele é `Custom-OneUptimeSecurityEvents_CL`.
+Abra **Produtos → Security Events → Conexões**. Em **Enviar para o seu SIEM**, clique em **Adicionar destino**, escolha Microsoft Sentinel em **SIEM** e clique em **Próximo**. Preencha o **ID do diretório (tenant)**, o **ID do aplicativo (cliente)** e o **Segredo do cliente**, o **Endpoint de ingestão de logs** da página **Overview** do endpoint de coleta de dados (ou da regra), e o **ID imutável da regra de coleta de dados** da **JSON View** da regra. **Fluxo** é opcional: vazio, ele é `Custom-OneUptimeSecurityEvents_CL`.
 
 ### Envie um evento de teste e comece a enviar
 
@@ -234,7 +234,7 @@ O **Último erro** da conexão guarda a mensagem de erro completa, com as creden
 
 :::details Last Error começa com `Microsoft Sentinel token request`
 - `Microsoft Sentinel token request failed (HTTP ...)`: o Microsoft Entra ID se recusou a emitir um token, então o Azure nunca foi contatado. A mensagem cita o código do Entra:
-  - `AADSTS7000215` ou `invalid_client`: o **Client secret** está errado ou expirou, ou é o ID do segredo em vez do valor dele. Crie um novo segredo e salve-o com **Update credentials**.
+  - `AADSTS7000215` ou `invalid_client`: o **Segredo do cliente** está errado ou expirou, ou é o ID do segredo em vez do valor dele. Crie um novo segredo e salve-o com **Atualizar credenciais**.
   - `AADSTS700016` ou `unauthorized_client`: o **ID do aplicativo (cliente)** não está no **ID do diretório (tenant)** informado. Compare os dois com a página **Overview** do aplicativo.
   - `AADSTS90002` ou `HTTP 404`: esse locatário não existe. O **ID do diretório (tenant)** está errado, ou ele está na outra nuvem: verifique **Nuvem**.
   - `HTTP 429` ou `HTTP 5xx`: o Microsoft Entra ID está limitando as requisições ou está indisponível. A consulta seguinte tenta de novo.
@@ -258,9 +258,9 @@ Nenhuma consulta terminou para essa conexão. Rode **Testar conexão**: as verif
 :::
 
 :::details Uma execução está Partial
-- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: a janela continha mais do que os 1.000 incidentes que uma execução lê. Nada se perde: a consulta seguinte começa depois do último incidente lido. Uma conexão que continua **Partial** consulta após consulta está se atualizando de um atraso, e o **Last Polled** e o **Last Event Imported** dela continuam avançando.
+- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: a janela continha mais do que os 1.000 incidentes que uma execução lê. Nada se perde: a consulta seguinte começa depois do último incidente lido. Uma conexão que continua **Parcial** consulta após consulta está se atualizando de um atraso, e o **Última consulta** e o **Último evento importado** dela continuam avançando.
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`: a API ignorou a ordem do mais antigo para o mais novo, então a execução não consegue mover o cursor para o último incidente dela, e a consulta seguinte lê uma janela mais curta em vez disso. Se isso se repetir, envie o relatório da execução para o suporte do OneUptime.
-- `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Import this time range** em **Diagnostics**. Uma importação lê tanto quanto uma consulta.
+- `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Import this time range** em **Diagnóstico**. Uma importação lê tanto quanto uma consulta.
 :::
 
 :::details O teste passa, mas nada é importado

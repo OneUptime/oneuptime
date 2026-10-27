@@ -51,6 +51,7 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
+import { withTranslatedSeriesNames } from "Common/UI/Components/Charts/Utils/SeriesNames";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
@@ -67,6 +68,14 @@ import {
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import {
+  RESOURCE_HERO_CONTROLS_CLASS_NAME,
+  RESOURCE_HERO_CONTROLS_TEST_ID,
+  RESOURCE_HERO_IDENTITY_CLASS_NAME,
+  RESOURCE_HERO_IDENTITY_TEST_ID,
+  RESOURCE_HERO_TOP_ROW_CLASS_NAME,
+  RESOURCE_HERO_TOP_ROW_TEST_ID,
+} from "../../../Components/TelemetryResource/ResourceHeroLayout";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import { TimeRangeZoomScope } from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomContext";
 import TimeRangeZoomHint from "Common/UI/Components/Charts/TimeRangeZoom/TimeRangeZoomHint";
@@ -939,9 +948,15 @@ const DockerHostOverview: FunctionComponent<
 
     const status: string = (host.otelCollectorStatus as string) || "";
     const lastSeenAt: Date | undefined = host.lastSeenAt;
+    /*
+     * One whole sentence either way: an English "never" in a translated
+     * "Last seen {{time}}" would read in two languages at once.
+     */
     const lastSeenText: string = lastSeenAt
-      ? OneUptimeDate.fromNow(lastSeenAt)
-      : "never";
+      ? translator.translateTemplate("Last seen {{time}}", {
+          time: OneUptimeDate.fromNow(lastSeenAt),
+        })
+      : translator.translateText("Never seen") || "Never seen";
 
     const isConnected: boolean =
       status.toLowerCase() === "connected" || status.toLowerCase() === "active";
@@ -1006,8 +1021,14 @@ const DockerHostOverview: FunctionComponent<
         </div>
         <div className="relative">
           <div className="relative px-6 py-5">
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div className="flex items-start gap-4 min-w-0">
+            <div
+              data-testid={RESOURCE_HERO_TOP_ROW_TEST_ID}
+              className={RESOURCE_HERO_TOP_ROW_CLASS_NAME}
+            >
+              <div
+                data-testid={RESOURCE_HERO_IDENTITY_TEST_ID}
+                className={RESOURCE_HERO_IDENTITY_CLASS_NAME}
+              >
                 <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-sky-200 shadow-sm">
                   <Icon
                     icon={IconProp.Docker}
@@ -1034,13 +1055,14 @@ const DockerHostOverview: FunctionComponent<
                     </div>
                   )}
                   <div className="mt-1 text-xs text-gray-400">
-                    {translator.translateTemplate("Last seen {{time}}", {
-                      time: lastSeenText,
-                    })}
+                    {lastSeenText}
                   </div>
                 </div>
               </div>
-              <div className="flex-shrink-0 md:self-start">
+              <div
+                data-testid={RESOURCE_HERO_CONTROLS_TEST_ID}
+                className={RESOURCE_HERO_CONTROLS_CLASS_NAME}
+              >
                 {renderRefreshControl()}
               </div>
             </div>
@@ -1270,7 +1292,7 @@ const DockerHostOverview: FunctionComponent<
           </div>
         </div>
         <LineChartElement
-          data={params.data}
+          data={withTranslatedSeriesNames(params.data, translator)}
           xAxis={xAxis}
           yAxis={yAxis}
           curve={params.curve ?? ChartCurve.MONOTONE}

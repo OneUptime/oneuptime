@@ -83,11 +83,11 @@ Die Token-Zahl ist eine Schätzung: die Größe der Notizen in UTF-8-Bytes getei
 
 ## Was ein Lauf gelesen hat
 
-Jeder Lauf hält die Notizen, die er gelesen hat, Wort für Wort fest. Seine Aktivität zeigt **KI-Kontext des Projekts gelesen** oder, wie viele KI-Regeln er außerdem gelesen hat, mit etwa wie vielen Tokens. **Ansehen** öffnet die Notizen so, wie der Lauf sie gelesen hat: zuerst die des Projekts, dann die jeder Regel unter ihrem Namen, auch nachdem sie geändert wurden. Wurden die Notizen einer Regel wegen der Grenze des Laufs ausgelassen, sagt das ein Warnhinweis.
+Jeder Lauf hält die Notizen, die er gelesen hat, Wort für Wort fest. Seine Aktivität zeigt **KI-Kontext des Projekts gelesen** oder, wie viele KI-Regeln er außerdem gelesen hat, mit etwa wie vielen Tokens. **Anzeigen** öffnet die Notizen so, wie der Lauf sie gelesen hat: zuerst die des Projekts, dann die jeder Regel unter ihrem Namen, auch nachdem sie geändert wurden. Wurden die Notizen einer Regel wegen der Grenze des Laufs ausgelassen, sagt das ein Warnhinweis.
 
 ## Wer ihn ändern kann
 
-- **Project Owner** und **Project Admin** können den KI-Kontext des Projekts ändern. **Project Member**, **Viewer** und **Read Project** können ihn lesen.
+- **Projektinhaber** und **Projektadministrator** können den KI-Kontext des Projekts ändern. **Projektmitglied**, **Betrachter** und **Read Project** können ihn lesen.
 - Die Notizen einer KI-Regel gehören zur Regel: Wer die Regel ändern kann, kann auch sie ändern.
 - Die Notizen werden immer nur für ihr eigenes Projekt gelesen: Kein Lauf liest den KI-Kontext eines anderen Projekts.
 

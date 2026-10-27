@@ -58,6 +58,8 @@ import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import SnmpTableCriteria from "./Criteria/SnmpTableCriteria";
+import SnmpOidRateUtil from "./SnmpOidRateUtil";
+import SnmpOidListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import SnmpTransceiverCriteria from "./Criteria/SnmpTransceiverCriteria";
 import ProbeStatusMonitorCriteria from "./Criteria/ProbeStatusMonitorCriteria";
 import ProbeStatusMonitorResponse from "../../../Types/Monitor/ProbeStatusMonitor/ProbeStatusMonitorResponse";
@@ -241,6 +243,10 @@ export default class MonitorCriteriaObservationBuilder {
         );
       case CheckOn.SnmpOidValue:
         return MonitorCriteriaObservationBuilder.describeSnmpOidValueObservation(
+          input,
+        );
+      case CheckOn.SnmpOidRatePerSecond:
+        return MonitorCriteriaObservationBuilder.describeSnmpOidRateObservation(
           input,
         );
       case CheckOn.SnmpTableValue:
@@ -1848,9 +1854,16 @@ export default class MonitorCriteriaObservationBuilder {
     const oid: string | undefined =
       input.criteriaFilter.snmpMonitorOptions?.oid;
 
-    const oidResponse: SnmpOidResponse | undefined = oid
+    /*
+     * Canonical forms, as the criteria compares them: ".1.3.6.1" and
+     * "1.3.6.1" are one object, so the summary must not call an OID the
+     * criteria matched "not returned by the device".
+     */
+    const normalizedOid: string = SnmpOidListUtil.normalizeOid(oid);
+
+    const oidResponse: SnmpOidResponse | undefined = normalizedOid
       ? snmpResponse?.oidResponses?.find((response: SnmpOidResponse) => {
-          return response.oid === oid;
+          return SnmpOidListUtil.normalizeOid(response.oid) === normalizedOid;
         })
       : undefined;
 
@@ -2000,13 +2013,66 @@ export default class MonitorCriteriaObservationBuilder {
     return `SNMP OID ${label} value was ${formattedValue} (${oidResponse.type})`;
   }
 
+  /*
+   * What a counter's rate was, or why it has none yet: a rate needs two
+   * polls of the counter, and a counter that went backwards (it wrapped, or
+   * the device restarted) has none until the next poll.
+   */
+  private static describeSnmpOidRateObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const { snmpResponse, oid, oidResponse } =
+      MonitorCriteriaObservationBuilder.findSnmpOidResponse(input);
+
+    if (!oid) {
+      return "No OID is configured on this criteria. Pick one from the OID dropdown in the criteria editor.";
+    }
+
+    if (!snmpResponse) {
+      return `SNMP response for OID ${oid} was unavailable.`;
+    }
+
+    if (!oidResponse) {
+      return `SNMP OID ${oid} was not returned by the device.`;
+    }
+
+    const label: string = oidResponse.name
+      ? `${oidResponse.name} (${oid})`
+      : oid;
+
+    if (!SnmpOidRateUtil.isCounter(oidResponse.type)) {
+      return `SNMP OID ${label} is not a counter (${oidResponse.type}), so it has no rate.`;
+    }
+
+    if (
+      typeof oidResponse.ratePerSecond !== "number" ||
+      !Number.isFinite(oidResponse.ratePerSecond)
+    ) {
+      return `SNMP OID ${label} has no rate yet: it needs two polls, and a counter that went back (wrapped, or the device restarted) starts again.`;
+    }
+
+    return `SNMP OID ${label} grew ${MonitorCriteriaObservationBuilder.formatSnmpValue(
+      oidResponse.ratePerSecond,
+    )} per second.`;
+  }
+
+  /*
+   * A number as the device reports it, to two decimals at most and without
+   * trailing zeros: a counter at 1200 reads "1200", not "1200.00", and a
+   * rate of 4.5 a second reads "4.5".
+   */
   private static formatSnmpValue(value: string | number): string {
     if (typeof value === Typeof.Number) {
-      const formatted: string | null =
-        MonitorCriteriaMessageFormatter.formatNumber(value as number, {
-          maximumFractionDigits: 2,
-        });
-      return formatted ?? String(value);
+      const number: number = value as number;
+
+      if (!Number.isFinite(number)) {
+        return String(value);
+      }
+
+      return Number.isInteger(number)
+        ? String(number)
+        : String(Math.round(number * 100) / 100);
     }
 
     return String(value);

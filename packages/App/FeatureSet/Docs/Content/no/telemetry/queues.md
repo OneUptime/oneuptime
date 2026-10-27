@@ -104,7 +104,7 @@ Skyovervåkings-API-er (CloudWatch, Azure Monitor og Cloud Monitoring) publisere
 
 Instrumenterte klienter kan også rapportere metrikker: OpenTelemetrys metrikker for meldingsklienter `messaging.client.sent.messages`, `messaging.client.consumed.messages`, `messaging.client.operation.duration` og `messaging.process.duration`, de eldre navnene deres `messaging.publish.duration`, `messaging.receive.duration`, `messaging.publish.messages`, `messaging.receive.messages`, `messaging.process.messages` og `messaging.client.published.messages`, og metrikkene til Azure SDK for Java `messaging.servicebus.messages.sent`, `messaging.servicebus.receiver.lag`, `messaging.servicebus.settlement.request.duration` og `messaging.servicebus.settlement.sequence_number`. Hvert datapunkt navngir systemet og destinasjonen sin slik et span gjør (Service Bus-metrikkene fra Azure SDK navngir ikke noe system, så navnet deres står for det), og knyttes til den køen når det tas inn, så det vises på fanen **Målinger** for køen. Det samme gjelder alle egne metrikker som bærer `messaging.system` og `messaging.destination.name` på hvert datapunkt (ikke på ressursen, der de ikke leses), som en gauge for kødybden (se [BullMQ](#bullmq)).
 
-Metrikker fra meldingsklienter oppretter aldri en kø: det gjør spor, brokermetrikker eller en person. En klientmetrikk som navngir en eksisterende kø, holder **Last seen** for den oppdatert, slik spanene dens gjør. En egen metrikk gjør ingen av delene: den vises bare på fanen **Målinger** for køen.
+Metrikker fra meldingsklienter oppretter aldri en kø: det gjør spor, brokermetrikker eller en person. En klientmetrikk som navngir en eksisterende kø, holder **Sist sett** for den oppdatert, slik spanene dens gjør. En egen metrikk gjør ingen av delene: den vises bare på fanen **Målinger** for køen.
 
 ### Hva som gjør to observasjoner til én kø
 
@@ -158,7 +158,7 @@ Spor og brokermetrikker oppretter bare køer selv så lenge prosjektet har færr
 
 ### Livssyklus og arkivering
 
-- **Last seen** er når oppdagelsen sist så køen, i spor, metrikker fra meldingsklienter eller brokermetrikker.
+- **Sist sett** er når oppdagelsen sist så køen, i spor, metrikker fra meldingsklienter eller brokermetrikker.
 - **Arkiver for å avvise.** Å slette en oppdaget kø fjerner den bare til den blir sett igjen: neste observasjon bringer den tilbake som en ny kø. For å avvise en for godt **arkiverer** du den. En arkivert kø beholder identiteten sin, så alt som navngir den, forblir knyttet til den arkiverte køen i stedet for å opprette en ny.
 - **Automatisk arkivering.** En oppdaget kø som ikke er sett på 7 dager (`MESSAGE_QUEUE_AUTO_ARCHIVE_DAYS`), arkiveres automatisk, med mindre en person har gitt den nytt navn, beskrevet den, gitt den etiketter eller gitt den eiere. Etiketter og eiere som etikett- eller eierregler har knyttet til av seg selv, teller ikke.
 - **Gjenoppretting.** En automatisk arkivert kø gjenopprettes automatisk når den blir sett igjen. Køer du har opprettet manuelt, og køer som en person har arkivert, arkiveres eller gjenopprettes aldri av oppdagelsen. En kø som en person gjenoppretter, forblir gjenopprettet i 30 dager (eller arkivvinduet, hvis det er lengre) selv om ingenting ser den; fra neste observasjon gjelder 7-dagersregelen igjen.

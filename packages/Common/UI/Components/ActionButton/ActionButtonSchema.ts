@@ -55,6 +55,20 @@ export enum ActionButtonPlacement {
 interface ActionButtonSchema<T extends GenericObject> {
   title: string;
   /*
+   * What the action says when it is the row's one button (RowActions), when
+   * that can be shorter than its title: "View" for "View On-Call Schedule".
+   * The row names its record in its first column and the list's title
+   * names their kind, so repeating the kind on every row's button only
+   * widened the Actions column - "View Scheduled Maintenance Template" took
+   * the room two columns needed, and pushed tables past their card. The
+   * title still names the action in the ⋯ menu and to a screen reader: the
+   * button's accessible name is the title, which starts with (or, in
+   * another language, holds) these words, so speech control still finds
+   * the button by what it shows. Where a translation's title does not hold
+   * them, the row says the whole title (ShortButtonWords).
+   */
+  rowButtonTitle?: string | undefined;
+  /*
    * Required. Whichever action a row does not show as its button goes in
    * the ⋯ menu, and every item there has an icon, so a menu never mixes
    * items with icons and items without ("Show ID" sat as a bare label above

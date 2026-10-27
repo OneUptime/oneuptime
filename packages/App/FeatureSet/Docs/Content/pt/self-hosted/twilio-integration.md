@@ -35,21 +35,21 @@ Salve as credenciais para um projeto, ou uma única vez para a instalação inte
 | | Configuração do projeto | Configuração da instalação |
 | --- | --- | --- |
 | Onde | O cartão **Configuração do Twilio** em **Configurações do projeto > Notificações > Configurações de notificação** | **Admin Dashboard > Configurações > Chamadas e SMS** |
-| Quem pode definir | **Project Owner**, **Project Admin**, ou **Create Call and SMS** em uma função personalizada | Um administrador mestre |
-| Quem pode ler o Auth Token | **Project Owner**, **Project Admin**, ou **Read Call and SMS** em uma função personalizada. Os demais que veem a configuração veem o restante dela; o token é armazenado criptografado | Um administrador mestre |
+| Quem pode definir | **Proprietário do projeto**, **Administrador do projeto**, ou **Create Call and SMS** em uma função personalizada | Um administrador mestre |
+| Quem pode ler o Auth Token | **Proprietário do projeto**, **Administrador do projeto**, ou **Read Call and SMS** em uma função personalizada. Os demais que veem a configuração veem o restante dela; o token é armazenado criptografado | Um administrador mestre |
 | Usada para | SMS e chamadas aos membros do projeto enquanto ela for a padrão do projeto, as páginas de status às quais está atribuída e as políticas de chamadas recebidas que a usam | SMS e chamadas aos membros de qualquer projeto que não tenha configuração padrão |
 
 Para adicionar uma configuração de projeto:
 
 :::steps
 1. Vá para **Configurações do projeto > Notificações > Configurações de notificação**.
-2. Em **Configuração do Twilio**, selecione **Criar: Configuração do Twilio**.
+2. Em **Configuração do Twilio**, selecione **Criar configuração do Twilio**.
 3. Informe um nome e escolha em **Usar esta conta para** o que a conta envia: **Chamadas e SMS**, **Somente SMS** ou **Somente chamadas**. Depois informe **SID da Conta Twilio**, **Token de Autenticação Twilio** e o número que a escolha pede: **Número de Telefone Principal do Twilio** para chamadas, ou **Números de Telefone SMS do Twilio** para **Somente SMS**. Em **Mais campos**, se quiser, informe **Números de Telefone Secundários do Twilio** separados por vírgulas para outros países, e **Números de Telefone SMS do Twilio** se os seus números não puderem enviar SMS.
 4. **Definir como padrão do projeto** começa ligado na primeira configuração do projeto, então os SMS e as chamadas aos membros do projeto, inclusive as notificações de plantão, passam por ela assim que você salva. Desligue se essa conta for só para páginas de status ou chamadas recebidas. Uma configuração posterior começa com a chave desligada: ligue-a, ou escolha **Definir como padrão do projeto** no menu da linha da configuração, para levar essas mensagens para ela. Uma requisição à API que omite `isProjectDefault` é tratada da mesma forma.
 5. Salve. Só uma configuração pode ser a padrão do projeto. As páginas de status usam a configuração atribuída explicitamente a cada uma.
 
 > [!IMPORTANT]
-> **SMS** e **Chamadas telefônicas** começam desligados em todos os projetos, e enquanto não estiverem ligados ninguém no projeto pode adicionar um número de telefone para eles. Um proprietário do projeto, um **Billing Admin** ou alguém com **Manage Billing** os liga no cartão **Canais de notificação** da mesma página.
+> **SMS** e **Chamadas telefônicas** começam desligados em todos os projetos, e enquanto não estiverem ligados ninguém no projeto pode adicionar um número de telefone para eles. Um proprietário do projeto, um **Administrador de cobrança** ou alguém com **Manage Billing** os liga no cartão **Canais de notificação** da mesma página.
 :::
 
 Para um padrão que valha para a instalação inteira, um administrador pode abrir **Admin Dashboard > Configurações > Chamadas e SMS**, escolher o que a conta envia, editar as credenciais e os números de telefone do Twilio e salvar. As notificações dos membros usam essa configuração global quando o projeto deles não tem um padrão. Mantenha o Auth Token em sigilo.
@@ -150,7 +150,7 @@ Para desenvolvimento, o [guia de testes de webhooks](https://www.twilio.com/docs
 
 :::steps
 1. De fora da rede corporativa e da VPN, verifique se o nome de host dos callbacks resolve para o gateway público e apresenta um certificado TLS válido. Um GET no navegador não testa esses callbacks POST.
-2. Use **Enviar SMS de teste** e **Enviar chamada de teste** na configuração do Twilio do projeto. Confirme o recebimento no telefone de destino. As duas ações exigem permissão para adicionar configurações do Twilio: **Project Owner**, **Project Admin**, ou **Create Call and SMS** e **Read Call and SMS** em uma função personalizada.
+2. Use **Enviar SMS de teste** e **Enviar chamada de teste** na configuração do Twilio do projeto. Confirme o recebimento no telefone de destino. As duas ações exigem permissão para adicionar configurações do Twilio: **Proprietário do projeto**, **Administrador do projeto**, ou **Create Call and SMS** e **Read Call and SMS** em uma função personalizada.
 3. Configure o contato de SMS ou chamada verificado do usuário e as regras de notificação, e então dispare um alerta de plantão controlado. Pressione 1 e confirme o reconhecimento no OneUptime. Se você usa políticas de chamadas recebidas, ligue para o número configurado e verifique o roteamento e o registro de chamadas.
 4. Confirme o status de entrega dos SMS no OneUptime e nos logs de mensagens do Twilio. Um envio aceito não prova a entrega; [o Twilio informa mudanças de status posteriores por callbacks](https://www.twilio.com/docs/messaging/guides/track-outbound-message-status).
 :::

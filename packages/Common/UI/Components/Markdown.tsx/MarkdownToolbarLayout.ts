@@ -12,7 +12,11 @@
  * Insert variable. When even the first group of buttons (Bold, Italic,
  * Underline, Strikethrough) would not fit beside them, the switch moves into
  * the menu too: Insert variable is what a template form is for, so it keeps
- * its place and its words.
+ * its place and its words. Only where even its words do not fit beside the
+ * menu's button - an editor some 170px wide, a monitor criteria's alert form
+ * on a phone, which cut it to "Insert variab" - does it keep its { } alone,
+ * a square like the formatting buttons, its words read by a screen reader
+ * and shown on hover.
  *
  * Every formatting button is the same square (TOOLBAR_BUTTON_PX), so where
  * the line ends is arithmetic: MarkdownEditor measures only the line itself
@@ -60,6 +64,11 @@ export interface MarkdownToolbarLayout {
   isModeToggleInBar: boolean;
   // The More formatting button is there: something is in its menu.
   hasMoreMenu: boolean;
+  /*
+   * Insert variable is its { } alone, a TOOLBAR_BUTTON_PX square: its words
+   * did not fit even with everything else in the menu.
+   */
+  isVariableButtonCompact: boolean;
 }
 
 export type CountToolbarButtonsFunction = (
@@ -90,6 +99,7 @@ export const getFullToolbarLayout: GetFullToolbarLayoutFunction = (
     visibleButtonCount: countToolbarButtons(groupSizes),
     isModeToggleInBar: true,
     hasMoreMenu: false,
+    isVariableButtonCompact: false,
   };
 };
 
@@ -202,15 +212,18 @@ export const fitMarkdownToolbar: FitMarkdownToolbarFunction = (
   const room: number = measurements.availableWidth - TOOLBAR_SLACK_PX;
   const enough: number = Math.min(TOOLBAR_MIN_BUTTONS, total);
 
-  // The switch on the line first; then, if that leaves too little, in the menu.
-  let layout: MarkdownToolbarLayout = getFullToolbarLayout(
-    measurements.groupSizes,
-  );
-
-  for (const isModeToggleInBar of [true, false]) {
-    let fits: number = 0;
-
-    // The most buttons that fit, the menu button counted when it is needed.
+  /*
+   * The most buttons that fit beside the switch (or not) and Insert variable
+   * as wide as given, the menu button counted when it is needed - and
+   * whether even none fits.
+   */
+  const fitButtons: (
+    isModeToggleInBar: boolean,
+    variableButtonWidth: number,
+  ) => { fits: number; overflows: boolean } = (
+    isModeToggleInBar: boolean,
+    variableButtonWidth: number,
+  ): { fits: number; overflows: boolean } => {
     for (let count: number = total; count >= 0; count--) {
       const hasMoreMenu: boolean = count < total || !isModeToggleInBar;
 
@@ -219,24 +232,58 @@ export const fitMarkdownToolbar: FitMarkdownToolbarFunction = (
         visibleButtonCount: count,
         hasMoreMenu: hasMoreMenu,
         modeToggleWidth: isModeToggleInBar ? measurements.modeToggleWidth : 0,
-        variableButtonWidth: measurements.variableButtonWidth,
+        variableButtonWidth: variableButtonWidth,
       });
 
       if (width <= room) {
-        fits = count;
-        break;
+        return { fits: count, overflows: false };
       }
     }
 
+    return { fits: 0, overflows: true };
+  };
+
+  // The switch on the line first; then, if that leaves too little, in the menu.
+  let layout: MarkdownToolbarLayout = getFullToolbarLayout(
+    measurements.groupSizes,
+  );
+  let overflows: boolean = false;
+
+  for (const isModeToggleInBar of [true, false]) {
+    const fitted: { fits: number; overflows: boolean } = fitButtons(
+      isModeToggleInBar,
+      measurements.variableButtonWidth,
+    );
+
+    overflows = fitted.overflows;
     layout = {
-      visibleButtonCount: fits,
+      visibleButtonCount: fitted.fits,
       isModeToggleInBar: isModeToggleInBar,
-      hasMoreMenu: fits < total || !isModeToggleInBar,
+      hasMoreMenu: fitted.fits < total || !isModeToggleInBar,
+      isVariableButtonCompact: false,
     };
 
-    if (fits >= enough) {
+    if (!fitted.overflows && fitted.fits >= enough) {
       return layout;
     }
+  }
+
+  /*
+   * Not even Insert variable's words beside the menu's button: its { }
+   * alone, with as many buttons as fit beside the two.
+   */
+  if (overflows && measurements.variableButtonWidth > 0) {
+    const compact: { fits: number; overflows: boolean } = fitButtons(
+      false,
+      TOOLBAR_BUTTON_PX,
+    );
+
+    return {
+      visibleButtonCount: compact.fits,
+      isModeToggleInBar: false,
+      hasMoreMenu: true,
+      isVariableButtonCompact: true,
+    };
   }
 
   // The switch in the menu, with as many buttons as fit beside it.
@@ -255,6 +302,7 @@ export const isSameToolbarLayout: IsSameToolbarLayoutFunction = (
   return (
     a.visibleButtonCount === b.visibleButtonCount &&
     a.isModeToggleInBar === b.isModeToggleInBar &&
-    a.hasMoreMenu === b.hasMoreMenu
+    a.hasMoreMenu === b.hasMoreMenu &&
+    a.isVariableButtonCompact === b.isVariableButtonCompact
   );
 };

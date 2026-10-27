@@ -134,7 +134,7 @@ Si une exécution ne peut pas démarrer, l'app dit pourquoi dans le fil : elle n
 
 ## La désactiver
 
-Chaque dépôt a un interrupteur : **Respond to GitHub Commands**, sous **Plus de paramètres** sur la page **Paramètres** du dépôt. Il est activé pour chaque dépôt et s'enregistre dès que vous le basculez. Désactivée, l'app ignore les mentions, les assignations et l'étiquette de déclenchement dans ce dépôt, et répond à quiconque le demande par un lien vers l'interrupteur.
+Chaque dépôt a un interrupteur : **Répondre aux commandes GitHub**, sous **Plus de paramètres** sur la page **Paramètres** du dépôt. Il est activé pour chaque dépôt et s'enregistre dès que vous le basculez. Désactivée, l'app ignore les mentions, les assignations et l'étiquette de déclenchement dans ce dépôt, et répond à quiconque le demande par un lien vers l'interrupteur.
 
 La même page contient l'**Étiquette de déclenchement GitHub**, sous **Plus de paramètres**, si vous voulez une autre étiquette que `oneuptime`.
 
@@ -166,7 +166,7 @@ Traitez une pull request écrite par l'IA comme vous traiteriez celle d'un nouve
 ## Dépannage
 
 :::details Rien ne se passe quand je la mentionne
-Vérifiez d'abord l'identifiant : c'est le slug de l'app, pas son nom d'affichage. Vérifiez ensuite que le dépôt est connecté à un projet (dans **Produits → Code**), que **Respond to GitHub Commands** est activé et que votre GitHub App est abonnée aux événements ci-dessus.
+Vérifiez d'abord l'identifiant : c'est le slug de l'app, pas son nom d'affichage. Vérifiez ensuite que le dépôt est connecté à un projet (dans **Produits → Code**), que **Répondre aux commandes GitHub** est activé et que votre GitHub App est abonnée aux événements ci-dessus.
 :::
 
 :::details Elle réagit 😕 et ne dit rien

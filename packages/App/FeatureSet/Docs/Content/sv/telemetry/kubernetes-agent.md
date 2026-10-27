@@ -241,6 +241,8 @@ Agenten skickar varje Kubernetes-händelse i klustret till OneUptime: från varj
 | Antal | Hur många gånger den hände: en upprepning höjer antalet i stället för att lägga till en rad |
 | Senast sedd | När den senast hände; håll pekaren över för att se när den hände första gången |
 
+På en skärm som är smalare än 1024 pixlar visar kolumnen **Händelse** även **Antal** och **Senast sedd**, som inte har egna kolumner där.
+
 ### Sök bland händelser och få larm
 
 Varje händelse är också en logg. En varning sparas med allvarlighetsgraden **Warning**, och det händelsen säger står i dess attribut:
@@ -256,7 +258,7 @@ Varje händelse är också en logg. En varning sparas med allvarlighetsgraden **
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Sök bland dem i **Loggar**, släpp dem du inte vill ha med ett drop-filter, eller få besked när en inträffar med en [loggmonitor](/docs/monitor/logs-monitor): filtrera på allvarlighetsgraden **Warning** och `k8s.event.reason`, och gruppera efter `k8s.object.name` för ett larm per nod eller autoskalare.
+Sök bland dem i **Loggar**, eller släpp dem du inte vill ha med ett drop-filter. För att få besked när en inträffar slår du på **Warning Events** på klustrets sida **Rekommendationer**, eller väljer **Slå på larm för varningar** längst ned på dess sida **Händelser**: en [loggmonitor](/docs/monitor/logs-monitor) på klustrets varningar som ger ett larm per objekt och orsak, och löser det när 5 minuter har gått utan en ny varning om det. För att bara få besked om vissa orsaker lägger du till `k8s.event.reason` i dess filter.
 
 ## Konfigurationsalternativ
 
@@ -619,7 +621,7 @@ Att injicera huvudet innebär att skriva om trafik som redan är på väg: HTTP-
 
 När en incident eller ett larm uppstår på det här klustret undersöker OneUptime AI det. **Kubernetes-AI-agenten** i chartet ger den en terminal: den kör skrivskyddad `kubectl` som en jourhavande ingenjör skulle göra (beskriver den felande podden, läser dess händelser, följer loggarna från containern som kraschar, kontrollerar nodkapaciteten) och citerar varje kommando på incidentsidan.
 
-Agenten är **på som standard** och **skrivskyddad**: en liten Deployment (`kubernetes-agent-ai-agent`, poddetiketten `component=ai-agent`, imagen `oneuptime/kubernetes-ai-agent`) vars ServiceAccount bara får läsa. Den registrerar sig med samma `oneuptime.apiKey` och `clusterName` som collectorn använder, så det finns inget att ställa in i instrumentpanelen: klustrets sida **AI-agent** (Kubernetes → kluster → AI → Agent) visar den som ansluten inom en minut, och **Testa anslutningen**, i menyn **⋯** bredvid den statusen, kör `kubectl version` och `kubectl auth can-i --list` genom den. Allt AI har gjort med den finns på klustrets sida **AI-loggar** (AI → Loggar), och det som är värt att veta om klustret — de problem som hela tiden återkommer och varför, noden eller arbetsbelastningen bakom de flesta av dem, vad AI har åtgärdat — på sidan **AI Insights** (AI → Insights). Agenten levereras med en låst kubectl (v1.36.5). Den är ingen Runner och visas aldrig under Runbooks → Runners: OneUptime ger den aldrig inloggningsuppgifter, kör aldrig runbooks på den, och den godtas aldrig som kommando-Runner för en AI-regel.
+Agenten är **på som standard** och **skrivskyddad**: en liten Deployment (`kubernetes-agent-ai-agent`, poddetiketten `component=ai-agent`, imagen `oneuptime/kubernetes-ai-agent`) vars ServiceAccount bara får läsa. Den registrerar sig med samma `oneuptime.apiKey` och `clusterName` som collectorn använder, så det finns inget att ställa in i instrumentpanelen: klustrets sida **AI-agent** (Kubernetes → kluster → AI → Agent) visar den som ansluten inom en minut, och **Testa anslutningen**, i menyn **⋯** bredvid den statusen, kör `kubectl version` och `kubectl auth can-i --list` genom den. Allt AI har gjort med den finns på klustrets sida **AI-loggar** (AI → Loggar), och det som är värt att veta om klustret — de problem som hela tiden återkommer och varför, noden eller arbetsbelastningen bakom de flesta av dem, vad AI har åtgärdat — på sidan **AI-insikter** (AI → Insights). Agenten levereras med en låst kubectl (v1.36.5). Den är ingen Runner och visas aldrig under Runbooks → Runners: OneUptime ger den aldrig inloggningsuppgifter, kör aldrig runbooks på den, och den godtas aldrig som kommando-Runner för en AI-regel.
 
 På en agent som installerades innan AI-agenten fanns uppdaterar du först ditt chart-index och uppgraderar sedan (på en självhostad OneUptime uppgraderar du OneUptime först — se [Uppgradera agenten](#uppgradera-agenten)):
 
@@ -709,7 +711,7 @@ kubectl logs -n oneuptime-agent -l component=ai-agent --tail=100
 
 - **"This OneUptime server does not have the Kubernetes AI agent API"** — chartet är nyare än din OneUptime-server. Uppgradera OneUptime, eller installera den chartversion som matchar din server (`--version <your OneUptime version>`). Agenten försöker igen var 5:e minut.
 - **Ett avslag som försvinner av sig självt** — en tidigare agentpodd som fortfarande rapporterar in (en podd som ersattes utan en ren avstängning), eller den gamla Runnern i klustret som fortfarande stängs av under en uppgradering. Agenten försöker igen efter den väntetid som servern anger.
-- **Ett avslag som kräver dig** — ett tomt eller för långt `clusterName`, eller ett projekt som har nått sin gräns för AI-agenter; loggen anger vad som ska ändras. Om en agent aldrig ansluter och dess logg säger `Another Kubernetes AI agent for cluster "<name>" is online` delar två installationer samma `clusterName` (AI-agentsidan varnar också för det): den som redan är ansluten behåller det så länge den körs, så ge varje kluster ett eget `clusterName` eller ta bort den extra releasen. En intagningsnyckel med ett **Pinned Service Name** kan inte registrera agenten — ge chartet en nyckel utan.
+- **Ett avslag som kräver dig** — ett tomt eller för långt `clusterName`, eller ett projekt som har nått sin gräns för AI-agenter; loggen anger vad som ska ändras. Om en agent aldrig ansluter och dess logg säger `Another Kubernetes AI agent for cluster "<name>" is online` delar två installationer samma `clusterName` (AI-agentsidan varnar också för det): den som redan är ansluten behåller det så länge den körs, så ge varje kluster ett eget `clusterName` eller ta bort den extra releasen. En intagningsnyckel med ett **Fäst tjänstnamn** kan inte registrera agenten — ge chartet en nyckel utan.
 
 **Återställ agenten**, i menyn **⋯** bredvid agentens status på AI-agentsidan, får servern att glömma agentens nyckel när du bekräftar (en projektägare, en projektadministratör eller **Edit AI Rule** får göra det på ett kluster som de får redigera); podden ansluter igen av sig själv inom några minuter. Agentens beredskap beror inte på OneUptime, så en felkonfigurerad AI-agent får aldrig `helm upgrade --wait` att misslyckas — bara en podd som inte kan hämta sin image gör det.
 

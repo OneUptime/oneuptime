@@ -24,7 +24,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - **Ihr Plan.** In OneUptime Cloud erfordern Vorlagen den Plan **Growth** oder höher.
-- **Ihre Rolle.** Um eine Vorlage zu erstellen, brauchen Sie **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin** oder **Scheduled Maintenance Member** oder eine benutzerdefinierte Rolle, die Vorlagen für geplante Wartung erstellen darf.
+- **Ihre Rolle.** Um eine Vorlage zu erstellen, brauchen Sie **Projektinhaber**, **Projektadministrator**, **Projektmitglied**, **Wartungs-Administrator** oder **Wartungs-Mitglied** oder eine benutzerdefinierte Rolle, die Vorlagen für geplante Wartung erstellen darf.
 
 ## Eine Vorlage erstellen
 

@@ -5,6 +5,7 @@ import FeedMarkdown, {
 import ProductBrandingText from "../../ProductBrandingText";
 import WorkspaceMessageTime from "../WorkspaceMessageTime";
 import { getOnCallPageAgainChatReason } from "../../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import { getOnCallPassOnLevelLabel } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 
 /*
  * WHAT ONE ON-CALL POLICY RUN LOOKS LIKE IN SLACK AND MICROSOFT TEAMS.
@@ -19,9 +20,13 @@ import { getOnCallPageAgainChatReason } from "../../../../Types/OnCallDutyPolicy
  *
  *   📟 PolicyX is paging for Incident INC-8                 what is happening
  *
- *   Escalation rule 2 of 3 (second): if nobody              where the run is, what
- *   acknowledges by 5:28 PM, escalation rule 3 (third)      happens next, and when
+ *   Second shift (Level 2 of 3): if nobody                  where the run is, what
+ *   acknowledges by 5:28 PM, Night shift (Level 3 of 3)     happens next, and when
  *   is next.
+ *
+ * A level is named as the Escalate dialog names it (OnCallPagePassOn's
+ * getOnCallPassOnLevelLabel): its name, then its place - or its place
+ * alone, "Level 2 of 3", when it has no name of its own.
  *
  *   • Nitin: paged twice · by SMS and email                 who was paged, how often
  *   • NB User 2: not paged · not a member of this project   and how - and who was not
@@ -438,7 +443,7 @@ export default class OnCallPolicyRunMessageView {
         return this.getPagedPersonLine(person);
       }),
       ...run.notPaged.map((entry: OnCallPolicyRunNotPaged): MarkdownText => {
-        return this.getNotPagedLine(entry);
+        return this.getNotPagedLine(entry, run.ruleCount);
       }),
     ];
 
@@ -796,18 +801,18 @@ export default class OnCallPolicyRunMessageView {
 
   /*
    * Where the escalation is, and what happens next and when, in one
-   * paragraph: "**Escalation rule 2 of 3 (second)**: if nobody acknowledges
-   * by 5:28 PM, escalation rule 3 (third) is next."
+   * paragraph: "**Second shift (Level 2 of 3)**: if nobody acknowledges by
+   * 5:28 PM, Night shift (Level 3 of 3) is next."
    */
   private static getProgress(run: OnCallPolicyRun): MarkdownText {
     if (!run.currentRule) {
       // Before its first rule is under way (such a run is not posted yet).
       return run.ruleCount > 0
-        ? mdText`**Starting with escalation rule 1 of ${run.ruleCount}**`
+        ? mdText`**Starting with Level 1 of ${run.ruleCount}**`
         : mdText`**Starting**`;
     }
 
-    const where: MarkdownText = mdText`**${this.capitalize(this.getRuleLabel(run.currentRule, run.ruleCount))}**`;
+    const where: MarkdownText = mdText`**${this.getRuleLabel(run.currentRule, run.ruleCount)}**`;
 
     let repeat: MarkdownText = FeedMarkdown.empty();
 
@@ -831,11 +836,11 @@ export default class OnCallPolicyRunMessageView {
     const when: MarkdownText = this.getWhen(run);
 
     if (run.nextRule) {
-      return mdText`if nobody acknowledges ${when}, ${this.getRuleLabel(run.nextRule)} is next.`;
+      return mdText`if nobody acknowledges ${when}, ${this.getRuleLabel(run.nextRule, run.ruleCount)} is next.`;
     }
 
     if (run.repeatNumber < run.repeatsAllowed) {
-      return mdText`if nobody acknowledges ${when}, the policy starts again from escalation rule 1.`;
+      return mdText`if nobody acknowledges ${when}, the policy starts again from Level 1.`;
     }
 
     return mdText`if nobody acknowledges ${when}, paging stops.`;
@@ -909,7 +914,10 @@ export default class OnCallPolicyRunMessageView {
   }
 
   // "**NB User 2**: not paged · not a member of this project".
-  private static getNotPagedLine(entry: OnCallPolicyRunNotPaged): MarkdownText {
+  private static getNotPagedLine(
+    entry: OnCallPolicyRunNotPaged,
+    ruleCount: number,
+  ): MarkdownText {
     if (entry.personName && entry.awayUntil) {
       return mdText`**${entry.personName}**: ${ON_CALL_RUN_NOT_PAGED} · away until ${WorkspaceMessageTime.dateAndTime(entry.awayUntil)}`;
     }
@@ -939,7 +947,7 @@ export default class OnCallPolicyRunMessageView {
     }
 
     if (entry.rule) {
-      return mdText`${this.capitalize(this.getRuleLabel(entry.rule))}: ${entry.reason}`;
+      return mdText`${this.getRuleLabel(entry.rule, ruleCount)}: ${entry.reason}`;
     }
 
     return mdText`${this.capitalize(entry.reason)}`;
@@ -1080,17 +1088,19 @@ export default class OnCallPolicyRunMessageView {
       : mdText`: ${detail}.`;
   }
 
-  // "escalation rule 2 of 3 (second)", or without the count or the name.
+  /*
+   * A level as the Escalate dialog names it: "Second shift (Level 2 of 3)",
+   * or "Level 2 of 3" when it has no name of its own (OnCallPagePassOn).
+   * The name is text as typed - never capitalized here.
+   */
   private static getRuleLabel(
     rule: OnCallPolicyRunRule,
-    ruleCount?: number | undefined,
+    ruleCount: number,
   ): string {
-    const position: string =
-      ruleCount && ruleCount >= rule.order
-        ? `escalation rule ${rule.order} of ${ruleCount}`
-        : `escalation rule ${rule.order}`;
-
-    return rule.name?.trim() ? `${position} (${rule.name.trim()})` : position;
+    return getOnCallPassOnLevelLabel(
+      { order: rule.order, name: rule.name },
+      ruleCount,
+    );
   }
 
   /*

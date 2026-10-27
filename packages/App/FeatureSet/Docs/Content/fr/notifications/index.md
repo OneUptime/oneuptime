@@ -66,7 +66,7 @@ Chaque méthode que vous vérifiez ensuite reçoit les mêmes règles : une règ
 
 ## La liste de configuration
 
-**Paramètres utilisateur → Liste de configuration** ouvre **Your setup checklist** : tout ce dont OneUptime a besoin pour vous joindre, dans l'ordre qui compte. Une étape renvoie vers la page qui la réalise, et **Recheck** relit tout.
+**Paramètres utilisateur → Liste de configuration** ouvre **Your setup checklist** : tout ce dont OneUptime a besoin pour vous joindre, dans l'ordre qui compte. Une étape renvoie vers la page qui la réalise, et **Revérifier** relit tout.
 
 | Section | Ce qu'elle vérifie |
 | --- | --- |

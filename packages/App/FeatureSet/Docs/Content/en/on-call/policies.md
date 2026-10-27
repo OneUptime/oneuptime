@@ -138,7 +138,7 @@ On-call policies are the `/api/on-call-duty-policy` resource, and the `oneuptime
 | **After how many minutes?** | `acknowledgementTimeoutInMinutes` |
 | Archived | `isArchived` |
 
-`repeatPolicyIfNoOneAcknowledges` is `false` for **Stop paging** and `true` for **Start again from Level 1**. With it `true` and `repeatPolicyIfNoOneAcknowledgesNoOfTimes` at `0`, a policy never repeats, and the dashboard shows it as **Stop paging**.
+`repeatPolicyIfNoOneAcknowledges` is `false` for **Stop paging** and `true` for **Start again from Level 1**. With it `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` must be a whole number of 1 or more: OneUptime refuses `0`. An older policy saved with `0` never repeats, and the dashboard shows it as **Stop paging**.
 
 `acknowledgementTimeoutInMinutes` is `null` for **Don't page again**, and a whole number of minutes from 5 to 1440 for **Page again**. OneUptime refuses anything else.
 

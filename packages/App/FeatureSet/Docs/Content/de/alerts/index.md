@@ -35,7 +35,7 @@ Beide halten ein Problem fest, und beide können die Bereitschaft alarmieren. De
 | **Auf Statusseiten**         | Nie                                                    | Kann erscheinen und informiert Abonnenten         |
 | **Notizen**                  | Private Notizen, nur für Ihr Team                      | Öffentliche Notizen für Kunden und private Notizen |
 | **Anfangsstatus**            | **Identifiziert**, **Bestätigt**, **Behoben**          | **Identifiziert**, **Bestätigt**, **Behoben**     |
-| **Anfangsschweregrade**      | **Hoch**, **Low**                                      | Critical Incident, Major Incident, Minor Incident |
+| **Anfangsschweregrade**      | **Hoch**, **Niedrig**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Nummern in einem neuen Projekt** | `ALT-42` und `AE-42` für Episoden                | `INC-42` und `IE-42` für Episoden                 |
 
 Lösen Sie eine Warnung aus, wenn Ihr Team nachsehen sollte, bevor jemand außerhalb etwas merkt, und melden Sie einen Vorfall, wenn Nutzer betroffen sind. Stellt sich heraus, dass eine Warnung Teil eines Ausfalls ist, melden Sie daraus einen Vorfall oder verknüpfen Sie sie mit dem Vorfall, der sie erklärt: siehe [Verknüpfte Warnungen](/docs/incidents/linked-alerts).
@@ -77,7 +77,7 @@ Gehen Sie zu **Warnungen → Alle Warnungen** und klicken Sie auf **Warnung erst
 
 ### Die Warnung beschreiben
 
-Füllen Sie den **Titel** aus und wählen Sie einen **Warnungsschweregrad**; beides ist Pflicht. Fügen Sie eine **Beschreibung** hinzu, wenn sie hilft. Unter **Weitere Felder**, eingeklappt, können Sie einen **Anfangsstatus** wählen, **Beschriftungen** hinzufügen oder **Private Warnung** einschalten. Dort wartet auch **Eigentümer**: Sie werden ohnehin Eigentümer der Warnung, die Sie erstellen, und jedes Team, in dem Sie Mitglied sind, ist unter der Auswahl nur einen Klick entfernt.
+Füllen Sie den **Titel** aus und wählen Sie einen **Warnungsschweregrad**; beides ist Pflicht. Fügen Sie eine **Beschreibung** hinzu, wenn sie hilft. Unter **Weitere Felder**, eingeklappt, können Sie einen **Anfangsstatus** wählen, **Beschriftungen** hinzufügen oder **Private Warnung** einschalten. Dort wartet auch **Eigentümer**: Sie werden ohnehin Eigentümer der Warnung, die Sie erstellen, und jedes Team, in dem Sie Mitglied sind, ist unter der Auswahl nur einen Klick entfernt. Ein Master-Admin, der die ganze Installation verwaltet, ist die einzige Ausnahme: Er wird nicht Eigentümer dessen, was er erstellt.
 
 ### Wählen, was sie betrifft und wer alarmiert wird
 

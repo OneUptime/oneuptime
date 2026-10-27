@@ -46,7 +46,7 @@ flowchart TB
 :::steps
 ### Åbn datakilderne
 
-Åbn **Produkter → Dashboards**, fold **Indstillinger** ud i sidemenuen, og klik på **Data Sources**.
+Åbn **Produkter → Dashboards**, fold **Indstillinger** ud i sidemenuen, og klik på **Datakilder**.
 
 ### Vælg typen
 
@@ -62,20 +62,20 @@ Under **Forbindelse** får en HTTP-kilde den **URL**, den svarer på. En databas
 
 ### Angiv, hvordan der logges ind
 
-Under **Godkendelse** indtaster du et **Brugernavn** og en **Adgangskode** eller, for en HTTP-kilde, et **API Token**, der sendes som bearer-token. **Flere felter** indeholder **Custom HTTP Headers**, for eksempel `{ "X-Scope-OrgID": "tenant-1" }`, og **Additional Options**: `sslEnabled` og `sslRejectUnauthorized` til databaser og `elasticsearchIndex` til Elasticsearch, som uden den læser alle indeks (`*`).
+Under **Godkendelse** indtaster du et **Brugernavn** og en **Adgangskode** eller, for en HTTP-kilde, et **API-token**, der sendes som bearer-token. **Flere felter** indeholder **Custom HTTP Headers**, for eksempel `{ "X-Scope-OrgID": "tenant-1" }`, og **Additional Options**: `sslEnabled` og `sslRejectUnauthorized` til databaser og `elasticsearchIndex` til Elasticsearch, som uden den læser alle indeks (`*`).
 
 ### Test den
 
 Klik på **Opret Data Source** og derefter på **Test** i dens række. OneUptime forbinder med de oplysninger, du har givet, og fortæller, om det virkede, eller hvad der gik galt.
 :::
 
-For at ændre en datakilde senere åbner du den fra listen. **Rediger** på **Data Source Details** ændrer alt undtagen dens hemmeligheder; **Update Credentials** erstatter adgangskoden, tokenet eller headerne og lader de felter, du lader stå tomme, være, som de var; **Test** tjekker den igen.
+For at ændre en datakilde senere åbner du den fra listen. **Rediger** på **Data Source Details** ændrer alt undtagen dens hemmeligheder; **Opdater legitimationsoplysninger** erstatter adgangskoden, tokenet eller headerne og lader de felter, du lader stå tomme, være, som de var; **Test** tjekker den igen.
 
 ## Brug den i en widget
 
 Rediger et dashboard, klik på **Tilføj widget**, og vælg en widget fra gruppen Eksterne datakilder: et **Diagram**, en **Værdi**, en **Måler** eller en **Tabel**. I dens indstillinger:
 
-- Vælg **Data Source**, og skriv **Query**. Editoren navngiver forespørgselssproget og viser et eksempel for typen.
+- Vælg **Data Source**, og skriv **Forespørgsel**. Editoren navngiver forespørgselssproget og viser et eksempel for typen.
 - På et diagram lægger **Tilføj forespørgsel** flere forespørgsler på de samme akser, og **Legend (optional)** navngiver hver serie ud fra dens etiketter: `{{instance}} — errors` skriver seriens etiket `instance` forrest.
 - På en værdi eller en måler gør **Reduce** punkterne til ét tal: den seneste værdi (standard), den første, gennemsnittet, summen, minimum eller maksimum. **Unit** tilføjer et suffiks og skalerer de kendte enheder: `Bytes` læses som 1.5 MB, `ms` som 2.4 s.
 - På en tabel virker enhver skrivebeskyttet forespørgsel, og dens rækker vises, som de kommer tilbage.
@@ -162,7 +162,7 @@ Intervalforespørgsler til Prometheus og Loki beder om omkring 250 punkter over 
 ## Sikkerhed
 
 - **SQL forbliver skrivebeskyttet.** En forespørgsel skal være én sætning, der starter med `SELECT`, `WITH`, `SHOW`, `EXPLAIN`, `DESCRIBE` eller `DESC`. Ord, der skriver eller ændrer en session, for eksempel `INSERT`, `UPDATE`, `DELETE`, `DROP`, `INTO` eller `SET`, afvises overalt uden for strenge og citerede navne, så sæt en kolonne, der hedder som et af dem, i anførselstegn. Skriv et anførselstegn i en streng som to anførselstegn (`''`): en omvendt skråstreg før et anførselstegn afvises. Sessioner i PostgreSQL, MySQL og ClickHouse er også skrivebeskyttede. SQL Server har ingen skrivebeskyttet session, så forbind den med et skrivebeskyttet login.
-- **Loginoplysninger kan kun skrives.** **Adgangskode**, **API Token** og **Custom HTTP Headers** krypteres, når de er gemt, og API'et returnerer dem aldrig, heller ikke til dig.
+- **Loginoplysninger kan kun skrives.** **Adgangskode**, **API-token** og **Custom HTTP Headers** krypteres, når de er gemt, og API'et returnerer dem aldrig, heller ikke til dig.
 - **Adresser kontrolleres.** Loopback-, link-local- (hvor cloud-metadata ligger) og andre reserverede adresser afvises overalt. Private adresser afvises på OneUptime Cloud og tillades på en selvhostet installation, medmindre `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES` er `true`: se [Adgang til privat netværk](/docs/self-hosted/private-network-access).
 - **Offentlige dashboards kører dem aldrig.** Widgets fra Eksterne datakilder udelades fra et [offentligt dashboard](/docs/dashboards/sharing), forespørgsler og det hele.
 

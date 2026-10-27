@@ -60,7 +60,7 @@ Cliquez sur **Créer une clé d'ingestion**. La boîte de dialogue commence avec
 
 ### Ajouter les origines d'une clé de navigateur
 
-Une clé **Navigateur** demande ses **Origines autorisées** à l'étape suivante, **Paramètres du navigateur**, avec son **Pinned Service Name** sous **Avancé**. Voir [Verrouiller une clé de navigateur](#verrouiller-une-clé-de-navigateur).
+Une clé **Navigateur** demande ses **Origines autorisées** à l'étape suivante, **Paramètres du navigateur**, avec son **Nom du service épinglé** sous **Avancé**. Voir [Verrouiller une clé de navigateur](#verrouiller-une-clé-de-navigateur).
 
 ### Créer la clé et copier son secret
 
@@ -89,7 +89,7 @@ Une clé de navigateur se trouve dans votre page, où n'importe qui peut la copi
 | Paramètre | Ce qu'il fait |
 | --- | --- |
 | **Origines autorisées** | Les seules origines depuis lesquelles la clé est acceptée. Une requête depuis toute autre origine, ou sans en-tête `Origin`, est refusée. Une clé de navigateur doit en garder au moins une. |
-| **Pinned Service Name** | Range tout ce que la clé envoie sur OTLP/HTTP sous ce seul service, quel que soit le `service.name` défini par l'émetteur. Une copie de la clé ne peut alors écrire que dans ce service. |
+| **Nom du service épinglé** | Range tout ce que la clé envoie sur OTLP/HTTP sous ce seul service, quel que soit le `service.name` défini par l'émetteur. Une copie de la clé ne peut alors écrire que dans ce service. |
 | **Requests Per Minute Limit** | Le nombre maximal de requêtes acceptées pour la clé chaque minute, partagé par tous les visiteurs. Une clé de navigateur en reçoit 6 000 si vous laissez le champ vide. |
 | **Expire le** | La date après laquelle la clé est refusée, pour qu'une copie publiée cesse de fonctionner. |
 
@@ -131,7 +131,7 @@ Une requête refusée reçoit un statut et une phrase qui dit pourquoi.
 | `422` avec `A browser ingestion key cannot be used for` | Une clé de navigateur a atteint un point de terminaison qui n'accepte que les clés de serveur. |
 | `422` avec `did not send an Origin header` | Une clé de navigateur a été envoyée hors d'un navigateur. Utilisez-y une clé de serveur. |
 | `422` avec `is not allowed for this browser ingestion key` | L'origine de la page ne figure pas dans **Origines autorisées**. |
-| `422` avec `is pinned to a single service` | Une clé avec un **Pinned Service Name** a servi à enregistrer un agent. Utilisez une clé de serveur non épinglée. |
+| `422` avec `is pinned to a single service` | Une clé avec un **Nom du service épinglé** a servi à enregistrer un agent. Utilisez une clé de serveur non épinglée. |
 | `429` avec `Too many telemetry requests for this ingestion key` | La clé a atteint sa **Requests Per Minute Limit**. Les exportateurs réessaient après le délai `Retry-After`. |
 
 Pour les autres réponses qu'un exportateur OTLP peut recevoir, voir [Réponses](/docs/telemetry/open-telemetry#réponses).

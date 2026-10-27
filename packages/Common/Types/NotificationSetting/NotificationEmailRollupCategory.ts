@@ -91,6 +91,9 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
     RollupCategory.Incidents,
   [NotificationSettingEventType.SEND_INCIDENT_REMINDER_OWNER_NOTIFICATION]:
     RollupCategory.Incidents,
+  // Never held back (NEVER_ROLLED_UP_EVENT_TYPES): filed here all the same.
+  [NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION]:
+    RollupCategory.Incidents,
 
   // Alerts
   [NotificationSettingEventType.SEND_ALERT_CREATED_OWNER_NOTIFICATION]:

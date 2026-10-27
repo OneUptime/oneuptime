@@ -37,7 +37,7 @@ Azure SQL Database och Azure SQL Managed Instance ansluter som **Microsoft SQL S
 
 PostgreSQL- och MySQL-kompatibla motorer som talar samma wire-protokoll fungerar oftast, men de kan exponera färre statistikvyer; då rapporteras de berörda mätvärdena som otillgängliga i stället för att samlas in. Bara de tre motorerna ovan är officiellt testade.
 
-Varje databas som dina applikationer, kluster och värdar använder — de här tre motorerna och många fler — får också en egen sida med motorns mätvärden, loggar och tjänsterna som anropar den: se [Databaser](/docs/telemetry/databases). När värden och porten som en Database Health-monitor ansluter till är en av en databas slutpunkter visas monitorns larm och incidenter också på den databasens sida (se [Larm på en databas](/docs/telemetry/databases#varningar-för-en-databas)).
+Varje databas som dina applikationer, kluster och värdar använder — de här tre motorerna och många fler — får också en egen sida med motorns mätvärden, loggar och tjänsterna som anropar den: se [Databaser](/docs/telemetry/databases). När värden och porten som en Database Health-monitor ansluter till är en av en databas slutpunkter visas monitorns larm och incidenter också på den databasens sida (se [Larm på en databas](/docs/telemetry/databases#larm-för-en-databas)).
 
 ## Så fungerar det
 
@@ -225,9 +225,9 @@ En grupp är en enhet som du slår på eller av, och den enhet som en saknad beh
 
 | Grupp | Vad den samlar in | Kräver |
 |---|---|---|
-| Connections | Antal anslutningar, det konfigurerade taket, avbrutna anslutningsförsök, serverns drifttid | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| Anslutningar | Antal anslutningar, det konfigurerade taket, avbrutna anslutningsförsök, serverns drifttid | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Activity | Längst pågående fråga, längst öppna transaktion, öppna transaktioner | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
-| Throughput | Transaktioner, frågor, träffkvot i cachen, diskläsningar och -skrivningar, I/O-tid | PostgreSQL: inget utöver `CONNECT`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
+| Genomströmning | Transaktioner, frågor, träffkvot i cachen, diskläsningar och -skrivningar, I/O-tid | PostgreSQL: inget utöver `CONNECT`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Locks | Blockerade sessioner, låsväntan, deadlocks, väntan på tabellås | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Storage | Databasstorlek, utskrivning till temporära filer, loggutrymme, ledigt utrymme i tempdb | PostgreSQL: inget utöver `CONNECT`. MySQL: `SELECT` på databasen. SQL Server: inget för databasstorleken; `VIEW SERVER STATE` för loggutrymme och ledigt utrymme i tempdb |
 | Replication | Anslutna repliker, replikeringsfördröjning i sekunder och byte, inaktiva slots, återställningsläge | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`; samlas inte in på Azure SQL Database |
@@ -274,28 +274,28 @@ Fyrtioen serier i åtta kategorier. Engines anger motorerna som faktiskt kan lev
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Connections | PostgreSQL, MySQL, SQL Server |
+| **Uptime** (s) | `oneuptime.monitor.database.uptime.seconds` | Anslutningar | PostgreSQL, MySQL, SQL Server |
+| **Metric Groups Failed** | `oneuptime.monitor.database.metric.groups.failed` | Anslutningar | PostgreSQL, MySQL, SQL Server |
 
 ### Anslutningar
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Connections** | `oneuptime.monitor.database.connections.total` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Active Connections** | `oneuptime.monitor.database.connections.active` | Connections | PostgreSQL, MySQL, SQL Server |
-| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Connections | PostgreSQL, MySQL |
-| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Connections | PostgreSQL, MySQL |
-| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Connections | PostgreSQL |
-| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Connections | MySQL |
+| **Connections** | `oneuptime.monitor.database.connections.total` | Anslutningar | PostgreSQL, MySQL, SQL Server |
+| **Active Connections** | `oneuptime.monitor.database.connections.active` | Anslutningar | PostgreSQL, MySQL, SQL Server |
+| **Maximum Connections** | `oneuptime.monitor.database.connections.max` | Anslutningar | PostgreSQL, MySQL |
+| **Connections Used** (%) | `oneuptime.monitor.database.connections.used.percent` | Anslutningar | PostgreSQL, MySQL |
+| **Idle In Transaction** | `oneuptime.monitor.database.connections.idle.in.transaction` | Anslutningar | PostgreSQL |
+| **Aborted Connects** | `oneuptime.monitor.database.connections.aborted.total` | Anslutningar | MySQL |
 
 ### Genomströmning
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Throughput | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Throughput | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Throughput | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Throughput | PostgreSQL |
+| **Transactions** | `oneuptime.monitor.database.transactions.total` | Genomströmning | PostgreSQL, SQL Server |
+| **Queries** | `oneuptime.monitor.database.queries.total` | Genomströmning | MySQL, SQL Server |
+| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Genomströmning | MySQL |
+| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Genomströmning | PostgreSQL |
 | **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
@@ -315,13 +315,13 @@ Standard-MySQL har ingen räknare för deadlocks över huvud taget, och därför
 
 | Mätvärde | Serie | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Throughput | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Throughput | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Throughput | SQL Server |
+| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Genomströmning | PostgreSQL, MySQL, SQL Server |
+| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Genomströmning | PostgreSQL, MySQL, SQL Server |
+| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Genomströmning | MySQL, SQL Server |
+| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Genomströmning | PostgreSQL, SQL Server |
+| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Genomströmning | PostgreSQL, SQL Server |
+| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Genomströmning | SQL Server |
+| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Genomströmning | SQL Server |
 
 PostgreSQL mäter bara läs- och skrivtid för I/O när `track_io_timing` är påslaget. Det är avstängt som standard, och då rapporterar PostgreSQL båda som `0` — på PostgreSQL betyder en platt nolla i de två serierna därför oftast ”inte mätt”, inte ”snabbt”. Det är en serverinställning, inte ett behörighetsproblem.
 
@@ -363,6 +363,8 @@ Fördröjningen i sekunder visar noll på en inaktiv primärserver även när en
 > **Transaction ID Used** förtjänar ett kriterium på varje PostgreSQL-monitor som du skapar. PostgreSQL nekar alla skrivningar när värdet når 100 %, återställning innebär en vacuum i enanvändarläge med databasen nere, och nästan ingen håller koll på det. Larma i god tid före stupet — 80 % ger dagar av marginal på de flesta arbetsbelastningar.
 
 Räknare som slutar på `total` är kumulativa sedan servern startade. Jämför två tidpunkter för att få en takt; ett enskilt värde säger bara något i förhållande till sin egen historik, och det nollställs när servern startas om (vilket **Uptime** visar dig).
+
+**Cache Hit Ratio** och **Rollback Ratio** räknas fram vid varje kontroll ur hur mycket deras räknare har rört sig sedan monitorns föregående kontroll, inte sedan servern startade, så en cache som börjar missa syns direkt. Den första kontrollen efter att proben startat, och den första efter att servern startats om, har ingen av dem.
 
 ## Ställ in kriterier
 

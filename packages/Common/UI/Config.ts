@@ -211,6 +211,17 @@ export const StatusPageCNameRecord: string =
 
 export const DashboardCNameRecord: string = env("DASHBOARD_CNAME_RECORD") || "";
 
+/*
+ * Whether this installation issues free (Let's Encrypt) certificates for
+ * custom domains - only with a Let's Encrypt account key, which the server
+ * derives this from (Server/EnvironmentConfig). Without one, a verified
+ * custom domain is served with whatever HTTPS the installation's own proxy
+ * gives it, or with a certificate its owner uploads. A server too old to say
+ * is taken to issue them, as every installation was taken to before.
+ */
+export const CUSTOM_DOMAIN_FREE_CERTIFICATES: boolean =
+  env("CUSTOM_DOMAIN_FREE_CERTIFICATES") !== "false";
+
 export const AnalyticsKey: string = env("ANALYTICS_KEY") || "";
 export const AnalyticsHost: string = env("ANALYTICS_HOST");
 

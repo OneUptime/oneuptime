@@ -360,12 +360,15 @@ describe("every file a route serves is held to its owner first", () => {
       ]),
     );
 
-    // The status page's three images and five attachment routes.
+    /*
+     * The status page's four images (the logo, its dark theme logo, the
+     * cover image and the favicon) and five attachment routes.
+     */
     expect(
       SERVED.filter((served: ServedFile): boolean => {
         return served.file === "packages/Common/Server/API/StatusPageAPI.ts";
       }).length,
-    ).toBe(8);
+    ).toBe(9);
 
     // The access-token image route and the id-based one.
     expect(

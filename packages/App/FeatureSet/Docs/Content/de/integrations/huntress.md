@@ -40,7 +40,7 @@ Der Vorfall bewahrt die Nummer der Meldung in seinen benutzerdefinierten Feldern
 
 ## Bevor Sie beginnen
 
-- In OneUptime eine Rolle, die Workflows erstellen und bearbeiten darf, etwa **Project Owner**, **Project Admin** oder **Workflow Admin**.
+- In OneUptime eine Rolle, die Workflows erstellen und bearbeiten darf, etwa **Projektinhaber**, **Projektadministrator** oder **Arbeitsablauf-Administrator**.
 - In Huntress die Rolle **Account Admin**: Nur Account-Admins können Webhooks anlegen.
 - Eine Bereitschaftsrichtlinie, die alarmiert wird.
 - In OneUptime Cloud einen Tarif mit Workflows: Growth oder höher. Jedes Ereignis, das Huntress sendet, ist ein Workflow-Durchlauf.

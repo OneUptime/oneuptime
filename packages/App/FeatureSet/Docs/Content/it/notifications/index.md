@@ -66,7 +66,7 @@ Ogni metodo che verificate in seguito riceve le stesse regole: una regola per og
 
 ## L'elenco di configurazione
 
-**Impostazioni utente → Elenco di configurazione** apre **Your setup checklist**: tutto ciò che serve a OneUptime per raggiungervi, nell'ordine che conta. Un passaggio rimanda alla pagina che lo risolve, e **Recheck** rilegge tutto.
+**Impostazioni utente → Elenco di configurazione** apre **Your setup checklist**: tutto ciò che serve a OneUptime per raggiungervi, nell'ordine che conta. Un passaggio rimanda alla pagina che lo risolve, e **Ricontrolla** rilegge tutto.
 
 | Sezione | Cosa controlla |
 | --- | --- |

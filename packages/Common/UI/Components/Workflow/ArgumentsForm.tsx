@@ -893,6 +893,11 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
           !isWaitingForRecordChoices && (
             <BasicForm
               hideSubmitButton={true}
+              /*
+               * Save is off while a field fails, so no press would say what is
+               * wrong: a field says it as soon as it is left, changed or not.
+               */
+              showErrorsWhenLeftUnchanged={true}
               ref={formRef}
               initialValues={{
                 ...formInitialValues,

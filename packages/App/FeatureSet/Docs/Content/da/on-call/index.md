@@ -69,7 +69,7 @@ Gå til **Hændelser → Regler → Vagtregler** eller **Advarsler → Regler �
 
 ### Tjek, at alle kan nås
 
-Åbn **Vagtordning → Parathed**. Alle, dine politikker kan tilkalde, står som **Klar**, **Needs setup** eller **Unreachable**, med det, der mangler. Se [Parathed og rapporter](/docs/on-call/readiness).
+Åbn **Vagtordning → Parathed**. Alle, dine politikker kan tilkalde, står som **Klar**, **Kræver opsætning** eller **Utilgængelig**, med det, der mangler. Se [Parathed og rapporter](/docs/on-call/readiness).
 :::
 
 > [!NOTE]

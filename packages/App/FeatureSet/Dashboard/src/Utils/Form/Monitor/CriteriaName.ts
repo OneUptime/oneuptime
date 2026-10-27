@@ -347,7 +347,9 @@ export default class CriteriaNameUtil {
 
     if (
       oid &&
-      (checkOn === CheckOn.SnmpOidValue || checkOn === CheckOn.SnmpOidExists)
+      (checkOn === CheckOn.SnmpOidValue ||
+        checkOn === CheckOn.SnmpOidExists ||
+        checkOn === CheckOn.SnmpOidRatePerSecond)
     ) {
       subject += ` ${oid}`;
     }

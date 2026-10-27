@@ -227,7 +227,7 @@ Un groupe est une unité que vous activez ou désactivez, et l'unité pour laque
 |---|---|---|
 | Connections | Nombre de connexions, plafond configuré, connexions avortées, temps de fonctionnement du serveur | PostgreSQL : `pg_monitor`. MySQL : `performance_schema`. SQL Server : `VIEW SERVER STATE` |
 | Activity | Requête la plus longue en cours, transaction ouverte la plus longue, transactions ouvertes | PostgreSQL : `pg_monitor`. MySQL : `PROCESS`. SQL Server : `VIEW SERVER STATE` |
-| Throughput | Transactions, requêtes, taux de succès du cache, lectures et écritures disque, temps d'E/S | PostgreSQL : rien au-delà de `CONNECT`. MySQL : `performance_schema`. SQL Server : `VIEW SERVER STATE` |
+| Débit | Transactions, requêtes, taux de succès du cache, lectures et écritures disque, temps d'E/S | PostgreSQL : rien au-delà de `CONNECT`. MySQL : `performance_schema`. SQL Server : `VIEW SERVER STATE` |
 | Locks | Sessions bloquées, attentes de verrou, interblocages, attentes de verrou de table | PostgreSQL : `pg_monitor`. MySQL : `performance_schema`. SQL Server : `VIEW SERVER STATE` |
 | Storage | Taille de la base, débordement temporaire, espace du journal, espace libre de tempdb | PostgreSQL : rien au-delà de `CONNECT`. MySQL : `SELECT` sur la base. SQL Server : rien pour la taille de la base ; `VIEW SERVER STATE` pour l'espace du journal et l'espace libre de tempdb |
 | Replication | Réplicas connectés, retard de réplication en secondes et en octets, slots inactifs, état de récupération | PostgreSQL : `pg_monitor`. MySQL : `REPLICATION CLIENT`. SQL Server : `VIEW SERVER STATE` ; non collecté sur Azure SQL Database |
@@ -292,10 +292,10 @@ Quarante et une séries réparties en huit catégories. Engines liste les moteur
 
 | Métrique | Série | Group | Engines |
 |---|---|---|---|
-| **Transactions** | `oneuptime.monitor.database.transactions.total` | Throughput | PostgreSQL, SQL Server |
-| **Queries** | `oneuptime.monitor.database.queries.total` | Throughput | MySQL, SQL Server |
-| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Throughput | MySQL |
-| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Throughput | PostgreSQL |
+| **Transactions** | `oneuptime.monitor.database.transactions.total` | Débit | PostgreSQL, SQL Server |
+| **Queries** | `oneuptime.monitor.database.queries.total` | Débit | MySQL, SQL Server |
+| **Slow Queries** | `oneuptime.monitor.database.queries.slow.total` | Débit | MySQL |
+| **Rollback Ratio** (%) | `oneuptime.monitor.database.rollback.percent` | Débit | PostgreSQL |
 | **Longest Running Query** (s) | `oneuptime.monitor.database.query.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Longest Open Transaction** (s) | `oneuptime.monitor.database.transaction.longest.seconds` | Activity | PostgreSQL, MySQL, SQL Server |
 | **Open Transactions** | `oneuptime.monitor.database.transaction.open.count` | Activity | MySQL |
@@ -315,13 +315,13 @@ MySQL standard n'expose aucun compteur d'interblocages, c'est pourquoi Deadlocks
 
 | Métrique | Série | Group | Engines |
 |---|---|---|---|
-| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Throughput | PostgreSQL, MySQL, SQL Server |
-| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Throughput | MySQL, SQL Server |
-| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Throughput | PostgreSQL, SQL Server |
-| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Throughput | SQL Server |
-| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Throughput | SQL Server |
+| **Cache Hit Ratio** (%) | `oneuptime.monitor.database.cache.hit.percent` | Débit | PostgreSQL, MySQL, SQL Server |
+| **Disk Reads** | `oneuptime.monitor.database.disk.reads.total` | Débit | PostgreSQL, MySQL, SQL Server |
+| **Disk Writes** | `oneuptime.monitor.database.disk.writes.total` | Débit | MySQL, SQL Server |
+| **I/O Read Time** (ms) | `oneuptime.monitor.database.io.read.time.ms` | Débit | PostgreSQL, SQL Server |
+| **I/O Write Time** (ms) | `oneuptime.monitor.database.io.write.time.ms` | Débit | PostgreSQL, SQL Server |
+| **Page Life Expectancy** (s) | `oneuptime.monitor.database.page.life.expectancy.seconds` | Débit | SQL Server |
+| **Memory Grants Pending** | `oneuptime.monitor.database.memory.grants.pending` | Débit | SQL Server |
 
 PostgreSQL ne mesure les temps de lecture et d'écriture d'E/S que lorsque `track_io_timing` est activé. Il est désactivé par défaut, et PostgreSQL remonte alors les deux à `0` — sur PostgreSQL, un zéro plat dans ces deux séries signifie donc généralement « non mesuré », pas « rapide ». C'est un réglage du serveur, pas un problème de droits.
 
@@ -363,6 +363,8 @@ Le retard en secondes affiche zéro sur un primaire inactif même quand un répl
 > **Transaction ID Used** mérite un critère sur chaque moniteur PostgreSQL que vous créez. PostgreSQL refuse toutes les écritures quand il atteint 100 %, la récupération passe par un vacuum en mode mono-utilisateur avec la base arrêtée, et presque personne ne le surveille. Alertez bien avant la falaise — 80 % laisse des jours de marge pour la plupart des charges.
 
 Les compteurs qui se terminent par `total` sont cumulés depuis le démarrage du serveur. Comparez deux instants pour obtenir un taux ; une valeur isolée n'a de sens que par rapport à son propre historique, et elle revient à zéro quand le serveur redémarre (ce que **Uptime** vous montrera).
+
+**Cache Hit Ratio** et **Rollback Ratio** sont calculés à chaque vérification à partir de ce que leurs compteurs ont progressé depuis la vérification précédente du moniteur, et non depuis le démarrage du serveur : un cache qui se met à manquer se voit donc tout de suite. La première vérification après le démarrage de la sonde, et la première après un redémarrage du serveur, n'ont ni l'un ni l'autre.
 
 ## Configurer les critères
 

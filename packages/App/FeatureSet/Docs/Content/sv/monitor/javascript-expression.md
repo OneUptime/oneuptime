@@ -163,7 +163,7 @@ En platshållare inom citattecken är ensam en icke-tom sträng, och den är all
 ## Nästa steg
 
 :::cards
-- [Incident- och varningsmallar](/docs/monitor/incident-alert-templating): Använd samma platshållare i titlar och beskrivningar av incidenter.
+- [Incident- och larmmallar](/docs/monitor/incident-alert-templating): Använd samma platshållare i titlar och beskrivningar av incidenter.
 - [API-övervakning](/docs/monitor/api-monitor): Kontrollera en HTTP-slutpunkt och dess svar.
 - [Övervakning av inkommande förfrågningar](/docs/monitor/incoming-request-monitor): Utvärdera förfrågningar som andra system skickar till dig.
 :::

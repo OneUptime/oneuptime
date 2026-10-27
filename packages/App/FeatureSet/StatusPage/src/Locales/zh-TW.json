@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "跳至主要內容",
-    "loading": "載入中..."
+    "loading": "載入中...",
+    "moreLinks": "更多連結",
+    "navigation": "導覽"
   },
   "common": {
     "save": "儲存",
@@ -303,7 +305,8 @@
       "loginPrompt": "請登入以檢視 {{statusPageName}}",
       "noProviders": "未設定或啟用 SSO 提供者",
       "notAvailable": "此狀態頁不支援單一登入（SSO）。請改用您的電子郵件與密碼登入。",
-      "backToLogin": "返回登入"
+      "backToLogin": "返回登入",
+      "logInWithPassword": "使用密碼登入"
     },
     "forgotPassword": {
       "title": "忘記密碼",
@@ -320,13 +323,9 @@
       "knowPassword": "知道您的密碼？"
     },
     "masterPassword": {
-      "enterWithName": "輸入 {{statusPageName}} 密碼",
-      "enterGeneric": "輸入密碼",
-      "prompt": "請輸入密碼以繼續。",
+      "prompt": "輸入密碼以檢視此狀態頁。",
       "passwordRequired": "密碼為必填。",
       "passwordLabel": "密碼",
-      "passwordDescription": "輸入密碼以解鎖此頁面。",
-      "passwordPlaceholder": "輸入密碼",
       "submit": "解鎖狀態頁"
     },
     "signingOut": "正在登出..."
@@ -416,6 +415,8 @@
   "Try again": "再試一次",
   "Loading...": "載入中...",
   "Loading": "載入中",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} 不是有效的 JSON。{{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} 不是有效的 YAML。{{parserMessage}}",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危險",

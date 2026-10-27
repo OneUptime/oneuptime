@@ -36,6 +36,7 @@ import PinnedSmtpSocket, {
   SmtpSocketCallback,
 } from "Common/Server/Utils/Mail/PinnedSmtpSocket";
 import { EmailInlineImage } from "Common/Server/Utils/Mail/EmailInlineImages";
+import EmailPlainText from "Common/Server/Utils/Mail/EmailPlainText";
 import EmailSize, {
   EmailWithinLimit,
   MAX_EMAIL_BYTES,
@@ -989,6 +990,13 @@ export default class MailService {
     let lastError: any;
     const maxRetries: number = 3;
 
+    /*
+     * The same email as text, sent beside the HTML: nodemailer sends both
+     * as multipart/alternative (EmailPlainText). Written once, for every
+     * attempt.
+     */
+    const text: string = EmailPlainText.fromHtml(mail.body);
+
     // Acquire connection slot to prevent overwhelming the server
     await TransporterPool.acquireConnection(options.emailServer);
 
@@ -1000,6 +1008,7 @@ export default class MailService {
               from: `${options.emailServer.fromName.toString()} <${options.emailServer.fromEmail.toString()}>`,
               to: mail.toEmail.toString(),
               subject: mail.subject,
+              text: text,
               html: mail.body,
               /*
                * An attachment with a cid is "related" to the HTML: nodemailer
@@ -1372,6 +1381,8 @@ export default class MailService {
             sendgridConfig.fromName || ProductBrandingText.getProductName()
           } <${sendgridConfig.fromEmail.toString()}>`,
           subject: mail.subject,
+          // The same email as text, beside the HTML (EmailPlainText).
+          text: EmailPlainText.fromHtml(mail.body),
           html: mail.body,
           ...(inlineImages.length > 0
             ? {

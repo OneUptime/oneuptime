@@ -1,5 +1,6 @@
 import ServiceElement from "./ServiceElement";
 import TableColumnListComponent from "Common/UI/Components/TableColumnList/TableColumnListComponent";
+import { MORE_SERVICES_TEMPLATE } from "../TableColumnList/MoreItemsTemplates";
 import Service from "Common/Models/DatabaseModels/Service";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -14,7 +15,7 @@ const ServicesElement: FunctionComponent<ComponentProps> = (
   return (
     <TableColumnListComponent
       items={props.services}
-      moreText="more services"
+      moreTemplate={MORE_SERVICES_TEMPLATE}
       getEachElement={(service: Service) => {
         return (
           <ServiceElement

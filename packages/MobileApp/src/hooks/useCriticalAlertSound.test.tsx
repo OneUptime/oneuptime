@@ -1,9 +1,10 @@
-import { Platform } from "react-native";
+import { AppState, Linking, Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import {
+  CHANNEL_WARNING,
   useCriticalAlertSound,
   type CriticalAlertSoundState,
 } from "./useCriticalAlertSound";
@@ -502,6 +503,80 @@ describe("choosing a sound on Android", () => {
     });
 
     expect(toldCriticalAlerts).not.toHaveBeenCalled();
+  });
+
+  /*
+   * While the chosen alarm cannot ring through Do Not Disturb, the server
+   * is told this phone's critical alerts are off, so pages come as ordinary
+   * notifications. The warning used to say pages "would arrive silently",
+   * which undersold it and named no way back: it says what happens now, and
+   * opens Do Not Disturb access.
+   */
+  test("the warning says pages come as ordinary notifications meanwhile", async () => {
+    await setCriticalAlertSound("digital");
+
+    const { result } = await renderAlarm();
+
+    await waitFor(() => {
+      expect(result.current.channelWarning).toBe(CHANNEL_WARNING);
+    });
+    expect(result.current.channelWarning).toBe(
+      "Until it can, on-call pages arrive as ordinary notifications, silent in Do Not Disturb. Allow OneUptime On-Call in Do Not Disturb access, or let this sound's channel override Do Not Disturb in the app's notification settings.",
+    );
+    expect(result.current.channelWarning).not.toContain(
+      "would arrive silently",
+    );
+    // The banner's button opens Do Not Disturb access: no path to follow.
+    expect(result.current.channelWarning).not.toContain(" > ");
+  });
+
+  test("its button opens Do Not Disturb access", async () => {
+    const intent: jest.SpyInstance = jest
+      .spyOn(Linking, "sendIntent")
+      .mockResolvedValue(undefined as never);
+    const { result } = await renderAlarm();
+
+    await act(async () => {
+      await result.current.openDoNotDisturbAccess();
+    });
+
+    expect(intent).toHaveBeenCalledWith(
+      "android.settings.NOTIFICATION_POLICY_ACCESS_SETTINGS",
+    );
+  });
+
+  test("access granted while away: coming back clears the warning", async () => {
+    const addListener: jest.SpyInstance = jest.spyOn(
+      AppState,
+      "addEventListener",
+    );
+    await setCriticalAlertSound("digital");
+
+    const { result } = await renderAlarm();
+
+    await waitFor(() => {
+      expect(result.current.channelWarning).not.toBe("");
+    });
+
+    android.grantDoNotDisturbAccess();
+
+    const handler: ((state: string) => void) | undefined = (
+      addListener.mock.calls as Array<Array<unknown>>
+    )
+      .map((call: Array<unknown>): unknown => {
+        return call[1];
+      })
+      .pop() as ((state: string) => void) | undefined;
+
+    expect(handler).toBeDefined();
+
+    await act(async () => {
+      handler!("active");
+    });
+
+    await waitFor(() => {
+      expect(result.current.channelWarning).toBe("");
+    });
   });
 });
 

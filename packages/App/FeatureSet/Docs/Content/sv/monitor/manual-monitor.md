@@ -44,7 +44,7 @@ Gå till **Monitorer** och klicka på **Skapa monitor**.
 
 ### Välj Manual
 
-Klicka på **Fler monitortyper** under **Monitortyp** och välj **Manual** under **Annat**.
+Klicka på **Fler monitortyper** under **Monitortyp** och välj **Manuell** under **Annat**.
 
 ### Namnge den och skapa den
 

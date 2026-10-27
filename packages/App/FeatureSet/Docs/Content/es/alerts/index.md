@@ -35,7 +35,7 @@ Ambos registran un problema y ambos pueden avisar a quien esté de guardia. Lo q
 | **En páginas de estado**         | Nunca                                                  | Puede aparecer y avisa a los suscriptores         |
 | **Notas**                        | Notas privadas, solo para tu equipo                    | Notas públicas para los clientes y notas privadas |
 | **Estados iniciales**            | **Identificado**, **Reconocido**, **Resuelto**         | **Identificado**, **Reconocido**, **Resuelto**    |
-| **Gravedades iniciales**         | **Alta**, **Low**                                      | Critical Incident, Major Incident, Minor Incident |
+| **Gravedades iniciales**         | **Alta**, **Baja**                                      | Critical Incident, Major Incident, Minor Incident |
 | **Números en un proyecto nuevo** | `ALT-42`, y `AE-42` para los episodios                 | `INC-42`, y `IE-42` para los episodios            |
 
 Genera una alerta cuando tu equipo deba mirar antes de que nadie de fuera lo note, y declara un incidente cuando los usuarios se vean afectados. Si una alerta resulta ser parte de una caída, declara un incidente a partir de ella o vincúlala al incidente que la explica: consulta [Alertas vinculadas](/docs/incidents/linked-alerts).
@@ -77,7 +77,7 @@ Ve a **Alertas → Todas las alertas** y haz clic en **Crear alerta**. El formul
 
 ### Describir la alerta
 
-Rellena el **Título** y elige una **Gravedad de la alerta**; ambos son obligatorios. Añade una **Descripción** si ayuda. En **Más campos**, plegado, puedes elegir un **Estado inicial**, añadir **Etiquetas** o activar **Alerta privada**. Ahí espera también **Propietarios**: te conviertes en propietario de la alerta que creas de todos modos, y cada equipo del que eres miembro está a un clic bajo el selector.
+Rellena el **Título** y elige una **Gravedad de la alerta**; ambos son obligatorios. Añade una **Descripción** si ayuda. En **Más campos**, plegado, puedes elegir un **Estado inicial**, añadir **Etiquetas** o activar **Alerta privada**. Ahí espera también **Propietarios**: te conviertes en propietario de la alerta que creas de todos modos, y cada equipo del que eres miembro está a un clic bajo el selector. Un administrador maestro, que gestiona toda la instalación, es la única excepción: no se convierte en propietario de lo que crea.
 
 ### Elegir a qué afecta y a quién se avisa
 

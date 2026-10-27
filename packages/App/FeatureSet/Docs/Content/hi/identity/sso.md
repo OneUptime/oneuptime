@@ -54,7 +54,7 @@ OneUptime Cloud पर, SSO के ज़रिए प्रोजेक्ट �
 
 ## SSO सेट अप करना
 
-आपको SSO प्रदाता जोड़ने की अनुमति चाहिए — **Project Owner**, **Project Admin** या **Create Project SSO** — और OneUptime Cloud पर **Scale** प्लान। अपने पहचान प्रदाता की ओर के लिए [पहचान प्रदाता गाइड](#पहचान-प्रदाता-गाइड) देखें।
+आपको SSO प्रदाता जोड़ने की अनुमति चाहिए — **प्रोजेक्ट स्वामी**, **प्रोजेक्ट एडमिन** या **Create Project SSO** — और OneUptime Cloud पर **Scale** प्लान। अपने पहचान प्रदाता की ओर के लिए [पहचान प्रदाता गाइड](#पहचान-प्रदाता-गाइड) देखें।
 
 :::steps
 1. **प्रोजेक्ट सेटिंग्स पर जाएँ**
@@ -248,7 +248,7 @@ OneUptime का SSO SAML 2.0 का उपयोग करता है और 
 
 ## OpenID Connect (OIDC)
 
-कोई प्रोजेक्ट OpenID Connect प्रदाता के ज़रिए भी साइन इन कर सकता है, जैसे Google Workspace, Okta, Microsoft Entra ID, Auth0 या Keycloak। आपको OIDC प्रदाता जोड़ने की अनुमति (**Project Owner**, **Project Admin** या **Create Project OIDC**) चाहिए, और OneUptime Cloud पर **Scale** प्लान।
+कोई प्रोजेक्ट OpenID Connect प्रदाता के ज़रिए भी साइन इन कर सकता है, जैसे Google Workspace, Okta, Microsoft Entra ID, Auth0 या Keycloak। आपको OIDC प्रदाता जोड़ने की अनुमति (**प्रोजेक्ट स्वामी**, **प्रोजेक्ट एडमिन** या **Create Project OIDC**) चाहिए, और OneUptime Cloud पर **Scale** प्लान।
 
 :::steps
 1. अपने पहचान प्रदाता में एक ऐप (एक OIDC क्लाइंट) पंजीकृत करें जो PKCE के साथ authorization code flow का उपयोग कर सके, और उसका **जारीकर्ता URL**, **क्लाइंट ID** और **क्लाइंट सीक्रेट** कॉपी करें।

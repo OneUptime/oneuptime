@@ -31,13 +31,13 @@ import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../../Components/Infrastructure/UseFirstRecordWatch";
 import {
-  FIRST_RUN_GUIDE_DESCRIPTION,
   getFirstRunEmptyState,
   getFirstRunTopContent,
 } from "../../Components/Infrastructure/FirstRecordWatch";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import AddHostGuide from "../../Components/HostCollector/AddHostGuide";
 import AddHostModal from "../../Components/HostCollector/AddHostModal";
+import ResourceShowcaseCard from "../../Components/ResourceShowcase/ResourceShowcaseCard";
+import HOST_SHOWCASE from "../../Components/Host/HostShowcase";
 import HostCollectorStatePill from "../../Components/HostCollector/HostCollectorStatePill";
 import {
   getHostCollectorConfigLabel,
@@ -381,6 +381,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
           buttons: [
             {
               title: "Add Host",
+              phoneTitle: "Add",
               icon: IconProp.Add,
               buttonStyle: ButtonStyleType.NORMAL,
               onClick: () => {
@@ -672,15 +673,13 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
         }}
       />
       {firstRecordWatch.count === 0 && (
-        <AddHostGuide
-          title="Add your first host"
-          description={FIRST_RUN_GUIDE_DESCRIPTION}
-          onHostConnected={() => {
-            // The guide gives way, and the table reads the new host.
-            firstRecordWatch.onRecordCreated();
-            setConnectedCount((count: number): number => {
-              return count + 1;
-            });
+        <ResourceShowcaseCard
+          showcase={HOST_SHOWCASE}
+          addButton={{
+            title: "Add Host",
+            onClick: () => {
+              setIsAddHostOpen(true);
+            },
           }}
         />
       )}
@@ -690,6 +689,8 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             setIsAddHostOpen(false);
           }}
           onHostConnected={() => {
+            // The showcase gives way, and the table reads the new host.
+            firstRecordWatch.onRecordCreated();
             setConnectedCount((count: number): number => {
               return count + 1;
             });

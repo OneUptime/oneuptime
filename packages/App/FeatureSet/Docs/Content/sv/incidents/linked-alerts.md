@@ -93,7 +93,7 @@ Larmets sida speglar incidentens. Öppna ett larm och välj **Länkade incidente
 
 ## Länka många larm på en gång
 
-Huvudlistorna över larm har två massåtgärder för det här: **Alla varningar** och **Aktiva varningar**, de aktiva larmen på startsidan, och sidan **Varningar** för en monitor, en tjänst, en värd, ett Kubernetes-kluster, en SLO eller någon annan resurs som har en. Listan **Medlemsvarningar** för en larmepisod har dem inte — välj i stället larmen i en av huvudlistorna. Välj larmen och välj sedan:
+Huvudlistorna över larm har två massåtgärder för det här: **Alla larm** och **Aktiva larm**, de aktiva larmen på startsidan, och sidan **Larm** för en monitor, en tjänst, en värd, ett Kubernetes-kluster, en SLO eller någon annan resurs som har en. Listan **Medlemslarm** för en larmepisod har dem inte — välj i stället larmen i en av huvudlistorna. Välj larmen och välj sedan:
 
 - **Länka till incident** — välj incidenten i rullgardinsmenyn **Incident** och klicka på **Länka larmen**. De senaste incidenterna står först, med sina nummer, och när du skriver söks alla incidenter igenom efter titel. OneUptime länkar varje valt larm och visar förloppet medan det pågår. Ett larm som redan är länkat till den incidenten räknas som klart i stället för misslyckat, så det är ofarligt att köra åtgärden två gånger.
 - **Deklarera incident** — öppnar deklarationsformuläret för en ny incident som är förifylld från de valda larmen. Se nästa avsnitt.
@@ -121,7 +121,7 @@ Vilken du än använder hamnar du på det vanliga formuläret **Deklarera ny inc
 | **Etiketter**          | Varje etikett från varje valt larm.                                                                                                                                                                                                                                                    |
 | **Privat incident**    | Påslagen om något av larmen är privat. Formuläret säger det, och larmens ägare blir ägare av incidenten — se nedan.                                                                                                                                                                     |
 
-"Allvarligast" följer ordningen av dina allvarlighetsgrader för larm: den första allvarlighetsgraden för larm i listan är den allvarligaste. Med allvarlighetsgraderna som varje projekt börjar med blir ett larm **High** en **Critical Incident** och ett larm **Low** en **Major Incident**.
+"Allvarligast" följer ordningen av dina allvarlighetsgrader för larm: den första allvarlighetsgraden för larm i listan är den allvarligaste. Med allvarlighetsgraderna som varje projekt börjar med blir ett larm **Hög** en **Critical Incident** och ett larm **Låg** en **Major Incident**.
 
 Allt går att redigera innan du skickar. **Etiketter** och **Privat incident** finns under **Fler fält** på formulärets första steg, vars hopfällda rubrik visar var och en av dem medan den är satt.
 

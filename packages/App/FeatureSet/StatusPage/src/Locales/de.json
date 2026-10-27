@@ -1,7 +1,9 @@
 {
   "a11y": {
     "skipToMainContent": "Zum Hauptinhalt springen",
-    "loading": "Wird geladen..."
+    "loading": "Wird geladen...",
+    "moreLinks": "Weitere Links",
+    "navigation": "Navigation"
   },
   "common": {
     "save": "Speichern",
@@ -303,7 +305,8 @@
       "loginPrompt": "Bitte melden Sie sich an, um {{statusPageName}} anzuzeigen",
       "noProviders": "Keine SSO-Anbieter konfiguriert oder aktiviert",
       "notAvailable": "Single Sign-On (SSO) ist für diese Statusseite nicht verfügbar. Melden Sie sich stattdessen mit Ihrer E-Mail-Adresse und Ihrem Passwort an.",
-      "backToLogin": "Zurück zur Anmeldung"
+      "backToLogin": "Zurück zur Anmeldung",
+      "logInWithPassword": "Mit Passwort anmelden"
     },
     "forgotPassword": {
       "title": "Passwort vergessen",
@@ -320,13 +323,9 @@
       "knowPassword": "Kennen Sie Ihr Passwort?"
     },
     "masterPassword": {
-      "enterWithName": "{{statusPageName}}-Passwort eingeben",
-      "enterGeneric": "Passwort eingeben",
-      "prompt": "Bitte geben Sie das Passwort ein, um fortzufahren.",
+      "prompt": "Geben Sie das Passwort ein, um diese Statusseite zu sehen.",
       "passwordRequired": "Passwort ist erforderlich.",
       "passwordLabel": "Passwort",
-      "passwordDescription": "Geben Sie das Passwort ein, um diese Seite zu entsperren.",
-      "passwordPlaceholder": "Passwort eingeben",
       "submit": "Statusseite entsperren"
     },
     "signingOut": "Sie werden abgemeldet..."
@@ -416,6 +415,8 @@
   "Try again": "Erneut versuchen",
   "Loading...": "Wird geladen...",
   "Loading": "Wird geladen",
+  "{{field}} is not valid JSON. {{parserMessage}}": "{{field}} ist kein gültiges JSON. {{parserMessage}}",
+  "{{field}} is not valid YAML. {{parserMessage}}": "{{field}} ist kein gültiges YAML. {{parserMessage}}",
   "markdownCallouts": {
     "caution": "Vorsicht",
     "danger": "Gefahr",

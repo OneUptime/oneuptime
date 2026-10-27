@@ -531,13 +531,14 @@ describe("a time inside a sentence", () => {
     );
 
     /*
-     * Its own sentence, not the shared "Last seen {{time}}", which German
-     * and most languages leave English because other pages fill it with an
-     * English time.
+     * Its own sentence, "Last reported", not the heroes' shared "Last seen
+     * {{time}}": vCenter reports a host, it is not seen.
      */
-    expect(readLocale("de")["Last seen {{time}}"]).toBe("Last seen {{time}}");
     expect(screen.getByTestId("vmware-host-last-seen")).toHaveTextContent(
       /^Zuletzt gemeldet vor 2 Stunden$/,
+    );
+    expect(readLocale("de")["Last seen {{time}}"]).not.toBe(
+      readLocale("de")["Last reported {{time}}"],
     );
   });
 

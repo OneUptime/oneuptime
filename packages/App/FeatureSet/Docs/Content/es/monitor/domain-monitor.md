@@ -126,7 +126,7 @@ Un monitor de dominio nuevo empieza con tres criterios, así que le avisa antes 
 2. **El dominio caduca pronto** — el registro no ha caducado pero caduca en 30 días o menos. Se crea una **alerta** llamada «_monitor name_ domain expires soon».
 3. **El dominio no ha caducado** — el monitor se marca como **Operativo**.
 
-El aviso de «caduca pronto» es una alerta, no un incidente: no aparece en sus páginas de estado, no avisa a nadie salvo que le añada una política de guardia, y no cambia el estado del monitor. Usa la segunda gravedad de alerta de su proyecto, **Low** en un proyecto nuevo. En cuanto la renovación aparece en el registro, la alerta se resuelve sola. Un registro que no publica fecha de caducidad no le da nada al aviso, así que este no salta.
+El aviso de «caduca pronto» es una alerta, no un incidente: no aparece en sus páginas de estado, no avisa a nadie salvo que le añada una política de guardia, y no cambia el estado del monitor. Usa la segunda gravedad de alerta de su proyecto, **Baja** en un proyecto nuevo. En cuanto la renovación aparece en el registro, la alerta se resuelve sola. Un registro que no publica fecha de caducidad no le da nada al aviso, así que este no salta.
 
 Los criterios se comprueban de arriba abajo, y el primero que coincide decide qué ocurre. Por eso «caduca pronto» está por encima de «no ha caducado»: un dominio a punto de caducar todavía no ha caducado, así que coincidiría con ambos.
 

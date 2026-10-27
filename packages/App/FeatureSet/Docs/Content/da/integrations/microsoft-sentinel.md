@@ -60,11 +60,11 @@ Rollen lader appen læse hændelser (`Microsoft.SecurityInsights/incidents/read`
 
 ### Tilføj forbindelsen i OneUptime
 
-Åbn **Produkter → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Microsoft Sentinel**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt hemmelighedens værdi i **Client secret**.
+Åbn **Produkter → Security Events → Forbindelser** (`/dashboard/{projectId}/security-events/connections`), klik på **Tilføj forbindelse**, vælg **Microsoft Sentinel**, og klik på **Næste**. Udfyld indstillingerne i tabellen nedenfor, klik på **Næste**, og indsæt hemmelighedens værdi i **Klienthemmelighed**.
 
 ### Test den, før du gemmer
 
-Klik på **Test these settings** under **Test, før du gemmer**. Testen logger på og læser hændelser med værdierne i formularen og gemmer intet, så en forkert hemmelighed eller en manglende rolle viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
+Klik på **Test disse indstillinger** under **Test, før du gemmer**. Testen logger på og læser hændelser med værdierne i formularen og gemmer intet, så en forkert hemmelighed eller en manglende rolle viser sig, før forbindelsen findes. Klik derefter på **Næste**, giv forbindelsen et **Navn**, og opret den.
 :::
 
 | Indstilling | Hvor du finder den |
@@ -75,9 +75,9 @@ Klik på **Test these settings** under **Test, før du gemmer**. Testen logger p
 | **Resource group** | Arbejdsområdets side **Overview**. 1 til 90 bogstaver, cifre, understregninger, bindestreger, punktummer eller parenteser, ikke afsluttet med et punktum. |
 | **Workspace name** | Arbejdsområdets side **Overview**. 3 til 90 bogstaver, cifre eller bindestreger, der starter og slutter med et bogstav eller et ciffer. |
 | **Cloud** | **Offentlig Azure-sky** (`login.microsoftonline.com`, `management.azure.com`) eller **Azure Government (USA)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
-| **Client secret** | Hemmelighedens **Value**. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Update credentials** på forbindelsen. |
+| **Klienthemmelighed** | Hemmelighedens **Value**. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Opdater legitimationsoplysninger** på forbindelsen. |
 
-Trinnet **Polling** har også en valgfri **Beskrivelse**, **Poll Interval (Minutes)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
+Trinnet **Hentning** har også en valgfri **Beskrivelse**, **Hentningsinterval (minutter)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
 
 ## Hvad der importeres
 
@@ -114,12 +114,12 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **Oprettelsestidspunktet er markøren.** En planlagt analyseregel, der kører hver time, åbner sin hændelse længe efter den aktivitet, den opdagede, og hændelsens `firstActivityTimeUtc` kan ligge timer eller dage tidligere. En markør på aktivitetstidspunktet ville springe hver sådan hændelse over. Aktivitetstidspunkterne bliver i `attributes`, og eksemplerne i diagnosticeringen viser begge.
 - **Den første poll ser 24 timer tilbage**, så en ny forbindelse straks viser sine nylige hændelser.
 - **Hver senere poll starter 1 minut før den gemte markør**, så en hændelse, der er oprettet på grænsen mellem to vinduer, aldrig springes over.
-- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Health** viser **Catching up**.
+- **En poll læser højst 24 timer forbi markøren.** En forbindelse, hvis markør er kommet bagud, indhenter i en række vinduer på 24 timer, og dens **Sundhed** viser **Catching up**.
 - **Dubletter fjernes efter hændelsens GUID** (`name`) i projektet, så overlappet, et gentaget vindue og en import aldrig gemmer en hændelse to gange.
 
 ### Når et vindue indeholder mere, end én poll kan læse
 
-En poll læser højst 20 sider med 50 hændelser: 1.000 hændelser. Når den grænse stopper den før slutningen af dens vindue, er kørslen **Partial** med en advarsel som:
+En poll læser højst 20 sider med 50 hændelser: 1.000 hændelser. Når den grænse stopper den før slutningen af dens vindue, er kørslen **Delvis** med en advarsel som:
 
 ```text
 Stopped after 20 incidents requests (the per-run request limit) before reading the whole window. Incidents are read oldest first; every incident created before 2026-09-14T08:12:44.000Z was read.
@@ -131,22 +131,22 @@ Når en kørsel slet ikke kan komme forbi den gemte markør, gør OneUptime i st
 
 1. **Indsnævr.** Den næste poll læser et vindue, der er halvt så langt, fra det samme startpunkt, og bliver ved med at halvere, indtil et vindue læses helt, ned til ét minut. Kørslens advarsel siger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voks igen.** Når et vindue er læst helt, er det næste igen dobbelt så langt, op til 24 timer.
-3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere hændelser bliver ved med at komme. Kørslen forbliver **Partial**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
+3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere hændelser bliver ved med at komme. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
 
-En kørsel, der mislykkes helt, med en fejl fra Microsoft Entra ID eller Azure Resource Manager, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Poll Interval (Minutes)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
+En kørsel, der mislykkes helt, med en fejl fra Microsoft Entra ID eller Azure Resource Manager, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Hentningsinterval (minutter)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
 
 ### Kør, se forhåndsvisning og importér efter behov
 
-Klik på **Diagnostics** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
+Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
 
-- **Run now** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
+- **Kør nu** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
 - **Preview incidents** læser et tidsinterval på op til 7 dage og importerer intet.
 - **Import this time range** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Hændelser, der allerede er importeret, springes over.
 - **Copy diagnostics** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
 
 ## Test forbindelse
 
-**Test forbindelse** på en forbindelses række og **Test these settings** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
+**Test forbindelse** på en forbindelses række og **Test disse indstillinger** i formularen kører i API-processen, ikke i en baggrundsworker, så en test også svarer, når det er workerne, der er problemet. Den kører disse kontroller i rækkefølge:
 
 | Kontrol | Hvad den kontrollerer |
 | --- | --- |
@@ -174,7 +174,7 @@ Registrér et program, og giv det en klienthemmelighed som i [Registrér et prog
 
 ### Tilføj destinationen
 
-Åbn **Produkter → Security Events → Connections**. Klik på **Tilføj destination** under **Send til dit SIEM**, vælg Microsoft Sentinel under **SIEM**, og klik på **Næste**. Udfyld **Mappe-id (tenant)**, **Program-id (klient)** og **Client secret**, **Slutpunkt til logindtagelse** fra dataindsamlingsslutpunktets (eller reglens) **Overview** og **Uforanderligt ID for dataindsamlingsreglen** fra reglens **JSON View**. **Strøm** er valgfri: står den tom, er den `Custom-OneUptimeSecurityEvents_CL`.
+Åbn **Produkter → Security Events → Forbindelser**. Klik på **Tilføj destination** under **Send til dit SIEM**, vælg Microsoft Sentinel under **SIEM**, og klik på **Næste**. Udfyld **Mappe-id (tenant)**, **Program-id (klient)** og **Klienthemmelighed**, **Slutpunkt til logindtagelse** fra dataindsamlingsslutpunktets (eller reglens) **Overview** og **Uforanderligt ID for dataindsamlingsreglen** fra reglens **JSON View**. **Strøm** er valgfri: står den tom, er den `Custom-OneUptimeSecurityEvents_CL`.
 
 ### Send en testhændelse, og begynd at sende
 
@@ -234,7 +234,7 @@ Forbindelsens **Seneste fejl** gemmer hele fejlmeddelelsen, med legitimationsopl
 
 :::details Last Error starter med `Microsoft Sentinel token request`
 - `Microsoft Sentinel token request failed (HTTP ...)`: Microsoft Entra ID nægtede at udstede et token, så Azure blev aldrig kontaktet. Meddelelsen citerer Entras kode:
-  - `AADSTS7000215` eller `invalid_client`: **Client secret** er forkert eller udløbet, eller det er hemmelighedens ID i stedet for dens værdi. Opret en ny hemmelighed, og gem den med **Update credentials**.
+  - `AADSTS7000215` eller `invalid_client`: **Klienthemmelighed** er forkert eller udløbet, eller det er hemmelighedens ID i stedet for dens værdi. Opret en ny hemmelighed, og gem den med **Opdater legitimationsoplysninger**.
   - `AADSTS700016` eller `unauthorized_client`: **Program-id (klient)** findes ikke i det angivne **Mappe-id (tenant)**. Sammenlign begge med appens side **Overview**.
   - `AADSTS90002` eller `HTTP 404`: den lejer findes ikke. **Mappe-id (tenant)** er forkert, eller den ligger i den anden sky: tjek **Cloud**.
   - `HTTP 429` eller `HTTP 5xx`: Microsoft Entra ID begrænser anmodninger eller er utilgængelig. Den næste poll prøver igen.
@@ -258,9 +258,9 @@ Ingen poll er blevet færdig for denne forbindelse. Kør **Test forbindelse**: d
 :::
 
 :::details En kørsel er Partial
-- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: vinduet indeholdt mere end de 1.000 hændelser, én kørsel læser. Intet går tabt: den næste poll starter efter den sidst læste hændelse. En forbindelse, der forbliver **Partial** poll efter poll, indhenter et efterslæb, og dens **Last Polled** og **Last Event Imported** bliver ved med at rykke frem.
+- `Stopped after 20 incidents requests (the per-run request limit) before reading the whole window`: vinduet indeholdt mere end de 1.000 hændelser, én kørsel læser. Intet går tabt: den næste poll starter efter den sidst læste hændelse. En forbindelse, der forbliver **Delvis** poll efter poll, indhenter et efterslæb, og dens **Senest hentet** og **Seneste importerede hændelse** bliver ved med at rykke frem.
 - `Microsoft Sentinel returned incidents out of creation-time order, so this run cannot name a point to resume from.`: API'et ignorerede rækkefølgen fra ældst til nyest, så kørslen kan ikke flytte markøren til sin sidste hændelse, og den næste poll læser i stedet et kortere vindue. Hvis det bliver ved, så send kørslens rapport til OneUptimes support.
-- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Import this time range** i **Diagnostics**. En import læser lige så meget som en poll.
+- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Import this time range** i **Diagnosticering**. En import læser lige så meget som en poll.
 :::
 
 :::details Testen lykkes, men intet importeres

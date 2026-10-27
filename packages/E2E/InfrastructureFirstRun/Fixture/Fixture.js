@@ -1,8 +1,9 @@
 /*
  * Offline fixture for the real first run of the infrastructure lists: a
  * project with nothing on it opens Hosts, VMware vCenters or Cloud
- * resources, sees the empty table and the setup guide under it, and the
- * list fills in on its own when the first record arrives.
+ * resources, sees the empty table and what goes under it - the showcase,
+ * or Cloud resources' Connect tiles and folded guide - and the list fills
+ * in on its own when the first record arrives.
  *
  * The layouts (Page + each product's side menu) and the list pages are the
  * production components from this branch, mounted under their real

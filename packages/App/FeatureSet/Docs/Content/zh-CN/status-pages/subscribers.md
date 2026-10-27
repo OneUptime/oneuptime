@@ -34,7 +34,7 @@ flowchart TB
 
 - **显示订阅者页面**（`showSubscriberPageOnStatusPage`）：默认打开。在状态页的导航栏中放置 **订阅** 项，访客在那里通过下面的渠道注册。
 - **电子邮件**（`enableEmailSubscribers`）：默认打开。其他渠道在你打开之前都是关闭的。
-- **SMS**（`enableSmsSubscribers`）：默认关闭。在 OneUptime Cloud 上，每条短信都从项目的短信和通话余额中支付，除非页面有自己的 **Twilio 配置**（参见[下文](#邮件页脚自定义-smtp-和-twilio)）。要打开它，还需要在 **项目设置 > 通知 > 通知设置** 的 **通知渠道** 卡片中为项目打开 **SMS**，项目所有者、**Billing Admin** 或拥有 **Manage Billing** 的人可以这样做。
+- **SMS**（`enableSmsSubscribers`）：默认关闭。在 OneUptime Cloud 上，每条短信都从项目的短信和通话余额中支付，除非页面有自己的 **Twilio 配置**（参见[下文](#邮件页脚自定义-smtp-和-twilio)）。要打开它，还需要在 **项目设置 > 通知 > 通知设置** 的 **通知渠道** 卡片中为项目打开 **SMS**，项目所有者、**账单管理员** 或拥有 **Manage Billing** 的人可以这样做。
 - **Slack**（`enableSlackSubscribers`）：默认关闭。
 - **Microsoft Teams**（`enableMicrosoftTeamsSubscribers`）：默认关闭。
 - **Webhook**（`enableWebhookSubscribers`）：默认关闭。
@@ -275,7 +275,7 @@ Slack、Microsoft Teams 和 Webhook 订阅者会跳过这一步，你的团队�
 - **Slack** 和 **Microsoft Teams** 以同样的方式列出它们，每行一个。
 - **Webhook** 负载把它们放在 `data.customFields` 中，以每个字段的 **模板变量** 为键：`{ "name": ..., "type": ..., "value": ... }`，值按存储的原样提供（事件没有值时为 `null`）。字段重命名时键不会改变。
 - **SMS** 会省略它们。短信按分段计费，默认短信已经接近一个分段；自定义短信模板可以用 `{{incident.customFields.<key>}}` 放入任何字段。
-- **Incident episode** 通知不带自定义字段：一个片段把各自拥有自己值的事件归为一组。每个成员事件自己的通知会带上它的字段。
+- **事件片段** 通知不带自定义字段：一个片段把各自拥有自己值的事件归为一组。每个成员事件自己的通知会带上它的字段。
 
 事件信息流中的 **订阅者通知已发送** 条目会在 **Custom fields sent** 下列出每次发送放进消息的值。订阅者通常在你的团队之外，所以只为可以安全地与他们共享的字段打开这个设置。
 
@@ -415,7 +415,7 @@ Slack、Microsoft Teams 和 Webhook 订阅者会跳过这一步，你的团队�
 
 **其中两个是内部数据。** `{{affectedStatusPages}}` 会写出事件到达的每个受众的名称：在 [每个受众一个状态页](/docs/status-pages/one-status-page-per-audience) 的情况下，一个站点的订阅者会知道还有哪些站点受到影响，一个客户会知道其他客户的名称。自定义字段可能包含写给你的团队的备注。只把它们放在订阅者可以看到这些内容的模板中。
 
-**放置标签和自定义字段需要事件访问权限。** `{{incidentLabels}}` 和 `{{incident.customFields.<key>}}` 会读取你的团队的事件记录，而状态页并不显示这些记录。所以放置它们的模板，只有能读取每个事件及其自定义字段的人才能保存：**Project Owner**、**Project Admin**、**Project Member** 或 **Viewer**，或者 **Incident Admin**、**Incident Member** 或 **Incident Viewer**，并且没有被限制在某些标签或自己负责的事件上。仅有 **Status Page Admin** 和 **Status Page Member** 可以编写模板，但不能添加这些占位符；对于已经包含它们的模板，他们仍然可以编辑其余部分。`{{affectedStatusPages}}` 不需要比模板本身更多的权限。
+**放置标签和自定义字段需要事件访问权限。** `{{incidentLabels}}` 和 `{{incident.customFields.<key>}}` 会读取你的团队的事件记录，而状态页并不显示这些记录。所以放置它们的模板，只有能读取每个事件及其自定义字段的人才能保存：**项目所有者**、**项目管理员**、**项目成员** 或 **查看者**，或者 **事件管理员**、**事件成员** 或 **事件查看者**，并且没有被限制在某些标签或自己负责的事件上。仅有 **状态页管理员** 和 **状态页成员** 可以编写模板，但不能添加这些占位符；对于已经包含它们的模板，他们仍然可以编辑其余部分。`{{affectedStatusPages}}` 不需要比模板本身更多的权限。
 
 ### 备注模板中的状态
 
@@ -445,6 +445,8 @@ Slack、Microsoft Teams 和 Webhook 订阅者会跳过这一步，你的团队�
 - **Twilio 配置**：**Twilio 配置** 是用于短信订阅者的 Twilio 账户。
 
 如果你有电子邮件订阅者，值得尽早设置自定义 SMTP：来自你自己域名的邮件被过滤的可能性要低得多，在凌晨 2 点阅读它的客户也更有可能信任它。
+
+默认短信使用短信传输成本最低的字符书写：弯引号、破折号等会替换为外观相同的普通字符，表情符号会被省略，因此标题中的一个字符绝不会让一条短信多花两三条的费用。链接按原样发送。自定义短信模板会按你编写的样子发送，包括其中插入的值。
 
 ## 公告
 

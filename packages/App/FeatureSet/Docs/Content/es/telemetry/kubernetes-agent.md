@@ -241,6 +241,8 @@ El agente envía a OneUptime cada evento de Kubernetes del clúster: de cada esp
 | Recuento | Cuántas veces ocurrió: una repetición sube el recuento en lugar de añadir una fila |
 | Visto por última vez | Cuándo ocurrió por última vez; pasa el puntero por encima para ver cuándo ocurrió por primera vez |
 
+En una pantalla de menos de 1024 píxeles de ancho, la columna **Evento** también muestra **Recuento** y **Visto por última vez**, que allí no tienen columna propia.
+
 ### Buscar eventos y recibir alertas
 
 Cada evento también es un registro. Una advertencia se guarda con la gravedad **Advertencia**, y lo que dice el evento está en sus atributos:
@@ -256,7 +258,7 @@ Cada evento también es un registro. Una advertencia se guarda con la gravedad *
 | `k8s.object.name` | `aks-userpool-11935137-vmss00000o` |
 | `k8s.namespace.name` | `default` |
 
-Búscalos en **Registros**, descarta los que no quieras con un filtro de descarte, o recibe un aviso cuando ocurra uno con un [monitor de registros](/docs/monitor/logs-monitor): filtra por la gravedad **Advertencia** y por `k8s.event.reason`, y agrupa por `k8s.object.name` para recibir una alerta por nodo o autoescalador.
+Búscalos en **Registros**, o descarta los que no quieras con un filtro de descarte. Para enterarte cuando ocurra uno, activa **Warning Events** en la página **Recomendaciones** del clúster, o selecciona **Activar alertas de advertencias** al pie de su página **Eventos**: un [monitor de registros](/docs/monitor/logs-monitor) sobre las advertencias del clúster que genera una alerta por objeto y motivo, y la resuelve cuando pasan 5 minutos sin una nueva advertencia sobre él. Para enterarte solo de algunos motivos, añade `k8s.event.reason` a su filtro.
 
 ## Opciones de configuración
 

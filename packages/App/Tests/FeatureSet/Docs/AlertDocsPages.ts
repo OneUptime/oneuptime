@@ -51,8 +51,6 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
       "On Delete Alert",
       "Create One Alert",
       "Update One Alert",
-      "Alert Member",
-      "Alert Admin",
     ],
   };
 

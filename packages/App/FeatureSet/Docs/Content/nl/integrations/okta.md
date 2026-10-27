@@ -42,20 +42,20 @@ Elk token mag een deel van de API-ratelimiet van de organisatie gebruiken, dat z
 
 ### De verbinding toevoegen in OneUptime
 
-Open **Producten → Security Events → Connections** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Okta System Log** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het token in **API token**.
+Open **Producten → Security Events → Verbindingen** (`/dashboard/{projectId}/security-events/connections`), klik op **Verbinding toevoegen**, kies **Okta System Log** en klik op **Volgende**. Vul de instellingen uit de tabel hieronder in, klik op **Volgende** en plak het token in **API token**.
 
 ### Testen voordat je opslaat
 
-Klik op **Test these settings** onder **Testen voor het opslaan**. De test meldt zich aan en leest gebeurtenissen met de waarden in het formulier, en slaat niets op, dus een verkeerde URL of een ongeldig filter komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
+Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test meldt zich aan en leest gebeurtenissen met de waarden in het formulier, en slaat niets op, dus een verkeerde URL of een ongeldig filter komt aan het licht voordat de verbinding bestaat. Klik daarna op **Volgende**, geef de verbinding een **Naam** en maak haar aan.
 :::
 
 | Instelling | Wat je invult |
 | --- | --- |
 | **Okta organization URL** | Het adres waarop je gebruikers zich aanmelden, zoals `https://acme.okta.com`, `https://acme.oktapreview.com` of `https://login.example.com`. Het moet `https` gebruiken, zonder pad. Niet het `-admin`-adres van de Admin Console, dat de API niet aanbiedt. |
 | **Event filter** | Optioneel. Een [System Log-filter](https://developer.okta.com/docs/reference/core-okta-api/#filter) dat de te importeren gebeurtenissen kiest, zoals `eventType sw "user.session" or eventType sw "security"`. Leeg importeert de families hieronder. Hooguit 2.000 tekens, op één regel, en niet op `published`: OneUptime stelt het tijdsbereik zelf in. |
-| **API token** | De waarde van het token, op zichzelf: OneUptime voegt het schema `SSWS` zelf toe. Het wordt versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang het met **Update credentials** bij de verbinding. |
+| **API token** | De waarde van het token, op zichzelf: OneUptime voegt het schema `SSWS` zelf toe. Het wordt versleuteld, nooit door de API teruggegeven en nooit opnieuw getoond. Vervang het met **Inloggegevens bijwerken** bij de verbinding. |
 
-De stap **Polling** heeft ook een optionele **Beschrijving**, het **Poll Interval (Minutes)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
+De stap **Opvragen** heeft ook een optionele **Beschrijving**, het **Opvraaginterval (minuten)**, een geheel getal van `1` tot `1440` dat begint op `5`, en **Ingeschakeld**, dat aan begint.
 
 ## Wat er wordt geïmporteerd
 
@@ -116,14 +116,14 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **De publicatietijd is de cursor.** Een System Log-gebeurtenis is de activiteit zelf, dus `published` is zowel wanneer ze plaatsvond als wat het pollen leest.
 - **De eerste poll kijkt 24 uur terug**, zodat een nieuwe verbinding meteen haar recente gebeurtenissen toont.
 - **Elke volgende poll begint 15 minuten voor de opgeslagen cursor.** Okta waarschuwt dat een verzoek met een eindtijd vertraagde gebeurtenissen kan weglaten, wat het zelden noemt. De overlap leest ze bij de volgende poll. Een gebeurtenis die meer dan 15 minuten is vertraagd, kan achter de cursor vallen: importeer haar tijdsbereik om haar terug te halen.
-- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Health** toont **Catching up**.
+- **Een poll leest hooguit 24 uur voorbij de cursor.** Een verbinding waarvan de cursor achterliep, haalt de achterstand in met een reeks vensters van 24 uur, en haar **Gezondheid** toont **Catching up**.
 - **Duplicaten worden verwijderd op `uuid`** binnen het project, zodat de overlap, een herhaald venster en een import een gebeurtenis nooit twee keer opslaan.
 
 Een link `next` die ergens anders heen wijst dan je **Okta organization URL**, wordt nooit gevolgd, omdat het token met elk verzoek meegaat.
 
 ### Wanneer een venster meer bevat dan één poll kan lezen
 
-Een poll leest hooguit 10.000 gebeurtenissen, in hooguit 20 verzoeken. Wanneer een venster er meer bevat, is de run **Partial**, met een waarschuwing zoals:
+Een poll leest hooguit 10.000 gebeurtenissen, in hooguit 20 verzoeken. Wanneer een venster er meer bevat, is de run **Gedeeltelijk**, met een waarschuwing zoals:
 
 ```text
 Stopped after collecting 10000 events; the window holds more. The last event read was published at 2026-09-14T08:12:44.000Z.
@@ -135,22 +135,22 @@ Wanneer een run helemaal niet voorbij de opgeslagen cursor komt, bijvoorbeeld om
 
 1. **Verkleinen.** De volgende poll leest een venster dat half zo lang is, vanaf hetzelfde beginpunt, en blijft halveren tot een venster volledig wordt gelezen, tot één minuut. De waarschuwing van de run zegt het: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Weer groeien.** Nadat een venster volledig is gelezen, is het volgende weer twee keer zo lang, tot 24 uur.
-3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere gebeurtenissen blijven binnenkomen, en de overlap van latere polls reikt er niet meer in terug. De run blijft **Partial**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen, of beperk het **Event filter**.
+3. **Voorbij één minuut gaan.** Als zelfs één minuut meer bevat dan een poll kan lezen, gaat het pollen eraan voorbij, zodat nieuwere gebeurtenissen blijven binnenkomen, en de overlap van latere polls reikt er niet meer in terug. De run blijft **Gedeeltelijk**, en **Laatste fout** luidt `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importeer die minuut met **Import this time range** om terug te halen wat één run kan lezen, of beperk het **Event filter**.
 
-Een run die volledig mislukt, met een fout van Okta, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Poll Interval (Minutes)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
+Een run die volledig mislukt, met een fout van Okta, behoudt de cursor en de vensterlengte, en de volgende poll leest hetzelfde venster opnieuw. De enige uitzondering is een verzoek dat een time-out kreeg: de cursor blijft staan, maar het volgende venster is half zo lang, omdat een venster dat te zwaar is om op tijd te beantwoorden bij elke poging een time-out zou krijgen. Het **Opvraaginterval (minuten)** wijzigen verandert hier niets aan: het bepaalt hoe vaak een poll begint, niet waar zijn venster begint.
 
 ### Uitvoeren, bekijken en importeren op verzoek
 
-Klik op **Diagnostics** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
+Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met de hand mee te werken. Iedereen die de verbinding kan wijzigen, kan deze acties starten; iedereen die haar kan zien, kan de historie lezen.
 
-- **Run now** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
+- **Nu uitvoeren** start meteen een poll, met de gewone cursor, ook als de verbinding niet **Ingeschakeld** is.
 - **Preview log events** leest een tijdsbereik van maximaal 7 dagen en importeert niets.
 - **Import this time range** importeert een bereik van maximaal 7 dagen, nadat je bevestigt, zonder de cursor te verplaatsen. Al geïmporteerde gebeurtenissen worden overgeslagen. Okta bewaart 90 dagen System Log.
 - **Copy diagnostics** bij een run kopieert het rapport ervan voor support. Het bevat nooit referenties.
 
 ## Verbinding testen
 
-**Verbinding testen** op de rij van een verbinding, en **Test these settings** in het formulier, draaien in het API-proces, niet in een achtergrondworker, zodat een test ook antwoordt wanneer de workers het probleem zijn. Hij voert deze controles uit, in volgorde:
+**Verbinding testen** op de rij van een verbinding, en **Deze instellingen testen** in het formulier, draaien in het API-proces, niet in een achtergrondworker, zodat een test ook antwoordt wanneer de workers het probleem zijn. Hij voert deze controles uit, in volgorde:
 
 | Controle | Wat ze controleert |
 | --- | --- |
@@ -172,7 +172,7 @@ Okta weigerde de parameters van het verzoek, `E0000053`. Als het token werkte, i
 :::
 
 :::details Last Error zegt `failed (HTTP 401)` of `failed (HTTP 403)`
-- `HTTP 401`: Okta accepteerde het token niet, `E0000011`. Het is ingetrokken, is 30 dagen ongebruikt gebleven, of is met zijn beheerder gedeactiveerd; of het is geplakt met `SSWS` of met een teken te veel. Maak een nieuw token als alleen-lezenbeheerder en sla het op met **Update credentials**.
+- `HTTP 401`: Okta accepteerde het token niet, `E0000011`. Het is ingetrokken, is 30 dagen ongebruikt gebleven, of is met zijn beheerder gedeactiveerd; of het is geplakt met `SSWS` of met een teken te veel. Maak een nieuw token als alleen-lezenbeheerder en sla het op met **Inloggegevens bijwerken**.
 - `HTTP 403`: het token meldt zich aan, maar zijn beheerder mag de System Log niet lezen, `E0000006`. Maak het als Read-only Administrator of Super Administrator, en controleer of zijn netwerkzone de adressen toestaat waarvandaan OneUptime aanroept.
 :::
 
@@ -194,8 +194,8 @@ Er is voor deze verbinding nog geen poll voltooid. Voer **Verbinding testen** ui
 :::
 
 :::details Een run is Partial
-- `Stopped after collecting 10000 events`: het venster bevatte meer dan de 10.000 gebeurtenissen die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen gebeurtenis. Een verbinding die poll na poll **Partial** blijft, haalt een achterstand in, en haar **Last Polled** en **Last Event Imported** blijven vooruitgaan. Haalt ze die nooit in, dan publiceert de organisatie meer overeenkomende gebeurtenissen dan een pollinterval kan bevatten: beperk het **Event filter**, of maak het **Poll Interval (Minutes)** korter.
-- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnostics**. Een import leest net zoveel als een poll.
+- `Stopped after collecting 10000 events`: het venster bevatte meer dan de 10.000 gebeurtenissen die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen gebeurtenis. Een verbinding die poll na poll **Gedeeltelijk** blijft, haalt een achterstand in, en haar **Laatst opgevraagd** en **Laatst geïmporteerde gebeurtenis** blijven vooruitgaan. Haalt ze die nooit in, dan publiceert de organisatie meer overeenkomende gebeurtenissen dan een pollinterval kan bevatten: beperk het **Event filter**, of maak het **Opvraaginterval (minuten)** korter.
+- `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Import this time range** in **Diagnose**. Een import leest net zoveel als een poll.
 :::
 
 :::details De test slaagt, maar er wordt niets geïmporteerd

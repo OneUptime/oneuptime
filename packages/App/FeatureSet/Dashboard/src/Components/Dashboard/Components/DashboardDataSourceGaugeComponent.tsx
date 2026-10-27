@@ -19,6 +19,7 @@ import DataSourceValueReducer from "Common/Utils/DataSource/DataSourceValueReduc
 import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import GaugeWidgetView from "./GaugeWidgetView";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -157,11 +158,11 @@ const DashboardDataSourceGaugeComponentElement: FunctionComponent<
       value={reducedValue}
       noDataMessage={
         DataSourceValueReducer.getResultsErrorMessage(results) ||
-        "No data for the selected time range"
+        translationKey("No data for the selected time range")
       }
       isConfigured={isConfigured}
-      setupTitle="Data Source Gauge"
-      setupMessage="Click to configure a query"
+      setupTitle={translationKey("Data Source Gauge")}
+      setupMessage={translationKey("Click to configure a query")}
       title={props.component.arguments.gaugeTitle}
       rawUnit={props.component.arguments.unit || ""}
       /*

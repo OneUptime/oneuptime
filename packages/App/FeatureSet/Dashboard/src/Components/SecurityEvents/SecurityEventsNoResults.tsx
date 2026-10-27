@@ -5,7 +5,11 @@ import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime
 import TimeRange from "Common/Types/Time/TimeRange";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import { getTimeRangeLabel } from "Common/UI/Components/Date/TimeRangePickerDropdown";
+import {
+  translatableTerm,
+  translateTemplate,
+} from "Common/UI/Utils/TranslateTemplate";
 import { getTimeRangeCovering } from "./SecurityEventsTimeRange";
 
 export const SECURITY_EVENTS_NO_RESULTS_ID: string =
@@ -42,7 +46,15 @@ export function getShowTimeRangeButtonTitle(
     });
   }
 
-  return `Show ${timeRange.range.toLowerCase()}`;
+  /*
+   * One sentence with the range in it, as the time range picker names the
+   * range: "Show past 1 week", "Letzte Woche anzeigen".
+   */
+  return translateTemplate("Show {{range}}", {
+    range: translatableTerm(getTimeRangeLabel(timeRange.range), {
+      inSentence: true,
+    }),
+  });
 }
 
 /*

@@ -21,6 +21,15 @@ abstract class Navigation {
     this.navigateHook = navigateHook;
   }
 
+  /*
+   * Whether a page of this app can be opened inside it (navigate with a
+   * Route): only once the app's router has handed over its navigate
+   * function. Anywhere else a link has to load its page itself.
+   */
+  public static canNavigateInApp(): boolean {
+    return Boolean(this.navigateHook);
+  }
+
   public static setLocation(location: Location): void {
     this.location = location;
   }

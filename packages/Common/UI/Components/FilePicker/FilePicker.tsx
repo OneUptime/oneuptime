@@ -35,6 +35,8 @@ export interface ComponentProps {
   tabIndex?: number | undefined;
   error?: string | undefined;
   ariaLabelledby?: string | undefined;
+  // What describes the upload: its field's help.
+  ariaDescribedby?: string | undefined;
   /*
    * The largest file this picker takes, in bytes, when it is less than the
    * 10 MB every upload is held to - a form's logo takes 512 KB. A larger
@@ -541,6 +543,7 @@ const FilePicker: FunctionComponent<ComponentProps> = (
                       name="file-upload"
                       type="file"
                       aria-labelledby={props.ariaLabelledby}
+                      aria-describedby={props.ariaDescribedby}
                       className="sr-only"
                     />
                   </label>

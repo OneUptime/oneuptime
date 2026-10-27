@@ -67,6 +67,7 @@ import { describe, expect, test } from "@jest/globals";
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import { writtenPermissionTitle } from "./DocsRoleNames";
 
 /*
  * The Huntress page of the docs' Integrations catalog, in all seventeen
@@ -190,9 +191,9 @@ const CREATE_WORKFLOW_BUTTON: string = "Create Workflow";
 
 /*
  * Huntress's portal is English only: every language names its menus and
- * buttons as Huntress shows them, and the roles as OneUptime names them.
+ * buttons as Huntress shows them.
  */
-const HUNTRESS_AND_ROLE_WORDS: ReadonlyArray<string> = [
+const HUNTRESS_WORDS: ReadonlyArray<string> = [
   "Account Admin",
   "Add an Integration",
   "Webhooks",
@@ -204,6 +205,13 @@ const HUNTRESS_AND_ROLE_WORDS: ReadonlyArray<string> = [
   "View Signing Secret",
   "Send Test",
   "View Delivery Attempts",
+];
+
+/*
+ * The roles that may set the workflow up: named as each language's
+ * Dashboard names them (DocsRoleNames).
+ */
+const ROLE_WORDS: ReadonlyArray<string> = [
   "Project Owner",
   "Project Admin",
   "Workflow Admin",
@@ -830,13 +838,24 @@ describe("the Huntress page names the Dashboard as it reads in each language", (
   );
 
   test.each(LANGUAGES)(
-    "%s names Huntress's menus and the roles in English",
+    "%s names Huntress's menus in English, and the roles as its Dashboard does",
     (language: string) => {
       const bold: Set<string> = boldTermsOf(readHuntressPage(language));
 
-      for (const word of HUNTRESS_AND_ROLE_WORDS) {
+      for (const word of HUNTRESS_WORDS) {
         expect({ language, word, named: bold.has(word) }).toEqual({
           language,
+          word,
+          named: true,
+        });
+      }
+
+      for (const role of ROLE_WORDS) {
+        const word: string = writtenPermissionTitle(language, role);
+
+        expect({ language, role, word, named: bold.has(word) }).toEqual({
+          language,
+          role,
           word,
           named: true,
         });

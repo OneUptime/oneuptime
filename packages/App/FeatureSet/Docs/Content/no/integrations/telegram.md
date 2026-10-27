@@ -57,7 +57,7 @@ Arbeidsflyten åpnes i **Bygger** med tre trinn: **On Create Alert**; **Send Mes
 @tab Fra bunnen
 1. Lagre tokenet som en hemmelig global variabel: gå til **Arbeidsflyter → Globale variabler**, klikk på **Opprett Workflow Variabel**, gi den navnet `TELEGRAM_BOT_TOKEN`, og klikk på **Neste**. Lim inn tokenet i **Innhold**, slå på **Hemmelighet**, og klikk på **Opprett Workflow Variabel**.
 2. Gå til **Arbeidsflyter**, klikk på **Opprett arbeidsflyt**, velg **Start fra bunnen**, gi arbeidsflyten et navn, og klikk på **Opprett arbeidsflyt**.
-3. Klikk på **Choose what starts this workflow** i **Bygger**, og velg **On Create Alert** under **Popular**. Klikk på utløseren: **Fields to pass on** starter med **Tittel**, så klikk på **Legg til felt**, og velg de andre feltene meldingen din viser, for eksempel **Alert Number With Prefix**.
+3. Klikk på **Velg hva som starter denne arbeidsflyten** i **Bygger**, og velg **On Create Alert** under **Populære**. Klikk på utløseren: **Fields to pass on** starter med **Tittel**, så klikk på **Legg til felt**, og velg de andre feltene meldingen din viser, for eksempel **Alert Number With Prefix**.
 4. Klikk på **Legg til komponent**, søk etter `telegram`, og klikk på **Send Message to Telegram**. Koble utgangen **Success** fra utløseren til den.
 5. Klikk på det nye trinnet. Klikk på **{ }** i **Telegram Bot Token**, og velg `TELEGRAM_BOT_TOKEN` under **Global variables**. Skriv inn ID-en til chatten i **Chat ID**, skriv meldingen i **Message Text**, og sett inn feltene til varselet med **{ }**.
 :::

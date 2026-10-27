@@ -25,7 +25,7 @@ Konfigurasjonen av varsler ligger under **Varsler**, ikke i **Prosjektinnstillin
 
 Seksjonen **Innstillinger** inneholder **Varselsstatus** og **Varselsalvor**, som er beskrevet på [Varseltilstander og alvorlighetsgrader](/docs/alerts/states-and-severities), og deretter **Notatmaler**, **Egendefinerte felt**, **Målinger**, **Medlemskap i episoder** og **Nummerering**, som er beskrevet nedenfor.
 
-To andre seksjoner virker på varsler. **Varsler → KI → Innstillinger** avgjør hva OneUptime AI gjør på egen hånd: **Undersøk nye varsler**, slått på for nye prosjekter, og **Rett nye varsler automatisk**, slått av til du slår det på. Se [AI SRE](/docs/ai/ai-sre). **Varsler → Arbeidsområde** inneholder Slack- og Microsoft Teams-reglene som legger ut varsler og episoder i kanaler, og fanen **Summary**. Se [Slack](/docs/workspace-connections/slack).
+To andre seksjoner virker på varsler. **Varsler → KI → Innstillinger** avgjør hva OneUptime AI gjør på egen hånd: **Undersøk nye varsler**, slått på for nye prosjekter, og **Rett nye varsler automatisk**, slått av til du slår det på. Se [AI SRE](/docs/ai/ai-sre). **Varsler → Arbeidsområde** inneholder Slack- og Microsoft Teams-reglene som legger ut varsler og episoder i kanaler, og fanen **Sammendrag**. Se [Slack](/docs/workspace-connections/slack).
 
 ## Reglene et nytt varsel går gjennom
 
@@ -59,7 +59,7 @@ Reglene skiller seg i hvordan flere samsvar avgjøres:
 
 **Vaktregler**, **Eierregler**, **Etikettregler** og **Personvernregler** har to faner: **Alert Rules** for varsler og **Episode Rules**, som virker på samme måte på hver ny varselepisode. En ny regel starter aktivert; slå av **Aktivert** i redigeringsskjemaet for å sette den på pause, og listen viser en grønn **Aktivert** eller en rød **Deaktivert** for hver regel.
 
-De fleste regler virker på varsler og episoder som opprettes etter at du har lagret dem. For å bruke en eier-, etikett- eller personvernregel på dem du allerede har, bruker du **Run Now**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now). Påminnelsesregler er unntaket: Når du lagrer en, samsvares hvert åpent varsel på nytt.
+De fleste regler virker på varsler og episoder som opprettes etter at du har lagret dem. For å bruke en eier-, etikett- eller personvernregel på dem du allerede har, bruker du **Kjør nå**: se [Kjøre regler på eksisterende ressurser](/docs/configuration/run-rules-now). Påminnelsesregler er unntaket: Når du lagrer en, samsvares hvert åpent varsel på nytt.
 
 ### Betingelser
 
@@ -157,7 +157,7 @@ Hver varselmodell har arbeidsflytutløsere og -handlinger oppkalt etter seg: **O
 
 ## Hvem som kan endre dem
 
-Regler, egendefinerte felt og målinger krever en Project Owner eller Project Admin, eller en egendefinert rolle med regelens egen tillatelse. **Alert Member** jobber med varsler og episoder, notatene deres, eiere og tilstandstidslinjer og notatmaler, og **Alert Admin** administrerer i tillegg varseltilstander og alvorlighetsgrader. Se [Brukere, team og tillatelser](/docs/permissions/index).
+Regler, egendefinerte felt og målinger krever en Project Owner eller Project Admin, eller en egendefinert rolle med regelens egen tillatelse. **Varselmedlem** jobber med varsler og episoder, notatene deres, eiere og tilstandstidslinjer og notatmaler, og **Varseladministrator** administrerer i tillegg varseltilstander og alvorlighetsgrader. Se [Brukere, team og tillatelser](/docs/permissions/index).
 
 ## Neste steg
 

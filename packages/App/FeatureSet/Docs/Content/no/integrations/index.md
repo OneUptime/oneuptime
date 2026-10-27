@@ -113,7 +113,7 @@ For et varslingsverktøy starter du med en [Incoming Request-monitor](/docs/moni
 
 :::steps
 1. Åpne **Arbeidsflyter**, klikk på **Opprett arbeidsflyt** og deretter på **Start fra bunnen**. Gi arbeidsflyten et navn, og klikk på **Opprett arbeidsflyt**.
-2. Klikk på den stiplede blokken **Choose what starts this workflow**, og velg **Webhook**. Klikk på triggeren og deretter på **Kopier URL**.
+2. Klikk på den stiplede blokken **Velg hva som starter denne arbeidsflyten**, og velg **Webhook**. Klikk på triggeren og deretter på **Kopier URL**.
 3. Send det andre verktøyets webhook til den URL-en som en `POST` med `Content-Type: application/json`.
 4. Legg til blokkene som handler på den. De leser forespørselen med referanser som `{{local.components.webhook-1.returnValues.request-body.status}}`: en **If / Else**-blokk for å sjekke et felt, og deretter **Create One Incident** for å erklære en hendelse.
 5. Slå på **Aktivert** øverst i **Bygger**, send en test fra det andre verktøyet, og åpne **Logger → Kjøringer** for å se hva som kom inn.

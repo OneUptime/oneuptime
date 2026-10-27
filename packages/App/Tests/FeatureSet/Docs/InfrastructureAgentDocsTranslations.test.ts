@@ -139,9 +139,12 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   /*
    * The project switch the AI agent's upgrade note names, as it was named:
-   * it no longer exists, so no locale has it.
+   * it no longer exists, so no locale has it. And the warning events'
+   * recommended monitor, by its template name
+   * (KubernetesEventAlertTemplates): templates are created with English
+   * names.
    */
-  [KUBERNETES]: ["Enable AI Command Execution", "Pilot"],
+  [KUBERNETES]: ["Enable AI Command Execution", "Pilot", "Warning Events"],
   // The dashboard template's name, from the template catalog.
   [COST]: ["Kubernetes Cost Dashboard"],
   // Alert template names: the templates are created with English names.

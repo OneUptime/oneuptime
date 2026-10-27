@@ -24,7 +24,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **요금제.** OneUptime Cloud에서 템플릿을 사용하려면 **Growth** 이상의 요금제가 필요합니다.
-- **역할.** 템플릿을 만들려면 **Project Owner**, **Project Admin**, **Project Member**, **Scheduled Maintenance Admin**, **Scheduled Maintenance Member** 중 하나이거나 예정된 유지 관리 템플릿을 만들 수 있는 사용자 지정 역할이 필요합니다.
+- **역할.** 템플릿을 만들려면 **프로젝트 소유자**, **프로젝트 관리자**, **프로젝트 구성원**, **예정된 유지 관리 관리자**, **예정된 유지 관리 구성원** 중 하나이거나 예정된 유지 관리 템플릿을 만들 수 있는 사용자 지정 역할이 필요합니다.
 
 ## 템플릿 만들기
 

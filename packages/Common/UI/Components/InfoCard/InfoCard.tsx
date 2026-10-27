@@ -22,12 +22,29 @@ export interface ComponentProps {
   ariaLabel?: string | undefined;
   // What the value means, shown in an (i) tooltip beside the title.
   tooltip?: string | undefined;
+  dataTestId?: string | undefined;
+  /*
+   * The card's padding, p-5 when left out. A card that is one of many in a
+   * narrow grid (a monitor's summary facts) takes less on a phone.
+   */
+  paddingClassName?: string | undefined;
 }
+
+/*
+ * A value with no place to break - a 64-character container ID, a digest, a
+ * long hostname - used to run out of its card, and out of the grid the
+ * cards sit in, on a phone (a Swarm task's Container ID, follow-up of
+ * #5076). It breaks anywhere it has to, which also lets the card shrink to
+ * its grid column; text that fits is drawn exactly as before.
+ */
+export const INFO_CARD_VALUE_WRAP_CLASS_NAME: string =
+  "min-w-0 [overflow-wrap:anywhere]";
 
 const InfoCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const isClickable: boolean = Boolean(props.onClick);
+  const paddingClassName: string = props.paddingClassName || "p-5";
 
   /*
    * A selected card swaps its border rather than adding one: Tailwind emits
@@ -50,7 +67,8 @@ const InfoCard: FunctionComponent<ComponentProps> = (
   if (isClickable && props.tooltip?.trim()) {
     return (
       <div
-        className={`relative rounded-xl bg-white border ${borderClassName} shadow-sm hover:shadow-md transition-shadow duration-200 p-5 ${props.className || ""}`}
+        className={`relative rounded-xl bg-white border ${borderClassName} shadow-sm hover:shadow-md transition-shadow duration-200 ${paddingClassName} ${props.className || ""}`}
+        data-testid={props.dataTestId}
       >
         <button
           type="button"
@@ -80,7 +98,10 @@ const InfoCard: FunctionComponent<ComponentProps> = (
             isCardStyle={true}
           />
         </div>
-        <div className={props.textClassName || "text-gray-900"}>
+        <div
+          data-testid="info-card-value"
+          className={`${INFO_CARD_VALUE_WRAP_CLASS_NAME} ${props.textClassName || "text-gray-900"}`}
+        >
           {props.value}
         </div>
       </div>
@@ -89,6 +110,7 @@ const InfoCard: FunctionComponent<ComponentProps> = (
 
   return (
     <div
+      data-testid={props.dataTestId}
       onClick={props.onClick}
       /*
        * Click handlers on a div are invisible to the keyboard and to screen
@@ -122,7 +144,7 @@ const InfoCard: FunctionComponent<ComponentProps> = (
             }
           : undefined
       }
-      className={`rounded-xl bg-white border ${borderClassName} shadow-sm hover:shadow-md transition-shadow duration-200 p-5 ${isClickable ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2" : ""} ${props.className || ""}`}
+      className={`rounded-xl bg-white border ${borderClassName} shadow-sm hover:shadow-md transition-shadow duration-200 ${paddingClassName} ${isClickable ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2" : ""} ${props.className || ""}`}
     >
       {/*
        * The name in sentence case, muted, over the value: no tracked
@@ -135,7 +157,10 @@ const InfoCard: FunctionComponent<ComponentProps> = (
           isCardStyle={true}
         />
       </div>
-      <div className={props.textClassName || "text-gray-900"}>
+      <div
+        data-testid="info-card-value"
+        className={`${INFO_CARD_VALUE_WRAP_CLASS_NAME} ${props.textClassName || "text-gray-900"}`}
+      >
         {props.value}
       </div>
     </div>

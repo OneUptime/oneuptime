@@ -492,12 +492,22 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
     // A rule's channel arrives a moment after a new alert is created.
     recordStartedAt: alertStartedAt,
   });
+  // Bumped to make the header read the alert's state again.
+  const [headerRefreshToken, setHeaderRefreshToken] = useState<number>(0);
   // "Escalate", for somebody an on-call policy is paging about it.
   const passOn: PassOnPageControls = usePassOnPage({
     recordType: OnCallPageRecordType.Alert,
     recordId: modelId,
     // Escalating is a new feed entry.
     onPassedOn: refreshFeed,
+    // Somebody took it while the dialog asked: the page reads it again.
+    onRecordChanged: () => {
+      setHeaderRefreshToken((token: number): number => {
+        return token + 1;
+      });
+      refreshData();
+      refreshFeed();
+    },
   });
   const joinVideoCallAction: EventPanelAction | null = getJoinVideoCallAction(
     videoCalls.calls,
@@ -1003,6 +1013,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
           aiInvestigationStatus={currentAIInvestigationStatus}
           aiInvestigationSummary={currentAIInvestigationSummary}
           aiInvestigationVerdict={currentAIInvestigationVerdict}
+          refreshToken={headerRefreshToken}
           onActionComplete={() => {
             refreshData();
             // The state change is a new feed entry.
@@ -1047,16 +1058,20 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName:
-              acknowledgeState?.name || translatableTerm("Acknowledged"),
+            stateName: translatableTerm(
+              acknowledgeState?.name || "Acknowledged",
+            ),
           })}
           icon={IconProp.Check}
-          value={getTimeToStateText({
-            startedAt: responseTimes.startedAt,
-            reachedAt: responseTimes.acknowledgedAt,
-            stateName: acknowledgeState?.name,
-            fallbackStateName: "acknowledged",
-          })}
+          value={getTimeToStateText(
+            {
+              startedAt: responseTimes.startedAt,
+              reachedAt: responseTimes.acknowledgedAt,
+              stateName: acknowledgeState?.name,
+              fallbackStateName: "Acknowledged",
+            },
+            translator,
+          )}
           note={getAcknowledgedAfterPagingText(
             {
               firstPagedAt: alertFirstPagedAt,
@@ -1069,15 +1084,18 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <EventStatTile
           variant="segment"
           label={translator.translateTemplate("{{stateName}} in", {
-            stateName: resolvedState?.name || translatableTerm("Resolved"),
+            stateName: translatableTerm(resolvedState?.name || "Resolved"),
           })}
           icon={IconProp.CheckCircle}
-          value={getTimeToStateText({
-            startedAt: responseTimes.startedAt,
-            reachedAt: responseTimes.resolvedAt,
-            stateName: resolvedState?.name,
-            fallbackStateName: "resolved",
-          })}
+          value={getTimeToStateText(
+            {
+              startedAt: responseTimes.startedAt,
+              reachedAt: responseTimes.resolvedAt,
+              stateName: resolvedState?.name,
+              fallbackStateName: "Resolved",
+            },
+            translator,
+          )}
           description={formatDate(responseTimes.resolvedAt)}
         />
       </EventStatBar>

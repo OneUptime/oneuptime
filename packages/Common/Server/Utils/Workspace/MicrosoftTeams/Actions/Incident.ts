@@ -807,7 +807,10 @@ export default class MicrosoftTeamsIncidentActions {
     incident.description = data.description;
     incident.projectId = projectId;
     incident.incidentSeverityId = new ObjectID(data.severityId);
-    incident.rootCause = `Incident created via Microsoft Teams`;
+    /*
+     * No root cause until somebody knows one: the incident names the member
+     * who declared it already (WhoOpenedItRootCause).
+     */
 
     if (monitorIdArray.length > 0) {
       incident.monitors = monitorIdArray.map((id: ObjectID) => {

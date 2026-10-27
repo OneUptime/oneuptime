@@ -68,7 +68,7 @@ Never delayed, and never counted:
 | Billing and balance                       | Invoices, subscription overdue, "we could not page anyone because the card declined"                 |
 | Instance health                           | Postgres, Valkey and ClickHouse warnings to instance admins                                          |
 | Status page subscribers                   | Every email your status page sends to your own subscribers                                           |
-| SLA breaches                              | Sent immediately even though they reuse the incident-created notification type                       |
+| SLA breaches                              | An incident you own missing its SLA response or resolution deadline                                  |
 
 Only email is affected. SMS, phone calls, push notifications, WhatsApp, Telegram, Slack, Microsoft Teams and webhooks are delivered immediately, exactly as before, including for the notifications whose email was held back.
 

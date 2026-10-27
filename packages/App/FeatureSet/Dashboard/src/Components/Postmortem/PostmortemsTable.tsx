@@ -284,10 +284,14 @@ const PostmortemsTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             /*
              * A title is anyone's sentence: it wraps, capped so the status,
-             * severity and owners keep their room beside the side menu.
+             * severity and owners keep their room beside the side menu -
+             * and never narrower than 9rem, not the 10rem of a column of
+             * prose: in German the row's Anzeigen and "Nicht erforderlich"
+             * left the table 2px past its card at 1280px.
              */
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-[16rem] 2xl:max-w-md",
+            contentClassName: "min-w-[9rem]",
             getElement: (item: Incident): ReactElement => {
               const title: string = item.title?.toString() || "";
 

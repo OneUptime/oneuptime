@@ -5,7 +5,7 @@ As regras de rótulos e as regras de proprietários organizam seus recursos por 
 :::cards
 - [Criar uma regra](#criar-uma-regra): Duas etapas: com o que a regra corresponde e, depois, o que ela adiciona.
 - [Herdar rótulos e proprietários](#herdar-rótulos-e-proprietários): Repassar o que os monitores, hosts e serviços de um evento carregam.
-- [Quando as regras são executadas](#quando-as-regras-são-executadas): Recursos novos, e **Run Now** para os que você já tem.
+- [Quando as regras são executadas](#quando-as-regras-são-executadas): Recursos novos, e **Executar agora** para os que você já tem.
 :::
 
 ## Como funciona
@@ -115,7 +115,7 @@ Toda regra habilitada é executada quando um recurso é criado, pelo dashboard o
 - Uma regra nunca remove nada: nem rótulos ou proprietários que alguém adicionou à mão, nem os que ela mesma adicionou.
 - Uma regra desabilitada não faz nada.
 
-Uma regra escrita hoje vale para os recursos criados depois dela. Para aplicá-la aos que você já tem, use **Run Now**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de rótulos também podem ser copiadas entre projetos: veja [Importar e exportar regras de rótulos](/docs/configuration/label-rule-import-export).
+Uma regra escrita hoje vale para os recursos criados depois dela. Para aplicá-la aos que você já tem, use **Executar agora**: veja [Executar regras em recursos existentes](/docs/configuration/run-rules-now). As regras de rótulos também podem ser copiadas entre projetos: veja [Importar e exportar regras de rótulos](/docs/configuration/label-rule-import-export).
 
 ## Padrões
 

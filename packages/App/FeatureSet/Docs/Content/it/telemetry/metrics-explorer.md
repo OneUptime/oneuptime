@@ -59,7 +59,7 @@ In **Aggregate by**, scegliete come vengono combinati i valori di ogni punto del
 
 ### Filtrarla e raggrupparla
 
-Aprite **Filters & grouping**. **Filter by attributes** conserva i punti dati i cui attributi corrispondono, come una determinata `http.route`, e **Group by** disegna una linea per ogni valore degli attributi scelti, come una linea per host.
+Aprite **Filters & grouping**. **Filter by attributes** conserva i punti dati i cui attributi corrispondono, come una determinata `http.route`, e **Raggruppa per** disegna una linea per ogni valore degli attributi scelti, come una linea per host.
 
 ### Regolare il grafico
 
@@ -104,7 +104,7 @@ Trascinate su un grafico per ingrandire un momento, e fate doppio clic per torna
 - **Azioni → Crea monitor da questa vista** apre un nuovo monitor di metriche con queste query e formule già compilate. Vedere [Monitor metriche](/docs/monitor/metrics-monitor).
 - **Azioni → Add to dashboard** aggiunge il grafico a una dashboard a vostra scelta. Vi serve il permesso di modificare quella dashboard.
 - **Copia link** copia un link esattamente a questa vista: query, formule e intervallo di tempo.
-- **Saved Views** conserva la vista sotto un nome per tutti nel progetto. Il **Visualizzatore** ha le sue viste salvate, per la sua ricerca e i suoi filtri. Le viste salvate funzionano come nell'[Esploratore log](/docs/telemetry/logs-explorer#salvare-una-vista).
+- **Viste salvate** conserva la vista sotto un nome per tutti nel progetto. Il **Visualizzatore** ha le sue viste salvate, per la sua ricerca e i suoi filtri. Le viste salvate funzionano come nell'[Esploratore log](/docs/telemetry/logs-explorer#salvare-una-vista).
 
 ## Informazioni sulle metriche
 
