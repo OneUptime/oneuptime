@@ -409,6 +409,24 @@ started before the agent attached to it, or that was running when the agent
 restarted. Replacing a connection costs one new connection, once per
 connection every 10 minutes.
 
+#### JIT compiling behind the pooler
+
+Postgres compiles a statement to machine code once its estimated cost passes
+`jit_above_cost`, and the reads behind incident and alert rules pass it even on
+empty tables: on Postgres 15 each spent 170-210 ms compiling, against 4 ms to
+plan and run it, and seven run for every incident or alert created. Creating
+incidents and alerts kept 3.7 to 4.8 cores of Postgres busy with JIT on, and
+0.7 to 0.8 with it off. So the app turns JIT off on its own connections, with
+`jit=off` in the startup parameter that carries `idle_session_timeout`.
+PgBouncer drops that parameter, so the chart's own Postgres has `jit = off` in
+its configuration too (`postgresql.primary.configuration`,
+`postgresOperator.cnpg.parameters`). For an `externalPostgres` behind
+PgBouncer or a managed pooled endpoint, set it on the database:
+
+```sql
+ALTER DATABASE "oneuptimedb" SET jit = off;
+```
+
 ### Transaction mode (real connection reduction)
 
 Session mode caps and reuses connections but does **not** multiplex idle ones —
