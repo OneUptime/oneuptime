@@ -156,14 +156,14 @@ describe("the open menu's words", () => {
         ariaLabel="Components"
         options={[]}
         isLoading={true}
-        loadingMessage="Reading the components of status.example.com…"
+        loadingMessage="Loading the components of status.example.com…"
       />,
     );
 
     await openMenu();
 
     expect(
-      screen.getByText("Reading the components of status.example.com…"),
+      screen.getByText("Loading the components of status.example.com…"),
     ).toBeInTheDocument();
   });
 
@@ -189,6 +189,66 @@ describe("the open menu's words", () => {
     await type("Copilot");
 
     expect(screen.getByText("Nothing named Copilot.")).toBeInTheDocument();
+  });
+
+  /*
+   * A message of the caller's own is a sentence or two: centred line by
+   * line, a phone's narrow menu set it as a ragged column ("Could not load
+   * the components of status.example.com. Type a component's name...").
+   * It starts where the options start; react-select's own short "No
+   * options" stays centred, as every other dropdown draws it.
+   */
+  test("a message of the caller's own starts where the options start; the stock one stays centred", async () => {
+    const sentence: string =
+      "Could not load the components of status.example.com. Type a component's name as the page shows it, then press Enter.";
+
+    render(
+      <Dropdown
+        ariaLabel="Components"
+        options={[]}
+        noOptionsMessage={(): string => {
+          return sentence;
+        }}
+      />,
+    );
+
+    await openMenu();
+
+    expect(getComputedStyle(screen.getByText(sentence)).textAlign).toBe(
+      "start",
+    );
+
+    cleanup();
+
+    render(<Dropdown ariaLabel="Components" options={[]} />);
+
+    await openMenu();
+
+    expect(getComputedStyle(screen.getByText("No options")).textAlign).toBe(
+      "center",
+    );
+  });
+
+  test("the loading line is drawn as the no-options line is, and starts where the options start", async () => {
+    render(
+      <Dropdown
+        ariaLabel="Components"
+        options={[]}
+        isLoading={true}
+        loadingMessage="Loading the components of status.example.com…"
+      />,
+    );
+
+    await openMenu();
+
+    const loading: HTMLElement = screen.getByText(
+      "Loading the components of status.example.com…",
+    );
+
+    for (const className of ["px-3", "py-2", "text-sm", "text-gray-500"]) {
+      expect(loading).toHaveClass(className);
+    }
+    expect(getComputedStyle(loading).textAlign).toBe("start");
   });
 });
 

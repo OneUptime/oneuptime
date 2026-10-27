@@ -203,11 +203,11 @@ When creating incidents or alerts from External Status Page monitors, you can us
 | `{{responseTimeInMs}}`    | Response time in milliseconds                                                   |
 | `{{failureCause}}`        | Reason for failure, if any                                                      |
 | `{{overallStatus}}`       | The overall status indicator value                                              |
-| `{{activeIncidentCount}}` | Number of active incidents (of the components it watches, if it chose some)    |
+| `{{activeIncidentCount}}` | Number of active incidents (of the chosen components, if any are chosen)       |
 | `{{componentStatuses}}`   | JSON array of component statuses (`name`, `status`, `description`, `groupName`) |
 | `{{provider}}`            | Detected provider (Atlassian Statuspage, incident.io, OneUptime Status Page, RSS, Atom); empty after a reachability check |
 | `{{componentGroup}}`      | Component group the monitor is scoped to, if any                                |
-| `{{componentName}}`       | The components the monitor watches, separated by commas, if it chose some      |
+| `{{componentName}}`       | The components the monitor watches, separated by commas, if any are chosen     |
 
 ## Popular Status Page URLs
 

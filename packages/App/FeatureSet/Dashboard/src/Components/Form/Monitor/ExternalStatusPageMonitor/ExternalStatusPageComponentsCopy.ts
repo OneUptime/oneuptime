@@ -23,15 +23,21 @@ export interface ComponentChoiceOptions {
   groups: Array<DropdownOptionGroup>;
 }
 
+/*
+ * What the field is for, said as what to do: an empty field watches the
+ * whole page, so the help starts from the person's own components.
+ */
 const DESCRIPTION: string = translationKey(
-  "Watch only these components: only their incidents and statuses count. Leave empty to watch the whole page.",
+  "Pick the components you depend on: only their incidents and statuses count. Leave empty to watch the whole page.",
 );
 
+// What the description leaves out: names the list does not have, and *.
 const TOOLTIP: string = translationKey(
-  "Pick from the components the page lists, or type a name and press Enter. A * stands for any text: *us-east-1* watches every component with us-east-1 in its name. On an RSS or Atom feed, an item counts when its title has one of the names.",
+  "Not in the list? Type its name and press Enter. A * stands for any text: *us-east-1* watches every component with us-east-1 in its name. On an RSS or Atom feed, an item counts when its title has one of the names.",
 );
 
-const READING: string = translationKey("Reading the components of {{host}}…");
+// In the product's words for a list on its way: "Loading …", "Could not load …".
+const READING: string = translationKey("Loading the components of {{host}}…");
 
 const ADD: string = translationKey("Add “{{name}}”");
 
@@ -41,6 +47,14 @@ const ADD_PATTERN: string = translationKey(
 
 const UNMATCHED: string = translationKey(
   "Not on this page, so not watched: {{names}}",
+);
+
+/*
+ * With a component group set, a name the page lists in another group is on
+ * the page all the same: it is missing from the group.
+ */
+const UNMATCHED_IN_GROUP: string = translationKey(
+  "Not in {{group}}, so not watched: {{names}}",
 );
 
 const FEED: string = translationKey(
@@ -59,7 +73,7 @@ const ALL_CHOSEN: string = translationKey("Every component is chosen.");
 
 const PROBLEMS: Record<ExternalStatusPageCatalogProblem, string> = {
   [ExternalStatusPageCatalogProblem.NotRead]: translationKey(
-    "Could not read a list of components from {{host}}.",
+    "Could not load the components of {{host}}.",
   ),
   [ExternalStatusPageCatalogProblem.NoComponents]: translationKey(
     "{{host}} lists no components to pick from.",
@@ -75,6 +89,8 @@ export default class ExternalStatusPageComponentsCopy {
   public static readonly DESCRIPTION: string = DESCRIPTION;
   public static readonly TOOLTIP: string = TOOLTIP;
   public static readonly READING: string = READING;
+  public static readonly UNMATCHED: string = UNMATCHED;
+  public static readonly UNMATCHED_IN_GROUP: string = UNMATCHED_IN_GROUP;
 
   /*
    * A page's components, as the field offers them: by the page's own names,
@@ -172,16 +188,6 @@ export default class ExternalStatusPageComponentsCopy {
       data.count,
       { host: data.host },
     );
-  }
-
-  // The chosen names the page does not list.
-  public static unmatchedSentence(
-    translator: Translator,
-    names: Array<string>,
-  ): string {
-    return translator.translateTemplate(UNMATCHED, {
-      names: names.join(", "),
-    });
   }
 
   // Whether reading the page again may help.

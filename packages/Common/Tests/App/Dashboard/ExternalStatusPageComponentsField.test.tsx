@@ -193,7 +193,7 @@ describe("the field, before it is opened", () => {
     expect(box()).toHaveAttribute("aria-labelledby", "components-label");
     expect(
       screen.getByText(
-        "Watch only these components: only their incidents and statuses count. Leave empty to watch the whole page.",
+        "Pick the components you depend on: only their incidents and statuses count. Leave empty to watch the whole page.",
       ),
     ).toHaveAttribute("id", "components-description");
     // Empty reads as what it means.
@@ -299,7 +299,7 @@ describe("opened, it reads the page once and offers its components", () => {
     await openMenu();
 
     expect(
-      screen.getByText(`Reading the components of ${GITHUB_HOST}…`),
+      screen.getByText(`Loading the components of ${GITHUB_HOST}…`),
     ).toBeInTheDocument();
 
     await act(async () => {
@@ -483,6 +483,40 @@ describe("typing a name the page does not list", () => {
     );
   });
 
+  /*
+   * Watching the ChatGPT group, Embeddings is on the page - in APIs - and
+   * still watches nothing: the line says it is missing from the group, not
+   * from the page.
+   */
+  test("with a group set, a name the page lists in another group is said to be missing from the group", async () => {
+    renderField(
+      {
+        componentGroupName: "ChatGPT",
+        componentNames: ["Login", "Embeddings"],
+      },
+      (): Promise<ExternalStatusPageCatalog> => {
+        return Promise.resolve(openAiCatalog());
+      },
+    );
+
+    await openMenu();
+
+    const unmatched: HTMLElement = screen.getByTestId(
+      COMPONENTS_UNMATCHED_TEST_ID,
+    );
+
+    expect(unmatched).toHaveTextContent(
+      "Not in ChatGPT, so not watched: Embeddings",
+    );
+    expect(
+      Array.from(unmatched.querySelectorAll("bdi")).map(
+        (bdi: Element): string => {
+          return bdi.textContent || "";
+        },
+      ),
+    ).toEqual(["ChatGPT", "Embeddings"]);
+  });
+
   test("a pattern that matches is not said to be missing; one that does not, is", async () => {
     renderField({ componentNames: ["*Requests", "*Kubernetes*"] });
 
@@ -514,7 +548,7 @@ describe("a page that cannot be read", () => {
 
     await openMenu();
 
-    const sentence: string = `Could not read a list of components from ${GITHUB_HOST}. Type a component's name as the page shows it, then press Enter.`;
+    const sentence: string = `Could not load the components of ${GITHUB_HOST}. Type a component's name as the page shows it, then press Enter.`;
 
     expect(screen.getByTestId(COMPONENTS_STATUS_TEST_ID)).toHaveTextContent(
       sentence,
@@ -603,6 +637,126 @@ describe("a page that cannot be read", () => {
         "Enter the status page URL to pick from its components, or type a name and press Enter.",
       ),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * The lines under the field, as a person meets them: the chosen name the
+ * page does not list first - the line to act on - then what was read; and
+ * for a screen reader, the box is described by its help and by whatever
+ * line says something is wrong, so it hears that where it lands.
+ */
+describe("the lines under the field", () => {
+  function describedBy(): Array<string> {
+    return (box().getAttribute("aria-describedby") || "")
+      .split(" ")
+      .filter(Boolean);
+  }
+
+  test("a name the page does not list comes first, then what was read", async () => {
+    renderField({ componentNames: ["Git Operations", "Webhook"] });
+
+    await openMenu();
+
+    const unmatched: HTMLElement = screen.getByTestId(
+      COMPONENTS_UNMATCHED_TEST_ID,
+    );
+    const status: HTMLElement = screen.getByTestId(COMPONENTS_STATUS_TEST_ID);
+
+    expect(
+      unmatched.compareDocumentPosition(status) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("the box is described by its help, then by the names the page does not list", async () => {
+    const harness: Harness = renderField({
+      componentNames: ["Git Operations", "Webhook"],
+    });
+
+    // Before the page is read nothing is said to be missing.
+    expect(describedBy()[0]).toBe("components-description");
+    expect(describedBy()).not.toContain("components-description-unmatched");
+
+    await openMenu();
+
+    expect(describedBy().slice(0, 2)).toEqual([
+      "components-description",
+      "components-description-unmatched",
+    ]);
+    expect(
+      document.getElementById("components-description-unmatched"),
+    ).toHaveTextContent("Not on this page, so not watched: Webhook");
+
+    // Taken out, the name is no longer said.
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Remove Webhook" }));
+    });
+
+    expect(harness.onChange).toHaveBeenLastCalledWith(["Git Operations"]);
+
+    harness.rerender({ componentNames: ["Git Operations"] });
+
+    expect(describedBy()).not.toContain("components-description-unmatched");
+    expect(screen.queryByTestId(COMPONENTS_UNMATCHED_TEST_ID)).toBeNull();
+  });
+
+  test("a page that cannot be read: the box is described by why, not by Try again", async () => {
+    renderField({}, (): Promise<ExternalStatusPageCatalog> => {
+      return Promise.reject(
+        new ExternalStatusPageCatalogError(
+          ExternalStatusPageCatalogProblem.TimedOut,
+        ),
+      );
+    });
+
+    await openMenu();
+
+    expect(describedBy()).toContain("components-description-failure");
+
+    const why: HTMLElement = document.getElementById(
+      "components-description-failure",
+    ) as HTMLElement;
+
+    expect(why).toHaveTextContent(
+      `${GITHUB_HOST} took too long to answer. Type a component's name as the page shows it, then press Enter.`,
+    );
+    expect(why).not.toHaveTextContent("Try again");
+  });
+
+  /*
+   * Icon draws a div: inside a paragraph it is markup a browser may not
+   * keep, and React warned "validateDOMNesting" on every page that showed
+   * a name the page does not list.
+   */
+  test("no paragraph holds a div, and React warns of no nesting", async () => {
+    const consoleError: Mock<(...args: Array<unknown>) => void> =
+      jest.fn<(...args: Array<unknown>) => void>();
+
+    jest.spyOn(console, "error").mockImplementation(consoleError);
+
+    try {
+      renderField({ componentNames: ["Git Operations", "Webhook"] });
+
+      await openMenu();
+      await act(async () => {
+        fireEvent.keyDown(box(), { key: "Escape" });
+      });
+
+      const field: HTMLElement = screen.getByTestId(COMPONENTS_FIELD_TEST_ID);
+
+      expect(screen.getByTestId(COMPONENTS_UNMATCHED_TEST_ID)).toBeVisible();
+      expect(field.querySelectorAll("p div")).toHaveLength(0);
+      expect(
+        consoleError.mock.calls.filter((args: Array<unknown>): boolean => {
+          return args.some((arg: unknown): boolean => {
+            return String(arg).includes("validateDOMNesting");
+          });
+        }),
+      ).toEqual([]);
+    } finally {
+      jest.restoreAllMocks();
+    }
   });
 });
 

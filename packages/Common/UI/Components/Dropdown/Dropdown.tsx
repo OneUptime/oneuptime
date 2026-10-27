@@ -1081,6 +1081,10 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           noOptionsMessage: () => {
             return "px-3 py-2 text-sm text-gray-500";
           },
+          // The same line while the options are on their way (isLoading).
+          loadingMessage: () => {
+            return "px-3 py-2 text-sm text-gray-500";
+          },
           multiValue: () => {
             return "flex items-center gap-2 rounded-lg border border-indigo-100 bg-indigo-50 px-2 py-1";
           },
@@ -1170,6 +1174,27 @@ const Dropdown: FunctionComponent<ComponentProps> = (
               ...base,
               zIndex: DROPDOWN_MENU_Z_INDEX,
             };
+          },
+          /*
+           * A message of the caller's own is a sentence or two ("Could not
+           * load the components of status.example.com. Type a component's
+           * name..."): it starts where the options start, as text reads,
+           * not centred line by line. react-select's own "No options"
+           * stays centred.
+           */
+          noOptionsMessage: (
+            provided: CSSObjectWithLabel,
+          ): CSSObjectWithLabel => {
+            return props.noOptionsMessage
+              ? { ...provided, textAlign: "start" }
+              : provided;
+          },
+          loadingMessage: (
+            provided: CSSObjectWithLabel,
+          ): CSSObjectWithLabel => {
+            return props.loadingMessage
+              ? { ...provided, textAlign: "start" }
+              : provided;
           },
         }}
         menuPortalTarget={menuPortalTarget}

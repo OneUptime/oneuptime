@@ -21,7 +21,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import ExternalStatusPageComponentStatusDisplayUtil, {
   ExternalStatusPageComponentStatusDisplay,
 } from "../../../Utils/ExternalStatusPageComponentStatusDisplay";
-import ExternalStatusPageComponentsCopy from "../../Form/Monitor/ExternalStatusPageMonitor/ExternalStatusPageComponentsCopy";
+import ExternalStatusPageUnmatchedSentence from "../../Form/Monitor/ExternalStatusPageMonitor/ExternalStatusPageUnmatchedSentence";
 
 export const EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID: string =
   "external-status-page-unmatched-components";
@@ -338,19 +338,25 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
         <SummaryFact title="Scope" value={scopeValue} />
       </SummaryFacts>
 
+      {/*
+       * A div, not a p: Icon draws a div of its own, which a paragraph may
+       * not hold.
+       */}
       {unmatchedNames.length > 0 && (
-        <p
+        <div
           className="flex items-start gap-2 break-words rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 ring-1 ring-inset ring-amber-200"
           data-testid={EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID}
         >
           <Icon icon={IconProp.Alert} className="mt-0.5 h-4 w-4 flex-none" />
           <span className="min-w-0">
-            {ExternalStatusPageComponentsCopy.unmatchedSentence(
-              translator,
-              unmatchedNames,
-            )}
+            <ExternalStatusPageUnmatchedSentence
+              names={unmatchedNames}
+              componentGroupName={
+                externalStatusPageResponse?.componentGroupName
+              }
+            />
           </span>
-        </p>
+        </div>
       )}
 
       {components.length > 0 && (

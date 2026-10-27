@@ -6,8 +6,10 @@ import {
   beforeAll,
   describe,
   expect,
+  jest,
   test,
 } from "@jest/globals";
+import { Mock } from "jest-mock";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import fs from "fs";
@@ -609,14 +611,113 @@ describe("what the scope leaves out", () => {
       EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
     );
 
+    // The monitor watches the Core group: the names are missing from it.
     expect(warning).toHaveTextContent(
-      "Not on this page, so not watched: Payments, *Kubernetes*",
+      "Not in Core, so not watched: Payments, *Kubernetes*",
     );
     expect(
       screen
         .getByTestId("external-status-page-page-facts")
         .compareDocumentPosition(warning) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+  });
+
+  /*
+   * Icon draws a div: inside a paragraph it is markup a browser may not
+   * keep, and React warned "validateDOMNesting" on every Summary, Test
+   * Monitor result and View Summary that named a missing component.
+   */
+  test("the warning is no paragraph holding a div, and React warns of no nesting", () => {
+    const consoleError: Mock<(...args: Array<unknown>) => void> =
+      jest.fn<(...args: Array<unknown>) => void>();
+
+    jest.spyOn(console, "error").mockImplementation(consoleError);
+
+    try {
+      renderView(
+        pageResponse({
+          componentNames: ["Checkout API", "Payments"],
+          unmatchedComponentNames: ["Payments"],
+        }),
+      );
+
+      const warning: HTMLElement = screen.getByTestId(
+        EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
+      );
+
+      expect(warning.tagName).toBe("DIV");
+      expect(
+        screen
+          .getByTestId("external-status-page-summary")
+          .querySelectorAll("p div"),
+      ).toHaveLength(0);
+      expect(
+        consoleError.mock.calls.filter((args: Array<unknown>): boolean => {
+          return args.some((arg: unknown): boolean => {
+            return String(arg).includes("validateDOMNesting");
+          });
+        }),
+      ).toEqual([]);
+    } finally {
+      jest.restoreAllMocks();
+    }
+  });
+
+  /*
+   * A name the page lists in another group is on the page all the same:
+   * with a group set, the warning says the names are missing from the
+   * group; with none, from the page. The group's and the names' words are
+   * the page's, each isolated (a bdi), so a right-to-left sentence keeps
+   * them whole.
+   */
+  test("says where the names are missing from: the group with one set, else the page", () => {
+    renderView(
+      pageResponse({
+        componentGroupName: "Europe (Frankfurt)",
+        componentNames: ["Checkout API", "Payments API"],
+        unmatchedComponentNames: ["Payments API"],
+      }),
+    );
+
+    const inGroup: HTMLElement = screen.getByTestId(
+      EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
+    );
+
+    expect(inGroup).toHaveTextContent(
+      "Not in Europe (Frankfurt), so not watched: Payments API",
+    );
+    expect(
+      Array.from(inGroup.querySelectorAll("bdi")).map(
+        (bdi: Element): string => {
+          return bdi.textContent || "";
+        },
+      ),
+    ).toEqual(["Europe (Frankfurt)", "Payments API"]);
+
+    cleanup();
+
+    renderView(
+      pageResponse({
+        componentGroupName: undefined,
+        componentNames: ["Checkout API", "Payments API", "Webhook"],
+        unmatchedComponentNames: ["Payments API", "Webhook"],
+      }),
+    );
+
+    const onPage: HTMLElement = screen.getByTestId(
+      EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
+    );
+
+    expect(onPage).toHaveTextContent(
+      "Not on this page, so not watched: Payments API, Webhook",
+    );
+    expect(
+      Array.from(onPage.querySelectorAll("bdi")).map(
+        (bdi: Element): string => {
+          return bdi.textContent || "";
+        },
+      ),
+    ).toEqual(["Payments API, Webhook"]);
   });
 
   test("every chosen component on the page: no warning", () => {
@@ -712,6 +813,27 @@ describe("in German", () => {
     expect(
       screen.getByRole("list", { name: DE["Component Statuses"]! }),
     ).toBeInTheDocument();
+  });
+
+  test("names missing from the group: the German sentence, the group and the names isolated in it", () => {
+    renderView(
+      pageResponse({
+        componentNames: ["Checkout API", "Payments API"],
+        unmatchedComponentNames: ["Payments API"],
+      }),
+    );
+
+    expect(
+      screen.getByTestId(EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID),
+    ).toHaveTextContent(
+      DE["Not in {{group}}, so not watched: {{names}}"]!.replace(
+        "{{group}}",
+        "Core",
+      ).replace("{{names}}", "Payments API"),
+    );
+    expect(DE["Not in {{group}}, so not watched: {{names}}"]).toBe(
+      "Nicht in {{group}}, daher nicht überwacht: {{names}}",
+    );
   });
 
   test("chosen components of a group: the German sentence, with the group's name isolated in it", () => {

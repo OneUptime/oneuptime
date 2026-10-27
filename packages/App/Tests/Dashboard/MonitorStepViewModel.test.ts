@@ -932,6 +932,54 @@ describe("MonitorStepViewModel.getRows — DNS, domain and database monitors", (
     expect(componentsRow(rowsFor({ componentNames: [] }))?.value).toEqual([]);
     expect(componentsRow(rowsFor({}))?.placeholder).toBe("All components");
   });
+
+  /*
+   * Side by side on the card, the group and the components read alike.
+   * Unset, each is its placeholder, which the card draws grey and in the
+   * reader's language: the group's "All groups" was a value, drawn black
+   * and in English on every page, above a grey "All components". And each
+   * says what setting it does in the same words.
+   */
+  it("an unset group reads as its placeholder, as unset components do, and both say what setting them does alike", () => {
+    const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+      monitorType: MonitorType.ExternalStatusPage,
+      monitorStep: buildStep({
+        externalStatusPageMonitor: {
+          statusPageUrl: "https://status.example.com",
+          provider: ExternalStatusPageProviderType.Auto,
+          timeout: 10000,
+          retries: 3,
+        },
+      }),
+    });
+
+    const row: (key: string) => MonitorStepViewRow | undefined = (
+      key: string,
+    ): MonitorStepViewRow | undefined => {
+      return rows.find((candidate: MonitorStepViewRow): boolean => {
+        return candidate.key === key;
+      });
+    };
+
+    expect(row("componentGroupName")).toEqual(
+      expect.objectContaining({
+        title: "Component Group Filter",
+        value: undefined,
+        placeholder: "All groups",
+        description:
+          "If set, only components in this group are monitored and incidents elsewhere are ignored.",
+      }),
+    );
+    expect(row("componentNames")).toEqual(
+      expect.objectContaining({
+        title: "Components",
+        value: [],
+        placeholder: "All components",
+        description:
+          "If set, only these components are monitored and incidents elsewhere are ignored.",
+      }),
+    );
+  });
 });
 
 describe("MonitorStepViewModel.getRows — telemetry monitors", () => {

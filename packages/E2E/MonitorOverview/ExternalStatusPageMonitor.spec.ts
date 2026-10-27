@@ -36,7 +36,8 @@ import path from "path";
  * ?components=chosen it watches two chosen components of the group.
  *
  * The same guards as the other specs here: a network fence, no uncaught
- * page errors, and no request the fixture does not model.
+ * page errors, and no request the fixture does not model; and here, no
+ * React markup warning (validateDOMNesting) either.
  */
 
 const PORT: string = process.env["MONITOR_OVERVIEW_FIXTURE_PORT"] || "4223";
@@ -169,6 +170,18 @@ test.beforeEach(async ({ page }: { page: Page }) => {
   abortedRequests.set(page, aborted);
   page.on("pageerror", (error: Error) => {
     errors.push(error.message);
+  });
+  /*
+   * React's markup warnings arrive as console errors: a div inside a
+   * paragraph (Icon draws a div) is markup a browser may not keep.
+   */
+  page.on("console", (message: { type: () => string; text: () => string }) => {
+    if (
+      message.type() === "error" &&
+      message.text().includes("validateDOMNesting")
+    ) {
+      errors.push(message.text());
+    }
   });
 
   // Nothing may leave the fixture server.
@@ -807,7 +820,24 @@ test.describe("Create Monitor: the components an External Status Page monitor wa
 
     await page.keyboard.press("Escape");
     await expect(status).toBeVisible();
-    await expect(form.getByTestId(COMPONENTS_UNMATCHED_TEST_ID)).toBeVisible();
+    const unmatched: Locator = form.getByTestId(COMPONENTS_UNMATCHED_TEST_ID);
+    await expect(unmatched).toBeVisible();
+
+    /*
+     * The line to act on comes first, right under the box, then what was
+     * read; and the box is described by it, so a screen reader hears it.
+     */
+    expect((await boxOf(unmatched)).y).toBeLessThan((await boxOf(status)).y);
+    const unmatchedSentenceId: string | null = await unmatched
+      .locator("span[id]")
+      .getAttribute("id");
+    expect(unmatchedSentenceId).toBeTruthy();
+    expect(
+      ((await componentsBox(form).getAttribute("aria-describedby")) || "").split(
+        " ",
+      ),
+    ).toContain(unmatchedSentenceId);
+
     await form.getByRole("button", { name: "Remove Payments" }).click();
     await expect(form.getByTestId(COMPONENTS_UNMATCHED_TEST_ID)).toHaveCount(0);
     await expect(
@@ -881,10 +911,22 @@ test.describe("Create Monitor: the components an External Status Page monitor wa
     await componentsBox(form).click();
 
     const status: Locator = form.getByTestId(COMPONENTS_STATUS_TEST_ID);
-    await expect(status).toContainText(
-      `Could not read a list of components from ${VENDOR_HOST}. Type a component's name as the page shows it, then press Enter.`,
-    );
+    const why: string = `Could not load the components of ${VENDOR_HOST}. Type a component's name as the page shows it, then press Enter.`;
+    await expect(status).toContainText(why);
     await expect(status).toHaveAttribute("data-problem", "NotRead");
+
+    /*
+     * The open menu says the same, as a paragraph that starts where the
+     * options start: centred line by line, a phone's narrow menu set it as
+     * a ragged column.
+     */
+    const notice: Locator = page.locator(".ou-select__menu-notice--no-options");
+    await expect(notice).toHaveText(why);
+    expect(
+      await notice.evaluate((element: Element): string => {
+        return getComputedStyle(element).textAlign;
+      }),
+    ).toBe("start");
     await page.keyboard.press("Escape");
 
     // On a phone, the sentence and Try again stay inside the screen.
@@ -1193,8 +1235,9 @@ test.describe("an External Status Page monitor's Summary", () => {
     const unmatched: Locator = summary.getByTestId(
       "external-status-page-unmatched-components",
     );
+    // The monitor watches the Core group: the name is missing from it.
     await expect(unmatched).toHaveText(
-      "Not on this page, so not watched: Payments API",
+      "Not in Core, so not watched: Payments API",
     );
     await expect(
       summary.getByTestId("external-status-page-component-name"),

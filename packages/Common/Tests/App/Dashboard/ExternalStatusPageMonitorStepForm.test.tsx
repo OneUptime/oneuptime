@@ -240,7 +240,7 @@ describe("the fields' labels", () => {
 
     expect(
       screen.getByText(
-        "Watch only these components: only their incidents and statuses count. Leave empty to watch the whole page.",
+        "Pick the components you depend on: only their incidents and statuses count. Leave empty to watch the whole page.",
       ),
     ).toBeInTheDocument();
     expect(

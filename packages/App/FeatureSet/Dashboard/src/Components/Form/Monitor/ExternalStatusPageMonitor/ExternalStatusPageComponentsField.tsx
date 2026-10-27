@@ -14,6 +14,7 @@ import Dropdown, {
 } from "Common/UI/Components/Dropdown/Dropdown";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Icon from "Common/UI/Components/Icon/Icon";
+import joinAriaIds from "Common/UI/Utils/AriaIds";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ExternalStatusPageComponentNames from "Common/Utils/Monitor/ExternalStatusPageComponentNames";
@@ -27,6 +28,7 @@ import ExternalStatusPageComponentCatalog, {
 import ExternalStatusPageComponentsCopy, {
   ComponentChoiceOptions,
 } from "./ExternalStatusPageComponentsCopy";
+import ExternalStatusPageUnmatchedSentence from "./ExternalStatusPageUnmatchedSentence";
 
 /*
  * THE COMPONENTS AN EXTERNAL STATUS PAGE MONITOR WATCHES (issue #5156).
@@ -42,9 +44,11 @@ import ExternalStatusPageComponentsCopy, {
  * the page's groups, each one not operational saying so. A name the page
  * does not list can be typed and added: for a page that cannot be read from
  * here, an RSS or Atom feed (whose items' titles are matched), or a
- * pattern, where * stands for any text. A line under the field says what
- * was read, which chosen names the page does not have, or why nothing could
- * be read, with Try again.
+ * pattern, where * stands for any text. Lines under the field say which
+ * chosen names the page does not have (first: it is the line to act on),
+ * what was read, or why nothing could be read, with Try again. The box is
+ * described by the field's help and by the lines that say something is
+ * wrong, so a screen reader hears them where it lands.
  */
 
 export interface ComponentProps {
@@ -110,6 +114,10 @@ const ExternalStatusPageComponentsField: FunctionComponent<ComponentProps> = (
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const abortRef: React.MutableRefObject<AbortController | null> =
     useRef<AbortController | null>(null);
+
+  // The lines under the field, for the box to be described by them.
+  const unmatchedId: string = `${props.descriptionId}-unmatched`;
+  const failureId: string = `${props.descriptionId}-failure`;
 
   const currentKey: string = readKey(props.statusPageUrl, props.provider);
   const host: string =
@@ -299,7 +307,11 @@ const ExternalStatusPageComponentsField: FunctionComponent<ComponentProps> = (
         /* Several are picked in a row: the list stays open for the next. */
         closeMenuOnSelect={false}
         ariaLabelledby={props.labelId}
-        ariaDescribedby={props.descriptionId}
+        ariaDescribedby={joinAriaIds(
+          props.descriptionId,
+          unmatched.length > 0 && unmatchedId,
+          state.kind === "failed" && failureId,
+        )}
         placeholder="All components"
         options={options}
         value={selected}
@@ -334,6 +346,27 @@ const ExternalStatusPageComponentsField: FunctionComponent<ComponentProps> = (
         data-testid={COMPONENTS_HINTS_TEST_ID}
         data-menu-open={isMenuOpen ? "true" : "false"}
       >
+        {/*
+         * A div, not a p: Icon draws a div of its own, which a paragraph
+         * may not hold.
+         */}
+        {unmatched.length > 0 && (
+          <div
+            className="mt-1 flex items-start gap-1.5 break-words text-xs text-amber-700"
+            data-testid={COMPONENTS_UNMATCHED_TEST_ID}
+          >
+            <Icon
+              icon={IconProp.Alert}
+              className="mt-0.5 h-3.5 w-3.5 flex-none"
+            />
+            <span id={unmatchedId} className="min-w-0">
+              <ExternalStatusPageUnmatchedSentence
+                names={unmatched}
+                componentGroupName={props.componentGroupName}
+              />
+            </span>
+          </div>
+        )}
         {state.kind === "loaded" && (
           <p
             className="mt-1 break-words text-xs text-gray-500"
@@ -348,23 +381,6 @@ const ExternalStatusPageComponentsField: FunctionComponent<ComponentProps> = (
             })}
           </p>
         )}
-        {unmatched.length > 0 && (
-          <p
-            className="mt-1 flex items-start gap-1.5 break-words text-xs text-amber-700"
-            data-testid={COMPONENTS_UNMATCHED_TEST_ID}
-          >
-            <Icon
-              icon={IconProp.Alert}
-              className="mt-0.5 h-3.5 w-3.5 flex-none"
-            />
-            <span className="min-w-0">
-              {ExternalStatusPageComponentsCopy.unmatchedSentence(
-                translator,
-                unmatched,
-              )}
-            </span>
-          </p>
-        )}
         {state.kind === "failed" && (
           <div
             className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500"
@@ -372,7 +388,7 @@ const ExternalStatusPageComponentsField: FunctionComponent<ComponentProps> = (
             data-testid={COMPONENTS_STATUS_TEST_ID}
             data-problem={state.problem}
           >
-            <span className="min-w-0 break-words">
+            <span id={failureId} className="min-w-0 break-words">
               {ExternalStatusPageComponentsCopy.failureMessage(
                 translator,
                 state.problem,
