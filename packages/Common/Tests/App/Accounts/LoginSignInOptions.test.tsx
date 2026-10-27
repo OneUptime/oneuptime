@@ -757,15 +757,22 @@ describe("The other ways to sign in", () => {
             options: Parameters<typeof API.get>[0],
           ): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
             const url: string = options.url?.toString() || "";
-            if (url.includes("/global-sso/")) {
+            // The server's instance-wide provider, in how it signs people in.
+            if (url.includes("/sign-in-methods")) {
               return new HTTPResponse<JSONObject>(
                 200,
-                [
-                  {
-                    _id: "44444444-4444-4444-8444-444444444444",
-                    name: "Okta (company-wide)",
-                  },
-                ] as never,
+                {
+                  isSsoRequired: false,
+                  ssoProviders: [
+                    {
+                      type: "GlobalSSO",
+                      id: "44444444-4444-4444-8444-444444444444",
+                      name: "Okta (company-wide)",
+                      description: "",
+                    },
+                  ],
+                  hasProjectSsoProviders: false,
+                },
                 {},
               );
             }

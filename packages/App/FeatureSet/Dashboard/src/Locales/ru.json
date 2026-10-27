@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "Отметки обслуживания недоступны.",
   "Maintenance markers need the uptime history, which did not load.": "Для отметок обслуживания нужна история доступности, но она не загрузилась.",
   "You need permission to read scheduled maintenance.": "Нужно разрешение на просмотр планового обслуживания.",
+  "Sign in with {{name}}": "Войти через {{name}}",
   "Add “{{name}}”": "Добавить «{{name}}»",
   "An RSS or Atom feed lists no components. Type words from its items' titles, then press Enter.": "В ленте RSS или Atom нет компонентов. Введите слова из заголовков её записей и нажмите Enter.",
   "Could not read a list of components from {{host}}.": "Не удалось прочитать список компонентов с {{host}}.",

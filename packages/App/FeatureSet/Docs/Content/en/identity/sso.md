@@ -281,7 +281,7 @@ A save that sends **Require SSO for Login** on while it is on already, or names 
 
 A new project is held to the same rule. It has no provider of its own yet, so creating one with **Require SSO for Login** already on - only a master admin can - needs a global provider that is on and signs people in to every project, and is refused in the same words without one. Create the project, set up and test its provider, then turn the switch on.
 
-While the whole server requires SSO (**Admin** > **Settings** > **Authentication** > **Require SSO for Login**), creating any project needs such a global provider too, or nobody, its creator included, could open the project. Without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects.
+While the whole server requires SSO (**Admin** > **Settings** > **Single Sign-On** > **Require SSO for Login**), creating any project needs such a global provider too, or nobody, its creator included, could open the project. Without one, creating a project is refused, and the message asks a server admin to turn one on. Master admins can still create projects.
 
 Turning **Require SSO for Login** off saves as soon as you flip it and lets members back in with their password straight away - unless someone turns it on again at that very moment, when an app server can take up to a minute to follow. Project owners, project admins and members with the **Edit Project** permission can change it; anyone else sees the switch locked, with the permission they would need.
 
@@ -308,7 +308,7 @@ While the project requires SSO, OneUptime keeps a way in: you cannot turn off or
 
 Turning a provider on lets people sign in with it straight away.
 
-When the whole server requires SSO (**Admin** > **Settings** > **Authentication** > **Require SSO for Login**), every project keeps a way in the same way, even one that does not require SSO itself: turn on another provider for it first.
+When the whole server requires SSO (**Admin** > **Settings** > **Single Sign-On** > **Require SSO for Login**), every project keeps a way in the same way, even one that does not require SSO itself: turn on another provider for it first.
 
 Global providers are held to the same rule: a change to one, or to its attached projects, that would leave a project that requires SSO with no provider is refused, naming the project. See [Global SSO](/docs/identity/global-sso#turning-a-provider-off-or-deleting-it).
 

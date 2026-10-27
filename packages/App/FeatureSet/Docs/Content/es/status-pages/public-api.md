@@ -138,6 +138,7 @@ El estado global es el peor estado actual de los monitores y grupos de monitores
 | `timelineIncidents` | Los incidentes dentro de la ventana de las barras de disponibilidad, incluidos los resueltos, para las descripciones emergentes de las barras. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Lo mismo para los episodios de incidentes. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Los eventos de mantenimiento programado que están por llegar o en curso, sus notas públicas y cambios de estado. |
+| `timelineScheduledMaintenanceEvents` | Los eventos de mantenimiento programado dentro de la ventana de las barras de disponibilidad que ya han empezado, en curso o pasados, para las descripciones emergentes de las barras y el diálogo de cada día: los que muestra la página y que incluyen alguno de sus monitores, cada uno solo con los monitores de la página. |
 | `activeAnnouncements` | Los anuncios que se muestran ahora: empezados y sin terminar. |
 
 ## Leer el resumen

@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "Onderhoudsmarkeringen zijn niet beschikbaar.",
   "Maintenance markers need the uptime history, which did not load.": "Onderhoudsmarkeringen hebben de beschikbaarheidsgeschiedenis nodig, die niet is geladen.",
   "You need permission to read scheduled maintenance.": "U hebt toestemming nodig om gepland onderhoud te lezen.",
+  "Sign in with {{name}}": "Inloggen met {{name}}",
   "Add “{{name}}”": "‘{{name}}’ toevoegen",
   "An RSS or Atom feed lists no components. Type words from its items' titles, then press Enter.": "Een RSS- of Atom-feed heeft geen componenten. Typ woorden uit de titels van de items en druk op Enter.",
   "Could not read a list of components from {{host}}.": "Kan geen lijst met componenten lezen van {{host}}.",

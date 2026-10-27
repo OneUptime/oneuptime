@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "نشانگرهای تعمیر و نگهداری در دسترس نیستند.",
   "Maintenance markers need the uptime history, which did not load.": "نشانگرهای تعمیر و نگهداری به تاریخچه زمان کارکرد نیاز دارند که بارگذاری نشد.",
   "You need permission to read scheduled maintenance.": "برای خواندن تعمیر و نگهداری زمان‌بندی‌شده به مجوز نیاز دارید.",
+  "Sign in with {{name}}": "ورود با {{name}}",
   "Add “{{name}}”": "افزودن «{{name}}»",
   "An RSS or Atom feed lists no components. Type words from its items' titles, then press Enter.": "فید RSS یا Atom مؤلفه‌ای ندارد. واژه‌هایی از عنوان مطالب آن بنویسید و Enter را بزنید.",
   "Could not read a list of components from {{host}}.": "خواندن فهرست مؤلفه‌ها از {{host}} ممکن نشد.",

@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "Vedlikeholdsmarkeringer er ikke tilgjengelige.",
   "Maintenance markers need the uptime history, which did not load.": "Vedlikeholdsmarkeringer trenger oppetidshistorikken, som ikke ble lastet inn.",
   "You need permission to read scheduled maintenance.": "Du trenger tillatelse til å lese planlagt vedlikehold.",
+  "Sign in with {{name}}": "Logg inn med {{name}}",
   "Add “{{name}}”": "Legg til «{{name}}»",
   "An RSS or Atom feed lists no components. Type words from its items' titles, then press Enter.": "En RSS- eller Atom-feed har ingen komponenter. Skriv ord fra titlene på elementene og trykk Enter.",
   "Could not read a list of components from {{host}}.": "Kunne ikke lese en liste over komponenter fra {{host}}.",

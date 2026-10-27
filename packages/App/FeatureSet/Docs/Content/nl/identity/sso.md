@@ -281,7 +281,7 @@ Een opslag die **SSO vereisen voor inloggen** als ingeschakeld verstuurt terwijl
 
 Voor een nieuw project geldt dezelfde regel. Het heeft nog geen eigen provider, dus het aanmaken met **SSO vereisen voor inloggen** al aan — dat kan alleen een master-admin — vereist een globale provider die aanstaat en mensen in elk project aanmeldt, en zonder zo'n provider wordt het met dezelfde woorden geweigerd. Maak het project aan, stel de provider in en test hem, en zet daarna de schakelaar aan.
 
-Zolang de hele server SSO verplicht (**Admin** > **Instellingen** > **Authenticatie** > **SSO vereisen voor inloggen**), vereist het aanmaken van elk project ook zo'n globale provider, anders zou niemand, ook niet degene die het aanmaakt, het project kunnen openen. Zonder zo'n provider wordt het aanmaken van een project geweigerd, en vraagt de melding een serverbeheerder er een aan te zetten. Master-admins kunnen nog steeds projecten aanmaken.
+Zolang de hele server SSO verplicht (**Admin** > **Instellingen** > **Single sign-on** > **SSO vereisen voor inloggen**), vereist het aanmaken van elk project ook zo'n globale provider, anders zou niemand, ook niet degene die het aanmaakt, het project kunnen openen. Zonder zo'n provider wordt het aanmaken van een project geweigerd, en vraagt de melding een serverbeheerder er een aan te zetten. Master-admins kunnen nog steeds projecten aanmaken.
 
 Het uitzetten van **SSO vereisen voor inloggen** slaat op zodra u de schakelaar omzet en laat leden direct weer met hun wachtwoord binnen — tenzij iemand hem op precies dat moment weer aanzet; dan kan een appserver tot een minuut nodig hebben om bij te werken. Projecteigenaren, projectbeheerders en leden met de machtiging **Edit Project** kunnen hem wijzigen; anderen zien de schakelaar vergrendeld, met de machtiging die ze nodig zouden hebben.
 
@@ -308,7 +308,7 @@ Zolang het project SSO verplicht, houdt OneUptime een weg naar binnen open: u ku
 
 Een provider aanzetten laat mensen zich er direct mee aanmelden.
 
-Als de hele server SSO verplicht (**Admin** > **Instellingen** > **Authenticatie** > **SSO vereisen voor inloggen**), houdt elk project op dezelfde manier een weg naar binnen, ook een project dat zelf geen SSO verplicht: zet er eerst een andere provider voor aan.
+Als de hele server SSO verplicht (**Admin** > **Instellingen** > **Single sign-on** > **SSO vereisen voor inloggen**), houdt elk project op dezelfde manier een weg naar binnen, ook een project dat zelf geen SSO verplicht: zet er eerst een andere provider voor aan.
 
 Voor globale providers geldt dezelfde regel: een wijziging aan een globale provider of aan zijn gekoppelde projecten die een project dat SSO verplicht zonder provider zou laten, wordt geweigerd en noemt het project. Zie [Globale SSO](/docs/identity/global-sso#een-provider-uitzetten-of-verwijderen).
 

@@ -156,7 +156,15 @@
     "emailRequired": "需要电子邮件才能执行此操作",
     "defaultProjectName": "项目",
     "globalProvidersTitle": "使用您的组织登录",
-    "globalProvidersDivider": "或使用电子邮件继续"
+    "globalProvidersDivider": "或使用电子邮件继续",
+    "signInWithProvider": "使用 {{name}} 登录",
+    "requiredSubtitle": "使用您组织的单点登录（SSO）登录。",
+    "requiredNotSetUp": "此服务器尚未设置单点登录。请联系服务器管理员进行设置。",
+    "useDifferentEmail": "使用其他电子邮件"
+  },
+  "adminLogin": {
+    "title": "主管理员登录",
+    "subtitle": "此服务器要求使用单点登录（SSO）。主管理员仍可在此使用密码登录。"
   },
   "verifyEmail": {
     "successTitle": "您的电子邮件已验证。",

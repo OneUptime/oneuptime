@@ -8,7 +8,7 @@ Le SSO global permet à un **administrateur de l'instance** OneUptime (master ad
 :::cards
 - [Configurer un fournisseur](#configurer-le-sso-global): Le créer, donner les URL d'OneUptime à votre fournisseur d'identité et le tester.
 - [Connexion des utilisateurs](#connexion-des-utilisateurs): Membres existants uniquement, ou nouveaux venus ajoutés aux projets que vous attachez.
-- [Imposer le SSO](#imposer-le-sso): Exiger le SSO pour un projet ou pour toute l'instance.
+- [Imposer le SSO](#imposer-le-sso): Exiger le SSO pour un projet, ou pour toute l'instance et sa page de connexion.
 - [Désactiver un fournisseur](#désactiver-ou-supprimer-un-fournisseur): Ce qui prend fin, et les modifications qu'OneUptime refuse.
 :::
 
@@ -27,21 +27,16 @@ Pour le fournisseur propre à un seul projet, consultez [SSO](/docs/identity/sso
 :::steps
 ### Ouvrir la liste des fournisseurs
 
-:::tabs
-@tab SAML
-Connectez-vous en tant qu'administrateur principal et ouvrez l'Admin Dashboard avec **Paramètres admin** dans votre menu utilisateur. Allez ensuite dans **Paramètres** > **Authentification** > **Global SSO**.
-@tab OpenID Connect
-Connectez-vous en tant qu'administrateur principal et ouvrez l'Admin Dashboard avec **Paramètres admin** dans votre menu utilisateur. Allez ensuite dans **Paramètres** > **Authentification** > **Global OIDC**.
-:::
+Connectez-vous en tant qu'administrateur principal et ouvrez l'Admin Dashboard avec **Paramètres admin** dans votre menu utilisateur. Allez ensuite dans **Paramètres** > **Authentification unique**. La page liste les fournisseurs SAML de l'instance, puis ses fournisseurs OpenID Connect, et se termine par la carte **Exiger le SSO**.
 
 ### Créer le fournisseur
 
 :::tabs
 @tab SAML
-- Cliquez sur **Create Global SSO**.
+- Cliquez sur **Ajouter un fournisseur SAML**.
 - Saisissez un **Nom**, la **Sign On URL** et l'**Issuer** de votre fournisseur d'identité, puis collez le **Public Certificate**. Tout le reste est prérempli sous **Plus de champs** : la **Signature Method** (`RSA-SHA256`), la **Digest Method** (`SHA256`) et une description (`Sign in with` suivi du nom). Ne les modifiez que si votre IdP l'exige. L'enregistrement ouvre la page du fournisseur.
 @tab OpenID Connect
-- Cliquez sur **Create Global OIDC**.
+- Cliquez sur **Ajouter un fournisseur OIDC**.
 - Saisissez un **Nom**, l'**Issuer URL**, ainsi que le **Client ID** et le **Client Secret** de l'application que vous avez enregistrée dans votre IdP. Coller l'URL de découverte de l'IdP dans **Issuer URL** fonctionne aussi. Tout le reste est prérempli sous **Plus de champs** : la **Discovery URL** (l'émetteur suivi de `/.well-known/openid-configuration`), les **Scopes** (`openid email profile`), les noms de revendications `email` et `name`, et une description (`Sign in with` suivi du nom). Ne les modifiez que si votre IdP l'exige. L'enregistrement ouvre la page du fournisseur.
 :::
 
@@ -58,11 +53,11 @@ Sur la page du fournisseur, la carte **Identity Provider URL** affiche la **Redi
 
 Un nouveau fournisseur est désactivé au départ. Cliquez sur **Edit Configuration** sur la page du fournisseur et activez **Activé**.
 
-Activer un fournisseur global ajoute seulement une option "Sign in with SSO" sur la page de connexion — cela n'impose jamais le SSO et n'exclut personne ; vous pouvez donc l'activer, le tester et le désactiver sans risque si besoin.
+Activer un fournisseur global l'ajoute seulement aux options d'authentification unique de la page de connexion — cela n'impose jamais le SSO et n'exclut personne ; vous pouvez donc l'activer, le tester et le désactiver sans risque si besoin. Tant que toute l'instance exige le SSO, en revanche, la page de connexion ne propose que les fournisseurs activés : testez un fournisseur avant d'exiger le SSO.
 
 ### Tester le fournisseur
 
-Utilisez le lien de la carte **Test this SSO provider** (**Test this OIDC provider** pour OpenID Connect) pour effectuer une connexion complète via votre fournisseur d'identité. Vous n'avez pas besoin d'attacher de projet au préalable : le test vous connecte aux projets dont vous faites déjà partie. Le fournisseur doit être activé pour que le lien fonctionne.
+Utilisez le lien de la carte **Test this SSO provider** (**Test this OIDC provider** pour OpenID Connect) pour effectuer une connexion complète via votre fournisseur d'identité. **Tester la connexion** dans la ligne du fournisseur sur **Authentification unique** lance la même connexion dans un nouvel onglet. Vous n'avez pas besoin d'attacher de projet au préalable : le test vous connecte aux projets dont vous faites déjà partie. Le fournisseur doit être activé pour que le lien fonctionne.
 :::
 
 ## Connexion des utilisateurs
@@ -101,7 +96,14 @@ Avec **Tous les projets**, la connexion avec le fournisseur satisfait l'exigence
 Configurer un fournisseur global n'oblige personne à l'utiliser ; la connexion par mot de passe fonctionne toujours. Pour exiger le SSO, activez l'exigence pour un projet ou pour toute l'instance :
 
 - **Par projet :** un projet peut exiger le SSO, et éventuellement un fournisseur *précis* (de projet ou global). Consultez [Exiger le SSO pour votre projet](/docs/identity/sso#exiger-le-sso-pour-votre-projet).
-- **Pour toute l'instance :** **Admin** > **Paramètres** > **Authentification** comporte un interrupteur **Exiger le SSO pour la connexion** qui impose le SSO à chaque utilisateur de l'instance. Il demande une confirmation avant de s'activer et enregistre dès que vous confirmez. Les administrateurs principaux en restent exemptés pour ne jamais être exclus.
+- **Pour toute l'instance :** la carte **Exiger le SSO** en bas de **Admin** > **Paramètres** > **Authentification unique** comporte un interrupteur **Exiger le SSO pour la connexion** qui impose le SSO à chaque utilisateur de l'instance. Il demande une confirmation avant de s'activer et enregistre dès que vous confirmez. Les administrateurs principaux en restent exemptés pour ne jamais être exclus.
+
+Tant que toute l'instance exige le SSO :
+
+- La page de connexion ne propose que le SSO : un bouton pour chaque fournisseur global activé, et ni mot de passe, ni clé d'accès, ni connexion Microsoft, ni inscription. Elle ne garde la recherche par e-mail, qui trouve le fournisseur propre d'un projet, que tant qu'un projet en a un.
+- OneUptime refuse un mot de passe, une clé d'accès, une connexion Microsoft et une inscription avec "This server requires single sign-on (SSO). Sign in with SSO instead." Seuls le mot de passe ou la clé d'accès d'un administrateur principal le connectent encore. On obtient son compte en se connectant avec le SSO ou par une invitation.
+- Une personne déjà connectée avec un mot de passe se connecte avec le SSO pour ouvrir un projet. Elle arrive sur la page d'authentification unique du projet, qui propose les fournisseurs propres du projet et les fournisseurs globaux qui y connectent.
+- Les administrateurs principaux se connectent avec leur mot de passe à `/accounts/admin-login`, une adresse vers laquelle la page de connexion ne renvoie pas. La carte **Exiger le SSO** affiche l'adresse complète sous l'interrupteur, en tant que **Connexion des administrateurs principaux** : conservez-la, pour désactiver l'exigence si votre fournisseur d'identité cesse de fonctionner.
 
 Activer **Exiger le SSO pour la connexion** nécessite un fournisseur SSO qui connecte des personnes, pour que personne ne soit exclu :
 
@@ -157,6 +159,10 @@ Pour un fournisseur SAML, la réponse a été créée pour une autre application
 
 :::details "SAML response was already used"
 Chaque réponse de votre fournisseur d'identité ne connecte qu'une seule fois, et seulement dans les minutes qui suivent son émission : ensuite, elle est refusée avec "SAML response has expired". Connectez-vous de nouveau. Si les réponses continuent d'expirer, vérifiez les horloges de ce serveur et de votre fournisseur d'identité.
+:::
+
+:::details "This server requires single sign-on (SSO). Sign in with SSO instead."
+Toute l'instance exige le SSO, et il s'agissait d'une connexion avec un mot de passe, une clé d'accès ou Microsoft, ou d'une inscription. Connectez-vous plutôt avec l'un des boutons SSO de la page de connexion. Un administrateur principal se connecte avec son mot de passe à `/accounts/admin-login` ; pour que tout le monde puisse de nouveau se connecter avec un mot de passe, il désactive **Exiger le SSO pour la connexion** sur **Authentification unique**.
 :::
 
 ## Étapes suivantes

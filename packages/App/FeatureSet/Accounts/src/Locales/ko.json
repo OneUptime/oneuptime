@@ -156,7 +156,15 @@
     "emailRequired": "이 작업을 수행하려면 이메일이 필요합니다",
     "defaultProjectName": "프로젝트",
     "globalProvidersTitle": "조직 계정으로 로그인",
-    "globalProvidersDivider": "또는 이메일로 계속"
+    "globalProvidersDivider": "또는 이메일로 계속",
+    "signInWithProvider": "{{name}} 계정으로 로그인",
+    "requiredSubtitle": "조직의 SSO(Single Sign-On)로 로그인하세요.",
+    "requiredNotSetUp": "이 서버에는 아직 SSO(Single Sign-On)가 설정되지 않았습니다. 서버 관리자에게 설정을 요청하세요.",
+    "useDifferentEmail": "다른 이메일 사용"
+  },
+  "adminLogin": {
+    "title": "마스터 관리자 로그인",
+    "subtitle": "이 서버는 SSO(Single Sign-On)가 필수입니다. 마스터 관리자는 여기에서 비밀번호로 로그인할 수 있습니다."
   },
   "verifyEmail": {
     "successTitle": "이메일이 확인되었습니다.",

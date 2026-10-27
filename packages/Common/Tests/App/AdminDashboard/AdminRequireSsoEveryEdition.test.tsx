@@ -13,16 +13,18 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * Admin Dashboard > Settings > Authentication holds the instance-wide
- * "Require SSO for Login" switch (GlobalConfig.requireSsoForLogin). Single
+ * Admin Dashboard > Settings > Single Sign-On holds the instance-wide
+ * "Require SSO for Login" switch (GlobalConfig.requireSsoForLogin), under
+ * the providers it depends on (it was on Settings > Authentication). Single
  * sign-on, and requiring it, are part of every edition, so the switch is
  * offered - and can be flipped - on the Community Edition, the Enterprise
- * Edition and OneUptime Cloud alike, with the same sentence everywhere: what
+ * Edition and OneUptime Cloud alike, with the same sentences everywhere: what
  * the setting does, and nothing about an edition or a license.
  *
  * The switch saves the moment it is flipped and asks before it turns on
  * (AdminSettingsSwitches.test.tsx covers that); here it is the real switch
- * card, with the admin API, the page chrome and the side menu stubbed.
+ * card, with the admin API, the provider tables, the page chrome and the
+ * side menu stubbed.
  *
  * Billing and the edition are pinned in every test: CI's config.env sets
  * BILLING_ENABLED=true.
@@ -104,6 +106,16 @@ jest.mock("../../../UI/Components/Card/Card", () => {
   };
 });
 
+// The provider tables read lists of their own.
+jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
+  return {
+    __esModule: true,
+    default: (): null => {
+      return null;
+    },
+  };
+});
+
 jest.mock("../../../UI/Components/Page/Page", () => {
   const react: typeof React = jest.requireActual("react") as typeof React;
 
@@ -143,20 +155,18 @@ jest.mock("react-i18next", () => {
   };
 });
 
-import AuthenticationSettings from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/Index";
+import SsoSettings from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/SSO/Index";
 import {
-  PROJECT_CREATION_SWITCH_TEST_ID,
   REQUIRE_SSO_COPY,
   REQUIRE_SSO_SWITCH_TEST_ID,
-  SIGN_UP_SWITCH_TEST_ID,
-} from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/AuthenticationSwitchesCopy";
+} from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/SSO/SsoSettingsCopy";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import ObjectID from "../../../Types/ObjectID";
 import UserUtil from "../../../UI/Utils/User";
 
-// What the switch says it does, in every edition.
+// What the switch says it does, in every edition, while it is off.
 const TOGGLE_DESCRIPTION: string =
-  "Everyone except master admins must sign in with SSO to open any project on this server.";
+  "People can sign in with a password, a passkey or SSO.";
 
 // Nothing about the setting depends on an edition or a license.
 const EDITION_OR_LICENSE_WORDING: RegExp =
@@ -194,7 +204,7 @@ const EDITIONS: Array<EditionCase> = [
 ];
 
 async function renderPage(): Promise<void> {
-  render(<AuthenticationSettings />);
+  render(<SsoSettings />);
 
   await act(async () => {
     for (let i: number = 0; i < 8; i++) {
@@ -203,7 +213,7 @@ async function renderPage(): Promise<void> {
   });
 }
 
-describe("Admin Dashboard authentication settings: Require SSO for Login", () => {
+describe("Admin Dashboard single sign-on settings: Require SSO for Login", () => {
   beforeEach(() => {
     billingEnabledForTest = false;
     enterpriseEditionForTest = false;
@@ -242,9 +252,7 @@ describe("Admin Dashboard authentication settings: Require SSO for Login", () =>
       expect(control).not.toHaveAttribute("aria-disabled");
       expect(screen.getByText(REQUIRE_SSO_COPY.cardTitle)).toBeInTheDocument();
       expect(
-        screen.getByText(
-          "Control whether users must sign in with SSO across this server.",
-        ),
+        screen.getByText(REQUIRE_SSO_COPY.cardDescription),
       ).toBeInTheDocument();
 
       // GlobalConfig is a single row with the zero id.
@@ -294,7 +302,7 @@ describe("Admin Dashboard authentication settings: Require SSO for Login", () =>
       );
     });
 
-    test("keeps the three settings in their order", async () => {
+    test("is the page's one switch", async () => {
       await renderPage();
 
       const switches: Array<string> = screen
@@ -303,20 +311,20 @@ describe("Admin Dashboard authentication settings: Require SSO for Login", () =>
           return control.getAttribute("data-testid") || "";
         });
 
-      expect(switches).toEqual([
-        SIGN_UP_SWITCH_TEST_ID,
-        REQUIRE_SSO_SWITCH_TEST_ID,
-        PROJECT_CREATION_SWITCH_TEST_ID,
-      ]);
+      expect(switches).toEqual([REQUIRE_SSO_SWITCH_TEST_ID]);
     });
   });
 
   /*
-   * The switch says it in one short sentence; GlobalConfig's column, written
-   * for the API reference, keeps the whole story.
+   * The switch says it in one short sentence for each way it is set;
+   * GlobalConfig's column, written for the API reference, keeps the whole
+   * story.
    */
   test("the switch says who is exempt, as GlobalConfig documents for the column", () => {
-    expect(REQUIRE_SSO_COPY.note).toBe(TOGGLE_DESCRIPTION);
+    expect(REQUIRE_SSO_COPY.switchOffDescription).toBe(TOGGLE_DESCRIPTION);
+    expect(REQUIRE_SSO_COPY.switchOnDescription).toContain(
+      "Everyone except master admins",
+    );
     expect(
       new GlobalConfig().getTableColumnMetadata("requireSsoForLogin")
         .description,

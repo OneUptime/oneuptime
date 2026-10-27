@@ -122,6 +122,26 @@ const readCreatedId: ReadCreatedIdFunction = (body: string): string => {
   return readId(data["_id"]);
 };
 
+type ReadSignInProviderIdsFunction = (body: string) => Array<string>;
+
+/*
+ * The ids of the providers a sign-in methods answer lists
+ * ({ ssoProviders: [{ type, id, name, description }] }).
+ */
+const readSignInProviderIds: ReadSignInProviderIdsFunction = (
+  body: string,
+): Array<string> => {
+  const providers: unknown = readJson(body)["ssoProviders"];
+
+  if (!Array.isArray(providers)) {
+    return [];
+  }
+
+  return providers.map((item: unknown): string => {
+    return readId((item as Record<string, unknown>)["id"]);
+  });
+};
+
 type ReadListedIdsFunction = (body: string) => Array<string>;
 
 // The ids in an entity array answer ({ data: [...] }).
@@ -345,17 +365,21 @@ type ExpectSamlProviderOfferedFunction = (data: {
 }) => Promise<void>;
 
 /*
- * Both lists a sign-in page reads name the new provider, unmasked:
+ * Every list a sign-in page reads names the new provider, unmasked:
  *
- *   - POST /api/project-sso/<projectId>/sso-list, the Dashboard's "sign in
- *     to this project with SSO" page (Common/Server/API/ProjectSSO.ts). It is
- *     unauthenticated and lists the project's ENABLED providers;
+ *   - GET /identity/project-sign-in-methods/<projectId>, the Dashboard's
+ *     "sign in to this project with SSO" page (FeatureSet/Identity/API/
+ *     SignInMethods.ts). It is unauthenticated and lists the project's
+ *     ENABLED providers, and the instance-wide ones that reach it;
+ *   - POST /api/project-sso/<projectId>/sso-list, the mobile app's list of
+ *     the project's ENABLED providers (Common/Server/API/ProjectSSO.ts),
+ *     unauthenticated too;
  *   - GET /identity/service-provider-login?email=..., the Accounts sign-in
  *     page's discovery by email (FeatureSet/Identity/API/SSO.ts), which lists
  *     the enabled providers of every project the address belongs to.
  *
- * Either one coming back empty would leave a working provider that no page
- * offers.
+ * Any one coming back empty would leave a working provider that a page
+ * does not offer.
  */
 export const expectSamlProviderOffered: ExpectSamlProviderOfferedFunction =
   async (data: {
@@ -365,6 +389,25 @@ export const expectSamlProviderOffered: ExpectSamlProviderOfferedFunction =
     ownerEmail: string;
     where: string;
   }): Promise<void> => {
+    const methodsUrl: string = identityRouteUrl({
+      prefix: "/identity",
+      path: `/project-sign-in-methods/${data.projectId}`,
+    });
+    const methods: ApiOutcome = await toOutcome(
+      await data.request.get(methodsUrl, { maxRedirects: 0 }),
+    );
+    const methodsFound: string = describeOutcome({
+      request: `GET ${methodsUrl}`,
+      outcome: methods,
+    });
+
+    expect(methods.status, methodsFound).toBe(200);
+
+    expect(
+      readSignInProviderIds(methods.body),
+      `The project's SSO sign-in page must offer its enabled provider ${data.where}. ${methodsFound}`,
+    ).toContain(data.projectSsoId);
+
     const listUrl: string = stackUrl(
       `${PROJECT_SSO_API_PATH}/${data.projectId}/sso-list`,
     );

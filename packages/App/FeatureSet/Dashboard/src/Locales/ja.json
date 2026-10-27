@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "メンテナンスのマーカーを利用できません。",
   "Maintenance markers need the uptime history, which did not load.": "メンテナンスのマーカーには稼働率の履歴が必要ですが、読み込めませんでした。",
   "You need permission to read scheduled maintenance.": "定期メンテナンスを読み取る権限が必要です。",
+  "Sign in with {{name}}": "{{name}} でサインイン",
   "Add “{{name}}”": "「{{name}}」を追加",
   "An RSS or Atom feed lists no components. Type words from its items' titles, then press Enter.": "RSS または Atom フィードにはコンポーネントがありません。項目のタイトルに含まれる語を入力して Enter キーを押してください。",
   "Could not read a list of components from {{host}}.": "{{host}} からコンポーネントの一覧を読み取れませんでした。",

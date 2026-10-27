@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "रखरखाव मार्कर उपलब्ध नहीं हैं।",
   "Maintenance markers need the uptime history, which did not load.": "रखरखाव मार्करों को अपटाइम इतिहास चाहिए, जो लोड नहीं हुआ।",
   "You need permission to read scheduled maintenance.": "निर्धारित रखरखाव पढ़ने के लिए आपको अनुमति चाहिए।",
+  "Sign in with {{name}}": "{{name}} से साइन इन करें",
   "Add “{{name}}”": "“{{name}}” जोड़ें",
   "An RSS or Atom feed lists no components. Type words from its items' titles, then press Enter.": "RSS या Atom फ़ीड में कोई घटक नहीं होता। उसके आइटम के शीर्षकों के शब्द लिखें, फिर Enter दबाएँ।",
   "Could not read a list of components from {{host}}.": "{{host}} से घटकों की सूची नहीं पढ़ी जा सकी।",

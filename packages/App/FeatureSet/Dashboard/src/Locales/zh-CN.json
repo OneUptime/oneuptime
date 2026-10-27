@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "维护标记不可用。",
   "Maintenance markers need the uptime history, which did not load.": "维护标记需要可用性历史，但未能加载。",
   "You need permission to read scheduled maintenance.": "您需要读取计划维护的权限。",
+  "Sign in with {{name}}": "使用 {{name}} 登录",
   "Add “{{name}}”": "添加“{{name}}”",
   "An RSS or Atom feed lists no components. Type words from its items' titles, then press Enter.": "RSS 或 Atom 订阅源没有组件。输入其条目标题中的词，然后按 Enter。",
   "Could not read a list of components from {{host}}.": "无法从 {{host}} 读取组件列表。",

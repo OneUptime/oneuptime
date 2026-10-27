@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "Underhållsmarkeringar är inte tillgängliga.",
   "Maintenance markers need the uptime history, which did not load.": "Underhållsmarkeringar behöver drifttidshistoriken, som inte lästes in.",
   "You need permission to read scheduled maintenance.": "Du behöver behörighet att läsa schemalagt underhåll.",
+  "Sign in with {{name}}": "Logga in med {{name}}",
   "Add “{{name}}”": "Lägg till ”{{name}}”",
   "An RSS or Atom feed lists no components. Type words from its items' titles, then press Enter.": "Ett RSS- eller Atom-flöde har inga komponenter. Skriv ord från rubrikerna på dess poster och tryck på Enter.",
   "Could not read a list of components from {{host}}.": "Kunde inte läsa en lista över komponenter från {{host}}.",

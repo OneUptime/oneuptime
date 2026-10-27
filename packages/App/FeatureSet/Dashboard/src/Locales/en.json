@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "Maintenance markers are unavailable.",
   "Maintenance markers need the uptime history, which did not load.": "Maintenance markers need the uptime history, which did not load.",
   "You need permission to read scheduled maintenance.": "You need permission to read scheduled maintenance.",
+  "Sign in with {{name}}": "Sign in with {{name}}",
   "Add “{{name}}”": "Add “{{name}}”",
   "An RSS or Atom feed lists no components. Type words from its items' titles, then press Enter.": "An RSS or Atom feed lists no components. Type words from its items' titles, then press Enter.",
   "Could not read a list of components from {{host}}.": "Could not read a list of components from {{host}}.",

@@ -281,7 +281,7 @@ En sparning som skickar **Kräv SSO för inloggning** som påslaget medan det re
 
 Ett nytt projekt följer samma regel. Det har ingen egen leverantör ännu, så att skapa det med **Kräv SSO för inloggning** redan påslaget — det kan bara en master admin — kräver en global leverantör som är påslagen och loggar in personer i alla projekt, och utan en sådan avvisas det med samma ord. Skapa projektet, konfigurera och testa dess leverantör, och slå sedan på reglaget.
 
-Så länge hela servern kräver SSO (**Admin** > **Inställningar** > **Autentisering** > **Kräv SSO för inloggning**) kräver det också en sådan global leverantör att skapa ett projekt, annars skulle ingen, inte ens den som skapar det, kunna öppna projektet. Utan en sådan avvisas skapandet av ett projekt, och meddelandet ber en serveradministratör att slå på en. Master admins kan fortfarande skapa projekt.
+Så länge hela servern kräver SSO (**Admin** > **Inställningar** > **Enkel inloggning** > **Kräv SSO för inloggning**) kräver det också en sådan global leverantör att skapa ett projekt, annars skulle ingen, inte ens den som skapar det, kunna öppna projektet. Utan en sådan avvisas skapandet av ett projekt, och meddelandet ber en serveradministratör att slå på en. Master admins kan fortfarande skapa projekt.
 
 Att stänga av **Kräv SSO för inloggning** sparas så snart du slår om reglaget och släpper in medlemmar med deras lösenord direkt — om inte någon slår på det igen i exakt samma ögonblick; då kan en appserver behöva upp till en minut för att följa efter. Projektägare, projektadministratörer och medlemmar med behörigheten **Edit Project** kan ändra det; alla andra ser reglaget låst, tillsammans med den behörighet de skulle behöva.
 
@@ -308,7 +308,7 @@ Så länge projektet kräver SSO håller OneUptime en väg in öppen: du kan int
 
 Att slå på en leverantör låter personer logga in med den direkt.
 
-När hela servern kräver SSO (**Admin** > **Inställningar** > **Autentisering** > **Kräv SSO för inloggning**) behåller varje projekt en väg in på samma sätt, även ett som inte självt kräver SSO: slå först på en annan leverantör för det.
+När hela servern kräver SSO (**Admin** > **Inställningar** > **Enkel inloggning** > **Kräv SSO för inloggning**) behåller varje projekt en väg in på samma sätt, även ett som inte självt kräver SSO: slå först på en annan leverantör för det.
 
 Globala leverantörer följer samma regel: en ändring av en global leverantör, eller av projekten som är anslutna till den, som skulle lämna ett projekt som kräver SSO utan leverantör avvisas, och projektet nämns. Se [Global SSO](/docs/identity/global-sso#stänga-av-eller-ta-bort-en-leverantör).
 

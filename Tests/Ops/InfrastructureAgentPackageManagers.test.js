@@ -1146,6 +1146,61 @@ printf '{"command":"sleep","seconds":"%s"}\\n' "$1" >>"$FAKE_GH_LOG"
     );
   });
 
+  /*
+   * GitHub refused the branch's creation once on 14.0.93's release
+   * (2026-10-27) - "Reference update failed (HTTP 422)" - and the fork had
+   * winget-pkgs' newest commit when it was looked at again.
+   */
+  test("asks again for a branch GitHub will not make at first, and still opens the pull request", () => {
+    const refs = "repos/oneuptime-bot/winget-pkgs/git/refs";
+    const result = publish({
+      state: {
+        failures: { [refs]: 1 },
+        failureText: "gh: Reference update failed (HTTP 422)",
+      },
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain(`Opened ${urlOf(OPENED)}`);
+    expect(
+      result.calls
+        .filter((call) => {
+          return call.endpoint === refs;
+        })
+        .map((call) => {
+          return call.method;
+        }),
+    ).toEqual(["POST", "POST"]);
+    expect(result.stderr).toContain(
+      `Pointing oneuptime-bot/winget-pkgs's ${BRANCH} at ${UPSTREAM_SHA} failed (attempt 1 of 4); asking again. GitHub said: gh: Reference update failed (HTTP 422)`,
+    );
+  });
+
+  test("stops the job, saying what GitHub said, when it never makes the branch, and opens no pull request", () => {
+    const refs = "repos/oneuptime-bot/winget-pkgs/git/refs";
+    const result = publish({
+      state: {
+        failures: { [refs]: 100 },
+        failureText: "gh: Reference update failed (HTTP 422)",
+      },
+    });
+
+    expect(result.status).not.toBe(0);
+    expect(
+      result.calls.filter((call) => {
+        return call.endpoint === refs;
+      }),
+    ).toHaveLength(4);
+    expect(result.stderr).toContain(
+      `PublishWingetManifests: could not point oneuptime-bot/winget-pkgs's ${BRANCH} at microsoft/winget-pkgs's ${UPSTREAM_SHA}: gh: Reference update failed (HTTP 422)`,
+    );
+    expect(
+      result.writes.filter((call) => {
+        return call.endpoint === "repos/microsoft/winget-pkgs/pulls";
+      }),
+    ).toEqual([]);
+  });
+
   test("opens nothing for a version winget-pkgs has, or one with a pull request open, and agrees to nothing the CLA bot has not asked for", () => {
     const merged = publish({
       state: { upstreamPaths: [PACKAGE_DIR, `${PACKAGE_DIR}/${VERSION}`] },

@@ -24,19 +24,22 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import { getJestSpyOn } from "../../Spy";
 
 /*
- * Admin Dashboard > Settings > Authentication, in every language.
+ * Admin Dashboard > Settings > Single Sign-On's Require SSO card, in every
+ * language.
  *
  * The instance-wide "Require SSO for Login" switch is on the page in every
- * edition, between the Sign Up and Project Creation switches, and it asks
- * before it requires SSO. Its strings reach the screen through components
- * that look each one up by its English text: the card's title and
- * description (Card), the switch's name and sentence (Toggle), and the
+ * edition, under the SAML and OIDC providers it depends on (it was on
+ * Settings > Authentication), and it asks before it requires SSO. Its
+ * strings reach the screen through components that look each one up by its
+ * English text: the card's title and description (Card), the switch's name
+ * and sentence (Toggle), the master admins' way in under it, and the
  * dialog's title, sentence and button (ConfirmModal). This renders the real
  * page with the real locale files, one language at a time, opens the dialog,
  * and reads what those lookups give: every string of the card and the
  * dialog in the page's language, none left in English.
  *
- * The admin API, the page chrome and the side menu are stand-ins. The
+ * The admin API, the provider tables, the page chrome and the side menu
+ * are stand-ins. The
  * i18next instance reaches the page through I18nextProvider only;
  * installing it globally would leak a language into the other tests in
  * this worker.
@@ -72,6 +75,16 @@ jest.mock("../../../UI/Components/Page/Page", () => {
   };
 });
 
+// The provider tables read lists of their own.
+jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
+  return {
+    __esModule: true,
+    default: (): null => {
+      return null;
+    },
+  };
+});
+
 jest.mock(
   "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/SideMenu",
   () => {
@@ -84,8 +97,12 @@ jest.mock(
   },
 );
 
-import AuthenticationSettings from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/Index";
-import { REQUIRE_SSO_SWITCH_TEST_ID } from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/Authentication/AuthenticationSwitchesCopy";
+import SsoSettings from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/SSO/Index";
+import {
+  MASTER_ADMIN_SIGN_IN_TEST_ID,
+  REQUIRE_SSO_COPY,
+  REQUIRE_SSO_SWITCH_TEST_ID,
+} from "../../../../App/FeatureSet/AdminDashboard/src/Pages/Settings/SSO/SsoSettingsCopy";
 import GlobalConfig from "../../../Models/DatabaseModels/GlobalConfig";
 import ObjectID from "../../../Types/ObjectID";
 import UserUtil from "../../../UI/Utils/User";
@@ -122,15 +139,19 @@ const OTHER_LOCALES: Array<string> = [
   "fa",
 ];
 
-const CARD_TITLE: string = "Single Sign-On (SSO)";
+const CARD_TITLE: string = "Require SSO";
 const CARD_DESCRIPTION: string =
-  "Control whether users must sign in with SSO across this server.";
+  "Before you require SSO, sign in with a provider using Test Sign-in in its row.";
 const SWITCH_TITLE: string = "Require SSO for Login";
+// The switch's sentence while SSO is not required.
 const SWITCH_NOTE: string =
-  "Everyone except master admins must sign in with SSO to open any project on this server.";
+  "People can sign in with a password, a passkey or SSO.";
+const MASTER_ADMIN_SENTENCE: string =
+  "Master admins can always sign in with their password here, even while SSO is required. Keep this address.";
+const MASTER_ADMIN_LABEL: string = "Master admin sign-in";
 const CONFIRM_TITLE: string = "Require SSO for everyone?";
 const CONFIRM_DESCRIPTION: string =
-  "Anyone who signs in with a password is locked out until they use SSO, so check that an SSO provider works for everyone first.";
+  "The sign-in page will offer only SSO. Everyone except master admins, including people signed in now, must sign in with SSO to open any project.";
 const CONFIRM_BUTTON: string = "Require SSO";
 
 const CARD_STRINGS: Array<string> = [
@@ -138,6 +159,8 @@ const CARD_STRINGS: Array<string> = [
   CARD_DESCRIPTION,
   SWITCH_TITLE,
   SWITCH_NOTE,
+  MASTER_ADMIN_SENTENCE,
+  MASTER_ADMIN_LABEL,
   CONFIRM_TITLE,
   CONFIRM_DESCRIPTION,
   CONFIRM_BUTTON,
@@ -176,6 +199,8 @@ interface RenderedCard {
   description: string;
   switchTitle: string;
   switchNote: string;
+  masterAdminSentence: string;
+  masterAdminLabel: string;
   confirmTitle: string;
   confirmDescription: string;
   confirmButton: string;
@@ -197,7 +222,7 @@ async function renderCardIn(
 
   render(
     <I18nextProvider i18n={instance}>
-      <AuthenticationSettings />
+      <SsoSettings />
     </I18nextProvider>,
   );
 
@@ -223,6 +248,15 @@ async function renderCardIn(
   const switchNote: string =
     document.getElementById(descriptionId)?.textContent || "";
 
+  // The master admins' way in, under the switch: its sentence and its name.
+  const masterAdmin: HTMLElement = within(card).getByTestId(
+    MASTER_ADMIN_SIGN_IN_TEST_ID,
+  );
+  const masterAdminSentence: string =
+    masterAdmin.querySelector("p")?.textContent || "";
+  const masterAdminLabel: string =
+    masterAdmin.querySelector("dt")?.textContent || "";
+
   // Requiring SSO asks first: read the dialog it opens.
   fireEvent.click(control);
   await flush();
@@ -234,6 +268,8 @@ async function renderCardIn(
     description: description,
     switchTitle: switchTitle,
     switchNote: switchNote,
+    masterAdminSentence: masterAdminSentence,
+    masterAdminLabel: masterAdminLabel,
     confirmTitle: within(dialog).getByTestId("modal-title").textContent || "",
     confirmDescription:
       within(dialog).getByTestId("confirm-modal-description").textContent || "",
@@ -250,6 +286,8 @@ function expectedIn(entries: Locale): RenderedCard {
     description: String(entries[CARD_DESCRIPTION]),
     switchTitle: String(entries[SWITCH_TITLE]),
     switchNote: String(entries[SWITCH_NOTE]),
+    masterAdminSentence: String(entries[MASTER_ADMIN_SENTENCE]),
+    masterAdminLabel: String(entries[MASTER_ADMIN_LABEL]),
     confirmTitle: String(entries[CONFIRM_TITLE]),
     confirmDescription: String(entries[CONFIRM_DESCRIPTION]),
     confirmButton: String(entries[CONFIRM_BUTTON]),
@@ -261,12 +299,14 @@ const ENGLISH_CARD: RenderedCard = {
   description: CARD_DESCRIPTION,
   switchTitle: SWITCH_TITLE,
   switchNote: SWITCH_NOTE,
+  masterAdminSentence: MASTER_ADMIN_SENTENCE,
+  masterAdminLabel: MASTER_ADMIN_LABEL,
   confirmTitle: CONFIRM_TITLE,
   confirmDescription: CONFIRM_DESCRIPTION,
   confirmButton: CONFIRM_BUTTON,
 };
 
-describe("Settings > Authentication: the Single Sign-On (SSO) switch in every language", () => {
+describe("Settings > Single Sign-On: the Require SSO card in every language", () => {
   beforeEach(() => {
     mockGetItem.mockReset();
     mockGetItem.mockImplementation(async (): Promise<GlobalConfig> => {
@@ -287,6 +327,19 @@ describe("Settings > Authentication: the Single Sign-On (SSO) switch in every la
     expect(await renderCardIn("en")).toEqual(ENGLISH_CARD);
   });
 
+  // The strings here are the page's own, word for word.
+  test("are the strings the page hands the card", () => {
+    expect(REQUIRE_SSO_COPY.cardTitle).toBe(CARD_TITLE);
+    expect(REQUIRE_SSO_COPY.cardDescription).toBe(CARD_DESCRIPTION);
+    expect(REQUIRE_SSO_COPY.switchTitle).toBe(SWITCH_TITLE);
+    expect(REQUIRE_SSO_COPY.switchOffDescription).toBe(SWITCH_NOTE);
+    expect(REQUIRE_SSO_COPY.masterAdminSentence).toBe(MASTER_ADMIN_SENTENCE);
+    expect(REQUIRE_SSO_COPY.masterAdminAddressLabel).toBe(MASTER_ADMIN_LABEL);
+    expect(REQUIRE_SSO_COPY.confirmTitle).toBe(CONFIRM_TITLE);
+    expect(REQUIRE_SSO_COPY.confirmDescription).toBe(CONFIRM_DESCRIPTION);
+    expect(REQUIRE_SSO_COPY.confirmButton).toBe(CONFIRM_BUTTON);
+  });
+
   test.each(OTHER_LOCALES)(
     "%s shows every string of the card and the dialog in that language",
     async (locale: string) => {
@@ -299,6 +352,8 @@ describe("Settings > Authentication: the Single Sign-On (SSO) switch in every la
       expect(card.description).not.toBe(CARD_DESCRIPTION);
       expect(card.switchTitle).not.toBe(SWITCH_TITLE);
       expect(card.switchNote).not.toBe(SWITCH_NOTE);
+      expect(card.masterAdminSentence).not.toBe(MASTER_ADMIN_SENTENCE);
+      expect(card.masterAdminLabel).not.toBe(MASTER_ADMIN_LABEL);
       expect(card.confirmTitle).not.toBe(CONFIRM_TITLE);
       expect(card.confirmDescription).not.toBe(CONFIRM_DESCRIPTION);
       expect(card.confirmButton).not.toBe(CONFIRM_BUTTON);

@@ -1,6 +1,7 @@
 import AuthenticationAPI from "./API/Authentication";
 import ResellerAPI from "./API/Reseller";
 import MicrosoftSignInAPI from "./API/MicrosoftSignIn";
+import SignInMethodsAPI from "./API/SignInMethods";
 import StatusPageAuthenticationAPI from "./API/StatusPageAuthentication";
 import { SSO_ROUTERS } from "./SsoRouters";
 import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
@@ -23,6 +24,12 @@ const IdentityFeatureSet: FeatureSet = {
 
     // Sign in with Microsoft (offered when MICROSOFT_SIGN_IN_CLIENT_ID is set).
     app.use([`/${APP_NAME}`, "/"], MicrosoftSignInAPI);
+
+    /*
+     * How this server signs people in - whether it requires single sign-on,
+     * and with which providers - for its sign-in pages (./API/SignInMethods).
+     */
+    app.use([`/${APP_NAME}`, "/"], SignInMethodsAPI);
 
     /*
      * Single sign-on - SAML and OIDC for projects, the whole instance and

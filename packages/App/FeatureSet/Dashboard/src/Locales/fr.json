@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "Les marqueurs de maintenance ne sont pas disponibles.",
   "Maintenance markers need the uptime history, which did not load.": "Les marqueurs de maintenance ont besoin de l'historique de disponibilité, qui n'a pas pu être chargé.",
   "You need permission to read scheduled maintenance.": "Vous devez avoir l'autorisation de lire la maintenance planifiée.",
+  "Sign in with {{name}}": "Se connecter avec {{name}}",
   "Add “{{name}}”": "Ajouter « {{name}} »",
   "An RSS or Atom feed lists no components. Type words from its items' titles, then press Enter.": "Un flux RSS ou Atom ne liste aucun composant. Saisissez des mots tirés des titres de ses éléments, puis appuyez sur Entrée.",
   "Could not read a list of components from {{host}}.": "Impossible de lire la liste des composants de {{host}}.",

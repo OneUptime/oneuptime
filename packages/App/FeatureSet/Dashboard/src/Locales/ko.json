@@ -35849,6 +35849,7 @@
   "Maintenance markers are unavailable.": "유지 관리 표시를 사용할 수 없습니다.",
   "Maintenance markers need the uptime history, which did not load.": "유지 관리 표시에는 가동 시간 기록이 필요하지만 불러오지 못했습니다.",
   "You need permission to read scheduled maintenance.": "예정된 유지 관리를 읽을 권한이 필요합니다.",
+  "Sign in with {{name}}": "{{name}} 계정으로 로그인",
   "Add “{{name}}”": "“{{name}}” 추가",
   "An RSS or Atom feed lists no components. Type words from its items' titles, then press Enter.": "RSS 또는 Atom 피드에는 구성 요소가 없습니다. 항목 제목에 있는 단어를 입력하고 Enter 키를 누르세요.",
   "Could not read a list of components from {{host}}.": "{{host}}에서 구성 요소 목록을 읽을 수 없습니다.",
