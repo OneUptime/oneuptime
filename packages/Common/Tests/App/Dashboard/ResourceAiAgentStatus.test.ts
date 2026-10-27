@@ -67,6 +67,7 @@ import {
   getResourceSentenceName,
 } from "../../../Types/AI/ResourceAiAccessPermissions";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -77,6 +78,7 @@ import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
   ALL_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import {
   RESOURCE_AI_AGENT_ALIVE_WINDOW_IN_MINUTES,
@@ -279,9 +281,14 @@ describe("the descriptors", () => {
     [AiResourceType.CephCluster]: CephCluster,
     [AiResourceType.DatabaseServer]: DatabaseServer,
     [AiResourceType.Host]: Host,
+    // The three clouds' accounts are one model.
+    [AiResourceType.AwsAccount]: CloudAccount,
+    [AiResourceType.AzureSubscription]: CloudAccount,
+    [AiResourceType.GoogleCloudProject]: CloudAccount,
   };
 
-  const PAGES: Record<AiResourceType, [PageMap, PageMap, PageMap]> = {
+  // A cloud account has no AI insights page of its own.
+  const PAGES: Record<AiResourceType, [PageMap, PageMap | null, PageMap]> = {
     [AiResourceType.DockerHost]: [
       PageMap.DOCKER_HOST_VIEW_AI_AGENT,
       PageMap.DOCKER_HOST_VIEW_AI_INSIGHTS,
@@ -321,6 +328,21 @@ describe("the descriptors", () => {
       PageMap.HOST_VIEW_AI_AGENT,
       PageMap.HOST_VIEW_AI_INSIGHTS,
       PageMap.HOST_VIEW_AI_LOGS,
+    ],
+    [AiResourceType.AwsAccount]: [
+      PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT,
+      null,
+      PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS,
+    ],
+    [AiResourceType.AzureSubscription]: [
+      PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT,
+      null,
+      PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS,
+    ],
+    [AiResourceType.GoogleCloudProject]: [
+      PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT,
+      null,
+      PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS,
     ],
   };
 
@@ -398,6 +420,10 @@ describe("the descriptors", () => {
       // Pinned by id: database server names are not unique.
       [AiResourceType.DatabaseServer, null],
       [AiResourceType.Host, "hostIdentifier"],
+      // Pinned by id too: the setup command names the account's row.
+      [AiResourceType.AwsAccount, null],
+      [AiResourceType.AzureSubscription, null],
+      [AiResourceType.GoogleCloudProject, null],
     ]);
   });
 
@@ -1215,6 +1241,8 @@ const SERVER_FLAGS: Record<
   auto_remediation_disabled_for_project: { investigation: false, fixes: true },
   llm_provider_missing: { investigation: true, fixes: true },
   ai_balance_insufficient: { investigation: true, fixes: true },
+  // A cloud account with no read-only connection: nothing to read it with.
+  cloud_connection_missing: { investigation: true, fixes: false },
 };
 
 function serverGap(code: ResourceAiAccessGapCode): ResourceAiAccessGap {
@@ -1479,7 +1507,12 @@ describe("Needs attention's headline", () => {
           }),
           descriptor,
         ),
-      ).toBe(`OneUptime AI can't investigate this ${descriptor.noun}`);
+      ).toBe(
+        // A cloud account is read live on the server: no agent blocks only fixes.
+        isCloudAiResourceType(type)
+          ? `OneUptime AI can't do all of its job on this ${descriptor.noun}`
+          : `OneUptime AI can't investigate this ${descriptor.noun}`,
+      );
     },
   );
 });
@@ -1606,7 +1639,10 @@ describe("Needs attention's steps", () => {
       }
 
       expect(texts["ai_agent_not_connected"]).toBe(
-        `Install the ${AI_RESOURCE_TYPE_INFO[type].agentDisplayName} with the instructions above.`,
+        // A cloud account's agent is started by its setup command.
+        isCloudAiResourceType(type)
+          ? `Start the ${AI_RESOURCE_TYPE_INFO[type].agentDisplayName} in this ${descriptor.noun} with the command above.`
+          : `Install the ${AI_RESOURCE_TYPE_INFO[type].agentDisplayName} with the instructions above.`,
       );
       expect(texts["ai_agent_unreachable_resource"]).toContain(
         `reach this ${descriptor.noun}`,

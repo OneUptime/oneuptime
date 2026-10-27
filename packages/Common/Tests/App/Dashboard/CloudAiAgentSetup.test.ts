@@ -8,6 +8,7 @@ import {
   getCloudAiAgentLogsCommand,
   getCloudAiAgentSetupOptions,
   getDefaultCloudAiAgentSetupChoices,
+  getProtectedTargetsProblem,
   parseProtectedTargets,
   readCloudProvider,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudAiAgentSetup";
@@ -16,6 +17,7 @@ import {
   CloudAiAgentSetupOptions,
   describeCloudAiAgentSetupProblem,
   getCloudAiAgentChangeOperations,
+  getCloudAiAgentMaxProtectedTargets,
   getCloudAiAgentSetupCommand,
 } from "../../../Types/CloudConnection/CloudAiAgentSetupCommands";
 import AiResourceType from "../../../Types/ResourceAiAgent/AiResourceType";
@@ -185,6 +187,67 @@ describe("the dialog's pieces", () => {
   test("protected resources are read one per line or comma, without blanks or repeats", () => {
     expect(parseProtectedTargets(" a , b\n\nc\na ")).toEqual(["a", "b", "c"]);
     expect(parseProtectedTargets("")).toEqual([]);
+  });
+
+  test("a protected pattern the agent cannot read is named, before the command is written", () => {
+    for (const text of ["my prod db", '*prod*\n"web"', "it's-prod"]) {
+      const problem: ReturnType<typeof getProtectedTargetsProblem> =
+        getProtectedTargetsProblem({
+          provider: CloudProvider.AWS,
+          accountId: "123456789012",
+          text,
+        });
+
+      expect(problem?.kind).toBe("unreadable");
+
+      // The command module refuses the same pattern.
+      expect(
+        describeCloudAiAgentSetupProblem(
+          options(CloudProvider.AWS, {
+            ...getDefaultCloudAiAgentSetupChoices({
+              provider: CloudProvider.AWS,
+            }),
+            protectedTargetsText: text,
+          }),
+        ),
+      ).not.toBeNull();
+    }
+
+    expect(
+      getProtectedTargetsProblem({
+        provider: CloudProvider.AWS,
+        accountId: "123456789012",
+        text: "*prod-db*\narn:aws:ecs:*:*:service/payments/*",
+      }),
+    ).toBeNull();
+  });
+
+  test("more protected patterns than the agent takes are named with the most it takes", () => {
+    const most: number = getCloudAiAgentMaxProtectedTargets(
+      CloudProvider.Azure,
+      "00000000-0000-0000-0000-0000000000ab",
+    );
+    const text: string = Array.from(
+      { length: most + 1 },
+      (_value: unknown, index: number): string => {
+        return `*vm-${index}*`;
+      },
+    ).join("\n");
+
+    expect(
+      getProtectedTargetsProblem({
+        provider: CloudProvider.Azure,
+        accountId: "00000000-0000-0000-0000-0000000000ab",
+        text,
+      }),
+    ).toEqual({ kind: "too-many", most });
+    expect(
+      getProtectedTargetsProblem({
+        provider: CloudProvider.Azure,
+        accountId: "00000000-0000-0000-0000-0000000000ab",
+        text: text.split("\n").slice(0, most).join("\n"),
+      }),
+    ).toBeNull();
   });
 
   test("each cloud's account is its own AI resource type", () => {

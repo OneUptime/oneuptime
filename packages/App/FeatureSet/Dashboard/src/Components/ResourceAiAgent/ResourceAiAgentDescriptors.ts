@@ -121,9 +121,13 @@ type DescriptorCopy = Omit<
 /*
  * The three cloud accounts share one model, one set of pages and one
  * agent: the Cloud AI agent, which makes one change at a time from the
- * cloud catalog. Their copy is the same words.
+ * cloud catalog. Their copy is the same words, but for the reads each
+ * cloud has (target-health is AWS's) and a commands table of their own.
  */
-const CLOUD_ACCOUNT_DESCRIPTOR_COPY: DescriptorCopy = {
+const CLOUD_ACCOUNT_DESCRIPTOR_COPY: Omit<
+  DescriptorCopy,
+  "readExamples" | "commandsTableId"
+> = {
   modelType: CloudAccount,
   agentPage: PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT,
   insightsPage: null,
@@ -132,7 +136,6 @@ const CLOUD_ACCOUNT_DESCRIPTOR_COPY: DescriptorCopy = {
     "The small container in your cloud account that makes one change at a time from a fixed catalog for OneUptime AI, with a role of its own.",
   ),
   investigateTitle: translationKey("Investigate with live reads"),
-  readExamples: "describe, recent-events, target-health, quota-usage",
   readOnlyCommandsPhrase: translationKey("live reads of the account"),
   commandsCardTitle: translationKey("cloud operations"),
   toolVersionLabel: null,
@@ -149,7 +152,6 @@ const CLOUD_ACCOUNT_DESCRIPTOR_COPY: DescriptorCopy = {
   riskierChanges: translationKey(
     "scaling in, rebooting an instance or rolling back a service",
   ),
-  commandsTableId: "cloud-account-ai-commands",
   isCloudAccount: true,
 };
 
@@ -370,9 +372,21 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     commandsTableId: "host-ai-commands",
     isCloudAccount: false,
   },
-  [AiResourceType.AwsAccount]: CLOUD_ACCOUNT_DESCRIPTOR_COPY,
-  [AiResourceType.AzureSubscription]: CLOUD_ACCOUNT_DESCRIPTOR_COPY,
-  [AiResourceType.GoogleCloudProject]: CLOUD_ACCOUNT_DESCRIPTOR_COPY,
+  [AiResourceType.AwsAccount]: {
+    ...CLOUD_ACCOUNT_DESCRIPTOR_COPY,
+    readExamples: "describe, recent-events, target-health, quota-usage",
+    commandsTableId: "aws-account-ai-commands",
+  },
+  [AiResourceType.AzureSubscription]: {
+    ...CLOUD_ACCOUNT_DESCRIPTOR_COPY,
+    readExamples: "describe, recent-events, quota-usage, read-logs",
+    commandsTableId: "azure-subscription-ai-commands",
+  },
+  [AiResourceType.GoogleCloudProject]: {
+    ...CLOUD_ACCOUNT_DESCRIPTOR_COPY,
+    readExamples: "describe, recent-events, quota-usage, read-logs",
+    commandsTableId: "google-cloud-project-ai-commands",
+  },
 };
 
 /*

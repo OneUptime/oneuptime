@@ -36380,5 +36380,7 @@
   "live reads of the account": "live reads of the account",
   "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency": "restart services, start and reboot instances, scale out and in, roll back a deployment and set concurrency",
   "riskier changes such as scaling in, rebooting an instance or rolling back a service": "riskier changes such as scaling in, rebooting an instance or rolling back a service",
-  "scaling in, rebooting an instance or rolling back a service": "scaling in, rebooting an instance or rolling back a service"
+  "scaling in, rebooting an instance or rolling back a service": "scaling in, rebooting an instance or rolling back a service",
+  "List at most {{most}} protected resources, with * patterns to cover several.": "List at most {{most}} protected resources, with * patterns to cover several.",
+  "{{pattern}} is not a pattern the agent can read: write a resource's id, with * for any run of characters, and no spaces or quotes.": "{{pattern}} is not a pattern the agent can read: write a resource's id, with * for any run of characters, and no spaces or quotes."
 }

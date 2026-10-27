@@ -76,7 +76,10 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  CLOUD_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
+import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import {
   ResourceAiAccessGap,
   ResourceAiAccessGapCode,
@@ -335,7 +338,10 @@ function pagePath(descriptor: ResourceAiAgentDescriptor): string {
     .replace(":id", RESOURCE_ID);
 }
 
-function openAgentPage(descriptor: ResourceAiAgentDescriptor = DOCKER): void {
+function openAgentPage(
+  descriptor: ResourceAiAgentDescriptor = DOCKER,
+  cloudAccount?: CloudAccount,
+): void {
   const path: string = pagePath(descriptor);
   goTo(path);
 
@@ -350,12 +356,40 @@ function openAgentPage(descriptor: ResourceAiAgentDescriptor = DOCKER): void {
               pageRoute={RouteMap[descriptor.agentPage] as Route}
               currentProject={Object.assign(new Project(), { name: "Acme" })}
               hasPaymentMethod={true}
+              cloudAccount={cloudAccount}
             />
           }
         />
       </Routes>
     </MemoryRouter>,
   );
+}
+
+// The types whose agent is installed next to a collector (compose).
+const COMPOSE_INSTALLED_TYPES: Array<AiResourceType> =
+  ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+    return !isCloudAiResourceType(type);
+  });
+
+// A cloud account's row, as the account's AI pages load it.
+function cloudAccountOf(type: AiResourceType): CloudAccount {
+  return Object.assign(new CloudAccount(), {
+    _id: RESOURCE_ID,
+    name: "prod",
+    provider:
+      type === AiResourceType.AwsAccount
+        ? "aws"
+        : type === AiResourceType.AzureSubscription
+          ? "azure"
+          : "gcp",
+    accountId:
+      type === AiResourceType.AwsAccount
+        ? "123456789012"
+        : type === AiResourceType.AzureSubscription
+          ? "00000000-0000-0000-0000-0000000000ab"
+          : "shop-prod",
+    isAiLogReadEnabled: false,
+  });
 }
 
 async function findText(text: string | RegExp): Promise<HTMLElement> {
@@ -3102,7 +3136,7 @@ describe("the agent card's ⋯", () => {
 });
 
 describe("every resource type", () => {
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(COMPOSE_INSTALLED_TYPES)(
     "%s: the page asks about its own type and names its own agent",
     async (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =
@@ -3135,7 +3169,45 @@ describe("every resource type", () => {
     },
   );
 
-  test.each(ALL_AI_RESOURCE_TYPES)(
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: with no agent yet the page asks about its own type and offers Let AI fix problems, which opens the setup",
+    async (type: AiResourceType) => {
+      const descriptor: ResourceAiAgentDescriptor =
+        getResourceAiAgentDescriptor(type);
+      // As the server reports it: the account is read live, with no agent.
+      serve({
+        ...notInstalledStatus(),
+        resourceType: type,
+        isInvestigationReady: true,
+        gaps: [
+          {
+            ...gap("ai_agent_not_connected"),
+            blocksInvestigation: false,
+          },
+        ],
+      });
+      openAgentPage(descriptor, cloudAccountOf(type));
+
+      expect(await findText(descriptor.agentName)).toBeInTheDocument();
+      expect(postsTo(STATUS_ROUTE)[0]!["data"]).toEqual({
+        resourceType: type,
+        resourceId: RESOURCE_ID,
+      });
+      expect(
+        await findText(
+          "OneUptime AI can read this account but can't change it. One command in the cloud's own shell starts the agent, which connects on its own.",
+        ),
+      ).toBeInTheDocument();
+      // No collector, so no compose install.
+      expect(screen.queryByTestId("ai-agent-install-command")).toBeNull();
+
+      fireEvent.click(screen.getByTestId("ai-agent-cloud-set-up"));
+
+      expect(await findTestId("cloud-ai-agent-setup")).toBeInTheDocument();
+    },
+  );
+
+  test.each(COMPOSE_INSTALLED_TYPES)(
     "%s: the install instructions say AI investigations are on by default, in its own words",
     async (type: AiResourceType) => {
       const descriptor: ResourceAiAgentDescriptor =

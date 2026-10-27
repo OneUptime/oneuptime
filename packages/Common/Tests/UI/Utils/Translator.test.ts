@@ -154,6 +154,10 @@ describe("toSentenceTerm", () => {
     // Only after "Google" is "Cloud" a name.
     ["Cloud Resources", "en", "cloud resources"],
     ["Cloud Google", "en", "cloud Google"],
+    // ... alone or as a compound's first part.
+    ["Google Cloud-projekt", "da", "Google Cloud-projekt"],
+    ["Google Cloud-project", "nl", "Google Cloud-project"],
+    ["Projekt i Google Cloud", "sv", "projekt i Google Cloud"],
     [
       "Incident Episode State Timeline",
       "en",

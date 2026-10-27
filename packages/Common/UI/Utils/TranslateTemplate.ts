@@ -240,19 +240,28 @@ export const toSentenceTerm: (text: string, language?: string) => string = (
     .map((word: string, index: number): string => {
       const previous: string | undefined = words[index - 1];
 
-      if (
-        previous !== undefined &&
-        PROPER_NOUN_PAIRS.some((pair: [string, string]): boolean => {
-          return pair[0] === previous && pair[1] === word;
-        })
-      ) {
-        return word;
-      }
+      /*
+       * The second word of a two-word name keeps its capital, alone or as
+       * the first part of a compound ("Google Cloud-projekt" in Danish).
+       */
+      const followsPairStart: (part: string) => boolean = (
+        part: string,
+      ): boolean => {
+        return (
+          previous !== undefined &&
+          PROPER_NOUN_PAIRS.some((pair: [string, string]): boolean => {
+            return pair[0] === previous && pair[1] === part;
+          })
+        );
+      };
 
       return word
         .split("-")
-        .map((part: string): string => {
-          if (keepsItsCase(part)) {
+        .map((part: string, partIndex: number): string => {
+          if (
+            keepsItsCase(part) ||
+            (partIndex === 0 && followsPairStart(part))
+          ) {
             return part;
           }
 

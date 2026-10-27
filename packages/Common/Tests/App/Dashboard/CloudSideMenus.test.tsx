@@ -110,7 +110,7 @@ describe("a cloud resource's menu", () => {
 });
 
 describe("a cloud account's menu", () => {
-  test("its overview, resources and map; its changes; its settings, Developer pages and delete", async () => {
+  test("its overview, resources and map; its AI agent; its changes; its settings, Developer pages and delete", async () => {
     goTo(ACCOUNT_PATH);
     await renderMenu(
       <CloudAccountSideMenu modelId={new ObjectID(ACCOUNT_ID)} />,
@@ -118,6 +118,7 @@ describe("a cloud account's menu", () => {
 
     expect(sectionTitlesInOrder()).toEqual([
       "Basic",
+      "AI",
       "Activity",
       "Settings",
       "Developer",
@@ -127,6 +128,10 @@ describe("a cloud account's menu", () => {
       { title: "Overview", href: ACCOUNT_PATH },
       { title: "Resources", href: `${ACCOUNT_PATH}/resources` },
       { title: "Topology", href: `${ACCOUNT_PATH}/topology` },
+    ]);
+    expect(linksIn("AI")).toEqual([
+      { title: "AI agent", href: `${ACCOUNT_PATH}/ai/agent` },
+      { title: "Logs", href: `${ACCOUNT_PATH}/ai/logs` },
     ]);
     expect(linksIn("Activity")).toEqual([
       { title: "Changes", href: `${ACCOUNT_PATH}/changes` },

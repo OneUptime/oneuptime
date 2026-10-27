@@ -4,6 +4,8 @@ import {
   CloudAiAgentFixesMode,
   CloudAiAgentSetupOptions,
   getCloudAiAgentChangeOperations,
+  getCloudAiAgentMaxProtectedTargets,
+  isReadableCloudAiAgentProtectedTarget,
 } from "Common/Types/CloudConnection/CloudAiAgentSetupCommands";
 import AiResourceType, {
   CLOUD_AI_RESOURCE_TYPES,
@@ -139,6 +141,39 @@ export function parseProtectedTargets(text: string): Array<string> {
   }
 
   return patterns;
+}
+
+/*
+ * What is wrong with the protected resources typed, if anything, so the
+ * dialog says it in the reader's language before the command is written:
+ * a pattern the agent cannot read, or more patterns than it takes.
+ */
+export type CloudAiAgentProtectedTargetsProblem =
+  | { kind: "unreadable"; pattern: string }
+  | { kind: "too-many"; most: number };
+
+export function getProtectedTargetsProblem(data: {
+  provider: CloudProvider;
+  accountId: string;
+  text: string;
+}): CloudAiAgentProtectedTargetsProblem | null {
+  const patterns: Array<string> = parseProtectedTargets(data.text);
+  const unreadable: string | undefined = patterns.find(
+    (pattern: string): boolean => {
+      return !isReadableCloudAiAgentProtectedTarget(pattern);
+    },
+  );
+
+  if (unreadable !== undefined) {
+    return { kind: "unreadable", pattern: unreadable.slice(0, 64) };
+  }
+
+  const most: number = getCloudAiAgentMaxProtectedTargets(
+    data.provider,
+    data.accountId,
+  );
+
+  return patterns.length > most ? { kind: "too-many", most } : null;
 }
 
 // The setup command's options for these choices and this account.

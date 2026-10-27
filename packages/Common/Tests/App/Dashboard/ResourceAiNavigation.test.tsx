@@ -13,6 +13,7 @@ import { FunctionComponent, ReactElement } from "react";
 import fs from "fs";
 import path from "path";
 import CephSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/SideMenu";
+import CloudAccountSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Accounts/View/SideMenu";
 import DatabaseSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/SideMenu";
 import DockerSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Docker/View/SideMenu";
 import DockerSwarmSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/SideMenu";
@@ -47,6 +48,8 @@ import ListResult from "../../../Types/BaseDatabase/ListResult";
 import ObjectID from "../../../Types/ObjectID";
 import AiResourceType, {
   ALL_AI_RESOURCE_TYPES,
+  CLOUD_AI_RESOURCE_TYPES,
+  isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
 import SideMenuItem from "../../../UI/Components/SideMenu/SideMenuItem";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -326,11 +329,69 @@ afterEach(() => {
 });
 
 test("every resource type a resource AI agent serves is wired here", () => {
+  // The three clouds' accounts share one view: "a cloud account" below.
   expect(
     CASES.map((item: ResourceCase): AiResourceType => {
       return item.type;
     }),
-  ).toEqual([...ALL_AI_RESOURCE_TYPES]);
+  ).toEqual(
+    ALL_AI_RESOURCE_TYPES.filter((type: AiResourceType): boolean => {
+      return !isCloudAiResourceType(type);
+    }),
+  );
+});
+
+/*
+ * AWS accounts, Azure subscriptions and Google Cloud projects are one model
+ * (CloudAccount) with one view. Its AI section holds "AI agent" and "Logs":
+ * a cloud account has no AI Insights page of its own.
+ */
+describe("a cloud account", () => {
+  function accountRoute(page: PageMap): string {
+    return RouteMap[page]!.toString()
+      .replace(":projectId", PROJECT_ID)
+      .replace(":id", MODEL_ID.toString());
+  }
+
+  test("nests its two AI pages under the account: :id/ai/agent and :id/ai/logs", () => {
+    expect(RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT]!.toString()).toBe(
+      "/dashboard/:projectId/cloud/accounts/:id/ai/agent",
+    );
+    expect(RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]!.toString()).toBe(
+      "/dashboard/:projectId/cloud/accounts/:id/ai/logs",
+    );
+  });
+
+  test.each(CLOUD_AI_RESOURCE_TYPES)(
+    "%s: the descriptor links to them, and to no Insights page",
+    (type: AiResourceType) => {
+      const descriptor: ReturnType<typeof getResourceAiAgentDescriptor> =
+        getResourceAiAgentDescriptor(type);
+
+      expect(descriptor.agentPage).toBe(PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT);
+      expect(descriptor.logsPage).toBe(PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS);
+      expect(descriptor.insightsPage).toBeNull();
+    },
+  );
+
+  test('the side menu\'s AI section holds "AI agent" and "Logs", each with an icon', async () => {
+    goTo(accountRoute(PageMap.CLOUD_ACCOUNT_VIEW));
+    await renderMenu(<CloudAccountSideMenu modelId={MODEL_ID} />);
+
+    expect(
+      sectionTitlesInOrder().filter((title: string): boolean => {
+        return title === "AI";
+      }),
+    ).toHaveLength(1);
+    expect(linksIn("AI")).toEqual([
+      {
+        title: "AI agent",
+        href: accountRoute(PageMap.CLOUD_ACCOUNT_VIEW_AI_AGENT),
+      },
+      { title: "Logs", href: accountRoute(PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS) },
+    ]);
+    expect(iconCountIn("AI")).toBe(2);
+  });
 });
 
 describe.each(CASES)("$type", (item: ResourceCase) => {

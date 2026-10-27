@@ -142,7 +142,7 @@ function snippetService(
 
 // The agent service a collector's docker-compose.yml ships, if it does.
 function collectorAgentService(
-  type: AiResourceType,
+  type: ComposeInstalledAiResourceType,
 ): { name: string; service: ComposeService } | null {
   const file: string = path.join(
     REPO_ROOT,
@@ -176,7 +176,9 @@ function collectorAgentService(
  * INSTALL_DIR default), or null when it creates none (it starts plain
  * containers instead).
  */
-function installerDirectory(type: AiResourceType): string | null {
+function installerDirectory(
+  type: ComposeInstalledAiResourceType,
+): string | null {
   const installer: string = fs.readFileSync(
     path.join(REPO_ROOT, "agents", COLLECTOR_DIRECTORIES[type], "install.sh"),
     "utf8",
@@ -209,7 +211,7 @@ describe("the agent's service", () => {
   test("is named after the agent alias, the collectors' convention", () => {
     expect(
       COMPOSE_INSTALLED_AI_RESOURCE_TYPES.map(
-        (type: AiResourceType): string => {
+        (type: ComposeInstalledAiResourceType): string => {
           return getResourceAiAgentServiceName(type);
         },
       ),
@@ -235,7 +237,7 @@ describe("the agent's service", () => {
 describe("the compose snippet", () => {
   test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: valid YAML with the image, read-only root and the contract's variables",
-    (type: AiResourceType) => {
+    (type: ComposeInstalledAiResourceType) => {
       const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[type];
       const service: ComposeService = snippetService(type);
       const environment: Record<string, string> = environmentOf(service);
@@ -277,7 +279,7 @@ describe("the compose snippet", () => {
 
   test.each(
     COMPOSE_INSTALLED_AI_RESOURCE_TYPES.filter(
-      (type: AiResourceType): boolean => {
+      (type: ComposeInstalledAiResourceType): boolean => {
         return type !== AiResourceType.DatabaseServer;
       },
     ),
@@ -295,7 +297,7 @@ describe("the compose snippet", () => {
 
   test.each(
     COMPOSE_INSTALLED_AI_RESOURCE_TYPES.filter(
-      (type: AiResourceType): boolean => {
+      (type: ComposeInstalledAiResourceType): boolean => {
         return type !== AiResourceType.DatabaseServer;
       },
     ),
@@ -505,7 +507,7 @@ describe("the snippet matches what the collectors ship", () => {
 
   test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: the page says the collector ships the agent exactly when its compose file does",
-    (type: AiResourceType) => {
+    (type: ComposeInstalledAiResourceType) => {
       // Otherwise the page asks for a second copy of a service the file has.
       expect(doesCollectorShipResourceAiAgent(type)).toBe(
         collectorAgentService(type) !== null,
@@ -515,7 +517,7 @@ describe("the snippet matches what the collectors ship", () => {
 
   test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: the snippet passes every variable the shipped service passes, with its value",
-    (type: AiResourceType) => {
+    (type: ComposeInstalledAiResourceType) => {
       const shipped: { name: string; service: ComposeService } | null =
         collectorAgentService(type);
 
@@ -555,7 +557,7 @@ describe("the snippet matches what the collectors ship", () => {
 
   test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: a shipped agent service has the snippet's name, type, identity and variables",
-    (type: AiResourceType) => {
+    (type: ComposeInstalledAiResourceType) => {
       const shipped: { name: string; service: ComposeService } | null =
         collectorAgentService(type);
 
@@ -598,7 +600,7 @@ describe("the snippet matches what the collectors ship", () => {
 describe("the install instructions", () => {
   test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: where, what, how to start it, and every variable it reads",
-    (type: AiResourceType) => {
+    (type: ComposeInstalledAiResourceType) => {
       const info: AiResourceTypeInfo = AI_RESOURCE_TYPE_INFO[type];
       const install: ResourceAiAgentInstall = getResourceAiAgentInstall({
         resourceType: type,
@@ -748,7 +750,7 @@ describe("the install instructions", () => {
 
   test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: every command and sentence names only a directory the collector's installer creates",
-    (type: AiResourceType) => {
+    (type: ComposeInstalledAiResourceType) => {
       const expected: string | null = installerDirectory(type);
       const install: ResourceAiAgentInstall = getResourceAiAgentInstall({
         resourceType: type,
@@ -782,7 +784,7 @@ describe("the install instructions", () => {
 
   test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: the prerequisites are there, for the types that have any",
-    (type: AiResourceType) => {
+    (type: ComposeInstalledAiResourceType) => {
       const install: ResourceAiAgentInstall = getResourceAiAgentInstall({
         resourceType: type,
         resourceId: RESOURCE_ID,
@@ -825,7 +827,7 @@ describe("the logs and status commands", () => {
 describe("the write switch", () => {
   test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: the exact variable, recommended with targets where the type names any",
-    (type: AiResourceType) => {
+    (type: ComposeInstalledAiResourceType) => {
       const commands: ResourceAiAgentWriteAccessCommands =
         getResourceAiAgentWriteAccessCommands(type);
 
@@ -894,7 +896,7 @@ describe("the write switch", () => {
 
   test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: the disclosure says what writes allow and what OneUptime never does",
-    (type: AiResourceType) => {
+    (type: ComposeInstalledAiResourceType) => {
       const disclosure: string = getResourceAiAgentWriteDisclosure(type);
 
       expect(disclosure).toMatch(/^Write access lets the agent /);
@@ -915,7 +917,7 @@ type AgentAiSettingsNote = AgentAiSettingsInstructions["notes"][number];
 describe("what AI may do, set where the agent runs", () => {
   test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s: the snippet passes both settings from the .env, empty by default",
-    (type: AiResourceType) => {
+    (type: ComposeInstalledAiResourceType) => {
       const environment: Record<string, string> = environmentOf(
         snippetService(type),
       );
@@ -1095,7 +1097,7 @@ describe("what AI may do, set where the agent runs", () => {
    */
   test.each(COMPOSE_INSTALLED_AI_RESOURCE_TYPES)(
     "%s, an agent older than the settings: the restart pulls the newer image",
-    (type: AiResourceType) => {
+    (type: ComposeInstalledAiResourceType) => {
       const instructions: AgentAiSettingsInstructions =
         getResourceAiAgentSettingsInstructions({
           resourceType: type,

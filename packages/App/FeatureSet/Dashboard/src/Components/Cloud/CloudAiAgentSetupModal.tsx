@@ -5,10 +5,12 @@ import {
   CLOUD_AI_AGENT_FIX_SAFE_DESCRIPTION,
   CLOUD_AI_AGENT_FIX_SAFE_TITLE,
   CLOUD_SHELL_NAMES,
+  CloudAiAgentProtectedTargetsProblem,
   CloudAiAgentSetupChoices,
   getCloudAiAgentLogsCommand,
   getCloudAiAgentSetupOptions,
   getDefaultCloudAiAgentSetupChoices,
+  getProtectedTargetsProblem,
 } from "./CloudAiAgentSetup";
 import { ResourceAiAgentDescriptor } from "../ResourceAiAgent/ResourceAiAgentDescriptors";
 import {
@@ -237,13 +239,34 @@ const CloudAiAgentSetupModal: FunctionComponent<ComponentProps> = (
     cloudAccountId: props.cloudAccountId.toString(),
     accountId: props.accountId,
   });
-  const problem: string | null = ingestionKeyValue
-    ? describeCloudAiAgentSetupProblem(options)
-    : translator.translateText(
+  const protectedProblem: CloudAiAgentProtectedTargetsProblem | null =
+    getProtectedTargetsProblem({
+      provider: props.provider,
+      accountId: props.accountId,
+      text: choices.protectedTargetsText,
+    });
+  let problem: string | null = null;
+
+  if (!ingestionKeyValue) {
+    problem =
+      translator.translateText(
         translationKey(
           "Pick the telemetry ingestion key the agent connects with.",
         ),
       ) || "Pick the telemetry ingestion key the agent connects with.";
+  } else if (protectedProblem?.kind === "unreadable") {
+    problem = translator.translateTemplate(
+      "{{pattern}} is not a pattern the agent can read: write a resource's id, with * for any run of characters, and no spaces or quotes.",
+      { pattern: protectedProblem.pattern },
+    );
+  } else if (protectedProblem?.kind === "too-many") {
+    problem = translator.translateTemplate(
+      "List at most {{most}} protected resources, with * patterns to cover several.",
+      { most: String(protectedProblem.most) },
+    );
+  } else {
+    problem = describeCloudAiAgentSetupProblem(options);
+  }
   const command: string = problem ? "" : getCloudAiAgentSetupCommand(options);
   const cost: CloudAiAgentCostEstimate = estimateCloudAiAgentMonthlyCost(
     props.provider,
