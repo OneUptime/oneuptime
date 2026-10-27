@@ -208,6 +208,15 @@ const slackActionTypesThatDoNotRequireUserSlackAccountToBeConnectedToOneUptime: 
      * the account, the membership, the permissions - in that project.
      */
     SlackActionType.ChooseProject,
+
+    /*
+     * The Home's Switch project menu (SlackHome): it reads and writes
+     * nothing itself. The Home it draws again is read in full for the
+     * project chosen - the person's connected accounts and memberships in
+     * the workspace's projects, read again, then their own permissions
+     * there - and a project they may not see is never drawn.
+     */
+    SlackActionType.SwitchHomeProject,
   ];
 
 export default class SlackAuthAction {

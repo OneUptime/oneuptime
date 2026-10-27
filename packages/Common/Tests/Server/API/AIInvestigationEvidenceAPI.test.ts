@@ -755,6 +755,8 @@ describe("POST /ai-investigation/evidence", () => {
 
     it.each([
       ["a mutation tool", "create_incident"],
+      // Viewing an alert's evidence must never raise a second alert (#5301).
+      ["a mutation tool", "create_alert"],
       ["a mutation tool", "acknowledge_alert"],
       ["an investigation-excluded tool", "get_ai_investigation"],
       ["a remediation extra tool", "execute_remediation_command"],

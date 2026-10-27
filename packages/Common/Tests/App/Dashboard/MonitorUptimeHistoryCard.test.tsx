@@ -82,6 +82,36 @@ jest.mock("../../../UI/Components/MonitorGraphs/Uptime", () => {
           },
           "incident marker",
         ),
+        ReactModule.createElement(
+          "button",
+          {
+            type: "button",
+            onClick: () => {
+              (props["onMaintenanceClick"] as (id: string) => void)(
+                "88888888-8888-4888-8888-888888888888",
+              );
+            },
+          },
+          "maintenance marker",
+        ),
+        ReactModule.createElement(
+          "button",
+          {
+            type: "button",
+            onClick: () => {
+              onBarClick(new Date("2026-09-19T00:00:00.000Z"), [], {
+                date: new Date("2026-09-19T00:00:00.000Z"),
+                uptimePercent: 100,
+                hasEvents: true,
+                statusDurations: [],
+                incidents: [],
+                maintenanceEvents: (props["maintenanceEvents"] ||
+                  []) as Array<unknown>,
+              });
+            },
+          },
+          "maintenance bar",
+        ),
       );
     },
   };
@@ -129,9 +159,13 @@ import {
   MonitorUptimeWindowTotal,
 } from "../../../Types/Monitor/MonitorUptimeSummary";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
+import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
 import ObjectID from "../../../Types/ObjectID";
 import { UptimeDayBucket } from "../../../Types/StatusPage/UptimeDailyAggregate";
 import Navigation from "../../../UI/Utils/Navigation";
+import { MAINTENANCE_BAR_CLASS_NAME } from "../../../Utils/StatusPage/HistoryChartBarColors";
+import { ScheduledMaintenancePhaseOfState } from "../../../Utils/ScheduledMaintenanceStart";
+import { setDateDisplayLanguage } from "../../../Types/DateLanguage";
 
 const MONITOR_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
@@ -463,6 +497,39 @@ describe("MonitorUptimeHistoryCard", () => {
 
     expect(lastGraphProps()["startDate"]).toBe(START);
     expect(lastGraphProps()["endDate"]).toBe(NOW);
+  });
+
+  test("the strip's first day is written in the reader's language and digits", () => {
+    renderCard({});
+    expect(screen.getByText("Jun 24")).toBeInTheDocument();
+    cleanup();
+
+    setDateDisplayLanguage("fa");
+
+    try {
+      renderCard({});
+
+      // June the 24th, on a Persian page: never the English "Jun 24".
+      expect(screen.queryByText("Jun 24")).toBeNull();
+      expect(screen.getByText(/ژوئن/)).toHaveTextContent("۲۴");
+    } finally {
+      setDateDisplayLanguage(null);
+    }
+  });
+
+  test("the strip's first day is the day its bars were cut by, in their zone", () => {
+    // Midnight of June 24 in Tehran: still June 23 by the page's own UTC clock.
+    renderCard({
+      summary: loaded(
+        summaryOf({
+          timezone: "Asia/Tehran",
+          startDate: new Date("2026-06-23T20:30:00.000Z"),
+        }),
+      ),
+    });
+
+    expect(screen.getByText("Jun 24")).toBeInTheDocument();
+    expect(screen.queryByText("Jun 23")).toBeNull();
   });
 
   test("the status models are kept across re-renders of the same summary", () => {
@@ -831,5 +898,160 @@ describe("MonitorUptimeHistoryCard", () => {
         "One bar per day for the last 90 days, in your time zone. Grey bars are days with no data.",
       ),
     ).toBeInTheDocument();
+  });
+});
+
+/*
+ * The monitor's scheduled maintenance on its strip (#5236), as a status
+ * page shows it: the days it touched banded and listed beside the
+ * incidents, a key for the band, each event opening its own page.
+ */
+describe("MonitorUptimeHistoryCard - scheduled maintenance", () => {
+  const MAINTENANCE: UptimeBarTooltipMaintenance = {
+    id: "88888888-8888-4888-8888-888888888888",
+    title: "Database upgrade",
+    startsAt: new Date("2026-09-19T09:00:00.000Z"),
+    endsAt: new Date("2026-09-19T11:00:00.000Z"),
+    currentState: { name: "Completed", color: Green },
+    phase: ScheduledMaintenancePhaseOfState.Over,
+    monitorIds: [MONITOR_ID],
+  };
+
+  const maintenanceLoaded: (
+    events: Array<UptimeBarTooltipMaintenance>,
+  ) => OverviewSection<Array<UptimeBarTooltipMaintenance>> = (
+    events: Array<UptimeBarTooltipMaintenance>,
+  ): OverviewSection<Array<UptimeBarTooltipMaintenance>> => {
+    return resolveSection<Array<UptimeBarTooltipMaintenance>>({
+      value: events,
+      subjectId: SUBJECT,
+    });
+  };
+
+  function lastGraphProps(): Record<string, unknown> {
+    return mockGraphProps[mockGraphProps.length - 1]!;
+  }
+
+  test("hands the strip the monitor's maintenance", () => {
+    renderCard({ maintenance: maintenanceLoaded([MAINTENANCE]) });
+
+    expect(lastGraphProps()["maintenanceEvents"]).toEqual([MAINTENANCE]);
+    expect(typeof lastGraphProps()["onMaintenanceClick"]).toBe("function");
+  });
+
+  test("hands it none while the maintenance loads, or without it", () => {
+    renderCard({
+      maintenance: getLoadingSection<Array<UptimeBarTooltipMaintenance>>(),
+    });
+
+    expect(lastGraphProps()["maintenanceEvents"]).toEqual([]);
+
+    cleanup();
+
+    renderCard({});
+
+    expect(lastGraphProps()["maintenanceEvents"]).toEqual([]);
+  });
+
+  test("keys the band in the legend, drawn by the strip's own class, once there is maintenance", () => {
+    renderCard({ maintenance: maintenanceLoaded([MAINTENANCE]) });
+
+    const item: HTMLElement = screen.getByTestId(
+      "monitor-uptime-legend-maintenance",
+    );
+
+    expect(item).toHaveTextContent("Scheduled maintenance");
+    expect(item.querySelector(`.${MAINTENANCE_BAR_CLASS_NAME}`)).not.toBeNull();
+    expect(
+      within(screen.getByRole("list", { name: "Legend" })).getByText(
+        "Scheduled maintenance",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("has no key for a band no bar wears", () => {
+    renderCard({ maintenance: maintenanceLoaded([]) });
+
+    expect(
+      screen.queryByTestId("monitor-uptime-legend-maintenance"),
+    ).toBeNull();
+  });
+
+  test.each([
+    [
+      "forbidden",
+      forbidSection<Array<UptimeBarTooltipMaintenance>>({
+        reason: "You need permission to read scheduled maintenance.",
+        subjectId: SUBJECT,
+      }),
+    ],
+    [
+      "failed",
+      failSection<Array<UptimeBarTooltipMaintenance>>({
+        previous: getLoadingSection<Array<UptimeBarTooltipMaintenance>>(),
+        message: "Maintenance is unavailable.",
+        subjectId: SUBJECT,
+      }),
+    ],
+  ] as Array<[string, OverviewSection<Array<UptimeBarTooltipMaintenance>>]>)(
+    "says the markers are missing when the read is %s",
+    (
+      _label: string,
+      section: OverviewSection<Array<UptimeBarTooltipMaintenance>>,
+    ) => {
+      renderCard({ maintenance: section });
+
+      expect(
+        screen.getByTestId("monitor-uptime-maintenance-unavailable"),
+      ).toHaveTextContent("Maintenance markers are unavailable.");
+      // The strip itself still draws.
+      expect(screen.getByTestId("uptime-graph")).toBeInTheDocument();
+    },
+  );
+
+  test("says nothing of markers while they load, once they loaded, or for a page that reads none", () => {
+    for (const maintenance of [
+      getLoadingSection<Array<UptimeBarTooltipMaintenance>>(),
+      maintenanceLoaded([]),
+      undefined,
+    ]) {
+      renderCard(maintenance ? { maintenance: maintenance } : {});
+
+      expect(
+        screen.queryByTestId("monitor-uptime-maintenance-unavailable"),
+      ).toBeNull();
+
+      cleanup();
+    }
+  });
+
+  test("an event opens its own page", () => {
+    const navigate: MockFunction = getJestMockFunction();
+    jest.spyOn(Navigation, "navigate").mockImplementation(navigate);
+
+    renderCard({ maintenance: maintenanceLoaded([MAINTENANCE]) });
+    fireEvent.click(screen.getByRole("button", { name: "maintenance marker" }));
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect((navigate.mock.calls[0]![0] as Route).toString()).toBe(
+      RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SCHEDULED_MAINTENANCE_VIEW] as Route,
+        {
+          modelId: new ObjectID("88888888-8888-4888-8888-888888888888"),
+        },
+      ).toString(),
+    );
+  });
+
+  test("the day dialog lists the day's maintenance and opens it too", () => {
+    renderCard({ maintenance: maintenanceLoaded([MAINTENANCE]) });
+
+    fireEvent.click(screen.getByRole("button", { name: "maintenance bar" }));
+
+    const modalProps: Record<string, unknown> =
+      mockModalProps[mockModalProps.length - 1]!;
+
+    expect(modalProps["maintenanceEvents"]).toEqual([MAINTENANCE]);
+    expect(typeof modalProps["onMaintenanceClick"]).toBe("function");
   });
 });

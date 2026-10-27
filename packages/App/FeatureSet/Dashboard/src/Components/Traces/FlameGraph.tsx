@@ -340,8 +340,9 @@ const FlameGraph: FunctionComponent<FlameGraphProps> = (
     );
   };
 
+  // Left to right in every language, as time runs along every chart.
   return (
-    <div className="flame-graph" ref={containerRef}>
+    <div className="flame-graph" ref={containerRef} dir="ltr">
       {/* Controls */}
       <div className="flex items-center justify-between mb-2 px-1">
         <div className="text-[11px] text-gray-500">

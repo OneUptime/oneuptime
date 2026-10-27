@@ -10,6 +10,7 @@ import Button, {
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import IconProp from "Common/Types/Icon/IconProp";
+import { ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME } from "Common/UI/Components/Icon/Icon";
 import FilterConditionElement from "./FilterCondition";
 import {
   FilterBuilderConfig,
@@ -225,8 +226,9 @@ const FilterQueryBuilderField: FunctionComponent<ComponentProps> = (
         <div className="mt-4">
           <details className="group">
             <summary className="flex items-center gap-1.5 cursor-pointer text-xs text-gray-400 hover:text-gray-500 transition-colors select-none list-none">
+              {/* Points where the line goes, as Icon's chevrons do. */}
               <svg
-                className="w-3 h-3 transition-transform duration-150 group-open:rotate-90"
+                className={`w-3 h-3 transition-transform duration-150 group-open:rotate-90 ${ICON_MIRRORED_RIGHT_TO_LEFT_CLASS_NAME}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

@@ -1,16 +1,6 @@
 import { expect, Locator, Page, test, TestInfo } from "@playwright/test";
-
-interface FixtureState {
-  requests: number;
-  refreshOffline: boolean;
-  inputFrames?: Array<{ value: string; durationMs: number }>;
-}
-
-declare global {
-  interface Window {
-    __statusPageSearchFixture: FixtureState;
-  }
-}
+// The page's fixture state, as window.__statusPageSearchFixture.
+import "./FixtureState";
 
 test.beforeEach(async ({ page }: { page: Page }) => {
   await page.goto("/");

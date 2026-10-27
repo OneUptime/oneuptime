@@ -75,10 +75,15 @@ const SloBudgetBar: FunctionComponent<ComponentProps> = (
   const trackClassName: string =
     geometry.tier === SloBudgetTier.Exhausted ? "bg-red-100" : "bg-gray-100";
 
+  /*
+   * Left to right in every language: the fill and the threshold's tick are
+   * both measured from the left, so they stay together.
+   */
   return (
     <div
       data-testid="slo-budget-bar"
       className={`relative w-full ${props.className || ""}`}
+      dir="ltr"
     >
       <div
         role="progressbar"

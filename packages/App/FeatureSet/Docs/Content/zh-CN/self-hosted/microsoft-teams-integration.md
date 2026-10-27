@@ -369,7 +369,7 @@ WHERE "workspaceType" = 'MicrosoftTeams';
 
 ### "This Microsoft 365 organization is connected to more than one OneUptime project"
 
-两个或更多 OneUptime 项目连接了同一个 Microsoft 365 组织，而消息中没有任何内容能区分它们。卡片上的按钮在卡片所涉及记录的项目中执行，消息在其发送所在频道的项目中执行，否则在发送者的 Microsoft Teams 账户所连接的唯一项目中执行。请从目标项目的频道（例如其某个事件频道）中再次发送。如果发送者的账户在任何一个项目中都未连接，会先请其连接账户。
+两个或更多 OneUptime 项目连接了同一个 Microsoft 365 组织，而消息中没有任何内容能区分它们。卡片上的按钮在发送该卡片所针对的项目中执行，消息在其发送所在频道的项目中执行，否则在发送者的 Microsoft Teams 账户所连接的唯一项目中执行。如果无法据此判断，机器人会询问发送者指的是哪个项目，并为此人所在的每个项目显示一个按钮。只有在无法询问时，机器人才会用这句话回复：发送者所在的项目超过 25 个、无法读取某个项目的名称，或者在按钮有效的半小时内保存该请求的缓存 Valkey 不可用。请从目标项目的频道（例如其某个事件频道）中再次发送。如果发送者的账户在任何一个项目中都未连接，会先请其连接账户。
 
 ### "Microsoft Teams App Client ID must be a valid GUID"
 

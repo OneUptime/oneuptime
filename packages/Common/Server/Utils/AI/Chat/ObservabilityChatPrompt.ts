@@ -29,6 +29,23 @@ import {
 export const INFRASTRUCTURE_COMMANDS_GUIDANCE: string = `- Commands on the infrastructure itself (a host's uptime, systemctl or journalctl, docker, pvesh, govc, ceph, kubectl, …) reach it through its AI agent, with ${RUN_INFRASTRUCTURE_COMMAND_TOOL_NAME} and ${RUN_KUBECTL_TOOL_NAME}. A conversation has them only for the resources and clusters it is about whose AI agent is connected and may investigate: the one on the page Ask AI was opened from, or the ones an incident or alert is linked to. Hosts, Docker and Podman hosts, Docker Swarm, Proxmox, VMware and Ceph clusters, database servers and Kubernetes clusters have AI agents; other resources have none. If you are asked to run a command and no tool here can run it, never pretend a command ran: say you cannot run commands on it from this conversation, with the reason when this conversation gives one, and, for a resource that has an AI agent, that Ask AI opened on its page in OneUptime can, once the agent is connected and AI investigation is on for it.`;
 
 /*
+ * Incident, alert or monitor (issue #5301). On a host's page, "Create alert
+ * on high ram 75%" was answered with "I don't have a tool available to
+ * create new alerts", though Ask AI declared incidents. It raises alerts
+ * now (create_alert), and the model is told when an alert is the right
+ * record - something to look into, not an outage users feel - and that
+ * neither record watches for anything: a request to be alerted whenever a
+ * condition holds asks for a monitor, which no tool creates, so the model
+ * says so, reads the condition now, offers an alert if it holds, and names
+ * where a person creates the monitor. In every mode, read-only included,
+ * since a read-only conversation is asked the same.
+ */
+export const INCIDENTS_ALERTS_AND_MONITORS_SECTION: string = `## Incidents, alerts and monitors
+
+- Declare an incident (create_incident) for an outage or a problem users feel, which needs a response now. Raise an alert (create_alert) for something the team should look into that is not, or not yet, an outage: a host's memory running high, an error rate creeping up. When the user names one, create that one.
+- An incident or an alert is created once, now, and watches nothing. A request to be alerted when or whenever something happens ("alert me when memory goes above 75%") asks for a monitor, and no tool here creates one: say so plainly, read the condition now with the metric tools, and if it holds now, offer to raise an alert about it. A person creates the monitor under Monitors → Create Monitor: a Host monitor watches a host's CPU, memory and disks (its High Memory Utilization template sets a memory threshold they can change), and a Metrics monitor watches any metric.`;
+
+/*
  * System prompt for the observability chat agent. The binding rules here
  * come from the product's trust rulings: citations on every claim, no
  * fabricated confidence, honest emptiness, and tool results treated as
@@ -39,11 +56,11 @@ export const INFRASTRUCTURE_COMMANDS_GUIDANCE: string = `- Commands on the infra
  * The action list shared by the two modes that can act. Read-only names the
  * same tools so the model can explain what switching modes unlocks.
  */
-const ACTION_LIST: string = `create incidents, link an incident or alert to the infrastructure and services it is about (add_incident_affected_resources / add_alert_affected_resources), acknowledge or resolve incidents and alerts, post internal notes (create_incident_note / create_alert_note — visible only to the team, never notifies status page subscribers; post_incident_status_update is the public counterpart), start an autonomous AI investigation (start_investigation), add a note to a security case (add_security_case_note), start a security playbook on a case (run_security_playbook — its containment steps still wait for a person's approval on the case), and change code (open_code_pull_request, commit_code_to_branch)`;
+const ACTION_LIST: string = `create incidents and alerts (create_incident / create_alert), link an incident or alert to the infrastructure and services it is about (add_incident_affected_resources / add_alert_affected_resources), acknowledge or resolve incidents and alerts, post internal notes (create_incident_note / create_alert_note — visible only to the team, never notifies status page subscribers; post_incident_status_update is the public counterpart), start an autonomous AI investigation (start_investigation), add a note to a security case (add_security_case_note), start a security playbook on a case (run_security_playbook — its containment steps still wait for a person's approval on the case), and change code (open_code_pull_request, commit_code_to_branch)`;
 
 function buildActionGuidance(mode: AIChatPermissionMode): string {
   if (mode === AIChatPermissionMode.ReadOnly) {
-    return `5. This conversation is READ-ONLY. You have only read tools — you cannot modify anything, and you must not claim to have taken any action. If the user asks you to create an incident, link one to the resources it is about, acknowledge an alert, post an internal note (create_incident_note / create_alert_note), start an investigation (start_investigation), change code, or make any other change, explain that read-only mode is on and they can switch modes to let you act.`;
+    return `5. This conversation is READ-ONLY. You have only read tools — you cannot modify anything, and you must not claim to have taken any action. If the user asks you to create an incident or an alert, link one to the resources it is about, acknowledge an alert, post an internal note (create_incident_note / create_alert_note), start an investigation (start_investigation), change code, or make any other change, explain that read-only mode is on and they can switch modes to let you act.`;
   }
 
   if (mode === AIChatPermissionMode.AutoRun) {
@@ -203,7 +220,7 @@ export function buildDeclaredHereGuidance(context: AIChatPageContext): string {
       },
     ]);
 
-    return `An incident you declare here with create_incident is linked to it (affectedResources ${resourceArgs}), so OneUptime AI investigates and fixes it there; pass affectedResources yourself only when the incident is about something else. add_incident_affected_resources and add_alert_affected_resources link it to an existing incident or alert. `;
+    return `An incident you declare here with create_incident, or an alert you raise here with create_alert, is linked to it (affectedResources ${resourceArgs}), so OneUptime AI investigates and fixes it there; pass affectedResources yourself only when the incident or alert is about something else. add_incident_affected_resources and add_alert_affected_resources link it to an existing incident or alert. `;
   }
 
   if (
@@ -273,7 +290,7 @@ ${buildActionGuidance(data.permissionMode)}
 - For infrastructure (hosts, Docker, Podman, Kubernetes, Docker Swarm, Proxmox, VMware, Ceph, storage arrays, serverless, cloud, IoT and network devices), discover resources with query_telemetry_resources and use query_resource_telemetry for their scoped metric trends, log severity and trace operations. Follow the tool's stated scope rather than assuming an infrastructure UUID is always the primary entity of its telemetry.
 - Host metrics such as system.cpu.utilization and system.memory.utilization are reported once per state, and the states add up to 1, so one average across them means nothing: read them per state (the metric tools do it on their own, or pass groupBy or attributes). For a Docker or Podman host's containers - the busiest, and the ones that stopped reporting, which host-wide numbers hide - use query_containers.
 ${INFRASTRUCTURE_COMMANDS_GUIDANCE}
-- OneUptime AI investigates and fixes the infrastructure an incident or alert is linked to, and nothing else. When you declare an incident about a host, a cluster, a database or a service, pass it in create_incident's affectedResources (resourceType and the resourceId query_telemetry_resources returns; lookup_context for a service); when an existing incident or alert turns out to be about one it is not linked to, offer add_incident_affected_resources or add_alert_affected_resources. Never link a resource you have not found with a tool.
+- OneUptime AI investigates and fixes the infrastructure an incident or alert is linked to, and nothing else. When you declare an incident or raise an alert about a host, a cluster, a database or a service, pass it in the affectedResources of create_incident or create_alert (resourceType and the resourceId query_telemetry_resources returns; lookup_context for a service); when an existing incident or alert turns out to be about one it is not linked to, offer add_incident_affected_resources or add_alert_affected_resources. Never link a resource you have not found with a tool.
 - For a network device's transceivers (SFP, SFP+, QSFP optics) - whether each is still detected, its readings against the device's own thresholds and its received power over the last weeks - use query_network_transceivers. Check it whenever a network device's interface is down or logging errors: a missing optic, a receiver gone dark or received power falling for weeks each point at a different fix.
 - For a resource of a connected cloud (AWS, Azure, Google Cloud), query_cloud_resource returns what its cloud's inventory says: its tags, the settings OneUptime keeps (instance type, engine version, runtime), what it runs in, sends traffic to or is protected by - and what does that to it - and the host names it answers on. query_cloud_accounts lists the connected accounts and what they hold. What changed in a cloud account - a deploy, a configuration, network or IAM change, scaling, and the provider's own health events - is in recent_changes; pass cloudResourceId or cloudAccountId for one resource's or one account's changes.
 - For Real User Monitoring, resolve applications with query_rum_applications and compare measured web vitals with query_rum_web_vitals. Use returned metric names with query_metrics to chart trends. Explain observed changes, missing data and the time windows used; do not call a change an anomaly without supporting evidence.
@@ -282,6 +299,8 @@ ${INFRASTRUCTURE_COMMANDS_GUIDANCE}
 - When durations are involved they are in milliseconds unless stated otherwise.
 - Platform questions have direct tools — answer them from those, not from telemetry: who is on call or how escalation works (get_on_call_status, query_on_call_policies); whether a page actually reached anyone (query_on_call_pages); who owns a resource (query_teams); what the runbook says (query_runbooks); what is public or has been announced to subscribers (query_status_pages, query_status_page_announcements); how much SLO error budget is left (query_slos); whether automation ran or failed (query_workflows); probe health (query_probes); early warnings that predate an incident (query_ai_insights).
 - When a question is genuinely ambiguous (which service? which time window? which environment?) and a wrong guess would waste queries or mislead, ask one focused clarifying question instead of running default-window queries. When the ambiguity is minor, proceed and state the assumption explicitly in your answer.
+
+${INCIDENTS_ALERTS_AND_MONITORS_SECTION}
 
 ## Reading tool results
 

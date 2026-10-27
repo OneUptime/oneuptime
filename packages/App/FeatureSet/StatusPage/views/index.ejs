@@ -11,7 +11,7 @@
     ? statusPageTheme
     : { setting: 'light', htmlClassName: '', colorScheme: 'light', themeColor: '#f9fafb' };
 %>
-<html lang="<%= typeof lang !== 'undefined' && lang ? lang : 'en' %>"<% if (themeHead.htmlClassName) { %> class="<%= themeHead.htmlClassName %>"<% } %> data-status-page-theme="<%= themeHead.setting %>">
+<html lang="<%= typeof lang !== 'undefined' && lang ? lang : 'en' %>" dir="<%= typeof dir !== 'undefined' && dir === 'rtl' ? 'rtl' : 'ltr' %>"<% if (themeHead.htmlClassName) { %> class="<%= themeHead.htmlClassName %>"<% } %> data-status-page-theme="<%= themeHead.setting %>">
   <head>
     <meta charset="utf-8" />
     <%#
@@ -200,6 +200,8 @@
       </style>
     <link rel="preload" href="/status-page/assets/js/tailwind-3.4.5.js" as="script">
     <script src="/status-page/assets/js/tailwind-3.4.5.js"></script>
+    <%# Left and right follow the reading direction (Common/UI/Styles/TailwindReadingDirection.js) -%>
+    <script src="/status-page/assets/js/tailwind-reading-direction.js"></script>
     <title><%= typeof title !== 'undefined' ? title : 'Status Page' %></title>
 
     <%#

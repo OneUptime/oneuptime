@@ -115,6 +115,8 @@ Gruppen haben ihre eigenen Kopien dieser Schalter (siehe unten), sodass eine Gru
 
 Die Farben der Balken des Verlaufsdiagramms werden unter **Weitere Einstellungen** auf der Seite **Branding** festgelegt, und welche Monitorstatus als „ausgefallen“ zählen, in **Zählt als Ausfallzeit**, in der Karte **Was Ihre Statusseite zeigt** unter **Erweiterte Einstellungen** – beides erklärt [Statusseiten – Branding & Domains](/docs/status-pages/branding-and-domains).
 
+Jeder Balken ist ein Tag. Zeigen Sie auf einen Balken oder klicken Sie ihn an (auf dem Telefon antippen, mit der Tastatur Enter drücken), um den Tag zu lesen: seine Verfügbarkeit, wie lange jeder Status dauerte, die an diesem Tag gemeldeten Vorfälle und die geplante Wartung, die an ihm lief, jeweils mit einem Link auf ihre eigene Seite. Ein Tag mit geplanter Wartung trägt oben an seinem Balken einen blauen Streifen, und solange ein Ereignis läuft, steht neben dem Namen jeder Ressource seiner Monitore „In Wartung“. Wartung ändert weder die Farbe eines Balkens noch die Verfügbarkeit, die beide aus den Status des Monitors kommen: Damit geplante Arbeit nicht in die Verfügbarkeit eingeht, wählen Sie für das Ereignis bei **Monitor-Status ändern in** einen Status, der nicht zu den Status unter **Zählt als Ausfallzeit** der Seite gehört. Siehe [Was ein Ereignis beeinflusst](/docs/scheduled-maintenance/index#was-ein-ereignis-beeinflusst).
+
 ## Gruppen
 
 Die meisten Gruppen brauchen nur einen Namen.

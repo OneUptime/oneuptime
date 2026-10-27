@@ -246,3 +246,28 @@ describe("LogDetailsPanel attributes as JSON", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("a log's body reads the way it is written", () => {
+  test("an English body left to right, a Persian one right to left; JSON is code", () => {
+    const english: Log = makeLog(undefined);
+    english.body = "Payment provider timed out after 30s.";
+
+    const { unmount } = render(
+      <LogDetailsPanel log={english} serviceMap={{}} />,
+    );
+
+    expect(
+      screen.getByText("Payment provider timed out after 30s."),
+    ).toHaveAttribute("dir", "ltr");
+    unmount();
+
+    const persian: Log = makeLog(undefined);
+    persian.body = "پرداخت با موفقیت انجام شد.";
+    render(<LogDetailsPanel log={persian} serviceMap={{}} />);
+
+    expect(screen.getByText("پرداخت با موفقیت انجام شد.")).toHaveAttribute(
+      "dir",
+      "rtl",
+    );
+  });
+});

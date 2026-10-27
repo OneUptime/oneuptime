@@ -342,7 +342,7 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
               <Button
                 title={t("subscribe.update.getNewLink")}
                 buttonStyle={ButtonStyleType.PRIMARY}
-                style={{ marginLeft: "0px", width: "100%" }}
+                style={{ marginInlineStart: "0px", width: "100%" }}
                 dataTestId="update-subscription-get-new-link"
                 onClick={() => {
                   Navigation.navigate(

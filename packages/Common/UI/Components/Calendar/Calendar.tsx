@@ -213,12 +213,13 @@ const ENGLISH_LANGUAGE: string = "en";
 
 /*
  * The dates and times the views write - the month's and the week's titles,
- * the day names, the hours down the side, an event's times - in the
- * reader's language. English keeps react-big-calendar's own wording (the
- * moment localizer's). Another language gets the browser's (Intl), always
- * on the Gregorian calendar the grid is laid out in and with the digits of
- * the grid's day numbers: Persian would otherwise name the month of its own
- * calendar above a Gregorian grid.
+ * the day names, the day numbers in the grid, the hours down the side, an
+ * event's times - in the reader's language. English keeps react-big-
+ * calendar's own wording (the moment localizer's). Another language gets
+ * the browser's (Intl), always on the Gregorian calendar the grid is laid
+ * out in (Persian would otherwise name the month of its own calendar above
+ * a Gregorian grid), and in the language's own figures, as every other date
+ * on the page is (Common/Types/DateLanguage): "اکتبر ۲۰۲۶" over "۰۱", "۰۲".
  */
 export const getCalendarFormats: (language: string | undefined) => Formats = (
   language: string | undefined,
@@ -243,7 +244,6 @@ export const getCalendarFormats: (language: string | undefined) => Formats = (
     try {
       format = new Intl.DateTimeFormat(code, {
         calendar: "gregory",
-        numberingSystem: "latn",
         ...options,
       } as Intl.DateTimeFormatOptions);
     } catch {
@@ -273,6 +273,8 @@ export const getCalendarFormats: (language: string | undefined) => Formats = (
   });
 
   return {
+    // The day numbers in the month's grid: "01", "۰۱".
+    dateFormat: formatter({ day: "2-digit" }),
     weekdayFormat: formatter({ weekday: "short" }),
     dayFormat: formatter({ weekday: "short", day: "2-digit" }),
     dayHeaderFormat: formatter({

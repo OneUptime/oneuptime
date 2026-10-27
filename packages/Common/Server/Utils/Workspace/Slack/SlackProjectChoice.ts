@@ -1,5 +1,3 @@
-import crypto from "crypto";
-import GlobalCache from "../../../Infrastructure/GlobalCache";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import {
@@ -13,6 +11,11 @@ import { mdText } from "../../../../Utils/Markdown/FeedMarkdown";
 import logger from "../../Logger";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import WorkspaceProjectChoiceStore, {
+  WorkspaceProjectChoicePress,
+  WorkspaceProjectChoiceRecord,
+  WorkspaceProjectChoiceTaken,
+} from "../WorkspaceProjectChoiceStore";
 import WorkspaceProjectResolver, {
   WorkspaceProjectChoice,
   WorkspaceProjectResolution,
@@ -41,12 +44,14 @@ import SlackAiConversations, {
  *
  * Now they are asked which, where they made it: a button for each project
  * their Slack account is connected in as a member, in the order the
- * projects were connected. The request is recorded here, on the server,
- * keyed by the SHA-256 of an opaque random token the buttons carry - as a
- * Connect button's press is (WorkspaceConnectRequest) - with who made it and
- * the projects offered. A press of one spends it, once, when it is the
- * person who made it, in the workspace they made it in, choosing a project
- * that was offered; and the request is made again, in that project:
+ * projects were connected. The request is kept on the server, keyed by the
+ * SHA-256 of an opaque random token the buttons carry - as a Connect
+ * button's press is (WorkspaceConnectRequest) - with who made it and the
+ * projects offered (WorkspaceProjectChoiceStore, which Microsoft Teams'
+ * MicrosoftTeamsProjectChoice keeps its requests in too). A press of one
+ * spends it, once, when it is the person who made it, in the workspace they
+ * made it in, choosing a project that was offered; and the request is made
+ * again, in that project:
  *
  *   - a command, a shortcut, an older app's /incident or a Home button is
  *     read again as a press is (SlackAuthAction), from what Slack sent of
@@ -69,6 +74,12 @@ import SlackAiConversations, {
  * that cannot be recorded (the cache is down), or whose projects cannot all
  * be named, is answered as it was: with the projects, and where to try
  * again (WorkspaceProjectResolver.getAmbiguousAnswer).
+ *
+ * The app's Home tab shows such a person one project at a time, with a
+ * Switch project menu of their others (SlackHome). The project they choose
+ * there is kept here too, for each person in each workspace
+ * (rememberHomeProject), so their later openings show it - while they are
+ * still a member there, which the Home reads again each time.
  */
 
 // What a request whose project its person chooses is, to make it again.
@@ -116,11 +127,7 @@ export interface SlackProjectChoiceRecord {
 }
 
 // What a press of one of the buttons names.
-export interface SlackProjectChoicePress {
-  projectId: ObjectID;
-  // The recorded request's token.
-  token: string;
-}
+export type SlackProjectChoicePress = WorkspaceProjectChoicePress;
 
 /*
  * A conversation with OneUptime AI - the thread a question is in, or
@@ -133,14 +140,18 @@ export interface SlackConversationOfPerson {
   slackUserId: string;
 }
 
+/*
+ * Somebody's Home tab in a Slack workspace: what keeps the project they
+ * chose for it (SlackHome).
+ */
+export interface SlackHomeOfPerson {
+  teamId: string;
+  slackUserId: string;
+}
+
 const NAMESPACE: string = "slack-project-choice";
 const CONVERSATION_NAMESPACE: string = "slack-project-choice-conversation";
-
-// 32 random bytes, as base64url writes them.
-const TOKEN_PATTERN: RegExp = /^[A-Za-z0-9_-]{43}$/;
-
-// The most a button's text holds.
-const BUTTON_TITLE_MAX_LENGTH: number = 75;
+const HOME_NAMESPACE: string = "slack-project-choice-home";
 
 // What of a press is kept to read it again: the fields SlackAuthAction reads.
 const PRESS_FIELDS: ReadonlyArray<string> = [
@@ -172,13 +183,15 @@ export default class SlackProjectChoice {
    * the request, where what it asked for is still answered once its project
    * is chosen.
    */
-  public static readonly EXPIRES_IN_SECONDS: number = 30 * 60;
+  public static readonly EXPIRES_IN_SECONDS: number =
+    WorkspaceProjectChoiceStore.EXPIRES_IN_SECONDS;
 
   /*
    * The most projects offered: Slack takes 25 buttons in a row of them.
    * Somebody in more is answered as before, with the projects named.
    */
-  public static readonly MAX_CHOICES: number = 25;
+  public static readonly MAX_CHOICES: number =
+    WorkspaceProjectChoiceStore.MAX_CHOICES;
 
   /*
    * What a command, a shortcut, an older app's /incident or a Home button
@@ -214,24 +227,7 @@ export default class SlackProjectChoice {
 
   // What a button's value names; null for anything that is not one.
   public static readChoice(value: unknown): SlackProjectChoicePress | null {
-    if (typeof value !== "string") {
-      return null;
-    }
-
-    const separator: number = value.indexOf(":");
-
-    if (separator < 0) {
-      return null;
-    }
-
-    const projectId: string = value.substring(0, separator);
-    const token: string = value.substring(separator + 1);
-
-    if (!ObjectID.isValidUUID(projectId) || !TOKEN_PATTERN.test(token)) {
-      return null;
-    }
-
-    return { projectId: new ObjectID(projectId), token: token };
+    return WorkspaceProjectChoiceStore.readChoice(value);
   }
 
   /*
@@ -259,39 +255,36 @@ export default class SlackProjectChoice {
    * was made on.
    */
   public static getPressPayload(payload: JSONObject): JSONObject {
-    const kept: JSONObject = SlackProjectChoice.pick(payload, PRESS_FIELDS);
+    const kept: JSONObject = WorkspaceProjectChoiceStore.pickText(
+      payload,
+      PRESS_FIELDS,
+    );
 
     for (const [field, fields] of Object.entries(PRESS_OBJECT_FIELDS)) {
-      const value: unknown = payload[field];
+      const value: JSONObject | undefined =
+        WorkspaceProjectChoiceStore.asObject(payload[field]);
 
-      if (value && typeof value === "object" && !Array.isArray(value)) {
-        kept[field] = SlackProjectChoice.pick(value as JSONObject, fields);
+      if (value) {
+        kept[field] = WorkspaceProjectChoiceStore.pickText(value, fields);
       }
     }
 
     if (Array.isArray(payload["actions"])) {
       kept["actions"] = (payload["actions"] as JSONArray)
         .filter((action: unknown): boolean => {
-          return Boolean(
-            action && typeof action === "object" && !Array.isArray(action),
-          );
+          return Boolean(WorkspaceProjectChoiceStore.asObject(action));
         })
         .map((action: JSONObject): JSONObject => {
-          const keptAction: JSONObject = SlackProjectChoice.pick(action, [
-            "action_id",
-            "value",
-          ]);
-          const selected: unknown = action["selected_option"];
+          const keptAction: JSONObject = WorkspaceProjectChoiceStore.pickText(
+            action,
+            ["action_id", "value"],
+          );
+          const selected: JSONObject | undefined =
+            WorkspaceProjectChoiceStore.asObject(action["selected_option"]);
 
-          if (
-            selected &&
-            typeof selected === "object" &&
-            !Array.isArray(selected)
-          ) {
-            keptAction["selected_option"] = SlackProjectChoice.pick(
-              selected as JSONObject,
-              ["value"],
-            );
+          if (selected) {
+            keptAction["selected_option"] =
+              WorkspaceProjectChoiceStore.pickText(selected, ["value"]);
           }
 
           return keptAction;
@@ -338,21 +331,13 @@ export default class SlackProjectChoice {
         return null;
       }
 
-      token = crypto.randomBytes(32).toString("base64url");
-
-      await GlobalCache.setString(
-        NAMESPACE,
-        SlackProjectChoice.hash(token),
-        JSON.stringify(
-          SlackProjectChoice.write({
-            teamId: data.teamId,
-            slackUserId: data.slackUserId,
-            choices: choices,
-            request: data.request,
-          }),
-        ),
-        { expiresInSeconds: SlackProjectChoice.EXPIRES_IN_SECONDS },
-      );
+      token = await WorkspaceProjectChoiceStore.keep({
+        namespace: NAMESPACE,
+        workspaceId: data.teamId,
+        workspaceUserId: data.slackUserId,
+        choices: choices,
+        request: SlackProjectChoice.writeRequest(data.request),
+      });
     } catch (err) {
       logger.error("Could not record a Slack request to ask its project of.");
       logger.error(err);
@@ -385,11 +370,6 @@ export default class SlackProjectChoice {
     const lead: string = WorkspaceProjectResolver.getAmbiguousLead(
       WorkspaceType.Slack,
     );
-    const names: Array<string> = data.choices.map(
-      (choice: WorkspaceProjectChoice): string => {
-        return choice.name;
-      },
-    );
 
     const markdown: WorkspacePayloadMarkdown = {
       _type: "WorkspacePayloadMarkdown",
@@ -405,8 +385,11 @@ export default class SlackProjectChoice {
         ): WorkspaceMessagePayloadButton => {
           return {
             _type: "WorkspaceMessagePayloadButton",
-            title: SlackProjectChoice.getButtonTitle(choice.name),
-            value: `${choice.projectId.toString()}:${data.token}`,
+            title: WorkspaceProjectChoiceStore.getButtonTitle(choice.name),
+            value: WorkspaceProjectChoiceStore.getChoiceValue({
+              projectId: choice.projectId,
+              token: data.token,
+            }),
             // Slack takes one action id once in a block.
             actionId: `${SlackActionType.ChooseProject}:${index}`,
           };
@@ -414,14 +397,11 @@ export default class SlackProjectChoice {
       ),
     };
 
-    const list: string =
-      names.length > 1
-        ? `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]!}`
-        : names[0] || "";
-
     return {
       messageBlocks: [markdown, buttons],
-      text: `Which project is this for: ${list}? ${lead}.`,
+      text: `Which project is this for: ${WorkspaceProjectChoiceStore.getNameList(
+        data.choices,
+      )}? ${lead}.`,
     };
   }
 
@@ -438,33 +418,28 @@ export default class SlackProjectChoice {
     teamId: string | undefined;
     slackUserId: string | undefined;
   }): Promise<SlackProjectChoiceRecord | null> {
-    const key: string = SlackProjectChoice.hash(data.press.token);
+    const taken: WorkspaceProjectChoiceTaken<SlackProjectChoiceRequest> =
+      await WorkspaceProjectChoiceStore.take({
+        namespace: NAMESPACE,
+        press: data.press,
+        workspaceId: data.teamId,
+        workspaceUserId: data.slackUserId,
+        readRequest: SlackProjectChoice.readRequest,
+      });
 
-    try {
-      const record: SlackProjectChoiceRecord | null = SlackProjectChoice.parse(
-        await GlobalCache.getString(NAMESPACE, key),
-      );
-
-      if (
-        !record ||
-        !data.teamId ||
-        !data.slackUserId ||
-        record.teamId !== data.teamId ||
-        record.slackUserId !== data.slackUserId ||
-        !SlackProjectChoice.getChoice(record, data.press.projectId)
-      ) {
-        return null;
-      }
-
-      // Spent in one atomic step: a second press finds nothing.
-      return SlackProjectChoice.parse(
-        await GlobalCache.getAndDeleteString(NAMESPACE, key),
-      );
-    } catch (err) {
-      logger.error("Could not read the request a Slack project choice is for.");
-      logger.error(err);
+    if (!taken.isTaken) {
       return null;
     }
+
+    const record: WorkspaceProjectChoiceRecord<SlackProjectChoiceRequest> =
+      taken.record;
+
+    return {
+      teamId: record.workspaceId,
+      slackUserId: record.workspaceUserId,
+      choices: record.choices,
+      request: record.request,
+    };
   }
 
   // The choice of `projectId` among a record's; undefined when not offered.
@@ -472,12 +447,7 @@ export default class SlackProjectChoice {
     record: SlackProjectChoiceRecord,
     projectId: ObjectID,
   ): WorkspaceProjectChoice | undefined {
-    return record.choices.find((choice: WorkspaceProjectChoice): boolean => {
-      return (
-        choice.projectId.toString().toLowerCase() ===
-        projectId.toString().toLowerCase()
-      );
-    });
+    return WorkspaceProjectChoiceStore.getChoice(record, projectId);
   }
 
   /*
@@ -576,19 +546,12 @@ export default class SlackProjectChoice {
     conversation: SlackConversationOfPerson;
     projectId: ObjectID;
   }): Promise<void> {
-    try {
-      await GlobalCache.setString(
-        CONVERSATION_NAMESPACE,
-        SlackProjectChoice.getConversationKey(data.conversation),
-        data.projectId.toString(),
-        { expiresInSeconds: SlackAiConversations.OPEN_FOR_SECONDS },
-      );
-    } catch (err) {
-      logger.debug(
-        "Could not remember the project chosen in a conversation with OneUptime AI.",
-      );
-      logger.debug(err);
-    }
+    await WorkspaceProjectChoiceStore.rememberProject({
+      namespace: CONVERSATION_NAMESPACE,
+      keyParts: SlackProjectChoice.getConversationKeyParts(data.conversation),
+      projectId: data.projectId,
+      expiresInSeconds: SlackAiConversations.OPEN_FOR_SECONDS,
+    });
   }
 
   /*
@@ -599,153 +562,96 @@ export default class SlackProjectChoice {
   public static async getConversationProject(
     conversation: SlackConversationOfPerson,
   ): Promise<ObjectID | null> {
-    try {
-      const projectId: string | null = await GlobalCache.getString(
-        CONVERSATION_NAMESPACE,
-        SlackProjectChoice.getConversationKey(conversation),
-      );
-
-      return projectId && ObjectID.isValidUUID(projectId)
-        ? new ObjectID(projectId)
-        : null;
-    } catch (err) {
-      logger.debug(
-        "Could not read the project chosen in a conversation with OneUptime AI.",
-      );
-      logger.debug(err);
-      return null;
-    }
+    return await WorkspaceProjectChoiceStore.getRememberedProject({
+      namespace: CONVERSATION_NAMESPACE,
+      keyParts: SlackProjectChoice.getConversationKeyParts(conversation),
+    });
   }
 
-  // A button's text: the project's name, cut to what Slack takes.
-  private static getButtonTitle(name: string): string {
-    return name.length > BUTTON_TITLE_MAX_LENGTH
-      ? `${name.substring(0, BUTTON_TITLE_MAX_LENGTH - 1)}…`
-      : name;
+  /*
+   * How long the project chosen for somebody's Home is kept: ninety days
+   * from the last time their Home was drawn for it - SlackHome keeps it
+   * again each time it shows it, so it is kept while they use it.
+   */
+  public static readonly HOME_REMEMBERED_FOR_SECONDS: number =
+    90 * 24 * 60 * 60;
+
+  /*
+   * Remembers the project somebody chose for their Home in a workspace
+   * (SlackHome's Switch project): their later openings show it while they
+   * are still a member there. Never throws: without it, the Home shows the
+   * first of their projects.
+   */
+  @CaptureSpan()
+  public static async rememberHomeProject(data: {
+    person: SlackHomeOfPerson;
+    projectId: ObjectID;
+  }): Promise<void> {
+    await WorkspaceProjectChoiceStore.rememberProject({
+      namespace: HOME_NAMESPACE,
+      keyParts: SlackProjectChoice.getHomeKeyParts(data.person),
+      projectId: data.projectId,
+      expiresInSeconds: SlackProjectChoice.HOME_REMEMBERED_FOR_SECONDS,
+    });
   }
 
-  // A record as it is stored.
-  private static write(record: SlackProjectChoiceRecord): JSONObject {
-    const request: JSONObject = { kind: record.request.kind };
-
-    if (record.request.payload) {
-      request["payload"] = record.request.payload;
-    }
-
-    if (record.request.question) {
-      request["question"] = record.request.question as unknown as JSONObject;
-    }
-
-    if (record.request.message) {
-      request["message"] = record.request.message as unknown as JSONObject;
-    }
-
-    return {
-      teamId: record.teamId,
-      slackUserId: record.slackUserId,
-      choices: record.choices.map(
-        (choice: WorkspaceProjectChoice): JSONObject => {
-          return {
-            projectId: choice.projectId.toString(),
-            name: choice.name,
-          };
-        },
-      ),
-      request: request,
-    };
+  /*
+   * The project somebody chose last for their Home in a workspace; null for
+   * none. Whether they may still see it is read by the Home, every time.
+   * Never throws: a cache that cannot be read is none.
+   */
+  @CaptureSpan()
+  public static async getHomeProject(
+    person: SlackHomeOfPerson,
+  ): Promise<ObjectID | null> {
+    return await WorkspaceProjectChoiceStore.getRememberedProject({
+      namespace: HOME_NAMESPACE,
+      keyParts: SlackProjectChoice.getHomeKeyParts(person),
+    });
   }
 
-  // A stored record, read back: null for anything write did not write.
-  private static parse(raw: string | null): SlackProjectChoiceRecord | null {
-    if (!raw) {
-      return null;
+  // A request as it is kept (WorkspaceProjectChoiceStore.keep).
+  private static writeRequest(request: SlackProjectChoiceRequest): JSONObject {
+    const written: JSONObject = { kind: request.kind };
+
+    if (request.payload) {
+      written["payload"] = request.payload;
     }
 
-    let stored: unknown;
-
-    try {
-      stored = JSON.parse(raw);
-    } catch {
-      return null;
+    if (request.question) {
+      written["question"] = request.question as unknown as JSONObject;
     }
 
-    const record: JSONObject | undefined = SlackProjectChoice.asObject(stored);
-    const request: JSONObject | undefined = SlackProjectChoice.asObject(
-      record?.["request"],
-    );
-
-    if (
-      !record ||
-      !request ||
-      typeof record["teamId"] !== "string" ||
-      !record["teamId"] ||
-      typeof record["slackUserId"] !== "string" ||
-      !record["slackUserId"] ||
-      !Array.isArray(record["choices"])
-    ) {
-      return null;
+    if (request.message) {
+      written["message"] = request.message as unknown as JSONObject;
     }
 
-    const choices: Array<WorkspaceProjectChoice> = [];
-
-    for (const entry of record["choices"] as JSONArray) {
-      const choice: JSONObject | undefined = SlackProjectChoice.asObject(entry);
-
-      if (
-        !choice ||
-        typeof choice["projectId"] !== "string" ||
-        !ObjectID.isValidUUID(choice["projectId"]) ||
-        typeof choice["name"] !== "string" ||
-        !choice["name"]
-      ) {
-        return null;
-      }
-
-      choices.push({
-        projectId: new ObjectID(choice["projectId"]),
-        name: choice["name"],
-      });
-    }
-
-    const parsedRequest: SlackProjectChoiceRequest | null =
-      SlackProjectChoice.parseRequest(request);
-
-    if (choices.length === 0 || !parsedRequest) {
-      return null;
-    }
-
-    return {
-      teamId: record["teamId"],
-      slackUserId: record["slackUserId"],
-      choices: choices,
-      request: parsedRequest,
-    };
+    return written;
   }
 
-  private static parseRequest(
+  // A kept request, read back: null for anything writeRequest did not write.
+  private static readRequest(
     request: JSONObject,
   ): SlackProjectChoiceRequest | null {
     switch (request["kind"]) {
       case SlackProjectChoiceKind.Press: {
-        const payload: JSONObject | undefined = SlackProjectChoice.asObject(
-          request["payload"],
-        );
+        const payload: JSONObject | undefined =
+          WorkspaceProjectChoiceStore.asObject(request["payload"]);
 
         return payload
           ? { kind: SlackProjectChoiceKind.Press, payload: payload }
           : null;
       }
       case SlackProjectChoiceKind.Question: {
-        const question: JSONObject | undefined = SlackProjectChoice.asObject(
-          request["question"],
-        );
+        const question: JSONObject | undefined =
+          WorkspaceProjectChoiceStore.asObject(request["question"]);
 
         if (
           !question ||
-          !SlackProjectChoice.isText(question["question"]) ||
-          !SlackProjectChoice.isText(question["teamId"]) ||
-          !SlackProjectChoice.isText(question["slackUserId"]) ||
-          !SlackProjectChoice.isText(question["responseUrl"])
+          !WorkspaceProjectChoiceStore.isText(question["question"]) ||
+          !WorkspaceProjectChoiceStore.isText(question["teamId"]) ||
+          !WorkspaceProjectChoiceStore.isText(question["slackUserId"]) ||
+          !WorkspaceProjectChoiceStore.isText(question["responseUrl"])
         ) {
           return null;
         }
@@ -756,29 +662,30 @@ export default class SlackProjectChoice {
             question: question["question"] as string,
             teamId: question["teamId"] as string,
             slackUserId: question["slackUserId"] as string,
-            channelId: SlackProjectChoice.textOrUndefined(
+            channelId: WorkspaceProjectChoiceStore.textOrUndefined(
               question["channelId"],
             ),
             responseUrl: question["responseUrl"] as string,
-            command: SlackProjectChoice.textOrUndefined(question["command"]),
+            command: WorkspaceProjectChoiceStore.textOrUndefined(
+              question["command"],
+            ),
           },
         };
       }
       case SlackProjectChoiceKind.Message: {
-        const message: JSONObject | undefined = SlackProjectChoice.asObject(
-          request["message"],
-        );
+        const message: JSONObject | undefined =
+          WorkspaceProjectChoiceStore.asObject(request["message"]);
 
         if (
           !message ||
           !(Object.values(SlackMessageKind) as Array<unknown>).includes(
             message["kind"],
           ) ||
-          !SlackProjectChoice.isText(message["teamId"]) ||
-          !SlackProjectChoice.isText(message["channelId"]) ||
-          !SlackProjectChoice.isText(message["userId"]) ||
-          !SlackProjectChoice.isText(message["text"]) ||
-          !SlackProjectChoice.isText(message["ts"])
+          !WorkspaceProjectChoiceStore.isText(message["teamId"]) ||
+          !WorkspaceProjectChoiceStore.isText(message["channelId"]) ||
+          !WorkspaceProjectChoiceStore.isText(message["userId"]) ||
+          !WorkspaceProjectChoiceStore.isText(message["text"]) ||
+          !WorkspaceProjectChoiceStore.isText(message["ts"])
         ) {
           return null;
         }
@@ -792,7 +699,9 @@ export default class SlackProjectChoice {
             userId: message["userId"] as string,
             text: message["text"] as string,
             ts: message["ts"] as string,
-            threadTs: SlackProjectChoice.textOrUndefined(message["threadTs"]),
+            threadTs: WorkspaceProjectChoiceStore.textOrUndefined(
+              message["threadTs"],
+            ),
           },
         };
       }
@@ -801,52 +710,20 @@ export default class SlackProjectChoice {
     }
   }
 
-  // The fields of `object` named, those that hold text or a yes or no.
-  private static pick(
-    object: JSONObject,
-    fields: ReadonlyArray<string>,
-  ): JSONObject {
-    const picked: JSONObject = {};
-
-    for (const field of fields) {
-      const value: unknown = object[field];
-
-      if (typeof value === "string" || typeof value === "boolean") {
-        picked[field] = value;
-      }
-    }
-
-    return picked;
-  }
-
-  private static asObject(value: unknown): JSONObject | undefined {
-    return value && typeof value === "object" && !Array.isArray(value)
-      ? (value as JSONObject)
-      : undefined;
-  }
-
-  private static isText(value: unknown): boolean {
-    return typeof value === "string" && value.length > 0;
-  }
-
-  private static textOrUndefined(value: unknown): string | undefined {
-    return typeof value === "string" && value ? value : undefined;
-  }
-
-  private static getConversationKey(
+  // The parts of a conversation's key: hashed, never kept as they are.
+  private static getConversationKeyParts(
     conversation: SlackConversationOfPerson,
-  ): string {
-    return SlackProjectChoice.hash(
-      JSON.stringify([
-        conversation.teamId,
-        conversation.channelId,
-        conversation.threadTs,
-        conversation.slackUserId,
-      ]),
-    );
+  ): Array<string> {
+    return [
+      conversation.teamId,
+      conversation.channelId,
+      conversation.threadTs,
+      conversation.slackUserId,
+    ];
   }
 
-  private static hash(value: string): string {
-    return crypto.createHash("sha256").update(value).digest("hex");
+  // The parts of a Home's key: hashed, never kept as they are.
+  private static getHomeKeyParts(person: SlackHomeOfPerson): Array<string> {
+    return [person.teamId, person.slackUserId];
   }
 }

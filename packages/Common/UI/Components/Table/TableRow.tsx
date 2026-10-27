@@ -45,6 +45,7 @@ import {
   DraggableStateSnapshot,
 } from "react-beautiful-dnd";
 import LongTextViewer from "../LongText/LongTextViewer";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import InfoTooltip from "../Tooltip/InfoTooltip";
 import DragHandle from "./DragHandle";
 
@@ -319,7 +320,11 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
           String(column.key),
         )?.toString();
 
-        return text || getNoValue();
+        /*
+         * Read the way it is written: an English description in a Persian
+         * table keeps its full stop at its end (IsolatedText).
+         */
+        return text ? <IsolatedText text={text} /> : getNoValue();
       }
     }
   };

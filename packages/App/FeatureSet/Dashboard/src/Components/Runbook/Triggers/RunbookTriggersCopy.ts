@@ -698,8 +698,9 @@ export const TriggerDetailCopy: {
  * When a run is, for the schedule's Next runs and its last run: on the
  * given zone's clock, in the reader's language, with the zone's name -
  * "Fri, Oct 16, 09:00 BST", "Fr., 16. Okt., 09:00 BST" - and the year only
- * when it is not this one. Gregorian calendar and Latin digits in every
- * language, as the feeds write times (FeedTime.getFeedLocale). With how far
+ * when it is not this one. Gregorian calendar in every language, and the
+ * language's own digits, as the feeds write times (FeedTime.getFeedLocale).
+ * With how far
  * off it is, in the reader's language too: "in 23 hours", "vor 2 Tagen".
  */
 export interface RunTimeText {

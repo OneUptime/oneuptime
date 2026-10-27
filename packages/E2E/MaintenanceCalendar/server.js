@@ -53,6 +53,15 @@ const tailwind = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
+/*
+ * What every index.ejs loads right after the runtime: left and right follow
+ * the page's reading direction, so a Persian page (dir="rtl", set by the
+ * frontend's i18n) is laid out as production lays it out.
+ */
+const readingDirection = path.join(
+  repository,
+  "packages/Common/UI/Styles/TailwindReadingDirection.js",
+);
 const font = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/fonts/InterVariable.woff2",
@@ -66,7 +75,7 @@ const env = `{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERS
  * page draws in.
  */
 const page = (bundle) => {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Maintenance calendar fixture</title><script>window.process={env:${env}};window.global=window;</script><script src="/tailwind.js"></script><script>tailwind.config={darkMode:"class"};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}body{margin:0}*{box-sizing:border-box}</style></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/${bundle}.js"></script></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Maintenance calendar fixture</title><script>window.process={env:${env}};window.global=window;</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class"};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/fonts/InterVariable.woff2') format('woff2');}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}body{margin:0}*{box-sizing:border-box}</style></head><body class="bg-gray-50"><div id="root"></div><script type="module" src="/dist/${bundle}.js"></script></body></html>`;
 };
 
 // A status page's addresses: its preview path, or its own domain's.
@@ -86,6 +95,11 @@ async function main() {
     if (url.pathname === "/tailwind.js") {
       response.setHeader("Content-Type", "application/javascript");
       fs.createReadStream(tailwind).pipe(response);
+      return;
+    }
+    if (url.pathname === "/tailwind-reading-direction.js") {
+      response.setHeader("Content-Type", "application/javascript");
+      fs.createReadStream(readingDirection).pipe(response);
       return;
     }
     if (url.pathname === "/fonts/InterVariable.woff2") {

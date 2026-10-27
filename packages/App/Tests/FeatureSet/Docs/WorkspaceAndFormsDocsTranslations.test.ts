@@ -211,6 +211,12 @@ const CHAT_HOME_BUTTONS: Array<string> = ["Declare incident", "Who's on call"];
 const SLACK_HOME_BUTTONS: Array<string> = ["Schedule maintenance"];
 const TEAMS_HOME_BUTTONS: Array<string> = ["Refresh"];
 
+/*
+ * The menu of Slack's Home tab for somebody in several of a workspace's
+ * projects, as the app draws it, in English (SLACK_HOME_PROJECT_MENU).
+ */
+const SLACK_HOME_MENU: Array<string> = ["Switch project"];
+
 // Microsoft Teams' own menus and buttons, as Teams names them.
 const TEAMS_CONTROLS: Array<string> = [
   "Manage team",
@@ -312,6 +318,7 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     ...PAGE_FORM,
     ...CHAT_HOME_BUTTONS,
     ...SLACK_HOME_BUTTONS,
+    ...SLACK_HOME_MENU,
   ],
   [TEAMS]: [
     "Growth",
@@ -1183,6 +1190,7 @@ describe("the lists this test keeps", () => {
       ...TEAMS_CONTROLS,
       ...CHAT_HOME_BUTTONS,
       ...SLACK_HOME_BUTTONS,
+      ...SLACK_HOME_MENU,
       ...TEAMS_HOME_BUTTONS,
       ...PROVIDER_CONSOLES,
       ...BRANDS,

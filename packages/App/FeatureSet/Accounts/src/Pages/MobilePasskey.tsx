@@ -219,7 +219,7 @@ const MobilePasskeyPage: () => JSX.Element = () => {
                   dataTestId="mobile-passkey-sign-in"
                   buttonStyle={ButtonStyleType.PRIMARY}
                   className="w-full justify-center"
-                  style={{ width: "100%", marginLeft: 0 }}
+                  style={{ width: "100%", marginInlineStart: "0px" }}
                   isLoading={loading}
                   disabled={loading || !supported}
                   onClick={() => {

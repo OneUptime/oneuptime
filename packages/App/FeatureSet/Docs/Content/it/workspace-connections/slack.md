@@ -192,6 +192,8 @@ Apri OneUptime da **Apps** nella barra laterale di Slack: la sua scheda **Home**
 
 La home legge come te, quindi richiede il tuo account Slack collegato. Finché non lo è, la home mostra un pulsante **Connect Slack account**, e ti mostra la tua home non appena lo hai collegato.
 
+In un workspace Slack collegato a più di un progetto, la home mostra un progetto alla volta. Se il tuo account Slack è collegato in due o più di essi, il menu **Switch project**, accanto al nome del progetto, elenca gli altri di cui sei membro. Scegline uno per vederne la home, e da allora la home si apre su quello, finché ne sei ancora membro. Finché non ne scegli uno, mostra quello dei tuoi progetti che è stato collegato a Slack per primo.
+
 Quando qualcuno aggiunge OneUptime a un canale, vi pubblica un saluto: come fargli una domanda e dove aggiungere una regola di notifica che pubblica nel canale. La prima volta che apri la sua scheda **Messages**, ti dà il benvenuto lì: cosa fa in Slack e come iniziare.
 
 ## Chiedere a OneUptime AI da Slack

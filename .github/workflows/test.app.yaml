@@ -11,6 +11,10 @@ on:
     branches:
       - master
 
+# Read-only: these jobs check out and test the code, nothing more.
+permissions:
+  contents: read
+
 jobs:
   test:
     name: test (${{ matrix.shard }}/${{ strategy.job-total }})
@@ -319,7 +323,15 @@ jobs:
           # CloudLinkSuggestions.spec.ts to Monitor Overview the same day (5
           # tests, about 20 seconds locally: the cloud resources a monitor's
           # Linked Resources card offers, linking one, a refused link, a read
-          # that fails, dark): about 21 to 21.5.
+          # that fails, dark): about 21 to 21.5. #5236 added 5 tests to Monitor
+          # Overview on 2026-10-27 (about 15 seconds locally: scheduled
+          # maintenance on a monitor's 90-day uptime strip - the band, the
+          # tooltip, the day's dialog opening the event, a read that fails,
+          # dark) and MaintenanceHistory.spec.ts to Status Page Search (8 tests
+          # on each of its two Chromium projects with its UI review's, about 37
+          # seconds locally), so Status Page Search (34.9 seconds on master's
+          # run of 03:08 on 2026-10-26, 1.2 minutes with its new spec) moved to
+          # group 11: about 20.5.
           - group: 3
             browsers: chromium firefox
             suites: >-
@@ -327,7 +339,6 @@ jobs:
               test-value-picker-ui
               test-event-notes-ui
               test-trace-detail-ui
-              test-status-page-search-ui
               test-label-rule-transfer-ui
               test-list-delete-ui
               test-rules-menu-section-ui
@@ -689,6 +700,16 @@ jobs:
           # States (2.2) and Shared UI (2.5) from group 8, joined it on
           # 2026-10-26, when 14.0.93's gate run took this group 12.2 minutes:
           # about 18.5, with room for Security Operations to grow.
+          # Reading Direction (1.3 minutes locally with its bundle, Chromium
+          # only: a Persian page laid out right to left and an English and a
+          # German one left to right - the switch, the status dot, a table's
+          # stuck Actions column, a dialog, a side panel, notes, chevrons,
+          # code and dates - at 1280 and 390 pixels, light and dark) joined
+          # them on 2026-10-26: about 20. Status Page Search (1.2 minutes
+          # locally with #5236's MaintenanceHistory.spec.ts and its UI
+          # review's checks, Chromium only: a laptop and a phone) moved here
+          # from group 3 on 2026-10-27, when that spec and Monitor Overview's
+          # maintenance tests would have taken group 3 past 22: about 21.
           - group: 11
             browsers: chromium
             suites: >-
@@ -696,6 +717,8 @@ jobs:
               test-ai-context-ui
               test-security-events-empty-states-ui
               test-shared-ui-ui
+              test-reading-direction-ui
+              test-status-page-search-ui
           # Added on 2026-10-26, when group 9 ran past its run step's 28
           # minutes on 14.0.93's gate run with every suite passing: Code had
           # grown to 13.0 minutes (6.4 when it joined group 9). Code, with
@@ -917,6 +940,8 @@ jobs:
             output/playwright/new-version-ui/test-results
             output/playwright/shared-ui/*.png
             output/playwright/shared-ui/test-results
+            output/playwright/reading-direction/*.png
+            output/playwright/reading-direction/test-results
             output/playwright/metrics-ai-ui/*.png
             output/playwright/metrics-ai-ui/test-results
             output/playwright/dashboard-templates-ui/*.png

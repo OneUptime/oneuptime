@@ -1,7 +1,10 @@
+import Alert from "Common/Models/DatabaseModels/Alert";
+import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentStateTimeline from "Common/Models/DatabaseModels/IncidentStateTimeline";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import {
   AcknowledgeAlertTool,
+  CreateAlertTool,
   ResolveAlertTool,
 } from "Common/Server/Utils/AI/Toolbox/AlertWriteTools";
 import {
@@ -10,6 +13,7 @@ import {
 } from "Common/Server/Utils/AI/Toolbox/AIActionTools";
 import {
   AcknowledgeIncidentTool,
+  CreateIncidentTool,
   ResolveIncidentTool,
 } from "Common/Server/Utils/AI/Toolbox/IncidentWriteTools";
 import { ObservabilityTool } from "Common/Server/Utils/AI/Toolbox/ToolTypes";
@@ -141,6 +145,8 @@ describe("Docs: Ask AI's actions are made as the person who asked", () => {
   });
 
   test.each([
+    CreateIncidentTool,
+    CreateAlertTool,
     AcknowledgeIncidentTool,
     ResolveIncidentTool,
     AcknowledgeAlertTool,
@@ -160,6 +166,31 @@ describe("Docs: Ask AI's actions are made as the person who asked", () => {
       }
     },
   );
+
+  /*
+   * Issue #5301: Ask AI raises alerts as it declares incidents, each with
+   * the permission the dashboard's own form asks for: the model's create
+   * permissions, which the page names by the custom role's permission.
+   */
+  test("says creating an incident or an alert needs permission to create one, as the forms ask", () => {
+    const line: string = bullet(actions, "**What each action needs.**");
+
+    expect([...CreateIncidentTool.requiredPermissions].sort()).toEqual(
+      [...new Incident().getCreatePermissions()].sort(),
+    );
+    expect([...CreateAlertTool.requiredPermissions].sort()).toEqual(
+      [...new Alert().getCreatePermissions()].sort(),
+    );
+    expect(line).toContain(
+      "Creating an incident or an alert needs permission to create one: a role that may, or **Create Incident** or **Create Alert** in a custom role.",
+    );
+    expect(permissionTitles(CreateIncidentTool.requiredPermissions)).toEqual([
+      "Create Incident",
+    ]);
+    expect(permissionTitles(CreateAlertTool.requiredPermissions)).toEqual([
+      "Create Alert",
+    ]);
+  });
 
   test("says a refused action is answered with the permission it needs", () => {
     const line: string = bullet(actions, "**What each action needs.**");

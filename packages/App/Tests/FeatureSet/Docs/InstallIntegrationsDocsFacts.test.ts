@@ -146,6 +146,8 @@ const SOURCES: Record<string, string> = {
   teamsSignInAuthority: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsSignInAuthority.ts`,
   teamsDocumentation: `${DASHBOARD}/Components/MicrosoftTeams/MicrosoftTeamsIntegrationDocumentation.tsx`,
   teamsUtil: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeams.ts`,
+  teamsProjectChoice: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsProjectChoice.ts`,
+  projectChoiceStore: `${COMMON_SERVER}/Utils/Workspace/WorkspaceProjectChoiceStore.ts`,
   teamsServiceUrl: `${COMMON_SERVER}/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsServiceUrl.ts`,
   teamsIntegration: `${DASHBOARD}/Components/MicrosoftTeams/MicrosoftTeamsIntegration.tsx`,
   teamsChatsCard: `${DASHBOARD}/Components/MicrosoftTeams/MicrosoftTeamsChatsCard.tsx`,
@@ -2955,6 +2957,44 @@ describe("Microsoft Teams Integration, against the server and the Teams card", (
         from = at + part.length;
       }
     }
+  });
+
+  /*
+   * The bot asks which project a request is for, with a button for each
+   * (MicrosoftTeamsProjectChoice), and answers with the troubleshooting
+   * entry's sentence only when it cannot ask: more projects than a card
+   * lists, a project it cannot name, or a request it cannot keep in Valkey
+   * for the half hour its buttons work (WorkspaceProjectChoiceStore).
+   */
+  it("the ambiguous answer's entry says the bot asks first, and when it cannot, by the server's own limits", () => {
+    const store: string = readSource("projectChoiceStore");
+    const choice: string = readSource("teamsProjectChoice");
+    const entry: string = page.substring(
+      page.indexOf(
+        '### "This Microsoft 365 organization is connected to more than one OneUptime project"',
+      ),
+    );
+    const body: string = entry.split("\n")[2] || "";
+
+    expect(store).toContain("public static readonly MAX_CHOICES: number = 25;");
+    expect(store).toContain(
+      "public static readonly EXPIRES_IN_SECONDS: number = 30 * 60;",
+    );
+    expect(store).toContain("await GlobalCache.setString(");
+    expect(choice).toContain(
+      "projectIds.length > WorkspaceProjectChoiceStore.MAX_CHOICES",
+    );
+    expect(choice).toContain("if (!choices) {");
+
+    expect(body).toContain(
+      "the bot asks the sender which project they mean, with a button for each one they're in.",
+    );
+    expect(body).toContain(
+      "It answers with this sentence only when it cannot ask: the sender is in more than 25 of the projects, a project's name cannot be read, or Valkey, the cache that keeps the request for the half hour its buttons work, is unavailable.",
+    );
+    expect(body).toContain(
+      "Send it again from a channel of the project you mean, such as one of its incident channels.",
+    );
   });
 
   it("the tenant check logs the line the page searches for, and the query reads the token table", () => {

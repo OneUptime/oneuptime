@@ -2,6 +2,7 @@ import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 
 import {
   AdminDashboardLanguage,
@@ -124,5 +125,11 @@ i18n
 
 // Dates, times and durations in the reader's language too.
 followLanguageForDates(i18n);
+
+/*
+ * <html lang> and <html dir> follow the reader's language: a screen reader
+ * reads the page in it, and a Persian page reads right to left.
+ */
+followLanguageForPage(i18n);
 
 export default i18n;
