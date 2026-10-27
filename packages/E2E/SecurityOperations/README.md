@@ -216,7 +216,8 @@ that list is not empty.
   Riskiest Entities is the top of Entity Risk's list, in its order, by its scores and levels (at
   the project's threshold too), each entity opening its own page with Entity Risk lit, the rest
   of the list a click away, and risk that could not be read (`?riskiest=fail`) said so with Try
-  again, in both themes and on a phone.
+  again, in both themes and on a phone; in Persian (`?lang=fa`) each value reads as written, in
+  an isolate that starts where its line does and cuts a long value at its own end.
 - **Case priorities and statuses** (`?values=custom`): Settings → Case Statuses lists the
   project's statuses in order, what a case in each counts as, the four built-in ones tagged and the
   retired one folded under the table; Case Priorities lists Emergency above the five a detection
@@ -384,7 +385,8 @@ and the rest) and `cases-bulk-assign-result`,
 `attack-coverage-phone`, `attack-coverage-dark`, `rule-library-desktop`,
 `rule-library-category-*`, `entity-risk-lookup-desktop`, `entity-risk-lookup-phone`,
 `overview-riskiest-entities`, `overview-riskiest-entities-failed`,
-`overview-riskiest-entities-dark`, `overview-riskiest-entities-phone`, `detection-rules-desktop`,
+`overview-riskiest-entities-dark`, `overview-riskiest-entities-phone`,
+`overview-riskiest-entities-fa-1280`, `overview-riskiest-entities-fa-390`, `detection-rules-desktop`,
 `detection-rule-correlation-form-desktop`, `detection-rules-dark`, `detection-rules-phone`,
 `threat-intel-desktop`, `threat-intel-feed-source-desktop`, `threat-intel-dark`,
 `threat-intel-phone`, and OneUptime AI's: `case-ai-desktop`, `case-ai-evidence-desktop`,

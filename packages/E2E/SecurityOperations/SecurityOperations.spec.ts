@@ -8265,6 +8265,9 @@ test.describe("the Overview's Riskiest Entities", () => {
     ["192.0.2.15", "50", "IP Address · Medium"],
   ];
 
+  // A value with a letter written left to right (an account, a host).
+  const LATIN_LETTER: RegExp = /[a-z]/i;
+
   function riskiestCard(page: Page): Locator {
     return cardTitled(page, "Riskiest Entities");
   }
@@ -8420,4 +8423,136 @@ test.describe("the Overview's Riskiest Entities", () => {
     }
     await screenshot(page, "overview-riskiest-entities-phone");
   });
+
+  /*
+   * An entity's value is something someone's systems wrote: on a Persian
+   * page (#5312) it reads the way it is written, in an isolate. The isolate
+   * is as wide as the value, so a short one ("web-03") starts where its
+   * line does, as a long one does - a block as wide as the kind and level
+   * under it set it off the line's start - and a long one is cut short at
+   * its own end, where it stops reading, never at its start.
+   */
+  for (const width of [1280, 390]) {
+    test(`in Persian at ${width}, each value reads as written from where its line starts, a long one cut at its own end`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(page, OVERVIEW_PATH, {
+        width,
+        height: width === 390 ? 844 : 1000,
+        lang: "fa",
+      });
+      const list: Locator = page.getByTestId(
+        "security-overview-riskiest-entities",
+      );
+      await expect(list).toContainText("k.morgan@acme-commerce.example", {
+        timeout: 30000,
+      });
+      expect(
+        await page.evaluate((): string => {
+          return document.documentElement.dir;
+        }),
+      ).toBe("rtl");
+
+      const values: Array<{
+        text: string;
+        tag: string;
+        dir: string;
+        direction: string;
+        startGap: number;
+        isCut: boolean;
+        textOverflow: string;
+        scrollLeft: number;
+      }> = await list.getByRole("listitem").evaluateAll(
+        (
+          items: Array<Element>,
+        ): Array<{
+          text: string;
+          tag: string;
+          dir: string;
+          direction: string;
+          startGap: number;
+          isCut: boolean;
+          textOverflow: string;
+          scrollLeft: number;
+        }> => {
+          return items.map((item: Element) => {
+            const value: HTMLElement = item.querySelector(
+              "a bdi",
+            ) as HTMLElement;
+            const line: HTMLElement = value.parentElement as HTMLElement;
+            const style: CSSStyleDeclaration = getComputedStyle(value);
+
+            return {
+              text: value.textContent || "",
+              tag: value.tagName,
+              dir: value.getAttribute("dir") || "",
+              direction: style.direction,
+              // A right-to-left line starts at its right edge.
+              startGap: Math.abs(
+                line.getBoundingClientRect().right -
+                  value.getBoundingClientRect().right,
+              ),
+              isCut: value.scrollWidth > value.clientWidth + 1,
+              textOverflow: style.textOverflow,
+              scrollLeft: value.scrollLeft,
+            };
+          });
+        },
+      );
+
+      expect(
+        values.map((value: { text: string }): string => {
+          return value.text;
+        }),
+      ).toEqual(
+        RISKIEST.map((row: [string, string, string]): string => {
+          return row[0];
+        }),
+      );
+
+      for (const value of values) {
+        expect([value.text, value.tag]).toEqual([value.text, "BDI"]);
+        /*
+         * Letters written left to right: the value reads so, on any page.
+         * An address has no letters: it is left to the isolate's own
+         * reading (IsolatedText), never forced either way.
+         */
+        if (LATIN_LETTER.test(value.text)) {
+          expect([value.text, value.dir, value.direction]).toEqual([
+            value.text,
+            "ltr",
+            "ltr",
+          ]);
+        } else {
+          expect([value.text, value.dir]).toEqual([value.text, ""]);
+        }
+        expect([value.text, value.startGap <= 1]).toEqual([value.text, true]);
+        // Cut with an ellipsis, from its first character on: at its own end.
+        expect([value.text, value.textOverflow, value.scrollLeft]).toEqual([
+          value.text,
+          "ellipsis",
+          0,
+        ]);
+      }
+
+      // On a phone, the longest are cut short; at 1280, every value is whole.
+      const cut: Array<string> = values
+        .filter((value: { isCut: boolean }): boolean => {
+          return value.isCut;
+        })
+        .map((value: { text: string }): string => {
+          return value.text;
+        });
+      if (width === 390) {
+        expect(cut).toContain("k.morgan@acme-commerce.example");
+        expect(cut).not.toContain("web-03");
+      } else {
+        expect(cut).toEqual([]);
+      }
+      expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+      await screenshot(page, `overview-riskiest-entities-fa-${width}`);
+    });
+  }
 });

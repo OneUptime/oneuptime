@@ -235,9 +235,16 @@ describe("the card's body", () => {
     expect(
       within(rows[0]!).getByText("k.morgan@acme-commerce.example").className,
     ).toBe(RISKIEST_ENTITY_VALUE_CLASS_NAME);
+    /*
+     * As wide as the value, no wider than its line, cut at its own end: a
+     * block would be as wide as the kind and level under it, and a short
+     * value written left to right would sit off the start of a Persian line.
+     */
     expect(RISKIEST_ENTITY_VALUE_CLASS_NAME.split(" ").sort()).toEqual([
-      "block",
+      "align-top",
       "font-mono",
+      "inline-block",
+      "max-w-full",
       "truncate",
     ]);
     expect(

@@ -25,12 +25,16 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
- * An entity's value: its own line, in the monospace every Security Events
- * value is drawn in, cut short at its own end - the isolate carries the
- * value's direction, so a right-to-left page cuts an address or an account
- * where it ends, not where it starts.
+ * An entity's value, in the monospace every Security Events value is drawn
+ * in, cut short at its own end: the isolate carries the value's direction,
+ * so a right-to-left page cuts an address or an account where it ends, not
+ * where it starts. It is as wide as the value and no wider than its line,
+ * so it starts where the line does on either page - a block as wide as its
+ * kind and level under it set a short "web-03" off the start of a Persian
+ * line, aligned to its own left.
  */
-export const RISKIEST_ENTITY_VALUE_CLASS_NAME: string = "block truncate font-mono";
+export const RISKIEST_ENTITY_VALUE_CLASS_NAME: string =
+  "inline-block max-w-full truncate align-top font-mono";
 
 export interface ComponentProps {
   // Null when the overview could not read them.
