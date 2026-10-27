@@ -26,6 +26,13 @@ export interface ComponentProps {
    * than the button) would open past the left edge of whatever holds it.
    */
   menuAlign?: "left" | "right" | undefined;
+  /*
+   * Which side of the button the menu opens on. Defaults to "top", for a
+   * composer at the foot of its surface. Ask AI's start draws the composer
+   * near the top of the dialog, where a menu opening upwards would be cut
+   * off by the dialog's edge: there it opens downwards ("bottom").
+   */
+  menuSide?: "top" | "bottom" | undefined;
 }
 
 const modeIcon: { [key in AIChatPermissionMode]: IconProp } = {
@@ -66,11 +73,16 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
         setIsOpen(false);
       }
     };
-    // Escape closes the menu and hands focus back to the button it came from.
+    /*
+     * Escape closes the menu and hands focus back to the button it came
+     * from - and only the menu: the key is marked as spent, so the dialog
+     * the picker sits in (Ask AI) does not close with it.
+     */
     const onKeyDown: (event: KeyboardEvent) => void = (
       event: KeyboardEvent,
     ): void => {
       if (event.key === "Escape") {
+        event.preventDefault();
         setIsOpen(false);
         buttonRef.current?.focus();
       }
@@ -119,9 +131,9 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
           id={menuId}
           role="menu"
           aria-label={translator.translateText("AI permissions")}
-          className={`absolute bottom-full z-50 mb-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
-            props.menuAlign === "left" ? "left-0" : "right-0"
-          }`}
+          className={`absolute z-50 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
+            props.menuSide === "bottom" ? "top-full mt-2" : "bottom-full mb-2"
+          } ${props.menuAlign === "left" ? "left-0" : "right-0"}`}
         >
           <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
             {translator.translateText("AI permissions")}

@@ -11,6 +11,14 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   citations: Array<AIChatCitation>;
+  /*
+   * Ask AI opens the list from a line that already says how many sources
+   * there are ("6 sources"): it draws the list without a heading of its
+   * own, labelled by that line instead. Shown by default.
+   */
+  isHeadingShown?: boolean | undefined;
+  labelledById?: string | undefined;
+  testId?: string | undefined;
 }
 
 /*
@@ -41,9 +49,9 @@ const ID_CLASS_NAME: string =
  * traces, a monitor) opens it; one without (a kubectl command) is a plain
  * line, never a button that does nothing.
  *
- * The Ask AI panel draws its sources as bordered pills (AIChat/CitationChips).
- * Here they sit in a card that draws no boxes inside itself, under an answer
- * that already carries the marks, so they are a quiet list.
+ * A quiet list rather than bordered pills: it sits in a card that draws no
+ * boxes inside itself, under an answer that already carries the marks. Ask
+ * AI draws the same list when an answer's sources are opened.
  */
 const AnswerSources: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -54,12 +62,22 @@ const AnswerSources: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  const isHeadingShown: boolean = props.isHeadingShown ?? true;
+
   return (
-    <div data-testid="investigation-conversation-sources">
-      <h4 className="text-xs font-medium text-gray-500">
-        {translator.translateText("Sources")}
-      </h4>
-      <ul role="list" className="mt-1">
+    <div data-testid={props.testId || "investigation-conversation-sources"}>
+      {isHeadingShown ? (
+        <h4 className="text-xs font-medium text-gray-500">
+          {translator.translateText("Sources")}
+        </h4>
+      ) : (
+        <></>
+      )}
+      <ul
+        role="list"
+        aria-labelledby={props.labelledById}
+        className={isHeadingShown ? "mt-1" : undefined}
+      >
         {props.citations.map((citation: AIChatCitation): ReactElement => {
           const isEmpty: boolean = !(citation.rowCount > 0);
           const title: string = isEmpty
