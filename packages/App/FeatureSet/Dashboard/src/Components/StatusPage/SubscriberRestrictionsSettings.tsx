@@ -1,4 +1,7 @@
-import { SubscriberRestrictionsCopy } from "./SubscriberRestrictionsCopy";
+import {
+  getSubscriberRestrictionsState,
+  SubscriberRestrictionsCopy,
+} from "./SubscriberRestrictionsCopy";
 import EnterpriseSettingLeftoverCard from "../EnterpriseEdition/EnterpriseSettingLeftoverCard";
 import {
   EnterpriseSettingLeftoverKind,
@@ -8,7 +11,7 @@ import { STATUS_PAGE_ACCESS_CONTROLS_REQUIRED_PLAN } from "../../Enterprise/Ente
 import EnterprisePluginPage, {
   EnterprisePluginUpsellProps,
 } from "../../Enterprise/EnterprisePluginPage";
-import { StatusPageSettingCardProps } from "../../Enterprise/EnterprisePlugins";
+import { StatusPageSubscriberRestrictionsCardProps } from "../../Enterprise/EnterprisePlugins";
 import { getDashboardPlugins } from "../../Enterprise/Plugins";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -19,7 +22,10 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * Who Can Subscribe, on a status page's Subscribers > Settings: only private
- * users can subscribe, and the email domains subscribers may use.
+ * users can subscribe, and the email domains subscribers may use. It waits
+ * folded under the page's More settings - few status pages restrict who may
+ * subscribe - telling the page what it restricts (onRestrictionsChange), so
+ * the folded header can mark it while anything is.
  *
  * Both are among a status page's Enterprise access controls
  * (ee/Dashboard/StatusPageAccessControls). The page keeps rendering this
@@ -30,7 +36,7 @@ import React, { FunctionComponent, ReactElement } from "react";
  * OneUptime Cloud project below the plan.
  */
 
-export type ComponentProps = StatusPageSettingCardProps;
+export type ComponentProps = StatusPageSubscriberRestrictionsCardProps;
 
 export const SUBSCRIBER_RESTRICTIONS_LEFTOVER_VALUE_TEST_ID: string =
   "status-page-subscriber-restrictions-leftover-value";
@@ -85,6 +91,24 @@ const SubscriberRestrictionsSettings: FunctionComponent<ComponentProps> = (
         requiredPlan={STATUS_PAGE_ACCESS_CONTROLS_REQUIRED_PLAN}
         modelType={StatusPage}
         modelId={props.statusPageId}
+        onLoaded={(item: StatusPage | null) => {
+          props.onRestrictionsChange?.(
+            getSubscriberRestrictionsState({
+              limitSubscribersToPrivateUsers:
+                item?.limitSubscribersToPrivateUsers,
+              allowedSubscriberEmailDomains:
+                item?.allowedSubscriberEmailDomains,
+            }),
+          );
+        }}
+        onRemoved={() => {
+          props.onRestrictionsChange?.(
+            getSubscriberRestrictionsState({
+              limitSubscribersToPrivateUsers: false,
+              allowedSubscriberEmailDomains: null,
+            }),
+          );
+        }}
         renderValue={(item: StatusPage): ReactElement => {
           const domains: Array<string> = getAllowedEmailDomainEntries(
             item.allowedSubscriberEmailDomains,
@@ -139,7 +163,7 @@ const SubscriberRestrictionsSettings: FunctionComponent<ComponentProps> = (
   };
 
   return (
-    <EnterprisePluginPage<StatusPageSettingCardProps>
+    <EnterprisePluginPage<StatusPageSubscriberRestrictionsCardProps>
       plugin={getDashboardPlugins().StatusPageSubscriberRestrictions}
       pluginProps={props}
       requiredPlan={STATUS_PAGE_ACCESS_CONTROLS_REQUIRED_PLAN}

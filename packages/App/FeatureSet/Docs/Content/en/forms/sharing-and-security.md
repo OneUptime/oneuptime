@@ -16,7 +16,7 @@ A form is open to anyone who has its link, and each submission can page your on-
 | **Status** | **Accepting Submissions** — whether the form's link works. |
 | **Share Link** | The link, with **Copy Link**, **Open Form** and **Reset Link**. |
 | **After Submitting** | The **Thank-You Message** people see once they submit, under the number of what the form created. |
-| **Access** | The **IP Allowlist**. |
+| **More settings** | The **IP Allowlist**, folded until you open it. |
 
 ## Sharing the link
 
@@ -80,7 +80,7 @@ To limit a form to your own networks:
 
 :::steps
 1. Open the form's **Share** page.
-2. On the **Access** card, click **Edit IP Allowlist**.
+2. Open **More settings**, then click **Edit IP Allowlist**.
 3. Enter one network per line, and save. The card then lists them under **IP Allowlist**.
 :::
 

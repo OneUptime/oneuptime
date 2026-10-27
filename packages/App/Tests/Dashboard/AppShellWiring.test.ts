@@ -17,7 +17,7 @@ import ts from "typescript";
  *    that gate unmounted the whole app (header, navbar, page) for one count
  *    query and doubled every mount-time request on remount.
  * 3. The command palette is mounted with the always-on chrome, right beside
- *    the AI chat panel and ahead of the routed page tree.
+ *    the Ask AI dialog and ahead of the routed page tree.
  * 4. onProjectSelected routes its navigate/forceNavigate choice through the
  *    pure ProjectNavigation helper, so a fresh login no longer triggers a
  *    full document reload.
@@ -167,8 +167,8 @@ describe("command palette: mounted with the always-on chrome", () => {
     );
   });
 
-  test("the palette renders beside the AI chat panel, ahead of the routed pages", () => {
-    const aiChatIndex: number = APP_SOURCE.indexOf("<AIChatPanel");
+  test("the palette renders beside Ask AI, ahead of the routed pages", () => {
+    const aiChatIndex: number = APP_SOURCE.indexOf("<AskAiDialog");
     const paletteIndex: number = APP_SOURCE.indexOf("<DashboardCommandPalette");
     const routedTreeIndex: number = APP_SOURCE.indexOf("<ErrorBoundary");
 

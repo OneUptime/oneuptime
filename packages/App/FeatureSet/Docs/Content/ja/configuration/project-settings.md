@@ -81,7 +81,7 @@ OneUptime Cloud でラベルを作成・変更するには Growth プランが�
 
 **プロジェクト設定 → 通知** では、プロジェクトの通知の送り方を設定します。
 
-- **通知設定**: **通知チャネル** カードで、プロジェクトの SMS、電話、WhatsApp、Telegram をオンまたはオフにします。最初はすべてオフです。オンにするのは Project Owner、**請求管理者**、または **Manage Billing** を持つ人です。このページには、プロジェクト独自のメールサーバー (**カスタム SMTP 設定**、[SMTP](/docs/emails/smtp) を参照) と独自の Twilio アカウント ([Twilio 統合](/docs/self-hosted/twilio-integration) を参照) もあります。OneUptime Cloud では、これらのメッセージの支払いに使う残高もここにあります。[前払い残高](/docs/configuration/billing#前払い残高) を参照してください。
+- **通知設定**: **通知チャネル** カードで、プロジェクトの SMS、電話、WhatsApp、Telegram をオンまたはオフにします。最初はすべてオフです。オンにするのは Project Owner、**請求管理者**、または **Manage Billing** を持つ人です。このページの **その他の設定** には、プロジェクト独自のメールサーバー (**カスタム SMTP 設定**、[SMTP](/docs/emails/smtp) を参照) と独自の Twilio アカウント ([Twilio 統合](/docs/self-hosted/twilio-integration) を参照) もあります。OneUptime Cloud では、これらのメッセージの支払いに使う残高もここにあります。[前払い残高](/docs/configuration/billing#前払い残高) を参照してください。
 - **通知ログ**: プロジェクトが送信したすべての通知。チャネルごとにタブがあります: **メール**、**SMS**、**WhatsApp**、**Telegram**、**Webhook**、**電話**、**プッシュ**、**ワークスペース**。
 - **モバイルアプリ**: iOS 版と Android 版のアプリの入手先。[アプリの概要](/docs/mobile-desktop-apps/index) を参照してください。
 

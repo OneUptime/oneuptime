@@ -229,7 +229,7 @@ describe("the conversation is a section of that card", () => {
     expect(CONVERSATION).toContain("investigationStage");
   });
 
-  test("uses the card's own composer and sources, not the Ask AI panel's", () => {
+  test("uses the card's own composer and sources, not the Ask AI dialog's", () => {
     expect(CONVERSATION).toContain('from "./ConversationComposer"');
     expect(CONVERSATION).toContain('from "./AnswerSources"');
     expect(CONVERSATION).not.toContain("AIChat/ChatInput");

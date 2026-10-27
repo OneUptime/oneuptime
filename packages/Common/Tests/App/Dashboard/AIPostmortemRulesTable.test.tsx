@@ -67,6 +67,7 @@ import {
   AI_LANE_AI_RULES_TABLE_ID,
   AI_POSTMORTEM_RULES_TABLE_ID,
   AiLane,
+  AiLaneAdvancedCard,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import {
   POSTMORTEM_RULE_MORE_TEMPLATES,
@@ -302,6 +303,11 @@ describe("the postmortem rules table", () => {
     const props: Record<string, unknown> = table();
 
     expect(props["cardProps"]).toEqual({
+      /*
+       * Its place in the incident AI settings' More settings: the name the
+       * folded header lists it by, so a link to it lands on the card.
+       */
+      id: AiLaneAdvancedCard.PostmortemRules,
       title: "Postmortem rules",
       description: POSTMORTEM_RULES_CARD_DESCRIPTION,
     });
@@ -756,6 +762,7 @@ describe("below the plan postmortem templates need", () => {
       }),
     ).toEqual(["name", "isEnabled"]);
     expect(props["cardProps"]).toEqual({
+      id: AiLaneAdvancedCard.PostmortemRules,
       title: "Postmortem rules",
       description: POSTMORTEM_RULES_CARD_DESCRIPTION_WITHOUT_TEMPLATES,
     });

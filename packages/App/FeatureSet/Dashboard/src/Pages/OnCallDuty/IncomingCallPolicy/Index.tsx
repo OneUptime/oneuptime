@@ -44,6 +44,8 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import IncomingCallAnswerCallsOffBanner from "../../../Components/IncomingCallPolicy/IncomingCallAnswerCallsOffBanner";
+import { TWILIO_CONFIG_PLACE } from "../../../Components/NotificationMethods/OwnSendersFold";
+import { getRouteToPageAnchor } from "Common/UI/Utils/PageAnchor";
 
 const IncomingCallPolicyView: FunctionComponent<
   PageComponentProps
@@ -332,11 +334,18 @@ const IncomingCallPolicyView: FunctionComponent<
                       slots={{
                         createLink: (
                           <Link
-                            to={
-                              RouteMap[
-                                PageMap.SETTINGS_NOTIFICATION_SETTINGS
-                              ] as Route
-                            }
+                            to={getRouteToPageAnchor(
+                              RouteUtil.populateRouteParams(
+                                RouteMap[
+                                  PageMap.SETTINGS_NOTIFICATION_SETTINGS
+                                ] as Route,
+                              ),
+                              /*
+                               * The Twilio Config table waits folded under
+                               * the page's More settings: this opens it.
+                               */
+                              TWILIO_CONFIG_PLACE,
+                            )}
                             className="text-blue-600 hover:underline"
                           >
                             {translator.translateText(
@@ -630,9 +639,13 @@ const IncomingCallPolicyView: FunctionComponent<
             }}
             submitButtonText="Go to Settings"
             onSubmit={() => {
+              // At the Twilio Config table, folded under More settings.
               Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route,
+                getRouteToPageAnchor(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route,
+                  ),
+                  TWILIO_CONFIG_PLACE,
                 ),
               );
             }}

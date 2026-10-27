@@ -16,7 +16,7 @@ Um formulário está aberto a qualquer pessoa que tenha o link dele, e cada envi
 | **Status** | **Aceita envios** — se o link do formulário funciona. |
 | **Link de compartilhamento** | O link, com **Copiar link**, **Abrir formulário** e **Redefinir link**. |
 | **Depois de enviar** | A **Mensagem de agradecimento** que as pessoas veem depois de enviar, abaixo do número do que o formulário criou. |
-| **Acesso** | A **Lista de IPs permitidos**. |
+| **Mais configurações** | A **Lista de IPs permitidos**, recolhida até você abri-la. |
 
 ## Partilhar o link
 
@@ -80,7 +80,7 @@ Para limitar um formulário às suas próprias redes:
 
 :::steps
 1. Abra a página **Partilhar** do formulário.
-2. No cartão **Acesso**, clique em **Editar lista de IPs permitidos**.
+2. Abra **Mais configurações** e clique em **Editar lista de IPs permitidos**.
 3. Informe uma rede por linha e salve. O cartão então as lista sob **Lista de IPs permitidos**.
 :::
 

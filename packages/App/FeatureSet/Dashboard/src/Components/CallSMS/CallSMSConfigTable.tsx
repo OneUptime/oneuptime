@@ -129,7 +129,17 @@ const isUsedForCalls: (values: FormValues<ProjectCallSMSConfig>) => boolean =
 export const TWILIO_ACCOUNT_SID_CELL_WIDTH_CLASS_NAME: string =
   "max-w-[10rem] 2xl:max-w-[17rem]";
 
-const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
+export interface ComponentProps {
+  /*
+   * How many configs the table lists after each load, so the page's folded
+   * More settings can say so.
+   */
+  onCountChange?: ((count: number) => void) | undefined;
+}
+
+const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
+  props: ComponentProps,
+): ReactElement => {
   /*
    * Whether the project has a Twilio config, and whether one of them is the
    * default: what the card says, and what the create form starts with.
@@ -280,6 +290,8 @@ const CustomCallSMSTable: FunctionComponent = (): ReactElement => {
           _items: Array<ProjectCallSMSConfig>,
           totalCount: number,
         ): void => {
+          props.onCountChange?.(totalCount);
+
           /*
            * A row on screen means the project has a config, so the next
            * create form is not its first's - before the count says so too.

@@ -49,6 +49,7 @@ import WorkspaceNoteReactionUtil, {
   WorkspaceNoteType,
 } from "Common/Types/Workspace/WorkspaceNoteReaction";
 import { getFeedEventTypeLabel } from "Common/UI/Components/Feed/FeedOptions";
+import { MORE_SETTINGS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
 import { EVERY_DAY, EVERY_MINUTE } from "Common/Utils/CronTime";
 import WorkspaceChannelName, {
   WorkspaceChannelNameParts,
@@ -2054,11 +2055,17 @@ describe("Forms, against the builder, the Share page and the public page", () =>
 
   it("lists the Share page's cards in the order the page shows them, with the link card's buttons", () => {
     const share: string = readSource("formSharePage");
+    /*
+     * The IP allowlist, an Enterprise feature few forms need, waits folded
+     * under the page's More settings, after the cards everyone uses.
+     */
     const order: Array<number> = [
       share.indexOf("<FormStatusCard"),
       share.indexOf("<FormShareLinkCard"),
       share.indexOf("title: FormsCopy.afterSubmittingTitle"),
-      share.indexOf('cardTitle="Access"'),
+      share.indexOf("<AdvancedPageSection"),
+      share.indexOf("<IpAllowlistSettings"),
+      share.indexOf("</AdvancedPageSection>"),
     ];
 
     expect(
@@ -2093,7 +2100,7 @@ describe("Forms, against the builder, the Share page and the public page", () =>
         FormsCopy.statusCardTitle,
         FormsCopy.shareLinkTitle,
         FormsCopy.afterSubmittingTitle,
-        "Access",
+        MORE_SETTINGS_SECTION_TITLE,
       ].map((title: string): string => {
         return `**${title}**`;
       }),

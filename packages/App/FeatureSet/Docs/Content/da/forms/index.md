@@ -93,7 +93,7 @@ Under **Del** kopierer du linket og sender det til dem, der skal bruge formulare
 | **Byg** | Formularens navn og beskrivelse, dens **Branding** (logo og favicon, foldet sammen) og editoren: dens spørgsmål, spørgsmålspaletten og **Forhåndsvisning**. |
 | **Skabeloner** | Navngivne sæt af svar, man kan starte formularen fra, hvordan hver stiller spørgsmålene, den formularen åbner med, og hver skabelons eget link. |
 | **Ved indsendelse** | Hvad hver indsendelse opretter, og hvordan hvert felt i den udfyldes. **Rediger indstillinger** ændrer standardværdierne og det, der altid gælder. |
-| **Del** | **Modtager indsendelser**, **Delingslink**, beskeden efter indsendelse og **IP-tilladelsesliste**. |
+| **Del** | **Modtager indsendelser**, **Delingslink**, beskeden efter indsendelse og, under **Yderligere indstillinger**, **IP-tilladelsesliste**. |
 | **Indsendelser** | Hver indsendelse via formularen, nyeste først, med dens svar og det, den oprettede. |
 | **Duplikér formular** | Under **Avanceret**: en kopi af formularen, navngivet for dig, med dens spørgsmål, skabeloner, indstillinger under Ved indsendelse, branding, takkebesked og IP-tilladelsesliste og sit eget link. Kopien starter slået fra og åbner i sin editor. |
 | **Slet formular** | Sletning af formularen, under **Avanceret**. Dens indsendelser slettes med den; de hændelser og begivenheder, den oprettede, gør ikke. |

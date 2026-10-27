@@ -16,7 +16,7 @@ Un modulo è aperto a chiunque abbia il suo link, e ogni invio può chiamare il 
 | **Stato** | **Accetta invii** — se il link del modulo funziona. |
 | **Link di condivisione** | Il link, con **Copia link**, **Apri modulo** e **Reimposta link**. |
 | **Dopo l'invio** | Il **Messaggio di ringraziamento** che le persone vedono dopo l'invio, sotto il numero di ciò che il modulo ha creato. |
-| **Accesso** | La **Lista IP consentiti**. |
+| **Altre impostazioni** | La **Lista IP consentiti**, chiusa finché non la apri. |
 
 ## Condividere il link
 
@@ -80,7 +80,7 @@ Per limitare un modulo alle tue reti:
 
 :::steps
 1. Apri la pagina **Condividi** del modulo.
-2. Nella scheda **Accesso**, fai clic su **Modifica lista IP consentiti**.
+2. Apri **Altre impostazioni**, poi fai clic su **Modifica lista IP consentiti**.
 3. Inserisci una rete per riga, e salva. La scheda le elenca poi sotto **Lista IP consentiti**.
 :::
 

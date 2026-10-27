@@ -253,7 +253,7 @@ function describeScope(evidence: InvestigationEvidence): string {
 }
 
 /**
- * A prepared prompt for the Ask AI panel — the evidence, restated, with
+ * A prepared prompt for Ask AI — the evidence, restated, with
  * a clear question. Pre-fills the chat input; the user reviews and
  * sends.
  */

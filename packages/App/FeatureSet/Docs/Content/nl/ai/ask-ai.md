@@ -3,7 +3,7 @@
 AI vragen is de chat van OneUptime over de gegevens van je project. Vraag naar logs, traces, metrieken, uitzonderingen, incidenten, waarschuwingen, monitoren, bereikbaarheidsdiensten, statuspagina's, SLO's, runbooks of workflows: de chat bevraagt je project live, onderbouwt elke bewering met een bron en handelt voor je wanneer je dat toestaat.
 
 :::cards
-- [AI vragen openen](#ai-vragen-openen): Vanuit de kopbalk, het toetsenbord, een grafiek of een eigen pagina.
+- [AI vragen openen](#ai-vragen-openen): Vanuit de kopbalk, het toetsenbord, een grafiek of het productmenu.
 - [Wat hij kan zien](#wat-hij-kan-zien): De gegevens die hij leest om je te antwoorden.
 - [Acties en machtigingsmodi](#acties-en-machtigingsmodi): Kies of hij mag handelen en wanneer hij eerst vraagt.
 - [Acties gebeuren als jij](#acties-gebeuren-als-jij): Jouw machtigingen, jouw naam bij elke wijziging.
@@ -15,7 +15,7 @@ AI vragen antwoordt alleen met wat zijn hulpmiddelen teruggeven: hij voert query
 
 ```mermaid title="Van een vraag naar een onderbouwd antwoord"
 flowchart TB
-    Q["Je vraag, met de<br/>pagina waarop<br/>je bent"] --> A["Ask AI"]
+    Q["Je vraag, met de<br/>pagina waarop<br/>je bent"] --> A["AI vragen"]
     A -->|"leeshulpmiddelen"| D["De gegevens van je<br/>project, live<br/>bevraagd"]
     D --> R["Een antwoord met<br/>een bron per<br/>bewering"]
     A -->|"een actie"| M{"De machtigings-<br/>modus"}
@@ -30,10 +30,12 @@ In de modus **Alleen-lezen** krijgt het model nooit acties aangeboden, dus het g
 
 | Waar | Hoe |
 | --- | --- |
-| Elke pagina | Klik op **Ask AI** in de kopbalk, of druk op `Ctrl` + `I` (`Cmd` + `I` op een Mac). Terwijl je in een tekstvak of editor typt, blijven die toetsen de cursiefsneltoets van de editor. |
-| Het opdrachtenpalet | Druk op `Ctrl` + `K` (`Cmd` + `K` op een Mac) en kies **Ask AI**. |
+| Elke pagina | Klik op **AI vragen** in de kopbalk, of druk op `Ctrl` + `I` (`Cmd` + `I` op een Mac). Terwijl je in een tekstvak of editor typt, blijven die toetsen de cursiefsneltoets van de editor. |
+| Het opdrachtenpalet | Druk op `Ctrl` + `K` (`Cmd` + `K` op een Mac) en kies **AI vragen**. |
 | Een foutpatroon in de logs, of de bevindingen van een grafiek | Klik op **Explain with AI**: AI vragen opent met het bewijs als een vraag die je kunt aanpassen voordat je hem verstuurt. |
-| Een eigen pagina | Open **Producten → AI → Chat** voor een werkruimte over de hele pagina. Elk gesprek daar heeft een eigen adres, zodat je een draad als bladwijzer kunt bewaren of in het kanaal van een incident kunt plakken. |
+| Het productmenu | Open **Producten → AI → Chat**. AI vragen opent boven de pagina waarop je was. Elk gesprek heeft een eigen adres, zodat je het als bladwijzer kunt bewaren en ernaar kunt terugkeren. |
+
+AI vragen opent in het midden van het scherm, boven de pagina waarop je was, en vult op een telefoon het hele scherm. Druk op `Esc`, of klik ernaast, om terug te gaan naar de pagina. Het gesprek blijft waar je het liet: open AI vragen opnieuw om verder te gaan. Sluit je hem terwijl hij nog antwoordt, dan zegt een melding in de hoek wanneer het antwoord klaar is, en opent die het.
 
 Bij een incident of waarschuwing heeft de kaart **AI Investigation** een eigen gesprek, **Ask OneUptime AI**, dat iedereen deelt die dat incident of die waarschuwing kan zien: zie [Met OneUptime AI over het incident praten](/docs/ai/ai-sre#praat-met-oneuptime-ai-over-het-incident).
 
@@ -52,7 +54,7 @@ AI vragen leest je project met je eigen machtigingen, dus hij ziet wat jij mag z
 
 ## Paginacontext
 
-AI vragen weet vanaf welke pagina je hem hebt geopend. Op een incidentpagina betekent "waarom is dit gebeurd?" dat incident, en het invoervak toont een chip met het onderwerp van de pagina; verwijder die om over het hele project te vragen. Ga je naar een andere pagina terwijl het paneel open is, dan gaat de context mee. Het gesprek onthoudt zijn eerste onderwerp ook op de server, zodat een vervolgvraag dagen later "dit incident" nog goed begrijpt.
+AI vragen weet vanaf welke pagina je hem hebt geopend. Op een incidentpagina betekent "waarom is dit gebeurd?" dat incident: het invoervak toont een chip met het onderwerp van de pagina, en de vragen die hij voorstelt zijn die van die pagina. Verwijder de chip om over het hele project te vragen, en voeg hem op dezelfde manier weer toe. Open AI vragen op een andere pagina en de context gaat mee. Het gesprek onthoudt zijn eerste onderwerp ook op de server, zodat een vervolgvraag dagen later "dit incident" nog goed begrijpt.
 
 Infrastructuurlijsten en resourcepagina's bieden vragen aan voor het soort resource dat je bekijkt. Open een Kubernetes-cluster en vraag "Welke metrieken zijn de afgelopen 24 uur veranderd?", of open een Docker-host en vraag "Vat de ernst van de logs en de trace-fouten van de afgelopen zes uur samen." Bewijslinks leiden terug naar de pagina van de resource. Leesacties respecteren je machtigingen voor project, resources en telemetrie, inclusief beperkingen op eigenaarschap en labels.
 
@@ -72,8 +74,8 @@ Elk gesprek heeft een machtigingsmodus, die je in het invoervak kiest, naast het
 
 | Modus | Wat er gebeurt |
 | --- | --- |
-| **Ask to act** | De standaard. AI vragen stelt elke actie voor op een goedkeuringskaart, en niets wordt uitgevoerd tot je er **Allow** of **Overslaan** voor kiest, of **Deny all**. |
-| **Auto-run** | Acties worden uitgevoerd zodra het model erom vraagt, nog steeds beperkt tot wat jouw rol mag. Gebruik dit met zorg. |
+| **Vragen voor actie** | De standaard. AI vragen stelt elke actie voor op een goedkeuringskaart, en niets wordt uitgevoerd tot je er **Toestaan** of **Overslaan** voor kiest, of **Alles weigeren**. |
+| **Automatisch uitvoeren** | Acties worden uitgevoerd zodra het model erom vraagt, nog steeds beperkt tot wat jouw rol mag. Gebruik dit met zorg. |
 | **Alleen-lezen** | Het model krijgt helemaal geen acties aangeboden: AI vragen kan alleen lezen. |
 
 Wat AI vragen kan doen als een modus het toestaat:
@@ -99,10 +101,12 @@ Elke actie van AI vragen gebeurt als jij: hij voert dezelfde wijziging uit als h
 ## Een gesprek sturen
 
 - **Stop hem.** Terwijl AI vragen werkt, wordt de verzendknop een stopknop. Stop een run op elk moment en vraag meteen iets anders.
-- **Kies het model.** De providerkiezer in het invoervak toont de LLM-providers van je project en de globale, met de standaard gemarkeerd. Een nieuw gesprek gebruikt de standaard.
-- **Beoordeel een antwoord.** **Good answer** en **Poor answer** worden bij het bericht opgeslagen, zodat de kwaliteit van de antwoorden in de loop van de tijd te meten is.
-- **Bekijk de kosten.** De voettekst van het nieuwste antwoord toont de kosten, de tokens en hoeveel query's het heeft uitgevoerd, en elke query is een bronchip die de gegevens erachter opent.
-- **Bewaar een kopie.** **Download conversation** bewaart de draad met **Download as Markdown**, om te lezen of in een ticket te plakken, of met **Download as PDF**, om aan iemand te geven.
+- **Volg zijn werk.** Terwijl hij antwoordt, zegt één regel wat hij nu doet, zoals logboeken doorzoeken. Klik op het aantal stappen ernaast om elke stap te zien.
+- **Kies het model.** Als je project meer dan één LLM-provider kan gebruiken, toont de providerkiezer in het invoervak de LLM-providers van je project en de globale, met de standaard gemarkeerd. Een nieuw gesprek gebruikt de standaard.
+- **Beoordeel een antwoord.** **Goed antwoord** en **Slecht antwoord** worden bij het bericht opgeslagen, zodat de kwaliteit van de antwoorden in de loop van de tijd te meten is.
+- **Bekijk de kosten.** Onder elk antwoord openen de bronnen zich in de query's die het uitvoerde, en die van het nieuwste antwoord zeggen ook hoeveel query's het uitvoerde, de tokens en de kosten. Elke bronchip in een antwoord opent de gegevens erachter.
+- **Bewaar een kopie.** **Gesprek downloaden** bewaart de draad met **Downloaden als Markdown**, om te lezen of in een ticket te plakken, of met **Downloaden als PDF**, om aan iemand te geven.
+- **Ga verder waar je was.** **Alle gesprekken**, in de kopbalk van AI vragen, toont je gesprekken, het nieuwste eerst, om ze opnieuw te openen of te verwijderen. Het begin van een nieuw gesprek toont de laatste drie.
 
 ## Vereisten
 
@@ -115,7 +119,7 @@ AI vragen telt mee voor de eigen dagelijkse AI-limieten van het project wanneer 
 ## Problemen oplossen
 
 :::details AI vragen zegt dat AI niet beschikbaar is
-Het paneel zegt waarom voordat je typt: het abonnement van het project omvat geen AI, **AI inschakelen** staat uit, of het project heeft geen LLM-provider. Elke melding linkt naar de pagina waar je dat wijzigt.
+AI vragen zegt waarom voordat je typt: het abonnement van het project omvat geen AI, **AI inschakelen** staat uit, of het project heeft geen LLM-provider. Elke melding linkt naar de pagina waar je dat wijzigt.
 :::
 
 :::details Een actie werd geweigerd

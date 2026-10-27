@@ -93,7 +93,7 @@ Under **Dela** kopierar du länken och skickar den till dem som ska använda for
 | **Bygg** | Formulärets namn och beskrivning, dess **Varumärke** (logotyp och favicon, hopfällt) och redigeraren: dess frågor, frågepaletten och **Förhandsgranskning**. |
 | **Mallar** | Namngivna uppsättningar av svar som man kan börja formuläret från, hur var och en ställer frågorna, den som formuläret öppnas med och varje malls egen länk. |
 | **Vid inlämning** | Vad varje inlämning skapar och hur varje fält i den fylls i. **Redigera inställningar** ändrar standardvärdena och det som alltid gäller. |
-| **Dela** | **Tar emot inlämningar**, **Delningslänk**, meddelandet efter inlämning och **IP-tillåtelselista**. |
+| **Dela** | **Tar emot inlämningar**, **Delningslänk**, meddelandet efter inlämning och, under **Fler inställningar**, **IP-tillåtelselista**. |
 | **Inlämningar** | Varje inlämning via formuläret, den senaste först, med dess svar och det som den skapade. |
 | **Duplicera formulär** | Under **Avancerad**: en kopia av formuläret, namngiven åt dig, med dess frågor, mallar, inställningar under Vid inlämning, varumärke, tackmeddelande och IP-tillåtelselista, och en egen länk. Kopian är avstängd från början och öppnas i sin redigerare. |
 | **Ta bort formulär** | Borttagning av formuläret, under **Avancerad**. Dess inlämningar tas bort med det; de incidenter och händelser som det skapade gör det inte. |

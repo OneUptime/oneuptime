@@ -187,7 +187,7 @@ Todo modelo termina com uma etapa **Log** que diz o que aconteceu, então a últ
 - `❌` — uma chamada falhou. Para uma chamada ao Jira, a linha inclui a resposta do Jira.
 - `⚠️` — um modelo que cria um registro a partir de um item do Jira o criou, mas o Jira não aceitou as etiquetas de ligação, então os outros modelos ainda não conseguem encontrá-lo. Adicione as etiquetas à mão.
 
-Uma execução ignorada ainda termina como **Executed**. Os eventos ignorados são normais: a maioria dos eventos do Jira não é dos que um modelo específico trata. Veja [Execuções de workflow](/docs/workflows/runs-and-logs).
+Uma execução ignorada ainda termina como **Executado**. Os eventos ignorados são normais: a maioria dos eventos do Jira não é dos que um modelo específico trata. Veja [Execuções de workflow](/docs/workflows/runs-and-logs).
 
 ## Como os modelos funcionam
 

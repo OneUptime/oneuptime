@@ -9,8 +9,9 @@ import WorkingHours from "./WorkingHours";
  * is started at its first escalation rule when that moment comes
  * (OnCallDutyPolicyExecutionLog:ExecutePendingExecutions). An on-call rule
  * that pages only during working hours holds the runs it starts outside them
- * (OnCallRuleWhenToPage); OnCallDutyPolicyService.executePolicy holds a run
- * for any caller that names the moment.
+ * (OnCallRuleWhenToPage), one set to After OneUptime AI holds them while AI
+ * works (OnCallPolicyAiHold), and OnCallDutyPolicyService.executePolicy
+ * holds a run for any caller that names the moment.
  *
  * Acknowledged or resolved while it waits, the record needs nobody paged: the
  * run ends there, paging nobody. An archived policy pages no one: its run
@@ -30,6 +31,13 @@ export const ON_CALL_POLICY_RUN_WAITING_FOR_WORKING_HOURS_MESSAGE_START: string 
 // A run that waits for any other reason: "Waiting. Paging starts Wed 09:00 (UTC)."
 export const ON_CALL_POLICY_RUN_WAITING_MESSAGE_START: string = "Waiting. ";
 
+/*
+ * A run OneUptime AI holds while it works (OnCallPolicyAiHold): "Waiting for
+ * OneUptime AI. Paging starts 02:10 (UTC) unless it resolves this."
+ */
+export const ON_CALL_POLICY_RUN_WAITING_FOR_ONEUPTIME_AI_MESSAGE_START: string =
+  "Waiting for OneUptime AI. ";
+
 export function getOnCallPolicyRunWaitingMessage(data: {
   pagingStartsAt: Date;
   // The zone the moment is told in: the rule's. UTC without one.
@@ -37,16 +45,32 @@ export function getOnCallPolicyRunWaitingMessage(data: {
   // When the message is written: a moment a week or more away names its date.
   now: Date;
   isWaitingForWorkingHours: boolean;
+  isWaitingForOneUptimeAI?: boolean | undefined;
 }): string {
+  const moment: string = WorkingHours.describeMoment({
+    at: data.pagingStartsAt,
+    timezone: data.timezone,
+    now: data.now,
+  });
+
+  if (data.isWaitingForOneUptimeAI) {
+    return `${ON_CALL_POLICY_RUN_WAITING_FOR_ONEUPTIME_AI_MESSAGE_START}Paging starts ${moment} unless it resolves this.`;
+  }
+
   const start: string = data.isWaitingForWorkingHours
     ? ON_CALL_POLICY_RUN_WAITING_FOR_WORKING_HOURS_MESSAGE_START
     : ON_CALL_POLICY_RUN_WAITING_MESSAGE_START;
 
-  return `${start}Paging starts ${WorkingHours.describeMoment({
-    at: data.pagingStartsAt,
-    timezone: data.timezone,
-    now: data.now,
-  })}.`;
+  return `${start}Paging starts ${moment}.`;
+}
+
+// Whether a waiting run's message says OneUptime AI holds it.
+export function isOnCallPolicyRunWaitingForOneUptimeAI(
+  statusMessage: string | null | undefined,
+): boolean {
+  return (statusMessage || "").startsWith(
+    ON_CALL_POLICY_RUN_WAITING_FOR_ONEUPTIME_AI_MESSAGE_START,
+  );
 }
 
 // Whether a waiting run's message says it waits for working hours.

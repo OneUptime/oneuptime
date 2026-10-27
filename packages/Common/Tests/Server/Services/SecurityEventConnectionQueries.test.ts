@@ -7,6 +7,7 @@ import SecurityEventService, {
   SecurityEventsNamingSummary,
 } from "../../../Server/Services/SecurityEventService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
+import { TelemetryServiceFilter } from "../../../Server/Utils/Telemetry/TelemetryReadScope";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -279,6 +280,116 @@ describe("SecurityEventService.findLogResourcesNaming", () => {
       }),
     ).toEqual([]);
     expect(spy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A read made for a person keeps to the sources whose events they may read
+ * (TelemetryReadAccess.getServiceFilter): the sources to keep and the ones a
+ * block takes away, as conditions on primaryEntityId with every id bound,
+ * on every event the read counts or groups - however it named the record.
+ * OneUptime's own reads name no filter and read every source.
+ */
+describe("the sources a reader may read", () => {
+  const OWNED_SOURCE: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+  const BLOCKED_SOURCE: ObjectID = new ObjectID(
+    "66666666-6666-4666-8666-666666666666",
+  );
+  const FILTER: TelemetryServiceFilter = {
+    serviceIds: [OWNED_SOURCE, PROJECT_ID],
+    excludedServiceIds: [BLOCKED_SOURCE],
+  };
+
+  function boundIds(statement: Statement): Array<string> {
+    return boundValues(statement)
+      .filter((value: unknown): boolean => {
+        return Array.isArray(value);
+      })
+      .flat()
+      .map((value: unknown): string => {
+        return String(value);
+      });
+  }
+
+  function expectKeptToTheSources(statement: Statement): void {
+    expect(boundIds(statement)).toEqual(
+      expect.arrayContaining([
+        OWNED_SOURCE.toString(),
+        PROJECT_ID.toString(),
+        BLOCKED_SOURCE.toString(),
+      ]),
+    );
+    // Every id is bound, never spliced into the SQL text.
+    expect(statement.query).not.toContain(OWNED_SOURCE.toString());
+    expect(statement.query).not.toContain(BLOCKED_SOURCE.toString());
+  }
+
+  test("countEventsNaming counts those sources' events alone, whether they named the record or were read from its logs", async () => {
+    const spy: Spy = stubExecuteQuery([{ eventCount: 1 }]);
+
+    await SecurityEventService.countEventsNaming({
+      projectId: PROJECT_ID,
+      values: ["web-1"],
+      logResourceId: HOST_ID,
+      startTime: START,
+      endTime: END,
+      serviceFilter: FILTER,
+    });
+
+    const statement: Statement = statementOf(spy);
+
+    // After the names-or-logs group closes, so it holds for both.
+    expect(statement.query).toMatch(
+      /\)\) AND primaryEntityId IN \(\{p\d+:[^}]+\}\) AND primaryEntityId NOT IN \(\{p\d+:[^}]+\}\) SETTINGS /,
+    );
+    expectKeptToTheSources(statement);
+  });
+
+  test("findLogResourcesNaming groups those sources' events alone", async () => {
+    const spy: Spy = stubExecuteQuery([]);
+
+    await SecurityEventService.findLogResourcesNaming({
+      projectId: PROJECT_ID,
+      values: ["web-1"],
+      startTime: START,
+      endTime: END,
+      limit: 20,
+      serviceFilter: FILTER,
+    });
+
+    const statement: Statement = statementOf(spy);
+    const where: string = statement.query.split(" GROUP BY ")[0]!;
+
+    expect(where).toContain(" AND primaryEntityId IN (");
+    expect(where).toContain(" AND primaryEntityId NOT IN (");
+    expectKeptToTheSources(statement);
+  });
+
+  test("with no filter - OneUptime's own read - both read every source", async () => {
+    const spy: Spy = stubExecuteQuery([{ eventCount: 0 }]);
+
+    await SecurityEventService.countEventsNaming({
+      projectId: PROJECT_ID,
+      values: ["web-1"],
+      logResourceId: HOST_ID,
+      startTime: START,
+      endTime: END,
+    });
+    await SecurityEventService.findLogResourcesNaming({
+      projectId: PROJECT_ID,
+      values: ["web-1"],
+      startTime: START,
+      endTime: END,
+      limit: 20,
+    });
+
+    expect(spy).toHaveBeenCalledTimes(2);
+
+    for (const call of spy.mock.calls) {
+      expect((call[0] as Statement).query).not.toContain("primaryEntityId");
+    }
   });
 });
 

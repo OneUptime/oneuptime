@@ -187,7 +187,7 @@ project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
 - `❌` — 호출이 실패했습니다. Jira 호출이라면 줄에 Jira의 응답이 포함됩니다.
 - `⚠️` — Jira 이슈에서 레코드를 만드는 템플릿이 레코드를 만들었지만 Jira가 연결 레이블을 받지 않아 다른 템플릿이 아직 찾을 수 없습니다. 레이블을 직접 추가하세요.
 
-건너뛴 실행도 **Executed**로 끝납니다. 건너뛰기는 정상입니다. 대부분의 Jira 이벤트는 특정 템플릿이 처리할 대상이 아닙니다. [워크플로우 실행 기록](/docs/workflows/runs-and-logs)을 참고하세요.
+건너뛴 실행도 **실행됨**으로 끝납니다. 건너뛰기는 정상입니다. 대부분의 Jira 이벤트는 특정 템플릿이 처리할 대상이 아닙니다. [워크플로우 실행 기록](/docs/workflows/runs-and-logs)을 참고하세요.
 
 ## 템플릿의 작동 방식
 

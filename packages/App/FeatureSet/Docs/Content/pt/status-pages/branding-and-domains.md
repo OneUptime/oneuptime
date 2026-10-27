@@ -19,7 +19,7 @@ Abra uma página de status: a seção **Marca** do menu lateral dela tem três i
 | **Domínios personalizados** | Seu próprio domínio, o registro DNS dele e o certificado SSL gratuito dele. |
 | **HTML, CSS e JavaScript** | HTML do cabeçalho, HTML do rodapé, CSS personalizado, JavaScript personalizado. |
 
-Três coisas que parecem marca ficam, em vez disso, em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`), porque decidem o que a página mostra, e não a aparência dela: a porcentagem geral de tempo de atividade, quais status de monitor contam contra o tempo de atividade e a linha "Powered by OneUptime". As duas primeiras são linhas do cartão **O que sua página de status mostra** dessa tela, e a linha tem um cartão próprio, logo abaixo.
+Três coisas que parecem marca ficam, em vez disso, em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`), porque decidem o que a página mostra, e não a aparência dela: a porcentagem geral de tempo de atividade, quais status de monitor contam contra o tempo de atividade e a linha "Powered by OneUptime". As duas primeiras são linhas do cartão **O que sua página de status mostra** dessa tela, e a linha tem um cartão próprio, logo abaixo, recolhido em **Mais configurações**.
 
 A marca ficava dividida entre telas separadas de **Marca essencial**, **Cabeçalho**, **Rodapé**, **Página de visão geral** e **Idiomas**. Os endereços antigos delas (`{id}/header-style`, `{id}/footer-style`, `{id}/overview-page-branding` e `{id}/languages`) agora abrem a página **Marca**, então favoritos e links antigos continuam funcionando.
 
@@ -300,7 +300,7 @@ O mesmo vale para as chaves de API. Uma chave que só pode ler os domínios das 
 
 ## Powered by OneUptime
 
-A linha "Powered by OneUptime" não é uma configuração de marca. Ela tem um cartão próprio, **Powered by OneUptime**, abaixo do cartão **O que sua página de status mostra**, em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`): **Mostrar a marca Powered By OneUptime**, ativada por padrão. Desative-a para esconder a linha; ela salva na hora. No OneUptime Cloud, escondê-la exige o plano **Scale**. Na hospedagem própria, escondê-la faz parte da Enterprise Edition: na Community Edition, todas as páginas de status mostram a linha.
+A linha "Powered by OneUptime" não é uma configuração de marca. Ela tem um cartão próprio, **Powered by OneUptime**, recolhido em **Mais configurações** abaixo do cartão **O que sua página de status mostra**, em **Páginas de status → sua página → Avançado → Configurações avançadas** (`{id}/settings`): **Mostrar a marca Powered By OneUptime**, ativada por padrão. Desative-a para esconder a linha; ela salva na hora. No OneUptime Cloud, escondê-la exige o plano **Scale**. Na hospedagem própria, escondê-la faz parte da Enterprise Edition: na Community Edition, todas as páginas de status mostram a linha.
 
 ## Próximos passos
 

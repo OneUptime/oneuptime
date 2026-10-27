@@ -11,6 +11,14 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   citations: Array<AIChatCitation>;
+  /*
+   * Ask AI opens the list from a line that already says how many sources
+   * there are ("6 sources"): it draws the list without a heading of its
+   * own, labelled by that line instead. Shown by default.
+   */
+  isHeadingShown?: boolean | undefined;
+  labelledById?: string | undefined;
+  testId?: string | undefined;
 }
 
 /*
@@ -31,8 +39,9 @@ export function describeSourceRows(
   );
 }
 
+// The same round pill the answer's marks are (CITATION_CHIP_CLASS_NAME).
 const ID_CLASS_NAME: string =
-  "inline-flex h-[18px] min-w-[1.5rem] flex-shrink-0 items-center justify-center rounded px-1 text-[11px] font-semibold tabular-nums bg-gray-100 text-gray-700 ring-1 ring-inset ring-gray-200";
+  "inline-flex h-4 min-w-[1.5rem] flex-shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold leading-none bg-gray-100 text-gray-600";
 
 /*
  * What an answer in the AI Investigation card's conversation read, one line
@@ -41,9 +50,9 @@ const ID_CLASS_NAME: string =
  * traces, a monitor) opens it; one without (a kubectl command) is a plain
  * line, never a button that does nothing.
  *
- * The Ask AI panel draws its sources as bordered pills (AIChat/CitationChips).
- * Here they sit in a card that draws no boxes inside itself, under an answer
- * that already carries the marks, so they are a quiet list.
+ * A quiet list rather than bordered pills: it sits in a card that draws no
+ * boxes inside itself, under an answer that already carries the marks. Ask
+ * AI draws the same list when an answer's sources are opened.
  */
 const AnswerSources: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -54,12 +63,22 @@ const AnswerSources: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
+  const isHeadingShown: boolean = props.isHeadingShown ?? true;
+
   return (
-    <div data-testid="investigation-conversation-sources">
-      <h4 className="text-xs font-medium text-gray-500">
-        {translator.translateText("Sources")}
-      </h4>
-      <ul role="list" className="mt-1">
+    <div data-testid={props.testId || "investigation-conversation-sources"}>
+      {isHeadingShown ? (
+        <h4 className="text-xs font-medium text-gray-500">
+          {translator.translateText("Sources")}
+        </h4>
+      ) : (
+        <></>
+      )}
+      <ul
+        role="list"
+        aria-labelledby={props.labelledById}
+        className={isHeadingShown ? "mt-1" : undefined}
+      >
         {props.citations.map((citation: AIChatCitation): ReactElement => {
           const isEmpty: boolean = !(citation.rowCount > 0);
           const title: string = isEmpty
@@ -70,7 +89,9 @@ const AnswerSources: FunctionComponent<ComponentProps> = (
             : citation.label;
           const line: ReactElement = (
             <>
-              <span className={ID_CLASS_NAME}>{citation.id}</span>
+              <span className={ID_CLASS_NAME} data-citation-mark="">
+                {citation.id}
+              </span>
               <span className="min-w-0 break-words">
                 {citation.label}
                 <span className="text-gray-400">

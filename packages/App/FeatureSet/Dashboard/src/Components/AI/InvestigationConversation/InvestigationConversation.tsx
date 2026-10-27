@@ -1,13 +1,12 @@
 import ChatActivityFeed, {
   hasRenderableActivity,
 } from "../../AIChat/ChatActivityFeed";
-import { navigateToCitationTarget } from "../../AIChat/CitationTargetNav";
 import { AIInvestigationStage } from "../AIInvestigationStatus";
 import { InvestigationConversationFold } from "../AiOffSummaryData";
 import InvestigationNotice, { noticeFailedIcon } from "../InvestigationNotice";
-import { CITATION_CHIP_CLASS_NAME } from "../InvestigationReport/InvestigationCitationChip";
 import ToolApprovalCard, { ToolDecision } from "../../AIChat/ToolApprovalCard";
 import WidgetRenderer from "../../AIChat/Widgets/WidgetRenderer";
+import AnswerCitationChip from "./AnswerCitationChip";
 import AnswerSources from "./AnswerSources";
 import ConversationComposer from "./ConversationComposer";
 import AIChatMessageRole from "Common/Types/AI/AIChatMessageRole";
@@ -125,50 +124,6 @@ const AIAvatar: FunctionComponent = (): ReactElement => {
     >
       <Icon icon={IconProp.Sparkles} className="h-4 w-4" />
     </div>
-  );
-};
-
-/*
- * An inline "[C2]" in an answer, as a small chip that names what it cites
- * and — when the evidence has a page (logs, traces, a monitor) — opens it.
- * A citation with nowhere to go (a kubectl command) stays a plain chip with
- * its label on hover, rather than a button that does nothing.
- */
-const AnswerCitationChip: FunctionComponent<{
-  citation: AIChatCitation;
-}> = (props: { citation: AIChatCitation }): ReactElement => {
-  const translator: Translator = useTranslator();
-  const label: string = translator.translateTemplate(
-    "Citation {{id}}: {{label}}",
-    { id: props.citation.id, label: props.citation.label },
-  );
-
-  if (!props.citation.target) {
-    return (
-      <span
-        className={CITATION_CHIP_CLASS_NAME}
-        title={props.citation.label}
-        aria-label={label}
-        data-citation-id={props.citation.id}
-      >
-        {props.citation.id}
-      </span>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      className={CITATION_CHIP_CLASS_NAME}
-      title={props.citation.label}
-      aria-label={label}
-      data-citation-id={props.citation.id}
-      onClick={() => {
-        navigateToCitationTarget(props.citation.target);
-      }}
-    >
-      {props.citation.id}
-    </button>
   );
 };
 
@@ -615,7 +570,7 @@ const InvestigationConversation: FunctionComponent<ComponentProps> = (
         {/*
           The one place the card raises its voice: OneUptime AI is about to
           change something and is waiting for a person to say yes. It keeps
-          the approval prompt of the Ask AI panel, as a group of controls.
+          the approval prompt of the Ask AI dialog, as a group of controls.
         */}
         {awaitingApproval.length > 0 ? (
           <div

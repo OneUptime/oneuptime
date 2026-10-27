@@ -2,6 +2,7 @@ import AIAlertInvestigationRunner from "../../../Server/Utils/AI/SRE/AlertInvest
 import AIIncidentInvestigationRunner from "../../../Server/Utils/AI/SRE/IncidentInvestigationRunner";
 import AIInvestigationEngine from "../../../Server/Utils/AI/SRE/AIInvestigationEngine";
 import AIInvestigationQueue from "../../../Server/Utils/AI/SRE/InvestigationQueue";
+import AiFirstResponder from "../../../Server/Utils/AI/FirstResponder/AiFirstResponder";
 import InvestigationEligibility from "../../../Server/Utils/AI/SRE/InvestigationEligibility";
 import IncidentFollowUpCheck from "../../../Server/Utils/AI/SRE/IncidentFollowUpCheck";
 import AlertEpisodeFeedService from "../../../Server/Services/AlertEpisodeFeedService";
@@ -213,6 +214,11 @@ interface Probes {
    * its infrastructure checked again.
    */
   followUpChecks: Array<Record<string, unknown>>;
+  /*
+   * AiFirstResponder.onRecordCreated: the project whose held pages are
+   * checked for an outage - many records opening at once.
+   */
+  aiOutageChecks: Array<Record<string, unknown>>;
   sla: Array<Record<string, unknown>>;
   monitorStatus: Array<Array<unknown>>;
   monitoringPaused: Array<unknown>;
@@ -242,6 +248,7 @@ function newProbes(): Probes {
     investigated: [],
     investigationSkipped: [],
     followUpChecks: [],
+    aiOutageChecks: [],
     sla: [],
     monitorStatus: [],
     monitoringPaused: [],
@@ -333,6 +340,8 @@ interface Kind {
     videoCalls: boolean;
     // A new alert has open incidents on its infrastructure checked again.
     followUpCheck: boolean;
+    // Many records opening at once hand OneUptime AI's held pages to people.
+    aiOutageCheck: boolean;
   };
   // A create payload, as the create form or the API sends it.
   newRecord: (policyIds: Array<string>) => DatabaseBaseModel;
@@ -370,6 +379,7 @@ const INCIDENT: Kind = {
     reminders: true,
     videoCalls: true,
     followUpCheck: false,
+    aiOutageCheck: true,
   },
   newRecord: (policyIds: Array<string>): DatabaseBaseModel => {
     const incident: Incident = new Incident();
@@ -514,6 +524,9 @@ const INCIDENT: Kind = {
     stub(InvestigationEligibility, "recordSkipped", (args: Array<unknown>) => {
       probes.investigationSkipped.push(String(args[1]));
     });
+    stub(AiFirstResponder, "onRecordCreated", (args: Array<unknown>) => {
+      probes.aiOutageChecks.push(args[0] as Record<string, unknown>);
+    });
     stub(
       AutoRemediationRuleEngineService,
       "onIncidentCreated",
@@ -551,6 +564,7 @@ const ALERT: Kind = {
     reminders: true,
     videoCalls: true,
     followUpCheck: true,
+    aiOutageCheck: true,
   },
   newRecord: (policyIds: Array<string>): DatabaseBaseModel => {
     const alert: Alert = new Alert();
@@ -650,6 +664,9 @@ const ALERT: Kind = {
     stub(InvestigationEligibility, "recordSkipped", (args: Array<unknown>) => {
       probes.investigationSkipped.push(String(args[1]));
     });
+    stub(AiFirstResponder, "onRecordCreated", (args: Array<unknown>) => {
+      probes.aiOutageChecks.push(args[0] as Record<string, unknown>);
+    });
     stub(
       AutoRemediationRuleEngineService,
       "onAlertCreated",
@@ -709,6 +726,7 @@ const ALERT_EPISODE: Kind = {
     reminders: false,
     videoCalls: false,
     followUpCheck: false,
+    aiOutageCheck: false,
   },
   newRecord: (): DatabaseBaseModel => {
     const episode: AlertEpisode = new AlertEpisode();
@@ -813,6 +831,7 @@ const INCIDENT_EPISODE: Kind = {
     reminders: false,
     videoCalls: false,
     followUpCheck: false,
+    aiOutageCheck: false,
   },
   newRecord: (): DatabaseBaseModel => {
     const episode: IncidentEpisode = new IncidentEpisode();
@@ -1141,6 +1160,9 @@ describe.each(KINDS)(
             ? [{ projectId: PROJECT_ID, alertId: RECORD_ID }]
             : [],
         );
+        expect(probes.aiOutageChecks).toEqual(
+          kind.has.aiOutageCheck ? [{ projectId: PROJECT_ID }] : [],
+        );
         expect(probes.sla).toHaveLength(kind.has.sla ? 1 : 0);
         expect(probes.monitorStatus).toHaveLength(
           kind.has.monitorStatus ? 1 : 0,
@@ -1264,6 +1286,9 @@ describe.each(KINDS)(
         expect(probes.followUpChecks).toHaveLength(
           kind.has.followUpCheck ? 1 : 0,
         );
+        expect(probes.aiOutageChecks).toHaveLength(
+          kind.has.aiOutageCheck ? 1 : 0,
+        );
         expect(probes.monitorStatus).toHaveLength(
           kind.has.monitorStatus ? 1 : 0,
         );
@@ -1322,6 +1347,15 @@ describe.each(KINDS)(
         const { probes } = await create(kind, RESOLVED);
 
         expect(probes.remediated).toEqual([]);
+      });
+    }
+
+    if (kind.has.aiOutageCheck) {
+      test("it is no sign of an outage: OneUptime AI's held pages are not handed to people for it", async () => {
+        const { probes } = await create(kind, RESOLVED);
+
+        expect(probes.aiOutageChecks).toEqual([]);
+        expect(chainErrors()).toEqual([]);
       });
     }
 

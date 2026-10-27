@@ -75,7 +75,8 @@ const VALUE_VIEW: string = `${WIDGETS}/ValueWidgetView.tsx`;
 
 const APP_ROOT: string = `${DASHBOARD_SRC}/App.tsx`;
 const AI_COPILOT_PAGE: string = `${DASHBOARD_SRC}/Pages/AICopilot/AICopilot.tsx`;
-const AI_CHAT_PANEL: string = `${DASHBOARD_SRC}/Components/AIChat/AIChatPanel.tsx`;
+const AI_CHAT_PANEL: string = `${DASHBOARD_SRC}/Components/AIChat/AskAiDialog.tsx`;
+const AI_CHAT_CONVERSATION: string = `${DASHBOARD_SRC}/Components/AIChat/AskAiConversation.tsx`;
 const CHAT_MESSAGE_LIST: string = `${DASHBOARD_SRC}/Components/AIChat/ChatMessageList.tsx`;
 const WIDGET_RENDERER: string = `${DASHBOARD_SRC}/Components/AIChat/Widgets/WidgetRenderer.tsx`;
 const CHART_WIDGET: string = `${DASHBOARD_SRC}/Components/AIChat/Widgets/ChartWidget.tsx`;
@@ -315,10 +316,10 @@ describe("the Component Settings preview zooms itself, never the board", () => {
 });
 
 describe("AI chat charts zoom on their own and never retime the page behind them", () => {
-  test("the chat panel is mounted at the app root with no zoom around it", () => {
+  test("Ask AI is mounted at the app root with no zoom around it", () => {
     const appRoot: string = readCode(APP_ROOT);
 
-    expect(appRoot).toContain("<AIChatPanel />");
+    expect(appRoot).toContain("<AskAiDialog />");
     /*
      * A scope at this level would make every time-series chart in the chat
      * retime whatever page happens to be open behind the panel.
@@ -328,7 +329,8 @@ describe("AI chat charts zoom on their own and never retime the page behind them
 
   test.each([
     ["the AI Copilot page", AI_COPILOT_PAGE],
-    ["the chat panel", AI_CHAT_PANEL],
+    ["the Ask AI dialog", AI_CHAT_PANEL],
+    ["the Ask AI conversation", AI_CHAT_CONVERSATION],
     ["the chat transcript", CHAT_MESSAGE_LIST],
     ["the investigation evidence list", EVIDENCE_LIST],
   ])(

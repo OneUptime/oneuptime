@@ -24,7 +24,7 @@ On OneUptime Cloud, on-call SMS messages and phone calls come from the numbers b
 
 Your pages come from other numbers than the ones above when:
 
-- **Your project uses its own Twilio account.** When a project has a Twilio config set as its project default (**Project Settings** > **Notifications** > **Notification Settings** > **Twilio Config**), SMS messages and calls to the project's members go through that account, from its phone numbers. Whitelist those numbers instead.
+- **Your project uses its own Twilio account.** When a project has a Twilio config set as its project default (**Project Settings** > **Notifications** > **Notification Settings** > **More settings** > **Twilio Config**), SMS messages and calls to the project's members go through that account, from its phone numbers. Whitelist those numbers instead.
 - **You use a self-hosted installation.** SMS messages and calls come from the Twilio numbers your administrator configured: the project's default Twilio config, or the installation-wide one under **Admin Dashboard** > **Settings** > **Call and SMS**. Ask your administrator which numbers to whitelist.
 
 ## Next steps

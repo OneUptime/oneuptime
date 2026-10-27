@@ -1,5 +1,6 @@
 import OneUptimeDate from "../../../Types/Date";
 import { getOnCallPolicyRunWaitingMessage } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
+import { getAiHoldTimeInMinutes } from "../../../Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import OnCallRuleWhenToPage from "../../../Types/OnCallDutyPolicy/OnCallRuleWhenToPage";
 import RestrictionTimes from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
 import WorkingHours from "../../../Types/OnCallDutyPolicy/WorkingHours";
@@ -24,12 +25,29 @@ import logger from "../Logger";
  * open - none set, a window that ends where it starts, a time zone OneUptime
  * does not know - hold nothing either: the rule pages right away, and the
  * log says why. A page held for hours that never come is a page lost.
+ *
+ * A rule set to After OneUptime AI holds its runs for its hold time, while
+ * AI works (OnCallPolicyAiHold) - but only for a record the rule engine found
+ * OneUptime AI may respond first to (AiFirstResponderEligibility), which it
+ * says here. For any other record, and for an episode, the rule pages right
+ * away: AI holds a page only where it can fix something.
  */
 
 // The hold on a run: when it starts paging, and what it says until then.
 export interface OnCallRulePagingHold {
   pagingStartsAt: Date;
   waitingStatusMessage: string;
+  // Held while OneUptime AI works (OnCallPolicyAiHold), not for working hours.
+  isAiHold?: boolean | undefined;
+}
+
+/*
+ * What a rule engine found about one record before it asked for holds:
+ * whether OneUptime AI may respond first to it (AiFirstResponderEligibility).
+ * Absent, a rule set to After OneUptime AI pages right away.
+ */
+export interface OneUptimeAiHoldContext {
+  canHold: boolean;
 }
 
 // What a rule says about when it pages (OnCallRuleBaseModel).
@@ -38,6 +56,7 @@ export interface OnCallRuleWhenToPageSettings {
   whenToPage?: OnCallRuleWhenToPage | string | null | undefined;
   workingHours?: RestrictionTimes | null | undefined;
   workingHoursTimezone?: string | null | undefined;
+  aiHoldTimeInMinutes?: number | null | undefined;
 }
 
 // The columns a rule engine reads to know when a rule pages.
@@ -45,22 +64,30 @@ export const ON_CALL_RULE_WHEN_TO_PAGE_SELECT: {
   whenToPage: true;
   workingHours: true;
   workingHoursTimezone: true;
+  aiHoldTimeInMinutes: true;
 } = {
   whenToPage: true,
   workingHours: true,
   workingHoursTimezone: true,
+  aiHoldTimeInMinutes: true,
 };
 
 export default class OnCallRulePagingHoldUtil {
   /*
    * The hold a rule puts on the runs it starts now: null when they page
    * right away - a rule that pages right away, a working-hours rule inside
-   * its hours, or one whose hours never open.
+   * its hours, one whose hours never open, or an After OneUptime AI rule for
+   * a record AI may not respond first to.
    */
   public static getHold(
     rule: OnCallRuleWhenToPageSettings,
     now: Date,
+    ai?: OneUptimeAiHoldContext | undefined,
   ): OnCallRulePagingHold | null {
+    if (rule.whenToPage === OnCallRuleWhenToPage.AfterOneUptimeAI) {
+      return this.getAiHold(rule, now, ai);
+    }
+
     if (rule.whenToPage !== OnCallRuleWhenToPage.WorkingHours) {
       return null;
     }
@@ -99,6 +126,56 @@ export default class OnCallRulePagingHoldUtil {
     };
   }
 
+  /*
+   * Whether a rule a record matches pages its policies now: not while it
+   * holds them. A rule set to After OneUptime AI never counts: the runs it
+   * holds start when AI hands them off or their hold time runs out
+   * (AiFirstResponder), not because a record changed - and one that holds
+   * nothing started its runs at once already.
+   */
+  public static isPagingNow(
+    rule: OnCallRuleWhenToPageSettings,
+    now: Date,
+  ): boolean {
+    if (rule.whenToPage === OnCallRuleWhenToPage.AfterOneUptimeAI) {
+      return false;
+    }
+
+    return this.getHold(rule, now) === null;
+  }
+
+  /*
+   * An After OneUptime AI rule's hold: its hold time from now, for a record AI
+   * may respond first to. Said in the run's waiting message, read in the
+   * rule's working-hours time zone when it has one.
+   */
+  private static getAiHold(
+    rule: OnCallRuleWhenToPageSettings,
+    now: Date,
+    ai: OneUptimeAiHoldContext | undefined,
+  ): OnCallRulePagingHold | null {
+    if (!ai?.canHold) {
+      return null;
+    }
+
+    const pagingStartsAt: Date = OneUptimeDate.addRemoveMinutes(
+      now,
+      getAiHoldTimeInMinutes(rule.aiHoldTimeInMinutes),
+    );
+
+    return {
+      pagingStartsAt: pagingStartsAt,
+      waitingStatusMessage: getOnCallPolicyRunWaitingMessage({
+        pagingStartsAt: pagingStartsAt,
+        timezone: rule.workingHoursTimezone || undefined,
+        now: now,
+        isWaitingForWorkingHours: false,
+        isWaitingForOneUptimeAI: true,
+      }),
+      isAiHold: true,
+    };
+  }
+
   // Of two rules' holds on one policy, the one that lets it page first.
   public static getEarliest(
     first: OnCallRulePagingHold | null,
@@ -129,14 +206,20 @@ export class OnCallRulePagingHolds {
     this.now = now || OneUptimeDate.getCurrentDate();
   }
 
-  // A rule the record matched, and the policies it pages.
+  /*
+   * A rule the record matched, and the policies it pages. `ai` says whether
+   * OneUptime AI may respond first to the record, for a rule set to After
+   * OneUptime AI.
+   */
   public addRule(
     rule: OnCallRuleWhenToPageSettings,
     policyIds: Array<string>,
+    ai?: OneUptimeAiHoldContext | undefined,
   ): void {
     const hold: OnCallRulePagingHold | null = OnCallRulePagingHoldUtil.getHold(
       rule,
       this.now,
+      ai,
     );
 
     for (const policyId of policyIds) {

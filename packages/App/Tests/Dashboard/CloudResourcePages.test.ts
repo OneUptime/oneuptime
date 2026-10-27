@@ -494,11 +494,15 @@ describe("Cloud Environment copy", () => {
 });
 
 describe("Cloud Resource settings", () => {
+  /*
+   * An environment's retention is folded under its More settings, as every
+   * resource's is (TelemetryResourceMoreSettings).
+   */
   test("a discovered resource gets no retention card: its metrics are not filed under its row", () => {
     const settings: string = readCode("Pages/Cloud/View/Settings.tsx");
 
     expect(settings).toMatch(
-      /\{isResource \? null : \(\s*<TelemetryResourceRetentionSettings<CloudResource>/,
+      /\{isResource \? null : \(\s*<TelemetryResourceMoreSettings<CloudResource>/,
     );
   });
 

@@ -232,6 +232,12 @@ export const FormsCopy: {
   ipAllowlistDescription: string;
   ipAllowlistEmpty: string;
   ipAllowlistNoAddress: string;
+  /*
+   * The Share page's More settings, which holds the IP allowlist: what it
+   * is set to, folded. Open, the card says what it is.
+   */
+  moreSettingsSummaryOpen: string;
+  moreSettingsSummaryConfigured: string;
 
   // Submissions.
   submissionsTitle: string;
@@ -530,6 +536,9 @@ export const FormsCopy: {
   ipAllowlistEmpty: "Any network",
   ipAllowlistNoAddress:
     "The list holds no address, so no network can open the form.",
+  moreSettingsSummaryOpen: "Every IP address can open this form.",
+  moreSettingsSummaryConfigured:
+    "Only the IP addresses on the allowlist can open this form.",
 
   submissionsTitle: "Submissions",
   submissionsDescription:

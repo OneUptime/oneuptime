@@ -93,7 +93,7 @@ Dans **Partager**, copiez le lien et envoyez-le aux personnes qui doivent utilis
 | **Construire** | Le nom et la description du formulaire, son **Image de marque** (logo et favicon, repliés) et l'éditeur : ses questions, la palette de questions et l'**Aperçu**. |
 | **Modèles** | Des ensembles de réponses nommés à partir desquels on peut commencer le formulaire, la façon dont chacun pose les questions, celui avec lequel il s'ouvre et le lien propre à chacun. |
 | **À la soumission** | Ce que crée chaque soumission et comment chacun de ses champs est rempli. **Modifier les paramètres** change les valeurs par défaut et ce qui s'applique toujours. |
-| **Partager** | **Accepte les soumissions**, le **Lien de partage**, le message affiché après la soumission et la **Liste d'autorisation IP**. |
+| **Partager** | **Accepte les soumissions**, le **Lien de partage**, le message affiché après la soumission et, sous **Plus de paramètres**, la **Liste d'autorisation IP**. |
 | **Soumissions** | Chaque soumission faite par le formulaire, la plus récente en premier, avec ses réponses et ce qu'elle a créé. |
 | **Dupliquer le formulaire** | Sous **Avancé** : une copie du formulaire, nommée pour vous, avec ses questions, ses modèles, ses paramètres À la soumission, son image de marque, son message de remerciement et sa liste d'autorisation IP, et un lien qui lui est propre. La copie est d'abord désactivée et s'ouvre sur son éditeur. |
 | **Supprimer le formulaire** | La suppression du formulaire, sous **Avancé**. Ses soumissions sont supprimées avec lui ; les incidents et événements qu'il a créés ne le sont pas. |

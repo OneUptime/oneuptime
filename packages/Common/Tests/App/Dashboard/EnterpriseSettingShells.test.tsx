@@ -187,6 +187,8 @@ import StatusPagePoweredBySettings, {
   STATUS_PAGE_POWERED_BY_UPSELL,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/StatusPagePoweredBySettings";
 import TeamCustomRolesSettings from "../../../../App/FeatureSet/Dashboard/src/Components/Team/TeamCustomRolesSettings";
+import { CustomRolesCardState } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomRole/CustomRolesFold";
+import { SubscriberRestrictionsState } from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/SubscriberRestrictionsCopy";
 import ApiKeyCustomRolesSettings from "../../../../App/FeatureSet/Dashboard/src/Components/ApiKey/ApiKeyCustomRolesSettings";
 import TeamRoles, {
   CUSTOM_ROLES_UPSELL,
@@ -1043,9 +1045,14 @@ describe("the custom role shells", () => {
     expect(
       screen.getByText(CustomRoleLeftoverCopy.teamEditionDescription),
     ).toBeInTheDocument();
+    /*
+     * No upsell: the card is titled Custom Roles, as the upsell's feature
+     * is named, so the upsell is told by its own words and its button.
+     */
     expect(
-      screen.queryByText(CUSTOM_ROLES_UPSELL.featureName),
+      screen.queryByText(CUSTOM_ROLES_UPSELL.featureDescription as string),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(COMMUNITY_EDITION_CTA)).not.toBeInTheDocument();
     expect(countMock).toHaveBeenCalledWith(
       expect.objectContaining({
         query: { teamId: TEAM_ID, projectId: PROJECT_ID },
@@ -1123,8 +1130,9 @@ describe("the custom role shells", () => {
       screen.getByText(CustomRoleLeftoverCopy.apiKeyEditionDescription),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText(CUSTOM_ROLES_UPSELL.featureName),
+      screen.queryByText(CUSTOM_ROLES_UPSELL.featureDescription as string),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(COMMUNITY_EDITION_CTA)).not.toBeInTheDocument();
     expect(countMock).toHaveBeenCalledWith(
       expect.objectContaining({
         query: { apiKeyId: API_KEY_ID, projectId: PROJECT_ID },
@@ -1221,5 +1229,361 @@ describe("the custom role shells", () => {
       await screen.findByTestId("api-key-roles-plugin"),
     ).toBeInTheDocument();
     expect(countMock).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Each of these cards waits folded under its page's More settings, and
+ * tells the page what it holds - whichever edition draws it - so the folded
+ * header can name it with what it is set to: "Reader Sessions: 8 hours",
+ * "Who Can Subscribe: Private users", "Powered by OneUptime: Off", "Custom
+ * Roles: 2". The shells hand the same callback to the Enterprise card and to what
+ * a lower plan or the Community Edition left of the feature.
+ */
+describe("what the folded cards tell their page", () => {
+  test("reader sessions, Community Edition: the limit still in force, and none once removed", async () => {
+    const reports: Array<number | null> = [];
+
+    getItemMock.mockResolvedValue(
+      recordWith(StatusPage, { privateUserSessionLengthInHours: 12 }) as never,
+    );
+
+    renderInRouter(
+      <StatusPageSessionLengthSettings
+        statusPageId={RECORD_ID}
+        onLengthChange={(lengthInHours: number | null) => {
+          reports.push(lengthInHours);
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(reports).toEqual([12]);
+    });
+
+    /*
+     * The card tells its page what it read before it draws it: its button
+     * may come a render later.
+     */
+    fireEvent.click(
+      (await screen.findAllByText("Remove limit"))[0] as HTMLElement,
+    );
+    await screen.findByText("Remove the reader session limit?");
+
+    await act(async () => {
+      const buttons: Array<HTMLElement> = screen.getAllByText("Remove limit");
+      fireEvent.click(buttons[buttons.length - 1] as HTMLElement);
+    });
+
+    await waitFor(() => {
+      expect(reports).toEqual([12, null]);
+    });
+  });
+
+  test("reader sessions, Community Edition, no limit: none", async () => {
+    const reports: Array<number | null> = [];
+
+    getItemMock.mockResolvedValue(
+      recordWith(StatusPage, {
+        privateUserSessionLengthInHours: null,
+      }) as never,
+    );
+
+    renderInRouter(
+      <StatusPageSessionLengthSettings
+        statusPageId={RECORD_ID}
+        onLengthChange={(lengthInHours: number | null) => {
+          reports.push(lengthInHours);
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(reports).toEqual([null]);
+    });
+  });
+
+  test("reader sessions, Enterprise Edition: the card is handed the same way to say so", async () => {
+    enterpriseEditionForTest = true;
+    const plugin: ReturnType<typeof stubPlugin> = stubPlugin("session-plugin");
+    pluginsForTest = { StatusPageSessionLength: plugin.component };
+    const onLengthChange: (lengthInHours: number | null) => void = (): void => {
+      // Told by the card.
+    };
+
+    renderInRouter(
+      <StatusPageSessionLengthSettings
+        statusPageId={RECORD_ID}
+        onLengthChange={onLengthChange}
+      />,
+    );
+
+    expect(await screen.findByTestId("session-plugin")).toBeInTheDocument();
+    expect(plugin.calls[0]!["onLengthChange"]).toBe(onLengthChange);
+  });
+
+  test("who can subscribe, Community Edition: both restrictions still in force, and none once removed", async () => {
+    const reports: Array<Record<string, unknown>> = [];
+
+    getItemMock.mockResolvedValue(
+      recordWith(StatusPage, {
+        limitSubscribersToPrivateUsers: true,
+        allowedSubscriberEmailDomains: "acme.com\nacme.de",
+      }) as never,
+    );
+
+    renderInRouter(
+      <SubscriberRestrictionsSettings
+        statusPageId={RECORD_ID}
+        onRestrictionsChange={(restrictions: SubscriberRestrictionsState) => {
+          reports.push({ ...restrictions });
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(reports).toEqual([
+        { limitSubscribersToPrivateUsers: true, allowedEmailDomainCount: 2 },
+      ]);
+    });
+
+    fireEvent.click(
+      (await screen.findAllByText("Remove restrictions"))[0] as HTMLElement,
+    );
+    await screen.findByText("Remove the subscriber restrictions?");
+
+    await act(async () => {
+      const buttons: Array<HTMLElement> = screen.getAllByText(
+        "Remove restrictions",
+      );
+      fireEvent.click(buttons[buttons.length - 1] as HTMLElement);
+    });
+
+    await waitFor(() => {
+      expect(reports[reports.length - 1]).toEqual({
+        limitSubscribersToPrivateUsers: false,
+        allowedEmailDomainCount: 0,
+      });
+    });
+  });
+
+  test("who can subscribe, Enterprise Edition: the card is handed the same way to say so", async () => {
+    enterpriseEditionForTest = true;
+    const plugin: ReturnType<typeof stubPlugin> = stubPlugin(
+      "restrictions-plugin",
+    );
+    pluginsForTest = { StatusPageSubscriberRestrictions: plugin.component };
+    const onRestrictionsChange: (
+      restrictions: SubscriberRestrictionsState,
+    ) => void = (): void => {
+      // Told by the card.
+    };
+
+    renderInRouter(
+      <SubscriberRestrictionsSettings
+        statusPageId={RECORD_ID}
+        onRestrictionsChange={onRestrictionsChange}
+      />,
+    );
+
+    expect(
+      await screen.findByTestId("restrictions-plugin"),
+    ).toBeInTheDocument();
+    expect(plugin.calls[0]!["onRestrictionsChange"]).toBe(onRestrictionsChange);
+  });
+
+  test("Powered by OneUptime, OneUptime Cloud below Scale: the line still hidden, and shown once put back", async () => {
+    const reports: Array<boolean> = [];
+
+    pinCloud(PlanType.Free);
+    pluginsForTest = {
+      StatusPagePoweredBy: stubPlugin("powered-by-plugin").component,
+    };
+    getItemMock.mockResolvedValue(
+      recordWith(StatusPage, { hidePoweredByOneUptimeBranding: true }) as never,
+    );
+
+    renderInRouter(
+      <StatusPagePoweredBySettings
+        statusPageId={RECORD_ID}
+        onPoweredByChange={(isShown: boolean) => {
+          reports.push(isShown);
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(reports).toEqual([false]);
+    });
+
+    fireEvent.click(
+      (
+        await screen.findAllByText("Show Powered by OneUptime")
+      )[0] as HTMLElement,
+    );
+    await screen.findByText("Show Powered by OneUptime again?");
+
+    await act(async () => {
+      const buttons: Array<HTMLElement> = screen.getAllByText(
+        "Show Powered by OneUptime",
+      );
+      fireEvent.click(buttons[buttons.length - 1] as HTMLElement);
+    });
+
+    await waitFor(() => {
+      expect(reports).toEqual([false, true]);
+    });
+  });
+
+  test("Powered by OneUptime, OneUptime Cloud below Scale, the line shown: shown", async () => {
+    const reports: Array<boolean> = [];
+
+    pinCloud(PlanType.Growth);
+    getItemMock.mockResolvedValue(
+      recordWith(StatusPage, {
+        hidePoweredByOneUptimeBranding: false,
+      }) as never,
+    );
+
+    renderInRouter(
+      <StatusPagePoweredBySettings
+        statusPageId={RECORD_ID}
+        onPoweredByChange={(isShown: boolean) => {
+          reports.push(isShown);
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(reports).toEqual([true]);
+    });
+  });
+
+  test("Powered by OneUptime, Community Edition: nothing to say - every page shows the line there", async () => {
+    const reports: Array<boolean> = [];
+
+    renderInRouter(
+      <StatusPagePoweredBySettings
+        statusPageId={RECORD_ID}
+        onPoweredByChange={(isShown: boolean) => {
+          reports.push(isShown);
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByText(STATUS_PAGE_POWERED_BY_UPSELL.featureName as string),
+    ).toBeInTheDocument();
+    expect(reports).toEqual([]);
+    expect(getItemMock).not.toHaveBeenCalled();
+  });
+
+  test("Powered by OneUptime, Enterprise Edition: the card is handed the same way to say so", async () => {
+    enterpriseEditionForTest = true;
+    const plugin: ReturnType<typeof stubPlugin> =
+      stubPlugin("powered-by-plugin");
+    pluginsForTest = { StatusPagePoweredBy: plugin.component };
+    const onPoweredByChange: (isShown: boolean) => void = (): void => {
+      // Told by the card.
+    };
+
+    renderInRouter(
+      <StatusPagePoweredBySettings
+        statusPageId={RECORD_ID}
+        onPoweredByChange={onPoweredByChange}
+      />,
+    );
+
+    expect(await screen.findByTestId("powered-by-plugin")).toBeInTheDocument();
+    expect(plugin.calls[0]!["onPoweredByChange"]).toBe(onPoweredByChange);
+  });
+
+  test.each([
+    [3, { isShown: true, count: 3 }],
+    [0, { isShown: false, count: 0 }],
+  ])(
+    "a team's custom roles, Community Edition, %i left: told to the page",
+    async (left: number, told: CustomRolesCardState) => {
+      const reports: Array<CustomRolesCardState> = [];
+
+      countMock.mockResolvedValue(left as never);
+
+      renderInRouter(
+        <TeamCustomRolesSettings
+          teamId={TEAM_ID}
+          onRolesChange={(state: CustomRolesCardState) => {
+            reports.push(state);
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(reports[0]).toEqual(told);
+      });
+    },
+  );
+
+  test.each([
+    [2, { isShown: true, count: 2 }],
+    [0, { isShown: false, count: 0 }],
+  ])(
+    "an API key's custom roles, Community Edition, %i left: told to the page",
+    async (left: number, told: CustomRolesCardState) => {
+      const reports: Array<CustomRolesCardState> = [];
+
+      countMock.mockResolvedValue(left as never);
+
+      renderInRouter(
+        <ApiKeyCustomRolesSettings
+          apiKeyId={API_KEY_ID}
+          onRolesChange={(state: CustomRolesCardState) => {
+            reports.push(state);
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(reports[0]).toEqual(told);
+      });
+    },
+  );
+
+  test("custom roles, Enterprise Edition: each card is handed the same way to say so", async () => {
+    enterpriseEditionForTest = true;
+    const teamPlugin: ReturnType<typeof stubPlugin> =
+      stubPlugin("team-roles-plugin");
+    const keyPlugin: ReturnType<typeof stubPlugin> = stubPlugin(
+      "api-key-roles-plugin",
+    );
+    pluginsForTest = {
+      TeamCustomRoles: teamPlugin.component,
+      ApiKeyCustomRoles: keyPlugin.component,
+    };
+    const onRolesChange: (state: CustomRolesCardState) => void = (): void => {
+      // Told by the card.
+    };
+
+    renderInRouter(
+      <>
+        <TeamCustomRolesSettings
+          teamId={TEAM_ID}
+          onRolesChange={onRolesChange}
+        />
+        <ApiKeyCustomRolesSettings
+          apiKeyId={API_KEY_ID}
+          onRolesChange={onRolesChange}
+        />
+      </>,
+    );
+
+    expect(await screen.findByTestId("team-roles-plugin")).toBeInTheDocument();
+    expect(teamPlugin.calls[0]).toEqual({
+      teamId: TEAM_ID,
+      onRolesChange: onRolesChange,
+    });
+    expect(keyPlugin.calls[0]).toEqual({
+      apiKeyId: API_KEY_ID,
+      onRolesChange: onRolesChange,
+    });
   });
 });

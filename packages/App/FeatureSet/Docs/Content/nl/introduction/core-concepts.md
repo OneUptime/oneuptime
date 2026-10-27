@@ -108,7 +108,7 @@ Een **statuspagina** laat uw klanten zien of uw services werken. U kiest welke m
 
 - **Workflows** voeren acties uit wanneer er iets gebeurt, zoals een bericht in Slack plaatsen wanneer een incident wordt gemeld.
 - **Runbooks** zetten een responsprocedure om in stappen die uw team met de hand of automatisch kan uitvoeren.
-- **OneUptime AI** onderzoekt nieuwe incidenten en waarschuwingen en zet wat het heeft gevonden op hun tijdlijn, en **Ask AI** beantwoordt vragen over uw project. Een nieuw project begint met AI aan; de schakelaar **AI inschakelen** onder **Projectinstellingen → AI → AI Features** zet het allemaal uit.
+- **OneUptime AI** onderzoekt nieuwe incidenten en waarschuwingen en zet wat het heeft gevonden op hun tijdlijn, en **AI vragen** beantwoordt vragen over uw project. Een nieuw project begint met AI aan; de schakelaar **AI inschakelen** onder **Projectinstellingen → AI → AI Features** zet het allemaal uit.
 
 :::cards
 - [Workflows – Overzicht](/docs/workflows/index): Acties automatiseren met triggers en componenten.

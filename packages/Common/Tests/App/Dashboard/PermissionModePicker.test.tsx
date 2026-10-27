@@ -10,14 +10,16 @@ import {
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import PermissionModePicker from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/PermissionModePicker";
+import { describePermissionMode } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationConversation/InvestigationConversationData";
 import AIChatPermissionMode from "../../../Types/AI/AIChatPermissionMode";
+
+const COPILOT_WORD: RegExp = /copilot/i;
 
 /*
  * The control that says what the AI may do with a request: act at once, ask
- * first, or only read. The Ask AI panel has it at the right end of its
- * composer's controls; the AI Investigation card's composer has it at the
- * left end, where a menu lined up on the button's right edge opened past the
- * card's left edge. It is also a menu a keyboard and a screen reader can
+ * first, or only read. Ask AI's composer and the AI Investigation card's
+ * both have it at the left end of their controls, where a menu lined up on
+ * the button's right edge opened past the box's left edge. It is also a menu a keyboard and a screen reader can
  * use: it says it is one, whether it is open, and which mode is chosen.
  */
 
@@ -122,10 +124,70 @@ describe("PermissionModePicker — the menu", () => {
         return item.textContent || "";
       }),
     ).toEqual([
-      "Ask for approvalThe copilot pauses and asks before it changes anything (creating incidents, acknowledging alerts, etc).",
-      "Auto-run (bypass approvals)The copilot performs actions immediately, still limited to what your role can do.",
-      "Read-onlyThe copilot can investigate and answer questions but can never change anything.",
+      "Ask to actAsks for approval before it changes anything.",
+      "Auto-runActs on clear requests right away, within your permissions.",
+      "Read-onlyOnly reads and answers. It never changes anything.",
     ]);
+  });
+
+  /*
+   * The menu offered "Ask for approval" under a button that said "Ask to
+   * act", and the docs tell people to pick Ask to act: a mode has one name,
+   * on the button, in the menu and in the docs.
+   */
+  test.each([
+    [AIChatPermissionMode.AskForApproval],
+    [AIChatPermissionMode.AutoRun],
+    [AIChatPermissionMode.ReadOnly],
+  ])(
+    "the chosen mode (%s) has the name in the menu that the button gives it",
+    (mode: AIChatPermissionMode) => {
+      renderPicker({ value: mode });
+
+      const name: string = trigger().textContent || "";
+      const chosen: HTMLElement = within(open()).getByRole("menuitemradio", {
+        checked: true,
+      });
+
+      expect(name.length).toBeGreaterThan(0);
+      expect(chosen.querySelector("span")?.textContent).toBe(name);
+    },
+  );
+
+  /*
+   * Each mode says what it means in the sentence the AI Investigation card's
+   * composer shows beside its picker - one set of words, which every
+   * language translates - and never in another product's words.
+   */
+  test("each mode says what it means as the card's composer says it", () => {
+    renderPicker();
+
+    const items: Array<HTMLElement> =
+      within(open()).getAllByRole("menuitemradio");
+
+    expect(
+      items.map((item: HTMLElement): string => {
+        return item.textContent || "";
+      }),
+    ).toEqual(
+      [
+        AIChatPermissionMode.AskForApproval,
+        AIChatPermissionMode.AutoRun,
+        AIChatPermissionMode.ReadOnly,
+      ].map((mode: AIChatPermissionMode): string => {
+        return `${
+          {
+            [AIChatPermissionMode.AskForApproval]: "Ask to act",
+            [AIChatPermissionMode.AutoRun]: "Auto-run",
+            [AIChatPermissionMode.ReadOnly]: "Read-only",
+          }[mode]
+        }${describePermissionMode(mode)}`;
+      }),
+    );
+
+    for (const item of items) {
+      expect(item.textContent).not.toMatch(COPILOT_WORD);
+    }
   });
 
   test.each([
@@ -192,6 +254,37 @@ describe("PermissionModePicker — the menu", () => {
     expect(menu()).toBeNull();
     expect(onChange).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(trigger());
+  });
+
+  /*
+   * Ask AI's dialog closes on an Escape nobody else used: the menu marks
+   * its Escape as spent, so it closes the menu and not the dialog too.
+   */
+  test("its Escape is spent on the menu, so the dialog around it stays open", () => {
+    renderPicker();
+
+    open();
+    const event: KeyboardEvent = new KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  test("a closed menu leaves Escape to the dialog", () => {
+    renderPicker();
+
+    const event: KeyboardEvent = new KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+      cancelable: true,
+    });
+    document.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
   });
 
   test("other keys leave it open", () => {
@@ -277,7 +370,7 @@ describe("PermissionModePicker — the menu", () => {
 });
 
 describe("PermissionModePicker — where the menu opens", () => {
-  test("lines up on the button's right edge by default (the Ask AI panel)", () => {
+  test("lines up on the button's right edge by default", () => {
     renderPicker();
 
     const opened: HTMLElement = open();
@@ -291,7 +384,7 @@ describe("PermissionModePicker — where the menu opens", () => {
     expect(open()).toHaveClass("right-0");
   });
 
-  test("lines up on the button's left edge when asked (the AI Investigation card)", () => {
+  test("lines up on the button's left edge when asked (Ask AI and the AI Investigation card)", () => {
     renderPicker({ menuAlign: "left" });
 
     const opened: HTMLElement = open();
@@ -313,4 +406,153 @@ describe("PermissionModePicker — where the menu opens", () => {
       );
     },
   );
+
+  /*
+   * Ask AI's start draws the composer near the top of the dialog, where a
+   * menu opening upwards would be cut off by the dialog's edge.
+   */
+  test("opens downwards when asked (the composer at the top of Ask AI's start)", () => {
+    renderPicker({ menuAlign: "left", menuSide: "bottom" });
+
+    const opened: HTMLElement = open();
+    expect(opened).toHaveClass("top-full", "mt-2", "left-0");
+    expect(opened).not.toHaveClass("bottom-full");
+  });
+
+  test("an explicit top is the same as the default", () => {
+    renderPicker({ menuSide: "top" });
+
+    expect(open()).toHaveClass("bottom-full", "mb-2");
+  });
+});
+
+/*
+ * The menu's side is measured, which jsdom does not do: these stub where
+ * the button is, how tall the menu is and the box that clips them both
+ * (Ask AI's dialog), and put the real methods back after each test.
+ */
+interface StubbedLayout {
+  button: [number, number];
+  boundary: [number, number];
+  menuHeight: number;
+}
+
+const restoreLayout: Array<() => void> = [];
+
+function rectOf(top: number, bottom: number): DOMRect {
+  return {
+    top: top,
+    bottom: bottom,
+    left: 0,
+    right: 200,
+    width: 200,
+    height: bottom - top,
+    x: 0,
+    y: top,
+    toJSON: () => {
+      return {};
+    },
+  };
+}
+
+function stubLayout(layout: StubbedLayout): void {
+  const originalRect: () => DOMRect =
+    HTMLElement.prototype.getBoundingClientRect;
+  const originalOffsetHeight: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight");
+
+  HTMLElement.prototype.getBoundingClientRect = function (
+    this: HTMLElement,
+  ): DOMRect {
+    if (this.getAttribute("aria-haspopup") === "menu") {
+      return rectOf(layout.button[0], layout.button[1]);
+    }
+
+    if (this.hasAttribute("data-boundary")) {
+      return rectOf(layout.boundary[0], layout.boundary[1]);
+    }
+
+    return originalRect.call(this);
+  };
+
+  Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+    configurable: true,
+    get(this: HTMLElement): number {
+      return this.getAttribute("role") === "menu" ? layout.menuHeight : 0;
+    },
+  });
+
+  restoreLayout.push(() => {
+    HTMLElement.prototype.getBoundingClientRect = originalRect;
+
+    if (originalOffsetHeight) {
+      Object.defineProperty(
+        HTMLElement.prototype,
+        "offsetHeight",
+        originalOffsetHeight,
+      );
+    }
+  });
+}
+
+afterEach(() => {
+  for (const restore of restoreLayout.splice(0)) {
+    restore();
+  }
+});
+
+describe("PermissionModePicker — a menu that would not fit", () => {
+  function renderInDialog(): void {
+    render(
+      <div data-boundary="" style={{ overflowY: "hidden" }}>
+        <PermissionModePicker
+          value={AIChatPermissionMode.AskForApproval}
+          onChange={getJestMockFunction()}
+          menuAlign="left"
+          menuSide="bottom"
+        />
+      </div>,
+    );
+  }
+
+  /*
+   * Ask AI's start on a laptop window 800 px tall: the composer in the
+   * middle of the dialog, 256 px between its controls and the dialog's
+   * foot, and a menu 286 px tall.
+   */
+  test("asked to open down where the dialog would cut it off, it opens up", () => {
+    stubLayout({ button: [486, 512], boundary: [24, 776], menuHeight: 286 });
+    renderInDialog();
+
+    const opened: HTMLElement = open();
+    expect(opened).toHaveAttribute("data-menu-side", "top");
+    expect(opened).toHaveClass("bottom-full", "mb-2", "left-0");
+    expect(opened).not.toHaveClass("top-full");
+  });
+
+  test("with room below, it opens down as asked", () => {
+    stubLayout({ button: [402, 428], boundary: [24, 776], menuHeight: 286 });
+    renderInDialog();
+
+    const opened: HTMLElement = open();
+    expect(opened).toHaveAttribute("data-menu-side", "bottom");
+    expect(opened).toHaveClass("top-full", "mt-2");
+  });
+
+  test("each opening starts from the side asked for", () => {
+    stubLayout({ button: [486, 512], boundary: [24, 776], menuHeight: 286 });
+    renderInDialog();
+
+    expect(open()).toHaveAttribute("data-menu-side", "top");
+    fireEvent.click(trigger());
+    expect(menu()).toBeNull();
+
+    // The start scrolled: the controls are higher, with room below now.
+    restoreLayout.splice(0).forEach((restore: () => void) => {
+      restore();
+    });
+    stubLayout({ button: [300, 326], boundary: [24, 776], menuHeight: 286 });
+
+    expect(open()).toHaveAttribute("data-menu-side", "bottom");
+  });
 });

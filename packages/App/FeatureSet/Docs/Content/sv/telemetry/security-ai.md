@@ -104,7 +104,7 @@ Ett utkast kräver en roll som får skapa detektionsregler.
 
 ## Ask AI på säkerhetssidorna
 
-**Ask AI** vet vilken säkerhetssida du är på. På ett ärende läser den ärendet först och erbjuder frågor som **Är det på riktigt?**. På de andra sidorna under säkerhetshändelser söker en fråga med vanliga ord i dina säkerhetshändelser. Den kan också kontrollera värden mot dina hotunderrättelser, se hur aktiv en användare, en värd eller en adress har varit, och lista de playbooks som ett ärende kan gå till.
+**Fråga AI** vet vilken säkerhetssida du är på. På ett ärende läser den ärendet först och erbjuder frågor som **Är det på riktigt?**. På de andra sidorna under säkerhetshändelser söker en fråga med vanliga ord i dina säkerhetshändelser. Den kan också kontrollera värden mot dina hotunderrättelser, se hur aktiv en användare, en värd eller en adress har varit, och lista de playbooks som ett ärende kan gå till.
 
 Ask AI kan lägga till en anteckning i ett ärende och köra en playbook på det, i ditt namn, och frågar före varje åtgärd. En playbook som den kör väntar på godkännande som alla andra.
 
