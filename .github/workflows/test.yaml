@@ -11,6 +11,10 @@ on:
     branches:
       - master
 
+# Read-only: these jobs check out and test the code, nothing more.
+permissions:
+  contents: read
+
 jobs:
   # App tests run in the dedicated "App Test" workflow (test.app.yaml),
   # which also bootstraps config.env and Common's dependencies that the

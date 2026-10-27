@@ -11,6 +11,10 @@ on:
     branches:
       - master
 
+# Read-only: these jobs check out and test the code, nothing more.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
