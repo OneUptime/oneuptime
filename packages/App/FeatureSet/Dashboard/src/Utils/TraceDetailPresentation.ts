@@ -132,7 +132,11 @@ export function summarizeTrace(
     if (node.span.isError) {
       errorCount += 1;
     }
-    if (node.isOrphan) {
+    /*
+     * A span that only breaks a parent cycle is drawn at the top level too,
+     * but its parent was received: it is not missing one.
+     */
+    if (node.isOrphan && !tree.nodesById.has(node.span.parentSpanId)) {
       orphanCount += 1;
     }
     if (node.span.serviceId) {
@@ -161,6 +165,49 @@ export function summarizeTrace(
     serviceCount: serviceIds.size,
     maxDepth: loadedSpanCount > 0 ? tree.maxDepth + 1 : 0,
     orphanCount,
+  };
+}
+
+export interface OrphanSpanNote {
+  // "3 spans missing a parent", with "so far" while more spans remain to load.
+  label: string;
+  // Why their parents are missing, for the badge's tooltip.
+  hint: string;
+}
+
+/**
+ * What the header says about spans whose parent is not among the loaded
+ * spans (TraceSummary.orphanCount): a gap in the data, not a broken page.
+ * Their parent was not received. The sender dropped it (an SDK under load
+ * drops spans once its export queue is full), or it is still being
+ * ingested. While more spans remain to load, the parent may also be on a
+ * later page. A missing parent's start time is unknown, so no later page
+ * can be ruled out, and the count is only final once the whole trace is
+ * loaded.
+ */
+export function getOrphanSpanNote(data: {
+  orphanCount: number;
+  // Whether spans not loaded yet remain (SpanLoadState.hasMore).
+  hasMoreSpans: boolean;
+}): OrphanSpanNote | null {
+  if (data.orphanCount <= 0) {
+    return null;
+  }
+
+  const subject: string =
+    data.orphanCount === 1 ? "This span names" : "Each of these spans names";
+  const label: string = `${pluralize(data.orphanCount, "span")} missing a parent`;
+
+  if (!data.hasMoreSpans) {
+    return {
+      label,
+      hint: `${subject} a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.`,
+    };
+  }
+
+  return {
+    label: `${label} so far`,
+    hint: `${subject} a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.`,
   };
 }
 

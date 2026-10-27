@@ -687,6 +687,17 @@ describe("loading the trace", () => {
     expect(screen.getByTestId("trace-orphans")).toHaveTextContent(
       "1 span missing a parent",
     );
+    // Says what happened to the parent, so it does not read as a page fault.
+    expect(screen.getByTestId("trace-orphans")).toHaveAttribute(
+      "title",
+      expect.stringContaining(
+        "This span names a parent span that was not received",
+      ),
+    );
+    expect(screen.getByTestId("trace-orphans")).toHaveAttribute(
+      "title",
+      expect.stringContaining("refresh in a few seconds for a recent trace"),
+    );
   });
 
   test("refresh reads the trace again", async () => {
@@ -924,6 +935,67 @@ describe("batch loading a large trace", () => {
     });
     expect(screen.getByTestId("trace-stat-spans")).toHaveTextContent(
       "500of 1,300",
+    );
+  });
+
+  test("a parent on a page not loaded yet counts only 'so far', and stops counting once it loads", async () => {
+    // s10's parent sorts onto page 2 (its clock ran ahead); s20's never came.
+    const parents: Record<string, string> = {
+      s10: "late",
+      s20: "never-sent",
+    };
+    const definitions: Array<SpanDefinition> = [
+      {
+        spanId: "root",
+        parentSpanId: "",
+        name: "GET /reindex",
+        serviceId: GATEWAY,
+        startMs: 0,
+        durationMs: 700,
+      },
+    ];
+    for (let index: number = 1; index < 600; index++) {
+      definitions.push({
+        spanId: `s${index}`,
+        parentSpanId: parents[`s${index}`] || "root",
+        name: `item ${index}`,
+        serviceId: CHECKOUT,
+        startMs: index,
+        durationMs: 1,
+      });
+    }
+    definitions.push({
+      spanId: "late",
+      parentSpanId: "root",
+      name: "late parent",
+      serviceId: GATEWAY,
+      startMs: 650,
+      durationMs: 1,
+    });
+    setBackend({ traceSpans: definitions.map(makeSpan) });
+    await renderTrace();
+
+    expect(screen.getByTestId("trace-orphans")).toHaveTextContent(
+      "2 spans missing a parent so far",
+    );
+    expect(screen.getByTestId("trace-orphans")).toHaveAttribute(
+      "title",
+      expect.stringContaining("may change as more spans load"),
+    );
+
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("trace-load-more")).not.toBeInTheDocument();
+    });
+
+    // The whole trace is loaded: s10 found its parent, s20 never will.
+    expect(screen.getByTestId("trace-orphans")).toHaveTextContent(
+      "1 span missing a parent",
+    );
+    expect(screen.getByTestId("trace-orphans")).not.toHaveTextContent("so far");
+    expect(screen.getByTestId("trace-orphans")).toHaveAttribute(
+      "title",
+      expect.stringContaining("was not received"),
     );
   });
 

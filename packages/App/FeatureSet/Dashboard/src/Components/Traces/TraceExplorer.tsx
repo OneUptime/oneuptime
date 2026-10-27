@@ -1098,6 +1098,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         <TraceHeader
           traceId={traceId}
           summary={summary}
+          hasMoreSpans={loadState.hasMore}
           serviceInfoById={serviceInfoById}
           services={serviceSummaries}
           selectedServiceIds={selectedServiceIds}

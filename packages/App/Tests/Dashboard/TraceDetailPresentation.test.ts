@@ -7,6 +7,7 @@ import {
   AttributeEntry,
   HighlightSegment,
   OperationSummary,
+  OrphanSpanNote,
   ServiceSummary,
   SpanEventRow,
   SpanLoadState,
@@ -26,6 +27,7 @@ import {
   formatDurationNano,
   formatOffsetNano,
   formatPercent,
+  getOrphanSpanNote,
   getRootSpan,
   getServiceColor,
   getServiceInfo,
@@ -225,6 +227,21 @@ describe("summarizeTrace", () => {
     expect(summary.totalSpanCount).toBeNull();
   });
 
+  test("only a span whose parent is not loaded is missing one: breaking a cycle or naming itself is not", () => {
+    const summary: TraceSummary = summarizeTrace(
+      buildSpanTree([
+        // a and b name each other: the earlier one is drawn as a root.
+        span("a", "b", 0, 10),
+        span("b", "a", 5, 10),
+        span("self", "self", 20, 1),
+        span("lost", "gone", 30, 1),
+      ]),
+      4,
+    );
+
+    expect(summary.orphanCount).toBe(1);
+  });
+
   test("an empty trace", () => {
     const summary: TraceSummary = summarizeTrace(buildSpanTree([]), 0);
 
@@ -251,6 +268,50 @@ describe("summarizeTrace", () => {
         ]),
       )?.spanId,
     ).toBe("early");
+  });
+});
+
+/*
+ * "N spans missing a parent" read like a fault in the page. On native traces
+ * those parents really are missing from storage: the sending SDK dropped
+ * them under load, or they were still being ingested. With paging, a parent
+ * can also be on a page not loaded yet.
+ */
+describe("getOrphanSpanNote", () => {
+  test("no span missing a parent, no badge", () => {
+    expect(getOrphanSpanNote({ orphanCount: 0, hasMoreSpans: false })).toBe(
+      null,
+    );
+    expect(getOrphanSpanNote({ orphanCount: 0, hasMoreSpans: true })).toBe(
+      null,
+    );
+  });
+
+  test("a whole trace: the parent was not received, and why that happens", () => {
+    const note: OrphanSpanNote = getOrphanSpanNote({
+      orphanCount: 1,
+      hasMoreSpans: false,
+    })!;
+
+    expect(note.label).toBe("1 span missing a parent");
+    expect(note.hint).toBe(
+      "This span names a parent span that was not received, so it is shown at the top level. The sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+    );
+    expect(
+      getOrphanSpanNote({ orphanCount: 3, hasMoreSpans: false })!.hint,
+    ).toMatch(/^Each of these spans names a parent span that was not received/);
+  });
+
+  test("while more spans remain to load, the count is only so far: a parent may be on a later page", () => {
+    const note: OrphanSpanNote = getOrphanSpanNote({
+      orphanCount: 3,
+      hasMoreSpans: true,
+    })!;
+
+    expect(note.label).toBe("3 spans missing a parent so far");
+    expect(note.hint).toBe(
+      "Each of these spans names a parent span that is not among the spans loaded so far, so it is shown at the top level. The parent may be in a batch not loaded yet, so this may change as more spans load. Otherwise the sender may have dropped the parent (for example, when its export queue was full), or the parent is still arriving: refresh in a few seconds for a recent trace.",
+    );
   });
 });
 
