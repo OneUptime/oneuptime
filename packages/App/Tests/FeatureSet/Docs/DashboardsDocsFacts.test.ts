@@ -32,10 +32,18 @@ import {
   CONFIGURATION,
   DASHBOARDS_INDEX,
   DATA_SOURCES,
+  PLAYLISTS,
   SHARING,
   VARIABLES,
   WIDGETS,
 } from "./DashboardsDocsPages";
+import {
+  PlaylistPlayerKeyAction,
+  PlaylistPlayerShortcut,
+  PlaylistPlayerShortcutGroup,
+  getPlaylistPlayerKeyAction,
+  getPlaylistPlayerShortcutGroups,
+} from "../../../FeatureSet/Dashboard/src/Components/Dashboard/Playlist/PlaylistPlayerKeys";
 import { readPage, scanMarkdown } from "./DocsContentSupport";
 import { tables } from "./DocsPageShape";
 import { boldSpans, escapeRegExp, inlineCode } from "./DocsTranslationChecks";
@@ -45,6 +53,7 @@ import DashboardLabelRule from "Common/Models/DatabaseModels/DashboardLabelRule"
 import DashboardOwnerRule from "Common/Models/DatabaseModels/DashboardOwnerRule";
 import DashboardOwnerTeam from "Common/Models/DatabaseModels/DashboardOwnerTeam";
 import DashboardOwnerUser from "Common/Models/DatabaseModels/DashboardOwnerUser";
+import DashboardPlaylist from "Common/Models/DatabaseModels/DashboardPlaylist";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DataSource from "Common/Models/DatabaseModels/DataSource";
 import PublicDashboardAccessPolicy, {
@@ -105,6 +114,15 @@ import {
   getDashboardLinkAutoRefreshIntervalFromSearch,
 } from "Common/Types/Dashboard/DashboardAutoRefresh";
 import { DASHBOARD_MASTER_PASSWORD_COOKIE_MAX_AGE_IN_DAYS } from "Common/Types/Dashboard/MasterPassword";
+import {
+  DASHBOARD_PLAYLIST_DEFAULT_INTERVAL_IN_SECONDS,
+  DASHBOARD_PLAYLIST_INTERVAL_CHOICES_IN_SECONDS,
+  DASHBOARD_PLAYLIST_MAX_DASHBOARDS,
+  DASHBOARD_PLAYLIST_MAX_INTERVAL_IN_SECONDS,
+  DASHBOARD_PLAYLIST_MIN_INTERVAL_IN_SECONDS,
+  getDashboardPlaylistDashboardsProblem,
+  getDashboardPlaylistIntervalProblem,
+} from "Common/Types/Dashboard/DashboardPlaylist";
 import {
   DATA_SOURCE_CONNECT_TIMEOUT_IN_MS,
   DATA_SOURCE_MAX_RESPONSE_SIZE_IN_BYTES,
@@ -205,6 +223,15 @@ const DATA_SOURCES_PAGE: string = `${DASHBOARDS_PAGES_DIR}/Settings/DataSources.
 const DATA_SOURCE_VIEW: string = `${DASHBOARDS_PAGES_DIR}/Settings/DataSourceView.tsx`;
 const DATA_SOURCE_TYPE_PICKER: string = `${DASHBOARD_APP}/Components/DataSource/DataSourceTypeSelectModal.tsx`;
 const DATA_SOURCE_QUERY_EDITOR: string = `${DASHBOARD_COMPONENTS_DIR}/Canvas/DataSourceQueryEditor.tsx`;
+const PLAYLISTS_PAGES_DIR: string = `${DASHBOARDS_PAGES_DIR}/Playlists`;
+const PLAYLISTS_LIST: string = `${PLAYLISTS_PAGES_DIR}/Playlists.tsx`;
+const PLAYLIST_VIEW: string = `${PLAYLISTS_PAGES_DIR}/PlaylistView.tsx`;
+const PLAYLIST_FORM_FIELDS: string = `${PLAYLISTS_PAGES_DIR}/PlaylistFormFields.tsx`;
+const PLAYLIST_COMPONENTS_DIR: string = `${DASHBOARD_COMPONENTS_DIR}/Playlist`;
+const PLAYLIST_PLAYER: string = `${PLAYLIST_COMPONENTS_DIR}/PlaylistPlayer.tsx`;
+const PLAYLIST_PLAYER_BAR: string = `${PLAYLIST_COMPONENTS_DIR}/PlaylistPlayerBar.tsx`;
+const PLAYLIST_DASHBOARDS_FIELD: string = `${PLAYLIST_COMPONENTS_DIR}/PlaylistDashboardsField.tsx`;
+const USE_PLAYLIST_PLAYER: string = `${PLAYLIST_COMPONENTS_DIR}/UsePlaylistPlayer.ts`;
 const ATTRIBUTE_SERVICE: string =
   "Common/Server/Services/TelemetryAttributeService.ts";
 const ATTRIBUTE_LIMITS: string =
@@ -3396,5 +3423,291 @@ describe("Dashboard Configuration & Permissions, against the models", () => {
     expect(sectionOf(page, "## Audit logs")).toContain(
       "Audit logs are part of the Enterprise plan",
     );
+  });
+});
+
+describe("Dashboard Playlists, against the playlist model and the player", () => {
+  const page: string = englishPage(PLAYLISTS);
+  const howSection: string = sectionOf(page, "## How a playlist plays");
+  const createSection: string = sectionOf(page, "## Create a playlist");
+  const playSection: string = sectionOf(page, "## Play it on a screen");
+  const whoSection: string = sectionOf(page, "## Who sees what");
+
+  it("opens Playlists from the Dashboards side menu, right under the Dashboards list", () => {
+    const dashboards: MenuSection | undefined = dashboardsListMenu().find(
+      (section: MenuSection): boolean => {
+        return section.title === "Dashboards";
+      },
+    );
+
+    expect(dashboards?.items).toEqual(["Dashboards", "Playlists"]);
+    expect(createSection).toContain(
+      `Open ${bold("Products → Dashboards")}, then ${bold(
+        "Playlists",
+      )} in the side menu.`,
+    );
+  });
+
+  it("describes the list's columns, its Play button and its create button as the list draws them", () => {
+    const list: string = readSource(PLAYLISTS_LIST);
+
+    expect(list).toContain('singularName="Playlist"');
+    expect(list).toContain("isCreateable={true}");
+
+    for (const title of ["Name", "Dashboards", "Show each dashboard for"]) {
+      expect(list).toContain(`title: "${title}",`);
+    }
+
+    expect(list).toContain('title: "Play",');
+    expect(createSection).toContain(
+      `how many dashboards each playlist has and how long each is shown, with ${bold(
+        "Play",
+      )} on every row`,
+    );
+    expect(createSection).toContain(`Click ${bold("Create Playlist")}`);
+  });
+
+  it("names the form's three fields as the form titles them, and says archived dashboards are not offered", () => {
+    const form: string = readSource(PLAYLIST_FORM_FIELDS);
+
+    for (const title of ["Name", "Dashboards", "Show each dashboard for"]) {
+      expect(form).toContain(`title: "${title}",`);
+      expect(createSection).toContain(bold(title));
+    }
+
+    const field: string = readSource(PLAYLIST_DASHBOARDS_FIELD);
+
+    expect(field).toContain(
+      'ariaLabel={translator.translateText("Add a dashboard")}',
+    );
+    expect(createSection).toContain(
+      `pick each one from ${bold("Add a dashboard")}`,
+    );
+    // The picker's options: not archived, and not in the list yet.
+    expect(field).toContain("!dashboard.isArchived &&");
+    expect(createSection).toContain("Archived dashboards are not offered.");
+  });
+
+  it("gives the time each dashboard is shown as the form offers it: a minute, from 15 seconds to an hour", () => {
+    const choices: ReadonlyArray<number> =
+      DASHBOARD_PLAYLIST_INTERVAL_CHOICES_IN_SECONDS;
+
+    expect(DASHBOARD_PLAYLIST_DEFAULT_INTERVAL_IN_SECONDS).toBe(60);
+    expect(choices).toContain(DASHBOARD_PLAYLIST_DEFAULT_INTERVAL_IN_SECONDS);
+    expect(choices[0]).toBe(15);
+    expect(choices[choices.length - 1]).toBe(60 * 60);
+    expect(createSection).toContain(
+      `${bold(
+        "Show each dashboard for",
+      )} starts at a minute; pick a time from 15 seconds to an hour.`,
+    );
+  });
+
+  it("names the playlist page's Player link, Edit Playlist and Delete Dashboard Playlist as the page draws them", () => {
+    const view: string = readSource(PLAYLIST_VIEW);
+
+    expect(view).toContain('title: "Player link",');
+    expect(view).toContain('editButtonText="Edit Playlist"');
+    // ModelDelete's card and button: "Delete" and the model's singular name.
+    expect(view).toContain("<ModelDelete");
+    expect(new DashboardPlaylist().singularName).toBe("Dashboard Playlist");
+
+    for (const label of [
+      "Player link",
+      "Edit Playlist",
+      "Delete Dashboard Playlist",
+    ]) {
+      expect(createSection).toContain(bold(label));
+    }
+  });
+
+  it("gives the API's shape and limits as the playlist service checks them", () => {
+    const playlist: DashboardPlaylist = new DashboardPlaylist();
+
+    for (const column of ["name", "dashboards", "intervalInSeconds"]) {
+      expect(playlist.getTableColumnMetadata(column)).toBeTruthy();
+      expect(inlineCode(createSection)).toContain(column);
+    }
+
+    // The page's example, with a dashboard's id in it, is a list the API takes.
+    const example: string = '[{"dashboardId": "<id>"}]';
+
+    expect(inlineCode(createSection)).toContain(example);
+    expect(
+      getDashboardPlaylistDashboardsProblem(
+        example.replace("<id>", ObjectID.generate().toString()),
+      ),
+    ).toBeNull();
+
+    expect(DASHBOARD_PLAYLIST_MAX_DASHBOARDS).toBe(100);
+    expect(
+      getDashboardPlaylistDashboardsProblem(
+        Array.from(
+          { length: DASHBOARD_PLAYLIST_MAX_DASHBOARDS + 1 },
+          (): { dashboardId: string } => {
+            return { dashboardId: ObjectID.generate().toString() };
+          },
+        ),
+      ),
+    ).not.toBeNull();
+    expect(createSection).toContain("in the order they are shown, at most 100");
+
+    expect(DASHBOARD_PLAYLIST_MIN_INTERVAL_IN_SECONDS).toBe(10);
+    expect(DASHBOARD_PLAYLIST_MAX_INTERVAL_IN_SECONDS).toBe(86400);
+
+    for (const value of [10, 86400]) {
+      expect(getDashboardPlaylistIntervalProblem(value)).toBeNull();
+    }
+
+    for (const value of [9, 86401, 60.5]) {
+      expect(getDashboardPlaylistIntervalProblem(value)).not.toBeNull();
+    }
+
+    expect(createSection).toContain(
+      "any whole number of seconds from 10 to 86400 (a day)",
+    );
+  });
+
+  it("lists the player's keys as its shortcut sheet does, key for key, and swaps the arrows right to left", () => {
+    // How the page writes each key the sheet names.
+    const keyNames: Record<string, string> = {
+      Space: "Space",
+      ArrowRight: "Right Arrow",
+      ArrowLeft: "Left Arrow",
+      F: "F",
+      Escape: "Esc",
+      "?": "?",
+    };
+    const sheet: Array<PlaylistPlayerShortcut> =
+      getPlaylistPlayerShortcutGroups({
+        isRightToLeft: false,
+      }).flatMap(
+        (group: PlaylistPlayerShortcutGroup): Array<PlaylistPlayerShortcut> => {
+          return group.shortcuts;
+        },
+      );
+    const rows: Array<Array<string>> = rowsOf(tables(playSection)[0]);
+
+    // Each row: the key in code, then what it does, as the sheet words it, first.
+    expect(rows.length).toBe(sheet.length);
+
+    sheet.forEach((shortcut: PlaylistPlayerShortcut, index: number): void => {
+      const row: Array<string> = rows[index] || [];
+
+      expect({
+        key: row[0],
+        startsWithSheetWords: (row[1] || "").startsWith(
+          bold(shortcut.description),
+        ),
+      }).toEqual({
+        key: `\`${keyNames[shortcut.keys[0] as string]}\``,
+        startsWithSheetWords: true,
+      });
+    });
+
+    // Right to left, the left arrow goes on.
+    expect(
+      getPlaylistPlayerKeyAction({
+        event: { key: "ArrowLeft" },
+        isRightToLeft: true,
+        isDialogOpen: false,
+      }),
+    ).toBe(PlaylistPlayerKeyAction.Next);
+    expect(playSection).toContain(
+      "the arrows swap: `Left Arrow` goes to the next dashboard",
+    );
+
+    // Paused, the bar says so.
+    expect(readSource(PLAYLIST_PLAYER_BAR)).toContain(
+      'translator.translateText("Paused")',
+    );
+    expect(playSection).toContain(`the bar says ${bold("Paused")}`);
+  });
+
+  it("says the player keeps the screen awake, and draws the next dashboard ahead", () => {
+    const player: string = readSource(PLAYLIST_PLAYER);
+
+    expect(player).toContain("useScreenWakeLock(true);");
+    expect(playSection).toContain(
+      "the player keeps the screen from going to sleep, where the browser allows it",
+    );
+    expect(player).toContain('"playlist-player-up-next-board"');
+    expect(howSection).toContain(
+      "the player draws the next one out of sight, so the screen never goes blank",
+    );
+  });
+
+  it("lists who may see, play, create, change and delete a playlist as the playlist model grants it", () => {
+    const playlist: DashboardPlaylist = new DashboardPlaylist();
+    const whoMay: Array<Array<string>> = rowsOf(tables(whoSection)[0]);
+    const rows: Array<{
+      action: string;
+      model: "create" | "read" | "update" | "delete";
+    }> = [
+      { action: "See and play playlists", model: "read" },
+      { action: "Create playlists", model: "create" },
+      {
+        action: "Change a playlist: its name, dashboards and time",
+        model: "update",
+      },
+      { action: "Delete a playlist", model: "delete" },
+    ];
+
+    expect(
+      whoMay.map((row: Array<string>): string => {
+        return row[0] || "";
+      }),
+    ).toEqual(
+      rows.map((row: { action: string }): string => {
+        return row.action;
+      }),
+    );
+
+    for (const row of rows) {
+      const cell: string =
+        whoMay.find((item: Array<string>): boolean => {
+          return item[0] === row.action;
+        })?.[1] || "";
+      const granted: { roles: Array<string>; grants: Array<string> } =
+        rolesAndGrants(modelPermissions(playlist, row.model));
+
+      expect({
+        action: row.action,
+        roles: rolesNamedIn(cell),
+        grants: codeSpansIn(cell),
+      }).toEqual({
+        action: row.action,
+        roles: granted.roles,
+        grants: granted.grants,
+      });
+    }
+  });
+
+  it("quotes what the player says with nothing to play, and how often it looks again", () => {
+    const player: string = readSource(PLAYLIST_PLAYER);
+    const states: Array<Array<string>> = rowsOf(tables(whoSection)[1]);
+
+    for (const quote of [
+      "Nothing to show yet",
+      "Playlist not found",
+      "Could not load this playlist",
+      "Try again",
+    ]) {
+      expect(player).toContain(`"${quote}"`);
+      expect(
+        states.some((row: Array<string>): boolean => {
+          return (row[1] || "").includes(bold(quote));
+        }),
+      ).toBe(true);
+    }
+
+    expect(readSource(USE_PLAYLIST_PLAYER)).toContain(
+      "export const PLAYLIST_PLAYER_READ_AGAIN_IN_MS: number = 60 * 1000;",
+    );
+    expect(
+      states.filter((row: Array<string>): boolean => {
+        return (row[1] || "").includes("every minute");
+      }).length,
+    ).toBe(2);
   });
 });
