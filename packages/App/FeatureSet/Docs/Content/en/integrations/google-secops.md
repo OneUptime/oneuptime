@@ -118,7 +118,7 @@ New detections are imported as Detection Finding events attributed to a `Google 
 
 ## Read connection health
 
-The connections list shows **Name**, **Provider** (with the connection's Data to import selection underneath), **Status** (Enabled or Disabled), **Health**, **Interval (Minutes)**, **Last Polled**, **Last Successful Poll** and **Last Event Imported**. When a connection has an error, **View Error** appears in its **Actions** column, next to **Test connection**, **Run now**, **Diagnostics**, **Edit** and **Update credentials**. Enabled means automatic polling is configured. Last Polled records an attempt; a successful empty window does not establish that a particular detection was imported.
+The connections list shows **Name**, with the connection's provider and its Data to import selection underneath, **Health**, **Last Polled** and **Last Event Imported**. **Status** (Enabled or Disabled), **Interval (Minutes)** and **Last Successful Poll** wait in **Customize Columns**. When a connection has an error, **View Error** appears in its **Actions** column, next to **Test connection**, **Run now**, **Diagnostics**, **Edit** and **Update credentials**. Enabled means automatic polling is configured. Last Polled records an attempt; a successful empty window does not establish that a particular detection was imported.
 
 **Health** reads **Last poll succeeded** only once an event has been imported. Until then a succeeding connection reads **Polling, no events imported yet**, which is the state to investigate with Test connection. The other states are **No records returned**, **Partial import**, **Catching up**, **Last poll failed**, **Poll overdue**, **Schedule paused** and **Waiting for first poll**; hover a state for what it means.
 

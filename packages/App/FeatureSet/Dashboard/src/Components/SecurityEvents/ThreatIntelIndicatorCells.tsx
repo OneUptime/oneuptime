@@ -1,5 +1,6 @@
 import { ThreatIntelIndicatorType } from "Common/Types/SecurityEvent/ThreatIntelConstants";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -7,6 +8,7 @@ import {
   INDICATOR_TYPE_DOCS,
   UNSCORED_CONFIDENCE,
 } from "./HowItWorks/ThreatIntelGuide";
+import RelativeTimeCell from "./RelativeTimeCell";
 
 /*
  * The Indicators table's Type and Confidence, in the words the threat intel
@@ -95,4 +97,40 @@ export const IndicatorConfidenceCell: FunctionComponent<
       {translator.formatNumber(Number(props.confidence))}
     </span>
   );
+};
+
+/*
+ * A date the analytics wire hands back - a DateTime64 as a string, or a
+ * Date - as a Date, or null when there is none or it does not read as one.
+ */
+export function toIndicatorDate(value: unknown): Date | null {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const millis: number = new Date(value as string | Date).getTime();
+
+  return Number.isFinite(millis) ? new Date(millis) : null;
+}
+
+export interface IndicatorValidUntilCellProps {
+  validUntil: unknown;
+}
+
+/*
+ * When an indicator stops matching, as how far off ("in 29 days"), or how
+ * long ago for one that expired, with the date and time under the pointer
+ * (RelativeTimeCell); none, the quiet dash. A column of full dates ran the
+ * Indicators table past its card at 1280.
+ */
+export const IndicatorValidUntilCell: FunctionComponent<
+  IndicatorValidUntilCellProps
+> = (props: IndicatorValidUntilCellProps): ReactElement => {
+  const validUntil: Date | null = toIndicatorDate(props.validUntil);
+
+  if (!validUntil) {
+    return <TableEmptyValue />;
+  }
+
+  return <RelativeTimeCell date={validUntil} />;
 };

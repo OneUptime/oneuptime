@@ -99,8 +99,10 @@ import useNoteTemplates from "./useNoteTemplates";
  *     record): one that is there already, or past it, is left alone and
  *     listed with why ("Already acknowledged."), one the server refuses is
  *     listed in its words;
- *   - someone who may not move the kind sees the actions locked, with the
- *     permission it takes.
+ *   - someone who may not move the kind sees the actions locked, saying so
+ *     for the row or for the selection ("You do not have permission to
+ *     change this incident's state.", "... the state of these incidents."),
+ *     with the permission it takes.
  *
  * The list hands it the project's states as it read them (their places,
  * archive switches and built-in flags) and reads each row's current state
@@ -136,6 +138,26 @@ interface StateDialog<T extends BaseModel> {
 // Change State's icon: the flag every event list's State filter wears.
 export const CHANGE_STATE_ICON: IconProp = IconProp.Flag;
 
+// A move's lock: disabled, with why, when the reader may not make it.
+export interface EventStateActionLock {
+  disabled?: boolean;
+  tooltip?: string;
+}
+
+/*
+ * Locked only with a reason to show: before the permissions are read there
+ * is nothing honest to say, and the server decides (PermissionGate).
+ */
+export const getEventStateActionLock: (
+  gate: PermissionGateResult,
+) => EventStateActionLock = (
+  gate: PermissionGateResult,
+): EventStateActionLock => {
+  return !gate.isAllowed && gate.disabledReason
+    ? { disabled: true, tooltip: gate.disabledReason }
+    : {};
+};
+
 const QUICK_MOVE_ICONS: Record<EventStateQuickMove, IconProp> = {
   [EventStateQuickMove.Acknowledge]: IconProp.Check,
   [EventStateQuickMove.Resolve]: IconProp.CheckCircle,
@@ -169,17 +191,30 @@ function useEventStateActions<T extends BaseModel>(
 
   /*
    * A move is a new row of the kind's state timeline: someone who may not
-   * create one may not move the record.
+   * create one may not move the record. They find the moves locked, saying
+   * why in the words of what they pressed - a row's as its record page
+   * says it, a selection's about the records selected - and not "create
+   * this Incident State Timeline" (EventStateKinds' lock sentences).
    */
-  const gate: PermissionGateResult = PermissionGate.check(
-    new definition.timelineModelType(),
-    ModelAction.Create,
+  const rowLock: EventStateActionLock = getEventStateActionLock(
+    PermissionGate.check(
+      new definition.timelineModelType(),
+      ModelAction.Create,
+      {
+        sentence: definition.words.rowLockSentence,
+      },
+    ),
   );
 
-  const lock: { disabled?: boolean; tooltip?: string } =
-    !gate.isAllowed && gate.disabledReason
-      ? { disabled: true, tooltip: gate.disabledReason }
-      : {};
+  const bulkLock: EventStateActionLock = getEventStateActionLock(
+    PermissionGate.check(
+      new definition.timelineModelType(),
+      ModelAction.Create,
+      {
+        sentence: definition.words.bulkLockSentence,
+      },
+    ),
+  );
 
   const nameOf: (item: T) => string = (item: T): string => {
     const given: string = config.getItemName
@@ -546,7 +581,7 @@ function useEventStateActions<T extends BaseModel>(
           currentStateId: getRowStateId({ definition: definition, item: item }),
         });
       },
-      ...lock,
+      ...rowLock,
       onClick: (
         item: T,
         onCompleteAction: VoidFunction,
@@ -590,7 +625,7 @@ function useEventStateActions<T extends BaseModel>(
           });
         });
       },
-      ...lock,
+      ...bulkLock,
       onClick: async (
         actionProps: BulkActionOnClickProps<T>,
       ): Promise<void> => {
@@ -626,7 +661,7 @@ function useEventStateActions<T extends BaseModel>(
         }).length > 0
       );
     },
-    ...lock,
+    ...rowLock,
     onClick: (
       item: T,
       onCompleteAction: VoidFunction,
@@ -651,7 +686,7 @@ function useEventStateActions<T extends BaseModel>(
     menuGroup: ActionMenuGroup.Change,
     icon: CHANGE_STATE_ICON,
     resultLabels: VALUE_CHANGE_RESULT_LABELS,
-    ...lock,
+    ...bulkLock,
     onClick: async (actionProps: BulkActionOnClickProps<T>): Promise<void> => {
       setDialogError("");
       setDialog({

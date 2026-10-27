@@ -81,7 +81,7 @@ Sidens sidemenu samler det, du gør med en undtagelse:
 
 ## Løs, genåbn og arkivér
 
-Knapperne øverst på undtagelsens side og dens side **Indstillinger** ændrer dens status:
+Knapperne øverst på undtagelsens side, dens side **Indstillinger** og menuen ⋯ på dens række i listen ændrer dens status:
 
 | Handling | Hvornår du bruger den | Hvad der sker bagefter |
 | --- | --- | --- |
@@ -91,6 +91,8 @@ Knapperne øverst på undtagelsens side og dens side **Indstillinger** ændrer d
 | **Fjern fra arkiv** | Du vil høre om den igen. | Den er tilbage i den liste, den hører til i. |
 
 **Indstillinger** viser, hvem der sidst løste eller arkiverede undtagelsen, og hvornår. Dens knapper hedder **Marker som løst** eller **Marker som uafklaret** og **Arkiver** eller **Fjern fra arkiv**.
+
+For at ændre flere på én gang markerer du deres rækker i listen, eller feltet over rækkerne for alle undtagelser på siden, og bruger de samme handlinger under **Massehandlinger**. Resultatet viser, hvilke undtagelser der blev ændret, hvilke der blev ladt være, og hvorfor.
 
 ## Fejlklasser
 

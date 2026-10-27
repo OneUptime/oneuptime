@@ -15,6 +15,7 @@ import SecurityCaseAPI, {
 import SecurityCaseService from "../../../Server/Services/SecurityCaseService";
 import SecurityDetectionService from "../../../Server/Services/SecurityDetectionService";
 import SecurityPlaybookRunService from "../../../Server/Services/SecurityPlaybookRunService";
+import SecurityRiskiestEntitiesReader from "../../../Server/Utils/SecurityEvent/EntityRisk/SecurityRiskiestEntities";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import { JSONObject } from "../../../Types/JSON";
@@ -26,6 +27,8 @@ import SecurityCasePriorityLevel, {
 import SecurityCaseStage, {
   SECURITY_CASE_STAGE_FLAGS,
 } from "../../../Types/SecurityCase/SecurityCaseStage";
+import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
+import { SecurityRiskiestEntities } from "../../../Types/SecurityCase/SecurityEntityRisk";
 import {
   TEST_PRIORITY_IDS,
   TEST_STATUS_IDS,
@@ -43,7 +46,8 @@ import { stubSecurityCaseValues } from "../../Helpers/SecurityCaseValuesStub";
  * cases in a status that counts as open, read as the caller; the counts are
  * by id; and the answer hands the Dashboard the project's priorities and
  * statuses, in order, with their colours and built-in flags, so its charts
- * are labelled as the project names them.
+ * are labelled as the project names them - and the riskiest entities as
+ * Entity Risk ranks them, by risk score, for its Riskiest Entities.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -66,6 +70,21 @@ const PROPS: DatabaseCommonInteractionProps = {
 } as DatabaseCommonInteractionProps;
 
 let caseQueries: Array<{ query: JSONObject; props: unknown }>;
+let riskiestReads: Array<{ projectId: ObjectID; props: unknown }>;
+let riskiest: SecurityRiskiestEntities | null;
+
+const RISKIEST: SecurityRiskiestEntities = {
+  threshold: 100,
+  total: 9,
+  entities: [
+    {
+      value: "k.morgan@acme-commerce.example",
+      type: SecurityEntityType.User,
+      score: 200,
+    },
+    { value: "203.0.113.47", type: SecurityEntityType.IpAddress, score: 125 },
+  ],
+};
 
 function openCase(
   priority: SecurityCasePriorityLevel,
@@ -81,6 +100,8 @@ function openCase(
 
 beforeEach(() => {
   caseQueries = [];
+  riskiestReads = [];
+  riskiest = RISKIEST;
 
   const statuses: Array<SecurityCaseStatus> = buildDefaultTestStatuses();
   statuses[3]!.order = 5; // Closed
@@ -115,6 +136,15 @@ beforeEach(() => {
   jest
     .spyOn(SecurityPlaybookRunService, "countBy")
     .mockResolvedValue(new PositiveNumber(0) as never);
+  jest
+    .spyOn(SecurityRiskiestEntitiesReader, "read")
+    .mockImplementation((async (args: {
+      projectId: ObjectID;
+      props: unknown;
+    }) => {
+      riskiestReads.push(args);
+      return riskiest;
+    }) as never);
 });
 
 afterEach(() => {
@@ -197,6 +227,50 @@ describe("the overview's answer", () => {
     expect(testStatusId(SecurityCaseStage.New).toString()).toBe(
       statuses[0]!["_id"],
     );
+  });
+});
+
+/*
+ * Riskiest Entities reads Entity Risk's scores: the overview hands over the
+ * top of Entity Risk's list - read as the caller - with the threshold their
+ * levels are read against. It used to rank values by how many findings
+ * named them, a second "riskiest" that disagreed with Entity Risk's.
+ */
+describe("the riskiest entities in the overview's answer", () => {
+  test("are Entity Risk's, read once, as the caller, for the caller's project", async () => {
+    const overview: JSONObject = await getOverview({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(overview["riskiestEntities"]).toEqual(RISKIEST);
+    expect(riskiestReads).toHaveLength(1);
+    expect(riskiestReads[0]!.projectId).toBe(PROJECT_ID);
+    expect(riskiestReads[0]!.props).toBe(PROPS);
+  });
+
+  test("no ranking by findings is left in the answer", async () => {
+    const overview: JSONObject = await getOverview({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(Object.keys(overview)).not.toContain("topEntities");
+    expect(Object.keys(overview["metrics"] as JSONObject)).not.toContain(
+      "topEntities",
+    );
+  });
+
+  test("risk that could not be read is null in the answer, and the rest of the overview is there", async () => {
+    riskiest = null;
+
+    const overview: JSONObject = await getOverview({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(overview["riskiestEntities"]).toBeNull();
+    expect((overview["metrics"] as JSONObject)["openCases"]).toBe(2);
   });
 });
 

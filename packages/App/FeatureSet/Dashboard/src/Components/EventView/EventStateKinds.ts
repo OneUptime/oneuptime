@@ -130,6 +130,17 @@ export interface EventStateKindDefinition {
      * whose change moves others with it: an episode's incidents.
      */
     bulkMembersSentence?: string | undefined;
+    /*
+     * Why someone who may not move the kind finds its moves locked, in the
+     * words of what they pressed - not of the state timeline a move writes
+     * a row of ("You do not have permission to create this Incident State
+     * Timeline."). One row's is the record page's own sentence (its
+     * header's locked buttons say the same); a selection's is about the
+     * records selected. The permissions that would allow it follow
+     * (PermissionGate's `sentence`).
+     */
+    rowLockSentence: string;
+    bulkLockSentence: string;
   };
 }
 
@@ -269,6 +280,12 @@ export const EVENT_STATE_KINDS: Record<
       rowPrivateNoteDescription: translationKey(
         "Post a private note about this state change.",
       ),
+      rowLockSentence: translationKey(
+        "You do not have permission to change this incident's state.",
+      ),
+      bulkLockSentence: translationKey(
+        "You do not have permission to change the state of these incidents.",
+      ),
     },
   },
   [EventStateKind.Alert]: {
@@ -311,6 +328,12 @@ export const EVENT_STATE_KINDS: Record<
       ),
       rowNoteDescription: translationKey(
         "Add an optional private note about this state change. Only your team can see it.",
+      ),
+      rowLockSentence: translationKey(
+        "You do not have permission to change this alert's state.",
+      ),
+      bulkLockSentence: translationKey(
+        "You do not have permission to change the state of these alerts.",
       ),
     },
   },
@@ -358,6 +381,12 @@ export const EVENT_STATE_KINDS: Record<
       bulkMembersSentence: translationKey(
         "The incidents in each episode are updated too.",
       ),
+      rowLockSentence: translationKey(
+        "You do not have permission to change this episode's state.",
+      ),
+      bulkLockSentence: translationKey(
+        "You do not have permission to change the state of these episodes.",
+      ),
     },
   },
   [EventStateKind.AlertEpisode]: {
@@ -404,6 +433,12 @@ export const EVENT_STATE_KINDS: Record<
       bulkMembersSentence: translationKey(
         "The alerts in each episode are updated too.",
       ),
+      rowLockSentence: translationKey(
+        "You do not have permission to change this episode's state.",
+      ),
+      bulkLockSentence: translationKey(
+        "You do not have permission to change the state of these episodes.",
+      ),
     },
   },
   [EventStateKind.ScheduledMaintenance]: {
@@ -442,6 +477,12 @@ export const EVENT_STATE_KINDS: Record<
       ),
       rowNoteDescription: translationKey(
         "Post a public note about this state change to the status page.",
+      ),
+      rowLockSentence: translationKey(
+        "You do not have permission to change this event's state.",
+      ),
+      bulkLockSentence: translationKey(
+        "You do not have permission to change the state of these events.",
       ),
     },
   },

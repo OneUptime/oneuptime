@@ -758,6 +758,27 @@ describe("5. the exceptions list offers its triage actions in each row", () => {
     expect(viewer).toContain("void fetchExceptions();");
     expect(row).toContain("<RowActions");
   });
+
+  /*
+   * And on a selection: the list had no selection when the row ⋯ came
+   * (#5248's follow-up). Its Bulk Actions are the same four, from the same
+   * module, on the shared telemetry list's selection.
+   */
+  test("the same four in Bulk Actions, on the telemetry list's selection, read again after a run", () => {
+    const viewer: string = readSource(
+      "Dashboard/src/Components/Exceptions/ExceptionsViewer.tsx",
+    );
+    const actions: string = readSource(
+      "Dashboard/src/Components/Exceptions/ExceptionRowActions.ts",
+    );
+
+    expect(viewer).toContain("getExceptionBulkActions()");
+    expect(viewer).toContain("bulk={{");
+    expect(viewer).toContain("buttons: exceptionBulkActions,");
+    expect(viewer).toContain("onActionEnd: (): void => {");
+    expect(actions).toContain("return EXCEPTION_ROW_TRIAGE_ORDER.map(");
+    expect(actions).toContain("await runBulkAction<TelemetryException>({");
+  });
 });
 
 /*

@@ -22,6 +22,25 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * card reads its roles again when told (refreshToken) to show the same.
  */
 
+let permissionsForTest: Array<unknown> = [];
+
+jest.mock("../../../UI/Utils/Permission", () => {
+  return {
+    __esModule: true,
+    default: {
+      getAllPermissions: (): Array<unknown> => {
+        return permissionsForTest;
+      },
+      getProjectPermissions: (): null => {
+        return null;
+      },
+      getGlobalPermissions: (): null => {
+        return null;
+      },
+    },
+  };
+});
+
 const getListMock: MockFunction = getJestMockFunction();
 const createMock: MockFunction = getJestMockFunction();
 const deleteItemMock: MockFunction = getJestMockFunction();
@@ -89,6 +108,10 @@ import Email from "../../../Types/Email";
 import IconProp from "../../../Types/Icon/IconProp";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
+import Permission from "../../../Types/Permission";
+import PermissionGate, {
+  PermissionGateResult,
+} from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
@@ -159,6 +182,8 @@ function list(data: Array<unknown>): {
 }
 
 beforeEach(() => {
+  permissionsForTest = [];
+  PermissionGate.clearPermissionPropsCache();
   members = [];
   memberRoleProps.length = 0;
   jest
@@ -202,6 +227,9 @@ describe.each([
     member: incidentMember,
     memberModel: IncidentMember,
     recordField: "incidentId",
+    lockSentence: "You do not have permission to change this incident's roles.",
+    createPermission: "Create Incident Member",
+    deletePermission: "Delete Incident Member",
     cardElement: (
       onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void,
       refreshToken?: number,
@@ -228,6 +256,9 @@ describe.each([
     member: episodeMember,
     memberModel: IncidentEpisodeRoleMember,
     recordField: "incidentEpisodeId",
+    lockSentence: "You do not have permission to change this episode's roles.",
+    createPermission: "Create Incident Episode Role Member",
+    deletePermission: "Delete Incident Episode Role Member",
     cardElement: (
       onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void,
       refreshToken?: number,
@@ -258,6 +289,9 @@ describe.each([
     ) => IncidentMember | IncidentEpisodeRoleMember;
     memberModel: unknown;
     recordField: string;
+    lockSentence: string;
+    createPermission: string;
+    deletePermission: string;
     cardElement: (
       onRolesLoaded: (recordId: string, snapshot: EventRolesSnapshot) => void,
       refreshToken?: number,
@@ -471,6 +505,76 @@ describe.each([
         "Project ID not found",
       );
       expect(createMock).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * The header's Assign gives the commander only to a reader who may add
+     * a member row (#5262); the card asks the same, and its locked buttons
+     * say why in the words of what was pressed (#5251's follow-up).
+     */
+    test("hands the card who may give a role and take one off, worded for the record", async () => {
+      permissionsForTest = [Permission.Viewer];
+
+      renderCard(() => {});
+
+      await waitFor(() => {
+        expect(memberRoleProps.length).toBeGreaterThan(0);
+      });
+
+      const props: Record<string, unknown> =
+        memberRoleProps[memberRoleProps.length - 1]!;
+      const assignGate: PermissionGateResult = props[
+        "assignGate"
+      ] as PermissionGateResult;
+      const unassignGate: PermissionGateResult = props[
+        "unassignGate"
+      ] as PermissionGateResult;
+
+      expect(assignGate.isAllowed).toBe(false);
+      expect(assignGate.disabledReason?.startsWith(card.lockSentence)).toBe(
+        true,
+      );
+      expect(assignGate.disabledReason).toContain(card.createPermission);
+      expect(assignGate.disabledReason).not.toContain(card.deletePermission);
+
+      expect(unassignGate.isAllowed).toBe(false);
+      expect(unassignGate.disabledReason?.startsWith(card.lockSentence)).toBe(
+        true,
+      );
+      expect(unassignGate.disabledReason).toContain(card.deletePermission);
+      expect(unassignGate.disabledReason).not.toContain(card.createPermission);
+    });
+
+    test("a reader who may change the record's roles is handed open gates", async () => {
+      permissionsForTest = [Permission.ProjectOwner];
+
+      renderCard(() => {});
+
+      await waitFor(() => {
+        expect(memberRoleProps.length).toBeGreaterThan(0);
+      });
+
+      const props: Record<string, unknown> =
+        memberRoleProps[memberRoleProps.length - 1]!;
+
+      expect(props["assignGate"]).toEqual({ isAllowed: true });
+      expect(props["unassignGate"]).toEqual({ isAllowed: true });
+    });
+
+    test("before the permissions are read, the gates refuse with nothing to say, so the card leaves the buttons out", async () => {
+      permissionsForTest = [];
+
+      renderCard(() => {});
+
+      await waitFor(() => {
+        expect(memberRoleProps.length).toBeGreaterThan(0);
+      });
+
+      const props: Record<string, unknown> =
+        memberRoleProps[memberRoleProps.length - 1]!;
+
+      expect(props["assignGate"]).toEqual({ isAllowed: false });
+      expect(props["unassignGate"]).toEqual({ isAllowed: false });
     });
 
     test("the card's own Assign gives the role the same way", async () => {

@@ -72,7 +72,7 @@ afterEach(() => {
 });
 
 describe("every Security Events page has a trail", () => {
-  test("for every routed page but the old Monitors address", () => {
+  test("for every routed page but the old Monitors and Entities addresses", () => {
     expect([...getSecurityEventsBreadcrumbPages()].sort()).toEqual(
       Object.keys(SecurityEventsRoutePath)
         .filter((page: string): boolean => {
@@ -136,6 +136,12 @@ describe("every Security Events page has a trail", () => {
     expect(
       getSecurityEventsBreadcrumbs(
         RouteUtil.getRouteString(PageMap.SECURITY_EVENTS_MONITORS),
+      ),
+    ).toBeUndefined();
+    // Entities opens Entity Risk, whose trail it then shows.
+    expect(
+      getSecurityEventsBreadcrumbs(
+        RouteUtil.getRouteString(PageMap.SECURITY_EVENTS_ENTITIES),
       ),
     ).toBeUndefined();
   });
@@ -202,10 +208,6 @@ describe("each trail names the page as the menu does", () => {
       ["Security Events", "Security Cases", "View Case", "Delete Case"],
     ],
     [PageMap.SECURITY_EVENTS, ["Security Events", "Events"]],
-    [
-      PageMap.SECURITY_EVENTS_ENTITIES,
-      ["Security Events", "Events", "Entities"],
-    ],
     [
       PageMap.SECURITY_EVENTS_ENTITY_RISK,
       ["Security Events", "Events", "Entity Risk"],

@@ -19,12 +19,12 @@ import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * A case's Entities page: who and what the case is about, as a table the
- * way Security Events > Entities lists its riskiest entities - each entity
- * (opening Correlate), its type, how many security events named it this
- * past week, how many findings, the worst of their severities and when it
- * was last seen. On a narrow page (a phone, a narrow window beside the side
- * menu) the type and when go under the value and their columns step out.
+ * A case's Entities page: who and what the case is about, as a table -
+ * each entity (opening Correlate), its type, how many security events
+ * named it this past week, how many findings, the worst of their
+ * severities and when it was last seen. On a narrow page (a phone, a
+ * narrow window beside the side menu) the type and when go under the
+ * value and their columns step out.
  * Each user, host and address carries its risk (Security Events > Entity
  * Risk), linked to its page: a column of its own where the table has room,
  * under the value where it has not.
@@ -209,7 +209,7 @@ describe("the case's entities", () => {
     expect(ENTITY_ACTIVITY_HOURS).toBe(24 * 7);
   });
 
-  test("is a table with the columns Security Events > Entities has where they mean the same", async () => {
+  test("is a table of each entity: its kind, its week of activity and its risk", async () => {
     draw();
 
     const table: HTMLElement = screen.getByTestId(

@@ -1102,9 +1102,13 @@ describe("the helpers, on these pages' shapes", () => {
   });
 
   it("draw a menu item as the locale holds its whole text, and a Settings card's action from its template", () => {
-    // The Italian locale words "Edit Dashboard" whole, and holds "Export JSON" as English.
+    /*
+     * The Italian locale words "Edit Dashboard" and "Export JSON" whole
+     * (the menu's export words left English in 12 languages until #5248's
+     * follow-up translated them).
+     */
     expect(drawnLabel("it", "Edit Dashboard")).toBe("Modifica dashboard");
-    expect(drawnLabel("it", "Export JSON")).toBe("Export JSON");
+    expect(drawnLabel("it", "Export JSON")).toBe("Esporta JSON");
     expect(drawnLabel("de", "Edit Dashboard")).toBe(
       drawnDashboardLabel("de", "Edit Dashboard"),
     );
