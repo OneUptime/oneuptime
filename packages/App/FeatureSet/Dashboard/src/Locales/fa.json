@@ -13695,7 +13695,7 @@
   "Not secret": "Not secret",
   "Not set (skipped)": "Not set (skipped)",
   "Not set up": "راه‌اندازی نشده",
-  "Not set up yet": "Not set up yet",
+  "Not set up yet": "هنوز تنظیم نشده",
   "Not set — using server local time": "Not set — using server local time",
   "Not set.": "Not set.",
   "Not started": "شروع‌نشده",
@@ -35843,5 +35843,15 @@
   "Ascending": "صعودی",
   "Descending": "نزولی",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "مرورگر این صفحه را پیش از آنکه کسی بازش کند از پیش رندر کرد، پس ضبط‌کننده منتظر ماند تا بازدیدکننده آن را باز کند. صفحه‌ای که هرگز باز نشود چیزی ضبط نمی‌کند.",
-  "Each row is one recording of about a minute.": "هر سطر یک ضبط حدوداً یک‌دقیقه‌ای است."
+  "Each row is one recording of about a minute.": "هر سطر یک ضبط حدوداً یک‌دقیقه‌ای است.",
+  "View only": "فقط مشاهده",
+  "Changing this workflow takes permission to edit it.": "تغییر این گردش کاری به اجازهٔ ویرایش آن نیاز دارد.",
+  "No trigger yet": "هنوز تریگری وجود ندارد",
+  "You can look at this step but not change it.": "می‌توانید این مرحله را ببینید، اما نمی‌توانید آن را تغییر دهید.",
+  "This workflow has no trigger yet": "این گردش کاری هنوز تریگری ندارد",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "اجرا از تریگر گردش کاری شروع می‌شود. یک تریگر اضافه کنید، سپس گردش کاری را از اینجا اجرا کنید.",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "اجرا از تریگر گردش کاری شروع می‌شود. آن را کسی اضافه می‌کند که اجازهٔ ویرایش این گردش کاری را دارد.",
+  "Workflows do not run on this project's plan": "گردش‌های کاری روی طرح این پروژه اجرا نمی‌شوند",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "این پروژه روی طرح {{plan}} است، پس هیچ چیز گردش کاری را شروع نمی‌کند، حتی «اجرای گردش کاری». برای اجرای گردش‌های کاری، {{upgradeLink}}.",
+  "Upgrade to the Growth plan or above": "به طرح Growth یا بالاتر ارتقا دهید"
 }

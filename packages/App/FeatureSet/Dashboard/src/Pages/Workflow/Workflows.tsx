@@ -36,6 +36,7 @@ import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
 import CreateWorkflowModal from "../../Components/Workflow/CreateWorkflowModal";
+import WorkflowPlanNotice from "../../Components/Workflow/WorkflowPlanNotice";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green500, Red500 } from "Common/Types/BrandColors";
 import WorkflowElement from "../../Components/Workflow/WorkflowElement";
@@ -131,6 +132,13 @@ const Workflows: FunctionComponent<PageComponentProps> = (): ReactElement => {
   return (
     <Fragment>
       <>
+        {/*
+         * A plan that runs no workflows (Free) says so above the list, as
+         * the Builder does: building one there would wait for runs that
+         * never come.
+         */}
+        <WorkflowPlanNotice className="mb-5" />
+
         {plan && (plan === PlanType.Growth || plan === PlanType.Scale) && (
           <ModelProgress<WorkflowLog>
             totalCount={WorkflowPlan[plan]}

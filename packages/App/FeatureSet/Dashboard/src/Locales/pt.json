@@ -13695,7 +13695,7 @@
   "Not secret": "Not secret",
   "Not set (skipped)": "Not set (skipped)",
   "Not set up": "Não configurado",
-  "Not set up yet": "Not set up yet",
+  "Not set up yet": "Ainda não configurado",
   "Not set — using server local time": "Not set — using server local time",
   "Not set.": "Not set.",
   "Not started": "Não iniciado",
@@ -35843,5 +35843,15 @@
   "Ascending": "Crescente",
   "Descending": "Decrescente",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "O navegador pré-renderizou esta página antes que alguém a abrisse, então o gravador esperou o visitante abri-la. Uma página que nunca é aberta não grava nada.",
-  "Each row is one recording of about a minute.": "Cada linha é uma gravação de cerca de um minuto."
+  "Each row is one recording of about a minute.": "Cada linha é uma gravação de cerca de um minuto.",
+  "View only": "Somente leitura",
+  "Changing this workflow takes permission to edit it.": "Alterar este fluxo de trabalho exige permissão para editá-lo.",
+  "No trigger yet": "Ainda sem gatilho",
+  "You can look at this step but not change it.": "Você pode ver esta etapa, mas não alterá-la.",
+  "This workflow has no trigger yet": "Este fluxo de trabalho ainda não tem gatilho",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "Uma execução começa pelo gatilho do fluxo de trabalho. Adicione um e depois execute o fluxo de trabalho daqui.",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "Uma execução começa pelo gatilho do fluxo de trabalho. Quem pode editar este fluxo de trabalho o adiciona.",
+  "Workflows do not run on this project's plan": "Os fluxos de trabalho não são executados no plano deste projeto",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Este projeto está no plano {{plan}}, por isso nada inicia um fluxo de trabalho, nem mesmo “Executar fluxo de trabalho”. {{upgradeLink}} para executar fluxos de trabalho.",
+  "Upgrade to the Growth plan or above": "Faça upgrade para o plano Growth ou superior"
 }

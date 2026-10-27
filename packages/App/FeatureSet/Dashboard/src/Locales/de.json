@@ -35843,5 +35843,15 @@
   "Ascending": "Aufsteigend",
   "Descending": "Absteigend",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Der Browser hat diese Seite vorab gerendert, bevor jemand sie öffnete, daher wartete der Recorder, bis der Besucher sie öffnete. Eine Seite, die nie geöffnet wird, zeichnet nichts auf.",
-  "Each row is one recording of about a minute.": "Jede Zeile ist eine Aufzeichnung von etwa einer Minute."
+  "Each row is one recording of about a minute.": "Jede Zeile ist eine Aufzeichnung von etwa einer Minute.",
+  "View only": "Nur ansehen",
+  "Changing this workflow takes permission to edit it.": "Um diesen Arbeitsablauf zu ändern, ist die Berechtigung erforderlich, ihn zu bearbeiten.",
+  "No trigger yet": "Noch kein Auslöser",
+  "You can look at this step but not change it.": "Sie können diesen Schritt ansehen, aber nicht ändern.",
+  "This workflow has no trigger yet": "Dieser Arbeitsablauf hat noch keinen Auslöser",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "Ein Lauf beginnt beim Auslöser des Arbeitsablaufs. Fügen Sie einen hinzu und führen Sie den Arbeitsablauf dann hier aus.",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "Ein Lauf beginnt beim Auslöser des Arbeitsablaufs. Ihn fügt jemand hinzu, der diesen Arbeitsablauf bearbeiten darf.",
+  "Workflows do not run on this project's plan": "Arbeitsabläufe laufen im Tarif dieses Projekts nicht",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Dieses Projekt hat den {{plan}}-Tarif, daher startet nichts einen Arbeitsablauf, nicht einmal „Arbeitsablauf ausführen“. {{upgradeLink}}, um Arbeitsabläufe auszuführen.",
+  "Upgrade to the Growth plan or above": "Auf den Growth-Tarif oder höher upgraden"
 }

@@ -13695,7 +13695,7 @@
   "Not secret": "Not secret",
   "Not set (skipped)": "Not set (skipped)",
   "Not set up": "Ikke sat op",
-  "Not set up yet": "Not set up yet",
+  "Not set up yet": "Ikke sat op endnu",
   "Not set — using server local time": "Not set — using server local time",
   "Not set.": "Not set.",
   "Not started": "Ikke startet",
@@ -35843,5 +35843,15 @@
   "Ascending": "Stigende",
   "Descending": "Faldende",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Browseren forhåndsgengav denne side, før nogen åbnede den, så optageren ventede på, at den besøgende åbnede den. En side, der aldrig åbnes, optager intet.",
-  "Each row is one recording of about a minute.": "Hver række er én optagelse på omkring et minut."
+  "Each row is one recording of about a minute.": "Hver række er én optagelse på omkring et minut.",
+  "View only": "Kun visning",
+  "Changing this workflow takes permission to edit it.": "Det kræver tilladelse til at redigere denne arbejdsgang at ændre den.",
+  "No trigger yet": "Ingen udløser endnu",
+  "You can look at this step but not change it.": "Du kan se dette trin, men ikke ændre det.",
+  "This workflow has no trigger yet": "Denne arbejdsgang har ingen udløser endnu",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "En kørsel starter fra arbejdsgangens udløser. Tilføj en, og kør derefter arbejdsgangen herfra.",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "En kørsel starter fra arbejdsgangens udløser. Den tilføjes af en, der må redigere denne arbejdsgang.",
+  "Workflows do not run on this project's plan": "Arbejdsgange kører ikke på dette projekts abonnement",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Dette projekt har {{plan}}-abonnementet, så intet starter en arbejdsgang, heller ikke »Kør arbejdsgang«. {{upgradeLink}} for at køre arbejdsgange.",
+  "Upgrade to the Growth plan or above": "Opgrader til Growth-abonnementet eller højere"
 }

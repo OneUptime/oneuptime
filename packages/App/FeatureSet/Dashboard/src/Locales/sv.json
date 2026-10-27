@@ -13695,7 +13695,7 @@
   "Not secret": "Not secret",
   "Not set (skipped)": "Not set (skipped)",
   "Not set up": "Inte konfigurerad",
-  "Not set up yet": "Not set up yet",
+  "Not set up yet": "Inte konfigurerat än",
   "Not set — using server local time": "Not set — using server local time",
   "Not set.": "Not set.",
   "Not started": "Inte påbörjad",
@@ -35843,5 +35843,15 @@
   "Ascending": "Stigande",
   "Descending": "Fallande",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Webbläsaren förrenderade den här sidan innan någon öppnade den, så inspelaren väntade tills besökaren öppnade den. En sida som aldrig öppnas spelar inte in något.",
-  "Each row is one recording of about a minute.": "Varje rad är en inspelning på ungefär en minut."
+  "Each row is one recording of about a minute.": "Varje rad är en inspelning på ungefär en minut.",
+  "View only": "Endast visning",
+  "Changing this workflow takes permission to edit it.": "Att ändra det här arbetsflödet kräver behörighet att redigera det.",
+  "No trigger yet": "Ingen utlösare än",
+  "You can look at this step but not change it.": "Du kan titta på det här steget men inte ändra det.",
+  "This workflow has no trigger yet": "Det här arbetsflödet har ingen utlösare än",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "En körning startar från arbetsflödets utlösare. Lägg till en och kör sedan arbetsflödet härifrån.",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "En körning startar från arbetsflödets utlösare. Den läggs till av någon som får redigera det här arbetsflödet.",
+  "Workflows do not run on this project's plan": "Arbetsflöden körs inte med det här projektets abonnemang",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Det här projektet har {{plan}}-abonnemanget, så ingenting startar ett arbetsflöde, inte ens ”Kör arbetsflöde”. {{upgradeLink}} för att köra arbetsflöden.",
+  "Upgrade to the Growth plan or above": "Uppgradera till Growth-abonnemanget eller högre"
 }

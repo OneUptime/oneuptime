@@ -35843,5 +35843,15 @@
   "Ascending": "Croissant",
   "Descending": "Décroissant",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Le navigateur a pré-rendu cette page avant que quiconque ne l'ouvre ; l'enregistreur a donc attendu que le visiteur l'ouvre. Une page qui n'est jamais ouverte n'enregistre rien.",
-  "Each row is one recording of about a minute.": "Chaque ligne est un enregistrement d'environ une minute."
+  "Each row is one recording of about a minute.": "Chaque ligne est un enregistrement d'environ une minute.",
+  "View only": "Lecture seule",
+  "Changing this workflow takes permission to edit it.": "Pour changer ce flux de travail, il faut l'autorisation de le modifier.",
+  "No trigger yet": "Pas encore de déclencheur",
+  "You can look at this step but not change it.": "Vous pouvez consulter cette étape, mais pas la modifier.",
+  "This workflow has no trigger yet": "Ce flux de travail n'a pas encore de déclencheur",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "Une exécution part du déclencheur du flux de travail. Ajoutez-en un, puis exécutez le flux de travail d'ici.",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "Une exécution part du déclencheur du flux de travail. Il est ajouté par une personne autorisée à modifier ce flux de travail.",
+  "Workflows do not run on this project's plan": "Les flux de travail ne s'exécutent pas avec le forfait de ce projet",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Ce projet a le forfait {{plan}}, donc rien ne démarre un flux de travail, pas même « Exécuter le flux de travail ». {{upgradeLink}} pour exécuter des flux de travail.",
+  "Upgrade to the Growth plan or above": "Passez au forfait Growth ou supérieur"
 }

@@ -13695,7 +13695,7 @@
   "Not secret": "Not secret",
   "Not set (skipped)": "Not set (skipped)",
   "Not set up": "सेट अप नहीं है",
-  "Not set up yet": "Not set up yet",
+  "Not set up yet": "अभी सेट अप नहीं",
   "Not set — using server local time": "Not set — using server local time",
   "Not set.": "Not set.",
   "Not started": "शुरू नहीं हुआ",
@@ -35843,5 +35843,15 @@
   "Ascending": "आरोही",
   "Descending": "अवरोही",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "ब्राउज़र ने यह पेज किसी के खोलने से पहले ही प्रीरेंडर कर लिया था, इसलिए रिकॉर्डर ने विज़िटर के इसे खोलने तक इंतज़ार किया। जो पेज कभी नहीं खोला जाता, वह कुछ भी रिकॉर्ड नहीं करता।",
-  "Each row is one recording of about a minute.": "हर पंक्ति लगभग एक मिनट की एक रिकॉर्डिंग है।"
+  "Each row is one recording of about a minute.": "हर पंक्ति लगभग एक मिनट की एक रिकॉर्डिंग है।",
+  "View only": "केवल देखें",
+  "Changing this workflow takes permission to edit it.": "इस वर्कफ़्लो को बदलने के लिए इसे संपादित करने की अनुमति चाहिए।",
+  "No trigger yet": "अभी कोई ट्रिगर नहीं",
+  "You can look at this step but not change it.": "आप इस चरण को देख सकते हैं, लेकिन बदल नहीं सकते।",
+  "This workflow has no trigger yet": "इस वर्कफ़्लो में अभी कोई ट्रिगर नहीं है",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "रन वर्कफ़्लो के ट्रिगर से शुरू होता है। एक ट्रिगर जोड़ें, फिर यहाँ से वर्कफ़्लो चलाएँ।",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "रन वर्कफ़्लो के ट्रिगर से शुरू होता है। इसे वही जोड़ता है जो इस वर्कफ़्लो को संपादित कर सकता है।",
+  "Workflows do not run on this project's plan": "इस प्रोजेक्ट के प्लान पर वर्कफ़्लो नहीं चलते",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "यह प्रोजेक्ट {{plan}} प्लान पर है, इसलिए कोई भी चीज़ वर्कफ़्लो शुरू नहीं करती, “वर्कफ़्लो चलाएं” भी नहीं। वर्कफ़्लो चलाने के लिए {{upgradeLink}}।",
+  "Upgrade to the Growth plan or above": "Growth या उससे ऊपर के प्लान पर अपग्रेड करें"
 }

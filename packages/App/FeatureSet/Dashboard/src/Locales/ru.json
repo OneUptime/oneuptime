@@ -13695,7 +13695,7 @@
   "Not secret": "Not secret",
   "Not set (skipped)": "Not set (skipped)",
   "Not set up": "Не настроено",
-  "Not set up yet": "Not set up yet",
+  "Not set up yet": "Ещё не настроен",
   "Not set — using server local time": "Not set — using server local time",
   "Not set.": "Not set.",
   "Not started": "Не начат",
@@ -35843,5 +35843,15 @@
   "Ascending": "По возрастанию",
   "Descending": "По убыванию",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Браузер предварительно отрисовал эту страницу до того, как её кто-то открыл, поэтому рекордер ждал, пока посетитель её откроет. Страница, которую так и не открыли, ничего не записывает.",
-  "Each row is one recording of about a minute.": "Каждая строка — одна запись длиной около минуты."
+  "Each row is one recording of about a minute.": "Каждая строка — одна запись длиной около минуты.",
+  "View only": "Только просмотр",
+  "Changing this workflow takes permission to edit it.": "Чтобы изменить этот рабочий процесс, нужно разрешение на его редактирование.",
+  "No trigger yet": "Триггера пока нет",
+  "You can look at this step but not change it.": "Этот шаг можно просмотреть, но не изменить.",
+  "This workflow has no trigger yet": "У этого рабочего процесса пока нет триггера",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "Запуск начинается с триггера рабочего процесса. Добавьте его, затем запустите рабочий процесс отсюда.",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "Запуск начинается с триггера рабочего процесса. Его добавляет тот, кто может редактировать этот рабочий процесс.",
+  "Workflows do not run on this project's plan": "На тарифе этого проекта рабочие процессы не запускаются",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "У проекта тариф {{plan}}, поэтому рабочий процесс ничто не запускает, даже «Запустить рабочий процесс». {{upgradeLink}}, чтобы запускать рабочие процессы.",
+  "Upgrade to the Growth plan or above": "Перейдите на тариф Growth или выше"
 }

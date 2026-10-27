@@ -24,16 +24,24 @@ import {
  * (PermissionGate.checkPermissions).
  */
 
-// The first sentence of each refusal: the server's message, word for word.
+/*
+ * The first sentence of each refusal: the server's message, word for word.
+ * A change is refused by the Workflow model's update list, whose own message
+ * names the model; the Builder says what the reader tried to do instead.
+ */
 export const WorkflowRunCopy: {
   readonly runRefused: string;
   readonly stepRunRefused: string;
+  readonly editRefused: string;
 } = {
   runRefused: translationKey(
     "You do not have permission to run this workflow.",
   ),
   stepRunRefused: translationKey(
     "Running one step on its own takes permission to edit this workflow.",
+  ),
+  editRefused: translationKey(
+    "Changing this workflow takes permission to edit it.",
   ),
 };
 
@@ -58,6 +66,24 @@ export const getWorkflowStepRunGate: GetWorkflowRunGateFunction = (
     ...options,
     wildcard: WORKFLOW_RUN_WILDCARD,
     sentence: WorkflowRunCopy.stepRunRefused,
+  });
+};
+
+/*
+ * Whether the Builder lets the reader change the workflow: add a trigger or
+ * a step, move, connect or delete one, change a step's settings. The
+ * Workflow model's update list decides every save of the graph, so a
+ * Workflow Member or a viewer who opened the Builder could add steps that
+ * then failed to save, with an error dialog. They get the Builder as a view
+ * instead: everything they could not save is locked, saying why.
+ */
+export const getWorkflowEditGate: GetWorkflowRunGateFunction = (
+  options?: PermissionGateOptions | undefined,
+): PermissionGateResult => {
+  return PermissionGate.checkPermissions(WORKFLOW_EDIT_PERMISSIONS, {
+    ...options,
+    wildcard: WORKFLOW_RUN_WILDCARD,
+    sentence: WorkflowRunCopy.editRefused,
   });
 };
 

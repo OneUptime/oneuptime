@@ -30,6 +30,7 @@ import {
 } from "./ValuePicker/StepGraph";
 import { loadComponentsAndCategories } from "./Utils";
 import { getWorkflowAddButton } from "./WorkflowAddButton";
+import { WorkflowViewOnlyContext } from "./WorkflowViewOnly";
 import {
   ConnectionGraphEdge,
   ConnectionGraphNode,
@@ -330,9 +331,27 @@ export interface ComponentProps {
    * was still in the graph — so the page can clear it and ask again later.
    */
   onStepOpened?: (() => void) | undefined;
+  /*
+   * Why the reader may not change this workflow (WorkflowRunGate's edit
+   * gate), or undefined when they may. Given one, the canvas is a view
+   * (WorkflowViewOnly): nothing moves, connects or is deleted, no add panel
+   * opens, and a step opens to be read, not changed. The page saves
+   * nothing either.
+   */
+  editDisabledReason?: string | undefined;
 }
 
 const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
+  /*
+   * A view for someone who may not change the workflow (WorkflowViewOnly).
+   * Read through a ref too, by the handlers react-flow keeps from the first
+   * render.
+   */
+  const isViewOnly: boolean = Boolean(props.editDisabledReason);
+  const isViewOnlyRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(isViewOnly);
+  isViewOnlyRef.current = isViewOnly;
+
   const [allComponentMetadata, setAllComponentMetadata] = useState<
     Array<ComponentMetadata>
   >([]);
@@ -396,6 +415,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
     // if placeholder node is clicked then show modal.
 
     if (data.nodeType === NodeType.PlaceholderNode) {
+      // A view offers nothing to add: the card only says what is missing.
+      if (isViewOnlyRef.current) {
+        return;
+      }
+
       if (data.componentType === ComponentType.Component) {
         setShowComponentsModal(true);
       } else {
@@ -431,6 +455,11 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
         setShowTriggersModal(false);
       }
 
+      return;
+    }
+
+    // A view adds nothing; its add button is locked, so this never comes.
+    if (isViewOnlyRef.current) {
       return;
     }
 
@@ -1137,77 +1166,86 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           }
         `}
       </style>
-      <ReactFlow
-        onInit={(instance: ReactFlowInstance) => {
-          flowInstance.current = instance;
-        }}
-        nodes={nodesToRender}
-        edges={edges}
-        fitView={true}
-        fitViewOptions={{ maxZoom: 1 }}
-        onEdgeClick={() => {
-          refreshEdges();
-        }}
-        onNodeClick={(_event: React.MouseEvent, node: Node) => {
-          refreshEdges();
+      <WorkflowViewOnlyContext.Provider value={isViewOnly}>
+        <ReactFlow
+          onInit={(instance: ReactFlowInstance) => {
+            flowInstance.current = instance;
+          }}
+          nodes={nodesToRender}
+          edges={edges}
+          fitView={true}
+          fitViewOptions={{ maxZoom: 1 }}
+          onEdgeClick={() => {
+            refreshEdges();
+          }}
+          onNodeClick={(_event: React.MouseEvent, node: Node) => {
+            refreshEdges();
+            /*
+             * Handle every node through the canvas, including newly added steps
+             * and replacement trigger placeholders, without persisting callbacks.
+             */
+            onNodeClick(node.data as NodeDataProp);
+          }}
+          onKeyDown={onCanvasKeyDown}
+          proOptions={proOptions}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          multiSelectionKeyCode={null}
           /*
-           * Handle every node through the canvas, including newly added steps
-           * and replacement trigger placeholders, without persisting callbacks.
+           * A view moves, connects and deletes nothing: a step can only be
+           * clicked, to read its settings.
            */
-          onNodeClick(node.data as NodeDataProp);
-        }}
-        onKeyDown={onCanvasKeyDown}
-        proOptions={proOptions}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        multiSelectionKeyCode={null}
-        // React Flow listens on document, even while a dialog has focus.
-        panActivationKeyCode={isModalOpen ? null : "Space"}
-        deleteKeyCode={isModalOpen ? null : "Backspace"}
-        selectionKeyCode={isModalOpen ? null : "Shift"}
-        onEdgeUpdate={onEdgeUpdate}
-        nodeTypes={nodeTypes}
-        onEdgeUpdateStart={onEdgeUpdateStart}
-        onEdgeUpdateEnd={onEdgeUpdateEnd}
-        snapToGrid={true}
-        snapGrid={[16, 16]}
-        connectionLineStyle={{
-          stroke: "#6366f1",
-          strokeWidth: 2,
-          strokeDasharray: "5 5",
-        }}
-        defaultEdgeOptions={{
-          type: "smoothstep",
-          style: { ...edgeStyle },
-        }}
-      >
-        <MiniMap
-          nodeStrokeWidth={3}
-          nodeColor={(node: Node) => {
-            if (
-              node.data &&
-              node.data.metadata &&
-              node.data.metadata.componentType === ComponentType.Trigger
-            ) {
-              return "#f59e0b";
-            }
-            return "#6366f1";
+          nodesDraggable={!isViewOnly}
+          nodesConnectable={!isViewOnly}
+          edgesUpdatable={!isViewOnly}
+          // React Flow listens on document, even while a dialog has focus.
+          panActivationKeyCode={isModalOpen ? null : "Space"}
+          deleteKeyCode={isModalOpen || isViewOnly ? null : "Backspace"}
+          selectionKeyCode={isModalOpen ? null : "Shift"}
+          onEdgeUpdate={onEdgeUpdate}
+          nodeTypes={nodeTypes}
+          onEdgeUpdateStart={onEdgeUpdateStart}
+          onEdgeUpdateEnd={onEdgeUpdateEnd}
+          snapToGrid={true}
+          snapGrid={[16, 16]}
+          connectionLineStyle={{
+            stroke: "#6366f1",
+            strokeWidth: 2,
+            strokeDasharray: "5 5",
           }}
-          maskColor="var(--ou-flow-mask, rgba(241, 245, 249, 0.7))"
-          style={{
-            backgroundColor: "var(--ou-surface-primary, #ffffff)",
+          defaultEdgeOptions={{
+            type: "smoothstep",
+            style: { ...edgeStyle },
           }}
-        />
-        <Controls />
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1}
-          color="var(--ou-chart-grid, #cbd5e1)"
-        />
-        <RevealTriggerOnOpen canvasRef={canvasRef} />
-      </ReactFlow>
+        >
+          <MiniMap
+            nodeStrokeWidth={3}
+            nodeColor={(node: Node) => {
+              if (
+                node.data &&
+                node.data.metadata &&
+                node.data.metadata.componentType === ComponentType.Trigger
+              ) {
+                return "#f59e0b";
+              }
+              return "#6366f1";
+            }}
+            maskColor="var(--ou-flow-mask, rgba(241, 245, 249, 0.7))"
+            style={{
+              backgroundColor: "var(--ou-surface-primary, #ffffff)",
+            }}
+          />
+          <Controls />
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={20}
+            size={1}
+            color="var(--ou-chart-grid, #cbd5e1)"
+          />
+          <RevealTriggerOnOpen canvasRef={canvasRef} />
+        </ReactFlow>
+      </WorkflowViewOnlyContext.Provider>
 
       {showComponentsModal && (
         <ComponentsModal
@@ -1289,6 +1327,8 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
               : undefined
           }
           runStepDisabledReason={props.runStepDisabledReason}
+          // A view: the step's settings are read, not changed.
+          readOnlyReason={props.editDisabledReason}
           description={
             selectedNodeData && selectedNodeData.metadata.description
               ? selectedNodeData.metadata.description
@@ -1373,6 +1413,19 @@ const Workflow: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
           isTestRun={Boolean(props.runsAreTestRuns)}
           // A record trigger's record is looked up in this workflow's project.
           workflowId={props.workflowId}
+          /*
+           * Nothing to run without a trigger: the panel offers to add one,
+           * opening the Add Trigger panel the toolbar's button and the
+           * dashed card open - to whoever may change the workflow.
+           */
+          onAddTrigger={
+            isViewOnly
+              ? undefined
+              : () => {
+                  setShowRunModal(false);
+                  setShowTriggersModal(true);
+                }
+          }
           onClose={() => {
             setShowRunModal(false);
           }}

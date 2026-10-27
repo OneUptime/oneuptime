@@ -13695,7 +13695,7 @@
   "Not secret": "Not secret",
   "Not set (skipped)": "Not set (skipped)",
   "Not set up": "Niet ingesteld",
-  "Not set up yet": "Not set up yet",
+  "Not set up yet": "Nog niet ingesteld",
   "Not set — using server local time": "Not set — using server local time",
   "Not set.": "Not set.",
   "Not started": "Niet gestart",
@@ -35843,5 +35843,15 @@
   "Ascending": "Oplopend",
   "Descending": "Aflopend",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "De browser heeft deze pagina vooraf weergegeven voordat iemand hem opende, dus de recorder wachtte tot de bezoeker hem opende. Een pagina die nooit wordt geopend, neemt niets op.",
-  "Each row is one recording of about a minute.": "Elke rij is één opname van ongeveer een minuut."
+  "Each row is one recording of about a minute.": "Elke rij is één opname van ongeveer een minuut.",
+  "View only": "Alleen bekijken",
+  "Changing this workflow takes permission to edit it.": "Deze workflow wijzigen vereist toestemming om hem te bewerken.",
+  "No trigger yet": "Nog geen trigger",
+  "You can look at this step but not change it.": "U kunt deze stap bekijken, maar niet wijzigen.",
+  "This workflow has no trigger yet": "Deze workflow heeft nog geen trigger",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "Een run begint bij de trigger van de workflow. Voeg er een toe en voer de workflow daarna hier uit.",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "Een run begint bij de trigger van de workflow. Iemand die deze workflow mag bewerken, voegt die toe.",
+  "Workflows do not run on this project's plan": "Workflows worden niet uitgevoerd met het abonnement van dit project",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Dit project heeft het {{plan}}-abonnement, dus niets start een workflow, zelfs “Workflow uitvoeren” niet. {{upgradeLink}} om workflows uit te voeren.",
+  "Upgrade to the Growth plan or above": "Upgrade naar het Growth-abonnement of hoger"
 }

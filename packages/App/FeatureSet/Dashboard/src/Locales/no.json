@@ -13695,7 +13695,7 @@
   "Not secret": "Not secret",
   "Not set (skipped)": "Not set (skipped)",
   "Not set up": "Ikke satt opp",
-  "Not set up yet": "Not set up yet",
+  "Not set up yet": "Ikke satt opp ennå",
   "Not set — using server local time": "Not set — using server local time",
   "Not set.": "Not set.",
   "Not started": "Ikke startet",
@@ -35843,5 +35843,15 @@
   "Ascending": "Stigende",
   "Descending": "Synkende",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Nettleseren forhåndsgjengav denne siden før noen åpnet den, så opptakeren ventet til den besøkende åpnet den. En side som aldri åpnes, tar ikke opp noe.",
-  "Each row is one recording of about a minute.": "Hver rad er ett opptak på omtrent ett minutt."
+  "Each row is one recording of about a minute.": "Hver rad er ett opptak på omtrent ett minutt.",
+  "View only": "Kun visning",
+  "Changing this workflow takes permission to edit it.": "Å endre denne arbeidsflyten krever tillatelse til å redigere den.",
+  "No trigger yet": "Ingen utløser ennå",
+  "You can look at this step but not change it.": "Du kan se dette trinnet, men ikke endre det.",
+  "This workflow has no trigger yet": "Denne arbeidsflyten har ingen utløser ennå",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "En kjøring starter fra arbeidsflytens utløser. Legg til en, og kjør deretter arbeidsflyten herfra.",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "En kjøring starter fra arbeidsflytens utløser. Den legges til av noen som kan redigere denne arbeidsflyten.",
+  "Workflows do not run on this project's plan": "Arbeidsflyter kjører ikke på dette prosjektets abonnement",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "Dette prosjektet har {{plan}}-abonnementet, så ingenting starter en arbeidsflyt, heller ikke «Kjør arbeidsflyt». {{upgradeLink}} for å kjøre arbeidsflyter.",
+  "Upgrade to the Growth plan or above": "Oppgrader til Growth-abonnementet eller høyere"
 }

@@ -35843,5 +35843,15 @@
   "Ascending": "昇順",
   "Descending": "降順",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "ブラウザーが、誰かが開く前にこのページを事前レンダリングしたため、レコーダーは訪問者がページを開くまで待ちました。一度も開かれないページは何も録画しません。",
-  "Each row is one recording of about a minute.": "各行は約 1 分間の記録 1 件です。"
+  "Each row is one recording of about a minute.": "各行は約 1 分間の記録 1 件です。",
+  "View only": "閲覧のみ",
+  "Changing this workflow takes permission to edit it.": "このワークフローを変更するには、編集する権限が必要です。",
+  "No trigger yet": "トリガーはまだありません",
+  "You can look at this step but not change it.": "このステップは閲覧できますが、変更はできません。",
+  "This workflow has no trigger yet": "このワークフローにはまだトリガーがありません",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "実行はワークフローのトリガーから始まります。トリガーを追加してから、ここでワークフローを実行してください。",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "実行はワークフローのトリガーから始まります。トリガーは、このワークフローを編集できるユーザーが追加します。",
+  "Workflows do not run on this project's plan": "このプロジェクトのプランではワークフローは実行されません",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "このプロジェクトは {{plan}} プランのため、「ワークフローを実行」を含め、何もワークフローを開始しません。ワークフローを実行するには、{{upgradeLink}}してください。",
+  "Upgrade to the Growth plan or above": "Growth プラン以上にアップグレード"
 }

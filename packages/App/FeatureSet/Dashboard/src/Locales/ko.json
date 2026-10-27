@@ -13695,7 +13695,7 @@
   "Not secret": "Not secret",
   "Not set (skipped)": "Not set (skipped)",
   "Not set up": "설정되지 않음",
-  "Not set up yet": "Not set up yet",
+  "Not set up yet": "아직 설정되지 않음",
   "Not set — using server local time": "Not set — using server local time",
   "Not set.": "Not set.",
   "Not started": "시작 전",
@@ -35843,5 +35843,15 @@
   "Ascending": "오름차순",
   "Descending": "내림차순",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "브라우저가 누군가 열기 전에 이 페이지를 미리 렌더링했으므로, 녹화기는 방문자가 페이지를 열 때까지 기다렸습니다. 한 번도 열리지 않은 페이지는 아무것도 녹화하지 않습니다.",
-  "Each row is one recording of about a minute.": "각 행은 약 1분 길이의 기록 하나입니다."
+  "Each row is one recording of about a minute.": "각 행은 약 1분 길이의 기록 하나입니다.",
+  "View only": "보기 전용",
+  "Changing this workflow takes permission to edit it.": "이 워크플로를 변경하려면 편집 권한이 필요합니다.",
+  "No trigger yet": "아직 트리거가 없습니다",
+  "You can look at this step but not change it.": "이 단계는 볼 수 있지만 변경할 수는 없습니다.",
+  "This workflow has no trigger yet": "이 워크플로에는 아직 트리거가 없습니다",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "실행은 워크플로의 트리거에서 시작됩니다. 트리거를 추가한 다음 여기에서 워크플로를 실행하세요.",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "실행은 워크플로의 트리거에서 시작됩니다. 트리거는 이 워크플로를 편집할 수 있는 사람이 추가합니다.",
+  "Workflows do not run on this project's plan": "이 프로젝트의 요금제에서는 워크플로가 실행되지 않습니다",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "이 프로젝트는 {{plan}} 요금제이므로 '워크플로 실행'을 포함해 어떤 것도 워크플로를 시작하지 않습니다. 워크플로를 실행하려면 {{upgradeLink}}하세요.",
+  "Upgrade to the Growth plan or above": "Growth 요금제 이상으로 업그레이드"
 }

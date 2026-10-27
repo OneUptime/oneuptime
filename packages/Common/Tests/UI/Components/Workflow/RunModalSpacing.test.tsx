@@ -148,23 +148,22 @@ describe("the Run Workflow panel", () => {
     expect(form.parentElement!.className).not.toMatch(/(^|\s)m[by]-/);
   });
 
-  test("with no trigger yet, its message is not flush on the footer either", () => {
+  test("with no trigger yet, what it says instead is not flush on the footer either", () => {
     renderRunModal({
       ...triggerNode(ComponentID.Manual),
       nodeType: NodeType.PlaceholderNode,
     });
 
-    const message: HTMLElement = screen.getByText(
-      "No trigger added. Please add a trigger in order to run this workflow",
-    );
+    // What it says instead of the run form, the panel's last content.
+    const saying: HTMLElement = document.getElementById(
+      "run-workflow-no-trigger",
+    ) as HTMLElement;
+
+    expect(saying).toHaveTextContent("This workflow has no trigger yet");
 
     for (const width of WIDTHS) {
       expect(
-        resolveSpaceBelowInPx(
-          message.closest("[class]") as HTMLElement,
-          scrollContainer(),
-          width,
-        ),
+        resolveSpaceBelowInPx(saying, scrollContainer(), width),
       ).toBeGreaterThanOrEqual(BOTTOM_SPACE_IN_PX);
     }
   });

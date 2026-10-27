@@ -13695,7 +13695,7 @@
   "Not secret": "Not secret",
   "Not set (skipped)": "Not set (skipped)",
   "Not set up": "未設定",
-  "Not set up yet": "Not set up yet",
+  "Not set up yet": "尚未設定",
   "Not set — using server local time": "Not set — using server local time",
   "Not set.": "Not set.",
   "Not started": "未開始",
@@ -35843,5 +35843,15 @@
   "Ascending": "遞增",
   "Descending": "遞減",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "瀏覽器在任何人開啟之前預先轉譯了這個頁面，因此錄製器一直等到訪客開啟它。從未被開啟的頁面什麼也不會錄製。",
-  "Each row is one recording of about a minute.": "每一列是一次約一分鐘的記錄。"
+  "Each row is one recording of about a minute.": "每一列是一次約一分鐘的記錄。",
+  "View only": "僅檢視",
+  "Changing this workflow takes permission to edit it.": "變更此工作流程需要編輯它的權限。",
+  "No trigger yet": "尚無觸發器",
+  "You can look at this step but not change it.": "您可以檢視此步驟，但無法變更。",
+  "This workflow has no trigger yet": "此工作流程尚無觸發器",
+  "A run starts from the workflow's trigger. Add one, then run the workflow from here.": "執行從工作流程的觸發器開始。請新增一個觸發器，然後在此執行工作流程。",
+  "A run starts from the workflow's trigger. Someone who may edit this workflow adds it.": "執行從工作流程的觸發器開始。觸發器由可以編輯此工作流程的人新增。",
+  "Workflows do not run on this project's plan": "此專案的方案不執行工作流程",
+  "This project is on the {{plan}} plan, so nothing starts a workflow, not even Run Workflow. {{upgradeLink}} to run workflows.": "此專案使用 {{plan}} 方案，因此任何方式都不會啟動工作流程，包括「執行工作流程」。{{upgradeLink}}即可執行工作流程。",
+  "Upgrade to the Growth plan or above": "升級到 Growth 或更高方案"
 }
