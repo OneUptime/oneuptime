@@ -61,6 +61,11 @@ export const PUBLISH_NOW_PLACE_TEST_ID: string =
  * them, still at the end, where the wide header has it. Sized to its label
  * at every width (OUTLINE): NORMAL is as wide as a phone and keeps a
  * dialog footer's margin, which pushed it 12px off its place.
+ *
+ * Beside the words, its place is the height of their first line (20px)
+ * with the button centred in it: whatever the button's own height (30px
+ * from md up, 34px below), its label is level with "Not on status pages
+ * yet", reaching into the band's padding above and below.
  */
 export const PUBLISHING_NOTICE_ROW_CLASS_NAME: string = `flex flex-col gap-3 ${atContainerWidth(
   EVENT_HEADER_PHONE_WIDTH_REM,
@@ -69,7 +74,7 @@ export const PUBLISHING_NOTICE_ROW_CLASS_NAME: string = `flex flex-col gap-3 ${a
 
 export const PUBLISH_NOW_PLACE_CLASS_NAME: string = `flex justify-end ${atContainerWidth(
   EVENT_HEADER_PHONE_WIDTH_REM,
-  "-my-0.5 shrink-0",
+  "h-5 shrink-0 items-center",
 )}`;
 
 export interface ComponentProps {

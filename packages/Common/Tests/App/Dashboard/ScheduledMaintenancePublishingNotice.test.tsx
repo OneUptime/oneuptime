@@ -213,7 +213,13 @@ describe("the header's band while an event waits for its publish time", () => {
     );
     expect(place.className).toBe(PUBLISH_NOW_PLACE_CLASS_NAME);
     expect(place.className.split(" ")).toEqual(
-      expect.arrayContaining(["flex", "justify-end", `${wide}shrink-0`]),
+      expect.arrayContaining([
+        "flex",
+        "justify-end",
+        `${wide}h-5`,
+        `${wide}shrink-0`,
+        `${wide}items-center`,
+      ]),
     );
   });
 
