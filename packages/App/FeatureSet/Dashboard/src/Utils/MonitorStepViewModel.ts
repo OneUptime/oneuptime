@@ -8,6 +8,7 @@ import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
+import { MonitorStepExternalStatusPageMonitorUtil } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import { MonitorStepProbeStatusMonitorUtil } from "Common/Types/Monitor/MonitorStepProbeStatusMonitor";
 import MonitorStepLlmMonitor, {
@@ -1122,13 +1123,18 @@ export default class MonitorStepViewModel {
         placeholder: "All groups",
       },
       {
-        key: "componentName",
-        title: "Component Name Filter",
-        description: "If set, only this specific component will be monitored.",
-        valueType: MonitorStepViewValueType.Text,
-        value:
-          toText(data.externalStatusPageMonitor?.componentName) ||
-          "All components",
+        key: "componentNames",
+        title: "Components",
+        description:
+          "Only these components are watched: their incidents and statuses count, the rest of the page does not.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        /*
+         * A monitor saved with one Component Name Filter reads as that
+         * name between stars: every component whose name contains it.
+         */
+        value: MonitorStepExternalStatusPageMonitorUtil.getComponentNames(
+          data.externalStatusPageMonitor,
+        ),
         placeholder: "All components",
       },
     ]);
