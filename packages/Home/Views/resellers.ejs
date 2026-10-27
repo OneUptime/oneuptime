@@ -439,6 +439,11 @@
      * shows under that field; anything else shows in the box above the
      * button, with the email address to write to instead. Text from the
      * answer and from the form is only ever set as textContent.
+     *
+     * An inquiry the server took is one conversion, reseller_inquiry_sent
+     * (Docs/analytics/enterprise-conversion-tracking.md): to PostHog, and to
+     * the dataLayer, which the GTM container's key event trigger forwards.
+     * It carries the page and nothing the visitor typed.
      */
     (function () {
       var form = document.getElementById('reseller-inquiry-form');
@@ -528,6 +533,21 @@
         errorBox.focus();
       }
 
+      function reportInquirySent() {
+        var properties = {
+          event_schema_version: 1,
+          page_path: window.location.pathname
+        };
+
+        if (typeof posthog !== 'undefined' && posthog && posthog.capture) {
+          posthog.capture('reseller_inquiry_sent', properties);
+        }
+
+        if (typeof dataLayer !== 'undefined' && dataLayer && dataLayer.push) {
+          dataLayer.push(Object.assign({ event: 'reseller_inquiry_sent' }, properties));
+        }
+      }
+
       function showSuccess(email) {
         form.hidden = true;
         success.hidden = false;
@@ -590,6 +610,13 @@
 
             if (result.ok && result.answer.sent === true) {
               showSuccess(typeof answers.email === 'string' ? answers.email.trim() : '');
+
+              try {
+                reportInquirySent();
+              } catch (error) {
+                // Analytics never stands between a visitor and their sent message.
+              }
+
               return;
             }
 
