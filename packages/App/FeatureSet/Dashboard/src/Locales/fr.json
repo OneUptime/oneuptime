@@ -13991,7 +13991,6 @@
   "OneUptime AI agent": "Agent IA de OneUptime",
   "OneUptime AI is investigating": "L'IA de OneUptime mène l'investigation",
   "OneUptime AI queued an agent task for this insight. Fix pull requests open ready for review and are always human-reviewed — nothing merges automatically.": "L'IA de OneUptime a mis en file d'attente une tâche d'agent pour cette analyse. Les demandes de tirage de correctifs s'ouvrent prêtes à être relues et sont toujours examinées par un humain — rien n'est fusionné automatiquement.",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents or acknowledge alerts, always with your approval.": "L'IA de OneUptime exécute de vraies requêtes sur vos journaux, traces, métriques, incidents, moniteurs et la surveillance des utilisateurs réels — en affichant graphiques et tableaux directement — et peut créer des incidents ou prendre en compte des alertes, toujours avec votre approbation.",
   "OneUptime AI's proactive telemetry watch: deterministic statistical sensors file quiet insights — they never page and never open incidents. Requires an LLM provider only for the optional AI triage analysis, not for detection.": "La surveillance proactive de la télémétrie par l'IA de OneUptime : des capteurs statistiques déterministes produisent des analyses discrètes — elles n'alertent jamais personne et n'ouvrent jamais d'incident. Un fournisseur LLM n'est nécessaire que pour l'analyse de triage IA facultative, pas pour la détection.",
   "OneUptime Mail Server": "Serveur de messagerie OneUptime",
   "OneUptime Project, and everything happens inside it": "Le projet OneUptime, où tout se passe",
@@ -35843,5 +35842,8 @@
   "Ascending": "Croissant",
   "Descending": "Décroissant",
   "The browser prerendered this page before anybody opened it, so the recorder waited for the visitor to open it. A page that is never opened records nothing.": "Le navigateur a pré-rendu cette page avant que quiconque ne l'ouvre ; l'enregistreur a donc attendu que le visiteur l'ouvre. Une page qui n'est jamais ouverte n'enregistre rien.",
-  "Each row is one recording of about a minute.": "Chaque ligne est un enregistrement d'environ une minute."
+  "Each row is one recording of about a minute.": "Chaque ligne est un enregistrement d'environ une minute.",
+  "Created an alert": "A créé une alerte",
+  "Creating alert": "Création d'une alerte",
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "L'IA de OneUptime exécute de vraies requêtes sur vos journaux, traces, métriques, incidents, moniteurs et la surveillance des utilisateurs réels — en affichant graphiques et tableaux directement — et peut créer des incidents et des alertes ou les prendre en compte, toujours avec votre approbation."
 }

@@ -1,5 +1,6 @@
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import AlertInternalNote from "../../../../Models/DatabaseModels/AlertInternalNote";
+import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentInternalNote from "../../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentPublicNote from "../../../../Models/DatabaseModels/IncidentPublicNote";
@@ -11,6 +12,7 @@ import AIService from "../../../../Server/Services/AIService";
 import AIPostmortemRuleService from "../../../../Server/Services/AIPostmortemRuleService";
 import AlertInternalNoteService from "../../../../Server/Services/AlertInternalNoteService";
 import AlertService from "../../../../Server/Services/AlertService";
+import AlertSeverityService from "../../../../Server/Services/AlertSeverityService";
 import IncidentFeedService from "../../../../Server/Services/IncidentFeedService";
 import IncidentInternalNoteService from "../../../../Server/Services/IncidentInternalNoteService";
 import IncidentPublicNoteService from "../../../../Server/Services/IncidentPublicNoteService";
@@ -28,6 +30,7 @@ import AIIncidentPostmortemRunner from "../../../../Server/Utils/AI/SRE/Incident
 import IncidentPostmortemCallWait from "../../../../Server/Utils/AI/SRE/IncidentPostmortemCallWait";
 import { PostIncidentStatusUpdateTool } from "../../../../Server/Utils/AI/Toolbox/AIActionTools";
 import { CreateIncidentTool } from "../../../../Server/Utils/AI/Toolbox/IncidentWriteTools";
+import { CreateAlertTool } from "../../../../Server/Utils/AI/Toolbox/AlertWriteTools";
 import {
   CreateAlertNoteTool,
   CreateIncidentNoteTool,
@@ -68,9 +71,9 @@ const VALUE_ADDRESS_PATTERN: RegExp = /^https:\/\/(?:evil|tracker)\.example/;
  *   - an investigation's analysis (AIInvestigationEngine.buildBrandedMarkdown:
  *     the subject's feed, its internal note, its Slack and Teams channels);
  *   - a drafted postmortem (IncidentPostmortemRunner: the incident, its feed);
- *   - the notes, status updates and incident descriptions its tools write
- *     (create_incident_note, create_alert_note, post_incident_status_update,
- *     create_incident);
+ *   - the notes, status updates and incident and alert descriptions its
+ *     tools write (create_incident_note, create_alert_note,
+ *     post_incident_status_update, create_incident, create_alert);
  *   - its answers in Slack and Microsoft Teams;
  *
  * it keeps the formatting the model wrote, but nothing in it acts on its
@@ -434,7 +437,7 @@ describe("OneUptime AI's answers in Microsoft Teams, in code", () => {
   });
 });
 
-describe("Notes, status updates and incidents OneUptime AI writes", () => {
+describe("Notes, status updates, incidents and alerts OneUptime AI writes", () => {
   test("create_incident_note stores the note with its formatting, acting on nothing", async () => {
     const incident: Incident = new Incident();
     incident._id = INCIDENT_ID.toString();
@@ -527,6 +530,35 @@ describe("Notes, status updates and incidents OneUptime AI writes", () => {
     )["data"] as Incident;
     expectKeptAndInert(incident.description!);
     expect(incident.title).toBe("Checkout down");
+  });
+
+  // Issue #5301: an alert Ask AI raises is described the same way.
+  test("create_alert stores the description with its formatting, acting on nothing; the title is plain text", async () => {
+    const severity: AlertSeverity = new AlertSeverity();
+    severity._id = ObjectID.generate().toString();
+    severity.name = "High";
+    severity.order = 1;
+    jest
+      .spyOn(AlertSeverityService, "findBy")
+      .mockResolvedValue([severity] as never);
+
+    const created: Alert = new Alert();
+    created._id = ALERT_ID.toString();
+    created.alertNumber = 12;
+    const create: SpyInstance<typeof AlertService.create> = jest
+      .spyOn(AlertService, "create")
+      .mockResolvedValue(created as never);
+
+    await CreateAlertTool.execute(
+      { title: "Checkout slowing down", description: STEERED },
+      ctx,
+    );
+
+    const alert: Alert = (create.mock.calls[0]![0] as unknown as JSONObject)[
+      "data"
+    ] as Alert;
+    expectKeptAndInert(alert.description!);
+    expect(alert.title).toBe("Checkout slowing down");
   });
 });
 

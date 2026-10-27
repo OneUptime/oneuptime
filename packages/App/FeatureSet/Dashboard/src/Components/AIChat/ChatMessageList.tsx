@@ -253,7 +253,19 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
 
                   {message.status === AIChatMessageStatus.Completed && (
                     <div className="mt-2.5 flex items-center gap-2.5 text-[11px] text-gray-400">
-                      {timestamp && <span>{timestamp}</span>}
+                      {/*
+                       * When it was answered, on one line: beside the run's
+                       * cost on a phone it was squeezed into "a / minute /
+                       * ago", one word a line.
+                       */}
+                      {timestamp && (
+                        <span
+                          data-testid="ai-chat-answer-time"
+                          className="flex-shrink-0 whitespace-nowrap"
+                        >
+                          {timestamp}
+                        </span>
+                      )}
                       {props.latestRun &&
                         messageId === lastCompletedAssistantId && (
                           <span className="truncate">
