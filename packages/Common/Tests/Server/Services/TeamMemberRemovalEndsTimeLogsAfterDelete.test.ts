@@ -80,6 +80,11 @@ beforeEach(() => {
   getJestSpyOn(TeamMemberService, "isSCIMPushGroupsEnabled").mockResolvedValue(
     false,
   );
+  // Whether a removal may lift its team's blocks: TeamMemberRemovalLiftsBlocks.
+  getJestSpyOn(
+    TeamMemberService,
+    "assertRemoverMayLiftBlocks",
+  ).mockResolvedValue(undefined);
 });
 
 afterEach(() => {

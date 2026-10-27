@@ -77,6 +77,11 @@ import {
   rerunInvestigationEvidence,
 } from "../Utils/AI/SRE/InvestigationEvidenceRerun";
 import NotFoundException from "../../Types/Exception/NotFoundException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import Exception from "../../Types/Exception/Exception";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
+import { TelemetryServiceFilter } from "../Utils/Telemetry/TelemetryReadScope";
 import {
   IncidentSecurityJson,
   ResourceSecurityJson,
@@ -102,6 +107,12 @@ export const SECURITY_OVERVIEW_DETECTION_WINDOW_IN_DAYS: number = 14;
 export const SECURITY_OVERVIEW_ROW_LIMIT: number = 5000;
 
 export const ENTITY_ACTIVITY_MAX_HOURS: number = 30 * 24;
+
+export const SECURITY_CASE_NOT_FOUND_MESSAGE: string =
+  "This case could not be found.";
+
+export const SECURITY_CASE_CHANGE_REFUSED_MESSAGE: string =
+  "You do not have permission to change this security case.";
 
 /*
  * A project's case priority or status as the overview hands it to the
@@ -306,6 +317,7 @@ export default class SecurityCaseAPI extends BaseAPI<
               values,
               startTime: OneUptimeDate.addRemoveHours(endTime, -hours),
               endTime,
+              serviceFilter: await this.getSecurityEventSourceFilter(props),
             });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -351,6 +363,7 @@ export default class SecurityCaseAPI extends BaseAPI<
               startTime: OneUptimeDate.addRemoveDays(endTime, -days),
               endTime,
               limit,
+              serviceFilter: await this.getSecurityEventSourceFilter(props),
             });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -554,7 +567,11 @@ export default class SecurityCaseAPI extends BaseAPI<
     /*
      * Declaring an incident is a change of the case and the creation of an
      * incident, so it takes both: whoever may work the case and open
-     * incidents in this project.
+     * incidents in this project. OneUptime writes both as itself, so each is
+     * held to the record as the caller's own write would be: the case to
+     * what an update of it reaches (readCaseToChange), the incident to what
+     * creating it themselves would need (declareIncidentForCase's
+     * declaredBy).
      */
     this.router.post(
       `${basePath}/:caseId/declare-incident`,
@@ -597,26 +614,13 @@ export default class SecurityCaseAPI extends BaseAPI<
             throw new BadDataException("Choose the incident's severity.");
           }
 
-          const securityCase: SecurityCase | null =
-            await SecurityCaseService.findOneBy({
-              query: { _id: caseId, projectId },
-              select: {
-                _id: true,
-                projectId: true,
-                caseNumberWithPrefix: true,
-                title: true,
-                description: true,
-                incidentId: true,
-              },
-              props,
-            });
-
-          CommonAPI.assertResourceBelongsToProject({
-            resourceProjectId: securityCase?.projectId,
+          const securityCase: SecurityCase = await this.readCaseToChange({
+            caseId: new ObjectID(caseId),
             projectId,
+            props,
           });
 
-          if (securityCase!.incidentId) {
+          if (securityCase.incidentId) {
             throw new BadDataException(
               "An incident is already declared for this case.",
             );
@@ -649,9 +653,10 @@ export default class SecurityCaseAPI extends BaseAPI<
           const result: { incident: Incident; incidentNumber: string } =
             await SecurityPlaybookActions.declareIncidentForCase({
               projectId,
-              securityCase: securityCase!,
+              securityCase,
               incidentSeverityId: severity.id,
               userId: props.userId,
+              declaredBy: props,
             });
 
           return Response.sendJsonObjectResponse(req, res, {
@@ -1036,6 +1041,56 @@ export default class SecurityCaseAPI extends BaseAPI<
   }
 
   /*
+   * The case an incident is declared from, as the caller may change it:
+   * held to what an update of it would be held to
+   * (DatabaseService.findOneUpdatableById) - the case's update permissions
+   * in the caller's project, a team's block on them, the labels of the
+   * incident it names, and a credential that may make changes. A case they
+   * may not read is not found; one they may read but not change is refused.
+   */
+  private async readCaseToChange(data: {
+    caseId: ObjectID;
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<SecurityCase> {
+    const securityCase: SecurityCase | null =
+      await SecurityCaseService.findOneUpdatableById({
+        id: data.caseId,
+        select: {
+          _id: true,
+          projectId: true,
+          caseNumberWithPrefix: true,
+          title: true,
+          description: true,
+          incidentId: true,
+        },
+        props: data.props,
+      });
+
+    if (!securityCase) {
+      const refusal: Exception =
+        await SecurityCaseService.getUnwrittenByIdError({
+          id: data.caseId,
+          props: data.props,
+          type: DatabaseRequestType.Update,
+        });
+
+      if (refusal instanceof NotFoundException) {
+        throw new NotFoundException(SECURITY_CASE_NOT_FOUND_MESSAGE);
+      }
+
+      throw new NotAuthorizedException(SECURITY_CASE_CHANGE_REFUSED_MESSAGE);
+    }
+
+    CommonAPI.assertResourceBelongsToProject({
+      resourceProjectId: securityCase.projectId,
+      projectId: data.projectId,
+    });
+
+    return securityCase;
+  }
+
+  /*
    * The case a triage route is about, read with the caller's own props: a
    * case they may not read, or of another project, is no case to them.
    */
@@ -1071,6 +1126,22 @@ export default class SecurityCaseAPI extends BaseAPI<
       allowedPermissions: new SecurityEvent().getReadPermissions(),
       errorMessage:
         "Reading security events takes a Security role, or Project Owner or Project Admin.",
+    });
+  }
+
+  /*
+   * The sources whose security events the caller may read, for the entity
+   * reads that build their own SQL: what a read of the events themselves
+   * keeps to (TelemetryReadAccess), so a Security role scoped to the
+   * sources it owns, or to some labels, ranks and counts those sources'
+   * events alone - not every source of the project.
+   */
+  private async getSecurityEventSourceFilter(
+    props: DatabaseCommonInteractionProps,
+  ): Promise<TelemetryServiceFilter> {
+    return await TelemetryReadAccess.getServiceFilter({
+      modelType: SecurityEvent,
+      props,
     });
   }
 

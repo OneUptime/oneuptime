@@ -19,6 +19,8 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentInternalNote from "../../../Models/DatabaseModels/IncidentInternalNote";
 import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam";
 import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
+import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
+import SecurityCaseNote from "../../../Models/DatabaseModels/SecurityCaseNote";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import Dictionary from "../../../Types/Dictionary";
@@ -66,7 +68,15 @@ import { DataSource } from "typeorm";
  *     changed or removed, and an owner added or removed, only on the
  *     incidents the granting team (or the member) owns - so a member cannot
  *     make their editing team an owner of the viewing team's incident and
- *     edit it that way.
+ *     edit it that way;
+ *   - a grant limited to a label on one team and the same permission scoped
+ *     to Owned on the other reach both: the incidents carrying the label
+ *     and the ones the member or the Owned grant's team owns - read as the
+ *     labels alone, the Owned grant gave nothing;
+ *   - a security case carries no labels of its own, only its incident's: a
+ *     reader limited to a label reads the notes of the cases whose incident
+ *     carries it (and of the cases of no incident), and sees the note they
+ *     add - read as the case's own labels, every case had none.
  *
  * Opt in with RUN_POSTGRES_RECORD_SCOPE_TESTS=true against a database the
  * registered migrations have been applied to, e.g.
@@ -147,6 +157,8 @@ const TABLES: Array<string> = [
   "IncidentOwnerUser",
   "IncidentOwnerTeam",
   "IncidentInternalNote",
+  "SecurityCase",
+  "SecurityCaseNote",
 ];
 
 interface PermissionRow {
@@ -201,6 +213,14 @@ describePostgres(
     new BaseAPI(
       IncidentOwnerUser,
       new DatabaseService(IncidentOwnerUser) as DatabaseService<BaseModel>,
+    );
+    new BaseAPI(
+      SecurityCase,
+      new DatabaseService(SecurityCase) as DatabaseService<BaseModel>,
+    );
+    new BaseAPI(
+      SecurityCaseNote,
+      new DatabaseService(SecurityCaseNote) as DatabaseService<BaseModel>,
     );
 
     // The signed-in member, and somebody else in the project.
@@ -271,6 +291,43 @@ describePostgres(
       "Second project, owned by the team there",
       { teams: [secondProjectTeamId] },
     );
+
+    /*
+     * Security cases, which carry their incident's labels: one on the
+     * incident carrying the label, one on an incident without it, one on no
+     * incident at all - each with a note.
+     */
+    interface SecurityCaseFixture {
+      id: ObjectID;
+      noteId: ObjectID;
+      incidentId: ObjectID | null;
+    }
+
+    const securityCaseOn: (
+      incidentId: ObjectID | null,
+    ) => SecurityCaseFixture = (
+      incidentId: ObjectID | null,
+    ): SecurityCaseFixture => {
+      return {
+        id: ObjectID.generate(),
+        noteId: ObjectID.generate(),
+        incidentId: incidentId,
+      };
+    };
+
+    const caseOfLabelledIncident: SecurityCaseFixture = securityCaseOn(
+      ownedByViewers.id,
+    );
+    const caseOfUnlabelledIncident: SecurityCaseFixture = securityCaseOn(
+      ownedByEditors.id,
+    );
+    const caseOfNoIncident: SecurityCaseFixture = securityCaseOn(null);
+
+    const SECURITY_CASES: Array<SecurityCaseFixture> = [
+      caseOfLabelledIncident,
+      caseOfUnlabelledIncident,
+      caseOfNoIncident,
+    ];
 
     const sorted: (ids: Array<ObjectID | string>) => Array<string> = (
       ids: Array<ObjectID | string>,
@@ -412,6 +469,17 @@ describePostgres(
     const resetIncidents: () => Promise<void> = async (): Promise<void> => {
       await database.query(`DELETE FROM "${schema}"."IncidentOwnerUser"`);
       await database.query(`DELETE FROM "${schema}"."IncidentOwnerTeam"`);
+      await database.query(
+        `DELETE FROM "${schema}"."SecurityCaseNote" WHERE "_id" <> ALL($1::uuid[])`,
+        [
+          SECURITY_CASES.map((item: SecurityCaseFixture): string => {
+            return item.noteId.toString();
+          }),
+        ],
+      );
+      await database.query(
+        `UPDATE "${schema}"."SecurityCaseNote" SET "note" = 'A note on the case', "deletedAt" = NULL`,
+      );
       await database.query(
         `DELETE FROM "${schema}"."IncidentInternalNote" WHERE "_id" <> ALL($1::uuid[])`,
         [
@@ -990,6 +1058,26 @@ describePostgres(
 
       await insertIncident(secondProjectIncident, secondProjectId);
 
+      for (const item of SECURITY_CASES) {
+        await insert("SecurityCase", {
+          _id: item.id,
+          projectId: projectId,
+          title: "A possible threat",
+          // The status and priority tables are not read here.
+          securityCaseStatusId: ObjectID.generate(),
+          securityCasePriorityId: ObjectID.generate(),
+          ...(item.incidentId ? { incidentId: item.incidentId } : {}),
+          version: 1,
+        });
+        await insert("SecurityCaseNote", {
+          _id: item.noteId,
+          projectId: projectId,
+          securityCaseId: item.id,
+          note: "A note on the case",
+          version: 1,
+        });
+      }
+
       await insert("IncidentLabel", {
         incidentId: ownedByViewers.id,
         labelId: productionLabelId,
@@ -1457,6 +1545,230 @@ describePostgres(
         });
 
         expect(await retitled(INCIDENTS)).toEqual([]);
+      });
+    });
+
+    describe("a grant limited to a label on one team and scoped to Owned on the other reach both", () => {
+      /*
+       * The incidents carrying the label (the viewers' incident), and the
+       * ones the member or the Owned grant's team - the viewers - own.
+       */
+      const reachedByBoth: () => Array<OwnedIncident> =
+        (): Array<OwnedIncident> => {
+          return [ownedByViewers, ownedByBothTeams, ownedByMember];
+        };
+
+      beforeEach(async () => {
+        await grant({
+          editors: [
+            {
+              permission: Permission.IncidentMember,
+              labelIds: [productionLabelId],
+            },
+          ],
+          viewers: [
+            {
+              permission: Permission.IncidentMember,
+              scope: PermissionScope.Owned,
+            },
+          ],
+        });
+      });
+
+      test("the member reads the labelled incidents and the ones they or the viewers own", async () => {
+        const outcome: Outcome = await list("/incident");
+
+        expect(outcome.error).toBeUndefined();
+        expect(outcome.ids).toEqual(idsOf(reachedByBoth()));
+
+        const read: Outcome = await getItem("/incident", ownedByBothTeams.id);
+        expect(read.item?.id?.toString()).toBe(ownedByBothTeams.id.toString());
+      });
+
+      test("and changes them, but nothing else", async () => {
+        expect(await retitled(INCIDENTS)).toEqual(idsOf(reachedByBoth()));
+      });
+
+      test("their notes are read and changed, and nothing else", async () => {
+        const outcome: Outcome = await list("/incident-internal-note");
+
+        expect(outcome.error).toBeUndefined();
+        expect(outcome.ids).toEqual(noteIdsOf(reachedByBoth()));
+        expect(await noteChanged(INCIDENTS)).toEqual(
+          noteIdsOf(reachedByBoth()),
+        );
+      });
+
+      test("a note is added to an incident the viewers own without the label, not to one neither reaches", async () => {
+        const added: Outcome = await create("/incident-internal-note", {
+          incidentId: ownedByBothTeams.id.toString(),
+          note: "Added by the member",
+        });
+
+        expect(added.error).toBeUndefined();
+
+        expectRefused(
+          await create("/incident-internal-note", {
+            incidentId: ownedByEditors.id.toString(),
+            note: "Added by the member",
+          }),
+        );
+
+        const rows: Array<{ incidentId: string }> = await database.query(
+          `SELECT "incidentId" FROM "${schema}"."IncidentInternalNote" WHERE "note" = $1`,
+          ["Added by the member"],
+        );
+
+        expect(
+          rows.map((row: { incidentId: string }): string => {
+            return row.incidentId;
+          }),
+        ).toEqual([ownedByBothTeams.id.toString()]);
+      });
+
+      test("an incident the member owns without the label is deleted", async () => {
+        // An incident of its own: a delete removes the row.
+        const toDelete: OwnedIncident = incident(
+          "Owned by the member, deleted",
+          {
+            users: [memberId],
+          },
+        );
+
+        await insertIncident(toDelete);
+
+        try {
+          const outcome: Outcome = await remove("/incident", toDelete.id);
+
+          expect(outcome.error).toBeUndefined();
+          expect(await rowExists("Incident", toDelete.id)).toBe(false);
+        } finally {
+          await database.query(
+            `DELETE FROM "${schema}"."Incident" WHERE "_id" = $1`,
+            [toDelete.id.toString()],
+          );
+        }
+      });
+
+      /*
+       * The report: Edit Incident limited to the label on one team, and
+       * scoped to Owned on the other, beside a read of every incident.
+       */
+      test("Edit Incident limited to the label and Edit Incident scoped to Owned edit both", async () => {
+        await grant({
+          editors: [
+            {
+              permission: Permission.EditProjectIncident,
+              labelIds: [productionLabelId],
+            },
+            { permission: Permission.Viewer, scope: PermissionScope.All },
+          ],
+          viewers: [
+            {
+              permission: Permission.EditProjectIncident,
+              scope: PermissionScope.Owned,
+            },
+          ],
+        });
+
+        expect(await retitled(INCIDENTS)).toEqual(idsOf(reachedByBoth()));
+      });
+    });
+
+    describe("a security case carries its incident's labels, and so do its notes", () => {
+      const noteIdsOfCases: (
+        cases: Array<SecurityCaseFixture>,
+      ) => Array<string> = (
+        cases: Array<SecurityCaseFixture>,
+      ): Array<string> => {
+        return sorted(
+          cases.map((item: SecurityCaseFixture): ObjectID => {
+            return item.noteId;
+          }),
+        );
+      };
+
+      beforeEach(async () => {
+        await grant({
+          editors: [],
+          viewers: [
+            {
+              permission: Permission.SecurityMember,
+              labelIds: [productionLabelId],
+            },
+          ],
+        });
+      });
+
+      test("the member reads the cases of the labelled incident and of none", async () => {
+        const outcome: Outcome = await list("/security-case");
+
+        expect(outcome.error).toBeUndefined();
+        expect(outcome.ids).toEqual(
+          sorted([caseOfLabelledIncident.id, caseOfNoIncident.id]),
+        );
+      });
+
+      test("and those cases' notes - not none at all", async () => {
+        const outcome: Outcome = await list("/security-case-note");
+
+        expect(outcome.error).toBeUndefined();
+        expect(outcome.ids).toEqual(
+          noteIdsOfCases([caseOfLabelledIncident, caseOfNoIncident]),
+        );
+      });
+
+      test("a note they add to such a case is one they read", async () => {
+        const added: Outcome = await create("/security-case-note", {
+          securityCaseId: caseOfLabelledIncident.id.toString(),
+          note: "Added by the member",
+        });
+
+        expect(added.error).toBeUndefined();
+
+        const outcome: Outcome = await list("/security-case-note");
+
+        expect(outcome.ids).toHaveLength(3);
+
+        const rows: Array<{ _id: string }> = await database.query(
+          `SELECT "_id" FROM "${schema}"."SecurityCaseNote" WHERE "note" = $1`,
+          ["Added by the member"],
+        );
+
+        expect(rows).toHaveLength(1);
+        expect(outcome.ids).toContain(rows[0]!._id);
+      });
+
+      test("not to a case of an incident without the label", async () => {
+        expectRefused(
+          await create("/security-case-note", {
+            securityCaseId: caseOfUnlabelledIncident.id.toString(),
+            note: "Added by the member",
+          }),
+        );
+      });
+
+      test("a note is changed on the cases they read, and on no other", async () => {
+        for (const item of SECURITY_CASES) {
+          const outcome: Outcome = await update(
+            "/security-case-note",
+            item.noteId,
+            { note: "Changed note" },
+          );
+          const note: unknown = await readColumn(
+            "SecurityCaseNote",
+            item.noteId,
+            "note",
+          );
+
+          if (item === caseOfUnlabelledIncident) {
+            expectRefused(outcome);
+            expect(note).toBe("A note on the case");
+          } else {
+            expect(outcome.isEmptySuccess).toBe(true);
+            expect(note).toBe("Changed note");
+          }
+        }
       });
     });
 
