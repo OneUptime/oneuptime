@@ -36329,5 +36329,9 @@
   "{{count}} email domains": "{{count}} domini email",
   "{{count}} email domains_one": "{{count}} dominio email",
   "Private users, {{count}} email domains": "Utenti privati, {{count}} domini email",
-  "Private users, {{count}} email domains_one": "Utenti privati, {{count}} dominio email"
+  "Private users, {{count}} email domains_one": "Utenti privati, {{count}} dominio email",
+  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "Una policy non avvisa nessuno finché una regola o un monitor non la indica. Questa opzione aggiunge una regola per gli incidenti e una per gli avvisi.",
+  "Page it for every new incident and alert": "Attivarla per ogni nuovo incidente e ogni nuovo avviso",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "Avvisa la persona giusta quando si apre un incidente o un avviso. Fino ad allora, i proprietari del progetto ricevono un'email.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "Scegli cosa monitorare e dagli un nome. Tutto il resto parte da valori predefiniti che puoi modificare. Quando qualcosa non va, OneUptime apre un incidente o un avviso e invia un'email ai proprietari del progetto."
 }

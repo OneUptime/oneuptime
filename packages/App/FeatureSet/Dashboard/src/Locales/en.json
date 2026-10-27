@@ -36329,5 +36329,9 @@
   "{{count}} email domains": "{{count}} email domains",
   "{{count}} email domains_one": "{{count}} email domain",
   "Private users, {{count}} email domains": "Private users, {{count}} email domains",
-  "Private users, {{count}} email domains_one": "Private users, {{count}} email domain"
+  "Private users, {{count}} email domains_one": "Private users, {{count}} email domain",
+  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.",
+  "Page it for every new incident and alert": "Page it for every new incident and alert",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "Page the right person when an incident or alert opens. Until then, the project's owners get an email.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners."
 }

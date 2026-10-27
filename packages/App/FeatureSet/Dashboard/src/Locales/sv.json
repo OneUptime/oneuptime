@@ -36329,5 +36329,9 @@
   "{{count}} email domains": "{{count}} e-postdomäner",
   "{{count}} email domains_one": "{{count}} e-postdomän",
   "Private users, {{count}} email domains": "Privata användare, {{count}} e-postdomäner",
-  "Private users, {{count}} email domains_one": "Privata användare, {{count}} e-postdomän"
+  "Private users, {{count}} email domains_one": "Privata användare, {{count}} e-postdomän",
+  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "En policy larmar ingen förrän en regel eller en monitor nämner den. Det här lägger till en regel för incidenter och en för larm.",
+  "Page it for every new incident and alert": "Utlös den vid varje ny incident och varje nytt larm",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "Larma rätt person när en incident eller ett larm öppnas. Fram till dess får projektägarna ett e-postmeddelande.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "Välj vad som ska övervakas och ge det ett namn. Allt annat börjar med standardvärden som du kan ändra. När något går fel öppnar OneUptime en incident eller ett larm och skickar ett e-postmeddelande till projektägarna."
 }

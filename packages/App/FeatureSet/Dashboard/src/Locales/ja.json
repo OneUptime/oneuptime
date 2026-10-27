@@ -36329,5 +36329,9 @@
   "{{count}} email domains": "メールドメイン {{count}} 件",
   "{{count}} email domains_one": "メールドメイン {{count}} 件",
   "Private users, {{count}} email domains": "プライベートユーザー、メールドメイン {{count}} 件",
-  "Private users, {{count}} email domains_one": "プライベートユーザー、メールドメイン {{count}} 件"
+  "Private users, {{count}} email domains_one": "プライベートユーザー、メールドメイン {{count}} 件",
+  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "ポリシーは、ルールかモニターに指定されるまで誰にも通知しません。インシデント用とアラート用のルールを 1 つずつ追加します。",
+  "Page it for every new incident and alert": "新しいインシデントとアラートのたびにトリガーする",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "インシデントやアラートが作成されたら、適切な担当者に通知します。それまでは、プロジェクトのオーナーにメールが届きます。",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "監視する対象を選んで名前を付けてください。それ以外はすべて、変更できるデフォルト値から始まります。問題が起きると、OneUptime がインシデントまたはアラートを作成し、プロジェクトのオーナーにメールで知らせます。"
 }

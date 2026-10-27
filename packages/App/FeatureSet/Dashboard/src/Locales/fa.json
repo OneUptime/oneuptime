@@ -36329,5 +36329,9 @@
   "{{count}} email domains": "{{count}} دامنه ایمیل",
   "{{count}} email domains_one": "{{count}} دامنه ایمیل",
   "Private users, {{count}} email domains": "کاربران خصوصی، {{count}} دامنه ایمیل",
-  "Private users, {{count}} email domains_one": "کاربران خصوصی، {{count}} دامنه ایمیل"
+  "Private users, {{count}} email domains_one": "کاربران خصوصی، {{count}} دامنه ایمیل",
+  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "یک سیاست تا وقتی قاعده یا مانیتوری آن را نام نبرد به کسی خبر نمی‌دهد. این گزینه یک قاعده برای حوادث و یکی برای هشدارها اضافه می‌کند.",
+  "Page it for every new incident and alert": "برای هر حادثه و هشدار تازه فعال شود",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "وقتی حادثه یا هشداری باز می‌شود، به فرد مناسب خبر دهید. تا آن زمان، مالکان پروژه ایمیل می‌گیرند.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "انتخاب کنید چه چیزی پایش شود و برایش نامی بگذارید. بقیه با مقادیر پیش‌فرضی شروع می‌شود که می‌توانید تغییرشان دهید. وقتی مشکلی پیش بیاید، OneUptime یک حادثه یا هشدار باز می‌کند و به مالکان پروژه ایمیل می‌زند."
 }

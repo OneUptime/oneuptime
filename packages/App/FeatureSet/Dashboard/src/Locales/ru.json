@@ -36329,5 +36329,9 @@
   "{{count}} email domains": "Доменов эл. почты: {{count}}",
   "{{count}} email domains_one": "{{count}} домен эл. почты",
   "Private users, {{count}} email domains": "Приватные пользователи, доменов эл. почты: {{count}}",
-  "Private users, {{count}} email domains_one": "Приватные пользователи, {{count}} домен эл. почты"
+  "Private users, {{count}} email domains_one": "Приватные пользователи, {{count}} домен эл. почты",
+  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "Политика никого не оповещает, пока её не назовёт правило или монитор. Здесь добавляются правило для инцидентов и правило для оповещений.",
+  "Page it for every new incident and alert": "Срабатывать при каждом новом инциденте и оповещении",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "Оповещайте нужного человека, когда открывается инцидент или оповещение. До тех пор владельцы проекта получают письмо.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "Выберите, что отслеживать, и дайте этому название. Всё остальное начинается со значений по умолчанию, которые можно изменить. Если что-то пойдёт не так, OneUptime откроет инцидент или оповещение и напишет владельцам проекта."
 }

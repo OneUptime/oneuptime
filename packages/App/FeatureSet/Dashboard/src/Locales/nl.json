@@ -36329,5 +36329,9 @@
   "{{count}} email domains": "{{count}} e-maildomeinen",
   "{{count}} email domains_one": "{{count}} e-maildomein",
   "Private users, {{count}} email domains": "Privégebruikers, {{count}} e-maildomeinen",
-  "Private users, {{count}} email domains_one": "Privégebruikers, {{count}} e-maildomein"
+  "Private users, {{count}} email domains_one": "Privégebruikers, {{count}} e-maildomein",
+  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "Een beleid roept niemand op totdat een regel of een monitor het noemt. Dit voegt een regel toe voor incidenten en een voor waarschuwingen.",
+  "Page it for every new incident and alert": "Activeren bij elk nieuw incident en elke nieuwe waarschuwing",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "Roep de juiste persoon op wanneer een incident of waarschuwing wordt geopend. Tot die tijd krijgen de projecteigenaren een e-mail.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "Kies wat u wilt bewaken en geef het een naam. Al het andere begint met standaardwaarden die u kunt wijzigen. Gaat er iets mis, dan opent OneUptime een incident of waarschuwing en stuurt het de projecteigenaren een e-mail."
 }

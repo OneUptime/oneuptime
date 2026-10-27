@@ -8,7 +8,12 @@ import {
   countFieldRows,
   scanFormFiles,
 } from "../../Helpers/FormStepsScan";
-import { getOnCallPolicyCreateFormFields } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallPolicyCreateForm";
+import {
+  PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_DESCRIPTION,
+  PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_TITLE,
+  getOnCallPolicyCreateFormFields,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallPolicy/OnCallPolicyCreateForm";
+import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "../../../Types/OnCallDutyPolicy/EveryNewEventRules";
 import {
   ESCALATION_RULE_NOTIFY_FIELD_KEY,
   getEscalationRuleNotifyPickerConfig,
@@ -34,7 +39,9 @@ import {
  * Every form that creates an on-call policy asks who gets paged first, with
  * the escalation rule's Notify picker, and keeps to three rows: Name, that
  * question, and a folded Advanced section holding the description and the
- * labels. The picker hands the server the lists it reads
+ * labels - and, for a project's first policy only, a fourth: "Page it for
+ * every new incident and alert" (EveryNewEventRules), still on one page.
+ * The picker hands the server the lists it reads
  * (OnCallDutyPolicyService.create): a form that asks the question and sends
  * keys the server does not read would make a policy that silently pages
  * nobody.
@@ -73,12 +80,32 @@ function fieldKey(field: PolicyField): string {
   return Object.keys(field.field || {})[0] || "";
 }
 
-function buildFields(canAddEscalationRules: boolean): Array<PolicyField> {
+function buildFields(
+  canAddEscalationRules: boolean,
+  offerEveryNewEventRules: boolean = false,
+): Array<PolicyField> {
   return getOnCallPolicyCreateFormFields({
     canAddEscalationRules: (): boolean => {
       return canAddEscalationRules;
     },
+    offerEveryNewEventRules: (): boolean => {
+      return offerEveryNewEventRules;
+    },
   });
+}
+
+function everyNewEventRulesField(fields: Array<PolicyField>): PolicyField {
+  const field: PolicyField | undefined = fields.find(
+    (candidate: PolicyField): boolean => {
+      return fieldKey(candidate) === PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY;
+    },
+  );
+
+  if (!field) {
+    throw new Error("No 'Page it for every new incident and alert' field");
+  }
+
+  return field;
 }
 
 function firstRespondersField(fields: Array<PolicyField>): PolicyField {
@@ -98,14 +125,74 @@ function firstRespondersField(fields: Array<PolicyField>): PolicyField {
 describe("the create form's fields", () => {
   const fields: Array<PolicyField> = buildFields(true);
 
-  test("are Name, who gets paged first, then the description and labels", () => {
+  test("are Name, who gets paged first, paging for everything new, then the description and labels", () => {
     expect(fields.map(fieldKey)).toEqual([
       "name",
       ESCALATION_RULE_NOTIFY_FIELD_KEY,
+      PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
       "description",
       "labels",
     ]);
     expect(fields[0]!.required).toBe(true);
+  });
+
+  test("ask a new project's first policy to page for every new incident and alert, with a switch that starts on", () => {
+    const field: PolicyField = everyNewEventRulesField(fields);
+
+    expect(field.title).toBe(PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_TITLE);
+    expect(field.title).toBe("Page it for every new incident and alert");
+    expect(field.description).toBe(
+      PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_DESCRIPTION,
+    );
+    expect(field.fieldType).toBe(FormFieldSchemaType.Toggle);
+    expect(field.defaultValue).toBe(true);
+    expect(field.required).toBe(false);
+    // Sent to the server as misc data, under the key it reads.
+    expect(field.overrideFieldKey).toBe(
+      PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY,
+    );
+    expect(field.formOnly).toBeUndefined();
+    expect(field.showEvenIfPermissionDoesNotExist).toBe(true);
+    // Never folded away: it is what makes the policy page anyone.
+    expect(field.collapsibleSection).toBeUndefined();
+  });
+
+  test("ask it only when the page offers it, read when the form is drawn", () => {
+    let offered: boolean = false;
+
+    const field: PolicyField = everyNewEventRulesField(
+      getOnCallPolicyCreateFormFields({
+        canAddEscalationRules: (): boolean => {
+          return true;
+        },
+        offerEveryNewEventRules: (): boolean => {
+          return offered;
+        },
+      }),
+    );
+
+    expect(field.showIf!({} as FormValues<OnCallDutyPolicy>)).toBe(false);
+
+    offered = true;
+
+    expect(field.showIf!({} as FormValues<OnCallDutyPolicy>)).toBe(true);
+  });
+
+  test("a form built without an offer never asks", () => {
+    const field: PolicyField = everyNewEventRulesField(
+      getOnCallPolicyCreateFormFields({
+        canAddEscalationRules: (): boolean => {
+          return true;
+        },
+      }),
+    );
+
+    expect(field.showIf!({} as FormValues<OnCallDutyPolicy>)).toBe(false);
+    expect(
+      everyNewEventRulesField(buildFields(true, true)).showIf!(
+        {} as FormValues<OnCallDutyPolicy>,
+      ),
+    ).toBe(true);
   });
 
   test("ask who gets paged first with the escalation rule's Notify picker", () => {
@@ -184,15 +271,18 @@ describe("the create form's fields", () => {
   });
 
   test("fold the description and the labels under one Advanced section", () => {
-    const [name, firstResponders, description, labels] = fields as [
-      PolicyField,
-      PolicyField,
-      PolicyField,
-      PolicyField,
-    ];
+    const [name, firstResponders, everyNewEvent, description, labels] =
+      fields as [
+        PolicyField,
+        PolicyField,
+        PolicyField,
+        PolicyField,
+        PolicyField,
+      ];
 
     expect(name.collapsibleSection).toBeUndefined();
     expect(firstResponders.collapsibleSection).toBeUndefined();
+    expect(everyNewEvent.collapsibleSection).toBeUndefined();
 
     expect(description.collapsibleSection).toBeDefined();
     expect(description.collapsibleSection).toBe(labels.collapsibleSection);
@@ -205,8 +295,8 @@ describe("the create form's fields", () => {
   });
 
   test("the Advanced section says Configured once a description or a label is set", () => {
-    const description: PolicyField = fields[2]!;
-    const labels: PolicyField = fields[3]!;
+    const description: PolicyField = fields[3]!;
+    const labels: PolicyField = fields[4]!;
 
     const configured: (values: Record<string, unknown>) => boolean = (
       values: Record<string, unknown>,
@@ -227,11 +317,15 @@ describe("the create form's fields", () => {
     expect(
       configured({ teams: ["0b000000-0000-4000-8000-000000000001"] }),
     ).toBe(false);
+    // Nor is paging for every new incident and alert.
+    expect(
+      configured({ [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: false }),
+    ).toBe(false);
   });
 
   test("each form gets a section of its own", () => {
-    expect(buildFields(true)[2]!.collapsibleSection).not.toBe(
-      buildFields(true)[2]!.collapsibleSection,
+    expect(buildFields(true)[3]!.collapsibleSection).not.toBe(
+      buildFields(true)[3]!.collapsibleSection,
     );
   });
 });
@@ -274,7 +368,7 @@ describe("the project's forms", () => {
     ).toEqual([POLICIES_PAGE]);
   });
 
-  test("every form that creates a policy asks who gets paged first, in three rows and no steps", () => {
+  test("every form that creates a policy asks who gets paged first, in three rows - four for a project's first policy - and no steps", () => {
     expect(policyCreateForms.length).toBeGreaterThan(0);
 
     for (const form of policyCreateForms) {
@@ -285,9 +379,23 @@ describe("the project's forms", () => {
       expect(form.hasSteps).toBe(false);
       expect(form.hasSummaryOnly).toBe(false);
 
-      // Name, the question, and the folded Advanced section.
-      expect(countFieldRows(form.fields)).toBe(3);
-      expect(form.visibleFieldCount).toBe(3);
+      /*
+       * Name, the question, "Page it for every new incident and alert" (a
+       * new project's first policy only) and the folded Advanced section.
+       */
+      expect(countFieldRows(form.fields)).toBe(4);
+      expect(form.visibleFieldCount).toBe(4);
+
+      const everyNewEvent: FormFieldFacts | undefined = form.fields.find(
+        (field: FormFieldFacts): boolean => {
+          return field.key === "PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY";
+        },
+      );
+
+      expect(everyNewEvent).toBeDefined();
+      // Asked only when the page offers it.
+      expect(everyNewEvent!.isConditional).toBe(true);
+      expect(everyNewEvent!.collapsibleSection).toBeUndefined();
 
       const question: FormFieldFacts | undefined = form.fields.find(
         (field: FormFieldFacts): boolean => {
@@ -315,17 +423,26 @@ describe("the project's forms", () => {
       form.fields.map((field: FormFieldFacts): string => {
         return field.key;
       }),
-    ).toEqual(["name", NOTIFY_KEY_AS_WRITTEN, "description", "labels"]);
+    ).toEqual([
+      "name",
+      NOTIFY_KEY_AS_WRITTEN,
+      "PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY",
+      "description",
+      "labels",
+    ]);
 
-    const [name, question, description, labels] = form.fields as [
-      FormFieldFacts,
-      FormFieldFacts,
-      FormFieldFacts,
-      FormFieldFacts,
-    ];
+    const [name, question, everyNewEvent, description, labels] =
+      form.fields as [
+        FormFieldFacts,
+        FormFieldFacts,
+        FormFieldFacts,
+        FormFieldFacts,
+        FormFieldFacts,
+      ];
 
     expect(name.collapsibleSection).toBeUndefined();
     expect(question.collapsibleSection).toBeUndefined();
+    expect(everyNewEvent.collapsibleSection).toBeUndefined();
     expect(description.collapsibleSection).toBeDefined();
     expect(labels.collapsibleSection).toBe(description.collapsibleSection);
   });

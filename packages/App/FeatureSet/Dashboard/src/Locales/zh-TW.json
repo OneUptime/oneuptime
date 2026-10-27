@@ -36329,5 +36329,9 @@
   "{{count}} email domains": "{{count}} 個電子郵件網域",
   "{{count}} email domains_one": "{{count}} 個電子郵件網域",
   "Private users, {{count}} email domains": "私人使用者，{{count}} 個電子郵件網域",
-  "Private users, {{count}} email domains_one": "私人使用者，{{count}} 個電子郵件網域"
+  "Private users, {{count}} email domains_one": "私人使用者，{{count}} 個電子郵件網域",
+  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "在規則或監測器指定之前，策略不會通知任何人。這會為事件與警示各新增一條規則。",
+  "Page it for every new incident and alert": "每個新事件與警示都觸發此策略",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "建立事件或警示時通知合適的人。在此之前，專案擁有者會收到電子郵件。",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "選擇要監測的對象並為其命名。其餘內容皆使用可變更的預設值。一旦發生問題，OneUptime 會建立事件或警示，並以電子郵件通知專案擁有者。"
 }

@@ -36329,5 +36329,9 @@
   "{{count}} email domains": "이메일 도메인 {{count}}개",
   "{{count}} email domains_one": "이메일 도메인 {{count}}개",
   "Private users, {{count}} email domains": "비공개 사용자, 이메일 도메인 {{count}}개",
-  "Private users, {{count}} email domains_one": "비공개 사용자, 이메일 도메인 {{count}}개"
+  "Private users, {{count}} email domains_one": "비공개 사용자, 이메일 도메인 {{count}}개",
+  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "정책은 규칙이나 모니터가 지정하기 전까지 아무에게도 알리지 않습니다. 인시던트용 규칙과 경고용 규칙을 하나씩 추가합니다.",
+  "Page it for every new incident and alert": "새 인시던트와 경고마다 트리거하기",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "인시던트나 경고가 열리면 적절한 담당자에게 알립니다. 그 전까지는 프로젝트 소유자에게 이메일이 전송됩니다.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "모니터링할 대상을 고르고 이름을 지정하세요. 나머지는 모두 변경할 수 있는 기본값으로 시작합니다. 문제가 생기면 OneUptime이 인시던트나 경고를 열고 프로젝트 소유자에게 이메일을 보냅니다."
 }

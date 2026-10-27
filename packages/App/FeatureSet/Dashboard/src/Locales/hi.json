@@ -36329,5 +36329,9 @@
   "{{count}} email domains": "{{count}} ईमेल डोमेन",
   "{{count}} email domains_one": "{{count}} ईमेल डोमेन",
   "Private users, {{count}} email domains": "निजी उपयोगकर्ता, {{count}} ईमेल डोमेन",
-  "Private users, {{count}} email domains_one": "निजी उपयोगकर्ता, {{count}} ईमेल डोमेन"
+  "Private users, {{count}} email domains_one": "निजी उपयोगकर्ता, {{count}} ईमेल डोमेन",
+  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "जब तक कोई नियम या मॉनिटर किसी नीति को नहीं चुनता, वह किसी को सूचित नहीं करती। यह घटनाओं के लिए एक नियम और अलर्ट के लिए एक नियम जोड़ता है।",
+  "Page it for every new incident and alert": "हर नई घटना और अलर्ट पर इसे ट्रिगर करें",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "कोई घटना या अलर्ट खुलने पर सही व्यक्ति को सूचित करें। तब तक प्रोजेक्ट स्वामियों को ईमेल मिलता है।",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "चुनें कि किसकी निगरानी करनी है और उसे एक नाम दें। बाकी सब कुछ डिफ़ॉल्ट मानों से शुरू होता है, जिन्हें आप बदल सकते हैं। कुछ गड़बड़ होने पर OneUptime एक घटना या अलर्ट खोलता है और प्रोजेक्ट स्वामियों को ईमेल भेजता है।"
 }

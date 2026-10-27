@@ -57,6 +57,17 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import { JSONObject } from "../../Types/JSON";
 import { DEFAULT_ESCALATE_AFTER_IN_MINUTES } from "../../Types/OnCallDutyPolicy/EscalationRuleDefaults";
 import {
+  EVERY_NEW_ALERT_RULE_DESCRIPTION,
+  EVERY_NEW_INCIDENT_RULE_DESCRIPTION,
+  getEveryNewAlertRuleName,
+  getEveryNewIncidentRuleName,
+  readPageForEveryNewIncidentAndAlert,
+} from "../../Types/OnCallDutyPolicy/EveryNewEventRules";
+import IncidentOnCallRule from "../../Models/DatabaseModels/IncidentOnCallRule";
+import AlertOnCallRule from "../../Models/DatabaseModels/AlertOnCallRule";
+import IncidentOnCallRuleService from "./IncidentOnCallRuleService";
+import AlertOnCallRuleService from "./AlertOnCallRuleService";
+import {
   FIRST_RESPONDER_KEYS,
   FirstResponderIds,
   FirstResponderKey,
@@ -126,12 +137,23 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
       ? null
       : readFirstResponderIds(createBy.miscDataProps);
 
+    const pageForEveryNewIncidentAndAlert: boolean = createBy.props.ignoreHooks
+      ? false
+      : readPageForEveryNewIncidentAndAlert(createBy.miscDataProps);
+
     if (firstResponders) {
       await this.checkFirstRespondersCanBePaged({
         responders: firstResponders,
         projectId: createBy.props.tenantId || createBy.data.projectId,
         props: createBy.props,
         policy: createBy.data,
+      });
+    }
+
+    if (pageForEveryNewIncidentAndAlert) {
+      this.checkEveryNewEventRulesCanBeAdded({
+        projectId: createBy.props.tenantId || createBy.data.projectId,
+        props: createBy.props,
       });
     }
 
@@ -145,7 +167,155 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
       });
     }
 
+    if (pageForEveryNewIncidentAndAlert) {
+      await this.addEveryNewEventRules({
+        policy: createdPolicy,
+        props: createBy.props,
+      });
+    }
+
     return createdPolicy;
+  }
+
+  /*
+   * PAGE IT FOR EVERY NEW INCIDENT AND ALERT (EveryNewEventRules).
+   *
+   * Refuses, before the policy is saved, a caller who asked for the two
+   * on-call rules but may not add them: the same check each rule's own
+   * create runs first. Nobody gets a policy that pages nobody when they
+   * asked for it to be paged. Root and master admin callers pass. Throws;
+   * returns nothing.
+   */
+  public checkEveryNewEventRulesCanBeAdded(data: {
+    projectId: ObjectID | undefined | null;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    if (!data.projectId) {
+      throw new BadDataException(
+        "A project is required to page a new on-call policy for every incident and alert.",
+      );
+    }
+
+    const projectId: ObjectID = new ObjectID(data.projectId.toString());
+    // Not known yet; any id checks the same column permissions.
+    const placeholder: OnCallDutyPolicy = new OnCallDutyPolicy();
+    placeholder.id = ObjectID.getZeroObjectID();
+
+    CreatePermission.checkCreatePermissions(
+      IncidentOnCallRule,
+      this.getEveryNewIncidentRule({
+        projectId: projectId,
+        policy: placeholder,
+      }),
+      data.props,
+    );
+
+    CreatePermission.checkCreatePermissions(
+      AlertOnCallRule,
+      this.getEveryNewAlertRule({
+        projectId: projectId,
+        policy: placeholder,
+      }),
+      data.props,
+    );
+  }
+
+  // The incident on-call rule that pages `policy` for every new incident.
+  private getEveryNewIncidentRule(data: {
+    projectId: ObjectID;
+    policy: OnCallDutyPolicy;
+  }): IncidentOnCallRule {
+    const rule: IncidentOnCallRule = new IncidentOnCallRule();
+    rule.projectId = data.projectId;
+    rule.name = getEveryNewIncidentRuleName(data.policy.name);
+    rule.description = EVERY_NEW_INCIDENT_RULE_DESCRIPTION;
+    rule.isEnabled = true;
+    // No monitors, severities, labels or patterns: it matches every incident.
+    rule.onCallDutyPolicies = [this.getPolicyReference(data.policy)];
+
+    return rule;
+  }
+
+  // The alert on-call rule that pages `policy` for every new alert.
+  private getEveryNewAlertRule(data: {
+    projectId: ObjectID;
+    policy: OnCallDutyPolicy;
+  }): AlertOnCallRule {
+    const rule: AlertOnCallRule = new AlertOnCallRule();
+    rule.projectId = data.projectId;
+    rule.name = getEveryNewAlertRuleName(data.policy.name);
+    rule.description = EVERY_NEW_ALERT_RULE_DESCRIPTION;
+    rule.isEnabled = true;
+    rule.onCallDutyPolicies = [this.getPolicyReference(data.policy)];
+
+    return rule;
+  }
+
+  // The policy as a rule names it: its id alone.
+  private getPolicyReference(policy: OnCallDutyPolicy): OnCallDutyPolicy {
+    const reference: OnCallDutyPolicy = new OnCallDutyPolicy();
+    reference.id = new ObjectID(policy.id!.toString());
+
+    return reference;
+  }
+
+  /*
+   * Adds the two on-call rules of a policy just created: one paging it for
+   * every new incident, one for every new alert. Each is created as the
+   * caller, with the same checks as adding it on its Rules page, and on
+   * its own: one that fails is logged and the other still added. Never
+   * throws: the policy is saved already, and it shows on the Rules pages
+   * whether it is paged.
+   */
+  @CaptureSpan()
+  public async addEveryNewEventRules(data: {
+    policy: OnCallDutyPolicy;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const policyId: ObjectID | null | undefined = data.policy.id;
+    const projectId: ObjectID | undefined = data.policy.projectId;
+
+    if (!policyId || !projectId) {
+      logger.error(
+        "Error adding the on-call rules of a new on-call policy in OnCallDutyPolicyService.addEveryNewEventRules: the new on-call policy has no id or project.",
+      );
+      return;
+    }
+
+    const logAttributes: LogAttributes = {
+      projectId: projectId.toString(),
+      onCallDutyPolicyId: policyId.toString(),
+    } as LogAttributes;
+
+    try {
+      await IncidentOnCallRuleService.create({
+        data: this.getEveryNewIncidentRule({
+          projectId: new ObjectID(projectId.toString()),
+          policy: data.policy,
+        }),
+        props: data.props,
+      });
+    } catch (error) {
+      logger.error(
+        `Error adding the incident on-call rule of a new on-call policy in OnCallDutyPolicyService.addEveryNewEventRules: ${error}`,
+        logAttributes,
+      );
+    }
+
+    try {
+      await AlertOnCallRuleService.create({
+        data: this.getEveryNewAlertRule({
+          projectId: new ObjectID(projectId.toString()),
+          policy: data.policy,
+        }),
+        props: data.props,
+      });
+    } catch (error) {
+      logger.error(
+        `Error adding the alert on-call rule of a new on-call policy in OnCallDutyPolicyService.addEveryNewEventRules: ${error}`,
+        logAttributes,
+      );
+    }
   }
 
   /*

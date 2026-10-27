@@ -36329,5 +36329,9 @@
   "{{count}} email domains": "{{count}} e-maildomæner",
   "{{count}} email domains_one": "{{count}} e-maildomæne",
   "Private users, {{count}} email domains": "Private brugere, {{count}} e-maildomæner",
-  "Private users, {{count}} email domains_one": "Private brugere, {{count}} e-maildomæne"
+  "Private users, {{count}} email domains_one": "Private brugere, {{count}} e-maildomæne",
+  "A policy pages nobody until a rule or a monitor names it. This adds one rule for incidents and one for alerts.": "En politik tilkalder ingen, før en regel eller en monitor nævner den. Dette tilføjer en regel for hændelser og en for advarsler.",
+  "Page it for every new incident and alert": "Udløs den ved hver ny hændelse og hver ny advarsel",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "Tilkald den rette person, når en hændelse eller advarsel åbnes. Indtil da får projektejerne en e-mail.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "Vælg, hvad der skal overvåges, og giv det et navn. Alt andet starter med standardværdier, som du kan ændre. Når noget går galt, åbner OneUptime en hændelse eller advarsel og sender en e-mail til projektejerne."
 }
