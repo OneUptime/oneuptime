@@ -103,7 +103,7 @@ export const ENTITY_TYPE_FIELD_TITLE: string = translationKey("Entity Type");
 
 export const FIELD_NAME_FIELD_TITLE: string = translationKey("Field");
 export const FIELD_NAME_FIELD_DESCRIPTION: string = translationKey(
-  "The event field, named as in a Sigma rule: processName, principalUser, or an attribute key such as user.name.",
+  "The event field, named as in a Sigma rule: processName, principalUser, or an attribute key such as http.user_agent.",
 );
 export const FIELD_NAME_FIELD_PLACEHOLDER: string =
   translationKey("e.g. processName");

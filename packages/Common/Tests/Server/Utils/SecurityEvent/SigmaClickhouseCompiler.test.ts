@@ -315,15 +315,49 @@ detection:
     expect(statement.query_params["p0"]).toBe("^Failed login from \\d+");
   });
 
-  test("cidr modifier compiles to isIPAddressInRange", () => {
+  test("cidr modifier compiles to isIPAddressInRange, on text that is an address", () => {
     const statement: Statement = compile(
       singleFieldRule("principalIp|cidr: '10.0.0.0/8'"),
     );
 
     expect(statement.query).toContain(
-      "isIPAddressInRange(principalIp, {p0:String})",
+      "((isIPv4String(principalIp) OR isIPv6String(principalIp)) AND isIPAddressInRange(if((isIPv4String(principalIp) OR isIPv6String(principalIp)), principalIp, '::'), {p0:String}))",
     );
     expect(statement.query_params["p0"]).toBe("10.0.0.0/8");
+  });
+
+  /*
+   * ClickHouse's isIPAddressInRange throws on text that is not an address
+   * ("Neither IPv4 nor IPv6 address: ''"), and most events hold '' in one
+   * IP field or the other: a rule's cidr failed its whole read on the first
+   * such event. Only an address is handed to it now ('::' in place of
+   * anything else, which the guard in front turns down).
+   */
+  test("cidr never hands isIPAddressInRange text that is not an address", () => {
+    const statement: Statement = compile(
+      singleFieldRule("targetIp|cidr: 'fe80::/10'"),
+    );
+
+    const inRange: number = statement.query.indexOf("isIPAddressInRange(");
+    const argument: string = statement.query.slice(
+      inRange + "isIPAddressInRange(".length,
+    );
+
+    expect(argument.startsWith("if((isIPv4String(targetIp) OR isIPv6String(targetIp)), targetIp, '::')")).toBe(true);
+    // The address check guards the range check.
+    expect(statement.query.indexOf("isIPv4String(targetIp)")).toBeLessThan(
+      inRange,
+    );
+    expect(statement.query_params["p0"]).toBe("fe80::/10");
+  });
+
+  test("cidr on an attribute guards the attribute's text the same way", () => {
+    const statement: Statement = compile(
+      singleFieldRule("client.address|cidr: '192.168.0.0/16'"),
+    );
+
+    expect(statement.query).toContain("isIPv4String(attributes[");
+    expect(statement.query).toContain("isIPAddressInRange(if((isIPv4String(attributes[");
   });
 
   test("numeric comparison on a number column stays numeric", () => {

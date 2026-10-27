@@ -412,7 +412,7 @@ function getValueKindProblems(
     problems.push({
       field: "fieldName",
       message:
-        "A field name has no spaces: principalUser, processName or an attribute key such as user.name.",
+        "A field name has no spaces: principalUser, processName or an attribute key such as http.user_agent.",
     });
   }
 

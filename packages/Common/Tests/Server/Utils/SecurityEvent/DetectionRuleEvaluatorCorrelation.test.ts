@@ -28,6 +28,9 @@ import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import AlertService from "../../../../Server/Services/AlertService";
 import AlertSeverityService from "../../../../Server/Services/AlertSeverityService";
 import DetectionRuleService from "../../../../Server/Services/DetectionRuleService";
+import DetectionRuleExceptionService from "../../../../Server/Services/DetectionRuleExceptionService";
+import DetectionRuleException from "../../../../Models/DatabaseModels/DetectionRuleException";
+import { DetectionRuleExceptionKind } from "../../../../Types/SecurityEvent/DetectionRuleException";
 import SecurityEventService, {
   DetectionMatchGroup,
 } from "../../../../Server/Services/SecurityEventService";
@@ -203,6 +206,10 @@ beforeEach(() => {
   ] as never);
   getJestSpyOn(OTelIngestService, "telemetryServiceFromName").mockResolvedValue(
     SERVICE_METADATA as never,
+  );
+  // No rule skips anything unless a test says so.
+  getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue(
+    [] as never,
   );
 });
 
@@ -424,5 +431,39 @@ detection:
     );
 
     expect(definition.kind).toBe("correlation");
+  });
+
+  /*
+   * A correlation's exceptions are in every read it makes: an event an
+   * exception skips is not a step of anybody's sequence, nor counted in a
+   * burst.
+   */
+  test("its exceptions are ANDed into every read the correlation makes", async () => {
+    const spies: Spies = installSpies([MATCH]);
+
+    const scanner: DetectionRuleException = new DetectionRuleException();
+    scanner._id = "67676767-6767-4767-8767-676767676767";
+    scanner.projectId = PROJECT_ID;
+    scanner.detectionRuleId = RULE_ID;
+    scanner.kind = DetectionRuleExceptionKind.Entity;
+    scanner.entityType = SecurityEntityType.IpAddress;
+    scanner.value = "203.0.113.0/24";
+
+    const result: DetectionRuleEvaluationResult =
+      await DetectionRuleEvaluator.evaluateRule(buildRule(SEQUENCE_YAML), {
+        exceptions: [scanner],
+      });
+
+    const input: CorrelationRuleMatchInput = spies.findMatches.mock
+      .calls[0]![0] as CorrelationRuleMatchInput;
+
+    expect(input.restrictTo).toBeDefined();
+    expect(input.restrictTo!.query).toContain("NOT ((");
+    // An address range: matched as one, on text that is an address.
+    expect(input.restrictTo!.query).toContain("isIPAddressInRange(");
+    expect(Object.values(input.restrictTo!.query_params)).toContain(
+      "203.0.113.0/24",
+    );
+    expect(result.exceptionsApplied).toBe(1);
   });
 });

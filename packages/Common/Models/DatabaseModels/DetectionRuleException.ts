@@ -214,7 +214,7 @@ export default class DetectionRuleException extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Field",
     description:
-      "For a Value: the event field to match, named as in a Sigma rule - principalUser, processName, an attribute key such as user.name.",
+      "For a Value: the event field to match, named as in a Sigma rule - principalUser, processName, an attribute key such as http.user_agent.",
   })
   @Column({
     nullable: true,

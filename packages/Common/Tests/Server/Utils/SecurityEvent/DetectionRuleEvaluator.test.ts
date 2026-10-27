@@ -38,6 +38,9 @@ import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity
 import IncidentService from "../../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
 import DetectionRuleService from "../../../../Server/Services/DetectionRuleService";
+import DetectionRuleExceptionService from "../../../../Server/Services/DetectionRuleExceptionService";
+import DetectionRuleException from "../../../../Models/DatabaseModels/DetectionRuleException";
+import { DetectionRuleExceptionKind } from "../../../../Types/SecurityEvent/DetectionRuleException";
 import SecurityEventService, {
   DetectionMatchGroup,
   FindDetectionMatchesData,
@@ -389,6 +392,13 @@ describe("DetectionRuleEvaluator", () => {
       entitiesUpdated: 0,
       riskCasesRaised: 0,
     } as never);
+    /*
+     * No rule skips anything unless a test says so ("a rule's exceptions",
+     * below); DetectionRuleExceptions has its own suite.
+     */
+    getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockResolvedValue(
+      [] as never,
+    );
   });
 
   afterEach(() => {
@@ -431,6 +441,7 @@ describe("DetectionRuleEvaluator", () => {
         findingsWritten: 0,
         casesOpened: 0,
         overflowGroups: 0,
+        exceptionsApplied: 0,
         error: null,
       };
 
@@ -2813,6 +2824,277 @@ describe("DetectionRuleEvaluator", () => {
       await DetectionRuleEvaluator.evaluateRule(buildRule());
 
       expect(risk).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * A rule's exceptions (DetectionRuleExceptions): what it skips is left out
+   * of what its runs read, before anything is counted. A turn reads the due
+   * rules' exceptions once, and runs each rule with its own; a setup test
+   * reads none.
+   */
+  describe("a rule's exceptions", () => {
+    const RULE_A: ObjectID = new ObjectID(
+      "acacacac-acac-4cac-8cac-acacacacac01",
+    );
+    const RULE_B: ObjectID = new ObjectID(
+      "acacacac-acac-4cac-8cac-acacacacac02",
+    );
+
+    function exception(data: {
+      id: string;
+      ruleId: ObjectID;
+      kind: DetectionRuleExceptionKind;
+      entityType?: SecurityEntityType;
+      fieldName?: string;
+      value?: string;
+      startsAt?: Date;
+      endsAt?: Date;
+      expiresAt?: Date;
+    }): DetectionRuleException {
+      const row: DetectionRuleException = new DetectionRuleException();
+      row._id = data.id;
+      row.projectId = PROJECT_ID;
+      row.detectionRuleId = data.ruleId;
+      row.kind = data.kind;
+
+      if (data.entityType) {
+        row.entityType = data.entityType;
+      }
+
+      if (data.fieldName) {
+        row.fieldName = data.fieldName;
+      }
+
+      if (data.value) {
+        row.value = data.value;
+      }
+
+      if (data.startsAt) {
+        row.startsAt = data.startsAt;
+      }
+
+      if (data.endsAt) {
+        row.endsAt = data.endsAt;
+      }
+
+      if (data.expiresAt) {
+        row.expiresAt = data.expiresAt;
+      }
+
+      return row;
+    }
+
+    function aliceForRuleA(): DetectionRuleException {
+      return exception({
+        id: "edededed-eded-4ded-8ded-ededededed01",
+        ruleId: RULE_A,
+        kind: DetectionRuleExceptionKind.Entity,
+        entityType: SecurityEntityType.User,
+        value: "alice",
+      });
+    }
+
+    function stubFindAll(rows: Array<DetectionRuleException>): Spy {
+      return getJestSpyOn(
+        DetectionRuleExceptionService,
+        "findAllBy",
+      ).mockResolvedValue(rows as never);
+    }
+
+    test("a turn reads its due rules' exceptions once, and runs each rule with its own", async () => {
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        buildRule({ id: RULE_A }),
+        buildRule({ id: RULE_B }),
+      ] as never);
+
+      const findAll: Spy = stubFindAll([
+        aliceForRuleA(),
+        // Expired: kept on the list, and skips nothing.
+        exception({
+          id: "edededed-eded-4ded-8ded-ededededed02",
+          ruleId: RULE_A,
+          kind: DetectionRuleExceptionKind.Entity,
+          entityType: SecurityEntityType.Host,
+          value: "web-01",
+          expiresAt: OneUptimeDate.addRemoveMinutes(now, -5),
+        }),
+        exception({
+          id: "edededed-eded-4ded-8ded-ededededed03",
+          ruleId: RULE_B,
+          kind: DetectionRuleExceptionKind.Value,
+          fieldName: "processName",
+          value: "backup.exe",
+        }),
+      ]);
+
+      const evaluateRuleSpy: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockResolvedValue({} as never);
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+
+      expect(findAll).toHaveBeenCalledTimes(1);
+
+      const query: JSONObject = (
+        findAll.mock.calls[0]![0] as { query: JSONObject }
+      ).query;
+
+      expect(query["projectId"]).toBe(PROJECT_ID);
+      expect(
+        (query["detectionRuleId"] as Includes).values.map(
+          (value: unknown): string => {
+            return String(value);
+          },
+        ),
+      ).toEqual([RULE_A.toString(), RULE_B.toString()]);
+
+      const exceptionsByRule: Record<string, Array<string>> = {};
+
+      for (const call of evaluateRuleSpy.mock.calls) {
+        const rule: DetectionRule = call[0] as DetectionRule;
+        const options: { exceptions: Array<DetectionRuleException> } =
+          call[1] as { exceptions: Array<DetectionRuleException> };
+
+        exceptionsByRule[rule.id!.toString()] = options.exceptions.map(
+          (row: DetectionRuleException): string => {
+            return row.value || "";
+          },
+        );
+      }
+
+      expect(exceptionsByRule).toEqual({
+        [RULE_A.toString()]: ["alice"],
+        [RULE_B.toString()]: ["backup.exe"],
+      });
+    });
+
+    test("a turn with no rule due reads no exceptions", async () => {
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        buildRule({
+          id: RULE_A,
+          lastEvaluatedAt: OneUptimeDate.getCurrentDate(),
+          evaluationIntervalInMinutes: 60,
+        }),
+      ] as never);
+
+      const findAll: Spy = stubFindAll([aliceForRuleA()]);
+
+      await DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID);
+
+      expect(findAll).not.toHaveBeenCalled();
+    });
+
+    test("a turn whose exceptions cannot be read runs no rule blind to them", async () => {
+      getJestSpyOn(DetectionRuleService, "findBy").mockResolvedValue([
+        buildRule({ id: RULE_A }),
+      ] as never);
+
+      getJestSpyOn(DetectionRuleExceptionService, "findAllBy").mockRejectedValue(
+        new Error("postgres is away") as never,
+      );
+
+      const evaluateRuleSpy: Spy = getJestSpyOn(
+        DetectionRuleEvaluator,
+        "evaluateRule",
+      ).mockResolvedValue({} as never);
+
+      await expect(
+        DetectionRuleEvaluator.evaluateDueRulesForProject(PROJECT_ID),
+      ).rejects.toThrow("postgres is away");
+
+      expect(evaluateRuleSpy).not.toHaveBeenCalled();
+    });
+
+    test("a run leaves out what its exceptions skip, ANDed into the rule's own read", async () => {
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("bob", 3)],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(buildRule({ id: RULE_A }), {
+          exceptions: [aliceForRuleA()],
+        });
+
+      const whereFragment: Statement = findMatchesArg(spies).whereFragment;
+
+      // The rule's own condition, AND NOT (the exception's match).
+      expect(whereFragment.query).toContain(") AND (NOT ((");
+      expect(whereFragment.query).toContain("lowerUTF8(principalUser) = ");
+      expect(whereFragment.query).toContain("lowerUTF8(targetUser) = ");
+      expect(whereFragment.query).toContain("arrayExists(");
+      expect(Object.values(whereFragment.query_params)).toContain("alice");
+
+      expect(result.exceptionsApplied).toBe(1);
+      expect(result.matchedGroups).toBe(1);
+    });
+
+    test("a run reads its rule's exceptions itself when none are handed over", async () => {
+      const findAll: Spy = stubFindAll([aliceForRuleA()]);
+      const spies: EvaluationSpies = installSpies({ groups: [] });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(buildRule({ id: RULE_A }));
+
+      expect(findAll).toHaveBeenCalledTimes(1);
+
+      const query: JSONObject = (
+        findAll.mock.calls[0]![0] as { query: JSONObject }
+      ).query;
+
+      expect(
+        (query["detectionRuleId"] as Includes).values.map(
+          (value: unknown): string => {
+            return String(value);
+          },
+        ),
+      ).toEqual([RULE_A.toString()]);
+      expect(findMatchesArg(spies).whereFragment.query).toContain("NOT ((");
+      expect(result.exceptionsApplied).toBe(1);
+    });
+
+    test("a rule with no exception reads exactly what it always read", async () => {
+      const spies: EvaluationSpies = installSpies({ groups: [] });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(buildRule({ id: RULE_A }), {
+          exceptions: [],
+        });
+
+      expect(findMatchesArg(spies).whereFragment.query).not.toContain("NOT");
+      expect(result.exceptionsApplied).toBe(0);
+    });
+
+    test("a setup test reads no exceptions, and none hides the test's events", async () => {
+      const findAll: Spy = stubFindAll([aliceForRuleA()]);
+      const spies: EvaluationSpies = installSpies({ groups: [] });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(buildRule({ id: RULE_A }), {
+          exceptions: [aliceForRuleA()],
+          setupTest: {
+            restrictTo: SQL`productName = ${{
+              type: TableColumnType.Text,
+              value: "OneUptime setup test",
+            }}`,
+            startTime: new Date("2026-10-19T11:50:00.000Z"),
+            endTime: new Date("2026-10-19T12:01:00.000Z"),
+          },
+        });
+
+      expect(findAll).not.toHaveBeenCalled();
+
+      const whereFragment: Statement = findMatchesArg(spies).whereFragment;
+
+      expect(whereFragment.query).not.toContain("NOT");
+      expect(Object.values(whereFragment.query_params)).toContain(
+        "OneUptime setup test",
+      );
+      expect(Object.values(whereFragment.query_params)).not.toContain("alice");
+      expect(result.exceptionsApplied).toBe(0);
     });
   });
 });
