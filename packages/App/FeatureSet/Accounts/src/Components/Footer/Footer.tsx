@@ -9,7 +9,13 @@ const AccountsFooter: FunctionComponent = (): ReactElement => {
 
   return (
     <Footer
-      className="bg-gray-50/50 dark:bg-slate-900 border-t border-gray-100 dark:border-slate-700 px-8"
+      /*
+       * On the page's own ground, under a hairline: the quietest thing on
+       * the sign-in pages, in either theme. A tint of its own (the shared
+       * footer's bg-gray-50/50) is the page's colour on the light page but
+       * a lighter band across the bottom of the dark one.
+       */
+      className="border-t border-gray-100 px-8"
       copyright={t("footer.copyright")}
       links={[
         {

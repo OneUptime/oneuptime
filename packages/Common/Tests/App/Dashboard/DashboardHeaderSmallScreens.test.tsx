@@ -1,6 +1,5 @@
 import "@testing-library/jest-dom";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import ThemeUtil, { Theme } from "../../../UI/Utils/Theme";
 import {
   act,
   cleanup,
@@ -286,12 +285,15 @@ describe("dashboard header on small screens", () => {
     fireEvent.click(getButton(/User Profile/));
 
     /*
-     * Profile and the theme switch act on the spot, so they carry the button
-     * role; log out is a real destination and keeps the link role.
+     * Profile and the theme's choices act on the spot, so they carry the
+     * button role; log out is a real destination and keeps the link role.
      */
     const entries: Array<HTMLElement> = [
       screen.getByRole("button", { name: "Profile" }),
-      screen.getByRole("button", { name: /theme/i }),
+      screen.getByRole("group", { name: "Theme" }),
+      screen.getByRole("button", { name: "Light" }),
+      screen.getByRole("button", { name: "Dark" }),
+      screen.getByRole("button", { name: "System" }),
       screen.getByRole("link", { name: "Log out" }),
     ];
 
@@ -331,8 +333,6 @@ describe("dashboard header on small screens", () => {
      * a workaround for the profile menu being unreachable there. The menu is
      * reachable now, so the toggle went away; this is what replaced it.
      */
-    // Start from Light so the toggle shows "Dark theme" (next in the cycle).
-    ThemeUtil.setTheme(Theme.Light);
     await renderHeader();
 
     // Nothing in the closed header offers the theme any more.
@@ -340,9 +340,18 @@ describe("dashboard header on small screens", () => {
 
     fireEvent.click(getButton(/User Profile/));
 
-    fireEvent.click(screen.getByRole("button", { name: "Dark theme" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dark" }));
 
     expect(document.documentElement).toHaveClass("dark");
+    // The menu stays open: the person sees the page in the theme they picked.
+    expect(screen.getByRole("button", { name: "Dark" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Light" }));
+
+    expect(document.documentElement).not.toHaveClass("dark");
   });
 
   test("the notification bell and its badge are on screen at phone width", async () => {

@@ -7,11 +7,11 @@ import ObjectID from "Common/Types/ObjectID";
 import HeaderIconDropdownButton from "Common/UI/Components/Header/HeaderIconDropdownButton";
 import IconDropdownItem from "Common/UI/Components/Header/IconDropdown/IconDropdownItem";
 import IconDropdownMenu from "Common/UI/Components/Header/IconDropdown/IconDropdownMenu";
+import ThemeChoiceRow from "Common/UI/Components/Header/IconDropdown/ThemeChoiceRow";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import BlankProfilePic from "Common/UI/Images/users/blank-profile.svg";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import Navigation from "Common/UI/Utils/Navigation";
-import ThemeUtil, { Theme, useTheme } from "Common/UI/Utils/Theme";
 import User from "Common/UI/Utils/User";
 import React, {
   FunctionComponent,
@@ -30,8 +30,6 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { t } = useTranslation();
   const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
-  useTheme(); // subscribe to theme changes to trigger re-renders
-  const storedTheme: Theme = ThemeUtil.getStoredTheme();
 
   const [profilePictureId, setProfilePictureId] = useState<ObjectID | null>(
     User.getProfilePicId(),
@@ -110,26 +108,11 @@ const DashboardUserProfile: FunctionComponent<ComponentProps> = (
             <></>
           )}
 
-          <IconDropdownItem
-            title={
-              storedTheme === Theme.Light
-                ? t("userProfile.darkTheme", "Dark theme")
-                : storedTheme === Theme.Dark
-                  ? t("userProfile.systemTheme", "System theme")
-                  : t("userProfile.lightTheme", "Light theme")
-            }
-            onClick={() => {
-              ThemeUtil.toggleTheme();
-              setIsDropdownVisible(false);
-            }}
-            icon={
-              storedTheme === Theme.Light
-                ? IconProp.Moon
-                : storedTheme === Theme.Dark
-                  ? IconProp.ComputerDesktop
-                  : IconProp.Sun
-            }
-          />
+          {/*
+           * Light, Dark or System - as the device is set: the person's theme
+           * here, in the Admin Dashboard and on the sign-in pages.
+           */}
+          <ThemeChoiceRow />
 
           <IconDropdownItem
             title={t("userProfile.logOut")}

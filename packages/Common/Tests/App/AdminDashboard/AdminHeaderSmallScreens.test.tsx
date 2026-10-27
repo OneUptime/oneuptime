@@ -1,6 +1,5 @@
 import "@testing-library/jest-dom";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-import ThemeUtil, { Theme } from "../../../UI/Utils/Theme";
 import {
   act,
   cleanup,
@@ -169,8 +168,6 @@ describe("admin dashboard header on small screens", () => {
   });
 
   test("log out and the theme switch are reachable from a phone", async () => {
-    // Start from Light so the toggle shows "Dark theme" (next in the cycle).
-    ThemeUtil.setTheme(Theme.Light);
     await renderHeader();
 
     expect(screen.queryAllByRole("button", { name: /theme/i })).toHaveLength(0);
@@ -184,9 +181,22 @@ describe("admin dashboard header on small screens", () => {
       ),
     ).toBe("visible at 375px");
 
-    fireEvent.click(screen.getByRole("button", { name: "Dark theme" }));
+    expect(
+      describeVisibility(
+        screen.getByRole("group", { name: "Theme" }),
+        PHONE_WIDTH_IN_PX,
+      ),
+    ).toBe("visible at 375px");
+
+    fireEvent.click(screen.getByRole("button", { name: "Dark" }));
 
     expect(document.documentElement).toHaveClass("dark");
+
+    fireEvent.click(screen.getByRole("button", { name: "System" }));
+
+    expect(window.localStorage.getItem("oneuptime-dashboard-theme")).toBe(
+      "system",
+    );
   });
 
   test("the standalone Exit Admin button is wide-screen only, and the menu covers it", async () => {

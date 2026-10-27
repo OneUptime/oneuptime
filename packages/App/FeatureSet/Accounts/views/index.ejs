@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <%
   /*
    * The installation's branding (Common/Server/Utils/ProductBrandingViewVariables.ts):
@@ -14,49 +14,21 @@
 <head>
   <meta charset="utf-8" />
   <%- include('../../../../Common/Server/Views/Partials/SensitiveUrlToken') -%>
+  <%#
+    The person's theme - Light, Dark, or as their device is set - before the
+    first paint, as the Dashboard draws it (Common/Types/Theme/
+    ThemePreference.ts). A public form is its owner's page and stays light,
+    whatever the visitor picked (Accounts' src/Utils/AccountsTheme.ts holds
+    the same addresses).
+  -%>
+  <%- include('../../../../Common/Server/Views/Partials/Theme', {
+    alwaysLightPathPrefixes: ['/accounts/form/', '/accounts/incident-form/']
+  }) -%>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#f9fafb" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta charSet='utf-8' />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <meta name="slack-app-id" content="ACVBMTPJQ">
-
-  <!-- Apply the stored (or OS) theme before CSS/React to avoid a theme flash. -->
-  <script>
-    (function () {
-      var stored = null;
-      try {
-        stored = window.localStorage.getItem("oneuptime-dashboard-theme");
-      } catch (_e) {
-        // Storage blocked; fall through to OS check.
-      }
-
-      var theme = "light";
-      if (stored === "dark") {
-        theme = "dark";
-      } else if (stored === "light") {
-        theme = "light";
-      } else {
-        // "system", missing, or unrecognised — follow OS preference.
-        try {
-          if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-            theme = "dark";
-          }
-        } catch (_e) {
-          // matchMedia unavailable; keep light.
-        }
-      }
-
-      var root = document.documentElement;
-      root.classList.toggle("dark", theme === "dark");
-      root.dataset.theme = theme;
-      root.style.colorScheme = theme;
-
-      var themeColor = document.querySelector('meta[name="theme-color"]:not([media])');
-      if (themeColor) {
-        themeColor.setAttribute("content", theme === "dark" ? "#0f172a" : "#f9fafb");
-      }
-    })();
-  </script>
-
   <% if (brandName !== 'OneUptime') { %>
   <meta name="description" content="<%= brandName %>">
   <% } else { %>
@@ -74,7 +46,7 @@
   }) -%>
 
   <link rel="manifest" href="/accounts/assets/img/favicons/ma">
-
+  
   <% if (brandFaviconUrl) { %>
   <link rel="icon" href="<%= brandFaviconUrl %>">
   <link rel="shortcut icon" href="<%= brandFaviconUrl %>">
@@ -90,7 +62,7 @@
   <meta name="msapplication-TileColor" content="#121212">
   <meta name="msapplication-TileImage" content="/accounts/assets/img/favicons/mstile-144x144.png">
   <% } %>
-
+  
   <script src="/accounts/env.js"></script>
 
   <link rel="preload" href="/accounts/assets/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin>
@@ -134,35 +106,10 @@
           width: auto;
       }
       </style>
-
-  <!-- Critical CSS: prevents white flash before Tailwind loads in dark mode -->
-  <style>
-    html, body, .bg-gray-50 { background-color: #f9fafb; }
-    html.dark, html.dark body { background-color: #0f172a; }
-    html.dark { color: #f8fafc; }
-    #root { min-height: 100vh; }
-  </style>
-
-  <script>
-    window.tailwind = {
-      config: {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              primary: '#000000'
-            },
-            fontFamily: {
-              'display': ['Inter', 'sans-serif'],
-              'body': ['Inter', 'sans-serif']
-            }
-          }
-        }
-      }
-    };
-  </script>
     <link rel="preload" href="/accounts/assets/js/tailwind-3.4.5.js" as="script">
     <script src="/accounts/assets/js/tailwind-3.4.5.js"></script>
+    <%# Left and right follow the reading direction (Common/UI/Styles/TailwindReadingDirection.js) -%>
+    <script src="/accounts/assets/js/tailwind-reading-direction.js"></script>
 
   <title><%= brandName %> Accounts</title>
 
@@ -183,11 +130,23 @@
   <title><%= brandName %> | Account</title>
 </head>
 
-<body class="h-full bg-gray-50 dark:bg-slate-900">
+<body class="h-full bg-gray-50">
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
 
   <script type="module" src="/accounts/dist/Index.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#000000' 
+          }
+        }
+      }
+    }
+  </script>
 </body>
 
 </html>
