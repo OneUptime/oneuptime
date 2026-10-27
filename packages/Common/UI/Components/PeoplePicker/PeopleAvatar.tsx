@@ -1,5 +1,6 @@
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
+import { getNameInitials } from "../../../Utils/NameInitials";
 import Icon, { SizeProp } from "../Icon/Icon";
 import Image from "../Image/Image";
 import UserUtil from "../../Utils/User";
@@ -90,28 +91,16 @@ export const getPeopleAvatarPalette: (
   return palette[hashString(name) % palette.length] as AvatarPaletteEntry;
 };
 
+/*
+ * The initials drawn when there is no picture, read from the name's words
+ * only (Utils/NameInitials): a team named "Security Operations Center
+ * (EMEA)" is SE, where the first and last bits of the name as written made
+ * it "S(".
+ */
 export const getPeopleInitials: (name: string) => string = (
   name: string,
 ): string => {
-  const parts: Array<string> = name
-    .trim()
-    .split(/\s+/)
-    .filter((part: string): boolean => {
-      return part.length > 0;
-    });
-
-  if (parts.length === 0) {
-    return "?";
-  }
-
-  if (parts.length === 1) {
-    return ((parts[0] as string)[0] || "?").toUpperCase();
-  }
-
-  const first: string = (parts[0] as string)[0] || "";
-  const last: string = (parts[parts.length - 1] as string)[0] || "";
-
-  return (first + last).toUpperCase();
+  return getNameInitials(name);
 };
 
 const SIZE_CLASSES: Record<PeopleAvatarSize, string> = {
