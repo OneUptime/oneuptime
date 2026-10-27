@@ -848,6 +848,8 @@
   "SAML Providers": "SAML Providers",
   "OIDC Provider": "OIDC Provider",
   "OIDC Providers": "OIDC Providers",
+  "Enable": "Enable",
+  "Disable": "Disable",
   "Test Sign-in": "Test Sign-in",
   "While SSO is required, people get their account by signing in with SSO or by an invitation, not by signing up.": "While SSO is required, people get their account by signing in with SSO or by an invitation, not by signing up.",
   "Add SAML Provider": "Add SAML Provider",

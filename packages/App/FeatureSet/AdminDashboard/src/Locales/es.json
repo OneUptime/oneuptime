@@ -848,6 +848,8 @@
   "SAML Providers": "Proveedores SAML",
   "OIDC Provider": "Proveedor OIDC",
   "OIDC Providers": "Proveedores OIDC",
+  "Enable": "Activar",
+  "Disable": "Desactivar",
   "Test Sign-in": "Probar inicio de sesión",
   "While SSO is required, people get their account by signing in with SSO or by an invitation, not by signing up.": "Mientras se exija SSO, las personas obtienen su cuenta al iniciar sesión con SSO o mediante una invitación, no registrándose.",
   "Add SAML Provider": "Añadir proveedor SAML",

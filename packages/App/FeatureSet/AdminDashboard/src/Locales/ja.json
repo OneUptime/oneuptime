@@ -848,6 +848,8 @@
   "SAML Providers": "SAML プロバイダー",
   "OIDC Provider": "OIDC プロバイダー",
   "OIDC Providers": "OIDC プロバイダー",
+  "Enable": "有効にする",
+  "Disable": "無効にする",
   "Test Sign-in": "サインインをテスト",
   "While SSO is required, people get their account by signing in with SSO or by an invitation, not by signing up.": "SSO が必須の間は、サインアップではなく、SSO でのサインインまたは招待によってアカウントが作成されます。",
   "Add SAML Provider": "SAML プロバイダーを追加",

@@ -848,6 +848,8 @@
   "SAML Providers": "SAML-leverantörer",
   "OIDC Provider": "OIDC-leverantör",
   "OIDC Providers": "OIDC-leverantörer",
+  "Enable": "Aktivera",
+  "Disable": "Inaktivera",
   "Test Sign-in": "Testa inloggning",
   "While SSO is required, people get their account by signing in with SSO or by an invitation, not by signing up.": "Så länge SSO krävs får personer sitt konto genom att logga in med SSO eller via en inbjudan, inte genom att registrera sig.",
   "Add SAML Provider": "Lägg till SAML-leverantör",

@@ -848,6 +848,8 @@
   "SAML Providers": "SAML 提供者",
   "OIDC Provider": "OIDC 提供者",
   "OIDC Providers": "OIDC 提供者",
+  "Enable": "啟用",
+  "Disable": "停用",
   "Test Sign-in": "測試登入",
   "While SSO is required, people get their account by signing in with SSO or by an invitation, not by signing up.": "在要求使用 SSO 期間，使用者透過 SSO 登入或受邀取得帳戶，而不是透過註冊。",
   "Add SAML Provider": "新增 SAML 提供者",

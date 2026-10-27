@@ -848,6 +848,8 @@
   "SAML Providers": "SAML-providers",
   "OIDC Provider": "OIDC-provider",
   "OIDC Providers": "OIDC-providers",
+  "Enable": "Inschakelen",
+  "Disable": "Uitschakelen",
   "Test Sign-in": "Inloggen testen",
   "While SSO is required, people get their account by signing in with SSO or by an invitation, not by signing up.": "Zolang SSO vereist is, krijgen mensen hun account door met SSO in te loggen of via een uitnodiging, niet door zich te registreren.",
   "Add SAML Provider": "SAML-provider toevoegen",

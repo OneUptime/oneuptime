@@ -848,6 +848,8 @@
   "SAML Providers": "ارائه‌دهندگان SAML",
   "OIDC Provider": "ارائه‌دهنده OIDC",
   "OIDC Providers": "ارائه‌دهندگان OIDC",
+  "Enable": "فعال کردن",
+  "Disable": "غیرفعال کردن",
   "Test Sign-in": "آزمایش ورود",
   "While SSO is required, people get their account by signing in with SSO or by an invitation, not by signing up.": "تا وقتی SSO الزامی است، افراد حساب خود را با ورود از طریق SSO یا با دعوت به دست می‌آورند، نه با ثبت‌نام.",
   "Add SAML Provider": "افزودن ارائه‌دهنده SAML",

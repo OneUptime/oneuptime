@@ -848,6 +848,8 @@
   "SAML Providers": "Поставщики SAML",
   "OIDC Provider": "Поставщик OIDC",
   "OIDC Providers": "Поставщики OIDC",
+  "Enable": "Включить",
+  "Disable": "Отключить",
   "Test Sign-in": "Проверить вход",
   "While SSO is required, people get their account by signing in with SSO or by an invitation, not by signing up.": "Пока требуется SSO, люди получают учётную запись, входя через SSO или по приглашению, а не регистрируясь.",
   "Add SAML Provider": "Добавить поставщика SAML",

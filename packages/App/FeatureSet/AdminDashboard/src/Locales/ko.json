@@ -848,6 +848,8 @@
   "SAML Providers": "SAML 공급자",
   "OIDC Provider": "OIDC 공급자",
   "OIDC Providers": "OIDC 공급자",
+  "Enable": "활성화",
+  "Disable": "비활성화",
   "Test Sign-in": "로그인 테스트",
   "While SSO is required, people get their account by signing in with SSO or by an invitation, not by signing up.": "SSO가 필수인 동안에는 가입이 아니라 SSO 로그인이나 초대를 통해 계정이 만들어집니다.",
   "Add SAML Provider": "SAML 공급자 추가",
