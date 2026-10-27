@@ -35930,6 +35930,7 @@
   "When the event shows on its status pages, and when their subscribers hear about it.": "Когда событие появляется на своих страницах статуса и когда их подписчики узнают о нём.",
   "Sent when the event shows on its status pages.": "Отправляется, когда событие появляется на своих страницах статуса.",
   "Reminders are not sent while the event is hidden from its status pages.": "Напоминания не отправляются, пока событие скрыто на своих страницах статуса.",
+  "Reminders due before the event is published are not sent.": "Напоминания, срок которых наступает до публикации события, не отправляются.",
   "Color by thresholds": "Окрашивать по порогам",
   "Colored background": "Цветной фон",
   "Colored text": "Цветной текст",

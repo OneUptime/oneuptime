@@ -35930,6 +35930,7 @@
   "When the event shows on its status pages, and when their subscribers hear about it.": "イベントがステータスページに表示されるタイミングと、購読者に知らせるタイミングです。",
   "Sent when the event shows on its status pages.": "イベントがステータスページに表示されたときに送信されます。",
   "Reminders are not sent while the event is hidden from its status pages.": "イベントがステータスページで非表示の間は、リマインダーは送信されません。",
+  "Reminders due before the event is published are not sent.": "イベントの公開前に予定されているリマインダーは送信されません。",
   "Color by thresholds": "しきい値で色分け",
   "Colored background": "色付きの背景",
   "Colored text": "色付きの文字",

@@ -35930,6 +35930,7 @@
   "When the event shows on its status pages, and when their subscribers hear about it.": "Quando o evento aparece nas suas páginas de status e quando os assinantes delas ficam sabendo dele.",
   "Sent when the event shows on its status pages.": "Enviada quando o evento aparece nas suas páginas de status.",
   "Reminders are not sent while the event is hidden from its status pages.": "Os lembretes não são enviados enquanto o evento estiver oculto nas suas páginas de status.",
+  "Reminders due before the event is published are not sent.": "Os lembretes previstos para antes da publicação do evento não são enviados.",
   "Color by thresholds": "Colorir por limites",
   "Colored background": "Fundo colorido",
   "Colored text": "Texto colorido",

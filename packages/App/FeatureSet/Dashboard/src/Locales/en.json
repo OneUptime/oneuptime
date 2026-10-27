@@ -35930,6 +35930,7 @@
   "When the event shows on its status pages, and when their subscribers hear about it.": "When the event shows on its status pages, and when their subscribers hear about it.",
   "Sent when the event shows on its status pages.": "Sent when the event shows on its status pages.",
   "Reminders are not sent while the event is hidden from its status pages.": "Reminders are not sent while the event is hidden from its status pages.",
+  "Reminders due before the event is published are not sent.": "Reminders due before the event is published are not sent.",
   "Color by thresholds": "Color by thresholds",
   "Colored background": "Colored background",
   "Colored text": "Colored text",

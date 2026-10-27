@@ -35930,6 +35930,7 @@
   "When the event shows on its status pages, and when their subscribers hear about it.": "事件何時顯示在其狀態頁面上，以及其訂閱者何時得知此事件。",
   "Sent when the event shows on its status pages.": "在事件顯示於其狀態頁面上時傳送。",
   "Reminders are not sent while the event is hidden from its status pages.": "事件在其狀態頁面上隱藏期間，不會傳送提醒。",
+  "Reminders due before the event is published are not sent.": "在事件發布之前到期的提醒不會傳送。",
   "Color by thresholds": "依閾值著色",
   "Colored background": "彩色背景",
   "Colored text": "彩色文字",

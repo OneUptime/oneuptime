@@ -35930,6 +35930,7 @@
   "When the event shows on its status pages, and when their subscribers hear about it.": "Hvornår begivenheden vises på sine statussider, og hvornår deres abonnenter hører om den.",
   "Sent when the event shows on its status pages.": "Sendes, når begivenheden vises på sine statussider.",
   "Reminders are not sent while the event is hidden from its status pages.": "Påmindelser sendes ikke, mens begivenheden er skjult på sine statussider.",
+  "Reminders due before the event is published are not sent.": "Påmindelser, der forfalder, før begivenheden offentliggøres, sendes ikke.",
   "Color by thresholds": "Farv efter tærskler",
   "Colored background": "Farvet baggrund",
   "Colored text": "Farvet tekst",

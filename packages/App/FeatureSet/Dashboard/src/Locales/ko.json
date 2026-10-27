@@ -35930,6 +35930,7 @@
   "When the event shows on its status pages, and when their subscribers hear about it.": "이벤트가 상태 페이지에 표시되는 시점과 구독자가 이 이벤트에 대해 알게 되는 시점입니다.",
   "Sent when the event shows on its status pages.": "이벤트가 상태 페이지에 표시될 때 전송됩니다.",
   "Reminders are not sent while the event is hidden from its status pages.": "이벤트가 상태 페이지에서 숨겨져 있는 동안에는 리마인더가 전송되지 않습니다.",
+  "Reminders due before the event is published are not sent.": "이벤트가 게시되기 전에 예정된 리마인더는 전송되지 않습니다.",
   "Color by thresholds": "임계값으로 색상 표시",
   "Colored background": "배경 색상",
   "Colored text": "텍스트 색상",

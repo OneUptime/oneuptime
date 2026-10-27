@@ -35930,6 +35930,7 @@
   "When the event shows on its status pages, and when their subscribers hear about it.": "رویداد چه زمانی در صفحات وضعیت آن نمایش داده می‌شود و مشترکان آن‌ها چه زمانی از آن باخبر می‌شوند.",
   "Sent when the event shows on its status pages.": "وقتی رویداد در صفحات وضعیت آن نمایش داده شود، ارسال می‌شود.",
   "Reminders are not sent while the event is hidden from its status pages.": "تا زمانی که رویداد در صفحات وضعیت آن پنهان است، یادآوری‌ها ارسال نمی‌شوند.",
+  "Reminders due before the event is published are not sent.": "یادآوری‌هایی که موعدشان پیش از انتشار رویداد است ارسال نمی‌شوند.",
   "Color by thresholds": "رنگ‌آمیزی بر اساس آستانه‌ها",
   "Colored background": "پس‌زمینهٔ رنگی",
   "Colored text": "متن رنگی",
