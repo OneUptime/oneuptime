@@ -122,10 +122,10 @@ Två fält löper över toppen av varje sida.
 | Var | Vad som finns där |
 | --- | --- |
 | Uppe till vänster | Projektväljaren: växla till ett annat av dina projekt, eller skapa ett nytt. |
-| Uppe till höger | **Sök** och **Ask AI**, aviseringsklockan med det som behöver dig nu (aktiva incidenter och larm, jourpolicyerna du har jour i, väntande inbjudningar), **Hjälp**, och din bild, som öppnar menyn för ditt [konto](/docs/introduction/your-account). |
+| Uppe till höger | **Sök** och **Fråga AI**, aviseringsklockan med det som behöver dig nu (aktiva incidenter och larm, jourpolicyerna du har jour i, väntande inbjudningar), **Hjälp**, och din bild, som öppnar menyn för ditt [konto](/docs/introduction/your-account). |
 | Under dem | **Hem** och **Produkter** till vänster, **Användarinställningar** till höger: hur OneUptime når dig i det här projektet. |
 
-**Hjälp** öppnar den här dokumentationen (**Dokumentation**) och listan **Keyboard shortcuts**, och erbjuder support via e-post och på Slack. På en smal skärm, som en telefon, utelämnas **Sök**, **Ask AI** och **Hjälp** för att spara plats; klockan och din bild finns kvar.
+**Hjälp** öppnar den här dokumentationen (**Dokumentation**) och listan **Keyboard shortcuts**, och erbjuder support via e-post och på Slack. På en smal skärm, som en telefon, utelämnas **Sök**, **Fråga AI** och **Hjälp** för att spara plats; klockan och din bild finns kvar.
 
 ## Sök efter en sida, en inställning eller en åtgärd
 

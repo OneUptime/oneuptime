@@ -4,9 +4,11 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
+import { MenuSide, useMenuSide } from "./MenuSide";
 import { ChatProvider } from "./useAiChat";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -18,6 +20,13 @@ export interface ComponentProps {
   // Compact variant sits inside the composer; full shows the provider name too.
   variant?: "compact" | "full";
   disabled?: boolean;
+  /*
+   * Which side of the button the menu opens on: "top" (the default) for a
+   * composer at the foot of its surface, "bottom" for one near the top.
+   * The other side when the menu would not fit on this one and fits
+   * better there (MenuSide).
+   */
+  menuSide?: MenuSide | undefined;
 }
 
 function providerLabel(provider: ChatProvider): string {
@@ -57,6 +66,18 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const containerRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  const buttonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const menuRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const menuId: string = useId();
+  // 6 px between the button and the menu (mt-1.5 / mb-1.5).
+  const menuSide: MenuSide = useMenuSide({
+    isOpen: isOpen,
+    preferred: props.menuSide || "top",
+    gap: 6,
+    buttonRef: buttonRef,
+    menuRef: menuRef,
+  });
 
   const variant: "compact" | "full" = props.variant || "compact";
 
@@ -72,9 +93,25 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
         setIsOpen(false);
       }
     };
+    /*
+     * Escape closes the menu and gives the focus back to its button - and
+     * only the menu: the key is marked as spent, so the dialog the picker
+     * sits in (Ask AI) does not close with it.
+     */
+    const onKeyDown: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsOpen(false);
+        buttonRef.current?.focus();
+      }
+    };
     document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKeyDown);
     };
   }, [isOpen]);
 
@@ -103,9 +140,13 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
   return (
     <div className="relative" ref={containerRef}>
       <button
+        ref={buttonRef}
         type="button"
         disabled={props.disabled}
         title={translator.translateText("Choose AI provider")}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-controls={isOpen ? menuId : undefined}
         onClick={() => {
           setIsOpen((open: boolean) => {
             return !open;
@@ -134,7 +175,16 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
       </button>
 
       {isOpen && (
-        <div className="absolute bottom-full left-0 z-50 mb-1.5 w-72 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+        <div
+          ref={menuRef}
+          id={menuId}
+          role="menu"
+          aria-label={translator.translateText("AI provider")}
+          data-menu-side={menuSide}
+          className={`absolute left-0 z-50 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
+            menuSide === "bottom" ? "top-full mt-1.5" : "bottom-full mb-1.5"
+          }`}
+        >
           <div className="border-b border-gray-100 px-3 py-2">
             <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
               {translator.translateText("AI provider")}
@@ -156,9 +206,12 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
                 <button
                   key={provider.id}
                   type="button"
+                  role="menuitemradio"
+                  aria-checked={isSelected}
                   onClick={() => {
                     props.onSelect(provider.id);
                     setIsOpen(false);
+                    buttonRef.current?.focus();
                   }}
                   className={`flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-gray-50 ${
                     isSelected ? "bg-gray-50" : ""

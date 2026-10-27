@@ -6,6 +6,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { MenuSide, useMenuSide } from "./MenuSide";
+import { describePermissionMode } from "./PermissionModeWords";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -26,6 +28,15 @@ export interface ComponentProps {
    * than the button) would open past the left edge of whatever holds it.
    */
   menuAlign?: "left" | "right" | undefined;
+  /*
+   * Which side of the button the menu opens on. Defaults to "top", for a
+   * composer at the foot of its surface. Ask AI's start draws the composer
+   * near the top of the dialog, where a menu opening upwards would be cut
+   * off by the dialog's edge: there it asks for "bottom". Either way the
+   * menu opens on the other side when it would not fit on the one asked
+   * for and fits better there (MenuSide).
+   */
+  menuSide?: MenuSide | undefined;
 }
 
 const modeIcon: { [key in AIChatPermissionMode]: IconProp } = {
@@ -34,7 +45,12 @@ const modeIcon: { [key in AIChatPermissionMode]: IconProp } = {
   [AIChatPermissionMode.ReadOnly]: IconProp.Eye,
 };
 
-// English keys, translated when drawn.
+/*
+ * Each mode's name: on the button for the mode chosen, and in the menu over
+ * what the mode means (describePermissionMode), so the menu offers the
+ * modes by the names the button and the docs give them. English keys,
+ * translated when drawn.
+ */
 const shortLabel: { [key in AIChatPermissionMode]: string } = {
   [AIChatPermissionMode.AskForApproval]: translationKey("Ask to act"),
   [AIChatPermissionMode.AutoRun]: translationKey("Auto-run"),
@@ -50,7 +66,16 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
     useRef<HTMLDivElement>(null);
   const buttonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
+  const menuRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const menuId: string = useId();
+  // 8 px between the button and the menu (mt-2 / mb-2).
+  const menuSide: MenuSide = useMenuSide({
+    isOpen: isOpen,
+    preferred: props.menuSide || "top",
+    gap: 8,
+    buttonRef: buttonRef,
+    menuRef: menuRef,
+  });
 
   useEffect(() => {
     if (!isOpen) {
@@ -66,11 +91,16 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
         setIsOpen(false);
       }
     };
-    // Escape closes the menu and hands focus back to the button it came from.
+    /*
+     * Escape closes the menu and hands focus back to the button it came
+     * from - and only the menu: the key is marked as spent, so the dialog
+     * the picker sits in (Ask AI) does not close with it.
+     */
     const onKeyDown: (event: KeyboardEvent) => void = (
       event: KeyboardEvent,
     ): void => {
       if (event.key === "Escape") {
+        event.preventDefault();
         setIsOpen(false);
         buttonRef.current?.focus();
       }
@@ -116,12 +146,14 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
 
       {isOpen && (
         <div
+          ref={menuRef}
           id={menuId}
           role="menu"
           aria-label={translator.translateText("AI permissions")}
-          className={`absolute bottom-full z-50 mb-2 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
-            props.menuAlign === "left" ? "left-0" : "right-0"
-          }`}
+          data-menu-side={menuSide}
+          className={`absolute z-50 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
+            menuSide === "bottom" ? "top-full mt-2" : "bottom-full mb-2"
+          } ${props.menuAlign === "left" ? "left-0" : "right-0"}`}
         >
           <div className="border-b border-gray-100 px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-gray-400">
             {translator.translateText("AI permissions")}
@@ -155,7 +187,7 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs font-semibold text-gray-900">
-                      {translator.translateText(option.title)}
+                      {translator.translateText(shortLabel[option.value])}
                     </span>
                     {isSelected && (
                       <Icon
@@ -165,7 +197,9 @@ const PermissionModePicker: FunctionComponent<ComponentProps> = (
                     )}
                   </div>
                   <div className="mt-0.5 text-[11px] leading-snug text-gray-500">
-                    {translator.translateText(option.description)}
+                    {translator.translateText(
+                      describePermissionMode(option.value),
+                    )}
                   </div>
                 </div>
               </button>

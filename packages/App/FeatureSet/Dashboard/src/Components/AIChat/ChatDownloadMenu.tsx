@@ -81,6 +81,7 @@ const ChatDownloadMenu: FunctionComponent<ComponentProps> = (
   return (
     <MoreMenu
       text="Download conversation"
+      isMenuPortaled={true}
       elementToBeShownInsteadOfButton={trigger}
       triggerClassName={
         props.triggerClassName ||

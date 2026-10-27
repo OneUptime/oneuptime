@@ -187,7 +187,7 @@ Varje mall slutar med ett **Log**-steg som säger vad som hände, så det sista 
 - `❌` — ett anrop misslyckades. Vid ett Jira-anrop innehåller raden Jiras svar.
 - `⚠️` — en mall som skapar en post från ett Jira-ärende skapade den, men Jira tog inte emot kopplingsetiketterna, så de andra mallarna kan inte hitta den än. Lägg till etiketterna för hand.
 
-En körning som hoppas över slutar ändå som **Executed**. Att hoppa över är normalt: de flesta Jira-händelser är inte sådana som en viss mall agerar på. Se [Arbetsflödeskörningar](/docs/workflows/runs-and-logs).
+En körning som hoppas över slutar ändå som **Utförd**. Att hoppa över är normalt: de flesta Jira-händelser är inte sådana som en viss mall agerar på. Se [Arbetsflödeskörningar](/docs/workflows/runs-and-logs).
 
 ## Så fungerar mallarna
 

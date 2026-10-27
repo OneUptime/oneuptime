@@ -253,8 +253,8 @@ describe("map chrome cannot paint over the app header", () => {
      * The tempting one-line version of this fix is `isolate` on
      * <main id="main-content">, which would stop any page from outranking the
      * header ever again. It also breaks the product: App.tsx mounts
-     * AIChatPanel and the command palette as MasterPage children — inside
-     * <main> — and Modal and AIChatPanel render in place rather than through
+     * Ask AI and the command palette as MasterPage children — inside
+     * <main> — and Modal renders in place rather than through
      * a portal. Isolating <main> caps all of them at level 0, so the opaque
      * header paints over every modal backdrop and the AI drawer, and the
      * portalled SideOver starts painting over open modals.

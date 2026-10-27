@@ -118,23 +118,36 @@ export interface UseAiChat {
   openConversation: (conversationId: string) => void;
   newConversation: () => void;
   deleteConversation: (conversationId: string) => void;
-  scrollContainerRef: React.RefObject<HTMLDivElement>;
-  onBodyScroll: () => void;
-  scrollToBottom: (smooth: boolean) => void;
+  /*
+   * True from opening a conversation until its messages arrive, so a
+   * surface can say it is loading rather than show an empty thread.
+   */
+  isLoadingConversation: boolean;
+  /*
+   * Asks again the question an answer that failed was for, as a new turn
+   * of the same conversation.
+   */
+  retryAnswer: (assistantMessageId: string) => void;
 }
 
 /*
- * The whole Ask-AI experience as a headless hook, shared by the full-page
- * Copilot and the quick-launch popover. `enabled` gates all fetching/polling
- * so an unmounted-but-present surface (e.g. a closed popover) does no work.
+ * The whole Ask AI experience as a headless hook, behind the Ask AI dialog
+ * (AskAiDialog): optimistic sends, and change-detected polling accelerated
+ * by AIRunEvent realtime pings.
  *
- * Behavior mirrors the original AIChatPanel: optimistic sends, change-detected
- * polling accelerated by AIRunEvent realtime pings, and scroll that follows
- * output only while the user is pinned to the bottom.
+ * `enabled` gates every fetch: nothing is read until Ask AI is first
+ * opened. It stays on after that, so an answer still being written arrives
+ * while the dialog is closed. `isVisible` - the dialog is on screen - gates
+ * what only matters to someone looking at it: which page they are on, and
+ * that record's title.
  */
-export function useAiChat(options: { enabled: boolean }): UseAiChat {
+export function useAiChat(options: {
+  enabled: boolean;
+  isVisible?: boolean | undefined;
+}): UseAiChat {
   const translator: Translator = useTranslator();
   const { enabled } = options;
+  const isVisible: boolean = options.isVisible ?? enabled;
 
   /*
    * The current route — page context re-detects on navigation so a panel left
@@ -174,6 +187,8 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     null,
   );
   const [isPageContextAttached, setIsPageContextAttached] =
+    useState<boolean>(false);
+  const [isLoadingConversation, setIsLoadingConversation] =
     useState<boolean>(false);
 
   const activeConversationIdRef: React.MutableRefObject<string | undefined> =
@@ -218,10 +233,6 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
   const messagesSignatureRef: React.MutableRefObject<string> =
     useRef<string>("");
   const eventsSignatureRef: React.MutableRefObject<string> = useRef<string>("");
-  const scrollContainerRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
-  const isPinnedToBottomRef: React.MutableRefObject<boolean> =
-    useRef<boolean>(true);
 
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
   const projectIdString: string = projectId?.toString() || "";
@@ -482,7 +493,6 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     latestRunIdRef.current = undefined;
     messagesSignatureRef.current = "";
     eventsSignatureRef.current = "";
-    isPinnedToBottomRef.current = true;
   }, []);
 
   // Reset everything when the project changes.
@@ -520,9 +530,12 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     resetConversationState,
   ]);
 
-  // Load conversations + providers when enabled.
+  /*
+   * Load conversations + providers each time the surface opens, so the
+   * history and the providers are fresh whenever someone looks.
+   */
   useEffect(() => {
-    if (enabled) {
+    if (enabled && isVisible) {
       setError("");
       fetchConversations().catch(() => {
         // handled in fetchConversations
@@ -531,7 +544,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
         // optional
       });
     }
-  }, [enabled, fetchConversations, fetchProviders]);
+  }, [enabled, isVisible, fetchConversations, fetchProviders]);
 
   /*
    * Detect page context each time the surface opens AND each time the route
@@ -543,7 +556,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     useRef<string>("");
 
   useEffect(() => {
-    if (!enabled) {
+    if (!isVisible) {
       return;
     }
 
@@ -599,7 +612,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     return () => {
       isCurrentPage = false;
     };
-  }, [enabled, locationPathname, projectIdString]);
+  }, [isVisible, locationPathname, projectIdString]);
 
   // ---- working state + polling ---------------------------------------------
 
@@ -662,38 +675,6 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     };
   }, [enabled, projectIdString, fetchMessages]);
 
-  // ---- scroll --------------------------------------------------------------
-
-  const scrollToBottom: (smooth: boolean) => void = useCallback(
-    (smooth: boolean): void => {
-      const container: HTMLDivElement | null = scrollContainerRef.current;
-      if (!container) {
-        return;
-      }
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior: smooth ? "smooth" : "auto",
-      });
-    },
-    [],
-  );
-
-  const onBodyScroll: () => void = useCallback((): void => {
-    const container: HTMLDivElement | null = scrollContainerRef.current;
-    if (!container) {
-      return;
-    }
-    isPinnedToBottomRef.current =
-      container.scrollHeight - container.scrollTop - container.clientHeight <
-      100;
-  }, []);
-
-  useEffect(() => {
-    if (isPinnedToBottomRef.current) {
-      scrollToBottom(true);
-    }
-  }, [messages, runEvents, isAwaitingResponse, scrollToBottom]);
-
   // ---- actions -------------------------------------------------------------
 
   const openConversation: (conversationId: string) => void = useCallback(
@@ -718,21 +699,24 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
         setPermissionMode(conversation.permissionMode);
       }
 
-      fetchMessages(conversationId).then(
-        () => {
-          scrollToBottom(false);
-        },
-        () => {
+      setIsLoadingConversation(true);
+      fetchMessages(conversationId)
+        .catch(() => {
           // handled in fetchMessages
-        },
-      );
+        })
+        .finally(() => {
+          if (activeConversationIdRef.current === conversationId) {
+            setIsLoadingConversation(false);
+          }
+        });
     },
-    [conversations, fetchMessages, resetConversationState, scrollToBottom],
+    [conversations, fetchMessages, resetConversationState],
   );
 
   const newConversation: () => void = useCallback((): void => {
     setActiveConversationId(undefined);
     activeConversationIdRef.current = undefined;
+    setIsLoadingConversation(false);
     resetConversationState();
     fetchConversations().catch(() => {
       // handled in fetchConversations
@@ -798,7 +782,6 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
       setMessages((current: Array<AIConversationMessage>) => {
         return [...current, optimisticMessage];
       });
-      isPinnedToBottomRef.current = true;
 
       try {
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -907,7 +890,6 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
         });
       });
       setIsAwaitingResponse(true);
-      isPinnedToBottomRef.current = true;
 
       try {
         const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -1045,6 +1027,37 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     [fetchMessages],
   );
 
+  /*
+   * The question a failed answer was for: the user's message just before
+   * it. Sent again as a new turn, so the failed one stays in the thread as
+   * what happened.
+   */
+  const retryAnswer: (assistantMessageId: string) => void = useCallback(
+    (assistantMessageId: string): void => {
+      const index: number = messages.findIndex(
+        (message: AIConversationMessage): boolean => {
+          return message.id?.toString() === assistantMessageId;
+        },
+      );
+
+      const question: AIConversationMessage | undefined = messages
+        .slice(0, Math.max(index, 0))
+        .reverse()
+        .find((message: AIConversationMessage): boolean => {
+          return message.role === AIChatMessageRole.User;
+        });
+
+      if (!question?.contentInMarkdown) {
+        return;
+      }
+
+      sendMessage(question.contentInMarkdown).catch(() => {
+        // handled in sendMessage
+      });
+    },
+    [messages, sendMessage],
+  );
+
   return {
     conversations,
     activeConversationId,
@@ -1080,8 +1093,7 @@ export function useAiChat(options: { enabled: boolean }): UseAiChat {
     openConversation,
     newConversation,
     deleteConversation,
-    scrollContainerRef,
-    onBodyScroll,
-    scrollToBottom,
+    isLoadingConversation,
+    retryAnswer,
   };
 }

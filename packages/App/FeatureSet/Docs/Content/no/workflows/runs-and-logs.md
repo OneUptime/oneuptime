@@ -46,12 +46,12 @@ stateDiagram-v2
 | **Planlagt**                        | Triggeren ble utløst, og kjøringen står i kø for en kjører. Vanligvis en brøkdel av et sekund. En kjøring som fortsatt er planlagt etter 5 minutter, mislykkes: ingenting plukket den opp.                                                                          |
 | **Kjører**                          | Arbeidsflyten er i gang.                                                                                                                                                                                                                                              |
 | **Venter**                          | Kjøringen står parkert ved en **Sleep**-blokk og fortsetter av seg selv. Den holder ingen worker mens den venter.                                                                                                                                                    |
-| **Executed**                        | Kjøringen nådde slutten uten å mislykkes. Det er suksesstatusen: pillen sier **Executed**, ikke «Vellykket».                                                                                                                                                          |
+| **Utført**                        | Kjøringen nådde slutten uten å mislykkes. Det er suksesstatusen: pillen sier **Utført**, ikke «Vellykket».                                                                                                                                                          |
 | **Feil**                            | En blokk stoppet kjøringen. Brukes også når en kjøring i kø aldri blir plukket opp, når gjenopptakelsen av en sovende kjøring går tapt, når et tidsplanuttrykk ikke kan løses opp, og når arbeidsflyten ble slått av eller arkivert mens kjøringen ventet ved en **Sleep**-blokk. |
 | **Timeout**                         | Kjøringen tok lengre tid enn tillatt: 2 minutter som standard. Se [Hvor lenge en kjøring kan vare](/docs/workflows/configuration#hvor-lenge-en-kjøring-kan-vare).                                                                                                          |
 | **Execution Exceeded Current Plan** | Prosjektet har brukt opp arbeidsflytkjøringene sine for de siste 30 dagene, eller abonnementet er ubetalt. Kjøringen registreres, men utføres ikke. Bare OneUptime Cloud.                                                                                           |
 
-En blokk som tar utgangen **Error** — en API-blokk som fikk en 4xx, for eksempel — får ikke kjøringen til å mislykkes. Blokkene som er koblet til **Error**, kjører, og kjøringen slutter likevel som **Executed**. Selve trinnet tegnes i rødt, slik at du finner det.
+En blokk som tar utgangen **Error** — en API-blokk som fikk en 4xx, for eksempel — får ikke kjøringen til å mislykkes. Blokkene som er koblet til **Error**, kjører, og kjøringen slutter likevel som **Utført**. Selve trinnet tegnes i rødt, slik at du finner det.
 
 ## Les en kjøring
 
@@ -125,7 +125,7 @@ En blokk som ikke kjører, er vanligvis et koblingsproblem. Åpne **Bygger**, og
 :::details En verdi kom tom frem, eller som {{…}}-tekst
 Åpne kjøringen, og se på trinnet. En referanse som ikke ble oppløst, fremheves på selve trinnet som en advarsel, og innstillingen dens i blokken **Mottatt** er merket **Did not resolve**.
 
-- Ser du den bokstavelige teksten `{{local.components.…}}`, ble ikke referansen oppløst. Vanligvis er det en skrivefeil i komponent-ID-en eller ID-en til returverdien — husk at det er blokkens **Identifier**, ikke navnet som står på den. Sjekk også stavemåten til selve `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` sendes som bokstavelig tekst, og kjøringen melder likevel **Executed**. Var kjøringen en test med **Run just this step**, kjørte ikke den tidligere blokken i det hele tatt — kjør hele arbeidsflyten i stedet.
+- Ser du den bokstavelige teksten `{{local.components.…}}`, ble ikke referansen oppløst. Vanligvis er det en skrivefeil i komponent-ID-en eller ID-en til returverdien — husk at det er blokkens **Identifier**, ikke navnet som står på den. Sjekk også stavemåten til selve `local.components`: `{{local.componets.api-get-1.returnValues.response-body}}` sendes som bokstavelig tekst, og kjøringen melder likevel **Utført**. Var kjøringen en test med **Run just this step**, kjørte ikke den tidligere blokken i det hele tatt — kjør hele arbeidsflyten i stedet.
 - Ser du **Empty text**, kjørte den tidligere blokken, men produserte ikke det feltet.
 
 Den samme advarselen står i fanen **Full Log** som en linje som begynner med `Warning:`.

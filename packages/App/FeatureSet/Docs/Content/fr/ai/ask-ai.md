@@ -3,7 +3,7 @@
 Demander à l'IA est le chat de OneUptime sur les données de votre projet. Interrogez-le sur les logs, les traces, les métriques, les exceptions, les incidents, les alertes, les moniteurs, l'astreinte, les pages de statut, les SLO, les runbooks ou les flux de travail : il interroge votre projet en direct, appuie chaque affirmation sur une citation et, quand vous l'y autorisez, agit pour vous.
 
 :::cards
-- [Ouvrir Demander à l'IA](#ouvrir-demander-à-lia): Depuis l'en-tête, le clavier, un graphique ou sa propre page.
+- [Ouvrir Demander à l'IA](#ouvrir-demander-à-lia): Depuis l'en-tête, le clavier, un graphique ou le menu des produits.
 - [Ce qu'il voit](#ce-quil-voit): Les données qu'il lit pour vous répondre.
 - [Actions et modes d'autorisation](#actions-et-modes-dautorisation): Choisissez s'il peut agir, et quand il demande d'abord.
 - [Les actions sont faites en votre nom](#les-actions-sont-faites-en-votre-nom): Vos autorisations, votre nom sur chaque changement.
@@ -33,7 +33,9 @@ En mode **Lecture seule**, les actions ne sont jamais proposées au modèle : la
 | N'importe quelle page | Cliquez sur **Demander à l'IA** dans l'en-tête, ou appuyez sur `Ctrl` + `I` (`Cmd` + `I` sur un Mac). Pendant que vous tapez dans un champ de texte ou un éditeur, ces touches restent le raccourci italique de l'éditeur. |
 | La palette de commandes | Appuyez sur `Ctrl` + `K` (`Cmd` + `K` sur un Mac) et choisissez **Demander à l'IA**. |
 | Un motif d'erreur des logs, ou les constats d'un graphique | Cliquez sur **Explain with AI** : Demander à l'IA s'ouvre avec les éléments comme une question que vous pouvez modifier avant de l'envoyer. |
-| Sa propre page | Ouvrez **Produits → AI → Chat** pour un espace de travail en pleine page. Chaque conversation y a sa propre adresse : vous pouvez mettre un fil en favori ou le coller dans le canal d'un incident. |
+| Le menu des produits | Ouvrez **Produits → AI → Chat**. Demander à l'IA s'ouvre par-dessus la page où vous étiez. Chaque conversation a sa propre adresse : vous pouvez la mettre en favori et y revenir. |
+
+Demander à l'IA s'ouvre au milieu de l'écran, par-dessus la page où vous étiez, et occupe tout l'écran sur un téléphone. Appuyez sur `Esc`, ou cliquez à côté, pour revenir à la page. La conversation reste où vous l'avez laissée : rouvrez Demander à l'IA pour la poursuivre. Si vous le fermez pendant qu'il répond encore, un rappel dans le coin indique quand la réponse est prête, et l'ouvre.
 
 Sur un incident ou une alerte, la carte **Investigation IA** a sa propre conversation, **Ask OneUptime AI**, partagée avec tous ceux qui voient cet incident ou cette alerte : voir [Parler de l'incident avec OneUptime AI](/docs/ai/ai-sre#parler-de-lincident-avec-oneuptime-ai).
 
@@ -52,7 +54,7 @@ Demander à l'IA lit votre projet avec vos propres autorisations : il voit ce qu
 
 ## Contexte de la page
 
-Demander à l'IA sait depuis quelle page vous l'avez ouvert. Sur la page d'un incident, « pourquoi est-ce arrivé ? » désigne cet incident, et la zone de saisie montre une puce avec le sujet de la page ; retirez-la pour poser une question sur tout le projet. Si vous changez de page pendant que le panneau est ouvert, le contexte vous suit. La conversation retient aussi son premier sujet sur le serveur, si bien qu'une relance des jours plus tard comprend toujours « cet incident ».
+Demander à l'IA sait depuis quelle page vous l'avez ouvert. Sur la page d'un incident, « pourquoi est-ce arrivé ? » désigne cet incident : la zone de saisie montre une puce avec le sujet de la page, et les questions qu'il suggère sont celles de cette page. Retirez la puce pour poser une question sur tout le projet, et remettez-la de la même façon. Ouvrez Demander à l'IA sur une autre page et le contexte vous suit. La conversation retient aussi son premier sujet sur le serveur, si bien qu'une relance des jours plus tard comprend toujours « cet incident ».
 
 Les listes d'infrastructure et les pages de ressources proposent des questions pour le type de ressource affiché. Ouvrez un cluster Kubernetes et demandez « Quelles métriques ont changé au cours des 24 dernières heures ? », ou ouvrez un hôte Docker et demandez « Résume la gravité des logs et les erreurs de traces des six dernières heures. » Les liens vers les éléments ramènent à la page de la ressource. Les lectures respectent vos autorisations sur le projet, les ressources et la télémétrie, y compris les restrictions par propriétaire et par étiquettes.
 
@@ -72,8 +74,8 @@ Chaque conversation a un mode d'autorisation, que vous choisissez dans la zone d
 
 | Mode | Ce qui se passe |
 | --- | --- |
-| **Ask to act** | Le mode par défaut. Demander à l'IA propose chaque action sur une carte d'approbation, et rien ne s'exécute tant que vous n'avez pas choisi **Autoriser** ou **Ignorer** pour elle, ou **Tout refuser**. |
-| **Auto-run** | Les actions s'exécutent dès que le modèle les demande, toujours dans les limites de votre rôle. À utiliser avec prudence. |
+| **Demander avant d'agir** | Le mode par défaut. Demander à l'IA propose chaque action sur une carte d'approbation, et rien ne s'exécute tant que vous n'avez pas choisi **Autoriser** ou **Ignorer** pour elle, ou **Tout refuser**. |
+| **Exécution automatique** | Les actions s'exécutent dès que le modèle les demande, toujours dans les limites de votre rôle. À utiliser avec prudence. |
 | **Lecture seule** | Les actions ne sont pas du tout proposées au modèle : Demander à l'IA peut seulement lire. |
 
 Ce que Demander à l'IA peut faire quand un mode le permet :
@@ -99,10 +101,12 @@ Chaque action de Demander à l'IA est faite en votre nom : il fait le même chan
 ## Piloter une conversation
 
 - **Arrêtez-le.** Pendant que Demander à l'IA travaille, le bouton d'envoi devient un bouton d'arrêt. Arrêtez une exécution à tout moment et posez aussitôt une autre question.
-- **Choisissez le modèle.** Le sélecteur de fournisseur de la zone de saisie liste les fournisseurs LLM de votre projet et les fournisseurs globaux, avec celui par défaut marqué. Une nouvelle conversation utilise celui par défaut.
-- **Notez une réponse.** **Bonne réponse** et **Poor answer** sont enregistrés avec le message, pour mesurer la qualité des réponses dans le temps.
-- **Voyez le coût.** Le pied de la réponse la plus récente montre son coût, ses tokens et le nombre de requêtes exécutées, et chaque requête est une puce de citation qui ouvre les données derrière elle.
+- **Suivez son travail.** Pendant qu'il répond, une ligne dit ce qu'il fait en ce moment, par exemple chercher dans les journaux. Cliquez sur le nombre d'étapes à côté pour voir chaque étape.
+- **Choisissez le modèle.** Quand votre projet peut utiliser plus d'un fournisseur LLM, le sélecteur de fournisseur de la zone de saisie liste les fournisseurs LLM de votre projet et les fournisseurs globaux, avec celui par défaut marqué. Une nouvelle conversation utilise celui par défaut.
+- **Notez une réponse.** **Bonne réponse** et **Mauvaise réponse** sont enregistrés avec le message, pour mesurer la qualité des réponses dans le temps.
+- **Voyez le coût.** Sous chaque réponse, ses sources s'ouvrent sur les requêtes qu'elle a exécutées, et celles de la réponse la plus récente indiquent aussi combien de requêtes elle a exécutées, ses tokens et son coût. Chaque puce de citation d'une réponse ouvre les données derrière elle.
 - **Gardez une copie.** **Télécharger la conversation** enregistre le fil avec **Télécharger en Markdown**, pour le lire ou le coller dans un ticket, ou **Télécharger en PDF**, pour le transmettre.
+- **Reprenez où vous en étiez.** **Toutes les conversations**, dans l'en-tête de Demander à l'IA, liste vos conversations, de la plus récente à la plus ancienne, pour les rouvrir ou les supprimer. Le début d'une nouvelle conversation montre les trois dernières.
 
 ## Prérequis
 
@@ -115,7 +119,7 @@ Demander à l'IA compte dans les limites quotidiennes d'IA propres au projet qua
 ## Dépannage
 
 :::details Demander à l'IA dit que l'IA n'est pas disponible
-Le panneau dit pourquoi avant que vous ne tapiez : l'offre du projet n'inclut pas l'IA, **Activer l'IA** est coupé, ou le projet n'a aucun fournisseur LLM. Chaque avis renvoie à la page où cela se change.
+Demander à l'IA dit pourquoi avant que vous ne tapiez : l'offre du projet n'inclut pas l'IA, **Activer l'IA** est coupé, ou le projet n'a aucun fournisseur LLM. Chaque avis renvoie à la page où cela se change.
 :::
 
 :::details Une action a été refusée
