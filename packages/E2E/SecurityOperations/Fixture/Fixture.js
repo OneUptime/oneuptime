@@ -89,6 +89,7 @@ import SecurityCasesPage from "../../../App/FeatureSet/Dashboard/src/Pages/Secur
 import SecurityCaseViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Layout";
 import SecurityCaseOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Index";
 import SecurityCaseTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Timeline";
+import SecurityCaseStoryPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Story";
 import SecurityCaseDetectionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Detections";
 import SecurityCaseEntitiesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/Entities";
 import SecurityCaseConnectedSignalsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/CaseView/ConnectedSignals";
@@ -122,6 +123,7 @@ import {
   CONNECTION_SCENARIOS,
   createConnectionsFixture,
 } from "./ConnectionsFixture";
+import { createCaseContextFixture } from "./CaseContextFixture";
 import { SECURITY_PLAYBOOK_TEMPLATES } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookTemplates";
 import { SECURITY_CASE_QUEUE_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
 import { SECURITY_PLAYBOOK_RUN_VIEWS } from "../../../App/FeatureSet/Dashboard/src/Components/SecurityPlaybook/SecurityPlaybookRunViews";
@@ -136,6 +138,7 @@ import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Project from "Common/Models/DatabaseModels/Project";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseFeed, {
   SecurityCaseFeedEventType,
@@ -150,6 +153,7 @@ import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRu
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import ThreatIntelFeed from "Common/Models/DatabaseModels/ThreatIntelFeed";
@@ -2135,7 +2139,11 @@ if (!isEmpty) {
   });
 }
 
-// What a playbook's steps can name: policies, severities, labels, workflows.
+/*
+ * What a playbook's steps can name: policies, severities, labels, workflows,
+ * runbooks (Run a runbook) and status pages (Post a status page
+ * announcement).
+ */
 insert(OnCallDutyPolicy, { name: "Security on-call" });
 insert(IncidentSeverity, { name: "SEV1", color: "#dc2626", order: 1 });
 insert(IncidentSeverity, { name: "SEV2", color: "#f97316", order: 2 });
@@ -2145,6 +2153,14 @@ insert(AlertSeverity, { name: "High", color: "#f97316", order: 2 });
 insert(AlertSeverity, { name: "Low", color: "#0ea5e9", order: 3 });
 insert(Label, { name: "credential-access", color: "#6366f1" });
 insert(Workflow, { name: "Open a ticket in the IT queue" });
+insert(Runbook, { name: "Isolate a host from the network" });
+insert(Runbook, { name: "Rotate a leaked credential" });
+/*
+ * The public page and the engineers' own. A case's Impact names the ones
+ * its records' monitors are shown on (CaseContextFixture.js).
+ */
+insert(StatusPage, { name: "Acme Commerce Status" });
+insert(StatusPage, { name: "Engineering Tools" });
 
 /*
  * The project's chat workspaces: Acme Commerce has connected Slack, so the
@@ -3347,6 +3363,15 @@ const AI_PROVIDERS = {
   ],
 };
 
+// A case by its id, as the routes that start from one read it.
+function findCase(id) {
+  return (
+    table(SecurityCase).find((row) => {
+      return String(row._id) === String(id);
+    }) || null
+  );
+}
+
 /*
  * What a case, an event or an entity names in the rest of OneUptime - the
  * project's hosts and members ConnectionsFixture.js lays out - worked out
@@ -3357,13 +3382,20 @@ const connections = createConnectionsFixture({
   uuid,
   MINUTE,
   scenario: connectionsScenario,
-  findCase: (id) => {
-    return (
-      table(SecurityCase).find((row) => {
-        return String(row._id) === String(id);
-      }) || null
-    );
-  },
+  findCase,
+});
+
+/*
+ * A case's Story and Impact: what the rest of OneUptime says happened
+ * around it and what it puts at risk, from the same rows and records
+ * (CaseContextFixture.js lays out what it adds to them).
+ */
+const caseContext = createCaseContextFixture({
+  now: NOW,
+  ids: ID,
+  table,
+  connections,
+  findCase,
 });
 
 async function handleApi(method, options) {
@@ -3407,6 +3439,13 @@ async function handleApi(method, options) {
   }
   if (method === "POST" && path.endsWith("/security-case/connections")) {
     const answer = connections.answer(options.data);
+    return answer.status === 200
+      ? new HTTPResponse(200, answer.body, {})
+      : new HTTPErrorResponse(answer.status, answer.body, {});
+  }
+  const context = path.match(/\/security-case-context\/(story|impact)$/);
+  if (method === "POST" && context) {
+    const answer = caseContext[context[1]](options.data);
     return answer.status === 200
       ? new HTTPResponse(200, answer.body, {})
       : new HTTPErrorResponse(answer.status, answer.body, {});
@@ -3587,6 +3626,7 @@ function FixtureCaseLayout() {
 
 const CASE_PAGES = [
   [PageMap.SECURITY_CASE_VIEW_TIMELINE, SecurityCaseTimelinePage],
+  [PageMap.SECURITY_CASE_VIEW_STORY, SecurityCaseStoryPage],
   [PageMap.SECURITY_CASE_VIEW_DETECTIONS, SecurityCaseDetectionsPage],
   [PageMap.SECURITY_CASE_VIEW_ENTITIES, SecurityCaseEntitiesPage],
   [

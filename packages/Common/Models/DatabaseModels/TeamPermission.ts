@@ -63,12 +63,15 @@ import {
     Permission.DeleteProjectTeam,
     Permission.EditProjectTeamPermissions,
   ],
+  /*
+   * Changing a row is granting or taking away what it grants, as creating
+   * and deleting one are: the same permissions. Editing a team's name or
+   * inviting people to it changes none of its permissions.
+   */
   update: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
-    Permission.InviteProjectTeamMembers,
     Permission.EditProjectTeamPermissions,
-    Permission.EditProjectTeam,
   ],
 })
 @TenantColumn("projectId")
@@ -377,9 +380,7 @@ export default class TeamPermission extends BaseModel {
     update: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
-      Permission.InviteProjectTeamMembers,
       Permission.EditProjectTeamPermissions,
-      Permission.EditProjectTeam,
     ],
   })
   @TableColumn({
@@ -417,7 +418,6 @@ export default class TeamPermission extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditProjectTeamPermissions,
-      Permission.EditProjectTeam,
     ],
   })
   @TableColumn({
@@ -467,7 +467,6 @@ export default class TeamPermission extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditProjectTeamPermissions,
-      Permission.EditProjectTeam,
     ],
   })
   @TableColumn({
@@ -502,7 +501,6 @@ export default class TeamPermission extends BaseModel {
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
       Permission.EditProjectTeamPermissions,
-      Permission.EditProjectTeam,
     ],
   })
   @TableColumn({

@@ -22,6 +22,7 @@ import Permission, { UserPermission } from "../../../../Types/Permission";
 import HeldPermissionsUtil from "../../../../Types/HeldPermissions";
 import CaptureSpan from "../../../Utils/Telemetry/CaptureSpan";
 import { combineWithPrivacyClause } from "../../../Utils/PrivacyFilterUtil";
+import { FindWhereProperty } from "../../../../Types/BaseDatabase/Query";
 import { FindOperator } from "typeorm";
 import {
   TableColumnMetadata,
@@ -513,10 +514,8 @@ export default class ReadPermission {
   /*
    * Keeps the records of a model read through another record
    * (canAccessIfCanReadOn) whose parent carries one of `labelIds`: one
-   * condition on the record's id, through the parent's key (an incident
-   * note's incident) or its join table (an announcement's status pages, any
-   * one of them). A record with no parent, or whose parent's model carries
-   * no labels, is not kept. Each call adds a condition of its own, so two
+   * condition on the record's id (getParentLabelsCondition). A record with
+   * no parent is not kept. Each call adds a condition of its own, so two
    * lists keep the records whose parents carry one label of each - through
    * the same parent or not. The caller's own filters stay as they are.
    */
@@ -525,11 +524,68 @@ export default class ReadPermission {
     query: Query<TBaseModel>,
     labelIds: Array<ObjectID>,
   ): Query<TBaseModel> {
+    const condition: FindWhereProperty<any> | null =
+      this.getParentLabelsCondition(modelType, labelIds);
+
+    if (!condition) {
+      return query;
+    }
+
+    const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+      _id: query._id,
+    } as Query<TBaseModel>);
+
+    (query as any)._id = combineWithPrivacyClause(
+      this.getSupportedFilter(idQuery._id),
+      condition,
+    );
+
+    return query;
+  }
+
+  /*
+   * THE RECORDS WHOSE PARENT A GRANT LIMITED TO `labelIds` READS, as a
+   * condition on the record's id: the parent through its key (an incident
+   * note's incident) or its join table (an announcement's status pages, any
+   * one of them), carrying one of the labels. A parent that carries no
+   * labels of its own carries those of the records it names (a security
+   * case, its incident's): the parents its own label rule keeps
+   * (getGrantedLabelsCondition) - read as its own labels, it carried none,
+   * and the security case a label-limited reader opened had no notes,
+   * detections, feed or playbook runs at all. A record with no parent, or
+   * whose parent cannot be followed (several parents carrying no labels of
+   * their own), is not kept. Null for a model read through no parent: there
+   * is nothing to narrow.
+   */
+  public static getParentLabelsCondition(
+    modelType: { new (): BaseModel },
+    labelIds: Array<ObjectID>,
+  ): FindWhereProperty<any> | null {
     const parent: { relation: string; column: TableColumnMetadata } | null =
       this.getDeclaredParent(modelType);
 
     if (!parent) {
-      return query;
+      return null;
+    }
+
+    const parentModelType: { new (): BaseModel } = parent.column
+      .modelType as unknown as { new (): BaseModel };
+
+    if (
+      parent.column.type === TableColumnType.Entity &&
+      !new parentModelType().getAccessControlColumn()
+    ) {
+      return QueryHelper.anyOfConditions([
+        {
+          columnName: parent.column.manyToOneRelationColumn as string,
+          condition: QueryHelper.inRecordsWhere({
+            tableName: new parentModelType().tableName as string,
+            condition:
+              this.getGrantedLabelsCondition(parentModelType, labelIds) ||
+              undefined,
+          }),
+        },
+      ]);
     }
 
     const keys: Array<{
@@ -551,26 +607,15 @@ export default class ReadPermission {
     } else {
       keys.push({
         columnName: parent.column.manyToOneRelationColumn as string,
-        joinTables: this.getLabelsJoinTables([
-          parent.column.modelType as unknown as { new (): BaseModel },
-        ]),
+        joinTables: this.getLabelsJoinTables([parentModelType]),
       });
     }
 
-    const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
-      _id: query._id,
-    } as Query<TBaseModel>);
-
-    (query as any)._id = combineWithPrivacyClause(
-      this.getSupportedFilter(idQuery._id),
-      QueryHelper.oneLinkedToAny({
-        values: labelIds,
-        keys: keys,
-        parents: parents,
-      }),
-    );
-
-    return query;
+    return QueryHelper.oneLinkedToAny({
+      values: labelIds,
+      keys: keys,
+      parents: parents,
+    });
   }
 
   /*
@@ -696,6 +741,37 @@ export default class ReadPermission {
     query: Query<TBaseModel>,
     labelIds: Array<ObjectID>,
   ): Query<TBaseModel> {
+    const condition: FindWhereProperty<any> | null =
+      this.getGrantedLabelsCondition(modelType, labelIds);
+
+    if (!condition) {
+      return query;
+    }
+
+    const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
+      _id: query._id,
+    } as Query<TBaseModel>);
+
+    (query as any)._id = combineWithPrivacyClause(
+      this.getSupportedFilter(idQuery._id),
+      condition,
+    );
+
+    return query;
+  }
+
+  /*
+   * The condition on a label-less model's record id that
+   * addParentLabelGrantToQuery keeps its rows by: the rows naming no
+   * labelled record at all, and those of which one record they belong to or
+   * name carries one of `labelIds`. Null for a model whose rows name no
+   * labelled record: they are about none of them, and a grant limited to
+   * labels reaches every one.
+   */
+  public static getGrantedLabelsCondition(
+    modelType: { new (): BaseModel },
+    labelIds: Array<ObjectID>,
+  ): FindWhereProperty<any> | null {
     const parent: { relation: string; column: TableColumnMetadata } | null =
       this.getDeclaredParent(modelType);
 
@@ -745,23 +821,14 @@ export default class ReadPermission {
     }
 
     if (keys.length === 0 && parents.length === 0) {
-      return query;
+      return null;
     }
 
-    const idQuery: Query<TBaseModel> = QueryUtil.serializeQuery(modelType, {
-      _id: query._id,
-    } as Query<TBaseModel>);
-
-    (query as any)._id = combineWithPrivacyClause(
-      this.getSupportedFilter(idQuery._id),
-      QueryHelper.namesNothingOrOneLinkedToAny({
-        values: labelIds,
-        keys: keys,
-        parents: parents,
-      }),
-    );
-
-    return query;
+    return QueryHelper.namesNothingOrOneLinkedToAny({
+      values: labelIds,
+      keys: keys,
+      parents: parents,
+    });
   }
 
   /*
