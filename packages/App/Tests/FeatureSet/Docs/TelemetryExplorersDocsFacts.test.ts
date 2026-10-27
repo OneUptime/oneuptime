@@ -2116,7 +2116,9 @@ describe("the explorers together", () => {
      * Types/Telemetry/TraceSpanType.
      */
     const drawnIn: Record<string, string> = {
+      "Entry spans": "common:Types/Telemetry/TraceSpanType.ts",
       "Root spans": "common:Types/Telemetry/TraceSpanType.ts",
+      "All spans": "common:Types/Telemetry/TraceSpanType.ts",
       "See full trace": "Components/Traces/SpanDetailsPanel.tsx",
       "Critical path": "Components/Traces/TraceExplorer.tsx",
       "Errors only": "Components/Traces/TraceExplorer.tsx",
