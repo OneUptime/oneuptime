@@ -138,6 +138,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `timelineIncidents` | 稼働率バーの期間内のインシデント (解決済みを含む)。バーのツールチップ用です。 |
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | インシデントのエピソードについての同じもの。 |
 | `scheduledMaintenanceEvents`、`scheduledMaintenanceEventsPublicNotes`、`scheduledMaintenanceStateTimelines`、`scheduledMaintenanceStates` | これから始まる、または進行中の計画メンテナンスのイベントと、その公開メモと状態の変化。 |
+| `timelineScheduledMaintenanceEvents` | 稼働率バーの期間内の、開始済みの計画メンテナンスのイベント (進行中または終了済み)。バーのツールチップと各日のダイアログ用です。ページが表示し、そのモニターのいずれかを含むイベントだけで、それぞれページのモニターだけが付きます。 |
 | `activeAnnouncements` | いま表示中のお知らせ: 開始済みで、まだ終了していないもの。 |
 
 ## サマリーを読む

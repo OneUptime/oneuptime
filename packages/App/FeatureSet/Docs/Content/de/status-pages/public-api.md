@@ -138,6 +138,7 @@ Der Gesamtstatus ist der schlechteste aktuelle Status der Monitore und Monitorgr
 | `timelineIncidents` | Die Vorfälle im Zeitfenster der Verfügbarkeitsbalken, behobene eingeschlossen, für die Tooltips der Balken. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Dasselbe für Vorfall-Episoden. |
 | `scheduledMaintenanceEvents`, `scheduledMaintenanceEventsPublicNotes`, `scheduledMaintenanceStateTimelines`, `scheduledMaintenanceStates` | Die geplanten Wartungsereignisse, die noch bevorstehen oder gerade laufen, ihre öffentlichen Notizen und Statuswechsel. |
+| `timelineScheduledMaintenanceEvents` | Die geplanten Wartungsereignisse im Zeitfenster der Verfügbarkeitsbalken, die schon begonnen haben, ob sie noch laufen oder vorbei sind, für die Tooltips und Tagesdialoge der Balken: nur solche, die die Seite zeigt und die einen ihrer Monitore betreffen, jedes nur mit den Monitoren der Seite. |
 | `activeAnnouncements` | Die Ankündigungen, die gerade angezeigt werden: begonnen und nicht beendet. |
 
 ## Die Zusammenfassung lesen
