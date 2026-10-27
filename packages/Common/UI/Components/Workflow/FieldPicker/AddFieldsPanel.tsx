@@ -390,6 +390,7 @@ const AddFieldsPanel: FunctionComponent<ComponentProps> = (
           className="h-4 w-4 shrink-0 text-gray-400"
         />
         <input
+          data-unsaved-changes-ignore
           ref={searchRef}
           type="text"
           role="combobox"

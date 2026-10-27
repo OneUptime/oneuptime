@@ -404,6 +404,7 @@
   "Loading the latest version": "Indlæser den nyeste version",
   "A newer version of this page is available. It's loading now.": "En nyere version af denne side er tilgængelig. Den indlæses nu.",
   "You're offline": "Du er offline",
+  "This page will come back as soon as you're online again, just as you left it.": "Denne side kommer tilbage, så snart du er online igen, præcis som du forlod den.",
   "This page needs an internet connection to load. It will load as soon as you're back online.": "Denne side skal bruge en internetforbindelse for at indlæse. Den indlæses, så snart du er online igen.",
   "Can't reach the server": "Serveren kan ikke nås",
   "It may be restarting after an update. This page will load as soon as the server is back.": "Den genstarter måske efter en opdatering. Denne side indlæses, så snart serveren er tilbage.",

@@ -216,6 +216,7 @@ const DateFilterControls: DateFilterFunction = <T extends GenericObject>(
         >
           <div className="flex-1 min-w-0">
             <Input
+              isSearchOrFilter={true}
               key={`${filter.key as string}-start-${state.operator}`}
               onChange={(changed: string | Date) => {
                 const parsed: Date | null = toDate(changed);
@@ -234,6 +235,7 @@ const DateFilterControls: DateFilterFunction = <T extends GenericObject>(
           {isBetween && (
             <div className="flex-1 min-w-0">
               <Input
+                isSearchOrFilter={true}
                 key={`${filter.key as string}-end-${state.operator}`}
                 onChange={(changed: string | Date) => {
                   const parsed: Date | null = toDate(changed);

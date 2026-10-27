@@ -19,8 +19,18 @@ import { useLayoutEffect } from "react";
  *     (markSaved) or leaves the page.
  *   - Any other text field counts while it still holds text: the AI chat's
  *     message, a note, a comment.
- *   - A field under data-unsaved-changes-ignore never counts (a search box,
- *     a filter: losing one costs nothing).
+ *   - A search or filter box never counts, in a form or out of one: what is
+ *     typed in it is a query, and losing it costs nothing. Such a box says
+ *     so - every search and filter box in the product carries
+ *     data-unsaved-changes-ignore (Common/Tests/UI/
+ *     SearchBoxesNeverUnsavedGuard keeps it so), or is an input of type
+ *     search or a searchbox - and anything under the attribute is left out
+ *     with it (a table's filters, a dropdown's own search).
+ *
+ * A form counts from its first change however it was made: a pick from a
+ * dropdown or a picker fires no input event, so BasicForm notes every edit
+ * of its values itself (noteChange) - and a search typed inside a form to
+ * find what to pick is no change to the form until something is picked.
  *
  * Changes that are not typed - a dashboard's layout being edited, steps
  * moved around - are held explicitly while they are there
@@ -33,7 +43,10 @@ export const UNSAVED_CHANGES_SCOPE_ATTRIBUTE: string =
 export const UNSAVED_CHANGES_IGNORE_ATTRIBUTE: string =
   "data-unsaved-changes-ignore";
 
-// Inputs that hold no text of their own.
+/*
+ * Inputs that hold no text of their own. (A search input holds a query:
+ * isSearchOrFilterField leaves it out before this is asked.)
+ */
 const UNTYPED_INPUT_TYPES: ReadonlySet<string> = new Set<string>([
   "button",
   "checkbox",
@@ -44,7 +57,6 @@ const UNTYPED_INPUT_TYPES: ReadonlySet<string> = new Set<string>([
   "radio",
   "range",
   "reset",
-  "search",
   "submit",
 ]);
 
@@ -66,6 +78,27 @@ const isContentEditable: (element: Element) => boolean = (
     element.getAttribute("contenteditable") === "true" ||
     element.getAttribute("contenteditable") === ""
   );
+};
+
+/*
+ * A box that searches or filters what the page shows: one under
+ * data-unsaved-changes-ignore, an input of type search, or a searchbox.
+ */
+export const isSearchOrFilterField: (element: Element) => boolean = (
+  element: Element,
+): boolean => {
+  if (element.closest(`[${UNSAVED_CHANGES_IGNORE_ATTRIBUTE}]`)) {
+    return true;
+  }
+
+  if (
+    element.tagName.toLowerCase() === "input" &&
+    ((element as HTMLInputElement).type || "").toLowerCase() === "search"
+  ) {
+    return true;
+  }
+
+  return (element.getAttribute("role") || "").toLowerCase() === "searchbox";
 };
 
 // A field the reader types text into.
@@ -146,6 +179,25 @@ export default class UnsavedChanges {
   // Changes held explicitly (useUnsavedChanges), one token each.
   private static holds: Set<symbol> = new Set<symbol>();
 
+  /*
+   * Lets go of forms and fields that have left the page: what was typed in
+   * them went with them. Done as anything is added, so a long session that
+   * opens and closes form after form keeps no hold on the ones it closed.
+   */
+  private static forgetWhatLeftThePage(): void {
+    for (const scope of Array.from(UnsavedChanges.changedScopes)) {
+      if (!scope.isConnected) {
+        UnsavedChanges.changedScopes.delete(scope);
+      }
+    }
+
+    for (const field of Array.from(UnsavedChanges.typedFields)) {
+      if (!field.isConnected) {
+        UnsavedChanges.typedFields.delete(field);
+      }
+    }
+  }
+
   private static onInput(event: Event): void {
     const element: Element | null = getElement(event.target);
 
@@ -153,7 +205,8 @@ export default class UnsavedChanges {
       return;
     }
 
-    if (element.closest(`[${UNSAVED_CHANGES_IGNORE_ATTRIBUTE}]`)) {
+    // A query, in a form or out of one: never work to keep.
+    if (isSearchOrFilterField(element)) {
       return;
     }
 
@@ -162,13 +215,39 @@ export default class UnsavedChanges {
     );
 
     if (scope) {
+      UnsavedChanges.forgetWhatLeftThePage();
       UnsavedChanges.changedScopes.add(scope);
       return;
     }
 
     if (isTextField(element)) {
+      UnsavedChanges.forgetWhatLeftThePage();
       UnsavedChanges.typedFields.add(element);
     }
+  }
+
+  /*
+   * A change the reader made inside a form that no input event announced: a
+   * pick from a dropdown, a picker or a list, a value a field's own control
+   * set. BasicForm calls it for every edit of its values. The form it is in
+   * counts from then on, as if it had been typed in; outside a form scope
+   * it does nothing, as a pick outside a form was never held.
+   */
+  public static noteChange(element: Element | null | undefined): void {
+    if (!UnsavedChanges.isInstalled || !element) {
+      return;
+    }
+
+    const scope: Element | null = element.closest(
+      `[${UNSAVED_CHANGES_SCOPE_ATTRIBUTE}]`,
+    );
+
+    if (!scope) {
+      return;
+    }
+
+    UnsavedChanges.forgetWhatLeftThePage();
+    UnsavedChanges.changedScopes.add(scope);
   }
 
   // Starts listening. Safe to call more than once.

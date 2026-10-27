@@ -407,6 +407,7 @@ RunCron(
         alertFeedEventType: AlertFeedEventType.OwnerNotificationSent,
         displayColor: Blue500,
         feedInfoInMarkdown: OwnerNotificationFeedText.stateChanged({
+          isProjectOwners: !doesResourceHasOwners,
           recordNoun: "alert",
           stateName: alertState.name,
         }),

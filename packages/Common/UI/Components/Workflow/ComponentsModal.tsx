@@ -1065,6 +1065,7 @@ const ComponentsModal: FunctionComponent<ComponentProps> = (
               <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
             </div>
             <input
+              data-unsaved-changes-ignore
               ref={searchInputRef}
               id={SEARCH_INPUT_ID}
               type="text"

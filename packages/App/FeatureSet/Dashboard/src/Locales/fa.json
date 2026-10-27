@@ -36335,5 +36335,10 @@
   "Resolved by OneUptime AI. Nobody was paged.": "OneUptime AI حلش کرد. کسی فراخوانده نشد.",
   "Wait for OneUptime AI for up to (minutes)": "حداکثر انتظار برای OneUptime AI (دقیقه)",
   "Wait from 1 to 30 whole minutes.": "از ۱ تا ۳۰ دقیقهٔ کامل صبر کنید.",
+  "This page will come back as soon as you're online again, just as you left it.": "به‌محض اینکه دوباره آنلاین شوید، این صفحه همان‌طور که آن را ترک کردید برمی‌گردد.",
+  "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.": "یک قاعده آنکال برای حوادث و یکی برای هشدارها اضافه می‌کند. یک سیاست تا وقتی قاعده یا مانیتوری فعالش نکند به کسی خبر نمی‌دهد.",
+  "Page this policy for every new incident and alert": "برای هر حادثه و هشدار تازه فعال شود",
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "وقتی حادثه یا هشداری باز می‌شود، به فرد مناسب خبر دهید. تا آن زمان، مالکان پروژه ایمیل می‌گیرند.",
+  "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert and emails the project's owners.": "انتخاب کنید چه چیزی پایش شود و برایش نامی بگذارید. بقیه با مقادیر پیش‌فرضی شروع می‌شود که می‌توانید تغییرشان دهید. وقتی مشکلی پیش بیاید، OneUptime یک حادثه یا هشدار باز می‌کند و به مالکان پروژه ایمیل می‌زند.",
   "For your framework": "برای فریم‌ورک شما"
 }

@@ -1560,6 +1560,7 @@ const ServiceMapGraph: FunctionComponent<ComponentProps> = (
         <div className="flex flex-col gap-3 border-b border-gray-200 px-5 py-3 md:flex-row md:items-center">
           <div className="min-w-0 w-full md:w-80">
             <Input
+              isSearchOrFilter={true}
               dataTestId="service-map-search"
               ariaLabel={t("Search services")}
               placeholder={t("Search services and dependencies")}

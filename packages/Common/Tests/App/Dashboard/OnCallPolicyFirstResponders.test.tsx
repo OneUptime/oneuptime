@@ -91,6 +91,22 @@ const getListMock: MockFunction = getJestMockFunction();
 const createOrUpdateMock: MockFunction = getJestMockFunction();
 
 /*
+ * What ModelAPI.count answers. The project already pages a policy by an
+ * on-call rule, so Create On-Call Policy does not offer "Page this policy
+ * for every new incident and alert" here and the requests below hold the
+ * first responders alone; OnCallPolicyEveryNewEventRules.test.tsx covers the
+ * offer.
+ */
+const countFor: (modelType: unknown) => number = (
+  modelType: unknown,
+): number => {
+  return (modelType as { name?: string } | undefined)?.name ===
+    "IncidentOnCallRule"
+    ? 1
+    : 0;
+};
+
+/*
  * The arrow wrappers are load bearing: jest.mock is hoisted above the
  * consts, so they are dereferenced at call time.
  */
@@ -107,8 +123,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
       getItem: async (): Promise<null> => {
         return null;
       },
-      count: async (): Promise<number> => {
-        return 0;
+      count: async (params: { modelType?: unknown }): Promise<number> => {
+        return countFor(params?.modelType);
       },
       deleteItem: async (): Promise<void> => {
         return undefined;

@@ -1124,6 +1124,7 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
             <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
           </div>
           <Input
+            isSearchOrFilter={true}
             id="status-page-resource-group-search-input"
             ariaLabelledby="status-page-resource-group-search-label"
             type={InputType.TEXT}

@@ -1690,6 +1690,7 @@ const EntityDropdown: FunctionComponent<EntityDropdownProps> = (
             } ${props.disabled ? "bg-gray-100" : "bg-white"}`}
           >
             <input
+              data-unsaved-changes-ignore
               ref={inputRef}
               type="text"
               value={searchQuery}

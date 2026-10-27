@@ -134,6 +134,7 @@ const InventoryAttributes: FunctionComponent<ComponentProps> = (
         {totalCount > 8 ? (
           <div className="mb-4 max-w-md">
             <Input
+              isSearchOrFilter={true}
               placeholder="Filter attributes by name or value..."
               value={filter}
               onChange={(value: string) => {

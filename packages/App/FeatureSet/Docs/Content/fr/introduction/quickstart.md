@@ -59,16 +59,16 @@ Pour essayer la vérification avant d'enregistrer, cliquez sur **Tester le monit
 
 ## Être alerté en cas de panne
 
-En l'état, un incident sans propriétaire est envoyé par e-mail aux propriétaires du projet, dont vous faites partie. Pour être alerté jusqu'à ce que quelqu'un réponde, créez une politique d'astreinte et faites-la déclencher par chaque incident.
+En l'état, un incident sans propriétaire est envoyé par e-mail aux propriétaires du projet, dont vous faites partie. Pour être alerté jusqu'à ce que quelqu'un réponde, créez une politique d'astreinte : la première d'un projet se déclenche pour chaque nouvel incident et chaque nouvelle alerte.
 
 :::steps
 ### Créer une politique d'astreinte
 
-Dans la liste de vérification, cliquez sur **Configurez une politique d'astreinte**, ou ouvrez **Astreinte** depuis le menu **Produits**. Cliquez sur **Créer : Politique d'astreinte** et saisissez un **Nom**. Sous **Qui est alerté en premier ?**, cliquez sur **Ajouter un intervenant** et choisissez-vous. Cliquez sur **Créer : Politique d'astreinte**.
+Dans la liste de vérification, cliquez sur **Configurez une politique d'astreinte**, ou ouvrez **Astreinte** depuis le menu **Produits**. Cliquez sur **Créer : Politique d'astreinte** et saisissez un **Nom**. Sous **Qui est alerté en premier ?**, cliquez sur **Ajouter un intervenant** et choisissez-vous. Laissez **La déclencher pour chaque nouvel incident et chaque nouvelle alerte** activé, et cliquez sur **Créer : Politique d'astreinte**.
 
-### La déclencher pour chaque incident
+### Voir la règle qui la déclenche
 
-Ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte**. Cliquez sur **Créer : Règle d'astreinte des incidents**, saisissez un **Nom** et cliquez sur **Suivant**. Dans **Critères de correspondance**, laissez **Tous les incidents** sélectionné, pour que la règle s'applique à chaque incident, et cliquez sur **Suivant**. Choisissez votre politique sous **Politiques d'astreinte** et cliquez sur **Créer : Règle d'astreinte des incidents**.
+L'interrupteur a ajouté une règle d'astreinte pour les incidents et une pour les alertes. Pour voir la vôtre, ouvrez **Incidents** depuis le menu **Produits**, dépliez **Règles** dans le menu latéral et choisissez **Règles d'astreinte** : elle correspond à **Tous les incidents**. Pour ne déclencher la politique que pour certains incidents, comme les critiques, modifiez la règle à cet endroit, ou cliquez sur **Créer : Règle d'astreinte des incidents** pour ajouter la vôtre.
 
 ### Choisir comment vous êtes joint
 

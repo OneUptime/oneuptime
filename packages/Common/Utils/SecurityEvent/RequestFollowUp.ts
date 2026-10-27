@@ -1,8 +1,9 @@
 import IP from "../../Types/IP/IP";
 import { JSONObject } from "../../Types/JSON";
 import NormalizedSecurityEvent from "../../Types/SecurityEvent/NormalizedSecurityEvent";
-import { OcsfSeverityId } from "../../Types/SecurityEvent/OcsfSeverity";
-import OcsfSeverity from "../../Types/SecurityEvent/OcsfSeverity";
+import OcsfSeverity, {
+  OcsfSeverityId,
+} from "../../Types/SecurityEvent/OcsfSeverity";
 import { SECURITY_REQUEST_ATTRIBUTES } from "../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import {
   WEB_ATTACK_KIND_ATTRIBUTE,

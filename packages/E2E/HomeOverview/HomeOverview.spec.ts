@@ -652,6 +652,150 @@ test.describe("the verdicts", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * A newcomer's first steps
+ * ---------------------------------------------------------------------------
+ *
+ * The first thing someone new asks of a monitoring product: when it breaks,
+ * will I be told? The checklist's on-call step answers it - an incident or
+ * alert nobody owns is emailed to the project's owners until a policy pages
+ * someone - on a phone as on a desktop, and in the reader's language.
+ */
+
+const NEWCOMER_STEPS: Array<string> = [
+  "create-monitor",
+  "create-status-page",
+  "invite-team",
+  "create-on-call-policy",
+];
+
+const ON_CALL_STEP_TITLE: string = "Set up an on-call policy";
+
+const ON_CALL_STEP_SENTENCE: string =
+  "Page the right person when an incident or alert opens. Until then, the project's owners get an email.";
+
+async function checklistSteps(page: Page): Promise<Array<string>> {
+  return page
+    .getByTestId("getting-started")
+    .locator('[data-testid^="getting-started-task-"]')
+    .evaluateAll((elements: Array<Element>): Array<string> => {
+      return elements.map((element: Element): string => {
+        return (element.getAttribute("data-testid") || "").replace(
+          "getting-started-task-",
+          "",
+        );
+      });
+    });
+}
+
+test.describe("a newcomer's first steps", () => {
+  for (const width of [1280, 390]) {
+    test(`at ${width}px: four steps, and the on-call step says who is told until there is a policy`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({
+        width: width,
+        height: width === 390 ? 844 : 900,
+      });
+      await openReady(page, "scenario=new");
+
+      await expect(page.getByTestId("getting-started")).toBeVisible();
+      expect(await checklistSteps(page)).toEqual(NEWCOMER_STEPS);
+
+      const onCall: Locator = page.getByTestId(
+        "getting-started-task-create-on-call-policy",
+      );
+
+      await expect(onCall).toContainText(ON_CALL_STEP_TITLE);
+      await expect(onCall).toContainText(ON_CALL_STEP_SENTENCE);
+
+      // The sentence is drawn whole: nothing in the tile is cut off.
+      const clipped: boolean = await onCall.evaluate(
+        (tile: Element): boolean => {
+          return Array.from(tile.querySelectorAll("span")).some(
+            (span: Element): boolean => {
+              return span.scrollWidth > span.clientWidth + 1;
+            },
+          );
+        },
+      );
+      expect(clipped).toBe(false);
+
+      await hasNoSidewaysScroll(page);
+
+      if (width === 390) {
+        // One column: every step's tile starts at the same left edge.
+        const lefts: Array<number> = await page
+          .getByTestId("getting-started")
+          .locator('[data-testid^="getting-started-task-"]')
+          .evaluateAll((elements: Array<Element>): Array<number> => {
+            return elements.map((element: Element): number => {
+              return Math.round(element.getBoundingClientRect().left);
+            });
+          });
+
+        expect(new Set(lefts).size).toBe(1);
+      }
+
+      await screenshot(page, `home-newcomer-${width}`);
+    });
+  }
+
+  test("German: the on-call step says who is told in German", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&lang=de");
+
+    const onCall: Locator = page.getByTestId(
+      "getting-started-task-create-on-call-policy",
+    );
+
+    await expect(onCall).toContainText("Bereitschaftsrichtlinie einrichten");
+    await expect(onCall).toContainText(
+      "Bis dahin erhalten die Projekteigentümer eine E-Mail.",
+    );
+    await expect(onCall).not.toContainText(ON_CALL_STEP_SENTENCE);
+
+    await screenshot(page, "home-newcomer-de");
+  });
+
+  test("dark: the checklist's tiles keep their text readable", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&theme=dark");
+
+    const onCall: Locator = page.getByTestId(
+      "getting-started-task-create-on-call-policy",
+    );
+
+    await expect(onCall).toContainText(ON_CALL_STEP_SENTENCE);
+
+    const colors: { text: string; surface: string } = await onCall.evaluate(
+      (tile: Element): { text: string; surface: string } => {
+        const sentence: Element = tile.querySelectorAll("span span")[1]!;
+
+        return {
+          text: getComputedStyle(sentence).color,
+          surface: getComputedStyle(tile).backgroundColor,
+        };
+      },
+    );
+
+    // Light text on a dark tile, never the light theme's grey on white.
+    expect(colors.text).not.toBe(colors.surface);
+    expect(colors.surface).not.toBe("rgb(255, 255, 255)");
+
+    await screenshot(page, "home-newcomer-dark");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Failures and refresh
  * ---------------------------------------------------------------------------
  */

@@ -807,6 +807,14 @@ describe("IncidentOwner:SendStateChangeEmail worker", () => {
     expect(calls[0]!.emailEnvelope.vars["incidentSeverity"]).toBe("Low");
     expect(calls[0]!.emailEnvelope.vars["resourcesAffected"]).toBe("None");
     expect(markdownMock.convertToHTML).toHaveBeenCalledTimes(1);
+
+    // The feed says who was told: the project's owners, and why.
+    expect(feedService.createIncidentFeedItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        feedInfoInMarkdown:
+          "The project's owners were notified that this incident is now **Acknowledged**, as it has no owners yet.",
+      }),
+    );
   });
 
   /*

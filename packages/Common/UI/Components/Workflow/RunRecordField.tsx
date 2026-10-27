@@ -850,6 +850,7 @@ const RunRecordField: FunctionComponent<ComponentProps> = (
             />
           </div>
           <input
+            data-unsaved-changes-ignore
             ref={inputRef}
             type="text"
             role="combobox"

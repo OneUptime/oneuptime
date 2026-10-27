@@ -20,6 +20,8 @@ En jourpolicy avgör vem som larmas om en incident eller ett larm, och vem som s
 
 **Vem larmas först?** är valfritt och visas bara för personer som får lägga till eskaleringsregler: lämnas det tomt larmar policyn ingen förrän den har en regel. **Beskrivning** och **Etiketter** väntar under **Fler fält**. Se [Eskaleringsregler](/docs/on-call/escalation-rules) för att lägga till nästa nivåer.
 
+För ett projekts första policy frågar formuläret också **Utlös den vid varje ny incident och varje nytt larm**, som är påslaget från början. Det lägger till en regel under **Incidenter → Regler → Jourregler** och en under **Larm → Regler → Jourregler**, som var och en matchar allt och kör den här policyn. Frågan ställs bara till personer som får lägga till jourregler, så länge projektet varken har en jourpolicy eller en jourregel.
+
 Listan **Jourpolicyer** visar varje policys **Namn**, **Beskrivning**, **Etiketter** och **Ägare**. Markera policyer för att använda **Lägg till etiketter**, **Ta bort etiketter**, **Lägg till ägare**, **Ta bort ägare**, **Arkivera** eller **Exportera JSON**, eller för att ta bort dem. **Importera JSON** skapar policyer från en export: en export innehåller en policys egna inställningar, inte dess eskaleringsregler eller ägare.
 
 ## Vad som kör en policy

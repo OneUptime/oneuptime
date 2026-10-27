@@ -742,6 +742,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
           </div>
           <Input
+            isSearchOrFilter={true}
             type={InputType.TEXT}
             placeholder={config.placeholder || "Search..."}
             value={addSearchText}
@@ -829,6 +830,7 @@ const ColumnCustomizationModal: ColumnCustomizationModalFunction = <
             <Icon icon={IconProp.Search} className="h-4 w-4 text-gray-400" />
           </div>
           <Input
+            isSearchOrFilter={true}
             type={InputType.TEXT}
             placeholder="Search columns..."
             value={searchText}

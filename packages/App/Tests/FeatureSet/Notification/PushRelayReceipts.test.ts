@@ -2,6 +2,7 @@ import PushRelayRouter, {
   parseRelayReceiptIds,
   RelayRateLimiter,
 } from "../../../FeatureSet/Notification/API/PushRelay";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import PushNotificationService from "Common/Server/Services/PushNotificationService";
 import type PushNotificationLogService from "Common/Server/Services/PushNotificationLogService";
 import type UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
@@ -183,6 +184,8 @@ interface SelfHostedServer {
   PushNotificationLogService: typeof PushNotificationLogService;
   UserOnCallLogTimelineService: typeof UserOnCallLogTimelineService;
   ExpoPushReceiptService: typeof ExpoPushReceiptService;
+  // Its switch for push on the whole server (3207bef20f), read before a send.
+  GlobalConfigService: typeof GlobalConfigService;
   queue: ExpoPushReceiptQueue;
   redis: RedisMock;
 }
@@ -217,6 +220,8 @@ function loadSelfHostedServer(): SelfHostedServer {
         require("Common/Server/Services/UserOnCallLogTimelineService").default,
       ExpoPushReceiptService:
         require("Common/Server/Services/ExpoPushReceiptService").default,
+      GlobalConfigService: require("Common/Server/Services/GlobalConfigService")
+        .default,
       queue: require("Common/Server/Infrastructure/ExpoPushReceiptQueue")
         .default,
       redis: require("Common/Server/Infrastructure/Redis").default,
@@ -292,6 +297,15 @@ let expoReceiptRequests: Array<Array<string>>;
 let expoReceiptFailure: Error | null;
 
 beforeEach(() => {
+  /*
+   * Push is on, as on a new install: a self-hosted server's send reads its
+   * switch for the whole server (GlobalConfig.disablePushNotifications,
+   * 3207bef20f) first, from the database this suite does not have.
+   */
+  jest
+    .spyOn(selfHosted.GlobalConfigService, "getPushNotificationsTurnedOff")
+    .mockResolvedValue(false);
+
   redis = new FakeSortedSetRedis();
   selfHosted.redis.getClient.mockReturnValue(redis);
   selfHosted.redis.isConnected.mockReturnValue(true);

@@ -372,22 +372,6 @@ While an incident waits, its **AI Investigation** card shows **Waiting** and the
 
 Alerts work the same way, on **Alerts → AI → Settings**, counted from when the alert is created.
 
-## OneUptime AI responds first
-
-An incident or alert on-call rule can let OneUptime AI take the page first. Set the rule's **When should this rule page?** to **After OneUptime AI tries**, under **More fields**. When OneUptime AI may fix what a matching incident or alert is about, the rule's policies wait while AI investigates, fixes and checks its fix, for at most the time set in **Wait for OneUptime AI for up to (minutes)**: 10 minutes by default, from 1 to 30. If AI's fix is verified, OneUptime AI resolves the record and nobody is paged.
-
-The rule pages right away instead, and the record's feed says why, when a person created the record, it has the project's highest severity, 3 or more other alerts and incidents opened in the 5 minutes before it, OneUptime AI may not investigate it or fix it automatically, no monitor is linked to it, or no linked Kubernetes cluster or resource has an AI agent set to **Automatic** or **Bypass approval**.
-
-While AI holds a page, the **AI Investigation** card says when paging starts, with **Page now** for anyone who wants a person on it at once. Every minute, OneUptime checks each page AI holds, and starts paging at once, saying why, when:
-
-- the investigation does not start, waits for an AI rule, or does not finish;
-- AI finds no fix it may run on its own, or its fix needs a person's approval;
-- AI's fix does not bring the monitors back;
-- someone presses **Page now**, the record reaches the highest severity, or many records open at once;
-- AI or automatic fixing is turned off, or the rule no longer lets AI respond first.
-
-The policy's execution logs say how each hold ended. Through the API or Terraform, the rule's `whenToPage` is `After OneUptime AI` and its `aiHoldTimeInMinutes` is the hold time.
-
 ## Auto-remediation waits for the analysis
 
 When the project fixes new incidents or alerts automatically (**Fix new incidents automatically** and **Fix new alerts automatically**, with the AI rules under **More settings** on **Incidents → AI → Settings** and **Alerts → AI → Settings**), fixing waits for the investigation — **RCA first**:
@@ -413,6 +397,22 @@ Every incident and alert has a **Remediation** card that says what auto-remediat
 - **The project** — **Fix new incidents automatically** (or alerts) is off; **Enable AI** is off, so nothing runs; the incident already has the most fixes it can get; or the evaluation stopped on an error.
 
 When the incident is linked to no cluster and no infrastructure resource at all, the card says so in one line — the most common reason nothing was fixed — with what to do: add the host, cluster or database it is about under **Affected Resources**, and OneUptime AI tries again while the incident is open, as it would for a new one. An incident with monitors also gets a link to each of them, where you can link them to what they watch so the next incident they raise is linked. Each line links to where it is changed: the cluster's or resource's AI agent page, the incident's (or alert's) AI settings, where its fixing switch and its rules are, **Enable AI**, or the LLM providers. Incidents and alerts created before this was recorded show the card only when something was proposed. When AI was off for an incident altogether, the **AI Investigation** card's one line says why nothing was fixed, and the **Remediation** card is left out.
+
+## OneUptime AI responds first
+
+An incident or alert on-call rule can let OneUptime AI take the page first. Set the rule's **When should this rule page?** to **After OneUptime AI tries**, under **More fields**. When OneUptime AI may fix what a matching incident or alert is about, the rule's policies wait while AI investigates, fixes and checks its fix, for at most the time set in **Wait for OneUptime AI for up to (minutes)**: 10 minutes by default, from 1 to 30. If AI's fix is verified, OneUptime AI resolves the record and nobody is paged.
+
+The rule pages right away instead, and the record's feed says why, when a person created the record, it has the project's highest severity, 3 or more other alerts and incidents opened in the 5 minutes before it, OneUptime AI may not investigate it or fix it automatically, no monitor is linked to it, or no linked Kubernetes cluster or resource has an AI agent set to **Automatic** or **Bypass approval**.
+
+While AI holds a page, the **AI Investigation** card says when paging starts, with **Page now** for anyone who wants a person on it at once. Every minute, OneUptime checks each page AI holds, and starts paging at once, saying why, when:
+
+- the investigation does not start, waits for an AI rule, or does not finish;
+- AI finds no fix it may run on its own, or its fix needs a person's approval;
+- AI's fix does not bring the monitors back;
+- someone presses **Page now**, the record reaches the highest severity, or many records open at once;
+- AI or automatic fixing is turned off, or the rule no longer lets AI respond first.
+
+The policy's execution logs say how each hold ended. Through the API or Terraform, the rule's `whenToPage` is `After OneUptime AI` and its `aiHoldTimeInMinutes` is the hold time.
 
 ## What OneUptime AI learned, and everything it did
 

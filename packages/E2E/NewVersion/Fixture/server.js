@@ -12,11 +12,17 @@
  * The spec drives it over /__fixture/: deploy (switch to the other build,
  * as a deploy replaces the files), server (up, down - the connection
  * dropped - or unavailable - 503, a server restarting), missing (a chunk
- * gone for good, whichever build is served), slow-documents (hold the page
- * itself back), hold-documents (answer the page 204, which leaves the
- * browser on the page it has - so what a page shows as it starts a reload
- * stays on screen to be looked at) and stats (how many times the page and
- * build.json were asked for, and the page's last address).
+ * gone for good, whichever build is served), entry (missing: the entry
+ * bundle itself answered 404, so the app cannot start), slow-documents (hold
+ * the page itself back), hold-documents (answer the page 204, which leaves
+ * the browser on the page it has - so what a page shows as it starts a
+ * reload stays on screen to be looked at) and stats (how many times the
+ * page, the entry and build.json were asked for, and the page's last
+ * address).
+ *
+ * The page carries what every frontend's index.ejs carries right after its
+ * root: Common/Server/Views/Partials/EntryLoadFailure.ejs, rendered as it
+ * is, which says what is wrong when the entry does not load.
  */
 const fs = require("fs");
 const http = require("http");
@@ -26,6 +32,7 @@ const path = require("path");
 process.env.NODE_ENV = "production";
 
 const { createConfig, build } = require("../../../Common/UI/esbuild-config.js");
+const ejs = require("../../../Common/node_modules/ejs");
 
 const repository = path.resolve(__dirname, "../../../..");
 const output = path.join(
@@ -64,6 +71,7 @@ const STRINGS = [
   "A new version of OneUptime is ready",
   "This page needs the new version to open. Reloading discards changes you haven't saved.",
   "You're offline",
+  "This page will come back as soon as you're online again, just as you left it.",
   "This page needs an internet connection to load. It will load as soon as you're back online.",
   "Can't reach the server",
   "It may be restarting after an update. This page will load as soon as the server is back.",
@@ -153,26 +161,46 @@ const state = {
   build: "a",
   server: "up",
   missing: "",
+  entry: "ok",
   slowDocumentsInMs: 0,
   holdDocuments: false,
-  stats: { documents: 0, manifests: 0, lastDocument: "" },
+  stats: { documents: 0, manifests: 0, entries: 0, lastDocument: "" },
 };
 
 function reset() {
   state.build = "a";
   state.server = "up";
   state.missing = "";
+  state.entry = "ok";
   state.slowDocumentsInMs = 0;
   state.holdDocuments = false;
-  state.stats = { documents: 0, manifests: 0, lastDocument: "" };
+  state.stats = { documents: 0, manifests: 0, entries: 0, lastDocument: "" };
 }
 
 /*
- * The page, as the Dashboard's index.ejs draws it before its bundle: the
- * theme applied before the first paint (?theme=dark, kept for the tab), the
- * language's direction, Tailwind, Inter and the env the bundle reads.
+ * What every frontend's index.ejs includes right after its root. The
+ * language it speaks in is the page's (<html lang>, which the page's first
+ * script sets from ?lang=), as a status page's is.
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>New version</title><script>(function(){var params=new URLSearchParams(window.location.search);var saved={};try{saved=JSON.parse(window.sessionStorage.getItem("new-version-fixture-page")||"{}")}catch(e){}var theme=params.get("theme")||saved.theme||"light";var lang=params.get("lang")||saved.lang||"en";window.sessionStorage.setItem("new-version-fixture-page",JSON.stringify({theme:theme,lang:lang}));if(theme==="dark"){document.documentElement.classList.add("dark");}document.documentElement.lang=lang;document.documentElement.dir=lang==="fa"?"rtl":"ltr";})();window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0"}};window.global=window;</script><script src="/dashboard/assets/js/tailwind-3.4.5.js"></script><script src="/dashboard/assets/js/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/dashboard/assets/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background:var(--ou-background-primary,#f9fafb)}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body><div id="root"></div><script type="module" src="/dashboard/dist/Index.js"></script></body></html>`;
+const entryLoadFailurePartial = path.join(
+  repository,
+  "packages/Common/Server/Views/Partials/EntryLoadFailure.ejs",
+);
+const entryLoadFailure = ejs.render(
+  fs.readFileSync(entryLoadFailurePartial, "utf8"),
+  { usesPageLanguage: true },
+  { filename: entryLoadFailurePartial },
+);
+
+/*
+ * The page, as the Dashboard's index.ejs draws it before its bundle: the
+ * theme applied before the first paint (?theme=dark, kept for the tab) - a
+ * dark page's background painted before any stylesheet arrives, as
+ * Common/Server/Views/Partials/Theme.ejs paints it, so a page whose app never
+ * started is dark too - the language's direction, Tailwind, Inter and the
+ * env the bundle reads.
+ */
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>New version</title><script>(function(){var params=new URLSearchParams(window.location.search);var saved={};try{saved=JSON.parse(window.sessionStorage.getItem("new-version-fixture-page")||"{}")}catch(e){}var theme=params.get("theme")||saved.theme||"light";var lang=params.get("lang")||saved.lang||"en";window.sessionStorage.setItem("new-version-fixture-page",JSON.stringify({theme:theme,lang:lang}));if(theme==="dark"){document.documentElement.classList.add("dark");}document.documentElement.lang=lang;document.documentElement.dir=lang==="fa"?"rtl":"ltr";})();window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0"}};window.global=window;</script><script src="/dashboard/assets/js/tailwind-3.4.5.js"></script><script src="/dashboard/assets/js/tailwind-reading-direction.js"></script><script>tailwind.config={darkMode:"class",theme:{extend:{fontFamily:{display:["Inter","sans-serif"],body:["Inter","sans-serif"]}}}};</script><style>@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:block;src:url('/dashboard/assets/fonts/InterVariable.woff2') format('woff2');}html,body{margin:0;background:var(--ou-background-primary,#f9fafb)}html.dark,html.dark body{background:var(--ou-background-primary,#0f172a)}*{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}</style></head><body><div id="root"></div>${entryLoadFailure}<script type="module" src="/dashboard/dist/Index.js"></script></body></html>`;
 
 function readBody(request) {
   return new Promise((resolve) => {
@@ -206,6 +234,9 @@ async function handleControl(url, request, response) {
     state.server = url.searchParams.get("state") || "up";
   } else if (command === "missing") {
     state.missing = url.searchParams.get("chunk") || "";
+  } else if (command === "entry") {
+    state.entry =
+      url.searchParams.get("state") === "missing" ? "missing" : "ok";
   } else if (command === "slow-documents") {
     const ms = Number(url.searchParams.get("ms") || "0");
     state.slowDocumentsInMs = 0;
@@ -245,6 +276,12 @@ async function main() {
 
     if (isManifest) {
       state.stats.manifests++;
+    }
+
+    const isEntry = url.pathname === "/dashboard/dist/Index.js";
+
+    if (isEntry) {
+      state.stats.entries++;
     }
 
     if (state.server === "down" && isBundleFile) {
@@ -293,7 +330,8 @@ async function main() {
       const file = path.resolve(distDirectory, name);
 
       const isGoneForGood =
-        state.missing !== "" && name.startsWith(`${state.missing}-`);
+        (state.missing !== "" && name.startsWith(`${state.missing}-`)) ||
+        (isEntry && state.entry === "missing");
 
       if (
         isGoneForGood ||

@@ -124,6 +124,12 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
       options: --user 1001 --ipc=host
+    # In a container a run step with no shell of its own gets sh, not the
+    # bash -e {0} a runner gives it; the steps here are written for the
+    # runner's (Tests/Ops/PlaywrightImage).
+    defaults:
+      run:
+        shell: bash -e {0}
     permissions:
       contents: read
     steps:
@@ -238,6 +244,12 @@ jobs:
       # namespace, as Playwright's image asks, so Chromium cannot run short of
       # shared memory.
       options: --user 1001 --ipc=host
+    # In a container a run step with no shell of its own gets sh, not the
+    # bash -e {0} a runner gives it; the steps here are written for the
+    # runner's (Tests/Ops/PlaywrightImage).
+    defaults:
+      run:
+        shell: bash -e {0}
     permissions:
       contents: read
     # Which half of Event Overview a group runs, "1/2" or "2/2"; empty in
@@ -440,6 +452,12 @@ jobs:
           # Shared UI (2.5 minutes on 14.0.93's gate run) from group 11 and Owner
           # Filters (0.9) from group 10 joined it on 2026-10-27, when that run
           # took this group 13.4 minutes before Side by Side Pages: about 18.
+          # First On-Call Policy (about half a minute locally with its bundle,
+          # 11 tests, Chromium only: a new project's Create On-Call Policy
+          # asking "Page this policy for every new incident and alert", what
+          # Create sends, when it is not asked, at 1280 and 390 pixels, German
+          # and Persian dark) joined it the same day, beside Incoming Call
+          # Policies and Owners on Create: about 19.
           - group: 5
             suites: >-
               test-slo-burn-rate-ui
@@ -456,6 +474,7 @@ jobs:
               test-runbook-variables-ui
               test-dashboard-value-widget-ui
               test-owners-on-create-ui
+              test-first-on-call-policy-ui
               test-side-by-side-pages-ui
               test-owner-filters-ui
               test-shared-ui-ui
@@ -1080,6 +1099,8 @@ jobs:
             output/playwright/owner-filters-ui/test-results
             output/playwright/owners-on-create-ui/*.png
             output/playwright/owners-on-create-ui/test-results
+            output/playwright/first-on-call-policy-ui/*.png
+            output/playwright/first-on-call-policy-ui/test-results
             output/playwright/kubernetes-events-ui/*.png
             output/playwright/kubernetes-events-ui/test-results
             output/playwright/snmp-walk-ui/*.png
