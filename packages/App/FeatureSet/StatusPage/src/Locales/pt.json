@@ -61,7 +61,8 @@
   "monitorOverview": {
     "daysAgo": "há {{days}} dias",
     "today": "Hoje",
-    "notAvailable": "Não disponível"
+    "notAvailable": "Não disponível",
+    "underMaintenance": "Em manutenção"
   },
   "uptimeHistory": {
     "graphLabel": "Histórico de disponibilidade dos últimos {{total}} dias",
@@ -76,7 +77,12 @@
     "noIncidentsDescription": "Nenhum incidente foi relatado neste dia.",
     "declared": "Declarado",
     "oneIncidentOnThisDay": "1 incidente relatado neste dia",
-    "incidentsOnThisDay": "{{total}} incidentes relatados neste dia"
+    "incidentsOnThisDay": "{{total}} incidentes relatados neste dia",
+    "scheduledMaintenance": "Manutenção agendada",
+    "dayLabelWithMaintenance": "{{label}}, {{maintenance}}",
+    "oneMaintenanceEvent": "1 manutenção agendada",
+    "maintenanceEvents": "{{total}} manutenções agendadas",
+    "moreMaintenance": "+{{total}} mais"
   },
   "liveStatus": {
     "updated": "Atualizado {{time}}",

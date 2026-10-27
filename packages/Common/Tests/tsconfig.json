@@ -1,10 +1,12 @@
 {
   /*
-   * The project every file in this directory belongs to: exactly
-   * ../tsconfig.tests.json, the program `npm run compile-tests` type-checks
-   * (in parts - see ../Scripts/compile-tests.js). Its "include" and
-   * "exclude" are inherited and resolve against packages/Common, where they
-   * are written.
+   * The project every file in this directory belongs to, Tests/App and
+   * Tests/UI aside: exactly ../tsconfig.tests.rest.json, the part of
+   * `npm run compile-tests` that type-checks every Common test outside those
+   * two (see ../Scripts/compile-tests.js). Its "include" and "exclude" are
+   * inherited and resolve against packages/Common, where they are written.
+   * Tests/App/tsconfig.json and Tests/UI/tsconfig.json are the other two
+   * parts.
    *
    * It exists because TypeScript picks a file's project by the nearest
    * tsconfig.json - editors, and ESLint's typed linting (projectService in
@@ -12,6 +14,15 @@
    * the lookup walked on up to the repository-root tsconfig.json, which has
    * no "include": every Common test was linted, and opened in an editor,
    * inside a program of the whole monorepo.
+   *
+   * It used to extend ../tsconfig.tests.json, every Common test as one
+   * program. Scripts/Lint/LintByProject.js lints each program in an ESLint
+   * process of its own, with a 12 GB heap, and on 2026-10-27 that one ran out
+   * of it (7,996 files, 916 s; 584 s at 7,910 files the evening before).
+   * Measured on its own, the program was most of it: linting 798 of its files
+   * peaked at 9.9 GB, 1,776 at 11.3 GB, 3,450 at 12.7 GB. So ESLint gets the
+   * three programs compile-tests already checks, each holding only the
+   * sources its own tests reach.
    */
-  "extends": "../tsconfig.tests.json"
+  "extends": "../tsconfig.tests.rest.json"
 }

@@ -29,7 +29,7 @@ Three things make this work:
 - **The OneUptime app in each team** you want notifications in. Microsoft only lets the bot post into a team it has been added to.
 - **Each person's own connection**: their Microsoft Teams account linked to their OneUptime account. Buttons, commands and reactions act as that person, with their permissions in the project.
 
-One Microsoft 365 organization can be connected to more than one project, such as production and staging. A card's button acts in the project of the record it is about. A message to the bot acts in the project of the channel it is sent in, such as an incident's channel, or else in the one project the sender's Microsoft Teams account is connected in. When nothing tells which, the bot names the projects they're in and asks them to try again from a channel of the one they mean.
+One Microsoft 365 organization can be connected to more than one project, such as production and staging. A card's button acts in the project the card was sent for, such as the project of the incident it is about. A message to the bot acts in the project of the channel it is sent in, such as an incident's channel, or else in the one project the sender's Microsoft Teams account is connected in. When nothing tells which, the bot asks the sender which project they mean, with a button for each one they're in, and goes ahead there once they choose. In a conversation with OneUptime AI, their choice holds for its follow-ups until an hour goes by without one.
 
 ## Before you begin
 

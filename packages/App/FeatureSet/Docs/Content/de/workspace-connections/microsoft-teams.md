@@ -29,7 +29,7 @@ Drei Dinge machen das möglich:
 - **Die OneUptime-App in jedem Team**, in dem Sie Benachrichtigungen möchten. Microsoft lässt den Bot nur in Teams posten, denen er hinzugefügt wurde.
 - **Die eigene Verbindung jeder Person**: ihr Microsoft-Teams-Konto, verknüpft mit ihrem OneUptime-Konto. Schaltflächen, Befehle und Reaktionen handeln als diese Person, mit ihren Berechtigungen im Projekt.
 
-Eine Microsoft-365-Organisation kann mit mehr als einem Projekt verbunden sein, etwa mit Produktion und Staging. Eine Schaltfläche auf einer Karte handelt im Projekt des Datensatzes, um den es geht. Eine Nachricht an den Bot handelt im Projekt des Kanals, in dem sie gesendet wird, etwa im Kanal eines Vorfalls, sonst in dem einen Projekt, in dem das Microsoft-Teams-Konto der sendenden Person verbunden ist. Lässt sich das nicht erkennen, nennt der Bot die Projekte, in denen die Person ist, und bittet sie, es in einem Kanal des gemeinten Projekts erneut zu versuchen.
+Eine Microsoft-365-Organisation kann mit mehr als einem Projekt verbunden sein, etwa mit Produktion und Staging. Eine Schaltfläche auf einer Karte handelt im Projekt, für das die Karte gesendet wurde, etwa im Projekt des Vorfalls, um den es geht. Eine Nachricht an den Bot handelt im Projekt des Kanals, in dem sie gesendet wird, etwa im Kanal eines Vorfalls, sonst in dem einen Projekt, in dem das Microsoft-Teams-Konto der sendenden Person verbunden ist. Lässt sich das nicht erkennen, fragt der Bot die sendende Person, welches Projekt sie meint, mit einer Schaltfläche für jedes Projekt, in dem sie ist, und macht dort weiter, sobald sie gewählt hat. In einer Unterhaltung mit OneUptime AI gilt die Wahl für die Folgefragen, bis eine Stunde lang keine mehr kommt.
 
 ## Bevor Sie beginnen
 

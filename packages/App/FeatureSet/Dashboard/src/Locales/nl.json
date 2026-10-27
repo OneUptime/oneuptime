@@ -15742,7 +15742,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "Gepland onderhoud",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35845,5 +35845,8 @@
   "Each row is one recording of about a minute.": "Elke rij is één opname van ongeveer een minuut.",
   "Created an alert": "Waarschuwing gemaakt",
   "Creating alert": "Waarschuwing maken",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI voert echte query's uit op je logboeken, traces, metrieken, incidenten, monitoren en Real User Monitoring — met grafieken en tabellen direct in het gesprek — en kan incidenten en waarschuwingen aanmaken of bevestigen, altijd met jouw goedkeuring."
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI voert echte query's uit op je logboeken, traces, metrieken, incidenten, monitoren en Real User Monitoring — met grafieken en tabellen direct in het gesprek — en kan incidenten en waarschuwingen aanmaken of bevestigen, altijd met jouw goedkeuring.",
+  "Maintenance markers are unavailable.": "Onderhoudsmarkeringen zijn niet beschikbaar.",
+  "Maintenance markers need the uptime history, which did not load.": "Onderhoudsmarkeringen hebben de beschikbaarheidsgeschiedenis nodig, die niet is geladen.",
+  "You need permission to read scheduled maintenance.": "U hebt toestemming nodig om gepland onderhoud te lezen."
 }

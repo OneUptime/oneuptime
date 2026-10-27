@@ -154,6 +154,12 @@ export default class DayUptimeGraphUtil {
     hasEvents: boolean;
     uptimePercent: number;
     incidentCount: number;
+    /*
+     * The day's scheduled maintenance events (UptimeMaintenanceUtil), said
+     * after everything else: "Oct 21, 2026: 66.69% uptime, 1 scheduled
+     * maintenance event". A screen reader hears what the bar's mark shows.
+     */
+    maintenanceCount?: number | undefined;
     labels?: UptimeHistoryLabels | undefined;
   }): string {
     const labels: UptimeHistoryLabels =
@@ -162,26 +168,71 @@ export default class DayUptimeGraphUtil {
     const incidentCount: number = Math.max(data.incidentCount, 0);
     const hasIncidents: boolean = incidentCount > 0;
 
-    if (!data.hasEvents) {
-      return this.interpolate(
-        hasIncidents
-          ? labels.dayLabelNoDataWithIncidents
-          : labels.dayLabelNoData,
-        {
-          date: data.dateLabel,
-          total: String(incidentCount),
-        },
-      );
+    const label: string = !data.hasEvents
+      ? this.interpolate(
+          hasIncidents
+            ? labels.dayLabelNoDataWithIncidents
+            : labels.dayLabelNoData,
+          {
+            date: data.dateLabel,
+            total: String(incidentCount),
+          },
+        )
+      : this.interpolate(
+          hasIncidents ? labels.dayLabelWithIncidents : labels.dayLabel,
+          {
+            date: data.dateLabel,
+            uptime: this.formatUptimePercentForLabel(data.uptimePercent),
+            total: String(incidentCount),
+          },
+        );
+
+    const maintenanceCount: number = Math.max(data.maintenanceCount || 0, 0);
+
+    if (maintenanceCount === 0) {
+      return label;
     }
 
-    return this.interpolate(
-      hasIncidents ? labels.dayLabelWithIncidents : labels.dayLabel,
-      {
-        date: data.dateLabel,
-        uptime: this.formatUptimePercentForLabel(data.uptimePercent),
-        total: String(incidentCount),
-      },
-    );
+    return this.interpolate(labels.dayLabelWithMaintenance, {
+      label: label,
+      maintenance: this.getMaintenanceCountLabel({
+        count: maintenanceCount,
+        labels: labels,
+      }),
+    });
+  }
+
+  /*
+   * "1 scheduled maintenance event", "3 scheduled maintenance events": the
+   * count a day's accessible name and its dialog read out.
+   */
+  public static getMaintenanceCountLabel(data: {
+    count: number;
+    labels?: UptimeHistoryLabels | undefined;
+  }): string {
+    const labels: UptimeHistoryLabels =
+      data.labels || DefaultUptimeHistoryLabels;
+
+    const count: number = Math.max(Math.floor(data.count), 0);
+
+    if (count === 1) {
+      return labels.oneMaintenanceEvent;
+    }
+
+    return this.interpolate(labels.maintenanceEvents, {
+      total: String(count),
+    });
+  }
+
+  /*
+   * A label of the history filled in: {{name}} with its value, as i18next
+   * does. For the strings the history speaks beyond the bars' names.
+   */
+  public static fillLabel(
+    template: string,
+    values: Record<string, string>,
+  ): string {
+    return this.interpolate(template, values);
   }
 
   public static getGraphAriaLabel(data: {

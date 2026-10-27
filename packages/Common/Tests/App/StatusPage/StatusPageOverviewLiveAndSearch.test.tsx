@@ -946,7 +946,9 @@ describe("Status page overview - searching a large page with uptime history", ()
     ).toHaveTextContent("Offline");
     expect(screen.getByText("50overview.uptimeSuffix")).toBeInTheDocument();
     expect(
-      screen.getByText("Service 40").parentElement?.parentElement,
+      screen
+        .getByText("Service 40")
+        .closest("[data-testid='status-page-resource-header']"),
     ).toHaveTextContent("Offline");
     const recoveredChart: HTMLElement =
       screen.getAllByTestId("day-uptime-graph")[1]!;

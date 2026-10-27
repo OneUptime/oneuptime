@@ -20,6 +20,7 @@ import FormTargetType, {
   FORM_TARGET_TYPE_TEXT,
 } from "Common/Types/Form/FormTargetType";
 import MicrosoftTeamsCommands from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsCommands";
+import MicrosoftTeamsProjectChoice from "Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsProjectChoice";
 import MicrosoftTeamsHome, {
   MICROSOFT_TEAMS_HOME_ACTIONS,
   MICROSOFT_TEAMS_HOME_COMMAND,
@@ -1542,6 +1543,36 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     expect(englishPage(TEAMS)).not.toContain(
       `**${SLACK_HOME_PROJECT_MENU.placeholder}**`,
     );
+  });
+
+  /*
+   * A Microsoft 365 organization connected to several projects, where
+   * nothing a request carries tells which: the bot asks with a button for
+   * each project the sender is in, a card's button acts in the project the
+   * card was sent for, and a question's choice holds for its conversation's
+   * follow-ups for an hour (MicrosoftTeamsProjectChoice,
+   * MicrosoftTeamsCardProject).
+   */
+  it("says how the Teams bot asks which project, and how long a question's choice holds, as the bot does", () => {
+    const paragraph: string = lineStarting(
+      englishPage(TEAMS),
+      "One Microsoft 365 organization can be connected to more than one project,",
+    );
+
+    expect(paragraph).toContain(
+      "A card's button acts in the project the card was sent for",
+    );
+    expect(paragraph).toContain(
+      "the bot asks the sender which project they mean, with a button for each one they're in, and goes ahead there once they choose.",
+    );
+    expect(
+      MicrosoftTeamsProjectChoice.CONVERSATION_REMEMBERED_FOR_SECONDS,
+    ).toBe(60 * 60);
+    expect(paragraph).toContain(
+      "In a conversation with OneUptime AI, their choice holds for its follow-ups until an hour goes by without one.",
+    );
+    // The button the question offers is the project itself: no label to name.
+    expect(boldSpans(paragraph)).toEqual([]);
   });
 
   it("quotes the chats' refusals as the server words them", () => {

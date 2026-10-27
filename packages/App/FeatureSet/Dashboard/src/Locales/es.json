@@ -35845,5 +35845,8 @@
   "Each row is one recording of about a minute.": "Cada fila es una grabación de alrededor de un minuto.",
   "Created an alert": "Creó una alerta",
   "Creating alert": "Creando alerta",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "La IA de OneUptime ejecuta consultas reales sobre tus registros, trazas, métricas, incidentes, monitores y el monitoreo de usuarios reales (mostrando gráficos y tablas en línea) y puede crear incidentes y alertas o reconocerlos, siempre con tu aprobación."
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "La IA de OneUptime ejecuta consultas reales sobre tus registros, trazas, métricas, incidentes, monitores y el monitoreo de usuarios reales (mostrando gráficos y tablas en línea) y puede crear incidentes y alertas o reconocerlos, siempre con tu aprobación.",
+  "Maintenance markers are unavailable.": "Los marcadores de mantenimiento no están disponibles.",
+  "Maintenance markers need the uptime history, which did not load.": "Los marcadores de mantenimiento necesitan el historial de disponibilidad, que no se cargó.",
+  "You need permission to read scheduled maintenance.": "Necesitas permiso para leer el mantenimiento programado."
 }

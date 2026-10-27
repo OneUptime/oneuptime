@@ -1,0 +1,18 @@
+{
+  /*
+   * The project every file in this directory belongs to: exactly
+   * ../../tsconfig.tests.ui.json, the part of `npm run compile-tests` that
+   * type-checks Tests/UI. Its "include" is inherited and resolves against
+   * packages/Common, where it is written.
+   *
+   * It exists because TypeScript picks a file's project by the nearest
+   * tsconfig.json - editors, and ESLint's typed linting (projectService in
+   * eslint.config.js). Without it these files took ../tsconfig.json's
+   * program, and so did every other Common test: one program of every test
+   * and every source they reach. Scripts/Lint/LintByProject.js lints each
+   * program in an ESLint process of its own, and that one outgrew the
+   * process's 12 GB heap on 2026-10-27 (7,996 files; about 9 GB of it was
+   * the program, whichever files were linted). See ../tsconfig.json.
+   */
+  "extends": "../../tsconfig.tests.ui.json"
+}

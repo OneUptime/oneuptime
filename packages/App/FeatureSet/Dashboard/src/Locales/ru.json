@@ -15742,7 +15742,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "Плановое обслуживание",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35845,5 +35845,8 @@
   "Each row is one recording of about a minute.": "Каждая строка — одна запись длиной около минуты.",
   "Created an alert": "Оповещение создано",
   "Creating alert": "Создание оповещения",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI выполняет настоящие запросы к вашим журналам, трассировкам, метрикам, инцидентам, мониторам и мониторингу реальных пользователей — с графиками и таблицами прямо в беседе — и может создавать инциденты и оповещения или подтверждать их, всегда с вашего одобрения."
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI выполняет настоящие запросы к вашим журналам, трассировкам, метрикам, инцидентам, мониторам и мониторингу реальных пользователей — с графиками и таблицами прямо в беседе — и может создавать инциденты и оповещения или подтверждать их, всегда с вашего одобрения.",
+  "Maintenance markers are unavailable.": "Отметки обслуживания недоступны.",
+  "Maintenance markers need the uptime history, which did not load.": "Для отметок обслуживания нужна история доступности, но она не загрузилась.",
+  "You need permission to read scheduled maintenance.": "Нужно разрешение на просмотр планового обслуживания."
 }

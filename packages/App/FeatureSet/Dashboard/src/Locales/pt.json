@@ -15742,7 +15742,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "Manutenção programada",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35845,5 +35845,8 @@
   "Each row is one recording of about a minute.": "Cada linha é uma gravação de cerca de um minuto.",
   "Created an alert": "Criou um alerta",
   "Creating alert": "Criando alerta",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "A IA do OneUptime executa consultas reais nos seus registros, traços, métricas, incidentes, monitores e no monitoramento de usuários reais — mostrando gráficos e tabelas na própria conversa — e pode criar incidentes e alertas ou confirmá-los, sempre com a sua aprovação."
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "A IA do OneUptime executa consultas reais nos seus registros, traços, métricas, incidentes, monitores e no monitoramento de usuários reais — mostrando gráficos e tabelas na própria conversa — e pode criar incidentes e alertas ou confirmá-los, sempre com a sua aprovação.",
+  "Maintenance markers are unavailable.": "Os marcadores de manutenção não estão disponíveis.",
+  "Maintenance markers need the uptime history, which did not load.": "Os marcadores de manutenção precisam do histórico de disponibilidade, que não foi carregado.",
+  "You need permission to read scheduled maintenance.": "Você precisa de permissão para ler a manutenção programada."
 }

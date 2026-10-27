@@ -42,8 +42,12 @@
  *     every error, as the single program did, and the exit code is non-zero
  *     if any part failed.
  *
- * tsconfig.tests.json itself stays the whole program: it is what editors and
- * ESLint's typed linting use for a Common test (through Tests/tsconfig.json).
+ * tsconfig.tests.json itself stays the whole program, which the parts must
+ * cover. Editors and ESLint's typed linting use the parts too, since
+ * 2026-10-27: Tests/App/tsconfig.json, Tests/UI/tsconfig.json and
+ * Tests/tsconfig.json (the rest) each extend one, because ESLint linting the
+ * whole program in one process ran out of its 12 GB heap. A part added here
+ * gets a tsconfig.json of its own in its directory, the same way.
  *
  * Arguments are passed on to every tsc run, e.g.
  * `npm run compile-tests -- --extendedDiagnostics`.

@@ -15742,7 +15742,7 @@
   "Scheduled Maintenance Reminder Rules": "Scheduled Maintenance Reminder Rules",
   "Scheduled Maintenance State ID": "Scheduled Maintenance State ID",
   "Scheduled State": "Scheduled State",
-  "Scheduled maintenance": "Scheduled maintenance",
+  "Scheduled maintenance": "排定維護",
   "Scheduled polling": "Scheduled polling",
   "ScheduledMaintenance": "ScheduledMaintenance",
   "ScheduledMaintenance ID": "ScheduledMaintenance ID",
@@ -35845,5 +35845,8 @@
   "Each row is one recording of about a minute.": "每一列是一次約一分鐘的記錄。",
   "Created an alert": "已建立警示",
   "Creating alert": "正在建立警示",
-  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI 會對你的日誌、追蹤、指標、事件、監測器與真實使用者監測執行真實查詢，並直接顯示圖表與表格，也能建立事件與警示或確認它們，一律需經你核准。"
+  "OneUptime AI runs real queries against your logs, traces, metrics, incidents, monitors and Real User Monitoring — rendering charts and tables inline — and can create incidents and alerts or acknowledge them, always with your approval.": "OneUptime AI 會對你的日誌、追蹤、指標、事件、監測器與真實使用者監測執行真實查詢，並直接顯示圖表與表格，也能建立事件與警示或確認它們，一律需經你核准。",
+  "Maintenance markers are unavailable.": "維護標記無法使用。",
+  "Maintenance markers need the uptime history, which did not load.": "維護標記需要可用性歷史，但未能載入。",
+  "You need permission to read scheduled maintenance.": "您需要讀取排定維護的權限。"
 }
