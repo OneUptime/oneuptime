@@ -207,6 +207,11 @@ function valueRow(section: Locator, name: string): Locator {
   return section.getByRole("checkbox", { name: name, exact: true });
 }
 
+// A value of a choice of one (the traces Span Type): a radio named for it.
+function choice(section: Locator, name: string): Locator {
+  return section.getByRole("radio", { name: name, exact: true });
+}
+
 // The fixture's id for one of the explorers' services, by name.
 async function serviceId(page: Page, name: string): Promise<string> {
   const services: Array<{ id: string; name: string }> = await page.evaluate(
@@ -334,24 +339,26 @@ test.describe("Traces explorer: a facet value clicks on and off", () => {
       .toBeUndefined();
   });
 
-  test("Span Type: 'Root spans' turns root-only on, and a second click turns it off", async ({
+  test("Span Type: Entry spans to start, Root spans when clicked, and Entry spans again from its own row", async ({
     page,
   }: {
     page: Page;
   }) => {
     await open(page, TRACES_PATH);
 
-    const rootSpans: Locator = valueRow(
-      facetSection(page, "Span Type"),
-      "Root spans",
-    );
-    await expect(rootSpans).toHaveAttribute("aria-checked", "false", {
+    // A choice of one: radio buttons, Entry spans chosen by default.
+    const section: Locator = facetSection(page, "Span Type");
+    const entrySpans: Locator = choice(section, "Entry spans");
+    const rootSpans: Locator = choice(section, "Root spans");
+    await expect(entrySpans).toHaveAttribute("aria-checked", "true", {
       timeout: 30000,
     });
+    await expect(rootSpans).toHaveAttribute("aria-checked", "false");
 
     await rootSpans.click();
 
     await expect(rootSpans).toHaveAttribute("aria-checked", "true");
+    await expect(entrySpans).toHaveAttribute("aria-checked", "false");
     await expect
       .poll(async () => {
         return (await lastBodyTo(page, "/telemetry/traces/facets"))?.[
@@ -360,10 +367,22 @@ test.describe("Traces explorer: a facet value clicks on and off", () => {
       })
       .toBe(true);
 
-    // REGRESSION: it could only ever be turned on from its row.
+    // The chosen one again changes nothing: there is no "none" to go to.
     await rootSpans.click();
+    await expect(rootSpans).toHaveAttribute("aria-checked", "true");
 
+    // The default is chosen back from its own row.
+    await entrySpans.click();
+
+    await expect(entrySpans).toHaveAttribute("aria-checked", "true");
     await expect(rootSpans).toHaveAttribute("aria-checked", "false");
+    await expect
+      .poll(async () => {
+        return (await lastBodyTo(page, "/telemetry/traces/facets"))?.[
+          "entryOnly"
+        ];
+      })
+      .toBe(true);
     await expect
       .poll(async () => {
         return (await lastBodyTo(page, "/telemetry/traces/facets"))?.[

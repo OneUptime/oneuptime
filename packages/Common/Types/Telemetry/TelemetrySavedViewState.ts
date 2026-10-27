@@ -33,7 +33,19 @@ export default interface TelemetrySavedViewState {
   timeRange?: TelemetrySavedViewTimeRange | undefined;
   // Rows per page.
   pageSize?: number | undefined;
-  // Traces explorer: root-spans-only toggle (defaults to true when absent).
+  /*
+   * Traces explorer: which spans the view lists - a TraceSpanType ("entry",
+   * "root" or "all"). Read it with readTraceSpanTypeFromSavedView
+   * (Types/Telemetry/TraceSpanType), which reads views saved before it by
+   * their `rootOnly`.
+   */
+  spanType?: string | undefined;
+  /*
+   * Traces explorer, before spanType: the root-spans-only toggle. true is
+   * Root spans; false is every span, which is what a view saved with it off
+   * showed. Still written (true exactly for Root spans) for readers that
+   * only know it.
+   */
   rootOnly?: boolean | undefined;
   /*
    * Metrics explorer: the full chart-builder state — MetricsViewConfig-

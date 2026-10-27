@@ -44,6 +44,8 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { resolveReplayMomentRouteForSession } from "../../../Utils/RumSessionLookup";
 import SpanUtil from "../../../Utils/SpanUtil";
+import { isEntrySpan } from "Common/Utils/Telemetry/EntrySpan";
+import { TraceSpanType } from "Common/Types/Telemetry/TraceSpanType";
 import {
   ProfilePresenceGate,
   buildExceptionsGroupRoute,
@@ -510,6 +512,17 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
     ...(isLlmSpan ? [{ id: "ai" as PanelTab, label: "LLM", count: null }] : []),
   ];
 
+  /*
+   * The explorer lists entry spans unless told otherwise. A search from an
+   * entry span finds its like there; one from a call or a step (a database
+   * span's statement, a Redis command's key) is on no entry span, so it asks
+   * for every span rather than land on an empty list.
+   */
+  const searchesEverySpan: boolean = !isEntrySpan({
+    isRootSpan: !span.parentSpanId,
+    kind: span.kind,
+  });
+
   const getAttributeSearchRoute: (entry: AttributeEntry) => Route = (
     entry: AttributeEntry,
   ): Route => {
@@ -520,6 +533,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
       search: encodeURIComponent(
         buildAttributeSearchQuery(entry.key, entry.value),
       ),
+      ...(searchesEverySpan ? { spanType: TraceSpanType.All } : {}),
     });
   };
 

@@ -503,8 +503,11 @@ describe("when the total cannot be counted", () => {
 });
 
 describe("the rows are named for what they are", () => {
-  test("every span: the total, the footer and the chart say spans", async () => {
+  test("entry spans, the default: counted as entry spans, and the total, the footer and the chart say spans", async () => {
     await renderExplorer();
+
+    expect(heldCounts[0]!.args[1]["isEntrySpan"]).toBe(true);
+    expect(heldCounts[0]!.args[1]["isRootSpan"]).toBeUndefined();
     await answerCount(0, 712345);
 
     expect(resultTotalText()).toBe("712,345 spans");
@@ -512,10 +515,23 @@ describe("the rows are named for what they are", () => {
     expect(screen.queryByText("Traces over time")).toBeNull();
   });
 
+  test("every span: nothing narrows the count, and it says spans", async () => {
+    await renderExplorer("/?spanType=all");
+
+    expect(heldCounts[0]!.args[1]["isEntrySpan"]).toBeUndefined();
+    expect(heldCounts[0]!.args[1]["isRootSpan"]).toBeUndefined();
+    await answerCount(0, 9000001);
+
+    expect(resultTotalText()).toBe("9,000,001 spans");
+    expect(screen.getByText("Spans over time")).toBeInTheDocument();
+  });
+
   test("root spans only: one row per trace, so they are counted as traces", async () => {
+    // A link from before the three-way choice still opens Root spans.
     await renderExplorer("/?rootOnly=true");
 
     expect(heldCounts[0]!.args[1]["isRootSpan"]).toBe(true);
+    expect(heldCounts[0]!.args[1]["isEntrySpan"]).toBeUndefined();
     await answerCount(0, 68811);
 
     expect(resultTotalText()).toBe("68,811 traces");

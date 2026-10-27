@@ -194,6 +194,24 @@ import {
   getSpanStatusDisplayLabelMap,
   getSpanStatusPresentation,
 } from "../../Utils/SpanStatusPresentation";
+import {
+  DEFAULT_TRACE_SPAN_TYPE,
+  TRACE_SPAN_TYPE_HELP,
+  TRACE_SPAN_TYPE_OPTIONS,
+  TraceSpanType,
+  TraceSpanTypeOption,
+  buildTraceSpanTypeFacetValues,
+  buildTraceSpanTypeUrlParams,
+  getTraceSpanTypeChartTitle,
+  getTraceSpanTypeItemLabel,
+  getTraceSpanTypeLabel,
+  getTraceSpanTypeQuery,
+  getTraceSpanTypeRequestFlags,
+  parseTraceSpanType,
+  readTraceSpanTypeFromSavedView,
+  readTraceSpanTypeFromUrl,
+  toTraceSpanTypeSavedViewFields,
+} from "Common/Types/Telemetry/TraceSpanType";
 
 const DEFAULT_PAGE_SIZE: number = 50;
 const LIVE_POLL_INTERVAL_MS: number = 10000;
@@ -205,14 +223,15 @@ const TOOLBAR_BUTTON_IDLE_CLASS_NAME: string =
   "text-gray-600 hover:bg-gray-100 hover:text-gray-900";
 
 /*
- * Synthetic "Span Type" facet. It is not a real Span column — selecting its
- * single "Root spans" value drives the `rootOnly` state (restricting the view
- * to root spans), rather than adding a normal filter chip. This facet is the
- * sole control for root-only mode. Kept distinct from the backend `isRootSpan`
- * key so it never collides with generic column-chip query building.
+ * Synthetic "Span Type" facet: a choice of one - Entry spans (the default),
+ * Root spans or All spans (Types/Telemetry/TraceSpanType). It is not a Span
+ * column: choosing a value drives the `spanType` state, which compiles to
+ * isEntrySpan / isRootSpan / nothing, rather than adding a filter chip. This
+ * facet is the sole control for it. Kept distinct from the backend
+ * `isEntrySpan` / `isRootSpan` keys so it never collides with generic
+ * column-chip query building.
  */
 const SPAN_TYPE_FACET_KEY: string = "spanType";
-const SPAN_TYPE_ROOT_VALUE: string = "root";
 
 async function postApi(
   path: string,
@@ -384,7 +403,8 @@ interface InitialUrlState {
   page: number;
   pageSize: number;
   viewMode: "spans" | "analytics";
-  rootOnly: boolean;
+  // Which spans the list shows: Entry (the default), Root or All spans.
+  spanType: TraceSpanType;
   /*
    * The saved view the link named. Written by this explorer when one is
    * selected, and carried onto the Insights tab and back so a round trip
@@ -408,7 +428,7 @@ interface InitialUrlState {
  * Defensive: malformed JSON, unknown enum values, or non-numeric page values
  * all fall back to defaults rather than throwing.
  */
-function readInitialUrlState(): InitialUrlState {
+function readInitialUrlState(defaultSpanType: TraceSpanType): InitialUrlState {
   const params: URLSearchParams = new URLSearchParams(window.location.search);
 
   const rawSearch: string | null = params.get("search");
@@ -490,11 +510,21 @@ function readInitialUrlState(): InitialUrlState {
     params.get("view") === "analytics" ? "analytics" : "spans";
 
   /*
-   * Show all spans by default; only `rootOnly=true` restricts to root spans.
-   * Downstream services (e.g. a callee behind a gateway/queue) never own the
-   * trace root, so a root-only default would hide all their spans.
+   * Entry spans by default: where a request or message enters a service - a
+   * root span, or a SERVER or CONSUMER span whatever its parent. Not root
+   * spans: downstream services (a callee behind a gateway or a queue) never
+   * own the trace root, so a root-only default would hide all their spans.
+   * Not every span either: database calls, eBPF's "in queue" / "processing"
+   * steps and Redis commands would bury the requests. `spanType=root` /
+   * `spanType=all` pick the others, and a link from before them
+   * (`rootOnly=true`) still opens Root spans.
    */
-  const rootOnly: boolean = params.get("rootOnly") === "true";
+  const spanType: TraceSpanType = readTraceSpanTypeFromUrl(
+    (name: string): string | null => {
+      return params.get(name);
+    },
+    defaultSpanType,
+  );
 
   const hasRange: boolean = Boolean(params.get("range"));
 
@@ -511,7 +541,7 @@ function readInitialUrlState(): InitialUrlState {
     page,
     pageSize,
     viewMode,
-    rootOnly,
+    spanType,
     savedViewId,
     hasRange,
   };
@@ -630,6 +660,16 @@ interface Props {
    */
   exceptionScope?: ExceptionSpanScope | undefined;
   exceptionScopeLabel?: string | undefined;
+  /*
+   * Which spans the list opens on when neither the URL nor a saved view says
+   * - and what clearing the Span Type choice returns to. Entry spans unless
+   * set: the spans where requests and messages enter a service. A page whose
+   * scope is the CALLS to something (a database's or a queue's spans are
+   * client and producer spans) sets All spans, or it would open empty. A
+   * host-owned view (a pinned snapshot, an exception's spans) shows every
+   * span it matched, whatever this says.
+   */
+  defaultSpanType?: TraceSpanType | undefined;
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
@@ -683,6 +723,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   );
 
   /*
+   * What the Span Type choice starts on and goes back to when cleared. A
+   * host-owned view is a snapshot of what something matched - a monitor's
+   * spans, an exception's - so it shows every span; anything else lists
+   * entry spans unless its page says otherwise (see defaultSpanType).
+   */
+  const defaultSpanType: TraceSpanType = hostOwnsView
+    ? TraceSpanType.All
+    : props.defaultSpanType || DEFAULT_TRACE_SPAN_TYPE;
+
+  /*
    * Parse all filter state from the URL once on first mount. The trace span
    * panel's "find traces" action lands here with `?search=...` so users arrive with
    * the filter applied; refresh and back-from-trace-detail also rely on
@@ -705,12 +755,12 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         pageSize: props.limit || DEFAULT_PAGE_SIZE,
         viewMode: "spans",
         // Host scope may pin it; a snapshot otherwise shows every span it matched.
-        rootOnly: spanScope.rootOnly,
+        spanType: spanScope.rootOnly ? TraceSpanType.Root : defaultSpanType,
         savedViewId: null,
         hasRange: Boolean(pinnedTimeRange || props.timeRangeOverride),
       };
     }
-    return readInitialUrlState();
+    return readInitialUrlState(defaultSpanType);
   });
 
   /*
@@ -881,11 +931,15 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   );
 
   /*
-   * Root-spans-only (default). Switching it off includes non-root spans —
-   * needed when the endpoint span carrying http.route / url.host is not the
-   * trace root (e.g. behind a queue consumer or an upstream gateway).
+   * Which spans the list shows (the Span Type facet): Entry spans by default
+   * - a root span, or a SERVER or CONSUMER span, so a service behind a
+   * gateway or a queue still lists the requests it served - Root spans for
+   * one row per trace, or All spans for every database call and internal
+   * step as well.
    */
-  const [rootOnly, setRootOnly] = useState<boolean>(initialUrlState.rootOnly);
+  const [spanType, setSpanType] = useState<TraceSpanType>(
+    initialUrlState.spanType,
+  );
 
   /*
    * Metric for the explorer's over-time chart: span counts (stacked by
@@ -974,11 +1028,10 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   }, [services]);
 
   const baseQuery: Query<Span> = useMemo(() => {
-    const query: Query<Span> = {};
-
-    if (rootOnly) {
-      query.isRootSpan = true;
-    }
+    // isEntrySpan, isRootSpan, or nothing for every span.
+    const query: Query<Span> = {
+      ...getTraceSpanTypeQuery(spanType),
+    } as Query<Span>;
 
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
     if (projectId) {
@@ -1353,7 +1406,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     timeRange,
     activeFilters,
     submittedSearch,
-    rootOnly,
+    spanType,
   ]);
 
   const listSelect: Select<Span> = useMemo(() => {
@@ -1425,8 +1478,17 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     if (viewMode === "analytics") {
       params.set("view", "analytics");
     }
-    if (rootOnly) {
-      params.set("rootOnly", "true");
+    /*
+     * The span type unless it is this view's default, so a plain link stays
+     * plain; an old `rootOnly` is not written again (the writer removes it).
+     */
+    const spanTypeParams: Dictionary<string | null> =
+      buildTraceSpanTypeUrlParams(spanType, defaultSpanType);
+    for (const name of Object.keys(spanTypeParams)) {
+      const value: string | null = spanTypeParams[name] ?? null;
+      if (value) {
+        params.set(name, value);
+      }
     }
     if (selectedSavedViewId) {
       params.set("savedView", selectedSavedViewId);
@@ -1441,7 +1503,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     page,
     pageSize,
     viewMode,
-    rootOnly,
+    spanType,
+    defaultSpanType,
     selectedSavedViewId,
   ]);
 
@@ -1700,7 +1763,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         const payload: JSONObject = {
           startTime: dateRange.startValue.toISOString(),
           endTime: dateRange.endValue.toISOString(),
-          rootOnly: rootOnly,
+          // The same spans the list shows: rootOnly / entryOnly.
+          ...getTraceSpanTypeRequestFlags(spanType),
         };
 
         // Collect filter values from both active facet filters and parsed search
@@ -2005,7 +2069,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         // The host's props by value, not by identity (see hostScopeKey).
         hostScopeKey,
         spanScope,
-        rootOnly,
+        spanType,
       ],
     );
 
@@ -2087,7 +2151,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         ...RESOURCE_FACET_CATALOG_KEYS,
         "statusCode",
         "kind",
-        // Backs the "Span Type" facet (root vs non-root counts).
+        /*
+         * Back the "Span Type" facet: exact entry-span and root-span counts,
+         * both over every span (the span type chosen is ignored).
+         */
+        "isEntrySpan",
         "isRootSpan",
         // Backs the "Has Exception" facet (exact exception-span counts).
         "hasException",
@@ -2204,20 +2272,16 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       }
 
       /*
-       * Span Type facet: collapse the backend's root/non-root buckets into a
-       * single "Root spans" choice whose count is the exact number of root
-       * spans in the window. Selecting it drives the same `rootOnly` state as
-       * the toolbar toggle (see SPAN_TYPE_FACET_KEY handling); leaving it
-       * unselected shows all spans (the default).
+       * Span Type facet: the backend's entry and root buckets become its
+       * three choices - Entry spans, Root spans and All spans - each with the
+       * exact number of such spans in the window. Choosing one drives the
+       * `spanType` state (see SPAN_TYPE_FACET_KEY handling).
        */
-      const rootSpanBucket: FacetValue | undefined = facetsRaw[
-        "isRootSpan"
-      ]?.find((f: FacetValue): boolean => {
-        return f.value === "true" || f.value === "1";
+      mappedFacets[SPAN_TYPE_FACET_KEY] = buildTraceSpanTypeFacetValues({
+        isEntrySpan: facetsRaw["isEntrySpan"],
+        isRootSpan: facetsRaw["isRootSpan"],
       });
-      mappedFacets[SPAN_TYPE_FACET_KEY] = [
-        { value: SPAN_TYPE_ROOT_VALUE, count: rootSpanBucket?.count ?? 0 },
-      ];
+      delete mappedFacets["isEntrySpan"];
       delete mappedFacets["isRootSpan"];
 
       /*
@@ -2235,17 +2299,30 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       ];
       setFacetData(mappedFacets);
 
-      // The server names isRootSpan; the sidebar shows it as Span Type.
+      // The server names isEntrySpan / isRootSpan; the sidebar, Span Type.
       const stopped: Array<string> = facetsResult.value.timedOutFacets;
       setTimedOutFacets(
-        stopped.map((facetKey: string): string => {
-          return facetKey === "isRootSpan" ? SPAN_TYPE_FACET_KEY : facetKey;
-        }),
+        Array.from(
+          new Set<string>(
+            stopped.map((facetKey: string): string => {
+              return facetKey === "isRootSpan" || facetKey === "isEntrySpan"
+                ? SPAN_TYPE_FACET_KEY
+                : facetKey;
+            }),
+          ),
+        ),
       );
       setFacetError(undefined);
     } else {
-      setFacetData({});
-      setTimedOutFacets([]);
+      /*
+       * The Span Type choice still offers its three answers, uncounted: it
+       * is how the list is scoped, and the reader must be able to change it
+       * while the counts are failing.
+       */
+      setFacetData({
+        [SPAN_TYPE_FACET_KEY]: buildTraceSpanTypeFacetValues({}),
+      });
+      setTimedOutFacets([SPAN_TYPE_FACET_KEY]);
       setFacetError(TelemetryLoadErrorUtil.fromError(facetsResult.reason));
     }
 
@@ -2392,14 +2469,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         priority: 6,
       },
       /*
-       * Span Type: a single "Root spans" choice that toggles root-only mode.
-       * Selecting it scopes to root spans (trace entry points); leaving it
-       * unselected shows all spans. Count is the exact number of root spans.
+       * Span Type: a choice of one - Entry spans (the default), Root spans,
+       * All spans - drawn as radio buttons, each with the exact count of
+       * such spans in the window, and one line saying what each is.
+       * Choosing one drives `spanType`, not a chip.
        */
       {
         key: SPAN_TYPE_FACET_KEY,
         title: "Span Type",
-        valueDisplayMap: { [SPAN_TYPE_ROOT_VALUE]: "Root spans" },
+        valueDisplayMap: Object.fromEntries(
+          TRACE_SPAN_TYPE_OPTIONS.map(
+            (option: TraceSpanTypeOption): [string, string] => {
+              return [option.value, option.label];
+            },
+          ),
+        ),
+        chosenValue: spanType,
+        description: TRACE_SPAN_TYPE_HELP,
         priority: 6.5,
       },
       /*
@@ -2449,7 +2535,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         priority: 9,
       },
     ];
-  }, [services, hosts, dockerHosts, podmanHosts, kubernetesClusters]);
+  }, [services, hosts, dockerHosts, podmanHosts, kubernetesClusters, spanType]);
 
   // Histogram series — status-stacked counts, or a single latency series.
   const histogramSeries: Array<HistogramSeriesOption> = useMemo(() => {
@@ -2488,11 +2574,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     useCallback(
       (facetKey: string, value: string) => {
         /*
-         * Span Type is a synthetic facet: selecting "Root spans" sets
-         * rootOnly instead of adding a filter chip.
+         * Span Type is a synthetic facet: choosing Entry, Root or All spans
+         * sets spanType instead of adding a filter chip.
          */
         if (facetKey === SPAN_TYPE_FACET_KEY) {
-          setRootOnly(value === SPAN_TYPE_ROOT_VALUE);
+          setSpanType(parseTraceSpanType(value) || defaultSpanType);
           setPage(1);
           return;
         }
@@ -2556,37 +2642,40 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         });
         setPage(1);
       },
-      [facetConfigs, facetData],
+      [facetConfigs, facetData, defaultSpanType],
     );
 
   const handleRemoveFilter: (facetKey: string, value: string) => void =
-    useCallback((facetKey: string, value: string) => {
-      /*
-       * Removing the synthetic Span Type chip clears the root-only scope back
-       * to the default (all spans) — it lives in rootOnly, not activeFilters.
-       */
-      if (facetKey === SPAN_TYPE_FACET_KEY) {
-        setRootOnly(false);
-        setPage(1);
-        return;
-      }
-      setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
-        return prev.filter((f: ActiveFilter): boolean => {
-          return !(f.facetKey === facetKey && f.value === value);
+    useCallback(
+      (facetKey: string, value: string) => {
+        /*
+         * Removing the synthetic Span Type chip puts the span type back to the
+         * default (entry spans) — it lives in spanType, not activeFilters.
+         */
+        if (facetKey === SPAN_TYPE_FACET_KEY) {
+          setSpanType(defaultSpanType);
+          setPage(1);
+          return;
+        }
+        setActiveFilters((prev: Array<ActiveFilter>): Array<ActiveFilter> => {
+          return prev.filter((f: ActiveFilter): boolean => {
+            return !(f.facetKey === facetKey && f.value === value);
+          });
         });
-      });
-      setPage(1);
-    }, []);
+        setPage(1);
+      },
+      [defaultSpanType],
+    );
 
   const handleClearAllFilters: () => void = useCallback(() => {
     setActiveFilters([]);
     /*
-     * Span Type lives in rootOnly, not activeFilters — clear it too so "Clear
-     * all" truly resets every chip (incl. the synthetic "Root spans" one).
+     * Span Type lives in spanType, not activeFilters — reset it too so "Clear
+     * all" truly resets every chip (incl. the synthetic Span Type one).
      */
-    setRootOnly(false);
+    setSpanType(defaultSpanType);
     setPage(1);
-  }, []);
+  }, [defaultSpanType]);
 
   /*
    * Server-resolved facet display names (Services, for the primaryEntityId
@@ -2839,33 +2928,41 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   ]);
 
   /*
-   * The locked chips, then the user's own, then the root-only marker.
+   * The locked chips, then the user's own, then the span type marker.
    */
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
     /*
-     * Surface the root-only scope as a (removable) chip so the Span Type facet
-     * row shows selected and the active-filter bar reflects it. It lives in
-     * `rootOnly`, not `activeFilters`, so it's injected here for display only —
-     * removing it routes to handleRemoveFilter, which clears rootOnly. Shown
-     * only when active; the default (all spans) is the no-chip state, matching
-     * every other facet.
+     * Surface a span type the reader chose (Root spans, All spans) as a
+     * removable chip, so the active-filter bar says the list is not the
+     * default and the analytics view, which has no sidebar, still shows it.
+     * It lives in `spanType`, not `activeFilters`, so it's injected here for
+     * display only — removing it routes to handleRemoveFilter, which puts
+     * the default back. The default (entry spans) is the no-chip state, as
+     * for every other facet; the sidebar shows it chosen.
      */
-    const spanTypeChip: Array<ActiveFilter> = rootOnly
-      ? [
-          {
-            facetKey: SPAN_TYPE_FACET_KEY,
-            value: SPAN_TYPE_ROOT_VALUE,
-            displayKey: "Span Type",
-            displayValue: "Root spans",
-          },
-        ]
-      : [];
+    const spanTypeChip: Array<ActiveFilter> =
+      spanType !== defaultSpanType
+        ? [
+            {
+              facetKey: SPAN_TYPE_FACET_KEY,
+              value: spanType,
+              displayKey: "Span Type",
+              displayValue: getTraceSpanTypeLabel(spanType),
+            },
+          ]
+        : [];
     return [
       ...lockedChips,
       ...activeFilters.map(resolveChipDisplay),
       ...spanTypeChip,
     ];
-  }, [lockedChips, activeFilters, resolveChipDisplay, rootOnly]);
+  }, [
+    lockedChips,
+    activeFilters,
+    resolveChipDisplay,
+    spanType,
+    defaultSpanType,
+  ]);
 
   /*
    * "Create metric…" from the analytics view — prefill a Trace Recording
@@ -3065,7 +3162,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         searchAttributes,
         searchAttributeSearches,
         freeText: parsed.freeText,
-        rootOnly,
+        /*
+         * Only Root spans is a narrowing to name: Entry spans is the list
+         * when nobody chose, and All spans narrows nothing.
+         */
+        rootOnly: spanType === TraceSpanType.Root,
         hasEntityScope: Boolean(
           props.entityScope ||
             (props.entityKeysFilter && props.entityKeysFilter.length > 0),
@@ -3089,7 +3190,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       timeRange,
       submittedSearch,
       activeFilters,
-      rootOnly,
+      spanType,
       props.primaryEntityId,
       props.attributeFilters,
       props.entityScope,
@@ -3227,41 +3328,50 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         }),
         timeRange: serializeSavedViewTimeRange(timeRange),
         pageSize: pageSize,
-        rootOnly: rootOnly,
+        // spanType, and rootOnly for readers that only know it.
+        ...toTraceSpanTypeSavedViewFields(spanType),
       };
-    }, [submittedSearch, activeFilters, timeRange, pageSize, rootOnly]);
+    }, [submittedSearch, activeFilters, timeRange, pageSize, spanType]);
 
   // Apply a saved view's state back into the explorer.
   const applySavedViewState: (state: TelemetrySavedViewState) => void =
-    useCallback((state: TelemetrySavedViewState): void => {
-      const nextSearch: string = state.search || "";
-      setSearchValue(nextSearch);
-      setSubmittedSearch(nextSearch);
-      setActiveFilters(
-        readSavedViewFilters(state.filters).map(
-          ([facetKey, value]: SavedViewFilterTuple): ActiveFilter => {
-            return {
-              facetKey: facetKey,
-              value: value,
-              displayKey: facetKey,
-              displayValue: value,
-            };
-          },
-        ),
-      );
-      setTimeRange(deserializeSavedViewTimeRange(state.timeRange));
-      /*
-       * Unconditional, like every other field here: a view saved before page
-       * size was captured falls back to the default, and so does the empty
-       * state the saved-views control applies when a view is cleared. Guarding
-       * this one left the cleared explorer on the view's page size — and, via
-       * the URL mirror, still advertising it in the query string.
-       */
-      setPageSize(state.pageSize || DEFAULT_PAGE_SIZE);
-      // Views saved before the toggle existed default to showing all spans.
-      setRootOnly(state.rootOnly ?? false);
-      setPage(1);
-    }, []);
+    useCallback(
+      (state: TelemetrySavedViewState): void => {
+        const nextSearch: string = state.search || "";
+        setSearchValue(nextSearch);
+        setSubmittedSearch(nextSearch);
+        setActiveFilters(
+          readSavedViewFilters(state.filters).map(
+            ([facetKey, value]: SavedViewFilterTuple): ActiveFilter => {
+              return {
+                facetKey: facetKey,
+                value: value,
+                displayKey: facetKey,
+                displayValue: value,
+              };
+            },
+          ),
+        );
+        setTimeRange(deserializeSavedViewTimeRange(state.timeRange));
+        /*
+         * Unconditional, like every other field here: a view saved before page
+         * size was captured falls back to the default, and so does the empty
+         * state the saved-views control applies when a view is cleared. Guarding
+         * this one left the cleared explorer on the view's page size — and, via
+         * the URL mirror, still advertising it in the query string.
+         */
+        setPageSize(state.pageSize || DEFAULT_PAGE_SIZE);
+        /*
+         * A view shows the spans it was saved with. One saved before the
+         * three-way choice says rootOnly: true is Root spans and false, every
+         * span. The empty state a cleared view applies (and a view from before
+         * either) opens the default, entry spans.
+         */
+        setSpanType(readTraceSpanTypeFromSavedView(state, defaultSpanType));
+        setPage(1);
+      },
+      [defaultSpanType],
+    );
 
   /*
    * The half of the host's scope the aggregation payload cannot express. The
@@ -3276,12 +3386,23 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
    * empty list that no filter or search narrows shows in place of "try
    * adjusting filters".
    */
-  const offersFirstSteps: boolean = showsTelemetryFirstSteps({
-    hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
-    isEmpty: true,
-    filterCount: activeFilters.length,
-    searchText: submittedSearch,
-  });
+  /*
+   * Every span in the window, from the Span Type facet's All spans count. A
+   * list of entry or root spans that is empty over spans that exist is not a
+   * project sending nothing: it offers every span, not the setup guide.
+   */
+  const spansInWindow: number =
+    facetData[SPAN_TYPE_FACET_KEY]?.find((facet: FacetValue): boolean => {
+      return facet.value === TraceSpanType.All;
+    })?.count || 0;
+
+  const offersFirstSteps: boolean =
+    showsTelemetryFirstSteps({
+      hasFirstSteps: Boolean(props.offersSetupWhenEmpty),
+      isEmpty: true,
+      filterCount: activeFilters.length,
+      searchText: submittedSearch,
+    }) && !(spanType !== TraceSpanType.All && spansInWindow > 0);
 
   /*
    * Whether the first steps show: the list's read came back with no span.
@@ -3426,9 +3547,9 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             )}
           </div>
           {/*
-           * The root-spans-only toggle lives in the "Span Type" facet
-           * (sidebar), which drives the same `rootOnly` state — so no separate
-           * toolbar button is needed here.
+           * Which spans the list shows (entry / root / all) is the "Span
+           * Type" facet (sidebar), and in the analytics view its own select -
+           * so no separate toolbar button is needed here.
            */}
         </>
       }
@@ -3444,14 +3565,45 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
               props.onTimeRangeChange?.(value);
             }}
           />
+        ) : spanType !== TraceSpanType.All ? (
+          /*
+           * A list of entry or root spans can be empty where spans are not:
+           * a database's or a worker's spans are all calls and steps. It says
+           * which spans it looked for, and every span is one click away.
+           */
+          <div
+            className="flex h-48 flex-col items-center justify-center gap-2 px-6 text-center"
+            data-testid="traces-span-type-empty-state"
+          >
+            <Icon icon={IconProp.Search} className="h-8 w-8 text-gray-300" />
+            <p className="text-sm font-medium text-gray-500">
+              {props.emptyMessage ||
+                `No ${getTraceSpanTypeLabel(spanType).toLowerCase()} found`}
+            </p>
+            <p className="text-xs text-gray-400">
+              Try adjusting filters or time range, or show every span, including
+              database calls and internal steps.
+            </p>
+            <button
+              type="button"
+              className="mt-1 inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+              onClick={() => {
+                setSpanType(TraceSpanType.All);
+                setPage(1);
+              }}
+            >
+              Show all spans
+            </button>
+          </div>
         ) : undefined
       }
       /*
        * Each row is a span, so a count of them is a count of spans — called
        * "traces" it read as roughly ten times the traffic it was. Limited to
-       * root spans, each row is one trace's entry point, and they are traces.
+       * root spans, each row is one trace's entry point, and they are traces;
+       * entry spans are counted as such.
        */
-      itemLabel={rootOnly ? "traces" : "spans"}
+      itemLabel={getTraceSpanTypeItemLabel(spanType)}
       renderRow={(span: Span): ReactElement => {
         /*
          * A loaded Service renders exactly as before; any other entity (a RUM
@@ -3623,9 +3775,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
        */
       histogramTitle={
         chartMetric === "count"
-          ? rootOnly
-            ? "Traces over time"
-            : "Spans over time"
+          ? getTraceSpanTypeChartTitle(spanType)
           : "Response time"
       }
       histogramLoading={histogramLoading}
@@ -3664,6 +3814,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
             serviceNameMap={serviceNameMap}
             onCreateMetric={handleCreateMetric}
             refreshTick={analyticsRefreshTick}
+            spanType={spanType}
+            onSpanTypeChange={(next: TraceSpanType) => {
+              setSpanType(next);
+              setPage(1);
+            }}
           />
         ) : undefined
       }

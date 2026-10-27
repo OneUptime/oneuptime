@@ -3,6 +3,10 @@ import Route from "Common/Types/API/Route";
 import AIInsightType from "Common/Types/AI/AIInsightType";
 import IconProp from "Common/Types/Icon/IconProp";
 import TimeRange from "Common/Types/Time/TimeRange";
+import {
+  TRACE_SPAN_TYPE_URL_PARAM,
+  TraceSpanType,
+} from "Common/Types/Telemetry/TraceSpanType";
 import RouteMap, { RouteUtil } from "./RouteMap";
 import PageMap from "./PageMap";
 import { ProfilesUrlState, buildProfilesRoute } from "./ProfilesUrlState";
@@ -519,6 +523,16 @@ function buildTraceFindingLink(
 
   if (scopeParams.params["search"]) {
     params["search"] = scopeParams.params["search"];
+  }
+
+  /*
+   * A finding's operation can be any span - a database query or an outbound
+   * call as often as a request - and the explorer lists entry spans unless
+   * told otherwise, so the operation's own spans are asked for among every
+   * span.
+   */
+  if (operationName) {
+    params[TRACE_SPAN_TYPE_URL_PARAM] = TraceSpanType.All;
   }
 
   const startTime: Date | null = toValidDate(input.trace?.windowStartTime);
