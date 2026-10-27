@@ -180,12 +180,13 @@ jobs:
   # esbuild and serve them against fixture data: no database or Docker stack.
   # They used to run one after another in a single 41-minute job, the longest
   # of every pull request's checks. They are independent - each starts its
-  # own fixture server on its own port - so they run here in twelve groups
+  # own fixture server on its own port - so they run here in thirteen groups
   # balanced by measured duration. Event Overview and the Workflow Builder
-  # suite fill a group each on their own (20.4 and 19.4 minutes on
-  # 2026-10-17's slowest runner); the other groups hold 15 to 17 minutes of
-  # suites. Setup adds a minute and a half. Each suite still runs exactly as
-  # before: same config, same browsers, one worker.
+  # suite outgrew a group each on their own (20.4 and 19.4 minutes on
+  # 2026-10-17's slowest runner), so each now runs in halves, in two groups
+  # (see below); every group holds about 17 to 20 minutes of suites. Setup
+  # adds a minute and a half. Each suite still runs exactly as before: same
+  # config, same browsers, one worker.
   #
   # The same group has taken a third longer on one run than on the next with
   # nothing changed but the runner (group 1: about 18 and 24 minutes), so keep
@@ -208,7 +209,11 @@ jobs:
   # groups. Event Overview is split since 2026-10-22: it is one spec file, so
   # its config reads EVENT_OVERVIEW_SHARD (set below from the group's
   # event_overview_shard) and shards by test; the same can be done for any
-  # suite, with a variable of its own.
+  # suite, with a variable of its own. The Workflow Builder suite is split
+  # since 2026-10-27: its config reads WORKFLOW_BUILDER_SHARD (set below from
+  # the group's workflow_builder_shard) and Playwright shards it by spec file,
+  # the laptop's projects in one half and the phone's in the other
+  # (Tests/Ops/DashboardOfflineUiShards holds every half to running once).
   #
   # A suite added to packages/E2E needs a place in one group's `suites`, and
   # its output paths in the upload step below.
@@ -229,6 +234,9 @@ jobs:
     # the groups that do not run it (playwright.event-overview-ui.config.ts).
     env:
       EVENT_OVERVIEW_SHARD: ${{ matrix.event_overview_shard || '' }}
+      # Which half of the Workflow Builder suite, the same way
+      # (playwright.workflow-builder-ui.config.ts).
+      WORKFLOW_BUILDER_SHARD: ${{ matrix.workflow_builder_shard || '' }}
     strategy:
       # Every group reports its own suites, whatever happens to the others.
       fail-fast: false
@@ -260,14 +268,15 @@ jobs:
           # joined them on 2026-10-25, when this group took 18.5 and 19.1
           # minutes on master's last two runs with Traces AI, and group 9,
           # where Exceptions AI was going, 16.3 to 18.4: about 20.5.
+          # Metrics AI (1.9 minutes on 14.0.93's gate run) moved to group 4 and
+          # Asset Details (0.9) to group 13 on 2026-10-27, when that run took
+          # this group 21.7 minutes: about 19.
           - group: 1
             event_overview_shard: 1/2
             suites: >-
               test-event-overview-ui
               test-snmp-walk-ui
-              test-asset-details-ui
               test-traces-ai-ui
-              test-metrics-ai-ui
           # The Alerts suite also runs in Firefox, and so do Code Editor (the
           # editor's text layers must line up in both) and Diagrams. Diagrams
           # and Navigation Search (about 8 minutes together) moved here from
@@ -286,6 +295,10 @@ jobs:
           # Logs AI (2.5 minutes, Chromium only) and External MCP Servers (1.0)
           # moved here from group 7 on 2026-10-26, when 14.0.93's gate run took
           # this group 15.8 minutes and group 7 23.4: about 19.5.
+          # Logs AI (2.0 minutes on 14.0.93's gate run) and External MCP Servers
+          # (0.8) moved to group 13 on 2026-10-27, when that run took this group
+          # 20.9 minutes: about 18. Every group has Firefox since the groups run
+          # in the Playwright image.
           - group: 2
             suites: >-
               test-chart-time-zoom-ui
@@ -296,8 +309,6 @@ jobs:
               test-color-picker-ui
               test-diagrams-ui
               test-runbook-steps-ui
-              test-logs-ai-ui
-              test-external-mcp-servers-ui
           # Value Picker also runs in Firefox (the chip editor's caret handling
           # differs in each). Discovery (about 5 minutes) moved to group 6
           # when this group took 23.5 minutes. Global Runners (about a
@@ -354,9 +365,18 @@ jobs:
           # group past them. Its two projects, a laptop and a phone, are both
           # Chromium. Calendar Feed moved to group 6 when this group took 23.6
           # minutes.
+          # The Workflow Builder suite runs in halves since 2026-10-27, when it
+          # took 20.4 minutes alone on 14.0.93's gate run and #5320 grew it
+          # after: the laptop's half here (211 tests, 13.1 minutes locally on a
+          # busy machine; about 12 on a runner), the phone's (188, 9.6 locally)
+          # in group 9. Model Tables (4.7) from group 9 and Metrics AI (1.9)
+          # from group 1 joined it: about 18.5.
           - group: 4
+            workflow_builder_shard: 1/2
             suites: >-
               test-workflow-builder-ui
+              test-metrics-ai-ui
+              test-model-tables-ui
           # The Chromium-only suites that ran after Event Overview in group 1.
           # Topology is one of them (about 2.5 minutes) since the Workflow
           # Builder suite grew again with its UI review: group 2 had reached
@@ -407,6 +427,9 @@ jobs:
           # Side by Side Pages (about a minute locally with its two bundles,
           # Chromium only) moved here from group 8 the same day, when #5300's
           # UI review grew Cloud Connect there by about a minute: about 20.
+          # Shared UI (2.5 minutes on 14.0.93's gate run) from group 11 and Owner
+          # Filters (0.9) from group 10 joined it on 2026-10-27, when that run
+          # took this group 13.4 minutes before Side by Side Pages: about 18.
           - group: 5
             suites: >-
               test-slo-burn-rate-ui
@@ -424,6 +447,8 @@ jobs:
               test-dashboard-value-widget-ui
               test-owners-on-create-ui
               test-side-by-side-pages-ui
+              test-owner-filters-ui
+              test-shared-ui-ui
           # Added when group 5 took 25.5 of the job's 30 minutes and groups 1,
           # 3 and 4 23.5 to 24.3 on one run: group 5's last five suites, with
           # Discovery from group 3, Status Page Theme from group 1 and Calendar
@@ -443,6 +468,9 @@ jobs:
           # banner's words: about 1.2 minutes more locally), when this group's
           # run step took 20.6 minutes on master's run of 03:08 that day, so
           # Global Runners moved on to group 10: about 20.5.
+          # Detail Cards (2.7 minutes on 14.0.93's gate run) moved to group 13 on
+          # 2026-10-27, when that run took this group 22.0 minutes and #5249 grew
+          # Maintenance Calendar after: about 19.5.
           - group: 6
             suites: >-
               test-discovery-ui
@@ -450,7 +478,6 @@ jobs:
               test-calendar-feed-ui
               test-sign-in-options-ui
               test-maintenance-calendar-ui
-              test-detail-cards-ui
               test-infrastructure-first-run-ui
               test-postmortem-rules-ui
           # The Profiler (about 2 minutes with its bundle: a laptop and a
@@ -505,10 +532,12 @@ jobs:
           # Dashboard Templates moved on to group 10: about 21.
           # Logs AI and External MCP Servers moved to group 2 on 2026-10-26,
           # when 14.0.93's gate run took this group 23.4 minutes: about 20.
+          # LLM Connect (2.1 minutes on 14.0.93's gate run) moved to group 13 on
+          # 2026-10-27, when that run took this group 19.6 minutes: about 17.5,
+          # with room for the next suite.
           - group: 7
             suites: >-
               test-profiles-ui
-              test-llm-connect-ui
               test-auto-remediation-rules-ui
               test-custom-roles-ui
               test-public-dashboard-theme-ui
@@ -604,6 +633,9 @@ jobs:
           # Changes, Topology and Settings, and a cloud resource's Overview,
           # Incidents, Alerts and Changes: about 55 seconds locally), so Side
           # by Side Pages (about a minute) moved on to group 5: about 20.5.
+          # Security Events Empty States (2.1 minutes on 14.0.93's gate run) moved
+          # here from group 11 on 2026-10-27, when that run took this group 14.5
+          # minutes before Cloud Connect and Docker Swarm Pages grew: about 18.5.
           - group: 8
             suites: >-
               test-dashboard-time-range-ui
@@ -615,6 +647,7 @@ jobs:
               test-public-addresses-ui
               test-meraki-traffic-ui
               test-docker-swarm-pages-ui
+              test-security-events-empty-states-ui
           # Added on 2026-10-21, when every group took 20 to 26 minutes on one
           # run (groups 1 and 5 near 25) and Resource Topology would have
           # taken group 7 past 22: Code (6.4 minutes on that run, a laptop
@@ -650,9 +683,14 @@ jobs:
           # group 12 on 2026-10-26, when this group ran past its run step's 28
           # minutes with every suite passing; Kubernetes Events and Topology
           # (2.8 minutes each) came from group 5: about 20.
+          # The second half of the Workflow Builder suite (the phone's: 188
+          # tests, 9.6 minutes locally on a busy machine; about 9 on a runner)
+          # joined it on 2026-10-27, the lightest group on 14.0.93's gate run
+          # (12.9 minutes), and Model Tables (4.7) moved on to group 4: about 17.
           - group: 9
+            workflow_builder_shard: 2/2
             suites: >-
-              test-model-tables-ui
+              test-workflow-builder-ui
               test-home-overview-ui
               test-resource-topology-ui
               test-runbooks-menu-ui
@@ -679,13 +717,13 @@ jobs:
           # Global Runners (1.9 minutes) moved to group 12 on 2026-10-26, when
           # 14.0.93's gate run took this group 22.6 minutes and master's run of
           # 15:35 that day 26.5: about 20.5 to 24.5.
+          # Navigation Search (3.6 minutes on 14.0.93's gate run) and Bulk
+          # Actions (1.2) moved to group 13, and Owner Filters (0.9) to group 5,
+          # on 2026-10-27, when that run took this group 24.4 minutes: about 19.
           - group: 10
             event_overview_shard: 2/2
             suites: >-
               test-event-overview-ui
-              test-navigation-search-ui
-              test-owner-filters-ui
-              test-bulk-actions-ui
               test-dashboard-templates-ui
           # Security Operations on its own, Chromium only, from 2026-10-25. In
           # group 8 it took 9.8 of that group's 23.4 minutes on master's run of
@@ -710,14 +748,16 @@ jobs:
           # review's checks, Chromium only: a laptop and a phone) moved here
           # from group 3 on 2026-10-27, when that spec and Monitor Overview's
           # maintenance tests would have taken group 3 past 22: about 21.
+          # Shared UI (2.5 minutes on 14.0.93's gate run) moved to group 5,
+          # Security Events Empty States (2.1) to group 8, and Status Page Search
+          # (1.2 with its new spec) and Reading Direction (about 1.8) to group 13,
+          # on 2026-10-27, when that run took this group 23.4 minutes before
+          # Reading Direction and Status Page Search joined: about 18, with room
+          # for Security Operations to grow.
           - group: 11
             suites: >-
               test-security-operations-ui
               test-ai-context-ui
-              test-security-events-empty-states-ui
-              test-shared-ui-ui
-              test-reading-direction-ui
-              test-status-page-search-ui
           # Added on 2026-10-26, when group 9 ran past its run step's 28
           # minutes on 14.0.93's gate run with every suite passing: Code had
           # grown to 13.0 minutes (6.4 when it joined group 9). Code, with
@@ -732,14 +772,36 @@ jobs:
           # them the same day with #5298's UI review (#5307), rather than
           # group 8, which its grown Docker Swarm Pages takes to about 20:
           # about 20.5.
+          # Global Runners (2.2 minutes on 14.0.93's gate run) moved to group 13
+          # on 2026-10-27, when that run took this group 17.3 minutes before
+          # Resource Overviews joined: about 16.5, with room for Code to grow.
           - group: 12
             suites: >-
               test-code-ui
               test-exceptions-ai-ui
               test-acknowledgement-timeout-ui
               test-new-version-ui
-              test-global-runners-ui
               test-resource-overviews-ui
+          # Added on 2026-10-27, when 14.0.93's gate run took groups 10, 11, 1, 6
+          # and 2 20.9 to 24.4 minutes and the Workflow Builder suite's halves
+          # filled groups 4 and 9: Navigation Search (3.6) and Bulk Actions (1.2)
+          # from group 10, Detail Cards (2.7) from group 6, Logs AI (2.0) and
+          # External MCP Servers (0.8) from group 2, LLM Connect (2.1) from group
+          # 7, Global Runners (2.2) from group 12, Asset Details (0.9) from group
+          # 1, and Status Page Search (1.2) and Reading Direction (about 1.8)
+          # from group 11, all Chromium only: about 18.5.
+          - group: 13
+            suites: >-
+              test-asset-details-ui
+              test-logs-ai-ui
+              test-external-mcp-servers-ui
+              test-detail-cards-ui
+              test-llm-connect-ui
+              test-navigation-search-ui
+              test-bulk-actions-ui
+              test-status-page-search-ui
+              test-reading-direction-ui
+              test-global-runners-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
