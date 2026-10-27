@@ -1,4 +1,5 @@
 import PushRelayRouter from "../../../FeatureSet/Notification/API/PushRelay";
+import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import PushNotificationService from "Common/Server/Services/PushNotificationService";
 import PushNotificationLogService from "Common/Server/Services/PushNotificationLogService";
 import UserPushService from "Common/Server/Services/UserPushService";
@@ -155,6 +156,8 @@ interface SelfHostedServer {
   PushNotificationService: typeof PushNotificationService;
   UserPushService: typeof UserPushService;
   PushNotificationLogService: typeof PushNotificationLogService;
+  // Its switch for push on the whole server (3207bef20f), read before a send.
+  GlobalConfigService: typeof GlobalConfigService;
 }
 
 function loadSelfHostedServer(): SelfHostedServer {
@@ -185,6 +188,9 @@ function loadSelfHostedServer(): SelfHostedServer {
       PushNotificationLogService:
         // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
         require("Common/Server/Services/PushNotificationLogService").default,
+      GlobalConfigService:
+        // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+        require("Common/Server/Services/GlobalConfigService").default,
     };
   });
 
@@ -251,6 +257,15 @@ let expoAnswers: Map<string, ExpoPushTicket>;
 beforeEach(() => {
   expoSends = [];
   expoAnswers = new Map<string, ExpoPushTicket>();
+
+  /*
+   * Push is on, as on a new install: a self-hosted server's send reads its
+   * switch for the whole server (GlobalConfig.disablePushNotifications,
+   * 3207bef20f) first, from the database this suite does not have.
+   */
+  jest
+    .spyOn(selfHosted.GlobalConfigService, "getPushNotificationsTurnedOff")
+    .mockResolvedValue(false);
 
   // The relay holds Expo credentials.
   jest
@@ -421,6 +436,19 @@ describe("a self-hosted server relaying through it", () => {
       return error;
     }
   }
+
+  test("with push turned off for the whole server, sends nothing to the relay and fails nothing", async () => {
+    jest
+      .spyOn(selfHosted.GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(true);
+
+    const failure: unknown = await selfHostedSend(WORKING_TOKEN);
+
+    expect(failure).toBeNull();
+    expect(expoSends).toEqual([]);
+    expect(markAsGone).not.toHaveBeenCalled();
+    expect(logs).toEqual([]);
+  });
 
   test("is a server with no Expo credentials of its own", () => {
     expect(selfHosted.PushNotificationService.hasExpoAccessToken()).toBe(false);

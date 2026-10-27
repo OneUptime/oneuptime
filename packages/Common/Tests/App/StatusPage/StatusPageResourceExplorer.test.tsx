@@ -2713,13 +2713,15 @@ describe("Status Page > Resources", () => {
         /*
          * Scoped to the failure the report drew, not to the page: the row it
          * names is still in the list behind the modal, because a removal that
-         * failed removed nothing.
+         * failed removed nothing. The name and the reason are each isolated
+         * (d274736eda), so the failure is their group in the failed list.
          */
-        const failure: HTMLElement = screen.getByText(
-          "Database is not yours to remove",
-        ).parentElement as HTMLElement;
+        const failure: HTMLElement | null = screen
+          .getByText("Database is not yours to remove")
+          .closest('[data-testid="bulk-action-failed-items-group"]');
 
-        expect(within(failure).getByText("Database")).toBeInTheDocument();
+        expect(failure).not.toBeNull();
+        expect(within(failure!).getByText("Database")).toBeInTheDocument();
 
         expect(resourceRowByName("Database")).toBeInTheDocument();
       });

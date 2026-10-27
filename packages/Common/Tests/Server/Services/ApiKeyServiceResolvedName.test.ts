@@ -120,10 +120,12 @@ describe("ApiKeyService.findApiKey - the key's name, for the audit trail", () =>
 
     const call: FindOneByCall = findOneBySpy.mock.calls[0]![0] as FindOneByCall;
 
+    // And the key's expiry, so a key read from the cache stops at it (07d925ca80).
     expect(call.select).toEqual({
       _id: true,
       projectId: true,
       name: true,
+      expiresAt: true,
     });
     expect(call.props).toEqual({ isRoot: true });
   });
