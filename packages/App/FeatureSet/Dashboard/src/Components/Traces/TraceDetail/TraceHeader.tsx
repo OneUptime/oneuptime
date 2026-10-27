@@ -74,7 +74,10 @@ const TraceHeader: FunctionComponent<ComponentProps> = (
     {
       label: "Spans",
       value:
-        summary.totalSpanCount > summary.loadedSpanCount ? (
+        // More spans follow the loaded ones, and they are not counted yet.
+        summary.totalSpanCount === null ? (
+          `${summary.loadedSpanCount.toLocaleString()}+`
+        ) : summary.totalSpanCount > summary.loadedSpanCount ? (
           <span>
             {summary.loadedSpanCount.toLocaleString()}
             <span className="ml-1 text-sm font-normal text-gray-500">

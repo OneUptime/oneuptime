@@ -10,6 +10,7 @@ import {
   ServiceSummary,
   SpanEventRow,
   SpanLoadState,
+  SpanPage,
   SpanTiming,
   TraceServiceInfo,
   TraceSummary,
@@ -31,6 +32,7 @@ import {
   getSpanLoadState,
   getSpanTiming,
   pluralize,
+  readSpanPage,
   sortOperations,
   splitHighlightSegments,
   summarizeOperations,
@@ -211,6 +213,16 @@ describe("summarizeTrace", () => {
 
     expect(summary.totalSpanCount).toBe(1);
     expect(summary.isError).toBe(false);
+  });
+
+  test("a total not counted yet stays unknown rather than becoming the loaded count", () => {
+    const summary: TraceSummary = summarizeTrace(
+      buildSpanTree([span("a", "", 0, 1), span("b", "a", 0, 1)]),
+      null,
+    );
+
+    expect(summary.loadedSpanCount).toBe(2);
+    expect(summary.totalSpanCount).toBeNull();
   });
 
   test("an empty trace", () => {
@@ -475,12 +487,124 @@ describe("operations", () => {
   });
 });
 
+/*
+ * The analytics list endpoint does not count (BaseAnalyticsAPI.getList): it
+ * reads one row past the page to answer `hasMore`, and its `count` is a lower
+ * bound, one past the page when more rows follow. The first page of a
+ * 3,102-span trace says 501. The trace page used to print that as the total
+ * ("Spans 500 of 501") and fetch the "1 more span" it left.
+ */
+describe("readSpanPage", () => {
+  test("the list's lower bound is never the total: more follow, and only a count can say how many", () => {
+    expect(
+      readSpanPage({
+        loadedSpanCount: 500,
+        rowCount: 500,
+        limit: 500,
+        count: 501,
+        hasMore: true,
+      }),
+    ).toEqual({ hasMore: true, totalSpanCount: null });
+
+    // A later batch's bound (skip + rows + 1) is no total either.
+    expect(
+      readSpanPage({
+        loadedSpanCount: 1000,
+        rowCount: 500,
+        limit: 500,
+        count: 1001,
+        hasMore: true,
+      }),
+    ).toEqual({ hasMore: true, totalSpanCount: null });
+  });
+
+  test("the page nothing follows settles the total: every span is loaded", () => {
+    expect(
+      readSpanPage({
+        loadedSpanCount: 3102,
+        rowCount: 102,
+        limit: 102,
+        count: 3102,
+        hasMore: false,
+      }),
+    ).toEqual({ hasMore: false, totalSpanCount: 3102 });
+
+    // A trace that fits on the first page needs no count at all.
+    expect(
+      readSpanPage({
+        loadedSpanCount: 17,
+        rowCount: 17,
+        limit: 500,
+        count: 17,
+        hasMore: false,
+      }),
+    ).toEqual({ hasMore: false, totalSpanCount: 17 });
+  });
+
+  test("a page shorter than it asked for is the last, whatever the list says", () => {
+    expect(
+      readSpanPage({
+        loadedSpanCount: 700,
+        rowCount: 200,
+        limit: 400,
+        count: 900,
+      }),
+    ).toEqual({ hasMore: false, totalSpanCount: 700 });
+    expect(
+      readSpanPage({
+        loadedSpanCount: 500,
+        rowCount: 0,
+        limit: 500,
+        count: 501,
+        hasMore: true,
+      }),
+    ).toEqual({ hasMore: false, totalSpanCount: 500 });
+  });
+
+  test("a list that does not answer hasMore counted its rows: its count is the total", () => {
+    const page: SpanPage = readSpanPage({
+      loadedSpanCount: 500,
+      rowCount: 500,
+      limit: 500,
+      count: 1250,
+    });
+
+    expect(page).toEqual({ hasMore: true, totalSpanCount: 1250 });
+    expect(
+      readSpanPage({
+        loadedSpanCount: 500,
+        rowCount: 500,
+        limit: 500,
+        count: 0,
+      }),
+    ).toEqual({ hasMore: false, totalSpanCount: 500 });
+  });
+});
+
 describe("getSpanLoadState", () => {
-  test("one span beyond the first page", () => {
+  test("a counted trace loads a page at a time and offers the rest", () => {
+    const state: SpanLoadState = getSpanLoadState({
+      loadedSpanCount: 500,
+      totalSpanCount: 3102,
+      hasMore: true,
+      pageSize: 500,
+    });
+
+    expect(state).toEqual({
+      loadedSpanCount: 500,
+      totalSpanCount: 3102,
+      hasMore: true,
+      remainingSpanCount: 2602,
+      nextBatchSize: 500,
+    });
+  });
+
+  test("one span beyond the first page, when the count says so", () => {
     expect(
       getSpanLoadState({
         loadedSpanCount: 500,
         totalSpanCount: 501,
+        hasMore: true,
         pageSize: 500,
       }),
     ).toEqual({
@@ -492,15 +616,54 @@ describe("getSpanLoadState", () => {
     });
   });
 
-  test("a large trace loads a page at a time", () => {
-    const state: SpanLoadState = getSpanLoadState({
+  test("before the count lands, the total is unknown and the next batch is a full page", () => {
+    expect(
+      getSpanLoadState({
+        loadedSpanCount: 500,
+        totalSpanCount: null,
+        hasMore: true,
+        pageSize: 500,
+      }),
+    ).toEqual({
       loadedSpanCount: 500,
-      totalSpanCount: 1250,
-      pageSize: 500,
+      totalSpanCount: null,
+      hasMore: true,
+      remainingSpanCount: null,
+      nextBatchSize: 500,
     });
+  });
 
-    expect(state.remainingSpanCount).toBe(750);
-    expect(state.nextBatchSize).toBe(500);
+  test("a count the pages have outgrown is no longer a total", () => {
+    expect(
+      getSpanLoadState({
+        loadedSpanCount: 3102,
+        totalSpanCount: 3102,
+        hasMore: true,
+        pageSize: 500,
+      }),
+    ).toMatchObject({
+      totalSpanCount: null,
+      hasMore: true,
+      remainingSpanCount: null,
+      nextBatchSize: 500,
+    });
+  });
+
+  test("the page that ends the trace settles the total, whatever the count said", () => {
+    expect(
+      getSpanLoadState({
+        loadedSpanCount: 700,
+        totalSpanCount: 900,
+        hasMore: false,
+        pageSize: 500,
+      }),
+    ).toEqual({
+      loadedSpanCount: 700,
+      totalSpanCount: 700,
+      hasMore: false,
+      remainingSpanCount: 0,
+      nextBatchSize: 0,
+    });
   });
 
   test("everything loaded, or no total reported, means nothing more", () => {
@@ -508,6 +671,7 @@ describe("getSpanLoadState", () => {
       getSpanLoadState({
         loadedSpanCount: 36,
         totalSpanCount: 36,
+        hasMore: false,
         pageSize: 500,
       }).hasMore,
     ).toBe(false);
@@ -515,6 +679,7 @@ describe("getSpanLoadState", () => {
       getSpanLoadState({
         loadedSpanCount: 500,
         totalSpanCount: 0,
+        hasMore: false,
         pageSize: 500,
       }),
     ).toMatchObject({
@@ -523,15 +688,31 @@ describe("getSpanLoadState", () => {
       nextBatchSize: 0,
     });
     expect(
-      getSpanLoadState({ loadedSpanCount: 0, totalSpanCount: 0, pageSize: 500 })
-        .hasMore,
-    ).toBe(false);
+      getSpanLoadState({
+        loadedSpanCount: 0,
+        totalSpanCount: null,
+        hasMore: false,
+        pageSize: 500,
+      }),
+    ).toMatchObject({ hasMore: false, totalSpanCount: 0 });
   });
 
   test("a nonsensical page size still loads at least one span", () => {
     expect(
-      getSpanLoadState({ loadedSpanCount: 0, totalSpanCount: 10, pageSize: 0 })
-        .nextBatchSize,
+      getSpanLoadState({
+        loadedSpanCount: 0,
+        totalSpanCount: 10,
+        hasMore: true,
+        pageSize: 0,
+      }).nextBatchSize,
+    ).toBe(1);
+    expect(
+      getSpanLoadState({
+        loadedSpanCount: 0,
+        totalSpanCount: null,
+        hasMore: true,
+        pageSize: 0,
+      }).nextBatchSize,
     ).toBe(1);
   });
 });

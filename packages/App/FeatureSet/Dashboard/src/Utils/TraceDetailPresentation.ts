@@ -96,7 +96,8 @@ export interface TraceSummary {
   startTime: Date | null;
   durationUnixNano: number;
   loadedSpanCount: number;
-  totalSpanCount: number;
+  // Null while more spans follow the loaded ones and are not counted yet.
+  totalSpanCount: number | null;
   errorCount: number;
   errorRatePercent: number;
   serviceCount: number;
@@ -121,7 +122,7 @@ export function getRootSpan(tree: SpanTree): WaterfallSpan | null {
 
 export function summarizeTrace(
   tree: SpanTree,
-  totalSpanCount: number,
+  totalSpanCount: number | null,
 ): TraceSummary {
   let errorCount: number = 0;
   let orphanCount: number = 0;
@@ -150,7 +151,10 @@ export function summarizeTrace(
         : null,
     durationUnixNano: tree.durationUnixNano,
     loadedSpanCount,
-    totalSpanCount: Math.max(totalSpanCount, loadedSpanCount),
+    totalSpanCount:
+      totalSpanCount === null
+        ? null
+        : Math.max(totalSpanCount, loadedSpanCount),
     errorCount,
     errorRatePercent:
       loadedSpanCount > 0 ? (errorCount / loadedSpanCount) * 100 : 0,
@@ -364,33 +368,112 @@ export function sortOperations(
   );
 }
 
+export interface SpanPage {
+  // Whether more spans follow the ones loaded with this page.
+  hasMore: boolean;
+  /*
+   * The trace's total when this page settles it (it is the last page, or the
+   * list counted its rows), or null when only a count can tell.
+   */
+  totalSpanCount: number | null;
+}
+
+/**
+ * What one page of a trace's spans says about the rest of the trace.
+ *
+ * The analytics list endpoint does not count (BaseAnalyticsAPI.getList): it
+ * reads one row past the page to answer `hasMore`, and its `count` is only a
+ * lower bound, one past the page when more spans follow. So a 3,102-span
+ * trace's first page says 501. That number is never the total. A list that
+ * does not answer `hasMore` counted its rows, and its count is the total.
+ */
+export function readSpanPage(page: {
+  // Spans loaded with this page added: its own and every page's before it.
+  loadedSpanCount: number;
+  // The rows this page holds, and how many it asked for.
+  rowCount: number;
+  limit: number;
+  count: number;
+  hasMore?: boolean | undefined;
+}): SpanPage {
+  const loadedSpanCount: number = Math.max(0, page.loadedSpanCount);
+
+  // A page shorter than it asked for is the last, whatever a count said.
+  if (page.hasMore === false || page.rowCount < page.limit) {
+    return { hasMore: false, totalSpanCount: loadedSpanCount };
+  }
+
+  if (page.hasMore === true) {
+    return { hasMore: true, totalSpanCount: null };
+  }
+
+  const count: number =
+    Number.isFinite(page.count) && page.count > 0 ? page.count : 0;
+  return {
+    hasMore: count > loadedSpanCount,
+    totalSpanCount: Math.max(count, loadedSpanCount),
+  };
+}
+
 export interface SpanLoadState {
   loadedSpanCount: number;
-  totalSpanCount: number;
+  // Null while more spans follow the loaded ones and are not counted yet.
+  totalSpanCount: number | null;
   hasMore: boolean;
-  remainingSpanCount: number;
-  // What "Load next" would fetch.
+  // Null while the total is not known.
+  remainingSpanCount: number | null;
+  // What "Load next" would fetch: a full page while the total is not known.
   nextBatchSize: number;
 }
 
 /**
- * Batch-loading arithmetic for a trace larger than one page of spans. A
- * total the server did not report (0) never claims more spans exist.
+ * Batch-loading arithmetic for a trace larger than one page of spans.
+ * `hasMore` is what the newest page said (readSpanPage), and
+ * `totalSpanCount` is an exact count of the trace's spans, or null before
+ * one has landed. A page that ends the trace settles the total, whatever
+ * the count said. A count the pages have outgrown (spans arrived after it
+ * ran) is no longer a total.
  */
 export function getSpanLoadState(data: {
   loadedSpanCount: number;
-  totalSpanCount: number;
+  totalSpanCount: number | null;
+  hasMore: boolean;
   pageSize: number;
 }): SpanLoadState {
   const loadedSpanCount: number = Math.max(0, data.loadedSpanCount);
-  const totalSpanCount: number = Math.max(loadedSpanCount, data.totalSpanCount);
-  const remainingSpanCount: number = totalSpanCount - loadedSpanCount;
+  const pageSize: number = Math.max(1, data.pageSize);
+
+  if (!data.hasMore) {
+    return {
+      loadedSpanCount,
+      totalSpanCount: loadedSpanCount,
+      hasMore: false,
+      remainingSpanCount: 0,
+      nextBatchSize: 0,
+    };
+  }
+
+  if (
+    data.totalSpanCount === null ||
+    !Number.isFinite(data.totalSpanCount) ||
+    data.totalSpanCount <= loadedSpanCount
+  ) {
+    return {
+      loadedSpanCount,
+      totalSpanCount: null,
+      hasMore: true,
+      remainingSpanCount: null,
+      nextBatchSize: pageSize,
+    };
+  }
+
+  const remainingSpanCount: number = data.totalSpanCount - loadedSpanCount;
   return {
     loadedSpanCount,
-    totalSpanCount,
-    hasMore: remainingSpanCount > 0,
+    totalSpanCount: data.totalSpanCount,
+    hasMore: true,
     remainingSpanCount,
-    nextBatchSize: Math.min(Math.max(1, data.pageSize), remainingSpanCount),
+    nextBatchSize: Math.min(pageSize, remainingSpanCount),
   };
 }
 

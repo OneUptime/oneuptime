@@ -63,14 +63,19 @@ type ListResultLike = {
   count: number;
   skip: number;
   limit: number;
+  hasMore?: boolean;
 };
 type PostArgs = { url: { toString: () => string }; data: JSONObject };
+type CountFunction = (
+  modelType: unknown,
+  query: JSONObject,
+  requestOptions?: unknown,
+  countOptions?: { exact?: boolean },
+) => Promise<number>;
 
 const getListMock: Mock<(args: ListArgs) => Promise<ListResultLike>> =
   jest.fn<(args: ListArgs) => Promise<ListResultLike>>();
-const countMock: Mock<
-  (modelType: unknown, query: JSONObject) => Promise<number>
-> = jest.fn<(modelType: unknown, query: JSONObject) => Promise<number>>();
+const countMock: Mock<CountFunction> = jest.fn<CountFunction>();
 const serviceListMock: Mock<(args: ListArgs) => Promise<ListResultLike>> =
   jest.fn<(args: ListArgs) => Promise<ListResultLike>>();
 const postMock: Mock<(args: PostArgs) => Promise<unknown>> =
@@ -91,8 +96,13 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
       getList: (args: ListArgs) => {
         return getListMock(args);
       },
-      count: (modelType: unknown, query: JSONObject) => {
-        return countMock(modelType, query);
+      count: (
+        modelType: unknown,
+        query: JSONObject,
+        requestOptions?: unknown,
+        countOptions?: { exact?: boolean },
+      ) => {
+        return countMock(modelType, query, requestOptions, countOptions);
       },
     },
   };
@@ -362,7 +372,10 @@ function services(): Array<Service> {
 
 interface Backend {
   traceSpans: Array<Span>;
+  // What an exact count of the trace's spans answers: by default, how many.
   totalCount?: number;
+  failSpanCount?: string;
+  holdSpanCount?: Promise<void>;
   failTraceRead?: string;
   details?: Record<string, Partial<Span>>;
   logs?: Array<Log>;
@@ -384,6 +397,13 @@ function spanReads(): Array<ListArgs> {
     .filter((args: ListArgs) => {
       return args.modelType === Span && !args.query["spanId"];
     });
+}
+
+// Counts of this trace's spans (the Exceptions tab counts its own model).
+function spanCounts(): Array<Parameters<CountFunction>> {
+  return countMock.mock.calls.filter((call: Parameters<CountFunction>) => {
+    return call[0] === Span;
+  });
 }
 
 function postsTo(path: string): Array<PostArgs> {
@@ -412,7 +432,20 @@ beforeEach(() => {
     return { data: services(), count: 3, skip: 0, limit: 10000 };
   });
 
-  countMock.mockImplementation(async () => {
+  countMock.mockImplementation(async (modelType: unknown) => {
+    if (modelType === Span) {
+      if (backend.holdSpanCount) {
+        await backend.holdSpanCount;
+      }
+      if (backend.failSpanCount) {
+        throw new HTTPErrorResponse(
+          504,
+          { message: backend.failSpanCount },
+          {},
+        );
+      }
+      return backend.totalCount ?? backend.traceSpans.length;
+    }
     return 2;
   });
 
@@ -443,11 +476,23 @@ beforeEach(() => {
           {},
         );
       }
+      /*
+       * As the analytics list answers (BaseAnalyticsAPI.getList): it reads
+       * one row past the page to say whether more follow, and its count is
+       * only a lower bound - one past the page when they do.
+       */
+      const page: Array<Span> = backend.traceSpans.slice(
+        args.skip,
+        args.skip + args.limit,
+      );
+      const hasMore: boolean =
+        backend.traceSpans.length > args.skip + args.limit;
       return {
-        data: backend.traceSpans.slice(args.skip, args.skip + args.limit),
-        count: backend.totalCount ?? backend.traceSpans.length,
+        data: page,
+        count: args.skip + page.length + (hasMore ? 1 : 0),
         skip: args.skip,
         limit: args.limit,
+        hasMore,
       };
     }
     if (args.modelType === Log) {
@@ -681,9 +726,211 @@ describe("batch loading a large trace", () => {
     return { traceSpans: definitions.map(makeSpan) };
   }
 
+  // The trace's exact count has landed and the page shows it.
+  async function totalShown(total: string): Promise<void> {
+    await waitFor(() => {
+      expect(screen.getByTestId("trace-stat-spans")).toHaveTextContent(
+        `of ${total}`,
+      );
+    });
+  }
+
+  /*
+   * The bug this pins (trace 6ae04cc7… on test.oneuptime.com): the list
+   * endpoint's count is a lower bound, 501 for any trace past one page, and
+   * the page printed it as the total - "Spans 500 of 501", "Load 1 more
+   * span" - then fetched one span per click.
+   */
+  test("a trace past one page shows its counted total, not the list's lower bound", async () => {
+    setBackend(largeBackend(3102));
+    await renderTrace();
+    await totalShown("3,102");
+
+    expect(spanReads()[0]).toMatchObject({ skip: 0, limit: 500 });
+    const firstRead: number = getListMock.mock.calls.findIndex(
+      (call: [ListArgs]) => {
+        return call[0].modelType === Span && !call[0].query["spanId"];
+      },
+    );
+    expect(await getListMock.mock.results[firstRead]!.value).toMatchObject({
+      count: 501,
+      hasMore: true,
+    });
+    expect(spanCounts()).toEqual([
+      [Span, { traceId: TRACE_ID }, undefined, { exact: true }],
+    ]);
+    expect(screen.getByTestId("trace-stat-spans")).toHaveTextContent(
+      "500of 3,102",
+    );
+    expect(screen.getByTestId("trace-load-more")).toHaveTextContent(
+      "Showing 500 of 3,102 spans",
+    );
+    expect(screen.getByTestId("trace-load-next")).toHaveTextContent(
+      "Load 500 more spans",
+    );
+    expect(screen.getByTestId("trace-load-all")).toHaveTextContent(
+      "Load all 2,602",
+    );
+
+    // Every batch is a full page, and its own lower bound never replaces the total.
+    for (const loaded of ["1,000", "1,500", "2,000", "2,500", "3,000"]) {
+      fireEvent.click(screen.getByTestId("trace-load-next"));
+      await waitFor(() => {
+        expect(screen.getByTestId("trace-load-more")).toHaveTextContent(
+          `Showing ${loaded} of 3,102 spans`,
+        );
+      });
+    }
+    expect(
+      spanReads().map((read: ListArgs) => {
+        return [read.skip, read.limit];
+      }),
+    ).toEqual([
+      [0, 500],
+      [500, 500],
+      [1000, 500],
+      [1500, 500],
+      [2000, 500],
+      [2500, 500],
+    ]);
+    expect(screen.getByTestId("trace-load-next")).toHaveTextContent(
+      "Load 102 more spans",
+    );
+
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("trace-load-more")).not.toBeInTheDocument();
+    });
+    expect(spanReads()[6]).toMatchObject({ skip: 3000, limit: 102 });
+    expect(screen.getByTestId("trace-stat-spans")).toHaveTextContent("3,102");
+    expect(spanCounts()).toHaveLength(1);
+  });
+
+  test("a trace that fits on one page is not counted: the page settles its total", async () => {
+    setBackend(largeBackend(500));
+    await renderTrace();
+
+    expect(screen.getByTestId("trace-stat-spans")).toHaveTextContent("500");
+    expect(screen.getByTestId("trace-stat-spans")).not.toHaveTextContent("+");
+    expect(screen.queryByTestId("trace-load-more")).not.toBeInTheDocument();
+    expect(spanCounts()).toHaveLength(0);
+  });
+
+  test("until the count lands the header says 500+, and the next batch is a full page", async () => {
+    let releaseCount: () => void = () => {};
+    setBackend({
+      ...largeBackend(1250),
+      holdSpanCount: new Promise<void>((resolve: () => void) => {
+        releaseCount = resolve;
+      }),
+    });
+    await renderTrace();
+
+    expect(screen.getByTestId("trace-stat-spans")).toHaveTextContent("500+");
+    expect(screen.getByTestId("trace-load-more")).toHaveTextContent(
+      "Showing the first 500 spans.",
+    );
+    expect(screen.getByTestId("trace-load-next")).toHaveTextContent(
+      "Load more spans",
+    );
+    // Nothing to put a number on "all" yet.
+    expect(screen.queryByTestId("trace-load-all")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(screen.getByTestId("trace-stat-spans")).toHaveTextContent(
+        "1,000+",
+      );
+    });
+    expect(spanReads()[1]).toMatchObject({ skip: 500, limit: 500 });
+
+    await act(async () => {
+      releaseCount();
+    });
+    await totalShown("1,250");
+    expect(screen.getByTestId("trace-load-more")).toHaveTextContent(
+      "Showing 1,000 of 1,250 spans",
+    );
+    expect(screen.getByTestId("trace-load-next")).toHaveTextContent(
+      "Load 250 more spans",
+    );
+  });
+
+  test("a count that fails leaves the total unknown, and the rest still loads a page at a time", async () => {
+    setBackend({ ...largeBackend(1250), failSpanCount: "Timed out." });
+    await renderTrace();
+    await waitFor(() => {
+      expect(spanCounts()).toHaveLength(1);
+    });
+
+    expect(screen.getByTestId("trace-stat-spans")).toHaveTextContent("500+");
+    // A total the page could not count is not an error the reader acts on.
+    expect(screen.queryByText("Timed out.")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(screen.getByTestId("trace-load-more")).toHaveTextContent(
+        "Showing the first 1,000 spans.",
+      );
+    });
+    fireEvent.click(screen.getByTestId("trace-load-next"));
+    await waitFor(() => {
+      expect(screen.queryByTestId("trace-load-more")).not.toBeInTheDocument();
+    });
+
+    expect(
+      spanReads().map((read: ListArgs) => {
+        return [read.skip, read.limit];
+      }),
+    ).toEqual([
+      [0, 500],
+      [500, 500],
+      [1000, 500],
+    ]);
+    // The short last page settles it.
+    expect(screen.getByTestId("trace-stat-spans")).toHaveTextContent("1,250");
+    expect(screen.getByTestId("trace-stat-spans")).not.toHaveTextContent("+");
+  });
+
+  test("refresh counts the trace again, and an older count landing late is ignored", async () => {
+    let releaseFirstCount: () => void = () => {};
+    const firstCountHeld: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        releaseFirstCount = resolve;
+      },
+    );
+    // The first count of the spans answers late, with what was true then.
+    const answerNow: CountFunction = countMock.getMockImplementation()!;
+    let spanCountsAnswered: number = 0;
+    countMock.mockImplementation(
+      async (...args: Parameters<CountFunction>): Promise<number> => {
+        if (args[0] === Span && spanCountsAnswered++ === 0) {
+          await firstCountHeld;
+          return 1250;
+        }
+        return answerNow(...args);
+      },
+    );
+    setBackend(largeBackend(1300));
+    await renderTrace();
+    expect(screen.getByTestId("trace-stat-spans")).toHaveTextContent("500+");
+
+    fireEvent.click(screen.getByTestId("trace-refresh"));
+    await totalShown("1,300");
+    expect(spanCounts()).toHaveLength(2);
+
+    await act(async () => {
+      releaseFirstCount();
+    });
+    expect(screen.getByTestId("trace-stat-spans")).toHaveTextContent(
+      "500of 1,300",
+    );
+  });
+
   test("offers the next page and then the rest", async () => {
     setBackend(largeBackend(1250));
     await renderTrace();
+    await totalShown("1,250");
 
     const notice: HTMLElement = screen.getByTestId("trace-load-more");
     expect(notice).toHaveTextContent("Showing 500 of 1,250 spans");
@@ -717,6 +964,7 @@ describe("batch loading a large trace", () => {
   test("load all fetches every remaining span in one go", async () => {
     setBackend(largeBackend(1250));
     await renderTrace();
+    await totalShown("1,250");
 
     fireEvent.click(screen.getByTestId("trace-load-all"));
 
@@ -729,8 +977,10 @@ describe("batch loading a large trace", () => {
 
   test("a server that runs out early ends the batches instead of looping", async () => {
     const large: Backend = largeBackend(700);
+    // Counted before 200 of them expired.
     setBackend({ ...large, totalCount: 900 });
     await renderTrace();
+    await totalShown("900");
 
     expect(screen.getByTestId("trace-load-more")).toHaveTextContent(
       "Showing 500 of 900 spans",
@@ -742,12 +992,14 @@ describe("batch loading a large trace", () => {
     await waitFor(() => {
       expect(screen.queryByTestId("trace-load-more")).not.toBeInTheDocument();
     });
+    expect(spanReads()[1]).toMatchObject({ skip: 500, limit: 400 });
     expect(screen.getByTestId("trace-stat-spans")).toHaveTextContent("700");
   });
 
   test("a failed batch keeps the loaded spans and shows the error", async () => {
     setBackend(largeBackend(1250));
     await renderTrace();
+    await totalShown("1,250");
 
     backend.failTraceRead = "Could not load more spans.";
     fireEvent.click(screen.getByTestId("trace-load-next"));
@@ -1569,7 +1821,7 @@ describe("the span panel's Profile tab", () => {
     });
     expect(lastProbedSpanIds()).toHaveLength(500);
 
-    fireEvent.click(screen.getByTestId("trace-load-all"));
+    fireEvent.click(await screen.findByTestId("trace-load-all"));
     await waitFor(() => {
       expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
         "999",
@@ -1602,7 +1854,7 @@ describe("the span panel's Profile tab", () => {
     );
 
     // The tab keeps its count while it asks again, so it never closes.
-    fireEvent.click(screen.getByTestId("trace-load-all"));
+    fireEvent.click(await screen.findByTestId("trace-load-all"));
     await waitFor(() => {
       expect(screen.getByTestId("span-panel-tab-profile")).toHaveTextContent(
         "999",

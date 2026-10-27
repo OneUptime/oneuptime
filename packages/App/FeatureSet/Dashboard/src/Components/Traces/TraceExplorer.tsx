@@ -19,12 +19,14 @@ import {
   OperationSummary,
   ServiceSummary,
   SpanLoadState,
+  SpanPage,
   TraceServiceInfo,
   TraceSummary,
   buildServiceInfoMap,
   getServiceInfo,
   getSpanLoadState,
   pluralize,
+  readSpanPage,
   summarizeOperations,
   summarizeServices,
   summarizeTrace,
@@ -174,7 +176,13 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
 
   const [services, setServices] = useState<Array<Service>>([]);
   const [spans, setSpans] = useState<Array<Span>>([]);
-  const [totalSpanCount, setTotalSpanCount] = useState<number>(0);
+  /*
+   * How many spans the trace has: counted exactly, or settled by the page
+   * that ended it. Null until one of those says (see readSpanPage).
+   */
+  const [totalSpanCount, setTotalSpanCount] = useState<number | null>(null);
+  // Whether the newest page said more spans follow it.
+  const [hasMoreSpans, setHasMoreSpans] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isLoadingMoreSpans, setIsLoadingMoreSpans] = useState<boolean>(false);
@@ -233,6 +241,38 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         skip,
         limit,
       });
+    },
+    [traceId],
+  );
+
+  /*
+   * The trace's exact span count, for "500 of 3,102" and the size of the
+   * batches. The list endpoint's `count` is only a lower bound
+   * (readSpanPage), so the spans are counted separately, with the list's
+   * own query. Asked only when the first page says more spans follow. A
+   * count that fails leaves the total unknown, and the rest of the trace
+   * still loads a page at a time.
+   */
+  const countTraceSpans: (generation: number) => Promise<void> = useCallback(
+    async (generation: number): Promise<void> => {
+      let total: number | null = null;
+
+      try {
+        total = await AnalyticsModelAPI.count<Span>(
+          Span,
+          {
+            traceId: traceId,
+          },
+          undefined,
+          { exact: true },
+        );
+      } catch {
+        total = null;
+      }
+
+      if (generation === loadGenerationRef.current) {
+        setTotalSpanCount(total);
+      }
     },
     [traceId],
   );
@@ -306,10 +346,13 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
       setError(null);
 
       // A refresh keeps as many spans as the reader had already loaded.
-      const limit: number = Math.min(
-        MAX_SPAN_FETCH_BATCH,
-        Math.max(INITIAL_SPAN_FETCH_SIZE, loadedSpanCountRef.current),
-      );
+      const limit: number =
+        mode === "initial"
+          ? INITIAL_SPAN_FETCH_SIZE
+          : Math.min(
+              MAX_SPAN_FETCH_BATCH,
+              Math.max(INITIAL_SPAN_FETCH_SIZE, loadedSpanCountRef.current),
+            );
 
       try {
         const [servicesResult, spanResult] = await Promise.all([
@@ -329,23 +372,31 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
               serviceColor: true,
             },
           }),
-          fetchSpanPage(
-            0,
-            mode === "initial" ? INITIAL_SPAN_FETCH_SIZE : limit,
-          ),
+          fetchSpanPage(0, limit),
         ]);
 
         if (generation !== loadGenerationRef.current) {
           return;
         }
 
+        const page: SpanPage = readSpanPage({
+          loadedSpanCount: spanResult.data.length,
+          rowCount: spanResult.data.length,
+          limit,
+          count: spanResult.count,
+          hasMore: spanResult.hasMore,
+        });
+
         setServices(servicesResult.data);
         setSpans(spanResult.data);
-        setTotalSpanCount(
-          spanResult.count && spanResult.count > 0
-            ? spanResult.count
-            : spanResult.data.length,
-        );
+        setHasMoreSpans(page.hasMore);
+
+        if (page.totalSpanCount !== null) {
+          setTotalSpanCount(page.totalSpanCount);
+        } else {
+          // A refresh keeps the total it showed until the new count lands.
+          void countTraceSpans(generation);
+        }
       } catch (err) {
         if (generation === loadGenerationRef.current) {
           setError(API.getFriendlyMessage(err));
@@ -357,14 +408,15 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
         }
       }
     },
-    [fetchSpanPage, loadPerfFixSuggestion],
+    [fetchSpanPage, countTraceSpans, loadPerfFixSuggestion],
   );
 
   // A new trace starts from a clean slate.
   useEffect(() => {
     setServices([]);
     setSpans([]);
-    setTotalSpanCount(0);
+    setTotalSpanCount(null);
+    setHasMoreSpans(false);
     setError(null);
     setViewMode("waterfall");
     setSearchText("");
@@ -391,6 +443,7 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   const loadState: SpanLoadState = getSpanLoadState({
     loadedSpanCount: spans.length,
     totalSpanCount,
+    hasMore: hasMoreSpans,
     pageSize: SPAN_PAGE_SIZE,
   });
 
@@ -402,42 +455,55 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
     }
 
     const generation: number = loadGenerationRef.current;
-    let loaded: number = spans.length;
-    let remaining: number = loadState.remainingSpanCount;
+    let state: SpanLoadState = loadState;
 
     setIsLoadingMoreSpans(true);
     setError(null);
 
     try {
       do {
-        const batchSize: number = Math.min(
-          loadAll ? MAX_SPAN_FETCH_BATCH : SPAN_PAGE_SIZE,
-          remaining,
+        const batchSize: number = loadAll
+          ? Math.min(
+              MAX_SPAN_FETCH_BATCH,
+              state.remainingSpanCount ?? MAX_SPAN_FETCH_BATCH,
+            )
+          : state.nextBatchSize;
+        const result: ListResult<Span> = await fetchSpanPage(
+          state.loadedSpanCount,
+          batchSize,
         );
-        const result: ListResult<Span> = await fetchSpanPage(loaded, batchSize);
 
         if (generation !== loadGenerationRef.current) {
           return;
         }
 
         const fetched: Array<Span> = result.data;
-        loaded += fetched.length;
-        remaining -= fetched.length;
+        const loaded: number = state.loadedSpanCount + fetched.length;
+        const page: SpanPage = readSpanPage({
+          loadedSpanCount: loaded,
+          rowCount: fetched.length,
+          limit: batchSize,
+          count: result.count,
+          hasMore: result.hasMore,
+        });
+
         setSpans((previous: Array<Span>) => {
           return [...previous, ...fetched];
         });
+        setHasMoreSpans(page.hasMore);
 
-        if (fetched.length < batchSize) {
-          // The server has nothing more, whatever the count said.
-          setTotalSpanCount(loaded);
-          break;
+        // A batch only settles the total when it ends the trace.
+        if (page.totalSpanCount !== null) {
+          setTotalSpanCount(page.totalSpanCount);
         }
 
-        if (result.count && result.count > 0) {
-          setTotalSpanCount(result.count);
-          remaining = result.count - loaded;
-        }
-      } while (loadAll && remaining > 0);
+        state = getSpanLoadState({
+          loadedSpanCount: loaded,
+          totalSpanCount: page.totalSpanCount ?? state.totalSpanCount,
+          hasMore: page.hasMore,
+          pageSize: SPAN_PAGE_SIZE,
+        });
+      } while (loadAll && state.hasMore);
     } catch (err) {
       if (generation === loadGenerationRef.current) {
         setError(API.getFriendlyMessage(err));
@@ -567,8 +633,8 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
   }, [waterfallSpans]);
 
   const summary: TraceSummary = useMemo(() => {
-    return summarizeTrace(tree, totalSpanCount);
-  }, [tree, totalSpanCount]);
+    return summarizeTrace(tree, loadState.totalSpanCount);
+  }, [tree, loadState.totalSpanCount]);
 
   const serviceSummaries: Array<ServiceSummary> = useMemo(() => {
     return summarizeServices({
@@ -1368,9 +1434,19 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                 </span>
               ) : (
                 <span>
-                  Showing {loadState.loadedSpanCount.toLocaleString()} of{" "}
-                  {loadState.totalSpanCount.toLocaleString()} spans. Large
-                  traces load in batches; totals above cover the loaded spans.
+                  {loadState.totalSpanCount === null ? (
+                    <>
+                      Showing the first{" "}
+                      {loadState.loadedSpanCount.toLocaleString()} spans.
+                    </>
+                  ) : (
+                    <>
+                      Showing {loadState.loadedSpanCount.toLocaleString()} of{" "}
+                      {loadState.totalSpanCount.toLocaleString()} spans.
+                    </>
+                  )}{" "}
+                  Large traces load in batches; totals above cover the loaded
+                  spans.
                 </span>
               )}
               {loadState.hasMore && (
@@ -1390,27 +1466,38 @@ const TraceExplorer: FunctionComponent<ComponentProps> = (
                           void loadMoreSpans(false);
                         }}
                       >
-                        Load{" "}
-                        {pluralize(
-                          loadState.nextBatchSize,
-                          "more span",
-                          "more spans",
+                        {/*
+                         * Until the spans are counted, the next page may
+                         * hold fewer than a page's worth: no number.
+                         */}
+                        {loadState.totalSpanCount === null ? (
+                          "Load more spans"
+                        ) : (
+                          <>
+                            Load{" "}
+                            {pluralize(
+                              loadState.nextBatchSize,
+                              "more span",
+                              "more spans",
+                            )}
+                          </>
                         )}
                       </button>
-                      {loadState.remainingSpanCount >
-                        loadState.nextBatchSize && (
-                        <button
-                          type="button"
-                          className="rounded-md border border-sky-200 bg-white px-2.5 py-1 font-medium text-sky-800 hover:bg-gray-50"
-                          data-testid="trace-load-all"
-                          onClick={() => {
-                            void loadMoreSpans(true);
-                          }}
-                        >
-                          Load all{" "}
-                          {loadState.remainingSpanCount.toLocaleString()}
-                        </button>
-                      )}
+                      {loadState.remainingSpanCount !== null &&
+                        loadState.remainingSpanCount >
+                          loadState.nextBatchSize && (
+                          <button
+                            type="button"
+                            className="rounded-md border border-sky-200 bg-white px-2.5 py-1 font-medium text-sky-800 hover:bg-gray-50"
+                            data-testid="trace-load-all"
+                            onClick={() => {
+                              void loadMoreSpans(true);
+                            }}
+                          >
+                            Load all{" "}
+                            {loadState.remainingSpanCount.toLocaleString()}
+                          </button>
+                        )}
                     </>
                   )}
                 </div>
