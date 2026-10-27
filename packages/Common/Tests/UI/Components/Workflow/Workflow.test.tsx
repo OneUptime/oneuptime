@@ -50,7 +50,7 @@ import {
  */
 let mockFlowProps: ReactFlowProps | null = null;
 // What the canvas's zoom controls were handed (react-flow's Controls).
-let mockControlsProps: { showInteractive?: boolean } | null = null;
+let mockControlsProps: { showInteractive?: boolean | undefined } | null = null;
 let mockSettingsProps: SettingsProps | null = null;
 // Every render of either picker, in order.
 let mockPickerProps: Array<PickerProps> = [];
@@ -69,9 +69,9 @@ jest.mock("reactflow", () => {
    * what they are handed is seen; the canvas's other children read
    * react-flow's store, which this stand-in has none of.
    */
-  const MockControls: (props: { showInteractive?: boolean }) => null = (props: {
-    showInteractive?: boolean;
-  }): null => {
+  const MockControls: (props: {
+    showInteractive?: boolean | undefined;
+  }) => null = (props: { showInteractive?: boolean | undefined }): null => {
     mockControlsProps = { showInteractive: props.showInteractive };
     return null;
   };
