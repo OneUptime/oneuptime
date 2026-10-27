@@ -13,7 +13,8 @@ a language, and the rules the guard test enforces.
   are read with `t("navbar.items.formsTitle")`.
 - **English is the fallback.** A key that is missing, or whose value is still
   the English text, shows English. StatusPage, Accounts and AdminDashboard
-  have small locale files of their own, and PublicDashboard has none. They
+  have small locale files of their own, and so does PublicDashboard, in its
+  visitor's browser language (Common/UI/Utils/VisitorLanguage). They
   render the same shared components, so a shared component's sentence reads
   English there unless that app's file has the key.
 - **A sentence is translated whole, or not at all.** A sentence with a value in

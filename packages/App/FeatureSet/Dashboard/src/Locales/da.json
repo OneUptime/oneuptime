@@ -36309,5 +36309,6 @@
   "Show all spans": "Show all spans",
   "Show {{value}}": "Show {{value}}",
   "The same request, recorded twice (for example by the Kubernetes agent and by an SDK in the app). Shown inside the other recording so their spans read as one.": "The same request, recorded twice (for example by the Kubernetes agent and by an SDK in the app). Shown inside the other recording so their spans read as one.",
-  "Try adjusting filters or time range, or show every span, including database calls and internal steps.": "Try adjusting filters or time range, or show every span, including database calls and internal steps."
+  "Try adjusting filters or time range, or show every span, including database calls and internal steps.": "Try adjusting filters or time range, or show every span, including database calls and internal steps.",
+  "This page will come back as soon as you're online again, just as you left it.": "Denne side kommer tilbage, så snart du er online igen, præcis som du forlod den."
 }

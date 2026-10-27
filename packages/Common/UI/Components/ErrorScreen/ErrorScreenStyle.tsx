@@ -53,8 +53,25 @@ export const ERROR_SCREEN_CSS: string = `
   background-color: transparent;
 }
 
+/*
+ * Dark, with the dark theme's own values (Theme.css's html.dark) for when its
+ * stylesheet is not there: the CSS chunk that failed, or a page whose app
+ * never started (Common/Server/Views/Partials/EntryLoadFailure.ejs).
+ */
 html.dark .oneuptime-error-boundary,
 html.dark .oueb-part {
+  --oueb-surface: var(--ou-surface-primary, #172033);
+  --oueb-surface-muted: var(--ou-surface-secondary, #1e293b);
+  --oueb-border: var(--ou-border-default, #475569);
+  --oueb-border-subtle: var(--ou-border-subtle, #334155);
+  --oueb-text: var(--ou-text-primary, #f8fafc);
+  --oueb-text-secondary: var(--ou-text-secondary, #e2e8f0);
+  --oueb-text-muted: var(--ou-text-muted, #cbd5e1);
+  --oueb-success-text: var(--ou-success-text, #86efac);
+  --oueb-danger-text: var(--ou-danger-text, #fca5a5);
+  --oueb-shadow: var(--ou-card-shadow, 0 10px 28px rgb(0 0 0 / 42%), 0 0 0 1px rgb(148 163 184 / 10%));
+  --oueb-accent-surface: var(--ou-accent-soft, #1e1b4b);
+  --oueb-accent-border: var(--ou-accent-muted, #312e81);
   --oueb-accent: #6366f1;
   --oueb-accent-hover: #818cf8;
   --oueb-accent-ring: rgb(129 140 248 / 55%);

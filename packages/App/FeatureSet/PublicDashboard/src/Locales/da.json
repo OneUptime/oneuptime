@@ -1,0 +1,22 @@
+{
+  "Loading the latest version": "Indlæser den nyeste version",
+  "A newer version of this page is available. It's loading now.": "En nyere version af denne side er tilgængelig. Den indlæses nu.",
+  "A newer version of this page is ready": "En nyere version af denne side er klar",
+  "This page needs the new version to open. Reloading discards changes you haven't saved.": "Denne side skal bruge den nye version for at åbne. Genindlæsning kasserer ændringer, du ikke har gemt.",
+  "You're offline": "Du er offline",
+  "This page needs an internet connection to load. It will load as soon as you're back online.": "Denne side skal bruge en internetforbindelse for at indlæse. Den indlæses, så snart du er online igen.",
+  "Can't reach the server": "Serveren kan ikke nås",
+  "It may be restarting after an update. This page will load as soon as the server is back.": "Den genstarter måske efter en opdatering. Denne side indlæses, så snart serveren er tilbage.",
+  "This page couldn't be loaded": "Denne side kunne ikke indlæses",
+  "A file it needs couldn't be downloaded from the server. Try reloading in a moment.": "En fil, siden skal bruge, kunne ikke hentes fra serveren. Prøv at genindlæse om et øjeblik.",
+  "Try now": "Prøv nu",
+  "Try again": "Prøv igen",
+  "Reload page": "Genindlæs siden",
+  "Loading": "Indlæser",
+  "Loading...": "Indlæser...",
+  "Loading the latest version...": "Indlæser den nyeste version...",
+  "You're offline. This will load when you're back online.": "Du er offline. Dette indlæses, når du er online igen.",
+  "Can't reach the server. Trying again automatically.": "Serveren kan ikke nås. Prøver igen automatisk.",
+  "This needs the latest version. Save your changes, then reload the page.": "Dette kræver den nyeste version. Gem dine ændringer, og genindlæs derefter siden.",
+  "This couldn't be loaded.": "Dette kunne ikke indlæses."
+}

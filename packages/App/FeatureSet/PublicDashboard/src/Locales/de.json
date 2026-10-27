@@ -1,0 +1,22 @@
+{
+  "Loading the latest version": "Die neueste Version wird geladen",
+  "A newer version of this page is available. It's loading now.": "Eine neuere Version dieser Seite ist verfügbar. Sie wird jetzt geladen.",
+  "A newer version of this page is ready": "Eine neuere Version dieser Seite ist bereit",
+  "This page needs the new version to open. Reloading discards changes you haven't saved.": "Diese Seite lässt sich nur in der neuen Version öffnen. Beim Neuladen gehen nicht gespeicherte Änderungen verloren.",
+  "You're offline": "Sie sind offline",
+  "This page needs an internet connection to load. It will load as soon as you're back online.": "Diese Seite braucht eine Internetverbindung, um zu laden. Sie wird geladen, sobald Sie wieder online sind.",
+  "Can't reach the server": "Der Server ist nicht erreichbar",
+  "It may be restarting after an update. This page will load as soon as the server is back.": "Er startet vielleicht nach einem Update neu. Diese Seite wird geladen, sobald der Server wieder erreichbar ist.",
+  "This page couldn't be loaded": "Diese Seite konnte nicht geladen werden",
+  "A file it needs couldn't be downloaded from the server. Try reloading in a moment.": "Eine benötigte Datei konnte nicht vom Server heruntergeladen werden. Laden Sie die Seite in einem Moment neu.",
+  "Try now": "Jetzt versuchen",
+  "Try again": "Erneut versuchen",
+  "Reload page": "Seite neu laden",
+  "Loading": "Wird geladen",
+  "Loading...": "Wird geladen...",
+  "Loading the latest version...": "Die neueste Version wird geladen...",
+  "You're offline. This will load when you're back online.": "Sie sind offline. Dies wird geladen, sobald Sie wieder online sind.",
+  "Can't reach the server. Trying again automatically.": "Der Server ist nicht erreichbar. Es wird automatisch erneut versucht.",
+  "This needs the latest version. Save your changes, then reload the page.": "Hierfür wird die neueste Version benötigt. Speichern Sie Ihre Änderungen und laden Sie die Seite dann neu.",
+  "This couldn't be loaded.": "Dies konnte nicht geladen werden."
+}
