@@ -172,4 +172,46 @@ describe("Security Events says what a field is for, not that it is optional", ()
     );
     expect(dialog).not.toContain('<PlaceholderHelp lead="');
   });
+
+  /*
+   * The retired leads are gone from every locale too: a key nothing draws
+   * is still a sentence translators are asked to word. Three of them were
+   * left over from the page pass of #5246, which reworded a playbook's
+   * filters.
+   */
+  test("no locale keeps a retired Optional. lead", () => {
+    const LOCALES: string = path.join(DASHBOARD, "Locales");
+    const RETIRED: Array<string> = [
+      "Optional. Who the case is assigned to.",
+      "Optional. The team the case belongs to. Choose a person, a team, or both.",
+      "Optional. When an entity is a known indicator, the case's priority rises to at least this.",
+      "Optional. The person working the case.",
+      "Optional. The team the case belongs to.",
+      "Optional. Why you decided this way.",
+      "Optional. Only cases of this priority or higher.",
+      "Optional. Only when the detection behind the case came from this source.",
+      "Optional. When set, the playbook runs only on cases whose detection came from one of these rules.",
+    ];
+    const files: Array<string> = fs
+      .readdirSync(LOCALES)
+      .filter((name: string): boolean => {
+        return name.endsWith(".json");
+      });
+
+    expect(files.length).toBe(17);
+
+    for (const file of files) {
+      const values: Record<string, string> = JSON.parse(
+        fs.readFileSync(path.join(LOCALES, file), "utf8"),
+      ) as Record<string, string>;
+
+      for (const key of RETIRED) {
+        expect({ file, key, isKept: key in values }).toEqual({
+          file,
+          key,
+          isKept: false,
+        });
+      }
+    }
+  });
 });

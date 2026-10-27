@@ -239,8 +239,9 @@ export const getResourceMeta: (type: string | undefined) => ResourceMeta = (
 /*
  * The person's initials, as their avatar draws them everywhere else
  * (Utils/NameInitials): read from the words of their name, or of their
- * address when they have no name - never a bracket or a dot ("M(" for
- * "Maya Chen (contractor)", "J" for jane.doe@acme-commerce.example).
+ * address when they have no name - never a bracket ("(bot) Release
+ * Manager" was "(R"; it is RM), and an address by its local part's words
+ * (jane.doe@acme-commerce.example is JD, not J).
  */
 export const getActorInitials: (name: string | undefined) => string = (
   name: string | undefined,

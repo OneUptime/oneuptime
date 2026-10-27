@@ -176,6 +176,7 @@ import {
   OPEN_NEW_SECURITY_CASE,
   OPEN_SECURITY_CASE,
   SECURITY_CASE_ROW_DETECTIONS_TEST_ID,
+  SECURITY_CASE_ROW_NUMBER_TEST_ID,
   SECURITY_CASE_ROW_SOURCE_LINE_TEST_ID,
   VIEW_UNASSIGNED_CASES,
   VIEW_UNASSIGNED_CASES_TEST_ID,
@@ -1257,6 +1258,55 @@ describe("the list a person sees", () => {
     expect(line.lastElementChild).toBe(
       screen.getByTestId(SECURITY_CASE_ROW_DETECTIONS_TEST_ID),
     );
+  });
+
+  /*
+   * A case's title is what a detection rule or a person wrote, in their
+   * language: it is read the way it is written, set apart from the page
+   * (IsolatedText). On a Persian page an English title ran into the number
+   * before it, "CASE-142Password spray"; isolated, the number keeps the
+   * start of the line and the title follows it.
+   */
+  test("each title is read the way it is written, after its number", async () => {
+    listedRows = [
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000154",
+        "CASE-154",
+        "Password spray against Okta from 203.0.113.47",
+        undefined,
+      ),
+      unassignedCase(
+        "20000000-0000-4000-8000-000000000155",
+        "CASE-155",
+        "ورود مشکوک به حساب مدیر",
+        undefined,
+      ),
+    ];
+
+    await drawTable(await capture("open"));
+
+    const english: HTMLElement = await screen.findByText(
+      "Password spray against Okta from 203.0.113.47",
+    );
+    const persian: HTMLElement = screen.getByText("ورود مشکوک به حساب مدیر");
+
+    expect(english.tagName).toBe("BDI");
+    expect(english).toHaveAttribute("dir", "ltr");
+    expect(persian.tagName).toBe("BDI");
+    expect(persian).toHaveAttribute("dir", "rtl");
+
+    // Each number first, its title right after it, in the clamped line.
+    const numbers: Array<HTMLElement> = screen.getAllByTestId(
+      SECURITY_CASE_ROW_NUMBER_TEST_ID,
+    );
+    expect(
+      numbers.map((number: HTMLElement): string => {
+        return number.textContent || "";
+      }),
+    ).toEqual(["CASE-154", "CASE-155"]);
+    expect(numbers[0]!.nextElementSibling).toBe(english);
+    expect(numbers[1]!.nextElementSibling).toBe(persian);
+    expect(english.parentElement).toHaveClass("line-clamp-2", "break-words");
   });
 
   /*

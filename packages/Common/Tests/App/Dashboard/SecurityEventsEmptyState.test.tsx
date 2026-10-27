@@ -108,6 +108,13 @@ const WAYS_LIST_NAME: string = "Ways to start sending security events";
 const DESCRIPTION: string =
   "Events show up here as soon as a source starts sending.";
 
+// What getSecurityEventsLogsState reads of Your logs.
+interface LogsStateInput {
+  isRead: boolean;
+  didReadFail: boolean;
+  source: SecurityLogSource | null;
+}
+
 /*
  * What each card must say and do, written out rather than read back from
  * the constants, so a change to them is a visible change to this table too.
@@ -860,18 +867,12 @@ describe("SecurityEventsEmptyState", () => {
         "on",
       ],
       [{ isRead: false, didReadFail: true, source: null }, "unknown"],
-    ] as Array<
-      [
-        {
-          isRead: boolean;
-          didReadFail: boolean;
-          source: SecurityLogSource | null;
-        },
-        string,
-      ]
-    >)("getSecurityEventsLogsState(%j) is %s", (input, state: string) => {
-      expect(getSecurityEventsLogsState(input)).toBe(state);
-    });
+    ] as Array<[LogsStateInput, string]>)(
+      "getSecurityEventsLogsState(%j) is %s",
+      (input: LogsStateInput, state: string) => {
+        expect(getSecurityEventsLogsState(input)).toBe(state);
+      },
+    );
   });
 
   describe("each card is one click target", () => {

@@ -94,7 +94,7 @@ export const getPeopleAvatarPalette: (
 /*
  * The initials drawn when there is no picture, read from the name's words
  * only (Utils/NameInitials): a team named "Security Operations Center
- * (EMEA)" is SE, where the first and last bits of the name as written made
+ * (EMEA)" is SC, where the first and last bits of the name as written made
  * it "S(".
  */
 export const getPeopleInitials: (name: string) => string = (

@@ -56,6 +56,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
@@ -122,6 +123,9 @@ export const OPEN_NEW_SECURITY_CASE: string = translationKey(
  */
 export const SECURITY_CASE_ROW_SOURCE_LINE_TEST_ID: string =
   "security-case-row-source-line";
+// The case's number, before its title.
+export const SECURITY_CASE_ROW_NUMBER_TEST_ID: string =
+  "security-case-row-number";
 export const SECURITY_CASE_ROW_DETECTIONS_TEST_ID: string =
   "security-case-row-detections";
 
@@ -362,11 +366,21 @@ const SecurityCasesList: FunctionComponent<{
                 { modelId: new ObjectID(item._id!.toString()) },
               )}
             >
+              {/*
+                The title is read the way it is written, apart from the
+                page (IsolatedText): on a Persian page an English title ran
+                into the number before it, "CASE-142Password spray", and
+                the number belongs at the start of the line, where a
+                Persian reader begins.
+              */}
               <span className="line-clamp-2 break-words font-medium text-gray-900 group-hover:underline">
-                <span className="mr-1.5 font-mono text-xs text-gray-500">
+                <span
+                  className="mr-1.5 font-mono text-xs text-gray-500"
+                  data-testid={SECURITY_CASE_ROW_NUMBER_TEST_ID}
+                >
                   {item.caseNumberWithPrefix || ""}
                 </span>
-                {item.title || ""}
+                <IsolatedText text={item.title || ""} />
               </span>
             </AppLink>
             {/*

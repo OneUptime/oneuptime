@@ -2152,6 +2152,69 @@ test.describe("the case queue", () => {
     ).toHaveCount(0);
   });
 
+  /*
+   * A case's title is what a rule or a person wrote, set apart from the
+   * page (IsolatedText): on a Persian page an English title ran into its
+   * number, "CASE-142Password spray". The number starts its line on the
+   * right, where a Persian reader begins, and the title follows it to the
+   * left, a gap between them.
+   */
+  test("in Persian, each case's number starts its line on the right, its title after it", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CASES_PATH, { width: 1344, lang: "fa" });
+    await expect(page.locator("table tbody tr").first()).toBeVisible({
+      timeout: 30000,
+    });
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.dir;
+      }),
+    ).toBe("rtl");
+
+    const numbers: Locator = page.getByTestId("security-case-row-number");
+    expect(await numbers.count()).toBeGreaterThan(1);
+
+    for (const number of await numbers.all()) {
+      const layout: {
+        name: string;
+        titleTag: string;
+        numberLeft: number;
+        titleLeft: number;
+        titleRight: number;
+      } = await number.evaluate((element: Element) => {
+        const title: Element | null = element.nextElementSibling;
+        // The title's first line: where it meets the number.
+        const firstLine: DOMRect | undefined = title
+          ? title.getClientRects()[0]
+          : undefined;
+
+        return {
+          name: element.textContent || "",
+          titleTag: title ? title.tagName : "",
+          numberLeft: element.getBoundingClientRect().left,
+          titleLeft: firstLine ? firstLine.left : 0,
+          titleRight: firstLine ? firstLine.right : 0,
+        };
+      });
+
+      expect(layout.titleTag, layout.name).toBe("BDI");
+      expect(
+        layout.numberLeft - layout.titleRight,
+        `${layout.name}: a gap between the number and its title`,
+      ).toBeGreaterThanOrEqual(4);
+      expect(
+        layout.numberLeft - layout.titleRight,
+        `${layout.name}: the title right after the number`,
+      ).toBeLessThanOrEqual(10);
+      expect(layout.titleLeft, layout.name).toBeLessThan(layout.numberLeft);
+    }
+
+    await screenshot(page, "cases-fa-1280", { fullPage: false });
+  });
+
   for (const layout of [
     { width: 1024, name: "cases-tablet" },
     { width: 390, name: "cases-mobile" },

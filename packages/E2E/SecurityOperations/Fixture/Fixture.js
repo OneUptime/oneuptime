@@ -80,6 +80,7 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import SecurityEventsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout";
 import SecurityOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Overview";
 import SecurityCasesPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Cases";
@@ -3458,6 +3459,12 @@ if (language !== "en") {
     translation: (await loadLocale(language)).default,
   };
 }
+
+/*
+ * Times follow the language as the Dashboard's own start-up has them
+ * (Utils/i18n.ts): "vor 9 Minuten" on a German page, not "9 minutes ago".
+ */
+followLanguageForDates(i18next);
 
 await i18next.use(initReactI18next).init({
   lng: language,

@@ -13,7 +13,6 @@ import {
   SECURITY_CASE_DETECTIONS_CLOSED,
   SECURITY_CASE_DETECTIONS_THE_LAST,
   SECURITY_CASE_QUEUE_VIEWS,
-  SecurityCaseQueueView,
   SecurityCaseRowMoment,
   getSecurityCaseRowMoment,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityCase/SecurityCaseQueueViews";
@@ -345,5 +344,72 @@ describe("the case list's wiring", () => {
     expect(table).toContain("createFormTitle={OPEN_NEW_SECURITY_CASE}");
     expect(table).toContain("createFormSubmitButtonText={OPEN_SECURITY_CASE}");
     expect(table).toContain('translationKey("Open Security Case")');
+  });
+});
+
+/*
+ * The case lists' column headers, in every language. The UI review of
+ * #5247 found Case, Assignee and Last Detection in English on the German
+ * list; the translation backlog (#5287) worded them. This holds every
+ * header the lists draw, those three in each language's own words - a
+ * header may read as the English does only where the language says it so
+ * (Status is Status in German).
+ */
+describe("the case lists' column headers", () => {
+  const table: string = fs.readFileSync(
+    path.join(
+      __dirname,
+      "..",
+      "..",
+      "FeatureSet",
+      "Dashboard",
+      "src",
+      "Components",
+      "SecurityCase",
+      "SecurityCasesTable.tsx",
+    ),
+    "utf8",
+  );
+
+  const HEADERS: ReadonlyArray<string> = [
+    "Case",
+    "Priority",
+    "Status",
+    "Verdict",
+    "Assignee",
+    "Team",
+    "Labels",
+    "Last Detection",
+    "Closed",
+  ];
+
+  // The three the review found in English.
+  const NAMED: ReadonlyArray<string> = ["Case", "Assignee", "Last Detection"];
+
+  test("the lists still draw each of them", () => {
+    for (const header of HEADERS) {
+      expect({ header, drawn: table.includes(`title: "${header}",`) }).toEqual({
+        header,
+        drawn: true,
+      });
+    }
+  });
+
+  test.each(LANGUAGES)("%s words every header", (language: string) => {
+    const values: Record<string, string> = locale(language);
+
+    for (const header of HEADERS) {
+      expect({ header, isWorded: Boolean(values[header]) }).toEqual({
+        header,
+        isWorded: true,
+      });
+    }
+
+    for (const header of NAMED) {
+      expect({ header, isEnglish: values[header] === header }).toEqual({
+        header,
+        isEnglish: false,
+      });
+    }
   });
 });
