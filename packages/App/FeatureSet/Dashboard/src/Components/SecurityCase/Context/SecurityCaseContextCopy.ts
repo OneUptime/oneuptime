@@ -32,9 +32,8 @@ export const STORY_FILTER_LABELS: Record<SecurityCaseStoryFilter, string> = {
   [SecurityCaseStoryFilter.All]: translationKey("All"),
   [SecurityCaseStoryFilter.Attack]: translationKey("Attack"),
   [SecurityCaseStoryFilter.Changes]: translationKey("Changes"),
-  [SecurityCaseStoryFilter.IncidentsAndAlerts]: translationKey(
-    "Incidents & alerts",
-  ),
+  [SecurityCaseStoryFilter.IncidentsAndAlerts]:
+    translationKey("Incidents & alerts"),
   [SecurityCaseStoryFilter.Response]: translationKey("Response"),
 };
 
@@ -71,13 +70,15 @@ export const STORY_KIND_ICONS: Record<SecurityCaseStoryItemKind, IconProp> = {
 
 export const STORY_CASE_OPENED: string = translationKey("Case opened");
 
-export const STORY_MILESTONE_TITLES: Record<SecurityCaseStoryMilestone, string> =
-  {
-    [SecurityCaseStoryMilestone.Acknowledged]:
-      translationKey("Case acknowledged"),
-    [SecurityCaseStoryMilestone.Contained]: translationKey("Case contained"),
-    [SecurityCaseStoryMilestone.Closed]: translationKey("Case closed"),
-  };
+export const STORY_MILESTONE_TITLES: Record<
+  SecurityCaseStoryMilestone,
+  string
+> = {
+  [SecurityCaseStoryMilestone.Acknowledged]:
+    translationKey("Case acknowledged"),
+  [SecurityCaseStoryMilestone.Contained]: translationKey("Case contained"),
+  [SecurityCaseStoryMilestone.Closed]: translationKey("Case closed"),
+};
 
 // A run of alike events, under the message of the one that tells it best.
 export const STORY_EVENTS_IN_RUN: PluralTemplate = {
@@ -219,9 +220,7 @@ export const IMPACT_EVIDENCE: Record<SecurityCaseExposureEvidenceKind, string> =
 
 export const IMPACT_EXPOSURE_HEADING: string = translationKey("Exposure");
 export const IMPACT_AT_RISK_HEADING: string = translationKey("At risk");
-export const IMPACT_TALKED_TO_HEADING: string = translationKey(
-  "Network peers",
-);
+export const IMPACT_TALKED_TO_HEADING: string = translationKey("Network peers");
 
 export const IMPACT_OWNERS: string = translationKey("Owners");
 export const IMPACT_NO_OWNERS: string = translationKey("No owner set");

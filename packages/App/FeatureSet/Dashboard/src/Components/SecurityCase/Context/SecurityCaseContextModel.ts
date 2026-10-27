@@ -81,7 +81,10 @@ function readEnumList<T extends string>(
   allowed: ReadonlyArray<T>,
 ): Array<T> {
   return readArray(value).filter((item: JSONValue): item is T => {
-    return typeof item === "string" && (allowed as ReadonlyArray<string>).includes(item);
+    return (
+      typeof item === "string" &&
+      (allowed as ReadonlyArray<string>).includes(item)
+    );
   });
 }
 
@@ -136,7 +139,9 @@ function readLinks(value: JSONValue | undefined): SecurityCaseStoryLinksJson {
   return read;
 }
 
-export function parseSecurityCaseStory(json: JSONObject): SecurityCaseStoryJson {
+export function parseSecurityCaseStory(
+  json: JSONObject,
+): SecurityCaseStoryJson {
   const sources: ReadonlyArray<SecurityCaseStorySource> = Object.values(
     SecurityCaseStorySource,
   );
@@ -209,7 +214,9 @@ export function parseSecurityCaseStory(json: JSONObject): SecurityCaseStoryJson 
         return parsed;
       })
       .filter(
-        (item: SecurityCaseStoryItemJson | null): item is SecurityCaseStoryItemJson => {
+        (
+          item: SecurityCaseStoryItemJson | null,
+        ): item is SecurityCaseStoryItemJson => {
           return Boolean(item);
         },
       ),
@@ -243,7 +250,9 @@ function readPeers(
       };
     })
     .filter(
-      (peer: SecurityCaseImpactPeerJson | null): peer is SecurityCaseImpactPeerJson => {
+      (
+        peer: SecurityCaseImpactPeerJson | null,
+      ): peer is SecurityCaseImpactPeerJson => {
         return Boolean(peer);
       },
     );
@@ -535,7 +544,11 @@ export function getStoryEventsRoute(
   const start: Date = new Date(item.time);
   const end: Date = new Date(item.endTime || item.time);
 
-  if (!observable || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+  if (
+    !observable ||
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime())
+  ) {
     return null;
   }
 
@@ -660,7 +673,10 @@ export function getStoryItemLinks(data: {
 export function getStoryItemTitleRoute(
   item: SecurityCaseStoryItemJson,
 ): Route | null {
-  if (item.kind === SecurityCaseStoryItemKind.Incident && item.links.incidentId) {
+  if (
+    item.kind === SecurityCaseStoryItemKind.Incident &&
+    item.links.incidentId
+  ) {
     return getIncidentRoute(item.links.incidentId);
   }
 
@@ -783,18 +799,16 @@ export function getStoryOutcomeTally(
     .filter(([, count]: [string, number]): boolean => {
       return count > 0;
     })
-    .sort(
-      (first: [string, number], second: [string, number]): number => {
-        const firstIndex: number =
-          order.indexOf(first[0]) === -1 ? order.length : order.indexOf(first[0]);
-        const secondIndex: number =
-          order.indexOf(second[0]) === -1
-            ? order.length
-            : order.indexOf(second[0]);
+    .sort((first: [string, number], second: [string, number]): number => {
+      const firstIndex: number =
+        order.indexOf(first[0]) === -1 ? order.length : order.indexOf(first[0]);
+      const secondIndex: number =
+        order.indexOf(second[0]) === -1
+          ? order.length
+          : order.indexOf(second[0]);
 
-        return firstIndex - secondIndex;
-      },
-    )
+      return firstIndex - secondIndex;
+    })
     .map(([outcome, count]: [string, number]) => {
       return { outcome, count };
     });
@@ -882,9 +896,7 @@ export function getImpactLeadingChange(
     }
 
     // Before: the latest. After: the first.
-    if (
-      change.isBeforeFirstDetection ? time > bestTime : time < bestTime
-    ) {
+    if (change.isBeforeFirstDetection ? time > bestTime : time < bestTime) {
       best = { record, change };
     }
   }
@@ -941,7 +953,10 @@ export function getTopFlowPeers(
 ): Array<SecurityCaseFlowPeerJson> {
   return [...(peers || [])]
     .sort(
-      (first: SecurityCaseFlowPeerJson, second: SecurityCaseFlowPeerJson): number => {
+      (
+        first: SecurityCaseFlowPeerJson,
+        second: SecurityCaseFlowPeerJson,
+      ): number => {
         return second.bytes - first.bytes;
       },
     )

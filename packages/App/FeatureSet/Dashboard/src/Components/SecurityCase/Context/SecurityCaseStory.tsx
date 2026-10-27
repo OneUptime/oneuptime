@@ -198,7 +198,10 @@ const StoryItemLinks: FunctionComponent<{
             className={LINK_CLASS_NAME}
             dataTestId={`security-case-story-link-${link.key}`}
           >
-            <Icon icon={link.icon} className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+            <Icon
+              icon={link.icon}
+              className="h-3.5 w-3.5 shrink-0 text-gray-400"
+            />
             <span>{translator.translateText(link.label) || link.label}</span>
           </AppLink>
         );
@@ -286,21 +289,23 @@ const StoryItemFacts: FunctionComponent<{
   if (tally.length > 1) {
     facts.push(
       <span key="tally" className="inline-flex flex-wrap gap-x-2">
-        {tally.map((entry: { outcome: string; count: number }): ReactElement => {
-          const label: string = isSecurityEventRequestOutcome(entry.outcome)
-            ? translator.translateText(STORY_OUTCOME_LABELS[entry.outcome]) ||
-              STORY_OUTCOME_LABELS[entry.outcome]
-            : "—";
+        {tally.map(
+          (entry: { outcome: string; count: number }): ReactElement => {
+            const label: string = isSecurityEventRequestOutcome(entry.outcome)
+              ? translator.translateText(STORY_OUTCOME_LABELS[entry.outcome]) ||
+                STORY_OUTCOME_LABELS[entry.outcome]
+              : "—";
 
-          return (
-            <span key={entry.outcome || "none"} className="whitespace-nowrap">
-              {translator.translateTemplate(STORY_OUTCOME_TALLY, {
-                label,
-                count: translator.formatNumber(entry.count),
-              })}
-            </span>
-          );
-        })}
+            return (
+              <span key={entry.outcome || "none"} className="whitespace-nowrap">
+                {translator.translateTemplate(STORY_OUTCOME_TALLY, {
+                  label,
+                  count: translator.formatNumber(entry.count),
+                })}
+              </span>
+            );
+          },
+        )}
       </span>,
     );
   }
@@ -470,7 +475,9 @@ const SecurityCaseStory: FunctionComponent<ComponentProps> = (
   }, [story]);
 
   const days: Array<StoryDay> = useMemo(() => {
-    return story ? groupStoryItemsByDay(filterStoryItems(story.items, filter)) : [];
+    return story
+      ? groupStoryItemsByDay(filterStoryItems(story.items, filter))
+      : [];
   }, [story, filter]);
 
   let body: ReactElement;
@@ -643,8 +650,9 @@ const SecurityCaseStory: FunctionComponent<ComponentProps> = (
           </p>
         ) : (
           days.map((day: StoryDay): ReactElement => {
-            const dayLabel: string =
-              OneUptimeDate.getDateAsLocalDayMonthString(day.time);
+            const dayLabel: string = OneUptimeDate.getDateAsLocalDayMonthString(
+              day.time,
+            );
 
             return (
               <section

@@ -152,10 +152,10 @@ function sourceNames(
   );
 }
 
-const FactRow: FunctionComponent<{ label: string; children: ReactNode }> = (props: {
+const FactRow: FunctionComponent<{
   label: string;
   children: ReactNode;
-}): ReactElement => {
+}> = (props: { label: string; children: ReactNode }): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (
@@ -430,7 +430,9 @@ const EvidenceLine: FunctionComponent<{
         {translator.translateTemplate(IMPACT_EVIDENCE[evidence.kind], {
           address: evidence.address,
           outcome,
-          time: evidence.time ? OneUptimeDate.fromNow(new Date(evidence.time)) : "",
+          time: evidence.time
+            ? OneUptimeDate.fromNow(new Date(evidence.time))
+            : "",
         })}
       </li>
     );
@@ -670,7 +672,9 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
               <></>
             )}
             {leading || canSayNothingChanged ? (
-              <div data-testid={SECURITY_CASE_CONTEXT_TEST_IDS.impactLastChange}>
+              <div
+                data-testid={SECURITY_CASE_CONTEXT_TEST_IDS.impactLastChange}
+              >
                 <FactRow label={IMPACT_LAST_CHANGE}>
                   {leading ? (
                     <span className="[overflow-wrap:anywhere]">
@@ -742,7 +746,9 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
                     </h3>
                     <ul className="divide-y divide-gray-100">
                       {records.map(
-                        (record: SecurityCaseImpactRecordJson): ReactElement => {
+                        (
+                          record: SecurityCaseImpactRecordJson,
+                        ): ReactElement => {
                           return (
                             <ImpactRecord
                               key={`${record.kind}:${record.id}`}
@@ -759,7 +765,9 @@ const SecurityCaseImpactCard: FunctionComponent<ComponentProps> = (
                 )}
 
                 {flows.length > 0 ? (
-                  <section data-testid={SECURITY_CASE_CONTEXT_TEST_IDS.impactFlows}>
+                  <section
+                    data-testid={SECURITY_CASE_CONTEXT_TEST_IDS.impactFlows}
+                  >
                     <h3 className={`mb-2 ${SECTION_HEADING_CLASS_NAME}`}>
                       {translator.translateText(IMPACT_TALKED_TO_HEADING)}
                     </h3>
