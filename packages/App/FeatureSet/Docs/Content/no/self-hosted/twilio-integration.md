@@ -177,6 +177,7 @@ Et nummer som er bekreftet for SMS, er også bekreftet for anrop, uten en ny kod
 :::cards
 - [Retningslinje for innkommende anrop](/docs/on-call/incoming-call-policy): La innringere nå vaktingeniørene dine via et Twilio-nummer.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem hvem som varsles på hvert nivå, via SMS, anrop eller en annen metode.
+- [SMS- og anropsgateway](/docs/self-hosted/sms-and-call-gateway): Send SMS og anrop gjennom din egen leverandør i stedet for Twilio.
 - [SMTP](/docs/emails/smtp): Send også e-post gjennom din egen e-postserver.
 - [Tilgang til private nettverk](/docs/self-hosted/private-network-access): La arbeidsflyter og webhooker nå interne verktøy.
 :::

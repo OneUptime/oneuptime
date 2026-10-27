@@ -177,6 +177,7 @@ Eine für SMS verifizierte Nummer ist auch für Anrufe verifiziert, ohne zweiten
 :::cards
 - [Richtlinie für eingehende Anrufe](/docs/on-call/incoming-call-policy): Anrufende über eine Twilio-Nummer zu Ihren Bereitschaftsingenieuren durchstellen.
 - [Eskalationsregeln](/docs/on-call/escalation-rules): Festlegen, wer auf jeder Stufe benachrichtigt wird, per SMS, Anruf oder jede andere Methode.
+- [SMS- und Anruf-Gateway](/docs/self-hosted/sms-and-call-gateway): SMS und Anrufe über Ihren eigenen Anbieter statt über Twilio senden.
 - [SMTP](/docs/emails/smtp): E-Mails ebenfalls über Ihren eigenen Mailserver senden.
 - [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access): Workflows und Webhooks interne Werkzeuge erreichen lassen.
 :::

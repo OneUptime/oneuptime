@@ -177,6 +177,7 @@ Een nummer dat voor sms is geverifieerd, is ook voor oproepen geverifieerd, zond
 :::cards
 - [Beleid voor inkomende oproepen](/docs/on-call/incoming-call-policy): Bellers via een Twilio-nummer uw on-call-engineers laten bereiken.
 - [Escalatieregels](/docs/on-call/escalation-rules): Bepalen wie op elk niveau wordt opgeroepen, per sms, oproep of een andere methode.
+- [Sms- en belgateway](/docs/self-hosted/sms-and-call-gateway): Sms-berichten en oproepen via uw eigen provider versturen in plaats van via Twilio.
 - [SMTP](/docs/emails/smtp): Ook e-mail via uw eigen mailserver versturen.
 - [Toegang tot privénetwerken](/docs/self-hosted/private-network-access): Workflows en webhooks interne tools laten bereiken.
 :::

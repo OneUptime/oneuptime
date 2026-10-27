@@ -7,6 +7,7 @@ import UserPushAPI, {
 import TestSendAccess from "../../../Server/API/TestSendAccess";
 import ExpoPushReceiptQueue from "../../../Server/Infrastructure/ExpoPushReceiptQueue";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import PushNotificationLogService from "../../../Server/Services/PushNotificationLogService";
 import PushNotificationService from "../../../Server/Services/PushNotificationService";
 import UserNotificationRuleService from "../../../Server/Services/UserNotificationRuleService";
@@ -201,6 +202,13 @@ async function call(uri: string, request: OneUptimeRequest): Promise<Answer> {
 beforeAll(() => {
   mockRouter.routes.length = 0;
   new UserPushAPI();
+});
+
+beforeEach(() => {
+  // Push is on for the whole server (GlobalConfig.disablePushNotifications).
+  jest
+    .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+    .mockResolvedValue(false);
 });
 
 afterEach(() => {

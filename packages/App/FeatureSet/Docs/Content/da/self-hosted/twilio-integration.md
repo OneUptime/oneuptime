@@ -177,6 +177,7 @@ Et nummer, der er bekræftet til SMS, er også bekræftet til opkald, uden en ny
 :::cards
 - [Politik for indgående opkald](/docs/on-call/incoming-call-policy): Lad opkald via et Twilio-nummer nå dine vagthavende ingeniører.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem, hvem der tilkaldes på hvert niveau, via SMS, opkald eller en anden metode.
+- [SMS- og opkaldsgateway](/docs/self-hosted/sms-and-call-gateway): Send SMS og opkald gennem din egen udbyder i stedet for Twilio.
 - [SMTP](/docs/emails/smtp): Send også e-mail gennem din egen mailserver.
 - [Adgang til private netværk](/docs/self-hosted/private-network-access): Lad workflows og webhooks nå interne værktøjer.
 :::

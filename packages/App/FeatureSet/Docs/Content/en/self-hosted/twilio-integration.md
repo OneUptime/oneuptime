@@ -177,6 +177,7 @@ A number verified for SMS is also verified for calls, with no second code. Verif
 :::cards
 - [Incoming Call Policy](/docs/on-call/incoming-call-policy): Let callers reach your on-call engineers through a Twilio number.
 - [Escalation Rules](/docs/on-call/escalation-rules): Decide who is paged at each level, by SMS, call or any other method.
+- [SMS and Call Gateway](/docs/self-hosted/sms-and-call-gateway): Send SMS and calls through your own provider instead of Twilio.
 - [SMTP](/docs/emails/smtp): Send email through your own mail server too.
 - [Private Network Access](/docs/self-hosted/private-network-access): Let workflows and webhooks reach internal tools.
 :::

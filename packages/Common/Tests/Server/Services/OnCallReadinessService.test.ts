@@ -1,4 +1,5 @@
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "../../../Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
@@ -952,6 +953,15 @@ beforeEach(() => {
   projectFindOneById = jest
     .spyOn(ProjectService, "findOneById")
     .mockResolvedValue(makeProject() as never);
+
+  /*
+   * Push is on for the whole server (GlobalConfig.disablePushNotifications):
+   * a switch that cannot be read counts as off, which would make every
+   * push-only responder here unreachable (PushTurnedOffReadiness.test.ts).
+   */
+  jest
+    .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+    .mockResolvedValue(false);
 
   /*
    * Who is a member of the project now, for the summary's responders: the

@@ -51,6 +51,7 @@ Den här sidan beskriver vad varje utgåva innehåller, hur du kör Enterprise E
 | Administrationens **Query Console** | Nej | Ja | Inte tillgängligt |
 | Hälsolarm för PostgreSQL och Valkey (Redis) | Nej | Ja | Inte tillämpligt |
 | [Säkerhetskopior](/docs/installation/backups) av PostgreSQL och ClickHouse till din egen lagring, enligt ett schema, med återställning | Nej | Ja | Inte tillämpligt |
+| [Anpassade aviseringskanaler](/docs/self-hosted/custom-notification-channels): larma personer via din egen tjänst, till exempel ditt företags app | Nej | Ja | Inte tillämpligt |
 | Kapacitetsvy för ClickHouse, kapacitetslarm och automatisk rensning av disken | Ja | Ja | Inte tillämpligt |
 | Migreringsstatus, supportpaket och globala prober i administratörspanelen | Ja | Ja | Inte tillämpligt |
 | Hantering av Enterprise-licens, platser och instanser | Nej | Ja | Inte tillämpligt |
@@ -194,6 +195,7 @@ Vad som stoppas när en licens löper ut:
 - **Åsidosättningar av lagringstid slutar gälla.** Ny telemetri behålls enligt projektets standardlagringstid. Telemetri som redan har lagrats behåller den lagringstid den skrevs med. Du kan fortfarande rensa en åsidosättning via API:t, men inte ställa in en.
 - **Statussidor visar Powered by OneUptime igen.** En sida som döljer raden visar den tills en licens aktiveras. Inställningen behålls.
 - **Schemalagda säkerhetskopior upphör.** Ingen ny säkerhetskopia görs. Säkerhetskopior som redan har gjorts finns kvar på sitt mål, och du kan fortfarande återställa och ta bort dem.
+- **Anpassade kanaler upphör.** Inga larm eller aviseringar skickas till en anpassad kanal, och ingen erbjuds i jourregler. Kanalerna och reglerna som använder dem behålls, och du kan fortfarande ta bort en kanal.
 
 Vad som **inte** stoppas:
 

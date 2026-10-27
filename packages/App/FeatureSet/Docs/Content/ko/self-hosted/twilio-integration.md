@@ -177,6 +177,7 @@ SMS로 인증한 번호는 두 번째 코드 없이 통화용으로도 인증됩
 :::cards
 - [수신 전화 정책](/docs/on-call/incoming-call-policy): Twilio 번호를 통해 발신자가 온콜 엔지니어와 연결되게 합니다.
 - [에스컬레이션 규칙](/docs/on-call/escalation-rules): 단계마다 누구에게 SMS, 통화 등 어떤 방법으로 알릴지 정합니다.
+- [SMS 및 통화 게이트웨이](/docs/self-hosted/sms-and-call-gateway): Twilio 대신 자체 공급자를 통해 SMS와 통화를 보냅니다.
 - [SMTP](/docs/emails/smtp): 이메일도 자체 메일 서버로 보냅니다.
 - [프라이빗 네트워크 액세스](/docs/self-hosted/private-network-access): 워크플로와 웹훅이 내부 도구에 도달하게 합니다.
 :::

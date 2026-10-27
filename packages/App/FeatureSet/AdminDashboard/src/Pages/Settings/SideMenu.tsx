@@ -99,6 +99,15 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Telegram}
         />
+        <SideMenuItem
+          link={{
+            title: "Push Notifications",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_PUSH_NOTIFICATIONS] as Route,
+            ),
+          }}
+          icon={IconProp.Notification}
+        />
       </SideMenuSection>
 
       <SideMenuSection

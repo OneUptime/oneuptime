@@ -150,7 +150,8 @@ type RuleMethodColumn =
   | "userTelegramId"
   | "userSlackId"
   | "userMicrosoftTeamsId"
-  | "userWebhookId";
+  | "userWebhookId"
+  | "customNotificationChannelId";
 
 type RuleIdColumn =
   | RuleMethodColumn
@@ -169,6 +170,7 @@ const METHOD_COLUMNS: Array<RuleMethodColumn> = [
   "userSlackId",
   "userMicrosoftTeamsId",
   "userWebhookId",
+  "customNotificationChannelId",
 ];
 
 const ID_COLUMNS: Array<RuleIdColumn> = [
@@ -233,6 +235,7 @@ interface RuleSpec {
   userSmsId?: ObjectID | undefined;
   userCallId?: ObjectID | undefined;
   userPushId?: ObjectID | undefined;
+  customNotificationChannelId?: ObjectID | undefined;
   isOptOut?: boolean | undefined;
 }
 
@@ -279,6 +282,10 @@ function makeRule(spec: RuleSpec): UserNotificationRule {
 
   if (spec.userPushId) {
     rule.userPushId = spec.userPushId;
+  }
+
+  if (spec.customNotificationChannelId) {
+    rule.customNotificationChannelId = spec.customNotificationChannelId;
   }
 
   if (spec.isOptOut !== undefined) {
@@ -1021,6 +1028,34 @@ describe("backfillSeverity mirrors what the responder already asked for", () => 
 
     // The flattened default they must NOT get: their email, immediately.
     expect(shapes).not.toContain(`userEmailId:${EMAIL_A.toString()}@0`);
+  });
+
+  /*
+   * A custom channel is a method like any other here: somebody paged through
+   * the company's own app on every severity must be paged through it on the
+   * new one too, at the delay they chose - not fall back to email.
+   */
+  test("a responder paged through a custom channel keeps it on the new severity", async () => {
+    const channelId: ObjectID = new ObjectID("custom-channel-corpoapp");
+    verifiedEmails = [{ userId: USER_A, emailId: EMAIL_A }];
+
+    seedRule({
+      userId: USER_A,
+      ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      incidentSeverityId: SEV_1,
+      customNotificationChannelId: channelId,
+      notifyAfterMinutes: 5,
+    });
+
+    await backfillSeverity(incidentSeverity(SEV_NEW));
+
+    const shapes: Array<string> = shapesCreatedFor(
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+    );
+
+    expect(shapes).toEqual([
+      `customNotificationChannelId:${channelId.toString()}@5`,
+    ]);
   });
 
   test("every new rule is bound to the new severity and to no other", async () => {

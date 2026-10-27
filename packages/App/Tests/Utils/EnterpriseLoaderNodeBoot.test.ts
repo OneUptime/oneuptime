@@ -127,6 +127,7 @@ describe("EnterpriseLoader under real node + ts-node", () => {
         // Newer than the fixture module, which does not register them.
         "AuditLogExport:ExportAuditLogs",
         "Backup:RunBackups",
+        "OnCallDutyPolicy:AddCustomChannelToEveryonesRules",
       ],
     });
   }, 180000);

@@ -2,6 +2,7 @@ import UserPushAPI, {
   isTestNotificationCritical,
 } from "../../../Server/API/UserPushAPI";
 import TestSendAccess from "../../../Server/API/TestSendAccess";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import PushNotificationService from "../../../Server/Services/PushNotificationService";
 import UserPushService from "../../../Server/Services/UserPushService";
 import {
@@ -156,6 +157,10 @@ describe("POST /user-push/:deviceId/test-notification says whether it went as a 
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // Push is on for the whole server (GlobalConfig.disablePushNotifications).
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(false);
 
     device = {
       _id: DEVICE_ID.toString(),

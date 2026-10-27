@@ -7,6 +7,7 @@ OneUptime alarmiert Menschen auf ihrem Telefon über die mobile App **OneUptime 
 - [Die Firewall öffnen](#netzwerkzugriff): Die Adressen, die Ihr Server und die Geräte Ihrer Leute erreichen.
 - [Den Stummmodus durchbrechen](#kritische-bereitschaftsalarme-stummmodus-durchbrechen): Bereitschaftsalarme auf einem stummgeschalteten Telefon hörbar machen.
 - [Pushes beheben, die nie ankommen](#fehlerbehebung): Was jeder Fehler von Expo bedeutet.
+- [Push ausschalten](#push-für-den-ganzen-server-ausschalten): Nichts über Expo, das Relay oder Browser senden.
 :::
 
 ## So funktioniert es
@@ -118,6 +119,19 @@ Die Konnektivität der Geräte ist eine eigene Voraussetzung. iOS-Geräte brauch
 :::
 
 Bei mobilen Pushes liest OneUptime außerdem etwa 15 Minuten nach jedem Push den Zustellbeleg von Expo: Ein Push, der das Gerät nie erreicht hat, erscheint dann im Push-Log als nicht zugestellt und, bei einem Bereitschaftsalarm, auf der Bereitschafts-Zeitleiste.
+
+## Push für den ganzen Server ausschalten
+
+Darf nichts Ihr Netzwerk über Expo, das Push-Relay oder den Push-Dienst eines Browsers verlassen, kann ein Master-Admin Push unter **Admin Dashboard > Einstellungen > Push Notifications** ausschalten: Schalten Sie **Send push notifications** aus und bestätigen Sie.
+
+Solange Push ausgeschaltet ist:
+
+- In keinem Projekt wird etwas an Telefone oder Browser gepusht.
+- Kein Gerät kann registriert werden. Der Tab **Push Notifications** unter **Benutzereinstellungen > Benachrichtigungsmethoden** zeigt jeder Person an, dass Push ausgeschaltet ist, und Bereitschaftsregeln bieten keine Push-Geräte an.
+- Ein Alarm über eine Push-Regel wird nicht gesendet. Im Bereitschaftsprotokoll der Person steht `Push notification not sent: Push notifications are turned off on this server.`
+- Die Einsatzbereitschaft zählt Push-Geräte als unbrauchbar, und der Rückfall überspringt sie. Wer als einzige verifizierte Methode ein Push-Gerät hat, erscheint als nicht erreichbar.
+
+Um Menschen weiterhin auf ihrem Telefon zu erreichen, fügen Sie einen [benutzerdefinierten Kanal](/docs/self-hosted/custom-notification-channels) für Ihre eigene App oder Ihr eigenes Gateway hinzu. Jeder OneUptime-Server liest den Schalter innerhalb von 10 Sekunden nach einer Änderung neu ein. Wird Push wieder eingeschaltet, registrieren sich die Geräte erneut: aus der mobilen App bei deren nächstem Start oder aus dem Browser.
 
 ## Kritische Bereitschaftsalarme (Stummmodus durchbrechen)
 

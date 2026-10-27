@@ -177,6 +177,7 @@ Twilio 一般 webhook 的來源位址會變化，因此不要把 SIP 或媒體 I
 :::cards
 - [來電原則](/docs/on-call/incoming-call-policy): 讓來電者透過 Twilio 號碼聯絡到您的值班工程師。
 - [升級規則](/docs/on-call/escalation-rules): 決定每一級透過簡訊、電話或其他方式通知誰。
+- [簡訊與電話閘道](/docs/self-hosted/sms-and-call-gateway): 透過您自己的供應商而非 Twilio 傳送簡訊與撥打電話。
 - [SMTP](/docs/emails/smtp): 也透過您自己的郵件伺服器傳送電子郵件。
 - [私人網路存取](/docs/self-hosted/private-network-access): 讓工作流程和 webhook 能存取內部工具。
 :::

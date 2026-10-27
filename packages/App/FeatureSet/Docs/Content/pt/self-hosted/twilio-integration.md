@@ -177,6 +177,7 @@ Um número verificado para SMS também fica verificado para chamadas, sem um seg
 :::cards
 - [Política de chamadas recebidas](/docs/on-call/incoming-call-policy): Deixar quem liga falar com os seus engenheiros de plantão por um número do Twilio.
 - [Regras de escalonamento](/docs/on-call/escalation-rules): Decidir quem é acionado em cada nível, por SMS, chamada ou qualquer outro método.
+- [Gateway de SMS e chamadas](/docs/self-hosted/sms-and-call-gateway): Enviar SMS e chamadas pelo seu próprio provedor em vez do Twilio.
 - [SMTP](/docs/emails/smtp): Enviar também os e-mails pelo seu próprio servidor de e-mail.
 - [Acesso a redes privadas](/docs/self-hosted/private-network-access): Deixar workflows e webhooks alcançarem ferramentas internas.
 :::

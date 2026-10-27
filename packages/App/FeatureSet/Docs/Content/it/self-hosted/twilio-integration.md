@@ -177,6 +177,7 @@ Un numero verificato per gli SMS è verificato anche per le chiamate, senza un s
 :::cards
 - [Policy delle chiamate in arrivo](/docs/on-call/incoming-call-policy): Far raggiungere i tuoi ingegneri reperibili da chi chiama tramite un numero Twilio.
 - [Regole di escalation](/docs/on-call/escalation-rules): Decidere chi viene avvisato a ogni livello, via SMS, chiamata o qualsiasi altro metodo.
+- [Gateway per SMS e chiamate](/docs/self-hosted/sms-and-call-gateway): Inviare SMS e chiamate tramite il tuo provider invece che tramite Twilio.
 - [SMTP](/docs/emails/smtp): Inviare anche le email tramite il tuo server di posta.
 - [Accesso alle reti private](/docs/self-hosted/private-network-access): Consentire a workflow e webhook di raggiungere strumenti interni.
 :::
