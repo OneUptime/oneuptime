@@ -179,6 +179,41 @@ function importedNames(source: string, moduleSpecifier: string): Array<string> {
 const LOGS_VIEWER: string = readSource("Components", "Logs", "LogsViewer.tsx");
 
 /*
+ * The opening tag of the self-closing JSX element that starts at `opening`
+ * (`<LogsViewer `), props and all, up to its own `/>`. A prop's value in
+ * braces is stepped over whole: a callback, whose `=>` an angle-bracket
+ * count would trip on, and an element a render prop returns, which has a
+ * `/>` of its own.
+ */
+function selfClosingTagOf(source: string, opening: string): string {
+  const start: number = source.indexOf(opening);
+
+  if (start < 0) {
+    throw new Error(`Element not found in source: ${opening}`);
+  }
+
+  let depth: number = 0;
+
+  for (
+    let index: number = start + opening.length;
+    index < source.length;
+    index++
+  ) {
+    const character: string = source.charAt(index);
+
+    if (character === "{") {
+      depth++;
+    } else if (character === "}") {
+      depth--;
+    } else if (depth === 0 && source.startsWith("/>", index)) {
+      return source.slice(start, index);
+    }
+  }
+
+  throw new Error(`No "/>" closes: ${opening}`);
+}
+
+/*
  * Non-overlapping occurrences of `needle` — for "built in exactly one place"
  * assertions, which a second, unguarded call site would break.
  */
@@ -321,21 +356,23 @@ describe("each locked chip carries its own search syntax, with no scope-wide act
   });
 
   test("the Common viewer receives the signal the chips' tooltips name, and no actions", () => {
-    /*
-     * The JSX props of the one <LogsViewer …/> mount. Angle brackets are not
-     * balanced inside props (`=>` in every callback), so the slice runs to
-     * the self-closing tag instead.
-     */
-    const mountAt: number = LOGS_VIEWER.indexOf("<LogsViewer ");
-    const mountEnd: number = LOGS_VIEWER.indexOf("/>", mountAt);
-
-    expect(mountAt).toBeGreaterThan(-1);
-    expect(mountEnd).toBeGreaterThan(mountAt);
-
-    const mount: string = LOGS_VIEWER.slice(mountAt, mountEnd);
+    // The JSX props of the one <LogsViewer …/> mount, to its own `/>`.
+    const mount: string = selfClosingTagOf(LOGS_VIEWER, "<LogsViewer ");
 
     expect(mount).toContain('lockedFilterSignal="logs"');
     expect(mount).not.toContain("lockedFilterActions");
+  });
+
+  test("the mount is read to its own closing tag, past an element a render prop returns", () => {
+    expect(
+      selfClosingTagOf(
+        '<A onRow={(row) => { return <B id={row.id} />; }} signal="logs" /> <C />',
+        "<A ",
+      ),
+    ).toBe('<A onRow={(row) => { return <B id={row.id} />; }} signal="logs" ');
+    expect(() => {
+      return selfClosingTagOf("<B />", "<A ");
+    }).toThrow("Element not found in source: <A ");
   });
 });
 
