@@ -25,9 +25,11 @@ import type SelectFormFields from "Common/UI/Types/SelectEntityField";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
 import {
   ComposedValue,
+  PluralTemplate,
   Translator,
   composedValue,
   getGlobalTranslator,
+  translatePlural,
   translateTemplate,
   translateText,
   translationKey,
@@ -35,6 +37,15 @@ import {
 import React, { ReactElement } from "react";
 import WorkingHoursPicker from "../../Components/OnCallRule/WorkingHoursPicker";
 import WorkingHoursSummary from "../../Components/OnCallRule/WorkingHoursSummary";
+import AiFirstResponderSummary, {
+  ComponentProps as AiFirstResponderSummaryProps,
+} from "../../Components/OnCallRule/AiFirstResponderSummary";
+import {
+  AI_HOLD_TIME_DEFAULT_IN_MINUTES,
+  AI_HOLD_TIME_MAX_IN_MINUTES,
+  AI_HOLD_TIME_MIN_IN_MINUTES,
+  getAiHoldTimeInMinutes,
+} from "Common/Types/OnCallDutyPolicy/OnCallPolicyAiHold";
 import {
   OnCallRuleRecord,
   WorkingHoursOfRule,
@@ -318,6 +329,9 @@ export const WHEN_TO_PAGE_TITLES: Record<OnCallRuleWhenToPage, string> = {
   [OnCallRuleWhenToPage.WorkingHours]: translationKey(
     "Only during working hours",
   ),
+  [OnCallRuleWhenToPage.AfterOneUptimeAI]: translationKey(
+    "After OneUptime AI tries",
+  ),
 };
 
 export const WHEN_TO_PAGE_DESCRIPTIONS: Record<OnCallRuleWhenToPage, string> = {
@@ -327,6 +341,42 @@ export const WHEN_TO_PAGE_DESCRIPTIONS: Record<OnCallRuleWhenToPage, string> = {
   [OnCallRuleWhenToPage.WorkingHours]: translationKey(
     "Outside working hours, wait and page when they begin.",
   ),
+  [OnCallRuleWhenToPage.AfterOneUptimeAI]: translationKey(
+    "OneUptime AI looks first and fixes what it may. If it hasn't resolved this in time, page as usual.",
+  ),
+};
+
+/*
+ * "After OneUptime AI tries" (OnCallPolicyAiHold) is offered on alert and
+ * incident rules: OneUptime AI investigates those, not episodes. Like working
+ * hours, it shows one field of its own - how long AI may hold the page - and
+ * under the choice what will happen and what AI needs
+ * (AiFirstResponderSummary).
+ */
+export const AI_HOLD_TIME_TITLE: string = translationKey(
+  "Wait for OneUptime AI for up to (minutes)",
+);
+
+export const AI_HOLD_TIME_DESCRIPTION: string = translationKey(
+  "If OneUptime AI hasn't resolved it by then, the policies page as usual. From 1 to 30 minutes.",
+);
+
+export const AI_HOLD_TIME_PROBLEM: string = translationKey(
+  "Wait from 1 to 30 whole minutes.",
+);
+
+export const AI_HOLD_TIME_FOLDED_VALUE: PluralTemplate = {
+  one: "{{count}} minute",
+  other: "{{count}} minutes",
+};
+
+// Whether the record kind's rules may let OneUptime AI respond first.
+export const canOneUptimeAiRespondFirst: (
+  record: OnCallRuleRecord,
+) => boolean = (record: OnCallRuleRecord): boolean => {
+  return (
+    record === OnCallRuleRecord.Alert || record === OnCallRuleRecord.Incident
+  );
 };
 
 export const WORKING_HOURS_TIMEZONE_DESCRIPTION: string = translationKey(
@@ -364,6 +414,95 @@ const WORKING_HOURS_PROBLEMS: Record<string, string> = {
   [WORKING_HOURS_WEEKLY_WINDOW_EMPTY_MESSAGE]: translationKey(
     "Working hours must end at a different time than they start.",
   ),
+};
+
+// Whether the form's rule lets OneUptime AI respond first.
+export const isAiFirstResponderRule: (values: unknown) => boolean = (
+  values: unknown,
+): boolean => {
+  return (
+    asRecord(values)["whenToPage"] === OnCallRuleWhenToPage.AfterOneUptimeAI
+  );
+};
+
+// A hold time the form holds, or null for none.
+const readAiHoldTime: (values: unknown) => number | null = (
+  values: unknown,
+): number | null => {
+  const value: unknown = asRecord(values)["aiHoldTimeInMinutes"];
+
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const minutes: number =
+    typeof value === "string" ? Number(value) : (value as number);
+
+  return Number.isFinite(minutes) ? minutes : NaN;
+};
+
+// Why the hold time cannot be saved, or null: empty is the default, 10.
+export const getAiHoldTimeProblem: (values: unknown) => string | null = (
+  values: unknown,
+): string | null => {
+  if (!isAiFirstResponderRule(values)) {
+    return null;
+  }
+
+  const minutes: number | null = readAiHoldTime(values);
+
+  if (
+    minutes === null ||
+    (Number.isInteger(minutes) &&
+      minutes >= AI_HOLD_TIME_MIN_IN_MINUTES &&
+      minutes <= AI_HOLD_TIME_MAX_IN_MINUTES)
+  ) {
+    return null;
+  }
+
+  return translateText(AI_HOLD_TIME_PROBLEM) || AI_HOLD_TIME_PROBLEM;
+};
+
+// The hold time on the folded More fields line: "10 minutes".
+export const getAiHoldTimeFoldedValue: (values: unknown) => string | null = (
+  values: unknown,
+): string | null => {
+  if (!isAiFirstResponderRule(values)) {
+    return null;
+  }
+
+  return translatePlural(
+    AI_HOLD_TIME_FOLDED_VALUE,
+    getAiHoldTimeInMinutes(readAiHoldTime(values)),
+  );
+};
+
+/*
+ * Picking "After OneUptime AI tries" on a rule with no hold time fills in the
+ * default, so the field shows what the rule will do. Working hours fill in
+ * their own (fillInWorkingHours).
+ */
+export const fillInWhenToPage: <TEntity>(
+  value: unknown,
+  currentValues: FormValues<TEntity>,
+  setNewFormValues: (values: FormValues<TEntity>) => void,
+) => void = <TEntity>(
+  value: unknown,
+  currentValues: FormValues<TEntity>,
+  setNewFormValues: (values: FormValues<TEntity>) => void,
+): void => {
+  if (value === OnCallRuleWhenToPage.AfterOneUptimeAI) {
+    if (readAiHoldTime(currentValues) === null) {
+      setNewFormValues({
+        ...currentValues,
+        aiHoldTimeInMinutes: AI_HOLD_TIME_DEFAULT_IN_MINUTES,
+      } as FormValues<TEntity>);
+    }
+
+    return;
+  }
+
+  fillInWorkingHours(value, currentValues, setNewFormValues);
 };
 
 // Whether the form's rule pages only during working hours.
@@ -624,19 +763,66 @@ export const getOnCallRuleActionFields: <TEntity>(
             WHEN_TO_PAGE_DESCRIPTIONS[OnCallRuleWhenToPage.WorkingHours],
           value: OnCallRuleWhenToPage.WorkingHours,
         },
+        ...(canOneUptimeAiRespondFirst(record)
+          ? [
+              {
+                title:
+                  WHEN_TO_PAGE_TITLES[OnCallRuleWhenToPage.AfterOneUptimeAI],
+                description:
+                  WHEN_TO_PAGE_DESCRIPTIONS[
+                    OnCallRuleWhenToPage.AfterOneUptimeAI
+                  ],
+                value: OnCallRuleWhenToPage.AfterOneUptimeAI,
+              },
+            ]
+          : []),
       ],
       collapsibleSection: moreFields,
-      onChange: fillInWorkingHours,
-      // The folded line names the hours instead (getWorkingHoursFoldedValue).
+      onChange: fillInWhenToPage,
+      /*
+       * The folded line names the hours, or how long AI may hold the page,
+       * instead (getWorkingHoursFoldedValue, getAiHoldTimeFoldedValue).
+       */
       isListedWhileFolded: isNeverListedWhileFolded,
-      // Under the choice, what will happen, in one sentence.
+      /*
+       * Under the choice, what will happen: what OneUptime AI does and needs
+       * for a rule that lets it respond first, the hours otherwise.
+       */
       getFooterElement: (values: FormValues<TEntity>): ReactElement => {
+        if (isAiFirstResponderRule(values)) {
+          return React.createElement(AiFirstResponderSummary, {
+            rule: asRecord(values) as AiFirstResponderSummaryProps["rule"],
+            record: record,
+          });
+        }
+
         return React.createElement(WorkingHoursSummary, {
           rule: asRecord(values) as WorkingHoursOfRule,
           record: record,
         });
       },
     },
+    ...(canOneUptimeAiRespondFirst(record)
+      ? [
+          {
+            field: {
+              aiHoldTimeInMinutes: true,
+            } as unknown as SelectFormFields<TEntity>,
+            title: AI_HOLD_TIME_TITLE,
+            description: AI_HOLD_TIME_DESCRIPTION,
+            stepId: "on-call",
+            fieldType: FormFieldSchemaType.Number,
+            required: false,
+            placeholder: String(AI_HOLD_TIME_DEFAULT_IN_MINUTES),
+            showIf: isAiFirstResponderRule,
+            collapsibleSection: moreFields,
+            // "Wait for OneUptime AI for up to (minutes): 10 minutes".
+            isListedWhileFolded: isAiFirstResponderRule,
+            getFoldedValue: getAiHoldTimeFoldedValue,
+            customValidation: getAiHoldTimeProblem,
+          } as Field<TEntity>,
+        ]
+      : []),
     {
       field: { workingHours: true } as unknown as SelectFormFields<TEntity>,
       title: "Working Hours",

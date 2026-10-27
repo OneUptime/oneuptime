@@ -372,6 +372,22 @@ Mentre un incidente attende, la sua scheda **AI Investigation** mostra **In atte
 
 Gli avvisi funzionano allo stesso modo, in **Avvisi → IA → Impostazioni**, contando da quando l'avviso viene creato.
 
+## OneUptime AI risponde per primo
+
+Una regola di reperibilità per incidenti o avvisi può lasciare che OneUptime AI prenda per primo la chiamata. In **Altri campi**, rispondi a **Quando deve chiamare questa regola?** con **Dopo un tentativo di OneUptime AI**. Quando OneUptime AI può correggere ciò di cui tratta un incidente o un avviso corrispondente, le policy della regola attendono mentre l'IA indaga, corregge e verifica la correzione, al massimo per il tempo impostato in **Attendi OneUptime AI fino a (minuti)**: 10 minuti di predefinito, da 1 a 30. Se la correzione dell'IA viene verificata, OneUptime AI risolve il record e nessuno viene chiamato.
+
+Altrimenti la regola chiama subito, e il feed del record spiega perché, quando una persona ha creato il record, ha la gravità più alta del progetto, nei 5 minuti precedenti si sono aperti 3 o più altri avvisi e incidenti, OneUptime AI non può indagarlo o correggerlo automaticamente, nessun monitor è collegato, oppure nessun cluster Kubernetes o risorsa collegati ha un agente IA impostato su **Automatico** o **Salta l'approvazione**.
+
+Mentre l'IA trattiene una chiamata, la scheda **AI Investigation** dice quando inizia la chiamata, con **Chiama ora** per chi vuole subito una persona. Ogni minuto OneUptime controlla ogni chiamata trattenuta dall'IA e inizia subito a chiamare, spiegando perché, quando:
+
+- l'indagine non parte, attende una regola IA o non termina;
+- l'IA non trova una correzione che può eseguire da sola, oppure la correzione richiede l'approvazione di una persona;
+- la correzione dell'IA non riporta i monitor in funzione;
+- qualcuno preme **Chiama ora**, il record raggiunge la gravità più alta o si aprono molti record insieme;
+- l'IA o la correzione automatica viene disattivata, oppure la regola non lascia più rispondere per prima l'IA.
+
+I log di esecuzione della policy dicono come è finita ogni attesa. Tramite API o Terraform, il `whenToPage` della regola è `After OneUptime AI` e il suo `aiHoldTimeInMinutes` è il tempo di attesa.
+
 ## Il rimedio automatico aspetta l'analisi
 
 Quando il progetto corregge automaticamente i nuovi incidenti o avvisi (**Correggi automaticamente i nuovi incidenti** e **Correggi automaticamente i nuovi avvisi**, con le regole IA sotto **Altre impostazioni** in **Incidenti → IA → Impostazioni** e **Avvisi → IA → Impostazioni**), la correzione aspetta l'indagine, **prima l'analisi della causa**:
