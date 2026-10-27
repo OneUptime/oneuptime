@@ -39,6 +39,24 @@ describe("getNameInitials", () => {
     expect(getNameInitials(name)).toBe(initials);
   });
 
+  /*
+   * An apostrophe is part of its word, straight or curly: read as the end
+   * of one, "Conan O'Brien" drew CB, a surname taken from its "Brien".
+   */
+  test("an apostrophe is part of its word, straight or curly", () => {
+    expect(getNameInitials("Conan O'Brien")).toBe("CO");
+    expect(getNameInitials("Siobh\u{E1}n O\u{2019}Neill")).toBe("SO");
+    expect(getNameInitials("N\u{2019}Golo Kant\u{E9}")).toBe("NK");
+    expect(getNameInitials("D'Angelo")).toBe("D");
+    expect(getNameWordsForInitials("Conan O'Brien")).toEqual([
+      "Conan",
+      "O'Brien",
+    ]);
+    // Never an initial of its own: a quote around a name starts no word.
+    expect(getNameInitials("'Maya' Chen")).toBe("MC");
+    expect(getNameInitials("\u{2019}\u{2019}")).toBe(NAME_INITIALS_FALLBACK);
+  });
+
   test("what a name says in brackets is left out, while the rest has a word", () => {
     // The team the case list drew "S(".
     expect(getNameInitials("Security Operations Center (EMEA)")).toBe("SC");
@@ -193,6 +211,8 @@ describe("a long name is read quickly", () => {
     ["an address with a long local part", repeat("a.") + "@example.com"],
     ["marks with no letter before them", repeat("\u0301")],
     ["zero-width joiners after one letter", "a" + repeat("\u200c")],
+    ["apostrophes after one letter", "a" + repeat("'")],
+    ["an apostrophe before every letter", repeat("'a")],
   ])("%s", (_label: string, name: string) => {
     expect(
       fastestRun({

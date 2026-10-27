@@ -33,12 +33,14 @@
 export const NAME_INITIALS_FALLBACK: string = "?";
 
 /*
- * One word: a letter or a digit, then any letters, marks, digits and the
- * zero-width non-joiner and joiner. One repeat of one class after a start
- * that class also holds, so a match takes time in line with the name.
+ * One word: a letter or a digit, then any letters, marks, digits, the
+ * zero-width non-joiner and joiner, and apostrophes - straight or curly -
+ * so O'Brien is one word: "Conan O'Brien" is CO, never the CB of a surname
+ * read from its "Brien". One repeat of one class after a start that class
+ * also holds, so a match takes time in line with the name.
  */
 const NAME_WORD_REGEX: RegExp =
-  /[\p{L}\p{N}][\p{L}\p{M}\p{N}\u{200C}\u{200D}]*/gu;
+  /[\p{L}\p{N}][\p{L}\p{M}\p{N}\u{200C}\u{200D}'\u{2019}]*/gu;
 
 /*
  * What a name says in brackets - round, square or curly, in the Latin or
