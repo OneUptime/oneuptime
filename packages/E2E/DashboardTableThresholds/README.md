@@ -34,10 +34,12 @@ reading 80.0% and a warning, a missing reading a dash); a warning amber with a t
 a critical value red and bold with a circle, each saying the threshold it reached, the
 shape before the number; Colored background filling the cell; the table over time; every
 value at 4.5:1 in the light and the dark theme; German; Persian, laid out right to left;
-and the settings - a column's thresholds and the table's Threshold colors drawn in the
-Live Preview as they change and kept by Save Changes and a reload, a column with no
-thresholds asking for a value, the card in the dark theme and German, and the card in a
-window 390px wide, its fields stacked. Phone (Pixel 5, 390px) Chromium runs the board: a
+and the settings - a column's thresholds and the table's Threshold colors (choice rows,
+each with a picture of a warning and a critical cell) drawn in the Live Preview as they
+change and kept by Save Changes and a reload, Lower is worse on a percent column still at
+80 and 90 starting it at 20 and 10, the levels under the fields lined up with them, a
+column with no thresholds asking for a value, the card in the dark theme and German, and
+the card in a window 390px wide, its fields stacked. Phone (Pixel 5, 390px) Chromium runs the board: a
 dashboard is edited on a laptop. Both run the public dashboard, Light and Dark. Screenshots are under
 `output/playwright/dashboard-table-thresholds-ui`.
 

@@ -973,8 +973,20 @@ test.describe("a table's thresholds in its settings", () => {
     // The whole table fills its cells.
     const choice: Locator = modal.getByTestId("table-threshold-style");
     await expect(
-      choice.getByRole("radio", { name: /Colored text/ }),
+      choice.getByRole("radio", { name: "Colored text" }),
     ).toBeChecked();
+    // Each choice is a picture of a column's warning and critical cells.
+    for (const style of ["Text", "Background"]) {
+      await expect(
+        choice
+          .getByTestId(`table-threshold-style-${style}-visual`)
+          .locator("[data-threshold-level]"),
+        style,
+      ).toHaveText(["84%", "93%"]);
+    }
+    await expect(
+      choice.getByRole("radio", { name: "Colored background" }),
+    ).toHaveAccessibleDescription("The whole cell turns amber or red.");
     await press(choice.getByTestId("table-threshold-style-Background"));
     await expect(
       choice.getByRole("radio", { name: /Colored background/ }),
@@ -1124,6 +1136,95 @@ test.describe("a table's thresholds in its settings", () => {
     expect(await lowContrastTextsIn(choice)).toEqual([]);
 
     await shoot(page, testInfo, "settings-dark-de", card.locator("xpath=.."));
+  });
+
+  test("Lower is worse on a percent column still at 80 and 90 starts it at 20 and 10, drawn in the Live Preview", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await openApp(page);
+
+    await enterEditMode(page);
+    const modal: Locator = await openSettings(page, SATURATION);
+    const card: Locator = modal.getByTestId("table-column-thresholds-cpu");
+    const preview: Locator = previewTable(modal);
+
+    await press(card.getByRole("combobox"));
+    await press(page.getByRole("option", { name: "Lower is worse" }));
+
+    await expect(card.getByLabel("Warning at")).toHaveValue("20");
+    await expect(card.getByLabel("Critical at")).toHaveValue("10");
+    await expect(
+      card
+        .getByTestId("table-column-thresholds-legend-cpu")
+        .locator("[data-threshold-level]"),
+    ).toHaveText(["Warning: 20% and below", "Critical: 10% and below"]);
+    // The pick never lands on critical the wrong side of warning.
+    await expect(
+      card.getByTestId("table-column-thresholds-reversed-cpu"),
+    ).toHaveCount(0);
+
+    // cache-1's 12% is now a warning; web-3's 93% is fine.
+    await expect(await cellOf(preview, "cache-1", "CPU")).toHaveAttribute(
+      "data-threshold-level",
+      TableThresholdLevel.Warning,
+    );
+    await expect(await cellOf(preview, "web-3", "CPU")).not.toHaveAttribute(
+      "data-threshold-level",
+    );
+
+    await shoot(
+      page,
+      testInfo,
+      "settings-lower-is-worse",
+      card.locator("xpath=.."),
+    );
+  });
+
+  test("in Colored text, a column's levels line up with its fields above them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await openApp(page);
+
+    await enterEditMode(page);
+    const modal: Locator = await openSettings(page, SATURATION);
+    const card: Locator = modal.getByTestId("table-column-thresholds-cpu");
+
+    await card.scrollIntoViewIfNeeded();
+    await expect(
+      card.getByTestId("table-column-thresholds-legend-cpu"),
+    ).toBeVisible();
+
+    // Both edges in one frame: the dialog may still be settling.
+    const edges: { field: number; level: number; levels: number } =
+      await card.evaluate(
+        (
+          element: Element,
+        ): { field: number; level: number; levels: number } => {
+          const field: Element = element.querySelector(
+            '[data-testid="table-column-thresholds-warning-cpu"]',
+          )!;
+          const levels: Array<Element> = Array.from(
+            element.querySelector(
+              '[data-testid="table-column-thresholds-legend-cpu"]',
+            )!.children,
+          );
+
+          return {
+            field: field.getBoundingClientRect().left,
+            level: levels[0]!.getBoundingClientRect().left,
+            levels: levels.length,
+          };
+        },
+      );
+
+    expect(edges.levels).toBe(2);
+    expect(Math.abs(edges.field - edges.level)).toBeLessThanOrEqual(1);
   });
 
   /*
