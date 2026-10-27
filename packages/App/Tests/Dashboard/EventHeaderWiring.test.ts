@@ -41,6 +41,12 @@ interface HeaderKind {
   changeState: string;
   timeline: string;
   tone: "ai" | "warning" | "danger";
+  /*
+   * How the band is wired when its tone follows what it holds: a scheduled
+   * maintenance event's says in amber that it missed a boundary, or, quiet,
+   * that it is kept off its status pages until its publish time (#5249).
+   */
+  bandWiring?: string;
   // What a locked state button says first, in the words of what was pressed.
   lockSentence: string;
 }
@@ -79,6 +85,8 @@ const KINDS: Array<HeaderKind> = [
     changeState: "Components/ScheduledMaintenance/ChangeState.tsx",
     timeline: "ScheduledMaintenanceStateTimeline",
     tone: "warning",
+    bandWiring:
+      'headerNoticeTone={overdueNotice?"warning":"neutral"}headerNotice={overdueNotice||props.publishingNotice}',
     lockSentence: "You do not have permission to change this event's state.",
   },
 ];
@@ -111,7 +119,9 @@ describe.each(KINDS)("the $name header", (kind: HeaderKind) => {
   });
 
   test("paints its notice in its own band", () => {
-    expect(code).toContain(`headerNoticeTone="${kind.tone}"headerNotice={`);
+    expect(code).toContain(
+      kind.bandWiring || `headerNoticeTone="${kind.tone}"headerNotice={`,
+    );
   });
 });
 

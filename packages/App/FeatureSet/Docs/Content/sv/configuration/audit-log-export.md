@@ -160,7 +160,9 @@ Nycklar, tokens och lösenord lämnar aldrig OneUptime: De registreras som `[RED
 
 En batch försöks tre gånger med några sekunders mellanrum, och sedan väntar exporten innan den försöker igen: en minut, sedan två, fyra och så vidare, upp till en timme. Raden säger **Misslyckas**, och **Visa fel** visar vad målet svarade och när nästa försök kommer.
 
-Inget hoppas över: Posterna väntar i granskningsloggen, och nästa leverans som lyckas tar igen från den äldsta. En post som är äldre än lagringstiden för projektets granskningslogg tas bort innan den kan skickas, så åtgärda en export som misslyckas inom den tiden.
+Inget hoppas över: Posterna väntar i granskningsloggen, och nästa leverans som lyckas tar igen från den äldsta. Varje post tas ändå bort när den är äldre än lagringstiden den registrerades med, skickad eller inte, så åtgärda en export som misslyckas inom den tiden. En längre lagringstid gäller bara poster som registreras efter att du ändrar den.
+
+En export som misslyckas skickar e-post till dem som kan åtgärda den: projektets ägare för ett projekts export, och alla master admins för instansens. Det första mejlet går efter 30 minuter av fel, med vad målet svarade. Ett andra går en dag innan den äldsta posten som exporten inte har skickat tas bort, med när poster börjar gå förlorade. Varje mejl skickas en gång medan felen pågår, och en leverans som lyckas nollställer båda.
 
 Välj **Stäng av** i radens meny för att pausa en export: Den behåller sin plats, och **Slå på** skickar det som registrerats under tiden. I OneUptime Cloud slutar ett projekt som lämnar Enterprise-planen att exportera, och dess exporter väntar under uppgraderingskortet, där de kan stängas av eller tas bort. När du kör självhostat stoppar exporten så länge licensen inte omfattar granskningsloggar, och fortsätter där den slutade så snart en licens gör det.
 

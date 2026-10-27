@@ -198,8 +198,12 @@ describe("backup.sh and restore.sh agree on the artifact name", () => {
  * dump or the restore was really attempted — no Docker, no Postgres and no root
  * required. The `git` stub records its arguments the same way.
  *
+ * The scripts read config.env through Scripts/Install/WithConfig.sh, so the
+ * copy has it too, where the repository keeps it. `config` replaces the
+ * config.env lines below.
+ *
  * @param {string} scriptPath
- * @param {{input?: string, env?: object}} [options]
+ * @param {{input?: string, env?: object, config?: Array<string>}} [options]
  */
 function runScript(scriptPath, options) {
   const settings = options || {};
@@ -208,24 +212,33 @@ function runScript(scriptPath, options) {
 
   try {
     fs.copyFileSync(scriptPath, path.join(directory, script));
+    fs.mkdirSync(path.join(directory, "Scripts", "Install"), {
+      recursive: true,
+    });
+    fs.copyFileSync(
+      path.join(REPO_ROOT, "Scripts", "Install", "WithConfig.sh"),
+      path.join(directory, "Scripts", "Install", "WithConfig.sh"),
+    );
     fs.writeFileSync(
       path.join(directory, "config.env"),
-      [
-        "DATABASE_BACKUP_USERNAME=postgres",
-        "DATABASE_BACKUP_PASSWORD=notarealpassword",
-        "DATABASE_BACKUP_HOST=localhost",
-        "DATABASE_BACKUP_PORT=5432",
-        "DATABASE_BACKUP_NAME=oneuptimedb",
-        "DATABASE_BACKUP_DIRECTORY=/Backups",
-        "DATABASE_RESTORE_USERNAME=postgres",
-        "DATABASE_RESTORE_PASSWORD=notarealpassword",
-        "DATABASE_RESTORE_HOST=localhost",
-        "DATABASE_RESTORE_PORT=5432",
-        "DATABASE_RESTORE_NAME=oneuptimedb",
-        "DATABASE_RESTORE_DIRECTORY=/Backups",
-        "DATABASE_RESTORE_FILENAME=db-31.backup",
-        "",
-      ].join("\n"),
+      (
+        settings.config || [
+          "DATABASE_BACKUP_USERNAME=postgres",
+          "DATABASE_BACKUP_PASSWORD=notarealpassword",
+          "DATABASE_BACKUP_HOST=localhost",
+          "DATABASE_BACKUP_PORT=5432",
+          "DATABASE_BACKUP_NAME=oneuptimedb",
+          "DATABASE_BACKUP_DIRECTORY=/Backups",
+          "DATABASE_RESTORE_USERNAME=postgres",
+          "DATABASE_RESTORE_PASSWORD=notarealpassword",
+          "DATABASE_RESTORE_HOST=localhost",
+          "DATABASE_RESTORE_PORT=5432",
+          "DATABASE_RESTORE_NAME=oneuptimedb",
+          "DATABASE_RESTORE_DIRECTORY=/Backups",
+          "DATABASE_RESTORE_FILENAME=db-31.backup",
+          "",
+        ]
+      ).join("\n"),
     );
 
     const binDirectory = path.join(directory, "bin");
@@ -235,13 +248,22 @@ function runScript(scriptPath, options) {
     // a reader for that log ("" when the command never ran).
     const stub = (command) => {
       const log = path.join(directory, `${command}.log`);
+      // Each argument on its own, NUL-ended, to tell one argument from two.
+      const argumentsLog = path.join(directory, `${command}.arguments`);
       fs.writeFileSync(
         path.join(binDirectory, command),
-        `#!/bin/bash\nprintf '%s\\n' "$*" >> ${JSON.stringify(log)}\n`,
+        `#!/bin/bash\nprintf '%s\\n' "$*" >> ${JSON.stringify(log)}\nprintf '%s\\0' "$@" >> ${JSON.stringify(argumentsLog)}\n`,
         { mode: 0o755 },
       );
-      return () => {
-        return fs.existsSync(log) ? fs.readFileSync(log, "utf8") : "";
+      return {
+        log: () => {
+          return fs.existsSync(log) ? fs.readFileSync(log, "utf8") : "";
+        },
+        arguments: () => {
+          return fs.existsSync(argumentsLog)
+            ? fs.readFileSync(argumentsLog, "utf8").split("\0").slice(0, -1)
+            : [];
+        },
       };
     };
     const sudoLog = stub("sudo");
@@ -262,8 +284,9 @@ function runScript(scriptPath, options) {
     return {
       status: result.status,
       stdout: result.stdout || "",
-      databaseCommand: sudoLog(),
-      gitCommand: gitLog(),
+      databaseCommand: sudoLog.log(),
+      databaseArguments: sudoLog.arguments(),
+      gitCommand: gitLog.log(),
     };
   } finally {
     fs.rmSync(directory, { recursive: true, force: true });
@@ -347,6 +370,112 @@ describe("backup.sh and restore.sh leave the checkout alone", () => {
     ["restore.sh", restoreCode],
   ])("%s runs git on no path, taken or not", (_name, code) => {
     expect(code).not.toMatch(/\bgit\b/);
+  });
+});
+
+/*
+ * Both scripts read config.env the way npm start does (WithConfig.sh). They
+ * used to `export $(grep -v '^#' config.env | xargs)`, which split a value at
+ * its spaces and expanded a * into the folder's file names.
+ */
+describe("backup.sh and restore.sh read config.env's values as written", () => {
+  const BACKUP_SETTINGS = [
+    "DATABASE_BACKUP_USERNAME=postgres",
+    'DATABASE_BACKUP_PASSWORD="two words*"',
+    "DATABASE_BACKUP_HOST=localhost",
+    "DATABASE_BACKUP_NAME=oneuptimedb",
+    "DATABASE_BACKUP_DIRECTORY=/Backups",
+  ];
+
+  test("a password with a space and a * reaches pg_dump as one argument, nothing expanded", () => {
+    const run = runScript(BACKUP_PATH, {
+      config: [...BACKUP_SETTINGS, "DATABASE_BACKUP_PORT=5432", ""],
+    });
+
+    expect(run.status).toBe(0);
+    expect(run.databaseArguments).toContain(
+      "--dbname=postgresql://postgres:two words*@localhost:5432/oneuptimedb",
+    );
+  });
+
+  test("a backup folder with a space in it is one volume argument", () => {
+    const run = runScript(BACKUP_PATH, {
+      config: [
+        "DATABASE_BACKUP_USERNAME=postgres",
+        "DATABASE_BACKUP_PASSWORD=notarealpassword",
+        "DATABASE_BACKUP_HOST=localhost",
+        "DATABASE_BACKUP_NAME=oneuptimedb",
+        "DATABASE_BACKUP_DIRECTORY=/My Backups",
+        "",
+      ],
+    });
+    const volume = run.databaseArguments.find((argument) => {
+      return argument.startsWith("--volume=");
+    });
+
+    expect(run.status).toBe(0);
+    expect(volume).toMatch(/\/My Backups:\/var\/lib\/postgresql\/data$/);
+  });
+
+  test("an empty DATABASE_BACKUP_PORT is the port PostgreSQL is published on, 5400 unless DATABASE_PUBLISHED_PORT moves it", () => {
+    const shipped = runScript(BACKUP_PATH, {
+      config: [...BACKUP_SETTINGS, "DATABASE_BACKUP_PORT=", ""],
+    });
+    const moved = runScript(BACKUP_PATH, {
+      config: [
+        ...BACKUP_SETTINGS,
+        "DATABASE_PUBLISHED_PORT=5401",
+        "DATABASE_BACKUP_PORT=",
+        "",
+      ],
+    });
+    const own = runScript(BACKUP_PATH, {
+      config: [
+        ...BACKUP_SETTINGS,
+        "DATABASE_PUBLISHED_PORT=5401",
+        "DATABASE_BACKUP_PORT=6543",
+        "",
+      ],
+    });
+
+    expect(shipped.databaseCommand).toContain("@localhost:5400/oneuptimedb");
+    expect(moved.databaseCommand).toContain("@localhost:5401/oneuptimedb");
+    expect(own.databaseCommand).toContain("@localhost:6543/oneuptimedb");
+  });
+
+  test("restore.sh's port follows DATABASE_PUBLISHED_PORT the same way, and says so before it asks", () => {
+    const run = runScript(RESTORE_PATH, {
+      input: "y\n",
+      config: [
+        "DATABASE_RESTORE_USERNAME=postgres",
+        "DATABASE_RESTORE_PASSWORD=notarealpassword",
+        "DATABASE_RESTORE_HOST=host.docker.internal",
+        "DATABASE_PUBLISHED_PORT=5401",
+        "DATABASE_RESTORE_PORT=",
+        "DATABASE_RESTORE_NAME=oneuptimedb",
+        "DATABASE_RESTORE_DIRECTORY=/Backups",
+        "DATABASE_RESTORE_FILENAME=db-31.backup",
+        "",
+      ],
+    });
+
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain(
+      "Target database : oneuptimedb on host.docker.internal:5401",
+    );
+    expect(run.databaseCommand).toContain(
+      "@host.docker.internal:5401/oneuptimedb",
+    );
+  });
+
+  test.each([
+    ["backup.sh", backupCode],
+    ["restore.sh", restoreCode],
+  ])("%s no longer exports config.env with xargs", (_name, code) => {
+    expect(code).not.toContain("xargs");
+    expect(code).toContain(
+      'exec sh ./Scripts/Install/WithConfig.sh bash "$0" "$@"',
+    );
   });
 });
 

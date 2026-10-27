@@ -33,7 +33,10 @@ const TEMPLATE = fs.readFileSync(
   path.join(REPO_ROOT, "config.example.env"),
   "utf8",
 );
-const INSTALL_STEP_IN_SCRIPT = /node (\.\/Scripts\/Install\/[\w.-]+\.js)/g;
+// The Scripts/Install files a script runs: its Node.js steps, and the shell
+// script that loads config.env for Compose (WithConfig.sh).
+const INSTALL_STEP_IN_SCRIPT =
+  /(?:node|sh) (\.\/Scripts\/Install\/[\w.-]+\.(?:js|sh))/g;
 
 // A git stub for pullRepository: answers by the first argument.
 function gitAnswering(answers) {
@@ -255,7 +258,7 @@ describe("npm run update", () => {
     const update = ROOT_PACKAGE.scripts.update;
 
     expect(update).toBe(
-      "node ./Scripts/Install/Update.js && export $(grep -v '^#' config.env | xargs) && docker compose pull && npm run start",
+      "node ./Scripts/Install/Update.js && sh ./Scripts/Install/WithConfig.sh docker compose pull && npm run start",
     );
     expect(update).not.toContain("prerun");
     expect(update).not.toContain("configure.sh");

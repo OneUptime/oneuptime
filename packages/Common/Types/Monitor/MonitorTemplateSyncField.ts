@@ -139,7 +139,7 @@ export default class MonitorTemplateSyncFieldUtil {
       add(
         "externalStatusPageMonitor.components",
         "Status page components",
-        "Keep the selected component group and component together.",
+        "Keep the component group and the chosen components together.",
       );
       add("externalStatusPageMonitor.timeout", "Status page timeout");
       add("externalStatusPageMonitor.retries", "Status page retries");
@@ -296,8 +296,13 @@ export default class MonitorTemplateSyncFieldUtil {
       });
     }
     if (field === "externalStatusPageMonitor.components") {
+      /*
+       * The chosen components, and the one name a monitor saved before
+       * the list had (and an older probe reads), kept together.
+       */
       return [
         "externalStatusPageMonitor.componentGroupName",
+        "externalStatusPageMonitor.componentNames",
         "externalStatusPageMonitor.componentName",
       ];
     }

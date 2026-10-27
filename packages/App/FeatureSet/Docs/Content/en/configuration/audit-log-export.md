@@ -160,7 +160,9 @@ Keys, tokens and passwords never leave: they are recorded as `[REDACTED]`, and f
 
 A batch is tried three times, a few seconds apart, then the export waits before trying again: one minute, then two, four and so on, up to an hour. Its row says **Failing**, and **View Error** shows what the destination answered and when it is tried next.
 
-Nothing is skipped: the entries wait in the audit log, and the next delivery that works catches up from the oldest. An entry older than its project's audit log retention is deleted before it can be sent, so fix a failing export within that time.
+Nothing is skipped: the entries wait in the audit log, and the next delivery that works catches up from the oldest. Each entry is still deleted once it is older than the audit log retention it was recorded with, sent or not, so fix a failing export within that time. A longer retention keeps only the entries recorded after you change it.
+
+A failing export emails the people who can fix it: the project's owners for a project's export, and every master admin for the instance's. The first email goes after 30 minutes of failures, with what the destination answered. A second goes a day before the oldest entry the export has not sent is deleted, with when entries start to be lost. Each is sent once while the failures go on, and a delivery that works resets both.
 
 To pause an export, choose **Turn off** in its row's menu: it keeps its place, and **Turn on** sends what was recorded meanwhile. On OneUptime Cloud, a project that leaves the Enterprise plan stops exporting, and its exports wait under the upgrade card, where they can be turned off or deleted. When you self-host, exporting stops while the license does not include audit logs, and carries on from where it stopped once one does.
 

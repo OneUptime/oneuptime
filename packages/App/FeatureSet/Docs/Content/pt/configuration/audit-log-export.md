@@ -160,7 +160,9 @@ Chaves, tokens e senhas nunca saem: são registrados como `[REDACTED]`, e os cam
 
 Um lote é tentado três vezes, com poucos segundos de intervalo, e então a exportação espera antes de tentar de novo: um minuto, depois dois, quatro e assim por diante, até uma hora. A linha dela diz **Com falha**, e **Ver erro** mostra o que o destino respondeu e quando será a próxima tentativa.
 
-Nada é pulado: as entradas esperam no registro de auditoria, e a próxima entrega que funcionar recupera o atraso a partir da mais antiga. Uma entrada mais antiga que a retenção do registro de auditoria do projeto dela é excluída antes de poder ser enviada, então corrija uma exportação com falha dentro desse prazo.
+Nada é pulado: as entradas esperam no registro de auditoria, e a próxima entrega que funcionar recupera o atraso a partir da mais antiga. Ainda assim, cada entrada é excluída assim que fica mais antiga que a retenção com que foi registrada, enviada ou não, então corrija uma exportação com falha dentro desse prazo. Uma retenção mais longa só guarda por mais tempo as entradas registradas depois da mudança.
+
+Uma exportação com falha envia um e-mail a quem pode corrigi-la: aos proprietários do projeto na exportação de um projeto, e a todos os administradores mestres na da instância. O primeiro e-mail vai após 30 minutos de falhas, com o que o destino respondeu. Um segundo vai um dia antes de ser excluída a entrada mais antiga que a exportação não enviou, com o momento em que entradas começam a ser perdidas. Cada um vai uma vez enquanto as falhas duram, e uma entrega que funciona reinicia os dois.
 
 Para pausar uma exportação, escolha **Desativar** no menu da linha dela: ela mantém a posição, e **Ativar** envia o que foi registrado nesse meio-tempo. No OneUptime Cloud, um projeto que sai do plano Enterprise para de exportar, e as exportações dele esperam sob o cartão de upgrade, onde podem ser desativadas ou excluídas. Quando você hospeda o OneUptime, a exportação para enquanto a licença não inclui os registros de auditoria, e continua de onde parou assim que uma licença os inclui.
 

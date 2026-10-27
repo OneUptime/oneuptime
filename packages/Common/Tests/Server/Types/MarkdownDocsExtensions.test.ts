@@ -430,7 +430,7 @@ describe("the docs renderer's components", () => {
       expect(summary.split('class="docs-details__title"')).toHaveLength(2);
       expect(summary.split('<code class="docs-code-inline">')).toHaveLength(4);
       expect(summary).toContain(
-        'The monitor sends <code class="docs-code-inline">{{monitorSecrets.NAME}}</code> literally, and',
+        'The monitor sends <code class="docs-code-inline">{{monitorSecrets<wbr>.NAME}}</code> literally, and',
       );
     });
   });

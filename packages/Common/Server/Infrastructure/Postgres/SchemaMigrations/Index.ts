@@ -205,7 +205,8 @@ import { MakeMonitorTemplateDescriptionOptional1807820000000 } from "./180782000
 import { AddStatusPageDarkThemeLogo1807830000000 } from "./1807830000000-AddStatusPageDarkThemeLogo";
 import { AddStatusPageDarkThemeLogoKey1807840000000 } from "./1807840000000-AddStatusPageDarkThemeLogoKey";
 import { AddCloudAccounts1807900000000 } from "./1807900000000-AddCloudAccounts";
-import { AddOpenSourceDeploymentLastSeenAt1807910000000 } from "./1807910000000-AddOpenSourceDeploymentLastSeenAt";
+import { AddScheduledMaintenancePublishOnStatusPageAt1807960000000 } from "./1807960000000-AddScheduledMaintenancePublishOnStatusPageAt";
+import { AddOpenSourceDeploymentLastSeenAt1807970000000 } from "./1807970000000-AddOpenSourceDeploymentLastSeenAt";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1613,5 +1614,6 @@ export default [
   AddStatusPageDarkThemeLogo1807830000000,
   AddStatusPageDarkThemeLogoKey1807840000000,
   AddCloudAccounts1807900000000,
-  AddOpenSourceDeploymentLastSeenAt1807910000000,
+  AddScheduledMaintenancePublishOnStatusPageAt1807960000000,
+  AddOpenSourceDeploymentLastSeenAt1807970000000,
 ];

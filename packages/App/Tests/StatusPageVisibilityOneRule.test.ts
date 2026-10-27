@@ -20,7 +20,9 @@ import ts from "typescript";
  *     applies the rule itself (pinned by its own suites);
  *   - every ScheduledMaintenanceService read there passes its query through
  *     StatusPageVisibilityQuery.shownScheduledMaintenance (Visible on Status
- *     Page on), and every StatusPageAnnouncementService read through
+ *     Page on, and published: ScheduledMaintenancePublicationOneRule holds
+ *     the event's subscriber jobs and the rest of the status page code to
+ *     the same rule), and every StatusPageAnnouncementService read through
  *     shownAnnouncements (shown from a time that has come) - a read by id as
  *     much as a list, so a record a page does not list is not one it shows
  *     by its id either;

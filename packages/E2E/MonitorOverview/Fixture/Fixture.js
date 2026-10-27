@@ -75,6 +75,10 @@
  *              them on the Linked Resources card. Without it nothing is
  *              suggested. ?fail=cloud-suggestions fails that read (the card
  *              then offers nothing); ?fail=cloud-link refuses the link.
+ *   ?components=  chosen: the External Status Page monitor watches two
+ *              chosen components of its Core group (issue #5156), the
+ *              Checkout API and a Payments API the page does not list,
+ *              while an incident elsewhere on the page is not counted.
  *
  * Every read is recorded on window.__monitorOverviewFixture: getItemRequests,
  * listRequests (analytics lists carry analytics: true), aggregateRequests,
@@ -240,6 +244,14 @@ const probesMode = ["self-hosted", "both"].includes(params.get("probes"))
   : "custom";
 const cloudMode = params.get("cloud") === "suggest" ? "suggest" : "none";
 const maintenanceMode = params.get("maintenance") === "1";
+const componentsMode =
+  params.get("components") === "chosen" ? "chosen" : "page";
+
+/*
+ * The components the External Status Page monitor watches with
+ * ?components=chosen: one the page lists, and one it does not.
+ */
+const CHOSEN_STATUS_PAGE_COMPONENTS = ["Checkout API", "Payments API"];
 
 /*
  * The project's limit on active monitors (Types/Monitor/ActiveMonitorLimit),
@@ -893,6 +905,8 @@ const EXTERNAL_STATUS_PAGE_PRIVATE_MESSAGE =
  */
 function externalStatusPageResponse(data) {
   const { isOnline, responseTimeInMs, failureCause, definition } = data;
+  const componentNames =
+    componentsMode === "chosen" ? [...CHOSEN_STATUS_PAGE_COMPONENTS] : [];
   if (!isOnline) {
     return {
       isOnline: false,
@@ -903,6 +917,35 @@ function externalStatusPageResponse(data) {
       responseTimeInMs: responseTimeInMs || 0,
       failureCause,
       componentGroupName: definition.componentGroupName,
+      componentNames,
+    };
+  }
+  /*
+   * Watching chosen components of the Core group: the Checkout API, the one
+   * the page lists, is all the check compares; the Payments API is not on
+   * the page; and the incident open on the page's Search is not counted.
+   */
+  if (componentsMode === "chosen") {
+    return {
+      isOnline: true,
+      overallStatus: "operational",
+      componentStatuses: [
+        {
+          name: "Checkout API",
+          status: "operational",
+          description: "Operational",
+          groupName: "Core / APIs",
+        },
+      ],
+      activeIncidentCount: 0,
+      activeIncidentNames: [],
+      incidentsOutsideScopeCount: 1,
+      unmatchedComponentNames: ["Payments API"],
+      responseTimeInMs: responseTimeInMs || 0,
+      failureCause: "",
+      provider: ExternalStatusPageProviderType.OneUptime,
+      componentGroupName: definition.componentGroupName,
+      componentNames,
     };
   }
   return {
@@ -1216,6 +1259,9 @@ function stepFor(typeKey, definition, stepNumber) {
       statusPageUrl: definition.statusPageUrl,
       provider: ExternalStatusPageProviderType.OneUptime,
       componentGroupName: definition.componentGroupName,
+      ...(componentsMode === "chosen"
+        ? { componentNames: [...CHOSEN_STATUS_PAGE_COMPONENTS] }
+        : {}),
       timeout: 10000,
       retries: 3,
     };

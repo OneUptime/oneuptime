@@ -394,12 +394,18 @@ export const cardHeaderActionsAreUnderTitle: (
  * overhang and the clearance - out of their way (see
  * CARD_HEADER_TITLE_LINE_CLASS_NAMES). Hidden on a phone, where the card's
  * body - its table, its fields, its form - says what the card holds.
+ *
+ * Every description wraps "pretty" (text-wrap: pretty): the browser keeps a
+ * last word from sitting alone on the description's second line, as Home's
+ * "Your project" card did at 1280px ("... it." on a line of its own, #4918).
+ * It changes where a line breaks, never the words or the card's size beyond
+ * that.
  */
 export const CARD_DESCRIPTION_CLASS_NAME: string =
-  "mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed";
+  "mt-1.5 text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed text-pretty";
 
 export const CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME: string =
-  "mt-[9px] text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed";
+  "mt-[9px] text-sm text-gray-500 w-full max-md:hidden md:block leading-relaxed text-pretty";
 
 /*
  * The description of a card that has no body: a Delete page's "Permanently
@@ -409,10 +415,10 @@ export const CARD_DESCRIPTION_UNDER_ACTIONS_CLASS_NAME: string =
  * button, so it is drawn at every width.
  */
 export const CARD_DESCRIPTION_KEPT_ON_PHONES_CLASS_NAME: string =
-  "mt-1.5 text-sm text-gray-500 w-full block leading-relaxed";
+  "mt-1.5 text-sm text-gray-500 w-full block leading-relaxed text-pretty";
 
 export const CARD_DESCRIPTION_UNDER_ACTIONS_KEPT_ON_PHONES_CLASS_NAME: string =
-  "mt-[9px] text-sm text-gray-500 w-full block leading-relaxed";
+  "mt-[9px] text-sm text-gray-500 w-full block leading-relaxed text-pretty";
 
 /*
  * Whether a card's description is all it says: it has no body, or one that

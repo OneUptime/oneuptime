@@ -178,7 +178,7 @@ async function signInWithPassword(): Promise<void> {
   await user.type(screen.getByTestId("password"), PASSWORD);
 
   await act(async () => {
-    await user.click(screen.getByTestId("Login"));
+    await user.click(screen.getByTestId("Sign in"));
   });
 
   await screen.findByText("Two Factor Authentication");
@@ -197,7 +197,7 @@ async function enterAuthenticatorCode(code: string): Promise<void> {
   await user.type(input, code);
 
   await act(async () => {
-    await user.click(screen.getByTestId("Login"));
+    await user.click(screen.getByTestId("Sign in"));
   });
 }
 
@@ -253,7 +253,7 @@ describe("a code the server makes wait", () => {
     await user.type(await screen.findByTestId("backup-code"), "abcde-fghij");
 
     await act(async () => {
-      await user.click(screen.getByTestId("Login"));
+      await user.click(screen.getByTestId("Sign in"));
     });
 
     expect(

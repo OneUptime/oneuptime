@@ -105,6 +105,7 @@
   "register": {
     "title": "Créez votre compte OneUptime",
     "subtitle": "Rejoignez des milliers d'entreprises qui utilisent OneUptime pour rester en ligne en permanence.",
+    "firstAccountSubtitle": "Ce serveur OneUptime n'a encore aucun compte. Le premier que vous créez en devient l'administrateur.",
     "noCreditCard": "Aucune carte de crédit requise.",
     "submitButton": "S'inscrire",
     "haveAccountPrompt": "Vous avez déjà un compte ?",
@@ -131,7 +132,6 @@
     "subtitle": "Veuillez saisir votre adresse e-mail et le lien de réinitialisation du mot de passe vous sera envoyé.",
     "successMessage": "Nous vous avons envoyé le lien de réinitialisation du mot de passe par e-mail. N'oubliez pas de vérifier le dossier spam.",
     "submitButton": "Envoyer le lien de réinitialisation",
-    "returnToSignIn": "Retour à la connexion.",
     "rememberPasswordPrompt": "Vous vous souvenez de votre mot de passe ?",
     "loginLink": "Connexion."
   },
@@ -170,7 +170,7 @@
     "successTitle": "Votre e-mail est vérifié.",
     "successDescription": "Merci d'avoir vérifié votre e-mail. Vous pouvez maintenant vous connecter à OneUptime.",
     "errorTitle": "Désolé, quelque chose s'est mal passé !",
-    "returnToSignIn": "Retour à la connexion ?",
+    "alreadyVerifiedPrompt": "Vous avez déjà vérifié votre adresse e-mail ?",
     "loginLink": "Connexion.",
     "continueToSignIn": "Continuer vers la connexion",
     "linkInvalidTitle": "Ce lien de vérification n'est plus valide",

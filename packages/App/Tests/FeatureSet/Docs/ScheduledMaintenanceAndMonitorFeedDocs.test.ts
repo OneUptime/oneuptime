@@ -64,8 +64,14 @@ describe("what an event's feed records for an edit", () => {
       "**What the feed records for an edit.** An edit adds a **Scheduled Maintenance was updated.** entry to the event's **Scheduled Maintenance Feed**",
     );
     expect(text).toContain(
-      "with a line for each thing it changed: the title, **Starts At**, **Ends At**, the description, the reminders before the event, what the event affects, **Change Monitor Status to**, the status pages it is shown on and its labels, each with its new value.",
+      "with a line for each thing it changed: the title, **Starts At**, **Ends At**, **Publish on Status Page At**, the description, the reminders before the event, what the event affects, **Change Monitor Status to**, the status pages it is shown on and its labels, each with its new value.",
     );
+    // The times the feed lists, in its order: the window, then the publish time.
+    expect(ScheduledMaintenanceFieldChange.timeColumns).toEqual([
+      "startsAt",
+      "endsAt",
+      "publishOnStatusPageAt",
+    ]);
     expect(text).toContain(
       "A value saved as it was gets no line, so saving the **Maintenance Details** card with nothing changed",
     );

@@ -11,10 +11,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * so an instance known only from its check-ins has no email or name. Adding
  * a nullable column and dropping NOT NULL rewrite no row.
  */
-export class AddOpenSourceDeploymentLastSeenAt1807910000000
+export class AddOpenSourceDeploymentLastSeenAt1807970000000
   implements MigrationInterface
 {
-  public name: string = "AddOpenSourceDeploymentLastSeenAt1807910000000";
+  public name: string = "AddOpenSourceDeploymentLastSeenAt1807970000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
