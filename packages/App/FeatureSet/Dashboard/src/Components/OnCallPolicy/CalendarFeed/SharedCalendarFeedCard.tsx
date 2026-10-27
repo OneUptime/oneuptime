@@ -391,6 +391,18 @@ const SharedCalendarFeedCard: FunctionComponent<ComponentProps> = (
     ) : (
       planGate
     );
+  } else if (status.refusedReason) {
+    /*
+     * The project-wide link shows every schedule, and this reader may read
+     * only some of them: the server says why, and nothing else about it.
+     */
+    body = (
+      <Alert
+        type={AlertType.INFO}
+        title={status.refusedReason}
+        dataTestId={`${idPrefix}-refused`}
+      />
+    );
   } else if (!status.exists) {
     let publishControl: ReactElement;
 

@@ -6,6 +6,9 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import { Green500, Red500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Exception from "../../Types/Exception/Exception";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONArray, JSONObject, JSONValue } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import { securityEntityKey } from "../../Types/SecurityCase/SecurityEntity";
@@ -54,6 +57,7 @@ import SecurityPlaybookContainment, {
 import SecurityPlaybookEngine, {
   getStepTitle,
 } from "../Utils/SecurityPlaybook/SecurityPlaybookEngine";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import PartialEntity from "../../Types/Database/PartialEntity";
@@ -66,6 +70,11 @@ const UNDO_WRITE_ATTEMPTS: number = 3;
 
 export const SELF_APPROVAL_REFUSED_MESSAGE: string =
   "You started this run, so someone else must approve its steps.";
+
+export const RUN_NOT_FOUND_MESSAGE: string = "Playbook run not found.";
+
+export const RUN_CHANGE_REFUSED_MESSAGE: string =
+  "You do not have permission to approve, reject or undo the steps of this playbook run.";
 
 const RUN_SELECT: {
   _id: true;
@@ -119,10 +128,11 @@ function readBody(req: ExpressRequest): JSONObject {
  * Security Admin let it run without - holds its run in Waiting for Approval
  * until a person decides. Deciding is moving a run along, so it takes the
  * run's update permission (the Member tier and up, or Approve Security
- * Playbook Steps), and approving takes someone other than the person who
- * started the run: a run a person started is approved by a second one. An
- * approver of a step that acts on users or hosts sees its targets and may
- * leave any out (`targets`: the values kept); they cannot add one.
+ * Playbook Steps), held to this run as an update of it is (readRun), and
+ * approving takes someone other than the person who started the run: a run
+ * a person started is approved by a second one. An approver of a step that
+ * acts on users or hosts sees its targets and may leave any out (`targets`:
+ * the values kept); they cannot add one.
  *
  * The decision is recorded on the step - who, when, what they said and
  * which targets they kept - on the case's timeline and in the project's
@@ -133,7 +143,8 @@ function readBody(req: ExpressRequest): JSONObject {
  * Undo releases one target a containment step contained - unsuspends the
  * account, lifts the containment, releases the device - through the step's
  * own connection, and marks it Undone on the step, once the run is not
- * running. Recorded the same way.
+ * running, for someone who may change the run as a decision takes. Recorded
+ * the same way.
  */
 export default class SecurityPlaybookRunAPI extends BaseAPI<
   SecurityPlaybookRun,
@@ -278,28 +289,49 @@ export default class SecurityPlaybookRunAPI extends BaseAPI<
     return value as Array<string>;
   }
 
-  // The run as the caller may read it: a run on a case they cannot read is not found.
+  /*
+   * The run as the caller may change it. Approving, rejecting and undoing
+   * are changes of the run that OneUptime writes once they are allowed, so
+   * they are held to what an update of this run would be held to
+   * (DatabaseService.findOneUpdatableById): the run's update permissions in
+   * the caller's project, a team's block on them, the Owned scope through
+   * its case, and a credential that may make changes. A run the caller may
+   * not read is not found; one they may read but not change is refused, and
+   * nothing is decided, undone or written.
+   */
   private static async readRun(data: {
     projectId: ObjectID;
     runId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<SecurityPlaybookRun> {
     const run: SecurityPlaybookRun | null =
-      await SecurityPlaybookRunService.findOneBy({
-        query: {
-          _id: data.runId,
-          projectId: data.projectId,
-        },
+      await SecurityPlaybookRunService.findOneUpdatableById({
+        id: data.runId,
         select: RUN_SELECT,
         props: data.props,
       });
 
+    if (!run) {
+      const refusal: Exception =
+        await SecurityPlaybookRunService.getUnwrittenByIdError({
+          id: data.runId,
+          props: data.props,
+          type: DatabaseRequestType.Update,
+        });
+
+      if (refusal instanceof NotFoundException) {
+        throw new NotFoundException(RUN_NOT_FOUND_MESSAGE);
+      }
+
+      throw new NotAuthorizedException(RUN_CHANGE_REFUSED_MESSAGE);
+    }
+
     CommonAPI.assertResourceBelongsToProject({
-      resourceProjectId: run?.projectId,
+      resourceProjectId: run.projectId,
       projectId: data.projectId,
     });
 
-    return run!;
+    return run;
   }
 
   public static async decide(data: {

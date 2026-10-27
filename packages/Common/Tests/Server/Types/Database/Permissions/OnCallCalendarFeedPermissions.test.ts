@@ -1,5 +1,6 @@
 import ModelPermission from "../../../../../Server/Types/Database/Permissions/Index";
 import CalendarFeedToken from "../../../../../Server/Utils/OnCall/CalendarFeedToken";
+import OnCallDutyPolicyScheduleService from "../../../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyScheduleCalendarFeed from "../../../../../Models/DatabaseModels/OnCallDutyPolicyScheduleCalendarFeed";
 import ProjectOnCallCalendarFeed from "../../../../../Models/DatabaseModels/ProjectOnCallCalendarFeed";
 import UserOnCallCalendarFeed from "../../../../../Models/DatabaseModels/UserOnCallCalendarFeed";
@@ -530,5 +531,58 @@ describe("shared calendar feeds: the real permission gate", () => {
         });
       }
     }
+  });
+});
+
+/*
+ * WHO MAY HOLD THE PROJECT-WIDE LINK. Its row names no schedule, so a read
+ * limited to some labels reaches the row (a record that names no labelled
+ * record) - yet the link renders every schedule of the project. The
+ * project-feed routes therefore ask whether the caller reads every schedule
+ * (OnCallCalendarAPI.readsEverySchedule, which is this rule), run here for
+ * real: the schedules carry labels of their own, so a grant limited to some
+ * of them does not, while a grant over the project does.
+ */
+describe("the project-wide link: only for a reader of every schedule", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("a read of schedules limited to some labels does not read every schedule", async () => {
+    withLabelJoinTables();
+
+    await expect(
+      OnCallDutyPolicyScheduleService.readsEveryRecordInProject(
+        propsFor(
+          [Permission.ReadProjectOnCallDutyPolicySchedule],
+          [ObjectID.generate()],
+        ),
+      ),
+    ).resolves.toBe(false);
+  });
+
+  it.each([
+    ["On-Call Viewer", [Permission.OnCallViewer]],
+    ["Read On-Call Schedule", [Permission.ReadProjectOnCallDutyPolicySchedule]],
+    ["Project Member", [Permission.ProjectMember]],
+  ] as Array<[string, Array<Permission>]>)(
+    "%s over the whole project reads every schedule",
+    async (_who: string, permissions: Array<Permission>) => {
+      withLabelJoinTables();
+
+      await expect(
+        OnCallDutyPolicyScheduleService.readsEveryRecordInProject(
+          propsFor(permissions),
+        ),
+      ).resolves.toBe(true);
+    },
+  );
+
+  it("a reader who may not read schedules at all does not", async () => {
+    await expect(
+      OnCallDutyPolicyScheduleService.readsEveryRecordInProject(
+        propsFor([Permission.ReadIncidentPublicNote]),
+      ),
+    ).resolves.toBe(false);
   });
 });

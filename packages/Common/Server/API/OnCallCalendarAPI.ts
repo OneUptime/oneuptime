@@ -168,6 +168,9 @@ export const MY_SHIFTS_DEFAULT_DAYS: number = 30;
 export const MY_SHIFTS_MAX_DAYS: number = 120;
 
 export const ROTATE_LOCK_NAMESPACE: string = "OnCallCalendarFeed.rotate";
+
+export const READ_EVERY_SCHEDULE_MESSAGE: string =
+  "You can see only some of this project's on-call schedules, so its calendar link, which shows every schedule, is not yours to use. Ask a project admin for access to every schedule.";
 export const ROTATE_LOCK_TIMEOUT_MS: number = 10000;
 
 const STALE_WARNING_HEADER: string = '110 - "Response is Stale"';
@@ -207,6 +210,13 @@ export interface FeedStatus {
    * the web cannot reach (OnCallCalendarFeedUrls.getPrivateHost).
    */
   privateHost: string | null;
+  /*
+   * Why this reader may not see the project-wide link (they do not read
+   * every schedule of the project: READ_EVERY_SCHEDULE_MESSAGE). With a
+   * reason, nothing else about the link is said: not whether it exists,
+   * not its address. Absent otherwise.
+   */
+  refusedReason?: string | undefined;
 }
 
 export interface MyShiftsResponse {
@@ -1915,6 +1925,39 @@ router.post(
 
 // -- Session routes: project feed ------------------------------------------
 
+/*
+ * WHO MAY HOLD THE PROJECT-WIDE LINK. It shows every schedule of the
+ * project, while its row names no schedule: the row's own access lists,
+ * which a read limited to some labels reaches (a record that names no
+ * labelled record), are not enough. So every project-feed session route
+ * asks, first, that the caller reads every schedule of the project
+ * (DatabaseService.readsEveryRecordInProject), as the maintenance calendar
+ * asks it of events. A reader held to some labels is told why: /current
+ * answers 200 with the sentence in `refusedReason` and nothing else about
+ * the link, and /publish and /rotate refuse with it (400). A read that
+ * cannot be told answers false: a refusal.
+ */
+export async function readsEverySchedule(
+  props: DatabaseCommonInteractionProps,
+): Promise<boolean> {
+  return await OnCallDutyPolicyScheduleService.readsEveryRecordInProject(props);
+}
+
+async function assertReadsEverySchedule(
+  props: DatabaseCommonInteractionProps,
+): Promise<void> {
+  if (!(await readsEverySchedule(props))) {
+    throw new BadDataException(READ_EVERY_SCHEDULE_MESSAGE);
+  }
+}
+
+export function buildRefusedProjectFeedStatus(): FeedStatus {
+  return {
+    ...buildAbsentFeedStatus(OnCallCalendarFeedKind.Project),
+    refusedReason: READ_EVERY_SCHEDULE_MESSAGE,
+  };
+}
+
 async function findProjectFeedAsCaller(data: {
   projectId: ObjectID;
   props: DatabaseCommonInteractionProps;
@@ -1948,6 +1991,14 @@ router.get(
 
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectMember(props);
+
+      if (!(await readsEverySchedule(props))) {
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          buildRefusedProjectFeedStatus() as unknown as JSONObject,
+        );
+      }
 
       const feed: ProjectOnCallCalendarFeed | null =
         await findProjectFeedAsCaller({ projectId, props });
@@ -1995,6 +2046,8 @@ router.post(
 
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectMember(props);
+
+      await assertReadsEverySchedule(props);
 
       const existing: ProjectOnCallCalendarFeed | null =
         await findProjectFeedAsCaller({ projectId, props });
@@ -2058,6 +2111,8 @@ router.post(
 
       const projectId: ObjectID =
         CommonAPI.assertAuthenticatedProjectMember(props);
+
+      await assertReadsEverySchedule(props);
 
       const existing: ProjectOnCallCalendarFeed | null =
         await findProjectFeedAsCaller({ projectId, props });
