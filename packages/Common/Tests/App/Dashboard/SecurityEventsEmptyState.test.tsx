@@ -64,11 +64,9 @@ jest.mock("../../../UI/Utils/Navigation", () => {
 });
 
 import SecurityEventsEmptyState, {
-  SECURITY_EVENTS_EMPTY_DESCRIPTION,
   SECURITY_EVENTS_EMPTY_STATE_ID,
   SECURITY_EVENTS_INGEST_METHOD,
   SECURITY_EVENTS_INGEST_PATH,
-  SECURITY_EVENTS_LOGS_OPEN_ACTION_TITLE,
   SECURITY_EVENTS_LOGS_WAY_IN,
   SECURITY_EVENTS_WAYS_IN,
   SecurityEventsWayIn,
@@ -371,7 +369,6 @@ describe("SecurityEventsEmptyState", () => {
       const description: HTMLElement = screen.getByTestId(
         `${SECURITY_EVENTS_EMPTY_STATE_ID}-description`,
       );
-      expect(SECURITY_EVENTS_EMPTY_DESCRIPTION).toBe(DESCRIPTION);
       expect(description.tagName).toBe("P");
       expect(description.textContent).toBe(DESCRIPTION);
       expect(screen.getByRole("heading", { level: 3 }).nextElementSibling).toBe(
@@ -461,8 +458,9 @@ describe("SecurityEventsEmptyState", () => {
         title: EXPECTED_LOGS_WAY_IN.title,
         description: EXPECTED_LOGS_WAY_IN.description,
         actionTitle: EXPECTED_LOGS_WAY_IN.actionTitle,
+        // Its action once Your logs is on, or cannot be read.
+        openActionTitle: "Open Your logs",
       });
-      expect(SECURITY_EVENTS_LOGS_OPEN_ACTION_TITLE).toBe("Open Your logs");
     });
 
     test("SECURITY_EVENTS_WAYS_IN is connect, then send, with their copy and icons", () => {

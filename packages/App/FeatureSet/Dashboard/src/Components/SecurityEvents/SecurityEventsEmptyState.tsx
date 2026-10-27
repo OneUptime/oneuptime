@@ -18,6 +18,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import Navigation from "Common/UI/Utils/Navigation";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -37,17 +38,20 @@ export const SECURITY_EVENTS_EMPTY_STATE_ID: string =
 export const SECURITY_EVENTS_INGEST_METHOD: string = "POST";
 export const SECURITY_EVENTS_INGEST_PATH: string = "/security-events/v1/ingest";
 
-// What the page says under its heading while nothing has arrived.
-export const SECURITY_EVENTS_EMPTY_DESCRIPTION: string = translationKey(
-  "Events show up here as soon as a source starts sending.",
-);
-
 export interface SecurityEventsWayIn {
   id: string;
   icon: IconProp;
   title: string;
   description: string;
   actionTitle: string;
+}
+
+export interface SecurityEventsLogsWayIn extends SecurityEventsWayIn {
+  /*
+   * Its action once the project's logs are read already - or when whether
+   * they are could not be found out: Connections says how it stands.
+   */
+  openActionTitle: string;
 }
 
 /*
@@ -57,21 +61,15 @@ export interface SecurityEventsWayIn {
  * same words as that card and its switch, so the reader finds what they
  * were sent to.
  */
-export const SECURITY_EVENTS_LOGS_WAY_IN: SecurityEventsWayIn = {
+export const SECURITY_EVENTS_LOGS_WAY_IN: SecurityEventsLogsWayIn = {
   id: "logs",
   icon: IconProp.Logs,
   title: "Find security events in your logs",
   description:
     "Attacks often show up in the logs you already send OneUptime. Nothing to install.",
   actionTitle: "Turn on Your logs",
+  openActionTitle: translationKey("Open Your logs"),
 };
-
-/*
- * Its action once the project's logs are read already - or when whether
- * they are could not be found out: Connections says how it stands.
- */
-export const SECURITY_EVENTS_LOGS_OPEN_ACTION_TITLE: string =
-  translationKey("Open Your logs");
 
 /*
  * The two ways in from other tools: have OneUptime poll a security product,
@@ -143,6 +141,8 @@ export const getSecurityEventsLogsState: (data: {
  * is raised above it so it can still be selected and copied.
  */
 const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
+  const { translateString } = useTranslateValue();
+  // For Your logs' own lines, as its card on Connections writes them.
   const translator: Translator = useTranslator();
   const [logSource, setLogSource] = useState<SecurityLogSource | null>(null);
   const [isLogSourceRead, setIsLogSourceRead] = useState<boolean>(false);
@@ -179,10 +179,6 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
     didReadFail: didLogSourceReadFail,
     source: logSource,
   });
-
-  const translate: (text: string) => string = (text: string): string => {
-    return translator.translateText(text) || text;
-  };
 
   const navigateTo: (pageMap: PageMap) => void = (pageMap: PageMap): void => {
     Navigation.navigate(
@@ -227,7 +223,7 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
 
     return logsState === "off"
       ? wayIn.actionTitle
-      : SECURITY_EVENTS_LOGS_OPEN_ACTION_TITLE;
+      : SECURITY_EVENTS_LOGS_WAY_IN.openActionTitle;
   };
 
   const logsStatusLines: Array<string> =
@@ -248,7 +244,11 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
       >
         {SECURITY_LOG_FORMATS.map(
           (format: SecurityLogFormatDefinition): string => {
-            return translate(SECURITY_LOG_FORMAT_TEXTS[format.format].title);
+            const title: string =
+              SECURITY_LOG_FORMAT_TEXTS[format.format].title;
+
+            // As its card on Connections names it, in the reader's language.
+            return translateString(title) || title;
           },
         ).join(" · ")}
       </p>
@@ -260,7 +260,7 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
       >
         {SecurityEventConnectorCategories.map((category: string): string => {
           // A category with no entry in the locale reads as its English name.
-          return translate(category);
+          return translateString(category) || category;
         }).join(" · ")}
       </p>
     ),
@@ -312,7 +312,7 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
             id={titleId}
             className="min-w-0 text-sm font-semibold text-gray-900"
           >
-            {translate(wayIn.title)}
+            {translateString(wayIn.title)}
           </h4>
           {isLogsOn ? (
             <span
@@ -326,7 +326,7 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
           )}
         </div>
         <p className="mt-3 text-sm leading-6 text-gray-500">
-          {translate(wayIn.description)}
+          {translateString(wayIn.description)}
         </p>
         <div className="mt-3">{details[wayIn.id]}</div>
         {isLogsOn && logsStatusLines.length > 0 ? (
@@ -348,7 +348,7 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
               onClick={actions[wayIn.id]}
               className="inline-flex max-w-full items-center gap-1.5 text-left text-sm font-semibold text-indigo-600 after:absolute after:inset-0 after:rounded-lg after:content-[''] focus:outline-none focus-visible:after:ring-2 focus-visible:after:ring-indigo-500"
             >
-              <span className="min-w-0">{translate(actionTitle)}</span>
+              <span className="min-w-0">{translateString(actionTitle)}</span>
               <Icon
                 icon={IconProp.ArrowRight}
                 className="h-4 w-4 shrink-0 transition-transform duration-150 ease-out group-hover:translate-x-0.5"
@@ -375,13 +375,15 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
         <Icon icon={IconProp.ShieldCheck} className="h-5 w-5" />
       </div>
       <h3 className="mt-4 text-base font-semibold text-gray-900">
-        {translate("No security events yet")}
+        {translateString("No security events yet")}
       </h3>
       <p
         data-testid={`${SECURITY_EVENTS_EMPTY_STATE_ID}-description`}
         className="mx-auto mt-1.5 max-w-xl text-sm leading-6 text-gray-500"
       >
-        {translate(SECURITY_EVENTS_EMPTY_DESCRIPTION)}
+        {translateString(
+          "Events show up here as soon as a source starts sending.",
+        )}
       </p>
 
       {/*
@@ -392,7 +394,7 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
        */}
       <ul
         role="list"
-        aria-label={translate("Ways to start sending security events")}
+        aria-label={translateString("Ways to start sending security events")}
         className="mx-auto mt-6 grid max-w-3xl grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))] gap-4 text-left"
       >
         {renderWayIn(SECURITY_EVENTS_LOGS_WAY_IN, { isLead: true })}
