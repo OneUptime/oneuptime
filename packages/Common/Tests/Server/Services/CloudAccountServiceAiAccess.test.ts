@@ -102,12 +102,13 @@ describe("which AI resource type an account is", () => {
 
 describe("an update of an account", () => {
   test("that writes no AI setting is not read, and nothing is checked", async () => {
-    const find: jest.SpiedFunction<typeof CloudAccountService.findBy> = jest
+    const find: ReturnType<typeof jest.spyOn> = jest
       .spyOn(CloudAccountService, "findBy")
       .mockResolvedValue([]);
-    const check: jest.SpiedFunction<
-      typeof ResourceAiAccessSettings.checkUpdate
-    > = jest.spyOn(ResourceAiAccessSettings, "checkUpdate");
+    const check: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      ResourceAiAccessSettings,
+      "checkUpdate",
+    );
 
     const result: OnUpdate<CloudAccount> = await hooks.onBeforeUpdate(
       updateBy({ description: "prod" }),
@@ -128,9 +129,7 @@ describe("an update of an account", () => {
       jest
         .spyOn(CloudAccountService, "findBy")
         .mockResolvedValue([account(provider)]);
-      const check: jest.SpiedFunction<
-        typeof ResourceAiAccessSettings.checkUpdate
-      > = jest
+      const check: ReturnType<typeof jest.spyOn> = jest
         .spyOn(ResourceAiAccessSettings, "checkUpdate")
         .mockResolvedValue(null);
 
@@ -147,7 +146,7 @@ describe("an update of an account", () => {
   );
 
   test("the account's rows are read as root, by the update's own query", async () => {
-    const find: jest.SpiedFunction<typeof CloudAccountService.findBy> = jest
+    const find: ReturnType<typeof jest.spyOn> = jest
       .spyOn(CloudAccountService, "findBy")
       .mockResolvedValue([account("aws")]);
     jest.spyOn(ResourceAiAccessSettings, "checkUpdate").mockResolvedValue(null);
@@ -172,9 +171,7 @@ describe("an update of an account", () => {
       jest
         .spyOn(CloudAccountService, "findBy")
         .mockResolvedValue([account("gcp")]);
-      const check: jest.SpiedFunction<
-        typeof ResourceAiAccessSettings.checkUpdate
-      > = jest
+      const check: ReturnType<typeof jest.spyOn> = jest
         .spyOn(ResourceAiAccessSettings, "checkUpdate")
         .mockResolvedValue(null);
 
@@ -188,9 +185,10 @@ describe("an update of an account", () => {
     jest
       .spyOn(CloudAccountService, "findBy")
       .mockResolvedValue([account("aws"), account("azure")]);
-    const check: jest.SpiedFunction<
-      typeof ResourceAiAccessSettings.checkUpdate
-    > = jest.spyOn(ResourceAiAccessSettings, "checkUpdate");
+    const check: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      ResourceAiAccessSettings,
+      "checkUpdate",
+    );
 
     await expect(
       hooks.onBeforeUpdate(
@@ -218,9 +216,9 @@ describe("an update of an account", () => {
   });
 
   test("after a write, the account is marked AI-configured, without a feed", async () => {
-    const after: jest.SpiedFunction<
-      typeof ResourceAiAccessSettings.afterUpdate
-    > = jest.spyOn(ResourceAiAccessSettings, "afterUpdate").mockResolvedValue();
+    const after: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ResourceAiAccessSettings, "afterUpdate")
+      .mockResolvedValue();
     const onUpdate: OnUpdate<CloudAccount> = {
       updateBy: updateBy({ aiRemediationMode: "Automatic" }),
       carryForward: null,
@@ -238,9 +236,9 @@ describe("an update of an account", () => {
 
 describe("a create of an account", () => {
   test("is checked as its cloud's type", async () => {
-    const check: jest.SpiedFunction<
-      typeof ResourceAiAccessSettings.checkCreate
-    > = jest.spyOn(ResourceAiAccessSettings, "checkCreate").mockReturnValue();
+    const check: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ResourceAiAccessSettings, "checkCreate")
+      .mockReturnValue();
 
     const row: CloudAccount = account("azure");
     row.projectId = PROJECT_ID;
@@ -259,9 +257,7 @@ describe("a create of an account", () => {
 
 describe("a delete of an account", () => {
   test("cleans up the rounds and agents of every cloud's type, each on its own", async () => {
-    const before: jest.SpiedFunction<
-      typeof ResourceAiDeleteCleanup.beforeDelete
-    > = jest
+    const before: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ResourceAiDeleteCleanup, "beforeDelete")
       .mockImplementation(
         async (data: {
@@ -274,9 +270,9 @@ describe("a delete of an account", () => {
           };
         },
       );
-    const after: jest.SpiedFunction<
-      typeof ResourceAiDeleteCleanup.afterDelete
-    > = jest.spyOn(ResourceAiDeleteCleanup, "afterDelete").mockResolvedValue();
+    const after: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ResourceAiDeleteCleanup, "afterDelete")
+      .mockResolvedValue();
 
     const deleteBy: DeleteBy<CloudAccount> = {
       query: { _id: ACCOUNT_ID.toString() },
@@ -316,9 +312,9 @@ describe("a delete of an account", () => {
   });
 
   test("a delete without the carry-forward cleans nothing up", async () => {
-    const after: jest.SpiedFunction<
-      typeof ResourceAiDeleteCleanup.afterDelete
-    > = jest.spyOn(ResourceAiDeleteCleanup, "afterDelete").mockResolvedValue();
+    const after: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(ResourceAiDeleteCleanup, "afterDelete")
+      .mockResolvedValue();
 
     await hooks.onDeleteSuccess(
       {

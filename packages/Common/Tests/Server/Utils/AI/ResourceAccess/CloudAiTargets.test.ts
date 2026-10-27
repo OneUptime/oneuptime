@@ -112,8 +112,8 @@ describe("the resource a command names", () => {
 });
 
 describe("a change's target in the account's inventory", () => {
-  let accountFind: jest.SpiedFunction<typeof CloudAccountService.findOneBy>;
-  let resourceFind: jest.SpiedFunction<typeof CloudResourceService.findOneBy>;
+  let accountFind: ReturnType<typeof jest.spyOn>;
+  let resourceFind: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     const account: CloudAccount = new CloudAccount();

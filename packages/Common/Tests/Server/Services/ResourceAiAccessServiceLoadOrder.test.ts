@@ -20,10 +20,10 @@ afterEach(() => {
 });
 
 test("a model service loaded before the access service is the one it reads", async () => {
-  const accounts: jest.SpiedFunction<typeof CloudAccountService.findBy> = jest
+  const accounts: ReturnType<typeof jest.spyOn> = jest
     .spyOn(CloudAccountService, "findBy")
     .mockResolvedValue([]);
-  const hosts: jest.SpiedFunction<typeof DockerHostService.findBy> = jest
+  const hosts: ReturnType<typeof jest.spyOn> = jest
     .spyOn(DockerHostService, "findBy")
     .mockResolvedValue([]);
 

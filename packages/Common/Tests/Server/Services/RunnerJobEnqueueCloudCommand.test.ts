@@ -150,7 +150,7 @@ describe("RunnerJobService.enqueueAiResourceCommand on a cloud account", () => {
       .mockResolvedValue(new PositiveNumber(0));
     jest.spyOn(AIRunService, "findOneBy").mockResolvedValue({
       id: RUN_ID,
-      runType: AIRunType.Remediation,
+      runType: AIRunType.RemediationExecution,
     } as unknown as AIRun);
     jest
       .spyOn(RunnerJobService, "create")

@@ -195,18 +195,17 @@ describe("the cloud accounts of the cloud resources a subject links", () => {
         ),
         resource("11111111-0000-4000-8000-000000000005", "", ""),
       ]);
-    const accountFind: jest.SpiedFunction<typeof CloudAccountService.findBy> =
-      jest
-        .spyOn(CloudAccountService, "findBy")
-        .mockImplementation(
-          async (data: {
-            query: Record<string, unknown>;
-          }): Promise<Array<CloudAccount>> => {
-            return data.query["provider"] === "aws"
-              ? [account(awsA, "111111111111"), account(awsB, "222222222222")]
-              : [account(azure, "00000000-0000-0000-0000-0000000000ab")];
-          },
-        );
+    const accountFind: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(CloudAccountService, "findBy")
+      .mockImplementation(
+        async (data: {
+          query: Record<string, unknown>;
+        }): Promise<Array<CloudAccount>> => {
+          return data.query["provider"] === "aws"
+            ? [account(awsA, "111111111111"), account(awsB, "222222222222")]
+            : [account(azure, "00000000-0000-0000-0000-0000000000ab")];
+        },
+      );
 
     const byType: Map<
       AiResourceType,
@@ -242,8 +241,10 @@ describe("the cloud accounts of the cloud resources a subject links", () => {
   });
 
   test("no resources, no reads", async () => {
-    const resourceFind: jest.SpiedFunction<typeof CloudResourceService.findBy> =
-      jest.spyOn(CloudResourceService, "findBy");
+    const resourceFind: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      CloudResourceService,
+      "findBy",
+    );
 
     const byType: Map<
       AiResourceType,
@@ -260,7 +261,7 @@ describe("the cloud accounts of the cloud resources a subject links", () => {
 
 describe("a cloud account's row", () => {
   test("is read among its cloud's accounts only, from a table without an archive", async () => {
-    const find: jest.SpiedFunction<typeof CloudAccountService.findBy> = jest
+    const find: ReturnType<typeof jest.spyOn> = jest
       .spyOn(CloudAccountService, "findBy")
       .mockResolvedValue([]);
 

@@ -245,9 +245,7 @@ describe("an approved cloud change that ran", () => {
   }
 
   test("gets its undo under the account's settings as they are now", async () => {
-    const read: jest.SpiedFunction<
-      typeof ResourceAiAccessService.getStatusForResource
-    > = jest
+    const read: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ResourceAiAccessService, "getStatusForResource")
       .mockResolvedValue(status(ResourceAiRemediationMode.BypassApproval));
 
@@ -282,9 +280,10 @@ describe("an approved cloud change that ran", () => {
   });
 
   test("another kind of step is left alone, without a read", async () => {
-    const read: jest.SpiedFunction<
-      typeof ResourceAiAccessService.getStatusForResource
-    > = jest.spyOn(ResourceAiAccessService, "getStatusForResource");
+    const read: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      ResourceAiAccessService,
+      "getStatusForResource",
+    );
 
     const command: AiRemediationCommand = {
       ...ran("kubectl rollout restart deployment/web", ""),

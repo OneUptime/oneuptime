@@ -59,10 +59,10 @@ function row(data: {
 }
 
 let accounts: Array<CloudAccount>;
-let findAccount: jest.SpiedFunction<typeof CloudAccountService.findAccount>;
-let updateOne: jest.SpiedFunction<typeof CloudAccountService.updateOneById>;
-let updateBy: jest.SpiedFunction<typeof CloudAccountService.updateBy>;
-let create: jest.SpiedFunction<typeof CloudAccountService.create>;
+let findAccount: ReturnType<typeof jest.spyOn>;
+let updateOne: ReturnType<typeof jest.spyOn>;
+let updateBy: ReturnType<typeof jest.spyOn>;
+let create: ReturnType<typeof jest.spyOn>;
 
 beforeEach(() => {
   accounts = [

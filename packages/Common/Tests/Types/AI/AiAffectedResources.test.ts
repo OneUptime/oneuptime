@@ -335,14 +335,14 @@ describe("getPageAffectedResource - what an incident declared on a page is about
         resourcePage(AIResourceType.CloudResource, CLUSTER_ID),
       ),
     ).toEqual({ kind: AiAffectedResourceKind.CloudResource, id: CLUSTER_ID });
-    // Linked for its changes and its page, never fixed: no agent acts on a cloud.
+    // Linked for its changes and its page, and fixed through its account's Cloud AI agent.
     expect(
       getAiAffectedResourceKindInfo(AiAffectedResourceKind.CloudResource),
     ).toEqual({
       kind: AiAffectedResourceKind.CloudResource,
       relation: "cloudResources",
       noun: "cloud resource",
-      isFixedByOneUptimeAi: false,
+      isFixedByOneUptimeAi: true,
     });
   });
 
