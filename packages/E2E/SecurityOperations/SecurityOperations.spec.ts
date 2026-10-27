@@ -7,8 +7,10 @@ import {
 } from "@playwright/test";
 import {
   DETECTION_RULE_LIBRARY,
+  DetectionRuleLibraryCategory,
   DetectionRuleLibraryEntry,
   getRecommendedDetectionRules,
+  isRecommendedDetectionRule,
 } from "Common/Types/SecurityEvent/DetectionRuleLibrary";
 import { RECOMMENDED_THREAT_INTEL_LISTS } from "Common/Types/SecurityEvent/ThreatIntelFeedType";
 import { MITRE_TACTIC_TECHNIQUES } from "Common/Types/SecurityEvent/MitreAttack";
@@ -2434,6 +2436,13 @@ const CASE_PAGES: ReadonlyArray<CasePage> = [
   },
   {
     section: "Investigation",
+    title: "Story",
+    segment: "/story",
+    text: "events like this",
+    slug: "story",
+  },
+  {
+    section: "Investigation",
     title: "Detections",
     segment: "/detections",
     text: "31 times",
@@ -3483,7 +3492,7 @@ test.describe("a case", () => {
     page: Page;
   }) => {
     await open(page, `${SPRAY_CASE_PATH}/entities`);
-    await waitForCasePage(page, CASE_PAGES[3]!);
+    await waitForCasePage(page, CASE_PAGES[4]!);
 
     await page
       .getByRole("navigation", { name: "Breadcrumb" })
@@ -3806,6 +3815,213 @@ test.describe("a case", () => {
         .getByTestId("feed-entry")
         .filter({ hasText: "Okta success after failures joined the case" }),
     ).toBeVisible();
+  });
+
+  /*
+   * A case's Impact, on its Overview, as the server answers it from the
+   * records Connected Signals lists (Fixture/CaseContextFixture.js): the
+   * known-bad domain case names build-runner-07, which is on the service map,
+   * reports a public address and is shown on a status page.
+   */
+  test("its Overview says what the case puts at risk: what it names and how far that reaches, reachable from the internet on evidence only, who owns it and what last changed there", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, DOMAIN_CASE_PATH);
+    const impact: Locator = cardTitled(page, "Impact");
+    const summary: Locator = impact.getByTestId("security-case-impact-summary");
+    await expect(summary).toBeVisible({ timeout: 30000 });
+
+    // The figures first: whether it is exposed, what it names, calls and is called by, what watches it.
+    await expect(summary.getByRole("listitem")).toHaveText([
+      "Reachable from the internet",
+      "Names 1 record",
+      "Calls 2 others",
+      "Called by 1",
+      "1 monitor",
+      "1 status page",
+    ]);
+    // Reachable on evidence: the public address the runner reports.
+    await expect(impact).toContainText(
+      "build-runner-07 has a public address, 198.51.100.23.",
+    );
+    await expect(
+      impact.getByTestId("security-case-impact-owners"),
+    ).toContainText("Platform Engineering");
+    // The release before the attack, not the fix after it.
+    const lastChange: Locator = impact.getByTestId(
+      "security-case-impact-last-change",
+    );
+    await expect(lastChange).toContainText(
+      "Deployed runner image 2026.10.2 on build-runner-07, 2 days ago: before the first detection",
+    );
+    await expect(lastChange).toContainText("Version 2026.10.2");
+
+    // Record by record, behind a button.
+    await expect(
+      impact.getByTestId("security-case-impact-details"),
+    ).toHaveCount(0);
+    await impact
+      .getByRole("button", { name: "Show what is at risk", exact: true })
+      .click();
+    const runner: Locator = impact.getByTestId("security-case-impact-record");
+    await expect(runner).toHaveCount(1);
+    await expect(
+      runner.getByRole("link", { name: "build-runner-07", exact: true }),
+    ).toBeVisible();
+    const fact: (label: string) => Locator = (label: string): Locator => {
+      return runner
+        .locator("dt")
+        .filter({ hasText: new RegExp(`^${escapeRegExp(label)}$`) })
+        .locator("xpath=following-sibling::dd[1]");
+    };
+    await expect(fact("Calls")).toHaveText("artifact-registry, github.com");
+    await expect(fact("Called by")).toHaveText("ci-scheduler");
+    await expect(fact("Watched by")).toContainText("build-runner-07 heartbeat");
+    await expect(fact("Status pages")).toHaveText("Engineering Tools");
+    expect(
+      (await fixture(page)).apiRequests
+        .filter((request: { url: string }): boolean => {
+          return request.url.endsWith("/security-case-context/impact");
+        })
+        .map((request: { body: unknown }): unknown => {
+          return request.body;
+        }),
+    ).toContainEqual({ caseId: CASE_ID(141) });
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-impact-desktop");
+
+    // On a phone in the dark, the records read inside the card.
+    await open(page, DOMAIN_CASE_PATH, {
+      width: 390,
+      height: 844,
+      theme: "dark",
+    });
+    await impact
+      .getByRole("button", { name: "Show what is at risk", exact: true })
+      .click({ timeout: 30000 });
+    await expect(runner).toBeVisible();
+    expect(await pageOverflow(page)).toBeLessThanOrEqual(1);
+    await screenshot(page, "case-impact-390-dark");
+
+    /*
+     * The spray names only Kai Morgan, and nothing OneUptime holds shows the
+     * case's address reached the app: not known, never a guess.
+     */
+    await open(page, SPRAY_CASE_PATH);
+    await expect(summary.getByRole("listitem")).toHaveText(
+      ["Not known to be reachable from the internet", "Names 1 record"],
+      { timeout: 30000 },
+    );
+    await expect(impact).toContainText(
+      "Nothing OneUptime holds shows it is: no request from a public address reached the app, and no record reports a public address.",
+    );
+  });
+
+  /*
+   * A case's Story, as the server tells it (Fixture/CaseContextFixture.js):
+   * the spray's detections, its 412 failed sign-ins and the success among
+   * them told as one run, the device enrolled after it, its playbook runs,
+   * notes and milestones - on one time axis, oldest first.
+   */
+  test("the Story page tells what happened, in order: the detections, the events behind them as runs, what was done and what the team wrote", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${SPRAY_CASE_PATH}/story`);
+    const story: Locator = page.getByTestId("security-case-story");
+    const items: Locator = story.getByTestId("security-case-story-item");
+    await expect(items.first()).toBeVisible({ timeout: 30000 });
+    const kinds: () => Promise<Array<string | null>> = (): Promise<
+      Array<string | null>
+    > => {
+      return items.evaluateAll(
+        (elements: Array<Element>): Array<string | null> => {
+          return elements.map((element: Element): string | null => {
+            return element.getAttribute("data-kind");
+          });
+        },
+      );
+    };
+
+    expect(await kinds()).toEqual([
+      "Events",
+      "Detection",
+      "CaseOpened",
+      "PlaybookRun",
+      "Detection",
+      "Milestone",
+      "Detection",
+      "PlaybookRun",
+      "Note",
+      "Events",
+      "Note",
+    ]);
+    await expect(items).toContainText([
+      "user.session.start FAILURE: INVALID_CREDENTIALS for j.wilson@acme-commerce.example from 203.0.113.47",
+      "Okta password spray",
+      "Case opened",
+      "Enrich New Cases",
+      "Known-bad address 203.0.113.47 (Tor exit node)",
+      "Case acknowledged",
+      "Okta sign-in success after a spray",
+      "Contain Compromised Okta Users",
+      "Spray started 09:02 UTC.",
+      "user.mfa.factor.activate: Okta Verify enrolled for k.morgan@acme-commerce.example from 203.0.113.47",
+      "Approving the suspend.",
+    ]);
+    // A run of alike events is one line, with how many; a detection, how often it fired.
+    await expect(items.nth(0)).toContainText("413 events like this");
+    await expect(items.nth(1)).toContainText("Fired 31 times");
+    await expect(items.nth(7)).toContainText("Waiting for Approval");
+    await expect(items.nth(8)).toContainText("Written by Maya Chen");
+    // Nothing was cut, refused or failed, so nothing is said above it.
+    await expect(story.getByTestId("security-case-story-notes")).toHaveCount(0);
+    await screenshot(page, "case-story-desktop");
+    expect(
+      (await fixture(page)).apiRequests
+        .filter((request: { url: string }): boolean => {
+          return request.url.endsWith("/security-case-context/story");
+        })
+        .map((request: { body: unknown }): unknown => {
+          return request.body;
+        }),
+    ).toContainEqual({ caseId: SPRAY_CASE_ID });
+
+    // Narrowed to the attack, or to the response; a part with nothing in it is not offered.
+    await story.getByTestId("security-case-story-filter-Attack").click();
+    await expect
+      .poll(kinds)
+      .toEqual(["Events", "Detection", "Detection", "Detection", "Events"]);
+    await story.getByTestId("security-case-story-filter-Response").click();
+    await expect
+      .poll(kinds)
+      .toEqual([
+        "CaseOpened",
+        "PlaybookRun",
+        "Milestone",
+        "PlaybookRun",
+        "Note",
+        "Note",
+      ]);
+    await expect(
+      story.getByTestId("security-case-story-filter-Changes"),
+    ).toHaveCount(0);
+
+    // A detection opens the case's Detections page.
+    await story.getByTestId("security-case-story-filter-All").click();
+    await items
+      .nth(1)
+      .getByTestId("security-case-story-link-detections")
+      .click();
+    await expect
+      .poll(() => {
+        return pathnameOf(page);
+      })
+      .toBe(`${SPRAY_CASE_PATH}/detections`);
+    await expect(page.getByText("31 times")).toBeVisible({ timeout: 30000 });
   });
 
   test("the Private Notes page: what the team wrote, and the composer for more", async ({
@@ -5447,22 +5663,43 @@ test.describe("detections", () => {
         .getByRole("button", { name: /Recommended Rules?$/ }),
     ).toHaveCount(0);
 
-    // A narrowed list: the main add says it adds the matching rules, just those.
+    /*
+     * A narrowed list: the main add says it adds the matching rules, just
+     * those - the library's Network rules the project does not have yet:
+     * neither the one added from its row nor a recommended one.
+     */
+    const matching: Array<DetectionRuleLibraryEntry> =
+      DETECTION_RULE_LIBRARY.filter(
+        (entry: DetectionRuleLibraryEntry): boolean => {
+          return (
+            entry.category === DetectionRuleLibraryCategory.Network &&
+            entry.id !== PORT_SCAN_RULE.id &&
+            !isRecommendedDetectionRule(entry)
+          );
+        },
+      );
+    expect(matching).toContain(NETWORK_SWEEP_RULE);
+    const isOne: boolean = matching.length === 1;
     await pickChip(page, CATEGORY_CHIP, "Network");
     await page
       .getByTestId("rule-library-toolbar")
-      .getByRole("button", { name: "Add 1 Matching Rule" })
+      .getByRole("button", {
+        name: `Add ${matching.length} Matching Rule${isOne ? "" : "s"}`,
+      })
       .click();
     await expect(
       page.getByTestId("modal").getByTestId("modal-title"),
-    ).toHaveText("Add 1 rule?");
+    ).toHaveText(`Add ${matching.length} rule${isOne ? "" : "s"}?`);
     await page
       .getByTestId("modal")
-      .getByRole("button", { name: "Add Rule" })
+      .getByRole("button", { name: isOne ? "Add Rule" : "Add Rules" })
       .click();
-    await expect(
-      page.getByTestId(`rule-library-added-${NETWORK_SWEEP_RULE.id}`),
-    ).toBeVisible();
+    for (const entry of matching) {
+      await expect(
+        page.getByTestId(`rule-library-added-${entry.id}`),
+        entry.title,
+      ).toBeVisible();
+    }
     // Every rule the library added is the record Turn on recommended adds: on, opening cases.
     const created: Array<{ modelName: string; data: Record<string, unknown> }> =
       (await fixture(page)).creates.filter(
@@ -5470,7 +5707,7 @@ test.describe("detections", () => {
           return item.modelName === "DetectionRule";
         },
       );
-    expect(created).toHaveLength(RECOMMENDED_RULES + 2);
+    expect(created).toHaveLength(RECOMMENDED_RULES + 1 + matching.length);
     for (const item of created) {
       expect(item.data["isEnabled"]).toBe(true);
       expect(item.data["shouldCreateCase"]).toBe(true);
@@ -5720,47 +5957,21 @@ test.describe("detections", () => {
   }: {
     page: Page;
   }) => {
+    // The recommended rules the project does not have yet, in each language's words.
+    const toAdd: number = RECOMMENDED_RULES - RECOMMENDED_RULES_ON;
+    const addGerman: string = `${toAdd} empfohlene Regeln hinzufügen`;
+    const addJapanese: string = `おすすめのルールを ${toAdd} 件追加`;
     /*
      * The fixture's frame is 64px narrower than production's (its page's
      * padding): 1088 here is production's 1024 beside the side menu.
      */
     for (const [lang, width, recommended, receiving, category] of [
-      [
-        "de",
-        1280,
-        "17 empfohlene Regeln hinzufügen",
-        "Empfangen",
-        "Regelkategorie",
-      ],
-      [
-        "de",
-        1088,
-        "17 empfohlene Regeln hinzufügen",
-        "Empfangen",
-        "Regelkategorie",
-      ],
-      [
-        "de",
-        1024,
-        "17 empfohlene Regeln hinzufügen",
-        "Empfangen",
-        "Regelkategorie",
-      ],
-      [
-        "de",
-        390,
-        "17 empfohlene Regeln hinzufügen",
-        "Empfangen",
-        "Regelkategorie",
-      ],
-      [
-        "ja",
-        1280,
-        "おすすめのルールを 17 件追加",
-        "受信中",
-        "ルールのカテゴリ",
-      ],
-      ["ja", 390, "おすすめのルールを 17 件追加", "受信中", "ルールのカテゴリ"],
+      ["de", 1280, addGerman, "Empfangen", "Regelkategorie"],
+      ["de", 1088, addGerman, "Empfangen", "Regelkategorie"],
+      ["de", 1024, addGerman, "Empfangen", "Regelkategorie"],
+      ["de", 390, addGerman, "Empfangen", "Regelkategorie"],
+      ["ja", 1280, addJapanese, "受信中", "ルールのカテゴリ"],
+      ["ja", 390, addJapanese, "受信中", "ルールのカテゴリ"],
     ] as Array<["de" | "ja", number, string, string, string]>) {
       await open(page, RULE_LIBRARY_PATH, { width, height: 900, lang });
       await expect(libraryRow(page, BRUTE_FORCE_RULE)).toBeVisible({

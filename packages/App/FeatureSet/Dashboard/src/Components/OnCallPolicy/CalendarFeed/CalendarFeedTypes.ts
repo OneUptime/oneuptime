@@ -63,6 +63,12 @@ export interface FeedStatus {
    * that predates the field.
    */
   privateHost: string | null;
+  /**
+   * Why this reader may not see the project-wide link: they do not read
+   * every schedule of the project, and the link shows every one. Nothing
+   * else about the link is said then. Absent for everyone else.
+   */
+  refusedReason?: string | undefined;
 }
 
 export interface MyShiftsResponse {
@@ -210,6 +216,7 @@ export const parseFeedStatus: ParseFeedStatusFunction = (
 ): FeedStatus => {
   const json: JSONObject =
     value && typeof value === "object" ? (value as JSONObject) : {};
+  const refusedReason: string | null = readString(json["refusedReason"]);
 
   return {
     exists: readBoolean(json["exists"]),
@@ -228,6 +235,7 @@ export const parseFeedStatus: ParseFeedStatusFunction = (
     hostWarning: readString(json["hostWarning"]),
     protocolWarning: readString(json["protocolWarning"]),
     privateHost: readString(json["privateHost"]),
+    ...(refusedReason ? { refusedReason: refusedReason } : {}),
   };
 };
 

@@ -18,6 +18,9 @@ import {
 } from "../../Types/SecurityCase/SecurityConnection";
 import { SECURITY_FINDINGS_CATEGORY_UID } from "../../Types/SecurityEvent/Destinations/SecurityEventDestinationScope";
 import { SECURITY_EVENT_RECORD_COLUMNS } from "../../Utils/SecurityEvent/Destinations/SecurityEventRecord";
+import TelemetryReadScopeUtil, {
+  TelemetryServiceFilter,
+} from "../Utils/Telemetry/TelemetryReadScope";
 import SecurityEventRequestOutcome, {
   SECURITY_REQUEST_ATTRIBUTES,
 } from "../../Types/SecurityEvent/SecurityEventRequestOutcome";
@@ -385,6 +388,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
     values: Array<string>;
     startTime: Date;
     endTime: Date;
+    /*
+     * The sources whose events the reader may read, for a read made for a
+     * person (TelemetryReadAccess.getServiceFilter): a Security role scoped
+     * to the sources it owns, or to some labels, reads those sources' events
+     * alone. None: every source of the project, for OneUptime's own reads
+     * (the Look Up Entity Activity step).
+     */
+    serviceFilter?: TelemetryServiceFilter | undefined;
   }): Promise<Array<ObservableActivity>> {
     const values: Array<string> = Array.from(
       new Set(
@@ -427,7 +438,14 @@ export class SecurityEventService extends AnalyticsDatabaseService<SecurityEvent
       }}) AND has(${{
         type: TableColumnType.ArrayText,
         value: values,
-      }}, observable) GROUP BY value ORDER BY eventCount DESC LIMIT ${{
+      }}, observable)`,
+    );
+    TelemetryReadScopeUtil.appendServiceFilter(
+      statement,
+      data.serviceFilter || {},
+    );
+    statement.append(
+      SQL` GROUP BY value ORDER BY eventCount DESC LIMIT ${{
         type: TableColumnType.Number,
         value: OBSERVABLE_ACTIVITY_MAX_VALUES,
       }}`,

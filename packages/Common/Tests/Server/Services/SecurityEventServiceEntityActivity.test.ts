@@ -4,6 +4,7 @@ import SecurityEventService, {
 } from "../../../Server/Services/SecurityEventService";
 import { Results } from "../../../Server/Services/AnalyticsDatabaseService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
+import { TelemetryServiceFilter } from "../../../Server/Utils/Telemetry/TelemetryReadScope";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { getJestSpyOn } from "../../Spy";
@@ -128,4 +129,95 @@ describe("SecurityEventService.findObservableActivity", () => {
     // No value is ever spliced into the SQL text.
     expect(statement.query).not.toContain("203.0.113.7");
   });
+});
+
+/*
+ * A read made for a person keeps to the sources whose events they may read
+ * (TelemetryReadAccess.getServiceFilter): the sources to keep and the ones a
+ * block takes away, as conditions on primaryEntityId with every id bound,
+ * before the rows are grouped. OneUptime's own reads name no filter and
+ * read every source.
+ */
+describe("the sources a reader may read", () => {
+  const OWNED_SOURCE: ObjectID = new ObjectID(
+    "33333333-3333-4333-8333-333333333333",
+  );
+  const BLOCKED_SOURCE: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+
+  function boundIds(statement: Statement): Array<string> {
+    return Object.values(statement.query_params)
+      .filter((value: unknown): boolean => {
+        return Array.isArray(value);
+      })
+      .flat()
+      .map((value: unknown): string => {
+        return String(value);
+      });
+  }
+
+  const READS: Array<
+    [string, (filter?: TelemetryServiceFilter | undefined) => Promise<unknown>]
+  > = [
+    [
+      "findObservableActivity",
+      (filter?: TelemetryServiceFilter | undefined): Promise<unknown> => {
+        return SecurityEventService.findObservableActivity({
+          projectId: PROJECT_ID,
+          values: ["203.0.113.7"],
+          startTime: START,
+          endTime: END,
+          serviceFilter: filter,
+        });
+      },
+    ],
+  ];
+
+  test.each(READS)(
+    "%s keeps to the sources the reader may read, and leaves out the ones a block takes away",
+    async (
+      _read: string,
+      read: (filter?: TelemetryServiceFilter | undefined) => Promise<unknown>,
+    ) => {
+      const spy: Spy = stubExecuteQuery([]);
+
+      await read({
+        serviceIds: [OWNED_SOURCE, PROJECT_ID],
+        excludedServiceIds: [BLOCKED_SOURCE],
+      });
+
+      const statement: Statement = spy.mock.calls[0]![0] as Statement;
+      const where: string = statement.query.split(" GROUP BY ")[0]!;
+
+      expect(where).toContain(" AND primaryEntityId IN (");
+      expect(where).toContain(" AND primaryEntityId NOT IN (");
+      expect(boundIds(statement)).toEqual(
+        expect.arrayContaining([
+          OWNED_SOURCE.toString(),
+          PROJECT_ID.toString(),
+          BLOCKED_SOURCE.toString(),
+        ]),
+      );
+      // Every id is bound, never spliced into the SQL text.
+      expect(statement.query).not.toContain(OWNED_SOURCE.toString());
+      expect(statement.query).not.toContain(BLOCKED_SOURCE.toString());
+    },
+  );
+
+  test.each(READS)(
+    "%s with no filter - OneUptime's own read - reads every source",
+    async (
+      _read: string,
+      read: (filter?: TelemetryServiceFilter | undefined) => Promise<unknown>,
+    ) => {
+      const spy: Spy = stubExecuteQuery([]);
+
+      await read();
+
+      const statement: Statement = spy.mock.calls[0]![0] as Statement;
+
+      expect(statement.query).not.toContain("primaryEntityId");
+    },
+  );
 });

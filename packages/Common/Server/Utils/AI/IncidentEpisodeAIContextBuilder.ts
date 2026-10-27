@@ -23,6 +23,10 @@ import { AIGenerationContext } from "./IncidentAIContextBuilder";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import { AiContextActivity } from "../../../Types/AI/AiContext";
 import { withAiContext } from "./AiContext/AiContextPrompt";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import IncidentService from "../../Services/IncidentService";
+import QueryHelper from "../../Types/Database/QueryHelper";
+import { ContextRows, readContextRows } from "./ContextRead";
 
 export interface IncidentEpisodeContextData {
   episode: IncidentEpisode;
@@ -38,6 +42,15 @@ export default class IncidentEpisodeAIContextBuilder {
     episodeId: ObjectID;
     includeWorkspaceMessages?: boolean;
     workspaceMessageLimit?: number;
+    /*
+     * The person the draft is for (Generate with AI): the episode's internal
+     * notes and its member incidents are read as they may read them
+     * (readContextRows) - a private incident in the episode is left out for
+     * someone outside its audience - and its channel's discussion only for
+     * someone who may read its internal notes. None: OneUptime's own read,
+     * of everything.
+     */
+    readerProps?: DatabaseCommonInteractionProps | undefined;
   }): Promise<IncidentEpisodeContextData> {
     const episode: IncidentEpisode | null =
       await IncidentEpisodeService.findOneById({
@@ -107,36 +120,41 @@ export default class IncidentEpisodeAIContextBuilder {
         },
       });
 
-    // Fetch internal notes
-    const internalNotes: Array<IncidentEpisodeInternalNote> =
-      await IncidentEpisodeInternalNoteService.findBy({
-        query: {
-          incidentEpisodeId: data.episodeId,
-        },
-        select: {
-          _id: true,
-          note: true,
-          createdAt: true,
-          postedAt: true,
-          savedFromChatMessage: true,
-          createdByUser: {
-            name: true,
-            email: true,
-          },
-        },
-        // In the order they belong in: a saved chat message when it was written.
-        sort: {
-          postedAt: SortOrder.Ascending,
-        },
-        limit: 100,
-        skip: 0,
-        props: {
-          isRoot: true,
+    // Fetch internal notes, as the reader may read them
+    const internalNotes: ContextRows<IncidentEpisodeInternalNote> =
+      await readContextRows<IncidentEpisodeInternalNote>({
+        readerProps: data.readerProps,
+        read: (
+          props: DatabaseCommonInteractionProps,
+        ): Promise<Array<IncidentEpisodeInternalNote>> => {
+          return IncidentEpisodeInternalNoteService.findBy({
+            query: {
+              incidentEpisodeId: data.episodeId,
+            },
+            select: {
+              _id: true,
+              note: true,
+              createdAt: true,
+              postedAt: true,
+              savedFromChatMessage: true,
+              createdByUser: {
+                name: true,
+                email: true,
+              },
+            },
+            // In the order they belong in: a saved chat message when it was written.
+            sort: {
+              postedAt: SortOrder.Ascending,
+            },
+            limit: 100,
+            skip: 0,
+            props: props,
+          });
         },
       });
 
     // Fetch member incidents
-    const memberIncidents: Array<IncidentEpisodeMember> =
+    const allMemberIncidents: Array<IncidentEpisodeMember> =
       await IncidentEpisodeMemberService.findBy({
         query: {
           incidentEpisodeId: data.episodeId,
@@ -174,6 +192,13 @@ export default class IncidentEpisodeAIContextBuilder {
         },
       });
 
+    const memberIncidents: Array<IncidentEpisodeMember> = data.readerProps
+      ? await this.keepReadableMembers({
+          members: allMemberIncidents,
+          readerProps: data.readerProps,
+        })
+      : allMemberIncidents;
+
     // Fetch workspace messages if requested and channels exist
     let workspaceMessages: Array<WorkspaceChannelMessage> = [];
 
@@ -185,6 +210,7 @@ export default class IncidentEpisodeAIContextBuilder {
 
     if (
       data.includeWorkspaceMessages &&
+      internalNotes.isPermitted &&
       workspaceChannels &&
       workspaceChannels.length > 0 &&
       episode.projectId
@@ -216,10 +242,57 @@ export default class IncidentEpisodeAIContextBuilder {
     return {
       episode,
       stateTimeline,
-      internalNotes,
+      internalNotes: internalNotes.rows,
       memberIncidents,
       workspaceMessages,
     };
+  }
+
+  // The members whose incident the reader may read: its labels, owners, privacy.
+  private static async keepReadableMembers(data: {
+    members: Array<IncidentEpisodeMember>;
+    readerProps: DatabaseCommonInteractionProps;
+  }): Promise<Array<IncidentEpisodeMember>> {
+    const incidentIds: Array<ObjectID> = data.members
+      .map((member: IncidentEpisodeMember): ObjectID | undefined => {
+        return member.incident?.id || undefined;
+      })
+      .filter((id: ObjectID | undefined): id is ObjectID => {
+        return Boolean(id);
+      });
+
+    if (incidentIds.length === 0) {
+      return [];
+    }
+
+    const readable: ContextRows<Incident> = await readContextRows<Incident>({
+      readerProps: data.readerProps,
+      read: (
+        props: DatabaseCommonInteractionProps,
+      ): Promise<Array<Incident>> => {
+        return IncidentService.findBy({
+          query: {
+            _id: QueryHelper.any(incidentIds),
+          },
+          select: {
+            _id: true,
+          },
+          limit: incidentIds.length,
+          skip: 0,
+          props: props,
+        });
+      },
+    });
+
+    const readableIds: Set<string> = new Set<string>(
+      readable.rows.map((incident: Incident): string => {
+        return incident.id?.toString() || "";
+      }),
+    );
+
+    return data.members.filter((member: IncidentEpisodeMember): boolean => {
+      return readableIds.has(member.incident?.id?.toString() || "");
+    });
   }
 
   @CaptureSpan()

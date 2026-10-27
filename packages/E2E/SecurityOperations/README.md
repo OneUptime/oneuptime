@@ -12,6 +12,7 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | All Cases            | `SECURITY_CASES_ALL` `.../security-events/cases/all`                                      | the same                                                                                     |
 | A case               | `SECURITY_CASE_VIEW` `.../security-events/cases/:id`, its Overview                        | `Pages/SecurityEvents/CaseView/{Layout,SideMenu,Index}`, `SecurityCase/*`                    |
 | A case's pages       | `SECURITY_CASE_VIEW_*` `.../cases/:id/{timeline,detections,entities,playbook-runs,...}`   | `Pages/SecurityEvents/CaseView/*`, `EventNotes`, `SecurityPlaybookRunCard`, `AuditLogsTable` |
+| Story                | `SECURITY_CASE_VIEW_STORY` `.../cases/:id/story`                                          | `Pages/SecurityEvents/CaseView/Story`, `SecurityCase/Context/*`                              |
 | Connected Signals    | `SECURITY_CASE_VIEW_CONNECTED_SIGNALS` `.../cases/:id/connected-signals`                  | `Pages/SecurityEvents/CaseView/ConnectedSignals`, `SecurityConnections/*`                    |
 | Entity Risk          | `SECURITY_EVENTS_ENTITY_RISK` `.../security-events/entity-risk` (and the old `entities`)  | `Pages/SecurityEvents/EntityRisk`, `EntityRisk/*`, `EntityLookupCard` under the list         |
 | Protected Entities   | `SECURITY_PROTECTED_ENTITIES` `.../security-events/protected-entities`                    | `Pages/SecurityEvents/ProtectedEntities`                                                     |
@@ -81,6 +82,16 @@ Stubbed:
 - `POST /security-case-priority/:id/usage` and `/security-case-status/:id/usage`, which the
   Archive and Delete dialogs ask first, answer what uses the value as the server counts it: the
   cases that have it, and for a priority the playbooks that run from it.
+- A case's Story and Impact: `POST /security-case-context/story` and `/impact` answer as the
+  server would (`Fixture/CaseContextFixture.js`), around the case's window, from its own rows (its
+  detections, playbook runs, notes and milestones), the records Connected Signals lists for it and
+  the security events naming each open case's entities - the spray's 412 failed Okta sign-ins and
+  the success among them, build-runner-07's lookups of the known-bad domain, the PowerShell under
+  web-03's web server: told in runs and merged on one time axis by `SecurityCaseStoryItems`, each
+  record's last change and the internet verdict worked out by `SecurityCaseImpactFacts`.
+  build-runner-07 is on the service map and on the Engineering Tools status page, web-03's Checkout
+  API on Acme Commerce Status. Those two status pages and two runbooks are rows of their own, for a
+  playbook step to pick.
 - Realtime: nothing pushes changes.
 - The menu's other pages (Events, Correlate, Connections, Setup Guide) render a small stub page,
   inside the real layout and its side menu.
@@ -167,13 +178,20 @@ that list is not empty.
   row's action cells; a Security Viewer sees every move locked with what it takes; the
   case's own header hands it on and moves its status from any of its pages; the row's ⋯, the
   assign dialog and its picker, and the bulk bar at 1280 and 390, in both themes.
-- **A case**: a side menu of its own (Overview: Overview, Timeline; Investigation: Detections,
-  Entities, Connected Signals, Playbooks; Notes: Private Notes; Advanced, folded: Audit Logs,
-  Delete Case), each
+- **A case**: a side menu of its own (Overview: Overview, Timeline; Investigation: Story,
+  Detections, Entities, Connected Signals, Playbooks; Notes: Private Notes; Advanced, folded: Audit
+  Logs, Delete Case), each
   part of the case a page of its own at an address under the case's, its entry lit and its trail
   named for the case; the Overview has the header in full (status steps, who has it), the
-  figures, the AI card and ATT&CK, and every other page the header compact, with every action,
-  the case read once for them all; a link straight to any page opens it; the held run with
+  figures, the AI card, the Impact and ATT&CK, and every other page the header compact, with every
+  action, the case read once for them all; the Impact of the known-bad domain case - reachable from
+  the internet on the public address build-runner-07 reports, the record it names, what that calls
+  and is called by, its monitor and status page, its owners and the release before the attack,
+  the record itself behind Show what is at risk, also on a phone in the dark - and the spray's,
+  not known to be reachable, never a guess; the spray's Story, oldest first - its detections, its
+  failed sign-ins told as one run of 413, its playbook runs, notes and milestones - narrowed to the
+  attack or the response, a detection opening the case's Detections; a link straight to any page
+  opens it; the held run with
   Approve and Reject, counted beside Playbooks until approving it runs the rest; Edit Case asks
   what Open Security Case asks, in the reader's words; Delete Case asks first; a Security Viewer reads every page and is shown why it cannot change one; a case
   that is not there says so; the header at a laptop's width (actions on the title's line) and on
@@ -382,6 +400,7 @@ because everything in them is fabricated: among them `overview-desktop`, `overvi
 of a case at 1280 in both themes and at 390 (`case-overview-1280-light`,
 `case-playbook-runs-1280-dark`, `case-entities-390-light`, `case-entities-390-dark` and the rest),
 `case-header-390-light`, `case-header-390-dark`, `case-side-menu-mobile`, `case-not-found`,
+`case-impact-desktop`, `case-impact-390-dark`, `case-story-desktop`,
 the queue's moves at 1280 and 390 in both themes (`cases-row-menu-1280-light`,
 `cases-assign-dialog-390-dark`, `cases-assign-picker-1280-dark`, `cases-bulk-actions-390-light`
 and the rest) and `cases-bulk-assign-result`,
