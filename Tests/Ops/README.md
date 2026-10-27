@@ -1071,9 +1071,18 @@ packages/E2E's suites on the runner to that list; the image's tag to the one
 Playwright version every lockfile pins (the image has the browser builds of
 its own version only); a job in the image to installing no browser and nothing
 with apt, to running as the runner's user (`--user 1001`: Firefox will not
-start as root in a home another user owns) with the host's IPC namespace; and
+start as root in a home another user owns) with the host's IPC namespace;
 its limits: every step after its npm installs has one, and the job's holds
-them, 7 minutes of setup and 5 for the pull.
+them, 7 minutes of setup and 5 for the pull; and the runner's fonts. The image
+lacks DejaVu, which an ubuntu runner has and fontconfig answers for
+sans-serif, serif and monospace there, so a page with no web font of its own
+drew its words in WenQuanYi Zen Hei and four tests that measure words failed
+in the image. Every job in the image runs `.github/actions/runner-fonts`
+after its checkout and before its tests; the action's `fonts/` holds exactly
+the eight faces of Ubuntu 24.04's fonts-dejavu-core and fonts-dejavu-mono and
+their licence; and its `install.sh`, run here with stand-ins for `fc-cache`
+and `fc-match`, copies them into the user's fonts, builds their cache, and
+fails unless fontconfig answers DejaVu for each family.
 
 ### `DashboardOfflineUiShards.test.js`
 

@@ -198,6 +198,10 @@ jobs:
       E2E_REQUIRE_ENTERPRISE: "1"
     steps:
       - uses: actions/checkout@v4
+      # The fonts an ubuntu runner has and the image lacks (DejaVu, the
+      # runner's sans-serif, serif and monospace), so pages that load no web
+      # font of their own draw their words as on the runner.
+      - uses: ./.github/actions/runner-fonts
       - uses: actions/setup-node@v4
         with:
           node-version: 26

@@ -132,6 +132,10 @@ jobs:
       # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
       - name: Remove the Enterprise Edition (core runs without ee/)
         run: rm -rf ee
+      # The fonts an ubuntu runner has and the image lacks (DejaVu, the
+      # runner's sans-serif, serif and monospace), so pages that load no web
+      # font of their own draw their words as on the runner.
+      - uses: ./.github/actions/runner-fonts
       - uses: actions/setup-node@v4
         with:
           node-version: 26
@@ -201,9 +205,15 @@ jobs:
   # that some runners' mirror served at 36 kB/s, 20 minutes in group 3
   # (2026-10-22) and 11.7 in group 6 (2026-10-23), and elsewhere an apt-get
   # update that hung for three hours. The image, about 1 GB from Microsoft's
-  # registry, is pulled before the first step in about a minute.
-  # Tests/Ops/PlaywrightImage holds its tag to the lockfile's Playwright, and
-  # the job's limit to the run step's 28 minutes, the setup and the pull.
+  # registry, is pulled before the first step in about a minute. It lacks one
+  # thing the runner has: DejaVu, fontconfig's sans-serif, serif and
+  # monospace there, which the suites' pages with no web font of their own
+  # were measured in. .github/actions/runner-fonts installs the runner's
+  # DejaVu faces from the repository, with no apt (in the image, four tests
+  # that measure words failed without them).
+  # Tests/Ops/PlaywrightImage holds its tag to the lockfile's Playwright, the
+  # job's limit to the run step's 28 minutes, the setup and the pull, and
+  # every job in the image to installing the runner's fonts.
   # When Event Overview or
   # the Workflow Builder suite passes it alone, split that suite across two
   # groups. Event Overview is split since 2026-10-22: it is one spec file, so
@@ -818,6 +828,10 @@ jobs:
       # without ee/ in the checkout. ee/ has its own jobs (compile-ee, test.ee.yaml).
       - name: Remove the Enterprise Edition (core runs without ee/)
         run: rm -rf ee
+      # The fonts an ubuntu runner has and the image lacks (DejaVu, the
+      # runner's sans-serif, serif and monospace), so pages that load no web
+      # font of their own draw their words as on the runner.
+      - uses: ./.github/actions/runner-fonts
       - uses: actions/setup-node@v4
         with:
           node-version: 26

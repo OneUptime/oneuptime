@@ -36,10 +36,21 @@
  *     host's IPC namespace, as the image asks;
  *   - its limits: every step after its npm installs has one of its own, and
  *     the job's holds them, 7 minutes for checkout, Node and the installs,
- *     and 5 for the pull.
+ *     and 5 for the pull;
+ *   - the runner's fonts: the image lacks DejaVu, which an ubuntu runner has
+ *     and fontconfig answers for sans-serif, serif and monospace there, so a
+ *     page with no web font of its own drew its words in WenQuanYi Zen Hei
+ *     and four tests that measure words failed in the image (2026-10-27).
+ *     Every job in the image installs the runner's eight DejaVu faces
+ *     (.github/actions/runner-fonts) after its checkout and before its
+ *     tests, the folder holds exactly those faces and their licence, and
+ *     the install script copies them, builds the cache and fails unless
+ *     fontconfig answers DejaVu.
  */
 
+const childProcess = require("child_process");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const yaml = require("js-yaml");
 
@@ -204,6 +215,91 @@ function runsE2eSuites(step) {
   return inE2e && runsSuite && !/\bdocker\b/.test(command);
 }
 
+const RUNNER_FONTS_ACTION = "./.github/actions/runner-fonts";
+const RUNNER_FONTS_DIR = path.join(
+  REPO_ROOT,
+  ".github",
+  "actions",
+  "runner-fonts",
+);
+
+/*
+ * The faces of Ubuntu 24.04's fonts-dejavu-core and fonts-dejavu-mono
+ * (2.37-8): the fonts an ubuntu runner has that the image does not.
+ */
+const RUNNER_FACES = [
+  "DejaVuSans-Bold.ttf",
+  "DejaVuSans.ttf",
+  "DejaVuSansMono-Bold.ttf",
+  "DejaVuSansMono-BoldOblique.ttf",
+  "DejaVuSansMono-Oblique.ttf",
+  "DejaVuSansMono.ttf",
+  "DejaVuSerif-Bold.ttf",
+  "DejaVuSerif.ttf",
+];
+
+function isCheckout(step) {
+  return /^actions\/checkout@/.test(String(step.uses || ""));
+}
+
+function isRunnerFonts(step) {
+  return step.uses === RUNNER_FONTS_ACTION;
+}
+
+/*
+ * Runs the runner-fonts install script with stand-ins for fontconfig's
+ * fc-cache and fc-match on PATH: fc-cache records what it was asked to
+ * cache, and fc-match answers `answers[generic]`.
+ */
+function runFontInstall({ answers, env = {} }) {
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "runner-fonts-"));
+  const bin = path.join(scratch, "bin");
+  const cached = path.join(scratch, "cached.txt");
+  fs.mkdirSync(bin);
+  fs.writeFileSync(
+    path.join(bin, "fc-cache"),
+    `#!/bin/bash\necho "$@" >> "${cached}"\n`,
+    { mode: 0o755 },
+  );
+  const cases = Object.entries(answers)
+    .map(([generic, family]) => {
+      return `  ${generic}) echo -n "${family}" ;;`;
+    })
+    .join("\n");
+  fs.writeFileSync(
+    path.join(bin, "fc-match"),
+    `#!/bin/bash\ncase "\${@: -1}" in\n${cases}\n  *) echo -n "Unknown" ;;\nesac\n`,
+    { mode: 0o755 },
+  );
+  const home = path.join(scratch, "home");
+  fs.mkdirSync(home);
+  const result = childProcess.spawnSync(
+    "bash",
+    [path.join(RUNNER_FONTS_DIR, "install.sh")],
+    {
+      encoding: "utf8",
+      env: {
+        PATH: `${bin}:${process.env.PATH}`,
+        HOME: home,
+        ...env,
+      },
+    },
+  );
+  return {
+    scratch,
+    home,
+    status: result.status,
+    output: `${result.stdout}${result.stderr}`,
+    cached: fs.existsSync(cached) ? fs.readFileSync(cached, "utf8") : "",
+  };
+}
+
+const RUNNER_ANSWERS = {
+  "sans-serif": "DejaVu Sans",
+  serif: "DejaVu Serif",
+  monospace: "DejaVu Sans Mono",
+};
+
 function lockedVersions() {
   const versions = {};
   for (const [lockfile, entry] of Object.entries(LOCKFILES)) {
@@ -335,6 +431,113 @@ describe("browser jobs run in the Playwright image", () => {
       );
     },
   );
+});
+
+describe("every job in the image has the runner's fonts", () => {
+  test.each(imageJobs.map((entry) => [entry.key, entry]))(
+    "%s installs them after its checkout and before its tests",
+    (_key, { steps }) => {
+      const checkout = steps.findIndex(isCheckout);
+      const fonts = steps.findIndex(isRunnerFonts);
+      const testing = stepsAfterInstalls(steps).filter(runsSomething);
+      const firstTest = steps.indexOf(testing[0]);
+
+      expect(checkout).toBeGreaterThan(-1);
+      expect(fonts).toBeGreaterThan(checkout);
+      expect(firstTest).toBeGreaterThan(fonts);
+      expect(steps.filter(isRunnerFonts)).toHaveLength(1);
+    },
+  );
+
+  test("the action holds the runner's eight DejaVu faces and their licence, and nothing else", () => {
+    expect(fs.readdirSync(path.join(RUNNER_FONTS_DIR, "fonts")).sort()).toEqual(
+      [...RUNNER_FACES, "copyright"].sort(),
+    );
+    const licence = fs.readFileSync(
+      path.join(RUNNER_FONTS_DIR, "fonts", "copyright"),
+      "utf8",
+    );
+    expect(licence).toContain("Upstream-Name: DejaVu fonts");
+    expect(licence).toContain("License: bitstream-vera");
+    for (const face of RUNNER_FACES) {
+      // TrueType: the sfnt version 1.0 every one of these files starts with.
+      const header = fs
+        .readFileSync(path.join(RUNNER_FONTS_DIR, "fonts", face))
+        .subarray(0, 4);
+      expect({ face, header: header.toString("hex") }).toEqual({
+        face,
+        header: "00010000",
+      });
+    }
+  });
+
+  test("the action runs the install script from the workspace, where a container job finds it", () => {
+    const action = yaml.load(
+      fs.readFileSync(path.join(RUNNER_FONTS_DIR, "action.yml"), "utf8"),
+    );
+    expect(action.runs.using).toBe("composite");
+    expect(action.runs.steps).toHaveLength(1);
+    expect(action.runs.steps[0].shell).toBe("bash");
+    // Not github.action_path: in a container job it is the runner's path.
+    expect(action.runs.steps[0].run).toBe(
+      'bash "${GITHUB_WORKSPACE}/.github/actions/runner-fonts/install.sh"',
+    );
+  });
+
+  test("the install script copies every face into the user's fonts, builds their cache and passes when fontconfig answers DejaVu", () => {
+    const xdg = fs.mkdtempSync(path.join(os.tmpdir(), "runner-fonts-xdg-"));
+    const run = runFontInstall({
+      answers: RUNNER_ANSWERS,
+      env: { XDG_DATA_HOME: xdg },
+    });
+    const target = path.join(xdg, "fonts", "oneuptime-runner-fonts");
+
+    expect({ status: run.status, output: run.output }).toEqual({
+      status: 0,
+      output:
+        "sans-serif: DejaVu Sans\nserif: DejaVu Serif\nmonospace: DejaVu Sans Mono\n",
+    });
+    expect(fs.readdirSync(target).sort()).toEqual([...RUNNER_FACES].sort());
+    expect(run.cached.trim()).toBe(`-f ${target}`);
+  });
+
+  test("without XDG_DATA_HOME the fonts go to ~/.local/share/fonts, which fontconfig reads", () => {
+    const run = runFontInstall({ answers: RUNNER_ANSWERS });
+    const target = path.join(
+      run.home,
+      ".local",
+      "share",
+      "fonts",
+      "oneuptime-runner-fonts",
+    );
+
+    expect(run.status).toBe(0);
+    expect(fs.readdirSync(target).sort()).toEqual([...RUNNER_FACES].sort());
+  });
+
+  test("the install script fails, naming the family, when fontconfig still answers another font", () => {
+    const run = runFontInstall({
+      answers: {
+        ...RUNNER_ANSWERS,
+        "sans-serif": "WenQuanYi Zen Hei,文泉驛正黑,文泉驿正黑",
+      },
+    });
+
+    expect(run.status).toBe(1);
+    expect(run.output).toContain(
+      "fontconfig answers WenQuanYi Zen Hei,文泉驛正黑,文泉驿正黑 for sans-serif, not DejaVu Sans",
+    );
+    // The families it does answer right are still reported.
+    expect(run.output).toContain("serif: DejaVu Serif");
+  });
+
+  test("a family whose name lists others after it still counts", () => {
+    const run = runFontInstall({
+      answers: { ...RUNNER_ANSWERS, serif: "DejaVu Serif,DejaVu Serif Book" },
+    });
+
+    expect(run.status).toBe(0);
+  });
 });
 
 describe("the helpers this suite reads the workflows with", () => {
