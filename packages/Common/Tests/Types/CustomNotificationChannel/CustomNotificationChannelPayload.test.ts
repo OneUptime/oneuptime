@@ -81,6 +81,7 @@ describe("custom channel payload constants", () => {
   test("the events are spelled as the docs spell them", () => {
     expect(Object.values(CustomChannelEvent).sort()).toEqual(
       [
+        "notification",
         "on-call.alert.created",
         "on-call.alertEpisode.created",
         "on-call.incident.created",

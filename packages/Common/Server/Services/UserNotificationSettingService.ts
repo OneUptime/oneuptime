@@ -956,45 +956,74 @@ export class Service extends DatabaseService<UserNotificationSetting> {
       body: "",
     };
 
-    for (const channel of channels) {
-      if (!channel.id) {
-        continue;
-      }
+    const sendable: Array<CustomNotificationChannel> = channels.filter(
+      (channel: CustomNotificationChannel): boolean => {
+        return Boolean(channel.id);
+      },
+    );
 
-      const result: CustomChannelDeliveryResult =
-        await CustomNotificationChannelDeliveryService.send({
-          customNotificationChannelId: channel.id,
-          eventType: CustomChannelEvent.Notification,
-          // A project a master admin blocked sends nothing.
-          projectId: data.projectId,
-          payload: buildCustomChannelNotificationPayload({
-            sentAt: OneUptimeDate.getCurrentDate(),
-            channel: {
-              id: channel.id.toString(),
-              name: channel.name || "",
-            },
-            notificationType: data.eventType,
-            title: message.title || "",
-            message: message.body || "",
-            url: message.url || message.clickAction || undefined,
-            project: {
-              id: data.projectId.toString(),
-              name: project?.name || "",
-            },
-            user: {
-              id: data.userId.toString(),
-              name: user?.name?.toString() || "",
-              email: user?.email?.toString() || "",
-            },
-          }),
-        });
+    /*
+     * Every channel at once, each on its own: one that is slow - a request
+     * is tried again for half a minute - holds up no other, and one whose
+     * send throws stops no other.
+     */
+    const results: Array<PromiseSettledResult<CustomChannelDeliveryResult>> =
+      await Promise.allSettled(
+        sendable.map(
+          (
+            channel: CustomNotificationChannel,
+          ): Promise<CustomChannelDeliveryResult> => {
+            return CustomNotificationChannelDeliveryService.send({
+              customNotificationChannelId: channel.id!,
+              eventType: CustomChannelEvent.Notification,
+              // A project a master admin blocked sends nothing.
+              projectId: data.projectId,
+              payload: buildCustomChannelNotificationPayload({
+                sentAt: OneUptimeDate.getCurrentDate(),
+                channel: {
+                  id: channel.id!.toString(),
+                  name: channel.name || "",
+                },
+                notificationType: data.eventType,
+                title: message.title || "",
+                message: message.body || "",
+                url: message.url || message.clickAction || undefined,
+                project: {
+                  id: data.projectId.toString(),
+                  name: project?.name || "",
+                },
+                user: {
+                  id: data.userId.toString(),
+                  name: user?.name?.toString() || "",
+                  email: user?.email?.toString() || "",
+                },
+              }),
+            });
+          },
+        ),
+      );
 
-      if (!result.ok) {
-        logger.warn(
-          `Custom channel ${channel.id.toString()}: a ${data.eventType} notification for user ${data.userId.toString()} was not delivered. ${result.message}`,
-        );
-      }
-    }
+    results.forEach(
+      (
+        result: PromiseSettledResult<CustomChannelDeliveryResult>,
+        index: number,
+      ): void => {
+        const channelId: string = sendable[index]?.id?.toString() || "";
+
+        if (result.status === "rejected") {
+          logger.warn(
+            `Custom channel ${channelId}: a ${data.eventType} notification for user ${data.userId.toString()} could not be sent. ${result.reason instanceof Error ? result.reason.message : String(result.reason)}`,
+          );
+          return;
+        }
+
+        if (!result.value.ok) {
+          logger.warn(
+            `Custom channel ${channelId}: a ${data.eventType} notification for user ${data.userId.toString()} was not delivered. ${result.value.message}`,
+          );
+        }
+      },
+    );
   }
 
   @CaptureSpan()
