@@ -20,9 +20,11 @@ import DetectionRule from "Common/Models/DatabaseModels/DetectionRule";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Label from "Common/Models/DatabaseModels/Label";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
 import SecurityEventConnection from "Common/Models/DatabaseModels/SecurityEventConnection";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import Route from "Common/Types/API/Route";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -181,12 +183,16 @@ const SecurityPlaybookViewPage: FunctionComponent<
         labels,
         workflows,
         ruleNames,
+        runbooks,
+        statusPages,
       ]: Array<Map<string, string>> = await Promise.all([
         readNames(OnCallDutyPolicy),
         readNames(IncidentSeverity),
         readNames(Label),
         readNames(Workflow),
         readNames(DetectionRule),
+        readNames(Runbook),
+        readNames(StatusPage),
       ]);
 
       let connectionList: Array<PlaybookConnectionOption> = [];
@@ -223,6 +229,8 @@ const SecurityPlaybookViewPage: FunctionComponent<
         incidentSeverities: incidentSeverities || new Map(),
         labels: labels || new Map(),
         workflows: workflows || new Map(),
+        runbooks: runbooks || new Map(),
+        statusPages: statusPages || new Map(),
         connections: new Map(
           connectionList.map(
             (connection: PlaybookConnectionOption): [string, string] => {

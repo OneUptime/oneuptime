@@ -69,8 +69,6 @@
   },
   "userProfile": {
     "exitAdmin": "Admin verlaten",
-    "darkTheme": "Donker thema",
-    "lightTheme": "Licht thema",
     "logOut": "Uitloggen"
   },
   "footer": {
@@ -1511,6 +1509,10 @@
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "Iedereen die deze server kan openen, kan een account aanmaken. Zet dit uit zodra uw team zijn accounts heeft.",
   "Choose who can sign up": "Kies wie zich kan registreren",
   "Still to do": "Nog te doen",
+  "Theme": "Thema",
+  "Light": "Licht",
+  "Dark": "Donker",
+  "System": "Systeem",
   "markdownCallouts": {
     "caution": "Let op",
     "danger": "Gevaar",

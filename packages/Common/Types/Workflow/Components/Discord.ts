@@ -1,4 +1,5 @@
 import IconProp from "../../Icon/IconProp";
+import ProviderLogo from "../../ProviderLogo/ProviderLogo";
 import ComponentID from "../ComponentID";
 import ComponentMetadata, {
   ComponentInputType,
@@ -10,6 +11,7 @@ const components: Array<ComponentMetadata> = [
     id: ComponentID.DiscordSendMessageToChannel,
     title: "Send Message to Discord",
     category: "Discord",
+    logo: ProviderLogo.Discord,
     description: "Send message to Discord channel",
     iconProp: IconProp.SendMessage,
     componentType: ComponentType.Component,

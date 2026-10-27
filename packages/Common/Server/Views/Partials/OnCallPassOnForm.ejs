@@ -11,12 +11,12 @@
     <input type="hidden" name="<%= tokenParam %>" value="<%= token %>">
     <% if (typeof isPrimary !== 'undefined' && isPrimary) { %>
     <button type="submit" data-testid="pass-on-button"
-        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-700">
+        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white dark:text-slate-900 bg-gray-900 dark:bg-slate-100 hover:bg-gray-800 dark:hover:bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-gray-700">
         <%= buttonText %>
     </button>
     <% } else { %>
     <button type="submit" data-testid="pass-on-button"
-        class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+        class="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-slate-200 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-gray-500">
         <%= buttonText %>
     </button>
     <% } %>

@@ -474,6 +474,43 @@ export default class SecurityEvent extends AnalyticsBaseModel {
       "Observables",
       "Every extracted observable value (users, hosts, IPs, domains, hashes) — powers 'all events mentioning X' queries and the entity-neighborhood graph",
     );
+    /*
+     * The request the event happened in, when its source carries trace
+     * context - a log line written inside a traced request, an event sent
+     * with a W3C trace id. They are what tie a security event to the rest of
+     * OneUptime: its trace and spans, the exception it threw, the session
+     * replay it was part of. The trace and session ids are bloom-indexed so
+     * the trace, log and session pages can ask "which security events
+     * happened in this one" cheaply; '' when the source did not say.
+     */
+    const traceIdColumn: AnalyticsTableColumn = bloomTextColumn(
+      "traceId",
+      "Trace ID",
+      "Trace of the request the event happened in, when its source carries one",
+    );
+    const spanIdColumn: AnalyticsTableColumn = textColumn({
+      key: "spanId",
+      title: "Span ID",
+      description:
+        "Span the event was recorded in, when its source carries one",
+    });
+    const sessionIdColumn: AnalyticsTableColumn = bloomTextColumn(
+      "sessionId",
+      "Session ID",
+      "Session the request belonged to: the id its logs, traces and session replay carry",
+    );
+    /*
+     * How far that request got, as its trace shows
+     * (Types/SecurityEvent/SecurityEventRequestOutcome): what turns "somebody
+     * tried" into "it was turned away" or "it reached the database".
+     */
+    const requestOutcomeColumn: AnalyticsTableColumn = textColumn({
+      key: "requestOutcome",
+      title: "Request Outcome",
+      description:
+        "How far the request behind the event got, as its trace shows: Rejected, Reached App, Errored or Reached Database ('' when it was not followed)",
+      isLowCardinality: true,
+    });
 
     const attributesColumn: AnalyticsTableColumn = new AnalyticsTableColumn({
       key: "attributes",
@@ -586,6 +623,10 @@ export default class SecurityEvent extends AnalyticsBaseModel {
         targetPortColumn,
         targetResourceColumn,
         observablesColumn,
+        traceIdColumn,
+        spanIdColumn,
+        sessionIdColumn,
+        requestOutcomeColumn,
         attributesColumn,
         attributeKeysColumn,
         retentionDateColumn,
@@ -901,6 +942,38 @@ export default class SecurityEvent extends AnalyticsBaseModel {
 
   public set observables(v: Array<string> | undefined) {
     this.setColumnValue("observables", v);
+  }
+
+  public get traceId(): string | undefined {
+    return this.getColumnValue("traceId") as string | undefined;
+  }
+
+  public set traceId(v: string | undefined) {
+    this.setColumnValue("traceId", v);
+  }
+
+  public get spanId(): string | undefined {
+    return this.getColumnValue("spanId") as string | undefined;
+  }
+
+  public set spanId(v: string | undefined) {
+    this.setColumnValue("spanId", v);
+  }
+
+  public get sessionId(): string | undefined {
+    return this.getColumnValue("sessionId") as string | undefined;
+  }
+
+  public set sessionId(v: string | undefined) {
+    this.setColumnValue("sessionId", v);
+  }
+
+  public get requestOutcome(): string | undefined {
+    return this.getColumnValue("requestOutcome") as string | undefined;
+  }
+
+  public set requestOutcome(v: string | undefined) {
+    this.setColumnValue("requestOutcome", v);
   }
 
   public get attributes(): JSONObject | undefined {

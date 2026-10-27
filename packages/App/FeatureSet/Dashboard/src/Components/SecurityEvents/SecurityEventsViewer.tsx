@@ -147,6 +147,10 @@ const LIST_SELECT: Select<SecurityEvent> = {
   targetPort: true,
   targetResource: true,
   observables: true,
+  traceId: true,
+  spanId: true,
+  sessionId: true,
+  requestOutcome: true,
   attributes: true,
 };
 

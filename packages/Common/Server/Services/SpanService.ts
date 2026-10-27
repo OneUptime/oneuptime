@@ -1,5 +1,5 @@
 import ClickhouseDatabase from "../Infrastructure/ClickhouseDatabase";
-import AnalyticsDatabaseService from "./AnalyticsDatabaseService";
+import AnalyticsDatabaseService, { Results } from "./AnalyticsDatabaseService";
 import Span from "../../Models/AnalyticsModels/Span";
 import CountBy from "../Types/AnalyticsDatabase/CountBy";
 import AggregateBy, {
@@ -20,6 +20,9 @@ import ObjectID from "../../Types/ObjectID";
 import FindBy from "../Types/AnalyticsDatabase/FindBy";
 import { OnFind } from "../Types/AnalyticsDatabase/Hooks";
 import ResourceEntityFilter from "../Utils/Telemetry/ResourceEntityFilter";
+import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import { JSONObject } from "../../Types/JSON";
+import { ResponseJSON } from "@clickhouse/client";
 
 /**
  * Columns the proj_hist_by_minute projection can answer with. If a count
@@ -502,6 +505,69 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       statement,
       columns: ["durationUnixNano", "startTime"],
     };
+  }
+
+  /*
+   * The spans of a few traces, for the security events that happened in
+   * them (Utils/SecurityEvent/RequestTrace/SecurityRequestTrace.ts): each
+   * span's identity, kind, status and duration, and of its attributes only
+   * the ones asked for - an HTTP server span carries dozens. Always one
+   * project's and a bounded window's, and at most `limitPerTrace` spans of
+   * a trace, its earliest: the request it answers starts there.
+   */
+  @CaptureSpan()
+  public async findSpansOfTraces(data: {
+    projectId: ObjectID;
+    traceIds: Array<string>;
+    startedAfter: Date;
+    startedBefore: Date;
+    attributeKeys: Array<string>;
+    limitPerTrace: number;
+    limit: number;
+  }): Promise<Array<JSONObject>> {
+    if (data.traceIds.length === 0) {
+      return [];
+    }
+
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const databaseName: string =
+      this.database!.getDatasourceOptions().database!;
+
+    const statement: Statement = SQL`SELECT traceId, spanId, parentSpanId, name, kind, statusCode, durationUnixNano, mapFilter((key, value) -> has(${{
+      type: TableColumnType.ArrayText,
+      value: data.attributeKeys,
+    }}, key), attributes) AS attributes FROM `;
+    statement.append(`${databaseName}.${this.model.tableName}`);
+    statement.append(
+      SQL` WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND startTime >= ${{
+        type: TableColumnType.Date,
+        value: data.startedAfter,
+      }} AND startTime <= ${{
+        type: TableColumnType.Date,
+        value: data.startedBefore,
+      }} AND traceId IN (${{
+        type: TableColumnType.Text,
+        value: new Includes(data.traceIds),
+      }}) AND retentionDate >= now() ORDER BY traceId ASC, startTime ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.trunc(data.limitPerTrace)),
+      }} BY traceId LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.trunc(data.limit)),
+      }}`,
+    );
+    statement.append(getQuerySettings({ ...INTERACTIVE_READ_TIME_LIMIT }));
+
+    const result: Results = await this.executeQuery(statement);
+    const response: ResponseJSON<JSONObject> = await result.json<JSONObject>();
+
+    return (response.data || []) as Array<JSONObject>;
   }
 }
 

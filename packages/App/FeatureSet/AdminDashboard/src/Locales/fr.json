@@ -69,8 +69,6 @@
   },
   "userProfile": {
     "exitAdmin": "Quitter l'admin",
-    "darkTheme": "Thème sombre",
-    "lightTheme": "Thème clair",
     "logOut": "Se déconnecter"
   },
   "footer": {
@@ -1511,6 +1509,10 @@
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "Toute personne qui peut ouvrir ce serveur peut créer un compte. Désactivez-le une fois que votre équipe a ses comptes.",
   "Choose who can sign up": "Choisir qui peut s'inscrire",
   "Still to do": "À faire",
+  "Theme": "Thème",
+  "Light": "Clair",
+  "Dark": "Sombre",
+  "System": "Système",
   "markdownCallouts": {
     "caution": "Attention",
     "danger": "Danger",

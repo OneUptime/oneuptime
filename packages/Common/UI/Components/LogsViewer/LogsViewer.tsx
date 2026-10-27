@@ -162,6 +162,8 @@ export interface ComponentProps {
         log: Log,
       ) => Route | URL | undefined | Promise<Route | URL | undefined>)
     | undefined;
+  // A section the app adds to an opened line (LogDetailsPanel).
+  renderLogExtraSection?: ((log: Log) => ReactNode) | undefined;
   projectId?: ObjectID | undefined;
   /*
    * How many logs the query matches — or the lower bound the logs list
@@ -1536,6 +1538,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
                         getSpanRoute={props.getSpanRoute}
                         resolveSpanRoute={props.resolveSpanRoute}
                         getSessionRoute={props.getSessionRoute}
+                        renderExtraSection={props.renderLogExtraSection}
                         variant="embedded"
                         projectId={props.projectId}
                         onFilterByAttribute={

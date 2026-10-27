@@ -542,6 +542,7 @@ export function providerCardOptions(): Array<CardSelectOptionGroup> {
             title: definition.title,
             description: definition.description,
             icon: definition.icon,
+            logo: definition.logo,
             keywords: [definition.vendorName, definition.productName],
           };
         }),

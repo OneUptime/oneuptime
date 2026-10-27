@@ -810,6 +810,14 @@ jobs:
           # 7, Global Runners (2.2) from group 12, Asset Details (0.9) from group
           # 1, and Status Page Search (1.2) and Reading Direction (about 1.8)
           # from group 11, all Chromium only: about 18.5.
+          # Accounts Theme (1.7 minutes locally, about 2 with its bundle,
+          # Chromium only: the sign-in pages in the person's theme - drawn
+          # before the first paint, following the device and another tab, the
+          # public form kept light, every page, state and dialog in the dark
+          # theme with no light box and words at 4.5:1, the footer, halos and
+          # backup codes' action, at 1280 and 390 pixels, light and dark,
+          # German and Persian) joined them the same day, rather than group 7,
+          # which it would have taken to about 21.5: about 20.5.
           - group: 13
             suites: >-
               test-asset-details-ui
@@ -822,6 +830,7 @@ jobs:
               test-status-page-search-ui
               test-reading-direction-ui
               test-global-runners-ui
+              test-accounts-theme-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1033,6 +1042,8 @@ jobs:
             output/playwright/dashboard-value-widget-ui/test-results
             output/playwright/dashboard-table-thresholds-ui/*.png
             output/playwright/dashboard-table-thresholds-ui/test-results
+            output/playwright/accounts-theme-ui/*.png
+            output/playwright/accounts-theme-ui/test-results
             output/playwright/cloud-connect-ui/*.png
             output/playwright/cloud-connect-ui/test-results
             output/playwright/host-collectors-ui/*.png

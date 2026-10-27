@@ -38,6 +38,11 @@ import {
 import { SecurityEntity } from "Common/Types/SecurityCase/SecurityEntity";
 import { SecurityLogResource } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
 import { APP_API_URL } from "Common/UI/Config";
+import {
+  SecurityAttackCampaign,
+  SecurityAttackCampaignsResult,
+  readSecurityAttackCampaign,
+} from "Common/Types/SecurityEvent/SecurityAttackCampaign";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 
@@ -111,6 +116,36 @@ async function post(route: string, data: JSONObject): Promise<JSONObject> {
 }
 
 export default class SecurityCaseApi {
+  /*
+   * The project's web attacks over a window, one row per address that sent
+   * them (Types/SecurityEvent/SecurityAttackCampaign): the Campaigns page.
+   */
+  public static async getAttackCampaigns(window: {
+    startTime: Date;
+    endTime: Date;
+  }): Promise<SecurityAttackCampaignsResult> {
+    const body: JSONObject = await post("/security-event/attack-campaigns", {
+      startTime: window.startTime.toISOString(),
+      endTime: window.endTime.toISOString(),
+    });
+    const campaigns: JSONValue | undefined = body["campaigns"];
+
+    return {
+      campaigns: Array.isArray(campaigns)
+        ? campaigns
+            .filter((row: JSONValue): boolean => {
+              return Boolean(row) && typeof row === "object";
+            })
+            .map((row: JSONValue): SecurityAttackCampaign => {
+              return readSecurityAttackCampaign(row as JSONObject);
+            })
+        : [],
+      startTime: String(body["startTime"] || window.startTime.toISOString()),
+      endTime: String(body["endTime"] || window.endTime.toISOString()),
+      isTruncated: body["isTruncated"] === true,
+    };
+  }
+
   public static async getOverview(): Promise<SecurityOverview> {
     return parseOverview(await post("/security-case/overview", {}));
   }

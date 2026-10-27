@@ -802,7 +802,12 @@ const ExecutionView: FunctionComponent<
           {(() => {
             const inputs: JSONObject | null = getRunInputs(execution);
 
-            return inputs ? <RunbookRunInputs inputs={inputs} /> : null;
+            return inputs ? (
+              <RunbookRunInputs
+                inputs={inputs}
+                triggerType={execution.triggerType}
+              />
+            ) : null;
           })()}
 
           {execution.failureReason ? (

@@ -1,5 +1,6 @@
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil from "../../../Types/BaseDatabase/DatabaseCommonInteractionPropsUtil";
+import HeldPermissionsUtil from "../../../Types/HeldPermissions";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 
@@ -24,13 +25,23 @@ export default class PropsHoldingOnly {
     projectId: ObjectID;
     permissions: ReadonlyArray<Permission>;
   }): DatabaseCommonInteractionProps {
+    /*
+     * Every block row stays: a block only ever takes away, and one on a
+     * permission besides `permissions` - a block on Workflow Viewer for the
+     * records carrying a label - takes those records away from every read
+     * of the table (ReadPermission.getLabelledBlockRows), so the grant here
+     * may not reach them either.
+     */
     const rows: Array<UserPermission> =
       DatabaseCommonInteractionPropsUtil.getPermissionRows({
         ...data.databaseProps,
         tenantId: data.projectId,
         userGlobalAccessPermission: undefined,
       }).filter((row: UserPermission): boolean => {
-        return data.permissions.includes(row.permission);
+        return (
+          HeldPermissionsUtil.isBlockRow(row) ||
+          data.permissions.includes(row.permission)
+        );
       });
 
     return {

@@ -7,6 +7,10 @@ import SecurityLogFormat, {
   SecurityLogFormatDefinition,
   getSecurityLogFormatDefinition,
 } from "./SecurityLogFormat";
+import {
+  SecurityTelemetrySourceKind,
+  getSecurityTelemetrySourceDefinition,
+} from "./SecurityTelemetrySource";
 
 /*
  * What a rule of the library reads: the kind of security event it needs to
@@ -40,6 +44,15 @@ export enum DetectionRuleDataKind {
   WebRequests = "web-requests",
   // Kubernetes audit logs, which "Your logs" reads.
   KubernetesAuditLogs = "kubernetes-audit-logs",
+  /*
+   * The rest of "Your OneUptime data" (SecurityTelemetrySource): what the
+   * project's traces, network flows, audit log and session replays show.
+   * Each is recognized by the product its events carry.
+   */
+  OneUptimeTraces = "oneuptime-traces",
+  NetworkFlows = "network-flows",
+  OneUptimeAuditLog = "oneuptime-audit-log",
+  SessionReplays = "session-replays",
 }
 
 export const DETECTION_RULE_DATA_KINDS_IN_ORDER: ReadonlyArray<DetectionRuleDataKind> =
@@ -53,6 +66,10 @@ export const DETECTION_RULE_DATA_KINDS_IN_ORDER: ReadonlyArray<DetectionRuleData
     DetectionRuleDataKind.NetworkActivity,
     DetectionRuleDataKind.WebRequests,
     DetectionRuleDataKind.KubernetesAuditLogs,
+    DetectionRuleDataKind.OneUptimeTraces,
+    DetectionRuleDataKind.NetworkFlows,
+    DetectionRuleDataKind.OneUptimeAuditLog,
+    DetectionRuleDataKind.SessionReplays,
   ];
 
 /*
@@ -84,6 +101,11 @@ function logFormatProduct(format: SecurityLogFormat): Array<string> {
     getSecurityLogFormatDefinition(format);
 
   return definition && definition.productName ? [definition.productName] : [];
+}
+
+// The product every event of one kind of "Your OneUptime data" carries.
+function telemetryProduct(kind: SecurityTelemetrySourceKind): Array<string> {
+  return [getSecurityTelemetrySourceDefinition(kind).productName];
 }
 
 // The vendor and product a connector stamps on every event it imports.
@@ -168,6 +190,30 @@ export const DETECTION_RULE_DATA_KINDS: ReadonlyArray<DetectionRuleDataKindDefin
       classNames: [],
       vendorNames: [],
       productNames: logFormatProduct(SecurityLogFormat.KubernetesAudit),
+    },
+    {
+      kind: DetectionRuleDataKind.OneUptimeTraces,
+      classNames: [],
+      vendorNames: [],
+      productNames: telemetryProduct(SecurityTelemetrySourceKind.Traces),
+    },
+    {
+      kind: DetectionRuleDataKind.NetworkFlows,
+      classNames: [],
+      vendorNames: [],
+      productNames: telemetryProduct(SecurityTelemetrySourceKind.NetworkFlows),
+    },
+    {
+      kind: DetectionRuleDataKind.OneUptimeAuditLog,
+      classNames: [],
+      vendorNames: [],
+      productNames: telemetryProduct(SecurityTelemetrySourceKind.AuditLog),
+    },
+    {
+      kind: DetectionRuleDataKind.SessionReplays,
+      classNames: [],
+      vendorNames: [],
+      productNames: telemetryProduct(SecurityTelemetrySourceKind.RumSessions),
     },
   ];
 

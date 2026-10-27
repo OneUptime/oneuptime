@@ -1,4 +1,5 @@
 import PermissionScope from "./Database/AccessControl/PermissionScope";
+import ObjectID from "./ObjectID";
 import Permission, { PermissionHelper, UserPermission } from "./Permission";
 
 /*
@@ -110,21 +111,51 @@ export default class HeldPermissionsUtil {
   }
 
   /*
-   * Whether an allow row reaches every record of the project: scope All, or
-   * Labels (or a legacy row without a scope) with no labels on it. An Owned
-   * row reaches only owned records - except on a role that cannot be scoped,
-   * which the read checks treat as project-wide whatever its row says.
+   * Whether an allow row reaches every record of the project: a row with no
+   * labels on it, at scope All or Labels (or a legacy row without a scope),
+   * and an All row of a role that cannot be scoped. Labels narrow every
+   * other row, one stored as All too (PermissionHelper.isLimitedToLabels).
+   * An Owned row reaches only owned records - except on a role that cannot
+   * be scoped, which the read checks treat as project-wide whatever its row
+   * says.
    */
   public static isProjectWideRow(row: UserPermission): boolean {
-    if (row.scope === PermissionScope.All) {
-      return true;
-    }
-
     if (row.scope === PermissionScope.Owned) {
       return !PermissionHelper.isScopeApplicable(row.permission);
     }
 
-    return !HeldPermissionsUtil.hasLabels(row);
+    return !PermissionHelper.isLimitedToLabels(row);
+  }
+
+  /*
+   * The teams `rows` are granted on (UserPermission.teamId), each once, in
+   * the order the rows name them: the teams whose records an Owned row
+   * reaches, beside the caller's own - each team's grant reaching what that
+   * team owns, never what only another team of the caller's owns. A row no
+   * team grants names none.
+   */
+  public static getTeamIdsOfRows(
+    rows: ReadonlyArray<UserPermission>,
+  ): Array<ObjectID> {
+    const seen: Set<string> = new Set<string>();
+    const teamIds: Array<ObjectID> = [];
+
+    for (const row of rows) {
+      if (!row || !row.teamId) {
+        continue;
+      }
+
+      const key: string = row.teamId.toString().toLowerCase();
+
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      teamIds.push(new ObjectID(row.teamId.toString()));
+    }
+
+    return teamIds;
   }
 
   /*

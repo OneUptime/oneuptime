@@ -25,7 +25,7 @@ Haz clic en tu foto, arriba a la derecha del panel.
 | --- | --- |
 | **Perfil** | Abre **Perfil de usuario**: tu nombre, tu correo, tu zona horaria, tu foto y la seguridad de tu inicio de sesión. |
 | **Ajustes de admin** | Abre el Admin Dashboard. Solo lo ven los administradores principales de una instalación autoalojada. |
-| **Tema oscuro** | Cambia el panel a su tema oscuro. Con el tema oscuro, el elemento dice **Tema claro**. |
+| **Tema** | Define el tema del panel: **Claro**, **Oscuro** o **Sistema**, que es claro u oscuro según cómo esté configurado tu dispositivo. |
 | **Cerrar sesión** | Cierra tu sesión. |
 
 **Perfil de usuario** tiene su propio menú lateral. **Básico** contiene **Vista general** y **Foto de perfil**. **Seguridad** y **Zona de peligro** están plegadas: haz clic en el título de una sección para abrirla.
@@ -132,7 +132,7 @@ Los **Ajustes de usuario**, a la derecha de la barra bajo la barra superior, son
 Ambos se guardan en tu navegador, no en tu cuenta, así que vuelve a configurarlos en otro navegador o dispositivo.
 
 - **Idioma**: el panel empieza en el idioma de tu navegador. Para cambiarlo, usa el menú de idiomas al pie de cualquier página. Esta documentación tiene su propio menú de idiomas, arriba.
-- **Tema**: elige **Tema oscuro** en el menú de usuario. El panel empieza con el tema claro.
+- **Tema**: elige **Claro**, **Oscuro** o **Sistema** en el menú de usuario. **Sistema** es claro u oscuro según cómo esté configurado tu dispositivo, y cambia con él; todos los navegadores empiezan con él. Las páginas de inicio de sesión usan el mismo tema.
 
 ## Eliminar tu cuenta
 

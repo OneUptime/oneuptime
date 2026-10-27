@@ -13,9 +13,10 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                    Open Cases, Assigned to Me, Unassigned, Closed Cases
  *                    and All Cases
  *   Events           every security event, how they connect, and who or
- *                    what they name: Events, Entities, Entity Risk (who is
- *                    riskiest, from everything found about each) and
- *                    Correlate
+ *                    what they name: Events, Campaigns (who is attacking,
+ *                    and whether any of it got through), Entities, Entity
+ *                    Risk (who is riskiest, from everything found about
+ *                    each) and Correlate
  *   Detections       what finds threats in them: Detection Rules, the Rule
  *                    Library, Threat Intel and ATT&CK Coverage
  *   Playbooks        what responds when a case opens: Playbooks, the
@@ -131,6 +132,16 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_EVENTS,
         title: "Events",
         icon: IconProp.List,
+      },
+      {
+        /*
+         * Who is attacking: every address that sent attack requests, as one
+         * row, and whether any of them got through
+         * (Types/SecurityEvent/SecurityAttackCampaign).
+         */
+        page: PageMap.SECURITY_EVENTS_CAMPAIGNS,
+        title: "Campaigns",
+        icon: IconProp.Flag,
       },
       {
         page: PageMap.SECURITY_EVENTS_ENTITIES,

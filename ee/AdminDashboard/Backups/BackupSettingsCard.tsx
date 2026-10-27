@@ -8,7 +8,7 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
-import Icon from "Common/UI/Components/Icon/Icon";
+import ProviderLogoOrIcon from "Common/UI/Components/ProviderLogo/ProviderLogoOrIcon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -99,9 +99,13 @@ const BackupSettingsCard: FunctionComponent<ComponentProps> = (
         >
           <div className="flex min-w-0 items-start gap-2">
             {provider ? (
-              <Icon
+              <ProviderLogoOrIcon
+                logo={provider.logo}
                 icon={provider.icon}
-                className="mt-0.5 h-4 w-4 flex-none text-gray-500"
+                isBare={true}
+                isDecorative={true}
+                className="mt-0.5 flex-none"
+                iconClassName="h-4 w-4 text-gray-500"
               />
             ) : (
               <></>

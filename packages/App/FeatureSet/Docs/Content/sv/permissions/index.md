@@ -195,10 +195,12 @@ Varje tillåten behörighet ges med en omfattning: när du lägger till den ligg
 | Omfattning | Betydelse |
 | --- | --- |
 | Alla resurser i projektet | Standard, och det de flesta team behöver. Behörigheten gäller för alla matchande resurser. |
-| Bara resurser som de äger | Behörigheten gäller bara resurser som den agerande personen, eller ett av deras team, äger. |
+| Bara resurser som de äger | Behörigheten gäller bara resurser som den agerande personen, eller teamet den har getts till, äger – inte resurser som bara ett annat av personens team äger. |
 | Bara resurser med vissa etiketter | Behörigheten gäller bara resurser som bär minst en av de valda etiketterna. |
 
 **Ägda** är det enklaste sättet att bygga en modell där "ni sköter era egna tjänster": ge ett team `MonitorAdmin` med omfattningen Ägda och gör sedan teamet till ägare av de övervakare det ansvarar för. Det smalnar av varje resurs som kan ha ägare — övervakare, incidenter, instrumentpaneler, tjänster, monitorgrupper, jourscheman och liknande — och det som hör till dem, som lagren i ett jourschema. Sonder, Runners, AI-agenter, jourscheman och incident- och underhållsmallar är det som andra resurser ställs in med, så en behörighet med omfattningen Ägda läser fortfarande alla, och du kan välja vilken som helst av dem; den ändrar och tar bara bort dem som du eller dina team äger. En Runners nyckel, som låter den som har den uppträda som Runnern, visas bara på de Runners som du eller dina team äger. Projektkonfiguration (incidenttillstånd, etiketter, själva teamen) har ingen ägare, så en roll med omfattningen Ägda beter sig normalt där.
+
+Ett teams behörighet med omfattningen Ägda når det som teamet äger, inte det som personens andra team äger. Den som är med i två team, det ena med `IncidentMember` med omfattningen Ägda och det andra med `Viewer` med omfattningen Ägda, ändrar de incidenter som det första teamet äger och de som personen själv äger, och kan bara se de incidenter som det andra teamet äger. En behörighet med omfattningen Ägda lägger också bara till ägare på resurser som personen eller teamet den har getts till äger, så det första teamet kan inte göras till ägare av det andra teamets incidenter för att komma runt detta. En anpassad rolls behörighet med omfattningen Ägda når det som varje team som har fått rollen äger.
 
 **Etiketter** är den mer manuella varianten av samma idé: märk resurser och ge sedan behörigheter som är begränsade till de märkningarna.
 

@@ -25,7 +25,7 @@ Klicken Sie oben rechts im Dashboard auf Ihr Bild.
 | --- | --- |
 | **Profil** | Öffnet **Benutzerprofil**: Ihren Namen, Ihre E-Mail-Adresse, Zeitzone, Ihr Bild und die Sicherheit Ihrer Anmeldung. |
 | **Admin-Einstellungen** | Öffnet das Admin-Dashboard. Nur Master-Admins einer selbst gehosteten Installation sehen ihn. |
-| **Dunkles Design** | Schaltet das Dashboard auf sein dunkles Design um. Im dunklen Design heißt der Eintrag **Helles Design**. |
+| **Design** | Legt das Design des Dashboards fest: **Hell**, **Dunkel** oder **System**, das hell oder dunkel ist, je nachdem, wie Ihr Gerät eingestellt ist. |
 | **Abmelden** | Meldet Sie ab. |
 
 **Benutzerprofil** hat ein eigenes Seitenmenü. **Grundlegend** enthält **Übersicht** und **Profilbild**. **Sicherheit** und **Gefahrenzone** sind zugeklappt: Klicken Sie auf den Titel eines Abschnitts, um ihn zu öffnen.
@@ -132,7 +132,7 @@ Sie können zu beliebig vielen Projekten gehören. Die Projektauswahl oben links
 Beides wird in Ihrem Browser gespeichert, nicht in Ihrem Konto; stellen Sie es also in einem anderen Browser oder auf einem anderen Gerät erneut ein.
 
 - **Sprache**: Das Dashboard startet in der Sprache Ihres Browsers. Um sie zu ändern, nutzen Sie das Sprachmenü unten auf jeder Seite. Diese Dokumentation hat oben ein eigenes Sprachmenü.
-- **Design**: Wählen Sie **Dunkles Design** im Benutzermenü. Das Dashboard startet im hellen Design.
+- **Design**: Wählen Sie im Benutzermenü **Hell**, **Dunkel** oder **System**. **System** ist hell oder dunkel, je nachdem, wie Ihr Gerät eingestellt ist, und wechselt mit ihm; jeder Browser startet damit. Die Anmeldeseiten verwenden dasselbe Design.
 
 ## Ihr Konto löschen
 

@@ -26,6 +26,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ConnectorProviderHelp";
 import SecurityEventConnectionRunDetails from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionRunDetails";
 import SecurityEventConnectionsTable, {
+  PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME,
   securityEventConnectionsHelpMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionsTable";
 import {
@@ -1056,6 +1057,84 @@ describe("SecurityEventConnectionsTable", () => {
     expect(row("Customer SecOps")).toHaveTextContent(
       CONNECTOR_HEALTH_NO_EVENTS_YET,
     );
+  });
+
+  /*
+   * Official logos audit: each row's product reads beside that product's
+   * official logo, the mark alone at an icon's size, decorative since the
+   * product's name is written beside it.
+   */
+  test("each row's product shows its official logo beside its name", (): void => {
+    renderTable([
+      connection(),
+      connection({
+        _id: "66666666-6666-4666-8666-666666666666",
+        name: "Acme Splunk",
+        provider: SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+      }),
+      googleConnection(),
+    ]);
+
+    for (const [name, logo] of [
+      ["Acme Okta", "okta"],
+      ["Acme Splunk", "splunk"],
+      ["Customer SecOps", "google-security-operations"],
+    ]) {
+      const mark: Element | null = row(name!).querySelector(
+        "[data-provider-logo]",
+      );
+
+      expect({ name, logo: mark?.getAttribute("data-provider-logo") }).toEqual({
+        name,
+        logo,
+      });
+      expect(mark).toHaveAttribute("aria-hidden", "true");
+      // The mark alone, beside the words: no tile.
+      expect(mark).not.toHaveClass("bg-white");
+    }
+  });
+
+  /*
+   * UI review: Splunk's logo is its wordmark, half as wide again as the
+   * square marks, so "Splunk Enterprise Security" started 8px right of the
+   * other products' names. Every mark now sits in one slot as wide as a
+   * wordmark, centred, so the names line up down the column.
+   */
+  test("every product's mark sits in a slot as wide as a wordmark, so the names line up", (): void => {
+    renderTable([
+      connection(),
+      connection({
+        _id: "66666666-6666-4666-8666-666666666666",
+        name: "Acme Splunk",
+        provider: SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+      }),
+    ]);
+
+    for (const name of ["Acme Okta", "Acme Splunk"]) {
+      const slot: HTMLElement = within(row(name)).getByTestId(
+        "security-event-connection-provider-logo-slot",
+      );
+
+      expect(slot.className).toBe(PROVIDER_COLUMN_LOGO_SLOT_CLASS_NAME);
+      expect(slot).toHaveClass("w-6", "flex-shrink-0", "justify-center");
+      expect(slot.querySelector("[data-provider-logo]")).not.toBeNull();
+      // The name comes right after the slot, so it starts where the others do.
+      expect(slot.nextElementSibling).toHaveTextContent(
+        name === "Acme Splunk" ? "Splunk Enterprise Security" : "Okta",
+      );
+    }
+
+    // The wordmark is exactly as wide as the slot; the square marks are narrower.
+    expect(
+      within(row("Acme Splunk"))
+        .getByTestId("security-event-connection-provider-logo-slot")
+        .querySelector("[data-provider-logo] > span"),
+    ).toHaveClass("w-6");
+    expect(
+      within(row("Acme Okta"))
+        .getByTestId("security-event-connection-provider-logo-slot")
+        .querySelector("[data-provider-logo] > span"),
+    ).toHaveClass("w-4");
   });
 
   /*

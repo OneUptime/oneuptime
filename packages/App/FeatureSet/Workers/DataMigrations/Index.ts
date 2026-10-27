@@ -154,6 +154,7 @@ import AddSecurityCaseNotificationSettingsForUsers from "./AddSecurityCaseNotifi
 import AddIncidentSlaBreachedNotificationSettingsForUsers from "./AddIncidentSlaBreachedNotificationSettingsForUsers";
 import RewriteFeedAttachmentLinks from "./RewriteFeedAttachmentLinks";
 import AddProcessColumnsToSecurityEvent from "./AddProcessColumnsToSecurityEvent";
+import AddRequestColumnsToSecurityEvent from "./AddRequestColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
 
@@ -873,6 +874,16 @@ const DataMigrations: Array<DataMigrationBase> = [
    * requirement of its own, so above the runbook moves.
    */
   new RewriteFeedAttachmentLinks(),
+  /*
+   * Security events gain the request they happened in - the trace, span and
+   * session ids of the log line they were read from - and how far that
+   * request got, as its trace shows (SecurityEvent.traceId, spanId,
+   * sessionId, requestOutcome). Additive and idempotent; rows written before
+   * it read as "not part of a request OneUptime followed". No ordering
+   * requirement of its own, so above the runbook moves, which keep their
+   * places right before the last slot.
+   */
+  new AddRequestColumnsToSecurityEvent(),
   /*
    * Spans gained isEntrySpan - a root span, or a SERVER or CONSUMER span -
    * which the traces explorer lists by default (SpanItemV3.isEntrySpan). Its

@@ -48,6 +48,9 @@ const MUST_REACH: Array<string> = [
   "Components/SecurityOverview/SecuritySetupTest.tsx",
   "Components/SecurityOverview/SecuritySetupModel.ts",
   "Components/SecurityEvents/SecurityLogsSourceCard.tsx",
+  // Your OneUptime data, beside your logs.
+  "Components/SecurityEvents/SecurityTelemetrySourcesCard.tsx",
+  "Components/SecurityEvents/SecurityTelemetrySourcesModel.ts",
   "Components/SecurityEvents/SecurityEventDestinationsTable.tsx",
   "Components/SecurityEvents/SecurityEventDestinationFormModal.tsx",
   "Components/SecurityEvents/SecurityEventDestinationTest.tsx",

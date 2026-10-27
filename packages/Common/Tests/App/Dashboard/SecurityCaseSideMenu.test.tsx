@@ -95,6 +95,7 @@ const EXPECTED: Array<[string, Array<[string, PageMap]>]> = [
   [
     "Investigation",
     [
+      ["Story", PageMap.SECURITY_CASE_VIEW_STORY],
       ["Detections", PageMap.SECURITY_CASE_VIEW_DETECTIONS],
       ["Entities", PageMap.SECURITY_CASE_VIEW_ENTITIES],
       ["Connected Signals", PageMap.SECURITY_CASE_VIEW_CONNECTED_SIGNALS],

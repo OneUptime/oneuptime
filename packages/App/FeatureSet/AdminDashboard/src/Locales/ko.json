@@ -69,8 +69,6 @@
   },
   "userProfile": {
     "exitAdmin": "관리자 종료",
-    "darkTheme": "다크 테마",
-    "lightTheme": "라이트 테마",
     "logOut": "로그아웃"
   },
   "footer": {
@@ -1511,6 +1509,10 @@
   "Anyone who can open this server can create an account. Turn this off once your team has its accounts.": "이 서버를 열 수 있는 사람은 누구나 계정을 만들 수 있습니다. 팀의 계정이 다 만들어지면 끄세요.",
   "Choose who can sign up": "가입할 수 있는 사람 선택",
   "Still to do": "남은 일",
+  "Theme": "테마",
+  "Light": "라이트",
+  "Dark": "다크",
+  "System": "시스템",
   "markdownCallouts": {
     "caution": "주의",
     "danger": "위험",

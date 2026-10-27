@@ -207,6 +207,7 @@ import { AddStatusPageDarkThemeLogoKey1807840000000 } from "./1807840000000-AddS
 import { AddCloudAccounts1807900000000 } from "./1807900000000-AddCloudAccounts";
 import { AddScheduledMaintenancePublishOnStatusPageAt1807960000000 } from "./1807960000000-AddScheduledMaintenancePublishOnStatusPageAt";
 import { AddOpenSourceDeploymentLastSeenAt1807970000000 } from "./1807970000000-AddOpenSourceDeploymentLastSeenAt";
+import { AddSecurityTelemetrySource1807980000000 } from "./1807980000000-AddSecurityTelemetrySource";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1616,4 +1617,5 @@ export default [
   AddCloudAccounts1807900000000,
   AddScheduledMaintenancePublishOnStatusPageAt1807960000000,
   AddOpenSourceDeploymentLastSeenAt1807970000000,
+  AddSecurityTelemetrySource1807980000000,
 ];

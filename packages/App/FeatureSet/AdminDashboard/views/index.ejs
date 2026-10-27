@@ -13,7 +13,6 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <meta name="theme-color" content="#f9fafb" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="slack-app-id" content="ACVBMTPJQ">
     <% if (brandName !== 'OneUptime') { %>
@@ -22,29 +21,12 @@
     <meta name="description" content="OneUptime - the complete open-source observability platform.">
     <% } %>
 
-    <!-- Apply the opt-in preference before CSS/React to avoid a theme flash. -->
-    <script>
-      (function () {
-        var theme = "light";
-        try {
-          if (window.localStorage.getItem("oneuptime-dashboard-theme") === "dark") {
-            theme = "dark";
-          }
-        } catch (_error) {
-          // Storage can be blocked; light is the intentional safe default.
-        }
-
-        var root = document.documentElement;
-        root.classList.toggle("dark", theme === "dark");
-        root.dataset.theme = theme;
-        root.style.colorScheme = theme;
-
-        var themeColor = document.querySelector('meta[name="theme-color"]:not([media])');
-        if (themeColor) {
-          themeColor.setAttribute("content", theme === "dark" ? "#0f172a" : "#f9fafb");
-        }
-      })();
-    </script>
+    <%#
+      The person's theme - Light, Dark, or as their device is set - before
+      CSS or React load, as the Dashboard draws it (Common/Types/Theme/
+      ThemePreference.ts). It writes the page's theme-color tag.
+    -%>
+    <%- include('../../../../Common/Server/Views/Partials/Theme') -%>
 
   <%#
     The admin console measures nothing: it is an internal tool, with no

@@ -160,17 +160,26 @@ describe("the Workspace pages in the dark theme", () => {
         "ring-gray-200",
         "text-indigo-600",
         "hover:text-indigo-700",
-        "bg-fuchsia-500",
-        "bg-blue-500",
       ]),
     );
     expect(unmapped).toEqual([]);
   });
 
-  test("the workspace tiles keep the checklist's colours: Slack fuchsia, Microsoft Teams blue", () => {
+  /*
+   * The tiles used to be a white glyph on the checklist's colours (Slack
+   * fuchsia, Microsoft Teams blue). They are each workspace's official logo
+   * now, on the neutral tile every logo shares (Common's ProviderLogoImage,
+   * whose bg-white and ring-gray-200 Theme.css re-colours): no colour of
+   * their own here to keep in step with the dark theme.
+   */
+  test("the workspace tiles show each workspace's official logo, with no colour of their own", () => {
     const copy: string = readCode("WorkspaceConnectionCopy.ts");
+    const overview: string = readCode("WorkspaceConnectionsOverview.tsx");
 
-    expect(copy).toContain('iconBackgroundClassName: "bg-fuchsia-500"');
-    expect(copy).toContain('iconBackgroundClassName: "bg-blue-500"');
+    expect(copy).toContain("logo: ProviderLogo.Slack");
+    expect(copy).toContain("logo: ProviderLogo.MicrosoftTeams");
+    expect(copy).not.toContain("iconBackgroundClassName");
+    expect(overview).toContain("<ProviderLogoImage logo={copy.logo}");
+    expect(tokensIn(copy)).toEqual([]);
   });
 });

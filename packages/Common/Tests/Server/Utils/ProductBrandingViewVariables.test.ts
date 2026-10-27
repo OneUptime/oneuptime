@@ -37,7 +37,7 @@ describe("getProductBrandingViewVariables", () => {
     });
   });
 
-  test("carries the name, the logo and the tab icon the installation has", () => {
+  test("carries the name, the logos and the tab icon the installation has", () => {
     installFakeEnterpriseModule({
       productBranding: {
         productName: "Acme",
@@ -51,7 +51,23 @@ describe("getProductBrandingViewVariables", () => {
     expect(getProductBrandingViewVariables()).toEqual({
       productName: "Acme",
       productLogoUrl: "/api/branding/logo?v=1",
+      // For a page drawn in the dark theme (Partials/ProductLogo.ejs).
+      productDarkLogoUrl: "/api/branding/dark-logo?v=1",
       productFaviconUrl: "/api/branding/favicon?v=1",
+    });
+  });
+
+  test("carries no dark logo when the installation has one logo only", () => {
+    installFakeEnterpriseModule({
+      productBranding: {
+        productName: "Acme",
+        logoUrl: "/api/branding/logo?v=1",
+      },
+    });
+
+    expect(getProductBrandingViewVariables()).toEqual({
+      productName: "Acme",
+      productLogoUrl: "/api/branding/logo?v=1",
     });
   });
 });
