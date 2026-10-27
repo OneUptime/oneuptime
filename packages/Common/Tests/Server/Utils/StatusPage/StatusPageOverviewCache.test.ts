@@ -15,6 +15,9 @@ import StatusPageOverviewCache, {
 } from "../../../../Server/Utils/StatusPage/StatusPageOverviewCache";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import ScheduledMaintenancePublication, {
+  PUBLISH_ON_STATUS_PAGE_AT_COLUMN,
+} from "../../../../Types/ScheduledMaintenance/ScheduledMaintenancePublication";
 import {
   afterEach,
   beforeEach,
@@ -595,6 +598,22 @@ describe("StatusPageOverviewCache.afterUpdate / afterDelete", () => {
     ["ScheduledMaintenance", "isVisibleOnStatusPage", false],
     ["ScheduledMaintenance", "statusPages", [{ _id: "page" }]],
     ["ScheduledMaintenance", "monitors", []],
+    /*
+     * A publish time moved later takes a published event off its pages
+     * until then (#5249); one cleared, or moved earlier, starts a new
+     * generation too: harmless, the page is built again.
+     */
+    [
+      "ScheduledMaintenance",
+      "publishOnStatusPageAt",
+      new Date("2030-01-01T00:00:00.000Z"),
+    ],
+    [
+      "ScheduledMaintenance",
+      "publishOnStatusPageAt",
+      "2030-01-01T00:00:00.000Z",
+    ],
+    ["ScheduledMaintenance", "publishOnStatusPageAt", null],
     ["StatusPageAnnouncement", "showAnnouncementAt", new Date()],
     ["StatusPageAnnouncement", "endAnnouncementAt", new Date()],
     ["StatusPageAnnouncement", "statusPages", []],
@@ -844,6 +863,40 @@ describe("GUARD: HIDING_WRITES", () => {
           });
         }
       }
+    }
+  });
+
+  /*
+   * The times a record is shown from - an event's publish time (#5249), an
+   * announcement's start - are writes any value of which may take it off a
+   * page: moved later, it is off until then.
+   */
+  test("names the columns an event is shown by, and every time a record is shown from, as any write", () => {
+    for (const column of ScheduledMaintenancePublication.columns) {
+      expect({
+        column,
+        isHidingWrite: Boolean(HIDING_WRITES["ScheduledMaintenance"]![column]),
+      }).toEqual({ column, isHidingWrite: true });
+    }
+
+    expect(
+      HIDING_WRITES["ScheduledMaintenance"]![PUBLISH_ON_STATUS_PAGE_AT_COLUMN],
+    ).toBe("any" as HidingWrite);
+
+    for (const source of PUBLISHED_MARKDOWN) {
+      if (!source.shownFrom) {
+        continue;
+      }
+
+      expect({
+        tableName: source.tableName,
+        column: source.shownFrom,
+        hidingWrite: HIDING_WRITES[source.tableName]?.[source.shownFrom],
+      }).toEqual({
+        tableName: source.tableName,
+        column: source.shownFrom,
+        hidingWrite: "any" as HidingWrite,
+      });
     }
   });
 

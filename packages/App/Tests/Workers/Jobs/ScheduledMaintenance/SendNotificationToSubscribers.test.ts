@@ -32,6 +32,10 @@ import { STATUS_PAGE_OF_BLOCKED_PROJECT_SENDS_NOTHING_MESSAGE } from "Common/Typ
  * do: an update that turns the flag off no longer writes the status itself
  * (an update that merely re-sent the flag used to queue the message again),
  * so the job is where a queued message meets the flag.
+ *
+ * An event kept to the team until its publish time (Publish on Status Page
+ * At, #5249) tells its subscribers it is scheduled when it is published:
+ * once, at that time, whatever was edited before it.
  */
 
 type CronHandler = () => Promise<void>;
@@ -89,8 +93,16 @@ import ProjectService from "Common/Server/Services/ProjectService";
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceFeedService from "Common/Server/Services/ScheduledMaintenanceFeedService";
 import URL from "Common/Types/API/URL";
+import OneUptimeDate from "Common/Types/Date";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenance/SendNotificationToSubscribers";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 const JOB_NAME: string = "ScheduledMaintenance:SendNotificationToSubscribers";
 
@@ -161,8 +173,43 @@ function project(
 
 let storedEvents: Array<ScheduledMaintenance> = [];
 
+// A time condition, as QueryHelper builds one (typeorm's FindOperator).
+interface TimeCondition {
+  getSql: (alias: string) => string;
+  objectLiteralParameters?: Record<string, unknown> | undefined;
+}
+
+// Up to a time, or no time at all: published by then.
+const UP_TO_OR_NONE_SQL: RegExp = /^\(x <= :\w+ or x IS NULL\)$/;
+
 /*
- * The rows a query matches, on the two columns the job queries by, as the
+ * Whether a row's publish time passes the query's condition on it, as
+ * Postgres would decide it: none, or one not after the time asked about.
+ */
+function isPublishedBy(row: ScheduledMaintenance, condition: unknown): boolean {
+  if (condition === undefined) {
+    return true;
+  }
+
+  const timeCondition: TimeCondition = condition as TimeCondition;
+  const sql: string = timeCondition.getSql("x");
+
+  if (!UP_TO_OR_NONE_SQL.test(sql)) {
+    throw new Error(`No stand-in for the publish time condition ${sql}`);
+  }
+
+  const asOf: Date = Object.values(
+    timeCondition.objectLiteralParameters || {},
+  )[0] as Date;
+
+  return (
+    !row.publishOnStatusPageAt ||
+    new Date(row.publishOnStatusPageAt).getTime() <= asOf.getTime()
+  );
+}
+
+/*
+ * The rows a query matches, on the columns the job queries by, as the
  * database would answer it.
  */
 function matches(
@@ -181,7 +228,7 @@ function matches(
     }
   }
 
-  return true;
+  return isPublishedBy(row, query["publishOnStatusPageAt"]);
 }
 
 type FindAllByArgs = {
@@ -586,6 +633,254 @@ describe("ScheduledMaintenance:SendNotificationToSubscribers", () => {
           return event.id?.toString();
         }),
       ).toEqual([LIVE_EVENT_ID]);
+    });
+  });
+  /*
+   * An event kept to the team until its publish time (#5249). The job runs
+   * every minute; each test moves its clock and runs it again, and the
+   * statuses it writes land on the stored row, as the database keeps them -
+   * so "sent once" is what several runs leave behind.
+   */
+  describe("an event kept to the team until its publish time", () => {
+    const EVENT_ID: string = "99999999-9999-4999-8999-999999999999";
+    const CREATED_ON: Date = new Date("2026-10-01T08:00:00.000Z");
+    const PUBLISH_AT: Date = new Date("2026-11-24T09:00:00.000Z");
+    const MINUTE: number = 60 * 1000;
+
+    let now: Date = CREATED_ON;
+
+    function plannedEvent(): ScheduledMaintenance {
+      const event: ScheduledMaintenance = storedEvent({ id: EVENT_ID });
+      event.publishOnStatusPageAt = PUBLISH_AT;
+      return event;
+    }
+
+    function storedRow(): ScheduledMaintenance {
+      return storedEvents.find((row: ScheduledMaintenance): boolean => {
+        return row._id === EVENT_ID;
+      })!;
+    }
+
+    async function runAt(time: Date): Promise<void> {
+      now = time;
+      await mockCapturedJobs[JOB_NAME]!();
+    }
+
+    // How many times subscribers were told, over every run so far.
+    function timesSent(): number {
+      return (
+        ScheduledMaintenanceService.notififySubscribersOnEventScheduled as unknown as jest.Mock
+      ).mock.calls.filter((call: Array<unknown>): boolean => {
+        return (call[0] as Array<ScheduledMaintenance>).some(
+          (event: ScheduledMaintenance): boolean => {
+            return event.id?.toString() === EVENT_ID;
+          },
+        );
+      }).length;
+    }
+
+    beforeEach(() => {
+      now = CREATED_ON;
+      storedEvents = [plannedEvent()];
+
+      jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
+        return new Date(now);
+      });
+
+      (
+        ScheduledMaintenanceService.updateOneById as unknown as jest.Mock
+      ).mockImplementation(async (args: unknown): Promise<void> => {
+        const { id, data } = args as {
+          id: ObjectID;
+          data: Record<string, unknown>;
+        };
+        const row: ScheduledMaintenance | undefined = storedEvents.find(
+          (candidate: ScheduledMaintenance): boolean => {
+            return candidate._id === id.toString();
+          },
+        );
+
+        if (row) {
+          Object.assign(row, data);
+        }
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test("waits while its publish time is still to come: nothing written, nothing sent, still queued", async () => {
+      await runAt(CREATED_ON);
+      await runAt(new Date(PUBLISH_AT.getTime() - MINUTE));
+      await runAt(new Date(PUBLISH_AT.getTime() - 1));
+
+      expect(ScheduledMaintenanceService.updateOneById).not.toHaveBeenCalled();
+      expect(timesSent()).toBe(0);
+      expect(
+        ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem,
+      ).not.toHaveBeenCalled();
+      expect(storedRow().subscriberNotificationStatusOnEventScheduled).toBe(
+        StatusPageSubscriberNotificationStatus.Pending,
+      );
+    });
+
+    test("is sent at its publish time, and only once however often the job runs after", async () => {
+      await runAt(CREATED_ON);
+      await runAt(PUBLISH_AT);
+      await runAt(new Date(PUBLISH_AT.getTime() + MINUTE));
+      await runAt(new Date(PUBLISH_AT.getTime() + 60 * MINUTE));
+
+      expect(timesSent()).toBe(1);
+      expect(writtenStatuses()).toEqual([
+        {
+          id: EVENT_ID,
+          status: StatusPageSubscriberNotificationStatus.InProgress,
+        },
+        {
+          id: EVENT_ID,
+          status: StatusPageSubscriberNotificationStatus.Success,
+        },
+      ]);
+      expect(storedRow().subscriberNotificationStatusOnEventScheduled).toBe(
+        StatusPageSubscriberNotificationStatus.Success,
+      );
+    });
+
+    test("the job asks for the events published by the time it runs", async () => {
+      await runAt(PUBLISH_AT);
+
+      const sendQuery: FindAllByArgs | undefined = findAllByCalls().find(
+        (call: FindAllByArgs): boolean => {
+          return (
+            call.query[
+              "shouldStatusPageSubscribersBeNotifiedOnEventCreated"
+            ] === true
+          );
+        },
+      );
+      const condition: TimeCondition = sendQuery!.query[
+        "publishOnStatusPageAt"
+      ] as TimeCondition;
+
+      expect(UP_TO_OR_NONE_SQL.test(condition.getSql("x"))).toBe(true);
+      expect(Object.values(condition.objectLiteralParameters || {})).toEqual([
+        PUBLISH_AT,
+      ]);
+      // It reads both columns the rule decides by.
+      expect(sendQuery!.select["isVisibleOnStatusPage"]).toBe(true);
+      expect(sendQuery!.select["publishOnStatusPageAt"]).toBe(true);
+    });
+
+    test("a publish time moved later waits for the new time, then is sent once", async () => {
+      const MOVED_TO: Date = new Date(PUBLISH_AT.getTime() + 24 * 60 * MINUTE);
+
+      await runAt(new Date(PUBLISH_AT.getTime() - 60 * MINUTE));
+      storedRow().publishOnStatusPageAt = MOVED_TO;
+
+      await runAt(PUBLISH_AT);
+      await runAt(new Date(MOVED_TO.getTime() - MINUTE));
+      expect(timesSent()).toBe(0);
+
+      await runAt(MOVED_TO);
+      await runAt(new Date(MOVED_TO.getTime() + MINUTE));
+      expect(timesSent()).toBe(1);
+    });
+
+    test("a publish time moved earlier is sent at the earlier time", async () => {
+      const MOVED_TO: Date = new Date(PUBLISH_AT.getTime() - 7 * 24 * 60 * MINUTE);
+
+      await runAt(CREATED_ON);
+      storedRow().publishOnStatusPageAt = MOVED_TO;
+
+      await runAt(MOVED_TO);
+      await runAt(PUBLISH_AT);
+
+      expect(timesSent()).toBe(1);
+    });
+
+    test("a publish time cleared - published right away - is sent on the next run", async () => {
+      await runAt(CREATED_ON);
+      expect(timesSent()).toBe(0);
+
+      storedRow().publishOnStatusPageAt = null as unknown as Date;
+
+      await runAt(new Date(CREATED_ON.getTime() + MINUTE));
+      await runAt(PUBLISH_AT);
+
+      expect(timesSent()).toBe(1);
+    });
+
+    test("hidden from status pages before its time: skipped at its time, never sent", async () => {
+      await runAt(CREATED_ON);
+      storedRow().isVisibleOnStatusPage = false;
+
+      await runAt(PUBLISH_AT);
+      await runAt(new Date(PUBLISH_AT.getTime() + MINUTE));
+
+      expect(timesSent()).toBe(0);
+      expect(storedRow().subscriberNotificationStatusOnEventScheduled).toBe(
+        StatusPageSubscriberNotificationStatus.Skipped,
+      );
+      expect(storedRow().subscriberNotificationStatusMessage).toBe(
+        "Notifications skipped as scheduled maintenance is not visible on status page.",
+      );
+    });
+
+    test("subscribers to be told nothing: skipped at once, and still never sent at its time", async () => {
+      storedRow().shouldStatusPageSubscribersBeNotifiedOnEventCreated = false;
+
+      await runAt(CREATED_ON);
+      expect(storedRow().subscriberNotificationStatusOnEventScheduled).toBe(
+        StatusPageSubscriberNotificationStatus.Skipped,
+      );
+
+      await runAt(PUBLISH_AT);
+      expect(timesSent()).toBe(0);
+    });
+
+    test("the feed says it went out because the event was published on its status pages", async () => {
+      await runAt(PUBLISH_AT);
+
+      const feedItem: { feedInfoInMarkdown: string } = (
+        ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem as unknown as jest.Mock
+      ).mock.calls[0]![0] as { feedInfoInMarkdown: string };
+
+      expect(feedItem.feedInfoInMarkdown).toContain(
+        "because this scheduled maintenance was published on its status pages.",
+      );
+      expect(feedItem.feedInfoInMarkdown).not.toContain("was created.");
+    });
+
+    test("an event published from the start still says it went out because it was created", async () => {
+      storedRow().publishOnStatusPageAt = null as unknown as Date;
+
+      await runAt(CREATED_ON);
+
+      const feedItem: { feedInfoInMarkdown: string } = (
+        ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem as unknown as jest.Mock
+      ).mock.calls[0]![0] as { feedInfoInMarkdown: string };
+
+      expect(feedItem.feedInfoInMarkdown).toContain(
+        "because this scheduled maintenance was created.",
+      );
+    });
+
+    test("one event waiting does not hold up another published in the same run", async () => {
+      const PUBLISHED_ID: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+      storedEvents = [plannedEvent(), storedEvent({ id: PUBLISHED_ID })];
+
+      await runAt(CREATED_ON);
+
+      expect(
+        notifiedEvents().map((event: ScheduledMaintenance) => {
+          return event.id?.toString();
+        }),
+      ).toEqual([PUBLISHED_ID]);
+      expect(storedRow().subscriberNotificationStatusOnEventScheduled).toBe(
+        StatusPageSubscriberNotificationStatus.Pending,
+      );
     });
   });
 });
