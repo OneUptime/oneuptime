@@ -36335,6 +36335,7 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Resolved by OneUptime AI. Nobody was paged.",
   "Wait for OneUptime AI for up to (minutes)": "Wait for OneUptime AI for up to (minutes)",
   "Wait from 1 to 30 whole minutes.": "Wait from 1 to 30 whole minutes.",
+  "This page will come back as soon as you're online again, just as you left it.": "This page will come back as soon as you're online again, just as you left it.",
   "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.": "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.",
   "Page this policy for every new incident and alert": "Page this policy for every new incident and alert",
   "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "Page the right person when an incident or alert opens. Until then, the project's owners get an email.",

@@ -36335,6 +36335,7 @@
   "Resolved by OneUptime AI. Nobody was paged.": "已由 OneUptime AI 解决。未呼叫任何人。",
   "Wait for OneUptime AI for up to (minutes)": "最多等待 OneUptime AI（分钟）",
   "Wait from 1 to 30 whole minutes.": "请输入 1 到 30 之间的整数分钟。",
+  "This page will come back as soon as you're online again, just as you left it.": "恢复联网后，此页面会立即恢复，保持你离开时的样子。",
   "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.": "为事件和警报各添加一条值班规则。在规则或监视器触发之前，策略不会通知任何人。",
   "Page this policy for every new incident and alert": "每个新事件和警报都触发此策略",
   "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "创建事件或警报时通知合适的人。在此之前，项目所有者会收到电子邮件。",

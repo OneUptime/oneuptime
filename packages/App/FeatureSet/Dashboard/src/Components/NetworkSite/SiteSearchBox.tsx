@@ -340,6 +340,7 @@ const SiteSearchBox: FunctionComponent<ComponentProps> = (
           <Icon className="h-4 w-4 text-gray-400" icon={IconProp.Search} />
         </div>
         <Input
+          isSearchOrFilter={true}
           dataTestId={testId}
           placeholder={placeholder}
           ariaLabel={placeholder}

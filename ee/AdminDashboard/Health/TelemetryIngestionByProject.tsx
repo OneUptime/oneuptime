@@ -389,6 +389,7 @@ const TelemetryIngestionByProject: FunctionComponent = (): ReactElement => {
           <>
             <div className="sm:max-w-xs">
               <Input
+                isSearchOrFilter={true}
                 placeholder="Filter by project name or id"
                 value={searchText}
                 dataTestId="telemetry-by-project-search"

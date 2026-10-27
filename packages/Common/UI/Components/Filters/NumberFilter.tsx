@@ -210,6 +210,7 @@ const NumberFilterControls: NumberFilterFunction = <T extends GenericObject>(
         >
           <div className="flex-1 min-w-0">
             <input
+              data-unsaved-changes-ignore
               type="number"
               value={state.value}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,6 +227,7 @@ const NumberFilterControls: NumberFilterFunction = <T extends GenericObject>(
           {isBetween && (
             <div className="flex-1 min-w-0">
               <input
+                data-unsaved-changes-ignore
                 type="number"
                 value={state.endValue}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => {

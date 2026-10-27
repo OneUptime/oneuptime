@@ -36335,6 +36335,7 @@
   "Resolved by OneUptime AI. Nobody was paged.": "OneUptime AI가 해결했습니다. 아무도 호출되지 않았습니다.",
   "Wait for OneUptime AI for up to (minutes)": "OneUptime AI 최대 대기 시간(분)",
   "Wait from 1 to 30 whole minutes.": "1~30분 사이의 정수로 입력하세요.",
+  "This page will come back as soon as you're online again, just as you left it.": "다시 온라인 상태가 되는 즉시 이 페이지가 보던 그대로 다시 표시됩니다.",
   "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.": "인시던트용과 경고용 온콜 규칙을 하나씩 추가합니다. 정책은 규칙이나 모니터가 트리거하기 전까지 아무에게도 알리지 않습니다.",
   "Page this policy for every new incident and alert": "새 인시던트와 경고마다 트리거하기",
   "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "인시던트나 경고가 열리면 적절한 담당자에게 알립니다. 그 전까지는 프로젝트 소유자에게 이메일이 전송됩니다.",

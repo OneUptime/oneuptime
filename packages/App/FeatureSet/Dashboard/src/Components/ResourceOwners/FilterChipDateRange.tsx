@@ -232,6 +232,7 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                     </label>
                   )}
                   <Input
+                    isSearchOrFilter={true}
                     /*
                      * Re-keyed on the operator so switching between "between"
                      * and the single-date operators remounts the field rather
@@ -254,6 +255,7 @@ const FilterChipDateRange: FunctionComponent<ComponentProps> = (
                       {translator.translateText("To")}
                     </label>
                     <Input
+                      isSearchOrFilter={true}
                       key={`end-${operator}`}
                       type={InputType.DATE}
                       value={range.end || ""}

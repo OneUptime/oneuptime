@@ -1,5 +1,6 @@
 import {
   APIRequestContext,
+  BrowserContext,
   expect,
   Locator,
   Page,
@@ -33,6 +34,8 @@ import {
  *     up with them.
  *   - The footer's language and theme controls sit centred on a phone, and
  *     the switch is a target a thumb can hit.
+ *   - The visitor's browser going offline puts "You're offline" in the
+ *     page's place, under the page's logo and its tabs, in its theme.
  *
  * Screenshots of every surface in both themes are saved for review under
  * output/playwright/status-page-theme-ui.
@@ -1357,6 +1360,97 @@ test.describe("the overall status banner", () => {
       await banner.screenshot({
         path: `${SCREENSHOTS}/${testInfo.project.name}-banner-${theme.toLowerCase()}.png`,
       });
+    });
+  }
+});
+
+/*
+ * The visitor's browser going offline under the page: "You're offline"
+ * takes the page's place - its content and its footer - under the page's
+ * logo and its tabs, which stay, so the visitor still sees whose page this
+ * is. The card is drawn in the page's theme, and the page comes back as it
+ * was. The card once stood alone on an empty page.
+ */
+test.describe("the browser going offline under the page", () => {
+  for (const theme of ["Light", "Dark"]) {
+    test(`on a ${theme} page, the card takes the page's place under its logo and tabs`, async ({
+      page,
+      context,
+    }: {
+      page: Page;
+      context: BrowserContext;
+    }, testInfo: TestInfo) => {
+      await openPage(page, PAGE, `theme=${theme}`);
+
+      await context.setOffline(true);
+
+      const card: Locator = page.getByTestId("offline-screen");
+
+      await expect(card).toBeVisible();
+      await expect(page.getByTestId("offline-screen-title")).toHaveText(
+        "You're offline",
+      );
+      await expect(page.getByTestId("offline-screen-try-again")).toBeVisible();
+
+      // Whose page this is, and its tabs - the phone's or the wider one.
+      const logo: Locator = page.locator("#status-page-logo");
+      const tab: Locator = page
+        .locator("#overview-nav-bar-item, #mobile-active-nav-bar-item")
+        .filter({ visible: true });
+
+      await expect(logo).toBeVisible();
+      await expect(tab).toBeVisible();
+
+      const tabBox: { y: number; height: number } | null =
+        await tab.boundingBox();
+      const cardBox: { y: number } | null = await card
+        .locator(".oueb-card")
+        .boundingBox();
+
+      expect(tabBox).not.toBeNull();
+      expect(cardBox).not.toBeNull();
+      expect(cardBox!.y).toBeGreaterThan(tabBox!.y + tabBox!.height);
+
+      // The page's content is put away under it, not drawn below it.
+      await expect(page.getByTestId("status-page-overview")).toBeHidden();
+
+      // In the page's theme: a dark card on a dark page.
+      const surface: Array<number> = await card
+        .locator(".oueb-card")
+        .evaluate((element: Element): Array<number> => {
+          const NUMBER: RegExp = /\d+/g;
+
+          return (getComputedStyle(element).backgroundColor.match(NUMBER) || [])
+            .slice(0, 3)
+            .map(Number);
+        });
+
+      expect(surface).toHaveLength(3);
+
+      for (const channel of surface) {
+        if (theme === "Dark") {
+          expect(channel).toBeLessThan(80);
+        } else {
+          expect(channel).toBeGreaterThan(200);
+        }
+      }
+
+      expect(
+        await page.evaluate((): boolean => {
+          return (
+            document.documentElement.scrollWidth <=
+            document.documentElement.clientWidth
+          );
+        }),
+      ).toBe(true);
+
+      await shoot(page, testInfo, `offline-${theme.toLowerCase()}`);
+
+      await context.setOffline(false);
+
+      await expect(card).toHaveCount(0);
+      await expect(page.getByTestId("status-page-overview")).toBeVisible();
+      await expect(logo).toBeVisible();
     });
   }
 });

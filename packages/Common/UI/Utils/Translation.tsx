@@ -51,7 +51,8 @@ export interface UseTranslateValueResult {
  * The template, plural and term helpers are built on translateString (see
  * TranslateTemplate.ts), so they follow the same instance and re-render on a
  * language switch. A front end that ships no locale for a string (StatusPage,
- * Accounts, AdminDashboard) or sets up no i18next at all (PublicDashboard)
+ * Accounts, AdminDashboard, PublicDashboard - each has a small locale file of
+ * its own) or sets up no i18next at all (a unit test)
  * gets the English text from every helper.
  *
  * Shared components read these helpers through useTranslator() (UseTranslator.ts),

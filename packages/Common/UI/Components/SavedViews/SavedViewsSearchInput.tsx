@@ -27,6 +27,7 @@ const SavedViewsSearchInput: FunctionComponent<SavedViewsSearchInputProps> = (
 
   return (
     <input
+      data-unsaved-changes-ignore
       type="text"
       /*
        * A placeholder is not a label: it disappears the moment the user

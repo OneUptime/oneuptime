@@ -63,9 +63,15 @@ const NavBarItem: FunctionComponent<ComponentProps> = (
         onMouseLeave={props.onMouseLeave}
       >
         {props.icon ? (
+          /*
+           * 6px from its label, as the product button beside it keeps, at
+           * the label's side in either direction (mr- is the end of the
+           * line, TailwindReadingDirection.js): letters that fill their
+           * box, as Persian ones do, touched a narrower gap.
+           */
           <Icon
             icon={props.icon}
-            className="mr-1 h-4 w-4"
+            className="mr-1.5 h-4 w-4"
             thick={ThickProp.Thick}
           />
         ) : (

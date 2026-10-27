@@ -36335,6 +36335,7 @@
   "Resolved by OneUptime AI. Nobody was paged.": "Löst av OneUptime AI. Ingen larmades.",
   "Wait for OneUptime AI for up to (minutes)": "Vänta på OneUptime AI i upp till (minuter)",
   "Wait from 1 to 30 whole minutes.": "Vänta från 1 till 30 hela minuter.",
+  "This page will come back as soon as you're online again, just as you left it.": "Den här sidan kommer tillbaka så snart du är online igen, precis som du lämnade den.",
   "Adds an on-call rule for incidents and one for alerts. A policy pages nobody until a rule or a monitor triggers it.": "Lägger till en jourregel för incidenter och en för larm. En policy larmar ingen förrän en regel eller en monitor utlöser den.",
   "Page this policy for every new incident and alert": "Utlös den vid varje ny incident och varje nytt larm",
   "Page the right person when an incident or alert opens. Until then, the project's owners get an email.": "Larma rätt person när en incident eller ett larm öppnas. Fram till dess får projektägarna ett e-postmeddelande.",
