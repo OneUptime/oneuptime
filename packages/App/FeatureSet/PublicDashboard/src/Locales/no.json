@@ -18,5 +18,7 @@
   "You're offline. This will load when you're back online.": "Du er frakoblet. Dette lastes inn når du er på nett igjen.",
   "Can't reach the server. Trying again automatically.": "Får ikke kontakt med serveren. Prøver igjen automatisk.",
   "This needs the latest version. Save your changes, then reload the page.": "Dette trenger den nyeste versjonen. Lagre endringene dine, og last deretter inn siden på nytt.",
-  "This couldn't be loaded.": "Dette kunne ikke lastes inn."
+  "This couldn't be loaded.": "Dette kunne ikke lastes inn.",
+  "Something went wrong": "Noe gikk galt",
+  "An unexpected error has occurred. Please reload the page to continue": "Det oppstod en uventet feil. Last inn siden på nytt for å fortsette"
 }

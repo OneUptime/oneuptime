@@ -18,5 +18,7 @@
   "You're offline. This will load when you're back online.": "Du är offline. Det här laddas när du är online igen.",
   "Can't reach the server. Trying again automatically.": "Servern går inte att nå. Försöker igen automatiskt.",
   "This needs the latest version. Save your changes, then reload the page.": "Det här behöver den senaste versionen. Spara dina ändringar och ladda sedan om sidan.",
-  "This couldn't be loaded.": "Det här kunde inte laddas."
+  "This couldn't be loaded.": "Det här kunde inte laddas.",
+  "Something went wrong": "Något gick fel",
+  "An unexpected error has occurred. Please reload the page to continue": "Ett oväntat fel inträffade. Ladda om sidan för att fortsätta"
 }

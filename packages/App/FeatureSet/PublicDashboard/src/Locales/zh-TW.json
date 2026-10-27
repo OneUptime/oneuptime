@@ -18,5 +18,7 @@
   "You're offline. This will load when you're back online.": "你已離線。恢復連線後將載入此內容。",
   "Can't reach the server. Trying again automatically.": "無法連線到伺服器。正在自動重試。",
   "This needs the latest version. Save your changes, then reload the page.": "此內容需要最新版本。請儲存你的變更，然後重新載入頁面。",
-  "This couldn't be loaded.": "無法載入此內容。"
+  "This couldn't be loaded.": "無法載入此內容。",
+  "Something went wrong": "發生了一些問題",
+  "An unexpected error has occurred. Please reload the page to continue": "發生未預期的錯誤。請重新載入頁面以繼續"
 }

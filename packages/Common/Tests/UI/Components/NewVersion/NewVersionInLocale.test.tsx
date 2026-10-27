@@ -124,6 +124,16 @@ const OFFLINE_SCREEN: Array<string> = [
   "Try again",
 ];
 
+/*
+ * The screen an error draws (ErrorBoundary's Fallback): its Reload page and
+ * Try again are the words above, so where a frontend translates those, its
+ * title and message go with them - one card in one language.
+ */
+const GENERIC_ERROR: Array<string> = [
+  "Something went wrong",
+  "An unexpected error has occurred. Please reload the page to continue",
+];
+
 const unique: (keys: Array<string>) => Array<string> = (
   keys: Array<string>,
 ): Array<string> => {
@@ -147,7 +157,7 @@ const WHAT_EACH_FRONTEND_SHOWS: Record<string, Array<string>> = {
   Accounts: unique(PAGE_FOR_MEMBERS),
   StatusPage: unique([...PAGE_FOR_VISITORS, ...PART, ...OFFLINE_SCREEN]),
   // A visitor's browser language (PublicDashboard/src/Utils/i18n).
-  PublicDashboard: unique([...PAGE_FOR_VISITORS, ...PART]),
+  PublicDashboard: unique([...PAGE_FOR_VISITORS, ...PART, ...GENERIC_ERROR]),
 };
 
 type Locale = Record<string, unknown>;
@@ -203,7 +213,12 @@ describe("a visitor's words", () => {
     for (const frontend of ["Dashboard", "StatusPage", "PublicDashboard"]) {
       const locale: Locale = readLocale(frontend, language);
 
-      for (const key of [...PAGE_FOR_VISITORS, ...PART, ...OFFLINE_SCREEN]) {
+      for (const key of [
+        ...PAGE_FOR_VISITORS,
+        ...PART,
+        ...OFFLINE_SCREEN,
+        ...GENERIC_ERROR,
+      ]) {
         expect({ frontend, key, value: locale[key] }).toEqual({
           frontend,
           key,

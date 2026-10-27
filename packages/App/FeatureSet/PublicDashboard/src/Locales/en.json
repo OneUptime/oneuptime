@@ -18,5 +18,7 @@
   "You're offline. This will load when you're back online.": "You're offline. This will load when you're back online.",
   "Can't reach the server. Trying again automatically.": "Can't reach the server. Trying again automatically.",
   "This needs the latest version. Save your changes, then reload the page.": "This needs the latest version. Save your changes, then reload the page.",
-  "This couldn't be loaded.": "This couldn't be loaded."
+  "This couldn't be loaded.": "This couldn't be loaded.",
+  "Something went wrong": "Something went wrong",
+  "An unexpected error has occurred. Please reload the page to continue": "An unexpected error has occurred. Please reload the page to continue"
 }

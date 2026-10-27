@@ -23,7 +23,8 @@ import fa from "../Locales/fa.json";
  * nothing on the page picks one (Common/UI/Utils/VisitorLanguage). Its
  * locale files hold what a visitor reads while the page moves onto a new
  * version of OneUptime or cannot load (ChunkLoadRecovery), as a status
- * page words it; the dashboard itself stays as it is drawn.
+ * page words it, and the screen an error draws (ErrorBoundary), whose
+ * buttons are those words too; the dashboard itself stays as it is drawn.
  */
 export const PUBLIC_DASHBOARD_LANGUAGE: string = startVisitorTranslation({
   en,

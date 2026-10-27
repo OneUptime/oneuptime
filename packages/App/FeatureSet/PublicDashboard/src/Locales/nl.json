@@ -18,5 +18,7 @@
   "You're offline. This will load when you're back online.": "U bent offline. Dit laadt zodra u weer online bent.",
   "Can't reach the server. Trying again automatically.": "De server is niet bereikbaar. Er wordt automatisch opnieuw geprobeerd.",
   "This needs the latest version. Save your changes, then reload the page.": "Hiervoor is de nieuwste versie nodig. Sla uw wijzigingen op en laad de pagina daarna opnieuw.",
-  "This couldn't be loaded.": "Dit kon niet worden geladen."
+  "This couldn't be loaded.": "Dit kon niet worden geladen.",
+  "Something went wrong": "Er is iets misgegaan",
+  "An unexpected error has occurred. Please reload the page to continue": "Er is een onverwachte fout opgetreden. Laad de pagina opnieuw om verder te gaan"
 }

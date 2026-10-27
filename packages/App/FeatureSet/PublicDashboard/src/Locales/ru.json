@@ -18,5 +18,7 @@
   "You're offline. This will load when you're back online.": "Вы не в сети. Это загрузится, когда подключение восстановится.",
   "Can't reach the server. Trying again automatically.": "Нет связи с сервером. Повторная попытка будет выполнена автоматически.",
   "This needs the latest version. Save your changes, then reload the page.": "Для этого нужна последняя версия. Сохраните изменения, затем перезагрузите страницу.",
-  "This couldn't be loaded.": "Не удалось загрузить."
+  "This couldn't be loaded.": "Не удалось загрузить.",
+  "Something went wrong": "Что-то пошло не так",
+  "An unexpected error has occurred. Please reload the page to continue": "Произошла непредвиденная ошибка. Перезагрузите страницу, чтобы продолжить"
 }

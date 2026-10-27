@@ -18,5 +18,7 @@
   "You're offline. This will load when you're back online.": "Sie sind offline. Dies wird geladen, sobald Sie wieder online sind.",
   "Can't reach the server. Trying again automatically.": "Der Server ist nicht erreichbar. Es wird automatisch erneut versucht.",
   "This needs the latest version. Save your changes, then reload the page.": "Hierfür wird die neueste Version benötigt. Speichern Sie Ihre Änderungen und laden Sie die Seite dann neu.",
-  "This couldn't be loaded.": "Dies konnte nicht geladen werden."
+  "This couldn't be loaded.": "Dies konnte nicht geladen werden.",
+  "Something went wrong": "Etwas ist schiefgelaufen",
+  "An unexpected error has occurred. Please reload the page to continue": "Ein unerwarteter Fehler ist aufgetreten. Bitte laden Sie die Seite neu, um fortzufahren"
 }
