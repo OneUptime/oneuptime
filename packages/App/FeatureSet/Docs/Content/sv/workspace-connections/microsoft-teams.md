@@ -29,7 +29,7 @@ Tre saker får det här att fungera:
 - **OneUptime-appen i varje team** som du vill ha aviseringar i. Microsoft låter bara boten publicera i ett team som den har lagts till i.
 - **Varje persons egen anslutning**: personens Microsoft Teams-konto länkat till personens OneUptime-konto. Knappar, kommandon och reaktioner agerar som den personen, med personens behörigheter i projektet.
 
-En Microsoft 365-organisation kan vara ansluten till mer än ett projekt, till exempel produktion och staging. Ett korts knapp agerar i projektet för den post kortet gäller. Ett meddelande till boten agerar i projektet för den kanal det skickas i, till exempel en incidents kanal, annars i det enda projekt där avsändarens Microsoft Teams-konto är anslutet. När inget visar vilket nämner boten de projekt personen är med i och ber personen försöka igen från en kanal i det projekt personen menar.
+En Microsoft 365-organisation kan vara ansluten till mer än ett projekt, till exempel produktion och staging. Ett korts knapp agerar i det projekt kortet skickades för, till exempel projektet för den incident kortet gäller. Ett meddelande till boten agerar i projektet för den kanal det skickas i, till exempel en incidents kanal, annars i det enda projekt där avsändarens Microsoft Teams-konto är anslutet. När inget visar vilket frågar boten avsändaren vilket projekt personen menar, med en knapp för varje projekt personen är med i, och fortsätter där så snart personen har valt. I en konversation med OneUptime AI gäller valet för följdfrågorna tills det har gått en timme utan någon.
 
 ## Innan du börjar
 

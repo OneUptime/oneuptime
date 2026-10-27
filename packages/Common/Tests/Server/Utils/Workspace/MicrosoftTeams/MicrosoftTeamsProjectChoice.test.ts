@@ -48,6 +48,7 @@ jest.mock("../../../../../Server/Infrastructure/GlobalCache", () => {
 });
 
 import type { Activity, TurnContext } from "botbuilder";
+import type { Mock } from "jest-mock";
 import GlobalCache from "../../../../../Server/Infrastructure/GlobalCache";
 import logger from "../../../../../Server/Utils/Logger";
 import ProductBrandingText from "../../../../../Server/Utils/ProductBrandingText";
@@ -845,7 +846,8 @@ describe("a press of one of the buttons", () => {
 
   test("a value that is not one of the buttons': gone, and nothing read", async () => {
     await askDeane();
-    const reads: number = (GlobalCache.getString as jest.Mock).mock.calls
+    const reads: number = (GlobalCache.getString as unknown as Mock).mock
+      .calls
       .length;
 
     for (const actionValue of [
@@ -865,7 +867,9 @@ describe("a press of one of the buttons", () => {
       ).toBe(WorkspaceProjectChoiceRefusal.Gone);
     }
 
-    expect((GlobalCache.getString as jest.Mock).mock.calls.length).toBe(reads);
+    expect((GlobalCache.getString as unknown as Mock).mock.calls.length).toBe(
+      reads,
+    );
     expect(cache().store.size).toBe(1);
   });
 
@@ -944,7 +948,7 @@ describe("what the question becomes", () => {
     expect(turn.updated).toEqual([]);
 
     (
-      turn.turnContext.updateActivity as unknown as jest.Mock
+      turn.turnContext.updateActivity as unknown as Mock
     ).mockImplementationOnce(async () => {
       throw new Error("Not Found");
     });

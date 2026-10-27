@@ -9,6 +9,7 @@ import {
   test,
 } from "@jest/globals";
 import http from "http";
+import type { Mock } from "jest-mock";
 import type { AddressInfo } from "net";
 
 /*
@@ -814,9 +815,8 @@ describe("a form opened in the project Deane chose carries it, and is submitted 
 
     const created: Incident = new Incident();
     created.id = ObjectID.generate();
-    const createSpy: jest.SpiedFunction<typeof IncidentService.create> = jest
-      .spyOn(IncidentService, "create")
-      .mockResolvedValue(created);
+    jest.spyOn(IncidentService, "create").mockResolvedValue(created);
+    const createSpy: Mock = IncidentService.create as unknown as Mock;
 
     // Teams sends the button's data with what the form's inputs hold.
     const submitted: Delivery = await deliver(

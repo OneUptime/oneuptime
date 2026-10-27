@@ -8,6 +8,7 @@ import { MICROSOFT_TEAMS_ADAPTIVE_CARD_CONTENT_TYPE } from "../../../../../Serve
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import type { Activity, TurnContext } from "botbuilder";
+import type { Mock } from "jest-mock";
 
 /*
  * THE PROJECT A CARD WAS SENT FOR, ON ITS BUTTONS.
@@ -397,7 +398,7 @@ describe("a turn whose cards carry its project", () => {
 
     const activities: Array<Partial<Activity>> = [cardActivity()];
     let markedWhenSent: unknown = undefined;
-    const next: jest.Mock<() => Promise<Array<{ id: string }>>> = jest.fn(
+    const next: Mock<() => Promise<Array<{ id: string }>>> = jest.fn(
       async () => {
         markedWhenSent = marksOf(
           activities[0]!.attachments![0]!.content as JSONObject,
@@ -422,7 +423,7 @@ describe("a turn whose cards carry its project", () => {
     });
 
     const activity: Partial<Activity> = cardActivity();
-    const next: jest.Mock<() => Promise<void>> = jest.fn(async () => {
+    const next: Mock<() => Promise<void>> = jest.fn(async (): Promise<void> => {
       return undefined;
     });
 
