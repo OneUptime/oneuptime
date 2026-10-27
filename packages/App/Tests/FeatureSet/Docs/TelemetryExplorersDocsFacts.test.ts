@@ -1142,11 +1142,16 @@ describe("Traces Explorer (telemetry/traces-explorer)", () => {
      */
     expect(facets).toContain("chosenValue: spanType,");
     expect(facets).toContain("TRACE_SPAN_TYPE_OPTIONS.map(");
-    expect(readCommonSource("Types/Telemetry/TraceSpanType.ts")).toContain(
-      'label: "Root spans",',
+    for (const label of ["Entry spans", "Root spans", "All spans"]) {
+      expect(readCommonSource("Types/Telemetry/TraceSpanType.ts")).toContain(
+        `label: "${label}",`,
+      );
+    }
+    expect(page).toContain(
+      "By default the list shows **Entry spans**, the spans where a request or message enters a service",
     );
     expect(page).toContain(
-      "To list one row per request, pick **Root spans** under **Span Type** in the sidebar.",
+      "Under **Span Type** in the sidebar, pick **Root spans** to list one row per request, or **All spans** to list every operation.",
     );
   });
 
