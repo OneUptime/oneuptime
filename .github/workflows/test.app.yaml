@@ -803,12 +803,12 @@ jobs:
           # Global Runners (2.2 minutes on 14.0.93's gate run) moved to group 13
           # on 2026-10-27, when that run took this group 17.3 minutes before
           # Resource Overviews joined: about 16.5, with room for Code to grow.
-          # Ask AI (about 3 minutes locally with its bundle, Chromium only: the
+          # Ask AI (2.5 minutes locally with its bundle, 37 tests, Chromium only: the
           # dialog over the blurred page from every way in, its start, an
           # answer written step by step, its sources and cards, an approval,
           # the history and the way back to an answer still being written, at
           # 1280, 768 and 390 pixels, light and dark, German and Persian, and
-          # with reduced motion) joined them the same day: about 19.5.
+          # with reduced motion) joined them the same day: about 19.
           - group: 12
             suites: >-
               test-code-ui
