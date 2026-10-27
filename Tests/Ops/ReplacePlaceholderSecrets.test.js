@@ -824,19 +824,19 @@ describe("the script, run the way npm start and configure.sh run it", () => {
       const dir = workspace();
       runScript(dir, `HOST=localhost\n${line}\n`);
 
+      /*
+       * The loader runs (its #!/bin/sh) and hands its environment to
+       * printenv; no shell reads a command line here.
+       */
       const exported = spawnSync(
-        "sh",
-        [
-          path.join(REPO_ROOT, "Scripts", "Install", "WithConfig.sh"),
-          "sh",
-          "-c",
-          "printf '%s' \"$ONEUPTIME_SECRET\"",
-        ],
+        path.join(REPO_ROOT, "Scripts", "Install", "WithConfig.sh"),
+        ["printenv", "ONEUPTIME_SECRET"],
         { cwd: dir, encoding: "utf8" },
       );
 
       expect(exported.status).toBe(0);
-      expect(exported.stdout).toMatch(HEX_256_BITS);
+      expect(exported.stdout.endsWith("\n")).toBe(true);
+      expect(exported.stdout.slice(0, -1)).toMatch(HEX_256_BITS);
     }
   });
 
