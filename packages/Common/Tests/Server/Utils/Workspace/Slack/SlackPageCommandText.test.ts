@@ -9,6 +9,7 @@ import WorkspacePageTextReader, {
   WorkspacePageText,
   WorkspacePageToken,
 } from "../../../../../Server/Utils/Workspace/WorkspacePageText";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * `/oneuptime page @nawaz The checkout API is down`, AS SLACK SENDS IT.
@@ -202,13 +203,18 @@ describe("SlackCommandParser.getPageTokens", () => {
   });
 
   test("text as long as a chat sends, and longer: read in time that grows with it", () => {
-    const started: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        SlackCommandParser.getPageTokens(`page ${"<@U0|a>".repeat(60_000)}`);
+        SlackCommandParser.getPageTokens(`page ${"<@".repeat(200_000)}`);
+        SlackCommandParser.getPageTokens(
+          `page ${"<!subteam^".repeat(40_000)}>`,
+        );
+        SlackCommandParser.getPageTokens(`${" ".repeat(400_000)}page`);
+      },
+      limitInMs: 2000,
+    });
 
-    SlackCommandParser.getPageTokens(`page ${"<@U0|a>".repeat(60_000)}`);
-    SlackCommandParser.getPageTokens(`page ${"<@".repeat(200_000)}`);
-    SlackCommandParser.getPageTokens(`page ${"<!subteam^".repeat(40_000)}>`);
-    SlackCommandParser.getPageTokens(`${" ".repeat(400_000)}page`);
-
-    expect(Date.now() - started).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

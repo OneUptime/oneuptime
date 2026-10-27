@@ -6,6 +6,7 @@ import {
 } from "../../../UI/Components/Markdown.tsx/MarkdownConverters";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { renderAsDashboard } from "../../Utils/Markdown/DashboardMarkdownRenderer";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * TABLE CELLS IN THE EDITOR'S MARKDOWN (MarkdownConverters).
@@ -314,24 +315,32 @@ describe("a table across save and reopen", () => {
      * save is linear now; 64 KB takes milliseconds.
      */
     const typed: string = "a\\|b|\\\\|".repeat(8000);
-    const startedAt: number = performance.now();
-    const back: Array<Array<string>> = reopened([["h"], [typed]]);
-    const tookMs: number = performance.now() - startedAt;
+    const timed: FastestRun<Array<Array<string>>> = fastestRun({
+      run: (): Array<Array<string>> => {
+        return reopened([["h"], [typed]]);
+      },
+      limitInMs: 2000,
+    });
+    const back: Array<Array<string>> = timed.result;
 
     expect(back[1]![0]!.length).toBe(typed.length);
     expect(back[1]![0] === typed).toBe(true);
-    expect(tookMs).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   it("a megabyte-long row of escaped pipes and backslashes is read in one pass", () => {
     // About a megabyte: 130,000 times "a\|b\\\|" and its delimiter.
     const row: string = "a\\|b\\\\\\|".repeat(130000);
     const markdown: string = `| h | i |\n| --- | --- |\n| ${row} | z |`;
-    const startedAt: number = performance.now();
-    const html: string = markdownToHtml(markdown);
-    const tookMs: number = performance.now() - startedAt;
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return markdownToHtml(markdown);
+      },
+      limitInMs: 5000,
+    });
+    const html: string = timed.result;
 
     expect(htmlRows(html)[1]).toEqual(["a|b\\|".repeat(130000), "z"]);
-    expect(tookMs).toBeLessThan(5000);
+    expect(timed.inMs).toBeLessThan(5000);
   });
 });

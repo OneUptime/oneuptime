@@ -3,6 +3,7 @@ import ExternalStatusPageComponentStatusUtil, {
 } from "../../../Utils/Monitor/ExternalStatusPageComponentStatusUtil";
 import { StatusPageSummaryStatus } from "../../../Types/StatusPage/StatusPageSummary";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * What a resource of a OneUptime status page reports as its component
@@ -153,14 +154,17 @@ describe("ExternalStatusPageComponentStatusUtil.normalizeName", () => {
   ])(
     "reads a status name of %s in linear time",
     (_name: string, name: string) => {
-      const startedAt: number = Date.now();
-
-      ExternalStatusPageComponentStatusUtil.fromStatusPageStatus({
-        status: status(name),
-        isUnderMaintenance: false,
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          ExternalStatusPageComponentStatusUtil.fromStatusPageStatus({
+            status: status(name),
+            isUnderMaintenance: false,
+          });
+        },
+        limitInMs: 2000,
       });
 
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 });

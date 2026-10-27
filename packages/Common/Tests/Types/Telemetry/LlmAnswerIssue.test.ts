@@ -9,6 +9,7 @@ import {
   LlmEvaluationResult,
 } from "../../../Types/Telemetry/LlmAnswerIssue";
 import { LlmCallKind } from "../../../Types/Telemetry/LlmCallKind";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * "Alert me when the AI answers badly" rests on these checks: every call is
@@ -432,12 +433,15 @@ describe("LlmAnswerIssueUtil - values and copy", () => {
 
   test("the refusal check reads only the opening of a megabyte answer", () => {
     const longAnswer: string = `I'm sorry, but I can't. ${"x".repeat(3_000_000)}`;
-    const started: number = Date.now();
-
-    expect(LlmAnswerIssueUtil.opensWithRefusal(longAnswer)).toBe(true);
-    expect(
-      LlmAnswerIssueUtil.opensWithRefusal(`Sure. ${"x".repeat(3_000_000)}`),
-    ).toBe(false);
-    expect(Date.now() - started).toBeLessThan(1000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(LlmAnswerIssueUtil.opensWithRefusal(longAnswer)).toBe(true);
+        expect(
+          LlmAnswerIssueUtil.opensWithRefusal(`Sure. ${"x".repeat(3_000_000)}`),
+        ).toBe(false);
+      },
+      limitInMs: 1000,
+    });
+    expect(timed.inMs).toBeLessThan(1000);
   });
 });

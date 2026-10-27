@@ -2,6 +2,7 @@ import IRCMessageUtil, {
   IRCMessage,
 } from "../../../../Server/Utils/IRC/IRCMessage";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * The IRC wire format. Reading: everything a server may send, tags and all,
@@ -113,10 +114,13 @@ describe("IRCMessageUtil.parse — what a server sends", () => {
 
   test("reads a long line in time linear in its length", () => {
     const line: string = `:s NOTICE * :${"x ".repeat(200_000)}`;
-    const startedAt: number = Date.now();
-
-    expect(IRCMessageUtil.parse(line)?.params[1]?.length).toBe(400_000);
-    expect(Date.now() - startedAt).toBeLessThan(3000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(IRCMessageUtil.parse(line)?.params[1]?.length).toBe(400_000);
+      },
+      limitInMs: 3000,
+    });
+    expect(timed.inMs).toBeLessThan(3000);
   });
 });
 

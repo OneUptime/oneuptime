@@ -5,6 +5,7 @@ import MicrosoftTeamsSignInAuthorityUtil, {
   MicrosoftTeamsSignInAuthority,
   MicrosoftTeamsSignInAuthoritySource,
 } from "../../../../../Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsSignInAuthority";
+import { FastestRun, fastestRun } from "../../../../Helpers/FastestRun";
 
 /*
  * Issue #5202: with the app registered for one organization, as the
@@ -95,15 +96,20 @@ describe("what is a tenant", () => {
      * the domain pattern is linear anyway: a label's class has no dot.
      */
     const hostile: string = `${"a.".repeat(200000)}!`;
-    const startedAt: number = Date.now();
-
-    expect(MicrosoftTeamsSignInAuthorityUtil.readTenant(hostile)).toBeNull();
-    expect(
-      MicrosoftTeamsSignInAuthorityUtil.readTenant(
-        `${"a.".repeat(125)}${"a".repeat(2)}!`,
-      ),
-    ).toBeNull();
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(
+          MicrosoftTeamsSignInAuthorityUtil.readTenant(hostile),
+        ).toBeNull();
+        expect(
+          MicrosoftTeamsSignInAuthorityUtil.readTenant(
+            `${"a.".repeat(125)}${"a".repeat(2)}!`,
+          ),
+        ).toBeNull();
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

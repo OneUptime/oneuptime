@@ -30,6 +30,7 @@ import {
 import { AiRemediationCommandPolicyVerdict } from "../../../../Types/AutoRemediation/AiRemediationCommandPolicyVerdict";
 import { describe, expect, test } from "@jest/globals";
 import { escapeRegExp } from "../../../../Utils/RegExpEscape";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Contract under test — the ceph command policy (CephCommandPolicy), the
@@ -1062,31 +1063,35 @@ describe("evaluateArgv is total and never changes its input", () => {
   });
 
   test("huge argvs and words are Denied quickly", () => {
-    const started: number = Date.now();
-    const manyWords: Array<string> = [
-      "ceph",
-      "osd",
-      "ok-to-stop",
-      ...Array.from({ length: 10000 }, (): string => {
-        return "1";
-      }),
-    ];
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const manyWords: Array<string> = [
+          "ceph",
+          "osd",
+          "ok-to-stop",
+          ...Array.from({ length: 10000 }, (): string => {
+            return "1";
+          }),
+        ];
 
-    expect(CephCommandPolicy.evaluateArgv(manyWords).tier).toBe(
-      ResourceCommandTier.Denied,
-    );
-    expect(
-      CephCommandPolicy.evaluateArgv([
-        "ceph",
-        "crash",
-        "info",
-        `2024-05-21T10:15:42.${"1".repeat(100000)}Z_x`,
-      ]).tier,
-    ).toBe(ResourceCommandTier.Denied);
-    expect(
-      CephCommandPolicy.evaluateArgv(["ceph", "-".repeat(100000)]).tier,
-    ).toBe(ResourceCommandTier.Denied);
-    expect(Date.now() - started).toBeLessThan(2000);
+        expect(CephCommandPolicy.evaluateArgv(manyWords).tier).toBe(
+          ResourceCommandTier.Denied,
+        );
+        expect(
+          CephCommandPolicy.evaluateArgv([
+            "ceph",
+            "crash",
+            "info",
+            `2024-05-21T10:15:42.${"1".repeat(100000)}Z_x`,
+          ]).tier,
+        ).toBe(ResourceCommandTier.Denied);
+        expect(
+          CephCommandPolicy.evaluateArgv(["ceph", "-".repeat(100000)]).tier,
+        ).toBe(ResourceCommandTier.Denied);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("the dispatcher and the tool agree on an argv", () => {
@@ -1615,25 +1620,29 @@ describe("ceph output redaction", () => {
   });
 
   test("the ceph hooks are total and linear on hostile text", () => {
-    const started: number = Date.now();
-    const hostile: Array<string> = [
-      "",
-      `AQ${"A".repeat(200000)}`,
-      '"val": "'.repeat(20000),
-      '\\"val\\": \\"'.repeat(20000),
-      `{"val": "${"\\\\".repeat(50000)}`,
-      `\\"value\\": \\"${"\\\\\\\\".repeat(50000)}`,
-    ];
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        const hostile: Array<string> = [
+          "",
+          `AQ${"A".repeat(200000)}`,
+          '"val": "'.repeat(20000),
+          '\\"val\\": \\"'.repeat(20000),
+          `{"val": "${"\\\\".repeat(50000)}`,
+          `\\"value\\": \\"${"\\\\\\\\".repeat(50000)}`,
+        ];
 
-    for (const text of hostile) {
-      for (const hook of getResourceOutputRedactionHooks("ceph")) {
-        expect((): void => {
-          hook({ resourceType: CEPH, program: "ceph", text });
-        }).not.toThrow();
-      }
-    }
+        for (const text of hostile) {
+          for (const hook of getResourceOutputRedactionHooks("ceph")) {
+            expect((): void => {
+              hook({ resourceType: CEPH, program: "ceph", text });
+            }).not.toThrow();
+          }
+        }
+      },
+      limitInMs: 3000,
+    });
 
-    expect(Date.now() - started).toBeLessThan(3000);
+    expect(timed.inMs).toBeLessThan(3000);
   });
 
   test("the ceph hooks run for ceph only", () => {

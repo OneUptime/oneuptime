@@ -1,5 +1,6 @@
 import { expect, Locator, Page, test } from "@playwright/test";
 import path from "path";
+import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
 
 /*
  * THE DISCOVERED-DEVICES IMPORT, IN A BROWSER (OneUptime issues #4811,
@@ -637,18 +638,13 @@ test.describe("templates of every kind a device's monitor can be made from (#514
      * Opened, the checks start under a rule of their own, clear of the row
      * that holds the line and its toggle.
      */
-    const rowBox: { y: number; height: number } | null = await folded
-      .locator("xpath=..")
-      .boundingBox();
-    const firstCheckBox: { y: number } | null = await page
-      .getByTestId("discovery-import-template-walk-check")
-      .first()
-      .boundingBox();
-    expect(rowBox).not.toBeNull();
-    expect(firstCheckBox).not.toBeNull();
-    expect(
-      firstCheckBox!.y - (rowBox!.y + rowBox!.height),
-    ).toBeGreaterThanOrEqual(8);
+    const [rowBox, firstCheckBox] = (await boxesInOneFrame([
+      folded.locator("xpath=.."),
+      page.getByTestId("discovery-import-template-walk-check").first(),
+    ])) as [FrameBox, FrameBox];
+    expect(firstCheckBox.y - (rowBox.y + rowBox.height)).toBeGreaterThanOrEqual(
+      8,
+    );
     await toggle.click();
     await expect(
       page.getByTestId("discovery-import-template-walk-check"),

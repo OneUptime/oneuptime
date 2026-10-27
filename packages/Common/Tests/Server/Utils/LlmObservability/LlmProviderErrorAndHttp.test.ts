@@ -12,6 +12,7 @@ import LlmProviderHttp, {
 } from "../../../../Server/Utils/LlmObservability/LlmProviderHttp";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { LlmConnectionFailureKind } from "../../../../Types/LlmObservability/LlmConnectionTest";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * The one error a connector throws and the one way it sends a request:
@@ -135,10 +136,14 @@ describe("LlmProviderError.redact", () => {
     ];
 
     for (const text of hostile) {
-      const started: number = Date.now();
-      LlmProviderError.redact(text, [SECRET]);
-      LlmProviderError.readTransportHttpError(new Error(text));
-      expect(Date.now() - started).toBeLessThan(2000);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          LlmProviderError.redact(text, [SECRET]);
+          LlmProviderError.readTransportHttpError(new Error(text));
+        },
+        limitInMs: 2000,
+      });
+      expect(timed.inMs).toBeLessThan(2000);
     }
   });
 

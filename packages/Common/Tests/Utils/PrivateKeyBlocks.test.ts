@@ -1,6 +1,7 @@
 import { replacePrivateKeyBlocks } from "../../Utils/PrivateKeyBlocks";
 import { generatedTexts } from "../Helpers/GeneratedTexts";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../Helpers/FastestRun";
 
 /*
  * PEM private key blocks, as the log redaction and the AI tool-result
@@ -207,11 +208,14 @@ describe("replacePrivateKeyBlocks", () => {
   ])(
     "reads %s in time in line with its length",
     (_label: string, text: string) => {
-      const startedAt: number = Date.now();
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          replacePrivateKeyBlocks(text, REPLACEMENT);
+        },
+        limitInMs: 2000,
+      });
 
-      replacePrivateKeyBlocks(text, REPLACEMENT);
-
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 });

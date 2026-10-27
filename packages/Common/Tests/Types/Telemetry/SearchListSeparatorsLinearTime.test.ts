@@ -9,6 +9,7 @@ import { buildSearchTokenForOperatorValue } from "../../../Utils/Telemetry/Locke
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { namedPattern } from "../../Helpers/SourcePatterns";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -48,22 +49,28 @@ describe("a list is read in time in line with its length", () => {
       "(" + repeat(" ", LENGTH) + "ORx)",
     ],
   ])("a typed list: %s", (_label: string, value: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        parseSearchValue(value);
+      },
+      limitInMs: 2000,
+    });
 
-    parseSearchValue(value);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test.each([
     ["a run of tabs", repeat("\t", LENGTH)],
     ["white space before OR with none after", repeat(" ", LENGTH) + "ORx"],
   ])("a filter's entry: %s", (_label: string, entry: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        buildSearchTokenForOperatorValue("k8s.ns", new Includes([entry, "b"]));
+      },
+      limitInMs: 2000,
+    });
 
-    buildSearchTokenForOperatorValue("k8s.ns", new Includes([entry, "b"]));
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

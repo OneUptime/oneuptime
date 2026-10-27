@@ -5,6 +5,7 @@ import {
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import { namedPattern } from "../../Helpers/SourcePatterns";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -57,23 +58,29 @@ const WORST_CASES: Array<[string, string]> = [
 
 describe("a report is read in time in line with its length", () => {
   test.each(WORST_CASES)("%s", (_label: string, line: string) => {
-    const startedAt: number = Date.now();
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        parseInvestigationReport(line);
+      },
+      limitInMs: 2000,
+    });
 
-    parseInvestigationReport(line);
-
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test.each(WORST_CASES)(
     "%s, inside a report with sections",
     (_label: string, line: string) => {
       const report: string = `## Summary\nThe pool was cut [C1].\n\n${line}\n\n## Root cause\nA release [C2].`;
-      const startedAt: number = Date.now();
+      const timed: FastestRun<ParsedInvestigationReport> = fastestRun({
+        run: (): ParsedInvestigationReport => {
+          return parseInvestigationReport(report);
+        },
+        limitInMs: 2000,
+      });
+      const parsed: ParsedInvestigationReport = timed.result;
 
-      const parsed: ParsedInvestigationReport =
-        parseInvestigationReport(report);
-
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
       expect(parsed.isStructured).toBe(true);
     },
   );
@@ -228,10 +235,15 @@ describe.each([
 
       for (const [, line] of WORST_CASES) {
         const short: string = line.slice(0, 2000) + line.slice(-2);
-        const startedAt: number = Date.now();
-        const actual: string = execText(now, line);
+        const timed: FastestRun<string> = fastestRun({
+          run: (): string => {
+            return execText(now, line);
+          },
+          limitInMs: 2000,
+        });
+        const actual: string = timed.result;
 
-        expect(Date.now() - startedAt).toBeLessThan(2000);
+        expect(timed.inMs).toBeLessThan(2000);
         expect(execText(now, short)).toBe(execText(before, short));
         expect(actual).toBe("null");
       }

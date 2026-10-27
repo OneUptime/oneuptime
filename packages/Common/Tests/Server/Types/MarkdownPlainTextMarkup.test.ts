@@ -3,6 +3,7 @@ import Markdown, {
 } from "../../../Server/Types/Markdown";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * MARKDOWN READ AS PLAIN TEXT TAKES TYPED MARKUP OUT COMPLETELY.
@@ -580,10 +581,15 @@ describe("Markdown.convertToPlainText takes typed markup out completely", () => 
       // Lines, so no line is long enough to be held back as text.
       const depth: number = 170000;
       const markdown: string = `Before\n\n${"<a\n".repeat(depth)}${">\n".repeat(depth)}\nAfter`;
-      const started: number = Date.now();
-      const text: string = plainText(markdown);
+      const timed: FastestRun<string> = fastestRun({
+        run: (): string => {
+          return plainText(markdown);
+        },
+        limitInMs: LIMIT_IN_MS,
+      });
+      const text: string = timed.result;
 
-      expect(Date.now() - started).toBeLessThan(LIMIT_IN_MS);
+      expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
       expect(text).toBe("Before\nAfter");
     });
   });

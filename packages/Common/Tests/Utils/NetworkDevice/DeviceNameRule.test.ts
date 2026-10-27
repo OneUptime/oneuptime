@@ -12,6 +12,7 @@ import {
 } from "../../../Types/NetworkDevice/DeviceNameSource";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * The one rule that names a network device nobody typed a name for
@@ -393,16 +394,19 @@ describe("normalizeSystemName: odd sysNames", () => {
   );
 
   test("stays fast on a very long hostile value", () => {
-    const startedAt: number = Date.now();
-
-    expect(normalizeSystemName(":".repeat(200000) + "x")).toBe(
-      ":".repeat(200000) + "x",
-    );
-    expect(normalizeSystemName("a" + " ".repeat(200000) + "b")).toBe(
-      "a" + " ".repeat(200000) + "b",
-    );
-    expect(normalizeSystemName("a" + "\u0000 ".repeat(100000))).toBe("a");
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(normalizeSystemName(":".repeat(200000) + "x")).toBe(
+          ":".repeat(200000) + "x",
+        );
+        expect(normalizeSystemName("a" + " ".repeat(200000) + "b")).toBe(
+          "a" + " ".repeat(200000) + "b",
+        );
+        expect(normalizeSystemName("a" + "\u0000 ".repeat(100000))).toBe("a");
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });
 

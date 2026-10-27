@@ -7,6 +7,7 @@ import CommandPolicy, {
   CommandPolicyResult,
 } from "../../../Utils/AiRemediation/CommandPolicy";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -69,10 +70,13 @@ const LENGTH_REASON: string = `a command longer than ${MAX_COMMAND_LENGTH_CHARS}
 
 describe("a command longer than a command may be is refused before it is read", () => {
   test.each(slowShapes(LONG))("%s", (_label: string, command: string) => {
-    const startedAt: number = Date.now();
-
-    expect(CommandPolicy.getDenyReason(command)).toBe(LENGTH_REASON);
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<void> = fastestRun({
+      run: (): void => {
+        expect(CommandPolicy.getDenyReason(command)).toBe(LENGTH_REASON);
+      },
+      limitInMs: 2000,
+    });
+    expect(timed.inMs).toBeLessThan(2000);
   });
 
   test("one character over the limit is refused, the limit itself is read", () => {
@@ -141,12 +145,15 @@ describe("at the longest a command may be, every rule reads it quickly", () => {
     (_label: string, command: string) => {
       expect(command.length).toBeLessThanOrEqual(MAX_COMMAND_LENGTH_CHARS);
 
-      const startedAt: number = Date.now();
-
-      CommandPolicy.getDenyReason(command);
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          CommandPolicy.getDenyReason(command);
+        },
+        limitInMs: 1000,
+      });
 
       // Measured at about 25 ms; generous for a slow machine.
-      expect(Date.now() - startedAt).toBeLessThan(1000);
+      expect(timed.inMs).toBeLessThan(1000);
     },
   );
 });

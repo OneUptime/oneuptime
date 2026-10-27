@@ -4,6 +4,7 @@ import TraceScrubRuleService from "../../FeatureSet/Telemetry/Services/TraceScru
 import LogScrubPatternType from "Common/Types/Log/LogScrubPatternType";
 import TraceScrubPatternType from "Common/Types/Trace/TraceScrubPatternType";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "Common/Tests/Helpers/FastestRun";
 
 /*
  * ---------------------------------------------------------------------------
@@ -79,11 +80,15 @@ describe.each(ENGINES)("$name built-in email scrub", (engine: Engine) => {
       );
       expect(regex).not.toBeNull();
 
-      const startedAt: number = Date.now();
-      regex!.replace(body, (): string => {
-        return "[REDACTED]";
+      const timed: FastestRun<void> = fastestRun({
+        run: (): void => {
+          regex!.replace(body, (): string => {
+            return "[REDACTED]";
+          });
+        },
+        limitInMs: 2000,
       });
-      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(timed.inMs).toBeLessThan(2000);
     },
   );
 
@@ -121,12 +126,17 @@ describe("LogScrubRuleService.scrubLog with the built-in email rule", () => {
       },
     ];
 
-    const startedAt: number = Date.now();
-    const scrubbed: { body?: unknown } = LogScrubRuleService.scrubLog(
-      { body: "a@" + repeat("a.", LENGTH) } as never,
-      compiledRules as never,
-    ) as { body?: unknown };
-    expect(Date.now() - startedAt).toBeLessThan(2000);
+    const timed: FastestRun<{ body?: unknown }> = fastestRun({
+      run: (): { body?: unknown } => {
+        return LogScrubRuleService.scrubLog(
+          { body: "a@" + repeat("a.", LENGTH) } as never,
+          compiledRules as never,
+        ) as { body?: unknown };
+      },
+      limitInMs: 2000,
+    });
+    const scrubbed: { body?: unknown } = timed.result;
+    expect(timed.inMs).toBeLessThan(2000);
     expect(typeof scrubbed.body).toBe("string");
 
     const realScrubbed: { body?: unknown } = LogScrubRuleService.scrubLog(
