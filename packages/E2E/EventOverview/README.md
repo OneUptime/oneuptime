@@ -160,7 +160,7 @@ owners list names Teams locked with why.
 
 ## What the spec covers
 
-`EventOverview.spec.ts` (526 tests):
+`EventOverview.spec.ts` (551 tests):
 
 - **AI investigation report**: the Summary (TL;DR as its lead line, no chip) as the card's
   first section, then the report's sections in order under the same plain h3 (the root cause
@@ -192,6 +192,15 @@ owners list names Teams locked with why.
 - **Investigation states**: running, queued, failed, pending and none, including the header
   notice and how much of its usage each run shows (a failed run ends its steps with it); with
   no run the same card explains why nothing was investigated.
+- **A page OneUptime AI holds** (`?hold=`, #5351): the incident's and the alert's AI card open
+  with "OneUptime AI is on it", when on-call paging starts unless OneUptime AI resolves the
+  record (6:31 PM and 6:36 PM), read out politely, and Page now; every read of the on-call runs
+  is the notice's, for that record's held pages. Nothing said with nothing held, nor on
+  incident #1029 while #1042's page is held; nothing read or said for a reader who may not read
+  on-call runs (`?role=alert-member`). Page now sending one request for the incident, after
+  which the notice goes; `?fail=page-now` saying why, Page now kept. On a 390px phone inside
+  the card with nothing scrolling sideways, and the dark theme's wash, edge and words, readable
+  on the card.
 - **One flat card**: in every state (report, `?clusters=mixed`, legacy, running with and
   without clusters, queued, failed, pending, none), and with the details and an evidence row
   open, the card holds no panel of its own: no element big enough to be a region paints a
@@ -411,7 +420,8 @@ every record in them is fabricated. The AI card's states are
 `ai-card-{running,running-clusters,queued,failed,pending,none,clusters,dark}`, and with a
 conversation in it
 `ai-card-conversation-{answered,none-answered,working,approval,error,crowded,dark,mobile}` and
-`ai-card-none-mobile`, and with the linked infrastructure
+`ai-card-none-mobile`, with a page OneUptime AI holds
+`ai-card-hold-{incident,alert,mobile,dark}`, and with the linked infrastructure
 `ai-card-followup{,-running,-dark,-mobile}`, `ai-card-linked-running-mobile` and
 `incident-feed-followup`. The hero
 header tests add `{alert-hero-created,alert-hero-resolved,incident-hero-created}-{390,768,1024,1280}`,
