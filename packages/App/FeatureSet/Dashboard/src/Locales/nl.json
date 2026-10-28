@@ -36434,5 +36434,5 @@
   "Expires {{time}}": "Verloopt {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "Daarna ziet de regel het weer. Laat het leeg om de uitzondering te houden tot iemand haar verwijdert.",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Voorkom dat deze regel afgaat op iets wat je verwacht, zoals een scanner, een back-uptaak of een geplande test.",
-  "For your framework": "Voor uw framework"
+  "Step-by-step guides": "Stapsgewijze handleidingen"
 }

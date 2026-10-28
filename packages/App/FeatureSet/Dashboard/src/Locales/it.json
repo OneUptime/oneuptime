@@ -36434,5 +36434,5 @@
   "Expires {{time}}": "Scade {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "Dopo questa data la regola lo vede di nuovo. Lascia vuoto per mantenere l'eccezione finché qualcuno non la elimina.",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Impedisci a questa regola di attivarsi su qualcosa che ti aspetti, come uno scanner, un job di backup o un test pianificato.",
-  "For your framework": "Per il tuo framework"
+  "Step-by-step guides": "Guide passo passo"
 }

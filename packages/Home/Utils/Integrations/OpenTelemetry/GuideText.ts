@@ -130,8 +130,27 @@ function isExternal(href: string): boolean {
   return href.startsWith("https://") || href.startsWith("http://");
 }
 
+/*
+ * Inline code. A name too long for its line breaks, and each line it spans
+ * keeps a box of its own (box-decoration-clone) instead of a box left open
+ * at one line's end and closed at the next one's start.
+ */
 const CODE_CLASS: string =
-  "rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-[0.85em] text-gray-900 ring-1 ring-inset ring-gray-200 break-words";
+  "box-decoration-clone rounded-md bg-gray-100 px-1.5 py-0.5 font-mono text-[0.85em] text-gray-900 ring-1 ring-inset ring-gray-200 break-words";
+
+/*
+ * A short one - a command of two words such as `bun add`, a flag with its
+ * value - is read as one thing, so it never breaks across lines: it moves
+ * to the next line whole. At most this many characters fit any line of a
+ * phone's column (about 200 pixels).
+ */
+export const UNBROKEN_CODE_LENGTH: number = 24;
+
+const SHORT_CODE_CLASS: string = `${CODE_CLASS} whitespace-nowrap`;
+
+function codeClassFor(code: string): string {
+  return code.length <= UNBROKEN_CODE_LENGTH ? SHORT_CODE_CLASS : CODE_CLASS;
+}
 
 const LINK_CLASS: string =
   "font-medium text-indigo-600 underline decoration-indigo-200 underline-offset-2 hover:decoration-indigo-500";
@@ -142,7 +161,7 @@ export function inlineTextToHtml(text: InlineText): string {
     .map((part: InlinePart): string => {
       switch (part.kind) {
         case "code":
-          return `<code class="${CODE_CLASS}">${escapeHtml(part.text)}</code>`;
+          return `<code class="${codeClassFor(part.text)}">${escapeHtml(part.text)}</code>`;
         case "bold":
           return `<strong class="font-semibold text-gray-900">${escapeHtml(part.text)}</strong>`;
         case "link": {

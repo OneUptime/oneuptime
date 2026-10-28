@@ -36434,5 +36434,5 @@
   "Expires {{time}}": "Udløber {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "Herefter ser reglen det igen. Lad feltet stå tomt for at beholde undtagelsen, indtil nogen sletter den.",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Undgå, at denne regel udløses af noget, du forventer, f.eks. en scanner, et backupjob eller en planlagt test.",
-  "For your framework": "Til dit framework"
+  "Step-by-step guides": "Trin-for-trin-vejledninger"
 }

@@ -464,9 +464,21 @@ describe("TelemetryDocumentation", () => {
    * The website's step-by-step guide for the language picked, and one per
    * framework of that language (Common/Types/Telemetry/OpenTelemetryGuides):
    * each language button opens its own guides, and a language with no guide
-   * yet shows none.
+   * yet shows none. One label, then the guides as a list of links with a
+   * dot between them, each opening in a new tab.
    */
   describe("the step-by-step guides on the website", () => {
+    // The dots between the guides, which only the eye reads.
+    const separatorsIn: (line: HTMLElement) => Array<Element> = (
+      line: HTMLElement,
+    ): Array<Element> => {
+      return Array.from(line.querySelectorAll('[aria-hidden="true"]')).filter(
+        (element: Element): boolean => {
+          return element.textContent === "\u00b7";
+        },
+      );
+    };
+
     const guideLinks: () => Array<[string, string | null]> = (): Array<
       [string, string | null]
     > => {
@@ -491,15 +503,54 @@ describe("TelemetryDocumentation", () => {
         ["Bun", "https://oneuptime.com/integrations/opentelemetry/bun"],
         ["Deno", "https://oneuptime.com/integrations/opentelemetry/deno"],
       ]);
+      // Several guides: the label is plural.
       expect(
-        screen.getByTestId("telemetry-framework-guides"),
-      ).toHaveTextContent("Step-by-step guide");
+        within(screen.getByTestId("telemetry-framework-guides")).getByText(
+          "Step-by-step guides",
+        ),
+      ).toBeInTheDocument();
       for (const link of within(
         screen.getByTestId("telemetry-framework-guides"),
       ).getAllByRole("link")) {
         expect(link.getAttribute("target")).toBe("_blank");
         expect(link.getAttribute("rel")).toBe("noopener noreferrer");
       }
+    });
+
+    test("lists the guides as one list, a dot between two and none after the last", () => {
+      renderGuide("traces");
+      const line: HTMLElement = screen.getByTestId(
+        "telemetry-framework-guides",
+      );
+
+      // A screen reader hears one list of nine guides, not nine loose links.
+      const items: Array<HTMLElement> = within(
+        within(line).getByRole("list"),
+      ).getAllByRole("listitem");
+      expect(items.length).toBe(9);
+
+      // The dots are for the eye only, and the last guide has none.
+      expect(separatorsIn(line).length).toBe(8);
+      expect(items[items.length - 1]!.textContent).toBe("Deno");
+
+      // The words read as a list: no label for the frameworks of their own.
+      expect(line).not.toHaveTextContent("For your framework");
+    });
+
+    test("tells a screen reader that every guide opens in a new tab", () => {
+      renderGuide("traces");
+      const line: HTMLElement = screen.getByTestId(
+        "telemetry-framework-guides",
+      );
+      const links: Array<HTMLElement> = within(line).getAllByRole("link");
+
+      for (const link of links) {
+        expect(link).toHaveAccessibleDescription("(opens in a new tab)");
+      }
+      // One note, read with each link, not repeated on screen.
+      const noteId: string | null = links[0]!.getAttribute("aria-describedby");
+      expect(noteId).toBeTruthy();
+      expect(document.getElementById(noteId!)?.className).toContain("sr-only");
     });
 
     test("React and Angular each open their own guide, with no framework list", () => {
@@ -509,9 +560,15 @@ describe("TelemetryDocumentation", () => {
       expect(guideLinks()).toEqual([
         ["React", "https://oneuptime.com/integrations/opentelemetry/react"],
       ]);
+      // One guide: the label is singular, and no dot follows it.
+      const line: HTMLElement = screen.getByTestId(
+        "telemetry-framework-guides",
+      );
+      expect(within(line).getByText("Step-by-step guide")).toBeInTheDocument();
       expect(
-        screen.getByTestId("telemetry-framework-guides"),
-      ).not.toHaveTextContent("For your framework");
+        within(line).queryByText("Step-by-step guides"),
+      ).not.toBeInTheDocument();
+      expect(separatorsIn(line)).toEqual([]);
 
       fireEvent.click(screen.getByRole("button", { name: "Angular" }));
       expect(guideLinks()).toEqual([

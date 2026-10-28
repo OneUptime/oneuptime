@@ -25,6 +25,7 @@ import { SNIPPET_LANGUAGE_LABELS, highlightSnippet } from "./GuideHighlight";
 import { inlineTextToHtml, inlineTextToPlainText } from "./GuideText";
 import {
   GuideVerificationRecord,
+  checkedWith,
   formatCheckedOn,
   getVerificationRecord,
 } from "./GuideVerifications";
@@ -366,26 +367,17 @@ export function guideSections(
   ];
 }
 
-// "Express 5.3.0 · Node.js 24.22.1 · OpenTelemetry JS 3.0", or nothing unchecked.
-function checkedLabels(
+// "Express 5.3.0 · Node.js 24.22.1" (checkedWith), or nothing unchecked.
+export function checkedLabels(
   record: GuideVerificationRecord | undefined,
 ): { onLabel: string; withLabel: string } | undefined {
   if (!record) {
     return undefined;
   }
 
-  // A runtime's own guide names it once: "Bun 1.4.4", not "Bun · Bun 1.4.4".
-  const parts: Array<string> = record.runtime.startsWith(record.framework)
-    ? [record.runtime]
-    : [record.framework, record.runtime];
-
   return {
     onLabel: `Checked end to end on ${formatCheckedOn(record.checkedOn)}`,
-    withLabel: parts
-      .filter((part: string): boolean => {
-        return Boolean(part);
-      })
-      .join(" · "),
+    withLabel: checkedWith(record).join(" · "),
   };
 }
 

@@ -5,6 +5,7 @@ import {
 import {
   GuidePageContent,
   GuideSection,
+  checkedLabels,
   getGuidePageContent,
   guideSections,
 } from "../Utils/Integrations/OpenTelemetry/GuidePage";
@@ -22,7 +23,10 @@ import {
   OpenTelemetryGuide,
 } from "../Utils/Integrations/OpenTelemetry/GuideTypes";
 import { guideSnippets } from "../Utils/Integrations/OpenTelemetry/GuideSnippets";
-import { getVerificationRecord } from "../Utils/Integrations/OpenTelemetry/GuideVerifications";
+import {
+  checkedWith,
+  getVerificationRecord,
+} from "../Utils/Integrations/OpenTelemetry/GuideVerifications";
 import { inlineTextToPlainText } from "../Utils/Integrations/OpenTelemetry/GuideText";
 import { HOME_URL, renderView, seoFor } from "./Helpers/TailwindPages";
 import { beforeAll, describe, expect, test } from "@jest/globals";
@@ -288,6 +292,20 @@ describe.each(
     expect(text).toContain(getVerificationRecord(slug)!.runtime);
   });
 
+  test("names what it was checked with once each, on the page and in its Markdown copy", () => {
+    const record: ReturnType<typeof getVerificationRecord> =
+      getVerificationRecord(slug)!;
+    const parts: Array<string> = checkedWith(record);
+
+    expect(content.checked!.withLabel).toBe(parts.join(" · "));
+    // The runtime, always; never the same thing twice.
+    expect(parts[parts.length - 1]).toBe(record.runtime);
+    expect(new Set(parts).size).toBe(parts.length);
+    expect(generateGuideMarkdown(guide, HOME_URL).split("\n")).toContain(
+      `${content.checked!.onLabel} with ${parts.join(", ")}.`,
+    );
+  });
+
   test("loads the page's script once, deferred", () => {
     const scripts: Array<Element> = Array.from(
       document.querySelectorAll(`script[src="${SCRIPT_PATH}"]`),
@@ -312,6 +330,59 @@ describe.each(
     }
     // Links work wherever the copy is pasted.
     expect(markdown).not.toContain("](/");
+  });
+});
+
+/*
+ * What a check ran on, named the way a reader reads it: a framework at its
+ * version, then the runtime; a guide whose framework is the runtime itself
+ * - Node.js, Bun, Deno, and the browser, whose check names Chromium as its
+ * framework and Chrome as its runtime - names the runtime alone.
+ */
+describe("the checked line's names", () => {
+  test("a framework at its version, then its runtime", () => {
+    expect(
+      checkedWith({ framework: "Express 5.3.0", runtime: "Node.js 24.22.1" }),
+    ).toEqual(["Express 5.3.0", "Node.js 24.22.1"]);
+    expect(
+      checkedWith({
+        framework: "React 19.3.1",
+        runtime: "Chrome 153.0.8010.12",
+      }),
+    ).toEqual(["React 19.3.1", "Chrome 153.0.8010.12"]);
+  });
+
+  test("a runtime's own guide names the runtime once", () => {
+    expect(
+      checkedWith({ framework: "Node.js", runtime: "Node.js 24.22.1" }),
+    ).toEqual(["Node.js 24.22.1"]);
+    expect(checkedWith({ framework: "Bun", runtime: "Bun 1.4.4" })).toEqual([
+      "Bun 1.4.4",
+    ]);
+    expect(checkedWith({ framework: "Deno", runtime: "Deno 2.9.8" })).toEqual([
+      "Deno 2.9.8",
+    ]);
+  });
+
+  test("the browser's guide names the browser it ran in, not Chromium beside Chrome", () => {
+    expect(
+      checkedWith({ framework: "Chromium", runtime: "Chrome 153.0.8010.12" }),
+    ).toEqual(["Chrome 153.0.8010.12"]);
+    expect(checkedLabels(getVerificationRecord("browser"))!.withLabel).toBe(
+      getVerificationRecord("browser")!.runtime,
+    );
+    expect(
+      generateGuideMarkdown(
+        OPEN_TELEMETRY_GUIDE_PAGES.find((guide: OpenTelemetryGuide) => {
+          return guide.slug === "browser";
+        })!,
+        HOME_URL,
+      ),
+    ).not.toContain("Chromium,");
+  });
+
+  test("a guide never checked has no line", () => {
+    expect(checkedLabels(undefined)).toBeUndefined();
   });
 });
 

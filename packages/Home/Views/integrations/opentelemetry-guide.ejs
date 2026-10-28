@@ -23,7 +23,7 @@
     <%# The guide's header: where it sits, its name, what it does, and when its steps were last run. %>
     <header class="relative isolate overflow-hidden border-b border-gray-100 bg-white">
       <div class="absolute inset-x-0 top-0 -z-10 h-[28rem] bg-[radial-gradient(60%_70%_at_30%_0%,rgba(79,70,229,0.08),transparent_70%)]" aria-hidden="true"></div>
-      <div class="mx-auto max-w-7xl px-4 pb-12 pt-14 sm:px-6 sm:pt-20 lg:px-8 lg:pb-16">
+      <div class="mx-auto max-w-7xl px-6 pb-12 pt-14 sm:pt-20 lg:px-8 lg:pb-16">
         <nav aria-label="Breadcrumb" class="text-sm">
           <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-gray-500" role="list">
             <li><a href="<%= guide.indexHref %>" class="font-medium hover:text-gray-900">Integrations</a></li>
@@ -75,11 +75,15 @@
       </div>
     </header>
 
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl px-6 lg:px-8">
       <div class="lg:grid lg:grid-cols-[13rem_minmax(0,1fr)] lg:gap-12 xl:gap-16">
-        <%# The contents, beside the guide on a wide screen. %>
+        <%#
+          The contents, beside the guide on a wide screen. The site's nav
+          scrolls away, so the list sticks to the top of the screen, and
+          scrolls itself in a window too short to show it whole.
+        %>
         <aside class="max-lg:hidden lg:block">
-          <nav aria-label="On this page" class="guide-contents sticky top-24 py-12">
+          <nav aria-label="On this page" class="guide-contents sticky top-0 max-h-screen overflow-y-auto py-12">
             <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">On this page</p>
             <ul class="mt-4 space-y-1 border-l border-gray-200" role="list">
               <% guide.sections.forEach(function (section) { %>
@@ -274,7 +278,7 @@
 
     <% if (guide.related.length > 0) { %>
     <section class="border-t border-gray-100 bg-gray-50 py-16" aria-labelledby="related-title">
-      <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-7xl px-6 lg:px-8">
         <div class="flex flex-wrap items-end justify-between gap-4">
           <h2 id="related-title" class="text-2xl font-semibold tracking-tight text-gray-900">Related guides</h2>
           <a href="<%= guide.indexHref %>" class="text-sm font-semibold text-indigo-600 hover:text-indigo-500">All integrations <span aria-hidden="true">&rarr;</span></a>

@@ -93,6 +93,32 @@ export function guideSnippetDigest(guide: OpenTelemetryGuide): string {
   return `sha256:${hash.digest("hex")}`;
 }
 
+// A digit: a name with one carries its version ("Express 5.3.0").
+const DIGIT: RegExp = /[0-9]/;
+
+/*
+ * What a check ran on, as the page and its Markdown copy name it: the
+ * framework at its version, then the runtime - ["Express 5.3.0",
+ * "Node.js 24.22.1"]. A guide whose framework is the runtime itself names
+ * the runtime once: the Node.js, Bun and Deno guides ("Bun 1.4.4", not "Bun
+ * · Bun 1.4.4"), and the browser's, whose framework is the browser
+ * ("Chrome 153.0.8010.12", not "Chromium · Chrome 153.0.8010.12"). A
+ * framework named without a version is such a runtime.
+ */
+export function checkedWith(
+  record: Pick<GuideVerificationRecord, "framework" | "runtime">,
+): Array<string> {
+  const isRuntimeItself: boolean =
+    !DIGIT.test(record.framework) ||
+    record.runtime.startsWith(record.framework);
+
+  return (
+    isRuntimeItself ? [record.runtime] : [record.framework, record.runtime]
+  ).filter((part: string): boolean => {
+    return Boolean(part);
+  });
+}
+
 // "27 October 2026", for the page.
 export function formatCheckedOn(checkedOn: string): string {
   const date: Date = new Date(`${checkedOn}T00:00:00Z`);

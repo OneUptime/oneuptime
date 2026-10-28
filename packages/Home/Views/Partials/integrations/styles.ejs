@@ -1,9 +1,10 @@
 <%#
   The integrations pages' own styles: the code blocks' colours (the classes
   highlight.js writes on the server, Utils/Integrations/OpenTelemetry/
-  GuideHighlight.ts) and the monospace font. head-basic.ejs sets Geist on
-  every element (`*`), so each span inside a code block names the
-  monospace font again, or highlighted words would be drawn in Geist.
+  GuideHighlight.ts) and the monospace font, and the index's search field.
+  head-basic.ejs sets Geist on every element (`*`), so each span inside a
+  code block names the monospace font again, or highlighted words would be
+  drawn in Geist.
 -%>
 <style>
   .guide-code pre,
@@ -39,10 +40,25 @@
   .guide-code .hljs-deletion { color: #ffa198; }
   /* A long line scrolls inside its block, never the page. */
   .guide-code pre { tab-size: 2; }
-  /* The section a heading link jumps to clears the sticky nav. */
-  .guide-section { scroll-margin-top: 6rem; }
+  /*
+   * A heading a link jumps to lands with a little room above it: the site's
+   * nav scrolls away, so nothing covers the top of the screen.
+   */
+  .guide-section { scroll-margin-top: 2rem; }
   .guide-contents a[aria-current="true"] { color: #111827; border-color: #4f46e5; font-weight: 500; }
   .guide-faq summary::-webkit-details-marker { display: none; }
   .guide-faq summary { list-style: none; }
   .guide-faq[open] .guide-faq-chevron { transform: rotate(180deg); }
+  /*
+   * The index's search field: the browser's own clear button, drawn in the
+   * grey of the field's icon instead of the browser's blue.
+   */
+  .integrations-search::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 1rem;
+    width: 1rem;
+    cursor: pointer;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M6 18 18 6M6 6l12 12'/%3E%3C/svg%3E") center / 1rem 1rem no-repeat;
+  }
 </style>

@@ -13,7 +13,11 @@ import {
   OpenTelemetryGuide,
 } from "./GuideTypes";
 import { guideSections, GuideSection } from "./GuidePage";
-import { formatCheckedOn, getVerificationRecord } from "./GuideVerifications";
+import {
+  checkedWith,
+  formatCheckedOn,
+  getVerificationRecord,
+} from "./GuideVerifications";
 import {
   getGuideEntry,
   getGuideLanguageGroup,
@@ -145,7 +149,7 @@ export function generateGuideMarkdown(
 
   if (record) {
     lines.push(
-      `Checked end to end on ${formatCheckedOn(record.checkedOn)} with ${record.framework}, ${record.runtime}.`,
+      `Checked end to end on ${formatCheckedOn(record.checkedOn)} with ${checkedWith(record).join(", ")}.`,
     );
   }
 

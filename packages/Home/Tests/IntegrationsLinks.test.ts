@@ -69,12 +69,38 @@ describe("the nav and the footer", () => {
     );
 
     expect(links.length).toBe(1);
-    expect(textOf(links[0]!)).toBe(
-      "Integrations OpenTelemetry for your framework",
-    );
+    expect(textOf(links[0]!)).toBe("Integrations OpenTelemetry guides");
     expect(links[0]!.previousElementSibling?.getAttribute("href")).toBe(
       "/books",
     );
+  });
+
+  test("describe the integrations in one line, no longer than their neighbours' in the Resources menu", () => {
+    const link: Element = nav.querySelector(
+      `#resources-menu a[href="${OPEN_TELEMETRY_GUIDES_INDEX_PATH}"]`,
+    )!;
+    // The Learn grid: two columns of entries, each a name over one line.
+    const neighbours: Array<Element> = Array.from(
+      link.parentElement!.querySelectorAll(":scope > a"),
+    ).filter((entry: Element): boolean => {
+      return entry !== link;
+    });
+    const descriptionOf: (entry: Element) => string = (
+      entry: Element,
+    ): string => {
+      return textOf(entry.querySelector("p.text-xs"));
+    };
+
+    expect(neighbours.length).toBeGreaterThan(0);
+    // The grid stays two even columns.
+    expect((neighbours.length + 1) % 2).toBe(0);
+    const longest: number = Math.max(
+      ...neighbours.map((entry: Element): number => {
+        return descriptionOf(entry).length;
+      }),
+    );
+    expect(descriptionOf(link)).toBe("OpenTelemetry guides");
+    expect(descriptionOf(link).length).toBeLessThanOrEqual(longest);
   });
 
   test("list them in the phone menu, keeping its two columns even", () => {

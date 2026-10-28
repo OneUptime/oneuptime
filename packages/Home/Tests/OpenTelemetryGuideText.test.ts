@@ -1,10 +1,12 @@
 import {
+  UNBROKEN_CODE_LENGTH,
   inlineTextLinks,
   inlineTextProblems,
   inlineTextToHtml,
   inlineTextToPlainText,
   parseInlineText,
 } from "../Utils/Integrations/OpenTelemetry/GuideText";
+import { JSDOM } from "jsdom";
 import { highlightSnippet } from "../Utils/Integrations/OpenTelemetry/GuideHighlight";
 import { listInWords } from "../Utils/Integrations/OpenTelemetry/IntegrationsIndex";
 import {
@@ -65,6 +67,65 @@ describe("a guide's inline text", () => {
     expect(
       inlineTextToHtml("[Ingestion keys](/docs/telemetry/ingestion-keys)"),
     ).not.toContain("target=");
+  });
+
+  test("draws code that wraps with a box on each line it spans", () => {
+    const code: Element = new JSDOM(
+      inlineTextToHtml(
+        'Record it: `span.addEvent("exception", { "exception.type": "CardDeclined" })`.',
+      ),
+    ).window.document.querySelector("code")!;
+
+    expect(code.classList.contains("box-decoration-clone")).toBe(true);
+    // Too long for a phone's line: it may break where it has to.
+    expect(code.classList.contains("break-words")).toBe(true);
+    expect(code.classList.contains("whitespace-nowrap")).toBe(false);
+  });
+
+  test("keeps a short name such as `bun add` on one line, and lets a long one break", () => {
+    const codes: Array<Element> = Array.from(
+      new JSDOM(
+        inlineTextToHtml(
+          "Use `pnpm add`, `yarn add` or `bun add`, or `@opentelemetry/auto-instrumentations-node`.",
+        ),
+      ).window.document.querySelectorAll("code"),
+    );
+
+    expect(
+      codes.map((code: Element): [string, boolean] => {
+        return [
+          code.textContent || "",
+          code.classList.contains("whitespace-nowrap"),
+        ];
+      }),
+    ).toEqual([
+      ["pnpm add", true],
+      ["yarn add", true],
+      ["bun add", true],
+      ["@opentelemetry/auto-instrumentations-node", false],
+    ]);
+    for (const code of codes) {
+      expect(code.classList.contains("box-decoration-clone")).toBe(true);
+    }
+  });
+
+  test("keeps a name of exactly the unbroken length whole, and one character more breakable", () => {
+    const classesOf: (code: string) => DOMTokenList = (
+      code: string,
+    ): DOMTokenList => {
+      return new JSDOM(
+        inlineTextToHtml(`\`${code}\``),
+      ).window.document.querySelector("code")!.classList;
+    };
+
+    expect(
+      classesOf("x".repeat(UNBROKEN_CODE_LENGTH)).contains("whitespace-nowrap"),
+    ).toBe(true);
+    expect(
+      classesOf("x".repeat(UNBROKEN_CODE_LENGTH + 1)).contains(
+        "whitespace-nowrap",
+      ),
+    ).toBe(false);
   });
 
   test("keeps code inside a link's words", () => {

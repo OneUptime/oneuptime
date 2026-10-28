@@ -36434,5 +36434,5 @@
   "Expires {{time}}": "{{time}}に期限切れ",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "この日時を過ぎると、ルールは再びそれを検出します。誰かが削除するまで例外を残すには、空欄のままにしてください。",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "スキャナー、バックアップ ジョブ、計画したテストなど、想定内のものでこのルールが発火しないようにします。",
-  "For your framework": "フレームワーク別"
+  "Step-by-step guides": "手順ガイド"
 }
