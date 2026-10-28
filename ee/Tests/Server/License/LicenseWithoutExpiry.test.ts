@@ -294,14 +294,16 @@ describe("EnterpriseEdition with a token that has no recorded expiry", () => {
     );
   };
 
-  test("SCIM, audit logging, retention overrides and status pages without Powered by OneUptime keep running through the trial", () => {
+  test("SCIM, audit logging, retention overrides, status pages without Powered by OneUptime and custom notification channels keep running through the trial", () => {
     expect(RUNTIME_ENTERPRISE_FEATURES).toEqual([
       EnterpriseFeature.SCIM,
       EnterpriseFeature.AuditLogs,
       EnterpriseFeature.TelemetryRetention,
       EnterpriseFeature.StatusPageBranding,
+      EnterpriseFeature.CustomNotificationChannels,
     ]);
     expect(runtimeAnswers(snapshotAt(DAY_IN_MS))).toEqual([
+      true,
       true,
       true,
       true,
@@ -312,11 +314,13 @@ describe("EnterpriseEdition with a token that has no recorded expiry", () => {
       true,
       true,
       true,
+      true,
     ]);
   });
 
   test("they stop once the trial has ended, exactly as for an unlicensed install", () => {
     expect(runtimeAnswers(snapshotAt(TRIAL_DAYS * DAY_IN_MS + 1))).toEqual([
+      false,
       false,
       false,
       false,
@@ -343,8 +347,8 @@ describe("EnterpriseEdition with a token that has no recorded expiry", () => {
    * so whether the trial is over is UNKNOWN. The runtime fails open on it and
    * configuration fails closed - the same as for an install with no token at
    * all. If the fallback ever collapsed the two states into one, an install
-   * that cannot record its stamp would lose SCIM, audit logging and retention
-   * overrides instead of keeping them.
+   * that cannot record its stamp would lose SCIM, audit logging, retention
+   * overrides and its custom notification channels instead of keeping them.
    */
   test("with no first-run stamp the runtime still fails open and configuration still fails closed", () => {
     const snapshot: EnterpriseLicenseSnapshot = LicenseInputsUtil.toSnapshot(
@@ -363,7 +367,7 @@ describe("EnterpriseEdition with a token that has no recorded expiry", () => {
     expect(EnterpriseLicenseSnapshotUtil.isTrialStartUnknown(snapshot)).toBe(
       true,
     );
-    expect(runtimeAnswers(snapshot)).toEqual([true, true, true, true]);
+    expect(runtimeAnswers(snapshot)).toEqual([true, true, true, true, true]);
     expect(
       EnterpriseEdition.isFeatureAvailableSync(EnterpriseFeature.SCIM),
     ).toBe(false);
