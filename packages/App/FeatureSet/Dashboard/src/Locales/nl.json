@@ -36531,8 +36531,6 @@
   "Fewer than": "Minder dan",
   "For several rules, or a rule with more than one filter.": "Voor meerdere regels, of een regel met meer dan één filter.",
   "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.": "Volledige DNSSEC-validatie: DNSKEY, DS, RRSIG en het gedrag van de resolver.",
-  "Get alerted about logs like these.": "Krijg een waarschuwing bij logs zoals deze.",
-  "Get alerted about requests like these.": "Krijg een waarschuwing bij verzoeken zoals deze.",
   "Get alerted when this exception happens again.": "Krijg een waarschuwing wanneer deze uitzondering opnieuw optreedt.",
   "Goes above a value": "Komt boven een waarde",
   "Have something call OneUptime - heartbeats, cron jobs, and webhooks.": "Laat iets OneUptime aanroepen: heartbeats, cronjobs en webhooks.",
@@ -36624,7 +36622,6 @@
   "The metric's average goes above a value.": "Het gemiddelde van de metriek komt boven een waarde.",
   "The monitor goes back to its default status when the rule stops matching.": "De monitor keert terug naar zijn standaardstatus wanneer de regel niet meer overeenkomt.",
   "The monitor's status while the rule does not match.": "De status van de monitor zolang de regel niet overeenkomt.",
-  "The preview could not be counted: {{reason}}": "De voorvertoning kon niet worden geteld: {{reason}}",
   "The rule this monitor checks every minute.": "De regel die deze monitor elke minuut controleert.",
   "The rule's filter, and every setting of its alert or incident.": "Het filter van de regel en elke instelling van de waarschuwing of het incident.",
   "The spans these filters match now, to check them before you save.": "De spans die deze filters nu vinden, om te controleren voordat je opslaat.",
@@ -36697,5 +36694,8 @@
   "Only logs whose attributes match all of these. Empty: any attributes.": "Alleen logs waarvan de attributen aan al deze voorwaarden voldoen. Leeg: willekeurige attributen.",
   "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Alleen spans van deze hosts, clusters of andere infrastructuur. Leeg: alle infrastructuur.",
   "Only spans from these services. Empty: every service.": "Alleen spans uit deze services. Leeg: elke service.",
-  "Only spans whose attributes match all of these. Empty: any attributes.": "Alleen spans waarvan de attributen aan al deze voorwaarden voldoen. Leeg: willekeurige attributen."
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Alleen spans waarvan de attributen aan al deze voorwaarden voldoen. Leeg: willekeurige attributen.",
+  "Create monitor: get alerted about logs like these.": "Monitor maken: krijg een waarschuwing bij logs zoals deze.",
+  "Create monitor: get alerted about requests like these.": "Monitor maken: krijg een waarschuwing bij verzoeken zoals deze.",
+  "The preview could not be loaded: {{reason}}": "De voorvertoning kon niet worden geladen: {{reason}}"
 }

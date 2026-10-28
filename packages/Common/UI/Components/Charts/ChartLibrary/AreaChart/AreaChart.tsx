@@ -1316,6 +1316,9 @@ const AreaChart: React.ForwardRefExoticComponent<
                       stroke={refLine.color}
                       strokeDasharray={refLine.strokeDasharray || "4 4"}
                       strokeWidth={1.5}
+                      {...(refLine.extendsDomain
+                        ? { ifOverflow: "extendDomain" as const }
+                        : {})}
                     >
                       {refLine.label && (
                         <Label

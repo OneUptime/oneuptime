@@ -36531,8 +36531,6 @@
   "Fewer than": "Fewer than",
   "For several rules, or a rule with more than one filter.": "For several rules, or a rule with more than one filter.",
   "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.": "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.",
-  "Get alerted about logs like these.": "Get alerted about logs like these.",
-  "Get alerted about requests like these.": "Get alerted about requests like these.",
   "Get alerted when this exception happens again.": "Get alerted when this exception happens again.",
   "Goes above a value": "Goes above a value",
   "Have something call OneUptime - heartbeats, cron jobs, and webhooks.": "Have something call OneUptime - heartbeats, cron jobs, and webhooks.",
@@ -36624,7 +36622,6 @@
   "The metric's average goes above a value.": "The metric's average goes above a value.",
   "The monitor goes back to its default status when the rule stops matching.": "The monitor goes back to its default status when the rule stops matching.",
   "The monitor's status while the rule does not match.": "The monitor's status while the rule does not match.",
-  "The preview could not be counted: {{reason}}": "The preview could not be counted: {{reason}}",
   "The rule this monitor checks every minute.": "The rule this monitor checks every minute.",
   "The rule's filter, and every setting of its alert or incident.": "The rule's filter, and every setting of its alert or incident.",
   "The spans these filters match now, to check them before you save.": "The spans these filters match now, to check them before you save.",
@@ -36697,5 +36694,8 @@
   "Only logs whose attributes match all of these. Empty: any attributes.": "Only logs whose attributes match all of these. Empty: any attributes.",
   "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.",
   "Only spans from these services. Empty: every service.": "Only spans from these services. Empty: every service.",
-  "Only spans whose attributes match all of these. Empty: any attributes.": "Only spans whose attributes match all of these. Empty: any attributes."
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Only spans whose attributes match all of these. Empty: any attributes.",
+  "Create monitor: get alerted about logs like these.": "Create monitor: get alerted about logs like these.",
+  "Create monitor: get alerted about requests like these.": "Create monitor: get alerted about requests like these.",
+  "The preview could not be loaded: {{reason}}": "The preview could not be loaded: {{reason}}"
 }

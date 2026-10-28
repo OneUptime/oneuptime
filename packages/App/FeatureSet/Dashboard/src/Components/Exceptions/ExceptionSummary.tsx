@@ -320,8 +320,15 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
           </div>
 
           {props.actions && (
+            /*
+             * Under the exception, the actions start where its words do,
+             * past the status icon (44px and the 16px gap) where it shows,
+             * and each Button's own dialog-footer margin (md:ml-3) is taken
+             * off, so the first one lines up with the words and the gap
+             * between them is the row's own.
+             */
             <div
-              className="flex flex-shrink-0 flex-wrap items-center gap-2 [@container(min-width:56rem)]:justify-end"
+              className="flex flex-shrink-0 flex-wrap items-center gap-2 sm:gap-3 sm:ps-[3.75rem] [@container(min-width:56rem)]:justify-end [@container(min-width:56rem)]:ps-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0"
               data-testid="exception-summary-actions"
             >
               {props.actions}

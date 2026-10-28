@@ -36531,8 +36531,6 @@
   "Fewer than": "少於",
   "For several rules, or a rule with more than one filter.": "適用於多條規則，或含有多個篩選條件的規則。",
   "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.": "完整的 DNSSEC 驗證：DNSKEY、DS、RRSIG 與解析器行為。",
-  "Get alerted about logs like these.": "針對這類日誌發出警示。",
-  "Get alerted about requests like these.": "針對這類請求發出警示。",
   "Get alerted when this exception happens again.": "此例外再次發生時發出警示。",
   "Goes above a value": "超過某個值",
   "Have something call OneUptime - heartbeats, cron jobs, and webhooks.": "讓其他系統呼叫 OneUptime：心跳、排程工作與 Webhook。",
@@ -36624,7 +36622,6 @@
   "The metric's average goes above a value.": "指標的平均值超過某個值。",
   "The monitor goes back to its default status when the rule stops matching.": "規則不再相符時，監測器會回到預設狀態。",
   "The monitor's status while the rule does not match.": "規則不相符期間的監測器狀態。",
-  "The preview could not be counted: {{reason}}": "無法計算預覽：{{reason}}",
   "The rule this monitor checks every minute.": "此監測器每分鐘檢查的規則。",
   "The rule's filter, and every setting of its alert or incident.": "規則的篩選條件，以及其警示或事件的所有設定。",
   "The spans these filters match now, to check them before you save.": "這些篩選條件目前相符的跨度，方便儲存前確認。",
@@ -36697,5 +36694,8 @@
   "Only logs whose attributes match all of these. Empty: any attributes.": "僅屬性符合以下全部條件的日誌。留空：任意屬性。",
   "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "僅來自這些主機、叢集或其他基礎設施的跨度。留空：所有基礎設施。",
   "Only spans from these services. Empty: every service.": "僅這些服務的跨度。留空：所有服務。",
-  "Only spans whose attributes match all of these. Empty: any attributes.": "僅屬性符合以下全部條件的跨度。留空：任意屬性。"
+  "Only spans whose attributes match all of these. Empty: any attributes.": "僅屬性符合以下全部條件的跨度。留空：任意屬性。",
+  "Create monitor: get alerted about logs like these.": "建立監測器：針對這類日誌發出警示。",
+  "Create monitor: get alerted about requests like these.": "建立監測器：針對這類請求發出警示。",
+  "The preview could not be loaded: {{reason}}": "無法載入預覽：{{reason}}"
 }

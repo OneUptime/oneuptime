@@ -196,3 +196,67 @@ describe("Create monitor from where the data is", () => {
     expect(source).toContain("{canCreateMonitor ? ( <Button");
   });
 });
+
+// Every .tsx file under a folder, by its path from the Dashboard's src.
+function tsxFilesUnder(relative: string): Array<string> {
+  const found: Array<string> = [];
+  const walk: (folder: string) => void = (folder: string): void => {
+    for (const entry of fs.readdirSync(path.join(DASHBOARD, folder), {
+      withFileTypes: true,
+    })) {
+      const child: string = path.join(folder, entry.name);
+
+      if (entry.isDirectory()) {
+        walk(child);
+      } else if (entry.name.endsWith(".tsx")) {
+        found.push(child);
+      }
+    }
+  };
+
+  walk(relative);
+
+  return found;
+}
+
+describe("a Metrics monitor's red line", () => {
+  test("its chart stretches the value axis to the rule's line, and only its chart does", () => {
+    // The form asks for it ...
+    expect(
+      readSquashed(
+        "Components/Form/Monitor/MetricMonitor/MetricMonitorStepForm.tsx",
+      ),
+    ).toContain("thresholdLinesExtendAxis={true}");
+
+    // ... the view hands it to its charts ...
+    expect(readSquashed("Components/Metrics/MetricView.tsx")).toContain(
+      "thresholdLinesExtendAxis={props.thresholdLinesExtendAxis}",
+    );
+
+    // ... which give it to every query's and every formula's lines.
+    const charts: string = readSquashed("Components/Metrics/MetricCharts.tsx");
+    expect(
+      charts.split("extendsDomain: props.thresholdLinesExtendAxis,").length - 1,
+    ).toBe(2);
+
+    /*
+     * Nothing else turns it on: a dashboard's or the explorer's axis
+     * follows its data, a threshold far above it never squeezing it flat.
+     */
+    const askers: Array<string> = tsxFilesUnder(".").filter(
+      (file: string): boolean => {
+        return read(file).includes("thresholdLinesExtendAxis={true}");
+      },
+    );
+
+    expect(askers).toEqual([
+      path.join(
+        "Components",
+        "Form",
+        "Monitor",
+        "MetricMonitor",
+        "MetricMonitorStepForm.tsx",
+      ),
+    ]);
+  });
+});

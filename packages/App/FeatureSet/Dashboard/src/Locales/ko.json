@@ -36531,8 +36531,6 @@
   "Fewer than": "미만",
   "For several rules, or a rule with more than one filter.": "여러 규칙이나 필터가 둘 이상인 규칙용입니다.",
   "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.": "전체 DNSSEC 검증(DNSKEY, DS, RRSIG, 리졸버 동작).",
-  "Get alerted about logs like these.": "이와 같은 로그에 대해 알림을 받습니다.",
-  "Get alerted about requests like these.": "이와 같은 요청에 대해 알림을 받습니다.",
   "Get alerted when this exception happens again.": "이 예외가 다시 발생하면 알림을 받습니다.",
   "Goes above a value": "값을 넘음",
   "Have something call OneUptime - heartbeats, cron jobs, and webhooks.": "무언가가 OneUptime을 호출하게 합니다(하트비트, 크론 작업, 웹훅).",
@@ -36624,7 +36622,6 @@
   "The metric's average goes above a value.": "메트릭 평균이 값을 넘습니다.",
   "The monitor goes back to its default status when the rule stops matching.": "규칙이 더 이상 일치하지 않으면 모니터는 기본 상태로 돌아갑니다.",
   "The monitor's status while the rule does not match.": "규칙이 일치하지 않는 동안의 모니터 상태.",
-  "The preview could not be counted: {{reason}}": "미리 보기를 계산하지 못했습니다: {{reason}}",
   "The rule this monitor checks every minute.": "이 모니터가 매분 확인하는 규칙입니다.",
   "The rule's filter, and every setting of its alert or incident.": "규칙의 필터와, 그 알림이나 인시던트의 모든 설정.",
   "The spans these filters match now, to check them before you save.": "저장하기 전에 확인할 수 있도록, 지금 이 필터에 일치하는 스팬입니다.",
@@ -36697,5 +36694,8 @@
   "Only logs whose attributes match all of these. Empty: any attributes.": "속성이 이 조건에 모두 맞는 로그만. 비우면 속성과 관계없이.",
   "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "이 호스트, 클러스터 또는 기타 인프라의 스팬만. 비우면 모든 인프라.",
   "Only spans from these services. Empty: every service.": "이 서비스의 스팬만. 비우면 모든 서비스.",
-  "Only spans whose attributes match all of these. Empty: any attributes.": "속성이 이 조건에 모두 맞는 스팬만. 비우면 속성과 관계없이."
+  "Only spans whose attributes match all of these. Empty: any attributes.": "속성이 이 조건에 모두 맞는 스팬만. 비우면 속성과 관계없이.",
+  "Create monitor: get alerted about logs like these.": "모니터 생성: 이와 같은 로그에 대해 알림을 받습니다.",
+  "Create monitor: get alerted about requests like these.": "모니터 생성: 이와 같은 요청에 대해 알림을 받습니다.",
+  "The preview could not be loaded: {{reason}}": "미리 보기를 불러오지 못했습니다: {{reason}}"
 }

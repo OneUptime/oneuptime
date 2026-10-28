@@ -36531,8 +36531,6 @@
   "Fewer than": "Menos de",
   "For several rules, or a rule with more than one filter.": "Para varias reglas, o una regla con más de un filtro.",
   "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.": "Validación DNSSEC completa: DNSKEY, DS, RRSIG y comportamiento del resolvedor.",
-  "Get alerted about logs like these.": "Recibe alertas de registros como estos.",
-  "Get alerted about requests like these.": "Recibe alertas de solicitudes como estas.",
   "Get alerted when this exception happens again.": "Recibe una alerta cuando esta excepción vuelva a ocurrir.",
   "Goes above a value": "Supera un valor",
   "Have something call OneUptime - heartbeats, cron jobs, and webhooks.": "Haz que algo llame a OneUptime: heartbeats, tareas cron y webhooks.",
@@ -36624,7 +36622,6 @@
   "The metric's average goes above a value.": "La media de la métrica supera un valor.",
   "The monitor goes back to its default status when the rule stops matching.": "El monitor vuelve a su estado predeterminado cuando la regla deja de coincidir.",
   "The monitor's status while the rule does not match.": "El estado del monitor mientras la regla no coincide.",
-  "The preview could not be counted: {{reason}}": "No se pudo calcular la vista previa: {{reason}}",
   "The rule this monitor checks every minute.": "La regla que este monitor comprueba cada minuto.",
   "The rule's filter, and every setting of its alert or incident.": "El filtro de la regla y cada ajuste de su alerta o incidente.",
   "The spans these filters match now, to check them before you save.": "Los spans que estos filtros encuentran ahora, para revisarlos antes de guardar.",
@@ -36697,5 +36694,8 @@
   "Only logs whose attributes match all of these. Empty: any attributes.": "Solo registros cuyos atributos cumplen todas estas condiciones. Vacío: cualquier atributo.",
   "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Solo spans de estos hosts, clústeres u otra infraestructura. Vacío: toda la infraestructura.",
   "Only spans from these services. Empty: every service.": "Solo spans de estos servicios. Vacío: todos los servicios.",
-  "Only spans whose attributes match all of these. Empty: any attributes.": "Solo spans cuyos atributos cumplen todas estas condiciones. Vacío: cualquier atributo."
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Solo spans cuyos atributos cumplen todas estas condiciones. Vacío: cualquier atributo.",
+  "Create monitor: get alerted about logs like these.": "Crear monitor: recibe alertas de registros como estos.",
+  "Create monitor: get alerted about requests like these.": "Crear monitor: recibe alertas de solicitudes como estas.",
+  "The preview could not be loaded: {{reason}}": "No se pudo cargar la vista previa: {{reason}}"
 }

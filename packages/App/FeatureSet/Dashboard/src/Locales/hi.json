@@ -36531,8 +36531,6 @@
   "Fewer than": "कम",
   "For several rules, or a rule with more than one filter.": "कई नियमों के लिए, या एक से अधिक फ़िल्टर वाले नियम के लिए।",
   "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.": "पूरा DNSSEC सत्यापन: DNSKEY, DS, RRSIG और रिज़ॉल्वर का व्यवहार।",
-  "Get alerted about logs like these.": "ऐसे लॉग पर अलर्ट पाएँ।",
-  "Get alerted about requests like these.": "ऐसे अनुरोधों पर अलर्ट पाएँ।",
   "Get alerted when this exception happens again.": "यह अपवाद दोबारा होने पर अलर्ट पाएँ।",
   "Goes above a value": "किसी मान से ऊपर जाए",
   "Have something call OneUptime - heartbeats, cron jobs, and webhooks.": "किसी चीज़ से OneUptime को कॉल करवाएँ: हार्टबीट, क्रॉन जॉब और वेबहुक।",
@@ -36624,7 +36622,6 @@
   "The metric's average goes above a value.": "मेट्रिक का औसत किसी मान से ऊपर जाए।",
   "The monitor goes back to its default status when the rule stops matching.": "नियम का मेल खाना बंद होने पर मॉनिटर अपनी डिफ़ॉल्ट स्थिति में लौट आता है।",
   "The monitor's status while the rule does not match.": "नियम मेल न खाने के दौरान मॉनिटर की स्थिति।",
-  "The preview could not be counted: {{reason}}": "पूर्वावलोकन की गिनती नहीं हो सकी: {{reason}}",
   "The rule this monitor checks every minute.": "वह नियम जिसे यह मॉनिटर हर मिनट जाँचता है।",
   "The rule's filter, and every setting of its alert or incident.": "नियम का फ़िल्टर, और उसके अलर्ट या घटना की हर सेटिंग।",
   "The spans these filters match now, to check them before you save.": "ये फ़िल्टर अभी जिन स्पैन से मेल खाते हैं, ताकि आप सहेजने से पहले जाँच सकें।",
@@ -36697,5 +36694,8 @@
   "Only logs whose attributes match all of these. Empty: any attributes.": "केवल वे लॉग जिनकी विशेषताएं इन सभी से मेल खाएं। खाली: कोई भी विशेषताएं।",
   "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "केवल इन होस्ट, क्लस्टर या दूसरे बुनियादी ढांचे के स्पैन। खाली: पूरा बुनियादी ढांचा।",
   "Only spans from these services. Empty: every service.": "केवल इन सेवाओं के स्पैन। खाली: हर सेवा।",
-  "Only spans whose attributes match all of these. Empty: any attributes.": "केवल वे स्पैन जिनकी विशेषताएं इन सभी से मेल खाएं। खाली: कोई भी विशेषताएं।"
+  "Only spans whose attributes match all of these. Empty: any attributes.": "केवल वे स्पैन जिनकी विशेषताएं इन सभी से मेल खाएं। खाली: कोई भी विशेषताएं।",
+  "Create monitor: get alerted about logs like these.": "मॉनिटर बनाएं: ऐसे लॉग पर अलर्ट पाएँ।",
+  "Create monitor: get alerted about requests like these.": "मॉनिटर बनाएं: ऐसे अनुरोधों पर अलर्ट पाएँ।",
+  "The preview could not be loaded: {{reason}}": "पूर्वावलोकन लोड नहीं हो सका: {{reason}}"
 }

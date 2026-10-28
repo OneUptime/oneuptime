@@ -209,7 +209,7 @@ const TelemetryRulePreview: FunctionComponent<ComponentProps> = (
       >
         <span className="min-w-0">
           {translator.translateTemplate(
-            "The preview could not be counted: {{reason}}",
+            "The preview could not be loaded: {{reason}}",
             { reason: error },
           )}
         </span>
@@ -308,6 +308,11 @@ const TelemetryRulePreview: FunctionComponent<ComponentProps> = (
           heightInPx={176}
           showLegend={false}
           disableTimeRangeZoom={true}
+          /*
+           * The rule's number as a red line, always on the chart: a number
+           * above every window (the one Use offers) stretches the axis to
+           * it rather than leaving the line off the top.
+           */
           referenceLines={
             hasThreshold
               ? [
@@ -315,6 +320,7 @@ const TelemetryRulePreview: FunctionComponent<ComponentProps> = (
                     value: props.threshold as number,
                     color: "#e11d48",
                     strokeDasharray: "4 4",
+                    extendsDomain: true,
                   },
                 ]
               : undefined

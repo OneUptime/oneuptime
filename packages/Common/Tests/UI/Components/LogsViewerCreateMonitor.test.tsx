@@ -55,7 +55,10 @@ postMock.mockImplementation(() => {
 });
 
 import LogsViewer from "../../../UI/Components/LogsViewer/LogsViewer";
-import { LOGS_VIEWER_TOOLBAR_TEST_ID } from "../../../UI/Components/LogsViewer/components/LogsViewerToolbar";
+import {
+  LOGS_VIEWER_CREATE_MONITOR_LABEL_CLASS_NAME,
+  LOGS_VIEWER_TOOLBAR_TEST_ID,
+} from "../../../UI/Components/LogsViewer/components/LogsViewerToolbar";
 
 async function renderViewer(
   props: Partial<React.ComponentProps<typeof LogsViewer>> = {},
@@ -104,6 +107,44 @@ describe("Create monitor in the logs explorer's toolbar", () => {
     fireEvent.click(button);
 
     expect(onCreateMonitor).toHaveBeenCalledTimes(1);
+  });
+
+  test("is named Create monitor even where only its bell shows, and says so when hovered", async () => {
+    await renderViewer({
+      onCreateMonitor: () => {},
+    });
+
+    const toolbar: HTMLElement = screen.getByTestId(
+      LOGS_VIEWER_TOOLBAR_TEST_ID,
+    );
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "Create monitor",
+    });
+    const label: HTMLElement = screen.getByTestId("logs-create-monitor-label");
+
+    expect(button).toBe(screen.getByTestId("logs-create-monitor"));
+    expect(button).toContainElement(label);
+
+    /*
+     * Its words on a phone (the toolbar wraps there) and on a toolbar of
+     * 77rem and more, the toolbar being the container; the bell alone
+     * between the two, so a 1280px window keeps the row on one line.
+     */
+    expect(toolbar.className).toContain("[container-type:inline-size]");
+    expect(label.className).toBe(LOGS_VIEWER_CREATE_MONITOR_LABEL_CLASS_NAME);
+    expect(LOGS_VIEWER_CREATE_MONITOR_LABEL_CLASS_NAME.split(" ")).toEqual([
+      "md:hidden",
+      "[@container(min-width:77rem)]:inline",
+    ]);
+
+    // The tooltip names it, for whoever sees only the bell.
+    fireEvent.mouseEnter(button);
+
+    expect(
+      await screen.findByText(
+        "Create monitor: get alerted about logs like these.",
+      ),
+    ).toBeInTheDocument();
   });
 
   test("is not drawn for any other logs view", async () => {

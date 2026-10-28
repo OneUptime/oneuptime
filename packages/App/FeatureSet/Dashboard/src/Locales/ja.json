@@ -36531,8 +36531,6 @@
   "Fewer than": "より少ない",
   "For several rules, or a rule with more than one filter.": "複数のルール、または複数のフィルターを持つルール向けです。",
   "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.": "完全な DNSSEC 検証（DNSKEY、DS、RRSIG、リゾルバーの動作）。",
-  "Get alerted about logs like these.": "このようなログでアラートを受け取ります。",
-  "Get alerted about requests like these.": "このようなリクエストでアラートを受け取ります。",
   "Get alerted when this exception happens again.": "この例外が再発したときにアラートを受け取ります。",
   "Goes above a value": "値を上回る",
   "Have something call OneUptime - heartbeats, cron jobs, and webhooks.": "何かから OneUptime を呼び出します（ハートビート、cron ジョブ、Webhook）。",
@@ -36624,7 +36622,6 @@
   "The metric's average goes above a value.": "メトリクスの平均が値を上回ります。",
   "The monitor goes back to its default status when the rule stops matching.": "ルールが一致しなくなると、モニターはデフォルトのステータスに戻ります。",
   "The monitor's status while the rule does not match.": "ルールが一致していない間のモニターのステータス。",
-  "The preview could not be counted: {{reason}}": "プレビューを集計できませんでした: {{reason}}",
   "The rule this monitor checks every minute.": "このモニターが毎分チェックするルールです。",
   "The rule's filter, and every setting of its alert or incident.": "ルールのフィルターと、そのアラートまたはインシデントのすべての設定。",
   "The spans these filters match now, to check them before you save.": "保存前に確認できるよう、これらのフィルターに今一致するスパンを表示します。",
@@ -36697,5 +36694,8 @@
   "Only logs whose attributes match all of these. Empty: any attributes.": "属性がこれらすべてに一致するログだけ。空欄: 属性を問いません。",
   "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "これらのホスト、クラスター、その他のインフラストラクチャのスパンだけ。空欄: すべてのインフラストラクチャ。",
   "Only spans from these services. Empty: every service.": "これらのサービスのスパンだけ。空欄: すべてのサービス。",
-  "Only spans whose attributes match all of these. Empty: any attributes.": "属性がこれらすべてに一致するスパンだけ。空欄: 属性を問いません。"
+  "Only spans whose attributes match all of these. Empty: any attributes.": "属性がこれらすべてに一致するスパンだけ。空欄: 属性を問いません。",
+  "Create monitor: get alerted about logs like these.": "モニターを作成: このようなログでアラートを受け取ります。",
+  "Create monitor: get alerted about requests like these.": "モニターを作成: このようなリクエストでアラートを受け取ります。",
+  "The preview could not be loaded: {{reason}}": "プレビューを読み込めませんでした: {{reason}}"
 }

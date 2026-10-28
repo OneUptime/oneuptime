@@ -1500,6 +1500,20 @@ test.describe("Create monitor on an exception", () => {
         expect(actionsBox!.y, `the actions at ${width}px`).toBeGreaterThan(
           messageBox!.y,
         );
+
+        /*
+         * ... and the first of them where the exception's words start,
+         * past its status icon: it started under the icon, 12px further in
+         * (each Button's own md:ml-3).
+         */
+        const firstButton: { x: number } | null = await actions
+          .getByTestId("exception-triage-resolve")
+          .boundingBox();
+        expect(firstButton).not.toBeNull();
+        expect(
+          Math.abs(firstButton!.x - messageBox!.x),
+          `the first action against the words at ${width}px`,
+        ).toBeLessThan(2);
       }
 
       await expectNoHorizontalOverflow(page);

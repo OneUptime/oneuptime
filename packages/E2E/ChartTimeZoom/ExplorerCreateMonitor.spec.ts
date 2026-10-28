@@ -192,6 +192,50 @@ test.describe("Create monitor from the logs explorer", () => {
     expect(link.query.serviceIds).toEqual([services[0]!.id]);
   });
 
+  test("the toolbar keeps one line in a 1280px window: the bell alone there, named Create monitor, its words where the row has room", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+
+    for (const width of [1280, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await open(page, LOGS_PATH);
+
+      const button: Locator = page.getByRole("button", {
+        name: "Create monitor",
+      });
+      const label: Locator = page.getByTestId("logs-create-monitor-label");
+      await expect(button).toBeVisible({ timeout: 60000 });
+
+      const live: { y: number } = await boxOf(
+        page.getByRole("button", { name: /Live/ }).first(),
+      );
+      const views: { y: number } = await boxOf(
+        page.getByRole("button", { name: "List" }).first(),
+      );
+
+      // One row: the view buttons, Create monitor and Live share a line.
+      expect(
+        Math.abs(live.y - views.y),
+        `Live against List at ${width}px`,
+      ).toBeLessThan(6);
+      expect(
+        Math.abs((await boxOf(button)).y - views.y),
+        `Create monitor against List at ${width}px`,
+      ).toBeLessThan(6);
+
+      if (width === 1280) {
+        // Its words would push Live onto a row of its own.
+        await expect(label).toBeHidden();
+      } else {
+        await expect(label).toBeVisible();
+        await expect(label).toHaveText("Create monitor");
+      }
+    }
+  });
+
   test("on a phone the button stays on the screen, in the toolbar's own rows", async ({
     page,
   }: {
@@ -208,6 +252,8 @@ test.describe("Create monitor from the logs explorer", () => {
     const box: { x: number; width: number } = await boxOf(button);
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(390);
+    // The toolbar wraps on a phone, so its words have room there.
+    await expect(page.getByTestId("logs-create-monitor-label")).toBeVisible();
   });
 });
 
@@ -278,6 +324,24 @@ test.describe("Create monitor from the trace explorer", () => {
         buttonBox.x >= searchBox.x + searchBox.width - 1 ||
         buttonBox.y > searchBox.y + 10;
       expect(besideOrUnder, `the button at ${width}px`).toBe(true);
+
+      // Named Create monitor whether or not its words show.
+      await expect(
+        page.getByRole("button", { name: "Create monitor" }),
+      ).toBeVisible();
+
+      const label: Locator = page.getByTestId("traces-create-monitor-label");
+
+      if (width === 1280) {
+        /*
+         * The bell alone: with its words the search was squeezed to its
+         * 16rem least; without them it keeps 20rem and more.
+         */
+        await expect(label).toBeHidden();
+        expect(searchBox.width).toBeGreaterThanOrEqual(320);
+      } else if (width === 1440) {
+        await expect(label).toBeVisible();
+      }
     }
   });
 });

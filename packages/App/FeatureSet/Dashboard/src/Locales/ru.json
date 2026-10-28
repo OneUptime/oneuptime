@@ -36531,8 +36531,6 @@
   "Fewer than": "Меньше",
   "For several rules, or a rule with more than one filter.": "Для нескольких правил или правила с несколькими фильтрами.",
   "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.": "Полная проверка DNSSEC: DNSKEY, DS, RRSIG и поведение резолвера.",
-  "Get alerted about logs like these.": "Получать оповещения о таких логах.",
-  "Get alerted about requests like these.": "Получать оповещения о таких запросах.",
   "Get alerted when this exception happens again.": "Получить оповещение, когда это исключение повторится.",
   "Goes above a value": "Превышает значение",
   "Have something call OneUptime - heartbeats, cron jobs, and webhooks.": "Пусть что-то вызывает OneUptime: heartbeat-сигналы, задания cron и вебхуки.",
@@ -36624,7 +36622,6 @@
   "The metric's average goes above a value.": "Среднее значение метрики превышает заданное.",
   "The monitor goes back to its default status when the rule stops matching.": "Монитор возвращается к статусу по умолчанию, когда правило перестаёт срабатывать.",
   "The monitor's status while the rule does not match.": "Статус монитора, пока правило не срабатывает.",
-  "The preview could not be counted: {{reason}}": "Не удалось подсчитать предварительный просмотр: {{reason}}",
   "The rule this monitor checks every minute.": "Правило, которое этот монитор проверяет каждую минуту.",
   "The rule's filter, and every setting of its alert or incident.": "Фильтр правила и все настройки его оповещения или инцидента.",
   "The spans these filters match now, to check them before you save.": "Спаны, подходящие под эти фильтры сейчас, — чтобы проверить их перед сохранением.",
@@ -36697,5 +36694,8 @@
   "Only logs whose attributes match all of these. Empty: any attributes.": "Только логи, атрибуты которых подходят под все эти условия. Пусто: любые атрибуты.",
   "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Только спаны с этих хостов, кластеров или другой инфраструктуры. Пусто: вся инфраструктура.",
   "Only spans from these services. Empty: every service.": "Только спаны из этих служб. Пусто: любая служба.",
-  "Only spans whose attributes match all of these. Empty: any attributes.": "Только спаны, атрибуты которых подходят под все эти условия. Пусто: любые атрибуты."
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Только спаны, атрибуты которых подходят под все эти условия. Пусто: любые атрибуты.",
+  "Create monitor: get alerted about logs like these.": "Создать монитор: получать оповещения о таких логах.",
+  "Create monitor: get alerted about requests like these.": "Создать монитор: получать оповещения о таких запросах.",
+  "The preview could not be loaded: {{reason}}": "Не удалось загрузить предварительный просмотр: {{reason}}"
 }

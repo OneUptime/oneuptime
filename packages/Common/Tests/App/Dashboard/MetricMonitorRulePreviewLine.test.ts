@@ -5,6 +5,8 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MetricMonitor/MetricMonitorStepForm";
 import MetricFormulaConfigData from "../../../Types/Metrics/MetricFormulaConfigData";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
+import { buildThresholdReferenceLines } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/MetricCharts";
+import ChartReferenceLineProps from "../../../UI/Components/Charts/Types/ReferenceLineProps";
 
 /*
  * A Metrics monitor's chart draws the rule's value as a red line across the
@@ -205,5 +207,44 @@ describe("the rule's line on a Metrics monitor's chart", () => {
         threshold: undefined,
       }),
     ).toEqual(changed);
+  });
+});
+
+/*
+ * The red line is on the chart whatever the value: a value above all the
+ * metric does stretches the axis to it, on a Metrics monitor's form only.
+ * Elsewhere (dashboards, the explorer) a threshold far above the data never
+ * squeezes it flat.
+ */
+describe("the threshold lines and the chart's value axis", () => {
+  test("a monitor's form stretches the axis to its warning and critical lines", () => {
+    const drawn: Array<ChartReferenceLineProps> = buildThresholdReferenceLines({
+      warningThreshold: 60,
+      criticalThreshold: 80,
+      unit: "%",
+      extendsDomain: true,
+    });
+
+    expect(
+      drawn.map((line: ChartReferenceLineProps) => {
+        return [line.value, line.extendsDomain];
+      }),
+    ).toEqual([
+      [60, true],
+      [80, true],
+    ]);
+  });
+
+  test("everywhere else the axis follows the data, as it always did", () => {
+    const drawn: Array<ChartReferenceLineProps> = buildThresholdReferenceLines({
+      warningThreshold: 60,
+      criticalThreshold: 80,
+      unit: "%",
+    });
+
+    expect(drawn).toHaveLength(2);
+    for (const line of drawn) {
+      expect(line).not.toHaveProperty("extendsDomain");
+    }
   });
 });

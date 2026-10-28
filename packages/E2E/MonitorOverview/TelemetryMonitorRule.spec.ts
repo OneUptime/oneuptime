@@ -212,6 +212,43 @@ function criteriaOf(
   });
 }
 
+/*
+ * The rule's number as its red line on the preview's chart, inside the
+ * plot rather than off its top.
+ */
+async function expectRuleLineOnChart(page: Page): Promise<void> {
+  const chart: Locator = page
+    .getByTestId("telemetry-rule-preview")
+    .locator("svg.recharts-surface")
+    .first();
+  const line: Locator = page
+    .getByTestId("telemetry-rule-preview")
+    .locator(".recharts-reference-line line");
+
+  await expect(line).toHaveCount(1);
+
+  const chartBox: { y: number; height: number } | null =
+    await chart.boundingBox();
+  const lineBox: { y: number; height: number } | null =
+    await line.boundingBox();
+
+  expect(chartBox).not.toBeNull();
+  expect(lineBox).not.toBeNull();
+  expect(lineBox!.y).toBeGreaterThanOrEqual(chartBox!.y);
+  expect(lineBox!.y + lineBox!.height).toBeLessThanOrEqual(
+    chartBox!.y + chartBox!.height,
+  );
+}
+
+// What has the cursor: its test id, or its tag when it has none.
+async function activeTestId(page: Page): Promise<string> {
+  return page.evaluate((): string => {
+    const active: Element | null = document.activeElement;
+
+    return active?.getAttribute("data-testid") || active?.tagName || "nothing";
+  });
+}
+
 async function noSidewaysScroll(page: Page): Promise<void> {
   const overflow: number = await page.evaluate((): number => {
     return (
@@ -339,6 +376,142 @@ test.describe("A Logs monitor's criteria step", () => {
     await expect(page.getByTestId("telemetry-rule-preview-verdict")).toHaveText(
       "This rule would not have alerted in this time.",
     );
+
+    /*
+     * The number lies above every window, and its red line is still on
+     * the chart: the axis stretches to it (it fell off the top before).
+     */
+    await expectRuleLineOnChart(page);
+  });
+
+  test("windows that held nothing: no number is offered, the line stays drawn, and a silence rule is said to alert at once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+
+    await openCriteria(page, {
+      type: "Logs",
+      name: "Checkout logs",
+      query: "preview=empty",
+    });
+    await previewSettled(page);
+
+    await expect(page.getByTestId("telemetry-rule-preview-verdict")).toHaveText(
+      "Nothing matched in this time.",
+    );
+    // "Use 1" read as advice to alert on the first log.
+    await expect(
+      page.getByTestId("telemetry-rule-preview-suggestion"),
+    ).toHaveCount(0);
+    await expectRuleLineOnChart(page);
+
+    await recipe(page, "logs-stop").click();
+    await previewSettled(page);
+
+    await expect(page.getByTestId("telemetry-rule-preview-verdict")).toHaveText(
+      "Nothing matched in this time, so this rule would alert as soon as the monitor is saved.",
+    );
+  });
+
+  test("a preview stopped at the time limit says why, and Try again reads it again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+
+    await openCriteria(page, {
+      type: "Logs",
+      name: "Checkout logs",
+      query: "preview=fail",
+    });
+
+    const failed: Locator = page.getByTestId("telemetry-rule-preview-error");
+    await expect(failed).toHaveText(
+      "The preview could not be loaded: This query took longer than 45 seconds and was stopped before it finished. Try a shorter time range or more specific filters.Try again",
+      { timeout: 30000 },
+    );
+    await expect(failed).toHaveAttribute("role", "status");
+
+    await failed.getByRole("button", { name: "Try again" }).click();
+
+    await previewSettled(page);
+    await expect(page.getByTestId("telemetry-rule-preview-verdict")).toHaveText(
+      "This rule would have alerted 1 time, for 5 minutes.",
+    );
+    expect(
+      await page.evaluate((): number => {
+        return (
+          (
+            window as unknown as {
+              __monitorOverviewFixture: { previewReads?: number };
+            }
+          ).__monitorOverviewFixture.previewReads || 0
+        );
+      }),
+    ).toBe(2);
+  });
+
+  test("the step opens with the cursor nowhere, and A message appears puts it in Message contains", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+
+    await openCriteria(page, { type: "Logs", name: "Checkout logs" });
+
+    // The first question is the recipe: no field below takes the cursor.
+    expect(await activeTestId(page)).toBe("BODY");
+
+    await recipe(page, "log-message").click();
+
+    // Left empty, it counts every log: the words are asked for at once.
+    await expect(page.getByTestId("log-monitor-message")).toBeFocused();
+    await page.keyboard.type("payment declined");
+    await expect(page.getByTestId("log-monitor-message")).toHaveValue(
+      "payment declined",
+    );
+
+    // Any other recipe leaves the cursor on its card.
+    await recipe(page, "logs-stop").click();
+    expect(await activeTestId(page)).toBe("card-select-option-logs-stop");
+  });
+
+  test("Edit as custom criteria is named on its folded line, and the way back sits in the custom card's header", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+
+    await openCriteria(page, { type: "Logs", name: "Checkout logs" });
+
+    const more: Locator = page.getByTestId("telemetry-rule-more-fields");
+    await expect(more).toContainText("Edit as custom criteria");
+
+    await more.getByRole("button", { name: "More fields" }).first().click();
+    await page.getByTestId("telemetry-rule-edit-as-custom").click();
+
+    const custom: Locator = page.getByTestId("telemetry-rule-custom-criteria");
+    await expect(custom).toBeVisible();
+
+    // A switch of what the card shows: at its header's right edge.
+    const back: Locator = page.getByTestId("telemetry-rule-back-to-simple");
+    const header: Locator = page
+      .getByTestId("card-header")
+      .filter({ has: back });
+    await expect(header).toHaveCount(1);
+    await expect(header).toContainText("When to alert");
+    await expect(custom).not.toContainText("Back to the simple rule");
+
+    await back.click();
+    await expect(page.getByTestId("telemetry-rule-editor")).toBeVisible();
+    await expect(sentence(page)).toHaveText(
+      "Alerts when the number of matching logs in 5 minutes is more than 10.",
+    );
   });
 
   test("Logs stop: silence over 10 minutes declares an incident, and Create Monitor sends that rule", async ({
@@ -456,6 +629,11 @@ test.describe("An Exceptions monitor's criteria step", () => {
       "aria-checked",
       "true",
     );
+    /*
+     * Its first filter, Message contains, took the cursor as the step
+     * opened (and on a phone the keyboard), before the question above it.
+     */
+    expect(await activeTestId(page)).toBe("BODY");
     await expect(
       page.getByText("Exceptions to watch", { exact: true }),
     ).toBeVisible();

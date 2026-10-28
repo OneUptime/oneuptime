@@ -247,7 +247,9 @@ export default class TelemetryRulePreviewUtil {
    * A threshold that would have stayed quiet over the windows read: above
    * the busiest window for a rule that fires on too many, below the
    * quietest for one that fires on too few. Rounded to a number people
-   * write. None for an exact value or an anomaly, and none without data.
+   * write. None for an exact value or an anomaly, and none without data:
+   * windows that held nothing say nothing about a number, and offering 1
+   * for them read as advice to alert on the first log.
    */
   public static suggestThreshold(data: {
     points: Array<TelemetryRulePreviewPoint>;
@@ -263,6 +265,10 @@ export default class TelemetryRulePreviewUtil {
         filterType: undefined,
         threshold: undefined,
       });
+
+    if (!summary.hasData) {
+      return undefined;
+    }
 
     switch (data.filterType) {
       case FilterType.GreaterThan:

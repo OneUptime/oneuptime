@@ -61,9 +61,14 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
+      {/*
+       * A part of the criteria step, not a form of its own: it never takes
+       * the cursor as the step opens (the first question is above it).
+       */}
       <BasicForm
         id="Traces-filter"
         hideSubmitButton={true}
+        disableAutofocus={true}
         initialValues={monitorStepTraceMonitor}
         onChange={(values: MonitorStepTraceMonitor) => {
           props.onMonitorStepTraceMonitorChanged(values);

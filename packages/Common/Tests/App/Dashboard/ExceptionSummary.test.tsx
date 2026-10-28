@@ -341,6 +341,44 @@ describe("ExceptionSummary", () => {
     expect(within(actions).getAllByRole("button")).toHaveLength(3);
   });
 
+  test("under the exception its actions start where its words do, past the status icon, without the buttons' own margin", () => {
+    renderSummary({
+      exception: exceptionWith({ message: "Inventory reservation failed" }),
+      actions: (
+        <>
+          <button type="button">Resolve</button>
+          <button type="button">Create monitor</button>
+        </>
+      ),
+    });
+
+    const actions: HTMLElement = screen.getByTestId(
+      "exception-summary-actions",
+    );
+
+    /*
+     * The status icon (44px and the 16px gap beside it) shows from sm up:
+     * the actions under the words start 3.75rem in, and none at all once
+     * they sit beside the exception.
+     */
+    expect(actions).toHaveClass(
+      "sm:ps-[3.75rem]",
+      "[@container(min-width:56rem)]:ps-0",
+    );
+    expect(screen.getByTestId("exception-summary-status-icon")).toHaveClass(
+      "sm:flex",
+      "h-11",
+      "w-11",
+    );
+    // Each Button's dialog-footer margin (md:ml-3) is taken off, wrapped or not.
+    expect(actions).toHaveClass(
+      "[&>button]:ml-0",
+      "[&>button]:md:ml-0",
+      "[&>*>button]:ml-0",
+      "[&>*>button]:md:ml-0",
+    );
+  });
+
   test("expands and collapses long messages without removing their content", () => {
     const longMessage: string = "x".repeat(
       EXCEPTION_MESSAGE_CLAMP_CHARACTER_COUNT + 1,

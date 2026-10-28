@@ -36531,8 +36531,6 @@
   "Fewer than": "کمتر از",
   "For several rules, or a rule with more than one filter.": "برای چند قانون، یا قانونی با بیش از یک فیلتر.",
   "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.": "اعتبارسنجی کامل DNSSEC: DNSKEY، DS، RRSIG و رفتار حل‌کننده.",
-  "Get alerted about logs like these.": "برای لاگ‌هایی مثل این‌ها هشدار بگیرید.",
-  "Get alerted about requests like these.": "برای درخواست‌هایی مثل این‌ها هشدار بگیرید.",
   "Get alerted when this exception happens again.": "وقتی این استثنا دوباره رخ داد هشدار بگیرید.",
   "Goes above a value": "از یک مقدار بالاتر برود",
   "Have something call OneUptime - heartbeats, cron jobs, and webhooks.": "بگذارید چیزی OneUptime را فرابخواند: ضربان‌ها، کارهای زمان‌بندی‌شده و وب‌هوک‌ها.",
@@ -36624,7 +36622,6 @@
   "The metric's average goes above a value.": "میانگین متریک از یک مقدار بالاتر برود.",
   "The monitor goes back to its default status when the rule stops matching.": "وقتی قانون دیگر منطبق نباشد، مانیتور به وضعیت پیش‌فرض خود برمی‌گردد.",
   "The monitor's status while the rule does not match.": "وضعیت مانیتور تا وقتی قانون منطبق نیست.",
-  "The preview could not be counted: {{reason}}": "پیش‌نمایش شمرده نشد: {{reason}}",
   "The rule this monitor checks every minute.": "قانونی که این مانیتور هر دقیقه بررسی می‌کند.",
   "The rule's filter, and every setting of its alert or incident.": "فیلتر قانون و همهٔ تنظیمات هشدار یا حادثهٔ آن.",
   "The spans these filters match now, to check them before you save.": "اسپن‌هایی که این فیلترها اکنون با آن‌ها منطبق‌اند، تا پیش از ذخیره بررسیشان کنید.",
@@ -36697,5 +36694,8 @@
   "Only logs whose attributes match all of these. Empty: any attributes.": "فقط لاگ‌هایی که ویژگی‌هایشان با همهٔ این‌ها منطبق است. خالی: هر ویژگی‌ای.",
   "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "فقط اسپن‌های این میزبان‌ها، خوشه‌ها یا زیرساخت‌های دیگر. خالی: همهٔ زیرساخت.",
   "Only spans from these services. Empty: every service.": "فقط اسپن‌های این سرویس‌ها. خالی: همهٔ سرویس‌ها.",
-  "Only spans whose attributes match all of these. Empty: any attributes.": "فقط اسپن‌هایی که ویژگی‌هایشان با همهٔ این‌ها منطبق است. خالی: هر ویژگی‌ای."
+  "Only spans whose attributes match all of these. Empty: any attributes.": "فقط اسپن‌هایی که ویژگی‌هایشان با همهٔ این‌ها منطبق است. خالی: هر ویژگی‌ای.",
+  "Create monitor: get alerted about logs like these.": "ساخت مانیتور: برای لاگ‌هایی مثل این‌ها هشدار بگیرید.",
+  "Create monitor: get alerted about requests like these.": "ساخت مانیتور: برای درخواست‌هایی مثل این‌ها هشدار بگیرید.",
+  "The preview could not be loaded: {{reason}}": "پیش‌نمایش بارگذاری نشد: {{reason}}"
 }

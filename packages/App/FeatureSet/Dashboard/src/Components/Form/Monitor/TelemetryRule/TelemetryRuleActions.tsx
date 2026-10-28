@@ -126,6 +126,16 @@ const TelemetryRuleActions: FunctionComponent<ComponentProps> = (
       title: TelemetryRuleCopy.ruleNameTitle,
       isSet: false,
     },
+    /*
+     * The way to several rules is named on the folded header too: it is
+     * where the docs send whoever needs warning and critical bands, and
+     * folded it named only the status and the name.
+     */
+    {
+      key: "customCriteria",
+      title: TelemetryRuleCopy.editAsCustomCriteria,
+      isSet: false,
+    },
   ];
 
   return (

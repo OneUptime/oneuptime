@@ -238,6 +238,12 @@ const MetricMonitorStepForm: FunctionComponent<ComponentProps> = (
         hideCardInCharts={true}
         chartCssClass="rounded-lg border border-gray-200 shadow-sm"
         /*
+         * The rule's value is its red line, on the chart whatever it is: a
+         * value above all the metric does stretches the axis to it rather
+         * than leaving the line off the top.
+         */
+        thresholdLinesExtendAxis={true}
+        /*
          * A drag zooms the preview alone and never reaches the form; a
          * double-click (or Reset zoom) brings the preview's hours back.
          */

@@ -173,6 +173,12 @@ interface MetricViewBodyProps {
   hideCardInCharts?: boolean;
   chartCssClass?: string | undefined;
   /*
+   * Stretch the charts' value axis to take their warning and critical
+   * lines in (MetricCharts): a Metrics monitor's form, whose red line is
+   * the value the rule compares with, sets it.
+   */
+  thresholdLinesExtendAxis?: boolean | undefined;
+  /*
    * Cache-bypass nonce. Bumping it forces a refetch (and a fresh network
    * fetch past the aggregate result cache) even when the fetch-relevant
    * view state hasn't changed — used by the explorer's manual Refresh on
@@ -1555,6 +1561,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                      */
                     aggregationInterval={aggregationInterval}
                     chartCssClass={props.chartCssClass}
+                    thresholdLinesExtendAxis={props.thresholdLinesExtendAxis}
                     enableSeriesActions={props.enableSeriesActions}
                     metricResultsPrevious={
                       props.compareWithPreviousPeriod && metricResultsPrevious

@@ -5,10 +5,12 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { JSONObject } from "../../../Types/JSON";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * "The idea is to make software as simple as possible to use and reduce
@@ -111,7 +113,9 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   };
 });
 
-import LogMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/LogMonitor/LogMonitorStepFrom";
+import LogMonitorStepForm, {
+  LOG_MONITOR_MESSAGE_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/LogMonitor/LogMonitorStepFrom";
 import TraceMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/TraceMonitor/TraceMonitorStepForm";
 import ExceptionMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ExceptionMonitor/ExceptionMonitorStepForm";
 import MonitorStepLogMonitor, {
@@ -418,6 +422,45 @@ describe("Log monitor filters", () => {
 
     expect(moreFields()).toHaveAttribute("aria-expanded", "true");
   });
+
+  test("a part of the criteria step, it takes no cursor as it is drawn", async () => {
+    renderForm();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  test("asked to (A message appears was picked), it puts the cursor in Message contains once, and says so", async () => {
+    const focused: MockFunction = getJestMockFunction();
+
+    render(
+      <LogMonitorStepForm
+        monitorStepLogMonitor={MonitorStepLogMonitorUtil.getDefault()}
+        onMonitorStepLogMonitorChanged={() => {}}
+        attributeKeys={[]}
+        telemetryServices={services()}
+        focusMessageField={true}
+        onMessageFieldFocused={() => {
+          focused();
+        }}
+      />,
+    );
+
+    const message: HTMLElement = await screen.findByTestId(
+      LOG_MONITOR_MESSAGE_TEST_ID,
+    );
+
+    await waitFor(() => {
+      expect(message).toHaveFocus();
+    });
+    expect(message).toBe(
+      screen.getByRole("textbox", { name: "Message contains" }),
+    );
+    expect(focused).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("Trace monitor filters", () => {
@@ -711,5 +754,23 @@ describe("Exception monitor filters", () => {
     expect(
       screen.getByRole("checkbox", { name: "Include Resolved Exceptions" }),
     ).toBeVisible();
+  });
+
+  test("a part of the criteria step, its first field takes no cursor as it is drawn", async () => {
+    /*
+     * Message contains comes first here, and a form's first text field
+     * takes the cursor: on the criteria step it did, under the question
+     * above it - and on a phone it opened the keyboard.
+     */
+    renderForm();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(
+      screen.getByRole("textbox", { name: "Message contains" }),
+    ).not.toHaveFocus();
+    expect(document.activeElement).toBe(document.body);
   });
 });

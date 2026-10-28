@@ -331,13 +331,35 @@ describe("A suggested threshold", () => {
     ).toBe(0);
   });
 
-  test("a quiet scope still suggests at least 1", () => {
+  test("windows that held nothing suggest no number: 1 read as advice to alert on the first log", () => {
+    for (const filterType of [
+      FilterType.GreaterThan,
+      FilterType.GreaterThanOrEqualTo,
+      FilterType.LessThan,
+      FilterType.LessThanOrEqualTo,
+    ]) {
+      expect(
+        TelemetryRulePreviewUtil.suggestThreshold({
+          points: points([0, 0, 0]),
+          filterType,
+        }),
+      ).toBeUndefined();
+    }
+  });
+
+  test("a scope that sent anything at all still suggests at least 1", () => {
     expect(
       TelemetryRulePreviewUtil.suggestThreshold({
-        points: points([0, 0, 0]),
+        points: points([0, 0, 1]),
         filterType: FilterType.GreaterThan,
       }),
-    ).toBe(1);
+    ).toBe(3);
+    expect(
+      TelemetryRulePreviewUtil.suggestThreshold({
+        points: points([0, 1, 0, 0]),
+        filterType: FilterType.GreaterThan,
+      }),
+    ).toBeGreaterThanOrEqual(1);
   });
 
   test("for too few: half the quietest window, none when a window was already empty", () => {

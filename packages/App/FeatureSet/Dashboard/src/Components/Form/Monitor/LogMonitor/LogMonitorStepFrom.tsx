@@ -3,7 +3,12 @@ import MonitorStepLogMonitor, {
 } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -41,6 +46,12 @@ const MORE_LOG_FILTERS: FormFieldCollapsibleSection<MonitorStepLogMonitor> =
 // The fold under the filters that lists the logs they match.
 export const MATCHING_LOGS_TITLE: string = translationKey("Matching logs");
 
+// The Message contains box, which "A message appears" puts the cursor in.
+export const LOG_MONITOR_MESSAGE_TEST_ID: string = "log-monitor-message";
+
+// How many frames the box is looked for before giving up.
+const MESSAGE_FOCUS_FRAME_ATTEMPTS: number = 30;
+
 export interface ComponentProps {
   monitorStepLogMonitor: MonitorStepLogMonitor;
   onMonitorStepLogMonitorChanged: (
@@ -53,6 +64,13 @@ export interface ComponentProps {
   attributeValueSuggestions?: Record<string, Array<string>> | undefined;
   loadingAttributeValueKeys?: Array<string> | undefined;
   onAttributeKeySelected?: ((key: string) => void) | undefined;
+  /*
+   * Put the cursor in Message contains as the form is drawn: the recipe
+   * that asks for words ("A message appears") was just picked, and left
+   * empty it counts every log. Said back once it is done.
+   */
+  focusMessageField?: boolean | undefined;
+  onMessageFieldFocused?: (() => void) | undefined;
 }
 
 const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
@@ -69,11 +87,56 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [isMatchingLogsCollapsed, setIsMatchingLogsCollapsed] =
     React.useState<boolean>(true);
 
+  const formRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!props.focusMessageField) {
+      return;
+    }
+
+    /*
+     * BasicForm draws its fields a render after it mounts, so the box is
+     * looked for over the next few frames.
+     */
+    let frame: number = 0;
+    let attemptsLeft: number = MESSAGE_FOCUS_FRAME_ATTEMPTS;
+
+    const focusMessage: () => void = (): void => {
+      const messageInput: HTMLInputElement | null | undefined =
+        formRef.current?.querySelector<HTMLInputElement>(
+          `[data-testid="${LOG_MONITOR_MESSAGE_TEST_ID}"]`,
+        );
+
+      if (messageInput) {
+        messageInput.focus();
+        props.onMessageFieldFocused?.();
+        return;
+      }
+
+      attemptsLeft--;
+
+      if (attemptsLeft > 0) {
+        frame = window.requestAnimationFrame(focusMessage);
+      }
+    };
+
+    focusMessage();
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [props.focusMessageField]);
+
   return (
-    <div>
+    <div ref={formRef}>
+      {/*
+       * A part of the criteria step, not a form of its own: it never takes
+       * the cursor as the step opens (the first question is above it).
+       */}
       <BasicForm
         id="logs-filter"
         hideSubmitButton={true}
+        disableAutofocus={true}
         initialValues={monitorStepLogMonitor}
         onChange={(values: MonitorStepLogMonitor) => {
           setMonitorStepLogMonitor(values);
@@ -106,6 +169,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             description:
               "Only logs whose message contains this text, in any case. Empty: every message.",
             placeholder: "payment declined",
+            dataTestId: LOG_MONITOR_MESSAGE_TEST_ID,
             hideOptionalLabel: true,
           },
           /*

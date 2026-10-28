@@ -383,6 +383,29 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
       <Card
         title={TelemetryRuleCopy.customCriteriaTitle}
         description={TelemetryRuleCopy.customCriteriaDescription}
+        /*
+         * The way back to the simple rule is a switch of what the card
+         * shows, so it sits at the header's right edge, where every card
+         * keeps what it offers - not under Add Criteria, a second button
+         * of the same weight beside the editor's own.
+         */
+        buttons={
+          rule && isCustom
+            ? [
+                <Button
+                  key="back-to-simple-rule"
+                  title={TelemetryRuleCopy.backToSimpleRule}
+                  buttonSize={ButtonSize.Small}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  icon={IconProp.ArrowCircleLeft}
+                  dataTestId="telemetry-rule-back-to-simple"
+                  onClick={() => {
+                    setIsCustom(false);
+                  }}
+                />,
+              ]
+            : undefined
+        }
       >
         <div data-testid="telemetry-rule-custom-criteria">
           <div className="mt-2 max-w-md">{renderCustomWindowField()}</div>
@@ -400,24 +423,6 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
           )}
 
           {props.customCriteria}
-
-          {rule && isCustom ? (
-            /* md:-ml-3 takes back the Button's own md:ml-3. */
-            <div className="mt-2 md:-ml-3">
-              <Button
-                title={TelemetryRuleCopy.backToSimpleRule}
-                buttonSize={ButtonSize.Small}
-                buttonStyle={ButtonStyleType.NORMAL}
-                icon={IconProp.ArrowCircleLeft}
-                dataTestId="telemetry-rule-back-to-simple"
-                onClick={() => {
-                  setIsCustom(false);
-                }}
-              />
-            </div>
-          ) : (
-            <></>
-          )}
         </div>
       </Card>
     );

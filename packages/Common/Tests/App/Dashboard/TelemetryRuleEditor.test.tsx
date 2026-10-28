@@ -583,6 +583,13 @@ describe("What happens", () => {
     expect(screen.getByTestId("telemetry-rule-more-fields")).toHaveTextContent(
       "Degraded",
     );
+    /*
+     * The way to several rules is named on the folded line too: folded,
+     * it named only the status and the name.
+     */
+    expect(
+      within(more).getByText("Edit as custom criteria", { exact: false }),
+    ).toBeInTheDocument();
   });
 
   test("Edit as custom criteria opens the full editor, and Back to the simple rule closes it", () => {
@@ -608,7 +615,19 @@ describe("What happens", () => {
       screen.queryByTestId("telemetry-rule-shape-problem"),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId("telemetry-rule-back-to-simple"));
+    /*
+     * The way back switches what the card shows, so it sits in the card's
+     * header with what every card offers - not under Add Criteria.
+     */
+    const back: HTMLElement = screen.getByTestId(
+      "telemetry-rule-back-to-simple",
+    );
+    expect(screen.getByTestId("card-header-actions")).toContainElement(back);
+    expect(
+      screen.getByTestId("telemetry-rule-custom-criteria"),
+    ).not.toContainElement(back);
+
+    fireEvent.click(back);
 
     expect(screen.getByTestId("telemetry-rule-editor")).toBeInTheDocument();
   });

@@ -36531,8 +36531,6 @@
   "Fewer than": "少于",
   "For several rules, or a rule with more than one filter.": "适用于多条规则，或包含多个筛选条件的规则。",
   "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.": "完整的 DNSSEC 验证：DNSKEY、DS、RRSIG 和解析器行为。",
-  "Get alerted about logs like these.": "对此类日志发出警报。",
-  "Get alerted about requests like these.": "对此类请求发出警报。",
   "Get alerted when this exception happens again.": "此异常再次发生时发出警报。",
   "Goes above a value": "超过某个值",
   "Have something call OneUptime - heartbeats, cron jobs, and webhooks.": "让其他系统调用 OneUptime：心跳、定时任务和 Webhook。",
@@ -36624,7 +36622,6 @@
   "The metric's average goes above a value.": "指标的平均值超过某个值。",
   "The monitor goes back to its default status when the rule stops matching.": "规则不再匹配时，监视器会恢复为默认状态。",
   "The monitor's status while the rule does not match.": "规则不匹配期间的监视器状态。",
-  "The preview could not be counted: {{reason}}": "无法统计预览：{{reason}}",
   "The rule this monitor checks every minute.": "此监视器每分钟检查的规则。",
   "The rule's filter, and every setting of its alert or incident.": "规则的筛选条件，以及其警报或事件的所有设置。",
   "The spans these filters match now, to check them before you save.": "这些筛选条件当前匹配的跨度，便于保存前核对。",
@@ -36697,5 +36694,8 @@
   "Only logs whose attributes match all of these. Empty: any attributes.": "仅属性符合以下全部条件的日志。留空：任意属性。",
   "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "仅来自这些主机、集群或其他基础设施的跨度。留空：所有基础设施。",
   "Only spans from these services. Empty: every service.": "仅这些服务的跨度。留空：所有服务。",
-  "Only spans whose attributes match all of these. Empty: any attributes.": "仅属性符合以下全部条件的跨度。留空：任意属性。"
+  "Only spans whose attributes match all of these. Empty: any attributes.": "仅属性符合以下全部条件的跨度。留空：任意属性。",
+  "Create monitor: get alerted about logs like these.": "创建监视器：对此类日志发出警报。",
+  "Create monitor: get alerted about requests like these.": "创建监视器：对此类请求发出警报。",
+  "The preview could not be loaded: {{reason}}": "无法加载预览：{{reason}}"
 }

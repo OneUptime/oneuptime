@@ -281,6 +281,15 @@ const languageMode = ["de", "fa"].includes(params.get("lang"))
 const criteriaMode = ["logs", "several"].includes(params.get("criteria"))
   ? params.get("criteria")
   : null;
+/*
+ * What a telemetry rule's preview answers: counts in every window (the
+ * default), nothing at all (?preview=empty: a service that has not sent
+ * yet), or a first read that fails at the time limit and a second that
+ * counts (?preview=fail).
+ */
+const previewMode = ["empty", "fail"].includes(params.get("preview"))
+  ? params.get("preview")
+  : "counts";
 
 /*
  * The components the External Status Page monitor watches with
@@ -3041,6 +3050,7 @@ AnalyticsModelAPI.aggregate = async (options) => {
 };
 
 let hasFailedUptimeSummary = false;
+let hasFailedPreview = false;
 
 async function handleApi(method, options) {
   const url = options.url.toString();
@@ -3167,10 +3177,30 @@ async function handleApi(method, options) {
   });
 
   if (method === "POST" && previewSignal) {
+    fixture.previewReads = (fixture.previewReads || 0) + 1;
+
+    if (previewMode === "fail" && !hasFailedPreview) {
+      hasFailedPreview = true;
+      // What the server says when ClickHouse stops at the time limit.
+      throw fail(
+        504,
+        "This query took longer than 45 seconds and was stopped before it finished. Try a shorter time range or more specific filters.",
+      );
+    }
+
     const range = TelemetryRulePreviewUtil.getRange({
       windowInSeconds: Number(body[previewSignal[1]] || 60),
       now: NOW,
     });
+
+    if (previewMode === "empty") {
+      return ok({
+        buckets: [],
+        windowInSeconds: range.windowInSeconds,
+        startTime: range.startTime.toISOString(),
+        endTime: range.endTime.toISOString(),
+      });
+    }
     const windowMs = range.windowInSeconds * 1000;
     const spikeAt = NOW.getTime() - 2 * 60 * MINUTE;
     const buckets = [];

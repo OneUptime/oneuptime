@@ -381,9 +381,15 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
 
   return (
     <div>
+      {/*
+       * A part of the criteria step, not a form of its own: its first field
+       * (Message contains) took the cursor as the step opened - and on a
+       * phone the keyboard - before the question above it was read.
+       */}
       <BasicForm
         id="exception-monitor-form"
         hideSubmitButton={true}
+        disableAutofocus={true}
         initialValues={formValues}
         onChange={handleFormChange}
         fields={[

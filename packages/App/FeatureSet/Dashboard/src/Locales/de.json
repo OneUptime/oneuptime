@@ -36531,8 +36531,6 @@
   "Fewer than": "Weniger als",
   "For several rules, or a rule with more than one filter.": "Für mehrere Regeln oder eine Regel mit mehr als einem Filter.",
   "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.": "Vollständige DNSSEC-Validierung – DNSKEY, DS, RRSIG und Resolver-Verhalten.",
-  "Get alerted about logs like these.": "Lassen Sie sich bei Logs wie diesen alarmieren.",
-  "Get alerted about requests like these.": "Lassen Sie sich bei Anfragen wie diesen alarmieren.",
   "Get alerted when this exception happens again.": "Lassen Sie sich alarmieren, wenn diese Ausnahme wieder auftritt.",
   "Goes above a value": "Übersteigt einen Wert",
   "Have something call OneUptime - heartbeats, cron jobs, and webhooks.": "Lassen Sie etwas OneUptime aufrufen – Heartbeats, Cron-Jobs und Webhooks.",
@@ -36624,7 +36622,6 @@
   "The metric's average goes above a value.": "Der Durchschnitt der Metrik übersteigt einen Wert.",
   "The monitor goes back to its default status when the rule stops matching.": "Der Monitor kehrt zu seinem Standardstatus zurück, wenn die Regel nicht mehr zutrifft.",
   "The monitor's status while the rule does not match.": "Der Status des Monitors, solange die Regel nicht zutrifft.",
-  "The preview could not be counted: {{reason}}": "Die Vorschau konnte nicht gezählt werden: {{reason}}",
   "The rule this monitor checks every minute.": "Die Regel, die dieser Monitor jede Minute prüft.",
   "The rule's filter, and every setting of its alert or incident.": "Der Filter der Regel und jede Einstellung ihrer Warnung oder ihres Vorfalls.",
   "The spans these filters match now, to check them before you save.": "Die Spans, auf die diese Filter jetzt zutreffen, zum Prüfen vor dem Speichern.",
@@ -36697,5 +36694,8 @@
   "Only logs whose attributes match all of these. Empty: any attributes.": "Nur Logs, deren Attribute alle diese Bedingungen erfüllen. Leer: beliebige Attribute.",
   "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Nur Spans von diesen Hosts, Clustern oder anderer Infrastruktur. Leer: die gesamte Infrastruktur.",
   "Only spans from these services. Empty: every service.": "Nur Spans aus diesen Diensten. Leer: jeder Dienst.",
-  "Only spans whose attributes match all of these. Empty: any attributes.": "Nur Spans, deren Attribute alle diese Bedingungen erfüllen. Leer: beliebige Attribute."
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Nur Spans, deren Attribute alle diese Bedingungen erfüllen. Leer: beliebige Attribute.",
+  "Create monitor: get alerted about logs like these.": "Monitor erstellen: Lassen Sie sich bei Logs wie diesen alarmieren.",
+  "Create monitor: get alerted about requests like these.": "Monitor erstellen: Lassen Sie sich bei Anfragen wie diesen alarmieren.",
+  "The preview could not be loaded: {{reason}}": "Die Vorschau konnte nicht geladen werden: {{reason}}"
 }

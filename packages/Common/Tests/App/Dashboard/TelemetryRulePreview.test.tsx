@@ -434,6 +434,73 @@ describe("what the preview draws and says", () => {
     );
   });
 
+  test("the rule's line stretches the chart to it: a number above every window (Use's) is still drawn", async () => {
+    answerWith([3, 4, 12, 13, 4, 3]);
+
+    const { rerender } = render(
+      <TelemetryRulePreview
+        monitorType={MonitorType.Logs}
+        settings={LOG_SETTINGS}
+        filterType={FilterType.GreaterThan}
+        threshold={10}
+        onUseSuggestedThreshold={() => {}}
+      />,
+    );
+
+    await waitForRead();
+
+    expect(lastChart().referenceLines).toEqual([
+      expect.objectContaining({ value: 10, extendsDomain: true }),
+    ]);
+
+    // Use's number lies above the busiest window: the line still shows.
+    rerender(
+      <TelemetryRulePreview
+        monitorType={MonitorType.Logs}
+        settings={LOG_SETTINGS}
+        filterType={FilterType.GreaterThan}
+        threshold={16}
+        onUseSuggestedThreshold={() => {}}
+      />,
+    );
+
+    await waitForRead();
+
+    expect(lastChart().referenceLines).toEqual([
+      expect.objectContaining({ value: 16, extendsDomain: true }),
+    ]);
+  });
+
+  test("windows that held nothing offer no number to use: nothing says what a number should be", async () => {
+    answerWith([0, 0, 0]);
+
+    render(
+      <TelemetryRulePreview
+        monitorType={MonitorType.Logs}
+        settings={LOG_SETTINGS}
+        filterType={FilterType.GreaterThan}
+        threshold={10}
+        onUseSuggestedThreshold={() => {}}
+      />,
+    );
+
+    await waitForRead();
+
+    expect(
+      screen.getByTestId("telemetry-rule-preview-verdict"),
+    ).toHaveTextContent("Nothing matched in this time.");
+    expect(
+      screen.queryByTestId("telemetry-rule-preview-suggestion"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("telemetry-rule-preview-use-suggestion"),
+    ).not.toBeInTheDocument();
+    // The rule's line is still drawn over the empty windows.
+    expect(lastChart().referenceLines).toEqual([
+      expect.objectContaining({ value: 10, extendsDomain: true }),
+    ]);
+  });
+
   test("a rule for silence over windows with nothing in them warns it would alert at once", async () => {
     answerWith([0, 0, 0]);
 
@@ -519,7 +586,7 @@ describe("what the preview draws and says", () => {
     expect(
       screen.getByTestId("telemetry-rule-preview-error"),
     ).toHaveTextContent(
-      "The preview could not be counted: The count took too long.",
+      "The preview could not be loaded: The count took too long.",
     );
 
     answerWith([0, 2]);

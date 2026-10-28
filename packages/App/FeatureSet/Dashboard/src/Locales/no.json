@@ -36531,8 +36531,6 @@
   "Fewer than": "Færre enn",
   "For several rules, or a rule with more than one filter.": "For flere regler, eller en regel med mer enn ett filter.",
   "Full DNSSEC validation - DNSKEY, DS, RRSIG, and resolver behaviour.": "Full DNSSEC-validering – DNSKEY, DS, RRSIG og resolverens oppførsel.",
-  "Get alerted about logs like these.": "Få varsel om logger som disse.",
-  "Get alerted about requests like these.": "Få varsel om forespørsler som disse.",
   "Get alerted when this exception happens again.": "Få varsel når dette unntaket oppstår igjen.",
   "Goes above a value": "Går over en verdi",
   "Have something call OneUptime - heartbeats, cron jobs, and webhooks.": "La noe kalle OneUptime – heartbeats, cron-jobber og webhooks.",
@@ -36624,7 +36622,6 @@
   "The metric's average goes above a value.": "Metrikkens gjennomsnitt går over en verdi.",
   "The monitor goes back to its default status when the rule stops matching.": "Overvåkingen går tilbake til standardstatusen når regelen slutter å samsvare.",
   "The monitor's status while the rule does not match.": "Overvåkingens status mens regelen ikke samsvarer.",
-  "The preview could not be counted: {{reason}}": "Forhåndsvisningen kunne ikke telles: {{reason}}",
   "The rule this monitor checks every minute.": "Regelen denne overvåkingen sjekker hvert minutt.",
   "The rule's filter, and every setting of its alert or incident.": "Regelens filter og hver innstilling for varselet eller hendelsen.",
   "The spans these filters match now, to check them before you save.": "Spansene disse filtrene samsvarer med nå, så du kan sjekke dem før du lagrer.",
@@ -36697,5 +36694,8 @@
   "Only logs whose attributes match all of these. Empty: any attributes.": "Bare logger der attributtene oppfyller alle disse vilkårene. Tomt: alle attributter.",
   "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Bare spans fra disse vertene, klyngene eller annen infrastruktur. Tomt: all infrastruktur.",
   "Only spans from these services. Empty: every service.": "Bare spans fra disse tjenestene. Tomt: alle tjenester.",
-  "Only spans whose attributes match all of these. Empty: any attributes.": "Bare spans der attributtene oppfyller alle disse vilkårene. Tomt: alle attributter."
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Bare spans der attributtene oppfyller alle disse vilkårene. Tomt: alle attributter.",
+  "Create monitor: get alerted about logs like these.": "Opprett monitor: få varsel om logger som disse.",
+  "Create monitor: get alerted about requests like these.": "Opprett monitor: få varsel om forespørsler som disse.",
+  "The preview could not be loaded: {{reason}}": "Forhåndsvisningen kunne ikke lastes inn: {{reason}}"
 }

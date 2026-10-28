@@ -347,6 +347,14 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   const [queryFormKey, setQueryFormKey] = useState<number>(0);
 
   /*
+   * "A message appears" asks for the words: picked, it puts the cursor in
+   * Message contains - once, so a later redraw of the form (a type change)
+   * leaves the cursor where it is.
+   */
+  const [isMessageFocusRequested, setIsMessageFocusRequested] =
+    useState<boolean>(false);
+
+  /*
    * Criteria set up afresh from outside - a new monitor type picked after
    * the step was drawn, which the steps form answers with that type's
    * recipe (MonitorSteps) - come with new criteria ids: the picker then
@@ -1008,6 +1016,9 @@ return {
                 seeds: props.ruleSeeds,
                 translator,
               }),
+            );
+            setIsMessageFocusRequested(
+              key === TelemetryRuleRecipeKey.LogMessage,
             );
             setQueryFormKey(queryFormKey + 1);
           }}
@@ -1761,6 +1772,10 @@ return {
         >
           <LogMonitorStepForm
             key={`logs-${queryFormKey}`}
+            focusMessageField={isMessageFocusRequested}
+            onMessageFieldFocused={() => {
+              setIsMessageFocusRequested(false);
+            }}
             monitorStepLogMonitor={
               monitorStep.data?.logMonitor ||
               MonitorStepLogMonitorUtil.getDefault()
