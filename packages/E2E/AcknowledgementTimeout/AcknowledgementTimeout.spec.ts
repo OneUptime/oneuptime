@@ -266,26 +266,32 @@ test("opens on a click: one card, one row, saying the policy does not page again
    * With nothing under it - no names once open, no description of its own -
    * the header's title sits level with the icon tile beside it, not at the
    * tile's top edge where a line under it would start.
+   *
+   * Both read from one layout: opening the fold scrolls it into view
+   * smoothly (BringIntoView), so two reads one after the other can each
+   * catch a different point of that scroll, and differ by it.
    */
-  const middleOf: (locator: Locator) => Promise<number> = async (
-    locator: Locator,
-  ): Promise<number> => {
-    const box: { y: number; height: number } | null =
-      await locator.boundingBox();
+  const [titleMiddle, iconMiddle]: Array<number> = await foldHeader(
+    page,
+  ).evaluate((header: Element): Array<number> => {
+    return ["folded-section-title", "folded-section-icon"].map(
+      (testId: string): number => {
+        const element: Element | null = header.querySelector(
+          `[data-testid="${testId}"]`,
+        );
 
-    expect(box).not.toBeNull();
+        if (!element) {
+          return Number.NaN;
+        }
 
-    return box!.y + box!.height / 2;
-  };
+        const box: DOMRect = element.getBoundingClientRect();
 
-  const titleMiddle: number = await middleOf(
-    foldHeader(page).getByTestId("folded-section-title"),
-  );
-  const iconMiddle: number = await middleOf(
-    foldHeader(page).getByTestId("folded-section-icon"),
-  );
+        return box.top + box.height / 2;
+      },
+    );
+  });
 
-  expect(Math.abs(titleMiddle - iconMiddle)).toBeLessThanOrEqual(2);
+  expect(Math.abs(titleMiddle! - iconMiddle!)).toBeLessThanOrEqual(2);
 
   await screenshot(page, "open-1280");
 });

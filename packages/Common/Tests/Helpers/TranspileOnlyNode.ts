@@ -24,7 +24,12 @@ const COMPILER_OPTIONS: string = JSON.stringify({
 
 export function runTranspileOnlyNode(
   script: string,
-  options: { cwd: string; timeoutMs?: number },
+  options: {
+    cwd: string;
+    timeoutMs?: number;
+    // Flags for node itself, before the script (--expose-gc, say).
+    nodeArgs?: Array<string>;
+  },
 ): SpawnSyncReturns<string> {
   const hook: string = `
     const transpileOnlyFs = require("fs");
@@ -43,13 +48,17 @@ export function runTranspileOnlyNode(
     };
   `;
 
-  return spawnSync(process.execPath, ["-e", `${hook}\n${script}`], {
-    cwd: options.cwd,
-    encoding: "utf8",
-    timeout: options.timeoutMs ?? 120000,
-    // A server process: no browser globals, whatever jest's environment has.
-    env: { ...process.env },
-  });
+  return spawnSync(
+    process.execPath,
+    [...(options.nodeArgs || []), "-e", `${hook}\n${script}`],
+    {
+      cwd: options.cwd,
+      encoding: "utf8",
+      timeout: options.timeoutMs ?? 120000,
+      // A server process: no browser globals, whatever jest's environment has.
+      env: { ...process.env },
+    },
+  );
 }
 
 // The last line of stdout that is a JSON object, parsed.
