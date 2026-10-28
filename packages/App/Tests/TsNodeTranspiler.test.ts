@@ -256,7 +256,10 @@ describe("the programs it compiles", () => {
         }
         if (entry.isDirectory()) {
           walk(full);
-        } else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".d.ts")) {
+        } else if (
+          entry.name.endsWith(".ts") &&
+          !entry.name.endsWith(".d.ts")
+        ) {
           files.push(full);
         }
       }
@@ -365,7 +368,12 @@ describe("the programs it compiles", () => {
       developmentBytes += tsNodes.length;
       const a: Array<string> = shape(ours);
       const b: Array<string> = shape(tsNodes);
-      if (a.length !== b.length || a.some((node: string, index: number) => node !== b[index])) {
+      if (
+        a.length !== b.length ||
+        a.some((node: string, index: number) => {
+          return node !== b[index];
+        })
+      ) {
         different.push(path.relative(APP_ROOT, file));
       }
     }

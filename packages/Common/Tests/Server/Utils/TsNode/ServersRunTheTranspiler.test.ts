@@ -77,13 +77,22 @@ describe("servers that boot through ts-node", () => {
         return server.name;
       }),
     ).toEqual(
-      expect.arrayContaining(["App", "Home", "Nginx", "Probe", "Runner", "TestServer"]),
+      expect.arrayContaining([
+        "App",
+        "Home",
+        "Nginx",
+        "Probe",
+        "Runner",
+        "TestServer",
+      ]),
     );
   });
 
-  test.each(SERVERS.map((server: Server): [string, Server] => {
-    return [server.name, server];
-  }))(
+  test.each(
+    SERVERS.map((server: Server): [string, Server] => {
+      return [server.name, server];
+    }),
+  )(
     "%s runs transpile-only with Common's transpiler",
     (_name: string, server: Server) => {
       const options: Record<string, unknown> = tsNodeOptions(server);
@@ -103,9 +112,11 @@ describe("servers that boot through ts-node", () => {
     },
   );
 
-  test.each(SERVERS.map((server: Server): [string, Server] => {
-    return [server.name, server];
-  }))(
+  test.each(
+    SERVERS.map((server: Server): [string, Server] => {
+      return [server.name, server];
+    }),
+  )(
     "%s's image puts the package at /usr/src/app and Common at /usr/src/Common",
     (_name: string, server: Server) => {
       const dockerfile: string = fs.readFileSync(

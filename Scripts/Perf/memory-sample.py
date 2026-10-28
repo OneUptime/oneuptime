@@ -3,9 +3,9 @@
 Every interval it records, for the App and the Probe (their PIDs from
 $PERF_DIR, children included), resident memory split into anonymous and
 file-backed pages (/proc/<pid>/status), and for each "$PERF_PREFIX-*"
-container its cgroup's memory split the same way (memory.stat: anon is what
-the server holds, file is page cache the kernel takes back when it needs
-it). It also reads ClickHouse's own accounting (MemoryTracking and the sizes
+container (pg, ch, valkey, and app when the App runs as its image) its
+cgroup's memory split the same way (memory.stat: anon is what the server
+holds, file is page cache the kernel takes back when it needs it). It also reads ClickHouse's own accounting (MemoryTracking and the sizes
 of its caches), Postgres's connections and Valkey's used_memory. With
 --app-inspector PORT (the App started with
 APP_NODE_FLAGS=--inspect=127.0.0.1:PORT), every --heap-every samples it runs
@@ -31,7 +31,7 @@ PERF_DIR = os.environ.get("PERF_DIR", "/tmp/oneuptime-perf")
 PREFIX = os.environ.get("PERF_PREFIX", "oneuptime-perf")
 CH_PORT = os.environ.get("PERF_CH_PORT", "18371")
 PASSWORD = "please-change-this-to-random-value"
-CONTAINERS = ["pg", "ch", "valkey"]
+CONTAINERS = ["pg", "ch", "valkey", "app"]
 
 
 def option(name, default):
@@ -120,9 +120,9 @@ def clickhouse_memory():
         "FORMAT TabSeparated"
     )
     request = urllib.request.Request(
-        f"http://127.0.0.1:{CH_PORT}/?user=default",
+        f"http://127.0.0.1:{CH_PORT}/",
         data=query.encode("utf-8"),
-        headers={"X-ClickHouse-Key": PASSWORD},
+        headers={"X-ClickHouse-User": "default", "X-ClickHouse-Key": PASSWORD},
     )
     try:
         with urllib.request.urlopen(request, timeout=10) as response:
@@ -191,7 +191,7 @@ def sample(index):
     for name in CONTAINERS:
         value = container_memory(name)
         if value is not None:
-            row[name] = value
+            row["container_" + name] = value
     row["clickhouse"] = clickhouse_memory()
     row["postgres"] = postgres_connections()
     row["valkey_used"] = valkey_memory()
@@ -206,8 +206,9 @@ def line(row):
         if name in row:
             parts.append(f"{name} rss {row[name]['rss']:.0f} (anon {row[name]['anon']:.0f})")
     for name in CONTAINERS:
-        if name in row:
-            parts.append(f"{name} anon {row[name].get('anon', 0):.0f} file {row[name].get('file', 0):.0f}")
+        key = "container_" + name
+        if key in row:
+            parts.append(f"{name}-container anon {row[key].get('anon', 0):.0f} file {row[key].get('file', 0):.0f}")
     if row.get("app_heap"):
         parts.append(f"app heap {row['app_heap']['heapUsed']:.0f}")
     return "  ".join(parts)
@@ -251,9 +252,9 @@ for name in ("app", "probe"):
             "rss_mb_per_hour": slope([(row["t"], row[name]["rss"]) for row in rows if name in row]),
         }
 for name in CONTAINERS:
-    values = [row[name] for row in rows if name in row]
+    values = [row["container_" + name] for row in rows if "container_" + name in row]
     if values:
-        summary[name] = {
+        summary[name + "_container"] = {
             "anon_last": values[-1].get("anon"),
             "anon_max": max(v.get("anon", 0) for v in values),
             "file_last": values[-1].get("file"),

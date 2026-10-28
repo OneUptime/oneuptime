@@ -60,9 +60,7 @@ describe("the OpenAPI spec the App keeps", () => {
       .slice(0, 27);
 
     expect(response.etag).toMatch(WEAK_ETAG);
-    expect(response.etag).toBe(
-      `W/"${buffer.length.toString(16)}-${hash}"`,
-    );
+    expect(response.etag).toBe(`W/"${buffer.length.toString(16)}-${hash}"`);
   });
 
   test("is still a well-formed OpenAPI 3 document", () => {

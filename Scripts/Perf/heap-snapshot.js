@@ -11,7 +11,8 @@
 const fs = require("fs");
 
 const port = Number(process.argv[2]);
-const out = process.argv[3] && !process.argv[3].startsWith("--") ? process.argv[3] : null;
+const out =
+  process.argv[3] && !process.argv[3].startsWith("--") ? process.argv[3] : null;
 const collect = !process.argv.includes("--no-gc");
 
 const MEMORY_EXPRESSION = `(() => {

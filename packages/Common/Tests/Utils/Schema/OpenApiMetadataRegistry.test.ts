@@ -317,9 +317,7 @@ describe("the model schemas the App builds at boot", () => {
 
     expect(report.heap).toHaveLength(5);
     // From the first round to the last: what four more rounds kept.
-    return (
-      ((report.heap[4] as number) - (report.heap[0] as number)) / 1048576
-    );
+    return ((report.heap[4] as number) - (report.heap[0] as number)) / 1048576;
   }
 
   test("are not kept: the heap comes back after each round", () => {

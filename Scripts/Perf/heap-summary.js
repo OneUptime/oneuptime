@@ -13,9 +13,14 @@
 //   the way is named by its file, so a cache shows which module keeps it;
 // - with --modules, the retained size of every module's exports and of its
 //   module object, summed by package (node_modules) or by OneUptime folder;
+// - with --children, under each of the biggest retainers its five biggest
+//   children in the dominator tree, each with the edge that reaches it;
 // - with --strings, strings by what holds them (their first retainer);
 // - with --chains, the nodes of one constructor (or node type) grouped by
 //   their first five retainers;
+// - with --scripts, the text of every script V8 keeps (its source), summed
+//   by package (node_modules) or by OneUptime folder: what each part of the
+//   module graph costs to hold;
 // - with --json, the tables as JSON, which heap-diff.js compares;
 // - with --find <prefix>, for each node whose name (a string's text, an
 //   object's constructor) starts with the prefix, its shortest path of
@@ -236,7 +241,11 @@ for (let node = 0, sum = 0; node < nodeCount; node++) {
 const retainers = new Uint32Array(firstRetainer[nodeCount]);
 const filled = new Uint32Array(nodeCount);
 for (let node = 0; node < nodeCount; node++) {
-  for (let edge = firstEdge[node]; edge < firstEdge[node + 1]; edge += EDGE_FIELDS) {
+  for (
+    let edge = firstEdge[node];
+    edge < firstEdge[node + 1];
+    edge += EDGE_FIELDS
+  ) {
     if (edges[edge + EDGE_TYPE] === WEAK) {
       continue;
     }
@@ -295,7 +304,10 @@ while (changed) {
     let candidate = UNVISITED;
     for (let r = firstRetainer[node]; r < firstRetainer[node + 1]; r++) {
       const retainerOrder = postOrder[retainers[r]];
-      if (retainerOrder === UNVISITED || dominator[retainerOrder] === UNVISITED) {
+      if (
+        retainerOrder === UNVISITED ||
+        dominator[retainerOrder] === UNVISITED
+      ) {
         continue;
       }
       if (candidate === UNVISITED) {
@@ -334,7 +346,11 @@ function moduleFile(node) {
   if (nameOf(node) !== "Module") {
     return null;
   }
-  for (let edge = firstEdge[node]; edge < firstEdge[node + 1]; edge += EDGE_FIELDS) {
+  for (
+    let edge = firstEdge[node];
+    edge < firstEdge[node + 1];
+    edge += EDGE_FIELDS
+  ) {
     if (edgeName(edge) === "id" || edgeName(edge) === "filename") {
       return String(nameOf(edges[edge + EDGE_TO] / NODE_FIELDS));
     }
@@ -344,12 +360,20 @@ function moduleFile(node) {
 
 // A closure's script: shared -> (shared function info) -> script.
 function closureFile(node) {
-  for (let edge = firstEdge[node]; edge < firstEdge[node + 1]; edge += EDGE_FIELDS) {
+  for (
+    let edge = firstEdge[node];
+    edge < firstEdge[node + 1];
+    edge += EDGE_FIELDS
+  ) {
     if (edgeName(edge) !== "shared") {
       continue;
     }
     const shared = edges[edge + EDGE_TO] / NODE_FIELDS;
-    for (let inner = firstEdge[shared]; inner < firstEdge[shared + 1]; inner += EDGE_FIELDS) {
+    for (
+      let inner = firstEdge[shared];
+      inner < firstEdge[shared + 1];
+      inner += EDGE_FIELDS
+    ) {
       const name = edgeName(inner);
       if (name === "script" || name === "script_or_debug_info") {
         const script = String(nameOf(edges[inner + EDGE_TO] / NODE_FIELDS));
@@ -371,6 +395,16 @@ function label(node) {
     const script = closureFile(node);
     return `closure ${name.slice(0, 40) || "(anonymous)"}${script ? " in " + script : ""}`;
   }
+  if (type === "object" && name === "system / Context") {
+    // The scope of a closure: name one closure that has it as its context.
+    for (let r = firstRetainer[node]; r < firstRetainer[node + 1]; r++) {
+      const holder = retainers[r];
+      if (typeOf(holder) === "closure") {
+        const script = closureFile(holder);
+        return `scope of ${String(nameOf(holder)).slice(0, 30) || "(anonymous)"}${script ? " in " + script : ""}`;
+      }
+    }
+  }
   if (STRING_TYPES.has(nodes[node * NODE_FIELDS + TYPE])) {
     return `${type} "${name.slice(0, 50)}"`;
   }
@@ -378,8 +412,15 @@ function label(node) {
 }
 
 function reachingEdge(from, to) {
-  for (let edge = firstEdge[from]; edge < firstEdge[from + 1]; edge += EDGE_FIELDS) {
-    if (edges[edge + EDGE_TO] / NODE_FIELDS === to && edges[edge + EDGE_TYPE] !== SHORTCUT) {
+  for (
+    let edge = firstEdge[from];
+    edge < firstEdge[from + 1];
+    edge += EDGE_FIELDS
+  ) {
+    if (
+      edges[edge + EDGE_TO] / NODE_FIELDS === to &&
+      edges[edge + EDGE_TYPE] !== SHORTCUT
+    ) {
       return edgeName(edge);
     }
   }
@@ -420,6 +461,24 @@ for (const at of candidates) {
     biggestChild[parent] = Math.max(biggestChild[parent], retained[at]);
   }
 }
+const showChildren = process.argv.includes("--children");
+// The dominator tree's children of each big node, biggest first.
+const childrenOf = new Map();
+if (showChildren) {
+  for (let at = 0; at < reachable; at++) {
+    if (at === rootOrder || retained[at] < 65536) {
+      continue;
+    }
+    const parent = dominator[at];
+    if (!childrenOf.has(parent)) {
+      childrenOf.set(parent, []);
+    }
+    childrenOf.get(parent).push(at);
+  }
+  for (const list of childrenOf.values()) {
+    list.sort((a, b) => retained[b] - retained[a]);
+  }
+}
 let shown = 0;
 for (const at of candidates) {
   if (shown >= top) {
@@ -431,12 +490,98 @@ for (const at of candidates) {
   }
   shown++;
   const node = nodeAtOrder[at];
-  console.log(
-    `\n${mb(retained[at])} ${mb(selfOf(node))}  ${label(node)}`,
-  );
+  console.log(`\n${mb(retained[at])} ${mb(selfOf(node))}  ${label(node)}`);
   const steps = chain(at);
   for (const step of steps.slice(-8)) {
     console.log(`            ${step}`);
+  }
+  if (showChildren) {
+    for (const child of (childrenOf.get(at) || []).slice(0, 5)) {
+      const via = reachingEdge(node, nodeAtOrder[child]);
+      console.log(
+        `              ${mb(retained[child]).trim()} MB  ${via === null ? "~" : "." + via} -> ${label(nodeAtOrder[child])}`,
+      );
+    }
+  }
+}
+
+if (process.argv.includes("--scripts")) {
+  const byOwner = new Map();
+  let scripts = 0;
+  for (let node = 0; node < nodeCount; node++) {
+    if (typeOf(node) !== "code") {
+      continue;
+    }
+    const url = String(nameOf(node));
+    if (
+      !url.startsWith("/") &&
+      !url.startsWith("file://") &&
+      !url.startsWith("node:")
+    ) {
+      continue;
+    }
+    for (
+      let edge = firstEdge[node];
+      edge < firstEdge[node + 1];
+      edge += EDGE_FIELDS
+    ) {
+      if (edgeName(edge) !== "source") {
+        continue;
+      }
+      // A concatenated source counts its parts.
+      let size = 0;
+      const stack = [edges[edge + EDGE_TO] / NODE_FIELDS];
+      while (stack.length > 0) {
+        const part = stack.pop();
+        size += selfOf(part);
+        if (typeOf(part) === "concatenated string") {
+          for (
+            let inner = firstEdge[part];
+            inner < firstEdge[part + 1];
+            inner += EDGE_FIELDS
+          ) {
+            stack.push(edges[inner + EDGE_TO] / NODE_FIELDS);
+          }
+        }
+      }
+      let owner;
+      const nm = url.lastIndexOf("node_modules/");
+      if (nm >= 0) {
+        const parts = url.slice(nm + 13).split("/");
+        owner =
+          "nm:" +
+          (parts[0].startsWith("@") ? parts[0] + "/" + parts[1] : parts[0]);
+      } else if (url.startsWith("node:")) {
+        owner = "(node internals)";
+      } else {
+        owner = url
+          .replace(/^file:\/\//u, "")
+          .replace(/^\/usr\/src\//u, "")
+          .split("/")
+          .slice(0, 3)
+          .join("/");
+      }
+      const entry = byOwner.get(owner) || { size: 0, count: 0 };
+      entry.size += size;
+      entry.count++;
+      byOwner.set(owner, entry);
+      scripts++;
+      break;
+    }
+  }
+  let all = 0;
+  for (const entry of byOwner.values()) {
+    all += entry.size;
+  }
+  console.log(
+    `\nScript text by package or folder: ${scripts} scripts, ${mb(all).trim()} MB (MB, scripts):`,
+  );
+  for (const [owner, entry] of [...byOwner]
+    .sort((a, b) => b[1].size - a[1].size)
+    .slice(0, top)) {
+    console.log(
+      `${mb(entry.size)}  ${String(entry.count).padStart(6)}  ${owner}`,
+    );
   }
 }
 
@@ -456,7 +601,11 @@ if (findAt >= 0) {
     let reached = -1;
     for (let head = 0; head < queue.length && reached < 0; head++) {
       const current = queue[head];
-      for (let r = firstRetainer[current]; r < firstRetainer[current + 1]; r++) {
+      for (
+        let r = firstRetainer[current];
+        r < firstRetainer[current + 1];
+        r++
+      ) {
         const holder = retainers[r];
         if (cameFrom.has(holder)) {
           continue;
@@ -470,15 +619,27 @@ if (findAt >= 0) {
       }
     }
     const path = [];
-    for (let step = reached; step >= 0 && step !== node; step = cameFrom.get(step)) {
+    for (
+      let step = reached;
+      step >= 0 && step !== node;
+      step = cameFrom.get(step)
+    ) {
       path.push(step);
     }
     // path runs root -> ... -> the node's holder; print from the node up.
     let current = node;
-    for (let index = path.length - 1; index >= 0 && index >= path.length - 40; index--) {
+    for (
+      let index = path.length - 1;
+      index >= 0 && index >= path.length - 40;
+      index--
+    ) {
       const holder = path[index];
       let via = "";
-      for (let edge = firstEdge[holder]; edge < firstEdge[holder + 1]; edge += EDGE_FIELDS) {
+      for (
+        let edge = firstEdge[holder];
+        edge < firstEdge[holder + 1];
+        edge += EDGE_FIELDS
+      ) {
         if (edges[edge + EDGE_TO] / NODE_FIELDS === current) {
           via = edgeName(edge);
           break;
@@ -486,8 +647,15 @@ if (findAt >= 0) {
       }
       // A context: name the closure that owns it, when one points at it.
       let owner = "";
-      if (typeOf(holder) === "object" && String(nameOf(holder)) === "system / Context") {
-        for (let r = firstRetainer[holder]; r < firstRetainer[holder + 1]; r++) {
+      if (
+        typeOf(holder) === "object" &&
+        String(nameOf(holder)) === "system / Context"
+      ) {
+        for (
+          let r = firstRetainer[holder];
+          r < firstRetainer[holder + 1];
+          r++
+        ) {
           if (typeOf(retainers[r]) === "closure") {
             owner = ` (${label(retainers[r])})`;
             break;
@@ -537,10 +705,17 @@ if (process.argv.includes("--strings")) {
     for (let r = firstRetainer[node]; r < firstRetainer[node + 1]; r++) {
       const holder = retainers[r];
       let via = "";
-      for (let edge = firstEdge[holder]; edge < firstEdge[holder + 1]; edge += EDGE_FIELDS) {
+      for (
+        let edge = firstEdge[holder];
+        edge < firstEdge[holder + 1];
+        edge += EDGE_FIELDS
+      ) {
         if (edges[edge + EDGE_TO] / NODE_FIELDS === node) {
           via = edgeName(edge);
-          if (edges[edge + EDGE_TYPE] === ELEMENT || edges[edge + EDGE_TYPE] === HIDDEN) {
+          if (
+            edges[edge + EDGE_TYPE] === ELEMENT ||
+            edges[edge + EDGE_TYPE] === HIDDEN
+          ) {
             via = "[n]";
           }
           break;
@@ -548,7 +723,8 @@ if (process.argv.includes("--strings")) {
       }
       const holderType = typeOf(holder);
       const holderName =
-        holderType === "code" || STRING_TYPES.has(nodes[holder * NODE_FIELDS + TYPE])
+        holderType === "code" ||
+        STRING_TYPES.has(nodes[holder * NODE_FIELDS + TYPE])
           ? ""
           : String(nameOf(holder)).slice(0, 40);
       key = `${holderType} ${holderName} .${via}`;
@@ -563,8 +739,12 @@ if (process.argv.includes("--strings")) {
     holders.set(key, entry);
   }
   console.log("\nStrings by their first retainer (MB, count, a sample):");
-  for (const [key, entry] of [...holders].sort((a, b) => b[1].size - a[1].size).slice(0, top)) {
-    console.log(`${mb(entry.size)}  ${String(entry.count).padStart(8)}  ${key}  "${entry.sample}"`);
+  for (const [key, entry] of [...holders]
+    .sort((a, b) => b[1].size - a[1].size)
+    .slice(0, top)) {
+    console.log(
+      `${mb(entry.size)}  ${String(entry.count).padStart(8)}  ${key}  "${entry.sample}"`,
+    );
   }
 }
 
@@ -583,16 +763,27 @@ if (chainsFor >= 0) {
     for (let depth = 0; depth < 5; depth++) {
       let holder = -1;
       let via = "";
-      for (let r = firstRetainer[current]; r < firstRetainer[current + 1]; r++) {
+      for (
+        let r = firstRetainer[current];
+        r < firstRetainer[current + 1];
+        r++
+      ) {
         const candidate = retainers[r];
         if (candidate === current) {
           continue;
         }
         holder = candidate;
-        for (let edge = firstEdge[holder]; edge < firstEdge[holder + 1]; edge += EDGE_FIELDS) {
+        for (
+          let edge = firstEdge[holder];
+          edge < firstEdge[holder + 1];
+          edge += EDGE_FIELDS
+        ) {
           if (edges[edge + EDGE_TO] / NODE_FIELDS === current) {
             via = edgeName(edge);
-            if (edges[edge + EDGE_TYPE] === ELEMENT || edges[edge + EDGE_TYPE] === HIDDEN) {
+            if (
+              edges[edge + EDGE_TYPE] === ELEMENT ||
+              edges[edge + EDGE_TYPE] === HIDDEN
+            ) {
               via = "[n]";
             }
             break;
@@ -613,8 +804,12 @@ if (chainsFor >= 0) {
     groups.set(key, entry);
   }
   console.log(`\nWho holds ${wanted} (MB, count, first five retainers):`);
-  for (const [key, entry] of [...groups].sort((a, b) => b[1].size - a[1].size).slice(0, top)) {
-    console.log(`${mb(entry.size)}  ${String(entry.count).padStart(8)}  ${key}`);
+  for (const [key, entry] of [...groups]
+    .sort((a, b) => b[1].size - a[1].size)
+    .slice(0, top)) {
+    console.log(
+      `${mb(entry.size)}  ${String(entry.count).padStart(8)}  ${key}`,
+    );
   }
 }
 
@@ -633,18 +828,28 @@ if (showModules) {
     const nm = file.lastIndexOf("node_modules/");
     if (nm >= 0) {
       const parts = file.slice(nm + 13).split("/");
-      key = "nm:" + (parts[0].startsWith("@") ? parts[0] + "/" + parts[1] : parts[0]);
+      key =
+        "nm:" +
+        (parts[0].startsWith("@") ? parts[0] + "/" + parts[1] : parts[0]);
     } else {
-      key = file.replace(/^\/usr\/src\//u, "").split("/").slice(0, 3).join("/");
+      key = file
+        .replace(/^\/usr\/src\//u, "")
+        .split("/")
+        .slice(0, 3)
+        .join("/");
     }
     byPackage.set(key, (byPackage.get(key) || 0) + retained[at]);
   }
   console.log("\nRetained by module objects, by package or folder (MB):");
-  for (const [key, size] of [...byPackage].sort((a, b) => b[1] - a[1]).slice(0, top)) {
+  for (const [key, size] of [...byPackage]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, top)) {
     console.log(`${mb(size)}  ${key}`);
   }
   console.log("\nThe modules retaining the most (MB):");
-  for (const [name, size] of perModule.sort((a, b) => b[1] - a[1]).slice(0, top)) {
+  for (const [name, size] of perModule
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, top)) {
     console.log(`${mb(size)}  ${name}`);
   }
 }

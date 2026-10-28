@@ -1,10 +1,11 @@
-# CPU measurement kit
+# CPU and memory measurement kit
 
 Scripts that run a production-like OneUptime on one machine, fill it with
-realistic projects, put steady load on it and measure the CPU of every
-process: the App, the Probe, Postgres, ClickHouse and Valkey. They are how
-the numbers in the "less CPU in production" pull requests were taken, and
-they are kept here so the next change can be measured the same way.
+realistic projects, put steady load on it and measure the CPU and memory of
+every process: the App, the Probe, Postgres, ClickHouse and Valkey. They are
+how the numbers in the "less CPU in production" and "less memory in
+production" pull requests were taken, and they are kept here so the next
+change can be measured the same way. Memory has a section of its own below.
 
 ## What the stack is like
 
@@ -133,6 +134,58 @@ running stack and back, in turn:
   `/etc/clickhouse-server/config.d/` (`docker exec -i ... sh -c "cat > ..."`;
   `docker cp` cannot write beside the bind-mounted files) - it reloads
   `<logger>` without a restart.
+
+## Memory
+
+What a process holds is measured three ways: its resident memory over a
+window, its live heap (what a full garbage collection leaves), and what in
+that heap holds the most.
+
+```sh
+bash stack.sh app-restart APP_NODE_FLAGS=--inspect=127.0.0.1:9371
+bash memory-phase.sh /tmp/oneuptime-perf/seed.json idle 10 0 0 0 9371 10
+                                          # 10 minutes idle: no load at all
+bash memory-phase.sh /tmp/oneuptime-perf/seed.json load 15 120 20 5 9371 30
+                                          # 15 minutes of steady load
+node heap-snapshot.js 9371                # the live heap, after a full collection
+node heap-snapshot.js 9371 /tmp/oneuptime-perf/app.heapsnapshot
+node --max-old-space-size=32000 heap-summary.js /tmp/oneuptime-perf/app.heapsnapshot 40
+```
+
+- `memory-sample.py` (run by `memory-phase.sh`) records, every 30 seconds,
+  each process's resident memory split into anonymous and file-backed
+  pages, each container's cgroup memory split into anon (what the server
+  holds) and file (page cache, which the kernel takes back when it needs
+  it), ClickHouse's own accounting (MemoryTracking, jemalloc, its caches),
+  Postgres's connections and Valkey's used_memory - and every Nth sample the
+  App's live heap. Reading the live heap runs a full garbage collection,
+  which lowers resident memory too: read it rarely (`heapEvery`) when
+  resident memory is what is being measured.
+- `heap-summary.js` reads a snapshot (1-3 GB for the App; it needs about
+  three times that in free memory): self size by type and constructor, the
+  dominator tree's biggest retainers with the chain that keeps each, and
+  with `--strings`, `--scripts` (the source text V8 keeps, by package),
+  `--chains <constructor>`, `--find <prefix>` (the shortest path from the
+  root to a node: what keeps it alive) and `--json`. `heap-diff.js` compares
+  two `--json` tables: what grew between two snapshots of a long run.
+- Native memory is not in the heap. Under load the App's resident memory is
+  two to five times its live heap - garbage between collections, buffers,
+  zlib streams and the allocator's free lists - and the allocator is the
+  image's (musl on Alpine), not this machine's (glibc): measure resident
+  memory with the App as its image.
+
+```sh
+bash app-image.sh build                   # images of the merge base and of this checkout
+bash app-image.sh run base                # the App as its image, on the host network
+bash memory-phase.sh /tmp/oneuptime-perf/seed.json base-load 15 120 20 5 9371 30
+bash app-image.sh run branch
+bash memory-phase.sh /tmp/oneuptime-perf/seed.json branch-load 15 120 20 5 9371 30
+bash app-image.sh stop
+```
+
+`image/App.Dockerfile` is the production stage of `packages/App/Dockerfile.tpl`
+without the frontends' production builds (the Dashboard's bundle is copied
+in from this checkout) and without the build-time type check.
 
 ## What it measured first
 

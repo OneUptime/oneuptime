@@ -1,4 +1,11 @@
-import { afterAll, beforeAll, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterAll,
+  beforeAll,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -46,7 +53,8 @@ interface Stub {
 }
 
 // Where SourceMapSupportStub.js records what it is told.
-const INSTALLS_KEY: string = "__oneuptimeTranspilerTestSourceMapSupportInstalls";
+const INSTALLS_KEY: string =
+  "__oneuptimeTranspilerTestSourceMapSupportInstalls";
 
 /*
  * A fresh copy of the module (it keeps its maps and its hook per process),
@@ -126,7 +134,9 @@ function withNodeEnv<T>(value: string | undefined, run: () => T): T {
   }
 }
 
-function transpilerFor(transpiler: Transpiler): TranspilerModule.TsNodeTranspiler {
+function transpilerFor(
+  transpiler: Transpiler,
+): TranspilerModule.TsNodeTranspiler {
   return withNodeEnv("production", () => {
     const made: TranspilerModule.TsNodeTranspiler | undefined =
       transpiler.create(createOptions());
@@ -185,16 +195,25 @@ afterAll(() => {
 });
 
 // What the module's code does: its exports, run as Node runs a module.
-function run(code: string): { described: string; failed: string; shown: string } {
+function run(code: string): {
+  described: string;
+  failed: string;
+  shown: string;
+} {
   const exported: Record<string, unknown> = {};
   const wrapper: (
     exports: Record<string, unknown>,
-    requireFunction: NodeRequire,
+    requireFunction: typeof require,
   ) => void = vm.runInThisContext(
     `(function (exports, require) {${code}\n})`,
-  ) as (exports: Record<string, unknown>, requireFunction: NodeRequire) => void;
+  ) as (
+    exports: Record<string, unknown>,
+    requireFunction: typeof require,
+  ) => void;
   wrapper(exported, require);
-  const Thing: new () => { describe: () => string } = exported["Thing"] as new () => {
+  const Thing: new () => { describe: () => string } = exported[
+    "Thing"
+  ] as new () => {
     describe: () => string;
   };
   let failed: string = "";
@@ -260,12 +279,20 @@ describe("when ts-node hands modules to it", () => {
     expect(Object.keys(stub.installs[0] as Record<string, unknown>)).toEqual([
       "retrieveSourceMap",
     ]);
-    expect(typeof (stub.installs[0] as Record<string, unknown>)["retrieveSourceMap"]).toBe(
-      "function",
-    );
+    expect(
+      typeof (stub.installs[0] as Record<string, unknown>)["retrieveSourceMap"],
+    ).toBe("function");
     // The TypeScript and source-map-support ts-node resolved, not copies.
-    expect(asked.filter((name: string) => name === "typescript")).toHaveLength(5);
-    expect(asked.filter((name: string) => name === "@cspotcode/source-map-support")).toHaveLength(1);
+    expect(
+      asked.filter((name: string) => {
+        return name === "typescript";
+      }),
+    ).toHaveLength(5);
+    expect(
+      asked.filter((name: string) => {
+        return name === "@cspotcode/source-map-support";
+      }),
+    ).toHaveLength(1);
   });
 
   test("the compiler named in ts-node's options is the one it uses", () => {
@@ -363,7 +390,10 @@ describe("the code it hands ts-node", () => {
 });
 
 describe("the source map it keeps", () => {
-  function expectedMap(fileName: string): { names: Array<string>; mappings: string } {
+  function expectedMap(fileName: string): {
+    names: Array<string>;
+    mappings: string;
+  } {
     const map: { names: Array<string>; mappings: string } = JSON.parse(
       ts.transpileModule(SOURCE, {
         fileName: fileName,
@@ -399,7 +429,10 @@ describe("the source map it keeps", () => {
 
   test("reads the module's TypeScript as Node does, without a byte order mark", () => {
     const { transpiler } = load();
-    const withBom: string = path.join(directory, "Bom.ts").split(path.sep).join("/");
+    const withBom: string = path
+      .join(directory, "Bom.ts")
+      .split(path.sep)
+      .join("/");
     fs.writeFileSync(withBom, `\u{feff}${SOURCE}`);
     transpilerFor(transpiler).transpile(SOURCE, { fileName: withBom });
 
@@ -410,7 +443,10 @@ describe("the source map it keeps", () => {
 
   test("still maps a module whose file is gone, without its source", () => {
     const { transpiler } = load();
-    const gone: string = path.join(directory, "Gone.ts").split(path.sep).join("/");
+    const gone: string = path
+      .join(directory, "Gone.ts")
+      .split(path.sep)
+      .join("/");
     fs.writeFileSync(gone, SOURCE);
     transpilerFor(transpiler).transpile(SOURCE, { fileName: gone });
     fs.rmSync(gone);
@@ -461,7 +497,9 @@ describe("the source map it keeps", () => {
       stub.installs[0] as Record<string, unknown>
     )["retrieveSourceMap"] as (source: string) => unknown;
 
-    expect(handler(moduleFile)).toEqual(transpiler.retrieveSourceMap(moduleFile));
+    expect(handler(moduleFile)).toEqual(
+      transpiler.retrieveSourceMap(moduleFile),
+    );
   });
 
   test("is kept deflated: a fraction of the map's size", () => {
@@ -469,8 +507,26 @@ describe("the source map it keeps", () => {
     const made: TranspilerModule.TsNodeTranspiler = transpilerFor(transpiler);
     // Real modules of Common's, large and small.
     const modules: Array<string> = [
-      path.resolve(__dirname, "..", "..", "..", "..", "Server", "Utils", "OpenAPI.ts"),
-      path.resolve(__dirname, "..", "..", "..", "..", "Server", "Utils", "Response.ts"),
+      path.resolve(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "..",
+        "Server",
+        "Utils",
+        "OpenAPI.ts",
+      ),
+      path.resolve(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "..",
+        "Server",
+        "Utils",
+        "Response.ts",
+      ),
       path.resolve(__dirname, "..", "..", "..", "..", "Types", "ObjectID.ts"),
     ];
     let raw: number = 0;
@@ -487,7 +543,10 @@ describe("the source map it keeps", () => {
           },
         }).sourceMapText as string,
       ) as { names: Array<string>; mappings: string };
-      raw += JSON.stringify({ names: map.names, mappings: map.mappings }).length;
+      raw += JSON.stringify({
+        names: map.names,
+        mappings: map.mappings,
+      }).length;
     }
 
     expect(transpiler.keptSourceMapCount()).toBe(modules.length);
@@ -505,7 +564,13 @@ describe("what it keeps for a whole program", () => {
    * array buffers.
    */
   test("holds no array buffers: the maps are strings on V8's heap", () => {
-    const commonDirectory: string = path.resolve(__dirname, "..", "..", "..", "..");
+    const commonDirectory: string = path.resolve(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "..",
+    );
     const script: string = [
       'const fs = require("fs");',
       'const path = require("path");',
@@ -548,14 +613,21 @@ describe("what it keeps for a whole program", () => {
       "})();",
     ].join("\n");
 
-    const report: { kept: number; keptBytes: number; arrayBuffersGrowth: number } =
-      lastJsonLine<{ kept: number; keptBytes: number; arrayBuffersGrowth: number }>(
-        runTranspileOnlyNode(script, {
-          cwd: commonDirectory,
-          nodeArgs: ["--expose-gc"],
-          timeoutMs: 240000,
-        }),
-      );
+    const report: {
+      kept: number;
+      keptBytes: number;
+      arrayBuffersGrowth: number;
+    } = lastJsonLine<{
+      kept: number;
+      keptBytes: number;
+      arrayBuffersGrowth: number;
+    }>(
+      runTranspileOnlyNode(script, {
+        cwd: commonDirectory,
+        nodeArgs: ["--expose-gc"],
+        timeoutMs: 240000,
+      }),
+    );
 
     expect(report.kept).toBe(400);
     expect(report.keptBytes).toBeGreaterThan(100 * 1024);

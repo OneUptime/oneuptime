@@ -40,7 +40,10 @@ console.log(
 );
 
 console.log("\nBy node type (MB):");
-const types = new Set([...Object.keys(before.byType), ...Object.keys(after.byType)]);
+const types = new Set([
+  ...Object.keys(before.byType),
+  ...Object.keys(after.byType),
+]);
 for (const type of [...types].sort((a, b) => {
   return (
     Math.abs((after.byType[b] || 0) - (before.byType[b] || 0)) -
@@ -49,10 +52,15 @@ for (const type of [...types].sort((a, b) => {
 })) {
   const was = before.byType[type] || 0;
   const now = after.byType[type] || 0;
-  console.log(`${mb(was)} ${mb(now)} ${signed((now - was) / 1048576, 2)}  ${type}`);
+  console.log(
+    `${mb(was)} ${mb(now)} ${signed((now - was) / 1048576, 2)}  ${type}`,
+  );
 }
 
-const names = new Set([...Object.keys(before.byName), ...Object.keys(after.byName)]);
+const names = new Set([
+  ...Object.keys(before.byName),
+  ...Object.keys(after.byName),
+]);
 const changes = [...names].map((name) => {
   const was = before.byName[name] || { size: 0, count: 0 };
   const now = after.byName[name] || { size: 0, count: 0 };
