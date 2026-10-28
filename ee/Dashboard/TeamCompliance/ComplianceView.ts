@@ -44,6 +44,8 @@ export const CHANNEL_ICONS: Record<ComplianceNotificationChannel, IconProp> = {
   [ComplianceNotificationChannel.Slack]: IconProp.Slack,
   [ComplianceNotificationChannel.MicrosoftTeams]: IconProp.MicrosoftTeams,
   [ComplianceNotificationChannel.Webhook]: IconProp.Webhook,
+  // A channel the server's admin added (#5332), not one of the member's own.
+  [ComplianceNotificationChannel.CustomChannel]: IconProp.PuzzlePiece,
 };
 
 // The icons the rest of the Dashboard already uses for these four surfaces.
@@ -133,16 +135,64 @@ export const NO_SEVERITIES_LEFT_WARNING: string =
   "Every severity this rule was scoped to has been deleted, so it is paused. Edit it to choose new severities, or delete it.";
 
 /*
+ * The channels of an on-call rule that members are not checked on, because
+ * no page can go out on them on this server right now - the custom channel,
+ * while custom channels are not part of the license or none is turned on.
+ * The server says which (channelsNotChecked) and why, in the rule's
+ * warnings; an older server says none.
+ */
+export const getChannelsNotChecked: (
+  rule: TeamComplianceRuleJSON,
+) => Array<ComplianceNotificationChannel> = (
+  rule: TeamComplianceRuleJSON,
+): Array<ComplianceNotificationChannel> => {
+  return ComplianceRule.normaliseChannels(rule.channelsNotChecked);
+};
+
+/*
+ * An on-call rule that insists on channels, not one of which members can be
+ * checked on right now: a rule on the custom channel alone, while no custom
+ * channel can carry a page. The server checks nobody against it and says
+ * why. It is on, and nothing a member does changes that - only the server's
+ * custom channels can - so it is neither failing nor passing, and not
+ * paused either.
+ */
+export const hasNoChannelToCheck: (rule: TeamComplianceRuleJSON) => boolean = (
+  rule: TeamComplianceRuleJSON,
+): boolean => {
+  if (!ComplianceRule.supportsChannel(rule.ruleType)) {
+    return false;
+  }
+
+  const channels: Array<ComplianceNotificationChannel> = getRuleChannels(rule);
+  const notChecked: Array<ComplianceNotificationChannel> =
+    getChannelsNotChecked(rule);
+
+  return (
+    channels.length > 0 &&
+    channels.every((channel: ComplianceNotificationChannel): boolean => {
+      return notChecked.includes(channel);
+    })
+  );
+};
+
+/*
  * A rule members are actually measured against. A paused rule is listed but
  * not checked, and a rule whose type this build does not recognise is not
  * checked either (the server passes every member on it and says so in a
- * warning), nor is one with no severities left, whatever its switch says -
- * so none of them may count towards the verdict.
+ * warning), nor is one with no severities left, whatever its switch says, nor
+ * one with no channel members can be checked on right now - so none of them
+ * may count towards the verdict.
  */
 export const isRuleActive: (rule: TeamComplianceRuleJSON) => boolean = (
   rule: TeamComplianceRuleJSON,
 ): boolean => {
-  return rule.enabled && isRuleKnown(rule) && !hasNoSeveritiesLeft(rule);
+  return (
+    rule.enabled &&
+    isRuleKnown(rule) &&
+    !hasNoSeveritiesLeft(rule) &&
+    !hasNoChannelToCheck(rule)
+  );
 };
 
 export const getActiveRules: (
@@ -392,6 +442,12 @@ export interface ComplianceSummary {
    * never checked - and turning one on changes nothing.
    */
   unrecognisedRuleCount: number;
+  /*
+   * Rules that are on but have no channel members can be checked on right
+   * now (see hasNoChannelToCheck): not checked until a custom channel can
+   * carry a page, or the rule asks for another channel.
+   */
+  noChannelToCheckRuleCount: number;
 }
 
 export const summarizeCompliance: (
@@ -430,6 +486,16 @@ export const summarizeCompliance: (
     unrecognisedRuleCount: countRules(
       (rule: TeamComplianceRuleJSON): boolean => {
         return !isRuleKnown(rule);
+      },
+    ),
+    noChannelToCheckRuleCount: countRules(
+      (rule: TeamComplianceRuleJSON): boolean => {
+        return (
+          rule.enabled &&
+          isRuleKnown(rule) &&
+          !hasNoSeveritiesLeft(rule) &&
+          hasNoChannelToCheck(rule)
+        );
       },
     ),
   };
@@ -472,6 +538,7 @@ export const getNoActiveRulesAdvice: (summary: ComplianceSummary) => string = (
   const resumable: number = summary.resumableRuleCount;
   const noSeveritiesLeft: number = summary.noSeveritiesLeftRuleCount;
   const unrecognised: number = summary.unrecognisedRuleCount;
+  const noChannel: number = summary.noChannelToCheckRuleCount;
   const isOrAre: (count: number) => string = (count: number): string => {
     return count === 1 ? "is" : "are";
   };
@@ -489,22 +556,33 @@ export const getNoActiveRulesAdvice: (summary: ComplianceSummary) => string = (
       : `All ${count} of this team's rules ${verbs}`;
   };
 
-  if (resumable === 0 && noSeveritiesLeft === 0 && unrecognised === 0) {
+  if (
+    resumable === 0 &&
+    noSeveritiesLeft === 0 &&
+    unrecognised === 0 &&
+    noChannel === 0
+  ) {
     return "Turn a rule on to see who meets it.";
   }
 
-  if (resumable === 0 && noSeveritiesLeft === 0) {
+  if (resumable === 0 && noSeveritiesLeft === 0 && noChannel === 0) {
     return `${everyRule(unrecognised, "is", "are")} of a type this version does not recognise, so ${
       unrecognised === 1 ? "it is" : "they are"
     } not checked. Delete ${itOrThem(unrecognised)} and add a supported rule.`;
   }
 
-  if (resumable === 0 && unrecognised === 0) {
+  if (resumable === 0 && unrecognised === 0 && noChannel === 0) {
     return `${everyRule(noSeveritiesLeft, "has", "have")} no severities left: every severity ${
       noSeveritiesLeft === 1 ? "it was" : "they were"
     } scoped to has been deleted. Edit ${itOrThem(
       noSeveritiesLeft,
     )} to choose new severities, or delete ${itOrThem(noSeveritiesLeft)}.`;
+  }
+
+  if (resumable === 0 && noSeveritiesLeft === 0 && unrecognised === 0) {
+    return `${everyRule(noChannel, "asks", "ask")} only for channels that cannot carry a page on this server right now, so ${
+      noChannel === 1 ? "it is" : "they are"
+    } not checked. ${noChannel === 1 ? "Its warning says" : "Their warnings say"} why.`;
   }
 
   const states: Array<string> = [];
@@ -533,6 +611,17 @@ export const getNoActiveRulesAdvice: (summary: ComplianceSummary) => string = (
       )} of a type this version does not recognise`,
     );
     choices.push(`replace the unrecognised ${pluralize(unrecognised, "one")}`);
+  }
+
+  if (noChannel > 0) {
+    states.push(
+      `${countOf(noChannel, "rule")} ${
+        noChannel === 1 ? "asks" : "ask"
+      } only for channels that cannot carry a page right now`,
+    );
+    choices.push(
+      `add another channel to the ${pluralize(noChannel, "one")} that cannot be checked`,
+    );
   }
 
   return `${joinAsProse(states)}. ${capitalize(joinAsChoice(choices))}.`;
@@ -1142,6 +1231,10 @@ const parseRule: (json: JSONObject, index: number) => TeamComplianceRuleJSON = (
     ruleType: ruleType as ComplianceRuleType,
     enabled: json["enabled"] === true,
     notificationChannels: parseChannels(json),
+    // An API from before custom channels sends none: every channel is checked.
+    channelsNotChecked: ComplianceRule.normaliseChannels(
+      json["channelsNotChecked"],
+    ),
     severityKind:
       severityKind === ComplianceSeverityKind.Incident ||
       severityKind === ComplianceSeverityKind.Alert

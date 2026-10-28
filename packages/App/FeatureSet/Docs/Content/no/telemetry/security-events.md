@@ -40,6 +40,7 @@ flowchart TB
 | **Entitetsrisiko** | Hendelser | Hver bruker, vert og adresse, vurdert etter hva som er funnet om den denne uken, de mest risikable først |
 | **Korreler** | Hendelser | En graf over hendelsene som deler en vert, en bruker eller en IP-adresse |
 | **Deteksjonsregler** | Detections | Sigma-regler som kjører etter en tidsplan og åpner saker |
+| **Regelunntak** | Detections | Det reglene dine hopper over med vilje, som en skanner eller en planlagt test, hver med hvem som la den til og hvorfor |
 | **Regelbibliotek** | Detections | Ferdige deteksjonsregler å legge til, hver med hendelsene den leser og om de kommer inn, med de anbefalte merket |
 | **Trusselsinformasjon** | Detections | STIX/TAXII-feeder med kjente ondsinnede indikatorer |
 | **ATT&CK-dekning** | Detections | MITRE ATT&CK-teknikkene som reglene dine dekker |
@@ -418,6 +419,32 @@ Et Detection Finding er en sikkerhetshendelse av klassen `Detection Finding` (OC
 
 Funn er vanlige hendelser: søk etter dem under **Hendelser** og pivoter på dem i **Korreler**. For å prøve ut en ny regel i det stille slår du av alle handlinger unntatt funnet til du stoler på den.
 
+### Unntak
+
+Et unntak er noe en regel hopper over fordi du venter det, som en sårbarhetsskanner, en nattlig sikkerhetskopijobb eller en planlagt penetrasjonstest. Det gjør regelen stille for akkurat den ene tingen uten å slå den av, og regelens andre treff utløses fortsatt. Alle unntak står under **Produkter → Security Events → Deteksjoner → Regelunntak**: legg til ett der med **Legg til Regelunntak**, med **Legg til unntak** i en regels rad, eller med **Legg til unntak** i en deteksjons rad på en sak, som starter med deteksjonens regel og det den ble utløst for.
+
+| Det regelen hopper over | Hva det treffer |
+| --- | --- |
+| **En entitet** | En bruker, vert eller IP-adresse, hvor enn en hendelse nevner den: som den som handlet (`principalUser`, `principalHost`, `principalIp`), som den det ble handlet mot (`targetUser`, `targetHost`, `targetIp`), eller blant dens `observables` |
+| **En verdi** | Verdien i ett felt, med feltet navngitt slik en regel navngir det: `processName`, `principalUser` eller en attributtnøkkel som `http.user_agent` |
+| **Et tidsvindu** | Alle hendelser fra **Begynner den** til **Slutter den**, høyst 30 dager fra hverandre |
+
+- Verdier treffer uansett store og små bokstaver, og `*` står for en hvilken som helst rekke tegn: `svc-*` hopper over alle tjenestekontoer, og `*.lab.example.com` alle verter i et domene. En IP-adresse kan være et område, som `10.20.0.0/16`. En verdi som bare er `*`, avvises: slå av en regel for å stoppe den.
+- Hvert unntak sier hvorfor i sin **Årsak**, som alle som leser listen, ser, og tar vare på hvem som la det til og når. En entitet eller en verdi kan ha en dato i **Utløper**, og etter den ser regelen den igjen; et tidsvindu slutter av seg selv.
+- **Status** sier hvor hvert unntak står: **Aktiv**, **Kommende** for et vindu som ikke har begynt, **Utløpt** eller **Avsluttet**. Under en regels navn i **Deteksjonsregler** teller en linje de aktive unntakene, og **Vis unntak** i regelens rad åpner listen filtrert på regelen.
+- Hendelser som hoppes over, holdes utenfor før regelen teller noe, så de teller aldri mot dens **Terskel for antall treff** og åpner ingen sak, varsel, hendelse eller funn. Unntak gjelder for hver kjøring av regelen, korrelasjoner inkludert, og for **Kjør på tidligere hendelser**, men aldri for et testangrep, som sjekker at hendelser kommer gjennom.
+- En regel har høyst 100 unntak. Den som kan redigere deteksjonsregler, legger til, endrer og fjerner dem, alle Security-roller kan lese dem, og hver endring lagres i prosjektets revisjonslogg.
+
+### Kjør på tidligere hendelser
+
+**Kjør på tidligere hendelser** viser hva en regel ville ha funnet hvis den hadde kjørt, uten å åpne, sende eller skrive noe. Den finnes i en regels rad, for regelen slik den er lagret, og under **Sigma-regel (YAML)** i regelens skjema, for regelen slik den står der, før du lagrer den. Velg **Siste 24 timer**, **Siste 7 dager** eller **Siste 30 dager**.
+
+- En regel telles slik kjøringene teller den: i vinduer like lange som dens **Evalueringsintervall (minutter)**, der en gruppe utløses i et vindu når antallet der når **Terskel for antall treff**. En korrelasjon leses over hele perioden og viser gruppene den ville ha truffet, hver med det som skjedde.
+- Svaret sier hvor mange ganger regelen ville ha blitt utløst, hvor mange ganger om dagen, for hvor mange brukere, verter eller adresser, og hvor mange hendelser som traff. De 50 gruppene som ble utløst mest, vises, hver med sine hendelser og når den sist ble utløst.
+- Unntakene til en lagret regel gjelder, og svaret sier hvor mange hendelser de hoppet over og hvor mange utløsninger de forhindret. En regel som ikke ville ha blitt utløst, sier hvor nær den var: hvor mange hendelser som traff, og terskelen ingen gruppe nådde i ett vindu.
+- En regel som ville blitt utløst mer enn 20 ganger om dagen, utløses oftere enn et menneske rekker å se på, og svaret sier det, med måter å gjøre den roligere på.
+- Den leser bare kildene du kan lese. En kjøring som tar mer enn 45 sekunder, stoppes og sier det: velg en kortere periode.
+
 ## Monitorer for sikkerhetshendelser
 
 En monitor for sikkerhetshendelser teller hendelsene som treffer filtrene, over et glidende vindu, og kjører de vanlige monitorkriteriene på tellingen: den endrer monitorens status, åpner varsler eller hendelser (incidents), og varsler vakthavende. Opprett en under **Overvåkere → Opprett monitor**, med **Sikkerhetshendelser** som type; den vises der sammen med de andre monitorene dine.
@@ -468,6 +495,18 @@ Sjekk **Status**: med **Deaktivert** kjører ikke regelen, og med **Kjøring mis
 
 :::details En regel åpner for mange varsler
 Hver verdi av **Grupperingsfelt** får sitt eget varsel: grupper etter noe grovere, hev terskelen, eller legg til et Distinct Count Field. Bryr du deg om takten og ikke om hvert treff, setter du **Varsler og hendelser** til **Ingen av dem** og setter en monitor på regelens funn.
+:::
+
+:::details En regel utløses av noe du venter
+Legg til et unntak for det i stedet for å slå av regelen: **Legg til unntak** i deteksjonens rad på saken starter med regelen og det den ble utløst for. For å endre selve regelen viser **Kjør på tidligere hendelser** under YAML-en hva endringen ville ha funnet, før du lagrer.
+:::
+
+:::details Et unntak hopper ikke over det det skal
+Sjekk unntakets **Status** i **Regelunntak**: et unntak med status **Utløpt** hopper ikke over noe, og et tidsvindu hopper bare over hendelsene mellom sine to tidspunkter. En entitet letes etter som den som handlet, som den det ble handlet mot og blant hendelsens `observables`; for å hoppe over en verdi i et annet felt, legg til et unntak av typen **En verdi** som navngir feltet. Uten `*` må en verdi være lik hele feltet: `svc-*` hopper over `svc-backup`, og `svc-` gjør det ikke.
+:::
+
+:::details Å kjøre en regel på tidligere hendelser finner ingenting
+Den leser bare perioden du velger og kildene du kan lese. Når hendelser traff, men ingen gruppe nådde **Terskel for antall treff** i ett vindu, sier svaret hvor mange som traff: senk terskelen, eller tell over et lengre **Evalueringsintervall (minutter)**.
 :::
 
 ## Neste steg

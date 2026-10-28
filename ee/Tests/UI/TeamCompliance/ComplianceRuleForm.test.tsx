@@ -40,6 +40,25 @@ jest.mock("Common/UI/Components/ModelFormModal/ModelFormModal", () => {
   };
 });
 
+/*
+ * What the server says of its custom channels (#5332): the ones that are on,
+ * null while the answer is on its way. None unless a test says otherwise -
+ * what a server without them answers.
+ */
+let mockCustomChannelsState: {
+  channels: Array<unknown> | null;
+  error: string | null;
+} = { channels: [], error: null };
+
+jest.mock("@oneuptime/dashboard/Utils/CustomNotificationChannels", () => {
+  return {
+    __esModule: true,
+    useCustomNotificationChannels: (): typeof mockCustomChannelsState => {
+      return mockCustomChannelsState;
+    },
+  };
+});
+
 import ComplianceRuleFormModal, {
   COMPLIANCE_RULE_FORM_STEPS,
   ComplianceRulePreview,
@@ -72,6 +91,7 @@ import {
   TEAM_ID,
 } from "./ComplianceFixtures";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import TeamComplianceSetting from "Common/Models/DatabaseModels/TeamComplianceSetting";
@@ -207,6 +227,7 @@ const bodyFor: (values: Values) => JSONObject = (
 
 beforeEach(() => {
   capturedModalProps = null;
+  mockCustomChannelsState = { channels: [], error: null };
 });
 
 afterEach(() => {
@@ -340,7 +361,7 @@ describe("the rule form's fields", () => {
         },
       ),
     );
-    expect(getChannelDropdownOptions()).toHaveLength(9);
+    expect(getChannelDropdownOptions()).toHaveLength(10);
   });
 
   /*
@@ -355,7 +376,7 @@ describe("the rule form's fields", () => {
     expect(field.dropdownModal).toBeUndefined();
   });
 
-  test("the channel options are the nine channels, in the catalog's order", () => {
+  test("the channel options are the ten channels, in the catalog's order", () => {
     expect(
       getChannelDropdownOptions().map((option: { value: unknown }) => {
         return option.value;
@@ -370,6 +391,7 @@ describe("the rule form's fields", () => {
       ComplianceNotificationChannel.Slack,
       ComplianceNotificationChannel.MicrosoftTeams,
       ComplianceNotificationChannel.Webhook,
+      ComplianceNotificationChannel.CustomChannel,
     ]);
     expect(
       getChannelDropdownOptions().map((option: { label: string }) => {
@@ -385,6 +407,7 @@ describe("the rule form's fields", () => {
       "Slack",
       "Microsoft Teams",
       "Webhook",
+      "Custom channel",
     ]);
   });
 
@@ -874,10 +897,10 @@ describe("the live preview", () => {
       );
 
       expect(preview?.title).toBe(
-        "Call, SMS, Push notification, Email, WhatsApp, Telegram, Slack, Microsoft Teams and Webhook for incidents",
+        "Call, SMS, Push notification, Email, WhatsApp, Telegram, Slack, Microsoft Teams, Webhook and Custom channel for incidents",
       );
       expect(preview?.sentence).toBe(
-        "Every member has incident on-call rules that notify them by Call, by SMS, by Push notification, by Email, by WhatsApp, by Telegram, by Slack, by Microsoft Teams and by Webhook for every incident severity.",
+        "Every member has incident on-call rules that notify them by Call, by SMS, by Push notification, by Email, by WhatsApp, by Telegram, by Slack, by Microsoft Teams, by Webhook and by Custom channel for every incident severity.",
       );
       expect(preview?.notes).toEqual([
         CALL_SMS_AND_TELEGRAM_NOTE,
@@ -1392,8 +1415,9 @@ describe("Slack and Microsoft Teams follow the project's workspaces", () => {
       ComplianceNotificationChannel.Telegram,
       ComplianceNotificationChannel.MicrosoftTeams,
       ComplianceNotificationChannel.Webhook,
+      ComplianceNotificationChannel.CustomChannel,
     ]);
-    expect(getChannelDropdownOptions([])).toHaveLength(7);
+    expect(getChannelDropdownOptions([])).toHaveLength(8);
     expect(
       getChannelDropdownOptions([
         WorkspaceType.Slack,
@@ -1487,10 +1511,11 @@ describe("Slack and Microsoft Teams follow the project's workspaces", () => {
         />,
       );
 
-      expect(modalChannels()).toHaveLength(9);
+      // The custom channel too, though none is on: it is everything.
+      expect(modalChannels()).toHaveLength(10);
     });
 
-    test("create, before the project's workspaces are known: every channel, nothing hidden on a guess", () => {
+    test("create, before the project's workspaces are known: every workspace channel, nothing hidden on a guess", () => {
       ConnectedWorkspaces.setFetcher((): Promise<Array<WorkspaceType>> => {
         return new Promise<Array<WorkspaceType>>((): void => {});
       });
@@ -1504,7 +1529,85 @@ describe("Slack and Microsoft Teams follow the project's workspaces", () => {
         />,
       );
 
+      // Every channel of the nine; the custom one follows the server below.
       expect(modalChannels()).toHaveLength(9);
+      expect(modalChannels()).toContain(ComplianceNotificationChannel.Slack);
+      expect(modalChannels()).not.toContain(
+        ComplianceNotificationChannel.CustomChannel,
+      );
+    });
+
+    describe("the custom channel follows the server's custom channels", () => {
+      const corpoApp: () => CustomNotificationChannel =
+        (): CustomNotificationChannel => {
+          const channel: CustomNotificationChannel =
+            new CustomNotificationChannel();
+          channel._id = "c0570000-0000-4000-8000-000000000001";
+          channel.name = "CorpoApp";
+          return channel;
+        };
+
+      const renderCreate: () => void = (): void => {
+        render(
+          <ComplianceRuleFormModal
+            teamId={TEAM_ID}
+            projectId={PROJECT_ID}
+            onClose={jest.fn()}
+            onSuccess={jest.fn()}
+          />,
+        );
+      };
+
+      test("create, with a custom channel on: offered, last", () => {
+        mockCustomChannelsState = { channels: [corpoApp()], error: null };
+
+        renderCreate();
+
+        expect(modalChannels()[modalChannels().length - 1]).toBe(
+          ComplianceNotificationChannel.CustomChannel,
+        );
+      });
+
+      test.each<[string, Array<unknown> | null, string | null]>([
+        ["none is on - or custom channels are not active", [], null],
+        ["the server has not answered yet", null, null],
+        ["the server could not be asked", [], "Network error"],
+      ])(
+        "create, when %s: not offered",
+        (
+          _label: string,
+          channels: Array<unknown> | null,
+          error: string | null,
+        ) => {
+          mockCustomChannelsState = { channels: channels, error: error };
+
+          renderCreate();
+
+          expect(modalChannels()).not.toContain(
+            ComplianceNotificationChannel.CustomChannel,
+          );
+          // Nothing else is taken away with it.
+          expect(modalChannels()).toContain(ComplianceNotificationChannel.Call);
+        },
+      );
+
+      test("edit, with none on: offered, so a saved rule still shows what it asks for", () => {
+        mockCustomChannelsState = { channels: [], error: null };
+
+        render(
+          <ComplianceRuleFormModal
+            teamId={TEAM_ID}
+            projectId={PROJECT_ID}
+            modelIdToEdit={new ObjectID("00000000-0000-4000-8000-000000000123")}
+            onClose={jest.fn()}
+            onSuccess={jest.fn()}
+          />,
+        );
+
+        expect(modalChannels()).toContain(
+          ComplianceNotificationChannel.CustomChannel,
+        );
+      });
     });
   });
 });
@@ -1832,5 +1935,111 @@ describe("the recommended rules' channels", () => {
         await getPresetInitialValues(presetById("push-for-critical-alerts")),
       )?.title,
     ).toBe("Push notification for alerts");
+  });
+});
+
+/*
+ * The custom channel (#5332) in the form: the server's own channel, offered
+ * to a new rule only when the server says one can carry a page. It has no
+ * method of a member's own, so no rule kind of its own either.
+ */
+describe("the custom channel in the form", () => {
+  const channelsOf: (options: Array<{ value: unknown }>) => Array<unknown> = (
+    options: Array<{ value: unknown }>,
+  ): Array<unknown> => {
+    return options.map((option: { value: unknown }): unknown => {
+      return option.value;
+    });
+  };
+
+  test.each<[Array<WorkspaceType> | undefined, boolean | undefined, boolean]>([
+    // Undefined offers everything, as for a workspace: an edit.
+    [undefined, undefined, true],
+    [undefined, true, true],
+    [undefined, false, false],
+    // The project's workspaces have nothing to do with it.
+    [[], true, true],
+    [[WorkspaceType.Slack], false, false],
+  ])(
+    "isChannelOffered(CustomChannel, %j, %s) is %s",
+    (
+      workspaces: Array<WorkspaceType> | undefined,
+      isCustomChannelOffered: boolean | undefined,
+      expected: boolean,
+    ) => {
+      expect(
+        isChannelOffered(
+          ComplianceNotificationChannel.CustomChannel,
+          workspaces,
+          isCustomChannelOffered,
+        ),
+      ).toBe(expected);
+    },
+  );
+
+  test("whether it is offered changes no other channel", () => {
+    for (const channel of Object.values(ComplianceNotificationChannel)) {
+      if (channel === ComplianceNotificationChannel.CustomChannel) {
+        continue;
+      }
+
+      expect(isChannelOffered(channel, undefined, false)).toBe(true);
+      expect(isChannelOffered(channel, [], false)).toBe(
+        isChannelOffered(channel, []),
+      );
+    }
+  });
+
+  test("the channel options and the form's field carry it only when offered", () => {
+    expect(channelsOf(getChannelDropdownOptions(undefined, false))).toEqual(
+      channelsOf(getChannelDropdownOptions()).filter(
+        (channel: unknown): boolean => {
+          return channel !== ComplianceNotificationChannel.CustomChannel;
+        },
+      ),
+    );
+    expect(getChannelDropdownOptions(undefined, false)).toHaveLength(9);
+    expect(getChannelDropdownOptions(undefined, true)).toEqual(
+      getChannelDropdownOptions(),
+    );
+
+    const channelsField: ModelField<TeamComplianceSetting> | undefined =
+      getComplianceRuleFormFields(undefined, false).find(
+        (field: ModelField<TeamComplianceSetting>): boolean => {
+          return Boolean(field.field?.notificationChannels);
+        },
+      );
+
+    expect(channelsField?.dropdownOptions).toEqual(
+      getChannelDropdownOptions(undefined, false),
+    );
+  });
+
+  test("there is no rule kind for a verified custom channel: nothing about it is a member's", () => {
+    const titles: Array<string> = getRuleTypeCardOptions().flatMap(
+      (group: CardSelectOptionGroup): Array<string> => {
+        return group.options.map((option: CardSelectOption): string => {
+          return option.title;
+        });
+      },
+    );
+
+    expect(titles).toHaveLength(13);
+    expect(titles.join(" ").toLowerCase()).not.toContain("custom");
+  });
+
+  test("the preview of a rule on the custom channel, which no project switch gates", () => {
+    expect(
+      getRulePreviewText(
+        withChannels(ComplianceRuleType.HasIncidentOnCallRules, [
+          ComplianceNotificationChannel.CustomChannel,
+        ]),
+      ),
+    ).toEqual({
+      title: "Custom channel for incidents",
+      sentence:
+        "Every member has an incident on-call rule that notifies them by Custom channel for every incident severity.",
+      notes: [],
+    });
   });
 });

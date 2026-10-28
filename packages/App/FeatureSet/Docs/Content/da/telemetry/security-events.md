@@ -40,6 +40,7 @@ flowchart TB
 | **Entitetsrisiko** | Begivenheder | Hver bruger, vært og adresse, scoret efter hvad der er fundet om den i denne uge, de mest risikable først |
 | **Korrelér** | Begivenheder | En graf over de begivenheder, der deler en vært, en bruger eller en IP-adresse |
 | **Detektionsregler** | Detections | Sigma-regler, der kører efter en tidsplan og åbner sager |
+| **Regelundtagelser** | Detections | Det, dine regler springer over med vilje, som en scanner eller en planlagt test, hver med hvem der tilføjede den og hvorfor |
 | **Regelbibliotek** | Detections | Færdige detektionsregler at tilføje, hver med de hændelser, den læser, og om de kommer ind, med de anbefalede markeret |
 | **Trusselsinformation** | Detections | STIX/TAXII-feeds med kendte ondsindede indikatorer |
 | **ATT&CK-dækning** | Detections | De MITRE ATT&CK-teknikker, dine regler dækker |
@@ -418,6 +419,32 @@ Et Detection Finding er en sikkerhedsbegivenhed af klassen `Detection Finding` (
 
 Fund er almindelige begivenheder: søg efter dem under **Begivenheder**, og pivotér på dem i **Korrelér**. For at afprøve en ny regel i stilhed slår du alle handlinger undtagen fundet fra, indtil du stoler på den.
 
+### Undtagelser
+
+En undtagelse er noget, en regel springer over, fordi du forventer det, som en sårbarhedsscanner, et natligt backupjob eller en planlagt penetrationstest. Den gør reglen stille for netop den ene ting uden at slå den fra, og reglens andre match udløser stadig. Alle undtagelser står under **Produkter → Security Events → Detektioner → Regelundtagelser**: tilføj en der med **Tilføj Regelundtagelse**, med **Tilføj undtagelse** i en regels række, eller med **Tilføj undtagelse** i en detektions række på en sag, som starter med detektionens regel og det, den udløste for.
+
+| Det, reglen springer over | Hvad den matcher |
+| --- | --- |
+| **En entitet** | En bruger, vært eller IP-adresse, hvor som helst en hændelse nævner den: som den, der handlede (`principalUser`, `principalHost`, `principalIp`), som den, der blev handlet på (`targetUser`, `targetHost`, `targetIp`), eller blandt dens `observables` |
+| **En værdi** | Ét felts værdi, med feltet navngivet, som en regel navngiver det: `processName`, `principalUser` eller en attributnøgle som `http.user_agent` |
+| **Et tidsvindue** | Alle hændelser fra **Begynder den** til **Slutter den**, højst 30 dage fra hinanden |
+
+- Værdier matcher uanset store og små bogstaver, og `*` står for en vilkårlig række tegn: `svc-*` springer alle tjenestekonti over, og `*.lab.example.com` alle værter i et domæne. En IP-adresse kan være et interval, som `10.20.0.0/16`. En værdi, der kun er `*`, afvises: slå en regel fra for at stoppe den.
+- Hver undtagelse siger hvorfor i sin **Årsag**, som alle, der læser listen, ser, og gemmer, hvem der tilføjede den og hvornår. En entitet eller en værdi kan have en dato i **Udløber den**, hvorefter reglen ser den igen; et tidsvindue slutter af sig selv.
+- **Status** siger, hvor hver enkelt står: **Aktiv**, **Kommende** for et vindue, der ikke er begyndt, **Udløbet** eller **Afsluttet**. Under en regels navn i **Detektionsregler** tæller en linje dens aktive undtagelser, og **Vis undtagelser** i reglens række åbner listen filtreret på den.
+- Oversprungne hændelser udelades, før reglen tæller noget, så de tæller aldrig med i dens **Grænse for antal match** og åbner ingen sag, alarm, hændelse eller fund. Undtagelser gælder for hver kørsel af reglen, korrelationer med, og for **Kør på tidligere hændelser**, men aldrig for et testangreb, der tjekker, at hændelser kommer igennem.
+- En regel har højst 100 undtagelser. Den, der må redigere detektionsregler, tilføjer, ændrer og fjerner dem, alle Security-roller kan læse dem, og hver ændring gemmes i projektets revisionslog.
+
+### Kør på tidligere hændelser
+
+**Kør på tidligere hændelser** viser, hvad en regel ville have fundet, hvis den havde kørt, uden at åbne, sende eller skrive noget. Den findes i en regels række, for reglen som gemt, og under **Sigma-regel (YAML)** i reglens formular, for reglen, som den står der, før du gemmer den. Vælg **Seneste 24 timer**, **Seneste 7 dage** eller **Seneste 30 dage**.
+
+- En regel tælles, som dens kørsler tæller den: i vinduer så lange som dens **Evalueringsinterval (minutter)**, hvor en gruppe udløser i et vindue, når dens antal der når **Grænse for antal match**. En korrelation læses over hele perioden og viser de grupper, den ville have matchet, hver med det, der skete.
+- Svaret siger, hvor mange gange reglen ville have udløst, hvor mange gange om dagen, for hvor mange brugere, værter eller adresser, og hvor mange hændelser der matchede. De 50 grupper, der udløste mest, vises, hver med sine hændelser og hvornår den sidst udløste.
+- En gemt regels undtagelser gælder, og svaret siger, hvor mange hændelser de sprang over, og hvor mange udløsninger de forhindrede. En regel, der ikke ville have udløst, siger, hvor tæt den kom: hvor mange hændelser der matchede, og den grænse, ingen gruppe nåede i ét vindue.
+- En regel, der ville udløse mere end 20 gange om dagen, udløser oftere, end et menneske kan nå at se på, og svaret siger det, med måder at gøre den mere stille på.
+- Den læser kun de kilder, du må læse. En kørsel, der tager mere end 45 sekunder, stoppes og siger det: vælg en kortere periode.
+
 ## Monitorer for sikkerhedsbegivenheder
 
 En monitor for sikkerhedsbegivenheder tæller de begivenheder, der matcher dens filtre, over et glidende vindue og kører de sædvanlige monitorkriterier på optællingen: den ændrer monitorens status, åbner advarsler eller hændelser og tilkalder vagthavende. Opret en under **Overvågninger → Opret monitor** med **Sikkerhedshændelser** som type; den vises der sammen med dine andre monitorer.
@@ -468,6 +495,18 @@ Tjek dens **Status**: med **Deaktiveret** kører reglen ikke, og med **Kørsel m
 
 :::details En regel åbner for mange advarsler
 Hver værdi af **Grupperingsfelt** får sin egen advarsel: gruppér efter noget grovere, hæv tærsklen, eller tilføj et Distinct Count Field. Er det hyppigheden, du bekymrer dig om, og ikke hvert match, så sæt **Advarsler og hændelser** til **Ingen af dem**, og sæt en monitor på regelens fund.
+:::
+
+:::details En regel udløser på noget, du forventer
+Tilføj en undtagelse for det i stedet for at slå reglen fra: **Tilføj undtagelse** i detektionens række på dens sag starter med reglen og det, den udløste for. For at ændre selve reglen viser **Kør på tidligere hændelser** under dens YAML, hvad ændringen ville have fundet, før du gemmer.
+:::
+
+:::details En undtagelse springer ikke over det, den skal
+Tjek dens **Status** i **Regelundtagelser**: en undtagelse med status **Udløbet** springer intet over, og et tidsvindue springer kun hændelserne mellem sine to tidspunkter over. En entitet søges som den, der handlede, som den, der blev handlet på, og blandt hændelsens `observables`; for at springe en værdi i et andet felt over, tilføj en undtagelse af typen **En værdi**, der navngiver feltet. Uden `*` skal en værdi være lig med hele feltet: `svc-*` springer `svc-backup` over, og `svc-` gør ikke.
+:::
+
+:::details At køre en regel på tidligere hændelser finder intet
+Den læser kun den periode, du vælger, og de kilder, du må læse. Når hændelser matchede, men ingen gruppe nåede **Grænse for antal match** i ét vindue, siger svaret, hvor mange der matchede: sænk grænsen, eller tæl over et længere **Evalueringsinterval (minutter)**.
 :::
 
 ## Næste trin

@@ -40,6 +40,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Risque des entités** | Événements | Chaque utilisateur, hôte et adresse, noté selon ce qui a été trouvé à son sujet cette semaine, les plus à risque d'abord |
 | **Corréler** | Événements | Un graphe des événements qui partagent un hôte, un utilisateur ou une adresse IP |
 | **Règles de détection** | Détections | Des règles Sigma qui s'exécutent selon un calendrier et ouvrent des dossiers |
+| **Exceptions de règle** | Détections | Ce que vos règles ignorent exprès, comme un scanner ou un test planifié, chaque fois avec qui l'a ajouté et pourquoi |
 | **Bibliothèque de règles** | Détections | Des règles de détection prêtes à ajouter, chacune avec les événements qu'elle lit et s'ils arrivent, les recommandées étant signalées |
 | **Renseignement sur les menaces** | Détections | Des flux STIX/TAXII d'indicateurs malveillants connus |
 | **Couverture ATT&CK** | Détections | Les techniques MITRE ATT&CK que couvrent vos règles |
@@ -418,6 +419,32 @@ Un Detection Finding est un événement de sécurité de classe `Detection Findi
 
 Les constats sont des événements ordinaires : recherchez-les dans **Événements** et pivotez dessus dans **Corréler**. Pour essayer une nouvelle règle sans bruit, désactivez toutes les actions sauf le constat jusqu'à ce que vous lui fassiez confiance.
 
+### Exceptions
+
+Une exception est une chose qu'une règle ignore parce que vous vous y attendez, comme un scanner de vulnérabilités, une tâche de sauvegarde nocturne ou un test d'intrusion planifié. Elle fait taire la règle pour cette seule chose sans la désactiver, et les autres correspondances de la règle se déclenchent toujours. Chaque exception est listée sous **Produits → Événements de sécurité → Détections → Exceptions de règle** : ajoutez-en une là avec **Ajouter : Exception de règle**, avec **Ajouter une exception** dans la ligne d'une règle, ou avec **Ajouter une exception** dans la ligne d'une détection d'un dossier, qui part de la règle de la détection et de ce pour quoi elle s'est déclenchée.
+
+| Ce que la règle ignore | Ce qui correspond |
+| --- | --- |
+| **Une entité** | Un utilisateur, un hôte ou une adresse IP, partout où un événement le nomme : comme celui qui agit (`principalUser`, `principalHost`, `principalIp`), comme celui qui subit l'action (`targetUser`, `targetHost`, `targetIp`), ou parmi ses `observables` |
+| **Une valeur** | La valeur d'un champ, le champ nommé comme une règle le nomme : `processName`, `principalUser` ou une clé d'attribut comme `http.user_agent` |
+| **Une fenêtre de temps** | Chaque événement de **Commence le** à **Se termine le**, à 30 jours d'écart au plus |
+
+- Les valeurs correspondent quelle que soit la casse, et `*` remplace n'importe quelle suite de caractères : `svc-*` ignore chaque compte de service, et `*.lab.example.com` chaque hôte d'un domaine. Une adresse IP peut être une plage, comme `10.20.0.0/16`. Une valeur faite seulement de `*` est refusée : pour arrêter une règle, désactivez-la.
+- Chaque exception dit pourquoi dans son **Motif**, que voit quiconque lit la liste, et garde qui l'a ajoutée et quand. Une entité ou une valeur peut avoir une date dans **Expire le**, après laquelle la règle la voit de nouveau ; une fenêtre de temps se termine d'elle-même.
+- **Statut** dit où chacune en est : **Actif**, **À venir** pour une fenêtre qui n'a pas commencé, **Expiré** ou **Terminé**. Sous le nom d'une règle dans **Règles de détection**, une ligne compte ses exceptions actives, et **Voir les exceptions** dans la ligne de la règle ouvre la liste filtrée sur elle.
+- Les événements ignorés sont écartés avant que la règle ne compte quoi que ce soit : ils ne comptent jamais pour son **Seuil de nombre de correspondances** et n'ouvrent ni dossier, ni alerte, ni incident, ni constat. Les exceptions s'appliquent à chaque exécution de la règle, corrélations comprises, et à **Exécuter sur les événements passés**, mais jamais à une attaque de test, qui vérifie que les événements arrivent.
+- Une règle a au plus 100 exceptions. Quiconque peut modifier les règles de détection les ajoute, les modifie et les supprime, chaque rôle Security peut les lire, et chaque changement est gardé dans le journal d'audit du projet.
+
+### Exécuter sur les événements passés
+
+**Exécuter sur les événements passés** montre ce qu'une règle aurait trouvé si elle avait tourné, sans rien ouvrir, envoyer ni écrire. Il se trouve dans la ligne d'une règle, pour la règle telle qu'enregistrée, et sous **Règle Sigma (YAML)** dans le formulaire de la règle, pour la règle telle qu'elle y est, avant que vous ne l'enregistriez. Choisissez **Dernières 24 heures**, **7 derniers jours** ou **30 derniers jours**.
+
+- Une règle est comptée comme ses exécutions la comptent : par fenêtres aussi longues que son **Intervalle d'évaluation (minutes)**, un groupe se déclenchant dans une fenêtre quand son compte y atteint le **Seuil de nombre de correspondances**. Une corrélation est lue sur toute la période, et liste les groupes auxquels elle aurait correspondu, chacun avec ce qui s'est passé.
+- La réponse dit combien de fois la règle se serait déclenchée, combien de fois par jour, pour combien d'utilisateurs, d'hôtes ou d'adresses, et combien d'événements ont correspondu. Les 50 groupes qui se sont le plus déclenchés sont listés, chacun avec ses événements et le moment de son dernier déclenchement.
+- Les exceptions d'une règle enregistrée s'appliquent, et la réponse dit combien d'événements elles ont ignorés et combien de déclenchements elles ont évités. Une règle qui ne se serait pas déclenchée dit à quel point elle en était proche : combien d'événements ont correspondu, et le seuil qu'aucun groupe n'a atteint dans une fenêtre.
+- Une règle qui se déclencherait plus de 20 fois par jour se déclenche plus souvent qu'une personne ne peut l'examiner, et la réponse le dit, avec des moyens de la rendre plus discrète.
+- Elle ne lit que les sources que vous pouvez lire. Une exécution qui dure plus de 45 secondes est arrêtée et le dit : choisissez une période plus courte.
+
 ## Moniteurs d'événements de sécurité
 
 Un moniteur d'événements de sécurité compte les événements qui correspondent à ses filtres sur une fenêtre glissante et applique au comptage les critères habituels des moniteurs : il change le statut du moniteur, ouvre des alertes ou des incidents, et alerte l'astreinte. Créez-en un sous **Moniteurs → Créer un moniteur**, avec **Événements de sécurité** comme type ; il y est listé avec vos autres moniteurs.
@@ -468,6 +495,18 @@ Vérifiez son **Statut** : avec **Désactivé**, la règle ne s'exécute pas, et
 
 :::details Une règle ouvre trop d'alertes
 Chaque valeur du **Champ de regroupement** reçoit sa propre alerte : regroupez sur quelque chose de plus large, relevez le seuil ou ajoutez un comptage distinct. Si c'est le rythme qui compte plutôt que chaque correspondance, réglez **Alertes et incidents** sur **Aucun des deux** et placez un moniteur sur les constats de la règle.
+:::
+
+:::details Une règle se déclenche sur quelque chose que vous attendez
+Ajoutez une exception pour cela plutôt que de désactiver la règle : **Ajouter une exception** dans la ligne de la détection de son dossier part de la règle et de ce pour quoi elle s'est déclenchée. Pour modifier la règle elle-même, **Exécuter sur les événements passés** sous son YAML montre ce que la modification aurait trouvé avant que vous n'enregistriez.
+:::
+
+:::details Une exception n'ignore pas ce qu'elle devrait
+Vérifiez son **Statut** dans **Exceptions de règle** : une exception au statut **Expiré** n'ignore rien, et une fenêtre de temps n'ignore que les événements entre ses deux heures. Une entité est cherchée comme celui qui agit, comme celui qui subit l'action et parmi les `observables` de l'événement ; pour ignorer une valeur d'un autre champ, ajoutez une exception **Une valeur** qui nomme ce champ. Sans `*`, une valeur doit égaler tout le champ : `svc-*` ignore `svc-backup`, et `svc-` ne l'ignore pas.
+:::
+
+:::details L'exécution sur les événements passés ne trouve rien
+Elle ne lit que la période choisie et les sources que vous pouvez lire. Quand des événements ont correspondu mais qu'aucun groupe n'a atteint le **Seuil de nombre de correspondances** dans une fenêtre, la réponse dit combien ont correspondu : baissez le seuil, ou comptez sur un **Intervalle d'évaluation (minutes)** plus long.
 :::
 
 ## Étapes suivantes

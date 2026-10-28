@@ -40,6 +40,7 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Riesgo de entidades** | Eventos | Cada usuario, host y dirección, puntuado por lo encontrado sobre él esta semana, primero los de mayor riesgo |
 | **Correlacionar** | Eventos | Un grafo de los eventos que comparten un host, un usuario o una dirección IP |
 | **Reglas de detección** | Detecciones | Reglas Sigma que se ejecutan según una programación y abren casos |
+| **Excepciones de regla** | Detecciones | Lo que tus reglas omiten a propósito, como un escáner o una prueba planificada, cada cosa con quién la añadió y por qué |
 | **Biblioteca de reglas** | Detecciones | Reglas de detección listas para añadir, cada una con los eventos que lee y si llegan, con las recomendadas marcadas |
 | **Inteligencia de amenazas** | Detecciones | Feeds STIX/TAXII de indicadores maliciosos conocidos |
 | **Cobertura de ATT&CK** | Detecciones | Las técnicas de MITRE ATT&CK que cubren tus reglas |
@@ -418,6 +419,32 @@ Un Detection Finding es un evento de seguridad de clase `Detection Finding` (cla
 
 Los hallazgos son eventos corrientes: búscalos en **Eventos** y pivota sobre ellos en **Correlacionar**. Para probar una regla nueva sin ruido, desactiva todas las acciones salvo el hallazgo hasta que confíes en ella.
 
+### Excepciones
+
+Una excepción es algo que una regla omite porque lo esperas, como un escáner de vulnerabilidades, una tarea de copia de seguridad nocturna o una prueba de penetración planificada. Silencia la regla para esa sola cosa sin desactivarla, y las demás coincidencias de la regla siguen disparándose. Cada excepción aparece en **Productos → Eventos de seguridad → Detecciones → Excepciones de regla**: añade una allí con **Añadir Excepción de regla**, con **Añadir excepción** en la fila de una regla, o con **Añadir excepción** en la fila de una detección de un caso, que empieza con la regla de la detección y aquello por lo que se disparó.
+
+| Lo que la regla omite | Con qué coincide |
+| --- | --- |
+| **Una entidad** | Un usuario, un host o una dirección IP, dondequiera que un evento lo nombre: como quien actuó (`principalUser`, `principalHost`, `principalIp`), como quien recibió la acción (`targetUser`, `targetHost`, `targetIp`), o entre sus `observables` |
+| **Un valor** | El valor de un campo, con el campo nombrado como lo nombra una regla: `processName`, `principalUser` o una clave de atributo como `http.user_agent` |
+| **Una ventana de tiempo** | Cada evento desde **Comienza en** hasta **Termina en**, con 30 días de diferencia como máximo |
+
+- Los valores coinciden sin importar mayúsculas y minúsculas, y `*` representa cualquier serie de caracteres: `svc-*` omite cada cuenta de servicio, y `*.lab.example.com` cada host de un dominio. Una dirección IP puede ser un rango, como `10.20.0.0/16`. Un valor formado solo por `*` se rechaza: para detener una regla, desactívala.
+- Cada excepción dice por qué en su **Motivo**, que ve todo el que lee la lista, y guarda quién la añadió y cuándo. Una entidad o un valor puede tener una fecha en **Caduca el**, tras la cual la regla vuelve a verlo; una ventana de tiempo termina sola.
+- **Estado** dice en qué punto está cada una: **Activo**, **Próximos** para una ventana que aún no ha empezado, **Caducado** o **Finalizado**. Bajo el nombre de una regla en **Reglas de detección**, una línea cuenta sus excepciones activas, y **Ver excepciones** en la fila de la regla abre la lista filtrada por ella.
+- Los eventos omitidos se descartan antes de que la regla cuente nada, así que nunca cuentan para su **Umbral de número de coincidencias** y no abren ningún caso, alerta, incidente ni hallazgo. Las excepciones se aplican a cada ejecución de la regla, correlaciones incluidas, y a **Ejecutar sobre eventos pasados**, pero nunca a un ataque de prueba, que comprueba que los eventos llegan.
+- Una regla tiene como máximo 100 excepciones. Quien puede editar reglas de detección las añade, las cambia y las elimina, cualquier rol de Security puede leerlas, y cada cambio queda en el registro de auditoría del proyecto.
+
+### Ejecutar sobre eventos pasados
+
+**Ejecutar sobre eventos pasados** muestra lo que una regla habría encontrado si hubiera estado en marcha, sin abrir, enviar ni escribir nada. Está en la fila de una regla, para la regla tal como está guardada, y bajo **Regla Sigma (YAML)** en el formulario de la regla, para la regla tal como está ahí, antes de que la guardes. Elige **Últimas 24 horas**, **Últimos 7 días** o **Últimos 30 días**.
+
+- Una regla se cuenta como la cuentan sus ejecuciones: en ventanas tan largas como su **Intervalo de evaluación (minutos)**, y un grupo se dispara en una ventana cuando su recuento allí alcanza el **Umbral de número de coincidencias**. Una correlación se lee sobre todo el periodo, y enumera los grupos con los que habría coincidido, cada uno con lo que ocurrió.
+- La respuesta dice cuántas veces se habría disparado la regla, cuántas veces al día, para cuántos usuarios, hosts o direcciones, y cuántos eventos coincidieron. Se enumeran los 50 grupos que más se dispararon, cada uno con sus eventos y la última vez que se disparó.
+- Se aplican las excepciones de una regla guardada, y la respuesta dice cuántos eventos omitieron y cuántos disparos evitaron. Una regla que no se habría disparado dice lo cerca que estuvo: cuántos eventos coincidieron, y el umbral que ningún grupo alcanzó en una ventana.
+- Una regla que se dispararía más de 20 veces al día se dispara más de lo que una persona puede revisar, y la respuesta lo dice, con formas de hacerla más silenciosa.
+- Solo lee las fuentes que puedes leer. Una ejecución que tarda más de 45 segundos se detiene y lo dice: elige un periodo más corto.
+
 ## Monitores de eventos de seguridad
 
 Un monitor de eventos de seguridad cuenta los eventos que coinciden con sus filtros sobre una ventana deslizante y aplica al recuento los criterios habituales de los monitores: cambia el estado del monitor, abre alertas o incidentes y avisa a la guardia. Crea uno en **Monitores → Crear monitor**, con **Eventos de seguridad** como tipo; aparece allí junto a sus demás monitores.
@@ -468,6 +495,18 @@ Comprueba su **Estado**: con **Deshabilitado** la regla no se ejecuta, y con **L
 
 :::details Una regla abre demasiadas alertas
 Cada valor del **Campo de agrupación** recibe su propia alerta: agrupa por algo más general, sube el umbral o añade un recuento distinto. Si te importa el ritmo más que cada coincidencia, elige **Ninguno** en **Alertas e incidentes** y pon un monitor sobre los hallazgos de la regla.
+:::
+
+:::details Una regla se dispara con algo que esperas
+Añade una excepción para ello en lugar de desactivar la regla: **Añadir excepción** en la fila de la detección de su caso empieza con la regla y aquello por lo que se disparó. Para cambiar la propia regla, **Ejecutar sobre eventos pasados** bajo su YAML muestra lo que el cambio habría encontrado antes de que guardes.
+:::
+
+:::details Una excepción no omite lo que debería
+Comprueba su **Estado** en **Excepciones de regla**: una excepción en estado **Caducado** no omite nada, y una ventana de tiempo solo omite los eventos entre sus dos horas. Una entidad se busca como quien actuó, como quien recibió la acción y entre los `observables` del evento; para omitir un valor de otro campo, añade una excepción **Un valor** que nombre ese campo. Sin `*`, un valor debe ser igual al campo entero: `svc-*` omite `svc-backup`, y `svc-` no.
+:::
+
+:::details Ejecutar una regla sobre eventos pasados no encuentra nada
+Solo lee el periodo que eliges y las fuentes que puedes leer. Cuando hubo eventos que coincidieron pero ningún grupo alcanzó el **Umbral de número de coincidencias** en una ventana, la respuesta dice cuántos coincidieron: baja el umbral, o cuenta sobre un **Intervalo de evaluación (minutos)** más largo.
 :::
 
 ## Próximos pasos

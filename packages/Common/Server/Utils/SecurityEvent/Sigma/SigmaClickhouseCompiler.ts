@@ -269,6 +269,37 @@ export function buildSigmaFieldExpression(field: string): Statement {
 }
 
 /*
+ * Whether a text expression holds an address inside a CIDR range, false for
+ * anything that is not an address. ClickHouse's isIPAddressInRange throws on
+ * text that is neither IPv4 nor IPv6 ("Neither IPv4 nor IPv6 address: ''"),
+ * and an event that names no address holds '' - so a rule's `cidr` used to
+ * fail the whole read on the first such event. The address it is handed is
+ * always one ('::' in place of anything else, which the guard in front then
+ * turns down), so this holds without short-circuit evaluation.
+ */
+export function buildIpInRangeExpression(
+  expression: Statement,
+  cidr: string,
+): Statement {
+  const isAddress: Statement = SQL`(isIPv4String(`;
+  isAddress.append(expression);
+  isAddress.append(") OR isIPv6String(");
+  isAddress.append(expression);
+  isAddress.append("))");
+
+  const statement: Statement = SQL`(`;
+  statement.append(isAddress);
+  statement.append(" AND isIPAddressInRange(if(");
+  statement.append(isAddress);
+  statement.append(", ");
+  statement.append(expression);
+  statement.append(", '::'), ");
+  statement.append(textParam(cidr));
+  statement.append("))");
+  return statement;
+}
+
+/*
  * buildSigmaFieldExpression with the column's "unset" sentinel normalized
  * away, for distinct counting. Text and attribute lookups yield '' when
  * absent, which the caller's nullIf(expr, '') already excludes — but the
@@ -541,14 +572,16 @@ export default class SigmaClickhouseCompiler {
       return statement;
     }
 
-    // CIDR matching on IP-carrying fields.
+    /*
+     * CIDR matching on IP-carrying fields: an event whose field holds no
+     * address (most events hold '' in one IP field or the other) does not
+     * match, rather than failing the rule's whole read.
+     */
     if (modifiers.includes("cidr")) {
-      const statement: Statement = SQL`isIPAddressInRange(`;
-      statement.append(this.asStringExpression(resolved, fieldExpr));
-      statement.append(", ");
-      statement.append(textParam(String(value)));
-      statement.append(")");
-      return statement;
+      return buildIpInRangeExpression(
+        this.asStringExpression(resolved, fieldExpr),
+        String(value),
+      );
     }
 
     // Numeric comparisons.
