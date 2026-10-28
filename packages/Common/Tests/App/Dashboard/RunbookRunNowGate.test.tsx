@@ -178,10 +178,28 @@ function roles(...permissions: Array<Permission>): Array<Row> {
   });
 }
 
+/*
+ * Run Now's reason: why, then the run's own permission - never the
+ * built-in roles that hold it as well (PermissionGate's
+ * getPermissionsToName).
+ */
 function lockedReason(): string {
-  return `${RunbookRunCopy.runRefused} You need one of these permissions: ${PermissionHelper.getPermissionTitles(
-    [...RUNBOOK_RUN_PERMISSIONS],
-  ).join(", ")}.`;
+  const props: ReturnType<
+    typeof PermissionHelper.getAllPermissionPropsAsDictionary
+  > = PermissionHelper.getAllPermissionPropsAsDictionary();
+  const titles: Array<string> = PermissionHelper.getPermissionTitles(
+    RUNBOOK_RUN_PERMISSIONS.filter((permission: Permission): boolean => {
+      return Boolean(
+        props[permission] &&
+          !props[permission]!.isRolePermission &&
+          props[permission]!.isAssignableToTenant,
+      );
+    }),
+  );
+
+  expect(titles).toEqual(["Create Runbook Execution"]);
+
+  return `${RunbookRunCopy.runRefused} You need this permission: Create Runbook Execution.`;
 }
 
 async function openRunbook(): Promise<CardButton> {

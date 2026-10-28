@@ -1005,11 +1005,17 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
       );
 
       expect(reissue).toBeDisabled();
-      expect(reissue.getAttribute("data-tooltip")).toContain(
-        LOCKED_REASON_START,
+      // Why, then the permission to ask for - not the roles that hold it too.
+      expect(reissue.getAttribute("data-tooltip")).toBe(
+        `${LOCKED_REASON_START} ${PermissionGate.getNeededPermissionsSentence(
+          new page.modelType().getUpdatePermissions(),
+        )}`,
       );
       expect(reissue.getAttribute("data-tooltip")).toContain(
-        "You need one of these permissions:",
+        " You need this permission: ",
+      );
+      expect(reissue.getAttribute("data-tooltip")).not.toContain(
+        "Project Owner",
       );
 
       // The table's own permission gate decides Edit; the row keeps DNS Setup.

@@ -43,8 +43,16 @@ const BAD_KEY_LEAD: string =
 const BAD_KEY_ANSWER: string =
   "OpenAI answered: Incorrect API key provided: sk-proj-****abcd.";
 
+// The server's refusal: every permission that would let the test in.
 const REFUSAL: string =
   "You do not have permission to test this LLM provider. You need one of these permissions: Project Owner, Project Admin, Project Member, Settings Admin, Settings Member, Edit LLM.";
+
+/*
+ * The locked Test's reason: the server's first sentence, word for word,
+ * then the permission to ask for, as every lock in the product names it.
+ */
+const LOCKED: string =
+  "You do not have permission to test this LLM provider. You need this permission: Edit LLM.";
 
 const TESTING: string = "Sending a test prompt to your LLM provider…";
 
@@ -207,7 +215,7 @@ test.describe("a provider's own page: who may press Test", () => {
   }
 
   for (const role of ["viewer", "readllm"]) {
-    test(`${role}: Test is locked, its reason the server's refusal, and pressing it sends nothing`, async ({
+    test(`${role}: Test is locked, its reason the server's first sentence and the permission to ask for, and pressing it sends nothing`, async ({
       page,
     }: {
       page: Page;
@@ -220,7 +228,7 @@ test.describe("a provider's own page: who may press Test", () => {
         .getByTestId("card-button-disabled-wrapper")
         .filter({ has: testButton(page) });
       await locked.hover();
-      await expect(page.getByText(REFUSAL)).toBeVisible();
+      await expect(page.getByText(LOCKED)).toBeVisible();
 
       await locked.click({ force: true });
       await expect(dialog(page)).toHaveCount(0);
@@ -486,11 +494,8 @@ test.describe("a provider's own page: the Test dialog", () => {
   });
 
   for (const [verdict, role, words] of [
-    [
-      "refused",
-      "member",
-      "You do not have permission to test this LLM provider.",
-    ],
+    // The server's own refusal, whole: it names every permission.
+    ["refused", "member", REFUSAL],
     ["plan", "owner", "Please upgrade your plan to Growth"],
   ]) {
     test(`${verdict}: the server's words alone - no line telling to change a provider that is not the trouble`, async ({
@@ -640,7 +645,7 @@ test.describe("Project Settings > AI > LLM Providers: a row's Test", () => {
 
     // Pointed at, it says why it is locked - beside itself.
     await item.hover();
-    await expect(tooltip(page)).toContainText(REFUSAL);
+    await expect(tooltip(page)).toContainText(LOCKED);
     await expectBesideItem(page, item);
   });
 
@@ -660,7 +665,7 @@ test.describe("Project Settings > AI > LLM Providers: a row's Test", () => {
 
     const item: Locator = page.getByRole("menuitem", { name: "Test" });
     await expect(item).toBeFocused();
-    await expect(tooltip(page)).toContainText(REFUSAL);
+    await expect(tooltip(page)).toContainText(LOCKED);
 
     await expectBesideItem(page, item);
     await shoot(page, "list-viewer-menu-keyboard-1280");

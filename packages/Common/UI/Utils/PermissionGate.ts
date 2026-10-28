@@ -46,6 +46,58 @@ export const BLOCKED_PERMISSION_TEMPLATE: string = translationKey(
 );
 
 /*
+ * THE TOOLTIP'S SECOND SENTENCE: WHAT WOULD ALLOW IT, IN AS FEW NAMES AS
+ * TELL THE READER WHAT TO ASK FOR.
+ *
+ * A model's list of what may do an operation names the built-in roles that
+ * may - Project Owner, Project Admin, Project Member, Incident Admin,
+ * Incident Member - and, in all but a few lists, one permission of its own:
+ * Create Incident Team Owner. Every lock in the product used to recite the
+ * whole list ("You need one of these permissions: Project Owner, Project
+ * Admin, Project Member, Incident Admin, Incident Member, Create Incident
+ * Team Owner."), a paragraph in a tooltip, the list of locked owner kinds
+ * and a locked switch's line alike. The roles tell the reader nothing the
+ * permission does not: a role holds every permission of its product, and
+ * whoever gives the reader access gives the permission or a role that
+ * holds it. So a lock names the list's own permissions - the ones a team
+ * or a custom role can be given (isAssignableToTenant) - and the roles
+ * only when the list has nothing else to name: an External MCP Server is
+ * added by Project Owners and Project Admins alone.
+ *
+ * One name is worded as several are, after a colon ("You need this
+ * permission: Create Incident Team Owner."): set apart from the sentence,
+ * the name to ask for is easy to pick out, whatever it ends with ("Edit
+ * Team Permissions"), and each language keeps the English title out of its
+ * grammar, as its plural sentence already does.
+ *
+ * The API's refusals still name every permission (TablePermission on the
+ * server): an API key's owner reads them to grant the key exactly what it
+ * needs.
+ */
+export const NEEDS_PERMISSION_TEMPLATE: string = translationKey(
+  "You need this permission: {{permission}}.",
+);
+
+export const NEEDS_ONE_OF_PERMISSIONS_TEMPLATE: string = translationKey(
+  "You need one of these permissions: {{permissions}}.",
+);
+
+export const NEEDS_ROLE_TEMPLATE: string = translationKey(
+  "You need this role: {{role}}.",
+);
+
+export const NEEDS_ONE_OF_ROLES_TEMPLATE: string = translationKey(
+  "You need one of these roles: {{roles}}.",
+);
+
+// What a lock names: the permissions' titles in English, and of what kind.
+export interface PermissionsToName {
+  titles: Array<string>;
+  // Built-in roles' names: the list named nothing of its own.
+  areRoles: boolean;
+}
+
+/*
  * The four record-level operations a user can be gated on. Deliberately not the
  * column-level equivalents: field access control stays hidden rather than
  * disabled, because selecting an unreadable column makes the whole list request
@@ -674,9 +726,10 @@ export default class PermissionGate {
   }
 
   /*
-   * The sentence shown in the tooltip. Deliberately the same phrasing the API
-   * returns when it refuses the same operation (see TablePermission on the
-   * server) so that the two do not read like different products.
+   * The sentence shown in the tooltip. Its first sentence is the API's when
+   * it refuses the same operation (see TablePermission on the server), so
+   * that the two do not read like different products; its second names
+   * fewer permissions than the API's (getPermissionsToName).
    */
   public static getMissingPermissionMessage(
     model: PermissionCheckableModel,
@@ -696,7 +749,7 @@ export default class PermissionGate {
    * "You do not have permission to <verb> this <item>." - or the caller's
    * own whole sentence - and, when a team's block is what refuses, "A team
    * you are on blocks ..."; otherwise, when there are permissions to name,
-   * "You need one of these permissions: ...".
+   * what would allow it ("You need this permission: Create Monitor.").
    */
   private static buildMissingPermissionMessage(data: {
     singularName: string;
@@ -734,10 +787,32 @@ export default class PermissionGate {
   }
 
   /*
+   * A refusal for a gate of a caller's own - a column a control writes
+   * alone, the columns of a settings card - worded as every lock words its
+   * own: the caller's first sentence (a translation key, looked up whole),
+   * then the team block that refuses it, or what would allow it
+   * (getNeededPermissionsSentence). The caller has decided the reader may
+   * not; this only says why.
+   */
+  public static getRefusalReason(data: {
+    sentence: string;
+    permissions: ReadonlyArray<Permission>;
+    options?: PermissionGateOptions | undefined;
+  }): string {
+    const translator: Translator = getGlobalTranslator();
+
+    return this.appendPermissionsToSentence({
+      sentence: translator.translateText(data.sentence) || data.sentence,
+      permissions: [...data.permissions],
+      held: this.getHeldPermissions(data.options),
+    });
+  }
+
+  /*
    * A refusal's first sentence, already in the reader's language, then -
    * when a team's block is what refuses - "A team you are on blocks ...";
-   * otherwise, when there are permissions to name, "You need one of these
-   * permissions: ...".
+   * otherwise, when there are permissions to name, what would allow it
+   * (getNeededPermissionsSentence).
    */
   private static appendPermissionsToSentence(data: {
     sentence: string;
@@ -746,16 +821,6 @@ export default class PermissionGate {
   }): string {
     const sentence: string = data.sentence;
     const translator: Translator = getGlobalTranslator();
-
-    const translateTitles: (permissions: Array<Permission>) => string = (
-      permissions: Array<Permission>,
-    ): string => {
-      return this.getPermissionTitles(permissions)
-        .map((title: string): string => {
-          return translator.translateText(title) || title;
-        })
-        .join(", ");
-    };
 
     const blockedPermissions: Array<Permission> = data.permissions.filter(
       (permission: Permission): boolean => {
@@ -767,21 +832,119 @@ export default class PermissionGate {
       return `${sentence} ${translator.translateTemplate(
         BLOCKED_PERMISSION_TEMPLATE,
         {
-          permissions: translateTitles(blockedPermissions),
+          permissions: this.translateTitles(
+            this.getPermissionTitles(blockedPermissions),
+            translator,
+          ),
         },
       )}`;
     }
 
-    if (this.getPermissionTitles(data.permissions).length === 0) {
-      return sentence;
+    const needed: string = this.getNeededPermissionsSentence(
+      data.permissions,
+      translator,
+    );
+
+    return needed ? `${sentence} ${needed}` : sentence;
+  }
+
+  /*
+   * What a lock names of a list of permissions that would allow it, in the
+   * list's order (see NEEDS_PERMISSION_TEMPLATE): the permissions of its
+   * own that a team or a custom role can be given; the built-in roles when
+   * it has none; and when it has neither (Public, Logged in User), every
+   * title it has, as before. Unknown permissions are skipped
+   * (getPermissionTitles).
+   */
+  public static getPermissionsToName(
+    permissions: ReadonlyArray<Permission>,
+  ): PermissionsToName {
+    const props: Dictionary<PermissionProps> = getPermissionProps();
+
+    const own: Array<Permission> = permissions.filter(
+      (permission: Permission): boolean => {
+        const permissionProps: PermissionProps | undefined = props[permission];
+
+        return Boolean(
+          permissionProps &&
+            !permissionProps.isRolePermission &&
+            permissionProps.isAssignableToTenant,
+        );
+      },
+    );
+
+    if (own.length > 0) {
+      return { titles: this.getPermissionTitles(own), areRoles: false };
     }
 
-    return `${sentence} ${translator.translateTemplate(
-      "You need one of these permissions: {{permissions}}.",
-      {
-        permissions: translateTitles(data.permissions),
+    const roles: Array<Permission> = permissions.filter(
+      (permission: Permission): boolean => {
+        return Boolean(props[permission]?.isRolePermission);
       },
-    )}`;
+    );
+
+    if (roles.length > 0) {
+      return { titles: this.getPermissionTitles(roles), areRoles: true };
+    }
+
+    return {
+      titles: this.getPermissionTitles([...permissions]),
+      areRoles: false,
+    };
+  }
+
+  /*
+   * The sentence after a refusal's first that says what would allow it, in
+   * the reader's language: "You need this permission: Create Incident Team
+   * Owner.", "You need one of these permissions: Manage Billing, Edit
+   * Project.", "You need one of these roles: Project Owner, Project Admin."
+   * A built-in role's name reads as the role picker draws it; a
+   * permission's own title as it is. Empty when there is nothing to name.
+   */
+  public static getNeededPermissionsSentence(
+    permissions: ReadonlyArray<Permission>,
+    translator?: Translator | undefined,
+  ): string {
+    const words: Translator = translator || getGlobalTranslator();
+    const named: PermissionsToName = this.getPermissionsToName(permissions);
+
+    if (named.titles.length === 0) {
+      return "";
+    }
+
+    const titles: string = this.translateTitles(named.titles, words);
+
+    if (named.areRoles) {
+      return named.titles.length === 1
+        ? words.translateTemplate(NEEDS_ROLE_TEMPLATE, { role: titles })
+        : words.translateTemplate(NEEDS_ONE_OF_ROLES_TEMPLATE, {
+            roles: titles,
+          });
+    }
+
+    return named.titles.length === 1
+      ? words.translateTemplate(NEEDS_PERMISSION_TEMPLATE, {
+          permission: titles,
+        })
+      : words.translateTemplate(NEEDS_ONE_OF_PERMISSIONS_TEMPLATE, {
+          permissions: titles,
+        });
+  }
+
+  /*
+   * Titles as a sentence lists them: each looked up (a built-in role's
+   * name has a translation of its own; most permissions' titles do not and
+   * read as given), joined with commas.
+   */
+  private static translateTitles(
+    titles: ReadonlyArray<string>,
+    translator: Translator,
+  ): string {
+    return titles
+      .map((title: string): string => {
+        return translator.translateText(title) || title;
+      })
+      .join(", ");
   }
 
   public static getModelPermissions(

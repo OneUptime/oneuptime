@@ -71,11 +71,6 @@
   ],
   "packages/MobileApp": [
     {
-      "advisory": "GHSA-86w9-cpqp-85rv",
-      "expires": "2026-12-04",
-      "reason": "node-forge has no fixed release: <= 1.4.0 is affected and 1.4.0 is the latest (checked again on 2026-10-25). It comes in only through Expo's developer tooling, @expo/cli and @expo/code-signing-certificates (0.0.7, the latest, still depends on node-forge ^1.4.0 on 2026-10-25), which run in Node on the developer's machine and are not bundled into the app. Their node-forge verify calls check a signature they have just made, or the developer's own certificate or CSR, never one an attacker supplies, so the forged signatures the advisory is about never reach them."
-    },
-    {
       "advisory": "GHSA-mrhx-c7xc-m3w5",
       "expires": "2026-12-04",
       "reason": "zod has no fixed 3.x release: every version below 4.6.6 is affected and 3.25.76 is the latest 3.x. It comes in only through Expo's developer tooling, @expo/cli 57.0.32: every @expo/cli still requires zod ^3.25.76, the newest (58.1.15) included (checked on 2026-10-25). @expo/cli runs in Node on the developer's machine and is not bundled into the app; it validates the developer's own project configuration and dev tools plugins, never input from an attacker. packages/Common moved to zod 4 on 2026-10-25 and has no zod 3 left."

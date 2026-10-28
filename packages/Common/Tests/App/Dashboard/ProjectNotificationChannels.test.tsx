@@ -1448,10 +1448,12 @@ describe("the Notification Channels card on Project Settings", () => {
         expect(element).toHaveAttribute("aria-disabled", "true");
       }
 
+      // The permission to ask for, not the roles that hold it as well.
       expect(
-        screen.getAllByText(/You need one of these permissions: Project Owner/)
+        screen.getAllByText(/You need this permission: Manage Billing\./)
           .length,
       ).toBeGreaterThan(0);
+      expect(screen.queryAllByText(/Project Owner/)).toHaveLength(0);
 
       await act(async () => {
         fireEvent.click(screen.getByRole("switch", { name: "SMS" }));

@@ -116,7 +116,7 @@ const PROJECT_HEADERS: Record<string, string> = { tenantid: PROJECT_ID };
 
 // The server's refusal (LlmProviderTestAccess.getRefusalMessage), word for word.
 const REFUSAL: string =
-  "You do not have permission to test this LLM provider. You need one of these permissions: Project Owner, Project Admin, Project Member, Settings Admin, Settings Member, Edit LLM.";
+  "You do not have permission to test this LLM provider. You need this permission: Edit LLM.";
 
 const TESTERS: Array<[string, Array<Permission>]> = [
   ["a project owner", [Permission.ProjectOwner]],

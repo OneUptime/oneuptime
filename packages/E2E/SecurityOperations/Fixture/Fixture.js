@@ -3839,8 +3839,16 @@ function FixtureApp() {
   );
 }
 
+/*
+ * The router updates as the Dashboard's does (src/Index.tsx): synchronously,
+ * not in a React transition, which React Router 7 uses by default. A
+ * transition renders in slices other updates may interrupt, while the side
+ * menu reads the location Navigation keeps, written while rendering. With
+ * the CPU slowed 4x, a case's side menu lit the page being left beside the
+ * page arrived at in 11 of 20 runs; updated synchronously, in none.
+ */
 createRoot(document.getElementById("root")).render(
-  <BrowserRouter>
+  <BrowserRouter useTransitions={false}>
     <FixtureApp />
   </BrowserRouter>,
 );
