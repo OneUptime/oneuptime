@@ -50,6 +50,7 @@ export const buildRule: (
     ruleType: ComplianceRuleType.HasNotificationEmailMethod,
     enabled: true,
     notificationChannels: [],
+    channelsNotChecked: [],
     severityKind: null,
     appliesToAllSeverities: false,
     severities: [],
@@ -95,6 +96,37 @@ export const callForIncidentsRule: (
 
 export const CALL_AND_PUSH_RULE_ID: string =
   "00000000-0000-4000-8000-0000000000a7";
+
+export const CUSTOM_CHANNEL_RULE_ID: string =
+  "00000000-0000-4000-8000-0000000000a8";
+
+// The server's warning while custom channels are not part of the license.
+export const CUSTOM_CHANNELS_NOT_ACTIVE_WARNING: string =
+  "Custom channels are a OneUptime Enterprise feature, and this server has no Enterprise license that includes them, so nothing is sent to a custom channel and members are not checked for one.";
+
+/*
+ * "Custom channel for incidents", scoped to Critical Incident, as the server
+ * sends it while no custom channel can carry a page (#5332): on, its one
+ * channel not checked, nobody counted, and the warning saying why.
+ */
+export const customChannelNotCheckedRule: (
+  overrides?: Partial<TeamComplianceRuleJSON>,
+) => TeamComplianceRuleJSON = (
+  overrides?: Partial<TeamComplianceRuleJSON>,
+): TeamComplianceRuleJSON => {
+  return callForIncidentsRule({
+    settingId: CUSTOM_CHANNEL_RULE_ID,
+    notificationChannels: [ComplianceNotificationChannel.CustomChannel],
+    channelsNotChecked: [ComplianceNotificationChannel.CustomChannel],
+    severities: [
+      { id: CRITICAL_ID, name: "Critical Incident", color: "#ff0000" },
+    ],
+    compliantCount: 0,
+    nonCompliantCount: 0,
+    warnings: [CUSTOM_CHANNELS_NOT_ACTIVE_WARNING],
+    ...(overrides || {}),
+  });
+};
 
 /*
  * "Call and Push notification for incidents", scoped to Critical Incident: a

@@ -3,10 +3,15 @@ import TeamComplianceAPI, {
   TEAM_COMPLIANCE_STATUS_ROUTE,
 } from "../../../Server/TeamCompliance/TeamComplianceAPI";
 import TeamComplianceService from "../../../Server/TeamCompliance/TeamComplianceService";
+import {
+  CUSTOM_CHANNELS_NOT_ACTIVE_WARNING,
+  NO_CUSTOM_CHANNEL_ON_WARNING,
+} from "../../../Server/TeamCompliance/TeamComplianceEvaluator";
 import CommonAPI from "Common/Server/API/CommonAPI";
 import UserMiddleware from "Common/Server/Middleware/UserAuthorization";
 import OnCallReadinessService from "Common/Server/Services/OnCallReadinessService";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
+import CustomNotificationChannelService from "Common/Server/Services/CustomNotificationChannelService";
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
 import OnCallDutyPolicyEscalationRuleScheduleService from "Common/Server/Services/OnCallDutyPolicyEscalationRuleScheduleService";
 import OnCallDutyPolicyEscalationRuleTeamService from "Common/Server/Services/OnCallDutyPolicyEscalationRuleTeamService";
@@ -34,7 +39,9 @@ import {
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import CustomChannelEdition from "Common/Server/Utils/Notification/CustomChannelEdition";
 import Response from "Common/Server/Utils/Response";
+import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import Team from "Common/Models/DatabaseModels/Team";
 import Color from "Common/Types/Color";
 import DatabaseCommonInteractionProps from "Common/Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -324,6 +331,9 @@ let projectFindOneById: jest.SpyInstance;
 let teamFindOneById: jest.SpyInstance;
 let teamFindOneBy: jest.SpyInstance;
 let complianceSettingFindBy: jest.SpyInstance;
+// The custom channels (#5332): whether they are active, and which are on.
+let customChannelsActive: jest.SpyInstance;
+let customChannelsOnRead: jest.SpyInstance;
 
 function everyFindBySpy(): Array<jest.SpyInstance> {
   return [
@@ -490,6 +500,17 @@ beforeEach(() => {
   complianceSettingFindBy = jest
     .spyOn(TeamComplianceSettingService, "findBy")
     .mockResolvedValue([] as never);
+
+  /*
+   * Custom channels are not active, and so none is on, unless a test says
+   * otherwise. The readiness service reads the same answer.
+   */
+  customChannelsActive = jest
+    .spyOn(CustomChannelEdition, "isActive")
+    .mockReturnValue(false);
+  customChannelsOnRead = jest
+    .spyOn(CustomNotificationChannelService, "getChannelsThatAreOn")
+    .mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -582,6 +603,8 @@ interface StubRule {
   userMicrosoftTeamsId?: ObjectID | undefined;
   userWhatsAppId?: ObjectID | undefined;
   userWebhookId?: ObjectID | undefined;
+  // The custom channel (#5332) a rule pages through, instead of a method.
+  customNotificationChannelId?: ObjectID | undefined;
 }
 
 /*
@@ -843,6 +866,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
     for (const rule of rules) {
       expect(Object.keys(rule).sort()).toEqual([
         "appliesToAllSeverities",
+        "channelsNotChecked",
         "compliantCount",
         "enabled",
         "nonCompliantCount",
@@ -860,6 +884,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       ruleType: ComplianceRuleType.HasNotificationEmailMethod,
       enabled: true,
       notificationChannels: [],
+      channelsNotChecked: [],
       severityKind: null,
       appliesToAllSeverities: false,
       severities: [],
@@ -872,6 +897,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
       enabled: true,
       notificationChannels: [],
+      channelsNotChecked: [],
       severityKind: "Incident",
       appliesToAllSeverities: true,
       severities: [],
@@ -996,6 +1022,247 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
 
     expect(statuses[0]!["isCompliant"]).toBe(true);
     expect(statuses[0]!["nonCompliantRules"]).toEqual([]);
+  });
+
+  test.each([
+    ["the channel is on", true],
+    ["custom channels are not active", false],
+  ])(
+    "a rule that pages a member through a custom channel counts for an any-channel rule, as any other rule does (%s)",
+    async (_label: string, isActive: boolean) => {
+      /*
+       * A custom channel (#5332) is the installation's, not the member's:
+       * the rule names the channel and no method of the member's own. An
+       * any-channel rule is answered from readiness's coverage, which counts
+       * a rule for a severity whatever it pages through - so a member whose
+       * only rule for Critical incidents is a custom-channel rule is covered,
+       * as one whose only rule is a Telegram rule is, and whether that
+       * channel can carry a page is readiness's reachability, not this
+       * rule's. Grace, with no rule at all, is the control.
+       */
+      const corpoApp: CustomNotificationChannel =
+        new CustomNotificationChannel();
+      corpoApp._id = ObjectID.generate().toString();
+      corpoApp.name = "CorpoApp";
+      corpoApp.pageEveryoneByDefault = false;
+
+      customChannelsActive.mockReturnValue(isActive);
+      customChannelsOnRead.mockResolvedValue(isActive ? [corpoApp] : []);
+
+      stage({
+        settings: [
+          {
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            enabled: true,
+          },
+        ],
+        members: [ada, grace],
+        rules: [
+          {
+            _id: "rule-ada-custom-channel",
+            userId: ada.id,
+            ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+            incidentSeverityId: critical.id,
+            customNotificationChannelId: new ObjectID(corpoApp._id),
+          },
+        ],
+        incidentSeverities: [critical],
+        alertSeverities: [],
+      });
+
+      const payload: Record<string, unknown> = await readCompliance();
+
+      expect(statusFor(payload, ada)["isCompliant"]).toBe(true);
+      expect(reasonsFor(payload, ada)).toEqual([]);
+      expect(reasonsFor(payload, grace)).toEqual([
+        "Missing notification rules for incident severities: Critical",
+      ]);
+      expect(rulesOf(payload)[0]).toMatchObject({
+        notificationChannels: [],
+        channelsNotChecked: [],
+        compliantCount: 1,
+        nonCompliantCount: 1,
+        warnings: [],
+      });
+    },
+  );
+
+  test("Custom channel for Critical incidents, end to end: covered, turned off, missing - which channels are on read once", async () => {
+    const carol: StubUser = {
+      id: ObjectID.generate(),
+      name: "Carol",
+      email: "carol@example.com",
+    };
+    const corpoApp: CustomNotificationChannel = new CustomNotificationChannel();
+    corpoApp._id = ObjectID.generate().toString();
+    corpoApp.name = "CorpoApp";
+    const carolPhone: StubMethod = methodRow({
+      userId: carol.id,
+      isVerified: true,
+    });
+
+    customChannelsActive.mockReturnValue(true);
+    customChannelsOnRead.mockResolvedValue([corpoApp]);
+
+    stage({
+      settings: [
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          enabled: true,
+          notificationChannels: [ComplianceNotificationChannel.CustomChannel],
+          incidentSeverities: [critical],
+        },
+      ],
+      members: [ada, grace, carol],
+      rules: [
+        // Ada's only rule for Critical pages her through CorpoApp, which is on.
+        {
+          _id: "rule-ada-corpo-app",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: critical.id,
+          customNotificationChannelId: new ObjectID(corpoApp._id),
+        },
+        // Grace's names a channel the admin turned off.
+        {
+          _id: "rule-grace-turned-off",
+          userId: grace.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: critical.id,
+          customNotificationChannelId: ObjectID.generate(),
+        },
+        // Carol would be called, never paged through a custom channel.
+        {
+          _id: "rule-carol-call",
+          userId: carol.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: critical.id,
+          userCallId: carolPhone.id,
+        },
+      ],
+      incidentSeverities: [critical, major],
+      alertSeverities: [],
+      callMethods: [carolPhone],
+    });
+
+    const payload: Record<string, unknown> = await readCompliance();
+
+    expect(statusFor(payload, ada)["isCompliant"]).toBe(true);
+    expect(reasonsFor(payload, grace)).toEqual([
+      "The Custom channel rule for incident severities Critical points at a custom channel that is turned off",
+    ]);
+    expect(reasonsFor(payload, carol)).toEqual([
+      "No Custom channel rule for incident severities: Critical",
+    ]);
+    expect(rulesOf(payload)[0]).toMatchObject({
+      notificationChannels: [ComplianceNotificationChannel.CustomChannel],
+      channelsNotChecked: [],
+      compliantCount: 1,
+      nonCompliantCount: 2,
+      warnings: [],
+    });
+
+    // The one rule read carries the custom channel column; no phone is read.
+    expect(notificationRuleFindBy).toHaveBeenCalledTimes(1);
+    expect(
+      firstCall(notificationRuleFindBy).select?.["customNotificationChannelId"],
+    ).toBe(true);
+    expect(firstCall(notificationRuleFindBy).select?.["userCallId"]).toBe(
+      undefined,
+    );
+    expect(userCallFindBy).not.toHaveBeenCalled();
+    expect(customChannelsOnRead).toHaveBeenCalledTimes(1);
+    // No readiness pass for a channel rule.
+    expect(escalationUserFindBy).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [
+      "custom channels are not active",
+      false,
+      CUSTOM_CHANNELS_NOT_ACTIVE_WARNING,
+    ],
+    ["no custom channel is on", true, NO_CUSTOM_CHANNEL_ON_WARNING],
+  ])(
+    "while %s, a rule on the custom channel checks nobody - not everyone non-compliant - and says why",
+    async (_label: string, isActive: boolean, warning: string) => {
+      customChannelsActive.mockReturnValue(isActive);
+      customChannelsOnRead.mockResolvedValue([]);
+
+      stage({
+        settings: [
+          {
+            ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+            enabled: true,
+            notificationChannels: [ComplianceNotificationChannel.CustomChannel],
+            incidentSeverities: [critical],
+          },
+        ],
+        // Ada's rule names a custom channel; Grace has no rule at all.
+        members: [ada, grace],
+        rules: [
+          {
+            _id: "rule-ada-custom-channel",
+            userId: ada.id,
+            ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+            incidentSeverityId: critical.id,
+            customNotificationChannelId: ObjectID.generate(),
+          },
+        ],
+        incidentSeverities: [critical],
+        alertSeverities: [],
+      });
+
+      const payload: Record<string, unknown> = await readCompliance();
+
+      expect(statusFor(payload, ada)["isCompliant"]).toBe(true);
+      expect(statusFor(payload, grace)["isCompliant"]).toBe(true);
+      expect(rulesOf(payload)[0]).toEqual({
+        settingId: "5e771000-0000-4000-8000-000000000000",
+        ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+        enabled: true,
+        notificationChannels: [ComplianceNotificationChannel.CustomChannel],
+        channelsNotChecked: [ComplianceNotificationChannel.CustomChannel],
+        severityKind: "Incident",
+        appliesToAllSeverities: false,
+        severities: [{ id: critical.id.toString(), name: "Critical" }],
+        compliantCount: 0,
+        nonCompliantCount: 0,
+        warnings: [warning],
+      });
+    },
+  );
+
+  test("a member whose only rule pages them through a custom channel has no Call rule", async () => {
+    // A custom channel is not a phone: a Call rule is not met by one.
+    stage({
+      settings: [
+        {
+          ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+          enabled: true,
+          notificationChannels: [ComplianceNotificationChannel.Call],
+          incidentSeverities: [critical],
+        },
+      ],
+      members: [ada],
+      rules: [
+        {
+          _id: "rule-ada-custom-channel",
+          userId: ada.id,
+          ruleType: NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+          incidentSeverityId: critical.id,
+          customNotificationChannelId: ObjectID.generate(),
+        },
+      ],
+      incidentSeverities: [critical],
+      alertSeverities: [],
+    });
+
+    const payload: Record<string, unknown> = await readCompliance();
+
+    expect(reasonsFor(payload, ada)).toEqual([
+      "No Call rule for incident severities: Critical",
+    ]);
   });
 
   test("an any-channel rule reads no channel column - which channels count is readiness's judgement", async () => {
@@ -1254,6 +1521,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
         ruleType: ComplianceRuleType.HasIncidentOnCallRules,
         enabled: true,
         notificationChannels: [ComplianceNotificationChannel.Call],
+        channelsNotChecked: [],
         severityKind: "Incident",
         appliesToAllSeverities: false,
         severities: [
@@ -1366,6 +1634,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
           ComplianceNotificationChannel.Call,
           ComplianceNotificationChannel.Push,
         ],
+        channelsNotChecked: [],
         severityKind: "Incident",
         appliesToAllSeverities: false,
         severities: [{ id: critical.id.toString(), name: "Critical" }],
@@ -1905,6 +2174,7 @@ describe("GET /team/compliance-status/:teamId - the compliance status", () => {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
       enabled: false,
       notificationChannels: [ComplianceNotificationChannel.Call],
+      channelsNotChecked: [],
       severityKind: ComplianceSeverityKind.Incident,
       appliesToAllSeverities: false,
       severities: [],

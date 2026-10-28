@@ -6,6 +6,7 @@ import TeamComplianceEvaluator, {
   ComplianceNotificationRuleInput,
   ComplianceRuleInput,
   ComplianceSeverityInput,
+  CustomChannelAvailability,
   ProjectChannelSwitch,
   ResolvedComplianceRule,
 } from "./TeamComplianceEvaluator";
@@ -14,6 +15,7 @@ import OnCallReadinessService, {
   UserReadiness,
 } from "Common/Server/Services/OnCallReadinessService";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
+import CustomNotificationChannelService from "Common/Server/Services/CustomNotificationChannelService";
 import type DatabaseService from "Common/Server/Services/DatabaseService";
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
 import ProjectService from "Common/Server/Services/ProjectService";
@@ -37,6 +39,7 @@ import Query from "Common/Server/Types/Database/Query";
 import Select from "Common/Server/Types/Database/Select";
 import Sort from "Common/Server/Types/Database/Sort";
 import logger from "Common/Server/Utils/Logger";
+import CustomChannelEdition from "Common/Server/Utils/Notification/CustomChannelEdition";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -45,9 +48,13 @@ import NotificationRuleType from "Common/Types/NotificationRule/NotificationRule
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import ComplianceNotificationChannel from "Common/Types/Team/ComplianceNotificationChannel";
-import { ComplianceSeverityKind } from "Common/Types/Team/ComplianceRule";
+import ComplianceRule, {
+  ComplianceMethodChannel,
+  ComplianceSeverityKind,
+} from "Common/Types/Team/ComplianceRule";
 import { TeamComplianceStatusJSON } from "Common/Types/Team/TeamComplianceStatus";
 import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import CustomNotificationChannel from "Common/Models/DatabaseModels/CustomNotificationChannel";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import Project from "Common/Models/DatabaseModels/Project";
@@ -74,6 +81,15 @@ type NotificationRuleMethodColumn = keyof UserNotificationRule &
     | "userMicrosoftTeamsId"
     | "userWebhookId"
   );
+
+/*
+ * The column a rule's channel is read from: the method column on the nine
+ * channels a member owns a method on, and on the custom channel the custom
+ * channel the rule pages through - there is no method of the member's own.
+ */
+type NotificationRuleChannelColumn =
+  | NotificationRuleMethodColumn
+  | (keyof UserNotificationRule & "customNotificationChannelId");
 
 // The UserNotificationRule relation behind each of those columns.
 type NotificationRuleMethodRelation = keyof UserNotificationRule &
@@ -104,7 +120,7 @@ interface MethodChannelSource {
 }
 
 const METHOD_CHANNEL_SOURCES: Readonly<
-  Record<ComplianceNotificationChannel, MethodChannelSource>
+  Record<ComplianceMethodChannel, MethodChannelSource>
 > = {
   [ComplianceNotificationChannel.Call]: {
     service: UserCallService,
@@ -224,6 +240,10 @@ interface ChannelRuleData {
  *    member who meets a Call, SMS or Telegram rule is still never notified
  *    that way, and nobody can add the WhatsApp number a WhatsApp rule asks
  *    for - and the rule says so.
+ *  - on-call rules that insist on the custom channel: the custom channel each
+ *    member's rule pages through, on the same rule read, and ONE read of the
+ *    custom channels that are on (none, without a read, while custom
+ *    channels are not active) - where a page through one can actually go.
  *
  * TENANT SCOPING. Every read is made with `isRoot: true`, because this page
  * deliberately reports on people the reader may have no permission to read
@@ -445,16 +465,19 @@ export default class TeamComplianceService {
       verifiedMethodOwnersByChannel,
       channelRuleData,
       projectSwitches,
+      customChannels,
     ]: [
       Map<string, Array<ComplianceCoverageCellInput>>,
       Map<ComplianceNotificationChannel, Set<string>>,
       ChannelRuleData,
       Partial<Record<ProjectChannelSwitch, boolean>> | null,
+      CustomChannelAvailability | null,
     ] = await Promise.all([
       TeamComplianceService.loadCoverage(userIds, projectId, plan),
       TeamComplianceService.loadVerifiedMethodOwners(userIds, projectId, plan),
       TeamComplianceService.loadChannelRuleData(userIds, projectId, plan),
       TeamComplianceService.loadProjectSwitches(projectId, plan),
+      TeamComplianceService.loadCustomChannels(plan),
     ]);
 
     const status: TeamComplianceStatusJSON = TeamComplianceEvaluator.evaluate({
@@ -470,6 +493,7 @@ export default class TeamComplianceService {
       notificationRules: channelRuleData.notificationRules,
       methodsByChannel: channelRuleData.methodsByChannel,
       projectSwitches: projectSwitches,
+      customChannels: customChannels,
     });
 
     return {
@@ -575,7 +599,7 @@ export default class TeamComplianceService {
 
     await Promise.all(
       plan.methodChannels.map(
-        async (channel: ComplianceNotificationChannel): Promise<void> => {
+        async (channel: ComplianceMethodChannel): Promise<void> => {
           const source: MethodChannelSource = METHOD_CHANNEL_SOURCES[channel];
 
           const query: Record<string, unknown> = {
@@ -674,9 +698,19 @@ export default class TeamComplianceService {
 
     data.notificationRules = notificationRules;
 
+    // The custom channel has no member's method rows to read.
+    const methodChannels: Array<ComplianceMethodChannel> =
+      plan.onCallChannels.filter(
+        (
+          channel: ComplianceNotificationChannel,
+        ): channel is ComplianceMethodChannel => {
+          return ComplianceRule.isMethodChannel(channel);
+        },
+      );
+
     await Promise.all(
-      plan.onCallChannels.map(
-        async (channel: ComplianceNotificationChannel): Promise<void> => {
+      methodChannels.map(
+        async (channel: ComplianceMethodChannel): Promise<void> => {
           data.methodsByChannel.set(
             channel,
             await TeamComplianceService.loadReferencedMethods(
@@ -760,12 +794,13 @@ export default class TeamComplianceService {
   /*
    * ONE paged read of the members' notification rules of the types the
    * channel rules check, carrying just the columns needed to judge them: the
-   * severity columns, the opt-out flag, the method column of each channel
-   * being checked - and the OWNER of the method behind every one of the nine
-   * method relations, joined on the same read. The runtime selects exactly
-   * those owners too, and refuses the whole rule when any of them is not the
-   * rule's user (UserNotificationRuleService.executeNotificationRuleItem), so
-   * a Call rule that also names somebody else's email is never sent.
+   * severity columns, the opt-out flag, the column of each channel being
+   * checked (a method's, or the custom channel's) - and the OWNER of the
+   * method behind every one of the nine method relations, joined on the same
+   * read. The runtime selects exactly those owners too, and refuses the whole
+   * rule when any of them is not the rule's user
+   * (UserNotificationRuleService.executeNotificationRuleItem), so a Call
+   * rule that also names somebody else's email is never sent.
    */
   private static async loadNotificationRules(
     userIds: Array<ObjectID>,
@@ -782,7 +817,7 @@ export default class TeamComplianceService {
     };
 
     for (const channel of plan.onCallChannels) {
-      select[METHOD_CHANNEL_SOURCES[channel].ruleColumn] = true;
+      select[TeamComplianceService.getRuleColumn(channel)] = true;
     }
 
     for (const source of Object.values(METHOD_CHANNEL_SOURCES)) {
@@ -819,7 +854,7 @@ export default class TeamComplianceService {
 
       for (const channel of plan.onCallChannels) {
         const methodId: string | undefined = TeamComplianceService.toIdString(
-          row[METHOD_CHANNEL_SOURCES[channel].ruleColumn],
+          row[TeamComplianceService.getRuleColumn(channel)],
         );
 
         if (methodId) {
@@ -843,6 +878,15 @@ export default class TeamComplianceService {
     }
 
     return rules;
+  }
+
+  // The column a rule's channel is read from (NotificationRuleChannelColumn).
+  private static getRuleColumn(
+    channel: ComplianceNotificationChannel,
+  ): NotificationRuleChannelColumn {
+    return ComplianceRule.isMethodChannel(channel)
+      ? METHOD_CHANNEL_SOURCES[channel].ruleColumn
+      : "customNotificationChannelId";
   }
 
   /*
@@ -880,7 +924,7 @@ export default class TeamComplianceService {
    * or in another project - is a rule with no usable method.
    */
   private static async loadReferencedMethods(
-    channel: ComplianceNotificationChannel,
+    channel: ComplianceMethodChannel,
     rules: Array<ComplianceNotificationRuleInput>,
     projectId: ObjectID,
   ): Promise<Map<string, ComplianceMethodInput>> {
@@ -951,6 +995,45 @@ export default class TeamComplianceService {
     }
 
     return methods;
+  }
+
+  /*
+   * Where a page through a custom channel can go, for the rules that insist
+   * on one: whether custom channels are active (CustomChannelEdition, the
+   * check every send makes), and then ONE read of the custom channels that
+   * are on - the installation's, so not scoped to a project, and only their
+   * ids. Null, and nothing read, when no enabled rule insists on the custom
+   * channel. A read that fails fails the page, as every other read here
+   * does: an empty answer would set the rules aside and tell the admin, in
+   * their warning, that no custom channel is on.
+   */
+  private static async loadCustomChannels(
+    plan: ComplianceLoadPlan,
+  ): Promise<CustomChannelAvailability | null> {
+    if (
+      !plan.onCallChannels.includes(ComplianceNotificationChannel.CustomChannel)
+    ) {
+      return null;
+    }
+
+    if (!CustomChannelEdition.isActive()) {
+      return { isActive: false, channelIdsOn: new Set<string>() };
+    }
+
+    const channels: Array<CustomNotificationChannel> =
+      await CustomNotificationChannelService.getChannelsThatAreOn();
+
+    const channelIdsOn: Set<string> = new Set<string>();
+
+    for (const channel of channels) {
+      const channelId: string | undefined = TeamComplianceService.idOf(channel);
+
+      if (channelId) {
+        channelIdsOn.add(channelId);
+      }
+    }
+
+    return { isActive: true, channelIdsOn: channelIdsOn };
   }
 
   /*
