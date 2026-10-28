@@ -336,20 +336,23 @@ test.describe("Metrics > Insights: the services reporting metrics", () => {
     await page.keyboard.press("Tab");
     await expect(link).toBeFocused();
 
-    const focus: { outline: string; ring: string; corner: string } =
+    const focus: { outlineShows: boolean; ring: string; corner: string } =
       await link.evaluate(
         (
           element: Element,
-        ): { outline: string; ring: string; corner: string } => {
+        ): { outlineShows: boolean; ring: string; corner: string } => {
           const style: CSSStyleDeclaration = getComputedStyle(element);
           return {
-            outline: style.outlineStyle,
+            // Tailwind's outline-none is a transparent outline.
+            outlineShows:
+              style.outlineStyle !== "none" &&
+              style.outlineColor !== "rgba(0, 0, 0, 0)",
             ring: style.boxShadow,
             corner: style.borderTopLeftRadius,
           };
         },
       );
-    expect(focus.outline).toBe("none");
+    expect(focus.outlineShows).toBe(false);
     // Indigo-500's ring, 2px.
     expect(focus.ring).toContain("rgb(99, 102, 241)");
     // Round, as the card it rings: 0.75rem.
