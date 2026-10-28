@@ -7,10 +7,11 @@ import URL from "Common/Types/API/URL";
  *
  * The App service serves a generated OpenAPI 3.0 document at
  * /api/openapi/spec (Common/Server/API/OpenAPI.ts -> OpenAPIUtil
- * .generateOpenAPISpec()). It is the machine-readable contract that the
- * Terraform provider generator, the API reference docs, and third-party
- * clients all consume, and Home/Utils/AIDiscovery.ts advertises it to AI
- * agents as `${baseUrl}/api/openapi/spec`.
+ * .getOpenAPISpecResponse(): built at boot, kept and sent gzipped, which
+ * page.request reads as any client does). It is the machine-readable
+ * contract that the Terraform provider generator, the API reference docs,
+ * and third-party clients all consume, and Home/Utils/AIDiscovery.ts
+ * advertises it to AI agents as `${baseUrl}/api/openapi/spec`.
  *
  * The spec is assembled at boot from every Postgres and Analytics model's Zod
  * schema. A regression in that assembly (an unregistered model, a schema that
