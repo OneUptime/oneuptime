@@ -19,6 +19,7 @@ import {
   SecurityCaseQueueView,
   SecurityCaseQueueViewKey,
   SecurityCaseRowMoment,
+  getSecurityCaseQueueColumns,
   getSecurityCaseQueueFilters,
   getSecurityCaseQueueQuery,
   getSecurityCaseQueueStatusOptions,
@@ -39,6 +40,12 @@ import useSecurityCaseListActions, {
   SecurityCaseListActions,
 } from "./useSecurityCaseListActions";
 import useSecurityCaseValues from "./useSecurityCaseValues";
+import {
+  SecurityCaseDueCell,
+  SecurityCaseDueLine,
+} from "./ResponseTargets/SecurityCaseTargetChip";
+import { RESPONSE_TARGETS_COPY } from "./ResponseTargets/ResponseTargetsCopy";
+import { projectHasTargets } from "./ResponseTargets/SecurityCaseTargetDisplay";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -253,6 +260,12 @@ const SecurityCasesList: FunctionComponent<{
   const isAiOffered: boolean = useAiOffered();
   const view: SecurityCaseQueueView = props.view;
   const { priorities, statuses } = props.values;
+  /*
+   * Whether the project sets response targets: then each open row says
+   * when its next target is due, under its priority, and the Due column can
+   * be turned on to sort by it.
+   */
+  const hasTargets: boolean = projectHasTargets(priorities);
   // Where a case opened here starts.
   const defaultPriority: SecurityCasePriority | null =
     SecurityCasePriorities.getDefaultPriority(priorities);
@@ -512,7 +525,30 @@ const SecurityCasesList: FunctionComponent<{
       title: "Priority",
       type: FieldType.Element,
       getElement: (item: SecurityCase): ReactElement => {
-        return <SecurityCasePriorityPill value={item.securityCasePriority} />;
+        return (
+          <div className="flex min-w-0 flex-col items-start">
+            <SecurityCasePriorityPill value={item.securityCasePriority} />
+            {hasTargets ? (
+              <SecurityCaseDueLine
+                securityCase={item}
+                priorities={priorities}
+              />
+            ) : (
+              <></>
+            )}
+          </div>
+        );
+      },
+    },
+    // When the next response target is due: what the open lists sort by.
+    due: {
+      id: "due",
+      field: { nextDueAt: true },
+      title: RESPONSE_TARGETS_COPY.dueColumn,
+      type: FieldType.Element,
+      hideOnMobile: true,
+      getElement: (item: SecurityCase): ReactElement => {
+        return <SecurityCaseDueCell securityCase={item} priorities={priorities} />;
       },
     },
     status: {
@@ -602,7 +638,10 @@ const SecurityCasesList: FunctionComponent<{
     },
   };
 
-  const columns: Array<Column<SecurityCase>> = view.columns.map(
+  const columns: Array<Column<SecurityCase>> = getSecurityCaseQueueColumns(
+    view,
+    hasTargets,
+  ).map(
     (key: SecurityCaseQueueColumn): Column<SecurityCase> => {
       return view.hiddenColumns.includes(key)
         ? { ...columnsByKey[key], isHiddenByDefault: true }
@@ -725,6 +764,15 @@ const SecurityCasesList: FunctionComponent<{
           verdict: true,
           securityCaseStatusId: true,
           securityCasePriorityId: true,
+          // What its response targets are read from (SecurityCaseTargets).
+          createdAt: true,
+          acknowledgedAt: true,
+          containedAt: true,
+          acknowledgeDueAt: true,
+          containDueAt: true,
+          acknowledgeMissedAt: true,
+          containMissedAt: true,
+          nextDueAt: true,
           assignedToUserId: true,
           assignedToTeamId: true,
           assignedToTeam: { name: true, _id: true },

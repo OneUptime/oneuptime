@@ -446,6 +446,16 @@ const EVENT_LIBRARY: Record<
     description:
       "A playbook step on a security case waits for someone who can approve it. Nothing runs until somebody approves or rejects it.",
   },
+  [NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION]: {
+    label: "Security case response target",
+    description:
+      "A security case you are on is about to miss its acknowledge or contain target, or misses it. When nobody is on the case, you hear it for cases at your chosen priority.",
+  },
+  [NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION]:
+    {
+      label: "Security case task assigned to me",
+      description: "A task on a security case is assigned to you.",
+    },
 
   [NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION]: {
     label: "Missed call",
@@ -1142,11 +1152,13 @@ const onCall: Array<SectionDef> = [
 const security: Array<SectionDef> = [
   buildSection(
     "Security Cases",
-    "Notify me about security cases I can see: new ones at my priority, ones assigned to me, and playbook steps waiting for my approval.",
+    "Notify me about security cases I can see: new ones at my priority, ones assigned to me, playbook steps waiting for my approval, cases about to miss a target, and tasks for me.",
     [
       NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
       NotificationSettingEventType.SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION,
       NotificationSettingEventType.SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION,
+      NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
+      NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
     ],
   ),
 ];

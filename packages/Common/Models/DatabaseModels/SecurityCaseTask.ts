@@ -118,6 +118,12 @@ const serverWrittenColumnAccess: {
   icon: IconProp.CheckCircle,
   tableDescription:
     "What has to be done on a security case, who is doing it, and whether it is done.",
+  // A colleague ticking a task off shows on the case's Tasks page at once.
+  enableRealtimeEventsOn: {
+    create: true,
+    update: true,
+    delete: true,
+  },
 })
 @Index(["securityCaseId", "createdAt"])
 export default class SecurityCaseTask extends BaseModel {
