@@ -1141,7 +1141,15 @@ const MetricsDashboard: FunctionComponent = (): ReactElement => {
                         className={METRICS_NAME_CHIP_CLASS_NAME}
                         data-testid="metrics-service-card-metric"
                       >
-                        <BreakableName text={name} />
+                        {/*
+                         * One flex item for the whole name: Firefox makes
+                         * each run of text between two <wbr>s a flex item
+                         * of its own and stood a long name's parts side by
+                         * side, letters stacked in each.
+                         */}
+                        <span className="min-w-0">
+                          <BreakableName text={name} />
+                        </span>
                       </span>
                     );
                   })}

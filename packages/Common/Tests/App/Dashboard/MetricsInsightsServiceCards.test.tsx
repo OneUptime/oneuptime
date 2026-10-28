@@ -322,6 +322,17 @@ describe("Metrics > Insights: a card for each service reporting metrics", () => 
       LONG_METRIC.split(".").length - 1,
     );
     expect(chip!.textContent).toBe(LONG_METRIC);
+    /*
+     * The whole name is the chip's one flex item: Firefox makes each run of
+     * text between two <wbr>s a flex item of its own, and stood a long
+     * name's parts side by side with their letters stacked.
+     */
+    expect(chip!.children).toHaveLength(1);
+    expect(chip!.children[0]!.tagName).toBe("SPAN");
+    expect(chip!.children[0]!.textContent).toBe(LONG_METRIC);
+    expect(chip!.children[0]!.querySelectorAll("wbr").length).toBe(
+      LONG_METRIC.split(".").length - 1,
+    );
   });
 
   test("six names at most, then how many more, in a grey that reads", async () => {
