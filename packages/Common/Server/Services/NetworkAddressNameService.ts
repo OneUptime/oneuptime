@@ -34,6 +34,9 @@ export const ADDRESS_NAME_ADDRESS_INVALID_MESSAGE: string =
 export const ADDRESS_NAME_NAME_REQUIRED_MESSAGE: string =
   "Enter a name for the address.";
 
+export const ADDRESS_NAME_ONE_ROW_MESSAGE: string =
+  "An address or subnet has one name. Change the address of one Address Name at a time.";
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -97,8 +100,7 @@ export class Service extends DatabaseService<Model> {
 
     if (
       existing &&
-      (!data.exceptId ||
-        existing.id?.toString() !== data.exceptId.toString())
+      (!data.exceptId || existing.id?.toString() !== data.exceptId.toString())
     ) {
       throw new BadDataException(
         `${data.address} already has a name: ${existing.name || ""}. Change that one instead.`,
@@ -123,8 +125,10 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * An edit is checked the way a new name is. Only what it changes: the
-   * address it moves to must not be named already (the row it moves from
-   * is the only one allowed to hold it).
+   * address it moves to must not be named already - the row it moves from
+   * is the only one allowed to hold it. That row is the one the update
+   * writes (findRowsAndHoldUpdateToThem), and an update that would move
+   * two rows to one address is refused: it would name the address twice.
    */
   @CaptureSpan()
   protected override async onBeforeUpdate(
@@ -143,22 +147,24 @@ export class Service extends DatabaseService<Model> {
       const address: string = Service.readAddress(data["address"]);
       data["address"] = address;
 
-      const query: Record<string, unknown> = (updateBy.query || {}) as Record<
-        string,
-        unknown
-      >;
-      const id: unknown = query["_id"];
+      const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+        updateBy,
+        { _id: true, projectId: true },
+      );
 
-      await this.assertNotNamedYet({
-        projectId: updateBy.props.tenantId,
-        address: address,
-        exceptId:
-          id instanceof ObjectID
-            ? id
-            : typeof id === "string" && ObjectID.isValidUUID(id)
-              ? new ObjectID(id)
-              : undefined,
-      });
+      if (rows.length > 1) {
+        throw new BadDataException(ADDRESS_NAME_ONE_ROW_MESSAGE);
+      }
+
+      const row: Model | undefined = rows[0];
+
+      if (row) {
+        await this.assertNotNamedYet({
+          projectId: row.projectId || updateBy.props.tenantId,
+          address: address,
+          exceptId: row.id || undefined,
+        });
+      }
     }
 
     return { updateBy, carryForward: null };

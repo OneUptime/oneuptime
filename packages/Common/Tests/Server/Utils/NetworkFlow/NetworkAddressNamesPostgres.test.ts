@@ -1,8 +1,10 @@
 import Entities from "../../../../Models/DatabaseModels/Index";
 import Host from "../../../../Models/DatabaseModels/Host";
+import NetworkAddressName from "../../../../Models/DatabaseModels/NetworkAddressName";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import HostService from "../../../../Server/Services/HostService";
+import NetworkAddressNameService from "../../../../Server/Services/NetworkAddressNameService";
 import NetworkDeviceService from "../../../../Server/Services/NetworkDeviceService";
 import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import NetworkAddressNamesUtil from "../../../../Server/Utils/NetworkFlow/NetworkAddressNames";
@@ -32,7 +34,10 @@ import { DataSource } from "typeorm";
  *     network (raw SQL over jsonb);
  *   - archived and deleted records, and another project's, name nothing;
  *   - the inventory before DNS, and DNS where the inventory has nothing;
- *   - "find an address" by every word of a name, "%" and "_" literally.
+ *   - "find an address" by every word of a name, "%" and "_" literally;
+ *   - an Address Name saved the one way it is kept, and an address named
+ *     once: a create or an edit that would name it twice is refused, the
+ *     edit judged on the row it writes (findRowsAndHoldUpdateToThem).
  *
  * Opt in with RUN_POSTGRES_NETWORK_ADDRESS_NAMES_TESTS=true against a
  * Postgres migrated to the current head - the Postgres Schema Drift
@@ -202,6 +207,15 @@ describePostgres("Traffic page names against Postgres", () => {
       address: "10.18.167.31",
       projectId: OTHER_PROJECT.toString(),
     });
+    // Two the writes below change; no read above asks for them.
+    await insert("NetworkAddressName", "printer", {
+      name: "Printer",
+      address: "10.0.0.77",
+    });
+    await insert("NetworkAddressName", "scanner", {
+      name: "Scanner",
+      address: "10.0.0.78",
+    });
 
     /*
      * Network devices: one polled at its address (written in capitals),
@@ -341,6 +355,26 @@ describePostgres("Traffic page names against Postgres", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
+
+  // A write's side effects elsewhere are not what this is about.
+  function quietWrites(): void {
+    jest
+      .spyOn(NetworkAddressNameService, "onTriggerWorkflow")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(NetworkAddressNameService, "onTriggerRealtime" as never)
+      .mockResolvedValue(undefined as never);
+  }
+
+  async function addressNameRow(
+    key: string,
+  ): Promise<{ name: string; address: string }> {
+    const rows: Array<{ name: string; address: string }> = await database.query(
+      `SELECT "name", "address" FROM "${schema}"."NetworkAddressName" WHERE "_id" = $1`,
+      [ids[key]],
+    );
+    return rows[0]!;
+  }
 
   async function resolve(
     addresses: Array<string>,
@@ -591,6 +625,85 @@ describePostgres("Traffic page names against Postgres", () => {
     expect(await find("checkout")).toEqual(["10.242.167.220"]);
     expect(await find("core-sw")).toEqual(["2001:db8::1"]);
     expect(await find("node-a")).toEqual(["10.34.167.20"]);
+  });
+
+  test("an edit that moves an Address Name to an address another one names is refused, the row as it was", async () => {
+    quietWrites();
+
+    await expect(
+      NetworkAddressNameService.updateOneById({
+        id: new ObjectID(ids["printer"]!),
+        data: { address: "10.0.0.78" },
+        props: ROOT,
+      }),
+    ).rejects.toThrow(
+      "10.0.0.78 already has a name: Scanner. Change that one instead.",
+    );
+    expect(await addressNameRow("printer")).toEqual({
+      name: "Printer",
+      address: "10.0.0.77",
+    });
+  });
+
+  test("an edit is saved the one way it is kept, its own address allowed", async () => {
+    quietWrites();
+
+    expect(
+      await NetworkAddressNameService.updateOneById({
+        id: new ObjectID(ids["printer"]!),
+        data: { address: "10.0.0.77/32", name: "  Printer\t2 " },
+        props: ROOT,
+      }),
+    ).toBe(1);
+    expect(await addressNameRow("printer")).toEqual({
+      name: "Printer 2",
+      address: "10.0.0.77",
+    });
+
+    expect(
+      await NetworkAddressNameService.updateOneById({
+        id: new ObjectID(ids["printer"]!),
+        data: { address: "10.0.0.79" },
+        props: ROOT,
+      }),
+    ).toBe(1);
+    expect((await addressNameRow("printer")).address).toBe("10.0.0.79");
+  });
+
+  test("a second name for an address is refused on create; a subnet is kept as its first address", async () => {
+    quietWrites();
+
+    const duplicate: NetworkAddressName = new NetworkAddressName();
+    duplicate.projectId = PROJECT;
+    duplicate.name = "Another scanner";
+    duplicate.address = "10.0.0.78";
+
+    await expect(
+      NetworkAddressNameService.create({ data: duplicate, props: ROOT }),
+    ).rejects.toThrow(
+      "10.0.0.78 already has a name: Scanner. Change that one instead.",
+    );
+
+    const subnet: NetworkAddressName = new NetworkAddressName();
+    subnet.projectId = PROJECT;
+    subnet.name = "Lab racks";
+    subnet.address = "10.0.5.35/24";
+
+    const created: NetworkAddressName = await NetworkAddressNameService.create({
+      data: subnet,
+      props: ROOT,
+    });
+    const rows: Array<{ address: string }> = await database.query(
+      `SELECT "address" FROM "${schema}"."NetworkAddressName" WHERE "_id" = $1`,
+      [created.id!.toString()],
+    );
+    expect(rows[0]!.address).toBe("10.0.5.0/24");
+
+    // The same project reads it as a subnet at once.
+    expect((await resolve(["10.0.5.9"]))["10.0.5.9"]).toEqual({
+      subnetName: "Lab racks",
+      subnet: "10.0.5.0/24",
+    });
   });
 
   test("find: a subnet's name finds no address, '%' and '_' are themselves, and what was gone is not found", async () => {

@@ -2,6 +2,7 @@ import NetworkAddressNameService, {
   ADDRESS_NAME_ADDRESS_INVALID_MESSAGE,
   ADDRESS_NAME_ADDRESS_REQUIRED_MESSAGE,
   ADDRESS_NAME_NAME_REQUIRED_MESSAGE,
+  ADDRESS_NAME_ONE_ROW_MESSAGE,
   Service as NetworkAddressNameServiceType,
 } from "../../../Server/Services/NetworkAddressNameService";
 import CreateBy from "../../../Server/Types/Database/CreateBy";
@@ -34,21 +35,35 @@ const OTHER_ROW: ObjectID = new ObjectID(
 );
 
 interface Hooks {
-  onBeforeCreate: (createBy: CreateBy<NetworkAddressName>) => Promise<
-    OnCreate<NetworkAddressName>
-  >;
-  onBeforeUpdate: (updateBy: UpdateBy<NetworkAddressName>) => Promise<
-    OnUpdate<NetworkAddressName>
-  >;
+  onBeforeCreate: (
+    createBy: CreateBy<NetworkAddressName>,
+  ) => Promise<OnCreate<NetworkAddressName>>;
+  onBeforeUpdate: (
+    updateBy: UpdateBy<NetworkAddressName>,
+  ) => Promise<OnUpdate<NetworkAddressName>>;
 }
 
 const hooks: Hooks = NetworkAddressNameService as unknown as Hooks;
 
-let findOneBy: SpyInstance<
-  NetworkAddressNameServiceType["findOneBy"]
+let findOneBy: SpyInstance<NetworkAddressNameServiceType["findOneBy"]>;
+
+// The rows an update writes, as the update path reads and holds them.
+let heldRows: SpyInstance<
+  NetworkAddressNameServiceType["findRowsAndHoldUpdateToThem"]
 >;
 
-function existing(address: string, name: string, id: ObjectID): NetworkAddressName {
+function held(id: ObjectID, projectId: ObjectID = PROJECT): NetworkAddressName {
+  const row: NetworkAddressName = new NetworkAddressName();
+  row._id = id.toString();
+  row.projectId = projectId;
+  return row;
+}
+
+function existing(
+  address: string,
+  name: string,
+  id: ObjectID,
+): NetworkAddressName {
   const row: NetworkAddressName = new NetworkAddressName();
   row._id = id.toString();
   row.address = address;
@@ -87,6 +102,9 @@ beforeEach(() => {
   findOneBy = jest
     .spyOn(NetworkAddressNameService, "findOneBy")
     .mockResolvedValue(null);
+  heldRows = jest
+    .spyOn(NetworkAddressNameService, "findRowsAndHoldUpdateToThem")
+    .mockResolvedValue([held(ROW)]);
 });
 
 afterEach(() => {
@@ -165,8 +183,8 @@ describe("NetworkAddressNameService.onBeforeCreate", () => {
     );
 
     expect(findOneBy).toHaveBeenCalledTimes(1);
-    const args: { query: Record<string, unknown>; props: unknown } =
-      findOneBy.mock.calls[0]![0] as never;
+    const args: { query: Record<string, unknown>; props: unknown } = findOneBy
+      .mock.calls[0]![0] as never;
 
     expect(String(args.query["projectId"])).toBe(PROJECT.toString());
     expect(args.query["address"]).toBe("158.115.141.143");
@@ -215,6 +233,7 @@ describe("NetworkAddressNameService.onBeforeUpdate", () => {
     expect((result.updateBy.data as Record<string, unknown>)["name"]).toBe(
       "Backup appliance",
     );
+    expect(heldRows).not.toHaveBeenCalled();
     expect(findOneBy).not.toHaveBeenCalled();
   });
 
@@ -236,12 +255,44 @@ describe("NetworkAddressNameService.onBeforeUpdate", () => {
     );
   });
 
-  test("the row's id in the query may be text", async () => {
-    findOneBy.mockResolvedValue(existing("10.0.0.5", "Printer", ROW));
+  test("the row checked is the one the update writes, in its own project", async () => {
+    const OTHER_PROJECT: ObjectID = new ObjectID(
+      "10000000-0000-4000-8000-000000000002",
+    );
+    heldRows.mockResolvedValue([held(ROW, OTHER_PROJECT)]);
+    const update: UpdateBy<NetworkAddressName> = updateBy(
+      { address: "10.0.0.5" },
+      ROW.toString(),
+    );
+
+    await expect(hooks.onBeforeUpdate(update)).resolves.toBeTruthy();
+
+    // Read and held by the update path, never by the update's own query.
+    expect(heldRows).toHaveBeenCalledTimes(1);
+    expect(heldRows.mock.calls[0]![0]).toBe(update);
+    expect(heldRows.mock.calls[0]![1]).toEqual({ _id: true, projectId: true });
+    const read: { query: Record<string, unknown> } = findOneBy.mock
+      .calls[0]![0] as never;
+    expect(read.query["projectId"]).toEqual(OTHER_PROJECT);
+    expect(read.query["address"]).toBe("10.0.0.5");
+  });
+
+  test("an update that would move two rows to one address is refused, before anything else is read", async () => {
+    heldRows.mockResolvedValue([held(ROW), held(OTHER_ROW)]);
 
     await expect(
-      hooks.onBeforeUpdate(updateBy({ address: "10.0.0.5" }, ROW.toString())),
+      hooks.onBeforeUpdate(updateBy({ address: "10.0.0.7" })),
+    ).rejects.toThrow(new BadDataException(ADDRESS_NAME_ONE_ROW_MESSAGE));
+    expect(findOneBy).not.toHaveBeenCalled();
+  });
+
+  test("an update that writes no row reads nothing more", async () => {
+    heldRows.mockResolvedValue([]);
+
+    await expect(
+      hooks.onBeforeUpdate(updateBy({ address: "10.0.0.7" })),
     ).resolves.toBeTruthy();
+    expect(findOneBy).not.toHaveBeenCalled();
   });
 
   test("moving to an address another row names is refused", async () => {
