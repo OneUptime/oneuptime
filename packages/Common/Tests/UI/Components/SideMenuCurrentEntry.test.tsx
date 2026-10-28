@@ -555,7 +555,9 @@ describe("a folded section opens for an entry the route scan cannot see", () => 
    * then it sprang open - every time the page was opened.
    */
   test("opens before the browser paints: with every passive effect held back, it is open already", async () => {
-    const reactModule: typeof React = jest.requireActual("react");
+    const reactModule: typeof React = jest.requireActual(
+      "react",
+    ) as typeof React;
     const heldBack: SpyInstance<typeof React.useEffect> = jest
       .spyOn(reactModule, "useEffect")
       .mockImplementation((): void => {
