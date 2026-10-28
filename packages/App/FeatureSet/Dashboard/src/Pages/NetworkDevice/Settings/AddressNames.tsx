@@ -47,7 +47,7 @@ const NetworkAddressNamesPage: FunctionComponent<
         cardProps={{
           title: "Address Names",
           description:
-            "Names for addresses and subnets your inventory and DNS do not name. Traffic shows an address by its name, with the address beside it.",
+            "Names for IP addresses and subnets that your inventory and DNS do not name. The Traffic pages show an address by its name, with the address beside it.",
         }}
         helpContent={{
           title: "Where traffic names come from",
@@ -59,6 +59,7 @@ const NetworkAddressNamesPage: FunctionComponent<
         sortBy="name"
         sortOrder={SortOrder.Ascending}
         searchableFields={["name", "address"]}
+        searchPlaceholder="Search by name, address or subnet"
         formFields={getNetworkAddressNameFormFields()}
         filters={[
           { field: { name: true }, title: "Name", type: FieldType.Text },

@@ -66,6 +66,7 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import NetworkAddressBlockUtil from "Common/Utils/NetworkTraffic/NetworkAddressBlock";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
 
 /*
  * ---------------------------------------------------------------------------
@@ -761,6 +762,56 @@ ModelAPI.updateById = async (options) => {
   });
 
   return ok({});
+};
+
+/*
+ * What the Address Name form saves through (ModelForm): a new name, or a
+ * name changed in place - with the server's own checks, so a refused one
+ * says what the server would.
+ */
+ModelAPI.createOrUpdate = async (options) => {
+  if (options.modelType !== NetworkAddressName) {
+    fixture.unhandled.push({
+      kind: "createOrUpdate",
+      modelName: tableName(options.modelType),
+    });
+    return ok({});
+  }
+
+  const model = options.model;
+  const isUpdate = options.formType === FormType.Update;
+  const id = model._id ? model._id.toString() : null;
+
+  if (isUpdate && id) {
+    const found = addressNameRows.find((row) => {
+      return row._id === id;
+    });
+    const data = serialize({ name: model.name, address: model.address });
+    fixture.updates.push({ id, data });
+    const checked = checkedRow({ ...found, ...data }, id);
+
+    if (checked.error) {
+      throw new HTTPErrorResponse(400, { message: checked.error }, {});
+    }
+
+    addressNameRows = addressNameRows.map((row) => {
+      return row._id === id ? { ...row, ...checked.row } : row;
+    });
+
+    return ok({ _id: id, ...checked.row });
+  }
+
+  fixture.creates.push({ name: model.name, address: model.address });
+  const checked = checkedRow({ name: model.name, address: model.address });
+
+  if (checked.error) {
+    throw new HTTPErrorResponse(400, { message: checked.error }, {});
+  }
+
+  const newId = `90000000-0000-4000-8000-0000000000${nextId++}`;
+  addressNameRows = [...addressNameRows, { _id: newId, ...checked.row }];
+
+  return ok({ _id: newId, ...checked.row });
 };
 
 ModelAPI.deleteItem = async (options) => {
