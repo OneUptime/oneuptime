@@ -963,6 +963,40 @@ describe("a rule's name and titles follow an edit while OneUptime wrote them", (
     expect(edited.name).toContain("50");
   });
 
+  test("a 'too many' title stays when its number goes down to none at all", () => {
+    const rule: TelemetryAlertRule = recipeRule(
+      TelemetryRuleRecipeKey.FailedSpans,
+    );
+    const anyAtAll: TelemetryAlertRule = applyConditionChange({
+      monitorType: MonitorType.Traces,
+      previous: rule,
+      next: { ...rule, threshold: 0 },
+      monitorName: "Checkout",
+      translator: ENGLISH,
+    });
+
+    expect(anyAtAll.alert?.title).toBe("Checkout: too many failed requests");
+  });
+
+  test("'a matching log arrived' does not stay when its number goes up: it is not about any log any more", () => {
+    const rule: TelemetryAlertRule = recipeRule(
+      TelemetryRuleRecipeKey.LogMessage,
+    );
+    const tooMany: TelemetryAlertRule = edit(rule, { threshold: 10 });
+
+    expect(tooMany.alert?.title).not.toBe("Checkout: a matching log arrived");
+
+    const tooManyOverAnHour: TelemetryAlertRule = edit(rule, {
+      threshold: 25,
+      windowInSeconds: 3600,
+    });
+
+    expect(tooManyOverAnHour.alert?.title).not.toBe(
+      "Checkout: a matching log arrived",
+    );
+    expect(tooManyOverAnHour.alert?.title).toContain("25");
+  });
+
   test("another kind of rule takes the title of its own kind", () => {
     const rule: TelemetryAlertRule = recipeRule(
       TelemetryRuleRecipeKey.ErrorLogs,

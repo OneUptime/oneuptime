@@ -79,6 +79,14 @@
  *              chosen components of its Core group (issue #5156), the
  *              Checkout API and a Payments API the page does not list,
  *              while an incident elsewhere on the page is not counted.
+ *   ?lang=     de | fa: the page in German or Persian, from the Dashboard's
+ *              own locale files, its <html lang> and dir set by the
+ *              production helper. English without it.
+ *
+ * A telemetry monitor's rule preview (POST /telemetry/<signal>/monitor-
+ * preview) is answered with a steady count per window and one spike two
+ * hours ago, over the windows TelemetryRulePreviewUtil.getRange reads for
+ * the step's window: the rule editor's chart, verdict and suggestion.
  *
  * Every read is recorded on window.__monitorOverviewFixture: getItemRequests,
  * listRequests (analytics lists carry analytics: true), aggregateRequests,
@@ -104,6 +112,11 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import TelemetryRulePreviewUtil from "Common/Types/Monitor/TelemetryRulePreview";
+import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import MonitorViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Layout";
 import MonitorView from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Index";
 import MonitorLogs from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Logs";
@@ -121,6 +134,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Label from "Common/Models/DatabaseModels/Label";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
@@ -246,6 +260,9 @@ const cloudMode = params.get("cloud") === "suggest" ? "suggest" : "none";
 const maintenanceMode = params.get("maintenance") === "1";
 const componentsMode =
   params.get("components") === "chosen" ? "chosen" : "page";
+const languageMode = ["de", "fa"].includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 
 /*
  * The components the External Status Page monitor watches with
@@ -873,7 +890,8 @@ for (const modelType of [MonitorCustomField]) {
 /*
  * Create Monitor reads the project (whether global probes join new monitors)
  * and, on its criteria step, the project's on-call policies, incident roles,
- * people and telemetry services: none in this workspace.
+ * people and telemetry services - and, for a telemetry monitor, the
+ * infrastructure it can be scoped to: none in this workspace.
  */
 table(Project).push({
   _id: PROJECT_ID,
@@ -881,7 +899,13 @@ table(Project).push({
   doNotAddGlobalProbesByDefaultOnNewMonitors: false,
 });
 
-for (const modelType of [OnCallDutyPolicy, IncidentRole, TeamMember, Service]) {
+for (const modelType of [
+  OnCallDutyPolicy,
+  IncidentRole,
+  TeamMember,
+  Service,
+  InventoryItem,
+]) {
   table(modelType);
 }
 
@@ -2989,6 +3013,61 @@ async function handleApi(method, options) {
     });
   }
 
+  /*
+   * POST /telemetry/{logs,traces}/get-attributes: the attribute keys a Logs
+   * or Traces monitor's filters offer.
+   */
+  if (
+    method === "POST" &&
+    (parsed.pathname.endsWith("/telemetry/logs/get-attributes") ||
+      parsed.pathname.endsWith("/telemetry/traces/get-attributes"))
+  ) {
+    return ok({ attributes: ["http.route", "k8s.namespace.name"] });
+  }
+
+  /*
+   * POST /telemetry/<signal>/monitor-preview: what a telemetry rule would
+   * have caught, one count per window of the step's window, as the server
+   * answers it (TelemetryAPI): a steady few in each window, and a spike of
+   * 40 two hours before now.
+   */
+  const previewSignal = [
+    ["logs", "lastXSecondsOfLogs"],
+    ["traces", "lastXSecondsOfSpans"],
+    ["exceptions", "lastXSecondsOfExceptions"],
+  ].find(([signal]) => {
+    return parsed.pathname.endsWith(`/telemetry/${signal}/monitor-preview`);
+  });
+
+  if (method === "POST" && previewSignal) {
+    const range = TelemetryRulePreviewUtil.getRange({
+      windowInSeconds: Number(body[previewSignal[1]] || 60),
+      now: NOW,
+    });
+    const windowMs = range.windowInSeconds * 1000;
+    const spikeAt = NOW.getTime() - 2 * 60 * MINUTE;
+    const buckets = [];
+
+    for (
+      let start = range.startTime.getTime();
+      start < range.endTime.getTime();
+      start += windowMs
+    ) {
+      const isSpike = spikeAt >= start && spikeAt < start + windowMs;
+      buckets.push({
+        time: new Date(start).toISOString(),
+        value: isSpike ? 40 : 3 + ((start / windowMs) % 4),
+      });
+    }
+
+    return ok({
+      buckets,
+      windowInSeconds: range.windowInSeconds,
+      startTime: range.startTime.toISOString(),
+      endTime: range.endTime.toISOString(),
+    });
+  }
+
   fixture.unhandled.push({ kind: "api", method, url });
   return ok({ data: [], count: 0 });
 }
@@ -3009,11 +3088,21 @@ API.fetch = async (options) => {
   return handleApi(options.method || "GET", options);
 };
 
+// The production helpers, handed the page's i18next instance before it starts.
+followLanguageForPage(i18next);
+followLanguageForDates(i18next);
+
 await i18next.use(initReactI18next).init({
-  lng: "en",
+  lng: languageMode,
   fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  resources: {
+    en: { translation: {} },
+    de: { translation: DE },
+    fa: { translation: FA },
+  },
   interpolation: { escapeValue: false },
+  keySeparator: false,
+  nsSeparator: false,
 });
 
 /*

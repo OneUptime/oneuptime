@@ -249,9 +249,23 @@ export const applyConditionChange: (data: {
     translator: data.translator,
   });
 
+  const previousKind: string = getRuleKind({
+    monitorType: data.monitorType,
+    rule: previous,
+  });
+  const nextKind: string = getRuleKind({
+    monitorType: data.monitorType,
+    rule: next,
+  });
+
+  /*
+   * A "too many" title still says what a rule is about when its number
+   * goes down to none at all ("too many failed requests", more than 0);
+   * "a matching log arrived" no longer does when it goes up to 10.
+   */
   const isSameKind: boolean =
-    getRuleKind({ monitorType: data.monitorType, rule: previous }) ===
-    getRuleKind({ monitorType: data.monitorType, rule: next });
+    previousKind === nextKind ||
+    (previousKind === "above" && nextKind === "any");
 
   const newTitle: string = getGeneratedTitle({
     monitorType: data.monitorType,
