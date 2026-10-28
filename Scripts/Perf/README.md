@@ -261,6 +261,6 @@ App's live heap stayed between 400 and 433 MB.
 
 The other servers, run natively, live heap after a full collection with
 ts-node's own compile (`NODE_ENV=development`) against Common's transpiler
-(production): the ingress sidecar 269 -> 149 MB (`server-heap.sh`, 45
-seconds after start; resident 443 -> 307 MB), the Probe 126.5 -> 90.9 MB,
-the Runner 88.5 -> 63.9 MB.
+(production): the ingress sidecar 269 -> 150 MB (`server-heap.sh`, 45
+seconds after start, three runs each; resident 448 -> 307 MB), the Probe
+126.5 -> 90.9 MB, the Runner 88.5 -> 63.9 MB.
