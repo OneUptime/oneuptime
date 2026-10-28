@@ -578,6 +578,26 @@ describe("Lying flat, the reader drags the divider", () => {
     });
   });
 
+  test("a drag the window takes away is dropped: half closed mid-drag, the divider comes back where it was", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    const source: FakeSource = fakeSource(INNER_FLAT);
+    await renderStack(source);
+
+    // Half closed while the finger is still on the handle.
+    await drag(442, 502);
+    await act(async () => {
+      source.emit(report(TEST_WINDOWS.innerScreen, [bookFold(442, 1104)]));
+    });
+    await act(async () => {
+      source.emit(INNER_FLAT);
+    });
+
+    expect(screen.getByTestId("list-pane")).toHaveStyle({
+      width: ON_THE_FOLD,
+    });
+    expect(await AsyncStorage.getItem(LIST_PANE_WIDTH_KEY)).toBeNull();
+  });
+
   test("a drag the system cancels leaves the divider where it was", async () => {
     setWindowSize(TEST_WINDOWS.innerScreen);
     await renderStack(fakeSource(INNER_FLAT));

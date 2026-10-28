@@ -442,6 +442,16 @@ function AdaptiveStackNavigator({
   const cancelListWidth: () => void = useCallback((): void => {
     setDraggedListWidth(null);
   }, []);
+  /*
+   * A drag the window takes away - half closed, folded, turned to one pane -
+   * is dropped, so the divider never comes back at a width nobody let go at.
+   */
+  const dividerOffered: boolean = dividerRange !== null;
+  useEffect((): void => {
+    if (!dividerOffered) {
+      setDraggedListWidth(null);
+    }
+  }, [dividerOffered]);
 
   /*
    * The router is created once, so it reads the current layout through a
