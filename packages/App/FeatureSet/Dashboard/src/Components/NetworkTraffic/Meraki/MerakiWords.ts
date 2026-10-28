@@ -502,6 +502,22 @@ export const APPLIANCE_COUNT: PluralTemplate = {
   other: "{{count}} appliances",
 };
 
+// Every device of the organization's device list, appliances among them.
+export const DEVICE_COUNT: PluralTemplate = {
+  one: "{{count}} device",
+  other: "{{count}} devices",
+};
+
+/*
+ * The organization's devices that are network devices here, whose missing
+ * details Inventory fills in from Meraki (NetworkControllerInventory).
+ */
+export const DESCRIBED_DEVICES_NOTE: PluralTemplate = {
+  one: "{{count}} of its devices is a network device here: its model, serial number and firmware come from Meraki.",
+  other:
+    "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.",
+};
+
 export const API_CALL_COUNT: PluralTemplate = {
   one: "{{count}} API call a read",
   other: "{{count}} API calls a read",

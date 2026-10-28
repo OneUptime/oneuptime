@@ -30,8 +30,19 @@ import {
 } from "./InventoryAssetLabels";
 import useNetworkDeviceAssetDetails, {
   LinkedNetworkDeviceSource,
-  NetworkDeviceAssetDetailsRead,
+  NetworkDeviceAssetDetailsReader,
+  getLinkedNetworkDeviceId,
 } from "./useNetworkDeviceAssetDetails";
+import useNetworkDeviceRefresh, {
+  UseNetworkDeviceRefreshResult,
+  deviceOfModel,
+} from "../NetworkDevice/useNetworkDeviceRefresh";
+import NetworkDeviceRefreshStatus from "../NetworkDevice/NetworkDeviceRefreshStatus";
+import {
+  REFRESHING_TITLE,
+  REFRESH_TITLE,
+} from "../NetworkDevice/NetworkDeviceRefreshWords";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 
 /*
  * Asset details: what a machine is and where it is, in the same terms for
@@ -63,16 +74,34 @@ import useNetworkDeviceAssetDetails, {
 
 export interface ComponentProps {
   item: InventoryAssetSource & LinkedNetworkDeviceSource;
+  /*
+   * A network device was read again (Refresh): the page reads the item
+   * again too, which the server copied from the device as that reading
+   * landed.
+   */
+  onRefreshed?: (() => void) | undefined;
 }
 
 const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const deviceRead: NetworkDeviceAssetDetailsRead =
+  const deviceRead: NetworkDeviceAssetDetailsReader =
     useNetworkDeviceAssetDetails(props.item);
   const itemDetails: InventoryAssetDetails | undefined =
     getInventoryAssetDetails(props.item);
+
+  /*
+   * Refresh: a network device read again now, by its probe and its Meraki
+   * connection - offered to whoever may edit network devices, for a device
+   * something reads on its own (useNetworkDeviceRefresh).
+   */
+  const refresh: UseNetworkDeviceRefreshResult = useNetworkDeviceRefresh({
+    deviceId: getLinkedNetworkDeviceId(props.item),
+    device: deviceOfModel(deviceRead.device),
+    reload: deviceRead.reload,
+    onRead: props.onRefreshed,
+  });
 
   /*
    * A network device read from its own record when that worked; the item's
@@ -113,12 +142,33 @@ const InventoryAssetDetailsCard: FunctionComponent<ComponentProps> = (
       ? details.foundBy
       : undefined;
 
+  const buttons: Array<ReactElement> = refresh.canRefresh
+    ? [
+        <Button
+          key="refresh"
+          title={refresh.isRefreshing ? REFRESHING_TITLE : REFRESH_TITLE}
+          icon={IconProp.Refresh}
+          buttonStyle={ButtonStyleType.NORMAL}
+          isLoading={refresh.isRefreshing}
+          disabled={refresh.isRefreshing}
+          onClick={refresh.refresh}
+          dataTestId="inventory-asset-details-refresh"
+        />,
+      ]
+    : [];
+
   return (
     <Card
       title="Asset Details"
       description="What this machine is and where it is, in the same terms for every host and network device. Unknown means nothing has reported it yet."
+      buttons={buttons}
     >
       <div data-testid="inventory-asset-details">
+        <NetworkDeviceRefreshStatus
+          refresh={refresh}
+          className="mb-4"
+          testId="inventory-asset-details-refresh-status"
+        />
         <dl className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
           {details.details.map((detail: InventoryAssetDetail): ReactElement => {
             const englishLabel: string =

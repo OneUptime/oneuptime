@@ -2,6 +2,7 @@ import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/Networ
 import AssetFactValue from "../Inventory/AssetFactValue";
 import {
   getAssetFactExactTime,
+  getControllerReadLine,
   getFoundByLine,
   getOtherMachineLine,
   getSharedAssetFactSource,
@@ -11,17 +12,29 @@ import {
   isUndisputedSavedValue,
 } from "../Inventory/AssetFactSourceText";
 import { NETWORK_DEVICE_ASSET_FACT_COLUMNS } from "../Inventory/NetworkDeviceAssetSelect";
+import NetworkDeviceRefreshStatus from "./NetworkDeviceRefreshStatus";
+import {
+  NETWORK_DEVICE_REFRESH_COLUMNS,
+  REFRESHING_TITLE,
+  REFRESH_TITLE,
+} from "./NetworkDeviceRefreshWords";
+import useNetworkDeviceRefresh, {
+  UseNetworkDeviceRefreshResult,
+  deviceOfModel,
+} from "./useNetworkDeviceRefresh";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import {
+  NetworkDeviceControllerReading,
   NetworkDeviceDiscoverySighting,
   NetworkDeviceOtherMachineSighting,
 } from "Common/Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import {
   AssetFactSource,
   AssetFactSourceKind,
+  sourceOfControllerReading,
 } from "Common/Utils/Inventory/AssetFactSource";
 import {
   NetworkDeviceAssetFactKey,
@@ -30,12 +43,13 @@ import {
   NetworkDeviceSystemKey,
   getNetworkDeviceFactDetails,
 } from "Common/Utils/NetworkDevice/NetworkDeviceAssetFacts";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
@@ -51,6 +65,11 @@ const UPTIME_TITLE: string = "Uptime";
  */
 export const NOTHING_READ_YET: string = translationKey(
   "Nothing has been read from this device yet. Its details fill in after its first SNMP walk, or the next discovery scan of its address.",
+);
+
+// The Meraki network a device is in, under the Meraki row.
+export const CONTROLLER_NETWORK_LINE: string = translationKey(
+  "In the {{network}} network.",
 );
 
 export interface InventoryUptimeValueProps {
@@ -156,6 +175,24 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
+  /*
+   * Refresh: the device read again now, by its probe and its Meraki
+   * connection (useNetworkDeviceRefresh). The card follows it by reading the
+   * device again, and says where it stands in its first row.
+   */
+  const [device, setDevice] = useState<NetworkDevice | null>(null);
+  const [refresher, setRefresher] = useState<boolean>(false);
+  const refresh: UseNetworkDeviceRefreshResult = useNetworkDeviceRefresh({
+    deviceId: props.modelId,
+    device: deviceOfModel(device),
+    reload: (): void => {
+      setRefresher((value: boolean): boolean => {
+        return !value;
+      });
+    },
+  });
+  const hasRefreshStatus: boolean = Boolean(refresh.error || refresh.answer);
+
   type GetUptimeElementFunction = (item: NetworkDevice) => ReactElement;
 
   const getUptimeElement: GetUptimeElementFunction = (
@@ -218,8 +255,42 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
         item.lastSeenAt ||
         discovery.scanLine ||
         discovery.foundBy ||
-        discovery.otherMachine,
+        discovery.otherMachine ||
+        getNetworkDeviceFactDetails(item).controller,
     );
+  };
+
+  // What the device's Meraki dashboard says about it, in its own row.
+  type ControllerLines = {
+    readLine?: string | undefined;
+    readAt?: string | undefined;
+    networkLine?: string | undefined;
+  };
+
+  const getControllerLines: (item: NetworkDevice) => ControllerLines = (
+    item: NetworkDevice,
+  ): ControllerLines => {
+    const reading: NetworkDeviceControllerReading | undefined =
+      getNetworkDeviceFactDetails(item).controller;
+
+    if (!reading) {
+      return {};
+    }
+
+    const network: string | undefined = reading.values.networkName;
+
+    return {
+      readLine: getControllerReadLine(
+        sourceOfControllerReading(reading),
+        translator,
+      ),
+      readAt: reading.readAt,
+      networkLine: network
+        ? translator.translateTemplate(CONTROLLER_NETWORK_LINE, {
+            network: network,
+          })
+        : undefined,
+    };
   };
 
   type DetailOfFunction = (item: NetworkDevice) => NetworkDeviceFactDetail;
@@ -306,21 +377,62 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
         title: "Inventory",
         description:
           "Hardware, software and location details from this device's SNMP poll and from discovery.",
+        buttons: refresh.canRefresh
+          ? [
+              <Button
+                key="refresh"
+                title={refresh.isRefreshing ? REFRESHING_TITLE : REFRESH_TITLE}
+                icon={IconProp.Refresh}
+                buttonStyle={ButtonStyleType.NORMAL}
+                isLoading={refresh.isRefreshing}
+                disabled={refresh.isRefreshing}
+                onClick={refresh.refresh}
+                dataTestId="device-inventory-refresh"
+              />,
+            ]
+          : undefined,
       }}
       isEditable={false}
+      refresher={refresher}
       modelDetailProps={{
         modelType: NetworkDevice,
         id: "network-device-inventory",
         modelId: props.modelId,
+        onItemLoaded: (item: NetworkDevice): void => {
+          setDevice(item);
+        },
         /*
          * Every column the asset facts read, and what discovery read with
          * when the device's poll last did, so each value says where it came
-         * from (NetworkDeviceAssetSelect).
+         * from (NetworkDeviceAssetSelect) - and what Refresh is decided and
+         * followed by.
          */
         selectMoreFields: {
           ...NETWORK_DEVICE_ASSET_FACT_COLUMNS,
+          ...NETWORK_DEVICE_REFRESH_COLUMNS,
         },
         fields: [
+          /*
+           * Where a refresh stands, first, under the button that asked for
+           * it: nothing until someone presses it.
+           */
+          {
+            field: {
+              refreshRequestedAt: true,
+            },
+            fieldType: FieldType.Element,
+            getElement: (): ReactElement => {
+              return (
+                <NetworkDeviceRefreshStatus
+                  refresh={refresh}
+                  testId="device-inventory-refresh-status"
+                />
+              );
+            },
+            showIf: (): boolean => {
+              return hasRefreshStatus;
+            },
+          },
           {
             field: {
               vendor: true,
@@ -412,6 +524,46 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             fieldType: FieldType.DateTime,
             showIf: (item: NetworkDevice): boolean => {
               return Boolean(item.lastSeenAt);
+            },
+          },
+          /*
+           * What its Meraki dashboard says about it: when the connection
+           * last read it - said once, here, for the values above that came
+           * from there - and the Meraki network it is in.
+           */
+          {
+            field: {
+              discoveredDetails: true,
+            },
+            title: "Meraki",
+            fieldType: FieldType.Element,
+            getElement: (item: NetworkDevice): ReactElement => {
+              const lines: ControllerLines = getControllerLines(item);
+
+              return (
+                <div className="space-y-1 text-sm">
+                  {lines.readLine ? (
+                    <p
+                      className="text-gray-900"
+                      title={getAssetFactExactTime(lines.readAt)}
+                      data-testid="device-inventory-controller-source"
+                    >
+                      {lines.readLine}
+                    </p>
+                  ) : null}
+                  {lines.networkLine ? (
+                    <p
+                      className="text-gray-900"
+                      data-testid="device-inventory-controller-network"
+                    >
+                      {lines.networkLine}
+                    </p>
+                  ) : null}
+                </div>
+              );
+            },
+            showIf: (item: NetworkDevice): boolean => {
+              return Boolean(getControllerLines(item).readLine);
             },
           },
           /*

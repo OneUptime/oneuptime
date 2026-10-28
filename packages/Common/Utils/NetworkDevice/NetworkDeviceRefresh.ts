@@ -50,6 +50,63 @@ export const NETWORK_DEVICE_REFRESH_GIVE_UP_MS: number = 3 * 60 * 1000;
 // Where a refreshed device goes in its probe's queue: first.
 export const NETWORK_DEVICE_REFRESH_POLL_AT: Date = new Date(0);
 
+/*
+ * What the refresh route answers (POST /network-device/:id/refresh): when the
+ * refresh was asked for, on the server's clock, and who reads the device
+ * again.
+ */
+export interface NetworkDeviceRefreshAnswer {
+  requestedAt: string;
+  // Its probe reads it within a minute.
+  isProbeReading: boolean;
+  probeName?: string | undefined;
+  // A network controller connection (the Meraki dashboard) reads it again.
+  isControllerReading: boolean;
+  controllerName?: string | undefined;
+  // An earlier ask, not answered yet, is this one.
+  wasAlreadyRequested: boolean;
+}
+
+/*
+ * An answer read back without trusting its shape: undefined when it is not
+ * one (no time that parses, nobody reading).
+ */
+export function readNetworkDeviceRefreshAnswer(
+  value: unknown,
+): NetworkDeviceRefreshAnswer | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const answer: Record<string, unknown> = value as Record<string, unknown>;
+  const requestedAt: number | undefined = readTime(answer["requestedAt"]);
+  const isProbeReading: boolean = answer["isProbeReading"] === true;
+  const isControllerReading: boolean = answer["isControllerReading"] === true;
+
+  if (requestedAt === undefined || (!isProbeReading && !isControllerReading)) {
+    return undefined;
+  }
+
+  const text: (key: string) => string | undefined = (
+    key: string,
+  ): string | undefined => {
+    const read: unknown = answer[key];
+    return typeof read === "string" && read.trim() ? read.trim() : undefined;
+  };
+
+  const probeName: string | undefined = text("probeName");
+  const controllerName: string | undefined = text("controllerName");
+
+  return {
+    requestedAt: new Date(requestedAt).toISOString(),
+    isProbeReading: isProbeReading,
+    ...(probeName ? { probeName: probeName } : {}),
+    isControllerReading: isControllerReading,
+    ...(controllerName ? { controllerName: controllerName } : {}),
+    wasAlreadyRequested: answer["wasAlreadyRequested"] === true,
+  };
+}
+
 export interface NetworkDeviceRefreshSource {
   probeId?: unknown;
   isPollingEnabled?: unknown;
@@ -169,44 +226,123 @@ export function isFirstPollSinceRefresh(data: {
 export enum NetworkDeviceRefreshProgress {
   // Asked, and waiting for the readers.
   Waiting = "waiting",
-  // Its probe polled it since the ask, and reached it.
+  // Every reader asked has read it since, and its probe reached it.
   Read = "read",
   // Its probe polled it since the ask, and could not reach it.
   Unreachable = "unreachable",
-  // Nothing has polled it in the time a poll takes: its probe may be offline.
+  // A reader asked has not read it in the time a read takes.
   Late = "late",
 }
 
+export interface NetworkDeviceRefreshStanding {
+  progress: NetworkDeviceRefreshProgress;
+  // Who has not read it since the ask: what a late refresh waits for.
+  isProbePending: boolean;
+  isControllerPending: boolean;
+}
+
 /**
- * Where a refresh stands, from the device as it reads now. A device only its
- * controller reads has no poll to wait for: its reading's time says when
- * Meraki was read, and the page shows it.
+ * Where a refresh stands, from the device as it reads now: its probe has
+ * answered once it polled the device after the ask (lastPolledAt), and its
+ * controller once its reading was read after the ask (the reading's
+ * readAt). Both on the server's clock, as the ask's time is; only "late"
+ * reads the page's own clock, and three minutes leave room for a skew.
  */
-export function getNetworkDeviceRefreshProgress(data: {
-  requestedAt: unknown;
+export function getNetworkDeviceRefreshStanding(data: {
+  answer: NetworkDeviceRefreshAnswer;
   lastPolledAt: unknown;
   isReachable: unknown;
+  controllerReadAt: unknown;
   now: Date;
-}): NetworkDeviceRefreshProgress {
-  const requestedAt: number | undefined = readTime(data.requestedAt);
+}): NetworkDeviceRefreshStanding {
+  const requestedAt: number | undefined = readTime(data.answer.requestedAt);
   const polledAt: number | undefined = readTime(data.lastPolledAt);
+  const controllerReadAt: number | undefined = readTime(data.controllerReadAt);
 
-  if (
-    requestedAt !== undefined &&
-    polledAt !== undefined &&
-    polledAt >= requestedAt
-  ) {
-    return data.isReachable === false
-      ? NetworkDeviceRefreshProgress.Unreachable
-      : NetworkDeviceRefreshProgress.Read;
+  const isAnsweredAt: (time: number | undefined) => boolean = (
+    time: number | undefined,
+  ): boolean => {
+    return (
+      requestedAt !== undefined && time !== undefined && time >= requestedAt
+    );
+  };
+
+  const isProbePending: boolean =
+    data.answer.isProbeReading && !isAnsweredAt(polledAt);
+  const isControllerPending: boolean =
+    data.answer.isControllerReading && !isAnsweredAt(controllerReadAt);
+
+  if (!isProbePending && !isControllerPending) {
+    return {
+      progress:
+        data.answer.isProbeReading && data.isReachable === false
+          ? NetworkDeviceRefreshProgress.Unreachable
+          : NetworkDeviceRefreshProgress.Read,
+      isProbePending: false,
+      isControllerPending: false,
+    };
   }
 
-  if (
+  const isLate: boolean =
     requestedAt !== undefined &&
+    data.now.getTime() - requestedAt >= NETWORK_DEVICE_REFRESH_GIVE_UP_MS;
+
+  return {
+    progress: isLate
+      ? NetworkDeviceRefreshProgress.Late
+      : NetworkDeviceRefreshProgress.Waiting,
+    isProbePending: isProbePending,
+    isControllerPending: isControllerPending,
+  };
+}
+
+/**
+ * A refresh someone asked for that has not been answered yet, and is not
+ * late: what a page opened after the ask - another tab, a reload - shows as
+ * under way. Who reads it is worked out from the device as it is.
+ */
+export function getPendingNetworkDeviceRefresh(data: {
+  device: NetworkDeviceRefreshSource & {
+    refreshRequestedAt?: unknown;
+    lastPolledAt?: unknown;
+  };
+  now: Date;
+}): NetworkDeviceRefreshAnswer | undefined {
+  const requestedAt: number | undefined = readTime(
+    data.device.refreshRequestedAt,
+  );
+
+  if (
+    requestedAt === undefined ||
     data.now.getTime() - requestedAt >= NETWORK_DEVICE_REFRESH_GIVE_UP_MS
   ) {
-    return NetworkDeviceRefreshProgress.Late;
+    return undefined;
   }
 
-  return NetworkDeviceRefreshProgress.Waiting;
+  const readers: NetworkDeviceRefreshReaders = getNetworkDeviceRefreshReaders(
+    data.device,
+  );
+  const controllerReadAt: number | undefined = readTime(
+    readers.controller?.readAt,
+  );
+
+  const answer: NetworkDeviceRefreshAnswer = {
+    requestedAt: new Date(requestedAt).toISOString(),
+    isProbeReading: readers.isProbePolled,
+    isControllerReading: Boolean(readers.controller),
+    wasAlreadyRequested: true,
+  };
+
+  const standing: NetworkDeviceRefreshStanding =
+    getNetworkDeviceRefreshStanding({
+      answer: answer,
+      lastPolledAt: data.device.lastPolledAt,
+      isReachable: undefined,
+      controllerReadAt: controllerReadAt,
+      now: data.now,
+    });
+
+  return standing.progress === NetworkDeviceRefreshProgress.Waiting
+    ? answer
+    : undefined;
 }

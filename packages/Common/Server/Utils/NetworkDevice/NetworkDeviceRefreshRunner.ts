@@ -6,6 +6,7 @@ import { NetworkDeviceMonitoringMethodUtil } from "../../../Types/NetworkDevice/
 import ObjectID from "../../../Types/ObjectID";
 import {
   NETWORK_DEVICE_REFRESH_POLL_AT,
+  NetworkDeviceRefreshAnswer,
   NetworkDeviceRefreshReaders,
   getNetworkDeviceRefreshReaders,
   isNetworkDeviceRefreshPending,
@@ -40,18 +41,8 @@ import NetworkControllerScheduler from "../NetworkController/NetworkControllerSc
  * and the answer says why in words the page can show.
  */
 
-export interface NetworkDeviceRefreshAnswer {
-  // When the refresh was asked for (ISO, the server's clock).
-  requestedAt: string;
-  // Its probe reads it within a minute.
-  isProbeReading: boolean;
-  probeName?: string | undefined;
-  // A network controller connection (the Meraki dashboard) reads it again.
-  isControllerReading: boolean;
-  controllerName?: string | undefined;
-  // An earlier ask, not answered yet, is this one.
-  wasAlreadyRequested: boolean;
-}
+// The answer's shape is shared with the Dashboard (Utils/NetworkDevice).
+export type { NetworkDeviceRefreshAnswer };
 
 export const MONITOR_BACKED_REASON: string =
   "This device is checked by its monitor, so nothing polls it: there is nothing to read again. Its details come from discovery scans of its address.";

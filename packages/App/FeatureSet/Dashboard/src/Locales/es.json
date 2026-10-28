@@ -36817,5 +36817,21 @@
   "Evidence File ID": "ID del archivo de evidencia",
   "Pick a person to do {{title}}. They are notified.": "Elige una persona para hacer {{title}}. Se le avisa.",
   "Put any other kind of file, or several files, in a .zip.": "Pon cualquier otro tipo de archivo, o varios archivos, en un .zip.",
-  "Upload a file": "Subir un archivo"
+  "Upload a file": "Subir un archivo",
+  "In the {{network}} network.": "En la red {{network}}.",
+  "Its probe ({{probe}}) has not read it yet. Check that the probe is online.": "Su sonda ({{probe}}) todavía no lo ha leído. Comprueba que la sonda está en línea.",
+  "Its probe and the Meraki dashboard read it again within a minute.": "Su sonda y el panel de Meraki lo vuelven a leer en menos de un minuto.",
+  "Its probe could not reach it just now. Its details are as it last read them.": "Su sonda no ha podido alcanzarlo ahora mismo. Sus detalles son los de su última lectura.",
+  "Its probe has not read it yet. Check that the probe is online.": "Su sonda todavía no lo ha leído. Comprueba que la sonda está en línea.",
+  "Its probe reads it again within a minute.": "Su sonda lo vuelve a leer en menos de un minuto.",
+  "Meraki dashboard ({{name}})": "Panel de Meraki ({{name}})",
+  "Read again just now.": "Leído de nuevo hace un momento.",
+  "Read from the Meraki dashboard ({{name}}), {{time}}.": "Leído del panel de Meraki ({{name}}), {{time}}.",
+  "Read from the Meraki dashboard, {{time}}.": "Leído del panel de Meraki, {{time}}.",
+  "Refresh Requested At": "Actualización solicitada el",
+  "The Meraki dashboard": "El panel de Meraki",
+  "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "El panel de Meraki todavía no se ha leído. El estado de la conexión está en la página Tráfico de la red.",
+  "The Meraki dashboard is read again within a minute.": "El panel de Meraki se vuelve a leer en menos de un minuto.",
+  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "{{count}} de sus dispositivos son dispositivos de red aquí: su modelo, número de serie y firmware vienen de Meraki.",
+  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "{{count}} de sus dispositivos es un dispositivo de red aquí: su modelo, número de serie y firmware vienen de Meraki."
 }

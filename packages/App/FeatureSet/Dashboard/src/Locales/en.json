@@ -36817,5 +36817,21 @@
   "Evidence File ID": "Evidence File ID",
   "Pick a person to do {{title}}. They are notified.": "Pick a person to do {{title}}. They are notified.",
   "Put any other kind of file, or several files, in a .zip.": "Put any other kind of file, or several files, in a .zip.",
-  "Upload a file": "Upload a file"
+  "Upload a file": "Upload a file",
+  "In the {{network}} network.": "In the {{network}} network.",
+  "Its probe ({{probe}}) has not read it yet. Check that the probe is online.": "Its probe ({{probe}}) has not read it yet. Check that the probe is online.",
+  "Its probe and the Meraki dashboard read it again within a minute.": "Its probe and the Meraki dashboard read it again within a minute.",
+  "Its probe could not reach it just now. Its details are as it last read them.": "Its probe could not reach it just now. Its details are as it last read them.",
+  "Its probe has not read it yet. Check that the probe is online.": "Its probe has not read it yet. Check that the probe is online.",
+  "Its probe reads it again within a minute.": "Its probe reads it again within a minute.",
+  "Meraki dashboard ({{name}})": "Meraki dashboard ({{name}})",
+  "Read again just now.": "Read again just now.",
+  "Read from the Meraki dashboard ({{name}}), {{time}}.": "Read from the Meraki dashboard ({{name}}), {{time}}.",
+  "Read from the Meraki dashboard, {{time}}.": "Read from the Meraki dashboard, {{time}}.",
+  "Refresh Requested At": "Refresh Requested At",
+  "The Meraki dashboard": "The Meraki dashboard",
+  "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.",
+  "The Meraki dashboard is read again within a minute.": "The Meraki dashboard is read again within a minute.",
+  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.",
+  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "{{count}} of its devices is a network device here: its model, serial number and firmware come from Meraki."
 }

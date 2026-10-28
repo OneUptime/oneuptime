@@ -36817,5 +36817,21 @@
   "Evidence File ID": "証拠ファイル ID",
   "Pick a person to do {{title}}. They are notified.": "{{title}} を担当するユーザーを選択します。担当者に通知されます。",
   "Put any other kind of file, or several files, in a .zip.": "その他の種類のファイルや複数のファイルは .zip にまとめてください。",
-  "Upload a file": "ファイルをアップロード"
+  "Upload a file": "ファイルをアップロード",
+  "In the {{network}} network.": "ネットワーク {{network}} に属しています。",
+  "Its probe ({{probe}}) has not read it yet. Check that the probe is online.": "プローブ ({{probe}}) はまだ読み取っていません。プローブがオンラインであることを確認してください。",
+  "Its probe and the Meraki dashboard read it again within a minute.": "プローブと Meraki ダッシュボードが 1 分以内に再度読み取ります。",
+  "Its probe could not reach it just now. Its details are as it last read them.": "プローブは今このデバイスに到達できませんでした。詳細は前回プローブが読み取った時点のものです。",
+  "Its probe has not read it yet. Check that the probe is online.": "プローブはまだ読み取っていません。プローブがオンラインであることを確認してください。",
+  "Its probe reads it again within a minute.": "プローブが 1 分以内に再度読み取ります。",
+  "Meraki dashboard ({{name}})": "Meraki ダッシュボード ({{name}})",
+  "Read again just now.": "たった今、再度読み取りました。",
+  "Read from the Meraki dashboard ({{name}}), {{time}}.": "Meraki ダッシュボード ({{name}}) から読み取りました ({{time}})。",
+  "Read from the Meraki dashboard, {{time}}.": "Meraki ダッシュボードから読み取りました ({{time}})。",
+  "Refresh Requested At": "更新リクエスト日時",
+  "The Meraki dashboard": "Meraki ダッシュボード",
+  "The Meraki dashboard has not been read yet. The connection's status is on the network's Traffic page.": "Meraki ダッシュボードはまだ読み取られていません。接続の状態はネットワークのトラフィックページにあります。",
+  "The Meraki dashboard is read again within a minute.": "Meraki ダッシュボードを 1 分以内に再度読み取ります。",
+  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki.": "そのうち {{count}} 台がここでネットワークデバイスとして登録されています。モデル、シリアル番号、ファームウェアは Meraki から取得します。",
+  "{{count}} of its devices are network devices here: their model, serial number and firmware come from Meraki._one": "そのうち {{count}} 台がここでネットワークデバイスとして登録されています。モデル、シリアル番号、ファームウェアは Meraki から取得します。"
 }

@@ -12,6 +12,7 @@ import {
 import { TopologyDeviceRoleInput } from "Common/Utils/Monitor/NetworkDeviceRoleCatalog";
 import { useEffect, useState } from "react";
 import { NETWORK_DEVICE_ASSET_FACT_SELECT } from "./NetworkDeviceAssetSelect";
+import { NETWORK_DEVICE_REFRESH_COLUMNS } from "../NetworkDevice/NetworkDeviceRefreshWords";
 
 /*
  * A network device's asset details read from the device ITSELF, for its
@@ -34,6 +35,16 @@ export interface NetworkDeviceAssetDetailsRead {
   // Null when the item is not a device, the device cannot be read, or yet.
   details: InventoryAssetDetails | null;
   isLoading: boolean;
+  /*
+   * The device as read, with what Refresh is decided and followed by
+   * (NETWORK_DEVICE_REFRESH_COLUMNS) - null as `details` is.
+   */
+  device?: NetworkDevice | null | undefined;
+}
+
+export interface NetworkDeviceAssetDetailsReader extends NetworkDeviceAssetDetailsRead {
+  // Reads the device again, quietly: what is shown stays until it lands.
+  reload: () => void;
 }
 
 // What the hook reads off an Inventory item.
@@ -97,9 +108,9 @@ async function readProjectRoles(): Promise<Array<TopologyDeviceRoleInput>> {
  */
 const useNetworkDeviceAssetDetails: (
   item: LinkedNetworkDeviceSource,
-) => NetworkDeviceAssetDetailsRead = (
+) => NetworkDeviceAssetDetailsReader = (
   item: LinkedNetworkDeviceSource,
-): NetworkDeviceAssetDetailsRead => {
+): NetworkDeviceAssetDetailsReader => {
   const deviceId: ObjectID | null = getLinkedNetworkDeviceId(item);
   const deviceIdString: string = deviceId ? deviceId.toString() : "";
 
@@ -107,6 +118,13 @@ const useNetworkDeviceAssetDetails: (
     details: null,
     isLoading: Boolean(deviceId),
   });
+  // Bumped to read the device again without clearing what is shown.
+  const [reloadKey, setReloadKey] = useState<number>(0);
+
+  // A new device starts empty; a reload of the same one keeps what it has.
+  useEffect(() => {
+    setRead({ details: null, isLoading: Boolean(deviceIdString) });
+  }, [deviceIdString]);
 
   useEffect(() => {
     if (!deviceIdString) {
@@ -115,8 +133,6 @@ const useNetworkDeviceAssetDetails: (
     }
 
     let isCancelled: boolean = false;
-
-    setRead({ details: null, isLoading: true });
 
     const load: () => Promise<void> = async (): Promise<void> => {
       try {
@@ -127,7 +143,10 @@ const useNetworkDeviceAssetDetails: (
           ModelAPI.getItem<NetworkDevice>({
             modelType: NetworkDevice,
             id: new ObjectID(deviceIdString),
-            select: NETWORK_DEVICE_ASSET_FACT_SELECT,
+            select: {
+              ...NETWORK_DEVICE_ASSET_FACT_SELECT,
+              ...NETWORK_DEVICE_REFRESH_COLUMNS,
+            },
           }),
           readProjectRoles(),
         ]);
@@ -141,6 +160,7 @@ const useNetworkDeviceAssetDetails: (
             ? getNetworkDeviceInventoryAssetDetails(device, { roles: roles })
             : null,
           isLoading: false,
+          device: device,
         });
       } catch {
         // The item's own facts stand in: never less than before.
@@ -157,9 +177,16 @@ const useNetworkDeviceAssetDetails: (
     return () => {
       isCancelled = true;
     };
-  }, [deviceIdString]);
+  }, [deviceIdString, reloadKey]);
 
-  return read;
+  return {
+    ...read,
+    reload: (): void => {
+      setReloadKey((value: number): number => {
+        return value + 1;
+      });
+    },
+  };
 };
 
 export default useNetworkDeviceAssetDetails;
