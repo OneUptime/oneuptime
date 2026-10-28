@@ -201,9 +201,11 @@ export default class NetworkAddressNamesUtil {
       }
 
       if (NetworkAddressBlockUtil.isSingleAddress(block)) {
+        // Its own row, so the page can rename it in place.
         add(block.text, {
           source: NetworkAddressNameSource.AddressName,
           name: name,
+          ...(row.id ? { resourceId: row.id.toString() } : {}),
         });
       } else {
         subnets.push({ block: block, name: name });
