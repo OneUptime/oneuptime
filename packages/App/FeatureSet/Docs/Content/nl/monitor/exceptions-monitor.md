@@ -33,7 +33,7 @@ Elke minuut telt OneUptime de uitzonderingen die aan de filters van de monitor v
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Of klik op de pagina van een uitzondering op **Create monitor** naast **Oplossen**: de nieuwe monitor bewaakt vanaf het begin het type van die uitzondering in zijn service, en waarschuwt wanneer die opnieuw optreedt.
+Ga naar **Monitoren** en klik op **Monitor maken**. Of klik op de pagina van een uitzondering op **Monitor maken** naast **Oplossen**: de nieuwe monitor bewaakt vanaf het begin het type van die uitzondering in zijn service, en waarschuwt wanneer die opnieuw optreedt.
 
 ### Exceptions kiezen
 

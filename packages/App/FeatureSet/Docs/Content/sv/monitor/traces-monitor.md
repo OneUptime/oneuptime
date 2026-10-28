@@ -32,7 +32,7 @@ Varje minut räknar OneUptime de spans som matchar monitorns filter och startade
 :::steps
 ### Börja en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Eller filtrera i spårningsutforskaren de spans du vill få veta om och klicka på **Create monitor** i dess verktygsfält: den nya monitorn bevakar från början utforskarens tjänster, statusar, spannamn och attribut.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Eller filtrera i spårningsutforskaren de spans du vill få veta om och klicka på **Skapa monitor** i dess verktygsfält: den nya monitorn bevakar från början utforskarens tjänster, statusar, spannamn och attribut.
 
 ### Välj Traces
 

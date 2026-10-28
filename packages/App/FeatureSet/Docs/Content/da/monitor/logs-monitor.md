@@ -32,7 +32,7 @@ Hvert minut tæller OneUptime de logs, der matcher monitorens filtre og er ankom
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Eller søg i log-explorer efter de logs, du vil have besked om, og klik på **Create monitor** i dens værktøjslinje: den nye monitor holder fra starten øje med explorerens søgning, alvorligheder, tjenester og attributter.
+Gå til **Monitorer**, og klik på **Opret monitor**. Eller søg i log-explorer efter de logs, du vil have besked om, og klik på **Opret monitor** i dens værktøjslinje: den nye monitor holder fra starten øje med explorerens søgning, alvorligheder, tjenester og attributter.
 
 ### Vælg Logs
 

@@ -33,7 +33,7 @@ Varje minut räknar OneUptime de undantag som matchar monitorns filter och intr�
 :::steps
 ### Börja en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Eller klicka på **Create monitor** bredvid **Lös** på ett undantags sida: den nya monitorn bevakar från början det undantagets typ i dess tjänst och larmar när det händer igen.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Eller klicka på **Skapa monitor** bredvid **Lös** på ett undantags sida: den nya monitorn bevakar från början det undantagets typ i dess tjänst och larmar när det händer igen.
 
 ### Välj Exceptions
 

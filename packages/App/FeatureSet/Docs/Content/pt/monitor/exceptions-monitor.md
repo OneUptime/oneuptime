@@ -33,7 +33,7 @@ A cada minuto, o OneUptime conta as exceções que correspondem aos filtros do m
 :::steps
 ### Começar um novo monitor
 
-Vá para **Monitores** e clique em **Criar monitor**. Ou, na página de uma exceção, clique em **Create monitor** ao lado de **Resolver**: o novo monitor já começa observando o tipo dessa exceção no serviço dela, e alerta quando ela acontece de novo.
+Vá para **Monitores** e clique em **Criar monitor**. Ou, na página de uma exceção, clique em **Criar monitor** ao lado de **Resolver**: o novo monitor já começa observando o tipo dessa exceção no serviço dela, e alerta quando ela acontece de novo.
 
 ### Escolher Exceptions
 

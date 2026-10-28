@@ -32,7 +32,7 @@ Hvert minut tæller OneUptime de spans, der matcher monitorens filtre og started
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Eller filtrér i trace-explorer de spans, du vil have besked om, og klik på **Create monitor** i dens værktøjslinje: den nye monitor holder fra starten øje med explorerens tjenester, statusser, span-navn og attributter.
+Gå til **Monitorer**, og klik på **Opret monitor**. Eller filtrér i trace-explorer de spans, du vil have besked om, og klik på **Opret monitor** i dens værktøjslinje: den nye monitor holder fra starten øje med explorerens tjenester, statusser, span-navn og attributter.
 
 ### Vælg Traces
 

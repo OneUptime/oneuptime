@@ -9422,7 +9422,7 @@
   "Create docker-compose.yml": "Create docker-compose.yml",
   "Create incident": "Создать инцидент",
   "Create metric…": "Create metric…",
-  "Create monitor": "Create monitor",
+  "Create monitor": "Создать монитор",
   "Create monitor from this view": "Создать монитор из этого представления",
   "Create policy": "Create policy",
   "Create telemetry.ts and import it first": "Create telemetry.ts and import it first",

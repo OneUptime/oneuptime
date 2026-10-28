@@ -33,7 +33,7 @@ Hvert minutt teller OneUptime unntakene som samsvarer med monitorens filtre og o
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klikk på **Opprett monitor**. Eller klikk på **Create monitor** ved siden av **Løs** på siden til et unntak: den nye monitoren følger fra start med på typen til det unntaket i tjenesten, og varsler når det skjer igjen.
+Gå til **Monitorer**, og klikk på **Opprett monitor**. Eller klikk på **Opprett monitor** ved siden av **Løs** på siden til et unntak: den nye monitoren følger fra start med på typen til det unntaket i tjenesten, og varsler når det skjer igjen.
 
 ### Velg Exceptions
 

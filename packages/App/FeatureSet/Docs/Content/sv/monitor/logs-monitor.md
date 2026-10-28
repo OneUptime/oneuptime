@@ -32,7 +32,7 @@ Varje minut räknar OneUptime de loggar som matchar monitorns filter och har kom
 :::steps
 ### Börja en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Eller sök i loggutforskaren efter de loggar du vill få veta om och klicka på **Create monitor** i dess verktygsfält: den nya monitorn bevakar från början utforskarens sökning, allvarlighetsgrader, tjänster och attribut.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Eller sök i loggutforskaren efter de loggar du vill få veta om och klicka på **Skapa monitor** i dess verktygsfält: den nya monitorn bevakar från början utforskarens sökning, allvarlighetsgrader, tjänster och attribut.
 
 ### Välj Logs
 

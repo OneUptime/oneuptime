@@ -33,7 +33,7 @@ Hvert minut tæller OneUptime de undtagelser, der matcher monitorens filtre og o
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**. Eller klik på **Create monitor** ved siden af **Løs** på en undtagelses side: den nye monitor holder fra starten øje med den undtagelses type i dens tjeneste og advarer, når den sker igen.
+Gå til **Monitorer**, og klik på **Opret monitor**. Eller klik på **Opret monitor** ved siden af **Løs** på en undtagelses side: den nye monitor holder fra starten øje med den undtagelses type i dens tjeneste og advarer, når den sker igen.
 
 ### Vælg Exceptions
 
