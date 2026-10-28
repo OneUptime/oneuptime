@@ -1514,6 +1514,8 @@
   "Light": "Clair",
   "Dark": "Sombre",
   "System": "Système",
+  "Enable": "Activer",
+  "Disable": "Désactiver",
   "markdownCallouts": {
     "caution": "Attention",
     "danger": "Danger",
