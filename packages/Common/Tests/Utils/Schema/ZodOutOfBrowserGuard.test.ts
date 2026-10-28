@@ -869,10 +869,11 @@ describe("the frontends", () => {
   };
 
   for (const frontend of FRONTENDS) {
-    test(`${frontend.name} loads no zod, zod-to-openapi or Utils/Schema module`, () => {
+    test(`${frontend.name} loads no zod, zod-to-openapi or Utils/Schema module: API schemas are built in Utils/Schema, which only the server loads`, () => {
       const result: WalkResult = walkOf(frontend);
 
       expect(result.unresolved).toEqual([]);
+      // Each line runs from an entry point to schema code: move that code into Utils/Schema (TypeSchemas, MonitorSchemas).
       expect(result.findings.map(describeFinding)).toEqual([]);
     });
   }

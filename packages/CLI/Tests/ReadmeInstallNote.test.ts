@@ -119,16 +119,24 @@ describe("the CLI README's install section", () => {
     expect(INSTALLATION.split("\n")).toContain(WARNING);
   });
 
-  it("warns right after that advice, before the monorepo's own way of running it", () => {
+  it("warns right after that advice, and the warning ends the section: running the CLI from the repository is under Development", () => {
     const advice: number = INSTALLATION.indexOf(VERSION_ADVICE);
     const warning: number = INSTALLATION.indexOf(WARNING);
-    const monorepo: number = INSTALLATION.indexOf(
-      "Or run directly within the monorepo:",
-    );
 
     expect(advice).toBeGreaterThan(-1);
     expect(warning).toBeGreaterThan(advice);
-    expect(monorepo).toBeGreaterThan(warning);
+    /*
+     * npm's page is read by people installing the CLI: what follows the
+     * warning is Quick Start, not a contributor's way of running it, which
+     * the Development section has.
+     */
+    expect(INSTALLATION.slice(warning + WARNING.length).trim()).toBe("");
+    expect(INSTALLATION).not.toContain("cd packages/CLI");
+
+    const development: string = section("## Development");
+
+    expect(development).toContain("cd packages/CLI\nnpm install\n");
+    expect(development).toContain("npm start -- --help");
   });
 
   it("reads on npm: a bold label, not GitHub's alert syntax, which npm shows as text", () => {

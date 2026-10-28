@@ -19,14 +19,6 @@ npm install -g @oneuptime/cli@<your-oneuptime-version>
 
 > **Warning:** CLI versions before 14.0.64 stop as soon as they start, with an error such as `Cannot find module 'Common/Models/DatabaseModels/Index'`. Install 14.0.64 or later with `npm install -g @oneuptime/cli@latest`. On a self-hosted OneUptime older than 14.0.64, [upgrade OneUptime](https://oneuptime.com/docs/installation/upgrading#how-to-upgrade) first, then install the CLI of the version you upgraded to.
 
-Or run directly within the monorepo:
-
-```bash
-cd packages/CLI
-npm install
-npm start -- --help
-```
-
 ## Quick Start
 
 ```bash
