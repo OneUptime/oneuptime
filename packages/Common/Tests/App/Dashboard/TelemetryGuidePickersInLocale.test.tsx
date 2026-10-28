@@ -205,15 +205,21 @@ describe("the telemetry guide's picker labels", () => {
 
   test("name their buttons as a group, so a screen reader says which choice it is", async () => {
     const locale: Record<string, string> = readLocale("de");
+    const languagesName: string = locale["Select Language"] || "";
+    const methodsName: string = locale["Integration Method"] || "";
 
     await readIn("de");
     renderGuide("logs");
 
+    expect([languagesName, methodsName]).toEqual([
+      "Sprache auswählen",
+      "Integrationsmethode",
+    ]);
     const languages: HTMLElement = screen.getByRole("group", {
-      name: locale["Select Language"],
+      name: languagesName,
     });
     const methods: HTMLElement = screen.getByRole("group", {
-      name: locale["Integration Method"],
+      name: methodsName,
     });
 
     // Every language button is in the first group, and none in the second.
