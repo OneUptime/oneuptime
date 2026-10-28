@@ -62,6 +62,14 @@ import SecurityCasePriorities from "../../Utils/SecurityCase/SecurityCasePriorit
 import SecurityCaseStatuses, {
   SecurityCaseStatusChange,
 } from "../../Utils/SecurityCase/SecurityCaseStatuses";
+import {
+  SecurityCaseTargetMoments,
+  SecurityCaseTargetWrite,
+  getContainTargetAfterReopen,
+  getDueTimesAfterPriorityChange,
+  getDueTimesForNewCase,
+  getTargetBookkeeping,
+} from "../../Utils/SecurityCase/SecurityCaseTargets";
 
 /*
  * Request-scoped choices the case hooks read (CreateBy / UpdateBy
@@ -126,6 +134,49 @@ interface CaseStateBeforeUpdate {
   assignedToTeamId: string | undefined;
   acknowledgedAt: Date | undefined;
   containedAt: Date | undefined;
+  /*
+   * What the case's response targets are read from (SecurityCaseTargets):
+   * when it opened and closed, its due times and what was said about them,
+   * and the two columns kept from them.
+   */
+  targets: SecurityCaseTargetMoments;
+  nextDueAt: Date | null;
+  nextTargetCheckAt: Date | null;
+}
+
+// The case columns its response targets are read from, as a hook reads them.
+const TARGET_SELECT: {
+  createdAt: true;
+  closedAt: true;
+  acknowledgeDueAt: true;
+  containDueAt: true;
+  acknowledgeWarnedAt: true;
+  acknowledgeMissedAt: true;
+  containWarnedAt: true;
+  containMissedAt: true;
+  nextDueAt: true;
+  nextTargetCheckAt: true;
+} = {
+  createdAt: true,
+  closedAt: true,
+  acknowledgeDueAt: true,
+  containDueAt: true,
+  acknowledgeWarnedAt: true,
+  acknowledgeMissedAt: true,
+  containWarnedAt: true,
+  containMissedAt: true,
+  nextDueAt: true,
+  nextTargetCheckAt: true,
+};
+
+function sameMoment(
+  left: Date | null | undefined,
+  right: Date | null | undefined,
+): boolean {
+  const leftTime: number | null = left ? new Date(left).getTime() : null;
+  const rightTime: number | null = right ? new Date(right).getTime() : null;
+
+  return leftTime === rightTime;
 }
 
 // ATT&CK ids as stored: tactics and techniques of the current matrix, upper-cased, once each.
@@ -334,6 +385,45 @@ export class Service extends ProjectReferencesService<Model> {
       data.containedAt = now;
     }
 
+    /*
+     * Its response targets: each due its priority's target from now,
+     * unless the case meets it as it opens (SecurityCaseTargets).
+     */
+    const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
+      values.priorities,
+      data.securityCasePriorityId,
+    );
+    const dueTimes: { acknowledgeDueAt: Date | null; containDueAt: Date | null } =
+      getDueTimesForNewCase({
+        openedAt: now,
+        priority,
+        acknowledgedAt: data.acknowledgedAt || null,
+        containedAt: data.containedAt || null,
+        closedAt: created.closes ? now : null,
+      });
+    const bookkeeping: {
+      nextDueAt: Date | null;
+      nextTargetCheckAt: Date | null;
+    } = getTargetBookkeeping({
+      securityCase: {
+        createdAt: now,
+        acknowledgedAt: data.acknowledgedAt || null,
+        containedAt: data.containedAt || null,
+        closedAt: created.closes ? now : null,
+        ...dueTimes,
+      },
+      priority,
+    });
+
+    for (const [column, value] of Object.entries({
+      ...dueTimes,
+      ...bookkeeping,
+    })) {
+      if (value) {
+        data.setColumnValue(column, value);
+      }
+    }
+
     if (created.closes) {
       data.closedAt = now;
       data.verdict = data.verdict || SecurityCaseVerdict.Undetermined;
@@ -465,6 +555,7 @@ export class Service extends ProjectReferencesService<Model> {
         assignedToTeamId: true,
         acknowledgedAt: true,
         containedAt: true,
+        ...TARGET_SELECT,
       },
     );
 
@@ -485,6 +576,20 @@ export class Service extends ProjectReferencesService<Model> {
         assignedToTeamId: row.assignedToTeamId?.toString(),
         acknowledgedAt: row.acknowledgedAt,
         containedAt: row.containedAt,
+        targets: {
+          createdAt: row.createdAt || null,
+          acknowledgedAt: row.acknowledgedAt || null,
+          containedAt: row.containedAt || null,
+          closedAt: row.closedAt || null,
+          acknowledgeDueAt: row.acknowledgeDueAt || null,
+          containDueAt: row.containDueAt || null,
+          acknowledgeWarnedAt: row.acknowledgeWarnedAt || null,
+          acknowledgeMissedAt: row.acknowledgeMissedAt || null,
+          containWarnedAt: row.containWarnedAt || null,
+          containMissedAt: row.containMissedAt || null,
+        },
+        nextDueAt: row.nextDueAt || null,
+        nextTargetCheckAt: row.nextTargetCheckAt || null,
       });
     }
 
@@ -754,12 +859,115 @@ export class Service extends ProjectReferencesService<Model> {
       });
     }
 
+    Object.assign(
+      stamps,
+      this.getTargetChanges({
+        old,
+        stamps,
+        newPriorityId,
+        values,
+        now,
+      }),
+    );
+
     if (Object.keys(stamps).length > 0) {
       await this.updateColumnsByIdWithoutHooks({
         id: caseId,
         data: stamps as unknown as PartialEntity<Model>,
       });
     }
+  }
+
+  /*
+   * What a change does to the case's response targets (SecurityCaseTargets):
+   * a new priority moves the due times not met or missed yet, a reopened
+   * case that was never contained starts its contain target again, and the
+   * two columns kept from them - the next due time the lists sort by, and
+   * when the every-minute check looks next - follow whatever changed. Only
+   * columns whose value changes are written.
+   */
+  private getTargetChanges(input: {
+    old: CaseStateBeforeUpdate;
+    // What this change stamps already: acknowledged, contained, closed.
+    stamps: Record<string, unknown>;
+    newPriorityId: string | undefined;
+    values: ProjectSecurityCaseValues;
+    now: Date;
+  }): SecurityCaseTargetWrite {
+    const { old, stamps, values, now } = input;
+    const priorityId: string | undefined =
+      input.newPriorityId || old.priorityId;
+    const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
+      values.priorities,
+      priorityId,
+    );
+
+    // The case as this change leaves it, before its targets move.
+    const after: SecurityCaseTargetMoments = { ...old.targets };
+
+    for (const column of ["acknowledgedAt", "containedAt", "closedAt"]) {
+      if (stamps[column] !== undefined) {
+        (after as Record<string, unknown>)[column] = stamps[column];
+      }
+    }
+
+    const write: SecurityCaseTargetWrite = {};
+
+    if (input.newPriorityId && input.newPriorityId !== old.priorityId) {
+      Object.assign(
+        write,
+        getDueTimesAfterPriorityChange({
+          securityCase: after,
+          newPriority: priority,
+          isRising: SecurityCasePriorities.isMoreUrgent(
+            values.priorities,
+            input.newPriorityId,
+            old.priorityId,
+          ),
+          now,
+        }),
+      );
+    }
+
+    // Reopened, and never contained: the contain target starts again.
+    if (
+      stamps["closedAt"] === null &&
+      old.targets.closedAt &&
+      !old.targets.containedAt
+    ) {
+      Object.assign(write, getContainTargetAfterReopen({ priority, now }));
+    }
+
+    Object.assign(after, write);
+
+    const bookkeeping: {
+      nextDueAt: Date | null;
+      nextTargetCheckAt: Date | null;
+    } = getTargetBookkeeping({ securityCase: after, priority });
+
+    if (!sameMoment(bookkeeping.nextDueAt, old.nextDueAt)) {
+      write.nextDueAt = bookkeeping.nextDueAt;
+    }
+
+    if (!sameMoment(bookkeeping.nextTargetCheckAt, old.nextTargetCheckAt)) {
+      write.nextTargetCheckAt = bookkeeping.nextTargetCheckAt;
+    }
+
+    // Leave out what would be written as it already is.
+    for (const [column, value] of Object.entries(write)) {
+      if (
+        column !== "nextDueAt" &&
+        column !== "nextTargetCheckAt" &&
+        sameMoment(
+          value as Date | null,
+          (old.targets as Record<string, Date | null | undefined>)[column],
+        )
+      ) {
+        delete (write as Record<string, unknown>)[column];
+      }
+    }
+
+    return write;
   }
 
   // The id of the project's value a new case is given; refused when there is none.
