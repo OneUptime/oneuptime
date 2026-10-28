@@ -28,6 +28,7 @@ import CaptureSpan from "./Telemetry/CaptureSpan";
 import { GoogleTagManagerEnabled } from "../EnvironmentConfig";
 import { getProductBrandingViewVariables } from "./ProductBrandingViewVariables";
 import { createHash } from "crypto";
+import zlib from "zlib";
 
 /*
  * How long a calendar client may reuse a feed body before asking again. The
@@ -515,6 +516,50 @@ export default class Response {
       "Content-Type": "application/json; charset=utf-8",
     });
     oneUptimeResponse.end(json);
+  }
+
+  /*
+   * Send JSON that was built once and is kept gzipped (the OpenAPI spec): the
+   * gzipped bytes as they are to a client that accepts gzip, gunzipped to one
+   * that does not, and 304 to one that already has it (If-None-Match with
+   * its ETag). HEAD gets the same headers. The audit log gets its size, never
+   * the payload.
+   */
+  @CaptureSpan()
+  public static sendGzippedJsonResponse(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    body: { gzip: Buffer; etag: string; bytes: number },
+  ): void {
+    const oneUptimeResponse: OneUptimeResponse = res as OneUptimeResponse;
+
+    oneUptimeResponse.logBody = {
+      contentType: "application/json",
+      bytes: body.bytes,
+    };
+    oneUptimeResponse.setHeader(
+      "Content-Type",
+      "application/json; charset=utf-8",
+    );
+    oneUptimeResponse.setHeader("Vary", "Accept-Encoding");
+    oneUptimeResponse.setHeader("ETag", body.etag);
+
+    // req.fresh compares If-None-Match with the ETag just set.
+    if (req.fresh) {
+      oneUptimeResponse.status(304).end();
+      return;
+    }
+
+    if (req.acceptsEncodings("gzip") === "gzip") {
+      oneUptimeResponse.setHeader("Content-Encoding", "gzip");
+      oneUptimeResponse.setHeader("Content-Length", String(body.gzip.length));
+      oneUptimeResponse.status(200).end(body.gzip);
+      return;
+    }
+
+    const json: Buffer = zlib.gunzipSync(body.gzip);
+    oneUptimeResponse.setHeader("Content-Length", String(json.length));
+    oneUptimeResponse.status(200).end(json);
   }
 
   @CaptureSpan()

@@ -19,8 +19,23 @@ import {
 import LocalCache from "../Infrastructure/LocalCache";
 import { Host, HttpProtocol } from "../EnvironmentConfig";
 import Permission from "../../Types/Permission";
+import crypto from "crypto";
+import zlib from "zlib";
+
+/*
+ * The spec as GET /api/openapi/spec serves it: its JSON, gzipped, with an
+ * ETag. See OpenAPIUtil.getOpenAPISpecResponse.
+ */
+export interface OpenAPISpecResponse {
+  gzip: Buffer;
+  etag: string;
+  // The JSON's size in bytes, before gzip.
+  bytes: number;
+}
 
 export default class OpenAPIUtil {
+  private static specResponse: OpenAPISpecResponse | null = null;
+
   /**
    * Helper method to check if permissions should exclude API generation.
    * Returns true if:
@@ -45,6 +60,10 @@ export default class OpenAPIUtil {
     );
   }
 
+  /*
+   * The spec, built once and kept as a document (scripts and tests read it
+   * so). The App does not keep it: it serves getOpenAPISpecResponse.
+   */
   public static generateOpenAPISpec(): JSONObject {
     // check if the cache is already in LocalCache
     const cachedSpec: JSONValue | undefined = LocalCache.getJSON(
@@ -56,6 +75,52 @@ export default class OpenAPIUtil {
       return cachedSpec as JSONObject;
     }
 
+    const spec: JSONObject = OpenAPIUtil.buildOpenAPISpec();
+
+    LocalCache.setJSON("openapi", "spec", spec as JSONObject);
+
+    return spec;
+  }
+
+  /*
+   * What GET /api/openapi/spec serves: the spec's JSON, gzipped, built the
+   * first time it is asked for and kept. The App asks at boot, before it
+   * serves requests, because building it walks every model for about ten
+   * seconds of CPU.
+   *
+   * Kept gzipped because the document is large and asked for rarely: 33 MB
+   * of objects as generateOpenAPISpec keeps it, and its 16.5 MB of JSON is
+   * as much again as a string (it has characters past Latin-1, so V8 holds
+   * two bytes a character). Gzipped it is 0.6 MB, sent as it is to every
+   * client that accepts gzip - all of them, and nginx in front - and
+   * gunzipped for one that does not.
+   */
+  public static getOpenAPISpecResponse(): OpenAPISpecResponse {
+    if (!OpenAPIUtil.specResponse) {
+      // The document scripts or tests built already, or a new one, not kept.
+      const spec: JSONObject =
+        (LocalCache.getJSON("openapi", "spec") as JSONObject | undefined) ||
+        OpenAPIUtil.buildOpenAPISpec();
+      const json: Buffer = Buffer.from(JSON.stringify(spec), "utf8");
+      const hash: string = crypto
+        .createHash("sha1")
+        .update(json)
+        .digest("base64")
+        .slice(0, 27);
+
+      OpenAPIUtil.specResponse = {
+        gzip: zlib.gzipSync(json),
+        // Weak: the gzipped and the plain body are the same document.
+        etag: `W/"${json.length.toString(16)}-${hash}"`,
+        bytes: json.length,
+      };
+    }
+
+    return OpenAPIUtil.specResponse;
+  }
+
+  // The spec, built anew from every model. Nothing is kept.
+  public static buildOpenAPISpec(): JSONObject {
     const registry: OpenAPIRegistry = new OpenAPIRegistry();
     const tags: Array<{
       name: string;
@@ -230,8 +295,6 @@ export default class OpenAPIUtil {
         ApiKey: [],
       },
     ];
-
-    LocalCache.setJSON("openapi", "spec", spec as JSONObject);
 
     return spec;
   }

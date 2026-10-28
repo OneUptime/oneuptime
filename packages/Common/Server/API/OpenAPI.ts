@@ -5,7 +5,8 @@ import Express, {
 } from "../Utils/Express";
 import Response from "../Utils/Response";
 import { JSONObject } from "../../Types/JSON";
-import OpenAPIUtil from "../Utils/OpenAPI";
+import OpenAPIUtil, { OpenAPISpecResponse } from "../Utils/OpenAPI";
+import zlib from "zlib";
 
 export interface StatusAPIOptions {
   readyCheck: () => Promise<void>;
@@ -20,8 +21,19 @@ export default class OpenAPI {
     const router: ExpressRouter = Express.getRouter();
 
     router.get("/openapi/spec", (req: ExpressRequest, res: ExpressResponse) => {
-      const openAPISpec: JSONObject = OpenAPIUtil.generateOpenAPISpec();
-      return Response.sendJsonObjectResponse(req, res, openAPISpec);
+      // Built at boot and kept gzipped (OpenAPIUtil.getOpenAPISpecResponse).
+      const spec: OpenAPISpecResponse = OpenAPIUtil.getOpenAPISpecResponse();
+
+      // ?output-type=csv, which every JSON response takes: the document as CSV.
+      if (req.query["output-type"] === "csv") {
+        return Response.sendJsonObjectResponse(
+          req,
+          res,
+          JSON.parse(zlib.gunzipSync(spec.gzip).toString("utf8")) as JSONObject,
+        );
+      }
+
+      return Response.sendGzippedJsonResponse(req, res, spec);
     });
 
     return router;

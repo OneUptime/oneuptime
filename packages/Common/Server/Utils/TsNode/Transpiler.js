@@ -35,6 +35,7 @@
  * Tests: packages/Common/Tests/Server/Utils/TsNode/.
  */
 
+const { Buffer } = require("buffer");
 const fs = require("fs");
 const url = require("url");
 const zlib = require("zlib");
