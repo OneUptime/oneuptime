@@ -14,6 +14,8 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | A case's pages     | `SECURITY_CASE_VIEW_*` `.../cases/:id/{timeline,detections,entities,playbook-runs,...}`   | `Pages/SecurityEvents/CaseView/*`, `EventNotes`, `SecurityPlaybookRunCard`, `AuditLogsTable` |
 | Story              | `SECURITY_CASE_VIEW_STORY` `.../cases/:id/story`                                          | `Pages/SecurityEvents/CaseView/Story`, `SecurityCase/Context/*`                              |
 | Connected Signals  | `SECURITY_CASE_VIEW_CONNECTED_SIGNALS` `.../cases/:id/connected-signals`                  | `Pages/SecurityEvents/CaseView/ConnectedSignals`, `SecurityConnections/*`                    |
+| Evidence           | `SECURITY_CASE_VIEW_EVIDENCE` `.../cases/:id/evidence`                                    | `Pages/SecurityEvents/CaseView/Evidence`, `SecurityCase/Evidence/*`                          |
+| Tasks              | `SECURITY_CASE_VIEW_TASKS` `.../cases/:id/tasks`                                          | `Pages/SecurityEvents/CaseView/Tasks`, `SecurityCase/Tasks/*`                                |
 | Entity Risk        | `SECURITY_EVENTS_ENTITY_RISK` `.../security-events/entity-risk` (and the old `entities`)  | `Pages/SecurityEvents/EntityRisk`, `EntityRisk/*`, `EntityLookupCard` under the list         |
 | Protected Entities | `SECURITY_PROTECTED_ENTITIES` `.../security-events/protected-entities`                    | `Pages/SecurityEvents/ProtectedEntities`                                                     |
 | Detection Rules    | `SECURITY_EVENTS_DETECTION_RULES` `.../security-events/detection-rules`                   | `Pages/SecurityEvents/DetectionRules`, `DetectionRuleSummary`                                |
@@ -28,6 +30,7 @@ An offline harness for the Security Events SOC pages, on a month of synthetic se
 | AI Settings        | `SECURITY_EVENTS_SETTINGS_AI` `.../security-events/ai/settings`                           | `Pages/SecurityEvents/AISettings`, `AISettings/ProjectAiSwitchesCard`, `ProjectAiNotice`     |
 | Case Priorities    | `SECURITY_EVENTS_SETTINGS_CASE_PRIORITIES` `.../security-events/settings/case-priorities` | `Pages/SecurityEvents/Settings/CasePriorities`, `StateSettings/*`, `ArchivableValue/*`       |
 | Case Statuses      | `SECURITY_EVENTS_SETTINGS_CASE_STATUSES` `.../security-events/settings/case-statuses`     | `Pages/SecurityEvents/Settings/CaseStatuses`, the same                                       |
+| Response Targets   | `SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS` `.../settings/response-targets`               | `Pages/SecurityEvents/Settings/ResponseTargets`, `SecurityCase/ResponseTargets/*`            |
 
 `Fixture/server.js` bundles the production layout (breadcrumbs, the Security Events side menu) and
 the pages with esbuild, serves them with the same Tailwind build, `tailwind.config`, Inter font and
@@ -414,6 +417,37 @@ beside Draft with AI, and not on an empty form - with "The rule changed after th
 Exception on a case's detection, started with the rule and the address it grouped by, and none on
 a threat intel match. Its screenshots are named `rule-exceptions-*`, `rule-retrohunt-desktop` and
 `rule-exception-from-detection`.
+
+## Response targets, tasks and evidence
+
+A case's response targets, its checklist and the evidence kept on it, with their own spec,
+`CaseWork.spec.ts`. `Fixture/CaseWorkFixture.js` lays them out. The spray case (CASE-142) has three
+tasks - one done by Diego, one the reader's, one nobody's - and two pieces of evidence: the Okta
+System Log export Maya uploaded, with its SHA-256, and a link to the Okta admin console. Ticking a
+task off stamps who did it and when, as the server does; what is added is the reader's.
+
+| Parameter   | Values                                                                                                                                                                                        |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `?targets=` | `on`: the priorities carry a new project's response targets, and every case the due times they gave it, with what the every-minute check stamped by now. Left out, a project from before them |
+
+With targets, CASE-141 (acknowledge in 12 minutes) and CASE-142 (contain in 48 minutes) are in
+their targets' last fifth, CASE-138 missed its acknowledge target an hour ago, CASE-139 is on
+track and CASE-140 met both, its acknowledge target 5 minutes late.
+
+`CaseWork.spec.ts` covers: the Tasks page from the case's menu, its entry lit and its trail, the
+tasks the oldest first, a done one ticked with who did it and when, the count of done ones beside
+the title and of open ones beside Tasks in the menu; a task added with Enter, ticked off and on,
+handed to the reader and deleted after asking, the menu's count following; Close Case saying how
+many tasks are still open; a Security Viewer's locked list; Evidence from the menu, the latest
+first, a file with its size and short SHA-256, a link with its address, who added each and when
+under it, the rows never scrolling sideways from 768 up; Add Link filing a link on the case; a
+Security Viewer's locked Add buttons; Settings > Response Targets beside Case
+Priorities, each priority's targets, No target for a project from before them, Edit in the
+field's units refusing what it cannot keep; the case header's chip in each state; the Overview's
+notes under Time to Acknowledge and Time to Contain; the due line under each open case's priority;
+and every page at 390 and in the dark theme. Its screenshots are named `case-tasks-*`,
+`case-evidence-*`, `response-targets-*`, `case-header-target-missed-1280-light`,
+`case-overview-targets-1280-light`, `case-close-open-tasks-1280-light` and `cases-due-lines-*`.
 
 ## Run it
 

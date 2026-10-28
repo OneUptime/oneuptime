@@ -1,30 +1,23 @@
-import UserElement from "../../User/User";
+import SecurityCaseEvidenceCell from "./SecurityCaseEvidenceCell";
 import {
   SECURITY_CASE_EVIDENCE_COPY,
   SECURITY_CASE_EVIDENCE_FILE_TYPES,
   SECURITY_CASE_EVIDENCE_TEST_IDS,
-  formatEvidenceSize,
   getEvidenceDownloadUrl,
   getEvidenceLink,
   isFileEvidence,
-  shortenSha256,
 } from "./SecurityCaseEvidenceCopy";
 import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
 import URL from "Common/Types/API/URL";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import SecurityCaseEvidenceKind from "Common/Types/SecurityCase/SecurityCaseEvidenceKind";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
-import Icon from "Common/UI/Components/Icon/Icon";
-import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
-import { ModelField } from "Common/UI/Components/Forms/ModelForm";
-import { FormType } from "Common/UI/Components/Forms/ModelForm";
+import { FormType, ModelField } from "Common/UI/Components/Forms/ModelForm";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -36,8 +29,6 @@ import PermissionGate, {
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 export interface ComponentProps {
@@ -56,18 +47,19 @@ const MORE_FIELDS: FormFieldCollapsibleSection<SecurityCaseEvidence> =
  * with who added it and when - a file with its size, type and the SHA-256
  * of what was uploaded, to check a download against.
  *
- * Add File uploads one (up to 10 MB; anything else goes in a .zip), Add Link
- * points at evidence kept elsewhere; each asks for a name only when the
- * file's own name or the address will not do, and a description under More
- * fields. A file downloads - never opens in the page - and a link opens in a
- * new tab. Its name and description can be corrected; what it holds cannot.
+ * Add File, the card's button, uploads one (up to 10 MB; anything else goes
+ * in a .zip); Add Link, in the card's ⋯ - a table card keeps all but its
+ * main button there - points at evidence kept elsewhere. Each asks for a
+ * name only when the file's own name or the address will not do, and a
+ * description under More fields. A file downloads - never opens in the
+ * page - and a link opens in a new tab. Its name and description can be
+ * corrected; what it holds cannot.
  * Removing evidence takes the Security Admin role, and the case's timeline
  * says what was removed and by whom (SecurityCaseEvidenceService).
  */
 const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const translator: Translator = useTranslator();
   const projectId: ObjectID = ProjectUtil.getCurrentProjectId()!;
   const [adding, setAdding] = useState<SecurityCaseEvidenceKind | null>(null);
   const [refreshCount, setRefreshCount] = useState<number>(0);
@@ -156,7 +148,6 @@ const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
                 tooltip: createGate.isAllowed
                   ? undefined
                   : createGate.disabledReason,
-                dataTestId: button.testId,
                 onClick: () => {
                   setAdding(button.kind);
                 },
@@ -197,6 +188,11 @@ const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
           sha256: true,
           description: true,
           createdAt: true,
+          // Who added it: a line under it (SecurityCaseEvidenceCell).
+          createdByUser: {
+            name: true,
+            email: true,
+          },
         }}
         actionButtons={[
           {
@@ -261,129 +257,18 @@ const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             isNotCustomizable: true,
             wrapContent: true,
-            wrapMaxWidthClassName: "max-w-xl",
+            // The table's one column: a long address shows what room allows.
+            wrapMaxWidthClassName: "max-w-3xl",
+            /*
+             * Beside a side menu at 768px the card is 414px wide: with the
+             * row's box and its Download and ⋯, 9rem is what is left, and
+             * the table's 10rem floor scrolled the rows sideways.
+             */
+            contentClassName: "min-w-[9rem]",
+            // A phone's card is the evidence: "Evidence" over each said nothing.
+            hideTitleOnMobile: true,
             getElement: (item: SecurityCaseEvidence): ReactElement => {
-              const isFile: boolean = isFileEvidence(item);
-              const link: string | null = getEvidenceLink(item);
-              const meta: string = isFile
-                ? [item.fileName, formatEvidenceSize(item.fileSizeInBytes)]
-                    .filter((part: string | undefined): boolean => {
-                      return Boolean(part);
-                    })
-                    .join(" · ")
-                : link || "";
-
-              return (
-                <div className="grid min-w-[14rem] grid-cols-1">
-                  <span className="flex min-w-0 items-start gap-2">
-                    <Icon
-                      icon={isFile ? IconProp.PaperClip : IconProp.Link}
-                      className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
-                    />
-                    <span
-                      className="min-w-0 break-words font-medium text-gray-900"
-                      data-testid={SECURITY_CASE_EVIDENCE_TEST_IDS.name}
-                    >
-                      <IsolatedText text={item.name || ""} />
-                    </span>
-                  </span>
-                  {meta ? (
-                    <span
-                      className="mt-0.5 truncate ps-6 text-xs text-gray-500"
-                      title={meta}
-                      data-testid={SECURITY_CASE_EVIDENCE_TEST_IDS.meta}
-                    >
-                      <IsolatedText text={meta} />
-                    </span>
-                  ) : (
-                    <></>
-                  )}
-                  {item.description ? (
-                    <span className="mt-1 line-clamp-2 break-words ps-6 text-sm text-gray-600">
-                      {item.description}
-                    </span>
-                  ) : (
-                    <></>
-                  )}
-                </div>
-              );
-            },
-          },
-          {
-            field: {
-              createdByUser: {
-                name: true,
-                email: true,
-                profilePictureId: true,
-              },
-            },
-            title: SECURITY_CASE_EVIDENCE_COPY.addedByColumn,
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: SecurityCaseEvidence): ReactElement => {
-              if (!item.createdByUser) {
-                return <span className="text-sm text-gray-400">-</span>;
-              }
-
-              return <UserElement user={item.createdByUser} hideEmail={true} />;
-            },
-          },
-          {
-            field: { createdAt: true },
-            title: SECURITY_CASE_EVIDENCE_COPY.addedColumn,
-            type: FieldType.Element,
-            getElement: (item: SecurityCaseEvidence): ReactElement => {
-              if (!item.createdAt) {
-                return <span className="text-sm text-gray-400">-</span>;
-              }
-
-              return (
-                <span
-                  className="whitespace-nowrap text-sm text-gray-700"
-                  title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                    item.createdAt,
-                  )}
-                >
-                  {OneUptimeDate.fromNow(item.createdAt)}
-                </span>
-              );
-            },
-          },
-          {
-            field: { sha256: true },
-            title: SECURITY_CASE_EVIDENCE_COPY.sha256Column,
-            headerTooltip: SECURITY_CASE_EVIDENCE_COPY.sha256Tooltip,
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: SecurityCaseEvidence): ReactElement => {
-              if (!item.sha256) {
-                return <span className="text-sm text-gray-400">-</span>;
-              }
-
-              return (
-                <span
-                  className="inline-flex items-center gap-1"
-                  data-testid={SECURITY_CASE_EVIDENCE_TEST_IDS.sha256}
-                >
-                  <code
-                    className="font-mono text-xs text-gray-700"
-                    title={item.sha256}
-                  >
-                    {shortenSha256(item.sha256)}
-                  </code>
-                  <CopyTextButton
-                    textToBeCopied={item.sha256}
-                    iconOnly={true}
-                    size="xs"
-                    variant="ghost"
-                    title={
-                      translator.translateText(
-                        SECURITY_CASE_EVIDENCE_COPY.copySha256,
-                      ) || SECURITY_CASE_EVIDENCE_COPY.copySha256
-                    }
-                  />
-                </span>
-              );
+              return <SecurityCaseEvidenceCell item={item} />;
             },
           },
         ]}

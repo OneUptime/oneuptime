@@ -24,10 +24,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *     cannot keep; every case page reads the targets again once they load.
  *   - Evidence: the case's files and links, the latest first; a file
  *     downloads from its route, a link opens in a new tab only when it is
- *     an http or https address; a SHA-256 shortened, with the whole on
- *     hover; Add File and Add Link open their own forms, which file what is
- *     added on the case as its kind; only the name and the description are
- *     edited afterwards; removing one says the timeline keeps a record.
+ *     an http or https address; a file's SHA-256 under its name and size,
+ *     shortened, with the whole on hover; who added it and when under it,
+ *     in the table's one column; Add File and Add Link open their own
+ *     forms, which file what is added on the case as its kind; only the
+ *     name and the description are edited afterwards; removing one says the
+ *     timeline keeps a record.
  *     Somebody who may not add evidence sees the buttons locked, and no
  *     buttons in the empty state.
  */
@@ -132,6 +134,10 @@ import { ResponseTargetUnit } from "../../../../App/FeatureSet/Dashboard/src/Com
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import SecurityCaseEvidence from "../../../Models/DatabaseModels/SecurityCaseEvidence";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
+import User from "../../../Models/DatabaseModels/User";
+import OneUptimeDate from "../../../Types/Date";
+import Email from "../../../Types/Email";
+import Name from "../../../Types/Name";
 import URL from "../../../Types/API/URL";
 import Route from "../../../Types/API/Route";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -151,6 +157,8 @@ interface Column {
   title: string;
   getElement?: (item: unknown) => ReactElement;
   headerTooltip?: string;
+  hideTitleOnMobile?: boolean;
+  contentClassName?: string;
 }
 
 interface FormField {
@@ -371,19 +379,34 @@ describe("a case's Evidence", () => {
         },
       ),
     ).toEqual(["name", "description"]);
+    /*
+     * One column, read the way a list of files is: who added each and when
+     * is a line under it, so nothing is cut short and the rows never scroll
+     * sideways beside a side menu.
+     */
     expect(
       columnsOf(table).map((column: Column): string => {
         return column.title;
       }),
-    ).toEqual(["Evidence", "Added By", "Added", "SHA-256"]);
-    expect(columnsOf(table)[3]!.headerTooltip).toBe(
-      "The SHA-256 of the file as it was uploaded. A download whose SHA-256 is the same is what was kept.",
+    ).toEqual(["Evidence"]);
+    // A phone's card is the evidence, with no "Evidence" over it.
+    expect(columnsOf(table)[0]!.hideTitleOnMobile).toBe(true);
+    /*
+     * Beside the side menu at 768px, the row's box and its Download and ⋯
+     * leave the evidence 9rem: the table's own 10rem floor scrolled it.
+     */
+    expect(columnsOf(table)[0]!.contentClassName).toBe("min-w-[9rem]");
+    expect(table["selectMoreFields"]).toEqual(
+      expect.objectContaining({
+        createdAt: true,
+        createdByUser: { name: true, email: true },
+      }),
     );
   });
 
-  test("a file reads its name, then its file name and size; its SHA-256 short, the whole on hover", () => {
+  test("a file reads its name, then its file name and size, then its SHA-256 short, the whole on hover; a link reads its address", () => {
     const table: Record<string, unknown> = drawTable();
-    const [evidenceColumn, , , shaColumn] = columnsOf(table);
+    const [evidenceColumn] = columnsOf(table);
 
     drawElement(evidenceColumn!.getElement!(FILE));
     expect(
@@ -392,14 +415,110 @@ describe("a case's Evidence", () => {
     expect(
       screen.getByTestId(SECURITY_CASE_EVIDENCE_TEST_IDS.meta),
     ).toHaveTextContent("proxy.pcap · 1.2 KB");
-    cleanup();
-
-    drawElement(shaColumn!.getElement!(FILE));
     const sha: HTMLElement = screen.getByTestId(
       SECURITY_CASE_EVIDENCE_TEST_IDS.sha256,
     );
-    expect(sha).toHaveTextContent("2cf24dba…9824");
-    expect(sha.querySelector("code")).toHaveAttribute("title", SHA256);
+    expect(sha.tagName).toBe("CODE");
+    expect(sha).toHaveTextContent(/^2cf24dba…9824$/);
+    expect(sha).toHaveAttribute("title", SHA256);
+    // What the hash is for, on its label.
+    expect(screen.getByText("SHA-256", { exact: true })).toHaveAttribute(
+      "title",
+      "The SHA-256 of the file as it was uploaded. A download whose SHA-256 is the same is what was kept.",
+    );
+    expect(
+      screen.getByRole("button", { name: "Copy SHA-256" }),
+    ).toBeInTheDocument();
+    // Nothing says when it was added: no line for it.
+    expect(
+      screen.queryByTestId(SECURITY_CASE_EVIDENCE_TEST_IDS.added),
+    ).toBeNull();
+    cleanup();
+
+    // A link has an address and no hash, whatever a row says.
+    drawElement(
+      evidenceColumn!.getElement!(
+        evidence({
+          kind: SecurityCaseEvidenceKind.Link,
+          name: "Ticket 7",
+          url: URL.fromString("https://intranet.example/ticket/7"),
+          sha256: SHA256,
+        }),
+      ),
+    );
+    expect(
+      screen.getByTestId(SECURITY_CASE_EVIDENCE_TEST_IDS.meta),
+    ).toHaveTextContent("https://intranet.example/ticket/7");
+    expect(
+      screen.queryByTestId(SECURITY_CASE_EVIDENCE_TEST_IDS.sha256),
+    ).toBeNull();
+  });
+
+  test("under each piece of evidence, who added it and when, the date and time under the pointer", () => {
+    const table: Record<string, unknown> = drawTable();
+    const [evidenceColumn] = columnsOf(table);
+    const threeHoursAgo: Date = OneUptimeDate.addRemoveHours(
+      OneUptimeDate.getCurrentDate(),
+      -3,
+    );
+    const maya: User = new User();
+    maya.name = new Name("Maya Chen");
+
+    drawElement(
+      evidenceColumn!.getElement!(
+        evidence({
+          kind: SecurityCaseEvidenceKind.File,
+          name: "Proxy capture",
+          createdAt: threeHoursAgo,
+          createdByUser: maya,
+        }),
+      ),
+    );
+    const added: HTMLElement = screen.getByTestId(
+      SECURITY_CASE_EVIDENCE_TEST_IDS.added,
+    );
+    expect(added).toHaveTextContent(/^Added by Maya Chen 3 hours ago$/);
+    const time: HTMLElement = added.querySelector("time")!;
+    expect(time).toHaveTextContent("3 hours ago");
+    expect(time).toHaveAttribute("dateTime", threeHoursAgo.toISOString());
+    expect(time).toHaveAttribute(
+      "title",
+      OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(threeHoursAgo),
+    );
+    cleanup();
+
+    // A member with no name yet: their email.
+    const noName: User = new User();
+    noName.email = new Email("k.morgan@acme-commerce.example");
+    drawElement(
+      evidenceColumn!.getElement!(
+        evidence({
+          kind: SecurityCaseEvidenceKind.Link,
+          name: "Ticket 7",
+          url: URL.fromString("https://intranet.example/ticket/7"),
+          createdAt: threeHoursAgo,
+          createdByUser: noName,
+        }),
+      ),
+    );
+    expect(
+      screen.getByTestId(SECURITY_CASE_EVIDENCE_TEST_IDS.added),
+    ).toHaveTextContent("Added by k.morgan@acme-commerce.example 3 hours ago");
+    cleanup();
+
+    // Through the API: nobody's name to give.
+    drawElement(
+      evidenceColumn!.getElement!(
+        evidence({
+          kind: SecurityCaseEvidenceKind.File,
+          name: "Proxy capture",
+          createdAt: threeHoursAgo,
+        }),
+      ),
+    );
+    expect(
+      screen.getByTestId(SECURITY_CASE_EVIDENCE_TEST_IDS.added),
+    ).toHaveTextContent(/^Added 3 hours ago$/);
   });
 
   test("a file downloads from its route; a link opens in a new tab, only an http or https one", () => {
@@ -460,14 +579,12 @@ describe("a case's Evidence", () => {
     const table: Record<string, unknown> = drawTable();
     const buttons: Array<{
       title: string;
-      dataTestId: string;
       disabled: boolean;
       onClick: () => void;
     }> = (
       table["cardProps"] as {
         buttons: Array<{
           title: string;
-          dataTestId: string;
           disabled: boolean;
           onClick: () => void;
         }>;

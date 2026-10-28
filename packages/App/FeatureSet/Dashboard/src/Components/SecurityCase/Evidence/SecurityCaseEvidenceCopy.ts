@@ -31,9 +31,9 @@ export const SECURITY_CASE_EVIDENCE_COPY: {
   descriptionField: string;
   descriptionPlaceholder: string;
   evidenceColumn: string;
-  addedByColumn: string;
-  addedColumn: string;
-  sha256Column: string;
+  addedBy: string;
+  addedAt: string;
+  sha256Label: string;
   sha256Tooltip: string;
   download: string;
   openLink: string;
@@ -72,9 +72,11 @@ export const SECURITY_CASE_EVIDENCE_COPY: {
     "What it shows, and where and how it was collected",
   ),
   evidenceColumn: translationKey("Evidence"),
-  addedByColumn: translationKey("Added By"),
-  addedColumn: translationKey("Added"),
-  sha256Column: translationKey("SHA-256"),
+  // Under a piece of evidence: who added it and when.
+  addedBy: translationKey("Added by {{name}} {{time}}"),
+  addedAt: translationKey("Added {{time}}"),
+  // A file's SHA-256, under its name and size.
+  sha256Label: translationKey("SHA-256"),
   sha256Tooltip: translationKey(
     "The SHA-256 of the file as it was uploaded. A download whose SHA-256 is the same is what was kept.",
   ),
@@ -95,6 +97,7 @@ export const SECURITY_CASE_EVIDENCE_TEST_IDS: {
   name: string;
   meta: string;
   sha256: string;
+  added: string;
   addFile: string;
   addLink: string;
 } = {
@@ -102,6 +105,7 @@ export const SECURITY_CASE_EVIDENCE_TEST_IDS: {
   name: "security-case-evidence-name",
   meta: "security-case-evidence-meta",
   sha256: "security-case-evidence-sha256",
+  added: "security-case-evidence-added",
   addFile: "security-case-evidence-add-file",
   addLink: "security-case-evidence-add-link",
 };

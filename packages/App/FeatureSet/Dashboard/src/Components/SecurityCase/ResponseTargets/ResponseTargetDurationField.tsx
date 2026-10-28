@@ -98,9 +98,14 @@ const ResponseTargetDurationField: FunctionComponent<ComponentProps> = (
           }}
         />
       </div>
-      <div className="mt-2 w-36 shrink-0">
+      <div className="w-36 shrink-0">
+        {/*
+         * A unit is always picked - there is no "no unit" to clear to; an
+         * empty amount is what says no target.
+         */}
         <Dropdown
           options={unitOptions}
+          isClearable={false}
           value={unitOptions.find((option: DropdownOption): boolean => {
             return option.value === entry.unit;
           })}

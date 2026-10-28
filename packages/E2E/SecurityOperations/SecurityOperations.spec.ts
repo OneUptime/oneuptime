@@ -2464,6 +2464,20 @@ const CASE_PAGES: ReadonlyArray<CasePage> = [
   },
   {
     section: "Investigation",
+    title: "Evidence",
+    segment: "/evidence",
+    text: "okta-system-log-2026-10-14.json",
+    slug: "evidence",
+  },
+  {
+    section: "Investigation",
+    title: "Tasks",
+    segment: "/tasks",
+    text: "Reset the sprayed accounts' passwords",
+    slug: "tasks",
+  },
+  {
+    section: "Investigation",
     title: "Playbooks",
     segment: "/playbook-runs",
     text: "Started on its own: Case Opened",
