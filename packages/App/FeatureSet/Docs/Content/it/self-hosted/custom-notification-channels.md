@@ -17,7 +17,7 @@ Un canale personalizzato invia gli avvisi di reperibilità a un servizio che ges
 ## Come funziona
 
 ```mermaid title="Un avviso tramite un canale personalizzato"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Il tuo servizio"]
     App["La tua app"]

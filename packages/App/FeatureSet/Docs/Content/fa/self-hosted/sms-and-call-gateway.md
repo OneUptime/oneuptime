@@ -12,7 +12,7 @@
 ## چگونه کار می‌کند
 
 ```mermaid title="یک پیامک از راه درگاه خودتان"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Gateway["درگاه شما"]
     Provider["ارائه‌دهندهٔ پیامک و<br/>تماس صوتی شما"]

@@ -17,7 +17,7 @@
 ## چگونه کار می‌کند
 
 ```mermaid title="فراخوان از راه یک کانال سفارشی"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["سرویس شما"]
     App["برنامهٔ شما"]

@@ -17,13 +17,13 @@ Een aangepast kanaal stuurt oproepen van de bereikbaarheidsdienst naar een diens
 ## Hoe het werkt
 
 ```mermaid title="Een oproep via een aangepast kanaal"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Uw dienst"]
     App["Uw app"]
-    OneUptime -->|"ondertekend JSON-verzoek"| Service
+    OneUptime -->|"ondertekend<br/>JSON-verzoek"| Service
     Service -->|"melding"| App
-    App -->|"Bevestigen, Escaleren, Oplossen"| Service
+    App -->|"Bevestigen,<br/>Escaleren, Oplossen"| Service
     Service -->|"POST naar de actielink"| OneUptime
 ```
 
