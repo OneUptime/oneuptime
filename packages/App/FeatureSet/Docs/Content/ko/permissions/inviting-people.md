@@ -26,7 +26,7 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **초대할 수 있는 역할.** Project Owner, Project Admin 또는 **Invite New Members** 권한이 있는 역할. 초대하면 그 팀의 액세스가 주어지므로, 자신이 그 권한을 가진 팀에만 사람을 초대할 수 있습니다.
+- **초대할 수 있는 역할.** Project Owner, Project Admin 또는 **Invite New Members** 권한이 있는 역할. 초대하면 그 팀의 액세스가 주어지므로, 자신이 그 권한을 가진 팀에만 사람을 초대할 수 있습니다. 차단이 하나도 없는 Project Admin은 이 판단에서 Project Admin이 이미 할 수 있는 모든 것을 가진 것으로 봅니다. **Members**나 더 좁은 역할을 가진 팀에는 초대할 수 있지만, Project Owner, 결제 권한, **Delete Project**, **Edit Project**, **Edit Team**, **Invite New Members**를 가진 팀에는 초대할 수 없습니다.
 - **OneUptime Cloud에서는 요금제의 여유 좌석.** 프로젝트의 모든 사람은 초대된 순간부터 청구서의 좌석이 됩니다. Free 요금제에는 한 사람의 자리만 있습니다. [결제 및 사용량](/docs/configuration/billing#요금제와-좌석)을 참조하세요.
 - **SCIM Push Groups를 사용하지 않을 것.** ID 공급자가 SCIM Push Groups로 프로젝트의 팀을 관리하는 동안에는 OneUptime이 아니라 그곳에서 사람을 초대하고 제거합니다.
 

@@ -159,16 +159,17 @@ const CALLERS: Array<Caller> = [
     apiKeyRoles: ALL_ROLES,
   },
   {
+    // Project Admin does everything the other two do, so hands them on.
     name: "a project admin",
     rows: [allow(Permission.ProjectAdmin)],
-    teamRoles: [Permission.ProjectAdmin],
-    apiKeyRoles: [Permission.ProjectAdmin],
+    teamRoles: ALL_ROLES,
+    apiKeyRoles: ALL_ROLES,
   },
   {
     name: "a project admin who is also in Members",
     rows: [allow(Permission.ProjectAdmin), allow(Permission.ProjectMember)],
-    teamRoles: [Permission.ProjectAdmin, Permission.ProjectMember],
-    apiKeyRoles: [Permission.ProjectAdmin, Permission.ProjectMember],
+    teamRoles: ALL_ROLES,
+    apiKeyRoles: ALL_ROLES,
   },
   {
     name: "a project admin whose Project Member is only for some labels",
@@ -179,8 +180,8 @@ const CALLERS: Array<Caller> = [
         labelIds: [LABEL_ID],
       }),
     ],
-    teamRoles: [Permission.ProjectAdmin],
-    apiKeyRoles: [Permission.ProjectAdmin],
+    teamRoles: ALL_ROLES,
+    apiKeyRoles: ALL_ROLES,
   },
   {
     name: "a project admin whose Project Member is only for what they own",
@@ -188,8 +189,8 @@ const CALLERS: Array<Caller> = [
       allow(Permission.ProjectAdmin),
       allow(Permission.ProjectMember, { scope: PermissionScope.Owned }),
     ],
-    teamRoles: [Permission.ProjectAdmin],
-    apiKeyRoles: [Permission.ProjectAdmin],
+    teamRoles: ALL_ROLES,
+    apiKeyRoles: ALL_ROLES,
   },
   {
     name: "a project admin blocked from Project Admin",
@@ -213,7 +214,10 @@ const CALLERS: Array<Caller> = [
     apiKeyRoles: [],
   },
   {
-    // A block with labels takes only part of the table away.
+    /*
+     * A block with labels takes only part of the table away. Any block
+     * holds an admin to what they hold themselves.
+     */
     name: "a project admin blocked from Project Owner on some labels",
     rows: [
       allow(Permission.ProjectAdmin),
@@ -512,8 +516,13 @@ describe("Create API Key's Access, caller by caller (the same question)", () => 
 });
 
 describe("the refusals a picked role meets", () => {
-  test("a project admin giving Project Member is refused by the grant ceiling, by name", async () => {
-    const caller: Caller = CALLERS[1]!;
+  test("a project admin with a block giving Project Member is refused by the grant ceiling, by name", async () => {
+    const caller: Caller = CALLERS.find((candidate: Caller): boolean => {
+      return (
+        candidate.name ===
+        "a project admin blocked from Project Owner on some labels"
+      );
+    })!;
     const createBy: CreateBy<TeamPermission> = {
       data: buildTeamAccessPermission({
         teamId: TEAM_ID,

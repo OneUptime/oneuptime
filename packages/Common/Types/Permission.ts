@@ -2337,6 +2337,38 @@ export class PermissionHelper {
   }
 
   /*
+   * WHAT PROJECT ADMIN ALREADY DOES: every permission a team or an API key
+   * can be given, except the project's owner-only ones. Everywhere one of
+   * them opens something, Project Admin opens it too (the model sweep in
+   * ProjectAdminCoversWhatItHandsOn.test.ts holds this), so an admin who
+   * hands one on hands on nothing they could not do themselves.
+   *
+   * Left out: Project Owner; billing, which Project Admin does not manage;
+   * deleting and renaming the project; and changing someone's membership of
+   * a team, which Project Admin may not do (TeamMember's update list).
+   */
+  public static isCoveredByProjectAdmin(permission: Permission): boolean {
+    if (
+      permission === Permission.ProjectOwner ||
+      permission === Permission.DeleteProject ||
+      permission === Permission.EditProject ||
+      permission === Permission.EditProjectTeam ||
+      permission === Permission.InviteProjectTeamMembers
+    ) {
+      return false;
+    }
+
+    const props: PermissionProps | undefined =
+      this.getAllPermissionProps().find((item: PermissionProps): boolean => {
+        return item.permission === permission;
+      });
+
+    return Boolean(
+      props?.isAssignableToTenant && props.group !== PermissionGroup.Billing,
+    );
+  }
+
+  /*
    * WHETHER A ROW'S LABELS NARROW IT: a row that carries labels, whatever
    * scope it is stored with - except one scoped to Owned, which its owners
    * narrow instead, and an All row of a role that cannot be scoped

@@ -253,15 +253,23 @@ const CALLERS: Array<Caller> = [
     rows: [allow(Permission.ProjectOwner)],
     grantable: PROJECT_TEAMS,
   },
+  /*
+   * Any block holds an admin to what they hold themselves: the signed-in
+   * user the cases below refuse Members, Frontend and Responders.
+   */
   {
-    name: "a project admin",
-    rows: [allow(Permission.ProjectAdmin)],
+    name: "a project admin blocked from Frontend's incidents",
+    rows: [
+      allow(Permission.ProjectAdmin),
+      block(Permission.ReadProjectIncident, [FRONTEND_LABEL_ID]),
+    ],
     grantable: [ADMIN, READERS],
   },
+  // Project Admin does everything but Project Owner's own: every team but Owners.
   {
     name: "a project admin who is also in Members",
     rows: [allow(Permission.ProjectAdmin), allow(Permission.ProjectMember)],
-    grantable: [ADMIN, MEMBERS, FRONTEND, READERS],
+    grantable: [ADMIN, MEMBERS, FRONTEND, READERS, RESPONDERS],
   },
   {
     name: "a project owner blocked from Project Owner, who is also an admin",
@@ -303,6 +311,11 @@ const CALLERS: Array<Caller> = [
       allow(Permission.DeleteProjectIncident),
     ],
     grantable: [MEMBERS, FRONTEND, READERS, RESPONDERS],
+  },
+  {
+    name: "a project admin",
+    rows: [allow(Permission.ProjectAdmin)],
+    grantable: [ADMIN, MEMBERS, FRONTEND, READERS, RESPONDERS],
   },
 ];
 

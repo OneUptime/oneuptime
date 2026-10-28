@@ -26,7 +26,7 @@ flowchart TB
 
 ## 始める前に
 
-- **招待できるロール。** Project Owner、Project Admin、または **Invite New Members** 権限を持つロール。招待するとそのチームのアクセスが付与されるため、自分自身がその権限を持っているチームにしか招待できません。
+- **招待できるロール。** Project Owner、Project Admin、または **Invite New Members** 権限を持つロール。招待するとそのチームのアクセスが付与されるため、自分自身がその権限を持っているチームにしか招待できません。ブロックが一つもない Project Admin は、この判定では Project Admin がすでにできることをすべて持っているものとして扱われます。**Members** や、より範囲の狭いロールを持つチームには招待できますが、Project Owner、課金の権限、**Delete Project**、**Edit Project**、**Edit Team**、**Invite New Members** を持つチームには招待できません。
 - **OneUptime Cloud では、プランの空き。** プロジェクトのメンバーは、招待された時点から請求上のシートとして数えられます。Free プランで使えるのは一人分です。[請求と使用量](/docs/configuration/billing#プランとシート) を参照してください。
 - **SCIM Push Groups を使っていないこと。** アイデンティティプロバイダーが SCIM Push Groups でプロジェクトのチームを管理している間は、ユーザーの招待と削除は OneUptime ではなくそちらで行います。
 

@@ -26,7 +26,7 @@ flowchart TB
 
 ## Before you begin
 
-- **A role that invites people.** Project Owner, Project Admin, or a role with the **Invite New Members** permission. You can invite people only to a team whose permissions you hold yourself, because an invitation hands them the team's access.
+- **A role that invites people.** Project Owner, Project Admin, or a role with the **Invite New Members** permission. You can invite people only to a team whose permissions you hold yourself, because an invitation hands them the team's access. A Project Admin with no block counts as holding everything Project Admin can already do: they can invite people to **Members** or to a team with any narrower role, but not to a team that holds Project Owner, a billing permission, **Delete Project**, **Edit Project**, **Edit Team** or **Invite New Members**.
 - **On OneUptime Cloud, room in your plan.** Every person in the project is a seat on its bill, from the moment they are invited. The Free plan has room for one person. See [Billing & Usage](/docs/configuration/billing#your-plan-and-seats).
 - **No SCIM Push Groups.** While your identity provider manages the project's teams through SCIM Push Groups, you invite and remove people there, not in OneUptime.
 
