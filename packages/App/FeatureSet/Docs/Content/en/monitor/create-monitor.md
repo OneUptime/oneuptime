@@ -48,6 +48,8 @@ Below it, **Monitor Criteria** decide when the monitor changes status, declares 
 
 Click a criteria to open and change it. **Add Criteria** adds one, open and ready to fill in. To change the order, drag a criteria by the handle on its left.
 
+A Logs, Traces, Exceptions or Metrics monitor asks instead what it should tell you about, and sets up one rule in plain words: what to watch, **When to alert** and **What happens**, over a chart of what the rule would have caught. See [Logs Monitor](/docs/monitor/logs-monitor#create-a-logs-monitor).
+
 ### Go to the next step
 
 Click **Next**. Nothing on this step is marked as missing until you click **Next**.

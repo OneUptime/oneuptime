@@ -54,9 +54,22 @@ const recipes: Array<MonitorTypeRecipe> = [
     hasInterval: false,
   },
 
-  // Telemetry types: criteria defaults are enough, no interval step.
+  /*
+   * Telemetry types: no interval step, and their criteria are one rule a
+   * recipe fills in ("Too many errors"). A Metrics monitor's rule asks for
+   * the value it compares with before the monitor is created.
+   */
   { label: "Logs", cardValue: "Logs", hasInterval: false },
-  { label: "Metrics", cardValue: "Metrics", hasInterval: false },
+  {
+    label: "Metrics",
+    cardValue: "Metrics",
+    hasInterval: false,
+    fillCriteria: async ({ page }: { page: Page }) => {
+      const value: Locator = page.getByTestId("telemetry-rule-threshold");
+      await value.waitFor({ state: "visible", timeout: 30000 });
+      await value.fill("80");
+    },
+  },
   { label: "Traces", cardValue: "Traces", hasInterval: false },
   { label: "Exceptions", cardValue: "Exceptions", hasInterval: false },
   {

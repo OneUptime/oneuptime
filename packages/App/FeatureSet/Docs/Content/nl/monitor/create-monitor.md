@@ -48,6 +48,8 @@ Daaronder bepalen de **Monitorcriteria** wanneer de monitor van status verandert
 
 Klik op een criterium om het te openen en te wijzigen. **Criteria toevoegen** voegt er een toe, geopend en klaar om in te vullen. Om de volgorde te wijzigen, sleept u een criterium aan de greep links ervan.
 
+Een logs-, traces-, uitzonderingen- of metrics-monitor vraagt in plaats daarvan waarover hij u moet informeren, en stelt één regel in gewone woorden in: wat er bewaakt wordt, **Wanneer waarschuwen** en **Wat er gebeurt**, met een grafiek van wat de regel zou hebben opgevangen. Zie [Logs-monitor](/docs/monitor/logs-monitor#een-logs-monitor-maken).
+
 ### Naar de volgende stap gaan
 
 Klik op **Volgende**. Niets op deze stap wordt als ontbrekend gemarkeerd voordat u op **Volgende** klikt.

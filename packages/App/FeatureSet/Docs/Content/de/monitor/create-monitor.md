@@ -48,6 +48,8 @@ Darunter legen die **Monitor-Kriterien** fest, wann der Monitor seinen Status ä
 
 Klicken Sie auf ein Kriterium, um es zu öffnen und zu ändern. **Kriterien hinzufügen** fügt eines hinzu, geöffnet und bereit zum Ausfüllen. Um die Reihenfolge zu ändern, ziehen Sie ein Kriterium am Griff links davon.
 
+Ein Logs-, Traces-, Ausnahmen- oder Metriken-Monitor fragt stattdessen, worüber er Sie informieren soll, und richtet eine Regel in einfachen Worten ein: was überwacht wird, **Wann alarmieren** und **Was passiert**, über einem Diagramm dessen, was die Regel erfasst hätte. Siehe [Logs-Monitor](/docs/monitor/logs-monitor#einen-logs-monitor-erstellen).
+
 ### Zum nächsten Schritt gehen
 
 Klicken Sie auf **Weiter**. Auf diesem Schritt wird nichts als fehlend markiert, bevor Sie auf **Weiter** klicken.

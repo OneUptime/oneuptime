@@ -32,23 +32,31 @@ Elke minuut telt OneUptime de spans die aan de filters van de monitor voldoen en
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Of filter in de traceverkenner de spans waarover u geïnformeerd wilt worden en klik in de werkbalk op **Monitor maken** (de bel): de nieuwe monitor bewaakt vanaf het begin de services, de statussen, de spannaam en de attributen van de verkenner.
 
 ### Traces kiezen
 
 Klik onder **Monitortype** op **Meer monitortypen** en kies **Traces** onder **Telemetrie**, of typ `traces` in het zoekvak. Vul een **Naam** in en klik dan op **Volgende**.
 
+### Kiezen waarover de monitor u informeert
+
+Kies onder **Waarover moet deze monitor je informeren?** voor **Te veel mislukte verzoeken** of **Verzoeken blijven weg**. Elke keuze vult de te bewaken spans en de regel in, die u verderop kunt wijzigen. Kies **Iets anders** om ze zelf in te stellen.
+
 ### De te tellen spans kiezen
 
-Stel in **Trace-monitorconfiguratie** de velden **Span-naam**, **Bewaak traces gedurende (time)** en **Filteren op span-status** in. Een filter dat u leeg laat, komt met elke span overeen. **Spans-voorbeeld** onder de filters toont de spans waarmee ze nu overeenkomen.
+Stel in **Te bewaken spans** de velden **Span-status** en **Spannaam bevat** in. Een filter dat u leeg laat, komt met elke span overeen. **Overeenkomende spans** onder de filters toont de spans waarmee ze nu overeenkomen.
 
 ### Verder verfijnen (optioneel)
 
 Open **Meer velden** om te filteren op telemetrieservice, infrastructuurentiteit of attribuut.
 
-### De criteria instellen
+### Zeggen wanneer er gewaarschuwd wordt
 
-De kaart **Monitorcriteria** begint met twee criteria: offline, met een incident, wanneer er geen spans overeenkomen; online wanneer er minstens één overeenkomt. Pas ze aan op datgene waarvoor u gewaarschuwd wilt worden (zie [Criteria](#criteria)).
+Kies in **Wanneer waarschuwen** een **Voorwaarde**, het **Aantal spans** en een **Tijdvenster**. De zin eronder zegt de regel in gewone woorden terug. De grafiek daaronder telt de overeenkomende spans in elk venster van de afgelopen uren, tekent het getal van de regel als lijn en zegt hoe vaak de regel zou hebben gewaarschuwd. De knop ervan stelt een getal voor dat de regel in die tijd niet zou hebben overschreden.
+
+### Kiezen wat er gebeurt
+
+Kies in **Wat er gebeurt** voor **Een waarschuwing maken**, **Een incident melden** of **Beide**, en geef het een titel en een ernst. Zolang de regel overeenkomt, toont de monitor de status onder **Meer velden**; komt hij niet meer overeen, dan gaat de monitor terug naar zijn standaardstatus en lost de waarschuwing of het incident zichzelf op.
 
 ### De monitor maken
 
@@ -62,9 +70,9 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 
 | Veld | Waarmee het overeenkomt | Standaard |
 | --- | --- | --- |
-| **Span-naam** | Spans waarvan de naam deze tekst bevat, zonder onderscheid tussen hoofd- en kleine letters. | Leeg: elke span |
-| **Bewaak traces gedurende (time)** | Spans die zijn begonnen in de laatste 5 seconden tot de laatste 24 uur. | **Laatste 1 minuut** |
-| **Filteren op span-status** | Spans met een van de gekozen statussen: **Niet ingesteld**, **Ok** of **Fout**. | Leeg: elke status |
+| **Span-status** | Spans met een van de gekozen statussen: **Niet ingesteld**, **Ok** of **Fout**. | Leeg: elke status |
+| **Spannaam bevat** | Spans waarvan de naam deze tekst bevat, zonder onderscheid tussen hoofd- en kleine letters. | Leeg: elke span |
+| **Tijdvenster** (in **Wanneer waarschuwen**) | Spans die zijn begonnen in de laatste 5 seconden tot de laatste 24 uur. | **Laatste 5 minuten** |
 | **Filteren op telemetrieservice** (onder **Meer velden**) | Spans van een van de gekozen services. | Leeg: elke service |
 | **Filteren op infrastructuurentiteit** (onder **Meer velden**) | Spans van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
 | **Filteren op attributen** (onder **Meer velden**) | Spans waarvan de attributen aan elke voorwaarde voldoen. Elke voorwaarde heeft een eigen operator, zoals "is gelijk aan" of "bevat". | Leeg: geen voorwaarde |
@@ -84,8 +92,8 @@ Als u wilt dat geslaagde verzoeken als OK worden weergegeven, voeg dan onder **T
 ## Hoe hij wordt geëvalueerd
 
 - **Elke minuut.** Een traces-monitor wordt niet door sondes gecontroleerd, dus hij heeft geen interval om in te stellen en geen pagina **Sondes en interval**.
-- **Eén getal per evaluatie.** De monitor telt de spans die aan elk filter voldoen en binnen **Bewaak traces gedurende (time)** vóór de evaluatie zijn begonnen. Met **Laatste 5 minuten** kijkt elke evaluatie vijf minuten terug, dus de vensters van opeenvolgende evaluaties overlappen.
-- **Geen spans is een aantal van 0.** Een service die geen traces meer stuurt, levert 0 op, en daar zoekt het standaardcriterium voor offline naar.
+- **Eén getal per evaluatie.** De monitor telt de spans die aan elk filter voldoen en binnen het **Tijdvenster** vóór de evaluatie zijn begonnen. Met **Laatste 5 minuten** kijkt elke evaluatie vijf minuten terug, dus de vensters van opeenvolgende evaluaties overlappen.
+- **Geen spans is een aantal van 0.** Een service die geen traces meer stuurt, levert 0 op, en daar zoekt **Verzoeken blijven weg** naar.
 - **De onderbreking van OneUptime zelf is geen stilte.** Zolang het tijdvenster tijd bevat waarin OneUptime zelf geen gegevens ontving (het startte opnieuw, werd geüpgraded of werkte een achterstand weg), wacht de controle: de status verandert niet, en er wordt geen incident of waarschuwing geopend of opgelost. Zie [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Criteria van boven naar beneden.** Het eerste criterium dat overeenkomt, beslist, dus zet het ernstigste bovenaan.
 
@@ -93,7 +101,7 @@ Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlij
 
 ## Criteria
 
-De criteria van een traces-monitor hebben één **Filtertype**: **Span Count**, het aantal spans dat in het venster overeenkwam. Kies een **Filtervoorwaarde** en, bij een drempelvoorwaarde, een **Waarde**.
+De criteria van een traces-monitor hebben één **Filtertype**: **Span Count**, het aantal spans dat in het venster overeenkwam. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en, bij een drempelvoorwaarde, een **Waarde**.
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal spans… |
 | --- | --- |
@@ -106,9 +114,16 @@ De criteria van een traces-monitor hebben één **Filtertype**: **Span Count**, 
 | **Anomalously Low** | onder dat bereik ligt |
 | **Anomalous** | buiten dat bereik ligt, in welke richting ook |
 
-De anomaliecondities hebben geen **Waarde**. Kies een **Gevoeligheid** (Low, Medium, de standaard, of High) en een **Baseline-venster** van 14 (de standaard), 28, 60 of 90 dagen. OneUptime zet het aantal om in een tempo per minuut en vergelijkt dat met hetzelfde uur van de week over dat venster. De baseline omvat alleen de services en span-statussen van de monitor: de filters op span-naam en attributen horen er niet bij. Zolang dat uur van de week te weinig geschiedenis heeft, is het criterium nog aan het leren en gaat het niet af.
+De anomaliecondities hebben geen **Waarde**. Kies een **Gevoeligheid** (Laag, Gemiddeld, de standaard, of Hoog) en, in de eigen criteria, een **Baseline-venster** van 14 (de standaard), 28, 60 of 90 dagen. OneUptime zet het aantal om in een tempo per minuut en vergelijkt dat met hetzelfde uur van de week over dat venster. De baseline omvat alleen de services en span-statussen van de monitor: de filters op spannaam en attributen horen er niet bij. Zolang dat uur van de week te weinig geschiedenis heeft, is het criterium nog aan het leren en gaat het niet af.
 
-Een nieuwe traces-monitor begint met deze criteria:
+Een traces-monitor die in Monitor maken is aangemaakt, begint met de regel van wat u onder **Waarover moet deze monitor je informeren?** hebt gekozen:
+
+| Keuze | Regel | Wat er gebeurt |
+| --- | --- | --- |
+| **Te veel mislukte verzoeken** | **Span-status** **Fout**, **Meer dan** `10` in **Laatste 5 minuten** | Maakt een waarschuwing, die zichzelf oplost |
+| **Verzoeken blijven weg** | **Precies** `0` in **Laatste 10 minuten** | Meldt een incident, dat zichzelf oplost |
+
+Een traces-monitor die via de API of Terraform zonder criteria is aangemaakt, begint met deze criteria:
 
 | Criterium | Filter | Effect |
 | --- | --- | --- |
@@ -117,9 +132,9 @@ Een nieuwe traces-monitor begint met deze criteria:
 
 ## Uitgewerkt voorbeeld: mislukte checkout-verzoeken
 
-In vijf minuten legt de checkout-service 1.200 spans vast met de naam `POST /api/checkout`: 1.150 UNSET, 20 OK en 30 ERROR. Dezelfde monitor telt heel verschillende aantallen, afhankelijk van **Filteren op span-status**:
+In vijf minuten legt de checkout-service 1.200 spans vast met de naam `POST /api/checkout`: 1.150 UNSET, 20 OK en 30 ERROR. Dezelfde monitor telt heel verschillende aantallen, afhankelijk van **Span-status**:
 
-| Filteren op span-status | Span Count | Wat het meet |
+| Span-status | Span Count | Wat het meet |
 | --- | --- | --- |
 | **Fout** | 30 | Verzoeken die mislukten |
 | **Ok** | 20 | Alleen de verzoeken die uw code als geslaagd markeerde |
@@ -128,18 +143,18 @@ In vijf minuten legt de checkout-service 1.200 spans vast met de naam `POST /api
 
 Om opgeroepen te worden wanneer in vijf minuten meer dan 10 checkout-verzoeken mislukken:
 
-- **Span-naam**: `POST /api/checkout`
-- **Bewaak traces gedurende (time)**: **Laatste 5 minuten**
-- **Filteren op span-status**: **Fout**
-- Criterium 1: **Span Count** **Groter dan** `10`: de monitor offline zetten en een incident melden
-- Criterium 2: **Span Count** **Kleiner dan of gelijk aan** `10`: de monitor online zetten
+- **Spannaam bevat**: `POST /api/checkout`
+- **Tijdvenster**: **Laatste 5 minuten**
+- **Span-status**: **Fout**
+- **Wanneer waarschuwen**: **Meer dan** `10`
+- **Wat er gebeurt**: **Een incident melden**
 
-Met 30 mislukte verzoeken komt criterium 1 overeen en wordt het incident gemeld. Zodra er vijf minuten voorbij zijn met 10 of minder mislukkingen, komt criterium 2 overeen, is de monitor weer online en lost het incident zichzelf op.
+Met 30 mislukte verzoeken komt de regel overeen en wordt het incident gemeld. Zodra er vijf minuten voorbij zijn met 10 of minder mislukkingen, komt de regel niet meer overeen, is de monitor weer online en lost het incident zichzelf op.
 
 ## Problemen oplossen
 
 :::details De monitor telt geen spans voor mijn endpoint
-**Span-naam** wordt vergeleken met de naam van de span, en instrumentatie noemt server-spans vaak naar de route (`POST /api/checkout`) of alleen naar de methode (`GET`). Zoek de exacte naam op in de traceverkenner. Open daarna de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Edit Monitoring Criteria**: **Spans-voorbeeld** toont waarmee de filters nu overeenkomen.
+**Spannaam bevat** wordt vergeleken met de naam van de span, en instrumentatie noemt server-spans vaak naar de route (`POST /api/checkout`) of alleen naar de methode (`GET`). Zoek de exacte naam op in de traceverkenner. Open daarna de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Edit Monitoring Criteria**: **Overeenkomende spans** toont waarmee de filters nu overeenkomen.
 :::
 
 :::details Geslaagde verzoeken worden niet geteld wanneer ik op Ok filter
