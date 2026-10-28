@@ -1,4 +1,5 @@
 import React, {
+  createContext,
   useCallback,
   useContext,
   useEffect,
@@ -296,38 +297,127 @@ export function getStackedDescriptors(
 }
 
 /*
- * The list's own screen, drawn once per descriptor: while the reader drags
- * the divider only the pane around it changes width, so the list is not
- * rendered again on every move.
+ * Where the reader is dragging the divider to, while they drag it. It lives
+ * in a context of its own, read only by the list pane's frame and the
+ * handle, so a move re-renders those two and neither the navigator nor the
+ * screens in the panes: the detail pane follows by layout alone, and the
+ * layout takes the new width once, when the reader lets go.
  */
-function ListPaneContent({
-  descriptor,
-}: {
-  descriptor: StackDescriptor;
-}): React.JSX.Element {
-  return descriptor.render() as React.JSX.Element;
+interface ListWidthDrag {
+  draggedWidth: number | null;
+  setDraggedWidth: (width: number | null) => void;
 }
 
-const MemoListPaneContent: React.MemoExoticComponent<typeof ListPaneContent> =
-  React.memo(ListPaneContent);
+const NO_LIST_WIDTH_DRAG: ListWidthDrag = Object.freeze({
+  draggedWidth: null,
+  setDraggedWidth: (): void => {
+    // No divider to drag.
+  },
+});
+
+const ListWidthDragContext: React.Context<ListWidthDrag> =
+  createContext<ListWidthDrag>(NO_LIST_WIDTH_DRAG);
+
+function ListWidthDragScope({
+  dividerOffered,
+  children,
+}: {
+  /** Whether the layout offers the divider for dragging right now. */
+  dividerOffered: boolean;
+  children: React.ReactNode;
+}): React.JSX.Element {
+  const [draggedWidth, setDraggedWidth] = useState<number | null>(null);
+
+  /*
+   * A drag the window takes away - half closed, folded, turned to one pane -
+   * is dropped, so the divider never comes back at a width nobody let go at.
+   */
+  useEffect((): void => {
+    if (!dividerOffered) {
+      setDraggedWidth(null);
+    }
+  }, [dividerOffered]);
+
+  const value: ListWidthDrag = useMemo((): ListWidthDrag => {
+    return { draggedWidth, setDraggedWidth };
+  }, [draggedWidth]);
+
+  return (
+    <ListWidthDragContext.Provider value={value}>
+      {children}
+    </ListWidthDragContext.Provider>
+  );
+}
+
+/** The width the list pane is drawn at: the layout's, or where it is being dragged to. */
+function useDrawnListWidth(
+  width: number,
+  range: ListPaneWidthRange | null,
+): number {
+  const { draggedWidth }: ListWidthDrag = useContext(ListWidthDragContext);
+  return range && draggedWidth !== null
+    ? clampListPaneWidth(draggedWidth, range)
+    : width;
+}
+
+/** The handle, at the divider wherever it is being dragged. */
+function DividerHandle({
+  width,
+  defaultWidth,
+  range,
+  contentWidth,
+  onCommit,
+}: {
+  width: number;
+  defaultWidth: number;
+  range: ListPaneWidthRange;
+  contentWidth: number;
+  onCommit: (width: number | null) => void;
+}): React.JSX.Element {
+  const { setDraggedWidth }: ListWidthDrag = useContext(ListWidthDragContext);
+  const drawnWidth: number = useDrawnListWidth(width, range);
+  const commit: (next: number | null) => void = useCallback(
+    (next: number | null): void => {
+      onCommit(next);
+      setDraggedWidth(null);
+    },
+    [onCommit, setDraggedWidth],
+  );
+  const cancel: () => void = useCallback((): void => {
+    setDraggedWidth(null);
+  }, [setDraggedWidth]);
+
+  return (
+    <PaneDivider
+      width={drawnWidth}
+      defaultWidth={defaultWidth}
+      range={range}
+      contentWidth={contentWidth}
+      onDrag={setDraggedWidth}
+      onCommit={commit}
+      onCancel={cancel}
+    />
+  );
+}
 
 function ListPane({
   descriptor,
   width,
-  drawnWidth,
+  dividerRange,
   height,
   selection,
 }: {
   descriptor: StackDescriptor;
   /** The pane's width, as screens inside read it. */
   width: number;
-  /** The width it is drawn at: the same, except while the divider is dragged. */
-  drawnWidth: number;
+  /** Where the divider may be dragged, while it may: the pane is drawn where it is dragged to. */
+  dividerRange: ListPaneWidthRange | null;
   /** Below a tabletop fold: the pane's height. Beside the detail it is the window's. */
   height?: number;
   selection: DetailSelection | null;
 }): React.JSX.Element {
   const { theme } = useTheme();
+  const drawnWidth: number = useDrawnListWidth(width, dividerRange);
   const insets: EdgeInsets | null = useContext(SafeAreaInsetsContext);
   const headerHeight: number | undefined = useHeaderHeightOverride();
   const stacked: boolean = height !== undefined;
@@ -392,7 +482,7 @@ function ListPane({
         )}
         <ListPaneProvider selection={selection}>
           <View key={route.key} style={styles.fill}>
-            <MemoListPaneContent descriptor={descriptor} />
+            {descriptor.render()}
           </View>
         </ListPaneProvider>
       </View>
@@ -422,36 +512,6 @@ function AdaptiveStackNavigator({
     : null;
   const { setPreferredListPaneWidth }: ListPaneWidthControl =
     useListPaneWidthControl();
-
-  /*
-   * While the reader drags the divider, the width it is drawn at; the layout
-   * takes the new width only when they let go.
-   */
-  const [draggedListWidth, setDraggedListWidth] = useState<number | null>(null);
-  const drawnListWidth: number =
-    dividerRange && draggedListWidth !== null
-      ? clampListPaneWidth(draggedListWidth, dividerRange)
-      : windowLayout.listPaneWidth;
-  const commitListWidth: (width: number | null) => void = useCallback(
-    (width: number | null): void => {
-      setPreferredListPaneWidth(width);
-      setDraggedListWidth(null);
-    },
-    [setPreferredListPaneWidth],
-  );
-  const cancelListWidth: () => void = useCallback((): void => {
-    setDraggedListWidth(null);
-  }, []);
-  /*
-   * A drag the window takes away - half closed, folded, turned to one pane -
-   * is dropped, so the divider never comes back at a width nobody let go at.
-   */
-  const dividerOffered: boolean = dividerRange !== null;
-  useEffect((): void => {
-    if (!dividerOffered) {
-      setDraggedListWidth(null);
-    }
-  }, [dividerOffered]);
 
   /*
    * The router is created once, so it reads the current layout through a
@@ -602,54 +662,54 @@ function AdaptiveStackNavigator({
     <NavigationContent>
       <SafeAreaProviderCompat>
         <PaneStateScope scope={rootRoute.key}>
-          <View
-            testID="adaptive-panes"
-            style={stacked ? styles.stacked : styles.row}
-          >
-            {split ? (
-              <ListPane
-                descriptor={rootDescriptor}
-                width={windowLayout.listPaneWidth}
-                drawnWidth={drawnListWidth}
-                height={stacked ? windowLayout.listPaneHeight : undefined}
-                selection={selection}
-              />
-            ) : null}
-            {split && windowLayout.paneGap > 0 ? (
-              <View
-                testID="pane-gap"
-                style={
-                  stacked
-                    ? { height: windowLayout.paneGap }
-                    : { width: windowLayout.paneGap }
-                }
-              />
-            ) : null}
-            <PaneProvider pane={stackPane}>
-              <View
-                testID={split ? "detail-pane" : undefined}
-                style={styles.fill}
-              >
-                <NativeStackView
-                  state={state}
-                  navigation={navigation}
-                  descriptors={stackDescriptors}
-                  describe={describe}
+          <ListWidthDragScope dividerOffered={dividerRange !== null}>
+            <View
+              testID="adaptive-panes"
+              style={stacked ? styles.stacked : styles.row}
+            >
+              {split ? (
+                <ListPane
+                  descriptor={rootDescriptor}
+                  width={windowLayout.listPaneWidth}
+                  dividerRange={dividerRange}
+                  height={stacked ? windowLayout.listPaneHeight : undefined}
+                  selection={selection}
                 />
-              </View>
-            </PaneProvider>
-            {dividerRange ? (
-              <PaneDivider
-                width={drawnListWidth}
-                defaultWidth={windowLayout.defaultListPaneWidth}
-                range={dividerRange}
-                contentWidth={windowLayout.contentWidth}
-                onDrag={setDraggedListWidth}
-                onCommit={commitListWidth}
-                onCancel={cancelListWidth}
-              />
-            ) : null}
-          </View>
+              ) : null}
+              {split && windowLayout.paneGap > 0 ? (
+                <View
+                  testID="pane-gap"
+                  style={
+                    stacked
+                      ? { height: windowLayout.paneGap }
+                      : { width: windowLayout.paneGap }
+                  }
+                />
+              ) : null}
+              <PaneProvider pane={stackPane}>
+                <View
+                  testID={split ? "detail-pane" : undefined}
+                  style={styles.fill}
+                >
+                  <NativeStackView
+                    state={state}
+                    navigation={navigation}
+                    descriptors={stackDescriptors}
+                    describe={describe}
+                  />
+                </View>
+              </PaneProvider>
+              {dividerRange ? (
+                <DividerHandle
+                  width={windowLayout.listPaneWidth}
+                  defaultWidth={windowLayout.defaultListPaneWidth}
+                  range={dividerRange}
+                  contentWidth={windowLayout.contentWidth}
+                  onCommit={setPreferredListPaneWidth}
+                />
+              ) : null}
+            </View>
+          </ListWidthDragScope>
         </PaneStateScope>
       </SafeAreaProviderCompat>
     </NavigationContent>

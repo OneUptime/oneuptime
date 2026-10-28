@@ -74,6 +74,8 @@ type TestParamList = {
 type ListNavigation = NativeStackNavigationProp<TestParamList, "List">;
 
 const mounts: { detail: Record<string, number> } = { detail: {} };
+// How many times the list screen has been drawn: a drag must not draw it again.
+const renders: { list: number } = { list: 0 };
 
 function InsetsReport({ testID }: { testID: string }): React.JSX.Element {
   const insets: EdgeInsets | null = useContext(SafeAreaInsetsContext);
@@ -94,6 +96,7 @@ function PaneReport({ testID }: { testID: string }): React.JSX.Element {
 }
 
 function ListScreen(): React.JSX.Element {
+  renders.list += 1;
   const navigation: ListNavigation = useNavigation<ListNavigation>();
   const listPane: ReturnType<typeof useListPane> = useListPane();
   return (
@@ -284,6 +287,7 @@ beforeEach(async () => {
 afterEach(() => {
   resetWindowSize();
   mounts.detail = {};
+  renders.list = 0;
 });
 
 describe("Half open on a table", () => {
@@ -541,6 +545,24 @@ describe("Lying flat, the reader drags the divider", () => {
         String(ON_THE_FOLD + 70),
       );
     });
+  });
+
+  test("a drag moves the pane without drawing the list again on every move", async () => {
+    setWindowSize(TEST_WINDOWS.innerScreen);
+    await renderStack(fakeSource(INNER_FLAT));
+    const before: number = renders.list;
+
+    const handle: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("pane-divider");
+    await fireEvent(handle, "responderGrant", { nativeEvent: { pageX: 442 } });
+    for (const pageX of [452, 462, 472, 482]) {
+      await fireEvent(handle, "responderMove", { nativeEvent: { pageX } });
+    }
+
+    expect(screen.getByTestId("list-pane")).toHaveStyle({
+      width: ON_THE_FOLD + 40,
+    });
+    expect(renders.list).toBe(before);
   });
 
   test("while it is dragged, the screens inside keep the width they were laid out for", async () => {
