@@ -1,4 +1,43 @@
 {
+  "actix-web": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Rust 1.99.1",
+    "packages": {
+      "actix-web": "4.18.1",
+      "opentelemetry": "0.33.1",
+      "opentelemetry-appender-tracing": "0.33.1",
+      "opentelemetry-http": "0.33.1",
+      "opentelemetry-otlp": "0.33.1",
+      "opentelemetry_sdk": "0.33.1",
+      "reqwest": "0.13.5",
+      "serde": "1.0.229",
+      "tracing": "0.1.44",
+      "tracing-actix-web": "0.7.25",
+      "tracing-opentelemetry": "0.34.0",
+      "tracing-subscriber": "0.3.23"
+    },
+    "framework": "Actix Web 4.18.1",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:6c042a1595e1a93fc1909e9aeeba2909e6d5f58032543e3c027ef4d02c710863",
+    "observed": {
+      "spans": [
+        "GET /orders/{id}",
+        "GET /orders/{id}/receipt",
+        "GET default",
+        "POST",
+        "POST /orders",
+        "checkout.charge"
+      ],
+      "metrics": ["orders.placed"],
+      "logs": [
+        "Error encountered while processing the incoming HTTP request: Internal(\"the receipt printer is offline for order 42\")",
+        "Error encountered while processing the incoming HTTP request: NotFound",
+        "listening on :8080",
+        "loading order"
+      ]
+    },
+    "packageExports": {}
+  },
   "angular": {
     "checkedOn": "2026-10-27",
     "runtime": "Chrome 153.0.8010.12",
@@ -1467,6 +1506,45 @@
         "Hosting environment: Production",
         "Loading order 42",
         "Now listening on: http://127.0.0.1:8080"
+      ]
+    },
+    "packageExports": {}
+  },
+  "axum": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Rust 1.99.1",
+    "packages": {
+      "axum": "0.8.9",
+      "axum-tracing-opentelemetry": "0.42.1",
+      "opentelemetry": "0.33.1",
+      "opentelemetry-appender-tracing": "0.33.1",
+      "opentelemetry-http": "0.33.1",
+      "opentelemetry-otlp": "0.33.1",
+      "opentelemetry_sdk": "0.33.1",
+      "reqwest": "0.13.5",
+      "serde": "1.0.229",
+      "tokio": "1.54.1",
+      "tracing": "0.1.44",
+      "tracing-opentelemetry": "0.34.0",
+      "tracing-subscriber": "0.3.23"
+    },
+    "framework": "Axum 0.8.9",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:203e85fa0d4eb5373850cf2fc7b023f9f3810e38dcba5c004bfc328c8a0f0e13",
+    "observed": {
+      "spans": [
+        "GET",
+        "GET /orders/{id}",
+        "GET /orders/{id}/receipt",
+        "POST",
+        "POST /orders",
+        "checkout.charge"
+      ],
+      "metrics": ["orders.placed"],
+      "logs": [
+        "listening on :8080",
+        "loading order",
+        "request failed: the receipt printer is offline for order 42"
       ]
     },
     "packageExports": {}
@@ -6697,6 +6775,34 @@
         }
       }
     }
+  },
+  "rust": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Rust 1.99.1",
+    "packages": {
+      "opentelemetry": "0.33.1",
+      "opentelemetry-appender-tracing": "0.33.1",
+      "opentelemetry-http": "0.33.1",
+      "opentelemetry-otlp": "0.33.1",
+      "opentelemetry_sdk": "0.33.1",
+      "reqwest": "0.13.5",
+      "serde": "1.0.229",
+      "tracing": "0.1.44",
+      "tracing-opentelemetry": "0.34.0",
+      "tracing-subscriber": "0.3.23"
+    },
+    "framework": "Rust",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:9749e579974ba23fb626e6ca08e5a113e64c71456c827af3f3288a4001238a45",
+    "observed": {
+      "spans": ["GET", "POST", "invoice.post", "invoices.sync"],
+      "metrics": ["invoices.synced"],
+      "logs": [
+        "skipped an invoice: inv_2 is below the minimum total",
+        "synced 2 invoices"
+      ]
+    },
+    "packageExports": {}
   },
   "sidekiq": {
     "checkedOn": "2026-10-28",

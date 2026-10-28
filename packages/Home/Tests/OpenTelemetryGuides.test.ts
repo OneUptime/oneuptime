@@ -683,6 +683,10 @@ describe("the OpenTelemetry guide catalog", () => {
       "laravel",
       "symfony",
       "slim",
+      // Rust.
+      "rust",
+      "axum",
+      "actix-web",
     ]);
   });
 

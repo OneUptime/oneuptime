@@ -711,6 +711,12 @@ function check(
         ) {
           return false;
         }
+        if (
+          expected.parentSpanId !== undefined &&
+          span.parentSpanId !== expected.parentSpanId
+        ) {
+          return false;
+        }
         return Object.entries(expected.attributes || {}).every(
           ([key, value]: [string, string]): boolean => {
             return String(span.attributes[key]) === value;

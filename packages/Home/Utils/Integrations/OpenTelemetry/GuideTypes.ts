@@ -235,6 +235,12 @@ export interface ExpectedSpan {
   parent?: string | undefined;
   // Attributes the span must not carry: what the guide's options leave out.
   absentAttributes?: Array<string> | undefined;
+  /*
+   * The span's parent must be the span with this ID, in hex: the caller's,
+   * sent in the traceparent header of one of the run's requests, which the
+   * framework read.
+   */
+  parentSpanId?: string | undefined;
 }
 
 export interface ExpectedLog {

@@ -15,6 +15,7 @@ import {
 } from "./PythonShared";
 import { PHP_PREREQUISITE } from "./PhpShared";
 import { RUBY_PREREQUISITE } from "./RubyShared";
+import { RUST_PREREQUISITE } from "./RustShared";
 
 /*
  * The sentences guides share on purpose, because they state one fact the
@@ -36,6 +37,7 @@ export const SHARED_GUIDE_TEXTS: Array<InlineText> = [
   GO_PREREQUISITE,
   RUBY_PREREQUISITE,
   PHP_PREREQUISITE,
+  RUST_PREREQUISITE,
   VALIDATE_SERVER_KEY_BODY,
   VALIDATE_BROWSER_KEY_BODY,
 ];

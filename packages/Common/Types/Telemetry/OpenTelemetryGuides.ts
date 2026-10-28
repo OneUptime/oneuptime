@@ -531,6 +531,30 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     kind: "framework",
     telemetryGuideLanguage: "php",
   },
+  {
+    // Any Rust program, through the tracing crate's bridge.
+    slug: "rust",
+    name: "Rust",
+    language: OpenTelemetryGuideLanguage.Rust,
+    kind: "runtime",
+    logo: ProviderLogo.Rust,
+    telemetryGuideLanguage: "rust",
+    isLanguageGuide: true,
+  },
+  {
+    slug: "axum",
+    name: "Axum",
+    language: OpenTelemetryGuideLanguage.Rust,
+    kind: "framework",
+    telemetryGuideLanguage: "rust",
+  },
+  {
+    slug: "actix-web",
+    name: "Actix Web",
+    language: OpenTelemetryGuideLanguage.Rust,
+    kind: "framework",
+    telemetryGuideLanguage: "rust",
+  },
 ];
 
 // Where the guides are listed: the website's index of integrations.

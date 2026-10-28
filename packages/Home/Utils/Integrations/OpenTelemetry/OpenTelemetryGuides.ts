@@ -47,6 +47,9 @@ import { PhpGuide } from "./Guides/Php";
 import { LaravelGuide } from "./Guides/Laravel";
 import { SymfonyGuide } from "./Guides/Symfony";
 import { SlimGuide } from "./Guides/Slim";
+import { RustGuide } from "./Guides/Rust";
+import { AxumGuide } from "./Guides/Axum";
+import { ActixWebGuide } from "./Guides/ActixWeb";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -93,6 +96,9 @@ export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   LaravelGuide,
   SymfonyGuide,
   SlimGuide,
+  RustGuide,
+  AxumGuide,
+  ActixWebGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";
