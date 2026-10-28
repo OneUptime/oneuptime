@@ -1,7 +1,8 @@
 // Reads a V8 heap snapshot (heap-snapshot.js, Chrome DevTools, or
 // node --heapsnapshot-signal) and says what holds the memory:
 //
-//   node --max-old-space-size=32000 heap-summary.js <file.heapsnapshot> [top] [--modules]
+//   node --max-old-space-size=32000 heap-summary.js <file.heapsnapshot> [top]
+//        [--modules] [--strings] [--chains <constructor or type>] [--json <out.json>]
 //
 // - self size by node type (objects, strings, code, arrays ...);
 // - self size by constructor (or string kind: script sources, source maps,
@@ -11,7 +12,15 @@
 //   the root, each step named by the edge that reaches it; a Node Module on
 //   the way is named by its file, so a cache shows which module keeps it;
 // - with --modules, the retained size of every module's exports and of its
-//   module object, summed by package (node_modules) or by OneUptime folder.
+//   module object, summed by package (node_modules) or by OneUptime folder;
+// - with --strings, strings by what holds them (their first retainer);
+// - with --chains, the nodes of one constructor (or node type) grouped by
+//   their first five retainers;
+// - with --json, the tables as JSON, which heap-diff.js compares;
+// - with --find <prefix>, for each node whose name (a string's text, an
+//   object's constructor) starts with the prefix, its shortest path of
+//   strong retainers from the root (what keeps it alive), each step with
+//   the closure or object it belongs to.
 //
 // A snapshot of the App is 1-3 GB: it is read whole into one Buffer, so the
 // machine needs about three times the file in free memory.
@@ -333,6 +342,24 @@ function moduleFile(node) {
   return null;
 }
 
+// A closure's script: shared -> (shared function info) -> script.
+function closureFile(node) {
+  for (let edge = firstEdge[node]; edge < firstEdge[node + 1]; edge += EDGE_FIELDS) {
+    if (edgeName(edge) !== "shared") {
+      continue;
+    }
+    const shared = edges[edge + EDGE_TO] / NODE_FIELDS;
+    for (let inner = firstEdge[shared]; inner < firstEdge[shared + 1]; inner += EDGE_FIELDS) {
+      const name = edgeName(inner);
+      if (name === "script" || name === "script_or_debug_info") {
+        const script = String(nameOf(edges[inner + EDGE_TO] / NODE_FIELDS));
+        return script.replace(/^.*\/(node_modules|src)\//u, "");
+      }
+    }
+  }
+  return "";
+}
+
 function label(node) {
   const file = moduleFile(node);
   if (file) {
@@ -340,6 +367,10 @@ function label(node) {
   }
   const type = typeOf(node);
   const name = String(nameOf(node)).replace(/\s+/gu, " ");
+  if (type === "closure") {
+    const script = closureFile(node);
+    return `closure ${name.slice(0, 40) || "(anonymous)"}${script ? " in " + script : ""}`;
+  }
   if (STRING_TYPES.has(nodes[node * NODE_FIELDS + TYPE])) {
     return `${type} "${name.slice(0, 50)}"`;
   }
@@ -407,6 +438,91 @@ for (const at of candidates) {
   for (const step of steps.slice(-8)) {
     console.log(`            ${step}`);
   }
+}
+
+const findAt = process.argv.indexOf("--find");
+if (findAt >= 0) {
+  const prefix = process.argv[findAt + 1];
+  let found = 0;
+  for (let node = 0; node < nodeCount && found < top; node++) {
+    if (!String(nameOf(node)).startsWith(prefix)) {
+      continue;
+    }
+    found++;
+    console.log(`\n${label(node)}  self ${mb(selfOf(node)).trim()} MB`);
+    // Breadth first up the retainers until the root: the shortest path.
+    const cameFrom = new Map([[node, -1]]);
+    const queue = [node];
+    let reached = -1;
+    for (let head = 0; head < queue.length && reached < 0; head++) {
+      const current = queue[head];
+      for (let r = firstRetainer[current]; r < firstRetainer[current + 1]; r++) {
+        const holder = retainers[r];
+        if (cameFrom.has(holder)) {
+          continue;
+        }
+        cameFrom.set(holder, current);
+        if (holder === 0) {
+          reached = holder;
+          break;
+        }
+        queue.push(holder);
+      }
+    }
+    const path = [];
+    for (let step = reached; step >= 0 && step !== node; step = cameFrom.get(step)) {
+      path.push(step);
+    }
+    // path runs root -> ... -> the node's holder; print from the node up.
+    let current = node;
+    for (let index = path.length - 1; index >= 0 && index >= path.length - 40; index--) {
+      const holder = path[index];
+      let via = "";
+      for (let edge = firstEdge[holder]; edge < firstEdge[holder + 1]; edge += EDGE_FIELDS) {
+        if (edges[edge + EDGE_TO] / NODE_FIELDS === current) {
+          via = edgeName(edge);
+          break;
+        }
+      }
+      // A context: name the closure that owns it, when one points at it.
+      let owner = "";
+      if (typeOf(holder) === "object" && String(nameOf(holder)) === "system / Context") {
+        for (let r = firstRetainer[holder]; r < firstRetainer[holder + 1]; r++) {
+          if (typeOf(retainers[r]) === "closure") {
+            owner = ` (${label(retainers[r])})`;
+            break;
+          }
+        }
+      }
+      console.log(`    <- .${via} of ${label(holder)}${owner}`);
+      current = holder;
+    }
+  }
+}
+
+const jsonAt = process.argv.indexOf("--json");
+if (jsonAt >= 0) {
+  const retainersOut = [];
+  for (const at of candidates.slice(0, 200)) {
+    retainersOut.push({
+      label: label(nodeAtOrder[at]),
+      retained: retained[at],
+      self: selfOf(nodeAtOrder[at]),
+      chain: chain(at).slice(-8),
+    });
+  }
+  fs.writeFileSync(
+    process.argv[jsonAt + 1],
+    JSON.stringify({
+      file: file,
+      nodes: nodeCount,
+      total: total,
+      byType: Object.fromEntries(byType),
+      byName: Object.fromEntries(byName),
+      retainers: retainersOut,
+    }),
+  );
+  console.log(`\nwrote ${process.argv[jsonAt + 1]}`);
 }
 
 if (process.argv.includes("--strings")) {
