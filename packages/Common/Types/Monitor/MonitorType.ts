@@ -755,8 +755,9 @@ export class MonitorTypeHelper {
       {
         monitorType: MonitorType.Logs,
         title: "Logs",
+        // What its recipes answer (TelemetryRuleRecipes), in their words.
         description:
-          "Alert on log volume or matching log content from any source.",
+          "Alert when errors pile up, a message appears, or logs stop.",
         icon: IconProp.Logs,
         keywords: [
           "log",
@@ -809,7 +810,7 @@ export class MonitorTypeHelper {
       {
         monitorType: MonitorType.Exceptions,
         title: "Exceptions",
-        description: "Alert on exceptions and error groups from any source.",
+        description: "Alert when an exception happens, comes back, or spikes.",
         icon: IconProp.Bug,
         keywords: [
           "exception",
@@ -829,8 +830,7 @@ export class MonitorTypeHelper {
          * card promises no latency. Latency is alerted on through a Metrics
          * monitor on a request duration metric, which answers "latency".
          */
-        description:
-          "Alert on the number of matching spans, like failed requests, from any source.",
+        description: "Alert when requests fail, or stop arriving.",
         icon: IconProp.Waterfall,
         keywords: [
           "trace",
@@ -847,7 +847,8 @@ export class MonitorTypeHelper {
       {
         monitorType: MonitorType.Metrics,
         title: "Metrics",
-        description: "Alert on any metric you ingest.",
+        description:
+          "Alert when a metric goes above or below a value, or looks unusual.",
         icon: IconProp.Heartbeat,
         keywords: [
           "metric",

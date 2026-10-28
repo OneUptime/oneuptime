@@ -200,8 +200,7 @@ const CRITERIA_NAMES: Array<string> = [
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [SERVER]: [
-    // The monitor type's title, and the criteria filter.
-    "Server / VM",
+    // The criteria filter.
     "Is Online",
     "All Values",
     "Any Value",
@@ -228,7 +227,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     ...UNKEYED_NO_DATA,
   ],
   [DOCKER]: [
-    "Docker Container",
     ...FORM_NAMES,
     "Container Down (Low Uptime)",
     "High Container CPU Usage",
@@ -236,7 +234,6 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   [HOST]: [...FORM_NAMES, ...CRITERIA_NAMES],
   [PODMAN]: [
-    "Podman Container",
     ...FORM_NAMES,
     "High Container Restart Count",
     "Container Restarted (Low Uptime)",

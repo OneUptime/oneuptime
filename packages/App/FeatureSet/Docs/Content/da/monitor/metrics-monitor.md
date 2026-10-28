@@ -33,23 +33,23 @@ Hvert minut kører OneUptime hver af monitorens metrikforespørgsler over dens t
 :::steps
 ### Start en ny monitor
 
-Gå til **Monitorer**, og klik på **Opret monitor**.
+Gå til **Monitorer**, og klik på **Opret monitor**. Eller byg i metrics-explorer det diagram, du vil holde øje med, og klik på **Opret monitor fra denne visning**: den nye monitor starter med dens forespørgsler.
 
 ### Vælg Metrics
 
 Under **Monitortype** klikker du på **Flere monitortyper** og vælger **Metrikker** under **Telemetri**, eller du skriver `metrics` i søgefeltet. Angiv et **Navn**, og klik derefter på **Næste**.
 
-### Vælg tidsintervallet
-
-I **Metrik-monitor-konfiguration** vælger du et **Tidsinterval**: hvor langt hver evaluering kigger tilbage. Det starter på **Past 1 Minute**.
-
 ### Tilføj metrikforespørgslerne
 
-Under **Vælg målinger** vælger du en **Metrik**, og hvordan den aggregeres med **Aggregate by**. Åbn **Filters & grouping** for at filtrere efter attributter eller gruppere med **Gruppér efter**. Klik på **Tilføj metrik** for endnu en forespørgsel eller på **Tilføj formel** for at kombinere dem. Diagrammet under forespørgslerne viser en forhåndsvisning af tidsintervallet, så du kan se de værdier, kriterierne vil tjekke.
+I **Metrik at holde øje med** vælger du en **Metrik**, og hvordan den aggregeres med **Aggregate by**. Åbn **Filters & grouping** for at filtrere efter attributter eller gruppere med **Gruppér efter**. Klik på **Tilføj metrik** for endnu en forespørgsel eller på **Tilføj formel** for at kombinere dem. Diagrammet under forespørgslerne viser de seneste timer med reglens værdi som en rød linje, så du kan se de værdier, reglen vil tjekke.
 
-### Angiv kriterierne
+### Sig, hvornår der skal advares
 
-I **Monitorkriterier** vælger hvert kriterium den **Metrik**, der skal tjekkes (en forespørgsel eller en formel), sin **Aggregering**, en **Betingelse** og en **Tærskel**. Se [Kriterier](#kriterier) for de kriterier, en ny monitor starter med.
+I **Hvornår der advares** vælger du under **Målt som**, hvordan metrikken måles, og derefter et **Tidsvindue**, en **Betingelse** og en **Værdi**. Når trinnet har mere end én forespørgsel eller formel, vælger du også den **Metrik**, reglen læser. Sætningen under dem gentager reglen med almindelige ord.
+
+### Vælg, hvad der sker
+
+I **Hvad der sker** vælger du **Opret en advarsel**, **Erklær en hændelse** eller **Begge**, og giver den en titel og en alvorlighed. Mens reglen matcher, viser monitoren statussen under **Flere felter**; når den holder op med at matche, går monitoren tilbage til sin standardstatus, og advarslen eller hændelsen løser sig selv.
 
 ### Opret monitoren
 
@@ -79,44 +79,44 @@ En formel kombinerer forespørgselsvariabler med `+`, `-`, `*`, `/`, `%`, `^` og
 
 ### Glidende tidsvindue
 
-**Tidsinterval** bestemmer, hvor langt hver evaluering kigger tilbage: **Past 1 Minute**, **Seneste 5 minutter**, **Past 10 Minutes**, **Seneste 15 minutter**, **Seneste 30 minutter**, **Seneste time**, **Seneste 2 timer**, **Seneste 3 timer**, **Past 6 Hours**, **Past 12 Hours**, **Seneste dag**, **Seneste 2 dage**, **Past 3 Days**, **Past 7 Days**, **Past 14 Days**, **Past 30 Days**, **Past 60 Days**, **Past 90 Days**, **Past 180 Days** eller **Past 365 Days**.
+**Tidsvindue** i **Hvornår der advares** bestemmer, hvor langt hver evaluering kigger tilbage: **Seneste 1 minut**, **Seneste 5 minutter**, **Seneste 10 minutter**, **Seneste 15 minutter**, **Seneste 30 minutter**, **Seneste 1 time**, **Seneste 2 timer**, **Seneste 3 timer**, **Seneste 6 timer**, **Seneste 12 timer**, **Seneste 24 timer**, **Seneste 2 dage**, **Seneste 3 dage**, **Seneste 7 dage**, **Seneste 14 dage**, **Seneste 30 dage**, **Seneste 60 dage**, **Seneste 90 dage**, **Seneste 180 dage** eller **Seneste 365 dage**.
 
-Jo længere intervallet er, jo bredere er hvert tidsinterval, så ét datapunkt står for mere tid:
+Jo længere vinduet er, jo bredere er hvert tidsinterval, så ét datapunkt står for mere tid:
 
-| Tidsinterval | Ét datapunkt pr. |
+| Tidsvindue | Ét datapunkt pr. |
 | --- | --- |
-| Past 1 Minute til Past 3 Hours | minut |
-| Past 6 Hours, Past 12 Hours | 5 minutter |
-| Past 1 Day | 15 minutter |
-| Past 2 Days, Past 3 Days | 30 minutter |
-| Past 7 Days | time |
-| Past 14 Days, Past 30 Days | dag |
-| Past 60 Days til Past 180 Days | uge |
-| Past 365 Days | måned |
+| Seneste 1 minut til Seneste 3 timer | minut |
+| Seneste 6 timer, Seneste 12 timer | 5 minutter |
+| Seneste 24 timer | 15 minutter |
+| Seneste 2 dage, Seneste 3 dage | 30 minutter |
+| Seneste 7 dage | time |
+| Seneste 14 dage, Seneste 30 dage | dag |
+| Seneste 60 dage til Seneste 180 dage | uge |
+| Seneste 365 dage | måned |
 
 ## Sådan evalueres den
 
 - **Hvert minut.** En metrik-monitor tjekkes ikke af sonder, så den har intet interval at angive og ingen side **Sonder og interval**.
 - **Først forespørgsler, så formler.** Hver forespørgsel returnerer ét datapunkt pr. tidsinterval i tidsintervallet ved hjælp af sin **Aggregate by**. Formler beregnes for hvert interval ud fra forespørgslernes datapunkter.
-- **Derefter kriteriets aggregering.** Hvert kriterium reducerer datapunkterne for sin **Metrik** til det, det sammenligner med tærsklen:
+- **Derefter reglens mål.** Reglen reducerer datapunkterne for sin metrik til det, den sammenligner med sin værdi, som **Målt som** siger:
 
-| Aggregering | Betingelsen tjekkes mod… |
-| --- | --- |
-| Gennemsnit | gennemsnittet af datapunkterne |
-| Sum | summen af datapunkterne |
-| Maximum Value | det højeste datapunkt |
-| Minimum Value | det laveste datapunkt |
-| All Values | hvert datapunkt: de skal alle opfylde betingelsen og dække hele tidsintervallet |
-| Any Value | hvert datapunkt: det er nok, at ét af dem opfylder betingelsen |
+| Målt som | I de egne kriterier | Betingelsen tjekkes mod… |
+| --- | --- | --- |
+| Gennemsnittet | Gennemsnit | gennemsnittet af datapunkterne |
+| Summen | Sum | summen af datapunkterne |
+| Den højeste værdi | Maximum Value | det højeste datapunkt |
+| Den laveste værdi | Minimum Value | det laveste datapunkt |
+| Hver værdi (hele vinduet) | All Values | hvert datapunkt: de skal alle opfylde betingelsen og dække hele tidsintervallet |
+| En vilkårlig værdi (på et vilkårligt tidspunkt) | Any Value | hvert datapunkt: det er nok, at ét af dem opfylder betingelsen |
 
 - **Kriterier fra top til bund.** På en monitor uden Group By afgør det første kriterium, der matcher, så sæt det alvorligste øverst. En grupperet monitor tjekker alle kriterier for hver serie (se [Evalueringen af kriterier er anderledes](#evalueringen-af-kriterier-er-anderledes)).
-- **Ingen data er ikke nul.** Når forespørgslen ikke returnerer nogen datapunkter i tidsintervallet, gør et kriterium det, som dets indstilling **Hvis ingen data** siger, under **Flere felter**: **Ignore** (standard: kriteriet matcher ikke), **Treat As Zero** eller **Trigger**.
-- **All Values kræver hele tidsintervallet.** En serie opfylder først et kriterium med **All Values**, når dens datapunkter dækker tidsintervallet, fra starten til nu, uden et hul på mere end ét manglende datapunkt. Når alle monitorens data ankommer forsinket, som CloudWatchs gør, træder det nyeste datapunkt i stedet for nu. En vært, container eller deployment, der lige er begyndt at sende data, eller som har været stille et stykke tid, venter, til den har data for et helt tidsinterval, og evalueringsloggen viser, hvor langt den er nået: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. En serie, hvis advarsel eller hændelse allerede er åben, bedømmes alene ud fra sine datapunkter, så et kort hul i dens data løser den ikke. Når metrikken sender sjældnere, end tidsintervallet er langt, tæller et enkelt datapunkt for hele intervallet, når det er et par minutter gammelt; for at bedømme, hvor længe en værdi varer, skal tidsintervallet være mindst to rapporteringsintervaller langt.
-- **OneUptimes egen nedetid er ikke stilhed.** Så længe tidsintervallet rummer tid, hvor OneUptime selv ikke modtog data (det genstartede, blev opgraderet eller indhentede et efterslæb), venter tjekket: statussen ændres ikke, og ingen hændelse eller advarsel åbnes eller løses, uanset hvad **Hvis ingen data** siger. Se [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving).
+- **Ingen data er ikke nul.** Når forespørgslen ikke returnerer nogen datapunkter i tidsintervallet, gør reglen det, som **Hvis der ikke er data** siger, under **Flere felter** i **Hvornår der advares**: **Intet** (standard: reglen matcher ikke), **Tæl det som nul** eller **Advar, som om den matchede**.
+- **Hver værdi kræver hele tidsintervallet.** En serie opfylder først en regel målt som **Hver værdi (hele vinduet)**, når dens datapunkter dækker tidsintervallet, fra starten til nu, uden et hul på mere end ét manglende datapunkt. Når alle monitorens data ankommer forsinket, som CloudWatchs gør, træder det nyeste datapunkt i stedet for nu. En vært, container eller deployment, der lige er begyndt at sende data, eller som har været stille et stykke tid, venter, til den har data for et helt tidsinterval, og evalueringsloggen viser, hvor langt den er nået: `Waiting for 15 minutes of data: 2 of 15 minutes so far`. En serie, hvis advarsel eller hændelse allerede er åben, bedømmes kun på sine datapunkter, så et kort hul i dens data løser den ikke. Når metrikken rapporterer sjældnere, end tidsintervallet er langt, tæller et enkelt datapunkt for hele intervallet, når det er et par minutter gammelt; for at bedømme, hvor længe en værdi varer, skal tidsintervallet være mindst to rapporteringsintervaller langt.
+- **OneUptimes egen nedetid er ikke stilhed.** Så længe tidsintervallet rummer tid, hvor OneUptime selv ikke modtog data (det genstartede, blev opgraderet eller indhentede et efterslæb), venter tjekket: statussen ændres ikke, og ingen hændelse eller advarsel åbnes eller løses, uanset hvad **Hvis der ikke er data** siger. Se [Når OneUptime ikke modtager data](/docs/monitor/when-oneuptime-is-not-receiving).
 
 ## Kriterier
 
-Disse monitorer evaluerer altid **Metric Value**: den aggregerede værdi af den konfigurerede metrikforespørgsel eller formel. Kriterieformularen har ingen vælger for filtertype; den viser **Metrik**, **Aggregering**, **Betingelse** og **Tærskel**. Når metrikken har en enhed, vælger du tærsklens enhed ved siden af den.
+Disse monitorer evaluerer altid **Metric Value**: den aggregerede værdi af den konfigurerede metrikforespørgsel eller formel. **Hvornår der advares** opretter ét kriterium ud fra **Målt som**, **Tidsvindue**, **Betingelse** og **Værdi**. Når metrikken har en enhed, vælger du værdiens enhed ved siden af den. Dens **Betingelse** er **Over**, **På eller over**, **Under**, **På eller under**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, f.eks. alvorlighedsbånd, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Metrik**, en **Aggregering**, en **Betingelse** og en **Tærskel**.
 
 | Betingelse | Matcher, når værdien er… |
 | --- | --- |
@@ -129,9 +129,11 @@ Disse monitorer evaluerer altid **Metric Value**: den aggregerede værdi af den 
 | **Anomalously Low** | under det interval |
 | **Anomalous** | uden for det interval, i begge retninger |
 
-Anomalibetingelserne har ingen tærskel. Formularen viser i stedet **Følsomhed** (Low, Medium, som er standard, eller High) og **Baseline-vindue** (14 dage, som er standard, 28, 60 eller 90), og den sammenligner hvert datapunkt med baselinen for samme time på ugen, bygget ud fra det vindue. Indtil den time på ugen har nok historik, er kriteriet stadig ved at lære og giver ingen advarsler.
+Anomalibetingelserne har ingen tærskel. **Hvornår der advares** viser i stedet **Følsomhed** (Lav, Middel, som er standard, eller Høj), og de egne kriterier også et **Baseline-vindue** (14 dage, som er standard, 28, 60 eller 90), og hvert datapunkt sammenlignes med baselinen for samme time på ugen, bygget ud fra det vindue. Indtil den time på ugen har nok historik, er kriteriet stadig ved at lære og giver ingen advarsler.
 
-En ny metrik-monitor starter med to kriterier på sin første forespørgsel, begge med aggregeringen **Any Value**:
+En metrik-monitor, der er oprettet i Opret monitor, starter med én regel på sin første forespørgsel: **Gennemsnittet** over **Seneste 5 minutter**, **Over** den **Værdi**, du angiver, og **Opret en advarsel**.
+
+En ny metrik-monitor, der er oprettet via API'et eller Terraform uden kriterier, starter med to kriterier på sin første forespørgsel, begge med aggregeringen **Any Value**:
 
 | Kriterium | Betingelse | Effekt |
 | --- | --- | --- |
@@ -143,24 +145,24 @@ En ny metrik-monitor starter med to kriterier på sin første forespørgsel, beg
 
 ## Gennemgået eksempel: en voksende kø
 
-Du vil have en hændelse, når checkout-køen forbliver dyb. Forespørgsel `a` er gaugen `checkout.queue.depth` med **Aggregate by** Max, og **Tidsinterval** er **Seneste 5 minutter**. Én evaluering ser disse fem datapunkter på ét minut hver:
+Du vil have en hændelse, når checkout-køen forbliver dyb. Forespørgsel `a` er gaugen `checkout.queue.depth` med **Aggregate by** Max, og **Tidsvindue** er **Seneste 5 minutter**. Én evaluering ser disse fem datapunkter på ét minut hver:
 
 | Minut | 10:01 | 10:02 | 10:03 | 10:04 | 10:05 |
 | --- | --- | --- | --- | --- | --- |
 | `a` | 640 | 980 | 1.500 | 1.620 | 1.100 |
 
-Et kriterium med **Metrik** `a`, **Betingelse** **Større end** og **Tærskel** `1000` giver et forskelligt svar for hver **Aggregering**:
+En regel **Over** `1000` giver et forskelligt svar for hvert valg under **Målt som**:
 
-| Aggregering | Sammenlignet med 1.000 | Matcher? |
+| Målt som | Sammenlignet med 1.000 | Matcher? |
 | --- | --- | --- |
-| Gennemsnit | 1.168 | Ja |
-| Sum | 5.840 | Ja |
-| Maximum Value | 1.620 | Ja |
-| Minimum Value | 640 | Nej |
-| All Values | 640, 980, 1.500, 1.620, 1.100 | Nej: to punkter er ikke over 1.000 |
-| Any Value | 640, 980, 1.500, 1.620, 1.100 | Ja: 1.500 er |
+| Gennemsnittet | 1.168 | Ja |
+| Summen | 5.840 | Ja |
+| Den højeste værdi | 1.620 | Ja |
+| Den laveste værdi | 640 | Nej |
+| Hver værdi (hele vinduet) | 640, 980, 1.500, 1.620, 1.100 | Nej: to punkter er ikke over 1.000 |
+| En vilkårlig værdi (på et vilkårligt tidspunkt) | 640, 980, 1.500, 1.620, 1.100 | Ja: 1.500 er |
 
-**Gennemsnit** advarer om et vedvarende efterslæb og ignorerer et enkelt dybt minut; **All Values** venter, til hvert minut i intervallet er dybt; **Any Value** advarer ved det første dybe minut.
+**Gennemsnittet** advarer om et vedvarende efterslæb og ignorerer et enkelt dybt minut; **Hver værdi (hele vinduet)** venter, til hvert minut i intervallet er dybt; **En vilkårlig værdi (på et vilkårligt tidspunkt)** advarer ved det første dybe minut.
 
 ## Advarsler pr. serie (Group By)
 
@@ -198,11 +200,11 @@ Grupperingsattributtens værdier er også tilgængelige som [skabelonvariabler](
 ## Fejlfinding
 
 :::details Diagrammet viser en overskridelse, men monitoren advarede ikke
-Tjek først kriteriets **Aggregering**: **All Values** matcher kun, når hvert datapunkt i tidsintervallet overskrider tærsklen, og **Gennemsnit** udglatter en kort spids. **All Values** venter også, til en serie har data for hele tidsintervallet, så en vært eller deployment, der lige er begyndt at sende data, bliver ikke bedømt endnu. Tjek derefter, at kriteriets **Metrik** er den forespørgsel eller formel, du mener (`a` er ikke formlen `c`), og at tærsklen er i den enhed, du tror.
+Tjek først **Målt som**: **Hver værdi (hele vinduet)** matcher kun, når hvert datapunkt i tidsintervallet overskrider værdien, og **Gennemsnittet** udglatter en kort spids. **Hver værdi (hele vinduet)** venter også, til en serie har data for hele tidsintervallet, så en vært eller deployment, der lige er begyndt at sende data, bliver ikke bedømt endnu. Tjek derefter, at reglen læser den forespørgsel eller formel, du mener (`a` er ikke formlen `c`), og at **Værdi** er i den enhed, du tror.
 :::
 
 :::details Metrikken holdt op med at komme, og intet skete
-Et tidsinterval uden datapunkter er ikke en værdi på 0. Med **Hvis ingen data** på standardværdien, **Ignore**, matcher kriteriet ikke. Sæt det til **Trigger** under kriteriets **Flere felter** for at få en advarsel om stilhed.
+Et tidsinterval uden datapunkter er ikke en værdi på 0. Med **Hvis der ikke er data** på standardværdien, **Intet**, matcher reglen ikke. Sæt det til **Advar, som om den matchede** under **Flere felter** i **Hvornår der advares** for at få en advarsel om stilhed.
 :::
 
 :::details Jeg får én advarsel for hele flåden

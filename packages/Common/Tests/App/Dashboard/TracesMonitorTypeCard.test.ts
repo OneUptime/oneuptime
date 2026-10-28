@@ -43,9 +43,9 @@ describe("the Traces monitor type's card", () => {
     ).toEqual([CheckOn.SpanCount]);
   });
 
-  test("says it alerts on the number of matching spans", () => {
+  test("says it alerts on requests that fail or stop, which a span count answers", () => {
     expect(tracesCard().description).toBe(
-      "Alert on the number of matching spans, like failed requests, from any source.",
+      "Alert when requests fail, or stop arriving.",
     );
   });
 

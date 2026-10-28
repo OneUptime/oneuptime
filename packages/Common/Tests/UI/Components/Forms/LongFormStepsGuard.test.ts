@@ -96,13 +96,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
       "SecurityEventsMonitor/SecurityEventsMonitorStepForm.tsx",
       "security-events-filter",
     ],
-    ["TraceMonitor/TraceMonitorStepForm.tsx", "Traces-filter"],
   ].map(([file, id]: Array<string>): ListedForm => {
     return {
       file: `${DASHBOARD}/Components/Form/Monitor/${file}`,
       form: `BasicForm: ${id}`,
       reason:
-        "A filter embedded in one step of the monitor form, which walks its own steps; a stepper inside a step would nest one wizard in another. Only the filters most monitors use are on screen (text, time window, and severity, span status, event class or exception type); the ones that scope it to a service, an entity or attributes fold under More fields.",
+        "A filter embedded in one step of the monitor form, which walks its own steps; a stepper inside a step would nest one wizard in another. Only the filters most monitors use are on screen (text, and severity, event class, exception type or environment, and a time window where the criteria do not hold it); the ones that scope it to a service, an entity or attributes fold under More fields.",
     };
   }),
   {

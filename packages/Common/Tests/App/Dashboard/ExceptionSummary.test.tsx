@@ -307,6 +307,78 @@ describe("ExceptionSummary", () => {
     ).toBeInTheDocument();
   });
 
+  test("its actions sit beside the exception only when the card is wide enough, not when the window is", () => {
+    renderSummary({
+      exception: exceptionWith({ message: "Inventory reservation failed" }),
+      actions: (
+        <>
+          <button type="button">Resolve</button>
+          <button type="button">Archive</button>
+          <button type="button">Create monitor</button>
+        </>
+      ),
+    });
+
+    const actions: HTMLElement = screen.getByTestId(
+      "exception-summary-actions",
+    );
+    const row: HTMLElement = actions.parentElement as HTMLElement;
+    const card: HTMLElement = row.parentElement as HTMLElement;
+
+    /*
+     * A container query on the card's own width: from lg up beside the side
+     * menu, three buttons left the message a word a line at 1024px.
+     */
+    expect(card.className).toContain("[container-type:inline-size]");
+    expect(row).toHaveClass(
+      "flex",
+      "flex-col",
+      "[@container(min-width:56rem)]:flex-row",
+    );
+    expect(row.className).not.toContain("lg:flex-row");
+    expect(actions).toHaveClass("[@container(min-width:56rem)]:justify-end");
+    expect(actions.className).not.toContain("lg:justify-end");
+    expect(within(actions).getAllByRole("button")).toHaveLength(3);
+  });
+
+  test("under the exception its actions start where its words do, past the status icon, without the buttons' own margin", () => {
+    renderSummary({
+      exception: exceptionWith({ message: "Inventory reservation failed" }),
+      actions: (
+        <>
+          <button type="button">Resolve</button>
+          <button type="button">Create monitor</button>
+        </>
+      ),
+    });
+
+    const actions: HTMLElement = screen.getByTestId(
+      "exception-summary-actions",
+    );
+
+    /*
+     * The status icon (44px and the 16px gap beside it) shows from sm up:
+     * the actions under the words start 3.75rem in, and none at all once
+     * they sit beside the exception.
+     */
+    expect(actions).toHaveClass(
+      "sm:ps-[3.75rem]",
+      "[@container(min-width:56rem)]:ps-0",
+    );
+    expect(screen.getByTestId("exception-summary-status-icon")).toHaveClass(
+      "sm:flex",
+      "h-11",
+      "w-11",
+    );
+    // Each Button's dialog-footer margin (md:ml-3) is taken off, wrapped or not.
+    expect(actions).toHaveClass(
+      "[&>button]:ml-0",
+      "[&>button]:md:ml-0",
+      "[&>*>button]:ml-0",
+      "[&>*>button]:md:ml-0",
+    );
+  });
+
   test("expands and collapses long messages without removing their content", () => {
     const longMessage: string = "x".repeat(
       EXCEPTION_MESSAGE_CLAMP_CHARACTER_COUNT + 1,

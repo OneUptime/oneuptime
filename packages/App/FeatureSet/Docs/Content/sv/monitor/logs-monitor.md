@@ -32,23 +32,31 @@ Varje minut räknar OneUptime de loggar som matchar monitorns filter och har kom
 :::steps
 ### Börja en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Eller sök i loggutforskaren efter de loggar du vill få veta om och klicka på **Skapa monitor** (klockan) i dess verktygsfält: den nya monitorn bevakar från början utforskarens sökning, allvarlighetsgrader, tjänster och attribut.
 
 ### Välj Logs
 
 Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Loggar** under **Telemetri**, eller skriver `logs` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 
+### Välj vad monitorn ska berätta om
+
+Under **Vad ska den här övervakningen berätta om?** väljer du **För många fel**, **Ett meddelande dyker upp** eller **Loggar uteblir**. Varje val fyller i loggarna att bevaka och regeln, som du kan ändra längre ned. Välj **Något annat** för att ställa in dem själv.
+
 ### Välj vilka loggar som ska räknas
 
-I **Logg-monitorkonfiguration** anger du **Övervakningsloggar som innehåller denna text**, **Övervakningsloggar för (tid)** och **Loggens allvarlighetsgrad**. Ett filter som du lämnar tomt matchar alla loggar. **Förhandsgranskning av loggar** under filtren visar de loggar som de matchar just nu.
+I **Loggar att bevaka** anger du **Loggens allvarlighetsgrad** och **Meddelandet innehåller**. Ett filter som du lämnar tomt matchar alla loggar. **Matchande loggar** under filtren visar de loggar som de matchar just nu.
 
 ### Begränsa dem (valfritt)
 
 Öppna **Fler fält** för att filtrera efter telemetritjänst, infrastrukturentitet eller attribut. Vill du ha ett larm per tunnel, användare eller gränssnitt i stället för en för hela monitorn lägger du till attributet under **Group by Attributes** (se [Larm per grupp](#larm-per-grupp-group-by)).
 
-### Ange kriterierna
+### Säg när det ska larmas
 
-Kortet **Monitorkriterier** börjar med två kriterier: offline, med en incident, när inga loggar matchar; online när minst en gör det. Ändra dem till det du vill varnas om (se [Kriterier](#kriterier)).
+I **När det ska larmas** väljer du ett **Villkor**, **Antal loggar** och ett **Tidsfönster**. Meningen under dem upprepar regeln med vanliga ord. Diagrammet under den räknar de matchande loggarna i varje fönster under de senaste timmarna, ritar regelns tal som en linje och berättar hur ofta regeln skulle ha larmat. Dess knapp föreslår ett tal som regeln inte skulle ha passerat under den tiden.
+
+### Välj vad som händer
+
+I **Vad som händer** väljer du **Skapa ett larm**, **Deklarera en incident** eller **Båda**, och ger det en titel och en allvarlighetsgrad. Medan regeln matchar visar monitorn statusen under **Fler fält**; när den slutar matcha går monitorn tillbaka till sin standardstatus, och larmet eller incidenten löser sig själv.
 
 ### Skapa monitorn
 
@@ -59,9 +67,9 @@ Klicka på **Skapa monitor**. Monitorn öppnas på sin sida **Översikt**, och d
 
 | Fält | Vad det matchar | Standard |
 | --- | --- | --- |
-| **Övervakningsloggar som innehåller denna text** | Loggar vars brödtext innehåller denna text, utan skillnad på versaler och gemener. | Tomt: alla loggar |
-| **Övervakningsloggar för (tid)** | Loggar från de senaste 5 sekunderna upp till de senaste 24 timmarna. | **Senaste 1 minuten** |
 | **Loggens allvarlighetsgrad** | Loggar med någon av de valda allvarlighetsgraderna. | Tomt: alla allvarlighetsgrader |
+| **Meddelandet innehåller** | Loggar vars brödtext innehåller denna text, utan skillnad på versaler och gemener. | Tomt: alla loggar |
+| **Tidsfönster** (i **När det ska larmas**) | Loggar från de senaste 5 sekunderna upp till de senaste 24 timmarna. | **Senaste 5 minuterna** |
 | **Group by Attributes** | Inget filter: räknar varje kombination av dessa attributs värden för sig. | Tomt: en räkning |
 | **Löst av attribut** | Inget filter: loggen som löser en grupp. Visas så snart **Group by Attributes** har ett attribut; se [Löst av en logg](#löst-av-en-logg). | Tomt: en grupp löses när dess loggar upphör |
 | **Filtrera efter telemetritjänst** (under **Fler fält**) | Loggar från någon av de valda tjänsterna. | Tomt: alla tjänster |
@@ -87,8 +95,8 @@ Varje logg lagras med en av sju allvarlighetsgrader. För loggar från OpenTelem
 ## Så utvärderas den
 
 - **Varje minut.** En loggmonitor kontrolleras inte av sonder, så den har inget intervall att ange och ingen sida **Sonder och intervall**.
-- **Ett tal per utvärdering.** Monitorn räknar de loggar som matchar alla filter och har kommit in inom **Övervakningsloggar för (tid)** före utvärderingen. Med **Senaste 5 minuterna** ser varje utvärdering fem minuter bakåt, så fönstren för utvärderingar i följd överlappar.
-- **Inga loggar är ett antal på 0.** En tjänst som slutar logga ger 0, och det är vad standardkriteriet för offline letar efter.
+- **Ett tal per utvärdering.** Monitorn räknar de loggar som matchar alla filter och har kommit in inom **Tidsfönster** före utvärderingen. Med **Senaste 5 minuterna** ser varje utvärdering fem minuter bakåt, så fönstren för utvärderingar i följd överlappar.
+- **Inga loggar är ett antal på 0.** En tjänst som slutar logga ger 0, och det är vad **Loggar uteblir** letar efter.
 - **OneUptimes eget avbrott är inte tystnad.** Så länge tidsfönstret innehåller tid då OneUptime självt inte tog emot data (det startade om, uppgraderades eller arbetade ikapp en eftersläpning) väntar kontrollen: statusen ändras inte, och ingen incident eller larm öppnas eller löses. Se [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Kriterier uppifrån och ned.** Det första kriteriet som matchar avgör, så lägg det allvarligaste överst. En grupperad monitor fungerar annorlunda: den kontrollerar alla kriterier för varje grupp (se [Utvärderingen av kriterier skiljer sig](#utvärderingen-av-kriterier-skiljer-sig)).
 
@@ -96,7 +104,7 @@ Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**
 
 ## Kriterier
 
-En loggmonitors kriterier har en enda **Filtertyp**: **Log Count**, antalet loggar som matchade i fönstret. Välj ett **Filtervillkor** och, för ett tröskelvillkor, ett **Värde**.
+En loggmonitors kriterier har en enda **Filtertyp**: **Log Count**, antalet loggar som matchade i fönstret. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst**, **Exakt**, **Ovanligt hög**, **Ovanligt låg** eller **Ovanligt hög eller låg**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och, för ett tröskelvillkor, ett **Värde**.
 
 | Filtervillkor | Matchar när antalet loggar är… |
 | --- | --- |
@@ -109,36 +117,41 @@ En loggmonitors kriterier har en enda **Filtertyp**: **Log Count**, antalet logg
 | **Anomalously Low** | under det intervallet |
 | **Anomalous** | utanför det intervallet, åt vilket håll som helst |
 
-Avvikelsevillkoren har inget **Värde**. Välj en **Känslighet** (Low, Medium, som är standard, eller High) och ett **Baslinjefönster** på 14 (standard), 28, 60 eller 90 dagar. OneUptime gör om antalet till en takt per minut och jämför den med samma timme i veckan över det fönstret. Baslinjen omfattar bara monitorns tjänster och allvarlighetsgrader: dess text- och attributfilter ingår inte. Tills den timmen i veckan har tillräcklig historik lär sig kriteriet fortfarande och utlöses inte.
+Avvikelsevillkoren har inget **Värde**. Välj en **Känslighet** (Låg, Medel, som är standard, eller Hög) och, i de egna kriterierna, ett **Baslinjefönster** på 14 (standard), 28, 60 eller 90 dagar. OneUptime gör om antalet till en takt per minut och jämför den med samma timme i veckan över det fönstret. Baslinjen omfattar bara monitorns tjänster och allvarlighetsgrader: dess text- och attributfilter ingår inte. Tills den timmen i veckan har tillräcklig historik lär sig kriteriet fortfarande och löser inte ut.
 
-En ny loggmonitor börjar med dessa kriterier:
+En loggmonitor som skapats i Skapa monitor börjar med regeln för det du valde under **Vad ska den här övervakningen berätta om?**:
+
+| Val | Regel | Vad som händer |
+| --- | --- | --- |
+| **För många fel** | **Loggens allvarlighetsgrad** **Fel** och **Fatal**, **Fler än** `10` under **Senaste 5 minuterna** | Skapar ett larm, som löser sig själv |
+| **Ett meddelande dyker upp** | **Fler än** `0` under **Senaste 5 minuterna** | Skapar ett larm, som löser sig själv |
+| **Loggar uteblir** | **Exakt** `0` under **Senaste 10 minuterna** | Deklarerar en incident, som löser sig själv |
+
+En loggmonitor som skapats via API:et eller Terraform utan kriterier börjar med dessa kriterier:
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
 | Check if … is offline | **Log Count** **Lika med** `0` | Markerar monitorn som offline och deklarerar en incident, som löses automatiskt |
 | Check if … is online | **Log Count** **Större än** `0` | Markerar monitorn som online |
 
-> [!TIP]
-> För att varnas om fel i stället för om tystnad ställer du in **Loggens allvarlighetsgrad** på **Fel** och ändrar offline-kriteriet till **Log Count** **Större än** det antal fel som du godtar i fönstret.
-
 ## Genomgånget exempel: en ökning av fel
 
 Du vill ha en incident när checkout-tjänsten loggar fler än 50 fel på fem minuter:
 
 - **Loggens allvarlighetsgrad**: **Fel**
-- **Övervakningsloggar för (tid)**: **Senaste 5 minuterna**
+- **Tidsfönster**: **Senaste 5 minuterna**
 - **Filtrera efter telemetritjänst**: `checkout`
-- Kriterium 1: **Log Count** **Större än** `50`: markera monitorn som offline och deklarera en incident
-- Kriterium 2: **Log Count** **Mindre än eller lika med** `50`: markera monitorn som online
+- **När det ska larmas**: **Fler än** `50`
+- **Vad som händer**: **Deklarera en incident**
 
 Fyra utvärderingar i följd:
 
-| Tid | Felloggar de senaste 5 minuterna | Kriterium som matchar | Vad som händer |
+| Tid | Felloggar de senaste 5 minuterna | Matchar regeln? | Vad som händer |
 | --- | --- | --- | --- |
-| 10:00 | 12 | 2 | Monitorn är online. |
-| 10:01 | 64 | 1 | Monitorn går offline och en incident deklareras. |
-| 10:02 | 81 | 1 | Förblir offline. Incidenten är redan öppen, så ingen ny deklareras. |
-| 10:06 | 9 | 2 | Monitorn är online igen, och incidenten löser sig själv eftersom **Lös incident automatiskt** är aktiverat. |
+| 10:00 | 12 | Nej | Monitorn är online. |
+| 10:01 | 64 | Ja | Monitorn går offline och en incident deklareras. |
+| 10:02 | 81 | Ja | Förblir offline. Incidenten är redan öppen, så ingen ny deklareras. |
+| 10:06 | 9 | Nej | Monitorn är online igen, och incidenten löser sig själv eftersom **Lös incident automatiskt** är aktiverat. |
 
 Eftersom fönstren överlappar håller en enda skur av fel antalet högt i upp till fem minuter efter att den är slut. Använd ett kortare fönster för en monitor som ska återhämta sig snabbare.
 
@@ -197,11 +210,11 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 ```
 
 :::steps
-1. Skapa en monitor av typen **Loggar**.
-2. Ställ in **Övervakningsloggar som innehåller denna text** på `terminated` och **Övervakningsloggar för (tid)** på **Senaste 5 minuterna**.
+1. Skapa en monitor av typen **Loggar** och välj **Ett meddelande dyker upp**.
+2. Ställ in **Meddelandet innehåller** på `terminated` och **Tidsfönster** på **Senaste 5 minuterna**.
 3. Under **Fler fält** lägger du till attributfiltret `log_component` = `IPSec`.
 4. Under **Group by Attributes** lägger du till `con_name`.
-5. Lägg till ett kriterium med filtret **Log Count** **Större än** `0` som skapar ett larm eller en incident med titeln `IPsec tunnel {{con_name}} terminated`.
+5. Behåll regeln på **Fler än** `0`, och ge larmet eller incidenten titeln `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Varje tunnel som loggar en avslutning får nu sitt eget larm (`IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated`), och var och en löses för sig.
@@ -227,7 +240,7 @@ Värdet för varje Group By-attribut är en [mallvariabel](/docs/monitor/inciden
 ## Felsökning
 
 :::details Monitorn är offline, men min tjänst loggar
-Antalet var 0, så filtren matchar inga av de loggar som tjänsten skickar. Öppna monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Edit Monitoring Criteria**: **Förhandsgranskning av loggar** visar vad filtren väljer ut just nu. De vanligaste orsakerna är en allvarlighetsgrad som valts efter texten som loggaren skriver ut i stället för efter dess allvarlighetsnummer (se [Loggarnas allvarlighetsgrad](#loggarnas-allvarlighetsgrad)), ett tjänst- eller attributfilter som inte matchar och ett tidsfönster som är kortare än tiden mellan tjänstens loggar.
+Antalet var 0, så filtren matchar inga av de loggar som tjänsten skickar. Öppna monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Edit Monitoring Criteria**: **Matchande loggar** visar vad filtren väljer ut just nu, och diagrammet i **När det ska larmas** räknar dem i varje fönster. De vanligaste orsakerna är en allvarlighetsgrad som valts efter texten som loggaren skriver ut i stället för efter dess allvarlighetsnummer (se [Loggarnas allvarlighetsgrad](#loggarnas-allvarlighetsgrad)), ett tjänst- eller attributfilter som inte matchar och ett tidsfönster som är kortare än tiden mellan tjänstens loggar.
 :::
 
 :::details Det var en ökning, men ingenting varnade

@@ -349,16 +349,19 @@ export const selectMonitorLabels: (data: {
  * criteria step so the create never happens. A fixed sleep raced this load and
  * made the whole suite flaky under CI load.
  *
- * The "Monitor Criteria" card is rendered by MonitorStep only after the
- * defaults have loaded, and for every monitor type, so its visibility is an
- * unambiguous ready signal — unlike the async loader, which briefly is absent
- * on the very first render before the fetch flips it on.
+ * The "Monitor Criteria" card - or, for a Logs, Traces, Exceptions or
+ * Metrics monitor, whose criteria are set up as one rule, its "When to
+ * alert" card - is rendered by MonitorStep only after the defaults have
+ * loaded, so its visibility is an unambiguous ready signal — unlike the
+ * async loader, which briefly is absent on the very first render before the
+ * fetch flips it on.
  */
 export const waitForCriteriaStepReady: (data: {
   page: Page;
 }) => Promise<void> = async (data: { page: Page }): Promise<void> => {
   await data.page
     .getByText("Monitor Criteria", { exact: true })
+    .or(data.page.getByText("When to alert", { exact: true }))
     .first()
     .waitFor({ state: "visible", timeout: 60000 });
 };

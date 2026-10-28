@@ -33,23 +33,31 @@ Cada minuto, OneUptime cuenta las excepciones que coinciden con los filtros del 
 :::steps
 ### Empezar un monitor nuevo
 
-Ve a **Monitores** y haz clic en **Crear monitor**.
+Ve a **Monitores** y haz clic en **Crear monitor**. O, en la página de una excepción, haz clic en **Crear monitor** junto a **Resolver**: el nuevo monitor empieza vigilando el tipo de esa excepción en su servicio, y alerta cuando vuelve a ocurrir.
 
 ### Elegir Exceptions
 
 En **Tipo de monitor**, haz clic en **Más tipos de monitor** y elige **Excepciones** en **Telemetría**, o escribe `exceptions` en el cuadro de búsqueda. Escribe un **Nombre** y haz clic en **Siguiente**.
 
+### Elegir de qué te avisa el monitor
+
+En **¿Sobre qué debe avisarte este monitor?**, elige **Cualquier excepción** o **Demasiadas excepciones**. Cada opción rellena la regla, que puedes cambiar más abajo. Elige **Otra cosa** para configurarla tú.
+
 ### Elegir las excepciones que se cuentan
 
-En **Configuración del monitor de excepciones**, rellena **Filtrar mensaje de excepción**, **Tipos de excepción**, **Entornos** y **Excepciones del monitor durante (tiempo)**. Un filtro que dejas vacío coincide con todas las excepciones. **Vista previa de excepciones**, bajo los filtros, muestra las excepciones con las que coinciden ahora mismo.
+En **Excepciones que vigilar**, rellena **El mensaje contiene**, **Tipos de excepción** y **Entornos**. Un filtro que dejas vacío coincide con todas las excepciones. **Excepciones coincidentes**, bajo los filtros, muestra las excepciones con las que coinciden ahora mismo.
 
 ### Acotarlas (opcional)
 
 Abre **Más campos** para filtrar por servicio de telemetría o entidad de infraestructura, o para contar también las excepciones resueltas y archivadas.
 
-### Definir los criterios
+### Decir cuándo alertar
 
-La tarjeta **Criterios del monitor** empieza con dos criterios: fuera de línea, con un incidente, cuando coincide alguna excepción; en línea cuando no coincide ninguna. Cámbialos según lo que quieras alertar; consulta [Criterios](#criterios).
+En **Cuándo alertar**, elige una **Condición**, el **Número de excepciones** y una **Ventana de tiempo**. La frase de debajo repite la regla con palabras sencillas. El gráfico que hay debajo cuenta las excepciones coincidentes en cada ventana de las últimas horas, dibuja el número de la regla como una línea e indica cuántas veces habría alertado la regla. Su botón propone un número que la regla no habría superado en ese tiempo.
+
+### Elegir qué pasa
+
+En **Qué pasa**, elige **Crear una alerta**, **Declarar un incidente** o **Ambos**, y dale un título y una gravedad. Mientras la regla coincide, el monitor muestra el estado indicado en **Más campos**; cuando deja de coincidir, el monitor vuelve a su estado predeterminado y la alerta o el incidente se resuelve solo.
 
 ### Crear el monitor
 
@@ -60,10 +68,10 @@ Haz clic en **Crear monitor**. El monitor se abre en su página **Vista general*
 
 | Campo | Con qué coincide | Predeterminado |
 | --- | --- | --- |
-| **Filtrar mensaje de excepción** | Excepciones cuyo mensaje contiene este texto, sin distinguir mayúsculas y minúsculas. | Vacío: todas las excepciones |
+| **El mensaje contiene** | Excepciones cuyo mensaje contiene este texto, sin distinguir mayúsculas y minúsculas. | Vacío: todas las excepciones |
 | **Tipos de excepción** | Excepciones de cualquiera de estos tipos, separados por comas, como `TypeError, NullReferenceException`. El nombre del tipo debe coincidir exactamente. | Vacío: todos los tipos |
 | **Entornos** | Excepciones de cualquiera de estos entornos, separados por comas; consulta [Entornos](#entornos). | Vacío: todos los entornos |
-| **Excepciones del monitor durante (tiempo)** | Excepciones de los últimos 5 segundos hasta las últimas 24 horas. | **Último minuto** |
+| **Ventana de tiempo** (en **Cuándo alertar**) | Excepciones de los últimos 5 segundos hasta las últimas 24 horas. | **Últimos 5 minutos** |
 | **Filtrar por servicio de telemetría** (en **Más campos**) | Excepciones de cualquiera de los servicios elegidos. | Vacío: todos los servicios |
 | **Filtrar por entidad de infraestructura** (en **Más campos**) | Excepciones de cualquiera de los hosts, pods, contenedores y otras entidades elegidos. | Vacío: todas las entidades |
 | **Incluir excepciones resueltas** (en **Más campos**) | Contar también las excepciones marcadas como resueltas. | Desactivado |
@@ -98,7 +106,7 @@ Al crear el monitor mediante la API, define `environments` en el `exceptionMonit
 ## Cómo se evalúa
 
 - **Cada minuto.** Un monitor de excepciones no lo comprueban sondas, así que no tiene intervalo que configurar ni página **Sondas e intervalo**.
-- **Ocurrencias, no tipos de excepción.** El monitor cuenta cada vez que una excepción que coincide ocurrió dentro de **Excepciones del monitor durante (tiempo)**. Una excepción lanzada 40 veces cuenta 40.
+- **Ocurrencias, no tipos de excepción.** El monitor cuenta cada vez que una excepción que coincide ocurrió dentro de la **Ventana de tiempo**. Una excepción lanzada 40 veces cuenta 40.
 - **Las excepciones resueltas y archivadas quedan fuera.** Salvo que actives **Incluir excepciones resueltas** o **Incluir excepciones archivadas**, las ocurrencias de una excepción que marcaste como resuelta o archivaste no cuentan. Por eso, marcar una excepción como resuelta puede cerrar el incidente que abrió. Cuando una excepción resuelta vuelve a ocurrir, se marca automáticamente como no resuelta y vuelve a contarse.
 - **Sin excepciones, el recuento es 0.**
 - **La caída del propio OneUptime no es silencio.** Mientras la ventana de tiempo contenga un periodo en el que OneUptime no recibía datos (se estaba reiniciando, actualizando o poniéndose al día), la comprobación espera: el estado no cambia y no se abre ni se resuelve ningún incidente ni alerta. Consulta [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
@@ -108,7 +116,7 @@ Cada cambio de estado, con su motivo, queda registrado en la **Cronología de es
 
 ## Criterios
 
-Los criterios de un monitor de excepciones tienen un único **Tipo de filtro**: **Exception Count**, el número de excepciones que coincidieron en la ventana. Elige una **Condición de filtro** y un **Valor**.
+Los criterios de un monitor de excepciones tienen un único **Tipo de filtro**: **Exception Count**, el número de excepciones que coincidieron en la ventana. **Cuándo alertar** configura un criterio, cuya **Condición** es **Más de**, **Al menos**, **Menos de**, **Como mucho** o **Exactamente**. Para varios criterios, o uno con más de un filtro, haz clic en **Editar como criterios propios** en **Más campos** de **Qué pasa**: cada criterio tiene allí una **Condición de filtro** y un **Valor**.
 
 | Condición de filtro | Coincide cuando el recuento de excepciones está… |
 | --- | --- |
@@ -121,7 +129,14 @@ Los criterios de un monitor de excepciones tienen un único **Tipo de filtro**: 
 
 Los recuentos de excepciones no tienen condiciones de anomalía: no hay ninguna referencia con la que compararlos.
 
-Un monitor de excepciones nuevo empieza con estos criterios:
+Un monitor de excepciones creado en Crear monitor empieza con la regla de lo que elegiste en **¿Sobre qué debe avisarte este monitor?**:
+
+| Opción | Regla | Qué pasa |
+| --- | --- | --- |
+| **Cualquier excepción** | **Más de** `0` en **Últimos 5 minutos** | Crea una alerta, que se resuelve sola |
+| **Demasiadas excepciones** | **Más de** `20` en **Últimos 5 minutos** | Crea una alerta, que se resuelve sola |
+
+Un monitor de excepciones creado mediante la API o Terraform sin criterios empieza con estos criterios:
 
 | Criterio | Filtro | Efecto |
 | --- | --- | --- |
@@ -130,7 +145,7 @@ Un monitor de excepciones nuevo empieza con estos criterios:
 
 ## Ejemplo práctico: solo las excepciones de producción
 
-Quieres un incidente cada vez que la API lance una excepción en producción, y nada para staging. Pones **Entornos** en `production` y **Excepciones del monitor durante (tiempo)** en **Últimos 5 minutos**, y mantienes los criterios predeterminados. En los últimos cinco minutos:
+Quieres un incidente cada vez que la API lance una excepción en producción, y nada para staging. Eliges **Cualquier excepción**, pones **Entornos** en `production`, dejas la **Ventana de tiempo** en **Últimos 5 minutos** y eliges **Declarar un incidente** en **Qué pasa**. En los últimos cinco minutos:
 
 | Excepciones | Entorno | Estado | ¿Se cuenta? |
 | --- | --- | --- | --- |
@@ -139,12 +154,12 @@ Quieres un incidente cada vez que la API lance una excepción en producción, y 
 | `TimeoutError` × 2 | ninguno | Activa | No: sin entorno |
 | `NullReferenceException` × 4 | `production` | Resuelta después de ocurrir | No: resuelta |
 
-El **Exception Count** es 3, así que **Mayor que** `0` coincide: el monitor pasa a fuera de línea y se declara un incidente. Cuando pasan cinco minutos sin ninguna excepción de producción activa, coincide el criterio de en línea y el incidente se resuelve solo.
+El **Exception Count** es 3, así que **Más de** `0` coincide: el monitor pasa a fuera de línea y se declara un incidente. Cuando pasan cinco minutos sin ninguna excepción de producción activa, la regla deja de coincidir, el monitor vuelve a su estado predeterminado y el incidente se resuelve solo.
 
 ## Solución de problemas
 
 :::details Las excepciones aparecen en el explorador, pero el monitor cuenta 0
-Compara el valor de **Entornos** con el filtro `env:` del explorador: la coincidencia es exacta y distingue mayúsculas y minúsculas, y las excepciones sin entorno quedan fuera cuando el filtro está definido. Después comprueba si esas excepciones están resueltas o archivadas. Abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios de monitoreo**: **Vista previa de excepciones** muestra con qué coinciden los filtros.
+Compara el valor de **Entornos** con el filtro `env:` del explorador: la coincidencia es exacta y distingue mayúsculas y minúsculas, y las excepciones sin entorno quedan fuera cuando el filtro está definido. Después comprueba si esas excepciones están resueltas o archivadas. Abre la página **Criterios** del monitor (en **Configuración**) y haz clic en **Editar criterios de monitoreo**: **Excepciones coincidentes** muestra con qué coinciden los filtros.
 :::
 
 :::details El incidente se resolvió cuando resolví la excepción

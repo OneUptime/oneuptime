@@ -65,6 +65,8 @@ export interface LogsViewerToolbarProps {
   showKeyboardShortcuts?: boolean | undefined;
   onToggleKeyboardShortcuts?: (() => void) | undefined;
   onShowDocumentation?: (() => void) | undefined;
+  // "Create monitor": a monitor watching what the view shows.
+  onCreateMonitor?: (() => void) | undefined;
   signalPivotActions?: Array<LogsSignalPivotAction> | undefined;
   /*
    * The phone-only "Filters" toggle for the facet sidebar. Below md the
@@ -82,6 +84,14 @@ export const LOGS_VIEWER_FILTERS_TOGGLE_TEST_ID: string =
   "logs-viewer-filters-toggle";
 export const LOGS_VIEWER_EXPORT_MENU_TEST_ID: string =
   "logs-viewer-export-menu";
+
+/*
+ * Create monitor's words: on a phone, where the toolbar wraps, and on a
+ * toolbar 77rem wide or more (the toolbar is the container); between the
+ * two the bell alone, so the row fits on one line.
+ */
+export const LOGS_VIEWER_CREATE_MONITOR_LABEL_CLASS_NAME: string =
+  "md:hidden [@container(min-width:77rem)]:inline";
 
 const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
   props: LogsViewerToolbarProps,
@@ -113,7 +123,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
      * is the single unwrapped row it always was, popovers included.
      */
     <div
-      className={`relative flex flex-wrap items-center justify-between gap-3 md:flex-nowrap ${props.className || ""}`}
+      className={`relative flex flex-wrap items-center justify-between gap-3 [container-type:inline-size] md:flex-nowrap ${props.className || ""}`}
       data-testid={LOGS_VIEWER_TOOLBAR_TEST_ID}
     >
       {/* Left group: View management + stats */}
@@ -288,6 +298,38 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
               onChange={props.onSelectedColumnsChange}
             />
           )}
+
+        {props.onCreateMonitor && (
+          <Tooltip
+            text={translator.translateText(
+              "Create monitor: get alerted about logs like these.",
+            )}
+          >
+            {/*
+             * Its words show where the row has room for them: on a phone,
+             * where the toolbar wraps onto rows of its own, and on a toolbar
+             * of 77rem and more. Between the two the bell alone keeps the
+             * row on one line - with the words, a 1280px window pushed Live
+             * and the result count onto a second row. The button is named
+             * Create monitor either way.
+             */}
+            <button
+              type="button"
+              aria-label={translator.translateText("Create monitor")}
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+              onClick={props.onCreateMonitor}
+              data-testid="logs-create-monitor"
+            >
+              <Icon icon={IconProp.Bell} className="h-3.5 w-3.5" />
+              <span
+                className={LOGS_VIEWER_CREATE_MONITOR_LABEL_CLASS_NAME}
+                data-testid="logs-create-monitor-label"
+              >
+                {translator.translateText("Create monitor")}
+              </span>
+            </button>
+          </Tooltip>
+        )}
 
         {props.onShowDocumentation && (
           <button

@@ -150,10 +150,21 @@ import MonitorStepMetricMonitor, {
 } from "../../../Types/Monitor/MonitorStepMetricMonitor";
 import ObjectID from "../../../Types/ObjectID";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
+import TelemetryRulePreviewUtil from "../../../Types/Monitor/TelemetryRulePreview";
 
 const NOW: Date = new Date("2026-09-28T12:00:00.000Z");
 const HOUR_AGO: Date = new Date("2026-09-28T11:00:00.000Z");
 const TWO_HOURS_AGO: Date = new Date("2026-09-28T10:00:00.000Z");
+
+/*
+ * Where the Metrics monitor form's chart starts for a one-hour window: the
+ * hours before the rule's window, read the way a telemetry rule's preview
+ * reads them (144 windows of an hour back from now).
+ */
+const METRIC_FORM_START: Date = TelemetryRulePreviewUtil.getRange({
+  windowInSeconds: 60 * 60,
+  now: NOW,
+}).startTime;
 
 function viewConfig(): MetricsViewConfig {
   return {
@@ -268,7 +279,7 @@ describe("a host that sets its window after mount", () => {
     await settle();
 
     expect(screen.getByTestId("metric-charts")).toBeInTheDocument();
-    expect(drawnValues()).toEqual([HOUR_AGO.getTime() / 60_000]);
+    expect(drawnValues()).toEqual([METRIC_FORM_START.getTime() / 60_000]);
   });
 
   test("the Criteria page's step preview draws its first result", async () => {
@@ -293,7 +304,7 @@ describe("a host that sets its window after mount", () => {
     );
     await settle();
 
-    expect(fetchedStarts()).toEqual([HOUR_AGO.getTime()]);
+    expect(fetchedStarts()).toEqual([METRIC_FORM_START.getTime()]);
   });
 
   test("the first zoom's refetch keeps the charts up, and the Reset zoom with them", async () => {
