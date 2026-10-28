@@ -214,13 +214,17 @@ const COUNT_COMPARISON_TERMS: Record<string, string> = {
   [FilterType.NotEqualTo]: translationKey("anything but"),
 };
 
+/*
+ * A value's comparisons are words of their own, not a count's: a language
+ * says "is above 80" with another verb than "is more than 10".
+ */
 const METRIC_COMPARISON_TERMS: Record<string, string> = {
   [FilterType.GreaterThan]: translationKey("above"),
   [FilterType.GreaterThanOrEqualTo]: translationKey("at or above"),
   [FilterType.LessThan]: translationKey("below"),
   [FilterType.LessThanOrEqualTo]: translationKey("at or below"),
-  [FilterType.EqualTo]: translationKey("exactly"),
-  [FilterType.NotEqualTo]: translationKey("anything but"),
+  [FilterType.EqualTo]: translationKey("equal to"),
+  [FilterType.NotEqualTo]: translationKey("not equal to"),
 };
 
 export const getComparisonChoices: (data: {
@@ -381,8 +385,6 @@ export const TelemetryRuleCopy: {
   valueRequired: string;
   anomalyHint: string;
   groupedHint: string;
-  severityOfAlert: string;
-  severityOfIncident: string;
 } = {
   whenToAlertTitle: translationKey("When to alert"),
   whenToAlertDescription: translationKey(
@@ -433,8 +435,6 @@ export const TelemetryRuleCopy: {
   groupedHint: translationKey(
     "Counted together here. The monitor counts each group on its own.",
   ),
-  severityOfAlert: translationKey("Alert severity"),
-  severityOfIncident: translationKey("Incident severity"),
 };
 
 /*
@@ -812,7 +812,8 @@ export const getPreviewVerdict: (data: {
 
   return translator.translatePlural(
     {
-      one: "This rule would have alerted once, for {{duration}}.",
+      // With its number: Russian says this form for 21 as well.
+      one: "This rule would have alerted {{count}} time, for {{duration}}.",
       other:
         "This rule would have alerted {{count}} times, for {{duration}} in all.",
     },
