@@ -87,6 +87,8 @@ import { OPEN_TELEMETRY_GUIDE_PAGES } from "../Utils/Integrations/OpenTelemetry/
 import {
   JAVA_AGENT_PACKAGE,
   buildFileDependencies,
+  gradleReportVersions,
+  mavenReportVersions,
   importedPackages,
   installedPackageNames,
   installedPackages,
@@ -1110,12 +1112,6 @@ function pythonVersions(
   }
 }
 
-// group:artifact tokens of a dependency report, with the version each resolved to.
-const MAVEN_COORDINATE: RegExp =
-  /([A-Za-z0-9_.-]+):([A-Za-z0-9_.-]+):(?:jar|pom):([A-Za-z0-9_.+-]+):[a-z]+/g;
-const GRADLE_COORDINATE: RegExp =
-  /([A-Za-z0-9_.-]+):([A-Za-z0-9_.-]+)(?::([A-Za-z0-9_.+-]+))?(?: -> ([A-Za-z0-9_.+-]+))?/g;
-
 /*
  * What a JVM build resolved: Maven's dependency:list or Gradle's
  * dependencies and buildEnvironment (its plugins, by id), the pom's parent
@@ -1137,11 +1133,10 @@ function jvmVersions(
     );
 
     if (fs.existsSync(report)) {
-      for (const match of fs
-        .readFileSync(report, "utf8")
-        .matchAll(MAVEN_COORDINATE)) {
-        versions[`${match[1]}:${match[2]}`] = match[3]!;
-      }
+      Object.assign(
+        versions,
+        mavenReportVersions(fs.readFileSync(report, "utf8")),
+      );
     }
 
     for (const dependency of buildFileDependencies({
@@ -1179,19 +1174,7 @@ function jvmVersions(
         },
       );
 
-      for (const match of (result.stdout || "").matchAll(GRADLE_COORDINATE)) {
-        const resolved: string | undefined = match[4] || match[3];
-
-        if (!resolved || !match[1]!.includes(".")) {
-          continue;
-        }
-
-        // A plugin's marker artifact: io.ktor.plugin:io.ktor.plugin.gradle.plugin.
-        const name: string = match[2]!.endsWith(".gradle.plugin")
-          ? match[1]!
-          : `${match[1]}:${match[2]}`;
-        versions[name] = resolved;
-      }
+      Object.assign(versions, gradleReportVersions(result.stdout || ""));
     }
   }
 
@@ -2109,7 +2092,37 @@ async function verifyGuide(
   };
 }
 
-function writeRecord(slug: string, record: GuideVerificationRecord): void {
+/*
+ * The record as the repository's Prettier writes JSON - short arrays on one
+ * line - so a run changes only what it saw, and the file passes the lint
+ * that checks every changed file. As JSON.stringify writes it where the
+ * repository's Prettier cannot be loaded.
+ */
+interface PrettierApi {
+  resolveConfig: (file: string) => Promise<Record<string, unknown> | null>;
+  format: (source: string, options: Record<string, unknown>) => Promise<string>;
+}
+
+async function formatRecords(text: string): Promise<string> {
+  try {
+    /* eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+    const prettier: PrettierApi = require("prettier");
+    const options: Record<string, unknown> =
+      (await prettier.resolveConfig(VERIFICATIONS_FILE)) || {};
+
+    return await prettier.format(text, {
+      ...options,
+      filepath: VERIFICATIONS_FILE,
+    });
+  } catch {
+    return text;
+  }
+}
+
+async function writeRecord(
+  slug: string,
+  record: GuideVerificationRecord,
+): Promise<void> {
   const records: Record<string, GuideVerificationRecord> = fs.existsSync(
     VERIFICATIONS_FILE,
   )
@@ -2125,7 +2138,10 @@ function writeRecord(slug: string, record: GuideVerificationRecord): void {
     sorted[key] = records[key]!;
   }
 
-  fs.writeFileSync(VERIFICATIONS_FILE, `${JSON.stringify(sorted, null, 2)}\n`);
+  fs.writeFileSync(
+    VERIFICATIONS_FILE,
+    await formatRecords(`${JSON.stringify(sorted, null, 2)}\n`),
+  );
 }
 
 async function main(): Promise<void> {
@@ -2168,7 +2184,7 @@ async function main(): Promise<void> {
           workDir,
           cacheDir,
         );
-        writeRecord(guide.slug, record);
+        await writeRecord(guide.slug, record);
         log(
           `  passed: ${record.observed.spans.length} span names, ${record.observed.metrics.length} metrics, ${record.observed.logs.length} log lines`,
         );

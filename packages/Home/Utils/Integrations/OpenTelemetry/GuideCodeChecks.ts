@@ -628,6 +628,81 @@ function gradleBuildFileDependencies(code: string): Array<InstalledPackage> {
   return packages;
 }
 
+// A report's words, line by line: "+---", "io.ktor:ktor-bom:3.6.0", "(c)".
+function reportWords(report: string): Array<Array<string>> {
+  return report.split("\n").map((line: string): Array<string> => {
+    return line.split(" ").filter((word: string): boolean => {
+      return word.length > 0;
+    });
+  });
+}
+
+/*
+ * The versions Maven's `dependency:list` resolved, by group:artifact: each
+ * line names group:artifact:type[:classifier]:version:scope, the type a
+ * jar or a pom.
+ */
+export function mavenReportVersions(report: string): Record<string, string> {
+  const versions: Record<string, string> = {};
+
+  for (const words of reportWords(report)) {
+    for (const word of words) {
+      const parts: Array<string> = word.split(":");
+
+      if (
+        (parts.length === 5 || parts.length === 6) &&
+        (parts[2] === "jar" || parts[2] === "pom") &&
+        parts[0] &&
+        parts[1]
+      ) {
+        versions[`${parts[0]}:${parts[1]}`] = parts[parts.length - 2]!;
+      }
+    }
+  }
+
+  return versions;
+}
+
+/*
+ * The versions Gradle's `dependencies` and `buildEnvironment` reports
+ * resolved, by group:artifact, and a plugin by its id: a line names
+ * group:artifact[:version], then "-> version" where Gradle picked another
+ * (a BOM's, a conflict's). A plugin's marker artifact,
+ * io.ktor.plugin:io.ktor.plugin.gradle.plugin, is the plugin io.ktor.plugin.
+ */
+export function gradleReportVersions(report: string): Record<string, string> {
+  const versions: Record<string, string> = {};
+
+  for (const words of reportWords(report)) {
+    words.forEach((word: string, index: number) => {
+      const parts: Array<string> = word.split(":");
+
+      if (
+        (parts.length !== 2 && parts.length !== 3) ||
+        !parts[0] ||
+        !parts[1] ||
+        !parts[0].includes(".")
+      ) {
+        return;
+      }
+
+      const resolved: string | undefined =
+        words[index + 1] === "->" ? words[index + 2] : parts[2];
+
+      if (!resolved) {
+        return;
+      }
+
+      const name: string = parts[1].endsWith(".gradle.plugin")
+        ? parts[0]
+        : `${parts[0]}:${parts[1]}`;
+      versions[name] = resolved;
+    });
+  }
+
+  return versions;
+}
+
 // A snippet that is a build file: pom.xml, build.gradle.kts, a .csproj.
 export function isBuildFileSnippet(snippet: GuideSnippet): boolean {
   const title: string = snippet.title || "";
