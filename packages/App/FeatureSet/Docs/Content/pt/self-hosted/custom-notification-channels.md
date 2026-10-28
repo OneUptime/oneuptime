@@ -31,7 +31,7 @@ Quando uma política de plantão aciona alguém e a regra de plantão dessa pess
 
 ## Adicionar um canal
 
-1. No Admin Dashboard, abra **Configurações**, depois **Custom Channels**, e selecione **Add**.
+1. No Admin Dashboard, abra **Configurações**, depois **Notificações > Custom Channels** no menu lateral (**Notificações** começa recolhido), e selecione **Add**.
 2. Na etapa **Channel**, preencha:
    - **Nome**: o que as pessoas veem nos seus métodos de notificação e nas suas regras de plantão, por exemplo `CorpoApp`.
    - **Webhook URL**: para onde o OneUptime envia cada acionamento. Pode estar na sua rede privada.

@@ -390,6 +390,58 @@ describe("the Settings menu on the Custom Channels page", () => {
     );
   });
 
+  /*
+   * The docs walk an admin here as the menu draws it: Settings, then
+   * Notifications > Custom Channels, Notifications starting folded. Core's
+   * docs facts hold the step to core's menu and to every translation; this
+   * holds it to the real plugin, which only an Enterprise checkout has.
+   */
+  test("the docs walk an admin to it as the menu draws it, Notifications starting folded", () => {
+    const adminEnglish: {
+      navbar: { settings: string };
+      sideMenu: { settingsNotifications: string };
+    } = JSON.parse(
+      fs.readFileSync(
+        path.join(ADMIN_DASHBOARD_SRC, "Locales", "en.json"),
+        "utf8",
+      ),
+    );
+    const docs: string = fs.readFileSync(
+      path.join(
+        EE_DIR,
+        "..",
+        "packages",
+        "App",
+        "FeatureSet",
+        "Docs",
+        "Content",
+        "en",
+        "self-hosted",
+        "custom-notification-channels.md",
+      ),
+      "utf8",
+    );
+    const settings: string = adminEnglish.navbar.settings;
+    const notifications: string = adminEnglish.sideMenu.settingsNotifications;
+
+    goTo("/admin/settings/authentication");
+
+    render(<SettingsSideMenu />);
+
+    const section: DrawnSection = drawnSection(NOTIFICATIONS);
+
+    expect(section.expanded).toBe(false);
+    expect(section.links[section.links.length - 1]).toBe(
+      "/admin/settings/custom-channels",
+    );
+    expect(drawnSection(BASIC).links).not.toContain(
+      "/admin/settings/custom-channels",
+    );
+    expect(docs).toContain(
+      `open **${settings}**, then **${notifications} > ${CUSTOM_CHANNELS_SETTINGS_PAGE_TITLE}** in the side menu (**${notifications}** starts folded)`,
+    );
+  });
+
   test("on a phone, the opened menu shows Notifications open with Custom Channels lit", () => {
     setViewportWidth(375);
     goTo("/admin/settings/custom-channels");
