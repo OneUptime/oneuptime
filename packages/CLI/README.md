@@ -11,6 +11,14 @@ oneuptime --version
 
 The CLI needs Node.js 22 or later. It has no dependencies, so npm installs it without fetching other packages or building anything.
 
+The CLI is released with OneUptime and has the same version number. On a self-hosted OneUptime, install the CLI of your OneUptime's version, so its commands match the records your server has:
+
+```bash
+npm install -g @oneuptime/cli@<your-oneuptime-version>
+```
+
+> **Warning:** CLI versions before 14.0.64 stop as soon as they start, with an error such as `Cannot find module 'Common/Models/DatabaseModels/Index'`. Install 14.0.64 or later with `npm install -g @oneuptime/cli@latest`. On a self-hosted OneUptime older than 14.0.64, [upgrade OneUptime](https://oneuptime.com/docs/installation/upgrading#how-to-upgrade) first, then install the CLI of the version you upgraded to.
+
 Or run directly within the monorepo:
 
 ```bash
