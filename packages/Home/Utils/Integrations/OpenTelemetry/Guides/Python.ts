@@ -416,7 +416,8 @@ export const PythonGuide: OpenTelemetryGuide = {
           "The records, with the trace and span IDs of the code that wrote them, sent to OneUptime as logs.",
       },
       {
-        library: "`grpc`, `aiohttp-server`, `starlette`, `falcon`, `pyramid`, `tornado`",
+        library:
+          "`grpc`, `aiohttp-server`, `starlette`, `falcon`, `pyramid`, `tornado`",
         covers:
           "Server spans for frameworks without a guide of their own here, named after the route where the framework knows it.",
       },
@@ -538,7 +539,8 @@ export const PythonGuide: OpenTelemetryGuide = {
 
   troubleshooting: [
     {
-      question: "Nothing arrives, and the program prints “Failed to auto initialize OpenTelemetry”",
+      question:
+        "Nothing arrives, and the program prints “Failed to auto initialize OpenTelemetry”",
       answer:
         "Read the line above it. `Requested component 'otlp_proto_grpc' not found` means `OTEL_EXPORTER_OTLP_PROTOCOL` is unset, so the distro looked for the gRPC exporter: set it to `http/protobuf`. The program itself carries on without telemetry, which is why nothing else complains.",
     },
@@ -673,7 +675,11 @@ export const PythonGuide: OpenTelemetryGuide = {
           metrics: ["invoices.synced", "http.client.request.duration"],
           logs: [
             { body: "synced 1 of 2 invoices", hasTraceContext: true },
-            { body: "skipped invoice inv_2", hasException: true, hasTraceContext: true },
+            {
+              body: "skipped invoice inv_2",
+              hasException: true,
+              hasTraceContext: true,
+            },
           ],
           resource: { "service.name": "invoice-sync" },
         },
