@@ -395,14 +395,16 @@ export class Service extends ProjectReferencesService<Model> {
       values.priorities,
       data.securityCasePriorityId,
     );
-    const dueTimes: { acknowledgeDueAt: Date | null; containDueAt: Date | null } =
-      getDueTimesForNewCase({
-        openedAt: now,
-        priority,
-        acknowledgedAt: data.acknowledgedAt || null,
-        containedAt: data.containedAt || null,
-        closedAt: created.closes ? now : null,
-      });
+    const dueTimes: {
+      acknowledgeDueAt: Date | null;
+      containDueAt: Date | null;
+    } = getDueTimesForNewCase({
+      openedAt: now,
+      priority,
+      acknowledgedAt: data.acknowledgedAt || null,
+      containedAt: data.containedAt || null,
+      closedAt: created.closes ? now : null,
+    });
     const bookkeeping: {
       nextDueAt: Date | null;
       nextTargetCheckAt: Date | null;
@@ -915,8 +917,11 @@ export class Service extends ProjectReferencesService<Model> {
       priorityId,
     );
 
+    // What the case held before the change; nothing for a caller that read none.
+    const held: SecurityCaseTargetMoments = old.targets || {};
+
     // The case as this change leaves it, before its targets move.
-    const after: SecurityCaseTargetMoments = { ...old.targets };
+    const after: SecurityCaseTargetMoments = { ...held };
 
     for (const column of ["acknowledgedAt", "containedAt", "closedAt"]) {
       if (stamps[column] !== undefined) {
@@ -943,11 +948,7 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     // Reopened, and never contained: the contain target starts again.
-    if (
-      stamps["closedAt"] === null &&
-      old.targets.closedAt &&
-      !old.targets.containedAt
-    ) {
+    if (stamps["closedAt"] === null && held.closedAt && !held.containedAt) {
       Object.assign(write, getContainTargetAfterReopen({ priority, now }));
     }
 
@@ -958,11 +959,13 @@ export class Service extends ProjectReferencesService<Model> {
       nextTargetCheckAt: Date | null;
     } = getTargetBookkeeping({ securityCase: after, priority });
 
-    if (!sameMoment(bookkeeping.nextDueAt, old.nextDueAt)) {
+    if (!sameMoment(bookkeeping.nextDueAt, old.nextDueAt || null)) {
       write.nextDueAt = bookkeeping.nextDueAt;
     }
 
-    if (!sameMoment(bookkeeping.nextTargetCheckAt, old.nextTargetCheckAt)) {
+    if (
+      !sameMoment(bookkeeping.nextTargetCheckAt, old.nextTargetCheckAt || null)
+    ) {
       write.nextTargetCheckAt = bookkeeping.nextTargetCheckAt;
     }
 
@@ -973,7 +976,7 @@ export class Service extends ProjectReferencesService<Model> {
         column !== "nextTargetCheckAt" &&
         sameMoment(
           value as Date | null,
-          (old.targets as Record<string, Date | null | undefined>)[column],
+          (held as Record<string, Date | null | undefined>)[column],
         )
       ) {
         delete (write as Record<string, unknown>)[column];
