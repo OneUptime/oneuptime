@@ -393,6 +393,8 @@ describe("changing a task", () => {
       query: { _id: TASK_ID },
       data: data as never,
       props,
+      limit: 1,
+      skip: 0,
     };
     const onUpdate: OnUpdate<SecurityCaseTask> =
       await taskHooks.onBeforeUpdate(updateBy);
@@ -524,7 +526,7 @@ describe("deleting a task", () => {
       .mockResolvedValue([row] as never);
 
     const onDelete: OnDelete<SecurityCaseTask> = await taskHooks.onBeforeDelete(
-      { query: { _id: TASK_ID }, props: MAYA },
+      { query: { _id: TASK_ID }, props: MAYA, limit: 1, skip: 0 },
     );
     await taskHooks.onDeleteSuccess(onDelete, [TASK_ID]);
 
@@ -553,7 +555,7 @@ describe("deleting a task", () => {
     await expect(
       taskHooks.onDeleteSuccess(
         {
-          deleteBy: { query: { _id: TASK_ID }, props: MAYA },
+          deleteBy: { query: { _id: TASK_ID }, props: MAYA, limit: 1, skip: 0 },
           carryForward: { rows: [row] },
         },
         [TASK_ID],
@@ -863,6 +865,8 @@ describe("changing and removing evidence", () => {
       query: { _id: EVIDENCE_ID },
       data: data as never,
       props: MAYA,
+      limit: 1,
+      skip: 0,
     });
   }
 
@@ -904,6 +908,8 @@ describe("changing and removing evidence", () => {
       await evidenceHooks.onBeforeDelete({
         query: { _id: EVIDENCE_ID },
         props: MAYA,
+        limit: 1,
+        skip: 0,
       });
     await evidenceHooks.onDeleteSuccess(onDelete, [EVIDENCE_ID]);
 
@@ -994,6 +1000,8 @@ describe("a priority's response targets", () => {
         query: { _id: new ObjectID("66666666-6666-4666-8666-666666666666") },
         data: { containWithinInMinutes: "two hours" } as never,
         props: MAYA,
+        limit: 1,
+        skip: 0,
       }),
     ).rejects.toThrow("Contain Within must be a whole number of minutes");
   });

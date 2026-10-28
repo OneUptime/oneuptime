@@ -201,8 +201,8 @@ describe("downloading a security case's evidence file", () => {
   });
 
   test("a link has no file to send: the same 404", async () => {
-    evidence!.fileId = undefined;
-    evidence!.file = undefined;
+    delete evidence!.fileId;
+    delete evidence!.file;
 
     expect((await download()) as Error).toEqual(
       new NotFoundException(EVIDENCE_FILE_NOT_FOUND_MESSAGE),

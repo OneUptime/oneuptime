@@ -454,7 +454,6 @@ describe("a case changed", () => {
         securityCaseStatusId: testStatusId(SecurityCaseStage.Closed),
         acknowledgedAt: at(5),
         closedAt: at(30),
-        containMissedAt: undefined,
       }),
       {
         securityCaseStatusId: testStatusId(
