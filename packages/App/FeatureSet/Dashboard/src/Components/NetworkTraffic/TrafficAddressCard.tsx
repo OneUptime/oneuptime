@@ -191,7 +191,8 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
        * line starts under the name, not under the icon.
        */}
       <div className="flex min-w-0 items-start gap-3">
-        <span
+        {/* A div: Icon draws a div of its own. */}
+        <div
           className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-white text-gray-500 ring-1 ring-inset ring-gray-200"
           data-testid="traffic-address-card-icon"
         >
@@ -199,7 +200,7 @@ const TrafficAddressCard: FunctionComponent<ComponentProps> = (
             icon={label.source ? SOURCE_ICONS[label.source] : IconProp.Hashtag}
             className="h-4 w-4"
           />
-        </span>
+        </div>
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
             {/*
