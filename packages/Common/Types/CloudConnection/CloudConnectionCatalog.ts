@@ -146,6 +146,98 @@ export const CLOUD_CONNECTION_READ_INTERVALS: Array<number> = [
   5, 10, 15, 30, 60,
 ];
 
+/*
+ * The setting that records what Data Security may read of the connection's
+ * accounts, as its setup command granted it (CloudConnectionSetupCommands):
+ * nothing ("off", every connection until it is changed), how their data
+ * stores are set up ("configuration": who can reach each one, how it is
+ * encrypted and backed up - still never data), or that and samples of the
+ * stores' content to find sensitive data in them ("content").
+ */
+export const DATA_SECURITY_FIELD_KEY: string = "dataSecurity";
+
+export type CloudConnectionDataSecurityLevel =
+  | "off"
+  | "configuration"
+  | "content";
+
+export const CLOUD_CONNECTION_DATA_SECURITY_LEVELS: ReadonlyArray<CloudConnectionDataSecurityLevel> =
+  ["off", "configuration", "content"];
+
+// A connection's level: its setting when it is one of the levels, else off.
+export function getCloudConnectionDataSecurityLevel(
+  value: unknown,
+): CloudConnectionDataSecurityLevel {
+  return (
+    CLOUD_CONNECTION_DATA_SECURITY_LEVELS.find(
+      (level: CloudConnectionDataSecurityLevel): boolean => {
+        return level === value;
+      },
+    ) || "off"
+  );
+}
+
+/*
+ * Folded with the other settings most people leave alone: a connection
+ * reads no data store until someone opts in, and the command shown changes
+ * with the choice.
+ */
+function dataSecurityField(): CloudConnectionField {
+  return {
+    key: DATA_SECURITY_FIELD_KEY,
+    title: "Data security",
+    description:
+      "Lets Data Security read your buckets and databases: how they are set up, or that and samples of their content to find sensitive data. The command changes with it.",
+    type: "dropdown",
+    required: false,
+    options: [
+      { label: "Off", value: "off" },
+      { label: "Configuration only", value: "configuration" },
+      { label: "Configuration and content samples", value: "content" },
+    ],
+    defaultValue: "off",
+    isAdvanced: true,
+  };
+}
+
+/*
+ * The setting that records whether the connection may also close a data
+ * store's exposure, as its setup command granted it: Security Operations
+ * playbooks block a store's public access and revoke its sharing - the
+ * only writes a connection is ever given, granted on their own and off
+ * until someone picks "block".
+ */
+export const DATA_SECURITY_RESPONSE_FIELD_KEY: string = "dataSecurityResponse";
+
+export type CloudConnectionDataSecurityResponse = "off" | "block";
+
+export const CLOUD_CONNECTION_DATA_SECURITY_RESPONSES: ReadonlyArray<CloudConnectionDataSecurityResponse> =
+  ["off", "block"];
+
+// Whether a connection's setting lets playbooks close an exposure: "block" alone does.
+export function isCloudConnectionDataSecurityResponseOn(
+  value: unknown,
+): boolean {
+  return value === "block";
+}
+
+function dataSecurityResponseField(): CloudConnectionField {
+  return {
+    key: DATA_SECURITY_RESPONSE_FIELD_KEY,
+    title: "Data security response",
+    description:
+      "Lets Security Operations playbooks block public access to a data store and revoke its sharing, each run approved by a person unless the playbook says otherwise. The command changes with it.",
+    type: "dropdown",
+    required: false,
+    options: [
+      { label: "Off", value: "off" },
+      { label: "Block public access and sharing", value: "block" },
+    ],
+    defaultValue: "off",
+    isAdvanced: true,
+  };
+}
+
 function readIntervalField(defaultMinutes: number): CloudConnectionField {
   return {
     key: READ_INTERVAL_FIELD_KEY,
@@ -262,6 +354,8 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         isAdvanced: true,
       },
       readIntervalField(10),
+      dataSecurityField(),
+      dataSecurityResponseField(),
     ],
     secretFields: [
       {
@@ -346,6 +440,8 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         isAdvanced: true,
       },
       readIntervalField(5),
+      dataSecurityField(),
+      dataSecurityResponseField(),
       {
         key: AZURE_SECRET_EXPIRES_AT_KEY,
         title: "Client secret expires",
@@ -410,6 +506,8 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         isAdvanced: true,
       },
       readIntervalField(5),
+      dataSecurityField(),
+      dataSecurityResponseField(),
     ],
     secretFields: [
       {

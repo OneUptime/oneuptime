@@ -267,6 +267,89 @@ enum Permission {
   EditSecurityPlaybookRun = "EditSecurityPlaybookRun",
   ReadSecurityPlaybookRun = "ReadSecurityPlaybookRun",
 
+  // Data Stores: the buckets, databases, warehouses and telemetry Data Security watches
+  CreateDataStore = "CreateDataStore",
+  DeleteDataStore = "DeleteDataStore",
+  EditDataStore = "EditDataStore",
+  ReadDataStore = "ReadDataStore",
+
+  // Data Store Findings: what was found in each store, with masked samples
+  DeleteDataStoreFinding = "DeleteDataStoreFinding",
+  EditDataStoreFinding = "EditDataStoreFinding",
+  ReadDataStoreFinding = "ReadDataStoreFinding",
+
+  // Data Store Access: who and what can reach each store
+  DeleteDataStoreAccess = "DeleteDataStoreAccess",
+  ReadDataStoreAccess = "ReadDataStoreAccess",
+
+  // Data Flows: where sensitive data goes, read from traces and scans
+  DeleteDataSecurityFlow = "DeleteDataSecurityFlow",
+  ReadDataSecurityFlow = "ReadDataSecurityFlow",
+
+  // Data Security Issues: failing checks on stores, ranked by risk
+  DeleteDataSecurityIssue = "DeleteDataSecurityIssue",
+  EditDataSecurityIssue = "EditDataSecurityIssue",
+  ReadDataSecurityIssue = "ReadDataSecurityIssue",
+
+  // Data Security Issue Feed: what happened on an issue, written by OneUptime
+  ReadDataSecurityIssueFeed = "ReadDataSecurityIssueFeed",
+
+  // Data Security Scans: what each scan read and found
+  DeleteDataSecurityScan = "DeleteDataSecurityScan",
+  ReadDataSecurityScan = "ReadDataSecurityScan",
+
+  // Custom Data Types: a project's own kinds of sensitive data
+  CreateDataSecurityCustomDataType = "CreateDataSecurityCustomDataType",
+  DeleteDataSecurityCustomDataType = "DeleteDataSecurityCustomDataType",
+  EditDataSecurityCustomDataType = "EditDataSecurityCustomDataType",
+  ReadDataSecurityCustomDataType = "ReadDataSecurityCustomDataType",
+
+  // Data Security Check Settings: built-in checks turned off or re-rated
+  CreateDataSecurityCheckSetting = "CreateDataSecurityCheckSetting",
+  DeleteDataSecurityCheckSetting = "DeleteDataSecurityCheckSetting",
+  EditDataSecurityCheckSetting = "EditDataSecurityCheckSetting",
+  ReadDataSecurityCheckSetting = "ReadDataSecurityCheckSetting",
+
+  // Residency Rules: the regions data may live in
+  CreateDataSecurityResidencyRule = "CreateDataSecurityResidencyRule",
+  DeleteDataSecurityResidencyRule = "DeleteDataSecurityResidencyRule",
+  EditDataSecurityResidencyRule = "EditDataSecurityResidencyRule",
+  ReadDataSecurityResidencyRule = "ReadDataSecurityResidencyRule",
+
+  // Data Security Settings: what Data Security scans and how much it reads
+  CreateDataSecuritySetting = "CreateDataSecuritySetting",
+  DeleteDataSecuritySetting = "DeleteDataSecuritySetting",
+  EditDataSecuritySetting = "EditDataSecuritySetting",
+  ReadDataSecuritySetting = "ReadDataSecuritySetting",
+
+  // Data Store User Owners
+  CreateDataStoreOwnerUser = "CreateDataStoreOwnerUser",
+  DeleteDataStoreOwnerUser = "DeleteDataStoreOwnerUser",
+  EditDataStoreOwnerUser = "EditDataStoreOwnerUser",
+  ReadDataStoreOwnerUser = "ReadDataStoreOwnerUser",
+
+  // Data Store Team Owners
+  CreateDataStoreOwnerTeam = "CreateDataStoreOwnerTeam",
+  DeleteDataStoreOwnerTeam = "DeleteDataStoreOwnerTeam",
+  EditDataStoreOwnerTeam = "EditDataStoreOwnerTeam",
+  ReadDataStoreOwnerTeam = "ReadDataStoreOwnerTeam",
+
+  // Data Store Owner Rules: owners assigned to matching stores
+  CreateDataStoreOwnerRule = "CreateDataStoreOwnerRule",
+  DeleteDataStoreOwnerRule = "DeleteDataStoreOwnerRule",
+  EditDataStoreOwnerRule = "EditDataStoreOwnerRule",
+  ReadDataStoreOwnerRule = "ReadDataStoreOwnerRule",
+
+  // Data Store Label Rules: labels added to matching stores
+  CreateDataStoreLabelRule = "CreateDataStoreLabelRule",
+  DeleteDataStoreLabelRule = "DeleteDataStoreLabelRule",
+  EditDataStoreLabelRule = "EditDataStoreLabelRule",
+  ReadDataStoreLabelRule = "ReadDataStoreLabelRule",
+
+  // Data Store Feed: what happened to a store, written by OneUptime
+  CreateDataStoreFeed = "CreateDataStoreFeed",
+  ReadDataStoreFeed = "ReadDataStoreFeed",
+
   // Log Pipelines
   CreateProjectLogPipeline = "CreateProjectLogPipeline",
   DeleteProjectLogPipeline = "DeleteProjectLogPipeline",
@@ -8415,6 +8498,548 @@ export class PermissionHelper {
         title: "Read Security Playbook Run",
         description:
           "This permission can read Security Playbook runs of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Store Permissions
+      {
+        permission: Permission.CreateDataStore,
+        title: "Create Data Store",
+        description:
+          "This permission can create Data Stores of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteDataStore,
+        title: "Delete Data Store",
+        description:
+          "This permission can delete Data Stores of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditDataStore,
+        title: "Edit Data Store",
+        description:
+          "This permission can edit Data Stores of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataStore,
+        title: "Read Data Store",
+        description:
+          "This permission can read Data Stores of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: true,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Store Finding Permissions
+      {
+        permission: Permission.DeleteDataStoreFinding,
+        title: "Delete Data Store Finding",
+        description:
+          "This permission can delete Data Store Findings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditDataStoreFinding,
+        title: "Edit Data Store Finding",
+        description:
+          "This permission can edit Data Store Findings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataStoreFinding,
+        title: "Read Data Store Finding",
+        description:
+          "This permission can read Data Store Findings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Store Access Permissions
+      {
+        permission: Permission.DeleteDataStoreAccess,
+        title: "Delete Data Store Access",
+        description:
+          "This permission can delete Data Store Access entries of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataStoreAccess,
+        title: "Read Data Store Access",
+        description:
+          "This permission can read Data Store Access entries of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Flow Permissions
+      {
+        permission: Permission.DeleteDataSecurityFlow,
+        title: "Delete Data Flow",
+        description:
+          "This permission can delete Data Flows of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataSecurityFlow,
+        title: "Read Data Flow",
+        description:
+          "This permission can read Data Flows of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Security Issue Permissions
+      {
+        permission: Permission.DeleteDataSecurityIssue,
+        title: "Delete Data Security Issue",
+        description:
+          "This permission can delete Data Security Issues of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditDataSecurityIssue,
+        title: "Edit Data Security Issue",
+        description:
+          "This permission can edit Data Security Issues of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataSecurityIssue,
+        title: "Read Data Security Issue",
+        description:
+          "This permission can read Data Security Issues of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Security Issue Feed Permissions
+      {
+        permission: Permission.ReadDataSecurityIssueFeed,
+        title: "Read Data Security Issue Feed",
+        description:
+          "This permission can read the timelines of Data Security Issues of this project: what happened on each issue and when.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Security Scan Permissions
+      {
+        permission: Permission.DeleteDataSecurityScan,
+        title: "Delete Data Security Scan",
+        description:
+          "This permission can delete Data Security Scans of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataSecurityScan,
+        title: "Read Data Security Scan",
+        description:
+          "This permission can read Data Security Scans of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Custom Data Type Permissions
+      {
+        permission: Permission.CreateDataSecurityCustomDataType,
+        title: "Create Custom Data Type",
+        description:
+          "This permission can create Custom Data Types of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteDataSecurityCustomDataType,
+        title: "Delete Custom Data Type",
+        description:
+          "This permission can delete Custom Data Types of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditDataSecurityCustomDataType,
+        title: "Edit Custom Data Type",
+        description:
+          "This permission can edit Custom Data Types of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataSecurityCustomDataType,
+        title: "Read Custom Data Type",
+        description:
+          "This permission can read Custom Data Types of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Security Check Setting Permissions
+      {
+        permission: Permission.CreateDataSecurityCheckSetting,
+        title: "Create Data Security Check Setting",
+        description:
+          "This permission can create Data Security Check Settings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteDataSecurityCheckSetting,
+        title: "Delete Data Security Check Setting",
+        description:
+          "This permission can delete Data Security Check Settings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditDataSecurityCheckSetting,
+        title: "Edit Data Security Check Setting",
+        description:
+          "This permission can edit Data Security Check Settings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataSecurityCheckSetting,
+        title: "Read Data Security Check Setting",
+        description:
+          "This permission can read Data Security Check Settings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Residency Rule Permissions
+      {
+        permission: Permission.CreateDataSecurityResidencyRule,
+        title: "Create Residency Rule",
+        description:
+          "This permission can create Residency Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteDataSecurityResidencyRule,
+        title: "Delete Residency Rule",
+        description:
+          "This permission can delete Residency Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditDataSecurityResidencyRule,
+        title: "Edit Residency Rule",
+        description:
+          "This permission can edit Residency Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataSecurityResidencyRule,
+        title: "Read Residency Rule",
+        description:
+          "This permission can read Residency Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Security Setting Permissions
+      {
+        permission: Permission.CreateDataSecuritySetting,
+        title: "Create Data Security Setting",
+        description:
+          "This permission can create Data Security Settings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteDataSecuritySetting,
+        title: "Delete Data Security Setting",
+        description:
+          "This permission can delete Data Security Settings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditDataSecuritySetting,
+        title: "Edit Data Security Setting",
+        description:
+          "This permission can edit Data Security Settings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataSecuritySetting,
+        title: "Read Data Security Setting",
+        description:
+          "This permission can read Data Security Settings of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Store User Owner Permissions
+      {
+        permission: Permission.CreateDataStoreOwnerUser,
+        title: "Create Data Store User Owner",
+        description:
+          "This permission can create Data Store User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteDataStoreOwnerUser,
+        title: "Delete Data Store User Owner",
+        description:
+          "This permission can delete Data Store User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditDataStoreOwnerUser,
+        title: "Edit Data Store User Owner",
+        description:
+          "This permission can edit Data Store User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataStoreOwnerUser,
+        title: "Read Data Store User Owner",
+        description:
+          "This permission can read Data Store User Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Store Team Owner Permissions
+      {
+        permission: Permission.CreateDataStoreOwnerTeam,
+        title: "Create Data Store Team Owner",
+        description:
+          "This permission can create Data Store Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteDataStoreOwnerTeam,
+        title: "Delete Data Store Team Owner",
+        description:
+          "This permission can delete Data Store Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditDataStoreOwnerTeam,
+        title: "Edit Data Store Team Owner",
+        description:
+          "This permission can edit Data Store Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataStoreOwnerTeam,
+        title: "Read Data Store Team Owner",
+        description:
+          "This permission can read Data Store Team Owners of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Store Owner Rule Permissions
+      {
+        permission: Permission.CreateDataStoreOwnerRule,
+        title: "Create Data Store Owner Rule",
+        description:
+          "This permission can create Data Store Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteDataStoreOwnerRule,
+        title: "Delete Data Store Owner Rule",
+        description:
+          "This permission can delete Data Store Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditDataStoreOwnerRule,
+        title: "Edit Data Store Owner Rule",
+        description:
+          "This permission can edit Data Store Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataStoreOwnerRule,
+        title: "Read Data Store Owner Rule",
+        description:
+          "This permission can read Data Store Owner Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Store Label Rule Permissions
+      {
+        permission: Permission.CreateDataStoreLabelRule,
+        title: "Create Data Store Label Rule",
+        description:
+          "This permission can create Data Store Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.DeleteDataStoreLabelRule,
+        title: "Delete Data Store Label Rule",
+        description:
+          "This permission can delete Data Store Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.EditDataStoreLabelRule,
+        title: "Edit Data Store Label Rule",
+        description:
+          "This permission can edit Data Store Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataStoreLabelRule,
+        title: "Read Data Store Label Rule",
+        description:
+          "This permission can read Data Store Label Rules of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+
+      // Data Store Feed Permissions
+      {
+        permission: Permission.CreateDataStoreFeed,
+        title: "Create Data Store Feed",
+        description:
+          "This permission can add items to the feeds of Data Stores of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Security,
+      },
+      {
+        permission: Permission.ReadDataStoreFeed,
+        title: "Read Data Store Feed",
+        description:
+          "This permission can read the feeds of Data Stores of this project: what happened to each store and when.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

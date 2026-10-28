@@ -199,6 +199,13 @@ export function summarizeSecurityPlaybookStep(
         ),
       });
     }
+    case SecurityPlaybookActionType.NotifyDataStoreOwners:
+      return text(config, "message")
+        ? translator.translateText(
+            "The owners of the case's data stores, with your message",
+          ) || ""
+        : translator.translateText("The owners of the case's data stores") ||
+            "";
     case SecurityPlaybookActionType.PostToSlack:
     case SecurityPlaybookActionType.PostToMicrosoftTeams:
       return `#${text(config, "channelName")}`;

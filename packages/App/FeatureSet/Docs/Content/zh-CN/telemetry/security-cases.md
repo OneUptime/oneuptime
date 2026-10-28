@@ -196,7 +196,7 @@ OneUptime 会就案例上的三件事通知相关人员。无需任何人做任�
 | 安全案例优先级 | 项目的某个案例优先级，例如严重或 High |
 | 安全案例标题、安全案例描述 | 案例标题或描述中包含的文本，或其开头、结尾的文本 |
 | 安全案例状态 | 项目的某个案例状态，例如新增或已关闭 |
-| 安全案例来源 | Detection Rule、Threat Intel、Connected Product、实体风险 或 Manual |
+| 安全案例来源 | Detection Rule、Threat Intel、Connected Product、实体风险、Data Security 或 Manual |
 | 安全案例标签 | 案例的标签 |
 
 这三种通知都会发布到案例当时所匹配的每条规则的频道。一条 **安全案例优先级** 包含 **严重** 和 **高** 中任意一项的规则，会在 High 和 Critical 案例打开时发布它们，并在 Medium 案例提升到 High 时发布它。安全案例永远不会拥有专属频道。
@@ -235,6 +235,7 @@ OneUptime 会就案例上的三件事通知相关人员。无需任何人做任�
 | 调查 | Look up entity activity | 统计每个实体在最近一段时间内的安全事件，并记录到案例上 |
 | 调查 | Preserve the evidence | 保留案例背后请求的会话回放，并把它们的追踪和异常记录到案例上 |
 | 通知 | Email people | 通过电子邮件向用户和团队发送案例摘要及其链接 |
+| 通知 | Notify data store owners | 通过电子邮件向案例涉及的每个数据存储的所有者发送案例链接 |
 | 通知 | Post to Slack | 把案例摘要发布到某个 Slack 频道 |
 | 通知 | Post to Microsoft Teams | 把案例摘要发布到某个 Microsoft Teams 频道 |
 | 通知 | Post a status page announcement | 把你撰写的公告发布到你选择的状态页 |

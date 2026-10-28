@@ -196,7 +196,7 @@ To post to a channel, add a rule under **Products → Security Events → Worksp
 | Security Case Priority | One of the project's case priorities, such as Critical or High |
 | Security Case Title, Security Case Description | Text the case's title or description contains, starts with or ends with |
 | Security Case Status | One of the project's case statuses, such as New or Closed |
-| Security Case Source | Detection Rule, Threat Intel, Connected Product, Entity Risk or Manual |
+| Security Case Source | Detection Rule, Threat Intel, Connected Product, Entity Risk, Data Security or Manual |
 | Security Case Labels | The case's labels |
 
 The three notifications are each posted to the channels of every rule the case matches at that moment. A rule with **Security Case Priority** contains any of **Critical** and **High** posts High and Critical cases as they open, and a Medium case when it rises to High. A security case never gets a channel of its own.
@@ -235,6 +235,7 @@ A disabled playbook runs neither by itself nor by hand.
 | Investigate | Look up entity activity | Counts each entity's security events over a recent window, and notes it on the case |
 | Investigate | Preserve the evidence | Keeps the session replays of the requests behind the case, and notes their traces and exceptions on the case |
 | Notify | Email people | Emails users and teams a summary of the case, with a link to it |
+| Notify | Notify data store owners | Emails the owners of each data store the case is about, with a link to the case |
 | Notify | Post to Slack | Posts a summary of the case to a Slack channel |
 | Notify | Post to Microsoft Teams | Posts a summary of the case to a Microsoft Teams channel |
 | Notify | Post a status page announcement | Posts an announcement you wrote on the status pages you choose |

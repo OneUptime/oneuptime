@@ -196,7 +196,7 @@ Om in een kanaal te plaatsen, voeg je een regel toe onder **Producten → Securi
 | Prioriteit van beveiligingszaak | Een van de zaakprioriteiten van het project, zoals Kritiek of High |
 | Titel van beveiligingszaak, Beschrijving van beveiligingszaak | Tekst die de titel of de beschrijving van de zaak bevat, waarmee die begint of waarmee die eindigt |
 | Status van beveiligingszaak | Een van de zaakstatussen van het project, zoals Nieuw of Gesloten |
-| Bron van beveiligingszaak | Detection Rule, Threat Intel, Connected Product, Entiteitrisico of Manual |
+| Bron van beveiligingszaak | Detection Rule, Threat Intel, Connected Product, Entiteitrisico, Data Security of Manual |
 | Labels van beveiligingszaak | De labels van de zaak |
 
 De drie meldingen worden elk geplaatst in de kanalen van elke regel waaraan de zaak op dat moment voldoet. Een regel waarin **Prioriteit van beveiligingszaak** een van **Kritiek** en **Hoog** bevat, plaatst zaken met High en Kritiek zodra ze worden geopend, en een zaak met Medium wanneer die naar High stijgt. Een beveiligingszaak krijgt nooit een eigen kanaal.
@@ -235,6 +235,7 @@ Een uitgeschakeld playbook draait niet vanzelf en ook niet met de hand.
 | Onderzoeken | Look up entity activity | Telt de beveiligingsgebeurtenissen van elke entiteit over een recent venster, en noteert dat bij de zaak |
 | Onderzoeken | Preserve the evidence | Bewaart de sessie-opnames van de verzoeken achter de zaak, en noteert hun traces en exceptions bij de zaak |
 | Informeren | Email people | Mailt gebruikers en teams een samenvatting van de zaak, met een link ernaartoe |
+| Informeren | Notify data store owners | Mailt de eigenaars van elke gegevensopslag waar de zaak over gaat, met een link naar de zaak |
 | Informeren | Post to Slack | Plaatst een samenvatting van de zaak in een Slack-kanaal |
 | Informeren | Post to Microsoft Teams | Plaatst een samenvatting van de zaak in een kanaal van Microsoft Teams |
 | Informeren | Post a status page announcement | Plaatst een aankondiging die u schreef op de statuspagina's die u kiest |

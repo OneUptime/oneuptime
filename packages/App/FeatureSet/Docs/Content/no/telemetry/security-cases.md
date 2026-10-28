@@ -196,7 +196,7 @@ For å legge ut i en kanal legger du til en regel under **Produkter → Security
 | Prioritet for sikkerhetssak | En av prosjektets saksprioriteter, for eksempel Kritisk eller High |
 | Tittel på sikkerhetssak, Beskrivelse av sikkerhetssak | Tekst som tittelen eller beskrivelsen av saken inneholder, starter med eller slutter med |
 | Status for sikkerhetssak | En av prosjektets saksstatuser, for eksempel Ny eller Lukket |
-| Kilde for sikkerhetssak | Detection Rule, Threat Intel, Connected Product, Entitetsrisiko eller Manual |
+| Kilde for sikkerhetssak | Detection Rule, Threat Intel, Connected Product, Entitetsrisiko, Data Security eller Manual |
 | Etiketter for sikkerhetssak | Etikettene på saken |
 
 De tre varslingene legges hver ut i kanalene til hver regel saken treffer i det øyeblikket. En regel der **Prioritet for sikkerhetssak** inneholder en av **Kritisk** og **Høy**, legger ut saker med High og Kritisk når de åpnes, og en sak med Medium når den stiger til High. En sikkerhetssak får aldri en egen kanal.
@@ -235,6 +235,7 @@ En deaktivert playbook kjører verken av seg selv eller manuelt.
 | Investigate | Look up entity activity | Teller sikkerhetshendelsene til hver entitet over et nylig tidsvindu, og noterer det på saken |
 | Investigate | Preserve the evidence | Tar vare på øktopptakene av forespørslene bak saken, og noterer sporene og unntakene deres på saken |
 | Notify | Email people | Sender brukere og team en oppsummering av saken på e-post, med en lenke til den |
+| Notify | Notify data store owners | Sender eierne av hvert datalager saken gjelder en e-post, med en lenke til saken |
 | Notify | Post to Slack | Legger ut en oppsummering av saken i en Slack-kanal |
 | Notify | Post to Microsoft Teams | Legger ut en oppsummering av saken i en Microsoft Teams-kanal |
 | Notify | Post a status page announcement | Legger ut en kunngjøring du har skrevet, på statussidene du velger |

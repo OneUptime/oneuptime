@@ -196,7 +196,7 @@ Para publicar em um canal, adicione uma regra em **Produtos → Security Events 
 | Prioridade do caso de segurança | Uma das prioridades de caso do projeto, como Crítico ou High |
 | Título do caso de segurança, Descrição do caso de segurança | Um texto que o título ou a descrição do caso contém, com que começa ou com que termina |
 | Status do caso de segurança | Um dos status de caso do projeto, como Novo ou Fechado |
-| Origem do caso de segurança | Detection Rule, Threat Intel, Connected Product, Risco de entidades ou Manual |
+| Origem do caso de segurança | Detection Rule, Threat Intel, Connected Product, Risco de entidades, Data Security ou Manual |
 | Rótulos do caso de segurança | Os rótulos do caso |
 
 Cada uma das três notificações é publicada nos canais de todas as regras a que o caso corresponde naquele momento. Uma regra em que **Prioridade do caso de segurança** contém qualquer um de **Crítico** e **Alto** publica os casos High e Crítico assim que abrem, e um caso Medium quando ele sobe para High. Um caso de segurança nunca ganha um canal próprio.
@@ -235,6 +235,7 @@ Um playbook desabilitado não roda nem sozinho nem manualmente.
 | Investigação | Look up entity activity | Conta os eventos de segurança de cada entidade em uma janela recente, e registra isso no caso |
 | Investigação | Preserve the evidence | Guarda as gravações de sessão das requisições por trás do caso, e registra no caso seus traces e exceções |
 | Notificação | Email people | Envia por e-mail a usuários e equipes um resumo do caso, com um link para ele |
+| Notificação | Notify data store owners | Envia por e-mail aos responsáveis por cada armazenamento de dados do caso um link para ele |
 | Notificação | Post to Slack | Publica um resumo do caso em um canal do Slack |
 | Notificação | Post to Microsoft Teams | Publica um resumo do caso em um canal do Microsoft Teams |
 | Notificação | Post a status page announcement | Publica um aviso que você escreveu nas páginas de status que escolher |

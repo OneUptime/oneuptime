@@ -196,7 +196,7 @@ OneUptime 會就案件上的三件事通知相關人員。不需要任何人做�
 | 安全案例優先順序 | 專案的某個案件優先順序，例如嚴重或 High |
 | 安全案例標題、安全案例描述 | 案件標題或描述中包含的文字，或其開頭、結尾的文字 |
 | 安全案例狀態 | 專案的某個案件狀態，例如新增或已關閉 |
-| 安全案例來源 | Detection Rule、Threat Intel、Connected Product、實體風險 或 Manual |
+| 安全案例來源 | Detection Rule、Threat Intel、Connected Product、實體風險、Data Security 或 Manual |
 | 安全案例標籤 | 案件的標籤 |
 
 這三種通知都會張貼到案件當時所符合的每條規則的頻道。一條 **安全案例優先順序** 包含 **嚴重** 和 **高** 中任一項的規則，會在 High 和 Critical 案件開啟時張貼它們，並在 Medium 案件提升到 High 時張貼它。安全案件永遠不會有專屬的頻道。
@@ -235,6 +235,7 @@ OneUptime 會就案件上的三件事通知相關人員。不需要任何人做�
 | 調查 | Look up entity activity | 統計每個實體在最近一段時間內的安全性事件，並記錄在案件上 |
 | 調查 | Preserve the evidence | 保留案件背後請求的工作階段重播，並把它們的追蹤與例外記錄在案件上 |
 | 通知 | Email people | 以電子郵件傳送案件摘要及其連結給使用者和團隊 |
+| 通知 | Notify data store owners | 以電子郵件傳送案件連結給案件涉及的每個資料存放區的擁有者 |
 | 通知 | Post to Slack | 把案件摘要張貼到某個 Slack 頻道 |
 | 通知 | Post to Microsoft Teams | 把案件摘要張貼到某個 Microsoft Teams 頻道 |
 | 通知 | Post a status page announcement | 把你撰寫的公告發布到你選擇的狀態頁 |

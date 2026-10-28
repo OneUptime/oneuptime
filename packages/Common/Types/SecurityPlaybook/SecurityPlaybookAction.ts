@@ -23,6 +23,7 @@ export enum SecurityPlaybookActionType {
 
   // Notify
   EmailPeople = "Email People",
+  NotifyDataStoreOwners = "Notify Data Store Owners",
   PostToSlack = "Post to Slack",
   PostToMicrosoftTeams = "Post to Microsoft Teams",
   PostStatusPageAnnouncement = "Post Status Page Announcement",
@@ -176,6 +177,15 @@ export const SECURITY_PLAYBOOK_ACTIONS: ReadonlyArray<SecurityPlaybookActionDefi
         "Email users and teams a summary of the case with a link to it.",
       category: SecurityPlaybookActionCategory.Notify,
       icon: IconProp.Email,
+      isDisruptive: false,
+    },
+    {
+      type: SecurityPlaybookActionType.NotifyDataStoreOwners,
+      title: "Notify data store owners",
+      description:
+        "Email the owners of each data store the case is about, as Data Security lists them, with the store and a link to the case.",
+      category: SecurityPlaybookActionCategory.Notify,
+      icon: IconProp.Database,
       isDisruptive: false,
     },
     {

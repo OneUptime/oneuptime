@@ -1,6 +1,6 @@
 # Risque des entités (alertes fondées sur le risque)
 
-Une détection isolée en dit rarement long. Une rafale de connexions échouées, un premier sudo sur un hôte et une connexion depuis un nouveau pays méritent chacun un coup d'œil ; le même compte dans les trois en une semaine mérite un dossier. Le risque des entités additionne ce que vos règles de détection, votre renseignement sur les menaces et vos produits connectés trouvent sur chaque utilisateur, hôte et adresse IP, liste les plus à risque d'abord, et ouvre un dossier sur celui dont le risque atteint le seuil du projet.
+Une détection isolée en dit rarement long. Une rafale de connexions échouées, un premier sudo sur un hôte et une connexion depuis un nouveau pays méritent chacun un coup d'œil ; le même compte dans les trois en une semaine mérite un dossier. Le risque des entités additionne ce que vos règles de détection, votre renseignement sur les menaces, vos produits connectés et Data Security trouvent sur chaque utilisateur, hôte, adresse IP et magasin de données, liste les plus à risque d'abord, et ouvre un dossier sur celui dont le risque atteint le seuil du projet.
 
 :::cards
 - [Comment un score est compté](#comment-un-score-est-compté): Des points selon la gravité, et chaque source une fois par semaine.
@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Au seuil"| case["Un dossier s'ouvre,<br/>ou le dossier ouvert<br/>reprend le risque"]
 ```
 
-Ouvrez **Produits → Événements de sécurité → Risque des entités** : chaque utilisateur, hôte et adresse IP à risque, les plus à risque d'abord, avec son niveau, son importance, ce qui l'a trouvé et quand. Chacun s'ouvre sur sa propre page. **Entités les plus à risque**, sur la vue d'ensemble, montre le haut de cette liste, et **Rechercher une entité**, en dessous, recherche n'importe quelle valeur dans 30 jours d'événements, un domaine ou un hachage de fichier aussi.
+Ouvrez **Produits → Événements de sécurité → Risque des entités** : chaque utilisateur, hôte, adresse IP et magasin de données à risque, les plus à risque d'abord, avec son niveau, son importance, ce qui l'a trouvé et quand. Chacun s'ouvre sur sa propre page. **Entités les plus à risque**, sur la vue d'ensemble, montre le haut de cette liste, et **Rechercher une entité**, en dessous, recherche n'importe quelle valeur dans 30 jours d'événements, un domaine ou un hachage de fichier aussi.
 
 ## Avant de commencer
 
@@ -34,7 +34,7 @@ Ouvrez **Produits → Événements de sécurité → Risque des entités** : cha
 
 ## Comment un score est compté
 
-Chaque détection ajoute des points de risque à l'utilisateur, l'hôte ou l'adresse IP concerné :
+Chaque détection ajoute des points de risque à l'utilisateur, l'hôte, l'adresse IP ou le magasin de données concerné :
 
 | Une détection de gravité | Ajoute |
 | --- | --- |
@@ -44,8 +44,8 @@ Chaque détection ajoute des points de risque à l'utilisateur, l'hôte ou l'adr
 | Critique | 75 points |
 
 - Une détection informative n'ajoute rien, et une détection de gravité inconnue compte comme Moyenne.
-- Les points d'une règle de détection vont à la valeur selon laquelle elle regroupe. Une correspondance de renseignement sur les menaces ajoute à l'adresse IP que nomme l'indicateur. L'alerte d'un produit connecté ajoute à l'utilisateur et à l'hôte qu'elle nomme, sinon à son adresse IP.
-- Chaque source compte une fois. Une règle de détection, un flux de renseignement sur les menaces ou la règle d'un produit connecté compte une fois sur 7 jours, au plus qu'elle a ajouté, quel que soit le nombre de déclenchements : une règle bavarde ne peut jamais rendre une entité plus inquiétante que trois règles différentes.
+- Les points d'une règle de détection vont à la valeur selon laquelle elle regroupe. Une correspondance de renseignement sur les menaces ajoute à l'adresse IP que nomme l'indicateur. L'alerte d'un produit connecté ajoute à l'utilisateur et à l'hôte qu'elle nomme, sinon à son adresse IP. Un problème de Data Security ajoute au magasin de données où il a été trouvé.
+- Chaque source compte une fois. Une règle de détection, un flux de renseignement sur les menaces, la règle d'un produit connecté ou un contrôle de Data Security compte une fois sur 7 jours, au plus qu'elle a ajouté, quel que soit le nombre de déclenchements : une règle bavarde ne peut jamais rendre une entité plus inquiétante que trois règles différentes.
 - Une source qui n'a rien trouvé pendant 7 jours cesse de compter, et le score baisse. Les scores sont vérifiés toutes les 15 minutes, si bien qu'un score baisse à temps sans nouvelle détection.
 
 Le score d'une entité est la somme de ses sources, pondérée par sa criticité. L'attaque de test de **Envoyer une attaque de test**, et un dossier ouvert à la main, n'ajoutent aucun risque.
@@ -82,7 +82,7 @@ Certaines entités comptent plus que d'autres : un contrôleur de domaine, le co
 | Élevée | ×1.5 |
 | Extrême | ×2 |
 
-Une entrée est une valeur ou un motif `*`, sans tenir compte de la casse : `dc-*` désigne chaque contrôleur de domaine, et `*@contractors.example` chaque prestataire. **Type** la restreint aux utilisateurs, aux hôtes ou aux adresses IP ; vide, elle les vise tous. Quand plusieurs entrées nomment une entité, la plus précise compte : une valeur écrite en entier avant un motif, et un motif plus long avant un plus court. Une modification atteint le score de chaque entité en quelques minutes.
+Une entrée est une valeur ou un motif `*`, sans tenir compte de la casse : `dc-*` désigne chaque contrôleur de domaine, et `*@contractors.example` chaque prestataire. **Type** la restreint aux utilisateurs, aux hôtes, aux adresses IP ou aux magasins de données ; vide, elle les vise tous. Quand plusieurs entrées nomment une entité, la plus précise compte : une valeur écrite en entier avant un motif, et un motif plus long avant un plus court. Une modification atteint le score de chaque entité en quelques minutes. Data Security liste lui-même les magasins de données qu'il juge sensibles, les confidentiels en Élevée et les restreints en Extrême ; modifiez une de ces entrées et elle est à vous : Data Security n'y touche plus.
 
 ## La page d'une entité
 

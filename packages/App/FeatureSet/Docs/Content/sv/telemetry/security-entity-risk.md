@@ -1,6 +1,6 @@
 # Entitetsrisk (riskbaserad larmning)
 
-Ett enskilt fynd säger sällan mycket. En rad misslyckade inloggningar, ett första sudo på en värd och en inloggning från ett nytt land är var för sig värda en blick; samma konto i alla tre inom en vecka är värt ett ärende. Entitetsrisk lägger ihop det som dina detekteringsregler, hotunderrättelser och anslutna produkter hittar om varje användare, värd och IP-adress, visar de mest riskfyllda först och öppnar ett ärende om den vars risk når projektets tröskel.
+Ett enskilt fynd säger sällan mycket. En rad misslyckade inloggningar, ett första sudo på en värd och en inloggning från ett nytt land är var för sig värda en blick; samma konto i alla tre inom en vecka är värt ett ärende. Entitetsrisk lägger ihop det som dina detekteringsregler, hotunderrättelser, anslutna produkter och Data Security hittar om varje användare, värd, IP-adress och datalager, visar de mest riskfyllda först och öppnar ett ärende om den vars risk når projektets tröskel.
 
 :::cards
 - [Så räknas en poäng](#så-räknas-en-poäng): Poäng efter allvarlighetsgrad, och varje källa en gång i veckan.
@@ -24,7 +24,7 @@ flowchart TB
     score -->|"Vid<br/>tröskeln"| case["Ett ärende öppnas,<br/>eller så tar det öppna<br/>ärendet in risken"]
 ```
 
-Öppna **Produkter → Security Events → Entitetsrisk**: varje användare, värd och IP-adress med risk just nu, de mest riskfyllda först, med nivå, hur mycket den betyder, vad som hittade den och när. Var och en öppnas på en egen sida. **Mest riskfyllda entiteter** på översikten visar toppen av den här listan, och **Slå upp en entitet** under den slår upp vilket värde som helst i 30 dagars händelser, även en domän eller en filhash.
+Öppna **Produkter → Security Events → Entitetsrisk**: varje användare, värd, IP-adress och datalager med risk just nu, de mest riskfyllda först, med nivå, hur mycket den betyder, vad som hittade den och när. Var och en öppnas på en egen sida. **Mest riskfyllda entiteter** på översikten visar toppen av den här listan, och **Slå upp en entitet** under den slår upp vilket värde som helst i 30 dagars händelser, även en domän eller en filhash.
 
 ## Innan du börjar
 
@@ -34,7 +34,7 @@ flowchart TB
 
 ## Så räknas en poäng
 
-Varje fynd ger riskpoäng till användaren, värden eller IP-adressen det gäller:
+Varje fynd ger riskpoäng till användaren, värden, IP-adressen eller datalagret det gäller:
 
 | Ett fynd med allvarlighetsgrad | Ger |
 | --- | --- |
@@ -44,8 +44,8 @@ Varje fynd ger riskpoäng till användaren, värden eller IP-adressen det gälle
 | Kritisk | 75 poäng |
 
 - Ett informativt fynd ger ingenting, och ett fynd med okänd allvarlighetsgrad räknas som Medel.
-- En detekteringsregels poäng går till värdet den grupperar efter. En träff i hotunderrättelser räknas för IP-adressen som indikatorn nämner. En ansluten produkts larm räknas för användaren och värden det nämner, annars för dess IP-adress.
-- Varje källa räknas en gång. En detekteringsregel, ett flöde med hotunderrättelser eller en ansluten produkts regel räknas en gång på 7 dagar, med det mesta den lade till, hur ofta den än utlöses: en bullrig regel kan aldrig få en entitet att se värre ut än tre olika.
+- En detekteringsregels poäng går till värdet den grupperar efter. En träff i hotunderrättelser räknas för IP-adressen som indikatorn nämner. En ansluten produkts larm räknas för användaren och värden det nämner, annars för dess IP-adress. Ett problem från Data Security räknas för datalagret där det hittades.
+- Varje källa räknas en gång. En detekteringsregel, ett flöde med hotunderrättelser, en ansluten produkts regel eller en kontroll från Data Security räknas en gång på 7 dagar, med det mesta den lade till, hur ofta den än utlöses: en bullrig regel kan aldrig få en entitet att se värre ut än tre olika.
 - En källa som inte har hittat något på 7 dagar slutar räknas, och poängen sjunker. Poängen kontrolleras var 15:e minut, så en poäng sjunker i tid utan ett nytt fynd.
 
 En entitets poäng är summan av dess källor, viktad efter dess kritikalitet. Testattacken från **Skicka en testattack**, och ett ärende som någon öppnar för hand, lägger inte till någon risk.
@@ -82,7 +82,7 @@ Vissa entiteter betyder mer än andra: en domänkontrollant, en chefs konto, en 
 | Hög | ×1.5 |
 | Extrem | ×2 |
 
-En post är ett värde eller ett `*`-mönster, oavsett skiftläge: `dc-*` namnger varje domänkontrollant, och `*@contractors.example` varje konsult. **Typ** begränsar den till användare, värdar eller IP-adresser; tomt passar alla. När flera poster nämner en entitet räknas den mest specifika: ett utskrivet värde före ett mönster, och ett längre mönster före ett kortare. En ändring når varje entitets poäng inom några minuter.
+En post är ett värde eller ett `*`-mönster, oavsett skiftläge: `dc-*` namnger varje domänkontrollant, och `*@contractors.example` varje konsult. **Typ** begränsar den till användare, värdar, IP-adresser eller datalager; tomt passar alla. När flera poster nämner en entitet räknas den mest specifika: ett utskrivet värde före ett mönster, och ett längre mönster före ett kortare. En ändring når varje entitets poäng inom några minuter. Data Security lägger själv in de datalager den bedömer som känsliga, konfidentiella som Hög och begränsade som Extrem; ändrar du en sådan post blir den din, och Data Security låter den vara.
 
 ## En entitets sida
 

@@ -71,6 +71,7 @@ export const SECURITY_PLAYBOOK_ACTION_TITLES: Readonly<Record<string, string>> =
     "Look Up Entity Activity": "Look up entity activity",
     "Preserve Evidence": "Preserve the evidence",
     "Email People": "Email people",
+    "Notify Data Store Owners": "Notify data store owners",
     "Post to Slack": "Post to Slack",
     "Post to Microsoft Teams": "Post to Microsoft Teams",
     "Post Status Page Announcement": "Post a status page announcement",

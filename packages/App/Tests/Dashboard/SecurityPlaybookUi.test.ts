@@ -131,6 +131,9 @@ const FILLED: Record<SecurityPlaybookActionType, JSONObject> = {
     teamIds: [ID_B],
     message: "Have a look.",
   },
+  [SecurityPlaybookActionType.NotifyDataStoreOwners]: {
+    message: "Your store is in {{case.number}}.",
+  },
   [SecurityPlaybookActionType.PostToSlack]: {
     channelName: "security",
     message: "New case {{case.number}}",
@@ -690,6 +693,14 @@ describe("a step's one-line summary", () => {
     expect(responseSummary(SecurityPlaybookActionType.FixWithAi, {})).toBe(
       "A pull request for each exception the case's requests threw",
     );
+    expect(
+      responseSummary(SecurityPlaybookActionType.NotifyDataStoreOwners, {}),
+    ).toBe("The owners of the case's data stores");
+    expect(
+      responseSummary(SecurityPlaybookActionType.NotifyDataStoreOwners, {
+        message: "Lock it down.",
+      }),
+    ).toBe("The owners of the case's data stores, with your message");
   });
 
   test("shows only the start of a long note, on one line", () => {

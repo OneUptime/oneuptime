@@ -196,7 +196,7 @@ För att posta i en kanal lägger du till en regel under **Produkter → Securit
 | Prioritet för säkerhetsärende | En av projektets ärendeprioriteter, till exempel Critical eller High |
 | Titel på säkerhetsärende, Beskrivning av säkerhetsärende | Text som ärendets titel eller beskrivning innehåller, börjar med eller slutar med |
 | Status för säkerhetsärende | En av projektets ärendestatusar, till exempel New eller Closed |
-| Källa för säkerhetsärende | Detection Rule, Threat Intel, Connected Product, Entitetsrisk eller Manual |
+| Källa för säkerhetsärende | Detection Rule, Threat Intel, Connected Product, Entitetsrisk, Data Security eller Manual |
 | Etiketter för säkerhetsärende | Ärendets etiketter |
 
 Var och en av de tre aviseringarna postas i kanalerna för varje regel som ärendet matchar just då. En regel där **Prioritet för säkerhetsärende** innehåller någon av **Kritisk** och **Hög** postar ärenden med High och Critical när de öppnas, och ett ärende med Medium när det stiger till High. Ett säkerhetsärende får aldrig en egen kanal.
@@ -235,6 +235,7 @@ En inaktiverad playbook körs varken av sig själv eller manuellt.
 | Utredning | Look up entity activity | Räknar varje entitets säkerhetshändelser under ett fönster bakåt i tiden och antecknar resultatet i ärendet |
 | Utredning | Preserve the evidence | Behåller sessionsinspelningarna av förfrågningarna bakom ärendet och antecknar deras spår och undantag i ärendet |
 | Avisering | Email people | Mejlar användare och team en sammanfattning av ärendet, med en länk till det |
+| Avisering | Notify data store owners | Mejlar ägarna till varje datalager som ärendet gäller, med en länk till ärendet |
 | Avisering | Post to Slack | Postar en sammanfattning av ärendet i en Slack-kanal |
 | Avisering | Post to Microsoft Teams | Postar en sammanfattning av ärendet i en Microsoft Teams-kanal |
 | Avisering | Post a status page announcement | Publicerar ett meddelande du har skrivit på de statussidor du väljer |

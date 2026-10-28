@@ -196,7 +196,7 @@ Para publicar en un canal, añade una regla en **Productos → Eventos de seguri
 | Prioridad del caso de seguridad | Una de las prioridades de caso del proyecto, como Crítico o Alta |
 | Título del caso de seguridad, Descripción del caso de seguridad | Un texto que el título o la descripción del caso contiene, por el que empieza o con el que termina |
 | Estado del caso de seguridad | Uno de los estados de caso del proyecto, como Nuevo o Cerrado |
-| Origen del caso de seguridad | Regla de detección, Inteligencia de amenazas, Connected Product, Riesgo de entidades o Manual |
+| Origen del caso de seguridad | Regla de detección, Inteligencia de amenazas, Connected Product, Riesgo de entidades, Data Security o Manual |
 | Etiquetas del caso de seguridad | Las etiquetas del caso |
 
 Cada una de las tres notificaciones se publica en los canales de todas las reglas con las que coincide el caso en ese momento. Una regla en la que **Prioridad del caso de seguridad** contiene cualquiera de **Crítico** y **Alta** publica los casos de prioridad Alta y Crítico en cuanto se abren, y un caso Medium cuando sube a Alta. Un caso de seguridad nunca tiene un canal propio.
@@ -235,6 +235,7 @@ Un playbook deshabilitado no se ejecuta ni por sí solo ni a mano.
 | Investigación | Look up entity activity | Cuenta los eventos de seguridad de cada entidad en una ventana reciente y anota el resultado en el caso |
 | Investigación | Preserve the evidence | Conserva las grabaciones de sesión de las solicitudes detrás del caso y anota sus trazas y excepciones en el caso |
 | Notificación | Email people | Envía por email a usuarios y equipos un resumen del caso, con un enlace a él |
+| Notificación | Notify data store owners | Envía por email a los propietarios de cada almacén de datos del caso un enlace a él |
 | Notificación | Post to Slack | Publica un resumen del caso en un canal de Slack |
 | Notificación | Post to Microsoft Teams | Publica un resumen del caso en un canal de Microsoft Teams |
 | Notificación | Post a status page announcement | Publica un anuncio que escribiste en las páginas de estado que elijas |

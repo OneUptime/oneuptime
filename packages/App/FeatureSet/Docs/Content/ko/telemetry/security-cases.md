@@ -196,7 +196,7 @@ OneUptime은 케이스에 관한 세 가지 일을 사람들에게 알립니다.
 | 보안 케이스 우선순위 | 프로젝트의 케이스 우선순위 중 하나(예: 심각, High) |
 | 보안 케이스 제목, 보안 케이스 설명 | 케이스 제목이나 설명에 포함된 텍스트, 또는 그 시작이나 끝에 오는 텍스트 |
 | 보안 케이스 상태 | 프로젝트의 케이스 상태 중 하나(예: 신규, 닫힘) |
-| 보안 케이스 소스 | Detection Rule, Threat Intel, Connected Product, 엔티티 위험, Manual 중 하나 |
+| 보안 케이스 소스 | Detection Rule, Threat Intel, Connected Product, 엔티티 위험, Data Security, Manual 중 하나 |
 | 보안 케이스 레이블 | 케이스의 레이블 |
 
 세 가지 알림은 각각 그 시점에 케이스가 일치하는 모든 규칙의 채널에 게시됩니다. **보안 케이스 우선순위**가 **심각**, **높음** 중 하나를 포함하는 규칙은 High와 Critical 케이스를 열릴 때 게시하고, Medium 케이스는 High로 올라갈 때 게시합니다. 보안 케이스에 전용 채널이 생기는 일은 없습니다.
@@ -235,6 +235,7 @@ OneUptime은 케이스에 관한 세 가지 일을 사람들에게 알립니다.
 | 조사 | Look up entity activity | 각 엔티티의 최근 기간 보안 이벤트를 세어 케이스에 기록 |
 | 조사 | Preserve the evidence | 케이스 뒤에 있는 요청의 세션 리플레이를 보존하고, 그 트레이스와 예외를 케이스에 기록 |
 | 알림 | Email people | 케이스 요약을 케이스 링크와 함께 사용자와 팀에 이메일로 보냄 |
+| 알림 | Notify data store owners | 케이스가 다루는 각 데이터 저장소의 소유자에게 케이스 링크를 이메일로 보냄 |
 | 알림 | Post to Slack | 케이스 요약을 Slack 채널에 게시 |
 | 알림 | Post to Microsoft Teams | 케이스 요약을 Microsoft Teams 채널에 게시 |
 | 알림 | Post a status page announcement | 작성한 공지를 선택한 상태 페이지에 게시 |

@@ -196,7 +196,7 @@ For at slå op i en kanal tilføjer du en regel under **Produkter → Security E
 | Prioritet for sikkerhedssag | En af projektets sagsprioriteter, f.eks. Kritisk eller High |
 | Titel på sikkerhedssag, Beskrivelse af sikkerhedssag | Tekst, som sagens titel eller beskrivelse indeholder, starter med eller slutter med |
 | Status for sikkerhedssag | En af projektets sagsstatusser, f.eks. Ny eller Lukket |
-| Kilde til sikkerhedssag | Detection Rule, Threat Intel, Connected Product, Entitetsrisiko eller Manual |
+| Kilde til sikkerhedssag | Detection Rule, Threat Intel, Connected Product, Entitetsrisiko, Data Security eller Manual |
 | Etiketter på sikkerhedssag | Sagens etiketter |
 
 De tre notifikationer slås hver op i kanalerne for hver regel, sagen matcher i det øjeblik. En regel, hvor **Prioritet for sikkerhedssag** indeholder en af **Kritisk** og **Høj**, slår sager med High og Kritisk op, når de åbnes, og en sag med Medium, når den stiger til High. En sikkerhedssag får aldrig sin egen kanal.
@@ -235,6 +235,7 @@ En deaktiveret playbook kører hverken af sig selv eller manuelt.
 | Investigate | Look up entity activity | Tæller hver entitets sikkerhedsbegivenheder over et nyligt tidsvindue og noterer det på sagen |
 | Investigate | Preserve the evidence | Gemmer sessionsoptagelserne af anmodningerne bag sagen og noterer deres traces og undtagelser på sagen |
 | Notify | Email people | Sender brugere og teams en opsummering af sagen på e-mail med et link til den |
+| Notify | Notify data store owners | Sender ejerne af hvert datalager, sagen handler om, en e-mail med et link til sagen |
 | Notify | Post to Slack | Slår en opsummering af sagen op i en Slack-kanal |
 | Notify | Post to Microsoft Teams | Slår en opsummering af sagen op i en Microsoft Teams-kanal |
 | Notify | Post a status page announcement | Slår en meddelelse, du har skrevet, op på de statussider, du vælger |

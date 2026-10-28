@@ -196,7 +196,7 @@ Um in einem Kanal zu posten, fügen Sie unter **Produkte → Sicherheitsereignis
 | Priorität des Sicherheitsfalls | Eine der Fallprioritäten des Projekts, etwa Kritisch oder Hoch |
 | Titel des Sicherheitsfalls, Beschreibung des Sicherheitsfalls | Text, den der Titel oder die Beschreibung des Falls enthält, mit dem sie beginnen oder auf den sie enden |
 | Status des Sicherheitsfalls | Einer der Fallstatus des Projekts, etwa Neu oder Geschlossen |
-| Quelle des Sicherheitsfalls | Erkennungsregel, Threat Intel, Connected Product, Entitätsrisiko oder Manuell |
+| Quelle des Sicherheitsfalls | Erkennungsregel, Threat Intel, Connected Product, Entitätsrisiko, Data Security oder Manuell |
 | Beschriftungen des Sicherheitsfalls | Die Labels des Falls |
 
 Die drei Benachrichtigungen werden jeweils in die Kanäle jeder Regel gepostet, auf die der Fall in diesem Moment passt. Eine Regel, deren **Priorität des Sicherheitsfalls** eines von **Kritisch** und **Hoch** enthält, postet Fälle mit Priorität Hoch und Kritisch, sobald sie eröffnet werden, und einen Fall mit Medium, wenn er auf Hoch steigt. Ein Sicherheitsfall bekommt nie einen eigenen Kanal.
@@ -235,6 +235,7 @@ Ein deaktiviertes Playbook läuft weder von selbst noch per Hand.
 | Untersuchen | Look up entity activity | Zählt die Sicherheitsereignisse jeder Entität in einem kürzlich zurückliegenden Zeitfenster und vermerkt das am Fall |
 | Untersuchen | Preserve the evidence | Behält die Session Replays der Anfragen hinter dem Fall und vermerkt deren Traces und Ausnahmen am Fall |
 | Benachrichtigen | Email people | Schickt Benutzern und Teams eine Zusammenfassung des Falls per E-Mail, mit einem Link darauf |
+| Benachrichtigen | Notify data store owners | Schickt den Verantwortlichen jedes Datenspeichers, um den es im Fall geht, eine E-Mail mit einem Link zum Fall |
 | Benachrichtigen | Post to Slack | Postet eine Zusammenfassung des Falls in einen Slack-Kanal |
 | Benachrichtigen | Post to Microsoft Teams | Postet eine Zusammenfassung des Falls in einen Kanal von Microsoft Teams |
 | Benachrichtigen | Post a status page announcement | Veröffentlicht eine von Ihnen geschriebene Ankündigung auf den gewählten Statusseiten |

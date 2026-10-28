@@ -165,6 +165,15 @@ export const RUNBOOK_INPUT_KEYS: ReadonlyArray<{
   { type: SecurityEntityType.Url, list: "urls" },
   { type: SecurityEntityType.FileHash, list: "file_hashes" },
   { type: SecurityEntityType.Process, list: "processes" },
+  /*
+   * The store a Data Security case is about - its detections are grouped on
+   * it - so a runbook can lock it down again: "data-store:" and its key.
+   */
+  {
+    type: SecurityEntityType.DataStore,
+    list: "data_stores",
+    target: "data_store",
+  },
 ];
 
 // The kinds of entity a runbook is told the case is about.
@@ -190,13 +199,13 @@ export interface RunbookCaseInputs {
  *
  *   case_id, case_number, case_title, case_priority, case_status, case_url,
  *   playbook     what the run is for;
- *   ip, user, host
- *                the address, user and host the case is about - what its
- *                detections are grouped on, or what threat intel knows -
- *                by the same rule containment acts by
+ *   ip, user, host, data_store
+ *                the address, user, host and data store the case is about -
+ *                what its detections are grouped on, or what threat intel
+ *                knows - by the same rule containment acts by
  *                (SecurityPlaybookTargets); "" when it is about none, so a
  *                runbook never blocks the victim by mistake;
- *   ips, users, hosts, domains, urls, file_hashes, processes
+ *   ips, users, hosts, domains, urls, file_hashes, processes, data_stores
  *                every one the case names.
  *
  * A protected user or host (Protected Entities) is never handed to a

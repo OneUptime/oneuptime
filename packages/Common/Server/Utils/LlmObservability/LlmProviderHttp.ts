@@ -17,13 +17,16 @@ export const LLM_PROVIDER_DEFAULT_TIMEOUT_IN_MS: number = 60 * 1000;
 
 export interface LlmProviderRequest {
   transport: LlmConnectorTransport;
-  method: "GET" | "POST";
+  // PATCH: a cloud connection's response actions, which change one setting.
+  method: "GET" | "POST" | "PATCH";
   url: string;
   headers?: Dictionary<string> | undefined;
   // A JSON body (POST), sent as written when it is a string.
   body?: string | Dictionary<string> | undefined;
   formUrlEncoded?: boolean | undefined;
   timeoutInMs?: number | undefined;
+  // Keep the body's bytes in the answer's bodyBytes: a file, not text.
+  keepBodyBytes?: boolean | undefined;
   // What the request is for, in the error: "usage report".
   step: string;
   providerTitle: string;
@@ -109,6 +112,7 @@ export default class LlmProviderHttp {
           body: request.body,
           formUrlEncoded: request.formUrlEncoded,
           timeoutInMs: timeoutInMs,
+          ...(request.keepBodyBytes ? { keepBodyBytes: true } : {}),
         }),
         deadline,
       ]);

@@ -196,7 +196,7 @@ Pour publier dans un canal, ajoutez une règle sous **Produits → Événements 
 | Priorité du dossier de sécurité | L'une des priorités de dossier du projet, comme Critique ou Élevé |
 | Titre du dossier de sécurité, Description du dossier de sécurité | Un texte que le titre ou la description du dossier contient, par lequel il commence ou par lequel il se termine |
 | Statut du dossier de sécurité | L'un des statuts de dossier du projet, comme Nouveau ou Fermé |
-| Source du dossier de sécurité | Règle de détection, Threat Intel, Connected Product, Risque des entités ou Manuel |
+| Source du dossier de sécurité | Règle de détection, Threat Intel, Connected Product, Risque des entités, Data Security ou Manuel |
 | Étiquettes du dossier de sécurité | Les étiquettes du dossier |
 
 Les trois notifications sont chacune publiées dans les canaux de toutes les règles auxquelles le dossier correspond à ce moment-là. Une règle où **Priorité du dossier de sécurité** contient l'une des valeurs **Critique** et **Élevé** publie les dossiers Élevé et Critique dès leur ouverture, et un dossier Medium quand il monte à Élevé. Un dossier de sécurité n'a jamais de canal à lui.
@@ -235,6 +235,7 @@ Un playbook désactivé ne s'exécute ni de lui-même ni à la main.
 | Investigation | Look up entity activity | Compte les événements de sécurité de chaque entité sur une fenêtre récente, et consigne le résultat sur le dossier |
 | Investigation | Preserve the evidence | Conserve les enregistrements de session des requêtes derrière le dossier, et consigne leurs traces et exceptions sur le dossier |
 | Notification | Email people | Envoie par e-mail à des utilisateurs et des équipes un résumé du dossier, avec un lien vers celui-ci |
+| Notification | Notify data store owners | Envoie par e-mail aux propriétaires de chaque magasin de données concerné par le dossier un lien vers celui-ci |
 | Notification | Post to Slack | Publie un résumé du dossier dans un canal Slack |
 | Notification | Post to Microsoft Teams | Publie un résumé du dossier dans un canal Microsoft Teams |
 | Notification | Post a status page announcement | Publie une annonce que vous avez rédigée sur les pages de statut de votre choix |

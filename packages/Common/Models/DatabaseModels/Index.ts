@@ -171,6 +171,22 @@ import SecurityCaseStatus from "./SecurityCaseStatus";
 import SecurityDetection from "./SecurityDetection";
 import SecurityPlaybook from "./SecurityPlaybook";
 import SecurityPlaybookRun from "./SecurityPlaybookRun";
+import DataStore from "./DataStore";
+import DataStoreFinding from "./DataStoreFinding";
+import DataStoreAccess from "./DataStoreAccess";
+import DataStoreFeed from "./DataStoreFeed";
+import DataStoreOwnerUser from "./DataStoreOwnerUser";
+import DataStoreOwnerTeam from "./DataStoreOwnerTeam";
+import DataStoreOwnerRule from "./DataStoreOwnerRule";
+import DataStoreLabelRule from "./DataStoreLabelRule";
+import DataSecurityFlow from "./DataSecurityFlow";
+import DataSecurityIssue from "./DataSecurityIssue";
+import DataSecurityIssueFeed from "./DataSecurityIssueFeed";
+import DataSecurityScan from "./DataSecurityScan";
+import DataSecurityCustomDataType from "./DataSecurityCustomDataType";
+import DataSecurityCheckSetting from "./DataSecurityCheckSetting";
+import DataSecurityResidencyRule from "./DataSecurityResidencyRule";
+import DataSecuritySetting from "./DataSecuritySetting";
 import SecurityProtectedEntity from "./SecurityProtectedEntity";
 import SecurityEntityRisk from "./SecurityEntityRisk";
 import SecurityEntityCriticality from "./SecurityEntityCriticality";
@@ -608,6 +624,24 @@ const AllModelTypes: Array<{
   SecurityDetection,
   SecurityPlaybook,
   SecurityPlaybookRun,
+
+  // Data Security (DSPM)
+  DataStore,
+  DataStoreFinding,
+  DataStoreAccess,
+  DataStoreFeed,
+  DataStoreOwnerUser,
+  DataStoreOwnerTeam,
+  DataStoreOwnerRule,
+  DataStoreLabelRule,
+  DataSecurityFlow,
+  DataSecurityIssue,
+  DataSecurityIssueFeed,
+  DataSecurityScan,
+  DataSecurityCustomDataType,
+  DataSecurityCheckSetting,
+  DataSecurityResidencyRule,
+  DataSecuritySetting,
   SecurityProtectedEntity,
   SecurityEntityRisk,
   SecurityEntityCriticality,

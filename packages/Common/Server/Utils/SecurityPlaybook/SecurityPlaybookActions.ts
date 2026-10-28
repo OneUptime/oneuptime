@@ -109,6 +109,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import WorkspaceUtil from "../Workspace/Workspace";
 import { WorkspaceSendMessageResponse } from "../Workspace/WorkspaceBase";
 import SecurityPlaybookContainment from "./SecurityPlaybookContainment";
+import SecurityPlaybookDataStoreOwners from "./SecurityPlaybookDataStoreOwners";
 import SecurityPlaybookResponseSteps from "./SecurityPlaybookResponseSteps";
 import logger from "../Logger";
 import { loadSecurityConnections } from "../SecurityEvent/Connections/ConnectionsLoader";
@@ -230,6 +231,12 @@ export default class SecurityPlaybookActions {
         return await this.lookUpEntityActivity(context);
       case SecurityPlaybookActionType.EmailPeople:
         return await this.emailPeople(context);
+      // The owners of the case's data stores, as Data Security lists them.
+      case SecurityPlaybookActionType.NotifyDataStoreOwners:
+        return await SecurityPlaybookDataStoreOwners.notify(
+          context,
+          await this.getTemplateValues(context),
+        );
       case SecurityPlaybookActionType.PostToSlack:
         return await this.postToChannel(context, WorkspaceType.Slack);
       case SecurityPlaybookActionType.PostToMicrosoftTeams:
@@ -1366,7 +1373,11 @@ export default class SecurityPlaybookActions {
   }
 }
 
-// Entity types the containment steps act on, for a summary that names what was skipped.
+/*
+ * Entity types the containment steps act on, for a summary that names what
+ * was skipped. Never a data store: the steps that touch one only tell its
+ * owners (Notify data store owners), as PROTECTED_ENTITY_TYPES says.
+ */
 export const CONTAINABLE_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> = [
   SecurityEntityType.User,
   SecurityEntityType.Host,

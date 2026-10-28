@@ -62,6 +62,7 @@ const PLAIN_KEYS_BY_ACTION: Record<
   [SecurityPlaybookActionType.CheckThreatIntel]: ["raisePriorityToId"],
   [SecurityPlaybookActionType.LookUpEntityActivity]: ["lookbackInHours"],
   [SecurityPlaybookActionType.EmailPeople]: ["userIds", "teamIds", "message"],
+  [SecurityPlaybookActionType.NotifyDataStoreOwners]: ["message"],
   [SecurityPlaybookActionType.PostToSlack]: ["channelName", "message"],
   [SecurityPlaybookActionType.PostToMicrosoftTeams]: [
     "channelName",

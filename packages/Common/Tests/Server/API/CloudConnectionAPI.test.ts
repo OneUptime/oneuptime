@@ -279,6 +279,9 @@ describe("POST /cloud-connection/test", () => {
         config: {
           accessKeyId: ACCESS_KEY_ID,
           readIntervalInMinutes: "10",
+          // Data Security reads nothing until it is chosen.
+          dataSecurity: "off",
+          dataSecurityResponse: "off",
           authMethod: CloudConnectionAuthMethod.AwsAccessKey,
         },
         secrets: { secretAccessKey: NEW_SECRET },
