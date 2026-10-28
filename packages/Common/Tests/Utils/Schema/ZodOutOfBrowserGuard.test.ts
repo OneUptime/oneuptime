@@ -835,21 +835,42 @@ describe("the frontends", () => {
     }
   });
 
+  // Each frontend is walked once, whichever test asks first.
   const results: Map<string, WalkResult> = new Map<string, WalkResult>();
+  const walkOf: (frontend: Frontend) => WalkResult = (
+    frontend: Frontend,
+  ): WalkResult => {
+    const known: WalkResult | undefined = results.get(frontend.name);
+
+    if (known) {
+      return known;
+    }
+
+    const result: WalkResult = walk({
+      entryPoints: frontend.entryPoints.map((entryPoint: string): string => {
+        return path.join(FEATURE_SET_DIRECTORY, frontend.name, entryPoint);
+      }),
+      commonDirectory: COMMON_DIRECTORY,
+      schemaDirectory: SCHEMA_DIRECTORY,
+      aliases: aliasesOf(frontend),
+      root: REPOSITORY_DIRECTORY,
+    });
+
+    results.set(frontend.name, result);
+
+    return result;
+  };
+  const frontendNamed: (name: string) => Frontend = (
+    name: string,
+  ): Frontend => {
+    return FRONTENDS.find((frontend: Frontend): boolean => {
+      return frontend.name === name;
+    }) as Frontend;
+  };
 
   for (const frontend of FRONTENDS) {
     test(`${frontend.name} loads no zod, zod-to-openapi or Utils/Schema module`, () => {
-      const result: WalkResult = walk({
-        entryPoints: frontend.entryPoints.map((entryPoint: string): string => {
-          return path.join(FEATURE_SET_DIRECTORY, frontend.name, entryPoint);
-        }),
-        commonDirectory: COMMON_DIRECTORY,
-        schemaDirectory: SCHEMA_DIRECTORY,
-        aliases: aliasesOf(frontend),
-        root: REPOSITORY_DIRECTORY,
-      });
-
-      results.set(frontend.name, result);
+      const result: WalkResult = walkOf(frontend);
 
       expect(result.unresolved).toEqual([]);
       expect(result.findings.map(describeFinding)).toEqual([]);
@@ -857,15 +878,14 @@ describe("the frontends", () => {
   }
 
   test("the walks read the frontends whole: the Dashboard reaches thousands of files, and the Types that built schemas are reached", () => {
-    const dashboard: WalkResult | undefined = results.get("Dashboard");
-
-    expect(dashboard).toBeDefined();
-    expect((dashboard as WalkResult).reached.size).toBeGreaterThan(3000);
+    expect(walkOf(frontendNamed("Dashboard")).reached.size).toBeGreaterThan(
+      3000,
+    );
 
     const reachedByAny: Set<string> = new Set<string>();
 
-    for (const result of results.values()) {
-      for (const file of result.reached) {
+    for (const frontend of FRONTENDS) {
+      for (const file of walkOf(frontend).reached) {
         reachedByAny.add(file);
       }
     }
@@ -881,7 +901,7 @@ describe("the frontends", () => {
     }
 
     // Status pages load the Types too, monitor criteria included.
-    const statusPage: WalkResult = results.get("StatusPage") as WalkResult;
+    const statusPage: WalkResult = walkOf(frontendNamed("StatusPage"));
 
     expect(statusPage.reached.has("packages/Common/Types/Email.ts")).toBe(true);
     expect(
