@@ -24,6 +24,7 @@ import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserIncomingCallNumberService from "../../../Server/Services/UserIncomingCallNumberService";
 import UserPushService from "../../../Server/Services/UserPushService";
+import GlobalConfigService from "../../../Server/Services/GlobalConfigService";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import MonitorStepsProjectValidator from "../../../Server/Utils/Monitor/MonitorStepsProjectValidator";
 import GlobalSsoProviderChanges from "../../../Server/Utils/GlobalSsoProviderChanges";
@@ -451,6 +452,17 @@ describe("an API key permission's duplicate check reads the key under either nam
 });
 
 describe("a device or phone number is looked for among the owner's, named either way", () => {
+  beforeEach(() => {
+    /*
+     * Push is on, as on a new install: a device's registration first reads
+     * the server's switch for push (3207bef20f), from the database this
+     * suite does not have.
+     */
+    jest
+      .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(false);
+  });
+
   test("a push device whose owner is named by the relation is looked for among theirs", async () => {
     const countBy: ReturnType<typeof jest.spyOn> = jest
       .spyOn(UserPushService, "countBy")

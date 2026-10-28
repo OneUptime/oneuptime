@@ -356,6 +356,11 @@ services:
       # discards nearly everything written after 06:00 instead of keeping 6h.
       # See the header of Clickhouse/config.d/system-log-ttl.xml.
       - ./Clickhouse/config.d/system-log-ttl.xml:/etc/clickhouse-server/config.d/system-log-ttl.xml
+      # Logger drop-in: the image logs at trace (every query and merge, to its
+      # log files and system.text_log); warning, as Helm runs it, keeps the
+      # warnings and errors at a fraction of the CPU and disk writes. See
+      # Clickhouse/config.d/logger.xml; Tests/Ops keeps it in step with Helm.
+      - ./Clickhouse/config.d/logger.xml:/etc/clickhouse-server/config.d/logger.xml
     healthcheck:
       test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1'"]
       interval: 10s

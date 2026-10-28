@@ -31,6 +31,12 @@ import { describe, expect, test } from "@jest/globals";
  * The members are the people who accepted their invitation to the team;
  * those still invited travel as a count (`invitedMemberCount`), optional so
  * a reply from an older server still reads.
+ *
+ * A rule's `channelsNotChecked` (#5332) are the channels of its list that
+ * members are not checked on, because no page can go out on them on the
+ * server right now - the custom channel, while no custom channel can carry
+ * one. Optional for the same reason: a server from before custom channels
+ * sends none, which reads as every channel being checked.
  */
 
 type Equals<A, B> =
@@ -54,6 +60,7 @@ const RULE_KEYS: Equals<
   | "ruleType"
   | "enabled"
   | "notificationChannels"
+  | "channelsNotChecked"
   | "severityKind"
   | "appliesToAllSeverities"
   | "severities"
@@ -94,6 +101,12 @@ const CHANNELS_AND_KIND: Equals<
   [Array<ComplianceNotificationChannel>, ComplianceSeverityKind | null]
 > = true;
 
+// A list of channels, like notificationChannels - or absent, from an older server.
+const CHANNELS_NOT_CHECKED: Equals<
+  TeamComplianceRuleJSON["channelsNotChecked"],
+  Array<ComplianceNotificationChannel> | undefined
+> = true;
+
 const EXAMPLE: TeamComplianceStatusJSON = {
   teamId: "33333333-3333-4333-8333-333333333333",
   teamName: "Platform On-Call",
@@ -104,6 +117,7 @@ const EXAMPLE: TeamComplianceStatusJSON = {
       ruleType: ComplianceRuleType.HasIncidentOnCallRules,
       enabled: true,
       notificationChannels: [ComplianceNotificationChannel.Call],
+      channelsNotChecked: [],
       severityKind: ComplianceSeverityKind.Incident,
       appliesToAllSeverities: false,
       severities: [
@@ -124,6 +138,7 @@ const EXAMPLE: TeamComplianceStatusJSON = {
       ruleType: ComplianceRuleType.HasNotificationEmailMethod,
       enabled: false,
       notificationChannels: [],
+      channelsNotChecked: [],
       severityKind: null,
       appliesToAllSeverities: false,
       severities: [],
@@ -140,12 +155,32 @@ const EXAMPLE: TeamComplianceStatusJSON = {
         ComplianceNotificationChannel.Call,
         ComplianceNotificationChannel.Push,
       ],
+      channelsNotChecked: [],
       severityKind: ComplianceSeverityKind.Alert,
       appliesToAllSeverities: true,
       severities: [],
       compliantCount: 0,
       nonCompliantCount: 2,
       warnings: [],
+    },
+    {
+      /*
+       * "Custom channel for incidents" while no custom channel can carry a
+       * page: on, its one channel not checked, nobody counted.
+       */
+      settingId: "66666666-6666-4666-8666-000000000004",
+      ruleType: ComplianceRuleType.HasIncidentOnCallRules,
+      enabled: true,
+      notificationChannels: [ComplianceNotificationChannel.CustomChannel],
+      channelsNotChecked: [ComplianceNotificationChannel.CustomChannel],
+      severityKind: ComplianceSeverityKind.Incident,
+      appliesToAllSeverities: true,
+      severities: [],
+      compliantCount: 0,
+      nonCompliantCount: 0,
+      warnings: [
+        "Custom channels are a OneUptime Enterprise feature, and this server has no Enterprise license that includes them, so nothing is sent to a custom channel and members are not checked for one.",
+      ],
     },
   ],
   userComplianceStatuses: [
@@ -188,7 +223,27 @@ describe("TeamComplianceStatusJSON - the wire contract", () => {
       MEMBER_KEYS,
       ISSUE_KEYS,
       CHANNELS_AND_KIND,
-    ]).toEqual([true, true, true, true, true, true]);
+      CHANNELS_NOT_CHECKED,
+    ]).toEqual([true, true, true, true, true, true, true]);
+  });
+
+  test("the channels a rule does not check travel as a list of stored channel values", () => {
+    const sent: string = JSON.stringify(EXAMPLE.complianceSettings[3]);
+
+    expect(sent).toContain('"notificationChannels":["CustomChannel"]');
+    expect(sent).toContain('"channelsNotChecked":["CustomChannel"]');
+    // Every other rule sends an empty list: nothing set aside.
+    expect(JSON.stringify(EXAMPLE.complianceSettings[0])).toContain(
+      '"channelsNotChecked":[]',
+    );
+  });
+
+  test("a rule without channelsNotChecked, from an older server, is still a rule", () => {
+    const older: TeamComplianceRuleJSON = { ...EXAMPLE.complianceSettings[0]! };
+    delete older.channelsNotChecked;
+
+    expect(JSON.parse(JSON.stringify(older))).toEqual(older);
+    expect(Object.keys(older)).not.toContain("channelsNotChecked");
   });
 
   test("people still invited travel as a count, never as members", () => {

@@ -799,6 +799,14 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     expect(calls[0]!.emailEnvelope.vars["isOwner"]).toBeUndefined();
     expect(calls[0]!.emailEnvelope.vars["alertSeverity"]).toBe("Low");
     expect(markdownMock.convertToHTML).toHaveBeenCalledTimes(1);
+
+    // The feed says who was told: the project's owners, and why.
+    expect(feedService.createAlertFeedItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        feedInfoInMarkdown:
+          "The project's owners were notified that this alert is now **Acknowledged**, as it has no owners yet.",
+      }),
+    );
   });
 
   /*

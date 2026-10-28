@@ -25,6 +25,8 @@ import DatabaseCommonInteractionPropsUtil, {
 import { OwnedThroughMetadata } from "../../../../Types/Database/AccessControl/OwnedThrough";
 import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
 import { TableColumnMetadata } from "../../../../Types/Database/TableColumn";
+import { ColumnAccessControl } from "../../../../Types/BaseDatabase/AccessControl";
+import Dictionary from "../../../../Types/Dictionary";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -788,9 +790,19 @@ export default class OwnedScopePermission {
 
     const kept: Array<ColumnKeptToOwners> = [];
 
+    /*
+     * Who may read each column, read once for the whole loop. Asking
+     * getColumnAccessControlFor per column built the model's whole
+     * dictionary again for every column - about 150 columns times 150
+     * entries for a monitor - and every read and write a person makes runs
+     * this three or four times (OwnedScopeColumnsReadOnce.test.ts).
+     */
+    const accessControl: Dictionary<ColumnAccessControl> =
+      model.getColumnAccessControlForAllColumns();
+
     for (const column of model.getTableColumns().columns) {
       const readPermissions: Array<Permission> =
-        model.getColumnAccessControlFor(column)?.read || [];
+        accessControl[column]?.read || [];
 
       // A column nobody reads, or one some reader who may not change it reads.
       if (

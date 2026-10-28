@@ -59,16 +59,16 @@ Vil du prøve tjekket, før du gemmer, så klik på **Test monitor** i det andet
 
 ## Bliv tilkaldt, når det går ned
 
-Som det er nu, sendes en hændelse uden ejere med e-mail til projektets ejere, og det omfatter dig. For at blive tilkaldt, indtil nogen reagerer, opretter du en vagtpolitik og lader hver hændelse udløse den.
+Som det er nu, sendes en hændelse uden ejere med e-mail til projektets ejere, og det omfatter dig. For at blive tilkaldt, indtil nogen reagerer, opretter du en vagtpolitik: et projekts første udløses ved hver ny hændelse og hver ny advarsel.
 
 :::steps
 ### Opret en vagtpolitik
 
-Klik på **Opsæt en vagtpolitik** i tjeklisten, eller åbn **Vagtordning** fra menuen **Produkter**. Klik på **Opret Vagtpolitik**, og indtast et **Navn**. Under **Hvem tilkaldes først?** klikker du på **Tilføj modtager** og vælger dig selv. Klik på **Opret Vagtpolitik**.
+Klik på **Opsæt en vagtpolitik** i tjeklisten, eller åbn **Vagtordning** fra menuen **Produkter**. Klik på **Opret Vagtpolitik**, og indtast et **Navn**. Under **Hvem tilkaldes først?** klikker du på **Tilføj modtager** og vælger dig selv. Lad **Udløs den ved hver ny hændelse og hver ny advarsel** være slået til, og klik på **Opret Vagtpolitik**.
 
-### Udløs den for hver hændelse
+### Se reglen, der udløser den
 
-Åbn **Hændelser** fra menuen **Produkter**, fold **Regler** ud i sidemenuen, og vælg **Vagtregler**. Klik på **Opret Incident On-Call Rule**, indtast et **Navn**, og klik på **Næste**. Lad **Alle hændelser** være valgt under **Matchkriterier**, så reglen gælder for alle hændelser, og klik på **Næste**. Vælg din politik under **Vagtpolitikker**, og klik på **Opret Incident On-Call Rule**.
+Kontakten tilføjede en vagtregel for hændelser og en for advarsler. For at se din skal du åbne **Hændelser** fra menuen **Produkter**, folde **Regler** ud i sidemenuen og vælge **Vagtregler**: den matcher **Alle hændelser**. Vil du kun udløse politikken for nogle hændelser, fx de kritiske, så rediger reglen der, eller klik på **Opret Incident On-Call Rule** for at tilføje din egen.
 
 ### Vælg, hvordan du bliver kontaktet
 

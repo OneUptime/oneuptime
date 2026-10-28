@@ -59,16 +59,16 @@ Om de controle te proberen voordat u opslaat, klikt u in de tweede stap op **Mon
 
 ## Opgeroepen worden bij uitval
 
-Zoals het nu is, wordt een incident zonder eigenaren per e-mail naar de eigenaren van het project gestuurd, en daar hoort u bij. Om opgeroepen te worden tot iemand reageert, maakt u een bereikbaarheidsbeleid aan en laat u elk incident het activeren.
+Zoals het nu is, wordt een incident zonder eigenaren per e-mail naar de eigenaren van het project gestuurd, en daar hoort u bij. Om opgeroepen te worden tot iemand reageert, maakt u een bereikbaarheidsbeleid aan: het eerste van een project wordt bij elk nieuw incident en elke nieuwe waarschuwing geactiveerd.
 
 :::steps
 ### Een bereikbaarheidsbeleid aanmaken
 
-Klik in de checklist op **Stel een bereikbaarheidsbeleid in**, of open **Bereikbaarheidsdienst** vanuit het menu **Producten**. Klik op **Bereikbaarheidsbeleid aanmaken** en voer een **Naam** in. Klik onder **Wie wordt als eerste opgeroepen?** op **Ontvanger toevoegen** en kies uzelf. Klik op **Bereikbaarheidsbeleid aanmaken**.
+Klik in de checklist op **Stel een bereikbaarheidsbeleid in**, of open **Bereikbaarheidsdienst** vanuit het menu **Producten**. Klik op **Bereikbaarheidsbeleid aanmaken** en voer een **Naam** in. Klik onder **Wie wordt als eerste opgeroepen?** op **Ontvanger toevoegen** en kies uzelf. Laat **Activeren bij elk nieuw incident en elke nieuwe waarschuwing** aan staan en klik op **Bereikbaarheidsbeleid aanmaken**.
 
-### Het bij elk incident activeren
+### De regel bekijken die het activeert
 
-Open **Incidenten** vanuit het menu **Producten**, klap **Regels** open in het zijmenu en kies **Bereikbaarheidsregels**. Klik op **Incident On-Call Rule aanmaken**, voer een **Naam** in en klik op **Volgende**. Laat bij **Overeenkomstcriteria** de keuze **Alle incidenten** staan, zodat de regel bij elk incident past, en klik op **Volgende**. Kies uw beleid onder **Bereikbaarheidsbeleid** en klik op **Incident On-Call Rule aanmaken**.
+De schakelaar heeft een bereikbaarheidsregel voor incidenten en een voor waarschuwingen toegevoegd. Om de uwe te zien, opent u **Incidenten** vanuit het menu **Producten**, klapt u **Regels** open in het zijmenu en kiest u **Bereikbaarheidsregels**: hij past bij **Alle incidenten**. Wilt u het beleid alleen bij sommige incidenten activeren, zoals kritieke, bewerk de regel dan daar, of klik op **Incident On-Call Rule aanmaken** om er zelf een toe te voegen.
 
 ### Kiezen hoe u bereikt wordt
 

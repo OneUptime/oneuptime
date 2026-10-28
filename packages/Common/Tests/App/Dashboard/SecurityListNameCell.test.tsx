@@ -46,6 +46,28 @@ describe("SecurityListNameCell", () => {
     );
   });
 
+  test("the line under the name can be an element of its own: a link to what it counts", () => {
+    render(
+      <SecurityListNameCell
+        name="Brute force from one IP address"
+        detailParts={["ignored while a detail is given"]}
+        detail={<a href="/rule-exceptions">2 active exceptions</a>}
+        detailTestId="detection-rule-exception-count"
+      />,
+    );
+
+    const detail: HTMLElement = screen.getByTestId(
+      "detection-rule-exception-count",
+    );
+
+    // In the line's own place and type, in place of the parts.
+    expect(detail).toHaveTextContent(/^2 active exceptions$/);
+    expect(detail).toHaveClass("block", "text-xs", "text-gray-500");
+    expect(
+      screen.getByRole("link", { name: "2 active exceptions" }),
+    ).toHaveAttribute("href", "/rule-exceptions");
+  });
+
   test("its parts are joined by a dot, and the line breaks only between them", () => {
     render(
       <SecurityListNameCell

@@ -17,8 +17,9 @@ import IconProp from "Common/Types/Icon/IconProp";
  *                    whether any of it got through), Entity Risk (every
  *                    user, host and address scored by everything found
  *                    about it, and a lookup for any value) and Correlate
- *   Detections       what finds threats in them: Detection Rules, the Rule
- *                    Library, Threat Intel and ATT&CK Coverage
+ *   Detections       what finds threats in them: Detection Rules, the
+ *                    Rule Exceptions they skip, the Rule Library, Threat
+ *                    Intel and ATT&CK Coverage
  *   Playbooks        what responds when a case opens: Playbooks, the
  *                    Approvals - the runs a step holds for one - every
  *                    Playbook Run, and the Protected Entities no playbook
@@ -173,6 +174,16 @@ export const SECURITY_EVENTS_MENU: Array<SecurityEventsMenuSection> = [
         page: PageMap.SECURITY_EVENTS_DETECTION_RULES,
         title: "Detection Rules",
         icon: IconProp.ShieldCheck,
+      },
+      {
+        /*
+         * What the rules skip - an entity, a value or a time window - each
+         * with who added it, why and until when: every blind spot the team
+         * chose, in one list to review.
+         */
+        page: PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS,
+        title: "Rule Exceptions",
+        icon: IconProp.EyeSlash,
       },
       {
         page: PageMap.SECURITY_EVENTS_RULE_LIBRARY,

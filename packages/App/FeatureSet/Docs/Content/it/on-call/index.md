@@ -65,7 +65,7 @@ Nella pagina **Regole di escalation** della policy, fate clic su **Aggiungi rego
 
 ### Eseguire la policy automaticamente
 
-Andate in **Incidenti → Regole → Regole di reperibilità** o **Avvisi → Regole → Regole di reperibilità** e aggiungete una regola che esegua la policy per gli incidenti o gli avvisi corrispondenti, per esempio ogni incidente critico. Vedi [Che cosa esegue una policy](/docs/on-call/policies#che-cosa-esegue-una-policy).
+La prima policy di un progetto può farlo già alla creazione: lasciate attivo **Attivarla per ogni nuovo incidente e ogni nuovo avviso**. Per ogni altra policy, andate in **Incidenti → Regole → Regole di reperibilità** o **Avvisi → Regole → Regole di reperibilità** e aggiungete una regola che la esegua per gli incidenti o gli avvisi corrispondenti, per esempio ogni incidente critico. Vedi [Che cosa esegue una policy](/docs/on-call/policies#che-cosa-esegue-una-policy).
 
 ### Verificare che tutti siano raggiungibili
 

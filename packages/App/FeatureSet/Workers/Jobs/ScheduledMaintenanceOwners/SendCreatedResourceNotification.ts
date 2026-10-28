@@ -200,7 +200,9 @@ RunCron(
       }
 
       const scheduledMaintenanceFeedText: string =
-        OwnerNotificationFeedText.created("scheduled maintenance event");
+        OwnerNotificationFeedText.created("scheduled maintenance event", {
+          isProjectOwners: !doesResourceHasOwners,
+        });
 
       await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem({
         scheduledMaintenanceId: scheduledMaintenance.id!,

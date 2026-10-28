@@ -1,3 +1,4 @@
+import type GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import type PushNotificationService from "Common/Server/Services/PushNotificationService";
 import type { RelayPushReceiptsResult } from "Common/Server/Services/PushNotificationService";
 import type PushNotificationLogService from "Common/Server/Services/PushNotificationLogService";
@@ -140,6 +141,8 @@ const ENVIRONMENT_KEYS: Array<keyof ServerEnvironment> = [
 
 interface LoadedServer {
   PushNotificationService: typeof PushNotificationService;
+  // Its switch for push on the whole server (3207bef20f), read before a send.
+  GlobalConfigService: typeof GlobalConfigService;
   UserPushService: typeof UserPushService;
   PushNotificationLogService: typeof PushNotificationLogService;
   router: ExpressRouter;
@@ -177,6 +180,9 @@ function loadServer(environment: ServerEnvironment): LoadedServer {
         PushNotificationService:
           // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
           require("Common/Server/Services/PushNotificationService").default,
+        GlobalConfigService:
+          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+          require("Common/Server/Services/GlobalConfigService").default,
         UserPushService:
           // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
           require("Common/Server/Services/UserPushService").default,
@@ -864,6 +870,15 @@ describe("a self-hosted server sending its pages through a server that does not 
   beforeEach(() => {
     watchExpo(notARelay);
     logs = [];
+
+    /*
+     * Push is on, as on a new install: a send reads the server's switch
+     * for the whole server (GlobalConfig.disablePushNotifications) first,
+     * from the database this suite does not have.
+     */
+    jest
+      .spyOn(sender.GlobalConfigService, "getPushNotificationsTurnedOff")
+      .mockResolvedValue(false);
 
     markAsGone = jest
       .spyOn(sender.UserPushService, "markExpoPushTokenAsGone")

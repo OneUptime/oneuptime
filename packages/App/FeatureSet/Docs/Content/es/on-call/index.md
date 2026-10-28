@@ -65,7 +65,7 @@ En la página **Reglas de escalado** de la política, haz clic en **Añadir regl
 
 ### Ejecutar la política automáticamente
 
-Ve a **Incidentes → Reglas → Reglas de guardia** o **Alertas → Reglas → Reglas de guardia** y añade una regla que ejecute la política para los incidentes o las alertas que coincidan, por ejemplo cada uno crítico. Consulta [Qué ejecuta una política](/docs/on-call/policies#qué-ejecuta-una-política).
+La primera política de un proyecto puede hacerlo al crearla: deja activado **Activarla con cada nuevo incidente y cada nueva alerta**. Para cualquier otra política, ve a **Incidentes → Reglas → Reglas de guardia** o **Alertas → Reglas → Reglas de guardia** y añade una regla que la ejecute para los incidentes o las alertas que coincidan, por ejemplo cada uno crítico. Consulta [Qué ejecuta una política](/docs/on-call/policies#qué-ejecuta-una-política).
 
 ### Comprobar que todos son localizables
 

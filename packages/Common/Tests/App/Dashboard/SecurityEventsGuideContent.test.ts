@@ -806,7 +806,8 @@ describe("Detection Rules guide: the modifier table", () => {
       expect(statement.query).toContain("targetPort <= ");
     },
     cidr: (statement: Statement) => {
-      expect(statement.query).toContain("isIPAddressInRange(principalIp");
+      expect(statement.query).toContain("isIPAddressInRange(if(");
+      expect(statement.query).toContain("isIPv4String(principalIp)");
     },
     exists: (statement: Statement) => {
       expect(statement.query).toContain("mapContains(attributes");

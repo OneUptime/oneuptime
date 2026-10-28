@@ -40,6 +40,7 @@ Apri **Prodotti → Security Events**, sotto **Osservabilità**. Il suo menu ha 
 | **Rischio delle entità** | Eventi | Ogni utente, host e indirizzo, valutato in base a ciò che è stato trovato questa settimana, i più a rischio per primi |
 | **Correla** | Eventi | Un grafo degli eventi che condividono un host, un utente o un indirizzo IP |
 | **Regole di rilevamento** | Detections | Regole Sigma che girano secondo una pianificazione e aprono casi |
+| **Eccezioni delle regole** | Detections | Ciò che le tue regole saltano di proposito, come uno scanner o un test pianificato, ognuno con chi l'ha aggiunto e perché |
 | **Libreria di regole** | Detections | Regole di rilevamento pronte da aggiungere, ognuna con gli eventi che legge e se arrivano, con quelle consigliate segnalate |
 | **Threat Intel** | Detections | Feed STIX/TAXII di indicatori malevoli noti |
 | **Copertura ATT&CK** | Detections | Le tecniche MITRE ATT&CK coperte dalle tue regole |
@@ -418,6 +419,32 @@ Un Detection Finding è un evento di sicurezza di classe `Detection Finding` (cl
 
 Le risultanze sono eventi normali: cercale in **Eventi** e fai pivot su di esse in **Correla**. Per provare una nuova regola in silenzio, disattiva ogni azione tranne la risultanza finché non ti fidi di lei.
 
+### Eccezioni
+
+Un'eccezione è qualcosa che una regola salta perché te lo aspetti, come uno scanner di vulnerabilità, un job di backup notturno o un penetration test pianificato. Mette a tacere la regola per quella sola cosa senza spegnerla, e le altre corrispondenze della regola scattano ancora. Ogni eccezione è elencata in **Prodotti → Security Events → Rilevamenti → Eccezioni delle regole**: aggiungine una lì con **Aggiungi: Eccezione della regola**, con **Aggiungi eccezione** nella riga di una regola, oppure con **Aggiungi eccezione** nella riga di un rilevamento di un caso, che parte dalla regola del rilevamento e da ciò per cui è scattato.
+
+| Cosa salta la regola | Con cosa corrisponde |
+| --- | --- |
+| **Un'entità** | Un utente, un host o un indirizzo IP, ovunque un evento lo nomini: come chi ha agito (`principalUser`, `principalHost`, `principalIp`), come chi ha subito l'azione (`targetUser`, `targetHost`, `targetIp`), o tra i suoi `observables` |
+| **Un valore** | Il valore di un campo, con il campo nominato come lo nomina una regola: `processName`, `principalUser` o una chiave di attributo come `http.user_agent` |
+| **Una finestra temporale** | Ogni evento da **Inizia il** a **Termina il**, a non più di 30 giorni di distanza |
+
+- I valori corrispondono senza badare a maiuscole e minuscole, e `*` sta per qualunque sequenza di caratteri: `svc-*` salta ogni account di servizio, e `*.lab.example.com` ogni host di un dominio. Un indirizzo IP può essere un intervallo, come `10.20.0.0/16`. Un valore fatto solo di `*` viene rifiutato: per fermare una regola, spegnila.
+- Ogni eccezione dice perché nel suo **Motivo**, che vede chiunque legga l'elenco, e conserva chi l'ha aggiunta e quando. Un'entità o un valore può avere una data in **Scade il**, dopo la quale la regola lo vede di nuovo; una finestra temporale finisce da sé.
+- **Stato** dice a che punto è ciascuna: **Attivo**, **In arrivo** per una finestra non ancora iniziata, **Scaduto** o **Terminato**. Sotto il nome di una regola in **Regole di rilevamento**, una riga conta le sue eccezioni attive, e **Visualizza eccezioni** nella riga della regola apre l'elenco filtrato su di essa.
+- Gli eventi saltati vengono tolti prima che la regola conti qualcosa, quindi non contano mai per la sua **Soglia di corrispondenze** e non aprono casi, avvisi, incidenti né risultanze. Le eccezioni valgono per ogni esecuzione della regola, correlazioni comprese, e per **Esegui su eventi passati**, ma mai per un attacco di prova, che verifica che gli eventi arrivino.
+- Una regola ha al massimo 100 eccezioni. Chi può modificare le regole di rilevamento le aggiunge, le cambia e le rimuove, ogni ruolo Security può leggerle, e ogni modifica resta nel registro di audit del progetto.
+
+### Esegui su eventi passati
+
+**Esegui su eventi passati** mostra cosa avrebbe trovato una regola se fosse stata in esecuzione, senza aprire, inviare o scrivere nulla. Si trova nella riga di una regola, per la regola così come è salvata, e sotto **Regola Sigma (YAML)** nel modulo della regola, per la regola così come è lì, prima che tu la salvi. Scegli **Ultime 24 ore**, **Ultimi 7 giorni** o **Ultimi 30 giorni**.
+
+- Una regola viene contata come la contano le sue esecuzioni: in finestre lunghe quanto il suo **Intervallo di valutazione (minuti)**, e un gruppo scatta in una finestra quando il suo conteggio lì raggiunge la **Soglia di corrispondenze**. Una correlazione viene letta sull'intero periodo, ed elenca i gruppi con cui avrebbe corrisposto, ognuno con ciò che è successo.
+- La risposta dice quante volte la regola sarebbe scattata, quante volte al giorno, per quanti utenti, host o indirizzi, e quanti eventi hanno corrisposto. Sono elencati i 50 gruppi che sono scattati di più, ognuno con i suoi eventi e l'ultima volta che è scattato.
+- Le eccezioni di una regola salvata si applicano, e la risposta dice quanti eventi hanno saltato e quanti scatti hanno evitato. Una regola che non sarebbe scattata dice quanto ci è andata vicino: quanti eventi hanno corrisposto, e la soglia che nessun gruppo ha raggiunto in una finestra.
+- Una regola che scatterebbe più di 20 volte al giorno scatta più di quanto una persona possa esaminare, e la risposta lo dice, con modi per renderla più silenziosa.
+- Legge solo le fonti che puoi leggere. Un'esecuzione che dura più di 45 secondi viene fermata e lo dice: scegli un periodo più breve.
+
 ## Monitor di eventi di sicurezza
 
 Un monitor di eventi di sicurezza conta gli eventi che corrispondono ai suoi filtri su una finestra mobile e applica al conteggio i soliti criteri dei monitor: cambia lo stato del monitor, apre avvisi o incidenti e chiama la reperibilità. Creane uno in **Monitor → Crea monitor**, con **Eventi di sicurezza** come tipo; viene elencato lì insieme agli altri tuoi monitor.
@@ -468,6 +495,18 @@ Controlla il suo **Stato**: con **Disabilitato** la regola non viene eseguita, e
 
 :::details Una regola apre troppi avvisi
 Ogni valore del **Campo di raggruppamento** riceve il proprio avviso: raggruppa per qualcosa di più ampio, alza la soglia o aggiungi un conteggio distinto. Se ti interessa il ritmo più di ogni corrispondenza, imposta **Avvisi e incidenti** su **Nessuno dei due** e metti un monitor sulle risultanze della regola.
+:::
+
+:::details Una regola scatta per qualcosa che ti aspetti
+Aggiungi un'eccezione invece di spegnere la regola: **Aggiungi eccezione** nella riga del rilevamento del suo caso parte dalla regola e da ciò per cui è scattata. Per cambiare la regola stessa, **Esegui su eventi passati** sotto il suo YAML mostra cosa avrebbe trovato la modifica prima che tu salvi.
+:::
+
+:::details Un'eccezione non salta ciò che dovrebbe
+Controlla il suo **Stato** in **Eccezioni delle regole**: un'eccezione nello stato **Scaduto** non salta nulla, e una finestra temporale salta solo gli eventi tra i suoi due orari. Un'entità viene cercata come chi ha agito, come chi ha subito l'azione e tra gli `observables` dell'evento; per saltare un valore di un altro campo, aggiungi un'eccezione **Un valore** che nomini quel campo. Senza `*`, un valore deve essere uguale all'intero campo: `svc-*` salta `svc-backup`, e `svc-` no.
+:::
+
+:::details Eseguire una regola su eventi passati non trova nulla
+Legge solo il periodo che scegli e le fonti che puoi leggere. Quando degli eventi hanno corrisposto ma nessun gruppo ha raggiunto la **Soglia di corrispondenze** in una finestra, la risposta dice quanti hanno corrisposto: abbassa la soglia, oppure conta su un **Intervallo di valutazione (minuti)** più lungo.
 :::
 
 ## Passaggi successivi

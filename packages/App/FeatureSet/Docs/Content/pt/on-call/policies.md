@@ -20,6 +20,8 @@ Uma política de plantão decide quem é acionado por um incidente ou alerta, e 
 
 **Quem é acionado primeiro?** é opcional, e só é perguntado a quem pode adicionar regras de escalonamento: se ficar vazio, a política não aciona ninguém até ter uma regra. **Descrição** e **Rótulos** ficam em **Mais campos**. Para adicionar os próximos níveis, veja [Regras de escalonamento](/docs/on-call/escalation-rules).
 
+Na primeira política de um projeto, o formulário também pergunta **Dispará-la a cada novo incidente e a cada novo alerta**, que começa ativado. Ele adiciona uma regra em **Incidentes → Regras → Regras de Plantão** e outra em **Alertas → Regras → Regras de Plantão**, cada uma correspondendo a tudo e executando esta política. Só é perguntado a quem pode adicionar regras de plantão, enquanto o projeto não tiver nenhuma política de plantão nem regra de plantão.
+
 A lista **Políticas de plantão** mostra de cada política o **Nome**, a **Descrição**, os **Rótulos** e os **Proprietários**. Selecione políticas para **Adicionar rótulos**, **Remover rótulos**, **Adicionar proprietário**, **Remover proprietário**, **Arquivar**, **Exportar JSON** ou excluí-las. **Importar JSON** cria políticas a partir de uma exportação: uma exportação contém as configurações próprias de uma política, não suas regras de escalonamento nem seus proprietários.
 
 ## O que executa uma política

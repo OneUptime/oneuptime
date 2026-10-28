@@ -914,7 +914,16 @@ describe("InvestigationReportView inline references", () => {
     expect(chips[0]).toHaveAttribute("type", "button");
     expect(chips[0]).toHaveAttribute("title", "Active incidents (7 total)");
     expect(chips[0]).toHaveTextContent("C1");
-    expect(chips[0]).toHaveClass("tabular-nums", "ring-inset");
+
+    /*
+     * A footnote mark, not a code span (6cb2ce7ddb): a round pill with no
+     * frame, in proportional figures - Inter's tabular "1" has a foot and
+     * drew "C1" as typewriter text.
+     */
+    expect(chips[0]).toHaveClass("rounded-full");
+    expect(chips[0]).not.toHaveClass("ring-1");
+    expect(chips[0]).not.toHaveClass("ring-inset");
+    expect(chips[0]).not.toHaveClass("tabular-nums");
   });
 
   /*
