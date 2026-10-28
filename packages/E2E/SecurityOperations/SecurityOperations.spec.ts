@@ -4627,6 +4627,13 @@ test.describe("a case", () => {
   }: {
     page: Page;
   }) => {
+    /*
+     * Thirteen pages since Evidence and Tasks, three looks at each and two
+     * more on a phone in the dark: 41 pages drawn and shot, past the
+     * config's two minutes on a busy machine.
+     */
+    test.setTimeout(300000);
+
     for (const casePage of CASE_PAGES) {
       const shots: Array<[number, "dark" | undefined]> = [
         ...CASE_PAGE_SHOTS,
