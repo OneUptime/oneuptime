@@ -439,7 +439,9 @@ describe("an escalation rule pages project members only", () => {
     expect(skippedAsNonMembers()).toHaveLength(6);
     expect(
       timeline.filter((row: OnCallDutyPolicyExecutionLogTimeline) => {
-        return row.statusMessage === ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE;
+        return (
+          row.statusMessage === ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE
+        );
       }),
     ).toHaveLength(1);
   });

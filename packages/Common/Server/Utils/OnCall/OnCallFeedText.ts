@@ -391,8 +391,7 @@ const isSaidInItsOwnWords: (input: OnCallStepFeedTextInput) => boolean = (
   }
 
   return (
-    Boolean((input.teamName || "").trim()) &&
-    !(input.scheduleName || "").trim()
+    Boolean((input.teamName || "").trim()) && !(input.scheduleName || "").trim()
   );
 };
 

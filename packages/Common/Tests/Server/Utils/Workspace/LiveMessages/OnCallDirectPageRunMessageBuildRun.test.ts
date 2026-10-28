@@ -640,7 +640,8 @@ describe("a policy's run is not read as a direct page", () => {
           userName: "Nitin",
           teamId: PLATFORM,
           teamName: "Platform",
-          statusMessage: "Skipped because this user is not a member of the project.",
+          statusMessage:
+            "Skipped because this user is not a member of the project.",
         }),
       ],
       directPage: undefined,

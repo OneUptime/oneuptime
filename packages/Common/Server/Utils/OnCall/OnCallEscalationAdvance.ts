@@ -265,7 +265,8 @@ export default class OnCallEscalationAdvance {
      * levels before it in this pass: it may repeat, to reach them.
      */
     let hasPassReachedAnybody: boolean =
-      !data.isCurrentRuleEmpty || (run.lastExecutedEscalationRuleOrder || 0) > 1;
+      !data.isCurrentRuleEmpty ||
+      (run.lastExecutedEscalationRuleOrder || 0) > 1;
 
     for (let step: number = 0; step < MAX_RULES_IN_ONE_ADVANCE; step++) {
       /*

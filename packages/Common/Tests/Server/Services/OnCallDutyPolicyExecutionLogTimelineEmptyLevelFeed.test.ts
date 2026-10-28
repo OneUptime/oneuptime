@@ -108,7 +108,9 @@ beforeEach(() => {
     throw new Error("A line about nobody looked up a person.");
   }) as never);
 
-  const capture: (feed: string) => (data: {
+  const capture: (
+    feed: string,
+  ) => (data: {
     feedInfoInMarkdown: string;
     displayColor: unknown;
   }) => Promise<undefined> = (feed: string) => {
@@ -166,9 +168,7 @@ describe("a level with no responders", () => {
     );
 
     expect(written[0]!.markdown).toContain("**Level 1 of 4**");
-    expect(
-      OnCallDutyPolicyEscalationRuleService.countBy,
-    ).toHaveBeenCalledWith({
+    expect(OnCallDutyPolicyEscalationRuleService.countBy).toHaveBeenCalledWith({
       query: { onCallDutyPolicyId: POLICY_ID },
       props: { isRoot: true },
     });

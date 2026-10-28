@@ -144,9 +144,7 @@ export default class EmptyLevelWorld extends PassOnWorld {
   private installSchedules(): void {
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy")
-      .mockImplementation((async (data: {
-        query: Record<string, unknown>;
-      }) => {
+      .mockImplementation((async (data: { query: Record<string, unknown> }) => {
         const ruleId: string = String(
           data.query["onCallDutyPolicyEscalationRuleId"],
         );
@@ -178,9 +176,7 @@ export default class EmptyLevelWorld extends PassOnWorld {
   private installAway(): void {
     jest
       .spyOn(OnCallDutyPolicyUserOverrideService, "findBy")
-      .mockImplementation((async (data: {
-        query: Record<string, unknown>;
-      }) => {
+      .mockImplementation((async (data: { query: Record<string, unknown> }) => {
         const userId: string = String(data.query["overrideUserId"] || "");
         const until: Date | undefined = this.away[userId];
 
@@ -435,7 +431,10 @@ export default class EmptyLevelWorld extends PassOnWorld {
         string,
         AnyFunction
       >
-    )["startFirstEscalationRule"]!.call(OnCallDutyPolicyExecutionLogService, run);
+    )["startFirstEscalationRule"]!.call(
+      OnCallDutyPolicyExecutionLogService,
+      run,
+    );
   }
 
   // A run that waited for working hours, starting now that they began.

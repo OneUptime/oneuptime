@@ -6,7 +6,6 @@ import OnCallEscalationAdvance, {
   OnCallEscalationAdvanceKind,
   OnCallEscalationAdvanceResult,
 } from "../../../../Server/Utils/OnCall/OnCallEscalationAdvance";
-import ObjectID from "../../../../Types/ObjectID";
 import { getAwayTimelineMessage } from "../../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import { NOBODY_NEXT_IN_ROTATION_TIMELINE_MESSAGE } from "../../../../Types/OnCallDutyPolicy/NextInRotation";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
@@ -495,7 +494,8 @@ describe("every level empty", () => {
     expect(
       world.steps.filter((step: OnCallDutyPolicyExecutionLogTimeline) => {
         return (
-          step.statusMessage === ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE ||
+          step.statusMessage ===
+            ON_CALL_LEVEL_HAS_NO_RESPONDERS_TIMELINE_MESSAGE ||
           step.statusMessage === ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE
         );
       }),
@@ -765,9 +765,7 @@ describe("two moves landing together", () => {
         OnCallEscalationAdvance.advance({ run: read, now: minutes(5) }),
       ]);
 
-    expect(
-      [first!.kind, second!.kind].sort(),
-    ).toEqual(
+    expect([first!.kind, second!.kind].sort()).toEqual(
       [
         OnCallEscalationAdvanceKind.NotClaimed,
         OnCallEscalationAdvanceKind.RuleStarted,

@@ -765,10 +765,13 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           onCallDutyPolicyEscalationRuleId: data.ruleId.toString(),
         } as LogAttributes,
       );
-      logger.error(err as Error, {
-        projectId: data.projectId.toString(),
-        onCallDutyPolicyEscalationRuleId: data.ruleId.toString(),
-      } as LogAttributes);
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          onCallDutyPolicyEscalationRuleId: data.ruleId.toString(),
+        } as LogAttributes,
+      );
 
       return data.lineIds.length;
     }
