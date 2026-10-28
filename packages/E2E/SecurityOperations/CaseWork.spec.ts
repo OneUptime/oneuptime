@@ -760,6 +760,93 @@ test.describe("a case's evidence", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * A case with nothing on it yet
+ * ---------------------------------------------------------------------------
+ */
+
+test.describe("a case with nothing on it yet", () => {
+  // CASE-141: High, nobody on it, no task and no evidence.
+  const QUIET_CASE_PATH: string = `${PRODUCT}/cases/${caseIdOf(141)}`;
+
+  test("its checklist says what to do first, with the line to add a task; its Evidence offers Add File and Add Link", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [width, theme] of [
+      [1280, undefined],
+      [390, "dark"],
+    ] as Array<[number, "dark" | undefined]>) {
+      const label: string = `${width} ${theme || "light"}`;
+
+      await open(page, `${QUIET_CASE_PATH}/tasks`, {
+        width,
+        height: width === 390 ? 844 : 1000,
+        theme,
+      });
+      const noTasks: Locator = page.getByTestId("security-case-tasks-empty");
+      await expect(noTasks).toBeVisible({ timeout: 30000 });
+      await expect(noTasks).toContainText("No tasks yet");
+      await expect(noTasks).toContainText(
+        "Add what this case needs done, then hand each task to whoever will do it.",
+      );
+      await expect(
+        page.getByTestId("security-case-task-add-input"),
+      ).toBeVisible();
+      // Nothing to count: no "0 of 0 done", no 0 beside Tasks in the menu.
+      await expect(progress(page)).toHaveCount(0);
+      if (width === 1280) {
+        expect(await menuCount(page, "Tasks")).toBe("");
+      }
+      expect(await pageOverflow(page), `tasks at ${label}`).toBeLessThanOrEqual(
+        1,
+      );
+      await screenshot(page, `case-tasks-empty-${width}-${theme || "light"}`);
+
+      await open(page, `${QUIET_CASE_PATH}/evidence`, {
+        width,
+        height: width === 390 ? 844 : 1000,
+        theme,
+      });
+      await expect(
+        page.getByText("No evidence yet", { exact: true }),
+      ).toBeVisible({ timeout: 30000 });
+      await expect(
+        page.getByText(
+          "Keep what shows what happened on the case: logs, screenshots, captures, or links to where they are.",
+          { exact: true },
+        ),
+      ).toBeVisible();
+      await expect(
+        page.getByTestId("security-case-evidence-add-file-empty"),
+      ).toBeVisible();
+      await expect(
+        page.getByTestId("security-case-evidence-add-link-empty"),
+      ).toBeVisible();
+      await expect(page.getByTestId("security-case-evidence-name")).toHaveCount(
+        0,
+      );
+      expect(
+        await pageOverflow(page),
+        `evidence at ${label}`,
+      ).toBeLessThanOrEqual(1);
+      await screenshot(
+        page,
+        `case-evidence-empty-${width}-${theme || "light"}`,
+      );
+    }
+
+    // The empty state's Add Link opens the same form as the card's.
+    await open(page, `${QUIET_CASE_PATH}/evidence`);
+    await page.getByTestId("security-case-evidence-add-link-empty").click();
+    await expect(page.getByRole("dialog")).toContainText(
+      "Add a Link as Evidence",
+    );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Response targets
  * ---------------------------------------------------------------------------
  */

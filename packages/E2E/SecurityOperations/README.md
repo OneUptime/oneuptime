@@ -441,13 +441,16 @@ handed to the reader and deleted after asking, the menu's count following; Close
 many tasks are still open; a Security Viewer's locked list; Evidence from the menu, the latest
 first, a file with its size and short SHA-256, a link with its address, who added each and when
 under it, the rows never scrolling sideways from 768 up; Add Link filing a link on the case; a
-Security Viewer's locked Add buttons; Settings > Response Targets beside Case
-Priorities, each priority's targets, No target for a project from before them, Edit in the
-field's units refusing what it cannot keep; the case header's chip in each state; the Overview's
-notes under Time to Acknowledge and Time to Contain; the due line under each open case's priority;
-and every page at 390 and in the dark theme. Its screenshots are named `case-tasks-*`,
-`case-evidence-*`, `response-targets-*`, `case-header-target-missed-1280-light`,
-`case-overview-targets-1280-light`, `case-close-open-tasks-1280-light` and `cases-due-lines-*`.
+Security Viewer's locked Add buttons; a case with nothing on it yet (CASE-141): its checklist's
+empty state with the line to add a task, and Evidence's Add File and Add Link; Settings >
+Response Targets beside Case Priorities, each priority's targets, No target for a project from
+before them, Edit in the field's units refusing what it cannot keep, the amount and its unit
+level; the case header's chip in each state; the Overview's notes under Time to Acknowledge and
+Time to Contain; the due line under each open case's priority; and every page at 390 and in the
+dark theme. Its screenshots are named `case-tasks-*` (`case-tasks-empty-*` among them),
+`case-evidence-*` (`case-evidence-empty-*` among them), `response-targets-*`,
+`case-header-target-missed-1280-light`, `case-overview-targets-1280-light`,
+`case-close-open-tasks-1280-light` and `cases-due-lines-*`.
 
 ## Run it
 
