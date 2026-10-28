@@ -75,6 +75,25 @@ type CapturedFormModalProps = {
 
 let capturedFormModal: CapturedFormModalProps | null = null;
 
+/*
+ * What the server says of its custom channels (#5332): the ones that are on.
+ * None unless a test says otherwise - what a server without them answers -
+ * and never a request: the rule form asks for them as it opens.
+ */
+let mockCustomChannels: Array<unknown> = [];
+
+jest.mock("@oneuptime/dashboard/Utils/CustomNotificationChannels", () => {
+  return {
+    __esModule: true,
+    useCustomNotificationChannels: (): {
+      channels: Array<unknown>;
+      error: null;
+    } => {
+      return { channels: mockCustomChannels, error: null };
+    },
+  };
+});
+
 jest.mock("Common/UI/Components/ModelFormModal/ModelFormModal", () => {
   const react: typeof React = jest.requireActual("react");
 
@@ -104,6 +123,8 @@ import {
   CALL_REASON,
   CALL_RULE_ID,
   CRITICAL_ID,
+  CUSTOM_CHANNEL_RULE_ID,
+  CUSTOM_CHANNELS_NOT_ACTIVE_WARNING,
   EMAIL_REASON,
   EMAIL_RULE_ID,
   EVALUATED_AT,
@@ -123,6 +144,7 @@ import {
   callAndPushForIncidentsRule,
   callForEveryIncidentRule,
   callForIncidentsRule,
+  customChannelNotCheckedRule,
   emailRule,
   issue,
   noSeveritiesLeftRule,
@@ -265,6 +287,7 @@ const withPaused: (settingIds: Array<string>) => TeamComplianceStatusJSON = (
 beforeEach(() => {
   capturedFormModal = null;
   mockPermissions = [];
+  mockCustomChannels = [];
   /*
    * Both chat workspaces connected, so the rule form offers everything.
    * Recorded rather than asked, so no test counts that request as its own.
@@ -1095,6 +1118,80 @@ describe("the verdict", () => {
     expect(
       screen.getByTestId("compliance-members-no-active-rules"),
     ).toHaveTextContent(advice);
+  });
+
+  /*
+   * A rule on the custom channel while no custom channel can carry a page
+   * (#5332): on, checking nobody, and the server's warning says why. It must
+   * not read as a team that meets every rule, nor send the admin to a switch
+   * that is already on.
+   */
+  test("the only rule asks for a custom channel that cannot carry a page: not checked, never 'all compliant', never 'turn a rule on'", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [customChannelNotCheckedRule()],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    const advice: string =
+      "This team's rule asks only for channels that cannot carry a page on this server right now, so it is not checked. Its warning says why.";
+
+    expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
+      "No rule is being checked",
+    );
+    expect(
+      screen.getByTestId("compliance-hero-headline"),
+    ).not.toHaveTextContent("meet");
+    expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
+      advice,
+    );
+    expect(screen.getByTestId("compliance-hero-subline")).not.toHaveTextContent(
+      "Turn a rule on",
+    );
+    expect(
+      screen.getByTestId("compliance-members-no-active-rules"),
+    ).toHaveTextContent(advice);
+
+    const row: HTMLElement = ruleRow(CUSTOM_CHANNEL_RULE_ID);
+
+    expect(within(row).getByTestId("compliance-rule-title")).toHaveTextContent(
+      "Custom channel for incidents",
+    );
+    expect(
+      within(row).getByTestId("compliance-rule-pass-rate"),
+    ).toHaveTextContent("Not checked");
+    // It is on, not paused.
+    expect(within(row).queryByTestId("compliance-rule-paused")).toBeNull();
+    expect(
+      within(screen.getByTestId("compliance-rule-warnings")).getByTestId(
+        `compliance-rule-warning-${CUSTOM_CHANNEL_RULE_ID}`,
+      ),
+    ).toHaveTextContent(CUSTOM_CHANNELS_NOT_ACTIVE_WARNING);
+  });
+
+  test("beside an active rule, it is not counted: the team is checked against the other alone", async () => {
+    await renderPage(
+      buildStatus({
+        complianceSettings: [
+          customChannelNotCheckedRule(),
+          emailRule({ compliantCount: 1, nonCompliantCount: 0 }),
+        ],
+        userComplianceStatuses: [buildMember()],
+      }),
+    );
+
+    expect(screen.getByTestId("compliance-hero-headline")).toHaveTextContent(
+      "The team's only member meets every rule",
+    );
+    expect(screen.getByTestId("compliance-hero-subline")).toHaveTextContent(
+      "Checked against 1 active rule",
+    );
+    expect(
+      within(ruleRow(CUSTOM_CHANNEL_RULE_ID)).getByTestId(
+        "compliance-rule-pass-rate",
+      ),
+    ).toHaveTextContent("Not checked");
   });
 
   test("a rule with no severities left still counts as paused beside active rules", async () => {
@@ -2263,7 +2360,33 @@ describe("Slack and Microsoft Teams in the rule form", () => {
     );
     expect(offered.channels).toContain(ComplianceNotificationChannel.Slack);
     expect(offered.ruleTypes).toHaveLength(13);
-    expect(offered.channels).toHaveLength(9);
+    // The custom channel too, though no custom channel is on.
+    expect(offered.channels).toContain(
+      ComplianceNotificationChannel.CustomChannel,
+    );
+    expect(offered.channels).toHaveLength(10);
+  });
+
+  test("a new rule offers the custom channel only while the server has one on", async () => {
+    mockPermissions = EDITOR;
+    await renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
+
+    expect(offeredChoices().channels).not.toContain(
+      ComplianceNotificationChannel.CustomChannel,
+    );
+
+    cleanup();
+    capturedFormModal = null;
+    mockCustomChannels = [{ _id: "c0570000-0000-4000-8000-000000000001" }];
+    await renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Add rule" }));
+
+    expect(offeredChoices().channels).toContain(
+      ComplianceNotificationChannel.CustomChannel,
+    );
   });
 
   test("the page asks which workspaces are connected once, as it opens", async () => {
