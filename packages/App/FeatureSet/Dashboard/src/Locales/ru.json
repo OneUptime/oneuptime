@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}: слишком много исключений",
   "{{monitorName}}: too many failed requests": "{{monitorName}}: слишком много неудачных запросов",
   "equal to": "равно",
-  "not equal to": "не равно"
+  "not equal to": "не равно",
+  "At {{value}}, this rule would not have alerted in this time.": "При значении {{value}} это правило не сработало бы за это время.",
+  "Count archived exceptions too. They are left out otherwise.": "Учитывать и архивированные исключения. Иначе они не учитываются.",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "Подходящие исключения по интервалам ({{window}}), период: {{range}}.",
+  "Matching logs per {{window}}, over the last {{range}}.": "Подходящие логи по интервалам ({{window}}), период: {{range}}.",
+  "Matching spans per {{window}}, over the last {{range}}.": "Подходящие спаны по интервалам ({{window}}), период: {{range}}.",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "Только исключения из этих окружений (deployment.environment), через запятую. Пусто: любое окружение.",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "Только исключения с этих хостов, кластеров или другой инфраструктуры. Пусто: вся инфраструктура.",
+  "Only exceptions from these services. Empty: every service.": "Только исключения из этих служб. Пусто: любая служба.",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "Только исключения этих типов, через запятую. Пусто: любой тип.",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "Только логи с этих хостов, кластеров или другой инфраструктуры. Пусто: вся инфраструктура.",
+  "Only logs from these services. Empty: every service.": "Только логи из этих служб. Пусто: любая служба.",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "Только логи, атрибуты которых подходят под все эти условия. Пусто: любые атрибуты.",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Только спаны с этих хостов, кластеров или другой инфраструктуры. Пусто: вся инфраструктура.",
+  "Only spans from these services. Empty: every service.": "Только спаны из этих служб. Пусто: любая служба.",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Только спаны, атрибуты которых подходят под все эти условия. Пусто: любые атрибуты."
 }

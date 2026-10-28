@@ -24,7 +24,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * the rule's length over the last hours (POST /telemetry/<signal>/
  * monitor-preview), a moment after the last change, and draws the counts
  * as bars under the rule's number, saying how often the rule would have
- * alerted, what is normal, and offering a number it would not have passed.
+ * alerted, what is normal, and offering a number it would not have passed -
+ * said in a sentence beside the button that uses it.
  * The chart and the request are stood in for: what is pinned is what is
  * asked, what is drawn, and what is said.
  */
@@ -274,7 +275,7 @@ describe("what the preview draws and says", () => {
     await waitForRead();
 
     expect(screen.getByTestId("telemetry-rule-preview")).toHaveTextContent(
-      "Matching logs in each 5 minutes, over the last 30 minutes.",
+      "Matching logs per 5 minutes, over the last 30 minutes.",
     );
     expect(
       lastChart().data[0]!.data.map((point: { y: number }) => {
@@ -324,6 +325,90 @@ describe("what the preview draws and says", () => {
     expect(onUse).toHaveBeenCalledWith(suggested);
   });
 
+  test("the number it offers is said in a sentence beside its button, under the verdict", async () => {
+    answerWith([3, 4, 12, 13, 4, 3]);
+
+    render(
+      <TelemetryRulePreview
+        monitorType={MonitorType.Logs}
+        settings={LOG_SETTINGS}
+        filterType={FilterType.GreaterThan}
+        threshold={10}
+        onUseSuggestedThreshold={() => {}}
+      />,
+    );
+
+    await waitForRead();
+
+    const row: HTMLElement = screen.getByTestId(
+      "telemetry-rule-preview-suggestion",
+    );
+    const button: HTMLElement = screen.getByTestId(
+      "telemetry-rule-preview-use-suggestion",
+    );
+    const suggested: string = (button.textContent || "").replace(/[^0-9]/g, "");
+
+    // "Use 16" alone did not say why 16: the sentence beside it does.
+    expect(row).toHaveTextContent(
+      `At ${suggested}, this rule would not have alerted in this time.`,
+    );
+    expect(row).toContainElement(button);
+    expect(button).toHaveTextContent(`Use ${suggested}`);
+    // The sentence says it, so the button has no tooltip repeating it.
+    expect(button).not.toHaveAttribute("aria-describedby");
+
+    // It follows the verdict and what is normal, not beside them.
+    const verdict: HTMLElement = screen.getByTestId(
+      "telemetry-rule-preview-verdict",
+    );
+    expect(
+      verdict.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(verdict.parentElement).not.toContainElement(row);
+  });
+
+  test("no sentence is offered when the rule already uses the number it would offer", async () => {
+    answerWith([3, 4, 12, 13, 4, 3]);
+
+    const { rerender } = render(
+      <TelemetryRulePreview
+        monitorType={MonitorType.Logs}
+        settings={LOG_SETTINGS}
+        filterType={FilterType.GreaterThan}
+        threshold={10}
+        onUseSuggestedThreshold={() => {}}
+      />,
+    );
+
+    await waitForRead();
+
+    const suggested: number = Number(
+      (
+        screen.getByTestId("telemetry-rule-preview-use-suggestion")
+          .textContent || ""
+      ).replace(/[^0-9]/g, ""),
+    );
+
+    rerender(
+      <TelemetryRulePreview
+        monitorType={MonitorType.Logs}
+        settings={LOG_SETTINGS}
+        filterType={FilterType.GreaterThan}
+        threshold={suggested}
+        onUseSuggestedThreshold={() => {}}
+      />,
+    );
+
+    await waitForRead();
+
+    expect(
+      screen.getByTestId("telemetry-rule-preview-verdict"),
+    ).toHaveTextContent("This rule would not have alerted in this time.");
+    expect(
+      screen.queryByTestId("telemetry-rule-preview-suggestion"),
+    ).not.toBeInTheDocument();
+  });
+
   test("no suggestion is offered without a way to use it", async () => {
     answerWith([3, 4, 12, 13, 4, 3]);
 
@@ -341,8 +426,11 @@ describe("what the preview draws and says", () => {
     expect(
       screen.queryByTestId("telemetry-rule-preview-use-suggestion"),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("telemetry-rule-preview-suggestion"),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("telemetry-rule-preview")).toHaveTextContent(
-      "Matching spans in each 5 minutes",
+      "Matching spans per 5 minutes",
     );
   });
 
@@ -441,7 +529,7 @@ describe("what the preview draws and says", () => {
 
     expect(postMock).toHaveBeenCalledTimes(2);
     expect(screen.getByTestId("telemetry-rule-preview")).toHaveTextContent(
-      "Matching exceptions in each 5 minutes",
+      "Matching exceptions per 5 minutes",
     );
   });
 });

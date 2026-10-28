@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}：例外過多",
   "{{monitorName}}: too many failed requests": "{{monitorName}}：失敗的請求過多",
   "equal to": "等於",
-  "not equal to": "不等於"
+  "not equal to": "不等於",
+  "At {{value}}, this rule would not have alerted in this time.": "如果設為 {{value}}，這段期間此規則不會發出警示。",
+  "Count archived exceptions too. They are left out otherwise.": "也計入已封存的例外。否則不計入。",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "最近 {{range}} 內，每 {{window}} 相符的例外數。",
+  "Matching logs per {{window}}, over the last {{range}}.": "最近 {{range}} 內，每 {{window}} 相符的日誌數。",
+  "Matching spans per {{window}}, over the last {{range}}.": "最近 {{range}} 內，每 {{window}} 相符的跨度數。",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "僅這些環境（deployment.environment）中的例外，以逗號分隔。留空：所有環境。",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "僅來自這些主機、叢集或其他基礎設施的例外。留空：所有基礎設施。",
+  "Only exceptions from these services. Empty: every service.": "僅這些服務中的例外。留空：所有服務。",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "僅這些類型的例外，以逗號分隔。留空：所有類型。",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "僅來自這些主機、叢集或其他基礎設施的日誌。留空：所有基礎設施。",
+  "Only logs from these services. Empty: every service.": "僅這些服務的日誌。留空：所有服務。",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "僅屬性符合以下全部條件的日誌。留空：任意屬性。",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "僅來自這些主機、叢集或其他基礎設施的跨度。留空：所有基礎設施。",
+  "Only spans from these services. Empty: every service.": "僅這些服務的跨度。留空：所有服務。",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "僅屬性符合以下全部條件的跨度。留空：任意屬性。"
 }

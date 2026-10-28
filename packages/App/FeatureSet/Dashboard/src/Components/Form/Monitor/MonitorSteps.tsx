@@ -891,16 +891,20 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       ? new Color(defaultMonitorStatusOption.color).toString()
       : undefined;
 
-  // The line under the folded section's title: the status, in its colour.
+  /*
+   * The line under the folded section's title: the status, in its colour.
+   * It wraps rather than cutting the status off on a phone ("When the rule
+   * does not match: Operati…"), the dot on its first line.
+   */
   const defaultMonitorStatusSummary: ReactElement = (
     <span
-      className="inline-flex max-w-full items-center gap-2"
+      className="inline-flex max-w-full items-start gap-2"
       data-testid="monitor-default-status-summary"
     >
       {defaultMonitorStatusColor ? (
         <span
           aria-hidden="true"
-          className="h-2 w-2 flex-none rounded-full"
+          className="mt-1.5 h-2 w-2 flex-none rounded-full"
           style={{
             backgroundColor: defaultMonitorStatusColor,
           }}
@@ -908,7 +912,7 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-      <span className="truncate">
+      <span className="min-w-0 break-words">
         {defaultMonitorStatusOption
           ? isOneRule
             ? translator.translateTemplate(

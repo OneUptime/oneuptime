@@ -754,25 +754,64 @@ export const getPreviewCaption: (data: {
   translator: Translator;
 }): string => {
   const window: string = formatWindow(data.windowInSeconds, data.translator);
-  const range: string = formatWindow(data.rangeInSeconds, data.translator);
+  const range: string = formatPreviewRange(
+    data.rangeInSeconds,
+    data.translator,
+  );
 
   switch (data.monitorType) {
     case MonitorType.Traces:
       return data.translator.translateTemplate(
-        "Matching spans in each {{window}}, over the last {{range}}.",
+        "Matching spans per {{window}}, over the last {{range}}.",
         { window, range },
       );
     case MonitorType.Exceptions:
       return data.translator.translateTemplate(
-        "Matching exceptions in each {{window}}, over the last {{range}}.",
+        "Matching exceptions per {{window}}, over the last {{range}}.",
         { window, range },
       );
     default:
       return data.translator.translateTemplate(
-        "Matching logs in each {{window}}, over the last {{range}}.",
+        "Matching logs per {{window}}, over the last {{range}}.",
         { window, range },
       );
   }
+};
+
+/*
+ * How far back a preview reads, as a person says it: a day or two in
+ * hours ("the last 24 hours", not "the last 1 day"), longer in days, and
+ * a length that is not whole hours in its two largest units ("2 hours,
+ * 24 minutes").
+ */
+export const formatPreviewRange: (
+  seconds: number,
+  translator: Translator,
+) => string = (seconds: number, translator: Translator): string => {
+  const HOUR_IN_SECONDS: number = 3600;
+  const TWO_DAYS_IN_SECONDS: number = 2 * 86400;
+
+  if (
+    seconds >= HOUR_IN_SECONDS &&
+    seconds <= TWO_DAYS_IN_SECONDS &&
+    seconds % HOUR_IN_SECONDS === 0
+  ) {
+    const hours: number = seconds / HOUR_IN_SECONDS;
+
+    return (
+      formatDurationUnit({
+        part: { count: hours, unit: "hour" },
+        locale: translator.language || "en",
+        unitDisplay: "long",
+      }) || `${hours} hour${hours === 1 ? "" : "s"}`
+    );
+  }
+
+  if (seconds % 86400 === 0 || seconds < HOUR_IN_SECONDS) {
+    return formatWindow(seconds, translator);
+  }
+
+  return formatDuration(seconds, translator);
 };
 
 /*

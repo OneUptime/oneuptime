@@ -461,6 +461,235 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
     translator,
   });
 
+  /*
+   * The fields of "When to alert", each on its own: a count rule lays
+   * them out in one row (Condition, the number, the window), a metric
+   * rule in two - what is measured over which window, then how it
+   * compares - so no column is left empty beside them.
+   */
+  const metricField: ReactElement =
+    isMetric && metricAliases.length > 1 ? (
+      /*
+       * Which metric, only when the step reads more than one: a query alone
+       * is the metric the rule reads.
+       */
+      <div className="sm:col-span-2" data-testid="telemetry-rule-metric">
+        <FieldLabelElement
+          id={metricLabelId}
+          title={TelemetryRuleCopy.metricTitle}
+          hideOptionalLabel={true}
+        />
+        <Dropdown
+          ariaLabelledby={metricLabelId}
+          isClearable={false}
+          placeholder="Pick a metric above first"
+          value={
+            effectiveAlias
+              ? {
+                  value: effectiveAlias,
+                  label: getMetricAliasLabel({
+                    monitorStep,
+                    alias: effectiveAlias,
+                  }),
+                }
+              : undefined
+          }
+          options={metricAliases.map((alias: string) => {
+            return {
+              value: alias,
+              label: getMetricAliasLabel({ monitorStep, alias }),
+            };
+          })}
+          onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+            if (value) {
+              changeCondition({ metricAlias: value.toString() });
+            }
+          }}
+        />
+      </div>
+    ) : (
+      <></>
+    );
+
+  const aggregationField: ReactElement = isMetric ? (
+    <div data-testid="telemetry-rule-aggregation">
+      <FieldLabelElement
+        id={aggregationLabelId}
+        title={TelemetryRuleCopy.aggregationTitle}
+        hideOptionalLabel={true}
+      />
+      <Dropdown
+        ariaLabelledby={aggregationLabelId}
+        isClearable={false}
+        value={toDropdownOptions(METRIC_AGGREGATION_CHOICES).find(
+          (option: DropdownOption) => {
+            return (
+              option.value ===
+              (rule.metricAggregationType || EvaluateOverTimeType.AllValues)
+            );
+          },
+        )}
+        options={toDropdownOptions(METRIC_AGGREGATION_CHOICES)}
+        onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+          if (value) {
+            changeCondition({
+              metricAggregationType: value as EvaluateOverTimeType,
+            });
+          }
+        }}
+      />
+    </div>
+  ) : (
+    <></>
+  );
+
+  const windowField: ReactElement = isMetric
+    ? renderWindowField({
+        windowInSeconds: undefined,
+        rollingTime: rule.rollingTime,
+        onChange: (changes: { rollingTime?: RollingTime }) => {
+          changeCondition({ rollingTime: changes.rollingTime });
+        },
+      })
+    : renderWindowField({
+        windowInSeconds: rule.windowInSeconds,
+        rollingTime: undefined,
+        onChange: (changes: { windowInSeconds?: number }) => {
+          changeCondition({ windowInSeconds: changes.windowInSeconds });
+        },
+      });
+
+  const comparisonField: ReactElement = (
+    <div data-testid="telemetry-rule-comparison">
+      <FieldLabelElement
+        id={conditionLabelId}
+        title={TelemetryRuleCopy.conditionTitle}
+        hideOptionalLabel={true}
+      />
+      <Dropdown
+        ariaLabelledby={conditionLabelId}
+        isClearable={false}
+        value={comparisonOptions.find((option: DropdownOption) => {
+          return option.value === rule.filterType;
+        })}
+        options={comparisonOptions}
+        onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+          if (value) {
+            const filterType: FilterType = value as FilterType;
+
+            changeCondition({
+              filterType,
+              ...(TelemetryAlertRuleUtil.isAnomaly(filterType)
+                ? {
+                    anomalyDetection: rule.anomalyDetection || {
+                      sensitivity: AnomalyDetectionSensitivity.Medium,
+                    },
+                  }
+                : {}),
+            });
+          }
+        }}
+      />
+    </div>
+  );
+
+  const valueField: ReactElement = isAnomaly ? (
+    <div data-testid="telemetry-rule-sensitivity">
+      <FieldLabelElement
+        id={sensitivityLabelId}
+        title={TelemetryRuleCopy.sensitivityTitle}
+        hideOptionalLabel={true}
+      />
+      <Dropdown
+        ariaLabelledby={sensitivityLabelId}
+        isClearable={false}
+        value={toDropdownOptions(ANOMALY_SENSITIVITY_CHOICES).find(
+          (option: DropdownOption) => {
+            return (
+              option.value ===
+              (rule.anomalyDetection?.sensitivity ||
+                AnomalyDetectionSensitivity.Medium)
+            );
+          },
+        )}
+        options={toDropdownOptions(ANOMALY_SENSITIVITY_CHOICES)}
+        onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
+          if (value) {
+            changeCondition({
+              anomalyDetection: {
+                ...(rule.anomalyDetection || {}),
+                sensitivity: value as AnomalyDetectionSensitivity,
+              },
+            });
+          }
+        }}
+      />
+    </div>
+  ) : (
+    <div data-testid="telemetry-rule-value">
+      <FieldLabelElement
+        title={getCountTitle(monitorType)}
+        htmlFor={valueInputId}
+        hideOptionalLabel={true}
+      />
+      <div className="flex items-start gap-2">
+        <div className="min-w-0 flex-1">
+          <Input
+            id={valueInputId}
+            dataTestId="telemetry-rule-threshold"
+            type={InputType.NUMBER}
+            value={valueText}
+            error={valueError}
+            onBlur={() => {
+              setIsValueTouched(true);
+            }}
+            onChange={(value: string) => {
+              setValueText(value);
+              setIsValueTouched(true);
+
+              const parsed: number | undefined =
+                TelemetryAlertRuleUtil.toNumber(value);
+
+              if (parsed !== rule.threshold) {
+                changeCondition({ threshold: parsed });
+              }
+            }}
+          />
+        </div>
+        {isMetric && unitOptions.length > 1 ? (
+          <div className="w-28 flex-none">
+            <Dropdown
+              ariaLabel={translator.translateText("Unit") || "Unit"}
+              id={unitLabelId}
+              isClearable={false}
+              value={unitOptions
+                .map((option: UnitOption): DropdownOption => {
+                  return { value: option.value, label: option.label };
+                })
+                .find((option: DropdownOption) => {
+                  return option.value === unitValue;
+                })}
+              options={unitOptions.map((option: UnitOption): DropdownOption => {
+                return { value: option.value, label: option.label };
+              })}
+              onChange={(
+                value: DropdownValue | Array<DropdownValue> | null,
+              ) => {
+                if (value) {
+                  changeCondition({
+                    thresholdUnit: value.toString(),
+                  });
+                }
+              }}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6" data-testid="telemetry-rule-editor">
       <Card
@@ -469,245 +698,28 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
       >
         <div className="mt-2" data-testid="telemetry-rule-condition">
           {isMetric ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {/*
-               * Which metric, only when the step reads more than one: a
-               * query alone is the metric the rule reads.
-               */}
-              {metricAliases.length > 1 ? (
-                <div data-testid="telemetry-rule-metric">
-                  <FieldLabelElement
-                    id={metricLabelId}
-                    title={TelemetryRuleCopy.metricTitle}
-                    hideOptionalLabel={true}
-                  />
-                  <Dropdown
-                    ariaLabelledby={metricLabelId}
-                    isClearable={false}
-                    placeholder="Pick a metric above first"
-                    value={
-                      effectiveAlias
-                        ? {
-                            value: effectiveAlias,
-                            label: getMetricAliasLabel({
-                              monitorStep,
-                              alias: effectiveAlias,
-                            }),
-                          }
-                        : undefined
-                    }
-                    options={metricAliases.map((alias: string) => {
-                      return {
-                        value: alias,
-                        label: getMetricAliasLabel({ monitorStep, alias }),
-                      };
-                    })}
-                    onChange={(
-                      value: DropdownValue | Array<DropdownValue> | null,
-                    ) => {
-                      if (value) {
-                        changeCondition({ metricAlias: value.toString() });
-                      }
-                    }}
-                  />
-                </div>
-              ) : (
-                <></>
-              )}
-              <div data-testid="telemetry-rule-aggregation">
-                <FieldLabelElement
-                  id={aggregationLabelId}
-                  title={TelemetryRuleCopy.aggregationTitle}
-                  hideOptionalLabel={true}
-                />
-                <Dropdown
-                  ariaLabelledby={aggregationLabelId}
-                  isClearable={false}
-                  value={toDropdownOptions(METRIC_AGGREGATION_CHOICES).find(
-                    (option: DropdownOption) => {
-                      return (
-                        option.value ===
-                        (rule.metricAggregationType ||
-                          EvaluateOverTimeType.AllValues)
-                      );
-                    },
-                  )}
-                  options={toDropdownOptions(METRIC_AGGREGATION_CHOICES)}
-                  onChange={(
-                    value: DropdownValue | Array<DropdownValue> | null,
-                  ) => {
-                    if (value) {
-                      changeCondition({
-                        metricAggregationType: value as EvaluateOverTimeType,
-                      });
-                    }
-                  }}
-                />
-              </div>
-              {renderWindowField({
-                windowInSeconds: undefined,
-                rollingTime: rule.rollingTime,
-                onChange: (changes: { rollingTime?: RollingTime }) => {
-                  changeCondition({ rollingTime: changes.rollingTime });
-                },
-              })}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {metricField}
+              {aggregationField}
+              {windowField}
+              {comparisonField}
+              {valueField}
             </div>
           ) : (
-            <></>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {comparisonField}
+              {valueField}
+              {windowField}
+            </div>
           )}
 
-          <div
-            className={`grid grid-cols-1 gap-4 sm:grid-cols-3 ${
-              isMetric ? "mt-4" : ""
-            }`}
+          {/* The whole rule, said back right under the fields it reads. */}
+          <p
+            className="mt-5 rounded-md bg-gray-50 px-4 py-3 text-sm font-medium text-gray-900"
+            data-testid="telemetry-rule-sentence"
           >
-            <div data-testid="telemetry-rule-comparison">
-              <FieldLabelElement
-                id={conditionLabelId}
-                title={TelemetryRuleCopy.conditionTitle}
-                hideOptionalLabel={true}
-              />
-              <Dropdown
-                ariaLabelledby={conditionLabelId}
-                isClearable={false}
-                value={comparisonOptions.find((option: DropdownOption) => {
-                  return option.value === rule.filterType;
-                })}
-                options={comparisonOptions}
-                onChange={(
-                  value: DropdownValue | Array<DropdownValue> | null,
-                ) => {
-                  if (value) {
-                    const filterType: FilterType = value as FilterType;
-
-                    changeCondition({
-                      filterType,
-                      ...(TelemetryAlertRuleUtil.isAnomaly(filterType)
-                        ? {
-                            anomalyDetection: rule.anomalyDetection || {
-                              sensitivity: AnomalyDetectionSensitivity.Medium,
-                            },
-                          }
-                        : {}),
-                    });
-                  }
-                }}
-              />
-            </div>
-
-            {isAnomaly ? (
-              <div data-testid="telemetry-rule-sensitivity">
-                <FieldLabelElement
-                  id={sensitivityLabelId}
-                  title={TelemetryRuleCopy.sensitivityTitle}
-                  hideOptionalLabel={true}
-                />
-                <Dropdown
-                  ariaLabelledby={sensitivityLabelId}
-                  isClearable={false}
-                  value={toDropdownOptions(ANOMALY_SENSITIVITY_CHOICES).find(
-                    (option: DropdownOption) => {
-                      return (
-                        option.value ===
-                        (rule.anomalyDetection?.sensitivity ||
-                          AnomalyDetectionSensitivity.Medium)
-                      );
-                    },
-                  )}
-                  options={toDropdownOptions(ANOMALY_SENSITIVITY_CHOICES)}
-                  onChange={(
-                    value: DropdownValue | Array<DropdownValue> | null,
-                  ) => {
-                    if (value) {
-                      changeCondition({
-                        anomalyDetection: {
-                          ...(rule.anomalyDetection || {}),
-                          sensitivity: value as AnomalyDetectionSensitivity,
-                        },
-                      });
-                    }
-                  }}
-                />
-              </div>
-            ) : (
-              <div data-testid="telemetry-rule-value">
-                <FieldLabelElement
-                  title={getCountTitle(monitorType)}
-                  htmlFor={valueInputId}
-                  hideOptionalLabel={true}
-                />
-                <div className="flex items-start gap-2">
-                  <div className="min-w-0 flex-1">
-                    <Input
-                      id={valueInputId}
-                      dataTestId="telemetry-rule-threshold"
-                      type={InputType.NUMBER}
-                      value={valueText}
-                      error={valueError}
-                      onBlur={() => {
-                        setIsValueTouched(true);
-                      }}
-                      onChange={(value: string) => {
-                        setValueText(value);
-                        setIsValueTouched(true);
-
-                        const parsed: number | undefined =
-                          TelemetryAlertRuleUtil.toNumber(value);
-
-                        if (parsed !== rule.threshold) {
-                          changeCondition({ threshold: parsed });
-                        }
-                      }}
-                    />
-                  </div>
-                  {isMetric && unitOptions.length > 1 ? (
-                    <div className="w-28 flex-none">
-                      <Dropdown
-                        ariaLabel={translator.translateText("Unit") || "Unit"}
-                        id={unitLabelId}
-                        isClearable={false}
-                        value={unitOptions
-                          .map((option: UnitOption): DropdownOption => {
-                            return { value: option.value, label: option.label };
-                          })
-                          .find((option: DropdownOption) => {
-                            return option.value === unitValue;
-                          })}
-                        options={unitOptions.map(
-                          (option: UnitOption): DropdownOption => {
-                            return { value: option.value, label: option.label };
-                          },
-                        )}
-                        onChange={(
-                          value: DropdownValue | Array<DropdownValue> | null,
-                        ) => {
-                          if (value) {
-                            changeCondition({
-                              thresholdUnit: value.toString(),
-                            });
-                          }
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <></>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {isMetric ? (
-              <></>
-            ) : (
-              renderWindowField({
-                windowInSeconds: rule.windowInSeconds,
-                rollingTime: undefined,
-                onChange: (changes: { windowInSeconds?: number }) => {
-                  changeCondition({ windowInSeconds: changes.windowInSeconds });
-                },
-              })
-            )}
-          </div>
+            {sentence}
+          </p>
 
           {isMetric ? (
             <FoldedSection
@@ -765,13 +777,6 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-
-          <p
-            className="mt-5 rounded-md bg-gray-50 px-4 py-3 text-sm font-medium text-gray-900"
-            data-testid="telemetry-rule-sentence"
-          >
-            {sentence}
-          </p>
 
           {previewSettings ? (
             <TelemetryRulePreview

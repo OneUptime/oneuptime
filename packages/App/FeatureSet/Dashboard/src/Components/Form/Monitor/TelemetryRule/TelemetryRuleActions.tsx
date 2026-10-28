@@ -2,7 +2,6 @@ import MonitorCriteriaAlertForm from "../MonitorCriteriaAlertForm";
 import MonitorCriteriaIncidentForm, {
   IncidentRoleOption,
 } from "../MonitorCriteriaIncidentForm";
-import { CRITERIA_ACTION_FORM_CLASS_NAME } from "../MonitorCriteriaInstance";
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -23,6 +22,7 @@ import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import Icon from "Common/UI/Components/Icon/Icon";
 import Input from "Common/UI/Components/Input/Input";
 import Radio from "Common/UI/Components/Radio/Radio";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -68,6 +68,29 @@ export interface ComponentProps {
   onChange: (rule: TelemetryAlertRule) => void;
   onEditAsCustomCriteria: () => void;
 }
+
+/*
+ * The alert's or the incident's own settings, under the choice and as wide
+ * as it: indented under the radios, the box read as the last one's
+ * ("Both"), whichever was picked. Its heading says whose settings these
+ * are, with the icon the product draws alerts and incidents with.
+ */
+export const RULE_ACTION_PANEL_CLASS_NAME: string =
+  "mt-4 rounded-md border border-gray-100 bg-gray-50 p-3 sm:p-4";
+
+const RuleActionPanelHeading: FunctionComponent<{
+  title: string;
+  icon: IconProp;
+}> = (props: { title: string; icon: IconProp }): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-900">
+      <Icon icon={props.icon} className="h-4 w-4 flex-none text-gray-500" />
+      <span>{translator.translateText(props.title) || props.title}</span>
+    </div>
+  );
+};
 
 const TelemetryRuleActions: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -140,14 +163,13 @@ const TelemetryRuleActions: FunctionComponent<ComponentProps> = (
 
       {opensAlert(rule.action) && rule.alert ? (
         <div
-          className={CRITERIA_ACTION_FORM_CLASS_NAME}
+          className={RULE_ACTION_PANEL_CLASS_NAME}
           data-testid="telemetry-rule-alert"
         >
-          {rule.action === TelemetryAlertRuleAction.AlertAndIncident ? (
-            <FieldLabelElement title="Alert" hideOptionalLabel={true} />
-          ) : (
-            <></>
-          )}
+          <RuleActionPanelHeading
+            title="Alert"
+            icon={IconProp.ExclaimationCircle}
+          />
           <MonitorCriteriaAlertForm
             key={`alert-${rule.alert.id}`}
             initialValue={rule.alert}
@@ -167,14 +189,10 @@ const TelemetryRuleActions: FunctionComponent<ComponentProps> = (
 
       {opensIncident(rule.action) && rule.incident ? (
         <div
-          className={CRITERIA_ACTION_FORM_CLASS_NAME}
+          className={RULE_ACTION_PANEL_CLASS_NAME}
           data-testid="telemetry-rule-incident"
         >
-          {rule.action === TelemetryAlertRuleAction.AlertAndIncident ? (
-            <FieldLabelElement title="Incident" hideOptionalLabel={true} />
-          ) : (
-            <></>
-          )}
+          <RuleActionPanelHeading title="Incident" icon={IconProp.Alert} />
           <MonitorCriteriaIncidentForm
             key={`incident-${rule.incident.id}`}
             initialValue={rule.incident}
@@ -256,12 +274,16 @@ const TelemetryRuleActions: FunctionComponent<ComponentProps> = (
             />
           </div>
 
-          <div>
-            <FieldLabelElement
-              title={TelemetryRuleCopy.editAsCustomCriteria}
-              description={TelemetryRuleCopy.editAsCustomCriteriaDescription}
-              hideOptionalLabel={true}
-            />
+          {/*
+           * The button says what it does; the line above it says when to
+           * press it. A label repeating the button's words read twice.
+           */}
+          <div data-testid="telemetry-rule-custom-criteria-entry">
+            <p className="text-sm text-gray-500">
+              {translator.translateText(
+                TelemetryRuleCopy.editAsCustomCriteriaDescription,
+              )}
+            </p>
             {/* md:-ml-3 takes back the Button's own md:ml-3. */}
             <div className="mt-2 md:-ml-3">
               <Button

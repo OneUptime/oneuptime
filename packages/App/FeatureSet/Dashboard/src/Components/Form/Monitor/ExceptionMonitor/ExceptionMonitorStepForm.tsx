@@ -395,7 +395,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             title: "Exception Types",
             description:
-              "Provide a comma-separated list of exception types to monitor.",
+              "Only exceptions of these types, separated by commas. Empty: every type.",
             placeholder: "TypeError, NullReferenceException",
             hideOptionalLabel: true,
           },
@@ -406,7 +406,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Text,
             title: "Environments",
             description:
-              "Comma-separated deployment.environment values, matched exactly. Leave empty to monitor every environment.",
+              "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.",
             placeholder: "production, staging",
             hideOptionalLabel: true,
           },
@@ -428,7 +428,8 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Telemetry Service",
-            description: "Select telemetry services to scope this monitor.",
+            description:
+              "Only exceptions from these services. Empty: every service.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_EXCEPTION_FILTERS,
           },
@@ -450,7 +451,8 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Infrastructure Entity",
-            description: "Scope to specific infrastructure entities (optional)",
+            description:
+              "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_EXCEPTION_FILTERS,
           },
@@ -472,7 +474,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             fieldType: FormFieldSchemaType.Checkbox,
             title: "Include Archived Exceptions",
             description:
-              "By default, exceptions that are archived are not counted. Enable this to count archived exceptions too.",
+              "Count archived exceptions too. They are left out otherwise.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_EXCEPTION_FILTERS,
           },

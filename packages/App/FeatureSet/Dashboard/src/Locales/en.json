@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}: too many exceptions",
   "{{monitorName}}: too many failed requests": "{{monitorName}}: too many failed requests",
   "equal to": "equal to",
-  "not equal to": "not equal to"
+  "not equal to": "not equal to",
+  "At {{value}}, this rule would not have alerted in this time.": "At {{value}}, this rule would not have alerted in this time.",
+  "Count archived exceptions too. They are left out otherwise.": "Count archived exceptions too. They are left out otherwise.",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "Matching exceptions per {{window}}, over the last {{range}}.",
+  "Matching logs per {{window}}, over the last {{range}}.": "Matching logs per {{window}}, over the last {{range}}.",
+  "Matching spans per {{window}}, over the last {{range}}.": "Matching spans per {{window}}, over the last {{range}}.",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.",
+  "Only exceptions from these services. Empty: every service.": "Only exceptions from these services. Empty: every service.",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "Only exceptions of these types, separated by commas. Empty: every type.",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.",
+  "Only logs from these services. Empty: every service.": "Only logs from these services. Empty: every service.",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "Only logs whose attributes match all of these. Empty: any attributes.",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.",
+  "Only spans from these services. Empty: every service.": "Only spans from these services. Empty: every service.",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Only spans whose attributes match all of these. Empty: any attributes."
 }

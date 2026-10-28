@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}: troppe eccezioni",
   "{{monitorName}}: too many failed requests": "{{monitorName}}: troppe richieste fallite",
   "equal to": "uguale a",
-  "not equal to": "diverso da"
+  "not equal to": "diverso da",
+  "At {{value}}, this rule would not have alerted in this time.": "Con {{value}}, questa regola non avrebbe avvisato in questo periodo.",
+  "Count archived exceptions too. They are left out otherwise.": "Conta anche le eccezioni archiviate. Altrimenti vengono escluse.",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "Eccezioni corrispondenti per intervalli di {{window}}, nell'arco di {{range}}.",
+  "Matching logs per {{window}}, over the last {{range}}.": "Log corrispondenti per intervalli di {{window}}, nell'arco di {{range}}.",
+  "Matching spans per {{window}}, over the last {{range}}.": "Span corrispondenti per intervalli di {{window}}, nell'arco di {{range}}.",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "Solo le eccezioni di questi ambienti (deployment.environment), separati da virgole. Vuoto: ogni ambiente.",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "Solo le eccezioni di questi host, cluster o altra infrastruttura. Vuoto: tutta l'infrastruttura.",
+  "Only exceptions from these services. Empty: every service.": "Solo le eccezioni di questi servizi. Vuoto: ogni servizio.",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "Solo le eccezioni di questi tipi, separati da virgole. Vuoto: ogni tipo.",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "Solo i log di questi host, cluster o altra infrastruttura. Vuoto: tutta l'infrastruttura.",
+  "Only logs from these services. Empty: every service.": "Solo i log di questi servizi. Vuoto: ogni servizio.",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "Solo i log i cui attributi soddisfano tutte queste condizioni. Vuoto: qualsiasi attributo.",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Solo gli span di questi host, cluster o altra infrastruttura. Vuoto: tutta l'infrastruttura.",
+  "Only spans from these services. Empty: every service.": "Solo gli span di questi servizi. Vuoto: ogni servizio.",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Solo gli span i cui attributi soddisfano tutte queste condizioni. Vuoto: qualsiasi attributo."
 }

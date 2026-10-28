@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}: te veel uitzonderingen",
   "{{monitorName}}: too many failed requests": "{{monitorName}}: te veel mislukte verzoeken",
   "equal to": "precies op",
-  "not equal to": "niet op"
+  "not equal to": "niet op",
+  "At {{value}}, this rule would not have alerted in this time.": "Bij {{value}} zou deze regel in deze periode niet hebben gewaarschuwd.",
+  "Count archived exceptions too. They are left out otherwise.": "Ook gearchiveerde uitzonderingen tellen. Anders blijven ze buiten beschouwing.",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "Overeenkomende uitzonderingen per {{window}}, over de afgelopen {{range}}.",
+  "Matching logs per {{window}}, over the last {{range}}.": "Overeenkomende logs per {{window}}, over de afgelopen {{range}}.",
+  "Matching spans per {{window}}, over the last {{range}}.": "Overeenkomende spans per {{window}}, over de afgelopen {{range}}.",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "Alleen uitzonderingen uit deze omgevingen (deployment.environment), gescheiden door komma's. Leeg: elke omgeving.",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "Alleen uitzonderingen van deze hosts, clusters of andere infrastructuur. Leeg: alle infrastructuur.",
+  "Only exceptions from these services. Empty: every service.": "Alleen uitzonderingen uit deze services. Leeg: elke service.",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "Alleen uitzonderingen van deze typen, gescheiden door komma's. Leeg: elk type.",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "Alleen logs van deze hosts, clusters of andere infrastructuur. Leeg: alle infrastructuur.",
+  "Only logs from these services. Empty: every service.": "Alleen logs uit deze services. Leeg: elke service.",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "Alleen logs waarvan de attributen aan al deze voorwaarden voldoen. Leeg: willekeurige attributen.",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Alleen spans van deze hosts, clusters of andere infrastructuur. Leeg: alle infrastructuur.",
+  "Only spans from these services. Empty: every service.": "Alleen spans uit deze services. Leeg: elke service.",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Alleen spans waarvan de attributen aan al deze voorwaarden voldoen. Leeg: willekeurige attributen."
 }

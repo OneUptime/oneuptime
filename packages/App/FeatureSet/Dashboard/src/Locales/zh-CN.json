@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}：异常过多",
   "{{monitorName}}: too many failed requests": "{{monitorName}}：失败的请求过多",
   "equal to": "等于",
-  "not equal to": "不等于"
+  "not equal to": "不等于",
+  "At {{value}}, this rule would not have alerted in this time.": "如果设为 {{value}}，这段时间内此规则不会发出警报。",
+  "Count archived exceptions too. They are left out otherwise.": "也计入已归档的异常。否则不计入。",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "最近 {{range}} 内，每 {{window}} 匹配的异常数。",
+  "Matching logs per {{window}}, over the last {{range}}.": "最近 {{range}} 内，每 {{window}} 匹配的日志数。",
+  "Matching spans per {{window}}, over the last {{range}}.": "最近 {{range}} 内，每 {{window}} 匹配的跨度数。",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "仅这些环境（deployment.environment）中的异常，用逗号分隔。留空：所有环境。",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "仅来自这些主机、集群或其他基础设施的异常。留空：所有基础设施。",
+  "Only exceptions from these services. Empty: every service.": "仅这些服务中的异常。留空：所有服务。",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "仅这些类型的异常，用逗号分隔。留空：所有类型。",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "仅来自这些主机、集群或其他基础设施的日志。留空：所有基础设施。",
+  "Only logs from these services. Empty: every service.": "仅这些服务的日志。留空：所有服务。",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "仅属性符合以下全部条件的日志。留空：任意属性。",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "仅来自这些主机、集群或其他基础设施的跨度。留空：所有基础设施。",
+  "Only spans from these services. Empty: every service.": "仅这些服务的跨度。留空：所有服务。",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "仅属性符合以下全部条件的跨度。留空：任意属性。"
 }

@@ -322,64 +322,79 @@ const TelemetryRulePreview: FunctionComponent<ComponentProps> = (
         />
       </div>
 
-      <div className="mt-3 flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-        <div className="min-w-0 space-y-1">
-          <div
-            className="flex items-start gap-2 text-sm font-medium text-gray-900"
-            data-testid="telemetry-rule-preview-verdict"
-          >
-            <Icon
-              icon={willAlert ? IconProp.Alert : IconProp.CheckCircle}
-              className={`mt-0.5 h-4 w-4 flex-none ${
-                willAlert ? "text-rose-600" : "text-emerald-600"
-              }`}
-            />
-            <span>
-              {hasThreshold
-                ? getPreviewVerdict({
-                    summary,
-                    windowInSeconds,
-                    matchesNothing: TelemetryRulePreviewUtil.isMatched({
-                      filterType: props.filterType,
-                      threshold: props.threshold,
-                      value: 0,
-                    }),
-                    translator,
-                  })
-                : translator.translateText(TelemetryRuleCopy.anomalyHint)}
-            </span>
-          </div>
-          {summary.hasData ? (
-            <p
-              className="text-sm text-gray-500"
-              data-testid="telemetry-rule-preview-facts"
-            >
-              {translator.translateTemplate(
-                "Highest: {{highest}} · Usually: {{typical}} · Latest: {{latest}}",
-                {
-                  highest: translator.formatNumber(summary.highest),
-                  typical: translator.formatNumber(summary.typical),
-                  latest: translator.formatNumber(summary.latest || 0),
-                },
-              )}
-            </p>
-          ) : (
-            <></>
-          )}
-          {props.isGrouped ? (
-            <p className="text-sm text-gray-500">
-              {translator.translateText(TelemetryRuleCopy.groupedHint)}
-            </p>
-          ) : (
-            <></>
-          )}
+      <div className="mt-3 min-w-0 space-y-1">
+        <div
+          className="flex items-start gap-2 text-sm font-medium text-gray-900"
+          data-testid="telemetry-rule-preview-verdict"
+        >
+          <Icon
+            icon={willAlert ? IconProp.Alert : IconProp.CheckCircle}
+            className={`mt-0.5 h-4 w-4 flex-none ${
+              willAlert ? "text-rose-600" : "text-emerald-600"
+            }`}
+          />
+          <span>
+            {hasThreshold
+              ? getPreviewVerdict({
+                  summary,
+                  windowInSeconds,
+                  matchesNothing: TelemetryRulePreviewUtil.isMatched({
+                    filterType: props.filterType,
+                    threshold: props.threshold,
+                    value: 0,
+                  }),
+                  translator,
+                })
+              : translator.translateText(TelemetryRuleCopy.anomalyHint)}
+          </span>
         </div>
+        {summary.hasData ? (
+          <p
+            className="text-sm text-gray-500"
+            data-testid="telemetry-rule-preview-facts"
+          >
+            {translator.translateTemplate(
+              "Highest: {{highest}} · Usually: {{typical}} · Latest: {{latest}}",
+              {
+                highest: translator.formatNumber(summary.highest),
+                typical: translator.formatNumber(summary.typical),
+                latest: translator.formatNumber(summary.latest || 0),
+              },
+            )}
+          </p>
+        ) : (
+          <></>
+        )}
+        {props.isGrouped ? (
+          <p className="text-sm text-gray-500">
+            {translator.translateText(TelemetryRuleCopy.groupedHint)}
+          </p>
+        ) : (
+          <></>
+        )}
+      </div>
 
-        {suggestion !== undefined &&
-        suggestion !== props.threshold &&
-        props.onUseSuggestedThreshold ? (
-          /* md:-ml-3 takes back the Button's own md:ml-3. */
-          <div className="md:-ml-3">
+      {/*
+       * A number the rule would not have passed, said as what it means
+       * beside the button that uses it: "Use 48" alone did not say why 48.
+       */}
+      {suggestion !== undefined &&
+      suggestion !== props.threshold &&
+      props.onUseSuggestedThreshold ? (
+        <div
+          className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2"
+          data-testid="telemetry-rule-preview-suggestion"
+        >
+          <p className="min-w-0 text-sm text-gray-600">
+            {translator.translateTemplate(
+              "At {{value}}, this rule would not have alerted in this time.",
+              {
+                value: translator.formatNumber(suggestion),
+              },
+            )}
+          </p>
+          {/* The wrapper takes off the Button's own dialog-footer margin. */}
+          <div className="flex-none [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0">
             <Button
               title={translator.translateTemplate("Use {{value}}", {
                 value: translator.formatNumber(suggestion),
@@ -388,18 +403,15 @@ const TelemetryRulePreview: FunctionComponent<ComponentProps> = (
               buttonStyle={ButtonStyleType.NORMAL}
               icon={IconProp.Bolt}
               dataTestId="telemetry-rule-preview-use-suggestion"
-              tooltip={translator.translateText(
-                "A value this rule would not have passed in this time.",
-              )}
               onClick={() => {
                 props.onUseSuggestedThreshold?.(suggestion);
               }}
             />
           </div>
-        ) : (
-          <></>
-        )}
-      </div>
+        </div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}: 例外が多すぎます",
   "{{monitorName}}: too many failed requests": "{{monitorName}}: 失敗したリクエストが多すぎます",
   "equal to": "と等しい",
-  "not equal to": "と異なる"
+  "not equal to": "と異なる",
+  "At {{value}}, this rule would not have alerted in this time.": "{{value}} なら、この期間、このルールはアラートしなかったはずです。",
+  "Count archived exceptions too. They are left out otherwise.": "アーカイブされた例外も数えます。オフのときは数えません。",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "直近{{range}}の、{{window}}ごとの一致した例外。",
+  "Matching logs per {{window}}, over the last {{range}}.": "直近{{range}}の、{{window}}ごとの一致したログ。",
+  "Matching spans per {{window}}, over the last {{range}}.": "直近{{range}}の、{{window}}ごとの一致したスパン。",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "これらの環境（deployment.environment）の例外だけ。カンマで区切ります。空欄: すべての環境。",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "これらのホスト、クラスター、その他のインフラストラクチャの例外だけ。空欄: すべてのインフラストラクチャ。",
+  "Only exceptions from these services. Empty: every service.": "これらのサービスの例外だけ。空欄: すべてのサービス。",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "これらのタイプの例外だけ。カンマで区切ります。空欄: すべてのタイプ。",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "これらのホスト、クラスター、その他のインフラストラクチャのログだけ。空欄: すべてのインフラストラクチャ。",
+  "Only logs from these services. Empty: every service.": "これらのサービスのログだけ。空欄: すべてのサービス。",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "属性がこれらすべてに一致するログだけ。空欄: 属性を問いません。",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "これらのホスト、クラスター、その他のインフラストラクチャのスパンだけ。空欄: すべてのインフラストラクチャ。",
+  "Only spans from these services. Empty: every service.": "これらのサービスのスパンだけ。空欄: すべてのサービス。",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "属性がこれらすべてに一致するスパンだけ。空欄: 属性を問いません。"
 }

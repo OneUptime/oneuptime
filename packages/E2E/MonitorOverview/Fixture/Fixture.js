@@ -82,6 +82,13 @@
  *   ?lang=     de | fa: the page in German or Persian, from the Dashboard's
  *              own locale files, its <html lang> and dir set by the
  *              production helper. English without it.
+ *   ?criteria= logs | several: a Logs monitor, "Checkout logs", whose
+ *              Criteria page (/monitors/<TELEMETRY_MONITOR_ID>/criteria) is
+ *              the production one rather than the stub every other monitor
+ *              has: "logs" holds the rule Too many errors makes (Error and
+ *              Fatal logs, more than 10 in 5 minutes, an alert), "several"
+ *              two rules (more than 10 an alert, more than 100 an
+ *              incident), which the page shows in full.
  *
  * A telemetry monitor's rule preview (POST /telemetry/<signal>/monitor-
  * preview) is answered with a steady count per window and one spike two
@@ -121,6 +128,13 @@ import MonitorViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Monit
 import MonitorView from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Index";
 import MonitorLogs from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Logs";
 import MonitorCreate from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/Create";
+import MonitorCriteriaPage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/Criteria";
+import {
+  applyRecipe,
+  getRecipe,
+  TelemetryRuleRecipeKey,
+} from "../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/TelemetryRule/TelemetryRuleRecipes";
+import { createTranslator } from "Common/UI/Utils/TranslateTemplate";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import ChangeEvent from "Common/Models/AnalyticsModels/ChangeEvent";
@@ -263,6 +277,9 @@ const componentsMode =
 const languageMode = ["de", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
+const criteriaMode = ["logs", "several"].includes(params.get("criteria"))
+  ? params.get("criteria")
+  : null;
 
 /*
  * The components the External Status Page monitor watches with
@@ -2183,6 +2200,96 @@ for (const typeKey of TYPE_KEYS) {
   defineMonitor(typeKey);
 }
 
+/*
+ * ?criteria=: the telemetry monitor whose Criteria page is the real one. Its
+ * criteria are what Create Monitor stores for the Too many errors recipe
+ * (the recipe's own code builds them), with "several" adding a second rule
+ * that declares an incident above 100.
+ */
+const TELEMETRY_MONITOR_ID = ID.monitor(200);
+const TELEMETRY_MONITOR_NAME = "Checkout logs";
+
+function telemetryRuleSteps(mode) {
+  const steps = MonitorSteps.getDefaultMonitorSteps({
+    monitorType: MonitorType.Logs,
+    monitorName: TELEMETRY_MONITOR_NAME,
+    defaultMonitorStatusId: statuses.operational.id,
+    onlineMonitorStatusId: statuses.operational.id,
+    offlineMonitorStatusId: statuses.offline.id,
+    defaultIncidentSeverityId: incidentSeverities.sev1.id,
+    defaultAlertSeverityId: alertSeverities.high.id,
+  });
+  const step = applyRecipe({
+    monitorStep: steps.data.monitorStepsInstanceArray[0],
+    recipe: getRecipe(TelemetryRuleRecipeKey.ErrorLogs),
+    seeds: {
+      monitorName: TELEMETRY_MONITOR_NAME,
+      operationalStatusId: statuses.operational.id,
+      degradedStatusId: statuses.degraded.id,
+      offlineStatusId: statuses.offline.id,
+      incidentSeverityId: incidentSeverities.sev1.id,
+      alertSeverityId: alertSeverities.high.id,
+    },
+    translator: createTranslator(undefined, "en"),
+  });
+
+  if (mode === "several") {
+    const instances =
+      step.data.monitorCriteria.data.monitorCriteriaInstanceArray;
+    const second = MonitorCriteriaInstance.clone(instances[0]);
+    second.data = {
+      ...second.data,
+      id: "criteria-incident",
+      name: "Log Count is above 100",
+      monitorStatusId: statuses.offline.id,
+      createIncidents: true,
+      createAlerts: false,
+      filters: second.data.filters.map((filter) => {
+        return { ...filter, value: 100 };
+      }),
+      incidents: [
+        {
+          id: "incident-1",
+          title: `${TELEMETRY_MONITOR_NAME}: errors are piling up`,
+          description: "",
+          incidentSeverityId: incidentSeverities.sev1.id,
+          autoResolveIncident: true,
+          onCallPolicyIds: [],
+        },
+      ],
+      alerts: [],
+    };
+    step.data.monitorCriteria.data.monitorCriteriaInstanceArray = [
+      second,
+      ...instances,
+    ];
+  }
+
+  steps.setMonitorStepsInstanceArray([step]);
+  return steps;
+}
+
+if (criteriaMode) {
+  insert(Monitor, {
+    _id: TELEMETRY_MONITOR_ID,
+    name: TELEMETRY_MONITOR_NAME,
+    description: "Error and fatal logs of the checkout service.",
+    monitorType: MonitorType.Logs,
+    labels: [],
+    createdAt: ago(9 * DAY),
+    currentMonitorStatusId: statuses.operational.id,
+    currentMonitorStatus: statuses.operational,
+    monitoringInterval: "* * * * *",
+    monitorSteps: telemetryRuleSteps(criteriaMode),
+    disableActiveMonitoring: false,
+    disableActiveMonitoringBecauseOfManualIncident: false,
+    disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false,
+    customFields: {},
+  });
+}
+
+fixture.telemetryMonitorId = TELEMETRY_MONITOR_ID;
+
 fixture.monitors = Object.fromEntries(
   TYPE_KEYS.map((typeKey) => {
     return [
@@ -3144,13 +3251,17 @@ function StubPage(props) {
   );
 }
 
-// Every monitor sub-page but Monitoring Logs, and every page the overview links to.
+/*
+ * Every monitor sub-page but Monitoring Logs (and, with ?criteria=, the
+ * Criteria page), and every page the overview links to.
+ */
 const STUB_PAGES = [
   ...Object.values(PageMap)
     .filter((pageKey) => {
       return (
         String(pageKey).startsWith("MONITOR_VIEW_") &&
-        pageKey !== PageMap.MONITOR_VIEW_LOGS
+        pageKey !== PageMap.MONITOR_VIEW_LOGS &&
+        !(criteriaMode && pageKey === PageMap.MONITOR_VIEW_CRITERIA)
       );
     })
     .map((pageKey) => {
@@ -3257,6 +3368,16 @@ function FixtureApp() {
                 <MonitorLogs {...pageProps(PageMap.MONITOR_VIEW_LOGS)} />
               }
             />
+            {criteriaMode ? (
+              <Route
+                path="criteria"
+                element={
+                  <MonitorCriteriaPage
+                    {...pageProps(PageMap.MONITOR_VIEW_CRITERIA)}
+                  />
+                }
+              />
+            ) : null}
           </Route>
           {STUB_PAGES.map(([pageKey, title]) => {
             return (

@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}: for mange unntak",
   "{{monitorName}}: too many failed requests": "{{monitorName}}: for mange mislykkede forespørsler",
   "equal to": "nøyaktig på",
-  "not equal to": "ikke på"
+  "not equal to": "ikke på",
+  "At {{value}}, this rule would not have alerted in this time.": "Med {{value}} ville denne regelen ikke ha varslet i perioden.",
+  "Count archived exceptions too. They are left out otherwise.": "Tell også arkiverte unntak. Ellers holdes de utenfor.",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "Samsvarende unntak per {{window}}, de siste {{range}}.",
+  "Matching logs per {{window}}, over the last {{range}}.": "Samsvarende logger per {{window}}, de siste {{range}}.",
+  "Matching spans per {{window}}, over the last {{range}}.": "Samsvarende spans per {{window}}, de siste {{range}}.",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "Bare unntak fra disse miljøene (deployment.environment), skilt med komma. Tomt: alle miljøer.",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "Bare unntak fra disse vertene, klyngene eller annen infrastruktur. Tomt: all infrastruktur.",
+  "Only exceptions from these services. Empty: every service.": "Bare unntak fra disse tjenestene. Tomt: alle tjenester.",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "Bare unntak av disse typene, skilt med komma. Tomt: alle typer.",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "Bare logger fra disse vertene, klyngene eller annen infrastruktur. Tomt: all infrastruktur.",
+  "Only logs from these services. Empty: every service.": "Bare logger fra disse tjenestene. Tomt: alle tjenester.",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "Bare logger der attributtene oppfyller alle disse vilkårene. Tomt: alle attributter.",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Bare spans fra disse vertene, klyngene eller annen infrastruktur. Tomt: all infrastruktur.",
+  "Only spans from these services. Empty: every service.": "Bare spans fra disse tjenestene. Tomt: alle tjenester.",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Bare spans der attributtene oppfyller alle disse vilkårene. Tomt: alle attributter."
 }

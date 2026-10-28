@@ -307,6 +307,40 @@ describe("ExceptionSummary", () => {
     ).toBeInTheDocument();
   });
 
+  test("its actions sit beside the exception only when the card is wide enough, not when the window is", () => {
+    renderSummary({
+      exception: exceptionWith({ message: "Inventory reservation failed" }),
+      actions: (
+        <>
+          <button type="button">Resolve</button>
+          <button type="button">Archive</button>
+          <button type="button">Create monitor</button>
+        </>
+      ),
+    });
+
+    const actions: HTMLElement = screen.getByTestId(
+      "exception-summary-actions",
+    );
+    const row: HTMLElement = actions.parentElement as HTMLElement;
+    const card: HTMLElement = row.parentElement as HTMLElement;
+
+    /*
+     * A container query on the card's own width: from lg up beside the side
+     * menu, three buttons left the message a word a line at 1024px.
+     */
+    expect(card.className).toContain("[container-type:inline-size]");
+    expect(row).toHaveClass(
+      "flex",
+      "flex-col",
+      "[@container(min-width:56rem)]:flex-row",
+    );
+    expect(row.className).not.toContain("lg:flex-row");
+    expect(actions).toHaveClass("[@container(min-width:56rem)]:justify-end");
+    expect(actions.className).not.toContain("lg:justify-end");
+    expect(within(actions).getAllByRole("button")).toHaveLength(3);
+  });
+
   test("expands and collapses long messages without removing their content", () => {
     const longMessage: string = "x".repeat(
       EXCEPTION_MESSAGE_CLAMP_CHARACTER_COUNT + 1,

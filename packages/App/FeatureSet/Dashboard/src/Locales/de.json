@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}: zu viele Ausnahmen",
   "{{monitorName}}: too many failed requests": "{{monitorName}}: zu viele fehlgeschlagene Anfragen",
   "equal to": "genau bei",
-  "not equal to": "nicht bei"
+  "not equal to": "nicht bei",
+  "At {{value}}, this rule would not have alerted in this time.": "Bei {{value}} hätte diese Regel in diesem Zeitraum nicht alarmiert.",
+  "Count archived exceptions too. They are left out otherwise.": "Auch archivierte Ausnahmen zählen. Sonst werden sie nicht gezählt.",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "Passende Ausnahmen je {{window}}, über die letzten {{range}}.",
+  "Matching logs per {{window}}, over the last {{range}}.": "Passende Logs je {{window}}, über die letzten {{range}}.",
+  "Matching spans per {{window}}, over the last {{range}}.": "Passende Spans je {{window}}, über die letzten {{range}}.",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "Nur Ausnahmen aus diesen Umgebungen (deployment.environment), durch Kommas getrennt. Leer: jede Umgebung.",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "Nur Ausnahmen von diesen Hosts, Clustern oder anderer Infrastruktur. Leer: die gesamte Infrastruktur.",
+  "Only exceptions from these services. Empty: every service.": "Nur Ausnahmen aus diesen Diensten. Leer: jeder Dienst.",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "Nur Ausnahmen dieser Typen, durch Kommas getrennt. Leer: jeder Typ.",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "Nur Logs von diesen Hosts, Clustern oder anderer Infrastruktur. Leer: die gesamte Infrastruktur.",
+  "Only logs from these services. Empty: every service.": "Nur Logs aus diesen Diensten. Leer: jeder Dienst.",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "Nur Logs, deren Attribute alle diese Bedingungen erfüllen. Leer: beliebige Attribute.",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Nur Spans von diesen Hosts, Clustern oder anderer Infrastruktur. Leer: die gesamte Infrastruktur.",
+  "Only spans from these services. Empty: every service.": "Nur Spans aus diesen Diensten. Leer: jeder Dienst.",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Nur Spans, deren Attribute alle diese Bedingungen erfüllen. Leer: beliebige Attribute."
 }

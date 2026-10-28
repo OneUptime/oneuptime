@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}: 예외가 너무 많습니다",
   "{{monitorName}}: too many failed requests": "{{monitorName}}: 실패한 요청이 너무 많습니다",
   "equal to": "일치",
-  "not equal to": "불일치"
+  "not equal to": "불일치",
+  "At {{value}}, this rule would not have alerted in this time.": "{{value}}일 때는 이 기간에 이 규칙이 알리지 않았을 것입니다.",
+  "Count archived exceptions too. They are left out otherwise.": "보관된 예외도 셉니다. 그렇지 않으면 세지 않습니다.",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "최근 {{range}} 동안 {{window}} 단위로 센 일치하는 예외.",
+  "Matching logs per {{window}}, over the last {{range}}.": "최근 {{range}} 동안 {{window}} 단위로 센 일치하는 로그.",
+  "Matching spans per {{window}}, over the last {{range}}.": "최근 {{range}} 동안 {{window}} 단위로 센 일치하는 스팬.",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "이 환경(deployment.environment)의 예외만. 쉼표로 구분합니다. 비우면 모든 환경.",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "이 호스트, 클러스터 또는 기타 인프라의 예외만. 비우면 모든 인프라.",
+  "Only exceptions from these services. Empty: every service.": "이 서비스의 예외만. 비우면 모든 서비스.",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "이 유형의 예외만. 쉼표로 구분합니다. 비우면 모든 유형.",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "이 호스트, 클러스터 또는 기타 인프라의 로그만. 비우면 모든 인프라.",
+  "Only logs from these services. Empty: every service.": "이 서비스의 로그만. 비우면 모든 서비스.",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "속성이 이 조건에 모두 맞는 로그만. 비우면 속성과 관계없이.",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "이 호스트, 클러스터 또는 기타 인프라의 스팬만. 비우면 모든 인프라.",
+  "Only spans from these services. Empty: every service.": "이 서비스의 스팬만. 비우면 모든 서비스.",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "속성이 이 조건에 모두 맞는 스팬만. 비우면 속성과 관계없이."
 }

@@ -507,6 +507,45 @@ describe("What happens", () => {
     expect(screen.getByTestId("telemetry-rule-incident")).toBeInTheDocument();
   });
 
+  test("what it opens is set up under the choice and as wide as it, headed by whose settings they are", () => {
+    renderEditor({
+      monitorType: MonitorType.Logs,
+      initial: recipeStep(TelemetryRuleRecipeKey.ErrorLogs),
+    });
+
+    const alert: HTMLElement = screen.getByTestId("telemetry-rule-alert");
+
+    /*
+     * Indented under the radios (sm:ml-6, the criteria editor's nesting
+     * under a switch), the box read as the last radio's - "Both" - though
+     * "Create an alert" was the one picked.
+     */
+    expect(alert.className).not.toContain("ml-6");
+    expect(alert.firstElementChild!.textContent).toBe("Alert");
+    expect(alert).toHaveTextContent("Alert Title");
+
+    // After the choice, not inside it.
+    const choice: HTMLElement = screen.getByTestId("telemetry-rule-action");
+    expect(choice).not.toContainElement(alert);
+    expect(
+      choice.compareDocumentPosition(alert) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("radio", { name: /^Both/ }));
+
+    // Both: one box each, each saying whose it is.
+    expect(
+      screen.getByTestId("telemetry-rule-alert").firstElementChild!.textContent,
+    ).toBe("Alert");
+    expect(
+      screen.getByTestId("telemetry-rule-incident").firstElementChild!
+        .textContent,
+    ).toBe("Incident");
+    expect(screen.getByTestId("telemetry-rule-incident")).toHaveTextContent(
+      "Incident Title",
+    );
+  });
+
   test("Only change the monitor's status is offered to a rule that already does just that", () => {
     const step: MonitorStep = recipeStep(TelemetryRuleRecipeKey.ErrorLogs);
     const rule: TelemetryAlertRule = TelemetryAlertRuleUtil.read({
@@ -572,6 +611,36 @@ describe("What happens", () => {
     fireEvent.click(screen.getByTestId("telemetry-rule-back-to-simple"));
 
     expect(screen.getByTestId("telemetry-rule-editor")).toBeInTheDocument();
+  });
+
+  test("the way to the full editor is one button, with a line saying when to use it", () => {
+    renderEditor({
+      monitorType: MonitorType.Logs,
+      initial: recipeStep(TelemetryRuleRecipeKey.ErrorLogs),
+    });
+
+    fireEvent.click(
+      within(screen.getByTestId("telemetry-rule-more-fields")).getAllByRole(
+        "button",
+        { name: "More fields" },
+      )[0]!,
+    );
+
+    const entry: HTMLElement = screen.getByTestId(
+      "telemetry-rule-custom-criteria-entry",
+    );
+
+    expect(entry).toHaveTextContent(
+      "For several rules, or a rule with more than one filter.",
+    );
+    // A label over the button said the button's own words a second time.
+    expect(
+      within(entry).getAllByText("Edit as custom criteria", { exact: true }),
+    ).toHaveLength(1);
+    expect(entry.querySelector("label")).toBeNull();
+    expect(
+      within(entry).getByRole("button", { name: "Edit as custom criteria" }),
+    ).toBe(screen.getByTestId("telemetry-rule-edit-as-custom"));
   });
 });
 
@@ -651,6 +720,79 @@ describe("When to alert, for a Metrics monitor", () => {
       "Alerts when the average of CPU over the last 5 minutes is above the value you enter.",
     );
     expect(previews).toHaveLength(0);
+  });
+
+  test("its four fields sit two by two - what is measured over which window, then how it compares - with the sentence right under them", () => {
+    renderEditor({ monitorType: MonitorType.Metrics, initial: metricStep() });
+
+    const aggregation: HTMLElement = screen.getByTestId(
+      "telemetry-rule-aggregation",
+    );
+    const grid: HTMLElement = aggregation.parentElement!;
+
+    // Two columns: three left the third empty beside two fields a row.
+    expect(grid).toHaveClass("grid", "sm:grid-cols-2");
+    expect(grid.className).not.toContain("sm:grid-cols-3");
+    expect(
+      Array.from(grid.children).map((child: Element) => {
+        return child.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      "telemetry-rule-aggregation",
+      "telemetry-rule-window",
+      "telemetry-rule-comparison",
+      "telemetry-rule-value",
+    ]);
+
+    // The sentence follows the fields; what is rarely set comes after it.
+    const sentenceBox: HTMLElement = screen.getByTestId(
+      "telemetry-rule-sentence",
+    );
+    const more: HTMLElement = screen.getByTestId(
+      "telemetry-rule-condition-more-fields",
+    );
+    expect(
+      grid.compareDocumentPosition(sentenceBox) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      sentenceBox.compareDocumentPosition(more) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("with several queries the metric takes the whole first row", () => {
+    renderEditor({
+      monitorType: MonitorType.Metrics,
+      initial: metricStep(["a", "b"]),
+    });
+
+    const metric: HTMLElement = screen.getByTestId("telemetry-rule-metric");
+
+    expect(metric).toHaveClass("sm:col-span-2");
+    expect(metric.parentElement!.firstElementChild).toBe(metric);
+  });
+
+  test("a count rule keeps one row: the condition, the number and the window", () => {
+    renderEditor({
+      monitorType: MonitorType.Logs,
+      initial: recipeStep(TelemetryRuleRecipeKey.ErrorLogs),
+    });
+
+    const grid: HTMLElement = screen.getByTestId(
+      "telemetry-rule-comparison",
+    ).parentElement!;
+
+    expect(grid).toHaveClass("grid", "sm:grid-cols-3");
+    expect(
+      Array.from(grid.children).map((child: Element) => {
+        return child.getAttribute("data-testid");
+      }),
+    ).toEqual([
+      "telemetry-rule-comparison",
+      "telemetry-rule-value",
+      "telemetry-rule-window",
+    ]);
   });
 
   test("a value is required once the form is sent", () => {

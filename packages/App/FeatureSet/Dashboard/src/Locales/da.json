@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}: for mange undtagelser",
   "{{monitorName}}: too many failed requests": "{{monitorName}}: for mange fejlede forespørgsler",
   "equal to": "præcis på",
-  "not equal to": "ikke på"
+  "not equal to": "ikke på",
+  "At {{value}}, this rule would not have alerted in this time.": "Ved {{value}} ville denne regel ikke have advaret i perioden.",
+  "Count archived exceptions too. They are left out otherwise.": "Tæl også arkiverede undtagelser. Ellers udelades de.",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "Matchende undtagelser pr. {{window}} over de seneste {{range}}.",
+  "Matching logs per {{window}}, over the last {{range}}.": "Matchende logs pr. {{window}} over de seneste {{range}}.",
+  "Matching spans per {{window}}, over the last {{range}}.": "Matchende spans pr. {{window}} over de seneste {{range}}.",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "Kun undtagelser fra disse miljøer (deployment.environment), adskilt af kommaer. Tom: alle miljøer.",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "Kun undtagelser fra disse værter, klynger eller anden infrastruktur. Tom: al infrastruktur.",
+  "Only exceptions from these services. Empty: every service.": "Kun undtagelser fra disse tjenester. Tom: alle tjenester.",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "Kun undtagelser af disse typer, adskilt af kommaer. Tom: alle typer.",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "Kun logs fra disse værter, klynger eller anden infrastruktur. Tom: al infrastruktur.",
+  "Only logs from these services. Empty: every service.": "Kun logs fra disse tjenester. Tom: alle tjenester.",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "Kun logs, hvis attributter opfylder alle disse betingelser. Tom: alle attributter.",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Kun spans fra disse værter, klynger eller anden infrastruktur. Tom: al infrastruktur.",
+  "Only spans from these services. Empty: every service.": "Kun spans fra disse tjenester. Tom: alle tjenester.",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Kun spans, hvis attributter opfylder alle disse betingelser. Tom: alle attributter."
 }

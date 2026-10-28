@@ -413,11 +413,14 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
         {/*
          * Below md the search holds a 12rem basis, so the wrapping toolbar
          * gives it its own row (shared with the Filters toggle at most) and
-         * does not squeeze it between the buttons. From md up it is flex-1
-         * again and takes whatever the buttons leave.
+         * does not squeeze it between the buttons. From md up it takes
+         * whatever the buttons leave, but never less than 16rem: past that
+         * the buttons wrap onto a row of their own. With flex-1 alone, a
+         * toolbar with one more button (the Traces page's Create monitor)
+         * squeezed the search to a few pixels in a 1024px window.
          */}
         <div
-          className="min-w-0 flex-[1_1_12rem] md:flex-1"
+          className="min-w-0 flex-[1_1_12rem] md:flex-[1_1_16rem]"
           data-testid={TELEMETRY_VIEWER_SEARCH_TEST_ID}
         >
           <TelemetrySearchBar

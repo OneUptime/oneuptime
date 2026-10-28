@@ -184,7 +184,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Telemetry Service",
-            description: "Select the telemetry services you want to monitor.",
+            description: "Only logs from these services. Empty: every service.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_LOG_FILTERS,
           },
@@ -206,7 +206,8 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Infrastructure Entity",
-            description: "Scope to specific infrastructure entities (optional)",
+            description:
+              "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_LOG_FILTERS,
           },
@@ -223,7 +224,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             onDictionaryKeySelected: props.onAttributeKeySelected,
             dictionaryEnableOperators: true,
             description:
-              "You can filter the logs based on the attributes that are attached to the logs.",
+              "Only logs whose attributes match all of these. Empty: any attributes.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_LOG_FILTERS,
           },

@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}: बहुत अधिक अपवाद",
   "{{monitorName}}: too many failed requests": "{{monitorName}}: बहुत अधिक विफल अनुरोध",
   "equal to": "के बराबर",
-  "not equal to": "के बराबर न"
+  "not equal to": "के बराबर न",
+  "At {{value}}, this rule would not have alerted in this time.": "{{value}} पर, इस अवधि में यह नियम अलर्ट नहीं करता।",
+  "Count archived exceptions too. They are left out otherwise.": "संग्रहीत अपवाद भी गिनें। वरना उन्हें छोड़ दिया जाता है।",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "पिछले {{range}} में हर {{window}} के मेल खाने वाले अपवाद।",
+  "Matching logs per {{window}}, over the last {{range}}.": "पिछले {{range}} में हर {{window}} के मेल खाने वाले लॉग।",
+  "Matching spans per {{window}}, over the last {{range}}.": "पिछले {{range}} में हर {{window}} के मेल खाने वाले स्पैन।",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "केवल इन परिवेशों (deployment.environment) के अपवाद, अल्पविराम से अलग। खाली: हर परिवेश।",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "केवल इन होस्ट, क्लस्टर या दूसरे बुनियादी ढांचे के अपवाद। खाली: पूरा बुनियादी ढांचा।",
+  "Only exceptions from these services. Empty: every service.": "केवल इन सेवाओं के अपवाद। खाली: हर सेवा।",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "केवल इन प्रकारों के अपवाद, अल्पविराम से अलग। खाली: हर प्रकार।",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "केवल इन होस्ट, क्लस्टर या दूसरे बुनियादी ढांचे के लॉग। खाली: पूरा बुनियादी ढांचा।",
+  "Only logs from these services. Empty: every service.": "केवल इन सेवाओं के लॉग। खाली: हर सेवा।",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "केवल वे लॉग जिनकी विशेषताएं इन सभी से मेल खाएं। खाली: कोई भी विशेषताएं।",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "केवल इन होस्ट, क्लस्टर या दूसरे बुनियादी ढांचे के स्पैन। खाली: पूरा बुनियादी ढांचा।",
+  "Only spans from these services. Empty: every service.": "केवल इन सेवाओं के स्पैन। खाली: हर सेवा।",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "केवल वे स्पैन जिनकी विशेषताएं इन सभी से मेल खाएं। खाली: कोई भी विशेषताएं।"
 }

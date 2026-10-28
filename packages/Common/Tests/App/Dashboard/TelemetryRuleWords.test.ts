@@ -5,6 +5,7 @@ import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.j
 import russianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/ru.json";
 import {
   formatDuration,
+  formatPreviewRange,
   formatWindow,
   getActionChoices,
   getComparisonChoices,
@@ -658,7 +659,7 @@ describe("what the rule's preview found", () => {
         rangeInSeconds: 43200,
         translator: ENGLISH,
       }),
-    ).toBe("Matching logs in each 5 minutes, over the last 12 hours.");
+    ).toBe("Matching logs per 5 minutes, over the last 12 hours.");
     expect(
       getPreviewCaption({
         monitorType: MonitorType.Traces,
@@ -666,7 +667,7 @@ describe("what the rule's preview found", () => {
         rangeInSeconds: 8640,
         translator: ENGLISH,
       }),
-    ).toBe("Matching spans in each 1 minute, over the last 144 minutes.");
+    ).toBe("Matching spans per 1 minute, over the last 2 hours, 24 minutes.");
     expect(
       getPreviewCaption({
         monitorType: MonitorType.Exceptions,
@@ -674,7 +675,16 @@ describe("what the rule's preview found", () => {
         rangeInSeconds: 518400,
         translator: ENGLISH,
       }),
-    ).toBe("Matching exceptions in each 1 hour, over the last 6 days.");
+    ).toBe("Matching exceptions per 1 hour, over the last 6 days.");
+    // Ten-minute windows read a day back: said in hours, as a person says it.
+    expect(
+      getPreviewCaption({
+        monitorType: MonitorType.Logs,
+        windowInSeconds: 600,
+        rangeInSeconds: 86400,
+        translator: ENGLISH,
+      }),
+    ).toBe("Matching logs per 10 minutes, over the last 24 hours.");
     expect(
       getPreviewCaption({
         monitorType: MonitorType.Logs,
@@ -683,6 +693,37 @@ describe("what the rule's preview found", () => {
         translator: GERMAN,
       }),
     ).toBe("Passende Logs je 5 Minuten, über die letzten 12 Stunden.");
+  });
+
+  test("how far back a preview reads: a day or two in hours, longer in days, the rest in its two largest units", () => {
+    // Every range a preview reads (144 windows, never more than 7 days).
+    const ranges: Array<[number, string]> = [
+      [720, "12 minutes"],
+      [1440, "24 minutes"],
+      [4320, "1 hour, 12 minutes"],
+      [8640, "2 hours, 24 minutes"],
+      [3600, "1 hour"],
+      [43200, "12 hours"],
+      [86400, "24 hours"],
+      [129600, "36 hours"],
+      [172800, "48 hours"],
+      [259200, "3 days"],
+      [518400, "6 days"],
+      [604800, "7 days"],
+    ];
+
+    for (const [seconds, said] of ranges) {
+      expect([seconds, formatPreviewRange(seconds, ENGLISH)]).toEqual([
+        seconds,
+        said,
+      ]);
+    }
+
+    // Never "1 day", which nobody says of the last 24 hours.
+    expect(formatPreviewRange(86400, ENGLISH)).not.toContain("day");
+    // In the reader's language, from the browser's own unit names.
+    expect(formatPreviewRange(86400, GERMAN)).toBe("24 Stunden");
+    expect(formatPreviewRange(259200, GERMAN)).toBe("3 Tage");
   });
 
   test("nothing matched: a rule that looks for silence would alert at once, and says so", () => {

@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}}: demasiadas excepciones",
   "{{monitorName}}: too many failed requests": "{{monitorName}}: demasiadas solicitudes fallidas",
   "equal to": "igual a",
-  "not equal to": "distinto de"
+  "not equal to": "distinto de",
+  "At {{value}}, this rule would not have alerted in this time.": "Con {{value}}, esta regla no habría alertado en este tiempo.",
+  "Count archived exceptions too. They are left out otherwise.": "Contar también las excepciones archivadas. Si no, se dejan fuera.",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "Excepciones coincidentes en cada tramo de {{window}}, durante {{range}}.",
+  "Matching logs per {{window}}, over the last {{range}}.": "Registros coincidentes en cada tramo de {{window}}, durante {{range}}.",
+  "Matching spans per {{window}}, over the last {{range}}.": "Spans coincidentes en cada tramo de {{window}}, durante {{range}}.",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "Solo excepciones de estos entornos (deployment.environment), separados por comas. Vacío: todos los entornos.",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "Solo excepciones de estos hosts, clústeres u otra infraestructura. Vacío: toda la infraestructura.",
+  "Only exceptions from these services. Empty: every service.": "Solo excepciones de estos servicios. Vacío: todos los servicios.",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "Solo excepciones de estos tipos, separados por comas. Vacío: todos los tipos.",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "Solo registros de estos hosts, clústeres u otra infraestructura. Vacío: toda la infraestructura.",
+  "Only logs from these services. Empty: every service.": "Solo registros de estos servicios. Vacío: todos los servicios.",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "Solo registros cuyos atributos cumplen todas estas condiciones. Vacío: cualquier atributo.",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Solo spans de estos hosts, clústeres u otra infraestructura. Vacío: toda la infraestructura.",
+  "Only spans from these services. Empty: every service.": "Solo spans de estos servicios. Vacío: todos los servicios.",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Solo spans cuyos atributos cumplen todas estas condiciones. Vacío: cualquier atributo."
 }

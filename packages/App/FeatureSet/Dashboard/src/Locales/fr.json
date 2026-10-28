@@ -36682,5 +36682,20 @@
   "{{monitorName}}: too many exceptions": "{{monitorName}} : trop d'exceptions",
   "{{monitorName}}: too many failed requests": "{{monitorName}} : trop de requêtes en échec",
   "equal to": "égale à",
-  "not equal to": "différente de"
+  "not equal to": "différente de",
+  "At {{value}}, this rule would not have alerted in this time.": "Avec {{value}}, cette règle n'aurait pas alerté sur cette période.",
+  "Count archived exceptions too. They are left out otherwise.": "Compter aussi les exceptions archivées. Sinon, elles sont ignorées.",
+  "Matching exceptions per {{window}}, over the last {{range}}.": "Exceptions correspondantes par tranche de {{window}}, sur {{range}}.",
+  "Matching logs per {{window}}, over the last {{range}}.": "Journaux correspondants par tranche de {{window}}, sur {{range}}.",
+  "Matching spans per {{window}}, over the last {{range}}.": "Spans correspondants par tranche de {{window}}, sur {{range}}.",
+  "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.": "Seulement les exceptions de ces environnements (deployment.environment), séparés par des virgules. Vide : tous les environnements.",
+  "Only exceptions from these hosts, clusters or other infrastructure. Empty: all of it.": "Seulement les exceptions de ces hôtes, clusters ou autres éléments d'infrastructure. Vide : toute l'infrastructure.",
+  "Only exceptions from these services. Empty: every service.": "Seulement les exceptions de ces services. Vide : tous les services.",
+  "Only exceptions of these types, separated by commas. Empty: every type.": "Seulement les exceptions de ces types, séparés par des virgules. Vide : tous les types.",
+  "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.": "Seulement les journaux de ces hôtes, clusters ou autres éléments d'infrastructure. Vide : toute l'infrastructure.",
+  "Only logs from these services. Empty: every service.": "Seulement les journaux de ces services. Vide : tous les services.",
+  "Only logs whose attributes match all of these. Empty: any attributes.": "Seulement les journaux dont les attributs correspondent à toutes ces conditions. Vide : n'importe quels attributs.",
+  "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.": "Seulement les spans de ces hôtes, clusters ou autres éléments d'infrastructure. Vide : toute l'infrastructure.",
+  "Only spans from these services. Empty: every service.": "Seulement les spans de ces services. Vide : tous les services.",
+  "Only spans whose attributes match all of these. Empty: any attributes.": "Seulement les spans dont les attributs correspondent à toutes ces conditions. Vide : n'importe quels attributs."
 }

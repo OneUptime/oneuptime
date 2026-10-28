@@ -109,7 +109,8 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Telemetry Service",
-            description: "Select the telemetry services you want to monitor.",
+            description:
+              "Only spans from these services. Empty: every service.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_TRACE_FILTERS,
           },
@@ -131,7 +132,8 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Infrastructure Entity",
-            description: "Scope to specific infrastructure entities (optional)",
+            description:
+              "Only spans from these hosts, clusters or other infrastructure. Empty: all of it.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_TRACE_FILTERS,
           },
@@ -148,7 +150,7 @@ const TraceMonitorStepForm: FunctionComponent<ComponentProps> = (
             onDictionaryKeySelected: props.onAttributeKeySelected,
             dictionaryEnableOperators: true,
             description:
-              "You can filter the Traces based on the attributes that are attached to the Traces.",
+              "Only spans whose attributes match all of these. Empty: any attributes.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_TRACE_FILTERS,
           },
