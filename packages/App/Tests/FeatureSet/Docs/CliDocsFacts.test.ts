@@ -1339,6 +1339,40 @@ describe("the overview", () => {
     ).toContain("## How to upgrade");
   });
 
+  it("says the same on the CLI's README, the page npm shows: the version advice, then the warning, as npm can draw it", () => {
+    const section: Array<string> = englishSection(
+      CLI_OVERVIEW,
+      "## Install the CLI",
+    ).split("\n");
+    const warning: string = (
+      section[section.indexOf("> [!WARNING]") + 1] as string
+    ).slice("> ".length);
+    const advice: string = section.find((line: string): boolean => {
+      return line.startsWith("The CLI is released with OneUptime");
+    }) as string;
+    const readme: Array<string> = readRepoFile("CLI/README.md").split("\n");
+
+    expect(
+      warning.startsWith(`CLI versions before ${FIRST_CLI_THAT_STARTS}`),
+    ).toBe(true);
+
+    /*
+     * npm prints GitHub's [!WARNING] as text, so the README says Warning in
+     * bold; and npm's page would resolve /docs/... against itself, so the
+     * link there is the docs' whole address.
+     */
+    const readmeWarning: string = `> **Warning:** ${warning
+      .split("](/docs/")
+      .join("](https://oneuptime.com/docs/")}`;
+
+    expect(readme).toContain(readmeWarning);
+    expect(readme).toContain(advice);
+    expect(readme.indexOf(advice)).toBeLessThan(readme.indexOf(readmeWarning));
+    expect(readme).toContain(
+      "npm install -g @oneuptime/cli@<your-oneuptime-version>",
+    );
+  });
+
   it("lists every command at a glance, and no other", () => {
     /*
      * A row names one command ("oneuptime login <api-key> <instance-url>")
