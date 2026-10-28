@@ -155,8 +155,8 @@ export default function PaneDivider({
       {active ? (
         <View
           testID="pane-divider-line"
-          pointerEvents="none"
           style={{
+            pointerEvents: "none",
             position: "absolute",
             top: 0,
             bottom: 0,
