@@ -7,7 +7,10 @@ import {
   parseInlineText,
 } from "../Utils/Integrations/OpenTelemetry/GuideText";
 import { JSDOM } from "jsdom";
-import { highlightSnippet } from "../Utils/Integrations/OpenTelemetry/GuideHighlight";
+import {
+  highlightSnippet,
+  plainFlags,
+} from "../Utils/Integrations/OpenTelemetry/GuideHighlight";
 import { listInWords } from "../Utils/Integrations/OpenTelemetry/IntegrationsIndex";
 import {
   GuideMark,
@@ -180,6 +183,47 @@ describe("the highlighter", () => {
     expect(highlightSnippet("connect-src 'self' <x>", "text")).toBe(
       "connect-src &#x27;self&#x27; &lt;x&gt;",
     );
+  });
+
+  test("draws a command's flag as the command's, not as a shell builtin of the same name", () => {
+    const command: string =
+      "opentelemetry-instrument gunicorn shop.wsgi --bind 0.0.0.0:8000";
+    const shell: string = highlightSnippet(command, "bash");
+    const dockerfile: string = highlightSnippet(`RUN ${command}`, "dockerfile");
+
+    for (const html of [shell, dockerfile]) {
+      // gunicorn's --bind, not bash's bind.
+      expect(html).toContain("--bind 0.0.0.0:8000");
+      expect(html).not.toContain('<span class="hljs-built_in">bind</span>');
+      expect(
+        new JSDOM(`<code>${html}</code>`).window.document.body.textContent,
+      ).toBe(html === shell ? command : `RUN ${command}`);
+    }
+    // A builtin the command line calls is still one: "set" before its flag.
+    expect(highlightSnippet("set -e", "bash")).toContain(
+      '<span class="hljs-built_in">set</span>',
+    );
+  });
+
+  test("unwraps only a builtin right after a dash, and leaves anything else as it was", () => {
+    expect(plainFlags('--<span class="hljs-built_in">bind</span> :80')).toBe(
+      "--bind :80",
+    );
+    expect(
+      plainFlags(
+        'a -<span class="hljs-built_in">set</span> b -<span class="hljs-built_in">read</span>',
+      ),
+    ).toBe("a -set b -read");
+    for (const html of [
+      "",
+      "plain words",
+      '<span class="hljs-built_in">set</span> -e',
+      '-<span class="hljs-string">bind</span>',
+      // A tag left open, as no highlighter writes: kept whole.
+      '--<span class="hljs-built_in">bind',
+    ]) {
+      expect(plainFlags(html)).toBe(html);
+    }
   });
 });
 

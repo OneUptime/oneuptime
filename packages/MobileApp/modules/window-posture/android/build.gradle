@@ -1,0 +1,22 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.oneuptime'
+version = '1.0.0'
+
+android {
+  namespace 'com.oneuptime.windowposture'
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // The version React Native itself builds against (react-native/gradle/libs.versions.toml).
+  implementation 'androidx.window:window:1.5.1'
+
+  testImplementation 'junit:junit:4.13.2'
+}

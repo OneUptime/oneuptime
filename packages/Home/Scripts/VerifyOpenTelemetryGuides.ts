@@ -25,16 +25,25 @@
  * is checked again before it ships.
  *
  * Needs:
- *   - Docker, for the collector (otel/opentelemetry-collector-contrib).
+ *   - Docker, for the collector (otel/opentelemetry-collector-contrib) and
+ *     the services a guide's app needs (the broker Celery reads).
  *   - Node.js 22.15 or later for the Node.js guides: the one on PATH, or
  *     OTEL_GUIDES_NODE_BIN, a folder holding node, npm and npx.
  *   - OTEL_GUIDES_BUN and OTEL_GUIDES_DENO, the binaries, for those guides.
  *   - Chromium as Common's Playwright installs it, for the browser guides,
  *     or OTEL_GUIDES_CHROMIUM, the path of another Chromium to launch.
+ *   - For the Python guides, OTEL_GUIDES_PYTHON: the Python each app's
+ *     virtual environment is made with (python3 on PATH otherwise).
+ *   - For the Java and Kotlin guides, OTEL_GUIDES_JAVA_HOME (a JDK) and
+ *     OTEL_GUIDES_MAVEN_BIN and OTEL_GUIDES_GRADLE_BIN, the folders holding
+ *     mvn and gradle.
+ *   - For the .NET guides, OTEL_GUIDES_DOTNET_ROOT: a .NET SDK's folder.
  *
- * OTEL_GUIDES_CONTAINER_NAME names the collector's container, and
- * OTEL_GUIDES_WORK_DIR the folder the apps are written to (the system's
- * temporary folder otherwise). The container is removed when the run ends.
+ * OTEL_GUIDES_CONTAINER_NAME names the collector's container (and starts
+ * the names of the services'), OTEL_GUIDES_WORK_DIR the folder the apps are
+ * written to (the system's temporary folder otherwise), and
+ * OTEL_GUIDES_CACHE_DIR where pip, Maven, Gradle and NuGet keep what they
+ * download between runs. The containers are removed when the run ends.
  */
 import {
   ChildProcess,
@@ -51,9 +60,12 @@ import ts from "typescript";
 import {
   GuideSnippet,
   GuideVerification,
+  GuideVerificationRun,
   OpenTelemetryGuide,
   VerificationCommand,
+  VerificationFile,
   VerificationRequest,
+  VerificationService,
 } from "../Utils/Integrations/OpenTelemetry/GuideTypes";
 import {
   BROWSER_KEY_PLACEHOLDER,
@@ -66,25 +78,38 @@ import {
   guideSnippets,
 } from "../Utils/Integrations/OpenTelemetry/GuideSnippets";
 import {
+  GuideVariantRecord,
   GuideVerificationRecord,
   VERIFICATIONS_FILE,
   guideSnippetDigest,
 } from "../Utils/Integrations/OpenTelemetry/GuideVerifications";
 import { OPEN_TELEMETRY_GUIDE_PAGES } from "../Utils/Integrations/OpenTelemetry/OpenTelemetryGuides";
 import {
+  JAVA_AGENT_PACKAGE,
+  buildFileDependencies,
+  gradleReportVersions,
+  mavenReportVersions,
   importedPackages,
   installedPackageNames,
+  installedPackages,
+  isBuildFileSnippet,
 } from "../Utils/Integrations/OpenTelemetry/GuideCodeChecks";
 
 const COLLECTOR_IMAGE: string = "otel/opentelemetry-collector-contrib:0.161.0";
 const TEST_KEY: string = "otel-guides-test-key";
 const COMMON: string = path.join(__dirname, "..", "..", "Common");
 
-// Short export intervals, so a run takes seconds; the semantics are the SDKs' own.
+/*
+ * Short export intervals, so a run takes seconds; the semantics are the
+ * SDKs' own. Quarkus reads names of its own.
+ */
 const FAST_EXPORT: Record<string, string> = {
   OTEL_METRIC_EXPORT_INTERVAL: "2000",
   OTEL_BSP_SCHEDULE_DELAY: "500",
   OTEL_BLRP_SCHEDULE_DELAY: "500",
+  QUARKUS_OTEL_METRIC_EXPORT_INTERVAL: "2s",
+  QUARKUS_OTEL_BSP_SCHEDULE_DELAY: "500ms",
+  QUARKUS_OTEL_BLRP_SCHEDULE_DELAY: "500ms",
 };
 
 interface Receiver {
@@ -112,6 +137,8 @@ interface Observed {
 
 interface ObservedSpan {
   name: string;
+  spanId: string;
+  parentSpanId: string;
   attributes: Record<string, unknown>;
   hasException: boolean;
   // The exception.message of each of its exception events.
@@ -549,6 +576,8 @@ function collect(outDir: string, from: Record<string, number>): Observed {
           });
           observed.spans.push({
             name: String(span["name"]),
+            spanId: String(span["spanId"] || ""),
+            parentSpanId: String(span["parentSpanId"] || ""),
             attributes: attributesOf(span["attributes"]),
             hasException: exceptionEvents.length > 0,
             exceptionMessages: exceptionEvents.map(
@@ -628,7 +657,7 @@ function collect(outDir: string, from: Record<string, number>): Observed {
 }
 
 function check(
-  verification: GuideVerification,
+  verification: GuideVerificationRun,
   observed: Observed,
 ): Array<string> {
   const failures: Array<string> = [];
@@ -649,6 +678,18 @@ function check(
           expected.exceptionMessage !== undefined &&
           !span.exceptionMessages.some((message: string): boolean => {
             return message.includes(expected.exceptionMessage || "");
+          })
+        ) {
+          return false;
+        }
+        if (
+          expected.parent !== undefined &&
+          !observed.spans.some((candidate: ObservedSpan): boolean => {
+            return (
+              candidate.name === expected.parent &&
+              candidate.spanId.length > 0 &&
+              candidate.spanId === span.parentSpanId
+            );
           })
         ) {
           return false;
@@ -730,6 +771,12 @@ function check(
     }
   }
 
+  for (const absent of verification.expect.absentMetrics || []) {
+    if (observed.metrics.includes(absent)) {
+      failures.push(`a metric named ${absent}, which the guide leaves out`);
+    }
+  }
+
   for (const absent of verification.expect.absentLogs || []) {
     const found: ObservedLog | undefined = observed.logs.find(
       (record: ObservedLog): boolean => {
@@ -761,6 +808,11 @@ function sendRequest(
         port: port,
         method: request.method,
         path: request.path,
+        /*
+         * A connection per request: a server that closes after each response
+         * (uWSGI's HTTP router) would otherwise hang up on the next request.
+         */
+        agent: false,
         headers: {
           ...(body ? { "content-type": "application/json" } : {}),
           ...(request.headers || {}),
@@ -906,40 +958,89 @@ async function driveBrowser(
   return messages;
 }
 
+// A command's first line of output: "Python 3.14.10".
+function firstLineOf(
+  command: string,
+  args: Array<string>,
+  env: NodeJS.ProcessEnv,
+  options: { cwd?: string; stderr?: boolean } = {},
+): string {
+  const result: SpawnSyncReturns<string> = spawnSync(command, args, {
+    encoding: "utf8",
+    env: env,
+    cwd: options.cwd,
+  });
+  const text: string = options.stderr
+    ? `${result.stderr || ""}${result.stdout || ""}`
+    : result.stdout || "";
+
+  return text.trim().split("\n")[0] || "";
+}
+
+// The runtime a check ran on, as the page names it: "Python 3.14.10", "Java 25.0.5".
 function runtimeVersion(
   verification: GuideVerification,
   env: NodeJS.ProcessEnv,
+  appDir: string,
 ): string {
-  const version: (command: string, args: Array<string>) => string = (
-    command: string,
-    args: Array<string>,
-  ): string => {
-    const result: SpawnSyncReturns<string> = spawnSync(command, args, {
-      encoding: "utf8",
-      env: env,
-    });
-    return (result.stdout || "").trim().split("\n")[0] || "";
-  };
-
   switch (verification.runtime) {
     case "bun":
-      return `Bun ${version(process.env["OTEL_GUIDES_BUN"] || "bun", ["--version"])}`;
+      return `Bun ${firstLineOf(process.env["OTEL_GUIDES_BUN"] || "bun", ["--version"], env)}`;
     case "deno":
       return `Deno ${
-        version(process.env["OTEL_GUIDES_DENO"] || "deno", ["--version"])
+        firstLineOf(
+          process.env["OTEL_GUIDES_DENO"] || "deno",
+          ["--version"],
+          env,
+        )
           .replace("deno ", "")
           .split(" ")[0]
       }`;
     case "browser":
       // "Google Chrome for Testing 153.0.8010.12" is Chrome 153.
       return process.env["OTEL_GUIDES_CHROMIUM"]
-        ? version(process.env["OTEL_GUIDES_CHROMIUM"], ["--version"]).replace(
-            "Google Chrome for Testing",
-            "Chrome",
-          )
+        ? firstLineOf(
+            process.env["OTEL_GUIDES_CHROMIUM"],
+            ["--version"],
+            env,
+          ).replace("Google Chrome for Testing", "Chrome")
         : "Chromium, as Common's Playwright installs it";
+    case "python":
+      // The virtual environment's own: "Python 3.14.10".
+      return firstLineOf(
+        path.join(appDir, ".venv", "bin", "python"),
+        ["--version"],
+        env,
+      );
+    case "jvm": {
+      // 'openjdk version "25.0.5" 2026-10-20 LTS' is Java 25.0.5.
+      const line: string = firstLineOf("java", ["-version"], env, {
+        stderr: true,
+      });
+      const quoted: Array<string> = line.split('"');
+
+      return `Java ${quoted[1] || line}`;
+    }
+    case "dotnet": {
+      // "Microsoft.NETCore.App 10.0.14 [...]": the newest runtime, .NET 10.0.14.
+      const result: SpawnSyncReturns<string> = spawnSync(
+        "dotnet",
+        ["--list-runtimes"],
+        { encoding: "utf8", env: env },
+      );
+      const versions: Array<string> = (result.stdout || "")
+        .split("\n")
+        .filter((runtimeLine: string): boolean => {
+          return runtimeLine.startsWith("Microsoft.NETCore.App ");
+        })
+        .map((runtimeLine: string): string => {
+          return runtimeLine.split(" ")[1] || "";
+        });
+
+      return `.NET ${versions[versions.length - 1] || "?"}`;
+    }
     default:
-      return `Node.js ${version("node", ["--version"]).replace("v", "")}`;
+      return `Node.js ${firstLineOf("node", ["--version"], env).replace("v", "")}`;
   }
 }
 
@@ -980,6 +1081,174 @@ function installedVersion(
   }
 
   return undefined;
+}
+
+// What the app's virtual environment has installed, by distribution name.
+function pythonVersions(
+  appDir: string,
+  names: Array<string>,
+  env: NodeJS.ProcessEnv,
+): Record<string, string> {
+  const script: string = [
+    "import importlib.metadata as metadata, json, sys",
+    "found = {}",
+    "for name in sys.argv[1:]:",
+    "    try:",
+    "        found[name] = metadata.version(name)",
+    "    except metadata.PackageNotFoundError:",
+    "        pass",
+    "print(json.dumps(found))",
+  ].join("\n");
+  const result: SpawnSyncReturns<string> = spawnSync(
+    path.join(appDir, ".venv", "bin", "python"),
+    ["-c", script, ...names],
+    { encoding: "utf8", env: env, cwd: appDir },
+  );
+
+  try {
+    return JSON.parse((result.stdout || "{}").trim()) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+/*
+ * What a JVM build resolved: Maven's dependency:list or Gradle's
+ * dependencies and buildEnvironment (its plugins, by id), the pom's parent
+ * as the build used it, and the Java agent's own version, which
+ * `java -jar opentelemetry-javaagent.jar` prints.
+ */
+function jvmVersions(
+  appDir: string,
+  env: NodeJS.ProcessEnv,
+): Record<string, string> {
+  const versions: Record<string, string> = {};
+
+  if (fs.existsSync(path.join(appDir, "pom.xml"))) {
+    const report: string = path.join(appDir, ".otel-guides-dependencies.txt");
+    spawnSync(
+      "mvn",
+      ["-q", "-B", "dependency:list", `-DoutputFile=${report}`],
+      { cwd: appDir, env: env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+    );
+
+    if (fs.existsSync(report)) {
+      Object.assign(
+        versions,
+        mavenReportVersions(fs.readFileSync(report, "utf8")),
+      );
+    }
+
+    for (const dependency of buildFileDependencies({
+      id: "pom",
+      language: "xml",
+      title: "pom.xml",
+      code: fs.readFileSync(path.join(appDir, "pom.xml"), "utf8"),
+      check: "parse",
+    })) {
+      // A version from a property the parent defines is the parent's to record.
+      if (
+        dependency.version &&
+        !dependency.version.includes("${") &&
+        !dependency.name.includes("${") &&
+        !versions[dependency.name]
+      ) {
+        versions[dependency.name] = dependency.version;
+      }
+    }
+  }
+
+  if (fs.existsSync(path.join(appDir, "build.gradle.kts"))) {
+    for (const task of [
+      ["-q", "dependencies", "--configuration", "runtimeClasspath"],
+      ["-q", "buildEnvironment"],
+    ]) {
+      const result: SpawnSyncReturns<string> = spawnSync(
+        "gradle",
+        ["--no-daemon", ...task],
+        {
+          cwd: appDir,
+          env: env,
+          encoding: "utf8",
+          maxBuffer: 64 * 1024 * 1024,
+        },
+      );
+
+      Object.assign(versions, gradleReportVersions(result.stdout || ""));
+    }
+  }
+
+  const agent: string = path.join(appDir, "opentelemetry-javaagent.jar");
+
+  if (fs.existsSync(agent)) {
+    versions[JAVA_AGENT_PACKAGE] = firstLineOf("java", ["-jar", agent], env);
+  }
+
+  return versions;
+}
+
+/*
+ * What a .NET restore resolved: obj/project.assets.json's packages, and the
+ * shared frameworks the app runs on, as `dotnet --list-runtimes` names
+ * them - "Microsoft.AspNetCore.App 10.0.14", the newest of each.
+ */
+function dotnetVersions(
+  appDir: string,
+  env: NodeJS.ProcessEnv,
+): Record<string, string> {
+  const versions: Record<string, string> = {};
+  const runtimes: SpawnSyncReturns<string> = spawnSync(
+    "dotnet",
+    ["--list-runtimes"],
+    { encoding: "utf8", env: env },
+  );
+
+  for (const line of (runtimes.stdout || "").split("\n")) {
+    const [name, version] = line.split(" ");
+
+    if (name && version) {
+      versions[name] = version;
+    }
+  }
+  const assets: Array<string> = [];
+  const look: (directory: string, depth: number) => void = (
+    directory: string,
+    depth: number,
+  ): void => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const full: string = path.join(directory, entry.name);
+
+      if (entry.isFile() && entry.name === "project.assets.json") {
+        assets.push(full);
+      } else if (
+        entry.isDirectory() &&
+        depth < 3 &&
+        entry.name !== "node_modules"
+      ) {
+        look(full, depth + 1);
+      }
+    }
+  };
+  look(appDir, 0);
+
+  for (const file of assets) {
+    const libraries: Record<string, { type?: string }> =
+      (
+        JSON.parse(fs.readFileSync(file, "utf8")) as {
+          libraries?: Record<string, { type?: string }>;
+        }
+      ).libraries || {};
+
+    for (const [key, library] of Object.entries(libraries)) {
+      const slash: number = key.indexOf("/");
+
+      if (library.type === "package" && slash > 0) {
+        versions[key.slice(0, slash)] = key.slice(slash + 1);
+      }
+    }
+  }
+
+  return versions;
 }
 
 /*
@@ -1066,17 +1335,454 @@ function exportsOf(
   }
 }
 
-async function verifyGuide(
+function prependPath(env: NodeJS.ProcessEnv, directory: string): void {
+  env["PATH"] = `${directory}${path.delimiter}${env["PATH"] || ""}`;
+}
+
+/*
+ * Where the package managers keep what they download, between runs and
+ * between guides: OTEL_GUIDES_CACHE_DIR, or a folder beside the apps.
+ */
+function cacheDirOf(workRoot: string): string {
+  return (
+    process.env["OTEL_GUIDES_CACHE_DIR"] ||
+    path.join(workRoot, "otel-guides-cache")
+  );
+}
+
+/*
+ * The environment a run's commands get: the runtime's binaries first on
+ * PATH (a Python run's own virtual environment), the package managers'
+ * caches, the page's Cloud variables pointed at the receiver, and short
+ * export intervals.
+ */
+function runEnvironment(
   guide: OpenTelemetryGuide,
+  appDir: string,
+  cacheDir: string,
+  receiver: Receiver,
+): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env };
+
+  if (process.env["OTEL_GUIDES_NODE_BIN"]) {
+    prependPath(env, process.env["OTEL_GUIDES_NODE_BIN"]);
+  }
+  for (const [name, value] of Object.entries(
+    environmentOf(findGuideSnippet(guide, "env-cloud")),
+  )) {
+    env[name] = forLocalRun(value, receiver.proxyPort);
+  }
+  Object.assign(env, FAST_EXPORT);
+  if (process.env["OTEL_GUIDES_BUN"]) {
+    prependPath(env, path.dirname(process.env["OTEL_GUIDES_BUN"]));
+  }
+  if (process.env["OTEL_GUIDES_DENO"]) {
+    prependPath(env, path.dirname(process.env["OTEL_GUIDES_DENO"]));
+    env["DENO_DIR"] = path.join(cacheDir, "deno");
+  }
+
+  switch (guide.verification.runtime) {
+    case "python":
+      // The app's own virtual environment, as the page's commands assume.
+      prependPath(env, path.join(appDir, ".venv", "bin"));
+      env["VIRTUAL_ENV"] = path.join(appDir, ".venv");
+      env["PIP_CACHE_DIR"] = path.join(cacheDir, "pip");
+      env["PIP_DISABLE_PIP_VERSION_CHECK"] = "1";
+      env["PYTHONUNBUFFERED"] = "1";
+      break;
+    case "jvm":
+      if (process.env["OTEL_GUIDES_JAVA_HOME"]) {
+        env["JAVA_HOME"] = process.env["OTEL_GUIDES_JAVA_HOME"];
+        prependPath(
+          env,
+          path.join(process.env["OTEL_GUIDES_JAVA_HOME"], "bin"),
+        );
+      }
+      for (const variable of [
+        "OTEL_GUIDES_MAVEN_BIN",
+        "OTEL_GUIDES_GRADLE_BIN",
+      ]) {
+        if (process.env[variable]) {
+          prependPath(env, process.env[variable]!);
+        }
+      }
+      env["MAVEN_OPTS"] = `-Dmaven.repo.local=${path.join(cacheDir, "m2")}`;
+      env["GRADLE_USER_HOME"] = path.join(cacheDir, "gradle");
+      break;
+    case "dotnet":
+      if (process.env["OTEL_GUIDES_DOTNET_ROOT"]) {
+        env["DOTNET_ROOT"] = process.env["OTEL_GUIDES_DOTNET_ROOT"];
+        prependPath(env, process.env["OTEL_GUIDES_DOTNET_ROOT"]);
+      }
+      env["NUGET_PACKAGES"] = path.join(cacheDir, "nuget");
+      env["DOTNET_CLI_HOME"] = path.join(cacheDir, "dotnet-home");
+      env["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
+      env["DOTNET_NOLOGO"] = "1";
+      env["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
+      break;
+    default:
+      break;
+  }
+
+  return env;
+}
+
+// The broker or database a run needs, in a container named after the check's.
+async function startServices(
+  services: Array<VerificationService>,
+  baseName: string,
+): Promise<{ containers: Array<string>; env: Record<string, string> }> {
+  const containers: Array<string> = [];
+  const env: Record<string, string> = {};
+
+  for (const service of services) {
+    const port: number = await freePort();
+    const container: string = `${baseName}-${service.name}`;
+    spawnSync("docker", ["rm", "-f", "-v", container], { encoding: "utf8" });
+    const started: SpawnSyncReturns<string> = spawnSync(
+      "docker",
+      [
+        "run",
+        "-d",
+        "--rm",
+        "--name",
+        container,
+        "-p",
+        `127.0.0.1:${port}:${service.containerPort}`,
+        ...Object.entries(service.environment || {}).flatMap(
+          ([name, value]: [string, string]): Array<string> => {
+            return ["-e", `${name}=${value}`];
+          },
+        ),
+        service.image,
+      ],
+      { encoding: "utf8" },
+    );
+
+    if (started.status !== 0) {
+      throw new Error(`Could not start ${service.name}: ${started.stderr}`);
+    }
+
+    containers.push(container);
+
+    if (!(await waitForPort(port, 60000))) {
+      throw new Error(`${service.name} did not take connections on ${port}`);
+    }
+
+    if (service.readyLog) {
+      const deadline: number = Date.now() + 120000;
+      let isReady: boolean = false;
+
+      while (!isReady && Date.now() < deadline) {
+        const logs: SpawnSyncReturns<string> = spawnSync(
+          "docker",
+          ["logs", container],
+          { encoding: "utf8" },
+        );
+        isReady =
+          `${logs.stdout || ""}${logs.stderr || ""}`.split(
+            service.readyLog.text,
+          ).length -
+            1 >=
+          service.readyLog.times;
+
+        if (!isReady) {
+          await sleep(500);
+        }
+      }
+
+      if (!isReady) {
+        throw new Error(
+          `${service.name} never logged "${service.readyLog.text}"`,
+        );
+      }
+    }
+    await sleep(1500);
+
+    for (const [name, value] of Object.entries(service.appEnvironment)) {
+      env[name] = value.split("{port}").join(String(port));
+    }
+  }
+
+  return { containers: containers, env: env };
+}
+
+function stopServices(containers: Array<string>): void {
+  for (const container of containers) {
+    spawnSync("docker", ["rm", "-f", "-v", container], { encoding: "utf8" });
+  }
+}
+
+/*
+ * The other services a guide's app calls, played by the check: any request
+ * to /api/* gets two invoices back (and the traceparent it carried).
+ */
+function serveStubApi(port: number): Promise<http.Server> {
+  const server: http.Server = http.createServer(
+    (req: http.IncomingMessage, res: http.ServerResponse) => {
+      req.resume();
+      req.on("end", () => {
+        const urlPath: string = new URL(req.url || "/", "http://localhost")
+          .pathname;
+
+        if (!urlPath.startsWith("/api/")) {
+          res.writeHead(404);
+          res.end("Not found");
+          return;
+        }
+
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({
+            items: [
+              { id: "inv_1", total: 120 },
+              { id: "inv_2", total: 80 },
+            ],
+            traceparent: req.headers["traceparent"] || null,
+          }),
+        );
+      });
+    },
+  );
+
+  return new Promise((resolve: (server: http.Server) => void) => {
+    server.listen(port, "127.0.0.1", () => {
+      resolve(server);
+    });
+  });
+}
+
+interface CommandResult {
+  status: number | null;
+  stdout: string;
+  stderr: string;
+}
+
+/*
+ * A command run to its end, without blocking: the receiver and the
+ * stand-in API answer from this same process, so a command that runs while
+ * a server calls them - a script queuing tasks for a worker - must not
+ * hold the event loop.
+ */
+function runCommand(
+  text: string,
+  cwd: string,
+  env: NodeJS.ProcessEnv,
+): Promise<CommandResult> {
+  return new Promise((resolve: (result: CommandResult) => void) => {
+    const child: ChildProcess = spawn("bash", ["-c", text], {
+      cwd: cwd,
+      env: env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const stdout: Array<Buffer> = [];
+    const stderr: Array<Buffer> = [];
+    const timer: NodeJS.Timeout = setTimeout(
+      () => {
+        child.kill("SIGKILL");
+      },
+      20 * 60 * 1000,
+    );
+
+    child.stdout?.on("data", (chunk: Buffer) => {
+      stdout.push(chunk);
+    });
+    child.stderr?.on("data", (chunk: Buffer) => {
+      stderr.push(chunk);
+    });
+    child.on("close", (status: number | null) => {
+      clearTimeout(timer);
+      resolve({
+        status: status,
+        stdout: Buffer.concat(stdout).toString("utf8"),
+        stderr: Buffer.concat(stderr).toString("utf8"),
+      });
+    });
+  });
+}
+
+async function waitForText(
+  output: Array<string>,
+  text: string,
+  timeoutMs: number,
+): Promise<boolean> {
+  const deadline: number = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    if (output.join("").includes(text)) {
+      return true;
+    }
+    await sleep(250);
+  }
+
+  return false;
+}
+
+async function stopServer(
+  server: ChildProcess,
+  output: Array<string>,
+): Promise<void> {
+  if (!server.pid) {
+    return;
+  }
+
+  try {
+    process.kill(-server.pid, "SIGTERM");
+  } catch {
+    // Already gone.
+  }
+
+  const exited: boolean = await new Promise(
+    (resolve: (exited: boolean) => void) => {
+      const timer: NodeJS.Timeout = setTimeout(() => {
+        resolve(false);
+      }, 25000);
+      server.once("exit", () => {
+        clearTimeout(timer);
+        resolve(true);
+      });
+      if (server.exitCode !== null || server.signalCode !== null) {
+        clearTimeout(timer);
+        resolve(true);
+      }
+    },
+  );
+
+  if (!exited) {
+    output.push("\n[the app did not stop within 25 seconds of SIGTERM]\n");
+    try {
+      process.kill(-server.pid, "SIGKILL");
+    } catch {
+      // Already gone.
+    }
+  }
+}
+
+function snippetsOfRun(
+  guide: OpenTelemetryGuide,
+  run: GuideVerificationRun,
+): Array<GuideSnippet> {
+  return run.files
+    .map((file: VerificationFile): GuideSnippet | undefined => {
+      return file.snippet ? findGuideSnippet(guide, file.snippet) : undefined;
+    })
+    .filter((snippet: GuideSnippet | undefined): snippet is GuideSnippet => {
+      return Boolean(snippet);
+    });
+}
+
+/*
+ * The versions a run installed, for every package the page or the run
+ * names: its install commands, its build files (as the run wrote them),
+ * and the framework.
+ */
+function recordedVersions(
+  guide: OpenTelemetryGuide,
+  run: GuideVerificationRun,
+  appDir: string,
+  env: NodeJS.ProcessEnv,
+): Record<string, string> {
+  const verification: GuideVerification = guide.verification;
+  const commandsText: string = run.commands
+    .map((command: VerificationCommand): string => {
+      return commandText(guide, command);
+    })
+    .join("\n");
+  const names: Set<string> = new Set(installedPackageNames(commandsText));
+
+  for (const snippet of [
+    ...snippetsOfRun(guide, run),
+    ...guideSnippets(guide).filter(isBuildFileSnippet),
+  ]) {
+    for (const dependency of buildFileDependencies(snippet)) {
+      names.add(dependency.name);
+    }
+    for (const dependency of installedPackages(snippet.code)) {
+      names.add(dependency.name);
+    }
+  }
+  for (const file of run.files) {
+    if (
+      file.content &&
+      (file.path.endsWith("pom.xml") ||
+        file.path.endsWith(".csproj") ||
+        file.path.endsWith(".gradle.kts"))
+    ) {
+      for (const dependency of buildFileDependencies({
+        id: file.path,
+        language: file.path.endsWith(".gradle.kts") ? "kotlin" : "xml",
+        title: file.path,
+        code: file.content,
+        check: "parse",
+      })) {
+        names.add(dependency.name);
+      }
+    }
+  }
+  if (verification.framework.package) {
+    names.add(verification.framework.package);
+  }
+
+  let resolved: Record<string, string> = {};
+
+  switch (verification.runtime) {
+    case "python":
+      resolved = pythonVersions(appDir, [...names], env);
+      break;
+    case "jvm":
+      resolved = jvmVersions(appDir, env);
+      break;
+    case "dotnet":
+      resolved = dotnetVersions(appDir, env);
+      break;
+    default:
+      for (const name of names) {
+        const version: string | undefined = installedVersion(appDir, name);
+        if (version) {
+          resolved[name] = version;
+        }
+      }
+      break;
+  }
+
+  const packages: Record<string, string> = {};
+
+  for (const name of [...names].sort()) {
+    if (resolved[name]) {
+      packages[name] = resolved[name]!;
+    }
+  }
+
+  return packages;
+}
+
+interface RunResult {
+  observed: Observed;
+  packages: Record<string, string>;
+  env: NodeJS.ProcessEnv;
+  appDir: string;
+}
+
+/*
+ * One run: the app written into an empty folder, its services and stand-in
+ * API started, its commands run (each after the server before it is
+ * ready), its requests asked, the server stopped with SIGTERM, and what
+ * reached the receiver checked against what the run expects.
+ */
+async function verifyRun(
+  guide: OpenTelemetryGuide,
+  run: GuideVerificationRun,
+  runName: string,
   receiver: Receiver,
   workDir: string,
-): Promise<GuideVerificationRecord> {
+  cacheDir: string,
+): Promise<RunResult> {
   const verification: GuideVerification = guide.verification;
-  const appDir: string = path.join(workDir, guide.slug);
+  const appDir: string = path.join(workDir, runName);
   fs.rmSync(appDir, { recursive: true, force: true });
   fs.mkdirSync(appDir, { recursive: true });
 
-  for (const file of verification.files) {
+  for (const file of run.files) {
     const snippet: GuideSnippet | undefined = file.snippet
       ? findGuideSnippet(guide, file.snippet)
       : undefined;
@@ -1091,46 +1797,78 @@ async function verifyGuide(
     fs.writeFileSync(target, `${forLocalRun(content, receiver.proxyPort)}\n`);
   }
 
-  const env: NodeJS.ProcessEnv = { ...process.env };
-  if (process.env["OTEL_GUIDES_NODE_BIN"]) {
-    env["PATH"] =
-      `${process.env["OTEL_GUIDES_NODE_BIN"]}${path.delimiter}${env["PATH"] || ""}`;
+  const env: NodeJS.ProcessEnv = runEnvironment(
+    guide,
+    appDir,
+    cacheDir,
+    receiver,
+  );
+
+  for (const id of run.environmentSnippets || []) {
+    const snippet: GuideSnippet | undefined = findGuideSnippet(guide, id);
+
+    if (!snippet) {
+      throw new Error(`${guide.slug}: no snippet ${id}`);
+    }
+
+    for (const [name, value] of Object.entries(environmentOf(snippet))) {
+      env[name] = forLocalRun(value, receiver.proxyPort);
+    }
   }
-  for (const [name, value] of Object.entries(
-    environmentOf(findGuideSnippet(guide, "env-cloud")),
-  )) {
-    env[name] = forLocalRun(value, receiver.proxyPort);
-  }
-  Object.assign(env, FAST_EXPORT);
-  if (process.env["OTEL_GUIDES_BUN"]) {
-    env["PATH"] =
-      `${path.dirname(process.env["OTEL_GUIDES_BUN"])}${path.delimiter}${env["PATH"]}`;
-  }
-  if (process.env["OTEL_GUIDES_DENO"]) {
-    env["PATH"] =
-      `${path.dirname(process.env["OTEL_GUIDES_DENO"])}${path.delimiter}${env["PATH"]}`;
-    env["DENO_DIR"] = path.join(workDir, "deno-cache");
+
+  if (verification.runtime === "python") {
+    const created: SpawnSyncReturns<string> = spawnSync(
+      process.env["OTEL_GUIDES_PYTHON"] || "python3",
+      ["-m", "venv", ".venv"],
+      { cwd: appDir, encoding: "utf8" },
+    );
+
+    if (created.status !== 0) {
+      throw new Error(`${runName}: no virtual environment: ${created.stderr}`);
+    }
   }
 
   const before: Record<string, number> = fileSizes(receiver.outDir);
   const requestCountBefore: number = receiver.requests.length;
-  let server: ChildProcess | null = null;
+  const servers: Array<ChildProcess> = [];
+  const containerBase: string =
+    process.env["OTEL_GUIDES_CONTAINER_NAME"] ||
+    `oneuptime-otel-guides-${process.pid}`;
+  let containers: Array<string> = [];
   let staticServer: http.Server | null = null;
+  let stubApi: http.Server | null = null;
   const output: Array<string> = [];
 
   try {
-    for (const command of verification.commands) {
+    if (run.services && run.services.length > 0) {
+      const started: {
+        containers: Array<string>;
+        env: Record<string, string>;
+      } = await startServices(run.services, containerBase);
+      containers = started.containers;
+      Object.assign(env, started.env);
+    }
+
+    if (run.stubApiPort !== undefined) {
+      stubApi = await serveStubApi(run.stubApiPort);
+    }
+
+    for (const command of run.commands) {
       const text: string = forLocalRun(
         commandText(guide, command),
         receiver.proxyPort,
       );
+      const commandEnv: NodeJS.ProcessEnv = {
+        ...env,
+        ...(command.environment || {}),
+      };
 
       if (command.isServer) {
         log(`  $ ${text} &`);
         // Its own process group, so stopping it reaches every process it starts.
-        server = spawn("bash", ["-c", text], {
+        const server: ChildProcess = spawn("bash", ["-c", text], {
           cwd: appDir,
-          env: env,
+          env: commandEnv,
           detached: true,
           stdio: ["ignore", "pipe", "pipe"],
         });
@@ -1140,95 +1878,81 @@ async function verifyGuide(
         server.stderr?.on("data", (chunk: Buffer) => {
           output.push(chunk.toString());
         });
+        servers.push(server);
+
+        const isReady: boolean = command.readyText
+          ? await waitForText(output, command.readyText, 300000)
+          : run.port !== undefined
+            ? await waitForPort(run.port, 300000)
+            : true;
+
+        if (!isReady) {
+          throw new Error(
+            `${runName}: the server was not ready:\n${output.join("").slice(-4000)}`,
+          );
+        }
+        await sleep(1000);
         continue;
       }
 
       log(`  $ ${text}`);
-      const result: SpawnSyncReturns<string> = spawnSync("bash", ["-c", text], {
-        cwd: appDir,
-        env: env,
-        encoding: "utf8",
-        timeout: 15 * 60 * 1000,
-        maxBuffer: 64 * 1024 * 1024,
-      });
+      const result: CommandResult = await runCommand(text, appDir, commandEnv);
 
       if (result.status !== 0) {
         throw new Error(
-          `${guide.slug}: \`${text}\` failed:\n${(result.stdout || "").slice(-2000)}\n${(result.stderr || "").slice(-4000)}`,
+          `${runName}: \`${text}\` failed:\n${(result.stdout || "").slice(-3000)}\n${(result.stderr || "").slice(-4000)}`,
         );
       }
+
+      output.push(result.stdout || "", result.stderr || "");
     }
 
-    if (verification.serve) {
-      staticServer = await serveStatic(
-        path.join(appDir, verification.serve),
-        verification.port,
-      );
+    if (run.serve && run.port !== undefined) {
+      staticServer = await serveStatic(path.join(appDir, run.serve), run.port);
     }
 
-    if (!(await waitForPort(verification.port, 180000))) {
-      throw new Error(
-        `${guide.slug}: nothing listened on ${verification.port}:\n${output.join("").slice(-4000)}`,
-      );
-    }
-    await sleep(1000);
+    if (run.port !== undefined) {
+      if (!(await waitForPort(run.port, 180000))) {
+        throw new Error(
+          `${runName}: nothing listened on ${run.port}:\n${output.join("").slice(-4000)}`,
+        );
+      }
+      await sleep(1000);
 
-    for (const request of verification.requests) {
-      log(`  ${await sendRequest(verification.port, request)}`);
-    }
+      for (const request of run.requests) {
+        log(`  ${await sendRequest(run.port, request)}`);
+      }
 
-    if (verification.runtime === "browser") {
-      const messages: Array<string> = await driveBrowser(
-        `http://127.0.0.1:${verification.port}/`,
-        verification.clicks || [],
-      );
-      for (const message of messages) {
-        log(`  ${message}`);
+      if (verification.runtime === "browser") {
+        const messages: Array<string> = await driveBrowser(
+          `http://127.0.0.1:${run.port}/`,
+          run.clicks || [],
+        );
+        for (const message of messages) {
+          log(`  ${message}`);
+        }
       }
     }
 
     await sleep(4000);
   } finally {
-    if (server && server.pid) {
-      try {
-        process.kill(-server.pid, "SIGTERM");
-      } catch {
-        // Already gone.
-      }
-      const exited: boolean = await new Promise(
-        (resolve: (exited: boolean) => void) => {
-          const timer: NodeJS.Timeout = setTimeout(() => {
-            resolve(false);
-          }, 25000);
-          server!.once("exit", () => {
-            clearTimeout(timer);
-            resolve(true);
-          });
-          if (server!.exitCode !== null) {
-            clearTimeout(timer);
-            resolve(true);
-          }
-        },
-      );
-      if (!exited) {
-        output.push("\n[the app did not stop within 25 seconds of SIGTERM]\n");
-        try {
-          process.kill(-server.pid, "SIGKILL");
-        } catch {
-          // Already gone.
-        }
-      }
+    for (const server of [...servers].reverse()) {
+      await stopServer(server, output);
     }
     if (staticServer) {
       staticServer.close();
     }
+    if (stubApi) {
+      stubApi.close();
+    }
+    stopServices(containers);
   }
 
   // The collector writes its files once a second.
   await sleep(3000);
 
   const observed: Observed = collect(receiver.outDir, before);
-  const failures: Array<string> = check(verification, observed);
+  const failures: Array<string> = check(run, observed);
   const received: Array<ReceivedRequest> =
     receiver.requests.slice(requestCountBefore);
 
@@ -1253,39 +1977,21 @@ async function verifyGuide(
 
   if (failures.length > 0) {
     throw new Error(
-      `${guide.slug} failed:\n  - ${failures.join("\n  - ")}\n\nApp output:\n${output.join("").slice(-6000)}`,
+      `${runName} failed:\n  - ${failures.join("\n  - ")}\n\nApp output:\n${output.join("").slice(-6000)}`,
     );
   }
 
-  const packages: Record<string, string> = {};
-  const commandsText: string = verification.commands
-    .map((command: VerificationCommand): string => {
-      return commandText(guide, command);
-    })
-    .join("\n");
-  for (const packageName of installedPackageNames(commandsText)) {
-    const version: string | undefined = installedVersion(appDir, packageName);
-    if (version) {
-      packages[packageName] = version;
-    }
-  }
+  return {
+    observed: observed,
+    packages: recordedVersions(guide, run, appDir, env),
+    env: env,
+    appDir: appDir,
+  };
+}
 
-  // What each package exports: at run time, and in its type declarations.
-  const packageExports: Record<string, Array<string>> = {};
-  for (const specifier of importedPackages(guideSnippets(guide))) {
-    packageExports[specifier] = Array.from(
-      new Set([
-        ...exportsOf(appDir, specifier, verification, env),
-        ...declaredExportsOf(appDir, specifier),
-      ]),
-    ).sort();
-  }
-
-  const frameworkVersion: string | undefined = verification.framework.package
-    ? packages[verification.framework.package] ||
-      installedVersion(appDir, verification.framework.package)
-    : undefined;
-
+function observedRecord(
+  observed: Observed,
+): GuideVerificationRecord["observed"] {
   const unique: (values: Array<string>) => Array<string> = (
     values: Array<string>,
   ): Array<string> => {
@@ -1293,32 +1999,130 @@ async function verifyGuide(
   };
 
   return {
+    spans: unique(
+      observed.spans.map((span: ObservedSpan): string => {
+        return span.name;
+      }),
+    ),
+    metrics: unique(observed.metrics),
+    /*
+     * The machine the check ran on is no one's business: its name and the
+     * folder the apps ran in are left out of the record.
+     */
+    logs: unique(
+      observed.logs.map((record: ObservedLog): string => {
+        return record.body
+          .split(process.env["OTEL_GUIDES_WORK_DIR"] || os.tmpdir())
+          .join("<work>")
+          .split(os.hostname())
+          .join("<host>")
+          .slice(0, 120);
+      }),
+    ),
+  };
+}
+
+// A variant's folder: "django--uwsgi".
+function variantFolder(slug: string, name: string): string {
+  return `${slug}--${name.toLowerCase().split(" ").join("-")}`;
+}
+
+async function verifyGuide(
+  guide: OpenTelemetryGuide,
+  receiver: Receiver,
+  workDir: string,
+  cacheDir: string,
+): Promise<GuideVerificationRecord> {
+  const verification: GuideVerification = guide.verification;
+  const main: RunResult = await verifyRun(
+    guide,
+    verification,
+    guide.slug,
+    receiver,
+    workDir,
+    cacheDir,
+  );
+
+  const variants: Record<string, GuideVariantRecord> = {};
+
+  for (const variant of verification.variants || []) {
+    log(`\n${guide.slug}: ${variant.name}`);
+    const result: RunResult = await verifyRun(
+      guide,
+      variant,
+      variantFolder(guide.slug, variant.name),
+      receiver,
+      workDir,
+      cacheDir,
+    );
+    variants[variant.name] = {
+      observed: observedRecord(result.observed),
+      packages: result.packages,
+    };
+  }
+
+  // What each package exports: at run time, and in its type declarations.
+  const packageExports: Record<string, Array<string>> = {};
+  for (const specifier of importedPackages(guideSnippets(guide))) {
+    packageExports[specifier] = Array.from(
+      new Set([
+        ...exportsOf(main.appDir, specifier, verification, main.env),
+        ...declaredExportsOf(main.appDir, specifier),
+      ]),
+    ).sort();
+  }
+
+  const frameworkVersion: string | undefined = verification.framework.package
+    ? main.packages[verification.framework.package] ||
+      installedVersion(main.appDir, verification.framework.package)
+    : undefined;
+
+  return {
     checkedOn: new Date().toISOString().slice(0, 10),
-    runtime: runtimeVersion(verification, env),
-    packages: packages,
+    runtime: runtimeVersion(verification, main.env, main.appDir),
+    packages: main.packages,
     framework: frameworkVersion
       ? `${verification.framework.name} ${frameworkVersion}`
       : verification.framework.name,
     receiver: VERIFICATION_RECEIVER,
     snippetDigest: guideSnippetDigest(guide),
-    observed: {
-      spans: unique(
-        observed.spans.map((span: ObservedSpan): string => {
-          return span.name;
-        }),
-      ),
-      metrics: unique(observed.metrics),
-      logs: unique(
-        observed.logs.map((record: ObservedLog): string => {
-          return record.body.slice(0, 120);
-        }),
-      ),
-    },
+    observed: observedRecord(main.observed),
     packageExports: packageExports,
+    ...(Object.keys(variants).length > 0 ? { variants: variants } : {}),
   };
 }
 
-function writeRecord(slug: string, record: GuideVerificationRecord): void {
+/*
+ * The record as the repository's Prettier writes JSON - short arrays on one
+ * line - so a run changes only what it saw, and the file passes the lint
+ * that checks every changed file. As JSON.stringify writes it where the
+ * repository's Prettier cannot be loaded.
+ */
+interface PrettierApi {
+  resolveConfig: (file: string) => Promise<Record<string, unknown> | null>;
+  format: (source: string, options: Record<string, unknown>) => Promise<string>;
+}
+
+async function formatRecords(text: string): Promise<string> {
+  try {
+    /* eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+    const prettier: PrettierApi = require("prettier");
+    const options: Record<string, unknown> =
+      (await prettier.resolveConfig(VERIFICATIONS_FILE)) || {};
+
+    return await prettier.format(text, {
+      ...options,
+      filepath: VERIFICATIONS_FILE,
+    });
+  } catch {
+    return text;
+  }
+}
+
+async function writeRecord(
+  slug: string,
+  record: GuideVerificationRecord,
+): Promise<void> {
   const records: Record<string, GuideVerificationRecord> = fs.existsSync(
     VERIFICATIONS_FILE,
   )
@@ -1334,7 +2138,10 @@ function writeRecord(slug: string, record: GuideVerificationRecord): void {
     sorted[key] = records[key]!;
   }
 
-  fs.writeFileSync(VERIFICATIONS_FILE, `${JSON.stringify(sorted, null, 2)}\n`);
+  fs.writeFileSync(
+    VERIFICATIONS_FILE,
+    await formatRecords(`${JSON.stringify(sorted, null, 2)}\n`),
+  );
 }
 
 async function main(): Promise<void> {
@@ -1361,6 +2168,8 @@ async function main(): Promise<void> {
   const workRoot: string = process.env["OTEL_GUIDES_WORK_DIR"] || os.tmpdir();
   fs.mkdirSync(workRoot, { recursive: true });
   const workDir: string = fs.mkdtempSync(path.join(workRoot, "otel-guides-"));
+  const cacheDir: string = cacheDirOf(workRoot);
+  fs.mkdirSync(cacheDir, { recursive: true });
   log(`Working in ${workDir}`);
   const receiver: Receiver = await startReceiver(workDir);
   const failed: Array<string> = [];
@@ -1373,8 +2182,9 @@ async function main(): Promise<void> {
           guide,
           receiver,
           workDir,
+          cacheDir,
         );
-        writeRecord(guide.slug, record);
+        await writeRecord(guide.slug, record);
         log(
           `  passed: ${record.observed.spans.length} span names, ${record.observed.metrics.length} metrics, ${record.observed.logs.length} log lines`,
         );

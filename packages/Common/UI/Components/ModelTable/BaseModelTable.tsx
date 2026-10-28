@@ -4010,12 +4010,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
    * columns are built, every table drew that for a frame, and for longer on
    * a page slow to run its effects, telling viewers who could read every
    * column, master admins included, that they had no access.
+   *
+   * Until the permission snapshot lands - the first paint after a fresh
+   * login, a moment after a project switch - every column fails closed and
+   * nothing is known about what the viewer may read, so the Actions column
+   * still counts then: a list with row actions keeps drawing its rows' ⋯
+   * and its own empty state, as it did before, rather than tell a viewer who
+   * may read all of it that they have no access.
    */
+  const hasPermissionSnapshot: boolean = PermissionGate.hasPermissionSnapshot({
+    held: heldPermissions,
+  });
+
   const isNoAccessShown: boolean =
     hasBuiltColumns &&
     allColumns.length > 0 &&
     !tableColumns.some((column: TableColumn<TBaseModel>): boolean => {
-      return column.type !== FieldType.Actions;
+      return column.type !== FieldType.Actions || !hasPermissionSnapshot;
     });
 
   /*

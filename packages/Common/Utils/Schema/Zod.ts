@@ -1,4 +1,8 @@
-import { extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
+import {
+  extendZodWithOpenApi,
+  zodToOpenAPIRegistry,
+} from "@asteasolutions/zod-to-openapi";
+import { holdOpenApiMetadataWeakly } from "./OpenApiMetadataRegistry";
 import {
   any,
   array,
@@ -46,6 +50,12 @@ if (typeof window !== "undefined" && typeof window.document !== "undefined") {
  * that alone (Tests/Utils/Schema/Zod holds it to reading only ZodType).
  */
 extendZodWithOpenApi({ ZodType: ZodType } as unknown as typeof z);
+
+/*
+ * And what .openapi() is given lives as long as its schema, not as long as
+ * the process (OpenApiMetadataRegistry.ts says why).
+ */
+holdOpenApiMetadataWeakly(zodToOpenAPIRegistry);
 
 /*
  * The object schema every model schema is: a shape of named fields, and
