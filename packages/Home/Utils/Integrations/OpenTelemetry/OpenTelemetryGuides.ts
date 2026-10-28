@@ -30,6 +30,7 @@ import { JavaGuide } from "./Guides/Java";
 import { SpringBootGuide } from "./Guides/SpringBoot";
 import { QuarkusGuide } from "./Guides/Quarkus";
 import { MicronautGuide } from "./Guides/Micronaut";
+import { KtorGuide } from "./Guides/Ktor";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -59,6 +60,7 @@ export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   SpringBootGuide,
   QuarkusGuide,
   MicronautGuide,
+  KtorGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";

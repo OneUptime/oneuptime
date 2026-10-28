@@ -211,6 +211,12 @@ export interface ExpectedSpan {
   hasException?: boolean | undefined;
   // An exception event's message must contain this text.
   exceptionMessage?: string | undefined;
+  /*
+   * The span's parent must be a span of this name: the HTTP client call
+   * nests under the span the code opened around it, across a coroutine's
+   * or a task's threads.
+   */
+  parent?: string | undefined;
 }
 
 export interface ExpectedLog {

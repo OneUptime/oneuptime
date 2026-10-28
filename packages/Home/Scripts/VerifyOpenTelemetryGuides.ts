@@ -135,6 +135,8 @@ interface Observed {
 
 interface ObservedSpan {
   name: string;
+  spanId: string;
+  parentSpanId: string;
   attributes: Record<string, unknown>;
   hasException: boolean;
   // The exception.message of each of its exception events.
@@ -572,6 +574,8 @@ function collect(outDir: string, from: Record<string, number>): Observed {
           });
           observed.spans.push({
             name: String(span["name"]),
+            spanId: String(span["spanId"] || ""),
+            parentSpanId: String(span["parentSpanId"] || ""),
             attributes: attributesOf(span["attributes"]),
             hasException: exceptionEvents.length > 0,
             exceptionMessages: exceptionEvents.map(
@@ -672,6 +676,18 @@ function check(
           expected.exceptionMessage !== undefined &&
           !span.exceptionMessages.some((message: string): boolean => {
             return message.includes(expected.exceptionMessage || "");
+          })
+        ) {
+          return false;
+        }
+        if (
+          expected.parent !== undefined &&
+          !observed.spans.some((candidate: ObservedSpan): boolean => {
+            return (
+              candidate.name === expected.parent &&
+              candidate.spanId.length > 0 &&
+              candidate.spanId === span.parentSpanId
+            );
           })
         ) {
           return false;
