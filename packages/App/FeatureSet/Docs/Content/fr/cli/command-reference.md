@@ -194,7 +194,7 @@ Les enregistrements prennent `list`, `get`, `create`, `update`, `delete` et `cou
 | Pages de statut | `status-page`, `status-page-announcement` |
 | Maintenance planifiée | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | Équipes et astreinte | `team`, `on-call-policy` |
-| Sécurité | `security-case`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-detection`, `security-playbook` |
+| Sécurité | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
 | Libellés | `label` |
 
 La télémétrie prend `list`, `create` et `count` :

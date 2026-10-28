@@ -35,6 +35,12 @@ export const NEVER_ROLLED_UP_EVENT_TYPES: ReadonlySet<NotificationSettingEventTy
     NotificationSettingEventType.SEND_BEFORE_USER_ON_CALL_SHIFT_STARTS,
     NotificationSettingEventType.SEND_WHEN_USER_ON_CALL_SHIFT_IS_REASSIGNED,
     NotificationSettingEventType.SEND_INCIDENT_SLA_BREACHED_OWNER_NOTIFICATION,
+    /*
+     * A security case about to miss a response target, or missing it: a
+     * deadline, like an incident's SLA breach. Held back for five minutes, a
+     * three-minute warning would arrive after the target it warns of.
+     */
+    NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
   ]);
 
 /*

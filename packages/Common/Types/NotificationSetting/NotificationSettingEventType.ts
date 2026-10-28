@@ -81,6 +81,15 @@ enum NotificationSettingEventType {
   SEND_SECURITY_CASE_OPENED_NOTIFICATION = "Send notification when a security case opens or rises to my chosen priority",
   SEND_SECURITY_CASE_ASSIGNED_NOTIFICATION = "Send notification when a security case is assigned to me or to a team I am on",
   SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION = "Send notification when a playbook step on a security case is waiting for my approval",
+  /*
+   * A case is about to miss, or misses, a response target its priority sets
+   * (SecurityCaseTargetCheck): told to the people on the case - its assignee
+   * and its team - or, when nobody is, to the people told about cases at its
+   * priority. Never held back in a rollup: it is about a deadline.
+   */
+  SEND_SECURITY_CASE_TARGET_NOTIFICATION = "Send notification when a security case is about to miss, or misses, a response target",
+  // A task on a security case is handed to the person (SecurityCaseTaskService).
+  SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION = "Send notification when a task on a security case is assigned to me",
 
   // On Call Notifications
   SEND_WHEN_USER_IS_ON_CALL_ROSTER = "When user is on-call roster",

@@ -53,7 +53,7 @@ Cuando te unes a un proyecto, estos eventos empiezan activados, por correo. Todo
 | **Páginas de estado** | Ninguno | **Página de estado creada**, **Anuncio de página de estado publicado**, **Añadido como propietario de la página de estado** |
 | **Mantenimiento programado** | **Recordatorio de mantenimiento** | **Evento de mantenimiento creado**, **Estado de mantenimiento cambiado**, **Nota de mantenimiento publicada**, **Añadido como propietario del mantenimiento** |
 | **De guardia** | **Entras en la guardia**, **Eres el siguiente en la guardia**, **Sales de la guardia**, **Añadido a la política de guardia**, **Eliminado de la política de guardia**, **Llamada perdida**, y también por push: **Antes de que empiece mi turno de guardia**, **Mi próximo turno de guardia se reasigna** | Ninguno |
-| **Seguridad** | También por push: **Nuevo caso de seguridad** (casos de prioridad Alta y Crítica), **Caso de seguridad asignado a mí**, **Paso de playbook esperando mi aprobación** | Ninguno |
+| **Seguridad** | También por push: **Nuevo caso de seguridad** (casos de prioridad Alta y Crítica), **Caso de seguridad asignado a mí**, **Paso de playbook esperando mi aprobación**, **Objetivo de respuesta de un caso de seguridad**, **Tarea de un caso de seguridad asignada a mí** | Ninguno |
 
 > [!IMPORTANT]
 > **Estado del monitor cambiado** empieza desactivado. Para enterarte de cuándo un monitor que es tuyo cae o vuelve, actívalo en la pestaña **Monitoreo**.

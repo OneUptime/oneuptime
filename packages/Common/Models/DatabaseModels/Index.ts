@@ -167,6 +167,8 @@ import ThreatIntelFeed from "./ThreatIntelFeed";
 import SecurityCase from "./SecurityCase";
 import SecurityCaseFeed from "./SecurityCaseFeed";
 import SecurityCaseNote from "./SecurityCaseNote";
+import SecurityCaseTask from "./SecurityCaseTask";
+import SecurityCaseEvidence from "./SecurityCaseEvidence";
 import SecurityCasePriority from "./SecurityCasePriority";
 import SecurityCaseStatus from "./SecurityCaseStatus";
 import SecurityDetection from "./SecurityDetection";
@@ -605,6 +607,8 @@ const AllModelTypes: Array<{
   SecurityCase,
   SecurityCaseFeed,
   SecurityCaseNote,
+  SecurityCaseTask,
+  SecurityCaseEvidence,
   SecurityCasePriority,
   SecurityCaseStatus,
   SecurityDetection,

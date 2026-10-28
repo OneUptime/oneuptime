@@ -6,7 +6,8 @@ Security Events trasforma ciò che trovano le tue regole di rilevamento, la thre
 - [Da dove arrivano i casi](#da-dove-arrivano-i-casi): Regole di rilevamento, threat intelligence, prodotti collegati, rischio delle entità e persone.
 - [Gestire un caso](#gestire-un-caso): Assegnalo, indaga sulle sue entità e chiudilo con un verdetto.
 - [Priorità e stati dei casi](#priorità-e-stati-dei-casi): Rinominali, cambiane colore e ordine, e aggiungi i tuoi.
-- [Notifiche](#notifiche): Chi viene avvisato di un nuovo caso, di un'assegnazione e di un passo in attesa di approvazione.
+- [Obiettivi di risposta](#obiettivi-di-risposta): Quanto in fretta un caso di ogni priorità deve essere preso in carico e contenuto.
+- [Notifiche](#notifiche): Chi viene avvisato di un nuovo caso, di un'assegnazione, di un obiettivo di risposta, di un'attività e di un passo in attesa di approvazione.
 - [Playbook](#playbook): Passi che vengono eseguiti su un caso, con un'approvazione dove serve.
 - [La panoramica](#la-panoramica): Cosa richiede attenzione adesso, e quanto velocemente vengono gestiti i casi.
 :::
@@ -36,9 +37,9 @@ Casi e playbook seguono i tre ruoli di sicurezza. Project Owner e Project Admin 
 
 | Ruolo | Cosa può fare |
 | --- | --- |
-| Security Admin | Tutto, anche eliminare i casi e configurare i playbook |
-| Security Member | Aprire, assegnare, modificare e chiudere casi, scrivere note, eseguire playbook e approvarne o rifiutarne i passi |
-| Security Viewer | Leggere casi, rilevamenti, note, playbook e le loro esecuzioni |
+| Security Admin | Tutto, anche eliminare i casi, rimuovere le prove e configurare i playbook |
+| Security Member | Aprire, assegnare, modificare e chiudere casi, scrivere note, svolgere attività, aggiungere prove, eseguire playbook e approvarne o rifiutarne i passi |
+| Security Viewer | Leggere casi, rilevamenti, note, attività, prove, playbook e le loro esecuzioni |
 
 Ognuna di queste azioni si può anche concedere singolarmente, dalla creazione di un caso all'approvazione dei passi di un playbook; vedi [Riferimento dei permessi](/docs/permissions/reference).
 
@@ -88,13 +89,13 @@ Un caso ha un proprio menu laterale, come un incidente, e ogni parte del caso è
 | Sezione del menu laterale | Pagine |
 | --- | --- |
 | **Panoramica** | **Panoramica**, **Cronologia** |
-| **Indagine** | **Svolgimento**, **Rilevamenti**, **Entità**, **Segnali collegati**, **Playbook** |
+| **Indagine** | **Svolgimento**, **Rilevamenti**, **Entità**, **Segnali collegati**, **Prove**, **Attività**, **Playbook** |
 | **Note** | **Note private** |
 | **Avanzato** | **Registri di audit**, **Elimina caso**, chiuse finché non clicchi su **Avanzato** |
 
-Ogni pagina tiene in alto l'intestazione del caso: numero, priorità, stato e titolo, **Assegna a me**, **Esegui il playbook**, **Dichiara incidente** e **Chiudi caso** e, nel menu ⋯ accanto, **Imposta la priorità**, **Assegna a qualcun altro**, **Cambia stato**, **Modifica caso** e **Elimina caso**. Così il caso si gestisce da qualsiasi sua pagina, e un link al caso apre ancora la sua **Panoramica**.
+Ogni pagina tiene in alto l'intestazione del caso: numero, priorità, stato e titolo, **Assegna a me**, **Esegui il playbook**, **Dichiara incidente** e **Chiudi caso** e, nel menu ⋯ accanto, **Imposta la priorità**, **Assegna a qualcun altro**, **Cambia stato**, **Modifica caso** e **Elimina caso**. Così il caso si gestisce da qualsiasi sua pagina, e un link al caso apre ancora la sua **Panoramica**. Quando la priorità del caso ha obiettivi di risposta, l'intestazione dice anche quando scade il prossimo ([Obiettivi di risposta](#obiettivi-di-risposta)).
 
-- **Panoramica**: la descrizione, le etichette e i passaggi di stato del caso, chi lo ha in carico e cosa lo ha aperto, e i suoi numeri: quanti rilevamenti ha, da quanto tempo è aperto e quanto ci è voluto per prenderlo in carico e per contenerlo.
+- **Panoramica**: la descrizione, le etichette e i passaggi di stato del caso, chi lo ha in carico e cosa lo ha aperto, e i suoi numeri: quanti rilevamenti ha, da quanto tempo è aperto e quanto ci è voluto per prenderlo in carico e per contenerlo. Sotto **Tempo al riconoscimento** e **Tempo al contenimento** indica a che punto è il caso rispetto ai suoi obiettivi di risposta.
 - **OneUptime AI**, nella **Panoramica**: che cosa OneUptime AI ha ricavato dal caso, la priorità e il playbook che suggerisce, e le prove dietro. Vedi [OneUptime AI nella sicurezza](/docs/telemetry/security-ai).
 - **Impatto**, nella **Panoramica**: ciò che il caso mette a rischio: se OneUptime ha visto i suoi record raggiunti da internet, chi ne è proprietario e cosa è cambiato per ultimo su di essi. Aprilo per vedere cosa chiama ogni record e da cosa è chiamato, i monitor e le pagine di stato che lo osservano e le macchine con cui hanno comunicato gli indirizzi del caso.
 - **MITRE ATT&CK**, nella **Panoramica**: le tattiche e le tecniche a cui corrispondono i suoi rilevamenti, ciascuna con un link alla propria pagina su attack.mitre.org.
@@ -103,6 +104,8 @@ Ogni pagina tiene in alto l'intestazione del caso: numero, priorità, stato e ti
 - **Rilevamenti**: cosa è scattato per aprire il caso o aggiungersi a esso, quante volte, e l'ultimo evento corrispondente.
 - **Entità**: gli utenti, gli host e gli indirizzi di cui tratta il caso, con la loro attività in tutti i tuoi eventi di sicurezza degli ultimi 7 giorni. Ognuno si apre in **Correla**.
 - **Segnali collegati**: gli host, i cluster, i servizi e i membri che il caso nomina, come OneUptime li conosce, e cosa succedeva su ciascuno attorno ai suoi rilevamenti: i loro registri, tracce e metriche, ciò che è aperto su di essi e cosa è cambiato. Vedi [Segnali collegati](/docs/telemetry/security-connected-signals).
+- **Prove**: i file e i collegamenti conservati sul caso, ciascuno con chi l'ha aggiunto e quando. Il pulsante **Aggiungi file** carica un file fino a 10 MB e registra lo SHA-256 di ciò che è stato caricato, così chi lo scarica in seguito può verificare che sia ciò che è stato conservato; il pulsante **Aggiungi collegamento** rimanda a prove conservate altrove. Solo un Security Admin può rimuovere una prova, e la **Cronologia** del caso dice cosa è stato aggiunto e rimosso.
+- **Attività**: cosa va fatto sul caso, chi lo sta facendo e se è fatto. Aggiungi un'attività in una riga, affidala a qualcuno e spuntala quando è completata. Chi la riceve viene avvisato, a meno che non l'abbia presa da sé, e il menu mostra quante attività sono aperte accanto a **Attività**.
 - **Playbook**: cosa ha fatto ogni playbook sul caso, passo per passo, e i passi in attesa di approvazione. Finché ci sono esecuzioni in attesa, il menu ne mostra il numero accanto a **Playbook**.
 - **Note private**: cosa ha scritto il team sul caso.
 - **Registri di audit**: ogni modifica fatta al caso, e chi l'ha fatta. Vedi [Registri di audit](/docs/configuration/audit-logs).
@@ -129,6 +132,8 @@ Non serve aprire un caso per gestirlo. Negli elenchi della coda, il menu ⋯ del
 
 I verdetti vengono conteggiati nella panoramica. Una regola i cui casi continuano a chiudersi come False Positive è una regola da affinare.
 
+Finché ci sono attività del caso ancora aperte, la finestra **Chiudi caso** dice quante.
+
 Un caso aperto da avvisi di Google SecOps li chiude anche in Google SecOps, con il verdetto e la nota di chiusura, quando la sua connessione ha **Chiudi gli avvisi quando il loro caso viene chiuso** attivo: vedi [Google SecOps](/docs/integrations/google-secops#chiudi-gli-avvisi-quando-il-loro-caso-viene-chiuso).
 
 ### Dichiarare un incidente
@@ -154,21 +159,49 @@ Alcuni sono predefiniti, perché OneUptime legge cosa significano. Si possono ri
 
 Per smettere di usare uno stato o una priorità tuoi, usa **Archivia** sulla sua riga. Nessuno può più sceglierlo, e l'API, Terraform e MCP lo rifiutano, ma i casi che lo hanno lo mantengono, e puoi ancora filtrare in base a esso. I valori archiviati sono elencati nella sezione chiusa **Stati dei casi archiviati** o **Priorità dei casi archiviate** sotto la tabella, dove **Annulla archiviazione** ne ripristina uno. **Elimina** viene rifiutato finché dei casi hanno il valore o un playbook parte dalla priorità.
 
+## Obiettivi di risposta
+
+Un obiettivo di risposta dice quanto in fretta va lavorato un caso: **Riconoscere entro**, quanto un nuovo caso può attendere che qualcuno se ne faccia carico, e **Contenere entro**, quanto può richiedere per essere contenuto o chiuso. Ogni priorità dei casi ha i propri, in **Prodotti → Security Events → Impostazioni → Obiettivi di risposta**: il pulsante **Modifica** sulla riga di una priorità ne imposta i due obiettivi, in minuti, ore o giorni, fino a un anno, e un obiettivo vuoto significa nessun obiettivo. Le priorità di un nuovo progetto partono con questi:
+
+| Priorità | Riconoscere entro | Contenere entro |
+| --- | --- | --- |
+| Critico | 15 minuti | 4 ore |
+| High | 1 ora | 1 giorno |
+| Medium | 12 ore | 3 giorni |
+| Low | 1 giorno | 7 giorni |
+| Informativi | Nessun obiettivo | Nessun obiettivo |
+
+Un progetto creato prima degli obiettivi di risposta non ne ha finché qualcuno non li imposta.
+
+- Le scadenze di un caso si fissano alla sua apertura, dagli obiettivi della sua priorità. Un obiettivo cambiato in seguito vale per i casi aperti dopo.
+- Un caso è riconosciuto appena qualcuno se ne fa carico: viene assegnato a una persona o passa a uno stato che conta come riconosciuto. È contenuto appena raggiunge uno stato che conta come contenuto, o si chiude.
+- Quando la priorità di un caso cambia, un obiettivo già raggiunto o mancato resta com'era. Una priorità più alta avvicina una scadenza: il nuovo obiettivo conta dal cambio, a meno che la vecchia scadenza non arrivi prima. Una priorità più bassa la sposta più avanti, mai prima: il nuovo obiettivo conta dall'apertura del caso. Una priorità senza obiettivo mantiene la scadenza di un caso alzato e cancella quella di un caso abbassato.
+- Un caso chiuso che viene riaperto prima di essere mai stato contenuto riceve una nuova scadenza di contenimento, contata dalla riapertura.
+- Nell'ultimo quinto di un obiettivo il caso sta per mancarlo: chi se ne occupa viene avvisato, e di nuovo quando l'obiettivo è mancato. Vedi [Notifiche](#notifiche).
+
+Dove si vedono gli obiettivi:
+
+- L'intestazione del caso nomina il prossimo obiettivo e quanto tempo resta, o da quanto è scaduto: grigio finché c'è tempo, ambra nell'ultimo quinto, rosso una volta mancato.
+- Nella **Panoramica** del caso, sotto **Tempo al riconoscimento** e **Tempo al contenimento**: a che punto è il caso rispetto a ogni obiettivo, o di quanto l'ha superato.
+- Negli elenchi della coda: la riga sotto la priorità di ogni caso e una colonna **Scadenza** che puoi attivare e usare per ordinare. Gli elenchi li mostrano solo quando una priorità del progetto ha un obiettivo.
+
 ## Notifiche
 
-OneUptime avvisa le persone di tre cose su un caso. Nessuno deve configurare nulla: un progetto che ha solo fatto clic su **Attiva quanto consigliato** viene avvisato dei suoi casi con priorità Alta e Critica via email e push.
+OneUptime avvisa le persone di cinque cose su un caso. Nessuno deve configurare nulla: un progetto che ha solo fatto clic su **Attiva quanto consigliato** viene avvisato dei suoi casi con priorità Alta e Critica via email e push.
 
 | Notifica | Chi viene avvisato | Per impostazione predefinita |
 | --- | --- | --- |
 | Nuovo caso di sicurezza | Tutti coloro che possono vedere i casi del progetto, quando un caso si apre o sale di priorità, a partire dalla priorità che hanno scelto | Email e push, per i casi con priorità Alta e Critica |
 | Caso di sicurezza assegnato a me | La persona a cui è assegnato il caso e i membri del team a cui è assegnato | Email e push |
 | Passaggio di playbook in attesa della mia approvazione | Le persone del caso che possono approvare il passo: la persona a cui è assegnato e i membri del suo team. Se nessuno di loro può approvarlo, tutti coloro nel progetto che possono farlo | Email e push |
+| Obiettivo di risposta di un caso di sicurezza | Le persone che si occupano del caso: la persona a cui è assegnato e i membri del suo team. Se nessuno se ne occupa, le persone avvisate dei nuovi casi della sua priorità | Email e push |
+| Attività di un caso di sicurezza assegnata a me | La persona a cui viene affidata un'attività del caso, a meno che non l'abbia presa da sé | Email e push |
 
 - Vengono avvisate solo le persone che possono vedere il caso: Project Owner, Project Admin e i ruoli Security Admin, Security Member e Security Viewer. Un ruolo limitato ad alcune etichette viene avvisato solo dei casi con quelle etichette.
 - Nessuno viene avvisato di ciò che ha fatto: chi apre un caso a mano, lo assegna o avvia un'esecuzione non riceve una notifica al riguardo.
 - Ogni persona viene avvisata di un caso una sola volta. Un caso che si apre con priorità Medium e poi sale a Critico raggiunge, quando sale, le persone che hanno scelto Alta e Critica o Solo Critica, e non di nuovo quelle che hanno scelto Media e superiori, già avvisate quando si è aperto.
 - L'attacco di prova di **Invia un attacco di prova** apre un caso che non avvisa nessuno.
-- Un caso Critico e un passo in attesa di approvazione vengono inviati subito, mai trattenuti in un [riepilogo email](/docs/emails/notification-rollup).
+- Un caso Critico e un passo in attesa di approvazione vengono inviati subito, mai trattenuti in un [riepilogo email](/docs/emails/notification-rollup). Lo stesso vale per un obiettivo di risposta che sta per essere mancato, o è stato mancato.
 - La **Cronologia** del caso indica chi è stato avvisato, e quando.
 
 ### Scegliere di cosa essere avvisati
@@ -199,7 +232,7 @@ Per pubblicare in un canale, aggiungi una regola in **Prodotti → Security Even
 | Origine del caso di sicurezza | Detection Rule, Threat Intel, Connected Product, Rischio delle entità o Manual |
 | Etichette del caso di sicurezza | Le etichette del caso |
 
-Le tre notifiche vengono pubblicate ciascuna nei canali di ogni regola a cui il caso corrisponde in quel momento. Una regola in cui **Priorità del caso di sicurezza** contiene uno tra **Critico** e **Alto** pubblica i casi con priorità High e Critico appena si aprono, e un caso Medium quando sale a High. Un caso di sicurezza non ha mai un canale tutto suo.
+Ogni notifica, tranne quella di un'attività, viene pubblicata nei canali di ogni regola a cui il caso corrisponde in quel momento. Una regola in cui **Priorità del caso di sicurezza** contiene uno tra **Critico** e **Alto** pubblica i casi con priorità High e Critico appena si aprono, e un caso Medium quando sale a High. Un caso di sicurezza non ha mai un canale tutto suo.
 
 ## Playbook
 
@@ -350,8 +383,8 @@ Sopra, una striscia mostra come è configurata la sicurezza: le sue origini, i r
 ## Automatizzare
 
 - **Flussi di lavoro**: la creazione, la modifica o l'eliminazione di un caso o di una nota può avviare un flusso di lavoro. Un passo **Esegui un flusso di lavoro** avvia un flusso di lavoro il cui trigger è un webhook.
-- **API**: casi, note, rilevamenti, playbook, esecuzioni, entità protette e priorità e stati dei casi hanno la stessa API REST del resto di OneUptime, sotto `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` e `/security-case-status`. Vedi [Riferimento API](/docs/api-reference/api-reference).
-- Agenti IA: il server MCP ha strumenti per casi, note, rilevamenti, playbook e priorità e stati dei casi. Vedi [Server MCP](/docs/ai/mcp-server).
+- **API**: casi, note, attività, prove, rilevamenti, playbook, esecuzioni, entità protette e priorità e stati dei casi hanno la stessa API REST del resto di OneUptime, sotto `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` e `/security-case-status`. Vedi [Riferimento API](/docs/api-reference/api-reference).
+- Agenti IA: il server MCP ha strumenti per casi, note, attività, prove, rilevamenti, playbook e priorità e stati dei casi. Vedi [Server MCP](/docs/ai/mcp-server).
 - Terraform: le risorse `oneuptime_security_case_priority` e `oneuptime_security_case_status` gestiscono come codice le priorità e gli stati di un progetto.
 
 ## Risoluzione dei problemi
@@ -362,6 +395,10 @@ Controlla **Apri un caso in caso di corrispondenza** nel passo **In caso di corr
 
 :::details Nessuno è stato avvisato di un caso
 Guarda la **Cronologia** del caso, che indica chi è stato avvisato. Una notifica **Nuovo caso di sicurezza** va alle persone la cui priorità scelta viene raggiunta dal caso, quindi un caso Medium non avvisa nessuno che abbia mantenuto l'impostazione predefinita, **Alta e superiori**. Controlla che le persone che dovrebbero essere avvisate possano vedere i casi di sicurezza (con un ruolo di sicurezza, o come Project Owner o Project Admin) e che la notifica sia attiva per loro in **Impostazioni utente → Impostazioni notifiche → Sicurezza**.
+:::
+
+:::details Un caso non mostra alcuna scadenza
+La sua priorità non ha un obiettivo di risposta, o l'ha avuto solo dopo l'apertura del caso: le scadenze di un caso si fissano alla sua apertura. Il caso dell'attacco di prova non ne ha. Vedi [Obiettivi di risposta](#obiettivi-di-risposta).
 :::
 
 :::details Un playbook non è stato eseguito

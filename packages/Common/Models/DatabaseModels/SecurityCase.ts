@@ -659,6 +659,143 @@ export default class SecurityCase extends BaseModel {
   })
   public closedAt?: Date = undefined;
 
+  /*
+   * RESPONSE TARGETS (Common/Utils/SecurityCase/SecurityCaseTargets): when
+   * the case must be acknowledged and contained by, from its priority's
+   * targets - set as it opens, moved as its priority changes, the contain
+   * one started again when it is reopened. Each is met by the milestone
+   * above (acknowledgedAt; containedAt, or closedAt for a case closed
+   * without being contained). OneUptime stamps when it warned the people on
+   * the case that a target was about to be missed, and when one was missed:
+   * each is said once. Written only by OneUptime.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Acknowledge By",
+    description:
+      "When the case must be acknowledged by, from its priority's Acknowledge Within target. Empty when its priority has no target, or when it was acknowledged as it opened.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public acknowledgeDueAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Contain By",
+    description:
+      "When the case must be contained or closed by, from its priority's Contain Within target. Empty when its priority has no target.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public containDueAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    title: "Acknowledge Target Warned At",
+    description:
+      "When OneUptime told the people on the case that it was about to miss its acknowledge target.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public acknowledgeWarnedAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Acknowledge Target Missed At",
+    description:
+      "When the case passed its acknowledge due time without being acknowledged. Empty while it has not.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public acknowledgeMissedAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    title: "Contain Target Warned At",
+    description:
+      "When OneUptime told the people on the case that it was about to miss its contain target.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public containWarnedAt?: Date = undefined;
+
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Contain Target Missed At",
+    description:
+      "When the case passed its contain due time without being contained or closed. Empty while it has not.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public containMissedAt?: Date = undefined;
+
+  /*
+   * The earliest due time of a target the case has not met yet, missed ones
+   * among them: what the case lists sort by to put the most overdue first.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    canReadOnRelationQuery: true,
+    title: "Next Due At",
+    description:
+      "The earliest due time of a response target the case has not met yet, a missed one included. Empty when every target is met or the case has none.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public nextDueAt?: Date = undefined;
+
+  /*
+   * When OneUptime next looks at the case's targets: the moment the next
+   * one is about to be missed, or is missed. The every-minute check reads
+   * the cases whose moment has come, by this index.
+   */
+  @ColumnAccessControl(serverWrittenColumnAccess)
+  @Index()
+  @TableColumn({
+    type: TableColumnType.Date,
+    computed: true,
+    title: "Next Target Check At",
+    description:
+      "When OneUptime next checks the case's response targets: when one is about to be missed, or is missed. Empty when there is nothing left to check.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public nextTargetCheckAt?: Date = undefined;
+
   @ColumnAccessControl(serverWrittenColumnAccess)
   @TableColumn({
     manyToOneRelationColumn: "closedByUserId",
