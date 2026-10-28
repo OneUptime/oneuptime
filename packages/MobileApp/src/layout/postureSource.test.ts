@@ -10,10 +10,11 @@ import type { FoldReport, PostureSource } from "./windowPosture";
 
 // Expo's own lookup, unless a test hands it a module.
 jest.mock("expo-modules-core", () => {
-  const actual: { requireOptionalNativeModule: (name: string) => unknown } =
-    jest.requireActual("expo-modules-core");
+  const actual: Record<string, unknown> & {
+    requireOptionalNativeModule: (name: string) => unknown;
+  } = jest.requireActual("expo-modules-core");
   return {
-    ...(actual as object),
+    ...actual,
     requireOptionalNativeModule: jest.fn((name: string): unknown => {
       return actual.requireOptionalNativeModule(name);
     }),
@@ -53,7 +54,10 @@ const BOOK_REPORT: FoldReport = {
 interface FakeModule {
   getFolds: jest.Mock<() => unknown>;
   addListener: jest.Mock<
-    (eventName: string, listener: (event: unknown) => void) => {
+    (
+      eventName: string,
+      listener: (event: unknown) => void,
+    ) => {
       remove: () => void;
     }
   >;
@@ -125,7 +129,14 @@ describe("Without the native module there is no posture source", () => {
     ["nothing", null],
     ["undefined", undefined],
     ["an object without getFolds", { addListener: (): void => {} }],
-    ["an object without addListener", { getFolds: (): null => null }],
+    [
+      "an object without addListener",
+      {
+        getFolds: (): null => {
+          return null;
+        },
+      },
+    ],
     ["a string", "OneUptimeWindowPosture"],
   ])("%s is no module", (_name: string, candidate: unknown) => {
     expect(createNativePostureSource(candidate)).toBeNull();

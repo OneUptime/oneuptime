@@ -44,10 +44,7 @@ import {
   type ListPaneWidthControl,
   type PaneLayout,
 } from "../layout/WindowLayout";
-import type {
-  ListPaneWidthRange,
-  WindowLayout,
-} from "../layout/windowLayout";
+import type { ListPaneWidthRange, WindowLayout } from "../layout/windowLayout";
 import { clampListPaneWidth } from "../layout/paneDivider";
 import PaneDivider from "./PaneDivider";
 import {
@@ -419,8 +416,7 @@ function AdaptiveStackNavigator({
 }: AdaptiveStackNavigatorProps): React.JSX.Element {
   const windowLayout: WindowLayout = useWindowLayout();
   const split: boolean = windowLayout.panes === 2;
-  const stacked: boolean =
-    split && windowLayout.paneArrangement === "stacked";
+  const stacked: boolean = split && windowLayout.paneArrangement === "stacked";
   const dividerRange: ListPaneWidthRange | null = split
     ? windowLayout.listPaneWidthRange
     : null;
@@ -431,9 +427,7 @@ function AdaptiveStackNavigator({
    * While the reader drags the divider, the width it is drawn at; the layout
    * takes the new width only when they let go.
    */
-  const [draggedListWidth, setDraggedListWidth] = useState<number | null>(
-    null,
-  );
+  const [draggedListWidth, setDraggedListWidth] = useState<number | null>(null);
   const drawnListWidth: number =
     dividerRange && draggedListWidth !== null
       ? clampListPaneWidth(draggedListWidth, dividerRange)

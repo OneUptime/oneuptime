@@ -1,6 +1,13 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { ThemeProvider } from "../theme";
 import PaneDivider, {
   DIVIDER_HANDLE_TOUCH_HEIGHT,
@@ -39,9 +46,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-async function renderDivider(
-  width: number = ON_THE_FOLD,
-): Promise<Handlers> {
+async function renderDivider(width: number = ON_THE_FOLD): Promise<Handlers> {
   const handlers: Handlers = {
     onDrag: jest.fn(),
     onCommit: jest.fn(),
@@ -110,9 +115,11 @@ describe("The divider's handle", () => {
     await move(600);
     await move(300);
 
-    expect(onDrag.mock.calls.map((call: [number]): number => call[0])).toEqual(
-      [ON_THE_FOLD + 30, 444, 320],
-    );
+    expect(
+      onDrag.mock.calls.map((call: [number]): number => {
+        return call[0];
+      }),
+    ).toEqual([ON_THE_FOLD + 30, 444, 320]);
     expect(onCommit).not.toHaveBeenCalled();
   });
 
@@ -250,7 +257,9 @@ describe("The divider with a screen reader", () => {
     });
     expect(
       handle.props.accessibilityActions.map(
-        (action: { name: string }): string => action.name,
+        (action: { name: string }): string => {
+          return action.name;
+        },
       ),
     ).toEqual(["increment", "decrement", "activate"]);
   });

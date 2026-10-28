@@ -193,9 +193,11 @@ describe("foldsFromSegments: the fold is the gap between two segments", () => {
     );
 
     expect(
-      folds.map((fold: ReturnType<typeof foldsFromSegments>[number]): string => {
-        return fold.orientation;
-      }),
+      folds.map(
+        (fold: ReturnType<typeof foldsFromSegments>[number]): string => {
+          return fold.orientation;
+        },
+      ),
     ).toEqual(["vertical", "horizontal", "horizontal", "vertical"]);
   });
 });
@@ -206,7 +208,9 @@ describe("The browser as a posture source", () => {
     expect(
       createViewportSegmentsSource(fakeWindow(884, 1104, undefined)),
     ).toBeNull();
-    expect(createViewportSegmentsSource(fakeWindow(884, 1104, null))).toBeNull();
+    expect(
+      createViewportSegmentsSource(fakeWindow(884, 1104, null)),
+    ).toBeNull();
   });
 
   test("a browser whose viewport nothing splits reports a window without folds", () => {

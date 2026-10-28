@@ -25,10 +25,7 @@ import {
   usePane,
   type ResolvedPaneLayout,
 } from "../layout/WindowLayout";
-import {
-  getHeightClass,
-  type ContentGutters,
-} from "../layout/windowLayout";
+import { getHeightClass, type ContentGutters } from "../layout/windowLayout";
 import { useSecurityCasesAvailability } from "../hooks/useSecurityCases";
 import IncidentsScreen from "./IncidentsScreen";
 import AlertsScreen from "./AlertsScreen";

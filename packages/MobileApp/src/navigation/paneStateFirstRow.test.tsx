@@ -226,7 +226,10 @@ describe("Everywhere else, the header stays where it is", () => {
     const scrollTo: jest.Mock<(offsetY: number) => void> = jest.fn();
     const probe: { current: PaneScrollRestoration | null } = { current: null };
     await render(
-      inPane(pane, <Scroller scrollTo={scrollTo} probe={probe} headerTop={20} />),
+      inPane(
+        pane,
+        <Scroller scrollTo={scrollTo} probe={probe} headerTop={20} />,
+      ),
     );
 
     probe.current?.onContentSizeChange(400, 2000);

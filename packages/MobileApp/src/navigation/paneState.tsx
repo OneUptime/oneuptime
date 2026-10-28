@@ -206,9 +206,8 @@ export function usePaneScrollRestoration(
    * at its first row while the header settles (its rows' count, a filter
    * that wraps) - until the reader scrolls it themselves.
    */
-  const followsHeader: React.MutableRefObject<boolean> = useRef<boolean>(
-    !hadPosition,
-  );
+  const followsHeader: React.MutableRefObject<boolean> =
+    useRef<boolean>(!hadPosition);
   const headerEnd: React.MutableRefObject<number> = useRef<number>(0);
   // Scroll events still to come from this hook's own scrolling, not the reader's.
   const ownScrolls: React.MutableRefObject<number> = useRef<number>(0);

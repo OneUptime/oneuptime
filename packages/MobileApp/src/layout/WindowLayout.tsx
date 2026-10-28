@@ -138,7 +138,10 @@ function usePostureReport(source: PostureSource | null): FoldReport | null {
  * Where the reader left the divider. It is read from storage once; moving the
  * divider before that read returns wins over what the read finds.
  */
-function useStoredListPaneWidth(): [number | null, (width: number | null) => void] {
+function useStoredListPaneWidth(): [
+  number | null,
+  (width: number | null) => void,
+] {
   const [preferred, setPreferred] = useState<number | null>(null);
   const movedSinceStart: React.MutableRefObject<boolean> = useRef(false);
 
@@ -291,7 +294,13 @@ export function PaneProvider({
       left: pane.insetLeft,
       right: pane.insetRight,
     };
-  }, [insets, pane.insetLeft, pane.insetRight, pane.insetTop, pane.insetBottom]);
+  }, [
+    insets,
+    pane.insetLeft,
+    pane.insetRight,
+    pane.insetTop,
+    pane.insetBottom,
+  ]);
 
   return (
     <PaneContext.Provider value={pane}>

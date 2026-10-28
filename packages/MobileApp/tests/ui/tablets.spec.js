@@ -190,7 +190,9 @@ test("Monitors and On-Call beside their details, Settings at a readable width, a
   const sheet = await page.getByTestId("project-switcher-sheet").boundingBox();
   expect(sheet.width).toBeLessThanOrEqual(640);
   await capture(page, "project-switcher", testInfo);
-  await page.getByRole("radio", { name: projects[1].name, exact: true }).click();
+  await page
+    .getByRole("radio", { name: projects[1].name, exact: true })
+    .click();
   await expect(
     page
       .getByRole("button", { name: /^Switch project, current project/ })

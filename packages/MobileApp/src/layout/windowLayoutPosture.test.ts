@@ -83,11 +83,7 @@ function book(x: number, height: number, width: number = 0): WindowPosture {
   return { kind: "book", fold };
 }
 
-function tabletop(
-  y: number,
-  width: number,
-  height: number = 0,
-): WindowPosture {
+function tabletop(y: number, width: number, height: number = 0): WindowPosture {
   const fold: WindowFold = {
     x: 0,
     y,
@@ -304,7 +300,10 @@ describe("Half open like a book, the panes meet on the fold", () => {
   });
 
   test("a fold too near an edge for two whole panes leaves the layout as its size gives it", () => {
-    const today: WindowLayout = computeWindowLayout({ width: 884, height: 1104 });
+    const today: WindowLayout = computeWindowLayout({
+      width: 884,
+      height: 1104,
+    });
     const nearTheLeft: WindowLayout = computeWindowLayout(
       { width: 884, height: 1104 },
       ZERO_INSETS,
@@ -397,7 +396,10 @@ describe("Half open on a table, the detail stands above the fold and the list li
   });
 
   test("halves too short for a pane each leave the layout as the window's size gives it", () => {
-    const today: WindowLayout = computeWindowLayout({ width: 852, height: 393 });
+    const today: WindowLayout = computeWindowLayout({
+      width: 852,
+      height: 393,
+    });
     const layout: WindowLayout = computeWindowLayout(
       { width: 852, height: 393 },
       ZERO_INSETS,

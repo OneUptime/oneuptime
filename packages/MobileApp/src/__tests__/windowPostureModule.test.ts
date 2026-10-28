@@ -51,9 +51,12 @@ function autolinkedModules(platform: string): Array<AutolinkedModule> {
   const output: string = execFileSync(
     process.execPath,
     [
-      require.resolve("expo-modules-autolinking/bin/expo-modules-autolinking.js", {
-        paths: [APP_ROOT],
-      }),
+      require.resolve(
+        "expo-modules-autolinking/bin/expo-modules-autolinking.js",
+        {
+          paths: [APP_ROOT],
+        },
+      ),
       "resolve",
       "--platform",
       platform,
@@ -100,7 +103,9 @@ describe("The module is linked into Android builds, and only those", () => {
       platforms: Array<string>;
       android: { modules: Array<string> };
     } = JSON.parse(read(path.join(MODULE_ROOT, "expo-module.config.json")));
-    const kotlin: string = read(path.join(KOTLIN_ROOT, "WindowPostureModule.kt"));
+    const kotlin: string = read(
+      path.join(KOTLIN_ROOT, "WindowPostureModule.kt"),
+    );
 
     expect(config.platforms).toEqual(["android"]);
     expect(config.android.modules).toEqual([
@@ -177,7 +182,10 @@ describe("The module's Android build", () => {
 
   test("uses the androidx.window version React Native already ships", () => {
     const versions: string = read(
-      path.join(APP_ROOT, "node_modules/react-native/gradle/libs.versions.toml"),
+      path.join(
+        APP_ROOT,
+        "node_modules/react-native/gradle/libs.versions.toml",
+      ),
     );
     const reactNativeWindow: string | undefined = versions
       .split("\n")

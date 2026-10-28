@@ -186,7 +186,9 @@ describe("What the provider does with the reports", () => {
     setWindowSize(TEST_WINDOWS.innerScreen);
     await render(
       <WindowLayoutProvider
-        postureSource={fakeSource(report(TEST_WINDOWS.innerScreen, [BOOK_FOLD]))}
+        postureSource={fakeSource(
+          report(TEST_WINDOWS.innerScreen, [BOOK_FOLD]),
+        )}
       >
         <LayoutReport />
       </WindowLayoutProvider>,

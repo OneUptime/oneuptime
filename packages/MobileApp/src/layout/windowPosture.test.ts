@@ -85,9 +85,11 @@ describe("parseFoldReport reads what the native module and the browser send", ()
     expect(
       parseFoldReport({ windowWidth: 768, windowHeight: 1024, folds: "none" }),
     ).toEqual({ windowWidth: 768, windowHeight: 1024, folds: [] });
-    expect(
-      parseFoldReport({ windowWidth: 768, windowHeight: 1024 }),
-    ).toEqual({ windowWidth: 768, windowHeight: 1024, folds: [] });
+    expect(parseFoldReport({ windowWidth: 768, windowHeight: 1024 })).toEqual({
+      windowWidth: 768,
+      windowHeight: 1024,
+      folds: [],
+    });
   });
 
   test.each([
@@ -98,7 +100,10 @@ describe("parseFoldReport reads what the native module and the browser send", ()
     ["no window size", { folds: [] }],
     ["a window width of zero", { windowWidth: 0, windowHeight: 1104 }],
     ["a negative window height", { windowWidth: 884, windowHeight: -1 }],
-    ["a window size that is not a number", { windowWidth: "884", windowHeight: 1104 }],
+    [
+      "a window size that is not a number",
+      { windowWidth: "884", windowHeight: 1104 },
+    ],
     ["an infinite window", { windowWidth: Infinity, windowHeight: 1104 }],
     ["a window size of NaN", { windowWidth: NaN, windowHeight: 1104 }],
   ])("%s is no report at all", (_name: string, raw: unknown) => {
@@ -115,15 +120,18 @@ describe("parseFoldReport reads what the native module and the browser send", ()
     ["an infinite position", { ...bookFold(), y: Infinity }],
     ["not an object", "fold"],
     ["null", null],
-  ])("a fold with %s is left out, and the rest kept", (_name: string, fold: unknown) => {
-    const report: FoldReport | null = parseFoldReport({
-      windowWidth: 884,
-      windowHeight: 1104,
-      folds: [fold, bookFold()],
-    });
+  ])(
+    "a fold with %s is left out, and the rest kept",
+    (_name: string, fold: unknown) => {
+      const report: FoldReport | null = parseFoldReport({
+        windowWidth: 884,
+        windowHeight: 1104,
+        folds: [fold, bookFold()],
+      });
 
-    expect(report?.folds).toEqual([bookFold()]);
-  });
+      expect(report?.folds).toEqual([bookFold()]);
+    },
+  );
 
   test("a fold splits the window only when the report says so in as many words", () => {
     const folds: ReadonlyArray<WindowFold> =
