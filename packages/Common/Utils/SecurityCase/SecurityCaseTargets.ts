@@ -346,7 +346,9 @@ export function readSecurityCaseTarget(data: {
       state: isLate
         ? SecurityCaseTargetState.MetLate
         : SecurityCaseTargetState.Met,
-      minutes: isLate ? minutesBetween(dueAt, metAt) : minutesBetween(metAt, dueAt),
+      minutes: isLate
+        ? minutesBetween(dueAt, metAt)
+        : minutesBetween(metAt, dueAt),
     };
   }
 

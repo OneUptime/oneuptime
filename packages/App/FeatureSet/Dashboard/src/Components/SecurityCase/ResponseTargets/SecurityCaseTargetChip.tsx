@@ -143,7 +143,9 @@ export const SecurityCaseDueCell: FunctionComponent<ComponentProps> = (
       >
         <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 shrink-0" />
         {translator.translateTemplate(
-          due.isOverdue ? SECURITY_CASE_DUE_CELL_OVERDUE : SECURITY_CASE_DUE_CELL_IN,
+          due.isOverdue
+            ? SECURITY_CASE_DUE_CELL_OVERDUE
+            : SECURITY_CASE_DUE_CELL_IN,
           { time },
         )}
       </span>

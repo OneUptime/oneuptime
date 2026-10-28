@@ -181,9 +181,7 @@ export interface SecurityCaseTargetNote {
 export function getSecurityCaseTargetNote(
   reading: SecurityCaseTargetReading,
 ): SecurityCaseTargetNote | null {
-  const tone: SecurityCaseTargetTone = getSecurityCaseTargetTone(
-    reading.state,
-  );
+  const tone: SecurityCaseTargetTone = getSecurityCaseTargetTone(reading.state);
 
   switch (reading.state) {
     case SecurityCaseTargetState.OnTrack:

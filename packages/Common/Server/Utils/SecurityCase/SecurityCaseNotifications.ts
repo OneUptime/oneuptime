@@ -1622,22 +1622,23 @@ export default class SecurityCaseNotifications {
       return [];
     }
 
-    const task: SecurityCaseTask | null = await SecurityCaseTaskService.findOneBy({
-      query: {
-        _id: data.taskId,
-        projectId: data.projectId,
-        securityCaseId: data.securityCaseId,
-      },
-      select: {
-        _id: true,
-        title: true,
-        isDone: true,
-        assignedToUserId: true,
-      },
-      props: {
-        isRoot: true,
-      },
-    });
+    const task: SecurityCaseTask | null =
+      await SecurityCaseTaskService.findOneBy({
+        query: {
+          _id: data.taskId,
+          projectId: data.projectId,
+          securityCaseId: data.securityCaseId,
+        },
+        select: {
+          _id: true,
+          title: true,
+          isDone: true,
+          assignedToUserId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
 
     /*
      * Told only while it is still theirs and still to do: a task handed on

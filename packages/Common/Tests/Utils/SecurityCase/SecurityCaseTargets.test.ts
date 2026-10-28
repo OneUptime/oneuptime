@@ -180,9 +180,7 @@ describe("when a target is met", () => {
 describe("when a target is at risk", () => {
   test("in the last fifth of the priority's target", () => {
     // Three minutes of a 15-minute target.
-    expect(getAtRiskAt({ dueAt: at(15), targetInMinutes: 15 })).toEqual(
-      at(12),
-    );
+    expect(getAtRiskAt({ dueAt: at(15), targetInMinutes: 15 })).toEqual(at(12));
     // 48 minutes of a 4-hour one.
     expect(getAtRiskAt({ dueAt: at(240), targetInMinutes: 240 })).toEqual(
       at(192),
@@ -361,9 +359,11 @@ describe("where a case stands against a target", () => {
   });
 
   test("both targets, acknowledge first", () => {
-    const readings: Array<SecurityCaseTargetReading> = readSecurityCaseTargets(
-      { securityCase: due, priority: CRITICAL, now: at(13) },
-    );
+    const readings: Array<SecurityCaseTargetReading> = readSecurityCaseTargets({
+      securityCase: due,
+      priority: CRITICAL,
+      now: at(13),
+    });
 
     expect(
       readings.map((reading: SecurityCaseTargetReading) => {
@@ -466,9 +466,9 @@ describe("the due times of a new case", () => {
         priority: { acknowledgeWithinInMinutes: 30 },
       }),
     ).toEqual({ acknowledgeDueAt: at(30), containDueAt: null });
-    expect(
-      getDueTimesForNewCase({ openedAt: OPENED, priority: NONE }),
-    ).toEqual({ acknowledgeDueAt: null, containDueAt: null });
+    expect(getDueTimesForNewCase({ openedAt: OPENED, priority: NONE })).toEqual(
+      { acknowledgeDueAt: null, containDueAt: null },
+    );
     expect(getDueTimesForNewCase({ openedAt: OPENED, priority: null })).toEqual(
       { acknowledgeDueAt: null, containDueAt: null },
     );
@@ -651,6 +651,27 @@ describe("both due times after the priority changes", () => {
     });
   });
 
+  test("a fall moves both out, to the new priority's targets from the opening", () => {
+    // A Critical case set back to High five minutes in.
+    const write: SecurityCaseTargetWrite = getDueTimesAfterPriorityChange({
+      securityCase: {
+        createdAt: OPENED,
+        acknowledgeDueAt: at(15),
+        containDueAt: at(240),
+      },
+      newPriority: HIGH,
+      isRising: false,
+      now: at(5),
+    });
+
+    expect(write).toEqual({
+      acknowledgeDueAt: at(60),
+      acknowledgeWarnedAt: null,
+      containDueAt: at(1440),
+      containWarnedAt: null,
+    });
+  });
+
   test("leave a met target as it is", () => {
     expect(
       getDueTimesAfterPriorityChange({
@@ -728,9 +749,13 @@ describe("a reopened case's contain target", () => {
   });
 
   test("has no due time at a priority without one", () => {
-    expect(getContainTargetAfterReopen({ priority: NONE, now: at(600) })).toEqual(
-      { containDueAt: null, containWarnedAt: null, containMissedAt: null },
-    );
+    expect(
+      getContainTargetAfterReopen({ priority: NONE, now: at(600) }),
+    ).toEqual({
+      containDueAt: null,
+      containWarnedAt: null,
+      containMissedAt: null,
+    });
   });
 });
 
@@ -940,7 +965,11 @@ describe("what the every-minute check says", () => {
 
   test("the alert carries the due time and the target", () => {
     expect(
-      getTargetAlertsDue({ securityCase: open, priority: CRITICAL, now: at(13) }),
+      getTargetAlertsDue({
+        securityCase: open,
+        priority: CRITICAL,
+        now: at(13),
+      }),
     ).toEqual([
       {
         target: SecurityCaseTarget.Acknowledge,
@@ -1000,9 +1029,9 @@ describe("a case checked every minute, from opening to its last due time", () =>
 
       if (!checkAt || checkAt.getTime() > now.getTime()) {
         // Nothing may be due before the check said it would look.
-        expect(getTargetAlertsDue({ securityCase: held, priority, now })).toEqual(
-          [],
-        );
+        expect(
+          getTargetAlertsDue({ securityCase: held, priority, now }),
+        ).toEqual([]);
         continue;
       }
 

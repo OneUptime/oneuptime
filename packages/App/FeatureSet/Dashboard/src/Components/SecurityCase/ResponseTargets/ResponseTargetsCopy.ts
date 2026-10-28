@@ -123,7 +123,9 @@ export const RESPONSE_TARGET_DURATION_COPY: {
   days: translationKey("Days"),
   unitLabel: translationKey("Unit"),
   amountLabel: translationKey("Amount"),
-  wholeNumber: translationKey("Enter a whole number from 1 up, or leave it empty."),
+  wholeNumber: translationKey(
+    "Enter a whole number from 1 up, or leave it empty.",
+  ),
   tooLong: translationKey("A target can be a year at the most."),
 };
 

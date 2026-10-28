@@ -80,9 +80,7 @@ const SecurityCaseOverviewPage: FunctionComponent<
   });
 
   // Where the case stands against one target, under its figure.
-  const targetNote: (
-    target: SecurityCaseTarget,
-  ) => ReactElement | undefined = (
+  const targetNote: (target: SecurityCaseTarget) => ReactElement | undefined = (
     target: SecurityCaseTarget,
   ): ReactElement | undefined => {
     const reading: SecurityCaseTargetReading | undefined = targets.find(

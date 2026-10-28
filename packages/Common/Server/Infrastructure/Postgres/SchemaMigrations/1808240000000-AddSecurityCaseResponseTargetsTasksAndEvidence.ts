@@ -200,9 +200,7 @@ export class AddSecurityCaseResponseTargetsTasksAndEvidence1808240000000
     await queryRunner.query(
       `DROP INDEX "public"."IDX_9b85dadc277d94b41126feea75"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "SecurityCaseEvidence"`,
-    );
+    await queryRunner.query(`DROP TABLE "SecurityCaseEvidence"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_d527037580b6949e45b5addb97"`,
     );
@@ -215,8 +213,6 @@ export class AddSecurityCaseResponseTargetsTasksAndEvidence1808240000000
     await queryRunner.query(
       `DROP INDEX "public"."IDX_560bafc2396dd4155c2ec5138a"`,
     );
-    await queryRunner.query(
-      `DROP TABLE "SecurityCaseTask"`,
-    );
+    await queryRunner.query(`DROP TABLE "SecurityCaseTask"`);
   }
 }

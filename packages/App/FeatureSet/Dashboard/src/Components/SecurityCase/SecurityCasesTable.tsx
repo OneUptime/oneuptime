@@ -548,7 +548,9 @@ const SecurityCasesList: FunctionComponent<{
       type: FieldType.Element,
       hideOnMobile: true,
       getElement: (item: SecurityCase): ReactElement => {
-        return <SecurityCaseDueCell securityCase={item} priorities={priorities} />;
+        return (
+          <SecurityCaseDueCell securityCase={item} priorities={priorities} />
+        );
       },
     },
     status: {
@@ -641,13 +643,11 @@ const SecurityCasesList: FunctionComponent<{
   const columns: Array<Column<SecurityCase>> = getSecurityCaseQueueColumns(
     view,
     hasTargets,
-  ).map(
-    (key: SecurityCaseQueueColumn): Column<SecurityCase> => {
-      return view.hiddenColumns.includes(key)
-        ? { ...columnsByKey[key], isHiddenByDefault: true }
-        : columnsByKey[key];
-    },
-  );
+  ).map((key: SecurityCaseQueueColumn): Column<SecurityCase> => {
+    return view.hiddenColumns.includes(key)
+      ? { ...columnsByKey[key], isHiddenByDefault: true }
+      : columnsByKey[key];
+  });
 
   const filters: Array<Filter<SecurityCase>> = getSecurityCaseQueueFilters(
     view,

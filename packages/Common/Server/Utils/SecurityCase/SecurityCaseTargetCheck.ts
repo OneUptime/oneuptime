@@ -159,10 +159,7 @@ export function getTargetCheckResult(data: {
 
   let nextTargetCheckAt: Date | null = bookkeeping.nextTargetCheckAt;
 
-  if (
-    nextTargetCheckAt &&
-    nextTargetCheckAt.getTime() <= data.now.getTime()
-  ) {
+  if (nextTargetCheckAt && nextTargetCheckAt.getTime() <= data.now.getTime()) {
     nextTargetCheckAt = new Date(data.now.getTime() + MINUTE_IN_MS);
   }
 
@@ -328,8 +325,7 @@ export default class SecurityCaseTargetCheck {
       alert.targetInMinutes !== null
         ? describeTargetDuration(alert.targetInMinutes)
         : undefined;
-    const isMissed: boolean =
-      alert.kind === SecurityCaseTargetAlertKind.Missed;
+    const isMissed: boolean = alert.kind === SecurityCaseTargetAlertKind.Missed;
 
     await SecurityCaseFeedService.createSecurityCaseFeedItem({
       projectId: securityCase.projectId!,

@@ -1,4 +1,7 @@
-import { PluralTemplate, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  translationKey,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Every word a case's Tasks page is drawn with, as English keys the locales
