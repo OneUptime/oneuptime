@@ -21,6 +21,7 @@ import { DenoGuide } from "./Guides/Deno";
 import { BrowserGuide } from "./Guides/Browser";
 import { ReactGuide } from "./Guides/React";
 import { AngularGuide } from "./Guides/Angular";
+import { PythonGuide } from "./Guides/Python";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -41,6 +42,7 @@ export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   BrowserGuide,
   ReactGuide,
   AngularGuide,
+  PythonGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";

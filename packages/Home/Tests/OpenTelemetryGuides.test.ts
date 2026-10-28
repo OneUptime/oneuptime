@@ -8,6 +8,9 @@ import {
   GuideQuestion,
   GuideSnippet,
   GuideStep,
+  GuideTab,
+  GuideTabs,
+  GuideVerificationRun,
   InlineText,
   OpenTelemetryGuide,
   SnippetLanguage,
@@ -23,20 +26,29 @@ import {
 } from "../Utils/Integrations/OpenTelemetry/GuideVerifications";
 import {
   InstalledPackage,
+  bracketProblems,
+  buildFileDependencies,
+  iniProblems,
   installedPackages,
+  isBuildFileSnippet,
   isPackageSpecifier,
   isScriptSnippet,
   moduleSpecifiers,
   packageNameOf,
+  propertiesProblems,
 } from "../Utils/Integrations/OpenTelemetry/GuideCodeChecks";
 import {
   inlineTextLinks,
   inlineTextProblems,
 } from "../Utils/Integrations/OpenTelemetry/GuideText";
-import { JAVASCRIPT_PACKAGE_VERSIONS } from "../Utils/Integrations/OpenTelemetry/JavaScriptShared";
+import {
+  PINNED_PACKAGE_VERSIONS,
+  isExactVersion,
+} from "../Utils/Integrations/OpenTelemetry/PinnedVersions";
 import { SHARED_GUIDE_TEXTS } from "../Utils/Integrations/OpenTelemetry/SharedTexts";
 import { describe, expect, test } from "@jest/globals";
 import { SpawnSyncReturns, spawnSync } from "child_process";
+import { JSDOM } from "jsdom";
 import ts from "typescript";
 
 /*
@@ -70,7 +82,7 @@ const GUIDE_LINK: RegExp =
   /^\/integrations\/opentelemetry\/([a-z0-9-]+)(?:#.*)?$/;
 const DOCS_LINK: RegExp = /^\/docs\//;
 const DOCKERFILE_INSTRUCTION: RegExp =
-  /^(FROM|WORKDIR|COPY|RUN|ENV|EXPOSE|CMD|USER|ARG|ENTRYPOINT|LABEL) /;
+  /^(FROM|WORKDIR|COPY|ADD|RUN|ENV|EXPOSE|CMD|USER|ARG|ENTRYPOINT|LABEL) /;
 const YAML_LINE: RegExp =
   /^( {2})*(- )?([A-Za-z0-9_.-]+:( .+)?|"[^"]*"|[A-Za-z0-9_.:/@-]+)$/;
 const DOCUMENT_SEPARATOR: string = "---";
@@ -78,8 +90,16 @@ const IMPORT_NAMES: RegExp =
   /import\s+(type\s+)?\{([^}]*)\}\s+from\s+"([^"]+)"/g;
 const TYPE_PREFIX: RegExp = /^type\s+/;
 const ALIAS: RegExp = /\s+as\s+\w+$/;
-const PINNED_SPEC: RegExp = /^\d+\.\d+\.\d+$/;
 const NODE_BUILTIN: RegExp = /^node:/;
+// The XML declaration a pom.xml or a .csproj may start with.
+const XML_DECLARATION_END: string = "?>";
+// Code the tests cannot run, so its check must have run or compiled it.
+const COMPILED_OR_RUN_LANGUAGES: ReadonlyArray<SnippetLanguage> = [
+  "python",
+  "java",
+  "kotlin",
+  "csharp",
+];
 
 // Every inline text a guide writes itself, with where it is written.
 function guideTexts(guide: OpenTelemetryGuide): Array<[string, InlineText]> {
@@ -185,33 +205,143 @@ function everyText(guide: OpenTelemetryGuide): Array<[string, InlineText]> {
   return texts;
 }
 
+// The guide's runs: the check's main run, then each variant's.
+function runsOf(guide: OpenTelemetryGuide): Array<GuideVerificationRun> {
+  return [guide.verification, ...(guide.verification.variants || [])];
+}
+
 function verificationFileTexts(guide: OpenTelemetryGuide): Array<string> {
-  return guide.verification.files.map((file: VerificationFile): string => {
-    if (file.snippet) {
-      const snippet: GuideSnippet | undefined = guideSnippets(guide).find(
-        (candidate: GuideSnippet): boolean => {
-          return candidate.id === file.snippet;
-        },
-      );
-      return snippet ? snippet.code : "";
-    }
-    return file.content || "";
+  return runsOf(guide).flatMap((run: GuideVerificationRun): Array<string> => {
+    return run.files.map((file: VerificationFile): string => {
+      if (file.snippet) {
+        const snippet: GuideSnippet | undefined = guideSnippets(guide).find(
+          (candidate: GuideSnippet): boolean => {
+            return candidate.id === file.snippet;
+          },
+        );
+        return snippet ? snippet.code : "";
+      }
+      return file.content || "";
+    });
   });
 }
 
 function commandsText(guide: OpenTelemetryGuide): string {
-  return guide.verification.commands
-    .map((command: VerificationCommand): string => {
-      if (command.snippet) {
-        return (
-          guideSnippets(guide).find((snippet: GuideSnippet): boolean => {
-            return snippet.id === command.snippet;
-          })?.code || ""
-        );
-      }
-      return command.command || "";
+  return runsOf(guide)
+    .flatMap((run: GuideVerificationRun): Array<string> => {
+      return run.commands.map((command: VerificationCommand): string => {
+        if (command.snippet) {
+          return (
+            guideSnippets(guide).find((snippet: GuideSnippet): boolean => {
+              return snippet.id === command.snippet;
+            })?.code || ""
+          );
+        }
+        return command.command || "";
+      });
     })
     .join("\n");
+}
+
+/*
+ * The version a run recorded for a package: the main run's, or the
+ * variant's that installed it.
+ */
+function recordedVersion(
+  record: GuideVerificationRecord | undefined,
+  name: string,
+): string | undefined {
+  if (!record) {
+    return undefined;
+  }
+
+  return (
+    record.packages[name] ||
+    Object.values(record.variants || {})
+      .map((variant: { packages: Record<string, string> }) => {
+        return variant.packages[name];
+      })
+      .find((version: string | undefined): boolean => {
+        return Boolean(version);
+      })
+  );
+}
+
+// What a snippet installs: its install commands, an agent download, or a build file's declarations.
+function snippetInstalls(snippet: GuideSnippet): Array<InstalledPackage> {
+  if (isBuildFileSnippet(snippet)) {
+    return buildFileDependencies(snippet);
+  }
+
+  return snippet.language === "bash" || snippet.language === "dockerfile"
+    ? installedPackages(snippet.code)
+    : [];
+}
+
+// Python's parser, run by the python3 on PATH: a module, or a fragment of one.
+function pythonProblems(code: string): Array<string> {
+  const result: SpawnSyncReturns<string> = spawnSync(
+    "python3",
+    [
+      "-c",
+      [
+        "import ast, sys, textwrap",
+        "source = sys.stdin.read()",
+        "try:",
+        "    ast.parse(source)",
+        "except SyntaxError:",
+        "    ast.parse(textwrap.dedent(source))",
+      ].join("\n"),
+    ],
+    { input: code, encoding: "utf8" },
+  );
+
+  if (result.error) {
+    return [`python3 could not be run: ${result.error.message}`];
+  }
+
+  return result.status === 0 ? [] : [result.stderr.trim()];
+}
+
+// A pom.xml, a .csproj or a fragment of one, read as XML.
+function xmlProblems(code: string): Array<string> {
+  const declarationEnd: number = code.startsWith("<?xml")
+    ? code.indexOf(XML_DECLARATION_END)
+    : -1;
+  const body: string =
+    declarationEnd === -1
+      ? code
+      : code.slice(declarationEnd + XML_DECLARATION_END.length);
+  const window: JSDOM["window"] = new JSDOM("").window;
+  const document: Document = new window.DOMParser().parseFromString(
+    `<snippet>${body}</snippet>`,
+    "application/xml",
+  );
+  const error: Element | null = document.querySelector("parsererror");
+
+  return error ? [`not well-formed XML: ${error.textContent || ""}`] : [];
+}
+
+/*
+ * The Maven and Gradle tabs of a build-tool tab set: the same
+ * dependencies, at the same versions, in each.
+ */
+function buildToolTabSets(guide: OpenTelemetryGuide): Array<GuideTabs> {
+  const sets: Array<GuideTabs> = [];
+  const visit: (tabs: GuideTabs | undefined) => void = (
+    tabs: GuideTabs | undefined,
+  ): void => {
+    if (tabs && tabs.group === "buildTool") {
+      sets.push(tabs);
+    }
+  };
+
+  visit(guide.configure.tabs);
+  for (const step of [...guide.setup.steps, ...guide.verify.steps]) {
+    visit(step.tabs);
+  }
+
+  return sets;
 }
 
 function scriptKindOf(language: SnippetLanguage): ts.ScriptKind {
@@ -331,6 +461,18 @@ function parseProblems(snippet: GuideSnippet): Array<string> {
         .map((line: string): string => {
           return `not a YAML mapping, sequence or scalar line: "${line}"`;
         });
+    case "python":
+      return pythonProblems(snippet.code);
+    case "java":
+    case "kotlin":
+    case "csharp":
+      return bracketProblems(snippet.code, snippet.language);
+    case "xml":
+      return xmlProblems(snippet.code);
+    case "properties":
+      return propertiesProblems(snippet.code);
+    case "ini":
+      return iniProblems(snippet.code);
     default:
       return [];
   }
@@ -521,12 +663,19 @@ describe.each(BY_SLUG)(
 
     test("runs every snippet it says it runs, end to end", () => {
       const run: Array<string> = [
-        ...guide.verification.files.map((file: VerificationFile): string => {
-          return file.snippet || "";
-        }),
-        ...guide.verification.commands.map(
-          (command: VerificationCommand): string => {
-            return command.snippet || "";
+        ...runsOf(guide).flatMap(
+          (verificationRun: GuideVerificationRun): Array<string> => {
+            return [
+              ...verificationRun.files.map((file: VerificationFile): string => {
+                return file.snippet || "";
+              }),
+              ...verificationRun.commands.map(
+                (command: VerificationCommand): string => {
+                  return command.snippet || "";
+                },
+              ),
+              ...(verificationRun.environmentSnippets || []),
+            ];
           },
         ),
         // The Cloud tab's variables are the environment the check runs with.
@@ -574,24 +723,58 @@ describe.each(BY_SLUG)(
       const record: GuideVerificationRecord | undefined = getVerificationRecord(
         guide.slug,
       );
-      const installs: Array<InstalledPackage> = guideSnippets(guide).flatMap(
-        (snippet: GuideSnippet): Array<InstalledPackage> => {
-          return snippet.language === "bash"
-            ? installedPackages(snippet.code)
-            : [];
-        },
-      );
+      const installs: Array<InstalledPackage> = guideSnippets(guide)
+        .flatMap(snippetInstalls)
+        .filter((install: InstalledPackage): boolean => {
+          // A dependency a BOM or a parent manages names no version of its own.
+          return install.version !== undefined;
+        });
 
       expect(installs.length).toBeGreaterThan(0);
       for (const install of installs) {
         expect([install.name, install.version]).toEqual([
           install.name,
-          JAVASCRIPT_PACKAGE_VERSIONS[install.name],
+          PINNED_PACKAGE_VERSIONS[install.ecosystem][install.name],
         ]);
         expect([install.name, install.version]).toEqual([
           install.name,
-          record?.packages[install.name],
+          recordedVersion(record, install.name),
         ]);
+      }
+    });
+
+    test("names, in a language the tests cannot run, only code the check ran or compiled", () => {
+      for (const snippet of guideSnippets(guide)) {
+        if (
+          COMPILED_OR_RUN_LANGUAGES.includes(snippet.language) &&
+          !isBuildFileSnippet(snippet)
+        ) {
+          expect([snippet.id, snippet.check]).toEqual([
+            snippet.id,
+            expect.stringMatching(/^(run|contained)$/),
+          ]);
+        }
+      }
+    });
+
+    test("declares the same dependencies in its Maven and Gradle tabs", () => {
+      for (const tabs of buildToolTabSets(guide)) {
+        const declared: Array<Array<string>> = tabs.tabs.map(
+          (tab: GuideTab): Array<string> => {
+            return tab.snippets
+              .flatMap(buildFileDependencies)
+              .map((dependency: InstalledPackage): string => {
+                return `${dependency.name}:${dependency.version || "managed"}`;
+              })
+              .sort();
+          },
+        );
+
+        expect(declared.length).toBeGreaterThan(1);
+        for (const each of declared) {
+          expect(each.length).toBeGreaterThan(0);
+          expect(each).toEqual(declared[0]);
+        }
       }
     });
 
@@ -637,9 +820,10 @@ describe.each(BY_SLUG)(
 
     test("installs its other packages at exact versions, so the check can be run again", () => {
       for (const install of installedPackages(commandsText(guide))) {
-        expect([install.name, PINNED_SPEC.test(install.version || "")]).toEqual(
-          [install.name, true],
-        );
+        expect([
+          install.name,
+          isExactVersion(install.ecosystem, install.version),
+        ]).toEqual([install.name, true]);
       }
     });
 
@@ -659,6 +843,19 @@ describe.each(BY_SLUG)(
       }
       for (const metric of guide.verification.expect.metrics) {
         expect(record!.observed.metrics).toContain(metric);
+      }
+      // ...and in each variant's.
+      for (const variant of guide.verification.variants || []) {
+        const observed: GuideVerificationRecord["observed"] | undefined =
+          record!.variants?.[variant.name]?.observed;
+
+        expect([variant.name, Boolean(observed)]).toEqual([variant.name, true]);
+        for (const span of variant.expect.spans) {
+          expect(observed!.spans).toContain(span.name);
+        }
+        for (const metric of variant.expect.metrics) {
+          expect(observed!.metrics).toContain(metric);
+        }
       }
     });
   },

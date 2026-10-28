@@ -166,6 +166,7 @@ export interface GuidePageContent {
 const KIND_LABELS: Record<OpenTelemetryGuideKind, string> = {
   runtime: "Runtime",
   framework: "Framework",
+  worker: "Background jobs",
   browser: "Browser",
 };
 
@@ -264,10 +265,11 @@ function renderQuestion(question: GuideQuestion): RenderedQuestion {
 
 /*
  * How the section titles name what the page is for. A framework's catalog
- * name reads well there ("Add OpenTelemetry to Express"); the browser
- * entry's ("JavaScript in the browser") does not, so a browser page names
- * the web app instead, and its deploy section is about shipping a bundle,
- * not running a container.
+ * name reads well there ("Add OpenTelemetry to Express"), or its phrase for
+ * a sentence where the name alone does not ("Add OpenTelemetry to a Worker
+ * Service"); the browser entry's ("JavaScript in the browser") does not, so
+ * a browser page names the web app instead, and its deploy section is about
+ * shipping a bundle, not running a container.
  */
 interface SectionWords {
   setupTitle: string;
@@ -281,6 +283,7 @@ interface SectionWords {
 function sectionWords(
   name: string,
   kind: OpenTelemetryGuideKind,
+  inSentence: string = name,
 ): SectionWords {
   if (kind === "browser") {
     const isPlainBrowser: boolean = name.toLowerCase().includes("browser");
@@ -301,9 +304,9 @@ function sectionWords(
   }
 
   return {
-    setupTitle: `Add OpenTelemetry to ${name}`,
-    setupLabel: `Add to ${name}`,
-    troubleshootingTitle: `Troubleshooting OpenTelemetry in ${name}`,
+    setupTitle: `Add OpenTelemetry to ${inSentence}`,
+    setupLabel: `Add to ${inSentence}`,
+    troubleshootingTitle: `Troubleshooting OpenTelemetry in ${inSentence}`,
     faqTitle: `${name} OpenTelemetry FAQ`,
     deployTitle: "Run it in Docker and Kubernetes",
     deployLabel: "Docker and Kubernetes",
@@ -314,8 +317,9 @@ function sectionWords(
 export function guideSections(
   name: string,
   kind: OpenTelemetryGuideKind,
+  inSentence?: string | undefined,
 ): Array<GuideSection> {
-  const words: SectionWords = sectionWords(name, kind);
+  const words: SectionWords = sectionWords(name, kind, inSentence || name);
 
   return [
     {
@@ -473,7 +477,7 @@ export function getGuidePageContent(
     language: getGuideLanguageGroup(slug),
     mark: guideMark(entry),
     checked: checkedLabels(getVerificationRecord(slug)),
-    sections: guideSections(entry.name, entry.kind),
+    sections: guideSections(entry.name, entry.kind, entry.inSentence),
     whatYouGet: {
       introHtml: inlineTextToHtml(guide.whatYouGet.intro),
       signals: [

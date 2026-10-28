@@ -153,11 +153,41 @@ export const DOCS: Record<
   },
 };
 
+/*
+ * The standard variables the OpenTelemetry SDKs read their exporter's
+ * settings from. A framework with names of its own (Quarkus reads
+ * QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT, and ignores these) passes its own.
+ */
+export interface OtlpVariableNames {
+  endpoint: string;
+  headers: string;
+  serviceName: string;
+  resourceAttributes: string;
+}
+
+export const STANDARD_OTLP_VARIABLES: OtlpVariableNames = {
+  endpoint: "OTEL_EXPORTER_OTLP_ENDPOINT",
+  headers: "OTEL_EXPORTER_OTLP_HEADERS",
+  serviceName: "OTEL_SERVICE_NAME",
+  resourceAttributes: "OTEL_RESOURCE_ATTRIBUTES",
+};
+
+/*
+ * OTLP over HTTP, which is what the /otlp endpoint takes. The JavaScript
+ * SDK and the Java agent send it by default; the Python distro, the .NET
+ * exporter and the Java SDK on its own default to gRPC, so their guides
+ * add this line.
+ */
+export const OTLP_HTTP_PROTOCOL_LINE: string =
+  'export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"';
+
 export interface OtlpEnvironmentOptions {
   // The service.name the guide's example app reports.
   serviceName: string;
   // Lines added after the standard three, such as OTEL_DENO=true.
   extraLines?: Array<string> | undefined;
+  // The variables' names, where the framework reads names of its own.
+  variables?: OtlpVariableNames | undefined;
   // A sentence under the Cloud tab's code.
   cloudNote?: InlineText | undefined;
   // A sentence under the self-hosted tab's code.
@@ -168,10 +198,13 @@ function environmentLines(
   endpoint: string,
   options: OtlpEnvironmentOptions,
 ): string {
+  const variables: OtlpVariableNames =
+    options.variables || STANDARD_OTLP_VARIABLES;
+
   return [
-    `export OTEL_EXPORTER_OTLP_ENDPOINT="${endpoint}"`,
-    `export OTEL_EXPORTER_OTLP_HEADERS="${INGESTION_KEY_HEADER}=${INGESTION_KEY_PLACEHOLDER}"`,
-    `export OTEL_SERVICE_NAME="${options.serviceName}"`,
+    `export ${variables.endpoint}="${endpoint}"`,
+    `export ${variables.headers}="${INGESTION_KEY_HEADER}=${INGESTION_KEY_PLACEHOLDER}"`,
+    `export ${variables.serviceName}="${options.serviceName}"`,
     ...(options.extraLines || []),
   ].join("\n");
 }
@@ -267,9 +300,15 @@ export interface KubernetesManifestOptions {
   // The Deployment's name and app label: "checkout-api".
   name: string;
   image: string;
-  containerPort: number;
+  /*
+   * The port the container listens on; none for a worker or a job, which
+   * take no requests.
+   */
+  containerPort?: number | undefined;
   // Variables the container gets besides the three standard ones.
   extraEnv?: Array<{ name: string; value: string }> | undefined;
+  // The variables' names, where the framework reads names of its own.
+  variables?: OtlpVariableNames | undefined;
   // The container's command, when the image's own does not load OpenTelemetry.
   command?: Array<string> | undefined;
 }
@@ -281,11 +320,13 @@ export interface KubernetesManifestOptions {
 export function kubernetesManifestSnippet(
   options: KubernetesManifestOptions,
 ): GuideSnippet {
+  const variables: OtlpVariableNames =
+    options.variables || STANDARD_OTLP_VARIABLES;
   const env: Array<{ name: string; value: string }> = [
-    { name: "OTEL_SERVICE_NAME", value: options.name },
-    { name: "OTEL_EXPORTER_OTLP_ENDPOINT", value: CLOUD_OTLP_ENDPOINT },
+    { name: variables.serviceName, value: options.name },
+    { name: variables.endpoint, value: CLOUD_OTLP_ENDPOINT },
     {
-      name: "OTEL_RESOURCE_ATTRIBUTES",
+      name: variables.resourceAttributes,
       value: "deployment.environment.name=production",
     },
     ...(options.extraEnv || []),
@@ -297,7 +338,7 @@ export function kubernetesManifestSnippet(
     "metadata:",
     "  name: oneuptime-otlp",
     "stringData:",
-    `  OTEL_EXPORTER_OTLP_HEADERS: "${INGESTION_KEY_HEADER}=${INGESTION_KEY_PLACEHOLDER}"`,
+    `  ${variables.headers}: "${INGESTION_KEY_HEADER}=${INGESTION_KEY_PLACEHOLDER}"`,
     "---",
     "apiVersion: apps/v1",
     "kind: Deployment",
@@ -328,9 +369,14 @@ export function kubernetesManifestSnippet(
     );
   }
 
+  if (options.containerPort !== undefined) {
+    lines.push(
+      "          ports:",
+      `            - containerPort: ${options.containerPort}`,
+    );
+  }
+
   lines.push(
-    "          ports:",
-    `            - containerPort: ${options.containerPort}`,
     "          envFrom:",
     "            - secretRef:",
     "                name: oneuptime-otlp",

@@ -1,6 +1,6 @@
 import hljs, {
   resolveRegisteredLanguage,
-} from "Common/UI/Components/CodeBlock/LanguageRegistry";
+} from "Common/UI/Components/CodeBlock/WebsiteLanguageRegistry";
 import { escapeHtml } from "./GuideText";
 import { SnippetLanguage } from "./GuideTypes";
 
@@ -8,9 +8,10 @@ import { SnippetLanguage } from "./GuideTypes";
  * A snippet's code as highlighted HTML, made on the server.
  *
  * The guides' code is coloured where the page is made, with the grammars the
- * Dashboard's code blocks register (Common's LanguageRegistry), so a page
- * ships no highlighter script and its code never changes colour as the page
- * loads. The template styles the classes highlight.js writes (hljs-keyword,
+ * Dashboard's code blocks register (Common's LanguageRegistry) and the few
+ * only the guides show - Java, Kotlin, .properties, INI - registered on the
+ * same core by WebsiteLanguageRegistry, so a page ships no highlighter
+ * script and its code never changes colour as the page loads. The template styles the classes highlight.js writes (hljs-keyword,
  * hljs-string, ...); the text inside is escaped by highlight.js itself.
  *
  * Each snippet is highlighted once per process: the guides are fixed data.
@@ -25,6 +26,13 @@ const GRAMMAR_FOR: Record<SnippetLanguage, string> = {
   yaml: "yaml",
   dockerfile: "dockerfile",
   text: "plaintext",
+  python: "python",
+  java: "java",
+  kotlin: "kotlin",
+  csharp: "csharp",
+  xml: "xml",
+  properties: "properties",
+  ini: "ini",
 };
 
 const highlighted: Map<string, string> = new Map<string, string>();
@@ -63,4 +71,11 @@ export const SNIPPET_LANGUAGE_LABELS: Record<SnippetLanguage, string> = {
   yaml: "YAML",
   dockerfile: "Dockerfile",
   text: "Output",
+  python: "Python",
+  java: "Java",
+  kotlin: "Kotlin",
+  csharp: "C#",
+  xml: "XML",
+  properties: "Properties",
+  ini: "INI",
 };

@@ -119,6 +119,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   "bun.svg": () => {
     return import("../../Images/ProviderLogos/bun.svg");
   },
+  "celery.svg": () => {
+    return import("../../Images/ProviderLogos/celery.svg");
+  },
   "cisco.svg": () => {
     return import("../../Images/ProviderLogos/cisco.svg");
   },
@@ -143,6 +146,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   "discord.svg": () => {
     return import("../../Images/ProviderLogos/discord.svg");
   },
+  "django.svg": () => {
+    return import("../../Images/ProviderLogos/django.svg");
+  },
   "dotnet.svg": () => {
     return import("../../Images/ProviderLogos/dotnet.svg");
   },
@@ -161,11 +167,17 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   "express.svg": () => {
     return import("../../Images/ProviderLogos/express.svg");
   },
+  "fastapi.svg": () => {
+    return import("../../Images/ProviderLogos/fastapi.svg");
+  },
   "fastify-dark.svg": () => {
     return import("../../Images/ProviderLogos/fastify-dark.svg");
   },
   "fastify.svg": () => {
     return import("../../Images/ProviderLogos/fastify.svg");
+  },
+  "flask.svg": () => {
+    return import("../../Images/ProviderLogos/flask.svg");
   },
   "fluent-bit.svg": () => {
     return import("../../Images/ProviderLogos/fluent-bit.svg");
@@ -217,6 +229,12 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   },
   "koa.svg": () => {
     return import("../../Images/ProviderLogos/koa.svg");
+  },
+  "kotlin.svg": () => {
+    return import("../../Images/ProviderLogos/kotlin.svg");
+  },
+  "ktor.svg": () => {
+    return import("../../Images/ProviderLogos/ktor.svg");
   },
   "kubernetes.svg": () => {
     return import("../../Images/ProviderLogos/kubernetes.svg");
@@ -293,6 +311,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   "python.svg": () => {
     return import("../../Images/ProviderLogos/python.svg");
   },
+  "quarkus.svg": () => {
+    return import("../../Images/ProviderLogos/quarkus.svg");
+  },
   "react.svg": () => {
     return import("../../Images/ProviderLogos/react.svg");
   },
@@ -313,6 +334,9 @@ export const PROVIDER_LOGO_FILE_LOADERS: Readonly<
   },
   "splunk.svg": () => {
     return import("../../Images/ProviderLogos/splunk.svg");
+  },
+  "spring-boot.svg": () => {
+    return import("../../Images/ProviderLogos/spring-boot.svg");
   },
   "statuscake.svg": () => {
     return import("../../Images/ProviderLogos/statuscake.svg");

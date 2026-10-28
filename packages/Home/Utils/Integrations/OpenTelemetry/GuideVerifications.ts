@@ -16,6 +16,12 @@ import { guideSnippets } from "./GuideSnippets";
  * check is run again. The page shows the record as "Checked on ...".
  */
 
+// What one of a guide's variant runs saw: uWSGI beside gunicorn.
+export interface GuideVariantRecord {
+  observed: GuideVerificationRecord["observed"];
+  packages: Record<string, string>;
+}
+
 export interface GuideVerificationRecord {
   // The day the check ran: "2026-10-27".
   checkedOn: string;
@@ -34,6 +40,8 @@ export interface GuideVerificationRecord {
   };
   // The names each package exports, as installed, for the import checks.
   packageExports: Record<string, Array<string>>;
+  // Each variant run's own record, by the variant's name.
+  variants?: Record<string, GuideVariantRecord> | undefined;
 }
 
 export const VERIFICATIONS_FILE: string = path.join(

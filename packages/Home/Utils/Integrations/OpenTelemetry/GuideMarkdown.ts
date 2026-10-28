@@ -127,7 +127,11 @@ export function generateGuideMarkdown(
 ): string {
   const baseUrl: string = homeUrl.replace(/\/$/, "");
   const entry: OpenTelemetryGuideEntry = getGuideEntry(guide.slug);
-  const sections: Array<GuideSection> = guideSections(entry.name, entry.kind);
+  const sections: Array<GuideSection> = guideSections(
+    entry.name,
+    entry.kind,
+    entry.inSentence,
+  );
   const title: (id: string) => string = (id: string): string => {
     return (
       sections.find((section: GuideSection): boolean => {

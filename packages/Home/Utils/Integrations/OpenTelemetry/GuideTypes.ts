@@ -26,7 +26,17 @@ export type SnippetLanguage =
   | "json"
   | "yaml"
   | "dockerfile"
-  | "text";
+  | "text"
+  | "python"
+  | "java"
+  | "kotlin"
+  | "csharp"
+  // pom.xml, a .csproj, logback.xml.
+  | "xml"
+  // application.properties.
+  | "properties"
+  // uwsgi.ini.
+  | "ini";
 
 /*
  * How the tests and the end-to-end check hold a snippet to working:
@@ -64,7 +74,7 @@ export interface GuideTabs {
    * Tab sets of one group share the reader's choice: picking "Self-hosted"
    * once picks it in every set of the group, on every guide.
    */
-  group: "deployment" | "setup" | "modules" | "packageManager";
+  group: "deployment" | "setup" | "modules" | "packageManager" | "buildTool";
   tabs: Array<GuideTab>;
 }
 
@@ -137,8 +147,37 @@ export interface VerificationCommand {
   snippet?: string | undefined;
   // ...or a command the page does not show (a build step of the test app).
   command?: string | undefined;
-  // The server: started, then asked the requests below, then stopped.
+  /*
+   * The server: started, then asked the requests below, then stopped. The
+   * commands after it run once it is ready: once it listens on the run's
+   * port, or once it prints readyText.
+   */
   isServer?: boolean | undefined;
+  // A server that listens on no port (a queue's worker) is ready once it prints this.
+  readyText?: string | undefined;
+  /*
+   * Variables this command alone runs with, beside the run's: the web app's
+   * own service name when the server is its worker, say.
+   */
+  environment?: Record<string, string> | undefined;
+}
+
+/*
+ * A container the check starts beside the app, on a free port: the broker a
+ * queue's worker reads, a database. The app finds it through appEnvironment.
+ */
+export interface VerificationService {
+  // Its name in the check's output: "redis".
+  name: string;
+  image: string;
+  containerPort: number;
+  // Variables the container starts with.
+  environment?: Record<string, string> | undefined;
+  /*
+   * Variables the app is given to reach it, {port} standing for the port the
+   * check maps: { CELERY_BROKER_URL: "redis://127.0.0.1:{port}/0" }.
+   */
+  appEnvironment: Record<string, string>;
 }
 
 export interface VerificationRequest {
@@ -180,19 +219,17 @@ export interface VerificationExpectations {
   untracedPaths?: Array<string> | undefined;
   // Span names that must not arrive: what the guide's configuration turns off.
   absentSpans?: Array<string> | undefined;
+  // Metric names that must not arrive: the metrics the guide leaves out.
+  absentMetrics?: Array<string> | undefined;
   // Text no log record's body may contain: the lines the guide leaves out.
   absentLogs?: Array<string> | undefined;
 }
 
-export interface GuideVerification {
-  // The runtime the check uses: "node", "bun", "deno", "browser".
-  runtime: "node" | "bun" | "deno" | "browser";
-  /*
-   * The framework the app runs on, as the page names it, and the package
-   * its installed version is read from: { name: "Express", package: "express" }.
-   * A runtime guide names the runtime: its version is the binary's.
-   */
-  framework: { name: string; package?: string | undefined };
+/*
+ * One run of the end-to-end check: the app's files, the commands that
+ * install, build and start it, what it is asked, and what must arrive.
+ */
+export interface GuideVerificationRun {
   files: Array<VerificationFile>;
   commands: Array<VerificationCommand>;
   /*
@@ -201,11 +238,57 @@ export interface GuideVerification {
    * the page has a backend to call.
    */
   serve?: string | undefined;
-  port: number;
+  /*
+   * Where the app listens, for the requests below. A run whose server
+   * listens on no port (a queue's worker) has none, and asks nothing.
+   */
+  port?: number | undefined;
   requests: Array<VerificationRequest>;
   // For a browser guide: the elements clicked once the page has loaded.
   clicks?: Array<string> | undefined;
+  /*
+   * A stand-in for the other services an app calls (a payment provider, a
+   * billing API): the check answers any request to /api/* on this port with
+   * a small JSON body - two invoices under "items" - so the app's own HTTP
+   * client has somewhere to call.
+   */
+  stubApiPort?: number | undefined;
+  // Containers the check starts before the app: a broker, a database.
+  services?: Array<VerificationService> | undefined;
+  /*
+   * Snippets of `export NAME="value"` lines the run takes as its
+   * environment, beside the Cloud tab's: a setting the page shows, such as
+   * the metrics an instrumentation leaves out.
+   */
+  environmentSnippets?: Array<string> | undefined;
   expect: VerificationExpectations;
+}
+
+export interface GuideVerification extends GuideVerificationRun {
+  /*
+   * The runtime the check uses: "node", "bun", "deno", "browser"; "python"
+   * (a virtual environment of the app's own, whose pip, python and scripts
+   * come first on PATH), "jvm" (a JDK, with Maven and Gradle) or "dotnet".
+   */
+  runtime: "node" | "bun" | "deno" | "browser" | "python" | "jvm" | "dotnet";
+  /*
+   * The framework the app runs on, as the page names it, and the package
+   * its installed version is read from: { name: "Express", package: "express" },
+   * { name: "Spring Boot", package: "org.springframework.boot:spring-boot" }.
+   * A runtime guide names the runtime: its version is the binary's.
+   */
+  framework: { name: string; package?: string | undefined };
+  /*
+   * The other ways the page sets the same app up, each run the same way in
+   * a folder of its own: uWSGI beside gunicorn, the Spring Boot starter
+   * beside the Java agent. A snippet only a variant runs is checked by it.
+   */
+  variants?: Array<GuideVerificationVariant> | undefined;
+}
+
+export interface GuideVerificationVariant extends GuideVerificationRun {
+  // What the variant sets up, in the check's output and its record: "uWSGI".
+  name: string;
 }
 
 export interface OpenTelemetryGuide {

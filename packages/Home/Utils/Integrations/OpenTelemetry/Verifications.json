@@ -4010,6 +4010,77 @@
       ]
     }
   },
+  "python": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Python 3.14.10",
+    "packages": {
+      "opentelemetry-distro": "0.66b1",
+      "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+      "opentelemetry-instrumentation-logging": "0.66b1",
+      "opentelemetry-instrumentation-requests": "0.66b1",
+      "opentelemetry-instrumentation-system-metrics": "0.66b1",
+      "requests": "2.34.2"
+    },
+    "framework": "Python",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:d385f2b2b13ecfce3ad3fc1f15c161ceba902961e11dadc6fca9c6e8f386aecd",
+    "observed": {
+      "spans": [
+        "GET",
+        "POST",
+        "invoice.validate",
+        "invoices.sync"
+      ],
+      "metrics": [
+        "cpython.gc.collected_objects",
+        "cpython.gc.collections",
+        "cpython.gc.uncollectable_objects",
+        "http.client.request.duration",
+        "invoices.synced",
+        "process.context_switches",
+        "process.cpu.time",
+        "process.cpu.utilization",
+        "process.disk.io",
+        "process.memory.usage",
+        "process.memory.virtual",
+        "process.open_file_descriptor.count",
+        "process.thread.count"
+      ],
+      "logs": [
+        "skipped invoice inv_2",
+        "synced 1 of 2 invoices"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "In code": {
+        "observed": {
+          "spans": [
+            "GET",
+            "POST",
+            "invoice.validate",
+            "invoices.sync"
+          ],
+          "metrics": [
+            "http.client.request.duration",
+            "invoices.synced"
+          ],
+          "logs": [
+            "skipped invoice inv_2",
+            "synced 1 of 2 invoices"
+          ]
+        },
+        "packages": {
+          "opentelemetry-distro": "0.66b1",
+          "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+          "opentelemetry-instrumentation-logging": "0.66b1",
+          "opentelemetry-instrumentation-requests": "0.66b1",
+          "opentelemetry-instrumentation-system-metrics": "0.66b1",
+          "requests": "2.34.2"
+        }
+      }
+    }
+  },
   "react": {
     "checkedOn": "2026-10-27",
     "runtime": "Chrome 153.0.8010.12",

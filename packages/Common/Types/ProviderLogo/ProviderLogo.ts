@@ -108,6 +108,14 @@ enum ProviderLogo {
   Hapi = "hapi",
   Bun = "bun",
   Deno = "deno",
+  Django = "django",
+  Flask = "flask",
+  FastAPI = "fastapi",
+  Celery = "celery",
+  SpringBoot = "spring-boot",
+  Quarkus = "quarkus",
+  Kotlin = "kotlin",
+  Ktor = "ktor",
 }
 
 export default ProviderLogo;
@@ -190,6 +198,14 @@ export const PROVIDER_LOGO_NAMES: Readonly<Record<ProviderLogo, string>> = {
   [ProviderLogo.Hapi]: "hapi",
   [ProviderLogo.Bun]: "Bun",
   [ProviderLogo.Deno]: "Deno",
+  [ProviderLogo.Django]: "Django",
+  [ProviderLogo.Flask]: "Flask",
+  [ProviderLogo.FastAPI]: "FastAPI",
+  [ProviderLogo.Celery]: "Celery",
+  [ProviderLogo.SpringBoot]: "Spring Boot",
+  [ProviderLogo.Quarkus]: "Quarkus",
+  [ProviderLogo.Kotlin]: "Kotlin",
+  [ProviderLogo.Ktor]: "Ktor",
 };
 
 export const ALL_PROVIDER_LOGOS: ReadonlyArray<ProviderLogo> = Object.values(
