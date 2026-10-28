@@ -12,6 +12,7 @@ import React, {
   RefObject,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -75,6 +76,15 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
       isActive: props.isActive,
     }),
   );
+  /*
+   * Whether the section last opened by itself, for the page the reader
+   * arrived on (below), rather than at the reader's press. Opened for the
+   * page, it opens without a transition, drawn at once as a section that
+   * starts open is: with one, its rows faded in from nothing whenever the
+   * arriving page had measured the menu before the section opened - the very
+   * rows the reader had just clicked blinked out and back.
+   */
+  const [isOpenedForPage, setIsOpenedForPage] = useState<boolean>(false);
   const bodyRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const translatedTitle: string = translateString(props.title) || props.title;
   const titleLanguage: string | undefined = getDrawnLanguage({
@@ -97,19 +107,28 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
    * that includes one an Enterprise component draws, which SideMenu's route
    * scan cannot see. Open for it when the page changes: arriving on a page
    * inside a folded section must never hide where the reader is.
+   *
+   * A layout effect, so the section opens before the browser paints the
+   * menu. As a passive effect it ran after the first paint: arriving on
+   * Admin Dashboard > Settings > Custom Channels drew Notifications folded
+   * for a frame or two (about a tenth of a second), then sprang open - a
+   * section the reader had just opened by hand flickered shut and open
+   * again.
    */
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!props.currentPath) {
       return;
     }
 
     if (bodyRef.current?.querySelector("a[aria-current]")) {
+      setIsOpenedForPage(true);
       setIsCollapsed(false);
     }
   }, [props.currentPath]);
 
   const handleToggle: () => void = (): void => {
     if (isCollapsible) {
+      setIsOpenedForPage(false);
       setIsCollapsed(!isCollapsed);
     }
   };
@@ -192,7 +211,9 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
        * Folding transitions visibility with the rest, so the rows only turn
        * invisible once the fold has finished. Opening leaves visibility out,
        * so the rows are focusable and announced at once rather than a frame
-       * later.
+       * later. Opening by itself for the page the reader arrived on
+       * (isOpenedForPage) transitions nothing: the section is drawn open at
+       * once, as one that starts open.
        *
        * Open, nothing caps its height (FoldedSection does the same): a cap
        * of 2,000 pixels cut the last rows of a long section off, with
@@ -204,7 +225,9 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
         className={`overflow-hidden duration-200 ease-in-out ${
           isCollapsed
             ? "max-h-0 opacity-0 invisible transition-all"
-            : "opacity-100 transition-opacity"
+            : isOpenedForPage
+              ? "opacity-100 transition-none"
+              : "opacity-100 transition-opacity"
         }`}
       >
         <div className="mt-0.5 space-y-0.5">{props.children}</div>

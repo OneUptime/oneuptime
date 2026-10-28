@@ -7,7 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup } from "@testing-library/react";
+import { cleanup, fireEvent, screen } from "@testing-library/react";
 import fs from "fs";
 import path from "path";
 import * as React from "react";
@@ -65,16 +65,43 @@ import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
 import SideMenuItem from "../../../UI/Components/SideMenu/SideMenuItem";
 import {
+  activeLinkTitles,
+  currentEntries,
   DESKTOP_WIDTH,
   goTo,
+  isExpanded,
   linksIn,
   MenuLink,
+  MOBILE_WIDTH,
   renderMenu,
+  sectionBody,
+  sectionTitlesInOrder,
   setViewportWidth,
 } from "../Dashboard/SideMenuHarness";
 
 const BASIC: string = "sideMenu.basic";
 const NOTIFICATIONS: string = "sideMenu.settingsNotifications";
+
+// The sections below Notifications, which start folded on every page but their own.
+const FOLDED_SECTIONS: ReadonlyArray<string> = [
+  "sideMenu.settingsMonitoring",
+  "sideMenu.settingsRunbooks",
+  "sideMenu.settingsDataRetention",
+  "sideMenu.settingsAi",
+  "sideMenu.settingsApiIntegrations",
+];
+
+function settingsRoute(pageMapKey: string): string {
+  return RouteUtil.populateRouteParams(
+    RouteMap[pageMapKey] as Route,
+  ).toString();
+}
+
+function expandedSections(): Array<string> {
+  return sectionTitlesInOrder().filter((title: string): boolean => {
+    return isExpanded(title);
+  });
+}
 
 const ExtraSettingsItem: () => ReactElement = (): ReactElement => {
   return (
@@ -196,6 +223,135 @@ describe("the Admin Dashboard's settings menu", () => {
     await renderSettingsMenu();
 
     expect(pluginReads).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * Notifications starts folded, and an entry the plugin draws is a component
+ * the menu's route scan cannot read into. On that entry's own page the
+ * section must still open and the entry be the lit one - the reader is never
+ * left on a page whose entry is folded away - in the section the plugin put
+ * it in, and nowhere else.
+ */
+describe("a page the plugin adds opens the section its entry is in", () => {
+  beforeEach(() => {
+    mockPlugins = {
+      SettingsSideMenuItems: ExtraSettingsItem,
+      SettingsNotificationSideMenuItems: ExtraNotificationItem,
+    };
+  });
+
+  test("on a notification entry's page, Notifications opens and lights it; Basic stays open and the rest folded", async () => {
+    goTo(getEnterpriseSettingsPageRoute("extra-notification").toString());
+    await renderMenu(<AdminSettingsSideMenu />);
+
+    expect(isExpanded(NOTIFICATIONS)).toBe(true);
+    expect(isExpanded(BASIC)).toBe(true);
+    expect(expandedSections()).toEqual([BASIC, NOTIFICATIONS]);
+    expect(activeLinkTitles()).toEqual(["Extra Notification"]);
+    expect(currentEntries()).toEqual([
+      { title: "Extra Notification", current: "page" },
+    ]);
+    expect(linksIn(NOTIFICATIONS).pop()).toEqual({
+      title: "Extra Notification",
+      href: "/admin/settings/extra-notification",
+    });
+
+    for (const folded of FOLDED_SECTIONS) {
+      expect({ section: folded, expanded: isExpanded(folded) }).toEqual({
+        section: folded,
+        expanded: false,
+      });
+    }
+  });
+
+  test("Notifications opens at once there, drawn as on a core page of its own", async () => {
+    goTo(getEnterpriseSettingsPageRoute("extra-notification").toString());
+    await renderMenu(<AdminSettingsSideMenu />);
+
+    expect(sectionBody(NOTIFICATIONS)).toHaveClass(
+      "opacity-100",
+      "transition-none",
+    );
+    expect(sectionBody(NOTIFICATIONS)).not.toHaveClass("max-h-0");
+  });
+
+  test("on a Basic entry's page, Basic lights it and Notifications stays folded", async () => {
+    goTo(getEnterpriseSettingsPageRoute("extra-settings").toString());
+    await renderMenu(<AdminSettingsSideMenu />);
+
+    expect(expandedSections()).toEqual([BASIC]);
+    expect(activeLinkTitles()).toEqual(["Extra Settings"]);
+    expect(sectionBody(NOTIFICATIONS)).toHaveClass(
+      "max-h-0",
+      "opacity-0",
+      "invisible",
+    );
+  });
+
+  test("on a core Notifications page, the plugin's entry is last and unlit", async () => {
+    goTo(settingsRoute(PageMap.SETTINGS_PUSH_NOTIFICATIONS));
+    await renderMenu(<AdminSettingsSideMenu />);
+
+    const links: Array<MenuLink> = linksIn(NOTIFICATIONS);
+
+    expect(expandedSections()).toEqual([BASIC, NOTIFICATIONS]);
+    expect(activeLinkTitles()).toEqual(["Push Notifications"]);
+    expect(links[links.length - 2]).toEqual({
+      title: "Push Notifications",
+      href: "/admin/settings/push-notifications",
+    });
+    expect(links[links.length - 1]).toEqual({
+      title: "Extra Notification",
+      href: "/admin/settings/extra-notification",
+    });
+  });
+
+  test("on Authentication, Notifications stays folded with the plugin's entry inside it, and opens with a click", async () => {
+    goTo(settingsRoute(PageMap.SETTINGS_AUTHENTICATION));
+    await renderMenu(<AdminSettingsSideMenu />);
+
+    expect(expandedSections()).toEqual([BASIC]);
+    expect(
+      linksIn(NOTIFICATIONS).map((link: MenuLink): string => {
+        return link.title;
+      }),
+    ).toContain("Extra Notification");
+
+    fireEvent.click(screen.getByRole("button", { name: NOTIFICATIONS }));
+
+    expect(isExpanded(NOTIFICATIONS)).toBe(true);
+    expect(sectionBody(NOTIFICATIONS)).toHaveClass(
+      "opacity-100",
+      "transition-opacity",
+    );
+  });
+
+  test("on a phone, the opened menu shows Notifications open with the entry lit", async () => {
+    setViewportWidth(MOBILE_WIDTH);
+    goTo(getEnterpriseSettingsPageRoute("extra-notification").toString());
+    await renderMenu(<AdminSettingsSideMenu />);
+
+    fireEvent.click(screen.getByTestId("mobile-sidemenu-toggle"));
+
+    expect(expandedSections()).toEqual([BASIC, NOTIFICATIONS]);
+    expect(activeLinkTitles()).toEqual(["Extra Notification"]);
+  });
+
+  /*
+   * The Community Edition has neither key: on the address an Enterprise page
+   * would have, the menu is the core menu - nothing is lit, nothing opens,
+   * and no Enterprise entry is drawn.
+   */
+  test("with the Community stub, that address lights nothing and opens nothing", async () => {
+    mockPlugins = AdminCommunityPlugins as Record<string, unknown>;
+    goTo(getEnterpriseSettingsPageRoute("extra-notification").toString());
+    await renderMenu(<AdminSettingsSideMenu />);
+
+    expect(expandedSections()).toEqual([BASIC]);
+    expect(activeLinkTitles()).toEqual([]);
+    expect(document.body.textContent).not.toContain("Extra Notification");
+    expect(document.body.textContent).not.toContain("Extra Settings");
   });
 });
 
