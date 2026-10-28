@@ -91,9 +91,9 @@ export default class OpenAPIUtil {
    * Kept gzipped because the document is large and asked for rarely: 33 MB
    * of objects as generateOpenAPISpec keeps it, and its 16.5 MB of JSON is
    * as much again as a string (it has characters past Latin-1, so V8 holds
-   * two bytes a character). Gzipped it is 0.6 MB, sent as it is to every
-   * client that accepts gzip - all of them, and nginx in front - and
-   * gunzipped for one that does not.
+   * two bytes a character). Gzipped it is 0.6 MB, sent as it is to a client
+   * that accepts gzip (browsers, HTTP libraries, curl --compressed; nginx
+   * passes it on as it is) and gunzipped for one that does not.
    */
   public static getOpenAPISpecResponse(): OpenAPISpecResponse {
     if (!OpenAPIUtil.specResponse) {
