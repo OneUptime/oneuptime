@@ -25,12 +25,11 @@ export const WATCHLISTS_TABLE_DESCRIPTION: string = translationKey(
   "Values your rules match against: VIP users, critical hosts, known-bad file hashes, allowed admin addresses. A rule reads a list by its name.",
 );
 
-export const WATCHLISTS_EMPTY_TITLE: string = translationKey(
-  "No watchlists yet",
-);
+export const WATCHLISTS_EMPTY_TITLE: string =
+  translationKey("No watchlists yet");
 
 export const WATCHLISTS_EMPTY_DESCRIPTION: string = translationKey(
-  "Keep a list once, and match it in any rule. Start with a common one below, or create your own.",
+  "Keep a list once, and match it in any rule. Start with a common one, or create your own.",
 );
 
 // One row of the list: "Create Watchlist", "Showing 1-3 of 3 watchlists".
@@ -45,8 +44,8 @@ export const READ_BY_COLUMN_TITLE: string = translationKey("Read By");
 
 // How many values a list keeps.
 export const VALUE_COUNT: PluralTemplate = {
-  one: translationKey("{{count}} value"),
-  other: translationKey("{{count}} values"),
+  one: "{{count}} value",
+  other: "{{count}} values",
 };
 
 export const NO_VALUES_YET: string = translationKey("No values yet");
@@ -63,8 +62,8 @@ export const FEED_GONE: string = translationKey(
 // Which rules read a list: its first two names, then how many more.
 export const READ_BY_NO_RULE: string = translationKey("No rule reads it yet");
 export const READ_BY_MORE: PluralTemplate = {
-  one: translationKey("and {{count}} more"),
-  other: translationKey("and {{count}} more"),
+  one: "and {{count}} more",
+  other: "and {{count}} more",
 };
 // When the rules could not be read: the list still shows, without them.
 export const READ_BY_UNKNOWN: string = translationKey("Rules not read");
@@ -82,7 +81,9 @@ export const HOLDS_OTHER: string = translationKey("Other values");
 
 // ---------- Start with a common list ----------
 
-export const STARTERS_TITLE: string = translationKey("Start with a common list");
+export const STARTERS_TITLE: string = translationKey(
+  "Start with a common list",
+);
 export const STARTERS_DESCRIPTION: string = translationKey(
   "Each one is created empty, ready for its values.",
 );
@@ -157,7 +158,6 @@ export const WATCHLIST_DETAIL_DESCRIPTION: string = translationKey(
 export const WATCHLIST_NOT_FOUND: string = translationKey(
   "This watchlist was deleted, or you cannot read it.",
 );
-export const BACK_TO_WATCHLISTS: string = translationKey("Back to Watchlists");
 
 // Use it in a rule.
 export const USE_IN_RULE_TITLE: string = translationKey("Use It in a Rule");
@@ -235,58 +235,55 @@ export const IMPORT_MODE_REPLACE_DESCRIPTION: string = translationKey(
 
 // The preview, as it is typed.
 export const IMPORT_PREVIEW_VALUES: PluralTemplate = {
-  one: translationKey("{{count}} value to import"),
-  other: translationKey("{{count}} values to import"),
+  one: "{{count}} value to import",
+  other: "{{count}} values to import",
 };
 export const IMPORT_PREVIEW_DUPLICATES: PluralTemplate = {
-  one: translationKey("{{count}} repeated line skipped"),
-  other: translationKey("{{count}} repeated lines skipped"),
+  one: "{{count}} repeated line skipped",
+  other: "{{count}} repeated lines skipped",
 };
 export const IMPORT_PREVIEW_PROBLEMS: PluralTemplate = {
-  one: translationKey("{{count}} line left out"),
-  other: translationKey("{{count}} lines left out"),
+  one: "{{count}} line left out",
+  other: "{{count}} lines left out",
 };
 export const IMPORT_PROBLEM_LINE: string = translationKey("Line {{line}}");
 export const IMPORT_PROBLEMS_MORE: PluralTemplate = {
-  one: translationKey("and {{count}} more line"),
-  other: translationKey("and {{count}} more lines"),
+  one: "and {{count}} more line",
+  other: "and {{count}} more lines",
 };
 
 export const IMPORT_SUBMIT: PluralTemplate = {
-  one: translationKey("Import {{count}} Value"),
-  other: translationKey("Import {{count}} Values"),
+  one: "Import {{count}} Value",
+  other: "Import {{count}} Values",
 };
 export const IMPORT_NOTHING: string = translationKey("Nothing to import yet");
 
 // What an import did.
 export const IMPORT_DONE_TITLE: string = translationKey("Import finished");
 export const IMPORT_DONE_ADDED: PluralTemplate = {
-  one: translationKey("{{count}} value added"),
-  other: translationKey("{{count}} values added"),
+  one: "{{count}} value added",
+  other: "{{count}} values added",
 };
 export const IMPORT_DONE_REMOVED: PluralTemplate = {
-  one: translationKey("{{count}} value removed"),
-  other: translationKey("{{count}} values removed"),
+  one: "{{count}} value removed",
+  other: "{{count}} values removed",
 };
 export const IMPORT_DONE_UNCHANGED: PluralTemplate = {
-  one: translationKey("{{count}} was already on the list"),
-  other: translationKey("{{count}} were already on the list"),
+  one: "{{count}} was already on the list",
+  other: "{{count}} were already on the list",
 };
 export const IMPORT_DONE_NOW_HOLDS: PluralTemplate = {
-  one: translationKey("The list now holds {{count}} value."),
-  other: translationKey("The list now holds {{count}} values."),
+  one: "The list now holds {{count}} value.",
+  other: "The list now holds {{count}} values.",
 };
 export const IMPORT_DONE: string = translationKey("Done");
 
 // ---------- The line under a rule's YAML ----------
 
-export const RULE_READS_WATCHLISTS: string = translationKey(
-  "Reads watchlists",
-);
+export const RULE_READS_WATCHLISTS: string = translationKey("Reads watchlists");
 export const RULE_WATCHLIST_MISSING: string = translationKey(
   "No watchlist named {{name}}",
 );
-export const RULE_WATCHLIST_FEED: string = translationKey("follows a feed");
 export const CREATE_WATCHLIST_LINK: string = translationKey(
   "Create it in Watchlists",
 );

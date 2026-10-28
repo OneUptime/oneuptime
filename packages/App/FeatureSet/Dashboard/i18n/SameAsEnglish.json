@@ -169,6 +169,7 @@
   "sudo",
   "us-east-1, eu-west-1",
   "us-east-1, us-west-2",
+  "vip_users",
   "whsec_…",
   "{ \"Authorization\": \"Bearer ...\" }",
   "{ \"client_email\": \"...\", \"private_key\": \"...\" }",

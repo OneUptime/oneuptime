@@ -91,9 +91,11 @@ export const SECURITY_WATCHLIST_FEED_INDICATOR_TYPES: Readonly<
 
 // The kinds a watchlist can take from a threat intel feed, in the form's order.
 export const SECURITY_WATCHLIST_FEED_ENTITY_TYPES: ReadonlyArray<SecurityEntityType> =
-  SECURITY_WATCHLIST_ENTITY_TYPES.filter((type: SecurityEntityType): boolean => {
-    return Boolean(SECURITY_WATCHLIST_FEED_INDICATOR_TYPES[type]);
-  });
+  SECURITY_WATCHLIST_ENTITY_TYPES.filter(
+    (type: SecurityEntityType): boolean => {
+      return Boolean(SECURITY_WATCHLIST_FEED_INDICATOR_TYPES[type]);
+    },
+  );
 
 /*
  * The event field a rule most often matches a watchlist of each kind
@@ -149,6 +151,52 @@ const NAME_REGEX: RegExp = /^[A-Za-z][A-Za-z0-9_]*$/;
 // A file hash: the hex digest of MD5, SHA-1, SHA-256 or SHA-512.
 const FILE_HASH_REGEX: RegExp =
   /^(?:[0-9a-f]{32}|[0-9a-f]{40}|[0-9a-f]{64}|[0-9a-f]{128})$/i;
+
+/*
+ * Every problem the rules below answer with, as Dashboard translation keys:
+ * the string extractor reads each `message`, so a form shows it in the
+ * reader's language, and the API answers in the same words. The numbers
+ * are written out, so a translator reads whole sentences; a test holds each
+ * one to its constant.
+ */
+export const SECURITY_WATCHLIST_MESSAGES: {
+  enterValue: { message: string };
+  loneWildcard: { message: string };
+  valueTooLong: { message: string };
+  valueNotOneLine: { message: string };
+  notAnAddress: { message: string };
+  notAHash: { message: string };
+  noteTooLong: { message: string };
+  enterName: { message: string };
+  nameTooLong: { message: string };
+  nameCharacters: { message: string };
+  tooManyValues: { message: string };
+  tooManyPatterns: { message: string };
+  tooManyRanges: { message: string };
+} = {
+  enterValue: { message: "Enter a value." },
+  loneWildcard: { message: "A value of only * would match everything." },
+  valueTooLong: { message: "A value is at most 256 characters." },
+  valueNotOneLine: { message: "A value is one line, without tabs." },
+  notAnAddress: {
+    message:
+      "Enter an IP address, a range such as 10.20.0.0/16, or a pattern with *.",
+  },
+  notAHash: { message: "Enter an MD5, SHA-1, SHA-256 or SHA-512 hash." },
+  noteTooLong: { message: "A note is at most 500 characters." },
+  enterName: { message: "Enter a name, such as vip_users." },
+  nameTooLong: { message: "A name is at most 50 characters." },
+  nameCharacters: {
+    message:
+      "Use letters, digits and underscores, starting with a letter, such as vip_users.",
+  },
+  tooManyValues: {
+    message:
+      "A watchlist holds at most 5,000 values. Follow a threat intel feed for a longer list.",
+  },
+  tooManyPatterns: { message: "A watchlist holds at most 100 values with *." },
+  tooManyRanges: { message: "A watchlist holds at most 100 address ranges." },
+};
 
 // How a value matches: as written, as a pattern with *, or as an address range.
 export enum SecurityWatchlistValueMatch {
@@ -259,7 +307,9 @@ export function getSecurityWatchlistPlaceholder(name: string): string {
  * The watchlist a rule's value names, or null when the value is not a
  * placeholder: the whole value, a name between two % signs.
  */
-export function readSecurityWatchlistPlaceholder(value: unknown): string | null {
+export function readSecurityWatchlistPlaceholder(
+  value: unknown,
+): string | null {
   if (typeof value !== "string") {
     return null;
   }
@@ -401,19 +451,19 @@ export function getSecurityWatchlistValueProblem(data: {
   const value: string = normalizeSecurityWatchlistValue(data.value);
 
   if (!value) {
-    return "Enter a value.";
+    return SECURITY_WATCHLIST_MESSAGES.enterValue.message;
   }
 
   if (value === SECURITY_WATCHLIST_WILDCARD) {
-    return "A value of only * would match everything.";
+    return SECURITY_WATCHLIST_MESSAGES.loneWildcard.message;
   }
 
   if (value.length > SECURITY_WATCHLIST_VALUE_MAX_LENGTH) {
-    return "A value is at most 256 characters.";
+    return SECURITY_WATCHLIST_MESSAGES.valueTooLong.message;
   }
 
   if (hasControlCharacter(value)) {
-    return "A value is one line, without tabs.";
+    return SECURITY_WATCHLIST_MESSAGES.valueNotOneLine.message;
   }
 
   if (data.entityType === SecurityEntityType.IpAddress) {
@@ -422,7 +472,7 @@ export function getSecurityWatchlistValueProblem(data: {
       !isDetectionRuleExceptionCidr(value) &&
       !value.includes(SECURITY_WATCHLIST_WILDCARD)
     ) {
-      return "Enter an IP address, a range such as 10.20.0.0/16, or a pattern with *.";
+      return SECURITY_WATCHLIST_MESSAGES.notAnAddress.message;
     }
   }
 
@@ -430,7 +480,7 @@ export function getSecurityWatchlistValueProblem(data: {
     data.entityType === SecurityEntityType.FileHash &&
     !FILE_HASH_REGEX.test(value)
   ) {
-    return "Enter an MD5, SHA-1, SHA-256 or SHA-512 hash.";
+    return SECURITY_WATCHLIST_MESSAGES.notAHash.message;
   }
 
   return null;
@@ -442,7 +492,7 @@ export function getSecurityWatchlistNoteProblem(value: unknown): string | null {
     normalizeSecurityWatchlistNote(value).length >
     SECURITY_WATCHLIST_NOTE_MAX_LENGTH
   ) {
-    return "A note is at most 500 characters.";
+    return SECURITY_WATCHLIST_MESSAGES.noteTooLong.message;
   }
 
   return null;
@@ -477,15 +527,15 @@ export function getSecurityWatchlistNameProblem(value: unknown): string | null {
   const name: string = normalizeSecurityWatchlistName(value);
 
   if (!name) {
-    return "Enter a name, such as vip_users.";
+    return SECURITY_WATCHLIST_MESSAGES.enterName.message;
   }
 
   if (name.length > SECURITY_WATCHLIST_NAME_MAX_LENGTH) {
-    return "A name is at most 50 characters.";
+    return SECURITY_WATCHLIST_MESSAGES.nameTooLong.message;
   }
 
   if (!NAME_REGEX.test(name)) {
-    return "Use letters, digits and underscores, starting with a letter, such as vip_users.";
+    return SECURITY_WATCHLIST_MESSAGES.nameCharacters.message;
   }
 
   return null;
@@ -796,15 +846,15 @@ export function getSecurityWatchlistSizeProblem(
   counts: SecurityWatchlistValueCounts,
 ): string | null {
   if (counts.total > SECURITY_WATCHLIST_VALUES_MAX) {
-    return "A watchlist holds at most 5,000 values. Follow a threat intel feed for a longer list.";
+    return SECURITY_WATCHLIST_MESSAGES.tooManyValues.message;
   }
 
   if (counts.patterns > SECURITY_WATCHLIST_PATTERN_VALUES_MAX) {
-    return "A watchlist holds at most 100 values with *.";
+    return SECURITY_WATCHLIST_MESSAGES.tooManyPatterns.message;
   }
 
   if (counts.ranges > SECURITY_WATCHLIST_RANGE_VALUES_MAX) {
-    return "A watchlist holds at most 100 address ranges.";
+    return SECURITY_WATCHLIST_MESSAGES.tooManyRanges.message;
   }
 
   return null;
