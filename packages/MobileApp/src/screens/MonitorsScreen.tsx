@@ -341,6 +341,7 @@ export default function MonitorsScreen(): React.JSX.Element {
         ?.getScrollResponder()
         ?.scrollTo({ x: 0, y: offsetY, animated: false });
     },
+    { headerTop: spacing.xl },
   );
 
   useEffect(() => {
@@ -652,7 +653,9 @@ export default function MonitorsScreen(): React.JSX.Element {
           return `${wrapped.projectId}-${wrapped.item._id}`;
         }}
         contentContainerStyle={scrollContentStyle}
-        ListHeaderComponent={listHeader}
+        ListHeaderComponent={
+          <View onLayout={scroll.onHeaderLayout}>{listHeader}</View>
+        }
         renderSectionHeader={(params: {
           section: DefaultSectionT & MonitorSection;
         }) => {

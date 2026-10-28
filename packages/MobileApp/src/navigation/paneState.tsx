@@ -7,8 +7,13 @@ import React, {
   useRef,
   useState,
 } from "react";
-import type { NativeScrollEvent, NativeSyntheticEvent } from "react-native";
+import type {
+  LayoutChangeEvent,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from "react-native";
 import { paramsInclude } from "./routeParams";
+import { usePane, type ResolvedPaneLayout } from "../layout/WindowLayout";
 
 /*
  * What a list keeps when it moves between layouts.
@@ -153,6 +158,27 @@ export interface PaneScrollRestoration {
   onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
   onContentSizeChange: (width: number, height: number) => void;
   scrollEventThrottle: number;
+  /**
+   * For the view around the list's header (its search, its filters). In the
+   * list below a tabletop fold - half a screen, where that header alone fills
+   * the pane - the list opens at its first row, the header a short scroll
+   * up, as a phone's mail list keeps its search. Everywhere else, and for a
+   * list with a position of its own to come back to, it does nothing.
+   */
+  onHeaderLayout: (event: LayoutChangeEvent) => void;
+}
+
+/** Whether a list drawn in this pane opens at its first row, past its header. */
+export function opensAtFirstRow(pane: ResolvedPaneLayout): boolean {
+  return pane.kind === "list" && pane.arrangement === "stacked";
+}
+
+export interface PaneScrollOptions {
+  /**
+   * Where the list's header starts in its scrolling content - the list's own
+   * top padding - since the header's layout is measured inside the list.
+   */
+  headerTop?: number;
 }
 
 /**
@@ -164,37 +190,85 @@ export interface PaneScrollRestoration {
 export function usePaneScrollRestoration(
   key: string,
   scrollTo: (offsetY: number) => void,
+  options: PaneScrollOptions = {},
 ): PaneScrollRestoration {
   const { store, storeKey } = useStoreKey(key);
+  const pane: ResolvedPaneLayout = usePane();
+  const hadPosition: boolean = typeof store?.values.get(storeKey) === "number";
   const savedOffset: React.MutableRefObject<number> = useRef<number>(
-    typeof store?.values.get(storeKey) === "number"
-      ? (store.values.get(storeKey) as number)
-      : 0,
+    hadPosition ? (store!.values.get(storeKey) as number) : 0,
   );
   const restored: React.MutableRefObject<boolean> = useRef<boolean>(
     savedOffset.current <= 0,
   );
+  // A list with no position of its own yet may open past its header, once.
+  const headerSkipArmed: React.MutableRefObject<boolean> = useRef<boolean>(
+    !hadPosition,
+  );
+  const startPastHeader: React.MutableRefObject<boolean> = useRef<boolean>(
+    opensAtFirstRow(pane),
+  );
+  startPastHeader.current = opensAtFirstRow(pane);
+  const contentHeight: React.MutableRefObject<number> = useRef<number>(0);
+  const headerTop: React.MutableRefObject<number> = useRef<number>(0);
+  headerTop.current =
+    typeof options.headerTop === "number" && options.headerTop > 0
+      ? options.headerTop
+      : 0;
   const scrollToRef: React.MutableRefObject<(offsetY: number) => void> =
     useRef(scrollTo);
   scrollToRef.current = scrollTo;
+
+  const restoreWhenTallEnough: () => void = useCallback((): void => {
+    if (restored.current || contentHeight.current <= savedOffset.current) {
+      return;
+    }
+    restored.current = true;
+    scrollToRef.current(savedOffset.current);
+  }, []);
 
   const onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void =
     useCallback(
       (event: NativeSyntheticEvent<NativeScrollEvent>): void => {
         const offsetY: number = event.nativeEvent?.contentOffset?.y ?? 0;
         store?.values.set(storeKey, offsetY);
+        // Scrolled by hand before the header was measured: that is the position now.
+        headerSkipArmed.current = false;
       },
       [store, storeKey],
     );
 
   const onContentSizeChange: (width: number, height: number) => void =
-    useCallback((_width: number, height: number): void => {
-      if (restored.current || height <= savedOffset.current) {
+    useCallback(
+      (_width: number, height: number): void => {
+        contentHeight.current = height;
+        restoreWhenTallEnough();
+      },
+      [restoreWhenTallEnough],
+    );
+
+  const onHeaderLayout: (event: LayoutChangeEvent) => void = useCallback(
+    (event: LayoutChangeEvent): void => {
+      if (!headerSkipArmed.current || !startPastHeader.current) {
         return;
       }
-      restored.current = true;
-      scrollToRef.current(savedOffset.current);
-    }, []);
+      headerSkipArmed.current = false;
+      const { y, height } = event.nativeEvent.layout;
+      const firstRow: number = headerTop.current + y + height;
+      if (!(firstRow > 0)) {
+        return;
+      }
+      savedOffset.current = firstRow;
+      restored.current = false;
+      restoreWhenTallEnough();
+    },
+    [restoreWhenTallEnough],
+  );
 
-  return { onScroll, onContentSizeChange, scrollEventThrottle: 32 };
+  return {
+    onScroll,
+    onContentSizeChange,
+    onHeaderLayout,
+    scrollEventThrottle: 32,
+  };
 }

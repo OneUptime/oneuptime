@@ -120,6 +120,7 @@ export default function SecurityCasesScreen(): React.JSX.Element {
     (offsetY: number): void => {
       listRef.current?.scrollToOffset({ offset: offsetY, animated: false });
     },
+    { headerTop: spacing.xl },
   );
 
   useEffect((): void => {
@@ -328,7 +329,9 @@ export default function SecurityCasesScreen(): React.JSX.Element {
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        ListHeaderComponent={listHeader}
+        ListHeaderComponent={
+          <View onLayout={scroll.onHeaderLayout}>{listHeader}</View>
+        }
         keyExtractor={(wrapped: ProjectSecurityCaseItem): string => {
           return `${wrapped.projectId}-${wrapped.item._id}`;
         }}

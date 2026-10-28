@@ -1,3 +1,10 @@
+import {
+  UNKNOWN_POSTURE,
+  type PostureKind,
+  type WindowFold,
+  type WindowPosture,
+} from "./windowPosture";
+
 /*
  * Which layout a window gets.
  *
@@ -15,6 +22,10 @@
  * 600 to 839 is medium (a tablet or an unfolded phone held upright), 840 and
  * up is expanded (landscape on either). Apple's size classes line up with
  * them closely enough that one set of rules serves both platforms.
+ *
+ * Where the platform also says how the window folds (windowPosture.ts), the
+ * fold and the way the phone is held refine those rules; where it does not,
+ * nothing changes.
  */
 
 /** The window's safe-area insets, in points. */
@@ -35,6 +46,12 @@ export type HeightClass = "compact" | "medium" | "expanded";
 
 /** Where the five destinations are drawn: a bar along the bottom, or a rail down the left. */
 export type NavigationPlacement = "bar" | "rail";
+
+/**
+ * How two panes sit: "row" puts the list beside its detail; "stacked" is the
+ * tabletop layout, the detail above the fold and the list below it.
+ */
+export type PaneArrangement = "row" | "stacked";
 
 /** Material 3's medium and expanded width breakpoints. */
 export const MEDIUM_WIDTH: number = 600;
@@ -92,6 +109,26 @@ export const SCREEN_GUTTER: number = 20;
 /** Bottom sheets stop at this width and are centred, as Material does on large screens. */
 export const SHEET_MAX_WIDTH: number = 640;
 
+/*
+ * Half open on a table, a foldable's upper half stands up to be read and its
+ * lower half lies flat to be tapped. Each half takes a pane of its own only
+ * when it has room for a header and a few rows; on a smaller window the
+ * posture changes nothing.
+ */
+export const MIN_STACKED_PANE_HEIGHT: number = 280;
+
+/*
+ * The band kept clear around a seamless tabletop fold, so neither the list's
+ * header nor the detail's last line sits on the crease. A hinge that hides
+ * part of the window keeps its own band, if that is wider.
+ */
+export const TABLETOP_FOLD_GAP: number = 24;
+
+export interface ListPaneWidthRange {
+  min: number;
+  max: number;
+}
+
 export interface WindowLayout {
   /** The window, in points. */
   width: number;
@@ -105,7 +142,7 @@ export interface WindowLayout {
   railWidth: number;
   /** Everything beside the rail: the width screens and panes share. */
   contentWidth: number;
-  /** One pane, or a list and its detail side by side. */
+  /** One pane, or a list and its detail on screen together. */
   panes: 1 | 2;
   /** The list pane's width; 0 with one pane. */
   listPaneWidth: number;
@@ -113,6 +150,40 @@ export interface WindowLayout {
   detailPaneWidth: number;
   /** Whether the panes meet on the window's centre line, where a fold runs. */
   splitAtCentre: boolean;
+  /** "row": the list beside its detail; "stacked": tabletop, the detail above the fold. */
+  paneArrangement: PaneArrangement;
+  /**
+   * Each pane's height: the window's for panes in a row, and for stacked
+   * panes the detail's from the top of the window to the fold's band and the
+   * list's from the band to the bottom. The list's is 0 with one pane.
+   */
+  detailPaneHeight: number;
+  listPaneHeight: number;
+  /**
+   * The space between the two panes: a hinge that hides part of the window,
+   * or the band kept clear around a tabletop fold. 0 where the panes meet.
+   */
+  paneGap: number;
+  /** Whether the panes meet on a fold that splits the window (half open). */
+  splitAtFold: boolean;
+  /** The posture the window was laid out for (windowPosture.ts). */
+  posture: PostureKind;
+  /**
+   * The list widths the reader may drag the divider between, or null where
+   * it stays put: one pane, stacked panes, a fold splitting the window, and
+   * every window whose posture nothing reports - without knowing where a
+   * hinge is, a dragged divider could leave a pane across it.
+   */
+  listPaneWidthRange: ListPaneWidthRange | null;
+  /** The list's width by the rules above, before the reader moves the divider. */
+  defaultListPaneWidth: number;
+}
+
+export interface WindowLayoutOptions {
+  /** Where the window folds and how it is held; unknown unless the platform says. */
+  posture?: WindowPosture;
+  /** The list width the reader chose by dragging the divider, if any. */
+  preferredListPaneWidth?: number | null;
 }
 
 export const ZERO_INSETS: LayoutInsets = Object.freeze({
@@ -144,6 +215,46 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
+interface StackedPanes {
+  detailPaneHeight: number;
+  paneGap: number;
+  listPaneHeight: number;
+}
+
+/*
+ * Tabletop: the detail above the fold and the list below it, each clear of
+ * the fold's band - when the window folds side to side and both halves have
+ * room for a pane.
+ */
+function getStackedPanes(
+  posture: WindowPosture,
+  width: number,
+  height: number,
+): StackedPanes | null {
+  const fold: WindowFold | null = posture.fold;
+  if (posture.kind !== "tabletop" || !fold || width < MIN_LIST_PANE_WIDTH) {
+    return null;
+  }
+
+  const paneGap: number = Math.max(fold.height, TABLETOP_FOLD_GAP);
+  const foldMiddle: number = fold.y + fold.height / 2;
+  const detailPaneHeight: number = foldMiddle - paneGap / 2;
+  const listPaneHeight: number = height - (foldMiddle + paneGap / 2);
+
+  if (
+    detailPaneHeight < MIN_STACKED_PANE_HEIGHT ||
+    listPaneHeight < MIN_STACKED_PANE_HEIGHT
+  ) {
+    return null;
+  }
+
+  return { detailPaneHeight, paneGap, listPaneHeight };
+}
+
+function isUsableWidth(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
 /**
  * Lays out a window.
  *
@@ -156,10 +267,24 @@ function clamp(value: number, min: number, max: number): number {
  * - With two panes, the divider sits on the window's centre line whenever
  *   the list fits there - the fold of a book-style foldable - and otherwise
  *   the list takes 38% of the space, between 360 and 420 points.
+ *
+ * Where the platform reports how the window folds (options.posture):
+ *
+ * - Half open like a book, the panes meet on the fold itself, wherever it
+ *   runs, and the divider stays there: no card or button crosses the crease.
+ * - Half open on a table, the detail takes the upper half and the list the
+ *   lower half, with the bar along the bottom, under the reader's hand.
+ * - Lying flat, or on a window that does not fold, the reader may drag the
+ *   divider (options.preferredListPaneWidth) within the widths both panes
+ *   need.
+ *
+ * Where nothing reports a posture, every window is laid out by the first
+ * three rules alone, exactly as before.
  */
 export function computeWindowLayout(
   size: WindowSize,
   insets: LayoutInsets = ZERO_INSETS,
+  options: WindowLayoutOptions = {},
 ): WindowLayout {
   const width: number = nonNegative(size.width);
   const height: number = nonNegative(size.height);
@@ -169,6 +294,33 @@ export function computeWindowLayout(
     bottom: nonNegative(insets.bottom),
     left: nonNegative(insets.left),
   };
+  const posture: WindowPosture = options.posture ?? UNKNOWN_POSTURE;
+
+  const stacked: StackedPanes | null = getStackedPanes(posture, width, height);
+  if (stacked) {
+    return {
+      width,
+      height,
+      insets: safeInsets,
+      widthClass: getWidthClass(width),
+      heightClass: getHeightClass(height),
+      navigation: "bar",
+      railWidth: 0,
+      contentWidth: width,
+      panes: 2,
+      listPaneWidth: width,
+      detailPaneWidth: width,
+      splitAtCentre: false,
+      paneArrangement: "stacked",
+      detailPaneHeight: stacked.detailPaneHeight,
+      listPaneHeight: stacked.listPaneHeight,
+      paneGap: stacked.paneGap,
+      splitAtFold: true,
+      posture: posture.kind,
+      listPaneWidthRange: null,
+      defaultListPaneWidth: width,
+    };
+  }
 
   const railCandidateWidth: number = NAVIGATION_RAIL_WIDTH + safeInsets.left;
   const twoPanes: boolean =
@@ -178,8 +330,12 @@ export function computeWindowLayout(
   const railWidth: number = rail ? railCandidateWidth : 0;
   const contentWidth: number = Math.max(0, width - railWidth);
 
+  let defaultListPaneWidth: number = 0;
   let listPaneWidth: number = 0;
   let splitAtCentre: boolean = false;
+  let splitAtFold: boolean = false;
+  let paneGap: number = 0;
+  let listPaneWidthRange: ListPaneWidthRange | null = null;
 
   if (twoPanes) {
     const centre: number = width / 2;
@@ -191,14 +347,48 @@ export function computeWindowLayout(
       listAtCentre <= MAX_LIST_PANE_WIDTH &&
       detailAtCentre >= MIN_PANE_WIDTH
     ) {
-      listPaneWidth = listAtCentre;
+      defaultListPaneWidth = listAtCentre;
       splitAtCentre = true;
     } else {
-      listPaneWidth = clamp(
+      defaultListPaneWidth = clamp(
         Math.round(contentWidth * LIST_PANE_SHARE),
         MIN_PANE_WIDTH,
         PREFERRED_MAX_LIST_PANE_WIDTH,
       );
+    }
+    listPaneWidth = defaultListPaneWidth;
+
+    const fold: WindowFold | null = posture.fold;
+    if (posture.kind === "book" && fold) {
+      /*
+       * The panes meet on the fold wherever the window has it - the centre of
+       * a phone held open, or anywhere in a window that spans the fold in
+       * split screen - as long as each side has room for its pane. A hinge
+       * that hides part of the window stays the space between them.
+       */
+      const listAtFold: number = fold.x - railWidth;
+      const detailAtFold: number =
+        width - (fold.x + fold.width) - safeInsets.right;
+      if (listAtFold >= MIN_LIST_PANE_WIDTH && detailAtFold >= MIN_PANE_WIDTH) {
+        listPaneWidth = listAtFold;
+        paneGap = fold.width;
+        splitAtFold = true;
+        splitAtCentre =
+          Math.abs(railWidth + listAtFold + fold.width / 2 - centre) < 0.5;
+      }
+    } else if (posture.kind === "flat") {
+      listPaneWidthRange = {
+        min: MIN_LIST_PANE_WIDTH,
+        max: contentWidth - safeInsets.right - MIN_PANE_WIDTH,
+      };
+      if (isUsableWidth(options.preferredListPaneWidth)) {
+        listPaneWidth = clamp(
+          options.preferredListPaneWidth,
+          listPaneWidthRange.min,
+          listPaneWidthRange.max,
+        );
+        splitAtCentre = Math.abs(railWidth + listPaneWidth - centre) < 0.5;
+      }
     }
   }
 
@@ -213,8 +403,18 @@ export function computeWindowLayout(
     contentWidth,
     panes: twoPanes ? 2 : 1,
     listPaneWidth,
-    detailPaneWidth: twoPanes ? contentWidth - listPaneWidth : contentWidth,
+    detailPaneWidth: twoPanes
+      ? contentWidth - listPaneWidth - paneGap
+      : contentWidth,
     splitAtCentre,
+    paneArrangement: "row",
+    detailPaneHeight: height,
+    listPaneHeight: twoPanes ? height : 0,
+    paneGap,
+    splitAtFold,
+    posture: posture.kind,
+    listPaneWidthRange,
+    defaultListPaneWidth,
   };
 }
 

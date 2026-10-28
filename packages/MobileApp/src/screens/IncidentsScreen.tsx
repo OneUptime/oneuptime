@@ -173,6 +173,7 @@ export default function IncidentsScreen({
         ?.getScrollResponder()
         ?.scrollTo({ x: 0, y: offsetY, animated: false });
     },
+    { headerTop: spacing.xl },
   );
   const episodeScroll: PaneScrollRestoration = usePaneScrollRestoration(
     "incidents.scroll.episodes",
@@ -181,6 +182,7 @@ export default function IncidentsScreen({
         ?.getScrollResponder()
         ?.scrollTo({ x: 0, y: offsetY, animated: false });
     },
+    { headerTop: spacing.xl },
   );
 
   useEffect(() => {
@@ -667,7 +669,9 @@ export default function IncidentsScreen({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           testID="response-list"
-          ListHeaderComponent={listHeader}
+          ListHeaderComponent={
+            <View onLayout={incidentScroll.onHeaderLayout}>{listHeader}</View>
+          }
           keyExtractor={(wrapped: ProjectIncidentItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
@@ -768,7 +772,9 @@ export default function IncidentsScreen({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           testID="response-list"
-          ListHeaderComponent={listHeader}
+          ListHeaderComponent={
+            <View onLayout={episodeScroll.onHeaderLayout}>{listHeader}</View>
+          }
           keyExtractor={(wrapped: ProjectIncidentEpisodeItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}

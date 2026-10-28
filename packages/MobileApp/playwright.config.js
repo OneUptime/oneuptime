@@ -2,6 +2,13 @@ const { defineConfig } = require("@playwright/test");
 
 const FOLDABLES = /foldables\.spec\.js$/;
 
+/*
+ * The port the exported app is served on. 8096 unless MOBILE_UI_PORT says
+ * otherwise, so two runs on one machine need not fight over it.
+ */
+const PORT = Number(process.env.MOBILE_UI_PORT || 8096);
+const BASE_URL = `http://127.0.0.1:${PORT}`;
+
 module.exports = defineConfig({
   testDir: "./tests/ui",
   timeout: 90000,
@@ -10,7 +17,7 @@ module.exports = defineConfig({
   workers: 2,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://127.0.0.1:8096",
+    baseURL: BASE_URL,
     browserName: "chromium",
     locale: "en-GB",
     timezoneId: "Europe/London",
@@ -52,7 +59,7 @@ module.exports = defineConfig({
   ],
   webServer: {
     command: "node tests/ui/serve.js",
-    url: "http://127.0.0.1:8096",
+    url: BASE_URL,
     reuseExistingServer: false,
   },
 });

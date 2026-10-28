@@ -23,10 +23,12 @@ import ScreenIntro from "../components/ScreenIntro";
 import {
   useContentGutters,
   usePane,
-  useWindowLayout,
-  type PaneLayout,
+  type ResolvedPaneLayout,
 } from "../layout/WindowLayout";
-import type { ContentGutters, WindowLayout } from "../layout/windowLayout";
+import {
+  getHeightClass,
+  type ContentGutters,
+} from "../layout/windowLayout";
 import { useSecurityCasesAvailability } from "../hooks/useSecurityCases";
 import IncidentsScreen from "./IncidentsScreen";
 import AlertsScreen from "./AlertsScreen";
@@ -89,13 +91,13 @@ export function getInboxViewOfRoute(routeName: string): InboxView | null {
 export default function InboxScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const gutters: ContentGutters = useContentGutters();
-  const windowLayout: WindowLayout = useWindowLayout();
+  const pane: ResolvedPaneLayout = usePane();
   /*
-   * On a short window - a phone on its side - the page title gives its
-   * height to the list: the tab or rail beside it already says Inbox.
+   * On a short pane - a phone on its side, or the list below a tabletop
+   * fold - the page title gives its height to the list: the tab or rail
+   * beside it already says Inbox.
    */
-  const showTitle: boolean = windowLayout.heightClass !== "compact";
-  const pane: PaneLayout = usePane();
+  const showTitle: boolean = getHeightClass(pane.height) !== "compact";
   const navigation: InboxNavigation = useNavigation<InboxNavigation>();
   const route: RouteProp<InboxStackParamList, "InboxList"> =
     useRoute<RouteProp<InboxStackParamList, "InboxList">>();

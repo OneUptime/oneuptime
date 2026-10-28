@@ -161,6 +161,7 @@ export default function AlertsScreen({
         ?.getScrollResponder()
         ?.scrollTo({ x: 0, y: offsetY, animated: false });
     },
+    { headerTop: spacing.xl },
   );
   const episodeScroll: PaneScrollRestoration = usePaneScrollRestoration(
     "alerts.scroll.episodes",
@@ -169,6 +170,7 @@ export default function AlertsScreen({
         ?.getScrollResponder()
         ?.scrollTo({ x: 0, y: offsetY, animated: false });
     },
+    { headerTop: spacing.xl },
   );
 
   useEffect(() => {
@@ -653,7 +655,9 @@ export default function AlertsScreen({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           testID="response-list"
-          ListHeaderComponent={listHeader}
+          ListHeaderComponent={
+            <View onLayout={alertScroll.onHeaderLayout}>{listHeader}</View>
+          }
           keyExtractor={(wrapped: ProjectAlertItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
@@ -754,7 +758,9 @@ export default function AlertsScreen({
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           testID="response-list"
-          ListHeaderComponent={listHeader}
+          ListHeaderComponent={
+            <View onLayout={episodeScroll.onHeaderLayout}>{listHeader}</View>
+          }
           keyExtractor={(wrapped: ProjectAlertEpisodeItem) => {
             return `${wrapped.projectId}-${wrapped.item._id}`;
           }}
