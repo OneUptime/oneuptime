@@ -238,6 +238,16 @@ describe("which way the page is read, for code that places things itself", () =>
   });
 });
 
+/*
+ * The frontends with an i18n set-up that leave <html> as the server drew it,
+ * and why. A public dashboard translates only the screens it draws while it
+ * moves onto a new version of OneUptime, cannot load or hits an error, in
+ * its visitor's browser language (Common/UI/Utils/VisitorLanguage): the
+ * dashboard itself is not translated, so the page keeps its language, and
+ * each of those screens says its own (PageScreenCard).
+ */
+const VISITOR_LANGUAGE_FRONTENDS: Array<string> = ["PublicDashboard"];
+
 describe("each translated frontend follows its language on <html>", () => {
   test.each(["Dashboard", "StatusPage", "AdminDashboard", "Accounts"])(
     "%s's i18n set-up hands its instance over",
@@ -257,7 +267,7 @@ describe("each translated frontend follows its language on <html>", () => {
     },
   );
 
-  test("every frontend with an i18n set-up is one of them", () => {
+  test("every frontend with an i18n set-up is one of them, or says why not", () => {
     const withI18n: Array<string> = fs
       .readdirSync(FEATURE_SETS)
       .filter((folder: string): boolean => {
@@ -267,11 +277,30 @@ describe("each translated frontend follows its language on <html>", () => {
       })
       .sort();
 
-    expect(withI18n).toEqual([
-      "Accounts",
-      "AdminDashboard",
-      "Dashboard",
-      "StatusPage",
-    ]);
+    expect(withI18n).toEqual(
+      [
+        "Accounts",
+        "AdminDashboard",
+        "Dashboard",
+        "StatusPage",
+        ...VISITOR_LANGUAGE_FRONTENDS,
+      ].sort(),
+    );
   });
+
+  test.each(VISITOR_LANGUAGE_FRONTENDS)(
+    "%s's i18n set-up starts its visitor's language, and leaves <html> alone",
+    (frontend: string) => {
+      const source: string = fs.readFileSync(
+        path.join(FEATURE_SETS, frontend, "src", "Utils", "i18n.ts"),
+        "utf8",
+      );
+
+      expect(source).toContain(
+        'import { startVisitorTranslation } from "Common/UI/Utils/VisitorLanguage";',
+      );
+      expect(source).not.toContain("followLanguageForPage");
+      expect(source).not.toContain("documentElement");
+    },
+  );
 });
