@@ -520,6 +520,64 @@ test.describe("a case's tasks", () => {
     ).toHaveLength(1);
   });
 
+  test("Assign to Someone Else hands a task to the one person picked, in the picker a case's own Assign To has", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, TASKS_PATH);
+    await expect(taskRows(page)).toHaveCount(3, { timeout: 30000 });
+
+    const menu: Locator = await openTaskMenu(
+      page,
+      "Ask the help desk who called in",
+    );
+    await menu
+      .getByRole("menuitem", { name: "Assign to Someone Else" })
+      .click();
+    const dialog: Locator = page.getByRole("dialog").first();
+    await expect(dialog).toContainText(
+      "Pick a person to do Ask the help desk who called in. They are notified.",
+    );
+    // The task in bold, so it reads as the task and not part of the sentence.
+    await expect(
+      dialog.getByTestId("security-case-task-dialog-name"),
+    ).toHaveText("Ask the help desk who called in");
+    // One person, as a case's own Assign To picks one: no bare "Add".
+    await expect(
+      dialog.getByRole("button", { name: "Add", exact: true }),
+    ).toHaveCount(0);
+    await screenshot(page, "case-tasks-assign-1280-light", {
+      fullPage: false,
+    });
+
+    await dialog.getByRole("button", { name: "Choose someone" }).click();
+    const search: Locator = page.getByRole("dialog", {
+      name: "Choose someone",
+    });
+    await search
+      .getByRole("option", { name: /Diego Alvarez/ })
+      .first()
+      .click();
+    await dialog.getByRole("button", { name: "Assign", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    await expect(
+      taskRow(page, "Ask the help desk who called in").getByTestId(
+        "security-case-task-assignee",
+      ),
+    ).toContainText("Diego Alvarez");
+    expect(
+      (await fixture(page)).updates
+        .filter((update: { modelName: string }): boolean => {
+          return update.modelName === "SecurityCaseTask";
+        })
+        .map((update: { data: Record<string, unknown> }) => {
+          return update.data;
+        }),
+    ).toEqual([{ assignedToUserId: "80000000-0000-4000-8000-000000000002" }]);
+  });
+
   test("Close Case says how many tasks are still open", async ({
     page,
   }: {
@@ -798,6 +856,66 @@ test.describe("a case's evidence", () => {
     );
   });
 
+  test("a link added without a name is named after its address, which is said once", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const address: string =
+      "https://intranet.acme-commerce.example/tickets/4522";
+
+    await open(page, EVIDENCE_PATH);
+    await expect(names(page)).toHaveCount(2, { timeout: 30000 });
+
+    const menu: Locator = await openCardMenu(page);
+    await menu.getByRole("menuitem", { name: "Add Link", exact: true }).click();
+    const dialog: Locator = page.getByRole("dialog");
+    await dialog.getByPlaceholder("https://").fill(address);
+    await dialog.getByRole("button", { name: "Add Link", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+
+    await expect(names(page)).toHaveCount(3);
+    await expect(names(page).first()).toHaveText(address);
+    /*
+     * The line under a name says what the name does not: the other link
+     * keeps its address under its name, this one has nothing to add.
+     */
+    const metas: Array<string> = (
+      await page.getByTestId("security-case-evidence-meta").allInnerTexts()
+    ).map((meta: string): string => {
+      return meta.trim();
+    });
+    expect(metas).toEqual([
+      "https://acme-commerce.okta.example/admin/users?filter=sprayed",
+      "okta-system-log-2026-10-14.json · 470.8 KB",
+    ]);
+  });
+
+  test("Add File asks for one file, and says only what its picker does not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, EVIDENCE_PATH);
+    await expect(names(page)).toHaveCount(2, { timeout: 30000 });
+
+    await evidenceCard(page)
+      .getByRole("button", { name: "Add File", exact: true })
+      .click();
+    const dialog: Locator = page.getByRole("dialog");
+    await expect(dialog).toContainText("Add a File as Evidence");
+    await expect(dialog).toContainText("Upload a file");
+    await expect(dialog).not.toContainText("Upload files");
+    // The picker lists the kinds and the 10 MB; the field says the rest.
+    await expect(dialog).toContainText(
+      "Put any other kind of file, or several files, in a .zip.",
+    );
+    await expect(dialog).not.toContainText("Up to 10 MB");
+    await screenshot(page, "case-evidence-add-file-1280-light", {
+      fullPage: false,
+    });
+  });
+
   test("a Security Viewer cannot add evidence: Add File and Add Link are locked", async ({
     page,
   }: {
@@ -897,6 +1015,10 @@ test.describe("a case with nothing on it yet", () => {
       await expect(
         page.getByTestId("security-case-task-add-input"),
       ).toBeVisible();
+      // Whoever may add one is given the line, not told they cannot.
+      await expect(
+        page.getByTestId("security-case-tasks-empty-note"),
+      ).toHaveCount(0);
       // Nothing to count: no "0 of 0 done", no 0 beside Tasks in the menu.
       await expect(progress(page)).toHaveCount(0);
       if (width === 1280) {
@@ -946,6 +1068,27 @@ test.describe("a case with nothing on it yet", () => {
     await expect(page.getByRole("dialog")).toContainText(
       "Add a Link as Evidence",
     );
+  });
+
+  test("a Security Viewer's empty checklist says why there is no line to add a task", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${QUIET_CASE_PATH}/tasks`, { role: "viewer" });
+    const noTasks: Locator = page.getByTestId("security-case-tasks-empty");
+    await expect(noTasks).toBeVisible({ timeout: 30000 });
+    await expect(noTasks).toContainText("No tasks yet");
+    // As every empty list with a locked Create says it.
+    await expect(page.getByTestId("security-case-tasks-empty-note")).toHaveText(
+      "You don't have permission to create these. Ask a project admin for access.",
+    );
+    await expect(page.getByTestId("security-case-task-add-input")).toHaveCount(
+      0,
+    );
+    await screenshot(page, "case-tasks-empty-viewer-1280-light", {
+      fullPage: false,
+    });
   });
 });
 

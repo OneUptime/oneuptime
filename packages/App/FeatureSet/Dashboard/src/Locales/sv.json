@@ -36704,7 +36704,6 @@
   "The sum": "Summan",
   "These criteria are more than one rule, so each one is shown in full.": "De här kriterierna är mer än en regel, så vart och ett visas i sin helhet.",
   "These criteria are not one simple rule, so they are shown in full.": "De här kriterierna är inte en enkel regel, så de visas i sin helhet.",
-  "This case's tasks could not be read.": "Det gick inte att läsa uppgifterna i det här ärendet.",
   "This rule has more than one filter, so it is shown in full.": "Den här regeln har mer än ett filter, så den visas i sin helhet.",
   "This rule is turned off, so it is shown in full. Turn it on there.": "Den här regeln är avstängd, så den visas i sin helhet. Slå på den där.",
   "This rule opens more than one incident or alert, so it is shown in full.": "Den här regeln öppnar mer än en incident eller ett larm, så den visas i sin helhet.",
@@ -36717,7 +36716,6 @@
   "Unusually high": "Ovanligt hög",
   "Unusually high or low": "Ovanligt hög eller låg",
   "Unusually low": "Ovanligt låg",
-  "Up to 10 MB. Put any other kind of file, or several files, in a .zip.": "Upp till 10 MB. Lägg andra filtyper, eller flera filer, i en .zip.",
   "Upload what shows what happened: a log excerpt, a screenshot, a packet capture.": "Ladda upp det som visar vad som hände: ett loggutdrag, en skärmbild, en paketinspelning.",
   "Use {{value}}": "Använd {{value}}",
   "Watch a third party status page - AWS, GCP, Azure, GitHub, Cloudflare.": "Bevaka en tredje parts statussida – AWS, GCP, Azure, GitHub, Cloudflare.",
@@ -36733,7 +36731,6 @@
   "When to alert": "När det ska larmas",
   "Whether a TCP or UDP port accepts connections.": "Om en TCP- eller UDP-port tar emot anslutningar.",
   "Whether a time server answers, its stratum, and how far its clock is off.": "Om en tidsserver svarar, dess stratum och hur mycket dess klocka avviker.",
-  "Who is doing {{title}}? They are told it is theirs.": "Vem gör {{title}}? Personen får veta att uppgiften är deras.",
   "Within its {{target}} target": "Inom målet på {{target}}",
   "above": "över",
   "any value": "något värde",
@@ -36788,5 +36785,8 @@
   "{{time}} overdue": "{{time}} försenad",
   "{{time}} past its due time": "{{time}} efter förfallotiden",
   "Evidence File": "Bevisfil",
-  "Evidence File ID": "Bevisfilens id"
+  "Evidence File ID": "Bevisfilens id",
+  "Pick a person to do {{title}}. They are notified.": "Välj en person som ska göra {{title}}. Personen får ett meddelande.",
+  "Put any other kind of file, or several files, in a .zip.": "Lägg andra filtyper, eller flera filer, i en .zip.",
+  "Upload a file": "Ladda upp en fil"
 }

@@ -40,7 +40,10 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  *   - A change that fails says why, in the server's words, and the list
  *     stays as it was.
  *   - A Security Viewer sees the list, its boxes and actions locked, and no
- *     line to add one.
+ *     line to add one; an empty list tells them why, as every empty list
+ *     with a locked Create does.
+ *   - Assign Task picks one project member in the picker a case's own Assign
+ *     To has ("Choose someone"), and says they are notified.
  *   - A colleague's change to any task reads the list again.
  */
 
@@ -299,6 +302,33 @@ describe("a case's tasks", () => {
     );
     expect(
       screen.queryByTestId(SECURITY_CASE_TASKS_TEST_IDS.progress),
+    ).toBeNull();
+    // Whoever may add one is shown the line to do it, not told they cannot.
+    expect(
+      screen.queryByTestId(`${SECURITY_CASE_TASKS_TEST_IDS.empty}-note`),
+    ).toBeNull();
+    expect(
+      screen.getByTestId(SECURITY_CASE_TASKS_TEST_IDS.addInput),
+    ).toBeInTheDocument();
+  });
+
+  test("none yet, for a Security Viewer: no line to add one, and the empty state says why", async () => {
+    permissions = [Permission.SecurityViewer];
+    tasks = [];
+    await drawn();
+
+    const empty: HTMLElement = await screen.findByTestId(
+      SECURITY_CASE_TASKS_TEST_IDS.empty,
+    );
+    expect(empty).toHaveTextContent("No tasks yet");
+    // As every empty list with a locked Create says it (ModelTableEmptyState).
+    expect(
+      within(empty).getByTestId(`${SECURITY_CASE_TASKS_TEST_IDS.empty}-note`),
+    ).toHaveTextContent(
+      "You don't have permission to create these. Ask a project admin for access.",
+    );
+    expect(
+      screen.queryByTestId(SECURITY_CASE_TASKS_TEST_IDS.addInput),
     ).toBeNull();
   });
 
@@ -587,7 +617,7 @@ describe("a case's tasks", () => {
     expect(screen.getByLabelText("New task")).toBe(input);
   });
 
-  test("Assign Task asks who is doing the task, naming it in bold", async () => {
+  test("Assign Task asks for one person to do the task, naming it in bold, in the picker a case's Assign To has", async () => {
     await drawn();
     await waitFor(() => {
       expect(rows()).toHaveLength(2);
@@ -608,8 +638,14 @@ describe("a case's tasks", () => {
     expect(name.tagName).toBe("STRONG");
     expect(name).toHaveTextContent("Pull the proxy logs");
     expect(within(dialog).getByTestId("modal-description")).toHaveTextContent(
-      "Who is doing Pull the proxy logs? They are told it is theirs.",
+      "Pick a person to do Pull the proxy logs. They are notified.",
     );
+
+    // One person, as a case's own Assign To picks one - never a bare "Add".
+    expect(
+      within(dialog).getByRole("button", { name: "Choose someone" }),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Add" })).toBeNull();
   });
 
   test("a change that fails says why, and the list stays", async () => {

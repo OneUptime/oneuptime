@@ -10,6 +10,10 @@ import {
   getSecurityCaseTaskProgress,
   readNewTaskTitle,
 } from "./SecurityCaseTasksModel";
+import {
+  SECURITY_CASE_ASSIGNEE_KEY,
+  getSecurityCaseAssigneePickerConfig,
+} from "../SecurityCaseAssigneePicker";
 import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -36,6 +40,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuDivider from "Common/UI/Components/MoreMenu/Divider";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import { CREATE_NOT_ALLOWED_NOTE } from "Common/UI/Components/ModelTable/ModelTableEmptyState";
 import PeopleAvatar from "Common/UI/Components/PeoplePicker/PeopleAvatar";
 import {
   PeoplePickerKind,
@@ -82,8 +87,6 @@ type TaskDialog =
   | { kind: "edit"; task: SecurityCaseTask }
   | { kind: "delete"; task: SecurityCaseTask }
   | null;
-
-const ASSIGN_USER_KEY: string = "assignedToUserId";
 
 /*
  * The line that adds a task: the text box and Add Task under it on a phone,
@@ -601,12 +604,16 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
           /*
            * Nothing to do yet: drawn as every empty list on the case's pages
            * is (Evidence's), the line to add the first task right under it.
+           * Someone who may not add one - a Security Viewer - has no such
+           * line, and is told why, as every empty list with a locked Create
+           * says it (ModelTableEmptyState).
            */
           <TableEmptyState
             kind={TableEmptyStateKind.Empty}
             icon={IconProp.ClipboardDocumentCheck}
             title={SECURITY_CASE_TASKS_COPY.emptyTitle}
             description={SECURITY_CASE_TASKS_COPY.emptyDescription}
+            note={createGate.isAllowed ? undefined : CREATE_NOT_ALLOWED_NOTE}
             isCompact={true}
             dataTestId={SECURITY_CASE_TASKS_TEST_IDS.empty}
           />
@@ -722,18 +729,18 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
                 title: SECURITY_CASE_TASKS_COPY.assignField,
                 fieldType: FormFieldSchemaType.PeoplePicker,
                 required: true,
-                peoplePicker: {
-                  kinds: [
-                    { kind: PeoplePickerKind.User, valueKey: ASSIGN_USER_KEY },
-                  ],
-                  isSinglePick: true,
-                },
+                /*
+                 * The picker a case's own Assign To has: one project member,
+                 * "Choose someone", searched by name or email - not a bare
+                 * "Add" that read as adding to a list.
+                 */
+                peoplePicker: getSecurityCaseAssigneePickerConfig(),
               },
             ],
           }}
           onSubmit={async (values: FormValues<JSONObject>) => {
             const userId: string | undefined = toPeoplePickerIds(
-              (values as JSONObject)[ASSIGN_USER_KEY],
+              (values as JSONObject)[SECURITY_CASE_ASSIGNEE_KEY],
             )[0];
 
             await runDialog(async (): Promise<void> => {

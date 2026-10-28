@@ -285,7 +285,7 @@ describe("adding a task", () => {
         projectId: PROJECT_ID,
         securityCaseId: CASE_ID,
         feedInfoInMarkdown:
-          "📋 Added the task **Reset the admin password**, for **Ana**.",
+          "📋 Added the task **Reset the admin password** and assigned it to **Ana**.",
         eventType: SecurityCaseFeedEventType.Task,
         displayColor: Gray500,
         userId: MAYA_ID,

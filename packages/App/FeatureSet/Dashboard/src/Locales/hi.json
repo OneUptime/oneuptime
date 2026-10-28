@@ -36704,7 +36704,6 @@
   "The sum": "योग",
   "These criteria are more than one rule, so each one is shown in full.": "ये मानदंड एक से अधिक नियम हैं, इसलिए हर एक पूरा दिखाया गया है।",
   "These criteria are not one simple rule, so they are shown in full.": "ये मानदंड एक सरल नियम नहीं हैं, इसलिए पूरे दिखाए गए हैं।",
-  "This case's tasks could not be read.": "इस केस के कार्य पढ़े नहीं जा सके।",
   "This rule has more than one filter, so it is shown in full.": "इस नियम में एक से अधिक फ़िल्टर हैं, इसलिए यह पूरा दिखाया गया है।",
   "This rule is turned off, so it is shown in full. Turn it on there.": "यह नियम बंद है, इसलिए पूरा दिखाया गया है। इसे वहीं चालू करें।",
   "This rule opens more than one incident or alert, so it is shown in full.": "यह नियम एक से अधिक घटनाएँ या अलर्ट खोलता है, इसलिए पूरा दिखाया गया है।",
@@ -36717,7 +36716,6 @@
   "Unusually high": "असामान्य रूप से ऊँचा",
   "Unusually high or low": "असामान्य रूप से ऊँचा या नीचा",
   "Unusually low": "असामान्य रूप से नीचा",
-  "Up to 10 MB. Put any other kind of file, or several files, in a .zip.": "10 MB तक। किसी अन्य प्रकार की फ़ाइल, या कई फ़ाइलें, एक .zip में रखें।",
   "Upload what shows what happened: a log excerpt, a screenshot, a packet capture.": "जो दिखाता है कि क्या हुआ, उसे अपलोड करें: लॉग का अंश, स्क्रीनशॉट, पैकेट कैप्चर।",
   "Use {{value}}": "{{value}} इस्तेमाल करें",
   "Watch a third party status page - AWS, GCP, Azure, GitHub, Cloudflare.": "किसी तीसरे पक्ष का स्थिति पृष्ठ देखें: AWS, GCP, Azure, GitHub, Cloudflare।",
@@ -36733,7 +36731,6 @@
   "When to alert": "कब अलर्ट करें",
   "Whether a TCP or UDP port accepts connections.": "TCP या UDP पोर्ट कनेक्शन स्वीकार करता है या नहीं।",
   "Whether a time server answers, its stratum, and how far its clock is off.": "टाइम सर्वर जवाब देता है या नहीं, उसका स्ट्रेटम, और उसकी घड़ी कितनी आगे-पीछे है।",
-  "Who is doing {{title}}? They are told it is theirs.": "{{title}} कौन कर रहा है? उन्हें बताया जाता है कि यह उनका है।",
   "Within its {{target}} target": "अपने {{target}} लक्ष्य के भीतर",
   "above": "से ऊपर",
   "any value": "कोई भी मान",
@@ -36788,5 +36785,8 @@
   "{{time}} overdue": "{{time}} अतिदेय",
   "{{time}} past its due time": "नियत समय से {{time}} बाद",
   "Evidence File": "साक्ष्य फ़ाइल",
-  "Evidence File ID": "साक्ष्य फ़ाइल ID"
+  "Evidence File ID": "साक्ष्य फ़ाइल ID",
+  "Pick a person to do {{title}}. They are notified.": "{{title}} करने के लिए कोई व्यक्ति चुनें। उन्हें सूचित किया जाता है।",
+  "Put any other kind of file, or several files, in a .zip.": "किसी अन्य प्रकार की फ़ाइल, या कई फ़ाइलें, एक .zip में रखें।",
+  "Upload a file": "फ़ाइल अपलोड करें"
 }

@@ -36704,7 +36704,6 @@
   "The sum": "Die Summe",
   "These criteria are more than one rule, so each one is shown in full.": "Diese Kriterien sind mehr als eine Regel, daher wird jede vollständig angezeigt.",
   "These criteria are not one simple rule, so they are shown in full.": "Diese Kriterien sind keine einfache Regel, daher werden sie vollständig angezeigt.",
-  "This case's tasks could not be read.": "Die Aufgaben dieses Falls konnten nicht gelesen werden.",
   "This rule has more than one filter, so it is shown in full.": "Diese Regel hat mehr als einen Filter, daher wird sie vollständig angezeigt.",
   "This rule is turned off, so it is shown in full. Turn it on there.": "Diese Regel ist ausgeschaltet, daher wird sie vollständig angezeigt. Schalten Sie sie dort ein.",
   "This rule opens more than one incident or alert, so it is shown in full.": "Diese Regel öffnet mehr als einen Vorfall oder eine Warnung, daher wird sie vollständig angezeigt.",
@@ -36717,7 +36716,6 @@
   "Unusually high": "Ungewöhnlich hoch",
   "Unusually high or low": "Ungewöhnlich hoch oder niedrig",
   "Unusually low": "Ungewöhnlich niedrig",
-  "Up to 10 MB. Put any other kind of file, or several files, in a .zip.": "Bis zu 10 MB. Legen Sie andere Dateiarten oder mehrere Dateien in eine .zip-Datei.",
   "Upload what shows what happened: a log excerpt, a screenshot, a packet capture.": "Laden Sie hoch, was zeigt, was passiert ist: einen Log-Auszug, einen Screenshot, einen Paketmitschnitt.",
   "Use {{value}}": "{{value}} verwenden",
   "Watch a third party status page - AWS, GCP, Azure, GitHub, Cloudflare.": "Beobachten Sie die Statusseite eines Drittanbieters – AWS, GCP, Azure, GitHub, Cloudflare.",
@@ -36733,7 +36731,6 @@
   "When to alert": "Wann alarmieren",
   "Whether a TCP or UDP port accepts connections.": "Ob ein TCP- oder UDP-Port Verbindungen annimmt.",
   "Whether a time server answers, its stratum, and how far its clock is off.": "Ob ein Zeitserver antwortet, sein Stratum und wie weit seine Uhr abweicht.",
-  "Who is doing {{title}}? They are told it is theirs.": "Wer erledigt {{title}}? Die Person wird benachrichtigt, dass die Aufgabe ihr gehört.",
   "Within its {{target}} target": "Ziel eingehalten ({{target}})",
   "above": "über",
   "any value": "irgendein Wert",
@@ -36788,5 +36785,8 @@
   "{{time}} overdue": "{{time}} überfällig",
   "{{time}} past its due time": "{{time}} nach der Fälligkeit",
   "Evidence File": "Belegdatei",
-  "Evidence File ID": "Belegdatei-ID"
+  "Evidence File ID": "Belegdatei-ID",
+  "Pick a person to do {{title}}. They are notified.": "Wählen Sie eine Person, die {{title}} erledigt. Sie wird benachrichtigt.",
+  "Put any other kind of file, or several files, in a .zip.": "Legen Sie andere Dateiarten oder mehrere Dateien in eine .zip-Datei.",
+  "Upload a file": "Datei hochladen"
 }

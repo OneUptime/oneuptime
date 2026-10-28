@@ -333,6 +333,8 @@ const SecurityCaseEvidenceTable: FunctionComponent<ComponentProps> = (
                         SECURITY_CASE_EVIDENCE_COPY.fileFieldDescription,
                       fieldType: FormFieldSchemaType.File,
                       fileTypes: SECURITY_CASE_EVIDENCE_FILE_TYPES,
+                      // One file: "Upload a file", not the picker's "Upload files".
+                      placeholder: SECURITY_CASE_EVIDENCE_COPY.filePlaceholder,
                       required: true,
                       hideColumnDescription: true,
                     },

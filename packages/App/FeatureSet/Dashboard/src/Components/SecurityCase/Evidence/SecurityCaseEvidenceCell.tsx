@@ -3,6 +3,7 @@ import {
   SECURITY_CASE_EVIDENCE_TEST_IDS,
   formatEvidenceSize,
   getEvidenceLink,
+  getEvidenceMeta,
   isFileEvidence,
   shortenSha256,
 } from "./SecurityCaseEvidenceCopy";
@@ -65,8 +66,9 @@ export const SecurityCaseEvidenceAddedLine: FunctionComponent<
  * A piece of evidence, as its table's one column draws it, the way a list
  * of files reads: what it is called, with a paper clip for a file or a
  * chain link for a link; a file's own name and size, or the link's
- * address; a file's SHA-256, short, the whole on hover and to copy; what it
- * shows, in two lines at most; and who added it and when.
+ * address - each left out where the name already says it
+ * (getEvidenceMeta); a file's SHA-256, short, the whole on hover and to
+ * copy; what it shows, in two lines at most; and who added it and when.
  *
  * Who and when are a line here, not columns of their own: beside a side
  * menu a case's card is 620 to 760px wide from 1024 to 1100px, and with
@@ -80,13 +82,13 @@ const SecurityCaseEvidenceCell: FunctionComponent<ComponentProps> = (
   const item: SecurityCaseEvidence = props.item;
   const isFile: boolean = isFileEvidence(item);
   const link: string | null = getEvidenceLink(item);
-  const meta: string = isFile
-    ? [item.fileName, formatEvidenceSize(item.fileSizeInBytes)]
-        .filter((part: string | undefined): boolean => {
-          return Boolean(part);
-        })
-        .join(" · ")
-    : link || "";
+  const meta: string = getEvidenceMeta({
+    name: item.name,
+    isFile,
+    fileName: item.fileName,
+    size: formatEvidenceSize(item.fileSizeInBytes),
+    link,
+  });
   const sha256: string = isFile ? (item.sha256 || "").trim() : "";
 
   return (

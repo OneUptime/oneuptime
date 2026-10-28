@@ -598,9 +598,8 @@ describe("what a task's assignee is told", () => {
     expect(sentMessage.subject).toBe(
       "[CASE-12] Task for you: Reset the admin password",
     );
-    expect(sentMessage.emailVars["emailTitle"]).toBe(
-      "Task for you on security case CASE-12",
-    );
+    // Headed as its push is, the case's number kept to one line.
+    expect(sentMessage.emailVars["emailTitle"]).toBe("Task for you on CASE-12");
     expect(sentMessage.emailVars["leadSentence"]).toBe(
       "Maya Chen assigned you a task on this Critical security case.",
     );

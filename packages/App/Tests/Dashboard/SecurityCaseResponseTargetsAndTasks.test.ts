@@ -52,6 +52,7 @@ import {
   SECURITY_CASE_EVIDENCE_COPY,
   SECURITY_CASE_EVIDENCE_FILE_TYPES,
   getEvidenceDownloadUrl,
+  getEvidenceMeta,
   shortenSha256,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityCase/Evidence/SecurityCaseEvidenceCopy";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
@@ -568,9 +569,78 @@ describe("a piece of evidence", () => {
       SECURITY_CASE_EVIDENCE_FILE_TYPES.length,
     );
     expect(SECURITY_CASE_EVIDENCE_FILE_TYPES).toContain(MimeType.zip);
+    /*
+     * The picker lists the kinds and the 10 MB under it: the field says
+     * what to do with the rest, and asks for one file.
+     */
     expect(SECURITY_CASE_EVIDENCE_COPY.fileFieldDescription).toBe(
-      "Up to 10 MB. Put any other kind of file, or several files, in a .zip.",
+      "Put any other kind of file, or several files, in a .zip.",
     );
+    expect(SECURITY_CASE_EVIDENCE_COPY.filePlaceholder).toBe("Upload a file");
+  });
+
+  test("the line under its name says what the name does not: a file's own name and size, a link's address", () => {
+    // Named for what it shows: its file and size, or its address, under it.
+    expect(
+      getEvidenceMeta({
+        name: "Okta System Log export",
+        isFile: true,
+        fileName: "okta-system-log.json",
+        size: "470.8 KB",
+        link: null,
+      }),
+    ).toBe("okta-system-log.json · 470.8 KB");
+    expect(
+      getEvidenceMeta({
+        name: "Okta admin console",
+        isFile: false,
+        link: "https://acme.okta.example/admin",
+        size: "",
+      }),
+    ).toBe("https://acme.okta.example/admin");
+
+    /*
+     * Added without a name, it is named after its file or its address: the
+     * line no longer says it a second time - a file its size alone, a link
+     * nothing more.
+     */
+    expect(
+      getEvidenceMeta({
+        name: "screenshot.png",
+        isFile: true,
+        fileName: "screenshot.png",
+        size: "820 B",
+        link: null,
+      }),
+    ).toBe("820 B");
+    expect(
+      getEvidenceMeta({
+        name: "https://acme.okta.example/admin",
+        isFile: false,
+        link: "https://acme.okta.example/admin",
+        size: "",
+      }),
+    ).toBe("");
+
+    // Nothing known about a file but its name: no line.
+    expect(
+      getEvidenceMeta({
+        name: "capture.pcap",
+        isFile: true,
+        fileName: "capture.pcap",
+        size: "",
+        link: null,
+      }),
+    ).toBe("");
+    // A link that opens nowhere (not http or https) is never written out.
+    expect(
+      getEvidenceMeta({
+        name: "Ticket",
+        isFile: false,
+        link: null,
+        size: "",
+      }),
+    ).toBe("");
   });
 });
 

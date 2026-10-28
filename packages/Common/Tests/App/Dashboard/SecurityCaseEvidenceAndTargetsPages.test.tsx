@@ -168,6 +168,7 @@ interface FormField {
   fieldType?: string;
   required?: boolean;
   placeholder?: string;
+  description?: string;
   customValidation?: (values: Record<string, unknown>) => string | null;
   getCustomElement?: (
     values: Record<string, unknown>,
@@ -252,6 +253,15 @@ describe("Security Events > Settings > Response Targets", () => {
         return column.title;
       }),
     ).toEqual(["Priority", "Acknowledge Within", "Contain Within"]);
+    /*
+     * A phone's card opens with the priority's pill, which names itself:
+     * no "Priority" over it, as the targets under it keep their titles.
+     */
+    expect(
+      columnsOf(table).map((column: Column): boolean => {
+        return Boolean(column.hideTitleOnMobile);
+      }),
+    ).toEqual([true, false, false]);
   });
 
   test("each target in whole words, or No target", () => {
@@ -486,6 +496,48 @@ describe("a case's Evidence", () => {
     ).toBeNull();
   });
 
+  test("evidence added without a name of its own, named after its file or its address, never says it twice", () => {
+    const table: Record<string, unknown> = drawTable();
+    const [evidenceColumn] = columnsOf(table);
+
+    // A file named after itself: its size alone under the name.
+    drawElement(
+      evidenceColumn!.getElement!(
+        evidence({
+          kind: SecurityCaseEvidenceKind.File,
+          name: "proxy.pcap",
+          fileName: "proxy.pcap",
+          fileSizeInBytes: 1229,
+          sha256: SHA256,
+        }),
+      ),
+    );
+    expect(
+      screen.getByTestId(SECURITY_CASE_EVIDENCE_TEST_IDS.name),
+    ).toHaveTextContent("proxy.pcap");
+    expect(
+      screen.getByTestId(SECURITY_CASE_EVIDENCE_TEST_IDS.meta),
+    ).toHaveTextContent(/^1\.2 KB$/);
+    cleanup();
+
+    // A link named after its address: the address once, as its name.
+    drawElement(
+      evidenceColumn!.getElement!(
+        evidence({
+          kind: SecurityCaseEvidenceKind.Link,
+          name: "https://intranet.example/ticket/7",
+          url: URL.fromString("https://intranet.example/ticket/7"),
+        }),
+      ),
+    );
+    expect(
+      screen.getByTestId(SECURITY_CASE_EVIDENCE_TEST_IDS.name),
+    ).toHaveTextContent("https://intranet.example/ticket/7");
+    expect(
+      screen.queryByTestId(SECURITY_CASE_EVIDENCE_TEST_IDS.meta),
+    ).toBeNull();
+  });
+
   test("under each piece of evidence, who added it and when, the date and time under the pointer", () => {
     const table: Record<string, unknown> = drawTable();
     const [evidenceColumn] = columnsOf(table);
@@ -643,6 +695,18 @@ describe("a case's Evidence", () => {
         },
       ),
     ).toEqual(["file", "name", "description"]);
+    /*
+     * One file: the picker says "Upload a file", not its own "Upload files",
+     * and the field says only what its picker does not - the picker lists
+     * the kinds a file may be and its 10 MB.
+     */
+    const fileField: FormField = (
+      form["formProps"] as { fields: Array<FormField> }
+    ).fields[0]!;
+    expect(fileField.placeholder).toBe("Upload a file");
+    expect(fileField.description).toBe(
+      "Put any other kind of file, or several files, in a .zip.",
+    );
 
     const added: SecurityCaseEvidence = await (
       form["onBeforeCreate"] as (

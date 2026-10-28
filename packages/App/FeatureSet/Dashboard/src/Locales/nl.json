@@ -36704,7 +36704,6 @@
   "The sum": "De som",
   "These criteria are more than one rule, so each one is shown in full.": "Deze criteria zijn meer dan één regel, dus elk wordt volledig getoond.",
   "These criteria are not one simple rule, so they are shown in full.": "Deze criteria zijn geen eenvoudige regel, dus ze worden volledig getoond.",
-  "This case's tasks could not be read.": "De taken van deze zaak konden niet worden gelezen.",
   "This rule has more than one filter, so it is shown in full.": "Deze regel heeft meer dan één filter, dus hij wordt volledig getoond.",
   "This rule is turned off, so it is shown in full. Turn it on there.": "Deze regel staat uit, dus hij wordt volledig getoond. Zet hem daar aan.",
   "This rule opens more than one incident or alert, so it is shown in full.": "Deze regel opent meer dan één incident of waarschuwing, dus hij wordt volledig getoond.",
@@ -36717,7 +36716,6 @@
   "Unusually high": "Ongewoon hoog",
   "Unusually high or low": "Ongewoon hoog of laag",
   "Unusually low": "Ongewoon laag",
-  "Up to 10 MB. Put any other kind of file, or several files, in a .zip.": "Tot 10 MB. Zet elk ander soort bestand, of meerdere bestanden, in een .zip.",
   "Upload what shows what happened: a log excerpt, a screenshot, a packet capture.": "Upload wat laat zien wat er gebeurde: een logfragment, een schermafbeelding, een pakketopname.",
   "Use {{value}}": "{{value}} gebruiken",
   "Watch a third party status page - AWS, GCP, Azure, GitHub, Cloudflare.": "Volg de statuspagina van een derde partij: AWS, GCP, Azure, GitHub, Cloudflare.",
@@ -36733,7 +36731,6 @@
   "When to alert": "Wanneer waarschuwen",
   "Whether a TCP or UDP port accepts connections.": "Of een TCP- of UDP-poort verbindingen accepteert.",
   "Whether a time server answers, its stratum, and how far its clock is off.": "Of een tijdserver antwoordt, zijn stratum en hoeveel zijn klok afwijkt.",
-  "Who is doing {{title}}? They are told it is theirs.": "Wie doet {{title}}? Diegene krijgt bericht dat de taak van hem of haar is.",
   "Within its {{target}} target": "Binnen het doel van {{target}}",
   "above": "boven",
   "any value": "een willekeurige waarde",
@@ -36788,5 +36785,8 @@
   "{{time}} overdue": "{{time}} te laat",
   "{{time}} past its due time": "{{time}} na de termijn",
   "Evidence File": "Bewijsbestand",
-  "Evidence File ID": "Bewijsbestand-ID"
+  "Evidence File ID": "Bewijsbestand-ID",
+  "Pick a person to do {{title}}. They are notified.": "Kies een persoon die {{title}} doet. Diegene krijgt bericht.",
+  "Put any other kind of file, or several files, in a .zip.": "Zet elk ander soort bestand, of meerdere bestanden, in een .zip.",
+  "Upload a file": "Een bestand uploaden"
 }

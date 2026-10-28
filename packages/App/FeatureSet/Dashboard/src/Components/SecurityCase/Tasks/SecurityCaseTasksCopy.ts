@@ -37,7 +37,6 @@ export const SECURITY_CASE_TASKS_COPY: {
   deleteTitle: string;
   deleteDescription: string;
   deleteSubmit: string;
-  loadError: string;
 } = {
   title: translationKey("Tasks"),
   description: translationKey(
@@ -63,8 +62,9 @@ export const SECURITY_CASE_TASKS_COPY: {
   editTask: translationKey("Edit Task"),
   deleteTask: translationKey("Delete Task"),
   assignTitle: translationKey("Assign Task"),
+  // As a case's own Assign to Someone Else asks it: "Pick a person to work".
   assignDescription: translationKey(
-    "Who is doing {{title}}? They are told it is theirs.",
+    "Pick a person to do {{title}}. They are notified.",
   ),
   assignField: translationKey("Assign To"),
   assignSubmit: translationKey("Assign"),
@@ -76,7 +76,6 @@ export const SECURITY_CASE_TASKS_COPY: {
     "Delete {{title}}? The case's timeline keeps a record that it was deleted.",
   ),
   deleteSubmit: translationKey("Delete Task"),
-  loadError: translationKey("This case's tasks could not be read."),
 };
 
 // The menu's count beside Tasks, and the Close Case dialog's reminder.

@@ -36704,7 +36704,6 @@
   "The sum": "Сумма",
   "These criteria are more than one rule, so each one is shown in full.": "Эти критерии состоят из нескольких правил, поэтому каждое показано полностью.",
   "These criteria are not one simple rule, so they are shown in full.": "Эти критерии — не одно простое правило, поэтому они показаны полностью.",
-  "This case's tasks could not be read.": "Не удалось прочитать задачи этого кейса.",
   "This rule has more than one filter, so it is shown in full.": "У этого правила несколько фильтров, поэтому оно показано полностью.",
   "This rule is turned off, so it is shown in full. Turn it on there.": "Это правило выключено, поэтому оно показано полностью. Включите его там.",
   "This rule opens more than one incident or alert, so it is shown in full.": "Это правило открывает несколько инцидентов или оповещений, поэтому оно показано полностью.",
@@ -36717,7 +36716,6 @@
   "Unusually high": "Необычно высоко",
   "Unusually high or low": "Необычно высоко или низко",
   "Unusually low": "Необычно низко",
-  "Up to 10 MB. Put any other kind of file, or several files, in a .zip.": "До 10 МБ. Файлы других типов или несколько файлов поместите в .zip.",
   "Upload what shows what happened: a log excerpt, a screenshot, a packet capture.": "Загрузите то, что показывает, что произошло: фрагмент журнала, снимок экрана, запись пакетов.",
   "Use {{value}}": "Использовать {{value}}",
   "Watch a third party status page - AWS, GCP, Azure, GitHub, Cloudflare.": "Следите за страницей статуса стороннего сервиса: AWS, GCP, Azure, GitHub, Cloudflare.",
@@ -36733,7 +36731,6 @@
   "When to alert": "Когда оповещать",
   "Whether a TCP or UDP port accepts connections.": "Принимает ли порт TCP или UDP подключения.",
   "Whether a time server answers, its stratum, and how far its clock is off.": "Отвечает ли сервер времени, его страта и насколько расходятся его часы.",
-  "Who is doing {{title}}? They are told it is theirs.": "Кто выполняет {{title}}? Этому человеку сообщат, что задача его.",
   "Within its {{target}} target": "В пределах цели: {{target}}",
   "above": "выше",
   "any value": "любое значение",
@@ -36788,5 +36785,8 @@
   "{{time}} overdue": "Просрочено на {{time}}",
   "{{time}} past its due time": "После срока: {{time}}",
   "Evidence File": "Файл доказательства",
-  "Evidence File ID": "ID файла доказательства"
+  "Evidence File ID": "ID файла доказательства",
+  "Pick a person to do {{title}}. They are notified.": "Выберите человека, который выполнит {{title}}. Ему придёт уведомление.",
+  "Put any other kind of file, or several files, in a .zip.": "Файлы других типов или несколько файлов поместите в .zip.",
+  "Upload a file": "Загрузить файл"
 }

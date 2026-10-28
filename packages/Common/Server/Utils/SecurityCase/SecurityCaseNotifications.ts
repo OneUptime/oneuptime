@@ -589,7 +589,11 @@ export function buildTaskAssignedMessage(data: {
     emailVars: {
       ...getCaseEmailVars(facts),
       caseViewLink: data.tasksUrl,
-      emailTitle: `Task for you on security case ${facts.number}`,
+      /*
+       * As its push says it: short enough that the case's number keeps to
+       * one line ("CASE-" and "142" broke apart at a 640px inbox).
+       */
+      emailTitle: `Task for you on ${facts.number}`,
       leadSentence: data.assignedBy
         ? `${data.assignedBy} assigned you a task on this ${facts.priority} security case.`
         : `You have a task on this ${facts.priority} security case.`,

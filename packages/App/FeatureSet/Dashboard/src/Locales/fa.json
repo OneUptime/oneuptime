@@ -36704,7 +36704,6 @@
   "The sum": "مجموع",
   "These criteria are more than one rule, so each one is shown in full.": "این معیارها بیش از یک قانون‌اند، پس هر کدام به‌طور کامل نمایش داده می‌شود.",
   "These criteria are not one simple rule, so they are shown in full.": "این معیارها یک قانون ساده نیستند، پس به‌طور کامل نمایش داده می‌شوند.",
-  "This case's tasks could not be read.": "وظایف این پرونده خوانده نشد.",
   "This rule has more than one filter, so it is shown in full.": "این قانون بیش از یک فیلتر دارد، پس به‌طور کامل نمایش داده می‌شود.",
   "This rule is turned off, so it is shown in full. Turn it on there.": "این قانون خاموش است، پس به‌طور کامل نمایش داده می‌شود. آن را همان‌جا روشن کنید.",
   "This rule opens more than one incident or alert, so it is shown in full.": "این قانون بیش از یک حادثه یا هشدار باز می‌کند، پس به‌طور کامل نمایش داده می‌شود.",
@@ -36717,7 +36716,6 @@
   "Unusually high": "به‌طور غیرعادی بالا",
   "Unusually high or low": "به‌طور غیرعادی بالا یا پایین",
   "Unusually low": "به‌طور غیرعادی پایین",
-  "Up to 10 MB. Put any other kind of file, or several files, in a .zip.": "تا 10 MB. هر نوع فایل دیگر، یا چند فایل را در یک .zip بگذارید.",
   "Upload what shows what happened: a log excerpt, a screenshot, a packet capture.": "آنچه را که نشان می‌دهد چه رخ داده بارگذاری کنید: بخشی از لاگ، تصویر صفحه، ضبط بسته‌ها.",
   "Use {{value}}": "استفاده از {{value}}",
   "Watch a third party status page - AWS, GCP, Azure, GitHub, Cloudflare.": "صفحهٔ وضعیت یک سرویس بیرونی را پایش کنید: AWS، GCP، Azure، GitHub، Cloudflare.",
@@ -36733,7 +36731,6 @@
   "When to alert": "چه وقت هشدار داده شود",
   "Whether a TCP or UDP port accepts connections.": "آیا یک درگاه TCP یا UDP اتصال می‌پذیرد.",
   "Whether a time server answers, its stratum, and how far its clock is off.": "آیا سرور زمان پاسخ می‌دهد، لایهٔ آن، و ساعتش چقدر اختلاف دارد.",
-  "Who is doing {{title}}? They are told it is theirs.": "چه کسی {{title}} را انجام می‌دهد؟ به او اطلاع داده می‌شود که این وظیفه با اوست.",
   "Within its {{target}} target": "در محدودهٔ هدف {{target}}",
   "above": "بالاتر از",
   "any value": "هر مقداری",
@@ -36788,5 +36785,8 @@
   "{{time}} overdue": "{{time}} تأخیر",
   "{{time}} past its due time": "{{time}} پس از موعد",
   "Evidence File": "فایل شواهد",
-  "Evidence File ID": "شناسهٔ فایل شواهد"
+  "Evidence File ID": "شناسهٔ فایل شواهد",
+  "Pick a person to do {{title}}. They are notified.": "فردی را برای انجام {{title}} برگزینید. به او اطلاع داده می‌شود.",
+  "Put any other kind of file, or several files, in a .zip.": "هر نوع فایل دیگر، یا چند فایل را در یک .zip بگذارید.",
+  "Upload a file": "بارگذاری فایل"
 }

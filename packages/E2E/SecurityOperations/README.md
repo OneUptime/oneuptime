@@ -424,7 +424,8 @@ A case's response targets, its checklist and the evidence kept on it, with their
 `CaseWork.spec.ts`. `Fixture/CaseWorkFixture.js` lays them out. The spray case (CASE-142) has three
 tasks - one done by Diego, one the reader's, one nobody's - and two pieces of evidence: the Okta
 System Log export Maya uploaded, with its SHA-256, and a link to the Okta admin console. Ticking a
-task off stamps who did it and when, as the server does; what is added is the reader's.
+task off stamps who did it and when, as the server does; what is added is the reader's; a link added
+without a name of its own is named after its address, as the server names it.
 
 | Parameter   | Values                                                                                                                                                                                        |
 | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -437,12 +438,15 @@ track and CASE-140 met both, its acknowledge target 5 minutes late.
 `CaseWork.spec.ts` covers: the Tasks page from the case's menu, its entry lit and its trail, the
 tasks the oldest first, a done one ticked with who did it and when, the count of done ones beside
 the title and of open ones beside Tasks in the menu; a task added with Enter, ticked off and on,
-handed to the reader and deleted after asking, the menu's count following; Close Case saying how
-many tasks are still open; a Security Viewer's locked list; Evidence from the menu, the latest
-first, a file with its size and short SHA-256, a link with its address, who added each and when
-under it, the rows never scrolling sideways from 768 up; Add Link filing a link on the case; a
-Security Viewer's locked Add buttons; a case with nothing on it yet (CASE-141): its checklist's
-empty state with the line to add a task, and Evidence's Add File and Add Link; Settings >
+handed to the reader and deleted after asking, the menu's count following; Assign to Someone Else
+naming the task in bold and handing it to one person from the picker a case's own Assign To has
+("Choose someone"); Close Case saying how many tasks are still open; a Security Viewer's locked
+list; Evidence from the menu, the latest first, a file with its size and short SHA-256, a link with
+its address, who added each and when under it, the rows never scrolling sideways from 768 up; Add
+Link filing a link on the case, and one added without a name named after its address, said once;
+Add File asking for one file ("Upload a file"); a Security Viewer's locked Add buttons; a case with
+nothing on it yet (CASE-141): its checklist's empty state with the line to add a task, a Security
+Viewer's saying why there is none, and Evidence's Add File and Add Link; Settings >
 Response Targets beside Case Priorities, each priority's targets, No target for a project from
 before them, Edit in the field's units refusing what it cannot keep, the amount and its unit
 level; the case header's chip in each state; the Overview's notes under Time to Acknowledge and

@@ -36704,7 +36704,6 @@
   "The sum": "总和",
   "These criteria are more than one rule, so each one is shown in full.": "这些条件包含多条规则，因此每条都完整显示。",
   "These criteria are not one simple rule, so they are shown in full.": "这些条件不是一条简单规则，因此完整显示。",
-  "This case's tasks could not be read.": "无法读取此案例的任务。",
   "This rule has more than one filter, so it is shown in full.": "此规则包含多个筛选条件，因此完整显示。",
   "This rule is turned off, so it is shown in full. Turn it on there.": "此规则已关闭，因此完整显示。请在那里将其开启。",
   "This rule opens more than one incident or alert, so it is shown in full.": "此规则会创建多个事件或警报，因此完整显示。",
@@ -36717,7 +36716,6 @@
   "Unusually high": "异常偏高",
   "Unusually high or low": "异常偏高或偏低",
   "Unusually low": "异常偏低",
-  "Up to 10 MB. Put any other kind of file, or several files, in a .zip.": "最大 10 MB。其他类型的文件或多个文件请放入 .zip。",
   "Upload what shows what happened: a log excerpt, a screenshot, a packet capture.": "上传能说明发生了什么的内容：日志片段、截图、数据包捕获。",
   "Use {{value}}": "使用 {{value}}",
   "Watch a third party status page - AWS, GCP, Azure, GitHub, Cloudflare.": "关注第三方状态页：AWS、GCP、Azure、GitHub、Cloudflare。",
@@ -36733,7 +36731,6 @@
   "When to alert": "何时发出警报",
   "Whether a TCP or UDP port accepts connections.": "TCP 或 UDP 端口是否接受连接。",
   "Whether a time server answers, its stratum, and how far its clock is off.": "时间服务器是否响应、其层级以及时钟偏差多少。",
-  "Who is doing {{title}}? They are told it is theirs.": "谁来完成 {{title}}？对方会收到通知，得知这是他的任务。",
   "Within its {{target}} target": "在 {{target}} 目标内",
   "above": "高于",
   "any value": "任一值",
@@ -36788,5 +36785,8 @@
   "{{time}} overdue": "已超期 {{time}}",
   "{{time}} past its due time": "超过截止时间 {{time}}",
   "Evidence File": "证据文件",
-  "Evidence File ID": "证据文件 ID"
+  "Evidence File ID": "证据文件 ID",
+  "Pick a person to do {{title}}. They are notified.": "选择完成 {{title}} 的人。对方会收到通知。",
+  "Put any other kind of file, or several files, in a .zip.": "其他类型的文件或多个文件请放入 .zip。",
+  "Upload a file": "上传文件"
 }

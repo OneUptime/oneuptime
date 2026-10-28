@@ -36704,7 +36704,6 @@
   "The sum": "La suma",
   "These criteria are more than one rule, so each one is shown in full.": "Estos criterios son más de una regla, así que cada uno se muestra completo.",
   "These criteria are not one simple rule, so they are shown in full.": "Estos criterios no son una regla sencilla, así que se muestran completos.",
-  "This case's tasks could not be read.": "No se pudieron leer las tareas de este caso.",
   "This rule has more than one filter, so it is shown in full.": "Esta regla tiene más de un filtro, así que se muestra completa.",
   "This rule is turned off, so it is shown in full. Turn it on there.": "Esta regla está desactivada, así que se muestra completa. Actívala ahí.",
   "This rule opens more than one incident or alert, so it is shown in full.": "Esta regla abre más de un incidente o alerta, así que se muestra completa.",
@@ -36717,7 +36716,6 @@
   "Unusually high": "Inusualmente alto",
   "Unusually high or low": "Inusualmente alto o bajo",
   "Unusually low": "Inusualmente bajo",
-  "Up to 10 MB. Put any other kind of file, or several files, in a .zip.": "Hasta 10 MB. Pon cualquier otro tipo de archivo, o varios archivos, en un .zip.",
   "Upload what shows what happened: a log excerpt, a screenshot, a packet capture.": "Sube lo que muestra lo que pasó: un extracto de registro, una captura de pantalla, una captura de paquetes.",
   "Use {{value}}": "Usar {{value}}",
   "Watch a third party status page - AWS, GCP, Azure, GitHub, Cloudflare.": "Vigila la página de estado de un tercero: AWS, GCP, Azure, GitHub, Cloudflare.",
@@ -36733,7 +36731,6 @@
   "When to alert": "Cuándo alertar",
   "Whether a TCP or UDP port accepts connections.": "Si un puerto TCP o UDP acepta conexiones.",
   "Whether a time server answers, its stratum, and how far its clock is off.": "Si un servidor de hora responde, su estrato y cuánto se desvía su reloj.",
-  "Who is doing {{title}}? They are told it is theirs.": "¿Quién se encarga de {{title}}? Se le avisa de que es suya.",
   "Within its {{target}} target": "Dentro de su objetivo de {{target}}",
   "above": "superior a",
   "any value": "algún valor",
@@ -36788,5 +36785,8 @@
   "{{time}} overdue": "{{time}} de retraso",
   "{{time}} past its due time": "{{time}} después del vencimiento",
   "Evidence File": "Archivo de evidencia",
-  "Evidence File ID": "ID del archivo de evidencia"
+  "Evidence File ID": "ID del archivo de evidencia",
+  "Pick a person to do {{title}}. They are notified.": "Elige una persona para hacer {{title}}. Se le avisa.",
+  "Put any other kind of file, or several files, in a .zip.": "Pon cualquier otro tipo de archivo, o varios archivos, en un .zip.",
+  "Upload a file": "Subir un archivo"
 }

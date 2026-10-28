@@ -36704,7 +36704,6 @@
   "The sum": "합계",
   "These criteria are more than one rule, so each one is shown in full.": "이 기준은 규칙이 둘 이상이라 각각 전체를 보여 줍니다.",
   "These criteria are not one simple rule, so they are shown in full.": "이 기준은 간단한 규칙 하나가 아니라서 전체를 보여 줍니다.",
-  "This case's tasks could not be read.": "이 케이스의 작업을 읽을 수 없습니다.",
   "This rule has more than one filter, so it is shown in full.": "이 규칙은 필터가 둘 이상이라 전체를 보여 줍니다.",
   "This rule is turned off, so it is shown in full. Turn it on there.": "이 규칙은 꺼져 있어서 전체를 보여 줍니다. 거기서 켜세요.",
   "This rule opens more than one incident or alert, so it is shown in full.": "이 규칙은 인시던트나 알림을 둘 이상 열어서 전체를 보여 줍니다.",
@@ -36717,7 +36716,6 @@
   "Unusually high": "비정상적으로 높음",
   "Unusually high or low": "비정상적으로 높거나 낮음",
   "Unusually low": "비정상적으로 낮음",
-  "Up to 10 MB. Put any other kind of file, or several files, in a .zip.": "최대 10MB. 다른 종류의 파일이나 여러 파일은 .zip으로 묶어 주세요.",
   "Upload what shows what happened: a log excerpt, a screenshot, a packet capture.": "무슨 일이 있었는지 보여 주는 것을 업로드하세요: 로그 발췌, 스크린샷, 패킷 캡처.",
   "Use {{value}}": "{{value}} 사용",
   "Watch a third party status page - AWS, GCP, Azure, GitHub, Cloudflare.": "타사 상태 페이지를 지켜봅니다(AWS, GCP, Azure, GitHub, Cloudflare).",
@@ -36733,7 +36731,6 @@
   "When to alert": "알릴 조건",
   "Whether a TCP or UDP port accepts connections.": "TCP 또는 UDP 포트가 연결을 받는지 여부.",
   "Whether a time server answers, its stratum, and how far its clock is off.": "타임 서버가 응답하는지, 계층(stratum), 시계가 얼마나 어긋났는지.",
-  "Who is doing {{title}}? They are told it is theirs.": "{{title}} 작업은 누가 하나요? 담당자에게 맡게 되었다고 알립니다.",
   "Within its {{target}} target": "목표 {{target}} 이내",
   "above": "초과",
   "any value": "임의의 값",
@@ -36788,5 +36785,8 @@
   "{{time}} overdue": "{{time}} 초과",
   "{{time}} past its due time": "기한 대비 {{time}} 초과",
   "Evidence File": "증거 파일",
-  "Evidence File ID": "증거 파일 ID"
+  "Evidence File ID": "증거 파일 ID",
+  "Pick a person to do {{title}}. They are notified.": "{{title}} 작업을 할 사람을 선택하세요. 담당자에게 알림이 갑니다.",
+  "Put any other kind of file, or several files, in a .zip.": "다른 종류의 파일이나 여러 파일은 .zip으로 묶어 주세요.",
+  "Upload a file": "파일 업로드"
 }

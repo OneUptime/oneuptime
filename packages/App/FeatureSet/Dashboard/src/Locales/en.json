@@ -36704,7 +36704,6 @@
   "The sum": "The sum",
   "These criteria are more than one rule, so each one is shown in full.": "These criteria are more than one rule, so each one is shown in full.",
   "These criteria are not one simple rule, so they are shown in full.": "These criteria are not one simple rule, so they are shown in full.",
-  "This case's tasks could not be read.": "This case's tasks could not be read.",
   "This rule has more than one filter, so it is shown in full.": "This rule has more than one filter, so it is shown in full.",
   "This rule is turned off, so it is shown in full. Turn it on there.": "This rule is turned off, so it is shown in full. Turn it on there.",
   "This rule opens more than one incident or alert, so it is shown in full.": "This rule opens more than one incident or alert, so it is shown in full.",
@@ -36717,7 +36716,6 @@
   "Unusually high": "Unusually high",
   "Unusually high or low": "Unusually high or low",
   "Unusually low": "Unusually low",
-  "Up to 10 MB. Put any other kind of file, or several files, in a .zip.": "Up to 10 MB. Put any other kind of file, or several files, in a .zip.",
   "Upload what shows what happened: a log excerpt, a screenshot, a packet capture.": "Upload what shows what happened: a log excerpt, a screenshot, a packet capture.",
   "Use {{value}}": "Use {{value}}",
   "Watch a third party status page - AWS, GCP, Azure, GitHub, Cloudflare.": "Watch a third party status page - AWS, GCP, Azure, GitHub, Cloudflare.",
@@ -36733,7 +36731,6 @@
   "When to alert": "When to alert",
   "Whether a TCP or UDP port accepts connections.": "Whether a TCP or UDP port accepts connections.",
   "Whether a time server answers, its stratum, and how far its clock is off.": "Whether a time server answers, its stratum, and how far its clock is off.",
-  "Who is doing {{title}}? They are told it is theirs.": "Who is doing {{title}}? They are told it is theirs.",
   "Within its {{target}} target": "Within its {{target}} target",
   "above": "above",
   "any value": "any value",
@@ -36788,5 +36785,8 @@
   "{{time}} overdue": "{{time}} overdue",
   "{{time}} past its due time": "{{time}} past its due time",
   "Evidence File": "Evidence File",
-  "Evidence File ID": "Evidence File ID"
+  "Evidence File ID": "Evidence File ID",
+  "Pick a person to do {{title}}. They are notified.": "Pick a person to do {{title}}. They are notified.",
+  "Put any other kind of file, or several files, in a .zip.": "Put any other kind of file, or several files, in a .zip.",
+  "Upload a file": "Upload a file"
 }

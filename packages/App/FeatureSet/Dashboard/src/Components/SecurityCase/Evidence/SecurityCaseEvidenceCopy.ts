@@ -23,6 +23,7 @@ export const SECURITY_CASE_EVIDENCE_COPY: {
   addLinkDescription: string;
   fileField: string;
   fileFieldDescription: string;
+  filePlaceholder: string;
   urlField: string;
   urlFieldDescription: string;
   nameField: string;
@@ -59,9 +60,15 @@ export const SECURITY_CASE_EVIDENCE_COPY: {
     "Point to evidence kept somewhere else: an EDR console's page, a ticket, your own evidence store.",
   ),
   fileField: translationKey("File"),
+  /*
+   * The picker under it lists the kinds a file may be and its 10 MB: this
+   * says what to do with the rest.
+   */
   fileFieldDescription: translationKey(
-    "Up to 10 MB. Put any other kind of file, or several files, in a .zip.",
+    "Put any other kind of file, or several files, in a .zip.",
   ),
+  // The picker's own words: one file, as "Upload logo" is one logo.
+  filePlaceholder: translationKey("Upload a file"),
   urlField: translationKey("Link"),
   urlFieldDescription: translationKey("An http or https address."),
   nameField: translationKey("Name"),
@@ -159,6 +166,38 @@ export function formatEvidenceSize(bytes: number | undefined | null): string {
   }
 
   return `${Math.round((kilobytes / 1024) * 10) / 10} MB`;
+}
+
+/*
+ * The small line under a piece of evidence's name: a file's own name and
+ * size, or a link's address - without what the name already says. Evidence
+ * added without a name of its own is named after its file or its address,
+ * and a line that repeated it said nothing new: then a file says its size
+ * alone, and a link nothing more.
+ */
+export function getEvidenceMeta(data: {
+  name?: string | undefined | null;
+  isFile: boolean;
+  fileName?: string | undefined | null;
+  // As formatEvidenceSize writes it; empty when unknown.
+  size: string;
+  link: string | null;
+}): string {
+  const name: string = (data.name || "").trim();
+
+  if (data.isFile) {
+    const fileName: string = (data.fileName || "").trim();
+
+    return [fileName === name ? "" : fileName, data.size]
+      .filter((part: string): boolean => {
+        return Boolean(part);
+      })
+      .join(" · ");
+  }
+
+  const link: string = (data.link || "").trim();
+
+  return link === name ? "" : link;
 }
 
 // Whether a piece of evidence is a file kept in OneUptime, which downloads.

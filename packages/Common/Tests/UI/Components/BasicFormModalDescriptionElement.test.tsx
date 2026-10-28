@@ -11,10 +11,10 @@ import { afterEach, describe, expect, test } from "@jest/globals";
 /*
  * A dialog form's description may be an element: a sentence with the record
  * it is about in bold (NamedSentence), as a delete confirmation names what
- * it deletes. A security case task's Assign Task asks "Who is doing <the
- * task>?", and with the task's own words run into the question - "Who is
- * doing Block 203.0.113.47 at the edge?" - the task read as part of it. A
- * description in words is drawn as before.
+ * it deletes. A security case task's Assign Task says "Pick a person to do
+ * <the task>.", and with the task's own words run into the sentence - "Pick
+ * a person to do Block 203.0.113.47 at the edge." - the task read as part
+ * of it. A description in words is drawn as before.
  */
 
 function renderModal(description: string | ReactElement): void {
@@ -48,7 +48,7 @@ describe("BasicFormModal description", () => {
   test("an element is drawn as it is, its name in bold", async () => {
     renderModal(
       <NamedSentence
-        template="Who is doing {{title}}? They are told it is theirs."
+        template="Pick a person to do {{title}}. They are notified."
         slot="title"
         name="Block 203.0.113.47 at the edge"
         dataTestId="dialog-record-name"
@@ -59,7 +59,7 @@ describe("BasicFormModal description", () => {
 
     const description: HTMLElement = screen.getByTestId("modal-description");
     expect(description).toHaveTextContent(
-      "Who is doing Block 203.0.113.47 at the edge? They are told it is theirs.",
+      "Pick a person to do Block 203.0.113.47 at the edge. They are notified.",
     );
     const name: HTMLElement =
       within(description).getByTestId("dialog-record-name");

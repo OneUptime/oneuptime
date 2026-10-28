@@ -129,6 +129,8 @@ const SecurityResponseTargetsPage: FunctionComponent<
           title: RESPONSE_TARGETS_COPY.priorityColumn,
           type: FieldType.Element,
           isNotCustomizable: true,
+          // A phone's card opens with the priority's pill: it names itself.
+          hideTitleOnMobile: true,
           getElement: (item: SecurityCasePriority): ReactElement => {
             return <SecurityCasePriorityPill value={item} />;
           },

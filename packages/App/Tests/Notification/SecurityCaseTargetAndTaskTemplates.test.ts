@@ -42,7 +42,9 @@ import "../../FeatureSet/Notification/Utils/Handlebars";
  *     reader's own time zone, the priority, the status, who has the case.
  *     It used to be headed "Security Case CASE-142: <title>", as every
  *     other case email is, and said what happened only in the line under it.
- *   - A task email is headed "Task for you on security case CASE-142",
+ *   - A task email is headed "Task for you on CASE-142", as its push is -
+ *     "Task for you on security case CASE-142" broke "CASE-" from "142" at
+ *     640px -,
  *     names the task first and the case's assignee as the case's - "Case
  *     Assigned To" - not the task's, which is the reader; its button opens
  *     the case's Tasks page.
@@ -271,7 +273,7 @@ describe("the email when a task on a security case is assigned to the reader", (
   test("is headed as a task for the reader, and says who assigned it", () => {
     const html: string = taskEmail();
 
-    expect(heading(html)).toBe("Task for you on security case CASE-142");
+    expect(heading(html)).toBe("Task for you on CASE-142");
     expect(visibleText(html)).toContain(
       "Diego Alvarez assigned you a task on this Critical security case.",
     );

@@ -36704,7 +36704,6 @@
   "The sum": "合計",
   "These criteria are more than one rule, so each one is shown in full.": "この条件は複数のルールからなるため、それぞれをすべて表示しています。",
   "These criteria are not one simple rule, so they are shown in full.": "この条件はシンプルなルールではないため、すべて表示しています。",
-  "This case's tasks could not be read.": "このケースのタスクを読み込めませんでした。",
   "This rule has more than one filter, so it is shown in full.": "このルールには複数のフィルターがあるため、すべて表示しています。",
   "This rule is turned off, so it is shown in full. Turn it on there.": "このルールはオフになっているため、すべて表示しています。そこでオンにしてください。",
   "This rule opens more than one incident or alert, so it is shown in full.": "このルールは複数のインシデントやアラートを開くため、すべて表示しています。",
@@ -36717,7 +36716,6 @@
   "Unusually high": "異常に高い",
   "Unusually high or low": "異常に高いか低い",
   "Unusually low": "異常に低い",
-  "Up to 10 MB. Put any other kind of file, or several files, in a .zip.": "最大 10 MB。その他の種類のファイルや複数のファイルは .zip にまとめてください。",
   "Upload what shows what happened: a log excerpt, a screenshot, a packet capture.": "何が起きたかを示すものをアップロードします: ログの抜粋、スクリーンショット、パケットキャプチャ。",
   "Use {{value}}": "{{value}} を使う",
   "Watch a third party status page - AWS, GCP, Azure, GitHub, Cloudflare.": "サードパーティーのステータスページを監視します（AWS、GCP、Azure、GitHub、Cloudflare）。",
@@ -36733,7 +36731,6 @@
   "When to alert": "アラートする条件",
   "Whether a TCP or UDP port accepts connections.": "TCP または UDP ポートが接続を受け付けるか。",
   "Whether a time server answers, its stratum, and how far its clock is off.": "タイムサーバーが応答するか、その階層、時計のずれ。",
-  "Who is doing {{title}}? They are told it is theirs.": "{{title}} の担当者は？担当者には自分のタスクであることが通知されます。",
   "Within its {{target}} target": "目標 {{target}} 以内",
   "above": "を上回る",
   "any value": "いずれかの値",
@@ -36788,5 +36785,8 @@
   "{{time}} overdue": "{{time}} 超過",
   "{{time}} past its due time": "期限を {{time}} 超過",
   "Evidence File": "証拠ファイル",
-  "Evidence File ID": "証拠ファイル ID"
+  "Evidence File ID": "証拠ファイル ID",
+  "Pick a person to do {{title}}. They are notified.": "{{title}} を担当するユーザーを選択します。担当者に通知されます。",
+  "Put any other kind of file, or several files, in a .zip.": "その他の種類のファイルや複数のファイルは .zip にまとめてください。",
+  "Upload a file": "ファイルをアップロード"
 }

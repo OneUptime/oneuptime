@@ -653,7 +653,7 @@ export function taskAddedMarkdown(data: {
   assigneeName?: string | undefined;
 }): MarkdownText {
   return data.assigneeName
-    ? mdText`📋 Added the task **${data.title}**, for **${data.assigneeName}**.`
+    ? mdText`📋 Added the task **${data.title}** and assigned it to **${data.assigneeName}**.`
     : mdText`📋 Added the task **${data.title}**.`;
 }
 
