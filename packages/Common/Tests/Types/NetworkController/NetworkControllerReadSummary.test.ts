@@ -64,6 +64,38 @@ describe("reading a stored read summary", () => {
     expect(read?.newestUplinkAt).toBeUndefined();
   });
 
+  test("the devices the device list described are read back with it", () => {
+    const read: NetworkControllerReadSummary | undefined =
+      readNetworkControllerReadSummary({
+        status: "success",
+        deviceCount: 1204,
+        describedDeviceCount: 212,
+      });
+
+    expect(read?.deviceCount).toBe(1204);
+    expect(read?.describedDeviceCount).toBe(212);
+  });
+
+  test("a summary from before Meraki filled in devices' details has no device counts, not zeros", () => {
+    const read: NetworkControllerReadSummary | undefined =
+      readNetworkControllerReadSummary({ status: "success", applianceCount: 5 });
+
+    expect(read).toBeDefined();
+    expect("deviceCount" in read!).toBe(false);
+    expect("describedDeviceCount" in read!).toBe(false);
+  });
+
+  test("more devices described than listed cannot be: held to the list", () => {
+    const read: NetworkControllerReadSummary | undefined =
+      readNetworkControllerReadSummary({
+        status: "success",
+        deviceCount: 10,
+        describedDeviceCount: 25,
+      });
+
+    expect(read?.describedDeviceCount).toBe(10);
+  });
+
   test("warnings are text only, and at most ten", () => {
     const read: NetworkControllerReadSummary | undefined =
       readNetworkControllerReadSummary({

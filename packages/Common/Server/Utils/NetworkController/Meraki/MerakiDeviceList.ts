@@ -1,5 +1,6 @@
 import IP from "../../../../Types/IP/IP";
 import { JSONObject } from "../../../../Types/JSON";
+import { normalizeMac } from "../../../../Utils/Monitor/EndpointAttachmentUtil";
 import {
   MAX_CONTROLLER_VALUE_LENGTH,
   NETWORK_CONTROLLER_PRODUCT_TYPES,
@@ -91,7 +92,11 @@ export function readMerakiDevices(
       serial: serial,
       name: cleanText(device["name"], TEXT_LIMITS.deviceName),
       model: cleanText(device["model"], TEXT_LIMITS.model),
-      mac: cleanMac(device["mac"]),
+      /*
+       * The one MAC spelling OneUptime keeps, whichever Meraki gave: it is
+       * matched against the MACs devices here are known by.
+       */
+      mac: normalizeMac(cleanMac(device["mac"])) || "",
       lanIp: readAddressLiteral(device["lanIp"]),
       firmware: cleanText(
         device["firmware"],

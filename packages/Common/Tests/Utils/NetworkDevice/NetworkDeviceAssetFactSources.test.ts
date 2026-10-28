@@ -680,6 +680,8 @@ describe("isAutomaticAssetFactSource", () => {
       AssetFactSourceKind.Discovered,
       AssetFactSourceKind.LearnedFromArp,
       AssetFactSourceKind.Collector,
+      // What a device's network controller says (the Meraki dashboard).
+      AssetFactSourceKind.Controller,
     ];
 
     for (const kind of Object.values(AssetFactSourceKind)) {
