@@ -36434,6 +36434,7 @@
   "Expires {{time}}": "Caduca {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "Después, la regla lo vuelve a ver. Déjalo vacío para mantener la excepción hasta que alguien la elimine.",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Evita que esta regla se active con algo que esperas, como un escáner, una tarea de copia de seguridad o una prueba planificada.",
+  "Step-by-step guides": "Guías paso a paso",
   "A security case you are on is about to miss its acknowledge or contain target, or misses it. When nobody is on the case, you hear it for cases at your chosen priority.": "Un caso de seguridad del que te ocupas está a punto de incumplir su objetivo de reconocimiento o de contención, o lo incumple. Cuando nadie se ocupa del caso, te enteras de los casos con la prioridad que elegiste.",
   "A target can be a year at the most.": "Un objetivo puede ser de un año como máximo.",
   "A task on a security case is assigned to you.": "Se te asigna una tarea de un caso de seguridad.",

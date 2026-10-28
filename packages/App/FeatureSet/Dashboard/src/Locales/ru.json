@@ -36434,6 +36434,7 @@
   "Expires {{time}}": "Истекает {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "После этого правило снова его видит. Оставьте пустым, чтобы исключение действовало, пока его не удалят.",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Не дайте этому правилу срабатывать на ожидаемое — сканер, задание резервного копирования или запланированный тест.",
+  "Step-by-step guides": "Пошаговые руководства",
   "A security case you are on is about to miss its acknowledge or contain target, or misses it. When nobody is on the case, you hear it for cases at your chosen priority.": "Кейс безопасности, над которым вы работаете, вот-вот нарушит цель по подтверждению или локализации либо уже нарушил её. Если над кейсом никто не работает, вы узнаёте об этом для кейсов с выбранным вами приоритетом.",
   "A target can be a year at the most.": "Цель может быть не больше года.",
   "A task on a security case is assigned to you.": "Вам назначена задача в кейсе безопасности.",

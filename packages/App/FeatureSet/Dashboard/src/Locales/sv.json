@@ -36434,6 +36434,7 @@
   "Expires {{time}}": "Upphör {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "Därefter ser regeln det igen. Lämna tomt för att behålla undantaget tills någon tar bort det.",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Hindra regeln från att utlösas av något du förväntar dig, till exempel en skanner, ett säkerhetskopieringsjobb eller ett planerat test.",
+  "Step-by-step guides": "Steg-för-steg-guider",
   "A security case you are on is about to miss its acknowledge or contain target, or misses it. When nobody is on the case, you hear it for cases at your chosen priority.": "Ett säkerhetsärende du är på håller på att missa sitt mål för bekräftelse eller begränsning, eller missar det. När ingen är på ärendet får du veta det för ärenden med den prioritet du har valt.",
   "A target can be a year at the most.": "Ett mål kan vara högst ett år.",
   "A task on a security case is assigned to you.": "En uppgift i ett säkerhetsärende tilldelas dig.",

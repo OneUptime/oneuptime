@@ -36434,6 +36434,7 @@
   "Expires {{time}}": "Verloopt {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "Daarna ziet de regel het weer. Laat het leeg om de uitzondering te houden tot iemand haar verwijdert.",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Voorkom dat deze regel afgaat op iets wat je verwacht, zoals een scanner, een back-uptaak of een geplande test.",
+  "Step-by-step guides": "Stapsgewijze handleidingen",
   "A security case you are on is about to miss its acknowledge or contain target, or misses it. When nobody is on the case, you hear it for cases at your chosen priority.": "Een beveiligingszaak waaraan je werkt, staat op het punt het doel voor bevestiging of indamming te missen, of mist het. Als niemand aan de zaak werkt, hoor je het voor zaken met de door jou gekozen prioriteit.",
   "A target can be a year at the most.": "Een doel kan hoogstens een jaar zijn.",
   "A task on a security case is assigned to you.": "Een taak in een beveiligingszaak is aan jou toegewezen.",

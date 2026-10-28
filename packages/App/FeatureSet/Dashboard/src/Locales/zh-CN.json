@@ -36434,6 +36434,7 @@
   "Expires {{time}}": "{{time}}到期",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "此后规则会再次检测到它。留空则保留该例外，直到有人将其删除。",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "不让此规则因预期内的情况而触发，例如扫描器、备份任务或计划内测试。",
+  "Step-by-step guides": "分步指南",
   "A security case you are on is about to miss its acknowledge or contain target, or misses it. When nobody is on the case, you hear it for cases at your chosen priority.": "你负责的安全案例即将错过或已错过确认或遏制目标。案例无人负责时，你会收到所选优先级案例的通知。",
   "A target can be a year at the most.": "目标最长为一年。",
   "A task on a security case is assigned to you.": "安全案例中的任务分配给了你。",

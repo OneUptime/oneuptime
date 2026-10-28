@@ -17,7 +17,7 @@ En egendefinert kanal sender vakttilkallinger til en tjeneste du selv drifter: b
 ## Slik fungerer det
 
 ```mermaid title="En tilkalling gjennom en egendefinert kanal"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Tjenesten din"]
     App["Appen din"]

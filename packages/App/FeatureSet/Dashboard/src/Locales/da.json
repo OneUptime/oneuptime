@@ -36434,6 +36434,7 @@
   "Expires {{time}}": "Udløber {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "Herefter ser reglen det igen. Lad feltet stå tomt for at beholde undtagelsen, indtil nogen sletter den.",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Undgå, at denne regel udløses af noget, du forventer, f.eks. en scanner, et backupjob eller en planlagt test.",
+  "Step-by-step guides": "Trin-for-trin-vejledninger",
   "A security case you are on is about to miss its acknowledge or contain target, or misses it. When nobody is on the case, you hear it for cases at your chosen priority.": "En sikkerhedssag, du er tilknyttet, er ved at overskride sit mål for bekræftelse eller inddæmning, eller overskrider det. Når ingen er tilknyttet sagen, får du besked om sager med din valgte prioritet.",
   "A target can be a year at the most.": "Et mål kan højst være et år.",
   "A task on a security case is assigned to you.": "En opgave i en sikkerhedssag er tildelt dig.",

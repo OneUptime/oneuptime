@@ -82,6 +82,8 @@ export OTEL_SERVICE_NAME="my-service"
 
 言語を選んでください。どのセットアップも上の環境変数を読むので、コードにエンドポイントやキーは出てきません。
 
+フレームワークを使っていますか？[インテグレーションガイド](https://oneuptime.com/integrations)では、フレームワークごとに OpenTelemetry を手順どおりに設定できます。それぞれが自動でトレースする内容と、うまくいかないときの直し方も載っています。
+
 :::tabs
 @tab Node.js
 SDK、自動計装、OTLP/HTTP エクスポーターをインストールします。

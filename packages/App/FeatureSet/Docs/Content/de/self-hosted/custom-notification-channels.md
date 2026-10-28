@@ -17,13 +17,13 @@ Ein benutzerdefinierter Kanal sendet Bereitschaftsalarme an einen Dienst, den Si
 ## So funktioniert es
 
 ```mermaid title="Ein Alarm über einen benutzerdefinierten Kanal"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Ihr Dienst"]
     App["Ihre App"]
     OneUptime -->|"signierte JSON-Anfrage"| Service
     Service -->|"Benachrichtigung"| App
-    App -->|"Bestätigen, Eskalieren, Beheben"| Service
+    App -->|"Bestätigen,<br/>Eskalieren, Beheben"| Service
     Service -->|"POST an den Aktionslink"| OneUptime
 ```
 

@@ -12,7 +12,7 @@ OneUptime 可以透過你自己營運的閘道傳送簡訊和撥打電話，而�
 ## 運作方式
 
 ```mermaid title="透過你自己的閘道傳送的簡訊"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Gateway["你的閘道"]
     Provider["你的簡訊與語音供應商"]

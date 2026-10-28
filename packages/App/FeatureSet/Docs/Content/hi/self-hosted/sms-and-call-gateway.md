@@ -12,10 +12,10 @@ OneUptime अपने SMS और कॉल Twilio के बजाय आपक
 ## यह कैसे काम करता है
 
 ```mermaid title="आपके अपने गेटवे से एक SMS"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Gateway["आपका गेटवे"]
-    Provider["आपका SMS और वॉइस प्रोवाइडर"]
+    Provider["आपका SMS और<br/>वॉइस प्रोवाइडर"]
     Phone["फ़ोन"]
     OneUptime -->|"साइन किया गया JSON अनुरोध"| Gateway
     Gateway --> Provider

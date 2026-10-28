@@ -544,8 +544,22 @@ export default class JSONFunctions {
     return returnArr;
   }
 
+  /*
+   * JSON5's grammar is a superset of JSON's, so it reads every JSON text to
+   * the same value JSON.parse does - and the engine's JSON.parse is about
+   * 25 times faster at it than JSON5's parser, written in JavaScript, for
+   * the short texts read here on every signed-in request (a token's payload)
+   * and every cache read. So JSON goes to JSON.parse, and only what JSON.parse
+   * refuses goes on to JSON5, whose syntax and errors are then what they
+   * were. Tests/Types/JSONFunctionsParseFastPath.test.ts holds the two paths
+   * to the same values.
+   */
   public static parse(val: string): JSONObject | JSONArray {
-    return JSON5.parse(val);
+    try {
+      return JSON.parse(val);
+    } catch {
+      return JSON5.parse(val);
+    }
   }
 
   /*

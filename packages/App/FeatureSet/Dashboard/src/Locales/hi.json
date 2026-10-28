@@ -36434,6 +36434,7 @@
   "Expires {{time}}": "{{time}} समाप्त होगा",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "इसके बाद नियम इसे फिर से देखता है। अपवाद को तब तक रखने के लिए खाली छोड़ें, जब तक कोई उसे हटा न दे।",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "इस नियम को किसी अपेक्षित चीज़ पर चलने से रोकें, जैसे स्कैनर, बैकअप जॉब या नियोजित टेस्ट।",
+  "Step-by-step guides": "चरण-दर-चरण गाइड",
   "A security case you are on is about to miss its acknowledge or contain target, or misses it. When nobody is on the case, you hear it for cases at your chosen priority.": "जिस सुरक्षा केस पर आप हैं, वह अपने स्वीकार या नियंत्रण लक्ष्य से चूकने वाला है, या चूक गया है। जब केस पर कोई नहीं होता, तो आपको आपकी चुनी हुई प्राथमिकता वाले केस की सूचना मिलती है।",
   "A target can be a year at the most.": "लक्ष्य अधिकतम एक वर्ष का हो सकता है।",
   "A task on a security case is assigned to you.": "किसी सुरक्षा केस का कोई कार्य आपको असाइन किया गया है।",

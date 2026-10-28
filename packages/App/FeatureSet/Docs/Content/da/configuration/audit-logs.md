@@ -101,6 +101,7 @@ Monitorer, hændelser, alarmer, statussider, SLO'er og mange andre ressourcer ha
 | vCentre | `vCenter` |
 | Pakkeopsamlinger og deres downloads | `Packet Capture` |
 | Sikkerhedssager og deres prioriteter og statusser, playbooks og deres kørsler, beskyttede enheder, entitetskritikalitet samt en entitets risiko, når nogen nulstiller den | `Security Case`, `Security Case Priority`, `Security Case Status`, `Security Playbook`, `Security Playbook Run`, `Protected Entity`, `Entity Criticality`, `Entity Risk` |
+| Regelundtagelser | `Rule Exception` |
 | Eksporter af auditloggen | `Audit Log Export` |
 
 Det registreres også, når en administrator tilføjer eller fjerner en notifikationsmetode eller en personlig vagtregel på en andens konto, uden selve adressen eller nummeret.

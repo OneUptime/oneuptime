@@ -82,6 +82,8 @@ Selvhostet? Erstat `https://oneuptime.com` med URL'en til din OneUptime-instans,
 
 Vælg dit sprog. Hver opsætning læser miljøvariablerne ovenfor, så hverken endpoint eller nøgle står i din kode.
 
+Bruger du et framework? [Integrationsguiderne](https://oneuptime.com/integrations) sætter OpenTelemetry op trin for trin til hvert framework, med hvad det sporer automatisk, og hvordan du retter det, der går galt.
+
 :::tabs
 @tab Node.js
 Installér SDK'et, de automatiske instrumenteringer og OTLP/HTTP-exporterne:

@@ -36434,6 +36434,7 @@
   "Expires {{time}}": "{{time}}到期",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "在此之後規則會再次偵測到它。留空則保留該例外，直到有人將其刪除。",
   "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "不讓這條規則因預期內的情況而觸發，例如掃描器、備份工作或計畫內測試。",
+  "Step-by-step guides": "逐步指南",
   "A security case you are on is about to miss its acknowledge or contain target, or misses it. When nobody is on the case, you hear it for cases at your chosen priority.": "你負責的安全案例即將錯過或已錯過確認或遏制目標。案例無人負責時，你會收到所選優先順序案例的通知。",
   "A target can be a year at the most.": "目標最長為一年。",
   "A task on a security case is assigned to you.": "安全案例中的任務指派給了你。",
