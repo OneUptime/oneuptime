@@ -239,11 +239,19 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
    * preview simply shows unfiltered instances, and the list is capped at
    * PREVIEW_EXCLUDED_FINGERPRINT_LIMIT per status — the worker applies the
    * full exclusion at evaluation time regardless.
+   *
+   * Only the folded list of matching exceptions reads them, so they are
+   * looked up once it is opened: a step whose list stays folded asks for
+   * nothing (the rule's chart counts its own way, on the server).
    */
   const telemetryServiceIdsKey: string =
     debouncedFormValues.telemetryServiceIds.join(",");
 
   useEffect(() => {
+    if (isMatchingCollapsed) {
+      return;
+    }
+
     let isCancelled: boolean = false;
 
     const fetchExcludedFingerprints: () => Promise<void> =
@@ -352,6 +360,7 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
     debouncedFormValues.includeResolved,
     debouncedFormValues.includeArchived,
     telemetryServiceIdsKey,
+    isMatchingCollapsed,
   ]);
 
   const previewQuery: Query<ExceptionInstance> = useMemo(() => {

@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import React, { ReactElement } from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import { JSONObject } from "../../../Types/JSON";
@@ -87,12 +93,18 @@ jest.mock(
   },
 );
 
-// The resolved/archived fingerprint lookup the exception preview runs.
+/*
+ * The resolved/archived fingerprint lookup the exception preview runs:
+ * every read it asks for, by what it asks.
+ */
+const mockListReads: Array<JSONObject> = [];
+
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
     __esModule: true,
     default: {
-      getList: () => {
+      getList: (options: { query: JSONObject }) => {
+        mockListReads.push(options.query);
         return Promise.resolve({ data: [], count: 0, skip: 0, limit: 0 });
       },
     },
@@ -223,6 +235,7 @@ afterEach(() => {
   mockPreviews.logs = [];
   mockPreviews.traces = [];
   mockPreviews.exceptions = [];
+  mockListReads.length = 0;
 });
 
 describe("Log monitor filters", () => {
@@ -595,6 +608,37 @@ describe("Exception monitor filters", () => {
     expect(fieldLabel("Filter by Telemetry Service")).not.toBeVisible();
 
     expectNoOldAdvancedLink();
+  });
+
+  test("its list of matching exceptions asks for nothing until it is opened", async () => {
+    renderForm();
+
+    // Past the form's debounce: a folded list still asks nothing.
+    await act(async () => {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 800);
+      });
+    });
+    expect(mockListReads).toEqual([]);
+    expect(mockPreviews.exceptions).toEqual([]);
+
+    openMatching("Matching exceptions");
+
+    await act(async () => {
+      await new Promise((resolve: (value: unknown) => void) => {
+        setTimeout(resolve, 50);
+      });
+    });
+
+    // Opened: the resolved and archived groups it leaves out are read.
+    expect(mockListReads).toHaveLength(2);
+    expect(mockListReads).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ isResolved: true }),
+        expect.objectContaining({ isArchived: true }),
+      ]),
+    );
+    expect(screen.getByTestId("exceptions-preview")).toBeInTheDocument();
   });
 
   test("an edited monitor keeps More fields folded, its filters in force shown as chips", () => {

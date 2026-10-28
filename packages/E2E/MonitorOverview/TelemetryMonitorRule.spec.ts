@@ -439,6 +439,79 @@ test.describe("A Logs monitor's criteria step", () => {
   });
 });
 
+test.describe("An Exceptions monitor's criteria step", () => {
+  test("starts on Any exception, says its filters plainly, and Create Monitor sends that rule - its list of matches read only once opened", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+
+    const form: Locator = await openCriteria(page, {
+      type: "Exceptions",
+      name: "Checkout exceptions",
+    });
+
+    await expect(recipe(page, "any-exception")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(
+      page.getByText("Exceptions to watch", { exact: true }),
+    ).toBeVisible();
+    // Each filter says what it holds, as the ones above it do.
+    await expect(
+      page.getByText(
+        "Only exceptions of these types, separated by commas. Empty: every type.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Only exceptions from these environments (deployment.environment), separated by commas. Empty: every environment.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+
+    await expect(sentence(page)).toHaveText(
+      "Alerts when any matching exception happens in 5 minutes.",
+    );
+    await previewSettled(page);
+    await expect(page.getByTestId("telemetry-rule-preview")).toContainText(
+      "Matching exceptions per 5 minutes, over the last 12 hours.",
+    );
+    await expect(
+      page.getByTestId("telemetry-rule-alert").locator("input").first(),
+    ).toHaveValue("Checkout exceptions: an exception happened");
+
+    await screenshot(page, "telemetry-rule-exceptions");
+
+    await form.getByTestId("Create Monitor").click();
+    await expect(page).toHaveURL(
+      `/dashboard/${PROJECT_ID}/monitors/${CREATED_MONITOR_ID}`,
+      { timeout: 30000 },
+    );
+
+    const creates: Array<RecordedCreate> = await createsRecorded(page);
+    expect(creates).toHaveLength(1);
+    expect(creates[0]!.data["monitorType"]).toBe("Exceptions");
+
+    const step: Record<string, unknown> = firstStepOf(creates[0]!);
+    expect(step["exceptionMonitor"]).toMatchObject({
+      lastXSecondsOfExceptions: 300,
+    });
+    const criteria: Array<Record<string, unknown>> = criteriaOf(step);
+    expect(criteria).toHaveLength(1);
+    expect(criteria[0]).toMatchObject({
+      createAlerts: true,
+      createIncidents: false,
+      filters: [
+        { checkOn: "Exception Count", filterType: "Greater Than", value: 0 },
+      ],
+    });
+  });
+});
+
 test.describe("A Metrics monitor's criteria step", () => {
   test("asks for the value to compare with before the monitor is created", async ({
     page,
