@@ -32,23 +32,31 @@ Every minute, OneUptime counts the logs that match the monitor's filters and arr
 :::steps
 ### Start a new monitor
 
-Go to **Monitors** and click **Create Monitor**.
+Go to **Monitors** and click **Create Monitor**. Or, in the logs explorer, search for the logs you want to hear about and click **Create monitor** (the bell) in its toolbar: the new monitor starts out watching the explorer's search, severities, services and attributes.
 
 ### Choose Logs
 
 Under **Monitor Type**, click **More monitor types** and pick **Logs** under **Telemetry**, or type `logs` in the search box. Enter a **Name**, then click **Next**.
 
+### Pick what the monitor tells you about
+
+Under **What should this monitor tell you about?**, pick **Too many errors**, **A message appears** or **Logs stop**. Each fills in the logs to watch and the rule, which you can change below. Pick **Something else** to set them up yourself.
+
 ### Choose the logs to count
 
-In **Log Monitor Configuration**, set **Monitor Logs that include this text**, **Monitor Logs for (time)** and **Log Severity**. A filter you leave empty matches every log. **Logs Preview**, under the filters, shows the logs they match right now.
+In **Logs to watch**, set **Log Severity** and **Message contains**. A filter you leave empty matches every log. **Matching logs**, under the filters, shows the logs they match right now.
 
 ### Narrow them down (optional)
 
 Open **More fields** to filter by telemetry service, infrastructure entity or attribute. To get one alert per tunnel, user or interface instead of one for the whole monitor, add the attribute to **Group by Attributes** — see [Per-group alerting](#per-group-alerting-group-by).
 
-### Set the criteria
+### Say when to alert
 
-The **Monitor Criteria** card starts with two criteria: offline, with an incident, when no logs match; online when at least one does. Change them to what you want to alert on — see [Criteria](#criteria).
+In **When to alert**, pick a **Condition**, the **Number of logs** and a **Time window**. The sentence under them says the rule back in plain words. The chart under it counts the matching logs in each window over the last hours, draws the rule's number as a line, and says how often the rule would have alerted. Its button offers a number the rule would not have passed in that time.
+
+### Choose what happens
+
+In **What happens**, pick **Create an alert**, **Declare an incident** or **Both**, and give it a title and a severity. While the rule matches, the monitor shows the status under **More fields**; when it stops matching, the monitor goes back to its default status and the alert or incident resolves itself.
 
 ### Create the monitor
 
@@ -59,9 +67,9 @@ Click **Create Monitor**. The monitor opens on its **Overview** page, and its fi
 
 | Field | What it matches | Default |
 | --- | --- | --- |
-| **Monitor Logs that include this text** | Logs whose body contains this text, ignoring case. | Empty: every log |
-| **Monitor Logs for (time)** | Logs from the last 5 seconds up to the last 24 hours. | **Last 1 minute** |
 | **Log Severity** | Logs with any of the chosen severities. | Empty: every severity |
+| **Message contains** | Logs whose body contains this text, ignoring case. | Empty: every log |
+| **Time window** (in **When to alert**) | Logs from the last 5 seconds up to the last 24 hours. | **Last 5 minutes** |
 | **Group by Attributes** | Not a filter: counts each combination of these attributes' values separately. | Empty: one count |
 | **Resolved by Attributes** | Not a filter: the log that resolves a group. Shows once **Group by Attributes** has an attribute; see [Resolved by a log](#resolved-by-a-log). | Empty: a group resolves when its logs stop |
 | **Filter by Telemetry Service** (under **More fields**) | Logs from any of the chosen services. | Empty: every service |
@@ -87,8 +95,8 @@ Every log is stored with one of seven severities. For OpenTelemetry logs it come
 ## How it is evaluated
 
 - **Every minute.** A Logs monitor is not checked by probes, so it has no interval to set and no **Probes & Interval** page.
-- **One number per evaluation.** The monitor counts the logs that match every filter and arrived within **Monitor Logs for (time)** before the evaluation. With **Last 5 minutes**, each evaluation looks back five minutes, so the windows of consecutive evaluations overlap.
-- **No logs is a count of 0.** A service that stops logging produces 0, which is what the default offline criteria looks for.
+- **One number per evaluation.** The monitor counts the logs that match every filter and arrived within the **Time window** before the evaluation. With **Last 5 minutes**, each evaluation looks back five minutes, so the windows of consecutive evaluations overlap.
+- **No logs is a count of 0.** A service that stops logging produces 0, which is what **Logs stop** looks for.
 - **OneUptime's own downtime is not silence.** While the time window holds time OneUptime itself was not receiving data — it was restarting, being upgraded or catching up — the check waits: the status does not change, and no incident or alert is opened or resolved. See [When OneUptime Is Not Receiving Data](/docs/monitor/when-oneuptime-is-not-receiving).
 - **Criteria from top to bottom.** The first criteria that matches decides, so put the most severe one first. A grouped monitor works differently: it checks every criteria for every group — see [Criteria evaluation differs](#criteria-evaluation-differs).
 
@@ -96,7 +104,7 @@ Each status change, with the reason for it, is recorded on the monitor's **Statu
 
 ## Criteria
 
-A Logs monitor's criteria have one **Filter Type**: **Log Count**, the number of logs that matched in the window. Pick a **Filter Condition** and, for a threshold condition, a **Value**.
+A Logs monitor's criteria have one **Filter Type**: **Log Count**, the number of logs that matched in the window. **When to alert** sets up one criteria, its **Condition** reading **More than**, **At least**, **Fewer than**, **At most**, **Exactly**, **Unusually high**, **Unusually low** or **Unusually high or low**. For several criteria, or one with more than one filter, click **Edit as custom criteria** under **More fields** in **What happens**: each criteria there has a **Filter Condition** and, for a threshold condition, a **Value**.
 
 | Filter Condition | Matches when the log count is… |
 | --- | --- |
@@ -109,36 +117,41 @@ A Logs monitor's criteria have one **Filter Type**: **Log Count**, the number of
 | **Anomalously Low** | below that range |
 | **Anomalous** | outside that range, either way |
 
-The anomaly conditions take no **Value**. Pick a **Sensitivity** — Low, Medium (the default) or High — and a **Baseline Window** of 14 (the default), 28, 60 or 90 days. OneUptime turns the count into a per-minute rate and compares it with the same hour of the week over that window. The baseline covers the monitor's services and severities only: its text and attribute filters are not part of it. Until that hour of the week has enough history, the criteria is still learning and does not fire.
+The anomaly conditions take no **Value**. Pick a **Sensitivity** — Low, Medium (the default) or High — and, in the custom criteria, a **Baseline Window** of 14 (the default), 28, 60 or 90 days. OneUptime turns the count into a per-minute rate and compares it with the same hour of the week over that window. The baseline covers the monitor's services and severities only: its text and attribute filters are not part of it. Until that hour of the week has enough history, the criteria is still learning and does not fire.
 
-A new Logs monitor starts with these criteria:
+A Logs monitor made in Create Monitor starts on the rule of what you picked under **What should this monitor tell you about?**:
+
+| Pick | Rule | What happens |
+| --- | --- | --- |
+| **Too many errors** | **Log Severity** **Error** and **Fatal**, **More than** `10` in **Last 5 minutes** | Creates an alert, which resolves itself |
+| **A message appears** | **More than** `0` in **Last 5 minutes** | Creates an alert, which resolves itself |
+| **Logs stop** | **Exactly** `0` in **Last 10 minutes** | Declares an incident, which resolves itself |
+
+A Logs monitor created through the API or Terraform without criteria starts with these criteria:
 
 | Criteria | Filter | Effect |
 | --- | --- | --- |
 | Check if … is offline | **Log Count** **Equal To** `0` | Marks the monitor offline and declares an incident, resolved automatically |
 | Check if … is online | **Log Count** **Greater Than** `0` | Marks the monitor online |
 
-> [!TIP]
-> To alert on errors rather than on silence, set **Log Severity** to **Error** and change the offline criteria to **Log Count** **Greater Than** the number of errors you can tolerate in the window.
-
 ## Worked example: an error spike
 
 You want an incident when the checkout service logs more than 50 errors in five minutes:
 
 - **Log Severity**: **Error**
-- **Monitor Logs for (time)**: **Last 5 minutes**
+- **Time window**: **Last 5 minutes**
 - **Filter by Telemetry Service**: `checkout`
-- Criteria 1: **Log Count** **Greater Than** `50` — mark the monitor offline and declare an incident
-- Criteria 2: **Log Count** **Less Than Or Equal To** `50` — mark the monitor online
+- **When to alert**: **More than** `50`
+- **What happens**: **Declare an incident**
 
 Four consecutive evaluations:
 
-| Time | Error logs in the last 5 minutes | Criteria that matches | What happens |
+| Time | Error logs in the last 5 minutes | Rule matches? | What happens |
 | --- | --- | --- | --- |
-| 10:00 | 12 | 2 | The monitor is online. |
-| 10:01 | 64 | 1 | The monitor goes offline and an incident is declared. |
-| 10:02 | 81 | 1 | Still offline. The incident is already open, so no second one is declared. |
-| 10:06 | 9 | 2 | The monitor is back online, and the incident resolves itself because **Auto Resolve Incident** is on. |
+| 10:00 | 12 | No | The monitor is online. |
+| 10:01 | 64 | Yes | The monitor goes offline and an incident is declared. |
+| 10:02 | 81 | Yes | Still offline. The incident is already open, so no second one is declared. |
+| 10:06 | 9 | No | The monitor is back online, and the incident resolves itself because **Auto Resolve Incident** is on. |
 
 Because the windows overlap, one burst of errors keeps the count high for up to five minutes after it ends. Use a shorter window for a monitor that should recover sooner.
 
@@ -197,11 +210,11 @@ log_component="IPSec" con_name="HQ-Branch1" status="Terminated" message="IPSec C
 ```
 
 :::steps
-1. Create a **Logs** monitor.
-2. Set **Monitor Logs that include this text** to `terminated` and **Monitor Logs for (time)** to **Last 5 minutes**.
+1. Create a **Logs** monitor and pick **A message appears**.
+2. Set **Message contains** to `terminated` and the **Time window** to **Last 5 minutes**.
 3. Under **More fields**, add the attribute filter `log_component` = `IPSec`.
 4. In **Group by Attributes**, add `con_name`.
-5. Add a criteria with the filter **Log Count** **Greater Than** `0` that creates an alert or incident titled `IPsec tunnel {{con_name}} terminated`.
+5. Keep the rule at **More than** `0`, and title the alert or incident `IPsec tunnel {{con_name}} terminated`.
 :::
 
 Each tunnel that logs a termination now gets its own alert - `IPsec tunnel HQ-Branch1 terminated`, `IPsec tunnel Branch2 terminated` - and each resolves on its own.
@@ -227,7 +240,7 @@ Every group-by attribute's value is a [template variable](/docs/monitor/incident
 ## Troubleshooting
 
 :::details The monitor is offline, but my service is logging
-The count was 0, so the filters match none of the logs the service sends. Open the monitor's **Criteria** page (under **Configuration**) and click **Edit Monitoring Criteria**: **Logs Preview** shows what the filters match right now. The usual causes are a severity picked by the text the logger prints instead of its severity number (see [Log severity](#log-severity)), a service or attribute filter that does not match, and a time window shorter than the gap between the service's logs.
+The count was 0, so the filters match none of the logs the service sends. Open the monitor's **Criteria** page (under **Configuration**) and click **Edit Monitoring Criteria**: **Matching logs** shows what the filters match right now, and the chart in **When to alert** counts them in each window. The usual causes are a severity picked by the text the logger prints instead of its severity number (see [Log severity](#log-severity)), a service or attribute filter that does not match, and a time window shorter than the gap between the service's logs.
 :::
 
 :::details A spike happened, but nothing alerted

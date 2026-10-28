@@ -46,26 +46,26 @@ Spend is the surest sign of a runaway agent. A budget adds up the day's AI spend
 :::steps
 1. Open **Products → AI / LLM → Budgets** and click **Create LLM Cost Budget**. Set a **Daily Budget (USD)**, and pick the agent's service in **Service (optional)** so the budget watches that agent alone.
 2. In the new budget's row menu, pick **Show ID** and copy the ID.
-3. Create a [Metrics monitor](/docs/monitor/metrics-monitor) on `oneuptime.llm.budget.percent.used`, filtered by the attribute `oneuptime.llm.budget.id` with the ID you copied, and set its **Time Range** to **Past 30 Minutes**.
-4. Add a criteria **Greater Than Or Equal To** `100` that creates an alert, and give it an **Alert Title** that names the agent, such as `LLM budget exceeded: support-bot`. The workflow and your endpoint both read that title.
+3. Create a [Metrics monitor](/docs/monitor/metrics-monitor) on `oneuptime.llm.budget.percent.used`, filtered by the attribute `oneuptime.llm.budget.id` with the ID you copied, and set its **Time window** to **Last 30 minutes**.
+4. In **When to alert**, set the **Condition** to **At or above** and the **Value** to `100`, keep **Create an alert**, and give it an **Alert Title** that names the agent, such as `LLM budget exceeded: support-bot`. The workflow and your endpoint both read that title.
 :::
 
 Filter by the ID, not the name: renaming a budget renames its series, and a monitor filtered by the old name would quietly stop matching. Keep the time range at 30 minutes: a budget publishes one point every 15 minutes, so a shorter range finds nothing between two points and the alert opens and resolves over and over.
 
-A second criteria at `80` with a lower severity gives a person a warning first, through the alert's on-call policy, before the breaker trips at `100`.
+A second criteria at `80` with a lower severity, added with **Edit as custom criteria**, gives a person a warning first, through the alert's on-call policy, before the breaker trips at `100`.
 
 ### A loop alert
 
 A stuck agent leaves a trace you can recognize: the same tool span, again and again. A healthy run doesn't call one tool dozens of times in a few minutes, so a count catches the loop long before the budget does.
 
 :::steps
-1. Open **Monitors**, click **Create Monitor**, and pick **Traces** under **More monitor types**.
-2. Under **More fields**, set **Filter by Telemetry Service** to the agent's service, and **Filter by Attributes** to `gen_ai.tool.name` equal to the tool you expect it to loop on, such as `search_web`. If your instrumentation names each tool's span, put that name in **Span Name** instead.
-3. Set **Monitor Traces for (time)** to **Last 5 minutes**.
-4. Add a criteria **Span Count** **Greater Than** a number no healthy run reaches in five minutes, such as `50`, that creates an alert titled like `Agent loop: support-bot`.
+1. Open **Monitors**, click **Create Monitor**, and pick **Traces** under **More monitor types**. Under **What should this monitor tell you about?**, pick **Something else**, and clear **Span Status**.
+2. Under **More fields**, set **Filter by Telemetry Service** to the agent's service, and **Filter by Attributes** to `gen_ai.tool.name` equal to the tool you expect it to loop on, such as `search_web`. If your instrumentation names each tool's span, put that name in **Span name contains** instead.
+3. Set the **Time window** to **Last 5 minutes**.
+4. In **When to alert**, set **More than** a number no healthy run reaches in five minutes, such as `50`, and title the alert like `Agent loop: support-bot`.
 :::
 
-A second Traces monitor with **Filter by Span Status** set to **Error** and a lower count catches retry storms: a tool that keeps failing and an agent that keeps trying it again.
+A second Traces monitor with **Span Status** set to **Error** and a lower count catches retry storms: a tool that keeps failing and an agent that keeps trying it again.
 
 ## Build the stop endpoint
 

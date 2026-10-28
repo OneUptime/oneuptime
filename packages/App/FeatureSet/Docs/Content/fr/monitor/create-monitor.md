@@ -48,6 +48,8 @@ En dessous, les **Critères du moniteur** décident quand le moniteur change d'�
 
 Cliquez sur un critère pour l'ouvrir et le modifier. **Ajouter un critère** en ajoute un, ouvert et prêt à remplir. Pour changer l'ordre, faites glisser un critère par la poignée à sa gauche.
 
+Un moniteur de journaux, de traces, d'exceptions ou de métriques demande plutôt de quoi il doit vous informer, et configure une seule règle en termes simples : ce qu'il faut surveiller, **Quand alerter** et **Ce qui se passe**, avec un graphique de ce que la règle aurait détecté. Voir [Surveillance des journaux](/docs/monitor/logs-monitor#créer-un-moniteur-de-journaux).
+
 ### Passer à l'étape suivante
 
 Cliquez sur **Suivant**. Rien sur cette étape n'est signalé comme manquant avant que vous cliquiez sur **Suivant**.

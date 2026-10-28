@@ -46,26 +46,26 @@ Forbruk er det sikreste tegnet på en løpsk agent. Et budsjett summerer dagens 
 :::steps
 1. Åpne **Produkter → AI / LLM → Budsjetter**, og klikk på **Opprett LLM Cost Budget**. Angi et **Daglig budsjett (USD)**, og velg agentens tjeneste i **Tjeneste (valgfritt)**, slik at budsjettet bare følger med på den agenten.
 2. Velg **Vis ID** i radmenyen til det nye budsjettet, og kopier ID-en.
-3. Opprett en [Metrikk-overvåking](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på attributtet `oneuptime.llm.budget.id` med ID-en du kopierte, og sett **Tidsintervall** til **Siste 30 minutter**.
-4. Legg til et kriterium **Større enn eller lik** `100` som oppretter et varsel, og gi det en **Varseltittel** som navngir agenten, for eksempel `LLM budget exceeded: support-bot`. Både arbeidsflyten og endepunktet ditt leser den tittelen.
+3. Opprett en [Metrikk-overvåking](/docs/monitor/metrics-monitor) på `oneuptime.llm.budget.percent.used`, filtrert på attributtet `oneuptime.llm.budget.id` med ID-en du kopierte, og sett **Tidsvindu** til **Siste 30 minutter**.
+4. I **Når det skal varsles** setter du **Betingelse** til **På eller over** og **Verdi** til `100`, beholder **Opprett et varsel**, og gir det en **Varseltittel** som navngir agenten, for eksempel `LLM budget exceeded: support-bot`. Både arbeidsflyten og endepunktet ditt leser den tittelen.
 :::
 
 Filtrer på ID-en, ikke navnet: gir du et budsjett nytt navn, får serien nytt navn, og en monitor som filtrerer på det gamle navnet, ville i det stille slutte å treffe. Hold tidsintervallet på 30 minutter: et budsjett publiserer ett punkt hvert 15. minutt, så et kortere intervall finner ingenting mellom to punkter, og varselet åpnes og løses om og om igjen.
 
-Et ekstra kriterium på `80` med lavere alvorlighetsgrad gir først et menneske beskjed gjennom varselets vaktpolicy, før circuit breakeren slår til ved `100`.
+Et ekstra kriterium på `80` med lavere alvorlighetsgrad, lagt til med **Rediger som egne kriterier**, gir først et menneske beskjed gjennom varselets vaktpolicy, før circuit breakeren slår til ved `100`.
 
 ### Et løkkevarsel
 
 En agent som har satt seg fast, etterlater et spor du kan kjenne igjen: det samme verktøy-spanet, om og om igjen. En sunn kjøring kaller ikke ett verktøy flere titalls ganger i løpet av noen få minutter, så en telling fanger løkken lenge før budsjettet gjør det.
 
 :::steps
-1. Åpne **Overvåkere**, klikk på **Opprett monitor**, og velg **Spor** under **Flere monitortyper**.
-2. Under **Flere felt** setter du **Filtrer etter telemetritjeneste** til agentens tjeneste og **Filtrer etter attributter** til `gen_ai.tool.name` lik verktøyet du venter at den går i løkke på, for eksempel `search_web`. Hvis instrumenteringen din gir hvert verktøys span et navn, setter du heller det navnet i **Span-navn**.
-3. Sett **Overvåk spor i (tid)** til **Siste 5 minutter**.
-4. Legg til et kriterium **Span Count** **Større enn** et tall som ingen sunn kjøring når på fem minutter, for eksempel `50`, som oppretter et varsel med en tittel som `Agent loop: support-bot`.
+1. Åpne **Overvåkere**, klikk på **Opprett monitor**, og velg **Spor** under **Flere monitortyper**. Under **Hva skal denne overvåkingen fortelle deg om?** velger du **Noe annet** og tømmer **Span-status**.
+2. Under **Flere felt** setter du **Filtrer etter telemetritjeneste** til agentens tjeneste og **Filtrer etter attributter** til `gen_ai.tool.name` lik verktøyet du venter at den går i løkke på, for eksempel `search_web`. Hvis instrumenteringen din gir hvert verktøys span et navn, setter du heller det navnet i **Span-navnet inneholder**.
+3. Sett **Tidsvindu** til **Siste 5 minutter**.
+4. I **Når det skal varsles** setter du **Mer enn** til et tall som ingen sunn kjøring når på fem minutter, for eksempel `50`, og gir varselet en tittel som `Agent loop: support-bot`.
 :::
 
-En ekstra trase-overvåking med **Filtrer etter span-status** satt til **Feil** og en lavere telling fanger stormer av nye forsøk: et verktøy som fortsetter å feile, og en agent som fortsetter å prøve det igjen.
+En ekstra trase-overvåking med **Span-status** satt til **Feil** og en lavere telling fanger stormer av nye forsøk: et verktøy som fortsetter å feile, og en agent som fortsetter å prøve det igjen.
 
 ## Bygg stoppendepunktet
 

@@ -64,6 +64,16 @@ import {
 import { ExceptionTriageAction } from "../../Utils/ExceptionDetailPresentation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import Navigation from "Common/UI/Utils/Navigation";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import Dictionary from "Common/Types/Dictionary";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { getTelemetryMonitorLinkParams } from "../../Utils/Form/Monitor/TelemetryRule/TelemetryMonitorLink";
 
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
@@ -451,6 +461,43 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
       ? new Date(telemetryException.lastSeenAt).getTime()
       : undefined;
 
+  /*
+   * "Create monitor": an Exceptions monitor for this exception's type in
+   * its service, alerting when it happens again (TelemetryMonitorLink).
+   * Only for a reader who may create one.
+   */
+  const canCreateMonitor: boolean = PermissionGate.check(
+    new Monitor(),
+    ModelAction.Create,
+  ).isAllowed;
+
+  const navigateToCreateMonitor: () => void = (): void => {
+    const params: Dictionary<string> = getTelemetryMonitorLinkParams({
+      monitorType: MonitorType.Exceptions,
+      query: {
+        serviceIds: telemetryException.primaryEntityId
+          ? [telemetryException.primaryEntityId.toString()]
+          : undefined,
+        exceptionTypes: telemetryException.exceptionType
+          ? [telemetryException.exceptionType]
+          : undefined,
+      },
+    });
+
+    const currentUrl: URL = Navigation.getCurrentURL();
+    const targetUrl: URL = new URL(
+      currentUrl.protocol,
+      currentUrl.hostname,
+      RouteUtil.populateRouteParams(RouteMap[PageMap.MONITOR_CREATE]!),
+    );
+
+    for (const paramName of Object.keys(params)) {
+      targetUrl.addQueryParam(paramName, params[paramName] as string, true);
+    }
+
+    Navigation.navigate(targetUrl);
+  };
+
   const renderSectionLoader: (title: string) => ReactElement = (
     title: string,
   ): ReactElement => {
@@ -471,12 +518,27 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         {...(dataPlan.showHeaderActions
           ? {
               actions: (
-                <ExceptionTriageActions
-                  isResolved={isResolved}
-                  isArchived={isArchived}
-                  pendingActionId={pendingActionId}
-                  onAction={onTriageAction}
-                />
+                <>
+                  <ExceptionTriageActions
+                    isResolved={isResolved}
+                    isArchived={isArchived}
+                    pendingActionId={pendingActionId}
+                    onAction={onTriageAction}
+                  />
+                  {canCreateMonitor ? (
+                    <Button
+                      title="Create monitor"
+                      icon={IconProp.Bell}
+                      buttonSize={ButtonSize.Small}
+                      buttonStyle={ButtonStyleType.NORMAL}
+                      dataTestId="exception-create-monitor"
+                      tooltip="Get alerted when this exception happens again."
+                      onClick={navigateToCreateMonitor}
+                    />
+                  ) : (
+                    <></>
+                  )}
+                </>
               ),
             }
           : {})}

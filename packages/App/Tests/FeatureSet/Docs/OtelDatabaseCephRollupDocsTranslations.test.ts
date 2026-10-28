@@ -132,8 +132,6 @@ const PROSE: Record<string, Array<string>> = {
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [DATABASE_PAGE]: [
-    // The monitor type picker's category heading.
-    "Database Monitoring",
     // The criteria's filter types, and the over-time options.
     "Database Is Online",
     "Database Metric",
