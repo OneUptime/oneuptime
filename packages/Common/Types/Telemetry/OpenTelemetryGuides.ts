@@ -132,33 +132,40 @@ export const OPEN_TELEMETRY_GUIDE_LANGUAGE_GROUPS: ReadonlyArray<OpenTelemetryGu
     {
       language: OpenTelemetryGuideLanguage.Go,
       title: "Go",
-      description: "Go services and their HTTP routers.",
+      description:
+        "Services on net/http, Gin, Echo or Fiber, and gRPC services.",
       logo: ProviderLogo.Go,
       searchTerms: ["golang"],
     },
     {
       language: OpenTelemetryGuideLanguage.Ruby,
       title: "Ruby",
-      description: "Rails and other Ruby apps.",
+      description:
+        "Rails, Sinatra, Sidekiq workers and any other Ruby program.",
       logo: ProviderLogo.Ruby,
+      searchTerms: ["ror"],
     },
     {
       language: OpenTelemetryGuideLanguage.Php,
       title: "PHP",
-      description: "Laravel, Symfony and plain PHP.",
+      description:
+        "Laravel, Symfony, Slim and plain PHP, through the OpenTelemetry extension.",
       logo: ProviderLogo.Php,
     },
     {
       language: OpenTelemetryGuideLanguage.Rust,
       title: "Rust",
-      description: "Rust services.",
+      description:
+        "Axum, Actix Web and any program that records with the tracing crate.",
       logo: ProviderLogo.Rust,
+      searchTerms: ["rustlang"],
     },
     {
       language: OpenTelemetryGuideLanguage.Elixir,
       title: "Elixir",
-      description: "Phoenix and other Elixir apps.",
+      description: "Phoenix and any other OTP application.",
       logo: ProviderLogo.Elixir,
+      searchTerms: ["erlang", "beam"],
     },
   ];
 
@@ -241,6 +248,7 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     kind: "framework",
     logo: ProviderLogo.NextJs,
     telemetryGuideLanguage: "node",
+    isFeatured: true,
   },
   {
     slug: "fastify",
@@ -435,6 +443,7 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     logo: ProviderLogo.Go,
     telemetryGuideLanguage: "go",
     isLanguageGuide: true,
+    isFeatured: true,
   },
   {
     slug: "gin",
@@ -476,6 +485,7 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     logo: ProviderLogo.Ruby,
     telemetryGuideLanguage: "ruby",
     isLanguageGuide: true,
+    isFeatured: true,
   },
   {
     slug: "rails",
@@ -509,6 +519,7 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     logo: ProviderLogo.Php,
     telemetryGuideLanguage: "php",
     isLanguageGuide: true,
+    isFeatured: true,
   },
   {
     slug: "laravel",
@@ -540,6 +551,7 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     logo: ProviderLogo.Rust,
     telemetryGuideLanguage: "rust",
     isLanguageGuide: true,
+    isFeatured: true,
   },
   {
     slug: "axum",
@@ -554,6 +566,24 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     language: OpenTelemetryGuideLanguage.Rust,
     kind: "framework",
     telemetryGuideLanguage: "rust",
+  },
+  {
+    // Any OTP application: a worker, a consumer, a service with no Phoenix.
+    slug: "elixir",
+    name: "Elixir",
+    language: OpenTelemetryGuideLanguage.Elixir,
+    kind: "runtime",
+    logo: ProviderLogo.Elixir,
+    telemetryGuideLanguage: "elixir",
+    isLanguageGuide: true,
+    isFeatured: true,
+  },
+  {
+    slug: "phoenix",
+    name: "Phoenix",
+    language: OpenTelemetryGuideLanguage.Elixir,
+    kind: "framework",
+    telemetryGuideLanguage: "elixir",
   },
 ];
 

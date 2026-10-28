@@ -2560,6 +2560,33 @@
       }
     }
   },
+  "elixir": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Elixir 1.20.4",
+    "packages": {
+      "opentelemetry": "1.7.0",
+      "opentelemetry_api": "1.5.0",
+      "opentelemetry_api_experimental": "0.6.0",
+      "opentelemetry_experimental": "0.6.0",
+      "opentelemetry_exporter": "1.11.0",
+      "opentelemetry_process_propagator": "0.3.0",
+      "opentelemetry_req": "1.0.0",
+      "req": "0.7.5"
+    },
+    "framework": "Elixir",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:2a86d153ec06d2cd78ce9ede220c11a97f85342abba9f5263b628f05056a6eb7",
+    "observed": {
+      "spans": ["GET", "POST", "price.save", "prices.import"],
+      "metrics": ["prices.imported"],
+      "logs": [
+        "Exporter otel_exporter_logs_otlp successfully initialized",
+        "imported 1 of 2 prices",
+        "skipped a price: inv_2 is below the minimum price"
+      ]
+    },
+    "packageExports": {}
+  },
   "express": {
     "checkedOn": "2026-10-27",
     "runtime": "Node.js 24.22.1",
@@ -5374,6 +5401,65 @@
         "startNodeSDK"
       ]
     }
+  },
+  "phoenix": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Elixir 1.20.4",
+    "packages": {
+      "bandit": "1.14.1",
+      "dns_cluster": "0.2.0",
+      "ecto_sql": "3.14.0",
+      "jason": "1.4.5",
+      "opentelemetry": "1.7.0",
+      "opentelemetry_api": "1.5.0",
+      "opentelemetry_api_experimental": "0.6.0",
+      "opentelemetry_bandit": "0.3.0",
+      "opentelemetry_ecto": "1.2.0",
+      "opentelemetry_experimental": "0.6.0",
+      "opentelemetry_exporter": "1.11.0",
+      "opentelemetry_phoenix": "2.0.1",
+      "opentelemetry_req": "1.0.0",
+      "phoenix": "1.8.16",
+      "phoenix_ecto": "4.7.0",
+      "postgrex": "0.22.4",
+      "req": "0.7.5",
+      "telemetry_metrics": "1.2.0",
+      "telemetry_poller": "1.3.0"
+    },
+    "framework": "Phoenix 1.8.16",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:22767616c1b045ea88c882ffe3dccdd04e380727b663427a61cdfbf1207ad92d",
+    "observed": {
+      "spans": [
+        "GET",
+        "GET /api/orders/:id",
+        "GET /api/orders/:id/receipt",
+        "POST",
+        "POST /api/orders",
+        "checkout.charge",
+        "storefront.repo.query:orders"
+      ],
+      "metrics": ["orders.placed"],
+      "logs": [
+        "** (RuntimeError) the receipt printer is offline for order 42, (storefront 0.1.0) lib/storefront_web/controllers/order_c",
+        "Access StorefrontWeb.Endpoint at https://example.com",
+        "Exporter otel_exporter_logs_otlp successfully initialized",
+        "GET /api/orders/42",
+        "GET /api/orders/42/receipt",
+        "GET /api/orders/7",
+        "GET /nowhere",
+        "POST /api/orders",
+        "Running StorefrontWeb.Endpoint with Bandit 1.14.1 at :::4000 (http)",
+        "Sent 200 in 25ms",
+        "Sent 200 in 2ms",
+        "Sent 201 in 49ms",
+        "Sent 404 in 1ms",
+        "Sent 500 in 7ms",
+        "loading order 42",
+        "loading order 7"
+      ]
+    },
+    "packageExports": {}
   },
   "php": {
     "checkedOn": "2026-10-28",

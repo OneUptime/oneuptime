@@ -321,11 +321,15 @@ describe("the index's search", () => {
       "/integrations/opentelemetry/dotnet",
     );
 
-    // Each part of a dotted or hyphenated name is a word of its own.
+    /*
+     * Each part of a dotted or hyphenated name is a word of its own; Fiber
+     * is found by "fasthttp", the server it runs on.
+     */
     search(page, "fast");
     expect(shownCards(page.document)).toEqual([
       "/integrations/opentelemetry/fastify",
       "/integrations/opentelemetry/fastapi",
+      "/integrations/opentelemetry/fiber",
     ]);
     search(page, "instrument");
     expect(shownCards(page.document)).toContain(
@@ -385,6 +389,25 @@ describe("the index's search", () => {
         groupCards("javascript"),
       ]);
     }
+
+    // The newer languages' other names find each of their guides.
+    for (const [name, language] of [
+      ["golang", "go"],
+      ["ror", "ruby"],
+      ["rustlang", "rust"],
+      ["erlang", "elixir"],
+      ["beam", "elixir"],
+    ]) {
+      search(page, name!);
+      expect([name, shownCards(page.document)]).toEqual([
+        name,
+        groupCards(language!),
+      ]);
+    }
+    expect(groupCards("elixir")).toEqual([
+      "/integrations/opentelemetry/elixir",
+      "/integrations/opentelemetry/phoenix",
+    ]);
 
     // A language's other name narrows with the guide's own words.
     search(page, "dotnet worker");

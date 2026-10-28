@@ -396,14 +396,24 @@ describe("the guides the product pages feature", () => {
         },
       ),
     );
-    // One full row of six: a framework of every language with guides.
+    /*
+     * Two full rows of six: a guide of every language with guides, each
+     * with its brand's logo (the language's own guide where its frameworks
+     * have none in the registry), and Next.js.
+     */
     expect(slugsOf(featured)).toEqual([
       "nodejs",
+      "nextjs",
       "react",
       "fastapi",
       "spring-boot",
       "ktor",
       "aspnet-core",
+      "go",
+      "ruby",
+      "php",
+      "rust",
+      "elixir",
     ]);
   });
 

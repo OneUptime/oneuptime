@@ -548,7 +548,18 @@ describe("the integrations index", () => {
       groups.map((group: Element): string => {
         return group.id;
       }),
-    ).toEqual(["javascript", "python", "java", "kotlin", "dotnet"]);
+    ).toEqual([
+      "javascript",
+      "python",
+      "java",
+      "kotlin",
+      "dotnet",
+      "go",
+      "ruby",
+      "php",
+      "rust",
+      "elixir",
+    ]);
     expect(
       Array.from(document.querySelectorAll("[data-integration-card] a")).map(
         (link: Element): string | null => {

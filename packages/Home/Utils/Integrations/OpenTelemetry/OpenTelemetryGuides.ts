@@ -50,6 +50,8 @@ import { SlimGuide } from "./Guides/Slim";
 import { RustGuide } from "./Guides/Rust";
 import { AxumGuide } from "./Guides/Axum";
 import { ActixWebGuide } from "./Guides/ActixWeb";
+import { ElixirGuide } from "./Guides/Elixir";
+import { PhoenixGuide } from "./Guides/Phoenix";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -99,6 +101,8 @@ export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   RustGuide,
   AxumGuide,
   ActixWebGuide,
+  ElixirGuide,
+  PhoenixGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";
@@ -180,7 +184,7 @@ export function getGuideSEO(guide: OpenTelemetryGuide): PageSEOData {
 export const INTEGRATIONS_INDEX_SEO: PageSEOData = {
   title: "OpenTelemetry Integrations for Every Framework | OneUptime",
   description:
-    "OpenTelemetry guides for Node.js, Python, Java, Kotlin and .NET: Express, Next.js, Django, FastAPI, Spring Boot, ASP.NET Core and more, each checked end to end.",
+    "OpenTelemetry guides for Node.js, Python, Java, Kotlin, .NET, Go, Ruby, PHP, Rust and Elixir, from Express and Django to Rails and Phoenix, each run end to end.",
   canonicalPath: OPEN_TELEMETRY_GUIDES_INDEX_PATH,
   twitterCard: "summary_large_image",
   pageType: "integration",

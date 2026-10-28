@@ -687,6 +687,9 @@ describe("the OpenTelemetry guide catalog", () => {
       "rust",
       "axum",
       "actix-web",
+      // Elixir.
+      "elixir",
+      "phoenix",
     ]);
   });
 

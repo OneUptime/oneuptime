@@ -354,7 +354,8 @@ describe("a guide's mark", () => {
       return entry.slug;
     });
 
-    expect(wide).toEqual(["fastify", "koa", "hapi"]);
+    // Go's and PHP's marks are wordmarks, drawn wide on their language guides.
+    expect(wide).toEqual(["fastify", "koa", "hapi", "go", "php"]);
   });
 
   test("falls back to the framework's initials for a guide with no logo and no icon", () => {

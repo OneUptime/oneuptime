@@ -6,6 +6,7 @@ import {
   VALIDATE_SERVER_KEY_BODY,
 } from "./GuideShared";
 import { DOTNET_PREREQUISITE, DOTNET_PROTOCOL_NOTE } from "./DotNetShared";
+import { ELIXIR_PREREQUISITE } from "./ElixirShared";
 import { GO_PREREQUISITE } from "./GoShared";
 import { NODE_PREREQUISITE } from "./JavaScriptShared";
 import {
@@ -38,6 +39,7 @@ export const SHARED_GUIDE_TEXTS: Array<InlineText> = [
   RUBY_PREREQUISITE,
   PHP_PREREQUISITE,
   RUST_PREREQUISITE,
+  ELIXIR_PREREQUISITE,
   VALIDATE_SERVER_KEY_BODY,
   VALIDATE_BROWSER_KEY_BODY,
 ];

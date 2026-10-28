@@ -312,6 +312,8 @@ export interface KubernetesManifestOptions {
   variables?: OtlpVariableNames | undefined;
   // The container's command, when the image's own does not load OpenTelemetry.
   command?: Array<string> | undefined;
+  // How many pods: 2 unless the app must run alone, as a scheduled importer does.
+  replicas?: number | undefined;
 }
 
 // The Secret every manifest reads the key from: never in an image or in git.
@@ -378,7 +380,7 @@ export function kubernetesManifestSnippet(
     "metadata:",
     `  name: ${options.name}`,
     "spec:",
-    "  replicas: 2",
+    `  replicas: ${options.replicas === undefined ? 2 : options.replicas}`,
     "  selector:",
     "    matchLabels:",
     `      app: ${options.name}`,
