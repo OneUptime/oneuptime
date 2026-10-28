@@ -21,11 +21,18 @@
  *      package is resolved as require() resolves it, since ts-node runs the
  *      program as CommonJS. A package that is not installed is an optional
  *      one (typeorm's drivers for other databases, ws's native helpers): it
- *      stays out, as it does at run time;
+ *      stays out, as it does at run time. A require.resolve() of a name the
+ *      code spells out counts as a require() of it: it finds the file
+ *      require() would load, which the code may then read, run or load
+ *      (TypeOrmPatchVersion reads the package.json beside
+ *      require.resolve("typeorm")). esbuild never reads that file itself, so
+ *      the walk follows it from there;
  *   2. reads the program's own files with TypeScript's parser and stops with
- *      an error at a require() or import() of a name the code computes, or a
- *      require.resolve() or createRequire(): what they load cannot be known
- *      from the code, so it could be a package this script would remove;
+ *      an error at a require(), import() or require.resolve() of a name the
+ *      code computes, a require.resolve() with options (their paths move
+ *      where it looks, and esbuild does not record it), or a createRequire():
+ *      what they load cannot be known from the code, so it could be a
+ *      package this script would remove;
  *   3. takes every dependency the walk never reached out of the package's
  *      package.json and runs `npm prune --omit=dev --offline`. npm then
  *      removes those packages, the packages only they needed, and the
@@ -128,11 +135,15 @@ function packageDirectoryOf(file) {
 /**
  * The esbuild plugin of the walk: a package is resolved as require()
  * resolves it, a package that does not resolve is noted as missing and left
- * out, and a file that is not code is left out once it is known to exist.
+ * out, and a file that is not code is left out once it is known to exist. A
+ * require.resolve() is resolved as require() would resolve its name, and the
+ * file it finds is noted for the walk to follow, since esbuild never reads it.
  *
  * @param {Array<{specifier: string, importer: string}>} missing filled in
+ * @param {Array<string>} resolvedFiles filled in: the files require.resolve()
+ *   calls find
  */
-function walkPlugin(missing) {
+function walkPlugin(missing, resolvedFiles) {
   return {
     name: "prune-unreachable-packages",
     setup(build) {
@@ -142,6 +153,28 @@ function walkPlugin(missing) {
         }
         const isPackage = !NOT_A_PACKAGE.test(args.path);
         const isNotCode = NOT_CODE.test(args.path);
+        /*
+         * esbuild records a require.resolve() of a string, but leaves the
+         * call as it is and never reads the file it names. The call stays
+         * external here too (esbuild only warns otherwise), and the walk
+         * follows that file as it follows a require()d one.
+         */
+        if (args.kind === "require-resolve") {
+          const resolved = await build.resolve(args.path, {
+            kind: "require-call",
+            importer: args.importer,
+            resolveDir: args.resolveDir,
+            pluginData: RESOLVING,
+          });
+          if (resolved.errors.length > 0) {
+            if (isPackage) {
+              missing.push({ specifier: args.path, importer: args.importer });
+            }
+          } else if (!resolved.external && resolved.namespace === "file") {
+            resolvedFiles.push(resolved.path);
+          }
+          return { path: args.path, external: true };
+        }
         if (!isPackage && !isNotCode) {
           return undefined;
         }
@@ -176,7 +209,8 @@ function walkPlugin(missing) {
 }
 
 /**
- * Follows every import from the entry point.
+ * Follows every import from the entry point, and from every file a
+ * require.resolve() finds, until no file found is left unread.
  *
  * @param {{entry: string, esbuild: object}} options esbuild: the esbuild module
  * @returns {Promise<{
@@ -188,44 +222,84 @@ function walkPlugin(missing) {
  */
 async function walkImports(options) {
   const workingDirectory = path.dirname(options.entry);
-  const missing = [];
-  const result = await options.esbuild.build({
-    entryPoints: [options.entry],
-    absWorkingDir: workingDirectory,
-    bundle: true,
-    write: false,
-    platform: "node",
-    format: "cjs",
-    metafile: true,
-    logLevel: "silent",
-    plugins: [walkPlugin(missing)],
-  });
-
   const reached = new Set();
-  const ownFiles = [];
-  for (const input of Object.keys(result.metafile.inputs)) {
-    const file = path.resolve(workingDirectory, input);
-    if (!fs.existsSync(file)) {
-      continue;
+  const ownFiles = new Set();
+  const missing = [];
+  const noted = new Set();
+  // Every file read, or waiting to be (real paths): each is walked once.
+  const seen = new Set();
+  const pending = [options.entry];
+
+  while (pending.length > 0) {
+    const found = [];
+    const resolvedFiles = [];
+    const result = await options.esbuild.build({
+      entryPoints: [pending.shift()],
+      absWorkingDir: workingDirectory,
+      bundle: true,
+      write: false,
+      platform: "node",
+      format: "cjs",
+      metafile: true,
+      logLevel: "silent",
+      plugins: [walkPlugin(found, resolvedFiles)],
+    });
+
+    // A later walk may read files an earlier one read: note each once.
+    for (const item of found) {
+      const key = `${item.specifier}\n${item.importer}`;
+      if (!noted.has(key)) {
+        noted.add(key);
+        missing.push(item);
+      }
     }
-    const realFile = fs.realpathSync(file);
-    const directory = packageDirectoryOf(realFile);
-    if (directory) {
-      reached.add(directory);
-    } else {
-      ownFiles.push(realFile);
+
+    for (const input of Object.keys(result.metafile.inputs)) {
+      const file = path.resolve(workingDirectory, input);
+      if (!fs.existsSync(file)) {
+        continue;
+      }
+      const realFile = fs.realpathSync(file);
+      seen.add(realFile);
+      const directory = packageDirectoryOf(realFile);
+      if (directory) {
+        reached.add(directory);
+      } else {
+        ownFiles.add(realFile);
+      }
+    }
+
+    for (const file of resolvedFiles) {
+      const realFile = fs.realpathSync(file);
+      if (seen.has(realFile)) {
+        continue;
+      }
+      seen.add(realFile);
+      if (NOT_CODE.test(realFile)) {
+        /*
+         * Nothing in it to follow (esbuild has no loader for most of these
+         * files), but its package is needed.
+         */
+        const directory = packageDirectoryOf(realFile);
+        if (directory) {
+          reached.add(directory);
+        }
+        continue;
+      }
+      pending.push(realFile);
     }
   }
-  ownFiles.sort();
 
-  return { reached, ownFiles, missing };
+  return { reached, ownFiles: [...ownFiles].sort(), missing };
 }
 
 /**
- * The require() and import() calls of a computed name in one file, and the
- * require.resolve() and createRequire() calls, which load what the walk
- * cannot see. A string literal, or a template literal without substitutions,
- * is a name the walk reads.
+ * The calls in one file that load what the walk cannot see: a require(),
+ * import() or require.resolve() of a name the code computes, a
+ * require.resolve() with options, whose paths move where it looks (esbuild
+ * does not record one either), and a createRequire(). A string literal, or a
+ * template literal without substitutions, is a name the walk reads, and
+ * require.resolve() of one alone counts as a require() of it.
  *
  * @param {{file: string, source: string, typescript: object}} options
  *   typescript: the typescript module
@@ -253,12 +327,24 @@ function computedImportsIn(options) {
       const loadsByName =
         isNamed(callee, "require") ||
         callee.kind === ts.SyntaxKind.ImportKeyword;
-      const resolvesOrCreates =
-        isNamed(callee, "createRequire") ||
-        (ts.isPropertyAccessExpression(callee) &&
-          isNamed(callee.expression, "require") &&
-          callee.name.text === "resolve");
-      if ((loadsByName && !literalFirstArgument) || resolvesOrCreates) {
+      const resolvesByName =
+        ts.isPropertyAccessExpression(callee) &&
+        isNamed(callee.expression, "require") &&
+        callee.name.text === "resolve";
+      /*
+       * The require.resolve() esbuild records, and the walk so follows: the
+       * name alone - not require?.resolve(), which esbuild leaves unread.
+       */
+      const resolvesSpelledOutName =
+        resolvesByName &&
+        !callee.questionDotToken &&
+        node.arguments.length === 1 &&
+        literalFirstArgument;
+      if (
+        (loadsByName && !literalFirstArgument) ||
+        (resolvesByName && !resolvesSpelledOutName) ||
+        isNamed(callee, "createRequire")
+      ) {
         const start = node.getStart(sourceFile);
         const { line } = sourceFile.getLineAndCharacterOfPosition(start);
         found.push({
@@ -450,7 +536,7 @@ async function pruneUnreachablePackages(options) {
         ...computed.map((item) => {
           return `  ${item.file}:${item.line}: ${item.text}`;
         }),
-        "Import the package by its name, or stop pruning this image.",
+        'Name the package in the code - require("name"), import("name") or require.resolve("name") without options - or stop pruning this image.',
       ].join("\n"),
     );
   }

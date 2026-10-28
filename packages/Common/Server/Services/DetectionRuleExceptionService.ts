@@ -3,6 +3,7 @@ import Model from "../../Models/DatabaseModels/DetectionRuleException";
 import CreateBy from "../Types/Database/CreateBy";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import RelationValueUtil from "../Utils/Database/RelationValueUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -147,10 +148,19 @@ export class Service extends ProjectReferencesService<Model> {
     // Only the columns of its kind, normalized; null clears the rest.
     Object.assign(createBy.data as unknown as JSONObject, columns);
 
-    // The rule by its id column, however the write named it.
-    createBy.data.detectionRuleId = new ObjectID(ruleId);
+    /*
+     * The rule by its id column, however the write named it: stamped, so no
+     * other name of it is left in the write to be stored in its place.
+     */
+    const detectionRuleId: ObjectID = new ObjectID(ruleId);
 
-    await this.assertRuleHasRoom(createBy.data.detectionRuleId);
+    RelationIdUtil.stamp(
+      createBy.data as unknown as Record<string, unknown>,
+      ["detectionRuleId", "detectionRule"],
+      detectionRuleId,
+    );
+
+    await this.assertRuleHasRoom(detectionRuleId);
 
     return { createBy, carryForward: null };
   }
