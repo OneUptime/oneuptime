@@ -862,7 +862,7 @@ test.describe("response targets", () => {
         .locator(".ou-select__control")
         .boundingBox();
       expect(Math.abs(amount!.y - unit!.y)).toBeLessThanOrEqual(1);
-      expect(Math.abs(amount!.height - unit!.height)).toBeLessThanOrEqual(2);
+      expect(Math.abs(amount!.height - unit!.height)).toBeLessThanOrEqual(1);
       expect(
         await field
           .getByTestId("dropdown-value-label")

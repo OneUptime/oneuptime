@@ -37,6 +37,14 @@ export interface ComponentProps {
 }
 
 /*
+ * The amount, as every input is drawn, but as tall as its unit's dropdown
+ * (40px) beside it: at the input's own 38px the two stood 2px apart at
+ * their foot.
+ */
+const AMOUNT_INPUT_CLASS_NAME: string =
+  "block h-10 w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-3 text-sm placeholder-gray-500 focus:border-indigo-500 focus:text-gray-900 focus:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm";
+
+/*
  * A response target as a person writes it: a whole number, and its unit -
  * "15" "Minutes", "4" "Hours", "3" "Days" - kept as minutes. Empty is no
  * target, which the empty field says. A saved target opens in the largest
@@ -78,6 +86,7 @@ const ResponseTargetDurationField: FunctionComponent<ComponentProps> = (
       <div className="min-w-0 flex-1">
         <Input
           type={InputType.NUMBER}
+          className={AMOUNT_INPUT_CLASS_NAME}
           value={entry.amount}
           placeholder={translator.translateText(RESPONSE_TARGETS_COPY.noTarget)}
           // Named by the field's own label; on its own, as an amount.

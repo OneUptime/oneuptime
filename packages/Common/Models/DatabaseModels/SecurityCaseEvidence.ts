@@ -264,8 +264,7 @@ export default class SecurityCaseEvidence extends BaseModel {
     required: false,
     type: TableColumnType.VeryLongText,
     title: "Description",
-    description:
-      "What the evidence shows, and where and how it was collected.",
+    description: "What the evidence shows, and where and how it was collected.",
     example: "Exported from the web proxy by the on-call analyst.",
   })
   @Column({
@@ -277,14 +276,16 @@ export default class SecurityCaseEvidence extends BaseModel {
   /*
    * A File evidence's file, uploaded in the case's project (FileOwnership
    * refuses any other). Its bytes are read only through the case's
-   * download route.
+   * download route. Titled as a packet capture's is, so a file that cannot
+   * be found reads "The evidence file's file could not be found. Upload the
+   * evidence file again."
    */
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
     manyToOneRelationColumn: "fileId",
     type: TableColumnType.Entity,
     modelType: File,
-    title: "File",
+    title: "Evidence File",
     description: "The uploaded file, for File evidence.",
   })
   @ManyToOne(
@@ -304,7 +305,7 @@ export default class SecurityCaseEvidence extends BaseModel {
   @ColumnAccessControl(createOnlyColumnAccess)
   @TableColumn({
     type: TableColumnType.ObjectID,
-    title: "File ID",
+    title: "Evidence File ID",
     description:
       "ID of the uploaded file, for File evidence: upload it first, then name it here.",
   })

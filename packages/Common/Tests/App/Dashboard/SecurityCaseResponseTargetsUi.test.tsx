@@ -93,8 +93,8 @@ beforeEach(() => {
   });
   jest
     .spyOn(OneUptimeDate, "getDateAsUserFriendlyLocalFormattedString")
-    .mockImplementation((date: Date): string => {
-      return `at ${date.toISOString()}`;
+    .mockImplementation((date: string | Date): string => {
+      return `at ${typeof date === "string" ? date : date.toISOString()}`;
     });
 });
 

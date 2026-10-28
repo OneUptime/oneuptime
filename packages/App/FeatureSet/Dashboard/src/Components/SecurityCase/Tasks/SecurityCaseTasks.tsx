@@ -195,27 +195,32 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
   }, [load]);
 
   // A change to one task, then the list and the side menu's count read again.
-  const change: (task: SecurityCaseTask, data: JSONObject) => Promise<void> =
-    async (task: SecurityCaseTask, data: JSONObject): Promise<void> => {
-      const id: string = task._id?.toString() || "";
+  const change: (
+    task: SecurityCaseTask,
+    data: JSONObject,
+  ) => Promise<void> = async (
+    task: SecurityCaseTask,
+    data: JSONObject,
+  ): Promise<void> => {
+    const id: string = task._id?.toString() || "";
 
-      setWorkingTaskId(id);
-      setActionError("");
+    setWorkingTaskId(id);
+    setActionError("");
 
-      try {
-        await ModelAPI.updateById<SecurityCaseTask>({
-          modelType: SecurityCaseTask,
-          id: new ObjectID(id),
-          data,
-        });
-        GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
-        await load();
-      } catch (err) {
-        setActionError(API.getFriendlyMessage(err));
-      }
+    try {
+      await ModelAPI.updateById<SecurityCaseTask>({
+        modelType: SecurityCaseTask,
+        id: new ObjectID(id),
+        data,
+      });
+      GlobalEvents.dispatchEvent(REFRESH_SIDEBAR_COUNT_EVENT);
+      await load();
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    }
 
-      setWorkingTaskId("");
-    };
+    setWorkingTaskId("");
+  };
 
   const add: () => Promise<void> = async (): Promise<void> => {
     const title: string | null = readNewTaskTitle(newTitle);
@@ -349,13 +354,19 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
               }
             >
               {doneByName
-                ? translator.translateTemplate(SECURITY_CASE_TASKS_COPY.doneBy, {
-                    name: doneByName,
-                    time: doneTime,
-                  })
-                : translator.translateTemplate(SECURITY_CASE_TASKS_COPY.doneAt, {
-                    time: doneTime,
-                  })}
+                ? translator.translateTemplate(
+                    SECURITY_CASE_TASKS_COPY.doneBy,
+                    {
+                      name: doneByName,
+                      time: doneTime,
+                    },
+                  )
+                : translator.translateTemplate(
+                    SECURITY_CASE_TASKS_COPY.doneAt,
+                    {
+                      time: doneTime,
+                    },
+                  )}
             </p>
           ) : (
             <></>
@@ -365,7 +376,7 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
           className="flex shrink-0 items-center gap-2"
           data-testid={SECURITY_CASE_TASKS_TEST_IDS.assignee}
         >
-          <span className="hidden max-w-[12rem] min-w-0 sm:block">
+          <span className="max-sm:hidden max-w-[12rem] min-w-0 sm:block">
             {task.assignedToUser ? (
               <UserElement user={task.assignedToUser} hideEmail={true} />
             ) : (
@@ -480,7 +491,10 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
             data-testid={SECURITY_CASE_TASKS_TEST_IDS.empty}
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-              <Icon icon={IconProp.ClipboardDocumentCheck} className="h-5 w-5" />
+              <Icon
+                icon={IconProp.ClipboardDocumentCheck}
+                className="h-5 w-5"
+              />
             </span>
             <p className="mt-3 text-sm font-medium text-gray-900">
               {translator.translateText(SECURITY_CASE_TASKS_COPY.emptyTitle)}
