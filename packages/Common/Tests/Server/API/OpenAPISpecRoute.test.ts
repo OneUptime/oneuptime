@@ -55,16 +55,16 @@ interface RawResult {
 let server: http.Server;
 let baseUrl: string = "";
 
-interface RequestInit {
+interface SpecRequest {
   method?: string;
   headers?: Record<string, string>;
 }
 
-function request(requestPath: string, init?: RequestInit): Promise<RawResult> {
+function request(requestPath: string, init?: SpecRequest): Promise<RawResult> {
   return requestUrl(`${baseUrl}${requestPath}`, init);
 }
 
-function requestUrl(url: string, init?: RequestInit): Promise<RawResult> {
+function requestUrl(url: string, init?: SpecRequest): Promise<RawResult> {
   return new Promise<RawResult>(
     (resolve: (result: RawResult) => void, reject: (error: Error) => void) => {
       const clientRequest: http.ClientRequest = http.request(
