@@ -239,6 +239,8 @@ export interface ComponentProps {
   onDeleteSavedView?: ((viewId: string) => void) | undefined;
   onUpdateCurrentSavedView?: (() => void) | undefined;
   onShowDocumentation?: (() => void) | undefined;
+  // "Create monitor" in the toolbar: a monitor watching what the view shows.
+  onCreateMonitor?: (() => void) | undefined;
   viewMode?: LogsViewMode | undefined;
   onViewModeChange?: ((mode: LogsViewMode) => void) | undefined;
   analyticsServiceIds?: Array<string> | undefined;
@@ -1350,6 +1352,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
       });
     },
     onShowDocumentation: props.onShowDocumentation,
+    onCreateMonitor: props.onCreateMonitor,
     signalPivotActions: props.signalPivotActions,
     ...(showFacetPanelToggle
       ? {

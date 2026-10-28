@@ -65,6 +65,8 @@ export interface LogsViewerToolbarProps {
   showKeyboardShortcuts?: boolean | undefined;
   onToggleKeyboardShortcuts?: (() => void) | undefined;
   onShowDocumentation?: (() => void) | undefined;
+  // "Create monitor": a monitor watching what the view shows.
+  onCreateMonitor?: (() => void) | undefined;
   signalPivotActions?: Array<LogsSignalPivotAction> | undefined;
   /*
    * The phone-only "Filters" toggle for the facet sidebar. Below md the
@@ -288,6 +290,24 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
               onChange={props.onSelectedColumnsChange}
             />
           )}
+
+        {props.onCreateMonitor && (
+          <Tooltip
+            text={translator.translateText(
+              "Get alerted about logs like these.",
+            )}
+          >
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+              onClick={props.onCreateMonitor}
+              data-testid="logs-create-monitor"
+            >
+              <Icon icon={IconProp.Bell} className="h-3.5 w-3.5" />
+              {translator.translateText("Create monitor")}
+            </button>
+          </Tooltip>
+        )}
 
         {props.onShowDocumentation && (
           <button

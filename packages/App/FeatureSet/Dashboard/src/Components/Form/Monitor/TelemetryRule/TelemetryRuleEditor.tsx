@@ -2,8 +2,6 @@ import TelemetryRuleActions from "./TelemetryRuleActions";
 import TelemetryRulePreview from "./TelemetryRulePreview";
 import { IncidentRoleOption } from "../MonitorCriteriaIncidentForm";
 import { JSONObject } from "Common/Types/JSON";
-import MetricFormulaConfigData from "Common/Types/Metrics/MetricFormulaConfigData";
-import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import {
   AnomalyDetectionSensitivity,
   EvaluateOverTimeType,
@@ -13,7 +11,6 @@ import {
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { MonitorStepLogMonitorUtil } from "Common/Types/Monitor/MonitorStepLogMonitor";
-import { MonitorStepMetricMonitorUtil } from "Common/Types/Monitor/MonitorStepMetricMonitor";
 import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import TelemetryAlertRuleUtil, {
@@ -24,7 +21,7 @@ import TelemetryAlertRuleUtil, {
 import ObjectID from "Common/Types/ObjectID";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import IconProp from "Common/Types/Icon/IconProp";
-import MetricUnitUtil, { UnitOption } from "Common/Utils/MetricUnitUtil";
+import { UnitOption } from "Common/Utils/MetricUnitUtil";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
@@ -52,7 +49,6 @@ import {
   ANOMALY_SENSITIVITY_CHOICES,
   getComparisonChoices,
   getCountTitle,
-  getRuleSentence,
   getShapeProblemText,
   getWindowOptions,
   METRIC_AGGREGATION_CHOICES,
@@ -65,6 +61,12 @@ import {
   getRuleNameFromFilter,
   TelemetryRuleSeeds,
 } from "../../../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleRecipes";
+import {
+  getMetricAliasLabel,
+  getRuleMetricAlias,
+  getRuleSentenceForStep,
+  getRuleUnits,
+} from "../../../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleMetric";
 import {
   applyActionChange,
   applyConditionChange,
@@ -136,92 +138,6 @@ export const getPreviewSettings: (data: {
     default:
       return null;
   }
-};
-
-/*
- * The metric a rule's alias reads, by the name a person knows it by: its
- * title, else its metric's name, else the formula - else the alias.
- */
-export const getMetricAliasLabel: (data: {
-  monitorStep: MonitorStep;
-  alias: string;
-}) => string = (data: { monitorStep: MonitorStep; alias: string }): string => {
-  return getMetricAliasName(data) || data.alias;
-};
-
-/*
- * The name a rule's alias goes by, as getMetricAliasLabel; undefined for a
- * query with no metric picked yet.
- */
-export const getMetricAliasName: (data: {
-  monitorStep: MonitorStep;
-  alias: string;
-}) => string | undefined = (data: {
-  monitorStep: MonitorStep;
-  alias: string;
-}): string | undefined => {
-  const viewConfig: {
-    queryConfigs: Array<MetricQueryConfigData>;
-    formulaConfigs: Array<MetricFormulaConfigData>;
-  } = MonitorStepMetricMonitorUtil.getMetricViewConfig(
-    data.monitorStep.data?.metricMonitor,
-  );
-
-  const query: MetricQueryConfigData | undefined = viewConfig.queryConfigs.find(
-    (candidate: MetricQueryConfigData) => {
-      return candidate.metricAliasData?.metricVariable === data.alias;
-    },
-  );
-
-  if (query) {
-    const metricName: unknown = query.metricQueryData?.filterData?.metricName;
-
-    return (
-      query.metricAliasData?.title?.trim() ||
-      (typeof metricName === "string" ? metricName : "") ||
-      undefined
-    );
-  }
-
-  const formula: MetricFormulaConfigData | undefined =
-    viewConfig.formulaConfigs.find((candidate: MetricFormulaConfigData) => {
-      return candidate.metricAliasData?.metricVariable === data.alias;
-    });
-
-  return (
-    formula?.metricAliasData?.title?.trim() ||
-    formula?.metricFormulaData?.metricFormula ||
-    undefined
-  );
-};
-
-// The unit the metric a rule's alias reads is shown in.
-const getMetricAliasUnit: (data: {
-  monitorStep: MonitorStep;
-  alias: string | undefined;
-}) => string | undefined = (data: {
-  monitorStep: MonitorStep;
-  alias: string | undefined;
-}): string | undefined => {
-  const viewConfig: {
-    queryConfigs: Array<MetricQueryConfigData>;
-    formulaConfigs: Array<MetricFormulaConfigData>;
-  } = MonitorStepMetricMonitorUtil.getMetricViewConfig(
-    data.monitorStep.data?.metricMonitor,
-  );
-
-  const aliasData:
-    | MetricQueryConfigData["metricAliasData"]
-    | MetricFormulaConfigData["metricAliasData"]
-    | undefined =
-    viewConfig.queryConfigs.find((query: MetricQueryConfigData) => {
-      return query.metricAliasData?.metricVariable === data.alias;
-    })?.metricAliasData ||
-    viewConfig.formulaConfigs.find((formula: MetricFormulaConfigData) => {
-      return formula.metricAliasData?.metricVariable === data.alias;
-    })?.metricAliasData;
-
-  return aliasData?.legendUnit || undefined;
 };
 
 const ROLLING_TIME_OPTIONS: Array<DropdownOption> =
@@ -516,19 +432,15 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
   const metricAliases: Array<string> = isMetric
     ? TelemetryAlertRuleUtil.getMetricAliases(monitorStep)
     : [];
-  const effectiveAlias: string | undefined =
-    rule.metricAlias || metricAliases[0];
-  const metricName: string | undefined = effectiveAlias
-    ? getMetricAliasName({ monitorStep, alias: effectiveAlias })
+  const effectiveAlias: string | undefined = isMetric
+    ? getRuleMetricAlias({ monitorStep, rule })
     : undefined;
-  const metricUnit: string | undefined = isMetric
-    ? getMetricAliasUnit({ monitorStep, alias: effectiveAlias })
-    : undefined;
-  const unitOptions: Array<UnitOption> = isMetric
-    ? MetricUnitUtil.getCompatibleUnits(metricUnit)
-    : [];
-  const unitValue: string | undefined =
-    rule.thresholdUnit || MetricUnitUtil.getCanonicalUnitValue(metricUnit);
+  const units: { options: Array<UnitOption>; value: string | undefined } =
+    isMetric
+      ? getRuleUnits({ monitorStep, rule })
+      : { options: [], value: undefined };
+  const unitOptions: Array<UnitOption> = units.options;
+  const unitValue: string | undefined = units.value;
 
   const valueError: string | undefined =
     !isAnomaly &&
@@ -542,22 +454,11 @@ const TelemetryRuleEditor: FunctionComponent<ComponentProps> = (
     monitorStep,
   });
 
-  const unitLabel: string | undefined = unitOptions.find(
-    (option: UnitOption) => {
-      return option.value === unitValue;
-    },
-  )?.label;
-
-  const sentence: string = getRuleSentence({
+  const sentence: string = getRuleSentenceForStep({
     monitorType,
+    monitorStep,
     rule,
     translator,
-    metricName,
-    // An annotation ("{message}") names what is counted: it is no unit.
-    unit:
-      unitLabel && !(unitLabel.startsWith("{") && unitLabel.endsWith("}"))
-        ? unitLabel
-        : undefined,
   });
 
   return (

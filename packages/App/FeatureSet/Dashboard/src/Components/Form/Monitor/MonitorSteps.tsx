@@ -53,9 +53,16 @@ import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
 import {
   applyRecipe,
   getDefaultRecipe,
+  getRecipe,
   TelemetryRuleRecipe,
+  TelemetryRuleRecipeKey,
   TelemetryRuleSeeds,
 } from "../../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleRecipes";
+import {
+  applyTelemetryMonitorLinkQuery,
+  getTelemetryMonitorLinkRecipeKey,
+  TelemetryMonitorLinkQuery,
+} from "../../../Utils/Form/Monitor/TelemetryRule/TelemetryMonitorLink";
 
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
@@ -70,6 +77,12 @@ export interface ComponentProps extends CustomElementProps {
    * foldDefaultCriteria). Create Monitor turns it on.
    */
   foldDefaultCriteria?: boolean | undefined;
+  /*
+   * What a "Create monitor" link from the logs or traces explorer, or an
+   * exception's page, shows (TelemetryMonitorLink): a new monitor of the
+   * link's type starts watching just that, on the recipe that suits it.
+   */
+  seedQuery?: TelemetryMonitorLinkQuery | undefined;
 }
 
 const MonitorStepsElement: FunctionComponent<ComponentProps> = (
@@ -212,9 +225,16 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       ...data.criteriaSeedOptions,
     });
 
-    const recipe: TelemetryRuleRecipe | null = getDefaultRecipe(
-      data.monitorType,
-    );
+    const linkRecipeKey: TelemetryRuleRecipeKey | undefined = props.seedQuery
+      ? getTelemetryMonitorLinkRecipeKey({
+          monitorType: data.monitorType,
+          query: props.seedQuery,
+        })
+      : undefined;
+
+    const recipe: TelemetryRuleRecipe | null = linkRecipeKey
+      ? getRecipe(linkRecipeKey)
+      : getDefaultRecipe(data.monitorType);
     const firstStep: MonitorStep | undefined =
       steps.data?.monitorStepsInstanceArray[0];
 
@@ -223,12 +243,21 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       return steps;
     }
 
-    const seededStep: MonitorStep = applyRecipe({
+    const recipeStep: MonitorStep = applyRecipe({
       monitorStep: firstStep,
       recipe,
       seeds: { ...data.seeds, monitorName: props.monitorName || "" },
       translator: translator,
     });
+
+    // What the link shows, over the recipe's part of the query.
+    const seededStep: MonitorStep = props.seedQuery
+      ? applyTelemetryMonitorLinkQuery({
+          monitorType: data.monitorType,
+          monitorStep: recipeStep,
+          query: props.seedQuery,
+        })
+      : recipeStep;
 
     steps.setMonitorStepsInstanceArray([seededStep]);
 

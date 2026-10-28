@@ -118,6 +118,15 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import Dictionary from "Common/Types/Dictionary";
 import {
+  getTelemetryMonitorLinkParams,
+  getTracesFilterLinkQuery,
+} from "../../Utils/Form/Monitor/TelemetryRule/TelemetryMonitorLink";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import {
   CrossSignalQueryParams,
   toLogsExplorerQueryParams,
   toMetricsExplorerQueryParams,
@@ -653,6 +662,11 @@ interface Props {
    */
   offersSetupWhenEmpty?: boolean | undefined;
   /*
+   * Offer "Create monitor" in the toolbar: a Traces monitor watching what
+   * the view shows (TelemetryMonitorLink). The Traces page turns it on.
+   */
+  offersCreateMonitor?: boolean | undefined;
+  /*
    * Only the spans one exception group's occurrences were raised in — the
    * exception detail page's span list. Applied to the list, the histogram and
    * the facets alike, and shown as a locked "Exception" chip labelled with
@@ -673,6 +687,8 @@ interface Props {
 }
 
 const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
+  const translator: Translator = useTranslator();
+
   /*
    * The host's scope, by value (issue #4709). Pages hand it over as new
    * objects on every render - an ObjectID read from the URL in the render,
@@ -3253,6 +3269,40 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   );
 
   /*
+   * "Create monitor": a Traces monitor watching what this view shows - its
+   * services, attributes, statuses and span name - on the recipe that suits
+   * it (TelemetryMonitorLink). Only for a reader who may create one.
+   */
+  const canCreateMonitor: boolean = useMemo(() => {
+    return PermissionGate.check(new Monitor(), ModelAction.Create).isAllowed;
+  }, []);
+
+  const navigateToCreateMonitor: () => void = useCallback((): void => {
+    const params: Dictionary<string> = getTelemetryMonitorLinkParams({
+      monitorType: MonitorType.Traces,
+      query: getTracesFilterLinkQuery(
+        baseQuery as unknown as Dictionary<unknown>,
+      ),
+    });
+
+    const route: Route = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.MONITOR_CREATE]!,
+    );
+    const currentUrl: URL = Navigation.getCurrentURL();
+    const targetUrl: URL = new URL(
+      currentUrl.protocol,
+      currentUrl.hostname,
+      route,
+    );
+
+    for (const paramName of Object.keys(params)) {
+      targetUrl.addQueryParam(paramName, params[paramName] as string, true);
+    }
+
+    Navigation.navigate(targetUrl);
+  }, [baseQuery]);
+
+  /*
    * Build the route to a trace's detail page so rows can render as real
    * anchors (cmd/ctrl/middle-click → open in new tab).
    */
@@ -3523,6 +3573,21 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
               </button>
             </Tooltip>
           </div>
+          {props.offersCreateMonitor && canCreateMonitor ? (
+            <Tooltip text="Get alerted about requests like these.">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
+                onClick={navigateToCreateMonitor}
+                data-testid="traces-create-monitor"
+              >
+                <Icon icon={IconProp.Bell} className="h-3.5 w-3.5" />
+                <span>{translator.translateText("Create monitor")}</span>
+              </button>
+            </Tooltip>
+          ) : (
+            <></>
+          )}
           {/* Spans / Analytics view toggle */}
           <div className="inline-flex overflow-hidden rounded-md border border-gray-200 shadow-sm">
             {(["spans", "analytics"] as Array<"spans" | "analytics">).map(

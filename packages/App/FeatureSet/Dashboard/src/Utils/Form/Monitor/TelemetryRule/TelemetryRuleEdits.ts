@@ -1,7 +1,8 @@
 import { CriteriaAlert } from "Common/Types/Monitor/CriteriaAlert";
 import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
+import { FilterType } from "Common/Types/Monitor/CriteriaFilter";
 import MonitorType from "Common/Types/Monitor/MonitorType";
-import {
+import TelemetryAlertRuleUtil, {
   TelemetryAlertRule,
   TelemetryAlertRuleAction,
 } from "Common/Types/Monitor/TelemetryAlertRule";
@@ -25,8 +26,10 @@ import {
  * errors", or - on a monitor made before the rule editor - "Check if
  * Checkout is offline" and "Checkout is offline". Change the rule, and a
  * name or title OneUptime wrote follows it, so a monitor never opens an
- * incident called "is offline" for too many errors. Words a person typed
- * are theirs, and stay.
+ * incident called "is offline" for too many errors. A recipe's title says
+ * what kind of rule it is ("too many errors"), so it stays while the rule
+ * stays that kind - a new number or window - and follows when it becomes
+ * another. Words a person typed are theirs, and stay.
  */
 
 export const opensIncident: (action: TelemetryAlertRuleAction) => boolean = (
@@ -129,10 +132,44 @@ export const getGeneratedTitle: (data: {
 };
 
 /*
- * Every title OneUptime may have written for a rule of this monitor, in
- * the reader's language and in English.
+ * What a rule is about, whatever its number: a count that is above a
+ * number, any at all, none at all, below a number; a value above or below
+ * one; unusual. A recipe's title holds while this does.
  */
-const getWrittenTitles: (data: {
+export const getRuleKind: (data: {
+  monitorType: MonitorType;
+  rule: Pick<TelemetryAlertRule, "filterType" | "threshold">;
+}) => string = (data: {
+  monitorType: MonitorType;
+  rule: Pick<TelemetryAlertRule, "filterType" | "threshold">;
+}): string => {
+  const isCount: boolean = TelemetryAlertRuleUtil.isCountMonitorType(
+    data.monitorType,
+  );
+  const threshold: number | undefined = data.rule.threshold;
+
+  switch (data.rule.filterType) {
+    case FilterType.GreaterThan:
+      return isCount && threshold === 0 ? "any" : "above";
+    case FilterType.GreaterThanOrEqualTo:
+      return isCount && threshold === 1 ? "any" : "above";
+    case FilterType.LessThan:
+      return isCount && threshold === 1 ? "none" : "below";
+    case FilterType.LessThanOrEqualTo:
+      return isCount && threshold === 0 ? "none" : "below";
+    case FilterType.EqualTo:
+      return isCount && threshold === 0 ? "none" : "exactly";
+    default:
+      return data.rule.filterType;
+  }
+};
+
+/*
+ * The titles OneUptime writes from a rule itself ("Checkout: Log Count is
+ * above 10") and the ones the out-of-the-box criteria wrote: they follow
+ * any change of the rule.
+ */
+const getRuleWrittenTitles: (data: {
   monitorType: MonitorType;
   previous: TelemetryAlertRule;
   monitorName: string;
@@ -145,18 +182,28 @@ const getWrittenTitles: (data: {
 }): Array<string> => {
   return [
     ...getLegacyTitles(data.monitorName),
-    ...getRecipes(data.monitorType).map((recipe: TelemetryRuleRecipe) => {
-      return data.translator.translateTemplate(recipe.openedTitle, {
-        monitorName: data.monitorName,
-      });
-    }),
-    getGeneratedTitle({
-      monitorType: data.monitorType,
-      rule: data.previous,
+    data.translator.translateTemplate("{{monitorName}}: {{ruleName}}", {
       monitorName: data.monitorName,
-      translator: data.translator,
+      ruleName: getRuleName(data.monitorType, data.previous),
     }),
   ];
+};
+
+// The recipes' titles, for this monitor, in the reader's language.
+const getRecipeTitles: (data: {
+  monitorType: MonitorType;
+  monitorName: string;
+  translator: Translator;
+}) => Array<string> = (data: {
+  monitorType: MonitorType;
+  monitorName: string;
+  translator: Translator;
+}): Array<string> => {
+  return getRecipes(data.monitorType).map((recipe: TelemetryRuleRecipe) => {
+    return data.translator.translateTemplate(recipe.openedTitle, {
+      monitorName: data.monitorName,
+    });
+  });
 };
 
 /*
@@ -189,12 +236,22 @@ export const applyConditionChange: (data: {
     result.name = getRuleName(data.monitorType, next);
   }
 
-  const writtenTitles: Array<string> = getWrittenTitles({
+  const ruleWrittenTitles: Array<string> = getRuleWrittenTitles({
     monitorType: data.monitorType,
     previous,
     monitorName: data.monitorName,
     translator: data.translator,
   });
+
+  const recipeTitles: Array<string> = getRecipeTitles({
+    monitorType: data.monitorType,
+    monitorName: data.monitorName,
+    translator: data.translator,
+  });
+
+  const isSameKind: boolean =
+    getRuleKind({ monitorType: data.monitorType, rule: previous }) ===
+    getRuleKind({ monitorType: data.monitorType, rule: next });
 
   const newTitle: string = getGeneratedTitle({
     monitorType: data.monitorType,
@@ -203,27 +260,27 @@ export const applyConditionChange: (data: {
     translator: data.translator,
   });
 
-  if (next.incident && isWrittenTitle(next.incident.title, writtenTitles)) {
+  const follows: (title: string | undefined) => boolean = (
+    title: string | undefined,
+  ): boolean => {
+    const trimmed: string = (title || "").trim();
+
+    if (!trimmed || ruleWrittenTitles.includes(trimmed)) {
+      return true;
+    }
+
+    return recipeTitles.includes(trimmed) && !isSameKind;
+  };
+
+  if (next.incident && follows(next.incident.title)) {
     result.incident = { ...next.incident, title: newTitle };
   }
 
-  if (next.alert && isWrittenTitle(next.alert.title, writtenTitles)) {
+  if (next.alert && follows(next.alert.title)) {
     result.alert = { ...next.alert, title: newTitle };
   }
 
   return result;
-};
-
-const isWrittenTitle: (
-  title: string | undefined,
-  writtenTitles: Array<string>,
-) => boolean = (
-  title: string | undefined,
-  writtenTitles: Array<string>,
-): boolean => {
-  const trimmed: string = (title || "").trim();
-
-  return !trimmed || writtenTitles.includes(trimmed);
 };
 
 /*
