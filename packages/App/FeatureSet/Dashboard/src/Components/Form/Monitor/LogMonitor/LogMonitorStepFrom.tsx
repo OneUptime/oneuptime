@@ -3,7 +3,12 @@ import MonitorStepLogMonitor, {
 } from "Common/Types/Monitor/MonitorStepLogMonitor";
 import Service from "Common/Models/DatabaseModels/Service";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useEffect,
+  useRef,
+} from "react";
 import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import LogSeverity from "Common/Types/Log/LogSeverity";
 import DropdownUtil from "Common/UI/Utils/Dropdown";
@@ -14,8 +19,9 @@ import {
 } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { FOLDED_SECTION_LINE } from "Common/UI/Components/FoldedSection/FoldedSectionVariant";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import LogMonitorPreview from "../../../Monitor/LogMonitor/LogMonitorPreview";
 import LogGroupByAttributesInput from "./LogGroupByAttributesInput";
 
@@ -37,6 +43,15 @@ import LogGroupByAttributesInput from "./LogGroupByAttributesInput";
 const MORE_LOG_FILTERS: FormFieldCollapsibleSection<MonitorStepLogMonitor> =
   getAdvancedFormSection<MonitorStepLogMonitor>();
 
+// The fold under the filters that lists the logs they match.
+export const MATCHING_LOGS_TITLE: string = translationKey("Matching logs");
+
+// The Message contains box, which "A message appears" puts the cursor in.
+export const LOG_MONITOR_MESSAGE_TEST_ID: string = "log-monitor-message";
+
+// How many frames the box is looked for before giving up.
+const MESSAGE_FOCUS_FRAME_ATTEMPTS: number = 30;
+
 export interface ComponentProps {
   monitorStepLogMonitor: MonitorStepLogMonitor;
   onMonitorStepLogMonitorChanged: (
@@ -49,6 +64,13 @@ export interface ComponentProps {
   attributeValueSuggestions?: Record<string, Array<string>> | undefined;
   loadingAttributeValueKeys?: Array<string> | undefined;
   onAttributeKeySelected?: ((key: string) => void) | undefined;
+  /*
+   * Put the cursor in Message contains as the form is drawn: the recipe
+   * that asks for words ("A message appears") was just picked, and left
+   * empty it counts every log. Said back once it is done.
+   */
+  focusMessageField?: boolean | undefined;
+  onMessageFieldFocused?: (() => void) | undefined;
 }
 
 const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
@@ -57,84 +79,75 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [monitorStepLogMonitor, setMonitorStepLogMonitor] =
     React.useState<MonitorStepLogMonitor>(props.monitorStepLogMonitor);
 
+  /*
+   * The logs these filters match, folded: the rule's preview below counts
+   * them, and the list is there for whoever wants to read them. Drawn only
+   * once opened, so the form reads no logs until it is.
+   */
+  const [isMatchingLogsCollapsed, setIsMatchingLogsCollapsed] =
+    React.useState<boolean>(true);
+
+  const formRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!props.focusMessageField) {
+      return;
+    }
+
+    /*
+     * BasicForm draws its fields a render after it mounts, so the box is
+     * looked for over the next few frames.
+     */
+    let frame: number = 0;
+    let attemptsLeft: number = MESSAGE_FOCUS_FRAME_ATTEMPTS;
+
+    const focusMessage: () => void = (): void => {
+      const messageInput: HTMLInputElement | null | undefined =
+        formRef.current?.querySelector<HTMLInputElement>(
+          `[data-testid="${LOG_MONITOR_MESSAGE_TEST_ID}"]`,
+        );
+
+      if (messageInput) {
+        messageInput.focus();
+        props.onMessageFieldFocused?.();
+        return;
+      }
+
+      attemptsLeft--;
+
+      if (attemptsLeft > 0) {
+        frame = window.requestAnimationFrame(focusMessage);
+      }
+    };
+
+    focusMessage();
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [props.focusMessageField]);
+
   return (
-    <div>
+    <div ref={formRef}>
+      {/*
+       * A part of the criteria step, not a form of its own: it never takes
+       * the cursor as the step opens (the first question is above it).
+       */}
       <BasicForm
         id="logs-filter"
         hideSubmitButton={true}
+        disableAutofocus={true}
         initialValues={monitorStepLogMonitor}
         onChange={(values: MonitorStepLogMonitor) => {
           setMonitorStepLogMonitor(values);
           props.onMonitorStepLogMonitorChanged(values);
         }}
         fields={[
-          {
-            field: {
-              body: true,
-            },
-            fieldType: FormFieldSchemaType.Text,
-            title: "Monitor Logs that include this text",
-            description:
-              "This monitor will filter all the logs that include this text.",
-            hideOptionalLabel: true,
-          },
-          {
-            field: {
-              lastXSecondsOfLogs: true,
-            },
-            defaultValue: 60,
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [
-              {
-                label: "Last 5 seconds",
-                value: 5,
-              },
-              {
-                label: "Last 10 seconds",
-                value: 10,
-              },
-              {
-                label: "Last 30 seconds",
-                value: 30,
-              },
-              {
-                label: "Last 1 minute",
-                value: 60,
-              },
-              {
-                label: "Last 5 minutes",
-                value: 300,
-              },
-              {
-                label: "Last 15 minutes",
-                value: 900,
-              },
-              {
-                label: "Last 30 minutes",
-                value: 1800,
-              },
-              {
-                label: "Last 1 hour",
-                value: 3600,
-              },
-              {
-                label: "Last 6 hours",
-                value: 21600,
-              },
-              {
-                label: "Last 12 hours",
-                value: 43200,
-              },
-              {
-                label: "Last 24 hours",
-                value: 86400,
-              },
-            ],
-            title: "Monitor Logs for (time)",
-            description:
-              "We will fetch all the logs that were generated in the last X time.",
-            hideOptionalLabel: true,
-          },
+          /*
+           * The time window is the rule's ("When to alert": "more than 10
+           * in 5 minutes"), so it is set there, beside the number it goes
+           * with.
+           */
           {
             field: {
               severityTexts: true,
@@ -143,7 +156,20 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               DropdownUtil.getDropdownOptionsFromEnum(LogSeverity),
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             title: "Log Severity",
-            description: "Select the severity of the logs you want to monitor.",
+            description:
+              "Only logs of these severities. Empty: every severity.",
+            hideOptionalLabel: true,
+          },
+          {
+            field: {
+              body: true,
+            },
+            fieldType: FormFieldSchemaType.Text,
+            title: "Message contains",
+            description:
+              "Only logs whose message contains this text, in any case. Empty: every message.",
+            placeholder: "payment declined",
+            dataTestId: LOG_MONITOR_MESSAGE_TEST_ID,
             hideOptionalLabel: true,
           },
           /*
@@ -222,7 +248,7 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Telemetry Service",
-            description: "Select the telemetry services you want to monitor.",
+            description: "Only logs from these services. Empty: every service.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_LOG_FILTERS,
           },
@@ -244,7 +270,8 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               },
             ),
             title: "Filter by Infrastructure Entity",
-            description: "Scope to specific infrastructure entities (optional)",
+            description:
+              "Only logs from these hosts, clusters or other infrastructure. Empty: all of it.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_LOG_FILTERS,
           },
@@ -261,26 +288,31 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
             onDictionaryKeySelected: props.onAttributeKeySelected,
             dictionaryEnableOperators: true,
             description:
-              "You can filter the logs based on the attributes that are attached to the logs.",
+              "Only logs whose attributes match all of these. Empty: any attributes.",
             hideOptionalLabel: true,
             collapsibleSection: MORE_LOG_FILTERS,
           },
         ]}
       />
-      <div>
-        <HorizontalRule />
-        <FieldLabelElement
-          title={"Logs Preview"}
-          description={
-            "The logs these filters match, so you can check the filters before you save."
-          }
-          hideOptionalLabel={true}
-          isHeading={true}
-        />
-        <div className="mt-5 mb-5">
-          <LogMonitorPreview monitorStepLogMonitor={monitorStepLogMonitor} />
-        </div>
-      </div>
+      <FoldedSection
+        title={MATCHING_LOGS_TITLE}
+        description="The logs these filters match now, to check them before you save."
+        variant={FOLDED_SECTION_LINE}
+        className="mt-4"
+        isCollapsed={isMatchingLogsCollapsed}
+        onToggle={(isCollapsed: boolean) => {
+          setIsMatchingLogsCollapsed(isCollapsed);
+        }}
+        dataTestId="log-monitor-matching-logs"
+      >
+        {isMatchingLogsCollapsed ? (
+          <></>
+        ) : (
+          <div className="mt-2">
+            <LogMonitorPreview monitorStepLogMonitor={monitorStepLogMonitor} />
+          </div>
+        )}
+      </FoldedSection>
     </div>
   );
 };

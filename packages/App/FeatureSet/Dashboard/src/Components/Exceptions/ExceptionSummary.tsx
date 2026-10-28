@@ -227,8 +227,15 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
       className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
       data-testid="exception-summary"
     >
-      <div className="px-5 py-5 sm:px-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+      {/*
+       * The actions sit beside the exception only when the card is wide
+       * enough for both (a container query, not the window's width): from
+       * lg up beside the side menu, three buttons - Resolve, Archive,
+       * Create monitor - left the message a word a line at 1024px. On a
+       * narrower card they go under it.
+       */}
+      <div className="px-5 py-5 [container-type:inline-size] sm:px-6">
+        <div className="flex flex-col gap-4 [@container(min-width:56rem)]:flex-row [@container(min-width:56rem)]:items-start">
           <div className="flex min-w-0 flex-1 items-start gap-4">
             <div
               className={`max-sm:hidden h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl sm:flex ${status.containerClassName}`}
@@ -313,8 +320,15 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
           </div>
 
           {props.actions && (
+            /*
+             * Under the exception, the actions start where its words do,
+             * past the status icon (44px and the 16px gap) where it shows,
+             * and each Button's own dialog-footer margin (md:ml-3) is taken
+             * off, so the first one lines up with the words and the gap
+             * between them is the row's own.
+             */
             <div
-              className="flex flex-shrink-0 flex-wrap items-center gap-2 lg:justify-end"
+              className="flex flex-shrink-0 flex-wrap items-center gap-2 sm:gap-3 sm:ps-[3.75rem] [@container(min-width:56rem)]:justify-end [@container(min-width:56rem)]:ps-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0"
               data-testid="exception-summary-actions"
             >
               {props.actions}

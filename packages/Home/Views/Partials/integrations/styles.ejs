@@ -14,8 +14,7 @@
   }
   .guide-code code { color: #e6edf3; }
   .guide-code .hljs-comment,
-  .guide-code .hljs-quote,
-  .guide-code .hljs-meta { color: #8b949e; }
+  .guide-code .hljs-quote { color: #8b949e; }
   .guide-code .hljs-keyword,
   .guide-code .hljs-selector-tag,
   .guide-code .hljs-literal,
@@ -31,7 +30,14 @@
   .guide-code .hljs-attribute,
   .guide-code .hljs-variable,
   .guide-code .hljs-template-variable,
-  .guide-code .hljs-property { color: #79c0ff; }
+  .guide-code .hljs-property,
+  .guide-code .hljs-meta { color: #79c0ff; }
+  /*
+   * hljs-meta is code, not a comment: Java's and Kotlin's annotations,
+   * Python's decorators and the keys of a .properties file. Drawn in a
+   * comment's grey, @WithSpan and otel.traces.exporter read as notes to
+   * skip; GitHub's dark theme gives them this blue too.
+   */
   .guide-code .hljs-title,
   .guide-code .hljs-section,
   .guide-code .hljs-name { color: #d2a8ff; }

@@ -15,8 +15,11 @@ import {
   generateIntegrationsIndexMarkdown,
 } from "../Utils/Integrations/OpenTelemetry/GuideMarkdown";
 import {
+  INTEGRATIONS_INDEX_SEO,
   OPEN_TELEMETRY_GUIDE_PAGES,
   getGuideEntry,
+  getGuideLanguageGroup,
+  getPublishedGuides,
 } from "../Utils/Integrations/OpenTelemetry/OpenTelemetryGuides";
 import {
   GuideQuestion,
@@ -60,6 +63,29 @@ function ofType(schemas: Array<JsonLd>, type: string): Array<JsonLd> {
   return schemas.filter((schema: JsonLd): boolean => {
     return schema["@type"] === type;
   });
+}
+
+interface Crumb {
+  name: string;
+  href: string | null;
+  isCurrent: boolean;
+}
+
+// The breadcrumb above the guide's name, step by step, without its slashes.
+function breadcrumbOf(document: Document): Array<Crumb> {
+  return Array.from(
+    document.querySelectorAll('nav[aria-label="Breadcrumb"] li'),
+  )
+    .filter((item: Element): boolean => {
+      return item.getAttribute("aria-hidden") !== "true";
+    })
+    .map((item: Element): Crumb => {
+      return {
+        name: (item.textContent || "").trim(),
+        href: item.querySelector("a")?.getAttribute("href") || null,
+        isCurrent: item.getAttribute("aria-current") === "page",
+      };
+    });
 }
 
 async function renderGuide(slug: string): Promise<Document> {
@@ -152,6 +178,7 @@ describe.each(
     const sections: Array<GuideSection> = guideSections(
       getGuideEntry(slug).name,
       getGuideEntry(slug).kind,
+      getGuideEntry(slug).inSentence,
     );
 
     expect(
@@ -283,6 +310,57 @@ describe.each(
     expect(content.related.length).toBe(guide.related.length);
   });
 
+  test("leads back to the index through its language, and names no step twice", () => {
+    const entry: ReturnType<typeof getGuideEntry> = getGuideEntry(slug);
+    const language: ReturnType<typeof getGuideLanguageGroup> =
+      getGuideLanguageGroup(slug);
+    const crumbs: Array<Crumb> = breadcrumbOf(document);
+
+    expect(crumbs[0]).toEqual({
+      name: "Integrations",
+      href: OPEN_TELEMETRY_GUIDES_INDEX_PATH,
+      isCurrent: false,
+    });
+    expect(crumbs[crumbs.length - 1]).toEqual({
+      name: entry.name,
+      href: null,
+      isCurrent: true,
+    });
+    /*
+     * The language's group on the index between them, unless the guide is
+     * the language's own page and named as it is: "Integrations / Python",
+     * never "Integrations / Python / Python".
+     */
+    expect(crumbs.slice(1, -1)).toEqual(
+      language.title === entry.name
+        ? []
+        : [
+            {
+              name: language.title,
+              href: `${OPEN_TELEMETRY_GUIDES_INDEX_PATH}#${language.language}`,
+              isCurrent: false,
+            },
+          ],
+    );
+    expect(
+      new Set(
+        crumbs.map((crumb: Crumb): string => {
+          return crumb.name;
+        }),
+      ).size,
+    ).toBe(crumbs.length);
+    // The group the link opens is on the index.
+    if (crumbs.length === 3) {
+      expect(
+        getIntegrationsIndexContent(HOME_URL).groups.map(
+          (group: { id: string }): string => {
+            return group.id;
+          },
+        ),
+      ).toContain(language.language);
+    }
+  });
+
   test("says when and with what it was checked end to end", () => {
     const text: string =
       document.querySelector("main header")?.textContent || "";
@@ -322,6 +400,7 @@ describe.each(
     for (const section of guideSections(
       getGuideEntry(slug).name,
       getGuideEntry(slug).kind,
+      getGuideEntry(slug).inSentence,
     )) {
       expect(markdown).toContain(`\n## ${section.title}\n`);
     }
@@ -386,6 +465,24 @@ describe("the checked line's names", () => {
   });
 });
 
+describe("the breadcrumb of a language's own guide", () => {
+  test.each([
+    ["python", ["Integrations", "Python"]],
+    ["java", ["Integrations", "Java"]],
+    ["dotnet", ["Integrations", ".NET"]],
+    ["django", ["Integrations", "Python", "Django"]],
+    ["ktor", ["Integrations", "Kotlin", "Ktor"]],
+    ["aspnet-core", ["Integrations", ".NET", "ASP.NET Core"]],
+    ["nodejs", ["Integrations", "JavaScript & TypeScript", "Node.js"]],
+  ])("%s reads %j", async (slug: string, names: Array<string>) => {
+    expect(
+      breadcrumbOf(await renderGuide(slug)).map((crumb: Crumb): string => {
+        return crumb.name;
+      }),
+    ).toEqual(names);
+  });
+});
+
 describe("a slug the catalog does not know", () => {
   test("has no page", () => {
     expect(getGuidePageContent("cobol", HOME_URL)).toBeNull();
@@ -405,6 +502,35 @@ describe("the integrations index", () => {
     document = new JSDOM(html).window.document;
   });
 
+  test("names every language it has guides for in its search result, in at most 160 characters", () => {
+    const description: string = INTEGRATIONS_INDEX_SEO.description;
+    const languages: Set<string> = new Set<string>(
+      getPublishedGuides().map(
+        ({ entry }: { entry: { slug: string } }): string => {
+          return getGuideLanguageGroup(entry.slug).title;
+        },
+      ),
+    );
+
+    expect(description.length).toBeLessThanOrEqual(160);
+    expect(
+      document
+        .querySelector('meta[name="description"]')
+        ?.getAttribute("content"),
+    ).toBe(description);
+    for (const language of languages) {
+      // JavaScript's guides are searched for by the runtime's name.
+      const name: string =
+        language === "JavaScript & TypeScript" ? "Node.js" : language;
+
+      // A word of its own: ".NET" inside "ASP.NET Core" does not name .NET.
+      expect([language, description.includes(` ${name}`)]).toEqual([
+        language,
+        true,
+      ]);
+    }
+  });
+
   test("has one h1, and its own title, description and canonical address", () => {
     expect(document.querySelectorAll("h1").length).toBe(1);
     expect(document.title).toBe(seoFor(OPEN_TELEMETRY_GUIDES_INDEX_PATH).title);
@@ -422,7 +548,7 @@ describe("the integrations index", () => {
       groups.map((group: Element): string => {
         return group.id;
       }),
-    ).toEqual(["javascript"]);
+    ).toEqual(["javascript", "python", "java", "kotlin", "dotnet"]);
     expect(
       Array.from(document.querySelectorAll("[data-integration-card] a")).map(
         (link: Element): string | null => {
@@ -445,8 +571,15 @@ describe("the integrations index", () => {
         card.querySelector("a > span.min-w-0 > span")?.textContent || ""
       ).trim();
 
+      const language: string = (
+        card.closest("[data-integrations-group]")?.querySelector("h2")
+          ?.textContent || ""
+      ).trim();
+
       expect(words).toContain(name.toLowerCase());
-      expect(words).toContain("javascript");
+      // The group it is listed under: "python", ".net", "javascript & typescript".
+      expect([name, language.length > 0]).toEqual([name, true]);
+      expect(words).toContain(language.toLowerCase());
     }
   });
 

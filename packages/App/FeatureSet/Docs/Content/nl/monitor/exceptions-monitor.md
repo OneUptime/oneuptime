@@ -33,23 +33,31 @@ Elke minuut telt OneUptime de uitzonderingen die aan de filters van de monitor v
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Of klik op de pagina van een uitzondering op **Monitor maken** naast **Oplossen**: de nieuwe monitor bewaakt vanaf het begin het type van die uitzondering in zijn service, en waarschuwt wanneer die opnieuw optreedt.
 
 ### Exceptions kiezen
 
 Klik onder **Monitortype** op **Meer monitortypen** en kies **Uitzonderingen** onder **Telemetrie**, of typ `exceptions` in het zoekvak. Vul een **Naam** in en klik dan op **Volgende**.
 
+### Kiezen waarover de monitor u informeert
+
+Kies onder **Waarover moet deze monitor je informeren?** voor **Elke uitzondering** of **Te veel uitzonderingen**. Elke keuze vult de regel in, die u verderop kunt wijzigen. Kies **Iets anders** om hem zelf in te stellen.
+
 ### De te tellen uitzonderingen kiezen
 
-Stel in **Uitzonderingsmonitorconfiguratie** de velden **Filter uitzonderingsbericht**, **Uitzonderingstypen**, **Environments** en **Bewaak uitzonderingen gedurende (time)** in. Een filter dat u leeg laat, komt met elke uitzondering overeen. **Uitzonderingenvoorbeeld** onder de filters toont de uitzonderingen waarmee ze nu overeenkomen.
+Stel in **Te bewaken uitzonderingen** de velden **Bericht bevat**, **Uitzonderingstypen** en **Environments** in. Een filter dat u leeg laat, komt met elke uitzondering overeen. **Overeenkomende uitzonderingen** onder de filters toont de uitzonderingen waarmee ze nu overeenkomen.
 
 ### Verder verfijnen (optioneel)
 
 Open **Meer velden** om te filteren op telemetrieservice of infrastructuurentiteit, of om ook opgeloste en gearchiveerde uitzonderingen te tellen.
 
-### De criteria instellen
+### Zeggen wanneer er gewaarschuwd wordt
 
-De kaart **Monitorcriteria** begint met twee criteria: offline, met een incident, wanneer er een uitzondering overeenkomt; online wanneer er geen overeenkomt. Pas ze aan op datgene waarvoor u gewaarschuwd wilt worden (zie [Criteria](#criteria)).
+Kies in **Wanneer waarschuwen** een **Voorwaarde**, het **Aantal uitzonderingen** en een **Tijdvenster**. De zin eronder zegt de regel in gewone woorden terug. De grafiek daaronder telt de overeenkomende uitzonderingen in elk venster van de afgelopen uren, tekent het getal van de regel als lijn en zegt hoe vaak de regel zou hebben gewaarschuwd. De knop ervan stelt een getal voor dat de regel in die tijd niet zou hebben overschreden.
+
+### Kiezen wat er gebeurt
+
+Kies in **Wat er gebeurt** voor **Een waarschuwing maken**, **Een incident melden** of **Beide**, en geef het een titel en een ernst. Zolang de regel overeenkomt, toont de monitor de status onder **Meer velden**; komt hij niet meer overeen, dan gaat de monitor terug naar zijn standaardstatus en lost de waarschuwing of het incident zichzelf op.
 
 ### De monitor maken
 
@@ -60,10 +68,10 @@ Klik op **Monitor maken**. De monitor opent op zijn pagina **Overzicht**, en zij
 
 | Veld | Waarmee het overeenkomt | Standaard |
 | --- | --- | --- |
-| **Filter uitzonderingsbericht** | Uitzonderingen waarvan het bericht deze tekst bevat, zonder onderscheid tussen hoofd- en kleine letters. | Leeg: elke uitzondering |
+| **Bericht bevat** | Uitzonderingen waarvan het bericht deze tekst bevat, zonder onderscheid tussen hoofd- en kleine letters. | Leeg: elke uitzondering |
 | **Uitzonderingstypen** | Uitzonderingen van een van deze typen, gescheiden door komma's, zoals `TypeError, NullReferenceException`. De typenaam moet precies overeenkomen. | Leeg: elk type |
 | **Environments** | Uitzonderingen uit een van deze omgevingen, gescheiden door komma's (zie [Omgevingen](#omgevingen)). | Leeg: elke omgeving |
-| **Bewaak uitzonderingen gedurende (time)** | Uitzonderingen van de laatste 5 seconden tot de laatste 24 uur. | **Laatste 1 minuut** |
+| **Tijdvenster** (in **Wanneer waarschuwen**) | Uitzonderingen van de laatste 5 seconden tot de laatste 24 uur. | **Laatste 5 minuten** |
 | **Filteren op telemetrieservice** (onder **Meer velden**) | Uitzonderingen van een van de gekozen services. | Leeg: elke service |
 | **Filteren op infrastructuurentiteit** (onder **Meer velden**) | Uitzonderingen van een van de gekozen hosts, pods, containers en andere entiteiten. | Leeg: elke entiteit |
 | **Opgeloste uitzonderingen opnemen** (onder **Meer velden**) | Ook uitzonderingen tellen die als opgelost zijn gemarkeerd. | Uit |
@@ -98,7 +106,7 @@ Wanneer u de monitor via de API maakt, stelt u `environments` in de `exceptionMo
 ## Hoe hij wordt geëvalueerd
 
 - **Elke minuut.** Een uitzonderingen-monitor wordt niet door sondes gecontroleerd, dus hij heeft geen interval om in te stellen en geen pagina **Sondes en interval**.
-- **Voorvallen, geen uitzonderingstypen.** De monitor telt elke keer dat een overeenkomende uitzondering binnen **Bewaak uitzonderingen gedurende (time)** is opgetreden. Eén uitzondering die 40 keer wordt gegooid, telt als 40.
+- **Voorvallen, geen uitzonderingstypen.** De monitor telt elke keer dat een overeenkomende uitzondering binnen het **Tijdvenster** is opgetreden. Eén uitzondering die 40 keer wordt gegooid, telt als 40.
 - **Opgeloste en gearchiveerde uitzonderingen worden weggelaten.** Tenzij u **Opgeloste uitzonderingen opnemen** of **Gearchiveerde uitzonderingen opnemen** inschakelt, tellen de voorvallen van een uitzondering die u als opgelost hebt gemarkeerd of hebt gearchiveerd niet mee. Een uitzondering als opgelost markeren kan dus het incident sluiten dat ze opende. Wanneer een opgeloste uitzondering opnieuw optreedt, wordt ze automatisch weer onopgelost en opnieuw geteld.
 - **Geen uitzonderingen is een aantal van 0.**
 - **De onderbreking van OneUptime zelf is geen stilte.** Zolang het tijdvenster tijd bevat waarin OneUptime zelf geen gegevens ontving (het startte opnieuw, werd geüpgraded of werkte een achterstand weg), wacht de controle: de status verandert niet, en er wordt geen incident of waarschuwing geopend of opgelost. Zie [Als OneUptime geen gegevens ontvangt](/docs/monitor/when-oneuptime-is-not-receiving).
@@ -108,7 +116,7 @@ Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlij
 
 ## Criteria
 
-De criteria van een uitzonderingen-monitor hebben één **Filtertype**: **Exception Count**, het aantal uitzonderingen dat in het venster overeenkwam. Kies een **Filtervoorwaarde** en een **Waarde**.
+De criteria van een uitzonderingen-monitor hebben één **Filtertype**: **Exception Count**, het aantal uitzonderingen dat in het venster overeenkwam. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens** of **Precies**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en een **Waarde**.
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal uitzonderingen… |
 | --- | --- |
@@ -121,7 +129,14 @@ De criteria van een uitzonderingen-monitor hebben één **Filtertype**: **Except
 
 Aantallen uitzonderingen hebben geen anomaliecondities: er is geen baseline om ze mee te vergelijken.
 
-Een nieuwe uitzonderingen-monitor begint met deze criteria:
+Een uitzonderingen-monitor die in Monitor maken is aangemaakt, begint met de regel van wat u onder **Waarover moet deze monitor je informeren?** hebt gekozen:
+
+| Keuze | Regel | Wat er gebeurt |
+| --- | --- | --- |
+| **Elke uitzondering** | **Meer dan** `0` in **Laatste 5 minuten** | Maakt een waarschuwing, die zichzelf oplost |
+| **Te veel uitzonderingen** | **Meer dan** `20` in **Laatste 5 minuten** | Maakt een waarschuwing, die zichzelf oplost |
+
+Een uitzonderingen-monitor die via de API of Terraform zonder criteria is aangemaakt, begint met deze criteria:
 
 | Criterium | Filter | Effect |
 | --- | --- | --- |
@@ -130,7 +145,7 @@ Een nieuwe uitzonderingen-monitor begint met deze criteria:
 
 ## Uitgewerkt voorbeeld: alleen uitzonderingen uit productie
 
-U wilt een incident telkens wanneer de API in productie een uitzondering gooit, en niets voor staging. U zet **Environments** op `production` en **Bewaak uitzonderingen gedurende (time)** op **Laatste 5 minuten**, en houdt de standaardcriteria. In de laatste vijf minuten:
+U wilt een incident telkens wanneer de API in productie een uitzondering gooit, en niets voor staging. U kiest **Elke uitzondering**, zet **Environments** op `production`, laat het **Tijdvenster** op **Laatste 5 minuten** staan en kiest **Een incident melden** onder **Wat er gebeurt**. In de laatste vijf minuten:
 
 | Uitzonderingen | Omgeving | Toestand | Geteld? |
 | --- | --- | --- | --- |
@@ -139,12 +154,12 @@ U wilt een incident telkens wanneer de API in productie een uitzondering gooit, 
 | `TimeoutError` × 2 | geen | Actief | Nee: geen omgeving |
 | `NullReferenceException` × 4 | `production` | Opgelost nadat ze optraden | Nee: opgelost |
 
-De **Exception Count** is 3, dus **Groter dan** `0` komt overeen: de monitor gaat offline en er wordt een incident gemeld. Zodra er vijf minuten voorbij zijn zonder actieve productie-uitzondering, komt het online-criterium overeen en lost het incident zichzelf op.
+De **Exception Count** is 3, dus **Meer dan** `0` komt overeen: de monitor gaat offline en er wordt een incident gemeld. Zodra er vijf minuten voorbij zijn zonder actieve productie-uitzondering, komt de regel niet meer overeen, gaat de monitor terug naar zijn standaardstatus en lost het incident zichzelf op.
 
 ## Problemen oplossen
 
 :::details Uitzonderingen verschijnen in de verkenner, maar de monitor telt 0
-Vergelijk de waarde van **Environments** met het filter `env:` van de verkenner: de vergelijking is exact en hoofdlettergevoelig, en uitzonderingen zonder omgeving worden weggelaten wanneer het filter is ingesteld. Controleer daarna of die uitzonderingen zijn opgelost of gearchiveerd. Open de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Edit Monitoring Criteria**: **Uitzonderingenvoorbeeld** toont waarmee de filters overeenkomen.
+Vergelijk de waarde van **Environments** met het filter `env:` van de verkenner: de vergelijking is exact en hoofdlettergevoelig, en uitzonderingen zonder omgeving worden weggelaten wanneer het filter is ingesteld. Controleer daarna of die uitzonderingen zijn opgelost of gearchiveerd. Open de pagina **Criteria** van de monitor (onder **Configuratie**) en klik op **Edit Monitoring Criteria**: **Overeenkomende uitzonderingen** toont wat de filters selecteren.
 :::
 
 :::details Het incident werd opgelost toen ik de uitzondering oploste

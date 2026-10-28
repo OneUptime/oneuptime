@@ -947,7 +947,7 @@ service:
 
 佇列以基於其 broker 指標的 **指標** 監測器監看（請參閱 [指標監控](/docs/monitor/metrics-monitor)）。
 
-**從佇列頁面。** **Broker 健康狀態** 中的每個量測值和每個每期計數都有 **Create monitor**：它會開啟一個基於該指標的新指標監測器，篩選條件為在該指標中指明此佇列的確切屬性值，並在指標所測量的內容有明顯不良方向時（積壓、無效信件、消費者落後、最舊訊息的存在時間、節流或錯誤）帶有起始閾值。其中四個起始時不帶閾值，因為固定閾值對它們會產生誤導：Kafka 的分割區落後量（`kafka.consumer_group.lag`），其消費者群組的落後量已經涵蓋它；ActiveMQ 的平均佇列時間（`activemq.message.enqueue.average_duration`、`activemq.message.wait_time.avg`），這是自 broker 啟動以來的平均值，在停滯之後很長時間仍保持偏高；以及 Pulsar 的積壓時間（`pulsar_storage_backlog_age_seconds`），在 broker 無法判斷時其值為 `-1`。計數器沒有監測器：它們的圖表顯示的是速率，而監測器沒有速率函式。
+**從佇列頁面。** **Broker 健康狀態** 中的每個量測值和每個每期計數都有 **建立監測器**：它會開啟一個基於該指標的新指標監測器，篩選條件為在該指標中指明此佇列的確切屬性值，並在指標所測量的內容有明顯不良方向時（積壓、無效信件、消費者落後、最舊訊息的存在時間、節流或錯誤）帶有起始閾值。其中四個起始時不帶閾值，因為固定閾值對它們會產生誤導：Kafka 的分割區落後量（`kafka.consumer_group.lag`），其消費者群組的落後量已經涵蓋它；ActiveMQ 的平均佇列時間（`activemq.message.enqueue.average_duration`、`activemq.message.wait_time.avg`），這是自 broker 啟動以來的平均值，在停滯之後很長時間仍保持偏高；以及 Pulsar 的積壓時間（`pulsar_storage_backlog_age_seconds`），在 broker 無法判斷時其值為 `-1`。計數器沒有監測器：它們的圖表顯示的是速率，而監測器沒有速率函式。
 
 **計數器。** RabbitMQ、Apache ActiveMQ 和 Apache RocketMQ 的計數器以累計總和送達 Collector，`cumulative_to_delta` 處理器（較舊的 Collector 中為 `cumulativetodelta`）會把它們轉換為監測器可以據以發出警示的差值。請在專屬的名稱下轉換一份複本，絕不要轉換計數器本身：佇列頁面把這些計數器都當作累計總數讀取，並繪製其成長速度，因此被轉換為差值的計數器在 **Broker 健康狀態** 下和 **指標** 分頁上繪製出的會是無意義的內容：穩定的流量會顯示為每秒 0 則訊息。Apache Kafka 的位移（`kafka.consumer_group.offset_sum`、`kafka.partition.current_offset`）以及 Apache Pulsar 的 `pulsar_in_messages_total` 和 `pulsar_out_messages_total` 以量測值送達，`cumulative_to_delta` 不會處理它們：請改為針對這些系統的落後量和積壓量測值設定警示。
 
@@ -1004,9 +1004,9 @@ service:
 | Pub/Sub 訂閱的積壓增加 | `pubsub.googleapis.com/subscription/num_undelivered_messages` | `resource.subscription_id` = `orders-billing` | Max |
 | 沒有人取用 RabbitMQ 佇列 | `rabbitmq.consumer.count` | `resource.rabbitmq.queue.name` = `orders` | Min |
 
-要用一個監測器監看某個系統的每個佇列，請改為依該屬性分組，而不是以它篩選：這樣每個佇列都會各自發出警示（請參閱 [依序列警示](/docs/monitor/metrics-monitor#依序列警示group-by)）。RabbitMQ 佇列的深度（`rabbitmq.message.current`）以兩個序列送達：`state` = `ready` 和 `state` = `unacknowledged`。**Create monitor** 建立的監測器會像佇列頁面一樣把它們加總：每種狀態一個查詢，`a_ready` 和 `a_unacknowledged`，以及公式 `a_ready + a_unacknowledged`，其別名 `a` 套用起始閾值。手動建立的監測器也應該這樣做，並把條件設在公式上。
+要用一個監測器監看某個系統的每個佇列，請改為依該屬性分組，而不是以它篩選：這樣每個佇列都會各自發出警示（請參閱 [依序列警示](/docs/monitor/metrics-monitor#依序列警示group-by)）。RabbitMQ 佇列的深度（`rabbitmq.message.current`）以兩個序列送達：`state` = `ready` 和 `state` = `unacknowledged`。**建立監測器** 建立的監測器會像佇列頁面一樣把它們加總：每種狀態一個查詢，`a_ready` 和 `a_unacknowledged`，以及公式 `a_ready + a_unacknowledged`，其別名 `a` 套用起始閾值。手動建立的監測器也應該這樣做，並把條件設在公式上。
 
-**延遲送達的指標。** 雲端監控 API 會在事後幾分鐘才發布數值：在本頁的設定下，`aws_cloudwatch` 接收器的最新點已經過了 11 到 17 分鐘，若使用接收器預設的五分鐘 `period`，則最多 25 分鐘；`googlecloudmonitoring` 接收器的最新點最多已過 9 分鐘。因此，基於 SQS、SNS 或 Pub/Sub 指標的監測器需要比這更長的時間範圍，否則它看不到資料，也永遠不會觸發；**Create monitor** 會以 30 分鐘和 15 分鐘建立這些監測器。
+**延遲送達的指標。** 雲端監控 API 會在事後幾分鐘才發布數值：在本頁的設定下，`aws_cloudwatch` 接收器的最新點已經過了 11 到 17 分鐘，若使用接收器預設的五分鐘 `period`，則最多 25 分鐘；`googlecloudmonitoring` 接收器的最新點最多已過 9 分鐘。因此，基於 SQS、SNS 或 Pub/Sub 指標的監測器需要比這更長的時間範圍，否則它看不到資料，也永遠不會觸發；**建立監測器** 會以 30 分鐘和 15 分鐘建立這些監測器。
 
 ## 限制
 

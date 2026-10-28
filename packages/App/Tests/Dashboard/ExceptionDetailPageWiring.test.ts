@@ -235,10 +235,17 @@ describe("exception detail page wiring", () => {
       readSource("Components", "Exceptions", "ExceptionExplorer.tsx"),
     );
 
+    /*
+     * Resolve and Archive, then Create monitor (an Exceptions monitor for
+     * this exception), all three only where the data plan shows them.
+     */
     expect(exceptionExplorer).toContain(
-      "{...(dataPlan.showHeaderActions?{actions:(<ExceptionTriageActions",
+      "{...(dataPlan.showHeaderActions?{actions:(<><ExceptionTriageActions",
     );
     expect(exceptionExplorer).toContain("onAction={onTriageAction}");
+    expect(exceptionExplorer).toContain(
+      '/>{canCreateMonitor?(<Buttontitle="Createmonitor"',
+    );
   });
 
   test("the AI Assistance page no longer carries its own data fetching in the explorer", () => {

@@ -49,9 +49,7 @@
         "web_vital.lcp",
         "web_vital.ttfb"
       ],
-      "logs": [
-        "added to cart"
-      ]
+      "logs": ["added to cart"]
     },
     "packageExports": {
       "@angular/common/http": [
@@ -1217,9 +1215,7 @@
         "unsuppressTracing",
         "urlMatches"
       ],
-      "@opentelemetry/exporter-logs-otlp-http": [
-        "OTLPLogExporter"
-      ],
+      "@opentelemetry/exporter-logs-otlp-http": ["OTLPLogExporter"],
       "@opentelemetry/exporter-metrics-otlp-http": [
         "AggregationTemporalityPreference",
         "CumulativeTemporalitySelector",
@@ -1229,9 +1225,7 @@
         "OTLPMetricExporterBase",
         "OTLPMetricExporterOptions"
       ],
-      "@opentelemetry/exporter-trace-otlp-http": [
-        "OTLPTraceExporter"
-      ],
+      "@opentelemetry/exporter-trace-otlp-http": ["OTLPTraceExporter"],
       "@opentelemetry/instrumentation": [
         "AutoLoaderOptions",
         "AutoLoaderResult",
@@ -1251,9 +1245,7 @@
         "safeExecuteInTheMiddleAsync",
         "semconvStabilityFromStr"
       ],
-      "@opentelemetry/opentelemetry-browser-detector": [
-        "browserDetector"
-      ],
+      "@opentelemetry/opentelemetry-browser-detector": ["browserDetector"],
       "@opentelemetry/resources": [
         "DetectedResource",
         "DetectedResourceAttributes",
@@ -1405,6 +1397,79 @@
         "onTTFB"
       ]
     }
+  },
+  "aspnet-core": {
+    "checkedOn": "2026-10-28",
+    "runtime": ".NET 10.0.14",
+    "packages": {
+      "Microsoft.AspNetCore.App": "10.0.14",
+      "Microsoft.EntityFrameworkCore.Sqlite": "10.0.14",
+      "OpenTelemetry.Exporter.OpenTelemetryProtocol": "1.20.1",
+      "OpenTelemetry.Extensions.Hosting": "1.20.1",
+      "OpenTelemetry.Instrumentation.AspNetCore": "1.20.1",
+      "OpenTelemetry.Instrumentation.EntityFrameworkCore": "1.20.1-beta.1",
+      "OpenTelemetry.Instrumentation.Http": "1.20.1",
+      "OpenTelemetry.Instrumentation.Runtime": "1.20.1"
+    },
+    "framework": "ASP.NET Core 10.0.14",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:a8b1505a8063658cdd4eca7025272e147efa9926e7d46c38183408fc05e76510",
+    "observed": {
+      "spans": [
+        "GET /boom",
+        "GET /orders/{id:int}",
+        "POST",
+        "POST /orders",
+        "checkout.charge",
+        "main"
+      ],
+      "metrics": [
+        "aspnetcore.memory_pool.allocated",
+        "aspnetcore.memory_pool.pooled",
+        "aspnetcore.memory_pool.rented",
+        "aspnetcore.routing.match_attempts",
+        "dns.lookup.duration",
+        "dotnet.assembly.count",
+        "dotnet.exceptions",
+        "dotnet.gc.collections",
+        "dotnet.gc.heap.total_allocated",
+        "dotnet.gc.last_collection.heap.fragmentation.size",
+        "dotnet.gc.last_collection.heap.size",
+        "dotnet.gc.last_collection.memory.committed_size",
+        "dotnet.gc.pause.time",
+        "dotnet.jit.compilation.time",
+        "dotnet.jit.compiled_il.size",
+        "dotnet.jit.compiled_methods",
+        "dotnet.monitor.lock_contentions",
+        "dotnet.process.cpu.count",
+        "dotnet.process.cpu.time",
+        "dotnet.process.memory.working_set",
+        "dotnet.thread_pool.queue.length",
+        "dotnet.thread_pool.thread.count",
+        "dotnet.thread_pool.work_item.count",
+        "dotnet.timer.count",
+        "http.client.active_requests",
+        "http.client.open_connections",
+        "http.client.request.duration",
+        "http.client.request.time_in_queue",
+        "http.server.active_requests",
+        "http.server.request.duration",
+        "kestrel.active_connections",
+        "kestrel.connection.duration",
+        "kestrel.queued_connections",
+        "orders.placed"
+      ],
+      "logs": [
+        "Application is shutting down...",
+        "Application started. Press Ctrl+C to shut down.",
+        "Connection id \"0HNPKOL5TBO36\", Request id \"0HNPKOL5TBO36:00000001\": An unhandled exception was thrown by the application",
+        "Content root path: <work>/otel-guides-F0Pmb1/aspnet-core",
+        "Hosting environment: Production",
+        "Loading order 42",
+        "Now listening on: http://127.0.0.1:8080"
+      ]
+    },
+    "packageExports": {}
   },
   "browser": {
     "checkedOn": "2026-10-27",
@@ -1615,9 +1680,7 @@
         "unsuppressTracing",
         "urlMatches"
       ],
-      "@opentelemetry/exporter-logs-otlp-http": [
-        "OTLPLogExporter"
-      ],
+      "@opentelemetry/exporter-logs-otlp-http": ["OTLPLogExporter"],
       "@opentelemetry/exporter-metrics-otlp-http": [
         "AggregationTemporalityPreference",
         "CumulativeTemporalitySelector",
@@ -1627,9 +1690,7 @@
         "OTLPMetricExporterBase",
         "OTLPMetricExporterOptions"
       ],
-      "@opentelemetry/exporter-trace-otlp-http": [
-        "OTLPTraceExporter"
-      ],
+      "@opentelemetry/exporter-trace-otlp-http": ["OTLPTraceExporter"],
       "@opentelemetry/instrumentation": [
         "AutoLoaderOptions",
         "AutoLoaderResult",
@@ -1649,9 +1710,7 @@
         "safeExecuteInTheMiddleAsync",
         "semconvStabilityFromStr"
       ],
-      "@opentelemetry/opentelemetry-browser-detector": [
-        "browserDetector"
-      ],
+      "@opentelemetry/opentelemetry-browser-detector": ["browserDetector"],
       "@opentelemetry/resources": [
         "DetectedResource",
         "DetectedResourceAttributes",
@@ -1817,20 +1876,9 @@
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
     "snippetDigest": "sha256:e4366816711a4aa18f9c3b720b9ae5faea04fd98e7357519818162775672c410",
     "observed": {
-      "spans": [
-        "GET",
-        "GET /products/:id",
-        "POST /orders",
-        "orders.place"
-      ],
-      "metrics": [
-        "http.server.request.duration",
-        "orders.placed"
-      ],
-      "logs": [
-        "loading product",
-        "request failed"
-      ]
+      "spans": ["GET", "GET /products/:id", "POST /orders", "orders.place"],
+      "metrics": ["http.server.request.duration", "orders.placed"],
+      "logs": ["loading product", "request failed"]
     },
     "packageExports": {
       "@opentelemetry/api": [
@@ -1936,6 +1984,57 @@
       ]
     }
   },
+  "celery": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Python 3.14.10",
+    "packages": {
+      "celery": "5.6.3",
+      "opentelemetry-distro": "0.66b1",
+      "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+      "opentelemetry-instrumentation-celery": "0.66b1",
+      "opentelemetry-instrumentation-logging": "0.66b1",
+      "opentelemetry-instrumentation-requests": "0.66b1",
+      "redis": "6.4.0",
+      "requests": "2.34.2"
+    },
+    "framework": "Celery 5.6.3",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:19442fe2107c118744125426c5c0d22e5c12385c2d09a186a8153f5e49be17e0",
+    "observed": {
+      "spans": [
+        "POST",
+        "apply_async/tasks.charge_card",
+        "apply_async/tasks.refund",
+        "apply_async/tasks.send_receipt",
+        "checkout.place-order",
+        "payments.authorize",
+        "run/tasks.charge_card",
+        "run/tasks.refund",
+        "run/tasks.send_receipt"
+      ],
+      "metrics": [
+        "flower.task.runtime.seconds",
+        "http.client.request.duration",
+        "payments.charged"
+      ],
+      "logs": [
+        "Connected to redis://127.0.0.1:39863/0",
+        "Task tasks.charge_card[a3929bbe-d89a-4fea-bd61-f962361badec] received",
+        "Task tasks.charge_card[a3929bbe-d89a-4fea-bd61-f962361badec] succeeded in 0.0077417390421032906s: None",
+        "Task tasks.refund[667c97e3-82a0-4e76-83f7-0f49f8ec8f91] raised unexpected: RuntimeError('Refund for ord_0999 was decline",
+        "Task tasks.refund[667c97e3-82a0-4e76-83f7-0f49f8ec8f91] received",
+        "Task tasks.send_receipt[30bd9c53-8c9b-48d3-a39f-e86cbc0c170b] received",
+        "Task tasks.send_receipt[30bd9c53-8c9b-48d3-a39f-e86cbc0c170b] retry: Retry in 0s: ConnectionError('Mail server busy')",
+        "Task tasks.send_receipt[30bd9c53-8c9b-48d3-a39f-e86cbc0c170b] succeeded in 0.0004536416381597519s: None",
+        "celery@<host> ready.",
+        "charged order ord_1001",
+        "mingle: all alone",
+        "mingle: searching for neighbors",
+        "sent receipt for ord_1001"
+      ]
+    },
+    "packageExports": {}
+  },
   "deno": {
     "checkedOn": "2026-10-27",
     "runtime": "Deno 2.9.8",
@@ -1946,12 +2045,7 @@
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
     "snippetDigest": "sha256:8c9e787eace43dea714b53f08f19dcc9d599ee193a5a8d6a283ce77b6d980c12",
     "observed": {
-      "spans": [
-        "GET",
-        "GET /products/:id",
-        "POST /orders",
-        "orders.place"
-      ],
+      "spans": ["GET", "GET /products/:id", "POST /orders", "orders.place"],
       "metrics": [
         "http.server.active_requests",
         "http.server.request.body.size",
@@ -2013,6 +2107,252 @@
         "trace"
       ]
     }
+  },
+  "django": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Python 3.14.10",
+    "packages": {
+      "django": "6.1.2",
+      "gunicorn": "26.2.0",
+      "opentelemetry-distro": "0.66b1",
+      "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+      "opentelemetry-instrumentation-django": "0.66b1",
+      "opentelemetry-instrumentation-logging": "0.66b1",
+      "opentelemetry-instrumentation-psycopg": "0.66b1",
+      "opentelemetry-instrumentation-requests": "0.66b1",
+      "psycopg": "3.3.6",
+      "requests": "2.34.2"
+    },
+    "framework": "Django 6.1.2",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:6fea70cca840fa416785a555021b6f571a3c85e2dc21450b537ef38344a62060",
+    "observed": {
+      "spans": [
+        "GET boom/",
+        "GET orders/<int:order_id>/",
+        "INSERT",
+        "POST",
+        "POST orders/",
+        "SELECT",
+        "checkout.charge"
+      ],
+      "metrics": [
+        "http.client.request.duration",
+        "http.server.active_requests",
+        "http.server.request.duration",
+        "orders.placed"
+      ],
+      "logs": [
+        "Internal Server Error: /boom/",
+        "loading order 42",
+        "placed order 1"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "uWSGI": {
+        "observed": {
+          "spans": [
+            "GET boom/",
+            "GET orders/<int:order_id>/",
+            "INSERT",
+            "POST",
+            "POST orders/",
+            "SELECT",
+            "checkout.charge"
+          ],
+          "metrics": [
+            "http.client.request.duration",
+            "http.server.active_requests",
+            "http.server.request.duration",
+            "orders.placed"
+          ],
+          "logs": [
+            "Internal Server Error: /boom/",
+            "loading order 42",
+            "placed order 1"
+          ]
+        },
+        "packages": {
+          "django": "6.1.2",
+          "gunicorn": "26.2.0",
+          "opentelemetry-distro": "0.66b1",
+          "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+          "opentelemetry-instrumentation-django": "0.66b1",
+          "opentelemetry-instrumentation-logging": "0.66b1",
+          "opentelemetry-instrumentation-psycopg": "0.66b1",
+          "opentelemetry-instrumentation-requests": "0.66b1",
+          "psycopg": "3.3.6",
+          "pyuwsgi": "2.0.30.post1",
+          "requests": "2.34.2"
+        }
+      }
+    }
+  },
+  "dotnet": {
+    "checkedOn": "2026-10-28",
+    "runtime": ".NET 10.0.14",
+    "packages": {
+      "Microsoft.Extensions.Logging.Console": "10.0.14",
+      "OpenTelemetry.AutoInstrumentation": "1.18.0"
+    },
+    "framework": ".NET",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:986ae0038e0fca64641e8427e644ecdca129e7d9b24f56699a7eeb6f8546e61d",
+    "observed": {
+      "spans": ["GET", "POST", "invoice.post", "invoices.sync"],
+      "metrics": [
+        "dns.lookup.duration",
+        "dotnet.assembly.count",
+        "dotnet.gc.collections",
+        "dotnet.gc.heap.total_allocated",
+        "dotnet.gc.last_collection.heap.fragmentation.size",
+        "dotnet.gc.last_collection.heap.size",
+        "dotnet.gc.last_collection.memory.committed_size",
+        "dotnet.gc.pause.time",
+        "dotnet.jit.compilation.time",
+        "dotnet.jit.compiled_il.size",
+        "dotnet.jit.compiled_methods",
+        "dotnet.monitor.lock_contentions",
+        "dotnet.process.cpu.count",
+        "dotnet.process.cpu.time",
+        "dotnet.process.memory.working_set",
+        "dotnet.thread_pool.queue.length",
+        "dotnet.thread_pool.thread.count",
+        "dotnet.thread_pool.work_item.count",
+        "dotnet.timer.count",
+        "http.client.active_requests",
+        "http.client.connection.duration",
+        "http.client.open_connections",
+        "http.client.request.duration",
+        "http.client.request.time_in_queue",
+        "invoices.synced",
+        "process.cpu.time",
+        "process.memory.usage",
+        "process.memory.virtual",
+        "process.thread.count",
+        "process.unix.file_descriptor.count",
+        "process.uptime"
+      ],
+      "logs": ["Synced 2 invoices"]
+    },
+    "packageExports": {},
+    "variants": {
+      "Instrumentations off": {
+        "observed": {
+          "spans": ["invoice.post", "invoices.sync"],
+          "metrics": [
+            "dns.lookup.duration",
+            "dotnet.assembly.count",
+            "dotnet.gc.collections",
+            "dotnet.gc.heap.total_allocated",
+            "dotnet.gc.last_collection.heap.fragmentation.size",
+            "dotnet.gc.last_collection.heap.size",
+            "dotnet.gc.last_collection.memory.committed_size",
+            "dotnet.gc.pause.time",
+            "dotnet.jit.compilation.time",
+            "dotnet.jit.compiled_il.size",
+            "dotnet.jit.compiled_methods",
+            "dotnet.monitor.lock_contentions",
+            "dotnet.process.cpu.count",
+            "dotnet.process.cpu.time",
+            "dotnet.process.memory.working_set",
+            "dotnet.thread_pool.queue.length",
+            "dotnet.thread_pool.thread.count",
+            "dotnet.thread_pool.work_item.count",
+            "dotnet.timer.count",
+            "http.client.active_requests",
+            "http.client.connection.duration",
+            "http.client.open_connections",
+            "http.client.request.duration",
+            "http.client.request.time_in_queue",
+            "invoices.synced"
+          ],
+          "logs": ["Synced 2 invoices"]
+        },
+        "packages": {
+          "Microsoft.Extensions.Logging.Console": "10.0.14",
+          "OpenTelemetry.AutoInstrumentation": "1.18.0"
+        }
+      },
+      "In code": {
+        "observed": {
+          "spans": ["GET", "POST", "invoice.post", "invoices.sync"],
+          "metrics": [
+            "dns.lookup.duration",
+            "http.client.active_requests",
+            "http.client.connection.duration",
+            "http.client.open_connections",
+            "http.client.request.duration",
+            "http.client.request.time_in_queue",
+            "invoices.synced"
+          ],
+          "logs": ["Synced 2 invoices"]
+        },
+        "packages": {
+          "Microsoft.Extensions.Logging.Console": "10.0.14",
+          "OpenTelemetry": "1.20.1",
+          "OpenTelemetry.Exporter.OpenTelemetryProtocol": "1.20.1",
+          "OpenTelemetry.Instrumentation.Http": "1.20.1"
+        }
+      }
+    }
+  },
+  "dotnet-worker-service": {
+    "checkedOn": "2026-10-28",
+    "runtime": ".NET 10.0.14",
+    "packages": {
+      "Microsoft.Extensions.Hosting": "10.0.14",
+      "Microsoft.Extensions.Http": "10.0.14",
+      "OpenTelemetry.Exporter.OpenTelemetryProtocol": "1.20.1",
+      "OpenTelemetry.Extensions.Hosting": "1.20.1",
+      "OpenTelemetry.Instrumentation.Http": "1.20.1",
+      "OpenTelemetry.Instrumentation.Runtime": "1.20.1"
+    },
+    "framework": "Microsoft.Extensions.Hosting 10.0.14",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:576ce9c4b286fa1beb497bbc164200bb822cc6629223e0c65dcc124cb3ed3ed6",
+    "observed": {
+      "spans": ["GET", "POST", "invoice.post", "invoices.sync"],
+      "metrics": [
+        "dns.lookup.duration",
+        "dotnet.assembly.count",
+        "dotnet.exceptions",
+        "dotnet.gc.collections",
+        "dotnet.gc.heap.total_allocated",
+        "dotnet.gc.last_collection.heap.fragmentation.size",
+        "dotnet.gc.last_collection.heap.size",
+        "dotnet.gc.last_collection.memory.committed_size",
+        "dotnet.gc.pause.time",
+        "dotnet.jit.compilation.time",
+        "dotnet.jit.compiled_il.size",
+        "dotnet.jit.compiled_methods",
+        "dotnet.monitor.lock_contentions",
+        "dotnet.process.cpu.count",
+        "dotnet.process.cpu.time",
+        "dotnet.process.memory.working_set",
+        "dotnet.thread_pool.queue.length",
+        "dotnet.thread_pool.thread.count",
+        "dotnet.thread_pool.work_item.count",
+        "dotnet.timer.count",
+        "http.client.active_requests",
+        "http.client.open_connections",
+        "http.client.request.duration",
+        "http.client.request.time_in_queue",
+        "invoices.synced"
+      ],
+      "logs": [
+        "Application is shutting down...",
+        "Application started. Press Ctrl+C to shut down.",
+        "Content root path: <work>/otel-guides-F0Pmb1/dotnet-worker-service",
+        "Hosting environment: Production",
+        "Invoice worker started",
+        "Posted invoice inv_1",
+        "Posted invoice inv_2",
+        "Queued 2 invoices"
+      ]
+    },
+    "packageExports": {}
   },
   "express": {
     "checkedOn": "2026-10-27",
@@ -2216,6 +2556,74 @@
         "transport",
         "version"
       ]
+    }
+  },
+  "fastapi": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Python 3.14.10",
+    "packages": {
+      "fastapi": "0.162.0",
+      "httpx": "0.28.1",
+      "opentelemetry-distro": "0.66b1",
+      "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+      "opentelemetry-instrumentation-fastapi": "0.66b1",
+      "opentelemetry-instrumentation-httpx": "0.66b1",
+      "opentelemetry-instrumentation-logging": "0.66b1",
+      "uvicorn": "0.54.0"
+    },
+    "framework": "FastAPI 0.162.0",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:f8001f950794dbfb2672676e4387ee242a57d017ee60a5d3726dca8166ba9146",
+    "observed": {
+      "spans": [
+        "GET /boom",
+        "GET /users/{user_id}",
+        "POST",
+        "POST /orders",
+        "checkout.charge"
+      ],
+      "metrics": [
+        "http.client.request.duration",
+        "http.server.active_requests",
+        "http.server.request.body.size",
+        "http.server.request.duration",
+        "http.server.response.body.size",
+        "orders.placed"
+      ],
+      "logs": ["loading user 404", "loading user 42"]
+    },
+    "packageExports": {},
+    "variants": {
+      "Flush on shutdown": {
+        "observed": {
+          "spans": [
+            "GET /boom",
+            "GET /users/{user_id}",
+            "POST",
+            "POST /orders",
+            "checkout.charge"
+          ],
+          "metrics": [
+            "http.client.request.duration",
+            "http.server.active_requests",
+            "http.server.request.body.size",
+            "http.server.request.duration",
+            "http.server.response.body.size",
+            "orders.placed"
+          ],
+          "logs": ["loading user 404", "loading user 42"]
+        },
+        "packages": {
+          "fastapi": "0.162.0",
+          "httpx": "0.28.1",
+          "opentelemetry-distro": "0.66b1",
+          "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+          "opentelemetry-instrumentation-fastapi": "0.66b1",
+          "opentelemetry-instrumentation-httpx": "0.66b1",
+          "opentelemetry-instrumentation-logging": "0.66b1",
+          "uvicorn": "0.54.0"
+        }
+      }
     }
   },
   "fastify": {
@@ -2500,6 +2908,46 @@
         "preValidationHookHandler"
       ]
     }
+  },
+  "flask": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Python 3.14.10",
+    "packages": {
+      "flask": "3.1.3",
+      "gunicorn": "26.2.0",
+      "opentelemetry-distro": "0.66b1",
+      "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+      "opentelemetry-instrumentation-flask": "0.66b1",
+      "opentelemetry-instrumentation-logging": "0.66b1",
+      "opentelemetry-instrumentation-requests": "0.66b1",
+      "opentelemetry-instrumentation-sqlalchemy": "0.66b1",
+      "requests": "2.34.2",
+      "sqlalchemy": "2.0.55"
+    },
+    "framework": "Flask 3.1.3",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:1e5fd22b6961d7a97966748e496fefaa7e61b26597347743bcc207302b8bd810",
+    "observed": {
+      "spans": [
+        "GET /boom",
+        "GET /users/<int:user_id>",
+        "INSERT shop.db",
+        "POST",
+        "POST /orders",
+        "SELECT shop.db",
+        "checkout.charge",
+        "connect"
+      ],
+      "metrics": [
+        "db.client.connections.usage",
+        "http.client.request.duration",
+        "http.server.active_requests",
+        "http.server.request.duration",
+        "orders.placed"
+      ],
+      "logs": ["loading user 42", "request failed"]
+    },
+    "packageExports": {}
   },
   "hapi": {
     "checkedOn": "2026-10-27",
@@ -2813,12 +3261,86 @@
         "NodeSDKConfiguration",
         "startNodeSDK"
       ],
-      "hapi-pino": [
-        "Options",
-        "default",
-        "module.exports",
-        "register"
-      ]
+      "hapi-pino": ["Options", "default", "module.exports", "register"]
+    }
+  },
+  "java": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Java 25.0.5",
+    "packages": {
+      "ch.qos.logback:logback-classic": "1.6.6",
+      "com.h2database:h2": "2.5.252",
+      "io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations": "2.33.1",
+      "io.opentelemetry.javaagent:opentelemetry-javaagent": "2.33.1",
+      "io.opentelemetry:opentelemetry-api": "1.67.0",
+      "org.apache.maven.plugins:maven-compiler-plugin": "3.15.0",
+      "org.apache.maven.plugins:maven-shade-plugin": "3.6.2"
+    },
+    "framework": "Java",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:6fffcb22e662c8b0ceb04f009f53c964e9e643f8ad9669fad6b81a1510ae186b",
+    "observed": {
+      "spans": [
+        "CREATE TABLE shop.orders",
+        "CREATE TABLE shop.users",
+        "GET /boom",
+        "GET /healthz",
+        "GET /users/",
+        "INSERT shop.orders",
+        "INSERT shop.users",
+        "POST",
+        "POST /orders",
+        "SELECT shop.users",
+        "checkout.charge"
+      ],
+      "metrics": [
+        "http.client.request.duration",
+        "http.server.request.duration",
+        "jvm.class.count",
+        "jvm.class.loaded",
+        "jvm.class.unloaded",
+        "jvm.cpu.count",
+        "jvm.cpu.recent_utilization",
+        "jvm.cpu.time",
+        "jvm.gc.duration",
+        "jvm.memory.committed",
+        "jvm.memory.limit",
+        "jvm.memory.used",
+        "jvm.memory.used_after_last_gc",
+        "jvm.thread.count",
+        "orders.placed",
+        "otlp.exporter.exported",
+        "otlp.exporter.seen",
+        "processedLogs",
+        "processedSpans",
+        "queueSize"
+      ],
+      "logs": ["listening on http://localhost:8080", "loading user 42"]
+    },
+    "packageExports": {},
+    "variants": {
+      "Instrumentations off": {
+        "observed": {
+          "spans": ["GET /users/", "POST /orders"],
+          "metrics": [
+            "http.server.request.duration",
+            "otlp.exporter.exported",
+            "otlp.exporter.seen",
+            "processedSpans",
+            "queueSize"
+          ],
+          "logs": []
+        },
+        "packages": {
+          "ch.qos.logback:logback-classic": "1.6.6",
+          "com.h2database:h2": "2.5.252",
+          "io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations": "2.33.1",
+          "io.opentelemetry.javaagent:opentelemetry-javaagent": "2.33.1",
+          "io.opentelemetry:opentelemetry-api": "1.67.0",
+          "org.apache.maven.plugins:maven-compiler-plugin": "3.15.0",
+          "org.apache.maven.plugins:maven-shade-plugin": "3.6.2"
+        }
+      }
     }
   },
   "koa": {
@@ -2867,16 +3389,10 @@
         "v8js.memory.heap.used",
         "v8js.resource.active"
       ],
-      "logs": [
-        "loading product",
-        "request failed"
-      ]
+      "logs": ["loading product", "request failed"]
     },
     "packageExports": {
-      "@koa/bodyparser": [
-        "bodyParser",
-        "default"
-      ],
+      "@koa/bodyparser": ["bodyParser", "default"],
       "@koa/router": [
         "AllowedMethodsOptions",
         "HttpMethod",
@@ -3006,10 +3522,7 @@
         "NodeSDKConfiguration",
         "startNodeSDK"
       ],
-      "koa": [
-        "HttpError",
-        "default"
-      ],
+      "koa": ["HttpError", "default"],
       "winston": [
         "Container",
         "ExceptionHandler",
@@ -3056,6 +3569,319 @@
         "warn"
       ]
     }
+  },
+  "ktor": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Java 25.0.5",
+    "packages": {
+      "ch.qos.logback:logback-classic": "1.6.6",
+      "com.h2database:h2": "2.5.252",
+      "io.ktor.plugin": "3.6.0",
+      "io.ktor:ktor-client-cio": "3.6.0",
+      "io.ktor:ktor-serialization-kotlinx-json": "3.6.0",
+      "io.ktor:ktor-server-content-negotiation": "3.6.0",
+      "io.ktor:ktor-server-core": "3.6.0",
+      "io.ktor:ktor-server-netty": "3.6.0",
+      "io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom-alpha": "2.33.1-alpha",
+      "io.opentelemetry.instrumentation:opentelemetry-jdbc": "2.33.1-alpha",
+      "io.opentelemetry.instrumentation:opentelemetry-ktor-3.0": "2.33.1-alpha",
+      "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0": "2.33.1-alpha",
+      "io.opentelemetry.instrumentation:opentelemetry-runtime-telemetry": "2.33.1-alpha",
+      "io.opentelemetry:opentelemetry-api": "1.67.0",
+      "io.opentelemetry:opentelemetry-bom": "1.67.0",
+      "io.opentelemetry:opentelemetry-exporter-otlp": "1.67.0",
+      "io.opentelemetry:opentelemetry-extension-kotlin": "1.67.0",
+      "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure": "1.67.0",
+      "org.jetbrains.exposed:exposed-jdbc": "1.6.0",
+      "org.jetbrains.kotlin.jvm": "2.4.21",
+      "org.jetbrains.kotlin.plugin.serialization": "2.4.21"
+    },
+    "framework": "Ktor 3.6.0",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:4b94db7c79e7711f8eb8db8398fd8cdcb145d5949a2f56643ba9cdf049c1fb02",
+    "observed": {
+      "spans": [
+        "CREATE TABLE shop.PLACED_ORDER",
+        "GET /boom",
+        "GET /healthz",
+        "GET /orders/{id}",
+        "INSERT shop.PLACED_ORDER",
+        "POST",
+        "POST /orders",
+        "SELECT shop.PLACED_ORDER",
+        "checkout.charge"
+      ],
+      "metrics": [
+        "http.client.request.duration",
+        "http.server.request.duration",
+        "jvm.class.count",
+        "jvm.class.loaded",
+        "jvm.class.unloaded",
+        "jvm.cpu.count",
+        "jvm.cpu.recent_utilization",
+        "jvm.cpu.time",
+        "jvm.gc.duration",
+        "jvm.memory.committed",
+        "jvm.memory.limit",
+        "jvm.memory.used",
+        "jvm.memory.used_after_last_gc",
+        "jvm.thread.count",
+        "orders.placed",
+        "otlp.exporter.exported",
+        "otlp.exporter.seen",
+        "processedLogs",
+        "processedSpans",
+        "queueSize"
+      ],
+      "logs": [
+        "Application started in 0.415 seconds.",
+        "Autoreload is disabled because the development mode is off.",
+        "Responding at http://0.0.0.0:8080",
+        "Unhandled: GET - /boom",
+        "loading order 42"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "Health checks left out": {
+        "observed": {
+          "spans": [
+            "CREATE TABLE shop.PLACED_ORDER",
+            "GET /boom",
+            "GET /orders/{id}",
+            "INSERT shop.PLACED_ORDER",
+            "POST",
+            "POST /orders",
+            "SELECT shop.PLACED_ORDER",
+            "checkout.charge"
+          ],
+          "metrics": [
+            "http.client.request.duration",
+            "http.server.request.duration",
+            "jvm.class.count",
+            "jvm.class.loaded",
+            "jvm.class.unloaded",
+            "jvm.cpu.count",
+            "jvm.cpu.recent_utilization",
+            "jvm.cpu.time",
+            "jvm.gc.duration",
+            "jvm.memory.committed",
+            "jvm.memory.limit",
+            "jvm.memory.used",
+            "jvm.memory.used_after_last_gc",
+            "jvm.thread.count",
+            "orders.placed",
+            "otlp.exporter.exported",
+            "otlp.exporter.seen",
+            "processedLogs",
+            "processedSpans",
+            "queueSize"
+          ],
+          "logs": [
+            "Application started in 0.453 seconds.",
+            "Autoreload is disabled because the development mode is off.",
+            "Responding at http://0.0.0.0:8080",
+            "Unhandled: GET - /boom",
+            "loading order 42"
+          ]
+        },
+        "packages": {
+          "ch.qos.logback:logback-classic": "1.6.6",
+          "com.h2database:h2": "2.5.252",
+          "io.ktor.plugin": "3.6.0",
+          "io.ktor:ktor-client-cio": "3.6.0",
+          "io.ktor:ktor-serialization-kotlinx-json": "3.6.0",
+          "io.ktor:ktor-server-content-negotiation": "3.6.0",
+          "io.ktor:ktor-server-core": "3.6.0",
+          "io.ktor:ktor-server-netty": "3.6.0",
+          "io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom-alpha": "2.33.1-alpha",
+          "io.opentelemetry.instrumentation:opentelemetry-jdbc": "2.33.1-alpha",
+          "io.opentelemetry.instrumentation:opentelemetry-ktor-3.0": "2.33.1-alpha",
+          "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0": "2.33.1-alpha",
+          "io.opentelemetry.instrumentation:opentelemetry-runtime-telemetry": "2.33.1-alpha",
+          "io.opentelemetry:opentelemetry-api": "1.67.0",
+          "io.opentelemetry:opentelemetry-bom": "1.67.0",
+          "io.opentelemetry:opentelemetry-exporter-otlp": "1.67.0",
+          "io.opentelemetry:opentelemetry-extension-kotlin": "1.67.0",
+          "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure": "1.67.0",
+          "org.jetbrains.exposed:exposed-jdbc": "1.6.0",
+          "org.jetbrains.kotlin.jvm": "2.4.21",
+          "org.jetbrains.kotlin.plugin.serialization": "2.4.21"
+        }
+      },
+      "Java agent": {
+        "observed": {
+          "spans": [
+            "CREATE TABLE shop.PLACED_ORDER",
+            "GET /boom",
+            "GET /healthz",
+            "GET /orders/{id}",
+            "INSERT shop.PLACED_ORDER",
+            "POST",
+            "POST /orders",
+            "SELECT INFORMATION_SCHEMA.SETTINGS",
+            "SELECT shop.PLACED_ORDER",
+            "checkout.charge"
+          ],
+          "metrics": [
+            "http.client.request.duration",
+            "http.server.request.duration",
+            "jvm.class.count",
+            "jvm.class.loaded",
+            "jvm.class.unloaded",
+            "jvm.cpu.count",
+            "jvm.cpu.recent_utilization",
+            "jvm.cpu.time",
+            "jvm.gc.duration",
+            "jvm.memory.committed",
+            "jvm.memory.limit",
+            "jvm.memory.used",
+            "jvm.memory.used_after_last_gc",
+            "jvm.thread.count",
+            "orders.placed",
+            "otlp.exporter.exported",
+            "otlp.exporter.seen",
+            "processedLogs",
+            "processedSpans",
+            "queueSize"
+          ],
+          "logs": [
+            "-Dio.netty.allocator.type: adaptive",
+            "-Dio.netty.allocator.useCachedMagazinesForNonEventLoopThreads: false",
+            "-Dio.netty.bitMode: 64 (sun.arch.data.model)",
+            "-Dio.netty.bootstrap.extensions: null",
+            "-Dio.netty.buffer.checkAccessible: true",
+            "-Dio.netty.buffer.checkBounds: true",
+            "-Dio.netty.eventLoopThreads: 64",
+            "-Dio.netty.globalEventExecutor.quietPeriodSeconds: 1",
+            "-Dio.netty.ignoreExpensiveClean: false",
+            "-Dio.netty.jfr.enabled: true",
+            "-Dio.netty.leakDetection.level: simple",
+            "-Dio.netty.leakDetection.targetRecords: 4",
+            "-Dio.netty.machineId: 36:72:15:ff:fe:17:04:ab (auto-detected)",
+            "-Dio.netty.maxDirectMemory: 32178700288 bytes",
+            "-Dio.netty.maxThreadLocalCharBufferSize: 16384",
+            "-Dio.netty.native.deleteLibAfterLoading: true",
+            "-Dio.netty.native.detectNativeLibraryDuplicates: true",
+            "-Dio.netty.native.tryPatchShadedId: true",
+            "-Dio.netty.native.workdir: /tmp (io.netty.tmpdir)",
+            "-Dio.netty.noKeySetOptimization: false",
+            "-Dio.netty.noPreferDirect: false",
+            "-Dio.netty.noUnsafe: false",
+            "-Dio.netty.processId: 2842440 (auto-detected)",
+            "-Dio.netty.recycler.batchFastThreadLocalOnly: true",
+            "-Dio.netty.recycler.blocking: false",
+            "-Dio.netty.recycler.chunkSize: 32",
+            "-Dio.netty.recycler.maxCapacityPerThread: 4096",
+            "-Dio.netty.recycler.ratio: 8",
+            "-Dio.netty.selectorAutoRebuildThreshold: 512",
+            "-Dio.netty.threadLocalDirectBufferSize: 0",
+            "-Dio.netty.threadLocalMap.stringBuilder.initialSize: 1024",
+            "-Dio.netty.threadLocalMap.stringBuilder.maxSize: 4096",
+            "-Dio.netty.tmpdir: /tmp (java.io.tmpdir)",
+            "-Dio.netty.varHandle.enabled: true",
+            "-Djava.net.preferIPv4Stack: false",
+            "-Djava.net.preferIPv6Addresses: false",
+            "/proc/sys/net/core/somaxconn: 4096",
+            "Application started in 0.835 seconds.",
+            "Autoreload is disabled because the development mode is off.",
+            "CREATE TABLE IF NOT EXISTS PLACED_ORDER (ID INT AUTO_INCREMENT PRIMARY KEY, ITEM_COUNT INT NOT NULL)",
+            "Epoll support is not available: could not load a native library: netty_transport_native_epoll_x86_64",
+            "INSERT INTO PLACED_ORDER (ITEM_COUNT) VALUES (2)",
+            "Java version: 25",
+            "KQueue support is not available: null",
+            "Loaded TransactionsHolder class ThreadLocalTransactionsStack to manage instances (priority 0)",
+            "Loaded default ResourceLeakDetector: io.netty.util.ResourceLeakDetector@1e7de4ae",
+            "Loopback interface: lo (lo, 0:0:0:0:0:0:0:1%lo)",
+            "Responding at http://0.0.0.0:8080",
+            "SELECT COUNT(*) FROM PLACED_ORDER WHERE PLACED_ORDER.ID = 42",
+            "Unhandled: GET - /boom",
+            "Using SLF4J as the default logging framework",
+            "java.lang.invoke.VarHandle: available",
+            "java.nio.ByteBuffer.cleaner(): available",
+            "java.nio.ByteBuffer.cleaner(): unavailable",
+            "java.nio.DirectByteBuffer.<init>(long, {int,long}): unavailable",
+            "loading order 42",
+            "maxDirectMemory: 32178700288 bytes (maybe)",
+            "org.jctools-core.MpscChunkedArrayQueue: unavailable",
+            "sun.misc.Unsafe: unavailable (io.netty.noUnsafe=true by default on Java 25+)"
+          ]
+        },
+        "packages": {
+          "ch.qos.logback:logback-classic": "1.6.6",
+          "com.h2database:h2": "2.5.252",
+          "io.ktor.plugin": "3.6.0",
+          "io.ktor:ktor-client-cio": "3.6.0",
+          "io.ktor:ktor-serialization-kotlinx-json": "3.6.0",
+          "io.ktor:ktor-server-content-negotiation": "3.6.0",
+          "io.ktor:ktor-server-core": "3.6.0",
+          "io.ktor:ktor-server-netty": "3.6.0",
+          "io.opentelemetry.javaagent:opentelemetry-javaagent": "2.33.1",
+          "io.opentelemetry:opentelemetry-api": "1.67.0",
+          "io.opentelemetry:opentelemetry-bom": "1.67.0",
+          "io.opentelemetry:opentelemetry-extension-kotlin": "1.67.0",
+          "org.jetbrains.exposed:exposed-jdbc": "1.6.0",
+          "org.jetbrains.kotlin.jvm": "2.4.21",
+          "org.jetbrains.kotlin.plugin.serialization": "2.4.21"
+        }
+      }
+    }
+  },
+  "micronaut": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Java 25.0.5",
+    "packages": {
+      "ch.qos.logback:logback-classic": "1.5.37",
+      "com.h2database:h2": "2.5.250",
+      "io.micronaut.data:micronaut-data-jdbc": "5.2.4",
+      "io.micronaut.platform:micronaut-parent": "5.2.4",
+      "io.micronaut.serde:micronaut-serde-jackson": "3.2.6",
+      "io.micronaut.sql:micronaut-jdbc-hikari": "7.2.0",
+      "io.micronaut.tracing:micronaut-tracing-opentelemetry-http": "8.3.0",
+      "io.micronaut.tracing:micronaut-tracing-opentelemetry-jdbc": "8.3.0",
+      "io.micronaut:micronaut-http-client-jdk": "5.2.20",
+      "io.micronaut:micronaut-http-server-netty": "5.2.20",
+      "io.micronaut:micronaut-management": "5.2.20",
+      "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0": "2.30.0-alpha",
+      "io.opentelemetry:opentelemetry-exporter-otlp": "1.64.0"
+    },
+    "framework": "Micronaut 5.2.4",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:ea41036c162061b7289ac57531ae48c9fce46e58f9db5992e76fb8b235b04fbb",
+    "observed": {
+      "spans": [
+        "CREATE TABLE shop.placed_order",
+        "DROP TABLE shop.placed_order",
+        "GET /orders/boom",
+        "GET /orders/{id}",
+        "INSERT shop.placed_order",
+        "POST",
+        "POST /orders",
+        "SELECT shop.placed_order",
+        "checkout.charge"
+      ],
+      "metrics": [
+        "http.client.request.duration",
+        "http.server.request.duration",
+        "orders.placed",
+        "otel.sdk.metric_reader.collection.duration",
+        "otlp.exporter.exported",
+        "otlp.exporter.seen",
+        "processedLogs",
+        "processedSpans",
+        "queueSize"
+      ],
+      "logs": [
+        "Embedded Application shutting down",
+        "HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:shop user=SA",
+        "HikariPool-1 - Start completed.",
+        "HikariPool-1 - Starting...",
+        "Startup completed in 1277ms. Server Running: http://localhost:8080",
+        "Unexpected error occurred: Payment provider timed out",
+        "loading order 42"
+      ]
+    },
+    "packageExports": {}
   },
   "nestjs": {
     "checkedOn": "2026-10-27",
@@ -3591,9 +4417,7 @@
         "v8js.memory.heap.used",
         "v8js.resource.active"
       ],
-      "logs": [
-        "order placed"
-      ]
+      "logs": ["order placed"]
     },
     "packageExports": {
       "@opentelemetry/api": [
@@ -3811,10 +4635,7 @@
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
     "snippetDigest": "sha256:b7d4db0b62ff9cad059d38e8de245aa34119815885be6608ff3df4a0d819c0c7",
     "observed": {
-      "spans": [
-        "GET /invoices/:id",
-        "invoice.render"
-      ],
+      "spans": ["GET /invoices/:id", "invoice.render"],
       "metrics": [
         "http.client.request.duration",
         "http.server.request.duration",
@@ -3835,9 +4656,7 @@
         "v8js.memory.heap.used",
         "v8js.resource.active"
       ],
-      "logs": [
-        "rendering invoice"
-      ]
+      "logs": ["rendering invoice"]
     },
     "packageExports": {
       "@opentelemetry/api": [
@@ -4010,6 +4829,134 @@
       ]
     }
   },
+  "python": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Python 3.14.10",
+    "packages": {
+      "opentelemetry-distro": "0.66b1",
+      "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+      "opentelemetry-instrumentation-logging": "0.66b1",
+      "opentelemetry-instrumentation-requests": "0.66b1",
+      "opentelemetry-instrumentation-system-metrics": "0.66b1",
+      "requests": "2.34.2"
+    },
+    "framework": "Python",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:3a5631f2d55417298793e8ace7527300ce2c3c3a5dee8077be48c3d2d97c718b",
+    "observed": {
+      "spans": ["GET", "POST", "invoice.validate", "invoices.sync"],
+      "metrics": [
+        "cpython.gc.collected_objects",
+        "cpython.gc.collections",
+        "cpython.gc.uncollectable_objects",
+        "http.client.request.duration",
+        "invoices.synced",
+        "process.context_switches",
+        "process.cpu.time",
+        "process.cpu.utilization",
+        "process.disk.io",
+        "process.memory.usage",
+        "process.memory.virtual",
+        "process.open_file_descriptor.count",
+        "process.thread.count"
+      ],
+      "logs": ["skipped invoice inv_2", "synced 1 of 2 invoices"]
+    },
+    "packageExports": {},
+    "variants": {
+      "In code": {
+        "observed": {
+          "spans": ["GET", "POST", "invoice.validate", "invoices.sync"],
+          "metrics": ["http.client.request.duration", "invoices.synced"],
+          "logs": ["skipped invoice inv_2", "synced 1 of 2 invoices"]
+        },
+        "packages": {
+          "opentelemetry-distro": "0.66b1",
+          "opentelemetry-exporter-otlp-proto-http": "1.45.1",
+          "opentelemetry-instrumentation-logging": "0.66b1",
+          "opentelemetry-instrumentation-requests": "0.66b1",
+          "opentelemetry-instrumentation-system-metrics": "0.66b1",
+          "requests": "2.34.2"
+        }
+      }
+    }
+  },
+  "quarkus": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Java 25.0.5",
+    "packages": {
+      "io.quarkus.platform:quarkus-bom": "3.40.1.1",
+      "io.quarkus.platform:quarkus-maven-plugin": "3.40.1.1",
+      "io.quarkus:quarkus-arc": "3.40.1.1",
+      "io.quarkus:quarkus-core": "3.40.1.1",
+      "io.quarkus:quarkus-hibernate-orm-panache": "3.40.1.1",
+      "io.quarkus:quarkus-jdbc-h2": "3.40.1.1",
+      "io.quarkus:quarkus-opentelemetry": "3.40.1.1",
+      "io.quarkus:quarkus-rest-client-jackson": "3.40.1.1",
+      "io.quarkus:quarkus-rest-jackson": "3.40.1.1",
+      "io.quarkus:quarkus-smallrye-health": "3.40.1.1",
+      "org.apache.maven.plugins:maven-compiler-plugin": "3.15.0"
+    },
+    "framework": "Quarkus 3.40.1.1",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:86ad2af8337c15135e02cf29d2bdb3fea3c39030f7cd4c184546c7965cc0f9eb",
+    "observed": {
+      "spans": [
+        "CREATE shop",
+        "CREATE table shop",
+        "DROP shop",
+        "DROP table shop",
+        "GET /orders/boom",
+        "GET /orders/{id}",
+        "INSERT shop.PlacedOrder",
+        "POST /api/charges",
+        "POST /orders",
+        "SELECT shop",
+        "SELECT shop.PlacedOrder",
+        "checkout.charge"
+      ],
+      "metrics": [
+        "http.server.request.duration",
+        "jvm.class.count",
+        "jvm.class.loaded",
+        "jvm.class.unloaded",
+        "jvm.cpu.context_switch",
+        "jvm.cpu.count",
+        "jvm.cpu.limit",
+        "jvm.cpu.longlock",
+        "jvm.cpu.recent_utilization",
+        "jvm.cpu.time",
+        "jvm.gc.duration",
+        "jvm.memory.committed",
+        "jvm.memory.limit",
+        "jvm.memory.used",
+        "jvm.memory.used_after_last_gc",
+        "jvm.network.io",
+        "jvm.network.time",
+        "jvm.thread.count",
+        "orders.placed",
+        "otel.sdk.log.created",
+        "otel.sdk.metric_reader.collection.duration",
+        "otel.sdk.processor.log.processed",
+        "otel.sdk.processor.log.queue.capacity",
+        "otel.sdk.processor.log.queue.size",
+        "otel.sdk.processor.span.processed",
+        "otel.sdk.processor.span.queue.capacity",
+        "otel.sdk.processor.span.queue.size",
+        "otel.sdk.span.live",
+        "otel.sdk.span.started"
+      ],
+      "logs": [
+        "HTTP Request to /orders/boom failed, error id: 480acc1e-036f-4928-af54-30b8a4383085-1",
+        "Installed features: [agroal, cdi, hibernate-orm, hibernate-orm-panache, jdbc-h2, narayana-jta, opentelemetry, rest, rest",
+        "OpenTelemetry API usage issue detected. To see more details, enable FINEST logging for io.opentelemetry.usage. Stacktrac",
+        "Profile prod activated. ",
+        "checkout 1.0.0 on JVM (powered by Quarkus 3.40.1.1) started in 4.334s. Listening on: http://0.0.0.0:8080",
+        "loading order 42"
+      ]
+    },
+    "packageExports": {}
+  },
   "react": {
     "checkedOn": "2026-10-27",
     "runtime": "Chrome 153.0.8010.12",
@@ -4055,9 +5002,7 @@
         "web_vital.lcp",
         "web_vital.ttfb"
       ],
-      "logs": [
-        "added to cart"
-      ]
+      "logs": ["added to cart"]
     },
     "packageExports": {
       "@opentelemetry/api": [
@@ -4220,9 +5165,7 @@
         "unsuppressTracing",
         "urlMatches"
       ],
-      "@opentelemetry/exporter-logs-otlp-http": [
-        "OTLPLogExporter"
-      ],
+      "@opentelemetry/exporter-logs-otlp-http": ["OTLPLogExporter"],
       "@opentelemetry/exporter-metrics-otlp-http": [
         "AggregationTemporalityPreference",
         "CumulativeTemporalitySelector",
@@ -4232,9 +5175,7 @@
         "OTLPMetricExporterBase",
         "OTLPMetricExporterOptions"
       ],
-      "@opentelemetry/exporter-trace-otlp-http": [
-        "OTLPTraceExporter"
-      ],
+      "@opentelemetry/exporter-trace-otlp-http": ["OTLPTraceExporter"],
       "@opentelemetry/instrumentation": [
         "AutoLoaderOptions",
         "AutoLoaderResult",
@@ -4254,9 +5195,7 @@
         "safeExecuteInTheMiddleAsync",
         "semconvStabilityFromStr"
       ],
-      "@opentelemetry/opentelemetry-browser-detector": [
-        "browserDetector"
-      ],
+      "@opentelemetry/opentelemetry-browser-detector": ["browserDetector"],
       "@opentelemetry/resources": [
         "DetectedResource",
         "DetectedResourceAttributes",
@@ -5001,6 +5940,374 @@
         "onLCP",
         "onTTFB"
       ]
+    }
+  },
+  "spring-boot": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Java 25.0.5",
+    "packages": {
+      "com.h2database:h2": "2.4.240",
+      "io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations": "2.33.1",
+      "io.opentelemetry.javaagent:opentelemetry-javaagent": "2.33.1",
+      "org.springframework.boot:spring-boot": "4.1.2",
+      "org.springframework.boot:spring-boot-starter-actuator": "4.1.2",
+      "org.springframework.boot:spring-boot-starter-data-jpa": "4.1.2",
+      "org.springframework.boot:spring-boot-starter-parent": "4.1.2",
+      "org.springframework.boot:spring-boot-starter-restclient": "4.1.2",
+      "org.springframework.boot:spring-boot-starter-webmvc": "4.1.2"
+    },
+    "framework": "Spring Boot 4.1.2",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:968c4e8b8949b4da83f656244b88ecd47233f49f041e004130a07e5e14b5e7a7",
+    "observed": {
+      "spans": [
+        "CREATE shop",
+        "CREATE table shop.placed_order",
+        "DROP shop",
+        "DROP table shop.placed_order",
+        "GET /actuator/health",
+        "GET /boom",
+        "GET /orders/{id}",
+        "INSERT shop.placed_order",
+        "OrderRepository.findById",
+        "OrderRepository.save",
+        "POST",
+        "POST /orders",
+        "SELECT shop",
+        "SELECT shop.placed_order",
+        "Session.find com.example.checkout.PlacedOrder",
+        "Session.persist com.example.checkout.PlacedOrder",
+        "Transaction.commit",
+        "checkout.charge"
+      ],
+      "metrics": [
+        "db.client.connections.create_time",
+        "db.client.connections.idle.min",
+        "db.client.connections.max",
+        "db.client.connections.pending_requests",
+        "db.client.connections.usage",
+        "db.client.connections.use_time",
+        "db.client.connections.wait_time",
+        "http.client.request.duration",
+        "http.server.request.duration",
+        "jvm.class.count",
+        "jvm.class.loaded",
+        "jvm.class.unloaded",
+        "jvm.cpu.count",
+        "jvm.cpu.recent_utilization",
+        "jvm.cpu.time",
+        "jvm.gc.duration",
+        "jvm.memory.committed",
+        "jvm.memory.limit",
+        "jvm.memory.used",
+        "jvm.memory.used_after_last_gc",
+        "jvm.thread.count",
+        "orders.placed",
+        "otlp.exporter.exported",
+        "otlp.exporter.seen",
+        "processedLogs",
+        "processedSpans",
+        "queueSize"
+      ],
+      "logs": [
+        "Bootstrapping Spring Data JPA repositories in DEFAULT mode.",
+        "Closing JPA EntityManagerFactory for persistence unit 'default'",
+        "Commencing graceful shutdown. Waiting for active requests to complete",
+        "Completed initialization in 1 ms",
+        "Destroying Spring FrameworkServlet 'dispatcherServlet'",
+        "Exposing 1 endpoint beneath base path '/actuator'",
+        "Finished Spring Data repository scanning in 49 ms. Found 1 JPA repository interface.",
+        "Graceful shutdown complete",
+        "HHH000001: Hibernate ORM core version 7.4.13.Final",
+        "HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)",
+        "HHH008540: Processing PersistenceUnitInfo [name: default]",
+        "HHH10001005: Database info:\n\tDatabase JDBC URL [jdbc:h2:mem:shop]\n\tDatabase driver: H2 JDBC Driver\n\tDatabase dialect: H2",
+        "Hibernate is in classpath; If applicable, HQL parser will be used.",
+        "HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:shop user=SA",
+        "HikariPool-1 - Shutdown completed.",
+        "HikariPool-1 - Shutdown initiated...",
+        "HikariPool-1 - Start completed.",
+        "HikariPool-1 - Starting...",
+        "Initialized JPA EntityManagerFactory for persistence unit 'default'",
+        "Initializing Servlet 'dispatcherServlet'",
+        "Initializing Spring DispatcherServlet 'dispatcherServlet'",
+        "No LoadTimeWeaver setup: ignoring JPA class transformer",
+        "No active profile set, falling back to 1 default profile: \"default\"",
+        "Pausing ProtocolHandler [\"http-nio-8080\"]",
+        "Root WebApplicationContext: initialization completed in 2196 ms",
+        "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: ja",
+        "Started CheckoutApplication in 6.699 seconds (process running for 11.025)",
+        "Starting CheckoutApplication v1.0.0 using Java 25.0.5 with PID 2782547 (<work>/otel-guides-F0Pmb1/spring-boot/target/che",
+        "Starting Servlet engine: [Apache Tomcat/11.0.27]",
+        "Starting service [Tomcat]",
+        "Stopping ProtocolHandler [\"http-nio-8080\"]",
+        "Stopping service [Tomcat]",
+        "Tomcat initialized with port 8080 (http)",
+        "Tomcat started on port 8080 (http) with context path '/'",
+        "loading order 42"
+      ]
+    },
+    "packageExports": {},
+    "variants": {
+      "Spring Boot starter": {
+        "observed": {
+          "spans": [
+            "CREATE shop",
+            "CREATE table shop.placed_order",
+            "DROP shop",
+            "DROP table shop.placed_order",
+            "GET /actuator/health",
+            "GET /boom",
+            "GET /orders/{id}",
+            "INSERT shop.placed_order",
+            "POST",
+            "POST /orders",
+            "SELECT shop",
+            "SELECT shop.placed_order",
+            "checkout.charge"
+          ],
+          "metrics": [
+            "http.client.request.duration",
+            "http.server.request.duration",
+            "jvm.class.count",
+            "jvm.class.loaded",
+            "jvm.class.unloaded",
+            "jvm.cpu.count",
+            "jvm.cpu.recent_utilization",
+            "jvm.cpu.time",
+            "jvm.memory.committed",
+            "jvm.memory.limit",
+            "jvm.memory.used",
+            "jvm.memory.used_after_last_gc",
+            "jvm.thread.count",
+            "orders.placed",
+            "otlp.exporter.exported",
+            "otlp.exporter.seen",
+            "processedLogs",
+            "processedSpans",
+            "queueSize"
+          ],
+          "logs": [
+            "Bootstrapping Spring Data JPA repositories in DEFAULT mode.",
+            "Closing JPA EntityManagerFactory for persistence unit 'default'",
+            "Commencing graceful shutdown. Waiting for active requests to complete",
+            "Completed initialization in 2 ms",
+            "Exposing 1 endpoint beneath base path '/actuator'",
+            "Finished Spring Data repository scanning in 44 ms. Found 1 JPA repository interface.",
+            "Graceful shutdown complete",
+            "HHH000001: Hibernate ORM core version 7.4.13.Final",
+            "HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)",
+            "HHH008540: Processing PersistenceUnitInfo [name: default]",
+            "HHH10001005: Database info:\n\tDatabase JDBC URL [jdbc:h2:mem:shop]\n\tDatabase driver: H2 JDBC Driver\n\tDatabase dialect: H2",
+            "Hibernate is in classpath; If applicable, HQL parser will be used.",
+            "HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:shop user=SA",
+            "HikariPool-1 - Shutdown completed.",
+            "HikariPool-1 - Shutdown initiated...",
+            "HikariPool-1 - Start completed.",
+            "HikariPool-1 - Starting...",
+            "Initialized JPA EntityManagerFactory for persistence unit 'default'",
+            "Initializing Servlet 'dispatcherServlet'",
+            "Initializing Spring DispatcherServlet 'dispatcherServlet'",
+            "No LoadTimeWeaver setup: ignoring JPA class transformer",
+            "No active profile set, falling back to 1 default profile: \"default\"",
+            "OpenTelemetry Spring Boot starter (2.33.1) has been started",
+            "Root WebApplicationContext: initialization completed in 2101 ms",
+            "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: ja",
+            "Started CheckoutApplication in 6.741 seconds (process running for 7.249)",
+            "Starting CheckoutApplication v1.0.0 using Java 25.0.5 with PID 2790159 (<work>/otel-guides-F0Pmb1/spring-boot--spring-bo",
+            "Starting Servlet engine: [Apache Tomcat/11.0.27]",
+            "Starting service [Tomcat]",
+            "Tomcat initialized with port 8080 (http)",
+            "Tomcat started on port 8080 (http) with context path '/'",
+            "loading order 42"
+          ]
+        },
+        "packages": {
+          "com.h2database:h2": "2.4.240",
+          "io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations": "2.33.1",
+          "io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom": "2.33.1",
+          "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter": "2.33.1",
+          "org.springframework.boot:spring-boot": "4.1.2",
+          "org.springframework.boot:spring-boot-starter-actuator": "4.1.2",
+          "org.springframework.boot:spring-boot-starter-data-jpa": "4.1.2",
+          "org.springframework.boot:spring-boot-starter-parent": "4.1.2",
+          "org.springframework.boot:spring-boot-starter-restclient": "4.1.2",
+          "org.springframework.boot:spring-boot-starter-webmvc": "4.1.2"
+        }
+      },
+      "Micrometer metrics": {
+        "observed": {
+          "spans": [
+            "CREATE shop",
+            "CREATE table shop.placed_order",
+            "DROP shop",
+            "DROP table shop.placed_order",
+            "GET /actuator/health",
+            "GET /boom",
+            "GET /orders/{id}",
+            "INSERT shop.placed_order",
+            "OrderRepository.findById",
+            "OrderRepository.save",
+            "POST",
+            "POST /orders",
+            "SELECT shop",
+            "SELECT shop.placed_order",
+            "Session.find com.example.checkout.PlacedOrder",
+            "Session.persist com.example.checkout.PlacedOrder",
+            "Transaction.commit",
+            "checkout.charge"
+          ],
+          "metrics": [
+            "application.ready.time",
+            "application.started.time",
+            "db.client.connections.create_time",
+            "db.client.connections.idle.min",
+            "db.client.connections.max",
+            "db.client.connections.pending_requests",
+            "db.client.connections.usage",
+            "db.client.connections.use_time",
+            "db.client.connections.wait_time",
+            "disk.free",
+            "disk.total",
+            "executor.active",
+            "executor.completed",
+            "executor.pool.core",
+            "executor.pool.max",
+            "executor.pool.size",
+            "executor.queue.remaining",
+            "executor.queued",
+            "hikaricp.connections",
+            "hikaricp.connections.acquire",
+            "hikaricp.connections.acquire.max",
+            "hikaricp.connections.active",
+            "hikaricp.connections.creation.max",
+            "hikaricp.connections.idle",
+            "hikaricp.connections.max",
+            "hikaricp.connections.min",
+            "hikaricp.connections.pending",
+            "hikaricp.connections.usage",
+            "hikaricp.connections.usage.max",
+            "http.client.request.duration",
+            "http.client.requests",
+            "http.client.requests.active.active",
+            "http.client.requests.active.duration",
+            "http.client.requests.max",
+            "http.server.request.duration",
+            "http.server.requests",
+            "http.server.requests.active.active",
+            "http.server.requests.active.duration",
+            "http.server.requests.max",
+            "jdbc.connections.active",
+            "jdbc.connections.idle",
+            "jdbc.connections.max",
+            "jdbc.connections.min",
+            "jvm.buffer.count",
+            "jvm.buffer.memory.used",
+            "jvm.buffer.total.capacity",
+            "jvm.class.count",
+            "jvm.class.loaded",
+            "jvm.class.unloaded",
+            "jvm.classes.loaded",
+            "jvm.classes.loaded.count",
+            "jvm.classes.unloaded",
+            "jvm.compilation.time",
+            "jvm.cpu.count",
+            "jvm.cpu.recent_utilization",
+            "jvm.cpu.time",
+            "jvm.gc.concurrent.phase.time",
+            "jvm.gc.concurrent.phase.time.max",
+            "jvm.gc.duration",
+            "jvm.gc.live.data.size",
+            "jvm.gc.max.data.size",
+            "jvm.gc.memory.allocated",
+            "jvm.gc.overhead",
+            "jvm.gc.pause",
+            "jvm.gc.pause.max",
+            "jvm.info",
+            "jvm.memory.committed",
+            "jvm.memory.limit",
+            "jvm.memory.max",
+            "jvm.memory.usage.after.gc",
+            "jvm.memory.used",
+            "jvm.memory.used_after_last_gc",
+            "jvm.thread.count",
+            "jvm.threads.daemon",
+            "jvm.threads.live",
+            "jvm.threads.peak",
+            "jvm.threads.started",
+            "jvm.threads.states",
+            "logback.events",
+            "orders.placed",
+            "otlp.exporter.exported",
+            "otlp.exporter.seen",
+            "process.cpu.time",
+            "process.cpu.usage",
+            "process.files.max",
+            "process.files.open",
+            "process.start.time",
+            "process.uptime",
+            "processedLogs",
+            "processedSpans",
+            "queueSize",
+            "spring.data.repository.invocations",
+            "spring.data.repository.invocations.max",
+            "system.cpu.count",
+            "system.cpu.usage",
+            "system.load.average.1m",
+            "tomcat.sessions.active.current",
+            "tomcat.sessions.active.max",
+            "tomcat.sessions.alive.max",
+            "tomcat.sessions.created",
+            "tomcat.sessions.expired",
+            "tomcat.sessions.rejected"
+          ],
+          "logs": [
+            "Bootstrapping Spring Data JPA repositories in DEFAULT mode.",
+            "Closing JPA EntityManagerFactory for persistence unit 'default'",
+            "Commencing graceful shutdown. Waiting for active requests to complete",
+            "Completed initialization in 1 ms",
+            "Exposing 1 endpoint beneath base path '/actuator'",
+            "Finished Spring Data repository scanning in 52 ms. Found 1 JPA repository interface.",
+            "Graceful shutdown complete",
+            "HHH000001: Hibernate ORM core version 7.4.13.Final",
+            "HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)",
+            "HHH008540: Processing PersistenceUnitInfo [name: default]",
+            "HHH10001005: Database info:\n\tDatabase JDBC URL [jdbc:h2:mem:shop]\n\tDatabase driver: H2 JDBC Driver\n\tDatabase dialect: H2",
+            "Hibernate is in classpath; If applicable, HQL parser will be used.",
+            "HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:shop user=SA",
+            "HikariPool-1 - Shutdown initiated...",
+            "HikariPool-1 - Start completed.",
+            "HikariPool-1 - Starting...",
+            "Initialized JPA EntityManagerFactory for persistence unit 'default'",
+            "Initializing Servlet 'dispatcherServlet'",
+            "Initializing Spring DispatcherServlet 'dispatcherServlet'",
+            "No LoadTimeWeaver setup: ignoring JPA class transformer",
+            "No active profile set, falling back to 1 default profile: \"default\"",
+            "Pausing ProtocolHandler [\"http-nio-8080\"]",
+            "Root WebApplicationContext: initialization completed in 2253 ms",
+            "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed: ja",
+            "Started CheckoutApplication in 8.182 seconds (process running for 12.643)",
+            "Starting CheckoutApplication v1.0.0 using Java 25.0.5 with PID 2797062 (<work>/otel-guides-F0Pmb1/spring-boot--micromete",
+            "Starting Servlet engine: [Apache Tomcat/11.0.27]",
+            "Starting service [Tomcat]",
+            "Stopping ProtocolHandler [\"http-nio-8080\"]",
+            "Tomcat initialized with port 8080 (http)",
+            "Tomcat started on port 8080 (http) with context path '/'",
+            "loading order 42"
+          ]
+        },
+        "packages": {
+          "com.h2database:h2": "2.4.240",
+          "io.opentelemetry.instrumentation:opentelemetry-instrumentation-annotations": "2.33.1",
+          "io.opentelemetry.javaagent:opentelemetry-javaagent": "2.33.1",
+          "org.springframework.boot:spring-boot": "4.1.2",
+          "org.springframework.boot:spring-boot-starter-actuator": "4.1.2",
+          "org.springframework.boot:spring-boot-starter-data-jpa": "4.1.2",
+          "org.springframework.boot:spring-boot-starter-parent": "4.1.2",
+          "org.springframework.boot:spring-boot-starter-restclient": "4.1.2",
+          "org.springframework.boot:spring-boot-starter-webmvc": "4.1.2"
+        }
+      }
     }
   }
 }

@@ -33,23 +33,31 @@ Varje minut räknar OneUptime de undantag som matchar monitorns filter och intr�
 :::steps
 ### Börja en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Eller klicka på **Skapa monitor** bredvid **Lös** på ett undantags sida: den nya monitorn bevakar från början det undantagets typ i dess tjänst och larmar när det händer igen.
 
 ### Välj Exceptions
 
 Under **Monitortyp** klickar du på **Fler monitortyper** och väljer **Undantag** under **Telemetri**, eller skriver `exceptions` i sökrutan. Ange ett **Namn** och klicka sedan på **Nästa**.
 
+### Välj vad monitorn ska berätta om
+
+Under **Vad ska den här övervakningen berätta om?** väljer du **Alla undantag** eller **För många undantag**. Varje val fyller i regeln, som du kan ändra längre ned. Välj **Något annat** för att ställa in den själv.
+
 ### Välj vilka undantag som ska räknas
 
-I **Undantagsmonitorkonfiguration** anger du **Filtrera undantagsmeddelande**, **Undantagstyper**, **Environments** och **Övervaka undantag för (tid)**. Ett filter som du lämnar tomt matchar alla undantag. **Förhandsvisning av undantag** under filtren visar de undantag som de matchar just nu.
+I **Undantag att bevaka** anger du **Meddelandet innehåller**, **Undantagstyper** och **Environments**. Ett filter som du lämnar tomt matchar alla undantag. **Matchande undantag** under filtren visar de undantag som de matchar just nu.
 
 ### Begränsa dem (valfritt)
 
 Öppna **Fler fält** för att filtrera efter telemetritjänst eller infrastrukturentitet, eller för att även räkna lösta och arkiverade undantag.
 
-### Ange kriterierna
+### Säg när det ska larmas
 
-Kortet **Monitorkriterier** börjar med två kriterier: offline, med en incident, när något undantag matchar; online när inget gör det. Ändra dem till det du vill varnas om (se [Kriterier](#kriterier)).
+I **När det ska larmas** väljer du ett **Villkor**, **Antal undantag** och ett **Tidsfönster**. Meningen under dem upprepar regeln med vanliga ord. Diagrammet under den räknar de matchande undantagen i varje fönster under de senaste timmarna, ritar regelns tal som en linje och berättar hur ofta regeln skulle ha larmat. Dess knapp föreslår ett tal som regeln inte skulle ha passerat under den tiden.
+
+### Välj vad som händer
+
+I **Vad som händer** väljer du **Skapa ett larm**, **Deklarera en incident** eller **Båda**, och ger det en titel och en allvarlighetsgrad. Medan regeln matchar visar monitorn statusen under **Fler fält**; när den slutar matcha går monitorn tillbaka till sin standardstatus, och larmet eller incidenten löser sig själv.
 
 ### Skapa monitorn
 
@@ -60,10 +68,10 @@ Klicka på **Skapa monitor**. Monitorn öppnas på sin sida **Översikt**, och d
 
 | Fält | Vad det matchar | Standard |
 | --- | --- | --- |
-| **Filtrera undantagsmeddelande** | Undantag vars meddelande innehåller denna text, utan skillnad på versaler och gemener. | Tomt: alla undantag |
+| **Meddelandet innehåller** | Undantag vars meddelande innehåller denna text, utan skillnad på versaler och gemener. | Tomt: alla undantag |
 | **Undantagstyper** | Undantag av någon av dessa typer, separerade med kommatecken, som `TypeError, NullReferenceException`. Typnamnet måste matcha exakt. | Tomt: alla typer |
 | **Environments** | Undantag från någon av dessa miljöer, separerade med kommatecken (se [Miljöer](#miljöer)). | Tomt: alla miljöer |
-| **Övervaka undantag för (tid)** | Undantag från de senaste 5 sekunderna upp till de senaste 24 timmarna. | **Senaste 1 minuten** |
+| **Tidsfönster** (i **När det ska larmas**) | Undantag från de senaste 5 sekunderna upp till de senaste 24 timmarna. | **Senaste 5 minuterna** |
 | **Filtrera efter telemetritjänst** (under **Fler fält**) | Undantag från någon av de valda tjänsterna. | Tomt: alla tjänster |
 | **Filtrera efter infrastrukturenhet** (under **Fler fält**) | Undantag från någon av de valda värdarna, poddarna, containrarna och andra entiteterna. | Tomt: alla entiteter |
 | **Inkludera lösta undantag** (under **Fler fält**) | Räkna även undantag som är markerade som lösta. | Av |
@@ -98,7 +106,7 @@ När du skapar monitorn via API:et anger du `environments` på stegets `exceptio
 ## Så utvärderas den
 
 - **Varje minut.** En undantagsmonitor kontrolleras inte av sonder, så den har inget intervall att ange och ingen sida **Sonder och intervall**.
-- **Förekomster, inte undantagstyper.** Monitorn räknar varje gång ett matchande undantag inträffade inom **Övervaka undantag för (tid)**. Ett undantag som kastas 40 gånger räknas som 40.
+- **Förekomster, inte undantagstyper.** Monitorn räknar varje gång ett matchande undantag inträffade inom **Tidsfönster**. Ett undantag som kastas 40 gånger räknas som 40.
 - **Lösta och arkiverade undantag utelämnas.** Om du inte aktiverar **Inkludera lösta undantag** eller **Inkludera arkiverade undantag** räknas inte förekomsterna av ett undantag som du har markerat som löst eller arkiverat. Att markera ett undantag som löst kan därför stänga den incident som det öppnade. När ett löst undantag inträffar igen blir det automatiskt olöst och räknas igen.
 - **Inga undantag är ett antal på 0.**
 - **OneUptimes eget avbrott är inte tystnad.** Så länge tidsfönstret innehåller tid då OneUptime självt inte tog emot data (det startade om, uppgraderades eller arbetade ikapp en eftersläpning) väntar kontrollen: statusen ändras inte, och ingen incident eller larm öppnas eller löses. Se [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving).
@@ -108,7 +116,7 @@ Varje statusändring registreras med sin orsak på monitorns **Statustidslinje**
 
 ## Kriterier
 
-En undantagsmonitors kriterier har en enda **Filtertyp**: **Exception Count**, antalet undantag som matchade i fönstret. Välj ett **Filtervillkor** och ett **Värde**.
+En undantagsmonitors kriterier har en enda **Filtertyp**: **Exception Count**, antalet undantag som matchade i fönstret. **När det ska larmas** ställer in ett kriterium, vars **Villkor** är **Fler än**, **Minst**, **Färre än**, **Högst** eller **Exakt**. För flera kriterier, eller ett med mer än ett filter, klickar du på **Redigera som egna kriterier** under **Fler fält** i **Vad som händer**: varje kriterium där har ett **Filtervillkor** och ett **Värde**.
 
 | Filtervillkor | Matchar när antalet undantag är… |
 | --- | --- |
@@ -121,7 +129,14 @@ En undantagsmonitors kriterier har en enda **Filtertyp**: **Exception Count**, a
 
 Antal undantag har inga avvikelsevillkor: det finns ingen baslinje att jämföra dem med.
 
-En ny undantagsmonitor börjar med dessa kriterier:
+En undantagsmonitor som skapats i Skapa monitor börjar med regeln för det du valde under **Vad ska den här övervakningen berätta om?**:
+
+| Val | Regel | Vad som händer |
+| --- | --- | --- |
+| **Alla undantag** | **Fler än** `0` under **Senaste 5 minuterna** | Skapar ett larm, som löser sig själv |
+| **För många undantag** | **Fler än** `20` under **Senaste 5 minuterna** | Skapar ett larm, som löser sig själv |
+
+En undantagsmonitor som skapats via API:et eller Terraform utan kriterier börjar med dessa kriterier:
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
@@ -130,7 +145,7 @@ En ny undantagsmonitor börjar med dessa kriterier:
 
 ## Genomgånget exempel: bara produktionsundantag
 
-Du vill ha en incident varje gång API:et kastar ett undantag i produktion, och ingenting för staging. Du ställer in **Environments** på `production` och **Övervaka undantag för (tid)** på **Senaste 5 minuterna**, och behåller standardkriterierna. Under de senaste fem minuterna:
+Du vill ha en incident varje gång API:et kastar ett undantag i produktion, och ingenting för staging. Du väljer **Alla undantag**, ställer in **Environments** på `production`, behåller **Tidsfönster** på **Senaste 5 minuterna** och väljer **Deklarera en incident** under **Vad som händer**. Under de senaste fem minuterna:
 
 | Undantag | Miljö | Tillstånd | Räknas? |
 | --- | --- | --- | --- |
@@ -139,12 +154,12 @@ Du vill ha en incident varje gång API:et kastar ett undantag i produktion, och 
 | `TimeoutError` × 2 | ingen | Aktivt | Nej: ingen miljö |
 | `NullReferenceException` × 4 | `production` | Löst efter att de inträffade | Nej: löst |
 
-**Exception Count** är 3, så **Större än** `0` matchar: monitorn går offline och en incident deklareras. När fem minuter har gått utan något aktivt produktionsundantag matchar online-kriteriet och incidenten löser sig själv.
+**Exception Count** är 3, så **Fler än** `0` matchar: monitorn går offline och en incident deklareras. När fem minuter har gått utan något aktivt produktionsundantag slutar regeln matcha, monitorn går tillbaka till sin standardstatus och incidenten löser sig själv.
 
 ## Felsökning
 
 :::details Undantag visas i utforskaren, men monitorn räknar 0
-Jämför värdet i **Environments** med utforskarens filter `env:`: jämförelsen är exakt och skiljer på versaler och gemener, och undantag utan miljö utelämnas när filtret är angivet. Kontrollera sedan om de undantagen är lösta eller arkiverade. Öppna monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Edit Monitoring Criteria**: **Förhandsvisning av undantag** visar vad filtren matchar.
+Jämför värdet i **Environments** med utforskarens filter `env:`: jämförelsen är exakt och skiljer på versaler och gemener, och undantag utan miljö utelämnas när filtret är angivet. Kontrollera sedan om de undantagen är lösta eller arkiverade. Öppna monitorns sida **Kriterier** (under **Konfiguration**) och klicka på **Edit Monitoring Criteria**: **Matchande undantag** visar vad filtren matchar.
 :::
 
 :::details Incidenten löstes när jag löste undantaget

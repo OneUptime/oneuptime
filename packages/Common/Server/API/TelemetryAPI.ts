@@ -106,7 +106,21 @@ import PprofEncoder, {
 } from "../Utils/Profile/PprofEncoder";
 import Profile from "../../Models/AnalyticsModels/Profile";
 import Log from "../../Models/AnalyticsModels/Log";
-import Span from "../../Models/AnalyticsModels/Span";
+import Span, { SpanStatus } from "../../Models/AnalyticsModels/Span";
+import LogSeverity from "../../Types/Log/LogSeverity";
+import MonitorStepLogMonitor, {
+  MonitorStepLogMonitorUtil,
+} from "../../Types/Monitor/MonitorStepLogMonitor";
+import MonitorStepTraceMonitor, {
+  MonitorStepTraceMonitorUtil,
+} from "../../Types/Monitor/MonitorStepTraceMonitor";
+import MonitorStepExceptionMonitor, {
+  MonitorStepExceptionMonitorUtil,
+} from "../../Types/Monitor/MonitorStepExceptionMonitor";
+import TelemetryRulePreviewUtil, {
+  TelemetryRulePreviewAnswer,
+} from "../../Types/Monitor/TelemetryRulePreview";
+import TelemetryRulePreviewService from "../Services/TelemetryRulePreviewService";
 import Metric from "../../Models/AnalyticsModels/Metric";
 import ExceptionInstance from "../../Models/AnalyticsModels/ExceptionInstance";
 import TelemetryReadAccess from "../Utils/Telemetry/TelemetryReadAccess";
@@ -4605,6 +4619,206 @@ router.post(
       next(err);
     }
   },
+);
+
+// --- Telemetry Monitor Rule Preview Endpoints ---
+
+/*
+ * What a Logs, Traces or Exceptions monitor's rule would have compared over
+ * the hours before now: the monitor's count for each window of its length
+ * (TelemetryRulePreviewService), read with the monitor's own query and
+ * narrowed to the services the caller may read. The monitor form draws it
+ * beside the rule's threshold, so a person sees what is normal and when
+ * the rule would have fired before they save it. The body is the monitor
+ * step's settings for that signal, as the form holds them.
+ */
+type RulePreviewHandler = (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  databaseProps: DatabaseCommonInteractionProps & { tenantId: ObjectID },
+  body: JSONObject,
+) => Promise<void>;
+
+const handleRulePreview: (
+  handler: RulePreviewHandler,
+) => (
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: NextFunction,
+) => Promise<void> = (handler: RulePreviewHandler) => {
+  return async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      const body: unknown = req.body;
+
+      if (!body || typeof body !== "object" || Array.isArray(body)) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("The monitor's settings are required"),
+        );
+      }
+
+      await handler(
+        req,
+        res,
+        databaseProps as DatabaseCommonInteractionProps & {
+          tenantId: ObjectID;
+        },
+        body as JSONObject,
+      );
+    } catch (err: unknown) {
+      next(err);
+    }
+  };
+};
+
+// A window the forms offer, in seconds: anything else is refused.
+const readRulePreviewWindow: (value: unknown) => number = (
+  value: unknown,
+): number => {
+  const seconds: number = typeof value === "number" ? value : Number(value);
+
+  if (!Number.isFinite(seconds) || seconds <= 0) {
+    throw new BadDataException(
+      "The monitor's window must be a number of seconds",
+    );
+  }
+
+  return TelemetryRulePreviewUtil.clampWindow(seconds);
+};
+
+router.post(
+  "/telemetry/logs/monitor-preview",
+  ...requireLogReadAccess,
+  handleRulePreview(
+    async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      databaseProps: DatabaseCommonInteractionProps & { tenantId: ObjectID },
+      body: JSONObject,
+    ): Promise<void> => {
+      const logMonitor: MonitorStepLogMonitor = {
+        ...MonitorStepLogMonitorUtil.fromJSON(body),
+        body: typeof body["body"] === "string" ? (body["body"] as string) : "",
+        severityTexts: Array.isArray(body["severityTexts"])
+          ? (body["severityTexts"] as Array<unknown>).filter(
+              (value: unknown): value is LogSeverity => {
+                return Object.values(LogSeverity).includes(
+                  value as LogSeverity,
+                );
+              },
+            )
+          : [],
+        lastXSecondsOfLogs: readRulePreviewWindow(body["lastXSecondsOfLogs"]),
+      };
+
+      const answer: TelemetryRulePreviewAnswer =
+        await TelemetryRulePreviewService.previewLogs({
+          projectId: databaseProps.tenantId,
+          logMonitor,
+          scope: await TelemetryReadAccess.getScope(Log, databaseProps),
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        answer as unknown as JSONObject,
+      );
+    },
+  ),
+);
+
+router.post(
+  "/telemetry/traces/monitor-preview",
+  ...requireTraceReadAccess,
+  handleRulePreview(
+    async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      databaseProps: DatabaseCommonInteractionProps & { tenantId: ObjectID },
+      body: JSONObject,
+    ): Promise<void> => {
+      const traceMonitor: MonitorStepTraceMonitor = {
+        ...MonitorStepTraceMonitorUtil.fromJSON(body),
+        spanName:
+          typeof body["spanName"] === "string"
+            ? (body["spanName"] as string)
+            : "",
+        spanStatuses: Array.isArray(body["spanStatuses"])
+          ? (body["spanStatuses"] as Array<unknown>).filter(
+              (value: unknown): value is SpanStatus => {
+                return Object.values(SpanStatus).includes(value as SpanStatus);
+              },
+            )
+          : [],
+        lastXSecondsOfSpans: readRulePreviewWindow(body["lastXSecondsOfSpans"]),
+      };
+
+      const answer: TelemetryRulePreviewAnswer =
+        await TelemetryRulePreviewService.previewSpans({
+          projectId: databaseProps.tenantId,
+          traceMonitor,
+          scope: await TelemetryReadAccess.getScope(Span, databaseProps),
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        answer as unknown as JSONObject,
+      );
+    },
+  ),
+);
+
+router.post(
+  "/telemetry/exceptions/monitor-preview",
+  ...requireExceptionReadAccess,
+  handleRulePreview(
+    async (
+      req: ExpressRequest,
+      res: ExpressResponse,
+      databaseProps: DatabaseCommonInteractionProps & { tenantId: ObjectID },
+      body: JSONObject,
+    ): Promise<void> => {
+      const exceptionMonitor: MonitorStepExceptionMonitor = {
+        ...MonitorStepExceptionMonitorUtil.fromJSON(body),
+        lastXSecondsOfExceptions: readRulePreviewWindow(
+          body["lastXSecondsOfExceptions"],
+        ),
+      };
+
+      const answer: TelemetryRulePreviewAnswer =
+        await TelemetryRulePreviewService.previewExceptions({
+          projectId: databaseProps.tenantId,
+          exceptionMonitor,
+          scope: await TelemetryReadAccess.getScope(
+            ExceptionInstance,
+            databaseProps,
+          ),
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        answer as unknown as JSONObject,
+      );
+    },
+  ),
 );
 
 // --- Profile Trace Presence Endpoint ---

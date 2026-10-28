@@ -122,6 +122,13 @@ export interface GuidePageContent {
   highlights: Array<string>;
   kindLabel: string;
   language: OpenTelemetryGuideLanguageGroup;
+  /*
+   * The breadcrumb's step between the index and the page: the guide's
+   * language, at its group on the index. A language's own guide, named as
+   * its language is ("Python", ".NET"), has none: "Integrations / Python",
+   * never "Integrations / Python / Python".
+   */
+  languageCrumb?: { title: string; href: string } | undefined;
   mark: GuideMark;
   checked?: { onLabel: string; withLabel: string } | undefined;
   sections: Array<GuideSection>;
@@ -131,7 +138,7 @@ export interface GuidePageContent {
   };
   exampleTrace: { caption: string; spans: Array<ExampleSpan> };
   prerequisitesHtml: Array<string>;
-  install: RenderedCodeSection;
+  install: RenderedCodeSection & { tabs?: RenderedTabs | undefined };
   configure: {
     introHtml: string;
     tabs: RenderedTabs;
@@ -166,6 +173,7 @@ export interface GuidePageContent {
 const KIND_LABELS: Record<OpenTelemetryGuideKind, string> = {
   runtime: "Runtime",
   framework: "Framework",
+  worker: "Background jobs",
   browser: "Browser",
 };
 
@@ -264,10 +272,11 @@ function renderQuestion(question: GuideQuestion): RenderedQuestion {
 
 /*
  * How the section titles name what the page is for. A framework's catalog
- * name reads well there ("Add OpenTelemetry to Express"); the browser
- * entry's ("JavaScript in the browser") does not, so a browser page names
- * the web app instead, and its deploy section is about shipping a bundle,
- * not running a container.
+ * name reads well there ("Add OpenTelemetry to Express"), or its phrase for
+ * a sentence where the name alone does not ("Add OpenTelemetry to a Worker
+ * Service"); the browser entry's ("JavaScript in the browser") does not, so
+ * a browser page names the web app instead, and its deploy section is about
+ * shipping a bundle, not running a container.
  */
 interface SectionWords {
   setupTitle: string;
@@ -281,6 +290,7 @@ interface SectionWords {
 function sectionWords(
   name: string,
   kind: OpenTelemetryGuideKind,
+  inSentence: string = name,
 ): SectionWords {
   if (kind === "browser") {
     const isPlainBrowser: boolean = name.toLowerCase().includes("browser");
@@ -301,9 +311,9 @@ function sectionWords(
   }
 
   return {
-    setupTitle: `Add OpenTelemetry to ${name}`,
-    setupLabel: `Add to ${name}`,
-    troubleshootingTitle: `Troubleshooting OpenTelemetry in ${name}`,
+    setupTitle: `Add OpenTelemetry to ${inSentence}`,
+    setupLabel: `Add to ${inSentence}`,
+    troubleshootingTitle: `Troubleshooting OpenTelemetry in ${inSentence}`,
     faqTitle: `${name} OpenTelemetry FAQ`,
     deployTitle: "Run it in Docker and Kubernetes",
     deployLabel: "Docker and Kubernetes",
@@ -314,8 +324,9 @@ function sectionWords(
 export function guideSections(
   name: string,
   kind: OpenTelemetryGuideKind,
+  inSentence?: string | undefined,
 ): Array<GuideSection> {
-  const words: SectionWords = sectionWords(name, kind);
+  const words: SectionWords = sectionWords(name, kind, inSentence || name);
 
   return [
     {
@@ -460,6 +471,7 @@ export function getGuidePageContent(
   tabsOnPage = 0;
 
   const entry: OpenTelemetryGuideEntry = getGuideEntry(slug);
+  const language: OpenTelemetryGuideLanguageGroup = getGuideLanguageGroup(slug);
   const baseUrl: string = homeUrl.replace(/\/$/, "");
   const pageUrl: string = `${baseUrl}${getOpenTelemetryGuidePath(slug)}`;
 
@@ -470,10 +482,17 @@ export function getGuidePageContent(
     leadHtml: inlineTextToHtml(guide.lead),
     highlights: guide.highlights,
     kindLabel: KIND_LABELS[entry.kind],
-    language: getGuideLanguageGroup(slug),
+    language: language,
+    languageCrumb:
+      language.title === entry.name
+        ? undefined
+        : {
+            title: language.title,
+            href: `${OPEN_TELEMETRY_GUIDES_INDEX_PATH}#${language.language}`,
+          },
     mark: guideMark(entry),
     checked: checkedLabels(getVerificationRecord(slug)),
-    sections: guideSections(entry.name, entry.kind),
+    sections: guideSections(entry.name, entry.kind, entry.inSentence),
     whatYouGet: {
       introHtml: inlineTextToHtml(guide.whatYouGet.intro),
       signals: [
@@ -488,7 +507,12 @@ export function getGuidePageContent(
     },
     exampleTrace: guide.exampleTrace,
     prerequisitesHtml: guide.prerequisites.map(inlineTextToHtml),
-    install: renderCodeSection(guide.install),
+    install: {
+      ...renderCodeSection(guide.install),
+      tabs: guide.install.tabs
+        ? renderTabs(guide.install.tabs, slug)
+        : undefined,
+    },
     configure: {
       introHtml: inlineTextToHtml(guide.configure.intro),
       tabs: renderTabs(guide.configure.tabs, slug),

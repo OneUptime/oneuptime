@@ -9,6 +9,7 @@ import {
 } from "../Utils/Integrations/OpenTelemetry/IntegrationsIndex";
 import { OPEN_TELEMETRY_GUIDE_PAGES } from "../Utils/Integrations/OpenTelemetry/OpenTelemetryGuides";
 import { OpenTelemetryGuide } from "../Utils/Integrations/OpenTelemetry/GuideTypes";
+import { highlightSnippet } from "../Utils/Integrations/OpenTelemetry/GuideHighlight";
 import {
   HOME_URL,
   VIEWS_ROOT,
@@ -33,7 +34,9 @@ import path from "path";
  * - the index's search field focuses like the site's other fields (its
  *   own ring, not the browser's outline), its hint fits a phone's field,
  *   and its clear button is drawn in the field's grey;
- * - the index says what the guides are in two short sentences.
+ * - the index says what the guides are in two short sentences;
+ * - code is coloured as code: an annotation, a decorator or a .properties
+ *   key is never drawn in a comment's grey.
  */
 
 const SCRIPT_PATH: string = "/js/integrations.js?v=test";
@@ -41,6 +44,59 @@ const STYLES: string = fs.readFileSync(
   path.join(VIEWS_ROOT, "Partials", "integrations", "styles.ejs"),
   "utf8",
 );
+
+/*
+ * The colour the guides' stylesheet draws each selector in: the code
+ * blocks' palette, read rule by rule with its comments left out.
+ */
+function stylesheetColours(): Map<string, string> {
+  const css: string = STYLES.slice(
+    STYLES.indexOf("<style>") + "<style>".length,
+    STYLES.indexOf("</style>"),
+  );
+  let text: string = "";
+  let rest: string = css;
+
+  for (;;) {
+    const open: number = rest.indexOf("/*");
+
+    if (open < 0) {
+      text += rest;
+      break;
+    }
+
+    text += rest.slice(0, open);
+    const close: number = rest.indexOf("*/", open + 2);
+    rest = close < 0 ? "" : rest.slice(close + 2);
+  }
+
+  const colours: Map<string, string> = new Map<string, string>();
+
+  for (const rule of text.split("}")) {
+    const brace: number = rule.indexOf("{");
+    const declarations: Array<string> = rule
+      .slice(brace + 1)
+      .split(";")
+      .map((declaration: string): string => {
+        return declaration.trim();
+      });
+    const colour: string | undefined = declarations.find(
+      (declaration: string): boolean => {
+        return declaration.startsWith("color:");
+      },
+    );
+
+    if (brace < 0 || !colour) {
+      continue;
+    }
+
+    for (const selector of rule.slice(0, brace).split(",")) {
+      colours.set(selector.trim(), colour.slice("color:".length).trim());
+    }
+  }
+
+  return colours;
+}
 
 // The page-wide containers: the site's 80rem column.
 function pageContainers(document: Document): Array<Element> {
@@ -245,5 +301,58 @@ describe("the index", () => {
         ),
       ).toBe(true);
     });
+  });
+});
+
+describe("the code blocks' colours", () => {
+  test("draw annotations, decorators and .properties keys as code, never in a comment's grey", () => {
+    const colours: Map<string, string> = stylesheetColours();
+    const meta: string | undefined = colours.get(".guide-code .hljs-meta");
+    const comment: string | undefined = colours.get(
+      ".guide-code .hljs-comment",
+    );
+
+    expect(comment).toBe("#8b949e");
+    // GitHub's dark theme's blue, the colour of a YAML key beside it.
+    expect(meta).toBe("#79c0ff");
+    expect(meta).toBe(colours.get(".guide-code .hljs-attr"));
+
+    /*
+     * Each of these is what highlight.js marks as hljs-meta, so the rule
+     * above is the one that colours it.
+     */
+    const samples: Array<
+      [string, "java" | "kotlin" | "python" | "properties"]
+    > = [
+      ['@WithSpan("checkout.charge")\nvoid charge() {}', "java"],
+      ["@WithSpan\nfun charge() {}", "kotlin"],
+      [
+        '@tracer.start_as_current_span("invoice.validate")\ndef validate():\n    pass',
+        "python",
+      ],
+      ["otel.traces.exporter=otlp", "properties"],
+    ];
+
+    for (const [code, language] of samples) {
+      expect([language, highlightSnippet(code, language)]).toEqual([
+        language,
+        expect.stringContaining('<span class="hljs-meta">'),
+      ]);
+    }
+  });
+
+  test("keep a comment the one thing drawn in grey", () => {
+    const greys: Array<string> = Array.from(stylesheetColours().entries())
+      .filter(([, colour]: [string, string]): boolean => {
+        return colour === "#8b949e";
+      })
+      .map(([selector]: [string, string]): string => {
+        return selector;
+      });
+
+    expect(greys.sort()).toEqual([
+      ".guide-code .hljs-comment",
+      ".guide-code .hljs-quote",
+    ]);
   });
 });

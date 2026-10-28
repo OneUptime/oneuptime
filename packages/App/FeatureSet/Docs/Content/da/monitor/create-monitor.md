@@ -48,6 +48,8 @@ Nedenunder afgør **Monitorkriterier**, hvornår monitoren skifter status, erkl�
 
 Klik på et kriterium for at åbne og ændre det. **Tilføj kriterier** tilføjer et, åbent og klar til at udfylde. For at ændre rækkefølgen trækker du et kriterium i håndtaget til venstre for det.
 
+En log-, trace-, undtagelse- eller metrik-monitor spørger i stedet, hvad den skal fortælle dig om, og opretter én regel med almindelige ord: hvad der skal holdes øje med, **Hvornår der advares** og **Hvad der sker**, med et diagram over, hvad reglen ville have fanget. Se [Log-monitor](/docs/monitor/logs-monitor#opret-en-log-monitor).
+
 ### Gå til næste trin
 
 Klik på **Næste**. Intet på dette trin markeres som manglende, før du klikker på **Næste**.

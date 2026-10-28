@@ -173,6 +173,12 @@ interface MetricViewBodyProps {
   hideCardInCharts?: boolean;
   chartCssClass?: string | undefined;
   /*
+   * Stretch the charts' value axis to take their warning and critical
+   * lines in (MetricCharts): a Metrics monitor's form, whose red line is
+   * the value the rule compares with, sets it.
+   */
+  thresholdLinesExtendAxis?: boolean | undefined;
+  /*
    * Cache-bypass nonce. Bumping it forces a refetch (and a fresh network
    * fetch past the aggregate result cache) even when the fetch-relevant
    * view state hasn't changed — used by the explorer's manual Refresh on
@@ -1384,27 +1390,32 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                     : "Pick a metric in the query editor above and its chart will appear here.",
                 )}
               </p>
-              {!props.hideQueryElements && (
-                <div className="mt-4 flex justify-center">
-                  <Button
-                    title="Add metric query"
-                    buttonStyle={ButtonStyleType.PRIMARY}
-                    buttonSize={ButtonSize.Small}
-                    icon={IconProp.Add}
-                    onClick={() => {
-                      if (props.onChange) {
-                        props.onChange({
-                          ...props.data,
-                          queryConfigs: [
-                            ...props.data.queryConfigs,
-                            getEmptyQueryConfigData(),
-                          ],
-                        });
-                      }
-                    }}
-                  />
-                </div>
-              )}
+              {/*
+               * Only with no query at all: a query waiting for its metric
+               * is filled in above, and a second empty one would not help.
+               */}
+              {!props.hideQueryElements &&
+                props.data.queryConfigs.length === 0 && (
+                  <div className="mt-4 flex justify-center">
+                    <Button
+                      title="Add metric query"
+                      buttonStyle={ButtonStyleType.PRIMARY}
+                      buttonSize={ButtonSize.Small}
+                      icon={IconProp.Add}
+                      onClick={() => {
+                        if (props.onChange) {
+                          props.onChange({
+                            ...props.data,
+                            queryConfigs: [
+                              ...props.data.queryConfigs,
+                              getEmptyQueryConfigData(),
+                            ],
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                )}
             </div>
           )}
 
@@ -1550,6 +1561,7 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                      */
                     aggregationInterval={aggregationInterval}
                     chartCssClass={props.chartCssClass}
+                    thresholdLinesExtendAxis={props.thresholdLinesExtendAxis}
                     enableSeriesActions={props.enableSeriesActions}
                     metricResultsPrevious={
                       props.compareWithPreviousPeriod && metricResultsPrevious

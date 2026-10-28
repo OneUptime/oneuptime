@@ -3,13 +3,16 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useState,
 } from "react";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -1240,6 +1243,14 @@ services:
 const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  /*
+   * The captions above the language buttons and the ways to send: each
+   * names its buttons as a group, so a screen reader announces "Select
+   * Language" as it reaches the first one.
+   */
+  const languagePickerCaptionId: string = useId();
+  const methodPickerCaptionId: string = useId();
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("node");
   const [selectedMethod, setSelectedMethod] = useState<IntegrationMethod>(
     props.telemetryType === "profiles" ? "alloy" : "opentelemetry",
@@ -1593,10 +1604,17 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="mb-6">
-        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-          Select Language
-        </label>
-        <div className="flex flex-wrap gap-1.5">
+        <p
+          id={languagePickerCaptionId}
+          className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2"
+        >
+          {translator.translateText("Select Language")}
+        </p>
+        <div
+          role="group"
+          aria-labelledby={languagePickerCaptionId}
+          className="flex flex-wrap gap-1.5"
+        >
           {availableLanguages.map((lang: LanguageOption) => {
             const isSelected: boolean = selectedLanguage === lang.key;
             /*
@@ -1623,7 +1641,11 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   isBare={true}
                   isDecorative={true}
                 />
-                {lang.shortLabel}
+                {/*
+                  A name read the way it is written on a right-to-left page
+                  too: ".NET" and "C++", not "NET." and "++C".
+                */}
+                <IsolatedText text={lang.shortLabel} />
               </button>
             );
           })}
@@ -1642,10 +1664,17 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="mb-6">
-        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-          Integration Method
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <p
+          id={methodPickerCaptionId}
+          className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2"
+        >
+          {translator.translateText("Integration Method")}
+        </p>
+        <div
+          role="group"
+          aria-labelledby={methodPickerCaptionId}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-2"
+        >
           {integrationMethods.map((method: IntegrationOption) => {
             const isSelected: boolean = selectedMethod === method.key;
             return (

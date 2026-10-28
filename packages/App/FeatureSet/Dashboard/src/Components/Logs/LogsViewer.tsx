@@ -162,6 +162,13 @@ import {
   LogsPivotScopeResult,
   mergeDroppedScopeFields,
 } from "../../Utils/LogsCrossSignalPivot";
+import {
+  getLogsFilterLinkQuery,
+  getTelemetryMonitorLinkParams,
+} from "../../Utils/Form/Monitor/TelemetryRule/TelemetryMonitorLink";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { resolveReplayMomentRouteForSession } from "../../Utils/RumSessionLookup";
 import SecurityEventsInSignal from "../SecurityEvents/SecurityEventsInSignal";
 import { makeLogSignalId } from "../SessionReplay/Rail/ReplaySignalTypes";
@@ -240,6 +247,11 @@ export interface ComponentProps {
   limit?: number | undefined;
   onCountChange?: ((count: number) => void) | undefined;
   onShowDocumentation?: (() => void) | undefined;
+  /*
+   * Offer "Create monitor" in the toolbar: a Logs monitor watching what the
+   * view shows (TelemetryMonitorLink). The Logs page turns it on.
+   */
+  offersCreateMonitor?: boolean | undefined;
   /*
    * When true, mirror time range / chip filters / page / pageSize to the URL
    * via `replaceState` so refresh and back-from-detail restore the view.
@@ -2563,6 +2575,27 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
       };
     }, [pivotScopeInput]);
 
+  /*
+   * "Create monitor": a Logs monitor watching what this view shows - its
+   * services, severities, attributes and message text - on the recipe that
+   * suits it (TelemetryMonitorLink). Only for a reader who may create one.
+   */
+  const canCreateMonitor: boolean = useMemo(() => {
+    return PermissionGate.check(new Monitor(), ModelAction.Create).isAllowed;
+  }, []);
+
+  const navigateToCreateMonitor: () => void = useCallback((): void => {
+    navigateToExplorer(
+      PageMap.MONITOR_CREATE,
+      getTelemetryMonitorLinkParams({
+        monitorType: MonitorType.Logs,
+        query: getLogsFilterLinkQuery(
+          filterOptions as unknown as Dictionary<unknown>,
+        ),
+      }),
+    );
+  }, [filterOptions, navigateToExplorer]);
+
   const signalPivotActions: Array<LogsSignalPivotAction> = useMemo(() => {
     const buildTooltip: (baseText: string, dropped: Array<string>) => string = (
       baseText: string,
@@ -3074,6 +3107,11 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
             );
           }}
           signalPivotActions={signalPivotActions}
+          onCreateMonitor={
+            props.offersCreateMonitor && canCreateMonitor
+              ? navigateToCreateMonitor
+              : undefined
+          }
           lockedFilterSignal="logs"
           histogramBuckets={histogram.buckets}
           histogramLoading={histogram.isLoading}
