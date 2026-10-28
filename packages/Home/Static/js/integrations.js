@@ -10,6 +10,33 @@
 
   var TAB_CHOICE_KEY = "oneuptime-integrations-tab-";
 
+  var SPACES = /\s+/;
+  // What joins the parts of one word: "node.js", "zero-code", "asp.net".
+  var WORD_JOINERS = /[._/-]+/;
+
+  function typedWords(text) {
+    return text
+      .toLowerCase()
+      .split(SPACES)
+      .filter(function (word) {
+        return word.length > 0;
+      });
+  }
+
+  // A card's words, each whole ("node.js", ".net") and in its parts ("node", "js").
+  function cardWordsOf(text) {
+    var words = [];
+    typedWords(text).forEach(function (word) {
+      words.push(word);
+      word.split(WORD_JOINERS).forEach(function (part) {
+        if (part.length > 0 && part !== word) {
+          words.push(part);
+        }
+      });
+    });
+    return words;
+  }
+
   function readChoice(group) {
     try {
       return window.localStorage.getItem(TAB_CHOICE_KEY + group);
@@ -229,7 +256,12 @@
     });
   }
 
-  // The index's search: a card stays while every word typed is in its words.
+  /*
+   * The index's search: a card stays while every word typed starts one of
+   * its words, or a part of one: "fast" finds Fastify and FastAPI, "js"
+   * finds Node.js, ".net" the .NET guides and not Netty, and "rum" the
+   * browser guides but not a guide that says "instrument".
+   */
   function setUpSearch() {
     var input = document.querySelector("[data-integrations-search]");
     if (!input) {
@@ -244,19 +276,19 @@
     var empty = document.querySelector("[data-integrations-empty]");
     var count = document.querySelector("[data-integrations-count]");
 
+    var cardWords = cards.map(function (card) {
+      return cardWordsOf(card.getAttribute("data-search") || "");
+    });
+
     var filter = function () {
-      var words = input.value
-        .toLowerCase()
-        .split(" ")
-        .filter(function (word) {
-          return word.length > 0;
-        });
+      var words = typedWords(input.value);
       var shown = 0;
 
-      cards.forEach(function (card) {
-        var text = card.getAttribute("data-search") || "";
+      cards.forEach(function (card, index) {
         var matches = words.every(function (word) {
-          return text.indexOf(word) !== -1;
+          return cardWords[index].some(function (cardWord) {
+            return cardWord.indexOf(word) === 0;
+          });
         });
         card.hidden = !matches;
         if (matches) {
