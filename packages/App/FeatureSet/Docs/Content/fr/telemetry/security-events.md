@@ -52,6 +52,7 @@ Ouvrez **Produits → Événements de sécurité**, sous **Observabilité**. Son
 | **Connexions** | Connexions | Vos journaux, les produits de sécurité qu'interroge OneUptime et les SIEM auxquels il envoie |
 | **Guide de configuration** | Connexions | Des extraits pour envoyer des événements, remplis avec votre clé d'ingestion |
 | **Priorités des dossiers** | Paramètres | L'urgence d'un dossier : les priorités propres au projet, la plus urgente en premier |
+| **Objectifs de réponse** | Paramètres | La rapidité avec laquelle un dossier de chaque priorité doit être pris en compte et confiné |
 | **Statuts des dossiers** | Paramètres | Les étapes par lesquelles passe un dossier, et ce que compte un dossier dans chacune |
 | **Notation du risque** | Paramètres | Si le risque d'une entité ouvre un dossier, à quel risque, et l'importance de chaque entité |
 

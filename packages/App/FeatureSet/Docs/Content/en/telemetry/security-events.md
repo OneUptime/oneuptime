@@ -52,6 +52,7 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Connections** | Connections | Your logs, the security products OneUptime polls, and the SIEMs it sends to |
 | **Setup Guide** | Connections | Snippets to send events, filled in with your ingestion key |
 | **Case Priorities** | Settings | How urgent a case is: the project's own priorities, most urgent first |
+| **Response Targets** | Settings | How fast a case at each priority must be taken on and contained |
 | **Case Statuses** | Settings | The steps a case moves through, and what a case in each counts as |
 | **Risk Scoring** | Settings | Whether an entity's risk opens a case, at what risk, and how much each entity matters |
 

@@ -52,6 +52,7 @@ Abre **Productos → Eventos de seguridad**, en **Observabilidad**. Su menú tie
 | **Conexiones** | Conexiones | Sus registros, los productos de seguridad que consulta OneUptime y los SIEM a los que envía |
 | **Guía de configuración** | Conexiones | Fragmentos para enviar eventos, rellenados con tu clave de ingesta |
 | **Prioridades de casos** | Ajustes | Lo urgente que es un caso: las prioridades propias del proyecto, la más urgente primero |
+| **Objetivos de respuesta** | Ajustes | Lo rápido que hay que hacerse cargo de un caso de cada prioridad y contenerlo |
 | **Estados de casos** | Ajustes | Los pasos por los que pasa un caso, y qué cuenta un caso en cada uno |
 | **Puntuación de riesgo** | Ajustes | Si el riesgo de una entidad abre un caso, con qué riesgo, y cuánto importa cada entidad |
 

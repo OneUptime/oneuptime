@@ -50,11 +50,24 @@ import {
 import PageMap from "../../../FeatureSet/Dashboard/src/Utils/PageMap";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import SecurityCaseNote from "Common/Models/DatabaseModels/SecurityCaseNote";
+import SecurityCaseEvidence from "Common/Models/DatabaseModels/SecurityCaseEvidence";
+import SecurityCaseTask from "Common/Models/DatabaseModels/SecurityCaseTask";
 import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import SecurityPlaybook from "Common/Models/DatabaseModels/SecurityPlaybook";
 import SecurityPlaybookRun from "Common/Models/DatabaseModels/SecurityPlaybookRun";
 import SecurityProtectedEntity from "Common/Models/DatabaseModels/SecurityProtectedEntity";
+import {
+  RESPONSE_TARGETS_COPY,
+  RESPONSE_TARGET_DURATION_COPY,
+} from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/ResponseTargets/ResponseTargetsCopy";
+import { SECURITY_CASE_TASKS_COPY } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Tasks/SecurityCaseTasksCopy";
+import { SECURITY_CASE_EVIDENCE_COPY } from "../../../FeatureSet/Dashboard/src/Components/SecurityCase/Evidence/SecurityCaseEvidenceCopy";
+import {
+  MAX_SECURITY_CASE_TARGET_IN_MINUTES,
+  SECURITY_CASE_TARGET_AT_RISK_FRACTION,
+  describeTargetDuration,
+} from "Common/Utils/SecurityCase/SecurityCaseTargets";
 import {
   SECURITY_OVERVIEW_CASE_WINDOW_IN_DAYS,
   SECURITY_OVERVIEW_DETECTION_WINDOW_IN_DAYS,
@@ -303,6 +316,24 @@ describe("Security Cases and Playbooks docs", () => {
     );
     expect(memberCan(new SecurityPlaybook().getCreatePermissions())).toBe(
       false,
+    );
+    // Members work tasks and add evidence; removing evidence is the Admin's.
+    expect(memberCan(new SecurityCaseTask().getCreatePermissions())).toBe(true);
+    expect(memberCan(new SecurityCaseTask().getUpdatePermissions())).toBe(true);
+    expect(memberCan(new SecurityCaseEvidence().getCreatePermissions())).toBe(
+      true,
+    );
+    expect(memberCan(new SecurityCaseEvidence().getDeletePermissions())).toBe(
+      false,
+    );
+    expect(new SecurityCaseEvidence().getDeletePermissions()).toContain(
+      Permission.SecurityAdmin,
+    );
+    for (const model of [new SecurityCaseTask(), new SecurityCaseEvidence()]) {
+      expect(model.getReadPermissions()).toContain(Permission.SecurityViewer);
+    }
+    expect(flat(section(page, "Before you begin"))).toContain(
+      "| Security Member | Open, assign, change and close cases, write notes, work tasks, add evidence, run playbooks and approve or reject their steps |",
     );
     expect(new SecurityCase().getDeletePermissions()).toContain(
       Permission.SecurityAdmin,
@@ -701,6 +732,8 @@ describe("Security Cases and Playbooks docs", () => {
       }),
     ).toEqual([
       STATE_SETTINGS_COPY[StateListType.SecurityCasePriority].title,
+      // How fast a case at each priority must be worked, beside the priorities.
+      RESPONSE_TARGETS_COPY.title,
       STATE_SETTINGS_COPY[StateListType.SecurityCaseStatus].title,
       // When an entity's risk opens a case (Entity Risk's docs page).
       "Risk Scoring",
@@ -708,6 +741,86 @@ describe("Security Cases and Playbooks docs", () => {
     expect(settings?.startsCollapsed).toBe(true);
     expect(flat(section(page, "Case priorities and statuses"))).toContain(
       "Each project keeps its own case priorities and statuses, under **Products → Security Events → Settings → Case Priorities** and **Case Statuses**.",
+    );
+  });
+
+  it("gives a new project's response targets as its priorities start with them, and where they are set", () => {
+    const targets: string = flat(section(page, "Response targets"));
+    const rows: Array<Array<string>> = rowsOf("Response targets");
+
+    expect(targets).toContain(
+      `A response target is how fast a case must be worked: **${RESPONSE_TARGETS_COPY.acknowledgeColumn}**, how long a new case may wait for someone to take it on, and **${RESPONSE_TARGETS_COPY.containColumn}**, how long it may take to be contained or closed.`,
+    );
+    // Where the menu puts the page, under the title it draws.
+    expect(targets).toContain(
+      `Each case priority has its own, under **Products → Security Events → Settings → ${RESPONSE_TARGETS_COPY.title}**`,
+    );
+    // The duration field's units, and the longest target it keeps: a year.
+    expect(
+      [
+        RESPONSE_TARGET_DURATION_COPY.minutes,
+        RESPONSE_TARGET_DURATION_COPY.hours,
+        RESPONSE_TARGET_DURATION_COPY.days,
+      ].map((unit: string): string => {
+        return unit.toLowerCase();
+      }),
+    ).toEqual(["minutes", "hours", "days"]);
+    expect(targets).toContain("in minutes, hours or days, up to a year");
+    expect(MAX_SECURITY_CASE_TARGET_IN_MINUTES).toBe(365 * 24 * 60);
+
+    // A new project's priorities, with the targets they start with.
+    expect(rows).toEqual(
+      DEFAULT_SECURITY_CASE_PRIORITIES.map(
+        (priority: DefaultSecurityCasePriority): Array<string> => {
+          return [
+            priority.name,
+            priority.acknowledgeWithinInMinutes === null
+              ? RESPONSE_TARGETS_COPY.noTarget
+              : describeTargetDuration(priority.acknowledgeWithinInMinutes),
+            priority.containWithinInMinutes === null
+              ? RESPONSE_TARGETS_COPY.noTarget
+              : describeTargetDuration(priority.containWithinInMinutes),
+          ];
+        },
+      ),
+    );
+
+    // At risk in the last fifth of a target.
+    expect(SECURITY_CASE_TARGET_AT_RISK_FRACTION).toBe(0.2);
+    expect(targets).toContain(
+      "In the last fifth of a target, the case is about to miss it",
+    );
+    // The lists' column, by its title.
+    expect(targets).toContain(
+      `a **${RESPONSE_TARGETS_COPY.dueColumn}** column you can turn on and sort by`,
+    );
+  });
+
+  it("names the Evidence and Tasks pages' buttons as they draw them, and what the menu counts", () => {
+    const work: string = flat(section(page, "Work a case"));
+
+    expect(SECURITY_CASE_EVIDENCE_COPY.title).toBe("Evidence");
+    expect(work).toContain(
+      `**${SECURITY_CASE_EVIDENCE_COPY.addFile}** uploads a file of up to 10 MB`,
+    );
+    expect(work).toContain(
+      `**${SECURITY_CASE_EVIDENCE_COPY.addLink}** points to evidence kept somewhere else`,
+    );
+    expect(SECURITY_CASE_TASKS_COPY.title).toBe("Tasks");
+    expect(
+      SECURITY_CASE_MENU.flatMap(
+        (menuSection: SecurityCaseMenuSection): Array<SecurityCaseMenuItem> => {
+          return menuSection.items;
+        },
+      ).find((item: SecurityCaseMenuItem): boolean => {
+        return item.title === SECURITY_CASE_TASKS_COPY.title;
+      })?.badge,
+    ).toBe("openTasks");
+    expect(work).toContain(
+      "the menu shows how many tasks are open beside **Tasks**.",
+    );
+    expect(flat(section(page, "Close a case"))).toContain(
+      "While tasks on the case are still open, **Close Case** says how many.",
     );
   });
 
@@ -1105,7 +1218,7 @@ describe("Security Cases and Playbooks docs", () => {
     );
   });
 
-  it("names the three notifications as Notification Settings lists them, on by email and push", () => {
+  it("names the five notifications as Notification Settings lists them, on by email and push", () => {
     const settingsPage: string = source(
       `${DASHBOARD}/Pages/UserSettings/NotificationSettings.tsx`,
     );
@@ -1118,7 +1231,12 @@ describe("Security Cases and Playbooks docs", () => {
       "New security case",
       "Security case assigned to me",
       "Playbook step waiting for my approval",
+      "Security case response target",
+      "Security case task assigned to me",
     ]);
+    expect(flat(section(page, "Notifications"))).toContain(
+      "OneUptime tells people about five things on a case.",
+    );
 
     for (const label of column(notificationRows, 0)) {
       expect(settingsPage).toContain(`label: "${label}",`);
@@ -1139,6 +1257,8 @@ describe("Security Cases and Playbooks docs", () => {
 
     expect(column(notificationRows, 2)).toEqual([
       "Email and push, for High and Critical cases",
+      "Email and push",
+      "Email and push",
       "Email and push",
       "Email and push",
     ]);
@@ -1264,6 +1384,8 @@ describe("Security Cases and Playbooks docs", () => {
       [new SecurityProtectedEntity(), "/security-protected-entity"],
       [new SecurityCasePriority(), "/security-case-priority"],
       [new SecurityCaseStatus(), "/security-case-status"],
+      [new SecurityCaseTask(), "/security-case-task"],
+      [new SecurityCaseEvidence(), "/security-case-evidence"],
     ] as Array<[SecurityCase, string]>) {
       expect(model.getCrudApiPath()?.toString()).toBe(route);
       expect(codeSpans(section(page, "Automate"))).toContain(route);

@@ -41,7 +41,7 @@ Le serveur est sans état : il n'émet aucun identifiant de session et chaque re
 - **Maintenance planifiée** : créer et gérer des événements de maintenance.
 - **Télémétrie** : interroger les logs, les métriques, les traces, les exceptions, les logs de moniteurs, les événements de sécurité et plus encore, en lecture seule.
 
-Il existe des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour 30 types d'enregistrements, des outils de liste et de comptage pour 9 types de télémétrie, et des outils conçus pour la réponse aux incidents. Les outils en lecture seule portent `readOnlyHint`, tout outil qui modifie quelque chose porte `destructiveHint`, et seuls les outils des pages de statut publiques portent `openWorldHint`, si bien qu'un client peut lancer seul les appels en lecture seule et vous demander avant toute modification. Un appel d'outil en échec revient comme résultat d'outil (`isError: true`) avec un `statusCode`, les détails et une suggestion, et non comme une erreur du protocole MCP, si bien que l'agent peut lire l'échec et se corriger.
+Il existe des outils de création, de lecture, de liste, de mise à jour, de suppression et de comptage pour 32 types d'enregistrements, des outils de liste et de comptage pour 9 types de télémétrie, et des outils conçus pour la réponse aux incidents. Les outils en lecture seule portent `readOnlyHint`, tout outil qui modifie quelque chose porte `destructiveHint`, et seuls les outils des pages de statut publiques portent `openWorldHint`, si bien qu'un client peut lancer seul les appels en lecture seule et vous demander avant toute modification. Un appel d'outil en échec revient comme résultat d'outil (`isError: true`) avec un `statusCode`, les détails et une suggestion, et non comme une erreur du protocole MCP, si bien que l'agent peut lire l'échec et se corriger.
 
 ## Avant de commencer
 
@@ -479,7 +479,7 @@ Le serveur MCP est sans état : il n'émet ni ne suit d'identifiants de session,
 | Maintenance planifiée | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Équipes et astreinte | Team, On-Call Policy |
 | Étiquettes | Label |
-| Sécurité | Security Case, Security Case Note, Security Case Priority, Security Case Status, Security Detection, Security Playbook |
+| Sécurité | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 
 | Domaine | Télémétrie avec des outils de liste et de comptage seulement |
 | --- | --- |

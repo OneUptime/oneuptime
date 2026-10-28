@@ -6,7 +6,8 @@ Security Events gør det, som dine detektionsregler, din trusselsintelligens og 
 - [Hvor sager kommer fra](#hvor-sager-kommer-fra): Detektionsregler, trusselsintelligens, forbundne produkter, entitetsrisiko og personer.
 - [Behandl en sag](#behandl-en-sag): Tildel den, undersøg dens entiteter, og luk den med en konklusion.
 - [Sagsprioriteter og sagsstatusser](#sagsprioriteter-og-sagsstatusser): Omdøb dem, giv dem en anden farve og rækkefølge, og tilføj dine egne.
-- [Notifikationer](#notifikationer): Hvem der får besked om en ny sag, en tildeling og et trin, der venter på godkendelse.
+- [Responsmål](#responsmål): Hvor hurtigt en sag med hver prioritet skal tages og inddæmmes.
+- [Notifikationer](#notifikationer): Hvem der får besked om en ny sag, en tildeling, et responsmål, en opgave og et trin, der venter på godkendelse.
 - [Playbooks](#playbooks): Trin, der kører på en sag, med godkendelse, hvor det betyder noget.
 - [Oversigten](#oversigten): Det, der kræver nogens indsats nu, og hvor hurtigt sager bliver håndteret.
 :::
@@ -36,9 +37,9 @@ Sager og playbooks følger de tre Security-roller. Project Owner og Project Admi
 
 | Rolle | Hvad den kan |
 | --- | --- |
-| Security Admin | Alt, også at slette sager og sætte playbooks op |
-| Security Member | Åbne, tildele, ændre og lukke sager, skrive noter, køre playbooks og godkende eller afvise deres trin |
-| Security Viewer | Læse sager, detektioner, noter, playbooks og deres kørsler |
+| Security Admin | Alt, også at slette sager, fjerne beviser og sætte playbooks op |
+| Security Member | Åbne, tildele, ændre og lukke sager, skrive noter, arbejde med opgaver, tilføje beviser, køre playbooks og godkende eller afvise deres trin |
+| Security Viewer | Læse sager, detektioner, noter, opgaver, beviser, playbooks og deres kørsler |
 
 Hver af disse rettigheder kan også tildeles for sig, fra at oprette en sag til at godkende en playbooks trin; se [Tilladelsesreference](/docs/permissions/reference).
 
@@ -88,13 +89,13 @@ En sag har sin egen sidemenu, ligesom en hændelse, og hver del af sagen er en s
 | Afsnit i sidemenuen | Sider |
 | --- | --- |
 | **Oversigt** | **Oversigt**, **Tidslinje** |
-| **Undersøgelse** | **Forløb**, **Detektioner**, **Entiteter**, **Forbundne signaler**, **Playbooks** |
+| **Undersøgelse** | **Forløb**, **Detektioner**, **Entiteter**, **Forbundne signaler**, **Beviser**, **Opgaver**, **Playbooks** |
 | **Noter** | **Private noter** |
 | **Avanceret** | **Auditlogs**, **Slet sag**, foldet sammen, indtil du klikker på **Avanceret** |
 
-Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel, **Tildel til mig**, **Kør playbook**, **Erklær hændelse** og **Luk sag**, og i menuen ⋯ ved siden af **Angiv prioritet**, **Tildel til en anden**, **Skift status**, **Rediger sag** og **Slet sag**. Så kan sagen behandles fra enhver af dens sider, og et link til sagen åbner stadig dens **Oversigt**.
+Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel, **Tildel til mig**, **Kør playbook**, **Erklær hændelse** og **Luk sag**, og i menuen ⋯ ved siden af **Angiv prioritet**, **Tildel til en anden**, **Skift status**, **Rediger sag** og **Slet sag**. Så kan sagen behandles fra enhver af dens sider, og et link til sagen åbner stadig dens **Oversigt**. Når sagens prioritet har responsmål, viser hovedet også, hvornår det næste har frist ([Responsmål](#responsmål)).
 
-- **Oversigt**: sagens beskrivelse, etiketter og statustrin, hvem der har den, og hvad der åbnede den, og dens tal: hvor mange detektioner den har, hvor længe den har været åben, og hvor lang tid det tog at kvittere for den og inddæmme den.
+- **Oversigt**: sagens beskrivelse, etiketter og statustrin, hvem der har den, og hvad der åbnede den, og dens tal: hvor mange detektioner den har, hvor længe den har været åben, og hvor lang tid det tog at kvittere for den og inddæmme den. Under **Tid til bekræftelse** og **Tid til inddæmning** står, hvordan sagen ligger i forhold til sine responsmål.
 - **OneUptime AI**, på **Oversigt**: hvad OneUptime AI fik ud af sagen, den prioritet og playbook, den foreslår, og beviserne bag. Se [OneUptime AI i sikkerhed](/docs/telemetry/security-ai).
 - **Påvirkning**, på **Oversigt**: hvad sagen sætter på spil: om OneUptime har set dens poster blive nået fra internettet, hvem der ejer dem, og hvad der sidst blev ændret på dem. Fold den ud for at se, hvad hver post kalder, og hvad der kalder den, de monitorer og statussider, der holder øje med den, og de maskiner, sagens adresser talte med.
 - **MITRE ATT&CK**, på **Oversigt**: de taktikker og teknikker, som sagens detektioner knyttes til, hver med et link til sin side på attack.mitre.org.
@@ -103,6 +104,8 @@ Hver side beholder sagens sidehoved øverst: nummer, prioritet, status og titel,
 - **Detektioner**: det, der blev udløst og åbnede sagen eller blev føjet til den, hvor ofte, og den seneste matchende begivenhed.
 - **Entiteter**: de brugere, værter og adresser, sagen handler om, med deres aktivitet på tværs af alle dine sikkerhedsbegivenheder de seneste 7 dage. Hver af dem åbnes i **Korrelér**.
 - **Forbundne signaler**: de værter, klynger, tjenester og medlemmer, sagen nævner, som OneUptime kender dem, og hvad der skete på hver af dem omkring sagens detektioner: deres protokoller, spor og metrikker, hvad der er åbent på dem, og hvad der ændrede sig. Se [Forbundne signaler](/docs/telemetry/security-connected-signals).
+- **Beviser**: de filer og links, der gemmes på sagen, hver med hvem der tilføjede den og hvornår. Med **Tilføj fil** uploader du en fil på op til 10 MB, og SHA-256 for det uploadede registreres, så den, der senere downloader den, kan kontrollere, at det er det, der blev gemt; med **Tilføj link** henviser du til beviser, der opbevares et andet sted. Kun en Security Admin kan fjerne et bevis, og sagens **Tidslinje** viser, hvad der blev tilføjet og fjernet.
+- **Opgaver**: hvad der skal gøres i sagen, hvem der gør det, og om det er gjort. Tilføj en opgave som en linje, giv den til nogen, og sæt flueben ved den, når den er udført. Den, opgaven gives til, får besked, medmindre vedkommende selv tog den, og menuen viser ved siden af **Opgaver**, hvor mange opgaver der er åbne.
 - **Playbooks**: hvad hver playbook gjorde på sagen, trin for trin, og de trin, der venter på godkendelse. Mens kørsler venter, viser menuen, hvor mange de er, ved siden af **Playbooks**.
 - **Private noter**: hvad teamet skrev om sagen.
 - **Auditlogs**: hver ændring af sagen, og hvem der lavede den. Se [Auditlogs](/docs/configuration/audit-logs).
@@ -129,6 +132,8 @@ Du behøver ikke åbne en sag for at behandle den. I køens lister har menuen �
 
 Konklusionerne tælles på oversigten. En regel, hvis sager bliver ved med at blive lukket som False Positive, er en regel, der bør finjusteres.
 
+Mens opgaver på sagen stadig er åbne, viser dialogen **Luk sag**, hvor mange.
+
 En sag, der er åbnet fra Google SecOps-advarsler, lukker dem også i Google SecOps med afgørelsen og afslutningsnoten, når dens forbindelse har **Luk advarsler, når deres sag lukkes** slået til: se [Google SecOps](/docs/integrations/google-secops#luk-advarsler-når-deres-sag-lukkes).
 
 ### Erklær en hændelse
@@ -154,21 +159,49 @@ Nogle er indbyggede, fordi OneUptime læser, hvad de betyder. De kan omdøbes og
 
 For at holde op med at bruge en status eller prioritet, du selv har lavet, skal du bruge **Arkiver** i dens række. Ingen kan vælge den igen, og API'et, Terraform og MCP afviser den, men de sager, der har den, beholder den, og du kan stadig filtrere på den. Arkiverede værdier står i den foldede sektion **Arkiverede sagsstatusser** eller **Arkiverede sagsprioriteter** under tabellen, hvor **Fjern fra arkiv** henter en tilbage. **Slet** afvises, så længe sager har værdien, eller en playbook kører fra prioriteten.
 
+## Responsmål
+
+Et responsmål er, hvor hurtigt en sag skal behandles: **Bekræft inden for**, hvor længe en ny sag må vente på, at nogen tager den, og **Inddæm inden for**, hvor lang tid det må tage, før den er inddæmmet eller lukket. Hver sagsprioritet har sine egne, under **Produkter → Security Events → Indstillinger → Responsmål**: med **Rediger** på en prioritets række sætter du dens to mål, i minutter, timer eller dage, op til et år, og et tomt mål betyder intet mål. Et nyt projekts prioriteter starter med disse:
+
+| Prioritet | Bekræft inden for | Inddæm inden for |
+| --- | --- | --- |
+| Kritisk | 15 minutter | 4 timer |
+| High | 1 time | 1 dag |
+| Medium | 12 timer | 3 dage |
+| Low | 1 dag | 7 dage |
+| Til orientering | Intet mål | Intet mål |
+
+Et projekt, der er oprettet før responsmål, har ingen, før nogen sætter dem.
+
+- En sags frister sættes, når den åbnes, ud fra dens prioritets mål. Et mål, der ændres senere, gælder for de sager, der åbnes derefter.
+- En sag er bekræftet, så snart nogen tager den: en person tildeles, eller den flyttes til en status, der tæller som bekræftet. Den er inddæmmet, så snart den når en status, der tæller som inddæmmet, eller lukkes.
+- Når en sags prioritet ændres, forbliver et mål, den har nået eller overskredet, som det var. En højere prioritet rykker en frist tættere på: det nye mål tælles fra ændringen, medmindre den gamle frist kommer først. En lavere prioritet rykker den senere, aldrig tidligere: det nye mål tælles fra, da sagen blev åbnet. En prioritet uden mål beholder fristen på en hævet sag og fjerner den på en sænket.
+- En lukket sag, der genåbnes, før den nogensinde blev inddæmmet, får en ny inddæmningsfrist, talt fra genåbningen.
+- I den sidste femtedel af et mål er sagen ved at overskride det: de, der er på sagen, får besked, og får besked igen, når målet er overskredet. Se [Notifikationer](#notifikationer).
+
+Her vises målene:
+
+- Sagens hoved nævner det næste mål og hvor lang tid der er tilbage, eller hvor længe det er overskredet: gråt, mens der er tid, ravgult i den sidste femtedel, rødt, når det er overskredet.
+- På sagens **Oversigt**, under **Tid til bekræftelse** og **Tid til inddæmning**: hvordan sagen ligger i forhold til hvert mål, eller hvor langt over det sagen gik.
+- I køens lister: linjen under hver sags prioritet og en kolonne **Frist**, som du kan slå til og sortere efter. Listerne viser dem kun, når en af projektets prioriteter har et mål.
+
 ## Notifikationer
 
-OneUptime giver folk besked om tre ting på en sag. Ingen behøver at sætte noget op: et projekt, der kun har klikket på **Slå anbefalet til**, får besked om sine sager med prioritet High og Kritisk via e-mail og push.
+OneUptime giver folk besked om fem ting på en sag. Ingen behøver at sætte noget op: et projekt, der kun har klikket på **Slå anbefalet til**, får besked om sine sager med prioritet High og Kritisk via e-mail og push.
 
 | Notifikation | Hvem får besked | Som standard |
 | --- | --- | --- |
 | Ny sikkerhedssag | Alle, der kan se projektets sager, når en sag åbnes eller stiger, ved den prioritet, de har valgt, eller højere | E-mail og push, for sager med High og Kritisk |
 | Sikkerhedssag tildelt mig | Den person, sagen er tildelt, og medlemmerne af det team, den er tildelt | E-mail og push |
 | Playbook-trin venter på min godkendelse | De personer på sagen, der kan godkende trinnet: den person, sagen er tildelt, og medlemmerne af dens team. Kan ingen af dem godkende, alle i projektet, der kan | E-mail og push |
+| Responsmål for sikkerhedssag | De personer, der er på sagen: den person, sagen er tildelt, og medlemmerne af dens team. Er ingen på den, de personer, der får besked om nye sager med dens prioritet | E-mail og push |
+| Opgave i sikkerhedssag tildelt mig | Den person, en opgave på sagen gives til, medmindre vedkommende selv tog den | E-mail og push |
 
 - Kun personer, der kan se sagen, får besked om den: Project Owners, Project Admins og rollerne Security Admin, Security Member og Security Viewer. En rolle, der er begrænset til bestemte etiketter, får kun besked om sagerne med de etiketter.
 - Ingen får besked om det, de selv gjorde: den, der åbner en sag manuelt, tildeler den eller starter en kørsel, får ingen notifikation om det.
 - Hver person hører om en sag én gang. En sag, der åbnes på Medium og senere stiger til Kritisk, når ved stigningen frem til dem, der har valgt High eller Kritisk, og ikke igen til dem, der har valgt Medium, for de hørte om den, da den blev åbnet.
 - Testangrebet fra **Send et testangreb** åbner en sag, der ikke giver nogen besked.
-- En sag med Kritisk og et trin, der venter på godkendelse, sendes med det samme og holdes aldrig tilbage i en [e-mailoversigt](/docs/emails/notification-rollup).
+- En sag med Kritisk og et trin, der venter på godkendelse, sendes med det samme og holdes aldrig tilbage i en [e-mailoversigt](/docs/emails/notification-rollup). Det samme gælder et responsmål, der er ved at blive overskredet eller er overskredet.
 - Sagens **Tidslinje** viser, hvem der fik besked, og hvornår.
 
 ### Vælg, hvad du får besked om
@@ -199,7 +232,7 @@ For at slå op i en kanal tilføjer du en regel under **Produkter → Security E
 | Kilde til sikkerhedssag | Detection Rule, Threat Intel, Connected Product, Entitetsrisiko eller Manual |
 | Etiketter på sikkerhedssag | Sagens etiketter |
 
-De tre notifikationer slås hver op i kanalerne for hver regel, sagen matcher i det øjeblik. En regel, hvor **Prioritet for sikkerhedssag** indeholder en af **Kritisk** og **Høj**, slår sager med High og Kritisk op, når de åbnes, og en sag med Medium, når den stiger til High. En sikkerhedssag får aldrig sin egen kanal.
+Alle notifikationer undtagen en opgaves slås op i kanalerne for hver regel, sagen matcher i det øjeblik. En regel, hvor **Prioritet for sikkerhedssag** indeholder en af **Kritisk** og **Høj**, slår sager med High og Kritisk op, når de åbnes, og en sag med Medium, når den stiger til High. En sikkerhedssag får aldrig sin egen kanal.
 
 ## Playbooks
 
@@ -350,8 +383,8 @@ Over dem viser et bånd, hvordan sikkerhed er sat op: dens kilder, detektioner, 
 ## Automatisér
 
 - **Arbejdsgange**: en sag eller en note kan starte et workflow, når den oprettes, opdateres eller slettes. Et trin **Kør en arbejdsgang** starter et workflow, hvis trigger er en webhook.
-- **API**: sager, noter, detektioner, playbooks, kørsler, beskyttede entiteter samt sagsprioriteter og sagsstatusser har det samme REST API som resten af OneUptime, under `/security-case`, `/security-case-note`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` og `/security-case-status`. Se [API-reference](/docs/api-reference/api-reference).
-- AI-agenter: MCP-serveren har værktøjer til sager, noter, detektioner, playbooks samt sagsprioriteter og sagsstatusser. Se [MCP-server](/docs/ai/mcp-server).
+- **API**: sager, noter, opgaver, beviser, detektioner, playbooks, kørsler, beskyttede entiteter samt sagsprioriteter og sagsstatusser har det samme REST API som resten af OneUptime, under `/security-case`, `/security-case-note`, `/security-case-task`, `/security-case-evidence`, `/security-detection`, `/security-playbook`, `/security-playbook-run`, `/security-protected-entity`, `/security-case-priority` og `/security-case-status`. Se [API-reference](/docs/api-reference/api-reference).
+- AI-agenter: MCP-serveren har værktøjer til sager, noter, opgaver, beviser, detektioner, playbooks samt sagsprioriteter og sagsstatusser. Se [MCP-server](/docs/ai/mcp-server).
 - Terraform: ressourcerne `oneuptime_security_case_priority` og `oneuptime_security_case_status` holder et projekts prioriteter og statusser som kode.
 
 ## Fejlfinding
@@ -362,6 +395,10 @@ Tjek **Åbn en sag ved match** i regelens trin **Ved match**. En detektion om en
 
 :::details Ingen fik besked om en sag
 Se sagens **Tidslinje**, som viser, hvem der fik en notifikation. En notifikation om **Ny sikkerhedssag** går til de personer, hvis valgte prioritet sagen når, så en sag med Medium giver ikke besked til nogen, der har beholdt standarden, **Høj og højere**. Tjek, at de personer, der burde få besked, kan se sikkerhedssager (en Security-rolle, Project Owner eller Project Admin), og at notifikationen er slået til for dem under **Brugerindstillinger → Notifikationsindstillinger → Sikkerhed**.
+:::
+
+:::details En sag viser ingen frist
+Dens prioritet har intet responsmål, eller fik først et, efter at sagen blev åbnet: en sags frister sættes, når den åbnes. Testangrebets sag har ingen. Se [Responsmål](#responsmål).
 :::
 
 :::details En playbook kørte ikke
