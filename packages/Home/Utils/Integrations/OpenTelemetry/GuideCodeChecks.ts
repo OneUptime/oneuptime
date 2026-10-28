@@ -190,7 +190,8 @@ function pipSpec(word: string): InstalledPackage {
   const pinAt: number = spec.indexOf("==");
   const requirement: string = pinAt === -1 ? spec : spec.slice(0, pinAt);
   const extrasAt: number = requirement.indexOf("[");
-  let name: string = extrasAt === -1 ? requirement : requirement.slice(0, extrasAt);
+  let name: string =
+    extrasAt === -1 ? requirement : requirement.slice(0, extrasAt);
 
   for (const operator of [">", "<", "~", "!", "="]) {
     const at: number = name.indexOf(operator);
@@ -333,20 +334,6 @@ export function installedPackageNames(commands: string): Array<string> {
   );
 }
 
-// The text between <tag> and </tag>, inside `block`, or undefined.
-function elementText(block: string, tag: string): string | undefined {
-  const open: string = `<${tag}>`;
-  const start: number = block.indexOf(open);
-
-  if (start === -1) {
-    return undefined;
-  }
-
-  const end: number = block.indexOf(`</${tag}>`, start + open.length);
-
-  return end === -1 ? undefined : block.slice(start + open.length, end).trim();
-}
-
 // Every <tag>...</tag> block of a document, outermost first.
 function elementBlocks(document: string, tag: string): Array<string> {
   const blocks: Array<string> = [];
@@ -372,6 +359,111 @@ function elementBlocks(document: string, tag: string): Array<string> {
   }
 }
 
+/*
+ * The text of a block's own <tag> element, not of one nested deeper: a
+ * plugin's <version>, never the version of an annotation processor path
+ * inside its <configuration>. Undefined when the block has none of its own.
+ */
+function ownElementText(block: string, tag: string): string | undefined {
+  let depth: number = 0;
+  let from: number = 0;
+
+  for (;;) {
+    const start: number = block.indexOf("<", from);
+
+    if (start === -1) {
+      return undefined;
+    }
+
+    if (block.startsWith("<!--", start)) {
+      const commentEnd: number = block.indexOf("-->", start);
+      from = commentEnd === -1 ? block.length : commentEnd + 3;
+      continue;
+    }
+
+    const end: number = block.indexOf(">", start);
+
+    if (end === -1) {
+      return undefined;
+    }
+
+    const inside: string = block.slice(start + 1, end);
+    from = end + 1;
+
+    if (inside.startsWith("/")) {
+      depth--;
+      continue;
+    }
+
+    if (inside.endsWith("/")) {
+      continue;
+    }
+
+    const name: string = inside.split(" ")[0] || "";
+
+    if (depth === 0 && name === tag) {
+      const close: number = block.indexOf(`</${tag}>`, from);
+
+      return close === -1 ? undefined : block.slice(from, close).trim();
+    }
+
+    depth++;
+  }
+}
+
+/*
+ * A pom's own properties, by name: <quarkus.platform.version>3.40.1.1
+ * </quarkus.platform.version> is quarkus.platform.version.
+ */
+function pomProperties(code: string): Record<string, string> {
+  const properties: Record<string, string> = {};
+  const block: string | undefined = elementBlocks(code, "properties")[0];
+
+  if (!block) {
+    return properties;
+  }
+
+  let from: number = 0;
+
+  for (;;) {
+    const start: number = block.indexOf("<", from);
+    const end: number = start === -1 ? -1 : block.indexOf(">", start);
+
+    if (start === -1 || end === -1) {
+      return properties;
+    }
+
+    const name: string = block.slice(start + 1, end);
+    const close: number = block.indexOf(`</${name}>`, end);
+
+    if (name.startsWith("!--") || name.startsWith("/") || close === -1) {
+      from = end + 1;
+      continue;
+    }
+
+    properties[name] = block.slice(end + 1, close).trim();
+    from = close + name.length + 3;
+  }
+}
+
+/*
+ * A value with the pom's ${properties} put in: "${quarkus.platform.version}"
+ * is "3.40.1.1". A property the pom does not define (one its parent does,
+ * or Maven's own) is left as written.
+ */
+function withPomProperties(
+  value: string,
+  properties: Record<string, string>,
+): string {
+  let resolved: string = value;
+
+  for (const [name, propertyValue] of Object.entries(properties)) {
+    resolved = resolved.split(`\${${name}}`).join(propertyValue);
+  }
+
+  return resolved;
+}
+
 // The value of attribute `name` in one tag's text: Include="OpenTelemetry".
 function attributeValue(tag: string, name: string): string | undefined {
   const marker: string = `${name}="`;
@@ -388,22 +480,32 @@ function attributeValue(tag: string, name: string): string | undefined {
 
 /*
  * The dependencies a Maven pom declares - its <parent>, <dependency> and
- * <plugin> blocks, a version left to a BOM having none - and the packages a
- * .csproj references.
+ * <plugin> blocks, each by its own coordinates with the pom's properties
+ * put in, a version left to a BOM or a parent having none - and the
+ * packages a .csproj references.
  */
 function xmlBuildFileDependencies(code: string): Array<InstalledPackage> {
   const packages: Array<InstalledPackage> = [];
+  const properties: Record<string, string> = pomProperties(code);
+  const own: (block: string, tag: string) => string | undefined = (
+    block: string,
+    tag: string,
+  ): string | undefined => {
+    const text: string | undefined = ownElementText(block, tag);
+
+    return text === undefined ? undefined : withPomProperties(text, properties);
+  };
 
   for (const tag of ["parent", "dependency", "plugin"]) {
     for (const block of elementBlocks(code, tag)) {
-      const groupId: string | undefined = elementText(block, "groupId");
-      const artifactId: string | undefined = elementText(block, "artifactId");
+      const groupId: string | undefined = own(block, "groupId");
+      const artifactId: string | undefined = own(block, "artifactId");
 
       if (!artifactId) {
         continue;
       }
 
-      const version: string | undefined = elementText(block, "version");
+      const version: string | undefined = own(block, "version");
       const name: string = `${groupId || "org.apache.maven.plugins"}:${artifactId}`;
 
       packages.push(
@@ -590,7 +692,11 @@ export function bracketProblems(
         return -1;
       }
 
-      if (character === "\\" && !isVerbatim && !(isTextBlock && language === "csharp")) {
+      if (
+        character === "\\" &&
+        !isVerbatim &&
+        !(isTextBlock && language === "csharp")
+      ) {
         at += 2;
         continue;
       }

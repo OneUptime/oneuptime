@@ -129,6 +129,16 @@ export interface GuideCodeSection {
 }
 
 /*
+ * The install section: what to add, as commands or a build file's lines.
+ * Where the same packages go into a Maven or a Gradle build, it shows both
+ * as build-tool tabs instead, and the reader's tool is picked on every
+ * guide at once.
+ */
+export interface GuideInstallSection extends GuideCodeSection {
+  tabs?: GuideTabs | undefined;
+}
+
+/*
  * What the end-to-end check runs for a guide (Scripts/
  * VerifyOpenTelemetryGuides.ts), and what it must see arrive. The files and
  * commands are the page's own snippets wherever the page shows them, so
@@ -322,7 +332,7 @@ export interface OpenTelemetryGuide {
   };
   exampleTrace: { caption: string; spans: Array<ExampleSpan> };
   prerequisites: Array<InlineText>;
-  install: GuideCodeSection;
+  install: GuideInstallSection;
   configure: { intro: InlineText; tabs: GuideTabs; notes: Array<InlineText> };
   setup: { intro: InlineText; steps: Array<GuideStep> };
   autoInstrumentation: {

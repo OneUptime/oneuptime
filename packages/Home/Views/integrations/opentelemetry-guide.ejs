@@ -149,6 +149,7 @@
             <h2 id="install-title" class="text-2xl font-semibold tracking-tight text-gray-900"><%= sectionOf('install').title %></h2>
             <p class="mt-3 text-[15px] leading-7 text-gray-600"><%- guide.install.introHtml %></p>
             <% guide.install.snippets.forEach(function (snippet) { %><%- include('../Partials/integrations/code-block', { snippet: snippet }) -%><% }) %>
+            <% if (guide.install.tabs) { %><%- include('../Partials/integrations/tabs', { tabs: guide.install.tabs }) -%><% } %>
             <%- include('../Partials/integrations/notes', { notes: guide.install.notesHtml }) -%>
           </section>
 

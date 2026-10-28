@@ -191,7 +191,7 @@ const initDatabase: string = [
   'engine = create_engine("sqlite:///shop.db")',
   "with engine.begin() as connection:",
   '    connection.execute(text("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)"))',
-  '    connection.execute(text("INSERT INTO users VALUES (42, \'Ada\')"))',
+  "    connection.execute(text(\"INSERT INTO users VALUES (42, 'Ada')\"))",
   "    connection.execute(",
   '        text("CREATE TABLE orders (id INTEGER PRIMARY KEY, items INTEGER, payment_method TEXT)")',
   "    )",
@@ -216,11 +216,7 @@ export const FlaskGuide: OpenTelemetryGuide = {
     "wsgi",
     "python",
   ],
-  highlights: [
-    "Zero-code under gunicorn",
-    "SQLAlchemy 2.0",
-    "Flask 3",
-  ],
+  highlights: ["Zero-code under gunicorn", "SQLAlchemy 2.0", "Flask 3"],
 
   whatYouGet: {
     intro: `Under \`opentelemetry-instrument\`, every request to your Flask app becomes a trace under the service named by \`OTEL_SERVICE_NAME\`, which ${SCREENS.services} lists from its first request.`,
@@ -370,7 +366,7 @@ export const FlaskGuide: OpenTelemetryGuide = {
       "Open a span of your own around work no library knows about, such as charging a card; the call and the `INSERT` inside it nest beneath it:",
     snippets: [createOrder],
     notes: [
-      'Set attributes your team searches by and find them in the **Traces** explorer, such as `@payment.method:card`.',
+      "Set attributes your team searches by and find them in the **Traces** explorer, such as `@payment.method:card`.",
       "An exception raised inside the `with` block is recorded on `checkout.charge` with its traceback, then reaches your error handler as before.",
     ],
   },
@@ -400,7 +396,8 @@ export const FlaskGuide: OpenTelemetryGuide = {
       },
       {
         name: "http.client.request.duration",
-        description: "Calls your routes make with `requests`, by server and status.",
+        description:
+          "Calls your routes make with `requests`, by server and status.",
       },
       {
         name: "db.client.connections.usage",
@@ -456,7 +453,7 @@ export const FlaskGuide: OpenTelemetryGuide = {
     ],
     notes: [
       "On SIGTERM, gunicorn stops taking requests and lets its workers finish; each sends what it holds as it exits.",
-      "To see the pods and nodes beside the service, install the [Kubernetes agent](/docs/telemetry/kubernetes-agent).",
+      "With the [Kubernetes agent](/docs/telemetry/kubernetes-agent) installed, the pods behind `checkout-api` show beside its traces, with their restarts and resource use.",
     ],
   },
 
@@ -496,7 +493,8 @@ export const FlaskGuide: OpenTelemetryGuide = {
         "No route matched, as for a 404, or the request was answered before routing. Requests that reach one of your routes carry its rule.",
     },
     {
-      question: "Nothing arrives, and gunicorn prints “Failed to auto initialize OpenTelemetry”",
+      question:
+        "Nothing arrives, and gunicorn prints “Failed to auto initialize OpenTelemetry”",
       answer:
         "`OTEL_EXPORTER_OTLP_PROTOCOL` is unset, so the distro looked for the gRPC exporter: set it to `http/protobuf`. The app serves requests anyway, without telemetry.",
     },
@@ -545,8 +543,7 @@ export const FlaskGuide: OpenTelemetryGuide = {
     commands: [
       { snippet: "install" },
       {
-        command:
-          "pip install flask==3.1.3 gunicorn==26.2.0 requests==2.34.2",
+        command: "pip install flask==3.1.3 gunicorn==26.2.0 requests==2.34.2",
       },
       { snippet: "sqlalchemy-pin" },
       { command: "python init_db.py" },

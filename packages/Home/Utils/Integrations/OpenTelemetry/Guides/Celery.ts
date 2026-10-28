@@ -185,7 +185,7 @@ const requirements: GuideSnippet = {
 export const CeleryGuide: OpenTelemetryGuide = {
   slug: "celery",
   seo: {
-    title: "Celery OpenTelemetry: Task Tracing, Metrics & Logs | OneUptime",
+    title: "Celery OpenTelemetry: Task Tracing & Worker Logs | OneUptime",
     description:
       "Trace Celery tasks with OpenTelemetry: one trace from the code that queues a task to the worker that runs it, failed tasks, task logs, sent to OneUptime.",
   },
@@ -202,11 +202,7 @@ export const CeleryGuide: OpenTelemetryGuide = {
     "background jobs",
     "python",
   ],
-  highlights: [
-    "Queue to worker in one trace",
-    "Prefork workers",
-    "Celery 5",
-  ],
+  highlights: ["Queue to worker in one trace", "Prefork workers", "Celery 5"],
 
   whatYouGet: {
     intro: `The worker and the code that queues its tasks each report as a service of their own, \`shop-worker\` and \`shop-web\` below, both in ${SCREENS.services}, and a task's trace runs through both.`,
@@ -387,7 +383,8 @@ export const CeleryGuide: OpenTelemetryGuide = {
       },
       {
         name: "http.client.request.duration",
-        description: "The calls your tasks make with `requests`, by server and status.",
+        description:
+          "The calls your tasks make with `requests`, by server and status.",
       },
     ],
     snippets: [],
@@ -475,7 +472,8 @@ export const CeleryGuide: OpenTelemetryGuide = {
         "The code that queued the task ran without OpenTelemetry, so there was no trace to carry. Start it under `opentelemetry-instrument` with the Celery instrumentation installed: it writes the trace context into each message.",
     },
     {
-      question: "Nothing arrives, and the worker prints “Failed to auto initialize OpenTelemetry”",
+      question:
+        "Nothing arrives, and the worker prints “Failed to auto initialize OpenTelemetry”",
       answer:
         "`OTEL_EXPORTER_OTLP_PROTOCOL` is unset, so the distro looked for the gRPC exporter: set it to `http/protobuf`. The worker runs tasks anyway, without telemetry.",
     },

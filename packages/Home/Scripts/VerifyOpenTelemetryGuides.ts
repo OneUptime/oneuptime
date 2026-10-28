@@ -970,17 +970,22 @@ function runtimeVersion(
       return `Bun ${firstLineOf(process.env["OTEL_GUIDES_BUN"] || "bun", ["--version"], env)}`;
     case "deno":
       return `Deno ${
-        firstLineOf(process.env["OTEL_GUIDES_DENO"] || "deno", ["--version"], env)
+        firstLineOf(
+          process.env["OTEL_GUIDES_DENO"] || "deno",
+          ["--version"],
+          env,
+        )
           .replace("deno ", "")
           .split(" ")[0]
       }`;
     case "browser":
       // "Google Chrome for Testing 153.0.8010.12" is Chrome 153.
       return process.env["OTEL_GUIDES_CHROMIUM"]
-        ? firstLineOf(process.env["OTEL_GUIDES_CHROMIUM"], ["--version"], env).replace(
-            "Google Chrome for Testing",
-            "Chrome",
-          )
+        ? firstLineOf(
+            process.env["OTEL_GUIDES_CHROMIUM"],
+            ["--version"],
+            env,
+          ).replace("Google Chrome for Testing", "Chrome")
         : "Chromium, as Common's Playwright installs it";
     case "python":
       // The virtual environment's own: "Python 3.14.10".
@@ -1116,7 +1121,9 @@ function jvmVersions(
     );
 
     if (fs.existsSync(report)) {
-      for (const match of fs.readFileSync(report, "utf8").matchAll(MAVEN_COORDINATE)) {
+      for (const match of fs
+        .readFileSync(report, "utf8")
+        .matchAll(MAVEN_COORDINATE)) {
         versions[`${match[1]}:${match[2]}`] = match[3]!;
       }
     }
@@ -1128,7 +1135,13 @@ function jvmVersions(
       code: fs.readFileSync(path.join(appDir, "pom.xml"), "utf8"),
       check: "parse",
     })) {
-      if (dependency.version && !versions[dependency.name]) {
+      // A version from a property the parent defines is the parent's to record.
+      if (
+        dependency.version &&
+        !dependency.version.includes("${") &&
+        !dependency.name.includes("${") &&
+        !versions[dependency.name]
+      ) {
         versions[dependency.name] = dependency.version;
       }
     }
@@ -1142,7 +1155,12 @@ function jvmVersions(
       const result: SpawnSyncReturns<string> = spawnSync(
         "gradle",
         ["--no-daemon", ...task],
-        { cwd: appDir, env: env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+        {
+          cwd: appDir,
+          env: env,
+          encoding: "utf8",
+          maxBuffer: 64 * 1024 * 1024,
+        },
       );
 
       for (const match of (result.stdout || "").matchAll(GRADLE_COORDINATE)) {
@@ -1183,7 +1201,11 @@ function dotnetVersions(appDir: string): Record<string, string> {
 
       if (entry.isFile() && entry.name === "project.assets.json") {
         assets.push(full);
-      } else if (entry.isDirectory() && depth < 3 && entry.name !== "node_modules") {
+      } else if (
+        entry.isDirectory() &&
+        depth < 3 &&
+        entry.name !== "node_modules"
+      ) {
         look(full, depth + 1);
       }
     }
@@ -1352,9 +1374,15 @@ function runEnvironment(
     case "jvm":
       if (process.env["OTEL_GUIDES_JAVA_HOME"]) {
         env["JAVA_HOME"] = process.env["OTEL_GUIDES_JAVA_HOME"];
-        prependPath(env, path.join(process.env["OTEL_GUIDES_JAVA_HOME"], "bin"));
+        prependPath(
+          env,
+          path.join(process.env["OTEL_GUIDES_JAVA_HOME"], "bin"),
+        );
       }
-      for (const variable of ["OTEL_GUIDES_MAVEN_BIN", "OTEL_GUIDES_GRADLE_BIN"]) {
+      for (const variable of [
+        "OTEL_GUIDES_MAVEN_BIN",
+        "OTEL_GUIDES_GRADLE_BIN",
+      ]) {
         if (process.env[variable]) {
           prependPath(env, process.env[variable]!);
         }
@@ -1433,8 +1461,9 @@ async function startServices(
           { encoding: "utf8" },
         );
         isReady =
-          `${logs.stdout || ""}${logs.stderr || ""}`.split(service.readyLog.text)
-            .length -
+          `${logs.stdout || ""}${logs.stderr || ""}`.split(
+            service.readyLog.text,
+          ).length -
             1 >=
           service.readyLog.times;
 
@@ -1444,7 +1473,9 @@ async function startServices(
       }
 
       if (!isReady) {
-        throw new Error(`${service.name} never logged "${service.readyLog.text}"`);
+        throw new Error(
+          `${service.name} never logged "${service.readyLog.text}"`,
+        );
       }
     }
     await sleep(1500);
@@ -1652,7 +1683,12 @@ function recordedVersions(
     }
   }
   for (const file of run.files) {
-    if (file.content && (file.path.endsWith("pom.xml") || file.path.endsWith(".csproj") || file.path.endsWith(".gradle.kts"))) {
+    if (
+      file.content &&
+      (file.path.endsWith("pom.xml") ||
+        file.path.endsWith(".csproj") ||
+        file.path.endsWith(".gradle.kts"))
+    ) {
       for (const dependency of buildFileDependencies({
         id: file.path,
         language: file.path.endsWith(".gradle.kts") ? "kotlin" : "xml",
@@ -1786,8 +1822,10 @@ async function verifyRun(
 
   try {
     if (run.services && run.services.length > 0) {
-      const started: { containers: Array<string>; env: Record<string, string> } =
-        await startServices(run.services, containerBase);
+      const started: {
+        containers: Array<string>;
+        env: Record<string, string>;
+      } = await startServices(run.services, containerBase);
       containers = started.containers;
       Object.assign(env, started.env);
     }
@@ -1932,7 +1970,9 @@ async function verifyRun(
   };
 }
 
-function observedRecord(observed: Observed): GuideVerificationRecord["observed"] {
+function observedRecord(
+  observed: Observed,
+): GuideVerificationRecord["observed"] {
   const unique: (values: Array<string>) => Array<string> = (
     values: Array<string>,
   ): Array<string> => {

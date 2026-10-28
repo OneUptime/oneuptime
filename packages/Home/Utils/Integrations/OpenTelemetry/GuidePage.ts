@@ -131,7 +131,7 @@ export interface GuidePageContent {
   };
   exampleTrace: { caption: string; spans: Array<ExampleSpan> };
   prerequisitesHtml: Array<string>;
-  install: RenderedCodeSection;
+  install: RenderedCodeSection & { tabs?: RenderedTabs | undefined };
   configure: {
     introHtml: string;
     tabs: RenderedTabs;
@@ -492,7 +492,12 @@ export function getGuidePageContent(
     },
     exampleTrace: guide.exampleTrace,
     prerequisitesHtml: guide.prerequisites.map(inlineTextToHtml),
-    install: renderCodeSection(guide.install),
+    install: {
+      ...renderCodeSection(guide.install),
+      tabs: guide.install.tabs
+        ? renderTabs(guide.install.tabs, slug)
+        : undefined,
+    },
     configure: {
       introHtml: inlineTextToHtml(guide.configure.intro),
       tabs: renderTabs(guide.configure.tabs, slug),

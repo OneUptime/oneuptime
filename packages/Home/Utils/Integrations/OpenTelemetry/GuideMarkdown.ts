@@ -177,6 +177,7 @@ export function generateGuideMarkdown(
     `## ${title("install")}`,
     "",
     ...codeSectionMarkdown(guide.install, baseUrl),
+    ...(guide.install.tabs ? tabsMarkdown(guide.install.tabs, baseUrl) : []),
     `## ${title("configure")}`,
     "",
     absolute(guide.configure.intro, baseUrl),

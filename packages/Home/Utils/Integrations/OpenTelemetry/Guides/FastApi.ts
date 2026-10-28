@@ -214,11 +214,7 @@ export const FastApiGuide: OpenTelemetryGuide = {
     "pydantic",
     "python",
   ],
-  highlights: [
-    "One span per request",
-    "async and await",
-    "uvicorn",
-  ],
+  highlights: ["One span per request", "async and await", "uvicorn"],
 
   whatYouGet: {
     intro: `Run uvicorn under \`opentelemetry-instrument\` and every request to your FastAPI app becomes a trace under the service named by \`OTEL_SERVICE_NAME\`, in ${SCREENS.services} from its first request.`,
@@ -351,7 +347,7 @@ export const FastApiGuide: OpenTelemetryGuide = {
     notes: [
       "`start_as_current_span` is safe in coroutines: the context it sets travels with the task, not the thread.",
       "For work that keeps running after the response, such as a `BackgroundTasks` function, open a span inside it: it joins the request's trace.",
-      'Find a span by its attributes in the **Traces** explorer: `@payment.method:card`.',
+      "Find a span by its attributes in the **Traces** explorer: `@payment.method:card`.",
     ],
   },
 
@@ -366,7 +362,8 @@ export const FastApiGuide: OpenTelemetryGuide = {
   },
 
   metrics: {
-    intro: "The FastAPI and httpx instrumentations record, without a line of code:",
+    intro:
+      "The FastAPI and httpx instrumentations record, without a line of code:",
     builtIn: [
       {
         name: "http.server.request.duration",
@@ -401,7 +398,7 @@ export const FastApiGuide: OpenTelemetryGuide = {
     notes: [
       "`parentbased_traceidratio` keeps one new trace in ten, and follows the caller's decision when a request carries a `traceparent` header.",
       "Health checks are already out, through `excluded_urls`.",
-      "Metrics and logs are not sampled: `http.server.request.duration` still counts every request.",
+      "Sampling thins out traces, never metrics or logs: request counts and latency percentiles stay exact.",
     ],
   },
 
@@ -460,7 +457,8 @@ export const FastApiGuide: OpenTelemetryGuide = {
 
   troubleshooting: [
     {
-      question: "Every request has extra spans named “http send” and “http receive”",
+      question:
+        "Every request has extra spans named “http send” and “http receive”",
       answer:
         "The automatic FastAPI instrumentation is still on, beside yours or instead of it. Set `OTEL_PYTHON_DISABLED_INSTRUMENTATIONS=fastapi` and keep `FastAPIInstrumentor.instrument_app` with `exclude_spans` in `main.py`.",
     },
@@ -480,7 +478,8 @@ export const FastApiGuide: OpenTelemetryGuide = {
         "The client was made before the httpx instrumentation was loaded, or the call ran in a thread with no context. Create clients inside the app, as above, and start uvicorn under `opentelemetry-instrument`.",
     },
     {
-      question: "Nothing arrives, and uvicorn prints “Failed to auto initialize OpenTelemetry”",
+      question:
+        "Nothing arrives, and uvicorn prints “Failed to auto initialize OpenTelemetry”",
       answer:
         "`OTEL_EXPORTER_OTLP_PROTOCOL` is unset, so the distro looked for the gRPC exporter: set it to `http/protobuf`.",
     },

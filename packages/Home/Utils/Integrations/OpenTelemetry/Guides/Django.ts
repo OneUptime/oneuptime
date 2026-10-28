@@ -312,7 +312,10 @@ const postgres: VerificationService = {
     POSTGRES_PASSWORD: "shop",
     POSTGRES_DB: "shop",
   },
-  readyLog: { text: "database system is ready to accept connections", times: 2 },
+  readyLog: {
+    text: "database system is ready to accept connections",
+    times: 2,
+  },
 };
 
 const appPackages: string =
@@ -503,7 +506,8 @@ export const DjangoGuide: OpenTelemetryGuide = {
       },
       {
         library: "`redis`, `pymemcache`",
-        covers: "A span per cache command, such as those Django's cache backends send.",
+        covers:
+          "A span per cache command, such as those Django's cache backends send.",
       },
       {
         library: "`logging`",
@@ -523,7 +527,7 @@ export const DjangoGuide: OpenTelemetryGuide = {
     snippets: [views],
     notes: [
       "The span opened in the view nests under the request's span, and the payment call and the `INSERT` the ORM sends nest under it.",
-      'Set attributes your team will search by, then find them in the **Traces** explorer, such as `@payment.method:card`.',
+      "Set attributes your team will search by, then find them in the **Traces** explorer, such as `@payment.method:card`.",
       "An exception raised inside the `with` block is recorded on `checkout.charge` with its traceback, and on the request's span too if the view lets it through.",
     ],
   },
@@ -573,7 +577,7 @@ export const DjangoGuide: OpenTelemetryGuide = {
     notes: [
       "`OTEL_PYTHON_DJANGO_EXCLUDED_URLS` takes comma-separated regular expressions matched against the path, such as `healthz,static/`.",
       "`parentbased_traceidratio` keeps a fifth of new traces and follows the caller's decision when a request arrives with a `traceparent` header.",
-      "Metrics and logs are not sampled: `http.server.request.duration` still counts every request.",
+      "Only traces are sampled: `http.server.request.duration` and the logs still see every request Django serves, so error rates stay exact.",
     ],
   },
 
@@ -609,7 +613,7 @@ export const DjangoGuide: OpenTelemetryGuide = {
     notes: [
       "gunicorn handles SIGTERM itself: it stops taking requests, lets the workers finish, and each worker sends its last batch as it exits.",
       "Run `migrate` and `collectstatic` without `opentelemetry-instrument`, or give them their own service name, so their queries do not land in the web app's traces.",
-      "To see the pods and nodes beside the service, install the [Kubernetes agent](/docs/telemetry/kubernetes-agent).",
+      "Run the [Kubernetes agent](/docs/telemetry/kubernetes-agent) in the cluster too, and each Django pod's CPU, memory and restarts show beside its traces.",
     ],
   },
 
@@ -654,7 +658,8 @@ export const DjangoGuide: OpenTelemetryGuide = {
         "The request did not reach a URL pattern: a middleware answered it first, or no pattern matched, as for a 404. Requests that reach a view carry their pattern.",
     },
     {
-      question: "Nothing arrives, and the server prints “Failed to auto initialize OpenTelemetry”",
+      question:
+        "Nothing arrives, and the server prints “Failed to auto initialize OpenTelemetry”",
       answer:
         "`OTEL_EXPORTER_OTLP_PROTOCOL` is unset, so the distro looked for the gRPC exporter: set it to `http/protobuf`. Django keeps serving requests without telemetry, which is why nothing else complains.",
     },

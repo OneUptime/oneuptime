@@ -101,10 +101,10 @@ const paymentService: GuideSnippet = {
     '    Span.current().setAttribute("order.item_count", itemCount);',
     "    http.send(",
     '        HttpRequest.newBuilder(URI.create(PAYMENTS_API + "/api/charges"))',
-    "            .POST(HttpRequest.BodyPublishers.ofString(\"{}\"))",
+    '            .POST(HttpRequest.BodyPublishers.ofString("{}"))',
     "            .build(),",
     "        HttpResponse.BodyHandlers.discarding());",
-    "    ordersPlaced.add(1, Attributes.of(AttributeKey.stringKey(\"payment.method\"), paymentMethod));",
+    '    ordersPlaced.add(1, Attributes.of(AttributeKey.stringKey("payment.method"), paymentMethod));',
     "  }",
     "}",
   ].join("\n"),
@@ -480,7 +480,7 @@ export const JavaGuide: OpenTelemetryGuide = {
     notes: [
       "`@WithSpan` makes a span of every call to the method, named as you choose; `@SpanAttribute` adds a parameter's value as an attribute.",
       "`Span.current()` is the span the agent made for the method: set attributes on it, or record an exception with `recordException`.",
-      'Find spans by those attributes in the **Traces** explorer, such as `@payment.method:card`.',
+      "Find spans by those attributes in the **Traces** explorer, such as `@payment.method:card`.",
     ],
   },
 
@@ -490,7 +490,7 @@ export const JavaGuide: OpenTelemetryGuide = {
     snippets: [logbackPattern],
     notes: [
       "A record written outside a request, at startup for instance, has no trace ID: there was no trace yet.",
-      "Pass the exception to the logger, as `logger.error(\"payment failed\", error)`: the record then carries its type, message and stack trace, and lands under **Exceptions**.",
+      'Pass the exception to the logger, as `logger.error("payment failed", error)`: the record then carries its type, message and stack trace, and lands under **Exceptions**.',
       "Records go to OneUptime through the agent whatever your appenders are: keep your console or file appender as it is.",
     ],
   },
@@ -510,7 +510,8 @@ export const JavaGuide: OpenTelemetryGuide = {
       },
       {
         name: "jvm.thread.count",
-        description: "Threads by state: daemon or not, runnable, blocked or waiting.",
+        description:
+          "Threads by state: daemon or not, runnable, blocked or waiting.",
       },
       {
         name: "http.server.request.duration",
@@ -558,7 +559,7 @@ export const JavaGuide: OpenTelemetryGuide = {
     notes: [
       "On SIGTERM, the JVM runs its shutdown hooks, and the agent's sends what it still holds before the process exits.",
       "Give the container a little more memory: the agent adds tens of megabytes of classes and buffers.",
-      "To see the pods and nodes beside the service, install the [Kubernetes agent](/docs/telemetry/kubernetes-agent).",
+      "Pair it with the [Kubernetes agent](/docs/telemetry/kubernetes-agent) to watch each pod's memory beside the JVM's heap: a container killed for memory shows in both.",
     ],
   },
 
@@ -583,7 +584,8 @@ export const JavaGuide: OpenTelemetryGuide = {
 
   troubleshooting: [
     {
-      question: "The JVM will not start: “Error opening zip file or JAR manifest missing”",
+      question:
+        "The JVM will not start: “Error opening zip file or JAR manifest missing”",
       answer:
         "The path after `-javaagent:` does not point at the agent jar. Use an absolute path in scripts and images, such as `/otel/opentelemetry-javaagent.jar`.",
     },

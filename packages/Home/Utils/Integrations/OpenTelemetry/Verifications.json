@@ -49,9 +49,7 @@
         "web_vital.lcp",
         "web_vital.ttfb"
       ],
-      "logs": [
-        "added to cart"
-      ]
+      "logs": ["added to cart"]
     },
     "packageExports": {
       "@angular/common/http": [
@@ -1217,9 +1215,7 @@
         "unsuppressTracing",
         "urlMatches"
       ],
-      "@opentelemetry/exporter-logs-otlp-http": [
-        "OTLPLogExporter"
-      ],
+      "@opentelemetry/exporter-logs-otlp-http": ["OTLPLogExporter"],
       "@opentelemetry/exporter-metrics-otlp-http": [
         "AggregationTemporalityPreference",
         "CumulativeTemporalitySelector",
@@ -1229,9 +1225,7 @@
         "OTLPMetricExporterBase",
         "OTLPMetricExporterOptions"
       ],
-      "@opentelemetry/exporter-trace-otlp-http": [
-        "OTLPTraceExporter"
-      ],
+      "@opentelemetry/exporter-trace-otlp-http": ["OTLPTraceExporter"],
       "@opentelemetry/instrumentation": [
         "AutoLoaderOptions",
         "AutoLoaderResult",
@@ -1251,9 +1245,7 @@
         "safeExecuteInTheMiddleAsync",
         "semconvStabilityFromStr"
       ],
-      "@opentelemetry/opentelemetry-browser-detector": [
-        "browserDetector"
-      ],
+      "@opentelemetry/opentelemetry-browser-detector": ["browserDetector"],
       "@opentelemetry/resources": [
         "DetectedResource",
         "DetectedResourceAttributes",
@@ -1615,9 +1607,7 @@
         "unsuppressTracing",
         "urlMatches"
       ],
-      "@opentelemetry/exporter-logs-otlp-http": [
-        "OTLPLogExporter"
-      ],
+      "@opentelemetry/exporter-logs-otlp-http": ["OTLPLogExporter"],
       "@opentelemetry/exporter-metrics-otlp-http": [
         "AggregationTemporalityPreference",
         "CumulativeTemporalitySelector",
@@ -1627,9 +1617,7 @@
         "OTLPMetricExporterBase",
         "OTLPMetricExporterOptions"
       ],
-      "@opentelemetry/exporter-trace-otlp-http": [
-        "OTLPTraceExporter"
-      ],
+      "@opentelemetry/exporter-trace-otlp-http": ["OTLPTraceExporter"],
       "@opentelemetry/instrumentation": [
         "AutoLoaderOptions",
         "AutoLoaderResult",
@@ -1649,9 +1637,7 @@
         "safeExecuteInTheMiddleAsync",
         "semconvStabilityFromStr"
       ],
-      "@opentelemetry/opentelemetry-browser-detector": [
-        "browserDetector"
-      ],
+      "@opentelemetry/opentelemetry-browser-detector": ["browserDetector"],
       "@opentelemetry/resources": [
         "DetectedResource",
         "DetectedResourceAttributes",
@@ -1817,20 +1803,9 @@
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
     "snippetDigest": "sha256:e4366816711a4aa18f9c3b720b9ae5faea04fd98e7357519818162775672c410",
     "observed": {
-      "spans": [
-        "GET",
-        "GET /products/:id",
-        "POST /orders",
-        "orders.place"
-      ],
-      "metrics": [
-        "http.server.request.duration",
-        "orders.placed"
-      ],
-      "logs": [
-        "loading product",
-        "request failed"
-      ]
+      "spans": ["GET", "GET /products/:id", "POST /orders", "orders.place"],
+      "metrics": ["http.server.request.duration", "orders.placed"],
+      "logs": ["loading product", "request failed"]
     },
     "packageExports": {
       "@opentelemetry/api": [
@@ -1997,12 +1972,7 @@
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
     "snippetDigest": "sha256:8c9e787eace43dea714b53f08f19dcc9d599ee193a5a8d6a283ce77b6d980c12",
     "observed": {
-      "spans": [
-        "GET",
-        "GET /products/:id",
-        "POST /orders",
-        "orders.place"
-      ],
+      "spans": ["GET", "GET /products/:id", "POST /orders", "orders.place"],
       "metrics": [
         "http.server.active_requests",
         "http.server.request.body.size",
@@ -2382,10 +2352,7 @@
         "http.server.response.body.size",
         "orders.placed"
       ],
-      "logs": [
-        "loading user 404",
-        "loading user 42"
-      ]
+      "logs": ["loading user 404", "loading user 42"]
     },
     "packageExports": {},
     "variants": {
@@ -2406,10 +2373,7 @@
             "http.server.response.body.size",
             "orders.placed"
           ],
-          "logs": [
-            "loading user 404",
-            "loading user 42"
-          ]
+          "logs": ["loading user 404", "loading user 42"]
         },
         "packages": {
           "fastapi": "0.162.0",
@@ -2743,10 +2707,7 @@
         "http.server.request.duration",
         "orders.placed"
       ],
-      "logs": [
-        "loading user 42",
-        "request failed"
-      ]
+      "logs": ["loading user 42", "request failed"]
     },
     "packageExports": {}
   },
@@ -3062,12 +3023,7 @@
         "NodeSDKConfiguration",
         "startNodeSDK"
       ],
-      "hapi-pino": [
-        "Options",
-        "default",
-        "module.exports",
-        "register"
-      ]
+      "hapi-pino": ["Options", "default", "module.exports", "register"]
     }
   },
   "java": {
@@ -3121,19 +3077,13 @@
         "processedSpans",
         "queueSize"
       ],
-      "logs": [
-        "listening on http://localhost:8080",
-        "loading user 42"
-      ]
+      "logs": ["listening on http://localhost:8080", "loading user 42"]
     },
     "packageExports": {},
     "variants": {
       "Instrumentations off": {
         "observed": {
-          "spans": [
-            "GET /users/",
-            "POST /orders"
-          ],
+          "spans": ["GET /users/", "POST /orders"],
           "metrics": [
             "http.server.request.duration",
             "otlp.exporter.exported",
@@ -3201,16 +3151,10 @@
         "v8js.memory.heap.used",
         "v8js.resource.active"
       ],
-      "logs": [
-        "loading product",
-        "request failed"
-      ]
+      "logs": ["loading product", "request failed"]
     },
     "packageExports": {
-      "@koa/bodyparser": [
-        "bodyParser",
-        "default"
-      ],
+      "@koa/bodyparser": ["bodyParser", "default"],
       "@koa/router": [
         "AllowedMethodsOptions",
         "HttpMethod",
@@ -3340,10 +3284,7 @@
         "NodeSDKConfiguration",
         "startNodeSDK"
       ],
-      "koa": [
-        "HttpError",
-        "default"
-      ],
+      "koa": ["HttpError", "default"],
       "winston": [
         "Container",
         "ExceptionHandler",
@@ -3390,6 +3331,63 @@
         "warn"
       ]
     }
+  },
+  "micronaut": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Java 25.0.5",
+    "packages": {
+      "ch.qos.logback:logback-classic": "1.5.37",
+      "com.h2database:h2": "2.5.250",
+      "io.micronaut.data:micronaut-data-jdbc": "5.2.4",
+      "io.micronaut.platform:micronaut-parent": "5.2.4",
+      "io.micronaut.serde:micronaut-serde-jackson": "3.2.6",
+      "io.micronaut.sql:micronaut-jdbc-hikari": "7.2.0",
+      "io.micronaut.tracing:micronaut-tracing-opentelemetry-http": "8.3.0",
+      "io.micronaut.tracing:micronaut-tracing-opentelemetry-jdbc": "8.3.0",
+      "io.micronaut:micronaut-http-client-jdk": "5.2.20",
+      "io.micronaut:micronaut-http-server": "5.2.20",
+      "io.micronaut:micronaut-http-server-netty": "5.2.20",
+      "io.micronaut:micronaut-management": "5.2.20",
+      "io.opentelemetry.instrumentation:opentelemetry-logback-appender-1.0": "2.30.0-alpha",
+      "io.opentelemetry:opentelemetry-exporter-otlp": "1.64.0"
+    },
+    "framework": "Micronaut 5.2.20",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:d30c90666d75321ae5b4eb571e8334abc63bc82e3457cad315585b15e8d86a34",
+    "observed": {
+      "spans": [
+        "CREATE TABLE shop.placed_order",
+        "DROP TABLE shop.placed_order",
+        "GET /orders/boom",
+        "GET /orders/{id}",
+        "INSERT shop.placed_order",
+        "POST",
+        "POST /orders",
+        "SELECT shop.placed_order",
+        "checkout.charge"
+      ],
+      "metrics": [
+        "http.client.request.duration",
+        "http.server.request.duration",
+        "orders.placed",
+        "otel.sdk.metric_reader.collection.duration",
+        "otlp.exporter.exported",
+        "otlp.exporter.seen",
+        "processedLogs",
+        "processedSpans",
+        "queueSize"
+      ],
+      "logs": [
+        "Embedded Application shutting down",
+        "HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:shop user=SA",
+        "HikariPool-1 - Start completed.",
+        "HikariPool-1 - Starting...",
+        "Startup completed in 2293ms. Server Running: http://localhost:8080",
+        "Unexpected error occurred: Payment provider timed out",
+        "loading order 42"
+      ]
+    },
+    "packageExports": {}
   },
   "nestjs": {
     "checkedOn": "2026-10-27",
@@ -3925,9 +3923,7 @@
         "v8js.memory.heap.used",
         "v8js.resource.active"
       ],
-      "logs": [
-        "order placed"
-      ]
+      "logs": ["order placed"]
     },
     "packageExports": {
       "@opentelemetry/api": [
@@ -4145,10 +4141,7 @@
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
     "snippetDigest": "sha256:b7d4db0b62ff9cad059d38e8de245aa34119815885be6608ff3df4a0d819c0c7",
     "observed": {
-      "spans": [
-        "GET /invoices/:id",
-        "invoice.render"
-      ],
+      "spans": ["GET /invoices/:id", "invoice.render"],
       "metrics": [
         "http.client.request.duration",
         "http.server.request.duration",
@@ -4169,9 +4162,7 @@
         "v8js.memory.heap.used",
         "v8js.resource.active"
       ],
-      "logs": [
-        "rendering invoice"
-      ]
+      "logs": ["rendering invoice"]
     },
     "packageExports": {
       "@opentelemetry/api": [
@@ -4359,12 +4350,7 @@
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
     "snippetDigest": "sha256:d385f2b2b13ecfce3ad3fc1f15c161ceba902961e11dadc6fca9c6e8f386aecd",
     "observed": {
-      "spans": [
-        "GET",
-        "POST",
-        "invoice.validate",
-        "invoices.sync"
-      ],
+      "spans": ["GET", "POST", "invoice.validate", "invoices.sync"],
       "metrics": [
         "cpython.gc.collected_objects",
         "cpython.gc.collections",
@@ -4380,29 +4366,15 @@
         "process.open_file_descriptor.count",
         "process.thread.count"
       ],
-      "logs": [
-        "skipped invoice inv_2",
-        "synced 1 of 2 invoices"
-      ]
+      "logs": ["skipped invoice inv_2", "synced 1 of 2 invoices"]
     },
     "packageExports": {},
     "variants": {
       "In code": {
         "observed": {
-          "spans": [
-            "GET",
-            "POST",
-            "invoice.validate",
-            "invoices.sync"
-          ],
-          "metrics": [
-            "http.client.request.duration",
-            "invoices.synced"
-          ],
-          "logs": [
-            "skipped invoice inv_2",
-            "synced 1 of 2 invoices"
-          ]
+          "spans": ["GET", "POST", "invoice.validate", "invoices.sync"],
+          "metrics": ["http.client.request.duration", "invoices.synced"],
+          "logs": ["skipped invoice inv_2", "synced 1 of 2 invoices"]
         },
         "packages": {
           "opentelemetry-distro": "0.66b1",
@@ -4414,6 +4386,82 @@
         }
       }
     }
+  },
+  "quarkus": {
+    "checkedOn": "2026-10-28",
+    "runtime": "Java 25.0.5",
+    "packages": {
+      "io.quarkus.platform:quarkus-bom": "3.40.1.1",
+      "io.quarkus.platform:quarkus-maven-plugin": "3.40.1.1",
+      "io.quarkus:quarkus-arc": "3.40.1.1",
+      "io.quarkus:quarkus-core": "3.40.1.1",
+      "io.quarkus:quarkus-hibernate-orm-panache": "3.40.1.1",
+      "io.quarkus:quarkus-jdbc-h2": "3.40.1.1",
+      "io.quarkus:quarkus-opentelemetry": "3.40.1.1",
+      "io.quarkus:quarkus-rest-client-jackson": "3.40.1.1",
+      "io.quarkus:quarkus-rest-jackson": "3.40.1.1",
+      "io.quarkus:quarkus-smallrye-health": "3.40.1.1",
+      "org.apache.maven.plugins:maven-compiler-plugin": "3.15.0"
+    },
+    "framework": "Quarkus 3.40.1.1",
+    "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
+    "snippetDigest": "sha256:c8e00cc987119d430530a11a72e4d3542cdc9287fa8671d98af49c160ba8b5ec",
+    "observed": {
+      "spans": [
+        "CREATE shop",
+        "CREATE table shop",
+        "DROP shop",
+        "DROP table shop",
+        "GET /orders/boom",
+        "GET /orders/{id}",
+        "INSERT shop.PlacedOrder",
+        "POST /api/charges",
+        "POST /orders",
+        "SELECT shop",
+        "SELECT shop.PlacedOrder",
+        "checkout.charge"
+      ],
+      "metrics": [
+        "http.server.request.duration",
+        "jvm.class.count",
+        "jvm.class.loaded",
+        "jvm.class.unloaded",
+        "jvm.cpu.context_switch",
+        "jvm.cpu.count",
+        "jvm.cpu.limit",
+        "jvm.cpu.longlock",
+        "jvm.cpu.recent_utilization",
+        "jvm.cpu.time",
+        "jvm.gc.duration",
+        "jvm.memory.committed",
+        "jvm.memory.limit",
+        "jvm.memory.used",
+        "jvm.memory.used_after_last_gc",
+        "jvm.network.io",
+        "jvm.network.time",
+        "jvm.thread.count",
+        "orders.placed",
+        "otel.sdk.log.created",
+        "otel.sdk.metric_reader.collection.duration",
+        "otel.sdk.processor.log.processed",
+        "otel.sdk.processor.log.queue.capacity",
+        "otel.sdk.processor.log.queue.size",
+        "otel.sdk.processor.span.processed",
+        "otel.sdk.processor.span.queue.capacity",
+        "otel.sdk.processor.span.queue.size",
+        "otel.sdk.span.live",
+        "otel.sdk.span.started"
+      ],
+      "logs": [
+        "HTTP Request to /orders/boom failed, error id: 4c5ac71b-c829-4bf2-913e-1c937a5c14c0-1",
+        "Installed features: [agroal, cdi, hibernate-orm, hibernate-orm-panache, jdbc-h2, narayana-jta, opentelemetry, rest, rest",
+        "OpenTelemetry API usage issue detected. To see more details, enable FINEST logging for io.opentelemetry.usage. Stacktrac",
+        "Profile prod activated. ",
+        "checkout 1.0.0 on JVM (powered by Quarkus 3.40.1.1) started in 3.786s. Listening on: http://0.0.0.0:8080",
+        "loading order 42"
+      ]
+    },
+    "packageExports": {}
   },
   "react": {
     "checkedOn": "2026-10-27",
@@ -4460,9 +4508,7 @@
         "web_vital.lcp",
         "web_vital.ttfb"
       ],
-      "logs": [
-        "added to cart"
-      ]
+      "logs": ["added to cart"]
     },
     "packageExports": {
       "@opentelemetry/api": [
@@ -4625,9 +4671,7 @@
         "unsuppressTracing",
         "urlMatches"
       ],
-      "@opentelemetry/exporter-logs-otlp-http": [
-        "OTLPLogExporter"
-      ],
+      "@opentelemetry/exporter-logs-otlp-http": ["OTLPLogExporter"],
       "@opentelemetry/exporter-metrics-otlp-http": [
         "AggregationTemporalityPreference",
         "CumulativeTemporalitySelector",
@@ -4637,9 +4681,7 @@
         "OTLPMetricExporterBase",
         "OTLPMetricExporterOptions"
       ],
-      "@opentelemetry/exporter-trace-otlp-http": [
-        "OTLPTraceExporter"
-      ],
+      "@opentelemetry/exporter-trace-otlp-http": ["OTLPTraceExporter"],
       "@opentelemetry/instrumentation": [
         "AutoLoaderOptions",
         "AutoLoaderResult",
@@ -4659,9 +4701,7 @@
         "safeExecuteInTheMiddleAsync",
         "semconvStabilityFromStr"
       ],
-      "@opentelemetry/opentelemetry-browser-detector": [
-        "browserDetector"
-      ],
+      "@opentelemetry/opentelemetry-browser-detector": ["browserDetector"],
       "@opentelemetry/resources": [
         "DetectedResource",
         "DetectedResourceAttributes",

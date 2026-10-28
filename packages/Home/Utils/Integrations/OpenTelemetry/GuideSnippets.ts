@@ -31,6 +31,13 @@ function questionSnippets(
 export function guideSnippets(guide: OpenTelemetryGuide): Array<GuideSnippet> {
   return [
     ...guide.install.snippets,
+    ...(guide.install.tabs
+      ? guide.install.tabs.tabs.flatMap(
+          (tab: GuideTab): Array<GuideSnippet> => {
+            return tab.snippets;
+          },
+        )
+      : []),
     ...guide.configure.tabs.tabs.flatMap(
       (tab: GuideTab): Array<GuideSnippet> => {
         return tab.snippets;

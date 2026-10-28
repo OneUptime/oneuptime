@@ -192,7 +192,10 @@ const sampling: GuideSnippet = {
  * for Spring Boot 4.1 with Spring MVC, Spring Data JPA, H2, the actuator
  * and the REST client, plus the page's fragments word for word.
  */
-function pomFile(extraDependencies: string, dependencyManagement: string): string {
+function pomFile(
+  extraDependencies: string,
+  dependencyManagement: string,
+): string {
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"',
@@ -393,7 +396,7 @@ const requests: Array<{
 export const SpringBootGuide: OpenTelemetryGuide = {
   slug: "spring-boot",
   seo: {
-    title: "Spring Boot OpenTelemetry: Tracing, Metrics & Logs | OneUptime",
+    title: "Spring Boot OpenTelemetry: Java Agent or Starter | OneUptime",
     description:
       "Instrument Spring Boot with OpenTelemetry: the Java agent or the Spring Boot starter, MVC routes, JPA and JDBC, RestClient, JVM metrics and logs, to OneUptime.",
   },
@@ -411,11 +414,7 @@ export const SpringBootGuide: OpenTelemetryGuide = {
     "java agent",
     "spring boot starter",
   ],
-  highlights: [
-    "Java agent or starter",
-    "Spring Boot 4",
-    "Java 25",
-  ],
+  highlights: ["Java agent or starter", "Spring Boot 4", "Java 25"],
 
   whatYouGet: {
     intro: `A Spring Boot app started with the agent reports as one service, named by \`OTEL_SERVICE_NAME\`, in ${SCREENS.services} from its first request.`,
@@ -511,7 +510,7 @@ export const SpringBootGuide: OpenTelemetryGuide = {
               body: "Start the jar with `-javaagent`, pointing at the agent you downloaded:",
               snippets: [runWithAgent],
               notes: [
-                "Running with `mvn spring-boot:run`? Pass the agent with `-Dspring-boot.run.jvmArguments=\"-javaagent:opentelemetry-javaagent.jar\"`.",
+                'Running with `mvn spring-boot:run`? Pass the agent with `-Dspring-boot.run.jvmArguments="-javaagent:opentelemetry-javaagent.jar"`.',
                 "In a container, set `JAVA_TOOL_OPTIONS` instead, as the Docker section below does.",
               ],
             },
@@ -599,7 +598,7 @@ export const SpringBootGuide: OpenTelemetryGuide = {
     notes: [
       "With the agent, a call from inside the same bean is traced too: the agent instruments the class itself. The starter works through Spring's proxies, so it traces only calls that come from another bean.",
       "`Span.current()` is the method's span: add attributes as you learn them, such as the item count here.",
-      'Find spans by attribute in the **Traces** explorer: `@payment.method:card`.',
+      "Find spans by attribute in the **Traces** explorer: `@payment.method:card`.",
     ],
   },
 
@@ -609,7 +608,7 @@ export const SpringBootGuide: OpenTelemetryGuide = {
     snippets: [properties],
     notes: [
       "Records written at startup carry no trace ID: there is no request yet.",
-      "Log an exception by passing it as the last argument, `logger.error(\"payment failed\", error)`: the record carries its type, message and stack trace, and lands under **Exceptions**.",
+      'Log an exception by passing it as the last argument, `logger.error("payment failed", error)`: the record carries its type, message and stack trace, and lands under **Exceptions**.',
       "Spring Boot's `logging.level.*` settings decide what is written, and so what is sent.",
     ],
   },
@@ -808,7 +807,10 @@ export const SpringBootGuide: OpenTelemetryGuide = {
             content: pomFile(starterDependency.code, starterBom.code),
           },
           ...sharedSources,
-          { path: `${source}PaymentService.java`, content: starterPaymentService },
+          {
+            path: `${source}PaymentService.java`,
+            content: starterPaymentService,
+          },
         ],
         stubApiPort: 9000,
         commands: [

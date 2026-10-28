@@ -187,20 +187,19 @@ function guideTexts(guide: OpenTelemetryGuide): Array<[string, InlineText]> {
 function everyText(guide: OpenTelemetryGuide): Array<[string, InlineText]> {
   const texts: Array<[string, InlineText]> = guideTexts(guide);
 
-  guide.configure.tabs.tabs.forEach(
-    (tab: {
-      label: string;
-      notes?: Array<InlineText> | undefined;
-      body?: InlineText | undefined;
-    }) => {
+  for (const [where, tabs] of [
+    ["install", guide.install.tabs],
+    ["configure", guide.configure.tabs],
+  ] as Array<[string, GuideTabs | undefined]>) {
+    (tabs?.tabs || []).forEach((tab: GuideTab) => {
       if (tab.body) {
-        texts.push([`configure.tabs.${tab.label}.body`, tab.body]);
+        texts.push([`${where}.tabs.${tab.label}.body`, tab.body]);
       }
       (tab.notes || []).forEach((note: InlineText, index: number) => {
-        texts.push([`configure.tabs.${tab.label}.notes[${index}]`, note]);
+        texts.push([`${where}.tabs.${tab.label}.notes[${index}]`, note]);
       });
-    },
-  );
+    });
+  }
 
   return texts;
 }
@@ -333,21 +332,24 @@ function buildTwins(
 ): Array<{ where: string; builds: Array<Array<GuideSnippet>> }> {
   const twins: Array<{ where: string; builds: Array<Array<GuideSnippet>> }> =
     [];
-  const byTool: (snippets: Array<GuideSnippet>) => Array<Array<GuideSnippet>> =
-    (snippets: Array<GuideSnippet>): Array<Array<GuideSnippet>> => {
-      const maven: Array<GuideSnippet> = snippets.filter(
-        (snippet: GuideSnippet): boolean => {
-          return isBuildFileSnippet(snippet) && snippet.language === "xml";
-        },
-      );
-      const gradle: Array<GuideSnippet> = snippets.filter(
-        (snippet: GuideSnippet): boolean => {
-          return isBuildFileSnippet(snippet) && snippet.language === "kotlin";
-        },
-      );
+  const byTool: (
+    snippets: Array<GuideSnippet>,
+  ) => Array<Array<GuideSnippet>> = (
+    snippets: Array<GuideSnippet>,
+  ): Array<Array<GuideSnippet>> => {
+    const maven: Array<GuideSnippet> = snippets.filter(
+      (snippet: GuideSnippet): boolean => {
+        return isBuildFileSnippet(snippet) && snippet.language === "xml";
+      },
+    );
+    const gradle: Array<GuideSnippet> = snippets.filter(
+      (snippet: GuideSnippet): boolean => {
+        return isBuildFileSnippet(snippet) && snippet.language === "kotlin";
+      },
+    );
 
-      return maven.length > 0 && gradle.length > 0 ? [maven, gradle] : [];
-    };
+    return maven.length > 0 && gradle.length > 0 ? [maven, gradle] : [];
+  };
   const visitTabs: (where: string, tabs: GuideTabs | undefined) => void = (
     where: string,
     tabs: GuideTabs | undefined,
@@ -372,6 +374,7 @@ function buildTwins(
     }
   };
 
+  visitTabs("install", guide.install.tabs);
   visitTabs("configure", guide.configure.tabs);
   for (const step of [...guide.setup.steps, ...guide.verify.steps]) {
     visitTabs(step.title, step.tabs);
@@ -595,7 +598,9 @@ describe.each(BY_SLUG)(
       }
       expect(guide.exampleTrace.spans.length).toBeGreaterThanOrEqual(3);
       expect(guide.prerequisites.length).toBeGreaterThanOrEqual(2);
-      expect(guide.install.snippets.length).toBeGreaterThanOrEqual(1);
+      expect(
+        guide.install.snippets.length + (guide.install.tabs?.tabs.length || 0),
+      ).toBeGreaterThanOrEqual(1);
       expect(
         guide.configure.tabs.tabs.map((tab: { label: string }): string => {
           return tab.label;
@@ -763,14 +768,20 @@ describe.each(BY_SLUG)(
       const record: GuideVerificationRecord | undefined = getVerificationRecord(
         guide.slug,
       );
-      const installs: Array<InstalledPackage> = guideSnippets(guide)
-        .flatMap(snippetInstalls)
-        .filter((install: InstalledPackage): boolean => {
+      const declared: Array<InstalledPackage> =
+        guideSnippets(guide).flatMap(snippetInstalls);
+      const installs: Array<InstalledPackage> = declared.filter(
+        (install: InstalledPackage): boolean => {
           // A dependency a BOM or a parent manages names no version of its own.
           return install.version !== undefined;
-        });
+        },
+      );
 
-      expect(installs.length).toBeGreaterThan(0);
+      /*
+       * Every guide installs something. One whose build leaves every
+       * version to the framework's BOM (Quarkus, Micronaut) pins none.
+       */
+      expect(declared.length).toBeGreaterThan(0);
       for (const install of installs) {
         expect([install.name, install.version]).toEqual([
           install.name,

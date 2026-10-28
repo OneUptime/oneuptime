@@ -28,6 +28,8 @@ import { FastApiGuide } from "./Guides/FastApi";
 import { CeleryGuide } from "./Guides/Celery";
 import { JavaGuide } from "./Guides/Java";
 import { SpringBootGuide } from "./Guides/SpringBoot";
+import { QuarkusGuide } from "./Guides/Quarkus";
+import { MicronautGuide } from "./Guides/Micronaut";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -55,6 +57,8 @@ export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   CeleryGuide,
   JavaGuide,
   SpringBootGuide,
+  QuarkusGuide,
+  MicronautGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";
