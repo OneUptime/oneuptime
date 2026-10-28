@@ -78,4 +78,5 @@ ships the module (RELEASING.md lists them too):
 6. The cover screen, and any phone: nothing changed.
 7. TalkBack on the handle: it reads "List width" and the list's share of the
    width ("45%"), double tapping it puts the divider back, and swiping up or
-   down moves it.
+   down moves it. Half open on a table, swiping through the screen reads the
+   pane above the fold before the list below it.
