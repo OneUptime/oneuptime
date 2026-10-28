@@ -10,6 +10,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { isProductRenamed } from "Common/UI/Utils/ProductBranding";
 
 export interface ComponentProps {
   language: TelemetryGuideLanguageKey;
@@ -21,7 +22,9 @@ export interface ComponentProps {
  * (Common/Types/Telemetry/OpenTelemetryGuides): what is traced on its own,
  * the mistakes people make with that framework, containers, troubleshooting.
  * Nothing for a language with no guide yet. The guides are on
- * oneuptime.com, which self-hosted installations link to as well.
+ * oneuptime.com, which self-hosted installations link to as well - except
+ * one that goes by a name of its own (ProductBranding): it does not send
+ * people to OneUptime's pages, as its footer does not.
  */
 const FrameworkGuideLinks: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -30,7 +33,7 @@ const FrameworkGuideLinks: FunctionComponent<ComponentProps> = (
   const guides: TelemetryGuideLanguageGuides | undefined =
     getGuidesForTelemetryGuideLanguage(props.language);
 
-  if (!guides) {
+  if (!guides || isProductRenamed()) {
     return <></>;
   }
 
@@ -43,7 +46,7 @@ const FrameworkGuideLinks: FunctionComponent<ComponentProps> = (
         href={getOpenTelemetryGuideUrl(guide.slug)}
         target="_blank"
         rel="noopener noreferrer"
-        className="font-medium text-indigo-600 underline decoration-indigo-200 underline-offset-2 hover:text-indigo-500 hover:decoration-indigo-400"
+        className="font-medium text-indigo-600 hover:text-indigo-500 hover:underline"
       >
         {guide.name}
       </a>

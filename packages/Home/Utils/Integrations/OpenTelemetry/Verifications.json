@@ -3798,7 +3798,7 @@
     }
   },
   "nodejs": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
       "@opentelemetry/api": "1.10.0",

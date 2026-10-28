@@ -538,6 +538,30 @@ describe("TelemetryDocumentation", () => {
       ).not.toBeInTheDocument();
     });
 
+    test("an installation that goes by a name of its own sends nobody to OneUptime's website", () => {
+      const browserWindow: { process?: { env?: Record<string, unknown> } } =
+        window as unknown as { process?: { env?: Record<string, unknown> } };
+      browserWindow.process = browserWindow.process || {};
+      browserWindow.process.env = browserWindow.process.env || {};
+      browserWindow.process.env["PRODUCT_BRANDING"] = JSON.stringify({
+        productName: "Acme Observability",
+      });
+
+      try {
+        renderGuide("traces");
+
+        expect(
+          screen.queryByTestId("telemetry-framework-guides"),
+        ).not.toBeInTheDocument();
+        // The guide itself is all there: only the website's links are left out.
+        expect(
+          screen.getByRole("button", { name: "Node.js" }),
+        ).toBeInTheDocument();
+      } finally {
+        delete browserWindow.process.env["PRODUCT_BRANDING"];
+      }
+    });
+
     test("the profiles guide, which is not OpenTelemetry, shows none", () => {
       renderGuide("profiles");
       pickMethod("Language SDK");
