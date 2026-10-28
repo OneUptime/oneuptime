@@ -167,7 +167,7 @@ const PLURAL_DESCRIPTION: string =
   "They are acknowledged as you when the incident is declared, and their own on-call escalation stops within a minute. Pages that already went out are not recalled.";
 
 const TIMELINE_CREATE_REASON: string =
-  "You do not have permission to acknowledge this alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin, Alert Member, Create Alert State Timeline.";
+  "You do not have permission to acknowledge this alert. You need this permission: Create Alert State Timeline.";
 
 const NO_POLICIES_TEXT: string =
   "No on-call policies will be executed when this incident is created.";

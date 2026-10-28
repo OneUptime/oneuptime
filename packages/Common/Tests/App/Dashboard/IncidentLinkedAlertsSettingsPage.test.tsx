@@ -482,7 +482,7 @@ describe("who may change the switches", () => {
 
   test("the permissions they need, named the way a locked card names them", () => {
     expect(getProjectColumnsPermissionMessage(LINKED_ALERTS_FIELDS)).toBe(
-      "Changing these needs one of these permissions: Project Owner, Project Admin.",
+      "You do not have permission to change these settings. You need one of these roles: Project Owner, Project Admin.",
     );
   });
 

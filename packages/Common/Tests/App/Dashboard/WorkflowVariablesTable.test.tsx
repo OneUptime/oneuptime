@@ -1255,7 +1255,13 @@ describe.each(PAGE_CASES)("the $page variables list", (pageCase: PageCase) => {
       expect(button.tooltip).toContain(
         "You do not have permission to create this Workflow Variable",
       );
-      expect(button.tooltip).toContain("Workflow Admin");
+      /*
+       * The permission to ask for - Workflow Admin holds it as well, and
+       * Workflow Member does not.
+       */
+      expect(button.tooltip).toContain(
+        "You need this permission: Create Workflow Variables.",
+      );
       expect(button.tooltip).not.toContain("Workflow Member");
     });
 

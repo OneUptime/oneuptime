@@ -876,7 +876,7 @@ describe("who may change the prefixes", () => {
         getNumberPrefixColumns(INCIDENT_NUMBER_PREFIXES),
       ),
     ).toBe(
-      "Changing these needs one of these permissions: Project Owner, Project Admin, Edit Project.",
+      "You do not have permission to change these settings. You need this permission: Edit Project.",
     );
   });
 

@@ -235,11 +235,11 @@ describe("dedicated create-page entry points", () => {
 
       const tooltip: HTMLElement = screen.getByRole("tooltip");
 
+      // The permission to ask for, not the roles that hold it as well.
       expect(tooltip).toHaveTextContent(
-        "You do not have permission to create this Monitor.",
+        "You do not have permission to create this Monitor. You need this permission: Create Monitor.",
       );
-      expect(tooltip).toHaveTextContent("Create Monitor");
-      expect(tooltip).toHaveTextContent("Monitor Admin");
+      expect(tooltip).not.toHaveTextContent("Monitor Admin");
     });
 
     /*
