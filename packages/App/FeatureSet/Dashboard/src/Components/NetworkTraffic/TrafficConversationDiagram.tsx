@@ -223,7 +223,7 @@ const TrafficConversationDiagram: FunctionComponent<ComponentProps> = (
                     dominantBaseline="middle"
                     fill="currentColor"
                     className="text-gray-500"
-                    fontSize={10}
+                    fontSize={11}
                     direction="ltr"
                     data-testid="traffic-conversation-label-address"
                   >
