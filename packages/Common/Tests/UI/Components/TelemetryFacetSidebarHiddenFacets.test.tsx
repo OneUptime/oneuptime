@@ -287,6 +287,38 @@ describe("TelemetryFacetSidebar hides empty resource facets", () => {
     expect(footer()).toHaveTextContent("2 empty filters hidden");
   });
 
+  /*
+   * Show and Hide used to be two buttons, one drawn per state: a press
+   * unmounted the button it was made on, and focus fell back to the page.
+   * It is one button now, whose words follow the state.
+   */
+  test("Show and Hide are one button: focus stays on it both ways, aria-expanded follows", () => {
+    render(sidebarElement({ facetData: MIXED }));
+
+    const toggle: HTMLElement = screen.getByRole("button", {
+      name: "Show 2 empty filters",
+    });
+
+    toggle.focus();
+    fireEvent.click(toggle);
+
+    const hide: HTMLElement = screen.getByRole("button", {
+      name: "Hide empty filters",
+    });
+
+    expect(hide).toBe(toggle);
+    expect(hide).toHaveFocus();
+    expect(hide).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(hide);
+
+    expect(screen.getByRole("button", { name: "Show 2 empty filters" })).toBe(
+      toggle,
+    );
+    expect(toggle).toHaveFocus();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+  });
+
   test("the footer is the last thing in the facet list", () => {
     render(sidebarElement({ facetData: MIXED }));
 

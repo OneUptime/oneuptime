@@ -17,6 +17,7 @@ import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useId,
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -131,11 +132,13 @@ const parseIpString: (ipString: string) => Array<string> = (
   return ips;
 };
 
-const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
+// Exported for its tests: a host's addresses, the rest folded under "+N more".
+export const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
   ipString: string;
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const restListId: string = `host-ip-addresses-${useId()}`;
 
   if (!props.ipString) {
     return <span className="text-sm text-gray-400">—</span>;
@@ -154,26 +157,21 @@ const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
   const primary: string = sorted[0]!;
   const rest: Array<string> = sorted.slice(1);
 
+  /*
+   * One button under the addresses, open or folded: "+2 more" opens the rest
+   * above it and it becomes Show less, in the same place, so a press keeps
+   * focus on it. They were two buttons, one per state, and a press dropped
+   * focus to the page.
+   */
   return (
     <div className="text-sm text-gray-700">
       <div className="font-mono">{primary}</div>
-      {rest.length > 0 && !isExpanded && (
-        <button
-          type="button"
-          onClick={(e: React.MouseEvent<HTMLButtonElement>): void => {
-            e.stopPropagation();
-            setIsExpanded(true);
-          }}
-          className="text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
-        >
-          {translator.translatePlural(
-            { one: "+{{count}} more", other: "+{{count}} more" },
-            rest.length,
-          )}
-        </button>
-      )}
       {rest.length > 0 && isExpanded && (
-        <div className="mt-1 flex flex-col gap-0.5">
+        <div
+          id={restListId}
+          className="mt-1 flex flex-col gap-0.5"
+          data-testid="host-ip-addresses-rest"
+        >
           {rest.map((ip: string): ReactElement => {
             return (
               <div key={ip} className="font-mono text-xs text-gray-600">
@@ -181,17 +179,29 @@ const IpAddressCell: FunctionComponent<{ ipString: string }> = (props: {
               </div>
             );
           })}
-          <button
-            type="button"
-            onClick={(e: React.MouseEvent<HTMLButtonElement>): void => {
-              e.stopPropagation();
-              setIsExpanded(false);
-            }}
-            className="mt-0.5 self-start text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer"
-          >
-            {translator.translateText("Show less")}
-          </button>
         </div>
+      )}
+      {rest.length > 0 && (
+        <button
+          type="button"
+          aria-expanded={isExpanded}
+          aria-controls={isExpanded ? restListId : undefined}
+          data-testid="host-ip-addresses-toggle"
+          onClick={(e: React.MouseEvent<HTMLButtonElement>): void => {
+            e.stopPropagation();
+            setIsExpanded(!isExpanded);
+          }}
+          className={`${
+            isExpanded ? "mt-0.5 " : ""
+          }text-xs text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer`}
+        >
+          {isExpanded
+            ? translator.translateText("Show less")
+            : translator.translatePlural(
+                { one: "+{{count}} more", other: "+{{count}} more" },
+                rest.length,
+              )}
+        </button>
       )}
     </div>
   );

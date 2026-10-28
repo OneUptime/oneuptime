@@ -53,6 +53,12 @@ export interface CardSelectOptionGroup {
  * A picker over a catalog too big to read at once (the monitor type picker):
  * the common choices first, everything else one "More …" press or one search
  * away, and once a choice is made, just that choice with a Change button.
+ *
+ * More is a disclosure, as its chevron says (issue #5364): it stays where it
+ * is once pressed, its chevron turns up, aria-expanded says the rest is open,
+ * and a second press folds the rest away again - as every "More fields" fold
+ * does (FoldedSection). It used to go once pressed, leaving the rest open
+ * until the page was reloaded.
  */
 export interface CardSelectCatalog {
   /*
@@ -61,7 +67,10 @@ export interface CardSelectCatalog {
    * its group's heading.
    */
   commonOptionValues: Array<string>;
-  // What the More button says ("More monitor types").
+  /*
+   * What the More button says ("More monitor types"), open or folded: the
+   * chevron and aria-expanded say which, as a fold's title does.
+   */
   moreOptionsText: string;
 }
 
@@ -396,9 +405,11 @@ export const getCardSelectCatalogSections: CatalogSectionsFunction = (data: {
 /*
  * Where keyboard focus goes once the next render is on screen: the summary's
  * Change button after a pick, the search box (or the chosen card) after
- * Change, the first newly shown card after More.
+ * Change, the first newly shown card after More opens the rest, and More
+ * itself after it folds them away - so focus never falls back to the page
+ * from a card that is no longer drawn.
  */
-type PendingFocus = "change" | "picker" | "first-more-option";
+type PendingFocus = "change" | "picker" | "first-more-option" | "more-toggle";
 
 const CardSelect: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -420,6 +431,8 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     useRef<HTMLDivElement>(null);
   const changeButtonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
+  const moreToggleRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
   const summaryTitleId: string = useId();
   const moreOptionsId: string = useId();
   // The error under the cards, read with the choice.
@@ -429,7 +442,11 @@ const CardSelect: FunctionComponent<ComponentProps> = (
     props.error ? errorId : undefined,
   );
 
-  // Catalog layout: whether More was pressed, and whether Change was.
+  /*
+   * Catalog layout: whether the rest of the catalog is open (More opens and
+   * folds it; Change opens it on a choice it holds), and whether Change was
+   * pressed.
+   */
   const [isShowingMoreOptions, setIsShowingMoreOptions] =
     useState<boolean>(false);
   const [isChangingSelection, setIsChangingSelection] =
@@ -554,9 +571,10 @@ const CardSelect: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * The rest of the catalog is on screen once More is pressed, and whenever
-   * the choice already made is one of them - Change on a Kubernetes monitor
-   * must not hide Kubernetes behind a button.
+   * Whether the choice already made is one of the rest. Change then opens
+   * the rest - Change on a Kubernetes monitor must not hide Kubernetes
+   * behind a button - and More can still fold them away: it used to pin
+   * them open, with no More left to press.
    */
   const isSelectionInMoreOptions: boolean = Boolean(
     catalogSections &&
@@ -566,8 +584,7 @@ const CardSelect: FunctionComponent<ComponentProps> = (
       }),
   );
 
-  const areMoreOptionsShown: boolean =
-    isShowingMoreOptions || isSelectionInMoreOptions;
+  const areMoreOptionsShown: boolean = isShowingMoreOptions;
 
   /*
    * A search flattens the groups. Ranked results in nine separate headed
@@ -761,6 +778,13 @@ const CardSelect: FunctionComponent<ComponentProps> = (
       if (firstMoreOption) {
         focusCard(firstMoreOption.value);
       }
+    } else if (pendingFocus === "more-toggle") {
+      /*
+       * Folded by a click that left focus on a card it folded away (a
+       * browser that does not focus a pressed button, as Safari does not):
+       * focus stays with the button that folded them.
+       */
+      moreToggleRef.current?.focus();
     }
 
     setPendingFocus(null);
@@ -1101,6 +1125,13 @@ const CardSelect: FunctionComponent<ComponentProps> = (
             className="flex-shrink-0 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors duration-150 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
             onClick={() => {
               setIsChangingSelection(true);
+              /*
+               * The catalog opens on the choice made: the rest open when it
+               * is one of them, folded when it is a common one - however
+               * More was left before the pick. More opens or folds them
+               * from there.
+               */
+              setIsShowingMoreOptions(isSelectionInMoreOptions);
               setPendingFocus("picker");
             }}
           >
@@ -1298,48 +1329,82 @@ const CardSelect: FunctionComponent<ComponentProps> = (
               })}
             </div>
 
-            {catalogSections.moreGroups.length > 0 && !areMoreOptionsShown && (
-              <button
-                type="button"
-                aria-expanded={false}
-                aria-controls={moreOptionsId}
-                data-testid="card-select-more"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-md py-1 text-sm font-medium text-indigo-600 transition-colors duration-150 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
-                onClick={() => {
-                  setIsShowingMoreOptions(true);
-                  setPendingFocus("first-more-option");
-                }}
-              >
-                <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
-                {translator.translateText(props.catalog!.moreOptionsText)}
-              </button>
-            )}
+            {catalogSections.moreGroups.length > 0 && (
+              <>
+                {/*
+                 * One button, open or folded: it stays where it is, so a
+                 * second press folds what the first opened. Its words stay
+                 * the same either way, as a fold's title does; the chevron
+                 * turns up and aria-expanded says the rest is open.
+                 */}
+                <button
+                  ref={moreToggleRef}
+                  type="button"
+                  aria-expanded={areMoreOptionsShown}
+                  aria-controls={moreOptionsId}
+                  data-testid="card-select-more"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-md py-1 text-sm font-medium text-indigo-600 transition-colors duration-150 hover:text-indigo-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                  onClick={() => {
+                    const isOpening: boolean = !areMoreOptionsShown;
 
-            {areMoreOptionsShown && (
-              <div id={moreOptionsId} data-testid="card-select-more-options">
-                {catalogSections.moreGroups.map(
-                  (group: RenderGroup, groupIndex: number) => {
-                    return (
-                      <div
-                        key={group.label || groupIndex}
-                        className="mt-5"
-                        data-testid={`card-select-group-${group.label || groupIndex}`}
-                      >
-                        {group.label && (
-                          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-                            {translator.translateText(group.label)}
-                          </p>
-                        )}
-                        <div className={gridClassName}>
-                          {group.options.map((option: CardSelectOption) => {
-                            return renderOption(option);
-                          })}
-                        </div>
-                      </div>
+                    setIsShowingMoreOptions(isOpening);
+                    /*
+                     * Opened, focus goes on to the first type it brought:
+                     * the rows are a single tab stop, before this button,
+                     * so Tab alone would skip them. Folded, focus stays on
+                     * the button.
+                     */
+                    setPendingFocus(
+                      isOpening ? "first-more-option" : "more-toggle",
                     );
-                  },
-                )}
-              </div>
+                  }}
+                >
+                  <Icon
+                    icon={IconProp.ChevronDown}
+                    data-testid="card-select-more-chevron"
+                    className={`h-4 w-4 transition-transform duration-200 motion-reduce:transition-none ${
+                      areMoreOptionsShown ? "rotate-180" : ""
+                    }`}
+                  />
+                  {translator.translateText(props.catalog!.moreOptionsText)}
+                </button>
+
+                {/*
+                 * On the page either way, so the button's aria-controls
+                 * names an element: it holds the rest while open, nothing
+                 * while folded.
+                 */}
+                <div id={moreOptionsId}>
+                  {areMoreOptionsShown && (
+                    <div data-testid="card-select-more-options">
+                      {catalogSections.moreGroups.map(
+                        (group: RenderGroup, groupIndex: number) => {
+                          return (
+                            <div
+                              key={group.label || groupIndex}
+                              className="mt-5"
+                              data-testid={`card-select-group-${group.label || groupIndex}`}
+                            >
+                              {group.label && (
+                                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                  {translator.translateText(group.label)}
+                                </p>
+                              )}
+                              <div className={gridClassName}>
+                                {group.options.map(
+                                  (option: CardSelectOption) => {
+                                    return renderOption(option);
+                                  },
+                                )}
+                              </div>
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </>
         )}

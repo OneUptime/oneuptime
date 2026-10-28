@@ -3,9 +3,12 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL } from "Common/UI/Config";
@@ -56,7 +59,11 @@ import {
 const FOR_EXCEPTION_ROUTE: string =
   "/telemetry/rum/session-replay/for-exception";
 
-/* Sessions listed before the rest fold behind "Show all". */
+/*
+ * Sessions listed before the rest fold behind "Show all". Show all opens the
+ * rest and becomes Show fewer, which folds them again (issue #5364: it used
+ * to open them for good and go).
+ */
 export const REPLAY_CARD_SESSIONS_SHOWN: number = 5;
 
 export type ReplayCardFailureKind = "permission" | "plan" | "error";
@@ -163,6 +170,8 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
   const [failure, setFailure] = useState<ReplayCardFailure | null>(null);
   const [isScopeTruncated, setIsScopeTruncated] = useState<boolean>(false);
   const [showAllSessions, setShowAllSessions] = useState<boolean>(false);
+  const translator: Translator = useTranslator();
+  const sessionListId: string = `replay-card-sessions-${useId()}`;
 
   const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
 
@@ -430,8 +439,6 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
   const visibleOtherSessions: Array<ReplaySessionRow> = showAllSessions
     ? otherSessions
     : otherSessions.slice(0, REPLAY_CARD_SESSIONS_SHOWN);
-  const hiddenOtherSessionCount: number =
-    otherSessions.length - visibleOtherSessions.length;
 
   return (
     <div className={`mb-5 ${props.className || ""}`} data-testid="replay-card">
@@ -500,7 +507,10 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
                   {otherSessions.length === 1 ? "session" : "sessions"} hit this
                   error
                 </div>
-                <ul className="mt-1 divide-y divide-gray-100">
+                <ul
+                  id={sessionListId}
+                  className="mt-1 divide-y divide-gray-100"
+                >
                   {visibleOtherSessions.map(
                     (row: ReplaySessionRow): ReactElement => {
                       const route: Route | null = buildReplayMomentRoute({
@@ -534,13 +544,27 @@ const ReplayCard: FunctionComponent<ReplayCardProps> = (
                     },
                   )}
                 </ul>
-                {hiddenOtherSessionCount > 0 && (
+                {/*
+                 * One button, open or folded, so a second press folds what
+                 * the first opened and focus stays on it.
+                 */}
+                {otherSessions.length > REPLAY_CARD_SESSIONS_SHOWN && (
                   <Button
-                    title={`Show all ${otherSessions.length}`}
+                    title={
+                      showAllSessions
+                        ? translator.translateText("Show fewer")
+                        : translator.translateTemplate("Show all {{count}}", {
+                            count: translator.formatNumber(
+                              otherSessions.length,
+                            ),
+                          })
+                    }
                     buttonStyle={ButtonStyleType.SECONDARY_LINK}
                     buttonSize={ButtonSize.ExtraSmall}
+                    ariaExpanded={showAllSessions}
+                    ariaControls={sessionListId}
                     onClick={(): void => {
-                      setShowAllSessions(true);
+                      setShowAllSessions(!showAllSessions);
                     }}
                     dataTestId="replay-card-show-all"
                   />

@@ -325,6 +325,46 @@ describe("Monitor type picker", () => {
 
       expect(onChange).toHaveBeenCalledWith(MonitorType.Kubernetes);
     });
+
+    // Issue #5364: once pressed, it could not be pressed again.
+    test("pressed again, folds the long tail away: the six common types alone", () => {
+      renderPicker();
+
+      pressMore();
+
+      expect(shownTypes().length).toBe(catalogTypeValues.length);
+      expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+
+      pressMore();
+
+      expect(shownTypes()).toEqual(COMMON_TYPES);
+      expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+
+      for (const group of categorizedOptions) {
+        expect(screen.queryByText(group.label)).not.toBeInTheDocument();
+      }
+    });
+
+    test("folded again, it keeps focus, and opened again it shows every type once more", () => {
+      renderPicker();
+
+      const more: HTMLElement = screen.getByTestId("card-select-more");
+
+      pressMore();
+      pressMore();
+
+      expect(more).toHaveFocus();
+
+      pressMore();
+
+      expect([...shownTypes()].sort()).toEqual([...catalogTypeValues].sort());
+    });
   });
 
   describe("finding a type by the words a user already knows", () => {
@@ -480,7 +520,12 @@ describe("Monitor type picker", () => {
       expect(shownTypes()).toEqual([]);
     });
 
-    test("Change shows it checked, without pressing More", () => {
+    /*
+     * Issue #5364: Change on a type More holds back used to open the whole
+     * catalog with no More left to press, so it could not be folded. The
+     * type is still on screen and checked, and More is there, open.
+     */
+    test("Change shows it checked, without pressing More, and More is there, open", () => {
       renderPicker(MonitorType.Ceph);
 
       fireEvent.click(screen.getByTestId("card-select-change"));
@@ -489,7 +534,42 @@ describe("Monitor type picker", () => {
         "aria-checked",
         "true",
       );
-      expect(screen.queryByTestId("card-select-more")).not.toBeInTheDocument();
+      expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+        "aria-expanded",
+        "true",
+      );
+      expect(screen.getByTestId("card-select-more")).toHaveTextContent(
+        "More monitor types",
+      );
+    });
+
+    test("after Change, More folds the long tail away, Ceph with it, and the common types stay", () => {
+      const onChange: MockFunction = renderPicker(MonitorType.Ceph);
+
+      fireEvent.click(screen.getByTestId("card-select-change"));
+      pressMore();
+
+      expect(shownTypes()).toEqual(COMMON_TYPES);
+      expect(
+        screen.queryByTestId("card-select-option-Ceph"),
+      ).not.toBeInTheDocument();
+      expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    test("Change on a common type opens on the six common types, the long tail folded", () => {
+      renderPicker(MonitorType.Website);
+
+      fireEvent.click(screen.getByTestId("card-select-change"));
+
+      expect(shownTypes()).toEqual(COMMON_TYPES);
+      expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+        "aria-expanded",
+        "false",
+      );
     });
 
     /*

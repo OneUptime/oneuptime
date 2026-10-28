@@ -9,6 +9,11 @@ export interface ComponentProps {
   userFullName: Name;
   userProfilePicture: URL | string;
   onClick: () => void;
+  /*
+   * Whether the menu this button opens is open, which the button says with
+   * aria-expanded. It was written as "false" whatever the menu did.
+   */
+  isMenuOpen?: boolean | undefined;
 }
 
 const UserProfile: FunctionComponent<ComponentProps> = (
@@ -23,7 +28,7 @@ const UserProfile: FunctionComponent<ComponentProps> = (
         id="page-header-user-dropdown"
         aria-haspopup="true"
         className="btn header-item bg-soft-light border-start border-end flex"
-        aria-expanded="false"
+        aria-expanded={Boolean(props.isMenuOpen)}
         style={{
           alignItems: "center",
         }}

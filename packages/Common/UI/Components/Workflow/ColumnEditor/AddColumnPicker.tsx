@@ -314,7 +314,8 @@ const AddColumnPicker: FunctionComponent<ComponentProps> = (
         type="button"
         data-testid={testId}
         aria-haspopup="listbox"
-        aria-expanded={false}
+        // Drawn only while the list is closed: the open list replaces it.
+        aria-expanded={isOpen}
         className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         onClick={() => {
           setIsOpen(true);

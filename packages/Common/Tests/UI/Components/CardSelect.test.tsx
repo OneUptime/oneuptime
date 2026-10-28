@@ -1,5 +1,7 @@
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { UserEvent } from "@testing-library/user-event/dist/types/setup/setup";
 import React, { ReactElement, useState } from "react";
 import { describe, expect, test } from "@jest/globals";
 import IconProp from "../../../Types/Icon/IconProp";
@@ -1085,31 +1087,78 @@ describe("CardSelect", () => {
         ).toHaveLength(1);
       });
 
-      test("is pressed once: the button goes, and focus lands on the first option it brought", () => {
+      /*
+       * Issue #5364: the button used to go once pressed - with
+       * aria-expanded written as false - so the rest could not be folded
+       * away again without reloading the page, though its chevron promised
+       * a fold. It now stays, says it is open, and its chevron turns up.
+       */
+      test("stays where it is once pressed, open: aria-expanded, the chevron turned up", () => {
+        renderCatalog();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        expect(more).toHaveAttribute("aria-expanded", "false");
+        expect(screen.getByTestId("card-select-more-chevron")).not.toHaveClass(
+          "rotate-180",
+        );
+
+        fireEvent.click(more);
+
+        expect(screen.getByTestId("card-select-more")).toBe(more);
+        expect(more).toHaveAttribute("aria-expanded", "true");
+        expect(screen.getByTestId("card-select-more-chevron")).toHaveClass(
+          "rotate-180",
+        );
+      });
+
+      test("its words are the same open or folded, as a fold's title is", () => {
+        renderCatalog();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        expect(more).toHaveTextContent(/^More monitor types$/);
+
+        fireEvent.click(more);
+
+        expect(more).toHaveTextContent(/^More monitor types$/);
+        expect(screen.getByRole("button", { name: "More monitor types" })).toBe(
+          more,
+        );
+      });
+
+      test("focus lands on the first option it brought", () => {
         renderCatalog();
 
         fireEvent.click(screen.getByTestId("card-select-more"));
 
-        expect(
-          screen.queryByTestId("card-select-more"),
-        ).not.toBeInTheDocument();
         expect(screen.getByTestId("card-select-option-IP")).toHaveFocus();
       });
 
-      test("names the part of the page it shows", () => {
+      test("names the part of the page it shows, open or folded", () => {
         renderCatalog();
 
         const more: HTMLElement = screen.getByTestId("card-select-more");
         const controls: string | null = more.getAttribute("aria-controls");
 
         expect(controls).toBeTruthy();
+        // Folded, it still names an element on the page: an empty one.
+        expect(document.getElementById(controls!)).toBeInTheDocument();
+        expect(document.getElementById(controls!)).toBeEmptyDOMElement();
 
         fireEvent.click(more);
 
-        expect(screen.getByTestId("card-select-more-options")).toHaveAttribute(
-          "id",
-          controls!,
-        );
+        expect(more.getAttribute("aria-controls")).toBe(controls);
+        expect(
+          within(document.getElementById(controls!)!).getByTestId(
+            "card-select-more-options",
+          ),
+        ).toBeVisible();
+        expect(
+          within(document.getElementById(controls!)!).getByTestId(
+            "card-select-option-Kubernetes",
+          ),
+        ).toBeVisible();
       });
 
       test("a catalog with nothing beyond its common choices has no More button", () => {
@@ -1158,6 +1207,184 @@ describe("CardSelect", () => {
       });
     });
 
+    describe("More, pressed again", () => {
+      test("folds the rest away: the common rows alone, no heading, More folded", () => {
+        renderCatalog();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        fireEvent.click(more);
+        fireEvent.click(more);
+
+        expect(shownValues()).toEqual(["Ping", "Website"]);
+        expect(
+          screen.queryByTestId("card-select-more-options"),
+        ).not.toBeInTheDocument();
+        expect(screen.queryByText("Infrastructure")).not.toBeInTheDocument();
+        expect(more).toBeInTheDocument();
+        expect(more).toHaveAttribute("aria-expanded", "false");
+        expect(screen.getByTestId("card-select-more-chevron")).not.toHaveClass(
+          "rotate-180",
+        );
+      });
+
+      test("keeps focus on More", () => {
+        renderCatalog();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        fireEvent.click(more);
+        more.focus();
+        fireEvent.click(more);
+
+        expect(more).toHaveFocus();
+      });
+
+      /*
+       * Safari does not focus a button it clicks: focus is still on the
+       * first type More brought when the press folds it away. Focus goes
+       * to More rather than falling back to the page.
+       */
+      test("hands focus to More when it was on a row the press folds away", () => {
+        renderCatalog();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        fireEvent.click(more);
+        expect(screen.getByTestId("card-select-option-IP")).toHaveFocus();
+
+        fireEvent.click(more);
+
+        expect(
+          screen.queryByTestId("card-select-option-IP"),
+        ).not.toBeInTheDocument();
+        expect(more).toHaveFocus();
+        expect(document.body).not.toHaveFocus();
+      });
+
+      test("opens and folds as often as it is pressed", () => {
+        renderCatalog();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        for (let press: number = 1; press <= 5; press++) {
+          fireEvent.click(more);
+
+          const isOpen: boolean = press % 2 === 1;
+
+          expect(more).toHaveAttribute("aria-expanded", String(isOpen));
+          expect(shownValues()).toEqual(
+            isOpen
+              ? ["Ping", "Website", "IP", "Kubernetes", "SQL Query", "Manual"]
+              : ["Ping", "Website"],
+          );
+        }
+      });
+
+      test("opening a second time puts focus on the first option again", () => {
+        renderCatalog();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        fireEvent.click(more);
+        fireEvent.click(more);
+        fireEvent.click(more);
+
+        expect(screen.getByTestId("card-select-option-IP")).toHaveFocus();
+      });
+
+      test("picks nothing, open or folded", () => {
+        const { onChange } = renderCatalog();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        fireEvent.click(more);
+        fireEvent.click(more);
+
+        expect(onChange).not.toHaveBeenCalled();
+        expect(
+          screen.queryByTestId("card-select-summary"),
+        ).not.toBeInTheDocument();
+      });
+
+      test("the arrows stop at the common rows once the rest is folded again", () => {
+        renderCatalog();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        fireEvent.click(more);
+        fireEvent.click(more);
+
+        const lastCommon: HTMLElement = screen.getByTestId(
+          "card-select-option-Website",
+        );
+
+        lastCommon.focus();
+        fireEvent.keyDown(lastCommon, { key: "ArrowDown" });
+
+        expect(lastCommon).toHaveFocus();
+      });
+
+      test("Enter and Space on More open and fold the rest from the keyboard", async () => {
+        const user: UserEvent = userEvent.setup();
+
+        renderCatalog();
+
+        const more: HTMLElement = screen.getByTestId("card-select-more");
+
+        more.focus();
+        await user.keyboard("{Enter}");
+
+        expect(more).toHaveAttribute("aria-expanded", "true");
+        expect(screen.getByTestId("card-select-option-IP")).toHaveFocus();
+
+        // Back to More: the one tab stop before the rows it brought.
+        await user.tab({ shift: true });
+        expect(more).toHaveFocus();
+
+        await user.keyboard(" ");
+
+        expect(more).toHaveAttribute("aria-expanded", "false");
+        expect(more).toHaveFocus();
+        expect(shownValues()).toEqual(["Ping", "Website"]);
+      });
+
+      /*
+       * One tab stop for the rows, then More: Tab goes from the rows to
+       * More, and from More past the rows it brought, out of the picker.
+       */
+      test("Tab reaches More after the rows, and leaves the picker after it", async () => {
+        const user: UserEvent = userEvent.setup();
+
+        render(
+          <>
+            <CatalogHarness
+              onChange={getJestMockFunction()}
+              onParentKeyDown={getJestMockFunction()}
+              searchable={true}
+            />
+            <button type="button">After the picker</button>
+          </>,
+        );
+
+        await user.click(screen.getByTestId("card-select-search"));
+        await user.tab();
+        expect(screen.getByTestId("card-select-option-Ping")).toHaveFocus();
+
+        await user.tab();
+        expect(screen.getByTestId("card-select-more")).toHaveFocus();
+
+        await user.keyboard("{Enter}");
+        await user.tab({ shift: true });
+        expect(screen.getByTestId("card-select-more")).toHaveFocus();
+
+        await user.tab();
+        expect(
+          screen.getByRole("button", { name: "After the picker" }),
+        ).toHaveFocus();
+      });
+    });
+
     describe("search", () => {
       test("runs over the whole catalog, not only the common choices", () => {
         renderCatalog({ searchable: true });
@@ -1183,6 +1410,53 @@ describe("CardSelect", () => {
 
         expect(screen.getByTestId("card-select-more")).toBeVisible();
         expect(shownValues()).toEqual(["Ping", "Website"]);
+      });
+
+      test("clearing it brings More back the way it was left: open, with the rest", () => {
+        renderCatalog({ searchable: true });
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+        typeSearch("k8s");
+
+        expect(
+          screen.queryByTestId("card-select-more"),
+        ).not.toBeInTheDocument();
+        expect(shownValues()).toEqual(["Kubernetes"]);
+
+        fireEvent.click(screen.getByTestId("card-select-search-clear"));
+
+        expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+          "aria-expanded",
+          "true",
+        );
+        expect(shownValues()).toEqual([
+          "Ping",
+          "Website",
+          "IP",
+          "Kubernetes",
+          "SQL Query",
+          "Manual",
+        ]);
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+
+        expect(shownValues()).toEqual(["Ping", "Website"]);
+      });
+
+      test("a type found by search inside the open rest is picked like any other", () => {
+        const { onChange } = renderCatalog({ searchable: true });
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+        typeSearch("postgres");
+        fireEvent.keyDown(screen.getByTestId("card-select-search"), {
+          key: "Enter",
+        });
+
+        expect(onChange).toHaveBeenCalledWith("SQL Query");
+        expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+          "data-card-select-value",
+          "SQL Query",
+        );
       });
 
       test("shows its results as compact rows", () => {
@@ -1434,7 +1708,13 @@ describe("CardSelect", () => {
         expect(shownValues()).toEqual(["Ping", "Website"]);
       });
 
-      test("a choice More holds back is on screen without pressing More", () => {
+      /*
+       * Change on a choice More holds back opens the rest, so the choice is
+       * on screen and checked without pressing More. It used to pin the
+       * rest open with no More at all (issue #5364): More is there, open,
+       * and folds them like any other time.
+       */
+      test("a choice More holds back is on screen without pressing More, and More says the rest is open", () => {
         renderCatalog({ initialValue: "Kubernetes" });
 
         expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
@@ -1447,9 +1727,129 @@ describe("CardSelect", () => {
         expect(
           screen.getByTestId("card-select-option-Kubernetes"),
         ).toHaveAttribute("aria-checked", "true");
+        expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+          "aria-expanded",
+          "true",
+        );
+        expect(screen.getByTestId("card-select-more-chevron")).toHaveClass(
+          "rotate-180",
+        );
+      });
+
+      test("More folds the rest away after Change, the choice among them with it, and Escape still keeps it", () => {
+        const { onChange } = renderCatalog({
+          initialValue: "Kubernetes",
+          searchable: true,
+        });
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+        fireEvent.click(screen.getByTestId("card-select-more"));
+
+        expect(shownValues()).toEqual(["Ping", "Website"]);
+        expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+          "aria-expanded",
+          "false",
+        );
+        expect(screen.getByTestId("card-select-more")).toHaveFocus();
+
+        fireEvent.keyDown(screen.getByTestId("card-select-more"), {
+          key: "Escape",
+        });
+
+        expect(onChange).not.toHaveBeenCalled();
+        expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+          "data-card-select-value",
+          "Kubernetes",
+        );
+        expect(screen.getByTestId("card-select-change")).toHaveFocus();
+      });
+
+      test("with the rest folded, a common choice can be picked; opened again, the earlier choice is still checked", () => {
+        const { onChange } = renderCatalog({ initialValue: "Kubernetes" });
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+        fireEvent.click(screen.getByTestId("card-select-more"));
+        fireEvent.click(screen.getByTestId("card-select-more"));
+
         expect(
-          screen.queryByTestId("card-select-more"),
-        ).not.toBeInTheDocument();
+          screen.getByTestId("card-select-option-Kubernetes"),
+        ).toHaveAttribute("aria-checked", "true");
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+        fireEvent.click(screen.getByTestId("card-select-option-Ping"));
+
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(onChange).toHaveBeenCalledWith("Ping");
+        expect(screen.getByTestId("card-select-summary")).toHaveAttribute(
+          "data-card-select-value",
+          "Ping",
+        );
+      });
+
+      test("a choice among the rest picked from the open rest: Change opens the rest on it", () => {
+        const { onChange } = renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+        fireEvent.click(screen.getByTestId("card-select-option-SQL Query"));
+
+        expect(onChange).toHaveBeenCalledWith("SQL Query");
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+
+        expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+          "aria-expanded",
+          "true",
+        );
+        expect(
+          screen.getByTestId("card-select-option-SQL Query"),
+        ).toHaveAttribute("aria-checked", "true");
+      });
+
+      // Without a search box, focus goes to the checked row, among the rest.
+      test("without a search box, focus goes to the checked row among the rest", () => {
+        renderCatalog({ initialValue: "Manual", searchable: false });
+
+        fireEvent.click(screen.getByTestId("card-select-change"));
+
+        expect(screen.getByTestId("card-select-option-Manual")).toHaveFocus();
+      });
+
+      /*
+       * Change opens the catalog the way the choice needs it: a common
+       * choice on the common rows, the rest folded - whichever way More was
+       * left before the pick.
+       */
+      test("Change on a common choice opens on the common rows, the rest folded, though More was open before the pick", () => {
+        renderCatalog();
+
+        fireEvent.click(screen.getByTestId("card-select-more"));
+        fireEvent.click(screen.getByTestId("card-select-option-Website"));
+        fireEvent.click(screen.getByTestId("card-select-change"));
+
+        expect(shownValues()).toEqual(["Ping", "Website"]);
+        expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+          "aria-expanded",
+          "false",
+        );
+        expect(
+          screen.getByTestId("card-select-option-Website"),
+        ).toHaveAttribute("aria-checked", "true");
+      });
+
+      test("Change on a choice among the rest opens it, though More was folded before the pick", () => {
+        renderCatalog({ searchable: true });
+
+        // Found by search: More was never pressed.
+        typeSearch("k8s");
+        fireEvent.click(screen.getByTestId("card-select-option-Kubernetes"));
+        fireEvent.click(screen.getByTestId("card-select-change"));
+
+        expect(screen.getByTestId("card-select-more")).toHaveAttribute(
+          "aria-expanded",
+          "true",
+        );
+        expect(shownValues()).toContain("Kubernetes");
+        expect(screen.getByTestId("card-select-search")).toHaveFocus();
       });
 
       test("a pick clears what was typed, so the next Change starts on the common choices", () => {
