@@ -50,6 +50,7 @@ import { REFRESH_SIDEBAR_COUNT_EVENT } from "Common/UI/Components/SideMenu/Count
 import TableEmptyState, {
   TableEmptyStateKind,
 } from "Common/UI/Components/Table/TableEmptyState";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { getLoadErrorStateProps } from "Common/UI/Components/Table/TableEmptyStateBuilders";
 import API from "Common/UI/Utils/API/API";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
@@ -456,20 +457,22 @@ const SecurityCaseTasks: FunctionComponent<ComponentProps> = (
                   : undefined
               }
             >
-              {doneByName
-                ? translator.translateTemplate(
-                    SECURITY_CASE_TASKS_COPY.doneBy,
-                    {
-                      name: doneByName,
-                      time: doneTime,
-                    },
-                  )
-                : translator.translateTemplate(
-                    SECURITY_CASE_TASKS_COPY.doneAt,
-                    {
-                      time: doneTime,
-                    },
-                  )}
+              {/*
+               * Who ticked it off reads the way their name is written, in a
+               * right-to-left sentence too - as Evidence's "Added by" line
+               * draws its name.
+               */}
+              {doneByName ? (
+                <TranslatedSentence
+                  template={SECURITY_CASE_TASKS_COPY.doneBy}
+                  slots={{ name: <IsolatedText text={doneByName} /> }}
+                  values={{ time: doneTime }}
+                />
+              ) : (
+                translator.translateTemplate(SECURITY_CASE_TASKS_COPY.doneAt, {
+                  time: doneTime,
+                })
+              )}
             </p>
           ) : (
             <></>

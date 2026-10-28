@@ -265,9 +265,16 @@ describe("a case's tasks", () => {
     expect(
       within(done).getByTestId(SECURITY_CASE_TASKS_TEST_IDS.checkbox),
     ).toBeChecked();
-    expect(
-      within(done).getByTestId(SECURITY_CASE_TASKS_TEST_IDS.doneLine),
-    ).toHaveTextContent("Done by Ana 5 minutes ago");
+    const doneLine: HTMLElement = within(done).getByTestId(
+      SECURITY_CASE_TASKS_TEST_IDS.doneLine,
+    );
+    expect(doneLine).toHaveTextContent("Done by Ana 5 minutes ago");
+    /*
+     * Who ticked it off reads the way the name is written, in a
+     * right-to-left sentence too: the name is isolated, as Evidence's
+     * "Added by" draws its name.
+     */
+    expect(within(doneLine).getByText("Ana").tagName).toBe("BDI");
 
     // Not done, and nobody has it.
     const open: HTMLElement = rowOf("Pull the proxy logs");
