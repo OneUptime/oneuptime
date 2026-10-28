@@ -171,6 +171,28 @@ describe.each(PRODUCT_PAGES)(
       for (const card of cards) {
         expect(card.querySelector("img")?.getAttribute("alt")).toBe("");
       }
+
+      /*
+       * Two cards to a row on a phone, three on a tablet, six on a laptop:
+       * the featured guides fill whole rows at each, no card left alone.
+       */
+      const grid: Element = strip!.querySelector("ul")!;
+      const columns: Array<number> = [
+        "grid-cols-",
+        "sm:grid-cols-",
+        "lg:grid-cols-",
+      ].map((prefix: string): number => {
+        const token: string | undefined = Array.from(grid.classList).find(
+          (name: string): boolean => {
+            return name.startsWith(prefix);
+          },
+        );
+        return Number((token || "").slice(prefix.length));
+      });
+      expect(columns).toEqual([2, 3, 6]);
+      for (const perRow of columns) {
+        expect([perRow, cards.length % perRow]).toEqual([perRow, 0]);
+      }
     });
 
     test("shows nothing in the strip's place when it is rendered without the guides", async () => {

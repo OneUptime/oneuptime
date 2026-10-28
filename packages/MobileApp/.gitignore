@@ -40,6 +40,11 @@ yarn-error.*
 /ios
 /android
 
+# Gradle output of the app's own native modules, built by the generated project
+/modules/*/android/build/
+/modules/*/android/.gradle/
+/modules/*/android/.cxx/
+
 # Browser UI verification artifacts (review screenshots live in docs/screenshots)
 /dist-ui/
 /test-results/

@@ -23,7 +23,11 @@ import { getPublishedGuides } from "./OpenTelemetryGuides";
  */
 
 export interface IndexCard extends GuideCard {
-  // Lower-case words the search box matches: name, language, search terms.
+  /*
+   * Lower-case words the search box matches: the name, the language and the
+   * other names people type for it ("dotnet", "c#"), and the guide's own
+   * search terms.
+   */
   search: string;
 }
 
@@ -45,8 +49,17 @@ export interface IntegrationsIndexContent {
   structuredData: Array<JSONObject>;
 }
 
-function searchWordsOf(guide: OpenTelemetryGuide, card: GuideCard): string {
-  return [card.name, card.languageTitle, ...guide.searchTerms]
+function searchWordsOf(
+  guide: OpenTelemetryGuide,
+  card: GuideCard,
+  group: OpenTelemetryGuideLanguageGroup,
+): string {
+  return [
+    card.name,
+    card.languageTitle,
+    ...(group.searchTerms || []),
+    ...guide.searchTerms,
+  ]
     .join(" ")
     .toLowerCase();
 }
@@ -71,7 +84,7 @@ export function getIntegrationsIndexContent(
       .map(({ guide }: { guide: OpenTelemetryGuide }): IndexCard => {
         const card: GuideCard = guideCard(guide.slug);
 
-        return { ...card, search: searchWordsOf(guide, card) };
+        return { ...card, search: searchWordsOf(guide, card, group) };
       });
 
     if (cards.length === 0) {

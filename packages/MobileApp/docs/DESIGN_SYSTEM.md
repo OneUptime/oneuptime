@@ -148,3 +148,44 @@ The rows are checked in order; the first that fits the window wins.
   and iOS and Android then break a one-word label across lines; browsers
   never do, so the web suite cannot catch it. Stack the buttons instead (see
   `RESPONSE_ACTION_MIN_WIDTH`).
+
+### Hinge and posture
+
+Where the platform reports how the window folds - the Android module
+`modules/window-posture`, or a browser's viewport segments - the posture
+(`src/layout/windowPosture.ts`) refines the rules above. Where nothing
+reports one, the posture is `unknown` and the layout is exactly the table
+above: never assume a fold the platform did not report.
+
+| Posture                                                                                             | Two-pane stacks                                                                              | Navigation           |
+| --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------- |
+| Half open on a table (a fold running side to side splits the window, each half at least 280 points) | Stacked: the detail above the fold, the list below it, a 24-point band clear around the fold | Bar along the bottom |
+| Half open like a book (a fold running top to bottom splits the window)                              | Side by side, meeting on the fold wherever it is; the divider is fixed                       | As the table above   |
+| Flat, or no fold                                                                                    | Side by side; the divider has a handle the reader can drag                                   | As the table above   |
+| Unknown                                                                                             | As the table above; no handle                                                                | As the table above   |
+
+- **The line between stacked panes runs on the fold**, along the middle of
+  the band (`pane-fold-line`), as the divider runs along a book's fold: the
+  crease and the line are one, with the same room above and below it.
+- **Panes know their edges.** A stacked pane says so (`usePane().arrangement`
+  is `"stacked"`), carries its own `height`, and hands its contents only the
+  window insets it touches: the detail above the fold has no bottom inset and
+  no tab bar to clear (`useScreenPadding()` reads `reachesBottom`), the list
+  below it has no top inset. Decide "short" from the pane's height
+  (`getHeightClass(usePane().height)`), not the window's: below a tabletop fold
+  the Inbox gives its title's height to the list on a tall window.
+- **Below a tabletop fold a list opens at its first row**, its header (view
+  switch, search, filters) a short scroll up. Wrap the list's header in a view
+  with `onLayout={scroll.onHeaderLayout}` and pass the list's top padding as
+  `headerTop` to `usePaneScrollRestoration()`; the list stays at its first row
+  while the header settles, until the reader scrolls it. Draw what stands in
+  for the rows - the skeleton while they load, the error with Retry - through
+  `ListStatusScroll` (`src/components`), which opens past the header the same
+  way, so the reader sees it at once.
+- **The divider's handle** (`src/navigation/PaneDivider.tsx`) sits in the
+  middle of the divider, so it never takes a swipe meant for a card. Dragging
+  moves only the pane around the list; the layout takes the new width when the
+  reader lets go (`useListPaneWidthControl()`), and it is remembered
+  (`src/storage/listPaneWidth.ts`). Let go within 16 points of the layout's own
+  position, the divider settles on it; a double tap, or a screen reader's,
+  puts it back.
