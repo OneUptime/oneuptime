@@ -93,27 +93,6 @@ const SHARED_TEXT_LENGTH: number = 60;
 const GUIDE_LINK: RegExp =
   /^\/integrations\/opentelemetry\/([a-z0-9-]+)(?:#.*)?$/;
 const DOCS_LINK: RegExp = /^\/docs\//;
-/*
- * The JavaScript and TypeScript guides were written before their code was
- * held to the page's width: these are the lines each still has that run
- * past it, so a laptop scrolls the block sideways. The counts only go down
- * (a guide with fewer fails until its count is lowered), and every guide
- * not named here has none.
- */
-const LINES_PAST_THE_COLUMN_TO_FIX: Record<string, number> = {
-  nodejs: 1,
-  express: 1,
-  nestjs: 3,
-  nextjs: 1,
-  fastify: 1,
-  koa: 1,
-  hapi: 1,
-  bun: 8,
-  deno: 1,
-  browser: 14,
-  react: 15,
-  angular: 16,
-};
 
 const DOCKERFILE_INSTRUCTION: RegExp =
   /^(FROM|WORKDIR|COPY|ADD|RUN|ENV|EXPOSE|CMD|USER|ARG|ENTRYPOINT|LABEL) /;
@@ -904,13 +883,7 @@ describe.each(BY_SLUG)(
         },
       );
 
-      expect([guide.slug, lines.length]).toEqual([
-        guide.slug,
-        LINES_PAST_THE_COLUMN_TO_FIX[guide.slug] || 0,
-      ]);
-      if (!LINES_PAST_THE_COLUMN_TO_FIX[guide.slug]) {
-        expect(lines).toEqual([]);
-      }
+      expect([guide.slug, lines]).toEqual([guide.slug, []]);
     });
 
     test("pins every OpenTelemetry package it installs, at the version that ran", () => {

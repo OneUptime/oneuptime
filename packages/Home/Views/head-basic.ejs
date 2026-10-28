@@ -39,8 +39,35 @@
 
 <!-- Font and form element styles -->
 <style>
+    /*
+     * Until Geist has loaded (display=swap), Arial drawn at Geist's size and
+     * line height, so the text keeps its place when Geist swaps in and the
+     * page does not shift. The overrides are Geist's metrics over Arial's
+     * (Liberation Sans, Linux's stand-in, has Arial's), as next/font
+     * computes them; the bold face is matched against Arial Bold.
+     */
+    @font-face {
+        font-family: "Geist Fallback";
+        font-weight: 100 500;
+        src: local("Arial"), local("ArialMT"), local("Liberation Sans"), local("LiberationSans");
+        size-adjust: 105.52%;
+        ascent-override: 95.25%;
+        descent-override: 27.96%;
+        line-gap-override: 0%;
+    }
+
+    @font-face {
+        font-family: "Geist Fallback";
+        font-weight: 600 900;
+        src: local("Arial Bold"), local("Arial-BoldMT"), local("Liberation Sans Bold"), local("LiberationSans-Bold");
+        size-adjust: 104.04%;
+        ascent-override: 96.60%;
+        descent-override: 28.36%;
+        line-gap-override: 0%;
+    }
+
     * {
-        font-family: Geist, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-family: Geist, "Geist Fallback", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
 
     input[type="datetime-local"]::-webkit-calendar-picker-indicator {

@@ -39,37 +39,37 @@
     "packageExports": {}
   },
   "angular": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Chrome 153.0.8010.12",
     "packages": {
-      "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-trace": "3.0.0",
-      "@opentelemetry/sdk-logs": "3.0.0",
-      "@opentelemetry/sdk-metrics": "3.0.0",
-      "@opentelemetry/core": "3.0.0",
-      "@opentelemetry/resources": "3.0.0",
-      "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
-      "@opentelemetry/exporter-logs-otlp-http": "0.300.0",
-      "@opentelemetry/exporter-metrics-otlp-http": "0.300.0",
-      "@opentelemetry/instrumentation": "0.300.0",
-      "@opentelemetry/auto-instrumentations-web": "0.69.0",
-      "@opentelemetry/opentelemetry-browser-detector": "0.300.0",
-      "web-vitals": "6.2.3",
-      "@angular/core": "22.2.3",
-      "@angular/common": "22.2.3",
-      "@angular/compiler": "22.2.3",
-      "@angular/platform-browser": "22.2.3",
-      "@angular/router": "22.2.3",
-      "rxjs": "7.8.2",
-      "tslib": "2.8.1",
       "@angular/build": "22.2.4",
       "@angular/cli": "22.2.4",
+      "@angular/common": "22.2.3",
+      "@angular/compiler": "22.2.3",
       "@angular/compiler-cli": "22.2.3",
-      "typescript": "6.0.3"
+      "@angular/core": "22.2.3",
+      "@angular/platform-browser": "22.2.3",
+      "@angular/router": "22.2.3",
+      "@opentelemetry/api": "1.10.0",
+      "@opentelemetry/auto-instrumentations-web": "0.69.0",
+      "@opentelemetry/core": "3.0.0",
+      "@opentelemetry/exporter-logs-otlp-http": "0.300.0",
+      "@opentelemetry/exporter-metrics-otlp-http": "0.300.0",
+      "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
+      "@opentelemetry/instrumentation": "0.300.0",
+      "@opentelemetry/opentelemetry-browser-detector": "0.300.0",
+      "@opentelemetry/resources": "3.0.0",
+      "@opentelemetry/sdk-logs": "3.0.0",
+      "@opentelemetry/sdk-metrics": "3.0.0",
+      "@opentelemetry/sdk-trace": "3.0.0",
+      "rxjs": "7.8.2",
+      "tslib": "2.8.1",
+      "typescript": "6.0.3",
+      "web-vitals": "6.2.3"
     },
     "framework": "Angular 22.2.3",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:cde639822473b3f491996659e67f46326069f8e0ca068e018f342a3cd7877af2",
+    "snippetDigest": "sha256:13ef3d7b0a256658e0e1ad146131184bc9c33b539a2c384bc0eec8f5615719ae",
     "observed": {
       "spans": [
         "POST",
@@ -1550,28 +1550,28 @@
     "packageExports": {}
   },
   "browser": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Chrome 153.0.8010.12",
     "packages": {
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-trace": "3.0.0",
-      "@opentelemetry/sdk-logs": "3.0.0",
-      "@opentelemetry/sdk-metrics": "3.0.0",
+      "@opentelemetry/auto-instrumentations-web": "0.69.0",
       "@opentelemetry/core": "3.0.0",
-      "@opentelemetry/resources": "3.0.0",
-      "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
       "@opentelemetry/exporter-logs-otlp-http": "0.300.0",
       "@opentelemetry/exporter-metrics-otlp-http": "0.300.0",
+      "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
       "@opentelemetry/instrumentation": "0.300.0",
-      "@opentelemetry/auto-instrumentations-web": "0.69.0",
       "@opentelemetry/opentelemetry-browser-detector": "0.300.0",
-      "web-vitals": "6.2.3",
+      "@opentelemetry/resources": "3.0.0",
+      "@opentelemetry/sdk-logs": "3.0.0",
+      "@opentelemetry/sdk-metrics": "3.0.0",
+      "@opentelemetry/sdk-trace": "3.0.0",
       "esbuild": "0.28.2",
-      "typescript": "7.0.2"
+      "typescript": "7.0.2",
+      "web-vitals": "6.2.3"
     },
     "framework": "Chromium",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:e2398be1a0aede3d077639e2c4df61da69739cb5e08d08a02363c4944c897a29",
+    "snippetDigest": "sha256:ad4937dd19ae7d508289b8ec05b540bcd578c29d9e6f68b6d054195d89b4c4b3",
     "observed": {
       "spans": [
         "GET",
@@ -1585,17 +1585,13 @@
         "window.error"
       ],
       "metrics": [
-        "v8js.gc.duration",
         "web_vital.cls",
         "web_vital.fcp",
         "web_vital.inp",
         "web_vital.lcp",
         "web_vital.ttfb"
       ],
-      "logs": [
-        "[\"DiagConsoleLogger\",\"DiagLogLevel\",\"INVALID_SPANID\",\"INVALID_SPAN_CONTEXT\",\"INVALID_TRACEID\",\"ProxyTracer\",\"ProxyTracer",
-        "cart refreshed"
-      ]
+      "logs": ["cart refreshed"]
     },
     "packageExports": {
       "@opentelemetry/api": [
@@ -1942,17 +1938,17 @@
     }
   },
   "bun": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Bun 1.4.4",
     "packages": {
       "@opentelemetry/api": "1.10.0",
       "@opentelemetry/sdk-node": "0.300.0",
-      "typescript": "7.0.2",
-      "@types/bun": "1.4.4"
+      "@types/bun": "1.4.4",
+      "typescript": "7.0.2"
     },
     "framework": "Bun",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:e4366816711a4aa18f9c3b720b9ae5faea04fd98e7357519818162775672c410",
+    "snippetDigest": "sha256:012361f77674bef18368c98bf4768c9a690f09dff1c2677eddd34dd8d8ce59d7",
     "observed": {
       "spans": ["GET", "GET /products/:id", "POST /orders", "orders.place"],
       "metrics": ["http.server.request.duration", "orders.placed"],
@@ -2114,14 +2110,14 @@
     "packageExports": {}
   },
   "deno": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Deno 2.9.8",
     "packages": {
       "@opentelemetry/api": "1.10.0"
     },
     "framework": "Deno",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:8c9e787eace43dea714b53f08f19dcc9d599ee193a5a8d6a283ce77b6d980c12",
+    "snippetDigest": "sha256:4b46b09273b7611e3a060f8cc20c484163de41f38398395d1c4acbf0264eda59",
     "observed": {
       "spans": ["GET", "GET /products/:id", "POST /orders", "orders.place"],
       "metrics": [
@@ -2588,19 +2584,19 @@
     "packageExports": {}
   },
   "express": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/auto-instrumentations-node": "0.82.0",
       "@opentelemetry/instrumentation": "0.300.0",
+      "@opentelemetry/sdk-node": "0.300.0",
       "express": "5.3.0",
       "pino": "10.4.0"
     },
     "framework": "Express 5.3.0",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:b3bbbc0195a876849d5f68d69efaba3dbb5e88e04d188947bb00cdd98c088f84",
+    "snippetDigest": "sha256:e59f360392cb4b0bf28cb4427d117f093ebfcd3a19a6d45ab24f532d7b47c0fa",
     "observed": {
       "spans": [
         "GET /boom",
@@ -2860,19 +2856,19 @@
     }
   },
   "fastify": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
+      "@fastify/otel": "0.21.4",
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/auto-instrumentations-node": "0.82.0",
       "@opentelemetry/instrumentation": "0.300.0",
-      "@fastify/otel": "0.21.4",
+      "@opentelemetry/sdk-node": "0.300.0",
       "fastify": "5.12.7"
     },
     "framework": "Fastify 5.12.7",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:f20c6d9a33c4d6333fa3c97be7795c9ee0543526835649ed422364aea1aac404",
+    "snippetDigest": "sha256:4a4198cb68242dc461c18d069984a1924cd0287559c8eb79fd8b4e1c3cc739f3",
     "observed": {
       "spans": [
         "GET /stock/:sku",
@@ -3490,19 +3486,19 @@
     "packageExports": {}
   },
   "hapi": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
+      "@hapi/hapi": "21.4.11",
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/auto-instrumentations-node": "0.82.0",
       "@opentelemetry/instrumentation": "0.300.0",
-      "hapi-pino": "13.0.0",
-      "@hapi/hapi": "21.4.11"
+      "@opentelemetry/sdk-node": "0.300.0",
+      "hapi-pino": "13.0.0"
     },
     "framework": "hapi 21.4.11",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:ab072e8dfd83ec64b07aa164a1789a90dd56ecaebcf70178d1708edc6102f53c",
+    "snippetDigest": "sha256:779574db075f769406dd80ea83f319a83919c729ce180c60637e90a2c9e13281",
     "observed": {
       "spans": [
         "GET /rooms/{id}",
@@ -3533,8 +3529,8 @@
       ],
       "logs": [
         "Room inventory unavailable",
-        "[response] get /rooms/42 200 (3ms)",
-        "[response] post /bookings 201 (5ms)",
+        "[response] get /rooms/42 200 (2ms)",
+        "[response] post /bookings 201 (2ms)",
         "[response] post /bookings 500 (4ms)",
         "loading room",
         "server started"
@@ -3884,22 +3880,22 @@
     }
   },
   "koa": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
+      "@koa/bodyparser": "6.1.0",
+      "@koa/router": "15.7.0",
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/auto-instrumentations-node": "0.82.0",
       "@opentelemetry/instrumentation": "0.300.0",
+      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/winston-transport": "0.35.0",
       "koa": "3.2.1",
-      "@koa/router": "15.7.0",
-      "@koa/bodyparser": "6.1.0",
       "winston": "3.19.0"
     },
     "framework": "Koa 3.2.1",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:92f618732832a9a4b278609f3df91980813f1fdbbb6feccea512469d53844cc4",
+    "snippetDigest": "sha256:30403dbbe32160940219fc52c74a564fb69e42b6fb833258829652ad5dcfac21",
     "observed": {
       "spans": [
         "GET /products/:id",
@@ -4457,26 +4453,26 @@
     "packageExports": {}
   },
   "nestjs": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
-      "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
-      "@opentelemetry/auto-instrumentations-node": "0.82.0",
-      "@opentelemetry/instrumentation": "0.300.0",
-      "nestjs-pino": "5.3.1",
-      "pino-http": "11.0.0",
-      "pino": "10.4.0",
       "@nestjs/common": "12.3.2",
       "@nestjs/core": "12.3.2",
       "@nestjs/platform-express": "12.3.2",
+      "@opentelemetry/api": "1.10.0",
+      "@opentelemetry/auto-instrumentations-node": "0.82.0",
+      "@opentelemetry/instrumentation": "0.300.0",
+      "@opentelemetry/sdk-node": "0.300.0",
+      "nestjs-pino": "5.3.1",
+      "pino": "10.4.0",
+      "pino-http": "11.0.0",
       "reflect-metadata": "0.2.2",
       "rxjs": "7.8.2",
       "typescript": "6.0.3"
     },
     "framework": "NestJS 12.3.2",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:37250ffb838d7cf9c7173337fb883b65a2a9765eea287b9379becee24fc32f99",
+    "snippetDigest": "sha256:81d458c8b56a85d0433ae188603aced9a2b42a383082df6fba30654e01772159",
     "observed": {
       "spans": [
         "GET /orders/:id/invoice",
@@ -4931,23 +4927,23 @@
     }
   },
   "nextjs": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Node.js 24.22.1",
     "packages": {
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/auto-instrumentations-node": "0.82.0",
+      "@opentelemetry/sdk-node": "0.300.0",
+      "@types/node": "24.19.2",
+      "@types/react": "19.3.0",
       "next": "16.4.3",
+      "pino": "10.4.0",
       "react": "19.3.1",
       "react-dom": "19.3.1",
-      "pino": "10.4.0",
-      "typescript": "6.0.3",
-      "@types/react": "19.3.0",
-      "@types/node": "24.19.2"
+      "typescript": "6.0.3"
     },
     "framework": "Next.js 16.4.3",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:1d4b3eafdcee17c68ae0ca13bf5ee1d42683d90ba03d7f76ab37f84ef5b0cb98",
+    "snippetDigest": "sha256:56756c2a082abd44e24fcf4e2b43ad1ea95f37be43b027067e3234b644667f32",
     "observed": {
       "spans": [
         "GET",
@@ -5199,14 +5195,14 @@
     "runtime": "Node.js 24.22.1",
     "packages": {
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-node": "0.300.0",
       "@opentelemetry/auto-instrumentations-node": "0.82.0",
+      "@opentelemetry/core": "3.0.0",
       "@opentelemetry/instrumentation": "0.300.0",
-      "@opentelemetry/core": "3.0.0"
+      "@opentelemetry/sdk-node": "0.300.0"
     },
     "framework": "Node.js",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:b7d4db0b62ff9cad059d38e8de245aa34119815885be6608ff3df4a0d819c0c7",
+    "snippetDigest": "sha256:913f3fa9e116da26802e55984019016d4882d15fa686d1dccedbf6091f7f80a1",
     "observed": {
       "spans": ["GET /invoices/:id", "invoice.render"],
       "metrics": [
@@ -5827,33 +5823,33 @@
     }
   },
   "react": {
-    "checkedOn": "2026-10-27",
+    "checkedOn": "2026-10-28",
     "runtime": "Chrome 153.0.8010.12",
     "packages": {
       "@opentelemetry/api": "1.10.0",
-      "@opentelemetry/sdk-trace": "3.0.0",
-      "@opentelemetry/sdk-logs": "3.0.0",
-      "@opentelemetry/sdk-metrics": "3.0.0",
+      "@opentelemetry/auto-instrumentations-web": "0.69.0",
       "@opentelemetry/core": "3.0.0",
-      "@opentelemetry/resources": "3.0.0",
-      "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
       "@opentelemetry/exporter-logs-otlp-http": "0.300.0",
       "@opentelemetry/exporter-metrics-otlp-http": "0.300.0",
+      "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
       "@opentelemetry/instrumentation": "0.300.0",
-      "@opentelemetry/auto-instrumentations-web": "0.69.0",
       "@opentelemetry/opentelemetry-browser-detector": "0.300.0",
-      "web-vitals": "6.2.3",
-      "react": "19.3.1",
-      "react-dom": "19.3.1",
-      "react-router": "8.5.1",
+      "@opentelemetry/resources": "3.0.0",
+      "@opentelemetry/sdk-logs": "3.0.0",
+      "@opentelemetry/sdk-metrics": "3.0.0",
+      "@opentelemetry/sdk-trace": "3.0.0",
       "@types/react": "19.3.0",
       "@types/react-dom": "19.3.0",
       "esbuild": "0.28.2",
-      "typescript": "7.0.2"
+      "react": "19.3.1",
+      "react-dom": "19.3.1",
+      "react-router": "8.5.1",
+      "typescript": "7.0.2",
+      "web-vitals": "6.2.3"
     },
     "framework": "React 19.3.1",
     "receiver": "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header",
-    "snippetDigest": "sha256:bc5a5f29e9cab92af93ce2bccb62b8fc24dc5e0ce9e7e352ed8f17ad4c328041",
+    "snippetDigest": "sha256:3f23c78202f09af7a0d8b26fea4d78599e9266be9f8227315525450604d04fec",
     "observed": {
       "spans": [
         "POST",

@@ -214,6 +214,14 @@ describe("the language groups", () => {
       "ts",
     ]);
     expect(termsOf(OpenTelemetryGuideLanguage.Go)).toEqual(["golang"]);
+    // Ruby on Rails is RoR to many; Elixir runs on Erlang's VM, the BEAM.
+    expect(termsOf(OpenTelemetryGuideLanguage.Ruby)).toEqual(["ror"]);
+    expect(termsOf(OpenTelemetryGuideLanguage.Php)).toEqual([]);
+    expect(termsOf(OpenTelemetryGuideLanguage.Rust)).toEqual(["rustlang"]);
+    expect(termsOf(OpenTelemetryGuideLanguage.Elixir)).toEqual([
+      "erlang",
+      "beam",
+    ]);
 
     for (const group of OPEN_TELEMETRY_GUIDE_LANGUAGE_GROUPS) {
       const titleWords: Array<string> = group.title.toLowerCase().split(" ");
@@ -321,12 +329,17 @@ describe("the guides the Dashboard's telemetry guide opens", () => {
     ]);
   });
 
-  test("are each language's own guide and then its frameworks, for Python, Java and .NET", () => {
+  test("are each language's own guide and then its frameworks, for Python, Java, .NET, Go, Ruby, PHP, Rust and Elixir", () => {
     for (const [key, own, frameworks] of [
       ["python", "python", ["django", "flask", "fastapi", "celery"]],
       // Kotlin runs on the JVM: Ktor is listed with Java's frameworks.
       ["java", "java", ["spring-boot", "quarkus", "micronaut", "ktor"]],
       ["dotnet", "dotnet", ["aspnet-core", "dotnet-worker-service"]],
+      ["go", "go", ["gin", "echo", "fiber", "grpc"]],
+      ["ruby", "ruby", ["rails", "sinatra", "sidekiq"]],
+      ["php", "php", ["laravel", "symfony", "slim"]],
+      ["rust", "rust", ["axum", "actix-web"]],
+      ["elixir", "elixir", ["phoenix"]],
     ] as Array<[TelemetryGuideLanguageKey, string, Array<string>]>) {
       const guides: TelemetryGuideLanguageGuides | undefined =
         getGuidesForTelemetryGuideLanguage(key);
