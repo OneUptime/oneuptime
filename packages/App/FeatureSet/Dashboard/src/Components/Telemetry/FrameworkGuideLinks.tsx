@@ -11,6 +11,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { isProductRenamed } from "Common/UI/Utils/ProductBranding";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 export interface ComponentProps {
   language: TelemetryGuideLanguageKey;
@@ -74,7 +75,8 @@ const FrameworkGuideLinks: FunctionComponent<ComponentProps> = (
                   aria-describedby={newTabNoteId}
                   className="rounded font-medium text-indigo-600 hover:text-indigo-500 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
-                  {guide.name}
+                  {/* ".NET" stays ".NET" on a right-to-left page. */}
+                  <IsolatedText text={guide.name} />
                 </a>
                 {index < links.length - 1 && (
                   <span className="px-1.5 text-gray-300" aria-hidden="true">

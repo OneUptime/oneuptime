@@ -405,6 +405,7 @@ export const AspNetCoreGuide: OpenTelemetryGuide = {
       "`IncludeFormattedMessage` sends `Loading order 42` as the body; without it, the body is the template, `Loading order {OrderId}`, and the value only an attribute.",
       "A request's unhandled exception is also logged by Kestrel, as `An unhandled exception was thrown by the application`, with the request's trace ID and the exception's stack trace.",
       "`IncludeScopes = true` adds what `BeginScope` holds as attributes, beside request IDs every record already carries.",
+      "Logging with Serilog instead? Its OpenTelemetry sink sends to the same endpoint, with the same trace IDs: see [Serilog](/docs/telemetry/serilog).",
     ],
   },
 

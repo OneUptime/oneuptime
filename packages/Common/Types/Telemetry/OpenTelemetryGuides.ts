@@ -186,7 +186,9 @@ export interface OpenTelemetryGuideEntry {
    * Shown on the website's telemetry product pages (traces, logs, metrics,
    * exceptions, RUM), in their row of frameworks: the ones most people look
    * for, at most MAX_FEATURED_OPEN_TELEMETRY_GUIDES of them and at least one
-   * per language with a guide. The rest are a click away, on the index.
+   * per language with a guide, in full rows of six where the count allows
+   * (one row of six reads as a set; a seventh card alone on a second row
+   * reads as an afterthought). The rest are a click away, on the index.
    */
   isFeatured?: boolean | undefined;
 }
@@ -228,7 +230,6 @@ export const OPEN_TELEMETRY_GUIDES: ReadonlyArray<OpenTelemetryGuideEntry> = [
     kind: "framework",
     logo: ProviderLogo.NextJs,
     telemetryGuideLanguage: "node",
-    isFeatured: true,
   },
   {
     slug: "fastify",

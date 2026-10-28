@@ -352,10 +352,9 @@ describe("the guides the product pages feature", () => {
         },
       ),
     );
-    // One row per language at most, room left for the languages to come.
+    // One full row of six: a framework of every language with guides.
     expect(slugsOf(featured)).toEqual([
       "nodejs",
-      "nextjs",
       "react",
       "fastapi",
       "spring-boot",
@@ -370,6 +369,15 @@ describe("the guides the product pages feature", () => {
     expect(featured.length).toBeLessThanOrEqual(
       MAX_FEATURED_OPEN_TELEMETRY_GUIDES,
     );
+  });
+
+  test("fill whole rows at every width: six, or twelve", () => {
+    /*
+     * The strip (Home Views/Partials/integrations/framework-strip.ejs) sets
+     * two cards to a row on a phone, three on a tablet and six on a laptop:
+     * a multiple of six leaves no card alone on a row at any of them.
+     */
+    expect(featured.length % 6).toBe(0);
   });
 
   test("name at least one guide of every language that has guides", () => {

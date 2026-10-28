@@ -454,6 +454,7 @@ export const DotNetGuide: OpenTelemetryGuide = {
     snippets: [],
     notes: [
       "A record's structured values, such as `Count`, become attributes, and the template stays in `{OriginalFormat}`.",
+      "A program that logs through Serilog sends its events with Serilog's own OpenTelemetry sink: [Serilog](/docs/telemetry/serilog) sets it up.",
       "Records written outside an `Activity`, such as a startup line, carry no trace ID.",
       'Pass the exception first, as `logger.LogError(error, "Invoice sync failed")`, so the record carries its type, message and stack trace.',
     ],

@@ -9,7 +9,9 @@ import React, {
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestionKeyType";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -1240,6 +1242,7 @@ services:
 const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("node");
   const [selectedMethod, setSelectedMethod] = useState<IntegrationMethod>(
     props.telemetryType === "profiles" ? "alloy" : "opentelemetry",
@@ -1594,7 +1597,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     return (
       <div className="mb-6">
         <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-          Select Language
+          {translator.translateText("Select Language")}
         </label>
         <div className="flex flex-wrap gap-1.5">
           {availableLanguages.map((lang: LanguageOption) => {
@@ -1623,7 +1626,11 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   isBare={true}
                   isDecorative={true}
                 />
-                {lang.shortLabel}
+                {/*
+                  A name read the way it is written on a right-to-left page
+                  too: ".NET" and "C++", not "NET." and "++C".
+                */}
+                <IsolatedText text={lang.shortLabel} />
               </button>
             );
           })}
@@ -1643,7 +1650,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
     return (
       <div className="mb-6">
         <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-          Integration Method
+          {translator.translateText("Integration Method")}
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {integrationMethods.map((method: IntegrationOption) => {
