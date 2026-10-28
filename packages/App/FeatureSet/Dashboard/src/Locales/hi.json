@@ -13471,7 +13471,6 @@
   "No resources.": "No resources.",
   "No responders are assigned": "कोई प्रतिक्रियाकर्ता असाइन नहीं है",
   "No responders are attached to any on-call policy in this project yet.": "No responders are attached to any on-call policy in this project yet.",
-  "No responders assigned. No one will be notified at this level — edit this rule to add responders.": "कोई प्रतिक्रियाकर्ता असाइन नहीं है। इस स्तर पर किसी को सूचित नहीं किया जाएगा - प्रतिक्रियाकर्ता जोड़ने के लिए यह नियम संपादित करें।",
   "No responders match these filters.": "No responders match these filters.",
   "No restrictions has been applied to this permission.": "No restrictions has been applied to this permission.",
   "No result yet": "No result yet",
@@ -23271,8 +23270,6 @@
   "{{label}}: {{count}}. Activate to filter the list below by this.": "{{label}}: {{count}}. Activate to filter the list below by this.",
   "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.": "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.",
   "{{latency}} ms": "{{latency}} ms",
-  "{{levels}} along the way have no responders and will notify no one when reached.": "रास्ते के {{levels}} में कोई प्रतिक्रियाकर्ता नहीं है और पहुँचने पर वे किसी को सूचित नहीं करेंगे।",
-  "{{levels}} along the way have no responders and will notify no one when reached._one": "रास्ते के {{levels}} में कोई प्रतिक्रियाकर्ता नहीं है और पहुँचने पर वह किसी को सूचित नहीं करेगा।",
   "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now.": "{{levels}} में प्रतिक्रियाकर्ता असाइन हैं, पर हर एक ऐसी ऑन-कॉल अनुसूची है जिसमें अभी कोई ऑन-कॉल नहीं — इसलिए अभी पहुँचने पर भी वे किसी को सूचित नहीं करेंगे।",
   "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now._one": "{{levels}} में प्रतिक्रियाकर्ता असाइन हैं, पर हर एक ऐसी ऑन-कॉल अनुसूची है जिसमें अभी कोई ऑन-कॉल नहीं — इसलिए अभी पहुँचने पर भी वह किसी को सूचित नहीं करेगा।",
   "{{metricDescription}} Charted for this queue only.": "{{metricDescription}} Charted for this queue only.",
@@ -36788,5 +36785,13 @@
   "Evidence File ID": "साक्ष्य फ़ाइल ID",
   "Pick a person to do {{title}}. They are notified.": "{{title}} करने के लिए कोई व्यक्ति चुनें। उन्हें सूचित किया जाता है।",
   "Put any other kind of file, or several files, in a .zip.": "किसी अन्य प्रकार की फ़ाइल, या कई फ़ाइलें, एक .zip में रखें।",
-  "Upload a file": "फ़ाइल अपलोड करें"
+  "Upload a file": "फ़ाइल अपलोड करें",
+  "Moved on at once": "बिना प्रतीक्षा आगे बढ़ा",
+  "No responders assigned. This level is skipped without waiting — edit this rule to add responders.": "कोई प्रतिक्रियाकर्ता असाइन नहीं है। यह स्तर बिना प्रतीक्षा किए छोड़ दिया जाता है - प्रतिक्रियाकर्ता जोड़ने के लिए यह नियम संपादित करें।",
+  "Nobody at this level could be paged": "इस स्तर पर किसी को सूचित नहीं किया जा सका",
+  "Nobody to page here, so the next level is paged at once": "यहाँ सूचित करने के लिए कोई नहीं है, इसलिए अगले स्तर को तुरंत सूचित किया जाता है",
+  "Skipped at once": "तुरंत छोड़ा गया",
+  "This level has no responders": "इस स्तर पर कोई प्रतिक्रियाकर्ता नहीं है",
+  "{{levels}} along the way have no responders, so they are skipped without waiting.": "रास्ते के {{levels}} में कोई प्रतिक्रियाकर्ता नहीं है, इसलिए उन्हें बिना प्रतीक्षा किए छोड़ दिया जाता है।",
+  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "रास्ते के {{levels}} में कोई प्रतिक्रियाकर्ता नहीं है, इसलिए उसे बिना प्रतीक्षा किए छोड़ दिया जाता है।"
 }

@@ -194,20 +194,8 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
         }),
       ]);
 
-      /*
-       * Time from trigger until the final level is engaged: the sum of the wait
-       * times of every level except the last (the last level's wait governs the
-       * repeat, not another level).
-       */
       const orderedRules: Array<OnCallDutyPolicyEscalationRule> =
         rulesResult.data;
-      let timeToFinalLevelMinutes: number = 0;
-      for (let i: number = 0; i < orderedRules.length - 1; i++) {
-        timeToFinalLevelMinutes += Math.max(
-          0,
-          orderedRules[i]!.escalateAfterInMinutes || 0,
-        );
-      }
 
       /*
        * Distinct responders per type, plus the set of rules that have at least
@@ -283,6 +271,24 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
           return !rulesWithResponders.has(rule.id?.toString() || "");
         },
       ).length;
+
+      /*
+       * Time from trigger until the final level is engaged: the sum of the wait
+       * times of every level except the last (the last level's wait governs the
+       * repeat, not another level). A level with no responders pages nobody,
+       * and a run passes it at once, its wait never waited (OnCallEmptyLevel).
+       */
+      let timeToFinalLevelMinutes: number = 0;
+      for (let i: number = 0; i < orderedRules.length - 1; i++) {
+        if (!rulesWithResponders.has(orderedRules[i]!.id?.toString() || "")) {
+          continue;
+        }
+
+        timeToFinalLevelMinutes += Math.max(
+          0,
+          orderedRules[i]!.escalateAfterInMinutes || 0,
+        );
+      }
 
       /*
        * Levels that DO have responders assigned but would still page nobody
@@ -626,7 +632,10 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
                 })}
             </div>
             {overview.levelsWithNoResponders > 0 ? (
-              <div className="mt-4 flex items-start gap-2 border-t border-amber-200/70 pt-3 text-xs leading-relaxed text-amber-700">
+              <div
+                data-testid="policy-summary-levels-skipped"
+                className="mt-4 flex items-start gap-2 border-t border-amber-200/70 pt-3 text-xs leading-relaxed text-amber-700"
+              >
                 <Icon
                   icon={IconProp.Alert}
                   className="mt-px h-3.5 w-3.5 flex-shrink-0 text-amber-500"
@@ -634,9 +643,9 @@ const OnCallPolicySummary: FunctionComponent<ComponentProps> = (
                 <span>
                   <TranslatedSentence
                     template={{
-                      one: "{{levels}} along the way has no responders and will notify no one when reached.",
+                      one: "{{levels}} along the way has no responders, so it is skipped without waiting.",
                       other:
-                        "{{levels}} along the way have no responders and will notify no one when reached.",
+                        "{{levels}} along the way have no responders, so they are skipped without waiting.",
                     }}
                     count={overview.levelsWithNoResponders}
                     slots={{

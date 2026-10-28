@@ -13471,7 +13471,6 @@
   "No resources.": "No resources.",
   "No responders are assigned": "Inga mottagare har tilldelats",
   "No responders are attached to any on-call policy in this project yet.": "No responders are attached to any on-call policy in this project yet.",
-  "No responders assigned. No one will be notified at this level — edit this rule to add responders.": "Inga mottagare tilldelade. Ingen aviseras på den här nivån – redigera regeln för att lägga till mottagare.",
   "No responders match these filters.": "No responders match these filters.",
   "No restrictions has been applied to this permission.": "No restrictions has been applied to this permission.",
   "No result yet": "No result yet",
@@ -23271,8 +23270,6 @@
   "{{label}}: {{count}}. Activate to filter the list below by this.": "{{label}}: {{count}}. Activate to filter the list below by this.",
   "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.": "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.",
   "{{latency}} ms": "{{latency}} ms",
-  "{{levels}} along the way have no responders and will notify no one when reached.": "{{levels}} längs vägen har inga mottagare och aviserar ingen när de nås.",
-  "{{levels}} along the way have no responders and will notify no one when reached._one": "{{levels}} längs vägen har inga mottagare och aviserar ingen när den nås.",
   "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now.": "{{levels}} har mottagare tilldelade, men var och en är ett jourschema där ingen har jour just nu – så de skulle ändå inte avisera någon om de nåddes nu.",
   "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now._one": "{{levels}} har mottagare tilldelade, men var och en är ett jourschema där ingen har jour just nu – så den skulle ändå inte avisera någon om den nåddes nu.",
   "{{metricDescription}} Charted for this queue only.": "{{metricDescription}} Charted for this queue only.",
@@ -36788,5 +36785,13 @@
   "Evidence File ID": "Bevisfilens id",
   "Pick a person to do {{title}}. They are notified.": "Välj en person som ska göra {{title}}. Personen får ett meddelande.",
   "Put any other kind of file, or several files, in a .zip.": "Lägg andra filtyper, eller flera filer, i en .zip.",
-  "Upload a file": "Ladda upp en fil"
+  "Upload a file": "Ladda upp en fil",
+  "Moved on at once": "Gick vidare direkt",
+  "No responders assigned. This level is skipped without waiting — edit this rule to add responders.": "Inga mottagare tilldelade. Den här nivån hoppas över utan att vänta – redigera regeln för att lägga till mottagare.",
+  "Nobody at this level could be paged": "Ingen på den här nivån kunde aviseras",
+  "Nobody to page here, so the next level is paged at once": "Ingen att avisera här, så nästa nivå aviseras direkt",
+  "Skipped at once": "Hoppades över direkt",
+  "This level has no responders": "Den här nivån har inga mottagare",
+  "{{levels}} along the way have no responders, so they are skipped without waiting.": "{{levels}} längs vägen har inga mottagare och hoppas därför över utan att vänta.",
+  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} längs vägen har inga mottagare och hoppas därför över utan att vänta."
 }

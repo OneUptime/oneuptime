@@ -22,7 +22,7 @@ import {
 import useOnCallReadiness, {
   OnCallReadinessState,
 } from "../Readiness/useOnCallReadiness";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import AcknowledgementTimeoutPolicySentence from "../AcknowledgementTimeout/AcknowledgementTimeoutPolicySentence";
@@ -157,6 +157,20 @@ const responderIconColor: (type: ResponderType) => string = (
   return "text-gray-500";
 };
 
+/*
+ * A level with no responders pages nobody: a run passes it at once, without
+ * waiting out its wait (OnCallEmptyLevel). A level whose schedule has nobody
+ * on call right now is not one: somebody may be by the time it is reached.
+ */
+export const isSkippedLevel: (level: EscalationLevelSummary) => boolean = (
+  level: EscalationLevelSummary,
+): boolean => {
+  return level.responders.length === 0;
+};
+
+// What a skipped level shows where the others show when they are paged.
+export const SKIPPED_LEVEL_TIMING: string = translationKey("Skipped at once");
+
 const EscalationSummary: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -166,13 +180,17 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
   /*
    * Cumulative minutes from the moment the incident triggers to each level.
    * Level 1 fires immediately; level i fires after the sum of the wait times of
-   * all preceding levels.
+   * all preceding levels - except a level with no responders, which pages
+   * nobody and so is passed at once, its wait never waited
+   * (OnCallEmptyLevel).
    */
   const cumulativeOffsets: Array<number> = [];
   let runningTotal: number = 0;
   for (let i: number = 0; i < levels.length; i++) {
     cumulativeOffsets.push(runningTotal);
-    runningTotal += Math.max(0, levels[i]!.escalateAfterInMinutes || 0);
+    runningTotal += isSkippedLevel(levels[i]!)
+      ? 0
+      : Math.max(0, levels[i]!.escalateAfterInMinutes || 0);
   }
   // Time from trigger until the final level is engaged.
   const timeToFinalLevel: number =
@@ -450,8 +468,10 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
           <ol className="mt-2 space-y-0">
             {levels.map((level: EscalationLevelSummary, index: number) => {
               const offset: number = cumulativeOffsets[index] || 0;
-              const timingLabel: string =
-                offset <= 0
+              const isSkipped: boolean = isSkippedLevel(level);
+              const timingLabel: string = isSkipped
+                ? translator.translateText(SKIPPED_LEVEL_TIMING)
+                : offset <= 0
                   ? translator.translateText("Immediately") || "Immediately"
                   : translator.translateTemplate("After {{duration}}", {
                       duration: formatDuration(offset, translator),
@@ -471,9 +491,16 @@ const EscalationSummary: FunctionComponent<ComponentProps> = (
                         <span className="text-sm font-semibold text-gray-900">
                           {level.name}
                         </span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-500 ring-1 ring-inset ring-gray-200">
+                        <span
+                          data-testid={
+                            isSkipped
+                              ? "escalation-summary-level-skipped"
+                              : "escalation-summary-level-timing"
+                          }
+                          className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-[11px] font-medium text-gray-500 ring-1 ring-inset ring-gray-200"
+                        >
                           <Icon
-                            icon={IconProp.Clock}
+                            icon={isSkipped ? IconProp.Forward : IconProp.Clock}
                             className="h-2.5 w-2.5 text-gray-400"
                           />
                           {timingLabel}

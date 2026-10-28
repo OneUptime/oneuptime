@@ -7,6 +7,10 @@ import ObjectID from "Common/Types/ObjectID";
 import IconProp from "Common/Types/Icon/IconProp";
 import OnCallDutyExecutionLogTimelineStatus from "Common/Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import { isOnCallDirectPage } from "Common/Types/OnCallDutyPolicy/OnCallDirectPage";
+import {
+  OnCallEmptyLevelLine,
+  readOnCallEmptyLevelLine,
+} from "Common/Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -55,6 +59,23 @@ export const NEXT_IN_ROTATION_LABEL: string =
 export const NOBODY_NEXT_IN_ROTATION_LABEL: string = translationKey(
   "Nobody was next in the rotation",
 );
+
+/*
+ * A level that paged nobody writes a line of its own, and the run moves on
+ * from it at once rather than waiting out its wait (OnCallEmptyLevel). Its
+ * step names nobody: it says why the level paged nobody - it has no
+ * responders, or nobody it names could be paged (their own steps above say
+ * why) - and that the policy did not wait. A line from before levels were
+ * passed at once says only that nobody was paged: that run waited.
+ */
+export const LEVEL_HAS_NO_RESPONDERS_LABEL: string = translationKey(
+  "This level has no responders",
+);
+export const LEVEL_PAGED_NOBODY_LABEL: string = translationKey(
+  "Nobody at this level could be paged",
+);
+export const MOVED_ON_AT_ONCE_LABEL: string =
+  translationKey("Moved on at once");
 
 export interface ComponentProps {
   onCallPolicyExecutionLogId: ObjectID;
@@ -317,6 +338,57 @@ const ExecutionLogTimelineTable: FunctionComponent<ComponentProps> = (
                       )}
                     </span>
                   </div>
+                );
+              }
+
+              /*
+               * The level's own line: it paged nobody, and - since a level
+               * with nobody to page is passed at once - the policy moved
+               * on without waiting. "Moved on at once" sits under it, as
+               * "Next in rotation" sits under a schedule's name.
+               */
+              const emptyLevelLine: OnCallEmptyLevelLine | null =
+                readOnCallEmptyLevelLine(
+                  item["statusMessage"] as string | undefined,
+                );
+
+              if (emptyLevelLine) {
+                const movedOnAtOnce: boolean =
+                  emptyLevelLine !== OnCallEmptyLevelLine.Legacy;
+
+                return (
+                  <span
+                    data-testid="on-call-timeline-level-paged-nobody"
+                    className="flex min-w-0 flex-col items-start gap-1"
+                  >
+                    <span className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 ring-1 ring-inset ring-amber-200">
+                      <Icon
+                        icon={IconProp.Alert}
+                        className="h-3.5 w-3.5 flex-shrink-0"
+                      />
+                      <span className="min-w-0 whitespace-normal break-words">
+                        {translator.translateText(
+                          emptyLevelLine === OnCallEmptyLevelLine.NoResponders
+                            ? LEVEL_HAS_NO_RESPONDERS_LABEL
+                            : LEVEL_PAGED_NOBODY_LABEL,
+                        )}
+                      </span>
+                    </span>
+                    {movedOnAtOnce ? (
+                      <span
+                        data-testid="on-call-timeline-moved-on-at-once"
+                        className="inline-flex items-center gap-1 text-xs text-gray-500"
+                      >
+                        <Icon
+                          icon={IconProp.Forward}
+                          className="h-3 w-3 flex-shrink-0 text-gray-400"
+                        />
+                        {translator.translateText(MOVED_ON_AT_ONCE_LABEL)}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
+                  </span>
                 );
               }
 

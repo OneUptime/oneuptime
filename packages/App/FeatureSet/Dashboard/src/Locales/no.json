@@ -13471,7 +13471,6 @@
   "No resources.": "No resources.",
   "No responders are assigned": "Ingen mottakere er tildelt",
   "No responders are attached to any on-call policy in this project yet.": "No responders are attached to any on-call policy in this project yet.",
-  "No responders assigned. No one will be notified at this level — edit this rule to add responders.": "Ingen mottakere tildelt. Ingen varsles på dette nivået – rediger regelen for å legge til mottakere.",
   "No responders match these filters.": "No responders match these filters.",
   "No restrictions has been applied to this permission.": "No restrictions has been applied to this permission.",
   "No result yet": "No result yet",
@@ -23271,8 +23270,6 @@
   "{{label}}: {{count}}. Activate to filter the list below by this.": "{{label}}: {{count}}. Activate to filter the list below by this.",
   "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.": "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.",
   "{{latency}} ms": "{{latency}} ms",
-  "{{levels}} along the way have no responders and will notify no one when reached.": "{{levels}} underveis har ingen mottakere og varsler ingen når de nås.",
-  "{{levels}} along the way have no responders and will notify no one when reached._one": "{{levels}} underveis har ingen mottakere og varsler ingen når det nås.",
   "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now.": "{{levels}} har mottakere tildelt, men hver av dem er en vakttidsplan der ingen har vakt akkurat nå – så de ville fortsatt ikke varslet noen hvis de ble nådd nå.",
   "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now._one": "{{levels}} har mottakere tildelt, men hver av dem er en vakttidsplan der ingen har vakt akkurat nå – så det ville fortsatt ikke varslet noen hvis det ble nådd nå.",
   "{{metricDescription}} Charted for this queue only.": "{{metricDescription}} Charted for this queue only.",
@@ -36788,5 +36785,13 @@
   "Evidence File ID": "Bevisfil-ID",
   "Pick a person to do {{title}}. They are notified.": "Velg en person som skal gjøre {{title}}. Vedkommende får beskjed.",
   "Put any other kind of file, or several files, in a .zip.": "Legg andre filtyper, eller flere filer, i en .zip.",
-  "Upload a file": "Last opp en fil"
+  "Upload a file": "Last opp en fil",
+  "Moved on at once": "Gikk videre med en gang",
+  "No responders assigned. This level is skipped without waiting — edit this rule to add responders.": "Ingen mottakere tildelt. Dette nivået hoppes over uten å vente – rediger regelen for å legge til mottakere.",
+  "Nobody at this level could be paged": "Ingen på dette nivået kunne varsles",
+  "Nobody to page here, so the next level is paged at once": "Ingen å varsle her, så neste nivå varsles med en gang",
+  "Skipped at once": "Hoppet over med en gang",
+  "This level has no responders": "Dette nivået har ingen mottakere",
+  "{{levels}} along the way have no responders, so they are skipped without waiting.": "{{levels}} underveis har ingen mottakere og hoppes derfor over uten å vente.",
+  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} underveis har ingen mottakere og hoppes derfor over uten å vente."
 }

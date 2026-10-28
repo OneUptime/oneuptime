@@ -13471,7 +13471,6 @@
   "No resources.": "No resources.",
   "No responders are assigned": "지정된 응답자가 없습니다",
   "No responders are attached to any on-call policy in this project yet.": "No responders are attached to any on-call policy in this project yet.",
-  "No responders assigned. No one will be notified at this level — edit this rule to add responders.": "지정된 대응자가 없습니다. 이 단계에서는 아무에게도 알리지 않습니다. 규칙을 편집해 대응자를 추가하세요.",
   "No responders match these filters.": "No responders match these filters.",
   "No restrictions has been applied to this permission.": "No restrictions has been applied to this permission.",
   "No result yet": "No result yet",
@@ -23271,8 +23270,6 @@
   "{{label}}: {{count}}. Activate to filter the list below by this.": "{{label}}: {{count}}. Activate to filter the list below by this.",
   "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.": "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.",
   "{{latency}} ms": "{{latency}} ms",
-  "{{levels}} along the way have no responders and will notify no one when reached.": "중간의 {{levels}}에는 대응자가 없어 도달해도 아무에게도 알리지 않습니다.",
-  "{{levels}} along the way have no responders and will notify no one when reached._one": "{{levels}} along the way has no responders and will notify no one when reached.",
   "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now.": "{{levels}}에 대응자가 지정되어 있지만 모두 지금 당번이 없는 온콜 일정이므로, 지금 도달해도 아무에게도 알리지 않습니다.",
   "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now._one": "{{levels}} has responders assigned, but every one of them is an on-call schedule with no one on call right now — so it would still notify no one if reached now.",
   "{{metricDescription}} Charted for this queue only.": "{{metricDescription}} Charted for this queue only.",
@@ -36788,5 +36785,13 @@
   "Evidence File ID": "증거 파일 ID",
   "Pick a person to do {{title}}. They are notified.": "{{title}} 작업을 할 사람을 선택하세요. 담당자에게 알림이 갑니다.",
   "Put any other kind of file, or several files, in a .zip.": "다른 종류의 파일이나 여러 파일은 .zip으로 묶어 주세요.",
-  "Upload a file": "파일 업로드"
+  "Upload a file": "파일 업로드",
+  "Moved on at once": "기다리지 않고 바로 진행함",
+  "No responders assigned. This level is skipped without waiting — edit this rule to add responders.": "지정된 대응자가 없습니다. 이 단계는 기다리지 않고 건너뜁니다. 규칙을 편집해 대응자를 추가하세요.",
+  "Nobody at this level could be paged": "이 단계에서는 아무에게도 알릴 수 없었습니다",
+  "Nobody to page here, so the next level is paged at once": "여기에는 알릴 사람이 없어 다음 단계에 바로 알립니다",
+  "Skipped at once": "바로 건너뜀",
+  "This level has no responders": "이 단계에는 대응자가 없습니다",
+  "{{levels}} along the way have no responders, so they are skipped without waiting.": "중간의 {{levels}}에는 대응자가 없어 기다리지 않고 건너뜁니다.",
+  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} along the way has no responders, so it is skipped without waiting."
 }

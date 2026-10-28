@@ -13471,7 +13471,6 @@
   "No resources.": "Keine Ressourcen.",
   "No responders are assigned": "Keine Personen zugewiesen",
   "No responders are attached to any on-call policy in this project yet.": "In diesem Projekt sind noch keinen Bereitschaftsrichtlinien Personen zugeordnet.",
-  "No responders assigned. No one will be notified at this level — edit this rule to add responders.": "Keine Personen zugewiesen. Auf dieser Stufe wird niemand benachrichtigt — bearbeiten Sie diese Regel, um Personen hinzuzufügen.",
   "No responders match these filters.": "Keine Personen entsprechen diesen Filtern.",
   "No restrictions has been applied to this permission.": "Auf diese Berechtigung wurden keine Einschränkungen angewendet.",
   "No result yet": "Noch kein Ergebnis",
@@ -23271,8 +23270,6 @@
   "{{label}}: {{count}}. Activate to filter the list below by this.": "{{label}}: {{count}}. Activate to filter the list below by this.",
   "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.": "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.",
   "{{latency}} ms": "{{latency}} ms",
-  "{{levels}} along the way have no responders and will notify no one when reached.": "{{levels}} auf dem Weg haben keine Bearbeiter und benachrichtigen niemanden, wenn sie erreicht werden.",
-  "{{levels}} along the way have no responders and will notify no one when reached._one": "{{levels}} auf dem Weg hat keine Bearbeiter und benachrichtigt niemanden, wenn sie erreicht wird.",
   "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now.": "{{levels}} haben Bearbeiter, aber jeder davon ist ein Bereitschaftszeitplan, in dem gerade niemand Bereitschaft hat – sie würden also auch jetzt niemanden benachrichtigen.",
   "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now._one": "{{levels}} hat Bearbeiter, aber jeder davon ist ein Bereitschaftszeitplan, in dem gerade niemand Bereitschaft hat – sie würde also auch jetzt niemanden benachrichtigen.",
   "{{metricDescription}} Charted for this queue only.": "{{metricDescription}} Charted for this queue only.",
@@ -36788,5 +36785,13 @@
   "Evidence File ID": "Belegdatei-ID",
   "Pick a person to do {{title}}. They are notified.": "Wählen Sie eine Person, die {{title}} erledigt. Sie wird benachrichtigt.",
   "Put any other kind of file, or several files, in a .zip.": "Legen Sie andere Dateiarten oder mehrere Dateien in eine .zip-Datei.",
-  "Upload a file": "Datei hochladen"
+  "Upload a file": "Datei hochladen",
+  "Moved on at once": "Ohne Wartezeit fortgesetzt",
+  "No responders assigned. This level is skipped without waiting — edit this rule to add responders.": "Keine Personen zugewiesen. Diese Stufe wird ohne Wartezeit übersprungen — bearbeiten Sie diese Regel, um Personen hinzuzufügen.",
+  "Nobody at this level could be paged": "Auf dieser Stufe konnte niemand benachrichtigt werden",
+  "Nobody to page here, so the next level is paged at once": "Hier ist niemand zu benachrichtigen, daher wird sofort die nächste Stufe benachrichtigt",
+  "Skipped at once": "Sofort übersprungen",
+  "This level has no responders": "Diese Stufe hat keine Bearbeiter",
+  "{{levels}} along the way have no responders, so they are skipped without waiting.": "{{levels}} auf dem Weg haben keine Bearbeiter und werden daher ohne Wartezeit übersprungen.",
+  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} auf dem Weg hat keine Bearbeiter und wird daher ohne Wartezeit übersprungen."
 }

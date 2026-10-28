@@ -13471,7 +13471,6 @@
   "No resources.": "No resources.",
   "No responders are assigned": "未分配响应人",
   "No responders are attached to any on-call policy in this project yet.": "No responders are attached to any on-call policy in this project yet.",
-  "No responders assigned. No one will be notified at this level — edit this rule to add responders.": "未分配响应人。此级别不会通知任何人，请编辑此规则以添加响应人。",
   "No responders match these filters.": "No responders match these filters.",
   "No restrictions has been applied to this permission.": "No restrictions has been applied to this permission.",
   "No result yet": "No result yet",
@@ -23271,8 +23270,6 @@
   "{{label}}: {{count}}. Activate to filter the list below by this.": "{{label}}: {{count}}. Activate to filter the list below by this.",
   "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.": "{{label}}: {{count}}. Filtering the list below — activate to remove this filter.",
   "{{latency}} ms": "{{latency}} ms",
-  "{{levels}} along the way have no responders and will notify no one when reached.": "途中的{{levels}}没有响应人，到达时不会通知任何人。",
-  "{{levels}} along the way have no responders and will notify no one when reached._one": "{{levels}} along the way has no responders and will notify no one when reached.",
   "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now.": "{{levels}}已分配响应人，但都是当前无人值班的值班排班，所以现在到达时仍不会通知任何人。",
   "{{levels}} have responders assigned, but every one of them is an on-call schedule with no one on call right now — so they would still notify no one if reached now._one": "{{levels}} has responders assigned, but every one of them is an on-call schedule with no one on call right now — so it would still notify no one if reached now.",
   "{{metricDescription}} Charted for this queue only.": "{{metricDescription}} Charted for this queue only.",
@@ -36788,5 +36785,13 @@
   "Evidence File ID": "证据文件 ID",
   "Pick a person to do {{title}}. They are notified.": "选择完成 {{title}} 的人。对方会收到通知。",
   "Put any other kind of file, or several files, in a .zip.": "其他类型的文件或多个文件请放入 .zip。",
-  "Upload a file": "上传文件"
+  "Upload a file": "上传文件",
+  "Moved on at once": "已立即继续",
+  "No responders assigned. This level is skipped without waiting — edit this rule to add responders.": "未分配响应人。此级别会被直接跳过，无需等待，请编辑此规则以添加响应人。",
+  "Nobody at this level could be paged": "此级别无法通知任何人",
+  "Nobody to page here, so the next level is paged at once": "此处无人可通知，因此立即通知下一级别",
+  "Skipped at once": "已立即跳过",
+  "This level has no responders": "此级别没有响应人",
+  "{{levels}} along the way have no responders, so they are skipped without waiting.": "途中的{{levels}}没有响应人，因此会被直接跳过，无需等待。",
+  "{{levels}} along the way have no responders, so they are skipped without waiting._one": "{{levels}} along the way has no responders, so it is skipped without waiting."
 }
