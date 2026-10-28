@@ -57,7 +57,6 @@ import PermissionGate, {
   NEEDS_ONE_OF_ROLES_TEMPLATE,
   NEEDS_PERMISSION_TEMPLATE,
   NEEDS_ROLE_TEMPLATE,
-  PermissionCheckableModel,
   PermissionGateResult,
   PermissionsToName,
 } from "../../../UI/Utils/PermissionGate";
@@ -95,39 +94,12 @@ const readLocale: (code: string) => Locale = (code: string): Locale => {
   ) as Locale;
 };
 
-// A model whose only list is the one an operation is gated on.
-const modelWith: (data: {
-  singularName: string;
-  permissions: Array<Permission>;
-}) => PermissionCheckableModel = (data: {
-  singularName: string;
-  permissions: Array<Permission>;
-}): PermissionCheckableModel => {
-  const list: () => Array<Permission> = (): Array<Permission> => {
-    return data.permissions;
-  };
-  const no: () => boolean = (): boolean => {
-    return false;
-  };
-
-  return {
-    singularName: data.singularName,
-    hasCreatePermissions: no,
-    hasReadPermissions: no,
-    hasUpdatePermissions: no,
-    hasDeletePermissions: no,
-    getCreatePermissions: list,
-    getReadPermissions: list,
-    getUpdatePermissions: list,
-    getDeletePermissions: list,
-  };
-};
-
-const ROLE_TITLES: Array<string> = PermissionHelper.getRolePermissionProps().map(
-  (props: PermissionProps): string => {
-    return props.title;
-  },
-);
+const ROLE_TITLES: Array<string> =
+  PermissionHelper.getRolePermissionProps().map(
+    (props: PermissionProps): string => {
+      return props.title;
+    },
+  );
 
 const isRoleTitle: (title: string) => boolean = (title: string): boolean => {
   return ROLE_TITLES.includes(title);
@@ -140,7 +112,8 @@ beforeEach(() => {
 
 describe("what a lock names (getPermissionsToName)", () => {
   test("roles and one permission of its own: the permission alone", () => {
-    const list: Array<Permission> = new IncidentOwnerTeam().getCreatePermissions();
+    const list: Array<Permission> =
+      new IncidentOwnerTeam().getCreatePermissions();
 
     // The list as the model writes it: five roles before the permission.
     expect(PermissionGate.getPermissionTitles(list)).toEqual([

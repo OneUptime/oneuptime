@@ -193,7 +193,8 @@ const RIGHT_IN_BOTH_THEMES: Record<string, string> = {
    * the pointer gives it while its list is open: its white words read on
    * indigo-700 in both themes, as they do under the pointer.
    */
-  "bg-indigo-700": "the white-worded Add owner's held hover fill, in both themes",
+  "bg-indigo-700":
+    "the white-worded Add owner's held hover fill, in both themes",
 };
 
 const IDENTIFIER_CHAR: RegExp = /[\w-]/;

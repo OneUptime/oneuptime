@@ -718,9 +718,7 @@ describe("OwnersCard", () => {
       "shadow-md",
     ]) {
       expect(circleHover).toContain(className);
-      expect(OWNERS_ADD_CIRCLE_OPEN_CLASS_NAME.split(" ")).toContain(
-        className,
-      );
+      expect(OWNERS_ADD_CIRCLE_OPEN_CLASS_NAME.split(" ")).toContain(className);
     }
 
     expect(OWNERS_ADD_BUTTON_IDLE_CLASS_NAME.split(" ")).toContain(
