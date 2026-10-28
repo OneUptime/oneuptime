@@ -175,14 +175,16 @@ describe("the Security Events menu", () => {
        */
       ["Events", ["Events", "Campaigns", "Entity Risk", "Correlate"]],
       /*
-       * What the rules skip on purpose sits right under the rules, before
-       * the library more rules come from.
+       * What the rules skip on purpose sits right under the rules, and the
+       * lists they match against (VIP users, critical hosts) after it,
+       * before the library more rules come from.
        */
       [
         "Detections",
         [
           "Detection Rules",
           "Rule Exceptions",
+          "Watchlists",
           "Rule Library",
           "Threat Intel",
           "ATT&CK Coverage",
@@ -232,6 +234,7 @@ describe("the Security Events menu", () => {
       ["Correlate", "SECURITY_EVENTS_CORRELATE"],
       ["Detection Rules", "SECURITY_EVENTS_DETECTION_RULES"],
       ["Rule Exceptions", "SECURITY_EVENTS_RULE_EXCEPTIONS"],
+      ["Watchlists", "SECURITY_EVENTS_WATCHLISTS"],
       ["Rule Library", "SECURITY_EVENTS_RULE_LIBRARY"],
       ["Threat Intel", "SECURITY_EVENTS_THREAT_INTEL"],
       ["ATT&CK Coverage", "SECURITY_EVENTS_ATTACK_COVERAGE"],
@@ -249,22 +252,29 @@ describe("the Security Events menu", () => {
     ]);
   });
 
-  test("lights Entity Risk on an entity's page, the one page in its layout no entry names", () => {
+  test("lights Entity Risk on an entity's page and Watchlists on a list's, the pages in its layout no entry names", () => {
     expect(getSecurityEventsMenuDetailPages()).toEqual([
       "SECURITY_EVENTS_ENTITY_RISK_VIEW",
+      "SECURITY_EVENTS_WATCHLIST_VIEW",
     ]);
     expect(
       getSecurityEventsMenuItems()
         .filter((item: SecurityEventsMenuItem): boolean => {
           return Boolean(item.detailPages && item.detailPages.length > 0);
         })
-        .map((item: SecurityEventsMenuItem): string => {
-          return item.title;
+        .map((item: SecurityEventsMenuItem): [string, Array<string>] => {
+          return [item.title, item.detailPages || []];
         }),
-    ).toEqual(["Entity Risk"]);
-    // Not one of the pages that open on their own, outside the menu.
+    ).toEqual([
+      ["Entity Risk", ["SECURITY_EVENTS_ENTITY_RISK_VIEW"]],
+      ["Watchlists", ["SECURITY_EVENTS_WATCHLIST_VIEW"]],
+    ]);
+    // Not pages that open on their own, outside the menu.
     expect(SECURITY_EVENTS_DETAIL_PAGES).not.toContain(
       "SECURITY_EVENTS_ENTITY_RISK_VIEW",
+    );
+    expect(SECURITY_EVENTS_DETAIL_PAGES).not.toContain(
+      "SECURITY_EVENTS_WATCHLIST_VIEW",
     );
   });
 
@@ -657,6 +667,7 @@ describe("where each page says it is", () => {
       ["Security Events", "Events", "Correlate"],
       ["Security Events", "Detections", "Detection Rules"],
       ["Security Events", "Detections", "Rule Exceptions"],
+      ["Security Events", "Detections", "Watchlists"],
       ["Security Events", "Detections", "Rule Library"],
       ["Security Events", "Detections", "Threat Intel"],
       ["Security Events", "Detections", "ATT&CK Coverage"],

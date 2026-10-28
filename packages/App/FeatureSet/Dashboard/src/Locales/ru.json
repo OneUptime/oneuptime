@@ -36903,5 +36903,5 @@
   "{{count}} values to import_one": "{{count}} значение для импорта",
   "{{count}} values_one": "{{count}} значение",
   "{{count}} were already on the list": "Уже были в списке: {{count}}",
-  "{{count}} were already on the list_one": "Уже был в списке: {{count}}"
+  "{{count}} were already on the list_one": "{{count}} значение уже было в списке"
 }

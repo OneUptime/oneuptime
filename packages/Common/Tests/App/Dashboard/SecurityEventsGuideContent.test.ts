@@ -11,6 +11,7 @@ import { Lexer, Token, Tokens } from "marked";
 import { markdownTableCell } from "../../../Utils/Markdown/MarkdownTableCell";
 import {
   DETECTION_RULE_TYPE_DEFINITIONS,
+  DetectionRuleDefinition,
   DetectionRuleType,
   detectionRuleTypeOf,
 } from "../../../Types/SecurityEvent/SigmaCorrelation";
@@ -26,6 +27,7 @@ import DetectionRulesGuide, {
   SIGMA_SELECTIONS_EXAMPLE_YAML,
   SigmaFieldDoc,
   SigmaModifierDoc,
+  WATCHLIST_RULE_EXAMPLE_YAML,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
 import ThreatIntelGuide, {
   INDICATOR_TYPE_DOCS,
@@ -62,6 +64,13 @@ import SigmaRuleParser from "../../../Utils/SecurityEvent/Sigma/SigmaRuleParser"
 import SigmaRuleSetParser, {
   sigmaRulesOf,
 } from "../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import {
+  SigmaWatchlistReference,
+  bindSigmaWatchlists,
+  getDetectionRuleWatchlistReferences,
+} from "../../../Utils/SecurityEvent/Sigma/SigmaWatchlists";
+import { SigmaWatchlists } from "../../../Types/SecurityEvent/SecurityWatchlist";
+import { SecurityEntityType } from "../../../Types/SecurityCase/SecurityEntity";
 import SigmaClickhouseCompiler, {
   FIELD_ALIASES,
   buildSigmaDistinctCountExpression,
@@ -253,8 +262,40 @@ detection:
 `;
 }
 
+/*
+ * The lists a guide's rule reads, as a project that keeps them binds them
+ * at a save and at every run (SecurityWatchlists): a list of users, with a
+ * value as written, a pattern with *, and none of its own ranges.
+ */
+function guideWatchlists(definition: DetectionRuleDefinition): SigmaWatchlists {
+  const watchlists: SigmaWatchlists = {};
+
+  for (const reference of getDetectionRuleWatchlistReferences(definition)) {
+    watchlists[reference.key] = {
+      name: reference.name,
+      entityType: SecurityEntityType.User,
+      exactValues: ["alice@example.com"],
+      patterns: ["svc-*"],
+      ranges: [],
+    };
+  }
+
+  return watchlists;
+}
+
+// A guide's rule as a save reads it: parsed, its lists bound, every rule in it compiled.
+function compileAsSaved(yaml: string): Array<Statement> {
+  const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(yaml);
+
+  return sigmaRulesOf(
+    bindSigmaWatchlists(definition, guideWatchlists(definition)),
+  ).map((rule: SigmaRule): Statement => {
+    return SigmaClickhouseCompiler.compile(rule);
+  });
+}
+
 function compileLine(line: string): Statement {
-  return SigmaClickhouseCompiler.compileYaml(ruleWithSelectionLine(line));
+  return compileAsSaved(ruleWithSelectionLine(line))[0]!;
 }
 
 function paramValues(statement: Statement): Array<unknown> {
@@ -360,13 +401,12 @@ describe("Security Events guides: structure", () => {
 
       /*
        * As a save checks it: one Sigma rule, or a correlation with the
-       * rules it reads (SigmaRuleSetParser), each of them compiled.
+       * rules it reads (SigmaRuleSetParser), the watchlists it names bound
+       * as the project keeps them, each of them compiled.
        */
       for (const block of blocks) {
         expect(() => {
-          for (const rule of sigmaRulesOf(SigmaRuleSetParser.parse(block))) {
-            SigmaClickhouseCompiler.compile(rule);
-          }
+          compileAsSaved(block);
         }).not.toThrow();
       }
     },
@@ -761,10 +801,58 @@ describe("Detection Rules guide: the modifier table", () => {
 
       expect(requirement?.modifiers).toContain(doc.modifier);
       expect(() => {
-        SigmaClickhouseCompiler.compile(rule);
+        compileLine(doc.example);
       }).not.toThrow();
     },
   );
+
+  test("a rule that reads a watchlist the project does not have is refused, naming the list", () => {
+    const doc: SigmaModifierDoc | undefined = SIGMA_MODIFIER_DOCS.find(
+      (candidate: SigmaModifierDoc): boolean => {
+        return candidate.modifier === "expand";
+      },
+    );
+
+    expect(() => {
+      SigmaClickhouseCompiler.compileYaml(ruleWithSelectionLine(doc!.example));
+    }).toThrow(
+      "There is no watchlist named vip_users in this project. Create it under Security Events > Detections > Watchlists, or fix its name in the rule.",
+    );
+  });
+
+  test("the Watchlists section's example reads two lists, one of them as an allow list", () => {
+    const references: Array<SigmaWatchlistReference> =
+      getDetectionRuleWatchlistReferences(
+        SigmaRuleSetParser.parse(WATCHLIST_RULE_EXAMPLE_YAML),
+      );
+
+    expect(
+      references.map((reference: SigmaWatchlistReference): string => {
+        return reference.name;
+      }),
+    ).toEqual(["admins", "admin_addresses"]);
+    expect(WATCHLIST_RULE_EXAMPLE_YAML).toContain(
+      "condition: admin_sign_in and not allowed",
+    );
+
+    const section: string = sectionMarkdown(
+      DetectionRulesGuide,
+      "writing-rules",
+    );
+
+    expect(section).toContain("#### Watchlists");
+    expect(section).toContain(WATCHLIST_RULE_EXAMPLE_YAML);
+
+    const statements: Array<Statement> = compileAsSaved(
+      WATCHLIST_RULE_EXAMPLE_YAML,
+    );
+
+    // Both lists are read; the allow list is negated.
+    expect(statements).toHaveLength(1);
+    expect(statements[0]!.query).toContain("principalUser");
+    expect(statements[0]!.query).toContain("principalIp");
+    expect(statements[0]!.query).toContain("NOT (");
+  });
 
   /*
    * Each description promises a behavior; the compiled SQL is where that
@@ -818,6 +906,18 @@ describe("Detection Rules guide: the modifier table", () => {
         expect.arrayContaining(["% -exec %", "% /exec %"]),
       );
       expect(statement.query).toContain(" OR ");
+    },
+    /*
+     * "the list's values say how they match": a value as written, whatever
+     * the case, in one array; a value with * as a pattern of its own.
+     */
+    expand: (statement: Statement) => {
+      expect(statement.query).toContain("lowerUTF8(");
+      expect(statement.query).toContain(" IN {");
+      expect(statement.query).toContain(" LIKE {");
+      expect(paramValues(statement)).toEqual(
+        expect.arrayContaining([["alice@example.com"], "svc-%"]),
+      );
     },
   };
 

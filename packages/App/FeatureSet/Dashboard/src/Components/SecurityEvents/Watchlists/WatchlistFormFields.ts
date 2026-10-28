@@ -119,6 +119,31 @@ export function isNewWatchlistFollowingFeed(
 }
 
 /*
+ * A new list as it is saved. The form hides where values come from for a
+ * kind no feed carries, and the feed for a list that keeps its own values;
+ * a choice made before the kind changed still sits in the form, out of
+ * sight. Such a list keeps its own values and follows no feed, so its save
+ * is never refused over a field the reader cannot see.
+ */
+export function prepareNewWatchlist(
+  item: SecurityWatchlist,
+): SecurityWatchlist {
+  if (
+    isNewWatchlistFollowingFeed(
+      item as unknown as FormValues<SecurityWatchlist>,
+    )
+  ) {
+    return item;
+  }
+
+  item.source = SecurityWatchlistSource.Values;
+  delete item.threatIntelFeed;
+  delete item.threatIntelFeedId;
+
+  return item;
+}
+
+/*
  * The shared rules' problem with one field of a form, in the reader's
  * language. An Edit form holds no kind or source: the saved list's are
  * asked about in their place (`saved`).
@@ -150,9 +175,7 @@ function problemWith(data: {
       return item.field === data.field;
     })?.message;
 
-    return problem
-      ? data.translator.translateText(problem) || problem
-      : null;
+    return problem ? data.translator.translateText(problem) || problem : null;
   };
 }
 

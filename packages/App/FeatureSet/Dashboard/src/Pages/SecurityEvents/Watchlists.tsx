@@ -21,6 +21,7 @@ import {
 import {
   getWatchlistCreateFields,
   getWatchlistHoldsDropdownOptions,
+  prepareNewWatchlist,
 } from "../../Components/SecurityEvents/Watchlists/WatchlistFormFields";
 import { getWatchlistReaders } from "../../Components/SecurityEvents/Watchlists/WatchlistsModel";
 import WatchlistStarters from "../../Components/SecurityEvents/Watchlists/WatchlistStarters";
@@ -158,6 +159,12 @@ const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
           } as FormValues<SecurityWatchlist>
         }
         formFields={getWatchlistCreateFields({ translator })}
+        // What the form hid is not sent: a list no feed can fill keeps its own values.
+        onBeforeCreate={(
+          item: SecurityWatchlist,
+        ): Promise<SecurityWatchlist> => {
+          return Promise.resolve(prepareNewWatchlist(item));
+        }}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
         filters={[
@@ -238,10 +245,7 @@ const SecurityWatchlistsPage: FunctionComponent<PageComponentProps> = (
             getElement: (item: SecurityWatchlist): ReactElement => {
               return (
                 <WatchlistReadByCell
-                  readers={getWatchlistReaders(
-                    readers.readersByKey,
-                    item.name,
-                  )}
+                  readers={getWatchlistReaders(readers.readersByKey, item.name)}
                   isLoaded={readers.isLoaded}
                   hasError={readers.hasError}
                 />
