@@ -3384,3 +3384,74 @@ test.describe("the gallery", () => {
     ).toBeVisible();
   });
 });
+
+/*
+ * A member whose teams grant nothing on a list (?role=none: only what every
+ * member holds). A list with row actions keeps its Actions column for a
+ * locked Edit or Delete, and that column alone used to count as something to
+ * show: the member got the card's frame with rows of nothing but a checkbox
+ * and a ⋯ - on a real server, "Couldn't load incidents" over every role and
+ * permission that may read them - under filter chips and a search box.
+ */
+test.describe("a member who may read none of a list", () => {
+  test("is told so, and the one permission to ask for - not shown rows of nothing but a ⋯, filter chips or a search box", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${INCIDENTS}?role=none`);
+
+    const state: Locator = page.getByTestId("incidents-table-no-access");
+
+    await expect(state).toBeVisible();
+    await expect(state).toContainText("You don't have access to this list");
+    await expect(state).toContainText(
+      "You need this permission: Read Incident. Ask a project admin for access.",
+    );
+    await expect(state).not.toContainText("Project Owner");
+
+    await expect(bodyRows(page, "incidents-table")).toHaveCount(0);
+    await expect(page.locator("table")).toHaveCount(0);
+    await expect(page.getByRole("checkbox")).toHaveCount(0);
+    // Nothing to narrow or search in a list they cannot read.
+    await expect(page.getByTestId("facet-filter-bar")).toHaveCount(0);
+    await expect(page.getByTestId("filter-chip")).toHaveCount(0);
+    await expect(page.getByTestId("model-table-search-slot")).toHaveCount(0);
+
+    await screenshot(page, "no-access-incidents-1280");
+  });
+
+  test("on a phone, in German and dark, the state fits the screen in German words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, `${MONITORS}?role=none&lang=de&theme=dark`, 390, 800);
+
+    const state: Locator = page.getByTestId("Monitors-table-no-access");
+
+    await expect(state).toBeVisible();
+    await expect(state).toContainText(
+      "Sie haben keinen Zugriff auf diese Liste",
+    );
+    await expect(state).toContainText(
+      "Sie benötigen diese Berechtigung: Read Monitor. Bitten Sie einen Projektadministrator um Zugriff.",
+    );
+    await expect(bodyRows(page, "Monitors-table")).toHaveCount(0);
+
+    const drawn: Box = await box(state);
+
+    expect(drawn.x).toBeGreaterThanOrEqual(0);
+    expect(drawn.x + drawn.width).toBeLessThanOrEqual(390);
+    expect(
+      await page.evaluate((): number => {
+        return (
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth
+        );
+      }),
+    ).toBe(0);
+
+    await screenshot(page, "no-access-monitors-390-de-dark");
+  });
+});

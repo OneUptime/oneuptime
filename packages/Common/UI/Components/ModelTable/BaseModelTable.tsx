@@ -3999,17 +3999,41 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const emptyState: ModelTableEmptyState = getEmptyState();
 
   /*
+   * A viewer's layout can never empty the columns out -
+   * applyColumnPreference refuses to return nothing - so no column to
+   * read, once they have been built, still means what it always did:
+   * every column was denied by permission. The generated Actions column
+   * does not count. It stays for a locked Edit or Delete, so a list with
+   * row actions used to draw rows of nothing but a ⋯ - over the server's
+   * refusal, which names every role and permission that may read the
+   * list - and never "You don't have access to this list". Before the
+   * columns are built, every table drew that for a frame, and for longer on
+   * a page slow to run its effects, telling viewers who could read every
+   * column, master admins included, that they had no access.
+   */
+  const isNoAccessShown: boolean =
+    hasBuiltColumns &&
+    allColumns.length > 0 &&
+    !tableColumns.some((column: TableColumn<TBaseModel>): boolean => {
+      return column.type !== FieldType.Actions;
+    });
+
+  /*
    * What sits over the table - a page's filter chips - unless the list has
    * nothing at all and its emptyState says to leave them out then
    * (EmptyStateOptions.hideTopContentWhileEmpty): "Filter: Owner, Labels"
    * over "No archived hosts" offered to narrow a list with nothing in it.
    * A search, a filter or a chip in force keeps them, so they can be
-   * cleared; so does a failed load, which says nothing about the list.
+   * cleared; so does a failed load, which says nothing about the list. A
+   * viewer who may read none of it gets none of them either: chips under
+   * "You don't have access to this list" offered to narrow what they
+   * cannot see.
    */
   const topContent: ReactElement | undefined =
-    props.emptyState?.hideTopContentWhileEmpty &&
-    isEmptyWithNothingApplied &&
-    !error
+    isNoAccessShown ||
+    (props.emptyState?.hideTopContentWhileEmpty &&
+      isEmptyWithNothingApplied &&
+      !error)
       ? undefined
       : props.topContent;
 
@@ -5150,18 +5174,20 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const getHeaderButtonsWithSearch: GetHeaderButtonsFunction = (): Array<
     CardButtonSchema | ReactElement
   > => {
-    const hasSearch: boolean = Boolean(
-      props.searchableFields && props.searchableFields.length > 0,
-    );
+    // Nothing to search, and no view to save, in a list nobody may read.
+    const hasSearch: boolean =
+      Boolean(props.searchableFields && props.searchableFields.length > 0) &&
+      !isNoAccessShown;
 
     /*
      * Saved views get their own first-class slot in the header — never
      * collapsed into the overflow ⋯ menu. Render fresh on every call so the
      * inner TableViewElement always sees the current query / sort / itemsOnPage.
      */
-    const savedViewsElement: ReactElement | null = props.saveFilterProps
-      ? getSaveFilterDropdown()
-      : null;
+    const savedViewsElement: ReactElement | null =
+      props.saveFilterProps && !isNoAccessShown
+        ? getSaveFilterDropdown()
+        : null;
 
     if (cardButtons.length === 0 && !hasSearch) {
       return savedViewsElement ? [savedViewsElement] : cardButtons;
@@ -5437,6 +5463,23 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     const headerButtons: Array<CardButtonSchema | ReactElement> =
       getHeaderButtonsWithSearch();
 
+    // isNoAccessShown (above topContent) says when this is drawn.
+    const getNoAccessState: GetReactElementFunction = (): ReactElement => {
+      return (
+        <div data-testid={`${props.id}-no-access`}>
+          <TableEmptyState
+            {...buildNoAccessState({
+              neededPermissions: PermissionGate.getNeededPermissionsSentence(
+                model.getReadPermissions(),
+                translator,
+              ),
+              translate: tx,
+            })}
+          />
+        </div>
+      );
+    };
+
     /*
      * While the empty state is on screen and says what the list is for in
      * the card's own words, the card leaves its description out of the
@@ -5446,7 +5489,8 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       !getTableLoadingState() &&
       !error &&
       data.length === 0 &&
-      tableColumns.length > 0;
+      tableColumns.length > 0 &&
+      !isNoAccessShown;
 
     const cardDescription: CardComponentProps["description"] =
       isEmptyStateShown && emptyState.usesCardDescription
@@ -5488,41 +5532,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                   : undefined)
               }
             >
-              {/*
-               * A viewer's layout can never empty this out — applyColumnPreference
-               * refuses to return nothing — so zero columns, once they have been
-               * built, still means exactly what it always did: every column was
-               * denied by permission. Before they are built, every table drew
-               * this for a frame, and for longer on a page slow to run its
-               * effects, telling viewers who could read every column, master
-               * admins included, that they had no access.
-               */}
-              {hasBuiltColumns &&
-              tableColumns.length === 0 &&
-              allColumns.length > 0 ? (
-                <div data-testid={`${props.id}-no-access`}>
-                  <TableEmptyState
-                    {...buildNoAccessState({
-                      neededPermissions:
-                        PermissionGate.getNeededPermissionsSentence(
-                          model.getReadPermissions(),
-                          translator,
-                        ),
-                      translate: tx,
-                    })}
-                  />
-                </div>
-              ) : (
-                <></>
-              )}
+              {isNoAccessShown ? getNoAccessState() : <></>}
               {topContent || <></>}
-              {tableColumns.length > 0 && showAs === ShowAs.Table ? (
+              {tableColumns.length > 0 &&
+              !isNoAccessShown &&
+              showAs === ShowAs.Table ? (
                 getTable()
               ) : (
                 <></>
               )}
 
-              {tableColumns.length > 0 && showAs === ShowAs.List ? (
+              {tableColumns.length > 0 &&
+              !isNoAccessShown &&
+              showAs === ShowAs.List ? (
                 getList()
               ) : (
                 <></>
@@ -5535,6 +5557,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            * via a thin right-aligned row.
            */}
           {!props.cardProps &&
+          !isNoAccessShown &&
           (showAs === ShowAs.Table || showAs === ShowAs.List) &&
           props.searchableFields &&
           props.searchableFields.length > 0 ? (
@@ -5543,8 +5566,17 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
             <></>
           )}
           {!props.cardProps && topContent}
-          {!props.cardProps && showAs === ShowAs.Table ? getTable() : <></>}
-          {!props.cardProps && showAs === ShowAs.List ? getList() : <></>}
+          {!props.cardProps && isNoAccessShown ? getNoAccessState() : <></>}
+          {!props.cardProps && !isNoAccessShown && showAs === ShowAs.Table ? (
+            getTable()
+          ) : (
+            <></>
+          )}
+          {!props.cardProps && !isNoAccessShown && showAs === ShowAs.List ? (
+            getList()
+          ) : (
+            <></>
+          )}
         </div>
       );
     }

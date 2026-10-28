@@ -100,7 +100,12 @@ The suite (`ModelTables.spec.ts`) measures in Chromium what jsdom cannot:
 - while the first page loads, the rows keep their shape and the header its
   height;
 - a drag-ordered list's grips sit on the rows' line, and the keyboard still
-  moves a row.
+  moves a row;
+- a member who may read none of a list (`?role=none`) is told so, with the
+  one permission to ask for ("You need this permission: Read Incident. Ask
+  a project admin for access.") - not drawn rows of nothing but a ⋯ under
+  filter chips and a search box - and on a phone, in German and dark, the
+  state fits the screen.
 
 `CardHeaders.spec.ts` measures where a card's description sits under its
 title ("There's a lot of gap between the title of the card and the
