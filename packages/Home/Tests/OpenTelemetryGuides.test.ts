@@ -323,25 +323,65 @@ function xmlProblems(code: string): Array<string> {
 }
 
 /*
- * The Maven and Gradle tabs of a build-tool tab set: the same
- * dependencies, at the same versions, in each.
+ * The places a page shows a Maven and a Gradle build side by side: the
+ * tabs of a build-tool tab set, one tool each, and any tab or step that
+ * shows a pom.xml beside a build.gradle.kts. Each list is one build's
+ * snippets; the lists of a place must declare the same dependencies.
  */
-function buildToolTabSets(guide: OpenTelemetryGuide): Array<GuideTabs> {
-  const sets: Array<GuideTabs> = [];
-  const visit: (tabs: GuideTabs | undefined) => void = (
+function buildTwins(
+  guide: OpenTelemetryGuide,
+): Array<{ where: string; builds: Array<Array<GuideSnippet>> }> {
+  const twins: Array<{ where: string; builds: Array<Array<GuideSnippet>> }> =
+    [];
+  const byTool: (snippets: Array<GuideSnippet>) => Array<Array<GuideSnippet>> =
+    (snippets: Array<GuideSnippet>): Array<Array<GuideSnippet>> => {
+      const maven: Array<GuideSnippet> = snippets.filter(
+        (snippet: GuideSnippet): boolean => {
+          return isBuildFileSnippet(snippet) && snippet.language === "xml";
+        },
+      );
+      const gradle: Array<GuideSnippet> = snippets.filter(
+        (snippet: GuideSnippet): boolean => {
+          return isBuildFileSnippet(snippet) && snippet.language === "kotlin";
+        },
+      );
+
+      return maven.length > 0 && gradle.length > 0 ? [maven, gradle] : [];
+    };
+  const visitTabs: (where: string, tabs: GuideTabs | undefined) => void = (
+    where: string,
     tabs: GuideTabs | undefined,
   ): void => {
-    if (tabs && tabs.group === "buildTool") {
-      sets.push(tabs);
+    if (!tabs) {
+      return;
+    }
+    if (tabs.group === "buildTool") {
+      twins.push({
+        where: `${where} (build tool tabs)`,
+        builds: tabs.tabs.map((tab: GuideTab): Array<GuideSnippet> => {
+          return tab.snippets.filter(isBuildFileSnippet);
+        }),
+      });
+      return;
+    }
+    for (const tab of tabs.tabs) {
+      const builds: Array<Array<GuideSnippet>> = byTool(tab.snippets);
+      if (builds.length > 0) {
+        twins.push({ where: `${where}, tab ${tab.label}`, builds: builds });
+      }
     }
   };
 
-  visit(guide.configure.tabs);
+  visitTabs("configure", guide.configure.tabs);
   for (const step of [...guide.setup.steps, ...guide.verify.steps]) {
-    visit(step.tabs);
+    visitTabs(step.title, step.tabs);
+    const builds: Array<Array<GuideSnippet>> = byTool(step.snippets || []);
+    if (builds.length > 0) {
+      twins.push({ where: step.title, builds: builds });
+    }
   }
 
-  return sets;
+  return twins;
 }
 
 function scriptKindOf(language: SnippetLanguage): ts.ScriptKind {
@@ -757,11 +797,11 @@ describe.each(BY_SLUG)(
       }
     });
 
-    test("declares the same dependencies in its Maven and Gradle tabs", () => {
-      for (const tabs of buildToolTabSets(guide)) {
-        const declared: Array<Array<string>> = tabs.tabs.map(
-          (tab: GuideTab): Array<string> => {
-            return tab.snippets
+    test("declares the same dependencies in its Maven and Gradle builds", () => {
+      for (const twin of buildTwins(guide)) {
+        const declared: Array<Array<string>> = twin.builds.map(
+          (snippets: Array<GuideSnippet>): Array<string> => {
+            return snippets
               .flatMap(buildFileDependencies)
               .map((dependency: InstalledPackage): string => {
                 return `${dependency.name}:${dependency.version || "managed"}`;
@@ -770,10 +810,10 @@ describe.each(BY_SLUG)(
           },
         );
 
-        expect(declared.length).toBeGreaterThan(1);
+        expect([twin.where, declared.length > 1]).toEqual([twin.where, true]);
         for (const each of declared) {
-          expect(each.length).toBeGreaterThan(0);
-          expect(each).toEqual(declared[0]);
+          expect([twin.where, each.length > 0]).toEqual([twin.where, true]);
+          expect([twin.where, each]).toEqual([twin.where, declared[0]]);
         }
       }
     });

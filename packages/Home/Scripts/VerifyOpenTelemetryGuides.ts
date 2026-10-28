@@ -1946,9 +1946,18 @@ function observedRecord(observed: Observed): GuideVerificationRecord["observed"]
       }),
     ),
     metrics: unique(observed.metrics),
+    /*
+     * The machine the check ran on is no one's business: its name and the
+     * folder the apps ran in are left out of the record.
+     */
     logs: unique(
       observed.logs.map((record: ObservedLog): string => {
-        return record.body.slice(0, 120);
+        return record.body
+          .split(process.env["OTEL_GUIDES_WORK_DIR"] || os.tmpdir())
+          .join("<work>")
+          .split(os.hostname())
+          .join("<host>")
+          .slice(0, 120);
       }),
     ),
   };

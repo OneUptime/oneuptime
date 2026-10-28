@@ -26,6 +26,8 @@ import { DjangoGuide } from "./Guides/Django";
 import { FlaskGuide } from "./Guides/Flask";
 import { FastApiGuide } from "./Guides/FastApi";
 import { CeleryGuide } from "./Guides/Celery";
+import { JavaGuide } from "./Guides/Java";
+import { SpringBootGuide } from "./Guides/SpringBoot";
 
 /*
  * Every OpenTelemetry guide the website publishes, in the catalog's order
@@ -51,6 +53,8 @@ export const OPEN_TELEMETRY_GUIDE_PAGES: ReadonlyArray<OpenTelemetryGuide> = [
   FlaskGuide,
   FastApiGuide,
   CeleryGuide,
+  JavaGuide,
+  SpringBootGuide,
 ];
 
 export const INTEGRATIONS_INDEX_TITLE: string = "Integrations";
