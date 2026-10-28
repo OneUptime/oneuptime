@@ -377,6 +377,8 @@ import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertSeverityService from "./AlertSeverityService";
 import DetectionRuleService from "./DetectionRuleService";
 import DetectionRuleExceptionService from "./DetectionRuleExceptionService";
+import SecurityWatchlistService from "./SecurityWatchlistService";
+import SecurityWatchlistItemService from "./SecurityWatchlistItemService";
 import SecurityEventConnectionService from "./SecurityEventConnectionService";
 import SecurityEventConnectionRunService from "./SecurityEventConnectionRunService";
 import SecurityEventDestinationService from "./SecurityEventDestinationService";
@@ -893,6 +895,8 @@ const services: Array<BaseService> = [
   AlertSeverityService,
   DetectionRuleService,
   DetectionRuleExceptionService,
+  SecurityWatchlistService,
+  SecurityWatchlistItemService,
   SecurityEventConnectionService,
   SecurityEventConnectionRunService,
   SecurityEventDestinationService,

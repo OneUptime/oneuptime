@@ -13,13 +13,28 @@ import PromptText from "../../../../Utils/AI/PromptText";
 import SigmaRuleSetParser, {
   sigmaRulesOf,
 } from "../../../../Utils/SecurityEvent/Sigma/SigmaRuleSetParser";
+import SecurityWatchlist from "../../../../Models/DatabaseModels/SecurityWatchlist";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import { SecurityEntityType } from "../../../../Types/SecurityCase/SecurityEntity";
+import {
+  SECURITY_WATCHLISTS_PER_PROJECT_MAX,
+  SigmaWatchlists,
+  getSecurityWatchlistNameKey,
+} from "../../../../Types/SecurityEvent/SecurityWatchlist";
+import {
+  bindSigmaWatchlists,
+  getDetectionRuleWatchlistReferences,
+  getMissingSigmaWatchlists,
+} from "../../../../Utils/SecurityEvent/Sigma/SigmaWatchlists";
 import AIService, {
   AI_DETECTION_RULE_DRAFT_FEATURE,
   AILogRequest,
   AILogResponse,
   INTERACTIVE_AI_GENERATION_TIMEOUT_IN_MS,
 } from "../../../Services/AIService";
+import SecurityWatchlistService from "../../../Services/SecurityWatchlistService";
 import { LLMMessage } from "../../LLM/LLMService";
+import logger from "../../Logger";
 import SigmaClickhouseCompiler from "../../SecurityEvent/Sigma/SigmaClickhouseCompiler";
 
 /*
@@ -42,6 +57,11 @@ import SigmaClickhouseCompiler from "../../SecurityEvent/Sigma/SigmaClickhouseCo
  * wait, so it is held to the interactive limits: one attempt per call,
  * within the proxy's budget, metered and billed like any other request -
  * and inside the project's daily AI limits, not the autonomous budget.
+ *
+ * The project's watchlists go with the description - their names, what
+ * each holds and what it is for, never their values - so "a sign-in by a
+ * VIP outside office hours" reads the team's own vip_users list. A draft
+ * may read only those lists.
  */
 
 export { DETECTION_RULE_DRAFT_DESCRIPTION_MAX_LENGTH };
@@ -68,7 +88,7 @@ The events are OCSF-normalized, with these typed fields (use them by these names
 - arrays: mitreTactics, mitreTechniques, observables
 Common spellings work too (CommandLine, Image, ParentImage, User, src_ip, dst_ip, DestinationPort). Any other field name is read from the event's original attributes by its exact path (e.g. eventType for Okta, outcome.result).
 
-Matching is case-insensitive. Modifiers: |contains, |startswith, |endswith, |all, |re, |cidr, |gt, |gte, |lt, |lte, |cased.
+Matching is case-insensitive. Modifiers: |contains, |startswith, |endswith, |all, |re, |cidr, |gt, |gte, |lt, |lte, |cased, and |expand, which matches a field against one of the project's watchlists, written alone as principalUser|expand: '%vip_users%'. Read a watchlist only when the request lists one that fits what the user describes.
 
 A rule with one detection fires on every matching event. To count, sequence or find something new, write a Sigma correlation in the SAME file - the correlation first, then each rule it reads, separated by "---", each read rule with its own "name:" - of one of these types:
 - event_count: at least N matching events per group within a timespan (condition: gte: N)
@@ -90,6 +110,16 @@ export interface DetectionRuleDraftResult {
   title: string;
   isCorrelation: boolean;
 }
+
+// A watchlist as the request names it: never its values.
+export interface DetectionRuleDraftWatchlist {
+  name: string;
+  holds: string;
+  description: string;
+}
+
+// What a watchlist's description may take of the request.
+const DRAFT_WATCHLIST_DESCRIPTION_MAX_LENGTH: number = 200;
 
 /*
  * The YAML in a model's answer: what a code fence holds when it wrote one
@@ -123,8 +153,11 @@ export function extractDraftYaml(answer: string): string {
  * every rule it reads, and each Sigma rule compiled. Returns what it is, or
  * throws with what is wrong.
  */
-export function validateDraftYaml(yaml: string): DetectionRuleDraftResult {
-  const definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(yaml);
+export function validateDraftYaml(
+  yaml: string,
+  options: { watchlistNames?: ReadonlyArray<string> | undefined } = {},
+): DetectionRuleDraftResult {
+  let definition: DetectionRuleDefinition = SigmaRuleSetParser.parse(yaml);
 
   if (
     definition.kind === "correlation" &&
@@ -133,6 +166,37 @@ export function validateDraftYaml(yaml: string): DetectionRuleDraftResult {
     throw new BadDataException(
       `the correlation reads rules the file does not hold: ${definition.unresolvedReferences.join(", ")}. Write each rule it reads into the same file, with its name.`,
     );
+  }
+
+  /*
+   * A draft reads only the project's watchlists: each is compiled as a list
+   * with nothing on it, which is all a check of the rule's shape needs.
+   */
+  if (getDetectionRuleWatchlistReferences(definition).length > 0) {
+    const available: SigmaWatchlists = {};
+
+    for (const name of options.watchlistNames || []) {
+      available[getSecurityWatchlistNameKey(name)] = {
+        name,
+        entityType: SecurityEntityType.Other,
+        exactValues: [],
+        patterns: [],
+        ranges: [],
+      };
+    }
+
+    const missing: Array<string> = getMissingSigmaWatchlists(
+      definition,
+      available,
+    );
+
+    if (missing.length > 0) {
+      throw new BadDataException(
+        `the rule reads watchlists the project does not have: ${missing.join(", ")}. Read only the watchlists the request lists, or match the values in the rule itself.`,
+      );
+    }
+
+    definition = bindSigmaWatchlists(definition, available);
   }
 
   for (const rule of sigmaRulesOf(definition)) {
@@ -149,7 +213,10 @@ export function validateDraftYaml(yaml: string): DetectionRuleDraftResult {
   };
 }
 
-export function buildDraftMessages(description: string): Array<LLMMessage> {
+export function buildDraftMessages(
+  description: string,
+  watchlists: ReadonlyArray<DetectionRuleDraftWatchlist> = [],
+): Array<LLMMessage> {
   const examples: Array<string> = EXAMPLE_RULE_IDS.map(
     (id: string): DetectionRuleLibraryEntry | undefined => {
       return getDetectionRuleLibraryEntry(id);
@@ -173,9 +240,74 @@ export function buildDraftMessages(description: string): Array<LLMMessage> {
         PromptText.field(description, {
           maxLength: DETECTION_RULE_DRAFT_DESCRIPTION_MAX_LENGTH,
         }),
-      )}`,
+      )}${
+        watchlists.length > 0
+          ? `\n\nThe project's watchlists (a rule reads one as field|expand: '%name%'): ${JSON.stringify(
+              watchlists.map(
+                (watchlist: DetectionRuleDraftWatchlist): object => {
+                  return {
+                    name: watchlist.name,
+                    holds: watchlist.holds,
+                    description: PromptText.field(watchlist.description, {
+                      maxLength: DRAFT_WATCHLIST_DESCRIPTION_MAX_LENGTH,
+                    }),
+                  };
+                },
+              ),
+            )}`
+          : ""
+      }`,
     },
   ];
+}
+
+/*
+ * The project's watchlists, as the request names them. A read that fails
+ * leaves them out: the draft is written without them, and one that names a
+ * list is refused by the check.
+ */
+async function readDraftWatchlists(
+  projectId: ObjectID,
+): Promise<Array<DetectionRuleDraftWatchlist>> {
+  try {
+    const watchlists: Array<SecurityWatchlist> =
+      await SecurityWatchlistService.findAllBy({
+        query: {
+          projectId,
+        },
+        select: {
+          name: true,
+          entityType: true,
+          description: true,
+        },
+        sort: {
+          name: SortOrder.Ascending,
+        },
+        limit: SECURITY_WATCHLISTS_PER_PROJECT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    return watchlists
+      .filter((watchlist: SecurityWatchlist): boolean => {
+        return Boolean(watchlist.name);
+      })
+      .map((watchlist: SecurityWatchlist): DetectionRuleDraftWatchlist => {
+        return {
+          name: watchlist.name || "",
+          holds: watchlist.entityType || SecurityEntityType.Other,
+          description: watchlist.description || "",
+        };
+      });
+  } catch (error) {
+    logger.warn(
+      "DetectionRuleDraft: could not read the project's watchlists; drafting without them.",
+    );
+    logger.warn(error);
+    return [];
+  }
 }
 
 export default class DetectionRuleDraft {
@@ -198,7 +330,17 @@ export default class DetectionRuleDraft {
      */
     await AIService.assertProjectAIEnabled(data.projectId);
 
-    const messages: Array<LLMMessage> = buildDraftMessages(description);
+    const watchlists: Array<DetectionRuleDraftWatchlist> =
+      await readDraftWatchlists(data.projectId);
+    const messages: Array<LLMMessage> = buildDraftMessages(
+      description,
+      watchlists,
+    );
+    const watchlistNames: Array<string> = watchlists.map(
+      (watchlist: DetectionRuleDraftWatchlist): string => {
+        return watchlist.name;
+      },
+    );
     let lastError: string = "";
 
     for (
@@ -229,7 +371,7 @@ export default class DetectionRuleDraft {
       const yaml: string = extractDraftYaml(response.content || "");
 
       try {
-        return validateDraftYaml(yaml);
+        return validateDraftYaml(yaml, { watchlistNames });
       } catch (error) {
         lastError =
           error instanceof Error && error.message
