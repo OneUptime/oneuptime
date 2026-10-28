@@ -858,12 +858,19 @@ async function driveBrowser(
   url: string,
   clicks: Array<string>,
 ): Promise<Array<string>> {
-  // Common's Playwright, with the Chromium it installs.
-  const playwright: {
+  /*
+   * Common's Playwright, with the Chromium it installs. Home does not depend
+   * on Playwright: the check reaches Common's copy by path, at run time.
+   */
+  type PlaywrightModule = {
     chromium: {
       launch: (options: Record<string, unknown>) => Promise<PlaywrightBrowser>;
     };
-  } = await import(path.join(COMMON, "node_modules", "playwright"));
+  };
+  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+  const playwright: PlaywrightModule = require(
+    path.join(COMMON, "node_modules", "playwright"),
+  );
   const executablePath: string | undefined =
     process.env["OTEL_GUIDES_CHROMIUM"];
   const browser: PlaywrightBrowser = await playwright.chromium.launch(
