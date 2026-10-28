@@ -48,7 +48,14 @@ import MonitorCriteriaAlignmentUtil, {
   MonitorStepsAlignmentResult,
 } from "../../../Utils/Form/Monitor/MonitorCriteriaAlignment";
 import MonitorRecommendationSeverityMapper from "Common/Types/Monitor/Recommendation/MonitorRecommendationSeverityMapper";
+import TelemetryAlertRuleUtil from "Common/Types/Monitor/TelemetryAlertRule";
 import CriteriaNameUtil from "../../../Utils/Form/Monitor/CriteriaName";
+import {
+  applyRecipe,
+  getDefaultRecipe,
+  TelemetryRuleRecipe,
+  TelemetryRuleSeeds,
+} from "../../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleRecipes";
 
 export interface ComponentProps extends CustomElementProps {
   error?: string | undefined;
@@ -112,6 +119,29 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
   /*
+   * The project's statuses and severities a telemetry rule is made with
+   * (TelemetryRuleRecipes): the operational, degraded and offline statuses
+   * and the most severe incident and alert severities.
+   */
+  const [ruleSeeds, setRuleSeeds] = React.useState<
+    Omit<TelemetryRuleSeeds, "monitorName">
+  >({});
+
+  /*
+   * Whether this form started a new monitor from nothing (no steps handed
+   * in): only then does it offer a telemetry monitor's recipes.
+   */
+  const [isNewMonitor] = React.useState<boolean>(!props.initialValue);
+
+  /*
+   * The criteria a recipe seeded, as MonitorCriteriaAlignmentUtil
+   * fingerprints them. While the step's criteria still read the same, they
+   * are nobody's work: a change of monitor type seeds the new type afresh.
+   */
+  const recipeSeedFingerprintRef: React.MutableRefObject<string | null> =
+    React.useRef<string | null>(null);
+
+  /*
    * Whether the statuses and the rest have been fetched at least once.
    * isLoading alone cannot say: it starts out false, before the fetch has
    * even begun, when every status still looks missing.
@@ -147,6 +177,67 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
    */
   const [isAdvancedCollapsed, setIsAdvancedCollapsed] =
     React.useState<boolean>(true);
+
+  /*
+   * A new monitor's steps: the type's out-of-the-box criteria, or - for a
+   * Logs, Traces, Exceptions or Metrics monitor - the rule its first recipe
+   * makes ("Too many errors"), with the part of the query it goes with.
+   */
+  const seedNewMonitorSteps: (data: {
+    monitorType: MonitorType;
+    seeds: Omit<TelemetryRuleSeeds, "monitorName">;
+    criteriaSeedOptions: {
+      defaultMonitorStatusId: ObjectID;
+      onlineMonitorStatusId: ObjectID;
+      offlineMonitorStatusId: ObjectID;
+      defaultIncidentSeverityId: ObjectID;
+      defaultAlertSeverityId: ObjectID;
+      warningAlertSeverityId?: ObjectID | undefined;
+    };
+  }) => MonitorSteps = (data: {
+    monitorType: MonitorType;
+    seeds: Omit<TelemetryRuleSeeds, "monitorName">;
+    criteriaSeedOptions: {
+      defaultMonitorStatusId: ObjectID;
+      onlineMonitorStatusId: ObjectID;
+      offlineMonitorStatusId: ObjectID;
+      defaultIncidentSeverityId: ObjectID;
+      defaultAlertSeverityId: ObjectID;
+      warningAlertSeverityId?: ObjectID | undefined;
+    };
+  }): MonitorSteps => {
+    const steps: MonitorSteps = MonitorSteps.getDefaultMonitorSteps({
+      monitorType: data.monitorType,
+      monitorName: props.monitorName || "",
+      ...data.criteriaSeedOptions,
+    });
+
+    const recipe: TelemetryRuleRecipe | null = getDefaultRecipe(
+      data.monitorType,
+    );
+    const firstStep: MonitorStep | undefined =
+      steps.data?.monitorStepsInstanceArray[0];
+
+    if (!recipe || !firstStep) {
+      recipeSeedFingerprintRef.current = null;
+      return steps;
+    }
+
+    const seededStep: MonitorStep = applyRecipe({
+      monitorStep: firstStep,
+      recipe,
+      seeds: { ...data.seeds, monitorName: props.monitorName || "" },
+      translator: translator,
+    });
+
+    steps.setMonitorStepsInstanceArray([seededStep]);
+
+    recipeSeedFingerprintRef.current = MonitorCriteriaAlignmentUtil.fingerprint(
+      seededStep.data!.monitorCriteria,
+    );
+
+    return steps;
+  };
 
   const fetchDropdownOptions: () => Promise<void> = async (): Promise<void> => {
     setIsLoading(true);
@@ -450,6 +541,28 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
         ).Warning || alertSeverityId;
 
       /*
+       * The status a telemetry rule's monitor shows while an alert is open:
+       * the first status between operational and offline, by priority
+       * (Degraded on a new project).
+       */
+      const degradedStatusId: ObjectID | undefined =
+        ArchivedValuePicker.getLiveValues(monitorStatusList.data || []).find(
+          (status: MonitorStatus) => {
+            return !status.isOperationalState && !status.isOfflineState;
+          },
+        )?.id || undefined;
+
+      const seeds: Omit<TelemetryRuleSeeds, "monitorName"> = {
+        operationalStatusId: operationalMonitorStatusId,
+        degradedStatusId: degradedStatusId,
+        offlineStatusId: offlineStatusId,
+        incidentSeverityId: incidentSeverityId,
+        alertSeverityId: alertSeverityId,
+      };
+
+      setRuleSeeds(seeds);
+
+      /*
        * Remember what the out-of-the-box criteria for a monitor type would
        * be seeded with, so the alignment effect below can tell criteria the
        * user has edited from criteria that are still untouched defaults.
@@ -473,15 +586,17 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
 
       if (!monitorSteps) {
         setMonitorSteps(
-          MonitorSteps.getDefaultMonitorSteps({
+          seedNewMonitorSteps({
             monitorType: props.monitorType,
-            monitorName: props.monitorName || "",
-            defaultMonitorStatusId: operationalMonitorStatusId!,
-            onlineMonitorStatusId: operationalMonitorStatusId!,
-            offlineMonitorStatusId: offlineStatusId!,
-            defaultIncidentSeverityId: incidentSeverityId!,
-            defaultAlertSeverityId: alertSeverityId!,
-            warningAlertSeverityId: warningAlertSeverityId,
+            seeds,
+            criteriaSeedOptions: {
+              defaultMonitorStatusId: operationalMonitorStatusId!,
+              onlineMonitorStatusId: operationalMonitorStatusId!,
+              offlineMonitorStatusId: offlineStatusId!,
+              defaultIncidentSeverityId: incidentSeverityId!,
+              defaultAlertSeverityId: alertSeverityId!,
+              warningAlertSeverityId: warningAlertSeverityId,
+            },
           }),
         );
       }
@@ -546,6 +661,41 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
     }
 
     alignedMonitorTypeRef.current = props.monitorType;
+
+    /*
+     * Still the rule a recipe seeded, untouched: nobody's work, so the new
+     * type starts afresh, on its own recipe when it has one.
+     */
+    const firstStep: MonitorStep | undefined =
+      monitorSteps.data?.monitorStepsInstanceArray[0];
+
+    if (
+      isNewMonitor &&
+      recipeSeedFingerprintRef.current &&
+      firstStep?.data?.monitorCriteria &&
+      monitorSteps.data?.monitorStepsInstanceArray.length === 1 &&
+      MonitorCriteriaAlignmentUtil.fingerprint(
+        firstStep.data.monitorCriteria,
+      ) === recipeSeedFingerprintRef.current
+    ) {
+      const reSeeded: MonitorSteps = seedNewMonitorSteps({
+        monitorType: props.monitorType,
+        seeds: ruleSeeds,
+        criteriaSeedOptions: {
+          defaultMonitorStatusId:
+            monitorSteps.data?.defaultMonitorStatusId ||
+            criteriaSeedIds.onlineMonitorStatusId,
+          onlineMonitorStatusId: criteriaSeedIds.onlineMonitorStatusId,
+          offlineMonitorStatusId: criteriaSeedIds.offlineMonitorStatusId,
+          defaultIncidentSeverityId: criteriaSeedIds.defaultIncidentSeverityId,
+          defaultAlertSeverityId: criteriaSeedIds.defaultAlertSeverityId,
+          warningAlertSeverityId: criteriaSeedIds.warningAlertSeverityId,
+        },
+      });
+
+      setMonitorSteps(reSeeded);
+      return;
+    }
 
     const result: MonitorStepsAlignmentResult =
       MonitorCriteriaAlignmentUtil.alignMonitorStepsWithMonitorType({
@@ -625,6 +775,23 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
    */
   const error: string | undefined = props.error || loadError;
 
+  /*
+   * A telemetry monitor whose criteria read as one rule (TelemetryRuleEditor)
+   * says "the rule", not "criteria", in the fold below it.
+   */
+  const firstMonitorStep: MonitorStep | undefined =
+    monitorSteps?.data?.monitorStepsInstanceArray[0];
+
+  const isOneRule: boolean = Boolean(
+    firstMonitorStep &&
+      monitorSteps?.data?.monitorStepsInstanceArray.length === 1 &&
+      TelemetryAlertRuleUtil.read({
+        monitorType: props.monitorType,
+        monitorStep: firstMonitorStep,
+        defaultMonitorStatusId: monitorSteps?.data?.defaultMonitorStatusId,
+      }).rule,
+  );
+
   const defaultMonitorStatusColor: string | undefined =
     defaultMonitorStatusOption?.color
       ? new Color(defaultMonitorStatusOption.color).toString()
@@ -649,9 +816,19 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
       )}
       <span className="truncate">
         {defaultMonitorStatusOption
-          ? translator.translateTemplate("When no criteria match: {{status}}", {
-              status: translatableTerm(defaultMonitorStatusOption.label),
-            })
+          ? isOneRule
+            ? translator.translateTemplate(
+                "When the rule does not match: {{status}}",
+                {
+                  status: translatableTerm(defaultMonitorStatusOption.label),
+                },
+              )
+            : translator.translateTemplate(
+                "When no criteria match: {{status}}",
+                {
+                  status: translatableTerm(defaultMonitorStatusOption.label),
+                },
+              )
           : translator.translateText("No default monitor status")}
       </span>
     </span>
@@ -683,6 +860,13 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
               defaultAlertSeverityId={defaultAlertSeverityId}
               monitorName={props.monitorName}
               foldDefaultCriteria={props.foldDefaultCriteria}
+              defaultMonitorStatusId={monitorSteps.data?.defaultMonitorStatusId}
+              ruleSeeds={{
+                ...ruleSeeds,
+                monitorName: props.monitorName || "",
+              }}
+              offerRecipes={isNewMonitor}
+              showErrors={Boolean(error)}
               /*
                * onDelete={() => {
                *     // remove the criteria filter
@@ -777,7 +961,11 @@ const MonitorStepsElement: FunctionComponent<ComponentProps> = (
           <div data-testid="monitor-default-status-field">
             <FieldLabelElement
               title="Default Monitor Status"
-              description="What should the monitor status be when none of the above criteria is met?"
+              description={
+                isOneRule
+                  ? "The monitor's status while the rule does not match."
+                  : "What should the monitor status be when none of the above criteria is met?"
+              }
               required={true}
             />
 

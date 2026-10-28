@@ -31,7 +31,9 @@ const range: RangeFunction = (
   return TelemetryRulePreviewUtil.getRange({ windowInSeconds, now: NOW });
 };
 
-type PointsFunction = (values: Array<number>) => Array<TelemetryRulePreviewPoint>;
+type PointsFunction = (
+  values: Array<number>,
+) => Array<TelemetryRulePreviewPoint>;
 
 const points: PointsFunction = (
   values: Array<number>,
@@ -92,7 +94,19 @@ describe("The windows a preview reads", () => {
 
   test("no window, and no range, is ever larger than the bounds", () => {
     for (const windowInSeconds of [
-      1, 5, 10, 30, 60, 300, 900, 1800, 3600, 21600, 43200, 86400, 604800,
+      1,
+      5,
+      10,
+      30,
+      60,
+      300,
+      900,
+      1800,
+      3600,
+      21600,
+      43200,
+      86400,
+      604800,
       Number.MAX_SAFE_INTEGER,
     ]) {
       const read: TelemetryRulePreviewRange = range(windowInSeconds);
@@ -195,6 +209,7 @@ describe("What the rule makes of the windows", () => {
       });
 
     expect(summary).toEqual({
+      hasData: true,
       windowCount: 8,
       matchedWindowCount: 4,
       // 12,15 then 30 then 11: three runs.
@@ -243,6 +258,7 @@ describe("What the rule makes of the windows", () => {
         threshold: 1,
       }),
     ).toEqual({
+      hasData: false,
       windowCount: 0,
       matchedWindowCount: 0,
       timesItWouldHaveFired: 0,
@@ -251,6 +267,34 @@ describe("What the rule makes of the windows", () => {
       typical: 0,
       latest: undefined,
     });
+  });
+
+  test("the empty windows before the first one with data are not judged: nothing was sending yet", () => {
+    const summary: TelemetryRulePreviewSummary =
+      TelemetryRulePreviewUtil.summarize({
+        points: points([0, 0, 0, 0, 12, 14, 0, 13]),
+        filterType: FilterType.EqualTo,
+        threshold: 0,
+      });
+
+    // Only the 0 after the data began is a window with no logs.
+    expect(summary.windowCount).toBe(4);
+    expect(summary.matchedWindowCount).toBe(1);
+    expect(summary.timesItWouldHaveFired).toBe(1);
+    expect(summary.typical).toBe(12);
+    expect(summary.lowest).toBe(0);
+  });
+
+  test("nothing at all in any window: no data to judge", () => {
+    const summary: TelemetryRulePreviewSummary =
+      TelemetryRulePreviewUtil.summarize({
+        points: points([0, 0, 0]),
+        filterType: FilterType.EqualTo,
+        threshold: 0,
+      });
+
+    expect(summary.hasData).toBe(false);
+    expect(summary.timesItWouldHaveFired).toBe(0);
   });
 });
 

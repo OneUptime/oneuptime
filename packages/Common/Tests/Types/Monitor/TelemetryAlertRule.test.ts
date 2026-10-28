@@ -289,9 +289,9 @@ describe("Which monitor types have a rule", () => {
     for (const monitorType of others) {
       expect(TelemetryAlertRuleUtil.isRuleMonitorType(monitorType)).toBe(false);
       expect(TelemetryAlertRuleUtil.getMeasureCheckOn(monitorType)).toBeNull();
-      expect(
-        read(monitorType, defaultStep(MonitorType.Logs)).problem,
-      ).toBe(TelemetryAlertRuleShapeProblem.NotARuleMonitorType);
+      expect(read(monitorType, defaultStep(MonitorType.Logs)).problem).toBe(
+        TelemetryAlertRuleShapeProblem.NotARuleMonitorType,
+      );
     }
 
     expect(TelemetryAlertRuleUtil.isRuleMonitorType(undefined)).toBe(false);
@@ -414,7 +414,9 @@ describe("The out-of-the-box criteria read as a rule", () => {
 
   test("Metrics: a value of 0 opens an incident, over the rolling time", () => {
     const step: MonitorStep = metricStep();
-    step.setMonitorCriteria(defaultStep(MonitorType.Metrics).data!.monitorCriteria);
+    step.setMonitorCriteria(
+      defaultStep(MonitorType.Metrics).data!.monitorCriteria,
+    );
 
     const rule: TelemetryAlertRule = ruleOf(MonitorType.Metrics, step);
 
@@ -473,8 +475,8 @@ describe("The out-of-the-box criteria read as a rule", () => {
     });
 
     expect(
-      written.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[1]!
-        .data!.filters[0],
+      written.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[1]!.data!
+        .filters[0],
     ).toMatchObject({
       checkOn: CheckOn.MetricValue,
       filterType: FilterType.LessThanOrEqualTo,
@@ -635,8 +637,8 @@ describe("Pairs written elsewhere read as a rule", () => {
     });
 
     expect(
-      written.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[1]!
-        .data!.filters[0],
+      written.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[1]!.data!
+        .filters[0],
     ).toMatchObject({ filterType: FilterType.LessThanOrEqualTo, value: 95 });
   });
 
@@ -821,13 +823,6 @@ describe("Criteria that are not one rule open in the full editor", () => {
       problem: TelemetryAlertRuleShapeProblem.UnsupportedCondition,
     },
     {
-      name: "a threshold with no value",
-      instance: instanceOf({
-        filters: [countFilter(CheckOn.LogCount, FilterType.GreaterThan, "")],
-      }),
-      problem: TelemetryAlertRuleShapeProblem.NoValue,
-    },
-    {
       name: "two incidents",
       instance: instanceOf({
         filters: [countFilter(CheckOn.LogCount, FilterType.GreaterThan, 1)],
@@ -852,24 +847,52 @@ describe("Criteria that are not one rule open in the full editor", () => {
       const step: MonitorStep = defaultStep(MonitorType.Logs);
       step.setMonitorCriteria(criteriaOf([testCase.instance]));
 
-      const result: TelemetryAlertRuleReadResult = read(
-        MonitorType.Logs,
-        step,
-      );
+      const result: TelemetryAlertRuleReadResult = read(MonitorType.Logs, step);
 
       expect(result.rule).toBeNull();
       expect(result.problem).toBe(testCase.problem);
     });
   }
 
+  test("a rule still waiting for its value is a rule, with no value", () => {
+    for (const value of ["", undefined]) {
+      const step: MonitorStep = defaultStep(MonitorType.Logs);
+      step.setMonitorCriteria(
+        criteriaOf([
+          instanceOf({
+            filters: [
+              countFilter(CheckOn.LogCount, FilterType.GreaterThan, value),
+            ],
+            monitorStatusId: DEGRADED,
+            createAlerts: true,
+            alertCount: 1,
+          }),
+        ]),
+      );
+
+      expect(ruleOf(MonitorType.Logs, step).threshold).toBeUndefined();
+      // Saving it is refused until it has one.
+      expect(
+        MonitorCriteria.getValidationError(
+          step.data!.monitorCriteria,
+          MonitorType.Logs,
+        ),
+      ).toContain("Value is required");
+    }
+  });
+
   test("three criteria", () => {
     const step: MonitorStep = defaultStep(MonitorType.Logs);
     step.setMonitorCriteria(
-      criteriaOf([1, 2, 3].map((value: number) => {
-        return instanceOf({
-          filters: [countFilter(CheckOn.LogCount, FilterType.GreaterThan, value)],
-        });
-      })),
+      criteriaOf(
+        [1, 2, 3].map((value: number) => {
+          return instanceOf({
+            filters: [
+              countFilter(CheckOn.LogCount, FilterType.GreaterThan, value),
+            ],
+          });
+        }),
+      ),
     );
 
     expect(read(MonitorType.Logs, step).problem).toBe(
@@ -1095,7 +1118,9 @@ describe("Counts are compared as whole numbers", () => {
     step.setMonitorCriteria(
       criteriaOf([
         instanceOf({
-          filters: [countFilter(CheckOn.LogCount, FilterType.GreaterThan, "10")],
+          filters: [
+            countFilter(CheckOn.LogCount, FilterType.GreaterThan, "10"),
+          ],
           monitorStatusId: DEGRADED,
           createAlerts: true,
           alertCount: 1,
@@ -1121,8 +1146,8 @@ describe("Counts are compared as whole numbers", () => {
     });
 
     expect(
-      changed.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!
-        .data!.filters[0]!.value,
+      changed.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!.data!
+        .filters[0]!.value,
     ).toBe(12);
   });
 });
@@ -1269,9 +1294,9 @@ describe("Writing a rule back", () => {
       filterType: FilterType.LessThanOrEqualTo,
       value: 10,
     });
-    expect(
-      ruleOf(MonitorType.Logs, written).recovery,
-    ).toBe(TelemetryAlertRuleRecovery.Opposite);
+    expect(ruleOf(MonitorType.Logs, written).recovery).toBe(
+      TelemetryAlertRuleRecovery.Opposite,
+    );
   });
 
   test("back to none: the opposite of 'is 0' is written as 'more than 0'", () => {
@@ -1285,7 +1310,11 @@ describe("Writing a rule back", () => {
     const back: MonitorStep = TelemetryAlertRuleUtil.write({
       monitorType: MonitorType.Logs,
       monitorStep: raised,
-      rule: { ...ruleOf(MonitorType.Logs, raised), filterType: FilterType.EqualTo, threshold: 0 },
+      rule: {
+        ...ruleOf(MonitorType.Logs, raised),
+        filterType: FilterType.EqualTo,
+        threshold: 0,
+      },
     });
 
     expect(
@@ -1327,9 +1356,7 @@ describe("Writing a rule back", () => {
     expect(anomalyRule.anomalyDetection?.sensitivity).toBe(
       AnomalyDetectionSensitivity.High,
     );
-    expect(anomalyRule.recovery).toBe(
-      TelemetryAlertRuleRecovery.DefaultStatus,
-    );
+    expect(anomalyRule.recovery).toBe(TelemetryAlertRuleRecovery.DefaultStatus);
   });
 
   test("the action: alert, incident, both, or the status only", () => {
@@ -1466,8 +1493,8 @@ describe("Writing a rule back", () => {
     });
 
     expect(
-      written.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!
-        .data!.filters[0]!.metricMonitorOptions,
+      written.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[0]!.data!
+        .filters[0]!.metricMonitorOptions,
     ).toEqual({
       metricAlias: "b",
       metricAggregationType: EvaluateOverTimeType.MaximumValue,
@@ -1507,8 +1534,8 @@ describe("Writing a rule back", () => {
     });
 
     expect(
-      written.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[1]!
-        .data!.filters[0]!.metricMonitorOptions,
+      written.data!.monitorCriteria.data!.monitorCriteriaInstanceArray[1]!.data!
+        .filters[0]!.metricMonitorOptions,
     ).toEqual({
       metricAlias: "b",
       metricAggregationType: EvaluateOverTimeType.Average,
@@ -1625,15 +1652,43 @@ describe("Matching a value, as the server compares one number", () => {
       filterType: FilterType,
       value: number,
     ): boolean => {
-      return TelemetryAlertRuleUtil.matches({ filterType, threshold: 10, value });
+      return TelemetryAlertRuleUtil.matches({
+        filterType,
+        threshold: 10,
+        value,
+      });
     };
 
-    expect([9, 10, 11].map((v: number) => at(FilterType.GreaterThan, v))).toEqual([false, false, true]);
-    expect([9, 10, 11].map((v: number) => at(FilterType.GreaterThanOrEqualTo, v))).toEqual([false, true, true]);
-    expect([9, 10, 11].map((v: number) => at(FilterType.LessThan, v))).toEqual([true, false, false]);
-    expect([9, 10, 11].map((v: number) => at(FilterType.LessThanOrEqualTo, v))).toEqual([true, true, false]);
-    expect([9, 10, 11].map((v: number) => at(FilterType.EqualTo, v))).toEqual([false, true, false]);
-    expect([9, 10, 11].map((v: number) => at(FilterType.NotEqualTo, v))).toEqual([true, false, true]);
+    expect(
+      [9, 10, 11].map((v: number) => {
+        return at(FilterType.GreaterThan, v);
+      }),
+    ).toEqual([false, false, true]);
+    expect(
+      [9, 10, 11].map((v: number) => {
+        return at(FilterType.GreaterThanOrEqualTo, v);
+      }),
+    ).toEqual([false, true, true]);
+    expect(
+      [9, 10, 11].map((v: number) => {
+        return at(FilterType.LessThan, v);
+      }),
+    ).toEqual([true, false, false]);
+    expect(
+      [9, 10, 11].map((v: number) => {
+        return at(FilterType.LessThanOrEqualTo, v);
+      }),
+    ).toEqual([true, true, false]);
+    expect(
+      [9, 10, 11].map((v: number) => {
+        return at(FilterType.EqualTo, v);
+      }),
+    ).toEqual([false, true, false]);
+    expect(
+      [9, 10, 11].map((v: number) => {
+        return at(FilterType.NotEqualTo, v);
+      }),
+    ).toEqual([true, false, true]);
     expect(at(FilterType.AnomalouslyHigh, 1000)).toBe(false);
   });
 

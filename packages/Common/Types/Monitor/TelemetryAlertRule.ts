@@ -106,7 +106,6 @@ export enum TelemetryAlertRuleShapeProblem {
   SeveralFilters = "SeveralFilters",
   OtherCheck = "OtherCheck",
   UnsupportedCondition = "UnsupportedCondition",
-  NoValue = "NoValue",
   SeveralIncidentsOrAlerts = "SeveralIncidentsOrAlerts",
   GroupedIncidents = "GroupedIncidents",
   UnknownMetric = "UnknownMetric",
@@ -501,7 +500,11 @@ export default class TelemetryAlertRuleUtil {
       return step;
     }
 
-    TelemetryAlertRuleUtil.writeWindow({ monitorType, monitorStep: step, rule });
+    TelemetryAlertRuleUtil.writeWindow({
+      monitorType,
+      monitorStep: step,
+      rule,
+    });
 
     const instances: Array<MonitorCriteriaInstance> = (
       step.data.monitorCriteria?.data?.monitorCriteriaInstanceArray || []
@@ -769,12 +772,11 @@ export default class TelemetryAlertRuleUtil {
       return TelemetryAlertRuleShapeProblem.UnsupportedCondition;
     }
 
-    if (
-      !TelemetryAlertRuleUtil.isAnomaly(filter.filterType) &&
-      TelemetryAlertRuleUtil.toNumber(filter.value) === undefined
-    ) {
-      return TelemetryAlertRuleShapeProblem.NoValue;
-    }
+    /*
+     * A rule without a value is still a rule: a new Metrics monitor starts
+     * on "above a value" and asks for the value, and the criteria cannot be
+     * saved until it has one (MonitorCriteriaInstance.getValidationError).
+     */
 
     if (instanceData.incidents.length > 1 || instanceData.alerts.length > 1) {
       return TelemetryAlertRuleShapeProblem.SeveralIncidentsOrAlerts;
@@ -1079,7 +1081,11 @@ export default class TelemetryAlertRuleUtil {
         ...(data.previous?.metricMonitorOptions || {}),
       };
 
-      TelemetryAlertRuleUtil.setOrDelete(options, "metricAlias", rule.metricAlias);
+      TelemetryAlertRuleUtil.setOrDelete(
+        options,
+        "metricAlias",
+        rule.metricAlias,
+      );
       TelemetryAlertRuleUtil.setOrDelete(
         options,
         "metricAggregationType",
@@ -1189,10 +1195,10 @@ export default class TelemetryAlertRuleUtil {
 
     recoveryFilter.value =
       data.recovery === TelemetryAlertRuleRecovery.OppositeWithMargin
-        ? (getRecoveryThreshold({
+        ? getRecoveryThreshold({
             filterType: ruleFilter.filterType!,
             value: ruleValue,
-          }) ?? ruleValue)
+          }) ?? ruleValue
         : ruleValue;
 
     return recoveryFilter;
@@ -1296,7 +1302,7 @@ export default class TelemetryAlertRuleUtil {
     return Math.abs(a - b) <= scale * 1e-9;
   }
 
-  private static setOrDelete<T extends object, K extends keyof T>(
+  private static setOrDelete<T, K extends keyof T>(
     target: T,
     key: K,
     value: T[K] | undefined,

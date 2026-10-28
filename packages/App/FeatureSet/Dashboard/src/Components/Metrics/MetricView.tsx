@@ -1384,27 +1384,32 @@ const MetricViewBody: FunctionComponent<MetricViewBodyInternalProps> = (
                     : "Pick a metric in the query editor above and its chart will appear here.",
                 )}
               </p>
-              {!props.hideQueryElements && (
-                <div className="mt-4 flex justify-center">
-                  <Button
-                    title="Add metric query"
-                    buttonStyle={ButtonStyleType.PRIMARY}
-                    buttonSize={ButtonSize.Small}
-                    icon={IconProp.Add}
-                    onClick={() => {
-                      if (props.onChange) {
-                        props.onChange({
-                          ...props.data,
-                          queryConfigs: [
-                            ...props.data.queryConfigs,
-                            getEmptyQueryConfigData(),
-                          ],
-                        });
-                      }
-                    }}
-                  />
-                </div>
-              )}
+              {/*
+               * Only with no query at all: a query waiting for its metric
+               * is filled in above, and a second empty one would not help.
+               */}
+              {!props.hideQueryElements &&
+                props.data.queryConfigs.length === 0 && (
+                  <div className="mt-4 flex justify-center">
+                    <Button
+                      title="Add metric query"
+                      buttonStyle={ButtonStyleType.PRIMARY}
+                      buttonSize={ButtonSize.Small}
+                      icon={IconProp.Add}
+                      onClick={() => {
+                        if (props.onChange) {
+                          props.onChange({
+                            ...props.data,
+                            queryConfigs: [
+                              ...props.data.queryConfigs,
+                              getEmptyQueryConfigData(),
+                            ],
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                )}
             </div>
           )}
 

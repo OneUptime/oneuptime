@@ -14,8 +14,9 @@ import {
 } from "Common/UI/Components/Forms/Types/Field";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { FOLDED_SECTION_LINE } from "Common/UI/Components/FoldedSection/FoldedSectionVariant";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import LogMonitorPreview from "../../../Monitor/LogMonitor/LogMonitorPreview";
 import LogGroupByAttributesInput from "./LogGroupByAttributesInput";
 
@@ -37,6 +38,9 @@ import LogGroupByAttributesInput from "./LogGroupByAttributesInput";
 const MORE_LOG_FILTERS: FormFieldCollapsibleSection<MonitorStepLogMonitor> =
   getAdvancedFormSection<MonitorStepLogMonitor>();
 
+// The fold under the filters that lists the logs they match.
+export const MATCHING_LOGS_TITLE: string = translationKey("Matching logs");
+
 export interface ComponentProps {
   monitorStepLogMonitor: MonitorStepLogMonitor;
   onMonitorStepLogMonitorChanged: (
@@ -57,6 +61,14 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [monitorStepLogMonitor, setMonitorStepLogMonitor] =
     React.useState<MonitorStepLogMonitor>(props.monitorStepLogMonitor);
 
+  /*
+   * The logs these filters match, folded: the rule's preview below counts
+   * them, and the list is there for whoever wants to read them. Drawn only
+   * once opened, so the form reads no logs until it is.
+   */
+  const [isMatchingLogsCollapsed, setIsMatchingLogsCollapsed] =
+    React.useState<boolean>(true);
+
   return (
     <div>
       <BasicForm
@@ -68,73 +80,11 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
           props.onMonitorStepLogMonitorChanged(values);
         }}
         fields={[
-          {
-            field: {
-              body: true,
-            },
-            fieldType: FormFieldSchemaType.Text,
-            title: "Monitor Logs that include this text",
-            description:
-              "This monitor will filter all the logs that include this text.",
-            hideOptionalLabel: true,
-          },
-          {
-            field: {
-              lastXSecondsOfLogs: true,
-            },
-            defaultValue: 60,
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: [
-              {
-                label: "Last 5 seconds",
-                value: 5,
-              },
-              {
-                label: "Last 10 seconds",
-                value: 10,
-              },
-              {
-                label: "Last 30 seconds",
-                value: 30,
-              },
-              {
-                label: "Last 1 minute",
-                value: 60,
-              },
-              {
-                label: "Last 5 minutes",
-                value: 300,
-              },
-              {
-                label: "Last 15 minutes",
-                value: 900,
-              },
-              {
-                label: "Last 30 minutes",
-                value: 1800,
-              },
-              {
-                label: "Last 1 hour",
-                value: 3600,
-              },
-              {
-                label: "Last 6 hours",
-                value: 21600,
-              },
-              {
-                label: "Last 12 hours",
-                value: 43200,
-              },
-              {
-                label: "Last 24 hours",
-                value: 86400,
-              },
-            ],
-            title: "Monitor Logs for (time)",
-            description:
-              "We will fetch all the logs that were generated in the last X time.",
-            hideOptionalLabel: true,
-          },
+          /*
+           * The time window is the rule's ("When to alert": "more than 10
+           * in 5 minutes"), so it is set there, beside the number it goes
+           * with.
+           */
           {
             field: {
               severityTexts: true,
@@ -143,7 +93,19 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
               DropdownUtil.getDropdownOptionsFromEnum(LogSeverity),
             fieldType: FormFieldSchemaType.MultiSelectDropdown,
             title: "Log Severity",
-            description: "Select the severity of the logs you want to monitor.",
+            description:
+              "Only logs of these severities. Empty: every severity.",
+            hideOptionalLabel: true,
+          },
+          {
+            field: {
+              body: true,
+            },
+            fieldType: FormFieldSchemaType.Text,
+            title: "Message contains",
+            description:
+              "Only logs whose message contains this text, in any case. Empty: every message.",
+            placeholder: "payment declined",
             hideOptionalLabel: true,
           },
           /*
@@ -267,20 +229,25 @@ const LogMonitorStepForm: FunctionComponent<ComponentProps> = (
           },
         ]}
       />
-      <div>
-        <HorizontalRule />
-        <FieldLabelElement
-          title={"Logs Preview"}
-          description={
-            "The logs these filters match, so you can check the filters before you save."
-          }
-          hideOptionalLabel={true}
-          isHeading={true}
-        />
-        <div className="mt-5 mb-5">
-          <LogMonitorPreview monitorStepLogMonitor={monitorStepLogMonitor} />
-        </div>
-      </div>
+      <FoldedSection
+        title={MATCHING_LOGS_TITLE}
+        description="The logs these filters match now, to check them before you save."
+        variant={FOLDED_SECTION_LINE}
+        className="mt-4"
+        isCollapsed={isMatchingLogsCollapsed}
+        onToggle={(isCollapsed: boolean) => {
+          setIsMatchingLogsCollapsed(isCollapsed);
+        }}
+        dataTestId="log-monitor-matching-logs"
+      >
+        {isMatchingLogsCollapsed ? (
+          <></>
+        ) : (
+          <div className="mt-2">
+            <LogMonitorPreview monitorStepLogMonitor={monitorStepLogMonitor} />
+          </div>
+        )}
+      </FoldedSection>
     </div>
   );
 };

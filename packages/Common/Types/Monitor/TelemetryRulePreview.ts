@@ -51,7 +51,15 @@ export interface TelemetryRulePreviewPoint {
 }
 
 export interface TelemetryRulePreviewSummary {
-  // How many windows were read.
+  /*
+   * Whether anything matched in any window. Without it there is nothing to
+   * judge: the rule's monitor may not have been sending yet.
+   */
+  hasData: boolean;
+  /*
+   * How many windows were judged: from the first that held anything, since
+   * the windows before it say only that nothing was sending yet.
+   */
   windowCount: number;
   // How many of them the rule matches.
   matchedWindowCount: number;
@@ -77,8 +85,9 @@ export default class TelemetryRulePreviewUtil {
     windowInSeconds: number;
     now: Date;
   }): TelemetryRulePreviewRange {
-    const windowInSeconds: number =
-      TelemetryRulePreviewUtil.clampWindow(data.windowInSeconds);
+    const windowInSeconds: number = TelemetryRulePreviewUtil.clampWindow(
+      data.windowInSeconds,
+    );
     const windowInMs: number = windowInSeconds * 1000;
 
     const windowCount: number = Math.max(
@@ -160,11 +169,20 @@ export default class TelemetryRulePreviewUtil {
     filterType: FilterType | undefined;
     threshold: number | undefined;
   }): TelemetryRulePreviewSummary {
-    const values: Array<number> = data.points.map(
+    const firstWithData: number = data.points.findIndex(
       (point: TelemetryRulePreviewPoint) => {
-        return point.value;
+        return point.value > 0;
       },
     );
+
+    const values: Array<number> =
+      firstWithData < 0
+        ? []
+        : data.points
+            .slice(firstWithData)
+            .map((point: TelemetryRulePreviewPoint) => {
+              return point.value;
+            });
 
     let matchedWindowCount: number = 0;
     let timesItWouldHaveFired: number = 0;
@@ -193,6 +211,7 @@ export default class TelemetryRulePreviewUtil {
     });
 
     return {
+      hasData: values.length > 0,
       windowCount: values.length,
       matchedWindowCount,
       timesItWouldHaveFired,

@@ -14,8 +14,9 @@ import BasicForm from "Common/UI/Components/Forms/BasicForm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
-import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
-import HorizontalRule from "Common/UI/Components/HorizontalRule/HorizontalRule";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { FOLDED_SECTION_LINE } from "Common/UI/Components/FoldedSection/FoldedSectionVariant";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import ObjectID from "Common/Types/ObjectID";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -74,19 +75,10 @@ type ExceptionMonitorFormValues = {
 const MORE_EXCEPTION_FILTERS: FormFieldCollapsibleSection<ExceptionMonitorFormValues> =
   getAdvancedFormSection<ExceptionMonitorFormValues>();
 
-const DURATION_OPTIONS: Array<{ label: string; value: number }> = [
-  { label: "Last 5 seconds", value: 5 },
-  { label: "Last 10 seconds", value: 10 },
-  { label: "Last 30 seconds", value: 30 },
-  { label: "Last 1 minute", value: 60 },
-  { label: "Last 5 minutes", value: 300 },
-  { label: "Last 15 minutes", value: 900 },
-  { label: "Last 30 minutes", value: 1800 },
-  { label: "Last 1 hour", value: 3600 },
-  { label: "Last 6 hours", value: 21600 },
-  { label: "Last 12 hours", value: 43200 },
-  { label: "Last 24 hours", value: 86400 },
-];
+// The fold under the filters that lists the exceptions they match.
+export const MATCHING_EXCEPTIONS_TITLE: string = translationKey(
+  "Matching exceptions",
+);
 
 type ParseCommaSeparatedListFunction = (input: string) => Array<string>;
 
@@ -167,6 +159,9 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
   const [formValues, setFormValues] = useState<ExceptionMonitorFormValues>(
     toFormValues(props.monitorStepExceptionMonitor),
   );
+
+  // Folded, and read only once opened: the rule's preview counts them.
+  const [isMatchingCollapsed, setIsMatchingCollapsed] = useState<boolean>(true);
 
   /*
    * Only the values follow the step handed back: whether More fields is
@@ -388,9 +383,9 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
               message: true,
             },
             fieldType: FormFieldSchemaType.Text,
-            title: "Filter Exception Message",
+            title: "Message contains",
             description:
-              "Filter exceptions that include this text in the message.",
+              "Only exceptions whose message contains this text. Empty: every message.",
             hideOptionalLabel: true,
           },
           {
@@ -415,20 +410,10 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             placeholder: "production, staging",
             hideOptionalLabel: true,
           },
-          {
-            field: {
-              lastXSecondsOfExceptions: true,
-            },
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: DURATION_OPTIONS,
-            title: "Monitor exceptions for (time)",
-            description:
-              "We will evaluate exceptions generated within this time window.",
-            defaultValue:
-              MonitorStepExceptionMonitorUtil.getDefault()
-                .lastXSecondsOfExceptions,
-            hideOptionalLabel: true,
-          },
+          /*
+           * The time window is the rule's ("When to alert"), set there
+           * beside the number it goes with.
+           */
           {
             field: {
               telemetryServiceIds: true,
@@ -494,24 +479,29 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
         ]}
       />
 
-      <div>
-        <HorizontalRule />
-        <FieldLabelElement
-          title="Exceptions Preview"
-          description={
-            "The exceptions these filters match, so you can check the filters before you save."
-          }
-          hideOptionalLabel={true}
-          isHeading={true}
-        />
-        <div className="mt-5 mb-5">
-          <ExceptionInstanceTable
-            title="Exceptions Preview"
-            description="Exceptions matching the current monitor filters."
-            query={previewQuery}
-          />
-        </div>
-      </div>
+      <FoldedSection
+        title={MATCHING_EXCEPTIONS_TITLE}
+        description="The exceptions these filters match now, to check them before you save."
+        variant={FOLDED_SECTION_LINE}
+        className="mt-4"
+        isCollapsed={isMatchingCollapsed}
+        onToggle={(isCollapsed: boolean) => {
+          setIsMatchingCollapsed(isCollapsed);
+        }}
+        dataTestId="exception-monitor-matching-exceptions"
+      >
+        {isMatchingCollapsed ? (
+          <></>
+        ) : (
+          <div className="mt-2">
+            <ExceptionInstanceTable
+              title="Matching exceptions"
+              description="Exceptions matching the current monitor filters."
+              query={previewQuery}
+            />
+          </div>
+        )}
+      </FoldedSection>
     </div>
   );
 };

@@ -476,7 +476,7 @@ export default class MonitorCriteriaAlignmentUtil {
    * without normalising both reports every seed as edited, and nothing is
    * ever re-seeded.
    */
-  private static fingerprint(monitorCriteria: MonitorCriteria): string {
+  public static fingerprint(monitorCriteria: MonitorCriteria): string {
     return MonitorCriteriaAlignmentUtil.stableStringify(
       MonitorCriteria.fromJSON(monitorCriteria.toJSON()).toJSON() as JSONValue,
     );

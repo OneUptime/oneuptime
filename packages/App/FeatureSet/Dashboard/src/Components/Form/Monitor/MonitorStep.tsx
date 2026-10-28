@@ -1,4 +1,18 @@
 import MonitorCriteriaElement from "./MonitorCriteria";
+import TelemetryRuleEditor from "./TelemetryRule/TelemetryRuleEditor";
+import TelemetryRuleRecipePicker from "./TelemetryRule/TelemetryRuleRecipePicker";
+import TelemetryAlertRuleUtil from "Common/Types/Monitor/TelemetryAlertRule";
+import MonitorStepMetricViewConfigUtil from "Common/Types/Monitor/MonitorStepMetricViewConfigUtil";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
+import {
+  applyRecipe,
+  findRecipe,
+  getRecipe,
+  getRecipes,
+  TelemetryRuleRecipe,
+  TelemetryRuleRecipeKey,
+  TelemetryRuleSeeds,
+} from "../../../Utils/Form/Monitor/TelemetryRule/TelemetryRuleRecipes";
 import MonitorTemplateSyncFields from "./MonitorTemplateSyncFields";
 import { IncidentRoleOption } from "./MonitorCriteriaIncidentForm";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
@@ -239,7 +253,40 @@ export interface ComponentProps {
   monitorName?: string | undefined;
   // Fold each criteria to its header (MonitorCriteria: foldDefaultCriteria).
   foldDefaultCriteria?: boolean | undefined;
+  /*
+   * For a telemetry monitor's rule (TelemetryRuleEditor): the status the
+   * monitor shows when no criteria match, the project's statuses and
+   * severities a rule is made with, and - on a new monitor - whether to
+   * offer its recipes.
+   */
+  defaultMonitorStatusId?: ObjectID | undefined;
+  ruleSeeds?: TelemetryRuleSeeds | undefined;
+  offerRecipes?: boolean | undefined;
+  // Whether the form was sent with an error in these steps.
+  showErrors?: boolean | undefined;
 }
+
+/*
+ * The values a telemetry rule's alert and incident titles can place: a
+ * metric query's group-by keys, a Logs monitor's group-by attributes.
+ */
+export const getRuleSeriesAttributeKeys: (
+  monitorStep: MonitorStep,
+) => Array<string> = (monitorStep: MonitorStep): Array<string> => {
+  return Array.from(
+    new Set([
+      ...(
+        MonitorStepMetricViewConfigUtil.getMetricViewConfig(monitorStep.data)
+          ?.queryConfigs || []
+      ).flatMap((query: MetricQueryConfigData): Array<string> => {
+        return query.metricQueryData?.groupByAttributeKeys || [];
+      }),
+      ...MonitorStepLogMonitorUtil.getGroupByAttributes(
+        monitorStep.data?.logMonitor,
+      ),
+    ]),
+  );
+};
 
 const MonitorStepElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -268,6 +315,35 @@ const MonitorStepElement: FunctionComponent<ComponentProps> = (
   ] = useState<boolean>(false);
 
   const [telemetryServices, setServices] = useState<Array<Service>>([]);
+
+  const isRuleMonitorType: boolean = TelemetryAlertRuleUtil.isRuleMonitorType(
+    props.monitorType,
+  );
+
+  const recipes: Array<TelemetryRuleRecipe> = getRecipes(props.monitorType);
+
+  /*
+   * The recipe the step's rule is, as it stood when the step was drawn, and
+   * then the one picked: "Something else" stays picked once picked, though
+   * the rule may still read as a recipe.
+   */
+  const [selectedRecipe, setSelectedRecipe] = useState<TelemetryRuleRecipeKey>(
+    () => {
+      return props.value && recipes.length > 0
+        ? findRecipe({
+            monitorType: props.monitorType,
+            monitorStep: props.value,
+            defaultMonitorStatusId: props.defaultMonitorStatusId,
+          })
+        : TelemetryRuleRecipeKey.Custom;
+    },
+  );
+
+  /*
+   * The query forms read their values once: a recipe that changes them
+   * (Error and Fatal logs) draws them again.
+   */
+  const [queryFormKey, setQueryFormKey] = useState<number>(0);
   const [telemetryEntities, setTelemetryEntities] = useState<
     Array<InventoryItem>
   >([]);
@@ -744,6 +820,32 @@ return {
 
   const monitorStep: MonitorStep = props.value || new MonitorStep();
 
+  // The full criteria editor: every type's, and a telemetry rule's fallback.
+  const criteriaElement: ReactElement = (
+    <MonitorCriteriaElement
+      monitorType={props.monitorType}
+      monitorStep={monitorStep}
+      foldDefaultCriteria={props.foldDefaultCriteria}
+      networkDeviceOidCatalogue={networkDeviceOidCatalogue}
+      networkDeviceInterfaceNames={networkDeviceInterfaceNames}
+      networkDeviceTableCatalogue={networkDeviceTableCatalogue}
+      isNetworkDeviceCatalogueLoaded={isNetworkDeviceCatalogueLoaded}
+      offlineMonitorStatusId={props.offlineMonitorStatusId}
+      monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
+      incidentSeverityDropdownOptions={props.incidentSeverityDropdownOptions}
+      alertSeverityDropdownOptions={props.alertSeverityDropdownOptions}
+      onCallPolicyDropdownOptions={props.onCallPolicyDropdownOptions}
+      labelDropdownOptions={props.labelDropdownOptions}
+      userDropdownOptions={props.userDropdownOptions}
+      incidentRoleOptions={props.incidentRoleOptions}
+      value={monitorStep?.data?.monitorCriteria}
+      onChange={(value: MonitorCriteria) => {
+        monitorStep.setMonitorCriteria(value);
+        props.onChange?.(MonitorStep.clone(monitorStep));
+      }}
+    />
+  );
+
   /*
    * What the monitor type's More fields section holds, for its folded
    * header: the options by name, and the ones that are set as chips. The
@@ -848,6 +950,33 @@ return {
         isMonitorTemplate={props.isMonitorTemplate}
         onChange={props.onChange}
       />
+      {isRuleMonitorType && props.offerRecipes && recipes.length > 0 ? (
+        <TelemetryRuleRecipePicker
+          monitorType={props.monitorType}
+          value={selectedRecipe}
+          onChange={(key: TelemetryRuleRecipeKey) => {
+            setSelectedRecipe(key);
+
+            const recipe: TelemetryRuleRecipe | null = getRecipe(key);
+
+            if (!recipe || !props.ruleSeeds) {
+              return;
+            }
+
+            props.onChange?.(
+              applyRecipe({
+                monitorStep,
+                recipe,
+                seeds: props.ruleSeeds,
+                translator,
+              }),
+            );
+            setQueryFormKey(queryFormKey + 1);
+          }}
+        />
+      ) : (
+        <></>
+      )}
       {/* Monitor Target Card */}
       {/*
        * The address field below says what to enter, so the card's title is
@@ -1588,14 +1717,29 @@ return {
 
       {/* Telemetry Monitor Forms */}
       {props.monitorType === MonitorType.Logs && (
-        <Card title="Log Monitor Configuration">
+        <Card
+          title="Logs to watch"
+          description="The logs this monitor counts. A filter left empty matches every log."
+        >
           <LogMonitorStepForm
+            key={`logs-${queryFormKey}`}
             monitorStepLogMonitor={
               monitorStep.data?.logMonitor ||
               MonitorStepLogMonitorUtil.getDefault()
             }
             onMonitorStepLogMonitorChanged={(value: MonitorStepLogMonitor) => {
-              monitorStep.setLogMonitor(value);
+              /*
+               * The window is the rule's ("When to alert"): the step holds
+               * it, and the filters form never sets it.
+               */
+              monitorStep.setLogMonitor({
+                ...value,
+                lastXSecondsOfLogs:
+                  TelemetryAlertRuleUtil.getWindowInSeconds({
+                    monitorType: props.monitorType,
+                    monitorStep,
+                  }) || value.lastXSecondsOfLogs,
+              });
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             attributeKeys={attributeKeys}
@@ -1643,8 +1787,18 @@ return {
       )}
 
       {props.monitorType === MonitorType.Metrics && (
-        <Card title="Metric Monitor Configuration">
+        <Card
+          title="Metric to watch"
+          description="The metric this monitor reads, picked and narrowed down as in the Metrics explorer. The red line on its chart is the value the rule compares with."
+        >
           <MetricMonitorStepForm
+            previewRule={
+              TelemetryAlertRuleUtil.read({
+                monitorType: props.monitorType,
+                monitorStep,
+                defaultMonitorStatusId: props.defaultMonitorStatusId,
+              }).rule
+            }
             monitorStepMetricMonitor={
               monitorStep.data?.metricMonitor ||
               MonitorStepMetricMonitorUtil.getDefault()
@@ -1928,8 +2082,12 @@ return {
       )}
 
       {props.monitorType === MonitorType.Traces && (
-        <Card title="Trace Monitor Configuration">
+        <Card
+          title="Spans to watch"
+          description="The spans this monitor counts. A filter left empty matches every span."
+        >
           <TraceMonitorStepForm
+            key={`traces-${queryFormKey}`}
             monitorStepTraceMonitor={
               monitorStep.data?.traceMonitor ||
               MonitorStepTraceMonitorUtil.getDefault()
@@ -1937,7 +2095,15 @@ return {
             onMonitorStepTraceMonitorChanged={(
               value: MonitorStepTraceMonitor,
             ) => {
-              monitorStep.setTraceMonitor(value);
+              // The window is the rule's, as on a Logs monitor.
+              monitorStep.setTraceMonitor({
+                ...value,
+                lastXSecondsOfSpans:
+                  TelemetryAlertRuleUtil.getWindowInSeconds({
+                    monitorType: props.monitorType,
+                    monitorStep,
+                  }) || value.lastXSecondsOfSpans,
+              });
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
             attributeKeys={attributeKeys}
@@ -1948,8 +2114,12 @@ return {
       )}
 
       {props.monitorType === MonitorType.Exceptions && (
-        <Card title="Exception Monitor Configuration">
+        <Card
+          title="Exceptions to watch"
+          description="The exceptions this monitor counts. A filter left empty matches every exception."
+        >
           <ExceptionMonitorStepForm
+            key={`exceptions-${queryFormKey}`}
             monitorStepExceptionMonitor={
               monitorStep.data?.exceptionMonitor ||
               MonitorStepExceptionMonitorUtil.getDefault()
@@ -1959,7 +2129,15 @@ return {
             onMonitorStepExceptionMonitorChanged={(
               value: MonitorStepExceptionMonitor,
             ) => {
-              monitorStep.setExceptionMonitor(value);
+              // The window is the rule's, as on a Logs monitor.
+              monitorStep.setExceptionMonitor({
+                ...value,
+                lastXSecondsOfExceptions:
+                  TelemetryAlertRuleUtil.getWindowInSeconds({
+                    monitorType: props.monitorType,
+                    monitorStep,
+                  }) || value.lastXSecondsOfExceptions,
+              });
               props.onChange?.(MonitorStep.clone(monitorStep));
             }}
           />
@@ -2292,20 +2470,22 @@ return {
         </Card>
       )}
 
-      {/* Monitor Criteria Section */}
-      <Card
-        title="Monitor Criteria"
-        description="When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides."
-      >
-        <MonitorCriteriaElement
+      {/*
+       * A Logs, Traces, Exceptions or Metrics monitor's criteria are edited
+       * as the one rule most of them are (TelemetryRuleEditor): "When to
+       * alert" and "What happens". Criteria that are more than one rule
+       * open in the full editor inside it, the one every other type gets.
+       */}
+      {isRuleMonitorType ? (
+        <TelemetryRuleEditor
           monitorType={props.monitorType}
           monitorStep={monitorStep}
-          foldDefaultCriteria={props.foldDefaultCriteria}
-          networkDeviceOidCatalogue={networkDeviceOidCatalogue}
-          networkDeviceInterfaceNames={networkDeviceInterfaceNames}
-          networkDeviceTableCatalogue={networkDeviceTableCatalogue}
-          isNetworkDeviceCatalogueLoaded={isNetworkDeviceCatalogueLoaded}
-          offlineMonitorStatusId={props.offlineMonitorStatusId}
+          defaultMonitorStatusId={props.defaultMonitorStatusId}
+          seeds={
+            props.ruleSeeds || {
+              monitorName: props.monitorName || "",
+            }
+          }
           monitorStatusDropdownOptions={props.monitorStatusDropdownOptions}
           incidentSeverityDropdownOptions={
             props.incidentSeverityDropdownOptions
@@ -2315,13 +2495,21 @@ return {
           labelDropdownOptions={props.labelDropdownOptions}
           userDropdownOptions={props.userDropdownOptions}
           incidentRoleOptions={props.incidentRoleOptions}
-          value={monitorStep?.data?.monitorCriteria}
-          onChange={(value: MonitorCriteria) => {
-            monitorStep.setMonitorCriteria(value);
-            props.onChange?.(MonitorStep.clone(monitorStep));
+          seriesAttributeKeys={getRuleSeriesAttributeKeys(monitorStep)}
+          onChange={(value: MonitorStep) => {
+            props.onChange?.(value);
           }}
+          customCriteria={criteriaElement}
+          showErrors={props.showErrors}
         />
-      </Card>
+      ) : (
+        <Card
+          title="Monitor Criteria"
+          description="When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides."
+        >
+          {criteriaElement}
+        </Card>
+      )}
     </div>
   );
 };

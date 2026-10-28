@@ -768,6 +768,7 @@ const BarChart: React.ForwardRefExoticComponent<
       customTooltip,
       formattedTimeReferenceLines,
       formattedReferenceRegions,
+      referenceLines,
       onTimeRangeSelect,
       onTimeRangeReset,
       ...other
@@ -1227,7 +1228,7 @@ const BarChart: React.ForwardRefExoticComponent<
                   />
                 );
               })}
-              {props.referenceLines?.map(
+              {referenceLines?.map(
                 (refLine: ChartReferenceLineProps, refIndex: number) => {
                   return (
                     <ReferenceLine
