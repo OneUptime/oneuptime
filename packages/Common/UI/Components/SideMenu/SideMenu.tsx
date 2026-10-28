@@ -136,9 +136,15 @@ function mapSectionElements(
  * menu is written, a collapsed section stayed shut on its own pages.
  *
  * A section that is given `isActive` explicitly keeps it.
+ *
+ * The current path goes to every section as well: an entry an Enterprise
+ * component draws is not in the JSX the route scan reads, so the section
+ * works that one out from the rows once they are in the DOM
+ * (SideMenuSection).
  */
 function withActiveSections(
   children: ReactElement | Array<ReactElement>,
+  currentPath: string,
 ): Array<ReactElement> {
   const sectionRoutes: Array<Array<MenuRoute>> = [];
 
@@ -164,7 +170,7 @@ function withActiveSections(
         return section;
       }
 
-      return React.cloneElement(section, { isActive });
+      return React.cloneElement(section, { isActive, currentPath });
     },
   );
 }
@@ -680,7 +686,7 @@ const SideMenu: FunctionComponent<ComponentProps> = (props: ComponentProps) => {
 
     // Support legacy children prop for backward compatibility
     if (props.children) {
-      withActiveSections(props.children).forEach(
+      withActiveSections(props.children, currentPath).forEach(
         (child: ReactElement, index: number) => {
           if (React.isValidElement(child)) {
             content.push(React.cloneElement(child, { key: `child-${index}` }));

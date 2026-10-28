@@ -407,6 +407,92 @@ describe("a side menu entry tells a screen reader it is current", () => {
 });
 
 /*
+ * An Enterprise plugin draws its own menu entries (the Admin Dashboard's
+ * Custom Channels, say), so SideMenu's route scan sees the component and not
+ * the rows it draws. The row still says aria-current, and a folded section
+ * must open for it: collapsing must never hide where the reader is.
+ */
+describe("a folded section opens for an entry the route scan cannot see", () => {
+  const OpaqueEntry: () => ReactElement = (): ReactElement => {
+    return entry("Custom Channels", "/admin/settings/custom-channels");
+  };
+
+  function settingsMenu(): ReactElement {
+    return (
+      <SideMenu>
+        <SideMenuSection title="Basic">
+          {entry("Authentication", "/admin/settings/authentication")}
+        </SideMenuSection>
+        <SideMenuSection title="Notifications" defaultCollapsed={true}>
+          {entry("Push Notifications", "/admin/settings/push-notifications")}
+          <OpaqueEntry />
+        </SideMenuSection>
+      </SideMenu>
+    );
+  }
+
+  function isSectionOpen(title: string): boolean {
+    const heading: HTMLElement | undefined = Array.from(
+      document.querySelectorAll("h6"),
+    ).find((candidate: HTMLElement): boolean => {
+      return candidate.textContent?.trim() === title;
+    });
+
+    return (
+      heading
+        ?.closest("div.mb-2")
+        ?.querySelector("button")
+        ?.getAttribute("aria-expanded") === "true"
+    );
+  }
+
+  test("opens on the page the opaque entry links to", async () => {
+    await renderAt("/admin/settings/custom-channels", settingsMenu());
+
+    expect(isSectionOpen("Notifications")).toBe(true);
+    expect(isSectionOpen("Basic")).toBe(true);
+  });
+
+  test("opens when the user arrives on that page from another one", async () => {
+    const rendered: RenderResult = await renderAt(
+      "/admin/settings/authentication",
+      settingsMenu(),
+    );
+
+    expect(isSectionOpen("Notifications")).toBe(false);
+
+    goTo("/admin/settings/custom-channels");
+    rendered.rerender(settingsMenu());
+
+    expect(isSectionOpen("Notifications")).toBe(true);
+  });
+
+  test("a section the reader folded by hand stays folded on that page", async () => {
+    const rendered: RenderResult = await renderAt(
+      "/admin/settings/custom-channels",
+      settingsMenu(),
+    );
+
+    const heading: HTMLElement = Array.from(
+      document.querySelectorAll("h6"),
+    ).find((candidate: HTMLElement): boolean => {
+      return candidate.textContent?.trim() === "Notifications";
+    }) as HTMLElement;
+    const toggle: HTMLButtonElement = heading
+      .closest("div.mb-2")!
+      .querySelector("button") as HTMLButtonElement;
+
+    fireEvent.click(toggle);
+
+    expect(isSectionOpen("Notifications")).toBe(false);
+
+    rendered.rerender(settingsMenu());
+
+    expect(isSectionOpen("Notifications")).toBe(false);
+  });
+});
+
+/*
  * The phone's menu button is named by what it shows, "Navigate to Settings
  * / Roles", and says with aria-expanded whether its menu is open. A name of
  * its own ("Open navigation menu") hid where the reader is from a screen

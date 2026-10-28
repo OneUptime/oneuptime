@@ -9,8 +9,10 @@ import {
 import React, {
   FunctionComponent,
   ReactElement,
+  RefObject,
   useEffect,
   useId,
+  useRef,
   useState,
 } from "react";
 
@@ -34,6 +36,14 @@ export interface ComponentProps {
    * children alike.
    */
   isActive?: boolean;
+  /*
+   * The app path SideMenu rendered this section for. A section can also hold
+   * an entry drawn by an Enterprise component, which the route scan behind
+   * `isActive` cannot read; with the path, the section opens for that entry
+   * once its row says aria-current, and only when the page changes - a
+   * section the reader folded by hand stays folded until then.
+   */
+  currentPath?: string | undefined;
 }
 
 /*
@@ -65,6 +75,7 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
       isActive: props.isActive,
     }),
   );
+  const bodyRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
   const translatedTitle: string = translateString(props.title) || props.title;
   const titleLanguage: string | undefined = getDrawnLanguage({
     english: props.title,
@@ -80,6 +91,22 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
       setIsCollapsed(false);
     }
   }, [props.isActive]);
+
+  /*
+   * The entry for the page the user is on says so with aria-current, and
+   * that includes one an Enterprise component draws, which SideMenu's route
+   * scan cannot see. Open for it when the page changes: arriving on a page
+   * inside a folded section must never hide where the reader is.
+   */
+  useEffect(() => {
+    if (!props.currentPath) {
+      return;
+    }
+
+    if (bodyRef.current?.querySelector("a[aria-current]")) {
+      setIsCollapsed(false);
+    }
+  }, [props.currentPath]);
 
   const handleToggle: () => void = (): void => {
     if (isCollapsible) {
@@ -173,6 +200,7 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
        */}
       <div
         id={bodyId}
+        ref={bodyRef}
         className={`overflow-hidden duration-200 ease-in-out ${
           isCollapsed
             ? "max-h-0 opacity-0 invisible transition-all"

@@ -10,9 +10,10 @@ import React from "react";
  * image builds it ("@oneuptime/ee-admin-dashboard" is the REAL ee plugin
  * here):
  *
- *   - Settings > Custom Channels is a page at /admin/settings/custom-channels,
- *     downloaded only when it is opened, and an entry in the Settings side
- *     menu after Backups - on every Enterprise installation, whatever the
+ *   - Settings > Notifications > Custom Channels is a page at
+ *     /admin/settings/custom-channels, downloaded only when it is opened, and
+ *     an entry in the Notifications section of the Settings side menu after
+ *     Push Notifications - on every Enterprise installation, whatever the
  *     license (the page itself says what a license that leaves custom
  *     channels out stops);
  *   - the Community build has none of it: its plugin stub is empty, core
@@ -47,6 +48,7 @@ import BackupsPlugins from "../../../AdminDashboard/Backups/Plugins";
 import WhiteLabelPlugins from "../../../AdminDashboard/WhiteLabel/Plugins";
 import {
   ENTERPRISE_SETTINGS_AREAS,
+  EnterpriseSettingsNotificationSideMenuItems,
   EnterpriseSettingsSideMenuItems,
 } from "../../../AdminDashboard/EnterpriseSettings";
 import AdminCommunityPlugins from "@oneuptime/admin-dashboard/Enterprise/CommunityPlugins";
@@ -150,16 +152,20 @@ describe("Settings > Custom Channels in the Enterprise Admin Dashboard", () => {
 
   test("owns exactly the two settings keys", () => {
     expect(Object.keys(CustomChannelsPlugins).sort()).toEqual(
-      ["SettingsPages", "SettingsSideMenuItems"].sort(),
+      ["SettingsPages", "SettingsNotificationSideMenuItems"].sort(),
     );
-    expect(CustomChannelsPlugins.SettingsSideMenuItems).toBe(
+    expect(CustomChannelsPlugins.SettingsNotificationSideMenuItems).toBe(
       CustomChannelsSideMenuItem,
     );
+    expect(CustomChannelsPlugins.SettingsSideMenuItems).toBeUndefined();
   });
 
   test("is part of the plugin the Enterprise image builds, between Backups and White Label", () => {
     expect(AdminEnterprisePlugins.SettingsPages).toEqual(
       expect.arrayContaining([...(CustomChannelsPlugins.SettingsPages || [])]),
+    );
+    expect(AdminEnterprisePlugins.SettingsNotificationSideMenuItems).toBe(
+      EnterpriseSettingsNotificationSideMenuItems,
     );
 
     const index: number = ENTERPRISE_SETTINGS_AREAS.indexOf(
@@ -187,32 +193,51 @@ describe("Settings > Custom Channels in the Enterprise Admin Dashboard", () => {
     ).toHaveAttribute("href", "/admin/settings/custom-channels");
   });
 
-  test("core's Settings side menu shows it once, after Backups", () => {
+  test("core's Settings side menu shows it once, in Notifications after Push Notifications", () => {
     jest.spyOn(Navigation, "isOnThisPage").mockReturnValue(false);
 
     render(<SettingsSideMenu />);
 
     const entries: Array<HTMLElement> = screen.getAllByText("Custom Channels");
-    const backups: HTMLElement = screen.getByText("Backups");
+    const pushNotifications: HTMLElement =
+      screen.getByText("Push Notifications");
+    const notifications: HTMLElement = screen
+      .getByText("sideMenu.settingsNotifications")
+      .closest("div.mb-2") as HTMLElement;
+    const basic: HTMLElement = screen
+      .getByText("sideMenu.basic")
+      .closest("div.mb-2") as HTMLElement;
 
     expect(entries).toHaveLength(1);
     expect(entries[0]!.closest("a")).toHaveAttribute(
       "href",
       "/admin/settings/custom-channels",
     );
+    expect(notifications).toContainElement(entries[0]!);
+    expect(notifications).toContainElement(pushNotifications);
+    expect(basic).not.toContainElement(entries[0]!);
     expect(
-      backups.compareDocumentPosition(entries[0]!) &
+      pushNotifications.compareDocumentPosition(entries[0]!) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
   });
 
-  test("the Enterprise settings entries draw it whatever White Label's license says", () => {
+  test("the Enterprise notification entries draw it whatever White Label's license says", () => {
+    jest.spyOn(Navigation, "isOnThisPage").mockReturnValue(false);
+
+    render(<EnterpriseSettingsNotificationSideMenuItems />);
+
+    expect(screen.getByText("Custom Channels")).toBeInTheDocument();
+    expect(document.querySelector('a[href*="white-label"]')).toBeNull();
+  });
+
+  test("the Basic Enterprise entries leave it to Notifications", () => {
     jest.spyOn(Navigation, "isOnThisPage").mockReturnValue(false);
 
     render(<EnterpriseSettingsSideMenuItems />);
 
-    expect(screen.getByText("Custom Channels")).toBeInTheDocument();
-    expect(document.querySelector('a[href*="white-label"]')).toBeNull();
+    expect(screen.queryByText("Custom Channels")).toBeNull();
+    expect(screen.getByText("Backups")).toBeInTheDocument();
   });
 });
 
@@ -221,6 +246,9 @@ describe("the Community build", () => {
     expect(AdminCommunityPlugins).toEqual({});
     expect(AdminCommunityPlugins.SettingsPages).toBeUndefined();
     expect(AdminCommunityPlugins.SettingsSideMenuItems).toBeUndefined();
+    expect(
+      AdminCommunityPlugins.SettingsNotificationSideMenuItems,
+    ).toBeUndefined();
   });
 
   test("the page core used to have is gone", () => {

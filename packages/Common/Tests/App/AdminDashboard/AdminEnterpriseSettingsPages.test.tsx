@@ -16,10 +16,10 @@ import { ReactElement } from "react";
 /*
  * Admin Dashboard > Settings can carry pages an Enterprise area adds: the
  * plugin's SettingsPages become routes under /admin/settings, and its
- * SettingsSideMenuItems draw their own entries at the end of the Basic
- * section. Both are read from the plugin door in render; the Community stub
- * (what this jest config resolves) has neither, and then the menu is
- * exactly the core menu.
+ * SettingsSideMenuItems / SettingsNotificationSideMenuItems draw their own
+ * entries at the end of the Basic and Notifications sections. All are read
+ * from the plugin door in render; the Community stub (what this jest config
+ * resolves) has none, and then the menu is exactly the core menu.
  *
  * Core only: this must pass with ee/ deleted.
  */
@@ -74,6 +74,7 @@ import {
 } from "../Dashboard/SideMenuHarness";
 
 const BASIC: string = "sideMenu.basic";
+const NOTIFICATIONS: string = "sideMenu.settingsNotifications";
 
 const ExtraSettingsItem: () => ReactElement = (): ReactElement => {
   return (
@@ -83,6 +84,18 @@ const ExtraSettingsItem: () => ReactElement = (): ReactElement => {
         to: getEnterpriseSettingsPageRoute("extra-settings"),
       }}
       icon={IconProp.Settings}
+    />
+  );
+};
+
+const ExtraNotificationItem: () => ReactElement = (): ReactElement => {
+  return (
+    <SideMenuItem
+      link={{
+        title: "Extra Notification",
+        to: getEnterpriseSettingsPageRoute("extra-notification"),
+      }}
+      icon={IconProp.Notification}
     />
   );
 };
@@ -98,6 +111,19 @@ const renderSettingsMenu: () => Promise<Array<MenuLink>> = async (): Promise<
   await renderMenu(<AdminSettingsSideMenu />);
 
   return linksIn(BASIC);
+};
+
+const renderNotificationSettingsMenu: () => Promise<
+  Array<MenuLink>
+> = async (): Promise<Array<MenuLink>> => {
+  goTo(
+    RouteUtil.populateRouteParams(
+      RouteMap[PageMap.SETTINGS_AUTHENTICATION] as Route,
+    ).toString(),
+  );
+  await renderMenu(<AdminSettingsSideMenu />);
+
+  return linksIn(NOTIFICATIONS);
 };
 
 beforeEach(() => {
@@ -136,6 +162,34 @@ describe("the Admin Dashboard's settings menu", () => {
     ]);
   });
 
+  test("draws the plugin's notification entries at the end of Notifications", async () => {
+    const coreLinks: Array<MenuLink> = await renderNotificationSettingsMenu();
+    cleanup();
+
+    mockPlugins = { SettingsNotificationSideMenuItems: ExtraNotificationItem };
+
+    const links: Array<MenuLink> = await renderNotificationSettingsMenu();
+
+    expect(links).toEqual([
+      ...coreLinks,
+      {
+        title: "Extra Notification",
+        href: "/admin/settings/extra-notification",
+      },
+    ]);
+  });
+
+  test("a Basic entry does not appear in Notifications", async () => {
+    const coreLinks: Array<MenuLink> = await renderNotificationSettingsMenu();
+    cleanup();
+
+    mockPlugins = { SettingsSideMenuItems: ExtraSettingsItem };
+
+    const links: Array<MenuLink> = await renderNotificationSettingsMenu();
+
+    expect(links).toEqual(coreLinks);
+  });
+
   test("reads the plugin door while rendering, not when the module loads", async () => {
     expect(pluginReads).toBe(0);
 
@@ -160,6 +214,11 @@ describe("Enterprise settings page routes", () => {
     expect(
       (AdminCommunityPlugins as Record<string, unknown>)[
         "SettingsSideMenuItems"
+      ],
+    ).toBeUndefined();
+    expect(
+      (AdminCommunityPlugins as Record<string, unknown>)[
+        "SettingsNotificationSideMenuItems"
       ],
     ).toBeUndefined();
   });
