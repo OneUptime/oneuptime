@@ -107,7 +107,7 @@ export default class CustomChannelSender {
     if (channel.isEnabled === false && !input.isTest) {
       return {
         ok: false,
-        message: `Not sent: ${name} is turned off. Your administrator can turn it on in the Admin Dashboard, under Settings > Custom Channels.`,
+        message: `Not sent: ${name} is turned off. Your administrator can turn it on in the Admin Dashboard, under Settings > Notifications > Custom Channels.`,
       };
     }
 
