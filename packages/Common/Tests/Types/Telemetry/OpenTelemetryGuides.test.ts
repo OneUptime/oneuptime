@@ -193,6 +193,50 @@ describe("the language groups", () => {
     }
   });
 
+  test("name the words people type for a language that its title does not hold", () => {
+    const termsOf: (language: OpenTelemetryGuideLanguage) => Array<string> = (
+      language: OpenTelemetryGuideLanguage,
+    ): Array<string> => {
+      return [
+        ...(getOpenTelemetryGuideLanguageGroup(language).searchTerms || []),
+      ];
+    };
+
+    expect(termsOf(OpenTelemetryGuideLanguage.DotNet)).toEqual([
+      "dotnet",
+      "c#",
+      "csharp",
+    ]);
+    expect(termsOf(OpenTelemetryGuideLanguage.Java)).toEqual(["jvm"]);
+    expect(termsOf(OpenTelemetryGuideLanguage.Kotlin)).toEqual(["jvm"]);
+    expect(termsOf(OpenTelemetryGuideLanguage.JavaScript)).toEqual([
+      "js",
+      "ts",
+    ]);
+    expect(termsOf(OpenTelemetryGuideLanguage.Go)).toEqual(["golang"]);
+
+    for (const group of OPEN_TELEMETRY_GUIDE_LANGUAGE_GROUPS) {
+      const titleWords: Array<string> = group.title.toLowerCase().split(" ");
+
+      for (const term of group.searchTerms || []) {
+        // One lower-case word the search box matches as typed...
+        expect([group.language, term]).toEqual([
+          group.language,
+          term.toLowerCase().trim(),
+        ]);
+        expect(term.includes(" ")).toBe(false);
+        // ...that the title does not already give it.
+        expect([group.language, titleWords.includes(term)]).toEqual([
+          group.language,
+          false,
+        ]);
+      }
+      expect(new Set(group.searchTerms || []).size).toBe(
+        (group.searchTerms || []).length,
+      );
+    }
+  });
+
   test("are found by language", () => {
     expect(
       getOpenTelemetryGuideLanguageGroup(OpenTelemetryGuideLanguage.JavaScript)

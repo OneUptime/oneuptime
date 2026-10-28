@@ -122,6 +122,13 @@ export interface GuidePageContent {
   highlights: Array<string>;
   kindLabel: string;
   language: OpenTelemetryGuideLanguageGroup;
+  /*
+   * The breadcrumb's step between the index and the page: the guide's
+   * language, at its group on the index. A language's own guide, named as
+   * its language is ("Python", ".NET"), has none: "Integrations / Python",
+   * never "Integrations / Python / Python".
+   */
+  languageCrumb?: { title: string; href: string } | undefined;
   mark: GuideMark;
   checked?: { onLabel: string; withLabel: string } | undefined;
   sections: Array<GuideSection>;
@@ -464,6 +471,7 @@ export function getGuidePageContent(
   tabsOnPage = 0;
 
   const entry: OpenTelemetryGuideEntry = getGuideEntry(slug);
+  const language: OpenTelemetryGuideLanguageGroup = getGuideLanguageGroup(slug);
   const baseUrl: string = homeUrl.replace(/\/$/, "");
   const pageUrl: string = `${baseUrl}${getOpenTelemetryGuidePath(slug)}`;
 
@@ -474,7 +482,14 @@ export function getGuidePageContent(
     leadHtml: inlineTextToHtml(guide.lead),
     highlights: guide.highlights,
     kindLabel: KIND_LABELS[entry.kind],
-    language: getGuideLanguageGroup(slug),
+    language: language,
+    languageCrumb:
+      language.title === entry.name
+        ? undefined
+        : {
+            title: language.title,
+            href: `${OPEN_TELEMETRY_GUIDES_INDEX_PATH}#${language.language}`,
+          },
     mark: guideMark(entry),
     checked: checkedLabels(getVerificationRecord(slug)),
     sections: guideSections(entry.name, entry.kind, entry.inSentence),

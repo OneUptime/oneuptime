@@ -140,10 +140,15 @@ export function getGuideSEO(guide: OpenTelemetryGuide): PageSEOData {
   };
 }
 
+/*
+ * The index's search result names every language it has guides for (its
+ * test holds it to the catalog), with a few of the frameworks people search
+ * for most, in at most 160 characters.
+ */
 export const INTEGRATIONS_INDEX_SEO: PageSEOData = {
   title: "OpenTelemetry Integrations for Every Framework | OneUptime",
   description:
-    "Step-by-step OpenTelemetry guides for Node.js, Express, NestJS, Next.js, React and more: send traces, metrics and logs from your framework to OneUptime.",
+    "OpenTelemetry guides for Node.js, Python, Java, Kotlin and .NET: Express, Next.js, Django, FastAPI, Spring Boot, ASP.NET Core and more, each checked end to end.",
   canonicalPath: OPEN_TELEMETRY_GUIDES_INDEX_PATH,
   twitterCard: "summary_large_image",
   pageType: "integration",

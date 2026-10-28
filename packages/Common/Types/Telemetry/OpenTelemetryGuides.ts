@@ -82,6 +82,12 @@ export interface OpenTelemetryGuideLanguageGroup {
   description: string;
   // The language's official logo, where the registry has one.
   logo?: ProviderLogo | undefined;
+  /*
+   * The other names people type for the language, lower case, beside the
+   * words of its title: "dotnet", "c#" and "csharp" for .NET. The index's
+   * search finds every guide of the group by them.
+   */
+  searchTerms?: ReadonlyArray<string> | undefined;
 }
 
 export const OPEN_TELEMETRY_GUIDE_LANGUAGE_GROUPS: ReadonlyArray<OpenTelemetryGuideLanguageGroup> =
@@ -92,6 +98,7 @@ export const OPEN_TELEMETRY_GUIDE_LANGUAGE_GROUPS: ReadonlyArray<OpenTelemetryGu
       description:
         "Node.js servers and their frameworks, the Bun and Deno runtimes, and code that runs in the browser.",
       logo: ProviderLogo.NodeJs,
+      searchTerms: ["js", "ts"],
     },
     {
       language: OpenTelemetryGuideLanguage.Python,
@@ -106,24 +113,28 @@ export const OPEN_TELEMETRY_GUIDE_LANGUAGE_GROUPS: ReadonlyArray<OpenTelemetryGu
       description:
         "Any JVM app with the Java agent, and Spring Boot, Quarkus and Micronaut.",
       logo: ProviderLogo.Java,
+      searchTerms: ["jvm"],
     },
     {
       language: OpenTelemetryGuideLanguage.Kotlin,
       title: "Kotlin",
       description: "Ktor and other Kotlin services on the JVM.",
       logo: ProviderLogo.Kotlin,
+      searchTerms: ["jvm"],
     },
     {
       language: OpenTelemetryGuideLanguage.DotNet,
       title: ".NET",
       description: "ASP.NET Core, worker services and console apps.",
       logo: ProviderLogo.DotNet,
+      searchTerms: ["dotnet", "c#", "csharp"],
     },
     {
       language: OpenTelemetryGuideLanguage.Go,
       title: "Go",
       description: "Go services and their HTTP routers.",
       logo: ProviderLogo.Go,
+      searchTerms: ["golang"],
     },
     {
       language: OpenTelemetryGuideLanguage.Ruby,

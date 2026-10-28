@@ -14,6 +14,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import fs from "fs";
 import i18next from "i18next";
@@ -41,7 +42,8 @@ import {
  *
  * Above the language buttons, "Select Language"; above the ways to send
  * logs, "Integration Method": each in the reader's language, from the
- * shipped Dashboard locales. The buttons' names (".NET", "C++") and the
+ * shipped Dashboard locales, and each the name a screen reader gives its
+ * buttons as a group. The buttons' names (".NET", "C++") and the
  * names of the website's guides under them (".NET", "ASP.NET Core") are
  * read the way they are written on a right-to-left page too: in Persian,
  * an unisolated ".NET" drew as "NET." and "C++" as "++C".
@@ -97,13 +99,20 @@ function renderGuide(telemetryType: TelemetryType): void {
   );
 }
 
-// The picker labels on screen: the uppercase captions above each set of choices.
-function pickerLabels(): Array<string> {
-  return Array.from(document.querySelectorAll("label")).map(
-    (label: HTMLLabelElement): string => {
-      return (label.textContent || "").trim();
-    },
-  );
+/*
+ * The pickers' captions on screen, as a screen reader names each set of
+ * buttons: the uppercase caption a group of choices is labelled by.
+ */
+function pickerCaptions(): Array<string> {
+  return Array.from(
+    document.querySelectorAll('[role="group"][aria-labelledby]'),
+  ).map((group: Element): string => {
+    const caption: HTMLElement | null = document.getElementById(
+      group.getAttribute("aria-labelledby") || "",
+    );
+
+    return (caption?.textContent || "").trim();
+  });
 }
 
 beforeAll(async () => {
@@ -180,23 +189,46 @@ describe("the telemetry guide's picker labels", () => {
       // The logs guide offers several ways to send logs, so both pickers show.
       renderGuide("logs");
 
-      expect(pickerLabels()).toEqual(
-        expect.arrayContaining([
-          locale["Select Language"],
-          locale["Integration Method"],
-        ]),
-      );
-      expect(pickerLabels()).not.toContain("Select Language");
-      expect(pickerLabels()).not.toContain("Integration Method");
+      // The ways to send come first in the logs guide, then the languages.
+      expect(pickerCaptions()).toEqual([
+        locale["Integration Method"],
+        locale["Select Language"],
+      ]);
     },
   );
 
   test("are English for an English reader", () => {
     renderGuide("logs");
 
-    expect(pickerLabels()).toEqual(
-      expect.arrayContaining(["Select Language", "Integration Method"]),
+    expect(pickerCaptions()).toEqual(["Integration Method", "Select Language"]);
+  });
+
+  test("name their buttons as a group, so a screen reader says which choice it is", async () => {
+    const locale: Record<string, string> = readLocale("de");
+
+    await readIn("de");
+    renderGuide("logs");
+
+    const languages: HTMLElement = screen.getByRole("group", {
+      name: locale["Select Language"],
+    });
+    const methods: HTMLElement = screen.getByRole("group", {
+      name: locale["Integration Method"],
+    });
+
+    // Every language button is in the first group, and none in the second.
+    expect(within(languages).getAllByRole("button")).toHaveLength(
+      TELEMETRY_LANGUAGES.length,
     );
+    expect(
+      within(languages).getByRole("button", { name: ".NET" }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(
+      within(methods).queryByRole("button", { name: ".NET" }),
+    ).not.toBeInTheDocument();
+    expect(within(methods).getAllByRole("button").length).toBeGreaterThan(1);
+    // The captions are text a group is named by, not labels of a form field.
+    expect(document.querySelectorAll("label")).toHaveLength(0);
   });
 });
 

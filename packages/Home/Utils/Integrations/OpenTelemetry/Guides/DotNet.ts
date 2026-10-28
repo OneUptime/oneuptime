@@ -261,8 +261,6 @@ export const DotNetGuide: OpenTelemetryGuide = {
   cardDescription:
     "Any .NET app: the zero-code instrumentation from NuGet, or the SDK in code for console apps and jobs.",
   searchTerms: [
-    "c#",
-    "csharp",
     "console app",
     "zero-code",
     "auto-instrumentation",

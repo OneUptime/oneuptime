@@ -241,7 +241,6 @@ export const AspNetCoreGuide: OpenTelemetryGuide = {
   cardDescription:
     "ASP.NET Core with the SDK in Program.cs: routes, HttpClient, EF Core, Kestrel metrics and ILogger logs.",
   searchTerms: [
-    "c#",
     "minimal api",
     "mvc",
     "web api",

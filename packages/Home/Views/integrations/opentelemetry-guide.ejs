@@ -28,8 +28,10 @@
           <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-gray-500" role="list">
             <li><a href="<%= guide.indexHref %>" class="font-medium hover:text-gray-900">Integrations</a></li>
             <li aria-hidden="true" class="text-gray-300">/</li>
-            <li><a href="<%= guide.indexHref %>#<%= guide.language.language %>" class="hover:text-gray-900"><%= guide.language.title %></a></li>
+            <% if (guide.languageCrumb) { %>
+            <li><a href="<%= guide.languageCrumb.href %>" class="hover:text-gray-900"><%= guide.languageCrumb.title %></a></li>
             <li aria-hidden="true" class="text-gray-300">/</li>
+            <% } %>
             <li class="text-gray-900" aria-current="page"><%= guide.name %></li>
           </ol>
         </nav>

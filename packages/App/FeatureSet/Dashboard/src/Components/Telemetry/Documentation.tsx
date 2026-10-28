@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useState,
 } from "react";
@@ -1243,6 +1244,13 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * The captions above the language buttons and the ways to send: each
+   * names its buttons as a group, so a screen reader announces "Select
+   * Language" as it reaches the first one.
+   */
+  const languagePickerCaptionId: string = useId();
+  const methodPickerCaptionId: string = useId();
   const [selectedLanguage, setSelectedLanguage] = useState<Language>("node");
   const [selectedMethod, setSelectedMethod] = useState<IntegrationMethod>(
     props.telemetryType === "profiles" ? "alloy" : "opentelemetry",
@@ -1596,10 +1604,17 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="mb-6">
-        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+        <p
+          id={languagePickerCaptionId}
+          className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2"
+        >
           {translator.translateText("Select Language")}
-        </label>
-        <div className="flex flex-wrap gap-1.5">
+        </p>
+        <div
+          role="group"
+          aria-labelledby={languagePickerCaptionId}
+          className="flex flex-wrap gap-1.5"
+        >
           {availableLanguages.map((lang: LanguageOption) => {
             const isSelected: boolean = selectedLanguage === lang.key;
             /*
@@ -1649,10 +1664,17 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="mb-6">
-        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+        <p
+          id={methodPickerCaptionId}
+          className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-2"
+        >
           {translator.translateText("Integration Method")}
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        </p>
+        <div
+          role="group"
+          aria-labelledby={methodPickerCaptionId}
+          className="grid grid-cols-1 sm:grid-cols-3 gap-2"
+        >
           {integrationMethods.map((method: IntegrationOption) => {
             const isSelected: boolean = selectedMethod === method.key;
             return (
