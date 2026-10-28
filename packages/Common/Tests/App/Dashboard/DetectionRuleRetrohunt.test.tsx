@@ -202,6 +202,34 @@ describe("Run on Past Events", () => {
       expect(within(header).getByText("Last fired")).toBeInTheDocument();
     });
 
+    test("a long value breaks after its own dots, not at the letter that fills the column", async () => {
+      runMock.mockResolvedValue(
+        answer({
+          groupCount: 1,
+          groups: [group("svc-backup.corp.acme-commerce.example", 4)],
+        }) as never,
+      );
+
+      await drawPanel();
+
+      const value: HTMLElement = within(
+        screen.getByTestId(RETROHUNT_TEST_IDS.group),
+      ).getByText((_content: string, element: Element | null): boolean => {
+        return (
+          element?.tagName === "BDI" &&
+          element.textContent === "svc-backup.corp.acme-commerce.example"
+        );
+      });
+
+      // "svc-backup." / "corp." / "acme-commerce." / "example".
+      expect(value.querySelectorAll("wbr")).toHaveLength(3);
+      expect(value.className).toContain("font-mono");
+      expect(value.parentElement!.className).toContain(
+        "[overflow-wrap:anywhere]",
+      );
+      expect(value.parentElement!.className).not.toContain("break-all");
+    });
+
     test("a rule that groups nothing fires for Every match, with no count of groups", async () => {
       runMock.mockResolvedValue(
         answer({ groupCount: 1, groups: [group("", 42)] }) as never,

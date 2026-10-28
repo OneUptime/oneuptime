@@ -274,6 +274,43 @@ function rowWith(page: Page, text: string): Locator {
     );
 }
 
+// The end of a line a long name may break at: after a dot, a slash or a hyphen.
+const LINE_ENDS_AT_A_SEPARATOR: RegExp = /[./-]$/;
+
+// An element's text as the browser lays it out: one string per line.
+async function renderedLines(element: Locator): Promise<Array<string>> {
+  return await element.evaluate((box: Element): Array<string> => {
+    const lines: Array<{ top: number; text: string }> = [];
+    const walker: TreeWalker = document.createTreeWalker(
+      box,
+      NodeFilter.SHOW_TEXT,
+    );
+    for (
+      let node: Node | null = walker.nextNode();
+      node;
+      node = walker.nextNode()
+    ) {
+      const text: string = node.textContent || "";
+      for (let index: number = 0; index < text.length; index++) {
+        const range: Range = document.createRange();
+        range.setStart(node, index);
+        range.setEnd(node, index + 1);
+        const top: number = range.getBoundingClientRect().top;
+        const last: { top: number; text: string } | undefined =
+          lines[lines.length - 1];
+        if (last && Math.abs(last.top - top) < 4) {
+          last.text += text.charAt(index);
+        } else {
+          lines.push({ top, text: text.charAt(index) });
+        }
+      }
+    }
+    return lines.map((line: { top: number; text: string }): string => {
+      return line.text;
+    });
+  });
+}
+
 async function retrohuntRequests(
   page: Page,
 ): Promise<Array<Record<string, unknown>>> {
@@ -399,6 +436,20 @@ test.describe("Rule Exceptions", () => {
 
     const lab: Locator = rowWith(page, "*.lab.acme-commerce.example");
     await expect(lab).toContainText("Added through the API a month ago");
+
+    /*
+     * A host pattern longer than its column breaks after its own dots or a
+     * hyphen, never at the letter that fills the line ("*.lab.acme-commerc"
+     * / "e.example", as it broke before).
+     */
+    const labLines: Array<string> = await renderedLines(
+      lab.locator("bdi", { hasText: "*.lab.acme-commerce.example" }),
+    );
+    expect(labLines.length).toBeGreaterThan(1);
+    expect(labLines.join("")).toBe("*.lab.acme-commerce.example");
+    for (const line of labLines.slice(0, -1)) {
+      expect(line).toMatch(LINE_ENDS_AT_A_SEPARATOR);
+    }
 
     await expect(
       page.getByRole("button", { name: "Add Rule Exception", exact: true }),

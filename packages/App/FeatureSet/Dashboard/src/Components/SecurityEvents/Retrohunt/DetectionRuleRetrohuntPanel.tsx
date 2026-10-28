@@ -455,15 +455,18 @@ const RetrohuntGroups: FunctionComponent<GroupsProps> = (
                             {translator.translateText(label.text)}
                           </span>
                         ) : (
-                          <span className="block break-all text-gray-900">
+                          <span className="block text-gray-900 [overflow-wrap:anywhere]">
                             {/*
                              * The mono type on the value's own isolate:
                              * every element names its font (the page's *
-                             * rule), so a parent's does not reach it.
+                             * rule), so a parent's does not reach it. A
+                             * long host or field value breaks after its
+                             * own dots and slashes first.
                              */}
                             <IsolatedText
                               text={label.text}
                               className="font-mono"
+                              breaksLikeAName={true}
                             />
                           </span>
                         )}

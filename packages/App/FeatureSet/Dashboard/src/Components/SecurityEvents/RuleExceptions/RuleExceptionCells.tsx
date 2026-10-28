@@ -134,7 +134,9 @@ export interface SkipsCellProps {
  * "User", "backup.exe" over "Value of processName", or a window's times
  * over "Time window". A value someone wrote reads the way it is written
  * (IsolatedText), in the mono type Protected Entities and a case's entities
- * write values in, and a long one breaks rather than widening the table.
+ * write values in, and a long one breaks rather than widening the table:
+ * after its own dots and slashes first ("*.lab.acme-commerce." /
+ * "example"), anywhere only where a part is still too long for the line.
  */
 export const RuleExceptionSkipsCell: FunctionComponent<SkipsCellProps> = (
   props: SkipsCellProps,
@@ -162,13 +164,17 @@ export const RuleExceptionSkipsCell: FunctionComponent<SkipsCellProps> = (
             />
           </span>
         ) : (
-          <span className="block break-all text-sm text-gray-900">
+          <span className="block text-sm text-gray-900 [overflow-wrap:anywhere]">
             {/*
              * The mono type on the value's own isolate: every element
              * names its font (the page's * rule), so a parent's does not
              * reach it.
              */}
-            <IsolatedText text={view.value || ""} className="font-mono" />
+            <IsolatedText
+              text={view.value || ""}
+              className="font-mono"
+              breaksLikeAName={true}
+            />
           </span>
         )}
         <span className="block text-xs font-normal text-gray-500">

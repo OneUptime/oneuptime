@@ -548,6 +548,18 @@ describe("Security Events > Rule Exceptions", () => {
     expect(value).not.toBeNull();
     expect(value!.textContent).toBe("*.lab.acme-commerce.example");
     expect(value!.className).toContain("font-mono");
+
+    /*
+     * A long host pattern breaks after its own dots first ("*.lab.acme-
+     * commerce." / "example"), not at the letter that fills the column
+     * ("*.lab.acme-commerc" / "e.example", as break-all broke it): its
+     * holder lets a part still too long break anywhere, never break-all,
+     * which would ignore the breaks.
+     */
+    expect(value!.querySelectorAll("wbr")).toHaveLength(3);
+    const holder: HTMLElement = value!.parentElement!;
+    expect(holder.className).toContain("[overflow-wrap:anywhere]");
+    expect(holder.className).not.toContain("break-all");
   });
 
   test("a row says where it stands: Active with no expiry, Expired, Upcoming", () => {
