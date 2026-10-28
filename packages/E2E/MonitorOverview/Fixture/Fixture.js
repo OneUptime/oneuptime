@@ -207,6 +207,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionUtil from "Common/UI/Utils/Permission";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
@@ -2782,6 +2783,25 @@ ModelAPI.createOrUpdate = async (options) => {
     modelName === tableName(MonitorOwnerTeam)
   ) {
     return createOwner(modelName, options.model);
+  }
+  /*
+   * The Criteria page's Edit (?criteria=), an update: the monitor's row
+   * takes the steps it was saved with, as the API stores them, so the page
+   * reads the changed rule back. The update answers with no body, as the
+   * API's does.
+   */
+  const updatedMonitor =
+    modelName === tableName(Monitor) &&
+    options.formType === FormType.Update &&
+    table(Monitor).find((item) => {
+      return (
+        String(item._id) ===
+        String(options.model?.id?.toString() || options.model?._id)
+      );
+    });
+  if (updatedMonitor) {
+    updatedMonitor.monitorSteps = options.model.monitorSteps;
+    return new HTTPResponse(200, {}, {});
   }
   if (modelName !== tableName(Monitor)) {
     fixture.unhandled.push({ kind: "createOrUpdate", modelName });

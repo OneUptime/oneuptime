@@ -9,7 +9,6 @@ import {
 import ObjectID from "Common/Types/ObjectID";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import Pill from "Common/UI/Components/Pill/Pill";
-import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -88,6 +87,12 @@ const TelemetryRuleSummary: FunctionComponent<ComponentProps> = (
       return status.isOperationalState;
     });
 
+  /*
+   * A status inside the sentence, as text: a small dot in its colour and
+   * its name, on the sentence's own line. The status bubble is a block of
+   * its own (a 14px dot on a 24px line, a live region), which sat lower
+   * than the words around it.
+   */
   const renderStatus: (status: MonitorStatus | undefined) => ReactElement = (
     status: MonitorStatus | undefined,
   ): ReactElement => {
@@ -95,13 +100,21 @@ const TelemetryRuleSummary: FunctionComponent<ComponentProps> = (
       return <span>{translator.translateText("Not set")}</span>;
     }
 
+    const name: string = status.name || "";
+
     return (
-      <span className="inline-flex align-middle">
-        <Statusbubble
-          color={(status.color as Color) || Black}
-          text={status.name || ""}
-          shouldAnimate={false}
-        />
+      <span
+        className="whitespace-nowrap font-medium text-gray-900"
+        data-testid="telemetry-rule-summary-status-name"
+      >
+        <span
+          aria-hidden="true"
+          className="relative -top-px ms-0.5 me-1.5 inline-block h-2 w-2 rounded-full align-middle"
+          style={{
+            backgroundColor: ((status.color as Color) || Black).toString(),
+          }}
+        ></span>
+        {translator.translateText(name) || name}
       </span>
     );
   };
@@ -201,7 +214,7 @@ const TelemetryRuleSummary: FunctionComponent<ComponentProps> = (
             <></>
           )}
           <div
-            className="leading-7 text-gray-500"
+            className="leading-6 text-gray-500"
             data-testid="telemetry-rule-summary-status"
           >
             <TranslatedSentence

@@ -25,6 +25,10 @@ import path from "path";
  * a browser shows is checked here - what sits where, what fits a phone, dark
  * mode, German and Persian - and what Create Monitor sends.
  *
+ * The monitor's Criteria page (?criteria=logs|several in the fixture) is
+ * the production one for a Logs monitor: it reads the rule back in a
+ * sentence, and its Edit opens the same editor, without the recipes.
+ *
  * The same guards as every spec of this fixture: a network fence, no
  * uncaught page errors, and no request the fixture does not model.
  */
@@ -34,6 +38,9 @@ const PROJECT_ID: string = "10000000-0000-4000-8000-000000000001";
 const NOW: Date = new Date("2026-09-21T12:00:00.000Z");
 const CREATE_PATH: string = `/dashboard/${PROJECT_ID}/monitors/create`;
 const CREATED_MONITOR_ID: string = "70000000-0000-4000-8000-000000000100";
+// The fixture's Logs monitor whose Criteria page is the real one.
+const TELEMETRY_MONITOR_ID: string = "70000000-0000-4000-8000-000000000200";
+const CRITERIA_PATH: string = `/dashboard/${PROJECT_ID}/monitors/${TELEMETRY_MONITOR_ID}/criteria`;
 
 const SCREENSHOTS: string = path.resolve(
   __dirname,
@@ -44,6 +51,7 @@ const WHITE_RGB: string = "rgb(255, 255, 255)";
 
 interface RecordedCreate {
   modelName: string;
+  formType?: string | undefined;
   data: Record<string, unknown>;
 }
 
@@ -257,8 +265,18 @@ test.describe("A Logs monitor's criteria step", () => {
       "This rule would have alerted 1 time, for 5 minutes.",
     );
     await expect(page.getByTestId("telemetry-rule-preview")).toContainText(
-      "Matching logs in each 5 minutes, over the last 12 hours.",
+      "Matching logs per 5 minutes, over the last 12 hours.",
     );
+    // The number it offers, said beside its button: Use N alone said not why.
+    const suggestion: Locator = page.getByTestId(
+      "telemetry-rule-preview-suggestion",
+    );
+    await expect(suggestion).toContainText(
+      /^At \d+, this rule would not have alerted in this time\./,
+    );
+    await expect(
+      suggestion.getByTestId("telemetry-rule-preview-use-suggestion"),
+    ).toBeVisible();
 
     // What happens: an alert, titled for the monitor and the recipe.
     await expect(
@@ -267,6 +285,25 @@ test.describe("A Logs monitor's criteria step", () => {
     await expect(
       page.getByTestId("telemetry-rule-alert").locator("input").first(),
     ).toHaveValue("Checkout logs: too many errors");
+
+    /*
+     * The alert's settings sit under the choice and as wide as it, headed
+     * by whose they are: indented under the radios they read as the last
+     * radio's ("Both").
+     */
+    const choice: { x: number; width: number } | null = await page
+      .getByTestId("telemetry-rule-action")
+      .boundingBox();
+    const alertBox: { x: number; width: number } | null = await page
+      .getByTestId("telemetry-rule-alert")
+      .boundingBox();
+    expect(choice).not.toBeNull();
+    expect(alertBox).not.toBeNull();
+    expect(Math.abs(alertBox!.x - choice!.x)).toBeLessThan(2);
+    expect(Math.abs(alertBox!.width - choice!.width)).toBeLessThan(2);
+    await expect(
+      page.getByTestId("telemetry-rule-alert").locator(":scope > div").first(),
+    ).toHaveText("Alert");
 
     // The old criteria editor is not on the page.
     await expect(
@@ -424,6 +461,36 @@ test.describe("A Metrics monitor's criteria step", () => {
     // No counts to preview for a metric: its own chart is above.
     await expect(page.getByTestId("telemetry-rule-preview")).toHaveCount(0);
 
+    /*
+     * Two by two: what is measured over which window, then how it
+     * compares. Three columns left the third empty beside two fields a row.
+     */
+    const boxOf: (testId: string) => Promise<{ x: number; y: number }> = async (
+      testId: string,
+    ): Promise<{ x: number; y: number }> => {
+      const box: { x: number; y: number } | null = await page
+        .getByTestId(testId)
+        .boundingBox();
+      expect(box, testId).not.toBeNull();
+      return box!;
+    };
+    const aggregation: { x: number; y: number } = await boxOf(
+      "telemetry-rule-aggregation",
+    );
+    const metricWindow: { x: number; y: number } = await boxOf(
+      "telemetry-rule-window",
+    );
+    const comparison: { x: number; y: number } = await boxOf(
+      "telemetry-rule-comparison",
+    );
+    const value: { x: number; y: number } = await boxOf("telemetry-rule-value");
+    expect(Math.abs(metricWindow.y - aggregation.y)).toBeLessThan(2);
+    expect(metricWindow.x).toBeGreaterThan(aggregation.x);
+    expect(comparison.y).toBeGreaterThan(aggregation.y);
+    expect(Math.abs(comparison.x - aggregation.x)).toBeLessThan(2);
+    expect(Math.abs(value.y - comparison.y)).toBeLessThan(2);
+    expect(Math.abs(value.x - metricWindow.x)).toBeLessThan(2);
+
     await form.getByTestId("Create Monitor").click();
 
     await expect(
@@ -563,5 +630,235 @@ test.describe("The rule on a phone, in dark mode, in German and in Persian", () 
     await page.setViewportSize({ width: 390, height: 844 });
     await noSidewaysScroll(page);
     await screenshot(page, "telemetry-rule-logs-fa-390");
+  });
+});
+
+/*
+ * The monitor's Criteria page, for the Logs monitor the fixture adds with
+ * ?criteria=: the production page, its read view and its Edit dialog.
+ */
+async function openCriteriaPage(
+  page: Page,
+  query: string = "criteria=logs",
+): Promise<void> {
+  await page.clock.setFixedTime(NOW);
+  await page.goto(`${CRITERIA_PATH}?${query}`);
+  await expect(page.getByTestId("synthetic-banner")).toBeVisible({
+    timeout: 60000,
+  });
+}
+
+async function summaryShown(page: Page): Promise<Locator> {
+  const summary: Locator = page.getByTestId("telemetry-rule-summary");
+  await expect(summary).toBeVisible({ timeout: 60000 });
+  return summary;
+}
+
+test.describe("A Logs monitor's Criteria page", () => {
+  test("reads the rule back: when to alert in one sentence, what it opens, the statuses on the sentence's line, the criteria folded", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+
+    await openCriteriaPage(page);
+    const summary: Locator = await summaryShown(page);
+
+    await expect(
+      summary.getByTestId("telemetry-rule-summary-sentence"),
+    ).toHaveText(
+      "Alerts when the number of matching logs in 5 minutes is more than 10.",
+    );
+    await expect(
+      summary.getByTestId("telemetry-rule-summary-alert"),
+    ).toContainText("Creates an alert:");
+    await expect(
+      summary.getByTestId("telemetry-rule-summary-alert"),
+    ).toContainText("Checkout logs: too many errors");
+    await expect(
+      summary.getByTestId("telemetry-rule-summary-alert"),
+    ).toContainText("High");
+    await expect(
+      summary.getByTestId("telemetry-rule-summary-status"),
+    ).toHaveText(
+      "Monitor status: Degraded while the rule matches, Operational otherwise.",
+    );
+
+    /*
+     * Each status sits in the sentence as words do - a dot and its name on
+     * the sentence's own line - not as a status bubble, whose 14px dot on a
+     * 24px line sat below the words around it.
+     */
+    const line: { y: number; height: number } | null = await summary
+      .getByTestId("telemetry-rule-summary-status")
+      .boundingBox();
+    const names: Locator = summary.getByTestId(
+      "telemetry-rule-summary-status-name",
+    );
+    await expect(names).toHaveText(["Degraded", "Operational"]);
+    for (const index of [0, 1]) {
+      const name: { y: number; height: number } | null = await names
+        .nth(index)
+        .boundingBox();
+      expect(name).not.toBeNull();
+      expect(name!.y).toBeGreaterThanOrEqual(line!.y - 1);
+      expect(name!.y + name!.height).toBeLessThanOrEqual(
+        line!.y + line!.height + 1,
+      );
+    }
+    expect(line!.height).toBeLessThanOrEqual(26);
+    await expect(summary.locator('[role="status"]')).toHaveCount(0);
+
+    // The criteria behind the rule wait, folded, under the summary.
+    const details: Locator = page.getByTestId(
+      "telemetry-rule-criteria-details",
+    );
+    await expect(details).toBeVisible();
+    await expect(
+      details.getByRole("button", { name: /Criteria details/ }),
+    ).toHaveAttribute("aria-expanded", "false");
+
+    await screenshot(page, "telemetry-rule-criteria-page");
+  });
+
+  test("Edit opens the same rule editor, without the recipes, and saving a new number reads it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+
+    await openCriteriaPage(page);
+    await summaryShown(page);
+
+    await page
+      .getByRole("button", { name: "Edit Monitoring Criteria" })
+      .click();
+
+    const editor: Locator = page.getByTestId("telemetry-rule-editor");
+    await expect(editor).toBeVisible({ timeout: 60000 });
+    // A monitor that exists opens on its own rule: no recipes to overwrite it.
+    await expect(page.getByTestId("telemetry-rule-recipes")).toHaveCount(0);
+    await expect(sentence(page)).toHaveText(
+      "Alerts when the number of matching logs in 5 minutes is more than 10.",
+    );
+    await previewSettled(page);
+    await expect(
+      page.getByTestId("telemetry-rule-alert").locator(":scope > div").first(),
+    ).toHaveText("Alert");
+
+    await screenshot(page, "telemetry-rule-criteria-edit");
+
+    await page.getByTestId("telemetry-rule-threshold").fill("25");
+    await expect(sentence(page)).toHaveText(
+      "Alerts when the number of matching logs in 5 minutes is more than 25.",
+    );
+    await page.getByTestId("modal-footer-submit-button").click();
+
+    await expect(page.getByTestId("telemetry-rule-editor")).toHaveCount(0, {
+      timeout: 30000,
+    });
+    await expect(
+      page.getByTestId("telemetry-rule-summary-sentence"),
+    ).toHaveText(
+      "Alerts when the number of matching logs in 5 minutes is more than 25.",
+      { timeout: 30000 },
+    );
+
+    // What was saved: the one criteria, its number changed, nothing else.
+    const saved: Array<RecordedCreate> = (await createsRecorded(page)).filter(
+      (create: RecordedCreate) => {
+        return create.modelName === "Monitor";
+      },
+    );
+    expect(saved).toHaveLength(1);
+    expect(saved[0]!.formType).toBe("1");
+    const criteria: Array<Record<string, unknown>> = criteriaOf(
+      firstStepOf(saved[0]!),
+    );
+    expect(criteria).toHaveLength(1);
+    expect(criteria[0]).toMatchObject({
+      createAlerts: true,
+      createIncidents: false,
+      filters: [
+        { checkOn: "Log Count", filterType: "Greater Than", value: 25 },
+      ],
+    });
+  });
+
+  test("criteria that are more than one rule read in full, and Edit says why it shows them so", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(180000);
+
+    await openCriteriaPage(page, "criteria=several");
+
+    await expect(page.getByText("Log Count is above 100").first()).toBeVisible({
+      timeout: 60000,
+    });
+    await expect(page.getByText("Log Count is above 10").first()).toBeVisible();
+    await expect(page.getByTestId("telemetry-rule-summary")).toHaveCount(0);
+
+    await page
+      .getByRole("button", { name: "Edit Monitoring Criteria" })
+      .click();
+
+    await expect(page.getByTestId("telemetry-rule-shape-problem")).toHaveText(
+      "These criteria are more than one rule, so each one is shown in full.",
+      { timeout: 60000 },
+    );
+    await expect(page.getByTestId("telemetry-rule-editor")).toHaveCount(0);
+  });
+
+  test("fits a phone, sits on dark surfaces, and reads in German and in Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    test.setTimeout(240000);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openCriteriaPage(page);
+    await summaryShown(page);
+    await noSidewaysScroll(page);
+    await screenshot(page, "telemetry-rule-criteria-page-390");
+
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await openCriteriaPage(page, "criteria=logs&theme=dark");
+    const darkSentence: Locator = (await summaryShown(page)).getByTestId(
+      "telemetry-rule-summary-sentence",
+    );
+    const background: string = await darkSentence.evaluate(
+      (element: Element): string => {
+        return getComputedStyle(element).backgroundColor;
+      },
+    );
+    expect(background).not.toBe(WHITE_RGB);
+    await screenshot(page, "telemetry-rule-criteria-page-dark");
+
+    await openCriteriaPage(page, "criteria=logs&lang=de");
+    await expect(
+      (await summaryShown(page)).getByTestId("telemetry-rule-summary-sentence"),
+    ).toHaveText(
+      "Alarmiert, wenn die Zahl passender Logs in 5 Minuten mehr als 10 ist.",
+    );
+    await expect(
+      page.getByText("Wann alarmieren", { exact: true }),
+    ).toBeVisible();
+    await noSidewaysScroll(page);
+    await screenshot(page, "telemetry-rule-criteria-page-de");
+
+    await openCriteriaPage(page, "criteria=logs&lang=fa");
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(
+      (await summaryShown(page)).getByTestId("telemetry-rule-summary-sentence"),
+    ).not.toContainText("Alerts when");
+    await screenshot(page, "telemetry-rule-criteria-page-fa");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await noSidewaysScroll(page);
   });
 });
