@@ -143,10 +143,13 @@ export const CARD_GRID_CLASS_NAME: string = "grid grid-cols-1 gap-5";
  * subgrid's box: browsers agree on a subgrid that keeps its parent's gap,
  * and not on one that sets its own (Firefox drew a gap of 0 as 20px more).
  * A card the cell holds through a wrapper of its own still fills the cell,
- * its header and body on two rows of its own (grid-rows-[auto_1fr]).
+ * its header and body on two rows of its own (grid-rows-[auto_1fr]). The
+ * cell's one column may be narrower than its card's widest content
+ * (grid-cols-1: minmax(0, 1fr)), so a chart or a long word never widens a
+ * cell past its share of the row.
  */
 export const CARD_GRID_CELL_CLASS_NAME: string =
-  "grid min-w-0 row-span-2 grid-rows-subgrid [&>*]:row-span-2 [&>*]:grid-rows-subgrid";
+  "grid min-w-0 row-span-2 grid-cols-1 grid-rows-subgrid [&>*]:row-span-2 [&>*]:grid-rows-subgrid";
 
 /*
  * A column of a hand-built row of boxes that are not Cards - a heading over

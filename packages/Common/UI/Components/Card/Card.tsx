@@ -479,15 +479,20 @@ export const CARD_FILL_HEIGHT_BODY_CLASS_NAME: string = "flex flex-1 flex-col";
  * starting under its own header. The body takes back 4px of the 20 (-mt-1),
  * so it starts 16px under the header, as mt-4 puts it outside a grid; a card
  * with no header starts its body at the top, across both rows.
+ *
+ * Each of these grids has one column that may be narrower than what is in
+ * it (grid-cols-1: minmax(0, 1fr)), as a block is: a grid's own column is
+ * as wide as its widest word or chart, and on a phone a card held its
+ * Traffic chart's 439px in a cell of 358 and the page scrolled sideways.
  */
 export const CARD_IN_ROW_CLASS_NAME: string =
-  "grid h-full grid-rows-[auto_1fr] gap-y-5";
+  "grid h-full grid-cols-1 grid-rows-[auto_1fr] gap-y-5";
 
 export const CARD_IN_ROW_FRAME_CLASS_NAME: string =
-  "grid row-span-2 grid-rows-subgrid";
+  "grid row-span-2 grid-cols-1 grid-rows-subgrid";
 
 export const CARD_IN_ROW_CONTENT_CLASS_NAME: string =
-  "grid row-span-2 grid-rows-subgrid";
+  "grid row-span-2 grid-cols-1 grid-rows-subgrid";
 
 // Its body's place under the header, when the card's page sets none.
 export const CARD_IN_ROW_BODY_OFFSET_CLASS_NAME: string = "-mt-1";

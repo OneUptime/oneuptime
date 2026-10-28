@@ -136,7 +136,10 @@ const SecurityPipeline: FunctionComponent<ComponentProps> = (
                       icon={view.icon}
                       className="h-3.5 w-3.5 flex-none text-gray-400"
                     />
-                    <span className="min-w-0 break-words">
+                    <span
+                      className="min-w-0 break-words"
+                      data-testid={`security-pipeline-${view.key}-label`}
+                    >
                       {translator.translateText(view.title)}
                     </span>
                   </div>
