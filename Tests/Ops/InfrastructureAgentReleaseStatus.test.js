@@ -579,6 +579,156 @@ describe(`${SCRIPTS}/ReleaseStatus.sh`, () => {
     );
   });
 
+  /*
+   * 14.0.95: the Android build failed on the network, so the publish jobs
+   * that wait for it ran in the release run's re-run, ten hours after the
+   * release. The status check that follows the run started five seconds
+   * after the Pages deploy of the new packages was queued, and called the
+   * site's lag a problem.
+   */
+  describe("a version OneUptime/packages got after the release's grace, as a re-run publishes it", () => {
+    const PAGES_ENDPOINT = "repos/OneUptime/packages/actions/runs?per_page=1";
+    let behind;
+
+    beforeAll(() => {
+      behind = writeSite("behind-rerun", { key, versions: [OLDER] });
+    });
+
+    function withDeploy(deploy, env = {}) {
+      // A release out for 30 hours that OneUptime/packages has, as github() says.
+      const responses = github({ age: 30 });
+      responses[PAGES_ENDPOINT] = { workflow_runs: [deploy] };
+      return status({ responses, siteDirectory: behind, env });
+    }
+
+    test("is waiting while its Pages deploy waits for a runner, saying so, and exits 0", () => {
+      const result = withDeploy({
+        status: "queued",
+        conclusion: null,
+        created_at: hoursAgo(0.01),
+      });
+
+      expect(result.stderr).toBe("");
+      expect(result.status).toBe(0);
+      expect(result.outputs.apt).toBe("waiting");
+      expect(result.outputs.yum).toBe("waiting");
+      expect(result.rows.apt.details).toContain(
+        `the site has ${OLDER}, not ${VERSION}`,
+      );
+      expect(result.rows.apt.details).toContain(
+        "OneUptime/packages has it; its latest Pages deploy",
+      );
+      expect(result.rows.apt.details).toContain("is queued");
+      // The rest of the release is checked as ever.
+      expect(result.outputs.key).toBe("published");
+      expect(result.outputs.homebrew).toBe("published");
+    });
+
+    test("is waiting while the deploy runs, and just after it, while the site's cache still serves the old index", () => {
+      for (const deploy of [
+        { status: "in_progress", conclusion: null, created_at: hoursAgo(0.2) },
+        {
+          status: "completed",
+          conclusion: "success",
+          created_at: hoursAgo(0.1),
+        },
+      ]) {
+        const result = withDeploy(deploy);
+
+        expect(result.status).toBe(0);
+        expect(result.outputs.apt).toBe("waiting");
+        expect(result.outputs.yum).toBe("waiting");
+      }
+    });
+
+    test("is a problem once its deploy started RELEASE_STATUS_GRACE_HOURS ago, and it exits 1", () => {
+      const stale = withDeploy({
+        status: "queued",
+        conclusion: null,
+        created_at: hoursAgo(7),
+      });
+
+      expect(stale.status).toBe(1);
+      expect(stale.outputs.apt).toBe("problem");
+      expect(stale.outputs.yum).toBe("problem");
+
+      // The same window as the release's: RELEASE_STATUS_GRACE_HOURS sets both.
+      const shortGrace = { RELEASE_STATUS_GRACE_HOURS: "1" };
+      expect(
+        withDeploy(
+          { status: "queued", conclusion: null, created_at: hoursAgo(2) },
+          shortGrace,
+        ).outputs.apt,
+      ).toBe("problem");
+      expect(
+        withDeploy(
+          { status: "queued", conclusion: null, created_at: hoursAgo(0.5) },
+          shortGrace,
+        ).outputs.apt,
+      ).toBe("waiting");
+    });
+
+    test("is a problem at once when that deploy failed or was cancelled, naming how it ended", () => {
+      for (const conclusion of ["failure", "cancelled"]) {
+        const result = withDeploy({
+          status: "completed",
+          conclusion,
+          created_at: hoursAgo(0.5),
+        });
+
+        expect(result.status).toBe(1);
+        expect(result.outputs.apt).toBe("problem");
+        expect(result.outputs.yum).toBe("problem");
+        expect(result.rows.apt.details).toContain(
+          `is completed (${conclusion})`,
+        );
+      }
+    });
+
+    test("is a problem whatever the deploy does when OneUptime/packages does not have it", () => {
+      const responses = github({ age: 30 });
+      responses[PUSHED_ENDPOINT] = `Package: ${PACKAGE}\nVersion: ${OLDER}\n`;
+      responses[PAGES_ENDPOINT] = {
+        workflow_runs: [
+          { status: "queued", conclusion: null, created_at: hoursAgo(0.01) },
+        ],
+      };
+      const result = status({ responses, siteDirectory: behind });
+
+      expect(result.status).toBe(1);
+      expect(result.outputs.apt).toBe("problem");
+      expect(result.rows.apt.details).toContain(
+        "OneUptime/packages does not have it either",
+      );
+    });
+
+    test("is a problem when OneUptime/packages has no Pages deploy to wait for", () => {
+      const responses = github({ age: 30 });
+      responses[PAGES_ENDPOINT] = { workflow_runs: [] };
+      const result = status({ responses, siteDirectory: behind });
+
+      expect(result.status).toBe(1);
+      expect(result.outputs.apt).toBe("problem");
+      expect(result.rows.apt.details).toContain(
+        "OneUptime/packages has it, and has no Pages deploy",
+      );
+    });
+
+    test("asks GitHub for the Pages deploy once, however many rows wait on it", () => {
+      const result = withDeploy({
+        status: "queued",
+        conclusion: null,
+        created_at: hoursAgo(0.01),
+      });
+
+      expect(
+        result.calls.filter((call) => {
+          return call.endpoint === PAGES_ENDPOINT;
+        }),
+      ).toHaveLength(1);
+    });
+  });
+
   test("a site that does not answer is waiting while the release is young, and a problem after", () => {
     const nowhere = path.join(work, "no-site");
 
