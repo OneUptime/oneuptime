@@ -184,9 +184,10 @@ describe("FlowAddressNamer.resolve: a name only when it points back", () => {
     fake.ptr["203.0.113.9"] = ["payroll.example.com"];
     fake.forward["payroll.example.com"] = ["198.51.100.1"];
 
-    expect(
-      await namer(fake, { now: 0 }).resolve("203.0.113.9"),
-    ).toEqual({ name: null, hasFailed: false });
+    expect(await namer(fake, { now: 0 }).resolve("203.0.113.9")).toEqual({
+      name: null,
+      hasFailed: false,
+    });
   });
 
   test("an IPv6 address is confirmed by AAAA records, whatever their spelling", async () => {
@@ -315,7 +316,13 @@ describe("FlowAddressNamer.resolve: a name only when it points back", () => {
       { isPrivateLookupAllowed: false },
     );
 
-    for (const address of ["10.0.0.5", "172.16.0.1", "192.168.1.1", "100.64.0.1", "fd00::5"]) {
+    for (const address of [
+      "10.0.0.5",
+      "172.16.0.1",
+      "192.168.1.1",
+      "100.64.0.1",
+      "fd00::5",
+    ]) {
       expect(await subject.resolve(address)).toEqual({
         name: null,
         hasFailed: false,
@@ -651,11 +658,7 @@ describe("parseFlowNameDnsServers", () => {
       " 10.0.0.53, 10.0.0.54:5353 ,fd00::53, [fd00::54]:5353 ",
     );
 
-    expect(parsed.servers).toEqual([
-      "10.0.0.53",
-      "10.0.0.54:5353",
-      "fd00::53",
-    ]);
+    expect(parsed.servers).toEqual(["10.0.0.53", "10.0.0.54:5353", "fd00::53"]);
     // A fourth is past the limit, not invalid.
     expect(parsed.invalid).toEqual([]);
     expect(MAX_FLOW_NAME_DNS_SERVERS).toBe(3);

@@ -140,9 +140,9 @@ describe("NetworkAddressName: what it is", () => {
 
   test("its description fits a field's hint (150 characters)", () => {
     for (const column of ["name", "address"]) {
-      expect(
-        (columnOf(column).description || "").length,
-      ).toBeLessThanOrEqual(150);
+      expect((columnOf(column).description || "").length).toBeLessThanOrEqual(
+        150,
+      );
     }
   });
 });
@@ -224,7 +224,9 @@ describe("NetworkAddressName: its columns", () => {
         return index.target === NetworkAddressName;
       })
       .map((index: IndexMetadataArgs): Array<string> => {
-        return Array.isArray(index.columns) ? (index.columns as Array<string>) : [];
+        return Array.isArray(index.columns)
+          ? (index.columns as Array<string>)
+          : [];
       });
 
     expect(indexed).toContainEqual(["projectId", "address"]);

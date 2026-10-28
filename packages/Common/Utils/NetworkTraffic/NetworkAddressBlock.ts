@@ -186,7 +186,10 @@ function isIpv4Mapped(groups: Array<number>): boolean {
 }
 
 // The first `prefixLength` bits of the groups kept, the rest cleared.
-function maskGroups(groups: Array<number>, prefixLength: number): Array<number> {
+function maskGroups(
+  groups: Array<number>,
+  prefixLength: number,
+): Array<number> {
   return groups.map((group: number, index: number): number => {
     const bitsBefore: number = index * 16;
 
@@ -288,7 +291,8 @@ export default class NetworkAddressBlockUtil {
 
     // A mapped address with a length is an IPv6 subnet, read as one.
     const isMappedSubnet: boolean =
-      prefixText !== null && addressText.trim().toLowerCase().includes("::ffff:");
+      prefixText !== null &&
+      addressText.trim().toLowerCase().includes("::ffff:");
 
     let address: AddressGroups | null =
       NetworkAddressBlockUtil.readAddress(addressText);

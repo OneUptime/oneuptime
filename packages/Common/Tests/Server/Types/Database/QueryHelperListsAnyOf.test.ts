@@ -23,9 +23,7 @@ function asRaw(operator: unknown): RawOperator {
 
 describe("QueryHelper.listsAnyOf", () => {
   it("splits the column's text at its commas, without case or spaces, and overlaps it with the values", () => {
-    const operator: RawOperator = asRaw(
-      QueryHelper.listsAnyOf(["10.0.0.5"]),
-    );
+    const operator: RawOperator = asRaw(QueryHelper.listsAnyOf(["10.0.0.5"]));
 
     expect(operator).toBeInstanceOf(FindOperator);
     expect(operator.type).toBe("raw");

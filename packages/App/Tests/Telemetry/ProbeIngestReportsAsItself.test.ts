@@ -203,8 +203,9 @@ jest.mock("Common/Server/Utils/NetworkFlow/NetworkFlowDeviceMatcher", () => {
 
 jest.mock("Common/Server/Utils/NetworkFlow/NetworkFlowIngest", () => {
   // The DNS names a probe sends are read as the route reads them (issue #5340).
-  const actual: { default: { readAddressNames: unknown } } =
-    jest.requireActual("Common/Server/Utils/NetworkFlow/NetworkFlowIngest");
+  const actual: { default: { readAddressNames: unknown } } = jest.requireActual(
+    "Common/Server/Utils/NetworkFlow/NetworkFlowIngest",
+  );
 
   return {
     __esModule: true,

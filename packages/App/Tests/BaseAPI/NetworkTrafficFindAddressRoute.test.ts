@@ -45,7 +45,9 @@ jest.mock("Common/Server/API/CommonAPI", () => {
 jest.mock("Common/Server/Utils/NetworkFlow/NetworkTrafficSummary", () => {
   const actual: {
     default: { parseRequest: unknown; parseFindRequest: unknown };
-  } = jest.requireActual("Common/Server/Utils/NetworkFlow/NetworkTrafficSummary");
+  } = jest.requireActual(
+    "Common/Server/Utils/NetworkFlow/NetworkTrafficSummary",
+  );
 
   return {
     __esModule: true,

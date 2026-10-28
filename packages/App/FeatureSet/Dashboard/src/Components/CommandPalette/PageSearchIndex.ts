@@ -2821,7 +2821,12 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.NETWORK_DEVICE_SETTINGS_ADDRESS_NAMES,
             title: "Address Names",
             icon: IconProp.Label,
-            keywords: ["ip names", "subnet names", "hostnames", "traffic names"],
+            keywords: [
+              "ip names",
+              "subnet names",
+              "hostnames",
+              "traffic names",
+            ],
           },
           {
             page: PageMap.NETWORK_DEVICE_SETTINGS_OID_TEMPLATES,

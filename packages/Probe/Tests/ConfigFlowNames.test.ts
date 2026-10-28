@@ -108,7 +108,8 @@ describe("flow name lookups configuration", () => {
   test("named DNS servers are asked instead; what is not one is left out", () => {
     expect(
       load({
-        PROBE_FLOW_NAME_DNS_SERVERS: "10.0.0.53, dns.corp.example, [fd00::53]:5353",
+        PROBE_FLOW_NAME_DNS_SERVERS:
+          "10.0.0.53, dns.corp.example, [fd00::53]:5353",
       }).PROBE_FLOW_NAME_DNS_SERVERS,
     ).toEqual(["10.0.0.53", "[fd00::53]:5353"]);
   });
@@ -125,7 +126,8 @@ describe("flow name lookups configuration", () => {
     ).toBe(true);
     // A project's own probe, on any instance.
     expect(
-      load({ BILLING_ENABLED: "true" }).PROBE_FLOW_NAME_LOOKUP_PRIVATE_ADDRESSES,
+      load({ BILLING_ENABLED: "true" })
+        .PROBE_FLOW_NAME_LOOKUP_PRIVATE_ADDRESSES,
     ).toBe(true);
   });
 });

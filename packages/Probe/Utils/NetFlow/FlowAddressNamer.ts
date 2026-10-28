@@ -184,7 +184,10 @@ export function parseFlowNameDnsServers(
       continue;
     }
 
-    if (!servers.includes(entry) && servers.length < MAX_FLOW_NAME_DNS_SERVERS) {
+    if (
+      !servers.includes(entry) &&
+      servers.length < MAX_FLOW_NAME_DNS_SERVERS
+    ) {
       servers.push(entry);
     }
   }
@@ -430,9 +433,7 @@ export default class FlowAddressNamer {
       return;
     }
 
-    const busiest: Array<[string, number]> = Array.from(
-      this.waiting.entries(),
-    )
+    const busiest: Array<[string, number]> = Array.from(this.waiting.entries())
       .sort((a: [string, number], b: [string, number]): number => {
         return b[1] - a[1];
       })

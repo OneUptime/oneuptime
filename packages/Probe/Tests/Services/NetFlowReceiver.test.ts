@@ -645,7 +645,10 @@ describe("NetFlowReceiver names the addresses it forwards (issue #5340)", () => 
     return jest.spyOn(API, "fetch").mockResolvedValue({} as never);
   }
 
-  function sentData(fetchSpy: jest.SpyInstance, call: number): Record<string, unknown> {
+  function sentData(
+    fetchSpy: jest.SpyInstance,
+    call: number,
+  ): Record<string, unknown> {
     return (fetchSpy.mock.calls[call]?.[0] as Record<string, unknown>)[
       "data"
     ] as Record<string, unknown>;
@@ -734,8 +737,8 @@ describe("NetFlowReceiver names the addresses it forwards (issue #5340)", () => 
       .spyOn(receiver.namer, "pump")
       .mockImplementation((): Promise<void> => {
         // A lookup that never ends must not hold the collector up.
-        return new Promise<void>(() => {
-          return undefined;
+        return new Promise<void>((): void => {
+          // Never settles.
         });
       });
     mockFetch();

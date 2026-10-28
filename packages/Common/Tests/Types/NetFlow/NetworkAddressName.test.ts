@@ -81,16 +81,18 @@ describe("NetworkAddressNameUtil.pick", () => {
     expect(NetworkAddressNameUtil.pick(all.slice(0, 3))?.name).toBe(
       "mumbai-fs01",
     );
-    expect(NetworkAddressNameUtil.pick(all.slice(0, 2))?.name).toBe(
-      "web-7f9c",
-    );
+    expect(NetworkAddressNameUtil.pick(all.slice(0, 2))?.name).toBe("web-7f9c");
     expect(NetworkAddressNameUtil.pick(all.slice(0, 1))?.name).toBe(
       "fs01.corp.example",
     );
   });
 
   test("each source outranks every source after it", () => {
-    for (let index: number = 0; index < NETWORK_ADDRESS_NAME_SOURCES.length; index++) {
+    for (
+      let index: number = 0;
+      index < NETWORK_ADDRESS_NAME_SOURCES.length;
+      index++
+    ) {
       for (
         let later: number = index + 1;
         later < NETWORK_ADDRESS_NAME_SOURCES.length;
@@ -194,9 +196,7 @@ describe("NetworkAddressNameUtil.cleanName", () => {
     const emoji: string = "😀".repeat(MAX_NETWORK_ADDRESS_NAME_LENGTH + 5);
     const cut: string | null = NetworkAddressNameUtil.cleanName(emoji);
 
-    expect(Array.from(cut || "")).toHaveLength(
-      MAX_NETWORK_ADDRESS_NAME_LENGTH,
-    );
+    expect(Array.from(cut || "")).toHaveLength(MAX_NETWORK_ADDRESS_NAME_LENGTH);
     expect(cut).toBe("😀".repeat(MAX_NETWORK_ADDRESS_NAME_LENGTH));
   });
 
@@ -227,9 +227,9 @@ describe("NetworkAddressNameUtil.cleanName", () => {
 describe("NetworkAddressNameUtil.isKnown", () => {
   test("a name or a subnet's name says something; nothing else does", () => {
     expect(NetworkAddressNameUtil.isKnown({ name: "fs01" })).toBe(true);
-    expect(NetworkAddressNameUtil.isKnown({ subnetName: "Mumbai office" })).toBe(
-      true,
-    );
+    expect(
+      NetworkAddressNameUtil.isKnown({ subnetName: "Mumbai office" }),
+    ).toBe(true);
     expect(NetworkAddressNameUtil.isKnown({})).toBe(false);
     expect(NetworkAddressNameUtil.isKnown({ name: "" })).toBe(false);
     expect(NetworkAddressNameUtil.isKnown(undefined)).toBe(false);

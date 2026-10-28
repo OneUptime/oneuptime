@@ -57,7 +57,9 @@ afterEach(() => {
 function renderPage(): CapturedTable {
   render(
     <NetworkAddressNamesPage
-      pageRoute={new Route("/dashboard/p/network-devices/settings/address-names")}
+      pageRoute={
+        new Route("/dashboard/p/network-devices/settings/address-names")
+      }
       currentProject={null}
       hasPaymentMethod={true}
     />,

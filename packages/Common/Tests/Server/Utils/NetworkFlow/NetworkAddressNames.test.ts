@@ -86,7 +86,11 @@ function emptyEstate(): Estate {
   };
 }
 
-function addressName(address: string, name: string, id?: string): NetworkAddressName {
+function addressName(
+  address: string,
+  name: string,
+  id?: string,
+): NetworkAddressName {
   const row: NetworkAddressName = new NetworkAddressName();
   row._id = id || ObjectID.generate().toString();
   row.address = address;
@@ -121,7 +125,8 @@ function host(data: {
   row.name = data.name || "";
   row.hostIdentifier = data.hostIdentifier || "";
   row.hostIpAddresses = data.addresses;
-  row.createdAt = data.createdAt || new Date(WINDOW_START.getTime() - 30 * 24 * HOUR_MS);
+  row.createdAt =
+    data.createdAt || new Date(WINDOW_START.getTime() - 30 * 24 * HOUR_MS);
   if (data.lastSeenAt) {
     row.lastSeenAt = data.lastSeenAt;
   }
@@ -140,7 +145,8 @@ function cloudResource(data: {
   row._id = data.id || ObjectID.generate().toString();
   row.name = data.name;
   (row as unknown as JSONObject)["cloudEndpoints"] = data.endpoints;
-  row.createdAt = data.createdAt || new Date(WINDOW_START.getTime() - 24 * HOUR_MS);
+  row.createdAt =
+    data.createdAt || new Date(WINDOW_START.getTime() - 24 * HOUR_MS);
   if (data.lastSeenAt) {
     row.lastSeenAt = data.lastSeenAt;
   }
@@ -213,31 +219,31 @@ beforeEach(() => {
     return undefined;
   });
 
-  jest
-    .spyOn(NetworkAddressNameService, "findBy")
-    .mockImplementation((async (args: FindArgs) => {
-      nameReads.push(args);
-      return args.limit === MAX_NAMED_SUBNETS_READ
-        ? estate.subnetNames
-        : estate.exactNames;
-    }) as never);
+  jest.spyOn(NetworkAddressNameService, "findBy").mockImplementation((async (
+    args: FindArgs,
+  ) => {
+    nameReads.push(args);
+    return args.limit === MAX_NAMED_SUBNETS_READ
+      ? estate.subnetNames
+      : estate.exactNames;
+  }) as never);
 
-  jest
-    .spyOn(NetworkDeviceService, "findBy")
-    .mockImplementation((async (args: FindArgs) => {
-      deviceReads.push(args);
+  jest.spyOn(NetworkDeviceService, "findBy").mockImplementation((async (
+    args: FindArgs,
+  ) => {
+    deviceReads.push(args);
 
-      if (args.query["hostname"]) {
-        return estate.polledDevices;
-      }
+    if (args.query["hostname"]) {
+      return estate.polledDevices;
+    }
 
-      if (args.query["otherAddresses"]) {
-        return estate.otherAddressDevices;
-      }
+    if (args.query["otherAddresses"]) {
+      return estate.otherAddressDevices;
+    }
 
-      // Found by name: every device the estate has.
-      return [...estate.polledDevices, ...estate.otherAddressDevices];
-    }) as never);
+    // Found by name: every device the estate has.
+    return [...estate.polledDevices, ...estate.otherAddressDevices];
+  }) as never);
 
   jest.spyOn(HostService, "findBy").mockImplementation((async (
     args: FindArgs,
@@ -256,12 +262,12 @@ beforeEach(() => {
       return estate.cloudIds;
     }) as never);
 
-  jest
-    .spyOn(CloudResourceService, "findBy")
-    .mockImplementation((async (args: FindArgs) => {
-      cloudReads.push(args);
-      return estate.cloudResources;
-    }) as never);
+  jest.spyOn(CloudResourceService, "findBy").mockImplementation((async (
+    args: FindArgs,
+  ) => {
+    cloudReads.push(args);
+    return estate.cloudResources;
+  }) as never);
 
   jest
     .spyOn(KubernetesResourceService, "findIdsHoldingAddresses")
@@ -273,12 +279,12 @@ beforeEach(() => {
       return estate.kubernetesIds;
     }) as never);
 
-  jest
-    .spyOn(KubernetesResourceService, "findBy")
-    .mockImplementation((async (args: FindArgs) => {
-      kubernetesReads.push(args);
-      return estate.kubernetes;
-    }) as never);
+  jest.spyOn(KubernetesResourceService, "findBy").mockImplementation((async (
+    args: FindArgs,
+  ) => {
+    kubernetesReads.push(args);
+    return estate.kubernetes;
+  }) as never);
 });
 
 afterEach(() => {
@@ -305,7 +311,9 @@ describe("NetworkAddressNamesUtil.resolve: where a name comes from", () => {
   });
 
   test("a name someone gave the address wins over the inventory and DNS, and carries its row", async () => {
-    estate.exactNames = [addressName("10.18.167.35", "File server", NAME_ROW_ID)];
+    estate.exactNames = [
+      addressName("10.18.167.35", "File server", NAME_ROW_ID),
+    ];
     estate.hosts = [
       host({ id: HOST_ID, name: "mumbai-fs01", addresses: "10.18.167.35" }),
     ];
@@ -351,7 +359,9 @@ describe("NetworkAddressNamesUtil.resolve: where a name comes from", () => {
   });
 
   test("a device outranks a host that reports the same address", async () => {
-    estate.polledDevices = [device({ name: "core-sw-01", hostname: "10.0.0.1" })];
+    estate.polledDevices = [
+      device({ name: "core-sw-01", hostname: "10.0.0.1" }),
+    ];
     estate.hosts = [host({ name: "jump-box", addresses: "10.0.0.1" })];
 
     expect((await resolve(["10.0.0.1"]))["10.0.0.1"]?.name).toBe("core-sw-01");
@@ -386,7 +396,10 @@ describe("NetworkAddressNamesUtil.resolve: where a name comes from", () => {
       cloudResource({
         id: CLOUD_ID,
         name: "orders-db-primary",
-        endpoints: ["orders.abc123.eu-west-1.rds.amazonaws.com", "10.114.167.16"],
+        endpoints: [
+          "orders.abc123.eu-west-1.rds.amazonaws.com",
+          "10.114.167.16",
+        ],
         lastSeenAt: WINDOW_END,
       }),
     ];
@@ -456,7 +469,9 @@ describe("NetworkAddressNamesUtil.resolve: where a name comes from", () => {
         id: NODE_ID,
         kind: "Node",
         name: "node-a",
-        status: { addresses: [{ type: "InternalIP", address: "10.34.167.20" }] },
+        status: {
+          addresses: [{ type: "InternalIP", address: "10.34.167.20" }],
+        },
       }),
     ];
 
@@ -496,7 +511,9 @@ describe("NetworkAddressNamesUtil.resolve: where a name comes from", () => {
   });
 
   test("a record without a name, archived or not, names nothing", async () => {
-    estate.hosts = [host({ name: "", hostIdentifier: "", addresses: "10.0.0.7" })];
+    estate.hosts = [
+      host({ name: "", hostIdentifier: "", addresses: "10.0.0.7" }),
+    ];
     estate.polledDevices = [device({ name: "   ", hostname: "10.0.0.8" })];
 
     expect(await resolve(["10.0.0.7", "10.0.0.8"])).toEqual({});
@@ -714,7 +731,9 @@ describe("NetworkAddressNamesUtil.resolve: what it reads", () => {
     jest
       .spyOn(HostService, "findBy")
       .mockRejectedValue(new Error("connection reset") as never);
-    estate.polledDevices = [device({ name: "core-sw-01", hostname: "10.0.0.1" })];
+    estate.polledDevices = [
+      device({ name: "core-sw-01", hostname: "10.0.0.1" }),
+    ];
     estate.exactNames = [addressName("10.0.0.2", "Printer")];
 
     const names: NetworkTrafficAddressNames = await resolve([
@@ -737,7 +756,9 @@ describe("NetworkAddressNamesUtil.resolve: what it reads", () => {
     jest
       .spyOn(CloudResourceService, "findBy")
       .mockRejectedValue(
-        new Error("You do not have permissions to read Cloud Resource") as never,
+        new Error(
+          "You do not have permissions to read Cloud Resource",
+        ) as never,
       );
 
     await expect(resolve(["10.114.167.16"])).resolves.toEqual({});
@@ -750,7 +771,9 @@ describe("NetworkAddressNamesUtil.resolve: a record names traffic of a time it w
       host({
         name: "late-host",
         addresses: "10.0.0.5",
-        createdAt: new Date(WINDOW_END.getTime() + RECORD_SIGHTING_SLACK_MS + 1),
+        createdAt: new Date(
+          WINDOW_END.getTime() + RECORD_SIGHTING_SLACK_MS + 1,
+        ),
       }),
     ];
 
@@ -776,7 +799,9 @@ describe("NetworkAddressNamesUtil.resolve: a record names traffic of a time it w
       host({
         name: "edge-host",
         addresses: "10.0.0.5",
-        createdAt: new Date(WINDOW_END.getTime() + RECORD_SIGHTING_SLACK_MS - 1),
+        createdAt: new Date(
+          WINDOW_END.getTime() + RECORD_SIGHTING_SLACK_MS - 1,
+        ),
       }),
       host({
         name: "quiet-host",
@@ -830,7 +855,9 @@ describe("NetworkAddressNamesUtil.resolve: a record names traffic of a time it w
 
   test("Address Names and devices name any window: they are configuration", async () => {
     estate.exactNames = [addressName("10.0.0.2", "Printer")];
-    estate.polledDevices = [device({ name: "core-sw-01", hostname: "10.0.0.1" })];
+    estate.polledDevices = [
+      device({ name: "core-sw-01", hostname: "10.0.0.1" }),
+    ];
 
     const names: NetworkTrafficAddressNames =
       await NetworkAddressNamesUtil.resolve({

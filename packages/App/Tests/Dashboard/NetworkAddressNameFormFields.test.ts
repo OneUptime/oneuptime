@@ -25,9 +25,10 @@ import FormValues from "Common/UI/Components/Forms/Types/FormValues";
  * teaches the wrong rule.
  */
 
-function values(data: { name?: unknown; address?: unknown }): FormValues<
-  NetworkAddressName
-> {
+function values(data: {
+  name?: unknown;
+  address?: unknown;
+}): FormValues<NetworkAddressName> {
   return data as unknown as FormValues<NetworkAddressName>;
 }
 

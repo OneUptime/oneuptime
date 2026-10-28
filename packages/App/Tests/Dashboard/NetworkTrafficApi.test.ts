@@ -48,6 +48,7 @@ import {
 import {
   NETWORK_TRAFFIC_FIND_LIMIT,
   NetworkTrafficFindResult,
+  NetworkTrafficSummary,
 } from "Common/Types/NetFlow/NetworkTraffic";
 import {
   NetworkAddressNameSource,
@@ -55,7 +56,6 @@ import {
 } from "Common/Types/NetFlow/NetworkAddressName";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
-import { NetworkTrafficSummary } from "Common/Types/NetFlow/NetworkTraffic";
 import API from "Common/UI/Utils/API/API";
 
 /*
@@ -527,7 +527,11 @@ describe("parseNetworkTrafficFindResult", () => {
   test("at most the find limit, and nothing for an answer that is not one", () => {
     const matches: Array<JSONObject> = [];
 
-    for (let index: number = 0; index < NETWORK_TRAFFIC_FIND_LIMIT + 5; index++) {
+    for (
+      let index: number = 0;
+      index < NETWORK_TRAFFIC_FIND_LIMIT + 5;
+      index++
+    ) {
       matches.push({ address: `10.0.0.${index + 1}`, name: "x", octets: 1 });
     }
 
@@ -536,7 +540,9 @@ describe("parseNetworkTrafficFindResult", () => {
     );
     expect(parseNetworkTrafficFindResult(undefined)).toEqual({ matches: [] });
     expect(
-      parseNetworkTrafficFindResult({ matches: "none" } as unknown as JSONObject),
+      parseNetworkTrafficFindResult({
+        matches: "none",
+      } as unknown as JSONObject),
     ).toEqual({ matches: [] });
   });
 });

@@ -93,7 +93,9 @@ describe("KubernetesResourceService.findIdsHoldingAddresses", () => {
     expect(sql).toContain(`"kind" = 'Node'`);
     expect(sql).toContain(`jsonb_array_elements("status" -> 'addresses')`);
     expect(sql).toContain(`->> 'type' IN ('InternalIP', 'ExternalIP')`);
-    expect(sql).toContain(`LOWER(node_address.item ->> 'address') = ANY($2::text[])`);
+    expect(sql).toContain(
+      `LOWER(node_address.item ->> 'address') = ANY($2::text[])`,
+    );
   });
 
   test("answers the ids, and nothing that is not one", async () => {

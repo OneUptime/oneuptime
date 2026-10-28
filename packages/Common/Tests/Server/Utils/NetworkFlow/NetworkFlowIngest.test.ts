@@ -346,9 +346,14 @@ describe("NetworkFlowIngest.readAddressNames", () => {
   test("at most MAX_ADDRESS_NAMES_PER_REQUEST names are read from one request", () => {
     const many: JSONObject = {};
 
-    for (let index: number = 0; index < MAX_ADDRESS_NAMES_PER_REQUEST + 50; index++) {
-      many[`10.${Math.floor(index / 65536) % 256}.${Math.floor(index / 256) % 256}.${index % 256}`] =
-        `host-${index}.corp.example`;
+    for (
+      let index: number = 0;
+      index < MAX_ADDRESS_NAMES_PER_REQUEST + 50;
+      index++
+    ) {
+      many[
+        `10.${Math.floor(index / 65536) % 256}.${Math.floor(index / 256) % 256}.${index % 256}`
+      ] = `host-${index}.corp.example`;
     }
 
     expect(NetworkFlowIngest.readAddressNames(many).size).toBe(

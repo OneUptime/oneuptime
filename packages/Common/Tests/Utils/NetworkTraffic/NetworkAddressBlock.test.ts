@@ -29,9 +29,7 @@ describe("NetworkAddressBlockUtil.canonicalAddress", () => {
     expect(NetworkAddressBlockUtil.canonicalAddress("  10.0.0.5\t")).toBe(
       "10.0.0.5",
     );
-    expect(NetworkAddressBlockUtil.canonicalAddress("0.0.0.0")).toBe(
-      "0.0.0.0",
-    );
+    expect(NetworkAddressBlockUtil.canonicalAddress("0.0.0.0")).toBe("0.0.0.0");
     expect(NetworkAddressBlockUtil.canonicalAddress("255.255.255.255")).toBe(
       "255.255.255.255",
     );
@@ -46,9 +44,7 @@ describe("NetworkAddressBlockUtil.canonicalAddress", () => {
         "2001:0db8:0000:0000:0001:0000:0000:0001",
       ),
     ).toBe("2001:db8::1:0:0:1");
-    expect(NetworkAddressBlockUtil.canonicalAddress("FE80::1")).toBe(
-      "fe80::1",
-    );
+    expect(NetworkAddressBlockUtil.canonicalAddress("FE80::1")).toBe("fe80::1");
     expect(NetworkAddressBlockUtil.canonicalAddress("::")).toBe("::");
     expect(NetworkAddressBlockUtil.canonicalAddress("::1")).toBe("::1");
   });
@@ -143,7 +139,9 @@ describe("NetworkAddressBlockUtil.parse", () => {
     expect(block.family).toBe(6);
     expect(block.prefixLength).toBe(48);
     expect(block.text).toBe("2001:db8:1::/48");
-    expect(parsed("2001:db8:abcd:12ff::/52").text).toBe("2001:db8:abcd:1000::/52");
+    expect(parsed("2001:db8:abcd:12ff::/52").text).toBe(
+      "2001:db8:abcd:1000::/52",
+    );
   });
 
   test("a mapped IPv4 address is IPv4; with a length it is an IPv6 subnet", () => {
@@ -195,9 +193,7 @@ describe("NetworkAddressBlockUtil.contains", () => {
     expect(NetworkAddressBlockUtil.contains(office, "10.18.167.255")).toBe(
       true,
     );
-    expect(NetworkAddressBlockUtil.contains(office, "10.18.168.0")).toBe(
-      false,
-    );
+    expect(NetworkAddressBlockUtil.contains(office, "10.18.168.0")).toBe(false);
     expect(NetworkAddressBlockUtil.contains(office, "10.18.166.255")).toBe(
       false,
     );
@@ -209,11 +205,13 @@ describe("NetworkAddressBlockUtil.contains", () => {
     expect(NetworkAddressBlockUtil.contains(block, "10.18.167.127")).toBe(
       false,
     );
-    expect(NetworkAddressBlockUtil.contains(block, "10.18.167.128")).toBe(
-      true,
-    );
-    expect(NetworkAddressBlockUtil.contains(parsed("172.16.0.0/12"), "172.31.255.1")).toBe(true);
-    expect(NetworkAddressBlockUtil.contains(parsed("172.16.0.0/12"), "172.32.0.1")).toBe(false);
+    expect(NetworkAddressBlockUtil.contains(block, "10.18.167.128")).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.contains(parsed("172.16.0.0/12"), "172.31.255.1"),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.contains(parsed("172.16.0.0/12"), "172.32.0.1"),
+    ).toBe(false);
   });
 
   test("a block of one holds that address only", () => {
@@ -224,9 +222,15 @@ describe("NetworkAddressBlockUtil.contains", () => {
   });
 
   test("/0 holds every address of its family, and none of the other", () => {
-    expect(NetworkAddressBlockUtil.contains(parsed("0.0.0.0/0"), "203.0.113.9")).toBe(true);
-    expect(NetworkAddressBlockUtil.contains(parsed("0.0.0.0/0"), "2001:db8::1")).toBe(false);
-    expect(NetworkAddressBlockUtil.contains(parsed("::/0"), "2001:db8::1")).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.contains(parsed("0.0.0.0/0"), "203.0.113.9"),
+    ).toBe(true);
+    expect(
+      NetworkAddressBlockUtil.contains(parsed("0.0.0.0/0"), "2001:db8::1"),
+    ).toBe(false);
+    expect(
+      NetworkAddressBlockUtil.contains(parsed("::/0"), "2001:db8::1"),
+    ).toBe(true);
   });
 
   test("IPv6, however the address is written", () => {
@@ -247,8 +251,12 @@ describe("NetworkAddressBlockUtil.contains", () => {
   });
 
   test("something that is not an address is in no block", () => {
-    expect(NetworkAddressBlockUtil.contains(parsed("0.0.0.0/0"), "router-1")).toBe(false);
-    expect(NetworkAddressBlockUtil.contains(parsed("0.0.0.0/0"), "")).toBe(false);
+    expect(
+      NetworkAddressBlockUtil.contains(parsed("0.0.0.0/0"), "router-1"),
+    ).toBe(false);
+    expect(NetworkAddressBlockUtil.contains(parsed("0.0.0.0/0"), "")).toBe(
+      false,
+    );
   });
 });
 
@@ -287,7 +295,9 @@ describe("NetworkAddressBlockUtil.mostSpecific", () => {
     expect(
       NetworkAddressBlockUtil.mostSpecific("192.168.1.1", NAMED, read),
     ).toBeNull();
-    expect(NetworkAddressBlockUtil.mostSpecific("10.0.0.1", [], read)).toBeNull();
+    expect(
+      NetworkAddressBlockUtil.mostSpecific("10.0.0.1", [], read),
+    ).toBeNull();
   });
 
   test("on a tie the first item wins, whatever order it is read in", () => {

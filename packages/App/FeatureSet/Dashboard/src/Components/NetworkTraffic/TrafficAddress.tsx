@@ -72,9 +72,7 @@ export function getTrafficAddressSecondary(
   const parts: Array<ReactElement> = [];
 
   if (label.name) {
-    parts.push(
-      <TrafficAddressText key="address" address={label.address} />,
-    );
+    parts.push(<TrafficAddressText key="address" address={label.address} />);
   }
 
   if (label.subnetName) {

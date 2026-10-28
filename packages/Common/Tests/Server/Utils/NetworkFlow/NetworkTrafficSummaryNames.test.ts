@@ -103,9 +103,7 @@ beforeEach(() => {
   const scope: TelemetryReadScope =
     TelemetryReadScopeUtil.getUnrestrictedScope();
 
-  jest
-    .spyOn(TelemetryReadAccess, "getScope")
-    .mockResolvedValue(scope as never);
+  jest.spyOn(TelemetryReadAccess, "getScope").mockResolvedValue(scope as never);
   jest
     .spyOn(NetworkTrafficAggregationService, "getSources")
     .mockResolvedValue([] as never);
@@ -133,42 +131,44 @@ function resolveRequest(index: number = 0): NetworkAddressNamesRequest {
 
 describe("the summary names the page's addresses", () => {
   test("every address the page shows is named in one go, in the order the page shows them", async () => {
-    jest.spyOn(NetworkTrafficAggregationService, "getAggregates").mockResolvedValue(
-      aggregates({
-        topSources: [
-          { ip: "10.0.0.1", octets: 10, packets: 1 },
-          { ip: "10.0.0.2", octets: 9, packets: 1 },
-        ],
-        topDestinations: [
-          { ip: "10.0.0.2", octets: 9, packets: 1 },
-          { ip: "198.51.100.20", octets: 8, packets: 1 },
-        ],
-        topConversations: [
-          {
-            sourceIp: "10.0.0.3",
-            destinationIp: "198.51.100.20",
-            octets: 5,
-            packets: 1,
-          },
-        ],
-        topDevices: [
-          // A device's own address is its device's name: not asked about.
-          {
-            networkDeviceId: ROUTER.toString(),
-            exporterIp: "10.255.0.1",
-            octets: 9,
-            packets: 1,
-          },
-          // An exporter that is no device yet may have a name of its own.
-          {
-            networkDeviceId: PROJECT.toString(),
-            exporterIp: "10.9.9.9",
-            octets: 1,
-            packets: 1,
-          },
-        ],
-      }) as never,
-    );
+    jest
+      .spyOn(NetworkTrafficAggregationService, "getAggregates")
+      .mockResolvedValue(
+        aggregates({
+          topSources: [
+            { ip: "10.0.0.1", octets: 10, packets: 1 },
+            { ip: "10.0.0.2", octets: 9, packets: 1 },
+          ],
+          topDestinations: [
+            { ip: "10.0.0.2", octets: 9, packets: 1 },
+            { ip: "198.51.100.20", octets: 8, packets: 1 },
+          ],
+          topConversations: [
+            {
+              sourceIp: "10.0.0.3",
+              destinationIp: "198.51.100.20",
+              octets: 5,
+              packets: 1,
+            },
+          ],
+          topDevices: [
+            // A device's own address is its device's name: not asked about.
+            {
+              networkDeviceId: ROUTER.toString(),
+              exporterIp: "10.255.0.1",
+              octets: 9,
+              packets: 1,
+            },
+            // An exporter that is no device yet may have a name of its own.
+            {
+              networkDeviceId: PROJECT.toString(),
+              exporterIp: "10.9.9.9",
+              octets: 1,
+              packets: 1,
+            },
+          ],
+        }) as never,
+      );
 
     await NetworkTrafficSummaryUtil.build({
       props: PROPS,
@@ -218,14 +218,16 @@ describe("the summary names the page's addresses", () => {
   });
 
   test("the DNS names the page's flows carried are handed over, the newest of each", async () => {
-    jest.spyOn(NetworkTrafficAggregationService, "getAggregates").mockResolvedValue(
-      aggregates({
-        topSources: [{ ip: "10.0.0.1", octets: 10, packets: 1 }],
-        dnsNames: new Map([
-          ["10.0.0.1", dns("fs01.corp.example", "2026-10-28 11:30:00")],
-        ]),
-      }) as never,
-    );
+    jest
+      .spyOn(NetworkTrafficAggregationService, "getAggregates")
+      .mockResolvedValue(
+        aggregates({
+          topSources: [{ ip: "10.0.0.1", octets: 10, packets: 1 }],
+          dnsNames: new Map([
+            ["10.0.0.1", dns("fs01.corp.example", "2026-10-28 11:30:00")],
+          ]),
+        }) as never,
+      );
 
     await NetworkTrafficSummaryUtil.build({
       props: PROPS,
@@ -249,11 +251,13 @@ describe("the summary names the page's addresses", () => {
       },
     };
     resolve.mockResolvedValue(names as never);
-    jest.spyOn(NetworkTrafficAggregationService, "getAggregates").mockResolvedValue(
-      aggregates({
-        topSources: [{ ip: "10.0.0.1", octets: 10, packets: 1 }],
-      }) as never,
-    );
+    jest
+      .spyOn(NetworkTrafficAggregationService, "getAggregates")
+      .mockResolvedValue(
+        aggregates({
+          topSources: [{ ip: "10.0.0.1", octets: 10, packets: 1 }],
+        }) as never,
+      );
 
     const summary: NetworkTrafficSummary =
       await NetworkTrafficSummaryUtil.build({
@@ -283,11 +287,13 @@ describe("the summary names the page's addresses", () => {
 
   test("names that cannot be read leave the page answering, with addresses as themselves", async () => {
     resolve.mockRejectedValue(new Error("names went away") as never);
-    jest.spyOn(NetworkTrafficAggregationService, "getAggregates").mockResolvedValue(
-      aggregates({
-        topSources: [{ ip: "10.0.0.1", octets: 10, packets: 1 }],
-      }) as never,
-    );
+    jest
+      .spyOn(NetworkTrafficAggregationService, "getAggregates")
+      .mockResolvedValue(
+        aggregates({
+          topSources: [{ ip: "10.0.0.1", octets: 10, packets: 1 }],
+        }) as never,
+      );
 
     const summary: NetworkTrafficSummary =
       await NetworkTrafficSummaryUtil.build({
@@ -404,9 +410,7 @@ describe("NetworkTrafficSummaryUtil.find", () => {
   let byDns: SpyInstance<
     typeof NetworkTrafficAggregationService.findAddressesByDnsName
   >;
-  let byName: SpyInstance<
-    typeof NetworkAddressNamesUtil.findAddressesByName
-  >;
+  let byName: SpyInstance<typeof NetworkAddressNamesUtil.findAddressesByName>;
   let traffic: SpyInstance<
     typeof NetworkTrafficAggregationService.getAddressTraffic
   >;
@@ -442,16 +446,21 @@ describe("NetworkTrafficSummaryUtil.find", () => {
       ]) as never,
     );
     resolve.mockResolvedValue({
-      "10.0.0.35": { name: "mumbai-fs01", source: NetworkAddressNameSource.Host },
+      "10.0.0.35": {
+        name: "mumbai-fs01",
+        source: NetworkAddressNameSource.Host,
+      },
       "10.0.0.31": {
         name: "mum-print-02.corp.example",
         source: NetworkAddressNameSource.Dns,
       },
     } as never);
 
-    const result: NetworkTrafficFindResult = await NetworkTrafficSummaryUtil.find(
-      { props: PROPS, request: findRequest("mum") },
-    );
+    const result: NetworkTrafficFindResult =
+      await NetworkTrafficSummaryUtil.find({
+        props: PROPS,
+        request: findRequest("mum"),
+      });
 
     expect(result.matches).toEqual([
       {
@@ -469,8 +478,10 @@ describe("NetworkTrafficSummaryUtil.find", () => {
     ]);
 
     // Only the candidates are read for traffic; the page's window and scope, no filters.
-    const trafficArgs: { query: NetworkTrafficQuery; addresses: Array<string> } =
-      traffic.mock.calls[0]![0] as never;
+    const trafficArgs: {
+      query: NetworkTrafficQuery;
+      addresses: Array<string>;
+    } = traffic.mock.calls[0]![0] as never;
     expect(trafficArgs.addresses).toEqual([
       "10.0.0.31",
       "10.0.0.35",
@@ -490,9 +501,11 @@ describe("NetworkTrafficSummaryUtil.find", () => {
   test("a name that matched no address with traffic in the window answers nothing", async () => {
     byName.mockResolvedValue(["10.0.0.35"] as never);
 
-    const result: NetworkTrafficFindResult = await NetworkTrafficSummaryUtil.find(
-      { props: PROPS, request: findRequest("idle-host") },
-    );
+    const result: NetworkTrafficFindResult =
+      await NetworkTrafficSummaryUtil.find({
+        props: PROPS,
+        request: findRequest("idle-host"),
+      });
 
     expect(result.matches).toEqual([]);
     expect(resolve).not.toHaveBeenCalled();
@@ -503,9 +516,11 @@ describe("NetworkTrafficSummaryUtil.find", () => {
     traffic.mockResolvedValue(new Map([["10.0.0.35", 10]]) as never);
     resolve.mockResolvedValue({} as never);
 
-    const result: NetworkTrafficFindResult = await NetworkTrafficSummaryUtil.find(
-      { props: PROPS, request: findRequest("payroll") },
-    );
+    const result: NetworkTrafficFindResult =
+      await NetworkTrafficSummaryUtil.find({
+        props: PROPS,
+        request: findRequest("payroll"),
+      });
 
     expect(result.matches).toEqual([]);
   });
@@ -513,9 +528,11 @@ describe("NetworkTrafficSummaryUtil.find", () => {
   test("an address typed is its own answer when the window has its traffic, named or not", async () => {
     traffic.mockResolvedValue(new Map([["2001:db8::5", 42]]) as never);
 
-    const result: NetworkTrafficFindResult = await NetworkTrafficSummaryUtil.find(
-      { props: PROPS, request: findRequest("2001:DB8:0:0::5") },
-    );
+    const result: NetworkTrafficFindResult =
+      await NetworkTrafficSummaryUtil.find({
+        props: PROPS,
+        request: findRequest("2001:DB8:0:0::5"),
+      });
 
     expect(byDns).not.toHaveBeenCalled();
     expect(byName).not.toHaveBeenCalled();
@@ -535,7 +552,11 @@ describe("NetworkTrafficSummaryUtil.find", () => {
   test("at most NETWORK_TRAFFIC_FIND_LIMIT addresses are answered", async () => {
     const many: Map<string, number> = new Map();
 
-    for (let index: number = 0; index < NETWORK_TRAFFIC_FIND_LIMIT + 5; index++) {
+    for (
+      let index: number = 0;
+      index < NETWORK_TRAFFIC_FIND_LIMIT + 5;
+      index++
+    ) {
       many.set(`10.0.1.${index}`, 1000 - index);
     }
 
@@ -554,19 +575,20 @@ describe("NetworkTrafficSummaryUtil.find", () => {
       return names;
     }) as never);
 
-    const result: NetworkTrafficFindResult = await NetworkTrafficSummaryUtil.find(
-      { props: PROPS, request: findRequest("host") },
-    );
+    const result: NetworkTrafficFindResult =
+      await NetworkTrafficSummaryUtil.find({
+        props: PROPS,
+        request: findRequest("host"),
+      });
 
     expect(result.matches).toHaveLength(NETWORK_TRAFFIC_FIND_LIMIT);
     expect(resolveRequest().addresses).toHaveLength(NETWORK_TRAFFIC_FIND_LIMIT);
   });
 
   test("a device's page finds within that device's flows, through the caller's read", async () => {
-    const findOneBy: SpyInstance<typeof NetworkDeviceService.findOneBy> =
-      jest
-        .spyOn(NetworkDeviceService, "findOneBy")
-        .mockResolvedValue(new NetworkDevice(ROUTER) as never);
+    const findOneBy: SpyInstance<typeof NetworkDeviceService.findOneBy> = jest
+      .spyOn(NetworkDeviceService, "findOneBy")
+      .mockResolvedValue(new NetworkDevice(ROUTER) as never);
 
     await NetworkTrafficSummaryUtil.find({
       props: PROPS,

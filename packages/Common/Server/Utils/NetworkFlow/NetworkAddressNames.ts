@@ -177,16 +177,23 @@ export default class NetworkAddressNamesUtil {
       }),
     ]);
 
-    const candidates: Map<string, Array<NetworkAddressNameCandidate>> =
-      new Map();
+    const candidates: Map<
+      string,
+      Array<NetworkAddressNameCandidate>
+    > = new Map();
 
-    const add: (address: string, candidate: NetworkAddressNameCandidate) => void =
-      (address: string, candidate: NetworkAddressNameCandidate): void => {
-        const list: Array<NetworkAddressNameCandidate> =
-          candidates.get(address) || [];
-        list.push(candidate);
-        candidates.set(address, list);
-      };
+    const add: (
+      address: string,
+      candidate: NetworkAddressNameCandidate,
+    ) => void = (
+      address: string,
+      candidate: NetworkAddressNameCandidate,
+    ): void => {
+      const list: Array<NetworkAddressNameCandidate> =
+        candidates.get(address) || [];
+      list.push(candidate);
+      candidates.set(address, list);
+    };
 
     const subnets: Array<{ block: NetworkAddressBlock; name: string }> = [];
 
@@ -212,7 +219,12 @@ export default class NetworkAddressNamesUtil {
       }
     }
 
-    for (const holder of [...devices, ...hosts, ...cloudResources, ...kubernetes]) {
+    for (const holder of [
+      ...devices,
+      ...hosts,
+      ...cloudResources,
+      ...kubernetes,
+    ]) {
       add(holder.address, holder.candidate);
     }
 
@@ -322,7 +334,9 @@ export default class NetworkAddressNamesUtil {
             return NetworkAddressBlockUtil.parse(row.address);
           })
           .filter((block: NetworkAddressBlock | null): boolean => {
-            return Boolean(block && NetworkAddressBlockUtil.isSingleAddress(block));
+            return Boolean(
+              block && NetworkAddressBlockUtil.isSingleAddress(block),
+            );
           })
           .map((block: NetworkAddressBlock | null): string => {
             return block!.text;
@@ -474,7 +488,9 @@ export default class NetworkAddressNamesUtil {
    * ExternalIP addresses, a pod its podIP unless it is on its node's own
    * network (podIP is hostIP).
    */
-  public static kubernetesAddresses(resource: KubernetesResource): Array<string> {
+  public static kubernetesAddresses(
+    resource: KubernetesResource,
+  ): Array<string> {
     const status: JSONObject =
       resource.status &&
       typeof resource.status === "object" &&
@@ -560,7 +576,9 @@ export default class NetworkAddressNamesUtil {
     return true;
   }
 
-  private static toTime(value: Date | string | undefined | null): number | null {
+  private static toTime(
+    value: Date | string | undefined | null,
+  ): number | null {
     if (!value) {
       return null;
     }
@@ -696,9 +714,7 @@ export default class NetworkAddressNamesUtil {
 
     for (const device of [...polled, ...other]) {
       const id: string = device.id?.toString() || "";
-      const name: string | null = NetworkAddressNameUtil.cleanName(
-        device.name,
-      );
+      const name: string | null = NetworkAddressNameUtil.cleanName(device.name);
 
       if (!id || !name || seen.has(id)) {
         continue;
@@ -798,13 +814,11 @@ export default class NetworkAddressNamesUtil {
     window: Window,
     props: DatabaseCommonInteractionProps,
   ): Promise<Array<Holder>> {
-    const ids: Array<ObjectID> = await CloudResourceService.findIdsByEndpoints(
-      {
-        projectId: projectId,
-        endpoints: addresses,
-        limit: MAX_ADDRESS_HOLDERS_READ,
-      },
-    );
+    const ids: Array<ObjectID> = await CloudResourceService.findIdsByEndpoints({
+      projectId: projectId,
+      endpoints: addresses,
+      limit: MAX_ADDRESS_HOLDERS_READ,
+    });
 
     if (ids.length === 0) {
       return [];

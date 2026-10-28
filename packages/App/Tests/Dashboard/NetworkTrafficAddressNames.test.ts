@@ -197,9 +197,7 @@ describe("getFilteredAddress: the one address a page is narrowed to", () => {
 
   test("from one address alone, or to one alone", () => {
     expect(getFilteredAddress({ sourceIp: "10.0.0.2" })).toBe("10.0.0.2");
-    expect(getFilteredAddress({ destinationIp: "10.0.0.3" })).toBe(
-      "10.0.0.3",
-    );
+    expect(getFilteredAddress({ destinationIp: "10.0.0.3" })).toBe("10.0.0.3");
   });
 
   test("a conversation is two addresses, and no filter is none", () => {

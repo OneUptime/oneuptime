@@ -41,7 +41,9 @@ export const ADDRESS_NAME_NAME_VALIDATION_MESSAGE: string = translationKey(
 
 export const validateAddressNameAddress: (
   values: FormValues<NetworkAddressName>,
-) => string | null = (values: FormValues<NetworkAddressName>): string | null => {
+) => string | null = (
+  values: FormValues<NetworkAddressName>,
+): string | null => {
   if (NetworkAddressBlockUtil.parse(values["address"])) {
     return null;
   }
@@ -54,7 +56,9 @@ export const validateAddressNameAddress: (
 
 export const validateAddressNameName: (
   values: FormValues<NetworkAddressName>,
-) => string | null = (values: FormValues<NetworkAddressName>): string | null => {
+) => string | null = (
+  values: FormValues<NetworkAddressName>,
+): string | null => {
   if (NetworkAddressNameUtil.cleanName(values["name"])) {
     return null;
   }
