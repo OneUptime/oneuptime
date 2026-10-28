@@ -578,6 +578,11 @@ describe("evidence: a link's address", () => {
       "data:text/html;base64,PHNjcmlwdD4=",
       "ftp://files.example.com/pcap",
       "file:///etc/passwd",
+      // Addresses OneUptime's URL reads, which are still not a page to open.
+      "wss://evil.example/socket",
+      "mongodb://db.example/cases",
+      "mailto:attacker@example.com",
+      "tel:5551234567",
       "",
       "   ",
       undefined,
