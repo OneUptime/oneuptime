@@ -208,3 +208,27 @@ loaded before, up under load (29.8, 35.4, 37.0, 40.0) as the load added
 more. The changes do not change what the App asks of it. Compare a later
 run with these by the same command on the same seed size, or better,
 against a baseline of its own.
+
+## What it measured for memory
+
+The "less memory in production" pull request (2026-10-28, the same seed)
+measured its base, 44e16e9403, against its changes with the App as its
+image (`app-image.sh`): each side 3 minutes' warm-up, 10 minutes idle with
+the Probe stopped, then 15 minutes of steady load after 2 of warm-up. MB;
+live heap is what a full garbage collection leaves, RSS the median of the
+30-second samples:
+
+| App | base | changed |
+|---|---|---|
+| live heap at start | 1,419 | 380 |
+| RSS at start | 1,671 | 564 |
+| idle RSS | 1,751 | 629 |
+| steady load RSS | 2,066 | 792 |
+| steady load live heap | 1,447 - 1,459 | 402 - 427 |
+
+The heap snapshots showed where the base's went: 560 MB of zod schemas kept
+by zod-to-openapi's metadata registry (a Map, not a WeakMap), about 470 MB
+of ts-node's inline source maps in the code V8 keeps, and the 33 MB OpenAPI
+spec document. Under the same load Postgres held 0.4-0.5 GB (51 connections,
+about 10 MB each), ClickHouse 1.3-1.6 GB anon and 1.5-1.8 GB of page cache,
+Valkey 9 MB; the Probe 310 MB.

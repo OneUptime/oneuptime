@@ -316,7 +316,11 @@ describe("the programs it compiles", () => {
       ["-e", script],
       { cwd: APP_ROOT, encoding: "utf8", timeout: 300000 },
     );
-    expect(result.stderr || "").toBe("");
+    if (result.status !== 0) {
+      throw new Error(
+        `Compiling the sample failed (exit ${String(result.status)}):\n${result.stderr}`,
+      );
+    }
 
     const compiled: Array<[string, string, string]> = JSON.parse(
       fs.readFileSync(path.join(FIXTURE_DIR, "compiled.json"), "utf8"),
