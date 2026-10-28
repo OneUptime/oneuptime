@@ -80,10 +80,14 @@ export const SERVICE_CALLS_NAME_HEADER_CLASS_NAME: string =
 
 /*
  * A figure's name: at the end of its column, as its values are, broken
- * between its words when the column is narrow, never inside one.
+ * between its words when the column is narrow, never inside one - in
+ * Korean, Japanese and Chinese too, where a browser breaks between any two
+ * characters unless told to keep words whole (keep-all): Korean's "p95 처리
+ * 시간" left "간" alone on a line, Japanese's "パブリッシュ時間" broke after
+ * "パブリッ".
  */
 export const SERVICE_CALLS_FIGURE_HEADER_CLASS_NAME: string =
-  "self-end text-right [overflow-wrap:normal]";
+  "self-end text-right [overflow-wrap:normal] [word-break:keep-all]";
 
 /*
  * A service's name: its own line on a phone, the first column from 26rem.

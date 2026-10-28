@@ -115,15 +115,24 @@ const ServiceCallsTable: FunctionComponent<ComponentProps> = (
                   <span className="font-mono text-gray-500">{shownName}</span>
                 )}
               </div>
-              <div role="cell" className={SERVICE_CALLS_FIGURE_CELL_CLASS_NAME}>
-                {row.calls}
-              </div>
-              <div role="cell" className={SERVICE_CALLS_FIGURE_CELL_CLASS_NAME}>
-                {row.errorRate}
-              </div>
-              <div role="cell" className={SERVICE_CALLS_FIGURE_CELL_CLASS_NAME}>
-                {row.duration}
-              </div>
+              {/*
+               * Each figure reads the way it is written: on a page read
+               * right to left a duration's unit stayed on its left
+               * ("ms 7.5"), as a page's own words would.
+               */}
+              {[row.calls, row.errorRate, row.duration].map(
+                (figure: string, index: number): ReactElement => {
+                  return (
+                    <div
+                      key={index}
+                      role="cell"
+                      className={SERVICE_CALLS_FIGURE_CELL_CLASS_NAME}
+                    >
+                      <IsolatedText text={figure} />
+                    </div>
+                  );
+                },
+              )}
             </div>
           );
         })}

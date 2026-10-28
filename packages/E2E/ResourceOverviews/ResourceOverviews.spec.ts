@@ -1149,6 +1149,136 @@ test.describe("the services tables fit their cards", () => {
     }
     await screenshot(page, "resource-overview-queue-services-phone-dark");
   });
+
+  test("Korean, Japanese and Chinese column names break between their words, never inside one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, QUEUE_PAGE, "callers=busy");
+
+    /*
+     * Each language's words for the duration's column - its locale's, and
+     * Japanese's longest katakana word, which the locale had before - in
+     * the column a card beside another gives it: a browser breaks Korean,
+     * Japanese and Chinese between any two characters unless the column
+     * keeps words whole ("p95 처리 시" / "간", "パブリッ" / "シュ時間").
+     */
+    for (const [code, words] of [
+      ["ko", "p95 처리 시간"],
+      ["ko", "p95 게시 시간"],
+      ["ja", "p95 パブリッシュ時間"],
+      ["zh-CN", "p95 发布时间"],
+    ] as Array<[string, string]>) {
+      for (const testId of QUEUE_TABLES) {
+        await page
+          .getByTestId(testId)
+          .getByRole("columnheader")
+          .last()
+          .evaluate(
+            (header: Element, [lang, text]: [string, string]): void => {
+              header.textContent = text;
+              header.setAttribute("lang", lang);
+            },
+            [code, words] as [string, string],
+          );
+        const fit: TableFit = await tableFit(page, testId);
+        expect({
+          code,
+          words,
+          testId,
+          brokenWords: fit.brokenWords,
+          outside: fit.outside,
+        }).toEqual({
+          code,
+          words,
+          testId,
+          brokenWords: [],
+          outside: [],
+        });
+      }
+    }
+  });
+
+  test("Persian, right to left: every figure reads the way it is written - a duration's unit after its number, at the end of its column", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const size of [LAPTOP, PHONE]) {
+      await page.setViewportSize(size);
+      await openOverview(page, QUEUE_PAGE, "callers=busy&lang=fa&dir=rtl");
+
+      const figures: Array<{
+        text: string;
+        numberFirst: boolean;
+        atEnd: boolean;
+      }> = await page
+        .getByTestId("message-queue-consumers")
+        .getByRole("cell")
+        .evaluateAll(
+          (
+            cells: Array<Element>,
+          ): Array<{ text: string; numberFirst: boolean; atEnd: boolean }> => {
+            return cells
+              .map(
+                (
+                  cell: Element,
+                ): { text: string; numberFirst: boolean; atEnd: boolean } => {
+                  const text: string = cell.textContent || "";
+                  const node: Node | null | undefined =
+                    cell.querySelector("bdi")?.firstChild;
+                  const range: Range = document.createRange();
+                  if (!node || text.length < 2) {
+                    return { text, numberFirst: true, atEnd: true };
+                  }
+                  range.setStart(node, 0);
+                  range.setEnd(node, 1);
+                  const first: DOMRect = range.getBoundingClientRect();
+                  range.setStart(node, text.length - 1);
+                  range.setEnd(node, text.length);
+                  const last: DOMRect = range.getBoundingClientRect();
+                  const cellBox: DOMRect = cell.getBoundingClientRect();
+                  return {
+                    text,
+                    // Its first character, a digit, is drawn left of its last.
+                    numberFirst: first.left < last.left,
+                    // Right to left, a column's end is its left edge.
+                    atEnd: Math.abs(first.left - cellBox.left) <= 1,
+                  };
+                },
+              )
+              .filter(
+                (figure: {
+                  text: string;
+                  numberFirst: boolean;
+                  atEnd: boolean;
+                }): boolean => {
+                  return figure.text.length > 1;
+                },
+              );
+          },
+        );
+
+      expect(figures.length).toBeGreaterThan(20);
+      for (const figure of figures) {
+        expect({ width: size.width, ...figure }).toEqual({
+          width: size.width,
+          text: figure.text,
+          numberFirst: true,
+          atEnd: true,
+        });
+      }
+      // What a person reads: "7.5 ms", not "ms 7.5".
+      expect(
+        figures.some((figure: { text: string }): boolean => {
+          return figure.text === "7.5 ms";
+        }),
+      ).toBe(true);
+    }
+    await screenshot(page, "resource-overview-queue-services-phone-rtl");
+  });
 });
 
 /*

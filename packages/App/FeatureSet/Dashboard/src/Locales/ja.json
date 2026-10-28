@@ -23046,7 +23046,7 @@
   "p95 means the 95th percentile: 95% of this service's spans finished faster than this and the slowest 5% took longer. Worked out for each interval on the chart, then averaged over the selected range, so quiet and busy intervals count equally.": "p95 は 95 パーセンタイルで、このサービスのスパンの 95% がこれより速く完了し、最も遅い 5% はこれより長くかかったことを意味します。チャートの区間ごとに算出してから選択した範囲で平均するため、閑散な区間と混雑した区間を同じ重みで数えます。",
   "p95 means the 95th percentile: in each interval, 95% of this queue's consumer spans finished faster than the line, leaving out receives that returned nothing and SQS receive calls. A spike in one interval can come from a handful of slow messages.": "p95 は 95 パーセンタイルで、各区間において、このキューのコンシューマースパン（何も返さなかった受信と SQS の受信呼び出しを除く）の 95% がこの線より速く完了したことを意味します。ある区間の急上昇は、少数の遅いメッセージによって生じることがあります。",
   "p95 processing": "p95 処理時間",
-  "p95 publish": "p95 パブリッシュ時間",
+  "p95 publish": "p95 発行時間",
   "per GB ingested ({{days}} day retention)": "取り込み 1 GB あたり（保持期間 {{days}} 日）",
   "persistent volume": "永続ボリューム",
   "persistent volume claim": "永続ボリュームクレーム",

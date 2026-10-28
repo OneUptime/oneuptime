@@ -288,6 +288,23 @@ describe("Metrics > Insights: a card for each service reporting metrics", () => 
     );
   });
 
+  test("on the keyboard a card is ringed round its own corners, not boxed in the browser's square outline", async () => {
+    const cards: Array<HTMLElement> = await renderCards();
+
+    for (const card of cards) {
+      const link: HTMLElement = card.closest("a")!;
+
+      expect(link).toHaveClass(
+        "rounded-xl",
+        "focus:outline-none",
+        "focus-visible:ring-2",
+        "focus-visible:ring-indigo-500",
+      );
+      // The same corners as the card it rings.
+      expect(card).toHaveClass("rounded-xl");
+    }
+  });
+
   test("a service's name takes two lines at most, its whole name under the pointer", async () => {
     const cards: Array<HTMLElement> = await renderCards();
     const name: HTMLElement = nameOf(cards[0]!);

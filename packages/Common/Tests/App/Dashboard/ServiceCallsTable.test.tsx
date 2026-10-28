@@ -187,6 +187,44 @@ describe("what the table says", () => {
     expect(within(deleted).getByText(DELETED)).toHaveClass("font-mono");
   });
 
+  test("every figure reads the way it is written: a duration's unit stays after its number on a page read right to left", () => {
+    renderTable();
+
+    const [checkout, deleted] = screen.getAllByTestId(
+      "message-queue-consumers-row",
+    ) as [HTMLElement, HTMLElement];
+
+    // Each figure is isolated, as a written value is, and never split up.
+    const figures: Array<[string, string | null]> = within(checkout)
+      .getAllByRole("cell")
+      .map((cell: HTMLElement): [string, string | null] => {
+        const isolate: HTMLElement | null = cell.querySelector("bdi");
+
+        expect(isolate).not.toBeNull();
+        expect(isolate!.textContent).toBe(cell.textContent);
+
+        return [isolate!.textContent || "", isolate!.getAttribute("dir")];
+      });
+
+    /*
+     * One with a unit or a suffix reads left to right in a Persian page
+     * ("3.3 ms", not "ms 3.3"); a bare number or percentage takes its
+     * isolate's own direction, which keeps it whole.
+     */
+    expect(figures).toEqual([
+      ["1.2k", "ltr"],
+      ["1.0%", null],
+      ["3.3 ms", "ltr"],
+    ]);
+    expect(
+      within(deleted)
+        .getAllByRole("cell")
+        .map((cell: HTMLElement): string | null => {
+          return cell.querySelector("bdi")?.getAttribute("dir") ?? null;
+        }),
+    ).toEqual([null, null, "ltr"]);
+  });
+
   test("a name cut short to its column says itself whole under the pointer", () => {
     renderTable();
 
@@ -244,7 +282,7 @@ describe("how the table is laid out", () => {
       "sr-only self-end [@container(min-width:26rem)]:not-sr-only",
     );
     expect(SERVICE_CALLS_FIGURE_HEADER_CLASS_NAME).toBe(
-      "self-end text-right [overflow-wrap:normal]",
+      "self-end text-right [overflow-wrap:normal] [word-break:keep-all]",
     );
     expect(SERVICE_CALLS_NAME_CELL_CLASS_NAME).toBe(
       "col-span-3 min-w-0 truncate [contain:inline-size] [@container(min-width:26rem)]:col-span-1",

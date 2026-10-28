@@ -104,9 +104,13 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 export const METRICS_SERVICE_GRID_CLASS_NAME: string =
   "grid grid-cols-1 gap-x-3 gap-y-4 md:grid-cols-2 lg:grid-cols-3";
 
-// A card's link: a grid item of three of the grid's rows, handed down.
+/*
+ * A card's link: a grid item of three of the grid's rows, handed down. On
+ * the keyboard it is ringed as the card is drawn, round-cornered, not
+ * boxed in the browser's square outline.
+ */
 export const METRICS_SERVICE_CARD_LINK_CLASS_NAME: string =
-  "row-span-3 grid min-w-0 grid-cols-1 grid-rows-subgrid";
+  "row-span-3 grid min-w-0 grid-cols-1 grid-rows-subgrid rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 export const METRICS_SERVICE_CARD_CLASS_NAME: string =
   "row-span-3 grid min-w-0 grid-cols-1 grid-rows-subgrid rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md";

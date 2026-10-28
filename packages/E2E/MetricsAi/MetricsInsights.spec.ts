@@ -319,6 +319,43 @@ test.describe("Metrics > Insights: the services reporting metrics", () => {
     );
   });
 
+  test("on the keyboard a card is ringed round its own corners, never boxed in the browser's square outline", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page);
+
+    const link: Locator = page
+      .getByTestId("metrics-service-card")
+      .first()
+      .locator("xpath=ancestor::a[1]");
+
+    // Tab to the card from the control just before it, as a keyboard does.
+    await page.getByRole("link", { name: "Open Viewer" }).focus();
+    await page.keyboard.press("Tab");
+    await expect(link).toBeFocused();
+
+    const focus: { outline: string; ring: string; corner: string } =
+      await link.evaluate(
+        (
+          element: Element,
+        ): { outline: string; ring: string; corner: string } => {
+          const style: CSSStyleDeclaration = getComputedStyle(element);
+          return {
+            outline: style.outlineStyle,
+            ring: style.boxShadow,
+            corner: style.borderTopLeftRadius,
+          };
+        },
+      );
+    expect(focus.outline).toBe("none");
+    // Indigo-500's ring, 2px.
+    expect(focus.ring).toContain("rgb(99, 102, 241)");
+    // Round, as the card it rings: 0.75rem.
+    expect(focus.corner).toBe("12px");
+  });
+
   for (const scenario of ["busy", "long"]) {
     test(`${scenario} names: the cards of a row end on one line, and their counts and names start on one line, at every width`, async ({
       page,
