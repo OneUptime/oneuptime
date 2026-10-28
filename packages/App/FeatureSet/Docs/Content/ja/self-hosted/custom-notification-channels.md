@@ -17,14 +17,14 @@
 ## 仕組み
 
 ```mermaid title="カスタムチャネルでの呼び出し"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["自社のサービス"]
     App["自社のアプリ"]
-    OneUptime -->|"署名付き JSON リクエスト"| Service
+    OneUptime -->|"署名付き<br/>JSON リクエスト"| Service
     Service -->|"通知"| App
-    App -->|"確認、エスカレーション、解決"| Service
-    Service -->|"アクションのリンクへの POST"| OneUptime
+    App -->|"確認、<br/>エスカレーション、解決"| Service
+    Service -->|"アクションの<br/>リンクへの POST"| OneUptime
 ```
 
 オンコールポリシーが誰かを呼び出し、その人のオンコールルールがチャネルを使っていると、OneUptime はチャネルの URL にリクエストを送ります。リクエストには、呼び出しの相手 (名前とメールアドレス) と内容が示され、その人がアプリで確認、エスカレーション、解決をしたときにサービスが呼び出すリンクが含まれます。

@@ -17,13 +17,13 @@ Un canal personnalisé envoie les alertes d'astreinte à un service que vous exp
 ## Fonctionnement
 
 ```mermaid title="Une alerte via un canal personnalisé"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Votre service"]
     App["Votre application"]
     OneUptime -->|"requête JSON signée"| Service
     Service -->|"notification"| App
-    App -->|"Prendre en compte, Escalader, Résoudre"| Service
+    App -->|"Prendre en compte,<br/>Escalader, Résoudre"| Service
     Service -->|"POST vers le lien d'action"| OneUptime
 ```
 
