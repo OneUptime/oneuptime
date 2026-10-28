@@ -1227,11 +1227,16 @@ test.describe("the services tables fit their cards", () => {
                   cell: Element,
                 ): { text: string; numberFirst: boolean; atEnd: boolean } => {
                   const text: string = cell.textContent || "";
-                  const node: Node | null | undefined =
-                    cell.querySelector("bdi")?.firstChild;
+                  // The figure's own text, however the cell holds it.
+                  const node: Node | null = document
+                    .createTreeWalker(cell, NodeFilter.SHOW_TEXT)
+                    .nextNode();
                   const range: Range = document.createRange();
-                  if (!node || text.length < 2) {
+                  if (text.length < 2) {
                     return { text, numberFirst: true, atEnd: true };
+                  }
+                  if (!node || node.textContent !== text) {
+                    return { text, numberFirst: false, atEnd: false };
                   }
                   range.setStart(node, 0);
                   range.setEnd(node, 1);
