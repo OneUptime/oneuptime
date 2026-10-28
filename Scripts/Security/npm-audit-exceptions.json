@@ -1,4 +1,67 @@
 {
+  "Scripts/TerraformProvider": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs."
+    }
+  ],
+  "Tests/Ops": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs."
+    }
+  ],
+  "ee": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs."
+    }
+  ],
+  "packages/App": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs. @sendgrid/helpers also requires it, and calls it only in Personalization.deepMergeDynamicTemplateData, for SendGrid dynamic templates, which OneUptime does not use: SendGridMailProvider sends the html and text it rendered itself, with no dynamicTemplateData."
+    }
+  ],
+  "packages/App/FeatureSet/BrowserRecorder": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs."
+    }
+  ],
+  "packages/App/FeatureSet/MobileRecorder": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs. create-jest, jest's project initializer, requires it the same way, as a dev dependency that never runs in production."
+    }
+  ],
+  "packages/CLI": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs. create-jest, jest's project initializer, requires it the same way, as a dev dependency that never runs in production."
+    }
+  ],
+  "packages/Common": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs."
+    }
+  ],
+  "packages/Home": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs."
+    }
+  ],
   "packages/MobileApp": [
     {
       "advisory": "GHSA-86w9-cpqp-85rv",
@@ -9,6 +72,32 @@
       "advisory": "GHSA-mrhx-c7xc-m3w5",
       "expires": "2026-12-04",
       "reason": "zod has no fixed 3.x release: every version below 4.6.6 is affected and 3.25.76 is the latest 3.x. It comes in only through Expo's developer tooling, @expo/cli 57.0.32: every @expo/cli still requires zod ^3.25.76, the newest (58.1.15) included (checked on 2026-10-25). @expo/cli runs in Node on the developer's machine and is not bundled into the app; it validates the developer's own project configuration and dev tools plugins, never input from an attacker. packages/Common moved to zod 4 on 2026-10-25 and has no zod 3 left."
+    },
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs. Expo's developer tooling requires it too (@expo/cli, @expo/config, @expo/prebuild-config, @expo/metro-config, @expo/local-build-cache-provider, and create-jest and @testing-library/react-native for tests): it runs in Node on the developer's machine, merges the developer's own app configuration and plugins, and is not bundled into the app."
+    }
+  ],
+  "packages/Probe": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs."
+    }
+  ],
+  "packages/Runner": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs."
+    }
+  ],
+  "packages/TestServer": [
+    {
+      "advisory": "GHSA-gcqx-w48m-w2h4",
+      "expires": "2026-12-04",
+      "reason": "deepmerge has no fixed release: >=4.2.0 <=4.3.1 is affected and 4.3.1 is the latest (published 2023-03-16; checked on 2026-10-28). It comes in through jest's config loader (jest-config, through jest, jest-cli, @jest/core and ts-jest), test tooling that is not shipped: it merges this repository's own jest configuration, never an object somebody else writes, which is what the advisory's prototype poisoning through mergeObject needs."
     }
   ]
 }
