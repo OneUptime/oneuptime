@@ -107,12 +107,15 @@ export interface AdminDashboardEnterprisePlugins {
 
   /*
    * Settings pages (see EnterpriseSettingsPage), and their entries in the
-   * Settings side menu: one component the core side menu renders at the end
-   * of its first section, which draws its own items - or nothing, for a page
-   * the license does not allow, so no trace of it shows.
+   * Settings side menu: one component per menu section the core side menu
+   * renders at the end of that section, which draws its own items - or
+   * nothing, for a page the license does not allow, so no trace of it shows.
+   * Basic is where a page that configures the instance as a whole belongs;
+   * Notifications is for the ways OneUptime reaches people.
    */
   SettingsPages?: ReadonlyArray<EnterpriseSettingsPage> | undefined;
   SettingsSideMenuItems?: EnterprisePluginComponent | undefined;
+  SettingsNotificationSideMenuItems?: EnterprisePluginComponent | undefined;
 }
 
 // Names of the screens a plugin can provide (everything but the marker).
@@ -140,6 +143,7 @@ const PLUGIN_KEY_SET: Record<AdminDashboardEnterprisePluginKey, true> = {
   LicenseManager: true,
   SettingsPages: true,
   SettingsSideMenuItems: true,
+  SettingsNotificationSideMenuItems: true,
 };
 
 export const ADMIN_DASHBOARD_ENTERPRISE_PLUGIN_KEYS: ReadonlyArray<AdminDashboardEnterprisePluginKey> =

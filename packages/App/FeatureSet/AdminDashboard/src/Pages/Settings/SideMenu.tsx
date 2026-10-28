@@ -16,10 +16,14 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
   /*
    * The entries of the Enterprise settings pages (EnterpriseSettingsPage),
    * read in render, never at module load. They draw themselves, and draw
-   * nothing for a page the license does not allow.
+   * nothing for a page the license does not allow. A page that sets up a way
+   * OneUptime reaches people belongs under Notifications, not Basic.
    */
   const EnterpriseSettingsItems: EnterprisePluginComponent | undefined =
     getAdminDashboardPlugins().SettingsSideMenuItems;
+  const EnterpriseNotificationSettingsItems:
+    | EnterprisePluginComponent
+    | undefined = getAdminDashboardPlugins().SettingsNotificationSideMenuItems;
 
   return (
     <SideMenu>
@@ -108,6 +112,11 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           }}
           icon={IconProp.Notification}
         />
+        {EnterpriseNotificationSettingsItems ? (
+          <EnterpriseNotificationSettingsItems />
+        ) : (
+          <></>
+        )}
       </SideMenuSection>
 
       <SideMenuSection
