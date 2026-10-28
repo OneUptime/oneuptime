@@ -38,13 +38,14 @@ const NAV: string = fs.readFileSync(
 const FIRST_CLI_THAT_STARTS: string = "14.0.64";
 
 const HEADING: RegExp = /^(#{1,6})\s/;
-// Every link of a text: [words](target).
-const LINK: RegExp = /\]\(([^)\s]+)\)/g;
+/*
+ * Every link of a text: [words](target). The target runs to its ")" and
+ * holds no "(" or "]", so a run of "](" is read once, not from each one.
+ */
+const LINK: RegExp = /\]\(([^()\s\]]+)\)/g;
 // A link into OneUptime's docs: the page and, after #, the heading.
 const DOCS_LINK: RegExp =
   /^https:\/\/oneuptime\.com\/docs\/([a-z0-9/-]+)(?:#([a-z0-9-]+))?$/;
-// A Markdown heading's text: "## How to upgrade" -> "How to upgrade".
-const HEADING_TEXT: RegExp = /^#{1,6}\s+(.*)$/;
 const NOT_SLUG: RegExp = /[^a-z0-9 -]/g;
 const SPACES: RegExp = / /g;
 
@@ -75,7 +76,11 @@ function section(heading: string): string {
 
 // The anchor a docs page gives a plain heading (lower case, spaces to dashes).
 function anchorOf(headingLine: string): string {
-  const text: string = (headingLine.match(HEADING_TEXT)?.[1] || "").trim();
+  const marker: RegExpMatchArray | null = headingLine.match(HEADING);
+  // The heading's words: "## How to upgrade" -> "How to upgrade".
+  const text: string = marker
+    ? headingLine.slice((marker[0] as string).length).trim()
+    : "";
 
   return text.toLowerCase().replace(NOT_SLUG, "").replace(SPACES, "-");
 }
