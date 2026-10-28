@@ -12,12 +12,12 @@ OneUptime kan zijn sms-berichten en oproepen versturen via een gateway die u zel
 ## Hoe het werkt
 
 ```mermaid title="Een sms via uw eigen gateway"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Gateway["Uw gateway"]
-    Provider["Uw sms- en spraakprovider"]
+    Provider["Uw sms- en<br/>spraakprovider"]
     Phone["Telefoon"]
-    OneUptime -->|"ondertekend JSON-verzoek"| Gateway
+    OneUptime -->|"ondertekend<br/>JSON-verzoek"| Gateway
     Gateway --> Provider
     Provider --> Phone
 ```

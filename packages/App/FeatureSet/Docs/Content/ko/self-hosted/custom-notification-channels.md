@@ -17,7 +17,7 @@
 ## 작동 방식
 
 ```mermaid title="사용자 지정 채널을 통한 호출"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["자체 서비스"]
     App["자체 앱"]

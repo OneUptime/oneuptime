@@ -35,7 +35,7 @@ import { AlertsToAcknowledge } from "../../../Utils/Incident/IncidentFromAlerts"
  */
 
 const TIMELINE_CREATE_REASON: string =
-  "You do not have permission to acknowledge this alert. You need one of these permissions: Project Owner, Project Admin, Project Member, Alert Admin, Alert Member, Create Alert State Timeline.";
+  "You do not have permission to acknowledge this alert. You need this permission: Create Alert State Timeline.";
 
 const SINGULAR_DESCRIPTION: string =
   "It is acknowledged as you when the incident is declared, and its own on-call escalation stops within a minute. Pages that already went out are not recalled.";

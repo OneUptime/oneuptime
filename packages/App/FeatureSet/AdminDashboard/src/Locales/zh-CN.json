@@ -1514,6 +1514,8 @@
   "Light": "浅色",
   "Dark": "深色",
   "System": "系统",
+  "Enable": "启用",
+  "Disable": "禁用",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危险",

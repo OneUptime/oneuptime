@@ -13,6 +13,7 @@ import {
   getRulePassRateText,
   getRuleSentence,
   getRuleTitle,
+  hasNoChannelToCheck,
   hasNoSeveritiesLeft,
   hasServerId,
   isRuleKnown,
@@ -447,10 +448,15 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
     shownEnabled: boolean,
   ): ReactElement => {
     /*
-     * Unrecognised, or on with no severities left: the server checks nobody
-     * against either, so there is no pass rate to show.
+     * Unrecognised, or on with no severities left or no channel members can
+     * be checked on (a custom channel while none can carry a page): the
+     * server checks nobody against any of them, so there is no pass rate to
+     * show. Its warning says why.
      */
-    if (!isRuleKnown(rule) || (shownEnabled && hasNoSeveritiesLeft(rule))) {
+    if (
+      !isRuleKnown(rule) ||
+      (shownEnabled && (hasNoSeveritiesLeft(rule) || hasNoChannelToCheck(rule)))
+    ) {
       return (
         <p
           data-testid="compliance-rule-pass-rate"
@@ -698,11 +704,14 @@ const ComplianceRulesCard: FunctionComponent<ComponentProps> = (
      */
     const noSeveritiesLeft: boolean = hasNoSeveritiesLeft(rule);
     /*
-     * Active as the switch shows it: known, with severities to check, and on
-     * (or being turned on).
+     * Active as the switch shows it: known, with severities and a channel to
+     * check, and on (or being turned on).
      */
     const isActive: boolean =
-      shown.enabled && isRuleKnown(rule) && !noSeveritiesLeft;
+      shown.enabled &&
+      isRuleKnown(rule) &&
+      !noSeveritiesLeft &&
+      !hasNoChannelToCheck(rule);
     const titleId: string = `compliance-rule-title-${rule.settingId}`;
     const toggleError: string | undefined = toggleErrors[rule.settingId];
 

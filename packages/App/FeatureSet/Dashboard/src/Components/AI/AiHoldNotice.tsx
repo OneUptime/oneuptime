@@ -16,9 +16,11 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import { shouldAttemptRead } from "../../Utils/OverviewSection";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -33,6 +35,11 @@ import React, {
  * and offers Page now to anyone who wants a person on it at once. Nothing
  * shows when nothing is held. Read again every few seconds while a page is
  * held, so the notice goes once AI resolves the record or hands it off.
+ *
+ * Read only for a reader who may read on-call runs. One who certainly may
+ * not (the permission snapshot says so) is spared the read, as the page's
+ * other cards spare theirs (shouldAttemptRead): the server would refuse it
+ * on every incident and alert they open, and they see no notice either way.
  */
 
 export const AI_HOLD_NOTICE_TEST_ID: string = "ai-hold-notice";
@@ -64,6 +71,13 @@ const AiHoldNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  /*
+   * While the permission snapshot is still on its way there is no reason
+   * given, and the notice asks: the server decides.
+   */
+  const mayReadHold: boolean = shouldAttemptRead(
+    PermissionGate.check(new OnCallDutyPolicyExecutionLog(), ModelAction.Read),
+  );
   const [pagingStartsAt, setPagingStartsAt] = useState<Date | null>(null);
   const [isPaging, setIsPaging] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,14 +108,22 @@ const AiHoldNotice: FunctionComponent<ComponentProps> = (
           : null,
       );
     } catch {
-      // A reader who may not read on-call runs sees no notice.
+      /*
+       * Refused - a reader the snapshot could not yet rule out - or failed:
+       * no notice.
+       */
       setPagingStartsAt(null);
     }
   }, [props.subjectType, props.subjectId.toString()]);
 
   useEffect(() => {
+    if (!mayReadHold) {
+      setPagingStartsAt(null);
+      return;
+    }
+
     void readHold();
-  }, [readHold]);
+  }, [readHold, mayReadHold]);
 
   useEffect(() => {
     if (!pagingStartsAt) {

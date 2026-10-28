@@ -12,10 +12,10 @@ OneUptime can send its SMS and calls through a gateway you run, instead of Twili
 ## How It Works
 
 ```mermaid title="An SMS through your own gateway"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Gateway["Your gateway"]
-    Provider["Your SMS and voice provider"]
+    Provider["Your SMS and<br/>voice provider"]
     Phone["Phone"]
     OneUptime -->|"signed JSON request"| Gateway
     Gateway --> Provider

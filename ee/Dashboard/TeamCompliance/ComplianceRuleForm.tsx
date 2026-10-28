@@ -31,6 +31,10 @@ import {
   getOfferedWorkspaces,
   useWorkspaceConnections,
 } from "@oneuptime/dashboard/Utils/Workspace/ConnectedWorkspaces";
+import {
+  CustomNotificationChannelsState,
+  useCustomNotificationChannels,
+} from "@oneuptime/dashboard/Utils/CustomNotificationChannels";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -86,16 +90,29 @@ const WORKSPACE_OF_CHANNEL: Readonly<
 
 /*
  * Whether a channel is offered, given the workspaces the project has
- * connected. Undefined means "offer everything": an edit, or a project
- * whose workspaces are not known.
+ * connected, and whether a custom channel can carry a page on this server.
+ * Undefined means "offer everything": an edit, or a project whose workspaces
+ * are not known.
+ *
+ * The custom channel (#5332) is offered to a new rule only when the server
+ * says a custom channel is on - none is while custom channels are not part
+ * of the license, and the Community Edition never has them. A rule on a
+ * channel nothing can be sent to checks nobody; the server would only list
+ * it with a warning saying so.
  */
 export const isChannelOffered: (
   channel: ComplianceNotificationChannel,
   offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+  isCustomChannelOffered?: boolean | undefined,
 ) => boolean = (
   channel: ComplianceNotificationChannel,
   offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+  isCustomChannelOffered?: boolean | undefined,
 ): boolean => {
+  if (channel === ComplianceNotificationChannel.CustomChannel) {
+    return isCustomChannelOffered !== false;
+  }
+
   const workspace: WorkspaceType | undefined = WORKSPACE_OF_CHANNEL[channel];
 
   return (
@@ -138,12 +155,18 @@ export const getRuleTypeCardOptions: (
 
 export const getChannelDropdownOptions: (
   offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+  isCustomChannelOffered?: boolean | undefined,
 ) => Array<DropdownOption> = (
   offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+  isCustomChannelOffered?: boolean | undefined,
 ): Array<DropdownOption> => {
   return COMPLIANCE_CHANNEL_DEFINITIONS.filter(
     (definition: ComplianceChannelDefinition): boolean => {
-      return isChannelOffered(definition.channel, offeredWorkspaces);
+      return isChannelOffered(
+        definition.channel,
+        offeredWorkspaces,
+        isCustomChannelOffered,
+      );
     },
   ).map((definition: ComplianceChannelDefinition): DropdownOption => {
     return {
@@ -412,8 +435,10 @@ export const ComplianceRulePreview: FunctionComponent<{
 
 export const getComplianceRuleFormFields: (
   offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+  isCustomChannelOffered?: boolean | undefined,
 ) => Array<ModelField<TeamComplianceSetting>> = (
   offeredWorkspaces?: ReadonlyArray<WorkspaceType> | undefined,
+  isCustomChannelOffered?: boolean | undefined,
 ): Array<ModelField<TeamComplianceSetting>> => {
   return [
     {
@@ -450,7 +475,10 @@ export const getComplianceRuleFormFields: (
       description:
         "Members need a notification rule on each channel you pick, such as Call and Push notification. Leave empty to accept any channel.",
       fieldType: FormFieldSchemaType.MultiSelectDropdown,
-      dropdownOptions: getChannelDropdownOptions(offeredWorkspaces),
+      dropdownOptions: getChannelDropdownOptions(
+        offeredWorkspaces,
+        isCustomChannelOffered,
+      ),
       placeholder: "Any channel",
       required: false,
       showIf: (values: FormValues<TeamComplianceSetting>): boolean => {
@@ -554,6 +582,18 @@ const ComplianceRuleFormModal: FunctionComponent<ComponentProps> = (
   const offeredWorkspaces: ReadonlyArray<WorkspaceType> | undefined =
     getOfferedWorkspaces(useWorkspaceConnections()) || undefined;
 
+  /*
+   * A new rule offers the custom channel once the server's answer says one
+   * is on (see isChannelOffered). Until then it is not offered: unlike a
+   * workspace, a guess would offer an Enterprise channel to a server that
+   * has none. An edit offers it, as it offers everything.
+   */
+  const customChannels: CustomNotificationChannelsState =
+    useCustomNotificationChannels();
+  const isCustomChannelOffered: boolean =
+    isEditing ||
+    Boolean(customChannels.channels && customChannels.channels.length > 0);
+
   return (
     <ModelFormModal<TeamComplianceSetting>
       title={isEditing ? "Edit compliance rule" : "Add a compliance rule"}
@@ -598,6 +638,7 @@ const ComplianceRuleFormModal: FunctionComponent<ComponentProps> = (
         formType: isEditing ? FormType.Update : FormType.Create,
         fields: getComplianceRuleFormFields(
           isEditing ? undefined : offeredWorkspaces,
+          isCustomChannelOffered,
         ),
         steps: COMPLIANCE_RULE_FORM_STEPS,
       }}

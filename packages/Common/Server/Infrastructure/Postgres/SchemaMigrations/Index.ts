@@ -213,6 +213,7 @@ import { AddCustomNotificationChannels1808080000000 } from "./1808080000000-AddC
 import { AddCustomNotificationChannelIndexesAndKeys1808090000000 } from "./1808090000000-AddCustomNotificationChannelIndexesAndKeys";
 import { AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000 } from "./1808100000000-AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting";
 import { AddOnCallAiFirstResponder1808110000000 } from "./1808110000000-AddOnCallAiFirstResponder";
+import { AddDetectionRuleExceptions1808160000000 } from "./1808160000000-AddDetectionRuleExceptions";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1628,4 +1629,5 @@ export default [
   AddCustomNotificationChannelIndexesAndKeys1808090000000,
   AddPushSwitchCallAndSmsGatewayAndCustomChannelSetting1808100000000,
   AddOnCallAiFirstResponder1808110000000,
+  AddDetectionRuleExceptions1808160000000,
 ];

@@ -2,6 +2,7 @@ import {
   getTextReadingDirectionByMostLetters,
   ReadingDirection,
 } from "../../../Types/ReadingDirection";
+import BreakableName from "../BreakableName/BreakableName";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -12,6 +13,13 @@ export interface ComponentProps {
    * what it opens (a security entity's chip).
    */
   title?: string | undefined;
+  /*
+   * A value that is a long name - a host pattern, a field's value, a path -
+   * breaks after its own dots and slashes first ("*.lab.acme-commerce." /
+   * "example"), not at whatever letter fills the line (BreakableName). Its
+   * holder sets [overflow-wrap:anywhere] for a part still too long.
+   */
+  breaksLikeAName?: boolean | undefined;
 }
 
 /*
@@ -39,7 +47,7 @@ const IsolatedText: FunctionComponent<ComponentProps> = (
       className={props.className}
       title={props.title}
     >
-      {props.text}
+      {props.breaksLikeAName ? <BreakableName text={props.text} /> : props.text}
     </bdi>
   );
 };

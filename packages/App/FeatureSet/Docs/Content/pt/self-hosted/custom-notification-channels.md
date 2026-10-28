@@ -17,13 +17,13 @@ Um canal personalizado envia os acionamentos de plantão para um serviço que vo
 ## Como funciona
 
 ```mermaid title="Um acionamento por um canal personalizado"
-flowchart LR
+flowchart TB
     OneUptime["OneUptime"]
     Service["Seu serviço"]
     App["Seu app"]
-    OneUptime -->|"solicitação JSON assinada"| Service
+    OneUptime -->|"solicitação<br/>JSON assinada"| Service
     Service -->|"notificação"| App
-    App -->|"Confirmar, Escalonar, Resolver"| Service
+    App -->|"Confirmar,<br/>Escalonar, Resolver"| Service
     Service -->|"POST para o link da ação"| OneUptime
 ```
 

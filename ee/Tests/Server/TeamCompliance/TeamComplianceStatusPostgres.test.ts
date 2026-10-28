@@ -705,6 +705,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
           enabled: true,
           notificationChannels: [ComplianceNotificationChannel.Call],
+          channelsNotChecked: [],
           severityKind: ComplianceSeverityKind.Incident,
           appliesToAllSeverities: false,
           severities: [
@@ -791,6 +792,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
           enabled: true,
           notificationChannels: [ComplianceNotificationChannel.Call],
+          channelsNotChecked: [],
           severityKind: ComplianceSeverityKind.Incident,
           appliesToAllSeverities: true,
           severities: [],
@@ -805,6 +807,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
           ruleType: ComplianceRuleType.HasAlertOnCallRules,
           enabled: true,
           notificationChannels: [ComplianceNotificationChannel.Push],
+          channelsNotChecked: [],
           severityKind: ComplianceSeverityKind.Alert,
           appliesToAllSeverities: false,
           severities: [
@@ -825,6 +828,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
           ruleType: ComplianceRuleType.HasNotificationCallMethod,
           enabled: true,
           notificationChannels: [],
+          channelsNotChecked: [],
           severityKind: null,
           appliesToAllSeverities: false,
           severities: [],
@@ -839,6 +843,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
           ruleType: ComplianceRuleType.HasIncidentOnCallRules,
           enabled: false,
           notificationChannels: [ComplianceNotificationChannel.SMS],
+          channelsNotChecked: [],
           severityKind: ComplianceSeverityKind.Incident,
           appliesToAllSeverities: false,
           // In severity order, whatever order they were picked in.
@@ -1020,6 +1025,7 @@ describePostgres("Team compliance status against a migrated Postgres", () => {
             ComplianceNotificationChannel.Call,
             ComplianceNotificationChannel.Push,
           ],
+          channelsNotChecked: [],
           severityKind: ComplianceSeverityKind.Incident,
           appliesToAllSeverities: false,
           severities: [

@@ -25,6 +25,7 @@ const VALID_PAGE_TYPES: Set<string> = new Set<string>([
   "compare",
   "solutions",
   "industry",
+  "integration",
   "other",
 ]);
 

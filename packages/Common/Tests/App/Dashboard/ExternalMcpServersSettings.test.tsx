@@ -166,7 +166,7 @@ const SERVER_ID: string = "ca1b6f0e-1f1c-4f43-9a7c-3e4a2d6c8b02";
 const PROJECT_HEADERS: Record<string, string> = { tenantid: PROJECT_ID };
 
 const REFUSAL: string =
-  "You do not have permission to test this MCP server. You need one of these permissions: Project Owner, Project Admin.";
+  "You do not have permission to test this MCP server. You need one of these roles: Project Owner, Project Admin.";
 
 const CONNECTED: JSONObject = {
   isConnected: true,

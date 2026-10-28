@@ -1375,7 +1375,7 @@ describe("who may change the next numbers", () => {
         getNextNumberColumns(INCIDENT_NEXT_NUMBERS),
       ),
     ).toBe(
-      "Changing these needs one of these permissions: Project Owner, Project Admin, Edit Project.",
+      "You do not have permission to change these settings. You need this permission: Edit Project.",
     );
   });
 

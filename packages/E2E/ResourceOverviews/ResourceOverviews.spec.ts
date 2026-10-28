@@ -757,6 +757,537 @@ test.describe("the hero: the description under the name, the controls at the row
 
 /*
  * ---------------------------------------------------------------------------
+ * The services tables: a queue's Producers and Consumers, a database's
+ * Calling services (?callers=)
+ * ---------------------------------------------------------------------------
+ */
+
+/*
+ * "A message queue's Consumers table header 'P95 PROCESSING' runs past its
+ * card when the two cards share a row at 1280." Each table is measured in
+ * the card that holds it: every column name and figure inside the card's
+ * frame, no figure cut, no word broken inside itself - only a service's
+ * name may be cut short, and then it says itself whole under the pointer.
+ */
+const QUEUE_TABLES: Array<string> = [
+  "message-queue-producers",
+  "message-queue-consumers",
+];
+const DATABASE_TABLE: string = "database-calling-services";
+
+// A laptop's two widths, beside the side menu at 1024 and 768, and a phone.
+const WIDTHS: Array<{ width: number; height: number }> = [
+  LAPTOP,
+  { width: 1440, height: 900 },
+  { width: 1024, height: 900 },
+  TABLET,
+  PHONE,
+];
+
+interface TableFit {
+  // Boxes past the card's frame, by what they say.
+  outside: Array<string>;
+  // Boxes whose words run past their own box (a name cut short is fine).
+  overflowing: Array<string>;
+  // Words a line ended inside of, with the line they ended.
+  brokenWords: Array<string>;
+  // Names cut short that do not say themselves whole under the pointer.
+  cutWithoutTitle: Array<string>;
+}
+
+async function tableFit(page: Page, testId: string): Promise<TableFit> {
+  return await page.getByTestId(testId).evaluate((table: Element): TableFit => {
+    const card: Element | null = table.closest("[data-testid=card]");
+    const frame: DOMRect = (
+      card?.firstElementChild || table
+    ).getBoundingClientRect();
+    const fit: TableFit = {
+      outside: [],
+      overflowing: [],
+      brokenWords: [],
+      cutWithoutTitle: [],
+    };
+    const cells: Array<HTMLElement> = Array.from(
+      table.querySelectorAll(
+        "[role=columnheader], [role=rowheader], [role=cell]",
+      ),
+    ) as Array<HTMLElement>;
+
+    for (const cell of cells) {
+      const text: string = (cell.textContent || "").trim();
+      const role: string = cell.getAttribute("role") || "";
+      const box: DOMRect = cell.getBoundingClientRect();
+
+      // A screen reader's column name on a phone has no box to place.
+      if (box.width <= 1) {
+        continue;
+      }
+
+      if (box.left < frame.left - 0.5 || box.right > frame.right + 0.5) {
+        fit.outside.push(text);
+      }
+
+      const isCut: boolean = cell.scrollWidth > cell.clientWidth + 1;
+
+      if (role === "rowheader") {
+        if (isCut && cell.getAttribute("title") !== text) {
+          fit.cutWithoutTitle.push(text);
+        }
+      } else if (isCut) {
+        fit.overflowing.push(text);
+      }
+
+      // Each line but the last ends at a space or after a hyphen.
+      const node: Node | null = cell.firstChild;
+      if (role !== "columnheader" || !node) {
+        continue;
+      }
+      const tops: Array<number> = [];
+      const ends: Array<number> = [];
+      for (let index: number = 0; index < text.length; index++) {
+        const range: Range = document.createRange();
+        range.setStart(node, index);
+        range.setEnd(node, index + 1);
+        const rect: DOMRect | undefined = range.getClientRects()[0];
+        if (!rect || rect.width === 0) {
+          continue;
+        }
+        const top: number = Math.round(rect.top);
+        if (tops.length === 0 || Math.abs(tops[tops.length - 1]! - top) > 3) {
+          if (tops.length > 0) {
+            ends.push(index - 1);
+          }
+          tops.push(top);
+        }
+      }
+      for (const end of ends) {
+        const last: string = text.charAt(end);
+        const next: string = text.charAt(end + 1);
+        if (last !== "-" && last !== " " && next !== " ") {
+          fit.brokenWords.push(text);
+        }
+      }
+    }
+
+    return fit;
+  });
+}
+
+// Each column's left and right edge, in the header and in every row.
+async function columnEdges(
+  page: Page,
+  testId: string,
+): Promise<Array<Array<[number, number]>>> {
+  return await page
+    .getByTestId(testId)
+    .evaluate((table: Element): Array<Array<[number, number]>> => {
+      return Array.from(table.querySelectorAll("[role=row]")).map(
+        (row: Element): Array<[number, number]> => {
+          return Array.from(
+            row.querySelectorAll("[role=columnheader], [role=cell]"),
+          )
+            .filter((cell: Element): boolean => {
+              return cell.getBoundingClientRect().width > 1;
+            })
+            .slice(-3)
+            .map((cell: Element): [number, number] => {
+              const box: DOMRect = cell.getBoundingClientRect();
+              return [Math.round(box.left), Math.round(box.right)];
+            });
+        },
+      );
+    });
+}
+
+test.describe("the services tables fit their cards", () => {
+  test("a queue's two tables, at every width, in English and German: every column name and figure inside its card, no figure cut, no word broken inside itself", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // Every width in English; German's longer words where they bite.
+    for (const [query, widths] of [
+      ["callers=busy", WIDTHS],
+      ["callers=busy&lang=de", [LAPTOP, TABLET, PHONE]],
+      ["callers=long", [LAPTOP]],
+      ["callers=long&lang=de", [LAPTOP, PHONE]],
+    ] as Array<[string, Array<{ width: number; height: number }>]>) {
+      for (const size of widths) {
+        await page.setViewportSize({ width: size.width, height: size.height });
+        await openOverview(page, QUEUE_PAGE, query);
+
+        for (const testId of QUEUE_TABLES) {
+          await expect(page.getByTestId(testId)).toBeVisible();
+          expect({
+            query,
+            width: size.width,
+            testId,
+            ...(await tableFit(page, testId)),
+          }).toEqual({
+            query,
+            width: size.width,
+            testId,
+            outside: [],
+            overflowing: [],
+            brokenWords: [],
+            cutWithoutTitle: [],
+          });
+        }
+        await expectNoSidewaysScroll(page);
+      }
+    }
+  });
+
+  test("two cards in a row at 1280: the column names fit beside the services' names, and every figure lines up under its name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, QUEUE_PAGE, "callers=busy");
+
+    // The two cards share the row.
+    const producers: Box = await boxOf(
+      page.getByTestId("message-queue-producers"),
+    );
+    const consumers: Box = await boxOf(
+      page.getByTestId("message-queue-consumers"),
+    );
+    expect(Math.abs(producers.y - consumers.y)).toBeLessThanOrEqual(1);
+    expect(consumers.x).toBeGreaterThan(producers.x + producers.width);
+
+    for (const testId of QUEUE_TABLES) {
+      const edges: Array<Array<[number, number]>> = await columnEdges(
+        page,
+        testId,
+      );
+      const [header, ...rows] = edges;
+      expect(header).toHaveLength(3);
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row).toEqual(header);
+      }
+    }
+
+    // The service names are whole: the column names give way instead.
+    const consumersTable: Locator = page.getByTestId("message-queue-consumers");
+    for (const name of [
+      "analytics-ingest",
+      "fulfillment-worker",
+      "invoice-renderer",
+    ]) {
+      const cell: Locator = consumersTable
+        .getByRole("rowheader")
+        .filter({ hasText: name });
+      expect(
+        await cell.evaluate((element: Element): boolean => {
+          return element.scrollWidth <= element.clientWidth + 1;
+        }),
+      ).toBe(true);
+    }
+    await expect(
+      consumersTable.getByTestId("message-queue-consumers-footer"),
+    ).toHaveText("Showing the 10 busiest of 12 consuming services.");
+    await screenshot(page, "resource-overview-queue-services-1280");
+  });
+
+  test("on a phone each service is two lines: its name across the table, then its figures under the column names", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await openOverview(page, QUEUE_PAGE, "callers=busy");
+
+    const table: Locator = page.getByTestId("message-queue-consumers");
+    const row: Locator = table
+      .getByTestId("message-queue-consumers-row")
+      .first();
+    const name: Box = await boxOf(row.getByRole("rowheader"));
+    const tableBox: Box = await boxOf(table);
+
+    // Its name has the table's width, less its padding.
+    expect(name.width).toBeGreaterThan(tableBox.width - 40);
+    for (const cell of await row.getByRole("cell").all()) {
+      const figure: Box = await boxOf(cell);
+      expect(figure.y).toBeGreaterThanOrEqual(name.y + name.height - 1);
+    }
+
+    // The figures under the column names; the names' column is a screen reader's.
+    const [header, ...rows] = await columnEdges(
+      page,
+      "message-queue-consumers",
+    );
+    for (const edges of rows) {
+      expect(edges).toEqual(header);
+    }
+    await expect(
+      table.getByRole("columnheader", { name: "Service" }),
+    ).toHaveClass(/sr-only/);
+    await screenshot(page, "resource-overview-queue-services-phone");
+  });
+
+  test("a long service name is cut short to its column and says itself whole under the pointer", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const size of [LAPTOP, PHONE]) {
+      await page.setViewportSize(size);
+      await openOverview(page, QUEUE_PAGE, "callers=long");
+
+      const cell: Locator = page
+        .getByTestId("message-queue-consumers")
+        .getByRole("rowheader")
+        .first();
+      await expect(cell).toHaveAttribute(
+        "title",
+        "order-fulfillment-orchestrator-eu-west-2-canary-green",
+      );
+      expect(
+        await cell.evaluate((element: Element): string => {
+          return getComputedStyle(element).textOverflow;
+        }),
+      ).toBe("ellipsis");
+    }
+  });
+
+  test("a database's calling services, a card of its own: one line per service at a laptop's width, two on a phone, inside the card in German too", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const [query, widths] of [
+      ["callers=busy", [LAPTOP, { width: 1024, height: 900 }, PHONE]],
+      ["callers=long&lang=de", [LAPTOP, TABLET, PHONE]],
+    ] as Array<[string, Array<{ width: number; height: number }>]>) {
+      for (const size of widths) {
+        await page.setViewportSize({ width: size.width, height: size.height });
+        await openOverview(page, DATABASE_PAGE, query);
+        await expect(page.getByTestId(DATABASE_TABLE)).toBeVisible();
+
+        expect({
+          query,
+          width: size.width,
+          ...(await tableFit(page, DATABASE_TABLE)),
+        }).toEqual({
+          query,
+          width: size.width,
+          outside: [],
+          overflowing: [],
+          brokenWords: [],
+          cutWithoutTitle: [],
+        });
+      }
+    }
+
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, DATABASE_PAGE, "callers=busy");
+    const row: Locator = page
+      .getByTestId("database-calling-service-row")
+      .first();
+    const name: Box = await boxOf(row.getByRole("rowheader"));
+    for (const cell of await row.getByRole("cell").all()) {
+      const figure: Box = await boxOf(cell);
+      // On the name's line.
+      expect(Math.abs(figure.y - name.y)).toBeLessThanOrEqual(2);
+    }
+    // No figure's column narrower than 6rem, so the figures do not huddle.
+    const tracks: Array<number> = await page
+      .getByTestId(DATABASE_TABLE)
+      .getByRole("table")
+      .evaluate((grid: Element): Array<number> => {
+        return getComputedStyle(grid)
+          .gridTemplateColumns.split(" ")
+          .map((track: string): number => {
+            return parseFloat(track);
+          });
+      });
+    expect(tracks).toHaveLength(4);
+    for (const track of tracks.slice(1)) {
+      expect(track).toBeGreaterThanOrEqual(96 - 0.5);
+    }
+    // The name takes the rest of a wide table.
+    expect(tracks[0]!).toBeGreaterThan(tracks[1]! * 2);
+    await screenshot(page, "resource-overview-database-callers-1280");
+  });
+
+  test("dark: the column names' band and the rows' lines read on a dark card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const size of [LAPTOP, PHONE]) {
+      await page.setViewportSize(size);
+      await openOverview(page, QUEUE_PAGE, "callers=busy&theme=dark");
+
+      const header: Locator = page
+        .getByTestId("message-queue-consumers")
+        .getByRole("row")
+        .first();
+      const colors: { band: string; words: string } = await header.evaluate(
+        (element: Element): { band: string; words: string } => {
+          return {
+            band: getComputedStyle(element).backgroundColor,
+            words: getComputedStyle(element).color,
+          };
+        },
+      );
+      // Not the light theme's grey-50 band, and words that differ from it.
+      expect(colors.band).not.toBe("rgb(249, 250, 251)");
+      expect(colors.words).not.toBe(colors.band);
+      expect({
+        width: size.width,
+        ...(await tableFit(page, "message-queue-consumers")),
+      }).toEqual({
+        width: size.width,
+        outside: [],
+        overflowing: [],
+        brokenWords: [],
+        cutWithoutTitle: [],
+      });
+    }
+    await screenshot(page, "resource-overview-queue-services-phone-dark");
+  });
+
+  test("Korean, Japanese and Chinese column names break between their words, never inside one", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, QUEUE_PAGE, "callers=busy");
+
+    /*
+     * Each language's words for the duration's column - its locale's, and
+     * Japanese's longest katakana word, which the locale had before - in
+     * the column a card beside another gives it: a browser breaks Korean,
+     * Japanese and Chinese between any two characters unless the column
+     * keeps words whole ("p95 처리 시" / "간", "パブリッ" / "シュ時間").
+     */
+    for (const [code, words] of [
+      ["ko", "p95 처리 시간"],
+      ["ko", "p95 게시 시간"],
+      ["ja", "p95 パブリッシュ時間"],
+      ["zh-CN", "p95 发布时间"],
+    ] as Array<[string, string]>) {
+      for (const testId of QUEUE_TABLES) {
+        await page
+          .getByTestId(testId)
+          .getByRole("columnheader")
+          .last()
+          .evaluate(
+            (header: Element, [lang, text]: [string, string]): void => {
+              header.textContent = text;
+              header.setAttribute("lang", lang);
+            },
+            [code, words] as [string, string],
+          );
+        const fit: TableFit = await tableFit(page, testId);
+        expect({
+          code,
+          words,
+          testId,
+          brokenWords: fit.brokenWords,
+          outside: fit.outside,
+        }).toEqual({
+          code,
+          words,
+          testId,
+          brokenWords: [],
+          outside: [],
+        });
+      }
+    }
+  });
+
+  test("Persian, right to left: every figure reads the way it is written - a duration's unit after its number, at the end of its column", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const size of [LAPTOP, PHONE]) {
+      await page.setViewportSize(size);
+      await openOverview(page, QUEUE_PAGE, "callers=busy&lang=fa&dir=rtl");
+
+      const figures: Array<{
+        text: string;
+        numberFirst: boolean;
+        atEnd: boolean;
+      }> = await page
+        .getByTestId("message-queue-consumers")
+        .getByRole("cell")
+        .evaluateAll(
+          (
+            cells: Array<Element>,
+          ): Array<{ text: string; numberFirst: boolean; atEnd: boolean }> => {
+            return cells
+              .map(
+                (
+                  cell: Element,
+                ): { text: string; numberFirst: boolean; atEnd: boolean } => {
+                  const text: string = cell.textContent || "";
+                  // The figure's own text, however the cell holds it.
+                  const node: Node | null = document
+                    .createTreeWalker(cell, NodeFilter.SHOW_TEXT)
+                    .nextNode();
+                  const range: Range = document.createRange();
+                  if (text.length < 2) {
+                    return { text, numberFirst: true, atEnd: true };
+                  }
+                  if (!node || node.textContent !== text) {
+                    return { text, numberFirst: false, atEnd: false };
+                  }
+                  range.setStart(node, 0);
+                  range.setEnd(node, 1);
+                  const first: DOMRect = range.getBoundingClientRect();
+                  range.setStart(node, text.length - 1);
+                  range.setEnd(node, text.length);
+                  const last: DOMRect = range.getBoundingClientRect();
+                  const cellBox: DOMRect = cell.getBoundingClientRect();
+                  return {
+                    text,
+                    // Its first character, a digit, is drawn left of its last.
+                    numberFirst: first.left < last.left,
+                    // Right to left, a column's end is its left edge.
+                    atEnd: Math.abs(first.left - cellBox.left) <= 1,
+                  };
+                },
+              )
+              .filter(
+                (figure: {
+                  text: string;
+                  numberFirst: boolean;
+                  atEnd: boolean;
+                }): boolean => {
+                  return figure.text.length > 1;
+                },
+              );
+          },
+        );
+
+      expect(figures.length).toBeGreaterThan(20);
+      for (const figure of figures) {
+        expect({ width: size.width, ...figure }).toEqual({
+          width: size.width,
+          text: figure.text,
+          numberFirst: true,
+          atEnd: true,
+        });
+      }
+      // What a person reads: "7.5 ms", not "ms 7.5".
+      expect(
+        figures.some((figure: { text: string }): boolean => {
+          return figure.text === "7.5 ms";
+        }),
+      ).toBe(true);
+    }
+    await screenshot(page, "resource-overview-queue-services-phone-rtl");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Dark, and what the pages read
  * ---------------------------------------------------------------------------
  */

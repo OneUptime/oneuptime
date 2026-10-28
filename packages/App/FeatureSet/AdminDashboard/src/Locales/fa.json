@@ -1514,6 +1514,8 @@
   "Light": "روشن",
   "Dark": "تیره",
   "System": "سیستم",
+  "Enable": "فعال کردن",
+  "Disable": "غیرفعال کردن",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",

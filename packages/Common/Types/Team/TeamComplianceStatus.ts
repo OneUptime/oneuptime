@@ -29,6 +29,15 @@ export interface TeamComplianceRuleJSON {
    * method rules.
    */
   notificationChannels: Array<ComplianceNotificationChannel>;
+  /*
+   * Those of notificationChannels that members are NOT checked on, because
+   * no page can go out on them on this server right now: the custom channel,
+   * while custom channels are not part of the license or none is turned on.
+   * The rule's warnings say why. A rule whose every channel is here checks
+   * nobody. Only an enabled rule's are worked out; empty for every other
+   * rule, and absent from a server from before custom channels.
+   */
+  channelsNotChecked?: Array<ComplianceNotificationChannel> | undefined;
   // Which severity list scopes the rule; null for method rules.
   severityKind: ComplianceSeverityKind | null;
   /*

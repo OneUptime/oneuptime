@@ -704,7 +704,7 @@ describe("Webhook trigger: its URL's secret key is managed here, not in Settings
     );
 
     expect(screen.getByRole("tooltip")).toHaveTextContent(
-      "You do not have permission to reset this webhook URL. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.",
+      "You do not have permission to reset this webhook URL. You need this permission: Edit Workflow.",
     );
 
     fireEvent.click(button);
@@ -1077,7 +1077,7 @@ describe("Identifier, saving and the footer", () => {
   test("Run just this step is shown locked, with the reason, to someone who may not run a step", () => {
     const onRunStep: MockFunction = getJestMockFunction();
     const reason: string =
-      "Running one step on its own takes permission to edit this workflow. You need one of these permissions: Project Owner, Project Admin, Edit Workflow, Workflow Admin.";
+      "Running one step on its own takes permission to edit this workflow. You need this permission: Edit Workflow.";
 
     const log: NodeDataProp = makeNode(ComponentID.Log, "log-1");
     log.arguments = { value: "Hello" };

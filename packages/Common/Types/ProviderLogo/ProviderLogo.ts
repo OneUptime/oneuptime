@@ -99,6 +99,15 @@ enum ProviderLogo {
   Swift = "swift",
   React = "react",
   Angular = "angular",
+  // The frameworks and runtimes the OpenTelemetry guides are written for
+  Express = "express",
+  NestJs = "nestjs",
+  NextJs = "nextjs",
+  Fastify = "fastify",
+  Koa = "koa",
+  Hapi = "hapi",
+  Bun = "bun",
+  Deno = "deno",
 }
 
 export default ProviderLogo;
@@ -173,6 +182,14 @@ export const PROVIDER_LOGO_NAMES: Readonly<Record<ProviderLogo, string>> = {
   [ProviderLogo.Swift]: "Swift",
   [ProviderLogo.React]: "React",
   [ProviderLogo.Angular]: "Angular",
+  [ProviderLogo.Express]: "Express",
+  [ProviderLogo.NestJs]: "NestJS",
+  [ProviderLogo.NextJs]: "Next.js",
+  [ProviderLogo.Fastify]: "Fastify",
+  [ProviderLogo.Koa]: "Koa",
+  [ProviderLogo.Hapi]: "hapi",
+  [ProviderLogo.Bun]: "Bun",
+  [ProviderLogo.Deno]: "Deno",
 };
 
 export const ALL_PROVIDER_LOGOS: ReadonlyArray<ProviderLogo> = Object.values(

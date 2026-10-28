@@ -166,6 +166,32 @@ tests:
           path: spec.postgresql.parameters.lock_timeout
           value: "3s"
 
+  # JIT compiling cost 170-270 ms for each of the reads behind incident and
+  # alert rules, which plan and run in 4 ms. The app sends jit=off as a
+  # startup parameter, but pgbouncer drops it, so the server has it too - in
+  # both paths, as a string for CloudNativePG (YAML would read a bare off as
+  # the boolean false).
+  - it: should turn JIT off in the primary postgresql.conf
+    templates:
+      - templates/postgresql-primary-configmap.yaml
+    asserts:
+      - matchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*jit = off\s*$'
+      - notMatchRegex:
+          path: data["postgresql.conf"]
+          pattern: '(?m)^\s*jit = on\s*$'
+
+  - it: should mirror JIT off into the CloudNativePG cluster parameters
+    templates:
+      - templates/postgresql-cnpg-cluster.yaml
+    set:
+      postgresOperator.cnpg.enabled: true
+    asserts:
+      - matchRegex:
+          path: spec.postgresql.parameters.jit
+          pattern: '^off$'
+
   # CloudNativePG rejects non-string parameter values, and random_page_cost is
   # the one value here that YAML would otherwise decode as a float. matchRegex
   # reads the *parsed* document exactly like the `equal` assertions above -- it

@@ -1514,6 +1514,8 @@
   "Light": "Lyst",
   "Dark": "Mørkt",
   "System": "System",
+  "Enable": "Aktivér",
+  "Disable": "Deaktivér",
   "markdownCallouts": {
     "caution": "Forsigtig",
     "danger": "Fare",

@@ -126,48 +126,143 @@ const tableColumnsCache: WeakMap<
   Dictionary<TableColumnMetadata>
 > = new WeakMap();
 
-export const getTableColumns: GetTableColumnsFunction = <T extends BaseModel>(
+/*
+ * The column dictionary of `target`'s class, and whether it is the one
+ * cached for the class. Never handed out as is: getTableColumns copies it,
+ * and getTableColumnNames reads lists from it.
+ */
+function readTableColumns<T extends BaseModel>(
   target: T,
-): Dictionary<TableColumnMetadata> => {
+): { dictionary: Dictionary<TableColumnMetadata>; isClassCache: boolean } {
   const modelClass: { new (): BaseModel } = target.constructor as {
     new (): BaseModel;
   };
-  let cached: Dictionary<TableColumnMetadata> | undefined =
+  const cached: Dictionary<TableColumnMetadata> | undefined =
     tableColumnsCache.get(modelClass);
 
-  if (!cached) {
-    const canonical: T | null = getCanonicalModelInstance(target);
-    const metadataSource: T = canonical || target;
-    const dictonary: Dictionary<TableColumnMetadata> = {};
-    const keys: Array<string> = Object.keys(metadataSource);
+  if (cached) {
+    return { dictionary: cached, isClassCache: true };
+  }
 
-    for (const key of keys) {
-      const metadata: TableColumnMetadata | undefined = Reflect.getMetadata(
-        tableColumn,
-        metadataSource,
-        key,
-      ) as TableColumnMetadata | undefined;
-      if (metadata) {
-        dictonary[key] = resolveModelType(metadata) as TableColumnMetadata;
-      }
-    }
+  const canonical: T | null = getCanonicalModelInstance(target);
+  const metadataSource: T = canonical || target;
+  const dictonary: Dictionary<TableColumnMetadata> = {};
+  const keys: Array<string> = Object.keys(metadataSource);
 
-    cached = dictonary;
-
-    /*
-     * No canonical instance (see CanonicalModelInstance): answer from the
-     * instance we were handed, but do NOT cache it for the class - that
-     * instance may be a mutilated one, and a cached answer outlives it.
-     */
-    if (canonical) {
-      tableColumnsCache.set(modelClass, cached);
+  for (const key of keys) {
+    const metadata: TableColumnMetadata | undefined = Reflect.getMetadata(
+      tableColumn,
+      metadataSource,
+      key,
+    ) as TableColumnMetadata | undefined;
+    if (metadata) {
+      dictonary[key] = resolveModelType(metadata) as TableColumnMetadata;
     }
   }
 
+  /*
+   * No canonical instance (see CanonicalModelInstance): answer from the
+   * instance we were handed, but do NOT cache it for the class - that
+   * instance may be a mutilated one, and a cached answer outlives it.
+   */
+  if (canonical) {
+    tableColumnsCache.set(modelClass, dictonary);
+  }
+
+  return { dictionary: dictonary, isClassCache: Boolean(canonical) };
+}
+
+export const getTableColumns: GetTableColumnsFunction = <T extends BaseModel>(
+  target: T,
+): Dictionary<TableColumnMetadata> => {
   /*
    * Hand out a copy, not the cached dictionary itself: callers mutate the
    * result (the API reference docs delete entries from it), which would
    * otherwise strip columns from every later call for the same class.
    */
-  return { ...cached };
+  return { ...readTableColumns(target).dictionary };
+};
+
+/*
+ * The names of a model's columns, all of them and the encrypted, hashed,
+ * unique and required ones, in the order getTableColumns lists them. Read
+ * only: callers copy a list before they hand it on (the model's
+ * get...Columns methods do).
+ *
+ * Every row a read returns asks for its encrypted columns (decrypt), and
+ * every read asks for the column list a few times over. Each of those used
+ * to copy the class's whole dictionary - about 150 entries for a monitor -
+ * and walk it; the lists are now made once per class, from the dictionary
+ * cached for it, and never for an answer that is not cached (no canonical
+ * instance, see readTableColumns).
+ */
+export interface TableColumnNames {
+  all: ReadonlyArray<string>;
+  encrypted: ReadonlyArray<string>;
+  hashed: ReadonlyArray<string>;
+  unique: ReadonlyArray<string>;
+  required: ReadonlyArray<string>;
+}
+
+const tableColumnNamesCache: WeakMap<
+  Dictionary<TableColumnMetadata>,
+  TableColumnNames
+> = new WeakMap();
+
+function namesOf(
+  dictionary: Dictionary<TableColumnMetadata>,
+): TableColumnNames {
+  const all: Array<string> = [];
+  const encrypted: Array<string> = [];
+  const hashed: Array<string> = [];
+  const unique: Array<string> = [];
+  const required: Array<string> = [];
+
+  for (const key in dictionary) {
+    all.push(key);
+
+    const metadata: TableColumnMetadata | undefined = dictionary[key];
+
+    if (metadata?.encrypted) {
+      encrypted.push(key);
+    }
+
+    if (metadata?.hashed) {
+      hashed.push(key);
+    }
+
+    if (metadata?.unique) {
+      unique.push(key);
+    }
+
+    if (metadata?.required) {
+      required.push(key);
+    }
+  }
+
+  return { all, encrypted, hashed, unique, required };
+}
+
+export const getTableColumnNames: <T extends BaseModel>(
+  target: T,
+) => TableColumnNames = <T extends BaseModel>(target: T): TableColumnNames => {
+  const read: {
+    dictionary: Dictionary<TableColumnMetadata>;
+    isClassCache: boolean;
+  } = readTableColumns(target);
+
+  if (!read.isClassCache) {
+    return namesOf(read.dictionary);
+  }
+
+  let names: TableColumnNames | undefined = tableColumnNamesCache.get(
+    read.dictionary,
+  );
+
+  if (!names) {
+    names = namesOf(read.dictionary);
+    tableColumnNamesCache.set(read.dictionary, names);
+  }
+
+  return names;
 };

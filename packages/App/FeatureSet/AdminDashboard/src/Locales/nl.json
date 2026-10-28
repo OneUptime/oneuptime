@@ -1514,6 +1514,8 @@
   "Light": "Licht",
   "Dark": "Donker",
   "System": "Systeem",
+  "Enable": "Inschakelen",
+  "Disable": "Uitschakelen",
   "markdownCallouts": {
     "caution": "Let op",
     "danger": "Gevaar",
