@@ -66,7 +66,7 @@ Når det sidste niveaus ventetid er gået, uden at nogen har kvitteret, stopper 
 | **Stop tilkald** | Ingen tilkaldes igen, så politikken kører én gang. En ny politik starter med dette svar. |
 | **Start forfra fra Level 1** | Hvert niveau tilkaldes igen, i rækkefølge. **Hvor mange gange mere?** siger hvor mange: 1 eller flere. |
 
-En politik, der starter forfra tre gange mere, går gennem sine niveauer fire gange i alt. Kortets række **Efter det sidste niveau** siger, hvad politikken gør, og **Politikken i overblik** på **Oversigt** siger det samme med ord.
+En politik, der starter forfra tre gange mere, går gennem sine niveauer fire gange i alt. En gennemgang, hvor intet niveau havde nogen at tilkalde, gentages ikke: en til ville heller ikke tilkalde nogen, så politikken stopper. Kortets række **Efter det sidste niveau** siger, hvad politikken gør, og **Politikken i overblik** på **Oversigt** siger det samme med ord.
 
 ## Tilkald igen, hvis den ikke bliver løst
 
@@ -103,7 +103,7 @@ flowchart TB
 | **Planlagt**, **Startet** | Kørslen sættes op. En, der stadig står her efter 5 minutter, stoppes som **Fejl**. |
 | **Executing** | Kørslen tilkalder. OneUptime fører den et skridt videre hvert minut. |
 | **Execution Completed** | Nogen kvitterede, hændelsen eller advarslen blev løst, alle regler og gentagelser blev brugt, eller politikken blev arkiveret. |
-| **Execution Completed - No One Notified** | Kørslen gik gennem alle regler og tilkaldte ingen: som regel en vagtplan, hvor ingen har vagt. |
+| **Execution Completed - No One Notified** | Kørslen gik gennem alle regler og tilkaldte ingen: som regel en vagtplan, hvor ingen har vagt, eller et niveau uden modtagere. |
 | **Fejl** | Kørslen mislykkedes. **Vis statusbesked** siger hvorfor. |
 
 Du finder udførelseslogs tre steder:
@@ -112,7 +112,7 @@ Du finder udførelseslogs tre steder:
 - under **Vagtordning → Avanceret → Udførelseslogs**, for alle politikker, hvor direkte tilkald fra workflows og chat står som **Direkte tilkald**;
 - på en hændelses eller en advarsels side **Vagtudførelser**.
 
-Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **Vis tidslinje** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. En vagtplan, hvor ingen har vagt, viser **Ingen havde vagt** i stedet for en person. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.
+Hver række viser, hvad der startede kørslen, hvornår, dens **Status** og hvem der kvitterede. **Vis tidslinje** åbner dens **Tidslinje for udførelsen**: hver eskaleringsregel, hvem den tilkaldte, via hvilken vagtplan, og hvordan hvert tilkald endte. En vagtplan, hvor ingen har vagt, viser **Ingen havde vagt** i stedet for en person. Et niveau, der ikke tilkaldte nogen, siger hvorfor, med **Gik videre med det samme** nedenunder: politikken ventede ikke på det. I OneUptime Cloud kræver udførelseslogs abonnementet **Growth**.
 
 ## Arkivér eller slet en politik
 
@@ -154,6 +154,10 @@ Dens kørsel viser **Execution Completed - No One Notified**. Åbn **Vis tidslin
 
 :::details Det næste niveau blev tilkaldt et minut efter sin ventetid
 OneUptime fører kørende politikker et skridt videre én gang i minuttet, så et niveau tilkaldes ved det første tjek, efter at ventetiden er gået.
+:::
+
+:::details Det næste niveau blev tilkaldt med det samme uden at vente
+Niveauet før havde ingen at tilkalde: ingen modtagere, ingen med vagt i dets vagtplaner eller ingen, der kunne nås. Et niveau, der ikke tilkalder nogen, har ingen ventetid, så næste niveau tilkaldes, så snart politikken når det. **Vis tidslinje** viser, hvorfor det niveau ikke tilkaldte nogen.
 :::
 
 :::details En hændelse viser en politik, der ikke tilkaldte nogen

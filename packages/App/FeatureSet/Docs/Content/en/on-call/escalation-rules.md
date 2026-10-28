@@ -79,11 +79,13 @@ When an incident or alert reaches the policy, **Level 1** pages its responders s
 
 An incident, alert or episode that is created already acknowledged or resolved — recorded after the fact — runs none of its policies: no one is paged, and its feed says so, naming them. See [Declared already acknowledged or resolved](/docs/incidents/declaring-incidents#declared-already-acknowledged-or-resolved).
 
+A level that has nobody to page when it is reached is passed at once: the next level is paged straight away, without waiting. That is a level with no responders, and one whose responders give it nobody to page at that moment: a team with no members, a schedule with nobody on call, or people who are away with nobody to cover, have left the project, or cannot be reached at all. When no level has anybody to page, the policy stops at once and does not repeat.
+
 To repeat a policy, click **Edit** on the **Repeat Policy** card, choose **Start again from Level 1** and set **How many more times?**.
 
 ### The escalation summary
 
-The summary at the top of the **Escalation Rules** page shows the whole ladder: when each level is paged, who it pages, and what happens after the last one. A level whose responders cannot all be paged says so on its card; click the label to see who and why.
+The summary at the top of the **Escalation Rules** page shows the whole ladder: when each level is paged, who it pages, and what happens after the last one. A level whose responders cannot all be paged says so on its card; click the label to see who and why. A level with no responders shows **Skipped at once**, and its wait is not counted towards when the next level is paged.
 
 ### How each person is reached
 
@@ -184,7 +186,7 @@ The next person is worked out when the level runs, from the schedule as it is th
 - It is the person after whoever is on call, in the order the rotation's people take turns. After the last person comes the first again.
 - People who are away are passed over, whether or not someone covers for them, and so is anyone on call in someone else's place.
 - It is always someone from the same rotation: with several layers, the layer whoever is on call comes from. A rotation with nobody else in it, or with everybody else away, has nobody next, and the level pages nobody there and says so.
-- When nobody is on call in the schedule at all, nobody is next either, and the level is tried again for a few minutes, as for the schedule itself.
+- When nobody is on call in the schedule at all, nobody is next either, and the level pages nobody there.
 
 The run's message in Slack and Microsoft Teams, the incident's feed and the run's **Execution Timeline** say who was paged as the next in the rotation, and from which schedule: "Sam Lee (next in the Payments primary rotation)".
 
