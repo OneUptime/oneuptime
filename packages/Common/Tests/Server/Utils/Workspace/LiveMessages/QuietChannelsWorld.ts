@@ -35,6 +35,7 @@ import IncidentStateTimelineService from "../../../../../Server/Services/Inciden
 import OnCallDutyPolicyEscalationRuleService, {
   AwayOverride,
   NOT_A_PROJECT_MEMBER_TIMELINE_MESSAGE,
+  OnCallRuleExecutionOutcome,
 } from "../../../../../Server/Services/OnCallDutyPolicyEscalationRuleService";
 import OnCallDutyPolicyExecutionLogService, {
   OnCallDirectPageRun,
@@ -79,8 +80,11 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../../../Types/OnCallDut
 import OnCallDutyPolicyStatus from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import {
   getOnCallPolicyRunRecordHandledMessage,
+  ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE,
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
 } from "../../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
+import { getOnCallEmptyLevelTimelineMessage } from "../../../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
+import OnCallEscalationAdvance from "../../../../../Server/Utils/OnCall/OnCallEscalationAdvance";
 import UserNotificationEventType from "../../../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationStatus from "../../../../../Types/UserNotification/UserNotificationStatus";
 import NotificationRuleEventType from "../../../../../Types/Workspace/NotificationRules/EventType";
@@ -315,6 +319,15 @@ export default class QuietChannelsWorld {
   public deliveries: Array<UserOnCallLogTimeline> = [];
   public rules: Array<RuleScript> = SCREENSHOT_RULES;
   public repeatsAllowed: number = 1;
+
+  /*
+   * Whether a level of the pass the run is in - its levels once round -
+   * paged anybody, and whether any level of the run ever did: a level that
+   * pages nobody is passed at once, and a pass that paged nobody is not
+   * gone round again (OnCallEscalationAdvance).
+   */
+  private hasPassPagedAnybody: boolean = false;
+  private hasRunPagedAnybody: boolean = false;
 
   /*
    * The run's clock, as the screenshots ran: the incident at 5:15 PM UTC on
@@ -889,10 +902,31 @@ export default class QuietChannelsWorld {
         );
         return script ? this.ruleModel(script) : null;
       }) as never);
+    /*
+     * A rule's steps, as OneUptime writes them, and whether the run moves
+     * on from it at once: it paged nobody (OnCallEmptyLevel). The run's
+     * start asks OnCallEscalationAdvance to move it on then, as OneUptime
+     * does, once it has said the run is executing.
+     */
     jest
       .spyOn(OnCallDutyPolicyEscalationRuleService, "startRuleExecution")
-      .mockImplementation((async (ruleId: ObjectID): Promise<void> => {
-        await this.executeRule(ruleId);
+      .mockImplementation((async (
+        ruleId: ObjectID,
+      ): Promise<OnCallRuleExecutionOutcome> => {
+        const pagedNobody: boolean = await this.executeRule(ruleId);
+
+        return {
+          paged: [],
+          notPaged: [],
+          hadScheduleGap: false,
+          movesOnAtOnce: pagedNobody,
+        };
+      }) as never);
+    jest
+      .spyOn(OnCallEscalationAdvance, "moveOnAtOnce")
+      .mockImplementation((async (): Promise<null> => {
+        await this.moveOnAtOnce();
+        return null;
       }) as never);
     // The policy's levels, as a feed entry counts them for "Level 2 of 3".
     jest
@@ -1387,14 +1421,58 @@ export default class QuietChannelsWorld {
       },
     );
 
-    if (next) {
-      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-        next.id,
-        {} as never,
-      );
-    } else if (
+    const pagedNobody: boolean = next
+      ? (
+          await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
+            next.id,
+            {} as never,
+          )
+        ).movesOnAtOnce
+      : await this.afterTheLastRule();
+
+    if (pagedNobody) {
+      await this.moveOnAtOnce();
+    }
+
+    await this.settle();
+  }
+
+  /*
+   * The rule the run is on paged nobody: the run moves on at once, on the
+   * same clock - to the next rule, or after the last to a repeat or its
+   * end - and on again from each rule that pages nobody too.
+   */
+  private async moveOnAtOnce(): Promise<void> {
+    const order: number = this.run!.lastExecutedEscalationRuleOrder || 0;
+    const next: RuleScript | undefined = this.rules.find(
+      (script: RuleScript): boolean => {
+        return script.order === order + 1;
+      },
+    );
+
+    const pagedNobody: boolean = next
+      ? await this.executeRule(next.id)
+      : await this.afterTheLastRule();
+
+    if (pagedNobody) {
+      await this.moveOnAtOnce();
+    }
+  }
+
+  /*
+   * After the last rule: the policy starts again from its first while it
+   * has repeats left - unless not one level of the pass paged anybody, which
+   * going round again would only repeat - and otherwise the run ends: as
+   * one that paged somebody, or as one that paged nobody at all. Says
+   * whether the first rule, started again, paged nobody.
+   */
+  private async afterTheLastRule(): Promise<boolean> {
+    if (
+      this.hasPassPagedAnybody &&
       (this.run!.onCallPolicyExecutionRepeatCount || 1) <= this.repeatsAllowed
     ) {
+      this.hasPassPagedAnybody = false;
+
       await OnCallDutyPolicyExecutionLogService.updateOneById({
         id: this.run!.id!,
         data: {
@@ -1403,22 +1481,25 @@ export default class QuietChannelsWorld {
         },
         props: { isRoot: true },
       });
-      await OnCallDutyPolicyEscalationRuleService.startRuleExecution(
-        this.rules[0]!.id,
-        {} as never,
-      );
-    } else {
-      await OnCallDutyPolicyExecutionLogService.updateOneById({
-        id: this.run!.id!,
-        data: {
-          status: OnCallDutyPolicyStatus.Completed,
-          statusMessage: ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
-        },
-        props: { isRoot: true },
-      });
+
+      return await this.executeRule(this.rules[0]!.id);
     }
 
-    await this.settle();
+    await OnCallDutyPolicyExecutionLogService.updateOneById({
+      id: this.run!.id!,
+      data: this.hasRunPagedAnybody
+        ? {
+            status: OnCallDutyPolicyStatus.Completed,
+            statusMessage: ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+          }
+        : {
+            status: OnCallDutyPolicyStatus.CompletedWithNoNotifications,
+            statusMessage: ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_MESSAGE,
+          },
+      props: { isRoot: true },
+    });
+
+    return false;
   }
 
   /*
@@ -1493,9 +1574,11 @@ export default class QuietChannelsWorld {
    * Sent, deliveries as they go out, and Notification Sent once more when
    * the person's notification rules have all run - the write that used to
    * post a second "Notification Sent to <person>"); a person who left is
-   * skipped; a rule that paged nobody says so.
+   * skipped; a rule that paged nobody says so, in the words OneUptime uses
+   * since such a rule is passed at once (OnCallEmptyLevel). Says whether it
+   * paged nobody: the run then moves on from it at once.
    */
-  private async executeRule(ruleId: ObjectID): Promise<void> {
+  private async executeRule(ruleId: ObjectID): Promise<boolean> {
     const script: RuleScript = this.rules.find(
       (candidate: RuleScript): boolean => {
         return candidate.id.toString() === ruleId.toString();
@@ -1650,6 +1733,11 @@ export default class QuietChannelsWorld {
       });
     }
 
+    if (paged > 0) {
+      this.hasPassPagedAnybody = true;
+      this.hasRunPagedAnybody = true;
+    }
+
     if (paged === 0) {
       const nobody: OnCallDutyPolicyExecutionLogTimeline =
         new OnCallDutyPolicyExecutionLogTimeline();
@@ -1664,13 +1752,17 @@ export default class QuietChannelsWorld {
         nobody.triggeredByAlertId = this.run!.triggeredByAlertId;
       }
       nobody.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
-      nobody.statusMessage = "Skipped because no users in this rule.";
+      nobody.statusMessage = getOnCallEmptyLevelTimelineMessage({
+        namesAnybody: script.targets.length > 0,
+      });
 
       await OnCallDutyPolicyExecutionLogTimelineService.create({
         data: nobody,
         props: { isRoot: true },
       });
     }
+
+    return paged === 0;
   }
 
   // Waits until every chat message the steps asked for is up to date.

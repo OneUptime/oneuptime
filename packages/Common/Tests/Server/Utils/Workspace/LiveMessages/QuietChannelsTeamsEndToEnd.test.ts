@@ -72,6 +72,8 @@ import QuietChannelsWorld, {
   JANE,
   NB_USER_3,
   NITIN,
+  RULE_FHIRST,
+  RULE_SECOND,
   STATE_ACKNOWLEDGED,
   STATE_IDENTIFIED,
   STATE_RESOLVED,
@@ -305,7 +307,10 @@ describe("an incident in its Microsoft Teams channel", () => {
     await world.invitedToRecordChannels([NITIN]);
     await world.escalate();
     await world.invitedToRecordChannels([NB_USER_3, NITIN]);
-    await world.escalate();
+    /*
+     * Rule "third" pages nobody: the policy repeats from "fhirst" at once,
+     * paging Nitin a third time (OnCallEmptyLevel).
+     */
     await world.escalate();
     await world.acknowledge(NITIN);
     await world.incidentState({
@@ -571,5 +576,114 @@ describe("a scheduled maintenance event, in its Microsoft Teams channel", () => 
     }
 
     expect(connector.updates()).toEqual([]);
+  });
+});
+
+/*
+ * THE MAINTAINER'S POLICY, IN ITS MICROSOFT TEAMS CHANNEL: Level 1 has no
+ * responders, Level 2 pages Nitin. Level 1 holds no wait
+ * (OnCallEmptyLevel): the run's card is on Level 2 from the start, and says
+ * Level 1 was passed at once - the same words as in Slack.
+ */
+describe("a policy whose first level has nobody to page, in its Microsoft Teams channel", () => {
+  beforeEach(() => {
+    world.repeatsAllowed = 0;
+    world.rules = [
+      {
+        id: RULE_FHIRST,
+        order: 1,
+        name: "Level 1",
+        escalateAfterInMinutes: 4,
+        targets: [],
+      },
+      {
+        id: RULE_SECOND,
+        order: 2,
+        name: "Level 2",
+        escalateAfterInMinutes: 30,
+        targets: [{ kind: "page", userId: NITIN }],
+      },
+    ];
+  });
+
+  async function startPaging(): Promise<void> {
+    await world.channelCreated([NITIN]);
+    await world.incidentCreated();
+    await world.incidentState({
+      to: STATE_IDENTIFIED,
+      name: "Identified",
+      isFirst: true,
+    });
+    await world.startRun();
+    await world.settle();
+  }
+
+  // The run's card as it reads now: its last edit, else its post.
+  function runCard(): string {
+    const runPost: ConnectorRequest | undefined = connector
+      .posts()
+      .find((post: ConnectorRequest): boolean => {
+        return headline(post).includes("is paging for");
+      });
+    const edits: Array<ConnectorRequest> = connector
+      .updates()
+      .filter((update: ConnectorRequest): boolean => {
+        return (
+          Boolean(runPost?.answeredId) &&
+          (update.activityIdInPath || "").includes(runPost!.answeredId!)
+        );
+      });
+
+    return (edits[edits.length - 1] || runPost)?.text || "";
+  }
+
+  test("the run's card is on Level 2 from the start, and says Level 1 was passed at once", async () => {
+    await startPaging();
+
+    const card: string = runCard();
+
+    expect(card).toContain(
+      "**Level 2 of 2**: if nobody acknowledges by {{TIME(2026-10-08T17:45:00Z)}}, paging stops.",
+    );
+    expect(card).toContain("**Nitin**: paged once · by SMS and email");
+    expect(card).toContain(
+      "Level 1 of 2: nobody to page, so Level 2 of 2 was paged at once",
+    );
+  });
+
+  test("one card for the run in the channel: nothing asks anybody to page somebody", async () => {
+    await startPaging();
+
+    const runCards: Array<ConnectorRequest> = connector
+      .posts()
+      .filter((post: ConnectorRequest): boolean => {
+        return headline(post).includes("PolicyX");
+      });
+
+    expect(runCards).toHaveLength(1);
+
+    for (const post of connector.posts()) {
+      expect(post.text).not.toContain("page someone or fix the policy");
+    }
+  });
+
+  test("the incident's feed says it the same way: Level 1 passed at once, then Nitin paged", async () => {
+    await startPaging();
+
+    const entries: Array<string> = world.feed
+      .filter((entry: FeedEntry): boolean => {
+        return entry.eventType === "OnCallPolicy";
+      })
+      .map((entry: FeedEntry): string => {
+        return entry.markdown;
+      });
+
+    expect(
+      entries.some((markdown: string): boolean => {
+        return markdown.includes(
+          "paged nobody at **Level 1 of 2**: this escalation rule has no responders, so it moved on to the next level at once.",
+        );
+      }),
+    ).toBe(true);
   });
 });
