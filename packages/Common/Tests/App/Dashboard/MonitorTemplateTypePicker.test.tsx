@@ -23,7 +23,7 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import MonitorTemplate from "../../../Models/DatabaseModels/MonitorTemplate";
 import BasicFormModal from "../../../UI/Components/FormModal/BasicFormModal";
 import Field from "../../../UI/Components/Forms/Types/Field";
-import FormStep from "../../../UI/Components/Forms/Types/FormStep";
+import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
