@@ -23,6 +23,10 @@ change can be measured the same way. Memory has a section of its own below.
 - Containers are named `$PERF_PREFIX-*` (default `oneuptime-perf`) and every
   process's PID is kept in `$PERF_DIR` (default `/tmp/oneuptime-perf`), so
   `stack.sh down` stops only what `stack.sh up` started.
+- `make_env.py` writes the App's and the Probe's settings (`app.env`,
+  `probe.env` in `$PERF_DIR`) the first time `stack.sh` needs them, and
+  `seed.js` and `browse-load.js` call the API as the Dashboard does, through
+  `api.js`.
 
 ## What it needs
 
@@ -84,6 +88,8 @@ node profile-summary.js summary /tmp/oneuptime-perf/results/load-profiled.cpupro
 node profile-summary.js callers /tmp/oneuptime-perf/results/load-profiled.cpuprofile findMetadata
 ```
 
+`load-phase.sh --profile` takes the profile with `cpu-profile.js`, over the
+App's inspector, for as long as the window runs.
 `summary` charges each sample to the deepest OneUptime frame on its stack,
 so time spent in a library counts for the OneUptime code that called it.
 `timeline` shows the once-a-minute bursts of the jobs; `window` what runs
@@ -187,6 +193,25 @@ bash app-image.sh stop
 without the frontends' production builds (the Dashboard's bundle is copied
 in from this checkout) and without the build-time type check.
 
+The other servers - the Probe, the Runner, the ingress sidecar
+(`packages/Nginx`) - one at a time, natively as their images run them, the
+live heap a while after start (`npm ci` in the package first; the env file
+gives the settings, `app.env` for the sidecar, `probe.env` for the Probe):
+
+```sh
+bash server-heap.sh Nginx development 45 /tmp/oneuptime-perf/app.env
+                                          # ts-node's own compile: inline source maps
+bash server-heap.sh Nginx production 45 /tmp/oneuptime-perf/app.env
+                                          # Common's transpiler, as the image runs it
+```
+
+`Tests/Ops/PerfKit.test.js` keeps the kit runnable without a stack: every
+script parses, this README names every file, the memory tools run end to end
+on a Node process that holds a known structure (heap-snapshot.js,
+heap-summary.js and its options, heap-diff.js, memory-phase.sh with
+memory-sample.py), and `image/App.Dockerfile` starts the App as the App's
+own image does.
+
 ## What it measured first
 
 The pull request that added this kit (2026-10-27, 50 projects, a 32-core
@@ -218,12 +243,12 @@ the Probe stopped, then 15 minutes of steady load after 2 of warm-up. MB;
 live heap is what a full garbage collection leaves, RSS the median of the
 30-second samples:
 
-| App | base | changed |
-|---|---|---|
-| live heap at start | 1,419 | 380 |
-| RSS at start | 1,671 | 564 |
-| idle RSS | 1,751 | 629 |
-| steady load RSS | 2,066 | 792 |
+| App                   | base          | changed   |
+| --------------------- | ------------- | --------- |
+| live heap at start    | 1,419         | 380       |
+| RSS at start          | 1,671         | 564       |
+| idle RSS              | 1,751         | 629       |
+| steady load RSS       | 2,066         | 792       |
 | steady load live heap | 1,447 - 1,459 | 402 - 427 |
 
 The heap snapshots showed where the base's went: 560 MB of zod schemas kept
@@ -231,4 +256,11 @@ by zod-to-openapi's metadata registry (a Map, not a WeakMap), about 470 MB
 of ts-node's inline source maps in the code V8 keeps, and the 33 MB OpenAPI
 spec document. Under the same load Postgres held 0.4-0.5 GB (51 connections,
 about 10 MB each), ClickHouse 1.3-1.6 GB anon and 1.5-1.8 GB of page cache,
-Valkey 9 MB; the Probe 310 MB.
+Valkey 9 MB; the Probe 310 MB. Over 40 minutes of steady load the changed
+App's live heap stayed between 400 and 433 MB.
+
+The other servers, run natively, live heap after a full collection with
+ts-node's own compile (`NODE_ENV=development`) against Common's transpiler
+(production): the ingress sidecar 269 -> 149 MB (`server-heap.sh`, 45
+seconds after start; resident 443 -> 307 MB), the Probe 126.5 -> 90.9 MB,
+the Runner 88.5 -> 63.9 MB.

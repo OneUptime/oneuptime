@@ -55,14 +55,17 @@ def read_pid(name):
         return int(handle.read().strip())
 
 
+def run(arguments):
+    """A command's output; nothing when the command is not there (docker on a machine without it)."""
+    try:
+        return subprocess.run(arguments, capture_output=True, text=True, check=False).stdout
+    except OSError:
+        return ""
+
+
 def descendants(pid):
     found = [pid]
-    out = subprocess.run(
-        ["ps", "-o", "pid=", "--ppid", str(pid)],
-        capture_output=True,
-        text=True,
-        check=False,
-    ).stdout
+    out = run(["ps", "-o", "pid=", "--ppid", str(pid)])
     for child in out.split():
         found.extend(descendants(int(child)))
     return found
@@ -85,12 +88,7 @@ def process_memory(pid):
 
 
 def container_memory(name):
-    container_id = subprocess.run(
-        ["docker", "inspect", "-f", "{{.Id}}", f"{PREFIX}-{name}"],
-        capture_output=True,
-        text=True,
-        check=False,
-    ).stdout.strip()
+    container_id = run(["docker", "inspect", "-f", "{{.Id}}", f"{PREFIX}-{name}"]).strip()
     if not container_id:
         return None
     base = f"/sys/fs/cgroup/system.slice/docker-{container_id}.scope"
@@ -138,15 +136,12 @@ def clickhouse_memory():
 
 
 def postgres_connections():
-    out = subprocess.run(
+    out = run(
         [
             "docker", "exec", f"{PREFIX}-pg", "psql", "-U", "postgres", "-d", "oneuptimedb",
             "-At", "-c", "SELECT count(*), count(*) FILTER (WHERE state = 'idle') FROM pg_stat_activity WHERE backend_type = 'client backend'",
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    ).stdout.strip()
+        ]
+    ).strip()
     if "|" not in out:
         return None
     total, idle = out.split("|")
@@ -154,12 +149,7 @@ def postgres_connections():
 
 
 def valkey_memory():
-    out = subprocess.run(
-        ["docker", "exec", f"{PREFIX}-valkey", "valkey-cli", "-a", PASSWORD, "--no-auth-warning", "INFO", "memory"],
-        capture_output=True,
-        text=True,
-        check=False,
-    ).stdout
+    out = run(["docker", "exec", f"{PREFIX}-valkey", "valkey-cli", "-a", PASSWORD, "--no-auth-warning", "INFO", "memory"])
     for line in out.splitlines():
         if line.startswith("used_memory:"):
             return round(int(line.split(":")[1]) / 1048576, 1)
@@ -168,13 +158,17 @@ def valkey_memory():
 
 def app_heap():
     """The App's live heap after a full garbage collection (heap-snapshot.js)."""
-    out = subprocess.run(
-        ["node", os.path.join(HERE, "heap-snapshot.js"), inspector],
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=300,
-    ).stdout
+    try:
+        out = subprocess.run(
+            ["node", os.path.join(HERE, "heap-snapshot.js"), inspector],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=300,
+        ).stdout
+    except subprocess.TimeoutExpired:
+        # A process too busy to answer in five minutes: this sample has no heap.
+        return None
     try:
         value = json.loads(out)
     except ValueError:
