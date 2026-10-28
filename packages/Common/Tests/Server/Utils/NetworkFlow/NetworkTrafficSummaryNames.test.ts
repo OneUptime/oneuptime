@@ -41,6 +41,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A Traffic page's names (issue #5340): the summary names every address
@@ -96,7 +97,7 @@ function dns(name: string, at: string): NetworkTrafficDnsName {
   return { name: name, at: at };
 }
 
-let resolve: jest.SpiedFunction<typeof NetworkAddressNamesUtil.resolve>;
+let resolve: SpyInstance<typeof NetworkAddressNamesUtil.resolve>;
 
 beforeEach(() => {
   const scope: TelemetryReadScope =
@@ -400,13 +401,13 @@ describe("NetworkTrafficSummaryUtil.parseFindRequest", () => {
 });
 
 describe("NetworkTrafficSummaryUtil.find", () => {
-  let byDns: jest.SpiedFunction<
+  let byDns: SpyInstance<
     typeof NetworkTrafficAggregationService.findAddressesByDnsName
   >;
-  let byName: jest.SpiedFunction<
+  let byName: SpyInstance<
     typeof NetworkAddressNamesUtil.findAddressesByName
   >;
-  let traffic: jest.SpiedFunction<
+  let traffic: SpyInstance<
     typeof NetworkTrafficAggregationService.getAddressTraffic
   >;
 
@@ -562,7 +563,7 @@ describe("NetworkTrafficSummaryUtil.find", () => {
   });
 
   test("a device's page finds within that device's flows, through the caller's read", async () => {
-    const findOneBy: jest.SpiedFunction<typeof NetworkDeviceService.findOneBy> =
+    const findOneBy: SpyInstance<typeof NetworkDeviceService.findOneBy> =
       jest
         .spyOn(NetworkDeviceService, "findOneBy")
         .mockResolvedValue(new NetworkDevice(ROUTER) as never);

@@ -8,6 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * Which Kubernetes nodes and pods hold an address a Traffic page shows
@@ -22,10 +23,15 @@ const PROJECT: ObjectID = new ObjectID("10000000-0000-4000-8000-000000000001");
 const POD: string = "72000000-0000-4000-8000-000000000001";
 const NODE: string = "71000000-0000-4000-8000-000000000001";
 
-let query: jest.Mock<(sql: string, parameters: Array<unknown>) => Promise<unknown>>;
+type QueryFunction = (
+  sql: string,
+  parameters: Array<unknown>,
+) => Promise<unknown>;
+
+let query: Mock<QueryFunction>;
 
 beforeEach(() => {
-  query = jest.fn(async (): Promise<unknown> => {
+  query = jest.fn<QueryFunction>(async (): Promise<unknown> => {
     return [];
   });
 

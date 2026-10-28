@@ -18,6 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Address Names are checked and written one way when saved (issue #5340),
@@ -43,7 +44,7 @@ interface Hooks {
 
 const hooks: Hooks = NetworkAddressNameService as unknown as Hooks;
 
-let findOneBy: jest.SpiedFunction<
+let findOneBy: SpyInstance<
   NetworkAddressNameServiceType["findOneBy"]
 >;
 
@@ -76,10 +77,10 @@ function updateBy(
   id: unknown = ROW,
 ): UpdateBy<NetworkAddressName> {
   return {
-    query: { _id: id } as never,
-    data: data as never,
+    query: { _id: id },
+    data: data,
     props: { tenantId: PROJECT, userId: ObjectID.generate() },
-  } as UpdateBy<NetworkAddressName>;
+  } as unknown as UpdateBy<NetworkAddressName>;
 }
 
 beforeEach(() => {
