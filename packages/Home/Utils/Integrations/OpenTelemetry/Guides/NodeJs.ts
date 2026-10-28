@@ -316,7 +316,7 @@ export const NodeJsGuide: OpenTelemetryGuide = {
         "Run several processes from one codebase, such as a web server and a worker? Give each its own `OTEL_SERVICE_NAME`, so OneUptime lists them as separate services.",
     }),
     notes: [
-      "To tag everything with its environment, add `OTEL_RESOURCE_ATTRIBUTES=\"deployment.environment.name=production\"`.",
+      'To tag everything with its environment, add `OTEL_RESOURCE_ATTRIBUTES="deployment.environment.name=production"`.',
     ],
   },
 
@@ -338,8 +338,8 @@ export const NodeJsGuide: OpenTelemetryGuide = {
         body: "Put `--import ./instrumentation.mjs` before your entry point, wherever the app is started:",
         snippets: [run],
         notes: [
-          "In `package.json`, the same goes in the `start` script: `\"start\": \"node --import ./instrumentation.mjs server.mjs\"`.",
-          "Where you cannot change the command, set `NODE_OPTIONS=\"--import ./instrumentation.mjs\"` instead. Every Node.js process started with it loads the file, child processes included.",
+          'In `package.json`, the same goes in the `start` script: `"start": "node --import ./instrumentation.mjs server.mjs"`.',
+          'Where you cannot change the command, set `NODE_OPTIONS="--import ./instrumentation.mjs"` instead. Every Node.js process started with it loads the file, child processes included.',
         ],
       },
       {
@@ -365,7 +365,8 @@ export const NodeJsGuide: OpenTelemetryGuide = {
           "A client span and a `http.client.request.duration` measurement for every `fetch()`, Node.js's built-in HTTP client.",
       },
       {
-        library: "`pg`, `mysql2`, `mongodb`, `ioredis`, `redis`, `knex`, `tedious`, `oracledb`",
+        library:
+          "`pg`, `mysql2`, `mongodb`, `ioredis`, `redis`, `knex`, `tedious`, `oracledb`",
         covers:
           "A span per query or command, named after the operation, with the database system and name.",
       },
@@ -454,7 +455,7 @@ export const NodeJsGuide: OpenTelemetryGuide = {
       "Each process decides which traces to keep. Keep a share of new traces, follow the caller's decision for the rest, and turn off instrumentations that only add noise:",
     snippets: [sampling],
     notes: [
-      "`OTEL_TRACES_SAMPLER_ARG=\"0.1\"` keeps one new trace in ten. A request that arrives with a sampled `traceparent` is always kept, so traces across services stay whole.",
+      '`OTEL_TRACES_SAMPLER_ARG="0.1"` keeps one new trace in ten. A request that arrives with a sampled `traceparent` is always kept, so traces across services stay whole.',
       "`dns` and `net` add a span per lookup and per socket; `fs` (off by default) a span per file read. Most teams leave them off.",
       "Metrics and logs are never sampled.",
     ],

@@ -491,9 +491,9 @@ describe("TelemetryDocumentation", () => {
         ["Bun", "https://oneuptime.com/integrations/opentelemetry/bun"],
         ["Deno", "https://oneuptime.com/integrations/opentelemetry/deno"],
       ]);
-      expect(screen.getByTestId("telemetry-framework-guides")).toHaveTextContent(
-        "Step-by-step guide",
-      );
+      expect(
+        screen.getByTestId("telemetry-framework-guides"),
+      ).toHaveTextContent("Step-by-step guide");
       for (const link of within(
         screen.getByTestId("telemetry-framework-guides"),
       ).getAllByRole("link")) {
@@ -509,9 +509,9 @@ describe("TelemetryDocumentation", () => {
       expect(guideLinks()).toEqual([
         ["React", "https://oneuptime.com/integrations/opentelemetry/react"],
       ]);
-      expect(screen.getByTestId("telemetry-framework-guides")).not.toHaveTextContent(
-        "For your framework",
-      );
+      expect(
+        screen.getByTestId("telemetry-framework-guides"),
+      ).not.toHaveTextContent("For your framework");
 
       fireEvent.click(screen.getByRole("button", { name: "Angular" }));
       expect(guideLinks()).toEqual([

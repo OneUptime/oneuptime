@@ -735,7 +735,8 @@ describe("the route table over HTTP", () => {
         (lastRender().locals["seo"] as { canonicalPath: string }).canonicalPath,
       ).toBe("/integrations");
       expect(
-        (lastRender().locals["integrations"] as { guideCount: number }).guideCount,
+        (lastRender().locals["integrations"] as { guideCount: number })
+          .guideCount,
       ).toBe(OPEN_TELEMETRY_GUIDE_PAGES.length);
       expect(lastRender().locals["integrationsScript"]).toMatch(
         /^\/js\/integrations\.js\?v=/,
@@ -746,16 +747,25 @@ describe("the route table over HTTP", () => {
       OPEN_TELEMETRY_GUIDE_PAGES.map((guide: { slug: string }): [string] => {
         return [guide.slug];
       }),
-    )("/integrations/opentelemetry/%s renders its guide", async (slug: string) => {
-      const answer: Answer = await home.request("GET", `/integrations/opentelemetry/${slug}`);
+    )(
+      "/integrations/opentelemetry/%s renders its guide",
+      async (slug: string) => {
+        const answer: Answer = await home.request(
+          "GET",
+          `/integrations/opentelemetry/${slug}`,
+        );
 
-      expect(answer.status).toBe(200);
-      expect(lastRender().view).toBe("integrations/opentelemetry-guide.ejs");
-      expect((lastRender().locals["guide"] as { slug: string }).slug).toBe(slug);
-      expect(
-        (lastRender().locals["seo"] as { canonicalPath: string }).canonicalPath,
-      ).toBe(`/integrations/opentelemetry/${slug}`);
-    });
+        expect(answer.status).toBe(200);
+        expect(lastRender().view).toBe("integrations/opentelemetry-guide.ejs");
+        expect((lastRender().locals["guide"] as { slug: string }).slug).toBe(
+          slug,
+        );
+        expect(
+          (lastRender().locals["seo"] as { canonicalPath: string })
+            .canonicalPath,
+        ).toBe(`/integrations/opentelemetry/${slug}`);
+      },
+    );
 
     test("every page is handed the featured guides' cards, for the product pages' strip", async () => {
       const answer: Answer = await home.request("GET", "/product/traces");
@@ -768,15 +778,20 @@ describe("the route table over HTTP", () => {
           },
         ),
       ).toEqual(
-        getFeaturedOpenTelemetryGuides().map((guide: { slug: string }): string => {
-          return `/integrations/opentelemetry/${guide.slug}`;
-        }),
+        getFeaturedOpenTelemetryGuides().map(
+          (guide: { slug: string }): string => {
+            return `/integrations/opentelemetry/${guide.slug}`;
+          },
+        ),
       );
     });
 
     test("a framework the catalog does not know is the not-found page", async () => {
       const before: number = home.renders.length;
-      const answer: Answer = await home.request("GET", "/integrations/opentelemetry/cobol");
+      const answer: Answer = await home.request(
+        "GET",
+        "/integrations/opentelemetry/cobol",
+      );
 
       expect(answer.status).toBe(404);
       expect(
@@ -787,7 +802,10 @@ describe("the route table over HTTP", () => {
     });
 
     test("/integrations/opentelemetry answers 301 to the index, keeping the query", async () => {
-      const answer: Answer = await home.request("GET", "/integrations/opentelemetry?utm_source=x");
+      const answer: Answer = await home.request(
+        "GET",
+        "/integrations/opentelemetry?utm_source=x",
+      );
 
       expect(answer.status).toBe(301);
       expect(answer.location).toBe("/integrations?utm_source=x");
@@ -796,7 +814,10 @@ describe("the route table over HTTP", () => {
     test("each guide and the index have a Markdown copy, kept out of search", async () => {
       for (const [url, heading] of [
         ["/integrations.md", "# OpenTelemetry integrations"],
-        ["/integrations/opentelemetry/fastify.md", "# OpenTelemetry for Fastify"],
+        [
+          "/integrations/opentelemetry/fastify.md",
+          "# OpenTelemetry for Fastify",
+        ],
       ] as Array<[string, string]>) {
         const answer: Answer = await home.request("GET", url);
 
@@ -808,12 +829,18 @@ describe("the route table over HTTP", () => {
         expect(answer.body.startsWith(`${heading}\n`)).toBe(true);
       }
 
-      const missing: Answer = await home.request("GET", "/integrations/opentelemetry/cobol.md");
+      const missing: Answer = await home.request(
+        "GET",
+        "/integrations/opentelemetry/cobol.md",
+      );
       expect(missing.status).toBe(404);
     });
 
     test("/sitemap-integrations.xml lists the index's guides", async () => {
-      const answer: Answer = await home.request("GET", "/sitemap-integrations.xml");
+      const answer: Answer = await home.request(
+        "GET",
+        "/sitemap-integrations.xml",
+      );
 
       expect(answer.status).toBe(200);
       for (const guide of OPEN_TELEMETRY_GUIDE_PAGES) {
@@ -825,7 +852,10 @@ describe("the route table over HTTP", () => {
 
     test("serves the logos the guides show, and nothing else from their folder", async () => {
       for (const name of ["react", "express", "nextjs", "koa"]) {
-        const logo: Answer = await home.request("GET", `/img/provider-logos/${name}.svg`);
+        const logo: Answer = await home.request(
+          "GET",
+          `/img/provider-logos/${name}.svg`,
+        );
 
         expect([name, logo.status]).toEqual([name, 200]);
         expect(logo.contentType).toContain("image/svg+xml");

@@ -11,7 +11,11 @@ import { GuideSnippet } from "./GuideTypes";
  * Plain string scanning, line by line: the snippets are the guides' own.
  */
 
-const SCRIPT_LANGUAGES: ReadonlyArray<string> = ["javascript", "typescript", "tsx"];
+const SCRIPT_LANGUAGES: ReadonlyArray<string> = [
+  "javascript",
+  "typescript",
+  "tsx",
+];
 
 export function isScriptSnippet(snippet: GuideSnippet): boolean {
   return SCRIPT_LANGUAGES.includes(snippet.language);

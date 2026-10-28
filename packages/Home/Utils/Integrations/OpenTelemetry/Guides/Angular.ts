@@ -347,7 +347,15 @@ export const AngularGuide: OpenTelemetryGuide = {
   lead: "An Angular app runs in your visitors' browsers, so it is traced with the OpenTelemetry browser SDK. This guide adds what Angular needs on top: an `ErrorHandler` that records every error Angular handles, and a span for each navigation, named after its route, so OneUptime shows a single-page app as the pages your visitors see.",
   cardDescription:
     "Every error Angular handles, a span per navigation, HttpClient calls and Core Web Vitals.",
-  searchTerms: ["angular", "angularjs", "httpclient", "zoneless", "spa", "rum", "frontend"],
+  searchTerms: [
+    "angular",
+    "angularjs",
+    "httpclient",
+    "zoneless",
+    "spa",
+    "rum",
+    "frontend",
+  ],
   highlights: ["Angular 22, zoneless", "ErrorHandler", "Router navigations"],
 
   whatYouGet: {
@@ -363,7 +371,13 @@ export const AngularGuide: OpenTelemetryGuide = {
   exampleTrace: {
     caption: "Adding a product to the cart, as its trace shows it",
     spans: [
-      { name: "cart.add", depth: 0, start: 0, duration: 100, source: "your code" },
+      {
+        name: "cart.add",
+        depth: 0,
+        start: 0,
+        duration: 100,
+        source: "your code",
+      },
       { name: "POST", depth: 1, start: 2, duration: 90, source: "fetch" },
       {
         name: "POST /api/cart/:id",
@@ -439,8 +453,7 @@ export const AngularGuide: OpenTelemetryGuide = {
   },
 
   autoInstrumentation: {
-    intro:
-      "`getWebAutoInstrumentations()` records these with no code:",
+    intro: "`getWebAutoInstrumentations()` records these with no code:",
     rows: [
       {
         library: "Document load",
@@ -503,7 +516,8 @@ export const AngularGuide: OpenTelemetryGuide = {
       },
       {
         name: "web_vital.cls",
-        description: "Cumulative Layout Shift, reported when the page is hidden.",
+        description:
+          "Cumulative Layout Shift, reported when the page is hidden.",
       },
     ],
     snippets: [],
@@ -572,7 +586,7 @@ export const AngularGuide: OpenTelemetryGuide = {
     {
       question: "HttpClient calls have no spans",
       answer:
-        "The telemetry file was imported after Angular, which then called the unpatched `fetch`. Keep `import \"./telemetry\"` the first line of `main.ts`.",
+        'The telemetry file was imported after Angular, which then called the unpatched `fetch`. Keep `import "./telemetry"` the first line of `main.ts`.',
     },
     {
       question: "Every product page has its own route",
@@ -615,7 +629,12 @@ export const AngularGuide: OpenTelemetryGuide = {
   ],
 
   related: ["browser", "react", "nodejs", "express"],
-  docs: [DOCS.browserSetup, DOCS.webVitals, DOCS.sessionReplay, DOCS.sourceMaps],
+  docs: [
+    DOCS.browserSetup,
+    DOCS.webVitals,
+    DOCS.sessionReplay,
+    DOCS.sourceMaps,
+  ],
 
   verification: {
     runtime: "browser",
@@ -664,7 +683,10 @@ export const AngularGuide: OpenTelemetryGuide = {
           exceptionMessage: "Cart total could not be computed",
         },
         // An unhandled rejection, through provideBrowserGlobalErrorListeners.
-        { name: "angular.error", exceptionMessage: "Coupon service unavailable" },
+        {
+          name: "angular.error",
+          exceptionMessage: "Coupon service unavailable",
+        },
       ],
       metrics: ["web_vital.lcp", "web_vital.fcp", "web_vital.ttfb"],
       logs: [{ body: "added to cart", hasTraceContext: true }],

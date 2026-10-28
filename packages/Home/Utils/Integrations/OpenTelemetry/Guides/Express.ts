@@ -215,7 +215,13 @@ export const ExpressGuide: OpenTelemetryGuide = {
   exampleTrace: {
     caption: "A POST /orders request, as its trace shows it",
     spans: [
-      { name: "POST /orders", depth: 0, start: 0, duration: 100, source: "http" },
+      {
+        name: "POST /orders",
+        depth: 0,
+        start: 0,
+        duration: 100,
+        source: "http",
+      },
       {
         name: "middleware - jsonParser",
         depth: 1,
@@ -300,8 +306,8 @@ export const ExpressGuide: OpenTelemetryGuide = {
         body: "Start Node.js with `--import`, which runs the file before the first line of your app:",
         snippets: [run, packageScript],
         notes: [
-          "Cannot change the command, as on some platforms? Set `NODE_OPTIONS=\"--import ./instrumentation.mjs\"` instead.",
-          "An `import \"./instrumentation.mjs\"` at the top of `app.js` comes too late for an ES module app: every `import` is loaded before any code runs, so Express is loaded before the hook exists.",
+          'Cannot change the command, as on some platforms? Set `NODE_OPTIONS="--import ./instrumentation.mjs"` instead.',
+          'An `import "./instrumentation.mjs"` at the top of `app.js` comes too late for an ES module app: every `import` is loaded before any code runs, so Express is loaded before the hook exists.',
         ],
       },
       {
@@ -359,8 +365,8 @@ export const ExpressGuide: OpenTelemetryGuide = {
     notes: [
       "`startActiveSpan` makes the span current, so the queries and calls made inside it become its children.",
       "Name a span after the operation (`checkout.charge`), not the request: the route is already on the request's span.",
-      "Add the attributes your team searches by, such as `span.setAttribute(\"tenant.id\", tenantId)`, then find them in the **Traces** explorer with `@tenant.id:acme`.",
-      "A declined card is not a bug. To keep an expected error out of **Exceptions**, record it as an event with `error.class` set to `user-error`: `span.addEvent(\"exception\", { \"exception.type\": \"CardDeclined\", \"error.class\": \"user-error\" })`.",
+      'Add the attributes your team searches by, such as `span.setAttribute("tenant.id", tenantId)`, then find them in the **Traces** explorer with `@tenant.id:acme`.',
+      'A declined card is not a bug. To keep an expected error out of **Exceptions**, record it as an event with `error.class` set to `user-error`: `span.addEvent("exception", { "exception.type": "CardDeclined", "error.class": "user-error" })`.',
     ],
   },
 
@@ -467,7 +473,7 @@ export const ExpressGuide: OpenTelemetryGuide = {
     {
       question: "Every middleware and handler appears twice",
       answer:
-        "Express 5 routes requests through the `router` package, and its instrumentation adds a second span per layer, named `middleware - patched` and the like. Turn it off with `\"@opentelemetry/instrumentation-router\": { enabled: false }`, as the instrumentation file above does.",
+        'Express 5 routes requests through the `router` package, and its instrumentation adds a second span per layer, named `middleware - patched` and the like. Turn it off with `"@opentelemetry/instrumentation-router": { enabled: false }`, as the instrumentation file above does.',
     },
     {
       question: "The exporter logs 401 and nothing arrives",
@@ -533,7 +539,8 @@ export const ExpressGuide: OpenTelemetryGuide = {
     files: [
       {
         path: "package.json",
-        content: '{ "name": "checkout-api", "private": true, "type": "module" }',
+        content:
+          '{ "name": "checkout-api", "private": true, "type": "module" }',
       },
       { path: "instrumentation.mjs", snippet: "instrumentation" },
       { path: "app.js", content: appFile },

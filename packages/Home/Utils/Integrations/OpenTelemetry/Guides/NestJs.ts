@@ -307,11 +307,7 @@ export const NestJsGuide: OpenTelemetryGuide = {
   cardDescription:
     "NestJS 12 and 11: route spans, Nest logs through pino with trace IDs, and 5xx errors recorded by a filter.",
   searchTerms: ["nest", "nest.js", "typescript", "decorators", "controllers"],
-  highlights: [
-    "NestJS 12 and 11",
-    "ES modules",
-    "nestjs-pino logs",
-  ],
+  highlights: ["NestJS 12 and 11", "ES modules", "nestjs-pino logs"],
 
   whatYouGet: {
     intro: `Every request to the app becomes a trace under the service named by \`OTEL_SERVICE_NAME\`, listed under ${SCREENS.services}. Nest's own logs, errors and your services' spans join it.`,
@@ -326,7 +322,13 @@ export const NestJsGuide: OpenTelemetryGuide = {
   exampleTrace: {
     caption: "A POST /orders request, as its trace shows it",
     spans: [
-      { name: "POST /orders", depth: 0, start: 0, duration: 100, source: "http" },
+      {
+        name: "POST /orders",
+        depth: 0,
+        start: 0,
+        duration: 100,
+        source: "http",
+      },
       {
         name: "request handler - /orders",
         depth: 1,
@@ -425,8 +427,7 @@ export const NestJsGuide: OpenTelemetryGuide = {
   },
 
   autoInstrumentation: {
-    intro:
-      "What a NestJS app gets from the bundle, with nothing in its code:",
+    intro: "What a NestJS app gets from the bundle, with nothing in its code:",
     rows: [
       {
         library: "`@nestjs/core`",
@@ -575,19 +576,20 @@ export const NestJsGuide: OpenTelemetryGuide = {
         "Nest's exception layer caught the error before any span saw it. Register the `TelemetryExceptionFilter` above with `app.useGlobalFilters`, or log errors through nestjs-pino, whose error lines carry the stack trace.",
     },
     {
-      question: "Every 500 is filed twice, once as \"failed with status code 500\"",
+      question:
+        'Every 500 is filed twice, once as "failed with status code 500"',
       answer:
         "That is pino-http's request log: for a 5xx response it logs a synthetic error of its own. Pass `pinoHttp: { autoLogging: false }` to `LoggerModule.forRoot`, as above.",
     },
     {
       question: "Each layer appears twice",
       answer:
-        "Nest 11 and 12 run on Express 5, which routes through the `router` package and its own instrumentation. Keep `\"@opentelemetry/instrumentation-router\": { enabled: false }` in the instrumentation file.",
+        'Nest 11 and 12 run on Express 5, which routes through the `router` package and its own instrumentation. Keep `"@opentelemetry/instrumentation-router": { enabled: false }` in the instrumentation file.',
     },
     {
       question: "`nest start` in development sends nothing",
       answer:
-        "`nest start` runs `node dist/main` without the flag. Run the built app with `node --import ./instrumentation.mjs dist/main`, or watch with `nest start --watch --exec \"node --import ./instrumentation.mjs\"`.",
+        '`nest start` runs `node dist/main` without the flag. Run the built app with `node --import ./instrumentation.mjs dist/main`, or watch with `nest start --watch --exec "node --import ./instrumentation.mjs"`.',
     },
     {
       question: "The configuration from .env is not used",
@@ -639,7 +641,10 @@ export const NestJsGuide: OpenTelemetryGuide = {
       { path: "instrumentation.mjs", snippet: "instrumentation" },
       { path: "src/main.ts", snippet: "main" },
       { path: "src/app.module.ts", snippet: "app-module" },
-      { path: "src/telemetry-exception.filter.ts", snippet: "exception-filter" },
+      {
+        path: "src/telemetry-exception.filter.ts",
+        snippet: "exception-filter",
+      },
       { path: "src/orders.service.ts", content: ordersService },
       { path: "src/payments.service.ts", content: paymentsService },
       { path: "src/orders.controller.ts", content: ordersController },
@@ -686,7 +691,10 @@ export const NestJsGuide: OpenTelemetryGuide = {
       logs: [
         { body: "Placed order ord_1001", hasTraceContext: true },
         { body: "Invoice service timed out", hasTraceContext: true },
-        { body: "Nest application successfully started", hasTraceContext: false },
+        {
+          body: "Nest application successfully started",
+          hasTraceContext: false,
+        },
       ],
       resource: { "service.name": "orders-api" },
       untracedPaths: ["/healthz"],

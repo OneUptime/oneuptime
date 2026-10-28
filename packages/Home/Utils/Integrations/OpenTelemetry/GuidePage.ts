@@ -131,7 +131,11 @@ export interface GuidePageContent {
   exampleTrace: { caption: string; spans: Array<ExampleSpan> };
   prerequisitesHtml: Array<string>;
   install: RenderedCodeSection;
-  configure: { introHtml: string; tabs: RenderedTabs; notesHtml: Array<string> };
+  configure: {
+    introHtml: string;
+    tabs: RenderedTabs;
+    notesHtml: Array<string>;
+  };
   setup: { introHtml: string; steps: Array<RenderedStep> };
   autoInstrumentation: {
     introHtml: string;
@@ -273,7 +277,10 @@ interface SectionWords {
   deployLabel: string;
 }
 
-function sectionWords(name: string, kind: OpenTelemetryGuideKind): SectionWords {
+function sectionWords(
+  name: string,
+  kind: OpenTelemetryGuideKind,
+): SectionWords {
   if (kind === "browser") {
     const isPlainBrowser: boolean = name.toLowerCase().includes("browser");
     const app: string = isPlainBrowser ? "your web app" : `your ${name} app`;
@@ -310,22 +317,46 @@ export function guideSections(
   const words: SectionWords = sectionWords(name, kind);
 
   return [
-    { id: "what-you-get", title: "What you get in OneUptime", label: "What you get" },
-    { id: "before-you-start", title: "Before you start", label: "Before you start" },
-    { id: "install", title: "Install the OpenTelemetry packages", label: "Install" },
-    { id: "configure", title: "Point the exporter at OneUptime", label: "Configure" },
+    {
+      id: "what-you-get",
+      title: "What you get in OneUptime",
+      label: "What you get",
+    },
+    {
+      id: "before-you-start",
+      title: "Before you start",
+      label: "Before you start",
+    },
+    {
+      id: "install",
+      title: "Install the OpenTelemetry packages",
+      label: "Install",
+    },
+    {
+      id: "configure",
+      title: "Point the exporter at OneUptime",
+      label: "Configure",
+    },
     { id: "setup", title: words.setupTitle, label: words.setupLabel },
     {
       id: "automatic-instrumentation",
       title: "What is traced automatically",
       label: "Automatic instrumentation",
     },
-    { id: "custom-spans", title: "Add your own spans", label: "Your own spans" },
+    {
+      id: "custom-spans",
+      title: "Add your own spans",
+      label: "Your own spans",
+    },
     { id: "logs", title: "Logs and trace correlation", label: "Logs" },
     { id: "metrics", title: "Metrics", label: "Metrics" },
     { id: "sampling", title: "Sampling and noise", label: "Sampling" },
     { id: "containers", title: words.deployTitle, label: words.deployLabel },
-    { id: "check", title: "Check that data is arriving", label: "Check it works" },
+    {
+      id: "check",
+      title: "Check that data is arriving",
+      label: "Check it works",
+    },
     {
       id: "troubleshooting",
       title: words.troubleshootingTitle,

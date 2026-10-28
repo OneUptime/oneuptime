@@ -257,7 +257,13 @@ export const KoaGuide: OpenTelemetryGuide = {
   exampleTrace: {
     caption: "A POST /search request, as its trace shows it",
     spans: [
-      { name: "POST /search", depth: 0, start: 0, duration: 100, source: "http" },
+      {
+        name: "POST /search",
+        depth: 0,
+        start: 0,
+        duration: 100,
+        source: "http",
+      },
       {
         name: "router - /search",
         depth: 1,
@@ -326,7 +332,7 @@ export const KoaGuide: OpenTelemetryGuide = {
         body: "Save it next to `package.json`. It starts the SDK with the bundle, traced by route:",
         snippets: [instrumentation],
         notes: [
-          "Koa runs each middleware inside the ones before it, and the instrumentation records an error on every traced layer it leaves. `ignoreLayersType: [\"middleware\"]` traces the routes only, so an error is recorded once.",
+          'Koa runs each middleware inside the ones before it, and the instrumentation records an error on every traced layer it leaves. `ignoreLayersType: ["middleware"]` traces the routes only, so an error is recorded once.',
         ],
       },
       {
@@ -334,7 +340,7 @@ export const KoaGuide: OpenTelemetryGuide = {
         body: "`--import` runs the file before the first line of your app:",
         snippets: [run],
         notes: [
-          "Or, where the start command is fixed: `NODE_OPTIONS=\"--import ./instrumentation.mjs\"`.",
+          'Or, where the start command is fixed: `NODE_OPTIONS="--import ./instrumentation.mjs"`.',
         ],
       },
       {
@@ -493,7 +499,7 @@ export const KoaGuide: OpenTelemetryGuide = {
     {
       question: "The same error appears several times in one trace",
       answer:
-        "Every traced layer records an error thrown through it. Keep `ignoreLayersType: [\"middleware\"]` in the instrumentation file, so only the route's span records it.",
+        'Every traced layer records an error thrown through it. Keep `ignoreLayersType: ["middleware"]` in the instrumentation file, so only the route\'s span records it.',
     },
     {
       question: "401s and 404s are listed under Exceptions",

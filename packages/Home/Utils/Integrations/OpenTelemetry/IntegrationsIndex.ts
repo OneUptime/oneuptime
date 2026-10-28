@@ -122,9 +122,11 @@ export function getIntegrationsIndexContent(
  */
 export function getFeaturedGuideCards(): Array<GuideCard> {
   return getPublishedGuides()
-    .filter(({ entry }: { entry: { isFeatured?: boolean | undefined } }): boolean => {
-      return entry.isFeatured === true;
-    })
+    .filter(
+      ({ entry }: { entry: { isFeatured?: boolean | undefined } }): boolean => {
+        return entry.isFeatured === true;
+      },
+    )
     .map(({ guide }: { guide: OpenTelemetryGuide }): GuideCard => {
       return guideCard(guide.slug);
     });

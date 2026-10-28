@@ -59,12 +59,15 @@ function ofType(schemas: Array<JsonLd>, type: string): Array<JsonLd> {
 }
 
 async function renderGuide(slug: string): Promise<Document> {
-  const html: string = await renderView("integrations/opentelemetry-guide.ejs", {
-    enableGoogleTagManager: false,
-    seo: seoFor(getOpenTelemetryGuidePath(slug)),
-    guide: getGuidePageContent(slug, HOME_URL),
-    integrationsScript: SCRIPT_PATH,
-  });
+  const html: string = await renderView(
+    "integrations/opentelemetry-guide.ejs",
+    {
+      enableGoogleTagManager: false,
+      seo: seoFor(getOpenTelemetryGuidePath(slug)),
+      guide: getGuidePageContent(slug, HOME_URL),
+      integrationsScript: SCRIPT_PATH,
+    },
+  );
 
   return new JSDOM(html).window.document;
 }
@@ -83,11 +86,11 @@ describe.each(
   });
 
   test("has one h1, the guide's", () => {
-    const headings: Array<string> = Array.from(document.querySelectorAll("h1")).map(
-      (heading: Element): string => {
-        return (heading.textContent || "").trim();
-      },
-    );
+    const headings: Array<string> = Array.from(
+      document.querySelectorAll("h1"),
+    ).map((heading: Element): string => {
+      return (heading.textContent || "").trim();
+    });
 
     expect(headings).toEqual([guide.h1]);
   });
@@ -95,11 +98,13 @@ describe.each(
   test("is titled, described and made canonical as its own search result", () => {
     expect(document.title).toBe(guide.seo.title);
     expect(
-      document.querySelector('meta[name="description"]')?.getAttribute("content"),
+      document
+        .querySelector('meta[name="description"]')
+        ?.getAttribute("content"),
     ).toBe(guide.seo.description);
-    expect(document.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe(
-      `${HOME_URL}${getOpenTelemetryGuidePath(slug)}`,
-    );
+    expect(
+      document.querySelector('link[rel="canonical"]')?.getAttribute("href"),
+    ).toBe(`${HOME_URL}${getOpenTelemetryGuidePath(slug)}`);
   });
 
   test("describes itself in structured data a search engine can read", () => {
@@ -116,7 +121,10 @@ describe.each(
     });
     expect(
       (faq["mainEntity"] as Array<JsonLd>).map((question: JsonLd): unknown => {
-        return [question["name"], (question["acceptedAnswer"] as JsonLd)["text"]];
+        return [
+          question["name"],
+          (question["acceptedAnswer"] as JsonLd)["text"],
+        ];
       }),
     ).toEqual(
       guide.faq.map((question: GuideQuestion): Array<string> => {
@@ -124,10 +132,16 @@ describe.each(
       }),
     );
     expect(
-      (breadcrumbs["itemListElement"] as Array<JsonLd>).map((item: JsonLd): unknown => {
-        return item["name"];
-      }),
-    ).toEqual(["Home", "Integrations", `${getGuideEntry(slug).name} OpenTelemetry`]);
+      (breadcrumbs["itemListElement"] as Array<JsonLd>).map(
+        (item: JsonLd): unknown => {
+          return item["name"];
+        },
+      ),
+    ).toEqual([
+      "Home",
+      "Integrations",
+      `${getGuideEntry(slug).name} OpenTelemetry`,
+    ]);
   });
 
   test("sets out its sections in order, each with its h2, and lists them in its contents", () => {
@@ -139,7 +153,10 @@ describe.each(
     expect(
       Array.from(document.querySelectorAll("section.guide-section")).map(
         (section: Element): Array<string> => {
-          return [section.id, (section.querySelector("h2")?.textContent || "").trim()];
+          return [
+            section.id,
+            (section.querySelector("h2")?.textContent || "").trim(),
+          ];
         },
       ),
     ).toEqual(
@@ -148,11 +165,15 @@ describe.each(
       }),
     );
 
-    const contents: Element = document.querySelector('nav[aria-label="On this page"]')!;
+    const contents: Element = document.querySelector(
+      'nav[aria-label="On this page"]',
+    )!;
     expect(
-      Array.from(contents.querySelectorAll("a")).map((link: Element): string | null => {
-        return link.getAttribute("href");
-      }),
+      Array.from(contents.querySelectorAll("a")).map(
+        (link: Element): string | null => {
+          return link.getAttribute("href");
+        },
+      ),
     ).toEqual(
       sections.map((section: GuideSection): string => {
         return `#${section.id}`;
@@ -161,7 +182,9 @@ describe.each(
   });
 
   test("shows every snippet once, with a copy button", () => {
-    const blocks: Array<Element> = Array.from(document.querySelectorAll("[data-code-block]"));
+    const blocks: Array<Element> = Array.from(
+      document.querySelectorAll("[data-code-block]"),
+    );
 
     expect(
       blocks.map((block: Element): string | null => {
@@ -174,7 +197,9 @@ describe.each(
     );
     for (const block of blocks) {
       expect(block.querySelector("[data-copy-button]")).not.toBeNull();
-      expect((block.querySelector("pre code")?.textContent || "").length).toBeGreaterThan(0);
+      expect(
+        (block.querySelector("pre code")?.textContent || "").length,
+      ).toBeGreaterThan(0);
     }
   });
 
@@ -191,16 +216,23 @@ describe.each(
     );
 
     for (const snippet of guideSnippets(guide)) {
-      expect([snippet.id, shown.get(snippet.id)]).toEqual([snippet.id, snippet.code]);
+      expect([snippet.id, shown.get(snippet.id)]).toEqual([
+        snippet.id,
+        snippet.code,
+      ]);
     }
   });
 
   test("gives its tabs the roles and states a screen reader needs", () => {
-    const tablists: Array<Element> = Array.from(document.querySelectorAll('[role="tablist"]'));
+    const tablists: Array<Element> = Array.from(
+      document.querySelectorAll('[role="tablist"]'),
+    );
 
     expect(tablists.length).toBeGreaterThan(0);
     for (const tablist of tablists) {
-      const tabs: Array<Element> = Array.from(tablist.querySelectorAll('[role="tab"]'));
+      const tabs: Array<Element> = Array.from(
+        tablist.querySelectorAll('[role="tab"]'),
+      );
       expect(
         tabs.filter((tab: Element): boolean => {
           return tab.getAttribute("aria-selected") === "true";
@@ -218,7 +250,11 @@ describe.each(
 
   test("gives every image its size, so nothing moves as the page loads", () => {
     for (const image of Array.from(document.querySelectorAll("main img"))) {
-      expect([image.getAttribute("src"), image.getAttribute("width"), image.getAttribute("height")]).toEqual([
+      expect([
+        image.getAttribute("src"),
+        image.getAttribute("width"),
+        image.getAttribute("height"),
+      ]).toEqual([
         image.getAttribute("src"),
         expect.stringMatching(/^\d+$/),
         expect.stringMatching(/^\d+$/),
@@ -227,11 +263,11 @@ describe.each(
   });
 
   test("links its related guides, the index and the docs it names", () => {
-    const hrefs: Array<string> = Array.from(document.querySelectorAll("main a")).map(
-      (link: Element): string => {
-        return link.getAttribute("href") || "";
-      },
-    );
+    const hrefs: Array<string> = Array.from(
+      document.querySelectorAll("main a"),
+    ).map((link: Element): string => {
+      return link.getAttribute("href") || "";
+    });
 
     for (const related of guide.related) {
       expect(hrefs).toContain(getOpenTelemetryGuidePath(related));
@@ -244,7 +280,8 @@ describe.each(
   });
 
   test("says when and with what it was checked end to end", () => {
-    const text: string = document.querySelector("main header")?.textContent || "";
+    const text: string =
+      document.querySelector("main header")?.textContent || "";
 
     expect(content.checked).toBeDefined();
     expect(text).toContain(content.checked!.onLabel);
@@ -264,7 +301,10 @@ describe.each(
     const markdown: string = generateGuideMarkdown(guide, HOME_URL);
 
     expect(markdown.startsWith(`# ${guide.h1}\n`)).toBe(true);
-    for (const section of guideSections(getGuideEntry(slug).name, getGuideEntry(slug).kind)) {
+    for (const section of guideSections(
+      getGuideEntry(slug).name,
+      getGuideEntry(slug).kind,
+    )) {
       expect(markdown).toContain(`\n## ${section.title}\n`);
     }
     for (const snippet of guideSnippets(guide)) {
@@ -297,13 +337,15 @@ describe("the integrations index", () => {
   test("has one h1, and its own title, description and canonical address", () => {
     expect(document.querySelectorAll("h1").length).toBe(1);
     expect(document.title).toBe(seoFor(OPEN_TELEMETRY_GUIDES_INDEX_PATH).title);
-    expect(document.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe(
-      `${HOME_URL}${OPEN_TELEMETRY_GUIDES_INDEX_PATH}`,
-    );
+    expect(
+      document.querySelector('link[rel="canonical"]')?.getAttribute("href"),
+    ).toBe(`${HOME_URL}${OPEN_TELEMETRY_GUIDES_INDEX_PATH}`);
   });
 
   test("groups every guide under its language, in the catalog's order, each card a link", () => {
-    const groups: Array<Element> = Array.from(document.querySelectorAll("[data-integrations-group]"));
+    const groups: Array<Element> = Array.from(
+      document.querySelectorAll("[data-integrations-group]"),
+    );
 
     expect(
       groups.map((group: Element): string => {
@@ -324,9 +366,13 @@ describe("the integrations index", () => {
   });
 
   test("gives each card the words its search finds it by", () => {
-    for (const card of Array.from(document.querySelectorAll("[data-integration-card]"))) {
+    for (const card of Array.from(
+      document.querySelectorAll("[data-integration-card]"),
+    )) {
       const words: string = card.getAttribute("data-search") || "";
-      const name: string = (card.querySelector("a > span.min-w-0 > span")?.textContent || "").trim();
+      const name: string = (
+        card.querySelector("a > span.min-w-0 > span")?.textContent || ""
+      ).trim();
 
       expect(words).toContain(name.toLowerCase());
       expect(words).toContain("javascript");
@@ -334,11 +380,15 @@ describe("the integrations index", () => {
   });
 
   test("labels its search box, and shows every guide without the script", () => {
-    const search: Element | null = document.querySelector("[data-integrations-search]");
+    const search: Element | null = document.querySelector(
+      "[data-integrations-search]",
+    );
 
     expect(search).not.toBeNull();
     expect(document.querySelector(`label[for="${search!.id}"]`)).not.toBeNull();
-    for (const card of Array.from(document.querySelectorAll("[data-integration-card]"))) {
+    for (const card of Array.from(
+      document.querySelectorAll("[data-integration-card]"),
+    )) {
       expect(card.hasAttribute("hidden")).toBe(false);
     }
   });
@@ -348,9 +398,11 @@ describe("the integrations index", () => {
 
     expect(itemList["numberOfItems"]).toBe(GUIDES.length);
     expect(
-      (itemList["itemListElement"] as Array<JsonLd>).map((item: JsonLd): unknown => {
-        return item["url"];
-      }),
+      (itemList["itemListElement"] as Array<JsonLd>).map(
+        (item: JsonLd): unknown => {
+          return item["url"];
+        },
+      ),
     ).toEqual(
       GUIDES.map((guide: OpenTelemetryGuide): string => {
         return `${HOME_URL}${getOpenTelemetryGuidePath(guide.slug)}`;
@@ -362,7 +414,9 @@ describe("the integrations index", () => {
     const markdown: string = generateIntegrationsIndexMarkdown(HOME_URL);
 
     for (const guide of GUIDES) {
-      expect(markdown).toContain(`${HOME_URL}${getOpenTelemetryGuidePath(guide.slug)}.md`);
+      expect(markdown).toContain(
+        `${HOME_URL}${getOpenTelemetryGuidePath(guide.slug)}.md`,
+      );
     }
   });
 });

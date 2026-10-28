@@ -204,7 +204,13 @@ export const HapiGuide: OpenTelemetryGuide = {
   exampleTrace: {
     caption: "A POST /bookings request, as its trace shows it",
     spans: [
-      { name: "POST /bookings", depth: 0, start: 0, duration: 100, source: "http" },
+      {
+        name: "POST /bookings",
+        depth: 0,
+        start: 0,
+        duration: 100,
+        source: "http",
+      },
       {
         name: "hapi-pino: ext - onRequest",
         depth: 1,
@@ -285,7 +291,7 @@ export const HapiGuide: OpenTelemetryGuide = {
         body: "`--import` loads the file before hapi, so the instrumentation can patch it:",
         snippets: [run],
         notes: [
-          "On a platform with a fixed start command, set `NODE_OPTIONS=\"--import ./instrumentation.mjs\"`.",
+          'On a platform with a fixed start command, set `NODE_OPTIONS="--import ./instrumentation.mjs"`.',
         ],
       },
       {
@@ -293,7 +299,7 @@ export const HapiGuide: OpenTelemetryGuide = {
         body: "Register it before your routes. It logs every response and every failed request through pino, which the SDK sends to OneUptime:",
         snippets: [serverSetup],
         notes: [
-          "`host: \"0.0.0.0\"` listens on every interface, as a container needs. hapi's own examples use `host: \"localhost\"`, which nothing outside the container reaches.",
+          '`host: "0.0.0.0"` listens on every interface, as a container needs. hapi\'s own examples use `host: "localhost"`, which nothing outside the container reaches.',
           "`ignorePaths` keeps the health check out of the logs too: the instrumentation file only leaves it out of the traces.",
         ],
       },
@@ -439,7 +445,7 @@ export const HapiGuide: OpenTelemetryGuide = {
     {
       question: "A Boom 404 is listed under Exceptions",
       answer:
-        "The route's span records every error its handler throws, `Boom.notFound()` included. Return the response instead, `h.response({ error: \"Not found\" }).code(404)`, or archive the issue: an archived issue stops notifying.",
+        'The route\'s span records every error its handler throws, `Boom.notFound()` included. Return the response instead, `h.response({ error: "Not found" }).code(404)`, or archive the issue: an archived issue stops notifying.',
     },
     {
       question: "Health checks still fill the logs",

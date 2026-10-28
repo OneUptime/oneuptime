@@ -33,7 +33,9 @@ import { describe, expect, test } from "@jest/globals";
 describe("a guide's inline text", () => {
   test("is read into its parts: words, code, bold and links", () => {
     expect(
-      parseInlineText("Set `OTEL_SERVICE_NAME` under **Services**, see [the docs](/docs/telemetry/services)."),
+      parseInlineText(
+        "Set `OTEL_SERVICE_NAME` under **Services**, see [the docs](/docs/telemetry/services).",
+      ),
     ).toEqual([
       { kind: "text", text: "Set " },
       { kind: "code", text: "OTEL_SERVICE_NAME" },
@@ -46,7 +48,9 @@ describe("a guide's inline text", () => {
   });
 
   test("is drawn as HTML with every character of the words escaped", () => {
-    const html: string = inlineTextToHtml("A `<script>` and \"quotes\" & <b>tags</b>");
+    const html: string = inlineTextToHtml(
+      'A `<script>` and "quotes" & <b>tags</b>',
+    );
 
     expect(html).toContain("&lt;script&gt;");
     expect(html).toContain("&quot;quotes&quot; &amp; &lt;b&gt;tags&lt;/b&gt;");
@@ -58,20 +62,22 @@ describe("a guide's inline text", () => {
     expect(inlineTextToHtml("[Fastify](https://fastify.dev)")).toContain(
       'href="https://fastify.dev" target="_blank" rel="noopener"',
     );
-    expect(inlineTextToHtml("[Ingestion keys](/docs/telemetry/ingestion-keys)")).not.toContain(
-      "target=",
-    );
+    expect(
+      inlineTextToHtml("[Ingestion keys](/docs/telemetry/ingestion-keys)"),
+    ).not.toContain("target=");
   });
 
   test("keeps code inside a link's words", () => {
-    expect(inlineTextToHtml("[`register()`](/docs/telemetry/open-telemetry)")).toContain(
-      '<code class="font-mono text-[0.85em]">register()</code>',
-    );
+    expect(
+      inlineTextToHtml("[`register()`](/docs/telemetry/open-telemetry)"),
+    ).toContain('<code class="font-mono text-[0.85em]">register()</code>');
   });
 
   test("gives its words alone to a meta description or structured data", () => {
     expect(
-      inlineTextToPlainText("Run `node --import` and open **Traces**: see [the docs](/docs/x)."),
+      inlineTextToPlainText(
+        "Run `node --import` and open **Traces**: see [the docs](/docs/x).",
+      ),
     ).toBe("Run node --import and open Traces: see the docs.");
   });
 
@@ -92,13 +98,18 @@ describe("a guide's inline text", () => {
     expect(inlineTextProblems("[relative](docs/page)")).toEqual([
       'a link to "docs/page": write /path or https://',
     ]);
-    expect(inlineTextProblems("All `closed`, **bold** and [linked](/docs/x).")).toEqual([]);
+    expect(
+      inlineTextProblems("All `closed`, **bold** and [linked](/docs/x)."),
+    ).toEqual([]);
   });
 });
 
 describe("the highlighter", () => {
   test("escapes the code it colours", () => {
-    const html: string = highlightSnippet('const a = "<b>" && b;', "javascript");
+    const html: string = highlightSnippet(
+      'const a = "<b>" && b;',
+      "javascript",
+    );
 
     expect(html).not.toContain("<b>");
     expect(html).toContain("&lt;b&gt;");
@@ -125,15 +136,24 @@ describe("a guide's section titles", () => {
     const sections: Array<GuideSection> = guideSections("Fastify", "framework");
 
     expect(titleOf(sections, "setup")).toBe("Add OpenTelemetry to Fastify");
-    expect(titleOf(sections, "troubleshooting")).toBe("Troubleshooting OpenTelemetry in Fastify");
+    expect(titleOf(sections, "troubleshooting")).toBe(
+      "Troubleshooting OpenTelemetry in Fastify",
+    );
     expect(titleOf(sections, "faq")).toBe("Fastify OpenTelemetry FAQ");
-    expect(titleOf(sections, "containers")).toBe("Run it in Docker and Kubernetes");
+    expect(titleOf(sections, "containers")).toBe(
+      "Run it in Docker and Kubernetes",
+    );
   });
 
   test("name the web app on the browser's own page, which ships a bundle, not a container", () => {
-    const sections: Array<GuideSection> = guideSections("JavaScript in the browser", "browser");
+    const sections: Array<GuideSection> = guideSections(
+      "JavaScript in the browser",
+      "browser",
+    );
 
-    expect(titleOf(sections, "setup")).toBe("Add OpenTelemetry to your web app");
+    expect(titleOf(sections, "setup")).toBe(
+      "Add OpenTelemetry to your web app",
+    );
     expect(titleOf(sections, "troubleshooting")).toBe(
       "Troubleshooting OpenTelemetry in the browser",
     );
@@ -144,7 +164,9 @@ describe("a guide's section titles", () => {
   test("name a browser framework's app after it", () => {
     const sections: Array<GuideSection> = guideSections("React", "browser");
 
-    expect(titleOf(sections, "setup")).toBe("Add OpenTelemetry to your React app");
+    expect(titleOf(sections, "setup")).toBe(
+      "Add OpenTelemetry to your React app",
+    );
     expect(titleOf(sections, "faq")).toBe("React OpenTelemetry FAQ");
   });
 
@@ -169,7 +191,9 @@ describe("the words the index and the marks are made of", () => {
     expect(listInWords([])).toBe("");
     expect(listInWords(["Python"])).toBe("Python");
     expect(listInWords(["Python", "Java"])).toBe("Python and Java");
-    expect(listInWords(["Python", "Java", ".NET"])).toBe("Python, Java and .NET");
+    expect(listInWords(["Python", "Java", ".NET"])).toBe(
+      "Python, Java and .NET",
+    );
   });
 
   test("stands two letters in for a logo the registry does not have", () => {
@@ -187,7 +211,9 @@ describe("a guide's mark", () => {
   test("is the framework's official logo, served by this site at a versioned address", () => {
     const mark: GuideMark = markOf("express");
 
-    expect(mark.logo?.src).toMatch(/^\/img\/provider-logos\/express\.svg\?v=[0-9a-f]{10}$/);
+    expect(mark.logo?.src).toMatch(
+      /^\/img\/provider-logos\/express\.svg\?v=[0-9a-f]{10}$/,
+    );
     expect(mark.logo?.alt).toBe("Express");
     expect(mark.icon).toBeUndefined();
   });
@@ -201,10 +227,16 @@ describe("a guide's mark", () => {
 
   test("is a logo for every other JavaScript guide", () => {
     for (const entry of OPEN_TELEMETRY_GUIDES) {
-      if (entry.language !== OpenTelemetryGuideLanguage.JavaScript || entry.slug === "browser") {
+      if (
+        entry.language !== OpenTelemetryGuideLanguage.JavaScript ||
+        entry.slug === "browser"
+      ) {
         continue;
       }
-      expect([entry.slug, Boolean(guideMark(entry).logo)]).toEqual([entry.slug, true]);
+      expect([entry.slug, Boolean(guideMark(entry).logo)]).toEqual([
+        entry.slug,
+        true,
+      ]);
     }
   });
 

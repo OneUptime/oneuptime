@@ -361,7 +361,13 @@ export const BunGuide: OpenTelemetryGuide = {
   exampleTrace: {
     caption: "A POST /orders request, as its trace shows it",
     spans: [
-      { name: "POST /orders", depth: 0, start: 0, duration: 100, source: "traced" },
+      {
+        name: "POST /orders",
+        depth: 0,
+        start: 0,
+        duration: 100,
+        source: "traced",
+      },
       {
         name: "orders.place",
         depth: 1,
@@ -488,7 +494,7 @@ export const BunGuide: OpenTelemetryGuide = {
       "Log with the helper from step 3. Each line carries the trace and span of the request it was written in, and its fields become attributes:",
     snippets: [],
     notes: [
-      "`log.info(\"loading product\", { \"product.id\": id })` arrives as a record with the body `loading product` and the attribute `product.id`.",
+      '`log.info("loading product", { "product.id": id })` arrives as a record with the body `loading product` and the attribute `product.id`.',
       "Lines written outside a request, at startup or in a timer, carry no trace.",
       "`console.log` alone sends nothing: under Bun, no logger is instrumented for you.",
     ],
@@ -565,10 +571,11 @@ export const BunGuide: OpenTelemetryGuide = {
     {
       question: "Logs and spans arrive, but no request spans",
       answer:
-        "The route's handler is not wrapped in `traced`. Every route that runs code needs it, `traced(\"/orders\", placeOrder)`.",
+        'The route\'s handler is not wrapped in `traced`. Every route that runs code needs it, `traced("/orders", placeOrder)`.',
     },
     {
-      question: "Outgoing calls have no spans, and the next service starts a new trace",
+      question:
+        "Outgoing calls have no spans, and the next service starts a new trace",
       answer:
         "They were made with `fetch`, which Bun does not instrument. Call `tracedFetch` instead: it makes the client span and sends the `traceparent` header.",
     },

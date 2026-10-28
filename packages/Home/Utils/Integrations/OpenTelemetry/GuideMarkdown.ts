@@ -73,7 +73,10 @@ function tabsMarkdown(tabs: GuideTabs, baseUrl: string): Array<string> {
   });
 }
 
-function stepsMarkdown(steps: Array<GuideStep>, baseUrl: string): Array<string> {
+function stepsMarkdown(
+  steps: Array<GuideStep>,
+  baseUrl: string,
+): Array<string> {
   return steps.flatMap((step: GuideStep, index: number): Array<string> => {
     return [
       `### ${index + 1}. ${step.title}`,
@@ -128,9 +131,8 @@ export function generateGuideMarkdown(
       })?.title || id
     );
   };
-  const record: ReturnType<typeof getVerificationRecord> = getVerificationRecord(
-    guide.slug,
-  );
+  const record: ReturnType<typeof getVerificationRecord> =
+    getVerificationRecord(guide.slug);
 
   const lines: Array<string> = [
     `# ${guide.h1}`,

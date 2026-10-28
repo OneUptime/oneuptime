@@ -281,7 +281,15 @@ export const ReactGuide: OpenTelemetryGuide = {
   lead: "React runs in your visitors' browsers, so it is traced with the OpenTelemetry browser SDK. This guide adds what React needs on top: React 19's error callbacks, which report each error with its component stack, and a span for every route change, so OneUptime shows a single-page app as the pages your visitors see.",
   cardDescription:
     "React 19 errors with their component stack, a span per route change, fetch calls and Core Web Vitals.",
-  searchTerms: ["react", "react router", "spa", "rum", "web vitals", "frontend", "vite"],
+  searchTerms: [
+    "react",
+    "react router",
+    "spa",
+    "rum",
+    "web vitals",
+    "frontend",
+    "vite",
+  ],
   highlights: ["React 19", "React Router", "Core Web Vitals"],
 
   whatYouGet: {
@@ -297,7 +305,13 @@ export const ReactGuide: OpenTelemetryGuide = {
   exampleTrace: {
     caption: "Adding a product to the cart, as its trace shows it",
     spans: [
-      { name: "cart.add", depth: 0, start: 0, duration: 100, source: "your code" },
+      {
+        name: "cart.add",
+        depth: 0,
+        start: 0,
+        duration: 100,
+        source: "your code",
+      },
       { name: "POST", depth: 1, start: 3, duration: 84, source: "fetch" },
       {
         name: "POST /api/cart/:id",
@@ -334,8 +348,7 @@ export const ReactGuide: OpenTelemetryGuide = {
   },
 
   setup: {
-    intro:
-      "The browser SDK first, then React's errors and route changes.",
+    intro: "The browser SDK first, then React's errors and route changes.",
     steps: [
       {
         title: "Create the telemetry file",
@@ -441,7 +454,8 @@ export const ReactGuide: OpenTelemetryGuide = {
       },
       {
         name: "web_vital.cls",
-        description: "Cumulative Layout Shift, reported when the page is hidden.",
+        description:
+          "Cumulative Layout Shift, reported when the page is hidden.",
       },
     ],
     snippets: [],
@@ -562,7 +576,12 @@ export const ReactGuide: OpenTelemetryGuide = {
   ],
 
   related: ["browser", "nextjs", "angular", "nodejs"],
-  docs: [DOCS.browserSetup, DOCS.webVitals, DOCS.sessionReplay, DOCS.sourceMaps],
+  docs: [
+    DOCS.browserSetup,
+    DOCS.webVitals,
+    DOCS.sessionReplay,
+    DOCS.sourceMaps,
+  ],
 
   verification: {
     runtime: "browser",

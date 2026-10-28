@@ -238,7 +238,15 @@ export const NextJsGuide: OpenTelemetryGuide = {
   lead: "Next.js traces its own server: every route, render, route handler and `fetch` is a span. Register the OpenTelemetry SDK in `instrumentation.ts` to collect those spans with your libraries' own, and send them, your logs and your metrics to OneUptime.",
   cardDescription:
     "App Router routes, renders and route handlers, fetch and database calls, from instrumentation.ts.",
-  searchTerms: ["next", "next.js", "nextjs", "app router", "vercel", "react server components", "ssr"],
+  searchTerms: [
+    "next",
+    "next.js",
+    "nextjs",
+    "app router",
+    "vercel",
+    "react server components",
+    "ssr",
+  ],
   highlights: [
     "Next.js 16, App Router",
     "instrumentation.ts",
@@ -375,7 +383,8 @@ export const NextJsGuide: OpenTelemetryGuide = {
           "Query spans, with no configuration: Next.js loads these from `node_modules` already.",
       },
       {
-        library: "`mysql2`, `ioredis`, `redis`, `graphql`, `kafkajs`, `amqplib`",
+        library:
+          "`mysql2`, `ioredis`, `redis`, `graphql`, `kafkajs`, `amqplib`",
         covers:
           "Query, command, operation and message spans, once the package is in `serverExternalPackages`.",
       },
@@ -396,7 +405,7 @@ export const NextJsGuide: OpenTelemetryGuide = {
       "Server components, route handlers and server actions run inside the request's span, so a span you start there becomes its child:",
     snippets: [pageSpan],
     notes: [
-      "A span started in a client component (`\"use client\"`) is browser code: see the [React guide](/integrations/opentelemetry/react) to send those.",
+      'A span started in a client component (`"use client"`) is browser code: see the [React guide](/integrations/opentelemetry/react) to send those.',
       "End every span in `finally`, as above: a page that throws still closes its spans, and the error shows on the render's span.",
     ],
   },
@@ -507,7 +516,7 @@ export const NextJsGuide: OpenTelemetryGuide = {
     {
       question: "The build fails on Node.js modules such as fs or net",
       answer:
-        "The SDK was imported where the Edge runtime builds it, often from `instrumentation.ts` directly. Import it from `instrumentation.node.ts` behind the `NEXT_RUNTIME === \"nodejs\"` check, as above.",
+        'The SDK was imported where the Edge runtime builds it, often from `instrumentation.ts` directly. Import it from `instrumentation.node.ts` behind the `NEXT_RUNTIME === "nodejs"` check, as above.',
     },
     {
       question: "Nothing arrives from production, but development works",
@@ -540,12 +549,12 @@ export const NextJsGuide: OpenTelemetryGuide = {
     {
       question: "What about the Edge runtime?",
       answer:
-        "This SDK does not run there: routes with `export const runtime = \"edge\"` are not traced. Next.js 16 always runs `proxy.ts` on Node.js, so it is traced with the rest; a `middleware.ts` left on the Edge runtime is not.",
+        'This SDK does not run there: routes with `export const runtime = "edge"` are not traced. Next.js 16 always runs `proxy.ts` on Node.js, so it is traced with the rest; a `middleware.ts` left on the Edge runtime is not.',
     },
     {
       question: "How do I tell environments apart?",
       answer:
-        "Set `OTEL_RESOURCE_ATTRIBUTES=\"deployment.environment.name=production\"` on each deployment: every span, metric and log carries it, and each explorer filters by it.",
+        'Set `OTEL_RESOURCE_ATTRIBUTES="deployment.environment.name=production"` on each deployment: every span, metric and log carries it, and each explorer filters by it.',
     },
   ],
 
@@ -596,7 +605,11 @@ export const NextJsGuide: OpenTelemetryGuide = {
         { name: "executing api route (app) /api/orders" },
         { name: "render route (app) /broken", hasException: true },
       ],
-      metrics: ["http.client.request.duration", "orders.placed", "nodejs.eventloop.delay.p99"],
+      metrics: [
+        "http.client.request.duration",
+        "orders.placed",
+        "nodejs.eventloop.delay.p99",
+      ],
       logs: [{ body: "order placed", hasTraceContext: true }],
       resource: { "service.name": "storefront" },
     },

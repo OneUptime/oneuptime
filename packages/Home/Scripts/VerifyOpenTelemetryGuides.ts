@@ -36,7 +36,12 @@
  * OTEL_GUIDES_WORK_DIR the folder the apps are written to (the system's
  * temporary folder otherwise). The container is removed when the run ends.
  */
-import { ChildProcess, spawn, spawnSync, SpawnSyncReturns } from "child_process";
+import {
+  ChildProcess,
+  spawn,
+  spawnSync,
+  SpawnSyncReturns,
+} from "child_process";
 import fs from "fs";
 import http from "http";
 import net from "net";
@@ -133,17 +138,19 @@ function log(message: string): void {
 }
 
 function freePort(): Promise<number> {
-  return new Promise((resolve: (port: number) => void, reject: (error: Error) => void) => {
-    const server: net.Server = net.createServer();
-    server.unref();
-    server.on("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const address: net.AddressInfo = server.address() as net.AddressInfo;
-      server.close(() => {
-        resolve(address.port);
+  return new Promise(
+    (resolve: (port: number) => void, reject: (error: Error) => void) => {
+      const server: net.Server = net.createServer();
+      server.unref();
+      server.on("error", reject);
+      server.listen(0, "127.0.0.1", () => {
+        const address: net.AddressInfo = server.address() as net.AddressInfo;
+        server.close(() => {
+          resolve(address.port);
+        });
       });
-    });
-  });
+    },
+  );
 }
 
 function sleep(milliseconds: number): Promise<void> {
@@ -156,16 +163,18 @@ async function waitForPort(port: number, timeoutMs: number): Promise<boolean> {
   const deadline: number = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
-    const open: boolean = await new Promise((resolve: (open: boolean) => void) => {
-      const socket: net.Socket = net.connect(port, "127.0.0.1");
-      socket.once("connect", () => {
-        socket.destroy();
-        resolve(true);
-      });
-      socket.once("error", () => {
-        resolve(false);
-      });
-    });
+    const open: boolean = await new Promise(
+      (resolve: (open: boolean) => void) => {
+        const socket: net.Socket = net.connect(port, "127.0.0.1");
+        socket.once("connect", () => {
+          socket.destroy();
+          resolve(true);
+        });
+        socket.once("error", () => {
+          resolve(false);
+        });
+      },
+    );
 
     if (open) {
       return true;
@@ -233,97 +242,105 @@ function startIngestStandIn(
 ): http.Server {
   const signalPath: RegExp = /^\/otlp\/v1\/(traces|metrics|logs)$/;
 
-  return http.createServer((req: http.IncomingMessage, res: http.ServerResponse) => {
-    const cors: Record<string, string> = req.headers["origin"]
-      ? {
-          "access-control-allow-origin": String(req.headers["origin"]),
-          "access-control-allow-methods": "POST, OPTIONS",
-          "access-control-allow-headers": String(
-            req.headers["access-control-request-headers"] ||
-              "content-type, x-oneuptime-token",
-          ),
-          vary: "Origin",
-        }
-      : {};
+  return http.createServer(
+    (req: http.IncomingMessage, res: http.ServerResponse) => {
+      const cors: Record<string, string> = req.headers["origin"]
+        ? {
+            "access-control-allow-origin": String(req.headers["origin"]),
+            "access-control-allow-methods": "POST, OPTIONS",
+            "access-control-allow-headers": String(
+              req.headers["access-control-request-headers"] ||
+                "content-type, x-oneuptime-token",
+            ),
+            vary: "Origin",
+          }
+        : {};
 
-    if (req.method === "OPTIONS") {
-      res.writeHead(204, cors);
-      res.end();
-      return;
-    }
-
-    const chunks: Array<Buffer> = [];
-    req.on("data", (chunk: Buffer) => {
-      chunks.push(chunk);
-    });
-    req.on("end", () => {
-      const body: Buffer = Buffer.concat(chunks);
-      const urlPath: string = new URL(req.url || "/", "http://localhost").pathname;
-      const match: RegExpExecArray | null = signalPath.exec(urlPath);
-      const hasToken: boolean = req.headers["x-oneuptime-token"] === TEST_KEY;
-      const record: (status: number) => void = (status: number): void => {
-        requests.push({
-          method: req.method || "",
-          path: urlPath,
-          status: status,
-          hasToken: hasToken,
-          contentType: String(req.headers["content-type"] || ""),
-        });
-      };
-
-      if (req.method !== "POST" || !match) {
-        record(404);
-        res.writeHead(404, cors);
-        res.end("Not found");
-        return;
-      }
-
-      if (!hasToken) {
-        record(401);
-        res.writeHead(401, { "content-type": "application/json", ...cors });
-        res.end('{"message":"Invalid or missing x-oneuptime-token"}');
-        return;
-      }
-
-      const upstream: http.ClientRequest = http.request(
-        {
-          host: "127.0.0.1",
-          port: collectorPort,
-          method: "POST",
-          path: `/v1/${match[1]}`,
-          headers: {
-            "content-type": String(req.headers["content-type"] || "application/x-protobuf"),
-            ...(req.headers["content-encoding"]
-              ? { "content-encoding": String(req.headers["content-encoding"]) }
-              : {}),
-            "content-length": body.length,
-          },
-        },
-        (upstreamResponse: http.IncomingMessage) => {
-          const parts: Array<Buffer> = [];
-          upstreamResponse.on("data", (part: Buffer) => {
-            parts.push(part);
-          });
-          upstreamResponse.on("end", () => {
-            record(upstreamResponse.statusCode || 502);
-            res.writeHead(upstreamResponse.statusCode || 502, {
-              "content-type": String(
-                upstreamResponse.headers["content-type"] || "application/x-protobuf",
-              ),
-              ...cors,
-            });
-            res.end(Buffer.concat(parts));
-          });
-        },
-      );
-      upstream.on("error", () => {
-        record(503);
-        res.writeHead(503, cors);
+      if (req.method === "OPTIONS") {
+        res.writeHead(204, cors);
         res.end();
+        return;
+      }
+
+      const chunks: Array<Buffer> = [];
+      req.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
       });
-      upstream.end(body);
-    });
-  });
+      req.on("end", () => {
+        const body: Buffer = Buffer.concat(chunks);
+        const urlPath: string = new URL(req.url || "/", "http://localhost")
+          .pathname;
+        const match: RegExpExecArray | null = signalPath.exec(urlPath);
+        const hasToken: boolean = req.headers["x-oneuptime-token"] === TEST_KEY;
+        const record: (status: number) => void = (status: number): void => {
+          requests.push({
+            method: req.method || "",
+            path: urlPath,
+            status: status,
+            hasToken: hasToken,
+            contentType: String(req.headers["content-type"] || ""),
+          });
+        };
+
+        if (req.method !== "POST" || !match) {
+          record(404);
+          res.writeHead(404, cors);
+          res.end("Not found");
+          return;
+        }
+
+        if (!hasToken) {
+          record(401);
+          res.writeHead(401, { "content-type": "application/json", ...cors });
+          res.end('{"message":"Invalid or missing x-oneuptime-token"}');
+          return;
+        }
+
+        const upstream: http.ClientRequest = http.request(
+          {
+            host: "127.0.0.1",
+            port: collectorPort,
+            method: "POST",
+            path: `/v1/${match[1]}`,
+            headers: {
+              "content-type": String(
+                req.headers["content-type"] || "application/x-protobuf",
+              ),
+              ...(req.headers["content-encoding"]
+                ? {
+                    "content-encoding": String(req.headers["content-encoding"]),
+                  }
+                : {}),
+              "content-length": body.length,
+            },
+          },
+          (upstreamResponse: http.IncomingMessage) => {
+            const parts: Array<Buffer> = [];
+            upstreamResponse.on("data", (part: Buffer) => {
+              parts.push(part);
+            });
+            upstreamResponse.on("end", () => {
+              record(upstreamResponse.statusCode || 502);
+              res.writeHead(upstreamResponse.statusCode || 502, {
+                "content-type": String(
+                  upstreamResponse.headers["content-type"] ||
+                    "application/x-protobuf",
+                ),
+                ...cors,
+              });
+              res.end(Buffer.concat(parts));
+            });
+          },
+        );
+        upstream.on("error", () => {
+          record(503);
+          res.writeHead(503, cors);
+          res.end();
+        });
+        upstream.end(body);
+      });
+    },
+  );
 }
 
 async function startReceiver(workDir: string): Promise<Receiver> {
@@ -403,7 +420,9 @@ function forLocalRun(text: string, proxyPort: number): string {
 }
 
 // `export NAME="value"` lines of the page's Cloud environment snippet.
-function environmentOf(snippet: GuideSnippet | undefined): Record<string, string> {
+function environmentOf(
+  snippet: GuideSnippet | undefined,
+): Record<string, string> {
   const env: Record<string, string> = {};
   const line: RegExp = /^export ([A-Z_]+)="([^"]*)"$/;
 
@@ -418,9 +437,15 @@ function environmentOf(snippet: GuideSnippet | undefined): Record<string, string
   return env;
 }
 
-function commandText(guide: OpenTelemetryGuide, command: VerificationCommand): string {
+function commandText(
+  guide: OpenTelemetryGuide,
+  command: VerificationCommand,
+): string {
   if (command.snippet) {
-    const snippet: GuideSnippet | undefined = findGuideSnippet(guide, command.snippet);
+    const snippet: GuideSnippet | undefined = findGuideSnippet(
+      guide,
+      command.snippet,
+    );
 
     if (!snippet) {
       throw new Error(`${guide.slug}: no snippet ${command.snippet}`);
@@ -443,7 +468,11 @@ function fileSizes(outDir: string): Record<string, number> {
   return sizes;
 }
 
-function readSince(outDir: string, name: string, from: number): Array<JsonObject> {
+function readSince(
+  outDir: string,
+  name: string,
+  from: number,
+): Array<JsonObject> {
   const file: string = path.join(outDir, name);
 
   if (!fs.existsSync(file)) {
@@ -480,21 +509,38 @@ function attributesOf(items: unknown): Record<string, unknown> {
   const attributes: Record<string, unknown> = {};
 
   for (const item of (items as Array<JsonObject>) || []) {
-    attributes[String(item["key"])] = attributeValue(item["value"] as JsonObject);
+    attributes[String(item["key"])] = attributeValue(
+      item["value"] as JsonObject,
+    );
   }
 
   return attributes;
 }
 
 function collect(outDir: string, from: Record<string, number>): Observed {
-  const observed: Observed = { spans: [], metrics: [], logs: [], resources: [] };
+  const observed: Observed = {
+    spans: [],
+    metrics: [],
+    logs: [],
+    resources: [],
+  };
 
-  for (const exportRequest of readSince(outDir, "traces.jsonl", from["traces.jsonl"] || 0)) {
-    for (const resourceSpans of (exportRequest["resourceSpans"] as Array<JsonObject>) || []) {
+  for (const exportRequest of readSince(
+    outDir,
+    "traces.jsonl",
+    from["traces.jsonl"] || 0,
+  )) {
+    for (const resourceSpans of (exportRequest[
+      "resourceSpans"
+    ] as Array<JsonObject>) || []) {
       observed.resources.push(
-        attributesOf((resourceSpans["resource"] as JsonObject | undefined)?.["attributes"]),
+        attributesOf(
+          (resourceSpans["resource"] as JsonObject | undefined)?.["attributes"],
+        ),
       );
-      for (const scopeSpans of (resourceSpans["scopeSpans"] as Array<JsonObject>) || []) {
+      for (const scopeSpans of (resourceSpans[
+        "scopeSpans"
+      ] as Array<JsonObject>) || []) {
         for (const span of (scopeSpans["spans"] as Array<JsonObject>) || []) {
           const exceptionEvents: Array<JsonObject> = (
             (span["events"] as Array<JsonObject>) || []
@@ -505,35 +551,63 @@ function collect(outDir: string, from: Record<string, number>): Observed {
             name: String(span["name"]),
             attributes: attributesOf(span["attributes"]),
             hasException: exceptionEvents.length > 0,
-            exceptionMessages: exceptionEvents.map((event: JsonObject): string => {
-              return String(attributesOf(event["attributes"])["exception.message"] ?? "");
-            }),
+            exceptionMessages: exceptionEvents.map(
+              (event: JsonObject): string => {
+                return String(
+                  attributesOf(event["attributes"])["exception.message"] ?? "",
+                );
+              },
+            ),
           });
         }
       }
     }
   }
 
-  for (const exportRequest of readSince(outDir, "metrics.jsonl", from["metrics.jsonl"] || 0)) {
-    for (const resourceMetrics of (exportRequest["resourceMetrics"] as Array<JsonObject>) || []) {
+  for (const exportRequest of readSince(
+    outDir,
+    "metrics.jsonl",
+    from["metrics.jsonl"] || 0,
+  )) {
+    for (const resourceMetrics of (exportRequest[
+      "resourceMetrics"
+    ] as Array<JsonObject>) || []) {
       observed.resources.push(
-        attributesOf((resourceMetrics["resource"] as JsonObject | undefined)?.["attributes"]),
+        attributesOf(
+          (resourceMetrics["resource"] as JsonObject | undefined)?.[
+            "attributes"
+          ],
+        ),
       );
-      for (const scopeMetrics of (resourceMetrics["scopeMetrics"] as Array<JsonObject>) || []) {
-        for (const metric of (scopeMetrics["metrics"] as Array<JsonObject>) || []) {
+      for (const scopeMetrics of (resourceMetrics[
+        "scopeMetrics"
+      ] as Array<JsonObject>) || []) {
+        for (const metric of (scopeMetrics["metrics"] as Array<JsonObject>) ||
+          []) {
           observed.metrics.push(String(metric["name"]));
         }
       }
     }
   }
 
-  for (const exportRequest of readSince(outDir, "logs.jsonl", from["logs.jsonl"] || 0)) {
-    for (const resourceLogs of (exportRequest["resourceLogs"] as Array<JsonObject>) || []) {
+  for (const exportRequest of readSince(
+    outDir,
+    "logs.jsonl",
+    from["logs.jsonl"] || 0,
+  )) {
+    for (const resourceLogs of (exportRequest[
+      "resourceLogs"
+    ] as Array<JsonObject>) || []) {
       observed.resources.push(
-        attributesOf((resourceLogs["resource"] as JsonObject | undefined)?.["attributes"]),
+        attributesOf(
+          (resourceLogs["resource"] as JsonObject | undefined)?.["attributes"],
+        ),
       );
-      for (const scopeLogs of (resourceLogs["scopeLogs"] as Array<JsonObject>) || []) {
-        for (const record of (scopeLogs["logRecords"] as Array<JsonObject>) || []) {
+      for (const scopeLogs of (resourceLogs[
+        "scopeLogs"
+      ] as Array<JsonObject>) || []) {
+        for (const record of (scopeLogs["logRecords"] as Array<JsonObject>) ||
+          []) {
           const body: unknown = attributeValue(record["body"] as JsonObject);
           const attributes: Record<string, unknown> = attributesOf(
             record["attributes"],
@@ -553,34 +627,39 @@ function collect(outDir: string, from: Record<string, number>): Observed {
   return observed;
 }
 
-function check(verification: GuideVerification, observed: Observed): Array<string> {
+function check(
+  verification: GuideVerification,
+  observed: Observed,
+): Array<string> {
   const failures: Array<string> = [];
 
   for (const expected of verification.expect.spans) {
-    const found: boolean = observed.spans.some((span: ObservedSpan): boolean => {
-      if (span.name !== expected.name) {
-        return false;
-      }
-      if (
-        expected.hasException !== undefined &&
-        expected.hasException !== span.hasException
-      ) {
-        return false;
-      }
-      if (
-        expected.exceptionMessage !== undefined &&
-        !span.exceptionMessages.some((message: string): boolean => {
-          return message.includes(expected.exceptionMessage || "");
-        })
-      ) {
-        return false;
-      }
-      return Object.entries(expected.attributes || {}).every(
-        ([key, value]: [string, string]): boolean => {
-          return String(span.attributes[key]) === value;
-        },
-      );
-    });
+    const found: boolean = observed.spans.some(
+      (span: ObservedSpan): boolean => {
+        if (span.name !== expected.name) {
+          return false;
+        }
+        if (
+          expected.hasException !== undefined &&
+          expected.hasException !== span.hasException
+        ) {
+          return false;
+        }
+        if (
+          expected.exceptionMessage !== undefined &&
+          !span.exceptionMessages.some((message: string): boolean => {
+            return message.includes(expected.exceptionMessage || "");
+          })
+        ) {
+          return false;
+        }
+        return Object.entries(expected.attributes || {}).every(
+          ([key, value]: [string, string]): boolean => {
+            return String(span.attributes[key]) === value;
+          },
+        );
+      },
+    );
 
     if (!found) {
       failures.push(`no span ${JSON.stringify(expected)}`);
@@ -594,21 +673,25 @@ function check(verification: GuideVerification, observed: Observed): Array<strin
   }
 
   for (const expected of verification.expect.logs) {
-    const found: boolean = observed.logs.some((record: ObservedLog): boolean => {
-      return (
-        record.body.includes(expected.body) &&
-        (!expected.hasTraceContext || record.traceId.length > 0) &&
-        (expected.hasException === undefined ||
-          expected.hasException === record.hasException)
-      );
-    });
+    const found: boolean = observed.logs.some(
+      (record: ObservedLog): boolean => {
+        return (
+          record.body.includes(expected.body) &&
+          (!expected.hasTraceContext || record.traceId.length > 0) &&
+          (expected.hasException === undefined ||
+            expected.hasException === record.hasException)
+        );
+      },
+    );
 
     if (!found) {
       failures.push(`no log ${JSON.stringify(expected)}`);
     }
   }
 
-  for (const [key, value] of Object.entries(verification.expect.resource || {})) {
+  for (const [key, value] of Object.entries(
+    verification.expect.resource || {},
+  )) {
     const found: boolean = observed.resources.some(
       (resource: Record<string, unknown>): boolean => {
         return String(resource[key]) === value;
@@ -631,7 +714,9 @@ function check(verification: GuideVerification, observed: Observed): Array<strin
     );
 
     if (traced) {
-      failures.push(`a span for ${untraced}, which the guide leaves out: ${traced.name}`);
+      failures.push(
+        `a span for ${untraced}, which the guide leaves out: ${traced.name}`,
+      );
     }
   }
 
@@ -653,16 +738,23 @@ function check(verification: GuideVerification, observed: Observed): Array<strin
     );
 
     if (found) {
-      failures.push(`a log line with ${absent}, which the guide leaves out: ${found.body}`);
+      failures.push(
+        `a log line with ${absent}, which the guide leaves out: ${found.body}`,
+      );
     }
   }
 
   return failures;
 }
 
-function sendRequest(port: number, request: VerificationRequest): Promise<string> {
+function sendRequest(
+  port: number,
+  request: VerificationRequest,
+): Promise<string> {
   return new Promise((resolve: (result: string) => void) => {
-    const body: string | undefined = request.body ? JSON.stringify(request.body) : undefined;
+    const body: string | undefined = request.body
+      ? JSON.stringify(request.body)
+      : undefined;
     const outgoing: http.ClientRequest = http.request(
       {
         host: "127.0.0.1",
@@ -677,7 +769,9 @@ function sendRequest(port: number, request: VerificationRequest): Promise<string
       (response: http.IncomingMessage) => {
         response.resume();
         response.on("end", () => {
-          resolve(`${request.method} ${request.path} -> ${response.statusCode}`);
+          resolve(
+            `${request.method} ${request.path} -> ${response.statusCode}`,
+          );
         });
       },
     );
@@ -704,11 +798,17 @@ function serveStatic(root: string, port: number): Promise<http.Server> {
 
   const server: http.Server = http.createServer(
     (req: http.IncomingMessage, res: http.ServerResponse) => {
-      const urlPath: string = new URL(req.url || "/", "http://localhost").pathname;
+      const urlPath: string = new URL(req.url || "/", "http://localhost")
+        .pathname;
 
       if (urlPath.startsWith("/api/")) {
         res.writeHead(200, { "content-type": "application/json" });
-        res.end(JSON.stringify({ items: 2, traceparent: req.headers["traceparent"] || null }));
+        res.end(
+          JSON.stringify({
+            items: 2,
+            traceparent: req.headers["traceparent"] || null,
+          }),
+        );
         return;
       }
 
@@ -743,7 +843,10 @@ interface PlaywrightPage {
   waitForTimeout: (milliseconds: number) => Promise<void>;
   evaluate: (script: () => void) => Promise<unknown>;
   close: (options: Record<string, unknown>) => Promise<void>;
-  on: (event: string, listener: (value: { message?: string; text?: () => string }) => void) => void;
+  on: (
+    event: string,
+    listener: (value: { message?: string; text?: () => string }) => void,
+  ) => void;
 }
 
 interface PlaywrightBrowser {
@@ -751,12 +854,18 @@ interface PlaywrightBrowser {
   close: () => Promise<void>;
 }
 
-async function driveBrowser(url: string, clicks: Array<string>): Promise<Array<string>> {
+async function driveBrowser(
+  url: string,
+  clicks: Array<string>,
+): Promise<Array<string>> {
   // Common's Playwright, with the Chromium it installs.
   const playwright: {
-    chromium: { launch: (options: Record<string, unknown>) => Promise<PlaywrightBrowser> };
-  } = require(path.join(COMMON, "node_modules", "playwright"));
-  const executablePath: string | undefined = process.env["OTEL_GUIDES_CHROMIUM"];
+    chromium: {
+      launch: (options: Record<string, unknown>) => Promise<PlaywrightBrowser>;
+    };
+  } = await import(path.join(COMMON, "node_modules", "playwright"));
+  const executablePath: string | undefined =
+    process.env["OTEL_GUIDES_CHROMIUM"];
   const browser: PlaywrightBrowser = await playwright.chromium.launch(
     executablePath ? { executablePath: executablePath } : {},
   );
@@ -790,7 +899,10 @@ async function driveBrowser(url: string, clicks: Array<string>): Promise<Array<s
   return messages;
 }
 
-function runtimeVersion(verification: GuideVerification, env: NodeJS.ProcessEnv): string {
+function runtimeVersion(
+  verification: GuideVerification,
+  env: NodeJS.ProcessEnv,
+): string {
   const version: (command: string, args: Array<string>) => string = (
     command: string,
     args: Array<string>,
@@ -806,7 +918,11 @@ function runtimeVersion(verification: GuideVerification, env: NodeJS.ProcessEnv)
     case "bun":
       return `Bun ${version(process.env["OTEL_GUIDES_BUN"] || "bun", ["--version"])}`;
     case "deno":
-      return `Deno ${version(process.env["OTEL_GUIDES_DENO"] || "deno", ["--version"]).replace("deno ", "").split(" ")[0]}`;
+      return `Deno ${
+        version(process.env["OTEL_GUIDES_DENO"] || "deno", ["--version"])
+          .replace("deno ", "")
+          .split(" ")[0]
+      }`;
     case "browser":
       // "Google Chrome for Testing 153.0.8010.12" is Chrome 153.
       return process.env["OTEL_GUIDES_CHROMIUM"]
@@ -820,11 +936,20 @@ function runtimeVersion(verification: GuideVerification, env: NodeJS.ProcessEnv)
   }
 }
 
-function installedVersion(appDir: string, packageName: string): string | undefined {
-  const file: string = path.join(appDir, "node_modules", packageName, "package.json");
+function installedVersion(
+  appDir: string,
+  packageName: string,
+): string | undefined {
+  const file: string = path.join(
+    appDir,
+    "node_modules",
+    packageName,
+    "package.json",
+  );
 
   if (fs.existsSync(file)) {
-    return (JSON.parse(fs.readFileSync(file, "utf8")) as { version?: string }).version;
+    return (JSON.parse(fs.readFileSync(file, "utf8")) as { version?: string })
+      .version;
   }
 
   // Deno keeps npm packages in its cache, and their versions in deno.lock.
@@ -835,8 +960,11 @@ function installedVersion(appDir: string, packageName: string): string | undefin
   }
 
   const specifiers: Record<string, string> =
-    (JSON.parse(fs.readFileSync(lockFile, "utf8")) as { specifiers?: Record<string, string> })
-      .specifiers || {};
+    (
+      JSON.parse(fs.readFileSync(lockFile, "utf8")) as {
+        specifiers?: Record<string, string>;
+      }
+    ).specifiers || {};
 
   for (const [specifier, version] of Object.entries(specifiers)) {
     if (specifier.startsWith(`npm:${packageName}@`)) {
@@ -869,13 +997,23 @@ function declaredExportsOf(appDir: string, specifier: string): Array<string> {
     ts.sys,
   ).resolvedModule;
 
-  if (!resolved || !resolved.resolvedFileName.endsWith(".d.ts") && !resolved.resolvedFileName.endsWith(".d.mts") && !resolved.resolvedFileName.endsWith(".d.cts")) {
+  if (
+    !resolved ||
+    (!resolved.resolvedFileName.endsWith(".d.ts") &&
+      !resolved.resolvedFileName.endsWith(".d.mts") &&
+      !resolved.resolvedFileName.endsWith(".d.cts"))
+  ) {
     return [];
   }
 
-  const program: ts.Program = ts.createProgram([resolved.resolvedFileName], options);
+  const program: ts.Program = ts.createProgram(
+    [resolved.resolvedFileName],
+    options,
+  );
   const checker: ts.TypeChecker = program.getTypeChecker();
-  const sourceFile: ts.SourceFile | undefined = program.getSourceFile(resolved.resolvedFileName);
+  const sourceFile: ts.SourceFile | undefined = program.getSourceFile(
+    resolved.resolvedFileName,
+  );
   const moduleSymbol: ts.Symbol | undefined = sourceFile
     ? checker.getSymbolAtLocation(sourceFile)
     : undefined;
@@ -884,9 +1022,11 @@ function declaredExportsOf(appDir: string, specifier: string): Array<string> {
     return [];
   }
 
-  return checker.getExportsOfModule(moduleSymbol).map((symbol: ts.Symbol): string => {
-    return symbol.getName();
-  });
+  return checker
+    .getExportsOfModule(moduleSymbol)
+    .map((symbol: ts.Symbol): string => {
+      return symbol.getName();
+    });
 }
 
 // The names a package exports, as the app's runtime imports it.
@@ -911,7 +1051,9 @@ function exportsOf(
         });
 
   try {
-    return JSON.parse((result.stdout || "").trim().split("\n").pop() || "[]") as Array<string>;
+    return JSON.parse(
+      (result.stdout || "").trim().split("\n").pop() || "[]",
+    ) as Array<string>;
   } catch {
     return [];
   }
@@ -944,7 +1086,8 @@ async function verifyGuide(
 
   const env: NodeJS.ProcessEnv = { ...process.env };
   if (process.env["OTEL_GUIDES_NODE_BIN"]) {
-    env["PATH"] = `${process.env["OTEL_GUIDES_NODE_BIN"]}${path.delimiter}${env["PATH"] || ""}`;
+    env["PATH"] =
+      `${process.env["OTEL_GUIDES_NODE_BIN"]}${path.delimiter}${env["PATH"] || ""}`;
   }
   for (const [name, value] of Object.entries(
     environmentOf(findGuideSnippet(guide, "env-cloud")),
@@ -953,10 +1096,12 @@ async function verifyGuide(
   }
   Object.assign(env, FAST_EXPORT);
   if (process.env["OTEL_GUIDES_BUN"]) {
-    env["PATH"] = `${path.dirname(process.env["OTEL_GUIDES_BUN"])}${path.delimiter}${env["PATH"]}`;
+    env["PATH"] =
+      `${path.dirname(process.env["OTEL_GUIDES_BUN"])}${path.delimiter}${env["PATH"]}`;
   }
   if (process.env["OTEL_GUIDES_DENO"]) {
-    env["PATH"] = `${path.dirname(process.env["OTEL_GUIDES_DENO"])}${path.delimiter}${env["PATH"]}`;
+    env["PATH"] =
+      `${path.dirname(process.env["OTEL_GUIDES_DENO"])}${path.delimiter}${env["PATH"]}`;
     env["DENO_DIR"] = path.join(workDir, "deno-cache");
   }
 
@@ -968,7 +1113,10 @@ async function verifyGuide(
 
   try {
     for (const command of verification.commands) {
-      const text: string = forLocalRun(commandText(guide, command), receiver.proxyPort);
+      const text: string = forLocalRun(
+        commandText(guide, command),
+        receiver.proxyPort,
+      );
 
       if (command.isServer) {
         log(`  $ ${text} &`);
@@ -1005,11 +1153,16 @@ async function verifyGuide(
     }
 
     if (verification.serve) {
-      staticServer = await serveStatic(path.join(appDir, verification.serve), verification.port);
+      staticServer = await serveStatic(
+        path.join(appDir, verification.serve),
+        verification.port,
+      );
     }
 
     if (!(await waitForPort(verification.port, 180000))) {
-      throw new Error(`${guide.slug}: nothing listened on ${verification.port}:\n${output.join("").slice(-4000)}`);
+      throw new Error(
+        `${guide.slug}: nothing listened on ${verification.port}:\n${output.join("").slice(-4000)}`,
+      );
     }
     await sleep(1000);
 
@@ -1035,19 +1188,21 @@ async function verifyGuide(
       } catch {
         // Already gone.
       }
-      const exited: boolean = await new Promise((resolve: (exited: boolean) => void) => {
-        const timer: NodeJS.Timeout = setTimeout(() => {
-          resolve(false);
-        }, 25000);
-        server!.once("exit", () => {
-          clearTimeout(timer);
-          resolve(true);
-        });
-        if (server!.exitCode !== null) {
-          clearTimeout(timer);
-          resolve(true);
-        }
-      });
+      const exited: boolean = await new Promise(
+        (resolve: (exited: boolean) => void) => {
+          const timer: NodeJS.Timeout = setTimeout(() => {
+            resolve(false);
+          }, 25000);
+          server!.once("exit", () => {
+            clearTimeout(timer);
+            resolve(true);
+          });
+          if (server!.exitCode !== null) {
+            clearTimeout(timer);
+            resolve(true);
+          }
+        },
+      );
       if (!exited) {
         output.push("\n[the app did not stop within 25 seconds of SIGTERM]\n");
         try {
@@ -1067,17 +1222,22 @@ async function verifyGuide(
 
   const observed: Observed = collect(receiver.outDir, before);
   const failures: Array<string> = check(verification, observed);
-  const received: Array<ReceivedRequest> = receiver.requests.slice(requestCountBefore);
+  const received: Array<ReceivedRequest> =
+    receiver.requests.slice(requestCountBefore);
 
   if (received.length === 0) {
     failures.push("nothing reached the endpoint");
   }
   for (const request of received) {
     if (!request.hasToken) {
-      failures.push(`a request without the key: ${request.method} ${request.path}`);
+      failures.push(
+        `a request without the key: ${request.method} ${request.path}`,
+      );
     }
     if (request.status !== 200) {
-      failures.push(`a request answered ${request.status}: ${request.method} ${request.path}`);
+      failures.push(
+        `a request answered ${request.status}: ${request.method} ${request.path}`,
+      );
     }
   }
   if (output.join("").includes("[the app did not stop")) {
@@ -1119,7 +1279,9 @@ async function verifyGuide(
       installedVersion(appDir, verification.framework.package)
     : undefined;
 
-  const unique: (values: Array<string>) => Array<string> = (values: Array<string>): Array<string> => {
+  const unique: (values: Array<string>) => Array<string> = (
+    values: Array<string>,
+  ): Array<string> => {
     return Array.from(new Set(values)).sort();
   };
 
@@ -1150,8 +1312,13 @@ async function verifyGuide(
 }
 
 function writeRecord(slug: string, record: GuideVerificationRecord): void {
-  const records: Record<string, GuideVerificationRecord> = fs.existsSync(VERIFICATIONS_FILE)
-    ? (JSON.parse(fs.readFileSync(VERIFICATIONS_FILE, "utf8")) as Record<string, GuideVerificationRecord>)
+  const records: Record<string, GuideVerificationRecord> = fs.existsSync(
+    VERIFICATIONS_FILE,
+  )
+    ? (JSON.parse(fs.readFileSync(VERIFICATIONS_FILE, "utf8")) as Record<
+        string,
+        GuideVerificationRecord
+      >)
     : {};
   records[slug] = record;
 
@@ -1195,7 +1362,11 @@ async function main(): Promise<void> {
     for (const guide of guides) {
       log(`\n${guide.slug}`);
       try {
-        const record: GuideVerificationRecord = await verifyGuide(guide, receiver, workDir);
+        const record: GuideVerificationRecord = await verifyGuide(
+          guide,
+          receiver,
+          workDir,
+        );
         writeRecord(guide.slug, record);
         log(
           `  passed: ${record.observed.spans.length} span names, ${record.observed.metrics.length} metrics, ${record.observed.logs.length} log lines`,

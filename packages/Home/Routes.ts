@@ -2190,18 +2190,15 @@ const HomeFeatureSet: FeatureSet = {
      */
     app.get(PROVIDER_LOGO_ROUTE, serveProviderLogo);
 
-    app.get(
-      "/integrations",
-      (_req: ExpressRequest, res: ExpressResponse) => {
-        const homeUrl: string = res.locals["homeUrl"] as string;
-        res.render(`${ViewsPath}/integrations/index`, {
-          enableGoogleTagManager: GoogleTagManagerEnabled,
-          seo: getSEOForPath("/integrations", homeUrl),
-          integrations: getIntegrationsIndexContent(homeUrl),
-          integrationsScript: getIntegrationsScriptPath(),
-        });
-      },
-    );
+    app.get("/integrations", (_req: ExpressRequest, res: ExpressResponse) => {
+      const homeUrl: string = res.locals["homeUrl"] as string;
+      res.render(`${ViewsPath}/integrations/index`, {
+        enableGoogleTagManager: GoogleTagManagerEnabled,
+        seo: getSEOForPath("/integrations", homeUrl),
+        integrations: getIntegrationsIndexContent(homeUrl),
+        integrationsScript: getIntegrationsScriptPath(),
+      });
+    });
 
     // The guides' folder is no page of its own: it is the index.
     app.get(

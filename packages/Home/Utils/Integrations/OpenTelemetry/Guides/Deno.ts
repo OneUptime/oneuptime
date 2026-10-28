@@ -211,7 +211,11 @@ export const DenoGuide: OpenTelemetryGuide = {
   cardDescription:
     "Deno's built-in OpenTelemetry: Deno.serve and fetch spans, console logs and metrics, with spans named per route.",
   searchTerms: ["deno", "deno.serve", "deno deploy", "typescript", "runtime"],
-  highlights: [`Deno ${DENO_VERSION}`, "Built-in OpenTelemetry", "No SDK to install"],
+  highlights: [
+    `Deno ${DENO_VERSION}`,
+    "Built-in OpenTelemetry",
+    "No SDK to install",
+  ],
 
   whatYouGet: {
     intro: `Every request \`Deno.serve\` answers becomes a trace, under the service whose name \`OTEL_SERVICE_NAME\` gives, in ${SCREENS.services}.`,
@@ -226,7 +230,13 @@ export const DenoGuide: OpenTelemetryGuide = {
   exampleTrace: {
     caption: "A POST /orders request, as its trace shows it",
     spans: [
-      { name: "POST /orders", depth: 0, start: 0, duration: 100, source: "deno" },
+      {
+        name: "POST /orders",
+        depth: 0,
+        start: 0,
+        duration: 100,
+        source: "deno",
+      },
       {
         name: "orders.place",
         depth: 1,
@@ -266,8 +276,7 @@ export const DenoGuide: OpenTelemetryGuide = {
     tabs: otlpEnvironmentTabs({
       serviceName: "orders-api",
       extraLines: ['export OTEL_DENO="true"'],
-      cloudNote:
-        "Deno reads them itself as it starts, before your code runs.",
+      cloudNote: "Deno reads them itself as it starts, before your code runs.",
     }),
     notes: [
       "Deno sends OTLP over HTTP as protobuf, which OneUptime's `/otlp` endpoint reads.",
@@ -350,7 +359,7 @@ export const DenoGuide: OpenTelemetryGuide = {
       "Use `console` as you do already: each line is sent, with the trace and span of the request it was written in.",
     snippets: [],
     notes: [
-      "The arguments are formatted into one line: `console.log(\"loading product\", id)` arrives as `loading product 42`.",
+      'The arguments are formatted into one line: `console.log("loading product", id)` arrives as `loading product 42`.',
       "`console.error` lines arrive at the error level, and the `log.iostream` attribute says whether a line went to stdout or stderr.",
       "Lines written outside a request, such as Deno's `Listening on` line, carry no trace.",
     ],
@@ -367,11 +376,13 @@ export const DenoGuide: OpenTelemetryGuide = {
       },
       {
         name: "http.server.active_requests",
-        description: "Requests in progress: a server that falls behind shows it here first.",
+        description:
+          "Requests in progress: a server that falls behind shows it here first.",
       },
       {
         name: "v8js.memory.heap.size",
-        description: "The heap, by space: a process that only grows has a leak.",
+        description:
+          "The heap, by space: a process that only grows has a leak.",
       },
     ],
     snippets: [customMetric],

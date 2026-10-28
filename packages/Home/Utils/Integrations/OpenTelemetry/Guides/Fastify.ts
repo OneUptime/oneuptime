@@ -320,7 +320,7 @@ export const FastifyGuide: OpenTelemetryGuide = {
         body: "Load the file before your server with `--import`:",
         snippets: [run],
         notes: [
-          "In `package.json`: `\"start\": \"node --import ./instrumentation.mjs server.js\"`. Where the command is fixed, set `NODE_OPTIONS=\"--import ./instrumentation.mjs\"` instead.",
+          'In `package.json`: `"start": "node --import ./instrumentation.mjs server.js"`. Where the command is fixed, set `NODE_OPTIONS="--import ./instrumentation.mjs"` instead.',
         ],
       },
       {
@@ -423,7 +423,7 @@ export const FastifyGuide: OpenTelemetryGuide = {
       "Fastify apps often serve thousands of requests a second. Keep a share of new traces, and every trace a caller already decided to keep:",
     snippets: [sampling],
     notes: [
-      "`OTEL_TRACES_SAMPLER_ARG=\"0.1\"` keeps one new trace in ten.",
+      '`OTEL_TRACES_SAMPLER_ARG="0.1"` keeps one new trace in ten.',
       "`http.server.request.duration` is recorded for every request, sampled or not, so latency charts stay exact.",
       "Health checks dropped with `ignoreIncomingRequestHook` are never traced at all, which saves more than sampling them.",
     ],
@@ -444,7 +444,7 @@ export const FastifyGuide: OpenTelemetryGuide = {
       }),
     ],
     notes: [
-      "`app.listen({ port: 3000, host: \"0.0.0.0\" })`: Fastify listens on `localhost` by default, which nothing outside the container reaches.",
+      '`app.listen({ port: 3000, host: "0.0.0.0" })`: Fastify listens on `localhost` by default, which nothing outside the container reaches.',
       "On SIGTERM, the instrumentation file sends what is still buffered, then exits.",
     ],
   },

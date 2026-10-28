@@ -37,7 +37,9 @@ export const BROWSER_PACKAGES: Array<string> = [
   "@opentelemetry/opentelemetry-browser-detector",
 ];
 
-export function browserInstallSnippet(extraPackages: Array<string>): GuideSnippet {
+export function browserInstallSnippet(
+  extraPackages: Array<string>,
+): GuideSnippet {
   return npmInstallSnippet("install", [...BROWSER_PACKAGES, ...extraPackages]);
 }
 
@@ -49,7 +51,8 @@ export interface BrowserTelemetryOptions {
 }
 
 // The origin of the API the example page calls, which gets the traceparent header.
-export const EXAMPLE_API_PATTERN: string = "/^https:\\/\\/api\\.example\\.com\\//";
+export const EXAMPLE_API_PATTERN: string =
+  "/^https:\\/\\/api\\.example\\.com\\//";
 
 /*
  * src/telemetry.ts: traces, logs and metrics to OneUptime with a Browser

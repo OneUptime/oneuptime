@@ -33,7 +33,9 @@ import { describe, expect, test } from "@jest/globals";
 
 const SLUG: RegExp = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-function slugsOf(guides: ReadonlyArray<OpenTelemetryGuideEntry>): Array<string> {
+function slugsOf(
+  guides: ReadonlyArray<OpenTelemetryGuideEntry>,
+): Array<string> {
   return guides.map((guide: OpenTelemetryGuideEntry): string => {
     return guide.slug;
   });
@@ -51,7 +53,9 @@ describe("the guides' addresses", () => {
 
   test("keep the JavaScript and TypeScript guides where they were published", () => {
     expect(
-      slugsOf(getOpenTelemetryGuidesOfLanguage(OpenTelemetryGuideLanguage.JavaScript)),
+      slugsOf(
+        getOpenTelemetryGuidesOfLanguage(OpenTelemetryGuideLanguage.JavaScript),
+      ),
     ).toEqual([
       "nodejs",
       "express",
@@ -70,7 +74,9 @@ describe("the guides' addresses", () => {
 
   test("are paths under /integrations/opentelemetry/ on the website", () => {
     expect(OPEN_TELEMETRY_GUIDES_INDEX_PATH).toBe("/integrations");
-    expect(OPEN_TELEMETRY_GUIDE_PATH_PREFIX).toBe("/integrations/opentelemetry/");
+    expect(OPEN_TELEMETRY_GUIDE_PATH_PREFIX).toBe(
+      "/integrations/opentelemetry/",
+    );
     expect(getOpenTelemetryGuidePath("express")).toBe(
       "/integrations/opentelemetry/express",
     );
@@ -81,7 +87,9 @@ describe("the guides' addresses", () => {
     expect(getOpenTelemetryGuideUrl("nextjs")).toBe(
       "https://oneuptime.com/integrations/opentelemetry/nextjs",
     );
-    expect(getOpenTelemetryGuidesIndexUrl()).toBe("https://oneuptime.com/integrations");
+    expect(getOpenTelemetryGuidesIndexUrl()).toBe(
+      "https://oneuptime.com/integrations",
+    );
 
     const url: URL = new URL(getOpenTelemetryGuideUrl("react"));
     expect(url.origin).toBe("https://oneuptime.com");
@@ -102,7 +110,15 @@ describe("a guide's entry", () => {
         return guide.name;
       }),
     ).toEqual(
-      expect.arrayContaining(["Node.js", "Express", "NestJS", "Next.js", "hapi", "Bun", "Deno"]),
+      expect.arrayContaining([
+        "Node.js",
+        "Express",
+        "NestJS",
+        "Next.js",
+        "hapi",
+        "Bun",
+        "Deno",
+      ]),
     );
     for (const guide of OPEN_TELEMETRY_GUIDES) {
       expect(guide.name.trim()).toBe(guide.name);
@@ -113,7 +129,10 @@ describe("a guide's entry", () => {
   test("names a logo the registry has, where it names one", () => {
     for (const guide of OPEN_TELEMETRY_GUIDES) {
       if (guide.logo !== undefined) {
-        expect([guide.slug, isProviderLogo(guide.logo)]).toEqual([guide.slug, true]);
+        expect([guide.slug, isProviderLogo(guide.logo)]).toEqual([
+          guide.slug,
+          true,
+        ]);
       }
     }
   });
@@ -154,13 +173,17 @@ describe("the language groups", () => {
 
   test("are found by language", () => {
     expect(
-      getOpenTelemetryGuideLanguageGroup(OpenTelemetryGuideLanguage.JavaScript).title,
+      getOpenTelemetryGuideLanguageGroup(OpenTelemetryGuideLanguage.JavaScript)
+        .title,
     ).toBe("JavaScript & TypeScript");
-    expect(getOpenTelemetryGuideLanguageGroup(OpenTelemetryGuideLanguage.DotNet).title).toBe(
-      ".NET",
-    );
+    expect(
+      getOpenTelemetryGuideLanguageGroup(OpenTelemetryGuideLanguage.DotNet)
+        .title,
+    ).toBe(".NET");
     expect(() => {
-      return getOpenTelemetryGuideLanguageGroup("cobol" as OpenTelemetryGuideLanguage);
+      return getOpenTelemetryGuideLanguageGroup(
+        "cobol" as OpenTelemetryGuideLanguage,
+      );
     }).toThrow("No OpenTelemetry guide language group for cobol");
   });
 });
@@ -169,7 +192,9 @@ describe("the guides the Dashboard's telemetry guide opens", () => {
   test("are named by the languages its buttons offer, and no other", () => {
     for (const guide of OPEN_TELEMETRY_GUIDES) {
       if (guide.telemetryGuideLanguage !== undefined) {
-        expect(TELEMETRY_GUIDE_LANGUAGE_KEYS).toContain(guide.telemetryGuideLanguage);
+        expect(TELEMETRY_GUIDE_LANGUAGE_KEYS).toContain(
+          guide.telemetryGuideLanguage,
+        );
       }
     }
     expect(new Set(TELEMETRY_GUIDE_LANGUAGE_KEYS).size).toBe(
@@ -179,11 +204,12 @@ describe("the guides the Dashboard's telemetry guide opens", () => {
 
   test("give every language with guides exactly one guide of its own", () => {
     for (const key of TELEMETRY_GUIDE_LANGUAGE_KEYS) {
-      const guides: Array<OpenTelemetryGuideEntry> = OPEN_TELEMETRY_GUIDES.filter(
-        (guide: OpenTelemetryGuideEntry): boolean => {
-          return guide.telemetryGuideLanguage === key;
-        },
-      );
+      const guides: Array<OpenTelemetryGuideEntry> =
+        OPEN_TELEMETRY_GUIDES.filter(
+          (guide: OpenTelemetryGuideEntry): boolean => {
+            return guide.telemetryGuideLanguage === key;
+          },
+        );
 
       if (guides.length === 0) {
         continue;
@@ -261,13 +287,16 @@ describe("the guides the Dashboard's telemetry guide opens", () => {
 });
 
 describe("the guides the product pages feature", () => {
-  const featured: Array<OpenTelemetryGuideEntry> = getFeaturedOpenTelemetryGuides();
+  const featured: Array<OpenTelemetryGuideEntry> =
+    getFeaturedOpenTelemetryGuides();
 
   test("are the guides marked featured, in the catalog's order", () => {
     expect(featured).toEqual(
-      OPEN_TELEMETRY_GUIDES.filter((guide: OpenTelemetryGuideEntry): boolean => {
-        return guide.isFeatured === true;
-      }),
+      OPEN_TELEMETRY_GUIDES.filter(
+        (guide: OpenTelemetryGuideEntry): boolean => {
+          return guide.isFeatured === true;
+        },
+      ),
     );
     expect(slugsOf(featured)).toEqual([
       "nodejs",
@@ -282,7 +311,9 @@ describe("the guides the product pages feature", () => {
   test("fill two rows at most", () => {
     expect(MAX_FEATURED_OPEN_TELEMETRY_GUIDES).toBe(12);
     expect(featured.length).toBeGreaterThan(0);
-    expect(featured.length).toBeLessThanOrEqual(MAX_FEATURED_OPEN_TELEMETRY_GUIDES);
+    expect(featured.length).toBeLessThanOrEqual(
+      MAX_FEATURED_OPEN_TELEMETRY_GUIDES,
+    );
   });
 
   test("name at least one guide of every language that has guides", () => {
@@ -304,7 +335,10 @@ describe("the guides the product pages feature", () => {
 
   test("each have the framework's official logo: a row of brands on a product page", () => {
     for (const guide of featured) {
-      expect([guide.slug, guide.logo !== undefined]).toEqual([guide.slug, true]);
+      expect([guide.slug, guide.logo !== undefined]).toEqual([
+        guide.slug,
+        true,
+      ]);
     }
   });
 });

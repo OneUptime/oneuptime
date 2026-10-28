@@ -58,10 +58,17 @@ async function openPage(
   }
   dom.window.eval(SCRIPT);
 
-  return { window: dom.window, document: dom.window.document, writeText: writeText };
+  return {
+    window: dom.window,
+    document: dom.window.document,
+    writeText: writeText,
+  };
 }
 
-function openGuide(slug: string, storage?: Record<string, string>): Promise<Page> {
+function openGuide(
+  slug: string,
+  storage?: Record<string, string>,
+): Promise<Page> {
   return openPage(
     "integrations/opentelemetry-guide.ejs",
     {
@@ -88,14 +95,18 @@ function selectedTabs(document: Document, group: string): Array<string> {
   return Array.from(document.querySelectorAll(`[data-tabs="${group}"]`)).map(
     (tabs: Element): string => {
       return (
-        tabs.querySelector('[role="tab"][aria-selected="true"]')?.getAttribute("data-tab-value") || ""
+        tabs
+          .querySelector('[role="tab"][aria-selected="true"]')
+          ?.getAttribute("data-tab-value") || ""
       );
     },
   );
 }
 
 function shownPanels(document: Document, group: string): Array<string> {
-  return Array.from(document.querySelectorAll(`[data-tabs="${group}"] [data-tab-panel]`))
+  return Array.from(
+    document.querySelectorAll(`[data-tabs="${group}"] [data-tab-panel]`),
+  )
     .filter((panel: Element): boolean => {
       return !(panel as HTMLElement).hidden;
     })
@@ -130,33 +141,47 @@ async function settle(): Promise<void> {
 
 describe("a guide's code blocks", () => {
   test("hide their Copy button until the script can copy, then show it", async () => {
-    const html: string = await renderView("integrations/opentelemetry-guide.ejs", {
-      enableGoogleTagManager: false,
-      integrationsScript: "/js/integrations.js",
-      seo: seoFor(getOpenTelemetryGuidePath("express")),
-      guide: getGuidePageContent("express", HOME_URL),
-    });
+    const html: string = await renderView(
+      "integrations/opentelemetry-guide.ejs",
+      {
+        enableGoogleTagManager: false,
+        integrationsScript: "/js/integrations.js",
+        seo: seoFor(getOpenTelemetryGuidePath("express")),
+        guide: getGuidePageContent("express", HOME_URL),
+      },
+    );
     const before: Document = new JSDOM(html).window.document;
     const after: Page = await openGuide("express");
 
-    for (const button of Array.from(before.querySelectorAll("[data-copy-button]"))) {
+    for (const button of Array.from(
+      before.querySelectorAll("[data-copy-button]"),
+    )) {
       expect(button.hasAttribute("hidden")).toBe(true);
     }
-    for (const button of Array.from(after.document.querySelectorAll("[data-copy-button]"))) {
+    for (const button of Array.from(
+      after.document.querySelectorAll("[data-copy-button]"),
+    )) {
       expect((button as HTMLButtonElement).hidden).toBe(false);
     }
   });
 
   test("copy the code as written and say so", async () => {
     const page: Page = await openGuide("express");
-    const block: Element = page.document.querySelector('[data-snippet="install"]')!;
-    const button: HTMLButtonElement = block.querySelector("[data-copy-button]")!;
+    const block: Element = page.document.querySelector(
+      '[data-snippet="install"]',
+    )!;
+    const button: HTMLButtonElement =
+      block.querySelector("[data-copy-button]")!;
 
     button.click();
     await settle();
 
-    expect(page.writeText).toHaveBeenCalledWith(block.querySelector("code")!.textContent);
-    expect(button.querySelector("[data-copy-label]")!.textContent).toBe("Copied");
+    expect(page.writeText).toHaveBeenCalledWith(
+      block.querySelector("code")!.textContent,
+    );
+    expect(button.querySelector("[data-copy-label]")!.textContent).toBe(
+      "Copied",
+    );
     expect(button.getAttribute("data-copy-state")).toBe("copied");
   });
 
@@ -172,7 +197,9 @@ describe("a guide's code blocks", () => {
     button.click();
     await settle();
 
-    expect(button.querySelector("[data-copy-label]")!.textContent).toBe("Copy failed");
+    expect(button.querySelector("[data-copy-label]")!.textContent).toBe(
+      "Copy failed",
+    );
     expect(button.getAttribute("data-copy-state")).toBe("failed");
   });
 });
@@ -181,8 +208,12 @@ describe("a guide's tabs", () => {
   test("open the first choice of each set before the reader picks", async () => {
     const page: Page = await openGuide("fastify");
 
-    expect(selectedTabs(page.document, "deployment")).toEqual(["OneUptime Cloud"]);
-    expect(shownPanels(page.document, "deployment")).toEqual(["OneUptime Cloud"]);
+    expect(selectedTabs(page.document, "deployment")).toEqual([
+      "OneUptime Cloud",
+    ]);
+    expect(shownPanels(page.document, "deployment")).toEqual([
+      "OneUptime Cloud",
+    ]);
   });
 
   test("open the one the reader picks, and remember it for the next guide", async () => {
@@ -200,9 +231,9 @@ describe("a guide's tabs", () => {
       "oneuptime-integrations-tab-deployment": "Self-hosted",
     });
     expect(selectedTabs(next.document, "deployment")).toEqual(["Self-hosted"]);
-    expect(page.window.localStorage.getItem("oneuptime-integrations-tab-deployment")).toBe(
-      "Self-hosted",
-    );
+    expect(
+      page.window.localStorage.getItem("oneuptime-integrations-tab-deployment"),
+    ).toBe("Self-hosted");
   });
 
   test("move with the arrow keys, as a tab list does", async () => {
@@ -211,10 +242,14 @@ describe("a guide's tabs", () => {
       '[data-tabs="deployment"] [role="tab"]',
     )!;
 
-    cloud.dispatchEvent(new page.window.KeyboardEvent("keydown", { key: "ArrowRight" }));
+    cloud.dispatchEvent(
+      new page.window.KeyboardEvent("keydown", { key: "ArrowRight" }),
+    );
 
     expect(selectedTabs(page.document, "deployment")).toEqual(["Self-hosted"]);
-    expect(page.document.activeElement?.getAttribute("data-tab-value")).toBe("Self-hosted");
+    expect(page.document.activeElement?.getAttribute("data-tab-value")).toBe(
+      "Self-hosted",
+    );
   });
 
   test("ignore a remembered choice the set does not offer", async () => {
@@ -222,7 +257,9 @@ describe("a guide's tabs", () => {
       "oneuptime-integrations-tab-deployment": "Somewhere else",
     });
 
-    expect(selectedTabs(page.document, "deployment")).toEqual(["OneUptime Cloud"]);
+    expect(selectedTabs(page.document, "deployment")).toEqual([
+      "OneUptime Cloud",
+    ]);
   });
 });
 
@@ -233,7 +270,9 @@ describe("the index's search", () => {
     expect(shownCards(page.document).length).toBe(
       page.document.querySelectorAll("[data-integration-card]").length,
     );
-    expect(page.document.querySelector("[data-integrations-count]")!.textContent).toBe("");
+    expect(
+      page.document.querySelector("[data-integrations-count]")!.textContent,
+    ).toBe("");
   });
 
   test("finds a guide by its name, its words, or both", async () => {
@@ -245,11 +284,17 @@ describe("the index's search", () => {
       "/integrations/opentelemetry/nextjs",
       "/integrations/opentelemetry/react",
     ]);
-    expect(page.document.querySelector("[data-integrations-count]")!.textContent).toBe("2 guides");
+    expect(
+      page.document.querySelector("[data-integrations-count]")!.textContent,
+    ).toBe("2 guides");
 
     search(page, "spa vite");
-    expect(shownCards(page.document)).toEqual(["/integrations/opentelemetry/react"]);
-    expect(page.document.querySelector("[data-integrations-count]")!.textContent).toBe("1 guide");
+    expect(shownCards(page.document)).toEqual([
+      "/integrations/opentelemetry/react",
+    ]);
+    expect(
+      page.document.querySelector("[data-integrations-count]")!.textContent,
+    ).toBe("1 guide");
 
     search(page, "rum");
     expect(shownCards(page.document)).toEqual([
@@ -259,7 +304,9 @@ describe("the index's search", () => {
     ]);
 
     search(page, "  Winston  ");
-    expect(shownCards(page.document)).toEqual(["/integrations/opentelemetry/koa"]);
+    expect(shownCards(page.document)).toEqual([
+      "/integrations/opentelemetry/koa",
+    ]);
   });
 
   test("says when nothing matches, and points at the docs", async () => {
@@ -268,10 +315,16 @@ describe("the index's search", () => {
     search(page, "cobol");
 
     expect(shownCards(page.document)).toEqual([]);
-    const empty: HTMLElement = page.document.querySelector("[data-integrations-empty]")!;
+    const empty: HTMLElement = page.document.querySelector(
+      "[data-integrations-empty]",
+    )!;
     expect(empty.hidden).toBe(false);
-    expect(empty.querySelector("a")!.getAttribute("href")).toBe("/docs/telemetry/open-telemetry");
-    for (const group of Array.from(page.document.querySelectorAll("[data-integrations-group]"))) {
+    expect(empty.querySelector("a")!.getAttribute("href")).toBe(
+      "/docs/telemetry/open-telemetry",
+    );
+    for (const group of Array.from(
+      page.document.querySelectorAll("[data-integrations-group]"),
+    )) {
       expect((group as HTMLElement).hidden).toBe(true);
     }
   });

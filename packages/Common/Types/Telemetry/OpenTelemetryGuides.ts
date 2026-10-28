@@ -35,27 +35,44 @@ export enum OpenTelemetryGuideLanguage {
 
 /*
  * The languages the Dashboard's telemetry guide lets a reader pick (its
- * language buttons, in their order). Each guide below names the one it
- * belongs to, so the telemetry guide can open it for the language picked.
+ * language buttons). Each guide below names the one it belongs to, so the
+ * telemetry guide can open it for the language picked.
  */
-export const TELEMETRY_GUIDE_LANGUAGE_KEYS = [
-  "node",
-  "python",
-  "go",
-  "java",
-  "dotnet",
-  "rust",
-  "php",
-  "ruby",
-  "elixir",
-  "cpp",
-  "swift",
-  "react",
-  "angular",
-] as const;
-
 export type TelemetryGuideLanguageKey =
-  (typeof TELEMETRY_GUIDE_LANGUAGE_KEYS)[number];
+  | "node"
+  | "python"
+  | "go"
+  | "java"
+  | "dotnet"
+  | "rust"
+  | "php"
+  | "ruby"
+  | "elixir"
+  | "cpp"
+  | "swift"
+  | "react"
+  | "angular";
+
+/*
+ * The same languages, in the order the telemetry guide's buttons show them
+ * (its tests hold the buttons to this list).
+ */
+export const TELEMETRY_GUIDE_LANGUAGE_KEYS: ReadonlyArray<TelemetryGuideLanguageKey> =
+  [
+    "node",
+    "python",
+    "go",
+    "java",
+    "dotnet",
+    "rust",
+    "php",
+    "ruby",
+    "elixir",
+    "cpp",
+    "swift",
+    "react",
+    "angular",
+  ];
 
 export interface OpenTelemetryGuideLanguageGroup {
   language: OpenTelemetryGuideLanguage;

@@ -182,7 +182,9 @@ function environmentLines(
  * tab's lines (pointed at its local receiver), so the variable names are
  * checked; the self-hosted tab differs only in the host.
  */
-export function otlpEnvironmentTabs(options: OtlpEnvironmentOptions): GuideTabs {
+export function otlpEnvironmentTabs(
+  options: OtlpEnvironmentOptions,
+): GuideTabs {
   return {
     group: "deployment",
     tabs: [
@@ -242,16 +244,17 @@ export const SERVER_KEY_PREREQUISITE: InlineText = `A OneUptime ingestion key of
 export const BROWSER_KEY_PREREQUISITE: InlineText = `A OneUptime ingestion key of the **Browser** type, from ${SCREENS.ingestionKeys}, with every origin your pages are served from in its **Allowed Origins**: see [Ingestion keys](/docs/telemetry/ingestion-keys).`;
 
 export const VALIDATE_SERVER_KEY_BODY: InlineText =
-  "`200` with `\"valid\": true` means OneUptime accepts the key. A `401` says why it does not: the key is unknown, switched off or expired.";
+  '`200` with `"valid": true` means OneUptime accepts the key. A `401` says why it does not: the key is unknown, switched off or expired.';
 
 export const VALIDATE_BROWSER_KEY_BODY: InlineText =
-  "`200` with `\"valid\": true` means OneUptime accepts the key; for a Browser key, the message adds that it works only from a browser, from one of its Allowed Origins. A `401` says why it does not.";
+  '`200` with `"valid": true` means OneUptime accepts the key; for a Browser key, the message adds that it works only from a browser, from one of its Allowed Origins. A `401` says why it does not.';
 
 // Every guide's first check: whether OneUptime accepts the key at all.
 export function validateKeyStep(kind: "server" | "browser"): GuideStep {
   return {
     title: "Ask OneUptime whether it accepts the key",
-    body: kind === "server" ? VALIDATE_SERVER_KEY_BODY : VALIDATE_BROWSER_KEY_BODY,
+    body:
+      kind === "server" ? VALIDATE_SERVER_KEY_BODY : VALIDATE_BROWSER_KEY_BODY,
     snippets: [
       validateKeySnippet(
         kind === "server" ? INGESTION_KEY_PLACEHOLDER : BROWSER_KEY_PLACEHOLDER,
@@ -355,4 +358,3 @@ export function kubernetesManifestSnippet(
  */
 export const VERIFICATION_RECEIVER: string =
   "OpenTelemetry Collector Contrib 0.161.0, behind a stand-in for OneUptime's /otlp endpoint that refuses a request without the x-oneuptime-token header";
-

@@ -81,7 +81,10 @@ export function npmInstallSnippet(
 }
 
 // `bun add` of the given packages at their pinned versions, one a line.
-export function bunAddSnippet(id: string, packages: Array<string>): GuideSnippet {
+export function bunAddSnippet(
+  id: string,
+  packages: Array<string>,
+): GuideSnippet {
   return {
     id: id,
     language: "bash",
@@ -139,11 +142,9 @@ export function nodeInstrumentationFile(
     `        ignoreIncomingRequestHook: (request) => request.url === "${healthCheckPath}",`,
     "      },",
     "    }),",
-    ...(options.extraInstrumentationLines || []).map(
-      (line: string): string => {
-        return `    ${line}`;
-      },
-    ),
+    ...(options.extraInstrumentationLines || []).map((line: string): string => {
+      return `    ${line}`;
+    }),
     "  ],",
     "});",
     "",
@@ -177,7 +178,9 @@ export interface NodeDockerfileOptions {
 }
 
 // A Node.js 24 image that loads OpenTelemetry before the app.
-export function nodeDockerfileSnippet(options: NodeDockerfileOptions): GuideSnippet {
+export function nodeDockerfileSnippet(
+  options: NodeDockerfileOptions,
+): GuideSnippet {
   const lines: Array<string> = [
     "FROM node:24-alpine",
     "WORKDIR /app",

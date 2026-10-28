@@ -167,7 +167,15 @@ export const BrowserGuide: OpenTelemetryGuide = {
   lead: "The OpenTelemetry browser SDK runs in your visitors' browsers and sends what it records straight to OneUptime, with a Browser key that only works from your own origins. This guide sets up page loads, requests, clicks, uncaught errors, logs and Core Web Vitals for any web page, whatever its bundler.",
   cardDescription:
     "Page loads, fetch and XHR calls, clicks, uncaught errors and Core Web Vitals, as a RUM application.",
-  searchTerms: ["browser", "rum", "real user monitoring", "web vitals", "frontend", "javascript", "vite"],
+  searchTerms: [
+    "browser",
+    "rum",
+    "real user monitoring",
+    "web vitals",
+    "frontend",
+    "javascript",
+    "vite",
+  ],
   highlights: ["Real User Monitoring", "Core Web Vitals", "Any bundler"],
 
   whatYouGet: {
@@ -183,7 +191,13 @@ export const BrowserGuide: OpenTelemetryGuide = {
   exampleTrace: {
     caption: "A click that refreshes the cart, as its trace shows it",
     spans: [
-      { name: "click", depth: 0, start: 0, duration: 100, source: "user-interaction" },
+      {
+        name: "click",
+        depth: 0,
+        start: 0,
+        duration: 100,
+        source: "user-interaction",
+      },
       {
         name: "cart.refresh",
         depth: 1,
@@ -271,7 +285,8 @@ export const BrowserGuide: OpenTelemetryGuide = {
       },
       {
         library: "`XMLHttpRequest`",
-        covers: "The same for libraries built on XHR, such as older Axios versions.",
+        covers:
+          "The same for libraries built on XHR, such as older Axios versions.",
       },
       {
         library: "User interaction",
@@ -321,7 +336,8 @@ export const BrowserGuide: OpenTelemetryGuide = {
       },
       {
         name: "web_vital.cls",
-        description: "Cumulative Layout Shift, a score, reported when the page is hidden.",
+        description:
+          "Cumulative Layout Shift, a score, reported when the page is hidden.",
       },
       {
         name: "web_vital.fcp",
@@ -445,7 +461,12 @@ export const BrowserGuide: OpenTelemetryGuide = {
   ],
 
   related: ["react", "angular", "nextjs", "nodejs"],
-  docs: [DOCS.browserSetup, DOCS.webVitals, DOCS.sessionReplay, DOCS.sourceMaps],
+  docs: [
+    DOCS.browserSetup,
+    DOCS.webVitals,
+    DOCS.sessionReplay,
+    DOCS.sourceMaps,
+  ],
 
   verification: {
     runtime: "browser",
@@ -453,7 +474,8 @@ export const BrowserGuide: OpenTelemetryGuide = {
     files: [
       {
         path: "package.json",
-        content: '{ "name": "storefront-web", "private": true, "type": "module" }',
+        content:
+          '{ "name": "storefront-web", "private": true, "type": "module" }',
       },
       { path: "src/telemetry.ts", snippet: "telemetry" },
       { path: "src/web-vitals.ts", snippet: "web-vitals" },
@@ -500,7 +522,10 @@ export const BrowserGuide: OpenTelemetryGuide = {
         "web_vital.cls",
       ],
       logs: [{ body: "cart refreshed", hasTraceContext: true }],
-      resource: { "service.name": "storefront-web", "browser.language": "en-US" },
+      resource: {
+        "service.name": "storefront-web",
+        "browser.language": "en-US",
+      },
     },
   },
 };
