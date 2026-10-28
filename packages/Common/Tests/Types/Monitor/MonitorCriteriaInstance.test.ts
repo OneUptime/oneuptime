@@ -9,6 +9,7 @@ import {
 } from "../../../Types/Monitor/CriteriaFilter";
 import { JSONObject, ObjectType } from "../../../Types/JSON";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { getMonitorCriteriaInstanceSchema } from "../../../Utils/Schema/MonitorSchemas";
 
 /*
  * MonitorCriteriaInstance is a DatabaseProperty that carries the "if these
@@ -690,7 +691,7 @@ describe("MonitorCriteriaInstance", () => {
       const valueSchema: {
         shape: Record<string, { isOptional: () => boolean }>;
       } = (
-        MonitorCriteriaInstance.getSchema() as unknown as {
+        getMonitorCriteriaInstanceSchema() as unknown as {
           shape: {
             value: {
               shape: Record<string, { isOptional: () => boolean }>;

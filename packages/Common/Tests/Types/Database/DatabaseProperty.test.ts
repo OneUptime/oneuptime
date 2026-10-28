@@ -145,10 +145,15 @@ describe("DatabaseProperty", () => {
   });
 
   describe("base class defaults", () => {
-    it("getSchema throws NotImplementedException on the base class", () => {
-      expect(() => {
-        return DatabaseProperty.getSchema();
-      }).toThrow(NotImplementedException);
+    it("builds no API schema: the server's Utils/Schema/TypeSchemas does, so no browser loads zod for one", () => {
+      /*
+       * Every frontend loads the value Types, and a getSchema() here put
+       * zod into each of them (Tests/Utils/Schema/ZodOutOfBrowserGuard).
+       */
+      expect(
+        Object.prototype.hasOwnProperty.call(DatabaseProperty, "getSchema"),
+      ).toBe(false);
+      expect("getSchema" in DatabaseProperty).toBe(false);
     });
 
     it("still short-circuits undefined even on the un-implemented base", () => {
