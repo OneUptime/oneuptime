@@ -19,6 +19,11 @@ export interface ComponentProps {
    * "Filter options" to a screen reader cannot be told apart.
    */
   ariaLabel?: string | undefined;
+  /*
+   * Each option's test id: this, a dash and the option's value
+   * ("retrohunt-period-168").
+   */
+  dataTestId?: string | undefined;
 }
 
 const FilterButtons: FunctionComponent<ComponentProps> = (
@@ -37,6 +42,16 @@ const FilterButtons: FunctionComponent<ComponentProps> = (
         return (
           <button
             key={option.value}
+            /*
+             * A choice, never a submit: inside a form (a rule's Run on Past
+             * Events, say) a bare <button> would send the form.
+             */
+            type="button"
+            data-testid={
+              props.dataTestId
+                ? `${props.dataTestId}-${option.value}`
+                : undefined
+            }
             onClick={() => {
               props.onSelect(option.value);
             }}

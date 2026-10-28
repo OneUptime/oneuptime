@@ -40,6 +40,7 @@ Open **Products → Security Events**, under **Observability**. Its menu has a s
 | **Entity Risk** | Events | Every user, host and address scored by what was found about it this week, the riskiest first |
 | **Correlate** | Events | A graph of the events that share a host, a user or an IP address |
 | **Detection Rules** | Detections | Sigma rules that run on a schedule and open cases |
+| **Rule Exceptions** | Detections | What your rules skip on purpose, such as a scanner or a planned test, each with who added it and why |
 | **Rule Library** | Detections | Ready-made detection rules to add, each with the events it reads and whether they arrive, the recommended ones marked |
 | **Threat Intel** | Detections | STIX/TAXII feeds of known-bad indicators |
 | **ATT&CK Coverage** | Detections | The MITRE ATT&CK techniques your rules cover |
@@ -418,6 +419,32 @@ A Detection Finding is a security event of class `Detection Finding` (OCSF class
 
 Findings are ordinary events: search them in **Events** and pivot on them in **Correlate**. To try a new rule quietly, turn off every action but the finding until you trust it.
 
+### Exceptions
+
+An exception is something a rule skips because you expect it, such as a vulnerability scanner, a nightly backup job or a planned penetration test. It quiets the rule for that one thing without turning it off, and the rule's other matches still fire. Every exception is listed under **Products → Security Events → Detections → Rule Exceptions**: add one there with **Add Rule Exception**, with **Add Exception** in a rule's row, or with **Add Exception** in a detection's row on a case, which starts with the detection's rule and what it fired for.
+
+| What the rule skips | What it matches |
+| --- | --- |
+| **An entity** | A user, host or IP address wherever an event names it: as who acted (`principalUser`, `principalHost`, `principalIp`), as who was acted on (`targetUser`, `targetHost`, `targetIp`), or among its `observables` |
+| **A value** | One field's value, the field named as a rule names it: `processName`, `principalUser` or an attribute key such as `http.user_agent` |
+| **A time window** | Every event from **Starts At** to **Ends At**, at most 30 days apart |
+
+- Values match whatever their case, and `*` stands for any run of characters: `svc-*` skips every service account, and `*.lab.example.com` every host of a domain. An IP address can be a range, such as `10.20.0.0/16`. A value of only `*` is refused: to stop a rule, turn it off.
+- Each exception says why in its **Reason**, which everyone who reads the list sees, and keeps who added it and when. An entity or a value can have an **Expires At**, after which the rule sees it again; a time window ends by itself.
+- **Status** says where each one stands: **Active**, **Upcoming** for a window that has not started, **Expired** or **Ended**. Under a rule's name in **Detection Rules**, a line counts its active exceptions, and **View Exceptions** in the rule's row opens the list filtered to it.
+- Skipped events are left out before the rule counts anything, so they never count toward its **Match Count Threshold** and open no case, alert, incident or finding. Exceptions apply to every run of the rule, correlations included, and to **Run on Past Events**, but never to a test attack, which checks that events get through.
+- A rule has at most 100 exceptions. Whoever may edit detection rules adds, changes and removes them, every Security role can read them, and each change is kept in the project's audit log.
+
+### Run on Past Events
+
+**Run on Past Events** shows what a rule would have found had it been running, without opening, sending or writing anything. It is in a rule's row, for the rule as saved, and under **Sigma Rule (YAML)** in the rule's form, for the rule as it stands there, before you save it. Pick **Last 24 hours**, **Last 7 days** or **Last 30 days**.
+
+- A rule is counted as its runs count it: in windows as long as its **Evaluation Interval (Minutes)**, a group firing in a window when its count there reaches the **Match Count Threshold**. A correlation is read over the whole period, and lists the groups it would have matched, each with what happened.
+- The answer says how many times the rule would have fired, how many times a day, for how many users, hosts or addresses, and how many events matched. The 50 groups that fired most are listed, each with its events and when it last fired.
+- A saved rule's exceptions apply, and the answer says how many events they skipped and how many firings they prevented. A rule that would not have fired says how close it came: how many events matched, and the threshold no group reached in one window.
+- A rule that would fire more than 20 times a day fires more than a person can look at, and the answer says so, with ways to make it quieter.
+- It reads only the sources you can read. A run that takes longer than 45 seconds is stopped and says so: pick a shorter period.
+
 ## Security Events monitors
 
 A Security Events monitor counts the events that match its filters over a rolling window and runs the usual monitor criteria on the count: it changes the monitor's status, opens alerts or incidents, and pages on-call. Create one under **Monitors → Create Monitor**, with **Security Events** as the type; it is listed there with your other monitors.
@@ -468,6 +495,18 @@ Check its **Status**: a **Disabled** rule does not run, and when it reads **Run 
 
 :::details A rule opens too many alerts
 Each value of the **Group By Field** gets its own alert: group by something coarser, raise the threshold, or add a Distinct Count Field. To care about the rate rather than each match, set **Alerts and Incidents** to **Neither** and put a monitor on the rule's findings.
+:::
+
+:::details A rule fires on something you expect
+Add an exception for it rather than turning the rule off: **Add Exception** in the detection's row on its case starts with the rule and what it fired for. To change the rule itself, **Run on Past Events** under its YAML shows what the change would have found before you save it.
+:::
+
+:::details An exception doesn't skip what it should
+Check its **Status** in **Rule Exceptions**: an **Expired** one skips nothing, and a time window skips only the events between its two times. An entity is looked for as who acted, as who was acted on and among the event's `observables`; to skip a value of another field, add **A value** that names the field. Without a `*`, a value must equal the whole field: `svc-*` skips `svc-backup`, and `svc-` does not.
+:::
+
+:::details Run on Past Events finds nothing
+It reads only the period you pick and the sources you can read. When events matched but no group reached the **Match Count Threshold** in one window, the answer says how many matched: lower the threshold, or count over a longer **Evaluation Interval (Minutes)**.
 :::
 
 ## Next steps

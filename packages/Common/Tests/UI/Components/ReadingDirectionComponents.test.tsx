@@ -822,6 +822,40 @@ describe("a value someone wrote, in a line of the page", () => {
     expect(isolate()).not.toHaveAttribute("dir");
   });
 
+  test("a long name breaks after its own dots and slashes when asked, and reads as written", () => {
+    const { container, rerender } = render(
+      <IsolatedText
+        text="*.lab.acme-commerce.example"
+        className="font-mono"
+        breaksLikeAName={true}
+      />,
+    );
+
+    const isolate: () => Element = (): Element => {
+      return container.firstElementChild!;
+    };
+
+    // "*." / "lab." / "acme-commerce." / "example": a break after each dot.
+    expect(isolate().tagName).toBe("BDI");
+    expect(isolate()).toHaveAttribute("dir", "ltr");
+    expect(isolate().className).toBe("font-mono");
+    expect(isolate().querySelectorAll("wbr")).toHaveLength(3);
+    // A <wbr> adds no character: copied or read aloud, it is the value.
+    expect(isolate().textContent).toBe("*.lab.acme-commerce.example");
+
+    // A short name fits a line of its own and gets no break inside.
+    rerender(
+      <IsolatedText text="backup.exe" className="font-mono" breaksLikeAName />,
+    );
+    expect(isolate().querySelectorAll("wbr")).toHaveLength(0);
+    expect(isolate().textContent).toBe("backup.exe");
+
+    // Not asked: the text as it is, as every other value someone wrote.
+    rerender(<IsolatedText text="*.lab.acme-commerce.example" />);
+    expect(isolate().querySelectorAll("wbr")).toHaveLength(0);
+    expect(isolate().textContent).toBe("*.lab.acme-commerce.example");
+  });
+
   test("a table's cell draws its text in one", () => {
     render(
       <table>

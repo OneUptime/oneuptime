@@ -135,6 +135,8 @@ const EXPECTED: Array<[string, Array<[string, string]>]> = [
     "Detections",
     [
       ["Detection Rules", PageMap.SECURITY_EVENTS_DETECTION_RULES],
+      // What the rules skip, every exception in one list to review.
+      ["Rule Exceptions", PageMap.SECURITY_EVENTS_RULE_EXCEPTIONS],
       ["Rule Library", PageMap.SECURITY_EVENTS_RULE_LIBRARY],
       ["Threat Intel", PageMap.SECURITY_EVENTS_THREAT_INTEL],
       ["ATT&CK Coverage", PageMap.SECURITY_EVENTS_ATTACK_COVERAGE],

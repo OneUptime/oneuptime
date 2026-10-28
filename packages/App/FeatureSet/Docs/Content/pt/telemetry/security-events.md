@@ -40,6 +40,7 @@ Abra **Produtos → Security Events**, em **Observabilidade**. O menu dele tem u
 | **Risco de entidades** | Eventos | Cada usuário, host e endereço, pontuado pelo que foi encontrado sobre ele nesta semana, os de maior risco primeiro |
 | **Correlacionar** | Eventos | Um grafo dos eventos que compartilham um host, um usuário ou um endereço IP |
 | **Regras de detecção** | Detections | Regras Sigma que rodam em uma programação e abrem casos |
+| **Exceções de regra** | Detections | O que suas regras ignoram de propósito, como um scanner ou um teste planejado, cada um com quem o adicionou e por quê |
 | **Biblioteca de regras** | Detections | Regras de detecção prontas para adicionar, cada uma com os eventos que lê e se eles chegam, com as recomendadas marcadas |
 | **Inteligência de ameaças** | Detections | Feeds STIX/TAXII de indicadores maliciosos conhecidos |
 | **Cobertura ATT&CK** | Detections | As técnicas MITRE ATT&CK que as suas regras cobrem |
@@ -418,6 +419,32 @@ Um Detection Finding é um evento de segurança da classe `Detection Finding` (c
 
 Os achados são eventos comuns: pesquise-os em **Eventos** e faça pivô sobre eles em **Correlacionar**. Para testar uma regra nova em silêncio, desative todas as ações menos o achado até confiar nela.
 
+### Exceções
+
+Uma exceção é algo que uma regra ignora porque você já espera, como um scanner de vulnerabilidades, um job de backup noturno ou um teste de invasão planejado. Ela silencia a regra para essa única coisa sem desativá-la, e as outras correspondências da regra continuam disparando. Toda exceção fica listada em **Produtos → Security Events → Detecções → Exceções de regra**: adicione uma ali com **Adicionar: Exceção de regra**, com **Adicionar exceção** na linha de uma regra, ou com **Adicionar exceção** na linha de uma detecção de um caso, que já começa com a regra da detecção e aquilo para o que ela disparou.
+
+| O que a regra ignora | Com o que corresponde |
+| --- | --- |
+| **Uma entidade** | Um usuário, host ou endereço IP, onde quer que um evento o cite: como quem agiu (`principalUser`, `principalHost`, `principalIp`), como quem sofreu a ação (`targetUser`, `targetHost`, `targetIp`), ou entre seus `observables` |
+| **Um valor** | O valor de um campo, com o campo nomeado como uma regra o nomeia: `processName`, `principalUser` ou uma chave de atributo como `http.user_agent` |
+| **Uma janela de tempo** | Todo evento de **Começa em** até **Termina em**, com no máximo 30 dias de diferença |
+
+- Os valores correspondem sem diferenciar maiúsculas e minúsculas, e `*` representa qualquer sequência de caracteres: `svc-*` ignora toda conta de serviço, e `*.lab.example.com` todo host de um domínio. Um endereço IP pode ser um intervalo, como `10.20.0.0/16`. Um valor feito só de `*` é recusado: para parar uma regra, desative-a.
+- Cada exceção diz o porquê em seu **Motivo**, que todos que leem a lista veem, e guarda quem a adicionou e quando. Uma entidade ou um valor pode ter uma data em **Expira em**, depois da qual a regra volta a vê-lo; uma janela de tempo termina sozinha.
+- **Status** diz em que ponto cada uma está: **Ativo**, **Programado** para uma janela que ainda não começou, **Expirado** ou **Encerrado**. Sob o nome de uma regra em **Regras de detecção**, uma linha conta suas exceções ativas, e **Ver exceções** na linha da regra abre a lista filtrada por ela.
+- Os eventos ignorados são descartados antes que a regra conte qualquer coisa, então nunca contam para seu **Limite de correspondências** e não abrem caso, alerta, incidente nem achado. As exceções valem para toda execução da regra, correlações incluídas, e para **Executar em eventos passados**, mas nunca para um ataque de teste, que verifica se os eventos chegam.
+- Uma regra tem no máximo 100 exceções. Quem pode editar regras de detecção as adiciona, altera e remove, toda função de Security pode lê-las, e cada alteração fica no log de auditoria do projeto.
+
+### Executar em eventos passados
+
+**Executar em eventos passados** mostra o que uma regra teria encontrado se estivesse rodando, sem abrir, enviar nem gravar nada. Ele fica na linha de uma regra, para a regra como está salva, e sob **Regra Sigma (YAML)** no formulário da regra, para a regra como está ali, antes de você salvá-la. Escolha **Últimas 24 horas**, **Últimos 7 dias** ou **Últimos 30 dias**.
+
+- Uma regra é contada como suas execuções a contam: em janelas tão longas quanto seu **Intervalo de avaliação (minutos)**, e um grupo dispara numa janela quando sua contagem ali atinge o **Limite de correspondências**. Uma correlação é lida sobre o período inteiro, e lista os grupos com que teria correspondido, cada um com o que aconteceu.
+- A resposta diz quantas vezes a regra teria disparado, quantas vezes por dia, para quantos usuários, hosts ou endereços, e quantos eventos corresponderam. Os 50 grupos que mais dispararam são listados, cada um com seus eventos e quando disparou pela última vez.
+- As exceções de uma regra salva se aplicam, e a resposta diz quantos eventos elas ignoraram e quantos disparos evitaram. Uma regra que não teria disparado diz o quão perto chegou: quantos eventos corresponderam, e o limite que nenhum grupo atingiu numa janela.
+- Uma regra que dispararia mais de 20 vezes por dia dispara mais do que uma pessoa consegue examinar, e a resposta diz isso, com formas de deixá-la mais silenciosa.
+- Ele lê só as fontes que você pode ler. Uma execução que leva mais de 45 segundos é interrompida e diz isso: escolha um período mais curto.
+
 ## Monitores de eventos de segurança
 
 Um monitor de eventos de segurança conta os eventos que correspondem aos filtros dele em uma janela deslizante e aplica à contagem os critérios habituais de monitor: muda o status do monitor, abre alertas ou incidentes e aciona o plantão. Crie um em **Monitores → Criar monitor**, com **Eventos de segurança** como tipo; ele aparece lá junto com seus outros monitores.
@@ -468,6 +495,18 @@ Confira o **Status** dela: com **Desabilitado** a regra não é executada, e com
 
 :::details Uma regra abre alertas demais
 Cada valor do **Campo de agrupamento** recebe o próprio alerta: agrupe por algo mais amplo, aumente o limite ou acrescente uma contagem distinta. Se o que importa é o ritmo e não cada correspondência, escolha **Nenhum** em **Alertas e incidentes** e coloque um monitor sobre os achados da regra.
+:::
+
+:::details Uma regra dispara com algo que você espera
+Adicione uma exceção para isso em vez de desativar a regra: **Adicionar exceção** na linha da detecção no caso já começa com a regra e aquilo para o que ela disparou. Para mudar a própria regra, **Executar em eventos passados** sob o YAML dela mostra o que a mudança teria encontrado antes de você salvar.
+:::
+
+:::details Uma exceção não ignora o que deveria
+Verifique seu **Status** em **Exceções de regra**: uma exceção com status **Expirado** não ignora nada, e uma janela de tempo só ignora os eventos entre seus dois horários. Uma entidade é procurada como quem agiu, como quem sofreu a ação e entre os `observables` do evento; para ignorar um valor de outro campo, adicione uma exceção **Um valor** que nomeie esse campo. Sem `*`, um valor precisa ser igual ao campo inteiro: `svc-*` ignora `svc-backup`, e `svc-` não.
+:::
+
+:::details Executar uma regra em eventos passados não encontra nada
+Ele lê só o período que você escolhe e as fontes que você pode ler. Quando houve eventos correspondentes mas nenhum grupo atingiu o **Limite de correspondências** numa janela, a resposta diz quantos corresponderam: baixe o limite, ou conte sobre um **Intervalo de avaliação (minutos)** mais longo.
 :::
 
 ## Próximos passos
