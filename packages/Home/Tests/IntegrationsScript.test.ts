@@ -6,6 +6,7 @@ import { getGuidePageContent } from "../Utils/Integrations/OpenTelemetry/GuidePa
 import { getIntegrationsIndexContent } from "../Utils/Integrations/OpenTelemetry/IntegrationsIndex";
 import { HOME_URL, renderView, seoFor } from "./Helpers/TailwindPages";
 import { describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import fs from "fs";
 import { JSDOM } from "jsdom";
 import path from "path";
@@ -27,7 +28,7 @@ const SCRIPT: string = fs.readFileSync(
 interface Page {
   window: JSDOM["window"];
   document: Document;
-  writeText: jest.Mock<(text: string) => Promise<void>>;
+  writeText: Mock<(text: string) => Promise<void>>;
 }
 
 async function openPage(
@@ -42,7 +43,7 @@ async function openPage(
     ...locals,
   });
   const dom: JSDOM = new JSDOM(html, { url: url, runScripts: "outside-only" });
-  const writeText: jest.Mock<(text: string) => Promise<void>> = jest.fn(
+  const writeText: Mock<(text: string) => Promise<void>> = jest.fn(
     (_text: string): Promise<void> => {
       return Promise.resolve();
     },

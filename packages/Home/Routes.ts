@@ -69,7 +69,7 @@ import { fetchGitHubContributors } from "./Utils/GitHubContributors";
 import { BackToMetal } from "./Utils/Books/BookCatalog";
 import { DefaultBookStore } from "./Utils/Books/BookStore";
 import { handleBookContent } from "./Utils/Books/BookContentRoute";
-import { getBookPageAssets, versionedStaticPath } from "./Utils/StaticAssets";
+import { getBookPageAssets } from "./Utils/StaticAssets";
 import {
   GuidePageContent,
   getGuidePageContent,
@@ -77,6 +77,7 @@ import {
 import {
   getFeaturedGuideCards,
   getIntegrationsIndexContent,
+  getIntegrationsScriptPath,
 } from "./Utils/Integrations/OpenTelemetry/IntegrationsIndex";
 import {
   generateGuideMarkdown,
@@ -2197,7 +2198,7 @@ const HomeFeatureSet: FeatureSet = {
           enableGoogleTagManager: GoogleTagManagerEnabled,
           seo: getSEOForPath("/integrations", homeUrl),
           integrations: getIntegrationsIndexContent(homeUrl),
-          integrationsScript: versionedStaticPath("/js/integrations.js"),
+          integrationsScript: getIntegrationsScriptPath(),
         });
       },
     );
@@ -2229,7 +2230,7 @@ const HomeFeatureSet: FeatureSet = {
           enableGoogleTagManager: GoogleTagManagerEnabled,
           seo: getSEOForPath(`/integrations/opentelemetry/${slug}`, homeUrl),
           guide: guide,
-          integrationsScript: versionedStaticPath("/js/integrations.js"),
+          integrationsScript: getIntegrationsScriptPath(),
         });
       },
     );

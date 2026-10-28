@@ -9,6 +9,7 @@ import {
   ProviderLogoImage,
   getProviderLogoImage,
 } from "../../ProviderLogoFiles";
+import { versionedStaticPath } from "../../StaticAssets";
 import { GuideCard, guideCard } from "./GuidePage";
 import { OpenTelemetryGuide } from "./GuideTypes";
 import { getPublishedGuides } from "./OpenTelemetryGuides";
@@ -127,6 +128,15 @@ export function getFeaturedGuideCards(): Array<GuideCard> {
     .map(({ guide }: { guide: OpenTelemetryGuide }): GuideCard => {
       return guideCard(guide.slug);
     });
+}
+
+/*
+ * The pages' script (Static/js/integrations.js: copy buttons, tabs and the
+ * index's search), at an address that changes with its content, so a
+ * browser never runs a stale copy.
+ */
+export function getIntegrationsScriptPath(): string {
+  return versionedStaticPath("/js/integrations.js");
 }
 
 // "A", "A and B", "A, B and C".
