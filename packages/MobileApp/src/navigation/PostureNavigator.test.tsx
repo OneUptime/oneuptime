@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   SafeAreaInsetsContext,
@@ -32,6 +32,7 @@ import {
   getStackedDescriptors,
 } from "./createAdaptiveStackNavigator";
 import { useListPane } from "./paneState";
+import { DIVIDER_HANDLE_TOUCH_WIDTH } from "./PaneDivider";
 import {
   WindowLayoutProvider,
   usePane,
@@ -303,7 +304,6 @@ describe("Half open on a table", () => {
       screen.getByTestId("list-pane");
     expect(listPane).toHaveStyle({
       height: 884 - 442 - TABLETOP_FOLD_GAP / 2,
-      borderTopWidth: 1,
     });
     expect(screen.getByTestId("pane-gap")).toHaveStyle({
       height: TABLETOP_FOLD_GAP,
@@ -319,6 +319,27 @@ describe("Half open on a table", () => {
     );
     // Nothing to drag: the fold is the divider.
     expect(screen.queryByTestId("pane-divider")).toBeNull();
+  });
+
+  test("the line between the panes runs on the fold itself, the band's middle, as a book's divider does", async () => {
+    setWindowSize(ON_ITS_SIDE);
+    await renderStack(fakeSource(TABLETOP));
+
+    const gap: ReturnType<typeof screen.getByTestId> =
+      screen.getByTestId("pane-gap");
+    expect(gap).toHaveStyle({
+      height: TABLETOP_FOLD_GAP,
+      justifyContent: "center",
+    });
+    // One hairline, centred in the band: the fold at 442, the same room above and below it.
+    expect(within(gap).getByTestId("pane-fold-line")).toHaveStyle({
+      height: 1,
+    });
+    // Not a second line at the list's top edge, 12 points off the crease.
+    const listStyle: Record<string, unknown> = StyleSheet.flatten(
+      screen.getByTestId("list-pane").props.style,
+    ) as Record<string, unknown>;
+    expect(listStyle.borderTopWidth ?? 0).toBe(0);
   });
 
   test("the list below the fold has no header of its own: the project switcher heads the window, above", async () => {
@@ -374,7 +395,10 @@ describe("Half open on a table", () => {
     await act(async () => {
       source.emit(TABLETOP);
     });
-    expect(screen.getByTestId("list-pane")).toHaveStyle({ borderTopWidth: 1 });
+    expect(screen.getByTestId("adaptive-panes")).toHaveStyle({
+      flexDirection: "column-reverse",
+    });
+    expect(screen.getByTestId("pane-fold-line")).toBeTruthy();
     expect(screen.getByTestId("note-a")).toHaveProp(
       "value",
       "Rolled back the deploy",
@@ -487,8 +511,11 @@ describe("Half open like a book", () => {
     await renderStack(fakeSource(report(size, [bookFold(534, 900, 42)])));
 
     expect(screen.getByTestId("pane-gap")).toHaveStyle({ width: 42 });
+    // The hinge hides that band; the list's own edge is the line.
+    expect(screen.queryByTestId("pane-fold-line")).toBeNull();
     expect(screen.getByTestId("list-pane")).toHaveStyle({
       width: 534 - (NAVIGATION_RAIL_WIDTH + INSETS.left),
+      borderRightWidth: 1,
     });
   });
 });
@@ -518,8 +545,9 @@ describe("Lying flat, the reader drags the divider", () => {
     expect(screen.getByTestId("list-pane")).toHaveStyle({
       width: ON_THE_FOLD,
     });
+    // Its touch target centred on the list's edge.
     expect(screen.getByTestId("pane-divider")).toHaveStyle({
-      left: ON_THE_FOLD - 20,
+      left: ON_THE_FOLD - DIVIDER_HANDLE_TOUCH_WIDTH / 2,
     });
   });
 

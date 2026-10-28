@@ -117,13 +117,10 @@ describe("toPreferredListPaneWidth: what is remembered", () => {
 });
 
 describe("describeListPaneShare: what a screen reader says", () => {
-  test("the list's share of the width the panes share", () => {
-    expect(describeListPaneShare(362, 804)).toBe(
-      "The list takes 45% of the width",
-    );
-    expect(describeListPaneShare(402, 804)).toBe(
-      "The list takes 50% of the width",
-    );
+  test("the list's share of the width the panes share, as a slider's value: 'List width, 45%'", () => {
+    expect(describeListPaneShare(362, 804)).toBe("45%");
+    expect(describeListPaneShare(402, 804)).toBe("50%");
+    expect(describeListPaneShare(840, 1200)).toBe("70%");
   });
 
   test("nothing, without a width to share", () => {

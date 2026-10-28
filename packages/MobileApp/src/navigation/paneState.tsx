@@ -176,7 +176,10 @@ export function opensAtFirstRow(pane: ResolvedPaneLayout): boolean {
 export interface PaneScrollOptions {
   /**
    * Where the list's header starts in its scrolling content - the list's own
-   * top padding - since the header's layout is measured inside the list.
+   * top padding - for a virtualized list (FlatList, SectionList), whose
+   * header is measured inside a cell of its own. A header placed straight in
+   * a ScrollView's padded content is measured from the content's top, padding
+   * included, and takes none (ListStatusScroll).
    */
   headerTop?: number;
 }

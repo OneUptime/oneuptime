@@ -590,7 +590,6 @@ export default function AlertsScreen({
         <ListStatusScroll
           scrollKey="alerts.scroll.status"
           header={listHeader}
-          headerTop={spacing.xl}
           testID="response-list-status"
           refreshControl={refreshControl}
           contentContainerStyle={contentContainerStyle}
@@ -617,7 +616,6 @@ export default function AlertsScreen({
         <ListStatusScroll
           scrollKey="alerts.scroll.status"
           header={listHeader}
-          headerTop={spacing.xl}
           testID="response-list-status"
           refreshControl={refreshControl}
           contentContainerStyle={contentContainerStyle}

@@ -400,6 +400,34 @@ function DividerHandle({
   );
 }
 
+/*
+ * The space between two panes: a hinge that hides part of the window, or the
+ * band kept clear around a tabletop fold. Stacked, the line between the panes
+ * runs along the middle of the band - on the fold itself, as the divider runs
+ * along a book's fold - so the crease and the line are one, with the same
+ * room on either side of it.
+ */
+function PaneGap({
+  size,
+  stacked,
+}: {
+  size: number;
+  stacked: boolean;
+}): React.JSX.Element {
+  const { theme } = useTheme();
+  if (!stacked) {
+    return <View testID="pane-gap" style={{ width: size }} />;
+  }
+  return (
+    <View testID="pane-gap" style={{ height: size, justifyContent: "center" }}>
+      <View
+        testID="pane-fold-line"
+        style={{ height: 1, backgroundColor: theme.colors.borderSubtle }}
+      />
+    </View>
+  );
+}
+
 function ListPane({
   descriptor,
   width,
@@ -451,8 +479,6 @@ function ListPane({
           stacked
             ? {
                 height,
-                borderTopWidth: 1,
-                borderTopColor: theme.colors.borderSubtle,
                 backgroundColor: theme.colors.backgroundPrimary,
               }
             : {
@@ -677,14 +703,7 @@ function AdaptiveStackNavigator({
                 />
               ) : null}
               {split && windowLayout.paneGap > 0 ? (
-                <View
-                  testID="pane-gap"
-                  style={
-                    stacked
-                      ? { height: windowLayout.paneGap }
-                      : { width: windowLayout.paneGap }
-                  }
-                />
+                <PaneGap size={windowLayout.paneGap} stacked={stacked} />
               ) : null}
               <PaneProvider pane={stackPane}>
                 <View

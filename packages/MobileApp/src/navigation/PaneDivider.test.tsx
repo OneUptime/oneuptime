@@ -8,7 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { ThemeProvider } from "../theme";
+import { ThemeProvider, touchTarget } from "../theme";
 import PaneDivider, {
   DIVIDER_HANDLE_TOUCH_HEIGHT,
   DIVIDER_HANDLE_TOUCH_WIDTH,
@@ -96,6 +96,11 @@ describe("The divider's handle", () => {
       top: "50%",
     });
     expect(screen.getByTestId("pane-divider-pill")).toBeTruthy();
+  });
+
+  test("its touch target is at least every control's minimum wide, and taller than that", () => {
+    expect(DIVIDER_HANDLE_TOUCH_WIDTH).toBeGreaterThanOrEqual(touchTarget);
+    expect(DIVIDER_HANDLE_TOUCH_HEIGHT).toBeGreaterThan(touchTarget);
   });
 
   test("claims the touch, and keeps it from a list scrolling underneath", async () => {
@@ -246,14 +251,15 @@ describe("The divider with a screen reader", () => {
     expect(handle.props.accessible).toBe(true);
     expect(handle.props.accessibilityRole).toBe("adjustable");
     expect(handle.props.accessibilityLabel).toBe("List width");
+    // Swiping up or down is the screen reader's own slider gesture, which it names itself.
     expect(handle.props.accessibilityHint).toBe(
-      "Drag to make the list wider or narrower. Double tap to put the divider back.",
+      "Double tap to put the divider back.",
     );
     expect(handle.props.accessibilityValue).toEqual({
       min: 320,
       max: 444,
       now: ON_THE_FOLD,
-      text: "The list takes 45% of the width",
+      text: "45%",
     });
     expect(
       handle.props.accessibilityActions.map(

@@ -604,7 +604,6 @@ export default function IncidentsScreen({
         <ListStatusScroll
           scrollKey="incidents.scroll.status"
           header={listHeader}
-          headerTop={spacing.xl}
           testID="response-list-status"
           refreshControl={refreshControl}
           contentContainerStyle={contentContainerStyle}
@@ -631,7 +630,6 @@ export default function IncidentsScreen({
         <ListStatusScroll
           scrollKey="incidents.scroll.status"
           header={listHeader}
-          headerTop={spacing.xl}
           testID="response-list-status"
           refreshControl={refreshControl}
           contentContainerStyle={contentContainerStyle}

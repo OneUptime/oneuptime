@@ -280,7 +280,6 @@ export default function SecurityCasesScreen(): React.JSX.Element {
         <ListStatusScroll
           scrollKey="security.scroll.status"
           header={listHeader}
-          headerTop={spacing.xl}
           testID="security-cases-status"
           refreshControl={refreshControl}
           contentContainerStyle={contentContainerStyle}

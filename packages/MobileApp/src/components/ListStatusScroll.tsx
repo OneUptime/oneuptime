@@ -20,14 +20,18 @@ import {
  * view opens past its header, as the list itself does (paneState.tsx), so
  * the reader sees at once that the rows are coming - or that they are not,
  * and what to do. Everywhere else it is a plain scroll view.
+ *
+ * The header sits straight inside the scroll view's padded content, so where
+ * its layout puts it already counts that top padding. Unlike a virtualized
+ * list's header, measured inside a cell of its own, it takes no headerTop:
+ * counted twice, the padding would scroll the first skeleton card's top edge
+ * out of sight.
  */
 export interface ListStatusScrollProps {
   /** The pane-state key its scroll position is kept under. */
   scrollKey: string;
   /** The list's own header: its view switch, search and filters. */
   header: React.ReactNode;
-  /** The scroll view's top padding, where the header starts. */
-  headerTop: number;
   contentContainerStyle: StyleProp<ViewStyle>;
   refreshControl?: React.ReactElement<RefreshControlProps>;
   testID?: string;
@@ -37,7 +41,6 @@ export interface ListStatusScrollProps {
 export default function ListStatusScroll({
   scrollKey,
   header,
-  headerTop,
   contentContainerStyle,
   refreshControl,
   testID,
@@ -50,7 +53,6 @@ export default function ListStatusScroll({
     (offsetY: number): void => {
       scrollRef.current?.scrollTo({ x: 0, y: offsetY, animated: false });
     },
-    { headerTop },
   );
 
   return (

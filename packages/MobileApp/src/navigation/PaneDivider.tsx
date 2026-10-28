@@ -6,7 +6,7 @@ import {
   type GestureResponderEvent,
   type ViewStyle,
 } from "react-native";
-import { useTheme } from "../theme";
+import { touchTarget, useTheme } from "../theme";
 import type { ListPaneWidthRange } from "../layout/windowLayout";
 import {
   clampListPaneWidth,
@@ -33,9 +33,12 @@ import {
  * swipe up or down to widen or narrow the list.
  */
 
-/** The handle's touch target, centred on the divider. */
-export const DIVIDER_HANDLE_TOUCH_WIDTH: number = 40;
-export const DIVIDER_HANDLE_TOUCH_HEIGHT: number = 96;
+/**
+ * The handle's touch target, centred on the divider: as wide as every other
+ * control's minimum (touchTarget), and twice that tall.
+ */
+export const DIVIDER_HANDLE_TOUCH_WIDTH: number = touchTarget;
+export const DIVIDER_HANDLE_TOUCH_HEIGHT: number = touchTarget * 2;
 
 /** The pill the reader sees. */
 const PILL_WIDTH: number = 4;
@@ -171,7 +174,8 @@ export default function PaneDivider({
         accessible
         accessibilityRole="adjustable"
         accessibilityLabel="List width"
-        accessibilityHint="Drag to make the list wider or narrower. Double tap to put the divider back."
+        // Swiping up or down to adjust is the screen reader's own gesture for a slider, and it says so itself.
+        accessibilityHint="Double tap to put the divider back."
         accessibilityValue={{
           min: Math.round(range.min),
           max: Math.round(range.max),

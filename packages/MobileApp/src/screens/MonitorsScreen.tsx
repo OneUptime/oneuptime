@@ -597,7 +597,6 @@ export default function MonitorsScreen(): React.JSX.Element {
         <ListStatusScroll
           scrollKey="monitors.scroll.status"
           header={listHeader}
-          headerTop={spacing.xl}
           testID="monitor-list-loading"
           contentContainerStyle={scrollContentStyle}
         >
@@ -619,7 +618,6 @@ export default function MonitorsScreen(): React.JSX.Element {
         <ListStatusScroll
           scrollKey="monitors.scroll.status"
           header={listHeader}
-          headerTop={spacing.xl}
           testID="monitor-list-error"
           contentContainerStyle={scrollContentStyle}
           refreshControl={refreshControl}

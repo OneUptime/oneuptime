@@ -65,7 +65,11 @@ export function toPreferredListPaneWidth(
   return Math.abs(width - defaultWidth) < 0.5 ? null : width;
 }
 
-/** The share of the pane area the list takes, as a screen reader says it. */
+/**
+ * The share of the pane area the list takes, as a screen reader says it
+ * after the handle's name - "List width, 45%" - the way a platform slider
+ * says its value.
+ */
 export function describeListPaneShare(
   width: number,
   contentWidth: number,
@@ -74,5 +78,5 @@ export function describeListPaneShare(
     return "";
   }
   const percent: number = Math.round((width / contentWidth) * 100);
-  return `The list takes ${percent}% of the width`;
+  return `${percent}%`;
 }

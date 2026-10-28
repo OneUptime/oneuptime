@@ -76,5 +76,6 @@ ships the module (RELEASING.md lists them too):
 5. A tablet that does not fold: the handle is there; the divider starts where
    it always has.
 6. The cover screen, and any phone: nothing changed.
-7. TalkBack on the handle: it reads "List width", how much of the width the
-   list takes, and swiping up or down moves it.
+7. TalkBack on the handle: it reads "List width" and the list's share of the
+   width ("45%"), double tapping it puts the divider back, and swiping up or
+   down moves it.

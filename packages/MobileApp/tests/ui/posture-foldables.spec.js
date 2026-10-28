@@ -143,6 +143,10 @@ async function expectPanesClearOfFold(page, foldY) {
     foldY - TABLETOP_FOLD_GAP / 2 + 1,
   );
   expect(list.y).toBeGreaterThanOrEqual(foldY + TABLETOP_FOLD_GAP / 2 - 1);
+  // The one line between them runs on the crease itself, as a book's divider does.
+  const line = await box(page.getByTestId("pane-fold-line"));
+  expect(Math.abs(line.y + line.height / 2 - foldY)).toBeLessThanOrEqual(1);
+  expect(line.width).toBeGreaterThanOrEqual(detail.width - 1);
 }
 
 test.describe("half open on a table", () => {
@@ -291,6 +295,54 @@ test.describe("half open on a table", () => {
     ).toBeVisible();
     await expectPanesClearOfFold(page, 442);
     await capture(page, "tabletop-list-error", testInfo);
+  });
+
+  test("below the fold, a list still loading shows its first placeholder whole, then its first row", async ({
+    page,
+  }) => {
+    await page.setViewportSize(WINDOWS.innerLandscape);
+    await installFixtures(page);
+    // Registered after the fixtures, so it holds the incidents until the check is done.
+    let release = () => {};
+    const held = new Promise((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/incident/get-list*", async (route) => {
+      await held;
+      return route.fallback();
+    });
+    await page.goto("/");
+    await expect(page.getByText("Overview", { exact: true })).toBeVisible();
+    await emulate(page, WINDOWS.innerLandscape, {
+      orientation: "horizontal",
+      offset: 442,
+    });
+    await page.getByRole("tab", { name: "Inbox", exact: true }).click();
+
+    const listPane = page.getByTestId("list-pane");
+    const status = listPane.getByTestId("response-list-status");
+    const placeholders = listPane.getByTestId("response-list-loading");
+    await expect(placeholders).toBeVisible();
+    /*
+     * Opened past the header, and no further: the first placeholder card's
+     * top edge sits just under the categories, not cut off above them.
+     */
+    await expect
+      .poll(async () => {
+        const view = await status.boundingBox();
+        const first = await placeholders.boundingBox();
+        return view && first ? Math.round(first.y - view.y) : null;
+      })
+      .toBeGreaterThanOrEqual(0);
+    const view = await box(status);
+    const first = await box(placeholders);
+    expect(first.y - view.y).toBeLessThanOrEqual(8);
+
+    release();
+    await waitForFirstRow(listPane);
+    await expect(
+      listPane.getByRole("button", { name: /^Incident INC-1042/ }),
+    ).toBeInViewport();
   });
 
   test("closing flat and half again keeps the open incident and a half-written note", async ({

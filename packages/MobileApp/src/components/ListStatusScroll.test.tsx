@@ -30,6 +30,9 @@ const BESIDE_THE_DETAIL: PaneLayout = {
   insetRight: 0,
 };
 
+// The scroll view's padding: its header starts this far down its content.
+const TOP_PADDING: number = 20;
+
 let scrollTo: jest.SpiedFunction<ScrollView["scrollTo"]> | null = null;
 
 afterEach(() => {
@@ -49,10 +52,9 @@ async function renderStatus(pane: PaneLayout): Promise<void> {
         <ListStatusScroll
           scrollKey="incidents.scroll.status"
           header={<Text testID="list-header">Search and filters</Text>}
-          headerTop={20}
           testID="response-list-status"
           refreshControl={<RefreshControl refreshing={false} />}
-          contentContainerStyle={{ padding: 20 }}
+          contentContainerStyle={{ padding: TOP_PADDING }}
         >
           <View testID="list-error">
             <Text>Something went wrong</Text>
@@ -63,13 +65,24 @@ async function renderStatus(pane: PaneLayout): Promise<void> {
   );
 }
 
+/*
+ * The header's layout as the scroll view reports it: straight inside the
+ * padded content, so it starts the top padding down.
+ */
 async function settle(headerHeight: number): Promise<void> {
   const list: ReturnType<typeof screen.getByTestId> = screen.getByTestId(
     "response-list-status",
   );
   await fireEvent(list, "contentSizeChange", 400, 2000);
   await fireEvent(screen.getByTestId("list-header").parent!, "layout", {
-    nativeEvent: { layout: { x: 0, y: 0, width: 400, height: headerHeight } },
+    nativeEvent: {
+      layout: {
+        x: TOP_PADDING,
+        y: TOP_PADDING,
+        width: 400,
+        height: headerHeight,
+      },
+    },
   });
 }
 
@@ -90,7 +103,16 @@ describe("ListStatusScroll", () => {
 
     await settle(250);
 
-    expect(scrollTo).toHaveBeenCalledWith({ x: 0, y: 270, animated: false });
+    /*
+     * Where the header ends, the top padding counted once: counted again, the
+     * first skeleton card or the error opened with its top cut off.
+     */
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+    expect(scrollTo).toHaveBeenCalledWith({
+      x: 0,
+      y: TOP_PADDING + 250,
+      animated: false,
+    });
   });
 
   test("beside a detail, or on a phone, the header stays where it is", async () => {

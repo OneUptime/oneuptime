@@ -164,6 +164,9 @@ above: never assume a fold the platform did not report.
 | Flat, or no fold                                                                                    | Side by side; the divider has a handle the reader can drag                                   | As the table above   |
 | Unknown                                                                                             | As the table above; no handle                                                                | As the table above   |
 
+- **The line between stacked panes runs on the fold**, along the middle of
+  the band (`pane-fold-line`), as the divider runs along a book's fold: the
+  crease and the line are one, with the same room above and below it.
 - **Panes know their edges.** A stacked pane says so (`usePane().arrangement`
   is `"stacked"`), carries its own `height`, and hands its contents only the
   window insets it touches: the detail above the fold has no bottom inset and

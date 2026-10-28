@@ -517,7 +517,7 @@ describe("Half closing the phone on a table loses nothing either", () => {
     });
 
     // The incident above the fold, the inbox below it, the note untouched.
-    expect(screen.getByTestId("list-pane")).toHaveStyle({ borderTopWidth: 1 });
+    expect(screen.getByTestId("pane-fold-line")).toBeTruthy();
     expect(
       within(screen.getByTestId("detail-pane")).getByRole("header", {
         name: "Checkout is down",
