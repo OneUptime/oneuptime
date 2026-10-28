@@ -216,7 +216,7 @@ describe("a direct page's run, as its message tells it", () => {
     expect(built.currentRule).toBeUndefined();
     expect(built.nextRule).toBeUndefined();
     expect(built.firstRuleThatReachedNobody).toBeUndefined();
-    expect(built.retryingCurrentRule).toBe(false);
+    expect(built).not.toHaveProperty("retryingCurrentRule");
   });
 
   test("it has no next step and no repeats: everybody is paged at once", () => {
@@ -609,11 +609,39 @@ describe("a policy's run is not read as a direct page", () => {
     expect(built.repeatsAllowed).toBe(2);
   });
 
-  test("a skipped line of its timeline that names a team is not a team with no members", () => {
+  /*
+   * An escalation rule's team with nobody in it says so, as a direct page's
+   * does: a level whose only team is empty pages nobody, and its message
+   * names the team rather than "nobody to page".
+   */
+  test("a skipped line of its timeline that names a team, with nobody on it, is a team with no members too", () => {
     const built: OnCallPolicyRun = build({
       log: policyLog(),
       timeline: [
         line({ status: SKIPPED, teamId: PLATFORM, teamName: "Platform" }),
+      ],
+      directPage: undefined,
+    });
+
+    expect(
+      built.notPaged.filter((entry: { teamName?: string | undefined }) => {
+        return entry.teamName !== undefined;
+      }),
+    ).toEqual([{ teamName: "Platform", reason: "has no members" }]);
+  });
+
+  test("a person skipped as a member of a team is the person, not an empty team", () => {
+    const built: OnCallPolicyRun = build({
+      log: policyLog(),
+      timeline: [
+        line({
+          status: SKIPPED,
+          userId: NITIN,
+          userName: "Nitin",
+          teamId: PLATFORM,
+          teamName: "Platform",
+          statusMessage: "Skipped because this user is not a member of the project.",
+        }),
       ],
       directPage: undefined,
     });

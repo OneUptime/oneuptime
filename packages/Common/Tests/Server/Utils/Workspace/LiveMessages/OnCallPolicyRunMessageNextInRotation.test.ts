@@ -14,6 +14,7 @@ import OnCallPolicyRunMessageView, {
 } from "../../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessageView";
 import ObjectID from "../../../../../Types/ObjectID";
 import { NOBODY_NEXT_IN_ROTATION_TIMELINE_MESSAGE } from "../../../../../Types/OnCallDutyPolicy/NextInRotation";
+import { ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE } from "../../../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import OnCallDutyExecutionLogTimelineStatus from "../../../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import UserNotificationStatus from "../../../../../Types/UserNotification/UserNotificationStatus";
 
@@ -180,7 +181,11 @@ const NOBODY_NEXT: OnCallDutyPolicyExecutionLogTimeline = step({
   statusMessage: NOBODY_NEXT_IN_ROTATION_TIMELINE_MESSAGE,
 });
 
-const NO_USERS_IN_RULE: (
+/*
+ * A level's own line: it paged nobody, and the run moved on from it at
+ * once (OnCallEmptyLevel).
+ */
+const PAGED_NOBODY_AT: (
   ruleId: ObjectID,
 ) => OnCallDutyPolicyExecutionLogTimeline = (
   ruleId: ObjectID,
@@ -188,7 +193,7 @@ const NO_USERS_IN_RULE: (
   return step({
     status: SKIPPED,
     ruleId: ruleId,
-    statusMessage: "Skipped because no users in this rule.",
+    statusMessage: ON_CALL_LEVEL_PAGED_NOBODY_TIMELINE_MESSAGE,
   });
 };
 
@@ -308,7 +313,7 @@ describe("Level 2 found nobody next in the rotation", () => {
   const run: OnCallPolicyRun = build({
     onRule: LEVEL_2,
     order: 2,
-    timeline: [ALEX_ON_CALL, NOBODY_NEXT, NO_USERS_IN_RULE(LEVEL_2)],
+    timeline: [ALEX_ON_CALL, NOBODY_NEXT, PAGED_NOBODY_AT(LEVEL_2)],
     deliveries: [delivery(ALEX, "userSmsId")],
   });
 
@@ -328,14 +333,14 @@ describe("Level 2 found nobody next in the rotation", () => {
     ]);
   });
 
-  test("the rule is not being tried again: nobody next is not a coverage gap", () => {
-    expect(run.retryingCurrentRule).toBe(false);
+  test("the rule is not tried again: the run moves on from it at once", () => {
+    expect(run).not.toHaveProperty("retryingCurrentRule");
     expect(OnCallPolicyRunMessageView.getMarkdown(run)).not.toContain(
       "trying again",
     );
   });
 
-  test("the alarm about a rule that reached nobody says why, at once", () => {
+  test("the alarm about a rule that reached nobody says why, and that the next level was paged at once", () => {
     expect(run.firstRuleThatReachedNobody?.rule).toEqual({
       order: 2,
       name: "Level 2",
@@ -346,10 +351,10 @@ describe("Level 2 found nobody next in the rotation", () => {
 
     expect(alarms).toHaveLength(1);
     expect(alarms[0]!.markdown).toBe(
-      "⚠️ **[Payments](https://oneuptime.test/policy)** paged nobody at Level 2 of 3 for **[Incident INC-8](https://oneuptime.test/incident)** (nobody was next in the Payments primary rotation). If nobody is on it yet, page someone or fix the policy.",
+      "⚠️ **[Payments](https://oneuptime.test/policy)** paged nobody at Level 2 of 3 for **[Incident INC-8](https://oneuptime.test/incident)** (nobody was next in the Payments primary rotation), so it moved on to Platform (Level 3 of 3) at once. Fix the policy so this level pages someone.",
     );
     expect(alarms[0]!.text).toBe(
-      "Payments paged nobody at Level 2 of 3 for Incident INC-8",
+      "Payments paged nobody at Level 2 of 3 for Incident INC-8, so it moved on to Platform (Level 3 of 3) at once",
     );
   });
 
@@ -382,9 +387,9 @@ describe("Level 2 found nobody next in the rotation", () => {
           statusMessage:
             "Skipped because no active users are found in this schedule.",
         }),
-        NO_USERS_IN_RULE(LEVEL_1),
+        PAGED_NOBODY_AT(LEVEL_1),
         NOBODY_NEXT,
-        NO_USERS_IN_RULE(LEVEL_2),
+        PAGED_NOBODY_AT(LEVEL_2),
       ],
     });
 

@@ -2,10 +2,16 @@ import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolic
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import { readAwayUntil } from "../../../Types/OnCallDutyPolicy/AwayTimelineMessage";
 import {
+  ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_FIX,
   ON_CALL_POLICY_RUN_RECORD_HANDLED_MESSAGE_START,
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
   isOnCallPolicyRunEverybodyPassedOnMessage,
+  isOnCallPolicyRunNobodyNotifiedMessage,
 } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
+import {
+  OnCallEmptyLevelLine,
+  readOnCallEmptyLevelLine,
+} from "../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 import {
   getOnCallPassOnLevelCount,
   getOnCallPassOnLevelName,
@@ -47,6 +53,24 @@ import ProductBrandingText from "../ProductBrandingText";
  *     escalation rule has no responders.
  *   On-call policy PolicyX stopped paging because the incident is
  *     acknowledged or resolved.
+ *
+ * A level that pages nobody holds no wait (OnCallEmptyLevel): its own line
+ * says the policy moved on at once, after a line for each schedule or team
+ * it found nobody in, and the next level's entries follow in the same
+ * minute:
+ *
+ *   On-call policy PolicyX paged nobody at Level 1 of 2: this escalation
+ *     rule has no responders, so it moved on to the next level at once.
+ *   On-call policy PolicyX paged Nitin Kumar at Level 2 of 2.
+ *
+ *   On-call policy PolicyX paged nobody at Level 1 of 3: nobody was on call
+ *     in schedule Primary.
+ *   On-call policy PolicyX paged nobody at Level 1 of 3, so it moved on to
+ *     the next level at once.
+ *
+ * A level's own line, and a team's with nobody in it, say why in their own
+ * words: the step's status message ("Nobody at this level could be paged,
+ * so the policy moved on at once.") stays on the run's Execution Timeline.
  *
  * A level is named as the Escalate dialog and the run's Slack and Teams
  * message name it (OnCallPagePassOn): its name, then its place - or its
@@ -324,6 +348,54 @@ const getStepMessageSentence: (
   return asSentence(message);
 };
 
+/*
+ * Where a level that paged nobody moved the run on to, at once: ", so it
+ * moved on to the next level at once" - or nothing after the last level,
+ * where the run starts again from Level 1 or ends, and its next entry says
+ * which. With the levels not counted, ", so it moved on at once".
+ */
+const getMovedOnClause: (input: OnCallStepFeedTextInput) => MarkdownText = (
+  input: OnCallStepFeedTextInput,
+): MarkdownText => {
+  const order: number = Number(input.ruleOrder);
+  const count: number = Number(input.ruleCount);
+
+  if (
+    !Number.isInteger(order) ||
+    order < 1 ||
+    !Number.isInteger(count) ||
+    count < 1
+  ) {
+    return mdText`, so it moved on at once`;
+  }
+
+  return order < count
+    ? mdText`, so it moved on to the next level at once`
+    : FeedMarkdown.empty();
+};
+
+/*
+ * Whether a step about nobody says all there is in its headline: a level's
+ * own line (OnCallEmptyLevel), or a team of a level with nobody in it. A
+ * schedule's line keeps its message after it, as it always has.
+ */
+const isSaidInItsOwnWords: (input: OnCallStepFeedTextInput) => boolean = (
+  input: OnCallStepFeedTextInput,
+): boolean => {
+  if (hasMarkdown(input.recipient)) {
+    return false;
+  }
+
+  if (readOnCallEmptyLevelLine(input.statusMessage)) {
+    return true;
+  }
+
+  return (
+    Boolean((input.teamName || "").trim()) &&
+    !(input.scheduleName || "").trim()
+  );
+};
+
 // Who was (or was not) paged, by which policy, at which rule.
 const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
   input: OnCallStepFeedTextInput,
@@ -331,12 +403,35 @@ const getStepHeadline: (input: OnCallStepFeedTextInput) => MarkdownText = (
   const policy: MarkdownText = getPolicy(input.policyLink);
 
   if (!hasMarkdown(input.recipient)) {
+    const emptyLevelLine: OnCallEmptyLevelLine | null =
+      readOnCallEmptyLevelLine(input.statusMessage);
+
+    /*
+     * The level's own line: it paged nobody, and the run moved on from it
+     * at once. Why is the line before it (a schedule, a team, a person) -
+     * or, for a level that names nobody, said here.
+     */
+    if (
+      emptyLevelLine === OnCallEmptyLevelLine.NoResponders ||
+      emptyLevelLine === OnCallEmptyLevelLine.PagedNobody
+    ) {
+      const why: MarkdownText =
+        emptyLevelLine === OnCallEmptyLevelLine.NoResponders
+          ? mdText`: this escalation rule has no responders`
+          : FeedMarkdown.empty();
+
+      return mdText`${policy} paged nobody at ${getLevel(input)}${why}${getMovedOnClause(input)}.`;
+    }
+
     const scheduleName: string = (input.scheduleName || "").trim();
-    const reason: MarkdownText = !scheduleName
-      ? mdText`this escalation rule has no responders`
-      : input.isNextInRotation
+    const teamName: string = (input.teamName || "").trim();
+    const reason: MarkdownText = scheduleName
+      ? input.isNextInRotation
         ? mdText`nobody was next in the **${scheduleName}** rotation`
-        : mdText`nobody was on call in schedule **${scheduleName}**`;
+        : mdText`nobody was on call in schedule **${scheduleName}**`
+      : teamName
+        ? mdText`team **${teamName}** has no members`
+        : mdText`this escalation rule has no responders`;
 
     return mdText`${policy} paged nobody at ${getLevel(input)}: ${reason}.`;
   }
@@ -435,10 +530,16 @@ const getRunStatusSentences: (
 
       return [mdText`${policy} stopped paging.`, ...messageSentences];
     }
+    /*
+     * No level had anybody to page: who can put that right, rather than
+     * the run's message saying "no one was notified" a second time.
+     */
     case OnCallDutyPolicyStatus.CompletedWithNoNotifications:
       return [
         mdText`${policy} went through every escalation rule and paged nobody.`,
-        ...messageSentences,
+        ...(isOnCallPolicyRunNobodyNotifiedMessage(message)
+          ? [asSentence(ON_CALL_POLICY_RUN_NOBODY_NOTIFIED_FIX)]
+          : messageSentences),
       ];
     case OnCallDutyPolicyStatus.Error:
       return [mdText`${policy} stopped with an error.`, ...messageSentences];
@@ -636,6 +737,15 @@ export default class OnCallFeedText {
   // One step of a run: a page sent, acknowledged, skipped or failed.
   public static getStepMarkdown(input: OnCallStepFeedTextInput): string {
     const sentences: Array<MarkdownText> = [getStepHeadline(input)];
+
+    /*
+     * A level's own line, and a team's that had nobody in it, say why in
+     * their own words: the step's status message would only say it again
+     * ("Skipped because no users in this rule.").
+     */
+    if (isSaidInItsOwnWords(input)) {
+      return FeedMarkdown.join(sentences, "\n\n").toString();
+    }
 
     if (hasMarkdown(input.recipient) && hasMarkdown(input.overriddenUser)) {
       sentences.push(

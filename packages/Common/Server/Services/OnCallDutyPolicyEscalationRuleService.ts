@@ -11,7 +11,6 @@ import OnCallDutyPolicyEscalationRuleScheduleService from "./OnCallDutyPolicyEsc
 import OnCallDutyPolicyEscalationRuleTeamService from "./OnCallDutyPolicyEscalationRuleTeamService";
 import OnCallDutyPolicyEscalationRuleUserService from "./OnCallDutyPolicyEscalationRuleUserService";
 import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
-import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import OnCallDutyPolicyExecutionLogTimelineService from "./OnCallDutyPolicyExecutionLogTimelineService";
 import OnCallDutyPolicyScheduleService, {
   CurrentOnCallInSchedule,
@@ -58,6 +57,10 @@ import {
   readNextInRotationScheduleIds,
 } from "../../Types/OnCallDutyPolicy/NextInRotation";
 import { ON_CALL_PAGE_PASSED_ON_SKIP_TIMELINE_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallPagePassOn";
+import {
+  getOnCallEmptyLevelTimelineMessage,
+  isOnCallPageLineReached,
+} from "../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
 
 /*
  * The escalation timeline's line for a recipient the rule would have paged
@@ -221,11 +224,21 @@ export interface OnCallPagingOutcome {
 /*
  * What running one escalation rule came to (startRuleExecution): who it
  * paged and who it did not, and whether the run moves on from it at once
- * rather than waiting out its wait - it paged nobody because everybody it
- * names had passed the run's page on (movesOnAtOnce).
+ * rather than waiting out its wait - the level reached nobody, so there is
+ * nobody to wait for (Types/OnCallDutyPolicy/OnCallEmptyLevel).
  */
 export interface OnCallRuleExecutionOutcome extends OnCallPagingOutcome {
   movesOnAtOnce: boolean;
+}
+
+/*
+ * What paging a set of targets came to (pageTargets), with the run's
+ * timeline lines of the people it paged: whether each page went out is read
+ * back from them once the set is paged (countPagesThatWentOut).
+ */
+interface PagedTargets {
+  outcome: OnCallPagingOutcome;
+  pagedLineIds: Array<ObjectID>;
 }
 
 /*
@@ -399,7 +412,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   /*
    * Runs one escalation rule of a run: records the rule on the run, pages
    * everybody it names (pageTargets) and hands back who it paged and who it
-   * did not, with why.
+   * did not, with why - and whether the run moves on from it at once: a
+   * level that reached nobody has nobody to wait for
+   * (Types/OnCallDutyPolicy/OnCallEmptyLevel), and says so in a line of its
+   * own. Moving on is its callers' (OnCallEscalationAdvance).
    *
    * `passedOnUserIds` are the people who passed this run's page on
    * (OnCallPagePassOn): the rule passes them over. The run's first rule has
@@ -559,6 +575,28 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         });
     };
 
+    const firstUserIds: Array<ObjectID> = options.alsoPageUserIds || [];
+
+    const teamIds: Array<ObjectID> = teamsInRule
+      .map((teamInRule: OnCallDutyPolicyEscalationRuleTeam) => {
+        return teamInRule.teamId;
+      })
+      .filter((teamId: ObjectID | undefined): teamId is ObjectID => {
+        return Boolean(teamId);
+      });
+
+    const userIds: Array<ObjectID> = usersInRule
+      .map((userRule: OnCallDutyPolicyEscalationRuleUser) => {
+        return userRule.userId;
+      })
+      .filter((userId: ObjectID | undefined): userId is ObjectID => {
+        return Boolean(userId);
+      });
+
+    const scheduleIds: Array<ObjectID> = getScheduleIdsOfRule(false);
+    const nextInRotationScheduleIds: Array<ObjectID> =
+      getScheduleIdsOfRule(true);
+
     /*
      * Who this rule pages, in paging order: anybody asked to be paged first
      * (alsoPageUserIds), the accepted members of each team, then the users
@@ -566,46 +604,60 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
      * next person in the rotation of each schedule it pages that way
      * (pageTargets).
      */
-    const outcome: OnCallPagingOutcome = await this.pageTargets({
+    const paging: PagedTargets = await this.pageTargets({
       context: options,
       ruleId: ruleId,
-      firstUserIds: options.alsoPageUserIds || [],
-      teamIds: teamsInRule
-        .map((teamInRule: OnCallDutyPolicyEscalationRuleTeam) => {
-          return teamInRule.teamId;
-        })
-        .filter((teamId: ObjectID | undefined): teamId is ObjectID => {
-          return Boolean(teamId);
-        }),
-      userIds: usersInRule
-        .map((userRule: OnCallDutyPolicyEscalationRuleUser) => {
-          return userRule.userId;
-        })
-        .filter((userId: ObjectID | undefined): userId is ObjectID => {
-          return Boolean(userId);
-        }),
-      scheduleIds: getScheduleIdsOfRule(false),
-      nextInRotationScheduleIds: getScheduleIdsOfRule(true),
-      // A rule's team with nobody in it has always gone unsaid.
-      notesEmptyTeams: false,
+      firstUserIds: firstUserIds,
+      teamIds: teamIds,
+      userIds: userIds,
+      scheduleIds: scheduleIds,
+      nextInRotationScheduleIds: nextInRotationScheduleIds,
+      /*
+       * A team with nobody in it says so, as a direct page's does: a level
+       * whose only team is empty pages nobody, and "this escalation rule has
+       * no responders" would not be true of it.
+       */
+      notesEmptyTeams: true,
       passedOnUserIds: options.passedOnUserIds || [],
     });
 
-    /*
-     * Everybody the rule names passed this run's page on already: each has
-     * a line of their own, and "no users in this rule" would not be true.
-     * The run moves on from such a rule at once (OnCallEscalationAdvance).
-     */
-    const everyTargetPassedItOn: boolean =
-      Service.isEveryTargetPassedOn(outcome);
+    const outcome: OnCallPagingOutcome = paging.outcome;
 
-    if (outcome.paged.length === 0 && !everyTargetPassedItOn) {
+    /*
+     * Whether the level reached anybody: somebody was paged, and their page
+     * went out rather than being skipped or failing as it was sent - they
+     * opted out, or have no way to be reached (OnCallEmptyLevel). A level
+     * that reached nobody has nobody to wait for, so the run moves on from
+     * it at once (OnCallEscalationAdvance), wherever it is in the policy.
+     */
+    const reachedNobody: boolean =
+      (await Service.countPagesThatWentOut({
+        lineIds: paging.pagedLineIds,
+        projectId: options.projectId,
+        ruleId: ruleId,
+      })) === 0;
+
+    /*
+     * The level's own line: it paged nobody, and the run moves on at once.
+     * Not when everybody it names escalated this run's page already: each
+     * has a line of their own, and the feed said once that they escalated
+     * it - the level has nothing to add.
+     */
+    if (reachedNobody && !Service.isEveryTargetPassedOn(outcome)) {
       const log: OnCallDutyPolicyExecutionLogTimeline =
         Service.getNewTimelineLog({
           context: options,
           ruleId: ruleId,
         });
-      log.statusMessage = "Skipped because no users in this rule.";
+      log.statusMessage = getOnCallEmptyLevelTimelineMessage({
+        namesAnybody:
+          firstUserIds.length +
+            teamIds.length +
+            userIds.length +
+            scheduleIds.length +
+            nextInRotationScheduleIds.length >
+          0,
+      });
       log.status = OnCallDutyExecutionLogTimelineStatus.Skipped;
 
       await OnCallDutyPolicyExecutionLogTimelineService.create({
@@ -614,77 +666,14 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           isRoot: true,
         },
       });
-    }
 
-    /*
-     * M-5: if this rule reached NO ONE and the only reason was a schedule gap
-     * (a schedule target with no on-call user right now), re-sample the SAME
-     * rule on the next cron ticks — bounded — instead of permanently skipping.
-     * ExecutePendingExecutions selects the rule with order =
-     * lastExecutedEscalationRuleOrder + 1, so rewinding the order by one makes
-     * it re-run this rule. No notifications were sent (nobody was paged), so
-     * a re-sample cannot double-page anyone.
-     */
-    const maxScheduleGapRetries: number = 5;
-    const scheduleGapRetryIntervalMinutes: number = 1;
-    const reachedNoOne: boolean = outcome.paged.length === 0;
-
-    if (reachedNoOne && outcome.hadScheduleGap && rule.order) {
-      const executionLog: OnCallDutyPolicyExecutionLog | null =
-        await OnCallDutyPolicyExecutionLogService.findOneById({
-          id: options.onCallPolicyExecutionLogId,
-          select: {
-            scheduleGapRetryCount: true,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-      const retryCount: number = executionLog?.scheduleGapRetryCount || 0;
-
-      if (retryCount < maxScheduleGapRetries) {
-        await OnCallDutyPolicyExecutionLogService.updateOneById({
-          id: options.onCallPolicyExecutionLogId,
-          data: {
-            lastExecutedEscalationRuleOrder: rule.order - 1,
-            executeNextEscalationRuleInMinutes: scheduleGapRetryIntervalMinutes,
-            scheduleGapRetryCount: retryCount + 1,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-
-        logger.debug(
-          `Rule ${ruleId.toString()} reached no one due to a schedule gap; re-sampling ${retryCount + 1}/${maxScheduleGapRetries}.`,
-          {
-            onCallDutyPolicyEscalationRuleId: ruleId.toString(),
-          } as LogAttributes,
-        );
-      } else {
-        // Retries exhausted — advance normally next tick and reset the counter.
-        await OnCallDutyPolicyExecutionLogService.updateOneById({
-          id: options.onCallPolicyExecutionLogId,
-          data: {
-            scheduleGapRetryCount: 0,
-          },
-          props: {
-            isRoot: true,
-          },
-        });
-      }
-    } else {
-      // Reached someone (or no schedule gap): clear retry state for the next rule.
-      await OnCallDutyPolicyExecutionLogService.updateOneById({
-        id: options.onCallPolicyExecutionLogId,
-        data: {
-          scheduleGapRetryCount: 0,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
+      logger.debug(
+        `Escalation rule ${ruleId.toString()} reached nobody; the run moves on from it at once.`,
+        {
+          projectId: options.projectId.toString(),
+          onCallDutyPolicyEscalationRuleId: ruleId.toString(),
+        } as LogAttributes,
+      );
     }
 
     logger.debug(`Completed rule execution for ruleId: ${ruleId.toString()}`, {
@@ -694,14 +683,14 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
     return {
       ...outcome,
-      movesOnAtOnce: Service.movesOnAtOnce(outcome),
+      movesOnAtOnce: reachedNobody,
     };
   }
 
   /*
    * A rule that paged nobody because everybody it names passed the run's
    * page on: nobody is on it, and nobody may come on call in it, so there
-   * is nothing to wait for.
+   * is nothing to wait for - and nothing to say about the level itself.
    */
   public static isEveryTargetPassedOn(outcome: OnCallPagingOutcome): boolean {
     return (
@@ -714,29 +703,75 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
   }
 
   /*
-   * Whether a run moves on from a rule at once rather than waiting out the
-   * rule's wait: the rule reached nobody, at least one person it names had
-   * passed the page on, and no schedule of it had a gap that somebody may
-   * fill in a minute (those rules are tried again: startRuleExecution).
-   * Waiting for a rule that pages nobody would only hold up the people the
-   * page was passed on to.
+   * How many of a level's pages went out: its people's lines on the run's
+   * timeline, read back once the level has paged. Each person's
+   * notification log has said by then whether their page was skipped or
+   * failed as it was sent (UserOnCallLogService writes it onto their line
+   * as the log is created) - so a level whose people cannot be reached at
+   * all is known to have reached nobody.
+   *
+   * A line that cannot be read back counts as a page that went out, and so
+   * do all of them when the read fails: the level then waits, as every
+   * level did before, rather than moving on from people who may well have
+   * been reached.
    */
-  public static movesOnAtOnce(
-    outcome: OnCallPagingOutcome | null | undefined,
-  ): boolean {
-    if (
-      !outcome ||
-      !Array.isArray(outcome.paged) ||
-      !Array.isArray(outcome.notPaged) ||
-      outcome.paged.length > 0 ||
-      outcome.hadScheduleGap
-    ) {
-      return false;
+  private static async countPagesThatWentOut(data: {
+    lineIds: Array<ObjectID>;
+    projectId: ObjectID;
+    ruleId: ObjectID;
+  }): Promise<number> {
+    if (data.lineIds.length === 0) {
+      return 0;
     }
 
-    return outcome.notPaged.some((target: OnCallNotPagedTarget): boolean => {
-      return target.reason === OnCallNotPagedReason.PassedOn;
-    });
+    try {
+      const lines: Array<OnCallDutyPolicyExecutionLogTimeline> =
+        await OnCallDutyPolicyExecutionLogTimelineService.findBy({
+          query: {
+            _id: QueryHelper.any(data.lineIds),
+          },
+          select: {
+            _id: true,
+            status: true,
+          },
+          skip: 0,
+          limit: LIMIT_PER_PROJECT,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      const statusByLineId: Map<
+        string,
+        OnCallDutyExecutionLogTimelineStatus | undefined
+      > = new Map<string, OnCallDutyExecutionLogTimelineStatus | undefined>();
+
+      for (const line of lines || []) {
+        if (line.id) {
+          statusByLineId.set(line.id.toString().toLowerCase(), line.status);
+        }
+      }
+
+      return data.lineIds.filter((lineId: ObjectID): boolean => {
+        return isOnCallPageLineReached(
+          statusByLineId.get(lineId.toString().toLowerCase()),
+        );
+      }).length;
+    } catch (err) {
+      logger.error(
+        `Could not read whether the pages of escalation rule ${data.ruleId.toString()} went out; waiting out the rule as if they did.`,
+        {
+          projectId: data.projectId.toString(),
+          onCallDutyPolicyEscalationRuleId: data.ruleId.toString(),
+        } as LogAttributes,
+      );
+      logger.error(err as Error, {
+        projectId: data.projectId.toString(),
+        onCallDutyPolicyEscalationRuleId: data.ruleId.toString(),
+      } as LogAttributes);
+
+      return data.lineIds.length;
+    }
   }
 
   /*
@@ -794,20 +829,22 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       },
     });
 
-    const outcome: OnCallPagingOutcome = await this.pageTargets({
-      context: options,
-      ruleId: null,
-      firstUserIds: [],
-      teamIds: options.targets.teamIds,
-      userIds: options.targets.userIds,
-      scheduleIds: options.targets.onCallScheduleIds,
-      // A direct page pages whoever is on call in a schedule it names.
-      nextInRotationScheduleIds: [],
-      // "Team Platform has no members" is why nobody was paged through it.
-      notesEmptyTeams: true,
-      // A direct page pages everybody once, as it starts: nobody has passed it on.
-      passedOnUserIds: [],
-    });
+    const outcome: OnCallPagingOutcome = (
+      await this.pageTargets({
+        context: options,
+        ruleId: null,
+        firstUserIds: [],
+        teamIds: options.targets.teamIds,
+        userIds: options.targets.userIds,
+        scheduleIds: options.targets.onCallScheduleIds,
+        // A direct page pages whoever is on call in a schedule it names.
+        nextInRotationScheduleIds: [],
+        // "Team Platform has no members" is why nobody was paged through it.
+        notesEmptyTeams: true,
+        // A direct page pages everybody once, as it starts: nobody has passed it on.
+        passedOnUserIds: [],
+      })
+    ).outcome;
 
     /*
      * Nobody at all, and no line that says why - every target was a person
@@ -946,7 +983,9 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
    * log of their own (UserNotificationRuleService), which reaches them
    * through their On-Call Rules.
    *
-   * Hands back who was paged and who was not, with why.
+   * Hands back who was paged and who was not, with why - and the timeline
+   * lines of the people it paged, which say by now whether each page went
+   * out (startRuleExecution reads them back).
    */
   private async pageTargets(data: {
     context: PageContext;
@@ -973,9 +1012,12 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
      * again by it, whichever target names them.
      */
     passedOnUserIds: Array<ObjectID>;
-  }): Promise<OnCallPagingOutcome> {
+  }): Promise<PagedTargets> {
     const options: PageContext = data.context;
     const ruleId: ObjectID | null = data.ruleId;
+
+    // The timeline line of each person paged, in the order they were paged.
+    const pagedLineIds: Array<ObjectID> = [];
 
     // What a log line of this run is told about where it happened.
     const logAttributes: LogAttributes = {
@@ -1108,6 +1150,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
           },
         });
 
+        if (log?.id) {
+          pagedLineIds.push(log.id);
+        }
+
         await UserNotificationRuleService.startUserNotificationRulesExecution(
           alertSentToUserId,
           {
@@ -1148,11 +1194,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
     };
 
     /*
-     * M-5: tracks whether any schedule target for this rule momentarily had no
-     * on-call user (a restriction gap / future start / empty layer). If a rule
-     * reaches NO ONE solely because of such a gap, we re-sample the same rule on
-     * the next cron ticks (bounded) instead of permanently skipping it, so a
-     * user coming on-call moments later still gets paged.
+     * Whether any schedule among the targets had nobody on call right now (a
+     * restriction gap, a layer that has not started, an empty layer): told
+     * to whoever asked for the page. A level it leaves with nobody paged is
+     * passed at once, as any level that pages nobody is (OnCallEmptyLevel).
      */
     let hadScheduleGap: boolean = false;
 
@@ -1284,10 +1329,11 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
      * schedule has applied every override already, and nobody away is ever
      * next, so - as for its on-call person - no second override hop.
      *
-     * Nobody on call at all is a gap, as for a page to the schedule: the
-     * rule is tried again in a minute, while somebody may come on call.
+     * Nobody on call at all is a gap, as for a page to the schedule.
      * Somebody on call with nobody next - the rotation has nobody else, or
-     * everybody else is away - is not: trying again would find the same.
+     * everybody else is away - says so in a line of its own. Either way the
+     * schedule pages nobody, and a level it leaves with nobody paged is
+     * passed at once (OnCallEmptyLevel).
      */
     for (const scheduleId of data.nextInRotationScheduleIds) {
       const next: NextInRotationInSchedule | null =
@@ -1688,7 +1734,10 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
 
     outcome.hadScheduleGap = hadScheduleGap;
 
-    return outcome;
+    return {
+      outcome: outcome,
+      pagedLineIds: pagedLineIds,
+    };
   }
 
   public constructor() {

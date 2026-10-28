@@ -492,14 +492,19 @@ describe("the last escalation rule", () => {
 
     const answer: OnCallPassOnAnswer = await world.passOn(ANA);
 
-    // Every repeat would page nobody but Ana: the run ends at once.
+    /*
+     * Every repeat would page nobody but Ana: the run ends at once. The
+     * first repeat is a pass that reached nobody, and such a pass is not
+     * gone round again (OnCallEscalationAdvance): the run stops there,
+     * rather than spending its other repeats on nobody.
+     */
     expect(passed(answer)).toBe(OnCallPassOnOutcome.PagingStopped);
     expect(world.pagedNames()).toEqual(["Ana Lopez"]);
     expect(world.run.status).toBe(OnCallDutyPolicyStatus.Completed);
     expect(world.run.statusMessage).toBe(
       ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE,
     );
-    expect(world.run.onCallPolicyExecutionRepeatCount).toBe(4);
+    expect(world.run.onCallPolicyExecutionRepeatCount).toBe(2);
   });
 });
 
