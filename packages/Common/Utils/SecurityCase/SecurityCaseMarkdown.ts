@@ -639,3 +639,93 @@ export function entityRiskMarkdown(data: {
 
   return FeedMarkdown.join(parts, "\n\n");
 }
+
+// ---------- Tasks, evidence and response targets ----------
+
+/*
+ * What a case's timeline says about its tasks (SecurityCaseTaskService):
+ * added, done, opened again, handed to somebody, deleted. A task's title is
+ * a person's words, and a person's name comes from their profile, so both
+ * are escaped text.
+ */
+export function taskAddedMarkdown(data: {
+  title: string;
+  assigneeName?: string | undefined;
+}): MarkdownText {
+  return data.assigneeName
+    ? mdText`📋 Added the task **${data.title}**, for **${data.assigneeName}**.`
+    : mdText`📋 Added the task **${data.title}**.`;
+}
+
+export function taskDoneMarkdown(data: { title: string }): MarkdownText {
+  return mdText`☑️ Completed the task **${data.title}**.`;
+}
+
+export function taskReopenedMarkdown(data: { title: string }): MarkdownText {
+  return mdText`↩️ Opened the task **${data.title}** again.`;
+}
+
+export function taskAssignedMarkdown(data: {
+  title: string;
+  assigneeName?: string | undefined;
+}): MarkdownText {
+  return data.assigneeName
+    ? mdText`👤 Gave the task **${data.title}** to **${data.assigneeName}**.`
+    : mdText`👤 Took the task **${data.title}** off whoever had it.`;
+}
+
+export function taskDeletedMarkdown(data: { title: string }): MarkdownText {
+  return mdText`🗑️ Deleted the task **${data.title}**.`;
+}
+
+/*
+ * What a case's timeline says about its evidence
+ * (SecurityCaseEvidenceService). A file's name is the uploader's, a link's
+ * address points outside OneUptime: each is code, so neither turns into a
+ * link or an image wherever the timeline is shown.
+ */
+export function evidenceAddedMarkdown(data: {
+  name: string;
+  // A file's SHA-256, or a link's address.
+  sha256?: string | undefined;
+  url?: string | undefined;
+}): MarkdownText {
+  if (data.sha256) {
+    return mdText`🗄️ Added the file **${data.name}** as evidence. SHA-256 ${FeedMarkdown.code(data.sha256)}.`;
+  }
+
+  if (data.url) {
+    return mdText`🔗 Added the link **${data.name}** as evidence: ${FeedMarkdown.code(data.url)}.`;
+  }
+
+  return mdText`🗄️ Added **${data.name}** as evidence.`;
+}
+
+export function evidenceRemovedMarkdown(data: { name: string }): MarkdownText {
+  return mdText`🗑️ Removed **${data.name}** from the evidence.`;
+}
+
+/*
+ * What a case's timeline says when it is about to miss a response target,
+ * and when it misses it (SecurityCaseTargetCheck). `target` is the verb -
+ * "acknowledge", "contain" - and the durations are in words already
+ * ("3 minutes", "4 hours").
+ */
+export function targetAtRiskMarkdown(data: {
+  target: string;
+  timeLeft: string;
+  targetDuration?: string | undefined;
+}): MarkdownText {
+  return data.targetDuration
+    ? mdText`⏰ About to miss its **${data.target}** target of ${data.targetDuration}: ${data.timeLeft} left.`
+    : mdText`⏰ About to miss its **${data.target}** target: ${data.timeLeft} left.`;
+}
+
+export function targetMissedMarkdown(data: {
+  target: string;
+  targetDuration?: string | undefined;
+}): MarkdownText {
+  return data.targetDuration
+    ? mdText`🚨 Missed its **${data.target}** target of ${data.targetDuration}.`
+    : mdText`🚨 Missed its **${data.target}** target.`;
+}

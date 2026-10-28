@@ -1,5 +1,7 @@
 import SecurityCase from "../../../Models/DatabaseModels/SecurityCase";
 import { SecurityCaseFeedEventType } from "../../../Models/DatabaseModels/SecurityCaseFeed";
+import SecurityCaseTask from "../../../Models/DatabaseModels/SecurityCaseTask";
+import URL from "../../../Types/API/URL";
 import SecurityPlaybookRun from "../../../Models/DatabaseModels/SecurityPlaybookRun";
 import Project from "../../../Models/DatabaseModels/Project";
 import Team from "../../../Models/DatabaseModels/Team";
@@ -11,6 +13,7 @@ import AccessTokenService from "../../Services/AccessTokenService";
 import ProjectService from "../../Services/ProjectService";
 import SecurityCaseFeedService from "../../Services/SecurityCaseFeedService";
 import SecurityCaseService from "../../Services/SecurityCaseService";
+import SecurityCaseTaskService from "../../Services/SecurityCaseTaskService";
 import SecurityPlaybookRunService from "../../Services/SecurityPlaybookRunService";
 import TeamMemberService from "../../Services/TeamMemberService";
 import TeamService from "../../Services/TeamService";
@@ -25,7 +28,7 @@ import PushNotificationUtil from "../PushNotificationUtil";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import { securityCaseGroupingKey } from "./SecurityCaseIngest";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { Gray500, Yellow500 } from "../../../Types/BrandColors";
+import { Gray500, Red500, Yellow500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
 import { CallRequestMessage } from "../../../Types/Call/CallRequest";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
@@ -40,6 +43,7 @@ import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import { SMSMessage } from "../../../Types/SMS/SMS";
+import Timezone from "../../../Types/Timezone";
 import {
   SecurityCaseNotificationChoiceKind,
   SecurityCaseNotificationPriorityChoice,
@@ -50,6 +54,15 @@ import {
 } from "../../../Utils/SecurityCase/SecurityCaseNotificationPriority";
 import SecurityCasePriorities from "../../../Utils/SecurityCase/SecurityCasePriorities";
 import SecurityCaseStatuses from "../../../Utils/SecurityCase/SecurityCaseStatuses";
+import {
+  SecurityCaseTarget,
+  SecurityCaseTargetAlertKind,
+  SecurityCaseTargetReading,
+  SecurityCaseTargetState,
+  describeTargetDuration,
+  getTargetVerb,
+  readSecurityCaseTarget,
+} from "../../../Utils/SecurityCase/SecurityCaseTargets";
 import SecurityCasePriority from "../../../Models/DatabaseModels/SecurityCasePriority";
 import SecurityCaseStatus from "../../../Models/DatabaseModels/SecurityCaseStatus";
 import SecurityCaseValues, {
@@ -101,6 +114,13 @@ import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
  *    SEND_SECURITY_PLAYBOOK_APPROVAL_NOTIFICATION, to the people on the case
  *    who can approve it - its assignee and its team's members - or, when
  *    none of them can, to everyone who can.
+ *  - A case is about to miss a response target its priority sets, or misses
+ *    it (SecurityCaseTargetCheck): SEND_SECURITY_CASE_TARGET_NOTIFICATION,
+ *    to the people on the case - its assignee and its team's members - or,
+ *    when nobody is, to the people told about cases at its priority. Never
+ *    held back: it is about a deadline.
+ *  - A task on a case is handed to a person (SecurityCaseTaskService):
+ *    SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION, to that person.
  *
  * Each is also posted to the Slack and Microsoft Teams channels and chats the
  * project's Security Case rules name (WorkspaceNotificationRuleService), and
@@ -143,12 +163,16 @@ export enum SecurityCaseNotificationKind {
   PriorityReached = "PriorityReached",
   Assigned = "Assigned",
   ApprovalRequested = "ApprovalRequested",
+  TargetAlert = "TargetAlert",
+  TaskAssigned = "TaskAssigned",
 }
 
 export interface SecurityCaseRecipient {
   userId: ObjectID;
   name: string;
   email: string;
+  // Their own time zone, for a due time written in an email.
+  timezone?: Timezone | undefined;
 }
 
 // What every message about a case says about it.
@@ -424,7 +448,159 @@ export function buildApprovalRequestedMessage(data: {
   };
 }
 
-// The case's own rows of the three emails.
+// "Acknowledge", "Contain": a target as a row of an email names it.
+function capitalize(word: string): string {
+  return word ? `${word.charAt(0).toUpperCase()}${word.substring(1)}` : word;
+}
+
+// Why a person hears about a target: on the case, or watching its priority.
+export interface SecurityCaseTargetAudience {
+  // On the case: its assignee, or a member of its team (`teamName`).
+  isOnCase: boolean;
+  teamName?: string | undefined;
+  // Told as one who chose to hear about cases at this priority.
+  minimum?: Pick<SecurityCaseNotificationPriorityChoice, "name" | "kind">;
+}
+
+/*
+ * What a person is told when a case is about to miss a response target, or
+ * misses it (SecurityCaseTargetCheck): which target, how long it was, when
+ * it is due - in their own time zone - and why they are the one told.
+ */
+export function buildTargetAlertMessage(data: {
+  facts: SecurityCaseMessageFacts;
+  target: SecurityCaseTarget;
+  alertKind: SecurityCaseTargetAlertKind;
+  dueAt: Date;
+  // The priority's target, in minutes; null when it has none any more.
+  targetInMinutes: number | null;
+  now: Date;
+  audience: SecurityCaseTargetAudience;
+  timezone?: Timezone | undefined;
+}): SecurityCaseMessage {
+  const { facts } = data;
+  const verb: string = getTargetVerb(data.target);
+  const isMissed: boolean =
+    data.alertKind === SecurityCaseTargetAlertKind.Missed;
+  const targetDuration: string | undefined =
+    data.targetInMinutes !== null
+      ? describeTargetDuration(data.targetInMinutes)
+      : undefined;
+  // At least a minute: "0 minutes left" says nothing to act on.
+  const timeLeft: string = describeTargetDuration(
+    Math.max(1, Math.ceil((data.dueAt.getTime() - data.now.getTime()) / 60000)),
+  );
+
+  const what: string = isMissed
+    ? `missed its ${verb} target`
+    : `is about to miss its ${verb} target`;
+
+  let leadSentence: string;
+
+  if (data.target === SecurityCaseTarget.Acknowledge) {
+    leadSentence = isMissed
+      ? `Nobody has taken this ${facts.priority} security case on, and it missed its acknowledge target${targetDuration ? ` of ${targetDuration}` : ""}.`
+      : `Nobody has taken this ${facts.priority} security case on yet, and its acknowledge target ends in ${timeLeft}.`;
+  } else {
+    leadSentence = isMissed
+      ? `This ${facts.priority} security case was not contained within its contain target${targetDuration ? ` of ${targetDuration}` : ""}.`
+      : `This ${facts.priority} security case is not contained yet, and its contain target ends in ${timeLeft}.`;
+  }
+
+  const settingsSentence: string =
+    "Change these emails in User Settings > Notification Settings.";
+  let reasonSentence: string;
+
+  if (data.audience.isOnCase) {
+    reasonSentence = data.audience.teamName
+      ? `You are on ${data.audience.teamName}, the team this case is assigned to. ${settingsSentence}`
+      : `This case is assigned to you. ${settingsSentence}`;
+  } else {
+    reasonSentence = data.audience.minimum
+      ? `Nobody is on this case yet, and you are told about cases at your chosen priority: ${describePriorityChoice(data.audience.minimum)}. ${settingsSentence}`
+      : `Nobody is on this case yet, and you are told about cases at its priority. ${settingsSentence}`;
+  }
+
+  return {
+    eventType:
+      NotificationSettingEventType.SEND_SECURITY_CASE_TARGET_NOTIFICATION,
+    subject: isMissed
+      ? `[${facts.number}] Missed its ${verb} target: ${facts.title}`
+      : `[${facts.number}] About to miss its ${verb} target: ${facts.title}`,
+    templateType: EmailTemplateType.SecurityCaseTargetDue,
+    emailVars: {
+      ...getCaseEmailVars(facts),
+      emailTitle: `Security Case ${facts.number}: ${facts.title}`,
+      leadSentence,
+      reasonSentence,
+      targetText: targetDuration
+        ? `${capitalize(verb)} within ${targetDuration}`
+        : capitalize(verb),
+      dueTime: OneUptimeDate.getDateAsFormattedHTMLInMultipleTimezones({
+        date: data.dueAt,
+        timezones: data.timezone ? [data.timezone] : [],
+      }),
+    },
+    smsText: buildNotificationSms(
+      isMissed
+        ? `Security case ${facts.number} (${facts.priority}) missed its ${verb} target: ${facts.title}.`
+        : `Security case ${facts.number} (${facts.priority}) is about to miss its ${verb} target, ${timeLeft} left: ${facts.title}.`,
+    ),
+    callText: isMissed
+      ? `This is a message from OneUptime. Security case ${facts.number}, priority ${facts.priority}, missed its ${verb} target: ${facts.title}. Open OneUptime to work it. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`
+      : `This is a message from OneUptime. Security case ${facts.number}, priority ${facts.priority}, is about to miss its ${verb} target, in ${timeLeft}: ${facts.title}. Open OneUptime to work it. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
+    pushTitle: `${facts.number} ${what}`,
+    pushBody: isMissed
+      ? `${facts.priority}: ${facts.title}`
+      : `${timeLeft} left. ${facts.priority}: ${facts.title}`,
+    pushType: "security-case-target",
+    // A deadline: seen at once, never held back.
+    requireInteraction: true,
+    forceImmediate: true,
+  };
+}
+
+/*
+ * What a person is told when a task on a case is handed to them. `assignedBy`
+ * names who did it. The email's button opens the case's Tasks page.
+ */
+export function buildTaskAssignedMessage(data: {
+  facts: SecurityCaseMessageFacts;
+  taskTitle: string;
+  assignedBy?: string | undefined;
+  tasksUrl: string;
+}): SecurityCaseMessage {
+  const { facts } = data;
+
+  return {
+    eventType:
+      NotificationSettingEventType.SEND_SECURITY_CASE_TASK_ASSIGNED_NOTIFICATION,
+    subject: `[${facts.number}] Task for you: ${data.taskTitle}`,
+    templateType: EmailTemplateType.SecurityCaseTaskAssigned,
+    emailVars: {
+      ...getCaseEmailVars(facts),
+      caseViewLink: data.tasksUrl,
+      emailTitle: `Task on security case ${facts.number}`,
+      leadSentence: data.assignedBy
+        ? `${data.assignedBy} gave you a task on this ${facts.priority} security case.`
+        : `You have a task on this ${facts.priority} security case.`,
+      reasonSentence:
+        "A task on this case was assigned to you. Change these emails in User Settings > Notification Settings.",
+      taskTitle: data.taskTitle,
+    },
+    smsText: buildNotificationSms(
+      `Task for you on security case ${facts.number}: ${data.taskTitle}.`,
+    ),
+    callText: `This is a message from OneUptime. You have a task on security case ${facts.number}, priority ${facts.priority}: ${data.taskTitle}. To change these calls go to User Settings in the OneUptime Dashboard. Good bye.`,
+    pushTitle: `Task for you on ${facts.number}`,
+    pushBody: data.taskTitle,
+    pushType: "security-case-task-assigned",
+    requireInteraction: false,
+    forceImmediate: facts.isCritical,
+  };
+}
+
+// The case's own rows of its emails.
 function getCaseEmailVars(facts: SecurityCaseMessageFacts): Dictionary<string> {
   return {
     caseNumber: facts.number,
@@ -557,6 +733,60 @@ export default class SecurityCaseNotifications {
     );
   }
 
+  /*
+   * A case is about to miss a response target, or missed it
+   * (SecurityCaseTargetCheck, which stamped it so it is said once).
+   */
+  @CaptureSpan()
+  public static async targetAlert(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    target: SecurityCaseTarget;
+    alertKind: SecurityCaseTargetAlertKind;
+  }): Promise<void> {
+    await this.enqueue(
+      {
+        kind: SecurityCaseNotificationKind.TargetAlert,
+        projectId: data.projectId.toString(),
+        securityCaseId: data.securityCaseId.toString(),
+        target: data.target,
+        alertKind: data.alertKind,
+      },
+      0,
+    );
+  }
+
+  /*
+   * A task on a case was handed to a person. `actorUserId` handed it over,
+   * and is not told about handing a task to themselves.
+   */
+  @CaptureSpan()
+  public static async taskAssigned(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    taskId: ObjectID;
+    userId: ObjectID;
+    actorUserId?: ObjectID | undefined;
+  }): Promise<void> {
+    if (data.actorUserId && data.actorUserId.equals(data.userId)) {
+      return;
+    }
+
+    await this.enqueue(
+      {
+        kind: SecurityCaseNotificationKind.TaskAssigned,
+        projectId: data.projectId.toString(),
+        securityCaseId: data.securityCaseId.toString(),
+        taskId: data.taskId.toString(),
+        userId: data.userId.toString(),
+        ...(data.actorUserId
+          ? { actorUserId: data.actorUserId.toString() }
+          : {}),
+      },
+      0,
+    );
+  }
+
   // Never throws: a case's change must not fail because nobody could be told.
   private static async enqueue(
     data: JSONObject,
@@ -623,6 +853,40 @@ export default class SecurityCaseNotifications {
             projectId,
             securityCaseId,
             runId,
+          });
+        }
+        return;
+      }
+      case SecurityCaseNotificationKind.TargetAlert: {
+        const target: string | undefined = readText(data, "target");
+        const alertKind: string | undefined = readText(data, "alertKind");
+
+        if (
+          (target === SecurityCaseTarget.Acknowledge ||
+            target === SecurityCaseTarget.Contain) &&
+          (alertKind === SecurityCaseTargetAlertKind.AtRisk ||
+            alertKind === SecurityCaseTargetAlertKind.Missed)
+        ) {
+          await this.notifyTargetAlert({
+            projectId,
+            securityCaseId,
+            target,
+            alertKind,
+          });
+        }
+        return;
+      }
+      case SecurityCaseNotificationKind.TaskAssigned: {
+        const taskId: ObjectID | undefined = readId(data, "taskId");
+        const userId: ObjectID | undefined = readId(data, "userId");
+
+        if (taskId && userId) {
+          await this.notifyTaskAssigned({
+            projectId,
+            securityCaseId,
+            taskId,
+            userId,
+            actorUserId: readId(data, "actorUserId"),
           });
         }
         return;
@@ -1106,6 +1370,335 @@ export default class SecurityCaseNotifications {
     return notified;
   }
 
+  // ---------- A response target about to be missed, or missed ----------
+
+  @CaptureSpan()
+  public static async notifyTargetAlert(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    target: SecurityCaseTarget;
+    alertKind: SecurityCaseTargetAlertKind;
+  }): Promise<Array<SecurityCaseRecipient>> {
+    const securityCase: SecurityCase | null = await this.readCase(data);
+
+    if (!securityCase || isSetupTestCase(securityCase)) {
+      return [];
+    }
+
+    const values: ProjectSecurityCaseValues =
+      await SecurityCaseValues.getForProject(data.projectId);
+    const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
+      values.priorities,
+      securityCase.securityCasePriorityId,
+    );
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    /*
+     * Read again as it is now: a case taken on, contained or closed since
+     * the check, or whose due time moved with its priority, is not news.
+     */
+    const reading: SecurityCaseTargetReading = readSecurityCaseTarget({
+      securityCase,
+      target: data.target,
+      priority,
+      now,
+    });
+    const stillDue: boolean =
+      data.alertKind === SecurityCaseTargetAlertKind.Missed
+        ? reading.state === SecurityCaseTargetState.Missed
+        : reading.state === SecurityCaseTargetState.AtRisk;
+
+    if (!stillDue || !reading.dueAt) {
+      return [];
+    }
+
+    const facts: SecurityCaseMessageFacts = await this.getFacts(
+      securityCase,
+      values,
+    );
+
+    // The people on the case: its assignee, and its team's members.
+    const teamName: string | undefined = securityCase.assignedToTeamId
+      ? await this.getTeamName(securityCase.assignedToTeamId)
+      : undefined;
+    const viaTeam: Set<string> = new Set();
+    const onCase: Array<SecurityCaseRecipient> = [];
+
+    if (securityCase.assignedToTeamId) {
+      for (const member of await this.getTeamMembers(
+        data.projectId,
+        securityCase.assignedToTeamId,
+      )) {
+        viaTeam.add(member.userId.toString());
+        onCase.push(member);
+      }
+    }
+
+    if (securityCase.assignedToUserId) {
+      const assignee: SecurityCaseRecipient | null = await this.getUser(
+        securityCase.assignedToUserId,
+      );
+
+      if (assignee) {
+        viaTeam.delete(assignee.userId.toString());
+        onCase.push(assignee);
+      }
+    }
+
+    let isOnCase: boolean = true;
+    let minimums: Map<string, SecurityCasePriority> = new Map();
+    let recipients: Array<SecurityCaseRecipient> = await this.whoCanRead({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      people: onCase,
+    });
+
+    if (onCase.length === 0) {
+      // Nobody on it: the people told about cases at its priority.
+      isOnCase = false;
+
+      const watchers: {
+        people: Array<SecurityCaseRecipient>;
+        minimums: Map<string, SecurityCasePriority>;
+      } = await this.getPriorityWatchers({
+        projectId: data.projectId,
+        priorityId: securityCase.securityCasePriorityId,
+        priorities: values.priorities,
+      });
+
+      minimums = watchers.minimums;
+      recipients = await this.whoCanRead({
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+        people: watchers.people,
+      });
+    }
+
+    const notified: Array<SecurityCaseRecipient> = await this.sendToPeople({
+      facts,
+      recipients,
+      message: (recipient: SecurityCaseRecipient): SecurityCaseMessage => {
+        const minimum: SecurityCasePriority | undefined = minimums.get(
+          recipient.userId.toString(),
+        );
+
+        return buildTargetAlertMessage({
+          facts,
+          target: data.target,
+          alertKind: data.alertKind,
+          dueAt: reading.dueAt!,
+          targetInMinutes: reading.targetInMinutes,
+          now,
+          timezone: recipient.timezone,
+          audience: {
+            isOnCase,
+            teamName: viaTeam.has(recipient.userId.toString())
+              ? teamName
+              : undefined,
+            ...(minimum
+              ? {
+                  minimum: getChosenPriorityChoice({
+                    priorities: values.priorities,
+                    minimum,
+                  }),
+                }
+              : {}),
+          },
+        });
+      },
+    });
+
+    const verb: string = getTargetVerb(data.target);
+    const isMissed: boolean =
+      data.alertKind === SecurityCaseTargetAlertKind.Missed;
+
+    await this.recordInFeed({
+      facts,
+      notified,
+      feedInfo: isMissed
+        ? mdText`🔔 Notified ${people(notified.length)} that this case missed its **${verb}** target.`
+        : mdText`🔔 Notified ${people(notified.length)} that this case is about to miss its **${verb}** target.`,
+      displayColor: isMissed ? Red500 : Yellow500,
+    });
+
+    const timeLeft: string = describeTargetDuration(
+      Math.max(1, Math.ceil((reading.dueAt.getTime() - now.getTime()) / 60000)),
+    );
+
+    await this.postToChannels({
+      facts,
+      markdown: buildChannelMarkdown({
+        headline: isMissed
+          ? mdText`🚨 **Missed its ${verb} target**`
+          : mdText`⏰ **About to miss its ${verb} target**: ${timeLeft} left.`,
+        facts,
+      }),
+      notificationText: isMissed
+        ? `Security case ${facts.number} missed its ${verb} target: ${facts.title}`
+        : `Security case ${facts.number} is about to miss its ${verb} target: ${facts.title}`,
+    });
+
+    return notified;
+  }
+
+  /*
+   * The project's members told about cases at `priorityId`: whose chosen
+   * priority on their New Security Case setting it reaches, with that
+   * choice. Anyone who switched every channel of it off is left out: they
+   * asked to hear nothing about new cases.
+   */
+  private static async getPriorityWatchers(data: {
+    projectId: ObjectID;
+    priorityId: ObjectID | undefined;
+    priorities: Array<SecurityCasePriority>;
+  }): Promise<{
+    people: Array<SecurityCaseRecipient>;
+    minimums: Map<string, SecurityCasePriority>;
+  }> {
+    const members: Array<SecurityCaseRecipient> = await this.getProjectMembers(
+      data.projectId,
+    );
+    const settings: Map<string, UserNotificationSetting> =
+      await this.getSettings({
+        projectId: data.projectId,
+        eventType:
+          NotificationSettingEventType.SEND_SECURITY_CASE_OPENED_NOTIFICATION,
+        userIds: members.map((member: SecurityCaseRecipient): ObjectID => {
+          return member.userId;
+        }),
+      });
+
+    const people: Array<SecurityCaseRecipient> = [];
+    const minimums: Map<string, SecurityCasePriority> = new Map();
+
+    for (const member of members) {
+      const setting: UserNotificationSetting | undefined = settings.get(
+        member.userId.toString(),
+      );
+
+      if (setting && !this.hasChannelOn(setting)) {
+        continue;
+      }
+
+      const minimum: SecurityCasePriority | null =
+        readSecurityCaseNotificationMinimum(
+          data.priorities,
+          setting?.minimumSecurityCasePriorityId,
+        );
+
+      if (
+        minimum &&
+        SecurityCasePriorities.isAtLeast(
+          data.priorities,
+          data.priorityId,
+          minimum.id,
+        )
+      ) {
+        minimums.set(member.userId.toString(), minimum);
+        people.push(member);
+      }
+    }
+
+    return { people, minimums };
+  }
+
+  // ---------- A task handed to somebody ----------
+
+  @CaptureSpan()
+  public static async notifyTaskAssigned(data: {
+    projectId: ObjectID;
+    securityCaseId: ObjectID;
+    taskId: ObjectID;
+    userId: ObjectID;
+    actorUserId?: ObjectID | undefined;
+  }): Promise<Array<SecurityCaseRecipient>> {
+    if (data.actorUserId && data.actorUserId.equals(data.userId)) {
+      return [];
+    }
+
+    const securityCase: SecurityCase | null = await this.readCase(data);
+
+    if (!securityCase || isSetupTestCase(securityCase)) {
+      return [];
+    }
+
+    const task: SecurityCaseTask | null = await SecurityCaseTaskService.findOneBy({
+      query: {
+        _id: data.taskId,
+        projectId: data.projectId,
+        securityCaseId: data.securityCaseId,
+      },
+      select: {
+        _id: true,
+        title: true,
+        isDone: true,
+        assignedToUserId: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    /*
+     * Told only while it is still theirs and still to do: a task handed on
+     * again, or ticked off, a moment later is not news.
+     */
+    if (
+      !task ||
+      task.isDone ||
+      !task.assignedToUserId ||
+      !task.assignedToUserId.equals(data.userId)
+    ) {
+      return [];
+    }
+
+    const user: SecurityCaseRecipient | null = await this.getUser(data.userId);
+
+    if (!user) {
+      return [];
+    }
+
+    const recipients: Array<SecurityCaseRecipient> = await this.whoCanRead({
+      projectId: data.projectId,
+      securityCaseId: data.securityCaseId,
+      people: [user],
+    });
+
+    const facts: SecurityCaseMessageFacts = await this.getFacts(securityCase);
+    const assignedBy: string | undefined = data.actorUserId
+      ? (await this.getUser(data.actorUserId))?.name
+      : undefined;
+    const taskTitle: string = task.title || "A task";
+
+    // The case's Tasks page: where the email's button and the push open.
+    const tasksUrl: string = URL.fromString(facts.url)
+      .addRoute("/tasks")
+      .toString();
+
+    const notified: Array<SecurityCaseRecipient> = await this.sendToPeople({
+      facts,
+      recipients,
+      url: tasksUrl,
+      message: (): SecurityCaseMessage => {
+        return buildTaskAssignedMessage({
+          facts,
+          taskTitle,
+          assignedBy,
+          tasksUrl,
+        });
+      },
+    });
+
+    await this.recordInFeed({
+      facts,
+      notified,
+      feedInfo: mdText`🔔 Notified ${people(notified.length)} of the task **${taskTitle}**.`,
+      displayColor: Gray500,
+    });
+
+    return notified;
+  }
+
   // ---------- Who ----------
 
   /*
@@ -1231,6 +1824,7 @@ export default class SecurityCaseNotifications {
       userId,
       name: user?.name?.toString() || user?.email?.toString() || "",
       email: user?.email?.toString() || "",
+      ...(user?.timezone ? { timezone: user.timezone } : {}),
     };
   }
 
@@ -1248,6 +1842,7 @@ export default class SecurityCaseNotifications {
         user: {
           name: true,
           email: true,
+          timezone: true,
         },
       },
       skip: 0,
@@ -1283,6 +1878,7 @@ export default class SecurityCaseNotifications {
         user: {
           name: true,
           email: true,
+          timezone: true,
         },
       },
       skip: 0,
@@ -1311,6 +1907,7 @@ export default class SecurityCaseNotifications {
       select: {
         name: true,
         email: true,
+        timezone: true,
       },
       props: {
         isRoot: true,
@@ -1426,6 +2023,14 @@ export default class SecurityCaseNotifications {
         assignedToTeamId: true,
         groupingKey: true,
         createdAt: true,
+        // What its response targets are read from (SecurityCaseTargets).
+        acknowledgedAt: true,
+        containedAt: true,
+        closedAt: true,
+        acknowledgeDueAt: true,
+        containDueAt: true,
+        acknowledgeMissedAt: true,
+        containMissedAt: true,
       },
       props: {
         isRoot: true,
@@ -1526,6 +2131,8 @@ export default class SecurityCaseNotifications {
     facts: SecurityCaseMessageFacts;
     recipients: Array<SecurityCaseRecipient>;
     message: (recipient: SecurityCaseRecipient) => SecurityCaseMessage;
+    // Where the push opens, when not the case's Overview: its Tasks page.
+    url?: string | undefined;
   }): Promise<Array<SecurityCaseRecipient>> {
     const notified: Array<SecurityCaseRecipient> = [];
 
@@ -1562,7 +2169,7 @@ export default class SecurityCaseNotifications {
           PushNotificationUtil.createSecurityCaseNotification({
             title: message.pushTitle,
             body: message.pushBody,
-            caseViewLink: data.facts.url,
+            caseViewLink: data.url || data.facts.url,
             type: message.pushType,
             securityCaseId: data.facts.caseId.toString(),
             projectId: data.facts.projectId.toString(),

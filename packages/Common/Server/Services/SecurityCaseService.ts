@@ -142,6 +142,8 @@ interface CaseStateBeforeUpdate {
   targets: SecurityCaseTargetMoments;
   nextDueAt: Date | null;
   nextTargetCheckAt: Date | null;
+  // The setup test's case has no targets (isSetupTestCase).
+  groupingKey: string | undefined;
 }
 
 // The case columns its response targets are read from, as a hook reads them.
@@ -415,12 +417,15 @@ export class Service extends ProjectReferencesService<Model> {
       priority,
     });
 
-    for (const [column, value] of Object.entries({
-      ...dueTimes,
-      ...bookkeeping,
-    })) {
-      if (value) {
-        data.setColumnValue(column, value);
+    // The setup test's case is a rehearsal: it has no targets to miss.
+    if (!isSetupTestCase(data)) {
+      for (const [column, value] of Object.entries({
+        ...dueTimes,
+        ...bookkeeping,
+      })) {
+        if (value) {
+          data.setColumnValue(column, value);
+        }
       }
     }
 
@@ -555,6 +560,7 @@ export class Service extends ProjectReferencesService<Model> {
         assignedToTeamId: true,
         acknowledgedAt: true,
         containedAt: true,
+        groupingKey: true,
         ...TARGET_SELECT,
       },
     );
@@ -590,6 +596,7 @@ export class Service extends ProjectReferencesService<Model> {
         },
         nextDueAt: row.nextDueAt || null,
         nextTargetCheckAt: row.nextTargetCheckAt || null,
+        groupingKey: row.groupingKey,
       });
     }
 
@@ -895,6 +902,12 @@ export class Service extends ProjectReferencesService<Model> {
     now: Date;
   }): SecurityCaseTargetWrite {
     const { old, stamps, values, now } = input;
+
+    // The setup test's case is a rehearsal: it has no targets to move.
+    if (old.groupingKey && isSetupTestCase({ groupingKey: old.groupingKey })) {
+      return {};
+    }
+
     const priorityId: string | undefined =
       input.newPriorityId || old.priorityId;
     const priority: SecurityCasePriority | null = SecurityCasePriorities.find(
