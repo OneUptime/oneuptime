@@ -36433,5 +36433,6 @@
   "Added through the API {{time}}": "Lagt til via API-et {{time}}",
   "Expires {{time}}": "Utløper {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "Etter dette ser regelen det igjen. La feltet stå tomt for å beholde unntaket til noen sletter det.",
-  "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Hindre at denne regelen utløses av noe du forventer, for eksempel en skanner, en sikkerhetskopijobb eller en planlagt test."
+  "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Hindre at denne regelen utløses av noe du forventer, for eksempel en skanner, en sikkerhetskopijobb eller en planlagt test.",
+  "Step-by-step guides": "Trinnvise veiledninger"
 }

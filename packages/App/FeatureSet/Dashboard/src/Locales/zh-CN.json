@@ -36433,5 +36433,6 @@
   "Added through the API {{time}}": "{{time}}通过 API 添加",
   "Expires {{time}}": "{{time}}到期",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "此后规则会再次检测到它。留空则保留该例外，直到有人将其删除。",
-  "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "不让此规则因预期内的情况而触发，例如扫描器、备份任务或计划内测试。"
+  "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "不让此规则因预期内的情况而触发，例如扫描器、备份任务或计划内测试。",
+  "Step-by-step guides": "分步指南"
 }

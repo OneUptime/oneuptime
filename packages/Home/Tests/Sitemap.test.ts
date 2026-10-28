@@ -332,7 +332,7 @@ describe("Sitemap page-count pagination", () => {
 });
 
 describe("the sitemap index", () => {
-  test("lists the pages, comparisons, blog, docs and API reference sitemaps, and no tag sitemap", async () => {
+  test("lists the pages, comparisons, integrations, blog, docs and API reference sitemaps, and no tag sitemap", async () => {
     const mod: SitemapModule = loadSitemap({
       posts: postsFrom(1500, "2026-10-01"),
     });
@@ -341,6 +341,7 @@ describe("the sitemap index", () => {
     expect(elementsOf(xml, "sitemap").map(locOf)).toEqual([
       `${HOME_URL}/sitemap-pages.xml`,
       `${HOME_URL}/sitemap-compare.xml`,
+      `${HOME_URL}/sitemap-integrations.xml`,
       `${HOME_URL}/sitemap-blog-1.xml`,
       `${HOME_URL}/sitemap-blog-2.xml`,
       `${HOME_URL}${DOCS_SITEMAP_PATH}`,
@@ -368,6 +369,7 @@ describe("the sitemap index", () => {
     expect(lastmods).toEqual({
       [`${HOME_URL}/sitemap-pages.xml`]: null,
       [`${HOME_URL}/sitemap-compare.xml`]: null,
+      [`${HOME_URL}/sitemap-integrations.xml`]: null,
       // Posts 1-1000 start on 1 October; posts 1001-1500 a thousand days before.
       [`${HOME_URL}/sitemap-blog-1.xml`]: "2026-10-01T00:00:00.000Z",
       [`${HOME_URL}/sitemap-blog-2.xml`]: new Date(

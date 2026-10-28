@@ -449,6 +449,13 @@ describe("every routed template writes its head from PageSEO", () => {
         continue;
       }
 
+      if (route === "/integrations/opentelemetry/:framework") {
+        expect(body).toMatch(
+          /getSEOForPath\(\s*`\/integrations\/opentelemetry\/\$\{slug\}`/,
+        );
+        continue;
+      }
+
       expect([
         route,
         new RegExp(`getSEOForPath\\(\\s*"${escapeRegExp(route)}"`).test(body),

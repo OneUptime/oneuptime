@@ -36433,5 +36433,6 @@
   "Added through the API {{time}}": "API로 추가됨, {{time}}",
   "Expires {{time}}": "{{time}} 만료",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "이 시각이 지나면 규칙이 다시 감지합니다. 누군가 삭제할 때까지 예외를 유지하려면 비워 두세요.",
-  "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "스캐너, 백업 작업, 계획된 테스트처럼 예상된 일로 이 규칙이 발생하지 않게 합니다."
+  "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "스캐너, 백업 작업, 계획된 테스트처럼 예상된 일로 이 규칙이 발생하지 않게 합니다.",
+  "Step-by-step guides": "단계별 가이드"
 }

@@ -36433,5 +36433,6 @@
   "Added through the API {{time}}": "Hinzugefügt über die API {{time}}",
   "Expires {{time}}": "Läuft ab {{time}}",
   "After this, the rule sees it again. Leave it empty to keep the exception until someone deletes it.": "Danach sieht die Regel es wieder. Lassen Sie das Feld leer, um die Ausnahme zu behalten, bis jemand sie löscht.",
-  "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Verhindern Sie, dass diese Regel bei etwas Erwartetem auslöst, etwa bei einem Scanner, einem Backup-Job oder einem geplanten Test."
+  "Stop this rule from firing on something you expect, such as a scanner, a backup job or a planned test.": "Verhindern Sie, dass diese Regel bei etwas Erwartetem auslöst, etwa bei einem Scanner, einem Backup-Job oder einem geplanten Test.",
+  "Step-by-step guides": "Schritt-für-Schritt-Anleitungen"
 }
