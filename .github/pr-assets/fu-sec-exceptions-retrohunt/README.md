@@ -13,7 +13,9 @@ narrower than production: its 1344-pixel window is a 1280 laptop.
   status pill, how far off ("Expires in a month", "Starts in 21 hours", "2 days
   ago") with the date under the pointer, not a date broken over two lines that
   repeated its pill's word ("Ended Oct 6, 4:00 PM" under Ended); a window's
-  times and "6 days ago" never break inside.
+  times and "6 days ago" never break inside; a long host pattern breaks after
+  its own dots or a hyphen ("*.lab.acme-" / "commerce.example"), not at the
+  letter that filled the column ("*.lab.acme-commerc" / "e.example").
 - `list-1280-de-*`: the same in German. The Status column ran under the row's
   sticky Edit; the list now fits its card, as it does in Russian and French.
 - `edit-expired-*`: Edit on an exception that expired, its reason changed,
