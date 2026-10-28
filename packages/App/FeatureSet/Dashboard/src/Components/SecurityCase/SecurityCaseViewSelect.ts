@@ -29,6 +29,11 @@ export const SECURITY_CASE_VIEW_SELECT: Select<SecurityCase> = {
   containedAt: true,
   closedAt: true,
   createdAt: true,
+  // Its response targets: the header's chip and the Overview's figures.
+  acknowledgeDueAt: true,
+  containDueAt: true,
+  acknowledgeMissedAt: true,
+  containMissedAt: true,
   incidentId: true,
   incident: {
     _id: true,

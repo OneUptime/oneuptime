@@ -59,6 +59,12 @@ const FILE_REFERENCES_ADDED_LATER: Array<string> = [
   '{"table":"PacketCapture","fileIdColumn":"fileId","owner":null}',
   // A status page's dark theme logo is uploaded with the page's project.
   '{"table":"StatusPage","fileIdColumn":"darkThemeLogoFileId","owner":null}',
+  /*
+   * A file kept as evidence on a security case is uploaded with the case's
+   * project, and only that project's files are taken
+   * (SecurityCaseEvidenceService).
+   */
+  '{"table":"SecurityCaseEvidence","fileIdColumn":"fileId","owner":null}',
 ];
 const MARKDOWN_COLUMNS_ADDED_LATER: Array<string> = [
   // Security cases and their detections and notes came after the backfill.

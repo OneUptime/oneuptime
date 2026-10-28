@@ -216,16 +216,16 @@ Every resource is a command: `oneuptime <resource> <subcommand>`. Resources are 
 
 Records take `list`, `get`, `create`, `update`, `delete` and `count`:
 
-| Area                  | Commands                                                                                                                                                              |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Monitoring            | `monitor`, `monitor-status`, `monitor-status-event`                                                                                                                   |
-| Incidents             | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status` |
-| Alerts                | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note`                                                                               |
-| Status pages          | `status-page`, `status-page-announcement`                                                                                                                             |
-| Scheduled maintenance | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline`                                                                  |
-| Teams and on-call     | `team`, `on-call-policy`                                                                                                                                              |
-| Security              | `security-case`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-detection`, `security-playbook`                                    |
-| Labels                | `label`                                                                                                                                                               |
+| Area                  | Commands                                                                                                                                                                           |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Monitoring            | `monitor`, `monitor-status`, `monitor-status-event`                                                                                                                                |
+| Incidents             | `incident`, `incident-state`, `incident-severity`, `incident-state-timeline`, `incident-public-note`, `incident-internal-note`, `incident-alert`, `postmortem-status`              |
+| Alerts                | `alert`, `alert-state`, `alert-severity`, `alert-state-timeline`, `alert-internal-note`                                                                                            |
+| Status pages          | `status-page`, `status-page-announcement`                                                                                                                                          |
+| Scheduled maintenance | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline`                                                                               |
+| Teams and on-call     | `team`, `on-call-policy`                                                                                                                                                           |
+| Security              | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
+| Labels                | `label`                                                                                                                                                                            |
 
 Telemetry takes `list`, `create` and `count`:
 

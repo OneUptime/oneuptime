@@ -55,6 +55,9 @@ export function buildTestPriority(data: {
   level?: SecurityCasePriorityLevel | undefined;
   isArchived?: boolean | undefined;
   projectId?: ObjectID | undefined;
+  // Its response targets (SecurityCaseTargets); none unless given.
+  acknowledgeWithinInMinutes?: number | undefined;
+  containWithinInMinutes?: number | undefined;
 }): SecurityCasePriority {
   const priority: SecurityCasePriority = new SecurityCasePriority();
   priority._id = data.id;
@@ -65,6 +68,14 @@ export function buildTestPriority(data: {
 
   if (data.projectId) {
     priority.projectId = data.projectId;
+  }
+
+  if (data.acknowledgeWithinInMinutes !== undefined) {
+    priority.acknowledgeWithinInMinutes = data.acknowledgeWithinInMinutes;
+  }
+
+  if (data.containWithinInMinutes !== undefined) {
+    priority.containWithinInMinutes = data.containWithinInMinutes;
   }
 
   const fallback: DefaultSecurityCasePriority | undefined =
@@ -150,6 +161,34 @@ export function buildDefaultTestPriorities(
         order: value.order,
         level: value.level,
         projectId,
+      });
+    },
+  );
+}
+
+/*
+ * A new project's five priorities with the response targets a new project
+ * starts with (DEFAULT_SECURITY_CASE_PRIORITIES): Critical 15 minutes and 4
+ * hours, High an hour and a day, and so on. The suites above that build
+ * priorities without targets read as a project made before targets.
+ */
+export function buildDefaultTestPrioritiesWithTargets(
+  projectId?: ObjectID | undefined,
+): Array<SecurityCasePriority> {
+  return DEFAULT_SECURITY_CASE_PRIORITIES.map(
+    (value: DefaultSecurityCasePriority): SecurityCasePriority => {
+      return buildTestPriority({
+        id: TEST_PRIORITY_IDS[value.level],
+        name: value.name,
+        order: value.order,
+        level: value.level,
+        projectId,
+        ...(value.acknowledgeWithinInMinutes !== null
+          ? { acknowledgeWithinInMinutes: value.acknowledgeWithinInMinutes }
+          : {}),
+        ...(value.containWithinInMinutes !== null
+          ? { containWithinInMinutes: value.containWithinInMinutes }
+          : {}),
       });
     },
   );

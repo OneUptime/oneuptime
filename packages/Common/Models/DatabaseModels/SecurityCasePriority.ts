@@ -351,6 +351,48 @@ export default class SecurityCasePriority extends BaseModel {
   public order?: number = undefined;
 
   /*
+   * RESPONSE TARGETS: how fast a case at this priority must be taken on
+   * and contained (Common/Utils/SecurityCase/SecurityCaseTargets). A case's
+   * due times are set from them when it opens, and move when its priority
+   * changes; one about to miss a target, or missing it, tells the people on
+   * it. Empty: no target. A new project's built-in priorities start with
+   * targets (DEFAULT_SECURITY_CASE_PRIORITIES); a project made before them
+   * has none until somebody sets them, under Security Events > Settings >
+   * Response Targets.
+   */
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Acknowledge Within (Minutes)",
+    description:
+      "How long a case at this priority may wait for somebody to take it on, in minutes, from when it opens. Empty for no target.",
+    example: 15,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public acknowledgeWithinInMinutes?: number = undefined;
+
+  @ColumnAccessControl(editableColumnAccess)
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Contain Within (Minutes)",
+    description:
+      "How long a case at this priority may take to be contained or closed, in minutes, from when it opens. Empty for no target.",
+    example: 240,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: true,
+  })
+  public containWithinInMinutes?: number = undefined;
+
+  /*
    * Archiving retires a value without touching a record that has it: it
    * stays on them, and nobody can pick it again (Common/Utils/ArchivableValues;
    * the server refuses it in ArchivedValueCheck). No permission of its own:

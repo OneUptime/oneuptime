@@ -194,7 +194,7 @@ oneuptime <resource> count [--query <json>] [-o <format>]
 | 状态页面 | `status-page`, `status-page-announcement` |
 | 计划维护 | `scheduled-maintenance-event`, `scheduled-maintenance-state`, `scheduled-maintenance-state-timeline` |
 | 团队与值班 | `team`, `on-call-policy` |
-| 安全 | `security-case`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-detection`, `security-playbook` |
+| 安全 | `security-case`, `security-case-evidence`, `security-case-note`, `security-case-priority`, `security-case-status`, `security-case-task`, `security-detection`, `security-playbook` |
 | 标签 | `label` |
 
 遥测数据支持 `list`、`create` 和 `count`：

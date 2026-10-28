@@ -41,7 +41,7 @@ The server is stateless: it issues no session ids, and every request stands on i
 - **Scheduled maintenance**: create and manage maintenance events.
 - **Telemetry**: query logs, metrics, traces, exceptions, monitor logs, security events and more, read-only.
 
-There are create, get, list, update, delete and count tools for 30 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. Read-only tools carry `readOnlyHint`, every tool that changes something carries `destructiveHint`, and only the public status page tools carry `openWorldHint`, so a client can run read-only calls on its own and ask you before any change. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
+There are create, get, list, update, delete and count tools for 32 kinds of record, list and count tools for 9 kinds of telemetry, and tools made for incident response. Read-only tools carry `readOnlyHint`, every tool that changes something carries `destructiveHint`, and only the public status page tools carry `openWorldHint`, so a client can run read-only calls on its own and ask you before any change. A failed tool call comes back as a tool result (`isError: true`) with a `statusCode`, the details and a suggestion, not as an MCP protocol error, so the agent can read the failure and correct itself.
 
 ## Before you begin
 
@@ -479,7 +479,7 @@ The MCP server is stateless: it neither issues nor tracks session ids, so every 
 | Scheduled maintenance | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | Teams and on-call | Team, On-Call Policy |
 | Labels | Label |
-| Security | Security Case, Security Case Note, Security Case Priority, Security Case Status, Security Detection, Security Playbook |
+| Security | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 
 | Area | Telemetry with list and count tools only |
 | --- | --- |

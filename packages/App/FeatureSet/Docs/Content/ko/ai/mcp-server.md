@@ -41,7 +41,7 @@ flowchart TB
 - **예정된 유지 관리**: 유지 관리 이벤트를 만들고 관리합니다.
 - **텔레메트리**: 로그, 메트릭, 트레이스, 예외, 모니터 로그, 보안 이벤트 등을 조회합니다(읽기 전용).
 
-30가지 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구와 9가지 텔레메트리에 대한 목록과 개수 도구, 그리고 인시던트 대응을 위한 도구가 있습니다. 읽기 전용 도구에는 `readOnlyHint` 가, 무언가를 바꾸는 모든 도구에는 `destructiveHint` 가, 공개 상태 페이지 도구에만 `openWorldHint` 가 붙어 있어 클라이언트는 읽기 전용 호출은 스스로 실행하고 무언가를 바꾸기 전에는 사용자에게 물어볼 수 있습니다. 실패한 도구 호출은 MCP 프로토콜 오류가 아니라 `statusCode`, 세부 정보, 제안이 담긴 도구 결과(`isError: true`)로 돌아오므로, 에이전트는 실패 내용을 읽고 스스로 바로잡을 수 있습니다.
+32가지 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구와 9가지 텔레메트리에 대한 목록과 개수 도구, 그리고 인시던트 대응을 위한 도구가 있습니다. 읽기 전용 도구에는 `readOnlyHint` 가, 무언가를 바꾸는 모든 도구에는 `destructiveHint` 가, 공개 상태 페이지 도구에만 `openWorldHint` 가 붙어 있어 클라이언트는 읽기 전용 호출은 스스로 실행하고 무언가를 바꾸기 전에는 사용자에게 물어볼 수 있습니다. 실패한 도구 호출은 MCP 프로토콜 오류가 아니라 `statusCode`, 세부 정보, 제안이 담긴 도구 결과(`isError: true`)로 돌아오므로, 에이전트는 실패 내용을 읽고 스스로 바로잡을 수 있습니다.
 
 ## 시작하기 전에
 
@@ -479,7 +479,7 @@ MCP 서버는 상태를 저장하지 않습니다. 세션 ID를 발급하지도 
 | 예정된 유지 관리 | Scheduled Maintenance Event, Scheduled Maintenance State, Scheduled Maintenance State Timeline |
 | 팀과 온콜 | Team, On-Call Policy |
 | 레이블 | Label |
-| 보안 | Security Case, Security Case Note, Security Case Priority, Security Case Status, Security Detection, Security Playbook |
+| 보안 | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 
 | 분야 | 목록과 개수 도구만 있는 텔레메트리 |
 | --- | --- |

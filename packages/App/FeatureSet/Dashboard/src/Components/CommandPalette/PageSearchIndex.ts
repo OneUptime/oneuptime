@@ -2109,6 +2109,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             ],
           },
           {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_RESPONSE_TARGETS,
+            title: "Response Targets",
+            icon: IconProp.Clock,
+            keywords: [
+              "sla",
+              "case sla",
+              "time to acknowledge",
+              "time to contain",
+              "breach",
+            ],
+          },
+          {
             page: PageMap.SECURITY_EVENTS_SETTINGS_CASE_STATUSES,
             title: "Case Statuses",
             icon: IconProp.ArrowCircleRight,
