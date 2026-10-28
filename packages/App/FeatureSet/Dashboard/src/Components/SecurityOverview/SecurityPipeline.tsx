@@ -80,9 +80,15 @@ export const SECURITY_PIPELINE_CONTAINER_CLASS_NAME: string =
 export const SECURITY_PIPELINE_GRID_CLASS_NAME: string =
   "grid grid-cols-1 gap-px border-t border-gray-200 bg-gray-200 [@container(min-width:25rem)]:grid-cols-2 [@container(min-width:51rem)]:grid-cols-4";
 
-// The chevron between two cells: only while the four share one row.
+/*
+ * The chevron between two cells: only while the four share one row - shown,
+ * and hidden while the pipeline is narrower than the step that puts the four
+ * on one row. Never the bare `hidden` with a variant to show it again: a
+ * foreign `.hidden{display:none !important}` rule (Bootstrap's, an
+ * extension's) would keep it hidden at every width (ForeignHiddenRuleGuard).
+ */
 export const SECURITY_PIPELINE_ARROW_SHOWN_CLASS_NAME: string =
-  "hidden [@container(min-width:51rem)]:flex";
+  "flex [@container(max-width:50.99rem)]:hidden";
 
 /*
  * The Overview's pipeline: how Security works in this project, left to

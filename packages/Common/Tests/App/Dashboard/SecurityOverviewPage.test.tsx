@@ -1220,8 +1220,7 @@ describe("when Turn on recommended cannot do everything", () => {
 // A grid's columns set by the window's breakpoints.
 const WINDOW_GRID_COLUMNS: RegExp = /(^| )(sm|md|lg|xl):grid-cols-/;
 
-// A chevron's display at every width, or hidden by the window's width.
-const SHOWN_AT_EVERY_WIDTH: RegExp = /(^| )flex( |$)/;
+// A chevron hidden by the window's width rather than the pipeline's.
 const WINDOW_HIDDEN: RegExp = /(^| )max-(sm|md|lg|xl):hidden( |$)/;
 
 // One of the pipeline's container steps: "[@container(min-width:25rem)]:grid-cols-2".
@@ -1341,16 +1340,23 @@ describe("the pipeline", () => {
     for (const arrow of arrows) {
       expect(arrow).toHaveAttribute("aria-hidden", "true");
       expect(arrow).toHaveClass(
-        "hidden",
-        "[@container(min-width:51rem)]:flex",
+        "flex",
+        "[@container(max-width:50.99rem)]:hidden",
         "pointer-events-none",
       );
       expect(arrow.className).toContain(
         SECURITY_PIPELINE_ARROW_SHOWN_CLASS_NAME,
       );
-      // Shown only by the step that puts the four on one row.
-      expect(arrow.className).not.toMatch(SHOWN_AT_EVERY_WIDTH);
+      /*
+       * Hidden below the step that puts the four on one row (51rem) and
+       * shown from it - never the bare `hidden` a variant shows again,
+       * which a foreign `.hidden` rule would keep hidden at every width.
+       */
+      expect(arrow).not.toHaveClass("hidden");
       expect(arrow.className).not.toMatch(WINDOW_HIDDEN);
+      expect(SECURITY_PIPELINE_GRID_CLASS_NAME).toContain(
+        "[@container(min-width:51rem)]:grid-cols-4",
+      );
       /*
        * On the cell's end edge and pointing on, in either reading
        * direction: the left edge, pointing left, in a right-to-left page.
